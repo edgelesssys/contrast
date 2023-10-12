@@ -25,6 +25,11 @@ type server struct {
 	cookieToTEEPubKey map[string]*jose.JSONWebKey
 	cookieToNonce     map[string]string
 	privKey           *rsa.PrivateKey
+	certGen           meshCertGenerator
+}
+
+type meshCertGenerator interface {
+	NewMeshCert() ([]byte, []byte, error)
 }
 
 func NewHandler() (*server, error) {
@@ -55,7 +60,7 @@ func (s *server) newHandler() *mux.Router {
 	r := mux.NewRouter()
 	r.HandleFunc("/kbs/v0/resource/{repository}/{type}/{tag}", s.GetResourceHandler).Methods(http.MethodGet)
 	r.HandleFunc("/kbs/v0/auth", s.AuthHandler).Methods(http.MethodPost)
-	r.HandleFunc("/kbs/v0/attest", s.AttestHandler)
+	r.HandleFunc("/kbs/v0/attest", s.AttestHandler).Methods(http.MethodPost)
 	// We don't implement the following calls of the KBS API.
 	r.HandleFunc("/kbs/v0/attestation-policy", s.NotImplementedHandler)
 	r.HandleFunc("/kbs/v0/token-certificate-chain", s.NotImplementedHandler)
@@ -64,34 +69,62 @@ func (s *server) newHandler() *mux.Router {
 
 func (s *server) GetResourceHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("GetResourceHandler called")
-	cookie := r.Header.Get("Cookie")
-	log.Printf("cookie: %q\n", cookie)
+	sessionIDCookie, err := r.Cookie(sessionIDCookieName)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	log.Printf("%s: %q\n", sessionIDCookieName, sessionIDCookie.Value)
+
+	teePubKey, ok := s.cookieToTEEPubKey[sessionIDCookie.Value]
+	if !ok {
+		http.Error(w, "invalid session cookie", http.StatusUnauthorized)
+		return
+	}
 
 	vars := mux.Vars(r)
 	repository := vars["repository"]
 	resourceType := vars["type"]
 	tag := vars["tag"]
-	log.Printf("repository: %q, type: %q, tag: %q\n", repository, resourceType, tag)
-
-	teePubKey, ok := s.cookieToTEEPubKey[cookie]
-	if !ok {
-		panic("no tee key found")
-	}
+	log.Printf("request path: repository: %q, type: %q, tag: %q\n", repository, resourceType, tag)
 
 	recipient := jose.Recipient{Algorithm: jose.RSA_OAEP, Key: teePubKey}
 	encrypter, err := jose.NewEncrypter(jose.A128GCM, recipient, nil)
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	plaintext := []byte("Lorem ipsum dolor sit amet")
-	object, err := encrypter.Encrypt(plaintext)
+
+	cert, key, err := s.certGen.NewMeshCert()
 	if err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	meshID := struct {
+		cert []byte
+		key  []byte
+	}{
+		cert: cert,
+		key:  key,
+	}
+
+	meshIDJSON, err := json.Marshal(meshID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	object, err := encrypter.Encrypt(meshIDJSON)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	serialized := object.FullSerialize()
 
 	if _, err := w.Write([]byte(serialized)); err != nil {
-		panic(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 

@@ -10,10 +10,68 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/katexochen/coordinator-kbs/ca"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.step.sm/crypto/jose"
 )
+
+func TestResourceHandler(t *testing.T) {
+	testCases := map[string]struct {
+		server     *server
+		reqCookie  *http.Cookie
+		wantStatus int
+	}{
+		"valid request": {
+			server: &server{
+				cookieToTEEPubKey: map[string]*jose.JSONWebKey{"foo": genJWK()},
+				cookieToNonce:     make(map[string]string),
+				certGen:           mustVal(ca.NewCA()),
+			},
+			reqCookie:  &http.Cookie{Name: sessionIDCookieName, Value: "foo"},
+			wantStatus: http.StatusOK,
+		},
+		"no cookie": {
+			server: &server{
+				cookieToTEEPubKey: make(map[string]*jose.JSONWebKey),
+				cookieToNonce:     make(map[string]string),
+			},
+			wantStatus: http.StatusBadRequest,
+		},
+		"unknown cookie": {
+			server: &server{
+				cookieToTEEPubKey: make(map[string]*jose.JSONWebKey),
+				cookieToNonce:     make(map[string]string),
+			},
+			reqCookie:  &http.Cookie{Name: sessionIDCookieName, Value: "unknown"},
+			wantStatus: http.StatusUnauthorized,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			server := httptest.NewServer(tc.server.newHandler())
+			defer server.Close()
+			client := server.Client()
+
+			req, err := http.NewRequest(http.MethodGet, server.URL+"/kbs/v0/resource/foo/bar/batz", http.NoBody)
+			require.NoError(err)
+			if tc.reqCookie != nil {
+				req.AddCookie(tc.reqCookie)
+			}
+			resp, err := client.Do(req)
+			require.NoError(err)
+
+			assert.Equal(tc.wantStatus, resp.StatusCode)
+			if tc.wantStatus != http.StatusOK {
+				return
+			}
+		})
+	}
+}
 
 func TestAuthHandler(t *testing.T) {
 	testCases := map[string]struct {
@@ -90,7 +148,7 @@ func TestAttestHandler(t *testing.T) {
 		"successfull attestation": {
 			server: server{
 				cookieToTEEPubKey: make(map[string]*jose.JSONWebKey),
-				privKey:           genTestPrivKey(),
+				privKey:           genPrivKey(),
 				cookieToNonce:     map[string]string{sessionIDCookieName: "someNonce"},
 			},
 			req: testRequest{
@@ -176,7 +234,7 @@ func TestUnimplemented(t *testing.T) {
 	}
 }
 
-func genTestPrivKey() *rsa.PrivateKey {
+func genPrivKey() *rsa.PrivateKey {
 	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		panic(err)
@@ -184,8 +242,21 @@ func genTestPrivKey() *rsa.PrivateKey {
 	return privKey
 }
 
+func genJWK() *jose.JSONWebKey {
+	privKey := genPrivKey()
+	jwk := jose.JSONWebKey{Key: privKey.Public(), KeyID: "someKeyID"}
+	return &jwk
+}
+
 type testRequest struct {
 	method string
 	body   string
 	cookie *http.Cookie
+}
+
+func mustVal[T any](val T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return val
 }
