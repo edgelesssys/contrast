@@ -2,6 +2,8 @@ package kbs
 
 import (
 	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -21,16 +23,16 @@ func TestAuthHandler(t *testing.T) {
 	}{
 		"bad request": {
 			server: server{
-				teePubKeys:    make(map[string]*jose.JSONWebKey),
-				cookieToNonce: make(map[string]string),
+				cookieToTEEPubKey: make(map[string]*jose.JSONWebKey),
+				cookieToNonce:     make(map[string]string),
 			},
 			req:        testRequest{method: http.MethodPost, body: ""},
 			wantStatus: http.StatusBadRequest,
 		},
 		"empty request": {
 			server: server{
-				teePubKeys:    make(map[string]*jose.JSONWebKey),
-				cookieToNonce: make(map[string]string),
+				cookieToTEEPubKey: make(map[string]*jose.JSONWebKey),
+				cookieToNonce:     make(map[string]string),
 			},
 			req:        testRequest{method: http.MethodPost, body: "{}"},
 			wantStatus: http.StatusOK,
@@ -53,11 +55,11 @@ func TestAuthHandler(t *testing.T) {
 
 			assert.Equal(tc.wantStatus, resp.StatusCode)
 			if tc.wantStatus != http.StatusOK {
-				assert.Len(tc.server.teePubKeys, 0)
+				assert.Len(tc.server.cookieToTEEPubKey, 0)
 				assert.Len(tc.server.cookieToNonce, 0)
 				return
 			}
-			assert.Len(tc.server.teePubKeys, 0)
+			assert.Len(tc.server.cookieToTEEPubKey, 0)
 			assert.Len(tc.server.cookieToNonce, 1)
 			body, err := io.ReadAll(resp.Body)
 			assert.NoError(err)
@@ -87,36 +89,37 @@ func TestAttestHandler(t *testing.T) {
 	}{
 		"successfull attestation": {
 			server: server{
-				teePubKeys:    make(map[string]*jose.JSONWebKey),
-				cookieToNonce: map[string]string{sessionIDCookieName: "someNonce"},
+				cookieToTEEPubKey: make(map[string]*jose.JSONWebKey),
+				privKey:           genTestPrivKey(),
+				cookieToNonce:     map[string]string{sessionIDCookieName: "someNonce"},
 			},
 			req: testRequest{
 				method: http.MethodPost,
-				body:   `{"teePubKey":{"kty":"EC","crv":"P-256","x":"x","y":"y"}}`,
+				body:   `{"tee-pubkey":{"use":"sig","kty":"EC","kid":"_pmROS94lb42QYA2ZWLt6sHITkInru_sJSkF8IqxonA","crv":"P-256","alg":"ES256","x":"mTwy33-eUlbI7uR1pG-SQzEaOHVvMB1aW0mTJKuRnXQ","y":"uK3u9tcDbSr4VoO4J1BaFh0ttZ6aEykbsiwEpvtw3BA"}}`,
 				cookie: &http.Cookie{Name: sessionIDCookieName, Value: sessionIDCookieName},
 			},
 			wantStatus: http.StatusOK,
 		},
-		// "no cookie": {
-		// 	server: server{
-		// 		teePubKeys:    make(map[string]*jose.JSONWebKey),
-		// 		cookieToNonce: make(map[string]string),
-		// 	},
-		// 	req:        testRequest{method: http.MethodPost, body: ""},
-		// 	wantStatus: http.StatusBadRequest,
-		// },
-		// "unknown cookie": {
-		// 	server: server{
-		// 		teePubKeys:    make(map[string]*jose.JSONWebKey),
-		// 		cookieToNonce: make(map[string]string),
-		// 	},
-		// 	req: testRequest{
-		// 		method: http.MethodPost,
-		// 		body:   "",
-		// 		cookie: http.Cookie{Name: sessionIDCookieName, Value: "someValue"},
-		// 	},
-		// 	wantStatus: http.StatusBadRequest,
-		// },
+		"no cookie": {
+			server: server{
+				cookieToTEEPubKey: make(map[string]*jose.JSONWebKey),
+				cookieToNonce:     make(map[string]string),
+			},
+			req:        testRequest{method: http.MethodPost, body: ""},
+			wantStatus: http.StatusBadRequest,
+		},
+		"unknown cookie": {
+			server: server{
+				cookieToTEEPubKey: make(map[string]*jose.JSONWebKey),
+				cookieToNonce:     make(map[string]string),
+			},
+			req: testRequest{
+				method: http.MethodPost,
+				body:   "",
+				cookie: &http.Cookie{Name: sessionIDCookieName, Value: "someValue"},
+			},
+			wantStatus: http.StatusBadRequest,
+		},
 	}
 
 	for name, tc := range testCases {
@@ -137,10 +140,48 @@ func TestAttestHandler(t *testing.T) {
 			require.NoError(err)
 
 			assert.Equal(tc.wantStatus, resp.StatusCode)
-			assert.Len(tc.server.teePubKeys, 0)
+			if tc.wantStatus == http.StatusOK {
+				assert.Len(tc.server.cookieToTEEPubKey, 1)
+				assert.Len(tc.server.cookieToNonce, 1)
+				return
+			}
+			assert.Len(tc.server.cookieToTEEPubKey, 0)
 			assert.Len(tc.server.cookieToNonce, 0)
 		})
 	}
+}
+
+func TestUnimplemented(t *testing.T) {
+	testCases := []string{
+		"/kbs/v0/attestation-policy",
+		"/kbs/v0/token-certificate-chain",
+	}
+
+	for _, path := range testCases {
+		t.Run(path, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			server := httptest.NewServer((&server{}).newHandler())
+			defer server.Close()
+			client := server.Client()
+
+			req, err := http.NewRequest(http.MethodGet, server.URL+path, nil)
+			require.NoError(err)
+			resp, err := client.Do(req)
+			require.NoError(err)
+
+			assert.Equal(http.StatusNotImplemented, resp.StatusCode)
+		})
+	}
+}
+
+func genTestPrivKey() *rsa.PrivateKey {
+	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		panic(err)
+	}
+	return privKey
 }
 
 type testRequest struct {

@@ -22,9 +22,9 @@ import (
 type server struct {
 	http.Handler
 
-	teePubKeys    map[string]*jose.JSONWebKey
-	cookieToNonce map[string]string
-	privKey       *rsa.PrivateKey
+	cookieToTEEPubKey map[string]*jose.JSONWebKey
+	cookieToNonce     map[string]string
+	privKey           *rsa.PrivateKey
 }
 
 func NewHandler() (*server, error) {
@@ -42,9 +42,9 @@ func NewHandler() (*server, error) {
 	fmt.Println(string(pemdata))
 
 	server := &server{
-		teePubKeys:    make(map[string]*jose.JSONWebKey),
-		cookieToNonce: make(map[string]string),
-		privKey:       privateKey,
+		cookieToTEEPubKey: make(map[string]*jose.JSONWebKey),
+		cookieToNonce:     make(map[string]string),
+		privKey:           privateKey,
 	}
 	server.Handler = server.newHandler()
 
@@ -56,8 +56,9 @@ func (s *server) newHandler() *mux.Router {
 	r.HandleFunc("/kbs/v0/resource/{repository}/{type}/{tag}", s.GetResourceHandler).Methods(http.MethodGet)
 	r.HandleFunc("/kbs/v0/auth", s.AuthHandler).Methods(http.MethodPost)
 	r.HandleFunc("/kbs/v0/attest", s.AttestHandler)
-	r.HandleFunc("/kbs/v0/attestation-policy", s.AttestationPolicyHandler)
-	r.HandleFunc("/kbs/v0/token-certificate-chain", s.TokenCertificateCainHandler)
+	// We don't implement the following calls of the KBS API.
+	r.HandleFunc("/kbs/v0/attestation-policy", s.NotImplementedHandler)
+	r.HandleFunc("/kbs/v0/token-certificate-chain", s.NotImplementedHandler)
 	return r
 }
 
@@ -72,7 +73,7 @@ func (s *server) GetResourceHandler(w http.ResponseWriter, r *http.Request) {
 	tag := vars["tag"]
 	log.Printf("repository: %q, type: %q, tag: %q\n", repository, resourceType, tag)
 
-	teePubKey, ok := s.teePubKeys[cookie]
+	teePubKey, ok := s.cookieToTEEPubKey[cookie]
 	if !ok {
 		panic("no tee key found")
 	}
@@ -156,15 +157,17 @@ func (s *server) AttestHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid TEE pub key", http.StatusBadRequest)
 		return
 	}
-	s.teePubKeys[sessionIDCookie.Value] = &req.TEEPubKey
+	s.cookieToTEEPubKey[sessionIDCookie.Value] = &req.TEEPubKey
 
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodRS256,
 		jwt.MapClaims{
-			"exp":        time.Now().Add(time.Hour * 72).Unix(),
-			"iat":        time.Now().Unix(),
-			"iss":        "coco-fake-kbs",
-			"tee-pubkey": "foo",
+			"exp":               time.Now().Add(time.Hour * 72).Unix(),
+			"iat":               time.Now().Unix(),
+			"iss":               "coordinator-kbs",
+			"tee-pubkey":        "pub",
+			"tcb-status":        "claims",
+			"evaluation-report": "report",
 		},
 	)
 
@@ -184,23 +187,10 @@ func (s *server) AttestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) AttestationPolicyHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("PolicyHandler called")
-	log.Printf("cookie: %q\n", r.Header.Get("Cookie"))
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		panic(err)
-	}
-	log.Printf("body: %s\n", string(body))
-
-	w.Header().Set("Content-Type", "application/json")
-}
-
-func (s *server) TokenCertificateCainHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("TokenCertificateCainHandler called")
-	log.Printf("cookie: %q\n", r.Header.Get("Cookie"))
-
-	w.Header().Set("Content-Type", "application/json")
+func (s *server) NotImplementedHandler(w http.ResponseWriter, r *http.Request) {
+	err := fmt.Errorf("%s not implemented", r.URL.Path)
+	log.Println(err)
+	http.Error(w, err.Error(), http.StatusNotImplemented)
 }
 
 type Request struct {
