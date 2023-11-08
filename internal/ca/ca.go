@@ -21,7 +21,7 @@ type CA struct {
 	intermPEM     []byte
 }
 
-func NewCA() (*CA, error) {
+func New() (*CA, error) {
 	root := &x509.Certificate{
 		SerialNumber: big.NewInt(2019),
 		Subject: pkix.Name{

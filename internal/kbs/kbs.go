@@ -32,7 +32,7 @@ type meshCertGenerator interface {
 	NewMeshCert() ([]byte, []byte, error)
 }
 
-func NewHandler() (*server, error) {
+func NewHandler(ca meshCertGenerator) (*server, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, err
@@ -50,6 +50,7 @@ func NewHandler() (*server, error) {
 		cookieToTEEPubKey: make(map[string]*jose.JSONWebKey),
 		cookieToNonce:     make(map[string]string),
 		privKey:           privateKey,
+		certGen:           ca,
 	}
 	server.Handler = server.newHandler()
 

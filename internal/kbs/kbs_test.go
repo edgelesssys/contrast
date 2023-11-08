@@ -26,7 +26,7 @@ func TestResourceHandler(t *testing.T) {
 			server: &server{
 				cookieToTEEPubKey: map[string]*jose.JSONWebKey{"foo": genJWK()},
 				cookieToNonce:     make(map[string]string),
-				certGen:           mustVal(ca.NewCA()),
+				certGen:           mustVal(ca.New()),
 			},
 			reqCookie:  &http.Cookie{Name: sessionIDCookieName, Value: "foo"},
 			wantStatus: http.StatusOK,
