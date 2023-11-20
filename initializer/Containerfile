@@ -1,0 +1,5 @@
+FROM fedora:38
+
+COPY ./initializer /usr/local/bin/initializer
+
+ENTRYPOINT ["/usr/local/bin/initializer"]

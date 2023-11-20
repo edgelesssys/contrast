@@ -1,0 +1,5 @@
+FROM fedora:38
+
+COPY ./coordinator-kbs /usr/local/bin/coordinator-kbs
+
+ENTRYPOINT ["/usr/local/bin/coordinator-kbs"]

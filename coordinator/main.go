@@ -9,6 +9,8 @@ import (
 )
 
 func main() {
+	log.Println("Coordinator started")
+
 	ca, err := ca.New()
 	if err != nil {
 		log.Fatalf("creating CA: %v", err)
