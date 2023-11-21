@@ -1,0 +1,14 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: coordinator-kbs
+  namespace: edg-coco
+spec:
+  runtimeClassName: kata-cc-isolation
+  containers:
+    - name: coordinator-kbs
+      image: "ghcr.io/katexochen/coordinator-kbs:latest"
+      imagePullPolicy: Always
+      securityContext:
+        privileged: true

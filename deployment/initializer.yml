@@ -1,0 +1,19 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: workload
+  namespace: edg-coco
+spec:
+  runtimeClassName: kata-cc-isolation
+  initContainers:
+    - name: initializer
+      image: "ghcr.io/katexochen/initializer:latest"
+      imagePullPolicy: Always
+  containers:
+    - name: workload
+      image: "fedora:38"
+      command:
+        - /bin/bash
+        - "-c"
+        - echo Workload started ; sleep inf
