@@ -10,6 +10,9 @@ spec:
     - name: initializer
       image: "ghcr.io/katexochen/initializer:latest"
       imagePullPolicy: Always
+      env:
+        - name: COORDINATOR_IP
+          value: coordinator-kbs.edg-coco
   containers:
     - name: workload
       image: "fedora:38"

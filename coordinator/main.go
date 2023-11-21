@@ -2,27 +2,25 @@ package main
 
 import (
 	"log"
-	"net/http"
+	"net"
 
-	"github.com/katexochen/coordinator-kbs/internal/ca"
-	"github.com/katexochen/coordinator-kbs/internal/kbs"
+	"github.com/katexochen/coordinator-kbs/internal/intercom"
+	"google.golang.org/grpc"
 )
 
 func main() {
 	log.Println("Coordinator started")
 
-	ca, err := ca.New()
+	lis, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", intercom.Port))
 	if err != nil {
-		log.Fatalf("creating CA: %v", err)
+		log.Fatalf("failed to listen: %v", err)
 	}
 
-	kbsHandler, err := kbs.NewHandler(ca)
-	if err != nil {
-		log.Fatalf("creating KBS handler: %v", err)
-	}
+	s := grpc.NewServer()
+	intercom.RegisterIntercomServer(s, &intercomServer{})
 
-	err = http.ListenAndServe(":2838", kbsHandler)
-	if err != nil {
-		log.Fatalf("serving KBS: %v", err)
+	log.Println("Coordinator listening")
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
 	}
 }

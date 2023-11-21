@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package intercom;
+
+option go_package = "github.com/katexochen/coordinator-kbs/internal/intercom";
+
+service Intercom {
+  rpc NewMeshCert(NewMeshCertRequest) returns (NewMeshCertResponse);
+}
+
+message NewMeshCertRequest {
+  string AttestationReport = 1;
+}
+
+message NewMeshCertResponse {
+}

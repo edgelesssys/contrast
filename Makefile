@@ -2,6 +2,10 @@
 .PHONY: all
 all: coordinator initializer
 
+.PHONY: protos
+protos:
+	nix shell nixpkgs#{go,protobuf,protoc-gen-go,protoc-gen-go-grpc} --command bash -c "go generate ./..."
+
 .PHONY: coordinator
 coordinator:
 	CGO_ENABLED=0 go build -o ./coordinator/coordinator-kbs ./coordinator

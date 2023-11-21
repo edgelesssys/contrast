@@ -9,6 +9,8 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/stretchr/testify v1.8.4
 	go.step.sm/crypto v0.35.0
+	google.golang.org/grpc v1.57.0
+	google.golang.org/protobuf v1.31.0
 )
 
 require (
@@ -20,8 +22,10 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/crypto v0.13.0 // indirect
+	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sys v0.12.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230726155614-23370e0ffb3e // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
