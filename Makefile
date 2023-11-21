@@ -19,3 +19,15 @@ initializer:
 		-t ghcr.io/katexochen/initializer:latest \
 		--push \
 		./initializer
+
+
+.PHONY: deploy
+deploy:
+	./tools/genpolicy.sh ./deployment/*.yml
+	kubectl apply -f ./deployment/ns.yml
+	kubectl apply -f ./deployment/coordinator.yml
+	kubectl apply -f ./deployment/initializer.yml
+
+.PHONY: undeploy
+undeploy:
+	kubectl delete -f ./deployment
