@@ -1,2 +1,4 @@
 coordinator-kbs
 initializer/initializer
+tools/genpolicy.cache/*
+!tools/genpolicy.cache/.gitkeep
