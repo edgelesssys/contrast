@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/base64"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -30,12 +29,12 @@ func main() {
 	defer snpGuestDevice.Close()
 
 	reportData := [64]byte{}
-	report, err := client.GetRawReport(snpGuestDevice, reportData)
+	reportRaw, err := client.GetRawReport(snpGuestDevice, reportData)
 	if err != nil {
 		log.Fatalf("getting extended report: %v", err)
 	}
-
-	fmt.Printf("Extended report: %v\n", report)
+	reportB64 := base64.StdEncoding.EncodeToString(reportRaw)
+	log.Printf("Report: %v", reportB64)
 
 	grpcOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -49,7 +48,7 @@ func main() {
 	client := intercom.NewIntercomClient(conn)
 
 	req := &intercom.NewMeshCertRequest{
-		AttestationReport: base64.StdEncoding.EncodeToString(report),
+		AttestationReport: reportB64,
 	}
 	resp, err := client.NewMeshCert(context.Background(), req)
 	if err != nil {

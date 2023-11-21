@@ -18,6 +18,9 @@ spec:
         - name: coordinator-kbs
           image: "ghcr.io/katexochen/coordinator-kbs:latest"
           imagePullPolicy: Always
+          env:
+            - name: MANIFEST
+              value: ewogICAgInBvbGljaWVzIjogewogICAgICAgICJ3b3JrbG9hZCI6ICIiCiAgICB9Cn0K
           ports:
             - containerPort: 7777
 ---
