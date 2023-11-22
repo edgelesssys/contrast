@@ -35,3 +35,9 @@ deploy:
 .PHONY: undeploy
 undeploy:
 	kubectl delete -f ./deployment
+
+.PHONY: clean
+clean:
+	rm -f ./coordinator/coordinator-kbs
+	rm -f ./initializer/initializer
+	rm -f ./tools/genpolicy.cache/*.{tar,gz,verify}
