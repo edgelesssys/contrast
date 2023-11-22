@@ -39,8 +39,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	log.Printf("validator: Nonce: %v", hex.EncodeToString(nonce))
 
 	reportRaw := make([]byte, base64.StdEncoding.DecodedLen(len(attDocRaw)))
-	_, err = base64.StdEncoding.Decode(reportRaw, attDocRaw)
-	if err != nil {
+	if _, err = base64.StdEncoding.Decode(reportRaw, attDocRaw); err != nil {
 		return nil, err
 	}
 	log.Printf("validator: Report raw: %v", hex.EncodeToString(reportRaw))

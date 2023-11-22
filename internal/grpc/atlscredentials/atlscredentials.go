@@ -9,6 +9,7 @@ package atlscredentials
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"errors"
 	"net"
 
@@ -20,6 +21,7 @@ import (
 type Credentials struct {
 	issuer     atls.Issuer
 	validators []atls.Validator
+	privKey    *ecdsa.PrivateKey
 }
 
 // New creates new ATLS Credentials.
@@ -30,9 +32,17 @@ func New(issuer atls.Issuer, validators []atls.Validator) *Credentials {
 	}
 }
 
+// New creates new ATLS Credentials.
+func NewWithKey(issuer atls.Issuer, validators []atls.Validator, key *ecdsa.PrivateKey) *Credentials {
+	c := &Credentials{privKey: key}
+	c.issuer = issuer
+	c.validators = validators
+	return c
+}
+
 // ClientHandshake performs the client handshake.
 func (c *Credentials) ClientHandshake(ctx context.Context, authority string, rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
-	clientCfg, err := atls.CreateAttestationClientTLSConfig(c.issuer, c.validators)
+	clientCfg, err := atls.CreateAttestationClientTLSConfig(c.issuer, c.validators, c.privKey)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/client"
 )
 
@@ -35,7 +34,7 @@ func (i *Issuer) OID() asn1.ObjectIdentifier {
 // userData is hash of issuer public key.
 // nonce from validator.
 func (i *Issuer) Issue(ctx context.Context, issuerPublicKeyHash []byte, nonce []byte) (res []byte, err error) {
-	log.Println("Issuing attestation statement")
+	log.Println("issuer: issue called")
 	defer func() {
 		if err != nil {
 			log.Printf("Failed to issue attestation statement: %s", err)
@@ -44,7 +43,7 @@ func (i *Issuer) Issue(ctx context.Context, issuerPublicKeyHash []byte, nonce []
 
 	snpGuestDevice, err := client.OpenDevice()
 	if err != nil {
-		log.Fatalf("opening device: %v", err)
+		log.Fatalf("issuer: opening device: %v", err)
 	}
 	defer snpGuestDevice.Close()
 
@@ -56,14 +55,9 @@ func (i *Issuer) Issue(ctx context.Context, issuerPublicKeyHash []byte, nonce []
 	}
 	log.Printf("issuer: Report raw: %v", hex.EncodeToString(reportRaw))
 
-	if err := abi.ValidateReportFormat(reportRaw); err != nil {
-		return nil, fmt.Errorf("validating report format: %w", err)
-	}
-	log.Println("issuer: Report format is valid")
-
 	reportB64 := make([]byte, base64.StdEncoding.EncodedLen(len(reportRaw)))
 	base64.StdEncoding.Encode(reportB64, reportRaw)
 
-	log.Println("Successfully issued attestation statement")
+	log.Println("issuer: Successfully issued attestation statement")
 	return reportB64, nil
 }

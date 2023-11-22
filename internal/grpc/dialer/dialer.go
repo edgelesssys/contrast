@@ -9,6 +9,7 @@ package dialer
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"net"
 
 	"github.com/katexochen/coordinator-kbs/internal/atls"
@@ -22,6 +23,7 @@ type Dialer struct {
 	issuer    atls.Issuer
 	validator atls.Validator
 	netDialer NetDialer
+	privKey   *ecdsa.PrivateKey
 }
 
 // New creates a new Dialer.
@@ -33,13 +35,22 @@ func New(issuer atls.Issuer, validator atls.Validator, netDialer NetDialer) *Dia
 	}
 }
 
+func NewWithKey(issuer atls.Issuer, validator atls.Validator, netDialer NetDialer, privKey *ecdsa.PrivateKey) *Dialer {
+	return &Dialer{
+		issuer:    issuer,
+		validator: validator,
+		netDialer: netDialer,
+		privKey:   privKey,
+	}
+}
+
 // Dial creates a new grpc client connection to the given target using the atls validator.
 func (d *Dialer) Dial(ctx context.Context, target string) (*grpc.ClientConn, error) {
 	var validators []atls.Validator
 	if d.validator != nil {
 		validators = append(validators, d.validator)
 	}
-	credentials := atlscredentials.New(d.issuer, validators)
+	credentials := atlscredentials.NewWithKey(d.issuer, validators, d.privKey)
 
 	return grpc.DialContext(ctx, target,
 		d.grpcWithDialer(),

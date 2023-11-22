@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"log"
 	"net"
 	"os"
@@ -22,7 +25,12 @@ func main() {
 
 	ctx := context.Background()
 
-	dial := dialer.New(snp.NewIssuer(), atls.NoVerifier, &net.Dialer{})
+	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		log.Fatalf("generating key: %v", err)
+	}
+
+	dial := dialer.NewWithKey(snp.NewIssuer(), atls.NoVerifier, &net.Dialer{}, privKey)
 	conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorIP, intercom.Port))
 	if err != nil {
 		log.Fatalf("dialing: %v", err)

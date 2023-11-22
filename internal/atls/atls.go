@@ -58,7 +58,7 @@ func CreateAttestationServerTLSConfig(issuer Issuer, validators []Validator) (*t
 //
 // If no validators are set, the server's attestation document will not be verified.
 // If issuer is nil, the client will be unable to perform mutual aTLS.
-func CreateAttestationClientTLSConfig(issuer Issuer, validators []Validator) (*tls.Config, error) {
+func CreateAttestationClientTLSConfig(issuer Issuer, validators []Validator, privKey *ecdsa.PrivateKey) (*tls.Config, error) {
 	clientNonce, err := crypto.GenerateRandomBytes(crypto.RNGLengthDefault)
 	if err != nil {
 		return nil, err
@@ -67,6 +67,7 @@ func CreateAttestationClientTLSConfig(issuer Issuer, validators []Validator) (*t
 		issuer:      issuer,
 		validators:  validators,
 		clientNonce: clientNonce,
+		privKey:     privKey,
 	}
 
 	return &tls.Config{
@@ -289,6 +290,7 @@ type clientConnection struct {
 	issuer      Issuer
 	validators  []Validator
 	clientNonce []byte
+	privKey     *ecdsa.PrivateKey
 }
 
 // verify the validity of an aTLS server certificate.
@@ -308,10 +310,15 @@ func (c *clientConnection) verify(rawCerts [][]byte, verifiedChains [][]*x509.Ce
 
 // getCertificate generates a client certificate for mutual aTLS connections.
 func (c *clientConnection) getCertificate(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
-	// generate and hash key
-	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return nil, err
+	priv := c.privKey
+
+	if priv == nil {
+		// generate and hash key
+		var err error
+		priv, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// ugly hack: abuse acceptable client CAs as a channel to receive the nonce
