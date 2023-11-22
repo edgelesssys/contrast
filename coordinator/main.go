@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/katexochen/coordinator-kbs/internal/intercom"
-	"google.golang.org/grpc"
 )
 
 func main() {
@@ -28,16 +27,10 @@ func main() {
 		log.Fatalf("unmarshaling manifest: %v", err)
 	}
 
-	lis, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", intercom.Port))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-
-	s := grpc.NewServer()
-	intercom.RegisterIntercomServer(s, &intercomServer{})
+	s := newIntercomServer()
 
 	log.Println("Coordinator listening")
-	if err := s.Serve(lis); err != nil {
+	if err := s.Serve(net.JoinHostPort("0.0.0.0", intercom.Port)); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 }
