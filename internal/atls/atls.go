@@ -13,8 +13,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha256"
-	"crypto/sha512"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -88,7 +86,7 @@ type Issuer interface {
 // Validator is able to validate an attestation document.
 type Validator interface {
 	Getter
-	Validate(ctx context.Context, attDoc []byte, nonce []byte) ([]byte, error)
+	Validate(ctx context.Context, attDoc []byte, nonce []byte, peerPublicKey []byte) error
 }
 
 // getATLSConfigForClientFunc returns a config setup function that is called once for every client connecting to the server.
@@ -148,13 +146,13 @@ func getCertificate(ctx context.Context, issuer Issuer, priv, pub any, nonce []b
 
 	// create and embed attestation if quote Issuer is available
 	if issuer != nil {
-		hash, err := hashPublicKey(pub)
+		pubBytes, err := x509.MarshalPKIXPublicKey(pub)
 		if err != nil {
 			return nil, err
 		}
 
 		// create attestation document using the nonce send by the remote party
-		attDoc, err := issuer.Issue(ctx, hash, nonce)
+		attDoc, err := issuer.Issue(ctx, pubBytes, nonce)
 		if err != nil {
 			return nil, err
 		}
@@ -199,42 +197,27 @@ func processCertificate(rawCerts [][]byte, _ [][]*x509.Certificate) (*x509.Certi
 		return nil, nil, err
 	}
 
-	// hash of certificates public key is used as userData in the embedded attestation document
-	hash, err := hashPublicKey(cert.PublicKey)
-	return cert, hash, err
+	pubBytes, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
+	if err != nil {
+		return nil, nil, err
+	}
+	return cert, pubBytes, err
 }
 
 // verifyEmbeddedReport verifies an aTLS certificate by validating the attestation document embedded in the TLS certificate.
-func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, hash, nonce []byte) error {
+func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, peerPublicKey, nonce []byte) error {
 	for _, ex := range cert.Extensions {
 		for _, validator := range validators {
 			if ex.Id.Equal(validator.OID()) {
 				ctx, cancel := context.WithTimeout(context.Background(), attestationTimeout)
 				defer cancel()
 
-				userData, err := validator.Validate(ctx, ex.Value, nonce)
-				if err != nil {
-					return err
-				}
-				userDataExpected := sha512.Sum512(append(hash, nonce...))
-				if !bytes.Equal(userData, userDataExpected[:]) {
-					return errors.New("certificate hash does not match user data")
-				}
-				return nil
+				return validator.Validate(ctx, ex.Value, nonce, peerPublicKey)
 			}
 		}
 	}
 
 	return errors.New("certificate does not contain attestation document")
-}
-
-func hashPublicKey(pub any) ([]byte, error) {
-	pubBytes, err := x509.MarshalPKIXPublicKey(pub)
-	if err != nil {
-		return nil, err
-	}
-	result := sha256.Sum256(pubBytes)
-	return result[:], nil
 }
 
 // encodeNonceToCertPool returns a cert pool that contains a certificate whose CN is the base64-encoded nonce.
@@ -295,7 +278,7 @@ type clientConnection struct {
 
 // verify the validity of an aTLS server certificate.
 func (c *clientConnection) verify(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-	cert, hash, err := processCertificate(rawCerts, verifiedChains)
+	cert, pubBytes, err := processCertificate(rawCerts, verifiedChains)
 	if err != nil {
 		return err
 	}
@@ -305,7 +288,7 @@ func (c *clientConnection) verify(rawCerts [][]byte, verifiedChains [][]*x509.Ce
 		return nil
 	}
 
-	return verifyEmbeddedReport(c.validators, cert, hash, c.clientNonce)
+	return verifyEmbeddedReport(c.validators, cert, pubBytes, c.clientNonce)
 }
 
 // getCertificate generates a client certificate for mutual aTLS connections.
@@ -341,12 +324,12 @@ type serverConnection struct {
 // verify the validity of a clients aTLS certificate.
 // Only needed for mutual aTLS.
 func (c *serverConnection) verify(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-	cert, hash, err := processCertificate(rawCerts, verifiedChains)
+	cert, pubBytes, err := processCertificate(rawCerts, verifiedChains)
 	if err != nil {
 		return err
 	}
 
-	return verifyEmbeddedReport(c.validators, cert, hash, c.serverNonce)
+	return verifyEmbeddedReport(c.validators, cert, pubBytes, c.serverNonce)
 }
 
 // getCertificate generates a client certificate for aTLS connections.
@@ -394,17 +377,17 @@ func NewFakeValidators(oid Getter) []Validator {
 }
 
 // Validate unmarshals the attestation document and verifies the nonce.
-func (v FakeValidator) Validate(_ context.Context, attDoc []byte, nonce []byte) ([]byte, error) {
+func (v FakeValidator) Validate(_ context.Context, attDoc []byte, nonce []byte, pub []byte) error {
 	var doc FakeAttestationDoc
 	if err := json.Unmarshal(attDoc, &doc); err != nil {
-		return nil, err
+		return err
 	}
 
 	if !bytes.Equal(doc.Nonce, nonce) {
-		return nil, fmt.Errorf("invalid nonce: expected %x, got %x", doc.Nonce, nonce)
+		return fmt.Errorf("invalid nonce: expected %x, got %x", doc.Nonce, nonce)
 	}
 
-	return doc.UserData, v.err
+	return v.err
 }
 
 // FakeAttestationDoc is a fake attestation document used for testing.

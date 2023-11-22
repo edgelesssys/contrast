@@ -8,7 +8,6 @@ package snp
 
 import (
 	"context"
-	"crypto/sha512"
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
@@ -33,7 +32,7 @@ func (i *Issuer) OID() asn1.ObjectIdentifier {
 
 // userData is hash of issuer public key.
 // nonce from validator.
-func (i *Issuer) Issue(ctx context.Context, issuerPublicKeyHash []byte, nonce []byte) (res []byte, err error) {
+func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (res []byte, err error) {
 	log.Println("issuer: issue called")
 	defer func() {
 		if err != nil {
@@ -47,7 +46,7 @@ func (i *Issuer) Issue(ctx context.Context, issuerPublicKeyHash []byte, nonce []
 	}
 	defer snpGuestDevice.Close()
 
-	reportData := sha512.Sum512(append(issuerPublicKeyHash, nonce...))
+	reportData := constructReportData(ownPublicKey, nonce)
 
 	reportRaw, err := client.GetRawReport(snpGuestDevice, reportData)
 	if err != nil {

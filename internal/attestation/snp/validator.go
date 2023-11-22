@@ -7,10 +7,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 package snp
 
 import (
+	"bytes"
 	"context"
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log"
 
@@ -28,7 +30,7 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 }
 
 // Validate a TPM based attestation.
-func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte) (reportData []byte, err error) {
+func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
 	log.Println("validator: validate called")
 	defer func() {
 		if err != nil {
@@ -40,7 +42,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	reportRaw := make([]byte, base64.StdEncoding.DecodedLen(len(attDocRaw)))
 	if _, err = base64.StdEncoding.Decode(reportRaw, attDocRaw); err != nil {
-		return nil, err
+		return err
 	}
 	log.Printf("validator: Report raw: %v", hex.EncodeToString(reportRaw))
 
@@ -50,9 +52,14 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	}
 
 	if err := abi.ValidateReportFormat(reportRaw); err != nil {
-		return nil, fmt.Errorf("validating report format: %w", err)
+		return fmt.Errorf("validating report format: %w", err)
+	}
+
+	reportDataExpected := constructReportData(peerPublicKey, nonce)
+	if !bytes.Equal(report.ReportData, reportDataExpected[:]) {
+		return errors.New("certificate hash does not match user data")
 	}
 
 	log.Println("validator: Successfully validated attestation document")
-	return report.ReportData, nil
+	return nil
 }
