@@ -7,19 +7,26 @@ SPDX-License-Identifier: AGPL-3.0-only
 package snp
 
 import (
-	"bytes"
 	"context"
+	_ "embed"
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
-	"fmt"
 	"log"
 
 	"github.com/google/go-sev-guest/abi"
+	"github.com/google/go-sev-guest/proto/sevsnp"
+	"github.com/google/go-sev-guest/validate"
+	"github.com/google/go-sev-guest/verify"
 )
 
-type Validator struct{}
+type Validator struct {
+	callbacks []ValidateCallbacker
+}
+
+type ValidateCallbacker interface {
+	ValidateCallback(ctx context.Context, report *sevsnp.Report, nonce []byte, peerPublicKey []byte) error
+}
 
 func NewValidator() *Validator {
 	return &Validator{}
@@ -40,6 +47,8 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	log.Printf("validator: Nonce: %v", hex.EncodeToString(nonce))
 
+	// Parse the attestation document.
+
 	reportRaw := make([]byte, base64.StdEncoding.DecodedLen(len(attDocRaw)))
 	if _, err = base64.StdEncoding.Decode(reportRaw, attDocRaw); err != nil {
 		return err
@@ -51,15 +60,32 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 		log.Fatalf("converting report to proto: %v", err)
 	}
 
-	if err := abi.ValidateReportFormat(reportRaw); err != nil {
-		return fmt.Errorf("validating report format: %w", err)
+	// Report signature verification.
+
+	verifyOpts := &verify.Options{}
+	attestation, err := verify.GetAttestationFromReport(report, verifyOpts)
+	if err := verify.SnpAttestation(attestation, verifyOpts); err != nil {
+		log.Fatalf("verifying report: %v", err)
 	}
+	log.Println("validator: Successfully verified report signature")
+
+	// Validate the report data.
 
 	reportDataExpected := constructReportData(peerPublicKey, nonce)
-	if !bytes.Equal(report.ReportData, reportDataExpected[:]) {
-		return errors.New("certificate hash does not match user data")
+	validateOpts := &validate.Options{
+		GuestPolicy: abi.SnpPolicy{
+			Debug: false,
+			SMT:   true,
+		},
+		VMPL:                      new(int),
+		PermitProvisionalFirmware: true,
+		ReportData:                reportDataExpected[:],
 	}
+	if err := validate.SnpAttestation(attestation, validateOpts); err != nil {
+		return err
+	}
+	log.Println("validator: Successfully validated report data")
 
-	log.Println("validator: Successfully validated attestation document")
+	log.Println("validator: done")
 	return nil
 }
