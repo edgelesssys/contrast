@@ -1,0 +1,18 @@
+{
+    "policies": {
+        "fdfeb591d8e3ba2ef69566c4be6f927a1119bfec3214d41eb93ffe96ad4d77ab": "workload"
+    },
+    "referenceValues": {
+        "snp": {
+            "minimumTCB": {
+                "BootloaderVersion": 3,
+                "TEEVersion": 0,
+                "SNPVersion": 8,
+                "MicrocodeVersion": 115
+            },
+            "trustedIDKeyHashes": [
+                "b2bcf1b11d9fb3f2e4e7979546844d26c30255fff0775f3af56f8295f361a7d1a34a54516d41abfff7320763a5b701d8"
+            ]
+        }
+    }
+}

@@ -15,27 +15,21 @@ import (
 )
 
 type intercomServer struct {
-	issuer    atls.Issuer
-	validator atls.Validator
-
 	grpc *grpc.Server
 
 	intercom.UnimplementedIntercomServer
 }
 
-func newIntercomServer() *intercomServer {
-	validator := snp.NewValidator()
+func newIntercomServer(meshAuth *meshAuthority) (*intercomServer, error) {
+	validator := snp.NewValidator(meshAuth)
 	credentials := atlscredentials.New(atls.NoIssuer, []atls.Validator{validator})
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
 		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
 	)
-	s := &intercomServer{
-		grpc:      grpcServer,
-		validator: snp.NewValidator(),
-	}
+	s := &intercomServer{grpc: grpcServer}
 	intercom.RegisterIntercomServer(s.grpc, s)
-	return s
+	return s, nil
 }
 
 func (i *intercomServer) Serve(endpoint string) error {

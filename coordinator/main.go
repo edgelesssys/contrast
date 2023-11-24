@@ -22,12 +22,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("decoding manifest: %v", err)
 	}
-	var manifest Manifest
+	var manifest *Manifest
 	if err := json.Unmarshal(manifestStr, &manifest); err != nil {
 		log.Fatalf("unmarshaling manifest: %v", err)
 	}
 
-	s := newIntercomServer()
+	meshAuth, err := newMeshAuthority(manifest)
+	if err != nil {
+		log.Fatalf("failed to create mesh authority: %v", err)
+	}
+
+	s, err := newIntercomServer(meshAuth)
+	if err != nil {
+		log.Fatalf("failed to create intercom server: %v", err)
+	}
 
 	log.Println("Coordinator listening")
 	if err := s.Serve(net.JoinHostPort("0.0.0.0", intercom.Port)); err != nil {

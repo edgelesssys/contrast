@@ -12,6 +12,7 @@ import (
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 	"log"
 
 	"github.com/google/go-sev-guest/abi"
@@ -21,15 +22,17 @@ import (
 )
 
 type Validator struct {
-	callbacks []ValidateCallbacker
+	validateOptsGen validateOptsGenerator
 }
 
-type ValidateCallbacker interface {
-	ValidateCallback(ctx context.Context, report *sevsnp.Report, nonce []byte, peerPublicKey []byte) error
+type validateOptsGenerator interface {
+	SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error)
 }
 
-func NewValidator() *Validator {
-	return &Validator{}
+func NewValidator(optsGen validateOptsGenerator) *Validator {
+	return &Validator{
+		validateOptsGen: optsGen,
+	}
 }
 
 func (v *Validator) OID() asn1.ObjectIdentifier {
@@ -38,14 +41,12 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 
 // Validate a TPM based attestation.
 func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
-	log.Println("validator: validate called")
+	log.Printf("validator: validate called with nonce %s", hex.EncodeToString(nonce))
 	defer func() {
 		if err != nil {
 			log.Printf("Failed to validate attestation document: %s", err)
 		}
 	}()
-
-	log.Printf("validator: Nonce: %v", hex.EncodeToString(nonce))
 
 	// Parse the attestation document.
 
@@ -72,15 +73,11 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	// Validate the report data.
 
 	reportDataExpected := constructReportData(peerPublicKey, nonce)
-	validateOpts := &validate.Options{
-		GuestPolicy: abi.SnpPolicy{
-			Debug: false,
-			SMT:   true,
-		},
-		VMPL:                      new(int),
-		PermitProvisionalFirmware: true,
-		ReportData:                reportDataExpected[:],
+	validateOpts, err := v.validateOptsGen.SNPValidateOpts(report)
+	if err != nil {
+		return fmt.Errorf("generating validation options: %w", err)
 	}
+	validateOpts.ReportData = reportDataExpected[:]
 	if err := validate.SnpAttestation(attestation, validateOpts); err != nil {
 		return err
 	}
