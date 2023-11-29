@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/katexochen/coordinator-kbs/internal/intercom"
+	"github.com/katexochen/coordinator-kbs/internal/manifest"
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("decoding manifest: %v", err)
 	}
-	var manifest *Manifest
+	var manifest *manifest.Manifest
 	if err := json.Unmarshal(manifestStr, &manifest); err != nil {
 		log.Fatalf("unmarshaling manifest: %v", err)
 	}

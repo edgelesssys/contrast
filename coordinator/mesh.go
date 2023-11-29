@@ -9,16 +9,17 @@ import (
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
 	"github.com/katexochen/coordinator-kbs/internal/ca"
+	"github.com/katexochen/coordinator-kbs/internal/manifest"
 )
 
 type meshAuthority struct {
 	ca       *ca.CA
 	certs    map[string][]byte
 	certsMux sync.RWMutex
-	manifest *Manifest
+	manifest *manifest.Manifest
 }
 
-func newMeshAuthority(manifest *Manifest) (*meshAuthority, error) {
+func newMeshAuthority(manifest *manifest.Manifest) (*meshAuthority, error) {
 	caInstance, err := ca.New()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create CA: %w", err)
@@ -31,7 +32,7 @@ func newMeshAuthority(manifest *Manifest) (*meshAuthority, error) {
 }
 
 func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error) {
-	hostData := NewHexString(report.HostData)
+	hostData := manifest.NewHexString(report.HostData)
 	if _, ok := m.manifest.Policies[hostData]; !ok {
 		return nil, fmt.Errorf("hostdata %s not found in manifest", hostData)
 	}
