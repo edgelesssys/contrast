@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"time"
@@ -35,7 +36,7 @@ func newIntercomServer(meshAuth *meshAuthority) (*intercomServer, error) {
 func (i *intercomServer) Serve(endpoint string) error {
 	lis, err := net.Listen("tcp", endpoint)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		return fmt.Errorf("failed to listen: %v", err)
 	}
 	return i.grpc.Serve(lis)
 }

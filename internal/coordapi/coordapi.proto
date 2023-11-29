@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package coordapi;
+
+option go_package = "github.com/katexochen/coordinator-kbs/internal/coordapi";
+
+service CoordAPI {
+  rpc SetManifest(SetManifestRequest) returns (SetManifestResponse);
+}
+
+message SetManifestRequest {
+  string Manifest = 1;
+}
+
+message SetManifestResponse {
+}

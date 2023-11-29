@@ -1,45 +1,46 @@
 package main
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"log"
 	"net"
-	"os"
 
+	"github.com/katexochen/coordinator-kbs/internal/coordapi"
 	"github.com/katexochen/coordinator-kbs/internal/intercom"
-	"github.com/katexochen/coordinator-kbs/internal/manifest"
 )
 
 func main() {
 	log.Println("Coordinator started")
 
-	manifestEnv := os.Getenv("MANIFEST")
-	if manifestEnv == "" {
-		log.Fatalf("MANIFEST not set")
+	manifestSetGetter := newManifestSetGetter()
+
+	coordS, err := newCoordAPIServer(manifestSetGetter)
+	if err != nil {
+		log.Fatalf("failed to create coordinator API server: %v", err)
 	}
 
-	manifestStr, err := base64.StdEncoding.DecodeString(manifestEnv)
-	if err != nil {
-		log.Fatalf("decoding manifest: %v", err)
-	}
-	var manifest *manifest.Manifest
-	if err := json.Unmarshal(manifestStr, &manifest); err != nil {
-		log.Fatalf("unmarshaling manifest: %v", err)
-	}
+	go func() {
+		log.Println("Coordinator API listening")
+		if err := coordS.Serve(net.JoinHostPort("0.0.0.0", coordapi.Port)); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+
+	log.Println("Waiting for manifest")
+	manifest := manifestSetGetter.GetManifest()
+	log.Println("Got manifest")
 
 	meshAuth, err := newMeshAuthority(manifest)
 	if err != nil {
 		log.Fatalf("failed to create mesh authority: %v", err)
 	}
 
-	s, err := newIntercomServer(meshAuth)
+	intercomS, err := newIntercomServer(meshAuth)
 	if err != nil {
 		log.Fatalf("failed to create intercom server: %v", err)
 	}
 
-	log.Println("Coordinator listening")
-	if err := s.Serve(net.JoinHostPort("0.0.0.0", intercom.Port)); err != nil {
+	log.Println("Coordinator intercom listening")
+	if err := intercomS.Serve(net.JoinHostPort("0.0.0.0", intercom.Port)); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
 }
