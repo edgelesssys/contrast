@@ -14,6 +14,14 @@
       inherit (pkgs) lib;
     in
     {
-      packages = import ./packages { inherit pkgs; };
+      packages = {
+        generate = pkgs.writeShellApplication {
+          name = "generate";
+          runtimeInputs = with pkgs; [ go protobuf protoc-gen-go protoc-gen-go-grpc ];
+          text = ''
+            go generate ./...
+          '';
+        };
+      } // import ./packages { inherit pkgs; };
     });
 }
