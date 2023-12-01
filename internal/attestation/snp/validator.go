@@ -29,6 +29,14 @@ type validateOptsGenerator interface {
 	SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error)
 }
 
+type StaticValidateOptsGenerator struct {
+	Opts *validate.Options
+}
+
+func (v *StaticValidateOptsGenerator) SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error) {
+	return v.Opts, nil
+}
+
 func NewValidator(optsGen validateOptsGenerator) *Validator {
 	return &Validator{
 		validateOptsGen: optsGen,

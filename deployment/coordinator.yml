@@ -14,15 +14,14 @@ spec:
       labels:
         run: coordinator-kbs
     spec:
+      runtimeClassName: kata-cc-isolation
       containers:
         - name: coordinator-kbs
           image: "ghcr.io/katexochen/coordinator-kbs:latest"
           imagePullPolicy: Always
-          env:
-            - name: MANIFEST
-              value: ewogICAgInBvbGljaWVzIjogewogICAgICAgICJ3b3JrbG9hZCI6ICIiCiAgICB9Cn0K
           ports:
             - containerPort: 7777
+            - containerPort: 1313
 ---
 apiVersion: v1
 kind: Service
@@ -31,7 +30,11 @@ metadata:
   namespace: edg-coco
 spec:
   ports:
-    - port: 7777
+    - name: intercom
+      port: 7777
+      protocol: TCP
+    - name: coordapi
+      port: 1313
       protocol: TCP
   selector:
     run: coordinator-kbs

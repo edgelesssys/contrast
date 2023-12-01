@@ -32,7 +32,10 @@ func newRootCmd() *cobra.Command {
 	}
 	cmd.SetOut(os.Stdout)
 	cmd.InitDefaultVersionFlag()
-	cmd.AddCommand(newGenerateCmd())
+	cmd.AddCommand(
+		newGenerateCmd(),
+		newSetCmd(),
+	)
 
 	return cmd
 }
