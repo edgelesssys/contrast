@@ -30,8 +30,8 @@ import (
 const attestationTimeout = 30 * time.Second
 
 var (
-	NoVerifier Validator = nil
-	NoIssuer   Issuer    = nil
+	NoValidator Validator = nil
+	NoIssuer    Issuer    = nil
 )
 
 // CreateAttestationServerTLSConfig creates a tls.Config object with a self-signed certificate and an embedded attestation document.

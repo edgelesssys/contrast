@@ -30,7 +30,7 @@ func main() {
 		log.Fatalf("generating key: %v", err)
 	}
 
-	dial := dialer.NewWithKey(snp.NewIssuer(), atls.NoVerifier, &net.Dialer{}, privKey)
+	dial := dialer.NewWithKey(snp.NewIssuer(), atls.NoValidator, &net.Dialer{}, privKey)
 	conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorIP, intercom.Port))
 	if err != nil {
 		log.Fatalf("dialing: %v", err)
