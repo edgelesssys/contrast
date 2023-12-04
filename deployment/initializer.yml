@@ -1,22 +1,31 @@
 ---
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: workload
   namespace: edg-coco
 spec:
-  runtimeClassName: kata-cc-isolation
-  initContainers:
-    - name: initializer
-      image: "ghcr.io/katexochen/initializer:latest"
-      imagePullPolicy: Always
-      env:
-        - name: COORDINATOR_IP
-          value: coordinator-kbs.edg-coco
-  containers:
-    - name: workload
-      image: "fedora:38"
-      command:
-        - /bin/bash
-        - "-c"
-        - echo Workload started ; sleep inf
+  selector:
+    matchLabels:
+      run: workload
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: workload
+    spec:
+      runtimeClassName: kata-cc-isolation
+      initContainers:
+        - name: initializer
+          image: "ghcr.io/katexochen/initializer:latest"
+          imagePullPolicy: Always
+          env:
+            - name: COORDINATOR_IP
+              value: coordinator-kbs.edg-coco
+      containers:
+        - name: workload
+          image: "fedora:38"
+          command:
+            - /bin/bash
+            - "-c"
+            - echo Workload started ; sleep inf
