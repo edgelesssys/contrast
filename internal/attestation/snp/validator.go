@@ -66,15 +66,18 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	report, err := abi.ReportToProto(reportRaw)
 	if err != nil {
-		log.Fatalf("converting report to proto: %v", err)
+		return fmt.Errorf("converting report to proto: %w", err)
 	}
 
 	// Report signature verification.
 
 	verifyOpts := &verify.Options{}
 	attestation, err := verify.GetAttestationFromReport(report, verifyOpts)
+	if err != nil {
+		return fmt.Errorf("getting attestation from report: %w", err)
+	}
 	if err := verify.SnpAttestation(attestation, verifyOpts); err != nil {
-		log.Fatalf("verifying report: %v", err)
+		return fmt.Errorf("verifying report: %w", err)
 	}
 	log.Println("validator: Successfully verified report signature")
 
@@ -87,7 +90,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	}
 	validateOpts.ReportData = reportDataExpected[:]
 	if err := validate.SnpAttestation(attestation, validateOpts); err != nil {
-		return err
+		return fmt.Errorf("validating report claims: %w", err)
 	}
 	log.Println("validator: Successfully validated report data")
 
