@@ -31,6 +31,9 @@ let
   buildContainer = drv: pkgs.dockerTools.buildImage {
     name = drv.name;
     tag = "latest";
+    copyToRoot = with pkgs.dockerTools; [
+      caCertificates
+    ];
     config = {
       Cmd = [ "${lib.getExe drv}" ];
     };
