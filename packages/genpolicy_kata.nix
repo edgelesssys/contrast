@@ -3,6 +3,7 @@
 , rustPlatform
 , openssl
 , pkg-config
+, protobuf
 , libiconv
 , zlib
 , cmake
@@ -15,19 +16,28 @@ rustPlatform.buildRustPackage rec {
   src = fetchFromGitHub {
     owner = "microsoft";
     repo = "kata-containers";
-    rev = "genpolicy-${version}";
-    hash = "sha256-/BMaKa8btqaiumlCGkwn6sJ0nMzm8fTbOn/54B2VkuI=";
+    rev = "danmihai1/genpolicy-main";
+    hash = "sha256-mS+S6p6pua0G0ToXKP56KfvYfk0QfG8un/7IcmR/+ww=";
   };
 
   sourceRoot = "${src.name}/src/tools/genpolicy";
 
-  cargoHash = "sha256-FHJY6kUVK9UDkDJj6l8SHfV3AwHOnqHK7cp09pU1DEA=";
+  cargoLock = {
+    lockFile = "${src}/src/tools/genpolicy/Cargo.lock";
+    outputHashes = {
+      "tarfs-defs-0.1.0" = "sha256-J79fMuKOIVHEk6WvkLeM9IY5XQHyUJQOrwwMLvRvE60=";
+    };
+  };
+
+  dontStrip = true;
+  buildType = "debug";
 
   OPENSSL_NO_VENDOR = 1;
 
   nativeBuildInputs = [
-    pkg-config
     cmake
+    pkg-config
+    protobuf
   ];
 
   buildInputs = [
@@ -36,4 +46,9 @@ rustPlatform.buildRustPackage rec {
     libiconv
     zlib
   ];
+
+  # Build.rs writes to src
+  postConfigure = ''
+    chmod -R +w ../..
+  '';
 }

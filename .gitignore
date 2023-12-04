@@ -5,3 +5,4 @@ tools/genpolicy.cache/*
 !tools/genpolicy.cache/.gitkeep
 *.bin
 edgcoco
+result

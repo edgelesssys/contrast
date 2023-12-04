@@ -12,16 +12,10 @@
     let
       pkgs = import nixpkgs { inherit system; };
       inherit (pkgs) lib;
+
+      goVendorHash = "sha256-jwN90izTTCqDTkWhMcm0YlDUN8+2FSEprK0JeX/7fp4=";
     in
     {
-      packages = {
-        generate = pkgs.writeShellApplication {
-          name = "generate";
-          runtimeInputs = with pkgs; [ go protobuf protoc-gen-go protoc-gen-go-grpc ];
-          text = ''
-            go generate ./...
-          '';
-        };
-      } // import ./packages { inherit pkgs; };
+      packages = import ./packages { inherit pkgs goVendorHash; };
     });
 }
