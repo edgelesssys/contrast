@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := all
 .PHONY: all
-all: coordinator initializer
+all: undeploy coordinator initializer deploy
 
 .PHONY: coordinator
 coordinator:
@@ -20,7 +20,7 @@ deploy:
 
 .PHONY: undeploy
 undeploy:
-	kubectl delete -f ./deployment
+	-kubectl delete -f ./deployment
 
 .PHONY: clean
 clean:
