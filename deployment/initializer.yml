@@ -25,6 +25,7 @@ spec:
       containers:
         - name: workload
           image: "fedora:38"
+          imagePullPolicy: Always
           command:
             - /bin/bash
             - "-c"
