@@ -6,3 +6,4 @@ tools/genpolicy.cache/*
 *.bin
 edgcoco
 result
+layers_cache

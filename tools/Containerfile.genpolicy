@@ -1,6 +1,0 @@
-FROM fedora:38
-
-ADD https://github.com/microsoft/kata-containers/releases/download/genpolicy-0.6.2-1/genpolicy /usr/local/bin/genpolicy
-RUN chmod +x /usr/local/bin/genpolicy
-
-WORKDIR /workspace
