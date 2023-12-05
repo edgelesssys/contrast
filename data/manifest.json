@@ -1,18 +1,19 @@
 {
-    "policies": {
-        "fdfeb591d8e3ba2ef69566c4be6f927a1119bfec3214d41eb93ffe96ad4d77ab": "workload"
-    },
-    "referenceValues": {
-        "snp": {
-            "minimumTCB": {
-                "BootloaderVersion": 3,
-                "TEEVersion": 0,
-                "SNPVersion": 8,
-                "MicrocodeVersion": 115
-            },
-            "trustedIDKeyHashes": [
-                "b2bcf1b11d9fb3f2e4e7979546844d26c30255fff0775f3af56f8295f361a7d1a34a54516d41abfff7320763a5b701d8"
-            ]
-        }
+  "Policies": {
+    "2b3422e2e44c933f5a2bea3d25fc36502951cfac3bd07ea2033936b4b72b5c65": "workload",
+    "3638d61e7c8701e19e819751eb61e2e353f25f68374443d03428c8acc39ed3e9": "coordinator-kbs"
+  },
+  "ReferenceValues": {
+    "SNP": {
+      "MinimumTCB": {
+        "BootloaderVersion": 3,
+        "TEEVersion": 0,
+        "SNPVersion": 8,
+        "MicrocodeVersion": 115
+      },
+      "TrustedIDKeyHashes": [
+        "b2bcf1b11d9fb3f2e4e7979546844d26c30255fff0775f3af56f8295f361a7d1a34a54516d41abfff7320763a5b701d8"
+      ]
     }
+  }
 }

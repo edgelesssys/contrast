@@ -70,7 +70,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
 	manifest.Policies = policies
-	manifestData, err = json.Marshal(manifest)
+	manifestData, err = json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal manifest: %w", err)
 	}
