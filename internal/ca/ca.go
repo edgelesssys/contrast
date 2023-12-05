@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"math/big"
 	"time"
+
+	"github.com/katexochen/coordinator-kbs/internal/crypto"
 )
 
 type CA struct {
@@ -23,11 +25,8 @@ type CA struct {
 
 func New() (*CA, error) {
 	root := &x509.Certificate{
-		SerialNumber: big.NewInt(2019),
-		Subject: pkix.Name{
-			CommonName:   "system:coordinator-kbs:root",
-			Organization: []string{"system:coordinator-kbs"},
-		},
+		SerialNumber:          big.NewInt(2019),
+		Subject:               pkix.Name{CommonName: "system:coordinator-kbs:root"},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(10, 0, 0),
 		IsCA:                  true,
@@ -49,11 +48,8 @@ func New() (*CA, error) {
 	})
 
 	interm := &x509.Certificate{
-		SerialNumber: big.NewInt(2020),
-		Subject: pkix.Name{
-			CommonName:   "system:coordinator-kbs:intermediate",
-			Organization: []string{"system:coordinator-kbs"},
-		},
+		SerialNumber:          big.NewInt(2020),
+		Subject:               pkix.Name{CommonName: "system:coordinator-kbs:intermediate"},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(10, 0, 0),
 		IsCA:                  true,
@@ -84,39 +80,35 @@ func New() (*CA, error) {
 	}, nil
 }
 
-func (c *CA) NewMeshCert() ([]byte, []byte, error) {
-	meshCert := &x509.Certificate{
-		SerialNumber: big.NewInt(2020),
-		Subject: pkix.Name{
-			CommonName:   "system:podvm",
-			Organization: []string{"system:podvm"},
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(10, 0, 0),
+func (c *CA) NewAttestedMeshCert(commonName string, extensions []pkix.Extension, subjectPublicKey any) ([]byte, error) {
+	serialNumber, err := crypto.GenerateCertificateSerialNumber()
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	certTemplate := &x509.Certificate{
+		SerialNumber:          serialNumber,
+		Subject:               pkix.Name{CommonName: commonName},
+		Issuer:                pkix.Name{CommonName: "system:coordinator-kbs:intermediate"},
+		NotBefore:             now.Add(-2 * time.Hour),
+		NotAfter:              now.Add(354 * 24 * time.Hour),
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		KeyUsage:              x509.KeyUsageDigitalSignature,
 		BasicConstraintsValid: true,
+		ExtraExtensions:       extensions,
 	}
 
-	meshKey, err := rsa.GenerateKey(rand.Reader, 4098)
+	certBytes, err := x509.CreateCertificate(rand.Reader, certTemplate, c.intermCert, subjectPublicKey, c.intermPrivKey)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to generate RSA private key: %w", err)
+		return nil, fmt.Errorf("failed to create certificate: %w", err)
 	}
-	keyPEM := new(bytes.Buffer)
-	pem.Encode(keyPEM, &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(meshKey),
-	})
 
-	certBytes, err := x509.CreateCertificate(rand.Reader, meshCert, c.intermCert, &meshKey.PublicKey, c.intermPrivKey)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create intermediate certificate: %w", err)
-	}
 	certPEM := new(bytes.Buffer)
 	pem.Encode(certPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: certBytes,
 	})
 
-	return certPEM.Bytes(), keyPEM.Bytes(), nil
+	return certPEM.Bytes(), nil
 }

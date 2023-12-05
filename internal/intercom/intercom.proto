@@ -9,8 +9,9 @@ service Intercom {
 }
 
 message NewMeshCertRequest {
-  string AttestationReport = 1;
+  string PeerPublicKeyHash = 1;
 }
 
 message NewMeshCertResponse {
+  bytes Cert = 1;
 }

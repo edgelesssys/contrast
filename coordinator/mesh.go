@@ -1,7 +1,13 @@
 package main
 
 import (
+	"context"
+	"crypto/sha256"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/hex"
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/google/go-sev-guest/abi"
@@ -64,4 +70,45 @@ func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Option
 		TrustedIDKeyHashes:        trustedIDKeyDigestHashes,
 		RequireIDBlock:            true,
 	}, nil
+}
+
+func (m *meshAuthority) ValidateCallback(ctx context.Context, report *sevsnp.Report, nonce []byte, peerPubKeyBytes []byte) error {
+	hostData := manifest.NewHexString(report.HostData)
+	commonName, ok := m.manifest.Policies[hostData]
+	if !ok {
+		return fmt.Errorf("report data %s not found in manifest", hostData)
+	}
+
+	peerPubKey, err := x509.ParsePKIXPublicKey(peerPubKeyBytes)
+	if err != nil {
+		return fmt.Errorf("failed to parse peer public key: %w", err)
+	}
+
+	var extensions []pkix.Extension // TODO
+	cert, err := m.ca.NewAttestedMeshCert(commonName, extensions, peerPubKey)
+	if err != nil {
+		return fmt.Errorf("failed to issue new attested mesh cert: %w", err)
+	}
+
+	peerPubKeyHash := sha256.Sum256(peerPubKeyBytes)
+	peerPublicKeyHashStr := hex.EncodeToString(peerPubKeyHash[:])
+	log.Printf("peerPublicKeyHashStr: %v", peerPublicKeyHashStr)
+
+	m.certsMux.Lock()
+	defer m.certsMux.Unlock()
+	m.certs[peerPublicKeyHashStr] = cert
+
+	return nil
+}
+
+func (m *meshAuthority) GetCert(peerPublicKeyHashStr string) ([]byte, error) {
+	m.certsMux.RLock()
+	defer m.certsMux.RUnlock()
+
+	cert, ok := m.certs[peerPublicKeyHashStr]
+	if !ok {
+		return nil, fmt.Errorf("cert for peer public key %s not found", peerPublicKeyHashStr)
+	}
+
+	return cert, nil
 }

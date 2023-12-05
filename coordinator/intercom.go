@@ -16,19 +16,27 @@ import (
 )
 
 type intercomServer struct {
-	grpc *grpc.Server
+	grpc    *grpc.Server
+	certGet certGetter
 
 	intercom.UnimplementedIntercomServer
 }
 
+type certGetter interface {
+	GetCert(peerPublicKeyHashStr string) ([]byte, error)
+}
+
 func newIntercomServer(meshAuth *meshAuthority) (*intercomServer, error) {
-	validator := snp.NewValidator(meshAuth)
+	validator := snp.NewValidatorWithCallbacks(meshAuth, meshAuth)
 	credentials := atlscredentials.New(atls.NoIssuer, []atls.Validator{validator})
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
 		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
 	)
-	s := &intercomServer{grpc: grpcServer}
+	s := &intercomServer{
+		grpc:    grpcServer,
+		certGet: meshAuth,
+	}
 	intercom.RegisterIntercomServer(s.grpc, s)
 	return s, nil
 }
@@ -44,5 +52,12 @@ func (i *intercomServer) Serve(endpoint string) error {
 func (i *intercomServer) NewMeshCert(ctx context.Context, req *intercom.NewMeshCertRequest) (*intercom.NewMeshCertResponse, error) {
 	log.Println("NewMeshCert called")
 
-	return &intercom.NewMeshCertResponse{}, nil
+	cert, err := i.certGet.GetCert(req.PeerPublicKeyHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return &intercom.NewMeshCertResponse{
+		Cert: cert,
+	}, nil
 }

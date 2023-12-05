@@ -8,7 +8,6 @@ package snp
 
 import (
 	"context"
-	_ "embed"
 	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
@@ -23,6 +22,11 @@ import (
 
 type Validator struct {
 	validateOptsGen validateOptsGenerator
+	callbackers     []validateCallbacker
+}
+
+type validateCallbacker interface {
+	ValidateCallback(ctx context.Context, report *sevsnp.Report, nonce []byte, peerPublicKey []byte) error
 }
 
 type validateOptsGenerator interface {
@@ -40,6 +44,13 @@ func (v *StaticValidateOptsGenerator) SNPValidateOpts(report *sevsnp.Report) (*v
 func NewValidator(optsGen validateOptsGenerator) *Validator {
 	return &Validator{
 		validateOptsGen: optsGen,
+	}
+}
+
+func NewValidatorWithCallbacks(optsGen validateOptsGenerator, callbacks ...validateCallbacker) *Validator {
+	return &Validator{
+		validateOptsGen: optsGen,
+		callbackers:     callbacks,
 	}
 }
 
@@ -93,6 +104,14 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 		return fmt.Errorf("validating report claims: %w", err)
 	}
 	log.Println("validator: Successfully validated report data")
+
+	// Run callbacks.
+
+	for _, callbacker := range v.callbackers {
+		if err := callbacker.ValidateCallback(ctx, report, nonce, peerPublicKey); err != nil {
+			return fmt.Errorf("callback failed: %w", err)
+		}
+	}
 
 	log.Println("validator: done")
 	return nil
