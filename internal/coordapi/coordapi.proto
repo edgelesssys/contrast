@@ -13,4 +13,5 @@ message SetManifestRequest {
 }
 
 message SetManifestResponse {
+  repeated bytes CertChain = 1;
 }

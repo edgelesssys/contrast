@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/katexochen/coordinator-kbs/internal/ca"
 	"github.com/katexochen/coordinator-kbs/internal/coordapi"
 	"github.com/katexochen/coordinator-kbs/internal/intercom"
 )
@@ -11,9 +12,14 @@ import (
 func main() {
 	log.Println("Coordinator started")
 
+	caInstance, err := ca.New()
+	if err != nil {
+		log.Fatalf("failed to create CA: %v", err)
+	}
+
 	manifestSetGetter := newManifestSetGetter()
 
-	coordS, err := newCoordAPIServer(manifestSetGetter)
+	coordS, err := newCoordAPIServer(manifestSetGetter, caInstance)
 	if err != nil {
 		log.Fatalf("failed to create coordinator API server: %v", err)
 	}
@@ -29,7 +35,7 @@ func main() {
 	manifest := manifestSetGetter.GetManifest()
 	log.Println("Got manifest")
 
-	meshAuth, err := newMeshAuthority(manifest)
+	meshAuth, err := newMeshAuthority(caInstance, manifest)
 	if err != nil {
 		log.Fatalf("failed to create mesh authority: %v", err)
 	}

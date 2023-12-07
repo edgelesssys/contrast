@@ -25,13 +25,9 @@ type meshAuthority struct {
 	manifest *manifest.Manifest
 }
 
-func newMeshAuthority(manifest *manifest.Manifest) (*meshAuthority, error) {
-	caInstance, err := ca.New()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create CA: %w", err)
-	}
+func newMeshAuthority(ca *ca.CA, manifest *manifest.Manifest) (*meshAuthority, error) {
 	return &meshAuthority{
-		ca:       caInstance,
+		ca:       ca,
 		certs:    make(map[string][]byte),
 		manifest: manifest,
 	}, nil

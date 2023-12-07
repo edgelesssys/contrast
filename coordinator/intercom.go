@@ -49,7 +49,8 @@ func (i *intercomServer) Serve(endpoint string) error {
 	return i.grpc.Serve(lis)
 }
 
-func (i *intercomServer) NewMeshCert(ctx context.Context, req *intercom.NewMeshCertRequest) (*intercom.NewMeshCertResponse, error) {
+func (i *intercomServer) NewMeshCert(ctx context.Context, req *intercom.NewMeshCertRequest,
+) (*intercom.NewMeshCertResponse, error) {
 	log.Println("NewMeshCert called")
 
 	cert, err := i.certGet.GetCert(req.PeerPublicKeyHash)

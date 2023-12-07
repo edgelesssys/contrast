@@ -112,3 +112,7 @@ func (c *CA) NewAttestedMeshCert(commonName string, extensions []pkix.Extension,
 
 	return certPEM.Bytes(), nil
 }
+
+func (c *CA) GetCertChain() [][]byte {
+	return [][]byte{c.intermPEM, c.rootPEM}
+}

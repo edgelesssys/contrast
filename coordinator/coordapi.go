@@ -19,13 +19,14 @@ import (
 )
 
 type coordAPIServer struct {
-	grpc    *grpc.Server
-	mSetter manifestSetter
+	grpc          *grpc.Server
+	mSetter       manifestSetter
+	caChainGetter certChainGetter
 
 	coordapi.UnimplementedCoordAPIServer
 }
 
-func newCoordAPIServer(mSetter manifestSetter) (*coordAPIServer, error) {
+func newCoordAPIServer(mSetter manifestSetter, caGetter certChainGetter) (*coordAPIServer, error) {
 	issuer := snp.NewIssuer()
 	credentials := atlscredentials.New(issuer, nil)
 	grpcServer := grpc.NewServer(
@@ -33,8 +34,9 @@ func newCoordAPIServer(mSetter manifestSetter) (*coordAPIServer, error) {
 		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
 	)
 	s := &coordAPIServer{
-		grpc:    grpcServer,
-		mSetter: mSetter,
+		grpc:          grpcServer,
+		mSetter:       mSetter,
+		caChainGetter: caGetter,
 	}
 	coordapi.RegisterCoordAPIServer(s.grpc, s)
 	return s, nil
@@ -48,7 +50,8 @@ func (i *coordAPIServer) Serve(endpoint string) error {
 	return i.grpc.Serve(lis)
 }
 
-func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManifestRequest) (*coordapi.SetManifestResponse, error) {
+func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManifestRequest,
+) (*coordapi.SetManifestResponse, error) {
 	log.Println("SetManifest called")
 
 	if err := s.mSetter.SetManifest(req.Manifest); err != nil {
@@ -56,7 +59,11 @@ func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManif
 	}
 
 	log.Println("SetManifest succeeded")
-	return &coordapi.SetManifestResponse{}, nil
+	return &coordapi.SetManifestResponse{CertChain: s.caChainGetter.GetCertChain()}, nil
+}
+
+type certChainGetter interface {
+	GetCertChain() [][]byte
 }
 
 type manifestSetter interface {
