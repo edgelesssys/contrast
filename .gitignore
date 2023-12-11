@@ -7,3 +7,4 @@ tools/genpolicy.cache/*
 edgcoco
 result
 layers_cache
+mesh-root.pem
