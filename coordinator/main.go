@@ -40,7 +40,7 @@ func main() {
 		log.Fatalf("failed to create mesh authority: %v", err)
 	}
 
-	intercomS, err := newIntercomServer(meshAuth)
+	intercomS, err := newIntercomServer(meshAuth, caInstance)
 	if err != nil {
 		log.Fatalf("failed to create intercom server: %v", err)
 	}

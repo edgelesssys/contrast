@@ -43,26 +43,27 @@ func main() {
 	pubKeyHashStr := hex.EncodeToString(pubKeyHash[:])
 	log.Printf("pubKeyHash: %v", pubKeyHashStr)
 
-	for {
-		requestCert := func() (*intercom.NewMeshCertResponse, error) {
-			dial := dialer.NewWithKey(snp.NewIssuer(), atls.NoValidator, &net.Dialer{}, privKey)
-			conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorIP, intercom.Port))
-			if err != nil {
-				return nil, fmt.Errorf("dialing: %v", err)
-			}
-			defer conn.Close()
-
-			client := intercom.NewIntercomClient(conn)
-
-			req := &intercom.NewMeshCertRequest{
-				PeerPublicKeyHash: pubKeyHashStr,
-			}
-			resp, err := client.NewMeshCert(ctx, req)
-			if err != nil {
-				return nil, fmt.Errorf("Error: calling NewMeshCert: %v", err)
-			}
-			return resp, nil
+	requestCert := func() (*intercom.NewMeshCertResponse, error) {
+		dial := dialer.NewWithKey(snp.NewIssuer(), atls.NoValidator, &net.Dialer{}, privKey)
+		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorIP, intercom.Port))
+		if err != nil {
+			return nil, fmt.Errorf("dialing: %v", err)
 		}
+		defer conn.Close()
+
+		client := intercom.NewIntercomClient(conn)
+
+		req := &intercom.NewMeshCertRequest{
+			PeerPublicKeyHash: pubKeyHashStr,
+		}
+		resp, err := client.NewMeshCert(ctx, req)
+		if err != nil {
+			return nil, fmt.Errorf("Error: calling NewMeshCert: %v", err)
+		}
+		return resp, nil
+	}
+
+	for {
 		resp, err := requestCert()
 		if err == nil {
 			log.Printf("Response: %v", resp)
@@ -71,8 +72,6 @@ func main() {
 		log.Printf("Error: %v", err)
 		log.Println("retrying in 10s")
 		time.Sleep(10 * time.Second)
-		continue
-
 	}
 
 	log.Println("Initializer done")
