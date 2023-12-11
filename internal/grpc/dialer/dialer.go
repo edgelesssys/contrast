@@ -11,6 +11,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"net"
+	"time"
 
 	"github.com/katexochen/coordinator-kbs/internal/atls"
 	"github.com/katexochen/coordinator-kbs/internal/grpc/atlscredentials"
@@ -55,6 +56,11 @@ func (d *Dialer) Dial(ctx context.Context, target string) (*grpc.ClientConn, err
 	return grpc.DialContext(ctx, target,
 		d.grpcWithDialer(),
 		grpc.WithTransportCredentials(credentials),
+		grpc.WithConnectParams(grpc.ConnectParams{
+			// We need a high initial timeout, because otherwise the client will get stuck in a reconnect loop
+			// where the timeout is too low to get a full handshake done.
+			MinConnectTimeout: 30 * time.Second,
+		}),
 	)
 }
 
