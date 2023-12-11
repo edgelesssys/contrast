@@ -39,14 +39,15 @@ let
     };
   };
 
-  pushContainer = name: container: pkgs.writeShellApplication {
+  pushContainer = container: pkgs.writeShellApplication {
     name = "push";
     runtimeInputs = with pkgs; [ crane gzip ];
     text = ''
+      imageName="$1"
       tmpdir=$(mktemp -d)
       trap 'rm -rf $tmpdir' EXIT
       gunzip < "${container}" > "$tmpdir/image.tar"
-      crane push "$tmpdir/image.tar" "${name}"
+      crane push "$tmpdir/image.tar" "$imageName"
     '';
   };
 in
@@ -61,8 +62,8 @@ rec {
     '';
   };
 
-  push-coordinator = pushContainer "ghcr.io/katexochen/coordinator-kbs:latest" coordinator;
-  push-initializer = pushContainer "ghcr.io/katexochen/initializer:latest" initializer;
+  push-coordinator = pushContainer coordinator;
+  push-initializer = pushContainer initializer;
 
   generate = pkgs.writeShellApplication {
     name = "generate";

@@ -8,3 +8,4 @@ edgcoco
 result
 layers_cache
 mesh-root.pem
+justfile.env

@@ -17,5 +17,12 @@
     in
     {
       packages = import ./packages { inherit pkgs goVendorHash; };
+
+      devShells = {
+        default = pkgs.mkShell {
+          packages = with pkgs; [ just ];
+          shellHook = ''alias make=just'';
+        };
+      };
     });
 }
