@@ -35,6 +35,16 @@ undeploy:
 create:
     nix run .#create-coco-aks -- --name="$azure_resource_group"
 
+# Set the manifest at the coordinator.
+set:
+    #!/usr/bin/env bash
+    kubectl -n edg-coco port-forward pod/port-forwarder 1313 &
+    PID=$!
+    sleep 1
+    nix run .#cli -- set -m data/manifest.json -c localhost:1313
+    kill $PID
+
+
 # Destroy a running AKS cluster.
 destroy:
     nix run .#destroy-coco-aks -- "$azure_resource_group"
