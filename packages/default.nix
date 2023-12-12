@@ -65,6 +65,19 @@ rec {
   push-coordinator = pushContainer coordinator;
   push-initializer = pushContainer initializer;
 
+  azure-cli-with-extensions = callPackage ./azurecli.nix { };
+
+  create-coco-aks = writeShellApplication {
+    name = "create-coco-aks";
+    runtimeInputs = [ azure-cli-with-extensions ];
+    text = (builtins.readFile ./create-coco-aks.sh);
+  };
+  destroy-coco-aks = writeShellApplication {
+    name = "destroy-coco-aks";
+    runtimeInputs = [ azure-cli-with-extensions ];
+    text = ''az group delete --name "$1"'';
+  };
+
   generate = pkgs.writeShellApplication {
     name = "generate";
     runtimeInputs = with pkgs; [ go protobuf protoc-gen-go protoc-gen-go-grpc ];
