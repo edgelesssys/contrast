@@ -23,9 +23,9 @@ import (
 func main() {
 	log.Println("Initializer started")
 
-	coordinatorIP := os.Getenv("COORDINATOR_IP")
-	if coordinatorIP == "" {
-		log.Fatalf("COORDINATOR_IP not set")
+	coordinatorHostname := os.Getenv("COORDINATOR_HOST")
+	if coordinatorHostname == "" {
+		log.Fatalf("COORDINATOR_HOST not set")
 	}
 
 	ctx := context.Background()
@@ -45,7 +45,7 @@ func main() {
 
 	requestCert := func() (*intercom.NewMeshCertResponse, error) {
 		dial := dialer.NewWithKey(snp.NewIssuer(), atls.NoValidator, &net.Dialer{}, privKey)
-		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorIP, intercom.Port))
+		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorHostname, intercom.Port))
 		if err != nil {
 			return nil, fmt.Errorf("dialing: %v", err)
 		}

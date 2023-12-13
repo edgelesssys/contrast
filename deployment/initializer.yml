@@ -20,7 +20,7 @@ spec:
           image: "ghcr.io/katexochen/initializer:latest"
           imagePullPolicy: Always
           env:
-            - name: COORDINATOR_IP
+            - name: COORDINATOR_HOST
               value: coordinator-kbs.edg-coco
       containers:
         - name: workload
