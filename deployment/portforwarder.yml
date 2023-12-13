@@ -18,6 +18,6 @@ spec:
       command:
         - /bin/bash
         - "-c"
-        - echo Starting port-forward with socat; socat -d -d TCP-LISTEN:${LISTEN_PORT},fork TCP:${FORWARD_HOST}:${FORWARD_PORT}; echo Port-forward exited
+        - echo Starting port-forward with socat; exec socat -d -d TCP-LISTEN:${LISTEN_PORT},fork TCP:${FORWARD_HOST}:${FORWARD_PORT}
       ports:
         - containerPort: 1313
