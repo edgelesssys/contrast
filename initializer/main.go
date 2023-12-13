@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/pem"
 	"fmt"
 	"log"
 	"net"
@@ -63,8 +64,9 @@ func main() {
 		return resp, nil
 	}
 
+	resp := &intercom.NewMeshCertResponse{}
 	for {
-		resp, err := requestCert()
+		resp, err = requestCert()
 		if err == nil {
 			log.Printf("Response: %v", resp)
 			break
@@ -72,6 +74,32 @@ func main() {
 		log.Printf("Error: %v", err)
 		log.Println("retrying in 10s")
 		time.Sleep(10 * time.Second)
+	}
+
+	// concatenate cert chain
+	certChain := resp.Cert
+	for _, cert := range resp.CertChain {
+		certChain = append(certChain, cert...)
+	}
+
+	// convert privKey to PEM
+	privKeyBytes, err := x509.MarshalPKCS8PrivateKey(privKey)
+	if err != nil {
+		log.Fatalf("marshaling private key: %v", err)
+	}
+	pemEncodedPrivKey := pem.EncodeToMemory(&pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: privKeyBytes,
+	})
+
+	// write files to disk
+	err = os.WriteFile("/tls-config/certs.pem", certChain, 0o644)
+	if err != nil {
+		log.Fatalf("writing cert.pem: %v", err)
+	}
+	err = os.WriteFile("/tls-config/key.pem", pemEncodedPrivKey, 0o600)
+	if err != nil {
+		log.Fatalf("writing key.pem: %v", err)
 	}
 
 	log.Println("Initializer done")

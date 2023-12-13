@@ -22,6 +22,9 @@ spec:
           env:
             - name: COORDINATOR_HOST
               value: coordinator-kbs.edg-coco
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /tls-config
       containers:
         - name: workload
           image: "fedora:38"
@@ -30,3 +33,9 @@ spec:
             - /bin/bash
             - "-c"
             - echo Workload started ; sleep inf
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /tls-config
+      volumes:
+        - name: tls-certs
+          emptyDir: {}
