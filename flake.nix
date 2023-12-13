@@ -24,5 +24,7 @@
           shellHook = ''alias make=just'';
         };
       };
+
+      legacyPackages = pkgs;
     });
 }
