@@ -11,40 +11,49 @@ set -x
 #
 for i in "$@"; do
   case $i in
-    --name=*)        name="${i#*=}"       ; shift ;;
-    --location=*)    location="${i#*=}"   ; shift ;;
-    --k8s-version=*) k8sVersion="${i#*=}" ; shift ;;
-    *)
-      echo "Unknown option $i"
-      exit 1
-      ;;
+  --name=*)
+    name="${i#*=}"
+    shift
+    ;;
+  --location=*)
+    location="${i#*=}"
+    shift
+    ;;
+  --k8s-version=*)
+    k8sVersion="${i#*=}"
+    shift
+    ;;
+  *)
+    echo "Unknown option $i"
+    exit 1
+    ;;
   esac
 done
 
 az group create \
-    --name "${name}" \
-    --location "${location:-westeurope}"
+  --name "${name}" \
+  --location "${location:-westeurope}"
 
 az aks create \
-    --resource-group "${name}" \
-    --name "${name}" \
-    --kubernetes-version "${k8sVersion:-1.27}" \
-    --os-sku AzureLinux \
-    --node-vm-size Standard_DC4as_cc_v5 \
-    --node-count 1 \
-    --enable-oidc-issuer \
-    --enable-workload-identity \
-    --generate-ssh-keys
+  --resource-group "${name}" \
+  --name "${name}" \
+  --kubernetes-version "${k8sVersion:-1.27}" \
+  --os-sku AzureLinux \
+  --node-vm-size Standard_DC4as_cc_v5 \
+  --node-count 1 \
+  --enable-oidc-issuer \
+  --enable-workload-identity \
+  --generate-ssh-keys
 
 az aks nodepool add \
-    --resource-group "${name}" \
-    --name nodepool2 \
-    --cluster-name "${name}" \
-    --node-count 1 \
-    --os-sku AzureLinux \
-    --node-vm-size Standard_DC4as_cc_v5 \
-    --workload-runtime KataCcIsolation
+  --resource-group "${name}" \
+  --name nodepool2 \
+  --cluster-name "${name}" \
+  --node-count 1 \
+  --os-sku AzureLinux \
+  --node-vm-size Standard_DC4as_cc_v5 \
+  --workload-runtime KataCcIsolation
 
 az aks get-credentials \
-    --resource-group "${name}" \
-    --name "${name}"
+  --resource-group "${name}" \
+  --name "${name}"
