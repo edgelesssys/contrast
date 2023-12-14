@@ -9,35 +9,37 @@ coordinator:
 initializer:
     nix run .#push-initializer -- "$container_registry/initializer:latest"
 
+default_deploy_target := "simple"
+
 # Generate policies, apply Kubernetes manifests.
-deploy: generate apply
+deploy target=default_deploy_target: generate apply
 
 # Generate policies, update manifest.
-generate:
+generate target=default_deploy_target:
     nix run .#yq-go -- -i ". \
         | with(select(.spec.template.spec.containers[].image | contains(\"coordinator-kbs\")); \
         .spec.template.spec.containers[0].image = \"${container_registry}/coordinator-kbs:latest\")" \
-        ./deployments/simple/coordinator.yml
+        ./deployments/{{target}}/coordinator.yml
     nix run .#yq-go -- -i ". \
         | with(select(.spec.template.spec.initContainers[].image | contains(\"initializer\")); \
         .spec.template.spec.initContainers[0].image = \"${container_registry}/initializer:latest\")" \
-        ./deployments/simple/initializer.yml
+        ./deployments/{{target}}/initializer.yml
     nix run .#cli -- generate \
         -m data/manifest.json \
         -p tools \
         -s genpolicy-msft.json \
-        ./deployments/simple/{coordinator,initializer}.yml
+        ./deployments/{{target}}/{coordinator,initializer}.yml
 
-# Apply Kubernetes manifests from /deployment.
-apply:
-    kubectl apply -f ./deployments/simple/ns.yml
-    kubectl apply -f ./deployments/simple/coordinator.yml
-    kubectl apply -f ./deployments/simple/initializer.yml
-    kubectl apply -f ./deployments/simple/portforwarder.yml
+# Apply Kubernetes manifests from /deployment
+apply target=default_deploy_target:
+    kubectl apply -f ./deployments/{{target}}/ns.yml
+    kubectl apply -f ./deployments/{{target}}/coordinator.yml
+    kubectl apply -f ./deployments/{{target}}/initializer.yml
+    kubectl apply -f ./deployments/{{target}}/portforwarder.yml
 
 # Delete Kubernetes manifests.
-undeploy:
-    -kubectl delete -f ./deployments/simple
+undeploy target=default_deploy_target:
+    -kubectl delete -f ./deployments/{{target}}
 
 # Create a CoCo-enabled AKS cluster.
 create:
