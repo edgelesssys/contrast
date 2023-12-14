@@ -29,7 +29,7 @@ let
     { };
 
   buildContainer = drv: pkgs.dockerTools.buildImage {
-    name = drv.name;
+    inherit (drv) name;
     tag = "latest";
     copyToRoot = with pkgs.dockerTools; [
       caCertificates
@@ -70,7 +70,7 @@ rec {
   create-coco-aks = writeShellApplication {
     name = "create-coco-aks";
     runtimeInputs = [ azure-cli-with-extensions ];
-    text = (builtins.readFile ./create-coco-aks.sh);
+    text = builtins.readFile ./create-coco-aks.sh;
   };
   destroy-coco-aks = writeShellApplication {
     name = "destroy-coco-aks";
