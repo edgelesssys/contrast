@@ -56,7 +56,7 @@ set:
     kubectl -n edg-coco port-forward pod/port-forwarder 1313 &
     PID=$!
     sleep 1
-    nix run .#cli -- set -m data/manifest.json -c localhost:1313
+    nix run .#cli -- set -m ./{{worspace_dir}}/manifest.json -c localhost:1313
     kill $PID
 
 
