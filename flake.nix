@@ -13,10 +13,10 @@
   };
 
   outputs =
-    { self
-    , nixpkgs
+    { nixpkgs
     , flake-utils
     , treefmt-nix
+    , ...
     }: flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };

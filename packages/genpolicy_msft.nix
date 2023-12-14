@@ -1,5 +1,4 @@
-{ lib
-, fetchFromGitHub
+{ fetchFromGitHub
 , rustPlatform
 , openssl
 , pkg-config

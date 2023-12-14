@@ -1,6 +1,5 @@
 { fetchurl
 , python3
-, stdenv
 , azure-cli
 , symlinkJoin
 }:
