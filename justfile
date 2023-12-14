@@ -10,36 +10,41 @@ initializer:
     nix run .#push-initializer -- "$container_registry/initializer:latest"
 
 default_deploy_target := "simple"
+worspace_dir := "workspace"
 
 # Generate policies, apply Kubernetes manifests.
 deploy target=default_deploy_target: generate apply
 
 # Generate policies, update manifest.
 generate target=default_deploy_target:
+    mkdir -p ./{{worspace_dir}}
+    rm -rf ./{{worspace_dir}}/deployment
+    cp -R ./deployments/{{target}} ./{{worspace_dir}}/deployment
+    cp ./data/manifest.json ./{{worspace_dir}}/manifest.json
     nix run .#yq-go -- -i ". \
         | with(select(.spec.template.spec.containers[].image | contains(\"coordinator-kbs\")); \
         .spec.template.spec.containers[0].image = \"${container_registry}/coordinator-kbs:latest\")" \
-        ./deployments/{{target}}/coordinator.yml
+        ./{{worspace_dir}}/deployment/coordinator.yml
     nix run .#yq-go -- -i ". \
         | with(select(.spec.template.spec.initContainers[].image | contains(\"initializer\")); \
         .spec.template.spec.initContainers[0].image = \"${container_registry}/initializer:latest\")" \
-        ./deployments/{{target}}/initializer.yml
+        ./{{worspace_dir}}/deployment/initializer.yml
     nix run .#cli -- generate \
-        -m data/manifest.json \
+        -m ./{{worspace_dir}}/manifest.json \
         -p tools \
         -s genpolicy-msft.json \
-        ./deployments/{{target}}/{coordinator,initializer}.yml
+        ./{{worspace_dir}}/deployment/{coordinator,initializer}.yml
 
 # Apply Kubernetes manifests from /deployment
 apply target=default_deploy_target:
-    kubectl apply -f ./deployments/{{target}}/ns.yml
-    kubectl apply -f ./deployments/{{target}}/coordinator.yml
-    kubectl apply -f ./deployments/{{target}}/initializer.yml
-    kubectl apply -f ./deployments/{{target}}/portforwarder.yml
+    kubectl apply -f ./{{worspace_dir}}/deployment/ns.yml
+    kubectl apply -f ./{{worspace_dir}}/deployment/coordinator.yml
+    kubectl apply -f ./{{worspace_dir}}/deployment/initializer.yml
+    kubectl apply -f ./{{worspace_dir}}/deployment/portforwarder.yml
 
 # Delete Kubernetes manifests.
 undeploy target=default_deploy_target:
-    -kubectl delete -f ./deployments/{{target}}
+    -kubectl delete -f ./{{worspace_dir}}/deployment
 
 # Create a CoCo-enabled AKS cluster.
 create:
@@ -61,7 +66,7 @@ destroy:
 
 # Cleanup auxiliary files, caches etc.
 clean:
-    rm -f ./tools/genpolicy.cache/*.{tar,gz,verify}
+    rm -rf ./{{worspace_dir}}
 
 # Template for the justfile.env file.
 rctemplate := '''
