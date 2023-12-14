@@ -17,27 +17,27 @@ generate:
     nix run .#yq-go -- -i ". \
         | with(select(.spec.template.spec.containers[].image | contains(\"coordinator-kbs\")); \
         .spec.template.spec.containers[0].image = \"${container_registry}/coordinator-kbs:latest\")" \
-        ./deployment/coordinator.yml
+        ./deployments/simple/coordinator.yml
     nix run .#yq-go -- -i ". \
         | with(select(.spec.template.spec.initContainers[].image | contains(\"initializer\")); \
         .spec.template.spec.initContainers[0].image = \"${container_registry}/initializer:latest\")" \
-        ./deployment/initializer.yml
+        ./deployments/simple/initializer.yml
     nix run .#cli -- generate \
         -m data/manifest.json \
         -p tools \
         -s genpolicy-msft.json \
-        ./deployment/{coordinator,initializer}.yml
+        ./deployments/simple/{coordinator,initializer}.yml
 
 # Apply Kubernetes manifests from /deployment.
 apply:
-    kubectl apply -f ./deployment/ns.yml
-    kubectl apply -f ./deployment/coordinator.yml
-    kubectl apply -f ./deployment/initializer.yml
-    kubectl apply -f ./deployment/portforwarder.yml
+    kubectl apply -f ./deployments/simple/ns.yml
+    kubectl apply -f ./deployments/simple/coordinator.yml
+    kubectl apply -f ./deployments/simple/initializer.yml
+    kubectl apply -f ./deployments/simple/portforwarder.yml
 
 # Delete Kubernetes manifests.
 undeploy:
-    -kubectl delete -f ./deployment
+    -kubectl delete -f ./deployments/simple
 
 # Create a CoCo-enabled AKS cluster.
 create:
