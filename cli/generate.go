@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/katexochen/coordinator-kbs/internal/kubeapi"
 	"github.com/katexochen/coordinator-kbs/internal/manifest"
 	"github.com/spf13/cobra"
 )
@@ -48,17 +46,18 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(paths) == 0 {
-		return fmt.Errorf("no .yml/.yaml files found")
-	}
 
 	if err := generatePolicies(cmd.Context(), flags.policyPath, flags.settingsPath, paths); err != nil {
 		return fmt.Errorf("failed to generate policies: %w", err)
 	}
 
-	policies, err := manifestPoliciesFromKubeResources(paths)
+	policies, err := policiesFromKubeResources(paths)
 	if err != nil {
 		return fmt.Errorf("failed to find kube resources with policy: %w", err)
+	}
+	policyMap, err := manifestPolicyMapFromPolicies(policies)
+	if err != nil {
+		return fmt.Errorf("failed to create policy map: %w", err)
 	}
 
 	manifestData, err := os.ReadFile(flags.manifestPath)
@@ -69,7 +68,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	if err := json.Unmarshal(manifestData, &manifest); err != nil {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
-	manifest.Policies = policies
+	manifest.Policies = policyMap
 	manifestData, err = json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal manifest: %w", err)
@@ -102,6 +101,9 @@ func findGenerateTargets(args []string) ([]string, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to walk %s: %w", path, err)
 		}
+	}
+	if len(paths) == 0 {
+		return nil, fmt.Errorf("no .yml/.yaml files found")
 	}
 	return paths, nil
 }
@@ -146,66 +148,6 @@ func generatePolicyForFile(ctx context.Context, regoPath, policyPath, yamlPath s
 	}
 	policyHash := sha256.Sum256(stdout.Bytes())
 	return policyHash, nil
-}
-
-func manifestPoliciesFromKubeResources(yamlPaths []string) (map[manifest.HexString]string, error) {
-	var kubeObjs []any
-	for _, path := range yamlPaths {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read %s: %w", path, err)
-		}
-		objs, err := kubeapi.UnmarshalK8SResources(data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal %s: %w", path, err)
-		}
-		kubeObjs = append(kubeObjs, objs...)
-	}
-
-	policies := make(map[manifest.HexString]string)
-	for _, objAny := range kubeObjs {
-		var name, annotation string
-		switch obj := objAny.(type) {
-		case kubeapi.Pod:
-			name = obj.Name
-			annotation = obj.Annotations[kataPolicyAnnotationKey]
-		case kubeapi.Deployment:
-			name = obj.Name
-			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-		case kubeapi.ReplicaSet:
-			name = obj.Name
-			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-		case kubeapi.StatefulSet:
-			name = obj.Name
-			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-		case kubeapi.DaemonSet:
-			name = obj.Name
-			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-		}
-		if annotation == "" {
-			continue
-		}
-		if name == "" {
-			return nil, fmt.Errorf("name is required but empty")
-		}
-		policy, err := base64.StdEncoding.DecodeString(annotation)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode policy for %s: %w", name, err)
-		}
-		policyHash := sha256.Sum256(policy)
-		policyHashStr := manifest.NewHexString(policyHash[:])
-		if existingName, ok := policies[policyHashStr]; ok {
-			if existingName != name {
-				return nil, fmt.Errorf("policy hash collision: %s and %s have the same hash %s",
-					existingName, name, policyHashStr)
-			}
-			continue
-		}
-		policies[policyHashStr] = name
-		fmt.Printf("%s  %s\n", policyHashStr, name)
-	}
-
-	return policies, nil
 }
 
 type generateFlags struct {

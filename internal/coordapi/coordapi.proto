@@ -10,6 +10,7 @@ service CoordAPI {
 
 message SetManifestRequest {
   string Manifest = 1;
+  repeated bytes Policies = 2;
 }
 
 message SetManifestResponse {

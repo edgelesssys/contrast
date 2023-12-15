@@ -51,11 +51,23 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
 
+	paths, err := findGenerateTargets(args)
+	if err != nil {
+		return fmt.Errorf("finding yaml files: %w", err)
+	}
+
+	policies, err := policiesFromKubeResources(paths)
+	if err != nil {
+		return fmt.Errorf("finding kube resources with policy: %w", err)
+	}
+	if err := checkPoliciesMatchManifest(policies, m.Policies); err != nil {
+		return fmt.Errorf("checking policies match manifest: %w", err)
+	}
+
 	trustedIDKeyDigestHashes, err := m.ReferenceValues.SNP.TrustedIDKeyHashes.ByteSlices()
 	if err != nil {
 		return fmt.Errorf("failed to convert TrustedIDKeyHashes from manifest to byte slices: %w", err)
 	}
-
 	validateOptsGen := &snp.StaticValidateOptsGenerator{
 		Opts: &validate.Options{
 			GuestPolicy: abi.SnpPolicy{
@@ -89,7 +101,10 @@ func runSet(cmd *cobra.Command, args []string) error {
 	defer conn.Close()
 
 	client := coordapi.NewCoordAPIClient(conn)
-	req := &coordapi.SetManifestRequest{Manifest: manifestB64}
+	req := &coordapi.SetManifestRequest{
+		Manifest: manifestB64,
+		Policies: mapValues(policies),
+	}
 	resp, err := client.SetManifest(cmd.Context(), req)
 	if err != nil {
 		return fmt.Errorf("failed to set manifest: %w", err)
@@ -127,4 +142,12 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	}
 
 	return flags, nil
+}
+
+func mapValues[key comparable, value any](m map[key]value) []value {
+	result := make([]value, len(m))
+	for _, v := range m {
+		result = append(result, v)
+	}
+	return result
 }
