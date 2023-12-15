@@ -17,7 +17,7 @@ spec:
       runtimeClassName: kata-cc-isolation
       containers:
         - name: coordinator-kbs
-          image: "ghcr.io/katexochen/coordinator-kbs:latest"
+          image: "ghcr.io/edgelesssys/nunki/coordinator-kbs:latest"
           imagePullPolicy: Always
           ports:
             - containerPort: 7777
