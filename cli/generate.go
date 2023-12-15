@@ -14,8 +14,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/katexochen/coordinator-kbs/internal/kubeapi"
-	"github.com/katexochen/coordinator-kbs/internal/manifest"
+	"github.com/edgelesssys/coco/internal/kubeapi"
+	"github.com/edgelesssys/coco/internal/manifest"
 	"github.com/spf13/cobra"
 )
 

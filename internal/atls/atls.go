@@ -24,7 +24,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/katexochen/coordinator-kbs/internal/crypto"
+	"github.com/edgelesssys/coco/internal/crypto"
 )
 
 const attestationTimeout = 30 * time.Second

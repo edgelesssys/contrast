@@ -8,14 +8,14 @@ import (
 	"net"
 	"os"
 
+	"github.com/edgelesssys/coco/internal/atls"
+	"github.com/edgelesssys/coco/internal/attestation/snp"
+	"github.com/edgelesssys/coco/internal/coordapi"
+	"github.com/edgelesssys/coco/internal/grpc/dialer"
+	"github.com/edgelesssys/coco/internal/manifest"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/validate"
-	"github.com/katexochen/coordinator-kbs/internal/atls"
-	"github.com/katexochen/coordinator-kbs/internal/attestation/snp"
-	"github.com/katexochen/coordinator-kbs/internal/coordapi"
-	"github.com/katexochen/coordinator-kbs/internal/grpc/dialer"
-	"github.com/katexochen/coordinator-kbs/internal/manifest"
 	"github.com/spf13/cobra"
 )
 

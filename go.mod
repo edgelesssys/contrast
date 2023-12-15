@@ -1,4 +1,4 @@
-module github.com/katexochen/coordinator-kbs
+module github.com/edgelesssys/coco
 
 go 1.20
 

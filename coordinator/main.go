@@ -4,9 +4,9 @@ import (
 	"log"
 	"net"
 
-	"github.com/katexochen/coordinator-kbs/internal/ca"
-	"github.com/katexochen/coordinator-kbs/internal/coordapi"
-	"github.com/katexochen/coordinator-kbs/internal/intercom"
+	"github.com/edgelesssys/coco/internal/ca"
+	"github.com/edgelesssys/coco/internal/coordapi"
+	"github.com/edgelesssys/coco/internal/intercom"
 )
 
 func main() {

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package intercom;
 
-option go_package = "github.com/katexochen/coordinator-kbs/internal/intercom";
+option go_package = "github.com/edgelesssys/coco/internal/intercom";
 
 service Intercom {
   rpc NewMeshCert(NewMeshCertRequest) returns (NewMeshCertResponse);

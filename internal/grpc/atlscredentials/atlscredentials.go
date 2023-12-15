@@ -13,7 +13,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/katexochen/coordinator-kbs/internal/atls"
+	"github.com/edgelesssys/coco/internal/atls"
 	"google.golang.org/grpc/credentials"
 )
 

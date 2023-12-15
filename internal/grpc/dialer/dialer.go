@@ -13,8 +13,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/katexochen/coordinator-kbs/internal/atls"
-	"github.com/katexochen/coordinator-kbs/internal/grpc/atlscredentials"
+	"github.com/edgelesssys/coco/internal/atls"
+	"github.com/edgelesssys/coco/internal/grpc/atlscredentials"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
