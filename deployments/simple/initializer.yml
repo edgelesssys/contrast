@@ -17,7 +17,7 @@ spec:
       runtimeClassName: kata-cc-isolation
       initContainers:
         - name: initializer
-          image: "ghcr.io/katexochen/initializer:latest"
+          image: "ghcr.io/edgelesssys/nunki/initializer:latest"
           imagePullPolicy: Always
           env:
             - name: COORDINATOR_HOST
