@@ -1,6 +1,8 @@
 package manifest
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -79,4 +81,19 @@ func (l *HexStrings) ByteSlices() ([][]byte, error) {
 		res = append(res, b)
 	}
 	return res, nil
+}
+
+type Policy []byte
+
+func NewPolicyFromAnnotation(annotation []byte) (Policy, error) {
+	return base64.StdEncoding.DecodeString(string(annotation))
+}
+
+func (p Policy) Bytes() []byte {
+	return []byte(p)
+}
+
+func (p Policy) Hash() HexString {
+	hashBytes := sha256.Sum256(p)
+	return NewHexString(hashBytes[:])
 }

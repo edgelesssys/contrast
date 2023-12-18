@@ -103,7 +103,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 	client := coordapi.NewCoordAPIClient(conn)
 	req := &coordapi.SetManifestRequest{
 		Manifest: manifestB64,
-		Policies: mapValues(policies),
+		Policies: policyMapToBytesList(policies),
 	}
 	resp, err := client.SetManifest(cmd.Context(), req)
 	if err != nil {
@@ -144,10 +144,10 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	return flags, nil
 }
 
-func mapValues[key comparable, value any](m map[key]value) []value {
-	result := make([]value, len(m))
-	for _, v := range m {
-		result = append(result, v)
+func policyMapToBytesList(m map[string]manifest.Policy) [][]byte {
+	var policies [][]byte
+	for _, policy := range m {
+		policies = append(policies, policy)
 	}
-	return result
+	return policies
 }

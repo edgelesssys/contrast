@@ -14,14 +14,16 @@ import (
 	"github.com/katexochen/coordinator-kbs/internal/coordapi"
 	"github.com/katexochen/coordinator-kbs/internal/grpc/atlscredentials"
 	"github.com/katexochen/coordinator-kbs/internal/manifest"
+	"github.com/katexochen/coordinator-kbs/internal/memstore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
 
 type coordAPIServer struct {
-	grpc          *grpc.Server
-	mSetter       manifestSetter
-	caChainGetter certChainGetter
+	grpc            *grpc.Server
+	policyTextStore store[manifest.HexString, manifest.Policy]
+	mSetter         manifestSetter
+	caChainGetter   certChainGetter
 
 	coordapi.UnimplementedCoordAPIServer
 }
@@ -34,9 +36,10 @@ func newCoordAPIServer(mSetter manifestSetter, caGetter certChainGetter) (*coord
 		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
 	)
 	s := &coordAPIServer{
-		grpc:          grpcServer,
-		mSetter:       mSetter,
-		caChainGetter: caGetter,
+		grpc:            grpcServer,
+		policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
+		mSetter:         mSetter,
+		caChainGetter:   caGetter,
 	}
 	coordapi.RegisterCoordAPIServer(s.grpc, s)
 	return s, nil
@@ -54,7 +57,24 @@ func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManif
 ) (*coordapi.SetManifestResponse, error) {
 	log.Println("SetManifest called")
 
-	if err := s.mSetter.SetManifest(req.Manifest); err != nil {
+	manifestDec, err := base64.StdEncoding.DecodeString(req.Manifest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode manifest: %v", err)
+	}
+	var m *manifest.Manifest
+	if err := json.Unmarshal(manifestDec, &m); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal manifest: %v", err)
+	}
+
+	for _, policyBytes := range req.Policies {
+		policy := manifest.Policy(policyBytes)
+		if _, ok := m.Policies[policy.Hash()]; !ok {
+			return nil, fmt.Errorf("policy %v not found in manifest", policy.Hash())
+		}
+		s.policyTextStore.Set(policy.Hash(), policy)
+	}
+
+	if err := s.mSetter.SetManifest(m); err != nil {
 		return nil, err
 	}
 
@@ -67,7 +87,12 @@ type certChainGetter interface {
 }
 
 type manifestSetter interface {
-	SetManifest(string) error
+	SetManifest(*manifest.Manifest) error
+}
+
+type store[keyT comparable, valueT any] interface {
+	Get(key keyT) (valueT, bool)
+	Set(key keyT, value valueT)
 }
 
 type manifestSetGetter struct {
@@ -79,17 +104,9 @@ func newManifestSetGetter() *manifestSetGetter {
 	return &manifestSetGetter{manifestC: make(chan *manifest.Manifest, 1)}
 }
 
-func (m *manifestSetGetter) SetManifest(manifestStr string) error {
-	manifestDec, err := base64.StdEncoding.DecodeString(manifestStr)
-	if err != nil {
-		return fmt.Errorf("failed to decode manifest: %v", err)
-	}
-	var manifest *manifest.Manifest
-	if err := json.Unmarshal(manifestDec, &manifest); err != nil {
-		return fmt.Errorf("failed to unmarshal manifest: %v", err)
-	}
+func (m *manifestSetGetter) SetManifest(ma *manifest.Manifest) error {
 	m.setOnce.Do(func() {
-		m.manifestC <- manifest
+		m.manifestC <- ma
 		close(m.manifestC)
 	})
 	return nil
