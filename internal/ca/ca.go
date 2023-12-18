@@ -11,7 +11,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/katexochen/coordinator-kbs/internal/crypto"
+	"github.com/edgelesssys/nunki/internal/crypto"
 )
 
 type CA struct {

@@ -10,12 +10,12 @@ import (
 	"log"
 	"sync"
 
+	"github.com/edgelesssys/nunki/internal/ca"
+	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
-	"github.com/katexochen/coordinator-kbs/internal/ca"
-	"github.com/katexochen/coordinator-kbs/internal/manifest"
 )
 
 type meshAuthority struct {

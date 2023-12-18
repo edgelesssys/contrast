@@ -4,9 +4,9 @@ import (
 	"log"
 	"net"
 
-	"github.com/katexochen/coordinator-kbs/internal/ca"
-	"github.com/katexochen/coordinator-kbs/internal/coordapi"
-	"github.com/katexochen/coordinator-kbs/internal/intercom"
+	"github.com/edgelesssys/nunki/internal/ca"
+	"github.com/edgelesssys/nunki/internal/coordapi"
+	"github.com/edgelesssys/nunki/internal/intercom"
 )
 
 func main() {

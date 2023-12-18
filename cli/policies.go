@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/katexochen/coordinator-kbs/internal/kubeapi"
-	"github.com/katexochen/coordinator-kbs/internal/manifest"
+	"github.com/edgelesssys/nunki/internal/kubeapi"
+	"github.com/edgelesssys/nunki/internal/manifest"
 )
 
 func policiesFromKubeResources(yamlPaths []string) (map[string]manifest.Policy, error) {

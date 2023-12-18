@@ -15,10 +15,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/katexochen/coordinator-kbs/internal/atls"
-	"github.com/katexochen/coordinator-kbs/internal/attestation/snp"
-	"github.com/katexochen/coordinator-kbs/internal/grpc/dialer"
-	"github.com/katexochen/coordinator-kbs/internal/intercom"
+	"github.com/edgelesssys/nunki/internal/atls"
+	"github.com/edgelesssys/nunki/internal/attestation/snp"
+	"github.com/edgelesssys/nunki/internal/grpc/dialer"
+	"github.com/edgelesssys/nunki/internal/intercom"
 )
 
 func main() {
