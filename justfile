@@ -67,6 +67,14 @@ set:
 destroy:
     nix run .#destroy-coco-aks -- "$azure_resource_group"
 
+# Run code generators.
+codegen:
+    nix run .#generate
+
+# Format code.
+fmt:
+    nix fmt
+
 # Cleanup auxiliary files, caches etc.
 clean:
     rm -rf ./{{worspace_dir}}
