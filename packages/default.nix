@@ -81,7 +81,10 @@ rec {
   generate = pkgs.writeShellApplication {
     name = "generate";
     runtimeInputs = with pkgs; [ go protobuf protoc-gen-go protoc-gen-go-grpc ];
-    text = ''go generate ./...'';
+    text = ''
+      go generate ./...
+      go mod tidy
+    '';
   };
 
   genpolicy = genpolicy-msft;
