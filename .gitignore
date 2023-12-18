@@ -8,5 +8,6 @@ edgcoco
 result
 layers_cache
 mesh-root.pem
+coordinator-root.pem
 justfile.env
 workspace

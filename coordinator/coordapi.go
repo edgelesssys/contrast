@@ -79,11 +79,12 @@ func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManif
 	}
 
 	log.Println("SetManifest succeeded")
-	return &coordapi.SetManifestResponse{CertChain: s.caChainGetter.GetCertChain()}, nil
+	return &coordapi.SetManifestResponse{CACert: s.caChainGetter.GetCACert(), IntermCert: s.caChainGetter.GetIntermCert()}, nil
 }
 
 type certChainGetter interface {
-	GetCertChain() [][]byte
+	GetCACert() []byte
+	GetIntermCert() []byte
 }
 
 type manifestSetter interface {
