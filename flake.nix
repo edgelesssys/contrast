@@ -13,7 +13,8 @@
   };
 
   outputs =
-    { nixpkgs
+    { self
+    , nixpkgs
     , flake-utils
     , treefmt-nix
     , ...
@@ -35,6 +36,10 @@
       };
 
       formatter = treefmtEval.config.build.wrapper;
+
+      checks = {
+        formatting = treefmtEval.config.build.check self;
+      };
 
       legacyPackages = pkgs;
     });
