@@ -1,6 +1,11 @@
-# Constellation Confidential Containers Coordinator
+# Nunki
 
-Nunki is based on the [Kata Containers]() and [Confidential Containers]() projects. Confidential Containers are Kubernetes pods that are executed inside a confidential VM.
+Nunki ([/ˈnʌŋki/](https://en.wikipedia.org/wiki/Sigma_Sagittarii)) runs confidential container deployments
+on untrusted Kubernetes at scale.
+
+Nunki is based on the [Kata Containers](https://github.com/kata-containers/kata-containers) and
+[Confidential Containers](https://github.com/confidential-containers) projects. Confidential Containers are Kubernetes pods that are executed inside a confidential micro-VM and provide strong hardware-based isolation
+from the surrounding environment.
 
 ## Contributing
 
