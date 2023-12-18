@@ -15,8 +15,8 @@ rustPlatform.buildRustPackage rec {
   src = fetchFromGitHub {
     owner = "microsoft";
     repo = "kata-containers";
-    rev = "danmihai1/genpolicy-main";
-    hash = "sha256-mS+S6p6pua0G0ToXKP56KfvYfk0QfG8un/7IcmR/+ww=";
+    rev = "4e2fce2d03dd7ed6101ba02e397374a0594fdd6d"; # danmihai1/genpolicy-main
+    hash = "sha256-ydJrOu26rtiXKuDzccTgW6RhqUOzXVEm3840nsgI23Q=";
   };
 
   sourceRoot = "${src.name}/src/tools/genpolicy";
