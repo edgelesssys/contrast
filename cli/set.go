@@ -8,14 +8,14 @@ import (
 	"net"
 	"os"
 
+	"github.com/edgelesssys/nunki/internal/atls"
+	"github.com/edgelesssys/nunki/internal/attestation/snp"
+	"github.com/edgelesssys/nunki/internal/coordapi"
+	"github.com/edgelesssys/nunki/internal/grpc/dialer"
+	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/validate"
-	"github.com/katexochen/coordinator-kbs/internal/atls"
-	"github.com/katexochen/coordinator-kbs/internal/attestation/snp"
-	"github.com/katexochen/coordinator-kbs/internal/coordapi"
-	"github.com/katexochen/coordinator-kbs/internal/grpc/dialer"
-	"github.com/katexochen/coordinator-kbs/internal/manifest"
 	"github.com/spf13/cobra"
 )
 

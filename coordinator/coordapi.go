@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/katexochen/coordinator-kbs/internal/attestation/snp"
-	"github.com/katexochen/coordinator-kbs/internal/coordapi"
-	"github.com/katexochen/coordinator-kbs/internal/grpc/atlscredentials"
-	"github.com/katexochen/coordinator-kbs/internal/manifest"
-	"github.com/katexochen/coordinator-kbs/internal/memstore"
+	"github.com/edgelesssys/nunki/internal/attestation/snp"
+	"github.com/edgelesssys/nunki/internal/coordapi"
+	"github.com/edgelesssys/nunki/internal/grpc/atlscredentials"
+	"github.com/edgelesssys/nunki/internal/manifest"
+	"github.com/edgelesssys/nunki/internal/memstore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )

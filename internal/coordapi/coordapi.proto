@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package coordapi;
 
-option go_package = "github.com/katexochen/coordinator-kbs/internal/coordapi";
+option go_package = "github.com/edgelesssys/nunki/internal/coordapi";
 
 service CoordAPI {
   rpc SetManifest(SetManifestRequest) returns (SetManifestResponse);
