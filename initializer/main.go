@@ -76,12 +76,6 @@ func main() {
 		time.Sleep(10 * time.Second)
 	}
 
-	// concatenate cert chain
-	certChain := resp.Cert
-	for _, cert := range resp.CertChain {
-		certChain = append(certChain, cert...)
-	}
-
 	// convert privKey to PEM
 	privKeyBytes, err := x509.MarshalPKCS8PrivateKey(privKey)
 	if err != nil {
@@ -93,7 +87,11 @@ func main() {
 	})
 
 	// write files to disk
-	err = os.WriteFile("/tls-config/certs.pem", certChain, 0o644)
+	err = os.WriteFile("/tls-config/CACert.pem", resp.CaCert, 0o644)
+	if err != nil {
+		log.Fatalf("writing cert.pem: %v", err)
+	}
+	err = os.WriteFile("/tls-config/certChain.pem", resp.CertChain, 0o644)
 	if err != nil {
 		log.Fatalf("writing cert.pem: %v", err)
 	}

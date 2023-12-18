@@ -14,5 +14,8 @@ message SetManifestRequest {
 }
 
 message SetManifestResponse {
-  repeated bytes CertChain = 1;
+  // PEM-encoded certificate
+  bytes CACert = 1;
+  // PEM-encoded certificate
+  bytes IntermCert = 2;
 }

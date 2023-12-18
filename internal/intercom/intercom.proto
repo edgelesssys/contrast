@@ -13,6 +13,8 @@ message NewMeshCertRequest {
 }
 
 message NewMeshCertResponse {
-  bytes Cert = 1;
-  repeated bytes CertChain = 2;
+  // PEM-encoded certificate
+  bytes CaCert = 1;
+  // Concatenated PEM-encoded certificates
+  bytes CertChain = 2;
 }

@@ -112,11 +112,10 @@ func runSet(cmd *cobra.Command, args []string) error {
 
 	log.Println("Manifest set successfully")
 
-	if len(resp.CertChain) != 2 {
-		return fmt.Errorf("expected cert chain of 2 certificates in response, got %d", len(resp.CertChain))
+	if err := os.WriteFile("coordinator-root.pem", resp.CACert, 0o644); err != nil {
+		return fmt.Errorf("failed to write root certificate: %w", err)
 	}
-
-	if err := os.WriteFile("mesh-root.pem", resp.CertChain[0], 0o644); err != nil {
+	if err := os.WriteFile("mesh-root.pem", resp.IntermCert, 0o644); err != nil {
 		return fmt.Errorf("failed to write root certificate: %w", err)
 	}
 
