@@ -80,7 +80,9 @@ type SetManifestResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	CACert     []byte `protobuf:"bytes,1,opt,name=CACert,proto3" json:"CACert,omitempty"`
+	// PEM-encoded certificate
+	CACert []byte `protobuf:"bytes,1,opt,name=CACert,proto3" json:"CACert,omitempty"`
+	// PEM-encoded certificate
 	IntermCert []byte `protobuf:"bytes,2,opt,name=IntermCert,proto3" json:"IntermCert,omitempty"`
 }
 
