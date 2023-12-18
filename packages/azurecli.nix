@@ -23,7 +23,7 @@ let
   };
 in
 azure-cli.overrideAttrs
-  (oldAttrs: {
+  (_oldAttrs: {
     postFixup = ''
       wrapProgram $out/bin/az \
         --set PYTHONPATH $PYTHONPATH \
