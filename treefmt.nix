@@ -7,5 +7,6 @@ _:
     shellcheck.enable = true;
     shfmt.enable = true;
     statix.enable = true;
+    yamlfmt.enable = true;
   };
 }
