@@ -62,6 +62,11 @@ set:
         ./{{worspace_dir}}/deployment/{coordinator,initializer}.yml
     kill $PID
 
+# Load the kubeconfig from the running AKS cluster.
+get-credentials:
+    nix run .#azure-cli -- aks get-credentials \
+        --resource-group "$azure_resource_group" \
+        --name "$azure_resource_group"
 
 # Destroy a running AKS cluster.
 destroy:
