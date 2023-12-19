@@ -38,7 +38,7 @@ func New() (*CA, error) {
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
-	rootPrivKey, err := rsa.GenerateKey(rand.Reader, 4098)
+	rootPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate RSA private key: %w", err)
 	}
@@ -65,7 +65,7 @@ func New() (*CA, error) {
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
-	intermPrivKey, err := rsa.GenerateKey(rand.Reader, 4098)
+	intermPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate RSA private key: %w", err)
 	}
