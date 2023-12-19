@@ -13,7 +13,7 @@ func TestNewCA(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	ca, err := New()
+	ca, err := New("namespace")
 	require.NoError(err)
 	assert.NotNil(ca)
 	assert.NotNil(ca.rootPrivKey)
