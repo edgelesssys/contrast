@@ -24,8 +24,13 @@ type CA struct {
 }
 
 func New() (*CA, error) {
+	rootSerialNumber, err := crypto.GenerateCertificateSerialNumber()
+	if err != nil {
+		return nil, err
+	}
+
 	root := &x509.Certificate{
-		SerialNumber:          big.NewInt(2019),
+		SerialNumber:          rootSerialNumber,
 		Subject:               pkix.Name{CommonName: "system:coordinator-kbs:root"},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(10, 0, 0),
@@ -47,8 +52,12 @@ func New() (*CA, error) {
 		Bytes: rootBytes,
 	})
 
+	intermSerialNumber, err := crypto.GenerateCertificateSerialNumber()
+	if err != nil {
+		return nil, err
+	}
 	interm := &x509.Certificate{
-		SerialNumber:          big.NewInt(2020),
+		SerialNumber:          intermSerialNumber,
 		Subject:               pkix.Name{CommonName: "system:coordinator-kbs:intermediate"},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(10, 0, 0),
