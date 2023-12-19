@@ -1,0 +1,84 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: emoji
+  namespace: edg-emojivoto
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emoji
+  namespace: edg-emojivoto
+  labels:
+    app.kubernetes.io/name: emoji
+    app.kubernetes.io/part-of: emojivoto
+    app.kubernetes.io/version: v11
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emoji-svc
+      version: v11
+  template:
+    metadata:
+      labels:
+        app: emoji-svc
+        version: v11
+    spec:
+      runtimeClassName: kata-cc-isolation
+      initContainers:
+        - name: initializer
+          image: "ghcr.io/edgelesssys/nunki/initializer:latest"
+          imagePullPolicy: Always
+          env:
+            - name: COORDINATOR_HOST
+              value: coordinator-kbs.edg-emojivoto
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /tls-config
+      serviceAccountName: emoji
+      containers:
+        - env:
+            - name: GRPC_PORT
+              value: "8080"
+            - name: PROM_PORT
+              value: "8801"
+            - name: EDG_CERT_PATH
+              value: /tls-config/certChain.pem
+            - name: EDG_CA_PATH
+              value: /tls-config/CACert.pem
+            - name: EDG_KEY_PATH
+              value: /tls-config/key.pem
+          image: ghcr.io/3u13r/emojivoto-emoji-svc:coco-1
+          imagePullPolicy: Always
+          name: emoji-svc
+          ports:
+            - containerPort: 8080
+              name: grpc
+            - containerPort: 8801
+              name: prom
+          resources:
+            requests:
+              cpu: 100m
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /tls-config
+      volumes:
+        - name: tls-certs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: emoji-svc
+  namespace: edg-emojivoto
+spec:
+  selector:
+    app: emoji-svc
+  ports:
+    - name: grpc
+      port: 8080
+      targetPort: 8080
+    - name: prom
+      port: 8801
+      targetPort: 8801
