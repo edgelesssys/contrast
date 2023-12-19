@@ -70,7 +70,7 @@ func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Option
 
 func (m *meshAuthority) ValidateCallback(ctx context.Context, report *sevsnp.Report, nonce []byte, peerPubKeyBytes []byte) error {
 	hostData := manifest.NewHexString(report.HostData)
-	commonName, ok := m.manifest.Policies[hostData]
+	dnsNames, ok := m.manifest.Policies[hostData]
 	if !ok {
 		return fmt.Errorf("report data %s not found in manifest", hostData)
 	}
@@ -81,7 +81,7 @@ func (m *meshAuthority) ValidateCallback(ctx context.Context, report *sevsnp.Rep
 	}
 
 	var extensions []pkix.Extension // TODO
-	cert, err := m.ca.NewAttestedMeshCert(commonName, extensions, peerPubKey)
+	cert, err := m.ca.NewAttestedMeshCert(dnsNames, extensions, peerPubKey)
 	if err != nil {
 		return fmt.Errorf("failed to issue new attested mesh cert: %w", err)
 	}

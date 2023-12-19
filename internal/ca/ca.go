@@ -91,7 +91,7 @@ func New(namespace string) (*CA, error) {
 	}, nil
 }
 
-func (c *CA) NewAttestedMeshCert(commonName string, extensions []pkix.Extension, subjectPublicKey any) ([]byte, error) {
+func (c *CA) NewAttestedMeshCert(dnsNames []string, extensions []pkix.Extension, subjectPublicKey any) ([]byte, error) {
 	serialNumber, err := crypto.GenerateCertificateSerialNumber()
 	if err != nil {
 		return nil, err
@@ -100,7 +100,7 @@ func (c *CA) NewAttestedMeshCert(commonName string, extensions []pkix.Extension,
 	now := time.Now()
 	certTemplate := &x509.Certificate{
 		SerialNumber:          serialNumber,
-		Subject:               pkix.Name{CommonName: commonName},
+		Subject:               pkix.Name{CommonName: dnsNames[0]},
 		Issuer:                pkix.Name{CommonName: "system:coordinator-kbs:intermediate"},
 		NotBefore:             now.Add(-2 * time.Hour),
 		NotAfter:              now.Add(354 * 24 * time.Hour),
@@ -108,7 +108,7 @@ func (c *CA) NewAttestedMeshCert(commonName string, extensions []pkix.Extension,
 		KeyUsage:              x509.KeyUsageDigitalSignature,
 		BasicConstraintsValid: true,
 		ExtraExtensions:       extensions,
-		DNSNames:              []string{fmt.Sprintf("*.%s", c.namespace)},
+		DNSNames:              dnsNames,
 	}
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, certTemplate, c.intermCert, subjectPublicKey, c.intermPrivKey)

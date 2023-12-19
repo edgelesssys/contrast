@@ -11,7 +11,7 @@ import (
 
 type Manifest struct {
 	// policyHash/HOSTDATA -> commonName
-	Policies        map[HexString]string
+	Policies        map[HexString][]string
 	ReferenceValues ReferenceValues
 }
 
