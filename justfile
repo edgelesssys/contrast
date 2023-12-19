@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default: undeploy coordinator initializer deploy
+default target=default_deploy_target: undeploy coordinator initializer (deploy target)
 
 # Build the coordinator, containerize and push it.
 coordinator:
@@ -13,7 +13,7 @@ default_deploy_target := "simple"
 worspace_dir := "workspace"
 
 # Generate policies, apply Kubernetes manifests.
-deploy target=default_deploy_target: generate apply
+deploy target=default_deploy_target: (generate target) apply
 
 # Generate policies, update manifest.
 generate target=default_deploy_target:
@@ -36,14 +36,14 @@ generate target=default_deploy_target:
         ./{{worspace_dir}}/deployment/{coordinator,initializer}.yml
 
 # Apply Kubernetes manifests from /deployment
-apply target=default_deploy_target:
+apply:
     kubectl apply -f ./{{worspace_dir}}/deployment/ns.yml
     kubectl apply -f ./{{worspace_dir}}/deployment/coordinator.yml
     kubectl apply -f ./{{worspace_dir}}/deployment/initializer.yml
     kubectl apply -f ./{{worspace_dir}}/deployment/portforwarder.yml
 
 # Delete Kubernetes manifests.
-undeploy target=default_deploy_target:
+undeploy:
     -kubectl delete -f ./{{worspace_dir}}/deployment
 
 # Create a CoCo-enabled AKS cluster.
