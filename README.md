@@ -32,7 +32,7 @@ from the surrounding environment.
     just onboard
     ```
 
-5. Provision a CoCo enables AKS cluster with
+5. Provision a CoCo enabled AKS cluster with
 
     ```sh
     just create
