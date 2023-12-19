@@ -8,7 +8,6 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"math/big"
 	"time"
 
 	"github.com/edgelesssys/nunki/internal/crypto"
@@ -21,9 +20,11 @@ type CA struct {
 	intermPrivKey *rsa.PrivateKey
 	intermCert    *x509.Certificate
 	intermPEM     []byte
+
+	namespace string
 }
 
-func New() (*CA, error) {
+func New(namespace string) (*CA, error) {
 	rootSerialNumber, err := crypto.GenerateCertificateSerialNumber()
 	if err != nil {
 		return nil, err
@@ -86,6 +87,7 @@ func New() (*CA, error) {
 		intermPrivKey: intermPrivKey,
 		intermCert:    interm,
 		intermPEM:     intermPEM.Bytes(),
+		namespace:     namespace,
 	}, nil
 }
 
@@ -106,6 +108,7 @@ func (c *CA) NewAttestedMeshCert(commonName string, extensions []pkix.Extension,
 		KeyUsage:              x509.KeyUsageDigitalSignature,
 		BasicConstraintsValid: true,
 		ExtraExtensions:       extensions,
+		DNSNames:              []string{fmt.Sprintf("*.%s", c.namespace)},
 	}
 
 	certBytes, err := x509.CreateCertificate(rand.Reader, certTemplate, c.intermCert, subjectPublicKey, c.intermPrivKey)

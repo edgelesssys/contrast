@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"os"
 
 	"github.com/edgelesssys/nunki/internal/ca"
 	"github.com/edgelesssys/nunki/internal/coordapi"
@@ -12,7 +13,12 @@ import (
 func main() {
 	log.Println("Coordinator started")
 
-	caInstance, err := ca.New()
+	namespace, ok := os.LookupEnv("NAMESPACE")
+	if !ok {
+		log.Fatalf("NAMESPACE environment variable not set")
+	}
+
+	caInstance, err := ca.New(namespace)
 	if err != nil {
 		log.Fatalf("failed to create CA: %v", err)
 	}
