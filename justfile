@@ -17,6 +17,7 @@ deploy target=default_deploy_target: (generate target) apply
 
 # Generate policies, update manifest.
 generate target=default_deploy_target:
+    #!/usr/bin/env bash
     mkdir -p ./{{worspace_dir}}
     rm -rf ./{{worspace_dir}}/deployment
     cp -R ./deployments/{{target}} ./{{worspace_dir}}/deployment
@@ -25,22 +26,22 @@ generate target=default_deploy_target:
         | with(select(.spec.template.spec.containers[].image | contains(\"coordinator-kbs\")); \
         .spec.template.spec.containers[0].image = \"${container_registry}/coordinator-kbs:latest\")" \
         ./{{worspace_dir}}/deployment/coordinator.yml
-    nix run .#yq-go -- -i ". \
-        | with(select(.spec.template.spec.initContainers[].image | contains(\"initializer\")); \
-        .spec.template.spec.initContainers[0].image = \"${container_registry}/initializer:latest\")" \
-        ./{{worspace_dir}}/deployment/initializer.yml
+    for f in ./{{worspace_dir}}/deployment/*.yml; do
+        nix run .#yq-go -- -i ". \
+            | with(select(.spec.template.spec.initContainers[].image | contains(\"initializer\")); \
+            .spec.template.spec.initContainers[0].image = \"${container_registry}/initializer:latest\")" \
+            "${f}"
+    done
     nix run .#cli -- generate \
         -m ./{{worspace_dir}}/manifest.json \
         -p tools \
         -s genpolicy-msft.json \
-        ./{{worspace_dir}}/deployment/{coordinator,initializer}.yml
+        ./{{worspace_dir}}/deployment/*.yml
 
 # Apply Kubernetes manifests from /deployment
 apply:
     kubectl apply -f ./{{worspace_dir}}/deployment/ns.yml
-    kubectl apply -f ./{{worspace_dir}}/deployment/coordinator.yml
-    kubectl apply -f ./{{worspace_dir}}/deployment/initializer.yml
-    kubectl apply -f ./{{worspace_dir}}/deployment/portforwarder.yml
+    kubectl apply -f ./{{worspace_dir}}/deployment
 
 # Delete Kubernetes manifests.
 undeploy:
@@ -59,7 +60,7 @@ set:
     nix run .#cli -- set \
         -m ./{{worspace_dir}}/manifest.json \
         -c localhost:1313 \
-        ./{{worspace_dir}}/deployment/{coordinator,initializer}.yml
+        ./{{worspace_dir}}/deployment/*.yml
     kill $PID
 
 # Load the kubeconfig from the running AKS cluster.
