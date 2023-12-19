@@ -11,3 +11,4 @@ mesh-root.pem
 coordinator-root.pem
 justfile.env
 workspace
+.direnv/
