@@ -1,0 +1,86 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: web
+  namespace: edg-emojivoto
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: edg-emojivoto
+  labels:
+    app.kubernetes.io/name: web
+    app.kubernetes.io/part-of: emojivoto
+    app.kubernetes.io/version: v11
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web-svc
+      version: v11
+  template:
+    metadata:
+      labels:
+        app: web-svc
+        version: v11
+    spec:
+      runtimeClassName: kata-cc-isolation
+      initContainers:
+        - name: initializer
+          image: "ghcr.io/edgelesssys/nunki/initializer:latest"
+          imagePullPolicy: Always
+          env:
+            - name: COORDINATOR_HOST
+              value: coordinator-kbs.edg-emojivoto
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /tls-config
+      serviceAccountName: web
+      containers:
+        - env:
+            - name: WEB_PORT
+              value: "8080"
+            - name: EMOJISVC_HOST
+              value: emoji-svc.edg-emojivoto:8080
+            - name: VOTINGSVC_HOST
+              value: voting-svc.edg-emojivoto:8080
+            - name: INDEX_BUNDLE
+              value: dist/index_bundle.js
+            - name: EDG_CERT_PATH
+              value: /tls-config/certChain.pem
+            - name: EDG_CA_PATH
+              value: /tls-config/CACert.pem
+            - name: EDG_KEY_PATH
+              value: /tls-config/key.pem
+            - name: EDG_DISABLE_CLIENT_AUTH
+              value: "true"
+          image: ghcr.io/3u13r/emojivoto-web:coco-1
+          imagePullPolicy: Always
+          name: web-svc
+          ports:
+            - containerPort: 8080
+              name: https
+          resources:
+            requests:
+              cpu: 100m
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /tls-config
+      volumes:
+        - name: tls-certs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+  namespace: edg-emojivoto
+spec:
+  type: ClusterIP
+  selector:
+    app: web-svc
+  ports:
+    - name: https
+      port: 443
+      targetPort: 8080
