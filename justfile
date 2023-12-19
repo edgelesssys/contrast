@@ -54,7 +54,7 @@ create:
 # Set the manifest at the coordinator.
 set:
     #!/usr/bin/env bash
-    kubectl -n edg-coco port-forward pod/port-forwarder 1313 &
+    kubectl port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
     sleep 1
     nix run .#cli -- set \
