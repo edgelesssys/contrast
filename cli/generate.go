@@ -102,10 +102,30 @@ func findGenerateTargets(args []string) ([]string, error) {
 			return nil, fmt.Errorf("failed to walk %s: %w", path, err)
 		}
 	}
+
+	paths = filterNonCoCoRuntime("kata-cc-isolation", paths)
+
 	if len(paths) == 0 {
 		return nil, fmt.Errorf("no .yml/.yaml files found")
 	}
 	return paths, nil
+}
+
+func filterNonCoCoRuntime(runtimeClassName string, paths []string) []string {
+	var filtered []string
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			log.Printf("failed to read %s: %v", path, err)
+			continue
+		}
+		if !bytes.Contains(data, []byte(runtimeClassName)) {
+			log.Printf("%s is not a CoCo runtime, ignoring", path)
+			continue
+		}
+		filtered = append(filtered, path)
+	}
+	return filtered
 }
 
 func generatePolicies(ctx context.Context, regoPath, policyPath string, yamlPaths []string) error {
