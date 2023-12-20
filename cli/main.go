@@ -26,7 +26,7 @@ var version = "0.0.0-dev"
 
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Short:            "edgcoco",
+		Short:            "nunki",
 		PersistentPreRun: preRunRoot,
 		Version:          version,
 	}
@@ -38,6 +38,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(
 		newGenerateCmd(),
 		newSetCmd(),
+		newVerifyCmd(),
 	)
 
 	return cmd

@@ -11,9 +11,6 @@ import (
 	"github.com/edgelesssys/nunki/internal/coordapi"
 	"github.com/edgelesssys/nunki/internal/grpc/dialer"
 	"github.com/edgelesssys/nunki/internal/manifest"
-	"github.com/google/go-sev-guest/abi"
-	"github.com/google/go-sev-guest/kds"
-	"github.com/google/go-sev-guest/validate"
 	"github.com/spf13/cobra"
 )
 
@@ -66,34 +63,8 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("checking policies match manifest: %w", err)
 	}
 
-	trustedIDKeyDigestHashes, err := m.ReferenceValues.SNP.TrustedIDKeyHashes.ByteSlices()
-	if err != nil {
-		return fmt.Errorf("failed to convert TrustedIDKeyHashes from manifest to byte slices: %w", err)
-	}
-	validateOptsGen := &snp.StaticValidateOptsGenerator{
-		Opts: &validate.Options{
-			GuestPolicy: abi.SnpPolicy{
-				Debug: false,
-				SMT:   true,
-			},
-			VMPL: new(int), // VMPL0
-			MinimumTCB: kds.TCBParts{
-				BlSpl:    m.ReferenceValues.SNP.MinimumTCB.BootloaderVersion.UInt8(),
-				TeeSpl:   m.ReferenceValues.SNP.MinimumTCB.TEEVersion.UInt8(),
-				SnpSpl:   m.ReferenceValues.SNP.MinimumTCB.SNPVersion.UInt8(),
-				UcodeSpl: m.ReferenceValues.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
-			},
-			MinimumLaunchTCB: kds.TCBParts{
-				BlSpl:    m.ReferenceValues.SNP.MinimumTCB.BootloaderVersion.UInt8(),
-				TeeSpl:   m.ReferenceValues.SNP.MinimumTCB.TEEVersion.UInt8(),
-				SnpSpl:   m.ReferenceValues.SNP.MinimumTCB.SNPVersion.UInt8(),
-				UcodeSpl: m.ReferenceValues.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
-			},
-			PermitProvisionalFirmware: true,
-			TrustedIDKeyHashes:        trustedIDKeyDigestHashes,
-			RequireIDBlock:            true,
-		},
-	}
+	validateOptsGen := newCoordinatorValidateOptsGen()
+
 	dialer := dialer.New(atls.NoIssuer, snp.NewValidator(validateOptsGen, logger), &net.Dialer{})
 
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
@@ -114,11 +85,12 @@ func runSet(cmd *cobra.Command, args []string) error {
 
 	logger.Info("Manifest set successfully")
 
-	if err := os.WriteFile("coordinator-root.pem", resp.CACert, 0o644); err != nil {
-		return fmt.Errorf("failed to write root certificate: %w", err)
+	filelist := map[string][]byte{
+		coordRootPEMFilename:   resp.CACert,
+		coordIntermPEMFilename: resp.IntermCert,
 	}
-	if err := os.WriteFile("mesh-root.pem", resp.IntermCert, 0o644); err != nil {
-		return fmt.Errorf("failed to write root certificate: %w", err)
+	if err := writeFilelist(".", filelist); err != nil {
+		return fmt.Errorf("writing filelist: %w", err)
 	}
 
 	return nil
