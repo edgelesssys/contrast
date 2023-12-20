@@ -122,9 +122,8 @@ func (m *meshAuthority) GetCert(peerPublicKeyHashStr string) ([]byte, error) {
 	return cert, nil
 }
 
-func (m *meshAuthority) GetManifest() *manifest.Manifest {
-	mnfst, _ := m.manifests.Latest()
-	return mnfst
+func (m *meshAuthority) GetManifests() []*manifest.Manifest {
+	return m.manifests.All()
 }
 
 func (m *meshAuthority) SetManifest(mnfst *manifest.Manifest) error {

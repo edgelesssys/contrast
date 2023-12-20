@@ -74,8 +74,58 @@ func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManif
 		return nil, err
 	}
 
+	resp := &coordapi.SetManifestResponse{
+		CACert:     s.caChainGetter.GetCACert(),
+		IntermCert: s.caChainGetter.GetIntermCert(),
+	}
+
 	s.logger.Info("SetManifest succeeded")
-	return &coordapi.SetManifestResponse{CACert: s.caChainGetter.GetCACert(), IntermCert: s.caChainGetter.GetIntermCert()}, nil
+	return resp, nil
+}
+
+func (s *coordAPIServer) GetManifests(ctx context.Context, _ *coordapi.GetManifestsRequest,
+) (*coordapi.GetManifestsResponse, error) {
+	s.logger.Info("GetManifest called")
+
+	manifests := s.manifSetGetter.GetManifests()
+	if len(manifests) == 0 {
+		return nil, fmt.Errorf("no manifests found")
+	}
+
+	manifestBytes, err := manifestSliceToBytesSlice(manifests)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &coordapi.GetManifestsResponse{
+		Manifests:  manifestBytes,
+		Policies:   policySliceToBytesSlice(s.policyTextStore.GetAll()),
+		CACert:     s.caChainGetter.GetCACert(),
+		IntermCert: s.caChainGetter.GetIntermCert(),
+	}
+
+	s.logger.Info("GetManifest succeeded")
+	return resp, nil
+}
+
+func policySliceToBytesSlice(s []manifest.Policy) [][]byte {
+	var policies [][]byte
+	for _, policy := range s {
+		policies = append(policies, policy)
+	}
+	return policies
+}
+
+func manifestSliceToBytesSlice(s []*manifest.Manifest) ([][]byte, error) {
+	var manifests [][]byte
+	for i, manifest := range s {
+		manifestBytes, err := json.MarshalIndent(manifest, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("mashaling manifest %d manifest: %v", i, err)
+		}
+		manifests = append(manifests, manifestBytes)
+	}
+	return manifests, nil
 }
 
 type certChainGetter interface {
@@ -85,10 +135,11 @@ type certChainGetter interface {
 
 type manifestSetGetter interface {
 	SetManifest(*manifest.Manifest) error
-	GetManifest() *manifest.Manifest
+	GetManifests() []*manifest.Manifest
 }
 
 type store[keyT comparable, valueT any] interface {
 	Get(key keyT) (valueT, bool)
+	GetAll() []valueT
 	Set(key keyT, value valueT)
 }

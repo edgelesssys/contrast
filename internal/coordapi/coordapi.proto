@@ -6,6 +6,7 @@ option go_package = "github.com/edgelesssys/nunki/internal/coordapi";
 
 service CoordAPI {
   rpc SetManifest(SetManifestRequest) returns (SetManifestResponse);
+  rpc GetManifests(GetManifestsRequest) returns (GetManifestsResponse);
 }
 
 message SetManifestRequest {
@@ -18,4 +19,15 @@ message SetManifestResponse {
   bytes CACert = 1;
   // PEM-encoded certificate
   bytes IntermCert = 2;
+}
+
+message GetManifestsRequest {}
+
+message GetManifestsResponse {
+  repeated bytes Manifests = 1;
+  repeated bytes Policies = 2;
+  // PEM-encoded certificate
+  bytes CACert = 3;
+  // PEM-encoded certificate
+  bytes IntermCert = 4;
 }

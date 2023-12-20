@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	CoordAPI_SetManifest_FullMethodName = "/coordapi.CoordAPI/SetManifest"
+	CoordAPI_SetManifest_FullMethodName  = "/coordapi.CoordAPI/SetManifest"
+	CoordAPI_GetManifests_FullMethodName = "/coordapi.CoordAPI/GetManifests"
 )
 
 // CoordAPIClient is the client API for CoordAPI service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CoordAPIClient interface {
 	SetManifest(ctx context.Context, in *SetManifestRequest, opts ...grpc.CallOption) (*SetManifestResponse, error)
+	GetManifests(ctx context.Context, in *GetManifestsRequest, opts ...grpc.CallOption) (*GetManifestsResponse, error)
 }
 
 type coordAPIClient struct {
@@ -46,11 +48,21 @@ func (c *coordAPIClient) SetManifest(ctx context.Context, in *SetManifestRequest
 	return out, nil
 }
 
+func (c *coordAPIClient) GetManifests(ctx context.Context, in *GetManifestsRequest, opts ...grpc.CallOption) (*GetManifestsResponse, error) {
+	out := new(GetManifestsResponse)
+	err := c.cc.Invoke(ctx, CoordAPI_GetManifests_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CoordAPIServer is the server API for CoordAPI service.
 // All implementations must embed UnimplementedCoordAPIServer
 // for forward compatibility
 type CoordAPIServer interface {
 	SetManifest(context.Context, *SetManifestRequest) (*SetManifestResponse, error)
+	GetManifests(context.Context, *GetManifestsRequest) (*GetManifestsResponse, error)
 	mustEmbedUnimplementedCoordAPIServer()
 }
 
@@ -60,6 +72,9 @@ type UnimplementedCoordAPIServer struct {
 
 func (UnimplementedCoordAPIServer) SetManifest(context.Context, *SetManifestRequest) (*SetManifestResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetManifest not implemented")
+}
+func (UnimplementedCoordAPIServer) GetManifests(context.Context, *GetManifestsRequest) (*GetManifestsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetManifests not implemented")
 }
 func (UnimplementedCoordAPIServer) mustEmbedUnimplementedCoordAPIServer() {}
 
@@ -92,6 +107,24 @@ func _CoordAPI_SetManifest_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CoordAPI_GetManifests_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetManifestsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoordAPIServer).GetManifests(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoordAPI_GetManifests_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoordAPIServer).GetManifests(ctx, req.(*GetManifestsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CoordAPI_ServiceDesc is the grpc.ServiceDesc for CoordAPI service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -102,6 +135,10 @@ var CoordAPI_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetManifest",
 			Handler:    _CoordAPI_SetManifest_Handler,
+		},
+		{
+			MethodName: "GetManifests",
+			Handler:    _CoordAPI_GetManifests_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
