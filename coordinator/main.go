@@ -38,9 +38,12 @@ func run() (retErr error) {
 		return fmt.Errorf("creating CA: %w", err)
 	}
 
-	manifestSetGetter := newManifestSetGetter()
+	meshAuth, err := newMeshAuthority(caInstance, logger)
+	if err != nil {
+		return fmt.Errorf("creating mesh authority: %v", err)
+	}
 
-	coordS, err := newCoordAPIServer(manifestSetGetter, caInstance, logger)
+	coordS, err := newCoordAPIServer(meshAuth, caInstance, logger)
 	if err != nil {
 		return fmt.Errorf("creating coordinator API server: %w", err)
 	}
@@ -52,15 +55,6 @@ func run() (retErr error) {
 			logger.Error("Coordinator API failed to serve: %v", err)
 		}
 	}()
-
-	logger.Info("Waiting for manifest")
-	manifest := manifestSetGetter.GetManifest()
-	logger.Info("Got manifest")
-
-	meshAuth, err := newMeshAuthority(caInstance, manifest, logger)
-	if err != nil {
-		return fmt.Errorf("creating mesh authority: %v", err)
-	}
 
 	intercomS, err := newIntercomServer(meshAuth, caInstance, logger)
 	if err != nil {
