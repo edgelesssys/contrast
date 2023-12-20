@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
@@ -21,14 +20,14 @@ import (
 type coordAPIServer struct {
 	grpc            *grpc.Server
 	policyTextStore store[manifest.HexString, manifest.Policy]
-	mSetter         manifestSetter
+	manifSetGetter  manifestSetGetter
 	caChainGetter   certChainGetter
 	logger          *slog.Logger
 
 	coordapi.UnimplementedCoordAPIServer
 }
 
-func newCoordAPIServer(mSetter manifestSetter, caGetter certChainGetter, log *slog.Logger) (*coordAPIServer, error) {
+func newCoordAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, log *slog.Logger) (*coordAPIServer, error) {
 	issuer := snp.NewIssuer(log)
 	credentials := atlscredentials.New(issuer, nil)
 	grpcServer := grpc.NewServer(
@@ -38,7 +37,7 @@ func newCoordAPIServer(mSetter manifestSetter, caGetter certChainGetter, log *sl
 	s := &coordAPIServer{
 		grpc:            grpcServer,
 		policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
-		mSetter:         mSetter,
+		manifSetGetter:  mSGetter,
 		caChainGetter:   caGetter,
 		logger:          log.WithGroup("coordapi"),
 	}
@@ -71,7 +70,7 @@ func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManif
 		s.policyTextStore.Set(policy.Hash(), policy)
 	}
 
-	if err := s.mSetter.SetManifest(m); err != nil {
+	if err := s.manifSetGetter.SetManifest(m); err != nil {
 		return nil, err
 	}
 
@@ -84,32 +83,12 @@ type certChainGetter interface {
 	GetIntermCert() []byte
 }
 
-type manifestSetter interface {
+type manifestSetGetter interface {
 	SetManifest(*manifest.Manifest) error
+	GetManifest() *manifest.Manifest
 }
 
 type store[keyT comparable, valueT any] interface {
 	Get(key keyT) (valueT, bool)
 	Set(key keyT, value valueT)
-}
-
-type manifestSetGetter struct {
-	setOnce   sync.Once
-	manifestC chan *manifest.Manifest
-}
-
-func newManifestSetGetter() *manifestSetGetter {
-	return &manifestSetGetter{manifestC: make(chan *manifest.Manifest, 1)}
-}
-
-func (m *manifestSetGetter) SetManifest(ma *manifest.Manifest) error {
-	m.setOnce.Do(func() {
-		m.manifestC <- ma
-		close(m.manifestC)
-	})
-	return nil
-}
-
-func (m *manifestSetGetter) GetManifest() *manifest.Manifest {
-	return <-m.manifestC
 }

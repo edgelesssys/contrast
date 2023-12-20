@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"sync"
 
+	"github.com/edgelesssys/nunki/internal/appendable"
 	"github.com/edgelesssys/nunki/internal/ca"
 	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/google/go-sev-guest/abi"
@@ -19,29 +20,34 @@ import (
 )
 
 type meshAuthority struct {
-	ca       *ca.CA
-	certs    map[string][]byte
-	certsMux sync.RWMutex
-	manifest *manifest.Manifest
-	logger   *slog.Logger
+	ca        *ca.CA
+	certs     map[string][]byte
+	certsMux  sync.RWMutex
+	manifests appendableList[manifest.Manifest]
+	logger    *slog.Logger
 }
 
-func newMeshAuthority(ca *ca.CA, manifest *manifest.Manifest, log *slog.Logger) (*meshAuthority, error) {
+func newMeshAuthority(ca *ca.CA, log *slog.Logger) (*meshAuthority, error) {
 	return &meshAuthority{
-		ca:       ca,
-		certs:    make(map[string][]byte),
-		manifest: manifest,
-		logger:   log.WithGroup("mesh-authority"),
+		ca:        ca,
+		certs:     make(map[string][]byte),
+		manifests: new(appendable.Appendable[manifest.Manifest]),
+		logger:    log.WithGroup("mesh-authority"),
 	}, nil
 }
 
 func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error) {
+	mnfst, err := m.manifests.Latest()
+	if err != nil {
+		return nil, fmt.Errorf("getting latest manifest: %w", err)
+	}
+
 	hostData := manifest.NewHexString(report.HostData)
-	if _, ok := m.manifest.Policies[hostData]; !ok {
+	if _, ok := mnfst.Policies[hostData]; !ok {
 		return nil, fmt.Errorf("hostdata %s not found in manifest", hostData)
 	}
 
-	trustedIDKeyDigestHashes, err := m.manifest.ReferenceValues.SNP.TrustedIDKeyHashes.ByteSlices()
+	trustedIDKeyDigestHashes, err := mnfst.ReferenceValues.SNP.TrustedIDKeyHashes.ByteSlices()
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert TrustedIDKeyHashes from manifest to byte slices: %w", err)
 	}
@@ -53,16 +59,16 @@ func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Option
 		},
 		VMPL: new(int), // VMPL0
 		MinimumTCB: kds.TCBParts{
-			BlSpl:    m.manifest.ReferenceValues.SNP.MinimumTCB.BootloaderVersion.UInt8(),
-			TeeSpl:   m.manifest.ReferenceValues.SNP.MinimumTCB.TEEVersion.UInt8(),
-			SnpSpl:   m.manifest.ReferenceValues.SNP.MinimumTCB.SNPVersion.UInt8(),
-			UcodeSpl: m.manifest.ReferenceValues.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
+			BlSpl:    mnfst.ReferenceValues.SNP.MinimumTCB.BootloaderVersion.UInt8(),
+			TeeSpl:   mnfst.ReferenceValues.SNP.MinimumTCB.TEEVersion.UInt8(),
+			SnpSpl:   mnfst.ReferenceValues.SNP.MinimumTCB.SNPVersion.UInt8(),
+			UcodeSpl: mnfst.ReferenceValues.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
 		},
 		MinimumLaunchTCB: kds.TCBParts{
-			BlSpl:    m.manifest.ReferenceValues.SNP.MinimumTCB.BootloaderVersion.UInt8(),
-			TeeSpl:   m.manifest.ReferenceValues.SNP.MinimumTCB.TEEVersion.UInt8(),
-			SnpSpl:   m.manifest.ReferenceValues.SNP.MinimumTCB.SNPVersion.UInt8(),
-			UcodeSpl: m.manifest.ReferenceValues.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
+			BlSpl:    mnfst.ReferenceValues.SNP.MinimumTCB.BootloaderVersion.UInt8(),
+			TeeSpl:   mnfst.ReferenceValues.SNP.MinimumTCB.TEEVersion.UInt8(),
+			SnpSpl:   mnfst.ReferenceValues.SNP.MinimumTCB.SNPVersion.UInt8(),
+			UcodeSpl: mnfst.ReferenceValues.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
 		},
 		PermitProvisionalFirmware: true,
 		TrustedIDKeyHashes:        trustedIDKeyDigestHashes,
@@ -71,8 +77,13 @@ func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Option
 }
 
 func (m *meshAuthority) ValidateCallback(ctx context.Context, report *sevsnp.Report, nonce []byte, peerPubKeyBytes []byte) error {
+	mnfst, err := m.manifests.Latest()
+	if err != nil {
+		return fmt.Errorf("getting latest manifest: %w", err)
+	}
+
 	hostData := manifest.NewHexString(report.HostData)
-	dnsNames, ok := m.manifest.Policies[hostData]
+	dnsNames, ok := mnfst.Policies[hostData]
 	if !ok {
 		return fmt.Errorf("report data %s not found in manifest", hostData)
 	}
@@ -109,4 +120,19 @@ func (m *meshAuthority) GetCert(peerPublicKeyHashStr string) ([]byte, error) {
 	}
 
 	return cert, nil
+}
+
+func (m *meshAuthority) GetManifest() *manifest.Manifest {
+	mnfst, _ := m.manifests.Latest()
+	return mnfst
+}
+
+func (m *meshAuthority) SetManifest(mnfst *manifest.Manifest) error {
+	return m.manifests.Append(mnfst)
+}
+
+type appendableList[T any] interface {
+	Append(*T) error
+	All() []*T
+	Latest() (*T, error)
 }
