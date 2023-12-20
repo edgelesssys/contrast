@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -59,12 +58,8 @@ func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManif
 ) (*coordapi.SetManifestResponse, error) {
 	s.logger.Info("SetManifest called")
 
-	manifestDec, err := base64.StdEncoding.DecodeString(req.Manifest)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode manifest: %v", err)
-	}
 	var m *manifest.Manifest
-	if err := json.Unmarshal(manifestDec, &m); err != nil {
+	if err := json.Unmarshal(req.Manifest, &m); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal manifest: %v", err)
 	}
 

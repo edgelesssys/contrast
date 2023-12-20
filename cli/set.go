@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -45,13 +44,12 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	manifestStr, err := os.ReadFile(flags.manifestPath)
+	manifestBytes, err := os.ReadFile(flags.manifestPath)
 	if err != nil {
 		return fmt.Errorf("failed to read manifest file: %w", err)
 	}
-	manifestB64 := base64.StdEncoding.EncodeToString(manifestStr)
 	var m manifest.Manifest
-	if err := json.Unmarshal(manifestStr, &m); err != nil {
+	if err := json.Unmarshal(manifestBytes, &m); err != nil {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
 
@@ -106,7 +104,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 
 	client := coordapi.NewCoordAPIClient(conn)
 	req := &coordapi.SetManifestRequest{
-		Manifest: manifestB64,
+		Manifest: manifestBytes,
 		Policies: policyMapToBytesList(policies),
 	}
 	resp, err := client.SetManifest(cmd.Context(), req)
