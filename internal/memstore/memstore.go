@@ -25,3 +25,13 @@ func (s *Store[keyT, valueT]) Set(key keyT, value valueT) {
 	defer s.mux.Unlock()
 	s.m[key] = value
 }
+
+func (s *Store[keyT, valueT]) GetAll() []valueT {
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	var values []valueT
+	for _, v := range s.m {
+		values = append(values, v)
+	}
+	return values
+}
