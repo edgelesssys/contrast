@@ -59,7 +59,7 @@ func run() (retErr error) {
 	logger.Info("Deriving public key", "pubKeyHash", pubKeyHashStr)
 
 	requestCert := func() (*intercom.NewMeshCertResponse, error) {
-		dial := dialer.NewWithKey(snp.NewIssuer(), atls.NoValidator, &net.Dialer{}, privKey)
+		dial := dialer.NewWithKey(snp.NewIssuer(logger), atls.NoValidator, &net.Dialer{}, privKey)
 		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorHostname, intercom.Port))
 		if err != nil {
 			return nil, fmt.Errorf("dialing: %w", err)

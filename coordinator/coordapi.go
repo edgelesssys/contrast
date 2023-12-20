@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"sync"
 	"time"
@@ -29,7 +30,8 @@ type coordAPIServer struct {
 }
 
 func newCoordAPIServer(mSetter manifestSetter, caGetter certChainGetter) (*coordAPIServer, error) {
-	issuer := snp.NewIssuer()
+	// TODO(malt3): pass logger down.
+	issuer := snp.NewIssuer(slog.Default())
 	credentials := atlscredentials.New(issuer, nil)
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
