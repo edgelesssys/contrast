@@ -1,7 +1,9 @@
 package main
 
 import (
-	"log"
+	"errors"
+	"fmt"
+	"log/slog"
 	"net"
 	"os"
 
@@ -11,48 +13,63 @@ import (
 )
 
 func main() {
-	log.Println("Coordinator started")
+	if err := run(); err != nil {
+		os.Exit(1)
+	}
+}
+
+func run() (retErr error) {
+	logger := slog.Default()
+	defer func() {
+		if retErr != nil {
+			logger.Error(retErr.Error())
+		}
+	}()
+
+	logger.Info("Coordinator started")
 
 	namespace, ok := os.LookupEnv("NAMESPACE")
 	if !ok {
-		log.Fatalf("NAMESPACE environment variable not set")
+		return errors.New("NAMESPACE environment variable not set")
 	}
 
 	caInstance, err := ca.New(namespace)
 	if err != nil {
-		log.Fatalf("failed to create CA: %v", err)
+		return fmt.Errorf("creating CA: %w", err)
 	}
 
 	manifestSetGetter := newManifestSetGetter()
 
 	coordS, err := newCoordAPIServer(manifestSetGetter, caInstance)
 	if err != nil {
-		log.Fatalf("failed to create coordinator API server: %v", err)
+		return fmt.Errorf("creating coordinator API server: %w", err)
 	}
 
 	go func() {
-		log.Println("Coordinator API listening")
+		logger.Info("Coordinator API listening")
 		if err := coordS.Serve(net.JoinHostPort("0.0.0.0", coordapi.Port)); err != nil {
-			log.Fatalf("failed to serve: %v", err)
+			// TODO: collect error using errgroup.
+			logger.Error("Coordinator API failed to serve: %v", err)
 		}
 	}()
 
-	log.Println("Waiting for manifest")
+	logger.Info("Waiting for manifest")
 	manifest := manifestSetGetter.GetManifest()
-	log.Println("Got manifest")
+	logger.Info("Got manifest")
 
 	meshAuth, err := newMeshAuthority(caInstance, manifest)
 	if err != nil {
-		log.Fatalf("failed to create mesh authority: %v", err)
+		return fmt.Errorf("creating mesh authority: %v", err)
 	}
 
 	intercomS, err := newIntercomServer(meshAuth, caInstance)
 	if err != nil {
-		log.Fatalf("failed to create intercom server: %v", err)
+		return fmt.Errorf("creating intercom server: %v", err)
 	}
 
-	log.Println("Coordinator intercom listening")
+	logger.Info("Coordinator intercom listening")
 	if err := intercomS.Serve(net.JoinHostPort("0.0.0.0", intercom.Port)); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		return fmt.Errorf("serving intercom: %v", err)
 	}
+	return nil
 }
