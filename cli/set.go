@@ -4,8 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
-	"log/slog"
 	"net"
 	"os"
 
@@ -42,6 +40,11 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse flags: %w", err)
 	}
 
+	logger, err := newCLILogger(cmd)
+	if err != nil {
+		return err
+	}
+
 	manifestStr, err := os.ReadFile(flags.manifestPath)
 	if err != nil {
 		return fmt.Errorf("failed to read manifest file: %w", err)
@@ -52,8 +55,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
 
-	// TODO(malt3): pass logger down.
-	paths, err := findGenerateTargets(args, slog.Default())
+	paths, err := findGenerateTargets(args, logger)
 	if err != nil {
 		return fmt.Errorf("finding yaml files: %w", err)
 	}
@@ -112,7 +114,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to set manifest: %w", err)
 	}
 
-	log.Println("Manifest set successfully")
+	logger.Info("Manifest set successfully")
 
 	if err := os.WriteFile("coordinator-root.pem", resp.CACert, 0o644); err != nil {
 		return fmt.Errorf("failed to write root certificate: %w", err)
