@@ -40,7 +40,7 @@ func run() (retErr error) {
 
 	manifestSetGetter := newManifestSetGetter()
 
-	coordS, err := newCoordAPIServer(manifestSetGetter, caInstance)
+	coordS, err := newCoordAPIServer(manifestSetGetter, caInstance, logger)
 	if err != nil {
 		return fmt.Errorf("creating coordinator API server: %w", err)
 	}
