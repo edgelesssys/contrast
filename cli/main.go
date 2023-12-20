@@ -31,6 +31,9 @@ func newRootCmd() *cobra.Command {
 		Version:          version,
 	}
 	cmd.SetOut(os.Stdout)
+
+	cmd.PersistentFlags().String("log-level", "info", "set logging level (debug, info, warn, error, or a number)")
+
 	cmd.InitDefaultVersionFlag()
 	cmd.AddCommand(
 		newGenerateCmd(),
