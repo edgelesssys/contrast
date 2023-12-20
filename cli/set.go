@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"os"
 
@@ -51,7 +52,8 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
 
-	paths, err := findGenerateTargets(args)
+	// TODO(malt3): pass logger down.
+	paths, err := findGenerateTargets(args, slog.Default())
 	if err != nil {
 		return fmt.Errorf("finding yaml files: %w", err)
 	}

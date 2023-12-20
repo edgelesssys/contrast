@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -42,12 +42,17 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse flags: %w", err)
 	}
 
-	paths, err := findGenerateTargets(args)
+	logger, err := newCLILogger(cmd)
 	if err != nil {
 		return err
 	}
 
-	if err := generatePolicies(cmd.Context(), flags.policyPath, flags.settingsPath, paths); err != nil {
+	paths, err := findGenerateTargets(args, logger)
+	if err != nil {
+		return err
+	}
+
+	if err := generatePolicies(cmd.Context(), flags.policyPath, flags.settingsPath, paths, logger); err != nil {
 		return fmt.Errorf("failed to generate policies: %w", err)
 	}
 
@@ -80,7 +85,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func findGenerateTargets(args []string) ([]string, error) {
+func findGenerateTargets(args []string, logger *slog.Logger) ([]string, error) {
 	var paths []string
 	for _, path := range args {
 		err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
@@ -103,7 +108,7 @@ func findGenerateTargets(args []string) ([]string, error) {
 		}
 	}
 
-	paths = filterNonCoCoRuntime("kata-cc-isolation", paths)
+	paths = filterNonCoCoRuntime("kata-cc-isolation", paths, logger)
 
 	if len(paths) == 0 {
 		return nil, fmt.Errorf("no .yml/.yaml files found")
@@ -111,16 +116,16 @@ func findGenerateTargets(args []string) ([]string, error) {
 	return paths, nil
 }
 
-func filterNonCoCoRuntime(runtimeClassName string, paths []string) []string {
+func filterNonCoCoRuntime(runtimeClassName string, paths []string, logger *slog.Logger) []string {
 	var filtered []string
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {
-			log.Printf("failed to read %s: %v", path, err)
+			logger.Warn("Failed to read file", "path", path, "err", err)
 			continue
 		}
 		if !bytes.Contains(data, []byte(runtimeClassName)) {
-			log.Printf("%s is not a CoCo runtime, ignoring", path)
+			logger.Info("Ignoring non-CoCo runtime", "className", runtimeClassName, "path", path)
 			continue
 		}
 		filtered = append(filtered, path)
@@ -128,9 +133,9 @@ func filterNonCoCoRuntime(runtimeClassName string, paths []string) []string {
 	return filtered
 }
 
-func generatePolicies(ctx context.Context, regoPath, policyPath string, yamlPaths []string) error {
+func generatePolicies(ctx context.Context, regoPath, policyPath string, yamlPaths []string, logger *slog.Logger) error {
 	for _, yamlPath := range yamlPaths {
-		policyHash, err := generatePolicyForFile(ctx, regoPath, policyPath, yamlPath)
+		policyHash, err := generatePolicyForFile(ctx, regoPath, policyPath, yamlPath, logger)
 		if err != nil {
 			return fmt.Errorf("failed to generate policy for %s: %w", yamlPath, err)
 		}
@@ -142,7 +147,7 @@ func generatePolicies(ctx context.Context, regoPath, policyPath string, yamlPath
 	return nil
 }
 
-func generatePolicyForFile(ctx context.Context, regoPath, policyPath, yamlPath string) ([32]byte, error) {
+func generatePolicyForFile(ctx context.Context, regoPath, policyPath, yamlPath string, logger *slog.Logger) ([32]byte, error) {
 	args := []string{
 		"--raw-out",
 		"--use-cached-files",
@@ -163,7 +168,7 @@ func generatePolicyForFile(ctx context.Context, regoPath, policyPath, yamlPath s
 		return [32]byte{}, fmt.Errorf("genpolicy failed: %w", err)
 	}
 	if stdout.Len() == 0 {
-		log.Printf("policy output for %s is empty, ignoring the file", yamlPath)
+		logger.Info("Policy output is empty, ignoring the file", "yamlPath", yamlPath)
 		return [32]byte{}, nil
 	}
 	policyHash := sha256.Sum256(stdout.Bytes())
