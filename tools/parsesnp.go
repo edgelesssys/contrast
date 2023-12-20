@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/google/go-sev-guest/abi"
@@ -45,13 +45,26 @@ type Report struct {
 }
 
 func main() {
+	if err := run(); err != nil {
+		os.Exit(1)
+	}
+}
+
+func run() (retErr error) {
+	logger := slog.Default()
+	defer func() {
+		if retErr != nil {
+			logger.Error(retErr.Error())
+		}
+	}()
+
 	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		log.Fatalf("failed to read input: %v", err)
+		return fmt.Errorf("failed to read input: %w", err)
 	}
 	data, err = hex.DecodeString(string(data))
 	if err != nil {
-		log.Fatalf("failed to decode input: %v", err)
+		return fmt.Errorf("failed to decode input: %w", err)
 	}
 
 	var r Report
@@ -79,11 +92,11 @@ func main() {
 
 	signerInfo, err := abi.ParseSignerInfo(binary.LittleEndian.Uint32(data[0x48:0x4C]))
 	if err != nil {
-		log.Printf("failed to parse signer info: %v", err)
+		fmt.Printf("failed to parse signer info: %v", err)
 	}
 	r.SignerInfo = abi.ComposeSignerInfo(signerInfo)
 	if err := mbz(data, 0x4C, 0x50); err != nil {
-		log.Printf("%v", err)
+		fmt.Printf("%v", err)
 	}
 	fmt.Printf("SignerInfo: %v\n", r.SignerInfo)
 	r.ReportData = clone(data[0x50:0x90])
@@ -139,6 +152,7 @@ func main() {
 	}
 	r.Signature = clone(data[signatureOffset:abi.ReportSize])
 	fmt.Printf("Signature: %x\n", r.Signature)
+	return nil
 }
 
 func clone(b []byte) []byte {
