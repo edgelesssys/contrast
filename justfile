@@ -63,6 +63,17 @@ set:
         ./{{worspace_dir}}/deployment/*.yml
     kill $PID
 
+verify:
+    #!/usr/bin/env bash
+    rm -rf ./{{worspace_dir}}/verify
+    kubectl port-forward pod/port-forwarder-coordinator 1313 &
+    PID=$!
+    sleep 1
+    nix run .#cli -- verify \
+        -c localhost:1313 \
+        -o ./{{worspace_dir}}/verify
+    kill $PID
+
 # Load the kubeconfig from the running AKS cluster.
 get-credentials:
     nix run .#azure-cli -- aks get-credentials \
