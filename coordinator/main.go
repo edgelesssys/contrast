@@ -57,7 +57,7 @@ func run() (retErr error) {
 	manifest := manifestSetGetter.GetManifest()
 	logger.Info("Got manifest")
 
-	meshAuth, err := newMeshAuthority(caInstance, manifest)
+	meshAuth, err := newMeshAuthority(caInstance, manifest, logger)
 	if err != nil {
 		return fmt.Errorf("creating mesh authority: %v", err)
 	}
