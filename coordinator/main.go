@@ -62,7 +62,7 @@ func run() (retErr error) {
 		return fmt.Errorf("creating mesh authority: %v", err)
 	}
 
-	intercomS, err := newIntercomServer(meshAuth, caInstance)
+	intercomS, err := newIntercomServer(meshAuth, caInstance, logger)
 	if err != nil {
 		return fmt.Errorf("creating intercom server: %v", err)
 	}
