@@ -82,6 +82,8 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to write manifest: %w", err)
 	}
 
+	fmt.Fprintf(cmd.OutOrStdout(), "Generated manifest %s\n", flags.manifestPath)
+
 	return nil
 }
 

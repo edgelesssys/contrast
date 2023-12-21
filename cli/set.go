@@ -83,7 +83,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to set manifest: %w", err)
 	}
 
-	logger.Info("Manifest set successfully")
+	fmt.Fprintln(cmd.OutOrStdout(), "Manifest set successfully")
 
 	filelist := map[string][]byte{
 		coordRootPEMFilename:   resp.CACert,
