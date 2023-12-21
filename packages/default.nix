@@ -5,12 +5,15 @@
 with pkgs;
 
 let
+  # The source of our local Go module. We filter for Go files so that
+  # changes in the other parts of this repo don't trigger a rebuild.
   goFiles = lib.fileset.unions [
     ../go.mod
     ../go.sum
     (lib.fileset.fileFilter (file: lib.hasSuffix ".go" file.name) ../.)
   ];
 
+  # Builder function for Go packages of our local module.
   buildGoSubPackage = subpackage: attrs: pkgs.callPackage
     ({ buildGoModule }: buildGoModule ({
       name = subpackage;
@@ -21,9 +24,16 @@ let
       subPackages = [ subpackage ];
       CGO_ENABLED = 0;
       ldflags = [ "-s" "-w" "-buildid=" ];
-      flags = [ "-trimpath" ];
       proxyVendor = true;
       vendorHash = goVendorHash;
+      checkPhase = ''
+        runHook preCheck
+
+        export GOFLAGS=''${GOFLAGS//-trimpath/}
+        buildGoDir test ./...
+
+        runHook postCheck
+      '';
       meta.mainProgram = "${subpackage}";
     } // attrs))
     { };
