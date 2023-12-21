@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"net"
 	"time"
@@ -20,6 +19,7 @@ type intercomServer struct {
 	grpc          *grpc.Server
 	certGet       certGetter
 	caChainGetter certChainGetter
+	logger        *slog.Logger
 
 	intercom.UnimplementedIntercomServer
 }
@@ -28,9 +28,8 @@ type certGetter interface {
 	GetCert(peerPublicKeyHashStr string) ([]byte, error)
 }
 
-func newIntercomServer(meshAuth *meshAuthority, caGetter certChainGetter) (*intercomServer, error) {
-	// TODO(malt3): pass logger down.
-	validator := snp.NewValidatorWithCallbacks(meshAuth, slog.Default(), meshAuth)
+func newIntercomServer(meshAuth *meshAuthority, caGetter certChainGetter, log *slog.Logger) (*intercomServer, error) {
+	validator := snp.NewValidatorWithCallbacks(meshAuth, log, meshAuth)
 	credentials := atlscredentials.New(atls.NoIssuer, []atls.Validator{validator})
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
@@ -40,6 +39,7 @@ func newIntercomServer(meshAuth *meshAuthority, caGetter certChainGetter) (*inte
 		grpc:          grpcServer,
 		certGet:       meshAuth,
 		caChainGetter: caGetter,
+		logger:        log.WithGroup("intercom"),
 	}
 	intercom.RegisterIntercomServer(s.grpc, s)
 	return s, nil
@@ -55,7 +55,7 @@ func (i *intercomServer) Serve(endpoint string) error {
 
 func (i *intercomServer) NewMeshCert(ctx context.Context, req *intercom.NewMeshCertRequest,
 ) (*intercom.NewMeshCertResponse, error) {
-	log.Println("NewMeshCert called")
+	i.logger.Info("NewMeshCert called")
 
 	cert, err := i.certGet.GetCert(req.PeerPublicKeyHash)
 	if err != nil {

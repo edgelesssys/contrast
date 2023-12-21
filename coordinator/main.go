@@ -40,7 +40,7 @@ func run() (retErr error) {
 
 	manifestSetGetter := newManifestSetGetter()
 
-	coordS, err := newCoordAPIServer(manifestSetGetter, caInstance)
+	coordS, err := newCoordAPIServer(manifestSetGetter, caInstance, logger)
 	if err != nil {
 		return fmt.Errorf("creating coordinator API server: %w", err)
 	}
@@ -57,12 +57,12 @@ func run() (retErr error) {
 	manifest := manifestSetGetter.GetManifest()
 	logger.Info("Got manifest")
 
-	meshAuth, err := newMeshAuthority(caInstance, manifest)
+	meshAuth, err := newMeshAuthority(caInstance, manifest, logger)
 	if err != nil {
 		return fmt.Errorf("creating mesh authority: %v", err)
 	}
 
-	intercomS, err := newIntercomServer(meshAuth, caInstance)
+	intercomS, err := newIntercomServer(meshAuth, caInstance, logger)
 	if err != nil {
 		return fmt.Errorf("creating intercom server: %v", err)
 	}

@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"log/slog"
 	"net"
 	"sync"
@@ -25,13 +24,13 @@ type coordAPIServer struct {
 	policyTextStore store[manifest.HexString, manifest.Policy]
 	mSetter         manifestSetter
 	caChainGetter   certChainGetter
+	logger          *slog.Logger
 
 	coordapi.UnimplementedCoordAPIServer
 }
 
-func newCoordAPIServer(mSetter manifestSetter, caGetter certChainGetter) (*coordAPIServer, error) {
-	// TODO(malt3): pass logger down.
-	issuer := snp.NewIssuer(slog.Default())
+func newCoordAPIServer(mSetter manifestSetter, caGetter certChainGetter, log *slog.Logger) (*coordAPIServer, error) {
+	issuer := snp.NewIssuer(log)
 	credentials := atlscredentials.New(issuer, nil)
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
@@ -42,6 +41,7 @@ func newCoordAPIServer(mSetter manifestSetter, caGetter certChainGetter) (*coord
 		policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
 		mSetter:         mSetter,
 		caChainGetter:   caGetter,
+		logger:          log.WithGroup("coordapi"),
 	}
 	coordapi.RegisterCoordAPIServer(s.grpc, s)
 	return s, nil
@@ -57,7 +57,7 @@ func (i *coordAPIServer) Serve(endpoint string) error {
 
 func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManifestRequest,
 ) (*coordapi.SetManifestResponse, error) {
-	log.Println("SetManifest called")
+	s.logger.Info("SetManifest called")
 
 	manifestDec, err := base64.StdEncoding.DecodeString(req.Manifest)
 	if err != nil {
@@ -80,7 +80,7 @@ func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManif
 		return nil, err
 	}
 
-	log.Println("SetManifest succeeded")
+	s.logger.Info("SetManifest succeeded")
 	return &coordapi.SetManifestResponse{CACert: s.caChainGetter.GetCACert(), IntermCert: s.caChainGetter.GetIntermCert()}, nil
 }
 

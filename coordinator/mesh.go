@@ -7,7 +7,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/hex"
 	"fmt"
-	"log"
+	"log/slog"
 	"sync"
 
 	"github.com/edgelesssys/nunki/internal/ca"
@@ -23,13 +23,15 @@ type meshAuthority struct {
 	certs    map[string][]byte
 	certsMux sync.RWMutex
 	manifest *manifest.Manifest
+	logger   *slog.Logger
 }
 
-func newMeshAuthority(ca *ca.CA, manifest *manifest.Manifest) (*meshAuthority, error) {
+func newMeshAuthority(ca *ca.CA, manifest *manifest.Manifest, log *slog.Logger) (*meshAuthority, error) {
 	return &meshAuthority{
 		ca:       ca,
 		certs:    make(map[string][]byte),
 		manifest: manifest,
+		logger:   log.WithGroup("mesh-authority"),
 	}, nil
 }
 
@@ -88,7 +90,7 @@ func (m *meshAuthority) ValidateCallback(ctx context.Context, report *sevsnp.Rep
 
 	peerPubKeyHash := sha256.Sum256(peerPubKeyBytes)
 	peerPublicKeyHashStr := hex.EncodeToString(peerPubKeyHash[:])
-	log.Printf("peerPublicKeyHashStr: %v", peerPublicKeyHashStr)
+	m.logger.Info("Validated peer", "peerPublicKeyHashStr", peerPublicKeyHashStr)
 
 	m.certsMux.Lock()
 	defer m.certsMux.Unlock()
