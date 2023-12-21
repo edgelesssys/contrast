@@ -5,7 +5,7 @@
       "*.edg-coco"
     ],
     "3638d61e7c8701e19e819751eb61e2e353f25f68374443d03428c8acc39ed3e9": [
-      "coordinator-kbs.edg-coco",
+      "coordinator.edg-coco",
       "*.edg-coco"
     ]
   },

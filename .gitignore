@@ -1,6 +1,3 @@
-coordinator-kbs
-initializer/initializer
-parsesnp
 tools/genpolicy.cache/*
 !tools/genpolicy.cache/.gitkeep
 *.bin

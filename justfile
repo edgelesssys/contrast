@@ -3,7 +3,7 @@ default target=default_deploy_target: undeploy coordinator initializer (deploy t
 
 # Build the coordinator, containerize and push it.
 coordinator:
-    nix run .#push-coordinator -- "$container_registry/coordinator-kbs:latest"
+    nix run .#push-coordinator -- "$container_registry/coordinator:latest"
 
 # Build the initializer, containerize and push it.
 initializer:
@@ -23,8 +23,8 @@ generate target=default_deploy_target:
     cp -R ./deployments/{{target}} ./{{worspace_dir}}/deployment
     cp ./data/manifest.json ./{{worspace_dir}}/manifest.json
     nix run .#yq-go -- -i ". \
-        | with(select(.spec.template.spec.containers[].image | contains(\"coordinator-kbs\")); \
-        .spec.template.spec.containers[0].image = \"${container_registry}/coordinator-kbs:latest\")" \
+        | with(select(.spec.template.spec.containers[].image | contains(\"coordinator\")); \
+        .spec.template.spec.containers[0].image = \"${container_registry}/coordinator:latest\")" \
         ./{{worspace_dir}}/deployment/coordinator.yml
     for f in ./{{worspace_dir}}/deployment/*.yml; do
         nix run .#yq-go -- -i ". \

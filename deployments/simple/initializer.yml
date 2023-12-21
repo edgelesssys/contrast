@@ -20,7 +20,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: COORDINATOR_HOST
-              value: coordinator-kbs.edg-coco
+              value: coordinator.edg-coco
           volumeMounts:
             - name: tls-certs
               mountPath: /tls-config
