@@ -11,7 +11,7 @@ spec:
         - name: LISTEN_PORT
           value: "1313"
         - name: FORWARD_HOST
-          value: coordinator-kbs.edg-emojivoto
+          value: coordinator.edg-emojivoto
         - name: FORWARD_PORT
           value: "1313"
       command:

@@ -11,7 +11,7 @@ spec:
         - name: LISTEN_PORT
           value: "1313"
         - name: FORWARD_HOST
-          value: coordinator-kbs.edg-coco
+          value: coordinator.edg-coco
         - name: FORWARD_PORT
           value: "1313"
       command:

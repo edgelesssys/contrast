@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: coordinator-kbs
+  name: coordinator
   namespace: edg-coco
 spec:
   selector:
     matchLabels:
-      run: coordinator-kbs
+      run: coordinator
   replicas: 1
   template:
     metadata:
       labels:
-        run: coordinator-kbs
+        run: coordinator
     spec:
       runtimeClassName: kata-cc-isolation
       containers:
-        - name: coordinator-kbs
-          image: "ghcr.io/edgelesssys/nunki/coordinator-kbs:latest"
+        - name: coordinator
+          image: "ghcr.io/edgelesssys/nunki/coordinator:latest"
           imagePullPolicy: Always
           ports:
             - containerPort: 7777
@@ -30,7 +30,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: coordinator-kbs
+  name: coordinator
   namespace: edg-coco
 spec:
   ports:
@@ -41,4 +41,4 @@ spec:
       port: 1313
       protocol: TCP
   selector:
-    run: coordinator-kbs
+    run: coordinator

@@ -32,7 +32,7 @@ func New(namespace string) (*CA, error) {
 
 	root := &x509.Certificate{
 		SerialNumber:          rootSerialNumber,
-		Subject:               pkix.Name{CommonName: "system:coordinator-kbs:root"},
+		Subject:               pkix.Name{CommonName: "system:coordinator:root"},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(10, 0, 0),
 		IsCA:                  true,
@@ -59,7 +59,7 @@ func New(namespace string) (*CA, error) {
 	}
 	interm := &x509.Certificate{
 		SerialNumber:          intermSerialNumber,
-		Subject:               pkix.Name{CommonName: "system:coordinator-kbs:intermediate"},
+		Subject:               pkix.Name{CommonName: "system:coordinator:intermediate"},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(10, 0, 0),
 		IsCA:                  true,
@@ -101,7 +101,7 @@ func (c *CA) NewAttestedMeshCert(dnsNames []string, extensions []pkix.Extension,
 	certTemplate := &x509.Certificate{
 		SerialNumber:          serialNumber,
 		Subject:               pkix.Name{CommonName: dnsNames[0]},
-		Issuer:                pkix.Name{CommonName: "system:coordinator-kbs:intermediate"},
+		Issuer:                pkix.Name{CommonName: "system:coordinator:intermediate"},
 		NotBefore:             now.Add(-2 * time.Hour),
 		NotAfter:              now.Add(354 * 24 * time.Hour),
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
