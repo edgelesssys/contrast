@@ -75,7 +75,7 @@ func runVerify(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("writing filelist: %w", err)
 	}
 
-	logger.Info("Successfully verified coordinator")
+	fmt.Fprintln(cmd.OutOrStdout(), "Successfully verified coordinator")
 
 	return nil
 }
