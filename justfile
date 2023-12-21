@@ -3,11 +3,11 @@ default target=default_deploy_target: undeploy coordinator initializer (deploy t
 
 # Build the coordinator, containerize and push it.
 coordinator:
-    nix run .#push-coordinator -- "$container_registry/coordinator:latest"
+    nix run .#push-coordinator -- "$container_registry/nunki/coordinator:latest"
 
 # Build the initializer, containerize and push it.
 initializer:
-    nix run .#push-initializer -- "$container_registry/initializer:latest"
+    nix run .#push-initializer -- "$container_registry/nunki/initializer:latest"
 
 default_deploy_target := "simple"
 worspace_dir := "workspace"
@@ -23,13 +23,13 @@ generate target=default_deploy_target:
     cp -R ./deployments/{{target}} ./{{worspace_dir}}/deployment
     cp ./data/manifest.json ./{{worspace_dir}}/manifest.json
     nix run .#yq-go -- -i ". \
-        | with(select(.spec.template.spec.containers[].image | contains(\"coordinator\")); \
-        .spec.template.spec.containers[0].image = \"${container_registry}/coordinator:latest\")" \
+        | with(select(.spec.template.spec.containers[].image | contains(\"nunki/coordinator\")); \
+        .spec.template.spec.containers[0].image = \"${container_registry}/nunki/coordinator:latest\")" \
         ./{{worspace_dir}}/deployment/coordinator.yml
     for f in ./{{worspace_dir}}/deployment/*.yml; do
         nix run .#yq-go -- -i ". \
-            | with(select(.spec.template.spec.initContainers[].image | contains(\"initializer\")); \
-            .spec.template.spec.initContainers[0].image = \"${container_registry}/initializer:latest\")" \
+            | with(select(.spec.template.spec.initContainers[].image | contains(\"nunki/initializer\")); \
+            .spec.template.spec.initContainers[0].image = \"${container_registry}/nunki/initializer:latest\")" \
             "${f}"
     done
     nix run .#cli -- generate \
