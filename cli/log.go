@@ -12,7 +12,7 @@ import (
 func newCLILogger(cmd *cobra.Command) (*slog.Logger, error) {
 	rawLogLevel, err := cmd.Flags().GetString("log-level")
 	if err != nil {
-		rawLogLevel = "info"
+		rawLogLevel = "warn"
 	}
 	var level slog.Level
 	switch strings.ToLower(rawLogLevel) {
