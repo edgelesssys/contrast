@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
 	"time"
 
@@ -28,7 +29,8 @@ type certGetter interface {
 }
 
 func newIntercomServer(meshAuth *meshAuthority, caGetter certChainGetter) (*intercomServer, error) {
-	validator := snp.NewValidatorWithCallbacks(meshAuth, meshAuth)
+	// TODO(malt3): pass logger down.
+	validator := snp.NewValidatorWithCallbacks(meshAuth, slog.Default(), meshAuth)
 	credentials := atlscredentials.New(atls.NoIssuer, []atls.Validator{validator})
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),

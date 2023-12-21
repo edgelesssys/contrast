@@ -96,7 +96,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 			RequireIDBlock:            true,
 		},
 	}
-	dialer := dialer.New(atls.NoIssuer, snp.NewValidator(validateOptsGen), &net.Dialer{})
+	dialer := dialer.New(atls.NoIssuer, snp.NewValidator(validateOptsGen, logger), &net.Dialer{})
 
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
 	if err != nil {

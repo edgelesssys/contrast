@@ -12,18 +12,19 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/google/go-sev-guest/client"
 )
 
 type Issuer struct {
 	snpDevicePath string
+	logger        *slog.Logger
 }
 
 // NewIssuer returns a new Issuer.
-func NewIssuer() *Issuer {
-	return &Issuer{}
+func NewIssuer(log *slog.Logger) *Issuer {
+	return &Issuer{logger: log.WithGroup("snp-issuer")}
 }
 
 func (i *Issuer) OID() asn1.ObjectIdentifier {
@@ -33,16 +34,16 @@ func (i *Issuer) OID() asn1.ObjectIdentifier {
 // userData is hash of issuer public key.
 // nonce from validator.
 func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (res []byte, err error) {
-	log.Println("issuer: issue called")
+	i.logger.Info("Issue called")
 	defer func() {
 		if err != nil {
-			log.Printf("Failed to issue attestation statement: %s", err)
+			i.logger.Error("Failed to issue attestation statement", "err", err)
 		}
 	}()
 
 	snpGuestDevice, err := client.OpenDevice()
 	if err != nil {
-		log.Fatalf("issuer: opening device: %v", err)
+		return nil, fmt.Errorf("issuer: opening device: %w", err)
 	}
 	defer snpGuestDevice.Close()
 
@@ -50,13 +51,13 @@ func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (
 
 	reportRaw, err := client.GetRawReport(snpGuestDevice, reportData)
 	if err != nil {
-		return nil, fmt.Errorf("getting raw report: %w", err)
+		return nil, fmt.Errorf("issuer: getting raw report: %w", err)
 	}
-	log.Printf("issuer: Report raw: %v", hex.EncodeToString(reportRaw))
+	i.logger.Info("Retrieved report", "reportRaw", hex.EncodeToString(reportRaw))
 
 	reportB64 := make([]byte, base64.StdEncoding.EncodedLen(len(reportRaw)))
 	base64.StdEncoding.Encode(reportB64, reportRaw)
 
-	log.Println("issuer: Successfully issued attestation statement")
+	i.logger.Info("Successfully issued attestation statement")
 	return reportB64, nil
 }

@@ -12,7 +12,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"log"
+	"log/slog"
 
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/proto/sevsnp"
@@ -23,6 +23,7 @@ import (
 type Validator struct {
 	validateOptsGen validateOptsGenerator
 	callbackers     []validateCallbacker
+	logger          *slog.Logger
 }
 
 type validateCallbacker interface {
@@ -41,16 +42,18 @@ func (v *StaticValidateOptsGenerator) SNPValidateOpts(report *sevsnp.Report) (*v
 	return v.Opts, nil
 }
 
-func NewValidator(optsGen validateOptsGenerator) *Validator {
+func NewValidator(optsGen validateOptsGenerator, log *slog.Logger) *Validator {
 	return &Validator{
 		validateOptsGen: optsGen,
+		logger:          log.WithGroup("snp-validator"),
 	}
 }
 
-func NewValidatorWithCallbacks(optsGen validateOptsGenerator, callbacks ...validateCallbacker) *Validator {
+func NewValidatorWithCallbacks(optsGen validateOptsGenerator, log *slog.Logger, callbacks ...validateCallbacker) *Validator {
 	return &Validator{
 		validateOptsGen: optsGen,
 		callbackers:     callbacks,
+		logger:          log.WithGroup("snp-validator"),
 	}
 }
 
@@ -60,10 +63,10 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 
 // Validate a TPM based attestation.
 func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
-	log.Printf("validator: validate called with nonce %s", hex.EncodeToString(nonce))
+	v.logger.Info("Validate called", "nonce", hex.EncodeToString(nonce))
 	defer func() {
 		if err != nil {
-			log.Printf("Failed to validate attestation document: %s", err)
+			v.logger.Error("Failed to validate attestation document: %s", err)
 		}
 	}()
 
@@ -73,7 +76,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	if _, err = base64.StdEncoding.Decode(reportRaw, attDocRaw); err != nil {
 		return err
 	}
-	log.Printf("validator: Report raw: %v", hex.EncodeToString(reportRaw))
+	v.logger.Info("Report decoded", "reportRaw", hex.EncodeToString(reportRaw))
 
 	report, err := abi.ReportToProto(reportRaw)
 	if err != nil {
@@ -90,7 +93,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	if err := verify.SnpAttestation(attestation, verifyOpts); err != nil {
 		return fmt.Errorf("verifying report: %w", err)
 	}
-	log.Println("validator: Successfully verified report signature")
+	v.logger.Info("Successfully verified report signature")
 
 	// Validate the report data.
 
@@ -103,7 +106,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	if err := validate.SnpAttestation(attestation, validateOpts); err != nil {
 		return fmt.Errorf("validating report claims: %w", err)
 	}
-	log.Println("validator: Successfully validated report data")
+	v.logger.Info("Successfully validated report data")
 
 	// Run callbacks.
 
@@ -113,6 +116,6 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 		}
 	}
 
-	log.Println("validator: done")
+	v.logger.Info("Validate finished successfully")
 	return nil
 }
