@@ -101,17 +101,21 @@ func run() (retErr error) {
 	})
 
 	// write files to disk
-	err = os.WriteFile("/tls-config/CACert.pem", resp.CaCert, 0o644)
+	err = os.WriteFile("/tls-config/MeshCACert.pem", resp.MeshCACert, 0o644)
 	if err != nil {
-		return fmt.Errorf("writing cert.pem: %v", err)
+		return fmt.Errorf("writing MeshCACert.pem: %v", err)
 	}
 	err = os.WriteFile("/tls-config/certChain.pem", resp.CertChain, 0o644)
 	if err != nil {
-		return fmt.Errorf("writing cert.pem: %v", err)
+		return fmt.Errorf("writing certChain.pem: %v", err)
 	}
 	err = os.WriteFile("/tls-config/key.pem", pemEncodedPrivKey, 0o600)
 	if err != nil {
 		return fmt.Errorf("writing key.pem: %v", err)
+	}
+	err = os.WriteFile("/tls-config/RootCACert.pem", resp.RootCACert, 0o644)
+	if err != nil {
+		return fmt.Errorf("writing RootCACert.pem: %v", err)
 	}
 
 	logger.Info("Initializer done")

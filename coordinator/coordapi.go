@@ -75,7 +75,7 @@ func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManif
 	}
 
 	resp := &coordapi.SetManifestResponse{
-		CACert:     s.caChainGetter.GetCACert(),
+		CACert:     s.caChainGetter.GetRootCACert(),
 		IntermCert: s.caChainGetter.GetIntermCert(),
 	}
 
@@ -100,7 +100,7 @@ func (s *coordAPIServer) GetManifests(ctx context.Context, _ *coordapi.GetManife
 	resp := &coordapi.GetManifestsResponse{
 		Manifests:  manifestBytes,
 		Policies:   policySliceToBytesSlice(s.policyTextStore.GetAll()),
-		CACert:     s.caChainGetter.GetCACert(),
+		CACert:     s.caChainGetter.GetRootCACert(),
 		IntermCert: s.caChainGetter.GetIntermCert(),
 	}
 
@@ -129,7 +129,8 @@ func manifestSliceToBytesSlice(s []*manifest.Manifest) ([][]byte, error) {
 }
 
 type certChainGetter interface {
-	GetCACert() []byte
+	GetRootCACert() []byte
+	GetMeshCACert() []byte
 	GetIntermCert() []byte
 }
 

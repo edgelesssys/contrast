@@ -62,11 +62,12 @@ func (i *intercomServer) NewMeshCert(ctx context.Context, req *intercom.NewMeshC
 		return nil, err
 	}
 
+	meshCACert := i.caChainGetter.GetMeshCACert()
 	intermCert := i.caChainGetter.GetIntermCert()
 
 	return &intercom.NewMeshCertResponse{
-		// TODO(3u13r): Replace the CA Cert the intermediate CA cert
-		CaCert:    i.caChainGetter.GetCACert(),
-		CertChain: append(cert, intermCert...),
+		MeshCACert: meshCACert,
+		CertChain:  append(cert, intermCert...),
+		RootCACert: i.caChainGetter.GetRootCACert(),
 	}, nil
 }
