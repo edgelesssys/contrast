@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openssl-client
+  namespace: edg-openssl
+spec:
+  selector:
+    matchLabels:
+      run: openssl-client
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: openssl-client
+    spec:
+      runtimeClassName: kata-cc-isolation
+      initContainers:
+        - name: initializer
+          image: "ghcr.io/edgelesssys/nunki/initializer:latest"
+          imagePullPolicy: Always
+          env:
+            - name: COORDINATOR_HOST
+              value: coordinator.edg-openssl
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /tls-config
+      containers:
+        - name: openssl-client
+          image: ghcr.io/3u13r/nunki/openssl:latest
+          imagePullPolicy: Always
+          command:
+            - /bin/bash
+            - "-c"
+            - "echo Workload started \nwhile true; do \n  echo \"THIS IS A TEST MESSAGE\" | openssl s_client -connect openssl-frontend:443 -verify_return_error -CAfile /tls-config/RootCACert.pem\n  sleep 30\ndone\n"
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /tls-config
+      volumes:
+        - name: tls-certs
+          emptyDir: {}
