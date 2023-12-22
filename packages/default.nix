@@ -14,7 +14,7 @@ let
   ];
 
   # Builder function for Go packages of our local module.
-  buildGoSubPackage = subpackage: attrs: pkgs.callPackage
+  buildGoSubPackage = subpackage: attrs: callPackage
     ({ buildGoModule }: buildGoModule ({
       name = subpackage;
       src = lib.fileset.toSource {
@@ -38,10 +38,10 @@ let
     } // attrs))
     { };
 
-  buildContainer = drv: pkgs.dockerTools.buildImage {
+  buildContainer = drv: dockerTools.buildImage {
     inherit (drv) name;
     tag = "latest";
-    copyToRoot = with pkgs.dockerTools; [
+    copyToRoot = with dockerTools; [
       caCertificates
     ];
     config = {
@@ -49,9 +49,9 @@ let
     };
   };
 
-  pushContainer = container: pkgs.writeShellApplication {
+  pushContainer = container: writeShellApplication {
     name = "push";
-    runtimeInputs = with pkgs; [ crane gzip ];
+    runtimeInputs = [ crane gzip ];
     text = ''
       imageName="$1"
       tmpdir=$(mktemp -d)
@@ -88,9 +88,9 @@ rec {
     text = ''az group delete --name "$1"'';
   };
 
-  generate = pkgs.writeShellApplication {
+  generate = writeShellApplication {
     name = "generate";
-    runtimeInputs = with pkgs; [ go protobuf protoc-gen-go protoc-gen-go-grpc ];
+    runtimeInputs = [ go protobuf protoc-gen-go protoc-gen-go-grpc ];
     text = ''
       go generate ./...
       go mod tidy
