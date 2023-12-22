@@ -13,8 +13,10 @@ message NewMeshCertRequest {
 }
 
 message NewMeshCertResponse {
-  // PEM-encoded certificate
-  bytes CaCert = 1;
-  // Concatenated PEM-encoded certificates
+  // PEM-encoded certificate used by the workload as CA
+  bytes MeshCACert = 1;
+  // Concatenated PEM-encoded certificates used by the workload certificate chain
   bytes CertChain = 2;
+  // PEM-encoded certificate when workloads trust also workloads from previous manifests
+  bytes RootCACert = 3;
 }

@@ -14,12 +14,18 @@ import (
 )
 
 type CA struct {
-	rootPrivKey   *rsa.PrivateKey
-	rootCert      *x509.Certificate
-	rootPEM       []byte
+	rootPrivKey *rsa.PrivateKey
+	rootCert    *x509.Certificate
+	rootPEM     []byte
+
+	// The intermPrivKey is used for both the intermediate and meshCA certificates.
 	intermPrivKey *rsa.PrivateKey
-	intermCert    *x509.Certificate
-	intermPEM     []byte
+
+	intermCert *x509.Certificate
+	intermPEM  []byte
+
+	meshCACert *x509.Certificate
+	meshCAPEM  []byte
 
 	namespace string
 }
@@ -59,7 +65,7 @@ func New(namespace string) (*CA, error) {
 	}
 	interm := &x509.Certificate{
 		SerialNumber:          intermSerialNumber,
-		Subject:               pkix.Name{CommonName: "system:coordinator:intermediate"},
+		Subject:               pkix.Name{CommonName: "system:coordinator:meshCA"},
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(10, 0, 0),
 		IsCA:                  true,
@@ -80,6 +86,29 @@ func New(namespace string) (*CA, error) {
 		Bytes: intermBytes,
 	})
 
+	intermCASerialNumber, err := crypto.GenerateCertificateSerialNumber()
+	if err != nil {
+		return nil, err
+	}
+	meshCA := &x509.Certificate{
+		SerialNumber:          intermCASerialNumber,
+		Subject:               pkix.Name{CommonName: "system:coordinator:meshCA"},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(10, 0, 0),
+		IsCA:                  true,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+	meshCABytes, err := x509.CreateCertificate(rand.Reader, meshCA, meshCA, &intermPrivKey.PublicKey, intermPrivKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create meshCA certificate: %w", err)
+	}
+	meshCAPEM := new(bytes.Buffer)
+	pem.Encode(meshCAPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: meshCABytes,
+	})
+
 	return &CA{
 		rootPrivKey:   rootPrivKey,
 		rootCert:      root,
@@ -87,6 +116,8 @@ func New(namespace string) (*CA, error) {
 		intermPrivKey: intermPrivKey,
 		intermCert:    interm,
 		intermPEM:     intermPEM.Bytes(),
+		meshCACert:    meshCA,
+		meshCAPEM:     meshCAPEM.Bytes(),
 		namespace:     namespace,
 	}, nil
 }
@@ -101,7 +132,7 @@ func (c *CA) NewAttestedMeshCert(dnsNames []string, extensions []pkix.Extension,
 	certTemplate := &x509.Certificate{
 		SerialNumber:          serialNumber,
 		Subject:               pkix.Name{CommonName: dnsNames[0]},
-		Issuer:                pkix.Name{CommonName: "system:coordinator:intermediate"},
+		Issuer:                pkix.Name{CommonName: "system:coordinator:meshCA"},
 		NotBefore:             now.Add(-2 * time.Hour),
 		NotAfter:              now.Add(354 * 24 * time.Hour),
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
@@ -111,7 +142,7 @@ func (c *CA) NewAttestedMeshCert(dnsNames []string, extensions []pkix.Extension,
 		DNSNames:              dnsNames,
 	}
 
-	certBytes, err := x509.CreateCertificate(rand.Reader, certTemplate, c.intermCert, subjectPublicKey, c.intermPrivKey)
+	certBytes, err := x509.CreateCertificate(rand.Reader, certTemplate, c.meshCACert, subjectPublicKey, c.intermPrivKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create certificate: %w", err)
 	}
@@ -125,10 +156,14 @@ func (c *CA) NewAttestedMeshCert(dnsNames []string, extensions []pkix.Extension,
 	return certPEM.Bytes(), nil
 }
 
-func (c *CA) GetCACert() []byte {
+func (c *CA) GetRootCACert() []byte {
 	return c.rootPEM
 }
 
 func (c *CA) GetIntermCert() []byte {
 	return c.intermPEM
+}
+
+func (c *CA) GetMeshCACert() []byte {
+	return c.meshCAPEM
 }

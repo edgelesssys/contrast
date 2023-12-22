@@ -46,7 +46,7 @@ spec:
             - name: EDG_CERT_PATH
               value: /tls-config/certChain.pem
             - name: EDG_CA_PATH
-              value: /tls-config/CACert.pem
+              value: /tls-config/MeshCACert.pem
             - name: EDG_KEY_PATH
               value: /tls-config/key.pem
           image: ghcr.io/3u13r/emojivoto-voting-svc:coco-1
