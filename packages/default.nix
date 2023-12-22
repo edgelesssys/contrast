@@ -75,6 +75,15 @@ rec {
   push-coordinator = pushContainer coordinator;
   push-initializer = pushContainer initializer;
 
+  push-openssl = pushContainer (dockerTools.buildImage {
+    name = "openssl";
+    tag = "latest";
+    copyToRoot = [ openssl bash coreutils ncurses bashInteractive vim procps ];
+    config = {
+      Cmd = [ "bash" ];
+    };
+  });
+
   azure-cli-with-extensions = callPackage ./azurecli.nix { };
 
   create-coco-aks = writeShellApplication {

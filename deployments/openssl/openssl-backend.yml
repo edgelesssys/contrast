@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openssl-backend
+  namespace: edg-openssl
+spec:
+  selector:
+    matchLabels:
+      run: openssl-backend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: openssl-backend
+    spec:
+      runtimeClassName: kata-cc-isolation
+      initContainers:
+        - name: initializer
+          image: "ghcr.io/edgelesssys/nunki/initializer:latest"
+          imagePullPolicy: Always
+          env:
+            - name: COORDINATOR_HOST
+              value: coordinator.edg-openssl
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /tls-config
+      containers:
+        - name: openssl-backend
+          image: ghcr.io/3u13r/nunki/openssl:latest
+          imagePullPolicy: Always
+          command:
+            - /bin/bash
+            - "-c"
+            - |
+              echo Workload started
+              openssl s_server -port 443 -Verify 2 -CAfile /tls-config/MeshCACert.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /tls-config
+          ports:
+            - containerPort: 443
+              name: openssl
+      volumes:
+        - name: tls-certs
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openssl-backend
+  namespace: edg-openssl
+spec:
+  selector:
+    run: openssl-backend
+  ports:
+    - name: openssl
+      port: 443
+      targetPort: 443

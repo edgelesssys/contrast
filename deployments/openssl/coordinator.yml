@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coordinator
+  namespace: edg-openssl
+spec:
+  selector:
+    matchLabels:
+      run: coordinator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: coordinator
+    spec:
+      runtimeClassName: kata-cc-isolation
+      containers:
+        - name: coordinator
+          image: "ghcr.io/edgelesssys/nunki/coordinator:latest"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 7777
+            - containerPort: 1313
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: coordinator
+  namespace: edg-openssl
+spec:
+  ports:
+    - name: intercom
+      port: 7777
+      protocol: TCP
+    - name: coordapi
+      port: 1313
+      protocol: TCP
+  selector:
+    run: coordinator

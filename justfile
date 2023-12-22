@@ -1,9 +1,12 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target: undeploy coordinator initializer (deploy target)
+default target=default_deploy_target: undeploy coordinator initializer openssl (deploy target)
 
 # Build the coordinator, containerize and push it.
 coordinator:
     nix run .#push-coordinator -- "$container_registry/nunki/coordinator:latest"
+
+openssl:
+    nix run .#push-openssl -- "$container_registry/nunki/openssl:latest"
 
 # Build the initializer, containerize and push it.
 initializer:
