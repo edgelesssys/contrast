@@ -18,11 +18,13 @@ import (
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
 	"github.com/google/go-sev-guest/verify"
+	"github.com/google/go-sev-guest/verify/trust"
 )
 
 type Validator struct {
 	validateOptsGen validateOptsGenerator
 	callbackers     []validateCallbacker
+	kdsGetter       trust.HTTPSGetter
 	logger          *slog.Logger
 }
 
@@ -53,6 +55,7 @@ func NewValidatorWithCallbacks(optsGen validateOptsGenerator, log *slog.Logger, 
 	return &Validator{
 		validateOptsGen: optsGen,
 		callbackers:     callbacks,
+		kdsGetter:       NewCachedKDSHTTPClient(log),
 		logger:          log.WithGroup("snp-validator"),
 	}
 }
@@ -85,7 +88,9 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	// Report signature verification.
 
-	verifyOpts := &verify.Options{}
+	verifyOpts := &verify.Options{
+		Getter: v.kdsGetter,
+	}
 	attestation, err := verify.GetAttestationFromReport(report, verifyOpts)
 	if err != nil {
 		return fmt.Errorf("getting attestation from report: %w", err)
