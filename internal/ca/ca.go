@@ -2,8 +2,9 @@ package ca
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -14,12 +15,12 @@ import (
 )
 
 type CA struct {
-	rootPrivKey *rsa.PrivateKey
+	rootPrivKey *ecdsa.PrivateKey
 	rootCert    *x509.Certificate
 	rootPEM     []byte
 
 	// The intermPrivKey is used for both the intermediate and meshCA certificates.
-	intermPrivKey *rsa.PrivateKey
+	intermPrivKey *ecdsa.PrivateKey
 
 	intermCert *x509.Certificate
 	intermPEM  []byte
@@ -45,7 +46,7 @@ func New(namespace string) (*CA, error) {
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
-	rootPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	rootPrivKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate RSA private key: %w", err)
 	}
@@ -72,7 +73,7 @@ func New(namespace string) (*CA, error) {
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
-	intermPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	intermPrivKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate RSA private key: %w", err)
 	}
