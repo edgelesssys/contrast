@@ -39,12 +39,15 @@ jobs:
       - name: Check if modifications were made
         run: |
           diff=$(git diff)
-          if [[ -n "$diff" ]]; then
+          if [[ -z "$diff" ]]; then
             echo "Everything is tidy and generated."
             exit 0
           fi
           cat << EOF >> "${GITHUB_STEP_SUMMARY}"
+          Run \`nix run .#generate\` to generate and tidy Go code.
           \`\`\`diff
           ${diff}
           \`\`\`
           EOF
+          echo "Module is not tidy, check the GitHub run summary for the diff."
+          exit 1
