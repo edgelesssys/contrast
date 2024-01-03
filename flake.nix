@@ -23,7 +23,7 @@
       pkgs = import nixpkgs { inherit system; };
       inherit (pkgs) lib;
 
-      goVendorHash = "sha256-jwN90izTTCqDTkWhMcm0YlDUN8+2FSEprK0JeX/7fp4=";
+      goVendorHash = "sha256-7ibre61H0pz+2o3DtisSEXNirlX9DE9XUBe+gUI8+kg=";
 
       treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
     in

@@ -6,6 +6,7 @@ require (
 	github.com/google/go-sev-guest v0.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
+	go.uber.org/goleak v1.3.0
 	golang.org/x/crypto v0.14.0
 	google.golang.org/grpc v1.57.0
 	google.golang.org/protobuf v1.31.0
