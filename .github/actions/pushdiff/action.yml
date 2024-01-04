@@ -1,0 +1,48 @@
+name: pushdiff
+description: Check for diff and push on renovate branches
+
+inputs:
+  error:
+    description: "Error message to print"
+    required: true
+  suggested-fix:
+    description: "Suggestion printed in addition to diff"
+    required: true
+  renovate-commit-msg:
+    description: "Commit message for changes on renovate branches"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check diff
+      id: check-diff
+      shell: bash
+      run: |
+        diff=$(git diff)
+        if [[ -z "$diff" ]]; then
+          echo "No diff detected."
+          exit 0
+        fi
+
+        cat << EOF >> "${GITHUB_STEP_SUMMARY}"
+        ${{ inputs.suggested-fix}}
+        \`\`\`diff
+        ${diff}
+        \`\`\`
+        EOF
+
+        echo "::error::${{ inputs.error }}"
+        exit 1
+    - name: Push changes
+      if: |
+        failure() &&
+        (steps.check-diff.conclusion == 'failure') &&
+        startsWith(github.head_ref, 'renovate/') &&
+        (!github.event.pull_request.head.repo.fork)
+      shell: bash
+      run: |
+        git config --global user.name "edgelessci"
+        git config --global user.email "edgelessci@users.noreply.github.com"
+        git commit -am "${{ inputs.renovate-commit-msg }}"
+        git push

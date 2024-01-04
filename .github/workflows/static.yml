@@ -8,46 +8,32 @@ on:
   pull_request:
 
 jobs:
-  check:
+  flake-check:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
-
       - name: Install Nix
         uses: cachix/install-nix-action@7ac1ec25491415c381d9b62f0657c7a028df52a7 # v24
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: nix flake check
         run: nix -L flake check
 
-  generate:
+  go-source:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
-
       - name: Install Nix
         uses: cachix/install-nix-action@7ac1ec25491415c381d9b62f0657c7a028df52a7 # v24
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Run code generations & tidying
         run: nix run .#generate
-
-      - name: Check if modifications were made
-        run: |
-          diff=$(git diff)
-          if [[ -z "$diff" ]]; then
-            echo "Everything is tidy and generated."
-            exit 0
-          fi
-          cat << EOF >> "${GITHUB_STEP_SUMMARY}"
-          Run \`nix run .#generate\` to generate and tidy Go code.
-          \`\`\`diff
-          ${diff}
-          \`\`\`
-          EOF
-          echo "Module is not tidy, check the GitHub run summary for the diff."
-          exit 1
+      - name: Check for modifications, commit changes on renovate PRs
+        uses: ./.github/actions/pushdiff
+        with:
+          error: Go source needs to be updated, check the GitHub run summary for the diff.
+          suggested-fix: Run \`nix run .#generate\` to generate and tidy Go code.
+          renovate-commit-msg: "fixup: update Go source"
