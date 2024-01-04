@@ -109,4 +109,10 @@ rec {
   genpolicy = genpolicy-msft;
   genpolicy-msft = callPackage ./genpolicy_msft.nix { };
   genpolicy-kata = callPackage ./genpolicy_kata.nix { };
+
+  govulncheck = writeShellApplication {
+    name = "govulncheck";
+    runtimeInputs = [ go pkgs.govulncheck ];
+    text = ''govulncheck "$@"'';
+  };
 }
