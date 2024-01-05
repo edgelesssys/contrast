@@ -36,6 +36,7 @@ func New(issuer atls.Issuer, validator atls.Validator, netDialer NetDialer) *Dia
 	}
 }
 
+// NewWithKey creates a new Dialer with the given private key.
 func NewWithKey(issuer atls.Issuer, validator atls.Validator, netDialer NetDialer, privKey *ecdsa.PrivateKey) *Dialer {
 	return &Dialer{
 		issuer:    issuer,

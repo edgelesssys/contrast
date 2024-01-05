@@ -18,7 +18,7 @@ func TestStore(t *testing.T) {
 		assert := assert.New(t)
 
 		s := memstore.New[string, int]()
-		assert.Equal(0, len(s.GetAll()))
+		assert.Empty(s.GetAll())
 	})
 
 	t.Run("set and get", func(t *testing.T) {
@@ -49,7 +49,7 @@ func TestStore(t *testing.T) {
 		s.Set("bar", 2)
 
 		values := s.GetAll()
-		assert.Equal(2, len(values))
+		assert.Len(values, 2)
 		assert.Contains(values, 1)
 		assert.Contains(values, 2)
 	})
@@ -141,6 +141,6 @@ func TestStoreConcurrent(t *testing.T) {
 		go getAll()
 		wg.Wait()
 
-		assert.Equal(4, len(s.GetAll()))
+		assert.Len(s.GetAll(), 4)
 	})
 }

@@ -2,17 +2,20 @@ package memstore
 
 import "sync"
 
+// Store is a thread-safe map.
 type Store[keyT comparable, valueT any] struct {
 	m   map[keyT]valueT
 	mux sync.RWMutex
 }
 
+// New returns a new Store.
 func New[keyT comparable, valueT any]() *Store[keyT, valueT] {
 	return &Store[keyT, valueT]{
 		m: make(map[keyT]valueT),
 	}
 }
 
+// Get returns the value for the given key.
 func (s *Store[keyT, valueT]) Get(key keyT) (valueT, bool) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
@@ -20,12 +23,14 @@ func (s *Store[keyT, valueT]) Get(key keyT) (valueT, bool) {
 	return v, ok
 }
 
+// Set sets the value for the given key.
 func (s *Store[keyT, valueT]) Set(key keyT, value valueT) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	s.m[key] = value
 }
 
+// GetAll returns all values in the store.
 func (s *Store[keyT, valueT]) GetAll() []valueT {
 	s.mux.RLock()
 	defer s.mux.RUnlock()

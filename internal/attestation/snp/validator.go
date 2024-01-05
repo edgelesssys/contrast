@@ -21,6 +21,7 @@ import (
 	"github.com/google/go-sev-guest/verify/trust"
 )
 
+// Validator validates attestation statements.
 type Validator struct {
 	validateOptsGen validateOptsGenerator
 	callbackers     []validateCallbacker
@@ -36,14 +37,18 @@ type validateOptsGenerator interface {
 	SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error)
 }
 
+// StaticValidateOptsGenerator returns validate.Options generator that returns
+// static validation options.
 type StaticValidateOptsGenerator struct {
 	Opts *validate.Options
 }
 
-func (v *StaticValidateOptsGenerator) SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error) {
+// SNPValidateOpts return the SNP validation options.
+func (v *StaticValidateOptsGenerator) SNPValidateOpts(_ *sevsnp.Report) (*validate.Options, error) {
 	return v.Opts, nil
 }
 
+// NewValidator returns a new Validator.
 func NewValidator(optsGen validateOptsGenerator, log *slog.Logger) *Validator {
 	return &Validator{
 		validateOptsGen: optsGen,
@@ -51,15 +56,17 @@ func NewValidator(optsGen validateOptsGenerator, log *slog.Logger) *Validator {
 	}
 }
 
+// NewValidatorWithCallbacks returns a new Validator with callbacks.
 func NewValidatorWithCallbacks(optsGen validateOptsGenerator, log *slog.Logger, callbacks ...validateCallbacker) *Validator {
 	return &Validator{
 		validateOptsGen: optsGen,
 		callbackers:     callbacks,
-		kdsGetter:       NewCachedKDSHTTPClient(log),
+		kdsGetter:       newCachedKDSHTTPClient(log),
 		logger:          log.WithGroup("snp-validator"),
 	}
 }
 
+// OID returns the OID of the validator.
 func (v *Validator) OID() asn1.ObjectIdentifier {
 	return asn1.ObjectIdentifier{1, 3, 9900, 77, 77}
 }

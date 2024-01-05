@@ -23,9 +23,9 @@ func newSetCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringP("manifest", "m", "", "path to manifest (.json) file")
-	cobra.MarkFlagRequired(cmd.Flags(), "manifest")
+	must(cobra.MarkFlagRequired(cmd.Flags(), "manifest"))
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
-	cobra.MarkFlagRequired(cmd.Flags(), "coordinator")
+	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
 
 	return cmd
 }

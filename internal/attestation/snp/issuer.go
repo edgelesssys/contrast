@@ -17,9 +17,9 @@ import (
 	"github.com/google/go-sev-guest/client"
 )
 
+// Issuer issues attestation statements.
 type Issuer struct {
-	snpDevicePath string
-	logger        *slog.Logger
+	logger *slog.Logger
 }
 
 // NewIssuer returns a new Issuer.
@@ -27,13 +27,13 @@ func NewIssuer(log *slog.Logger) *Issuer {
 	return &Issuer{logger: log.WithGroup("snp-issuer")}
 }
 
+// OID returns the OID of the issuer.
 func (i *Issuer) OID() asn1.ObjectIdentifier {
 	return asn1.ObjectIdentifier{1, 3, 9900, 77, 77}
 }
 
-// userData is hash of issuer public key.
-// nonce from validator.
-func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (res []byte, err error) {
+// Issue the attestation document.
+func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (res []byte, err error) {
 	i.logger.Info("Issue called")
 	defer func() {
 		if err != nil {

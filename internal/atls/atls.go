@@ -30,8 +30,10 @@ import (
 const attestationTimeout = 30 * time.Second
 
 var (
-	NoValidator Validator = nil
-	NoIssuer    Issuer    = nil
+	// NoValidator skips validation of the server's attestation document.
+	NoValidator Validator
+	// NoIssuer skips embedding the client's attestation document.
+	NoIssuer Issuer
 )
 
 // CreateAttestationServerTLSConfig creates a tls.Config object with a self-signed certificate and an embedded attestation document.
@@ -377,7 +379,7 @@ func NewFakeValidators(oid Getter) []Validator {
 }
 
 // Validate unmarshals the attestation document and verifies the nonce.
-func (v FakeValidator) Validate(_ context.Context, attDoc []byte, nonce []byte, pub []byte) error {
+func (v FakeValidator) Validate(_ context.Context, attDoc []byte, nonce []byte, _ []byte) error {
 	var doc FakeAttestationDoc
 	if err := json.Unmarshal(attDoc, &doc); err != nil {
 		return err
@@ -394,14 +396,6 @@ func (v FakeValidator) Validate(_ context.Context, attDoc []byte, nonce []byte, 
 type FakeAttestationDoc struct {
 	UserData []byte
 	Nonce    []byte
-}
-
-type fakeOID struct {
-	asn1.ObjectIdentifier
-}
-
-func (o fakeOID) OID() asn1.ObjectIdentifier {
-	return o.ObjectIdentifier
 }
 
 // Getter returns an ASN.1 Object Identifier.

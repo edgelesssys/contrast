@@ -27,11 +27,11 @@ func newGenerateCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringP("policy", "p", "", "path to policy (.rego) file")
-	cobra.MarkFlagRequired(cmd.Flags(), "policy")
+	must(cobra.MarkFlagRequired(cmd.Flags(), "policy"))
 	cmd.Flags().StringP("settings", "s", "", "path to settings (.json) file")
-	cobra.MarkFlagRequired(cmd.Flags(), "settings")
+	must(cobra.MarkFlagRequired(cmd.Flags(), "settings"))
 	cmd.Flags().StringP("manifest", "m", "", "path to manifest (.json) file")
-	cobra.MarkFlagRequired(cmd.Flags(), "manifest")
+	must(cobra.MarkFlagRequired(cmd.Flags(), "manifest"))
 
 	return cmd
 }

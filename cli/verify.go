@@ -27,13 +27,13 @@ func newVerifyCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
-	cobra.MarkFlagRequired(cmd.Flags(), "coordinator")
+	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
 	cmd.Flags().StringP("output", "o", "./verify", "directory to write files to")
 
 	return cmd
 }
 
-func runVerify(cmd *cobra.Command, args []string) error {
+func runVerify(cmd *cobra.Command, _ []string) error {
 	flags, err := parseVerifyFlags(cmd)
 	if err != nil {
 		return fmt.Errorf("parsing flags: %w", err)
