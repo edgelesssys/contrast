@@ -23,12 +23,12 @@
       pkgs = import nixpkgs { inherit system; };
       inherit (pkgs) lib;
 
-      goVendorHash = "sha256-7ibre61H0pz+2o3DtisSEXNirlX9DE9XUBe+gUI8+kg=";
+      version = "0.0.0-devel";
 
       treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
     in
     {
-      packages = import ./packages { inherit pkgs goVendorHash; };
+      packages = import ./packages { inherit pkgs version; };
 
       devShells.default = pkgs.mkShell {
         packages = with pkgs; [ just ];
