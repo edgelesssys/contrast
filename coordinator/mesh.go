@@ -27,13 +27,13 @@ type meshAuthority struct {
 	logger    *slog.Logger
 }
 
-func newMeshAuthority(ca *ca.CA, log *slog.Logger) (*meshAuthority, error) {
+func newMeshAuthority(ca *ca.CA, log *slog.Logger) *meshAuthority {
 	return &meshAuthority{
 		ca:        ca,
 		certs:     make(map[string][]byte),
 		manifests: new(appendable.Appendable[manifest.Manifest]),
 		logger:    log.WithGroup("mesh-authority"),
-	}, nil
+	}
 }
 
 func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error) {
@@ -76,7 +76,7 @@ func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Option
 	}, nil
 }
 
-func (m *meshAuthority) ValidateCallback(ctx context.Context, report *sevsnp.Report, nonce []byte, peerPubKeyBytes []byte) error {
+func (m *meshAuthority) ValidateCallback(_ context.Context, report *sevsnp.Report, _ []byte, peerPubKeyBytes []byte) error {
 	mnfst, err := m.manifests.Latest()
 	if err != nil {
 		return fmt.Errorf("getting latest manifest: %w", err)

@@ -28,7 +28,7 @@ type certGetter interface {
 	GetCert(peerPublicKeyHashStr string) ([]byte, error)
 }
 
-func newIntercomServer(meshAuth *meshAuthority, caGetter certChainGetter, log *slog.Logger) (*intercomServer, error) {
+func newIntercomServer(meshAuth *meshAuthority, caGetter certChainGetter, log *slog.Logger) *intercomServer {
 	validator := snp.NewValidatorWithCallbacks(meshAuth, log, meshAuth)
 	credentials := atlscredentials.New(atls.NoIssuer, []atls.Validator{validator})
 	grpcServer := grpc.NewServer(
@@ -42,18 +42,18 @@ func newIntercomServer(meshAuth *meshAuthority, caGetter certChainGetter, log *s
 		logger:        log.WithGroup("intercom"),
 	}
 	intercom.RegisterIntercomServer(s.grpc, s)
-	return s, nil
+	return s
 }
 
 func (i *intercomServer) Serve(endpoint string) error {
 	lis, err := net.Listen("tcp", endpoint)
 	if err != nil {
-		return fmt.Errorf("failed to listen: %v", err)
+		return fmt.Errorf("failed to listen: %w", err)
 	}
 	return i.grpc.Serve(lis)
 }
 
-func (i *intercomServer) NewMeshCert(ctx context.Context, req *intercom.NewMeshCertRequest,
+func (i *intercomServer) NewMeshCert(_ context.Context, req *intercom.NewMeshCertRequest,
 ) (*intercom.NewMeshCertResponse, error) {
 	i.logger.Info("NewMeshCert called")
 

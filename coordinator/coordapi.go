@@ -27,7 +27,7 @@ type coordAPIServer struct {
 	coordapi.UnimplementedCoordAPIServer
 }
 
-func newCoordAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, log *slog.Logger) (*coordAPIServer, error) {
+func newCoordAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, log *slog.Logger) *coordAPIServer {
 	issuer := snp.NewIssuer(log)
 	credentials := atlscredentials.New(issuer, nil)
 	grpcServer := grpc.NewServer(
@@ -42,24 +42,24 @@ func newCoordAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, log
 		logger:          log.WithGroup("coordapi"),
 	}
 	coordapi.RegisterCoordAPIServer(s.grpc, s)
-	return s, nil
+	return s
 }
 
-func (i *coordAPIServer) Serve(endpoint string) error {
+func (s *coordAPIServer) Serve(endpoint string) error {
 	lis, err := net.Listen("tcp", endpoint)
 	if err != nil {
-		return fmt.Errorf("failed to listen: %v", err)
+		return fmt.Errorf("failed to listen: %w", err)
 	}
-	return i.grpc.Serve(lis)
+	return s.grpc.Serve(lis)
 }
 
-func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManifestRequest,
+func (s *coordAPIServer) SetManifest(_ context.Context, req *coordapi.SetManifestRequest,
 ) (*coordapi.SetManifestResponse, error) {
 	s.logger.Info("SetManifest called")
 
 	var m *manifest.Manifest
 	if err := json.Unmarshal(req.Manifest, &m); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal manifest: %v", err)
+		return nil, fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
 
 	for _, policyBytes := range req.Policies {
@@ -83,7 +83,7 @@ func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManif
 	return resp, nil
 }
 
-func (s *coordAPIServer) GetManifests(ctx context.Context, _ *coordapi.GetManifestsRequest,
+func (s *coordAPIServer) GetManifests(_ context.Context, _ *coordapi.GetManifestsRequest,
 ) (*coordapi.GetManifestsResponse, error) {
 	s.logger.Info("GetManifest called")
 
@@ -121,7 +121,7 @@ func manifestSliceToBytesSlice(s []*manifest.Manifest) ([][]byte, error) {
 	for i, manifest := range s {
 		manifestBytes, err := json.MarshalIndent(manifest, "", "  ")
 		if err != nil {
-			return nil, fmt.Errorf("mashaling manifest %d manifest: %v", i, err)
+			return nil, fmt.Errorf("mashaling manifest %d manifest: %w", i, err)
 		}
 		manifests = append(manifests, manifestBytes)
 	}

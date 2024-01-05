@@ -24,7 +24,7 @@ type Credentials struct {
 	privKey    *ecdsa.PrivateKey
 }
 
-// New creates new ATLS Credentials.
+// New creates new ATLS credentials.
 func New(issuer atls.Issuer, validators []atls.Validator) *Credentials {
 	return &Credentials{
 		issuer:     issuer,
@@ -32,7 +32,7 @@ func New(issuer atls.Issuer, validators []atls.Validator) *Credentials {
 	}
 }
 
-// New creates new ATLS Credentials.
+// NewWithKey creates new ATLS credentials for the given key.
 func NewWithKey(issuer atls.Issuer, validators []atls.Validator, key *ecdsa.PrivateKey) *Credentials {
 	c := &Credentials{privKey: key}
 	c.issuer = issuer

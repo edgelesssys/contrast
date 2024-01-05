@@ -14,6 +14,7 @@ import (
 	"github.com/edgelesssys/nunki/internal/crypto"
 )
 
+// CA is a cross-signing certificate authority.
 type CA struct {
 	rootPrivKey *ecdsa.PrivateKey
 	rootCert    *x509.Certificate
@@ -31,6 +32,7 @@ type CA struct {
 	namespace string
 }
 
+// New creates a new CA.
 func New(namespace string) (*CA, error) {
 	rootSerialNumber, err := crypto.GenerateCertificateSerialNumber()
 	if err != nil {
@@ -55,16 +57,18 @@ func New(namespace string) (*CA, error) {
 		return nil, fmt.Errorf("failed to create root certificate: %w", err)
 	}
 	rootPEM := new(bytes.Buffer)
-	pem.Encode(rootPEM, &pem.Block{
+	if err := pem.Encode(rootPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: rootBytes,
-	})
+	}); err != nil {
+		return nil, fmt.Errorf("failed to encode root certificate: %w", err)
+	}
 
 	intermSerialNumber, err := crypto.GenerateCertificateSerialNumber()
 	if err != nil {
 		return nil, err
 	}
-	interm := &x509.Certificate{
+	intermed := &x509.Certificate{
 		SerialNumber:          intermSerialNumber,
 		Subject:               pkix.Name{CommonName: "system:coordinator:meshCA"},
 		NotBefore:             time.Now(),
@@ -77,15 +81,17 @@ func New(namespace string) (*CA, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate RSA private key: %w", err)
 	}
-	intermBytes, err := x509.CreateCertificate(rand.Reader, interm, root, &intermPrivKey.PublicKey, rootPrivKey)
+	intermBytes, err := x509.CreateCertificate(rand.Reader, intermed, root, &intermPrivKey.PublicKey, rootPrivKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create intermediate certificate: %w", err)
 	}
 	intermPEM := new(bytes.Buffer)
-	pem.Encode(intermPEM, &pem.Block{
+	if err := pem.Encode(intermPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: intermBytes,
-	})
+	}); err != nil {
+		return nil, fmt.Errorf("failed to encode intermediate certificate: %w", err)
+	}
 
 	intermCASerialNumber, err := crypto.GenerateCertificateSerialNumber()
 	if err != nil {
@@ -105,17 +111,19 @@ func New(namespace string) (*CA, error) {
 		return nil, fmt.Errorf("failed to create meshCA certificate: %w", err)
 	}
 	meshCAPEM := new(bytes.Buffer)
-	pem.Encode(meshCAPEM, &pem.Block{
+	if err := pem.Encode(meshCAPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: meshCABytes,
-	})
+	}); err != nil {
+		return nil, fmt.Errorf("failed to encode meshCA certificate: %w", err)
+	}
 
 	return &CA{
 		rootPrivKey:   rootPrivKey,
 		rootCert:      root,
 		rootPEM:       rootPEM.Bytes(),
 		intermPrivKey: intermPrivKey,
-		intermCert:    interm,
+		intermCert:    intermed,
 		intermPEM:     intermPEM.Bytes(),
 		meshCACert:    meshCA,
 		meshCAPEM:     meshCAPEM.Bytes(),
@@ -123,6 +131,7 @@ func New(namespace string) (*CA, error) {
 	}, nil
 }
 
+// NewAttestedMeshCert creates a new attested mesh certificate.
 func (c *CA) NewAttestedMeshCert(dnsNames []string, extensions []pkix.Extension, subjectPublicKey any) ([]byte, error) {
 	serialNumber, err := crypto.GenerateCertificateSerialNumber()
 	if err != nil {
@@ -149,22 +158,27 @@ func (c *CA) NewAttestedMeshCert(dnsNames []string, extensions []pkix.Extension,
 	}
 
 	certPEM := new(bytes.Buffer)
-	pem.Encode(certPEM, &pem.Block{
+	if err := pem.Encode(certPEM, &pem.Block{
 		Type:  "CERTIFICATE",
 		Bytes: certBytes,
-	})
+	}); err != nil {
+		return nil, fmt.Errorf("failed to encode certificate: %w", err)
+	}
 
 	return certPEM.Bytes(), nil
 }
 
+// GetRootCACert returns the root certificate of the CA in PEM format.
 func (c *CA) GetRootCACert() []byte {
 	return c.rootPEM
 }
 
+// GetIntermCert returns the intermediate certificate of the CA in PEM format.
 func (c *CA) GetIntermCert() []byte {
 	return c.intermPEM
 }
 
+// GetMeshCACert returns the mesh root certificate of the CA in PEM format.
 func (c *CA) GetMeshCACert() []byte {
 	return c.meshCAPEM
 }

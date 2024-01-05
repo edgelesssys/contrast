@@ -38,32 +38,21 @@ func run() (retErr error) {
 		return fmt.Errorf("creating CA: %w", err)
 	}
 
-	meshAuth, err := newMeshAuthority(caInstance, logger)
-	if err != nil {
-		return fmt.Errorf("creating mesh authority: %v", err)
-	}
-
-	coordS, err := newCoordAPIServer(meshAuth, caInstance, logger)
-	if err != nil {
-		return fmt.Errorf("creating coordinator API server: %w", err)
-	}
+	meshAuth := newMeshAuthority(caInstance, logger)
+	coordS := newCoordAPIServer(meshAuth, caInstance, logger)
+	intercomS := newIntercomServer(meshAuth, caInstance, logger)
 
 	go func() {
 		logger.Info("Coordinator API listening")
 		if err := coordS.Serve(net.JoinHostPort("0.0.0.0", coordapi.Port)); err != nil {
 			// TODO: collect error using errgroup.
-			logger.Error("Coordinator API failed to serve: %v", err)
+			logger.Error("Coordinator API failed to serve: %w", err)
 		}
 	}()
 
-	intercomS, err := newIntercomServer(meshAuth, caInstance, logger)
-	if err != nil {
-		return fmt.Errorf("creating intercom server: %v", err)
-	}
-
 	logger.Info("Coordinator intercom listening")
 	if err := intercomS.Serve(net.JoinHostPort("0.0.0.0", intercom.Port)); err != nil {
-		return fmt.Errorf("serving intercom: %v", err)
+		return fmt.Errorf("serving intercom: %w", err)
 	}
 	return nil
 }

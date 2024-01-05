@@ -74,3 +74,9 @@ func signalContext(ctx context.Context, sig os.Signal) (context.Context, context
 func preRunRoot(cmd *cobra.Command, _ []string) {
 	cmd.SilenceUsage = true
 }
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}

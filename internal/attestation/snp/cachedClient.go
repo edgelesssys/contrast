@@ -14,7 +14,7 @@ type cachedKDSHTTPClient struct {
 	cache *memstore.Store[string, cacheEntry]
 }
 
-func NewCachedKDSHTTPClient(log *slog.Logger) *cachedKDSHTTPClient {
+func newCachedKDSHTTPClient(log *slog.Logger) *cachedKDSHTTPClient {
 	trust.DefaultHTTPSGetter()
 	return &cachedKDSHTTPClient{
 		HTTPSGetter: trust.DefaultHTTPSGetter(),

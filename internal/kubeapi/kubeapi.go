@@ -15,15 +15,22 @@ import (
 )
 
 type (
-	Pod         = corev1.Pod
-	Deployment  = appsv1.Deployment
+	// Pod is a Kubernetes Pod.
+	Pod = corev1.Pod
+	// Deployment is a Kubernetes Deployment.
+	Deployment = appsv1.Deployment
+	// StatefulSet is a Kubernetes StatefulSet.
 	StatefulSet = appsv1.StatefulSet
-	ReplicaSet  = appsv1.ReplicaSet
-	DaemonSet   = appsv1.DaemonSet
+	// ReplicaSet is a Kubernetes ReplicaSet.
+	ReplicaSet = appsv1.ReplicaSet
+	// DaemonSet is a Kubernetes DaemonSet.
+	DaemonSet = appsv1.DaemonSet
 )
 
+// UnmarshalK8SResources unmarshals a Kubernetes resource into a list of objects that can be
+// type casted to a Kubernetes resource.
 func UnmarshalK8SResources(data []byte) ([]any, error) {
-	objs, err := UnmarshalUnstructuredK8SResource(data)
+	objs, err := unmarshalUnstructuredK8SResource(data)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +70,7 @@ func UnmarshalK8SResources(data []byte) ([]any, error) {
 	return result, nil
 }
 
-func UnmarshalUnstructuredK8SResource(data []byte) ([]*unstructured.Unstructured, error) {
+func unmarshalUnstructuredK8SResource(data []byte) ([]*unstructured.Unstructured, error) {
 	documentsData, err := splitYAML(data)
 	if err != nil {
 		return nil, fmt.Errorf("splitting YAML into multiple documents: %w", err)
