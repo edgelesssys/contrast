@@ -100,10 +100,21 @@ rec {
 
   generate = writeShellApplication {
     name = "generate";
-    runtimeInputs = [ go protobuf protoc-gen-go protoc-gen-go-grpc ];
+    runtimeInputs = [
+      go
+      protobuf
+      protoc-gen-go
+      protoc-gen-go-grpc
+      nix-update
+    ];
     text = ''
-      go generate ./...
       go mod tidy
+      go generate ./...
+
+      # All binaries of the local Go module share the same builder,
+      # we only need to update one of them to update the vendorHash
+      # of the builder.
+      nix-update --version=skip --flake cli
     '';
   };
 
