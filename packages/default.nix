@@ -1,5 +1,5 @@
 { pkgs
-, goVendorHash
+, version
 }:
 
 with pkgs;
@@ -16,6 +16,7 @@ let
   # Builder function for Go packages of our local module.
   buildGoSubPackage = subpackage: attrs: callPackage
     ({ buildGoModule }: buildGoModule ({
+      inherit version;
       name = subpackage;
       src = lib.fileset.toSource {
         root = ../.;
@@ -25,7 +26,7 @@ let
       CGO_ENABLED = 0;
       ldflags = [ "-s" "-w" "-buildid=" ];
       proxyVendor = true;
-      vendorHash = goVendorHash;
+      vendorHash = "sha256-7ibre61H0pz+2o3DtisSEXNirlX9DE9XUBe+gUI8+kg=";
       checkPhase = ''
         runHook preCheck
 
