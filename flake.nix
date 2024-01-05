@@ -39,7 +39,6 @@
 
       checks = {
         formatting = treefmtEval.config.build.check self;
-        inherit (self.packages.${system}) golangci-lint;
       };
 
       legacyPackages = pkgs;
