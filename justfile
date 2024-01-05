@@ -95,6 +95,9 @@ codegen:
 fmt:
     nix fmt
 
+lint:
+    nix run .#golangci-lint -- run
+
 # Cleanup auxiliary files, caches etc.
 clean:
     rm -rf ./{{worspace_dir}}
