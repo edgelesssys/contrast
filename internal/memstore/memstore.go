@@ -40,3 +40,10 @@ func (s *Store[keyT, valueT]) GetAll() []valueT {
 	}
 	return values
 }
+
+// Clear clears all values from store.
+func (s *Store[keyT, valueT]) Clear() {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+	clear(s.m)
+}

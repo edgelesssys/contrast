@@ -15,12 +15,14 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/status"
+	"k8s.io/utils/clock"
 )
 
 type intercomServer struct {
 	grpc          *grpc.Server
 	certGet       certGetter
 	caChainGetter certChainGetter
+	ticker        clock.Ticker
 	logger        *slog.Logger
 
 	intercom.UnimplementedIntercomServer
@@ -31,7 +33,8 @@ type certGetter interface {
 }
 
 func newIntercomServer(meshAuth *meshAuthority, caGetter certChainGetter, log *slog.Logger) *intercomServer {
-	validator := snp.NewValidatorWithCallbacks(meshAuth, log, meshAuth)
+	ticker := clock.RealClock{}.NewTicker(24 * time.Hour)
+	validator := snp.NewValidatorWithCallbacks(meshAuth, ticker, log, meshAuth)
 	credentials := atlscredentials.New(atls.NoIssuer, []atls.Validator{validator})
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
@@ -41,6 +44,7 @@ func newIntercomServer(meshAuth *meshAuthority, caGetter certChainGetter, log *s
 		grpc:          grpcServer,
 		certGet:       meshAuth,
 		caChainGetter: caGetter,
+		ticker:        ticker,
 		logger:        log.WithGroup("intercom"),
 	}
 	intercom.RegisterIntercomServer(s.grpc, s)
@@ -52,6 +56,8 @@ func (i *intercomServer) Serve(endpoint string) error {
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
 	}
+
+	defer i.ticker.Stop()
 	return i.grpc.Serve(lis)
 }
 
