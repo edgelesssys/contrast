@@ -1,0 +1,60 @@
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+output:
+  format: tab
+  sort-results: true
+
+linters-settings:
+  testifylint:
+    enable:
+      - bool-compare
+      - compares
+      - empty
+      - error-is-as
+      - error-nil
+      - expected-actual
+      - float-compare
+      - len
+      - suite-dont-use-pkg
+      - suite-extra-assert-call
+      - suite-thelper
+
+linters:
+  enable:
+    # Default linters
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    # Additional linters
+    - bodyclose
+    - errname
+    - exportloopref
+    - godot
+    - gofumpt
+    - misspell
+    - noctx
+    - revive
+    - tenv
+    - unconvert
+    - unparam
+    - contextcheck
+    - errchkjson
+    - errorlint
+    - gocheckcompilerdirectives
+    - nilerr
+    - predeclared
+    - sloglint
+    - testifylint
+    - usestdlibvars
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 20
+  include:
+    - EXC0012
+    - EXC0014
