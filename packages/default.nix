@@ -127,4 +127,10 @@ rec {
     runtimeInputs = [ go pkgs.govulncheck ];
     text = ''govulncheck "$@"'';
   };
+
+  golangci-lint = writeShellApplication {
+    name = "golangci-lint";
+    runtimeInputs = [ go pkgs.golangci-lint ];
+    text = ''golangci-lint "$@"'';
+  };
 }
