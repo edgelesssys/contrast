@@ -68,7 +68,7 @@ func NewValidatorWithCallbacks(optsGen validateOptsGenerator, log *slog.Logger, 
 
 // OID returns the OID of the validator.
 func (v *Validator) OID() asn1.ObjectIdentifier {
-	return asn1.ObjectIdentifier{1, 3, 9900, 77, 77}
+	return asn1.ObjectIdentifier{1, 3, 9901, 2, 2}
 }
 
 // Validate a TPM based attestation.
