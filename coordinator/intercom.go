@@ -12,7 +12,9 @@ import (
 	"github.com/edgelesssys/nunki/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/nunki/internal/intercom"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/status"
 )
 
 type intercomServer struct {
@@ -59,7 +61,8 @@ func (i *intercomServer) NewMeshCert(_ context.Context, req *intercom.NewMeshCer
 
 	cert, err := i.certGet.GetCert(req.PeerPublicKeyHash)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal,
+			"getting certificate with public key hash %q: %s", req.PeerPublicKeyHash, err)
 	}
 
 	meshCACert := i.caChainGetter.GetMeshCACert()

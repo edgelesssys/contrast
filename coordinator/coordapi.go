@@ -14,7 +14,9 @@ import (
 	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/edgelesssys/nunki/internal/memstore"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/status"
 )
 
 type coordAPIServer struct {
@@ -59,19 +61,19 @@ func (s *coordAPIServer) SetManifest(_ context.Context, req *coordapi.SetManifes
 
 	var m *manifest.Manifest
 	if err := json.Unmarshal(req.Manifest, &m); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal manifest: %w", err)
+		return nil, status.Errorf(codes.InvalidArgument, "unmarshaling manifest: %s", err)
 	}
 
 	for _, policyBytes := range req.Policies {
 		policy := manifest.Policy(policyBytes)
 		if _, ok := m.Policies[policy.Hash()]; !ok {
-			return nil, fmt.Errorf("policy %v not found in manifest", policy.Hash())
+			return nil, status.Errorf(codes.InvalidArgument, "policy %v not found in manifest", policy.Hash())
 		}
 		s.policyTextStore.Set(policy.Hash(), policy)
 	}
 
 	if err := s.manifSetGetter.SetManifest(m); err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "setting manifest: %s", err)
 	}
 
 	resp := &coordapi.SetManifestResponse{
@@ -89,12 +91,12 @@ func (s *coordAPIServer) GetManifests(_ context.Context, _ *coordapi.GetManifest
 
 	manifests := s.manifSetGetter.GetManifests()
 	if len(manifests) == 0 {
-		return nil, fmt.Errorf("no manifests found")
+		return nil, status.Errorf(codes.FailedPrecondition, "no manifests found")
 	}
 
 	manifestBytes, err := manifestSliceToBytesSlice(manifests)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "marshaling manifests: %s", err)
 	}
 
 	resp := &coordapi.GetManifestsResponse{
