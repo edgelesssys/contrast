@@ -1,8 +1,13 @@
 package ca
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -36,4 +41,119 @@ func TestNewCA(t *testing.T) {
 
 	_, err = cert.Verify(opts)
 	require.NoError(err)
+}
+
+func TestAttestedMeshCert(t *testing.T) {
+	req := require.New(t)
+
+	testCases := map[string]struct {
+		dnsNames   []string
+		extensions []pkix.Extension
+		subjectPub any
+		wantErr    bool
+	}{
+		"valid": {
+			dnsNames:   []string{"foo", "bar"},
+			extensions: []pkix.Extension{},
+			subjectPub: newKey(req).Public(),
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			ca, err := New("namespace")
+			require.NoError(err)
+
+			cert, err := ca.NewAttestedMeshCert(tc.dnsNames, tc.extensions, tc.subjectPub)
+			if tc.wantErr {
+				assert.Error(err)
+				return
+			}
+			assert.NoError(err)
+			assert.NotNil(cert)
+
+			assertValidPEM(assert, cert)
+		})
+	}
+}
+
+func TestCerateCert(t *testing.T) {
+	req := require.New(t)
+
+	testCases := map[string]struct {
+		template *x509.Certificate
+		parent   *x509.Certificate
+		pub      any
+		priv     any
+		wantErr  bool
+	}{
+		"parent signed": {
+			template: &x509.Certificate{},
+			parent:   &x509.Certificate{},
+			pub:      newKey(req).Public(),
+			priv:     newKey(req),
+		},
+		"template nil": {
+			parent:  &x509.Certificate{},
+			pub:     newKey(req).Public(),
+			priv:    newKey(req),
+			wantErr: true,
+		},
+		"parent nil": {
+			template: &x509.Certificate{},
+			pub:      newKey(req).Public(),
+			priv:     newKey(req),
+			wantErr:  true,
+		},
+		"pub nil": {
+			template: &x509.Certificate{},
+			parent:   &x509.Certificate{},
+			priv:     newKey(req),
+			wantErr:  true,
+		},
+		"priv nil": {
+			template: &x509.Certificate{},
+			parent:   &x509.Certificate{},
+			pub:      newKey(req).Public(),
+			wantErr:  true,
+		},
+		"serial number already set": {
+			template: &x509.Certificate{SerialNumber: big.NewInt(1)},
+			parent:   &x509.Certificate{},
+			pub:      newKey(req).Public(),
+			priv:     newKey(req),
+			wantErr:  true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			pem, err := createCert(tc.template, tc.parent, tc.pub, tc.priv)
+			if tc.wantErr {
+				assert.Error(err)
+				return
+			}
+
+			assert.NoError(err)
+			assertValidPEM(assert, pem)
+		})
+	}
+}
+
+func newKey(require *require.Assertions) *ecdsa.PrivateKey {
+	key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	require.NoError(err)
+	return key
+}
+
+func assertValidPEM(assert *assert.Assertions, data []byte) {
+	block, _ := pem.Decode(data)
+	assert.NotNil(block)
+	_, err := x509.ParseCertificate(block.Bytes)
+	assert.NoError(err)
 }
