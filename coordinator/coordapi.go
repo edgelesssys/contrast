@@ -61,7 +61,7 @@ func (s *coordAPIServer) SetManifest(_ context.Context, req *coordapi.SetManifes
 
 	var m *manifest.Manifest
 	if err := json.Unmarshal(req.Manifest, &m); err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "unmarshaling manifest: %s", err)
+		return nil, status.Errorf(codes.InvalidArgument, "unmarshaling manifest: %v", err)
 	}
 
 	for _, policyBytes := range req.Policies {
@@ -73,7 +73,7 @@ func (s *coordAPIServer) SetManifest(_ context.Context, req *coordapi.SetManifes
 	}
 
 	if err := s.manifSetGetter.SetManifest(m); err != nil {
-		return nil, status.Errorf(codes.Internal, "setting manifest: %s", err)
+		return nil, status.Errorf(codes.Internal, "setting manifest: %v", err)
 	}
 
 	resp := &coordapi.SetManifestResponse{
@@ -96,7 +96,7 @@ func (s *coordAPIServer) GetManifests(_ context.Context, _ *coordapi.GetManifest
 
 	manifestBytes, err := manifestSliceToBytesSlice(manifests)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "marshaling manifests: %s", err)
+		return nil, status.Errorf(codes.Internal, "marshaling manifests: %v", err)
 	}
 
 	resp := &coordapi.GetManifestsResponse{

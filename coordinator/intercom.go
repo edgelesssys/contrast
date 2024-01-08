@@ -62,7 +62,7 @@ func (i *intercomServer) NewMeshCert(_ context.Context, req *intercom.NewMeshCer
 	cert, err := i.certGet.GetCert(req.PeerPublicKeyHash)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal,
-			"getting certificate with public key hash %q: %s", req.PeerPublicKeyHash, err)
+			"getting certificate with public key hash %q: %v", req.PeerPublicKeyHash, err)
 	}
 
 	meshCACert := i.caChainGetter.GetMeshCACert()
