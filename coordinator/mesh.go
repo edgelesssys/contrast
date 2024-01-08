@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
@@ -76,7 +77,9 @@ func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Option
 	}, nil
 }
 
-func (m *meshAuthority) ValidateCallback(_ context.Context, report *sevsnp.Report, _ []byte, peerPubKeyBytes []byte) error {
+func (m *meshAuthority) ValidateCallback(_ context.Context, report *sevsnp.Report,
+	oid asn1.ObjectIdentifier, reportRaw, _, peerPubKeyBytes []byte,
+) error {
 	mnfst, err := m.manifests.Latest()
 	if err != nil {
 		return fmt.Errorf("getting latest manifest: %w", err)
@@ -93,7 +96,7 @@ func (m *meshAuthority) ValidateCallback(_ context.Context, report *sevsnp.Repor
 		return fmt.Errorf("failed to parse peer public key: %w", err)
 	}
 
-	var extensions []pkix.Extension // TODO
+	extensions := []pkix.Extension{{Id: oid, Value: reportRaw}}
 	cert, err := m.ca.NewAttestedMeshCert(dnsNames, extensions, peerPubKey)
 	if err != nil {
 		return fmt.Errorf("failed to issue new attested mesh cert: %w", err)
