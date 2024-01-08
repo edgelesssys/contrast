@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/edgelesssys/nunki/internal/logger"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
@@ -52,9 +53,10 @@ func (v *StaticValidateOptsGenerator) SNPValidateOpts(_ *sevsnp.Report) (*valida
 
 // NewValidator returns a new Validator.
 func NewValidator(optsGen validateOptsGenerator, log *slog.Logger) *Validator {
+	handler := logger.NewHandler(log.Handler(), "snp-validator")
 	return &Validator{
 		validateOptsGen: optsGen,
-		logger:          log.WithGroup("snp-validator"),
+		logger:          slog.New(handler),
 	}
 }
 
@@ -64,7 +66,7 @@ func NewValidatorWithCallbacks(optsGen validateOptsGenerator, ticker clock.Ticke
 		validateOptsGen: optsGen,
 		callbackers:     callbacks,
 		kdsGetter:       newCachedKDSHTTPClient(ticker, log),
-		logger:          log.WithGroup("snp-validator"),
+		logger:          slog.New(logger.NewHandler(log.Handler(), "snp-validator")),
 	}
 }
 

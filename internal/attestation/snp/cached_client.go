@@ -3,6 +3,7 @@ package snp
 import (
 	"log/slog"
 
+	"github.com/edgelesssys/nunki/internal/logger"
 	"github.com/edgelesssys/nunki/internal/memstore"
 	"github.com/google/go-sev-guest/verify/trust"
 	"k8s.io/utils/clock"
@@ -21,7 +22,7 @@ func newCachedKDSHTTPClient(ticker clock.Ticker, log *slog.Logger) *cachedKDSHTT
 
 	c := &cachedKDSHTTPClient{
 		HTTPSGetter: trust.DefaultHTTPSGetter(),
-		logger:      log.WithGroup("cached-kds-http-client"),
+		logger:      slog.New(logger.NewHandler(log.Handler(), "cached-kds-http-client")),
 		cache:       memstore.New[string, []byte](),
 		gcTicker:    ticker,
 	}
