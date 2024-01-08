@@ -3,13 +3,13 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"os"
 
 	"github.com/edgelesssys/nunki/internal/ca"
 	"github.com/edgelesssys/nunki/internal/coordapi"
 	"github.com/edgelesssys/nunki/internal/intercom"
+	"github.com/edgelesssys/nunki/internal/logger"
 )
 
 func main() {
@@ -19,7 +19,11 @@ func main() {
 }
 
 func run() (retErr error) {
-	logger := slog.Default()
+	logger, err := logger.Default()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: creating logger: %v\n", err)
+		return err
+	}
 	defer func() {
 		if retErr != nil {
 			logger.Error(retErr.Error())

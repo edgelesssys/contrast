@@ -11,7 +11,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"os"
 	"time"
@@ -20,6 +19,7 @@ import (
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
 	"github.com/edgelesssys/nunki/internal/grpc/dialer"
 	"github.com/edgelesssys/nunki/internal/intercom"
+	"github.com/edgelesssys/nunki/internal/logger"
 )
 
 func main() {
@@ -29,7 +29,11 @@ func main() {
 }
 
 func run() (retErr error) {
-	logger := slog.Default()
+	logger, err := logger.Default()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: creating logger: %v\n", err)
+		return err
+	}
 	defer func() {
 		if retErr != nil {
 			logger.Error(retErr.Error())
