@@ -30,7 +30,8 @@ type Validator struct {
 }
 
 type validateCallbacker interface {
-	ValidateCallback(ctx context.Context, report *sevsnp.Report, nonce []byte, peerPublicKey []byte) error
+	ValidateCallback(ctx context.Context, report *sevsnp.Report, validatorOID asn1.ObjectIdentifier,
+		reportRaw, nonce, peerPublicKey []byte) error
 }
 
 type validateOptsGenerator interface {
@@ -123,7 +124,9 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	// Run callbacks.
 
 	for _, callbacker := range v.callbackers {
-		if err := callbacker.ValidateCallback(ctx, report, nonce, peerPublicKey); err != nil {
+		if err := callbacker.ValidateCallback(
+			ctx, report, v.OID(), reportRaw, nonce, peerPublicKey,
+		); err != nil {
 			return fmt.Errorf("callback failed: %w", err)
 		}
 	}
