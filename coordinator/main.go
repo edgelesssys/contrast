@@ -46,7 +46,7 @@ func run() (retErr error) {
 		logger.Info("Coordinator API listening")
 		if err := coordS.Serve(net.JoinHostPort("0.0.0.0", coordapi.Port)); err != nil {
 			// TODO: collect error using errgroup.
-			logger.Error("Coordinator API failed to serve: %w", err)
+			logger.Error("Coordinator API failed to serve", "err", err)
 		}
 	}()
 
