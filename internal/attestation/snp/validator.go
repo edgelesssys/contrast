@@ -77,7 +77,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	v.logger.Info("Validate called", "nonce", hex.EncodeToString(nonce))
 	defer func() {
 		if err != nil {
-			v.logger.Error("Failed to validate attestation document: %s", err)
+			v.logger.Error("Failed to validate attestation document", "err", err)
 		}
 	}()
 
