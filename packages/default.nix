@@ -26,7 +26,7 @@ let
       CGO_ENABLED = 0;
       ldflags = [ "-s" "-w" "-buildid=" ];
       proxyVendor = true;
-      vendorHash = "sha256-OGN28Meblw7McHyq3Aq4lBiuYiMBU/IksQPj4Fsf8sM=";
+      vendorHash = "sha256-8j8uZ0D07l6tdAd+rpZidsdXZ0IxptfgmxaDogvbgLk=";
       checkPhase = ''
         runHook preCheck
 
