@@ -24,7 +24,7 @@ type meshAuthority struct {
 	ca        *ca.CA
 	certs     map[string][]byte
 	certsMux  sync.RWMutex
-	manifests appendableList[manifest.Manifest]
+	manifests appendableList[*manifest.Manifest]
 	logger    *slog.Logger
 }
 
@@ -32,7 +32,7 @@ func newMeshAuthority(ca *ca.CA, log *slog.Logger) *meshAuthority {
 	return &meshAuthority{
 		ca:        ca,
 		certs:     make(map[string][]byte),
-		manifests: new(appendable.Appendable[manifest.Manifest]),
+		manifests: new(appendable.Appendable[*manifest.Manifest]),
 		logger:    log.WithGroup("mesh-authority"),
 	}
 }
@@ -129,12 +129,12 @@ func (m *meshAuthority) GetManifests() []*manifest.Manifest {
 	return m.manifests.All()
 }
 
-func (m *meshAuthority) SetManifest(mnfst *manifest.Manifest) error {
-	return m.manifests.Append(mnfst)
+func (m *meshAuthority) SetManifest(mnfst *manifest.Manifest) {
+	m.manifests.Append(mnfst)
 }
 
 type appendableList[T any] interface {
-	Append(*T) error
-	All() []*T
-	Latest() (*T, error)
+	Append(T)
+	All() []T
+	Latest() (T, error)
 }
