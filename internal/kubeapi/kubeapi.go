@@ -65,6 +65,13 @@ func UnmarshalK8SResources(data []byte) ([]any, error) {
 				return nil, err
 			}
 			result = append(result, replicaSet)
+		case "DaemonSet":
+			var daemonSet appsv1.DaemonSet
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, daemonSet)
 		}
 	}
 	return result, nil
