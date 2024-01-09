@@ -53,6 +53,25 @@ func TestStore(t *testing.T) {
 		assert.Contains(values, 1)
 		assert.Contains(values, 2)
 	})
+
+	t.Run("clear elements", func(t *testing.T) {
+		assert := assert.New(t)
+
+		s := memstore.New[string, int]()
+		s.Set("foo", 1)
+		s.Set("bar", 2)
+
+		s.Clear()
+		assert.Empty(s.GetAll())
+	})
+
+	t.Run("clear empty", func(t *testing.T) {
+		assert := assert.New(t)
+
+		s := memstore.New[string, int]()
+		s.Clear()
+		assert.Empty(s.GetAll())
+	})
 }
 
 func TestStoreConcurrent(t *testing.T) {
@@ -142,5 +161,48 @@ func TestStoreConcurrent(t *testing.T) {
 		wg.Wait()
 
 		assert.Len(s.GetAll(), 4)
+	})
+
+	t.Run("clear", func(t *testing.T) {
+		assert := assert.New(t)
+
+		s := memstore.New[string, int]()
+
+		var wg sync.WaitGroup
+
+		set := func(key string, value int) {
+			defer wg.Done()
+			s.Set(key, value)
+		}
+		clear := func() {
+			defer wg.Done()
+			s.Clear()
+		}
+		getAll := func() {
+			defer wg.Done()
+			_ = s.GetAll()
+		}
+
+		wg.Add(16)
+		go clear()
+		go clear()
+		go clear()
+		go clear()
+		go set("foo", 1)
+		go set("bar", 2)
+		go set("baz", 3)
+		go set("pil", 4)
+		go getAll()
+		go getAll()
+		go getAll()
+		go getAll()
+		go clear()
+		go clear()
+		go clear()
+		go clear()
+		wg.Wait()
+
+		s.Clear()
+		assert.Empty(s.GetAll())
 	})
 }
