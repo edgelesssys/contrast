@@ -1,16 +1,20 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"os"
+	"time"
 
 	"github.com/edgelesssys/nunki/internal/atls"
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
 	"github.com/edgelesssys/nunki/internal/coordapi"
 	"github.com/edgelesssys/nunki/internal/grpc/dialer"
 	"github.com/edgelesssys/nunki/internal/manifest"
+	"github.com/edgelesssys/nunki/internal/spinner"
 	"github.com/spf13/cobra"
 )
 
@@ -69,7 +73,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
 	if err != nil {
-		return fmt.Errorf("Error: failed to dial coordinator: %w", err)
+		return fmt.Errorf("failed to dial coordinator: %w", err)
 	}
 	defer conn.Close()
 
@@ -78,7 +82,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		Manifest: manifestBytes,
 		Policies: policyMapToBytesList(policies),
 	}
-	resp, err := client.SetManifest(cmd.Context(), req)
+	resp, err := setLoop(cmd.Context(), client, cmd.OutOrStdout(), req)
 	if err != nil {
 		return fmt.Errorf("failed to set manifest: %w", err)
 	}
@@ -123,4 +127,33 @@ func policyMapToBytesList(m map[string]deployment) [][]byte {
 		policies = append(policies, depl.policy)
 	}
 	return policies
+}
+
+func setLoop(
+	ctx context.Context, client coordapi.CoordAPIClient, out io.Writer, req *coordapi.SetManifestRequest,
+) (resp *coordapi.SetManifestResponse, retErr error) {
+	spinner := spinner.New("  Waiting for coordinator ", 500*time.Millisecond, out)
+	spinner.Start()
+	defer func() {
+		if retErr != nil {
+			spinner.Stop("\r❌\n")
+		} else {
+			spinner.Stop("\x1b[2K\r✔️ Connected to coordinator\n")
+		}
+	}()
+
+	var rpcErr error
+	for attempts := 0; attempts < 30; attempts++ {
+		resp, rpcErr = client.SetManifest(ctx, req)
+		if rpcErr == nil {
+			return resp, nil
+		}
+		timer := time.NewTimer(1 * time.Second)
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
+	}
+	return nil, rpcErr
 }
