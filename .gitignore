@@ -2,7 +2,7 @@ tools/genpolicy.cache/*
 !tools/genpolicy.cache/.gitkeep
 *.bin
 edgcoco
-result
+result*
 layers_cache
 mesh-root.pem
 coordinator-root.pem
