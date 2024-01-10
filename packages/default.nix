@@ -7,47 +7,13 @@ with pkgs;
 let
   # The source of our local Go module. We filter for Go files so that
   # changes in the other parts of this repo don't trigger a rebuild.
-  goFiles = lib.fileset.unions [
-    ../go.mod
-    ../go.sum
-    (lib.fileset.fileFilter (file: lib.hasSuffix ".go" file.name) ../.)
-  ];
-
-  # Builder function for Go packages of our local module.
-  buildGoSubPackage = subpackage: attrs: callPackage
-    ({ buildGoModule }: buildGoModule ({
-      inherit version;
-      name = subpackage;
-      src = lib.fileset.toSource {
-        root = ../.;
-        fileset = goFiles;
-      };
-      subPackages = [ subpackage ];
-      CGO_ENABLED = 0;
-      ldflags = [ "-s" "-w" "-buildid=" ];
-      proxyVendor = true;
-      vendorHash = "sha256-8j8uZ0D07l6tdAd+rpZidsdXZ0IxptfgmxaDogvbgLk=";
-      checkPhase = ''
-        runHook preCheck
-
-        export GOFLAGS=''${GOFLAGS//-trimpath/}
-        buildGoDir test ./...
-
-        runHook postCheck
-      '';
-      meta.mainProgram = "${subpackage}";
-    } // attrs))
-    { };
-
-  buildContainer = drv: dockerTools.buildImage {
-    inherit (drv) name;
-    tag = "latest";
-    copyToRoot = with dockerTools; [
-      caCertificates
+  goFiles = lib.fileset.toSource {
+    root = ../.;
+    fileset = lib.fileset.unions [
+      ../go.mod
+      ../go.sum
+      (lib.fileset.fileFilter (file: lib.hasSuffix ".go" file.name) ../.)
     ];
-    config = {
-      Cmd = [ "${lib.getExe drv}" ];
-    };
   };
 
   pushContainer = container: writeShellApplication {
@@ -62,15 +28,65 @@ let
     '';
   };
 in
+
 rec {
-  coordinator = buildContainer (buildGoSubPackage "coordinator" { });
-  initializer = buildContainer (buildGoSubPackage "initializer" { });
-  cli = buildGoSubPackage "cli" {
-    postPatch = ''
-      echo subsituting genpolicyPath
-      substituteInPlace cli/runtime.go \
-        --replace 'genpolicyPath = "genpolicy"' 'genpolicyPath = "${genpolicy}/bin/genpolicy"'
-    '';
+  nunki =
+    let
+      subPackages = [ "coordinator" "initializer" "cli" ];
+    in
+    buildGoModule {
+      inherit version subPackages;
+      name = "nunki";
+
+      outputs = subPackages ++ [ "out" ];
+
+      src = goFiles;
+      proxyVendor = true;
+      vendorHash = "sha256-8j8uZ0D07l6tdAd+rpZidsdXZ0IxptfgmxaDogvbgLk=";
+
+      postPatch = ''
+        echo subsituting genpolicyPath
+        substituteInPlace cli/runtime.go \
+          --replace 'genpolicyPath = "genpolicy"' 'genpolicyPath = "${genpolicy}/bin/genpolicy"'
+      '';
+
+      CGO_ENABLED = 0;
+      ldflags = [ "-s" "-w" "-buildid=" ];
+
+      preCheck = ''
+        export CGO_ENABLED=1
+      '';
+
+      checkPhase = ''
+        runHook preCheck
+        go test -race ./...
+        runHook postCheck
+      '';
+
+      postInstall = ''
+        for sub in ${builtins.concatStringsSep " " subPackages}; do
+          install -Dm755 "$out/bin/$sub" "''${!sub}/bin/$sub"
+        done
+      '';
+      meta.mainProgram = "cli";
+    };
+  inherit (nunki) cli;
+
+  coordinator = dockerTools.buildImage {
+    name = "coordinator";
+    tag = "${version}";
+    copyToRoot = with dockerTools; [ caCertificates ];
+    config = {
+      Cmd = [ "${nunki.coordinator}/bin/coordinator" ];
+    };
+  };
+  initializer = dockerTools.buildImage {
+    name = "initializer";
+    tag = "${version}";
+    copyToRoot = with dockerTools; [ caCertificates ];
+    config = {
+      Cmd = [ "${nunki.initializer}/bin/initializer" ];
+    };
   };
 
   push-coordinator = pushContainer coordinator;
