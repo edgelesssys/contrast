@@ -1,3 +1,3 @@
 package main
 
-const genpolicyPath = "genpolicy"
+var genpolicyPath = "genpolicy"
