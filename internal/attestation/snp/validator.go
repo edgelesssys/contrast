@@ -99,9 +99,10 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	// Report signature verification.
 
-	verifyOpts := &verify.Options{
-		Getter: v.kdsGetter,
-	}
+	verifyOpts := verify.DefaultOptions()
+	verifyOpts.CheckRevocations = true
+	verifyOpts.Getter = v.kdsGetter
+
 	attestation, err := verify.GetAttestationFromReport(report, verifyOpts)
 	if err != nil {
 		return fmt.Errorf("getting attestation from report: %w", err)
