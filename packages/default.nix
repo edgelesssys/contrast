@@ -44,14 +44,13 @@ rec {
       proxyVendor = true;
       vendorHash = "sha256-8j8uZ0D07l6tdAd+rpZidsdXZ0IxptfgmxaDogvbgLk=";
 
-      postPatch = ''
-        echo subsituting genpolicyPath
-        substituteInPlace cli/runtime.go \
-          --replace 'genpolicyPath = "genpolicy"' 'genpolicyPath = "${genpolicy}/bin/genpolicy"'
-      '';
-
       CGO_ENABLED = 0;
-      ldflags = [ "-s" "-w" "-buildid=" ];
+      ldflags = [
+        "-s"
+        "-w"
+        "-buildid="
+        "-X main.genpolicyPath=${genpolicy}/bin/genpolicy"
+      ];
 
       preCheck = ''
         export CGO_ENABLED=1
