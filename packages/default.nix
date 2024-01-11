@@ -12,6 +12,8 @@ let
     fileset = lib.fileset.unions [
       ../go.mod
       ../go.sum
+      ../cli/rules.rego # go embed
+      ../cli/genpolicy-msft.json # go embed
       (lib.fileset.fileFilter (file: lib.hasSuffix ".go" file.name) ../.)
     ];
   };
