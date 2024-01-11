@@ -65,7 +65,12 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create policy map: %w", err)
 	}
 
-	manifestData, err := os.ReadFile(flags.manifestPath)
+	defaultManifest := manifest.Default()
+	defaultManifestData, err := json.MarshalIndent(&defaultManifest, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshaling default manifest: %w", err)
+	}
+	manifestData, err := readFileOrDefault(flags.manifestPath, defaultManifestData)
 	if err != nil {
 		return fmt.Errorf("failed to read manifest file: %w", err)
 	}
@@ -136,6 +141,12 @@ func filterNonCoCoRuntime(runtimeClassName string, paths []string, logger *slog.
 }
 
 func generatePolicies(ctx context.Context, regoPath, policyPath string, yamlPaths []string, logger *slog.Logger) error {
+	if err := createFileWithDefault(filepath.Join(regoPath, policyPath), defaultGenpolicySettings); err != nil {
+		return fmt.Errorf("creating default policy file: %w", err)
+	}
+	if err := createFileWithDefault(filepath.Join(regoPath, rulesFilename), defaultRules); err != nil {
+		return fmt.Errorf("creating default policy.rego file: %w", err)
+	}
 	for _, yamlPath := range yamlPaths {
 		policyHash, err := generatePolicyForFile(ctx, regoPath, policyPath, yamlPath, logger)
 		if err != nil {
@@ -201,4 +212,32 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		settingsPath: settingsPath,
 		manifestPath: manifestPath,
 	}, nil
+}
+
+// readFileOrDefault reads the file at path,
+// or returns the default value if the file doesn't exist.
+func readFileOrDefault(path string, deflt []byte) ([]byte, error) {
+	data, err := os.ReadFile(path)
+	if err == nil {
+		return data, nil
+	}
+	if !os.IsNotExist(err) {
+		return nil, err
+	}
+	return deflt, nil
+}
+
+// createFileWithDefault creates the file at path with the default value,
+// if it doesn't exist.
+func createFileWithDefault(path string, deflt []byte) error {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if os.IsExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	_, err = file.Write(deflt)
+	return err
 }

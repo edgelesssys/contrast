@@ -24,7 +24,6 @@ generate target=default_deploy_target:
     mkdir -p ./{{worspace_dir}}
     rm -rf ./{{worspace_dir}}/deployment
     cp -R ./deployments/{{target}} ./{{worspace_dir}}/deployment
-    cp ./data/manifest.json ./{{worspace_dir}}/manifest.json
     nix run .#yq-go -- -i ". \
         | with(select(.spec.template.spec.containers[].image | contains(\"nunki/coordinator\")); \
         .spec.template.spec.containers[0].image = \"${container_registry}/nunki/coordinator:latest\")" \
@@ -37,7 +36,7 @@ generate target=default_deploy_target:
     done
     nix run .#cli -- generate \
         -m ./{{worspace_dir}}/manifest.json \
-        -p tools \
+        -p ./{{worspace_dir}} \
         -s genpolicy-msft.json \
         ./{{worspace_dir}}/deployment/*.yml
 
