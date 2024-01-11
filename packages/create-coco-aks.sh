@@ -41,8 +41,6 @@ az aks create \
   --os-sku AzureLinux \
   --node-vm-size Standard_DC4as_cc_v5 \
   --node-count 1 \
-  --enable-oidc-issuer \
-  --enable-workload-identity \
   --generate-ssh-keys
 
 az aks nodepool add \
