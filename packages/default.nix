@@ -112,7 +112,7 @@ rec {
   destroy-coco-aks = writeShellApplication {
     name = "destroy-coco-aks";
     runtimeInputs = [ azure-cli-with-extensions ];
-    text = ''az group delete --name "$1"'';
+    text = builtins.readFile ./destroy-coco-aks.sh;
   };
 
   generate = writeShellApplication {

@@ -84,7 +84,7 @@ get-credentials:
 
 # Destroy a running AKS cluster.
 destroy:
-    nix run .#destroy-coco-aks -- "$azure_resource_group"
+    nix run .#destroy-coco-aks -- --name="$azure_resource_group"
 
 # Run code generators.
 codegen:
