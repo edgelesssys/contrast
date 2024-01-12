@@ -1,0 +1,15 @@
+{
+    "files.trimTrailingWhitespace": true,
+    "files.trimFinalNewlines": true,
+    "files.insertFinalNewline": true,
+    "gopls": {
+        "formatting.gofumpt": true,
+    },
+    "go.lintTool": "golangci-lint",
+    "go.lintFlags": [
+        "--fast",
+    ],
+    "go.testFlags": [
+        "-race"
+    ],
+}
