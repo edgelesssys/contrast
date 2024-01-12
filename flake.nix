@@ -31,7 +31,10 @@
       packages = import ./packages { inherit pkgs version; };
 
       devShells.default = pkgs.mkShell {
-        packages = with pkgs; [ just ];
+        packages = with pkgs; [
+          golangci-lint
+          just
+        ];
         shellHook = ''alias make=just'';
       };
 
