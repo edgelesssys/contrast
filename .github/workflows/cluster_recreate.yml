@@ -1,0 +1,28 @@
+name: recreate ci cluster
+
+on:
+  workflow_dispatch:
+
+env:
+  azure_resource_group: nunki-ci
+
+jobs:
+  recreate:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: cachix/install-nix-action@7ac1ec25491415c381d9b62f0657c7a028df52a7 # v24
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: DeterminateSystems/magic-nix-cache-action@8a218f9e264e9c3803c9a1ee1c30d8e4ab55be63 #v2
+      - name: Login to Azure
+        uses: azure/login@92a5484dfaf04ca78a94597f4f19fea633851fa2 # v1.4.7
+        with:
+          creds: ${{ secrets.NUNKI_CI_INFRA_AZURE }}
+      - name: Cleanup .azure dir
+        run: rm $HOME/.azure/{commandIndex.json,versionCheck.json}
+      - name: Destroy existing CI cluster
+        continue-on-error: true
+        run: nix run .#destroy-coco-aks -- --name="$azure_resource_group"
+      - name: Create CI cluster
+        run: nix run .#create-coco-aks -- --name="$azure_resource_group"
