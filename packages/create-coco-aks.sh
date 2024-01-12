@@ -30,9 +30,12 @@ for i in "$@"; do
   esac
 done
 
+# Will always fail in CI due to lack of permissions.
+# In GH actions, CI=true is part of the environment.
 az group create \
   --name "${name}" \
-  --location "${location:-westeurope}"
+  --location "${location:-westeurope}" ||
+  $CI
 
 az aks create \
   --resource-group "${name}" \
