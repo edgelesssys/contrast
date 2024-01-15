@@ -20,14 +20,13 @@ import (
 
 func newSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "set",
+		Use:   "set [flags] paths...",
 		Short: "Set a manifest",
 		Long:  `Set a manifest.`,
 		RunE:  runSet,
 	}
 
-	cmd.Flags().StringP("manifest", "m", "", "path to manifest (.json) file")
-	must(cobra.MarkFlagRequired(cmd.Flags(), "manifest"))
+	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
 

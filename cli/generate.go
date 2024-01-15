@@ -21,17 +21,14 @@ const kataPolicyAnnotationKey = "io.katacontainers.config.agent.policy"
 
 func newGenerateCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "generate",
+		Use:   "generate [flags] paths...",
 		Short: "generate",
 		RunE:  runGenerate,
 	}
 
-	cmd.Flags().StringP("policy", "p", "", "path to policy (.rego) file")
-	must(cobra.MarkFlagRequired(cmd.Flags(), "policy"))
-	cmd.Flags().StringP("settings", "s", "", "path to settings (.json) file")
-	must(cobra.MarkFlagRequired(cmd.Flags(), "settings"))
-	cmd.Flags().StringP("manifest", "m", "", "path to manifest (.json) file")
-	must(cobra.MarkFlagRequired(cmd.Flags(), "manifest"))
+	cmd.Flags().StringP("policy", "p", policyDir, "path to policy (.rego) file")
+	cmd.Flags().StringP("settings", "s", settingsFilename, "path to settings (.json) file")
+	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 
 	return cmd
 }
