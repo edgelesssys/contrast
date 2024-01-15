@@ -65,6 +65,7 @@ set:
         ./{{worspace_dir}}/deployment/*.yml
     kill $PID
 
+# Verify the Coordinator.
 verify:
     #!/usr/bin/env bash
     rm -rf ./{{worspace_dir}}/verify
@@ -94,12 +95,33 @@ codegen:
 fmt:
     nix fmt
 
+# Lint code.
 lint:
     nix run .#golangci-lint -- run
+
+demodir:
+    #!/usr/bin/env bash
+    d=$(mktemp -d)
+    echo "Creating demo directory at ${d}"
+    nix build .#nunki.cli
+    cp ./result-cli/bin/cli "${d}/nunki"
+    cp -R ./deployments/emojivoto "${d}/deployment"
+    nix run .#yq-go -- -i ". \
+        | with(select(.spec.template.spec.containers[].image | contains(\"nunki/coordinator\")); \
+        .spec.template.spec.containers[0].image = \"${container_registry}/nunki/coordinator:latest\")" \
+        ${d}/deployment/coordinator.yml
+    for f in ${d}/deployment/*.yml; do
+        nix run .#yq-go -- -i ". \
+            | with(select(.spec.template.spec.initContainers[].image | contains(\"nunki/initializer\")); \
+            .spec.template.spec.initContainers[0].image = \"${container_registry}/nunki/initializer:latest\")" \
+            "${f}"
+    done
+    echo "Demo directory ready at ${d}"
 
 # Cleanup auxiliary files, caches etc.
 clean:
     rm -rf ./{{worspace_dir}}
+    rm -rf ./layers_cache
 
 # Template for the justfile.env file.
 rctemplate := '''
