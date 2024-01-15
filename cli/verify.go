@@ -22,8 +22,18 @@ func newVerifyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "verify",
 		Short: "Verify a nunki deployment",
-		Long:  `Verify a manifest.`,
-		RunE:  runVerify,
+		Long: `
+		Verify a nunki deployment.
+
+		This will connect to the given Coordinator using aTLS. During the connection
+		initialization, the remote attestation of the Coordinator CVM happens and
+		the connection will only be successful if the Coordinator conforms with the
+		reference values embedded into the CLI.
+
+		After the connection is established, the CLI will request the manifest histroy,
+		all policies, and the certificates of the Coordinator certifcate authority.
+	`,
+		RunE: runVerify,
 	}
 
 	cmd.Flags().StringP("output", "o", verifyDir, "directory to write files to")
