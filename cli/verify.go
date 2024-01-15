@@ -21,14 +21,14 @@ import (
 func newVerifyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "verify",
-		Short: "Verify a manifest",
+		Short: "Verify a nunki deployment",
 		Long:  `Verify a manifest.`,
 		RunE:  runVerify,
 	}
 
+	cmd.Flags().StringP("output", "o", verifyDir, "directory to write files to")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
-	cmd.Flags().StringP("output", "o", "./verify", "directory to write files to")
 
 	return cmd
 }
