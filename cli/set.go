@@ -21,9 +21,20 @@ import (
 func newSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set [flags] paths...",
-		Short: "Set a manifest",
-		Long:  `Set a manifest.`,
-		RunE:  runSet,
+		Short: "Set the given manifest at the coordinator",
+		Long: `
+		Set the given manifest at the coordinator.
+
+		This will connect to the given Coordinator using aTLS. During the connection
+		initialization, the remote attestation of the Coordinator CVM happens and
+		the connection will only be successful if the Coordinator conforms with the
+		reference values embedded into the CLI.
+
+		After the connection is established, the manifest is set. The Coordinator
+		will re-generate the mesh root certificate and accept new workloads to
+		issuer certificates.
+		`,
+		RunE: runSet,
 	}
 
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")

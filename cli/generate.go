@@ -22,8 +22,18 @@ const kataPolicyAnnotationKey = "io.katacontainers.config.agent.policy"
 func newGenerateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "generate [flags] paths...",
-		Short: "generate",
-		RunE:  runGenerate,
+		Short: "generate policies and inject into Kubernetes resources",
+		Long: `
+		Generate policies and inject into the given Kubernetes resources.
+
+		This will download the referenced container images to calculate the dm-verity
+		hashes of the image layers. In addition, the Rego policy will be used as base
+		and updated with the given settings file. For each container workload, the policy
+		is added as annotaiton in the Kubernetes YAML.
+
+		The hashes of the policies are added to the manifest.
+		`,
+		RunE: runGenerate,
 	}
 
 	cmd.Flags().StringP("policy", "p", policyDir, "path to policy (.rego) file")
