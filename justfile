@@ -13,7 +13,7 @@ initializer:
     nix run .#push-initializer -- "$container_registry/nunki/initializer:latest"
 
 default_deploy_target := "simple"
-worspace_dir := "workspace"
+workspace_dir := "workspace"
 
 # Generate policies, apply Kubernetes manifests.
 deploy target=default_deploy_target: (generate target) apply
@@ -21,33 +21,33 @@ deploy target=default_deploy_target: (generate target) apply
 # Generate policies, update manifest.
 generate target=default_deploy_target:
     #!/usr/bin/env bash
-    mkdir -p ./{{worspace_dir}}
-    rm -rf ./{{worspace_dir}}/deployment
-    cp -R ./deployments/{{target}} ./{{worspace_dir}}/deployment
+    mkdir -p ./{{workspace_dir}}
+    rm -rf ./{{workspace_dir}}/deployment
+    cp -R ./deployments/{{target}} ./{{workspace_dir}}/deployment
     nix run .#yq-go -- -i ". \
         | with(select(.spec.template.spec.containers[].image | contains(\"nunki/coordinator\")); \
         .spec.template.spec.containers[0].image = \"${container_registry}/nunki/coordinator:latest\")" \
-        ./{{worspace_dir}}/deployment/coordinator.yml
-    for f in ./{{worspace_dir}}/deployment/*.yml; do
+        ./{{workspace_dir}}/deployment/coordinator.yml
+    for f in ./{{workspace_dir}}/deployment/*.yml; do
         nix run .#yq-go -- -i ". \
             | with(select(.spec.template.spec.initContainers[].image | contains(\"nunki/initializer\")); \
             .spec.template.spec.initContainers[0].image = \"${container_registry}/nunki/initializer:latest\")" \
             "${f}"
     done
     nix run .#cli -- generate \
-        -m ./{{worspace_dir}}/manifest.json \
-        -p ./{{worspace_dir}} \
+        -m ./{{workspace_dir}}/manifest.json \
+        -p ./{{workspace_dir}} \
         -s genpolicy-msft.json \
-        ./{{worspace_dir}}/deployment/*.yml
+        ./{{workspace_dir}}/deployment/*.yml
 
 # Apply Kubernetes manifests from /deployment
 apply:
-    kubectl apply -f ./{{worspace_dir}}/deployment/ns.yml
-    kubectl apply -f ./{{worspace_dir}}/deployment
+    kubectl apply -f ./{{workspace_dir}}/deployment/ns.yml
+    kubectl apply -f ./{{workspace_dir}}/deployment
 
 # Delete Kubernetes manifests.
 undeploy:
-    -kubectl delete -f ./{{worspace_dir}}/deployment
+    -kubectl delete -f ./{{workspace_dir}}/deployment
 
 # Create a CoCo-enabled AKS cluster.
 create:
@@ -60,21 +60,21 @@ set:
     PID=$!
     sleep 1
     nix run .#cli -- set \
-        -m ./{{worspace_dir}}/manifest.json \
+        -m ./{{workspace_dir}}/manifest.json \
         -c localhost:1313 \
-        ./{{worspace_dir}}/deployment/*.yml
+        ./{{workspace_dir}}/deployment/*.yml
     kill $PID
 
 # Verify the Coordinator.
 verify:
     #!/usr/bin/env bash
-    rm -rf ./{{worspace_dir}}/verify
+    rm -rf ./{{workspace_dir}}/verify
     kubectl port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
     sleep 1
     nix run .#cli -- verify \
         -c localhost:1313 \
-        -o ./{{worspace_dir}}/verify
+        -o ./{{workspace_dir}}/verify
     kill $PID
 
 # Load the kubeconfig from the running AKS cluster.
@@ -120,7 +120,7 @@ demodir:
 
 # Cleanup auxiliary files, caches etc.
 clean:
-    rm -rf ./{{worspace_dir}}
+    rm -rf ./{{workspace_dir}}
     rm -rf ./layers_cache
 
 # Template for the justfile.env file.
