@@ -151,6 +151,32 @@ rec {
     text = ''golangci-lint "$@"'';
   };
 
+  patch-nunki-image-hashes = writeShellApplication {
+    name = "patch-nunki-image-hashes";
+    runtimeInputs = [
+      coordinator
+      crane
+      initializer
+      patch-kube-images
+    ];
+    text = ''
+      targetPath=$1
+
+      tmpdir=$(mktemp -d)
+      trap 'rm -rf $tmpdir' EXIT
+
+      gunzip < "${coordinator}" > "$tmpdir/coordinator.tar"
+      gunzip < "${initializer}" > "$tmpdir/initializer.tar"
+
+      coordHash=$(crane digest --tarball "$tmpdir/coordinator.tar")
+      initHash=$(crane digest --tarball "$tmpdir/initializer.tar")
+
+      patch-kube-images "$targetPath" \
+        --replace "nunki/coordinator:latest" "nunki/coordinator@$coordHash" \
+        --replace "nunki/initializer:latest" "nunki/initializer@$initHash"
+    '';
+  };
+
   patch-kube-images = writeShellApplication {
     name = "patch-kube-images";
     runtimeInputs = [ yq-go ];

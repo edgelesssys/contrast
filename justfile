@@ -25,6 +25,7 @@ generate target=default_deploy_target:
     mkdir -p ./{{workspace_dir}}
     rm -rf ./{{workspace_dir}}/*
     cp -R ./deployments/{{target}} ./{{workspace_dir}}/deployment
+    nix run .#patch-nunki-image-hashes -- ./{{workspace_dir}}/deployment
     nix run .#patch-kube-images -- ./{{workspace_dir}}/deployment \
         --replace ghcr.io/edgelesssys ${container_registry}
     nix run .#cli -- generate \
@@ -99,6 +100,7 @@ demodir:
     nix build .#nunki.cli
     cp ./result-cli/bin/cli "${d}/nunki"
     cp -R ./deployments/emojivoto "${d}/deployment"
+    nix run .#patch-nunki-image-hashes -- "${d}/deployment"
     nix run .#patch-kube-images -- "${d}/deployment" \
         --replace ghcr.io/edgelesssys ${container_registry}
     echo "Demo directory ready at ${d}"
