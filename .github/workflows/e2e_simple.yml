@@ -1,0 +1,59 @@
+name: e2e test simple
+
+on:
+    workflow_dispatch:
+
+env:
+  container_registry: ghcr.io/edgelesssys
+  azure_resource_group: nunki-ci
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: cachix/install-nix-action@7ac1ec25491415c381d9b62f0657c7a028df52a7 # v24
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: DeterminateSystems/magic-nix-cache-action@8a218f9e264e9c3803c9a1ee1c30d8e4ab55be63 #v2
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to Azure
+        uses: azure/login@92a5484dfaf04ca78a94597f4f19fea633851fa2 # v1.4.7
+        with:
+          creds: ${{ secrets.NUNKI_CI_INFRA_AZURE }}
+      - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
+      - name: Generate namespace suffix
+        id: ns
+        run: |
+          uuid=$(cat /proc/sys/kernel/random/uuid)
+          uid=${uuid##*-}
+          echo "namespace_suffix=$uid" >> "$GITHUB_OUTPUT"
+      - name: Create justfile.env
+        run: |
+          cat <<EOF > justfile.env
+          container_registry=${{ env.container_registry }}
+          azure_resource_group=${{ env.azure_resource_group }}
+          namespace_suffix=-${{ steps.ns.outputs.namespace_suffix }}
+          EOF
+      - name: Get credentials for CI cluster
+        run: |
+          just get-credentials
+      - name: Build, deploy, nunki generate, nunki set, nunki verify
+        run: |
+          just default simple
+      - name: Summary
+        run: |
+          cat ./workspace/just.namespace | tee -a "${GITHUB_STEP_SUMMARY}"
+          cat ./workspace/just.perf | tee -a "${GITHUB_STEP_SUMMARY}"
+      - name: Undeploy
+        if: always()
+        run: |
+          just undeploy
