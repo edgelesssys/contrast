@@ -150,4 +150,10 @@ rec {
     runtimeInputs = [ go pkgs.golangci-lint ];
     text = ''golangci-lint "$@"'';
   };
+
+  patch-kube-images = writeShellApplication {
+    name = "patch-kube-images";
+    runtimeInputs = [ yq-go ];
+    text = builtins.readFile ./patch-kube-images.sh;
+  };
 }

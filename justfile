@@ -5,6 +5,7 @@ default target=default_deploy_target: undeploy coordinator initializer openssl (
 coordinator:
     nix run .#push-coordinator -- "$container_registry/nunki/coordinator:latest"
 
+# Build the openssl container and push it.
 openssl:
     nix run .#push-openssl -- "$container_registry/nunki/openssl:latest"
 
@@ -22,18 +23,10 @@ deploy target=default_deploy_target: (generate target) apply
 generate target=default_deploy_target:
     #!/usr/bin/env bash
     mkdir -p ./{{workspace_dir}}
-    rm -rf ./{{workspace_dir}}/deployment
+    rm -rf ./{{workspace_dir}}/*
     cp -R ./deployments/{{target}} ./{{workspace_dir}}/deployment
-    nix run .#yq-go -- -i ". \
-        | with(select(.spec.template.spec.containers[].image | contains(\"nunki/coordinator\")); \
-        .spec.template.spec.containers[0].image = \"${container_registry}/nunki/coordinator:latest\")" \
-        ./{{workspace_dir}}/deployment/coordinator.yml
-    for f in ./{{workspace_dir}}/deployment/*.yml; do
-        nix run .#yq-go -- -i ". \
-            | with(select(.spec.template.spec.initContainers[].image | contains(\"nunki/initializer\")); \
-            .spec.template.spec.initContainers[0].image = \"${container_registry}/nunki/initializer:latest\")" \
-            "${f}"
-    done
+    nix run .#patch-kube-images -- ./{{workspace_dir}}/deployment \
+        --replace ghcr.io/edgelesssys ${container_registry}
     nix run .#cli -- generate \
         -m ./{{workspace_dir}}/manifest.json \
         -p ./{{workspace_dir}} \
@@ -106,16 +99,8 @@ demodir:
     nix build .#nunki.cli
     cp ./result-cli/bin/cli "${d}/nunki"
     cp -R ./deployments/emojivoto "${d}/deployment"
-    nix run .#yq-go -- -i ". \
-        | with(select(.spec.template.spec.containers[].image | contains(\"nunki/coordinator\")); \
-        .spec.template.spec.containers[0].image = \"${container_registry}/nunki/coordinator:latest\")" \
-        ${d}/deployment/coordinator.yml
-    for f in ${d}/deployment/*.yml; do
-        nix run .#yq-go -- -i ". \
-            | with(select(.spec.template.spec.initContainers[].image | contains(\"nunki/initializer\")); \
-            .spec.template.spec.initContainers[0].image = \"${container_registry}/nunki/initializer:latest\")" \
-            "${f}"
-    done
+    nix run .#patch-kube-images -- "${d}/deployment" \
+        --replace ghcr.io/edgelesssys ${container_registry}
     echo "Demo directory ready at ${d}"
 
 # Cleanup auxiliary files, caches etc.
