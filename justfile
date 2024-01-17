@@ -22,6 +22,7 @@ deploy target=default_deploy_target: (generate target) apply
 # Generate policies, update manifest.
 generate target=default_deploy_target:
     #!/usr/bin/env bash
+    set -euo pipefail
     mkdir -p ./{{workspace_dir}}
     rm -rf ./{{workspace_dir}}/*
     cp -R ./deployments/{{target}} ./{{workspace_dir}}/deployment
@@ -31,11 +32,15 @@ generate target=default_deploy_target:
         --replace ghcr.io/edgelesssys ${container_registry}
     nix run .#kypatch namespace -- ./{{workspace_dir}}/deployment \
         --replace edg-default {{target}}${namespace_suffix}
+    t=$(date +%s)
     nix run .#cli -- generate \
         -m ./{{workspace_dir}}/manifest.json \
         -p ./{{workspace_dir}} \
         -s genpolicy-msft.json \
         ./{{workspace_dir}}/deployment/*.yml
+    duration=$(( $(date +%s) - $t ))
+    echo "Generated policies in $duration seconds."
+    echo "generate $duration" >> ./{{workspace_dir}}/just.perf
 
 # Apply Kubernetes manifests from /deployment
 apply:
@@ -69,10 +74,14 @@ set:
     PID=$!
     trap "kill $PID" EXIT
     sleep 1
+    t=$(date +%s)
     nix run .#cli -- set \
         -m ./{{workspace_dir}}/manifest.json \
         -c localhost:1313 \
         ./{{workspace_dir}}/deployment/*.yml
+    duration=$(( $(date +%s) - $t ))
+    echo "Set manifest in $duration seconds."
+    echo "set $duration" >> ./{{workspace_dir}}/just.perf
 
 # Verify the Coordinator.
 verify:
@@ -85,9 +94,13 @@ verify:
     PID=$!
     trap "kill $PID" EXIT
     sleep 1
+    t=$(date +%s)
     nix run .#cli -- verify \
         -c localhost:1313 \
         -o ./{{workspace_dir}}/verify
+    duration=$(( $(date +%s) - $t ))
+    echo "Verified in $duration seconds."
+    echo "verify $duration" >> ./{{workspace_dir}}/just.perf
 
 # Load the kubeconfig from the running AKS cluster.
 get-credentials:
