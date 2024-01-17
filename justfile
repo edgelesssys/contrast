@@ -50,26 +50,28 @@ create:
 # Set the manifest at the coordinator.
 set:
     #!/usr/bin/env bash
+    set -euo pipefail
     kubectl port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
+    trap "kill $PID" EXIT
     sleep 1
     nix run .#cli -- set \
         -m ./{{workspace_dir}}/manifest.json \
         -c localhost:1313 \
         ./{{workspace_dir}}/deployment/*.yml
-    kill $PID
 
 # Verify the Coordinator.
 verify:
     #!/usr/bin/env bash
+    set -euo pipefail
     rm -rf ./{{workspace_dir}}/verify
     kubectl port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
+    trap "kill $PID" EXIT
     sleep 1
     nix run .#cli -- verify \
         -c localhost:1313 \
         -o ./{{workspace_dir}}/verify
-    kill $PID
 
 # Load the kubeconfig from the running AKS cluster.
 get-credentials:
