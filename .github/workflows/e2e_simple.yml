@@ -2,6 +2,7 @@ name: e2e test simple
 
 on:
     workflow_dispatch:
+    pull_request:
 
 env:
   container_registry: ghcr.io/edgelesssys
