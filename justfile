@@ -25,9 +25,12 @@ generate target=default_deploy_target:
     mkdir -p ./{{workspace_dir}}
     rm -rf ./{{workspace_dir}}/*
     cp -R ./deployments/{{target}} ./{{workspace_dir}}/deployment
+    echo "{{target}}${namespace_suffix}" > ./{{workspace_dir}}/just.namespace
     nix run .#patch-nunki-image-hashes -- ./{{workspace_dir}}/deployment
     nix run .#kypatch images -- ./{{workspace_dir}}/deployment \
         --replace ghcr.io/edgelesssys ${container_registry}
+    nix run .#kypatch namespace -- ./{{workspace_dir}}/deployment \
+        --replace edg-default {{target}}${namespace_suffix}
     nix run .#cli -- generate \
         -m ./{{workspace_dir}}/manifest.json \
         -p ./{{workspace_dir}} \
@@ -51,7 +54,8 @@ create:
 set:
     #!/usr/bin/env bash
     set -euo pipefail
-    kubectl port-forward pod/port-forwarder-coordinator 1313 &
+    ns=$(cat ./{{workspace_dir}}/just.namespace)
+    kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
     trap "kill $PID" EXIT
     sleep 1
@@ -65,7 +69,8 @@ verify:
     #!/usr/bin/env bash
     set -euo pipefail
     rm -rf ./{{workspace_dir}}/verify
-    kubectl port-forward pod/port-forwarder-coordinator 1313 &
+    ns=$(cat ./{{workspace_dir}}/just.namespace)
+    kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
     trap "kill $PID" EXIT
     sleep 1
@@ -115,7 +120,7 @@ demodir:
     echo "Demo directory ready at ${d}"
 
 # Cleanup auxiliary files, caches etc.
-clean:
+clean: undeploy
     rm -rf ./{{workspace_dir}}
     rm -rf ./layers_cache
 
@@ -125,6 +130,8 @@ rctemplate := '''
 container_registry=""
 # Azure resource group/ resource name. Resource group will be created.
 azure_resource_group=""
+# Namespace suffix, can be empty. Will be used when patching namespaces.
+namespace_suffix=""
 '''
 
 # Developer onboarding.

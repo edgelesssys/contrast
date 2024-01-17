@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: port-forwarder-coordinator
-  namespace: default
+  namespace: edg-default
 spec:
   containers:
     - name: port-forwarder
@@ -11,7 +11,7 @@ spec:
         - name: LISTEN_PORT
           value: "1313"
         - name: FORWARD_HOST
-          value: coordinator.edg-emojivoto
+          value: coordinator
         - name: FORWARD_PORT
           value: "1313"
       command:
@@ -24,8 +24,8 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: port-forwarder-2
-  namespace: default
+  name: port-forwarder-emojivoto-web
+  namespace: edg-default
 spec:
   containers:
     - name: port-forwarder
@@ -34,7 +34,7 @@ spec:
         - name: LISTEN_PORT
           value: "8080"
         - name: FORWARD_HOST
-          value: web-svc.edg-emojivoto
+          value: web-svc
         - name: FORWARD_PORT
           value: "443"
       command:

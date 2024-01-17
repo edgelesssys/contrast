@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: port-forwarder-coordinator
-  namespace: default
+  namespace: edg-default
 spec:
   containers:
     - name: port-forwarder
@@ -11,7 +11,7 @@ spec:
         - name: LISTEN_PORT
           value: "1313"
         - name: FORWARD_HOST
-          value: coordinator.edg-coco
+          value: coordinator
         - name: FORWARD_PORT
           value: "1313"
       command:
