@@ -21,8 +21,29 @@ function printReplaces() {
   done
 }
 
+function mapTypeToPaths() {
+  local -n outPaths=$1
+  local type=$2
+
+  case $type in
+  images)
+    # shellcheck disable=SC2034
+    outPaths=(
+      ".spec.containers[].image"
+      ".spec.template.spec.containers[].image"
+      ".spec.template.spec.initContainers[].image"
+    )
+    ;;
+  *)
+    echo "Unknown replace target type $type" >&2
+    exit 1
+    ;;
+  esac
+}
+
 function patchFile() {
-  local file=$1
+  local type=$1
+  local file=$2
   shift
   local replaces=("$@")
 
@@ -32,11 +53,9 @@ function patchFile() {
     currentImage=${replace%% *}
     newImage=${replace##* }
 
-    paths=(
-      ".spec.containers[].image"
-      ".spec.template.spec.containers[].image"
-      ".spec.template.spec.initContainers[].image"
-    )
+    local paths
+    mapTypeToPaths paths "$type"
+
     for p in "${paths[@]}"; do
       yq -i "\
         with(select(${p} | contains(\"${currentImage}\")); \
@@ -47,7 +66,8 @@ function patchFile() {
 }
 
 function patchRecursive() {
-  local dir=$1
+  local type=$1
+  local dir=$2
   shift
   local replaces=("$@")
 
@@ -86,15 +106,16 @@ function main() {
   done
   set -- "${positionalArgs[@]}" # restore positional parameters
 
-  targetPath=$1
+  type=$1
+  targetPath=$2
 
   printReplaces "${replaces[@]}"
 
   if [[ -d $targetPath ]]; then
-    patchRecursive "$targetPath" "${replaces[@]}"
+    patchRecursive "$type" "$targetPath" "${replaces[@]}"
     exit 0
   fi
-  patchFile "$targetPath" "${replaces[@]}"
+  patchFile "$type" "$targetPath" "${replaces[@]}"
 }
 
 main "$@"
