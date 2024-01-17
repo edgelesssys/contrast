@@ -182,4 +182,31 @@ rec {
     runtimeInputs = [ yq-go ];
     text = builtins.readFile ./kypatch.sh;
   };
+
+  kubectl-wait-ready = writeShellApplication {
+    name = "kubectl-wait-ready";
+    runtimeInputs = [ kubectl ];
+    text = ''
+      namespace=$1
+      name=$2
+
+      timeout=180
+
+      interval=4
+      while [ $timeout -gt 0 ]; do
+        if kubectl -n "$namespace" get pods | grep -q "$name"; then
+          break
+        fi
+        sleep "$interval"
+        timeout=$((timeout - interval))
+      done
+
+      kubectl wait \
+         --namespace "$namespace" \
+         --selector "run=$name" \
+         --for=condition=Ready \
+         --timeout="''${timeout}s" \
+         pods
+    '';
+  };
 }
