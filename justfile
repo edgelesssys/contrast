@@ -44,7 +44,16 @@ apply:
 
 # Delete Kubernetes manifests.
 undeploy:
-    -kubectl delete -f ./{{workspace_dir}}/deployment
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ ! -d ./{{workspace_dir}} ]]; then
+        echo "No workspace directory found, nothing to undeploy."
+        exit 0
+    fi
+    ns=$(cat ./{{workspace_dir}}/just.namespace)
+    if kubectl get ns $ns 2> /dev/null; then
+        kubectl delete -f ./{{workspace_dir}}/deployment
+    fi
 
 # Create a CoCo-enabled AKS cluster.
 create:
