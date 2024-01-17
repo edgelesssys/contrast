@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: vote-bot
-  namespace: edg-emojivoto
+  namespace: edg-default
   labels:
     app.kubernetes.io/name: vote-bot
     app.kubernetes.io/part-of: emojivoto
@@ -24,7 +24,7 @@ spec:
             - emojivoto-vote-bot
           env:
             - name: WEB_HOST
-              value: web-svc.edg-emojivoto:443
+              value: web-svc:443
           image: ghcr.io/3u13r/emojivoto-web:coco-1
           imagePullPolicy: Always
           name: vote-bot

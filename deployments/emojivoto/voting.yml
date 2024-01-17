@@ -2,13 +2,13 @@ kind: ServiceAccount
 apiVersion: v1
 metadata:
   name: voting
-  namespace: edg-emojivoto
+  namespace: edg-default
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: voting
-  namespace: edg-emojivoto
+  namespace: edg-default
   labels:
     app.kubernetes.io/name: voting
     app.kubernetes.io/part-of: emojivoto
@@ -32,7 +32,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: COORDINATOR_HOST
-              value: coordinator.edg-emojivoto
+              value: coordinator
           volumeMounts:
             - name: tls-certs
               mountPath: /tls-config
@@ -71,7 +71,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: voting-svc
-  namespace: edg-emojivoto
+  namespace: edg-default
 spec:
   selector:
     app: voting-svc

@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: workload
-  namespace: edg-openssl
+  namespace: edg-default
 spec:
   selector:
     matchLabels:
@@ -20,7 +20,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: COORDINATOR_HOST
-              value: coordinator.edg-openssl
+              value: coordinator
           volumeMounts:
             - name: tls-certs
               mountPath: /tls-config
