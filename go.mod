@@ -3,7 +3,7 @@ module github.com/edgelesssys/nunki
 go 1.21
 
 require (
-	github.com/google/go-sev-guest v0.9.3
+	github.com/google/go-sev-guest v0.10.0
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/goleak v1.3.0
@@ -21,6 +21,7 @@ require (
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/google/go-configfs-tsm v0.2.2 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/logger v1.1.1 // indirect
 	github.com/google/uuid v1.5.0 // indirect
