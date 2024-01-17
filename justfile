@@ -55,6 +55,7 @@ set:
     #!/usr/bin/env bash
     set -euo pipefail
     ns=$(cat ./{{workspace_dir}}/just.namespace)
+    nix run .#kubectl-wait-ready -- $ns coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
     trap "kill $PID" EXIT
@@ -70,6 +71,7 @@ verify:
     set -euo pipefail
     rm -rf ./{{workspace_dir}}/verify
     ns=$(cat ./{{workspace_dir}}/just.namespace)
+    nix run .#kubectl-wait-ready -- $ns coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
     trap "kill $PID" EXIT
