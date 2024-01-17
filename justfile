@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target: undeploy coordinator initializer openssl (deploy target)
+default target=default_deploy_target: undeploy coordinator initializer openssl (deploy target) set verify
 
 # Build the coordinator, containerize and push it.
 coordinator:
