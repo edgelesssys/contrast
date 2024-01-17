@@ -2,6 +2,11 @@ name: e2e test simple
 
 on:
     workflow_dispatch:
+      inputs:
+        skip-undeploy:
+          description: "Skip undeploy"
+          required: false
+          default: "false"
     pull_request:
 
 env:
@@ -55,6 +60,6 @@ jobs:
           cat ./workspace/just.namespace | tee -a "${GITHUB_STEP_SUMMARY}"
           cat ./workspace/just.perf | tee -a "${GITHUB_STEP_SUMMARY}"
       - name: Undeploy
-        if: always()
+        if: always() && inputs.skip-undeploy != 'true'
         run: |
           just undeploy
