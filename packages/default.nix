@@ -157,7 +157,7 @@ rec {
       coordinator
       crane
       initializer
-      patch-kube-images
+      kypatch
     ];
     text = ''
       targetPath=$1
@@ -171,15 +171,15 @@ rec {
       coordHash=$(crane digest --tarball "$tmpdir/coordinator.tar")
       initHash=$(crane digest --tarball "$tmpdir/initializer.tar")
 
-      patch-kube-images "$targetPath" \
+      kypatch images "$targetPath" \
         --replace "nunki/coordinator:latest" "nunki/coordinator@$coordHash" \
         --replace "nunki/initializer:latest" "nunki/initializer@$initHash"
     '';
   };
 
-  patch-kube-images = writeShellApplication {
-    name = "patch-kube-images";
+  kypatch = writeShellApplication {
+    name = "kypatch";
     runtimeInputs = [ yq-go ];
-    text = builtins.readFile ./patch-kube-images.sh;
+    text = builtins.readFile ./kypatch.sh;
   };
 }
