@@ -4,11 +4,11 @@ set -euo pipefail
 
 function usage() {
   cat <<EOF >&2
-Usage: $0 [options] <target-path>
+Usage: $0 <images|namespace> [options] <target-path>
 
 Options:
-  --replace <current-image> <new-image>     Replace current-image with new-image
-  --help                                    Show this help message
+  --replace <current> <new>     Replace current value with new value
+  --help                        Show this help message
 EOF
 }
 
@@ -34,6 +34,12 @@ function mapTypeToPaths() {
       ".spec.template.spec.initContainers[].image"
     )
     ;;
+  namespace)
+    # shellcheck disable=SC2034
+    outPaths=(
+      ".metadata.namespace"
+    )
+    ;;
   *)
     echo "Unknown replace target type $type" >&2
     exit 1
@@ -41,41 +47,65 @@ function mapTypeToPaths() {
   esac
 }
 
+function extraSteps() {
+  local type=$1
+  local file=$2
+  local replace=$3
+
+  current=${replace%% *}
+  new=${replace##* }
+
+  case $type in
+  namespace)
+    # Rename metadata.name if kind is Namespace
+    yq -i "\
+      with(
+        select(.kind == \"Namespace\") | \
+        select(.metadata.name | contains(\"${current}\")); \
+        .metadata.name |= sub(\"${current}\", \"${new}\") \
+      )" "$file"
+    ;;
+  esac
+}
+
 function patchFile() {
   local type=$1
   local file=$2
-  shift
+  shift 2
   local replaces=("$@")
 
   echo "Patching file $file" >&2
 
   for replace in "${replaces[@]}"; do
-    currentImage=${replace%% *}
-    newImage=${replace##* }
+    current=${replace%% *}
+    new=${replace##* }
 
     local paths
     mapTypeToPaths paths "$type"
 
     for p in "${paths[@]}"; do
       yq -i "\
-        with(select(${p} | contains(\"${currentImage}\")); \
-          ${p} |= sub(\"${currentImage}\", \"${newImage}\") \
+        with(select(${p} | contains(\"${current}\")); \
+          ${p} |= sub(\"${current}\", \"${new}\") \
         )" "$file"
+
     done
+
+    extraSteps "$type" "$file" "$replace"
   done
 }
 
 function patchRecursive() {
   local type=$1
   local dir=$2
-  shift
+  shift 2
   local replaces=("$@")
 
   find "$dir" \
     -type f \
     -name '*.yaml' -o \
     -name '*.yml' | while IFS= read -r file; do
-    patchFile "$file" "${replaces[@]}"
+    patchFile "$type" "$file" "${replaces[@]}"
   done
 }
 
@@ -86,9 +116,7 @@ function main() {
     case $1 in
     --replace)
       replaces+=("$2 $3")
-      shift # past argument
-      shift # past value
-      shift # past value
+      shift 3 # past flag, current, new
       ;;
     --help)
       usage
