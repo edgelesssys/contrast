@@ -77,6 +77,13 @@ get-credentials:
         --resource-group "$azure_resource_group" \
         --name "$azure_resource_group"
 
+# Load the kubeconfig from the CI AKS cluster.
+get-credentials-ci:
+    nix run .#azure-cli -- aks get-credentials \
+        --resource-group "nunki-ci" \
+        --name "nunki-ci" \
+        --admin
+
 # Destroy a running AKS cluster.
 destroy:
     nix run .#destroy-coco-aks -- --name="$azure_resource_group"
