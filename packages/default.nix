@@ -26,7 +26,7 @@ let
       tmpdir=$(mktemp -d)
       trap 'rm -rf $tmpdir' EXIT
       gunzip < "${container}" > "$tmpdir/image.tar"
-      crane push "$tmpdir/image.tar" "$imageName"
+      crane push "$tmpdir/image.tar" "$imageName:${container.imageTag}"
     '';
   };
 in
@@ -75,7 +75,7 @@ rec {
 
   coordinator = dockerTools.buildImage {
     name = "coordinator";
-    tag = "${version}";
+    tag = "v${version}";
     copyToRoot = with dockerTools; [ caCertificates ];
     config = {
       Cmd = [ "${nunki.coordinator}/bin/coordinator" ];
@@ -83,7 +83,7 @@ rec {
   };
   initializer = dockerTools.buildImage {
     name = "initializer";
-    tag = "${version}";
+    tag = "v${version}";
     copyToRoot = with dockerTools; [ caCertificates ];
     config = {
       Cmd = [ "${nunki.initializer}/bin/initializer" ];
@@ -95,7 +95,7 @@ rec {
 
   push-openssl = pushContainer (dockerTools.buildImage {
     name = "openssl";
-    tag = "latest";
+    tag = "v${version}";
     copyToRoot = [ openssl bash coreutils ncurses bashInteractive vim procps ];
     config = {
       Cmd = [ "bash" ];

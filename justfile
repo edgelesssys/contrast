@@ -3,15 +3,15 @@ default target=default_deploy_target: undeploy coordinator initializer openssl (
 
 # Build the coordinator, containerize and push it.
 coordinator:
-    nix run .#push-coordinator -- "$container_registry/nunki/coordinator:latest"
+    nix run .#push-coordinator -- "$container_registry/nunki/coordinator"
 
 # Build the openssl container and push it.
 openssl:
-    nix run .#push-openssl -- "$container_registry/nunki/openssl:latest"
+    nix run .#push-openssl -- "$container_registry/nunki/openssl"
 
 # Build the initializer, containerize and push it.
 initializer:
-    nix run .#push-initializer -- "$container_registry/nunki/initializer:latest"
+    nix run .#push-initializer -- "$container_registry/nunki/initializer"
 
 default_deploy_target := "simple"
 workspace_dir := "workspace"
