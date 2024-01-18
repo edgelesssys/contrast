@@ -44,7 +44,7 @@ rec {
 
       src = goFiles;
       proxyVendor = true;
-      vendorHash = "sha256-RySYZYCKOeBp0miqYMQKtc1TQ3NdYgfPj+/vBjhkFpI=";
+      vendorHash = "sha256-/2GzN6vzMm8NWJYcauR+eJuZAVEV5wi/Wdkbe3KhKOM=";
 
       CGO_ENABLED = 0;
       ldflags = [

@@ -10,6 +10,7 @@ import (
 	"github.com/edgelesssys/nunki/internal/coordapi"
 	"github.com/edgelesssys/nunki/internal/intercom"
 	"github.com/edgelesssys/nunki/internal/logger"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -26,7 +27,7 @@ func run() (retErr error) {
 	}
 	defer func() {
 		if retErr != nil {
-			logger.Error(retErr.Error())
+			logger.Error("Coordinator terminated after failure", "err", retErr)
 		}
 	}()
 
@@ -46,17 +47,23 @@ func run() (retErr error) {
 	coordS := newCoordAPIServer(meshAuth, caInstance, logger)
 	intercomS := newIntercomServer(meshAuth, caInstance, logger)
 
-	go func() {
+	eg := errgroup.Group{}
+
+	eg.Go(func() error {
 		logger.Info("Coordinator API listening")
 		if err := coordS.Serve(net.JoinHostPort("0.0.0.0", coordapi.Port)); err != nil {
-			// TODO: collect error using errgroup.
-			logger.Error("Coordinator API failed to serve", "err", err)
+			return fmt.Errorf("serving Coordinator API: %w", err)
 		}
-	}()
+		return nil
+	})
 
-	logger.Info("Coordinator intercom listening")
-	if err := intercomS.Serve(net.JoinHostPort("0.0.0.0", intercom.Port)); err != nil {
-		return fmt.Errorf("serving intercom: %w", err)
-	}
-	return nil
+	eg.Go(func() error {
+		logger.Info("Coordinator intercom listening")
+		if err := intercomS.Serve(net.JoinHostPort("0.0.0.0", intercom.Port)); err != nil {
+			return fmt.Errorf("serving intercom API: %w", err)
+		}
+		return nil
+	})
+
+	return eg.Wait()
 }
