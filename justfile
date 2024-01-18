@@ -90,13 +90,13 @@ verify:
     rm -rf ./{{workspace_dir}}/verify
     ns=$(cat ./{{workspace_dir}}/just.namespace)
     nix run .#kubectl-wait-ready -- $ns coordinator
-    kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
+    kubectl -n $ns port-forward pod/port-forwarder-coordinator 1314:1313 &
     PID=$!
     trap "kill $PID" EXIT
     sleep 1
     t=$(date +%s)
     nix run .#cli -- verify \
-        -c localhost:1313 \
+        -c localhost:1314 \
         -o ./{{workspace_dir}}/verify
     duration=$(( $(date +%s) - $t ))
     echo "Verified in $duration seconds."
