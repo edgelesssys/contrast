@@ -6,12 +6,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      run: openssl-client
+      app.kubernetes.io/name: openssl-client
   replicas: 1
   template:
     metadata:
       labels:
-        run: openssl-client
+        app.kubernetes.io/name: openssl-client
     spec:
       runtimeClassName: kata-cc-isolation
       initContainers:

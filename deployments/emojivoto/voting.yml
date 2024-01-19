@@ -17,12 +17,12 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: voting-svc
+      app.kubernetes.io/name: voting-svc
       version: v11
   template:
     metadata:
       labels:
-        app: voting-svc
+        app.kubernetes.io/name: voting-svc
         version: v11
     spec:
       runtimeClassName: kata-cc-isolation
@@ -82,7 +82,7 @@ metadata:
   namespace: edg-default
 spec:
   selector:
-    app: voting-svc
+    app.kubernetes.io/name: voting-svc
   ports:
     - name: grpc
       port: 8080

@@ -6,12 +6,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      run: workload
+      app.kubernetes.io/name: workload
   replicas: 1
   template:
     metadata:
       labels:
-        run: workload
+        app.kubernetes.io/name: workload
     spec:
       runtimeClassName: kata-cc-isolation
       initContainers:

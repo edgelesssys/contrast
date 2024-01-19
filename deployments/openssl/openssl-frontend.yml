@@ -6,12 +6,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      run: openssl-frontend
+      app.kubernetes.io/name: openssl-frontend
   replicas: 1
   template:
     metadata:
       labels:
-        run: openssl-frontend
+        app.kubernetes.io/name: openssl-frontend
     spec:
       runtimeClassName: kata-cc-isolation
       initContainers:
@@ -56,7 +56,7 @@ metadata:
   namespace: edg-default
 spec:
   selector:
-    run: openssl-frontend
+    app.kubernetes.io/name: openssl-frontend
   ports:
     - name: openssl
       port: 443

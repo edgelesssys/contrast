@@ -203,7 +203,7 @@ rec {
 
       kubectl wait \
          --namespace "$namespace" \
-         --selector "run=$name" \
+         --selector "app.kubernetes.io/name=$name" \
          --for=condition=Ready \
          --timeout="''${timeout}s" \
          pods
