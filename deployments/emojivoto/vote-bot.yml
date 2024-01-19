@@ -11,12 +11,12 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: vote-bot
+      app.kubernetes.io/name: vote-bot
       version: v11
   template:
     metadata:
       labels:
-        app: vote-bot
+        app.kubernetes.io/name: vote-bot
         version: v11
     spec:
       containers:

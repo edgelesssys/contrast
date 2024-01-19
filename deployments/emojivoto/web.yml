@@ -17,12 +17,12 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: web-svc
+      app.kubernetes.io/name: web-svc
       version: v11
   template:
     metadata:
       labels:
-        app: web-svc
+        app.kubernetes.io/name: web-svc
         version: v11
     spec:
       runtimeClassName: kata-cc-isolation
@@ -82,7 +82,7 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app: web-svc
+    app.kubernetes.io/name: web-svc
   ports:
     - name: https
       port: 443

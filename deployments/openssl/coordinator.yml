@@ -6,12 +6,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      run: coordinator
+      app.kubernetes.io/name: coordinator
   replicas: 1
   template:
     metadata:
       labels:
-        run: coordinator
+        app.kubernetes.io/name: coordinator
     spec:
       runtimeClassName: kata-cc-isolation
       containers:
@@ -48,4 +48,4 @@ spec:
       port: 1313
       protocol: TCP
   selector:
-    run: coordinator
+    app.kubernetes.io/name: coordinator

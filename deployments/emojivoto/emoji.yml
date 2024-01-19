@@ -17,12 +17,12 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: emoji-svc
+      app.kubernetes.io/name: emoji-svc
       version: v11
   template:
     metadata:
       labels:
-        app: emoji-svc
+        app.kubernetes.io/name: emoji-svc
         version: v11
     spec:
       runtimeClassName: kata-cc-isolation
@@ -82,7 +82,7 @@ metadata:
   namespace: edg-default
 spec:
   selector:
-    app: emoji-svc
+    app.kubernetes.io/name: emoji-svc
   ports:
     - name: grpc
       port: 8080
