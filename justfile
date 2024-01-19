@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target: undeploy coordinator initializer openssl (deploy target) set verify
+default target=default_deploy_target: undeploy coordinator initializer openssl (deploy target) set verify (wait-for-workload target)
 
 # Build the coordinator, containerize and push it.
 coordinator:
@@ -101,6 +101,32 @@ verify:
     duration=$(( $(date +%s) - $t ))
     echo "Verified in $duration seconds."
     echo "verify $duration" >> ./{{workspace_dir}}/just.perf
+
+# Wait for workloads to become ready.
+wait-for-workload target=default_deploy_target:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ns=$(cat ./{{workspace_dir}}/just.namespace)
+    case {{target}} in
+        "simple")
+            nix run .#kubectl-wait-ready -- $ns workload
+        ;;
+        "openssl")
+            nix run .#kubectl-wait-ready -- $ns openssl-backend
+            nix run .#kubectl-wait-ready -- $ns openssl-client
+            nix run .#kubectl-wait-ready -- $ns openssl-frontend
+        ;;
+        "emojivoto")
+            nix run .#kubectl-wait-ready -- $ns emoji-svc
+            nix run .#kubectl-wait-ready -- $ns vote-bot
+            nix run .#kubectl-wait-ready -- $ns voting-svc
+            nix run .#kubectl-wait-ready -- $ns web-svc
+        ;;
+        *)
+            echo "Please register workloads of new targets in wait-for-workload"
+            exit 1
+        ;;
+    esac
 
 # Load the kubeconfig from the running AKS cluster.
 get-credentials:
