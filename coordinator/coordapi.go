@@ -64,6 +64,13 @@ func (s *coordAPIServer) SetManifest(_ context.Context, req *coordapi.SetManifes
 		return nil, status.Errorf(codes.InvalidArgument, "unmarshaling manifest: %v", err)
 	}
 
+	if len(m.Policies) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "manifest must contain at least one policy")
+	}
+	if len(m.Policies) != len(req.Policies) {
+		return nil, status.Error(codes.InvalidArgument, "request must contain exactly the policies referenced in the manifest")
+	}
+
 	for _, policyBytes := range req.Policies {
 		policy := manifest.Policy(policyBytes)
 		if _, ok := m.Policies[policy.Hash()]; !ok {
@@ -89,7 +96,7 @@ func (s *coordAPIServer) GetManifests(_ context.Context, _ *coordapi.GetManifest
 
 	manifests := s.manifSetGetter.GetManifests()
 	if len(manifests) == 0 {
-		return nil, status.Errorf(codes.FailedPrecondition, "no manifests found")
+		return nil, status.Errorf(codes.FailedPrecondition, "no manifests set")
 	}
 
 	manifestBytes, err := manifestSliceToBytesSlice(manifests)
@@ -97,9 +104,14 @@ func (s *coordAPIServer) GetManifests(_ context.Context, _ *coordapi.GetManifest
 		return nil, status.Errorf(codes.Internal, "marshaling manifests: %v", err)
 	}
 
+	policies := s.policyTextStore.GetAll()
+	if len(policies) == 0 {
+		return nil, status.Error(codes.Internal, "no policies found in store")
+	}
+
 	resp := &coordapi.GetManifestsResponse{
 		Manifests:  manifestBytes,
-		Policies:   policySliceToBytesSlice(s.policyTextStore.GetAll()),
+		Policies:   policySliceToBytesSlice(policies),
 		CACert:     s.caChainGetter.GetRootCACert(),
 		IntermCert: s.caChainGetter.GetIntermCert(),
 	}
