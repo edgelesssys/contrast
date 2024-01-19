@@ -24,6 +24,11 @@ spec:
           volumeMounts:
             - name: tls-certs
               mountPath: /tls-config
+          resources:
+            requests:
+              memory: 50Mi
+            limits:
+              memory: 50Mi
       containers:
         - name: openssl-frontend
           image: ghcr.io/3u13r/nunki/openssl:latest
@@ -35,6 +40,11 @@ spec:
           volumeMounts:
             - name: tls-certs
               mountPath: /tls-config
+          resources:
+            requests:
+              memory: 50Mi
+            limits:
+              memory: 50Mi
       volumes:
         - name: tls-certs
           emptyDir: {}

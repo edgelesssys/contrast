@@ -64,6 +64,9 @@ spec:
           resources:
             requests:
               cpu: 100m
+              memory: 50Mi
+            limits:
+              memory: 50Mi
           volumeMounts:
             - name: tls-certs
               mountPath: /tls-config

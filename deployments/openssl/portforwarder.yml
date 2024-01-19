@@ -20,3 +20,8 @@ spec:
         - echo Starting port-forward with socat; exec socat -d -d TCP-LISTEN:${LISTEN_PORT},fork TCP:${FORWARD_HOST}:${FORWARD_PORT}
       ports:
         - containerPort: 1313
+      resources:
+        requests:
+          memory: 50Mi
+        limits:
+          memory: 50Mi
