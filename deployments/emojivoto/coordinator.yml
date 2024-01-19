@@ -28,6 +28,11 @@ spec:
                   fieldPath: metadata.namespace
             - name: NUNKI_LOG_LEVEL
               value: "debug"
+          resources:
+            requests:
+              memory: 100Mi
+            limits:
+              memory: 100Mi
 ---
 apiVersion: v1
 kind: Service

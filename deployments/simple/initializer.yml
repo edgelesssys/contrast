@@ -24,6 +24,11 @@ spec:
           volumeMounts:
             - name: tls-certs
               mountPath: /tls-config
+          resources:
+            requests:
+              memory: 50Mi
+            limits:
+              memory: 50Mi
       containers:
         - name: workload
           image: "fedora:38"
@@ -35,6 +40,11 @@ spec:
           volumeMounts:
             - name: tls-certs
               mountPath: /tls-config
+          resources:
+            requests:
+              memory: 50Mi
+            limits:
+              memory: 50Mi
       volumes:
         - name: tls-certs
           emptyDir: {}
