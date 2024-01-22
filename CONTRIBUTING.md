@@ -39,23 +39,31 @@
 
 ### Deploy
 
-5. To build, containerize, push and deploy, run
+The ususally dev flow is available as a single target to execute:
 
-    ```sh
-    just
-    ```
+```sh
+just [default <deployment-name>]
+```
 
-    Ensure the pushed container images are accessible to your cluster.
+This will build, containerize and push all relevant components.
+Ensure the pushed container images are accessible to your cluster.
+The manifest will the be generated (`nunki generate`).
 
-6. Set the manifest after the Coordinator has started with
+Further the flow will deploy the selected deployment and wait for components to come up.
+The manifest will automatically be set (`nunki set`) and the Coordinator will will be verified
+(`nunki verify`). The flow will also wait for the workload to get ready.
 
-    ```sh
-    just set
-    ```
+This target is idempotent and will delete an existing deployment before re-deploying.
+
+All steps can be executed as separate targets. To list all available targets and their description, run
+
+```sh
+just --list
+```
 
 ### Cleanup
 
-7. Destroy the cluster with
+- Destroy the cluster with
 
     ```sh
     just destroy

@@ -26,3 +26,7 @@ app, making it easier to assure stakeholders of your app's security.
 
 Nunki provides an Initializer that handles the remote attestation on the workload side transparently and
 fetches the workload certificate. The Initializer runs as init container before your workload is started.
+
+## Contributing
+
+See the [contributing guide](CONTRIBUTING.md).
