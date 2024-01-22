@@ -3,7 +3,7 @@ module github.com/edgelesssys/nunki
 go 1.21
 
 require (
-	github.com/google/go-sev-guest v0.10.0
+	github.com/google/go-sev-guest v0.10.1
 	github.com/spf13/afero v1.11.0
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
@@ -13,8 +13,8 @@ require (
 	google.golang.org/grpc v1.60.1
 	google.golang.org/protobuf v1.32.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.29.0
-	k8s.io/apimachinery v0.29.0
+	k8s.io/api v0.29.1
+	k8s.io/apimachinery v0.29.1
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 )
 
