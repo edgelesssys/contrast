@@ -8,5 +8,6 @@ _:
     shfmt.enable = true;
     statix.enable = true;
     yamlfmt.enable = true;
+    just.enable = true;
   };
 }

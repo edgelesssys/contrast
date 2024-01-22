@@ -23,41 +23,41 @@ deploy target=default_deploy_target: (generate target) apply
 generate target=default_deploy_target:
     #!/usr/bin/env bash
     set -euo pipefail
-    mkdir -p ./{{workspace_dir}}
-    rm -rf ./{{workspace_dir}}/*
-    cp -R ./deployments/{{target}} ./{{workspace_dir}}/deployment
-    echo "{{target}}${namespace_suffix}" > ./{{workspace_dir}}/just.namespace
-    nix run .#patch-nunki-image-hashes -- ./{{workspace_dir}}/deployment
-    nix run .#kypatch images -- ./{{workspace_dir}}/deployment \
+    mkdir -p ./{{ workspace_dir }}
+    rm -rf ./{{ workspace_dir }}/*
+    cp -R ./deployments/{{ target }} ./{{ workspace_dir }}/deployment
+    echo "{{ target }}${namespace_suffix}" > ./{{ workspace_dir }}/just.namespace
+    nix run .#patch-nunki-image-hashes -- ./{{ workspace_dir }}/deployment
+    nix run .#kypatch images -- ./{{ workspace_dir }}/deployment \
         --replace ghcr.io/edgelesssys ${container_registry}
-    nix run .#kypatch namespace -- ./{{workspace_dir}}/deployment \
-        --replace edg-default {{target}}${namespace_suffix}
+    nix run .#kypatch namespace -- ./{{ workspace_dir }}/deployment \
+        --replace edg-default {{ target }}${namespace_suffix}
     t=$(date +%s)
     nix run .#cli -- generate \
-        -m ./{{workspace_dir}}/manifest.json \
-        -p ./{{workspace_dir}} \
+        -m ./{{ workspace_dir }}/manifest.json \
+        -p ./{{ workspace_dir }} \
         -s genpolicy-msft.json \
-        ./{{workspace_dir}}/deployment/*.yml
+        ./{{ workspace_dir }}/deployment/*.yml
     duration=$(( $(date +%s) - $t ))
     echo "Generated policies in $duration seconds."
-    echo "generate $duration" >> ./{{workspace_dir}}/just.perf
+    echo "generate $duration" >> ./{{ workspace_dir }}/just.perf
 
 # Apply Kubernetes manifests from /deployment
 apply:
-    kubectl apply -f ./{{workspace_dir}}/deployment/ns.yml
-    kubectl apply -f ./{{workspace_dir}}/deployment
+    kubectl apply -f ./{{ workspace_dir }}/deployment/ns.yml
+    kubectl apply -f ./{{ workspace_dir }}/deployment
 
 # Delete Kubernetes manifests.
 undeploy:
     #!/usr/bin/env bash
     set -euo pipefail
-    if [[ ! -d ./{{workspace_dir}} ]]; then
+    if [[ ! -d ./{{ workspace_dir }} ]]; then
         echo "No workspace directory found, nothing to undeploy."
         exit 0
     fi
-    ns=$(cat ./{{workspace_dir}}/just.namespace)
+    ns=$(cat ./{{ workspace_dir }}/just.namespace)
     if kubectl get ns $ns 2> /dev/null; then
-        kubectl delete -f ./{{workspace_dir}}/deployment
+        kubectl delete -f ./{{ workspace_dir }}/deployment
     fi
 
 # Create a CoCo-enabled AKS cluster.
@@ -68,7 +68,7 @@ create:
 set:
     #!/usr/bin/env bash
     set -euo pipefail
-    ns=$(cat ./{{workspace_dir}}/just.namespace)
+    ns=$(cat ./{{ workspace_dir }}/just.namespace)
     nix run .#kubectl-wait-ready -- $ns coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
@@ -76,19 +76,19 @@ set:
     sleep 1
     t=$(date +%s)
     nix run .#cli -- set \
-        -m ./{{workspace_dir}}/manifest.json \
+        -m ./{{ workspace_dir }}/manifest.json \
         -c localhost:1313 \
-        ./{{workspace_dir}}/deployment/*.yml
+        ./{{ workspace_dir }}/deployment/*.yml
     duration=$(( $(date +%s) - $t ))
     echo "Set manifest in $duration seconds."
-    echo "set $duration" >> ./{{workspace_dir}}/just.perf
+    echo "set $duration" >> ./{{ workspace_dir }}/just.perf
 
 # Verify the Coordinator.
 verify:
     #!/usr/bin/env bash
     set -euo pipefail
-    rm -rf ./{{workspace_dir}}/verify
-    ns=$(cat ./{{workspace_dir}}/just.namespace)
+    rm -rf ./{{ workspace_dir }}/verify
+    ns=$(cat ./{{ workspace_dir }}/just.namespace)
     nix run .#kubectl-wait-ready -- $ns coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1314:1313 &
     PID=$!
@@ -97,10 +97,10 @@ verify:
     t=$(date +%s)
     nix run .#cli -- verify \
         -c localhost:1314 \
-        -o ./{{workspace_dir}}/verify
+        -o ./{{ workspace_dir }}/verify
     duration=$(( $(date +%s) - $t ))
     echo "Verified in $duration seconds."
-    echo "verify $duration" >> ./{{workspace_dir}}/just.perf
+    echo "verify $duration" >> ./{{ workspace_dir }}/just.perf
 
 # Load the kubeconfig from the running AKS cluster.
 get-credentials:
@@ -145,10 +145,11 @@ demodir:
 
 # Cleanup auxiliary files, caches etc.
 clean: undeploy
-    rm -rf ./{{workspace_dir}}
+    rm -rf ./{{ workspace_dir }}
     rm -rf ./layers_cache
 
 # Template for the justfile.env file.
+
 rctemplate := '''
 # Container registry to push images to
 container_registry=""
@@ -165,6 +166,7 @@ onboard:
     @echo "Created ./justfile.env. Please fill it out."
 
 # Just configuration.
+
 set dotenv-filename := "justfile.env"
 set dotenv-load := true
 set shell := ["bash", "-uc"]
