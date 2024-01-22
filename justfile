@@ -106,8 +106,8 @@ verify:
 wait-for-workload target=default_deploy_target:
     #!/usr/bin/env bash
     set -euo pipefail
-    ns=$(cat ./{{workspace_dir}}/just.namespace)
-    case {{target}} in
+    ns=$(cat ./{{ workspace_dir }}/just.namespace)
+    case {{ target }} in
         "simple")
             nix run .#kubectl-wait-ready -- $ns workload
         ;;
