@@ -10,13 +10,13 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "genpolicy";
-  version = "0.6.2-1";
+  version = "3.2.0-unstable-2024-01-18";
 
   src = fetchFromGitHub {
     owner = "microsoft";
     repo = "kata-containers";
-    rev = "4e2fce2d03dd7ed6101ba02e397374a0594fdd6d"; # danmihai1/genpolicy-main
-    hash = "sha256-ydJrOu26rtiXKuDzccTgW6RhqUOzXVEm3840nsgI23Q=";
+    rev = "069680738496d79a103965abcc1cc1fd91a8f24b";
+    hash = "sha256-Ft2JgcGRwfGHqKebelkGgBBXRvvL/8ybMF6PqQMrk1c=";
   };
 
   sourceRoot = "${src.name}/src/tools/genpolicy";
@@ -31,7 +31,7 @@ rustPlatform.buildRustPackage rec {
   dontStrip = true;
   buildType = "debug";
 
-  OPENSSL_NO_VENDOR = 1;
+  env.OPENSSL_NO_VENDOR = 1;
 
   nativeBuildInputs = [
     cmake
