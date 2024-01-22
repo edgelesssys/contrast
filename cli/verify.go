@@ -112,10 +112,8 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 }
 
 func newCoordinatorValidateOptsGen() *snp.StaticValidateOptsGenerator {
-	trustedIDKeyDigests, err := (&manifest.HexStrings{
-		"b2bcf1b11d9fb3f2e4e7979546844d26c30255fff0775f3af56f8295f361a7d1a34a54516d41abfff7320763a5b701d8",
-		"22087e0b99b911c9cffccfd9550a054531c105d46ed6d31f948eae56bd2defa4887e2fc4207768ec610aa232ac7490c4",
-	}).ByteSlices()
+	defaultManifest := manifest.Default()
+	trustedIDKeyDigests, err := (&defaultManifest.ReferenceValues.SNP.TrustedIDKeyHashes).ByteSlices()
 	if err != nil {
 		panic(err) // We are decoding known values, tests should catch any failure.
 	}
