@@ -53,21 +53,25 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
+	logger.Debug("Starting verification")
 
 	validateOptsGen := newCoordinatorValidateOptsGen()
 	dialer := dialer.New(atls.NoIssuer, snp.NewValidator(validateOptsGen, logger), &net.Dialer{})
 
+	logger.Debug("Dialing coordinator", "endpoint", flags.coordinator)
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
 	if err != nil {
 		return fmt.Errorf("Error: failed to dial coordinator: %w", err)
 	}
 	defer conn.Close()
 
+	logger.Debug("Getting manifest")
 	client := coordapi.NewCoordAPIClient(conn)
 	resp, err := client.GetManifests(cmd.Context(), &coordapi.GetManifestsRequest{})
 	if err != nil {
-		return fmt.Errorf("failed to set manifest: %w", err)
+		return fmt.Errorf("failed to get manifest: %w", err)
 	}
+	logger.Debug("Got response")
 
 	filelist := map[string][]byte{
 		coordRootPEMFilename:   resp.CACert,
