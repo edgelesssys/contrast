@@ -22,7 +22,7 @@ default SignalProcessRequest := true
 default StartContainerRequest := true
 default StatsContainerRequest := true
 default TtyWinResizeRequest := true
-default UpdateEphemeralMountsRequest := true
+default UpdateEphemeralMountsRequest := false
 default UpdateInterfaceRequest := true
 default UpdateRoutesRequest := true
 default WaitProcessRequest := true
@@ -37,6 +37,9 @@ default AllowRequestsFailingPolicy := false
 CreateContainerRequest {
     i_oci := input.OCI
     i_storages := input.storages
+
+    print("CreateContainerRequest: i_oci.Hooks =", i_oci.Hooks)
+    is_null(i_oci.Hooks)
 
     some p_container in policy_data.containers
     print("======== CreateContainerRequest: trying next policy container")
@@ -168,7 +171,7 @@ allow_by_container_types(p_oci, i_oci, s_name, s_namespace) {
     print("allow_by_container_types: checking io.kubernetes.cri.container-type")
 
     c_type := "io.kubernetes.cri.container-type"
-    
+
     p_cri_type := p_oci.Annotations[c_type]
     i_cri_type := i_oci.Annotations[c_type]
     print("allow_by_container_types: p_cri_type =", p_cri_type, "i_cri_type =", i_cri_type)
@@ -787,7 +790,7 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
 }
 
 ######################################################################
-# Storages
+# Create container Storages
 
 allow_storages(p_storages, i_storages, bundle_id, sandbox_id) {
     p_count := count(p_storages)
@@ -1060,14 +1063,70 @@ match_caps(p_caps, i_caps) {
 }
 
 ######################################################################
+check_directory_traversal(i_path) {
+    contains(i_path, "../") == false
+    endswith(i_path, "/..") == false
+}
+
+check_symlink_source {
+    # TODO: delete this rule once the symlink_src field gets implemented
+    # by all/most Guest VMs.
+    not input.symlink_src
+}
+check_symlink_source {
+    i_src := input.symlink_src
+    print("check_symlink_source: i_src =", i_src)
+
+    startswith(i_src, "/") == false
+    check_directory_traversal(i_src)
+}
+
+allow_sandbox_storages(i_storages) {
+    print("allow_sandbox_storages: i_storages =", i_storages)
+
+    p_storages := policy_data.sandbox.storages
+    every i_storage in i_storages {
+        allow_sandbox_storage(p_storages, i_storage)
+    }
+
+    print("allow_sandbox_storages: true")
+}
+
+allow_sandbox_storage(p_storages, i_storage) {
+    print("allow_sandbox_storage: i_storage =", i_storage)
+
+    some p_storage in p_storages
+    print("allow_sandbox_storage: p_storage =", p_storage)
+    i_storage == p_storage
+
+    print("allow_sandbox_storage: true")
+}
+
 CopyFileRequest {
     print("CopyFileRequest: input.path =", input.path)
 
+    check_symlink_source
+    check_directory_traversal(input.path)
+
     some regex1 in policy_data.request_defaults.CopyFileRequest
-    regex2 := replace(regex1, "$(cpath)", policy_data.common.cpath)
-    regex.match(regex2, input.path)
+    regex2 := replace(regex1, "$(sfprefix)", policy_data.common.sfprefix)
+    regex3 := replace(regex2, "$(cpath)", policy_data.common.cpath)
+    regex4 := replace(regex3, "$(bundle-id)", "[a-z0-9]{64}")
+    print("CopyFileRequest: regex4 =", regex4)
+
+    regex.match(regex4, input.path)
 
     print("CopyFileRequest: true")
+}
+
+CreateSandboxRequest {
+    print("CreateSandboxRequest: input.guest_hook_path =", input.guest_hook_path)
+    count(input.guest_hook_path) == 0
+
+    print("CreateSandboxRequest: input.kernel_modules =", input.kernel_modules)
+    count(input.kernel_modules) == 0
+
+    allow_sandbox_storages(input.storages)
 }
 
 ExecProcessRequest {
@@ -1113,6 +1172,10 @@ ExecProcessRequest {
 
 ReadStreamRequest {
     policy_data.request_defaults.ReadStreamRequest == true
+}
+
+UpdateEphemeralMountsRequest {
+    policy_data.request_defaults.UpdateEphemeralMountsRequest == true
 }
 
 WriteStreamRequest {
