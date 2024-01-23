@@ -49,7 +49,11 @@ func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (re
 
 	reportData := constructReportData(ownPublicKey, nonce)
 
-	reportRaw, err := client.GetRawReport(snpGuestDevice, reportData)
+	quoteProvider, err := client.GetQuoteProvider()
+	if err != nil {
+		return nil, fmt.Errorf("issuer: getting quote provider: %w", err)
+	}
+	reportRaw, err := quoteProvider.GetRawQuote(reportData)
 	if err != nil {
 		return nil, fmt.Errorf("issuer: getting raw report: %w", err)
 	}
