@@ -9,18 +9,18 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "genpolicy";
-  version = "0.6.2-1";
+  version = "0.6.2-5";
 
   src = fetchFromGitHub {
     owner = "microsoft";
     repo = "kata-containers";
     rev = "genpolicy-${version}";
-    hash = "sha256-/BMaKa8btqaiumlCGkwn6sJ0nMzm8fTbOn/54B2VkuI=";
+    hash = "sha256-R+kiyG3xLsoLBVTy1lmmqvDgoQuqfcV3DkfQtRCiYCw=";
   };
 
   sourceRoot = "${src.name}/src/tools/genpolicy";
 
-  cargoHash = "sha256-FHJY6kUVK9UDkDJj6l8SHfV3AwHOnqHK7cp09pU1DEA=";
+  cargoHash = "sha256-MRVtChYQkiU92n/z+5r4ge58t9yVeOCdqs0zx81IQUY=";
 
   dontStrip = true;
   buildType = "debug";

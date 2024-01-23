@@ -4,6 +4,7 @@ tools/genpolicy.cache/*
 edgcoco
 result*
 layers_cache
+layers-cache.json
 mesh-root.pem
 coordinator-root.pem
 justfile.env
