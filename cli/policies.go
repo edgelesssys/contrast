@@ -116,5 +116,6 @@ func (d deployment) DNSNames() []string {
 	return []string{
 		fmt.Sprintf("%s.%s", d.name, d.namespace),
 		fmt.Sprintf("*.%s", d.namespace),
+		"*",
 	}
 }
