@@ -92,15 +92,9 @@ func checkPoliciesMatchManifest(policies map[string]deployment, policyHashes map
 			len(policies), len(policyHashes))
 	}
 	for name, deployment := range policies {
-		existingNames, ok := policyHashes[deployment.policy.Hash()]
+		_, ok := policyHashes[deployment.policy.Hash()]
 		if !ok {
 			return fmt.Errorf("policy %s not found in manifest", name)
-		}
-
-		if !slices.Equal(existingNames, deployment.DNSNames()) {
-			return fmt.Errorf("policy %s with hash %s exists in manifest, but with different names %v",
-				name, deployment.policy.Hash(), existingNames,
-			)
 		}
 	}
 	return nil
