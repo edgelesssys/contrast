@@ -12,8 +12,6 @@ let
     fileset = lib.fileset.unions [
       ../go.mod
       ../go.sum
-      ../cli/rules.rego # go embed
-      ../cli/genpolicy-msft.json # go embed
       (lib.fileset.fileFilter (file: lib.hasSuffix ".go" file.name) ../.)
     ];
   };
@@ -45,6 +43,11 @@ rec {
       src = goFiles;
       proxyVendor = true;
       vendorHash = "sha256-/2GzN6vzMm8NWJYcauR+eJuZAVEV5wi/Wdkbe3KhKOM=";
+
+      prePatch = ''
+        install -D ${genpolicy.settings-dev}/genpolicy-settings.json cli/assets/genpolicy-settings.json
+        install -D ${genpolicy.rules}/genpolicy-rules.rego cli/assets/genpolicy-rules.rego
+      '';
 
       CGO_ENABLED = 0;
       ldflags = [

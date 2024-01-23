@@ -8,7 +8,7 @@ import input
 # Default values, returned by OPA when rules cannot be evaluated to true.
 default CopyFileRequest := false
 default CreateContainerRequest := false
-default CreateSandboxRequest := true
+default CreateSandboxRequest := false
 default DestroySandboxRequest := true
 default ExecProcessRequest := false
 default GetOOMEventRequest := true
@@ -171,7 +171,7 @@ allow_by_container_types(p_oci, i_oci, s_name, s_namespace) {
     print("allow_by_container_types: checking io.kubernetes.cri.container-type")
 
     c_type := "io.kubernetes.cri.container-type"
-
+    
     p_cri_type := p_oci.Annotations[c_type]
     i_cri_type := i_oci.Annotations[c_type]
     print("allow_by_container_types: p_cri_type =", p_cri_type, "i_cri_type =", i_cri_type)
