@@ -91,21 +91,17 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	}
 	v.logger.Info("Report decoded", "reportRaw", hex.EncodeToString(reportRaw))
 
-	report, err := abi.ReportToProto(reportRaw)
+	verifyOpts := verify.DefaultOptions()
+	verifyOpts.CheckRevocations = true
+	verifyOpts.Getter = v.kdsGetter
+
+	attestation, err := constructReportWithCertChain(reportRaw, verify.DefaultOptions())
 	if err != nil {
 		return fmt.Errorf("converting report to proto: %w", err)
 	}
 
 	// Report signature verification.
 
-	verifyOpts := verify.DefaultOptions()
-	verifyOpts.CheckRevocations = true
-	verifyOpts.Getter = v.kdsGetter
-
-	attestation, err := verify.GetAttestationFromReport(report, verifyOpts)
-	if err != nil {
-		return fmt.Errorf("getting attestation from report: %w", err)
-	}
 	if err := verify.SnpAttestation(attestation, verifyOpts); err != nil {
 		return fmt.Errorf("verifying report: %w", err)
 	}
@@ -114,7 +110,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	// Validate the report data.
 
 	reportDataExpected := constructReportData(peerPublicKey, nonce)
-	validateOpts, err := v.validateOptsGen.SNPValidateOpts(report)
+	validateOpts, err := v.validateOptsGen.SNPValidateOpts(attestation.Report)
 	if err != nil {
 		return fmt.Errorf("generating validation options: %w", err)
 	}
@@ -128,7 +124,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	for _, callbacker := range v.callbackers {
 		if err := callbacker.ValidateCallback(
-			ctx, report, v.OID(), reportRaw, nonce, peerPublicKey,
+			ctx, attestation.Report, v.OID(), reportRaw, nonce, peerPublicKey,
 		); err != nil {
 			return fmt.Errorf("callback failed: %w", err)
 		}
@@ -136,4 +132,18 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	v.logger.Info("Validate finished successfully")
 	return nil
+}
+
+func constructReportWithCertChain(reportRaw []byte, verifyOpts *verify.Options) (*sevsnp.Attestation, error) {
+	if len(reportRaw) >= (abi.ReportSize + abi.CertTableEntrySize) {
+		// got extended report (report + cert chain)
+		return abi.ReportCertsToProto(reportRaw)
+	}
+	// got report only, need to fetch cert chain
+	report, err := abi.ReportToProto(reportRaw)
+	if err != nil {
+		return nil, fmt.Errorf("converting report to proto: %w", err)
+	}
+
+	return verify.GetAttestationFromReport(report, verifyOpts)
 }
