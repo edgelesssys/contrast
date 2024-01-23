@@ -1,4 +1,7 @@
-{ fetchFromGitHub
+{ lib
+, fetchFromGitHub
+, fetchurl
+, applyPatches
 , rustPlatform
 , openssl
 , pkg-config
@@ -38,4 +41,36 @@ rustPlatform.buildRustPackage rec {
     libiconv
     zlib
   ];
+
+  passthru = rec {
+    settings = fetchurl {
+      name = "${pname}-${version}-settings";
+      url = "https://github.com/microsoft/kata-containers/releases/download/genpolicy-${version}/genpolicy-settings.json";
+      hash = "sha256-Q19H7Oj8c7SlPyib96fSRZhx/nJ96HXb8dfb9Y/Rsw8=";
+      downloadToTemp = true;
+      recursiveHash = true;
+      postFetch = "install -D $downloadedFile $out/genpolicy-settings.json";
+    };
+
+    settings-dev = applyPatches {
+      src = settings;
+      patches = [ ./genpolicy_msft_settings_dev.patch ];
+    };
+
+    rules = fetchurl {
+      name = "${pname}-${version}-rules";
+      url = "https://github.com/microsoft/kata-containers/releases/download/genpolicy-${version}/rules.rego";
+      hash = "sha256-D58bmeOu9MMBCaNoF4mmoG6rzVKRvCesZxOFkBdvxd8=";
+      downloadToTemp = true;
+      recursiveHash = true;
+      postFetch = "install -D $downloadedFile $out/genpolicy-rules.rego";
+    };
+  };
+
+  meta = {
+    changelog = "https://github.com/microsoft/kata-containers/releases/tag/genpolicy-${version}";
+    homepage = "https://github.com/microsoft/kata-containers";
+    mainProgram = "genpolicy";
+    licesnse = lib.licenses.asl20;
+  };
 }
