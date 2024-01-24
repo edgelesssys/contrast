@@ -3,6 +3,8 @@ kind: Pod
 metadata:
   name: port-forwarder-coordinator
   namespace: edg-default
+  labels:
+    app.kubernetes.io/name: port-forwarder-coordinator
 spec:
   containers:
     - name: port-forwarder
@@ -31,6 +33,8 @@ kind: Pod
 metadata:
   name: port-forwarder-emojivoto-web
   namespace: edg-default
+  labels:
+    app.kubernetes.io/name: port-forwarder-emojivoto-web
 spec:
   containers:
     - name: port-forwarder
