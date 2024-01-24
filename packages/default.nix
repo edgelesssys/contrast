@@ -214,4 +214,36 @@ rec {
          pods
     '';
   };
+
+  wait-for-port-listen = writeShellApplication {
+    name = "wait-for-port-listen";
+    runtimeInputs = [ iproute2 ];
+    text = ''
+      port=$1
+
+      function ss-listen-on-port() {
+        ss \
+          --tcp \
+          --numeric \
+          --listening \
+          --no-header \
+          --ipv4 \
+          src ":$port"
+      }
+
+      tries=15 # 3 seconds
+      interval=0.2
+
+      while [[ "$tries" -gt 0 ]]; do
+        if [[ -n $(ss-listen-on-port) ]]; then
+          exit 0
+        fi
+        sleep "$interval"
+        tries=$((tries - 1))
+      done
+
+      echo "Port $port did not reach state LISTENING" >&2
+      exit 1
+    '';
+  };
 }

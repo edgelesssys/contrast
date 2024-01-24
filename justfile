@@ -73,7 +73,7 @@ set:
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
     trap "kill $PID" EXIT
-    sleep 1
+    nix run .#wait-for-port-listen -- 1313
     t=$(date +%s)
     nix run .#cli -- set \
         -m ./{{ workspace_dir }}/manifest.json \
@@ -93,7 +93,7 @@ verify:
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1314:1313 &
     PID=$!
     trap "kill $PID" EXIT
-    sleep 1
+    nix run .#wait-for-port-listen -- 1314
     t=$(date +%s)
     nix run .#cli -- verify \
         -c localhost:1314 \
