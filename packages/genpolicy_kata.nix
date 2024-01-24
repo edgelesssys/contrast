@@ -1,4 +1,6 @@
-{ fetchFromGitHub
+{ lib
+, fetchurl
+, fetchFromGitHub
 , rustPlatform
 , openssl
 , pkg-config
@@ -50,4 +52,31 @@ rustPlatform.buildRustPackage rec {
   postConfigure = ''
     chmod -R +w ../..
   '';
+
+  passthru = rec {
+    settings = fetchurl {
+      name = "${pname}-${version}-settings";
+      url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${src.rev}/src/tools/genpolicy/genpolicy-settings.json";
+      hash = "sha256-6SbX/dyi9OIHH03TBFBfu5BJ921fNhClrPLfqMyX3hQ=";
+      downloadToTemp = true;
+      recursiveHash = true;
+      postFetch = "install -D $downloadedFile $out/genpolicy-settings.json";
+    };
+
+    rules = fetchurl {
+      name = "${pname}-${version}-rules";
+      url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${src.rev}/src/tools/genpolicy/rules.rego";
+      hash = "sha256-Dru5UPWlJM3TEmMUpG+rMKbrJmAb3/v3vlUOZZN3IPI=";
+      downloadToTemp = true;
+      recursiveHash = true;
+      postFetch = "install -D $downloadedFile $out/genpolicy-rules.rego";
+    };
+  };
+
+  meta = {
+    changelog = "https://github.com/kata-containers/kata-containers/releases/tag/${version}";
+    homepage = "https://github.com/kata-containers/kata-containers";
+    mainProgram = "genpolicy";
+    license = lib.licenses.asl20;
+  };
 }
