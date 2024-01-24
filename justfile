@@ -174,6 +174,7 @@ demodir:
 clean: undeploy
     rm -rf ./{{ workspace_dir }}
     rm -rf ./layers_cache
+    rm -f ./layers-cache.json
 
 # Template for the justfile.env file.
 
