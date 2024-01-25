@@ -4,33 +4,32 @@ import (
 	"log/slog"
 
 	"github.com/edgelesssys/nunki/internal/logger"
-	"github.com/edgelesssys/nunki/internal/memstore"
 	"github.com/google/go-sev-guest/verify/trust"
 	"k8s.io/utils/clock"
 )
 
-type cachedKDSHTTPClient struct {
+// CachedHTTPSGetter is a HTTPS client that caches responses in memory.
+type CachedHTTPSGetter struct {
 	trust.HTTPSGetter
 	logger *slog.Logger
 
 	gcTicker clock.Ticker
-	cache    *memstore.Store[string, []byte]
+	cache    store
 }
 
-func newCachedKDSHTTPClient(ticker clock.Ticker, log *slog.Logger) *cachedKDSHTTPClient {
-	trust.DefaultHTTPSGetter()
-
-	c := &cachedKDSHTTPClient{
+// NewCachedHTTPSGetter returns a new CachedHTTPSGetter.
+func NewCachedHTTPSGetter(s store, ticker clock.Ticker, log *slog.Logger) *CachedHTTPSGetter {
+	c := &CachedHTTPSGetter{
 		HTTPSGetter: trust.DefaultHTTPSGetter(),
 		logger:      slog.New(logger.NewHandler(log.Handler(), "cached-kds-http-client")),
-		cache:       memstore.New[string, []byte](),
+		cache:       s,
 		gcTicker:    ticker,
 	}
-
 	return c
 }
 
-func (c *cachedKDSHTTPClient) Get(url string) ([]byte, error) {
+// Get makes a GET request to the given URL.
+func (c *CachedHTTPSGetter) Get(url string) ([]byte, error) {
 	select {
 	case <-c.gcTicker.C():
 		c.logger.Debug("Garbage collecting")
@@ -50,4 +49,10 @@ func (c *cachedKDSHTTPClient) Get(url string) ([]byte, error) {
 	}
 	c.cache.Set(url, res)
 	return res, nil
+}
+
+type store interface {
+	Get(key string) ([]byte, bool)
+	Set(key string, value []byte)
+	Clear()
 }

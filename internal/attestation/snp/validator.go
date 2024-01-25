@@ -20,7 +20,6 @@ import (
 	"github.com/google/go-sev-guest/validate"
 	"github.com/google/go-sev-guest/verify"
 	"github.com/google/go-sev-guest/verify/trust"
-	"k8s.io/utils/clock"
 )
 
 // Validator validates attestation statements.
@@ -61,11 +60,11 @@ func NewValidator(optsGen validateOptsGenerator, log *slog.Logger) *Validator {
 }
 
 // NewValidatorWithCallbacks returns a new Validator with callbacks.
-func NewValidatorWithCallbacks(optsGen validateOptsGenerator, ticker clock.Ticker, log *slog.Logger, callbacks ...validateCallbacker) *Validator {
+func NewValidatorWithCallbacks(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, log *slog.Logger, callbacks ...validateCallbacker) *Validator {
 	return &Validator{
 		validateOptsGen: optsGen,
 		callbackers:     callbacks,
-		kdsGetter:       newCachedKDSHTTPClient(ticker, log),
+		kdsGetter:       kdsGetter,
 		logger:          slog.New(logger.NewHandler(log.Handler(), "snp-validator")),
 	}
 }

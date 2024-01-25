@@ -16,7 +16,7 @@ func TestMain(m *testing.M) {
 	goleak.VerifyTestMain(m)
 }
 
-func TestCachedKDSHTTPClient(t *testing.T) {
+func TestMemcachedHTTPSGetter(t *testing.T) {
 	t.Run("Get", func(t *testing.T) {
 		assert := assert.New(t)
 
@@ -29,7 +29,7 @@ func TestCachedKDSHTTPClient(t *testing.T) {
 		stepTime := 5 * time.Minute
 		testClock := testingclock.NewFakeClock(time.Now())
 		ticker := testClock.NewTicker(stepTime)
-		client := &cachedKDSHTTPClient{
+		client := &CachedHTTPSGetter{
 			HTTPSGetter: fakeGetter,
 			gcTicker:    ticker,
 			cache:       memstore.New[string, []byte](),
@@ -62,7 +62,7 @@ func TestCachedKDSHTTPClient(t *testing.T) {
 		}
 		testClock := testingclock.NewFakeClock(time.Now())
 		ticker := testClock.NewTicker(5 * time.Minute)
-		client := &cachedKDSHTTPClient{
+		client := &CachedHTTPSGetter{
 			HTTPSGetter: fakeGetter,
 			gcTicker:    ticker,
 			cache:       memstore.New[string, []byte](),
@@ -88,7 +88,7 @@ func TestCachedKDSHTTPClient(t *testing.T) {
 		stepTime := 5 * time.Minute
 		testClock := testingclock.NewFakeClock(time.Now())
 		ticker := testClock.NewTicker(stepTime)
-		client := &cachedKDSHTTPClient{
+		client := &CachedHTTPSGetter{
 			HTTPSGetter: fakeGetter,
 			gcTicker:    ticker,
 			cache:       memstore.New[string, []byte](),

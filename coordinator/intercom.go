@@ -11,6 +11,7 @@ import (
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
 	"github.com/edgelesssys/nunki/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/nunki/internal/intercom"
+	"github.com/edgelesssys/nunki/internal/memstore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
@@ -34,7 +35,8 @@ type certGetter interface {
 
 func newIntercomServer(meshAuth *meshAuthority, caGetter certChainGetter, log *slog.Logger) *intercomServer {
 	ticker := clock.RealClock{}.NewTicker(24 * time.Hour)
-	validator := snp.NewValidatorWithCallbacks(meshAuth, ticker, log, meshAuth)
+	kdsGetter := snp.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, log)
+	validator := snp.NewValidatorWithCallbacks(meshAuth, kdsGetter, log, meshAuth)
 	credentials := atlscredentials.New(atls.NoIssuer, []atls.Validator{validator})
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
