@@ -23,9 +23,12 @@ jobs:
         with:
           creds: ${{ secrets.NUNKI_CI_INFRA_AZURE }}
       - name: Cleanup .azure dir
-        run: rm $HOME/.azure/{commandIndex.json,versionCheck.json}
+        run: |
+          rm $HOME/.azure/{commandIndex.json,versionCheck.json}
       - name: Destroy existing CI cluster
         continue-on-error: true
-        run: nix run .#destroy-coco-aks -- --name="$azure_resource_group"
+        run: |
+          nix run .#destroy-coco-aks -- --name="$azure_resource_group"
       - name: Create CI cluster
-        run: nix run .#create-coco-aks -- --name="$azure_resource_group"
+        run: |
+          nix run .#create-coco-aks -- --name="$azure_resource_group"

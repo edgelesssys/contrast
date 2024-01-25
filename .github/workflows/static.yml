@@ -20,7 +20,8 @@ jobs:
           name: edgelesssys
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: nix flake check
-        run: nix -L flake check
+        run: |
+          nix -L flake check
 
   go-source:
     runs-on: ubuntu-22.04
@@ -37,7 +38,8 @@ jobs:
           name: edgelesssys
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Run code generations & tidying
-        run: nix run .#generate
+        run: |
+          nix run .#generate
       - name: Check for modifications, commit changes on renovate PRs
         uses: ./.github/actions/pushdiff
         with:
@@ -57,7 +59,8 @@ jobs:
             name: edgelesssys
             authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
         - name: Run govulncheck
-          run: nix run .#govulncheck -- ./...
+          run: |
+            nix run .#govulncheck -- ./...
 
   golangci-lint:
     runs-on: ubuntu-22.04
@@ -71,4 +74,5 @@ jobs:
           name: edgelesssys
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Run golangci-lint
-        run: nix run .#golangci-lint -- run
+        run: |
+          nix run .#golangci-lint -- run
