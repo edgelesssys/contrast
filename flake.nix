@@ -46,4 +46,13 @@
 
       legacyPackages = pkgs;
     });
+
+  nixConfig = {
+    extra-substituters = [
+      "https://edgelesssys.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "edgelesssys.cachix.org-1:erQG/S1DxpvJ4zuEFvjWLx/4vujoKxAJke6lK2tWeB0="
+    ];
+  };
 }
