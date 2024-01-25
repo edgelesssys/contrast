@@ -2,6 +2,8 @@ name: recreate ci cluster
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * 0" # every Sunday at 1am UTC
 
 env:
   azure_resource_group: nunki-ci
