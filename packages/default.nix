@@ -42,7 +42,7 @@ rec {
 
       src = goFiles;
       proxyVendor = true;
-      vendorHash = "sha256-/2GzN6vzMm8NWJYcauR+eJuZAVEV5wi/Wdkbe3KhKOM=";
+      vendorHash = "sha256-mpRigbkv18fnnLvaWfPIiAqhFo5lMvNNAXhbX2ghq+I=";
 
       prePatch = ''
         install -D ${genpolicy.settings-dev}/genpolicy-settings.json cli/assets/genpolicy-settings.json
