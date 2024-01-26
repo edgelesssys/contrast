@@ -2,6 +2,8 @@ package main
 
 import (
 	_ "embed"
+	"os"
+	"path/filepath"
 )
 
 const (
@@ -12,6 +14,7 @@ const (
 	rulesFilename          = "rules.rego"
 	policyDir              = "."
 	verifyDir              = "./verify"
+	cacheDirEnv            = "NUNKI_CACHE_DIR"
 )
 
 var (
@@ -20,3 +23,15 @@ var (
 	//go:embed assets/genpolicy-rules.rego
 	defaultRules []byte
 )
+
+func cachedir(subdir string) (string, error) {
+	dir := os.Getenv(cacheDirEnv)
+	if dir == "" {
+		cachedir, err := os.UserCacheDir()
+		if err != nil {
+			return "", err
+		}
+		dir = filepath.Join(cachedir, "nunki")
+	}
+	return filepath.Join(dir, subdir), nil
+}

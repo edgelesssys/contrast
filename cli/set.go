@@ -12,6 +12,7 @@ import (
 	"github.com/edgelesssys/nunki/internal/atls"
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
 	"github.com/edgelesssys/nunki/internal/coordapi"
+	"github.com/edgelesssys/nunki/internal/fsstore"
 	"github.com/edgelesssys/nunki/internal/grpc/dialer"
 	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/edgelesssys/nunki/internal/spinner"
@@ -77,9 +78,17 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("checking policies match manifest: %w", err)
 	}
 
-	validateOptsGen := newCoordinatorValidateOptsGen()
+	kdsDir, err := cachedir("kds")
+	if err != nil {
+		return fmt.Errorf("getting cache dir: %w", err)
+	}
+	logger.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	dialer := dialer.New(atls.NoIssuer, snp.NewValidator(validateOptsGen, logger), &net.Dialer{})
+	validateOptsGen := newCoordinatorValidateOptsGen()
+	kdsCache := fsstore.New(kdsDir, logger)
+	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverCGTicker, logger)
+	validator := snp.NewValidator(validateOptsGen, kdsGetter, logger)
+	dialer := dialer.New(atls.NoIssuer, validator, &net.Dialer{})
 
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
 	if err != nil {

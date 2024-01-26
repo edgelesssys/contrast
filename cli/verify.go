@@ -10,6 +10,7 @@ import (
 	"github.com/edgelesssys/nunki/internal/atls"
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
 	"github.com/edgelesssys/nunki/internal/coordapi"
+	"github.com/edgelesssys/nunki/internal/fsstore"
 	"github.com/edgelesssys/nunki/internal/grpc/dialer"
 	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/google/go-sev-guest/abi"
@@ -55,8 +56,17 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	logger.Debug("Starting verification")
 
+	kdsDir, err := cachedir("kds")
+	if err != nil {
+		return fmt.Errorf("getting cache dir: %w", err)
+	}
+	logger.Debug("Using KDS cache dir", "dir", kdsDir)
+
 	validateOptsGen := newCoordinatorValidateOptsGen()
-	dialer := dialer.New(atls.NoIssuer, snp.NewValidator(validateOptsGen, logger), &net.Dialer{})
+	kdsCache := fsstore.New(kdsDir, logger)
+	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverCGTicker, logger)
+	validator := snp.NewValidator(validateOptsGen, kdsGetter, logger)
+	dialer := dialer.New(atls.NoIssuer, validator, &net.Dialer{})
 
 	logger.Debug("Dialing coordinator", "endpoint", flags.coordinator)
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
