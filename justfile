@@ -173,6 +173,7 @@ demodir:
 # Cleanup auxiliary files, caches etc.
 clean: undeploy
     rm -rf ./{{ workspace_dir }}
+    rm -rf ./{{ workspace_dir }}.cache
     rm -rf ./layers_cache
     rm -f ./layers-cache.json
 
@@ -183,8 +184,17 @@ rctemplate := '''
 container_registry=""
 # Azure resource group/ resource name. Resource group will be created.
 azure_resource_group=""
+
+#
+# No need to change anything below this line.
+#
+
 # Namespace suffix, can be empty. Will be used when patching namespaces.
 namespace_suffix=""
+# Cache directory for the CLI.
+NUNKI_CACHE_DIR="./workspace.cache"
+# Log level for the CLI.
+NUNKI_LOG_LEVEL=""
 '''
 
 # Developer onboarding.
