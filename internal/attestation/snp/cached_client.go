@@ -2,10 +2,12 @@ package snp
 
 import (
 	"log/slog"
+	"time"
 
 	"github.com/edgelesssys/nunki/internal/logger"
 	"github.com/google/go-sev-guest/verify/trust"
 	"k8s.io/utils/clock"
+	testingclock "k8s.io/utils/clock/testing"
 )
 
 // CachedHTTPSGetter is a HTTPS client that caches responses in memory.
@@ -50,6 +52,9 @@ func (c *CachedHTTPSGetter) Get(url string) ([]byte, error) {
 	c.cache.Set(url, res)
 	return res, nil
 }
+
+// NeverGCTicker is a ticker that never ticks.
+var NeverGCTicker = testingclock.NewFakeClock(time.Now()).NewTicker(0)
 
 type store interface {
 	Get(key string) ([]byte, bool)
