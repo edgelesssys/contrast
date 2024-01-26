@@ -1,80 +1,66 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
     ":preserveSemverRanges",
-    "helpers:pinGitHubActionDigests",
-    ":separateMajorReleases",
     ":semanticCommitsDisabled",
+    ":separateMajorReleases",
+    "config:recommended",
+    "helpers:pinGitHubActionDigests",
   ],
-  "commitMessagePrefix": "deps:",
-  "commitMessageAction": "update",
-  "addLabels": [
-    "dependencies"
-  ],
-  "postUpdateOptions": [
+  commitMessagePrefix: "deps:",
+  commitMessageAction: "update",
+  addLabels: [ "dependencies" ],
+  postUpdateOptions: [
     "gomodTidy",
-    "gomodUpdateImportPaths"
+    "gomodUpdateImportPaths",
   ],
-  "prConcurrentLimit": 1,
-  "nix": {
-    "enabled": true,
+  prConcurrentLimit: 1,
+  nix: { enabled: true },
+  lockFileMaintenance: {
+    enabled: true,
+    commitMessageAction: "flake.lock: Update",
+    commitMessagePrefix: null,
+    schedule: [ "before 4am" ],
   },
-  "lockFileMaintenance": {
-      "enabled": true,
-      "commitMessageAction": "flake.lock: Update",
-      "commitMessagePrefix": null,
-      "schedule": ["before 4am"],
-  },
-  "packageRules": [
+  packageRules: [
     {
-      "matchManagers": ["gomod"],
-      "matchDepTypes": ["indirect"],
-      "enabled": true,
+      matchManagers: [ "gomod" ],
+      matchDepTypes: [ "indirect" ],
+      enabled: true,
     },
     {
-      "groupName": "Go indirect dependencies",
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchDepTypes": [
-        "indirect"
-      ],
-      "prPriority": -30,
+      groupName: "Go indirect dependencies",
+      matchManagers: [ "gomod" ],
+      matchDepTypes: [ "indirect" ],
+      prPriority: -30,
     },
     {
-      "groupName": "Go dependencies",
-      "matchManagers": [
-        "gomod"
-      ],
-      "matchDepTypes": [
-        "require"
-      ],
-      "matchUpdateTypes": [
+      groupName: "Go dependencies",
+      matchManagers: [ "gomod" ],
+      matchDepTypes: [ "require" ],
+      matchUpdateTypes: [
+        "bump",
+        "digest",
+        "lockFileMaintenance",
         "minor",
         "patch",
         "pin",
         "pinDigest",
-        "digest",
-        "lockFileMaintenance",
         "rollback",
-        "bump",
       ],
     },
     {
-      "matchManagers": [
-        "github-actions"
-      ],
-      "groupName": "GitHub action dependencies",
-      "matchUpdateTypes": [
+      matchManagers: [ "github-actions" ],
+      groupName: "GitHub action dependencies",
+      matchUpdateTypes: [
+        "bump",
+        "digest",
+        "lockFileMaintenance",
         "minor",
         "patch",
         "pin",
         "pinDigest",
-        "digest",
-        "lockFileMaintenance",
         "rollback",
-        "bump",
       ],
     },
   ],
