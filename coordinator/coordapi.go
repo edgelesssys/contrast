@@ -11,6 +11,7 @@ import (
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
 	"github.com/edgelesssys/nunki/internal/coordapi"
 	"github.com/edgelesssys/nunki/internal/grpc/atlscredentials"
+	"github.com/edgelesssys/nunki/internal/logger"
 	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/edgelesssys/nunki/internal/memstore"
 	"google.golang.org/grpc"
@@ -30,7 +31,7 @@ type coordAPIServer struct {
 }
 
 func newCoordAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, log *slog.Logger) *coordAPIServer {
-	issuer := snp.NewIssuer(log)
+	issuer := snp.NewIssuer(logger.NewNamed(log, "snp-issuer"))
 	credentials := atlscredentials.New(issuer, nil)
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),

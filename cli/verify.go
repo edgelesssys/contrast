@@ -50,38 +50,38 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("parsing flags: %w", err)
 	}
 
-	logger, err := newCLILogger(cmd)
+	log, err := newCLILogger(cmd)
 	if err != nil {
 		return err
 	}
-	logger.Debug("Starting verification")
+	log.Debug("Starting verification")
 
 	kdsDir, err := cachedir("kds")
 	if err != nil {
 		return fmt.Errorf("getting cache dir: %w", err)
 	}
-	logger.Debug("Using KDS cache dir", "dir", kdsDir)
+	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
 	validateOptsGen := newCoordinatorValidateOptsGen()
-	kdsCache := fsstore.New(kdsDir, logger)
-	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverCGTicker, logger)
-	validator := snp.NewValidator(validateOptsGen, kdsGetter, logger)
+	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
+	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
+	validator := snp.NewValidator(validateOptsGen, kdsGetter, log.WithGroup("snp-validator"))
 	dialer := dialer.New(atls.NoIssuer, validator, &net.Dialer{})
 
-	logger.Debug("Dialing coordinator", "endpoint", flags.coordinator)
+	log.Debug("Dialing coordinator", "endpoint", flags.coordinator)
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
 	if err != nil {
 		return fmt.Errorf("Error: failed to dial coordinator: %w", err)
 	}
 	defer conn.Close()
 
-	logger.Debug("Getting manifest")
+	log.Debug("Getting manifest")
 	client := coordapi.NewCoordAPIClient(conn)
 	resp, err := client.GetManifests(cmd.Context(), &coordapi.GetManifestsRequest{})
 	if err != nil {
 		return fmt.Errorf("failed to get manifest: %w", err)
 	}
-	logger.Debug("Got response")
+	log.Debug("Got response")
 
 	filelist := map[string][]byte{
 		coordRootPEMFilename:   resp.CACert,

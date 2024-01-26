@@ -7,6 +7,12 @@ import (
 	"strings"
 )
 
+// NewNamed returns a new logger with the given name, using the
+// handler from the previous logger.
+func NewNamed(logger *slog.Logger, name string) *slog.Logger {
+	return slog.New(NewHandler(logger.Handler(), name))
+}
+
 // Handler is a slog.Handler that can be used to enable logging on a per-subsystem basis.
 type Handler struct {
 	inner     slog.Handler

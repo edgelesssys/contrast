@@ -52,11 +52,10 @@ func (v *StaticValidateOptsGenerator) SNPValidateOpts(_ *sevsnp.Report) (*valida
 
 // NewValidator returns a new Validator.
 func NewValidator(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, log *slog.Logger) *Validator {
-	handler := logger.NewHandler(log.Handler(), "snp-validator")
 	return &Validator{
 		validateOptsGen: optsGen,
 		kdsGetter:       kdsGetter,
-		logger:          slog.New(handler),
+		logger:          log,
 	}
 }
 
