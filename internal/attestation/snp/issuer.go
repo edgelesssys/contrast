@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/edgelesssys/nunki/internal/logger"
 	"github.com/google/go-sev-guest/client"
 )
 
@@ -25,7 +24,7 @@ type Issuer struct {
 
 // NewIssuer returns a new Issuer.
 func NewIssuer(log *slog.Logger) *Issuer {
-	return &Issuer{logger: slog.New(logger.NewHandler(log.Handler(), "snp-issuer"))}
+	return &Issuer{logger: log}
 }
 
 // OID returns the OID of the issuer.

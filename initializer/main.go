@@ -29,18 +29,18 @@ func main() {
 }
 
 func run() (retErr error) {
-	logger, err := logger.Default()
+	log, err := logger.Default()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: creating logger: %v\n", err)
 		return err
 	}
 	defer func() {
 		if retErr != nil {
-			logger.Error(retErr.Error())
+			log.Error(retErr.Error())
 		}
 	}()
 
-	logger.Info("Initializer started")
+	log.Info("Initializer started")
 
 	coordinatorHostname := os.Getenv("COORDINATOR_HOST")
 	if coordinatorHostname == "" {
@@ -60,10 +60,11 @@ func run() (retErr error) {
 	}
 	pubKeyHash := sha256.Sum256(pubKey)
 	pubKeyHashStr := hex.EncodeToString(pubKeyHash[:])
-	logger.Info("Deriving public key", "pubKeyHash", pubKeyHashStr)
+	log.Info("Deriving public key", "pubKeyHash", pubKeyHashStr)
 
 	requestCert := func() (*intercom.NewMeshCertResponse, error) {
-		dial := dialer.NewWithKey(snp.NewIssuer(logger), atls.NoValidator, &net.Dialer{}, privKey)
+		issuer := snp.NewIssuer(logger.NewNamed(log, "snp-issuer"))
+		dial := dialer.NewWithKey(issuer, atls.NoValidator, &net.Dialer{}, privKey)
 		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorHostname, intercom.Port))
 		if err != nil {
 			return nil, fmt.Errorf("dialing: %w", err)
@@ -86,11 +87,11 @@ func run() (retErr error) {
 	for {
 		resp, err = requestCert()
 		if err == nil {
-			logger.Info("Requesting cert", "response", resp)
+			log.Info("Requesting cert", "response", resp)
 			break
 		}
-		logger.Warn("Requesting cert", "err", err)
-		logger.Info("Retrying in 10s")
+		log.Warn("Requesting cert", "err", err)
+		log.Info("Retrying in 10s")
 		time.Sleep(10 * time.Second)
 	}
 
@@ -122,6 +123,6 @@ func run() (retErr error) {
 		return fmt.Errorf("writing RootCACert.pem: %w", err)
 	}
 
-	logger.Info("Initializer done")
+	log.Info("Initializer done")
 	return nil
 }

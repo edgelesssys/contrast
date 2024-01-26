@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/edgelesssys/nunki/internal/logger"
 	"github.com/google/go-sev-guest/verify/trust"
 	"k8s.io/utils/clock"
 	testingclock "k8s.io/utils/clock/testing"
@@ -23,7 +22,7 @@ type CachedHTTPSGetter struct {
 func NewCachedHTTPSGetter(s store, ticker clock.Ticker, log *slog.Logger) *CachedHTTPSGetter {
 	c := &CachedHTTPSGetter{
 		HTTPSGetter: trust.DefaultHTTPSGetter(),
-		logger:      slog.New(logger.NewHandler(log.Handler(), "cached-kds-http-client")),
+		logger:      log,
 		cache:       s,
 		gcTicker:    ticker,
 	}

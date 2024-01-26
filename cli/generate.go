@@ -49,17 +49,17 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse flags: %w", err)
 	}
 
-	logger, err := newCLILogger(cmd)
+	log, err := newCLILogger(cmd)
 	if err != nil {
 		return err
 	}
 
-	paths, err := findGenerateTargets(args, logger)
+	paths, err := findGenerateTargets(args, log)
 	if err != nil {
 		return err
 	}
 
-	if err := generatePolicies(cmd.Context(), flags.policyPath, flags.settingsPath, paths, logger); err != nil {
+	if err := generatePolicies(cmd.Context(), flags.policyPath, flags.settingsPath, paths, log); err != nil {
 		return fmt.Errorf("failed to generate policies: %w", err)
 	}
 

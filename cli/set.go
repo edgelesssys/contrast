@@ -51,7 +51,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to parse flags: %w", err)
 	}
 
-	logger, err := newCLILogger(cmd)
+	log, err := newCLILogger(cmd)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
 
-	paths, err := findGenerateTargets(args, logger)
+	paths, err := findGenerateTargets(args, log)
 	if err != nil {
 		return fmt.Errorf("finding yaml files: %w", err)
 	}
@@ -82,12 +82,12 @@ func runSet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("getting cache dir: %w", err)
 	}
-	logger.Debug("Using KDS cache dir", "dir", kdsDir)
+	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
 	validateOptsGen := newCoordinatorValidateOptsGen()
-	kdsCache := fsstore.New(kdsDir, logger)
-	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverCGTicker, logger)
-	validator := snp.NewValidator(validateOptsGen, kdsGetter, logger)
+	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
+	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
+	validator := snp.NewValidator(validateOptsGen, kdsGetter, log.WithGroup("snp-validator"))
 	dialer := dialer.New(atls.NoIssuer, validator, &net.Dialer{})
 
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
