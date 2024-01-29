@@ -23,6 +23,9 @@ type CA struct {
 	rootPEM     []byte
 
 	// The intermPrivKey is used for both the intermediate and meshCA certificates.
+	// This implements cross-signing for the leaf certificates.
+	// This is also implemented in MarbleRun, see:
+	// https://docs.edgeless.systems/marblerun/architecture/security#public-key-infrastructure-and-certificate-authority
 	intermMux     sync.RWMutex
 	intermPrivKey *ecdsa.PrivateKey
 
