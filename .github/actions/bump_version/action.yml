@@ -1,0 +1,32 @@
+name: bump version
+description: Bump the projects main version and commit the change
+
+inputs:
+  version:
+    description: "Version to bump to"
+    required: true
+  commit:
+    description: Whether to commit the change
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Bump version
+      shell: bash
+      run: |
+        current=$(s
+          grep -E '^\s*version = "[^"]*";$' flake.nix |
+          sed -E 's/\s*version = "([^"]*)";/\1/'
+        )
+        sed -i 's/version = "[^"]*";$/version = "${{ inputs.version }}";/' flake.nix
+
+        if [[ "${{ inputs.commit }}" == "false" ]]; then
+          exit 0
+        fi
+
+        git config --global user.name "edgelessci"
+        git config --global user.email "edgelessci@users.noreply.github.com"
+        git add flake.nix
+        git diff --staged --quiet || git commit -m "flake: ${current} -> ${{ inputs.version }}"
+        git push origin "$(git rev-parse --abbrev-ref HEAD)"
