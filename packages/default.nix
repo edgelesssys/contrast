@@ -71,8 +71,9 @@ rec {
         for sub in ${builtins.concatStringsSep " " subPackages}; do
           install -Dm755 "$out/bin/$sub" "''${!sub}/bin/$sub"
         done
+        mv "$cli/bin/cli" "$cli/bin/nunki"
       '';
-      meta.mainProgram = "cli";
+      meta.mainProgram = "nunki";
     };
   inherit (nunki) cli;
 
