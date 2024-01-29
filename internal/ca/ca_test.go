@@ -8,6 +8,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -143,6 +144,90 @@ func TestCerateCert(t *testing.T) {
 			assertValidPEM(assert, pem)
 		})
 	}
+}
+
+func TestRotateIntermCerts(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
+	ca, err := New("namespace")
+	require.NoError(err)
+
+	oldIntermCert := ca.intermCert
+	oldintermPEM := ca.intermPEM
+	oldMeshCACert := ca.meshCACert
+	oldMeshCAPEM := ca.meshCAPEM
+
+	err = ca.RotateIntermCerts()
+	assert.NoError(err)
+	assert.NotEqual(oldIntermCert, ca.intermCert)
+	assert.NotEqual(oldintermPEM, ca.intermPEM)
+	assert.NotEqual(oldMeshCACert, ca.meshCACert)
+	assert.NotEqual(oldMeshCAPEM, ca.meshCAPEM)
+}
+
+func TestCAConcurrent(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+
+	ca, err := New("namespace")
+	require.NoError(err)
+
+	wg := sync.WaitGroup{}
+	getIntermCert := func() {
+		defer wg.Done()
+		assert.NotEmpty(ca.GetIntermCert())
+	}
+	getMeshCACert := func() {
+		defer wg.Done()
+		assert.NotEmpty(ca.GetMeshCACert())
+	}
+	getRootCACert := func() {
+		defer wg.Done()
+		assert.NotEmpty(ca.GetRootCACert())
+	}
+	rotateIntermCerts := func() {
+		defer wg.Done()
+		assert.NoError(ca.RotateIntermCerts())
+	}
+	newMeshCert := func() {
+		defer wg.Done()
+		_, err := ca.NewAttestedMeshCert([]string{"foo", "bar"}, []pkix.Extension{}, newKey(require).Public())
+		assert.NoError(err)
+	}
+
+	wg.Add(5 * 5)
+	go getIntermCert()
+	go getIntermCert()
+	go getIntermCert()
+	go getIntermCert()
+	go getIntermCert()
+
+	go getMeshCACert()
+	go getMeshCACert()
+	go getMeshCACert()
+	go getMeshCACert()
+	go getMeshCACert()
+
+	go getRootCACert()
+	go getRootCACert()
+	go getRootCACert()
+	go getRootCACert()
+	go getRootCACert()
+
+	go rotateIntermCerts()
+	go rotateIntermCerts()
+	go rotateIntermCerts()
+	go rotateIntermCerts()
+	go rotateIntermCerts()
+
+	go newMeshCert()
+	go newMeshCert()
+	go newMeshCert()
+	go newMeshCert()
+	go newMeshCert()
+
+	wg.Wait()
 }
 
 func newKey(require *require.Assertions) *ecdsa.PrivateKey {

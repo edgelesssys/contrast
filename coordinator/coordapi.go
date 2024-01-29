@@ -80,7 +80,9 @@ func (s *coordAPIServer) SetManifest(_ context.Context, req *coordapi.SetManifes
 		s.policyTextStore.Set(policy.Hash(), policy)
 	}
 
-	s.manifSetGetter.SetManifest(m)
+	if err := s.manifSetGetter.SetManifest(m); err != nil {
+		return nil, status.Errorf(codes.Internal, "setting manifest: %v", err)
+	}
 
 	resp := &coordapi.SetManifestResponse{
 		CACert:     s.caChainGetter.GetRootCACert(),
@@ -148,7 +150,7 @@ type certChainGetter interface {
 }
 
 type manifestSetGetter interface {
-	SetManifest(*manifest.Manifest)
+	SetManifest(*manifest.Manifest) error
 	GetManifests() []*manifest.Manifest
 }
 
