@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/edgelesssys/nunki/internal/crypto"
@@ -22,6 +23,7 @@ type CA struct {
 	rootPEM     []byte
 
 	// The intermPrivKey is used for both the intermediate and meshCA certificates.
+	intermMux     sync.RWMutex
 	intermPrivKey *ecdsa.PrivateKey
 
 	intermCert *x509.Certificate
@@ -56,51 +58,23 @@ func New(namespace string) (*CA, error) {
 		return nil, fmt.Errorf("creating root certificate: %w", err)
 	}
 
-	intermed := &x509.Certificate{
-		Subject:               pkix.Name{CommonName: "system:coordinator:meshCA"},
-		NotBefore:             notBefore,
-		NotAfter:              notAfter,
-		IsCA:                  true,
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		BasicConstraintsValid: true,
+	ca := CA{
+		rootPrivKey: rootPrivKey,
+		rootCert:    root,
+		rootPEM:     rootPEM,
+		namespace:   namespace,
 	}
-	intermPrivKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	if err != nil {
-		return nil, fmt.Errorf("generating intermediate private key: %w", err)
-	}
-	intermPEM, err := createCert(intermed, root, &intermPrivKey.PublicKey, rootPrivKey)
-	if err != nil {
-		return nil, fmt.Errorf("creating intermediate certificate: %w", err)
+	if err := ca.RotateIntermCerts(); err != nil {
+		return nil, fmt.Errorf("rotating intermediate certificates: %w", err)
 	}
 
-	meshCA := &x509.Certificate{
-		Subject:               pkix.Name{CommonName: "system:coordinator:meshCA"},
-		NotBefore:             notBefore,
-		NotAfter:              notAfter,
-		IsCA:                  true,
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		BasicConstraintsValid: true,
-	}
-	meshCAPEM, err := createCert(meshCA, meshCA, &intermPrivKey.PublicKey, intermPrivKey)
-	if err != nil {
-		return nil, fmt.Errorf("creating mesh certificate: %w", err)
-	}
-
-	return &CA{
-		rootPrivKey:   rootPrivKey,
-		rootCert:      root,
-		rootPEM:       rootPEM,
-		intermPrivKey: intermPrivKey,
-		intermCert:    intermed,
-		intermPEM:     intermPEM,
-		meshCACert:    meshCA,
-		meshCAPEM:     meshCAPEM,
-		namespace:     namespace,
-	}, nil
+	return &ca, nil
 }
 
 // NewAttestedMeshCert creates a new attested mesh certificate.
 func (c *CA) NewAttestedMeshCert(dnsNames []string, extensions []pkix.Extension, subjectPublicKey any) ([]byte, error) {
+	c.intermMux.RLock()
+	defer c.intermMux.RUnlock()
 	now := time.Now()
 	certTemplate := &x509.Certificate{
 		Subject:               pkix.Name{CommonName: dnsNames[0]},
@@ -120,6 +94,52 @@ func (c *CA) NewAttestedMeshCert(dnsNames []string, extensions []pkix.Extension,
 	}
 
 	return certPEM, nil
+}
+
+// RotateIntermCerts rotates the intermediate certificates.
+// All existing mesh certificates will remain valid under the rootCA but
+// not under the new intermediate certificate.
+// To distribute the new intermediate certificate, all workloads should
+// be restarted.
+func (c *CA) RotateIntermCerts() error {
+	c.intermMux.Lock()
+	defer c.intermMux.Unlock()
+
+	now := time.Now()
+	notBefore := now.Add(-time.Hour)
+	notAfter := now.AddDate(10, 0, 0)
+	c.intermCert = &x509.Certificate{
+		Subject:               pkix.Name{CommonName: "system:coordinator:meshCA"},
+		NotBefore:             notBefore,
+		NotAfter:              notAfter,
+		IsCA:                  true,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+	var err error
+	c.intermPrivKey, err = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	if err != nil {
+		return fmt.Errorf("generating intermediate private key: %w", err)
+	}
+	c.intermPEM, err = createCert(c.intermCert, c.rootCert, &c.intermPrivKey.PublicKey, c.rootPrivKey)
+	if err != nil {
+		return fmt.Errorf("creating intermediate certificate: %w", err)
+	}
+
+	c.meshCACert = &x509.Certificate{
+		Subject:               pkix.Name{CommonName: "system:coordinator:meshCA"},
+		NotBefore:             notBefore,
+		NotAfter:              notAfter,
+		IsCA:                  true,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+	c.meshCAPEM, err = createCert(c.meshCACert, c.meshCACert, &c.intermPrivKey.PublicKey, c.intermPrivKey)
+	if err != nil {
+		return fmt.Errorf("creating mesh certificate: %w", err)
+	}
+
+	return nil
 }
 
 // GetRootCACert returns the root certificate of the CA in PEM format.

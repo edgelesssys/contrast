@@ -129,8 +129,12 @@ func (m *meshAuthority) GetManifests() []*manifest.Manifest {
 	return m.manifests.All()
 }
 
-func (m *meshAuthority) SetManifest(mnfst *manifest.Manifest) {
+func (m *meshAuthority) SetManifest(mnfst *manifest.Manifest) error {
+	if err := m.ca.RotateIntermCerts(); err != nil {
+		return fmt.Errorf("rotating intermediate certificates: %w", err)
+	}
 	m.manifests.Append(mnfst)
+	return nil
 }
 
 type appendableList[T any] interface {

@@ -88,6 +88,23 @@ func TestManifestSet(t *testing.T) {
 			mSGetter: &stubManifestSetGetter{},
 			caGetter: &stubCertChainGetter{},
 		},
+		"valid manifest but error when setting it": {
+			req: &coordapi.SetManifestRequest{
+				Manifest: newManifestBytes(func(m *manifest.Manifest) {
+					m.Policies = map[manifest.HexString][]string{
+						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
+						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+					}
+				}),
+				Policies: [][]byte{
+					[]byte("a"),
+					[]byte("b"),
+				},
+			},
+			mSGetter: &stubManifestSetGetter{setManifestErr: assert.AnError},
+			caGetter: &stubCertChainGetter{},
+			wantErr:  true,
+		},
 	}
 
 	for name, tc := range testCases {
@@ -249,13 +266,15 @@ func TestCoordAPIConcurrent(t *testing.T) {
 type stubManifestSetGetter struct {
 	mux              sync.RWMutex
 	setManifestCount int
+	setManifestErr   error
 	getManifestResp  []*manifest.Manifest
 }
 
-func (s *stubManifestSetGetter) SetManifest(*manifest.Manifest) {
+func (s *stubManifestSetGetter) SetManifest(*manifest.Manifest) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	s.setManifestCount++
+	return s.setManifestErr
 }
 
 func (s *stubManifestSetGetter) GetManifests() []*manifest.Manifest {
