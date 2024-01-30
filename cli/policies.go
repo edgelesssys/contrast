@@ -25,27 +25,22 @@ func policiesFromKubeResources(yamlPaths []string) (map[string]deployment, error
 
 	deployments := make(map[string]deployment)
 	for _, objAny := range kubeObjs {
-		var name, annotation, namespace string
+		var name, annotation string
 		switch obj := objAny.(type) {
 		case kubeapi.Pod:
 			name = obj.Name
-			namespace = obj.Namespace
 			annotation = obj.Annotations[kataPolicyAnnotationKey]
 		case kubeapi.Deployment:
 			name = obj.Name
-			namespace = obj.Namespace
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 		case kubeapi.ReplicaSet:
 			name = obj.Name
-			namespace = obj.Namespace
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 		case kubeapi.StatefulSet:
 			name = obj.Name
-			namespace = obj.Namespace
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 		case kubeapi.DaemonSet:
 			name = obj.Name
-			namespace = obj.Namespace
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 		}
 		if annotation == "" {
@@ -54,17 +49,13 @@ func policiesFromKubeResources(yamlPaths []string) (map[string]deployment, error
 		if name == "" {
 			return nil, fmt.Errorf("name is required but empty")
 		}
-		if namespace == "" {
-			namespace = "default"
-		}
 		policy, err := manifest.NewPolicyFromAnnotation([]byte(annotation))
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse policy %s: %w", name, err)
 		}
 		deployments[name] = deployment{
-			name:      name,
-			namespace: namespace,
-			policy:    policy,
+			name:   name,
+			policy: policy,
 		}
 	}
 
@@ -101,15 +92,10 @@ func checkPoliciesMatchManifest(policies map[string]deployment, policyHashes map
 }
 
 type deployment struct {
-	name      string
-	namespace string
-	policy    manifest.Policy
+	name   string
+	policy manifest.Policy
 }
 
 func (d deployment) DNSNames() []string {
-	return []string{
-		fmt.Sprintf("%s.%s", d.name, d.namespace),
-		fmt.Sprintf("*.%s", d.namespace),
-		"*",
-	}
+	return []string{d.name, "*"}
 }
