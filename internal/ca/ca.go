@@ -34,12 +34,10 @@ type CA struct {
 
 	meshCACert *x509.Certificate
 	meshCAPEM  []byte
-
-	namespace string
 }
 
 // New creates a new CA.
-func New(namespace string) (*CA, error) {
+func New() (*CA, error) {
 	now := time.Now()
 	notBefore := now.Add(-time.Hour)
 	notAfter := now.AddDate(10, 0, 0)
@@ -65,7 +63,6 @@ func New(namespace string) (*CA, error) {
 		rootPrivKey: rootPrivKey,
 		rootCert:    root,
 		rootPEM:     rootPEM,
-		namespace:   namespace,
 	}
 	if err := ca.RotateIntermCerts(); err != nil {
 		return nil, fmt.Errorf("rotating intermediate certificates: %w", err)
