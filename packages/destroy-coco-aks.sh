@@ -16,18 +16,7 @@ for i in "$@"; do
   esac
 done
 
-exitcode=0
-
-az aks nodepool delete \
-  --resource-group "${name}" \
-  --name nodepool2 \
-  --cluster-name "${name}" ||
-  exitcode=$?
-
 az aks delete \
   --resource-group "${name}" \
   --name "${name}" \
-  --yes ||
-  exitcode=$?
-
-exit "${exitcode}"
+  --yes
