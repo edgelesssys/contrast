@@ -163,7 +163,7 @@ demodir:
     d=$(mktemp -d)
     echo "Creating demo directory at ${d}"
     nix build .#nunki.cli
-    cp ./result-cli/bin/cli "${d}/nunki"
+    cp ./result-cli/bin/nunki "${d}/nunki"
     cp -R ./deployments/emojivoto "${d}/deployment"
     nix run .#patch-nunki-image-hashes -- "${d}/deployment"
     nix run .#kypatch images -- "${d}/deployment" \
