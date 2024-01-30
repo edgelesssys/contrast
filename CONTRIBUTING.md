@@ -3,7 +3,28 @@
 ### Getting started
 
 1. [Install Nix](https://zero-to-nix.com/concepts/nix-installer)
-2. Enter the development environment with
+
+2. (Optional) configure Nix to allow use of extra substituters, and profit from our
+    cachix remote cache. To allow using additional substituters from the flake.nix,
+    add yourself (or the wheel group) as trusted-user in your nix config.
+
+    On NixOS (in your config):
+
+    ```nix
+    nix.settings.trusted-users = [ "root" "@wheel" ];
+    ```
+
+    On other systems (in `/etc/nix/nix.conf`):
+
+    ```
+    trusted-users = root @wheel
+    ```
+
+    See Nix manual section on [substituters](https://nixos.org/manual/nix/stable/command-ref/conf-file.html#conf-substituters)
+    and [trusted-users](https://nixos.org/manual/nix/stable/command-ref/conf-file.html#conf-trusted-users) for details and
+    consequences.
+
+3. Enter the development environment with
 
     ```sh
     nix develop .#
@@ -18,13 +39,13 @@
    direnv allow
    ```
 
-3. Execute and follow instructions of
+4. Execute and follow instructions of
 
     ```sh
     just onboard
     ```
 
-4. Provision a CoCo enabled AKS cluster with
+5. Provision a CoCo enabled AKS cluster with
 
     ```sh
     just create
