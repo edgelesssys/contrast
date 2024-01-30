@@ -53,7 +53,6 @@ rec {
       ldflags = [
         "-s"
         "-w"
-        "-buildid="
         "-X main.genpolicyPath=${genpolicy}/bin/genpolicy"
       ];
 
