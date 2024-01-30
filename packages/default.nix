@@ -246,4 +246,16 @@ rec {
       exit 1
     '';
   };
+
+  get-coordinator-policy-hash = writeShellApplication {
+    name = "get-coordinator-policy-hash";
+    runtimeInputs = [ yq-go ];
+    text = ''
+      set -o pipefail
+      yq -e eval-all \
+        'select(.kind == "Deployment" and .metadata.name == "coordinator") |
+         .spec.template.metadata.annotations["io.katacontainers.config.agent.policy"]' "$@" |
+        base64 -d | sha256sum | cut -d' ' -f1
+    '';
+  };
 }

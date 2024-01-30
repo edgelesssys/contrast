@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -41,6 +42,7 @@ func newSetCmd() *cobra.Command {
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
+	cmd.Flags().String("coordinator-policy-hash", DefaultCoordinatorPolicyHash, "expected policy hash of the coordinator, will not be checked if empty")
 
 	return cmd
 }
@@ -84,7 +86,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	validateOptsGen := newCoordinatorValidateOptsGen()
+	validateOptsGen := newCoordinatorValidateOptsGen(flags.policy)
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
 	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
 	validator := snp.NewValidator(validateOptsGen, kdsGetter, log.WithGroup("snp-validator"))
@@ -122,6 +124,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 type setFlags struct {
 	manifestPath string
 	coordinator  string
+	policy       []byte
 }
 
 func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
@@ -135,6 +138,14 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	flags.coordinator, err = cmd.Flags().GetString("coordinator")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get coordinator flag: %w", err)
+	}
+	policyString, err := cmd.Flags().GetString("coordinator-policy-hash")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get coordinator-policy-hash flag: %w", err)
+	}
+	flags.policy, err = hex.DecodeString(policyString)
+	if err != nil {
+		return nil, fmt.Errorf("hex-decoding coordinator-policy-hash flag: %w", err)
 	}
 
 	return flags, nil

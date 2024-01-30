@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"os"
@@ -40,6 +41,7 @@ func newVerifyCmd() *cobra.Command {
 	cmd.Flags().StringP("output", "o", verifyDir, "directory to write files to")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
+	cmd.Flags().String("coordinator-policy-hash", DefaultCoordinatorPolicyHash, "expected policy hash of the coordinator, will not be checked if empty")
 
 	return cmd
 }
@@ -62,7 +64,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	validateOptsGen := newCoordinatorValidateOptsGen()
+	validateOptsGen := newCoordinatorValidateOptsGen(flags.policy)
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
 	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
 	validator := snp.NewValidator(validateOptsGen, kdsGetter, log.WithGroup("snp-validator"))
@@ -107,6 +109,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 type verifyFlags struct {
 	coordinator string
 	outputDir   string
+	policy      []byte
 }
 
 func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
@@ -118,14 +121,23 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	policyString, err := cmd.Flags().GetString("coordinator-policy-hash")
+	if err != nil {
+		return nil, err
+	}
+	policy, err := hex.DecodeString(policyString)
+	if err != nil {
+		return nil, fmt.Errorf("hex-decoding coordinator-policy-hash flag: %w", err)
+	}
 
 	return &verifyFlags{
 		coordinator: coordinator,
 		outputDir:   outputDir,
+		policy:      policy,
 	}, nil
 }
 
-func newCoordinatorValidateOptsGen() *snp.StaticValidateOptsGenerator {
+func newCoordinatorValidateOptsGen(hostData []byte) *snp.StaticValidateOptsGenerator {
 	defaultManifest := manifest.Default()
 	trustedIDKeyDigests, err := (&defaultManifest.ReferenceValues.SNP.TrustedIDKeyHashes).ByteSlices()
 	if err != nil {
@@ -134,6 +146,7 @@ func newCoordinatorValidateOptsGen() *snp.StaticValidateOptsGenerator {
 
 	return &snp.StaticValidateOptsGenerator{
 		Opts: &validate.Options{
+			HostData: hostData,
 			GuestPolicy: abi.SnpPolicy{
 				Debug: false,
 				SMT:   true,
