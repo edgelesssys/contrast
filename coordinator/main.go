@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -33,12 +32,7 @@ func run() (retErr error) {
 
 	logger.Info("Coordinator started")
 
-	namespace, ok := os.LookupEnv("NAMESPACE")
-	if !ok {
-		return errors.New("NAMESPACE environment variable not set")
-	}
-
-	caInstance, err := ca.New(namespace)
+	caInstance, err := ca.New()
 	if err != nil {
 		return fmt.Errorf("creating CA: %w", err)
 	}

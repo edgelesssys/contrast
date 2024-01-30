@@ -19,7 +19,7 @@ func TestNewCA(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	ca, err := New("namespace")
+	ca, err := New()
 	require.NoError(err)
 	assert.NotNil(ca)
 	assert.NotNil(ca.rootPrivKey)
@@ -65,7 +65,7 @@ func TestAttestedMeshCert(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 
-			ca, err := New("namespace")
+			ca, err := New()
 			require.NoError(err)
 
 			cert, err := ca.NewAttestedMeshCert(tc.dnsNames, tc.extensions, tc.subjectPub)
@@ -150,7 +150,7 @@ func TestRotateIntermCerts(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	ca, err := New("namespace")
+	ca, err := New()
 	require.NoError(err)
 
 	oldIntermCert := ca.intermCert
@@ -170,7 +170,7 @@ func TestCAConcurrent(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	ca, err := New("namespace")
+	ca, err := New()
 	require.NoError(err)
 
 	wg := sync.WaitGroup{}

@@ -22,10 +22,6 @@ spec:
             - containerPort: 7777
             - containerPort: 1313
           env:
-            - name: NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
             - name: NUNKI_LOG_LEVEL
               value: "debug"
           resources:
