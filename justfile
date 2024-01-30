@@ -75,10 +75,12 @@ set:
     PID=$!
     trap "kill $PID" EXIT
     nix run .#wait-for-port-listen -- 1313
+    policy=$(nix run .#get-coordinator-policy-hash -- ./{{ workspace_dir }}/deployment/*.yml)
     t=$(date +%s)
     nix run .#cli -- set \
         -m ./{{ workspace_dir }}/manifest.json \
         -c localhost:1313 \
+        --coordinator-policy-hash "${policy}" \
         ./{{ workspace_dir }}/deployment/*.yml
     duration=$(( $(date +%s) - $t ))
     echo "Set manifest in $duration seconds."
