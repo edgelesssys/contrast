@@ -145,3 +145,89 @@ ctr run \
     --snapshotter tardev docker.io/library/ubuntu:latest \
     foo
 ```
+
+## Kata-Containers Configuration on AKS
+
+In the last section we learned that the `kata-cc` runtime is configured with
+`/opt/confidential-containers/share/defaults/kata-containers/configuration-clh-snp.toml`.
+This file is a serialization of [katautils.tomlConfig] and contains decent inline documentation
+(see [snapshot]). In case we would like to tweak configuration, [drop-in fragments] are a handy
+option.
+
+<details>
+<summary>Example of a useful drop-in fragment</summary>
+
+```sh
+cat >/opt/confidential-containers/share/defaults/kata-containers/config.d/10-memory.toml <<EOF
+[hypervisor.clh]
+default_memory = 256
+EOF
+```
+</details>
+
+[katautils.tomlConfig]: https://github.com/kata-containers/kata-containers/blob/40d9a65/src/runtime/pkg/katautils/config.go#L64
+[snapshot]: https://gist.github.com/burgerdev/6133d56deb1722a746df2269f4d33160
+[drop-in fragments]: https://github.com/kata-containers/kata-containers/blob/main/src/runtime/README.md#drop-in-configuration-file-fragments
+
+### Resource Management
+
+There's [AKS documentation for resource managment] which explains the basics of how CPU and
+memory are allocated for a Kata VM.
+The default memory allocation is quite high at 2GiB, which fills up the node pretty quickly.
+It's unclear why this deafult is chosen, given that the container limit is added on top of this
+value. Forcing a size with the pod annotation
+`io.katacontainers.config.hypervisor.default_memory` would be possible, but the annotation would
+need to be allowlisted in the config setting `enable_annotations`.
+
+[AKS documentation for resource managment]: https://learn.microsoft.com/en-us/azure/aks/confidential-containers-overview#resource-allocation-overview
+
+<details>
+<summary>Relevant config snippet</summary>
+
+```toml
+[hypervisor.clh]
+default_memory = 2048  # MiB! Minimum seems to be around 256.
+default_vcpus = 1
+enable_annotations = ["enable_iommu"]
+
+[runtime]
+static_sandbox_resource_mgmt = true
+```
+</details>
+
+### Cloud Hypervisor
+
+We can learn some interesting facts about the VMs managed with Cloud Hypervisor by talking to their
+api sockets.
+
+<details>
+<summary>List some facts about all CH VMs</summary>
+
+```sh
+find /run/vc/vm -name clh-api.sock -exec ch-remote --api-socket "{}" info ";" |
+  jq -s 'map( {
+    "sock": .config.vsock.socket,
+    "policy": .config.payload.host_data,
+    "vcpus": .config.cpus.max_vcpus,
+    "memory_mib": (.config.memory.size / 1024 / 1024),
+    "disks": [.config.disks[] | .path]
+    }) | sort_by(.sock)'
+```
+
+```json
+[
+  {
+    "sock": "/run/vc/vm/c9ebe6792862527ebbfea9aa353258e0d301fffdde784bb6dde65090ddc18704/clh.sock",
+    "policy": "ee6d1cb44554a792665264c9fe412d270feeff32fbc2ef40158a1f969a45cec1",
+    "vcpus": 1,
+    "memory_mib": 2148,
+    "disks": [
+      "/opt/confidential-containers/share/kata-containers/kata-containers.img",
+      "/var/lib/containerd/io.containerd.snapshotter.v1.tardev/layers/5a5aad80055ff20012a50dc25f8df7a29924474324d65f7d5306ee8ee27ff71d",
+      "/var/lib/containerd/io.containerd.snapshotter.v1.tardev/layers/35ff57f24506a885c071fe2aaa526aa172b051477016e1d03feccb2bbc58b8b7"
+    ]
+  },
+  "..."
+]
+```
+</details>
