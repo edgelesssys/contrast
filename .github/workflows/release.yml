@@ -115,11 +115,26 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: main
+      - name: Create update branch
+        run: |
+          git switch -c automated/update-main-after-${{ needs.process-inputs.outputs.WORKING_BRANCH }}
       - name: Bump flake version to post release patch pre-version
         uses: ./.github/actions/bump_version
         with:
           version: ${{ needs.process-inputs.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
           commit: true
+      - name: Create PR
+        uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # v5.0.2
+        with:
+          title: Post ${{ needs.process-inputs.outputs.WITHOUT_V }} release updates to main
+          body: |
+            Updating main as part of the ${{ needs.process-inputs.outputs.WITHOUT_V }} release.
+            Only merge after the release is published.
+          base: main
+          draft: false
+          delete-branch: true
+          author: edgelessci <edgelessci@users.noreply.github.com>
+          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
 
   release:
     name: Build and push artifacts, create release
