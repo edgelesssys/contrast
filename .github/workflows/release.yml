@@ -122,6 +122,7 @@ jobs:
           ref: main
           path: nunki-main
       - name: Bump flake version to post release patch pre-version
+        id: bump
         uses: ./nunki-working/.github/actions/bump_version # Run action from working branch!
         with:
           version: ${{ needs.process-inputs.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
@@ -134,9 +135,11 @@ jobs:
           body: |
             Updating main as part of the ${{ needs.process-inputs.outputs.WITHOUT_V }} release.
             Only merge after the release is published.
+          commit-message: ${{ steps.bump.outputs.commit-msg }}
           base: main
           draft: false
           branch: automated/update-main-after-${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          committer: edgelessci <edgelessci@users.noreply.github.com>
           author: edgelessci <edgelessci@users.noreply.github.com>
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
           path: ./nunki-main
