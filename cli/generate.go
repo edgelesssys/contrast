@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/edgelesssys/nunki/internal/embedbin"
 	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/spf13/cobra"
 )
@@ -154,8 +155,21 @@ func generatePolicies(ctx context.Context, regoPath, policyPath string, yamlPath
 	if err := createFileWithDefault(filepath.Join(regoPath, rulesFilename), defaultRules); err != nil {
 		return fmt.Errorf("creating default policy.rego file: %w", err)
 	}
+	binaryInstallDir, err := installDir()
+	if err != nil {
+		return fmt.Errorf("failed to get install dir: %w", err)
+	}
+	genpolicyInstall, err := embedbin.New().Install(binaryInstallDir, genpolicyBin)
+	if err != nil {
+		return fmt.Errorf("failed to install genpolicy: %w", err)
+	}
+	defer func() {
+		if err := genpolicyInstall.Uninstall(); err != nil {
+			logger.Warn("Failed to uninstall genpolicy tool", "err", err)
+		}
+	}()
 	for _, yamlPath := range yamlPaths {
-		policyHash, err := generatePolicyForFile(ctx, regoPath, policyPath, yamlPath, logger)
+		policyHash, err := generatePolicyForFile(ctx, genpolicyInstall.Path(), regoPath, policyPath, yamlPath, logger)
 		if err != nil {
 			return fmt.Errorf("failed to generate policy for %s: %w", yamlPath, err)
 		}
@@ -167,7 +181,7 @@ func generatePolicies(ctx context.Context, regoPath, policyPath string, yamlPath
 	return nil
 }
 
-func generatePolicyForFile(ctx context.Context, regoPath, policyPath, yamlPath string, logger *slog.Logger) ([32]byte, error) {
+func generatePolicyForFile(ctx context.Context, genpolicyPath, regoPath, policyPath, yamlPath string, logger *slog.Logger) ([32]byte, error) {
 	args := []string{
 		"--raw-out",
 		"--use-cached-files",
@@ -247,4 +261,12 @@ func createFileWithDefault(path string, deflt []byte) error {
 	defer file.Close()
 	_, err = file.Write(deflt)
 	return err
+}
+
+func installDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".nunki"), nil
 }

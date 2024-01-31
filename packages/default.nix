@@ -45,6 +45,7 @@ rec {
       vendorHash = "sha256-dkFAlqAzVD82yWrrdscZumY4hP/XP3hn8CuZ0tkZuhg=";
 
       prePatch = ''
+        install -D ${lib.getExe genpolicy} cli/assets/genpolicy
         install -D ${genpolicy.settings-dev}/genpolicy-settings.json cli/assets/genpolicy-settings.json
         install -D ${genpolicy.rules}/genpolicy-rules.rego cli/assets/genpolicy-rules.rego
       '';
@@ -53,7 +54,6 @@ rec {
       ldflags = [
         "-s"
         "-w"
-        "-X main.genpolicyPath=${genpolicy}/bin/genpolicy"
       ];
 
       preCheck = ''

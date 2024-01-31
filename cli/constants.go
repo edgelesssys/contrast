@@ -18,6 +18,8 @@ const (
 )
 
 var (
+	//go:embed assets/genpolicy
+	genpolicyBin []byte
 	//go:embed assets/genpolicy-settings.json
 	defaultGenpolicySettings []byte
 	//go:embed assets/genpolicy-rules.rego
