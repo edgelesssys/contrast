@@ -111,18 +111,22 @@ jobs:
       RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
       WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
     steps:
-      - name: Checkout
+      - name: Checkout working branch
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          path: nunki-working
+      - name: Checkout main
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: main
-      - name: Create update branch
-        run: |
-          git switch -c automated/update-main-after-${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          path: nunki-main
       - name: Bump flake version to post release patch pre-version
-        uses: ./.github/actions/bump_version
+        uses: ./nunki-working/.github/actions/bump_version # Run action from working branch!
         with:
           version: ${{ needs.process-inputs.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
-          commit: true
+          working-directory: nunki-main
+          commit: false
       - name: Create PR
         uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # v5.0.2
         with:
@@ -132,9 +136,10 @@ jobs:
             Only merge after the release is published.
           base: main
           draft: false
-          delete-branch: true
+          branch: automated/update-main-after-${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           author: edgelessci <edgelessci@users.noreply.github.com>
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+          path: ./nunki-main
 
   release:
     name: Build and push artifacts, create release
