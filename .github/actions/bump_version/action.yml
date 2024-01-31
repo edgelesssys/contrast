@@ -33,12 +33,12 @@ runs:
         )
         sed -i 's/version = "[^"]*";$/version = "${{ inputs.version }}";/' flake.nix
 
+        commit_msg="flake: ${current} -> ${{ inputs.version }}"
+        echo "commit-msg=${commit_msg}" | tee -a "$GITHUB_OUTPUT"
+
         if [[ "${{ inputs.commit }}" == "false" ]]; then
           exit 0
         fi
-
-        commit_msg="flake: ${current} -> ${{ inputs.version }}"
-        echo "commit-msg=${commit_msg}" | tee -a "$GITHUB_OUTPUT"
 
         git config --global user.name "edgelessci"
         git config --global user.email "edgelessci@users.noreply.github.com"
