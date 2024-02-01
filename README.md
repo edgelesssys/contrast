@@ -94,6 +94,8 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: coordinator
+      annotations:
+        nunki.edgeless.systems/pod-role: coordinator
     spec:
       runtimeClassName: kata-cc-isolation
       containers:

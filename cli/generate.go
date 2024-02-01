@@ -19,7 +19,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const kataPolicyAnnotationKey = "io.katacontainers.config.agent.policy"
+const (
+	kataPolicyAnnotationKey = "io.katacontainers.config.agent.policy"
+	nunkiRoleAnnotationKey  = "nunki.edgeless.systems/pod-role"
+)
 
 func newGenerateCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -31,9 +34,14 @@ func newGenerateCmd() *cobra.Command {
 		This will download the referenced container images to calculate the dm-verity
 		hashes of the image layers. In addition, the Rego policy will be used as base
 		and updated with the given settings file. For each container workload, the policy
-		is added as annotaiton in the Kubernetes YAML.
+		is added as an annotation to the Kubernetes YAML.
 
 		The hashes of the policies are added to the manifest.
+
+		If the Kubernetes YAML contains a Nunki Coordinator pod whose policy differs from
+		the embedded default, the generated policy will be printed to stdout, alongside a
+		warning message on stderr. This hash needs to be passed to the set and verify
+		subcommands.
 		`,
 		RunE: runGenerate,
 	}
@@ -97,6 +105,10 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	log.Info("Updated manifest", "path", flags.manifestPath)
+
+	if hash := getCoordinatorPolicyHash(policies, log); hash != "" {
+		fmt.Fprintln(cmd.OutOrStdout(), hash)
+	}
 
 	return nil
 }
