@@ -8,7 +8,7 @@ metadata:
 spec:
   containers:
     - name: port-forwarder
-      image: nixery.dev/shell/socat
+      image: "ghcr.io/edgelesssys/nunki/port-forwarder:latest"
       env:
         - name: LISTEN_PORT
           value: "1313"
