@@ -160,7 +160,7 @@ fmt:
 lint:
     nix run .#golangci-lint -- run
 
-demodir:
+demodir: undeploy coordinator initializer
     #!/usr/bin/env bash
     d=$(mktemp -d)
     echo "Creating demo directory at ${d}"
