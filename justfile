@@ -41,7 +41,7 @@ generate target=default_deploy_target:
         -m ./{{ workspace_dir }}/manifest.json \
         -p ./{{ workspace_dir }} \
         -s genpolicy-msft.json \
-        ./{{ workspace_dir }}/deployment/*.yml
+        ./{{ workspace_dir }}/deployment/*.yml > ./{{ workspace_dir }}/just.coordinator-policy-hash
     duration=$(( $(date +%s) - $t ))
     echo "Generated policies in $duration seconds."
     echo "generate $duration" >> ./{{ workspace_dir }}/just.perf
@@ -79,7 +79,7 @@ set:
     PID=$!
     trap "kill $PID" EXIT
     nix run .#wait-for-port-listen -- 1313
-    policy=$(nix run .#get-coordinator-policy-hash -- ./{{ workspace_dir }}/deployment/*.yml)
+    policy=$(<./{{ workspace_dir }}/just.coordinator-policy-hash)
     t=$(date +%s)
     nix run .#cli -- set \
         -m ./{{ workspace_dir }}/manifest.json \

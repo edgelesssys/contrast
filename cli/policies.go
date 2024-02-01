@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"slices"
 
@@ -25,23 +26,28 @@ func policiesFromKubeResources(yamlPaths []string) (map[string]deployment, error
 
 	deployments := make(map[string]deployment)
 	for _, objAny := range kubeObjs {
-		var name, annotation string
+		var name, annotation, role string
 		switch obj := objAny.(type) {
 		case kubeapi.Pod:
 			name = obj.Name
 			annotation = obj.Annotations[kataPolicyAnnotationKey]
+			role = obj.Annotations[nunkiRoleAnnotationKey]
 		case kubeapi.Deployment:
 			name = obj.Name
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			role = obj.Spec.Template.Annotations[nunkiRoleAnnotationKey]
 		case kubeapi.ReplicaSet:
 			name = obj.Name
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			role = obj.Spec.Template.Annotations[nunkiRoleAnnotationKey]
 		case kubeapi.StatefulSet:
 			name = obj.Name
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			role = obj.Spec.Template.Annotations[nunkiRoleAnnotationKey]
 		case kubeapi.DaemonSet:
 			name = obj.Name
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			role = obj.Spec.Template.Annotations[nunkiRoleAnnotationKey]
 		}
 		if annotation == "" {
 			continue
@@ -56,6 +62,7 @@ func policiesFromKubeResources(yamlPaths []string) (map[string]deployment, error
 		deployments[name] = deployment{
 			name:   name,
 			policy: policy,
+			role:   role,
 		}
 	}
 
@@ -91,9 +98,27 @@ func checkPoliciesMatchManifest(policies map[string]deployment, policyHashes map
 	return nil
 }
 
+// getCoordinatorPolicyHash returns the policy hash for the Nunki coordinator among the given deployments.
+//
+// If the deployments contain a coordinator, that coordinator's policy hash is returned, otherwise
+// an empty string is returned.
+//
+// If there is more than one coordinator, it's unspecified which one will be used.
+func getCoordinatorPolicyHash(policies map[string]deployment, log *slog.Logger) string {
+	var hash string
+	for _, deployment := range policies {
+		if deployment.role == "coordinator" {
+			log.Warn("Found unexpected coordinator policy", "name", deployment.name, "hash", deployment.policy.Hash())
+			hash = deployment.policy.Hash().String()
+		}
+	}
+	return hash
+}
+
 type deployment struct {
 	name   string
 	policy manifest.Policy
+	role   string
 }
 
 func (d deployment) DNSNames() []string {
