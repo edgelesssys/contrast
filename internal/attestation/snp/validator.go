@@ -95,7 +95,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	verifyOpts.CheckRevocations = true
 	verifyOpts.Getter = v.kdsGetter
 
-	attestation, err := constructReportWithCertChain(reportRaw, verify.DefaultOptions())
+	attestation, err := constructReportWithCertChain(reportRaw, verifyOpts)
 	if err != nil {
 		return fmt.Errorf("converting report to proto: %w", err)
 	}
