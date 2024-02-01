@@ -17,7 +17,6 @@ spec:
       initContainers:
         - name: initializer
           image: "ghcr.io/edgelesssys/nunki/initializer:latest"
-          imagePullPolicy: Always
           env:
             - name: COORDINATOR_HOST
               value: coordinator
@@ -32,7 +31,6 @@ spec:
       containers:
         - name: workload
           image: "fedora:38"
-          imagePullPolicy: Always
           command:
             - /bin/bash
             - "-c"
