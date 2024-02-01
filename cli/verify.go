@@ -32,8 +32,8 @@ func newVerifyCmd() *cobra.Command {
 		the connection will only be successful if the Coordinator conforms with the
 		reference values embedded into the CLI.
 
-		After the connection is established, the CLI will request the manifest histroy,
-		all policies, and the certificates of the Coordinator certifcate authority.
+		After the connection is established, the CLI will request the manifest history,
+		all policies, and the certificates of the Coordinator certificate authority.
 	`,
 		RunE: runVerify,
 	}
