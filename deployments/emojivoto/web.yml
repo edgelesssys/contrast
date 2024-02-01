@@ -29,7 +29,6 @@ spec:
       initContainers:
         - name: initializer
           image: "ghcr.io/edgelesssys/nunki/initializer:latest"
-          imagePullPolicy: Always
           env:
             - name: COORDINATOR_HOST
               value: coordinator
@@ -56,7 +55,6 @@ spec:
             - name: EDG_DISABLE_CLIENT_AUTH
               value: "true"
           image: ghcr.io/3u13r/emojivoto-web:coco-1
-          imagePullPolicy: Always
           name: web-svc
           ports:
             - containerPort: 8080

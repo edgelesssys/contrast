@@ -17,7 +17,6 @@ spec:
       initContainers:
         - name: initializer
           image: "ghcr.io/edgelesssys/nunki/initializer:latest"
-          imagePullPolicy: Always
           env:
             - name: COORDINATOR_HOST
               value: coordinator
@@ -32,7 +31,6 @@ spec:
       containers:
         - name: openssl-client
           image: ghcr.io/3u13r/nunki/openssl:latest
-          imagePullPolicy: Always
           command:
             - /bin/bash
             - "-c"

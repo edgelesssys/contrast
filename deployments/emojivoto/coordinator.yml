@@ -17,7 +17,6 @@ spec:
       containers:
         - name: coordinator
           image: "ghcr.io/edgelesssys/nunki/coordinator:latest"
-          imagePullPolicy: Always
           ports:
             - containerPort: 7777
             - containerPort: 1313

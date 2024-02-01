@@ -29,7 +29,6 @@ spec:
       initContainers:
         - name: initializer
           image: "ghcr.io/edgelesssys/nunki/initializer:latest"
-          imagePullPolicy: Always
           env:
             - name: COORDINATOR_HOST
               value: coordinator
@@ -55,7 +54,6 @@ spec:
             - name: EDG_KEY_PATH
               value: /tls-config/key.pem
           image: ghcr.io/3u13r/emojivoto-voting-svc:coco-1
-          imagePullPolicy: Always
           name: voting-svc
           ports:
             - containerPort: 8080
