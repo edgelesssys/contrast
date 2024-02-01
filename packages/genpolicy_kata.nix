@@ -30,9 +30,6 @@ rustPlatform.buildRustPackage rec {
     };
   };
 
-  dontStrip = true;
-  buildType = "debug";
-
   env.OPENSSL_NO_VENDOR = 1;
 
   nativeBuildInputs = [
