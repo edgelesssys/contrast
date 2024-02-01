@@ -93,17 +93,25 @@ rec {
     };
   };
 
-  push-coordinator = pushContainer coordinator;
-  push-initializer = pushContainer initializer;
-
-  push-openssl = pushContainer (dockerTools.buildImage {
+  opensslContainer = dockerTools.buildImage {
     name = "openssl";
     tag = "v${version}";
     copyToRoot = [ openssl bash coreutils ncurses bashInteractive vim procps ];
     config = {
       Cmd = [ "bash" ];
     };
-  });
+  };
+  port-forwarder = dockerTools.buildImage {
+    name = "port-forwarder";
+    tag = "v${version}";
+    copyToRoot = [ bash socat ];
+  };
+
+  push-coordinator = pushContainer coordinator;
+  push-initializer = pushContainer initializer;
+
+  push-openssl = pushContainer opensslContainer;
+  push-port-forwarder = pushContainer port-forwarder;
 
   azure-cli-with-extensions = callPackage ./azurecli.nix { };
 
@@ -161,6 +169,8 @@ rec {
       crane
       initializer
       kypatch
+      opensslContainer
+      port-forwarder
     ];
     text = ''
       targetPath=$1
@@ -170,13 +180,19 @@ rec {
 
       gunzip < "${coordinator}" > "$tmpdir/coordinator.tar"
       gunzip < "${initializer}" > "$tmpdir/initializer.tar"
+      gunzip < "${opensslContainer}" > "$tmpdir/openssl.tar"
+      gunzip < "${port-forwarder}" > "$tmpdir/port-forwarder.tar"
 
       coordHash=$(crane digest --tarball "$tmpdir/coordinator.tar")
       initHash=$(crane digest --tarball "$tmpdir/initializer.tar")
+      opensslHash=$(crane digest --tarball "$tmpdir/openssl.tar")
+      forwarderHash=$(crane digest --tarball "$tmpdir/port-forwarder.tar")
 
       kypatch images "$targetPath" \
         --replace "nunki/coordinator:latest" "nunki/coordinator@$coordHash" \
-        --replace "nunki/initializer:latest" "nunki/initializer@$initHash"
+        --replace "nunki/initializer:latest" "nunki/initializer@$initHash" \
+        --replace "nunki/openssl:latest" "nunki/openssl@$opensslHash" \
+        --replace "nunki/port-forwarder:latest" "nunki/port-forwarder@$forwarderHash"
     '';
   };
 

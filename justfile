@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target: undeploy coordinator initializer openssl (deploy target) set verify (wait-for-workload target)
+default target=default_deploy_target: undeploy coordinator initializer openssl port-forwarder (deploy target) set verify (wait-for-workload target)
 
 # Build the coordinator, containerize and push it.
 coordinator:
@@ -8,6 +8,10 @@ coordinator:
 # Build the openssl container and push it.
 openssl:
     nix run .#push-openssl -- "$container_registry/nunki/openssl"
+
+# Build the port-forwarder container and push it.
+port-forwarder:
+    nix run .#push-port-forwarder -- "$container_registry/nunki/port-forwarder"
 
 # Build the initializer, containerize and push it.
 initializer:
