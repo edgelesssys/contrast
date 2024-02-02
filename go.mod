@@ -3,7 +3,7 @@ module github.com/edgelesssys/nunki
 go 1.21
 
 require (
-	github.com/google/go-sev-guest v0.10.2-0.20240126023144-76997c0b1210
+	github.com/google/go-sev-guest v0.10.2-0.20240201221106-3ee8fc6140cb
 	github.com/spf13/afero v1.11.0
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
