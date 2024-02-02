@@ -23,7 +23,7 @@
       pkgs = import nixpkgs { inherit system; };
       inherit (pkgs) lib;
 
-      version = "0.0.0-devel";
+      version = "0.1.1-pre";
 
       treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
     in
