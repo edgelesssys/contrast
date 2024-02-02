@@ -34,7 +34,7 @@ rec {
     let
       subPackages = [ "coordinator" "initializer" "cli" ];
     in
-    buildGoModule {
+    lib.makeOverridable buildGoModule {
       inherit version subPackages;
       name = "nunki";
 
@@ -76,6 +76,12 @@ rec {
       meta.mainProgram = "nunki";
     };
   inherit (nunki) cli;
+
+  cli-release = (nunki.override (prevArgs: {
+    ldflags = prevArgs.ldflags ++ [
+      "-X main.DefaultCoordinatorPolicyHash=${builtins.readFile ../cli/assets/coordinator-policy-hash}"
+    ];
+  })).cli;
 
   coordinator = dockerTools.buildImage {
     name = "coordinator";
