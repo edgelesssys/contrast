@@ -54,6 +54,7 @@ rec {
       ldflags = [
         "-s"
         "-w"
+        "-X main.version=v${version}"
       ];
 
       preCheck = ''
