@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -95,7 +96,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to write manifest: %w", err)
 	}
 
-	fmt.Fprintf(cmd.OutOrStdout(), "Updated manifest %s\n", flags.manifestPath)
+	log.Info("Updated manifest", "path", flags.manifestPath)
 
 	return nil
 }
@@ -176,7 +177,8 @@ func generatePolicies(ctx context.Context, regoPath, policyPath string, yamlPath
 		if policyHash == [32]byte{} {
 			continue
 		}
-		fmt.Printf("%x  %s\n", policyHash, yamlPath)
+
+		logger.Info("Calculated policy hash", "hash", hex.EncodeToString(policyHash[:]), "path", yamlPath)
 	}
 	return nil
 }
