@@ -1,0 +1,20 @@
+changelog:
+  include:
+    labels:
+      - breaking change
+      - feature
+      - bug fix
+      - changelog
+  categories:
+    - title: 🛠 Breaking changes
+      labels:
+        - breaking change
+    - title: 🎁 New features
+      labels:
+        - feature
+    - title: 🐛 Bug fixes
+      labels:
+        - bug fix
+    - title: 🔧 Other changes
+      labels:
+        - "*"
