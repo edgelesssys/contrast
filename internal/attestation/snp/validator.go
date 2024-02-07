@@ -15,6 +15,7 @@ import (
 	"log/slog"
 
 	"github.com/edgelesssys/nunki/internal/logger"
+	"github.com/edgelesssys/nunki/internal/oid"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
@@ -71,7 +72,7 @@ func NewValidatorWithCallbacks(optsGen validateOptsGenerator, kdsGetter trust.HT
 
 // OID returns the OID of the validator.
 func (v *Validator) OID() asn1.ObjectIdentifier {
-	return asn1.ObjectIdentifier{1, 3, 9901, 2, 1}
+	return oid.RawSNPReport
 }
 
 // Validate a TPM based attestation.

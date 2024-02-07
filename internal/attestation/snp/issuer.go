@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/edgelesssys/nunki/internal/oid"
 	"github.com/google/go-sev-guest/client"
 )
 
@@ -29,7 +30,7 @@ func NewIssuer(log *slog.Logger) *Issuer {
 
 // OID returns the OID of the issuer.
 func (i *Issuer) OID() asn1.ObjectIdentifier {
-	return asn1.ObjectIdentifier{1, 3, 9901, 2, 1}
+	return oid.RawSNPReport
 }
 
 // Issue the attestation document.
