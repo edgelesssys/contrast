@@ -134,7 +134,7 @@ Note that this is not secure by default. If the user doesn't configure the
 endpoints in their application, traffic is send out unencrypted and without
 authentication.
 
-<img src="./assets/egress.svg">
+<img src="./assets/001-egress.svg">
 
 ### Step 2: Ingress
 
@@ -148,7 +148,7 @@ Envoy. Also traffic originating from the uid the proxy is started with, is not
 redirected. Since by default all traffic is routed to Envoy, the workload's
 ingress endpoint are secure by default.
 
-<img src="./assets/ingress.svg">
+<img src="./assets/001-ingress.svg">
 
 ### Step 3: Secure by default egress
 
