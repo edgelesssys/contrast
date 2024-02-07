@@ -59,22 +59,22 @@ var (
 
 	chipIDOID = append(rootOID, 32)
 
-	committedTCBPartsBlSplOID    = append(rootOID, 32)
-	committedTCBPartsSnpSplOID   = append(rootOID, 33)
-	committedTCBPartsTeeSplOID   = append(rootOID, 34)
-	committedTCBPartsUcodeSplOID = append(rootOID, 35)
+	committedTCBPartsBlSplOID    = append(rootOID, 33)
+	committedTCBPartsSnpSplOID   = append(rootOID, 34)
+	committedTCBPartsTeeSplOID   = append(rootOID, 35)
+	committedTCBPartsUcodeSplOID = append(rootOID, 36)
 
-	currentBuildOID   = append(rootOID, 36)
-	currentMinorOID   = append(rootOID, 37)
-	currentMajorOID   = append(rootOID, 38)
-	committedBuildOID = append(rootOID, 39)
-	committedMinorOID = append(rootOID, 40)
-	committedMajorOID = append(rootOID, 41)
+	currentBuildOID   = append(rootOID, 37)
+	currentMinorOID   = append(rootOID, 38)
+	currentMajorOID   = append(rootOID, 39)
+	committedBuildOID = append(rootOID, 40)
+	committedMinorOID = append(rootOID, 41)
+	committedMajorOID = append(rootOID, 42)
 
-	launchTCBPartsBlSplOID    = append(rootOID, 42)
-	launchTCBPartsSnpSplOID   = append(rootOID, 43)
-	launchTCBPartsTeeSplOID   = append(rootOID, 44)
-	launchTCBPartsUcodeSplOID = append(rootOID, 45)
+	launchTCBPartsBlSplOID    = append(rootOID, 43)
+	launchTCBPartsSnpSplOID   = append(rootOID, 44)
+	launchTCBPartsTeeSplOID   = append(rootOID, 45)
+	launchTCBPartsUcodeSplOID = append(rootOID, 46)
 )
 
 type bigIntExtension struct {
