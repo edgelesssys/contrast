@@ -42,7 +42,7 @@ rec {
 
       src = goFiles;
       proxyVendor = true;
-      vendorHash = "sha256-dkFAlqAzVD82yWrrdscZumY4hP/XP3hn8CuZ0tkZuhg=";
+      vendorHash = "sha256-WDkEJC8Bv1gl85BewcaaVQEvzLEcCNhBTnWUl/ZjCPA=";
 
       prePatch = ''
         install -D ${lib.getExe genpolicy} cli/assets/genpolicy

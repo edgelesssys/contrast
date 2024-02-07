@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/hex"
 	"fmt"
@@ -12,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/edgelesssys/nunki/internal/appendable"
+	"github.com/edgelesssys/nunki/internal/attestation/snp"
 	"github.com/edgelesssys/nunki/internal/ca"
 	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/google/go-sev-guest/abi"
@@ -78,7 +78,7 @@ func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Option
 }
 
 func (m *meshAuthority) ValidateCallback(_ context.Context, report *sevsnp.Report,
-	oid asn1.ObjectIdentifier, reportRaw, _, peerPubKeyBytes []byte,
+	_ asn1.ObjectIdentifier, _, _, peerPubKeyBytes []byte,
 ) error {
 	mnfst, err := m.manifests.Latest()
 	if err != nil {
@@ -96,7 +96,10 @@ func (m *meshAuthority) ValidateCallback(_ context.Context, report *sevsnp.Repor
 		return fmt.Errorf("failed to parse peer public key: %w", err)
 	}
 
-	extensions := []pkix.Extension{{Id: oid, Value: reportRaw}}
+	extensions, err := snp.ClaimsToCertExtension(report)
+	if err != nil {
+		return fmt.Errorf("failed to construct extensions: %w", err)
+	}
 	cert, err := m.ca.NewAttestedMeshCert(dnsNames, extensions, peerPubKey)
 	if err != nil {
 		return fmt.Errorf("failed to issue new attested mesh cert: %w", err)
