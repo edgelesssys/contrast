@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/edgelesssys/nunki/internal/oid"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/proto/sevsnp"
@@ -13,7 +14,9 @@ import (
 )
 
 var (
-	rootOID = asn1.ObjectIdentifier{1, 3, 9901, 2, 1}
+	// We use the raw SNP OID as root range for our parsed SNP report extensions.
+	// This OID NOT be used for any parsed extension directly.
+	rootOID = oid.RawSNPReport
 
 	versionOID  = append(rootOID, 1)
 	guestSVNOID = append(rootOID, 2)
