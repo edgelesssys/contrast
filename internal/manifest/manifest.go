@@ -12,8 +12,9 @@ import (
 // Manifest is the Coordinator manifest and contains the reference values of the deployment.
 type Manifest struct {
 	// policyHash/HOSTDATA -> commonName
-	Policies        map[HexString][]string
-	ReferenceValues ReferenceValues
+	Policies                map[HexString][]string
+	ReferenceValues         ReferenceValues
+	WorkloadOwnerKeyDigests []HexString
 }
 
 // ReferenceValues contains the workload independent reference values.
