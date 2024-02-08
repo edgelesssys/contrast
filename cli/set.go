@@ -2,12 +2,18 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/edgelesssys/nunki/internal/atls"
@@ -45,6 +51,7 @@ func newSetCmd() *cobra.Command {
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
 	cmd.Flags().String("coordinator-policy-hash", DefaultCoordinatorPolicyHash, "expected policy hash of the coordinator, will not be checked if empty")
+	cmd.Flags().String("workload-owner-key", workloadOwnerPEM, "path to workload owner key (.pem) file")
 
 	return cmd
 }
@@ -67,6 +74,11 @@ func runSet(cmd *cobra.Command, args []string) error {
 	var m manifest.Manifest
 	if err := json.Unmarshal(manifestBytes, &m); err != nil {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
+	}
+
+	workloadOwnerKey, err := loadWorkloadOwnerKey(flags.workloadOwnerKeyPath, m, log)
+	if err != nil {
+		return fmt.Errorf("loading workload owner key: %w", err)
 	}
 
 	paths, err := findGenerateTargets(args, log)
@@ -92,7 +104,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
 	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
 	validator := snp.NewValidator(validateOptsGen, kdsGetter, log.WithGroup("snp-validator"))
-	dialer := dialer.New(atls.NoIssuer, validator, &net.Dialer{})
+	dialer := dialer.NewWithKey(atls.NoIssuer, validator, &net.Dialer{}, workloadOwnerKey)
 
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
 	if err != nil {
@@ -107,6 +119,18 @@ func runSet(cmd *cobra.Command, args []string) error {
 	}
 	resp, err := setLoop(cmd.Context(), client, cmd.OutOrStdout(), req)
 	if err != nil {
+		grpcSt, ok := status.FromError(err)
+		if ok {
+			if grpcSt.Code() == codes.PermissionDenied {
+				msg := "Permission denied."
+				if workloadOwnerKey == nil {
+					msg += " Specify a workload owner key with --workload-owner-key."
+				} else {
+					msg += " Ensure you are using a trusted workload owner key."
+				}
+				fmt.Fprintln(cmd.OutOrStdout(), msg)
+			}
+		}
 		return fmt.Errorf("failed to set manifest: %w", err)
 	}
 
@@ -124,9 +148,10 @@ func runSet(cmd *cobra.Command, args []string) error {
 }
 
 type setFlags struct {
-	manifestPath string
-	coordinator  string
-	policy       []byte
+	manifestPath         string
+	coordinator          string
+	policy               []byte
+	workloadOwnerKeyPath string
 }
 
 func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
@@ -149,6 +174,10 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	if err != nil {
 		return nil, fmt.Errorf("hex-decoding coordinator-policy-hash flag: %w", err)
 	}
+	flags.workloadOwnerKeyPath, err = cmd.Flags().GetString("workload-owner-key")
+	if err != nil {
+		return nil, fmt.Errorf("getting workload-owner-key flag: %w", err)
+	}
 
 	return flags, nil
 }
@@ -159,6 +188,42 @@ func policyMapToBytesList(m map[string]deployment) [][]byte {
 		policies = append(policies, depl.policy)
 	}
 	return policies
+}
+
+func loadWorkloadOwnerKey(path string, manifst manifest.Manifest, log *slog.Logger) (*ecdsa.PrivateKey, error) {
+	key, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("reading workload owner key: %w", err)
+	}
+	pemBlock, _ := pem.Decode(key)
+	if pemBlock == nil {
+		return nil, fmt.Errorf("decoding workload owner key: %w", err)
+	}
+	if pemBlock.Type != "EC PRIVATE KEY" {
+		return nil, fmt.Errorf("workload owner key is not an EC private key")
+	}
+	workloadOwnerKey, err := x509.ParseECPrivateKey(pemBlock.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("parsing workload owner key: %w", err)
+	}
+	pubKey, err := x509.MarshalPKIXPublicKey(&workloadOwnerKey.PublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling public key: %w", err)
+	}
+	ownerKeyHash := sha256.Sum256(pubKey)
+	ownerKeyHex := manifest.NewHexString(ownerKeyHash[:])
+	if len(manifst.WorkloadOwnerKeyDigests) == 0 {
+		log.Warn("No workload owner keys in manifest. Further manifest updates will be rejected by the coordinator")
+		return workloadOwnerKey, nil
+	}
+	log.Debug("Workload owner keys in manifest", "keys", manifst.WorkloadOwnerKeyDigests)
+	if !slices.Contains(manifst.WorkloadOwnerKeyDigests, ownerKeyHex) {
+		log.Warn("Workload owner key not found in manifest. This may lock you out from further updates")
+	}
+	return workloadOwnerKey, nil
 }
 
 func setLoop(
