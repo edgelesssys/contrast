@@ -140,6 +140,10 @@ func (m *meshAuthority) SetManifest(mnfst *manifest.Manifest) error {
 	return nil
 }
 
+func (m *meshAuthority) LatestManifest() (*manifest.Manifest, error) {
+	return m.manifests.Latest()
+}
+
 type appendableList[T any] interface {
 	Append(T)
 	All() []T

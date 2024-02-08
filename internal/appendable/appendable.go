@@ -31,8 +31,11 @@ func (a *Appendable[T]) Latest() (T, error) {
 	defer a.mux.RUnlock()
 
 	if len(a.list) == 0 {
-		return *new(T), errors.New("appendable is empty")
+		return *new(T), ErrIsEmpty
 	}
 
 	return a.list[len(a.list)-1], nil
 }
+
+// ErrIsEmpty is returned when trying to get the latest value from an empty list.
+var ErrIsEmpty = errors.New("appendable is empty")
