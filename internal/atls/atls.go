@@ -117,19 +117,20 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []Validator) (func(*tl
 		}
 
 		cfg := &tls.Config{
-			VerifyPeerCertificate: serverConn.verify,
-			GetCertificate:        serverConn.getCertificate,
-			MinVersion:            tls.VersionTLS12,
+			GetCertificate: serverConn.getCertificate,
+			MinVersion:     tls.VersionTLS12,
+			ClientAuth:     tls.RequestClientCert, // request client certificate but don't require it
+		}
+
+		// ugly hack: abuse acceptable client CAs as a channel to transmit the nonce
+		if cfg.ClientCAs, err = encodeNonceToCertPool(serverNonce, priv); err != nil {
+			return nil, fmt.Errorf("encode nonce: %w", err)
 		}
 
 		// enable mutual aTLS if any validators are set
 		if len(validators) > 0 {
 			cfg.ClientAuth = tls.RequireAnyClientCert // validity of certificate will be checked by our custom verify function
-
-			// ugly hack: abuse acceptable client CAs as a channel to transmit the nonce
-			if cfg.ClientCAs, err = encodeNonceToCertPool(serverNonce, priv); err != nil {
-				return nil, fmt.Errorf("encode nonce: %w", err)
-			}
+			cfg.VerifyPeerCertificate = serverConn.verify
 		}
 
 		return cfg, nil
