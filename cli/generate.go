@@ -3,15 +3,21 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/edgelesssys/nunki/internal/embedbin"
@@ -49,7 +55,12 @@ func newGenerateCmd() *cobra.Command {
 	cmd.Flags().StringP("policy", "p", policyDir, "path to policy (.rego) file")
 	cmd.Flags().StringP("settings", "s", settingsFilename, "path to settings (.json) file")
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
-
+	cmd.Flags().StringArrayP("workload-owner-key", "w", []string{workloadOwnerPEM}, "path to workload owner key (.pem) file")
+	cmd.Flags().BoolP("disable-updates", "d", false, "prevent further updates of the manifest")
+	must(cmd.MarkFlagFilename("policy", "rego"))
+	must(cmd.MarkFlagFilename("settings", "json"))
+	must(cmd.MarkFlagFilename("manifest", "json"))
+	cmd.MarkFlagsMutuallyExclusive("workload-owner-key", "disable-updates")
 	return cmd
 }
 
@@ -82,6 +93,10 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create policy map: %w", err)
 	}
 
+	if err := generateWorkloadOwnerKey(flags); err != nil {
+		return fmt.Errorf("generating workload owner key: %w", err)
+	}
+
 	defaultManifest := manifest.Default()
 	defaultManifestData, err := json.MarshalIndent(&defaultManifest, "", "  ")
 	if err != nil {
@@ -96,6 +111,18 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
 	manifest.Policies = policyMap
+
+	if flags.disableUpdates {
+		manifest.WorkloadOwnerKeyDigests = nil
+	} else {
+		for _, keyPath := range flags.workloadOwnerKeys {
+			if err := addWorkloadOwnerKeyToManifest(manifest, keyPath); err != nil {
+				return fmt.Errorf("adding workload owner key to manifest: %w", err)
+			}
+		}
+	}
+	slices.Sort(manifest.WorkloadOwnerKeyDigests)
+
 	manifestData, err = json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal manifest: %w", err)
@@ -162,10 +189,10 @@ func filterNonCoCoRuntime(runtimeClassName string, paths []string, logger *slog.
 }
 
 func generatePolicies(ctx context.Context, regoPath, policyPath string, yamlPaths []string, logger *slog.Logger) error {
-	if err := createFileWithDefault(filepath.Join(regoPath, policyPath), defaultGenpolicySettings); err != nil {
+	if err := createFileWithDefault(filepath.Join(regoPath, policyPath), func() ([]byte, error) { return defaultGenpolicySettings, nil }); err != nil {
 		return fmt.Errorf("creating default policy file: %w", err)
 	}
-	if err := createFileWithDefault(filepath.Join(regoPath, rulesFilename), defaultRules); err != nil {
+	if err := createFileWithDefault(filepath.Join(regoPath, rulesFilename), func() ([]byte, error) { return defaultRules, nil }); err != nil {
 		return fmt.Errorf("creating default policy.rego file: %w", err)
 	}
 	binaryInstallDir, err := installDir()
@@ -192,6 +219,43 @@ func generatePolicies(ctx context.Context, regoPath, policyPath string, yamlPath
 
 		logger.Info("Calculated policy hash", "hash", hex.EncodeToString(policyHash[:]), "path", yamlPath)
 	}
+	return nil
+}
+
+func addWorkloadOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) error {
+	keyData, err := os.ReadFile(keyPath)
+	if err != nil {
+		return fmt.Errorf("reading workload owner key: %w", err)
+	}
+	block, _ := pem.Decode(keyData)
+	if block == nil {
+		return errors.New("failed to decode PEM block")
+	}
+	var publicKey []byte
+	switch block.Type {
+	case "PUBLIC KEY":
+		publicKey = block.Bytes
+	case "EC PRIVATE KEY":
+		privateKey, err := x509.ParseECPrivateKey(block.Bytes)
+		if err != nil {
+			return fmt.Errorf("parsing EC private key: %w", err)
+		}
+		publicKey, err = x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+		if err != nil {
+			return fmt.Errorf("marshaling public key: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported PEM block type: %s", block.Type)
+	}
+
+	hash := sha256.Sum256(publicKey)
+	hashString := manifest.NewHexString(hash[:])
+	for _, existingHash := range manifst.WorkloadOwnerKeyDigests {
+		if existingHash == hashString {
+			return nil
+		}
+	}
+	manifst.WorkloadOwnerKeyDigests = append(manifst.WorkloadOwnerKeyDigests, hashString)
 	return nil
 }
 
@@ -223,10 +287,39 @@ func generatePolicyForFile(ctx context.Context, genpolicyPath, regoPath, policyP
 	return policyHash, nil
 }
 
+func generateWorkloadOwnerKey(flags *generateFlags) error {
+	if flags.disableUpdates || len(flags.workloadOwnerKeys) != 1 {
+		// No need to generate keys
+		// either updates are disabled or
+		// the user has provided a set of (presumably already generated) public keys
+		return nil
+	}
+	keyPath := flags.workloadOwnerKeys[0]
+
+	if err := createFileWithDefault(keyPath, newKeyPair); err != nil {
+		return fmt.Errorf("creating default workload owner key file: %w", err)
+	}
+	return nil
+}
+
+func newKeyPair() ([]byte, error) {
+	privateKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("generating private key: %w", err)
+	}
+	privateKeyBytes, err := x509.MarshalECPrivateKey(privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling private key: %w", err)
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: privateKeyBytes}), nil
+}
+
 type generateFlags struct {
-	policyPath   string
-	settingsPath string
-	manifestPath string
+	policyPath        string
+	settingsPath      string
+	manifestPath      string
+	workloadOwnerKeys []string
+	disableUpdates    bool
 }
 
 func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
@@ -242,10 +335,21 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	workloadOwnerKeys, err := cmd.Flags().GetStringArray("workload-owner-key")
+	if err != nil {
+		return nil, err
+	}
+	disableUpdates, err := cmd.Flags().GetBool("disable-updates")
+	if err != nil {
+		return nil, err
+	}
+
 	return &generateFlags{
-		policyPath:   policyPath,
-		settingsPath: settingsPath,
-		manifestPath: manifestPath,
+		policyPath:        policyPath,
+		settingsPath:      settingsPath,
+		manifestPath:      manifestPath,
+		workloadOwnerKeys: workloadOwnerKeys,
+		disableUpdates:    disableUpdates,
 	}, nil
 }
 
@@ -264,7 +368,7 @@ func readFileOrDefault(path string, deflt []byte) ([]byte, error) {
 
 // createFileWithDefault creates the file at path with the default value,
 // if it doesn't exist.
-func createFileWithDefault(path string, deflt []byte) error {
+func createFileWithDefault(path string, dflt func() ([]byte, error)) error {
 	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
 	if os.IsExist(err) {
 		return nil
@@ -273,7 +377,11 @@ func createFileWithDefault(path string, deflt []byte) error {
 		return err
 	}
 	defer file.Close()
-	_, err = file.Write(deflt)
+	content, err := dflt()
+	if err != nil {
+		return err
+	}
+	_, err = file.Write(content)
 	return err
 }
 

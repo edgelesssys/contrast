@@ -9,6 +9,7 @@ import (
 const (
 	coordRootPEMFilename   = "coordinator-root.pem"
 	coordIntermPEMFilename = "mesh-root.pem"
+	workloadOwnerPEM       = "workload-owner.pem"
 	manifestFilename       = "manifest.json"
 	settingsFilename       = "settings.json"
 	rulesFilename          = "rules.rego"
