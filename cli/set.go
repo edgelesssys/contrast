@@ -18,6 +18,8 @@ import (
 	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/edgelesssys/nunki/internal/spinner"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func newSetCmd() *cobra.Command {
@@ -177,6 +179,14 @@ func setLoop(
 		resp, rpcErr = client.SetManifest(ctx, req)
 		if rpcErr == nil {
 			return resp, nil
+		}
+		grpcSt, ok := status.FromError(rpcErr)
+		if ok {
+			switch grpcSt.Code() {
+			case codes.PermissionDenied, codes.InvalidArgument:
+				// These errors are not retryable
+				return nil, rpcErr
+			}
 		}
 		timer := time.NewTimer(1 * time.Second)
 		select {
