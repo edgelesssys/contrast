@@ -1,0 +1,44 @@
+name: backport pr
+
+on:
+  pull_request:
+    types: [closed]
+  issue_comment:
+    types: [created]
+
+jobs:
+  backport:
+    if: |
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.merged
+      ) || (
+        github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        startsWith(github.event.comment.body, '/backport')
+      )
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - name: Create backport PRs
+        uses: korthout/backport-action@e8161d6a0dbfa2651b7daa76cbb75bc7c925bbf3 # v2.4.1
+        with:
+          copy_milestone: true
+          copy_labels_pattern: 'changelog'
+          pull_title: '[${target_branch}] ${pull_title}'
+          github_token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+          experimental: |
+            {
+              "detect_merge_method": true
+            }
+          pull_description: |
+            Backport of #${pull_number} to `${target_branch}`.
+
+            Original description:
+
+            ---
+
+            ${pull_description}
