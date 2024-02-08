@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
@@ -26,6 +27,7 @@ type coordAPIServer struct {
 	manifSetGetter  manifestSetGetter
 	caChainGetter   certChainGetter
 	logger          *slog.Logger
+	mux             sync.RWMutex
 
 	coordapi.UnimplementedCoordAPIServer
 }
@@ -59,6 +61,8 @@ func (s *coordAPIServer) Serve(endpoint string) error {
 func (s *coordAPIServer) SetManifest(_ context.Context, req *coordapi.SetManifestRequest,
 ) (*coordapi.SetManifestResponse, error) {
 	s.logger.Info("SetManifest called")
+	s.mux.Lock()
+	defer s.mux.Unlock()
 
 	var m *manifest.Manifest
 	if err := json.Unmarshal(req.Manifest, &m); err != nil {
@@ -96,6 +100,8 @@ func (s *coordAPIServer) SetManifest(_ context.Context, req *coordapi.SetManifes
 func (s *coordAPIServer) GetManifests(_ context.Context, _ *coordapi.GetManifestsRequest,
 ) (*coordapi.GetManifestsResponse, error) {
 	s.logger.Info("GetManifest called")
+	s.mux.RLock()
+	defer s.mux.RUnlock()
 
 	manifests := s.manifSetGetter.GetManifests()
 	if len(manifests) == 0 {
