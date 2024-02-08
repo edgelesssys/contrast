@@ -7,6 +7,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/edgelesssys/nunki/internal/appendable"
 	"github.com/edgelesssys/nunki/internal/coordapi"
 	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/edgelesssys/nunki/internal/memstore"
@@ -35,8 +36,9 @@ func TestManifestSet(t *testing.T) {
 		wantErr  bool
 	}{
 		"empty request": {
-			req:     &coordapi.SetManifestRequest{},
-			wantErr: true,
+			req:      &coordapi.SetManifestRequest{},
+			mSGetter: &stubManifestSetGetter{},
+			wantErr:  true,
 		},
 		"manifest without policies": {
 			req: &coordapi.SetManifestRequest{
@@ -44,7 +46,8 @@ func TestManifestSet(t *testing.T) {
 					m.Policies = nil
 				}),
 			},
-			wantErr: true,
+			mSGetter: &stubManifestSetGetter{},
+			wantErr:  true,
 		},
 		"request without policies": {
 			req: &coordapi.SetManifestRequest{
@@ -55,7 +58,8 @@ func TestManifestSet(t *testing.T) {
 					}
 				}),
 			},
-			wantErr: true,
+			mSGetter: &stubManifestSetGetter{},
+			wantErr:  true,
 		},
 		"policy not in manifest": {
 			req: &coordapi.SetManifestRequest{
@@ -70,7 +74,8 @@ func TestManifestSet(t *testing.T) {
 					[]byte("c"),
 				},
 			},
-			wantErr: true,
+			mSGetter: &stubManifestSetGetter{},
+			wantErr:  true,
 		},
 		"valid manifest": {
 			req: &coordapi.SetManifestRequest{
@@ -281,6 +286,15 @@ func (s *stubManifestSetGetter) GetManifests() []*manifest.Manifest {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 	return s.getManifestResp
+}
+
+func (s *stubManifestSetGetter) LatestManifest() (*manifest.Manifest, error) {
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	if len(s.getManifestResp) == 0 {
+		return nil, appendable.ErrIsEmpty
+	}
+	return s.getManifestResp[len(s.getManifestResp)-1], nil
 }
 
 type stubCertChainGetter struct{}

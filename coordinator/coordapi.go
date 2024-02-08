@@ -1,14 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"sync"
 	"time"
 
+	"github.com/edgelesssys/nunki/internal/appendable"
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
 	"github.com/edgelesssys/nunki/internal/coordapi"
 	"github.com/edgelesssys/nunki/internal/grpc/atlscredentials"
@@ -17,7 +22,9 @@ import (
 	"github.com/edgelesssys/nunki/internal/memstore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
@@ -58,11 +65,16 @@ func (s *coordAPIServer) Serve(endpoint string) error {
 	return s.grpc.Serve(lis)
 }
 
-func (s *coordAPIServer) SetManifest(_ context.Context, req *coordapi.SetManifestRequest,
+func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManifestRequest,
 ) (*coordapi.SetManifestResponse, error) {
 	s.logger.Info("SetManifest called")
 	s.mux.Lock()
 	defer s.mux.Unlock()
+
+	if err := s.validatePeer(ctx); err != nil {
+		s.logger.Warn("SetManifest peer validation failed", "err", err)
+		return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
+	}
 
 	var m *manifest.Manifest
 	if err := json.Unmarshal(req.Manifest, &m); err != nil {
@@ -129,6 +141,54 @@ func (s *coordAPIServer) GetManifests(_ context.Context, _ *coordapi.GetManifest
 	return resp, nil
 }
 
+func (s *coordAPIServer) validatePeer(ctx context.Context) error {
+	latest, err := s.manifSetGetter.LatestManifest()
+	if err != nil && errors.Is(err, appendable.ErrIsEmpty) {
+		// in the initial state, no peer validation is required
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("getting latest manifest: %w", err)
+	}
+	if len(latest.WorkloadOwnerKeyDigests) == 0 {
+		return errors.New("setting manifest is disabled")
+	}
+
+	peerPubKey, err := getPeerPublicKey(ctx)
+	if err != nil {
+		return err
+	}
+	peerPub256Sum := sha256.Sum256(peerPubKey)
+	for _, key := range latest.WorkloadOwnerKeyDigests {
+		trustedWorkloadOwnerSHA256, err := key.Bytes()
+		if err != nil {
+			return fmt.Errorf("parsing key: %w", err)
+		}
+		if bytes.Equal(peerPub256Sum[:], trustedWorkloadOwnerSHA256) {
+			return nil
+		}
+	}
+	return errors.New("peer not authorized workload owner")
+}
+
+func getPeerPublicKey(ctx context.Context) ([]byte, error) {
+	peer, ok := peer.FromContext(ctx)
+	if !ok {
+		return nil, errors.New("no peer found in context")
+	}
+	tlsInfo, ok := peer.AuthInfo.(credentials.TLSInfo)
+	if !ok {
+		return nil, errors.New("peer auth info is not of type TLSInfo")
+	}
+	if len(tlsInfo.State.PeerCertificates) == 0 || tlsInfo.State.PeerCertificates[0] == nil {
+		return nil, errors.New("no peer certificates found")
+	}
+	if tlsInfo.State.PeerCertificates[0].PublicKeyAlgorithm != x509.ECDSA {
+		return nil, errors.New("peer public key is not of type ECDSA")
+	}
+	return x509.MarshalPKIXPublicKey(tlsInfo.State.PeerCertificates[0].PublicKey)
+}
+
 func policySliceToBytesSlice(s []manifest.Policy) [][]byte {
 	var policies [][]byte
 	for _, policy := range s {
@@ -158,6 +218,7 @@ type certChainGetter interface {
 type manifestSetGetter interface {
 	SetManifest(*manifest.Manifest) error
 	GetManifests() []*manifest.Manifest
+	LatestManifest() (*manifest.Manifest, error)
 }
 
 type store[keyT comparable, valueT any] interface {
