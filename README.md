@@ -27,38 +27,39 @@ app, making it easier to assure stakeholders of your app's security.
 Nunki provides an Initializer that handles the remote attestation on the workload side transparently and
 fetches the workload certificate. The Initializer runs as init container before your workload is started.
 
-## Generic Workflow
+## Installation
 
-### Prerequisites
-
-* An empty workspace directory.
-* The `nunki` binary.
-<!-- TODO: from where? -->
+Download the latest CLI from our release and put it into your PATH:
 
 ```sh
-WORKSPACE=$(mktemp -d)
-cd "$WORKSPACE"
-curl -Lo nunki  https://...
+curl -fLo nunki https://github.com/edgelesssys/nunki/releases/download/latest/nunki
+mv nunki /usr/local/bin/nunki
 ```
 
-### Kubernetes Resources
+## Generic Workflow
 
-All Kubernetes resources that should be running in confidential containers must be present in the
-resources directory. You can generate them from a Helm chart or from a Kustomization, or just copy
-them over from your repository.
+### Preprare your Kubernetes resources
+
+Nunki will add annotations to your Kubernetes YAML files. If you want to keep the original files
+unchanged, you can copy the files into a separate local directory.
+You can also generate files from a Helm chart or from a Kustomization.
 
 ```sh
 mkdir resources
-kustomize build $MY_RESOURCE_DIR >resources/all.yaml
-# or
-helm template release-name chart-name >resources/all.yaml
-# or
-cp $MY_RESOURCE_DIR/*.yaml resources/
+kustomize build $MY_RESOURCE_DIR > resources/all.yaml
 ```
 
-All pod definitions and templates in the resources need an additional init container that talks to
-the coordinator. Furthermore, the runtime class needs to be set to `kata-cc-isolation` so that the
-workloads are started as confidential containers.
+or
+
+```sh
+mkdir resources
+helm template release-name chart-name > resources/all.yaml
+```
+
+To specify that a workload (pod, deployment, etc.) should be deployed as confidential containers,
+add `runtimeClassName: kata-cc-isolation` to the pod spec (pod definition or template).
+In addition, add the Nunki Initializer as `initContainers` to these workloads and configure the
+workload to use the certificates written to the `tls-certs` volumeMount.
 
 ```yaml
 spec: # v1.PodSpec
@@ -77,7 +78,7 @@ spec: # v1.PodSpec
     emptyDir: {}
 ```
 
-Finally, you will need to deploy the Nunki coordinator, too. Start with the following definition
+Finally, you will need to deploy the Nunki Coordinator, too. Start with the following definition
 in `resources/coordinator.yaml` and adjust it as you see fit (e.g. labels, namespace, service attributes).
 
 ```yaml
@@ -100,7 +101,7 @@ spec:
       runtimeClassName: kata-cc-isolation
       containers:
         - name: coordinator
-          image: "ghcr.io/edgelesssys/nunki/coordinator:latest"
+          image: "ghcr.io/edgelesssys/nunki/coordinator:v0.1.0"
 ---
 apiVersion: v1
 kind: Service
@@ -108,37 +109,33 @@ metadata:
   name: coordinator
 spec:
   ports:
-  - name: intercom
-    port: 7777
-    protocol: TCP
-  - name: coordapi
-    port: 1313
-    protocol: TCP
+  - port: 7777
+  - port: 1313
   selector:
     app.kubernetes.io/name: coordinator
 ```
 
-### Generate Policies and Manifest
+### Generate policy annotations and manifest
 
-Generate the runtime policy from the resource definitions, attach it to the resources as
-annotation and write the coordinator manifest.
+Run the `generate` command generate the execution policies and add them as annotations to your
+deployment files. A `manifest.json` with the reference values of your deployment will be created.
 
 ```sh
-./nunki generate -m manifest.json resources/*.yaml
+./nunki generate resources/*.yaml
 ```
 
 ### Apply Resources
 
 Apply the resources to the cluster. Your workloads will block in the initialization phase until a
-manifest is set at the coordinator.
+manifest is set at the Coordinator.
 
 ```sh
 kubectl apply -f resources/
 ```
 
-### Connect to the Coordinator
+### Set Manifest
 
-For the next steps, we will need to connect to the coordinator. If you did not expose the
+For the next steps, we will need to connect to the Coordinator. If you did not expose the
 coordinator with an external Kubernetes LoadBalancer, you can expose it locally:
 
 ```sh
@@ -147,26 +144,30 @@ kubectl port-forward service/coordinator 1313:coordapi &
 
 ### Set Manifest
 
-Attest the coordinator and set the manifest. After this step, the coordinator should start issuing
-TLS certs to the workloads, which should now leave the initialization phase.
+Attest the Coordinator and set the manifest:
 
 ```sh
 ./nunki set -c localhost:1313 -m manifest.json
 ```
 
+After this step, the Coordinator will start issuing TLS certs to the workloads. The init container
+will fetch a certificate for the workload and the workload is started.
+
 ### Verify the Coordinator
 
-An end user can verify the Nunki deployment without an explicit list of resources by calling the
-coordinator's verification RPC over attested TLS. After successful validation, the output directory
-`verify/` will be populated with the TLS root certificates for the configured manifest.
+An end user (data owner) can verify the Nunki deployment using the `verify` command.
 
 ```sh
 ./nunki verify -c localhost:1313 -o ./verify
 ```
 
+The CLI will attest the Coordinator using embedded reference values. The CLI will write the service mesh
+root certificate and the history of manifests into the `verify/` directory. In addition, the policies referenced
+in the manifest are also written to the directory.
+
 ### Communicate with Workloads
 
-Connect to the workloads using the coordinator's mesh root as a trusted CA certificate.
+Connect to the workloads using the Coordinator's mesh root as a trusted CA certificate.
 For example, with `curl`:
 
 ```sh
