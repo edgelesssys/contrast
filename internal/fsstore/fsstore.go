@@ -31,7 +31,7 @@ func New(dir string, log *slog.Logger) *Store {
 func (s *Store) Get(key string) ([]byte, bool) {
 	val, err := s.fs.ReadFile(keyToFilename(key))
 	if errors.Is(err, fs.ErrNotExist) {
-		s.logger.Warn("file does not exist", "file", keyToFilename(key))
+		s.logger.Debug("file does not exist", "file", keyToFilename(key))
 		return nil, false
 	} else if err != nil {
 		s.logger.Error("failed to open file", "file", keyToFilename(key), "err", err)
@@ -59,7 +59,7 @@ func (s *Store) GetAll() [][]byte {
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil
 	} else if err != nil {
-		s.logger.Warn("failed to read dir", "err", err)
+		s.logger.Debug("failed to read dir", "err", err)
 		return nil
 	}
 	for _, f := range files {
