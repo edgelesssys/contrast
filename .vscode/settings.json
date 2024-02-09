@@ -5,6 +5,7 @@
     "gopls": {
         "formatting.gofumpt": true,
     },
+    "go.buildTags": "e2e",
     "go.lintTool": "golangci-lint",
     "go.lintFlags": [
         "--fast",
