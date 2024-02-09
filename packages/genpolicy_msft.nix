@@ -62,6 +62,11 @@ rustPlatform.buildRustPackage rec {
       recursiveHash = true;
       postFetch = "install -D $downloadedFile $out/genpolicy-rules.rego";
     };
+
+    rules-coordinator = applyPatches {
+      src = rules;
+      patches = [ ./genpolicy_msft_rules_coordinator.patch ];
+    };
   };
 
   meta = {
