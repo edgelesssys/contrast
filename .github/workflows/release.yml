@@ -191,3 +191,30 @@ jobs:
         with:
           version: ${{ needs.process-inputs.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
           commit: true
+
+  create-github-stuff:
+    name: Create backport label and milestone
+    needs: process-inputs
+    runs-on: ubuntu-22.04
+    permissions:
+      issues: write
+      contents: read
+    env:
+      RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+      - name: Create backport label
+        run: |
+          gh label create "backport ${RELEASE_BRANCH}" --color 576F61 --force
+      - name: Create milestone
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/edgelesssys/nunki/milestones \
+            -f title='${{ inputs.version }}' \
+            -f state='open'
