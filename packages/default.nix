@@ -269,4 +269,32 @@ rec {
       exit 1
     '';
   };
+
+  # write-coordinator-yaml prints a Nunki Coordinator deployment including the default policy.
+  # It's intended for two purposes: (1) releasing a portable coordinator.yaml and (2) updating the embedded policy hash.
+  write-coordinator-yaml = writeShellApplication {
+    name = "print-coordinator-policy";
+    runtimeInputs = [
+      yq-go
+      genpolicy
+    ];
+    text = ''
+      imageRef=$1:v${version}
+
+      tmpdir=$(mktemp -d)
+      trap 'rm -rf $tmpdir' EXIT
+
+      # TODO(burgerdev): consider a dedicated coordinator template instead of the simple one
+      yq < deployments/simple/coordinator.yml > "$tmpdir/coordinator.yml" \
+        "del(.metadata.namespace) | (select(.kind == \"Deployment\") | .spec.template.spec.containers[0].image) = \"$imageRef\""
+
+      pushd "$tmpdir" >/dev/null
+      # TODO(burgerdev): this should not be dev, but there are unknown env vars
+      cp ${genpolicy.settings-dev}/genpolicy-settings.json .
+      cp ${genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego
+      genpolicy < "$tmpdir/coordinator.yml"
+      popd >/dev/null
+    '';
+  };
+
 }
