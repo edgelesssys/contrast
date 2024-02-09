@@ -27,9 +27,18 @@ jobs:
         uses: korthout/backport-action@e8161d6a0dbfa2651b7daa76cbb75bc7c925bbf3 # v2.4.1
         with:
           copy_milestone: true
+          copy_labels_pattern: 'changelog'
           pull_title: '[${target_branch}] ${pull_title}'
           github_token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
           experimental: |
             {
               "detect_merge_method": true
             }
+          pull_description: |
+            Backport of #${pull_number} to `${target_branch}`.
+
+            Original description:
+
+            ---
+
+            ${pull_description}
