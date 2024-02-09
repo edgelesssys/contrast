@@ -99,8 +99,8 @@ is not secured.
 * Which traffic do we want to secure? HTTP/S, TCP, UDP, ICMP? Is TLS even the
 correct layer for this?
 
-Since TCP service meshes are ubiquitously used, only supporting TCP for now is
-fine.
+Since HTTP service meshes are ubiquitously used, only supporting HTTP for now is
+fine. Note that supporting HTTP also supports gRPC since it uses HTTP/2.
 
 * Do we allow workloads to talk to the internet by default? Otherwise we can
 wrap all egress traffic in mTLS.
@@ -122,17 +122,10 @@ setup and configure Envoy.
 
 ### Step 1: Egress
 
-The routing works on layer 3. The workload owner configures the workload's
-service endpoints to point to a unique local IP out of the 127.0.0.1/8 CIDR.
-The workload owner configures the proxy to listen on each of those addresses and
-map it to a remote service domain.
-
-If possible, we don't want to touch the port of the packets so that we can
-transparently proxy all ports of a service.
-
-Note that this is not secure by default. If the user doesn't configure the
-endpoints in their application, traffic is send out unencrypted and without
-authentication.
+The egress proxing works on Layer 7. All of the workload's TCP traffic is
+redirected via tproxy iptable rules to Envoy. By default, all traffic is
+wrapped inside TLS. The user can provide an allowlist for endpoints to just
+transparently forward.
 
 <img src="./assets/001-egress.svg">
 
@@ -148,31 +141,13 @@ Envoy. Also traffic originating from the uid the proxy is started with, is not
 redirected. Since by default all traffic is routed to Envoy, the workload's
 ingress endpoint are secure by default.
 
+[1] <https://github.com/istio/istio/wiki/Understanding-IPTables-snapshot>
+
 <img src="./assets/001-ingress.svg">
-
-### Step 3: Secure by default egress
-
-Ideally, we also want to also have secure by default egress. But this comes with
-additional tradeoffs. If we assume that the workload does _NOT_ talk to any
-other endpoints outside of the service mesh, then we can redirect all traffic
-through the proxy. Since we cannot assume this to be true for all workloads,
-we still need the explicit configuration method described above.
-
-Since we need to allow DNS for Kubernetes service lookups, we can only redirect
-all TCP traffic via the proxy.
-
-### Optional: Egress capturing via DNS
-
-If we want to allow additional endpoints, we also need to touch the pod's
-DNS resolution. An easy way would be to resolve the allowlisted entries to
-either directly the correct endpoint or to a special ip of the proxy.
-This required the application to not implement basic DNS (over UDP) and not
-DNS-over-HTTPS, DNS-over-QUIC, or similar.
 
 ### Outlook
 
-Especially for ingress but also for egress as described in step 3,
-we must ensure that the sidecar/init container runs
+We must ensure that the sidecar/init container runs
 before the workloads receives traffic. Otherwise, it might be that the iptable
 rules are not configured yet and the traffic is send without TLS and without
 client verification.
