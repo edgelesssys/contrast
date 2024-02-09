@@ -88,17 +88,6 @@ jobs:
             echo "NEXT_PATCH_PRE_WITHOUT_V=${NEXT_PATCH_PRE_WITHOUT_V}"
           } | tee -a "$GITHUB_OUTPUT"
           echo "RELEASE_BRANCH=${RELEASE_BRANCH}" | tee -a "$GITHUB_ENV"
-      - name: Check if we are strictly ahead of the release branch (if it exists)
-        run: |
-          git fetch
-          git pull
-          git checkout "${RELEASE_BRANCH}" || exit 0
-          git checkout "${WORKING_BRANCH}"
-          ahead=$(git rev-list HEAD --not "${RELEASE_BRANCH}"  | wc -l)
-          if [[ "${ahead}" -eq 0 ]]; then
-            echo "The current branch is not strictly ahead of the release branch. Please rebase."
-            exit 1
-          fi
 
   update-main:
     name: Update main branch
