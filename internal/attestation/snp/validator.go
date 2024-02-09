@@ -93,6 +93,9 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	v.logger.Info("Report decoded", "reportRaw", hex.EncodeToString(reportRaw))
 
 	verifyOpts := verify.DefaultOptions()
+	verifyOpts.Product = &sevsnp.SevProduct{
+		Name: sevsnp.SevProduct_SEV_PRODUCT_MILAN,
+	}
 	verifyOpts.CheckRevocations = true
 	verifyOpts.Getter = v.kdsGetter
 
