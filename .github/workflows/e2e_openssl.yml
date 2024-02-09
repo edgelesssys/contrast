@@ -1,0 +1,71 @@
+name: e2e test openssl
+
+on:
+    workflow_dispatch:
+      inputs:
+        skip-undeploy:
+          description: "Skip undeploy"
+          required: false
+          default: "false"
+    pull_request:
+
+env:
+  container_registry: ghcr.io/edgelesssys
+  azure_resource_group: nunki-ci
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: cachix/install-nix-action@6004951b182f8860210c8d6f0d808ec5b1a33d28 # v25
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: cachix/cachix-action@18cf96c7c98e048e10a83abd92116114cd8504be # v14
+        with:
+          name: edgelesssys
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to Azure
+        uses: azure/login@cb79c773a3cfa27f31f25eb3f677781210c9ce3d # v1.6.1
+        with:
+          creds: ${{ secrets.NUNKI_CI_INFRA_AZURE }}
+      - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
+      - name: Generate namespace suffix
+        id: ns
+        run: |
+          uuid=$(cat /proc/sys/kernel/random/uuid)
+          uid=${uuid##*-}
+          echo "namespace_suffix=$uid" >> "$GITHUB_OUTPUT"
+      - name: Create justfile.env
+        run: |
+          cat <<EOF > justfile.env
+          container_registry=${{ env.container_registry }}
+          azure_resource_group=${{ env.azure_resource_group }}
+          namespace_suffix=-${{ steps.ns.outputs.namespace_suffix }}
+          EOF
+      - name: Get credentials for CI cluster
+        run: |
+          just get-credentials
+      - name: Build, deploy, nunki generate, nunki set, nunki verify
+        run: |
+          just default openssl nunki.cli
+      - name: Setup Summary
+        run: |
+          cat ./workspace/just.namespace | tee -a "${GITHUB_STEP_SUMMARY}"
+          cat ./workspace/just.perf | tee -a "${GITHUB_STEP_SUMMARY}"
+      - name: E2E Test
+        run: |
+          env K8S_NAMESPACE=$(cat ./workspace/just.namespace) go test -v -count=1 -tags e2e ./e2e/openssl
+      - name: Undeploy
+        if: always() && inputs.skip-undeploy != 'true'
+        run: |
+          just undeploy
