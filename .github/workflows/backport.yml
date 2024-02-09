@@ -6,8 +6,14 @@ on:
 
 jobs:
   backport:
-    name: Backport PR
+    if: |
+      github.repository_owner == 'edgelesssys' &&
+      github.event.pull_request.merged == true &&
+      (github.event_name != 'labeled' || startsWith('backport', github.event.label.name))
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Backport Action
         uses: sorenlouv/backport-github-action@f7073a2287aefc1fa12685eb25a712ab5620445c # v9.3.1
