@@ -28,7 +28,6 @@ jobs:
         with:
           name: edgelesssys
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-          installCommand: nix profile install github:cachix/cachix/cd12acd9245ac9b7e010aa3acac49f37824fdad2 --accept-flake-config # remove on v14.1/v15
       - name: Log in to ghcr.io Container registry
         uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
         with:
