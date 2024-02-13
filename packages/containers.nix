@@ -59,6 +59,16 @@ let
       tag = "v${nunki.version}";
       copyToRoot = [ bash socat ];
     };
+
+    service-mesh-proxy = dockerTools.buildImage {
+      name = "service-mesh-proxy";
+      tag = "v${service-mesh.version}";
+      copyToRoot = [ envoy ];
+      config = {
+        Cmd = [ "${service-mesh}/bin/service-mesh" ];
+        Env = [ "PATH=/bin" ]; # This is only here for policy generation.
+      };
+    };
   };
 in
 containers // (lib.concatMapAttrs (name: container: { "push-${name}" = pushContainer container; }) containers)

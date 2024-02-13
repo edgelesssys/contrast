@@ -63,17 +63,20 @@ with pkgs;
       gunzip < "${containers.initializer}" > "$tmpdir/initializer.tar"
       gunzip < "${containers.openssl}" > "$tmpdir/openssl.tar"
       gunzip < "${containers.port-forwarder}" > "$tmpdir/port-forwarder.tar"
+      gunzip < "${containers.service-mesh-proxy}" > "$tmpdir/service-mesh-proxy.tar"
 
       coordHash=$(crane digest --tarball "$tmpdir/coordinator.tar")
       initHash=$(crane digest --tarball "$tmpdir/initializer.tar")
       opensslHash=$(crane digest --tarball "$tmpdir/openssl.tar")
       forwarderHash=$(crane digest --tarball "$tmpdir/port-forwarder.tar")
+      serviceMeshProxyHash=$(crane digest --tarball "$tmpdir/service-mesh-proxy.tar")
 
       kypatch images "$targetPath" \
         --replace "nunki/coordinator:latest" "nunki/coordinator@$coordHash" \
         --replace "nunki/initializer:latest" "nunki/initializer@$initHash" \
         --replace "nunki/openssl:latest" "nunki/openssl@$opensslHash" \
-        --replace "nunki/port-forwarder:latest" "nunki/port-forwarder@$forwarderHash"
+        --replace "nunki/port-forwarder:latest" "nunki/port-forwarder@$forwarderHash" \
+        --replace "nunki/service-mesh-proxy:latest" "nunki/service-mesh-proxy@$serviceMeshProxyHash"
     '';
   };
 
