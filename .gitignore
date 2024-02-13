@@ -12,3 +12,4 @@ justfile.env
 workspace
 workspace.cache
 .direnv/
+go.work.sum

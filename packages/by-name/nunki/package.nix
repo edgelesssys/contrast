@@ -22,7 +22,9 @@ buildGoModule rec {
       fileset = fileset.unions [
         (path.append root "go.mod")
         (path.append root "go.sum")
-        (fileset.fileFilter (file: hasSuffix ".go" file.name) root)
+        (lib.fileset.difference
+          (lib.fileset.fileFilter (file: lib.hasSuffix ".go" file.name) root)
+          (path.append root "service-mesh"))
       ];
     };
 
