@@ -37,7 +37,7 @@ generate target=default_deploy_target:
     nix run .#kypatch namespace -- ./{{ workspace_dir }}/deployment \
         --replace edg-default {{ target }}${namespace_suffix-}
     t=$(date +%s)
-    nix run .#cli -- generate \
+    nix run .#nunki.cli -- generate \
         -m ./{{ workspace_dir }}/manifest.json \
         -p ./{{ workspace_dir }}/rules.rego \
         -s ./{{ workspace_dir }}/genpolicy-msft.json \
@@ -81,7 +81,7 @@ set:
     nix run .#wait-for-port-listen -- 1313
     policy=$(<./{{ workspace_dir }}/just.coordinator-policy-hash)
     t=$(date +%s)
-    nix run .#cli -- set \
+    nix run .#nunki.cli -- set \
         -m ./{{ workspace_dir }}/manifest.json \
         -c localhost:1313 \
         --coordinator-policy-hash "${policy}" \
@@ -102,7 +102,7 @@ verify:
     trap "kill $PID" EXIT
     nix run .#wait-for-port-listen -- 1314
     t=$(date +%s)
-    nix run .#cli -- verify \
+    nix run .#nunki.cli -- verify \
         -c localhost:1314 \
         -o ./{{ workspace_dir }}/verify
     duration=$(( $(date +%s) - $t ))
