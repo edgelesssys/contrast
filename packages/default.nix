@@ -7,69 +7,22 @@ let
 
   by-name = lib.by-name pkgs' ./by-name;
 
-  pushContainer = container: writeShellApplication {
-    name = "push";
-    runtimeInputs = [ crane gzip ];
-    text = ''
-      imageName="$1"
-      tmpdir=$(mktemp -d)
-      trap 'rm -rf $tmpdir' EXIT
-      gunzip < "${container}" > "$tmpdir/image.tar"
-      crane push "$tmpdir/image.tar" "$imageName:${container.imageTag}"
-    '';
-  };
+  callPackages = lib.callPackagesWith pkgs';
 
-  version = builtins.readFile ../version.txt;
+  containers = callPackages ./containers.nix { pkgs = pkgs'; };
 in
 
 with by-name;
 
 rec {
+  inherit containers;
+
   cli-release = (nunki.override (prevArgs: {
     ldflags = prevArgs.ldflags ++ [
       "-X main.DefaultCoordinatorPolicyHash=${builtins.readFile ../cli/assets/coordinator-policy-hash}"
     ];
   })).cli;
 
-  coordinator = dockerTools.buildImage {
-    name = "coordinator";
-    tag = "v${version}";
-    copyToRoot = with dockerTools; [ caCertificates ];
-    config = {
-      Cmd = [ "${nunki.coordinator}/bin/coordinator" ];
-      Env = [ "PATH=/bin" ]; # This is only here for policy generation.
-    };
-  };
-  initializer = dockerTools.buildImage {
-    name = "initializer";
-    tag = "v${version}";
-    copyToRoot = with dockerTools; [ caCertificates ];
-    config = {
-      Cmd = [ "${nunki.initializer}/bin/initializer" ];
-      Env = [ "PATH=/bin" ]; # This is only here for policy generation.
-    };
-  };
-
-  opensslContainer = dockerTools.buildImage {
-    name = "openssl";
-    tag = "v${version}";
-    copyToRoot = [ openssl bash coreutils ncurses bashInteractive vim procps ];
-    config = {
-      Cmd = [ "bash" ];
-      Env = [ "PATH=/bin" ]; # This is only here for policy generation.
-    };
-  };
-  port-forwarder = dockerTools.buildImage {
-    name = "port-forwarder";
-    tag = "v${version}";
-    copyToRoot = [ bash socat ];
-  };
-
-  push-coordinator = pushContainer coordinator;
-  push-initializer = pushContainer initializer;
-
-  push-openssl = pushContainer opensslContainer;
-  push-port-forwarder = pushContainer port-forwarder;
 
   create-coco-aks = writeShellApplication {
     name = "create-coco-aks";
@@ -120,12 +73,8 @@ rec {
   patch-nunki-image-hashes = writeShellApplication {
     name = "patch-nunki-image-hashes";
     runtimeInputs = [
-      coordinator
       crane
-      initializer
       kypatch
-      opensslContainer
-      port-forwarder
     ];
     text = ''
       targetPath=$1
@@ -133,10 +82,10 @@ rec {
       tmpdir=$(mktemp -d)
       trap 'rm -rf $tmpdir' EXIT
 
-      gunzip < "${coordinator}" > "$tmpdir/coordinator.tar"
-      gunzip < "${initializer}" > "$tmpdir/initializer.tar"
-      gunzip < "${opensslContainer}" > "$tmpdir/openssl.tar"
-      gunzip < "${port-forwarder}" > "$tmpdir/port-forwarder.tar"
+      gunzip < "${containers.coordinator}" > "$tmpdir/coordinator.tar"
+      gunzip < "${containers.initializer}" > "$tmpdir/initializer.tar"
+      gunzip < "${containers.openssl}" > "$tmpdir/openssl.tar"
+      gunzip < "${containers.port-forwarder}" > "$tmpdir/port-forwarder.tar"
 
       coordHash=$(crane digest --tarball "$tmpdir/coordinator.tar")
       initHash=$(crane digest --tarball "$tmpdir/initializer.tar")
