@@ -39,7 +39,7 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Run code generations & tidying
         run: |
-          nix run .#generate
+          nix run .#scripts.generate
       - name: Check for modifications, commit changes on renovate PRs
         uses: ./.github/actions/pushdiff
         with:
@@ -60,7 +60,7 @@ jobs:
             authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
         - name: Run govulncheck
           run: |
-            nix run .#govulncheck -- ./...
+            nix run .#scripts.govulncheck -- ./...
 
   golangci-lint:
     runs-on: ubuntu-22.04
@@ -75,4 +75,4 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Run golangci-lint
         run: |
-          nix run .#golangci-lint -- run
+          nix run .#scripts.golangci-lint -- run

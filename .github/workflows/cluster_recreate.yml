@@ -28,7 +28,7 @@ jobs:
       - name: Destroy existing CI cluster
         continue-on-error: true
         run: |
-          nix run .#destroy-coco-aks -- --name="$azure_resource_group"
+          nix run .#scripts.destroy-coco-aks -- --name="$azure_resource_group"
       - name: Create CI cluster
         run: |
-          nix run .#create-coco-aks -- --name="$azure_resource_group"
+          nix run .#scripts.create-coco-aks -- --name="$azure_resource_group"

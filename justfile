@@ -31,7 +31,7 @@ generate target=default_deploy_target:
     rm -rf ./{{ workspace_dir }}/*
     cp -R ./deployments/{{ target }} ./{{ workspace_dir }}/deployment
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
-    nix run .#patch-nunki-image-hashes -- ./{{ workspace_dir }}/deployment
+    nix run .#scripts.patch-nunki-image-hashes -- ./{{ workspace_dir }}/deployment
     nix run .#kypatch images -- ./{{ workspace_dir }}/deployment \
         --replace ghcr.io/edgelesssys ${container_registry}
     nix run .#kypatch namespace -- ./{{ workspace_dir }}/deployment \
@@ -66,19 +66,19 @@ undeploy:
 
 # Create a CoCo-enabled AKS cluster.
 create:
-    nix run .#create-coco-aks -- --name="$azure_resource_group"
+    nix run .#scripts.create-coco-aks -- --name="$azure_resource_group"
 
 # Set the manifest at the coordinator.
 set:
     #!/usr/bin/env bash
     set -euo pipefail
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
-    nix run .#kubectl-wait-ready -- $ns coordinator
-    nix run .#kubectl-wait-ready -- $ns port-forwarder-coordinator
+    nix run .#scripts.kubectl-wait-ready -- $ns coordinator
+    nix run .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
     trap "kill $PID" EXIT
-    nix run .#wait-for-port-listen -- 1313
+    nix run .#scripts.wait-for-port-listen -- 1313
     policy=$(<./{{ workspace_dir }}/just.coordinator-policy-hash)
     t=$(date +%s)
     nix run .#nunki.cli -- set \
@@ -96,11 +96,11 @@ verify:
     set -euo pipefail
     rm -rf ./{{ workspace_dir }}/verify
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
-    nix run .#kubectl-wait-ready -- $ns coordinator
+    nix run .#scripts.kubectl-wait-ready -- $ns coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1314:1313 &
     PID=$!
     trap "kill $PID" EXIT
-    nix run .#wait-for-port-listen -- 1314
+    nix run .#scripts.wait-for-port-listen -- 1314
     t=$(date +%s)
     nix run .#nunki.cli -- verify \
         -c localhost:1314 \
@@ -116,18 +116,18 @@ wait-for-workload target=default_deploy_target:
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
     case {{ target }} in
         "simple")
-            nix run .#kubectl-wait-ready -- $ns workload
+            nix run .#scripts.kubectl-wait-ready -- $ns workload
         ;;
         "openssl")
-            nix run .#kubectl-wait-ready -- $ns openssl-backend
-            nix run .#kubectl-wait-ready -- $ns openssl-client
-            nix run .#kubectl-wait-ready -- $ns openssl-frontend
+            nix run .#scripts.kubectl-wait-ready -- $ns openssl-backend
+            nix run .#scripts.kubectl-wait-ready -- $ns openssl-client
+            nix run .#scripts.kubectl-wait-ready -- $ns openssl-frontend
         ;;
         "emojivoto")
-            nix run .#kubectl-wait-ready -- $ns emoji-svc
-            nix run .#kubectl-wait-ready -- $ns vote-bot
-            nix run .#kubectl-wait-ready -- $ns voting-svc
-            nix run .#kubectl-wait-ready -- $ns web-svc
+            nix run .#scripts.kubectl-wait-ready -- $ns emoji-svc
+            nix run .#scripts.kubectl-wait-ready -- $ns vote-bot
+            nix run .#scripts.kubectl-wait-ready -- $ns voting-svc
+            nix run .#scripts.kubectl-wait-ready -- $ns web-svc
         ;;
         *)
             echo "Please register workloads of new targets in wait-for-workload"
@@ -150,11 +150,11 @@ get-credentials-ci:
 
 # Destroy a running AKS cluster.
 destroy:
-    nix run .#destroy-coco-aks -- --name="$azure_resource_group"
+    nix run .#scripts.destroy-coco-aks -- --name="$azure_resource_group"
 
 # Run code generators.
 codegen:
-    nix run .#generate
+    nix run .#scripts.generate
 
 # Format code.
 fmt:
@@ -162,7 +162,7 @@ fmt:
 
 # Lint code.
 lint:
-    nix run .#golangci-lint -- run
+    nix run .#scripts.golangci-lint -- run
 
 demodir: undeploy coordinator initializer
     #!/usr/bin/env bash
@@ -171,7 +171,7 @@ demodir: undeploy coordinator initializer
     nix build .#nunki.cli
     cp ./result-cli/bin/nunki "${d}/nunki"
     cp -R ./deployments/emojivoto "${d}/deployment"
-    nix run .#patch-nunki-image-hashes -- "${d}/deployment"
+    nix run .#scripts.patch-nunki-image-hashes -- "${d}/deployment"
     nix run .#kypatch images -- "${d}/deployment" \
         --replace ghcr.io/edgelesssys ${container_registry}
     echo "Demo directory ready at ${d}"
