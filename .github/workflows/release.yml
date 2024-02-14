@@ -168,8 +168,8 @@ jobs:
           commit: false
       - name: Push containers with release tag
         run: |
-          nix run .#push-coordinator -- "$container_registry/nunki/coordinator"
-          nix run .#push-initializer -- "$container_registry/nunki/initializer"
+          nix run .#containers.push-coordinator -- "$container_registry/nunki/coordinator"
+          nix run .#containers.push-initializer -- "$container_registry/nunki/initializer"
       - name: Create portable coordinator resource definitions
         run: |
           mkdir -p workspace
