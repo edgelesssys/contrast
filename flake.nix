@@ -22,13 +22,10 @@
     let
       pkgs = import nixpkgs { inherit system; };
       inherit (pkgs) lib;
-
-      version = "0.2.0-pre";
-
       treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
     in
     {
-      packages = import ./packages { inherit pkgs version; };
+      packages = import ./packages { inherit pkgs lib; };
 
       devShells.default = pkgs.mkShell {
         packages = with pkgs; [

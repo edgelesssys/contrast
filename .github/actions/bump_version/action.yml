@@ -27,11 +27,7 @@ runs:
       run: |
         cd ${{ inputs.working-directory }}
 
-        current=$(
-          grep -E '^\s*version = "[^"]*";$' flake.nix |
-          sed -E 's/\s*version = "([^"]*)";/\1/'
-        )
-        sed -i 's/version = "[^"]*";$/version = "${{ inputs.version }}";/' flake.nix
+        echo -n "${{ inputs.version }}" > version.txt
 
         commit_msg="flake: ${current} -> ${{ inputs.version }}"
         echo "commit-msg=${commit_msg}" | tee -a "$GITHUB_OUTPUT"
@@ -42,6 +38,6 @@ runs:
 
         git config --global user.name "edgelessci"
         git config --global user.email "edgelessci@users.noreply.github.com"
-        git add flake.nix
+        git add version.txt
         git diff --staged --quiet || git commit -m "${commit_msg}"
         git push origin "$(git rev-parse --abbrev-ref HEAD)"
