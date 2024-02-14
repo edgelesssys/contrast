@@ -1,6 +1,4 @@
-{ pkgs
-, version
-}:
+{ lib, pkgs }:
 
 with pkgs;
 
@@ -27,6 +25,8 @@ let
       crane push "$tmpdir/image.tar" "$imageName:${container.imageTag}"
     '';
   };
+
+  version = builtins.readFile ../version.txt;
 in
 
 rec {
