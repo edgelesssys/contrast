@@ -25,8 +25,6 @@
       treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
     in
     {
-      packages = import ./packages { inherit pkgs lib; };
-
       devShells.default = pkgs.mkShell {
         packages = with pkgs; [
           golangci-lint
@@ -41,7 +39,7 @@
         formatting = treefmtEval.config.build.check self;
       };
 
-      legacyPackages = pkgs;
+      legacyPackages = (import ./packages { inherit pkgs lib; }) // pkgs;
     });
 
   nixConfig = {
