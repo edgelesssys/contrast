@@ -21,7 +21,7 @@
     }: flake-utils.lib.eachDefaultSystem (system:
     let
       pkgs = import nixpkgs { inherit system; };
-      lib = pkgs.lib.extend (import ./lib);
+      inherit (pkgs) lib;
       treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
     in
     {
