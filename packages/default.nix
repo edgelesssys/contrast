@@ -3,16 +3,9 @@
 with pkgs;
 
 let
-  # The source of our local Go module. We filter for Go files so that
-  # changes in the other parts of this repo don't trigger a rebuild.
-  goFiles = lib.fileset.toSource {
-    root = ../.;
-    fileset = lib.fileset.unions [
-      ../go.mod
-      ../go.sum
-      (lib.fileset.fileFilter (file: lib.hasSuffix ".go" file.name) ../.)
-    ];
-  };
+  pkgs' = pkgs // by-name;
+
+  by-name = lib.by-name pkgs' ./by-name;
 
   pushContainer = container: writeShellApplication {
     name = "push";
@@ -29,54 +22,9 @@ let
   version = builtins.readFile ../version.txt;
 in
 
+with by-name;
+
 rec {
-  nunki =
-    let
-      subPackages = [ "coordinator" "initializer" "cli" ];
-    in
-    lib.makeOverridable buildGoModule {
-      inherit version subPackages;
-      name = "nunki";
-
-      outputs = subPackages ++ [ "out" ];
-
-      src = goFiles;
-      proxyVendor = true;
-      vendorHash = "sha256-W6mphSRaIIGE9hp0Ga0+7syj1HkFaCKJykxfO2PbB9I=";
-
-      prePatch = ''
-        install -D ${lib.getExe genpolicy} cli/assets/genpolicy
-        install -D ${genpolicy.settings-dev}/genpolicy-settings.json cli/assets/genpolicy-settings.json
-        install -D ${genpolicy.rules}/genpolicy-rules.rego cli/assets/genpolicy-rules.rego
-      '';
-
-      CGO_ENABLED = 0;
-      ldflags = [
-        "-s"
-        "-w"
-        "-X main.version=v${version}"
-      ];
-
-      preCheck = ''
-        export CGO_ENABLED=1
-      '';
-
-      checkPhase = ''
-        runHook preCheck
-        go test -race ./...
-        runHook postCheck
-      '';
-
-      postInstall = ''
-        for sub in ${builtins.concatStringsSep " " subPackages}; do
-          install -Dm755 "$out/bin/$sub" "''${!sub}/bin/$sub"
-        done
-        mv "$cli/bin/cli" "$cli/bin/nunki"
-      '';
-      meta.mainProgram = "nunki";
-    };
-  inherit (nunki) cli;
-
   cli-release = (nunki.override (prevArgs: {
     ldflags = prevArgs.ldflags ++ [
       "-X main.DefaultCoordinatorPolicyHash=${builtins.readFile ../cli/assets/coordinator-policy-hash}"
@@ -123,8 +71,6 @@ rec {
   push-openssl = pushContainer opensslContainer;
   push-port-forwarder = pushContainer port-forwarder;
 
-  azure-cli-with-extensions = callPackage ./azurecli.nix { };
-
   create-coco-aks = writeShellApplication {
     name = "create-coco-aks";
     runtimeInputs = [ azure-cli-with-extensions ];
@@ -152,11 +98,10 @@ rec {
       # All binaries of the local Go module share the same builder,
       # we only need to update one of them to update the vendorHash
       # of the builder.
-      nix-update --version=skip --flake cli
+      nix-update --version=skip --flake nunki.cli
     '';
   };
 
-  genpolicy = genpolicy-msft;
   genpolicy-msft = pkgsStatic.callPackage ./genpolicy_msft.nix { };
   genpolicy-kata = pkgsStatic.callPackage ./genpolicy_kata.nix { };
 
@@ -204,12 +149,6 @@ rec {
         --replace "nunki/openssl:latest" "nunki/openssl@$opensslHash" \
         --replace "nunki/port-forwarder:latest" "nunki/port-forwarder@$forwarderHash"
     '';
-  };
-
-  kypatch = writeShellApplication {
-    name = "kypatch";
-    runtimeInputs = [ yq-go ];
-    text = builtins.readFile ./kypatch.sh;
   };
 
   kubectl-wait-ready = writeShellApplication {
@@ -298,5 +237,4 @@ rec {
       popd >/dev/null
     '';
   };
-
-}
+} // by-name
