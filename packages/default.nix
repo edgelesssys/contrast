@@ -89,6 +89,7 @@ rec {
     copyToRoot = with dockerTools; [ caCertificates ];
     config = {
       Cmd = [ "${nunki.coordinator}/bin/coordinator" ];
+      Env = [ "PATH=/bin" ]; # This is only here for policy generation.
     };
   };
   initializer = dockerTools.buildImage {
@@ -97,6 +98,7 @@ rec {
     copyToRoot = with dockerTools; [ caCertificates ];
     config = {
       Cmd = [ "${nunki.initializer}/bin/initializer" ];
+      Env = [ "PATH=/bin" ]; # This is only here for policy generation.
     };
   };
 
@@ -106,6 +108,7 @@ rec {
     copyToRoot = [ openssl bash coreutils ncurses bashInteractive vim procps ];
     config = {
       Cmd = [ "bash" ];
+      Env = [ "PATH=/bin" ]; # This is only here for policy generation.
     };
   };
   port-forwarder = dockerTools.buildImage {
@@ -273,7 +276,7 @@ rec {
   # write-coordinator-yaml prints a Nunki Coordinator deployment including the default policy.
   # It's intended for two purposes: (1) releasing a portable coordinator.yaml and (2) updating the embedded policy hash.
   write-coordinator-yaml = writeShellApplication {
-    name = "print-coordinator-policy";
+    name = "write-coordinator-yaml";
     runtimeInputs = [
       yq-go
       genpolicy
@@ -289,8 +292,7 @@ rec {
         "del(.metadata.namespace) | (select(.kind == \"Deployment\") | .spec.template.spec.containers[0].image) = \"$imageRef\""
 
       pushd "$tmpdir" >/dev/null
-      # TODO(burgerdev): this should not be dev, but there are unknown env vars
-      cp ${genpolicy.settings-dev}/genpolicy-settings.json .
+      cp ${genpolicy.settings}/genpolicy-settings.json .
       cp ${genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego
       genpolicy < "$tmpdir/coordinator.yml"
       popd >/dev/null
