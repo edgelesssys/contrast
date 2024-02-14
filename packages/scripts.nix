@@ -31,7 +31,7 @@ with pkgs;
       # All binaries of the local Go module share the same builder,
       # we only need to update one of them to update the vendorHash
       # of the builder.
-      nix-update --version=skip --flake nunki.cli
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.nunki.cli
     '';
   };
 
