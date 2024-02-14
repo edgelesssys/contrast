@@ -49,6 +49,7 @@ rustPlatform.buildRustPackage rec {
       postFetch = "install -D $downloadedFile $out/genpolicy-settings.json";
     };
 
+    # Settings that allow exec into CVM pods - not safe for production use!
     settings-dev = applyPatches {
       src = settings;
       patches = [ ./genpolicy_msft_settings_dev.patch ];
