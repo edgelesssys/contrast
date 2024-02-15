@@ -226,6 +226,12 @@ jobs:
       - name: Create milestone
         run: |
           gh api \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/edgelesssys/nunki/milestones |
+            jq -r '.[] | .title' | \
+            grep -xqF "${{ inputs.version }}" && exit 0
+          gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
