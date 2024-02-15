@@ -39,8 +39,8 @@ generate target=default_deploy_target:
     t=$(date +%s)
     nix run .#cli -- generate \
         -m ./{{ workspace_dir }}/manifest.json \
-        -p ./{{ workspace_dir }} \
-        -s genpolicy-msft.json \
+        -p ./{{ workspace_dir }}/rules.rego \
+        -s ./{{ workspace_dir }}/genpolicy-msft.json \
         ./{{ workspace_dir }}/deployment/*.yml > ./{{ workspace_dir }}/just.coordinator-policy-hash
     duration=$(( $(date +%s) - $t ))
     echo "Generated policies in $duration seconds."

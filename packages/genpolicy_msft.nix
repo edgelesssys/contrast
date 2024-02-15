@@ -1,6 +1,7 @@
 { lib
 , fetchFromGitHub
 , fetchurl
+, fetchpatch
 , applyPatches
 , rustPlatform
 , openssl
@@ -17,13 +18,28 @@ rustPlatform.buildRustPackage rec {
   src = fetchFromGitHub {
     owner = "microsoft";
     repo = "kata-containers";
-    rev = "genpolicy-${version}";
-    hash = "sha256-R+kiyG3xLsoLBVTy1lmmqvDgoQuqfcV3DkfQtRCiYCw=";
+    # Latest released version of genpolicy
+    # is too old for the path handling patch.
+    # Using a commit from main for now.
+    # rev = "genpolicy-${version}";
+    rev = "401db3a3e75c699422537551e7862cd510fb68b0";
+    hash = "sha256-dyYGGQPGWe6oVcAa48Kr/SsdSpUhwQZrRQ2d54BIac8=";
   };
+
+  patches = [
+    # TODO(malt3): drop this patch when msft fork adopted this from upstream
+    (fetchpatch {
+      name = "genpolicy_path_handling.patch";
+      url = "https://github.com/kata-containers/kata-containers/commit/befef119ff4df2868cdc88d4273c8be965387793.patch";
+      sha256 = "sha256-4pfYrP9KaPVcrFbm6DkiZUNckUq0fKWZPfCONW8/kso=";
+    })
+  ];
+
+  patchFlags = [ "-p4" ];
 
   sourceRoot = "${src.name}/src/tools/genpolicy";
 
-  cargoHash = "sha256-MRVtChYQkiU92n/z+5r4ge58t9yVeOCdqs0zx81IQUY=";
+  cargoHash = "sha256-WRSDqrOgSZVcJGN7PuyIqqmOSbrob75QNE2Ztb1L9Ww=";
 
   OPENSSL_NO_VENDOR = 1;
 
