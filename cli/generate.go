@@ -52,7 +52,7 @@ func newGenerateCmd() *cobra.Command {
 		RunE: runGenerate,
 	}
 
-	cmd.Flags().StringP("policy", "p", policyDir, "path to policy (.rego) file")
+	cmd.Flags().StringP("policy", "p", rulesFilename, "path to policy (.rego) file")
 	cmd.Flags().StringP("settings", "s", settingsFilename, "path to settings (.json) file")
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringArrayP("workload-owner-key", "w", []string{workloadOwnerPEM}, "path to workload owner key (.pem) file")
@@ -188,11 +188,11 @@ func filterNonCoCoRuntime(runtimeClassName string, paths []string, logger *slog.
 	return filtered
 }
 
-func generatePolicies(ctx context.Context, regoPath, policyPath string, yamlPaths []string, logger *slog.Logger) error {
-	if err := createFileWithDefault(filepath.Join(regoPath, policyPath), func() ([]byte, error) { return defaultGenpolicySettings, nil }); err != nil {
+func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath string, yamlPaths []string, logger *slog.Logger) error {
+	if err := createFileWithDefault(policySettingsPath, func() ([]byte, error) { return defaultGenpolicySettings, nil }); err != nil {
 		return fmt.Errorf("creating default policy file: %w", err)
 	}
-	if err := createFileWithDefault(filepath.Join(regoPath, rulesFilename), func() ([]byte, error) { return defaultRules, nil }); err != nil {
+	if err := createFileWithDefault(regoRulesPath, func() ([]byte, error) { return defaultRules, nil }); err != nil {
 		return fmt.Errorf("creating default policy.rego file: %w", err)
 	}
 	binaryInstallDir, err := installDir()
@@ -209,7 +209,7 @@ func generatePolicies(ctx context.Context, regoPath, policyPath string, yamlPath
 		}
 	}()
 	for _, yamlPath := range yamlPaths {
-		policyHash, err := generatePolicyForFile(ctx, genpolicyInstall.Path(), regoPath, policyPath, yamlPath, logger)
+		policyHash, err := generatePolicyForFile(ctx, genpolicyInstall.Path(), regoRulesPath, policySettingsPath, yamlPath, logger)
 		if err != nil {
 			return fmt.Errorf("failed to generate policy for %s: %w", yamlPath, err)
 		}
@@ -263,8 +263,8 @@ func generatePolicyForFile(ctx context.Context, genpolicyPath, regoPath, policyP
 	args := []string{
 		"--raw-out",
 		"--use-cached-files",
-		fmt.Sprintf("--input-files-path=%s", regoPath),
-		fmt.Sprintf("--settings-file-name=%s", policyPath),
+		fmt.Sprintf("--rego-rules-path=%s", regoPath),
+		fmt.Sprintf("--json-settings-path=%s", policyPath),
 		fmt.Sprintf("--yaml-file=%s", yamlPath),
 	}
 	genpolicy := exec.CommandContext(ctx, genpolicyPath, args...)

@@ -13,7 +13,6 @@ const (
 	manifestFilename       = "manifest.json"
 	settingsFilename       = "settings.json"
 	rulesFilename          = "rules.rego"
-	policyDir              = "."
 	verifyDir              = "./verify"
 	cacheDirEnv            = "NUNKI_CACHE_DIR"
 )
