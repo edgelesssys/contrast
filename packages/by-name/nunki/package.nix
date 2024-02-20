@@ -56,8 +56,14 @@ buildGoModule rec {
 
   postInstall = ''
     for sub in ${builtins.concatStringsSep " " subPackages}; do
-      install -Dm755 "$out/bin/$sub" "''${!sub}/bin/$sub"
+      mkdir -p "''${!sub}/bin"
+      mv "$out/bin/$sub" "''${!sub}/bin/$sub"
     done
+
+    # ensure no binary is left in out
+    rmdir "$out/bin/"
+
+    # rename the cli binary to nunki
     mv "$cli/bin/cli" "$cli/bin/nunki"
   '';
   meta.mainProgram = "nunki";
