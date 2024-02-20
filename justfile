@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target: undeploy coordinator initializer openssl port-forwarder (deploy target) set verify (wait-for-workload target)
+default target=default_deploy_target cli=default_cli: undeploy coordinator initializer openssl port-forwarder (deploy target cli) set verify (wait-for-workload target)
 
 # Build the coordinator, containerize and push it.
 coordinator:
@@ -17,14 +17,15 @@ port-forwarder:
 initializer:
     nix run .#containers.push-initializer -- "$container_registry/nunki/initializer"
 
+default_cli := "nunki.cli"
 default_deploy_target := "simple"
 workspace_dir := "workspace"
 
 # Generate policies, apply Kubernetes manifests.
-deploy target=default_deploy_target: (generate target) apply
+deploy target=default_deploy_target cli=default_cli: (generate target cli) apply
 
 # Generate policies, update manifest.
-generate target=default_deploy_target:
+generate target=default_deploy_target cli=default_cli:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
@@ -37,7 +38,7 @@ generate target=default_deploy_target:
     nix run .#kypatch namespace -- ./{{ workspace_dir }}/deployment \
         --replace edg-default {{ target }}${namespace_suffix-}
     t=$(date +%s)
-    nix run .#nunki.cli -- generate \
+    nix run .#{{ cli }} -- generate \
         -m ./{{ workspace_dir }}/manifest.json \
         -p ./{{ workspace_dir }}/rules.rego \
         -s ./{{ workspace_dir }}/genpolicy-msft.json \
@@ -69,7 +70,7 @@ create:
     nix run .#scripts.create-coco-aks -- --name="$azure_resource_group"
 
 # Set the manifest at the coordinator.
-set:
+set cli=default_cli:
     #!/usr/bin/env bash
     set -euo pipefail
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
@@ -81,7 +82,7 @@ set:
     nix run .#scripts.wait-for-port-listen -- 1313
     policy=$(<./{{ workspace_dir }}/just.coordinator-policy-hash)
     t=$(date +%s)
-    nix run .#nunki.cli -- set \
+    nix run .#{{ cli }} -- set \
         -m ./{{ workspace_dir }}/manifest.json \
         -c localhost:1313 \
         --coordinator-policy-hash "${policy}" \
@@ -91,7 +92,7 @@ set:
     echo "set $duration" >> ./{{ workspace_dir }}/just.perf
 
 # Verify the Coordinator.
-verify:
+verify cli=default_cli:
     #!/usr/bin/env bash
     set -euo pipefail
     rm -rf ./{{ workspace_dir }}/verify
@@ -102,7 +103,7 @@ verify:
     trap "kill $PID" EXIT
     nix run .#scripts.wait-for-port-listen -- 1314
     t=$(date +%s)
-    nix run .#nunki.cli -- verify \
+    nix run .#{{ cli }} -- verify \
         -c localhost:1314 \
         -o ./{{ workspace_dir }}/verify
     duration=$(( $(date +%s) - $t ))
@@ -164,11 +165,11 @@ fmt:
 lint:
     nix run .#scripts.golangci-lint -- run
 
-demodir: undeploy coordinator initializer
+demodir cli=default_cli: undeploy coordinator initializer
     #!/usr/bin/env bash
     d=$(mktemp -d)
     echo "Creating demo directory at ${d}"
-    nix build .#nunki.cli
+    nix build .#{{ cli }}
     cp ./result-cli/bin/nunki "${d}/nunki"
     cp -R ./deployments/emojivoto "${d}/deployment"
     nix run .#scripts.patch-nunki-image-hashes -- "${d}/deployment"
