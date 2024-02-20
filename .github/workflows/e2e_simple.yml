@@ -57,7 +57,7 @@ jobs:
           just get-credentials
       - name: Build, deploy, nunki generate, nunki set, nunki verify
         run: |
-          just default simple
+          just default simple cli-release
       - name: Summary
         run: |
           cat ./workspace/just.namespace | tee -a "${GITHUB_STEP_SUMMARY}"
