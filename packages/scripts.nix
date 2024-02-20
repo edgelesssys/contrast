@@ -154,7 +154,9 @@ with pkgs;
 
       # TODO(burgerdev): consider a dedicated coordinator template instead of the simple one
       yq < deployments/simple/coordinator.yml > "$tmpdir/coordinator.yml" \
-        "del(.metadata.namespace) | (select(.kind == \"Deployment\") | .spec.template.spec.containers[0].image) = \"$imageRef\""
+        "del(.metadata.namespace) |
+         (select(.kind == \"Deployment\") | .spec.template.spec.containers[0].image) = \"$imageRef\" |
+         (select(.kind == \"Service\") | .spec.type) = \"LoadBalancer\" "
 
       pushd "$tmpdir" >/dev/null
       # TODO(burgerdev): this should not be dev, but there are unknown env vars
