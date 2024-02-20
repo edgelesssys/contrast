@@ -38,6 +38,15 @@ mv nunki /usr/local/bin/nunki
 
 ## Generic Workflow
 
+### Deploy the Nunki Coordinator
+
+Install the latest Nunki Coordinator release, comprising a single replica deployment and a
+LoadBalancer service, into your cluster.
+
+```sh
+kubectl apply -f https://github.com/edgelesssys/nunki/releases/download/latest/coordinator.yaml
+```
+
 ### Preprare your Kubernetes resources
 
 Nunki will add annotations to your Kubernetes YAML files. If you want to keep the original files
@@ -78,43 +87,6 @@ spec: # v1.PodSpec
     emptyDir: {}
 ```
 
-Finally, you will need to deploy the Nunki Coordinator, too. Start with the following definition
-in `resources/coordinator.yaml` and adjust it as you see fit (e.g. labels, namespace, service attributes).
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: coordinator
-spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: coordinator
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: coordinator
-      annotations:
-        nunki.edgeless.systems/pod-role: coordinator
-    spec:
-      runtimeClassName: kata-cc-isolation
-      containers:
-        - name: coordinator
-          image: "ghcr.io/edgelesssys/nunki/coordinator:v0.1.0"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: coordinator
-spec:
-  ports:
-  - port: 7777
-  - port: 1313
-  selector:
-    app.kubernetes.io/name: coordinator
-```
-
 ### Generate policy annotations and manifest
 
 Run the `generate` command generate the execution policies and add them as annotations to your
@@ -133,21 +105,28 @@ manifest is set at the Coordinator.
 kubectl apply -f resources/
 ```
 
-### Set Manifest
+### Connect to the Nunki Coordinator
 
-For the next steps, we will need to connect to the Coordinator. If you did not expose the
-coordinator with an external Kubernetes LoadBalancer, you can expose it locally:
+For the next steps, we will need to connect to the Coordinator. The released Coordinator resource
+includes a LoadBalancer definition we can use.
 
 ```sh
-kubectl port-forward service/coordinator 1313:coordapi &
+coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
 ```
+
+> [!NOTE]
+> `kubectl port-forward` uses a CRI method that is not supported by the Kata shim. If you
+> cannot use a public load balancer, you can deploy a [deployments/simple/portforwarder.yml] and
+> expose that with `kubectl port-forward` instead.
+>
+> Tracking issue: <https://github.com/kata-containers/kata-containers/issues/1693>.
 
 ### Set Manifest
 
 Attest the Coordinator and set the manifest:
 
 ```sh
-./nunki set -c localhost:1313 -m manifest.json
+./nunki set -c "${coordinator}:1313" -m manifest.json
 ```
 
 After this step, the Coordinator will start issuing TLS certs to the workloads. The init container
@@ -158,7 +137,7 @@ will fetch a certificate for the workload and the workload is started.
 An end user (data owner) can verify the Nunki deployment using the `verify` command.
 
 ```sh
-./nunki verify -c localhost:1313 -o ./verify
+./nunki verify -c "${coordinator}:1313" -o ./verify
 ```
 
 The CLI will attest the Coordinator using embedded reference values. The CLI will write the service mesh
@@ -171,8 +150,8 @@ Connect to the workloads using the Coordinator's mesh root as a trusted CA certi
 For example, with `curl`:
 
 ```sh
-kubectl port-forward service/$MY_SERVICE 8443:$MY_PORT &
-curl --cacert ./verify/mesh-root.pem https://localhost:8443
+lbip=$(kubectl get svc ${MY_SERVICE} -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+curl --cacert ./verify/mesh-root.pem "https://${lbip}:8443"
 ```
 
 ## Contributing
