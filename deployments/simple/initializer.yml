@@ -30,11 +30,11 @@ spec:
               memory: 50Mi
       containers:
         - name: workload
-          image: "fedora:38"
+          image: "docker.io/library/busybox:1.36.1-musl@sha256:d4707523ce6e12afdbe9a3be5ad69027150a834870ca0933baf7516dd1fe0f56"
           command:
-            - /bin/bash
+            - /bin/sh
             - "-c"
-            - echo Workload started ; sleep inf
+            - echo Workload started ; while true; do sleep 60; done
           volumeMounts:
             - name: tls-certs
               mountPath: /tls-config
