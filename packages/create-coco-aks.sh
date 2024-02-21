@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-set -x
 
 # Spin up an AKS cluster with CoCo support.
 #
@@ -29,6 +28,8 @@ for i in "$@"; do
     ;;
   esac
 done
+
+set -x
 
 # Will always fail in CI due to lack of permissions.
 # In GH actions, CI=true is part of the environment.
