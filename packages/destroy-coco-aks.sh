@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-set -x
 
 for i in "$@"; do
   case $i in
@@ -15,6 +14,8 @@ for i in "$@"; do
     ;;
   esac
 done
+
+set -x
 
 az aks delete \
   --resource-group "${name}" \
