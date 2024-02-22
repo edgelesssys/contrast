@@ -147,10 +147,10 @@ with pkgs;
     name = "write-coordinator-policy";
     runtimeInputs = [
       yq-go
-      genpolicy
+      genpolicy-msft
     ];
     text = ''
-      imageRef=$1:v${version}
+      imageRef=$1
 
       tmpdir=$(mktemp -d)
       trap 'rm -rf $tmpdir' EXIT
@@ -162,8 +162,8 @@ with pkgs;
          (select(.kind == \"Service\") | .spec.type) = \"LoadBalancer\" "
 
       pushd "$tmpdir" >/dev/null
-      # TODO(burgerdev): this should not be dev, but there are unknown env vars
-      cp ${genpolicy.settings}/genpolicy-settings.json .
+      cp ${genpolicy-msft.rules-coordinator}/genpolicy-rules.rego rules.rego
+      cp ${genpolicy-msft.settings}/genpolicy-settings.json .
       genpolicy < "$tmpdir/coordinator.yml"
       popd >/dev/null
     '';
