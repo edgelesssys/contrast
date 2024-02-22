@@ -34,7 +34,13 @@ spec:
           command:
             - /bin/bash
             - "-c"
-            - "echo Workload started \nwhile true; do \n  echo \"THIS IS A TEST MESSAGE\" | openssl s_client -connect openssl-frontend:443 -verify_return_error -CAfile /tls-config/RootCACert.pem\n  sleep 30\ndone\n"
+            - |
+              echo Workload started
+              while true; do
+                echo "THIS IS A TEST MESSAGE" |
+                  openssl s_client -connect openssl-frontend:443 -verify_return_error -CAfile /tls-config/RootCACert.pem
+                sleep 30
+              done
           volumeMounts:
             - name: tls-certs
               mountPath: /tls-config
