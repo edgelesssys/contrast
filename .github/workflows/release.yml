@@ -170,7 +170,7 @@ jobs:
       - name: Create portable coordinator resource definitions
         run: |
           mkdir -p workspace
-          nix run .#scripts.write-coordinator-yaml -- "${container_registry}/nunki/coordinator" > workspace/coordinator.yaml
+          nix run .#scripts.write-coordinator-yaml -- "${container_registry}/nunki/coordinator:${{ inputs.version }}" > workspace/coordinator.yaml
       - name: Update coordinator policy hash
         run: |
           yq < workspace/coordinator.yaml \
