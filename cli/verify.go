@@ -10,10 +10,10 @@ import (
 
 	"github.com/edgelesssys/nunki/internal/atls"
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
-	"github.com/edgelesssys/nunki/internal/coordapi"
 	"github.com/edgelesssys/nunki/internal/fsstore"
 	"github.com/edgelesssys/nunki/internal/grpc/dialer"
 	"github.com/edgelesssys/nunki/internal/manifest"
+	"github.com/edgelesssys/nunki/internal/userapi"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/validate"
@@ -78,8 +78,8 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	defer conn.Close()
 
 	log.Debug("Getting manifest")
-	client := coordapi.NewCoordAPIClient(conn)
-	resp, err := client.GetManifests(cmd.Context(), &coordapi.GetManifestsRequest{})
+	client := userapi.NewUserAPIClient(conn)
+	resp, err := client.GetManifests(cmd.Context(), &userapi.GetManifestsRequest{})
 	if err != nil {
 		return fmt.Errorf("failed to get manifest: %w", err)
 	}

@@ -41,7 +41,7 @@ spec:
     - name: meshapi
       port: 7777
       protocol: TCP
-    - name: coordapi
+    - name: userapi
       port: 1313
       protocol: TCP
   selector:

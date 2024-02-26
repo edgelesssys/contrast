@@ -18,11 +18,11 @@ import (
 
 	"github.com/edgelesssys/nunki/internal/atls"
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
-	"github.com/edgelesssys/nunki/internal/coordapi"
 	"github.com/edgelesssys/nunki/internal/fsstore"
 	"github.com/edgelesssys/nunki/internal/grpc/dialer"
 	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/edgelesssys/nunki/internal/spinner"
+	"github.com/edgelesssys/nunki/internal/userapi"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -112,8 +112,8 @@ func runSet(cmd *cobra.Command, args []string) error {
 	}
 	defer conn.Close()
 
-	client := coordapi.NewCoordAPIClient(conn)
-	req := &coordapi.SetManifestRequest{
+	client := userapi.NewUserAPIClient(conn)
+	req := &userapi.SetManifestRequest{
 		Manifest: manifestBytes,
 		Policies: policyMapToBytesList(policies),
 	}
@@ -227,8 +227,8 @@ func loadWorkloadOwnerKey(path string, manifst manifest.Manifest, log *slog.Logg
 }
 
 func setLoop(
-	ctx context.Context, client coordapi.CoordAPIClient, out io.Writer, req *coordapi.SetManifestRequest,
-) (resp *coordapi.SetManifestResponse, retErr error) {
+	ctx context.Context, client userapi.UserAPIClient, out io.Writer, req *userapi.SetManifestRequest,
+) (resp *userapi.SetManifestResponse, retErr error) {
 	spinner := spinner.New("  Waiting for coordinator ", 500*time.Millisecond, out)
 	spinner.Start()
 	defer func() {

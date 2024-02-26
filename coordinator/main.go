@@ -6,9 +6,9 @@ import (
 	"os"
 
 	"github.com/edgelesssys/nunki/internal/ca"
-	"github.com/edgelesssys/nunki/internal/coordapi"
 	"github.com/edgelesssys/nunki/internal/logger"
 	"github.com/edgelesssys/nunki/internal/meshapi"
+	"github.com/edgelesssys/nunki/internal/userapi"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -38,14 +38,14 @@ func run() (retErr error) {
 	}
 
 	meshAuth := newMeshAuthority(caInstance, logger)
-	coordS := newCoordAPIServer(meshAuth, caInstance, logger)
+	userAPI := newUserAPIServer(meshAuth, caInstance, logger)
 	meshAPI := newMeshAPIServer(meshAuth, caInstance, logger)
 
 	eg := errgroup.Group{}
 
 	eg.Go(func() error {
-		logger.Info("Coordinator API listening")
-		if err := coordS.Serve(net.JoinHostPort("0.0.0.0", coordapi.Port)); err != nil {
+		logger.Info("Coordinator user API listening")
+		if err := userAPI.Serve(net.JoinHostPort("0.0.0.0", userapi.Port)); err != nil {
 			return fmt.Errorf("serving Coordinator API: %w", err)
 		}
 		return nil
