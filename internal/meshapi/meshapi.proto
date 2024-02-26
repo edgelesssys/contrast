@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package intercom;
+package meshapi;
 
-option go_package = "github.com/edgelesssys/nunki/internal/intercom";
+option go_package = "github.com/edgelesssys/nunki/internal/meshapi";
 
-service Intercom {
+service MeshAPI {
   rpc NewMeshCert(NewMeshCertRequest) returns (NewMeshCertResponse);
 }
 

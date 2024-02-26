@@ -7,8 +7,8 @@ import (
 
 	"github.com/edgelesssys/nunki/internal/ca"
 	"github.com/edgelesssys/nunki/internal/coordapi"
-	"github.com/edgelesssys/nunki/internal/intercom"
 	"github.com/edgelesssys/nunki/internal/logger"
+	"github.com/edgelesssys/nunki/internal/meshapi"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -39,7 +39,7 @@ func run() (retErr error) {
 
 	meshAuth := newMeshAuthority(caInstance, logger)
 	coordS := newCoordAPIServer(meshAuth, caInstance, logger)
-	intercomS := newIntercomServer(meshAuth, caInstance, logger)
+	meshAPI := newMeshAPIServer(meshAuth, caInstance, logger)
 
 	eg := errgroup.Group{}
 
@@ -52,9 +52,9 @@ func run() (retErr error) {
 	})
 
 	eg.Go(func() error {
-		logger.Info("Coordinator intercom listening")
-		if err := intercomS.Serve(net.JoinHostPort("0.0.0.0", intercom.Port)); err != nil {
-			return fmt.Errorf("serving intercom API: %w", err)
+		logger.Info("Coordinator mesh API listening")
+		if err := meshAPI.Serve(net.JoinHostPort("0.0.0.0", meshapi.Port)); err != nil {
+			return fmt.Errorf("serving mesh API: %w", err)
 		}
 		return nil
 	})

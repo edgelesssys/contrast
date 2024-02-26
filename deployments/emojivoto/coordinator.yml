@@ -38,7 +38,7 @@ metadata:
   namespace: edg-default
 spec:
   ports:
-    - name: intercom
+    - name: meshapi
       port: 7777
       protocol: TCP
     - name: coordapi
