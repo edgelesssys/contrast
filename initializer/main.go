@@ -18,8 +18,8 @@ import (
 	"github.com/edgelesssys/nunki/internal/atls"
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
 	"github.com/edgelesssys/nunki/internal/grpc/dialer"
-	"github.com/edgelesssys/nunki/internal/intercom"
 	"github.com/edgelesssys/nunki/internal/logger"
+	"github.com/edgelesssys/nunki/internal/meshapi"
 )
 
 func main() {
@@ -62,18 +62,18 @@ func run() (retErr error) {
 	pubKeyHashStr := hex.EncodeToString(pubKeyHash[:])
 	log.Info("Deriving public key", "pubKeyHash", pubKeyHashStr)
 
-	requestCert := func() (*intercom.NewMeshCertResponse, error) {
+	requestCert := func() (*meshapi.NewMeshCertResponse, error) {
 		issuer := snp.NewIssuer(logger.NewNamed(log, "snp-issuer"))
 		dial := dialer.NewWithKey(issuer, atls.NoValidator, &net.Dialer{}, privKey)
-		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorHostname, intercom.Port))
+		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorHostname, meshapi.Port))
 		if err != nil {
 			return nil, fmt.Errorf("dialing: %w", err)
 		}
 		defer conn.Close()
 
-		client := intercom.NewIntercomClient(conn)
+		client := meshapi.NewMeshAPIClient(conn)
 
-		req := &intercom.NewMeshCertRequest{
+		req := &meshapi.NewMeshCertRequest{
 			PeerPublicKeyHash: pubKeyHashStr,
 		}
 		resp, err := client.NewMeshCert(ctx, req)
@@ -83,7 +83,7 @@ func run() (retErr error) {
 		return resp, nil
 	}
 
-	resp := &intercom.NewMeshCertResponse{}
+	resp := &meshapi.NewMeshCertResponse{}
 	for {
 		resp, err = requestCert()
 		if err == nil {

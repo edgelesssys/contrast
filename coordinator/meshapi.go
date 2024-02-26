@@ -10,9 +10,9 @@ import (
 	"github.com/edgelesssys/nunki/internal/atls"
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
 	"github.com/edgelesssys/nunki/internal/grpc/atlscredentials"
-	"github.com/edgelesssys/nunki/internal/intercom"
 	"github.com/edgelesssys/nunki/internal/logger"
 	"github.com/edgelesssys/nunki/internal/memstore"
+	"github.com/edgelesssys/nunki/internal/meshapi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
@@ -20,21 +20,21 @@ import (
 	"k8s.io/utils/clock"
 )
 
-type intercomServer struct {
+type meshAPIServer struct {
 	grpc          *grpc.Server
 	certGet       certGetter
 	caChainGetter certChainGetter
 	ticker        clock.Ticker
 	logger        *slog.Logger
 
-	intercom.UnimplementedIntercomServer
+	meshapi.UnimplementedMeshAPIServer
 }
 
 type certGetter interface {
 	GetCert(peerPublicKeyHashStr string) ([]byte, error)
 }
 
-func newIntercomServer(meshAuth *meshAuthority, caGetter certChainGetter, log *slog.Logger) *intercomServer {
+func newMeshAPIServer(meshAuth *meshAuthority, caGetter certChainGetter, log *slog.Logger) *meshAPIServer {
 	ticker := clock.RealClock{}.NewTicker(24 * time.Hour)
 	kdsGetter := snp.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter"))
 	validator := snp.NewValidatorWithCallbacks(meshAuth, kdsGetter, logger.NewNamed(log, "snp-validator"), meshAuth)
@@ -43,18 +43,18 @@ func newIntercomServer(meshAuth *meshAuthority, caGetter certChainGetter, log *s
 		grpc.Creds(credentials),
 		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
 	)
-	s := &intercomServer{
+	s := &meshAPIServer{
 		grpc:          grpcServer,
 		certGet:       meshAuth,
 		caChainGetter: caGetter,
 		ticker:        ticker,
-		logger:        log.WithGroup("intercom"),
+		logger:        log.WithGroup("meshapi"),
 	}
-	intercom.RegisterIntercomServer(s.grpc, s)
+	meshapi.RegisterMeshAPIServer(s.grpc, s)
 	return s
 }
 
-func (i *intercomServer) Serve(endpoint string) error {
+func (i *meshAPIServer) Serve(endpoint string) error {
 	lis, err := net.Listen("tcp", endpoint)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
@@ -64,8 +64,8 @@ func (i *intercomServer) Serve(endpoint string) error {
 	return i.grpc.Serve(lis)
 }
 
-func (i *intercomServer) NewMeshCert(_ context.Context, req *intercom.NewMeshCertRequest,
-) (*intercom.NewMeshCertResponse, error) {
+func (i *meshAPIServer) NewMeshCert(_ context.Context, req *meshapi.NewMeshCertRequest,
+) (*meshapi.NewMeshCertResponse, error) {
 	i.logger.Info("NewMeshCert called")
 
 	cert, err := i.certGet.GetCert(req.PeerPublicKeyHash)
@@ -77,7 +77,7 @@ func (i *intercomServer) NewMeshCert(_ context.Context, req *intercom.NewMeshCer
 	meshCACert := i.caChainGetter.GetMeshCACert()
 	intermCert := i.caChainGetter.GetIntermCert()
 
-	return &intercom.NewMeshCertResponse{
+	return &meshapi.NewMeshCertResponse{
 		MeshCACert: meshCACert,
 		CertChain:  append(cert, intermCert...),
 		RootCACert: i.caChainGetter.GetRootCACert(),
