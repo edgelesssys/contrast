@@ -30,7 +30,7 @@ func TestOpenSSL(t *testing.T) {
 	namespace := os.Getenv(namespaceEnv)
 	require.NotEmpty(namespace, "environment variable %q must be set", namespaceEnv)
 
-	frontendPods, err := c.PodsFromDeployment(context.Background(), namespace, "openssl-frontend")
+	frontendPods, err := c.PodsFromDeployment(ctx, namespace, "openssl-frontend")
 	require.NoError(err)
 	require.Len(frontendPods, 1, "pod not found: %s/%s", namespace, "openssl-frontend")
 
