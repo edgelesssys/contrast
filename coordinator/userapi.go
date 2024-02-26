@@ -15,11 +15,11 @@ import (
 
 	"github.com/edgelesssys/nunki/internal/appendable"
 	"github.com/edgelesssys/nunki/internal/attestation/snp"
-	"github.com/edgelesssys/nunki/internal/coordapi"
 	"github.com/edgelesssys/nunki/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/nunki/internal/logger"
 	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/edgelesssys/nunki/internal/memstore"
+	"github.com/edgelesssys/nunki/internal/userapi"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -28,7 +28,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type coordAPIServer struct {
+type userAPIServer struct {
 	grpc            *grpc.Server
 	policyTextStore store[manifest.HexString, manifest.Policy]
 	manifSetGetter  manifestSetGetter
@@ -36,28 +36,28 @@ type coordAPIServer struct {
 	logger          *slog.Logger
 	mux             sync.RWMutex
 
-	coordapi.UnimplementedCoordAPIServer
+	userapi.UnimplementedUserAPIServer
 }
 
-func newCoordAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, log *slog.Logger) *coordAPIServer {
+func newUserAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, log *slog.Logger) *userAPIServer {
 	issuer := snp.NewIssuer(logger.NewNamed(log, "snp-issuer"))
 	credentials := atlscredentials.New(issuer, nil)
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
 		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
 	)
-	s := &coordAPIServer{
+	s := &userAPIServer{
 		grpc:            grpcServer,
 		policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
 		manifSetGetter:  mSGetter,
 		caChainGetter:   caGetter,
-		logger:          log.WithGroup("coordapi"),
+		logger:          log.WithGroup("userapi"),
 	}
-	coordapi.RegisterCoordAPIServer(s.grpc, s)
+	userapi.RegisterUserAPIServer(s.grpc, s)
 	return s
 }
 
-func (s *coordAPIServer) Serve(endpoint string) error {
+func (s *userAPIServer) Serve(endpoint string) error {
 	lis, err := net.Listen("tcp", endpoint)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %w", err)
@@ -65,8 +65,8 @@ func (s *coordAPIServer) Serve(endpoint string) error {
 	return s.grpc.Serve(lis)
 }
 
-func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManifestRequest,
-) (*coordapi.SetManifestResponse, error) {
+func (s *userAPIServer) SetManifest(ctx context.Context, req *userapi.SetManifestRequest,
+) (*userapi.SetManifestResponse, error) {
 	s.logger.Info("SetManifest called")
 	s.mux.Lock()
 	defer s.mux.Unlock()
@@ -100,7 +100,7 @@ func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManif
 		return nil, status.Errorf(codes.Internal, "setting manifest: %v", err)
 	}
 
-	resp := &coordapi.SetManifestResponse{
+	resp := &userapi.SetManifestResponse{
 		CACert:     s.caChainGetter.GetRootCACert(),
 		IntermCert: s.caChainGetter.GetIntermCert(),
 	}
@@ -109,8 +109,8 @@ func (s *coordAPIServer) SetManifest(ctx context.Context, req *coordapi.SetManif
 	return resp, nil
 }
 
-func (s *coordAPIServer) GetManifests(_ context.Context, _ *coordapi.GetManifestsRequest,
-) (*coordapi.GetManifestsResponse, error) {
+func (s *userAPIServer) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
+) (*userapi.GetManifestsResponse, error) {
 	s.logger.Info("GetManifest called")
 	s.mux.RLock()
 	defer s.mux.RUnlock()
@@ -130,7 +130,7 @@ func (s *coordAPIServer) GetManifests(_ context.Context, _ *coordapi.GetManifest
 		return nil, status.Error(codes.Internal, "no policies found in store")
 	}
 
-	resp := &coordapi.GetManifestsResponse{
+	resp := &userapi.GetManifestsResponse{
 		Manifests:  manifestBytes,
 		Policies:   policySliceToBytesSlice(policies),
 		CACert:     s.caChainGetter.GetRootCACert(),
@@ -141,7 +141,7 @@ func (s *coordAPIServer) GetManifests(_ context.Context, _ *coordapi.GetManifest
 	return resp, nil
 }
 
-func (s *coordAPIServer) validatePeer(ctx context.Context) error {
+func (s *userAPIServer) validatePeer(ctx context.Context) error {
 	latest, err := s.manifSetGetter.LatestManifest()
 	if err != nil && errors.Is(err, appendable.ErrIsEmpty) {
 		// in the initial state, no peer validation is required

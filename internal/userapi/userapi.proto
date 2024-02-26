@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package coordapi;
+package userapi;
 
-option go_package = "github.com/edgelesssys/nunki/internal/coordapi";
+option go_package = "github.com/edgelesssys/nunki/internal/userapi";
 
-service CoordAPI {
+service UserAPI {
   rpc SetManifest(SetManifestRequest) returns (SetManifestResponse);
   rpc GetManifests(GetManifestsRequest) returns (GetManifestsResponse);
 }

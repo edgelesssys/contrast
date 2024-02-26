@@ -14,9 +14,9 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/nunki/internal/appendable"
-	"github.com/edgelesssys/nunki/internal/coordapi"
 	"github.com/edgelesssys/nunki/internal/manifest"
 	"github.com/edgelesssys/nunki/internal/memstore"
+	"github.com/edgelesssys/nunki/internal/userapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/credentials"
@@ -46,19 +46,19 @@ func TestManifestSet(t *testing.T) {
 	require.NoError(t, err)
 
 	testCases := map[string]struct {
-		req              *coordapi.SetManifestRequest
+		req              *userapi.SetManifestRequest
 		mSGetter         *stubManifestSetGetter
 		caGetter         *stubCertChainGetter
 		workloadOwnerKey *ecdsa.PrivateKey
 		wantErr          bool
 	}{
 		"empty request": {
-			req:      &coordapi.SetManifestRequest{},
+			req:      &userapi.SetManifestRequest{},
 			mSGetter: &stubManifestSetGetter{},
 			wantErr:  true,
 		},
 		"manifest without policies": {
-			req: &coordapi.SetManifestRequest{
+			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
 					m.Policies = nil
 				}),
@@ -67,7 +67,7 @@ func TestManifestSet(t *testing.T) {
 			wantErr:  true,
 		},
 		"request without policies": {
-			req: &coordapi.SetManifestRequest{
+			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
 					m.Policies = map[manifest.HexString][]string{
 						manifest.HexString("a"): {"a1", "a2"},
@@ -79,7 +79,7 @@ func TestManifestSet(t *testing.T) {
 			wantErr:  true,
 		},
 		"policy not in manifest": {
-			req: &coordapi.SetManifestRequest{
+			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
 					m.Policies = map[manifest.HexString][]string{
 						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
@@ -95,7 +95,7 @@ func TestManifestSet(t *testing.T) {
 			wantErr:  true,
 		},
 		"valid manifest": {
-			req: &coordapi.SetManifestRequest{
+			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
 					m.Policies = map[manifest.HexString][]string{
 						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
@@ -111,7 +111,7 @@ func TestManifestSet(t *testing.T) {
 			caGetter: &stubCertChainGetter{},
 		},
 		"valid manifest but error when setting it": {
-			req: &coordapi.SetManifestRequest{
+			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
 					m.Policies = map[manifest.HexString][]string{
 						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
@@ -128,7 +128,7 @@ func TestManifestSet(t *testing.T) {
 			wantErr:  true,
 		},
 		"workload owner key match": {
-			req: &coordapi.SetManifestRequest{
+			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
 					m.Policies = map[manifest.HexString][]string{
 						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
@@ -147,7 +147,7 @@ func TestManifestSet(t *testing.T) {
 			workloadOwnerKey: trustedKey,
 		},
 		"workload owner key mismatch": {
-			req: &coordapi.SetManifestRequest{
+			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
 					m.Policies = map[manifest.HexString][]string{
 						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
@@ -167,7 +167,7 @@ func TestManifestSet(t *testing.T) {
 			wantErr:          true,
 		},
 		"workload owner key missing": {
-			req: &coordapi.SetManifestRequest{
+			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
 					m.Policies = map[manifest.HexString][]string{
 						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
@@ -186,7 +186,7 @@ func TestManifestSet(t *testing.T) {
 			wantErr:  true,
 		},
 		"manifest not updatable": {
-			req: &coordapi.SetManifestRequest{
+			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
 					m.Policies = map[manifest.HexString][]string{
 						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
@@ -212,7 +212,7 @@ func TestManifestSet(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 
-			coordinator := coordAPIServer{
+			coordinator := userAPIServer{
 				manifSetGetter:  tc.mSGetter,
 				caChainGetter:   tc.caGetter,
 				policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
@@ -278,7 +278,7 @@ func TestGetManifests(t *testing.T) {
 				policyStore.Set(k, v)
 			}
 
-			coordinator := coordAPIServer{
+			coordinator := userAPIServer{
 				manifSetGetter:  tc.mSGetter,
 				caChainGetter:   tc.caGetter,
 				policyTextStore: policyStore,
@@ -286,7 +286,7 @@ func TestGetManifests(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			resp, err := coordinator.GetManifests(ctx, &coordapi.GetManifestsRequest{})
+			resp, err := coordinator.GetManifests(ctx, &userapi.GetManifestsRequest{})
 
 			if tc.wantErr {
 				assert.Error(err)
@@ -300,9 +300,9 @@ func TestGetManifests(t *testing.T) {
 	}
 }
 
-// TestCoordAPIConcurrent tests potential synchronization problems between the different
+// TestUserAPIConcurrent tests potential synchronization problems between the different
 // gRPCs of the server.
-func TestCoordAPIConcurrent(t *testing.T) {
+func TestUserAPIConcurrent(t *testing.T) {
 	newBaseManifest := func() manifest.Manifest {
 		return manifest.Default()
 	}
@@ -316,13 +316,13 @@ func TestCoordAPIConcurrent(t *testing.T) {
 		return b
 	}
 
-	coordinator := coordAPIServer{
+	coordinator := userAPIServer{
 		manifSetGetter:  &stubManifestSetGetter{},
 		caChainGetter:   &stubCertChainGetter{},
 		policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
 		logger:          slog.Default(),
 	}
-	setReq := &coordapi.SetManifestRequest{
+	setReq := &userapi.SetManifestRequest{
 		Manifest: newManifestBytes(func(m *manifest.Manifest) {
 			m.Policies = map[manifest.HexString][]string{
 				manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
@@ -344,7 +344,7 @@ func TestCoordAPIConcurrent(t *testing.T) {
 	}
 	get := func() {
 		defer wg.Done()
-		_, _ = coordinator.GetManifests(ctx, &coordapi.GetManifestsRequest{})
+		_, _ = coordinator.GetManifests(ctx, &userapi.GetManifestsRequest{})
 	}
 
 	wg.Add(12)
