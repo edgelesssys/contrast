@@ -64,7 +64,7 @@ jobs:
           cat ./workspace/just.perf | tee -a "${GITHUB_STEP_SUMMARY}"
       - name: E2E Test
         run: |
-          env K8S_NAMESPACE=$(cat ./workspace/just.namespace) go test -v -count=1 -tags e2e ./e2e/openssl
+          env K8S_NAMESPACE=$(cat ./workspace/just.namespace) nix shell .#nunki.e2e --command openssl.test -test.v
       - name: Undeploy
         if: always() && inputs.skip-undeploy != 'true'
         run: |

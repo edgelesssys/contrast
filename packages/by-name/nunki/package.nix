@@ -1,8 +1,22 @@
 { lib
 , buildGoModule
+, buildGoTest
 , genpolicy-msft
 , genpolicy ? genpolicy-msft
+, nunki
 }:
+let
+  e2e = buildGoTest rec {
+    inherit (nunki) version src proxyVendor vendorHash prePatch CGO_ENABLED;
+    pname = "${nunki.pname}-e2e";
+
+    tags = [ "e2e" ];
+
+    ldflags = [ "-s" ];
+
+    subPackages = [ "e2e/openssl" ];
+  };
+in
 
 buildGoModule rec {
   pname = "nunki";
@@ -68,5 +82,8 @@ buildGoModule rec {
     # rename the cli binary to nunki
     mv "$cli/bin/cli" "$cli/bin/nunki"
   '';
+
+  passthru.e2e = e2e;
+
   meta.mainProgram = "nunki";
 }
