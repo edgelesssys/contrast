@@ -30,7 +30,7 @@ spec:
               memory: 50Mi
       containers:
         - name: openssl-client
-          image: ghcr.io/3u13r/nunki/openssl:latest
+          image: ghcr.io/edgelesssys/nunki/openssl:latest
           command:
             - /bin/bash
             - "-c"
