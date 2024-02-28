@@ -148,13 +148,10 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
-      - uses: cachix/install-nix-action@6004951b182f8860210c8d6f0d808ec5b1a33d28 # v25
+      - uses: ./.github/actions/setup_nix
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-      - uses: cachix/cachix-action@18cf96c7c98e048e10a83abd92116114cd8504be # v14
-        with:
-          name: edgelesssys
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Log in to ghcr.io Container registry
         uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
         with:
