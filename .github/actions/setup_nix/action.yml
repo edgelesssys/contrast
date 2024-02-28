@@ -19,3 +19,4 @@ runs:
       with:
         name: edgelesssys
         authToken: ${{ inputs.cachixToken }}
+        installCommand: nix profile install github:cachix/cachix/3a6e4a049f7cadd8894015c2488a2fa969c83c41 --accept-flake-config
