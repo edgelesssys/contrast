@@ -1,0 +1,21 @@
+name: setup nix
+description: Setup nix and cachix
+
+inputs:
+  githubToken:
+    description: "Token to authenticate with GitHub"
+    required: true
+  cachixToken:
+    description: "Token to authenticate with cachix"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: cachix/install-nix-action@6004951b182f8860210c8d6f0d808ec5b1a33d28 # v25
+      with:
+        github_access_token: ${{ inputs.githubToken }}
+    - uses: cachix/cachix-action@18cf96c7c98e048e10a83abd92116114cd8504be # v14
+      with:
+        name: edgelesssys
+        authToken: ${{ inputs.cachixToken }}
