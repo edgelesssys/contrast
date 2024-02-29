@@ -60,8 +60,11 @@ func NewFromConfigFile(configPath string, log *slog.Logger) (*Kubeclient, error)
 func NewForTest(t *testing.T) *Kubeclient {
 	t.Helper()
 	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
-	// TODO(burgerdev): consider reading KUBECONFIG env var
-	c, err := NewFromConfigFile(clientcmd.RecommendedHomeFile, log)
+	configFile := os.Getenv("KUBECONFIG")
+	if configFile == "" {
+		configFile = clientcmd.RecommendedHomeFile
+	}
+	c, err := NewFromConfigFile(configFile, log)
 	if err != nil {
 		t.Fatalf("Could not create Kubeclient: %v", err)
 	}
