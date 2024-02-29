@@ -3,11 +3,14 @@ package kubeclient
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/dynamic"
 )
 
 // WaitForPod watches the given pod and blocks until it meets the condition Ready=True or the
@@ -72,4 +75,40 @@ func (c *Kubeclient) WaitForDeployment(ctx context.Context, namespace, name stri
 			return ctx.Err()
 		}
 	}
+}
+
+func (c *Kubeclient) resourceInterfaceFor(obj *unstructured.Unstructured) (dynamic.ResourceInterface, error) {
+	dyn := dynamic.New(c.client.RESTClient())
+	gvk := obj.GroupVersionKind()
+
+	mapping, err := c.restMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return nil, fmt.Errorf("getting resource for %#v: %w", gvk, err)
+	}
+	c.log.Info("found mapping", "resource", mapping.Resource)
+	ri := dyn.Resource(mapping.Resource)
+	if namespace := obj.GetNamespace(); namespace != "" {
+		return ri.Namespace(namespace), nil
+	}
+	return ri, nil
+}
+
+// Apply a set of namespaced manifests to a namespace.
+func (c *Kubeclient) Apply(ctx context.Context, objects ...*unstructured.Unstructured) error {
+	// Move namespaces to the head of the list so that they are applied first and ready for the other objects.
+	sort.Slice(objects, func(i, j int) bool {
+		return objects[i].GetKind() == "Namespace" && objects[j].GetKind() != "Namespace"
+	})
+	for _, obj := range objects {
+		ri, err := c.resourceInterfaceFor(obj)
+		if err != nil {
+			return err
+		}
+		applied, err := ri.Apply(ctx, obj.GetName(), obj, metav1.ApplyOptions{Force: true, FieldManager: "e2e-test"})
+		if err != nil {
+			return fmt.Errorf("could not apply %s %s in namespace %s: %w", obj.GetKind(), obj.GetName(), obj.GetNamespace(), err)
+		}
+		c.log.Info("object applied", "namespace", applied.GetNamespace(), "kind", applied.GetKind(), "name", applied.GetName())
+	}
+	return nil
 }
