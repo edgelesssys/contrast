@@ -14,10 +14,12 @@ import (
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 )
@@ -28,6 +30,8 @@ type Kubeclient struct {
 
 	// client is the underlying Kubernetes client.
 	client *kubernetes.Clientset
+	// restMapper allows to look up schema information for dynamic resources
+	restMapper meta.RESTMapper
 	// config is the "Kubeconfig" for the client
 	config *rest.Config
 }
@@ -39,10 +43,16 @@ func New(config *rest.Config, log *slog.Logger) (*Kubeclient, error) {
 		return nil, fmt.Errorf("creating kubernetes client: %w", err)
 	}
 
+	resources, err := restmapper.GetAPIGroupResources(client.Discovery())
+	if err != nil {
+		return nil, fmt.Errorf("getting resource groups: %w", err)
+	}
+
 	return &Kubeclient{
-		log:    log,
-		client: client,
-		config: config,
+		log:        log,
+		client:     client,
+		config:     config,
+		restMapper: restmapper.NewDiscoveryRESTMapper(resources),
 	}, nil
 }
 
