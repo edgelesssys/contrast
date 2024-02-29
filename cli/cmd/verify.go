@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"crypto/sha256"
@@ -20,7 +20,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func newVerifyCmd() *cobra.Command {
+// NewVerifyCmd creates the nunki verify subcommand.
+func NewVerifyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "verify",
 		Short: "Verify a nunki deployment",
