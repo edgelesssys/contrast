@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	_ "embed"
@@ -36,4 +36,10 @@ func cachedir(subdir string) (string, error) {
 		dir = filepath.Join(cachedir, "nunki")
 	}
 	return filepath.Join(dir, subdir), nil
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

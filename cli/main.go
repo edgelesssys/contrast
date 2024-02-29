@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/edgelesssys/nunki/cli/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -25,23 +26,23 @@ func execute() error {
 var version = "0.0.0-dev"
 
 func newRootCmd() *cobra.Command {
-	cmd := &cobra.Command{
+	root := &cobra.Command{
 		Short:            "nunki",
 		PersistentPreRun: preRunRoot,
 		Version:          version,
 	}
-	cmd.SetOut(os.Stdout)
+	root.SetOut(os.Stdout)
 
-	cmd.PersistentFlags().String("log-level", "warn", "set logging level (debug, info, warn, error, or a number)")
+	root.PersistentFlags().String("log-level", "warn", "set logging level (debug, info, warn, error, or a number)")
 
-	cmd.InitDefaultVersionFlag()
-	cmd.AddCommand(
-		newGenerateCmd(),
-		newSetCmd(),
-		newVerifyCmd(),
+	root.InitDefaultVersionFlag()
+	root.AddCommand(
+		cmd.NewGenerateCmd(),
+		cmd.NewSetCmd(),
+		cmd.NewVerifyCmd(),
 	)
 
-	return cmd
+	return root
 }
 
 // signalContext returns a context that is canceled on the handed signal.
@@ -73,10 +74,4 @@ func signalContext(ctx context.Context, sig os.Signal) (context.Context, context
 
 func preRunRoot(cmd *cobra.Command, _ []string) {
 	cmd.SilenceUsage = true
-}
-
-func must(err error) {
-	if err != nil {
-		panic(err)
-	}
 }

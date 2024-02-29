@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"bytes"
@@ -30,7 +30,8 @@ const (
 	nunkiRoleAnnotationKey  = "nunki.edgeless.systems/pod-role"
 )
 
-func newGenerateCmd() *cobra.Command {
+// NewGenerateCmd creates the nunki generate subcommand.
+func NewGenerateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "generate [flags] paths...",
 		Short: "generate policies and inject into Kubernetes resources",

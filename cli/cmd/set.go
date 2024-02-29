@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"context"
@@ -28,7 +28,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func newSetCmd() *cobra.Command {
+// NewSetCmd creates the nunki set subcommand.
+func NewSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set [flags] paths...",
 		Short: "Set the given manifest at the coordinator",

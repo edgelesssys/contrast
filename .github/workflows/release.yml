@@ -175,11 +175,11 @@ jobs:
         run: |
           yq < workspace/coordinator.yaml \
             'select(.kind == "Deployment") | .spec.template.metadata.annotations["io.katacontainers.config.agent.policy"]' |
-            base64 -d | sha256sum | cut -d " " -f1 > cli/assets/coordinator-policy-hash
+            base64 -d | sha256sum | cut -d " " -f1 > cli/cmd/assets/coordinator-policy-hash
 
           git config --global user.name "edgelessci"
           git config --global user.email "edgelessci@users.noreply.github.com"
-          git add cli/assets/coordinator-policy-hash
+          git add cli/cmd/assets/coordinator-policy-hash
           git diff --staged --quiet || git commit -m "release: update coordinator policy hash"
       - name: Build CLI
         run: |

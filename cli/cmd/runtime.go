@@ -1,4 +1,4 @@
-package main
+package cmd
 
 // DefaultCoordinatorPolicyHash is derived from the coordinator release candidate and injected at release build time.
 //
