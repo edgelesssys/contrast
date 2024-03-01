@@ -20,7 +20,7 @@ The coordinator can be in one of three states:
 
 * It starts in the initial state, where no manifest is set.
 * The updatable state is reached after SetManifest was called at least once and the manifest contains at least one workload owner key.
-* The final state is reached after SetManifest was called with an empty list of certificates.
+* The final state is reached after SetManifest was called with an empty list of public keys.
 
 ## Key exchange
 
@@ -28,12 +28,12 @@ The coordinator trusts a list of x509 key pairs that belong to the entity that f
 The key pair(s) are called workload owner keys.
 A workload owner key must not be signed by the root CA / mesh CA so there is no potential for impersonation between the workload owner and mesh certificates.
 
-The client sends a list of trusted public keys as part of manifest in the initial call. In the default case, a single certificate is used, allowing the owner of the secret key to update the manifest.
+The client sends a list of trusted public keys as part of manifest in the initial call. In the default case, a single public key is used, allowing the owner of the secret key to update the manifest.
 If the list is empty, nobody can update the manifest after the initial call and the client does not need to store a secret key on disk.
 Multiple keys can be specified to allow multiple parties to perform updates. This can later be extended as described below.
 
 The list of trusted public keys must always be included in the manifest.
-This way, the data owner can validate who is allowed to update the manifest and the trusted certificates can be rotated (or any further updates prevented) as part of the manifest.
+This way, the data owner can validate who is allowed to update the manifest and the trusted public keys can be rotated (or any further updates prevented) as part of the manifest.
 
 Another consideration is whether the same grpc endpoint should be used in both states (initial, updating) or if a split is beneficial.
 This is merely an implementation detail and not important for the overall design.
