@@ -25,7 +25,7 @@ default_deploy_target := "simple"
 workspace_dir := "workspace"
 
 # Generate policies, apply Kubernetes manifests.
-deploy target=default_deploy_target cli=default_cli: (generate target cli) apply
+deploy target=default_deploy_target cli=default_cli: (generate target cli) (apply target)
 
 # Generate policies, update manifest.
 generate target=default_deploy_target cli=default_cli:
@@ -33,7 +33,14 @@ generate target=default_deploy_target cli=default_cli:
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
     rm -rf ./{{ workspace_dir }}/*
-    cp -R ./deployments/{{ target }} ./{{ workspace_dir }}/deployment
+    case {{ target }} in
+        "simple")
+            nix shell .#nunki --command resourcegen {{ target }} ./{{ workspace_dir }}/deployment/deployment.yml
+        ;;
+        *)
+            cp -R ./deployments/{{ target }} ./{{ workspace_dir }}/deployment
+        ;;
+    esac
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
     nix run .#scripts.patch-nunki-image-hashes -- ./{{ workspace_dir }}/deployment
     nix run .#kypatch images -- ./{{ workspace_dir }}/deployment \
@@ -51,8 +58,16 @@ generate target=default_deploy_target cli=default_cli:
     echo "generate $duration" >> ./{{ workspace_dir }}/just.perf
 
 # Apply Kubernetes manifests from /deployment
-apply:
-    kubectl apply -f ./{{ workspace_dir }}/deployment/ns.yml
+apply target=default_deploy_target:
+    #!/usr/bin/env bash
+    case {{ target }} in
+        "simple")
+            :
+        ;;
+        *)
+            kubectl apply -f ./{{ workspace_dir }}/deployment/ns.yml
+        ;;
+    esac
     kubectl apply -f ./{{ workspace_dir }}/deployment
 
 # Delete Kubernetes manifests.
@@ -61,6 +76,10 @@ undeploy:
     set -euo pipefail
     if [[ ! -d ./{{ workspace_dir }} ]]; then
         echo "No workspace directory found, nothing to undeploy."
+        exit 0
+    fi
+    if [[ ! -f ./{{ workspace_dir }}/just.namespace ]]; then
+        echo "No namespace file found, nothing to undeploy."
         exit 0
     fi
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
