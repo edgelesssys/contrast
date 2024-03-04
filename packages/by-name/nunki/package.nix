@@ -16,13 +16,15 @@ let
 
     subPackages = [ "e2e/openssl" ];
   };
+
+  packageOutputs = [ "coordinator" "initializer" "cli" ];
 in
 
 buildGoModule rec {
   pname = "nunki";
   version = builtins.readFile ../../../version.txt;
 
-  outputs = subPackages ++ [ "out" ];
+  outputs = packageOutputs ++ [ "out" ];
 
   # The source of the main module of this repo. We filter for Go files so that
   # changes in the other parts of this repo don't trigger a rebuild.
@@ -45,7 +47,7 @@ buildGoModule rec {
   proxyVendor = true;
   vendorHash = "sha256-VBCTnRx4BBvG/yedChE55ZQbsaFk2zDcXtXof9v3XNI=";
 
-  subPackages = [ "coordinator" "initializer" "cli" ];
+  subPackages = packageOutputs ++ [ "e2e/internal/kuberesource/resourcegen" ];
 
   prePatch = ''
     install -D ${lib.getExe genpolicy} cli/cmd/assets/genpolicy
@@ -71,13 +73,10 @@ buildGoModule rec {
   '';
 
   postInstall = ''
-    for sub in ${builtins.concatStringsSep " " subPackages}; do
+    for sub in ${builtins.concatStringsSep " " packageOutputs}; do
       mkdir -p "''${!sub}/bin"
       mv "$out/bin/$sub" "''${!sub}/bin/$sub"
     done
-
-    # ensure no binary is left in out
-    rmdir "$out/bin/"
 
     # rename the cli binary to nunki
     mv "$cli/bin/cli" "$cli/bin/nunki"
