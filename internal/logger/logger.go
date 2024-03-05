@@ -1,9 +1,9 @@
 // Package logger provides a slog.Logger that can be configured via environment variables.
-// NUNKI_LOG_LEVEL can be used to set the log level.
-// NUNKI_LOG_FORMAT can be used to set the log format.
+// CONTRAST_LOG_LEVEL can be used to set the log level.
+// CONTRAST_LOG_FORMAT can be used to set the log format.
 // It also offer a slog.Handler that can be used to enable logging on a per-subsystem basis.
-// NUNKI_LOG_SUBSYSTEMS can be used to enable logging for specific subsystems.
-// If NUNKI_LOG_SUBSYSTEMS has the special value "*", all subsystems are enabled.
+// CONTRAST_LOG_SUBSYSTEMS can be used to enable logging for specific subsystems.
+// If CONTRAST_LOG_SUBSYSTEMS has the special value "*", all subsystems are enabled.
 // Otherwise, a comma-separated list of subsystem names can be specified.
 package logger
 
@@ -17,11 +17,11 @@ import (
 
 const (
 	// LogLevel is the environment variable used to set the log level.
-	LogLevel = "NUNKI_LOG_LEVEL"
+	LogLevel = "CONTRAST_LOG_LEVEL"
 	// LogFormat is the environment variable used to set the log format.
-	LogFormat = "NUNKI_LOG_FORMAT"
+	LogFormat = "CONTRAST_LOG_FORMAT"
 	// LogSubsystems is the environment variable used to enable logging for specific subsystems.
-	LogSubsystems = "NUNKI_LOG_SUBSYSTEMS"
+	LogSubsystems = "CONTRAST_LOG_SUBSYSTEMS"
 )
 
 // Default returns a logger configured via environment variables.

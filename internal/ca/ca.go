@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/edgelesssys/nunki/internal/crypto"
+	"github.com/edgelesssys/contrast/internal/crypto"
 )
 
 // CA is a cross-signing certificate authority.

@@ -18,27 +18,27 @@ let
   containers = {
     coordinator = dockerTools.buildImage {
       name = "coordinator";
-      tag = "v${nunki.version}";
+      tag = "v${contrast.version}";
       copyToRoot = with dockerTools; [ caCertificates ];
       config = {
-        Cmd = [ "${nunki.coordinator}/bin/coordinator" ];
+        Cmd = [ "${contrast.coordinator}/bin/coordinator" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
       };
     };
 
     initializer = dockerTools.buildImage {
       name = "initializer";
-      tag = "v${nunki.version}";
+      tag = "v${contrast.version}";
       copyToRoot = with dockerTools; [ caCertificates ];
       config = {
-        Cmd = [ "${nunki.initializer}/bin/initializer" ];
+        Cmd = [ "${contrast.initializer}/bin/initializer" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
       };
     };
 
     openssl = dockerTools.buildImage {
       name = "openssl";
-      tag = "v${nunki.version}";
+      tag = "v${contrast.version}";
       copyToRoot = [
         bash
         bashInteractive
@@ -56,7 +56,7 @@ let
 
     port-forwarder = dockerTools.buildImage {
       name = "port-forwarder";
-      tag = "v${nunki.version}";
+      tag = "v${contrast.version}";
       copyToRoot = [ bash socat ];
     };
 

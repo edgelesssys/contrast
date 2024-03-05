@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgelesssys/nunki/e2e/internal/kubeclient"
+	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/stretchr/testify/require"
 )
 

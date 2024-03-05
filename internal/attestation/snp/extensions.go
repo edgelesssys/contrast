@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/edgelesssys/nunki/internal/oid"
+	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/proto/sevsnp"

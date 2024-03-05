@@ -68,11 +68,11 @@ just [default <deployment-name>]
 
 This will build, containerize and push all relevant components.
 Ensure the pushed container images are accessible to your cluster.
-The manifest will the be generated (`nunki generate`).
+The manifest will the be generated (`contrast generate`).
 
 Further the flow will deploy the selected deployment and wait for components to come up.
-The manifest will automatically be set (`nunki set`) and the Coordinator will will be verified
-(`nunki verify`). The flow will also wait for the workload to get ready.
+The manifest will automatically be set (`contrast set`) and the Coordinator will will be verified
+(`contrast verify`). The flow will also wait for the workload to get ready.
 
 This target is idempotent and will delete an existing deployment before re-deploying.
 

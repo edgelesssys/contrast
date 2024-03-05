@@ -28,7 +28,7 @@ spec:
       runtimeClassName: kata-cc-isolation
       initContainers:
         - name: initializer
-          image: "ghcr.io/edgelesssys/nunki/initializer:latest"
+          image: "ghcr.io/edgelesssys/contrast/initializer:latest"
           env:
             - name: COORDINATOR_HOST
               value: coordinator
@@ -38,7 +38,7 @@ spec:
       serviceAccountName: web
       containers:
         - name: sidecar
-          image: "ghcr.io/edgelesssys/nunki/service-mesh-proxy:latest"
+          image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest"
           volumeMounts:
             - name: tls-certs
               mountPath: /tls-config

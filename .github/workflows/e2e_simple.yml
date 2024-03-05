@@ -52,7 +52,7 @@ jobs:
       - name: Get credentials for CI cluster
         run: |
           just get-credentials
-      - name: Build, deploy, nunki generate, nunki set, nunki verify
+      - name: Build, deploy, contrast generate, contrast set, contrast verify
         run: |
           just default simple cli-release
       - name: Summary

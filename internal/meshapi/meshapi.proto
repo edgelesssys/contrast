@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package meshapi;
 
-option go_package = "github.com/edgelesssys/nunki/internal/meshapi";
+option go_package = "github.com/edgelesssys/contrast/internal/meshapi";
 
 service MeshAPI {
   rpc NewMeshCert(NewMeshCertRequest) returns (NewMeshCertResponse);

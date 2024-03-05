@@ -13,7 +13,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/edgelesssys/nunki/internal/atls"
+	"github.com/edgelesssys/contrast/internal/atls"
 	"google.golang.org/grpc/credentials"
 )
 

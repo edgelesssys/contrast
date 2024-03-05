@@ -22,7 +22,7 @@ func PortForwarder(name, namespace string) *PortForwarderConfig {
 			WithContainers(
 				Container().
 					WithName("port-forwarder").
-					WithImage("ghcr.io/edgelesssys/nunki/port-forwarder:latest").
+					WithImage("ghcr.io/edgelesssys/contrast/port-forwarder:latest").
 					WithCommand("/bin/bash", "-c", "echo Starting port-forward with socat; exec socat -d -d TCP-LISTEN:${LISTEN_PORT},fork TCP:${FORWARD_HOST}:${FORWARD_PORT}").
 					WithResources(ResourceRequirements().
 						WithMemoryLimitAndRequest(50),
@@ -71,15 +71,15 @@ func Coordinator(namespace string) *CoordinatorConfig {
 			).
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}).
-				WithAnnotations(map[string]string{"nunki.edgeless.systems/pod-role": "coordinator"}).
+				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
 				WithSpec(PodSpec().
 					WithRuntimeClassName("kata-cc-isolation").
 					WithContainers(
 						Container().
 							WithName("coordinator").
-							WithImage("ghcr.io/edgelesssys/nunki/coordinator:latest").
+							WithImage("ghcr.io/edgelesssys/contrast/coordinator:latest").
 							WithEnv(
-								NewEnvVar("NUNKI_LOG_LEVEL", "debug"),
+								NewEnvVar("CONTRAST_LOG_LEVEL", "debug"),
 							).
 							WithPorts(
 								ContainerPort().
@@ -137,7 +137,7 @@ func ServiceForDeployment(d *applyappsv1.DeploymentApplyConfiguration) *applycor
 func Initializer() *applycorev1.ContainerApplyConfiguration {
 	return applycorev1.Container().
 		WithName("initializer").
-		WithImage("ghcr.io/edgelesssys/nunki/initializer:latest").
+		WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
 		WithResources(ResourceRequirements().
 			WithMemoryLimitAndRequest(50),
 		).

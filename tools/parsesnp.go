@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/edgelesssys/nunki/internal/logger"
+	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/google/go-sev-guest/abi"
 )
 

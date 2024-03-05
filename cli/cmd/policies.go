@@ -6,8 +6,8 @@ import (
 	"os"
 	"slices"
 
-	"github.com/edgelesssys/nunki/internal/kubeapi"
-	"github.com/edgelesssys/nunki/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/kubeapi"
+	"github.com/edgelesssys/contrast/internal/manifest"
 )
 
 func policiesFromKubeResources(yamlPaths []string) (map[string]deployment, error) {
@@ -31,23 +31,23 @@ func policiesFromKubeResources(yamlPaths []string) (map[string]deployment, error
 		case kubeapi.Pod:
 			name = obj.Name
 			annotation = obj.Annotations[kataPolicyAnnotationKey]
-			role = obj.Annotations[nunkiRoleAnnotationKey]
+			role = obj.Annotations[contrastRoleAnnotationKey]
 		case kubeapi.Deployment:
 			name = obj.Name
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-			role = obj.Spec.Template.Annotations[nunkiRoleAnnotationKey]
+			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
 		case kubeapi.ReplicaSet:
 			name = obj.Name
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-			role = obj.Spec.Template.Annotations[nunkiRoleAnnotationKey]
+			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
 		case kubeapi.StatefulSet:
 			name = obj.Name
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-			role = obj.Spec.Template.Annotations[nunkiRoleAnnotationKey]
+			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
 		case kubeapi.DaemonSet:
 			name = obj.Name
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-			role = obj.Spec.Template.Annotations[nunkiRoleAnnotationKey]
+			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
 		}
 		if annotation == "" {
 			continue
@@ -98,7 +98,7 @@ func checkPoliciesMatchManifest(policies map[string]deployment, policyHashes map
 	return nil
 }
 
-// getCoordinatorPolicyHash returns the policy hash for the Nunki coordinator among the given deployments.
+// getCoordinatorPolicyHash returns the policy hash for the Contrast coordinator among the given deployments.
 //
 // If the deployments contain a coordinator, that coordinator's policy hash is returned, otherwise
 // an empty string is returned.

@@ -3,24 +3,24 @@ default target=default_deploy_target cli=default_cli: undeploy coordinator initi
 
 # Build the coordinator, containerize and push it.
 coordinator:
-    nix run .#containers.push-coordinator -- "$container_registry/nunki/coordinator"
+    nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator"
 
 # Build the openssl container and push it.
 openssl:
-    nix run .#containers.push-openssl -- "$container_registry/nunki/openssl"
+    nix run .#containers.push-openssl -- "$container_registry/contrast/openssl"
 
 # Build the port-forwarder container and push it.
 port-forwarder:
-    nix run .#containers.push-port-forwarder -- "$container_registry/nunki/port-forwarder"
+    nix run .#containers.push-port-forwarder -- "$container_registry/contrast/port-forwarder"
 
 service-mesh-proxy:
-    nix run .#containers.push-service-mesh-proxy -- "$container_registry/nunki/service-mesh-proxy"
+    nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy"
 
 # Build the initializer, containerize and push it.
 initializer:
-    nix run .#containers.push-initializer -- "$container_registry/nunki/initializer"
+    nix run .#containers.push-initializer -- "$container_registry/contrast/initializer"
 
-default_cli := "nunki.cli"
+default_cli := "contrast.cli"
 default_deploy_target := "simple"
 workspace_dir := "workspace"
 
@@ -35,14 +35,14 @@ generate target=default_deploy_target cli=default_cli:
     rm -rf ./{{ workspace_dir }}/*
     case {{ target }} in
         "simple")
-            nix shell .#nunki --command resourcegen {{ target }} ./{{ workspace_dir }}/deployment/deployment.yml
+            nix shell .#contrast --command resourcegen {{ target }} ./{{ workspace_dir }}/deployment/deployment.yml
         ;;
         *)
             cp -R ./deployments/{{ target }} ./{{ workspace_dir }}/deployment
         ;;
     esac
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
-    nix run .#scripts.patch-nunki-image-hashes -- ./{{ workspace_dir }}/deployment
+    nix run .#scripts.patch-contrast-image-hashes -- ./{{ workspace_dir }}/deployment
     nix run .#kypatch images -- ./{{ workspace_dir }}/deployment \
         --replace ghcr.io/edgelesssys ${container_registry}
     nix run .#kypatch namespace -- ./{{ workspace_dir }}/deployment \
@@ -192,9 +192,9 @@ demodir cli=default_cli: undeploy coordinator initializer
     d=$(mktemp -d)
     echo "Creating demo directory at ${d}"
     nix build .#{{ cli }}
-    cp ./result-cli/bin/nunki "${d}/nunki"
+    cp ./result-cli/bin/contrast "${d}/contrast"
     cp -R ./deployments/emojivoto "${d}/deployment"
-    nix run .#scripts.patch-nunki-image-hashes -- "${d}/deployment"
+    nix run .#scripts.patch-contrast-image-hashes -- "${d}/deployment"
     nix run .#kypatch images -- "${d}/deployment" \
         --replace ghcr.io/edgelesssys ${container_registry}
     echo "Demo directory ready at ${d}"
@@ -221,9 +221,9 @@ azure_resource_group=""
 # Namespace suffix, can be empty. Will be used when patching namespaces.
 namespace_suffix=""
 # Cache directory for the CLI.
-NUNKI_CACHE_DIR="./workspace.cache"
+CONTRAST_CACHE_DIR="./workspace.cache"
 # Log level for the CLI.
-NUNKI_LOG_LEVEL=""
+CONTRAST_LOG_LEVEL=""
 '''
 
 # Developer onboarding.

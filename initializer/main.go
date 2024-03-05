@@ -15,11 +15,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/edgelesssys/nunki/internal/atls"
-	"github.com/edgelesssys/nunki/internal/attestation/snp"
-	"github.com/edgelesssys/nunki/internal/grpc/dialer"
-	"github.com/edgelesssys/nunki/internal/logger"
-	"github.com/edgelesssys/nunki/internal/meshapi"
+	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/snp"
+	"github.com/edgelesssys/contrast/internal/grpc/dialer"
+	"github.com/edgelesssys/contrast/internal/logger"
+	"github.com/edgelesssys/contrast/internal/meshapi"
 )
 
 func main() {

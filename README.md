@@ -1,16 +1,16 @@
-# Nunki
+# Contrast
 
-Nunki ([/ˈnʌŋki/](https://en.wikipedia.org/wiki/Sigma_Sagittarii)) runs confidential container deployments
+Contrast ([/ˈnʌŋki/](https://en.wikipedia.org/wiki/Sigma_Sagittarii)) runs confidential container deployments
 on untrusted Kubernetes at scale.
 
-Nunki is based on the [Kata Containers](https://github.com/kata-containers/kata-containers) and
+Contrast is based on the [Kata Containers](https://github.com/kata-containers/kata-containers) and
 [Confidential Containers](https://github.com/confidential-containers) projects. Confidential Containers are
 Kubernetes pods that are executed inside a confidential micro-VM and provide strong hardware-based isolation
 from the surrounding environment. This works with unmodified containers in a lift-and-shift approach.
 
-## The Nunki Coordinator
+## The Contrast Coordinator
 
-The Nunki Coordinator is the central remote attestation component of a Nunki deployment. It's a certificate
+The Contrast Coordinator is the central remote attestation component of a Contrast deployment. It's a certificate
 authority and issues certificates for workload pods running inside confidential containers. The Coordinator
 is configured with a *manifest*, a configuration file that holds the reference values of all other parts of
 a deployment. The Coordinator ensures that your app's topology adheres to your specified manifest. It verifies
@@ -22,9 +22,9 @@ To verify your deployment, the remote attestation of the Coordinator and its man
 attestation statement for your entire deployment. Anyone can use this to verify the integrity of your distributed
 app, making it easier to assure stakeholders of your app's security.
 
-## The Nunki Initializer
+## The Contrast Initializer
 
-Nunki provides an Initializer that handles the remote attestation on the workload side transparently and
+Contrast provides an Initializer that handles the remote attestation on the workload side transparently and
 fetches the workload certificate. The Initializer runs as init container before your workload is started.
 
 ## Installation
@@ -32,24 +32,24 @@ fetches the workload certificate. The Initializer runs as init container before 
 Download the latest CLI from our release and put it into your PATH:
 
 ```sh
-curl -fLo nunki https://github.com/edgelesssys/nunki/releases/download/latest/nunki
-mv nunki /usr/local/bin/nunki
+curl -fLo contrast https://github.com/edgelesssys/contrast/releases/download/latest/contrast
+mv contrast /usr/local/bin/contrast
 ```
 
 ## Generic Workflow
 
-### Deploy the Nunki Coordinator
+### Deploy the Contrast Coordinator
 
-Install the latest Nunki Coordinator release, comprising a single replica deployment and a
+Install the latest Contrast Coordinator release, comprising a single replica deployment and a
 LoadBalancer service, into your cluster.
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/nunki/releases/download/latest/coordinator.yaml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/latest/coordinator.yaml
 ```
 
 ### Preprare your Kubernetes resources
 
-Nunki will add annotations to your Kubernetes YAML files. If you want to keep the original files
+Contrast will add annotations to your Kubernetes YAML files. If you want to keep the original files
 unchanged, you can copy the files into a separate local directory.
 You can also generate files from a Helm chart or from a Kustomization.
 
@@ -67,7 +67,7 @@ helm template release-name chart-name > resources/all.yaml
 
 To specify that a workload (pod, deployment, etc.) should be deployed as confidential containers,
 add `runtimeClassName: kata-cc-isolation` to the pod spec (pod definition or template).
-In addition, add the Nunki Initializer as `initContainers` to these workloads and configure the
+In addition, add the Contrast Initializer as `initContainers` to these workloads and configure the
 workload to use the certificates written to the `tls-certs` volumeMount.
 
 ```yaml
@@ -75,7 +75,7 @@ spec: # v1.PodSpec
   runtimeClassName: kata-cc-isolation
   initContainers:
   - name: initializer
-    image: "ghcr.io/edgelesssys/nunki/initializer:latest"
+    image: "ghcr.io/edgelesssys/contrast/initializer:latest"
     env:
     - name: COORDINATOR_HOST
       value: coordinator
@@ -93,7 +93,7 @@ Run the `generate` command generate the execution policies and add them as annot
 deployment files. A `manifest.json` with the reference values of your deployment will be created.
 
 ```sh
-./nunki generate resources/*.yaml
+./contrast generate resources/*.yaml
 ```
 
 ### Apply Resources
@@ -105,7 +105,7 @@ manifest is set at the Coordinator.
 kubectl apply -f resources/
 ```
 
-### Connect to the Nunki Coordinator
+### Connect to the Contrast Coordinator
 
 For the next steps, we will need to connect to the Coordinator. The released Coordinator resource
 includes a LoadBalancer definition we can use.
@@ -126,7 +126,7 @@ coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ing
 Attest the Coordinator and set the manifest:
 
 ```sh
-./nunki set -c "${coordinator}:1313" -m manifest.json
+./contrast set -c "${coordinator}:1313" -m manifest.json
 ```
 
 After this step, the Coordinator will start issuing TLS certs to the workloads. The init container
@@ -134,10 +134,10 @@ will fetch a certificate for the workload and the workload is started.
 
 ### Verify the Coordinator
 
-An end user (data owner) can verify the Nunki deployment using the `verify` command.
+An end user (data owner) can verify the Contrast deployment using the `verify` command.
 
 ```sh
-./nunki verify -c "${coordinator}:1313" -o ./verify
+./contrast verify -c "${coordinator}:1313" -o ./verify
 ```
 
 The CLI will attest the Coordinator using embedded reference values. The CLI will write the service mesh

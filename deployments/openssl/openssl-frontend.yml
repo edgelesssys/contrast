@@ -16,7 +16,7 @@ spec:
       runtimeClassName: kata-cc-isolation
       initContainers:
         - name: initializer
-          image: "ghcr.io/edgelesssys/nunki/initializer:latest"
+          image: "ghcr.io/edgelesssys/contrast/initializer:latest"
           env:
             - name: COORDINATOR_HOST
               value: coordinator
@@ -30,7 +30,7 @@ spec:
               memory: 50Mi
       containers:
         - name: openssl-frontend
-          image: ghcr.io/edgelesssys/nunki/openssl:latest
+          image: ghcr.io/edgelesssys/contrast/openssl:latest
           command:
             - /bin/bash
             - "-c"

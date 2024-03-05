@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/edgelesssys/nunki/cli/cmd"
+	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +27,7 @@ var version = "0.0.0-dev"
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Short:            "nunki",
+		Short:            "contrast",
 		PersistentPreRun: preRunRoot,
 		Version:          version,
 	}

@@ -14,8 +14,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/edgelesssys/nunki/internal/logger"
-	"github.com/edgelesssys/nunki/internal/oid"
+	"github.com/edgelesssys/contrast/internal/logger"
+	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"

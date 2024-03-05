@@ -5,10 +5,10 @@ import (
 	"net"
 	"os"
 
-	"github.com/edgelesssys/nunki/internal/ca"
-	"github.com/edgelesssys/nunki/internal/logger"
-	"github.com/edgelesssys/nunki/internal/meshapi"
-	"github.com/edgelesssys/nunki/internal/userapi"
+	"github.com/edgelesssys/contrast/internal/ca"
+	"github.com/edgelesssys/contrast/internal/logger"
+	"github.com/edgelesssys/contrast/internal/meshapi"
+	"github.com/edgelesssys/contrast/internal/userapi"
 	"golang.org/x/sync/errgroup"
 )
 

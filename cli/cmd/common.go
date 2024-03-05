@@ -14,7 +14,7 @@ const (
 	settingsFilename       = "settings.json"
 	rulesFilename          = "rules.rego"
 	verifyDir              = "./verify"
-	cacheDirEnv            = "NUNKI_CACHE_DIR"
+	cacheDirEnv            = "CONTRAST_CACHE_DIR"
 )
 
 var (
@@ -33,7 +33,7 @@ func cachedir(subdir string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		dir = filepath.Join(cachedir, "nunki")
+		dir = filepath.Join(cachedir, "contrast")
 	}
 	return filepath.Join(dir, subdir), nil
 }
