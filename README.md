@@ -1,7 +1,6 @@
 # Contrast
 
-Contrast ([/ˈnʌŋki/](https://en.wikipedia.org/wiki/Sigma_Sagittarii)) runs confidential container deployments
-on untrusted Kubernetes at scale.
+Contrast runs confidential container deployments on untrusted Kubernetes at scale.
 
 Contrast is based on the [Kata Containers](https://github.com/kata-containers/kata-containers) and
 [Confidential Containers](https://github.com/confidential-containers) projects. Confidential Containers are
