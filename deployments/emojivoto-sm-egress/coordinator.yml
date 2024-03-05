@@ -13,17 +13,17 @@ spec:
       labels:
         app.kubernetes.io/name: coordinator
       annotations:
-        nunki.edgeless.systems/pod-role: coordinator
+        contrast.edgeless.systems/pod-role: coordinator
     spec:
       runtimeClassName: kata-cc-isolation
       containers:
         - name: coordinator
-          image: "ghcr.io/edgelesssys/nunki/coordinator:latest"
+          image: "ghcr.io/edgelesssys/contrast/coordinator:latest"
           ports:
             - containerPort: 7777
             - containerPort: 1313
           env:
-            - name: NUNKI_LOG_LEVEL
+            - name: CONTRAST_LOG_LEVEL
               value: "debug"
           resources:
             requests:

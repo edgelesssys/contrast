@@ -1,10 +1,10 @@
 { lib
-, nunki
+, contrast
 , genpolicy-msft
 , genpolicy ? genpolicy-msft
 }:
 
-(nunki.overrideAttrs (_finalAttrs: previousAttrs: {
+(contrast.overrideAttrs (_finalAttrs: previousAttrs: {
   prePatch = ''
     install -D ${lib.getExe genpolicy} cli/cmd/assets/genpolicy
     install -D ${genpolicy.settings}/genpolicy-settings.json cli/cmd/assets/genpolicy-settings.json

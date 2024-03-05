@@ -104,18 +104,18 @@ jobs:
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
-          path: nunki-working
+          path: contrast-working
       - name: Checkout main
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: main
-          path: nunki-main
+          path: contrast-main
       - name: Bump flake version to post release patch pre-version
         id: bump
-        uses: ./nunki-working/.github/actions/bump_version # Run action from working branch!
+        uses: ./contrast-working/.github/actions/bump_version # Run action from working branch!
         with:
           version: ${{ needs.process-inputs.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
-          working-directory: nunki-main
+          working-directory: contrast-main
           commit: false
       - name: Create PR
         uses: peter-evans/create-pull-request@b1ddad2c994a25fbc81a28b3ec0e368bb2021c50 # v6.0.0
@@ -131,7 +131,7 @@ jobs:
           committer: edgelessci <edgelessci@users.noreply.github.com>
           author: edgelessci <edgelessci@users.noreply.github.com>
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-          path: ./nunki-main
+          path: ./contrast-main
 
   release:
     name: Build and push artifacts, create release
@@ -165,12 +165,12 @@ jobs:
           commit: false
       - name: Push containers with release tag
         run: |
-          nix run .#containers.push-coordinator -- "$container_registry/nunki/coordinator"
-          nix run .#containers.push-initializer -- "$container_registry/nunki/initializer"
+          nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator"
+          nix run .#containers.push-initializer -- "$container_registry/contrast/initializer"
       - name: Create portable coordinator resource definitions
         run: |
           mkdir -p workspace
-          nix run .#scripts.write-coordinator-yaml -- "${container_registry}/nunki/coordinator:${{ inputs.version }}" > workspace/coordinator.yaml
+          nix run .#scripts.write-coordinator-yaml -- "${container_registry}/contrast/coordinator:${{ inputs.version }}" > workspace/coordinator.yaml
       - name: Update coordinator policy hash
         run: |
           yq < workspace/coordinator.yaml \
@@ -192,7 +192,7 @@ jobs:
           tag_name: ${{ inputs.version }}
           target_commitish: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           files: |
-            result-cli/bin/nunki
+            result-cli/bin/contrast
             workspace/coordinator.yaml
       - name: Reset temporary changes
         run: |
@@ -225,13 +225,13 @@ jobs:
           gh api \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/edgelesssys/nunki/milestones |
+            /repos/edgelesssys/contrast/milestones |
             jq -r '.[] | .title' | \
             grep -xqF "${{ inputs.version }}" && exit 0
           gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/edgelesssys/nunki/milestones \
+            /repos/edgelesssys/contrast/milestones \
             -f title='${{ inputs.version }}' \
             -f state='open'

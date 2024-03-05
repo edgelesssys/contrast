@@ -1,4 +1,4 @@
-module github.com/edgelesssys/nunki/service-mesh
+module github.com/edgelesssys/contrast/service-mesh
 
 go 1.21
 

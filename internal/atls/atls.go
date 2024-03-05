@@ -24,7 +24,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/edgelesssys/nunki/internal/crypto"
+	"github.com/edgelesssys/contrast/internal/crypto"
 )
 
 const attestationTimeout = 30 * time.Second

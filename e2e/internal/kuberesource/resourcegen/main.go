@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/edgelesssys/nunki/e2e/internal/kuberesource"
+	"github.com/edgelesssys/contrast/e2e/internal/kuberesource"
 )
 
 func main() {

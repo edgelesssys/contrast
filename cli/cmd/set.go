@@ -16,19 +16,19 @@ import (
 	"slices"
 	"time"
 
-	"github.com/edgelesssys/nunki/internal/atls"
-	"github.com/edgelesssys/nunki/internal/attestation/snp"
-	"github.com/edgelesssys/nunki/internal/fsstore"
-	"github.com/edgelesssys/nunki/internal/grpc/dialer"
-	"github.com/edgelesssys/nunki/internal/manifest"
-	"github.com/edgelesssys/nunki/internal/spinner"
-	"github.com/edgelesssys/nunki/internal/userapi"
+	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/snp"
+	"github.com/edgelesssys/contrast/internal/fsstore"
+	"github.com/edgelesssys/contrast/internal/grpc/dialer"
+	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/spinner"
+	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-// NewSetCmd creates the nunki set subcommand.
+// NewSetCmd creates the contrast set subcommand.
 func NewSetCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set [flags] paths...",

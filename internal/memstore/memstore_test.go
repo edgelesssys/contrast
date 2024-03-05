@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/edgelesssys/nunki/internal/memstore"
+	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
 )

@@ -40,7 +40,7 @@
         formatting = treefmtEval.config.build.check self;
       };
 
-      legacyPackages = (import ./packages { inherit pkgs lib; }) // pkgs;
+      legacyPackages = pkgs // (import ./packages { inherit pkgs lib; });
     });
 
   nixConfig = {

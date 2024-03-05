@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/edgelesssys/nunki/internal/appendable"
+	"github.com/edgelesssys/contrast/internal/appendable"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
 )

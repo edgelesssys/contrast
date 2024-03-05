@@ -8,7 +8,7 @@ metadata:
 spec:
   containers:
     - name: port-forwarder
-      image: "ghcr.io/edgelesssys/nunki/port-forwarder:latest"
+      image: "ghcr.io/edgelesssys/contrast/port-forwarder:latest"
       env:
         - name: LISTEN_PORT
           value: "1313"
@@ -38,7 +38,7 @@ metadata:
 spec:
   containers:
     - name: port-forwarder
-      image: "ghcr.io/edgelesssys/nunki/port-forwarder:latest"
+      image: "ghcr.io/edgelesssys/contrast/port-forwarder:latest"
       env:
         - name: LISTEN_PORT
           value: "8080"

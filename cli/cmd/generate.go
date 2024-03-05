@@ -20,17 +20,17 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/edgelesssys/nunki/internal/embedbin"
-	"github.com/edgelesssys/nunki/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/embedbin"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/spf13/cobra"
 )
 
 const (
-	kataPolicyAnnotationKey = "io.katacontainers.config.agent.policy"
-	nunkiRoleAnnotationKey  = "nunki.edgeless.systems/pod-role"
+	kataPolicyAnnotationKey   = "io.katacontainers.config.agent.policy"
+	contrastRoleAnnotationKey = "contrast.edgeless.systems/pod-role"
 )
 
-// NewGenerateCmd creates the nunki generate subcommand.
+// NewGenerateCmd creates the contrast generate subcommand.
 func NewGenerateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "generate [flags] paths...",
@@ -45,7 +45,7 @@ func NewGenerateCmd() *cobra.Command {
 
 		The hashes of the policies are added to the manifest.
 
-		If the Kubernetes YAML contains a Nunki Coordinator pod whose policy differs from
+		If the Kubernetes YAML contains a Contrast Coordinator pod whose policy differs from
 		the embedded default, the generated policy will be printed to stdout, alongside a
 		warning message on stderr. This hash needs to be passed to the set and verify
 		subcommands.
@@ -391,5 +391,5 @@ func installDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".nunki"), nil
+	return filepath.Join(home, ".contrast"), nil
 }

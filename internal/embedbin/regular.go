@@ -20,7 +20,7 @@ func (r *RegularInstaller) Install(prefix string, contents []byte) (*RegularInst
 			return nil, err
 		}
 	}
-	file, err := afero.TempFile(r.fs, prefix, "nunki-embedded-binary-*")
+	file, err := afero.TempFile(r.fs, prefix, "contrast-embedded-binary-*")
 	if err != nil {
 		return nil, err
 	}

@@ -1,4 +1,4 @@
-module github.com/edgelesssys/nunki
+module github.com/edgelesssys/contrast
 
 go 1.21
 

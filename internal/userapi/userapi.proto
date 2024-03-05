@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package userapi;
 
-option go_package = "github.com/edgelesssys/nunki/internal/userapi";
+option go_package = "github.com/edgelesssys/contrast/internal/userapi";
 
 service UserAPI {
   rpc SetManifest(SetManifestRequest) returns (SetManifestResponse);

@@ -13,8 +13,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/edgelesssys/nunki/internal/atls"
-	"github.com/edgelesssys/nunki/internal/grpc/atlscredentials"
+	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

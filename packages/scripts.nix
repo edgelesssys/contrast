@@ -31,7 +31,7 @@ with pkgs;
       # All binaries of the local Go module share the same builder,
       # we only need to update one of them to update the vendorHash
       # of the builder.
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.nunki.cli
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast.cli
     '';
   };
 
@@ -47,8 +47,8 @@ with pkgs;
     text = ''golangci-lint "$@"'';
   };
 
-  patch-nunki-image-hashes = writeShellApplication {
-    name = "patch-nunki-image-hashes";
+  patch-contrast-image-hashes = writeShellApplication {
+    name = "patch-contrast-image-hashes";
     runtimeInputs = [
       crane
       kypatch
@@ -72,11 +72,11 @@ with pkgs;
       serviceMeshProxyHash=$(crane digest --tarball "$tmpdir/service-mesh-proxy.tar")
 
       kypatch images "$targetPath" \
-        --replace "nunki/coordinator:latest" "nunki/coordinator@$coordHash" \
-        --replace "nunki/initializer:latest" "nunki/initializer@$initHash" \
-        --replace "nunki/openssl:latest" "nunki/openssl@$opensslHash" \
-        --replace "nunki/port-forwarder:latest" "nunki/port-forwarder@$forwarderHash" \
-        --replace "nunki/service-mesh-proxy:latest" "nunki/service-mesh-proxy@$serviceMeshProxyHash"
+        --replace "contrast/coordinator:latest" "contrast/coordinator@$coordHash" \
+        --replace "contrast/initializer:latest" "contrast/initializer@$initHash" \
+        --replace "contrast/openssl:latest" "contrast/openssl@$opensslHash" \
+        --replace "contrast/port-forwarder:latest" "contrast/port-forwarder@$forwarderHash" \
+        --replace "contrast/service-mesh-proxy:latest" "contrast/service-mesh-proxy@$serviceMeshProxyHash"
     '';
   };
 
@@ -141,7 +141,7 @@ with pkgs;
     '';
   };
 
-  # write-coordinator-yaml prints a Nunki Coordinator deployment including the default policy.
+  # write-coordinator-yaml prints a Contrast Coordinator deployment including the default policy.
   # It's intended for two purposes: (1) releasing a portable coordinator.yaml and (2) updating the embedded policy hash.
   write-coordinator-yaml = writeShellApplication {
     name = "write-coordinator-policy";

@@ -3,12 +3,12 @@
 , buildGoTest
 , genpolicy-msft
 , genpolicy ? genpolicy-msft
-, nunki
+, contrast
 }:
 let
   e2e = buildGoTest rec {
-    inherit (nunki) version src proxyVendor vendorHash prePatch CGO_ENABLED;
-    pname = "${nunki.pname}-e2e";
+    inherit (contrast) version src proxyVendor vendorHash prePatch CGO_ENABLED;
+    pname = "${contrast.pname}-e2e";
 
     tags = [ "e2e" ];
 
@@ -21,7 +21,7 @@ let
 in
 
 buildGoModule rec {
-  pname = "nunki";
+  pname = "contrast";
   version = builtins.readFile ../../../version.txt;
 
   outputs = packageOutputs ++ [ "out" ];
@@ -78,11 +78,11 @@ buildGoModule rec {
       mv "$out/bin/$sub" "''${!sub}/bin/$sub"
     done
 
-    # rename the cli binary to nunki
-    mv "$cli/bin/cli" "$cli/bin/nunki"
+    # rename the cli binary to contrast
+    mv "$cli/bin/cli" "$cli/bin/contrast"
   '';
 
   passthru.e2e = e2e;
 
-  meta.mainProgram = "nunki";
+  meta.mainProgram = "contrast";
 }
