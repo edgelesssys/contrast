@@ -5,6 +5,7 @@ package openssl
 
 import (
 	"context"
+	"crypto/tls"
 	"os"
 	"testing"
 	"time"
@@ -16,10 +17,10 @@ import (
 // namespace the tests are executed in.
 const namespaceEnv = "K8S_NAMESPACE"
 
-// TestOpenssl verifies that the certificates minted by the coordinator are accepted by OpenSSL in server and client mode.
+// TestBackend verifies that the certificates minted by the coordinator are accepted by OpenSSL in server and client mode.
 //
 // The test expects deployments/openssl to be available in the cluster (manifest set and workloads ready).
-func TestOpenSSL(t *testing.T) {
+func TestFrontend2Backend(t *testing.T) {
 	require := require.New(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
@@ -44,4 +45,33 @@ func TestOpenSSL(t *testing.T) {
 	)
 	t.Log(stdout)
 	require.NoError(err, "stderr: %q", stderr)
+}
+
+// TestFrontend verifies the certificate used by the OpenSSL frontend comes from the coordinator.
+func TestFrontend(t *testing.T) {
+	require := require.New(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	c := kubeclient.NewForTest(t)
+
+	namespace := os.Getenv(namespaceEnv)
+	require.NotEmpty(namespace, "environment variable %q must be set", namespaceEnv)
+
+	addr, cancelPortForward, err := c.PortForwardPod(ctx, namespace, "port-forwarder-openssl-frontend", "443")
+	require.NoError(err)
+	defer cancelPortForward()
+
+	// TODO(burgerdev): properly test chain to mesh root
+	dialer := &tls.Dialer{Config: &tls.Config{InsecureSkipVerify: true}}
+	conn, err := dialer.DialContext(ctx, "tcp", addr)
+	require.NoError(err)
+	tlsConn := conn.(*tls.Conn)
+
+	var names []string
+	for _, cert := range tlsConn.ConnectionState().PeerCertificates {
+		names = append(names, cert.Subject.CommonName)
+	}
+	require.Contains(names, "openssl-frontend")
 }
