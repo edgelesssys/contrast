@@ -4,13 +4,19 @@
 package openssl
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"crypto/x509"
+	"io"
 	"os"
+	"path"
 	"testing"
 	"time"
 
+	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,29 +55,64 @@ func TestFrontend2Backend(t *testing.T) {
 
 // TestFrontend verifies the certificate used by the OpenSSL frontend comes from the coordinator.
 func TestFrontend(t *testing.T) {
-	require := require.New(t)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancel()
-
 	c := kubeclient.NewForTest(t)
 
 	namespace := os.Getenv(namespaceEnv)
-	require.NotEmpty(namespace, "environment variable %q must be set", namespaceEnv)
+	require.NotEmpty(t, namespace, "environment variable %q must be set", namespaceEnv)
 
-	addr, cancelPortForward, err := c.PortForwardPod(ctx, namespace, "port-forwarder-openssl-frontend", "443")
-	require.NoError(err)
-	defer cancelPortForward()
+	certs := make(map[string][]byte)
 
-	// TODO(burgerdev): properly test chain to mesh root
-	dialer := &tls.Dialer{Config: &tls.Config{InsecureSkipVerify: true}}
-	conn, err := dialer.DialContext(ctx, "tcp", addr)
-	require.NoError(err)
-	tlsConn := conn.(*tls.Conn)
+	t.Run("contrast verify", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
 
-	var names []string
-	for _, cert := range tlsConn.ConnectionState().PeerCertificates {
-		names = append(names, cert.Subject.CommonName)
+		require := require.New(t)
+		coordinator, cancelPortForward, err := c.PortForwardPod(ctx, namespace, "port-forwarder-coordinator", "1313")
+		require.NoError(err)
+		defer cancelPortForward()
+
+		output, err := os.MkdirTemp("", "nunki-verify.*")
+		require.NoError(err)
+
+		verify := cmd.NewVerifyCmd()
+		verify.SetArgs([]string{
+			"--output", output,
+			"--coordinator-policy-hash=", // TODO(burgerdev): enable policy checking
+			"--coordinator", coordinator,
+		})
+		verify.SetOut(io.Discard)
+		errBuf := &bytes.Buffer{}
+		verify.SetErr(errBuf)
+
+		require.NoError(verify.Execute(), "could not verify coordinator: %s", errBuf)
+
+		for _, certFile := range []string{
+			"coordinator-root.pem",
+			"mesh-root.pem",
+		} {
+			pem, err := os.ReadFile(path.Join(output, certFile))
+			assert.NoError(t, err)
+			certs[certFile] = pem
+		}
+	})
+
+	for certFile, pem := range certs {
+		t.Run("go dial frontend with ca "+certFile, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			defer cancel()
+
+			require := require.New(t)
+
+			addr, cancelPortForward, err := c.PortForwardPod(ctx, namespace, "port-forwarder-openssl-frontend", "443")
+			require.NoError(err)
+			defer cancelPortForward()
+
+			pool := x509.NewCertPool()
+			require.True(pool.AppendCertsFromPEM(pem))
+			dialer := &tls.Dialer{Config: &tls.Config{RootCAs: pool}}
+			conn, err := dialer.DialContext(ctx, "tcp", addr)
+			require.NoError(err)
+			conn.Close()
+		})
 	}
-	require.Contains(names, "openssl-frontend")
 }
