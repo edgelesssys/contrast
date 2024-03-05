@@ -41,7 +41,7 @@ az group create \
 az aks create \
   --resource-group "${name}" \
   --name "${name}" \
-  --kubernetes-version "${k8sVersion:-1.27}" \
+  --kubernetes-version "${k8sVersion:-1.29}" \
   --os-sku AzureLinux \
   --node-vm-size Standard_DC4as_cc_v5 \
   --node-count 1 \
