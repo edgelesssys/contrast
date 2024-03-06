@@ -12,6 +12,6 @@
   '';
 
   ldflags = previousAttrs.ldflags ++ [
-    "-X main.DefaultCoordinatorPolicyHash=${builtins.readFile ../../../cli/cmd/assets/coordinator-policy-hash}"
+    "-X github.com/edgelesssys/contrast/cli/cmd.DefaultCoordinatorPolicyHash=${builtins.readFile ../../../cli/cmd/assets/coordinator-policy-hash}"
   ];
 })).cli
