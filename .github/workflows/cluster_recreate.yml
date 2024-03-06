@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  azure_resource_group: nunki-ci
+  azure_resource_group: contrast-ci
 
 jobs:
   recreate:
@@ -18,7 +18,7 @@ jobs:
       - name: Login to Azure
         uses: azure/login@cb79c773a3cfa27f31f25eb3f677781210c9ce3d # v1.6.1
         with:
-          creds: ${{ secrets.NUNKI_CI_INFRA_AZURE }}
+          creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       - name: Cleanup .azure dir
         run: |
           rm $HOME/.azure/{commandIndex.json,versionCheck.json}
