@@ -168,4 +168,24 @@ with pkgs;
       popd >/dev/null
     '';
   };
+
+  fetch-latest-contrast = writeShellApplication {
+    name = "fetch-latest-contrast";
+    runtimeInputs = [
+      jq
+      github-cli
+    ];
+    text = ''
+      namespace=$1
+      targetDir=$2
+      release=$(gh release list --json name,isLatest | jq -r '.[] | select(.isLatest) | .name')
+      gh release download "$release" \
+        --repo edgelesssys/contrast \
+        -D "$targetDir" \
+        --skip-existing
+      chmod a+x "$targetDir/contrast"
+
+      yq -i ".metadata.namespace = \"$namespace\"" "$targetDir/coordinator.yaml"
+    '';
+  };
 }

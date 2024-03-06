@@ -187,16 +187,18 @@ fmt:
 lint:
     nix run .#scripts.golangci-lint -- run
 
-demodir cli=default_cli: undeploy coordinator initializer
+demodir namespace="default": coordinator initializer
     #!/usr/bin/env bash
     d=$(mktemp -d)
     echo "Creating demo directory at ${d}"
-    nix build .#{{ cli }}
-    cp ./result-cli/bin/contrast "${d}/contrast"
     cp -R ./deployments/emojivoto "${d}/deployment"
+    rm -f "${d}/deployment/coordinator.yml"
     nix run .#scripts.patch-contrast-image-hashes -- "${d}/deployment"
     nix run .#kypatch images -- "${d}/deployment" \
         --replace ghcr.io/edgelesssys ${container_registry}
+    nix run .#kypatch namespace -- "${d}/deployment" \
+        --replace edg-default {{ namespace }}
+    nix run .#scripts.fetch-latest-contrast -- {{ namespace }} "${d}"
     echo "Demo directory ready at ${d}"
 
 # Cleanup auxiliary files, caches etc.
