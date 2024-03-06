@@ -46,7 +46,7 @@ LoadBalancer service, into your cluster.
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/latest/coordinator.yml
 ```
 
-### Preprare your Kubernetes resources
+### Prepare your Kubernetes resources
 
 Contrast will add annotations to your Kubernetes YAML files. If you want to keep the original files
 unchanged, you can copy the files into a separate local directory.
@@ -125,7 +125,7 @@ coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ing
 Attest the Coordinator and set the manifest:
 
 ```sh
-./contrast set -c "${coordinator}:1313" -m manifest.json resources/*.yml
+./contrast set -c "${coordinator}:1313" -m manifest.json resources/
 ```
 
 After this step, the Coordinator will start issuing TLS certs to the workloads. The init container
