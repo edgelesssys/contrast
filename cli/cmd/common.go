@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	coordHashFilename      = "coordinator-policy.sha256"
 	coordRootPEMFilename   = "coordinator-root.pem"
 	coordIntermPEMFilename = "mesh-root.pem"
 	workloadOwnerPEM       = "workload-owner.pem"

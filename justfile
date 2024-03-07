@@ -52,7 +52,7 @@ generate target=default_deploy_target cli=default_cli:
         -m ./{{ workspace_dir }}/manifest.json \
         -p ./{{ workspace_dir }}/rules.rego \
         -s ./{{ workspace_dir }}/genpolicy-msft.json \
-        ./{{ workspace_dir }}/deployment/*.yml > ./{{ workspace_dir }}/just.coordinator-policy-hash
+        ./{{ workspace_dir }}/deployment/*.yml
     duration=$(( $(date +%s) - $t ))
     echo "Generated policies in $duration seconds."
     echo "generate $duration" >> ./{{ workspace_dir }}/just.perf
@@ -102,7 +102,7 @@ set cli=default_cli:
     PID=$!
     trap "kill $PID" EXIT
     nix run .#scripts.wait-for-port-listen -- 1313
-    policy=$(<./{{ workspace_dir }}/just.coordinator-policy-hash)
+    policy=$(< ./coordinator-policy.sha256)
     t=$(date +%s)
     nix run .#{{ cli }} -- set \
         -m ./{{ workspace_dir }}/manifest.json \
