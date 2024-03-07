@@ -142,7 +142,7 @@ with pkgs;
   };
 
   # write-coordinator-yaml prints a Contrast Coordinator deployment including the default policy.
-  # It's intended for two purposes: (1) releasing a portable coordinator.yaml and (2) updating the embedded policy hash.
+  # It's intended for two purposes: (1) releasing a portable coordinator.yml and (2) updating the embedded policy hash.
   write-coordinator-yaml = writeShellApplication {
     name = "write-coordinator-policy";
     runtimeInputs = [
@@ -185,7 +185,7 @@ with pkgs;
         --skip-existing
       chmod a+x "$targetDir/contrast"
 
-      yq -i ".metadata.namespace = \"$namespace\"" "$targetDir/coordinator.yaml"
+      yq -i ".metadata.namespace = \"$namespace\"" "$targetDir/coordinator.yml"
     '';
   };
 }

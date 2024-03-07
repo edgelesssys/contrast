@@ -43,7 +43,7 @@ Install the latest Contrast Coordinator release, comprising a single replica dep
 LoadBalancer service, into your cluster.
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/latest/coordinator.yaml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/latest/coordinator.yml
 ```
 
 ### Preprare your Kubernetes resources
@@ -54,14 +54,14 @@ You can also generate files from a Helm chart or from a Kustomization.
 
 ```sh
 mkdir resources
-kustomize build $MY_RESOURCE_DIR > resources/all.yaml
+kustomize build $MY_RESOURCE_DIR > resources/all.yml
 ```
 
 or
 
 ```sh
 mkdir resources
-helm template release-name chart-name > resources/all.yaml
+helm template release-name chart-name > resources/all.yml
 ```
 
 To specify that a workload (pod, deployment, etc.) should be deployed as confidential containers,
@@ -92,7 +92,7 @@ Run the `generate` command generate the execution policies and add them as annot
 deployment files. A `manifest.json` with the reference values of your deployment will be created.
 
 ```sh
-./contrast generate resources/*.yaml
+./contrast generate resources/*.yml
 ```
 
 ### Apply Resources
@@ -125,7 +125,7 @@ coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ing
 Attest the Coordinator and set the manifest:
 
 ```sh
-./contrast set -c "${coordinator}:1313" -m manifest.json
+./contrast set -c "${coordinator}:1313" -m manifest.json resources/*.yml
 ```
 
 After this step, the Coordinator will start issuing TLS certs to the workloads. The init container
