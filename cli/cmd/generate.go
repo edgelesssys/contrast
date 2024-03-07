@@ -84,6 +84,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	if err := generatePolicies(cmd.Context(), flags.policyPath, flags.settingsPath, paths, log); err != nil {
 		return fmt.Errorf("failed to generate policies: %w", err)
 	}
+	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Generated workload policy annotations")
 
 	policies, err := policiesFromKubeResources(paths)
 	if err != nil {
@@ -132,7 +133,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to write manifest: %w", err)
 	}
 
-	log.Info("Updated manifest", "path", flags.manifestPath)
+	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Updated manifest %s\n", flags.manifestPath)
 
 	if hash := getCoordinatorPolicyHash(policies, log); hash != "" {
 		if err := os.WriteFile(coordHashFilename, []byte(hash), 0o644); err != nil {
