@@ -191,6 +191,24 @@ lbip=$(kubectl get svc ${MY_SERVICE} -o=jsonpath='{.status.loadBalancer.ingress[
 curl --cacert ./verify/mesh-root.pem "https://${lbip}:8443"
 ```
 
+## Current limitations
+
+Contrast is in an early development stage and most underlying projects are under development, too.
+As a result there are currently certain limitations, from which we try to document the most significant
+ones here:
+
+- Only availabile on AKS with CoCo preview (AMD SEV-SNP)
+- Persistent volumes currently not supported in CoCo
+- While workload policies are functional in general, but [not covering all edge cases](https://github.com/microsoft/kata-containers/releases/tag/genpolicy-0.6.2-5)
+- Port-forwarding isn't supported by Kata Containers yet
+- CLI only available for Linux (mostly because upstream dependencies are not availabile for other platforms)
+
+## Upcoming Contrast features
+
+- Transparent service mesh (apps can currently use mTLS with Coordinator certs for secure communication)
+- Plugin key management service (KMS) for attestation/coordinator certificate based key release
+- High availability (distributed Contrast Coordinator)
+
 ## Contributing
 
 See the [contributing guide](CONTRIBUTING.md).
