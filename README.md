@@ -38,6 +38,9 @@ mv contrast /usr/local/bin/contrast
 
 ## Generic Workflow
 
+The following instructions will guide you through the process of making an existing Kubernetes deployment
+confidential and deploying it together with Contrast.
+
 ### Prerequisite
 
 A CoCo enabled cluster is required to run Contrast. Create it using the `az` CLI:
