@@ -39,7 +39,8 @@ func NewVerifyCmd() *cobra.Command {
 		RunE: runVerify,
 	}
 
-	cmd.Flags().StringP("output", "o", verifyDir, "directory to write files to")
+	// Override persistent workspace-dir flag with a default value.
+	cmd.Flags().String("workspace-dir", verifyDir, "directory to write files to, if not set explicitly to another location")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
 	cmd.Flags().String("coordinator-policy-hash", DefaultCoordinatorPolicyHash, "expected policy hash of the coordinator, will not be checked if empty")
@@ -98,7 +99,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 		pHash := manifest.NewHexString(sha256sum[:])
 		filelist[fmt.Sprintf("policy.%s.rego", pHash)] = p
 	}
-	if err := writeFilelist(flags.outputDir, filelist); err != nil {
+	if err := writeFilelist(flags.workspaceDir, filelist); err != nil {
 		return fmt.Errorf("writing filelist: %w", err)
 	}
 
@@ -108,9 +109,9 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 }
 
 type verifyFlags struct {
-	coordinator string
-	outputDir   string
-	policy      []byte
+	coordinator  string
+	workspaceDir string
+	policy       []byte
 }
 
 func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
@@ -118,7 +119,7 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	if err != nil {
 		return nil, err
 	}
-	outputDir, err := cmd.Flags().GetString("output")
+	workspaceDir, err := cmd.Flags().GetString("workspace-dir")
 	if err != nil {
 		return nil, err
 	}
@@ -132,9 +133,9 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	}
 
 	return &verifyFlags{
-		coordinator: coordinator,
-		outputDir:   outputDir,
-		policy:      policy,
+		coordinator:  coordinator,
+		workspaceDir: workspaceDir,
+		policy:       policy,
 	}, nil
 }
 

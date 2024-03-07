@@ -49,9 +49,7 @@ generate target=default_deploy_target cli=default_cli:
         --replace edg-default {{ target }}${namespace_suffix-}
     t=$(date +%s)
     nix run .#{{ cli }} -- generate \
-        -m ./{{ workspace_dir }}/manifest.json \
-        -p ./{{ workspace_dir }}/rules.rego \
-        -s ./{{ workspace_dir }}/genpolicy-msft.json \
+        --workspace-dir ./{{ workspace_dir }} \
         ./{{ workspace_dir }}/deployment/*.yml
     duration=$(( $(date +%s) - $t ))
     echo "Generated policies in $duration seconds."
@@ -102,10 +100,10 @@ set cli=default_cli:
     PID=$!
     trap "kill $PID" EXIT
     nix run .#scripts.wait-for-port-listen -- 1313
-    policy=$(< ./coordinator-policy.sha256)
+    policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
     t=$(date +%s)
     nix run .#{{ cli }} -- set \
-        -m ./{{ workspace_dir }}/manifest.json \
+        --workspace-dir ./{{ workspace_dir }} \
         -c localhost:1313 \
         --coordinator-policy-hash "${policy}" \
         ./{{ workspace_dir }}/deployment/*.yml
@@ -126,8 +124,8 @@ verify cli=default_cli:
     nix run .#scripts.wait-for-port-listen -- 1314
     t=$(date +%s)
     nix run .#{{ cli }} -- verify \
-        -c localhost:1314 \
-        -o ./{{ workspace_dir }}/verify
+        --workspace-dir ./{{ workspace_dir }}/verify \
+        -c localhost:1314
     duration=$(( $(date +%s) - $t ))
     echo "Verified in $duration seconds."
     echo "verify $duration" >> ./{{ workspace_dir }}/just.perf

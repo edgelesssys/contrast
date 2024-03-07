@@ -71,12 +71,12 @@ func TestFrontend(t *testing.T) {
 		require.NoError(err)
 		defer cancelPortForward()
 
-		output, err := os.MkdirTemp("", "nunki-verify.*")
+		workspaceDir, err := os.MkdirTemp("", "nunki-verify.*")
 		require.NoError(err)
 
 		verify := cmd.NewVerifyCmd()
 		verify.SetArgs([]string{
-			"--output", output,
+			"--workspace-dir", workspaceDir,
 			"--coordinator-policy-hash=", // TODO(burgerdev): enable policy checking
 			"--coordinator", coordinator,
 		})
@@ -90,7 +90,7 @@ func TestFrontend(t *testing.T) {
 			"coordinator-root.pem",
 			"mesh-root.pem",
 		} {
-			pem, err := os.ReadFile(path.Join(output, certFile))
+			pem, err := os.ReadFile(path.Join(workspaceDir, certFile))
 			assert.NoError(t, err)
 			certs[certFile] = pem
 		}

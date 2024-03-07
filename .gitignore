@@ -5,9 +5,6 @@ edgcoco
 result*
 layers_cache
 layers-cache.json
-mesh-root.pem
-coordinator-root.pem
-workload-owner.pem
 justfile.env
 workspace
 workspace.cache

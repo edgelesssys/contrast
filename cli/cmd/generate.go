@@ -136,7 +136,8 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Updated manifest %s\n", flags.manifestPath)
 
 	if hash := getCoordinatorPolicyHash(policies, log); hash != "" {
-		if err := os.WriteFile(coordHashFilename, []byte(hash), 0o644); err != nil {
+		coordHashPath := filepath.Join(flags.workspaceDir, coordHashFilename)
+		if err := os.WriteFile(coordHashPath, []byte(hash), 0o644); err != nil {
 			return fmt.Errorf("failed to write coordinator policy hash: %w", err)
 		}
 	}
@@ -324,6 +325,7 @@ type generateFlags struct {
 	manifestPath      string
 	workloadOwnerKeys []string
 	disableUpdates    bool
+	workspaceDir      string
 }
 
 func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
@@ -347,6 +349,25 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	workspaceDir, err := cmd.Flags().GetString("workspace-dir")
+	if err != nil {
+		return nil, err
+	}
+	if workspaceDir != "" {
+		// Prepend default paths with workspaceDir
+		if !cmd.Flags().Changed("settings") {
+			settingsPath = filepath.Join(workspaceDir, settingsFilename)
+		}
+		if !cmd.Flags().Changed("policy") {
+			policyPath = filepath.Join(workspaceDir, rulesFilename)
+		}
+		if !cmd.Flags().Changed("manifest") {
+			manifestPath = filepath.Join(workspaceDir, manifestFilename)
+		}
+		if !cmd.Flags().Changed("workload-owner-key") {
+			workloadOwnerKeys = []string{filepath.Join(workspaceDir, workloadOwnerKeys[0])}
+		}
+	}
 
 	return &generateFlags{
 		policyPath:        policyPath,
@@ -354,6 +375,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		manifestPath:      manifestPath,
 		workloadOwnerKeys: workloadOwnerKeys,
 		disableUpdates:    disableUpdates,
+		workspaceDir:      workspaceDir,
 	}, nil
 }
 
