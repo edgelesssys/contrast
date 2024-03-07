@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"path"
 	"slices"
 	"time"
 
@@ -138,8 +139,8 @@ func runSet(cmd *cobra.Command, args []string) error {
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Manifest set successfully")
 
 	filelist := map[string][]byte{
-		coordRootPEMFilename:   resp.CACert,
-		coordIntermPEMFilename: resp.IntermCert,
+		path.Join(flags.workspaceDir, coordRootPEMFilename):   resp.CACert,
+		path.Join(flags.workspaceDir, coordIntermPEMFilename): resp.IntermCert,
 	}
 	if err := writeFilelist(".", filelist); err != nil {
 		return fmt.Errorf("writing filelist: %w", err)
@@ -153,6 +154,7 @@ type setFlags struct {
 	coordinator          string
 	policy               []byte
 	workloadOwnerKeyPath string
+	workspaceDir         string
 }
 
 func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
@@ -178,6 +180,20 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	flags.workloadOwnerKeyPath, err = cmd.Flags().GetString("workload-owner-key")
 	if err != nil {
 		return nil, fmt.Errorf("getting workload-owner-key flag: %w", err)
+	}
+	flags.workspaceDir, err = cmd.Flags().GetString("workspace-dir")
+	if err != nil {
+		return nil, fmt.Errorf("getting workspace-dir flag: %w", err)
+	}
+
+	if flags.workspaceDir != "" {
+		// Prepend default paths with workspaceDir
+		if !cmd.Flags().Changed("manifest") {
+			flags.manifestPath = path.Join(flags.workspaceDir, flags.manifestPath)
+		}
+		if !cmd.Flags().Changed("workload-owner-key") {
+			flags.workloadOwnerKeyPath = path.Join(flags.workspaceDir, flags.workloadOwnerKeyPath)
+		}
 	}
 
 	return flags, nil

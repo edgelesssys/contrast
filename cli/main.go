@@ -34,6 +34,7 @@ func newRootCmd() *cobra.Command {
 	root.SetOut(os.Stdout)
 
 	root.PersistentFlags().String("log-level", "warn", "set logging level (debug, info, warn, error, or a number)")
+	root.PersistentFlags().String("workspace-dir", "", "directory to write files to, if not set explicitly to another location")
 
 	root.InitDefaultVersionFlag()
 	root.AddCommand(
