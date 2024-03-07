@@ -174,7 +174,7 @@ will fetch a certificate for the workload and the workload is started.
 An end user (data owner) can verify the Contrast deployment using the `verify` command.
 
 ```sh
-./contrast verify -c "${coordinator}:1313" -o ./verify
+./contrast verify -c "${coordinator}:1313"
 ```
 
 The CLI will attest the Coordinator using embedded reference values. The CLI will write the service mesh
