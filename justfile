@@ -84,7 +84,10 @@ undeploy:
     fi
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
     if kubectl get ns $ns 2> /dev/null; then
-        kubectl delete -f ./{{ workspace_dir }}/deployment
+        kubectl delete \
+            -f ./{{ workspace_dir }}/deployment \
+            --grace-period=30 \
+            --timeout=10m
     fi
 
 # Create a CoCo-enabled AKS cluster.
