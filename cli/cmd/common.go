@@ -7,15 +7,15 @@ import (
 )
 
 const (
-	coordHashFilename      = "coordinator-policy.sha256"
-	coordRootPEMFilename   = "coordinator-root.pem"
-	coordIntermPEMFilename = "mesh-root.pem"
-	workloadOwnerPEM       = "workload-owner.pem"
-	manifestFilename       = "manifest.json"
-	settingsFilename       = "settings.json"
-	rulesFilename          = "rules.rego"
-	verifyDir              = "./verify"
-	cacheDirEnv            = "CONTRAST_CACHE_DIR"
+	coordHashFilename    = "coordinator-policy.sha256"
+	coordRootPEMFilename = "coordinator-root.pem"
+	meshRootPEMFilename  = "mesh-root.pem"
+	workloadOwnerPEM     = "workload-owner.pem"
+	manifestFilename     = "manifest.json"
+	settingsFilename     = "settings.json"
+	rulesFilename        = "rules.rego"
+	verifyDir            = "./verify"
+	cacheDirEnv          = "CONTRAST_CACHE_DIR"
 )
 
 var (

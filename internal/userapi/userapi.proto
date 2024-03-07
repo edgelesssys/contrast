@@ -16,9 +16,9 @@ message SetManifestRequest {
 
 message SetManifestResponse {
   // PEM-encoded certificate
-  bytes CACert = 1;
+  bytes CoordinatorRoot = 1;
   // PEM-encoded certificate
-  bytes IntermCert = 2;
+  bytes MeshRoot = 2;
 }
 
 message GetManifestsRequest {}
@@ -27,7 +27,7 @@ message GetManifestsResponse {
   repeated bytes Manifests = 1;
   repeated bytes Policies = 2;
   // PEM-encoded certificate
-  bytes CACert = 3;
+  bytes CoordinatorRoot = 3;
   // PEM-encoded certificate
-  bytes IntermCert = 4;
+  bytes MeshRoot = 4;
 }

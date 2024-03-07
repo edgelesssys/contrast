@@ -139,8 +139,8 @@ func runSet(cmd *cobra.Command, args []string) error {
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Manifest set successfully")
 
 	filelist := map[string][]byte{
-		path.Join(flags.workspaceDir, coordRootPEMFilename):   resp.CACert,
-		path.Join(flags.workspaceDir, coordIntermPEMFilename): resp.IntermCert,
+		path.Join(flags.workspaceDir, coordRootPEMFilename): resp.CoordinatorRoot,
+		path.Join(flags.workspaceDir, meshRootPEMFilename):  resp.MeshRoot,
 	}
 	if err := writeFilelist(".", filelist); err != nil {
 		return fmt.Errorf("writing filelist: %w", err)

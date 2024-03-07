@@ -74,12 +74,12 @@ func (i *meshAPIServer) NewMeshCert(_ context.Context, req *meshapi.NewMeshCertR
 			"getting certificate with public key hash %q: %v", req.PeerPublicKeyHash, err)
 	}
 
-	meshCACert := i.caChainGetter.GetMeshCACert()
+	meshCACert := i.caChainGetter.GetMeshRootCert()
 	intermCert := i.caChainGetter.GetIntermCert()
 
 	return &meshapi.NewMeshCertResponse{
 		MeshCACert: meshCACert,
 		CertChain:  append(cert, intermCert...),
-		RootCACert: i.caChainGetter.GetRootCACert(),
+		RootCACert: i.caChainGetter.GetCoordinatorRootCert(),
 	}, nil
 }
