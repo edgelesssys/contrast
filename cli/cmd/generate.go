@@ -135,7 +135,9 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	log.Info("Updated manifest", "path", flags.manifestPath)
 
 	if hash := getCoordinatorPolicyHash(policies, log); hash != "" {
-		fmt.Fprintln(cmd.OutOrStdout(), hash)
+		if err := os.WriteFile(coordHashFilename, []byte(hash), 0o644); err != nil {
+			return fmt.Errorf("failed to write coordinator policy hash: %w", err)
+		}
 	}
 
 	return nil
