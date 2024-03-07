@@ -8,7 +8,10 @@ import (
 	"syscall"
 )
 
-const proxyConfigEnvVar = "EDG_PROXY_CONFIG"
+const (
+	proxyConfigEnvVar = "EDG_PROXY_CONFIG"
+	envoyConfigFile   = "/envoy-config.yml"
+)
 
 var version = "0.0.0-dev"
 
@@ -39,7 +42,7 @@ func run() (retErr error) {
 
 	log.Printf("Using envoy configuration:\n%s\n", envoyConfig)
 
-	if err := os.WriteFile("/envoy-config.yaml", envoyConfig, 0o644); err != nil {
+	if err := os.WriteFile(envoyConfigFile, envoyConfig, 0o644); err != nil {
 		return err
 	}
 
@@ -51,5 +54,5 @@ func run() (retErr error) {
 
 	log.Println("Starting envoy")
 
-	return syscall.Exec(envoyBin, []string{"envoy", "-c", "/envoy-config.yaml"}, os.Environ())
+	return syscall.Exec(envoyBin, []string{"envoy", "-c", envoyConfigFile}, os.Environ())
 }
