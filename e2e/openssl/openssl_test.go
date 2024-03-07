@@ -41,6 +41,8 @@ func TestFrontend2Backend(t *testing.T) {
 	require.NoError(err)
 	require.Len(frontendPods, 1, "pod not found: %s/%s", namespace, "openssl-frontend")
 
+	require.NoError(c.WaitForPod(ctx, namespace, frontendPods[0].Name))
+
 	// Call the backend server from the frontend. If this command produces no TLS error, we verified that
 	// - the certificate in the frontend pod can be used as a client certificate
 	// - the certificate in the backend pod can be used as a server certificate
@@ -63,10 +65,13 @@ func TestFrontend(t *testing.T) {
 	certs := make(map[string][]byte)
 
 	t.Run("contrast verify", func(t *testing.T) {
+		require := require.New(t)
+
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 		defer cancel()
 
-		require := require.New(t)
+		require.NoError(c.WaitForDeployment(ctx, namespace, "coordinator"))
+
 		coordinator, cancelPortForward, err := c.PortForwardPod(ctx, namespace, "port-forwarder-coordinator", "1313")
 		require.NoError(err)
 		defer cancelPortForward()
