@@ -6,6 +6,7 @@ Contrast is based on the [Kata Containers](https://github.com/kata-containers/ka
 [Confidential Containers](https://github.com/confidential-containers) projects. Confidential Containers are
 Kubernetes pods that are executed inside a confidential micro-VM and provide strong hardware-based isolation
 from the surrounding environment. This works with unmodified containers in a lift-and-shift approach.
+It currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview).
 
 ## The Contrast Coordinator
 
@@ -36,6 +37,40 @@ mv contrast /usr/local/bin/contrast
 ```
 
 ## Generic Workflow
+
+### Prerequisite
+
+A CoCo enabled cluster is required to run Contrast. Create it using the `az` CLI:
+
+```sh
+az extension add \
+  --name aks-preview
+
+az aks create \
+  --resource-group myResourceGroup \
+  --name myAKSCluster \
+  --kubernetes-version 1.29 \
+  --os-sku AzureLinux \
+  --node-vm-size Standard_DC4as_cc_v5 \
+  --node-count 1 \
+  --generate-ssh-keys
+
+az aks nodepool add \
+  --resource-group myResourceGroup \
+  --name nodepool2 \
+  --cluster-name myAKSCluster \
+  --mode System \
+  --node-count 1 \
+  --os-sku AzureLinux \
+  --node-vm-size Standard_DC4as_cc_v5 \
+  --workload-runtime KataCcIsolation
+
+az aks get-credentials \
+  --resource-group myResourceGroup \
+  --name myAKSCluster
+```
+
+Check [Azure's deployment guide](https://learn.microsoft.com/en-us/azure/aks/deploy-confidential-containers-default-policy) for more detailed instructions.
 
 ### Deploy the Contrast Coordinator
 
