@@ -3,22 +3,22 @@ default target=default_deploy_target cli=default_cli: undeploy coordinator initi
 
 # Build the coordinator, containerize and push it.
 coordinator:
-    nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator"
+    nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator" >&2
 
 # Build the openssl container and push it.
 openssl:
-    nix run .#containers.push-openssl -- "$container_registry/contrast/openssl"
+    nix run .#containers.push-openssl -- "$container_registry/contrast/openssl" >&2
 
 # Build the port-forwarder container and push it.
 port-forwarder:
-    nix run .#containers.push-port-forwarder -- "$container_registry/contrast/port-forwarder"
+    nix run .#containers.push-port-forwarder -- "$container_registry/contrast/port-forwarder" >&2
 
 service-mesh-proxy:
-    nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy"
+    nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy" >&2
 
 # Build the initializer, containerize and push it.
 initializer:
-    nix run .#containers.push-initializer -- "$container_registry/contrast/initializer"
+    nix run .#containers.push-initializer -- "$container_registry/contrast/initializer" >&2
 
 default_cli := "contrast.cli"
 default_deploy_target := "simple"
@@ -190,16 +190,17 @@ lint:
 demodir namespace="default": coordinator initializer
     #!/usr/bin/env bash
     d=$(mktemp -d)
-    echo "Creating demo directory at ${d}"
+    echo "Creating demo directory at ${d}" >&2
     cp -R ./deployments/emojivoto "${d}/deployment"
-    rm -f "${d}/deployment/coordinator.yml"
+    rm -f "${d}/deployment/coordinator.yml" "${d}/deployment/ns.yml"
     nix run .#scripts.patch-contrast-image-hashes -- "${d}/deployment"
     nix run .#kypatch images -- "${d}/deployment" \
         --replace ghcr.io/edgelesssys ${container_registry}
     nix run .#kypatch namespace -- "${d}/deployment" \
         --replace edg-default {{ namespace }}
     nix run .#scripts.fetch-latest-contrast -- {{ namespace }} "${d}"
-    echo "Demo directory ready at ${d}"
+    echo "Demo directory ready at ${d}" >&2
+    echo "${d}"
 
 # Cleanup auxiliary files, caches etc.
 clean: undeploy
