@@ -142,8 +142,8 @@ func (c *CA) RotateIntermCerts() error {
 	return nil
 }
 
-// GetRootCACert returns the root certificate of the CA in PEM format.
-func (c *CA) GetRootCACert() []byte {
+// GetCoordinatorRootCert returns the root certificate of the CA in PEM format.
+func (c *CA) GetCoordinatorRootCert() []byte {
 	return c.rootPEM
 }
 
@@ -152,8 +152,8 @@ func (c *CA) GetIntermCert() []byte {
 	return c.intermPEM
 }
 
-// GetMeshCACert returns the mesh root certificate of the CA in PEM format.
-func (c *CA) GetMeshCACert() []byte {
+// GetMeshRootCert returns the mesh root certificate of the CA in PEM format.
+func (c *CA) GetMeshRootCert() []byte {
 	return c.meshCAPEM
 }
 

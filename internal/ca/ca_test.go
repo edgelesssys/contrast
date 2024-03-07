@@ -180,11 +180,11 @@ func TestCAConcurrent(t *testing.T) {
 	}
 	getMeshCACert := func() {
 		defer wg.Done()
-		assert.NotEmpty(ca.GetMeshCACert())
+		assert.NotEmpty(ca.GetMeshRootCert())
 	}
 	getRootCACert := func() {
 		defer wg.Done()
-		assert.NotEmpty(ca.GetRootCACert())
+		assert.NotEmpty(ca.GetCoordinatorRootCert())
 	}
 	rotateIntermCerts := func() {
 		defer wg.Done()

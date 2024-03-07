@@ -101,8 +101,8 @@ func (s *userAPIServer) SetManifest(ctx context.Context, req *userapi.SetManifes
 	}
 
 	resp := &userapi.SetManifestResponse{
-		CACert:     s.caChainGetter.GetRootCACert(),
-		IntermCert: s.caChainGetter.GetIntermCert(),
+		CoordinatorRoot: s.caChainGetter.GetCoordinatorRootCert(),
+		MeshRoot:        s.caChainGetter.GetMeshRootCert(),
 	}
 
 	s.logger.Info("SetManifest succeeded")
@@ -131,10 +131,10 @@ func (s *userAPIServer) GetManifests(_ context.Context, _ *userapi.GetManifestsR
 	}
 
 	resp := &userapi.GetManifestsResponse{
-		Manifests:  manifestBytes,
-		Policies:   policySliceToBytesSlice(policies),
-		CACert:     s.caChainGetter.GetRootCACert(),
-		IntermCert: s.caChainGetter.GetIntermCert(),
+		Manifests:       manifestBytes,
+		Policies:        policySliceToBytesSlice(policies),
+		CoordinatorRoot: s.caChainGetter.GetCoordinatorRootCert(),
+		MeshRoot:        s.caChainGetter.GetIntermCert(),
 	}
 
 	s.logger.Info("GetManifest succeeded")
@@ -210,8 +210,8 @@ func manifestSliceToBytesSlice(s []*manifest.Manifest) ([][]byte, error) {
 }
 
 type certChainGetter interface {
-	GetRootCACert() []byte
-	GetMeshCACert() []byte
+	GetCoordinatorRootCert() []byte
+	GetMeshRootCert() []byte
 	GetIntermCert() []byte
 }
 

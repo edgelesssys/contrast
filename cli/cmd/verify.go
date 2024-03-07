@@ -88,8 +88,8 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	log.Debug("Got response")
 
 	filelist := map[string][]byte{
-		coordRootPEMFilename:   resp.CACert,
-		coordIntermPEMFilename: resp.IntermCert,
+		coordRootPEMFilename: resp.CoordinatorRoot,
+		meshRootPEMFilename:  resp.MeshRoot,
 	}
 	for i, m := range resp.Manifests {
 		filelist[fmt.Sprintf("manifest.%d.json", i)] = m
