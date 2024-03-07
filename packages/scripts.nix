@@ -32,6 +32,7 @@ with pkgs;
       # we only need to update one of them to update the vendorHash
       # of the builder.
       nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast.cli
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.service-mesh
     '';
   };
 
