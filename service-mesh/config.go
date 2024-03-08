@@ -23,14 +23,22 @@ import (
 var loopbackCIDR = netip.MustParsePrefix("127.0.0.1/8")
 
 // ProxyConfig represents the configuration for the proxy.
-type ProxyConfig []configEntry
-
-type configEntry struct {
+type ProxyConfig struct {
+	egress  []egressConfigEntry
+	ingress []ingressConfigEntry
+}
+type egressConfigEntry struct {
 	name         string
+	clusterName  string
 	listenAddr   netip.Addr
 	listenPort   uint16
 	remoteDomain string
 	remotePort   uint16
+}
+type ingressConfigEntry struct {
+	name       string
+	listenPort uint16
+	disableTLS bool
 }
 
 // ParseProxyConfig parses the proxy configuration from the given string.
@@ -41,8 +49,12 @@ type configEntry struct {
 // Example:
 //
 //	emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080
-func ParseProxyConfig(data string) (ProxyConfig, error) {
-	entries := strings.Split(data, "##")
+func ParseProxyConfig(ingressConfig, egressConfig string) (ProxyConfig, error) {
+	if ingressConfig == "" && egressConfig == "" {
+		return ProxyConfig{}, nil
+	}
+
+	entries := strings.Split(egressConfig, "##")
 	var cfg ProxyConfig
 	for _, entry := range entries {
 		if entry == "" {
@@ -50,33 +62,59 @@ func ParseProxyConfig(data string) (ProxyConfig, error) {
 		}
 		parts := strings.Split(entry, "#")
 		if len(parts) != 3 {
-			return nil, fmt.Errorf("invalid entry: %s", entry)
+			return ProxyConfig{}, fmt.Errorf("invalid entry: %s", entry)
 		}
 		listenAddrPort, err := netip.ParseAddrPort(parts[1])
 		if err != nil {
-			return nil, fmt.Errorf("invalid listen address: %s", parts[1])
+			return ProxyConfig{}, fmt.Errorf("invalid listen address: %s", parts[1])
 		}
 
 		if !loopbackCIDR.Contains(listenAddrPort.Addr()) {
-			return nil, fmt.Errorf("listen address %s is not in local CIDR %s", listenAddrPort.Addr(), loopbackCIDR)
+			return ProxyConfig{}, fmt.Errorf("listen address %s is not in local CIDR %s", listenAddrPort.Addr(), loopbackCIDR)
 		}
 		remoteDomain := parts[2]
 		remoteDomain, remotePort, err := net.SplitHostPort(remoteDomain)
 		if err != nil {
-			return nil, fmt.Errorf("invalid remote domain: %s", remoteDomain)
+			return ProxyConfig{}, fmt.Errorf("invalid remote domain: %s", remoteDomain)
 		}
 		remotePortInt, err := strconv.Atoi(remotePort)
 		if err != nil {
-			return nil, fmt.Errorf("invalid remote port: %s", remotePort)
+			return ProxyConfig{}, fmt.Errorf("invalid remote port: %s", remotePort)
 		}
-		cfg = append(cfg, configEntry{
+		cfg.egress = append(cfg.egress, egressConfigEntry{
 			name:         parts[0],
+			clusterName:  parts[0],
 			listenAddr:   listenAddrPort.Addr(),
 			listenPort:   listenAddrPort.Port(),
 			remotePort:   uint16(remotePortInt),
 			remoteDomain: remoteDomain,
 		})
 	}
+
+	for _, entry := range strings.Split(ingressConfig, "##") {
+		if entry == "" {
+			continue
+		}
+		parts := strings.Split(entry, "#")
+		if len(parts) != 3 {
+			return ProxyConfig{}, fmt.Errorf("invalid entry: %s", entry)
+		}
+		listenPort, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return ProxyConfig{}, fmt.Errorf("invalid listen port: %s", parts[1])
+		}
+		disableTLS, err := strconv.ParseBool(parts[2])
+		if err != nil {
+			return ProxyConfig{}, fmt.Errorf("invalid disable TLS: %s", parts[2])
+		}
+		cfg.ingress = append(cfg.ingress, ingressConfigEntry{
+			name:       parts[0],
+			listenPort: uint16(listenPort),
+			disableTLS: disableTLS,
+		})
+
+	}
+
 	return cfg, nil
 }
 
@@ -86,9 +124,11 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 	config := &envoyConfigBootstrapV3.Bootstrap{
 		StaticResources: &envoyConfigBootstrapV3.Bootstrap_StaticResources{},
 	}
-	listeners := make([]*envoyConfigListenerV3.Listener, 0, len(c))
-	clusters := make([]*envoyConfigClusterV3.Cluster, 0, len(c))
-	for _, entry := range c {
+	listeners := make([]*envoyConfigListenerV3.Listener, 0)
+	clusters := make([]*envoyConfigClusterV3.Cluster, 0)
+
+	// Create listeners and clusters for egress traffic.
+	for _, entry := range c.egress {
 		listener, err := listener(entry)
 		if err != nil {
 			return nil, err
@@ -106,6 +146,10 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	ingrListenerNoClientAuth, err := ingressListener("ingressWithoutClientAuth", 15007, false)
+	if err != nil {
+		return nil, err
+	}
 
 	ingressCluster := &envoyConfigClusterV3.Cluster{
 		Name:                 "ingress",
@@ -115,6 +159,7 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 	}
 
 	listeners = append(listeners, ingrListenerClientAuth)
+	listeners = append(listeners, ingrListenerNoClientAuth)
 	clusters = append(clusters, ingressCluster)
 
 	config.StaticResources.Listeners = listeners
@@ -132,11 +177,11 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 	return configBytes, nil
 }
 
-func listener(entry configEntry) (*envoyConfigListenerV3.Listener, error) {
+func listener(entry egressConfigEntry) (*envoyConfigListenerV3.Listener, error) {
 	proxy := &envoyConfigTCPProxyV3.TcpProxy{
 		StatPrefix: entry.name,
 		ClusterSpecifier: &envoyConfigTCPProxyV3.TcpProxy_Cluster{
-			Cluster: entry.name,
+			Cluster: entry.clusterName,
 		},
 	}
 
@@ -172,7 +217,7 @@ func listener(entry configEntry) (*envoyConfigListenerV3.Listener, error) {
 	}, nil
 }
 
-func cluster(entry configEntry) (*envoyConfigClusterV3.Cluster, error) {
+func cluster(entry egressConfigEntry) (*envoyConfigClusterV3.Cluster, error) {
 	socket, err := upstreamTLSTransportSocket()
 	if err != nil {
 		return nil, err
@@ -214,10 +259,11 @@ func cluster(entry configEntry) (*envoyConfigClusterV3.Cluster, error) {
 }
 
 func ingressListener(name string, listenPort uint16, requireClientCertificate bool) (*envoyConfigListenerV3.Listener, error) {
-	ingressListener, err := listener(configEntry{
-		name:       name,
-		listenAddr: netip.MustParseAddr("0.0.0.0"),
-		listenPort: listenPort,
+	ingressListener, err := listener(egressConfigEntry{
+		name:        name,
+		clusterName: "ingress",
+		listenAddr:  netip.MustParseAddr("0.0.0.0"),
+		listenPort:  listenPort,
 	})
 	if err != nil {
 		return nil, err
