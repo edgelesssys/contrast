@@ -9,9 +9,8 @@ async function createConfig() {
   return {
     title: 'Contrast',
     tagline: 'Contrast: Confidential Containers at scale',
-    url: 'https://contrast-docs.edgeless.systems',
+    url: 'https://docs.edgeless.systems',
     baseUrl: '/contrast/',
-    trailingSlash: false,
     onBrokenLinks: 'throw',
     onBrokenMarkdownLinks: 'throw',
     favicon: 'img/favicon.ico',
