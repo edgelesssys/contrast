@@ -15,7 +15,7 @@ const EnvoyIngressPort = 15006
 const EnvoyIngressPortNoClientCert = 15007
 
 // IngressIPTableRules sets up the iptables rules for the ingress proxy.
-func IngressIPTableRules() error {
+func IngressIPTableRules(ingressEntries []ingressConfigEntry) error {
 	// Create missing `/run/xtables.lock` file.
 	if err := os.Mkdir("/run", 0o755); err != nil {
 		if !os.IsExist(err) {
@@ -66,8 +66,20 @@ func IngressIPTableRules() error {
 		return fmt.Errorf("failed to append EDG_IN_REDIRECT chain to EDG_INBOUND chain: %w", err)
 	}
 
-	// Route all traffic not destined for 127.0.0.1 to the envoy proxy on its
-	// port that requires client authentication.
+	for _, entry := range ingressEntries {
+		if entry.disableTLS {
+			if err := iptablesExec.AppendUnique("mangle", "EDG_IN_REDIRECT", "-p", "tcp", "--dport", fmt.Sprintf("%d", entry.listenPort), "-j", "RETURN"); err != nil {
+				return fmt.Errorf("failed to append dport exception to EDG_IN_REDIRECT chain to disable TLS: %w", err)
+			}
+		} else {
+			if err := iptablesExec.AppendUnique("mangle", "EDG_IN_REDIRECT", "-p", "tcp", "--dport", fmt.Sprintf("%d", entry.listenPort), "-j", "TPROXY", "--on-port", fmt.Sprintf("%d", EnvoyIngressPortNoClientCert)); err != nil {
+				return fmt.Errorf("failed to append dport exception to EDG_IN_REDIRECT chain to disable client auth: %w", err)
+			}
+		}
+	}
+
+	// Route all remaining traffic (TCP SYN packets that do not have a TLS exemption)
+	// to the Envoy proxy port that requires client authentication.
 	if err := iptablesExec.AppendUnique("mangle", "EDG_IN_REDIRECT", "-p", "tcp", "-j", "TPROXY", "--on-port", fmt.Sprintf("%d", EnvoyIngressPort)); err != nil {
 		return fmt.Errorf("failed to append default TPROXY rule to EDG_IN_REDIRECT chain: %w", err)
 	}
