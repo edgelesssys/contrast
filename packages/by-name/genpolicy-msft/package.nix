@@ -29,6 +29,12 @@ rustPlatform.buildRustPackage rec {
       url = "https://github.com/kata-containers/kata-containers/commit/befef119ff4df2868cdc88d4273c8be965387793.patch";
       sha256 = "sha256-4pfYrP9KaPVcrFbm6DkiZUNckUq0fKWZPfCONW8/kso=";
     })
+    # TODO(3u13r): drop this patch when msft fork adopted this from upstream
+    (fetchpatch {
+      name = "genpolicy_msft_settings_dev.patch";
+      url = "https://github.com/kata-containers/kata-containers/commit/5398b6466c58676db7f73370e1a56f4fbb35d8cf.patch";
+      sha256 = "sha256-cJ/uUF2F//QAP79AXu3tgfcByrWy2bvUjPfOAIZrtD8=";
+    })
   ];
 
   patchFlags = [ "-p4" ];
