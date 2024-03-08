@@ -11,7 +11,7 @@ import (
 const EnvoyIngressPort = 15006
 
 // IngressIPTableRules sets up the iptables rules for the ingress proxy.
-func IngressIPTableRules() error {
+func IngressIPTableRules(ingressEntries []ingressConfigEntry) error {
 	// Create missing `/run/xtables.lock` file.
 	if err := os.Mkdir("/run", 0o755); err != nil {
 		if !os.IsExist(err) {
@@ -61,6 +61,14 @@ func IngressIPTableRules() error {
 	// Route all other traffic to the EDG_IN_REDIRECT chain.
 	if err := iptablesExec.AppendUnique("mangle", "EDG_INBOUND", "-p", "tcp", "-j", "EDG_IN_REDIRECT"); err != nil {
 		return fmt.Errorf("failed to append EDG_IN_REDIRECT chain to EDG_INBOUND chain: %w", err)
+	}
+
+	for _, entry := range ingressEntries {
+		if entry.disableClientCertificate {
+			if err := iptablesExec.AppendUnique("mangle", "EDG_IN_REDIRECT", "!", "-d", "127.0.0.1/32", "-p", "tcp", "--dport", fmt.Sprintf("%d", entry.listenPort), "-j", "TPROXY", "--on-port", fmt.Sprintf("%d", 15007)); err != nil {
+				return fmt.Errorf("failed to append dport exception to EDG_IN_REDIRECT chain: %w", err)
+			}
+		}
 	}
 
 	// Route all traffic not destined for 127.0.0.1 to the envoy proxy on its

@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	proxyConfigEnvVar = "EDG_PROXY_CONFIG"
-	envoyConfigFile   = "/envoy-config.yml"
+	egressProxyConfigEnvVar  = "EDG_EGRESS_PROXY_CONFIG"
+	ingressProxyConfigEnvVar = "EDG_INGRESS_PROXY_CONFIG"
+	envoyConfigFile          = "/envoy-config.yml"
 )
 
 var version = "0.0.0-dev"
@@ -25,9 +26,13 @@ func main() {
 func run() (retErr error) {
 	log.Printf("service-mesh version %s\n", version)
 
-	proxyConfig := os.Getenv(proxyConfigEnvVar)
+	egressProxyConfig := os.Getenv(egressProxyConfigEnvVar)
+	log.Println("Ingress Proxy configuration:", egressProxyConfig)
 
-	pconfig, err := ParseProxyConfig(proxyConfig)
+	ingressProxyConfig := os.Getenv(ingressProxyConfigEnvVar)
+	log.Println("Egress Proxy configuration:", ingressProxyConfig)
+
+	pconfig, err := ParseProxyConfig(ingressProxyConfig, egressProxyConfig)
 	if err != nil {
 		return err
 	}
@@ -43,7 +48,7 @@ func run() (retErr error) {
 		return err
 	}
 
-	if err := IngressIPTableRules(); err != nil {
+	if err := IngressIPTableRules(pconfig.ingress); err != nil {
 		return fmt.Errorf("failed to set up iptables rules: %w", err)
 	}
 

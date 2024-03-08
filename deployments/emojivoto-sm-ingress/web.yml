@@ -35,15 +35,32 @@ spec:
           volumeMounts:
             - name: tls-certs
               mountPath: /tls-config
+        - name: sidecar
+          image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest"
+          restartPolicy: Always
+          volumeMounts:
+            - name: tls-certs
+              mountPath: /tls-config
+          env:
+            - name: EDG_INGRESS_PROXY_CONFIG
+              value: "web#8080#true"
+            - name: EDG_EGRESS_PROXY_CONFIG
+              value: "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080"
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - NET_ADMIN
+                - NET_RAW
       serviceAccountName: web
       containers:
         - env:
             - name: WEB_PORT
               value: "8080"
             - name: EMOJISVC_HOST
-              value: emoji-svc:8080
+              value: 127.137.0.1:8081
             - name: VOTINGSVC_HOST
-              value: voting-svc:8080
+              value: 127.137.0.2:8081
             - name: INDEX_BUNDLE
               value: dist/index_bundle.js
             - name: EDG_CERT_PATH
@@ -54,7 +71,7 @@ spec:
               value: /tls-config/key.pem
             - name: EDG_DISABLE_CLIENT_AUTH
               value: "true"
-          image: ghcr.io/3u13r/emojivoto-web:coco-1
+          image: docker.l5d.io/buoyantio/emojivoto-web:v11
           name: web-svc
           ports:
             - containerPort: 8080
