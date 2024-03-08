@@ -10,3 +10,6 @@ workspace
 workspace.cache
 .direnv/
 go.work.sum
+node_modules
+.docusaurus
+build/
