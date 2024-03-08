@@ -12,10 +12,12 @@ import (
 	envoyCoreV3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	endpointV3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoyConfigListenerV3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoyOrigDstV3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_dst/v3"
 	envoyConfigTCPProxyV3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoyTLSV3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var loopbackCIDR = netip.MustParsePrefix("127.0.0.1/8")
@@ -43,6 +45,9 @@ func ParseProxyConfig(data string) (ProxyConfig, error) {
 	entries := strings.Split(data, "##")
 	var cfg ProxyConfig
 	for _, entry := range entries {
+		if entry == "" {
+			continue
+		}
 		parts := strings.Split(entry, "#")
 		if len(parts) != 3 {
 			return nil, fmt.Errorf("invalid entry: %s", entry)
@@ -95,6 +100,31 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 		}
 		clusters = append(clusters, cluster)
 	}
+
+	// Create listeners and clusters for ingress traffic.
+	ingrListenerClientAuth, err := ingressListener("ingress", 15006, true)
+	if err != nil {
+		return nil, err
+	}
+
+	ingressCluster := &envoyConfigClusterV3.Cluster{
+		Name:                 "ingress",
+		ClusterDiscoveryType: &envoyConfigClusterV3.Cluster_Type{Type: envoyConfigClusterV3.Cluster_ORIGINAL_DST},
+		DnsLookupFamily:      envoyConfigClusterV3.Cluster_V4_ONLY,
+		LbPolicy:             envoyConfigClusterV3.Cluster_CLUSTER_PROVIDED,
+		UpstreamBindConfig: &envoyCoreV3.BindConfig{
+			SourceAddress: &envoyCoreV3.SocketAddress{
+				Address: "127.0.0.6",
+				PortSpecifier: &envoyCoreV3.SocketAddress_PortValue{
+					PortValue: 0,
+				},
+			},
+		},
+	}
+
+	listeners = append(listeners, ingrListenerClientAuth)
+	clusters = append(clusters, ingressCluster)
+
 	config.StaticResources.Listeners = listeners
 	config.StaticResources.Clusters = clusters
 
@@ -151,7 +181,7 @@ func listener(entry configEntry) (*envoyConfigListenerV3.Listener, error) {
 }
 
 func cluster(entry configEntry) (*envoyConfigClusterV3.Cluster, error) {
-	socket, err := tlsTransportSocket()
+	socket, err := upstreamTLSTransportSocket()
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +221,36 @@ func cluster(entry configEntry) (*envoyConfigClusterV3.Cluster, error) {
 	}, nil
 }
 
-func tlsTransportSocket() (*envoyCoreV3.TransportSocket, error) {
+func ingressListener(name string, listenPort uint16, requireClientCertificate bool) (*envoyConfigListenerV3.Listener, error) {
+	ingressListener, err := listener(configEntry{
+		name:       name,
+		listenAddr: netip.MustParseAddr("0.0.0.0"),
+		listenPort: listenPort,
+	})
+	if err != nil {
+		return nil, err
+	}
+	ingressListener.Transparent = &wrapperspb.BoolValue{Value: true}
+	originalDstConfig := &envoyOrigDstV3.OriginalDst{}
+	originalDstAny, err := anypb.New(originalDstConfig)
+	if err != nil {
+		return nil, err
+	}
+	ingressListener.ListenerFilters = []*envoyConfigListenerV3.ListenerFilter{
+		{
+			Name:       "envoy.filters.listener.original_dst",
+			ConfigType: &envoyConfigListenerV3.ListenerFilter_TypedConfig{TypedConfig: originalDstAny},
+		},
+	}
+	tlsSock, err := downstreamTLSTransportSocket(requireClientCertificate)
+	if err != nil {
+		return nil, err
+	}
+	ingressListener.FilterChains[0].TransportSocket = tlsSock
+	return ingressListener, nil
+}
+
+func upstreamTLSTransportSocket() (*envoyCoreV3.TransportSocket, error) {
 	tls := &envoyTLSV3.UpstreamTlsContext{
 		CommonTlsContext: &envoyTLSV3.CommonTlsContext{
 			TlsCertificates: []*envoyTLSV3.TlsCertificate{
@@ -218,6 +277,48 @@ func tlsTransportSocket() (*envoyCoreV3.TransportSocket, error) {
 				},
 			},
 		},
+	}
+	tlsAny, err := anypb.New(tls)
+	if err != nil {
+		return nil, err
+	}
+
+	return &envoyCoreV3.TransportSocket{
+		Name: "envoy.transport_sockets.tls",
+		ConfigType: &envoyCoreV3.TransportSocket_TypedConfig{
+			TypedConfig: tlsAny,
+		},
+	}, nil
+}
+
+func downstreamTLSTransportSocket(requireClientCertificate bool) (*envoyCoreV3.TransportSocket, error) {
+	tls := &envoyTLSV3.DownstreamTlsContext{
+		CommonTlsContext: &envoyTLSV3.CommonTlsContext{
+			TlsCertificates: []*envoyTLSV3.TlsCertificate{
+				{
+					PrivateKey: &envoyCoreV3.DataSource{
+						Specifier: &envoyCoreV3.DataSource_Filename{
+							Filename: "/tls-config/key.pem",
+						},
+					},
+					CertificateChain: &envoyCoreV3.DataSource{
+						Specifier: &envoyCoreV3.DataSource_Filename{
+							Filename: "/tls-config/certChain.pem",
+						},
+					},
+				},
+			},
+			ValidationContextType: &envoyTLSV3.CommonTlsContext_ValidationContext{
+				ValidationContext: &envoyTLSV3.CertificateValidationContext{
+					TrustedCa: &envoyCoreV3.DataSource{
+						Specifier: &envoyCoreV3.DataSource_Filename{
+							Filename: "/tls-config/MeshCACert.pem",
+						},
+					},
+				},
+			},
+		},
+		RequireClientCertificate: &wrapperspb.BoolValue{Value: requireClientCertificate},
 	}
 	tlsAny, err := anypb.New(tls)
 	if err != nil {

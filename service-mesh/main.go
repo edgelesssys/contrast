@@ -26,9 +26,6 @@ func run() (retErr error) {
 	log.Printf("service-mesh version %s\n", version)
 
 	proxyConfig := os.Getenv(proxyConfigEnvVar)
-	if proxyConfig == "" {
-		return fmt.Errorf("no proxy configuration found in environment")
-	}
 
 	pconfig, err := ParseProxyConfig(proxyConfig)
 	if err != nil {
@@ -44,6 +41,10 @@ func run() (retErr error) {
 
 	if err := os.WriteFile(envoyConfigFile, envoyConfig, 0o644); err != nil {
 		return err
+	}
+
+	if err := IngressIPTableRules(); err != nil {
+		return fmt.Errorf("failed to set up iptables rules: %w", err)
 	}
 
 	// execute the envoy binary
