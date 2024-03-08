@@ -43,6 +43,11 @@ spec:
               memory: 50Mi
             limits:
               memory: 50Mi
+          readinessProbe:
+            tcpSocket:
+              port: 443
+            initialDelaySeconds: 1
+            periodSeconds: 5
       volumes:
         - name: tls-certs
           emptyDir: {}
