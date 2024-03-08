@@ -23,10 +23,10 @@ jobs:
           cache-dependency-path: ./docs
       - name: Install dependencies
         working-directory: ./docs
-        run: npm ci
+        run: yarn install --frozen-lockfile
       - name: Build website
         working-directory: ./docs
-        run: npm run build
+        run: yarn build
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847 # v3.9.3
         with:
