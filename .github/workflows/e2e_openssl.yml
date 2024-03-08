@@ -54,7 +54,8 @@ jobs:
           just get-credentials
       - name: Build, deploy, contrast generate, contrast set, contrast verify
         run: |
-          just default openssl contrast.cli
+          just coordinator initializer openssl
+          just deploy openssl contrast.cli
       - name: Setup Summary
         run: |
           cat ./workspace/just.namespace | tee -a "${GITHUB_STEP_SUMMARY}"
