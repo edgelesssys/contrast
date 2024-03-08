@@ -14,6 +14,11 @@ import (
 // On success, the function returns a TCP address that clients can connect to and a function to
 // cancel the port forwarding.
 func (k *Kubeclient) PortForwardPod(ctx context.Context, namespace, podName, remotePort string) (string, func(), error) {
+	// We can only forward to the pod once it's ready.
+	if err := k.WaitForPod(ctx, namespace, podName); err != nil {
+		return "", nil, fmt.Errorf("waiting for pod %s: %w", podName, err)
+	}
+
 	// This channel sends a stop request to the portforwarding goroutine.
 	stopCh := make(chan struct{}, 1)
 	// The portforwarding goroutine closes this channel when it's ready.
