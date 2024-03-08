@@ -32,7 +32,7 @@ func TestOpenSSL(t *testing.T) {
 
 	certs := make(map[string][]byte)
 
-	t.Run("contrast verify", func(t *testing.T) {
+	require.True(t, t.Run("contrast verify", func(t *testing.T) {
 		require := require.New(t)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
@@ -67,7 +67,7 @@ func TestOpenSSL(t *testing.T) {
 			assert.NoError(t, err)
 			certs[certFile] = pem
 		}
-	})
+	}), "contrast verify needs to succeed for subsequent tests")
 
 	for certFile, pem := range certs {
 		t.Run("go dial frontend with ca "+certFile, func(t *testing.T) {
