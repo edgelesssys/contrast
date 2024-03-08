@@ -30,6 +30,5 @@ mkYarnPackage rec {
   installPhase = ''
     mkdir -p $out
     cp -R build/* $out
-    cp CNAME $out
   '';
 }
