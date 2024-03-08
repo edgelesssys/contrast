@@ -32,6 +32,7 @@
       groupName: "Go indirect dependencies",
       matchManagers: [ "gomod" ],
       matchDepTypes: [ "indirect" ],
+      dependencyDashboardApproval: true,
       prPriority: -30,
     },
     {
