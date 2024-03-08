@@ -28,13 +28,20 @@
       treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
     in
     {
-      devShells.default = pkgs.mkShell {
-        packages = with pkgs; [
-          go
-          golangci-lint
-          just
-        ];
-        shellHook = ''alias make=just'';
+      devShells = {
+        default = pkgs.mkShell {
+          packages = with pkgs; [
+            go
+            golangci-lint
+            just
+          ];
+          shellHook = ''alias make=just'';
+        };
+        docs = pkgs.mkShell {
+          packages = with pkgs; [
+            nodejs-18_x
+          ];
+        };
       };
 
       formatter = treefmtEval.config.build.wrapper;
