@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -35,6 +36,38 @@ func TestOpenSSL(t *testing.T) {
 	namespace := os.Getenv(namespaceEnv)
 	require.NotEmpty(t, namespace, "environment variable %q must be set", namespaceEnv)
 
+	require.True(t, t.Run("set", func(t *testing.T) {
+		require := require.New(t)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+
+		require.NoError(c.WaitForDeployment(ctx, namespace, "coordinator"))
+
+		coordinator, cancelPortForward, err := c.PortForwardPod(ctx, namespace, "port-forwarder-coordinator", "1313")
+		require.NoError(err)
+		defer cancelPortForward()
+
+		resources, err := filepath.Glob("./workspace/deployment/*.yml")
+		require.NoError(err)
+
+		args := []string{
+			"--coordinator-policy-hash=", // TODO(burgerdev): enable policy checking
+			"--coordinator", coordinator,
+			"--workspace-dir", "./workspace",
+		}
+		args = append(args, resources...)
+
+		set := cmd.NewSetCmd()
+		set.Flags().String("workspace-dir", "", "") // Make set aware of root flags
+		set.SetArgs(args)
+		set.SetOut(io.Discard)
+		errBuf := &bytes.Buffer{}
+		set.SetErr(errBuf)
+
+		require.NoError(set.Execute(), "could not set manifest at coordinator: %s", errBuf)
+	}), "contrast set needs to succeed for subsequent tests")
+
 	certs := make(map[string][]byte)
 
 	require.True(t, t.Run("contrast verify", func(t *testing.T) {
@@ -49,7 +82,7 @@ func TestOpenSSL(t *testing.T) {
 		require.NoError(err)
 		defer cancelPortForward()
 
-		workspaceDir, err := os.MkdirTemp("", "nunki-verify.*")
+		workspaceDir, err := os.MkdirTemp("", "contrast-verify.*")
 		require.NoError(err)
 
 		verify := cmd.NewVerifyCmd()
