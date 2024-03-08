@@ -10,6 +10,7 @@ on:
 jobs:
   flake-check:
     runs-on: ubuntu-22.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - uses: ./.github/actions/setup_nix
@@ -22,6 +23,7 @@ jobs:
 
   go-source:
     runs-on: ubuntu-22.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
@@ -43,6 +45,7 @@ jobs:
 
   govulncheck:
       runs-on: ubuntu-22.04
+      timeout-minutes: 15
       steps:
         - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         - uses: ./.github/actions/setup_nix
@@ -55,6 +58,7 @@ jobs:
 
   golangci-lint:
     runs-on: ubuntu-22.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - uses: ./.github/actions/setup_nix
