@@ -39,7 +39,7 @@
         };
         docs = pkgs.mkShell {
           packages = with pkgs; [
-            yarn
+            nodejs-18_x
           ];
         };
       };
