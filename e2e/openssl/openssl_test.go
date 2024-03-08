@@ -21,7 +21,12 @@ import (
 )
 
 // namespace the tests are executed in.
-const namespaceEnv = "K8S_NAMESPACE"
+const (
+	namespaceEnv = "K8S_NAMESPACE"
+
+	opensslFrontend = "openssl-frontend"
+	opensslBackend  = "openssl-backend"
+)
 
 // TestOpenSSL runs e2e tests on the example OpenSSL deployment.
 func TestOpenSSL(t *testing.T) {
@@ -76,6 +81,8 @@ func TestOpenSSL(t *testing.T) {
 
 			require := require.New(t)
 
+			require.NoError(c.WaitForDeployment(ctx, namespace, opensslFrontend))
+
 			addr, cancelPortForward, err := c.PortForwardPod(ctx, namespace, "port-forwarder-openssl-frontend", "443")
 			require.NoError(err)
 			defer cancelPortForward()
@@ -98,9 +105,6 @@ func TestOpenSSL(t *testing.T) {
 		defer cancel()
 
 		c := kubeclient.NewForTest(t)
-
-		const opensslFrontend = "openssl-frontend"
-		const opensslBackend = "openssl-backend"
 
 		require.NoError(c.WaitForDeployment(ctx, namespace, opensslFrontend))
 		require.NoError(c.WaitForDeployment(ctx, namespace, opensslBackend))
