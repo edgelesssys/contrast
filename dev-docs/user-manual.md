@@ -153,7 +153,7 @@ To validate the certificate locally, use `openssl`:
 ```sh
 openssl s_client -showcerts -connect ${lbip}:443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > certChain.pem
 awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "cert." c ".pem"}' < certChain.pem
-openssl verify -verbose -trusted verify/MeshCA.pem -- cert.1.pem
+openssl verify -verbose -trusted verify/mesh-root.pem -- cert.1.pem
 ```
 
 ## Current limitations
