@@ -1,0 +1,23 @@
+name: require label
+
+on:
+  pull_request:
+    types: [opened, labeled, unlabeled, synchronize]
+
+jobs:
+  label:
+    runs-on: ubuntu-22.04
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: mheap/github-action-required-labels@80a96a4863886addcbc9f681b5b295ba7f5424e1 # v5.3.0
+        with:
+          mode: minimum
+          count: 1
+          labels: |
+            breaking change
+            bug fix
+            changelog
+            dependencies
+            feature
+            no changelog
