@@ -134,7 +134,7 @@ func (s *userAPIServer) GetManifests(_ context.Context, _ *userapi.GetManifestsR
 		Manifests:       manifestBytes,
 		Policies:        policySliceToBytesSlice(policies),
 		CoordinatorRoot: s.caChainGetter.GetCoordinatorRootCert(),
-		MeshRoot:        s.caChainGetter.GetIntermCert(),
+		MeshRoot:        s.caChainGetter.GetMeshRootCert(),
 	}
 
 	s.logger.Info("GetManifest succeeded")
