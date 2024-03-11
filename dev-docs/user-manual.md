@@ -11,20 +11,21 @@ It currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us
 ## The Contrast Coordinator
 
 The Contrast Coordinator is the central remote attestation service of a Contrast deployment.
-It runs itself inside a confidential container inside your cluster.
-Which gives essential properties. The Coordinator can be verified via remote attestation, and a Contrast deployment is self-contained.
+It runs inside a confidential container inside your cluster.
+The Coordinator can be verified via remote attestation, and a Contrast deployment is self-contained.
 The Coordinator is configured with a *manifest*, a configuration file containing the reference attestation values of your deployment.
-It ensures that your app's topology adheres to your specified manifest by verifying the identity and integrity of all your pods.
+It ensures that your deployment's topology adheres to your specified manifest by verifying the identity and integrity of all your pods.
 The Coordinator is also a certificate authority and issues certificates for your workload pods during the attestation procedure.
 Your workload pods can establish secure, encrypted communication channels between themselves based on these certificates and the Coordinator as the root CA.
 As your app needs to scale, the Coordinator transparently verifies new instances and then provides them with their certificates to join the deployment.
 
 To verify your deployment, the Coordinator's remote attestation statement combined with the manifest offers a concise single remote attestation statement for your entire deployment.
-A third party can use this to verify the integrity of your distributed app, making it easier to assure stakeholders of your app's security.
+A third party can use this to verify the integrity of your distributed app, making it easy to assure stakeholders of your app's identity and integrity.
 
 ## The Manifest
 
 The manifest is the configuration file for the Coordinator, defining your confidential deployment.
+It is automatically generated from your deployment by the Contrast CLI.
 It currently consists of the following parts:
 
 * *Policies*: The identities of your Pods, represented by the hashes of their respective runtime policies.
@@ -34,20 +35,20 @@ It currently consists of the following parts:
 ## Runtime Policies
 
 Runtime Policies are a mechanism to enable the use of the (untrusted) Kubernetes API for orchestration while ensuring the confidentiality and integrity of your confidential containers.
-Essentially, they allow us to enforce the integrity of your containers' runtime environment as defined in your deployment files.
+They allow us to enforce the integrity of your containers' runtime environment as defined in your deployment files.
 The runtime policy mechanism is based on the Open Policy Agent (OPA) and translates the Kubernetes deployment YAMLs into OPA's Rego policy language.
-The Kata Agent inside the confidential micro-VM then enforces the policy by only serving permitted requests to your container.
+The Kata Agent inside the confidential micro-VM then enforces the policy by only acting on permitted requests.
 The Contrast CLI provides the tooling for automatically translating Kubernetes deployment YAMLs into OPA's Rego policy language.
 
-For the interested reader, the trust chain goes as follows:
+The trust chain goes as follows:
 
-1. The CLI generates a policy and attaches it to the pod definition.
+1. The Contrast CLI generates a policy and attaches it to the pod definition.
 2. Kubernetes schedules the pod on a node with kata-cc-isolation runtime.
 3. Containerd takes the node, starts the Kata Shim and creates the pod sandbox.
 4. The Kata runtime starts a CVM with the policy's digest as `HOSTDATA`.
 5. The Kata runtime sets the policy using the `SetPolicy` method.
 6. The Kata agent verifies that the incoming policy's digest matches `HOSTDATA`.
-7. The CLI sets a manifest at the Contrast Coordinator, including a list of permitted policies.
+7. The CLI sets a manifest in the Contrast Coordinator, including a list of permitted policies.
 8. The Contrast Coordinator verifies that the started pod has a permitted policy hash in its `HOSTDATA` field.
 
 After the last step, we know that the policy has not been tampered with and, thus, that the workload is as intended.
