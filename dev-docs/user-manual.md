@@ -173,8 +173,7 @@ echo $lbip
 curl --cacert ./verify/mesh-root.pem -k "https://${lbip}"
 ```
 
-The workload certificate is a DNS wildcard certificate, `curl`, but SAN
-verification fails when accessing the workload via an IP address.
+The workload certificate is a DNS wildcard certificate. Therefore, SAN is expected to fail when accessing the workload via an IP address.
 On Azure, all load balancers automatically get ephemeral DNS entries, so either
 use that or configure DNS yourself.
 
