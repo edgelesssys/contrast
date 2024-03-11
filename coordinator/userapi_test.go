@@ -294,7 +294,7 @@ func TestGetManifests(t *testing.T) {
 			}
 			require.NoError(err)
 			assert.Equal([]byte("root"), resp.CoordinatorRoot)
-			assert.Equal([]byte("inter"), resp.MeshRoot)
+			assert.Equal([]byte("mesh"), resp.MeshRoot)
 			assert.Len(resp.Policies, len(tc.policyStoreContent))
 		})
 	}
