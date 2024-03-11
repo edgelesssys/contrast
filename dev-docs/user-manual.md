@@ -14,7 +14,7 @@ The Contrast Coordinator is the central remote attestation service of a Contrast
 It runs inside a confidential container inside your cluster.
 The Coordinator can be verified via remote attestation, and a Contrast deployment is self-contained.
 The Coordinator is configured with a *manifest*, a configuration file containing the reference attestation values of your deployment.
-It ensures that your deployment's topology adheres to your specified manifest by verifying the identity and integrity of all your pods.
+It ensures that your deployment's topology adheres to your specified manifest by verifying the identity and integrity of all confidential pods inside the deployment.
 The Coordinator is also a certificate authority and issues certificates for your workload pods during the attestation procedure.
 Your workload pods can establish secure, encrypted communication channels between themselves based on these certificates and the Coordinator as the root CA.
 As your app needs to scale, the Coordinator transparently verifies new instances and then provides them with their certificates to join the deployment.
