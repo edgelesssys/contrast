@@ -87,6 +87,8 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	log.Debug("Got response")
 
+	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Successfully verified coordinator")
+
 	filelist := map[string][]byte{
 		coordRootPEMFilename: resp.CoordinatorRoot,
 		meshRootPEMFilename:  resp.MeshRoot,
@@ -103,7 +105,8 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("writing filelist: %w", err)
 	}
 
-	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Successfully verified coordinator")
+	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Wrote Coordinator configuration and keys to %s\n", flags.workspaceDir)
+	fmt.Fprintln(cmd.OutOrStdout(), "  Please verify the manifest history and policies")
 
 	return nil
 }
