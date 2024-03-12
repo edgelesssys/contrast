@@ -30,7 +30,7 @@ type (
 // UnmarshalK8SResources unmarshals a Kubernetes resource into a list of objects that can be
 // type casted to a Kubernetes resource.
 func UnmarshalK8SResources(data []byte) ([]any, error) {
-	objs, err := unmarshalUnstructuredK8SResource(data)
+	objs, err := UnmarshalUnstructuredK8SResource(data)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,8 @@ func UnmarshalK8SResources(data []byte) ([]any, error) {
 	return result, nil
 }
 
-func unmarshalUnstructuredK8SResource(data []byte) ([]*unstructured.Unstructured, error) {
+// UnmarshalUnstructuredK8SResource parses the input YAML into unstructured Kubernetes resources.
+func UnmarshalUnstructuredK8SResource(data []byte) ([]*unstructured.Unstructured, error) {
 	documentsData, err := splitYAML(data)
 	if err != nil {
 		return nil, fmt.Errorf("splitting YAML into multiple documents: %w", err)
