@@ -73,7 +73,7 @@ func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Option
 		},
 		PermitProvisionalFirmware: true,
 		TrustedIDKeyHashes:        trustedIDKeyDigestHashes,
-		RequireIDBlock:            true,
+		RequireIDBlock:            false, // TODO(malt3): re-enable once we control the full boot (including the id block)
 	}, nil
 }
 
