@@ -34,6 +34,12 @@
 
 ## Patch
 
+> [!NOTE]
+> We do backports by applying backport labels (`backport release/v<minor>`) to PRs that should be backported.
+> The backport then happens automatically by the backport action on merge. If you label a PR that was already
+> merged, the backport action can be triggered by adding a `/backport` comment. Ensure the backport PR has
+> the proper label to gets listed in the release notes.
+
 1. Ensure all needed PRs were backported to the current release branch, and all backport PRs were merged.
 
 2. Export the release you want to make:
@@ -48,6 +54,7 @@
 
    ```sh
    git switch "release/${REL_VER%.*}"
+   git pull
    ```
 
 4. Create a new temporary branch for the relese:
