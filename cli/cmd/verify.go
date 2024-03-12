@@ -168,7 +168,7 @@ func newCoordinatorValidateOptsGen(hostData []byte) *snp.StaticValidateOptsGener
 			},
 			PermitProvisionalFirmware: true,
 			TrustedIDKeyHashes:        trustedIDKeyDigests,
-			RequireIDBlock:            true,
+			RequireIDBlock:            false, // TODO(malt3): re-enable once we control the full boot (including the id block)
 		},
 	}
 }
