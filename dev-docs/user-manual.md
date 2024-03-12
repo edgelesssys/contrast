@@ -10,29 +10,60 @@ It currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us
 
 ## The Contrast Coordinator
 
-The Contrast Coordinator is the central remote attestation component of a Contrast deployment. It's a certificate
-authority and issues certificates for workload pods running inside confidential containers. The Coordinator
-is configured with a *manifest*, a configuration file that holds the reference values of all other parts of
-a deployment. The Coordinator ensures that your app's topology adheres to your specified manifest. It verifies
-the identity and integrity of all your services and establishes secure, encrypted communication channels between
-the different parts of your deployment. As your app needs to scale, the Coordinator transparently verifies new
-instances and then provides them with mesh credentials.
+The Contrast Coordinator is the central remote attestation service of a Contrast deployment.
+It runs inside a confidential container inside your cluster.
+The Coordinator can be verified via remote attestation, and a Contrast deployment is self-contained.
+The Coordinator is configured with a *manifest*, a configuration file containing the reference attestation values of your deployment.
+It ensures that your deployment's topology adheres to your specified manifest by verifying the identity and integrity of all confidential pods inside the deployment.
+The Coordinator is also a certificate authority and issues certificates for your workload pods during the attestation procedure.
+Your workload pods can establish secure, encrypted communication channels between themselves based on these certificates and the Coordinator as the root CA.
+As your app needs to scale, the Coordinator transparently verifies new instances and then provides them with their certificates to join the deployment.
 
-To verify your deployment, the remote attestation of the Coordinator and its manifest offers a single remote
-attestation statement for your entire deployment. Anyone can use this to verify the integrity of your distributed
-app, making it easier to assure stakeholders of your app's security.
+To verify your deployment, the Coordinator's remote attestation statement combined with the manifest offers a concise single remote attestation statement for your entire deployment.
+A third party can use this to verify the integrity of your distributed app, making it easy to assure stakeholders of your app's identity and integrity.
+
+## The Manifest
+
+The manifest is the configuration file for the Coordinator, defining your confidential deployment.
+It is automatically generated from your deployment by the Contrast CLI.
+It currently consists of the following parts:
+
+* *Policies*: The identities of your Pods, represented by the hashes of their respective runtime policies.
+* *Reference Values*: The remote attestation reference values for the Kata confidential micro-VM that is the runtime environment of your Pods.
+* *WorkloadOwnerKeyDigest*: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
+
+## Runtime Policies
+
+Runtime Policies are a mechanism to enable the use of the (untrusted) Kubernetes API for orchestration while ensuring the confidentiality and integrity of your confidential containers.
+They allow us to enforce the integrity of your containers' runtime environment as defined in your deployment files.
+The runtime policy mechanism is based on the Open Policy Agent (OPA) and translates the Kubernetes deployment YAMLs into OPA's Rego policy language.
+The Kata Agent inside the confidential micro-VM then enforces the policy by only acting on permitted requests.
+The Contrast CLI provides the tooling for automatically translating Kubernetes deployment YAMLs into OPA's Rego policy language.
+
+The trust chain goes as follows:
+
+1. The Contrast CLI generates a policy and attaches it to the pod definition.
+2. Kubernetes schedules the pod on a node with kata-cc-isolation runtime.
+3. Containerd takes the node, starts the Kata Shim and creates the pod sandbox.
+4. The Kata runtime starts a CVM with the policy's digest as `HOSTDATA`.
+5. The Kata runtime sets the policy using the `SetPolicy` method.
+6. The Kata agent verifies that the incoming policy's digest matches `HOSTDATA`.
+7. The CLI sets a manifest in the Contrast Coordinator, including a list of permitted policies.
+8. The Contrast Coordinator verifies that the started pod has a permitted policy hash in its `HOSTDATA` field.
+
+After the last step, we know that the policy has not been tampered with and, thus, that the workload is as intended.
 
 ## The Contrast Initializer
 
 Contrast provides an Initializer that handles the remote attestation on the workload side transparently and
-fetches the workload certificate. The Initializer runs as init container before your workload is started.
+fetches the workload certificate. The Initializer runs as an init container before your workload is started.
 
 ## How to deploy emojivoto in Contrast
 
 ### Prerequisites
 
 Install the latest version of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/).
-[Login to your account](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli) which has permissions to create an AKS cluster, by
+[Login to your account](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli), which has the permissions to create an AKS cluster, by
 executing:
 
 ```sh
@@ -90,7 +121,7 @@ kubectl apply -f coordinator.yml
 
 ### Annotate the emojivoto deployment
 
-Run the generate command generate the execution policies and add them as
+Run the generate command to generate the execution policies and add them as
 annotations to your deployment files. A manifest.json with the reference values
 of your deployment will be created:
 
@@ -111,8 +142,7 @@ echo $coordinator
 
 ### Deploy emojivoto
 
-Since the coordinator has a manifest set, which defines the amojivoto deployment
-as an allowed workload, we can deploy the application:
+Since the coordinator has a manifest set, which defines the emojivoto deployment as an allowed workload, we can deploy the application:
 
 ```sh
 kubectl apply -f deployment/
@@ -128,13 +158,13 @@ command:
 ```
 
 The CLI will attest the Coordinator using embedded reference values. The CLI
-will write the service mesh root certificate and the history of manifests into
+will write the Coordinator's CA root certificate (`mesh-root.pem`) and the history of manifests into
 the `verify/` directory. In addition, the policies referenced in the manifest are
-also written to the directory.
+also written into the same directory.
 
 ### Connect and verify the workload
 
-Connect to the workloads using the Coordinator's mesh root as a trusted CA certificate. For example, with curl:
+Connect to the workloads using the Coordinator's `mesh-root.pem` as a trusted CA certificate. For example, with curl:
 
 ```sh
 kubectl patch svc web-svc -p '{"spec": {"type": "LoadBalancer"}}'
@@ -143,9 +173,8 @@ echo $lbip
 curl --cacert ./verify/mesh-root.pem -k "https://${lbip}"
 ```
 
-The workload certificate is a DNS wildcard certificate, `curl`, but SAN
-verification fails when accessing the workload via an IP address.
-On Azure all load balancers automatically get ephemeral DNS entries, so either
+The workload certificate is a DNS wildcard certificate. Therefore, SAN is expected to fail when accessing the workload via an IP address.
+On Azure, all load balancers automatically get ephemeral DNS entries, so either
 use that or configure DNS yourself.
 
 To validate the certificate locally, use `openssl`:
@@ -158,18 +187,17 @@ openssl verify -verbose -trusted verify/mesh-root.pem -- cert.1.pem
 
 ## Current limitations
 
-Contrast is in an early development stage and most underlying projects are under development, too.
-As a result there are currently certain limitations, from which we try to document the most significant
-ones here:
+Contrast is in an early preview stage, and most underlying projects are still under development as well.
+As a result, there are currently certain limitations from which we try to document the most significant ones here:
 
-- Only availabile on AKS with CoCo preview (AMD SEV-SNP)
+- Only available on AKS with CoCo preview (AMD SEV-SNP)
 - Persistent volumes currently not supported in CoCo
 - While workload policies are functional in general, but [not covering all edge cases](https://github.com/microsoft/kata-containers/releases/tag/genpolicy-0.6.2-5)
 - Port-forwarding isn't supported by Kata Containers yet
-- CLI only available for Linux (mostly because upstream dependencies are not availabile for other platforms)
+- CLI is only available for Linux (mostly because upstream dependencies are not available for other platforms)
 
 ## Upcoming Contrast features
 
 - Transparent service mesh (apps can currently use mTLS with Coordinator certs for secure communication)
-- Plugin key management service (KMS) for attestation/coordinator certificate based key release
+- Plugin for a key management service (KMS) for attestation/coordinator certificate-based key release
 - High availability (distributed Contrast Coordinator)
