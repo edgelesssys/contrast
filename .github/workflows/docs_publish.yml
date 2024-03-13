@@ -1,6 +1,7 @@
 name: publish docs to GitHub Pages
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
