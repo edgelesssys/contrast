@@ -1,14 +1,61 @@
+![Contrast](docs/static/img/banner.svg)
+
 # Contrast
 
-Contrast runs confidential container deployments on untrusted Kubernetes at scale.
+Contrast runs confidential container deployments on Kubernetes at scale.
 
 Contrast is based on the [Kata Containers](https://github.com/kata-containers/kata-containers) and
-[Confidential Containers](https://github.com/confidential-containers) projects. Confidential Containers are
-Kubernetes pods that are executed inside a confidential micro-VM and provide strong hardware-based isolation
-from the surrounding environment. This works with unmodified containers in a lift-and-shift approach.
+[Confidential Containers](https://github.com/confidential-containers) projects.
+Confidential Containers are Kubernetes pods that are executed inside a confidential micro-VM and provide strong hardware-based isolation from the surrounding environment.
+This works with unmodified containers in a lift-and-shift approach.
 It currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview).
 
-## The Contrast Coordinator
+## Goal
+
+From a security perspective, Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer (i.e., remove the infrastructure from the TCB). This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure (e.g., malicious co-tenants escalating their privileges).
+
+From a DevOps perspective, Contrast is designed to integrate fluently with the existing Kubernetes workflows. Imposing only minimal changes to your deployment flow.
+
+## Use Cases:
+
+* Increasing the security of your containers
+* Moving sensitive workloads from on-prem to the cloud with Confidential Computing
+* Shielding the code and data even from the own cluster administrators
+* Increasing the trustworthiness of your SaaS offerings
+* Simplifying Regulatory Compliance
+* Multi-party computation for data collaboration
+
+## Features
+
+### 🔒 Everything always encrypted
+
+* Runtime encryption: All Pods run inside AMD SEV-based Confidential VMs (CVMs). Support for Intel TDX will be added in the future.
+* PKI and mTLS: All pod-to-pod traffic can be encrypted and authenticated with Contrast's workload certificates.
+
+### 🔍 Everything verifiable
+
+* Workload attestation based on the identity of your container and the remote-attestation feature of [Confidential Containers](https://github.com/confidential-containers)
+* "Whole deployment" attestation based on Contrast's [Coordinator attestation service](#the-contrast-coordinator)
+* Runtime environment integrity verification based runtime policies
+* Kata micro-VMs and single workload isolation provide a minimal Trusted Computing Base (TCB)
+
+### 🏝️ Everything isolated
+
+* Runtime policies enforce strict isolation of your containers from the Kubernetes layer and the infrastructure.
+* Pod isolation: Pods are isolated from each other.
+* Namespace isolation: Contrast can be deployed independently in multiple namespaces.
+
+
+### 🧩 Lightweight and easy to use
+
+* Install in Kubernetes cluster as a day-2 operation.
+* Compatible with managed Kubernetes.
+* Minimal DevOps involvement.
+* Simple CLI tool to get started.
+
+## Components
+
+### The Contrast Coordinator
 
 The Contrast Coordinator is the central remote attestation service of a Contrast deployment.
 It runs inside a confidential container inside your cluster.
@@ -22,7 +69,7 @@ As your app needs to scale, the Coordinator transparently verifies new instances
 To verify your deployment, the Coordinator's remote attestation statement combined with the manifest offers a concise single remote attestation statement for your entire deployment.
 A third party can use this to verify the integrity of your distributed app, making it easy to assure stakeholders of your app's identity and integrity.
 
-## The Manifest
+### The Manifest
 
 The manifest is the configuration file for the Coordinator, defining your confidential deployment.
 It is automatically generated from your deployment by the Contrast CLI.
@@ -32,7 +79,7 @@ It currently consists of the following parts:
 * *Reference Values*: The remote attestation reference values for the Kata confidential micro-VM that is the runtime environment of your Pods.
 * *WorkloadOwnerKeyDigest*: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
 
-## Runtime Policies
+### Runtime Policies
 
 Runtime Policies are a mechanism to enable the use of the (untrusted) Kubernetes API for orchestration while ensuring the confidentiality and integrity of your confidential containers.
 They allow us to enforce the integrity of your containers' runtime environment as defined in your deployment files.
@@ -53,7 +100,7 @@ The trust chain goes as follows:
 
 After the last step, we know that the policy has not been tampered with and, thus, that the workload is as intended.
 
-## The Contrast Initializer
+### The Contrast Initializer
 
 Contrast provides an Initializer that handles the remote attestation on the workload side transparently and
 fetches the workload certificate. The Initializer runs as an init container before your workload is started.
@@ -242,3 +289,11 @@ As a result, there are currently certain limitations from which we try to docume
 ## Contributing
 
 See the [contributing guide](CONTRIBUTING.md).
+Please follow the [Code of Conduct](/CODE_OF_CONDUCT.md).
+
+## Support
+
+* If something doesn't work, make sure to use the [latest release](https://github.com/edgelesssys/contrast/releases/latest) and check out the [known issues](https://github.com/edgelesssys/contrast/issues?q=is%3Aopen+is%3Aissue+label%3A%22known+issue%22).
+* Please file an [issue](https://github.com/edgelesssys/contrast/issues) to get help or report a bug.
+* Visit our [blog](https://www.edgeless.systems/blog/) for technical deep-dives and tutorials and follow us on [LinkedIn](https://www.linkedin.com/company/edgeless-systems) for news.
+* Edgeless Systems also offers [Enterprise Support](https://www.edgeless.systems/products/contrast/).
