@@ -14,7 +14,7 @@ let
 
     ldflags = [ "-s" ];
 
-    subPackages = [ "e2e/openssl" ];
+    subPackages = [ "e2e/openssl" "e2e/servicemesh" ];
   };
 
   packageOutputs = [ "coordinator" "initializer" "cli" ];
