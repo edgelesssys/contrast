@@ -7,6 +7,8 @@ on:
       - main
     paths:
       - docs/**
+      - .github/workflows/docs_publish.yml
+      - packages/contrast-docs/**
 
 permissions:
   contents: write
