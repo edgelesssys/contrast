@@ -12,9 +12,9 @@ It currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us
 
 ## Goal
 
-From a security perspective, Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer (i.e., remove the infrastructure from the TCB). This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure (e.g., malicious co-tenants escalating their privileges).
+Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer, i.e., remove the infrastructure from the TCB. This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure, e.g., malicious co-tenants escalating their privileges.
 
-From a DevOps perspective, Contrast is designed to integrate fluently with the existing Kubernetes workflows. It's compatible with managed Kubernetes, can be installed as a day-2 operation and imposes only minimal changes to your deployment flow.
+Contrast integrates fluently with the existing Kubernetes workflows. It's compatible with managed Kubernetes, can be installed as a day-2 operation and imposes only minimal changes to your deployment flow.
 
 ## Use Cases:
 
@@ -22,7 +22,7 @@ From a DevOps perspective, Contrast is designed to integrate fluently with the e
 * Moving sensitive workloads from on-prem to the cloud with Confidential Computing
 * Shielding the code and data even from the own cluster administrators
 * Increasing the trustworthiness of your SaaS offerings
-* Simplifying Regulatory Compliance
+* Simplifying regulatory compliance
 * Multi-party computation for data collaboration
 
 ## Features
@@ -44,7 +44,6 @@ From a DevOps perspective, Contrast is designed to integrate fluently with the e
 * Runtime policies enforce strict isolation of your containers from the Kubernetes layer and the infrastructure.
 * Pod isolation: Pods are isolated from each other.
 * Namespace isolation: Contrast can be deployed independently in multiple namespaces.
-
 
 ### 🧩 Lightweight and easy to use
 
