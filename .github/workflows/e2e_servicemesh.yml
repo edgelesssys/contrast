@@ -1,0 +1,69 @@
+name: e2e test service-mesh
+
+on:
+    workflow_dispatch:
+      inputs:
+        skip-undeploy:
+          description: "Skip undeploy"
+          required: false
+          default: "false"
+    pull_request:
+
+env:
+  container_registry: ghcr.io/edgelesssys
+  azure_resource_group: contrast-ci
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to Azure
+        uses: azure/login@8c334a195cbb38e46038007b304988d888bf676a # v2.0.0
+        with:
+          creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
+      - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
+      - name: Generate namespace suffix
+        id: ns
+        run: |
+          uuid=$(cat /proc/sys/kernel/random/uuid)
+          uid=${uuid##*-}
+          echo "namespace_suffix=$uid" >> "$GITHUB_OUTPUT"
+      - name: Create justfile.env
+        run: |
+          cat <<EOF > justfile.env
+          container_registry=${{ env.container_registry }}
+          azure_resource_group=${{ env.azure_resource_group }}
+          namespace_suffix=-${{ steps.ns.outputs.namespace_suffix }}
+          EOF
+      - name: Get credentials for CI cluster
+        run: |
+          just get-credentials
+      - name: Build and prepare deployments
+        run: |
+          just coordinator initializer service-mesh-proxy
+          just populate emojivoto-sm-ingress
+      - name: Setup Summary
+        run: |
+          cat ./workspace/just.namespace | tee -a "${GITHUB_STEP_SUMMARY}"
+          cat ./workspace/just.perf | tee -a "${GITHUB_STEP_SUMMARY}"
+      - name: E2E Test
+        run: |
+          env K8S_NAMESPACE=$(cat ./workspace/just.namespace) nix shell .#contrast.e2e --command servicemesh.test -test.v
+      - name: Undeploy
+        if: always() && inputs.skip-undeploy != 'true'
+        run: |
+          just undeploy
