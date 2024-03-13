@@ -112,9 +112,6 @@ func (c *Kubeclient) Exec(ctx context.Context, namespace, pod string, argv []str
 		Stderr: errBuf,
 		Tty:    false,
 	})
-	if err != nil {
-		return "", "", fmt.Errorf("executing command: %w", err)
-	}
 
-	return buf.String(), errBuf.String(), nil
+	return buf.String(), errBuf.String(), err
 }
