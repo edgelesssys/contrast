@@ -65,7 +65,7 @@ func IngressIPTableRules(ingressEntries []ingressConfigEntry) error {
 
 	for _, entry := range ingressEntries {
 		if entry.disableClientCertificate {
-			if err := iptablesExec.AppendUnique("mangle", "EDG_IN_REDIRECT", "!", "-d", "127.0.0.1/32", "-p", "tcp", "--dport", fmt.Sprintf("%d", entry.listenPort), "-j", "TPROXY", "--on-port", fmt.Sprintf("%d", 15007)); err != nil {
+			if err := iptablesExec.AppendUnique("mangle", "EDG_IN_REDIRECT", "-p", "tcp", "--dport", fmt.Sprintf("%d", entry.listenPort), "-j", "TPROXY", "--on-port", fmt.Sprintf("%d", 15007)); err != nil {
 				return fmt.Errorf("failed to append dport exception to EDG_IN_REDIRECT chain: %w", err)
 			}
 		}
@@ -73,7 +73,7 @@ func IngressIPTableRules(ingressEntries []ingressConfigEntry) error {
 
 	// Route all traffic not destined for 127.0.0.1 to the envoy proxy on its
 	// port that requires client authentication.
-	if err := iptablesExec.AppendUnique("mangle", "EDG_IN_REDIRECT", "!", "-d", "127.0.0.1/32", "-p", "tcp", "-j", "TPROXY", "--on-port", fmt.Sprintf("%d", EnvoyIngressPort)); err != nil {
+	if err := iptablesExec.AppendUnique("mangle", "EDG_IN_REDIRECT", "-p", "tcp", "-j", "TPROXY", "--on-port", fmt.Sprintf("%d", EnvoyIngressPort)); err != nil {
 		return fmt.Errorf("failed to append EDG_IN_REDIRECT chain to TPROXY chain: %w", err)
 	}
 

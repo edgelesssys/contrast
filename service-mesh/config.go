@@ -156,14 +156,6 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 		ClusterDiscoveryType: &envoyConfigClusterV3.Cluster_Type{Type: envoyConfigClusterV3.Cluster_ORIGINAL_DST},
 		DnsLookupFamily:      envoyConfigClusterV3.Cluster_V4_ONLY,
 		LbPolicy:             envoyConfigClusterV3.Cluster_CLUSTER_PROVIDED,
-		UpstreamBindConfig: &envoyCoreV3.BindConfig{
-			SourceAddress: &envoyCoreV3.SocketAddress{
-				Address: "127.0.0.6",
-				PortSpecifier: &envoyCoreV3.SocketAddress_PortValue{
-					PortValue: 0,
-				},
-			},
-		},
 	}
 
 	listeners = append(listeners, ingrListenerClientAuth)
