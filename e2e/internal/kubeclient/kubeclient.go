@@ -82,15 +82,36 @@ func NewForTest(t *testing.T) *Kubeclient {
 }
 
 // PodsFromDeployment returns the pods from a deployment in a namespace.
+//
+// A pod is considered to belong to a deployment if it is owned by a ReplicaSet which is in turn
+// owned by the Deployment in question.
 func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployment string) ([]v1.Pod, error) {
-	pods, err := c.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("app.kubernetes.io/name=%s", deployment),
-	})
+	replicasets, err := c.client.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("listing replicasets: %w", err)
+	}
+	pods, err := c.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("listing pods: %w", err)
 	}
 
-	return pods.Items, nil
+	var out []v1.Pod
+	for _, replicaset := range replicasets.Items {
+		for _, ref := range replicaset.OwnerReferences {
+			if ref.Kind != "Deployment" || ref.Name != deployment {
+				continue
+			}
+			for _, pod := range pods.Items {
+				for _, ref := range pod.OwnerReferences {
+					if ref.Kind == "ReplicaSet" && ref.UID == replicaset.UID {
+						out = append(out, pod)
+					}
+				}
+			}
+		}
+	}
+
+	return out, nil
 }
 
 // Exec executes a process in a pod and returns the stdout and stderr.
