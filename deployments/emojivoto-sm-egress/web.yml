@@ -49,7 +49,6 @@ spec:
             capabilities:
               add:
                 - NET_ADMIN
-                - NET_RAW
         - env:
             - name: WEB_PORT
               value: "8080"
