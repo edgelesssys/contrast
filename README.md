@@ -120,15 +120,25 @@ confidential and deploying it together with Contrast.
 
 ### Prerequisite
 
-A CoCo enabled cluster is required to run Contrast. Create it using the [`az`](https://docs.microsoft.com/en-us/cli/azure/) CLI:
+A CoCo-enabled cluster is required to run Contrast. Create it using the [`az`](https://docs.microsoft.com/en-us/cli/azure/) CLI:
 
 ```sh
+# Ensure you set this to an existing resource group in your subscription
+azResourceGroup="ContrastDemo"
+# Select the name for your AKS cluster
+azClusterName="ContrastDemo"
+
 az extension add \
-  --name aks-preview
+  --name aks-preview \
+  --allow-preview true
+
+az feature register --namespace "Microsoft.ContainerService" --name "KataCcIsolationPreview"
+az feature show --namespace "Microsoft.ContainerService" --name "KataCcIsolationPreview"
+az provider register -n Microsoft.ContainerService
 
 az aks create \
-  --resource-group myResourceGroup \
-  --name myAKSCluster \
+  --resource-group "$azResourceGroup" \
+  --name "$azClusterName" \
   --kubernetes-version 1.29 \
   --os-sku AzureLinux \
   --node-vm-size Standard_DC4as_cc_v5 \
@@ -136,9 +146,9 @@ az aks create \
   --generate-ssh-keys
 
 az aks nodepool add \
-  --resource-group myResourceGroup \
+  --resource-group "$azResourceGroup" \
   --name nodepool2 \
-  --cluster-name myAKSCluster \
+  --cluster-name "$azClusterName" \
   --mode System \
   --node-count 1 \
   --os-sku AzureLinux \
@@ -146,8 +156,8 @@ az aks nodepool add \
   --workload-runtime KataCcIsolation
 
 az aks get-credentials \
-  --resource-group myResourceGroup \
-  --name myAKSCluster
+  --resource-group "$azResourceGroup" \
+  --name "$azClusterName"
 ```
 
 Check [Azure's deployment guide](https://learn.microsoft.com/en-us/azure/aks/deploy-confidential-containers-default-policy) for more detailed instructions.
