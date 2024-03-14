@@ -274,7 +274,12 @@ Connect to the workloads using the Coordinator's mesh root as a trusted CA certi
 For example, with `curl`:
 
 ```sh
-lbip=$(kubectl get svc ${MY_SERVICE} -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+kubectl patch svc web-svc -p '{"spec": {"type": "LoadBalancer"}}'
+lbip=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo $lbip
+```
+
+```sh
 curl --cacert ./verify/mesh-root.pem "https://${lbip}:8443"
 ```
 
