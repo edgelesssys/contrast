@@ -1,16 +1,66 @@
 ![Contrast](docs/static/img/banner.svg)
 
+![Contrast](docs/static/img/banner.svg)
+
 # Contrast
 
+Contrast runs confidential container deployments on Kubernetes at scale.
 Contrast runs confidential container deployments on Kubernetes at scale.
 
 Contrast is based on the [Kata Containers](https://github.com/kata-containers/kata-containers) and
 [Confidential Containers](https://github.com/confidential-containers) projects.
 Confidential Containers are Kubernetes pods that are executed inside a confidential micro-VM and provide strong hardware-based isolation from the surrounding environment.
 This works with unmodified containers in a lift-and-shift approach.
+[Confidential Containers](https://github.com/confidential-containers) projects.
+Confidential Containers are Kubernetes pods that are executed inside a confidential micro-VM and provide strong hardware-based isolation from the surrounding environment.
+This works with unmodified containers in a lift-and-shift approach.
 It currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview).
 
-## The Contrast Coordinator
+## Goal
+
+Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer, i.e., remove the infrastructure from the TCB. This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure, e.g., malicious co-tenants escalating their privileges.
+
+Contrast integrates fluently with the existing Kubernetes workflows. It's compatible with managed Kubernetes, can be installed as a day-2 operation and imposes only minimal changes to your deployment flow.
+
+## Use Cases:
+
+* Increasing the security of your containers
+* Moving sensitive workloads from on-prem to the cloud with Confidential Computing
+* Shielding the code and data even from the own cluster administrators
+* Increasing the trustworthiness of your SaaS offerings
+* Simplifying regulatory compliance
+* Multi-party computation for data collaboration
+
+## Features
+
+### 🔒 Everything always encrypted
+
+* Runtime encryption: All Pods run inside AMD SEV-based Confidential VMs (CVMs). Support for Intel TDX will be added in the future.
+* PKI and mTLS: All pod-to-pod traffic can be encrypted and authenticated with Contrast's workload certificates.
+
+### 🔍 Everything verifiable
+
+* Workload attestation based on the identity of your container and the remote-attestation feature of [Confidential Containers](https://github.com/confidential-containers)
+* "Whole deployment" attestation based on Contrast's [Coordinator attestation service](#the-contrast-coordinator)
+* Runtime environment integrity verification based runtime policies
+* Kata micro-VMs and single workload isolation provide a minimal Trusted Computing Base (TCB)
+
+### 🏝️ Everything isolated
+
+* Runtime policies enforce strict isolation of your containers from the Kubernetes layer and the infrastructure.
+* Pod isolation: Pods are isolated from each other.
+* Namespace isolation: Contrast can be deployed independently in multiple namespaces.
+
+### 🧩 Lightweight and easy to use
+
+* Install in Kubernetes cluster as a day-2 operation.
+* Compatible with managed Kubernetes.
+* Minimal DevOps involvement.
+* Simple CLI tool to get started.
+
+## Components
+
+### The Contrast Coordinator
 
 The Contrast Coordinator is the central remote attestation service of a Contrast deployment.
 It runs inside a confidential container inside your cluster.
@@ -21,11 +71,41 @@ The Coordinator is also a certificate authority and issues certificates for your
 Your workload pods can establish secure, encrypted communication channels between themselves based on these certificates and the Coordinator as the root CA.
 As your app needs to scale, the Coordinator transparently verifies new instances and then provides them with their certificates to join the deployment.
 
-To verify your deployment, the remote attestation of the Coordinator and its manifest offers a single remote
-attestation statement for your entire deployment. Anyone can use this to verify the integrity of your distributed
-app, making it easier to assure stakeholders of your app's security.
+To verify your deployment, the Coordinator's remote attestation statement combined with the manifest offers a concise single remote attestation statement for your entire deployment.
+A third party can use this to verify the integrity of your distributed app, making it easy to assure stakeholders of your app's identity and integrity.
 
-## The Contrast Initializer
+## The Manifest
+
+The manifest is the configuration file for the Coordinator, defining your confidential deployment.
+It is automatically generated from your deployment by the Contrast CLI.
+It currently consists of the following parts:
+
+* *Policies*: The identities of your Pods, represented by the hashes of their respective runtime policies.
+* *Reference Values*: The remote attestation reference values for the Kata confidential micro-VM that is the runtime environment of your Pods.
+* *WorkloadOwnerKeyDigest*: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
+
+## Runtime Policies
+
+Runtime Policies are a mechanism to enable the use of the (untrusted) Kubernetes API for orchestration while ensuring the confidentiality and integrity of your confidential containers.
+They allow us to enforce the integrity of your containers' runtime environment as defined in your deployment files.
+The runtime policy mechanism is based on the Open Policy Agent (OPA) and translates the Kubernetes deployment YAMLs into OPA's Rego policy language.
+The Kata Agent inside the confidential micro-VM then enforces the policy by only acting on permitted requests.
+The Contrast CLI provides the tooling for automatically translating Kubernetes deployment YAMLs into OPA's Rego policy language.
+
+The trust chain goes as follows:
+
+1. The Contrast CLI generates a policy and attaches it to the pod definition.
+2. Kubernetes schedules the pod on a node with kata-cc-isolation runtime.
+3. Containerd takes the node, starts the Kata Shim and creates the pod sandbox.
+4. The Kata runtime starts a CVM with the policy's digest as `HOSTDATA`.
+5. The Kata runtime sets the policy using the `SetPolicy` method.
+6. The Kata agent verifies that the incoming policy's digest matches `HOSTDATA`.
+7. The CLI sets a manifest in the Contrast Coordinator, including a list of permitted policies.
+8. The Contrast Coordinator verifies that the started pod has a permitted policy hash in its `HOSTDATA` field.
+
+After the last step, we know that the policy has not been tampered with and, thus, that the workload is as intended.
+
+### The Contrast Initializer
 
 Contrast provides an Initializer that handles the remote attestation on the workload side transparently and
 fetches the workload certificate. The Initializer runs as an init container before your workload is started.
