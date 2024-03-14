@@ -132,6 +132,10 @@ az extension add \
   --name aks-preview \
   --allow-preview true
 
+az extension update \
+  --name aks-preview \
+  --allow-preview true
+
 az feature register --namespace "Microsoft.ContainerService" --name "KataCcIsolationPreview"
 az feature show --namespace "Microsoft.ContainerService" --name "KataCcIsolationPreview"
 az provider register -n Microsoft.ContainerService
