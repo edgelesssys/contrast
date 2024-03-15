@@ -40,7 +40,10 @@ buildGoModule rec {
         (path.append root "go.sum")
         (lib.fileset.difference
           (lib.fileset.fileFilter (file: lib.hasSuffix ".go" file.name) root)
-          (path.append root "service-mesh"))
+          (fileset.unions [
+            (path.append root "service-mesh")
+            (path.append root "node-installer")
+          ]))
       ];
     };
 
