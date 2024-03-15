@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: contrast-node-installer
+  namespace: edg-default
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: contrast-node-installer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: contrast-node-installer
+      annotations:
+        contrast.edgeless.systems/pod-role: contrast-node-installer
+    spec:
+      hostPID: true
+      hostNetwork: true
+      volumes:
+        - name: host-mount
+          hostPath:
+            path: /
+            type: Directory
+      initContainers:
+        - name: installer
+          image: "ghcr.io/edgelesssys/contrast/node-installer:latest"
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: host-mount
+              mountPath: /host
+          resources:
+            requests:
+              memory: 100Mi
+            limits:
+              memory: 100Mi
+      containers:
+        - name: pause
+          image: "k8s.gcr.io/pause"
+          resources:
+            requests:
+              memory: 10Mi
+            limits:
+              memory: 10Mi

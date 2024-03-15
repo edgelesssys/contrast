@@ -25,6 +25,10 @@ initializer:
     mkdir -p {{ workspace_dir }}
     nix run .#containers.push-initializer -- "$container_registry/contrast/initializer" >> {{ workspace_dir }}/just.containerlookup
 
+# Build the node-installer, containerize and push it.
+node-installer:
+    nix run .#containers.push-node-installer -- "$container_registry/contrast/node-installer" >&2
+
 default_cli := "contrast.cli"
 default_deploy_target := "simple"
 workspace_dir := "workspace"

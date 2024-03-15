@@ -15,6 +15,15 @@ let
     '';
   };
 
+  pushOCIDir = name: dir: tag: writeShellApplication {
+    name = "push-${name}";
+    runtimeInputs = [ crane ];
+    text = ''
+      imageName="$1"
+      crane push "${dir}" "$imageName:${tag}"
+    '';
+  };
+
   containers = {
     coordinator = dockerTools.buildImage {
       name = "coordinator";
@@ -71,4 +80,4 @@ let
     };
   };
 in
-containers // (lib.concatMapAttrs (name: container: { "push-${name}" = pushContainer container; }) containers)
+containers // { push-node-installer = pushOCIDir "push-node-installer" contrast-node-installer-image "v${contrast.version}"; } // (lib.concatMapAttrs (name: container: { "push-${name}" = pushContainer container; }) containers)

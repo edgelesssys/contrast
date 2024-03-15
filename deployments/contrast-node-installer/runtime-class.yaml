@@ -1,0 +1,13 @@
+apiVersion: node.k8s.io/v1
+handler: contrast-cc
+kind: RuntimeClass
+metadata:
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+  name: contrast-cc-isolation
+overhead:
+  podFixed:
+    memory: 2Gi
+scheduling:
+  nodeSelector:
+    kubernetes.azure.com/kata-cc-isolation: 'true'
