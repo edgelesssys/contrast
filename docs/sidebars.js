@@ -23,6 +23,150 @@ const sidebars = {
       label: 'Introduction',
       id: 'intro'
     },
+    {
+      type: 'category',
+      label: 'Basics',
+      link: {
+        type: 'generated-index',
+      },
+      items: [
+        {
+          type: 'doc',
+          label: 'Confidential Containers',
+          id: 'basics/confidential-containers',
+        },
+        {
+          type: 'doc',
+          label: 'Security benefits',
+          id: 'basics/security-benefits',
+        },
+        {
+          type: 'doc',
+          label: 'Features',
+          id: 'basics/features',
+        },
+      ]
+    },
+    {
+      type: 'category',
+      label: 'Getting started',
+      link: {
+        type: 'generated-index',
+      },
+      items: [
+        {
+          type: 'doc',
+          label: 'Install',
+          id: 'getting-started/install',
+        },
+        {
+          type: 'doc',
+          label: 'First steps',
+          id: 'getting-started/first-steps',
+        },
+        {
+          type: 'category',
+          label: 'Examples',
+          link: {
+            type: 'doc',
+            id: 'getting-started/examples',
+          },
+          items: [
+            {
+              type: 'doc',
+              label: 'Emojivoto',
+              id: 'getting-started/examples/emojivoto'
+            },
+          ]
+        }
+      ]
+    },
+    {
+      type: 'category',
+      label: 'Architecture',
+      link: {
+        type: 'generated-index',
+      },
+      items: [
+        {
+          type: 'doc',
+          label: 'Overview',
+          id: 'architecture/overview',
+        },
+        {
+          type: 'doc',
+          label: 'Confidential Containers',
+          id: 'architecture/confidential-containers',
+        },
+        {
+          type: 'category',
+          label: 'Attestation',
+          link: {
+            type: 'generated-index',
+          },
+          items: [
+            {
+              type: 'doc',
+              label: 'Hardware',
+              id: 'architecture/attestation/hardware',
+            },
+            {
+              type: 'doc',
+              label: 'Pod VM',
+              id: 'architecture/attestation/pod-vm',
+            },
+            {
+              type: 'doc',
+              label: 'Runtime policies',
+              id: 'architecture/attestation/runtime-policies',
+            },
+            {
+              type: 'doc',
+              label: 'Manifest',
+              id: 'architecture/attestation/manifest',
+            },
+            {
+              type: 'doc',
+              label: 'Coordinator',
+              id: 'architecture/attestation/coordinator',
+            },
+          ]
+        },
+        {
+          type: 'category',
+          label: 'Certificates and Identities',
+          link: {
+            type: 'generated-index',
+          },
+          items: [
+            {
+              type: 'doc',
+              label: 'PKI',
+              id: 'architecture/certificates-and-identities/pki',
+            },
+          ]
+        },
+        {
+          type: 'category',
+          label: 'Network Encryption',
+          link: {
+            type: 'generated-index',
+          },
+          items: [
+            {
+              type: 'doc',
+              label: 'Sidecar',
+              id: 'architecture/network-encryption/sidecar',
+            },
+            {
+              type: 'doc',
+              label: 'Sidecar',
+              id: 'architecture/network-encryption/protocols-and-keys',
+            },
+          ]
+        }
+      ]
+    },
   ],
 };
 
