@@ -1,0 +1,47 @@
+# upstream source https://github.com/containerd/containerd/blob/c03290cb0052bd463d6dbcdb3827c7f5633ef48d/docs/man/containerd-config.toml.5.md#examples
+version = 2
+oom_score = 0
+[plugins."io.containerd.grpc.v1.cri"]
+  sandbox_image = "mcr.microsoft.com/oss/kubernetes/pause:3.6"
+  [plugins."io.containerd.grpc.v1.cri".containerd]
+      disable_snapshot_annotations = false
+    default_runtime_name = "runc"
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+      runtime_type = "io.containerd.runc.v2"
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+      BinaryName = "/usr/bin/runc"
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.untrusted]
+      runtime_type = "io.containerd.runc.v2"
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.untrusted.options]
+      BinaryName = "/usr/bin/runc"
+  [plugins."io.containerd.grpc.v1.cri".cni]
+    bin_dir = "/opt/cni/bin"
+    conf_dir = "/etc/cni/net.d"
+    conf_template = "/etc/containerd/kubenet_template.conf"
+  [plugins."io.containerd.grpc.v1.cri".registry]
+    config_path = "/etc/containerd/certs.d"
+  [plugins."io.containerd.grpc.v1.cri".registry.headers]
+    X-Meta-Source-Client = ["azure/aks"]
+[metrics]
+  address = "0.0.0.0:10257"
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata]
+  runtime_type = "io.containerd.kata.v2"
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.katacli]
+  runtime_type = "io.containerd.runc.v1"
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.katacli.options]
+  NoPivotRoot = false
+  NoNewKeyring = false
+  ShimCgroup = ""
+  IoUid = 0
+  IoGid = 0
+  BinaryName = "/usr/bin/kata-runtime"
+  Root = ""
+  CriuPath = ""
+  SystemdCgroup = false
+[plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata-cc]
+  snapshotter = "tardev"
+  runtime_type = "io.containerd.kata-cc.v2"
+  privileged_without_host_devices = true
+  pod_annotations = ["io.katacontainers.*"]
+  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata-cc.options]
+    ConfigPath = "/opt/confidential-containers/share/defaults/kata-containers/configuration-clh-snp.toml"
