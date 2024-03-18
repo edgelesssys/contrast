@@ -18,11 +18,14 @@ let
 
     ldflags = [
       "-s"
+      "-X github.com/edgelesssys/contrast/internal/manifest.trustedMeasurement=${launchDigest}"
       "-X github.com/edgelesssys/contrast/e2e/internal/kuberesource.runtimeHandler=${runtimeHandler}"
     ];
 
     subPackages = [ "e2e/openssl" "e2e/servicemesh" ];
   };
+
+  launchDigest = builtins.readFile "${runtime-class-files}/launch-digest.hex";
 
   runtimeHandler = lib.removeSuffix "\n" (builtins.readFile "${runtime-class-files}/runtime-handler");
 
@@ -72,6 +75,7 @@ buildGoModule rec {
     "-s"
     "-w"
     "-X main.version=v${version}"
+    "-X github.com/edgelesssys/contrast/internal/manifest.trustedMeasurement=${launchDigest}"
     "-X github.com/edgelesssys/contrast/cli/cmd.runtimeHandler=${runtimeHandler}"
     "-X github.com/edgelesssys/contrast/e2e/internal/kuberesource.runtimeHandler=${runtimeHandler}"
   ];
