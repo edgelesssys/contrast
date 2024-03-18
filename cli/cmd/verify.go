@@ -137,14 +137,19 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 
 func newCoordinatorValidateOptsGen(hostData []byte) *snp.StaticValidateOptsGenerator {
 	defaultManifest := manifest.Default()
-	trustedIDKeyDigests, err := (&defaultManifest.ReferenceValues.SNP.TrustedIDKeyHashes).ByteSlices()
+	trustedMeasurement, err := defaultManifest.ReferenceValues.TrustedMeasurement.Bytes()
 	if err != nil {
 		panic(err) // We are decoding known values, tests should catch any failure.
+	}
+	if trustedMeasurement == nil {
+		// This is required to prevent an empty measurement in the manifest from disabling the measurement check.
+		trustedMeasurement = make([]byte, 48)
 	}
 
 	return &snp.StaticValidateOptsGenerator{
 		Opts: &validate.Options{
-			HostData: hostData,
+			HostData:    hostData,
+			Measurement: trustedMeasurement,
 			GuestPolicy: abi.SnpPolicy{
 				Debug: false,
 				SMT:   true,
@@ -163,8 +168,6 @@ func newCoordinatorValidateOptsGen(hostData []byte) *snp.StaticValidateOptsGener
 				UcodeSpl: 115,
 			},
 			PermitProvisionalFirmware: true,
-			TrustedIDKeyHashes:        trustedIDKeyDigests,
-			RequireIDBlock:            false, // TODO(malt3): re-enable once we control the full boot (including the id block)
 		},
 	}
 }
