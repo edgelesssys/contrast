@@ -63,22 +63,21 @@ const sidebars = {
           type: 'doc',
           label: 'First steps',
           id: 'getting-started/first-steps',
-        },
-        {
-          type: 'category',
-          label: 'Examples',
-          link: {
-            type: 'doc',
-            id: 'getting-started/examples',
-          },
-          items: [
-            {
-              type: 'doc',
-              label: 'Emojivoto',
-              id: 'getting-started/examples/emojivoto'
-            },
-          ]
         }
+      ]
+    },
+    {
+      type: 'category',
+      label: 'Examples',
+      link: {
+        type: 'generated-index'
+      },
+      items: [
+        {
+          type: 'doc',
+          label: 'Emojivoto',
+          id: 'examples/emojivoto'
+        },
       ]
     },
     {
@@ -92,6 +91,30 @@ const sidebars = {
           type: 'doc',
           label: 'Overview',
           id: 'architecture/overview',
+        },
+        {
+          type: 'category',
+          label: 'Components',
+          link: {
+            type: 'generated-index',
+          },
+          items: [
+            {
+              type: 'doc',
+              label: 'Coordinator',
+              id: 'architecture/components/coordinator',
+            },
+            {
+              type: 'doc',
+              label: 'Init container',
+              id: 'architecture/components/init-container',
+            },
+            {
+              type: 'doc',
+              label: 'CLI',
+              id: 'architecture/components/cli',
+            },
+          ]
         },
         {
           type: 'doc',
