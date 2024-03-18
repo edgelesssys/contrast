@@ -34,7 +34,7 @@ generate target=default_deploy_target cli=default_cli:
     mkdir -p ./{{ workspace_dir }}
     rm -rf ./{{ workspace_dir }}/*
     case {{ target }} in
-        "simple")
+        "simple" | "openssl")
             nix shell .#contrast --command resourcegen {{ target }} ./{{ workspace_dir }}/deployment/deployment.yml
         ;;
         *)
@@ -59,7 +59,7 @@ generate target=default_deploy_target cli=default_cli:
 apply target=default_deploy_target:
     #!/usr/bin/env bash
     case {{ target }} in
-        "simple")
+        "simple" | "openssl")
             :
         ;;
         *)
