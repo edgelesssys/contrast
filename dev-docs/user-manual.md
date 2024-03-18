@@ -8,7 +8,51 @@ Kubernetes pods that are executed inside a confidential micro-VM and provide str
 from the surrounding environment. This works with unmodified containers in a lift-and-shift approach.
 It currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview).
 
-## The Contrast Coordinator
+## Goal
+
+Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer, i.e., remove the infrastructure from the TCB. This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure, e.g., malicious co-tenants escalating their privileges.
+
+Contrast integrates fluently with the existing Kubernetes workflows. It's compatible with managed Kubernetes, can be installed as a day-2 operation and imposes only minimal changes to your deployment flow.
+
+## Use Cases:
+
+* Increasing the security of your containers
+* Moving sensitive workloads from on-prem to the cloud with Confidential Computing
+* Shielding the code and data even from the own cluster administrators
+* Increasing the trustworthiness of your SaaS offerings
+* Simplifying regulatory compliance
+* Multi-party computation for data collaboration
+
+## Features
+
+### 🔒 Everything always encrypted
+
+* Runtime encryption: All Pods run inside AMD SEV-based Confidential VMs (CVMs). Support for Intel TDX will be added in the future.
+* PKI and mTLS: All pod-to-pod traffic can be encrypted and authenticated with Contrast's workload certificates.
+
+### 🔍 Everything verifiable
+
+* Workload attestation based on the identity of your container and the remote-attestation feature of [Confidential Containers](https://github.com/confidential-containers)
+* "Whole deployment" attestation based on Contrast's [Coordinator attestation service](#the-contrast-coordinator)
+* Runtime environment integrity verification based runtime policies
+* Kata micro-VMs and single workload isolation provide a minimal Trusted Computing Base (TCB)
+
+### 🏝️ Everything isolated
+
+* Runtime policies enforce strict isolation of your containers from the Kubernetes layer and the infrastructure.
+* Pod isolation: Pods are isolated from each other.
+* Namespace isolation: Contrast can be deployed independently in multiple namespaces.
+
+### 🧩 Lightweight and easy to use
+
+* Install in Kubernetes cluster as a day-2 operation.
+* Compatible with managed Kubernetes.
+* Minimal DevOps involvement.
+* Simple CLI tool to get started.
+
+## Components
+
+### The Contrast Coordinator
 
 The Contrast Coordinator is the central remote attestation service of a Contrast deployment.
 It runs inside a confidential container inside your cluster.
@@ -22,7 +66,7 @@ As your app needs to scale, the Coordinator transparently verifies new instances
 To verify your deployment, the Coordinator's remote attestation statement combined with the manifest offers a concise single remote attestation statement for your entire deployment.
 A third party can use this to verify the integrity of your distributed app, making it easy to assure stakeholders of your app's identity and integrity.
 
-## The Manifest
+### The Manifest
 
 The manifest is the configuration file for the Coordinator, defining your confidential deployment.
 It is automatically generated from your deployment by the Contrast CLI.
@@ -32,7 +76,7 @@ It currently consists of the following parts:
 * *Reference Values*: The remote attestation reference values for the Kata confidential micro-VM that is the runtime environment of your Pods.
 * *WorkloadOwnerKeyDigest*: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
 
-## Runtime Policies
+### Runtime Policies
 
 Runtime Policies are a mechanism to enable the use of the (untrusted) Kubernetes API for orchestration while ensuring the confidentiality and integrity of your confidential containers.
 They allow us to enforce the integrity of your containers' runtime environment as defined in your deployment files.
@@ -53,7 +97,7 @@ The trust chain goes as follows:
 
 After the last step, we know that the policy has not been tampered with and, thus, that the workload is as intended.
 
-## The Contrast Initializer
+### The Contrast Initializer
 
 Contrast provides an Initializer that handles the remote attestation on the workload side transparently and
 fetches the workload certificate. The Initializer runs as an init container before your workload is started.
@@ -73,12 +117,26 @@ az login
 Create an AKS cluster with Confidential Container support:
 
 ```sh
+# Ensure you set this to an existing resource group in your subscription
+azResourceGroup="ContrastDemo"
+# Select the name for your AKS cluster
+azClusterName="ContrastDemo"
+
 az extension add \
-  --name aks-preview
+  --name aks-preview \
+  --allow-preview true
+
+az extension update \
+  --name aks-preview \
+  --allow-preview true
+
+az feature register --namespace "Microsoft.ContainerService" --name "KataCcIsolationPreview"
+az feature show --namespace "Microsoft.ContainerService" --name "KataCcIsolationPreview"
+az provider register -n Microsoft.ContainerService
 
 az aks create \
-  --resource-group myResourceGroup \
-  --name myAKSCluster \
+  --resource-group "$azResourceGroup" \
+  --name "$azClusterName" \
   --kubernetes-version 1.29 \
   --os-sku AzureLinux \
   --node-vm-size Standard_DC4as_cc_v5 \
@@ -86,9 +144,9 @@ az aks create \
   --generate-ssh-keys
 
 az aks nodepool add \
-  --resource-group myResourceGroup \
+  --resource-group "$azResourceGroup" \
   --name nodepool2 \
-  --cluster-name myAKSCluster \
+  --cluster-name "$azClusterName" \
   --mode System \
   --node-count 1 \
   --os-sku AzureLinux \
@@ -96,8 +154,8 @@ az aks nodepool add \
   --workload-runtime KataCcIsolation
 
 az aks get-credentials \
-  --resource-group myResourceGroup \
-  --name myAKSCluster
+  --resource-group "$azResourceGroup" \
+  --name "$azClusterName"
 ```
 
 ### Download the latest Contrast release
@@ -164,20 +222,24 @@ also written into the same directory.
 
 ### Connect and verify the workload
 
-Connect to the workloads using the Coordinator's `mesh-root.pem` as a trusted CA certificate. For example, with curl:
+You can securely connect to the workloads using the Coordinator's `mesh-root.pem` as a trusted CA certificate.
+First, expose the service on a public IP address via a LoadBalancer service:
 
 ```sh
 kubectl patch svc web-svc -p '{"spec": {"type": "LoadBalancer"}}'
+timeout 30s bash -c 'until kubectl get service/web-svc --output=jsonpath='{.status.loadBalancer}' | grep "ingress"; do sleep 2 ; done'
 lbip=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo $lbip
-curl --cacert ./verify/mesh-root.pem -k "https://${lbip}"
 ```
 
-The workload certificate is a DNS wildcard certificate. Therefore, SAN is expected to fail when accessing the workload via an IP address.
-On Azure, all load balancers automatically get ephemeral DNS entries, so either
-use that or configure DNS yourself.
+Note: The workload certificate is a DNS wildcard certificate.
+curl's Subject Alternative Name (SAN) verification is not compatible with a full wildcard certificate, hence, with curl you need to skip the validation:
 
-To validate the certificate locally, use `openssl`:
+```sh
+curl -k "https://${lbip}:8443"
+```
+
+To validate the certificate with the `mesh-root.pem` locally, use `openssl` instead:
 
 ```sh
 openssl s_client -showcerts -connect ${lbip}:443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > certChain.pem
