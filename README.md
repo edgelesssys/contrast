@@ -104,6 +104,13 @@ After the last step, we know that the policy hasn't been tampered with and, thus
 Contrast provides an Initializer that handles the remote attestation on the workload side transparently and
 fetches the workload certificate. The Initializer runs as an init container before your workload is started.
 
+### The Contrast runtime
+
+Contrast depends on a Kubernetes [runtime class](https://kubernetes.io/docs/concepts/containers/runtime-class/), which is installed
+by the `node-installer` daemonset.
+This runtime consists of a containerd runtime plugin, a virtual machine manager (cloud-hypervisor), and a podvm image (IGVM and rootfs).
+The installer takes care of provisioning every node in the cluster so it provides this runtime class.
+
 ## Installation
 
 Download the latest CLI from our release and put it into your PATH:
