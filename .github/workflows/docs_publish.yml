@@ -23,13 +23,13 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Build website
+      - name: Build production website
         run: |
           nix build .#contrast-docs
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847 # v3.9.3
+      - name: Publish docs to GitHub Pages
+        uses: JamesIves/github-pages-deploy-action@65b5dfd4f5bcd3a7403bbc2959c144256167464e # v4.5.0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./result
-          user_name: edgelessci
-          user_email: edgelessci@users.noreply.github.com
+          folder: ./result
+          branch: gh-pages
+          clean-exclude: pr-preview
+          force: false
