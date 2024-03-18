@@ -274,8 +274,8 @@ in the manifest are also written to the directory.
 
 ### Communicate with Workloads
 
-Connect to the workloads using the Coordinator's mesh root as a trusted CA certificate.
-For example, with `curl`:
+You can securely connect to the workloads using the Coordinator's `mesh-root.pem` as a trusted CA certificate.
+First, expose the service on a public IP address via a LoadBalancer service:
 
 ```sh
 kubectl patch svc web-svc -p '{"spec": {"type": "LoadBalancer"}}'
@@ -284,15 +284,14 @@ lbip=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}
 echo $lbip
 ```
 
+Note: The workload certificate is a DNS wildcard certificate.
+curl's Subject Alternative Name (SAN) verification is not compatible with a full wildcard certificate, hence, with curl you need to skip the validation:
+
 ```sh
 curl -k "https://${lbip}:8443"
 ```
 
-The workload certificate is a DNS wildcard certificate. Therefore, SAN is expected to fail when accessing the workload via an IP address.
-On Azure, all load balancers automatically get ephemeral DNS entries, so either
-use that or configure DNS yourself.
-
-To validate the certificate locally, use `openssl`:
+To validate the certificate with the `mesh-root.pem` locally, use `openssl` instead:
 
 ```sh
 openssl s_client -showcerts -connect ${lbip}:443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > certChain.pem
