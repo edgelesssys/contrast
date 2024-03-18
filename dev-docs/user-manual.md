@@ -232,8 +232,8 @@ lbip=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}
 echo $lbip
 ```
 
-Note: The workload certificate is a DNS wildcard certificate.
-curl's Subject Alternative Name (SAN) verification is not compatible with a full wildcard certificate, hence, with curl you need to skip the validation:
+Note: All workload certificates are created with a wildcard DNS entry. Since we are accessing the load balancer via IP, the SAN checks the certificate for IP entries in the SAN field. Since the certificate doesn't contain any IP entries as SAN, the validation fails.
+Hence, with curl you need to skip the validation:
 
 ```sh
 curl -k "https://${lbip}:8443"

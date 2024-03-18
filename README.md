@@ -278,14 +278,14 @@ You can securely connect to the workloads using the Coordinator's `mesh-root.pem
 First, expose the service on a public IP address via a LoadBalancer service:
 
 ```sh
-kubectl patch svc web-svc -p '{"spec": {"type": "LoadBalancer"}}'
-timeout 30s bash -c 'until kubectl get service/web-svc --output=jsonpath='{.status.loadBalancer}' | grep "ingress"; do sleep 2 ; done'
-lbip=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+kubectl patch svc ${MY_SERVICE} -p '{"spec": {"type": "LoadBalancer"}}'
+timeout 30s bash -c 'until kubectl get service/${MY_SERVICE} --output=jsonpath='{.status.loadBalancer}' | grep "ingress"; do sleep 2 ; done'
+lbip=$(kubectl get svc ${MY_SERVICE} -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo $lbip
 ```
 
-Note: The workload certificate is a DNS wildcard certificate.
-curl's Subject Alternative Name (SAN) verification is not compatible with a full wildcard certificate, hence, with curl you need to skip the validation:
+Note: All workload certificates are created with a wildcard DNS entry. Since we are accessing the load balancer via IP, the SAN checks the certificate for IP entries in the SAN field. Since the certificate doesn't contain any IP entries as SAN, the validation fails.
+Hence, with curl you need to skip the validation:
 
 ```sh
 curl -k "https://${lbip}:8443"
