@@ -24,8 +24,9 @@ type ReferenceValues struct {
 
 // SNPReferenceValues contains reference values for the SNP report.
 type SNPReferenceValues struct {
-	MinimumTCB         SNPTCB
-	TrustedIDKeyHashes HexStrings // 0356215882a825279a85b300b0b742931d113bf7e32dde2e50ffde7ec743ca491ecdd7f336dc28a6e0b2bb57af7a44a3
+	MinimumTCB SNPTCB
+	// TrustedMeasurement is the hash of the trusted launch digest.
+	TrustedMeasurement HexString
 }
 
 // SNPTCB represents a set of SNP TCB values.

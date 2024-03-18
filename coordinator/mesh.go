@@ -48,12 +48,17 @@ func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Option
 		return nil, fmt.Errorf("hostdata %s not found in manifest", hostData)
 	}
 
-	trustedIDKeyDigestHashes, err := mnfst.ReferenceValues.SNP.TrustedIDKeyHashes.ByteSlices()
+	trustedMeasurement, err := mnfst.ReferenceValues.SNP.TrustedMeasurement.Bytes()
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert TrustedIDKeyHashes from manifest to byte slices: %w", err)
+		return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
+	}
+	if trustedMeasurement == nil {
+		// This is required to prevent an empty measurement in the manifest from disabling the measurement check.
+		trustedMeasurement = make([]byte, 48)
 	}
 
 	return &validate.Options{
+		Measurement: trustedMeasurement,
 		GuestPolicy: abi.SnpPolicy{
 			Debug: false,
 			SMT:   true,
@@ -72,8 +77,6 @@ func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Option
 			UcodeSpl: mnfst.ReferenceValues.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
 		},
 		PermitProvisionalFirmware: true,
-		TrustedIDKeyHashes:        trustedIDKeyDigestHashes,
-		RequireIDBlock:            false, // TODO(malt3): re-enable once we control the full boot (including the id block)
 	}, nil
 }
 
