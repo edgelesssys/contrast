@@ -279,12 +279,25 @@ For example, with `curl`:
 
 ```sh
 kubectl patch svc web-svc -p '{"spec": {"type": "LoadBalancer"}}'
+timeout 30s bash -c 'until kubectl get service/web-svc --output=jsonpath='{.status.loadBalancer}' | grep "ingress"; do : ; done'
 lbip=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo $lbip
 ```
 
 ```sh
-curl --cacert ./verify/mesh-root.pem "https://${lbip}:8443"
+curl -k "https://${lbip}:8443"
+```
+
+The workload certificate is a DNS wildcard certificate. Therefore, SAN is expected to fail when accessing the workload via an IP address.
+On Azure, all load balancers automatically get ephemeral DNS entries, so either
+use that or configure DNS yourself.
+
+To validate the certificate locally, use `openssl`:
+
+```sh
+openssl s_client -showcerts -connect ${lbip}:443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > certChain.pem
+awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "cert." c ".pem"}' < certChain.pem
+openssl verify -verbose -trusted verify/mesh-root.pem -- cert.1.pem
 ```
 
 ## Current limitations
