@@ -160,7 +160,7 @@ const sidebars = {
             },
             {
               type: 'doc',
-              label: 'Sidecar',
+              label: 'Protocols and Keys',
               id: 'architecture/network-encryption/protocols-and-keys',
             },
           ]
