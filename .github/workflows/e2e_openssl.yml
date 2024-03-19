@@ -55,7 +55,7 @@ jobs:
       - name: Build, deploy, contrast generate, contrast set, contrast verify
         run: |
           just coordinator initializer openssl
-          just generate openssl contrast.cli
+          just populate openssl
       - name: Setup Summary
         run: |
           cat ./workspace/just.namespace | tee -a "${GITHUB_STEP_SUMMARY}"

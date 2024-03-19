@@ -41,6 +41,24 @@ func TestOpenSSL(t *testing.T) {
 	resources, err := filepath.Glob("./workspace/deployment/*.yml")
 	require.NoError(t, err)
 
+	require.True(t, t.Run("generate", func(t *testing.T) {
+		require := require.New(t)
+
+		args := []string{
+			"--workspace-dir", "./workspace",
+		}
+		args = append(args, resources...)
+
+		generate := cmd.NewGenerateCmd()
+		generate.Flags().String("workspace-dir", "", "") // Make generate aware of root flags
+		generate.SetArgs(args)
+		generate.SetOut(io.Discard)
+		errBuf := &bytes.Buffer{}
+		generate.SetErr(errBuf)
+
+		require.NoError(generate.Execute(), "could not generate manifest: %s", errBuf)
+	}))
+
 	// TODO(burgerdev): policy hash should come from contrast generate output.
 	coordinatorPolicyHashBytes, err := os.ReadFile("workspace/coordinator-policy.sha256")
 	require.NoError(t, err)
