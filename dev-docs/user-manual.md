@@ -236,7 +236,7 @@ Note: All workload certificates are created with a wildcard DNS entry. Since we 
 Hence, with curl you need to skip the validation:
 
 ```sh
-curl -k "https://${lbip}:8443"
+curl -k "https://${lbip}:443"
 ```
 
 To validate the certificate with the `mesh-root.pem` locally, use `openssl` instead:
