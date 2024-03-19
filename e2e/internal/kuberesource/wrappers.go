@@ -208,6 +208,16 @@ func Namespace(name string) *applycorev1.NamespaceApplyConfiguration {
 	return applycorev1.Namespace(name)
 }
 
+// Probe creates a new ProbeApplyConfiguration.
+func Probe() *applycorev1.ProbeApplyConfiguration {
+	return applycorev1.Probe()
+}
+
+// TCPSocketAction creates a new TCPSocketActionApplyConfiguration.
+func TCPSocketAction() *applycorev1.TCPSocketActionApplyConfiguration {
+	return applycorev1.TCPSocketAction()
+}
+
 func fromPtr[T any](v *T) T {
 	if v != nil {
 		return *v
