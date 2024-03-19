@@ -37,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := os.Mkdir(path.Dir(dest), 0o755); err != nil {
+	if err := os.MkdirAll(path.Dir(dest), 0o755); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
