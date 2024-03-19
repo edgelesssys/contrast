@@ -25,10 +25,10 @@ default_deploy_target := "simple"
 workspace_dir := "workspace"
 
 # Generate policies, apply Kubernetes manifests.
-deploy target=default_deploy_target cli=default_cli: (generate target cli) (apply target)
+deploy target=default_deploy_target cli=default_cli: (populate target) (generate cli) (apply target)
 
-# Generate policies, update manifest.
-generate target=default_deploy_target cli=default_cli:
+# Populate the workspace with a Kubernetes deployment
+populate target=default_deploy_target:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
@@ -47,6 +47,10 @@ generate target=default_deploy_target cli=default_cli:
         --replace ghcr.io/edgelesssys ${container_registry}
     nix run .#kypatch namespace -- ./{{ workspace_dir }}/deployment \
         --replace edg-default {{ target }}${namespace_suffix-}
+
+# Generate policies, update manifest.
+generate cli=default_cli:
+    #!/usr/bin/env bash
     t=$(date +%s)
     nix run .#{{ cli }} -- generate \
         --workspace-dir ./{{ workspace_dir }} \
