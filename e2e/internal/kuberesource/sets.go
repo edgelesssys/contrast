@@ -70,11 +70,20 @@ func OpenSSL() ([]any, error) {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-backend"}).
 				WithSpec(PodSpec().
+					WithRuntimeClassName("kata-cc-isolation").
 					WithContainers(
 						Container().
 							WithName("openssl-backend").
 							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
 							WithCommand("/bin/sh", "-c", "echo Workload started  \n openssl s_server -port 443 -Verify 2 -CAfile /tls-config/MeshCACert.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem").
+							WithEnv(
+								NewEnvVar("COORDINATOR_HOST", "coordinator"),
+							).
+							WithPorts(
+								ContainerPort().
+									WithName("openssl").
+									WithContainerPort(443),
+							).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(50),
 							),
@@ -88,6 +97,8 @@ func OpenSSL() ([]any, error) {
 		return nil, err
 	}
 
+	opensslBackendService := ServiceForDeployment(opensslBackend)
+
 	opensslClient := Deployment("openssl-client", ns).
 		WithSpec(DeploymentSpec().
 			WithReplicas(1).
@@ -97,11 +108,15 @@ func OpenSSL() ([]any, error) {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-client"}).
 				WithSpec(PodSpec().
+					WithRuntimeClassName("kata-cc-isolation").
 					WithContainers(
 						Container().
 							WithName("openssl-client").
 							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
 							WithCommand("/bin/sh", "-c", "echo Workload started \nwhile true; do \n  echo \"THIS IS A TEST MESSAGE\" | openssl s_client -connect openssl-frontend:443 -verify_return_error -CAfile /tls-config/RootCACert.pem\n  sleep 30\ndone\n").
+							WithEnv(
+								NewEnvVar("COORDINATOR_HOST", "coordinator"),
+							).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(50),
 							),
@@ -123,11 +138,15 @@ func OpenSSL() ([]any, error) {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-frontend"}).
 				WithSpec(PodSpec().
+					WithRuntimeClassName("kata-cc-isolation").
 					WithContainers(
 						Container().
 							WithName("openssl-frontend").
 							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
 							WithCommand("/bin/sh", "-c", "echo Workload started\nopenssl s_server -www -port 443 -cert /tls-config/certChain.pem -key /tls-config/key.pem -cert_chain /tls-config/certChain.pem &\nwhile true; do \n  echo \"THIS IS A TEST MESSAGE\" | openssl s_client -connect openssl-backend:443 -verify_return_error -CAfile /tls-config/MeshCACert.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem\n  sleep 10\ndone\n").
+							WithEnv(
+								NewEnvVar("COORDINATOR_HOST", "coordinator"),
+							).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(50),
 							),
@@ -140,14 +159,23 @@ func OpenSSL() ([]any, error) {
 		return nil, err
 	}
 
+	opensslFrontendService := ServiceForDeployment(opensslFrontend)
+
+	portforwarderCoordinator := PortForwarder("coordinator", ns)
+	portforwarderopensslFrontend := PortForwarder("openssl-frontend", ns)
+
 	resources := []any{
 		namespace,
 		coordinator,
 		coordinatorService,
 		coordinatorForwarder,
 		opensslBackend,
+		opensslBackendService,
 		opensslClient,
 		opensslFrontend,
+		opensslFrontendService,
+		portforwarderCoordinator,
+		portforwarderopensslFrontend,
 	}
 
 	return resources, nil
