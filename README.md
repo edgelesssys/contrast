@@ -120,15 +120,29 @@ confidential and deploying it together with Contrast.
 
 ### Prerequisite
 
-A CoCo enabled cluster is required to run Contrast. Create it using the [`az`](https://docs.microsoft.com/en-us/cli/azure/) CLI:
+A CoCo-enabled cluster is required to run Contrast. Create it using the [`az`](https://docs.microsoft.com/en-us/cli/azure/) CLI:
 
 ```sh
+# Ensure you set this to an existing resource group in your subscription
+azResourceGroup="ContrastDemo"
+# Select the name for your AKS cluster
+azClusterName="ContrastDemo"
+
 az extension add \
-  --name aks-preview
+  --name aks-preview \
+  --allow-preview true
+
+az extension update \
+  --name aks-preview \
+  --allow-preview true
+
+az feature register --namespace "Microsoft.ContainerService" --name "KataCcIsolationPreview"
+az feature show --namespace "Microsoft.ContainerService" --name "KataCcIsolationPreview"
+az provider register -n Microsoft.ContainerService
 
 az aks create \
-  --resource-group myResourceGroup \
-  --name myAKSCluster \
+  --resource-group "$azResourceGroup" \
+  --name "$azClusterName" \
   --kubernetes-version 1.29 \
   --os-sku AzureLinux \
   --node-vm-size Standard_DC4as_cc_v5 \
@@ -136,9 +150,9 @@ az aks create \
   --generate-ssh-keys
 
 az aks nodepool add \
-  --resource-group myResourceGroup \
+  --resource-group "$azResourceGroup" \
   --name nodepool2 \
-  --cluster-name myAKSCluster \
+  --cluster-name "$azClusterName" \
   --mode System \
   --node-count 1 \
   --os-sku AzureLinux \
@@ -146,8 +160,8 @@ az aks nodepool add \
   --workload-runtime KataCcIsolation
 
 az aks get-credentials \
-  --resource-group myResourceGroup \
-  --name myAKSCluster
+  --resource-group "$azResourceGroup" \
+  --name "$azClusterName"
 ```
 
 Check [Azure's deployment guide](https://learn.microsoft.com/en-us/azure/aks/deploy-confidential-containers-default-policy) for more detailed instructions.
@@ -260,12 +274,29 @@ in the manifest are also written to the directory.
 
 ### Communicate with Workloads
 
-Connect to the workloads using the Coordinator's mesh root as a trusted CA certificate.
-For example, with `curl`:
+You can securely connect to the workloads using the Coordinator's `mesh-root.pem` as a trusted CA certificate.
+First, expose the service on a public IP address via a LoadBalancer service:
 
 ```sh
+kubectl patch svc ${MY_SERVICE} -p '{"spec": {"type": "LoadBalancer"}}'
+timeout 30s bash -c 'until kubectl get service/${MY_SERVICE} --output=jsonpath='{.status.loadBalancer}' | grep "ingress"; do sleep 2 ; done'
 lbip=$(kubectl get svc ${MY_SERVICE} -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
-curl --cacert ./verify/mesh-root.pem "https://${lbip}:8443"
+echo $lbip
+```
+
+Note: All workload certificates are created with a wildcard DNS entry. Since we are accessing the load balancer via IP, the SAN checks the certificate for IP entries in the SAN field. Since the certificate doesn't contain any IP entries as SAN, the validation fails.
+Hence, with curl you need to skip the validation:
+
+```sh
+curl -k "https://${lbip}:443"
+```
+
+To validate the certificate with the `mesh-root.pem` locally, use `openssl` instead:
+
+```sh
+openssl s_client -showcerts -connect ${lbip}:443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > certChain.pem
+awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "cert." c ".pem"}' < certChain.pem
+openssl verify -verbose -trusted verify/mesh-root.pem -- cert.1.pem
 ```
 
 ## Current limitations
