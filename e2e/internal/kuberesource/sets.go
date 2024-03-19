@@ -78,9 +78,6 @@ func OpenSSL() ([]any, error) {
 							WithName("openssl-backend").
 							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
 							WithCommand("/bin/bash", "-c", "echo Workload started \nopenssl s_server -port 443 -Verify 2 -CAfile /tls-config/MeshCACert.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem").
-							WithEnv(
-								NewEnvVar("COORDINATOR_HOST", "coordinator"),
-							).
 							WithPorts(
 								ContainerPort().
 									WithName("openssl").
@@ -153,9 +150,6 @@ func OpenSSL() ([]any, error) {
 								ContainerPort().
 									WithName("openssl").
 									WithContainerPort(443),
-							).
-							WithEnv(
-								NewEnvVar("COORDINATOR_HOST", "coordinator"),
 							).
 							WithReadinessProbe(Probe().
 								WithInitialDelaySeconds(1).
