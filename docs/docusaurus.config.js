@@ -9,7 +9,7 @@ async function createConfig() {
   return {
     title: 'Contrast',
     tagline: 'Contrast: Confidential Containers at scale',
-    url: 'https://contrast-docs.edgeless.systems',
+    url: 'https://docs.edgeless.systems',
     baseUrl: '/contrast/',
     trailingSlash: false,
     onBrokenLinks: 'throw',
@@ -77,21 +77,12 @@ async function createConfig() {
             src: 'img/logos/contrast_icon.svg',
           },
           items: [
-            // left
-            // Running docs only mode no need for a link here
-            // {
-            //   type: 'doc',
-            //   docId: 'intro',
-            //   position: 'left',
-            //   label: 'Docs',
-            // },
-            // right
             {
               type: 'docsVersionDropdown',
               position: 'right',
             },
             //{
-            //  href: 'https://github.com/edgelesssys/constellation',
+            //  href: 'https://github.com/edgelesssys/contrast',
             //  position: 'right',
             //  className: 'header-github-link',
             //},
@@ -104,7 +95,7 @@ async function createConfig() {
         },
         //announcementBar: {
         //  content:
-        //    'If you like Constellation, give it a star on <a target="_blank" rel="noopener noreferrer" href="https://github.com/edgelesssys/constellation">GitHub</a> ⭐️',
+        //    'If you like Contrast, give it a star on <a target="_blank" rel="noopener noreferrer" href="https://github.com/edgelesssys/contrast">GitHub</a> ⭐️',
         //  backgroundColor: '#E7E6E6'
         //},
         footer: {
