@@ -161,8 +161,14 @@ func OpenSSL() ([]any, error) {
 
 	opensslFrontendService := ServiceForDeployment(opensslFrontend)
 
-	portforwarderCoordinator := PortForwarder("coordinator", ns)
-	portforwarderopensslFrontend := PortForwarder("openssl-frontend", ns)
+	portforwarderCoordinator := PortForwarder("coordinator", ns).
+		WithListenPort(1313).
+		WithForwardTarget("coordinator", 1313).
+		PodApplyConfiguration
+	portforwarderopensslFrontend := PortForwarder("openssl-frontend", ns).
+		WithListenPort(443).
+		WithForwardTarget("openssl-frontend", 443).
+		PodApplyConfiguration
 
 	resources := []any{
 		namespace,
