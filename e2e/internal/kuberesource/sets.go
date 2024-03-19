@@ -157,6 +157,12 @@ func OpenSSL() ([]any, error) {
 							WithEnv(
 								NewEnvVar("COORDINATOR_HOST", "coordinator"),
 							).
+							WithReadinessProbe(Probe().
+								WithInitialDelaySeconds(1).
+								WithPeriodSeconds(5).
+								WithTCPSocket(TCPSocketAction().
+									WithPort(intstr.FromInt(443))),
+							).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(50),
 							),
