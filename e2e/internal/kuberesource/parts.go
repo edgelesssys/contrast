@@ -3,6 +3,7 @@ package kuberesource
 import (
 	"strconv"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
@@ -89,6 +90,12 @@ func Coordinator(namespace string) *CoordinatorConfig {
 									WithName("meshapi").
 									WithContainerPort(7777),
 							).
+							WithReadinessProbe(Probe().
+								WithInitialDelaySeconds(1).
+								WithPeriodSeconds(5).
+								WithTCPSocket(TCPSocketAction().
+									WithPort(intstr.FromInt(1313))),
+							).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(100),
 							),
@@ -126,7 +133,8 @@ func ServiceForDeployment(d *applyappsv1.DeploymentApplyConfiguration) *applycor
 		s.Spec.WithPorts(
 			ServicePort().
 				WithName(*p.Name).
-				WithPort(*p.ContainerPort),
+				WithPort(*p.ContainerPort).
+				WithTargetPort(intstr.FromInt32(*p.ContainerPort)),
 		)
 	}
 

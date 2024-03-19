@@ -22,6 +22,8 @@ func main() {
 	switch set {
 	case "simple":
 		resources, err = kuberesource.Simple()
+	case "openssl":
+		resources, err = kuberesource.OpenSSL()
 	default:
 		fmt.Printf("Error: unknown set: %s\n", set)
 		os.Exit(1)
