@@ -144,6 +144,11 @@ func OpenSSL() ([]any, error) {
 							WithName("openssl-frontend").
 							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
 							WithCommand("/bin/sh", "-c", "echo Workload started\nopenssl s_server -www -port 443 -cert /tls-config/certChain.pem -key /tls-config/key.pem -cert_chain /tls-config/certChain.pem &\nwhile true; do \n  echo \"THIS IS A TEST MESSAGE\" | openssl s_client -connect openssl-backend:443 -verify_return_error -CAfile /tls-config/MeshCACert.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem\n  sleep 10\ndone\n").
+							WithPorts(
+								ContainerPort().
+									WithName("openssl").
+									WithContainerPort(443),
+							).
 							WithEnv(
 								NewEnvVar("COORDINATOR_HOST", "coordinator"),
 							).
@@ -165,6 +170,7 @@ func OpenSSL() ([]any, error) {
 		WithListenPort(1313).
 		WithForwardTarget("coordinator", 1313).
 		PodApplyConfiguration
+
 	portforwarderopensslFrontend := PortForwarder("openssl-frontend", ns).
 		WithListenPort(443).
 		WithForwardTarget("openssl-frontend", 443).
