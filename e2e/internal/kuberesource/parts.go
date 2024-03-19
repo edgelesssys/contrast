@@ -3,6 +3,7 @@ package kuberesource
 import (
 	"strconv"
 
+	"k8s.io/apimachinery/pkg/util/intstr"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
@@ -126,7 +127,8 @@ func ServiceForDeployment(d *applyappsv1.DeploymentApplyConfiguration) *applycor
 		s.Spec.WithPorts(
 			ServicePort().
 				WithName(*p.Name).
-				WithPort(*p.ContainerPort),
+				WithPort(*p.ContainerPort).
+				WithTargetPort(intstr.FromInt32(*p.ContainerPort)),
 		)
 	}
 
