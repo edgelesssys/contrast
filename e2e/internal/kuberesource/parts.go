@@ -90,6 +90,12 @@ func Coordinator(namespace string) *CoordinatorConfig {
 									WithName("meshapi").
 									WithContainerPort(7777),
 							).
+							WithReadinessProbe(Probe().
+								WithInitialDelaySeconds(1).
+								WithPeriodSeconds(5).
+								WithTCPSocket(TCPSocketAction().
+									WithPort(intstr.FromInt(1313))),
+							).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(100),
 							),
