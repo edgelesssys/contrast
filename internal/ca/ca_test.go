@@ -33,10 +33,7 @@ func TestNewCA(t *testing.T) {
 	ok := root.AppendCertsFromPEM(ca.rootPEM)
 	assert.True(ok)
 
-	block, _ := pem.Decode(ca.intermPEM)
-	require.NotNil(block)
-	cert, err := x509.ParseCertificate(block.Bytes)
-	require.NoError(err)
+	cert := parsePEMCertificate(t, ca.intermPEM)
 
 	opts := x509.VerifyOptions{Roots: root}
 
@@ -52,11 +49,18 @@ func TestAttestedMeshCert(t *testing.T) {
 		extensions []pkix.Extension
 		subjectPub any
 		wantErr    bool
+		wantIPs    int
 	}{
 		"valid": {
 			dnsNames:   []string{"foo", "bar"},
 			extensions: []pkix.Extension{},
 			subjectPub: newKey(req).Public(),
+		},
+		"ips": {
+			dnsNames:   []string{"foo", "192.0.2.1"},
+			extensions: []pkix.Extension{},
+			subjectPub: newKey(req).Public(),
+			wantIPs:    1,
 		},
 	}
 
@@ -68,20 +72,21 @@ func TestAttestedMeshCert(t *testing.T) {
 			ca, err := New()
 			require.NoError(err)
 
-			cert, err := ca.NewAttestedMeshCert(tc.dnsNames, tc.extensions, tc.subjectPub)
+			pem, err := ca.NewAttestedMeshCert(tc.dnsNames, tc.extensions, tc.subjectPub)
 			if tc.wantErr {
 				assert.Error(err)
 				return
 			}
 			assert.NoError(err)
-			assert.NotNil(cert)
+			assert.NotNil(pem)
 
-			assertValidPEM(assert, cert)
+			cert := parsePEMCertificate(t, pem)
+			assert.Len(cert.IPAddresses, tc.wantIPs)
 		})
 	}
 }
 
-func TestCerateCert(t *testing.T) {
+func TestCreateCert(t *testing.T) {
 	req := require.New(t)
 
 	testCases := map[string]struct {
@@ -141,7 +146,7 @@ func TestCerateCert(t *testing.T) {
 			}
 
 			assert.NoError(err)
-			assertValidPEM(assert, pem)
+			parsePEMCertificate(t, pem)
 		})
 	}
 }
@@ -236,9 +241,10 @@ func newKey(require *require.Assertions) *ecdsa.PrivateKey {
 	return key
 }
 
-func assertValidPEM(assert *assert.Assertions, data []byte) {
+func parsePEMCertificate(t *testing.T, data []byte) *x509.Certificate {
 	block, _ := pem.Decode(data)
-	assert.NotNil(block)
-	_, err := x509.ParseCertificate(block.Bytes)
-	assert.NoError(err)
+	require.NotNil(t, block)
+	cert, err := x509.ParseCertificate(block.Bytes)
+	require.NoError(t, err)
+	return cert
 }
