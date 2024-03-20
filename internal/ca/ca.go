@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
@@ -72,7 +73,19 @@ func New() (*CA, error) {
 }
 
 // NewAttestedMeshCert creates a new attested mesh certificate.
-func (c *CA) NewAttestedMeshCert(dnsNames []string, extensions []pkix.Extension, subjectPublicKey any) ([]byte, error) {
+func (c *CA) NewAttestedMeshCert(names []string, extensions []pkix.Extension, subjectPublicKey any) ([]byte, error) {
+	var dnsNames []string
+	var ips []net.IP
+	for _, name := range names {
+		// If a string parses correctly as an IP address, it is not a valid DNS name anyway, so we
+		// can split the SANs into DNS and IP by that predicate.
+		if ip := net.ParseIP(name); ip != nil {
+			ips = append(ips, ip)
+		} else {
+			dnsNames = append(dnsNames, name)
+		}
+	}
+
 	c.intermMux.RLock()
 	defer c.intermMux.RUnlock()
 	now := time.Now()
@@ -86,6 +99,7 @@ func (c *CA) NewAttestedMeshCert(dnsNames []string, extensions []pkix.Extension,
 		BasicConstraintsValid: true,
 		ExtraExtensions:       extensions,
 		DNSNames:              dnsNames,
+		IPAddresses:           ips,
 	}
 
 	certPEM, err := createCert(certTemplate, c.meshCACert, subjectPublicKey, c.intermPrivKey)
