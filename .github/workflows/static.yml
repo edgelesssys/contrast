@@ -40,7 +40,7 @@ jobs:
         uses: ./.github/actions/pushdiff
         with:
           error: Go source needs to be updated, check the GitHub run summary for the diff.
-          suggested-fix: Run \`nix run .#generate\` to generate and tidy Go code.
+          suggested-fix: Run \`nix run .#scripts.generate\` to generate and tidy Go code.
           renovate-commit-msg: "fixup: update Go source"
 
   govulncheck:
