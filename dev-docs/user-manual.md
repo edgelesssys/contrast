@@ -77,20 +77,6 @@ After the last step, we know that the policy has not been tampered with and, thu
 Contrast provides an Initializer that handles the remote attestation on the workload side transparently and
 fetches the workload certificate. The Initializer runs as an init container before your workload is started.
 
-## How to deploy emojivoto in Contrast
-
-
-
-### Download the latest Contrast release
-
-Since Contrast has not yet been publicly released, a download URL will be
-provided by Edgeless.
-
-```sh
-wget <URL>
-unzip contrast.zip
-```
-
 ## Current limitations
 
 Contrast is in an early preview stage, and most underlying projects are still under development as well.
