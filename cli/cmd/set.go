@@ -25,6 +25,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/spinner"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -52,7 +53,7 @@ func NewSetCmd() *cobra.Command {
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
-	cmd.Flags().String("coordinator-policy-hash", DefaultCoordinatorPolicyHash, "expected policy hash of the coordinator, will not be checked if empty")
+	cmd.Flags().String("coordinator-policy-hash", DefaultCoordinatorPolicyHash, "override the expected policy hash of the coordinator")
 	cmd.Flags().String("workload-owner-key", workloadOwnerPEM, "path to workload owner key (.pem) file")
 
 	return cmd
@@ -157,6 +158,21 @@ type setFlags struct {
 	workspaceDir         string
 }
 
+func decodeCoordinatorPolicyHash(flags *pflag.FlagSet) ([]byte, error) {
+	hexEncoded, err := flags.GetString("coordinator-policy-hash")
+	if err != nil {
+		return nil, fmt.Errorf("getting coordinator-policy-hash flag: %w", err)
+	}
+	hash, err := hex.DecodeString(hexEncoded)
+	if err != nil {
+		return nil, fmt.Errorf("hex-decoding coordinator-policy-hash flag: %w", err)
+	}
+	if len(hash) != 32 {
+		return nil, fmt.Errorf("coordinator-policy-hash must be exactly 32 hex-encoded bytes, got %d", len(hash))
+	}
+	return hash, nil
+}
+
 func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	flags := &setFlags{}
 	var err error
@@ -169,13 +185,9 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get coordinator flag: %w", err)
 	}
-	policyString, err := cmd.Flags().GetString("coordinator-policy-hash")
+	flags.policy, err = decodeCoordinatorPolicyHash(cmd.Flags())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get coordinator-policy-hash flag: %w", err)
-	}
-	flags.policy, err = hex.DecodeString(policyString)
-	if err != nil {
-		return nil, fmt.Errorf("hex-decoding coordinator-policy-hash flag: %w", err)
 	}
 	flags.workloadOwnerKeyPath, err = cmd.Flags().GetString("workload-owner-key")
 	if err != nil {
