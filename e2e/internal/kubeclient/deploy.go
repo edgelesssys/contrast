@@ -128,3 +128,22 @@ func (c *Kubeclient) Delete(ctx context.Context, objects ...*unstructured.Unstru
 	}
 	return nil
 }
+
+// PatchNamespace adjusts the namespace of the given object in-place if it is an instance of a namespaced resource.
+func (c *Kubeclient) PatchNamespace(namespace string, obj *unstructured.Unstructured) error {
+	gvk := obj.GroupVersionKind()
+	resources, err := c.client.DiscoveryClient.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
+	if err != nil {
+		return fmt.Errorf("API resources not found for %#v: %w", gvk, err)
+	}
+	for _, resource := range resources.APIResources {
+		if resource.Kind != obj.GetKind() {
+			continue
+		}
+		if resource.Namespaced {
+			obj.SetNamespace(namespace)
+		}
+		return nil
+	}
+	return fmt.Errorf("API resource not found for %#v", gvk)
+}
