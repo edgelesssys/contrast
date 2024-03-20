@@ -104,59 +104,7 @@ fetches the workload certificate. The Initializer runs as an init container befo
 
 ## How to deploy emojivoto in Contrast
 
-### Prerequisites
 
-Install the latest version of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/).
-[Login to your account](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli), which has the permissions to create an AKS cluster, by
-executing:
-
-```sh
-az login
-```
-
-Create an AKS cluster with Confidential Container support:
-
-```sh
-# Ensure you set this to an existing resource group in your subscription
-azResourceGroup="ContrastDemo"
-# Select the name for your AKS cluster
-azClusterName="ContrastDemo"
-
-az extension add \
-  --name aks-preview \
-  --allow-preview true
-
-az extension update \
-  --name aks-preview \
-  --allow-preview true
-
-az feature register --namespace "Microsoft.ContainerService" --name "KataCcIsolationPreview"
-az feature show --namespace "Microsoft.ContainerService" --name "KataCcIsolationPreview"
-az provider register -n Microsoft.ContainerService
-
-az aks create \
-  --resource-group "$azResourceGroup" \
-  --name "$azClusterName" \
-  --kubernetes-version 1.29 \
-  --os-sku AzureLinux \
-  --node-vm-size Standard_DC4as_cc_v5 \
-  --node-count 1 \
-  --generate-ssh-keys
-
-az aks nodepool add \
-  --resource-group "$azResourceGroup" \
-  --name nodepool2 \
-  --cluster-name "$azClusterName" \
-  --mode System \
-  --node-count 1 \
-  --os-sku AzureLinux \
-  --node-vm-size Standard_DC4as_cc_v5 \
-  --workload-runtime KataCcIsolation
-
-az aks get-credentials \
-  --resource-group "$azResourceGroup" \
-  --name "$azClusterName"
-```
 
 ### Download the latest Contrast release
 
