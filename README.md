@@ -8,11 +8,11 @@ Contrast is based on the [Kata Containers](https://github.com/kata-containers/ka
 [Confidential Containers](https://github.com/confidential-containers) projects.
 Confidential Containers are Kubernetes pods that are executed inside a confidential micro-VM and provide strong hardware-based isolation from the surrounding environment.
 This works with unmodified containers in a lift-and-shift approach.
-It currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview).
+Contrast currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview).
 
 ## Goal
 
-Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer, i.e., remove the infrastructure from the TCB. This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure, e.g., malicious co-tenants escalating their privileges.
+Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer, i.e., remove the infrastructure from the trusted computing base (TCB). This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure, e.g., malicious co-tenants escalating their privileges.
 
 Contrast integrates fluently with the existing Kubernetes workflows. It's compatible with managed Kubernetes, can be installed as a day-2 operation and imposes only minimal changes to your deployment flow.
 
