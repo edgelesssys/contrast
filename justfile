@@ -129,9 +129,11 @@ verify cli=default_cli:
     PID=$!
     trap "kill $PID" EXIT
     nix run .#scripts.wait-for-port-listen -- 1314
+    policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
     t=$(date +%s)
     nix run .#{{ cli }} -- verify \
         --workspace-dir ./{{ workspace_dir }}/verify \
+        --coordinator-policy-hash "${policy}" \
         -c localhost:1314
     duration=$(( $(date +%s) - $t ))
     echo "Verified in $duration seconds."

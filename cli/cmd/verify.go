@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"net"
 	"os"
@@ -43,7 +42,7 @@ func NewVerifyCmd() *cobra.Command {
 	cmd.Flags().String("workspace-dir", verifyDir, "directory to write files to, if not set explicitly to another location")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
-	cmd.Flags().String("coordinator-policy-hash", DefaultCoordinatorPolicyHash, "expected policy hash of the coordinator, will not be checked if empty")
+	cmd.Flags().String("coordinator-policy-hash", DefaultCoordinatorPolicyHash, "override the expected policy hash of the coordinator")
 
 	return cmd
 }
@@ -126,13 +125,9 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	if err != nil {
 		return nil, err
 	}
-	policyString, err := cmd.Flags().GetString("coordinator-policy-hash")
+	policy, err := decodeCoordinatorPolicyHash(cmd.Flags())
 	if err != nil {
 		return nil, err
-	}
-	policy, err := hex.DecodeString(policyString)
-	if err != nil {
-		return nil, fmt.Errorf("hex-decoding coordinator-policy-hash flag: %w", err)
 	}
 
 	return &verifyFlags{

@@ -6,6 +6,7 @@ require (
 	github.com/google/go-sev-guest v0.11.0
 	github.com/spf13/afero v1.11.0
 	github.com/spf13/cobra v1.8.0
+	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/goleak v1.3.0
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
@@ -48,7 +49,6 @@ require (
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.19.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
