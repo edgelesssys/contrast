@@ -112,3 +112,19 @@ func (c *Kubeclient) Apply(ctx context.Context, objects ...*unstructured.Unstruc
 	}
 	return nil
 }
+
+// Delete a set of manifests.
+func (c *Kubeclient) Delete(ctx context.Context, objects ...*unstructured.Unstructured) error {
+	for _, obj := range objects {
+		ri, err := c.resourceInterfaceFor(obj)
+		if err != nil {
+			return err
+		}
+
+		if err := ri.Delete(ctx, obj.GetName(), metav1.DeleteOptions{}); err != nil {
+			return fmt.Errorf("could not apply %s %s in namespace %s: %w", obj.GetKind(), obj.GetName(), obj.GetNamespace(), err)
+		}
+		c.log.Info("object deleted", "namespace", obj.GetNamespace(), "kind", obj.GetKind(), "name", obj.GetName())
+	}
+	return nil
+}
