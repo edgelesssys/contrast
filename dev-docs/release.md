@@ -2,7 +2,7 @@
 
 ## Minor
 
-1. Ensure all needed PRs were were merged.
+1. Ensure all needed PRs were merged.
 
 2. Export the release you want to make:
 
@@ -11,7 +11,7 @@
     echo "Releasing $REL_VER"
     ```
 
-3. Create a new temporary branch for the relese:
+3. Create a new temporary branch for the release:
 
     ```sh
     git switch -c "tmp/$REL_VER"
@@ -26,7 +26,7 @@
 
 5. Review the release notes, test the binary artifact.
 
-6. Review and merge the auto-generated update PR for main.
+6. Review and merge the auto generated update PR for main.
 
 7. Publish the GitHub release.
 
@@ -57,7 +57,7 @@
    git pull
    ```
 
-4. Create a new temporary branch for the relese:
+4. Create a new temporary branch for the release:
 
     ```sh
     git switch -c "tmp/$REL_VER"
