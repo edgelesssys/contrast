@@ -4,26 +4,26 @@ default target=default_deploy_target cli=default_cli: soft-clean coordinator ini
 # Build the coordinator, containerize and push it.
 coordinator:
     mkdir -p {{ workspace_dir }}
-    nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator" >&2
+    nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator" >> {{ workspace_dir }}/just.containerlookup
 
 # Build the openssl container and push it.
 openssl:
     mkdir -p {{ workspace_dir }}
-    nix run .#containers.push-openssl -- "$container_registry/contrast/openssl" >&2
+    nix run .#containers.push-openssl -- "$container_registry/contrast/openssl" >> {{ workspace_dir }}/just.containerlookup
 
 # Build the port-forwarder container and push it.
 port-forwarder:
     mkdir -p {{ workspace_dir }}
-    nix run .#containers.push-port-forwarder -- "$container_registry/contrast/port-forwarder" >&2
+    nix run .#containers.push-port-forwarder -- "$container_registry/contrast/port-forwarder" >> {{ workspace_dir }}/just.containerlookup
 
 service-mesh-proxy:
     mkdir -p {{ workspace_dir }}
-    nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy" >&2
+    nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy" >> {{ workspace_dir }}/just.containerlookup
 
 # Build the initializer, containerize and push it.
 initializer:
     mkdir -p {{ workspace_dir }}
-    nix run .#containers.push-initializer -- "$container_registry/contrast/initializer" >&2
+    nix run .#containers.push-initializer -- "$container_registry/contrast/initializer" >> {{ workspace_dir }}/just.containerlookup
 
 default_cli := "contrast.cli"
 default_deploy_target := "simple"
