@@ -1,23 +1,28 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target cli=default_cli: undeploy coordinator initializer openssl port-forwarder service-mesh-proxy (deploy target cli) set verify (wait-for-workload target)
+default target=default_deploy_target cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (deploy target cli) set verify (wait-for-workload target)
 
 # Build the coordinator, containerize and push it.
 coordinator:
+    mkdir -p {{ workspace_dir }}
     nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator" >&2
 
 # Build the openssl container and push it.
 openssl:
+    mkdir -p {{ workspace_dir }}
     nix run .#containers.push-openssl -- "$container_registry/contrast/openssl" >&2
 
 # Build the port-forwarder container and push it.
 port-forwarder:
+    mkdir -p {{ workspace_dir }}
     nix run .#containers.push-port-forwarder -- "$container_registry/contrast/port-forwarder" >&2
 
 service-mesh-proxy:
+    mkdir -p {{ workspace_dir }}
     nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy" >&2
 
 # Build the initializer, containerize and push it.
 initializer:
+    mkdir -p {{ workspace_dir }}
     nix run .#containers.push-initializer -- "$container_registry/contrast/initializer" >&2
 
 default_cli := "contrast.cli"
@@ -32,7 +37,6 @@ populate target=default_deploy_target:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
-    rm -rf ./{{ workspace_dir }}/*
     case {{ target }} in
         "simple" | "openssl")
             nix shell .#contrast --command resourcegen {{ target }} ./{{ workspace_dir }}/deployment/deployment.yml
@@ -209,9 +213,12 @@ demodir namespace="default": coordinator initializer
     echo "Demo directory ready at ${d}" >&2
     echo "${d}"
 
-# Cleanup auxiliary files, caches etc.
-clean: undeploy
+# Remove deployment specific files.
+soft-clean: undeploy
     rm -rf ./{{ workspace_dir }}
+
+# Cleanup all auxiliary files, caches etc.
+clean: soft-clean
     rm -rf ./{{ workspace_dir }}.cache
     rm -rf ./layers_cache
     rm -f ./layers-cache.json
