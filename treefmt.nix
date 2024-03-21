@@ -1,4 +1,4 @@
-_:
+{ lib, pkgs, ... }:
 {
   projectRootFile = "flake.nix";
   programs = {
@@ -18,5 +18,19 @@ _:
     statix.enable = true;
     yamlfmt.enable = true;
     # keep-sorted end
+  };
+  settings.formatter = {
+    vale = {
+      command = "${lib.getExe pkgs.vale}";
+      options = [
+        "--no-wrap"
+      ];
+      includes = [
+        "*.md"
+      ];
+      excludes = [
+        "CODE_OF_CONDUCT.md"
+      ];
+    };
   };
 }
