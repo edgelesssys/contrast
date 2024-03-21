@@ -44,20 +44,20 @@ A third party can use this to verify the integrity of your distributed app, maki
 ### The Manifest
 
 The manifest is the configuration file for the Coordinator, defining your confidential deployment.
-It is automatically generated from your deployment by the Contrast CLI.
+It's automatically generated from your deployment by the Contrast CLI.
 It currently consists of the following parts:
 
 * *Policies*: The identities of your Pods, represented by the hashes of their respective runtime policies.
-* *Reference Values*: The remote attestation reference values for the Kata confidential micro-VM that is the runtime environment of your Pods.
+* *Reference Values*: The remote attestation reference values for the Kata confidential micro-VM that's the runtime environment of your Pods.
 * *WorkloadOwnerKeyDigest*: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
 
 ### Runtime Policies
 
 Runtime Policies are a mechanism to enable the use of the (untrusted) Kubernetes API for orchestration while ensuring the confidentiality and integrity of your confidential containers.
 They allow us to enforce the integrity of your containers' runtime environment as defined in your deployment files.
-The runtime policy mechanism is based on the Open Policy Agent (OPA) and translates the Kubernetes deployment YAMLs into OPA's Rego policy language.
+The runtime policy mechanism is based on the Open Policy Agent (OPA) and translates the Kubernetes deployment YAML into Rego policy language of OPA.
 The Kata Agent inside the confidential micro-VM then enforces the policy by only acting on permitted requests.
-The Contrast CLI provides the tooling for automatically translating Kubernetes deployment YAMLs into OPA's Rego policy language.
+The Contrast CLI provides the tooling for automatically translating Kubernetes deployment YAML into Rego policy language of OPA.
 
 The trust chain goes as follows:
 
@@ -70,7 +70,7 @@ The trust chain goes as follows:
 7. The CLI sets a manifest in the Contrast Coordinator, including a list of permitted policies.
 8. The Contrast Coordinator verifies that the started pod has a permitted policy hash in its `HOSTDATA` field.
 
-After the last step, we know that the policy has not been tampered with and, thus, that the workload is as intended.
+After the last step, we know that the policy hasn't been tampered with and, thus, that the workload is as intended.
 
 ### The Contrast Initializer
 
@@ -86,7 +86,7 @@ As a result, there are currently certain limitations from which we try to docume
 - Persistent volumes currently not supported in CoCo
 - While workload policies are functional in general, but [not covering all edge cases](https://github.com/microsoft/kata-containers/releases/tag/genpolicy-0.6.2-5)
 - Port-forwarding isn't supported by Kata Containers yet
-- CLI is only available for Linux (mostly because upstream dependencies are not available for other platforms)
+- CLI is only available for Linux (mostly because upstream dependencies aren't available for other platforms)
 
 ## Upcoming Contrast features
 

@@ -15,7 +15,7 @@ Contrast currently targets the [CoCo preview on AKS](https://learn.microsoft.com
 
 ## Goal
 
-Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer, i.e., remove the infrastructure from the trusted computing base (TCB). This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure, e.g., malicious co-tenants escalating their privileges.
+Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer. It removes the infrastructure provider from the trusted computing base (TCB). This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure, for example, malicious co-tenants escalating their privileges.
 
 Contrast integrates fluently with the existing Kubernetes workflows. It's compatible with managed Kubernetes, can be installed as a day-2 operation and imposes only minimal changes to your deployment flow.
 

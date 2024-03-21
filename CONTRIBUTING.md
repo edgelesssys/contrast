@@ -5,8 +5,8 @@
 1. [Install Nix](https://zero-to-nix.com/concepts/nix-installer)
 
 2. (Optional) configure Nix to allow use of extra substituters, and profit from our
-    cachix remote cache. To allow using additional substituters from the flake.nix,
-    add yourself (or the wheel group) as trusted-user in your nix config.
+    cachix remote cache. To allow using additional substituters from the `flake.nix`,
+    add your user name (or the wheel group) as trusted-user in your nix config.
 
     On NixOS (in your config):
 
@@ -30,10 +30,10 @@
     nix develop .#
     ```
 
-   Or activate [direnv](https://direnv.net/) to automatically enter the nix shell.
-   It is recommended to use [nix-direnv](https://github.com/nix-community/nix-direnv).
-   If your system ships outdated bash, [install direnv](https://direnv.net/docs/installation.html) via package manager.
-   Additionally, you may want to add the [vscode extension](https://github.com/direnv/direnv-vscode).
+   Or activate [`direnv`](https://direnv.net/) to automatically enter the nix shell.
+   It's recommended to use [`nix-direnv`](https://github.com/nix-community/nix-direnv).
+   If your system ships outdated bash, [install `direnv`](https://direnv.net/docs/installation.html) via package manager.
+   Additionally, you may want to add the [VSCode extension](https://github.com/direnv/direnv-vscode).
 
    ```sh
    direnv allow
@@ -60,7 +60,7 @@
 
 ### Deploy
 
-The ususally dev flow is available as a single target to execute:
+The usually developer flow is available as a single target to execute:
 
 ```sh
 just [default <deployment-name>]
@@ -71,7 +71,7 @@ Ensure the pushed container images are accessible to your cluster.
 The manifest will the be generated (`contrast generate`).
 
 Further the flow will deploy the selected deployment and wait for components to come up.
-The manifest will automatically be set (`contrast set`) and the Coordinator will will be verified
+The manifest will automatically be set (`contrast set`) and the Coordinator will be verified
 (`contrast verify`). The flow will also wait for the workload to get ready.
 
 This target is idempotent and will delete an existing deployment before re-deploying.

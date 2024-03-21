@@ -4,9 +4,10 @@
 ![screenshot of the emojivoto UI](../../static/img/emoijvoto.png)
 
 This tutorial guides you through deploying [emojivoto](https://github.com/BuoyantIO/emojivoto) as a
-confidential Contrast deployment. Emojivoto is an example app that allows users to vote for different emojis and view votes cast on a leaderboard. It has a microservice architecture consisting of a
+confidential Contrast deployment. Emojivoto is an example app that allows users to vote for different
+emojis and view votes cast on a leader board. It has a microservice architecture consisting of a
 web frontend (`web`), a gRPC backend for listing available emojis (`emoji`), and a backend for
-the voting and leaderboard logic (`voting`). The `vote-bot` simulates user traffic by submitting
+the voting and leader board logic (`voting`). The `vote-bot` simulates user traffic by submitting
 votes to the frontend.
 
 <!-- TODO(katexochen): recreate in our design -->
@@ -72,7 +73,7 @@ contrast set -c "${coordinator}:1313" deployment/
 ```
 
 The CLI will use the embedded reference values to attest the Coordinator deployment
-during the TLS handshake. If the connection succeeds, we are ensured that the Coordinator
+during the TLS handshake. If the connection succeeds, we're ensured that the Coordinator
 deployment hasn't been tampered with.
 
 ### Deploy emojivoto
@@ -87,15 +88,15 @@ kubectl apply -f deployment/
 :::note[Inter-deployment communication]
 
 The Contrast Coordinator issues mesh certificates after successfully validating workloads.
-These certificates can be used for sercure inter-deployment communication. The Initializer
+These certificates can be used for secure inter-deployment communication. The Initializer
 sends an attestation report to the Coordinator, retrieves certificates and a private key in return
-and writes them to a volumeMount. The emojivoto version we are using is patched to only communicate
+and writes them to a `volumeMount`. The emojivoto version we're using is patched to only communicate
 via mTLS (the original app talks plain HTTP). The different parts of the workload are configured
-to use the credentials from the volumeMount when communicating with each other.
+to use the credentials from the `volumeMount` when communicating with each other.
 
 :::
 
-## Voter's perspective: verifying the ballot
+## Voter's perspective: Verifying the ballot
 
 As voters, we want to verify the fairness and confidentiality of the deployment before
 deciding to vote. Regardless of the scale of our distributed deployment, Contrast only
@@ -142,7 +143,7 @@ echo $lbip
 
 :::info
 
-By default, certificates are issued with a wildcard DNS entry. Since we are accessing the load balancer via IP, the SAN checks the certificate for IP entries in the SAN field. Since the certificate doesn't contain any IP entries as SAN, the validation fails.
+By default, certificates are issued with a wildcard DNS entry. Since we're accessing the load balancer via IP, the SAN checks the certificate for IP entries in the SAN field. Since the certificate doesn't contain any IP entries as SAN, the validation fails.
 Hence, certificate validation will fail with using curl:
 
 ```sh

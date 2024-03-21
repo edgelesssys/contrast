@@ -6,7 +6,7 @@ The instance types used are from the [DCas_cc_v5 and DCads_cc_v5-series](https:/
 
 ## Using nested CVM-in-VM outside of AKS
 
-The instance types and images can be used for regular VMs (and scalesets):
+The instance types and images can be used for regular VMs (and scale sets):
 
 ```sh
 LOCATION=westeurope
@@ -21,13 +21,13 @@ az vm create \
 az ssh vm --resource-group "${RG}" --vm-name nested-virt-test
 ```
 
-The VM has access to hyperv as a paravisor via `/dev/mshv` (and *not* `/dev/kvm`, which would be expected for nested virt on Linux). The userspace component for spawning nested VMs on mshv is part of [rust-vmm](https://github.com/rust-vmm/mshv).
-This feature is enabled by kernel patches which are not yet upstream. At the time of writing, the VM image uses a kernel with a uname of `5.15.126.mshv9-2.cm2` and this additional kernel cmdline parameter: `hyperv_resvd_new=0x1000!0x933000,0x17400000!0x104e00000,0x1000!0x1000,0x4e00000!0x100000000`.
+The VM has access to hyperv as a paravisor via `/dev/mshv` (and *not* `/dev/kvm`, which would be expected for nested virtualization on Linux). The user space component for spawning nested VMs on `mshv` is part of [rust-vmm](https://github.com/rust-vmm/mshv).
+This feature is enabled by kernel patches which aren't yet upstream. At the time of writing, the VM image uses a kernel with a `uname` of `5.15.126.mshv9-2.cm2` and this additional kernel cmdline parameter: `hyperv_resvd_new=0x1000!0x933000,0x17400000!0x104e00000,0x1000!0x1000,0x4e00000!0x100000000`.
 
 The Kernel is built from a CBL Mariner [spec file](https://github.com/microsoft/CBL-Mariner/blob/2.0/SPECS/kernel-mshv/kernel-mshv.spec) and the Kernel source is [publicly accessible](https://cblmarinerstorage.blob.core.windows.net/sources/core/kernel-mshv-5.15.126.mshv9.tar.gz).
 MicroVM guests use a newer Kernel ([spec](https://github.com/microsoft/CBL-Mariner/tree/2.0/SPECS/kernel-uvm-cvm)).
 
-The image also ships parts of the confidential-containers tools, the kata-runtime, cloud-hypervisor and related tools (kata-runtime, cloud-hypervisor, [containerd](https://github.com/microsoft/confidential-containers-containerd)), some of which contain patches that are not yet upstream, as well as a custom guest image under `/opt`:
+The image also ships parts of the confidential-containers tools, the kata-runtime, cloud-hypervisor and related tools (kata-runtime, cloud-hypervisor, [containerd](https://github.com/microsoft/confidential-containers-containerd)), some of which contain patches that aren't yet upstream, as well as a custom guest image under `/opt`:
 
 <details>
 <summary><code>$ find /opt/confidential-containers/</code></summary>
@@ -56,7 +56,7 @@ The image also ships parts of the confidential-containers tools, the kata-runtim
 ```
 </details>
 
-With those components, it is possible to use the `containerd-shim-kata-cc-v2` runtime for containerd (or add it as a runtime class in k8s).
+With those components, it's possible to use the `containerd-shim-kata-cc-v2` runtime for containerd (or add it as a runtime class in k8s).
 
 <details>
 <summary><code>/etc/containerd/config.toml</code></summary>
@@ -116,7 +116,7 @@ oom_score = 0
 </details>
 
 <details>
-<summary>Runtime options extraced by <code>crictl inspect CONTAINER_ID | jq .info</code> (truncated)</summary>
+<summary>Runtime options extracted by <code>crictl inspect CONTAINER_ID | jq .info</code> (truncated)</summary>
 
 ```json
 {
@@ -131,7 +131,7 @@ oom_score = 0
 </details>
 
 With the containerd configuration from above, the following commands can be used to start the [tardev-snapshotter](https://github.com/kata-containers/tardev-snapshotter) and spawn a container using the `kata-cc` runtime class.
-Please note that while this example almost works, it does not currently result in a working container outside of AKS.
+Please note that while this example almost works, it doesn't currently result in a working container outside of AKS.
 This is probably due to a mismatch of exact arguments or configuration files.
 Maybe a policy annotation is required for booting.
 
@@ -171,15 +171,15 @@ EOF
 
 ### Resource Management
 
-There's [AKS documentation for resource managment] which explains the basics of how CPU and
+There's [AKS documentation for resource management] which explains the basics of how CPU and
 memory are allocated for a Kata VM.
-The default memory allocation is quite high at 2GiB, which fills up the node pretty quickly.
-It's unclear why this deafult is chosen, given that the container limit is added on top of this
+The default memory allocation is quite high at 2GiB, which fills up the node fast.
+It's unclear why this default is chosen, given that the container limit's added on top of this
 value. Forcing a size with the pod annotation
 `io.katacontainers.config.hypervisor.default_memory` would be possible, but the annotation would
-need to be allowlisted in the config setting `enable_annotations`.
+need to be allow-listed in the config setting `enable_annotations`.
 
-[AKS documentation for resource managment]: https://learn.microsoft.com/en-us/azure/aks/confidential-containers-overview#resource-allocation-overview
+[AKS documentation for resource management]: https://learn.microsoft.com/en-us/azure/aks/confidential-containers-overview#resource-allocation-overview
 
 <details>
 <summary>Relevant config snippet</summary>

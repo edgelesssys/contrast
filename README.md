@@ -12,7 +12,7 @@ Contrast currently targets the [CoCo preview on AKS](https://learn.microsoft.com
 
 ## Goal
 
-Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer, i.e., remove the infrastructure from the trusted computing base (TCB). This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure, e.g., malicious co-tenants escalating their privileges.
+Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer. It removes the infrastructure provider from the trusted computing base (TCB). This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure, for example, malicious co-tenants escalating their privileges.
 
 Contrast integrates fluently with the existing Kubernetes workflows. It's compatible with managed Kubernetes, can be installed as a day-2 operation and imposes only minimal changes to your deployment flow.
 
@@ -71,20 +71,20 @@ A third party can use this to verify the integrity of your distributed app, maki
 ### The Manifest
 
 The manifest is the configuration file for the Coordinator, defining your confidential deployment.
-It is automatically generated from your deployment by the Contrast CLI.
+It's automatically generated from your deployment by the Contrast CLI.
 It currently consists of the following parts:
 
 * *Policies*: The identities of your Pods, represented by the hashes of their respective runtime policies.
-* *Reference Values*: The remote attestation reference values for the Kata confidential micro-VM that is the runtime environment of your Pods.
+* *Reference Values*: The remote attestation reference values for the Kata confidential micro-VM that's the runtime environment of your Pods.
 * *WorkloadOwnerKeyDigest*: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
 
 ### Runtime Policies
 
-Runtime Policies are a mechanism to enable the use of the (untrusted) Kubernetes API for orchestration while ensuring the confidentiality and integrity of your confidential containers.
+Runtime Policies are a mechanism to enable the use of the untrusted Kubernetes API for orchestration while ensuring the confidentiality and integrity of your confidential containers.
 They allow us to enforce the integrity of your containers' runtime environment as defined in your deployment files.
-The runtime policy mechanism is based on the Open Policy Agent (OPA) and translates the Kubernetes deployment YAMLs into OPA's Rego policy language.
+The runtime policy mechanism is based on the Open Policy Agent (OPA) and translates the Kubernetes deployment YAML into the Rego policy language of OPA.
 The Kata Agent inside the confidential micro-VM then enforces the policy by only acting on permitted requests.
-The Contrast CLI provides the tooling for automatically translating Kubernetes deployment YAMLs into OPA's Rego policy language.
+The Contrast CLI provides the tooling for automatically translating Kubernetes deployment YAML into the Rego policy language of OPA.
 
 The trust chain goes as follows:
 
@@ -97,7 +97,7 @@ The trust chain goes as follows:
 7. The CLI sets a manifest in the Contrast Coordinator, including a list of permitted policies.
 8. The Contrast Coordinator verifies that the started pod has a permitted policy hash in its `HOSTDATA` field.
 
-After the last step, we know that the policy has not been tampered with and, thus, that the workload is as intended.
+After the last step, we know that the policy hasn't been tampered with and, thus, that the workload is as intended.
 
 ### The Contrast Initializer
 
@@ -196,7 +196,7 @@ helm template release-name chart-name > resources/all.yml
 To specify that a workload (pod, deployment, etc.) should be deployed as confidential containers,
 add `runtimeClassName: kata-cc-isolation` to the pod spec (pod definition or template).
 In addition, add the Contrast Initializer as `initContainers` to these workloads and configure the
-workload to use the certificates written to the `tls-certs` volumeMount.
+workload to use the certificates written to a `volumeMount` named `tls-certs`.
 
 ```yaml
 spec: # v1.PodSpec
@@ -243,8 +243,8 @@ coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ing
 ```
 
 > [!NOTE]
-> `kubectl port-forward` uses a CRI method that is not supported by the Kata shim. If you
-> cannot use a public load balancer, you can deploy a [deployments/simple/portforwarder.yml] and
+> `kubectl port-forward` uses a CRI method that isn't supported by the Kata shim. If you
+> can't use a public load balancer, you can deploy a [deployments/simple/portforwarder.yml] and
 > expose that with `kubectl port-forward` instead.
 >
 > Tracking issue: <https://github.com/kata-containers/kata-containers/issues/1693>.
@@ -284,7 +284,7 @@ lbip=$(kubectl get svc ${MY_SERVICE} -o=jsonpath='{.status.loadBalancer.ingress[
 echo $lbip
 ```
 
-Note: All workload certificates are created with a wildcard DNS entry. Since we are accessing the load balancer via IP, the SAN checks the certificate for IP entries in the SAN field. Since the certificate doesn't contain any IP entries as SAN, the validation fails.
+Note: All workload certificates are created with a wildcard DNS entry. Since we're accessing the load balancer via IP, the SAN checks the certificate for IP entries in the SAN field. Since the certificate doesn't contain any IP entries as SAN, the validation fails.
 Hence, with curl you need to skip the validation:
 
 ```sh
@@ -308,7 +308,7 @@ As a result, there are currently certain limitations from which we try to docume
 - Persistent volumes currently not supported in CoCo
 - While workload policies are functional in general, but [not covering all edge cases](https://github.com/microsoft/kata-containers/releases/tag/genpolicy-0.6.2-5)
 - Port-forwarding isn't supported by Kata Containers yet
-- CLI is only available for Linux (mostly because upstream dependencies are not available for other platforms)
+- CLI is only available for Linux (mostly because upstream dependencies aren't available for other platforms)
 
 ## Upcoming Contrast features
 
