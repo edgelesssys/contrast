@@ -6,14 +6,14 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "igvmmeasure";
-  version = "0.1.0-unstable-2024-03-18";
+  version = "0.1.0-unstable-2024-03-25";
 
   src = fetchFromGitHub {
     owner = "coconut-svsm";
     repo = "svsm";
     # TODO(malt3): Use a released version once available.
-    rev = "3fd89b35c56477729987390e35ad235102ccc48f";
-    hash = "sha256-SuDb+S6F1S+8apyQI/t+U6L6dlYg+zGJI9s1HWglGm0=";
+    rev = "509bc7ca181af6981a1d50fb1cc46320553a4370";
+    hash = "sha256-kA5ZI+8RpG2swApPLZsWJdcUu09sUBpdSAQf844XVuU=";
   };
 
   cargoBuildFlags = "-p igvmmeasure";
