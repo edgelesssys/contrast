@@ -155,7 +155,5 @@ curl: (60) SSL: no alternative certificate subject name matches target host name
 To validate the certificate with the `mesh-root.pem` locally, use `openssl` instead:
 
 ```sh
-openssl s_client -showcerts -connect ${lbip}:443 </dev/null | sed -n -e '/-.BEGIN/,/-.END/ p' > certChain.pem
-awk 'BEGIN {c=0;} /BEGIN CERT/{c++} { print > "cert." c ".pem"}' < certChain.pem
-openssl verify -verbose -trusted verify/mesh-root.pem -- cert.1.pem
+openssl s_client -CAfile verify/mesh-root.pem -verify_return_error -connect ${lbip}:443 < /dev/null
 ```
