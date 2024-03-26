@@ -18,8 +18,6 @@
   nix: { enabled: true },
   lockFileMaintenance: {
     enabled: true,
-    commitMessageAction: "flake.lock: Update",
-    commitMessagePrefix: null,
     schedule: [ "before 4am" ],
   },
   packageRules: [
@@ -28,6 +26,7 @@
       // https://github.com/renovatebot/renovate/discussions/28068
       matchUpdateTypes: [ "lockFileMaintenance" ],
       additionalBranchPrefix: "{{manager}}-",
+      commitMessageExtra: "{{manager}} lock file",
     },
     {
       matchManagers: [ "gomod" ],
