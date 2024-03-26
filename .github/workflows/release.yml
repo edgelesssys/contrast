@@ -183,7 +183,7 @@ jobs:
           git diff --staged --quiet || git commit -m "release: update coordinator policy hash"
       - name: Build CLI
         run: |
-          nix build .#cli-release
+          nix build -L .#cli-release
       - name: Create draft release
         uses: softprops/action-gh-release@9d7c94cfd0a1f3ed45544c887983e9fa900f0564 # v2.0.4
         with:
