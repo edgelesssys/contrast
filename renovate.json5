@@ -26,6 +26,7 @@
       // https://github.com/renovatebot/renovate/discussions/28068
       matchUpdateTypes: [ "lockFileMaintenance" ],
       additionalBranchPrefix: "{{manager}}-",
+      commitMessageAction: "update",
       commitMessageExtra: "{{manager}} lock file",
     },
     {
