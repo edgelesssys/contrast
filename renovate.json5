@@ -24,6 +24,12 @@
   },
   packageRules: [
     {
+      // Group lockfile maintenance updates by manager
+      // https://github.com/renovatebot/renovate/discussions/28068
+      matchUpdateTypes: [ "lockFileMaintenance" ],
+      additionalBranchPrefix: "{{manager}}-",
+    },
+    {
       matchManagers: [ "gomod" ],
       matchDepTypes: [ "indirect" ],
       enabled: true,
