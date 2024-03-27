@@ -31,8 +31,11 @@
       devShells = {
         default = pkgs.mkShell {
           packages = with pkgs; [
+            delve
             go
             golangci-lint
+            gopls
+            gotools
             just
           ];
           shellHook = ''alias make=just'';
