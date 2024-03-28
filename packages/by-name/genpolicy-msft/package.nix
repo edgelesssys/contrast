@@ -13,17 +13,13 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "genpolicy";
-  version = "0.6.2-5";
+  version = "3.2.0.azl0.genpolicy";
 
   src = fetchFromGitHub {
     owner = "microsoft";
     repo = "kata-containers";
-    # Latest released version of genpolicy
-    # is too old for the path handling patch.
-    # Using a commit from main for now.
-    # rev = "genpolicy-${version}";
-    rev = "401db3a3e75c699422537551e7862cd510fb68b0";
-    hash = "sha256-dyYGGQPGWe6oVcAa48Kr/SsdSpUhwQZrRQ2d54BIac8=";
+    rev = version;
+    hash = "sha256-P4SEWXB+NwbK1KsK7hiMGyZm451aUJlXYGiBzChg7f8=";
   };
 
   patches = [
@@ -39,7 +35,7 @@ rustPlatform.buildRustPackage rec {
 
   sourceRoot = "${src.name}/src/tools/genpolicy";
 
-  cargoHash = "sha256-WRSDqrOgSZVcJGN7PuyIqqmOSbrob75QNE2Ztb1L9Ww=";
+  cargoHash = "sha256-chmXwe1WPJf2i9D7mcexx3NYoXtUo1vsEx4RZ6USrO0=";
 
   OPENSSL_NO_VENDOR = 1;
 
@@ -58,7 +54,7 @@ rustPlatform.buildRustPackage rec {
   passthru = rec {
     settings = fetchurl {
       name = "${pname}-${version}-settings";
-      url = "https://github.com/microsoft/kata-containers/releases/download/genpolicy-${version}/genpolicy-settings.json";
+      url = "https://github.com/microsoft/kata-containers/releases/download/${version}/genpolicy-settings.json";
       hash = "sha256-Q19H7Oj8c7SlPyib96fSRZhx/nJ96HXb8dfb9Y/Rsw8=";
       downloadToTemp = true;
       recursiveHash = true;
@@ -73,8 +69,8 @@ rustPlatform.buildRustPackage rec {
 
     rules = fetchurl {
       name = "${pname}-${version}-rules";
-      url = "https://github.com/microsoft/kata-containers/releases/download/genpolicy-${version}/rules.rego";
-      hash = "sha256-D58bmeOu9MMBCaNoF4mmoG6rzVKRvCesZxOFkBdvxd8=";
+      url = "https://github.com/microsoft/kata-containers/releases/download/${version}/rules.rego";
+      hash = "sha256-piPyARaIwtJ5CZiVlQ+t793Z80IIpWFG8iN7jHgBe6E=";
       downloadToTemp = true;
       recursiveHash = true;
       postFetch = "install -D $downloadedFile $out/genpolicy-rules.rego";
