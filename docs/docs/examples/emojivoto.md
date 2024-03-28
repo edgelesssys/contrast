@@ -1,11 +1,14 @@
-# Confidential voting
+# Confidential emoji voting
 
-<!-- TODO(katexochen): create a screenshot with fixed emoji font and fixed format -->
+<!-- TODO(katexochen): create a screenshot with fixed format -->
 ![screenshot of the emojivoto UI](../../static/img/emoijvoto.png)
 
-This tutorial guides you through deploying [emojivoto](https://github.com/BuoyantIO/emojivoto) as a
-confidential Contrast deployment. Emojivoto is an example app that allows users to vote for different
-emojis and view votes cast on a leader board. It has a microservice architecture consisting of a
+**This tutorial guides you through deploying [emojivoto](https://github.com/BuoyantIO/emojivoto) as a
+confidential Contrast deployment and validating the deployment from a voters perspective.**
+
+
+Emojivoto is an example app allowing users to vote for different emojis and view votes
+on a leader board. It has a microservice architecture consisting of a
 web frontend (`web`), a gRPC backend for listing available emojis (`emoji`), and a backend for
 the voting and leader board logic (`voting`). The `vote-bot` simulates user traffic by submitting
 votes to the frontend.
@@ -27,7 +30,7 @@ where their votes are processed without leaking to the platform provider or work
   See the [installation instructions](./../getting-started/install.md) on how to get it.
 - **Running cluster with Confidential Containers support.**
   Please follow the [cluster setup instructions](./../getting-started/cluster-setup.md)
-  for creating a cluster.
+  to create a cluster.
 - **Get the deployment.** This is currently available as part of the preview bundle.
 
 ## Steps to deploy emojivoto with Contrast
@@ -137,24 +140,77 @@ To access the web frontend, expose the service on a public IP address via a Load
 ```sh
 kubectl patch svc web-svc -p '{"spec": {"type": "LoadBalancer"}}'
 timeout 30s bash -c 'until kubectl get service/web-svc --output=jsonpath='{.status.loadBalancer}' | grep "ingress"; do sleep 2 ; done'
-lbip=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo $lbip
+frontendIP=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo $frontendIP
 ```
 
-:::info
-
-By default, certificates are issued with a wildcard DNS entry. Since we're accessing the load balancer via IP, the SAN checks the certificate for IP entries in the SAN field. Since the certificate doesn't contain any IP entries as SAN, the validation fails.
-Hence, certificate validation will fail with using curl:
+Using `openssl`, the certificate of the service can be validated with the `mesh-root.pem`:
 
 ```sh
-$ curl --cacert ./verify/mesh-root.pem "https://${lbip}:443"
+openssl s_client -CAfile verify/mesh-root.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
+```
+
+## Certificate SAN and manifest update (optional)
+
+By default, mesh certificates are issued with a wildcard DNS entry. The web frontend is accessed
+via load balancer IP in this demo. Tools like curl check the certificate for IP entries in the SAN field.
+Validation fails since the certificate doesn't contain any IP entries as a subject alternative name (SAN).
+For example, a connection attempt using the curl and the mesh root certificate with throw the following error:
+
+```sh
+$ curl --cacert ./verify/mesh-root.pem "https://${frontendIP}:443"
 curl: (60) SSL: no alternative certificate subject name matches target host name '203.0.113.34'
 ```
 
-:::
+### Configure the service SAN in the manifest
 
-To validate the certificate with the `mesh-root.pem` locally, use `openssl` instead:
+The `Policies` section of the manifest maps policy hashes to a list of SANs. To enable certificate verification
+of the web frontend with tools like curl, edit the policy with your favorite editor and add the `frontendIP` to
+the list that already contains the `"web"` DNS entry:
+
+```diff
+   "Policies": {
+     ...
+     "99dd77cbd7fe2c4e1f29511014c14054a21a376f7d58a48d50e9e036f4522f6b": [
+       "web",
+-      "*"
++      "*",
++      "203.0.113.34"
+     ],
+```
+
+### Update the manifest
+
+Next, set the changed manifest at the coordinator with:
 
 ```sh
-openssl s_client -CAfile verify/mesh-root.pem -verify_return_error -connect ${lbip}:443 < /dev/null
+contrast set -c "${coordinator}:1313" deployment/
+```
+
+The Contrast Coordinator will rotate the mesh root certificate on the manifest update. Workload certificates issued
+after the manifest are thus issued by another certificate authority and services receiving the new CA certificate chain
+won't trust parts of the deployment that got their certificate issued before the update. This way, Contrast ensures
+that parts of the deployment that received a security update won't be infected by parts of the deployment at an older
+patch level that may have been compromised. The `mesh-root.pem` is updated with the new CA certificate chain.
+
+### Rolling out the update
+
+The Coordinator has the new manifest set, but the different containers of the app are still
+using the older certificate authority. The Contrast Initializer terminates after the initial attestation
+flow and won't pull new certificates on manifest updates.
+
+To roll out the update, use:
+
+```sh
+kubectl rollout restart deployment/emoji
+kubectl rollout restart deployment/vote-bot
+kubectl rollout restart deployment/voting
+kubectl rollout restart deployment/web
+```
+
+After the update has been rolled out, connecting to the frontend using curl will successfully validate
+the service certificate and return the HTML document of the voting site:
+
+```sh
+curl --cacert ./mesh-root.pem "https://${frontendIP}:443"
 ```
