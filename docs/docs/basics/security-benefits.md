@@ -6,7 +6,7 @@ Contrast is applicable in situations where establishing trust with the workload 
 
 ## Components of a Contrast deployment
 
-Contrast implements the [Confidential Containers](confidential-containers.md) concept. Confidential Containers significantly decrease the size of the trusted computing base (TCB) of a Kubernetes deployment, by isolating each container within its own confidential micro-VM environment. The TCB is the totality of elements in a computing environment that must be trusted not to be compromised. A smaller TCB results in a smaller attack surface. The following diagram shows how Confidential Containers remove the *cloud & datacenter infrastructure* and the *physical hosts*, including the hypervisor, the host OS, the Kubernetes control plane, and other components, from the TCB (red). Inside the confidential context (green), only the workload containers remain part of the TCB and their integrity is attested and can be [verified](../architecture/attestation/).
+Contrast implements the [Confidential Containers](confidential-containers.md) concept. Confidential Containers significantly decrease the size of the trusted computing base (TCB) of a Kubernetes deployment, by isolating each container within its own confidential micro-VM environment. The TCB is the totality of elements in a computing environment that must be trusted not to be compromised. A smaller TCB results in a smaller attack surface. The following diagram shows how Confidential Containers remove the *cloud & datacenter infrastructure* and the *physical hosts*, including the hypervisor, the host OS, the Kubernetes control plane, and other components, from the TCB (red). Inside the confidential context (green), only the workload containers remain part of the TCB and their integrity is attested and can be [verified](../architecture/attestation/hardware.md).
 
 ![TCB comparison](../_media/tcb.svg)
 
@@ -55,7 +55,7 @@ To help protect the workload from an untrusted workload operator and the infrast
 
 ### Attestation process
 
-The [attestation architecture](../architecture/attestation) describes Contrast's chain of trust and the attestation process in detail.
+The [attestation architecture](../architecture/attestation/hardware.md) describes Contrast's chain of trust and the attestation process in detail.
 
 ## Thread model and mitigations
 
@@ -98,8 +98,8 @@ The following table describes the attack surfaces that are available to attacker
 The container root file system with [integrity protection](../architecture/confidential-containers.md) is designed to mitigate risks from disk attacks.
 Secrets are never disclosed in plaintext form to the disk or to any external device.
 
-Risks from network attacks are mitigated by having [authenticated, end-to-end encrypted channels](../architecture/network-encryption/).
-An [attestation protocol](../architecture/attestation) helps protect the boot sequence.
+Risks from network attacks are mitigated by having [authenticated, end-to-end encrypted channels](../architecture/network-encryption/sidecar.md).
+An [attestation protocol](../architecture/attestation/hardware.md) helps protect the boot sequence.
 [Runtime policies](../architecture/attestation/runtime-policies.md) verify the runtime environment configuration read from the Kubernetes control plane.
 
 The following tables describe the threats and mitigations:
