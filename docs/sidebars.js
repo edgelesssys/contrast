@@ -80,7 +80,7 @@ const sidebars = {
       items: [
         {
           type: 'doc',
-          label: 'Emojivoto',
+          label: 'Confidential emoji voting',
           id: 'examples/emojivoto'
         },
       ]

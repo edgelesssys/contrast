@@ -158,7 +158,7 @@ async function createConfig() {
         prism: {
           theme: prismThemes.github,
           darkTheme: prismThemes.dracula,
-          additionalLanguages: ['shell-session', 'bash', 'json'],
+          additionalLanguages: ['shell-session', 'bash', 'json', 'diff'],
         },
         mermaid: {
           theme: { light: 'base', dark: 'base' },
