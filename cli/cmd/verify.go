@@ -172,8 +172,10 @@ func newCoordinatorValidateOptsGen(hostData []byte) *snp.StaticValidateOptsGener
 }
 
 func writeFilelist(dir string, filelist map[string][]byte) error {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("creating directory %s: %w", dir, err)
+	if dir != "" {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("creating directory %s: %w", dir, err)
+		}
 	}
 	for filename, contents := range filelist {
 		path := filepath.Join(dir, filename)
