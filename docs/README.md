@@ -2,11 +2,19 @@
 
 ## Previewing
 
-During edits you can preview your changes using the [`docusaurus`](https://docusaurus.io/docs/installation):
+The Contrast flake contains a development shell for working on the documentation.
+
+It's automatically activated when you are using `direnv`. Otherwise enter the environment with:
 
 ```sh
-# requires node >=16.14
-npm run start
+nix develop .#docs
+```
+
+Run a local development server previewing your changes with:
+
+```sh
+yarn install
+yarn start
 ```
 
 Browse to <http://localhost:3000/contrast> and choose the "Next" version in the top right.
