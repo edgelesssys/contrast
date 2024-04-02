@@ -198,6 +198,16 @@ func ServicePort() *ServicePortConfig {
 	return &ServicePortConfig{applycorev1.ServicePort()}
 }
 
+// ServiceAccountConfig wraps applycorev1.ServiceAccountApplyConfiguration.
+type ServiceAccountConfig struct {
+	*applycorev1.ServiceAccountApplyConfiguration
+}
+
+// ServiceAccount creates a new ServiceAccountConfig.
+func ServiceAccount(name, namespace string) *ServiceAccountConfig {
+	return &ServiceAccountConfig{applycorev1.ServiceAccount(name, namespace)}
+}
+
 // NamespaceConfig wraps applycorev1.NamespaceApplyConfiguration.
 type NamespaceConfig struct {
 	*applycorev1.NamespaceApplyConfiguration
