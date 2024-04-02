@@ -14,7 +14,7 @@ import (
 	"github.com/edgelesssys/contrast/node-installer/internal/asset"
 	"github.com/edgelesssys/contrast/node-installer/internal/config"
 	"github.com/edgelesssys/contrast/node-installer/internal/constants"
-	"github.com/pelletier/go-toml"
+	"github.com/pelletier/go-toml/v2"
 )
 
 func main() {
