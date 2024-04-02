@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/edgelesssys/contrast/node-installer/internal/config"
-	"github.com/pelletier/go-toml"
+	"github.com/pelletier/go-toml/v2"
 )
 
 var (
