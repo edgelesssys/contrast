@@ -1,6 +1,24 @@
 package kuberesource
 
-import "k8s.io/apimachinery/pkg/util/intstr"
+import (
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+)
+
+// CoordinatorRelease will generate the Coordinator deployment YAML that is published
+// as release artifact with a pre-generated policy (which is not contained in this function).
+func CoordinatorRelease() ([]any, error) {
+	coordinator := Coordinator("").DeploymentApplyConfiguration
+	coordinatorService := ServiceForDeployment(coordinator)
+	coordinatorService.Spec.WithType(corev1.ServiceTypeLoadBalancer)
+
+	resources := []any{
+		coordinator,
+		coordinatorService,
+	}
+
+	return resources, nil
+}
 
 // Simple returns a simple set of resources for testing.
 func Simple() ([]any, error) {

@@ -158,6 +158,7 @@ with pkgs;
     runtimeInputs = [
       yq-go
       genpolicy-msft
+      contrast
     ];
     text = ''
       imageRef=$1
@@ -165,11 +166,9 @@ with pkgs;
       tmpdir=$(mktemp -d)
       trap 'rm -rf $tmpdir' EXIT
 
-      # TODO(burgerdev): consider a dedicated coordinator template instead of the simple one
-      yq < deployments/simple/coordinator.yml > "$tmpdir/coordinator.yml" \
-        "del(.metadata.namespace) |
-         (select(.kind == \"Deployment\") | .spec.template.spec.containers[0].image) = \"$imageRef\" |
-         (select(.kind == \"Service\") | .spec.type) = \"LoadBalancer\" "
+      resourcegen coordinator-release "$tmpdir/coordinator_base.yml"
+      yq < "$tmpdir/coordinator_base.yml" > "$tmpdir/coordinator.yml" \
+         "(select(.kind == \"Deployment\") | .spec.template.spec.containers[0].image) = \"$imageRef\""
 
       pushd "$tmpdir" >/dev/null
       cp ${genpolicy-msft.rules-coordinator}/genpolicy-rules.rego rules.rego
