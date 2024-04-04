@@ -20,6 +20,8 @@ func main() {
 	var resources []any
 	var err error
 	switch set {
+	case "coordinator-release":
+		resources, err = kuberesource.CoordinatorRelease()
 	case "simple":
 		resources, err = kuberesource.Simple()
 	case "openssl":
