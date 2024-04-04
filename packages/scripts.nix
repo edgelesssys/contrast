@@ -39,7 +39,13 @@ with pkgs;
   govulncheck = writeShellApplication {
     name = "govulncheck";
     runtimeInputs = [ go pkgs.govulncheck ];
-    text = ''govulncheck "$@"'';
+    text = ''
+      goWorkDirs=$(sed '1,3d;$d' go.work)
+      for dir in $goWorkDirs; do
+        echo "Checking $dir"
+        govulncheck -C "$dir"
+      done
+    '';
   };
 
   golangci-lint = writeShellApplication {
