@@ -89,7 +89,7 @@ The Contrast CLI provides the tooling for automatically translating Kubernetes d
 The trust chain goes as follows:
 
 1. The Contrast CLI generates a policy and attaches it to the pod definition.
-2. Kubernetes schedules the pod on a node with kata-cc-isolation runtime.
+2. Kubernetes schedules the pod on a node with the confidential computing runtime.
 3. Containerd takes the node, starts the Kata Shim and creates the pod sandbox.
 4. The Kata runtime starts a CVM with the policy's digest as `HOSTDATA`.
 5. The Kata runtime sets the policy using the `SetPolicy` method.
@@ -107,8 +107,8 @@ fetches the workload certificate. The Initializer runs as an init container befo
 ### The Contrast runtime
 
 Contrast depends on a Kubernetes [runtime class](https://kubernetes.io/docs/concepts/containers/runtime-class/), which is installed
-by the `node-installer` daemonset.
-This runtime consists of a containerd runtime plugin, a virtual machine manager (cloud-hypervisor), and a podvm image (IGVM and rootfs).
+by the `node-installer` DaemonSet.
+This runtime consists of a containerd runtime plugin, a virtual machine manager (cloud-hypervisor), and a podvm image (IGVM and rootFS).
 The installer takes care of provisioning every node in the cluster so it provides this runtime class.
 
 ## Installation
