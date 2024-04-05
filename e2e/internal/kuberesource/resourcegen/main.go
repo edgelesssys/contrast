@@ -26,6 +26,8 @@ func main() {
 		resources, err = kuberesource.OpenSSL()
 	case "emojivoto":
 		resources, err = kuberesource.Emojivoto()
+	case "emojivotodemo":
+		resources, err = kuberesource.EmojivotoDemo()
 	default:
 		fmt.Printf("Error: unknown set: %s\n", set)
 		os.Exit(1)
