@@ -33,6 +33,9 @@ with pkgs;
       # of the builder.
       nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast.cli
       nix-update --version=skip --flake legacyPackages.x86_64-linux.service-mesh
+      nix-update --version=skip --flake \
+        --override-filename=packages/by-name/contrast-docs/package.nix \
+        legacyPackages.x86_64-linux.contrast-docs
     '';
   };
 
