@@ -38,7 +38,7 @@ populate target=default_deploy_target:
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
     case {{ target }} in
-        "simple" | "openssl" | "emojivoto")
+        "simple" | "openssl" | "emojivoto" | "emojivotodemo")
             nix shell .#contrast --command resourcegen {{ target }} ./{{ workspace_dir }}/deployment/deployment.yml
         ;;
         *)
@@ -67,7 +67,7 @@ generate cli=default_cli:
 apply target=default_deploy_target:
     #!/usr/bin/env bash
     case {{ target }} in
-        "simple" | "openssl" | "emojivoto")
+        "simple" | "openssl" | "emojivoto" | "emojivotodemo")
             :
         ;;
         *)
@@ -157,7 +157,7 @@ wait-for-workload target=default_deploy_target:
             nix run .#scripts.kubectl-wait-ready -- $ns openssl-client
             nix run .#scripts.kubectl-wait-ready -- $ns openssl-frontend
         ;;
-        "emojivoto" | "emojivoto-sm-egress")
+        "emojivoto" | "emojivoto-sm-egress" | "emojivotodemo")
             nix run .#scripts.kubectl-wait-ready -- $ns emoji-svc
             nix run .#scripts.kubectl-wait-ready -- $ns vote-bot
             nix run .#scripts.kubectl-wait-ready -- $ns voting-svc
