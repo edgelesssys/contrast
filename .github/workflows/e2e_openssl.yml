@@ -45,7 +45,7 @@ jobs:
       - name: Get credentials for CI cluster
         run: |
           just get-credentials
-      - name: Build, deploy, contrast generate, contrast set, contrast verify
+      - name: Build and prepare deployments
         run: |
           just coordinator initializer openssl
           just populate openssl
