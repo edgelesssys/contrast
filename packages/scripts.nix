@@ -43,11 +43,14 @@ with pkgs;
     name = "govulncheck";
     runtimeInputs = [ go pkgs.govulncheck ];
     text = ''
-      goWorkDirs=$(sed '1,3d;$d' go.work)
-      for dir in $goWorkDirs; do
-        echo "Checking $dir"
-        govulncheck -C "$dir"
-      done
+      exitcode=0
+
+      while IFS= read -r dir; do
+        echo "Running govulncheck on $dir"
+        govulncheck -C "$dir" || exitcode=$?
+      done < <(go list -f '{{.Dir}}' -m)
+
+      exit $exitcode
     '';
   };
 
