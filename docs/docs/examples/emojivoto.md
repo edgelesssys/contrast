@@ -1,7 +1,7 @@
 # Confidential emoji voting
 
 <!-- TODO(katexochen): create a screenshot with fixed format -->
-![screenshot of the emojivoto UI](../../static/img/emoijvoto.png)
+![screenshot of the emojivoto UI](../_media/emoijvoto.png)
 
 **This tutorial guides you through deploying [emojivoto](https://github.com/BuoyantIO/emojivoto) as a
 confidential Contrast deployment and validating the deployment from a voters perspective.**
