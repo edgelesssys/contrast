@@ -67,4 +67,4 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Run golangci-lint
         run: |
-          nix run .#scripts.golangci-lint -- run
+          nix run .#scripts.golangci-lint
