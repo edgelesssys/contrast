@@ -38,7 +38,7 @@ populate target=default_deploy_target:
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
     case {{ target }} in
-        "simple" | "openssl" | "emojivoto" | "emojivotodemo")
+        "simple" | "openssl" | "emojivoto")
             nix shell .#contrast --command resourcegen {{ target }} ./{{ workspace_dir }}/deployment/deployment.yml
         ;;
         *)
@@ -67,7 +67,7 @@ generate cli=default_cli:
 apply target=default_deploy_target:
     #!/usr/bin/env bash
     case {{ target }} in
-        "simple" | "openssl" | "emojivoto" | "emojivotodemo")
+        "simple" | "openssl" | "emojivoto")
             :
         ;;
         *)
