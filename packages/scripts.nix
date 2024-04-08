@@ -25,10 +25,14 @@ with pkgs;
       nix-update
     ];
     text = ''
-      go mod tidy
-      go generate ./...
+      while IFS= read -r dir; do
+        echo "Running go mod tidy on $dir" >&2
+        go mod tidy
+        echo "Running go generate on $dir" >&2
+        go generate ./...
+      done < <(go list -f '{{.Dir}}' -m)
 
-      # All binaries of the local Go module share the same builder,
+      # All binaries of the main Go module share the same builder,
       # we only need to update one of them to update the vendorHash
       # of the builder.
       nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast.cli
