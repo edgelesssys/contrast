@@ -47,14 +47,14 @@ func NewWithKey(issuer atls.Issuer, validator atls.Validator, netDialer NetDiale
 }
 
 // Dial creates a new grpc client connection to the given target using the atls validator.
-func (d *Dialer) Dial(ctx context.Context, target string) (*grpc.ClientConn, error) {
+func (d *Dialer) Dial(_ context.Context, target string) (*grpc.ClientConn, error) {
 	var validators []atls.Validator
 	if d.validator != nil {
 		validators = append(validators, d.validator)
 	}
 	credentials := atlscredentials.NewWithKey(d.issuer, validators, d.privKey)
 
-	return grpc.DialContext(ctx, target,
+	return grpc.NewClient(target,
 		d.grpcWithDialer(),
 		grpc.WithTransportCredentials(credentials),
 		grpc.WithConnectParams(grpc.ConnectParams{
@@ -67,18 +67,18 @@ func (d *Dialer) Dial(ctx context.Context, target string) (*grpc.ClientConn, err
 
 // DialInsecure creates a new grpc client connection to the given target without using encryption or verification.
 // Only use this method when using another kind of encryption / verification (VPN, etc).
-func (d *Dialer) DialInsecure(ctx context.Context, target string) (*grpc.ClientConn, error) {
-	return grpc.DialContext(ctx, target,
+func (d *Dialer) DialInsecure(_ context.Context, target string) (*grpc.ClientConn, error) {
+	return grpc.NewClient(target,
 		d.grpcWithDialer(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 }
 
 // DialNoVerify creates a new grpc client connection to the given target without verifying the server's attestation.
-func (d *Dialer) DialNoVerify(ctx context.Context, target string) (*grpc.ClientConn, error) {
+func (d *Dialer) DialNoVerify(_ context.Context, target string) (*grpc.ClientConn, error) {
 	credentials := atlscredentials.New(nil, nil)
 
-	return grpc.DialContext(ctx, target,
+	return grpc.NewClient(target,
 		d.grpcWithDialer(),
 		grpc.WithTransportCredentials(credentials),
 	)
