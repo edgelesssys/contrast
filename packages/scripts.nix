@@ -54,7 +54,19 @@ with pkgs;
   golangci-lint = writeShellApplication {
     name = "golangci-lint";
     runtimeInputs = [ go pkgs.golangci-lint ];
-    text = ''golangci-lint "$@"'';
+    text = ''
+      exitcode=0
+
+      while IFS= read -r dir; do
+        echo "Running golangci-lint on $dir" >&2
+        golangci-lint run "$dir/..." || exitcode=$?
+      done < <(go list -f '{{.Dir}}' -m)
+
+      echo "Verifying golangci-lint config" >&2
+      golangci-lint config verify || exitcode=$?
+
+      exit $exitcode
+    '';
   };
 
   patch-contrast-image-hashes = writeShellApplication {
