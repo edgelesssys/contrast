@@ -110,6 +110,23 @@ jobs:
         with:
           ref: main
           path: contrast-main
+      - uses: ./contrast-working/.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Configure git
+        run: |
+          git config --global user.name "edgelessci"
+          git config --global user.email "edgelessci@users.noreply.github.com"
+      - name: Create docs release
+        working-directory: contrast-main/docs
+        run: |
+          nix run .#yarn install
+          nix run .#yarn docusaurus docs:version ${{ needs.process-inputs.outputs.WITHOUT_V }}
+          git add .
+          git commit -am "docs: release ${{ needs.process-inputs.outputs.WITHOUT_V }}"
+          # Clean up auxiliary files, so next steps run on a clean tree
+          git clean -fx :/
       - name: Bump flake version to post release patch pre-version
         id: bump
         uses: ./contrast-working/.github/actions/bump_version # Run action from working branch!
@@ -127,6 +144,7 @@ jobs:
           commit-message: ${{ steps.bump.outputs.commit-msg }}
           base: main
           draft: false
+          labels: "no changelog"
           branch: automated/update-main-after-${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           committer: edgelessci <edgelessci@users.noreply.github.com>
           author: edgelessci <edgelessci@users.noreply.github.com>
