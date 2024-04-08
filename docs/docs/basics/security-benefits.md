@@ -2,7 +2,7 @@
 
 This document outlines the security measures of Contrast and its capability to counter various threats effectively. Contrast is designed to shield entire Kubernetes deployments from the infrastructure, enabling entities to manage sensitive information (such as regulated or personally identifiable information (PII)) in the public cloud, while maintaining data confidentiality and ownership. It ensures data isolation, making it accessible solely to the workload and the data's initial owners.
 
-Contrast is applicable in situations where establishing trust with the workload manager or the underlying infrastructure is challenging. This is particularly beneficial for regulated sectors looking to transition sensitive activities to the cloud, without sacrificing security or compliance. It allows for cloud adoption by maintaining a separation from the cloud service provider in terms of trust.
+Contrast is applicable in situations where establishing trust with the workload operator or the underlying infrastructure is challenging. This is particularly beneficial for regulated sectors looking to transition sensitive activities to the cloud, without sacrificing security or compliance. It allows for cloud adoption by maintaining a separation from the cloud service provider in terms of trust.
 
 ## Components of a Contrast deployment
 
@@ -14,7 +14,7 @@ A Contrast deployment has five core components:
 
 * **The workload containers**: A containerized image that runs in an isolated [Confidential Container](confidential-containers.md) environment.
 * **The runtime policies**: A policy that defines the runtime environment for the workload containers. Think your Kubernetes deployment YAML-file in policy format.
-* **The manifest**: A manifest file defining the entire confidential deployment. It contains the policies for all containers of the deployment and the expected hardware reference values for the Confidential Container runtime environment.
+* **The manifest**: A manifest file defining the reference values of an entire confidential deployment. It contains the policy hashes for all pods of the deployment and the expected hardware reference values for the Confidential Container runtime environment.
 * **The Coordinator**: An attestation service that runs itself in a Confidential Container in the Kubernetes cluster. The Coordinator is configured with the manifest. User-facing, you can verify this service and the effective manifest using remote attestation. Providing you with a concise attestation for the entire deployment. Cluster-facing, it verifies all containers and their policies based on remote attestation procedures and the manifest.
 * **The protected data**: The data that is processed by the workload containers.
 
@@ -26,7 +26,7 @@ In a Contrast deployment, there are three parties:
 
 * **The workload operator**, who runs the workload in a Kubernetes cluster. The operator typically has full administrative privileges to the deployment. The operator can manage cluster resources such as nodes, volumes, and networking rules, and the operator can interact with any Kubernetes or underlying cloud API. The operator doesn't have access to the workload or the data, and can't influence or modify the code or execution environment.
 
-* **The data owners**, who own the protected data. A data owner can verify the deployment using the Coordinator attestatioin service. The verification includes the identity, integrity, and confidentiality of the workloads, the runtime environment and the access permissions. The data owners don't have access to the workload.
+* **The data owners**, who own the protected data. A data owner can verify the deployment using the Coordinator attestation service. The verification includes the identity, integrity, and confidentiality of the workloads, the runtime environment and the access permissions. The data owners don't have access to the workload.
 
 Contrast supports a trust model where the workload owner, workload operator, and data owners are separate, mutually distrusting parties.
 
@@ -57,11 +57,11 @@ To help protect the workload from an untrusted workload operator and the infrast
 
 The [attestation architecture](../architecture/attestation/hardware.md) describes Contrast's chain of trust and the attestation process in detail.
 
-## Thread model and mitigations
+## Threat model and mitigations
 
-This section describes the threat models that Contrast helps to mitigate.
+This section describes the threat vectors that Contrast helps to mitigate.
 
-The following attacks are outside of the scope of this document:
+The following attacks are out of scope for this document:
 
 * Attacks on the application code itself, such as insufficient access controls.
 * Attacks on the Confidential Computing hardware directly, such as side-channel attacks.
@@ -70,10 +70,10 @@ The following attacks are outside of the scope of this document:
 
 ### Possible attacks
 
-Contrast is designed to defend against four possible attacks:
+Contrast is designed to defend against five possible attacks:
 
-* **A malicious cloud insider**: malicious employees or third-party contractors of cloud service providers (CSPs) has potentially full access to different layers of the cloud infrastructure. That goes from the physical datacenter up to the hypervisor and Kubernetes layer. For example, they can access the physical memory of the machines, modify the hypervisor, modify disk contents, intercept network communications, and attempt to compromise the confidential container at runtime. A malicious insider can expand the attack surface or restrict the runtime environment. For example, a malicious operator can add a storage device to introduce new attack vectors. As another example, a malicious operator can constrain resources such as limiting a guest's memory size, changing its disk space, or changing firewall rules.
-* **A malicious cloud co-tenant**: malicious cloud user ("hackers") may break out of their tenancy and access other tenants' data. Advanced attackers may even be able to establish a permanent foothold within the infrastructure and access data over a longer period. The threats are analogously to the *cloud insider access* scenario, without the physical access.
+* **A malicious cloud insider**: malicious employees or third-party contractors of cloud service providers (CSPs) potentially have full access to various layers of the cloud infrastructure. That goes from the physical datacenter up to the hypervisor and Kubernetes layer. For example, they can access the physical memory of the machines, modify the hypervisor, modify disk contents, intercept network communications, and attempt to compromise the confidential container at runtime. A malicious insider can expand the attack surface or restrict the runtime environment. For example, a malicious operator can add a storage device to introduce new attack vectors. As another example, a malicious operator can constrain resources such as limiting a guest's memory size, changing its disk space, or changing firewall rules.
+* **A malicious cloud co-tenant**: malicious cloud user ("hackers") may break out of their tenancy and access other tenants' data. Advanced attackers may even be able to establish a permanent foothold within the infrastructure and access data over a longer period. The threats are analogous to the *cloud insider access* scenario, without the physical access.
 * **A malicious workload operator**: malicious workload operators, for example Kubernetes administrators, have full access to the workload deployment and the underlying Kubernets platform. The threats are analogously to the *cloud insider access* scenario, with access to everything that is above the hypervisor level.
 * **A malicious attestation client**: this attacker connects to the attestation service and sends malformed request.
 * **A malicious workload owner**: a malicious workload owner has full control over the application development itself. This attacker might release a malicious version of the workload containing harmful operations.
