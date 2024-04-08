@@ -29,7 +29,7 @@ jobs:
     name: Publish docs to GitHub Pages
     runs-on: ubuntu-22.04
     env:
-      PREVIEW: ${{ github.event_name == 'pull_request' && github.ref_name != 'main' }}
+      PREVIEW: ${{ !(github.event_name == 'push' && github.ref_name == 'main') }}
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - uses: ./.github/actions/setup_nix
