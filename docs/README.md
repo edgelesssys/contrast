@@ -1,6 +1,6 @@
 # Contrast Documentation
 
-## Previewing
+## Previewing changes locally
 
 The Contrast flake contains a development shell for working on the documentation.
 
@@ -19,20 +19,13 @@ yarn start
 
 Browse to <http://localhost:3000/contrast> and choose the "Next" version in the top right.
 
-## Publish process
+## CI integration
 
-The docs are updated with [publish-docs](../.github/workflows/publish-docs.yml) when pushed on main.
+- **PR preview** Created by [`docs_publish`](../.github/workflows/docs_publish.yml) on PR.
+  This will build the website and push it to the [`/pr-preview` directory](https://github.com/edgelesssys/contrast/tree/gh-pages/pr-preview)of the `gh-pages` branch.
+- **Publishing** Deployed by [`docs_publish`](../.github/workflows/docs_publish.yml) on push to main.
+  This will build the website and push it to the [`gh-pages` branch](https://github.com/edgelesssys/contrast/tree/gh-pages).
+- **Actual deployment** happens through a [GitHub controlled action](https://github.com/edgelesssys/contrast/actions/workflows/pages/pages-build-deployment).
+- **Release versioning** happens as part of the [release workflow](../.github/workflows/release.yml)
 
-## Release process
-
-1. [Tagging a new version](https://docusaurus.io/docs/next/versioning#tagging-a-new-version)
-
-    ```shell
-    npm run docusaurus docs:version X.X
-    ```
-
-    When tagging a new version, the document versioning mechanism will:
-
-    Copy the full `docs/docs/` folder contents into a new `docs/versioned_docs/version-[versionName]/` folder.
-    Create a versioned sidebars file based from your current sidebar configuration (if it exists) - saved as `docs/versioned_sidebars/version-[versionName]-sidebars.json`.
-    Append the new version number to `versions.json`.
+Check out the [latest deployments](https://github.com/edgelesssys/contrast/deployments) (both main and PR preview).
