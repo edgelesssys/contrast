@@ -105,7 +105,7 @@ async function createConfig() {
               items: [
                 {
                   label: 'Newsletter',
-                  href: 'https://www.edgeless.systems/#footer'
+                  href: 'https://www.edgeless.systems/#footer-id'
                 },
               ],
             },
@@ -124,7 +124,6 @@ async function createConfig() {
                   label: 'LinkedIn',
                   href: 'https://www.linkedin.com/company/edgeless-systems/',
                 },
-
                 {
                   label: 'Youtube',
                   href: 'https://www.youtube.com/channel/UCOOInN0sCv6icUesisYIDeA',
@@ -145,7 +144,6 @@ async function createConfig() {
                 {
                   html: `<a href="javascript: Cookiebot.renew()" class="footer__link-item">Cookie Settings</a>`
                 },
-
                 {
                   label: 'Contact Us',
                   href: 'https://www.edgeless.systems/contact-us/',
