@@ -35,8 +35,16 @@ with pkgs;
       # All binaries of the main Go module share the same builder,
       # we only need to update one of them to update the vendorHash
       # of the builder.
+      echo "Updating vendorHash of contrast.cli package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast.cli
+
+      echo "Updating vendorHash of service-mesh package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.service-mesh
+
+      echo "Updating vendorHash of node-installer package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast-node-installer
+
+      echo "Updateing yarn offlineCache hash of contrast-docs package" >&2
       nix-update --version=skip --flake \
         --override-filename=packages/by-name/contrast-docs/package.nix \
         legacyPackages.x86_64-linux.contrast-docs
