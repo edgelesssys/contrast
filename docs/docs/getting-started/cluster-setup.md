@@ -37,6 +37,21 @@ az provider register \
 
 ## Set resource group
 
+The AKS with CoCo preview is currently available in the following locations:
+
+```
+CentralIndia
+eastus
+EastUS2EUAP
+GermanyWestCentral
+japaneast
+northeurope
+SwitzerlandNorth
+UAENorth
+westeurope
+westus
+```
+
 Set the name of the resource group you want to use:
 
 ```bash
@@ -46,8 +61,7 @@ azResourceGroup="ContrastDemo"
 You can either use an existing one or create a new resource group with the following command:
 
 ```bash
-# Select a location with DCas_cc_v5 instances available
-azLocation="westus"
+azLocation="westus" # Select a location from the list above
 
 az rg create \
   --name "$azResourceGroup"
