@@ -76,10 +76,6 @@ func OpenSSL() ([]any, error) {
 	namespace := Namespace(ns)
 	coordinator := Coordinator(ns).DeploymentApplyConfiguration
 	coordinatorService := ServiceForDeployment(coordinator)
-	coordinatorForwarder := PortForwarder("coordinator", ns).
-		WithListenPort(1313).
-		WithForwardTarget("coordinator", 1313).
-		PodApplyConfiguration
 
 	backend := Deployment("openssl-backend", ns).
 		WithSpec(DeploymentSpec().
@@ -203,7 +199,6 @@ func OpenSSL() ([]any, error) {
 		namespace,
 		coordinator,
 		coordinatorService,
-		coordinatorForwarder,
 		backend,
 		backendService,
 		client,
