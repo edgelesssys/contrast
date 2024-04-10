@@ -151,7 +151,7 @@ func Initializer() *applycorev1.ContainerApplyConfiguration {
 		WithName("initializer").
 		WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
 		WithResources(ResourceRequirements().
-			WithMemoryLimitAndRequest(50),
+			WithMemoryRequest(50),
 		).
 		WithEnv(NewEnvVar("COORDINATOR_HOST", "coordinator")).
 		WithVolumeMounts(VolumeMount().

@@ -118,6 +118,14 @@ func ResourceRequirements() *ResourceRequirementsConfig {
 	return &ResourceRequirementsConfig{applycorev1.ResourceRequirements()}
 }
 
+// WithMemoryRequest sets the memory request of the ResourceRequirements.
+func (r *ResourceRequirementsConfig) WithMemoryRequest(memoryMi int64) *applycorev1.ResourceRequirementsApplyConfiguration {
+	return r.
+		WithRequests(corev1.ResourceList{
+			corev1.ResourceMemory: fromPtr(resource.NewQuantity(memoryMi*1024*1024, resource.BinarySI)),
+		})
+}
+
 // WithMemoryLimitAndRequest sets the memory limit and request of the ResourceRequirements.
 func (r *ResourceRequirementsConfig) WithMemoryLimitAndRequest(memoryMi int64) *applycorev1.ResourceRequirementsApplyConfiguration {
 	return r.
