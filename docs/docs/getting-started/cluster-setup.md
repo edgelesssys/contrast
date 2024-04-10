@@ -63,7 +63,7 @@ You can either use an existing one or create a new resource group with the follo
 ```bash
 azLocation="westus" # Select a location from the list above
 
-az rg create \
+az group create \
   --name "$azResourceGroup"
   --location "$azLocation"
 ```
