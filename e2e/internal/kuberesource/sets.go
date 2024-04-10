@@ -198,16 +198,25 @@ func OpenSSL() ([]any, error) {
 	return resources, nil
 }
 
-// Emojivoto returns resources for deploying EmojiVoto application.
-func Emojivoto() ([]any, error) {
-	ns := "edg-default"
+// GenerateEmojivoto returns resources for deploying EmojiVoto application.
+func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderImage, votingImage, webImage string, generateCoordinatorService bool) ([]any, error) {
+	resources := make([]any, 0)
+
+	if ns == "" {
+		ns = "edg-default"
+	}
+
 	namespace := Namespace(ns)
-	coordinator := Coordinator(ns).DeploymentApplyConfiguration
-	coordinatorService := ServiceForDeployment(coordinator)
-	coordinatorForwarder := PortForwarder("coordinator", ns).
-		WithListenPort(1313).
-		WithForwardTarget("coordinator", 1313).
-		PodApplyConfiguration
+
+	if generateCoordinatorService {
+		coordinator := Coordinator(ns).DeploymentApplyConfiguration
+		coordinatorService := ServiceForDeployment(coordinator)
+		coordinatorForwarder := PortForwarder("coordinator", ns).
+			WithListenPort(1313).
+			WithForwardTarget("coordinator", 1313).
+			PodApplyConfiguration
+		resources = append(resources, namespace, coordinator, coordinatorService, coordinatorForwarder)
+	}
 
 	emoji := Deployment("emoji", ns).
 		WithLabels(map[string]string{
@@ -234,7 +243,7 @@ func Emojivoto() ([]any, error) {
 					WithContainers(
 						Container().
 							WithName("emoji-svc").
-							WithImage("ghcr.io/3u13r/emojivoto-emoji-svc:coco-1").
+							WithImage(emojiImage).
 							WithPorts(
 								ContainerPort().
 									WithName("grpc").
@@ -255,10 +264,11 @@ func Emojivoto() ([]any, error) {
 				),
 			),
 		)
-	emoji, err := AddInitializer(emoji, Initializer())
+	emoji, err := AddInitializer(emoji, Initializer().WithImage(initializerImage))
 	if err != nil {
 		return nil, err
 	}
+	resources = append(resources, emoji)
 
 	emojiService := ServiceForDeployment(emoji).
 		WithName("emoji-svc").
@@ -277,10 +287,12 @@ func Emojivoto() ([]any, error) {
 					WithTargetPort(intstr.FromInt(8801)),
 			),
 		)
+	resources = append(resources, emojiService)
 
 	emojiserviceAccount := ServiceAccount("emoji", ns).
 		WithAPIVersion("v1").
 		WithKind("ServiceAccount")
+	resources = append(resources, emojiserviceAccount)
 
 	voteBot := Deployment("vote-bot", ns).
 		WithLabels(map[string]string{
@@ -305,7 +317,7 @@ func Emojivoto() ([]any, error) {
 					WithContainers(
 						Container().
 							WithName("vote-bot").
-							WithImage("ghcr.io/3u13r/emojivoto-web:coco-1").
+							WithImage(webImage).
 							WithCommand("emojivoto-vote-bot").
 							WithEnv(EnvVar().WithName("WEB_HOST").WithValue("web-svc:443")).
 							WithResources(ResourceRequirements().
@@ -315,6 +327,7 @@ func Emojivoto() ([]any, error) {
 				),
 			),
 		)
+	resources = append(resources, voteBot)
 
 	voting := Deployment("voting", ns).
 		WithLabels(map[string]string{
@@ -341,7 +354,7 @@ func Emojivoto() ([]any, error) {
 					WithContainers(
 						Container().
 							WithName("voting-svc").
-							WithImage("ghcr.io/3u13r/emojivoto-voting-svc:coco-1").
+							WithImage(votingImage).
 							WithPorts(
 								ContainerPort().
 									WithName("grpc").
@@ -362,10 +375,11 @@ func Emojivoto() ([]any, error) {
 				),
 			),
 		)
-	voting, err = AddInitializer(voting, Initializer())
+	voting, err = AddInitializer(voting, Initializer().WithImage(initializerImage))
 	if err != nil {
 		return nil, err
 	}
+	resources = append(resources, voting)
 
 	votingService := ServiceForDeployment(voting).
 		WithName("voting-svc").
@@ -384,10 +398,12 @@ func Emojivoto() ([]any, error) {
 					WithTargetPort(intstr.FromInt(8801)),
 			),
 		)
+	resources = append(resources, votingService)
 
 	votingserviceAccount := ServiceAccount("voting", ns).
 		WithAPIVersion("v1").
 		WithKind("ServiceAccount")
+	resources = append(resources, votingserviceAccount)
 
 	web := Deployment("web", ns).
 		WithLabels(map[string]string{
@@ -414,7 +430,7 @@ func Emojivoto() ([]any, error) {
 					WithContainers(
 						Container().
 							WithName("web-svc").
-							WithImage("ghcr.io/3u13r/emojivoto-web:coco-1").
+							WithImage(webImage).
 							WithPorts(
 								ContainerPort().
 									WithName("https").
@@ -435,10 +451,11 @@ func Emojivoto() ([]any, error) {
 				),
 			),
 		)
-	web, err = AddInitializer(web, Initializer())
+	web, err = AddInitializer(web, Initializer().WithImage(initializerImage))
 	if err != nil {
 		return nil, err
 	}
+	resources = append(resources, web)
 
 	webService := ServiceForDeployment(web).
 		WithName("web-svc").
@@ -454,302 +471,19 @@ func Emojivoto() ([]any, error) {
 					WithTargetPort(intstr.FromInt(8080)),
 			),
 		)
+	resources = append(resources, webService)
 
 	webserviceAccount := ServiceAccount("web", ns).
 		WithAPIVersion("v1").
 		WithKind("ServiceAccount")
-
-	portforwarderCoordinator := PortForwarder("coordinator", ns).
-		WithListenPort(1313).
-		WithForwardTarget("coordinator", 1313).
-		PodApplyConfiguration
-
-	portforwarderemojivotoWeb := PortForwarder("emojivoto-web", ns).
-		WithListenPort(8080).
-		WithForwardTarget("web-svc", 443).
-		PodApplyConfiguration
-
-	resources := []any{
-		namespace,
-		coordinator,
-		coordinatorService,
-		coordinatorForwarder,
-		emoji,
-		emojiService,
-		emojiserviceAccount,
-		portforwarderCoordinator,
-		portforwarderemojivotoWeb,
-		voteBot,
-		voting,
-		votingService,
-		votingserviceAccount,
-		web,
-		webService,
-		webserviceAccount,
-	}
-
-	return resources, nil
-}
-
-// EmojivotoDemo is a simplified version of Emojivoto returning resources for deploying a demo.
-func EmojivotoDemo() ([]any, error) {
-	ns := "default"
-	emoji := Deployment("emoji", ns).
-		WithLabels(map[string]string{
-			"app.kubernetes.io/name":    "emoji",
-			"app.kubernetes.io/part-of": "emojivoto",
-			"app.kubernetes.io/version": "v11",
-		}).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{
-					"app.kubernetes.io/name": "emoji-svc",
-					"version":                "v11",
-				}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{
-					"app.kubernetes.io/name": "emoji-svc",
-					"version":                "v11",
-				}).
-				WithSpec(PodSpec().
-					WithRuntimeClassName("kata-cc-isolation").
-					WithServiceAccountName("emoji").
-					WithContainers(
-						Container().
-							WithName("emoji-svc").
-							WithImage("ghcr.io/3u13r/emojivoto-emoji-svc:coco-1").
-							WithPorts(
-								ContainerPort().
-									WithName("grpc").
-									WithContainerPort(8080),
-								ContainerPort().
-									WithName("prom").
-									WithContainerPort(8801),
-							).
-							WithEnv(EnvVar().WithName("GRPC_PORT").WithValue("8080")).
-							WithEnv(EnvVar().WithName("PROM_PORT").WithValue("8801")).
-							WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
-							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/MeshCACert.pem")).
-							WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem")).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(50),
-							),
-					),
-				),
-			),
-		)
-	emoji, err := AddInitializer(emoji, Initializer().WithImage("ghcr.io/3u13r/contrast/initializer@sha256:3f0e76ffd1c62af460d2a7407ca0ab13cd49b3f07a00d5ef5bd636bcb6d8381f"))
-	if err != nil {
-		return nil, err
-	}
-
-	emojiService := ServiceForDeployment(emoji).
-		WithName("emoji-svc").
-		WithSpec(ServiceSpec().
-			WithSelector(
-				map[string]string{"app.kubernetes.io/name": "emoji-svc"},
-			).
-			WithPorts(
-				ServicePort().
-					WithName("grpc").
-					WithPort(8080).
-					WithTargetPort(intstr.FromInt(8080)),
-				ServicePort().
-					WithName("prom").
-					WithPort(8801).
-					WithTargetPort(intstr.FromInt(8801)),
-			),
-		)
-
-	emojiserviceAccount := ServiceAccount("emoji", ns).
-		WithAPIVersion("v1").
-		WithKind("ServiceAccount")
-
-	voteBot := Deployment("vote-bot", ns).
-		WithLabels(map[string]string{
-			"app.kubernetes.io/name":    "vote-bot",
-			"app.kubernetes.io/part-of": "emojivoto",
-			"app.kubernetes.io/version": "v11",
-		}).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{
-					"app.kubernetes.io/name": "vote-bot",
-					"version":                "v11",
-				}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{
-					"app.kubernetes.io/name": "vote-bot",
-					"version":                "v11",
-				}).
-				WithSpec(PodSpec().
-					WithContainers(
-						Container().
-							WithName("vote-bot").
-							WithImage("ghcr.io/3u13r/emojivoto-web:coco-1").
-							WithCommand("emojivoto-vote-bot").
-							WithEnv(EnvVar().WithName("WEB_HOST").WithValue("web-svc:443")).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(25),
-							),
-					),
-				),
-			),
-		)
-
-	voting := Deployment("voting", ns).
-		WithLabels(map[string]string{
-			"app.kubernetes.io/name":    "voting",
-			"app.kubernetes.io/part-of": "emojivoto",
-			"app.kubernetes.io/version": "v11",
-		}).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{
-					"app.kubernetes.io/name": "voting-svc",
-					"version":                "v11",
-				}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{
-					"app.kubernetes.io/name": "voting-svc",
-					"version":                "v11",
-				}).
-				WithSpec(PodSpec().
-					WithRuntimeClassName("kata-cc-isolation").
-					WithServiceAccountName("voting").
-					WithContainers(
-						Container().
-							WithName("voting-svc").
-							WithImage("ghcr.io/3u13r/emojivoto-voting-svc:coco-1").
-							WithPorts(
-								ContainerPort().
-									WithName("grpc").
-									WithContainerPort(8080),
-								ContainerPort().
-									WithName("prom").
-									WithContainerPort(8801),
-							).
-							WithEnv(EnvVar().WithName("GRPC_PORT").WithValue("8080")).
-							WithEnv(EnvVar().WithName("PROM_PORT").WithValue("8801")).
-							WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
-							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/MeshCACert.pem")).
-							WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem")).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(50),
-							),
-					),
-				),
-			),
-		)
-	voting, err = AddInitializer(voting, Initializer().WithImage("ghcr.io/3u13r/contrast/initializer@sha256:3f0e76ffd1c62af460d2a7407ca0ab13cd49b3f07a00d5ef5bd636bcb6d8381f"))
-	if err != nil {
-		return nil, err
-	}
-
-	votingService := ServiceForDeployment(voting).
-		WithName("voting-svc").
-		WithSpec(ServiceSpec().
-			WithSelector(
-				map[string]string{"app.kubernetes.io/name": "voting-svc"},
-			).
-			WithPorts(
-				ServicePort().
-					WithName("grpc").
-					WithPort(8080).
-					WithTargetPort(intstr.FromInt(8080)),
-				ServicePort().
-					WithName("prom").
-					WithPort(8801).
-					WithTargetPort(intstr.FromInt(8801)),
-			),
-		)
-
-	votingserviceAccount := ServiceAccount("voting", ns).
-		WithAPIVersion("v1").
-		WithKind("ServiceAccount")
-
-	web := Deployment("web", ns).
-		WithLabels(map[string]string{
-			"app.kubernetes.io/name":    "web",
-			"app.kubernetes.io/part-of": "emojivoto",
-			"app.kubernetes.io/version": "v11",
-		}).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{
-					"app.kubernetes.io/name": "web-svc",
-					"version":                "v11",
-				}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{
-					"app.kubernetes.io/name": "web-svc",
-					"version":                "v11",
-				}).
-				WithSpec(PodSpec().
-					WithRuntimeClassName("kata-cc-isolation").
-					WithServiceAccountName("web").
-					WithContainers(
-						Container().
-							WithName("web-svc").
-							WithImage("ghcr.io/3u13r/emojivoto-web:coco-1").
-							WithPorts(
-								ContainerPort().
-									WithName("https").
-									WithContainerPort(8080),
-							).
-							WithEnv(EnvVar().WithName("WEB_PORT").WithValue("8080")).
-							WithEnv(EnvVar().WithName("EMOJISVC_HOST").WithValue("emoji-svc:8080")).
-							WithEnv(EnvVar().WithName("VOTINGSVC_HOST").WithValue("voting-svc:8080")).
-							WithEnv(EnvVar().WithName("INDEX_BUNDLE").WithValue("dist/index_bundle.js")).
-							WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
-							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/MeshCACert.pem")).
-							WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem")).
-							WithEnv(EnvVar().WithName("EDG_DISABLE_CLIENT_AUTH").WithValue("true")).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(50),
-							),
-					),
-				),
-			),
-		)
-	web, err = AddInitializer(web, Initializer().WithImage("ghcr.io/3u13r/contrast/initializer@sha256:3f0e76ffd1c62af460d2a7407ca0ab13cd49b3f07a00d5ef5bd636bcb6d8381f"))
-	if err != nil {
-		return nil, err
-	}
-
-	webService := ServiceForDeployment(web).
-		WithName("web-svc").
-		WithSpec(ServiceSpec().
-			WithSelector(
-				map[string]string{"app.kubernetes.io/name": "web-svc"},
-			).
-			WithType("ClusterIP").
-			WithPorts(
-				ServicePort().
-					WithName("https").
-					WithPort(443).
-					WithTargetPort(intstr.FromInt(8080)),
-			),
-		)
-
-	webserviceAccount := ServiceAccount("web", ns).
-		WithAPIVersion("v1").
-		WithKind("ServiceAccount")
+	resources = append(resources, webserviceAccount)
 
 	portforwarderCoordinator := PortForwarder("coordinator", ns).
 		WithSpec(PodSpec().
 			WithContainers(
 				Container().
 					WithName("port-forwarder").
-					WithImage("ghcr.io/3u13r/contrast/port-forwarder@sha256:00b02378ceb33df7db46a0b6b56fd7fe1e7b2e7dade0404957f16235c01e80e0").
+					WithImage(portforwarderImage).
 					WithEnv(EnvVar().WithName("LISTEN_PORT").WithValue("1313")).
 					WithEnv(EnvVar().WithName("FORWARD_HOST").WithValue("coordinator")).
 					WithEnv(EnvVar().WithName("FORWARD_PORT").WithValue("1313")).
@@ -763,13 +497,14 @@ func EmojivotoDemo() ([]any, error) {
 					),
 			),
 		)
+	resources = append(resources, portforwarderCoordinator)
 
-	portforwarderemojivotoWeb := PortForwarder("emojivoto-web", ns).
+	portforwarderWeb := PortForwarder("emojivoto-web", ns).
 		WithSpec(PodSpec().
 			WithContainers(
 				Container().
 					WithName("port-forwarder").
-					WithImage("ghcr.io/3u13r/contrast/port-forwarder@sha256:00b02378ceb33df7db46a0b6b56fd7fe1e7b2e7dade0404957f16235c01e80e0").
+					WithImage(portforwarderImage).
 					WithEnv(EnvVar().WithName("LISTEN_PORT").WithValue("8080")).
 					WithEnv(EnvVar().WithName("FORWARD_HOST").WithValue("web-svc")).
 					WithEnv(EnvVar().WithName("FORWARD_PORT").WithValue("443")).
@@ -783,21 +518,31 @@ func EmojivotoDemo() ([]any, error) {
 					),
 			),
 		)
-
-	resources := []any{
-		emoji,
-		emojiService,
-		emojiserviceAccount,
-		portforwarderCoordinator,
-		portforwarderemojivotoWeb,
-		voteBot,
-		voting,
-		votingService,
-		votingserviceAccount,
-		web,
-		webService,
-		webserviceAccount,
-	}
+	resources = append(resources, portforwarderWeb)
 
 	return resources, nil
+}
+
+func Emojivoto() ([]any, error) {
+	return GenerateEmojivoto(
+		"edg-default",
+		"ghcr.io/3u13r/emojivoto-emoji-svc:coco-1",
+		"ghcr.io/edgelesssys/contrast/initializer:latest",
+		"ghcr.io/edgelesssys/contrast/port-forwarder:latest",
+		"ghcr.io/3u13r/emojivoto-voting-svc:coco-1",
+		"ghcr.io/3u13r/emojivoto-web:coco-1",
+		true,
+	)
+}
+
+func EmojivotoDemo() ([]any, error) {
+	return GenerateEmojivoto(
+		"default",
+		"ghcr.io/3u13r/emojivoto-emoji-svc:coco-1",
+		"ghcr.io/3u13r/contrast/initializer@sha256:3f0e76ffd1c62af460d2a7407ca0ab13cd49b3f07a00d5ef5bd636bcb6d8381f",
+		"ghcr.io/3u13r/contrast/port-forwarder@sha256:00b02378ceb33df7db46a0b6b56fd7fe1e7b2e7dade0404957f16235c01e80e0",
+		"ghcr.io/3u13r/emojivoto-voting-svc:coco-1",
+		"ghcr.io/3u13r/emojivoto-web:coco-1",
+		false,
+	)
 }
