@@ -198,7 +198,7 @@ func OpenSSL() ([]any, error) {
 	return resources, nil
 }
 
-// GenerateEmojivoto returns resources for deploying EmojiVoto application.
+// GenerateEmojivoto returns resources for deploying EmojiVoto application with custom images.
 func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderImage, votingImage, webImage string, generateCoordinatorService bool) ([]any, error) {
 	resources := make([]any, 0)
 
@@ -523,6 +523,7 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 	return resources, nil
 }
 
+// Emojivoto returns resources for deploying EmojiVoto application.
 func Emojivoto() ([]any, error) {
 	return GenerateEmojivoto(
 		"edg-default",
@@ -535,6 +536,7 @@ func Emojivoto() ([]any, error) {
 	)
 }
 
+// EmojivotoDemo returns resources for deploying a simple EmojiVoto demo.
 func EmojivotoDemo() ([]any, error) {
 	return GenerateEmojivoto(
 		"default",
