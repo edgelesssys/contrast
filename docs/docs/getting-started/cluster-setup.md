@@ -49,7 +49,7 @@ You can either use an existing one or create a new resource group with the follo
 # Select a location with DCas_cc_v5 instances available
 azLocation="westus"
 
-az rg create \
+az group create \
   --name "$azResourceGroup"
   --location "$azLocation"
 ```
