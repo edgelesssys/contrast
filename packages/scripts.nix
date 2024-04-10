@@ -224,4 +224,16 @@ with pkgs;
       yq -i ".metadata.namespace = \"$namespace\"" "$targetDir/coordinator.yml"
     '';
   };
+
+  get-azure-sku-locations = writeShellApplication {
+    name = "get-azure-sku-locations";
+    runtimeInputs = [
+      azure-cli-with-extensions
+      jq
+    ];
+    text = ''
+      sku=''${1:-Standard_DC4as_cc_v5}
+      az vm list-skus --size "$sku" | jq -r '.[] | .locations.[]'
+    '';
+  };
 }
