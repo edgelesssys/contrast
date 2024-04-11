@@ -45,7 +45,7 @@ reference values embedded into the CLI.
 After the connection is established, the manifest is set. The Coordinator
 will re-generate the mesh root certificate and accept new workloads to
 issuer certificates.`,
-		RunE: runSet,
+		RunE: withTelemetry(runSet),
 	}
 
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")

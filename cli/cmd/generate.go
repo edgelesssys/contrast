@@ -48,7 +48,7 @@ If the Kubernetes YAML contains a Contrast Coordinator pod whose policy differs 
 the embedded default, the generated policy will be printed to stdout, alongside a
 warning message on stderr. This hash needs to be passed to the set and verify
 subcommands.`,
-		RunE: runGenerate,
+		RunE: withTelemetry(runGenerate),
 	}
 
 	cmd.Flags().StringP("policy", "p", rulesFilename, "path to policy (.rego) file")

@@ -33,7 +33,7 @@ reference values embedded into the CLI.
 
 After the connection is established, the CLI will request the manifest history,
 all policies, and the certificates of the Coordinator certificate authority.`,
-		RunE: runVerify,
+		RunE: withTelemetry(runVerify),
 	}
 
 	// Override persistent workspace-dir flag with a default value.
