@@ -1,6 +1,9 @@
 package kuberesource
 
-import "k8s.io/apimachinery/pkg/util/intstr"
+import (
+	"k8s.io/apimachinery/pkg/util/intstr"
+	v1 "k8s.io/client-go/applyconfigurations/apps/v1"
+)
 
 // Simple returns a simple set of resources for testing.
 func Simple() ([]any, error) {
@@ -200,7 +203,7 @@ func OpenSSL() ([]any, error) {
 
 // GenerateEmojivoto returns resources for deploying EmojiVoto application with custom images.
 func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderImage, votingImage, webImage string, generateCoordinatorService bool) ([]any, error) {
-	resources := make([]any, 0)
+	var resources []any
 
 	if ns == "" {
 		ns = "edg-default"
@@ -479,24 +482,9 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 	resources = append(resources, webserviceAccount)
 
 	portforwarderCoordinator := PortForwarder("coordinator", ns).
-		WithSpec(PodSpec().
-			WithContainers(
-				Container().
-					WithName("port-forwarder").
-					WithImage(portforwarderImage).
-					WithEnv(EnvVar().WithName("LISTEN_PORT").WithValue("1313")).
-					WithEnv(EnvVar().WithName("FORWARD_HOST").WithValue("coordinator")).
-					WithEnv(EnvVar().WithName("FORWARD_PORT").WithValue("1313")).
-					WithCommand("/bin/bash", "-c", "echo Starting port-forward with socat; exec socat -d -d TCP-LISTEN:${LISTEN_PORT},fork TCP:${FORWARD_HOST}:${FORWARD_PORT}").
-					WithPorts(
-						ContainerPort().
-							WithContainerPort(1313),
-					).
-					WithResources(ResourceRequirements().
-						WithMemoryLimitAndRequest(50),
-					),
-			),
-		)
+		WithListenPort(1313).
+		WithForwardTarget("coordinator", 1313).
+		PodApplyConfiguration
 	resources = append(resources, portforwarderCoordinator)
 
 	portforwarderWeb := PortForwarder("emojivoto-web", ns).
@@ -523,28 +511,41 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 	return resources, nil
 }
 
-// Emojivoto returns resources for deploying EmojiVoto application.
+// Emojivoto returns resources for deploying Emojivoto application.
 func Emojivoto() ([]any, error) {
 	return GenerateEmojivoto(
-		"edg-default",
+		"default",
 		"ghcr.io/3u13r/emojivoto-emoji-svc:coco-1",
 		"ghcr.io/edgelesssys/contrast/initializer:latest",
 		"ghcr.io/edgelesssys/contrast/port-forwarder:latest",
 		"ghcr.io/3u13r/emojivoto-voting-svc:coco-1",
 		"ghcr.io/3u13r/emojivoto-web:coco-1",
-		true,
+		false,
 	)
 }
 
-// EmojivotoDemo returns resources for deploying a simple EmojiVoto demo.
+// EmojivotoDemo returns resources for deploying a simple Emojivoto demo.
 func EmojivotoDemo() ([]any, error) {
-	return GenerateEmojivoto(
-		"default",
-		"ghcr.io/3u13r/emojivoto-emoji-svc:coco-1",
-		"ghcr.io/3u13r/contrast/initializer@sha256:3f0e76ffd1c62af460d2a7407ca0ab13cd49b3f07a00d5ef5bd636bcb6d8381f",
-		"ghcr.io/3u13r/contrast/port-forwarder@sha256:00b02378ceb33df7db46a0b6b56fd7fe1e7b2e7dade0404957f16235c01e80e0",
-		"ghcr.io/3u13r/emojivoto-voting-svc:coco-1",
-		"ghcr.io/3u13r/emojivoto-web:coco-1",
-		false,
-	)
+	vanilla, _ := Emojivoto()
+	replacements := map[string]string{
+		"ghcr.io/edgelesssys/contrast/initializer:latest":    "ghcr.io/3u13r/contrast/initializer@sha256:3f0e76ffd1c62af460d2a7407ca0ab13cd49b3f07a00d5ef5bd636bcb6d8381f",
+		"ghcr.io/edgelesssys/contrast/port-forwarder:latest": "ghcr.io/3u13r/contrast/port-forwarder@sha256:00b02378ceb33df7db46a0b6b56fd7fe1e7b2e7dade0404957f16235c01e80e0",
+	}
+	patched := PatchImages(vanilla, replacements)
+	return patched, nil
+}
+
+// PatchImages replaces images in a set of resources.
+func PatchImages(resources []any, replacements map[string]string) []any {
+	for _, resource := range resources {
+		switch r := resource.(type) {
+		case *v1.DeploymentApplyConfiguration:
+			for _, container := range r.Spec.Template.Spec.Containers {
+				if replacement, ok := replacements[*container.Image]; ok {
+					container.Image = &replacement
+				}
+			}
+		}
+	}
+	return resources
 }
