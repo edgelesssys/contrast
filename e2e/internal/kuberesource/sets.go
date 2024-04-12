@@ -2,7 +2,8 @@ package kuberesource
 
 import (
 	"k8s.io/apimachinery/pkg/util/intstr"
-	v1 "k8s.io/client-go/applyconfigurations/apps/v1"
+	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
+	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
 // Simple returns a simple set of resources for testing.
@@ -514,7 +515,7 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 // Emojivoto returns resources for deploying Emojivoto application.
 func Emojivoto() ([]any, error) {
 	return GenerateEmojivoto(
-		"default",
+		"edg-default",
 		"ghcr.io/3u13r/emojivoto-emoji-svc:coco-1",
 		"ghcr.io/edgelesssys/contrast/initializer:latest",
 		"ghcr.io/edgelesssys/contrast/port-forwarder:latest",
@@ -532,6 +533,7 @@ func EmojivotoDemo() ([]any, error) {
 		"ghcr.io/edgelesssys/contrast/port-forwarder:latest": "ghcr.io/3u13r/contrast/port-forwarder@sha256:00b02378ceb33df7db46a0b6b56fd7fe1e7b2e7dade0404957f16235c01e80e0",
 	}
 	patched := PatchImages(vanilla, replacements)
+	patched = PatchNamespaces(patched, "default")
 	return patched, nil
 }
 
@@ -539,12 +541,44 @@ func EmojivotoDemo() ([]any, error) {
 func PatchImages(resources []any, replacements map[string]string) []any {
 	for _, resource := range resources {
 		switch r := resource.(type) {
-		case *v1.DeploymentApplyConfiguration:
-			for _, container := range r.Spec.Template.Spec.Containers {
-				if replacement, ok := replacements[*container.Image]; ok {
-					container.Image = &replacement
+		case *applyappsv1.DeploymentApplyConfiguration:
+			for i := 0; i < len(r.Spec.Template.Spec.InitContainers); i++ {
+				if replacement, ok := replacements[*r.Spec.Template.Spec.InitContainers[i].Image]; ok {
+					r.Spec.Template.Spec.InitContainers[i].Image = &replacement
 				}
 			}
+			for i := 0; i < len(r.Spec.Template.Spec.Containers); i++ {
+				if replacement, ok := replacements[*r.Spec.Template.Spec.Containers[i].Image]; ok {
+					r.Spec.Template.Spec.Containers[i].Image = &replacement
+				}
+			}
+		case *applycorev1.PodApplyConfiguration:
+			for i := 0; i < len(r.Spec.Containers); i++ {
+				if replacement, ok := replacements[*r.Spec.Containers[i].Image]; ok {
+					r.Spec.Containers[i].Image = &replacement
+				}
+			}
+		case *applycorev1.ServiceApplyConfiguration:
+			// Do nothing
+		case *applycorev1.ServiceAccountApplyConfiguration:
+			// Do nothing
+		}
+	}
+	return resources
+}
+
+// PatchNamespaces replaces namespaces in a set of resources.
+func PatchNamespaces(resources []any, namespace string) []any {
+	for _, resource := range resources {
+		switch r := resource.(type) {
+		case *applycorev1.PodApplyConfiguration:
+			r.Namespace = &namespace
+		case *applyappsv1.DeploymentApplyConfiguration:
+			r.Namespace = &namespace
+		case *applycorev1.ServiceApplyConfiguration:
+			r.Namespace = &namespace
+		case *applycorev1.ServiceAccountApplyConfiguration:
+			r.Namespace = &namespace
 		}
 	}
 	return resources
