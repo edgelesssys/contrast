@@ -5,7 +5,7 @@ Contrast is designed to shield entire Kubernetes deployments from the infrastruc
 
 Contrast is applicable in situations where establishing trust with the workload operator or the underlying infrastructure is challenging.
 This is particularly beneficial for regulated sectors looking to transition sensitive activities to the cloud, without sacrificing security or compliance.
-It allows for cloud adoption by maintaining a separation from the cloud service provider in terms of trust.
+It allows for cloud adoption by maintaining a hardware-based separation from the cloud service provider.
 
 ## Components of a Contrast deployment
 
@@ -14,9 +14,9 @@ Confidential Containers significantly decrease the size of the trusted computing
 The TCB is the totality of elements in a computing environment that must be trusted not to be compromised.
 A smaller TCB results in a smaller attack surface. The following diagram shows how Confidential Containers remove the *cloud & datacenter infrastructure* and the *physical hosts*, including the hypervisor, the host OS, the Kubernetes control plane, and other components, from the TCB (red).
 In the confidential context, represented by green, only the workload containers along with their confidential micro-VM environment are included within the Trusted Computing Base (TCB).
-Their integrity is attested and can be [verified](../architecture/attestation/hardware.md)
+Their integrity is attested and can be [verified](../architecture/attestation/hardware.md).
 
-Confidential Containers fundamentally utilize [hardware-based mechanisms](../basics/confidential-containers.md), specifically leveraging CPU features, to ensure the isolation of the confidential context.
+Confidential Containers use [hardware-based mechanisms](../basics/confidential-containers.md), specifically leveraging CPU features, to ensure the isolation of the confidential context.
 This implies that both the CPU and its microcode are integral components of the TCB.
 However, it should be noted that the hardware aspects aren't depicted in the accompanying graphic.
 
@@ -104,7 +104,7 @@ The following table describes the attack surfaces that are available to attacker
 | Cloud insider, cloud hacker, workload operator | Confidential Container, Workload | Container Runtime        | The attacker can use container runtime APIs (for example "kubectl exec") to perform operations on the workload container.                                 |
 | Cloud insider, cloud hacker, workload operator | Confidential Container, Workload | Network                  | Intra-deployment (between containers) as well as external network connections to the image repository or attestation service can be intercepted.    |
 | Attestation client                             | Coordinator attestation service  | Attestation requests     | The attestation service has complex, crypto-heavy logic that's challenging to write defensively.                                                |
-| container image provider                                 | Workload                         | Workload                 | This attacker might release an upgrade to the workload containing harmful changes, such as a backdoor.                                                               |                                                             |
+| Container image provider                                 | Workload                         | Workload                 | This attacker might release an upgrade to the workload containing harmful changes, such as a backdoor.                                                               |                                                             |
 
 ### Threats and mitigations
 
@@ -130,7 +130,7 @@ This table describes potential threats and mitigation strategies related to the 
 |----------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------|
 | An attacker intercepts the network connection of the launcher or image repository.                                         | An attacker can change the image URL and control the workload binary. However these actions are reflected in the attestation report. The image repository isn't controlled using an access list, therefore the image is assumed to be viewable by everyone. You must ensure that the workload container image doesn't contain any secrets. | Within the Contrast container image |
 | An attacker modifies the workload image on disk after it was downloaded and measured.                                      | This threat is mitigated by a read-only partition that's integrity-protected. The workload image is protected by dm-verity.                                                                                                                                                                                 | Within the Contrast container image |
-| An attacker modifies the environment configuration in the Kubernetes control plane, and controls the image repository URL. | The attestation process and the runtime policies detects unsafe configurations that load non-authentic images or perform any other modification to the expected runtime. environment.                                                                                                                                                       | Within the runtime policies         |
+| An attacker modifies a container's runtime environment configuration in the Kubernetes control plane. | The attestation process and the runtime policies detects unsafe configurations that load non-authentic images or perform any other modification to the expected runtime environment.                                                                                                                                                       | Within the runtime policies         |
 
 #### Attacks on the Coordinator attestation service
 
