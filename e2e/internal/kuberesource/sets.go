@@ -1,10 +1,10 @@
 package kuberesource
 
 import (
-	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
-	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
+	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
 // CoordinatorRelease will generate the Coordinator deployment YAML that is published
@@ -213,14 +213,9 @@ func OpenSSL() ([]any, error) {
 	return resources, nil
 }
 
-// GenerateEmojivoto returns resources for deploying EmojiVoto application with custom images.
-func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderImage, votingImage, webImage string) ([]any, error) {
-	var resources []any
-
-	if ns == "" {
-		ns = "edg-default"
-	}
-
+// generateEmojivoto returns resources for deploying Emojivoto application.
+func generateEmojivoto() ([]any, error) {
+	ns := "edg-default"
 	emoji := Deployment("emoji", ns).
 		WithLabels(map[string]string{
 			"app.kubernetes.io/name":    "emoji",
@@ -246,7 +241,7 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 					WithContainers(
 						Container().
 							WithName("emoji-svc").
-							WithImage(emojiImage).
+							WithImage("ghcr.io/3u13r/emojivoto-emoji-svc:coco-1").
 							WithPorts(
 								ContainerPort().
 									WithName("grpc").
@@ -267,11 +262,10 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 				),
 			),
 		)
-	emoji, err := AddInitializer(emoji, Initializer().WithImage(initializerImage))
+	emoji, err := AddInitializer(emoji, Initializer())
 	if err != nil {
 		return nil, err
 	}
-	resources = append(resources, emoji)
 
 	emojiService := ServiceForDeployment(emoji).
 		WithName("emoji-svc").
@@ -290,12 +284,10 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 					WithTargetPort(intstr.FromInt(8801)),
 			),
 		)
-	resources = append(resources, emojiService)
 
 	emojiserviceAccount := ServiceAccount("emoji", ns).
 		WithAPIVersion("v1").
 		WithKind("ServiceAccount")
-	resources = append(resources, emojiserviceAccount)
 
 	voteBot := Deployment("vote-bot", ns).
 		WithLabels(map[string]string{
@@ -320,7 +312,7 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 					WithContainers(
 						Container().
 							WithName("vote-bot").
-							WithImage(webImage).
+							WithImage("ghcr.io/3u13r/emojivoto-web:coco-1").
 							WithCommand("emojivoto-vote-bot").
 							WithEnv(EnvVar().WithName("WEB_HOST").WithValue("web-svc:443")).
 							WithResources(ResourceRequirements().
@@ -330,7 +322,6 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 				),
 			),
 		)
-	resources = append(resources, voteBot)
 
 	voting := Deployment("voting", ns).
 		WithLabels(map[string]string{
@@ -357,7 +348,7 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 					WithContainers(
 						Container().
 							WithName("voting-svc").
-							WithImage(votingImage).
+							WithImage("ghcr.io/3u13r/emojivoto-voting-svc:coco-1").
 							WithPorts(
 								ContainerPort().
 									WithName("grpc").
@@ -378,11 +369,10 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 				),
 			),
 		)
-	voting, err = AddInitializer(voting, Initializer().WithImage(initializerImage))
+	voting, err = AddInitializer(voting, Initializer())
 	if err != nil {
 		return nil, err
 	}
-	resources = append(resources, voting)
 
 	votingService := ServiceForDeployment(voting).
 		WithName("voting-svc").
@@ -401,12 +391,10 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 					WithTargetPort(intstr.FromInt(8801)),
 			),
 		)
-	resources = append(resources, votingService)
 
 	votingserviceAccount := ServiceAccount("voting", ns).
 		WithAPIVersion("v1").
 		WithKind("ServiceAccount")
-	resources = append(resources, votingserviceAccount)
 
 	web := Deployment("web", ns).
 		WithLabels(map[string]string{
@@ -433,7 +421,7 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 					WithContainers(
 						Container().
 							WithName("web-svc").
-							WithImage(webImage).
+							WithImage("ghcr.io/3u13r/emojivoto-web:coco-1").
 							WithPorts(
 								ContainerPort().
 									WithName("https").
@@ -454,11 +442,10 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 				),
 			),
 		)
-	web, err = AddInitializer(web, Initializer().WithImage(initializerImage))
+	web, err = AddInitializer(web, Initializer())
 	if err != nil {
 		return nil, err
 	}
-	resources = append(resources, web)
 
 	webService := ServiceForDeployment(web).
 		WithName("web-svc").
@@ -474,39 +461,35 @@ func GenerateEmojivoto(ns string, emojiImage, initializerImage, portforwarderIma
 					WithTargetPort(intstr.FromInt(8080)),
 			),
 		)
-	resources = append(resources, webService)
 
 	webserviceAccount := ServiceAccount("web", ns).
 		WithAPIVersion("v1").
 		WithKind("ServiceAccount")
-	resources = append(resources, webserviceAccount)
 
 	portforwarderCoordinator := PortForwarder("coordinator", ns).
 		WithListenPort(1313).
 		WithForwardTarget("coordinator", 1313).
 		PodApplyConfiguration
-	resources = append(resources, portforwarderCoordinator)
 
-	portforwarderWeb := PortForwarder("emojivoto-web", ns).
-		WithSpec(PodSpec().
-			WithContainers(
-				Container().
-					WithName("port-forwarder").
-					WithImage(portforwarderImage).
-					WithEnv(EnvVar().WithName("LISTEN_PORT").WithValue("8080")).
-					WithEnv(EnvVar().WithName("FORWARD_HOST").WithValue("web-svc")).
-					WithEnv(EnvVar().WithName("FORWARD_PORT").WithValue("443")).
-					WithCommand("/bin/bash", "-c", "echo Starting port-forward with socat; exec socat -d -d TCP-LISTEN:${LISTEN_PORT},fork TCP:${FORWARD_HOST}:${FORWARD_PORT}").
-					WithPorts(
-						ContainerPort().
-							WithContainerPort(8080),
-					).
-					WithResources(ResourceRequirements().
-						WithMemoryLimitAndRequest(50),
-					),
-			),
-		)
-	resources = append(resources, portforwarderWeb)
+	portforwarderemojivotoWeb := PortForwarder("emojivoto-web", ns).
+		WithListenPort(8080).
+		WithForwardTarget("web-svc", 443).
+		PodApplyConfiguration
+
+	resources := []any{
+		emoji,
+		emojiService,
+		emojiserviceAccount,
+		portforwarderCoordinator,
+		portforwarderemojivotoWeb,
+		voteBot,
+		voting,
+		votingService,
+		votingserviceAccount,
+		web,
+		webService,
+		webserviceAccount,
+	}
 
 	return resources, nil
 }
@@ -532,10 +515,6 @@ func PatchImages(resources []any, replacements map[string]string) []any {
 					r.Spec.Containers[i].Image = &replacement
 				}
 			}
-		case *applycorev1.ServiceApplyConfiguration:
-			// Do nothing
-		case *applycorev1.ServiceAccountApplyConfiguration:
-			// Do nothing
 		}
 	}
 	return resources
@@ -558,31 +537,23 @@ func PatchNamespaces(resources []any, namespace string) []any {
 	return resources
 }
 
-// EmojivotoDemo returns patched resources for deploying a simple Emojivoto demo.
+// EmojivotoDemo returns patched resources for deploying an Emojivoto demo.
 func EmojivotoDemo(replacements map[string]string) ([]any, error) {
-	vanilla, _ := GenerateEmojivoto(
-		"edg-default",
-		"ghcr.io/3u13r/emojivoto-emoji-svc:coco-1",
-		"ghcr.io/edgelesssys/contrast/initializer:latest",
-		"ghcr.io/edgelesssys/contrast/port-forwarder:latest",
-		"ghcr.io/3u13r/emojivoto-voting-svc:coco-1",
-		"ghcr.io/3u13r/emojivoto-web:coco-1",
-	)
-	patched := PatchImages(vanilla, replacements)
+	resources, err := generateEmojivoto()
+	if err != nil {
+		return nil, err
+	}
+	patched := PatchImages(resources, replacements)
 	patched = PatchNamespaces(patched, "default")
 	return patched, nil
 }
 
 // Emojivoto returns resources for deploying Emojivoto application.
 func Emojivoto() ([]any, error) {
-	resources, _ := GenerateEmojivoto(
-		"edg-default",
-		"ghcr.io/3u13r/emojivoto-emoji-svc:coco-1",
-		"ghcr.io/edgelesssys/contrast/initializer:latest",
-		"ghcr.io/edgelesssys/contrast/port-forwarder:latest",
-		"ghcr.io/3u13r/emojivoto-voting-svc:coco-1",
-		"ghcr.io/3u13r/emojivoto-web:coco-1",
-	)
+	resources, err := generateEmojivoto()
+	if err != nil {
+		return nil, err
+	}
 
 	// Add coordinator
 	ns := "edg-default"
