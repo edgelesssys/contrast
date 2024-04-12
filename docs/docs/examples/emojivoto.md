@@ -1,7 +1,7 @@
 # Confidential emoji voting
 
 <!-- TODO(katexochen): create a screenshot with fixed format -->
-![screenshot of the emojivoto UI](../../static/img/emoijvoto.png)
+![screenshot of the emojivoto UI](../_media/emoijvoto.png)
 
 **This tutorial guides you through deploying [emojivoto](https://github.com/BuoyantIO/emojivoto) as a
 confidential Contrast deployment and validating the deployment from a voters perspective.**
@@ -141,7 +141,7 @@ To access the web frontend, expose the service on a public IP address via a Load
 kubectl patch svc web-svc -p '{"spec": {"type": "LoadBalancer"}}'
 timeout 30s bash -c 'until kubectl get service/web-svc --output=jsonpath='{.status.loadBalancer}' | grep "ingress"; do sleep 2 ; done'
 frontendIP=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo $frontendIP
+echo "Frontend is available at  https://$frontendIP, you can visit it in your browser."
 ```
 
 Using `openssl`, the certificate of the service can be validated with the `mesh-root.pem`:

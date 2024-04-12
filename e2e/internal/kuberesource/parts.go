@@ -124,7 +124,11 @@ func ServiceForDeployment(d *applyappsv1.DeploymentApplyConfiguration) *applycor
 	selector := d.Spec.Selector.MatchLabels
 	ports := d.Spec.Template.Spec.Containers[0].Ports
 
-	s := Service(*d.Name, *d.Namespace).
+	var ns string
+	if d.Namespace != nil {
+		ns = *d.Namespace
+	}
+	s := Service(*d.Name, ns).
 		WithSpec(ServiceSpec().
 			WithSelector(selector),
 		)
@@ -147,7 +151,7 @@ func Initializer() *applycorev1.ContainerApplyConfiguration {
 		WithName("initializer").
 		WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
 		WithResources(ResourceRequirements().
-			WithMemoryLimitAndRequest(50),
+			WithMemoryRequest(50),
 		).
 		WithEnv(NewEnvVar("COORDINATOR_HOST", "coordinator")).
 		WithVolumeMounts(VolumeMount().

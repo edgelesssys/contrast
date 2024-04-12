@@ -16,7 +16,11 @@ type DeploymentConfig struct {
 
 // Deployment creates a new DeploymentConfig.
 func Deployment(name, namespace string) *DeploymentConfig {
-	return &DeploymentConfig{applyappsv1.Deployment(name, namespace)}
+	d := applyappsv1.Deployment(name, namespace)
+	if namespace == "" && d.ObjectMetaApplyConfiguration != nil {
+		d.ObjectMetaApplyConfiguration.Namespace = nil
+	}
+	return &DeploymentConfig{d}
 }
 
 // DeploymentSpecConfig wraps applyappsv1.DeploymentSpecApplyConfiguration.
@@ -114,6 +118,14 @@ func ResourceRequirements() *ResourceRequirementsConfig {
 	return &ResourceRequirementsConfig{applycorev1.ResourceRequirements()}
 }
 
+// WithMemoryRequest sets the memory request of the ResourceRequirements.
+func (r *ResourceRequirementsConfig) WithMemoryRequest(memoryMi int64) *applycorev1.ResourceRequirementsApplyConfiguration {
+	return r.
+		WithRequests(corev1.ResourceList{
+			corev1.ResourceMemory: fromPtr(resource.NewQuantity(memoryMi*1024*1024, resource.BinarySI)),
+		})
+}
+
 // WithMemoryLimitAndRequest sets the memory limit and request of the ResourceRequirements.
 func (r *ResourceRequirementsConfig) WithMemoryLimitAndRequest(memoryMi int64) *applycorev1.ResourceRequirementsApplyConfiguration {
 	return r.
@@ -175,7 +187,11 @@ type ServiceConfig struct {
 
 // Service creates a new ServiceConfig.
 func Service(name, namespace string) *ServiceConfig {
-	return &ServiceConfig{applycorev1.Service(name, namespace)}
+	s := applycorev1.Service(name, namespace)
+	if namespace == "" && s.ObjectMetaApplyConfiguration != nil {
+		s.ObjectMetaApplyConfiguration.Namespace = nil
+	}
+	return &ServiceConfig{s}
 }
 
 // ServiceSpecConfig wraps applycorev1.ServiceSpecApplyConfiguration.

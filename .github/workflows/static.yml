@@ -39,9 +39,9 @@ jobs:
       - name: Check for modifications, commit changes on renovate PRs
         uses: ./.github/actions/pushdiff
         with:
-          error: Go source needs to be updated, check the GitHub run summary for the diff.
-          suggested-fix: Run \`nix run .#scripts.generate\` to generate and tidy Go code.
-          renovate-commit-msg: "fixup: update Go source"
+          error: Generated code needs to be updated, check the GitHub run summary for the diff.
+          suggested-fix: Run \`nix run .#scripts.generate\` to run code generation.
+          renovate-commit-msg: "fixup: update generated code"
 
   govulncheck:
       runs-on: ubuntu-22.04
@@ -67,4 +67,4 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Run golangci-lint
         run: |
-          nix run .#scripts.golangci-lint -- run
+          nix run .#scripts.golangci-lint

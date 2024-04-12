@@ -112,3 +112,38 @@ func (c *Kubeclient) Apply(ctx context.Context, objects ...*unstructured.Unstruc
 	}
 	return nil
 }
+
+// Delete a set of manifests.
+func (c *Kubeclient) Delete(ctx context.Context, objects ...*unstructured.Unstructured) error {
+	for _, obj := range objects {
+		ri, err := c.resourceInterfaceFor(obj)
+		if err != nil {
+			return err
+		}
+
+		if err := ri.Delete(ctx, obj.GetName(), metav1.DeleteOptions{}); err != nil {
+			return fmt.Errorf("could not delete %s %s in namespace %s: %w", obj.GetKind(), obj.GetName(), obj.GetNamespace(), err)
+		}
+		c.log.Info("object deleted", "namespace", obj.GetNamespace(), "kind", obj.GetKind(), "name", obj.GetName())
+	}
+	return nil
+}
+
+// PatchNamespace adjusts the namespace of the given object in-place if it is an instance of a namespaced resource.
+func (c *Kubeclient) PatchNamespace(namespace string, obj *unstructured.Unstructured) error {
+	gvk := obj.GroupVersionKind()
+	resources, err := c.client.DiscoveryClient.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
+	if err != nil {
+		return fmt.Errorf("API resources not found for %#v: %w", gvk, err)
+	}
+	for _, resource := range resources.APIResources {
+		if resource.Kind != obj.GetKind() {
+			continue
+		}
+		if resource.Namespaced {
+			obj.SetNamespace(namespace)
+		}
+		return nil
+	}
+	return fmt.Errorf("API resource not found for %#v", gvk)
+}

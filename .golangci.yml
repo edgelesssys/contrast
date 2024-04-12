@@ -3,7 +3,9 @@ run:
   modules-download-mode: readonly
 
 output:
-  format: tab
+  formats:
+    - format: colored-tab
+      path: stderr
   sort-results: true
 
 linters-settings:

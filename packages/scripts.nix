@@ -25,14 +25,29 @@ with pkgs;
       nix-update
     ];
     text = ''
-      go mod tidy
-      go generate ./...
+      while IFS= read -r dir; do
+        echo "Running go mod tidy on $dir" >&2
+        go mod tidy
+        echo "Running go generate on $dir" >&2
+        go generate ./...
+      done < <(go list -f '{{.Dir}}' -m)
 
-      # All binaries of the local Go module share the same builder,
+      # All binaries of the main Go module share the same builder,
       # we only need to update one of them to update the vendorHash
       # of the builder.
+      echo "Updating vendorHash of contrast.cli package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast.cli
+
+      echo "Updating vendorHash of service-mesh package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.service-mesh
+
+      echo "Updating vendorHash of node-installer package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast-node-installer
+
+      echo "Updateing yarn offlineCache hash of contrast-docs package" >&2
+      nix-update --version=skip --flake \
+        --override-filename=packages/by-name/contrast-docs/package.nix \
+        legacyPackages.x86_64-linux.contrast-docs
     '';
   };
 
@@ -40,18 +55,33 @@ with pkgs;
     name = "govulncheck";
     runtimeInputs = [ go pkgs.govulncheck ];
     text = ''
-      goWorkDirs=$(sed '1,3d;$d' go.work)
-      for dir in $goWorkDirs; do
-        echo "Checking $dir"
-        govulncheck -C "$dir"
-      done
+      exitcode=0
+
+      while IFS= read -r dir; do
+        echo "Running govulncheck on $dir"
+        govulncheck -C "$dir" || exitcode=$?
+      done < <(go list -f '{{.Dir}}' -m)
+
+      exit $exitcode
     '';
   };
 
   golangci-lint = writeShellApplication {
     name = "golangci-lint";
     runtimeInputs = [ go pkgs.golangci-lint ];
-    text = ''golangci-lint "$@"'';
+    text = ''
+      exitcode=0
+
+      while IFS= read -r dir; do
+        echo "Running golangci-lint on $dir" >&2
+        golangci-lint run "$dir/..." || exitcode=$?
+      done < <(go list -f '{{.Dir}}' -m)
+
+      echo "Verifying golangci-lint config" >&2
+      golangci-lint config verify || exitcode=$?
+
+      exit $exitcode
+    '';
   };
 
   patch-contrast-image-hashes = writeShellApplication {
@@ -155,6 +185,7 @@ with pkgs;
     runtimeInputs = [
       yq-go
       genpolicy-msft
+      contrast
     ];
     text = ''
       imageRef=$1
@@ -162,11 +193,9 @@ with pkgs;
       tmpdir=$(mktemp -d)
       trap 'rm -rf $tmpdir' EXIT
 
-      # TODO(burgerdev): consider a dedicated coordinator template instead of the simple one
-      yq < deployments/simple/coordinator.yml > "$tmpdir/coordinator.yml" \
-        "del(.metadata.namespace) |
-         (select(.kind == \"Deployment\") | .spec.template.spec.containers[0].image) = \"$imageRef\" |
-         (select(.kind == \"Service\") | .spec.type) = \"LoadBalancer\" "
+      resourcegen coordinator-release "$tmpdir/coordinator_base.yml"
+      yq < "$tmpdir/coordinator_base.yml" > "$tmpdir/coordinator.yml" \
+         "(select(.kind == \"Deployment\") | .spec.template.spec.containers[0].image) = \"$imageRef\""
 
       pushd "$tmpdir" >/dev/null
       cp ${genpolicy-msft.rules-coordinator}/genpolicy-rules.rego rules.rego
@@ -193,6 +222,18 @@ with pkgs;
       chmod a+x "$targetDir/contrast"
 
       yq -i ".metadata.namespace = \"$namespace\"" "$targetDir/coordinator.yml"
+    '';
+  };
+
+  get-azure-sku-locations = writeShellApplication {
+    name = "get-azure-sku-locations";
+    runtimeInputs = [
+      azure-cli-with-extensions
+      jq
+    ];
+    text = ''
+      sku=''${1:-Standard_DC4as_cc_v5}
+      az vm list-skus --size "$sku" | jq -r '.[] | .locations.[]'
     '';
   };
 }

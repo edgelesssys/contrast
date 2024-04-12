@@ -1,10 +1,26 @@
 package kuberesource
 
 import (
-	"k8s.io/apimachinery/pkg/util/intstr"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
+
+// CoordinatorRelease will generate the Coordinator deployment YAML that is published
+// as release artifact with a pre-generated policy (which is not contained in this function).
+func CoordinatorRelease() ([]any, error) {
+	coordinator := Coordinator("").DeploymentApplyConfiguration
+	coordinatorService := ServiceForDeployment(coordinator)
+	coordinatorService.Spec.WithType(corev1.ServiceTypeLoadBalancer)
+
+	resources := []any{
+		coordinator,
+		coordinatorService,
+	}
+
+	return resources, nil
+}
 
 // Simple returns a simple set of resources for testing.
 func Simple() ([]any, error) {
@@ -62,10 +78,6 @@ func OpenSSL() ([]any, error) {
 	namespace := Namespace(ns)
 	coordinator := Coordinator(ns).DeploymentApplyConfiguration
 	coordinatorService := ServiceForDeployment(coordinator)
-	coordinatorForwarder := PortForwarder("coordinator", ns).
-		WithListenPort(1313).
-		WithForwardTarget("coordinator", 1313).
-		PodApplyConfiguration
 
 	backend := Deployment("openssl-backend", ns).
 		WithSpec(DeploymentSpec().
@@ -189,7 +201,6 @@ func OpenSSL() ([]any, error) {
 		namespace,
 		coordinator,
 		coordinatorService,
-		coordinatorForwarder,
 		backend,
 		backendService,
 		client,
