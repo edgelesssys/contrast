@@ -14,4 +14,11 @@ final: prev: {
       hash = "sha256-N06oKyiexzjpaCZ8rFnH1f8YD5SSJQJUeEsgROkN9ak=";
     };
   });
+
+  # Add the required extensions to the Azure CLI.
+  azure-cli = prev.azure-cli.override {
+    withExtensions = with final.azure-cli.extensions; [
+      aks-preview
+    ];
+  };
 }
