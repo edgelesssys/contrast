@@ -3,7 +3,7 @@ module github.com/edgelesssys/contrast/node-installer
 go 1.21
 
 require (
-	github.com/pelletier/go-toml/v2 v2.2.0
+	github.com/pelletier/go-toml/v2 v2.2.1
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/goleak v1.3.0
 	golang.org/x/sys v0.19.0
