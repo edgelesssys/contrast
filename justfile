@@ -157,7 +157,7 @@ wait-for-workload target=default_deploy_target:
             nix run .#scripts.kubectl-wait-ready -- $ns openssl-client
             nix run .#scripts.kubectl-wait-ready -- $ns openssl-frontend
         ;;
-        "emojivoto" | "emojivoto-sm-egress" | "emojivotodemo")
+        "emojivoto" | "emojivoto-sm-egress" | "emojivoto-sm-ingress")
             nix run .#scripts.kubectl-wait-ready -- $ns emoji-svc
             nix run .#scripts.kubectl-wait-ready -- $ns vote-bot
             nix run .#scripts.kubectl-wait-ready -- $ns voting-svc

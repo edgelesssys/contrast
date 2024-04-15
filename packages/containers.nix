@@ -63,7 +63,7 @@ let
     service-mesh-proxy = dockerTools.buildImage {
       name = "service-mesh-proxy";
       tag = "v${service-mesh.version}";
-      copyToRoot = [ envoy ];
+      copyToRoot = [ envoy iptables-legacy ];
       config = {
         Cmd = [ "${service-mesh}/bin/service-mesh" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.

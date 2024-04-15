@@ -5,13 +5,13 @@ with pkgs;
 {
   create-coco-aks = writeShellApplication {
     name = "create-coco-aks";
-    runtimeInputs = [ azure-cli-with-extensions ];
+    runtimeInputs = [ azure-cli ];
     text = builtins.readFile ./create-coco-aks.sh;
   };
 
   destroy-coco-aks = writeShellApplication {
     name = "destroy-coco-aks";
-    runtimeInputs = [ azure-cli-with-extensions ];
+    runtimeInputs = [ azure-cli ];
     text = builtins.readFile ./destroy-coco-aks.sh;
   };
 
@@ -228,7 +228,7 @@ with pkgs;
   get-azure-sku-locations = writeShellApplication {
     name = "get-azure-sku-locations";
     runtimeInputs = [
-      azure-cli-with-extensions
+      azure-cli
       jq
     ];
     text = ''

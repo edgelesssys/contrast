@@ -1,4 +1,4 @@
-name: e2e test openssl
+name: e2e test service-mesh
 
 on:
     workflow_dispatch:
@@ -36,22 +36,34 @@ jobs:
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
+      - name: Generate namespace suffix
+        id: ns
+        run: |
+          uuid=$(cat /proc/sys/kernel/random/uuid)
+          uid=${uuid##*-}
+          echo "namespace_suffix=$uid" >> "$GITHUB_OUTPUT"
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env
           container_registry=${{ env.container_registry }}
           azure_resource_group=${{ env.azure_resource_group }}
+          namespace_suffix=-${{ steps.ns.outputs.namespace_suffix }}
           EOF
       - name: Get credentials for CI cluster
         run: |
           just get-credentials
       - name: Build and prepare deployments
         run: |
-          just coordinator initializer openssl
-          just populate openssl
+          just coordinator initializer service-mesh-proxy
+          just populate emojivoto-sm-ingress
       - name: Setup Summary
         run: |
+          cat ./workspace/just.namespace | tee -a "${GITHUB_STEP_SUMMARY}"
           cat ./workspace/just.perf | tee -a "${GITHUB_STEP_SUMMARY}"
       - name: E2E Test
         run: |
-          nix shell .#contrast.e2e --command openssl.test -test.v
+          env K8S_NAMESPACE=$(cat ./workspace/just.namespace) nix shell .#contrast.e2e --command servicemesh.test -test.v
+      - name: Undeploy
+        if: always() && inputs.skip-undeploy != 'true'
+        run: |
+          just undeploy

@@ -14,24 +14,24 @@
     "write-heading-ids": "docusaurus write-heading-ids"
   },
   "dependencies": {
-    "@cmfcmf/docusaurus-search-local": "^1.1.0",
-    "@docusaurus/core": "^3.1.1",
-    "@docusaurus/plugin-google-gtag": "^3.1.1",
-    "@docusaurus/preset-classic": "^3.1.1",
-    "@docusaurus/theme-mermaid": "^3.1.1",
-    "@mdx-js/react": "^3.0.0",
-    "asciinema-player": "^3.5.0",
-    "clsx": "^2.1.0",
-    "prism-react-renderer": "^2.1.0",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "@cmfcmf/docusaurus-search-local": "1.1.0",
+    "@docusaurus/core": "3.2.1",
+    "@docusaurus/plugin-google-gtag": "3.2.1",
+    "@docusaurus/preset-classic": "3.2.1",
+    "@docusaurus/theme-mermaid": "3.2.1",
+    "@mdx-js/react": "3.0.1",
+    "asciinema-player": "3.7.1",
+    "clsx": "2.1.0",
+    "prism-react-renderer": "2.3.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.1.1"
+    "@docusaurus/module-type-aliases": "3.2.1"
   },
   "overrides": {
     "@cmfcmf/docusaurus-search-local": {
-      "@docusaurus/core": "^3.1.1"
+      "@docusaurus/core": "3.2.1"
     }
   },
   "browserslist": {

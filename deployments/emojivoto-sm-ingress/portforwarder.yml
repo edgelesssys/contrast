@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: port-forwarder-coordinator
+  namespace: edg-default
+  labels:
+    app.kubernetes.io/name: port-forwarder-coordinator
+spec:
+  containers:
+    - name: port-forwarder
+      image: "ghcr.io/edgelesssys/contrast/port-forwarder:latest"
+      env:
+        - name: LISTEN_PORT
+          value: "1313"
+        - name: FORWARD_HOST
+          value: coordinator
+        - name: FORWARD_PORT
+          value: "1313"
+      command:
+        - /bin/bash
+        - "-c"
+        - echo Starting port-forward with socat; exec socat -d -d TCP-LISTEN:${LISTEN_PORT},fork TCP:${FORWARD_HOST}:${FORWARD_PORT}
+      ports:
+        - containerPort: 1313
+      resources:
+        requests:
+          memory: 50Mi
+        limits:
+          memory: 50Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: port-forwarder-emojivoto-web
+  namespace: edg-default
+  labels:
+    app.kubernetes.io/name: port-forwarder-emojivoto-web
+spec:
+  containers:
+    - name: port-forwarder
+      image: "ghcr.io/edgelesssys/contrast/port-forwarder:latest"
+      env:
+        - name: LISTEN_PORT
+          value: "8080"
+        - name: FORWARD_HOST
+          value: web-svc
+        - name: FORWARD_PORT
+          value: "443"
+      command:
+        - /bin/bash
+        - "-c"
+        - echo Starting port-forward with socat; exec socat -d -d TCP-LISTEN:${LISTEN_PORT},fork TCP:${FORWARD_HOST}:${FORWARD_PORT}
+      ports:
+        - containerPort: 8080
+      resources:
+        requests:
+          memory: 50Mi
+        limits:
+          memory: 50Mi
