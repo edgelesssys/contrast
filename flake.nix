@@ -44,6 +44,9 @@
           packages = with pkgs; [
             yarn
           ];
+          shellHook = ''
+            yarn install
+          '';
         };
       };
 
