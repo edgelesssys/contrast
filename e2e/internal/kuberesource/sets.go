@@ -3,6 +3,8 @@ package kuberesource
 import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
+	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
 // CoordinatorRelease will generate the Coordinator deployment YAML that is published
@@ -211,17 +213,9 @@ func OpenSSL() ([]any, error) {
 	return resources, nil
 }
 
-// Emojivoto returns resources for deploying EmojiVoto application.
-func Emojivoto() ([]any, error) {
+// generateEmojivoto returns resources for deploying Emojivoto application.
+func generateEmojivoto() ([]any, error) {
 	ns := "edg-default"
-	namespace := Namespace(ns)
-	coordinator := Coordinator(ns).DeploymentApplyConfiguration
-	coordinatorService := ServiceForDeployment(coordinator)
-	coordinatorForwarder := PortForwarder("coordinator", ns).
-		WithListenPort(1313).
-		WithForwardTarget("coordinator", 1313).
-		PodApplyConfiguration
-
 	emoji := Deployment("emoji", ns).
 		WithLabels(map[string]string{
 			"app.kubernetes.io/name":    "emoji",
@@ -483,10 +477,6 @@ func Emojivoto() ([]any, error) {
 		PodApplyConfiguration
 
 	resources := []any{
-		namespace,
-		coordinator,
-		coordinatorService,
-		coordinatorForwarder,
 		emoji,
 		emojiService,
 		emojiserviceAccount,
@@ -500,6 +490,81 @@ func Emojivoto() ([]any, error) {
 		webService,
 		webserviceAccount,
 	}
+
+	return resources, nil
+}
+
+// PatchImages replaces images in a set of resources.
+func PatchImages(resources []any, replacements map[string]string) []any {
+	for _, resource := range resources {
+		switch r := resource.(type) {
+		case *applyappsv1.DeploymentApplyConfiguration:
+			for i := 0; i < len(r.Spec.Template.Spec.InitContainers); i++ {
+				if replacement, ok := replacements[*r.Spec.Template.Spec.InitContainers[i].Image]; ok {
+					r.Spec.Template.Spec.InitContainers[i].Image = &replacement
+				}
+			}
+			for i := 0; i < len(r.Spec.Template.Spec.Containers); i++ {
+				if replacement, ok := replacements[*r.Spec.Template.Spec.Containers[i].Image]; ok {
+					r.Spec.Template.Spec.Containers[i].Image = &replacement
+				}
+			}
+		case *applycorev1.PodApplyConfiguration:
+			for i := 0; i < len(r.Spec.Containers); i++ {
+				if replacement, ok := replacements[*r.Spec.Containers[i].Image]; ok {
+					r.Spec.Containers[i].Image = &replacement
+				}
+			}
+		}
+	}
+	return resources
+}
+
+// PatchNamespaces replaces namespaces in a set of resources.
+func PatchNamespaces(resources []any, namespace string) []any {
+	for _, resource := range resources {
+		switch r := resource.(type) {
+		case *applycorev1.PodApplyConfiguration:
+			r.Namespace = &namespace
+		case *applyappsv1.DeploymentApplyConfiguration:
+			r.Namespace = &namespace
+		case *applycorev1.ServiceApplyConfiguration:
+			r.Namespace = &namespace
+		case *applycorev1.ServiceAccountApplyConfiguration:
+			r.Namespace = &namespace
+		}
+	}
+	return resources
+}
+
+// EmojivotoDemo returns patched resources for deploying an Emojivoto demo.
+func EmojivotoDemo(replacements map[string]string) ([]any, error) {
+	resources, err := generateEmojivoto()
+	if err != nil {
+		return nil, err
+	}
+	patched := PatchImages(resources, replacements)
+	patched = PatchNamespaces(patched, "default")
+	return patched, nil
+}
+
+// Emojivoto returns resources for deploying Emojivoto application.
+func Emojivoto() ([]any, error) {
+	resources, err := generateEmojivoto()
+	if err != nil {
+		return nil, err
+	}
+
+	// Add coordinator
+	ns := "edg-default"
+	namespace := Namespace(ns)
+	coordinator := Coordinator(ns).DeploymentApplyConfiguration
+	coordinatorService := ServiceForDeployment(coordinator)
+	coordinatorForwarder := PortForwarder("coordinator", ns).
+		WithListenPort(1313).
+		WithForwardTarget("coordinator", 1313).
+		PodApplyConfiguration
+	resources = append(resources, namespace, coordinator, coordinatorService, coordinatorForwarder)
 
 	return resources, nil
 }
