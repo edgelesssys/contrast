@@ -43,7 +43,7 @@ func Simple() ([]any, error) {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "workload"}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName("kata-cc-isolation").
+					WithRuntimeClassName("contrast-cc-isolation").
 					WithContainers(
 						Container().
 							WithName("workload").

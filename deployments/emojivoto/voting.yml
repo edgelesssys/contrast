@@ -25,7 +25,7 @@ spec:
         app.kubernetes.io/name: voting-svc
         version: v11
     spec:
-      runtimeClassName: kata-cc-isolation
+      runtimeClassName: contrast-cc-isolation
       initContainers:
         - name: initializer
           image: "ghcr.io/edgelesssys/contrast/initializer:latest"

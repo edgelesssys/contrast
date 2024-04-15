@@ -168,7 +168,7 @@ func findGenerateTargets(args []string, logger *slog.Logger) ([]string, error) {
 		}
 	}
 
-	paths = filterNonCoCoRuntime("kata-cc-isolation", paths, logger)
+	paths = filterNonCoCoRuntime("contrast-cc-isolation", paths, logger)
 
 	if len(paths) == 0 {
 		return nil, fmt.Errorf("no .yml/.yaml files found")

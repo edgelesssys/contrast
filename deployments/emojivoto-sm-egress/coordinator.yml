@@ -15,7 +15,7 @@ spec:
       annotations:
         contrast.edgeless.systems/pod-role: coordinator
     spec:
-      runtimeClassName: kata-cc-isolation
+      runtimeClassName: contrast-cc-isolation
       containers:
         - name: coordinator
           image: "ghcr.io/edgelesssys/contrast/coordinator:latest"
