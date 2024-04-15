@@ -3,6 +3,8 @@
 ## Prerequisites
 
 Install the latest version of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/).
+
+
 [Login to your account](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli), which has
 the permissions to create an AKS cluster, by executing:
 
@@ -10,8 +12,10 @@ the permissions to create an AKS cluster, by executing:
 az login
 ```
 
-CoCo on AKS is currently in preview. An extension is needed to create such a cluster. Add the
-extension with the following commands:
+## Prepare using the AKS preview
+
+CoCo on AKS is currently in preview. An extension for the `az` CLI is needed to create such a cluster.
+Add the extension with the following commands:
 
 ```bash
 az extension add \
@@ -22,20 +26,32 @@ az extension update \
   --allow-preview true
 ```
 
-Then register the required features:
+Then register the required feature flags in your subscription to allow access to the public preview:
 
 ```bash
 az feature register \
     --namespace "Microsoft.ContainerService" \
     --name "KataCcIsolationPreview"
-az feature show \
-    --namespace "Microsoft.ContainerService" \
-    --name "KataCcIsolationPreview"
-az provider register \
-    --name Microsoft.ContainerService
 ```
 
-## Set resource group
+The registration can take a few minutes. The status of the operation can be checked with the following
+command, which should show the registration state as `Registered`:
+
+```sh
+az feature show \
+    --namespace "Microsoft.ContainerService" \
+    --name "KataCcIsolationPreview" \
+    --output table
+```
+
+Afterwards, refresh the registration of the ContainerService provider:
+
+```sh
+az provider register \
+    --namespace "Microsoft.ContainerService"
+```
+
+## Create resource group
 
 The AKS with CoCo preview is currently available in the following locations:
 
@@ -64,7 +80,7 @@ You can either use an existing one or create a new resource group with the follo
 azLocation="westus" # Select a location from the list above
 
 az group create \
-  --name "$azResourceGroup"
+  --name "$azResourceGroup" \
   --location "$azLocation"
 ```
 
@@ -119,4 +135,25 @@ It should show two nodes:
 NAME                                STATUS   ROLES    AGE     VERSION
 aks-nodepool1-32049705-vmss000000   Ready    <none>   9m47s   v1.29.0
 aks-nodepool2-32238657-vmss000000   Ready    <none>   45s     v1.29.0
+```
+
+## Cleanup
+
+After trying out Contrast, you might want to clean up the cloud resources created in this step.
+In case you've created a new resource group, you can just delete that group with
+
+```sh
+az group delete \
+  --name "$azResourceGroup" \
+  --location "$azLocation"
+```
+
+Deleting the resource group will also delete the cluster and all other related resources.
+
+To only cleanup the AKS cluster and node pools, run
+
+```sh
+az aks delete \
+  --resource-group "$azResourceGroup" \
+  --name "$azClusterName"
 ```
