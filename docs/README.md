@@ -13,7 +13,6 @@ nix develop .#docs
 Run a local development server previewing your changes with:
 
 ```sh
-yarn install
 yarn start
 ```
 
