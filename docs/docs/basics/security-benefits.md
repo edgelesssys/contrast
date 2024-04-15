@@ -24,8 +24,8 @@ However, it should be noted that the hardware aspects aren't depicted in the acc
 
 A Contrast deployment has five core components:
 
-* **The workload containers**: A container image that runs in an isolated [Confidential Container](confidential-containers.md) environment.
-* **The runtime policies**: A policy that defines the runtime environment for the workload containers.
+* **The workload containers**: Container images that run in isolated [Confidential Container](confidential-containers.md) environments.
+* **The runtime policies**: Policies that define the runtime environments for the workload containers.
 * **The manifest**: A manifest file defining the reference values of an entire confidential deployment. It contains the policy hashes for all pods of the deployment and the expected hardware reference values for the Confidential Container runtime.
 * **The Coordinator**: An attestation service that runs in a Confidential Container in the Kubernetes cluster. The Coordinator is configured with the manifest. User-facing, you can verify this service and the effective manifest using remote attestation, providing you with a concise attestation for the entire deployment. Cluster-facing, it verifies all pods and their policies based on remote attestation procedures and the manifest.
 * **The protected data**: The data that's processed by the workload containers.
@@ -35,13 +35,13 @@ Furthermore, it provides the ability to attest this isolation and the workloads 
 
 In a Contrast deployment, there are three parties:
 
-* **The container image provider**, who creates a container image that includes an application that has access to the protected data.
+* **The container image provider**, who creates the container images that represent the application that has access to the protected data.
 
 * **The workload operator**, who runs the workload in a Kubernetes cluster. The operator typically has full administrative privileges to the deployment. The operator can manage cluster resources such as nodes, volumes, and networking rules, and the operator can interact with any Kubernetes or underlying cloud API.
 
-* **The data owners**, who own the protected data. A data owner can verify the deployment using the Coordinator attestation service. The verification includes the identity, integrity, and confidentiality of the workloads, the runtime environment and the access permissions.
+* **The data owner**, who owns the protected data. A data owner can verify the deployment using the Coordinator attestation service. The verification includes the identity, integrity, and confidentiality of the workloads, the runtime environment and the access permissions.
 
-Contrast supports a trust model where the container image provider, workload operator, and data owners are separate, mutually distrusting parties.
+Contrast supports a trust model where the container image provider, workload operator, and data owner are separate, mutually distrusting parties.
 
 The following diagram shows the system components and parties.
 
@@ -109,7 +109,7 @@ The following table describes the attack surfaces that are available to attacker
 ### Threats and mitigations
 
 The container root file system with [integrity protection](../architecture/confidential-containers.md) is designed to mitigate risks from disk attacks.
-Secrets are never disclosed in plaintext form to the disk or to any external device.
+Additionally, the container has no writeable disk partition mounted, hence, data is only stored in-memory and never disclosed to disk.
 
 Risks from network attacks are mitigated by having [authenticated, end-to-end encrypted channels](../architecture/network-encryption/sidecar.md).
 An [attestation protocol](../architecture/attestation/hardware.md) helps protect the boot sequence.
