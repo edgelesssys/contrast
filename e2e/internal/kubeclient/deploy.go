@@ -2,8 +2,10 @@ package kubeclient
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -31,10 +33,8 @@ func (c *Kubeclient) WaitForPod(ctx context.Context, namespace, name string) err
 				if !ok {
 					return fmt.Errorf("watcher received unexpected type %T", evt.Object)
 				}
-				for _, cond := range pod.Status.Conditions {
-					if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
-						return nil
-					}
+				if isPodReady(pod) {
+					return nil
 				}
 			default:
 				return fmt.Errorf("unexpected watch event while waiting for pod %s/%s: %#v", namespace, name, evt.Object)
@@ -72,9 +72,43 @@ func (c *Kubeclient) WaitForDeployment(ctx context.Context, namespace, name stri
 				return fmt.Errorf("unexpected watch event while waiting for deployment %s/%s: %#v", namespace, name, evt.Object)
 			}
 		case <-ctx.Done():
-			return ctx.Err()
+			logger := c.log.With("namespace", namespace)
+			logger.Error("deployment did not become ready", "name", name, "contextErr", ctx.Err())
+			if ctx.Err() != context.DeadlineExceeded {
+				return ctx.Err()
+			}
+			// Fetch and print debug information.
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			pods, err := c.PodsFromDeployment(ctx, namespace, name) //nolint:contextcheck // The parent context expired.
+			if err != nil {
+				logger.Error("could not fetch pods for deployment", "name", name, "error", err)
+				return ctx.Err()
+			}
+			for _, pod := range pods {
+				if !isPodReady(&pod) {
+					logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
+				}
+			}
 		}
 	}
+}
+
+func (c *Kubeclient) toJSON(a any) string {
+	s, err := json.Marshal(a)
+	if err != nil {
+		c.log.Error("could not marshal object to JSON", "object", a)
+	}
+	return string(s)
+}
+
+func isPodReady(pod *corev1.Pod) bool {
+	for _, cond := range pod.Status.Conditions {
+		if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Kubeclient) resourceInterfaceFor(obj *unstructured.Unstructured) (dynamic.ResourceInterface, error) {

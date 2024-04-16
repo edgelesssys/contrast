@@ -69,7 +69,7 @@ func NewFromConfigFile(configPath string, log *slog.Logger) (*Kubeclient, error)
 // NewForTest creates a Kubeclient with parameters suitable for e2e testing.
 func NewForTest(t *testing.T) *Kubeclient {
 	t.Helper()
-	log := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	configFile := os.Getenv("KUBECONFIG")
 	if configFile == "" {
 		configFile = clientcmd.RecommendedHomeFile
