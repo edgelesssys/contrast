@@ -21,6 +21,9 @@ service-mesh-proxy: (push "service-mesh-proxy")
 # Build the initializer, containerize and push it.
 initializer: (push "initializer")
 
+# Build the node-installer, containerize and push it.
+node-installer: (push "node-installer")
+
 default_cli := "contrast.cli"
 default_deploy_target := "simple"
 workspace_dir := "workspace"
