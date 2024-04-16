@@ -7,14 +7,15 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"flag"
+	"log"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
-	"github.com/edgelesssys/contrast/internal/kubeapi"
+	"github.com/edgelesssys/contrast/e2e/internal/kuberesource"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -25,28 +26,28 @@ const (
 	opensslBackend  = "openssl-backend"
 )
 
+var imageReplacements map[string]string
+
 // TestOpenSSL runs e2e tests on the example OpenSSL deployment.
 func TestOpenSSL(t *testing.T) {
 	c := kubeclient.NewForTest(t)
 	ct := contrasttest.New(t)
 
-	// TODO(burgerdev): The deployment should be generated programmatically.
-	resources, err := filepath.Glob("./workspace/deployment/*.yml")
+	resources, err := kuberesource.OpenSSL()
 	require.NoError(t, err)
-	var objects []*unstructured.Unstructured
-	for _, file := range resources {
-		yaml, err := os.ReadFile(file)
-		require.NoError(t, err)
-		fileObjects, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
-		require.NoError(t, err)
 
+	resources = kuberesource.PatchImages(resources, imageReplacements)
+
+	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
+	require.NoError(t, err)
+
+	var objects []*unstructured.Unstructured
+	for _, obj := range unstructuredResources {
 		// TODO(burgerdev): remove once demo deployments don't contain namespaces anymore.
-		for _, obj := range fileObjects {
-			if obj.GetKind() == "Namespace" {
-				continue
-			}
-			objects = append(objects, obj)
+		if obj.GetKind() == "Namespace" {
+			continue
 		}
+		objects = append(objects, obj)
 	}
 
 	ct.Init(t, objects)
@@ -109,4 +110,19 @@ func TestOpenSSL(t *testing.T) {
 		t.Log(stdout)
 		require.NoError(err, "stderr: %q", stderr)
 	})
+}
+
+func TestMain(m *testing.M) {
+	flag.Parse()
+
+	f, err := os.Open(flag.Arg(0))
+	if err != nil {
+		log.Fatalf("could not open image definition file %q: %v", flag.Arg(0), err)
+	}
+	imageReplacements, err = kuberesource.ImageReplacementsFromFile(f)
+	if err != nil {
+		log.Fatalf("could not parse image definition file %q: %v", flag.Arg(0), err)
+	}
+
+	os.Exit(m.Run())
 }
