@@ -1,29 +1,25 @@
 # Undeploy, rebuild, deploy.
 default target=default_deploy_target cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (deploy target cli) set verify (wait-for-workload target)
 
-# Build the coordinator, containerize and push it.
-coordinator:
+# Build and push a container image.
+push target:
     mkdir -p {{ workspace_dir }}
-    nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator" >> {{ workspace_dir }}/just.containerlookup
+    printf "ghcr.io/edgelesssys/contrast/%s:latest=" "{{ target }}" >> {{ workspace_dir }}/just.containerlookup
+    nix run .#containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}" >> {{ workspace_dir }}/just.containerlookup
+
+# Build the coordinator, containerize and push it.
+coordinator: (push "coordinator")
 
 # Build the openssl container and push it.
-openssl:
-    mkdir -p {{ workspace_dir }}
-    nix run .#containers.push-openssl -- "$container_registry/contrast/openssl" >> {{ workspace_dir }}/just.containerlookup
+openssl: (push "openssl")
 
 # Build the port-forwarder container and push it.
-port-forwarder:
-    mkdir -p {{ workspace_dir }}
-    nix run .#containers.push-port-forwarder -- "$container_registry/contrast/port-forwarder" >> {{ workspace_dir }}/just.containerlookup
+port-forwarder: (push "port-forwarder")
 
-service-mesh-proxy:
-    mkdir -p {{ workspace_dir }}
-    nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy" >> {{ workspace_dir }}/just.containerlookup
+service-mesh-proxy: (push "service-mesh-proxy")
 
 # Build the initializer, containerize and push it.
-initializer:
-    mkdir -p {{ workspace_dir }}
-    nix run .#containers.push-initializer -- "$container_registry/contrast/initializer" >> {{ workspace_dir }}/just.containerlookup
+initializer: (push "initializer")
 
 default_cli := "contrast.cli"
 default_deploy_target := "simple"
