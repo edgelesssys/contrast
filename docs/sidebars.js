@@ -86,6 +86,11 @@ const sidebars = {
       ]
     },
     {
+      type: 'doc',
+      label: 'Workload deployment',
+      id: 'deployment',
+    },
+    {
       type: 'category',
       label: 'Architecture',
       link: {

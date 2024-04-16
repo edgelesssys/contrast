@@ -154,7 +154,7 @@ openssl s_client -CAfile verify/mesh-root.pem -verify_return_error -connect ${fr
 
 By default, mesh certificates are issued with a wildcard DNS entry. The web frontend is accessed
 via load balancer IP in this demo. Tools like curl check the certificate for IP entries in the SAN field.
-Validation fails since the certificate doesn't contain any IP entries as a subject alternative name (SAN).
+Validation fails since the certificate contains no IP entries as a subject alternative name (SAN).
 For example, a connection attempt using the curl and the mesh root certificate with throw the following error:
 
 ```sh
