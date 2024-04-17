@@ -18,6 +18,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'What is Contrast?',
+      collapsed: false,
       link: {
         type: 'doc',
         id: 'intro'
@@ -43,6 +44,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Getting started',
+      collapsed: false,
       link: {
         type: 'doc',
         id: 'getting-started/index'
