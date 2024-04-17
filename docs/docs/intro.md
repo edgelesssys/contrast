@@ -36,4 +36,4 @@ Contrast provides unique security [features](basics/features.md) and [benefits](
 
 ## Next steps
 
-You can learn more about the concept of Confidential Containers, features, security benefits, and performance of Constellation in the *Basics* section. To jump right into the action head to *Getting started*.
+You can learn more about the concept of Confidential Containers, features, security benefits, and performance of Constellation in the [*Basics*](basics) section. To jump right into the action head to [*Getting started*](getting-started).
