@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (deploy target cli) set verify (wait-for-workload target)
+default target=default_deploy_target cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy node-installer runtime (apply "runtime") (deploy target cli) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -30,6 +30,18 @@ workspace_dir := "workspace"
 
 # Generate policies, apply Kubernetes manifests.
 deploy target=default_deploy_target cli=default_cli: (populate target) (generate cli) (apply target)
+
+# Populate the workspace with a runtime class deployment
+runtime:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p ./{{ workspace_dir }}/runtime
+    nix shell .#contrast --command resourcegen runtime ./{{ workspace_dir }}/runtime/runtime.yml
+    nix run .#scripts.patch-contrast-image-hashes -- ./{{ workspace_dir }}/runtime
+    nix run .#kypatch images -- ./{{ workspace_dir }}/runtime \
+        --replace ghcr.io/edgelesssys ${container_registry}
+    nix run .#kypatch namespace -- ./{{ workspace_dir }}/runtime \
+        --replace edg-default kube-system
 
 # Populate the workspace with a Kubernetes deployment
 populate target=default_deploy_target:
@@ -66,6 +78,10 @@ generate cli=default_cli:
 apply target=default_deploy_target:
     #!/usr/bin/env bash
     case {{ target }} in
+        "runtime")
+            kubectl apply -f ./{{ workspace_dir }}/runtime
+            exit 0
+        ;;
         "simple" | "openssl" | "emojivoto")
             :
         ;;
