@@ -25,6 +25,10 @@ var (
 	defaultGenpolicySettings []byte
 	//go:embed assets/genpolicy-rules.rego
 	defaultRules []byte
+	// DefaultCoordinatorPolicyHash is derived from the coordinator release candidate and injected at release build time.
+	//
+	// It is intentionally left empty for dev builds.
+	DefaultCoordinatorPolicyHash = ""
 )
 
 func cachedir(subdir string) (string, error) {

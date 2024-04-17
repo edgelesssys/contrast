@@ -1,6 +1,29 @@
 package cmd
 
-// DefaultCoordinatorPolicyHash is derived from the coordinator release candidate and injected at release build time.
-//
-// It is intentionally left empty for dev builds.
-var DefaultCoordinatorPolicyHash = ""
+import (
+	"github.com/spf13/cobra"
+)
+
+// This value is injected at build time.
+var runtimeHandler = "contrast-cc"
+
+// NewRuntimeCmd creates the contrast runtime subcommand.
+func NewRuntimeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "runtime",
+		Short: "Prints the runtimeClassName",
+		Long: `Prints runtimeClassName used by Contrast.
+
+Contrast uses a custom container runtime, where every pod is a confidential
+virtual machine. Pod specs of workloads running on Contrast must
+have the runtimeClassName set to the value returned by this command.
+		`,
+		Run: runRuntime,
+	}
+
+	return cmd
+}
+
+func runRuntime(cmd *cobra.Command, _ []string) {
+	cmd.Println(runtimeHandler)
+}

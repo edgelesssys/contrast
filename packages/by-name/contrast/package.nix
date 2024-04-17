@@ -66,6 +66,7 @@ buildGoModule rec {
     "-s"
     "-w"
     "-X main.version=v${version}"
+    "-X github.com/edgelesssys/contrast/cli/cmd.runtimeHandler=${runtimeHandler}"
     "-X github.com/edgelesssys/contrast/e2e/internal/kuberesource.runtimeHandler=${runtimeHandler}"
   ];
 
