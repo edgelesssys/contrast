@@ -26,7 +26,7 @@ To trust the agent, we need to ensure that the agent only serves permitted reque
 For Contrast, the chain of trust looks like this:
 
 1. The CLI generates a policy and attaches it to the pod definition.
-2. Kubernetes schedules the pod on a node with `kata-cc-isolation` runtime.
+2. Kubernetes schedules the pod on a node with a CoCo runtime.
 3. Containerd takes the node, starts the Kata Shim and creates the pod sandbox.
 4. The Kata runtime starts a CVM with the policy's digest as `HOSTDATA`.
 5. The Kata runtime sets the policy using the `SetPolicy` method.

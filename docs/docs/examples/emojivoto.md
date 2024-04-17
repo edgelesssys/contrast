@@ -57,7 +57,7 @@ contrast generate deployment/
 :::note[Runtime class and Initializer]
 
 The deployment YAML shipped for this demo is already configured to be used with Contrast.
-A runtime class `kata-cc-isolation` was added to the pods to signal they should be run
+A runtime class `contrast-cc-<VERSIONHASH>` was added to the pods to signal they should be run
 as Confidential Containers. In addition, the Contrast Initializer was added
 as an init container to these workloads to facilitate the attestation and certificate pulling
 before the actual workload is started.
