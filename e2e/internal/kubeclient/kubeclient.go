@@ -114,6 +114,27 @@ func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployme
 	return out, nil
 }
 
+// PodsFromDaemonSet returns the pods from a daemonset in a namespace.
+//
+// A pod is considered to belong to a daemonset if it is owned by the DaemonSet in question.
+func (c *Kubeclient) PodsFromDaemonSet(ctx context.Context, namespace, daemonset string) ([]v1.Pod, error) {
+	pods, err := c.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("listing pods: %w", err)
+	}
+
+	var out []v1.Pod
+	for _, pod := range pods.Items {
+		for _, ref := range pod.OwnerReferences {
+			if ref.Kind == "DaemonSet" && ref.Name == daemonset {
+				out = append(out, pod)
+			}
+		}
+	}
+
+	return out, nil
+}
+
 // Exec executes a process in a pod and returns the stdout and stderr.
 func (c *Kubeclient) Exec(ctx context.Context, namespace, pod string, argv []string) (
 	stdout string, stderr string, err error,

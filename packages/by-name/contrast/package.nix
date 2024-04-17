@@ -13,7 +13,10 @@ let
 
     tags = [ "e2e" ];
 
-    ldflags = [ "-s" ];
+    ldflags = [
+      "-s"
+      "-X github.com/edgelesssys/contrast/e2e/internal/kuberesource.runtimeHandler=${runtimeHandler}"
+    ];
 
     subPackages = [ "e2e/openssl" "e2e/servicemesh" ];
   };

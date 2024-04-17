@@ -49,7 +49,7 @@ jobs:
           just get-credentials
       - name: Build and prepare deployments
         run: |
-          just coordinator initializer openssl port-forwarder
+          just coordinator initializer openssl port-forwarder node-installer
       - name: E2E Test
         run: |
           nix shell .#contrast.e2e --command openssl.test -test.v workspace/just.containerlookup

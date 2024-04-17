@@ -99,6 +99,53 @@ func (c *Kubeclient) WaitForDeployment(ctx context.Context, namespace, name stri
 	}
 }
 
+// WaitForDaemonset watches the given daemonset and blocks until the desired number of pods are
+// ready or the context expires (is cancelled or times out).
+func (c *Kubeclient) WaitForDaemonset(ctx context.Context, namespace, name string) error {
+	watcher, err := c.client.AppsV1().DaemonSets(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+	if err != nil {
+		return err
+	}
+	for {
+		select {
+		case evt := <-watcher.ResultChan():
+			switch evt.Type {
+			case watch.Added:
+				fallthrough
+			case watch.Modified:
+				ds, ok := evt.Object.(*appsv1.DaemonSet)
+				if !ok {
+					return fmt.Errorf("watcher received unexpected type %T", evt.Object)
+				}
+				if ds.Status.NumberReady >= ds.Status.DesiredNumberScheduled {
+					return nil
+				}
+			default:
+				return fmt.Errorf("unexpected watch event while waiting for daemonset %s/%s: %#v", namespace, name, evt.Object)
+			}
+		case <-ctx.Done():
+			logger := c.log.With("namespace", namespace)
+			logger.Error("daemonset did not become ready", "name", name, "contextErr", ctx.Err())
+			if ctx.Err() != context.DeadlineExceeded {
+				return ctx.Err()
+			}
+			// Fetch and print debug information.
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			pods, err := c.PodsFromDaemonSet(ctx, namespace, name) //nolint:contextcheck // The parent context expired.
+			if err != nil {
+				logger.Error("could not fetch pods for daemonset", "name", name, "error", err)
+				return ctx.Err()
+			}
+			for _, pod := range pods {
+				if !isPodReady(&pod) {
+					logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
+				}
+			}
+		}
+	}
+}
+
 func (c *Kubeclient) toJSON(a any) string {
 	s, err := json.Marshal(a)
 	if err != nil {
@@ -166,23 +213,4 @@ func (c *Kubeclient) Delete(ctx context.Context, objects ...*unstructured.Unstru
 		c.log.Info("object deleted", "namespace", obj.GetNamespace(), "kind", obj.GetKind(), "name", obj.GetName())
 	}
 	return nil
-}
-
-// PatchNamespace adjusts the namespace of the given object in-place if it is an instance of a namespaced resource.
-func (c *Kubeclient) PatchNamespace(namespace string, obj *unstructured.Unstructured) error {
-	gvk := obj.GroupVersionKind()
-	resources, err := c.client.DiscoveryClient.ServerResourcesForGroupVersion(gvk.GroupVersion().String())
-	if err != nil {
-		return fmt.Errorf("API resources not found for %#v: %w", gvk, err)
-	}
-	for _, resource := range resources.APIResources {
-		if resource.Kind != obj.GetKind() {
-			continue
-		}
-		if resource.Namespaced {
-			obj.SetNamespace(namespace)
-		}
-		return nil
-	}
-	return fmt.Errorf("API resource not found for %#v", gvk)
 }
