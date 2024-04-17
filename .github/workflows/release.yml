@@ -183,12 +183,18 @@ jobs:
           commit: false
       - name: Push containers with release tag
         run: |
-          nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator"
+          coordinatorImg=$(nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator")
           nix run .#containers.push-initializer -- "$container_registry/contrast/initializer"
+          echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
+      - name: Add tag to Coordinator image
+        run: |
+          front=${coordinatorImg%@*}
+          back=${coordinatorImg#*@}
+          echo "coordinatorImgTagged=${front}:${{ inputs.version }}@${back}" | tee -a "$GITHUB_ENV"
       - name: Create portable coordinator resource definitions
         run: |
           mkdir -p workspace
-          nix run .#scripts.write-coordinator-yaml -- "${container_registry}/contrast/coordinator:${{ inputs.version }}" > workspace/coordinator.yml
+          nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" > workspace/coordinator.yml
       - name: Update coordinator policy hash
         run: |
           yq < workspace/coordinator.yml \
