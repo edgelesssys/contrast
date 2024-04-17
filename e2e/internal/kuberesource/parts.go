@@ -3,10 +3,77 @@ package kuberesource
 import (
 	"strconv"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
+
+// ContrastRuntimeClass creates a new RuntimeClassConfig.
+func ContrastRuntimeClass() *RuntimeClassConfig {
+	r := RuntimeClass(runtimeHandler).
+		WithHandler(runtimeHandler).
+		WithLabels(map[string]string{"addonmanager.kubernetes.io/mode": "Reconcile"}).
+		WithOverhead(Overhead(corev1.ResourceList{"memory": resource.MustParse("2Gi")})).
+		WithScheduling(Scheduling(map[string]string{"kubernetes.azure.com/kata-cc-isolation": "true"}))
+
+	return &RuntimeClassConfig{r}
+}
+
+// NodeInstallerConfig wraps a DaemonSetApplyConfiguration for a node installer.
+type NodeInstallerConfig struct {
+	*applyappsv1.DaemonSetApplyConfiguration
+}
+
+// NodeInstaller constructs a node installer daemon set.
+func NodeInstaller(namespace string) *NodeInstallerConfig {
+	name := "contrast-node-installer"
+
+	d := DaemonSet(name, namespace).
+		WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+		WithSpec(DaemonSetSpec().
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "contrast-node-installer"}).
+				WithSpec(PodSpec().
+					WithHostPID(true).
+					WithInitContainers(Container().
+						WithName("installer").
+						WithImage("ghcr.io/edgelesssys/contrast/node-installer:latest").
+						WithResources(ResourceRequirements().
+							WithMemoryLimitAndRequest(100),
+						).
+						WithSecurityContext(PrivilegedSecurityContext()).
+						WithVolumeMounts(VolumeMount().
+							WithName("host-mount").
+							WithMountPath("/host")),
+					).
+					WithContainers(
+						Container().
+							WithName("pause").
+							WithImage("k8s.gcr.io/pause").
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(10),
+							),
+					).
+					WithVolumes(
+						Volume().
+							WithName("host-mount").
+							WithHostPath(HostPathVolumeSource().
+								WithPath("/").
+								WithType(corev1.HostPathDirectory),
+							),
+					),
+				),
+			),
+		)
+
+	return &NodeInstallerConfig{d}
+}
 
 // PortForwarderConfig wraps a PodApplyConfiguration for a port forwarder.
 type PortForwarderConfig struct {
