@@ -141,7 +141,7 @@ func Coordinator(namespace string) *CoordinatorConfig {
 				WithLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}).
 				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName("kata-cc-isolation").
+					WithRuntimeClassName(runtimeHandler).
 					WithContainers(
 						Container().
 							WithName("coordinator").

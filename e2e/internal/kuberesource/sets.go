@@ -60,7 +60,7 @@ func Simple() ([]any, error) {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "workload"}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName("kata-cc-isolation").
+					WithRuntimeClassName(runtimeHandler).
 					WithContainers(
 						Container().
 							WithName("workload").
@@ -105,7 +105,7 @@ func OpenSSL() ([]any, error) {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-backend"}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName("kata-cc-isolation").
+					WithRuntimeClassName(runtimeHandler).
 					WithContainers(
 						Container().
 							WithName("openssl-backend").
@@ -146,7 +146,7 @@ func OpenSSL() ([]any, error) {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-client"}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName("kata-cc-isolation").
+					WithRuntimeClassName(runtimeHandler).
 					WithContainers(
 						Container().
 							WithName("openssl-client").
@@ -173,7 +173,7 @@ func OpenSSL() ([]any, error) {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-frontend"}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName("kata-cc-isolation").
+					WithRuntimeClassName(runtimeHandler).
 					WithContainers(
 						Container().
 							WithName("openssl-frontend").
@@ -305,7 +305,7 @@ func generateEmojivoto(smMode serviceMeshMode) ([]any, error) {
 					"version":                "v11",
 				}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName("kata-cc-isolation").
+					WithRuntimeClassName(runtimeHandler).
 					WithServiceAccountName("emoji").
 					WithContainers(
 						Container().
@@ -412,7 +412,7 @@ func generateEmojivoto(smMode serviceMeshMode) ([]any, error) {
 					"version":                "v11",
 				}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName("kata-cc-isolation").
+					WithRuntimeClassName(runtimeHandler).
 					WithServiceAccountName("voting").
 					WithContainers(
 						Container().
@@ -485,7 +485,7 @@ func generateEmojivoto(smMode serviceMeshMode) ([]any, error) {
 					"version":                "v11",
 				}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName("kata-cc-isolation").
+					WithRuntimeClassName(runtimeHandler).
 					WithServiceAccountName("web").
 					WithContainers(
 						Container().
