@@ -597,6 +597,17 @@ func PatchImages(resources []any, replacements map[string]string) []any {
 					r.Spec.Template.Spec.Containers[i].Image = &replacement
 				}
 			}
+		case *applyappsv1.DaemonSetApplyConfiguration:
+			for i := 0; i < len(r.Spec.Template.Spec.InitContainers); i++ {
+				if replacement, ok := replacements[*r.Spec.Template.Spec.InitContainers[i].Image]; ok {
+					r.Spec.Template.Spec.InitContainers[i].Image = &replacement
+				}
+			}
+			for i := 0; i < len(r.Spec.Template.Spec.Containers); i++ {
+				if replacement, ok := replacements[*r.Spec.Template.Spec.Containers[i].Image]; ok {
+					r.Spec.Template.Spec.Containers[i].Image = &replacement
+				}
+			}
 		case *applycorev1.PodApplyConfiguration:
 			for i := 0; i < len(r.Spec.Containers); i++ {
 				if replacement, ok := replacements[*r.Spec.Containers[i].Image]; ok {
@@ -615,6 +626,8 @@ func PatchNamespaces(resources []any, namespace string) []any {
 		case *applycorev1.PodApplyConfiguration:
 			r.Namespace = &namespace
 		case *applyappsv1.DeploymentApplyConfiguration:
+			r.Namespace = &namespace
+		case *applyappsv1.DaemonSetApplyConfiguration:
 			r.Namespace = &namespace
 		case *applycorev1.ServiceApplyConfiguration:
 			r.Namespace = &namespace

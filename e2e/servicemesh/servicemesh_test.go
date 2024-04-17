@@ -19,33 +19,18 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/e2e/internal/kuberesource"
 	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 var imageReplacements map[string]string
 
 // TestIngressEgress tests that the ingress and egress proxies work as configured.
 func TestIngressEgress(t *testing.T) {
-	ct := contrasttest.New(t)
+	ct := contrasttest.New(t, imageReplacements)
 
 	resources, err := kuberesource.EmojivotoIngressEgress()
 	require.NoError(t, err)
 
-	resources = kuberesource.PatchImages(resources, imageReplacements)
-
-	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
-	require.NoError(t, err)
-
-	var objects []*unstructured.Unstructured
-	for _, obj := range unstructuredResources {
-		// TODO(burgerdev): remove once demo deployments don't contain namespaces anymore.
-		if obj.GetKind() == "Namespace" {
-			continue
-		}
-		objects = append(objects, obj)
-	}
-
-	ct.Init(t, objects)
+	ct.Init(t, resources)
 
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 

@@ -25,9 +25,10 @@ import (
 // ContrastTest is the Contrast test helper struct.
 type ContrastTest struct {
 	// inputs, usually filled by New()
-	Namespace  string
-	WorkDir    string
-	Kubeclient *kubeclient.Kubeclient
+	Namespace         string
+	WorkDir           string
+	ImageReplacements map[string]string
+	Kubeclient        *kubeclient.Kubeclient
 
 	// outputs of contrast subcommands
 	coordinatorPolicyHash string
@@ -36,16 +37,17 @@ type ContrastTest struct {
 }
 
 // New creates a new contrasttest.T object bound to the given test.
-func New(t *testing.T) *ContrastTest {
+func New(t *testing.T, imageReplacements map[string]string) *ContrastTest {
 	return &ContrastTest{
-		Namespace:  makeNamespace(t),
-		WorkDir:    t.TempDir(),
-		Kubeclient: kubeclient.NewForTest(t),
+		Namespace:         makeNamespace(t),
+		WorkDir:           t.TempDir(),
+		ImageReplacements: imageReplacements,
+		Kubeclient:        kubeclient.NewForTest(t),
 	}
 }
 
 // Init patches the given resources for the test environment and makes them available to Generate and Set.
-func (ct *ContrastTest) Init(t *testing.T, objs []*unstructured.Unstructured) {
+func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	require := require.New(t)
 
 	// Create namespace
@@ -65,17 +67,26 @@ func (ct *ContrastTest) Init(t *testing.T, objs []*unstructured.Unstructured) {
 		}
 	})
 
-	// Add the namespace for this test.
-	for _, obj := range objs {
-		require.NoError(ct.Kubeclient.PatchNamespace(ct.Namespace, obj))
+	// Prepare resources
+	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
+	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
+	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
+	require.NoError(err)
+	var objects []*unstructured.Unstructured
+	for _, obj := range unstructuredResources {
+		// TODO(burgerdev): remove once demo deployments don't contain namespaces anymore.
+		if obj.GetKind() == "Namespace" {
+			continue
+		}
+		objects = append(objects, obj)
 	}
 
-	// TODO(burgerdev): patch images
-
 	// Write resources to this test's tempdir.
-	buf, err := kuberesource.EncodeUnstructured(objs)
+	buf, err := kuberesource.EncodeUnstructured(objects)
 	require.NoError(err)
 	require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yaml"), buf, 0o644))
+
+	ct.installRuntime(t)
 }
 
 // Generate runs the contrast generate command.
@@ -190,6 +201,27 @@ func (ct *ContrastTest) commonArgs() []string {
 	return []string{
 		"--workspace-dir", ct.WorkDir,
 	}
+}
+
+// installRuntime initializes the kubernetes runtime class for the test.
+func (ct *ContrastTest) installRuntime(t *testing.T) {
+	require := require.New(t)
+
+	resources, err := kuberesource.Runtime()
+	require.NoError(err)
+
+	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
+	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
+
+	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
+	require.NoError(err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	require.NoError(ct.Kubeclient.Apply(ctx, unstructuredResources...))
+
+	require.NoError(ct.Kubeclient.WaitForDaemonset(ctx, ct.Namespace, "contrast-node-installer"))
 }
 
 func makeNamespace(t *testing.T) string {
