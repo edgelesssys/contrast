@@ -166,7 +166,7 @@ func findGenerateTargets(args []string, logger *slog.Logger) ([]string, error) {
 		}
 	}
 
-	paths = filterNonCoCoRuntime("kata-cc-isolation", paths, logger)
+	paths = filterNonCoCoRuntime("contrast-cc", paths, logger)
 
 	if len(paths) == 0 {
 		return nil, fmt.Errorf("no .yml/.yaml files found")
@@ -174,7 +174,7 @@ func findGenerateTargets(args []string, logger *slog.Logger) ([]string, error) {
 	return paths, nil
 }
 
-func filterNonCoCoRuntime(runtimeClassName string, paths []string, logger *slog.Logger) []string {
+func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger *slog.Logger) []string {
 	var filtered []string
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
@@ -182,8 +182,8 @@ func filterNonCoCoRuntime(runtimeClassName string, paths []string, logger *slog.
 			logger.Warn("Failed to read file", "path", path, "err", err)
 			continue
 		}
-		if !bytes.Contains(data, []byte(runtimeClassName)) {
-			logger.Info("Ignoring non-CoCo runtime", "className", runtimeClassName, "path", path)
+		if !bytes.Contains(data, []byte(runtimeClassNamePrefix)) {
+			logger.Info("Ignoring non-CoCo runtime", "className", runtimeClassNamePrefix, "path", path)
 			continue
 		}
 		filtered = append(filtered, path)
