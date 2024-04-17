@@ -47,13 +47,14 @@ cp -R $MY_RESOURCE_DIR resources/
 </Tabs>
 
 To specify that a workload (pod, deployment, etc.) should be deployed as confidential containers,
-add `runtimeClassName: kata-cc-isolation` to the pod spec (pod definition or template).
+add `runtimeClassName: contrast-cc` to the pod spec (pod definition or template).
+This is a placeholder name that will be replaced by a versioned `runtimeClassName` when generating policies.
 In addition, add the Contrast Initializer as `initContainers` to these workloads and configure the
 workload to use the certificates written to a `volumeMount` named `tls-certs`.
 
 ```yaml
 spec: # v1.PodSpec
-  runtimeClassName: kata-cc-isolation
+  runtimeClassName: contrast-cc
   initContainers:
   - name: initializer
     image: "ghcr.io/edgelesssys/contrast/initializer:latest"
