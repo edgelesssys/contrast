@@ -8,6 +8,8 @@ on:
           required: false
           default: "false"
     pull_request:
+      paths-ignore:
+        - docs/**
 
 env:
   container_registry: ghcr.io/edgelesssys
