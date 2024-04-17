@@ -22,6 +22,8 @@ func main() {
 	switch set {
 	case "coordinator-release":
 		resources, err = kuberesource.CoordinatorRelease()
+	case "runtime":
+		resources, err = kuberesource.Runtime()
 	case "simple":
 		resources, err = kuberesource.Simple()
 	case "openssl":

@@ -4,6 +4,7 @@
 , genpolicy-msft
 , genpolicy ? genpolicy-msft
 , contrast
+, runtime-class-files
 }:
 let
   e2e = buildGoTest rec {
@@ -16,6 +17,8 @@ let
 
     subPackages = [ "e2e/openssl" "e2e/servicemesh" ];
   };
+
+  runtimeHandler = lib.removeSuffix "\n" (builtins.readFile "${runtime-class-files}/runtime-handler");
 
   packageOutputs = [ "coordinator" "initializer" "cli" ];
 in
@@ -63,6 +66,7 @@ buildGoModule rec {
     "-s"
     "-w"
     "-X main.version=v${version}"
+    "-X github.com/edgelesssys/contrast/e2e/internal/kuberesource.runtimeHandler=${runtimeHandler}"
   ];
 
   preCheck = ''

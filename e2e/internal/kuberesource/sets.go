@@ -22,6 +22,21 @@ func CoordinatorRelease() ([]any, error) {
 	return resources, nil
 }
 
+// Runtime returns a set of resources for registering and installing the runtime.
+func Runtime() ([]any, error) {
+	ns := "edg-default"
+
+	runtimeClass := ContrastRuntimeClass().RuntimeClassApplyConfiguration
+	nodeInstaller := NodeInstaller(ns).DaemonSetApplyConfiguration
+
+	resources := []any{
+		runtimeClass,
+		nodeInstaller,
+	}
+
+	return resources, nil
+}
+
 // Simple returns a simple set of resources for testing.
 func Simple() ([]any, error) {
 	ns := "edg-default"

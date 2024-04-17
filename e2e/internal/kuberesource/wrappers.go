@@ -7,6 +7,7 @@ import (
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	applynodev1 "k8s.io/client-go/applyconfigurations/node/v1"
 )
 
 // DeploymentConfig wraps applyappsv1.DeploymentApplyConfiguration.
@@ -31,6 +32,30 @@ type DeploymentSpecConfig struct {
 // DeploymentSpec creates a new DeploymentSpecConfig.
 func DeploymentSpec() *DeploymentSpecConfig {
 	return &DeploymentSpecConfig{applyappsv1.DeploymentSpec()}
+}
+
+// DaemonSetConfig wraps applyappsv1.DaemonSetApplyConfiguration.
+type DaemonSetConfig struct {
+	*applyappsv1.DaemonSetApplyConfiguration
+}
+
+// DaemonSet creates a new DaemonSetConfig.
+func DaemonSet(name, namespace string) *DaemonSetConfig {
+	d := applyappsv1.DaemonSet(name, namespace)
+	if namespace == "" && d.ObjectMetaApplyConfiguration != nil {
+		d.ObjectMetaApplyConfiguration.Namespace = nil
+	}
+	return &DaemonSetConfig{d}
+}
+
+// DaemonSetSpecConfig wraps applyappsv1.DaemonSetSpecApplyConfiguration.
+type DaemonSetSpecConfig struct {
+	*applyappsv1.DaemonSetSpecApplyConfiguration
+}
+
+// DaemonSetSpec creates a new DaemonSetSpecConfig.
+func DaemonSetSpec() *DaemonSetSpecConfig {
+	return &DaemonSetSpecConfig{applyappsv1.DaemonSetSpec()}
 }
 
 // PodConfig wraps applyappsv1.PodApplyConfiguration.
@@ -170,6 +195,21 @@ func (e *EmptyDirVolumeSourceConfig) Inner() *applycorev1.EmptyDirVolumeSourceAp
 	return e.EmptyDirVolumeSourceApplyConfiguration
 }
 
+// HostPathVolumeSourceConfig wraps applycorev1.HostPathVolumeSourceApplyConfiguration.
+type HostPathVolumeSourceConfig struct {
+	*applycorev1.HostPathVolumeSourceApplyConfiguration
+}
+
+// HostPathVolumeSource creates a new HostPathVolumeSourceConfig.
+func HostPathVolumeSource() *HostPathVolumeSourceConfig {
+	return &HostPathVolumeSourceConfig{applycorev1.HostPathVolumeSource()}
+}
+
+// Inner returns the inner applycorev1.HostPathVolumeSourceApplyConfiguration.
+func (h *HostPathVolumeSourceConfig) Inner() *applycorev1.HostPathVolumeSourceApplyConfiguration {
+	return h.HostPathVolumeSourceApplyConfiguration
+}
+
 // ContainerPortConfig wraps applycorev1.ContainerPortApplyConfiguration.
 type ContainerPortConfig struct {
 	*applycorev1.ContainerPortApplyConfiguration
@@ -178,6 +218,11 @@ type ContainerPortConfig struct {
 // ContainerPort creates a new ContainerPortConfig.
 func ContainerPort() *ContainerPortConfig {
 	return &ContainerPortConfig{applycorev1.ContainerPort()}
+}
+
+// PrivilegedSecurityContext returns a SecurityContextApplyConfiguration with Privileged set to true.
+func PrivilegedSecurityContext() *applycorev1.SecurityContextApplyConfiguration {
+	return applycorev1.SecurityContext().WithPrivileged(true)
 }
 
 // ServiceConfig wraps applycorev1.ServiceApplyConfiguration.
@@ -242,6 +287,28 @@ func Probe() *applycorev1.ProbeApplyConfiguration {
 // TCPSocketAction creates a new TCPSocketActionApplyConfiguration.
 func TCPSocketAction() *applycorev1.TCPSocketActionApplyConfiguration {
 	return applycorev1.TCPSocketAction()
+}
+
+// RuntimeClassConfig wraps applypodsv1.RuntimeClassApplyConfiguration for a runtime class.
+type RuntimeClassConfig struct {
+	*applynodev1.RuntimeClassApplyConfiguration
+}
+
+// RuntimeClass constructs a new RuntimeClassConfig.
+func RuntimeClass(name string) *RuntimeClassConfig {
+	return &RuntimeClassConfig{applynodev1.RuntimeClass(name)}
+}
+
+// Overhead creates a new OverheadApplyConfiguration.
+func Overhead(podFixed corev1.ResourceList) *applynodev1.OverheadApplyConfiguration {
+	return applynodev1.Overhead().WithPodFixed(podFixed)
+}
+
+// Scheduling creates a new SchedulingApplyConfiguration.
+func Scheduling(nodeSelector map[string]string, tolerations ...*applycorev1.TolerationApplyConfiguration) *applynodev1.SchedulingApplyConfiguration {
+	return applynodev1.Scheduling().
+		WithNodeSelector(nodeSelector).
+		WithTolerations(tolerations...)
 }
 
 func fromPtr[T any](v *T) T {
