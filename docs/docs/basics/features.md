@@ -8,7 +8,7 @@ From an operational perspective, Contrast provides the following key features:
 
 * **Managed Kubernetes Compatibility**: Initially compatible with Azure Kubernetes Service (AKS), Contrast is designed to support additional platforms such as AWS EKS and Google Cloud GKE as they begin to accommodate confidential containers.
 
-* **Lightweight Installation**: Contrast can be integrated as a [day-2 operation](../deployment.md) within existing clusters, adding minimal [components](../architecture/overview.md) to your setup. This facilitates straightforward deployments using your existing YAML configurations, Helm charts, or Kustomization, enabling native Kubernetes orchestration of your applications.
+* **Lightweight Installation**: Contrast can be integrated as a [day-2 operation](../deployment.md) within existing clusters, adding minimal [components](../architecture) to your setup. This facilitates straightforward deployments using your existing YAML configurations, Helm charts, or Kustomization, enabling native Kubernetes orchestration of your applications.
 
 * **Remote Attestation**: Contrast generates a concise attestation statement that verifies the identity, authenticity, and integrity of your deployment both internally and to external parties. This architecture ensures that updates or scaling of the application don't compromise the attestation’s validity.
 
