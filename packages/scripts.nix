@@ -89,6 +89,7 @@ with pkgs;
     runtimeInputs = [
       crane
       kypatch
+      jq
     ];
     text = ''
       targetPath=$1
@@ -107,13 +108,15 @@ with pkgs;
       opensslHash=$(crane digest --tarball "$tmpdir/openssl.tar")
       forwarderHash=$(crane digest --tarball "$tmpdir/port-forwarder.tar")
       serviceMeshProxyHash=$(crane digest --tarball "$tmpdir/service-mesh-proxy.tar")
+      nodeInstallerHash=$(jq -r '.manifests[0].digest' "${contrast-node-installer-image}/index.json")
 
       kypatch images "$targetPath" \
         --replace "contrast/coordinator:latest" "contrast/coordinator@$coordHash" \
         --replace "contrast/initializer:latest" "contrast/initializer@$initHash" \
         --replace "contrast/openssl:latest" "contrast/openssl@$opensslHash" \
         --replace "contrast/port-forwarder:latest" "contrast/port-forwarder@$forwarderHash" \
-        --replace "contrast/service-mesh-proxy:latest" "contrast/service-mesh-proxy@$serviceMeshProxyHash"
+        --replace "contrast/service-mesh-proxy:latest" "contrast/service-mesh-proxy@$serviceMeshProxyHash" \
+        --replace "contrast/node-installer:latest" "contrast/node-installer@$nodeInstallerHash"
     '';
   };
 
