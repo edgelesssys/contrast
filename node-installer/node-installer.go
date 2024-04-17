@@ -115,13 +115,9 @@ func containerdRuntimeConfig(basePath, configPath string) error {
 }
 
 func patchContainerdConfig(runtimeName, basePath, configPath string) error {
-	existing, err := parseExistingContainerdConfig(configPath)
+	existingRaw, existing, err := parseExistingContainerdConfig(configPath)
 	if err != nil {
 		existing = constants.ContainerdBaseConfig()
-	}
-	existingRaw, err := toml.Marshal(existing)
-	if err != nil {
-		return err
 	}
 
 	// Add tardev snapshotter
@@ -142,6 +138,7 @@ func patchContainerdConfig(runtimeName, basePath, configPath string) error {
 	}
 
 	if slices.Equal(existingRaw, rawConfig) {
+		fmt.Println("Containerd config already up-to-date. No changes needed.")
 		return nil
 	}
 
@@ -149,18 +146,18 @@ func patchContainerdConfig(runtimeName, basePath, configPath string) error {
 	return os.WriteFile(configPath, rawConfig, os.ModePerm)
 }
 
-func parseExistingContainerdConfig(path string) (config.ContainerdConfig, error) {
+func parseExistingContainerdConfig(path string) ([]byte, config.ContainerdConfig, error) {
 	configData, err := os.ReadFile(path)
 	if err != nil {
-		return config.ContainerdConfig{}, err
+		return nil, config.ContainerdConfig{}, err
 	}
 
 	var cfg config.ContainerdConfig
 	if err := toml.Unmarshal(configData, &cfg); err != nil {
-		return config.ContainerdConfig{}, err
+		return nil, config.ContainerdConfig{}, err
 	}
 
-	return cfg, nil
+	return configData, cfg, nil
 }
 
 func restartHostContainerd(containerdConfigPath string) error {
@@ -189,6 +186,7 @@ func restartHostContainerd(containerdConfigPath string) error {
 	}
 
 	fmt.Printf("containerd start time: %s\n", startTime.Format(time.RFC3339))
+	fmt.Printf("config mtime:          %s\n", configMtime.Format(time.RFC3339))
 	if startTime.After(configMtime) {
 		fmt.Println("containerd already running with the newest config")
 		return nil
