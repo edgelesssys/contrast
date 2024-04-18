@@ -35,21 +35,19 @@ func NewGenerateCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "generate [flags] paths...",
 		Short: "generate policies and inject into Kubernetes resources",
-		Long: `
-		Generate policies and inject into the given Kubernetes resources.
+		Long: `Generate policies and inject into the given Kubernetes resources.
 
-		This will download the referenced container images to calculate the dm-verity
-		hashes of the image layers. In addition, the Rego policy will be used as base
-		and updated with the given settings file. For each container workload, the policy
-		is added as an annotation to the Kubernetes YAML.
+This will download the referenced container images to calculate the dm-verity
+hashes of the image layers. In addition, the Rego policy will be used as base
+and updated with the given settings file. For each container workload, the policy
+is added as an annotation to the Kubernetes YAML.
 
-		The hashes of the policies are added to the manifest.
+The hashes of the policies are added to the manifest.
 
-		If the Kubernetes YAML contains a Contrast Coordinator pod whose policy differs from
-		the embedded default, the generated policy will be printed to stdout, alongside a
-		warning message on stderr. This hash needs to be passed to the set and verify
-		subcommands.
-		`,
+If the Kubernetes YAML contains a Contrast Coordinator pod whose policy differs from
+the embedded default, the generated policy will be printed to stdout, alongside a
+warning message on stderr. This hash needs to be passed to the set and verify
+subcommands.`,
 		RunE: runGenerate,
 	}
 
