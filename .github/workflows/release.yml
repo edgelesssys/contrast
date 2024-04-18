@@ -36,6 +36,7 @@ jobs:
       MAJOR_MINOR_PATCH: ${{ steps.version-info.outputs.MAJOR_MINOR_PATCH }}
       RELEASE_BRANCH: ${{ steps.version-info.outputs.RELEASE_BRANCH }}
       WORKING_BRANCH: ${{ steps.version-info.outputs.WORKING_BRANCH }}
+      NEXT_MINOR: ${{ steps.version-info.outputs.NEXT_MINOR }}
       NEXT_MINOR_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
       NEXT_PATCH_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
     steps:
@@ -72,6 +73,7 @@ jobs:
           PART_MINOR=${PART_MINOR%%.*}
           PART_PATCH=${WITHOUT_V##*.}
           RELEASE_BRANCH=release/v${PART_MAJOR}.${PART_MINOR}
+          NEXT_MINOR=${PART_MAJOR}.$((PART_MINOR + 1)).0
           NEXT_MINOR_PRE_WITHOUT_V=${PART_MAJOR}.$((PART_MINOR + 1)).0-pre
           NEXT_PATCH_PRE_WITHOUT_V=${PART_MAJOR}.${PART_MINOR}.$((PART_PATCH + 1))-pre
           {
@@ -84,6 +86,7 @@ jobs:
             echo "MAJOR_MINOR_PATCH=${PART_MAJOR}.${PART_MINOR}.${PART_PATCH}"
             echo "RELEASE_BRANCH=${RELEASE_BRANCH}"
             echo "WORKING_BRANCH=${WORKING_BRANCH}"
+            echo "NEXT_MINOR=${NEXT_MINOR}"
             echo "NEXT_MINOR_PRE_WITHOUT_V=${NEXT_MINOR_PRE_WITHOUT_V}"
             echo "NEXT_PATCH_PRE_WITHOUT_V=${NEXT_PATCH_PRE_WITHOUT_V}"
           } | tee -a "$GITHUB_OUTPUT"
@@ -229,6 +232,7 @@ jobs:
 
   create-github-stuff:
     name: Create backport label and milestone
+    if: ${{ inputs.kind == 'minor' }}
     needs: process-inputs
     runs-on: ubuntu-22.04
     permissions:
@@ -236,6 +240,7 @@ jobs:
       contents: read
     env:
       RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
+      NEXT_MINOR: ${{ needs.process-inputs.outputs.NEXT_MINOR }}
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -251,11 +256,11 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /repos/edgelesssys/contrast/milestones |
             jq -r '.[] | .title' | \
-            grep -xqF "${{ inputs.version }}" && exit 0
+            grep -xqF "${NEXT_MINOR}" && exit 0
           gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /repos/edgelesssys/contrast/milestones \
-            -f title='${{ inputs.version }}' \
+            -f title='${NEXT_MINOR}' \
             -f state='open'
