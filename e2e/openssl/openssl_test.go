@@ -30,7 +30,6 @@ var imageReplacements map[string]string
 
 // TestOpenSSL runs e2e tests on the example OpenSSL deployment.
 func TestOpenSSL(t *testing.T) {
-	c := kubeclient.NewForTest(t)
 	ct := contrasttest.New(t)
 
 	resources, err := kuberesource.OpenSSL()
@@ -69,9 +68,9 @@ func TestOpenSSL(t *testing.T) {
 
 			require := require.New(t)
 
-			require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
+			require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
 
-			addr, cancelPortForward, err := c.PortForwardPod(ctx, ct.Namespace, "port-forwarder-openssl-frontend", "443")
+			addr, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-openssl-frontend", "443")
 			require.NoError(err)
 			defer cancelPortForward()
 
