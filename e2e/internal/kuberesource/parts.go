@@ -47,7 +47,7 @@ func NodeInstaller(namespace string) *NodeInstallerConfig {
 						WithResources(ResourceRequirements().
 							WithMemoryLimitAndRequest(100),
 						).
-						WithSecurityContext(PrivilegedSecurityContext()).
+						WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
 						WithVolumeMounts(VolumeMount().
 							WithName("host-mount").
 							WithMountPath("/host")),
