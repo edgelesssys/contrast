@@ -226,3 +226,20 @@ func Initializer() *applycorev1.ContainerApplyConfiguration {
 			WithMountPath("/tls-config"),
 		)
 }
+
+// ServiceMeshProxy creates a new service mesh proxy sidecar container.
+func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
+	return applycorev1.Container().
+		WithName("sidecar").
+		WithImage("ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest").
+		WithRestartPolicy(corev1.ContainerRestartPolicyAlways).
+		WithVolumeMounts(VolumeMount().
+			WithName("tls-certs").
+			WithMountPath("/tls-config"),
+		).
+		WithSecurityContext(SecurityContext().
+			WithPrivileged(true).
+			AddCapabilities("NET_ADMIN").
+			SecurityContextApplyConfiguration,
+		)
+}
