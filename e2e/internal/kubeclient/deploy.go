@@ -94,6 +94,7 @@ func (c *Kubeclient) WaitForDeployment(ctx context.Context, namespace, name stri
 					logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
 				}
 			}
+			return ctx.Err()
 		}
 	}
 }
