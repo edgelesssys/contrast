@@ -1,6 +1,8 @@
 package kuberesource
 
 import (
+	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
@@ -229,8 +231,60 @@ func OpenSSL() ([]any, error) {
 }
 
 // generateEmojivoto returns resources for deploying Emojivoto application.
-func generateEmojivoto() ([]any, error) {
+func generateEmojivoto(smMode serviceMeshMode) ([]any, error) {
 	ns := "edg-default"
+	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiSvcHost, votingSvcHost string
+	smProxyEmoji := ServiceMeshProxy()
+	smProxyWeb := ServiceMeshProxy()
+	smProxyVoting := ServiceMeshProxy()
+	switch smMode {
+	case ServiceMeshDisabled:
+		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1"
+		emojiVotingSvcImage = "ghcr.io/3u13r/emojivoto-voting-svc:coco-1"
+		emojiWebImage = "ghcr.io/3u13r/emojivoto-web:coco-1"
+		emojiSvcHost = "emoji-svc:8080"
+		votingSvcHost = "voting-svc:8080"
+		smProxyEmoji = nil
+		smProxyWeb = nil
+		smProxyVoting = nil
+	case ServiceMeshIngressEgress:
+		emojiSvcImage = "docker.l5d.io/buoyantio/emojivoto-emoji-svc:v11"
+		emojiVotingSvcImage = "docker.l5d.io/buoyantio/emojivoto-voting-svc:v11"
+		emojiWebImage = "docker.l5d.io/buoyantio/emojivoto-web:v11"
+		emojiSvcHost = "127.137.0.1:8081"
+		votingSvcHost = "127.137.0.2:8081"
+		smProxyWeb = smProxyWeb.
+			WithEnv(EnvVar().
+				WithName("EDG_INGRESS_PROXY_CONFIG").
+				WithValue("web#8080#false"),
+			).
+			WithEnv(EnvVar().
+				WithName("EDG_EGRESS_PROXY_CONFIG").
+				WithValue("emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080"),
+			)
+	case ServiceMeshEgress:
+		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1"
+		emojiVotingSvcImage = "ghcr.io/3u13r/emojivoto-voting-svc:coco-1"
+		emojiWebImage = "docker.l5d.io/buoyantio/emojivoto-web:v11"
+		emojiSvcHost = "127.137.0.1:8081"
+		votingSvcHost = "127.137.0.2:8081"
+		smProxyWeb = smProxyWeb.
+			WithSecurityContext(SecurityContext().
+				WithPrivileged(true).
+				AddCapabilities("NET_ADMIN").
+				AddCapabilities("NET_RAW").
+				SecurityContextApplyConfiguration,
+			).
+			WithEnv(EnvVar().
+				WithName("EDG_EGRESS_PROXY_CONFIG").
+				WithValue("emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080"),
+			)
+		smProxyEmoji = nil
+		smProxyVoting = nil
+	default:
+		panic(fmt.Sprintf("unknown service mesh mode: %s", smMode))
+	}
+
 	emoji := Deployment("emoji", ns).
 		WithLabels(map[string]string{
 			"app.kubernetes.io/name":    "emoji",
@@ -256,7 +310,7 @@ func generateEmojivoto() ([]any, error) {
 					WithContainers(
 						Container().
 							WithName("emoji-svc").
-							WithImage("ghcr.io/3u13r/emojivoto-emoji-svc:coco-1").
+							WithImage(emojiSvcImage).
 							WithPorts(
 								ContainerPort().
 									WithName("grpc").
@@ -327,7 +381,7 @@ func generateEmojivoto() ([]any, error) {
 					WithContainers(
 						Container().
 							WithName("vote-bot").
-							WithImage("ghcr.io/3u13r/emojivoto-web:coco-1").
+							WithImage(emojiWebImage).
 							WithCommand("emojivoto-vote-bot").
 							WithEnv(EnvVar().WithName("WEB_HOST").WithValue("web-svc:443")).
 							WithResources(ResourceRequirements().
@@ -363,7 +417,7 @@ func generateEmojivoto() ([]any, error) {
 					WithContainers(
 						Container().
 							WithName("voting-svc").
-							WithImage("ghcr.io/3u13r/emojivoto-voting-svc:coco-1").
+							WithImage(emojiVotingSvcImage).
 							WithPorts(
 								ContainerPort().
 									WithName("grpc").
@@ -436,15 +490,15 @@ func generateEmojivoto() ([]any, error) {
 					WithContainers(
 						Container().
 							WithName("web-svc").
-							WithImage("ghcr.io/3u13r/emojivoto-web:coco-1").
+							WithImage(emojiWebImage).
 							WithPorts(
 								ContainerPort().
 									WithName("https").
 									WithContainerPort(8080),
 							).
 							WithEnv(EnvVar().WithName("WEB_PORT").WithValue("8080")).
-							WithEnv(EnvVar().WithName("EMOJISVC_HOST").WithValue("emoji-svc:8080")).
-							WithEnv(EnvVar().WithName("VOTINGSVC_HOST").WithValue("voting-svc:8080")).
+							WithEnv(EnvVar().WithName("EMOJISVC_HOST").WithValue(emojiSvcHost)).
+							WithEnv(EnvVar().WithName("VOTINGSVC_HOST").WithValue(votingSvcHost)).
 							WithEnv(EnvVar().WithName("INDEX_BUNDLE").WithValue("dist/index_bundle.js")).
 							WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
 							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/MeshCACert.pem")).
@@ -460,6 +514,25 @@ func generateEmojivoto() ([]any, error) {
 	web, err = AddInitializer(web, Initializer())
 	if err != nil {
 		return nil, err
+	}
+
+	if smProxyEmoji != nil {
+		emoji, err = AddServiceMesh(emoji, smProxyEmoji, smMode)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if smProxyWeb != nil {
+		web, err = AddServiceMesh(web, smProxyWeb, smMode)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if smProxyVoting != nil {
+		voting, err = AddServiceMesh(voting, smProxyVoting, smMode)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	webService := ServiceForDeployment(web).
@@ -554,7 +627,7 @@ func PatchNamespaces(resources []any, namespace string) []any {
 
 // EmojivotoDemo returns patched resources for deploying an Emojivoto demo.
 func EmojivotoDemo(replacements map[string]string) ([]any, error) {
-	resources, err := generateEmojivoto()
+	resources, err := generateEmojivoto(ServiceMeshDisabled)
 	if err != nil {
 		return nil, err
 	}
@@ -565,7 +638,29 @@ func EmojivotoDemo(replacements map[string]string) ([]any, error) {
 
 // Emojivoto returns resources for deploying Emojivoto application.
 func Emojivoto() ([]any, error) {
-	resources, err := generateEmojivoto()
+	resources, err := generateEmojivoto(ServiceMeshDisabled)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add coordinator
+	ns := "edg-default"
+	namespace := Namespace(ns)
+	coordinator := Coordinator(ns).DeploymentApplyConfiguration
+	coordinatorService := ServiceForDeployment(coordinator)
+	coordinatorForwarder := PortForwarder("coordinator", ns).
+		WithListenPort(1313).
+		WithForwardTarget("coordinator", 1313).
+		PodApplyConfiguration
+	resources = append(resources, namespace, coordinator, coordinatorService, coordinatorForwarder)
+
+	return resources, nil
+}
+
+// EmojivotoIngressEgress returns resources for deploying Emojivoto application with
+// the service mesh configured with ingress and egress proxies.
+func EmojivotoIngressEgress() ([]any, error) {
+	resources, err := generateEmojivoto(ServiceMeshIngressEgress)
 	if err != nil {
 		return nil, err
 	}
