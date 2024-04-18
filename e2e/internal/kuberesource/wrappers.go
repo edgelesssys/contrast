@@ -220,9 +220,29 @@ func ContainerPort() *ContainerPortConfig {
 	return &ContainerPortConfig{applycorev1.ContainerPort()}
 }
 
-// PrivilegedSecurityContext returns a SecurityContextApplyConfiguration with Privileged set to true.
-func PrivilegedSecurityContext() *applycorev1.SecurityContextApplyConfiguration {
-	return applycorev1.SecurityContext().WithPrivileged(true)
+// SecurityContextConfig wraps applycorev1.SecurityContextApplyConfiguration.
+type SecurityContextConfig struct {
+	*applycorev1.SecurityContextApplyConfiguration
+}
+
+// SecurityContext creates a new SecurityContextConfig.
+func SecurityContext() *SecurityContextConfig {
+	return &SecurityContextConfig{applycorev1.SecurityContext()}
+}
+
+// WithPrivileged sets the Privileged field in the declarative configuration to the given value.
+func (s *SecurityContextConfig) WithPrivileged(privileged bool) *SecurityContextConfig {
+	s.Privileged = &privileged
+	return s
+}
+
+// AddCapabilities appends the given capabilities to the add list.
+func (s *SecurityContextConfig) AddCapabilities(capabilities ...corev1.Capability) *SecurityContextConfig {
+	if s.Capabilities == nil {
+		s.Capabilities = &applycorev1.CapabilitiesApplyConfiguration{}
+	}
+	s.Capabilities.Add = append(s.Capabilities.Add, capabilities...)
+	return s
 }
 
 // ServiceConfig wraps applycorev1.ServiceApplyConfiguration.
