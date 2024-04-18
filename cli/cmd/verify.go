@@ -24,17 +24,15 @@ func NewVerifyCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "verify",
 		Short: "Verify a contrast deployment",
-		Long: `
-		Verify a contrast deployment.
+		Long: `Verify a contrast deployment.
 
-		This will connect to the given Coordinator using aTLS. During the connection
-		initialization, the remote attestation of the Coordinator CVM happens and
-		the connection will only be successful if the Coordinator conforms with the
-		reference values embedded into the CLI.
+This will connect to the given Coordinator using aTLS. During the connection
+initialization, the remote attestation of the Coordinator CVM happens and
+the connection will only be successful if the Coordinator conforms with the
+reference values embedded into the CLI.
 
-		After the connection is established, the CLI will request the manifest history,
-		all policies, and the certificates of the Coordinator certificate authority.
-	`,
+After the connection is established, the CLI will request the manifest history,
+all policies, and the certificates of the Coordinator certificate authority.`,
 		RunE: runVerify,
 	}
 
