@@ -3,12 +3,14 @@
 Contrast is composed of several key components that work together to manage and scale confidential containers effectively within Kubernetes environments.
 This page provides an overview of the core components essential for deploying and managing Contrast.
 
+![components overview](../_media/components.svg)
+
 ## The CLI (Command Line Interface)
 
 The CLI serves as the primary management tool for Contrast deployments. It is designed to streamline the configuration and operation of Contrast in several ways:
 
 * Installation and Setup: The CLI facilitates the installation of the necessary runtime classes required for Contrast to function within a Kubernetes cluster.
-* Policy Generation: It allows users to generate runtime policies and generating the deployment manifest.
+* Policy Generation: It allows users to generate runtime policies, adapt the deployment files, and generate the Contrast manifest.
 * Configuration Management: Through the CLI, users can configure the Contrast Coordinator with the generated manifest.
 * Verification and Attestation: The CLI provides tools to verify the integrity and authenticity of the Coordinator and the entire deployment via remote attestation.
 
