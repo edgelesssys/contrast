@@ -47,3 +47,46 @@ func AddInitializer(
 	)
 	return deployment, nil
 }
+
+type serviceMeshMode string
+
+const (
+	// ServiceMeshIngressEgress sets the service mesh mode to ingress and egress.
+	ServiceMeshIngressEgress serviceMeshMode = "service-mesh-ingress-egress"
+	// ServiceMeshEgress sets the service mesh mode to egress.
+	ServiceMeshEgress serviceMeshMode = "service-mesh-egress"
+	// ServiceMeshDisabled disables the service mesh.
+	ServiceMeshDisabled serviceMeshMode = "service-mesh-disabled"
+)
+
+// AddServiceMesh adds a service mesh proxy to a deployment.
+func AddServiceMesh(
+	deployment *applyappsv1.DeploymentApplyConfiguration,
+	serviceMeshProxy *applycorev1.ContainerApplyConfiguration,
+	mode serviceMeshMode,
+) (*applyappsv1.DeploymentApplyConfiguration, error) {
+	if mode == ServiceMeshDisabled {
+		return deployment, nil
+	}
+	if serviceMeshProxy == nil {
+		return nil, errors.New("serviceMeshProxy is nil")
+	}
+	if deployment == nil {
+		return nil, errors.New("deployment is nil")
+	}
+	if deployment.Spec == nil {
+		return nil, errors.New("deployment.Spec is nil")
+	}
+	if deployment.Spec.Template == nil {
+		return nil, errors.New("deployment.Spec.Template is nil")
+	}
+	if deployment.Spec.Template.Spec == nil {
+		return nil, errors.New("deployment.Spec.Template.Spec is nil")
+	}
+
+	// Add the proxy as an init container.
+	deployment.Spec.Template.Spec.WithInitContainers(
+		serviceMeshProxy,
+	)
+	return deployment, nil
+}
