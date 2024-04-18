@@ -16,7 +16,7 @@ A smaller TCB results in a smaller attack surface. The following diagram shows h
 In the confidential context, represented by green, only the workload containers along with their confidential micro-VM environment are included within the Trusted Computing Base (TCB).
 Their integrity is attested and can be [verified](../architecture/attestation/hardware.md).
 
-Confidential Containers use [hardware-based mechanisms](../basics/confidential-containers.md), specifically leveraging CPU features, to ensure the isolation of the confidential context.
+Confidential Containers use [hardware-based mechanisms](confidential-containers.md), specifically leveraging CPU features, to ensure the isolation of the confidential context.
 This implies that both the CPU and its microcode are integral components of the TCB.
 However, it should be noted that the hardware aspects aren't depicted in the accompanying graphic.
 
@@ -24,7 +24,7 @@ However, it should be noted that the hardware aspects aren't depicted in the acc
 
 A Contrast deployment has five core components:
 
-* **The workload containers**: Container images that run in isolated [Confidential Container](confidential-containers.md) environments.
+* **The workload containers**: Container images that run in isolated Confidential Container environments.
 * **The runtime policies**: Policies that define the runtime environments for the workload containers.
 * **The manifest**: A manifest file defining the reference values of an entire confidential deployment. It contains the policy hashes for all pods of the deployment and the expected hardware reference values for the Confidential Container runtime.
 * **The Coordinator**: An attestation service that runs in a Confidential Container in the Kubernetes cluster. The Coordinator is configured with the manifest. User-facing, you can verify this service and the effective manifest using remote attestation, providing you with a concise attestation for the entire deployment. Cluster-facing, it verifies all pods and their policies based on remote attestation procedures and the manifest.
@@ -108,7 +108,7 @@ The following table describes the attack surfaces that are available to attacker
 
 ### Threats and mitigations
 
-The container root file system with [integrity protection](../architecture/confidential-containers.md) is designed to mitigate risks from disk attacks.
+The container root file system with integrity protection is designed to mitigate risks from disk attacks.
 Additionally, the container has no writeable disk partition mounted, hence, data is only stored in-memory and never disclosed to disk.
 
 Risks from network attacks are mitigated by having [authenticated, end-to-end encrypted channels](../architecture/network-encryption/sidecar.md).
