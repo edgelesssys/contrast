@@ -97,13 +97,13 @@ const sidebars = {
       items: [
         {
           type: 'doc',
-          label: 'Service Mesh',
-          id: 'components/service-mesh',
+          label: 'Runtime',
+          id: 'components/runtime',
         },
         {
           type: 'doc',
-          label: 'Pod VM image',
-          id: 'components/podvm-image',
+          label: 'Service Mesh',
+          id: 'components/service-mesh',
         },
       ]
     },
