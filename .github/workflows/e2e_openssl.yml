@@ -50,9 +50,6 @@ jobs:
       - name: Build and prepare deployments
         run: |
           just coordinator initializer openssl port-forwarder
-      - name: Setup Summary
-        run: |
-          cat ./workspace/just.perf | tee -a "${GITHUB_STEP_SUMMARY}"
       - name: E2E Test
         run: |
           nix shell .#contrast.e2e --command openssl.test -test.v workspace/just.containerlookup
