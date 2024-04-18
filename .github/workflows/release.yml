@@ -187,17 +187,27 @@ jobs:
       - name: Push containers with release tag
         run: |
           coordinatorImg=$(nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator")
+          nodeInstallerImg=$(nix run .#containers.push-node-installer -- "$container_registry/contrast/node-installer")
           nix run .#containers.push-initializer -- "$container_registry/contrast/initializer"
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
+          echo "nodeInstallerImg=$nodeInstallerImg" | tee -a "$GITHUB_ENV"
       - name: Add tag to Coordinator image
         run: |
-          front=${coordinatorImg%@*}
-          back=${coordinatorImg#*@}
-          echo "coordinatorImgTagged=${front}:${{ inputs.version }}@${back}" | tee -a "$GITHUB_ENV"
+          frontCoord=${coordinatorImg%@*}
+          backCoord=${coordinatorImg#*@}
+          echo "coordinatorImgTagged=${frontCoord}:${{ inputs.version }}@${backCoord}" | tee -a "$GITHUB_ENV"
+          frontNodeInstaller=${nodeInstallerImg%@*}
+          backNodeInstaller=${nodeInstallerImg#*@}
+          echo "nodeInstallerImgTagged=${frontNodeInstaller}:${{ inputs.version }}@${backNodeInstaller}" | tee -a "$GITHUB_ENV"
       - name: Create portable coordinator resource definitions
         run: |
           mkdir -p workspace
           nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" > workspace/coordinator.yml
+          nix shell .#contrast --command resourcegen runtime workspace/runtime.yml
+          nix run .#kypatch images -- workspace/runtime.yml \
+            --replace "ghcr.io/edgelesssys/contrast/node-installer:latest" "$nodeInstallerImgTagged"
+          nix run .#kypatch namespace -- workspace/runtime.yml \
+            --replace edg-default kube-system
       - name: Update coordinator policy hash
         run: |
           yq < workspace/coordinator.yml \
@@ -221,6 +231,7 @@ jobs:
           files: |
             result-cli/bin/contrast
             workspace/coordinator.yml
+            workspace/runtime.yml
       - name: Reset temporary changes
         run: |
           git reset --hard ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
