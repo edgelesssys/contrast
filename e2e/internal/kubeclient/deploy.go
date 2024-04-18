@@ -36,8 +36,10 @@ func (c *Kubeclient) WaitForPod(ctx context.Context, namespace, name string) err
 				if isPodReady(pod) {
 					return nil
 				}
+			case watch.Deleted:
+				return fmt.Errorf("pod %s/%s was deleted while waiting for it", namespace, name)
 			default:
-				return fmt.Errorf("unexpected watch event while waiting for pod %s/%s: %#v", namespace, name, evt.Object)
+				c.log.Warn("ignoring unexpected watch event", "type", evt.Type, "object", evt.Object)
 			}
 		case <-ctx.Done():
 			return ctx.Err()
@@ -68,8 +70,10 @@ func (c *Kubeclient) WaitForDeployment(ctx context.Context, namespace, name stri
 						return nil
 					}
 				}
+			case watch.Deleted:
+				return fmt.Errorf("deployment %s/%s was deleted while waiting for it", namespace, name)
 			default:
-				return fmt.Errorf("unexpected watch event while waiting for deployment %s/%s: %#v", namespace, name, evt.Object)
+				c.log.Warn("ignoring unexpected watch event", "type", evt.Type, "object", evt.Object)
 			}
 		case <-ctx.Done():
 			logger := c.log.With("namespace", namespace)
