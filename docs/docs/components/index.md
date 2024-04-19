@@ -9,10 +9,10 @@ This page provides an overview of the core components essential for deploying an
 
 The CLI serves as the primary management tool for Contrast deployments. It's designed to streamline the configuration and operation of Contrast in several ways:
 
-* Installation and Setup: The CLI facilitates the installation of the necessary runtime classes required for Contrast to function within a Kubernetes cluster.
-* Policy Generation: It allows users to generate runtime policies, adapt the deployment files, and generate the Contrast manifest.
-* Configuration Management: Through the CLI, users can configure the Contrast Coordinator with the generated manifest.
-* Verification and Attestation: The CLI provides tools to verify the integrity and authenticity of the Coordinator and the entire deployment via remote attestation.
+* Installation and setup: The CLI facilitates the installation of the necessary runtime classes required for Contrast to function within a Kubernetes cluster.
+* Policy generation: It allows users to generate runtime policies, adapt the deployment files, and generate the Contrast manifest.
+* Configuration management: Through the CLI, users can configure the Contrast Coordinator with the generated manifest.
+* Verification and attestation: The CLI provides tools to verify the integrity and authenticity of the Coordinator and the entire deployment via remote attestation.
 
 ## The Coordinator
 
@@ -38,7 +38,7 @@ It currently consists of the following parts:
 * *Reference Values*: The remote attestation reference values for the Kata confidential micro-VM that's the runtime environment of your Pods.
 * *WorkloadOwnerKeyDigest*: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
 
-## Runtime Policies
+## Runtime policies
 
 Runtime Policies are a mechanism to enable the use of the untrusted Kubernetes API for orchestration while ensuring the confidentiality and integrity of your confidential containers.
 They allow us to enforce the integrity of your containers' runtime environment as defined in your deployment files.
