@@ -23,7 +23,7 @@ let
       "-X github.com/edgelesssys/contrast/internal/kuberesource.runtimeHandler=${runtimeHandler}"
     ];
 
-    subPackages = [ "e2e/openssl" "e2e/servicemesh" ];
+    subPackages = [ "e2e/openssl" "e2e/servicemesh" "e2e/release" ];
   };
 
   launchDigest = builtins.readFile "${runtime-class-files}/launch-digest.hex";
@@ -61,7 +61,7 @@ buildGoModule rec {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-i+7DhygotCNhczpaZlI9O7enKVOW7smauOKcGQhOtzI=";
+  vendorHash = "sha256-9Jn6xN/tRiFhSoNhyCACLLeqBBYNfNW3EhIhIEwoYPY=";
 
   subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
 

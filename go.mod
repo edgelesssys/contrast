@@ -5,6 +5,7 @@ go 1.22.0
 toolchain go1.22.2
 
 require (
+	github.com/google/go-github/v61 v61.0.0
 	github.com/google/go-sev-guest v0.11.1
 	github.com/spf13/afero v1.11.0
 	github.com/spf13/cobra v1.8.0
@@ -35,6 +36,7 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-configfs-tsm v0.2.2 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/logger v1.1.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
