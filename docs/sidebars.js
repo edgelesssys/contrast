@@ -89,41 +89,32 @@ const sidebars = {
     },
     {
       type: 'category',
+      label: 'Components',
+      link: {
+        type: 'doc',
+        id: 'components/index'
+      },
+      items: [
+        {
+          type: 'doc',
+          label: 'Runtime',
+          id: 'components/runtime',
+        },
+        {
+          type: 'doc',
+          label: 'Service Mesh',
+          id: 'components/service-mesh',
+        },
+      ]
+    },
+    {
+      type: 'category',
       label: 'Architecture',
       link: {
         type: 'doc',
         id: 'architecture/index'
       },
       items: [
-        {
-          type: 'category',
-          label: 'Components',
-          link: {
-            type: 'generated-index',
-          },
-          items: [
-            {
-              type: 'doc',
-              label: 'Coordinator',
-              id: 'architecture/components/coordinator',
-            },
-            {
-              type: 'doc',
-              label: 'Init container',
-              id: 'architecture/components/init-container',
-            },
-            {
-              type: 'doc',
-              label: 'CLI',
-              id: 'architecture/components/cli',
-            },
-          ]
-        },
-        {
-          type: 'doc',
-          label: 'Confidential Containers',
-          id: 'architecture/confidential-containers',
-        },
         {
           type: 'category',
           label: 'Attestation',
@@ -172,25 +163,6 @@ const sidebars = {
             },
           ]
         },
-        {
-          type: 'category',
-          label: 'Network Encryption',
-          link: {
-            type: 'generated-index',
-          },
-          items: [
-            {
-              type: 'doc',
-              label: 'Sidecar',
-              id: 'architecture/network-encryption/sidecar',
-            },
-            {
-              type: 'doc',
-              label: 'Protocols and Keys',
-              id: 'architecture/network-encryption/protocols-and-keys',
-            },
-          ]
-        }
       ]
     },
   ],
