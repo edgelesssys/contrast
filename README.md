@@ -57,8 +57,8 @@ Contrast integrates fluently with the existing Kubernetes workflows. It's compat
 To learn more, see the [documentation](https://docs.edgeless.systems/contrast).
 You may want to start with one of the following sections.
 
-* [Getting started][https://docs.edgeless.systems/contrast/getting-started]
-* [Security benefits][https://docs.edgeless.systems/contrast/basics/security-benefits]
+* [Getting started](https://docs.edgeless.systems/contrast/getting-started)
+* [Security benefits](https://docs.edgeless.systems/contrast/basics/security-benefits)
 * [Components](https://docs.edgeless.systems/contrast/components)
 
 ## Current limitations
