@@ -20,6 +20,19 @@
     # keep-sorted end
   };
   settings.formatter = {
+    addlicense = {
+      command = "${lib.getExe pkgs.addlicense}";
+      options = [
+        "-c=Edgeless Systems GmbH"
+        "-s=only"
+        "-l=AGPL-3.0-only"
+      ];
+      includes = [
+        "*.go"
+        "*.nix"
+        "*.sh"
+      ];
+    };
     vale = {
       command = "${lib.getExe pkgs.vale}";
       options = [
@@ -30,6 +43,7 @@
       ];
       excludes = [
         "CODE_OF_CONDUCT.md"
+        "LICENSE"
       ];
     };
   };
