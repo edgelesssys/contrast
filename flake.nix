@@ -38,7 +38,10 @@
             gotools
             just
           ];
-          shellHook = ''alias make=just'';
+          shellHook = ''
+            alias make=just
+            export DO_NOT_TRACK=1
+          '';
         };
         docs = pkgs.mkShell {
           packages = with pkgs; [
