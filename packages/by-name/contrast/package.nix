@@ -15,7 +15,7 @@ let
 
     ldflags = [ "-s" ];
 
-    subPackages = [ "e2e/openssl" "e2e/servicemesh" ];
+    subPackages = [ "e2e/openssl" "e2e/servicemesh" "e2e/release" ];
   };
 
   runtimeHandler = lib.removeSuffix "\n" (builtins.readFile "${runtime-class-files}/runtime-handler");
@@ -51,7 +51,7 @@ buildGoModule rec {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-m67gNUGvb4z7OyHvJdOX7SZKgBWn11OEA28oJiQjpXI=";
+  vendorHash = "sha256-tM+z5RoZ2ClB88OvenYMu3DVUXWnjFEF7xK9p6/06jc=";
 
   subPackages = packageOutputs ++ [ "e2e/internal/kuberesource/resourcegen" ];
 
