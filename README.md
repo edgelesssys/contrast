@@ -52,7 +52,14 @@ Contrast integrates fluently with the existing Kubernetes workflows. It's compat
 * Minimal DevOps involvement.
 * Simple CLI tool to get started.
 
+## Documentation
 
+To learn more, see the [documentation](https://docs.edgeless.systems/contrast).
+You may want to start with one of the following sections.
+
+* [Getting started](https://docs.edgeless.systems/contrast/getting-started)
+* [Security benefits](https://docs.edgeless.systems/contrast/basics/security-benefits)
+* [Components](https://docs.edgeless.systems/contrast/components)
 
 ## Current limitations
 
@@ -73,7 +80,6 @@ As a result, there are currently certain limitations from which we try to docume
 
 ## Upcoming Contrast features
 
-- Transparent service mesh (apps can currently use mTLS with Coordinator certs for secure communication)
 - Plugin for a key management service (KMS) for attestation/coordinator certificate-based key release
 - High availability (distributed Contrast Coordinator)
 
