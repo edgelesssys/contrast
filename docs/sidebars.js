@@ -150,18 +150,9 @@ const sidebars = {
           ]
         },
         {
-          type: 'category',
-          label: 'Certificates and Identities',
-          link: {
-            type: 'generated-index',
-          },
-          items: [
-            {
-              type: 'doc',
-              label: 'PKI',
-              id: 'architecture/certificates-and-identities/pki',
-            },
-          ]
+          type: 'doc',
+          label: 'Certificate authority',
+          id: 'architecture/certificates',
         },
       ]
     },
