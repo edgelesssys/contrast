@@ -22,9 +22,9 @@ import (
 
 // CA is a cross-signing certificate authority.
 type CA struct {
-	rootPrivKey *ecdsa.PrivateKey
-	rootCert    *x509.Certificate
-	rootPEM     []byte
+	rootCAPrivKey *ecdsa.PrivateKey
+	rootCACert    *x509.Certificate
+	rootCAPEM     []byte
 
 	// The intermPrivKey is used for both the intermediate and meshCA certificates.
 	// This implements cross-signing for the leaf certificates.
@@ -33,8 +33,8 @@ type CA struct {
 	intermMux     sync.RWMutex
 	intermPrivKey *ecdsa.PrivateKey
 
-	intermCert *x509.Certificate
-	intermPEM  []byte
+	intermCACert *x509.Certificate
+	intermCAPEM  []byte
 
 	meshCACert *x509.Certificate
 	meshCAPEM  []byte
@@ -64,9 +64,9 @@ func New() (*CA, error) {
 	}
 
 	ca := CA{
-		rootPrivKey: rootPrivKey,
-		rootCert:    root,
-		rootPEM:     rootPEM,
+		rootCAPrivKey: rootPrivKey,
+		rootCACert:    root,
+		rootCAPEM:     rootPEM,
 	}
 	if err := ca.RotateIntermCerts(); err != nil {
 		return nil, fmt.Errorf("rotating intermediate certificates: %w", err)
@@ -94,7 +94,7 @@ func (c *CA) NewAttestedMeshCert(names []string, extensions []pkix.Extension, su
 	now := time.Now()
 	certTemplate := &x509.Certificate{
 		Subject:               pkix.Name{CommonName: dnsNames[0]},
-		Issuer:                pkix.Name{CommonName: "system:coordinator:meshCA"},
+		Issuer:                pkix.Name{CommonName: "system:coordinator:intermediate"},
 		NotBefore:             now.Add(-time.Hour),
 		NotAfter:              now.AddDate(1, 0, 0),
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
@@ -113,11 +113,11 @@ func (c *CA) NewAttestedMeshCert(names []string, extensions []pkix.Extension, su
 	return certPEM, nil
 }
 
-// RotateIntermCerts rotates the intermediate certificates.
+// RotateIntermCerts rotates the intermediate and mesh CA certificate.
 // All existing mesh certificates will remain valid under the rootCA but
-// not under the new intermediate certificate.
-// To distribute the new intermediate certificate, all workloads should
-// be restarted.
+// not under the new intermediate and mesh CA certificates.
+// To distribute the new intermediate and mesh CA certificates, all workloads
+// should be restarted.
 func (c *CA) RotateIntermCerts() error {
 	c.intermMux.Lock()
 	defer c.intermMux.Unlock()
@@ -125,8 +125,8 @@ func (c *CA) RotateIntermCerts() error {
 	now := time.Now()
 	notBefore := now.Add(-time.Hour)
 	notAfter := now.AddDate(10, 0, 0)
-	c.intermCert = &x509.Certificate{
-		Subject:               pkix.Name{CommonName: "system:coordinator:meshCA"},
+	c.intermCACert = &x509.Certificate{
+		Subject:               pkix.Name{CommonName: "system:coordinator:intermediate"},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
 		IsCA:                  true,
@@ -138,13 +138,13 @@ func (c *CA) RotateIntermCerts() error {
 	if err != nil {
 		return fmt.Errorf("generating intermediate private key: %w", err)
 	}
-	c.intermPEM, err = createCert(c.intermCert, c.rootCert, &c.intermPrivKey.PublicKey, c.rootPrivKey)
+	c.intermCAPEM, err = createCert(c.intermCACert, c.rootCACert, &c.intermPrivKey.PublicKey, c.rootCAPrivKey)
 	if err != nil {
 		return fmt.Errorf("creating intermediate certificate: %w", err)
 	}
 
 	c.meshCACert = &x509.Certificate{
-		Subject:               pkix.Name{CommonName: "system:coordinator:meshCA"},
+		Subject:               pkix.Name{CommonName: "system:coordinator:intermediate"},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
 		IsCA:                  true,
@@ -159,18 +159,18 @@ func (c *CA) RotateIntermCerts() error {
 	return nil
 }
 
-// GetCoordinatorRootCert returns the root certificate of the CA in PEM format.
-func (c *CA) GetCoordinatorRootCert() []byte {
-	return c.rootPEM
+// GetRootCACert returns the root certificate of the CA in PEM format.
+func (c *CA) GetRootCACert() []byte {
+	return c.rootCAPEM
 }
 
-// GetIntermCert returns the intermediate certificate of the CA in PEM format.
-func (c *CA) GetIntermCert() []byte {
-	return c.intermPEM
+// GetIntermCACert returns the intermediate CA certificate in PEM format.
+func (c *CA) GetIntermCACert() []byte {
+	return c.intermCAPEM
 }
 
-// GetMeshRootCert returns the mesh root certificate of the CA in PEM format.
-func (c *CA) GetMeshRootCert() []byte {
+// GetMeshCACert returns the mesh CA certificate of the CA in PEM format.
+func (c *CA) GetMeshCACert() []byte {
 	return c.meshCAPEM
 }
 

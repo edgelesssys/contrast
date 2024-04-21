@@ -92,7 +92,7 @@ func TestOpenSSL(t *testing.T) {
 		// - the backend's CA configuration accepted the frontend certificate
 		// - the frontend's CA configuration accepted the backend certificate
 		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name,
-			[]string{"/bin/bash", "-c", `printf "GET / HTTP/1.0\nHost: openssl-backend\n" | openssl s_client -connect openssl-backend:443 -verify_return_error -CAfile /tls-config/MeshCACert.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem`},
+			[]string{"/bin/bash", "-c", `printf "GET / HTTP/1.0\nHost: openssl-backend\n" | openssl s_client -connect openssl-backend:443 -verify_return_error -CAfile /tls-config/mesh-ca.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem`},
 		)
 		t.Log(stdout)
 		require.NoError(err, "stderr: %q", stderr)

@@ -57,7 +57,7 @@ run_command "contrast verify -c \$coordinator:1313"
 expect_prompt
 run_command "ls ./verify"
 expect_prompt
-run_command "# mesh-root.pem can be used to securely connect to the service"
+run_command "# mesh-ca.pem can be used to securely connect to the service"
 expect_prompt
 
 # Stop recording

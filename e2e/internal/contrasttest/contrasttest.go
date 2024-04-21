@@ -180,9 +180,9 @@ func (ct *ContrastTest) Verify(t *testing.T) {
 
 	require.NoError(verify.Execute(), "could not verify coordinator: %s", errBuf)
 
-	ct.meshCACertPEM, err = os.ReadFile(path.Join(ct.WorkDir, "mesh-root.pem"))
+	ct.meshCACertPEM, err = os.ReadFile(path.Join(ct.WorkDir, "mesh-ca.pem"))
 	require.NoError(err)
-	ct.rootCACertPEM, err = os.ReadFile(path.Join(ct.WorkDir, "coordinator-root.pem"))
+	ct.rootCACertPEM, err = os.ReadFile(path.Join(ct.WorkDir, "coordinator-root-ca.pem"))
 	require.NoError(err)
 }
 

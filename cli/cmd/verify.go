@@ -90,8 +90,8 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Successfully verified coordinator")
 
 	filelist := map[string][]byte{
-		coordRootPEMFilename: resp.CoordinatorRoot,
-		meshRootPEMFilename:  resp.MeshRoot,
+		coordRootPEMFilename: resp.RootCA,
+		meshCAPEMFilename:    resp.MeshCA,
 	}
 	for i, m := range resp.Manifests {
 		filelist[fmt.Sprintf("manifest.%d.json", i)] = m

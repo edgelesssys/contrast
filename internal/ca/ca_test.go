@@ -25,18 +25,18 @@ func TestNewCA(t *testing.T) {
 	ca, err := New()
 	require.NoError(err)
 	assert.NotNil(ca)
-	assert.NotNil(ca.rootPrivKey)
-	assert.NotNil(ca.rootCert)
-	assert.NotNil(ca.rootPEM)
+	assert.NotNil(ca.rootCAPrivKey)
+	assert.NotNil(ca.rootCACert)
+	assert.NotNil(ca.rootCAPEM)
 	assert.NotNil(ca.intermPrivKey)
-	assert.NotNil(ca.intermCert)
-	assert.NotNil(ca.intermPEM)
+	assert.NotNil(ca.intermCACert)
+	assert.NotNil(ca.intermCAPEM)
 
 	root := x509.NewCertPool()
-	ok := root.AppendCertsFromPEM(ca.rootPEM)
+	ok := root.AppendCertsFromPEM(ca.rootCAPEM)
 	assert.True(ok)
 
-	cert := parsePEMCertificate(t, ca.intermPEM)
+	cert := parsePEMCertificate(t, ca.intermCAPEM)
 
 	opts := x509.VerifyOptions{Roots: root}
 
@@ -161,15 +161,15 @@ func TestRotateIntermCerts(t *testing.T) {
 	ca, err := New()
 	require.NoError(err)
 
-	oldIntermCert := ca.intermCert
-	oldintermPEM := ca.intermPEM
+	oldIntermCert := ca.intermCACert
+	oldintermPEM := ca.intermCAPEM
 	oldMeshCACert := ca.meshCACert
 	oldMeshCAPEM := ca.meshCAPEM
 
 	err = ca.RotateIntermCerts()
 	assert.NoError(err)
-	assert.NotEqual(oldIntermCert, ca.intermCert)
-	assert.NotEqual(oldintermPEM, ca.intermPEM)
+	assert.NotEqual(oldIntermCert, ca.intermCACert)
+	assert.NotEqual(oldintermPEM, ca.intermCAPEM)
 	assert.NotEqual(oldMeshCACert, ca.meshCACert)
 	assert.NotEqual(oldMeshCAPEM, ca.meshCAPEM)
 }
@@ -184,15 +184,15 @@ func TestCAConcurrent(t *testing.T) {
 	wg := sync.WaitGroup{}
 	getIntermCert := func() {
 		defer wg.Done()
-		assert.NotEmpty(ca.GetIntermCert())
+		assert.NotEmpty(ca.GetIntermCACert())
 	}
 	getMeshCACert := func() {
 		defer wg.Done()
-		assert.NotEmpty(ca.GetMeshRootCert())
+		assert.NotEmpty(ca.GetMeshCACert())
 	}
 	getRootCACert := func() {
 		defer wg.Done()
-		assert.NotEmpty(ca.GetCoordinatorRootCert())
+		assert.NotEmpty(ca.GetRootCACert())
 	}
 	rotateIntermCerts := func() {
 		defer wg.Done()

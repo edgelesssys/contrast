@@ -16,8 +16,8 @@ import (
 
 const (
 	coordHashFilename    = "coordinator-policy.sha256"
-	coordRootPEMFilename = "coordinator-root.pem"
-	meshRootPEMFilename  = "mesh-root.pem"
+	coordRootPEMFilename = "coordinator-root-ca.pem"
+	meshCAPEMFilename    = "mesh-ca.pem"
 	workloadOwnerPEM     = "workload-owner.pem"
 	manifestFilename     = "manifest.json"
 	settingsFilename     = "settings.json"
