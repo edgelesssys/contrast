@@ -97,7 +97,7 @@ func TestIngressEgress(t *testing.T) {
 		// This test also verifies that client connections are not affected by the ingress proxy,
 		// because we're running the commands on a pod with enabled proxy.
 
-		argv := []string{"curl", "-sS", "--cacert", "/tls-config/MeshCACert.pem", "https://emoji:8801/metrics"}
+		argv := []string{"curl", "-sS", "--cacert", "/tls-config/mesh-ca.pem", "https://emoji:8801/metrics"}
 		// curl does not like the wildcard cert and the service name does not match the deployment
 		// name (i.e., the CN), so we tell curl to connect to expect the deployment name but
 		// resolve the service name.

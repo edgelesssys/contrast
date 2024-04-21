@@ -46,7 +46,7 @@ the connection will only be successful if the Coordinator conforms with the
 reference values embedded into the CLI.
 
 After the connection is established, the manifest is set. The Coordinator
-will re-generate the mesh root certificate and accept new workloads to
+will re-generate the mesh CA certificate and accept new workloads to
 issuer certificates.`,
 		RunE: withTelemetry(runSet),
 	}
@@ -141,8 +141,8 @@ func runSet(cmd *cobra.Command, args []string) error {
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Manifest set successfully")
 
 	filelist := map[string][]byte{
-		coordRootPEMFilename: resp.CoordinatorRoot,
-		meshRootPEMFilename:  resp.MeshRoot,
+		coordRootPEMFilename: resp.RootCA,
+		meshCAPEMFilename:    resp.MeshCA,
 	}
 	if err := writeFilelist(flags.workspaceDir, filelist); err != nil {
 		return fmt.Errorf("writing filelist: %w", err)

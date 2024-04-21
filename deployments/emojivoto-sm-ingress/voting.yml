@@ -61,7 +61,7 @@ spec:
             - name: EDG_CERT_PATH
               value: /tls-config/certChain.pem
             - name: EDG_CA_PATH
-              value: /tls-config/MeshCACert.pem
+              value: /tls-config/mesh-ca.pem
             - name: EDG_KEY_PATH
               value: /tls-config/key.pem
           image: docker.l5d.io/buoyantio/emojivoto-voting-svc:v11

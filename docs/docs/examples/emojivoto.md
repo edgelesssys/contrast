@@ -6,7 +6,6 @@
 **This tutorial guides you through deploying [emojivoto](https://github.com/BuoyantIO/emojivoto) as a
 confidential Contrast deployment and validating the deployment from a voters perspective.**
 
-
 Emojivoto is an example app allowing users to vote for different emojis and view votes
 on a leader board. It has a microservice architecture consisting of a
 web frontend (`web`), a gRPC backend for listing available emojis (`emoji`), and a backend for
@@ -121,7 +120,7 @@ The CLI will attest the Coordinator using embedded reference values. If the comm
 the Coordinator deployment was successfully verified to be running in the expected Confidential
 Computing environment with the expected code version. The Coordinator will then return its
 configuration over the established TLS channel. The CLI will store this information, namely the root
-certificate of the mesh (`mesh-root.pem`) and the history of manifests, into the `verify/` directory.
+certificate of the mesh (`mesh-ca.pem`) and the history of manifests, into the `verify/` directory.
 In addition, the policies referenced in the manifest history are also written into the same directory.
 
 ### Manifest history and artifact audit
@@ -133,7 +132,7 @@ this task to an entity they trust.
 ### Confidential connection to the attested workload
 
 After ensuring the configuration of the Coordinator fits the expectation, you can securely connect
-to the workloads using the Coordinator's `mesh-root.pem` as a trusted CA certificate.
+to the workloads using the Coordinator's `mesh-ca.pem` as a trusted CA certificate.
 
 To access the web frontend, expose the service on a public IP address via a LoadBalancer service:
 
@@ -142,10 +141,10 @@ frontendIP=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[
 echo "Frontend is available at  https://$frontendIP, you can visit it in your browser."
 ```
 
-Using `openssl`, the certificate of the service can be validated with the `mesh-root.pem`:
+Using `openssl`, the certificate of the service can be validated with the `mesh-ca.pem`:
 
 ```sh
-openssl s_client -CAfile verify/mesh-root.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
+openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
 ```
 
 ## Certificate SAN and manifest update (optional)
@@ -153,10 +152,10 @@ openssl s_client -CAfile verify/mesh-root.pem -verify_return_error -connect ${fr
 By default, mesh certificates are issued with a wildcard DNS entry. The web frontend is accessed
 via load balancer IP in this demo. Tools like curl check the certificate for IP entries in the SAN field.
 Validation fails since the certificate contains no IP entries as a subject alternative name (SAN).
-For example, a connection attempt using the curl and the mesh root certificate with throw the following error:
+For example, a connection attempt using the curl and the mesh CA certificate with throw the following error:
 
 ```sh
-$ curl --cacert ./verify/mesh-root.pem "https://${frontendIP}:443"
+$ curl --cacert ./verify/mesh-ca.pem "https://${frontendIP}:443"
 curl: (60) SSL: no alternative certificate subject name matches target host name '203.0.113.34'
 ```
 
@@ -185,11 +184,11 @@ Next, set the changed manifest at the coordinator with:
 contrast set -c "${coordinator}:1313" deployment/
 ```
 
-The Contrast Coordinator will rotate the mesh root certificate on the manifest update. Workload certificates issued
+The Contrast Coordinator will rotate the mesh ca certificate on the manifest update. Workload certificates issued
 after the manifest are thus issued by another certificate authority and services receiving the new CA certificate chain
 won't trust parts of the deployment that got their certificate issued before the update. This way, Contrast ensures
 that parts of the deployment that received a security update won't be infected by parts of the deployment at an older
-patch level that may have been compromised. The `mesh-root.pem` is updated with the new CA certificate chain.
+patch level that may have been compromised. The `mesh-ca.pem` is updated with the new CA certificate chain.
 
 ### Rolling out the update
 
@@ -210,5 +209,5 @@ After the update has been rolled out, connecting to the frontend using curl will
 the service certificate and return the HTML document of the voting site:
 
 ```sh
-curl --cacert ./mesh-root.pem "https://${frontendIP}:443"
+curl --cacert ./mesh-ca.pem "https://${frontendIP}:443"
 ```

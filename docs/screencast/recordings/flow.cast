@@ -524,7 +524,7 @@
 [67.872085, "o", "i"]
 [67.96622, "o", "f"]
 [68.041638, "o", "y\r\n\u001b[?2004l\r"]
-[68.043569, "o", "coordinator-root.pem  policy.2566f5b2172910e57b5162190f0556041b86614c8e8d8981f80bf47b621140c0.rego\r\nmanifest.0.json       policy.37427d9bc17b6766909fdd1225298226a344e14ce298c232a6bc2a80baa244b8.rego\r\nmesh-root.pem         policy.561b5164452bee3956e1b3ec0420b2f32c87c53423bb1ec10821bc8be37199e7.rego\r\n"]
+[68.043569, "o", "coordinator-root-ca.pem  policy.2566f5b2172910e57b5162190f0556041b86614c8e8d8981f80bf47b621140c0.rego\r\nmanifest.0.json       policy.37427d9bc17b6766909fdd1225298226a344e14ce298c232a6bc2a80baa244b8.rego\r\nmesh-ca.pem         policy.561b5164452bee3956e1b3ec0420b2f32c87c53423bb1ec10821bc8be37199e7.rego\r\n"]
 [68.04372, "o", "\u001b[?2004h\u001b[38;2;139;4;221m$\u001b[0m "]
 [69.044865, "o", "#"]
 [69.09501, "o", " "]

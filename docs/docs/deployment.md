@@ -131,7 +131,7 @@ in the manifest are also written to the directory.
 
 ## Communicate with workloads
 
-You can securely connect to the workloads using the Coordinator's `mesh-root.pem` as a trusted CA certificate.
+You can securely connect to the workloads using the Coordinator's `mesh-ca.pem` as a trusted CA certificate.
 First, expose the service on a public IP address via a LoadBalancer service:
 
 ```sh
@@ -146,17 +146,17 @@ echo $lbip
 By default, mesh certificates are issued with a wildcard DNS entry. The web frontend is accessed
 via load balancer IP in this demo. Tools like curl check the certificate for IP entries in the SAN field.
 Validation fails since the certificate contains no IP entries as a subject alternative name (SAN).
-For example, a connection attempt using the curl and the mesh root certificate with throw the following error:
+For example, a connection attempt using the curl and the mesh CA certificate with throw the following error:
 
 ```sh
-$ curl --cacert ./verify/mesh-root.pem "https://${frontendIP}:443"
+$ curl --cacert ./verify/mesh-ca.pem "https://${frontendIP}:443"
 curl: (60) SSL: no alternative certificate subject name matches target host name '203.0.113.34'
 ```
 
 :::
 
-Using `openssl`, the certificate of the service can be validated with the `mesh-root.pem`:
+Using `openssl`, the certificate of the service can be validated with the `mesh-ca.pem`:
 
 ```sh
-openssl s_client -CAfile verify/mesh-root.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
+openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
 ```

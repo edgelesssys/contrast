@@ -230,8 +230,8 @@ func TestManifestSet(t *testing.T) {
 				return
 			}
 			require.NoError(err)
-			assert.Equal([]byte("root"), resp.CoordinatorRoot)
-			assert.Equal([]byte("mesh"), resp.MeshRoot)
+			assert.Equal([]byte("root"), resp.RootCA)
+			assert.Equal([]byte("mesh"), resp.MeshCA)
 			assert.Equal(1, tc.mSGetter.setManifestCount)
 		})
 	}
@@ -296,8 +296,8 @@ func TestGetManifests(t *testing.T) {
 				return
 			}
 			require.NoError(err)
-			assert.Equal([]byte("root"), resp.CoordinatorRoot)
-			assert.Equal([]byte("mesh"), resp.MeshRoot)
+			assert.Equal([]byte("root"), resp.RootCA)
+			assert.Equal([]byte("mesh"), resp.MeshCA)
 			assert.Len(resp.Policies, len(tc.policyStoreContent))
 		})
 	}
@@ -397,9 +397,9 @@ func (s *stubManifestSetGetter) LatestManifest() (*manifest.Manifest, error) {
 
 type stubCertChainGetter struct{}
 
-func (s *stubCertChainGetter) GetCoordinatorRootCert() []byte { return []byte("root") }
-func (s *stubCertChainGetter) GetMeshRootCert() []byte        { return []byte("mesh") }
-func (s *stubCertChainGetter) GetIntermCert() []byte          { return []byte("inter") }
+func (s *stubCertChainGetter) GetRootCACert() []byte   { return []byte("root") }
+func (s *stubCertChainGetter) GetMeshCACert() []byte   { return []byte("mesh") }
+func (s *stubCertChainGetter) GetIntermCACert() []byte { return []byte("inter") }
 
 func rpcContext(key *ecdsa.PrivateKey) context.Context {
 	var peerCertificates []*x509.Certificate

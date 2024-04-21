@@ -113,7 +113,7 @@ func OpenSSL() ([]any, error) {
 						Container().
 							WithName("openssl-backend").
 							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
-							WithCommand("/bin/bash", "-c", "echo Workload started \nopenssl s_server -port 443 -Verify 2 -CAfile /tls-config/MeshCACert.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem").
+							WithCommand("/bin/bash", "-c", "echo Workload started \nopenssl s_server -port 443 -Verify 2 -CAfile /tls-config/mesh-ca.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem").
 							WithPorts(
 								ContainerPort().
 									WithName("openssl").
@@ -154,7 +154,7 @@ func OpenSSL() ([]any, error) {
 						Container().
 							WithName("openssl-client").
 							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
-							WithCommand("/bin/bash", "-c", "echo Workload started \nwhile true; do \n  echo \"THIS IS A TEST MESSAGE\" |\n    openssl s_client -connect openssl-frontend:443 -verify_return_error -CAfile /tls-config/RootCACert.pem\n  sleep 30\ndone\n").
+							WithCommand("/bin/bash", "-c", "echo Workload started \nwhile true; do \n  echo \"THIS IS A TEST MESSAGE\" |\n    openssl s_client -connect openssl-frontend:443 -verify_return_error -CAfile /tls-config/coordinator-root-ca.pem\n  sleep 30\ndone\n").
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(50),
 							),
@@ -181,7 +181,7 @@ func OpenSSL() ([]any, error) {
 						Container().
 							WithName("openssl-frontend").
 							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
-							WithCommand("/bin/bash", "-c", "echo Workload started\nopenssl s_server -www -port 443 -cert /tls-config/certChain.pem -key /tls-config/key.pem -cert_chain /tls-config/certChain.pem &\nwhile true; do \n  echo \"THIS IS A TEST MESSAGE\" |\n    openssl s_client -connect openssl-backend:443 -verify_return_error -CAfile /tls-config/MeshCACert.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem\n  sleep 10\ndone\n").
+							WithCommand("/bin/bash", "-c", "echo Workload started\nopenssl s_server -www -port 443 -cert /tls-config/certChain.pem -key /tls-config/key.pem -cert_chain /tls-config/certChain.pem &\nwhile true; do \n  echo \"THIS IS A TEST MESSAGE\" |\n    openssl s_client -connect openssl-backend:443 -verify_return_error -CAfile /tls-config/mesh-ca.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem\n  sleep 10\ndone\n").
 							WithPorts(
 								ContainerPort().
 									WithName("openssl").
@@ -325,7 +325,7 @@ func generateEmojivoto(smMode serviceMeshMode) ([]any, error) {
 							WithEnv(EnvVar().WithName("GRPC_PORT").WithValue("8080")).
 							WithEnv(EnvVar().WithName("PROM_PORT").WithValue("8801")).
 							WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
-							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/MeshCACert.pem")).
+							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/mesh-ca.pem")).
 							WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem")).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(50),
@@ -432,7 +432,7 @@ func generateEmojivoto(smMode serviceMeshMode) ([]any, error) {
 							WithEnv(EnvVar().WithName("GRPC_PORT").WithValue("8080")).
 							WithEnv(EnvVar().WithName("PROM_PORT").WithValue("8801")).
 							WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
-							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/MeshCACert.pem")).
+							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/mesh-ca.pem")).
 							WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem")).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(50),
@@ -504,7 +504,7 @@ func generateEmojivoto(smMode serviceMeshMode) ([]any, error) {
 							WithEnv(EnvVar().WithName("VOTINGSVC_HOST").WithValue(votingSvcHost)).
 							WithEnv(EnvVar().WithName("INDEX_BUNDLE").WithValue("dist/index_bundle.js")).
 							WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
-							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/MeshCACert.pem")).
+							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/mesh-ca.pem")).
 							WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem")).
 							WithEnv(EnvVar().WithName("EDG_DISABLE_CLIENT_AUTH").WithValue("true")).
 							WithResources(ResourceRequirements().
