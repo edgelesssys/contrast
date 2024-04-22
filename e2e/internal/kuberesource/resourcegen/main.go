@@ -1,7 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path"
 
@@ -9,13 +11,21 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		fmt.Println("Usage: kuberesource <set> <dest>")
+	imageReplacementsPath := flag.String("image-replacements", "", "Path to the image replacements file")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s <set> <dest>\n", os.Args[0])
+		flag.PrintDefaults()
+	}
+
+	flag.Parse()
+
+	if len(flag.Args()) != 2 {
+		flag.Usage()
 		os.Exit(1)
 	}
 
-	set := os.Args[1]
-	dest := os.Args[2]
+	set := flag.Arg(0)
+	dest := flag.Arg(1)
 
 	var resources []any
 	var err error
@@ -38,6 +48,22 @@ func main() {
 		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
+
+	var replacements map[string]string
+	if *imageReplacementsPath != "" {
+		f, err := os.Open(*imageReplacementsPath)
+		if err != nil {
+			log.Fatalf("could not open image definition file %q: %v", *imageReplacementsPath, err)
+		}
+		defer f.Close()
+
+		replacements, err = kuberesource.ImageReplacementsFromFile(f)
+		if err != nil {
+			log.Fatalf("could not parse image definition file %q: %v", *imageReplacementsPath, err)
+		}
+	}
+
+	kuberesource.PatchImages(resources, replacements)
 
 	b, err := kuberesource.EncodeResources(resources...)
 	if err != nil {
