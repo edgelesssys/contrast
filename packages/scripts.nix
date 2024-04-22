@@ -208,6 +208,20 @@ with pkgs;
     '';
   };
 
+  write-emojivoto-demo = writeShellApplication {
+    name = "write-emojivoto-demo";
+    runtimeInputs = [
+      contrast
+      kypatch
+    ];
+    text = ''
+      imageReplacements=$1
+      destinationFile=$2
+      resourcegen --image-replacements="$imageReplacements" emojivoto "$destinationFile"
+      nix run .#kypatch namespace -- "$destinationFile" --replace edg-default default
+    '';
+  };
+
   fetch-latest-contrast = writeShellApplication {
     name = "fetch-latest-contrast";
     runtimeInputs = [
