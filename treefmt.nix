@@ -37,7 +37,7 @@
       ];
     };
     vale = {
-      command = "${lib.getExe pkgs.vale}";
+      command = "${pkgs.vale.withStyles (s: with s; [ microsoft google ])}/bin/vale";
       options = [
         "--no-wrap"
       ];
