@@ -187,17 +187,24 @@ jobs:
       - name: Push containers with release tag
         run: |
           coordinatorImg=$(nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator")
-          nix run .#containers.push-initializer -- "$container_registry/contrast/initializer"
+          initializerImg=$(nix run .#containers.push-initializer -- "$container_registry/contrast/initializer")
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
+          echo "initializerImg=$initializerImg" | tee -a "$GITHUB_ENV"
       - name: Add tag to Coordinator image
         run: |
-          front=${coordinatorImg%@*}
-          back=${coordinatorImg#*@}
-          echo "coordinatorImgTagged=${front}:${{ inputs.version }}@${back}" | tee -a "$GITHUB_ENV"
+          frontCoord=${coordinatorImg%@*}
+          backCoord=${coordinatorImg#*@}
+          echo "coordinatorImgTagged=${frontCoord}:${{ inputs.version }}@${backCoord}" | tee -a "$GITHUB_ENV"
+      - name: Create file with image replacements
+        run: |
+          echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged" > image-replacements.txt
+          echo "ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImg" >> image-replacements.txt
       - name: Create portable coordinator resource definitions
         run: |
           mkdir -p workspace
           nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" > workspace/coordinator.yml
+          nix run .#scripts.write-emojivoto-demo -- "./image-replacements.txt" "deployments/emojivoto-demo.yml"
+          zip -r deployments/emojivoto-demo.zip deployments/emojivoto-demo.yml
       - name: Update coordinator policy hash
         run: |
           yq < workspace/coordinator.yml \
@@ -221,6 +228,7 @@ jobs:
           files: |
             result-cli/bin/contrast
             workspace/coordinator.yml
+            deployments/emojivoto-demo.zip
       - name: Reset temporary changes
         run: |
           git reset --hard ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
