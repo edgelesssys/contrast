@@ -1,8 +1,5 @@
-/*
-Copyright (c) Edgeless Systems GmbH
-
-SPDX-License-Identifier: AGPL-3.0-only
-*/
+// Copyright 2024 Edgeless Systems GmbH
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // aTLS provides config generation functions to bootstrap attested TLS connections.
 package atls

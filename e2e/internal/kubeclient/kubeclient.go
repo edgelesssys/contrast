@@ -1,3 +1,6 @@
+// Copyright 2024 Edgeless Systems GmbH
+// SPDX-License-Identifier: AGPL-3.0-only
+
 /*
 The kubeclient package provides a simple wrapper around Kubernetes interactions
 commonly used in the e2e tests.

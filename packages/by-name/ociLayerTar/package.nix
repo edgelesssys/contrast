@@ -1,3 +1,6 @@
+# Copyright 2024 Edgeless Systems GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # application/vnd.oci.image.layer.v1.tar
 # application/vnd.oci.image.layer.v1.tar+gzip
 # application/vnd.oci.image.layer.v1.tar+zstd

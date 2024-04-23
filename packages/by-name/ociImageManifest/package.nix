@@ -1,3 +1,6 @@
+# Copyright 2024 Edgeless Systems GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # application/vnd.oci.image.manifest.v1+json
 { lib
 , ociImageConfig
