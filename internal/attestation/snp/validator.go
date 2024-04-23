@@ -9,7 +9,6 @@ package snp
 import (
 	"context"
 	"encoding/asn1"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
@@ -21,6 +20,7 @@ import (
 	"github.com/google/go-sev-guest/validate"
 	"github.com/google/go-sev-guest/verify"
 	"github.com/google/go-sev-guest/verify/trust"
+	"google.golang.org/protobuf/proto"
 )
 
 // Validator validates attestation statements.
@@ -86,23 +86,24 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	// Parse the attestation document.
 
-	reportRaw := make([]byte, base64.StdEncoding.DecodedLen(len(attDocRaw)))
-	if _, err = base64.StdEncoding.Decode(reportRaw, attDocRaw); err != nil {
-		return err
+	attestation := &sevsnp.Attestation{}
+	if err := proto.Unmarshal(attDocRaw, attestation); err != nil {
+		return fmt.Errorf("unmarshalling attestation: %w", err)
+	}
+
+	if attestation.Report == nil {
+		return fmt.Errorf("attestation missing report")
+	}
+	reportRaw, err := abi.ReportToAbiBytes(attestation.Report)
+	if err != nil {
+		return fmt.Errorf("converting report to abi: %w", err)
 	}
 	v.logger.Info("Report decoded", "reportRaw", hex.EncodeToString(reportRaw))
 
 	verifyOpts := verify.DefaultOptions()
-	verifyOpts.Product = &sevsnp.SevProduct{
-		Name: sevsnp.SevProduct_SEV_PRODUCT_MILAN,
-	}
+	verifyOpts.Product = attestation.Product
 	verifyOpts.CheckRevocations = true
 	verifyOpts.Getter = v.kdsGetter
-
-	attestation, err := constructReportWithCertChain(reportRaw, verifyOpts)
-	if err != nil {
-		return fmt.Errorf("converting report to proto: %w", err)
-	}
 
 	// Report signature verification.
 
@@ -136,18 +137,4 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	v.logger.Info("Validate finished successfully")
 	return nil
-}
-
-func constructReportWithCertChain(reportRaw []byte, verifyOpts *verify.Options) (*sevsnp.Attestation, error) {
-	if len(reportRaw) >= (abi.ReportSize + abi.CertTableEntrySize) {
-		// got extended report (report + cert chain)
-		return abi.ReportCertsToProto(reportRaw)
-	}
-	// got report only, need to fetch cert chain
-	report, err := abi.ReportToProto(reportRaw)
-	if err != nil {
-		return nil, fmt.Errorf("converting report to proto: %w", err)
-	}
-
-	return verify.GetAttestationFromReport(report, verifyOpts)
 }
