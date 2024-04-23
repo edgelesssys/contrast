@@ -106,3 +106,20 @@ func AddPortForwarders(resources []any) []any {
 	}
 	return out
 }
+
+// AddLogging modifies Contrast Coordinators among the resources to enable debug logging.
+func AddLogging(resources []any, level string) []any {
+	// "contrast.edgeless.systems/pod-role": "coordinator"
+	for _, resource := range resources {
+		switch r := resource.(type) {
+		case *applyappsv1.DeploymentApplyConfiguration:
+			if r.Spec.Template.Annotations["contrast.edgeless.systems/pod-role"] == "coordinator" {
+				r.Spec.Template.Spec.Containers[0].WithEnv(
+					NewEnvVar("CONTRAST_LOG_LEVEL", level),
+					NewEnvVar("CONTRAST_LOG_SUBSYSTEMS", "*"),
+				)
+			}
+		}
+	}
+	return resources
+}
