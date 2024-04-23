@@ -31,5 +31,5 @@ curl -fLo contrast https://github.com/edgelesssys/contrast/releases/download/lat
 Install the Contrast CLI in your PATH, e.g.:
 
 ```bash
-mv contrast /usr/local/bin/contrast
+sudo install contrast /usr/local/bin/contrast
 ```
