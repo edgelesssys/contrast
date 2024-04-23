@@ -165,6 +165,21 @@ const sidebars = {
         },
       ]
     },
+    {
+      type: 'category',
+      label: 'About',
+      link: {
+        type: 'doc',
+        id: 'about/index'
+      },
+      items: [
+        {
+          type: 'doc',
+          label: 'Telemetry',
+          id: 'about/telemetry',
+        },
+      ]
+    },
   ],
 };
 
