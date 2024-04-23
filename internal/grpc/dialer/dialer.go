@@ -1,8 +1,5 @@
-/*
-Copyright (c) Edgeless Systems GmbH
-
-SPDX-License-Identifier: AGPL-3.0-only
-*/
+// Copyright 2024 Edgeless Systems GmbH
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // Package dialer provides a grpc dialer that can be used to create grpc client connections with different levels of ATLS encryption / verification.
 package dialer

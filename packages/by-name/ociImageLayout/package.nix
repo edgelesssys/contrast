@@ -1,3 +1,6 @@
+# Copyright 2024 Edgeless Systems GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # OCI image layout. Can be pushed to a registry or used as a local image.
 { lib
 , runCommand

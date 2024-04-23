@@ -1,3 +1,6 @@
+// Copyright 2024 Edgeless Systems GmbH
+// SPDX-License-Identifier: AGPL-3.0-only
+
 // Package logger provides a slog.Logger that can be configured via environment variables.
 // CONTRAST_LOG_LEVEL can be used to set the log level.
 // CONTRAST_LOG_FORMAT can be used to set the log format.

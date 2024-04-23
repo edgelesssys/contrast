@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright 2024 Edgeless Systems GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 #
 # This script prepares the environment for expect scripts to be recorded in,
 # executes all scripts, and copies the .cast files to our doc's asset folder.
