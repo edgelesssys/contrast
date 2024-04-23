@@ -9,23 +9,31 @@ package snp
 import (
 	"context"
 	"encoding/asn1"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"net/http"
 
 	"github.com/edgelesssys/contrast/internal/oid"
+	snpabi "github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/client"
+	spb "github.com/google/go-sev-guest/proto/sevsnp"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // Issuer issues attestation statements.
 type Issuer struct {
-	logger *slog.Logger
+	thimGetter *THIMGetter
+	logger     *slog.Logger
 }
 
 // NewIssuer returns a new Issuer.
 func NewIssuer(log *slog.Logger) *Issuer {
-	return &Issuer{logger: log}
+	return &Issuer{
+		thimGetter: NewTHIMGetter(http.DefaultClient),
+		logger:     log,
+	}
 }
 
 // OID returns the OID of the issuer.
@@ -50,6 +58,7 @@ func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (re
 
 	reportData := constructReportData(ownPublicKey, nonce)
 
+	// Get quote from SNP device
 	quoteProvider, err := client.GetQuoteProvider()
 	if err != nil {
 		return nil, fmt.Errorf("issuer: getting quote provider: %w", err)
@@ -58,11 +67,41 @@ func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (re
 	if err != nil {
 		return nil, fmt.Errorf("issuer: getting raw report: %w", err)
 	}
+	report, err := snpabi.ReportToProto(reportRaw)
+	if err != nil {
+		return nil, fmt.Errorf("issuer: parsing report: %w", err)
+	}
 	i.logger.Info("Retrieved report", "reportRaw", hex.EncodeToString(reportRaw))
 
-	reportB64 := make([]byte, base64.StdEncoding.EncodedLen(len(reportRaw)))
-	base64.StdEncoding.Encode(reportB64, reportRaw)
+	// Get cert chain from THIM
+	thimRaw, err := i.thimGetter.GetCertification()
+	if err != nil {
+		return nil, fmt.Errorf("issuer: getting cert chain from THIM: %w", err)
+	}
+	i.logger.Info("Retrieved THIM certification", "thim", thimRaw)
+	certChain, err := thimRaw.Proto()
+	if err != nil {
+		return nil, fmt.Errorf("issuer: converting THIM cert chain: %w", err)
+	}
+
+	// Get SNP product info from cpuid
+	product := snpGuestDevice.Product()
+	i.logger.Info("cpuid product info", "name", product.GetName(), "machineStepping", product.GetMachineStepping().Value)
+	// Host cpuid can result in incorrect stepping: https://github.com/google/go-sev-guest/issues/115
+	product.MachineStepping = &wrapperspb.UInt32Value{Value: 0}
+	i.logger.Info("patched product info", "name", product.GetName(), "machineStepping", product.GetMachineStepping().Value)
+
+	att := &spb.Attestation{
+		Report:           report,
+		CertificateChain: certChain,
+		Product:          product,
+	}
+
+	attRaw, err := proto.Marshal(att)
+	if err != nil {
+		return nil, fmt.Errorf("issuer: marshaling attestation: %w", err)
+	}
 
 	i.logger.Info("Successfully issued attestation statement")
-	return reportB64, nil
+	return attRaw, nil
 }
