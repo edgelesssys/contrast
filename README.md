@@ -34,8 +34,8 @@ Contrast integrates fluently with the existing Kubernetes workflows. It's compat
 
 ### 🔍 Everything verifiable
 
-* Workload attestation based on the identity of your container and the remote-attestation feature of [Confidential Containers](https://github.com/confidential-containers)
-* "Whole deployment" attestation based on Contrast's [Coordinator attestation service](#the-contrast-coordinator)
+* Workload attestation based on the identity of your container and the remote-attestation feature of [Confidential Containers](https://docs.edgeless.systems/contrast/basics/confidential-containers)
+* "Whole deployment" attestation based on Contrast's [Coordinator attestation service](https://docs.edgeless.systems/contrast/components#the-coordinator)
 * Runtime environment integrity verification based runtime policies
 * Kata micro-VMs and single workload isolation provide a minimal Trusted Computing Base (TCB)
 
