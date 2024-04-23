@@ -149,9 +149,6 @@ func Coordinator(namespace string) *CoordinatorConfig {
 						Container().
 							WithName("coordinator").
 							WithImage("ghcr.io/edgelesssys/contrast/coordinator:latest").
-							WithEnv(
-								NewEnvVar("CONTRAST_LOG_LEVEL", "debug"),
-							).
 							WithPorts(
 								ContainerPort().
 									WithName("userapi").
