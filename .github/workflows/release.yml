@@ -15,6 +15,7 @@ on:
 
 env:
   container_registry: ghcr.io/edgelesssys
+  azure_resource_group: contrast-ci
 
 concurrency:
   group: ${{ github.ref }}
@@ -237,6 +238,45 @@ jobs:
         with:
           version: ${{ needs.process-inputs.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
           commit: true
+
+  test:
+    runs-on: ubuntu-22.04
+    permissions:
+      # Job needs content:write to see draft releases.
+      contents: write
+      packages: read
+    needs: release
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to Azure
+        uses: azure/login@6b2456866fc08b011acb422a92a4aa20e2c4de32 # v2.1.0
+        with:
+          creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
+      - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
+      - name: Create justfile.env
+        run: |
+          cat <<EOF > justfile.env
+          container_registry=${{ env.container_registry }}
+          azure_resource_group=${{ env.azure_resource_group }}
+          EOF
+      - name: Get credentials for CI cluster
+        run: |
+          just get-credentials
+      - name: E2E Test
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          nix shell .#contrast.e2e --command release.test -test.v --tag ${{ inputs.version }}
 
   create-github-stuff:
     name: Create backport label and milestone
