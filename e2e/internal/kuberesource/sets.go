@@ -473,7 +473,7 @@ func generateEmojivoto() ([]any, error) {
 			WithSelector(
 				map[string]string{"app.kubernetes.io/name": "web-svc"},
 			).
-			WithType("ClusterIP").
+			WithType("LoadBalancer").
 			WithPorts(
 				ServicePort().
 					WithName("https").
@@ -486,22 +486,10 @@ func generateEmojivoto() ([]any, error) {
 		WithAPIVersion("v1").
 		WithKind("ServiceAccount")
 
-	portforwarderCoordinator := PortForwarder("coordinator", ns).
-		WithListenPort(1313).
-		WithForwardTarget("coordinator", 1313).
-		PodApplyConfiguration
-
-	portforwarderemojivotoWeb := PortForwarder("emojivoto-web", ns).
-		WithListenPort(8080).
-		WithForwardTarget("web-svc", 443).
-		PodApplyConfiguration
-
 	resources := []any{
 		emoji,
 		emojiService,
 		emojiserviceAccount,
-		portforwarderCoordinator,
-		portforwarderemojivotoWeb,
 		voteBot,
 		voting,
 		votingService,
@@ -557,17 +545,6 @@ func PatchNamespaces(resources []any, namespace string) []any {
 	return resources
 }
 
-// EmojivotoDemo returns patched resources for deploying an Emojivoto demo.
-func EmojivotoDemo(replacements map[string]string) ([]any, error) {
-	resources, err := generateEmojivoto()
-	if err != nil {
-		return nil, err
-	}
-	patched := PatchImages(resources, replacements)
-	patched = PatchNamespaces(patched, "default")
-	return patched, nil
-}
-
 // Emojivoto returns resources for deploying Emojivoto application.
 func Emojivoto() ([]any, error) {
 	resources, err := generateEmojivoto()
@@ -575,16 +552,10 @@ func Emojivoto() ([]any, error) {
 		return nil, err
 	}
 
-	// Add coordinator
-	ns := "edg-default"
-	namespace := Namespace(ns)
-	coordinator := Coordinator(ns).DeploymentApplyConfiguration
-	coordinatorService := ServiceForDeployment(coordinator)
-	coordinatorForwarder := PortForwarder("coordinator", ns).
-		WithListenPort(1313).
-		WithForwardTarget("coordinator", 1313).
-		PodApplyConfiguration
-	resources = append(resources, namespace, coordinator, coordinatorService, coordinatorForwarder)
+	namespace := Namespace("edg-default")
+	var out []any
+	out = append(out, namespace)
+	out = append(out, resources...)
 
-	return resources, nil
+	return out, nil
 }
