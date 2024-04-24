@@ -212,7 +212,7 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	return flags, nil
 }
 
-func policyMapToBytesList(m map[string]deployment) [][]byte {
+func policyMapToBytesList(m []deployment) [][]byte {
 	var policies [][]byte
 	for _, depl := range m {
 		policies = append(policies, depl.policy)
