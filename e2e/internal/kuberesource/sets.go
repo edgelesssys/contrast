@@ -509,6 +509,11 @@ func generateEmojivoto(smMode serviceMeshMode) ([]any, error) {
 							WithEnv(EnvVar().WithName("EDG_DISABLE_CLIENT_AUTH").WithValue("true")).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(50),
+							).
+							WithReadinessProbe(applycorev1.Probe().
+								WithTCPSocket(TCPSocketAction().WithPort(intstr.FromInt(8080))).
+								WithInitialDelaySeconds(1).
+								WithPeriodSeconds(5),
 							),
 					),
 				),
