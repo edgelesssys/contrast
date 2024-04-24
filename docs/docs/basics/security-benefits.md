@@ -111,7 +111,7 @@ The following table describes the attack surfaces that are available to attacker
 The container root file system with integrity protection is designed to mitigate risks from disk attacks.
 Additionally, the container has no writeable disk partition mounted, hence, data is only stored in-memory and never disclosed to disk.
 
-Risks from network attacks are mitigated by having [authenticated, end-to-end encrypted channels](../architecture/network-encryption/sidecar.md).
+Risks from network attacks are mitigated by having [authenticated, end-to-end encrypted channels](../components/service-mesh.md).
 An [attestation protocol](../architecture/attestation/hardware.md) helps protect the boot sequence.
 [Runtime policies](../architecture/attestation/runtime-policies.md) verify the runtime environment configuration read from the Kubernetes control plane.
 
