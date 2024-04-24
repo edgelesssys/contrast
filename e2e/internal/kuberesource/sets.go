@@ -664,11 +664,7 @@ func Emojivoto() ([]any, error) {
 	namespace := Namespace(ns)
 	coordinator := Coordinator(ns).DeploymentApplyConfiguration
 	coordinatorService := ServiceForDeployment(coordinator)
-	coordinatorForwarder := PortForwarder("coordinator", ns).
-		WithListenPort(1313).
-		WithForwardTarget("coordinator", 1313).
-		PodApplyConfiguration
-	resources = append(resources, namespace, coordinator, coordinatorService, coordinatorForwarder)
+	resources = append(resources, namespace, coordinator, coordinatorService)
 
 	return resources, nil
 }
@@ -686,11 +682,7 @@ func EmojivotoIngressEgress() ([]any, error) {
 	namespace := Namespace(ns)
 	coordinator := Coordinator(ns).DeploymentApplyConfiguration
 	coordinatorService := ServiceForDeployment(coordinator)
-	coordinatorForwarder := PortForwarder("coordinator", ns).
-		WithListenPort(1313).
-		WithForwardTarget("coordinator", 1313).
-		PodApplyConfiguration
-	resources = append(resources, namespace, coordinator, coordinatorService, coordinatorForwarder)
+	resources = append(resources, namespace, coordinator, coordinatorService)
 
 	return resources, nil
 }
