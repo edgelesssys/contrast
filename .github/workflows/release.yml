@@ -40,7 +40,7 @@ jobs:
       NEXT_MINOR_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
       NEXT_PATCH_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
       - name: Working branch
         run: |
           echo "WORKING_BRANCH=$(git branch --show-current)" | tee -a "$GITHUB_ENV"
@@ -104,12 +104,12 @@ jobs:
       WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
     steps:
       - name: Checkout working branch
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           path: contrast-working
       - name: Checkout main
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
         with:
           ref: main
           path: contrast-main
@@ -138,7 +138,7 @@ jobs:
           working-directory: contrast-main
           commit: false
       - name: Create PR
-        uses: peter-evans/create-pull-request@c55203cfde3e5c11a452d352b4393e68b85b4533 # v6.0.3
+        uses: peter-evans/create-pull-request@9153d834b60caba6d51c9b9510b087acf9f33f83 # v6.0.4
         with:
           title: Post ${{ needs.process-inputs.outputs.WITHOUT_V }} release updates to main
           body: |
@@ -166,7 +166,7 @@ jobs:
       WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
     steps:
       - name: Checkout
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
       - uses: ./.github/actions/setup_nix
@@ -262,7 +262,7 @@ jobs:
       NEXT_MINOR: ${{ needs.process-inputs.outputs.NEXT_MINOR }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f # v4.1.3
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
       - name: Create backport label
