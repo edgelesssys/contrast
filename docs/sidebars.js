@@ -116,38 +116,9 @@ const sidebars = {
       },
       items: [
         {
-          type: 'category',
+          type: 'doc',
           label: 'Attestation',
-          link: {
-            type: 'generated-index',
-          },
-          items: [
-            {
-              type: 'doc',
-              label: 'Hardware',
-              id: 'architecture/attestation/hardware',
-            },
-            {
-              type: 'doc',
-              label: 'Pod VM',
-              id: 'architecture/attestation/pod-vm',
-            },
-            {
-              type: 'doc',
-              label: 'Runtime policies',
-              id: 'architecture/attestation/runtime-policies',
-            },
-            {
-              type: 'doc',
-              label: 'Manifest',
-              id: 'architecture/attestation/manifest',
-            },
-            {
-              type: 'doc',
-              label: 'Coordinator',
-              id: 'architecture/attestation/coordinator',
-            },
-          ]
+          id: 'architecture/attestation',
         },
         {
           type: 'doc',
