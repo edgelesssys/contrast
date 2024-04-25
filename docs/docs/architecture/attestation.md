@@ -1,7 +1,7 @@
 # Attestation in Contrast
 
 ## Introduction
-This document delineates the attestation architecture for the Contrast product, adhering to the Remote ATtestation procedureS (RATS) as defined by [RFC 9334](https://datatracker.ietf.org/doc/rfc9334/).
+This document describes the attestation architecture of Contrast, adhering to the definitions of Remote ATtestation procedureS (RATS) in [RFC 9334](https://datatracker.ietf.org/doc/rfc9334/).
 
 ## Attestation Architecture
 Contrast integrates with the RATS architecture, leveraging their definition of roles and processes including *Attesters*, *Verifiers*, and *Relying Parties*.
@@ -57,7 +57,7 @@ columns 4
 
 - **Attester**: Assigned to entities that are responsible for creating *Evidence* which is then sent to a *Verifier*.
 - **Verifier**: These entities utilize the *Evidence*, *Reference Values*, and *Endorsements*. They assess the trustworthiness of the *Attester* by applying an *Appraisal Policy* for *Evidence*, a process known as "appraisal of Evidence." Following this assessment, *Verifiers* generate *Attestation Results* for use by *Relying Parties*. The *Appraisal Policy* for *Evidence* may be provided by the *Verifier Owner*, configured by the owner, programmed into the *Verifier*, or acquired through other means.
-- **Relying Party**: Assigned to entities that utilize *Attestation Results*, applying their own appraisal policies to make specific decisions, such as authorization decisions. This process is referred to as the "appraisal of Attestation Results." The *Appraisal Policy* for *Attestation Results* might be sourced from the *Relying Party Owner*, configured by the owner, embedded in the *Relying Party*, or obtained through other protocols or mechanisms.
+- **Relying Party**: Assigned to entities that utilize *Attestation Results*, applying their own appraisal policies to make specific decisions, such as authorization decisions. This process is referred to as the "appraisal of Attestation Results". The *Appraisal Policy* for *Attestation Results* might be sourced from the *Relying Party Owner*, configured by the owner, embedded in the *Relying Party*, or obtained through other protocols or mechanisms.
 
 ## Components of Contrast's Attestation
 The key components involved in the attestation process of Contrast are detailed below:
@@ -122,10 +122,10 @@ The root filesystem contains the [initializer](../components/index.md#the-initia
 Therefore, the dm-verity root hash acts as the evidence for all userland components that are part of the root filesystem.
 
 In the userland, the guest agent takes care of enforcing the containers [runtime policy](../components/index.md#runtime-policies).
-While the policy is passed in during the initialization procedure via the Coordinator, the evidence for the runtime policy is part of the CPU measurements.
+While the policy is passed in during the initialization procedure via the Kata host, the evidence for the runtime policy is part of the CPU measurements.
 During the [deployment](../deployment.md#generate-policy-annotations-and-manifest) the expected policy hash is annotated to the Kubernetes Pod resources.
 On AMD SEV-SNP system's the policy's hash is then added to the CPU's attestation report via the `HOSTDATA` field by the hypervisor.
-When provided with the policy from the Coordinator, the guest agent verifies that the policy's hash matches the one in the `HOSTDATA` field.
+When provided with the policy from the Kata host, the guest agent verifies that the policy's hash matches the one in the `HOSTDATA` field.
 
 In summary the Pod's evidence consists of the CPU report, the pod-VM image's measurments, and the runtime policy.
 All of this layered evidence  is combined into one statement and passed to the verifier.
