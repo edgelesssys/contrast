@@ -281,5 +281,5 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /repos/edgelesssys/contrast/milestones \
-            -f title='${NEXT_MINOR}' \
+            -f title="${NEXT_MINOR}" \
             -f state='open'
