@@ -31,6 +31,7 @@ Contrast integrates with the RATS architecture, leveraging their definition of r
     | Attester |                                | Relying Party |
     '----------'                                '---------------'
 ```
+Figure 1: Conceptual Data Flow. Taken from [RFC 9334](https://datatracker.ietf.org/doc/rfc9334/).
 
 ```mermaid
 block-beta
@@ -113,6 +114,7 @@ In RATS terminology, these Pods implement a layered attestation environment:
           |                                    |
           '------------------------------------'
 ```
+Figure 2: Layered Attester. Taken from [RFC 9334](https://datatracker.ietf.org/doc/rfc9334/).
 
 These pods run in Contrast's [runtime environment](../components/runtime.md), effectively within a confidential VM.
 During launch, the CPU measures the initial memory content of the confidential VM that contains Contrast's pod-VM image and generates the corresponding attestation evidence.
@@ -134,7 +136,7 @@ All of this layered evidence  is combined into one statement and passed to the v
 The [Coordinator](../components/index.md#the-coordinator) acts as a verifier within the Contrast deployment, configured with a [Manifest](../components/index.md#the-manifest) that defines the reference values and serves as an appraisal policy for all pods in the deployment.
 It also pulls endorsements from hardware vendors to verify the hardware claims.
 The Coordinator operates within the cluster as a confidential container and provides similar evidence as any other Pod when it acts as an attester.
-In RATS terminology, the Coordinator's dual role is defined as a composite device.
+In RATS terminology, the Coordinator's dual role is defined as a lead attester in a composite device which spans the entire deployment: Coordinator and the workload pods.
 It collects evidence from other attesters and conveys it to a verifier, generating evidence about the layout of the whole composite device based on the Manifest as the appraisal policy.
 
 ```
@@ -163,6 +165,7 @@ It collects evidence from other attesters and conveys it to a verifier, generati
    |                       Composite Device                           |
    '------------------------------------------------------------------'
 ```
+Figure 3: Composite Device. Taken from [RFC 9334](https://datatracker.ietf.org/doc/rfc9334/).
 
 The [CLI](../components/index.md#the-cli-command-line-interface) serves as the verifier for the Coordinator and the entire Contrast deployment, containing the reference values for the Coordinator and the endorsements from hardware vendors.
 These reference values are built into the Coordinator during our release process and can be reproduced offline via reproducible builds.
@@ -192,4 +195,4 @@ The appraisal policies in Contrast consist of two parts:
 
 In summary, Contrast's attestation strategy follows the RATS guidelines and consists of two parts:
 - A layered attestation environment for each individual instance of a Confidential Container in the deployment.
-- The Coordinator attestation service as a composite device that allows the transitive verification of the entire cluster.
+- The Coordinator attestation service as a lead attester that allows the transitive verification of the entire deployment as composite device.
