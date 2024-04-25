@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
+	applybatchv1 "k8s.io/client-go/applyconfigurations/batch/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
@@ -122,4 +123,30 @@ func AddLogging(resources []any, level string) []any {
 		}
 	}
 	return resources
+}
+
+// MapPodSpec applies a function to a PodSpec in a Kubernetes resource.
+func MapPodSpec(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration) any {
+	if resource == nil {
+		return nil
+	}
+	switch r := resource.(type) {
+	case *applybatchv1.CronJobApplyConfiguration:
+		r.Spec.JobTemplate.Spec.Template.Spec = f(r.Spec.JobTemplate.Spec.Template.Spec)
+	case *applyappsv1.DaemonSetApplyConfiguration:
+		r.Spec.Template.Spec = f(r.Spec.Template.Spec)
+	case *applyappsv1.DeploymentApplyConfiguration:
+		r.Spec.Template.Spec = f(r.Spec.Template.Spec)
+	case *applybatchv1.JobApplyConfiguration:
+		r.Spec.Template.Spec = f(r.Spec.Template.Spec)
+	case *applycorev1.PodApplyConfiguration:
+		r.Spec = f(r.Spec)
+	case *applyappsv1.ReplicaSetApplyConfiguration:
+		r.Spec.Template.Spec = f(r.Spec.Template.Spec)
+	case *applycorev1.ReplicationControllerApplyConfiguration:
+		r.Spec.Template.Spec = f(r.Spec.Template.Spec)
+	case *applyappsv1.StatefulSetApplyConfiguration:
+		r.Spec.Template.Spec = f(r.Spec.Template.Spec)
+	}
+	return resource
 }
