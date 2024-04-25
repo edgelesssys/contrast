@@ -157,16 +157,6 @@ func OpenSSL() ([]any, error) {
 
 	frontendService := ServiceForDeployment(frontend)
 
-	portforwarderCoordinator := PortForwarder("coordinator", ns).
-		WithListenPort(1313).
-		WithForwardTarget("coordinator", 1313).
-		PodApplyConfiguration
-
-	portforwarderOpenSSLFrontend := PortForwarder("openssl-frontend", ns).
-		WithListenPort(443).
-		WithForwardTarget("openssl-frontend", 443).
-		PodApplyConfiguration
-
 	resources := []any{
 		namespace,
 		coordinator,
@@ -176,8 +166,6 @@ func OpenSSL() ([]any, error) {
 		client,
 		frontend,
 		frontendService,
-		portforwarderCoordinator,
-		portforwarderOpenSSLFrontend,
 	}
 
 	return resources, nil
@@ -512,22 +500,10 @@ func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 		WithAPIVersion("v1").
 		WithKind("ServiceAccount")
 
-	portforwarderCoordinator := PortForwarder("coordinator", ns).
-		WithListenPort(1313).
-		WithForwardTarget("coordinator", 1313).
-		PodApplyConfiguration
-
-	portforwarderemojivotoWeb := PortForwarder("emojivoto-web", ns).
-		WithListenPort(8080).
-		WithForwardTarget("web-svc", 443).
-		PodApplyConfiguration
-
 	resources := []any{
 		emoji,
 		emojiService,
 		emojiserviceAccount,
-		portforwarderCoordinator,
-		portforwarderemojivotoWeb,
 		voteBot,
 		voting,
 		votingService,

@@ -215,6 +215,21 @@ func ServiceForDeployment(d *applyappsv1.DeploymentApplyConfiguration) *applycor
 	return s
 }
 
+// PortForwarderForService creates a Pod that forwards network traffic to the given service.
+//
+// Port forwarders are named "port-forwarder-SVCNAME" and forward the first port in the ServiceSpec.
+func PortForwarderForService(svc *applycorev1.ServiceApplyConfiguration) *applycorev1.PodApplyConfiguration {
+	port := *svc.Spec.Ports[0].Port
+	namespace := ""
+	if svc.Namespace != nil {
+		namespace = *svc.Namespace
+	}
+	return PortForwarder(*svc.Name, namespace).
+		WithListenPort(port).
+		WithForwardTarget(*svc.Name, port).
+		PodApplyConfiguration
+}
+
 // Initializer creates a new InitializerConfig.
 func Initializer() *applycorev1.ContainerApplyConfiguration {
 	return applycorev1.Container().

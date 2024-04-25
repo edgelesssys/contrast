@@ -37,6 +37,8 @@ func TestIngressEgress(t *testing.T) {
 	coordinatorService := kuberesource.ServiceForDeployment(coordinator)
 	resources = append(resources, coordinator, coordinatorService)
 
+	resources = kuberesource.AddPortForwarders(resources)
+
 	ct.Init(t, resources)
 
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
@@ -69,7 +71,7 @@ func TestIngressEgress(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 			defer cancel()
 
-			web, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-emojivoto-web", "8080")
+			web, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-web-svc", "443")
 			require.NoError(err)
 			t.Cleanup(cancelPortForward)
 
