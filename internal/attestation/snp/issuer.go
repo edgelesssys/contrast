@@ -71,14 +71,16 @@ func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (re
 	i.logger.Info("Retrieved report", "reportRaw", hex.EncodeToString(reportRaw))
 
 	// Get cert chain from THIM
+	var certChain *spb.CertificateChain
 	thimRaw, err := i.thimGetter.GetCertification()
 	if err != nil {
-		return nil, fmt.Errorf("issuer: getting cert chain from THIM: %w", err)
-	}
-	i.logger.Info("Retrieved THIM certification", "thim", thimRaw)
-	certChain, err := thimRaw.Proto()
-	if err != nil {
-		return nil, fmt.Errorf("issuer: converting THIM cert chain: %w", err)
+		i.logger.Info("Could not retrieve THIM certification", "error", err)
+	} else {
+		i.logger.Info("Retrieved THIM certification", "thim", thimRaw)
+		certChain, err = thimRaw.Proto()
+		if err != nil {
+			return nil, fmt.Errorf("issuer: converting THIM cert chain: %w", err)
+		}
 	}
 
 	// Get SNP product info from cpuid
