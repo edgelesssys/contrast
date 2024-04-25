@@ -155,12 +155,12 @@ This file is a serialization of [katautils.tomlConfig] and contains decent inlin
 option.
 
 <details>
-<summary>Example of a useful drop-in fragment</summary>
+<summary>Example of a drop-in fragment raising the default memory per VM</summary>
 
 ```sh
 cat >/opt/confidential-containers/share/defaults/kata-containers/config.d/10-memory.toml <<EOF
 [hypervisor.clh]
-default_memory = 256
+default_memory = 512
 EOF
 ```
 </details>
@@ -173,9 +173,11 @@ EOF
 
 There's [AKS documentation for resource management] which explains the basics of how CPU and
 memory are allocated for a Kata VM.
-The default memory allocation is quite high at 2GiB, which fills up the node fast.
-It's unclear why this default is chosen, given that the container limit's added on top of this
-value. Forcing a size with the pod annotation
+The default memory overhead added by the `RuntimeClass` is quite high at 2GiB, which fills up the node fast.
+It's unclear why this default is chosen, given that the container limit is added on top of this
+value and that the VMs are created with a 256MiB overhead.
+
+Forcing a size with the pod annotation
 `io.katacontainers.config.hypervisor.default_memory` would be possible, but the annotation would
 need to be allow-listed in the config setting `enable_annotations`.
 
@@ -186,7 +188,7 @@ need to be allow-listed in the config setting `enable_annotations`.
 
 ```toml
 [hypervisor.clh]
-default_memory = 2048  # MiB! Minimum seems to be around 256.
+default_memory = 256
 default_vcpus = 1
 enable_annotations = ["enable_iommu"]
 
