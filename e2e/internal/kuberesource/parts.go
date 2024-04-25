@@ -18,7 +18,7 @@ func ContrastRuntimeClass() *RuntimeClassConfig {
 	r := RuntimeClass(runtimeHandler).
 		WithHandler(runtimeHandler).
 		WithLabels(map[string]string{"addonmanager.kubernetes.io/mode": "Reconcile"}).
-		WithOverhead(Overhead(corev1.ResourceList{"memory": resource.MustParse("2Gi")})).
+		WithOverhead(Overhead(corev1.ResourceList{"memory": resource.MustParse("1152Mi")})).
 		WithScheduling(Scheduling(map[string]string{"kubernetes.azure.com/kata-cc-isolation": "true"}))
 
 	return &RuntimeClassConfig{r}
