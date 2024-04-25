@@ -93,3 +93,16 @@ func AddServiceMesh(
 	)
 	return deployment, nil
 }
+
+// AddPortForwarders adds a port-forwarder for each Service resource.
+func AddPortForwarders(resources []any) []any {
+	var out []any
+	for _, resource := range resources {
+		switch obj := resource.(type) {
+		case *applycorev1.ServiceApplyConfiguration:
+			out = append(out, PortForwarderForService(obj))
+		}
+		out = append(out, resource)
+	}
+	return out
+}

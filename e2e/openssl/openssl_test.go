@@ -36,6 +36,7 @@ func TestOpenSSL(t *testing.T) {
 
 	resources, err := kuberesource.OpenSSL()
 	require.NoError(t, err)
+	resources = kuberesource.AddPortForwarders(resources)
 
 	ct.Init(t, resources)
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
