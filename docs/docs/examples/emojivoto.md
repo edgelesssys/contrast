@@ -138,8 +138,6 @@ to the workloads using the Coordinator's `mesh-root.pem` as a trusted CA certifi
 To access the web frontend, expose the service on a public IP address via a LoadBalancer service:
 
 ```sh
-kubectl patch svc web-svc -p '{"spec": {"type": "LoadBalancer"}}'
-timeout 30s bash -c 'until kubectl get service/web-svc --output=jsonpath='{.status.loadBalancer}' | grep "ingress"; do sleep 2 ; done'
 frontendIP=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo "Frontend is available at  https://$frontendIP, you can visit it in your browser."
 ```
