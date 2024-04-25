@@ -19,8 +19,8 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
-	"github.com/edgelesssys/contrast/e2e/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/kubeapi"
+	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/stretchr/testify/require"
 )
 
