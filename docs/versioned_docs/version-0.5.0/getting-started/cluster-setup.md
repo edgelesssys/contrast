@@ -144,8 +144,7 @@ In case you've created a new resource group, you can just delete that group with
 
 ```sh
 az group delete \
-  --name "$azResourceGroup" \
-  --location "$azLocation"
+  --name "$azResourceGroup"
 ```
 
 Deleting the resource group will also delete the cluster and all other related resources.
