@@ -113,10 +113,10 @@ func TestRelease(t *testing.T) {
 		out, err := cmd.CombinedOutput()
 		require.NoError(err, "output:\n%s", string(out))
 
-		infos, err := os.ReadDir(path.Join(dir, "deployments"))
+		infos, err := os.ReadDir(path.Join(dir, "deployment"))
 		require.NoError(err)
 		for _, info := range infos {
-			name := path.Join(path.Join(dir, "deployments"), info.Name())
+			name := path.Join(path.Join(dir, "deployment"), info.Name())
 			yaml, err := os.ReadFile(name)
 			require.NoError(err)
 			resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
@@ -132,8 +132,8 @@ func TestRelease(t *testing.T) {
 		}
 	}), "unpacking needs to succeed for subsequent tests to run")
 
-	contrast.Run(t, ctx, 2*time.Minute, "generate", "deployments/")
-	contrast.Run(t, ctx, 1*time.Minute, "set", "-c", coordinatorIP+":1313", "deployments/")
+	contrast.Run(t, ctx, 2*time.Minute, "generate", "deployment/")
+	contrast.Run(t, ctx, 1*time.Minute, "set", "-c", coordinatorIP+":1313", "deployment/")
 	contrast.Run(t, ctx, 1*time.Minute, "verify", "-c", coordinatorIP+":1313")
 
 	require.True(t, t.Run("apply-demo", func(t *testing.T) {
@@ -141,7 +141,7 @@ func TestRelease(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 
-		files, err := filepath.Glob(path.Join(dir, "deployments", "*.yml"))
+		files, err := filepath.Glob(path.Join(dir, "deployment", "*.yml"))
 		require.NoError(err)
 		for _, file := range files {
 			yaml, err := os.ReadFile(file)
