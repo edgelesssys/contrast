@@ -233,8 +233,8 @@ func OpenSSL() ([]any, error) {
 	return resources, nil
 }
 
-// generateEmojivoto returns resources for deploying Emojivoto application.
-func generateEmojivoto(smMode serviceMeshMode) ([]any, error) {
+// Emojivoto returns resources for deploying Emojivoto application.
+func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 	ns := "edg-default"
 	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiSvcHost, votingSvcHost string
 	smProxyEmoji := ServiceMeshProxy()
@@ -644,50 +644,4 @@ func PatchNamespaces(resources []any, namespace string) []any {
 		}
 	}
 	return resources
-}
-
-// EmojivotoDemo returns patched resources for deploying an Emojivoto demo.
-func EmojivotoDemo(replacements map[string]string) ([]any, error) {
-	resources, err := generateEmojivoto(ServiceMeshDisabled)
-	if err != nil {
-		return nil, err
-	}
-	patched := PatchImages(resources, replacements)
-	patched = PatchNamespaces(patched, "default")
-	return patched, nil
-}
-
-// Emojivoto returns resources for deploying Emojivoto application.
-func Emojivoto() ([]any, error) {
-	resources, err := generateEmojivoto(ServiceMeshDisabled)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add coordinator
-	ns := "edg-default"
-	namespace := Namespace(ns)
-	coordinator := Coordinator(ns).DeploymentApplyConfiguration
-	coordinatorService := ServiceForDeployment(coordinator)
-	resources = append(resources, namespace, coordinator, coordinatorService)
-
-	return resources, nil
-}
-
-// EmojivotoIngressEgress returns resources for deploying Emojivoto application with
-// the service mesh configured with ingress and egress proxies.
-func EmojivotoIngressEgress() ([]any, error) {
-	resources, err := generateEmojivoto(ServiceMeshIngressEgress)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add coordinator
-	ns := "edg-default"
-	namespace := Namespace(ns)
-	coordinator := Coordinator(ns).DeploymentApplyConfiguration
-	coordinatorService := ServiceForDeployment(coordinator)
-	resources = append(resources, namespace, coordinator, coordinatorService)
-
-	return resources, nil
 }
