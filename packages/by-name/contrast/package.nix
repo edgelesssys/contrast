@@ -19,7 +19,7 @@ let
     ldflags = [
       "-s"
       "-X github.com/edgelesssys/contrast/internal/manifest.trustedMeasurement=${launchDigest}"
-      "-X github.com/edgelesssys/contrast/e2e/internal/kuberesource.runtimeHandler=${runtimeHandler}"
+      "-X github.com/edgelesssys/contrast/internal/kuberesource.runtimeHandler=${runtimeHandler}"
     ];
 
     subPackages = [ "e2e/openssl" "e2e/servicemesh" ];
@@ -62,7 +62,7 @@ buildGoModule rec {
   proxyVendor = true;
   vendorHash = "sha256-i+7DhygotCNhczpaZlI9O7enKVOW7smauOKcGQhOtzI=";
 
-  subPackages = packageOutputs ++ [ "e2e/internal/kuberesource/resourcegen" ];
+  subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
 
   prePatch = ''
     install -D ${lib.getExe genpolicy} cli/cmd/assets/genpolicy
@@ -77,7 +77,7 @@ buildGoModule rec {
     "-X main.version=v${version}"
     "-X github.com/edgelesssys/contrast/internal/manifest.trustedMeasurement=${launchDigest}"
     "-X github.com/edgelesssys/contrast/cli/cmd.runtimeHandler=${runtimeHandler}"
-    "-X github.com/edgelesssys/contrast/e2e/internal/kuberesource.runtimeHandler=${runtimeHandler}"
+    "-X github.com/edgelesssys/contrast/internal/kuberesource.runtimeHandler=${runtimeHandler}"
   ];
 
   preCheck = ''

@@ -6,12 +6,12 @@ package kuberesource
 import (
 	"bytes"
 
-	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/yaml"
 )
 
-// EncodeResources encodes a list of resources into a single YAML document.
+// EncodeResources encodes a list of apply configurations into a single YAML document.
 func EncodeResources(resources ...any) ([]byte, error) {
 	unstructuredResources, err := ResourcesToUnstructured(resources)
 	if err != nil {

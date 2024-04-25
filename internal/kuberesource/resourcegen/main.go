@@ -9,7 +9,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/edgelesssys/contrast/e2e/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/kuberesource"
 )
 
 func main() {
