@@ -13,3 +13,4 @@ go.work.sum
 node_modules
 .docusaurus
 build/
+.worktree
