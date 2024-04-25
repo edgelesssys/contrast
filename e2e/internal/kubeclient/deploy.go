@@ -84,20 +84,21 @@ func (c *Kubeclient) WaitForDeployment(ctx context.Context, namespace, name stri
 			if ctx.Err() != context.DeadlineExceeded {
 				return ctx.Err()
 			}
+			ctxErr := ctx.Err()
 			// Fetch and print debug information.
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
 			pods, err := c.PodsFromDeployment(ctx, namespace, name) //nolint:contextcheck // The parent context expired.
 			if err != nil {
 				logger.Error("could not fetch pods for deployment", "name", name, "error", err)
-				return ctx.Err()
+				return ctxErr
 			}
 			for _, pod := range pods {
 				if !isPodReady(&pod) {
 					logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
 				}
 			}
-			return ctx.Err()
+			return ctxErr
 		}
 	}
 }
