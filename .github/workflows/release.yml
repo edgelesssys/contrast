@@ -213,8 +213,8 @@ jobs:
             --replace "ghcr.io/edgelesssys/contrast/node-installer:latest" "$nodeInstallerImgTagged"
           nix run .#kypatch namespace -- workspace/runtime.yml \
             --replace edg-default kube-system
-          nix run .#scripts.write-emojivoto-demo -- "./image-replacements.txt" "deployments/emojivoto-demo.yml"
-          zip -r deployments/emojivoto-demo.zip deployments/emojivoto-demo.yml
+          nix run .#scripts.write-emojivoto-demo -- "./image-replacements.txt" "deployment/emojivoto-demo.yml"
+          zip -r deployment/emojivoto-demo.zip deployment/emojivoto-demo.yml
       - name: Update coordinator policy hash
         run: |
           yq < workspace/coordinator.yml \
@@ -239,7 +239,7 @@ jobs:
             result-cli/bin/contrast
             workspace/coordinator.yml
             workspace/runtime.yml
-            deployments/emojivoto-demo.zip
+            deployment/emojivoto-demo.zip
       - name: Reset temporary changes
         run: |
           git reset --hard ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
