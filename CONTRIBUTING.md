@@ -60,7 +60,7 @@
 
 ### Deploy
 
-The usually developer flow is available as a single target to execute:
+The usual developer flow is available as a single target to execute:
 
 ```sh
 just [default <deployment-name>]
