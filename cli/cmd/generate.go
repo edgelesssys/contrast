@@ -24,7 +24,10 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/embedbin"
+	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
+
 	"github.com/spf13/cobra"
 )
 
@@ -82,6 +85,9 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if err := patchTargets(paths, log); err != nil {
+		return fmt.Errorf("failed to patch targets: %w", err)
+	}
 	if err := generatePolicies(cmd.Context(), flags.policyPath, flags.settingsPath, paths, log); err != nil {
 		return fmt.Errorf("failed to generate policies: %w", err)
 	}
@@ -229,6 +235,53 @@ func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath str
 		logger.Info("Calculated policy hash", "hash", hex.EncodeToString(policyHash[:]), "path", yamlPath)
 	}
 	return nil
+}
+
+func patchTargets(paths []string, logger *slog.Logger) error {
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("failed to read %s: %w", path, err)
+		}
+		kubeObjs, err := kuberesource.UnmarshalApplyConfigurations(data)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal %s: %w", path, err)
+		}
+
+		var changed bool
+		replaceRuntimeClassName := runtimeClassNamePatcher(&changed)
+		for i := range kubeObjs {
+			kubeObjs[i] = kuberesource.MapPodSpec(kubeObjs[i], replaceRuntimeClassName)
+		}
+
+		if !changed {
+			logger.Debug("No changes needed for yaml file", "path", path)
+			continue
+		}
+		logger.Debug("Updating resources in yaml file", "path", path)
+		resource, err := kuberesource.EncodeResources(kubeObjs...)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(path, resource, os.ModePerm); err != nil {
+			return fmt.Errorf("failed to write %s: %w", path, err)
+		}
+	}
+	return nil
+}
+
+func runtimeClassNamePatcher(modified *bool) func(*applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+	return func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+		if spec.RuntimeClassName == nil || *spec.RuntimeClassName == runtimeHandler {
+			return spec
+		}
+
+		if strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || *spec.RuntimeClassName == "kata-cc-isolation" {
+			*modified = true
+			spec.RuntimeClassName = &runtimeHandler
+		}
+		return spec
+	}
 }
 
 func addWorkloadOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) error {
