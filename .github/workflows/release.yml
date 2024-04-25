@@ -204,8 +204,8 @@ jobs:
         run: |
           mkdir -p workspace
           nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" > workspace/coordinator.yml
-          nix run .#scripts.write-emojivoto-demo -- "./image-replacements.txt" "deployments/emojivoto-demo.yml"
-          zip -r deployments/emojivoto-demo.zip deployments/emojivoto-demo.yml
+          nix run .#scripts.write-emojivoto-demo -- "./image-replacements.txt" "deployment/emojivoto-demo.yml"
+          zip -r deployment/emojivoto-demo.zip deployment/emojivoto-demo.yml
       - name: Update coordinator policy hash
         run: |
           yq < workspace/coordinator.yml \
@@ -229,7 +229,7 @@ jobs:
           files: |
             result-cli/bin/contrast
             workspace/coordinator.yml
-            deployments/emojivoto-demo.zip
+            deployment/emojivoto-demo.zip
       - name: Reset temporary changes
         run: |
           git reset --hard ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
