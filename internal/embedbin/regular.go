@@ -17,7 +17,7 @@ type RegularInstaller struct {
 // Install creates a regular file and writes the contents to it.
 // prefix is an optional prefix for the temporary file.
 // If prefix is empty, a temporary directory will be used.
-func (r *RegularInstaller) Install(prefix string, contents []byte) (*RegularInstall, error) {
+func (r *RegularInstaller) Install(prefix string, contents []byte) (Installed, error) {
 	if prefix != "" {
 		if err := r.fs.MkdirAll(prefix, os.ModePerm); err != nil {
 			return nil, err
