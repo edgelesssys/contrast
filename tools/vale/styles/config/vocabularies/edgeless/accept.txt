@@ -4,6 +4,7 @@ Ansys
 API
 Asciinema
 ASG
+attesters
 auditable
 autoscaler
 autoscaling
@@ -16,6 +17,7 @@ Bootstrapper
 cachable
 cachix
 changeset
+CLI
 cloud
 cmdline
 config
@@ -94,6 +96,7 @@ unencrypted
 unspoofable
 untrusted
 updatable
+userland
 UUID
 vCPU
 virsh
