@@ -44,7 +44,6 @@ The key components involved in the attestation process of Contrast are detailed 
 This includes all Pods of the Contrast deployment that run inside Confidential Containers and generate cryptographic evidence reflecting their current configuration and state.
 Their evidence is rooted in the [hardware measurements](../basics/confidential-containers.md) from the CPU and their [confidential VM environment](../components/runtime.md).
 The details of this evidence are given below in the section on [Evidence Generation and Appraisal](#evidence-generation-and-appraisal).
-In RATS terminology, these Pods implement a layered attestation environment:
 
 ```
               .-------------.
@@ -55,59 +54,57 @@ In RATS terminology, these Pods implement a layered attestation environment:
               .-------------.   Reference      .-------------.
               | CLI +       |   Values for     |             |
               | Edgeless    +----------------->| Coordinator |
-              | Systems     | CPU and Image,   |             |
-              '-------------'                  '-------------'
+              | Systems     | Runtime Env and  |             |
+              '-------------' Runtime Policy   '-------------'
                                                     ^
           .------------------------------------.    |
-          |                                    |    | Layered
-          |                                    |    | Evidence
-          |   .---------------------------.    |    |   for
-          |   | Initializer(C)            |    |    |  Image
-          |   |             .-----------. |    |    |   and
-          |   |   Target    | Attesting | |    |    |   CPU
-          |   | Environment |Environment+-----------'
-          |   |             |           | |    |
-          |   |             '-----------' |    |
-          |   |                 ^         |    |
-          |   '--------------+--|---------'    |
-          |          Collect |  | Evidence for |
-          |          Claims  v  | Initializer  |
-          |   .-----------------+---------.    |
-          |   | Image(B):                 |    |
-          |   | Kernel, initrd,           |    |
-          |   | cmdline          Target   |    |
-          |   |               Environment |    |
-          |   |                 ^         |    |
-          |   '-------------+--|---------'     |
-          |         Collect |  | Evidence for  |
-          |         Claims  v  |  Kernel and   |
-          |                    | Runtime Policy|
-          |   .----------------+----------.    |
-          |   | CPU(A)                    |    |
-          |   | AMD SEV,                  |    |
-          |   | Intel TDX     Target      |    |
-          |   |              Environment  |    |
+          |                                    |    |
+          |                                    |    |
+          |   .---------------------------.    |    |   Evidence for
+          |   | Guest Agent(C)            |    |    |   Runtime Environment
+          |   |                           |    |    |        and
+          |   |   Target                  |    |    |   Runtime Policy
+          |   | Environment               |    |    |
+          |   |                           |    |    |
+          |   |                           |    |    |
+          |   |                           |    |    |
+          |   '-----------+-------+-------'    |    |
+          |       Part of |       | Evince for |    |
+          |               v       | Runtime    |    |
+          |   .-----------------. | Policy     |    |
+          |   | Runtime Env(B)  | |            |    |
+          |   |                 | |            |    |
+          |   |      Target     | |            |    |
+          |   |    Environment  | |            |    |
+          |   |           ^     | |            |    |
+          |   '-----------|-----' |            |    |
+          |       Measure |       |            |    |
+          |               |       |            |    |
+          |               |       |            |    |
+          |   .-----------+-------|-------.    |    |
+          |   | CPU(A): AMD SEV,  v       |    |    |
+          |   | Intel TDX                 |    |    |
+          |   |               Attesting   |    |    |
+          |   |              Environment  +---------'
           |   '---------------------------'    |
           |                                    |
           '------------------------------------'
 ```
-Figure 2: Pod as a layered attester. Based on the layered attester graphic in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-3).
+Figure 2: Pod's attestation flow. Based on the layered attester graphic in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-3).
 
-These pods run in Contrast's [runtime environment](../components/runtime.md), effectively within a confidential VM.
-During launch, the CPU measures the initial memory content of the confidential VM that contains Contrast's pod-VM image and generates the corresponding attestation evidence.
+Pods run in Contrast's [runtime environment](../components/runtime.md) (B), effectively within a confidential VM.
+During launch, the CPU (A) measures the initial memory content of the confidential VM that contains Contrast's pod-VM image and generates the corresponding attestation evidence.
 The image is in [IGVM format](https://github.com/microsoft/igvm), encapsulating all information required to launch a virtual machine, including the kernel, the initramfs, and kernel cmdline.
 The kernel cmdline contains the root hash for [dm-verity](https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/verity.html) that ensures the integrity of the root filesystem.
-The root filesystem contains the [initializer](../components/index.md#the-initializer) and all other components of the container's runtime environment such as the [guest agent](../basics/confidential-containers.md#kata-containers).
-Therefore, the dm-verity root hash acts as the evidence for all userland components that are part of the root filesystem.
+The root filesystem contains all  components of the container's runtime environment including the [guest agent](../basics/confidential-containers.md#kata-containers) (C).
 
 In the userland, the guest agent takes care of enforcing the containers [runtime policy](../components/index.md#runtime-policies).
 While the policy is passed in during the initialization procedure via the Kata host, the evidence for the runtime policy is part of the CPU measurements.
 During the [deployment](../deployment.md#generate-policy-annotations-and-manifest) the expected policy hash is annotated to the Kubernetes Pod resources.
-On AMD SEV-SNP system's the policy's hash is then added to the CPU's attestation report via the `HOSTDATA` field by the hypervisor.
+On AMD SEV-SNP the hash of the policy is then added to the attestation report via the `HOSTDATA` field by the hypervisor.
 When provided with the policy from the Kata host, the guest agent verifies that the policy's hash matches the one in the `HOSTDATA` field.
 
-In summary the Pod's evidence consists of the CPU report, the pod-VM image's measurements, and the runtime policy.
-All of this layered evidence  is combined into one statement and passed to the verifier.
+In summary a Pod's evidence is the attestation report of the CPU that provides evidence for runtime environment and the runtime policy.
 
 ### Verifier: Coordinator and CLI
 The [Coordinator](../components/index.md#the-coordinator) acts as a verifier within the Contrast deployment, configured with a [Manifest](../components/index.md#the-manifest) that defines the reference values and serves as an appraisal policy for all pods in the deployment.
@@ -169,5 +166,5 @@ The appraisal policies in Contrast consist of two parts:
 ## Summary
 
 In summary, Contrast's attestation strategy follows the RATS guidelines and consists of two parts:
-- A layered attestation environment for each individual instance of a Confidential Container in the deployment.
+- A CPU attestation report for the runtime environment and runtime policy for each Pod in the deployment.
 - The Coordinator attestation service as a lead attester that allows the transitive verification of the entire deployment as composite device.
