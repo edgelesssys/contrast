@@ -3,20 +3,37 @@ package embedbin
 import (
 	"fmt"
 
+	"github.com/spf13/afero"
 	"golang.org/x/sys/unix"
 )
 
 // MemfdInstaller installs embedded binaries.
-type MemfdInstaller struct{}
+type MemfdInstaller struct {
+	fallback *RegularInstaller
+}
 
 // New returns a new installer.
 func New() *MemfdInstaller {
-	return &MemfdInstaller{}
+	return &MemfdInstaller{
+		fallback: &RegularInstaller{fs: afero.NewOsFs()},
+	}
 }
 
 // Install creates a memfd and writes the contents to it.
 // the first argument is ignored on Linux (would be the prefix on other implementations).
-func (*MemfdInstaller) Install(_ string, contents []byte) (*MemfdInstall, error) {
+func (i *MemfdInstaller) Install(_ string, contents []byte) (Installed, error) {
+	// Try to install using memfd.
+	install, err := New().installMemfd(contents)
+	if err == nil {
+		return install, nil
+	}
+
+	// Fallback to regular installer.
+	return i.fallback.Install("", contents)
+}
+
+// installMemfd creates a memfd and writes the contents to it.
+func (*MemfdInstaller) installMemfd(contents []byte) (*MemfdInstall, error) {
 	// Create a memfd.
 	fd, err := unix.MemfdCreate("embedded-binary", 0)
 	if err != nil {
