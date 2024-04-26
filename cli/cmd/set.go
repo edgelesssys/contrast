@@ -24,7 +24,9 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
+	grpcRetry "github.com/edgelesssys/contrast/internal/grpc/retry"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/retry"
 	"github.com/edgelesssys/contrast/internal/spinner"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/spf13/cobra"
@@ -256,6 +258,22 @@ func loadWorkloadOwnerKey(path string, manifst manifest.Manifest, log *slog.Logg
 	return workloadOwnerKey, nil
 }
 
+type setDoer struct {
+	client userapi.UserAPIClient
+	req    *userapi.SetManifestRequest
+
+	resp *userapi.SetManifestResponse
+}
+
+func (d *setDoer) Do(ctx context.Context) error {
+	resp, err := d.client.SetManifest(ctx, d.req)
+	if err == nil {
+		d.resp = resp
+		return nil
+	}
+	return err
+}
+
 func setLoop(
 	ctx context.Context, client userapi.UserAPIClient, out io.Writer, req *userapi.SetManifestRequest,
 ) (resp *userapi.SetManifestResponse, retErr error) {
@@ -269,26 +287,18 @@ func setLoop(
 		}
 	}()
 
-	var rpcErr error
-	for attempts := 0; attempts < 30; attempts++ {
-		resp, rpcErr = client.SetManifest(ctx, req)
-		if rpcErr == nil {
-			return resp, nil
-		}
-		grpcSt, ok := status.FromError(rpcErr)
-		if ok {
-			switch grpcSt.Code() {
-			case codes.PermissionDenied, codes.InvalidArgument:
-				// These errors are not retryable
-				return nil, rpcErr
-			}
-		}
-		timer := time.NewTimer(1 * time.Second)
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		case <-timer.C:
-		}
+	doer := &setDoer{
+		client: client,
+		req:    req,
 	}
-	return nil, rpcErr
+
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	retrier := retry.NewIntervalRetrier(doer, time.Second, grpcRetry.ServiceIsUnavailable)
+	if err := retrier.Do(ctx); err != nil {
+		return nil, err
+	}
+
+	return doer.resp, nil
 }
