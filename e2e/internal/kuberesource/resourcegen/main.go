@@ -15,6 +15,8 @@ import (
 
 func main() {
 	imageReplacementsPath := flag.String("image-replacements", "", "Path to the image replacements file")
+	namespace := flag.String("namespace", "", "Namespace for namespaced resources")
+	addNamespaceObject := flag.Bool("add-namespace-object", false, "Add namespace object with the given namespace")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s <set> <dest>\n", os.Args[0])
 		flag.PrintDefaults()
@@ -65,6 +67,10 @@ func main() {
 	}
 
 	kuberesource.PatchImages(resources, replacements)
+	kuberesource.PatchNamespaces(resources, *namespace)
+	if *addNamespaceObject && *namespace != "default" && *namespace != "" {
+		resources = append(resources, kuberesource.Namespace(*namespace))
+	}
 
 	b, err := kuberesource.EncodeResources(resources...)
 	if err != nil {
