@@ -37,8 +37,6 @@ func main() {
 		resources, err = kuberesource.CoordinatorRelease()
 	case "runtime":
 		resources, err = kuberesource.Runtime()
-	case "simple":
-		resources, err = kuberesource.Simple()
 	case "openssl":
 		resources, err = kuberesource.OpenSSL()
 	case "emojivoto":

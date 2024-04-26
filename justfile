@@ -25,7 +25,7 @@ initializer: (push "initializer")
 node-installer: (push "node-installer")
 
 default_cli := "contrast.cli"
-default_deploy_target := "simple"
+default_deploy_target := "openssl"
 workspace_dir := "workspace"
 
 # Generate policies, apply Kubernetes manifests.
@@ -49,7 +49,7 @@ populate target=default_deploy_target:
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
     case {{ target }} in
-        "simple" | "openssl" | "emojivoto")
+        "openssl" | "emojivoto")
             nix shell .#contrast --command resourcegen {{ target }} ./{{ workspace_dir }}/deployment/deployment.yml
         ;;
         *)
@@ -82,7 +82,7 @@ apply target=default_deploy_target:
             kubectl apply -f ./{{ workspace_dir }}/runtime
             exit 0
         ;;
-        "simple" | "openssl" | "emojivoto")
+        "openssl" | "emojivoto")
             :
         ;;
         *)
@@ -164,9 +164,6 @@ wait-for-workload target=default_deploy_target:
     set -euo pipefail
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
     case {{ target }} in
-        "simple")
-            nix run .#scripts.kubectl-wait-ready -- $ns workload
-        ;;
         "openssl")
             nix run .#scripts.kubectl-wait-ready -- $ns openssl-backend
             nix run .#scripts.kubectl-wait-ready -- $ns openssl-client
