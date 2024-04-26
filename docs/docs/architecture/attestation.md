@@ -1,6 +1,5 @@
 # Attestation in Contrast
 
-## Introduction
 This document describes the attestation architecture of Contrast, adhering to the definitions of Remote ATtestation procedureS (RATS) in [RFC 9334](https://datatracker.ietf.org/doc/rfc9334/).
 
 ## Attestation Architecture
@@ -57,7 +56,7 @@ columns 4
 ```
 
 - **Attester**: Assigned to entities that are responsible for creating *Evidence* which is then sent to a *Verifier*.
-- **Verifier**: These entities utilize the *Evidence*, *Reference Values*, and *Endorsements*. They assess the trustworthiness of the *Attester* by applying an *Appraisal Policy* for *Evidence*, a process known as "appraisal of Evidence." Following this assessment, *Verifiers* generate *Attestation Results* for use by *Relying Parties*. The *Appraisal Policy* for *Evidence* may be provided by the *Verifier Owner*, configured by the owner, programmed into the *Verifier*, or acquired through other means.
+- **Verifier**: These entities utilize the *Evidence*, *Reference Values*, and *Endorsements*. They assess the trustworthiness of the *Attester* by applying an *Appraisal Policy* for *Evidence*. Following this assessment, *Verifiers* generate *Attestation Results* for use by *Relying Parties*. The *Appraisal Policy* for *Evidence* may be provided by the *Verifier Owner*, programmed into the *Verifier*, or acquired through other means.
 - **Relying Party**: Assigned to entities that utilize *Attestation Results*, applying their own appraisal policies to make specific decisions, such as authorization decisions. This process is referred to as the "appraisal of Attestation Results." The *Appraisal Policy* for *Attestation Results* might be sourced from the *Relying Party Owner*, configured by the owner, embedded in the *Relying Party*, or obtained through other protocols or mechanisms.
 
 ## Components of Contrast's Attestation
@@ -168,15 +167,13 @@ It collects evidence from other attesters and conveys it to a verifier, generati
 Figure 3: Composite Device. Taken from [RFC 9334](https://datatracker.ietf.org/doc/rfc9334/).
 
 The [CLI](../components/index.md#the-cli-command-line-interface) serves as the verifier for the Coordinator and the entire Contrast deployment, containing the reference values for the Coordinator and the endorsements from hardware vendors.
-These reference values are built into the Coordinator during our release process and can be reproduced offline via reproducible builds.
+These reference values are built into the CLI during our release process and can be reproduced offline via reproducible builds.
 
 ### Relying Party: Data Owner
 A relying party in the Contrast scenario could be, for example, the [data owner](../basics/security-benefits.md) that interacts with the application.
-The relying party or the relying party owner can use the CLI to obtain the attestation results and Contrast's [CA certificates](../architecture/certificates-and-identities/pki.md) bound to these results.
+The relying party can use the CLI to obtain the attestation results and Contrast's [CA certificates](../architecture/certificates-and-identities/pki.md) bound to these results.
 The CA certificates can then be used by the relying party to authenticate the application, for example through TLS connections.
 
-### Interaction Between Components
-All connections between components such as the CLI, the Coordinator, and the Pods occur through secure channels, ensuring that evidence transmission and attestation results are safeguarded against unauthorized access.
 
 ## Evidence Generation and Appraisal
 
