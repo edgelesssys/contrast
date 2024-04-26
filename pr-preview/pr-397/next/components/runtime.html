@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-397/assets/css/styles.e5c0b8b4.css">
-<script src="/contrast/pr-preview/pr-397/assets/js/runtime~main.435d01bf.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-397/assets/js/runtime~main.6e54be15.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-397/assets/js/main.f6af2e61.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -37,7 +37,7 @@ This shim is described in more detail in the <a href="https://github.com/kata-co
 <p>The <code>containerd</code> shim uses <code>cloud-hypervisor</code> to create a confidential virtual machine for every pod.
 This requires the <code>cloud-hypervisor</code> binary to be installed on every node.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="tardev-snapshotter"><code>Tardev snapshotter</code><a href="#tardev-snapshotter" class="hash-link" aria-label="Direct link to tardev-snapshotter" title="Direct link to tardev-snapshotter">​</a></h3>
-<p>Contrast uses a special <code>containerd</code> snapshotter (<a href="https://github.com/kata-containers/tardev-snapshotter" target="_blank" rel="noopener noreferrer">tardev</a>) to provide container images as block devices to the pod-VM. This snapshotter consists of a host component that pulls container images and a guest component (kernel module) that&#x27;s used to mount container images.</p>
+<p>Contrast uses a special <code>containerd</code> snapshotter (<a href="https://github.com/kata-containers/tardev-snapshotter" target="_blank" rel="noopener noreferrer"><code>tardev</code></a>) to provide container images as block devices to the pod-VM. This snapshotter consists of a host component that pulls container images and a guest component (kernel module) that&#x27;s used to mount container images.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="pod-vm-image">Pod-VM image<a href="#pod-vm-image" class="hash-link" aria-label="Direct link to Pod-VM image" title="Direct link to Pod-VM image">​</a></h3>
 <p>Every pod-VM starts the same guest image. It consists of an <code>IGVM</code> file and a root filesystem.
 The <code>IGVM</code> file describes the initial memory contents of a pod-VM and consists of:</p>
