@@ -1,6 +1,6 @@
 # Attestation in Contrast
 
-This document describes the attestation architecture of Contrast, adhering to the definitions of Remote ATtestation procedureS (RATS) in [RFC 9334](https://datatracker.ietf.org/doc/rfc9334/).
+This document describes the attestation architecture of Contrast, adhering to the definitions of Remote ATtestation procedureS (RATS) in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html).
 
 ## Attestation Architecture
 Contrast integrates with the RATS architecture, leveraging their definition of roles and processes including *Attesters*, *Verifiers*, and *Relying Parties*.
@@ -30,30 +30,8 @@ Contrast integrates with the RATS architecture, leveraging their definition of r
     | Attester |                                | Relying Party |
     '----------'                                '---------------'
 ```
-Figure 1: Conceptual Data Flow. Taken from [RFC 9334](https://datatracker.ietf.org/doc/rfc9334/).
+Figure 1: Conceptual Data Flow. Taken from [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-1).
 
-```mermaid
-block-beta
-columns 4
-        A["Endorser"] B["Reference Value Provider"] C["Verifier Owner"] D["Relying Party Owner"]
-        space:4
-        space:4
-        space:4
-        space:4
-        space E["Verifier"]:2 space
-        space:4
-        space:4
-        space:4
-        space:4
-        F["Attester"] space space G["Relying Party"]
-
-        A-- "Endorsements" -->E
-        B-- "Reference\nValues" -->E
-        C-- "Appraisal\nPolicy\nfor Evidence" -->E
-        F-- "Evidence" -->E
-        D-- "Appraisal Policy for\nAttestation Results" -->G
-        E-- "Attestation\nResults" -->G
-```
 
 - **Attester**: Assigned to entities that are responsible for creating *Evidence* which is then sent to a *Verifier*.
 - **Verifier**: These entities utilize the *Evidence*, *Reference Values*, and *Endorsements*. They assess the trustworthiness of the *Attester* by applying an *Appraisal Policy* for *Evidence*. Following this assessment, *Verifiers* generate *Attestation Results* for use by *Relying Parties*. The *Appraisal Policy* for *Evidence* may be provided by the *Verifier Owner*, programmed into the *Verifier*, or acquired through other means.
@@ -113,7 +91,7 @@ In RATS terminology, these Pods implement a layered attestation environment:
           |                                    |
           '------------------------------------'
 ```
-Figure 2: Layered Attester. Taken from [RFC 9334](https://datatracker.ietf.org/doc/rfc9334/).
+Figure 2: Pod as a layered attester. Based on the layered attester graphic in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-3).
 
 These pods run in Contrast's [runtime environment](../components/runtime.md), effectively within a confidential VM.
 During launch, the CPU measures the initial memory content of the confidential VM that contains Contrast's pod-VM image and generates the corresponding attestation evidence.
@@ -164,7 +142,7 @@ It collects evidence from other attesters and conveys it to a verifier, generati
    |                       Composite Device                           |
    '------------------------------------------------------------------'
 ```
-Figure 3: Composite Device. Taken from [RFC 9334](https://datatracker.ietf.org/doc/rfc9334/).
+Figure 3: Contrast deployment as a composite device. Based on the composite device in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-4).
 
 The [CLI](../components/index.md#the-cli-command-line-interface) serves as the verifier for the Coordinator and the entire Contrast deployment, containing the reference values for the Coordinator and the endorsements from hardware vendors.
 These reference values are built into the CLI during our release process and can be reproduced offline via reproducible builds.
