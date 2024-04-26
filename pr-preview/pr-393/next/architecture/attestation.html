@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-393/assets/css/styles.e5c0b8b4.css">
-<script src="/contrast/pr-preview/pr-393/assets/js/runtime~main.849c6bca.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-393/assets/js/runtime~main.5cce8ea7.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-393/assets/js/main.2eba1d16.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -28,7 +28,7 @@
 <ul>
 <li><strong>Attester</strong>: Assigned to entities that are responsible for creating <em>Evidence</em> which is then sent to a <em>Verifier</em>.</li>
 <li><strong>Verifier</strong>: These entities utilize the <em>Evidence</em>, <em>Reference Values</em>, and <em>Endorsements</em>. They assess the trustworthiness of the <em>Attester</em> by applying an <em>Appraisal Policy</em> for <em>Evidence</em>, a process known as &quot;appraisal of Evidence.&quot; Following this assessment, <em>Verifiers</em> generate <em>Attestation Results</em> for use by <em>Relying Parties</em>. The <em>Appraisal Policy</em> for <em>Evidence</em> may be provided by the <em>Verifier Owner</em>, configured by the owner, programmed into the <em>Verifier</em>, or acquired through other means.</li>
-<li><strong>Relying Party</strong>: Assigned to entities that utilize <em>Attestation Results</em>, applying their own appraisal policies to make specific decisions, such as authorization decisions. This process is referred to as the &quot;appraisal of Attestation Results&quot;. The <em>Appraisal Policy</em> for <em>Attestation Results</em> might be sourced from the <em>Relying Party Owner</em>, configured by the owner, embedded in the <em>Relying Party</em>, or obtained through other protocols or mechanisms.</li>
+<li><strong>Relying Party</strong>: Assigned to entities that utilize <em>Attestation Results</em>, applying their own appraisal policies to make specific decisions, such as authorization decisions. This process is referred to as the &quot;appraisal of Attestation Results.&quot; The <em>Appraisal Policy</em> for <em>Attestation Results</em> might be sourced from the <em>Relying Party Owner</em>, configured by the owner, embedded in the <em>Relying Party</em>, or obtained through other protocols or mechanisms.</li>
 </ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="components-of-contrasts-attestation">Components of Contrast&#x27;s Attestation<a href="#components-of-contrasts-attestation" class="hash-link" aria-label="Direct link to Components of Contrast&#x27;s Attestation" title="Direct link to Components of Contrast&#x27;s Attestation">​</a></h2>
 <p>The key components involved in the attestation process of Contrast are detailed below:</p>
@@ -50,7 +50,7 @@ While the policy is passed in during the initialization procedure via the Kata h
 During the <a href="/contrast/pr-preview/pr-393/next/deployment#generate-policy-annotations-and-manifest">deployment</a> the expected policy hash is annotated to the Kubernetes Pod resources.
 On AMD SEV-SNP system&#x27;s the policy&#x27;s hash is then added to the CPU&#x27;s attestation report via the <code>HOSTDATA</code> field by the hypervisor.
 When provided with the policy from the Kata host, the guest agent verifies that the policy&#x27;s hash matches the one in the <code>HOSTDATA</code> field.</p>
-<p>In summary the Pod&#x27;s evidence consists of the CPU report, the pod-VM image&#x27;s measurments, and the runtime policy.
+<p>In summary the Pod&#x27;s evidence consists of the CPU report, the pod-VM image&#x27;s measurements, and the runtime policy.
 All of this layered evidence  is combined into one statement and passed to the verifier.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="verifier-coordinator-and-cli">Verifier: Coordinator and CLI<a href="#verifier-coordinator-and-cli" class="hash-link" aria-label="Direct link to Verifier: Coordinator and CLI" title="Direct link to Verifier: Coordinator and CLI">​</a></h3>
 <p>The <a href="/contrast/pr-preview/pr-393/next/components#the-coordinator">Coordinator</a> acts as a verifier within the Contrast deployment, configured with a <a href="/contrast/pr-preview/pr-393/next/components#the-manifest">Manifest</a> that defines the reference values and serves as an appraisal policy for all pods in the deployment.
@@ -73,7 +73,7 @@ The CA certificates can then be used by the relying party to authenticate the ap
 <p>Several types of attestation evidence exist in Contrast:</p>
 <ul>
 <li><strong>The hardware attestation report</strong>: For AMD SEV-SNP, this includes information such as chip identifier, platform info, microcode versions, and guest measurements. The report also contains the runtime policy hash and is signed by the CPU&#x27;s private key.</li>
-<li><strong>The guest measurements</strong>: A launch digest generated by the CPU, which is the hash of all initial guest memory pages, containing the kernel, initramfs, and kernel commandline including the root filesystem&#x27;s dm-verity root hash.</li>
+<li><strong>The guest measurements</strong>: A launch digest generated by the CPU, which is the hash of all initial guest memory pages, containing the kernel, initramfs, and kernel command line including the root filesystem&#x27;s dm-verity root hash.</li>
 <li><strong>The runtime policy hash</strong>: The hash of the Rego policy that defines all expected API commands and their values from the host to the Kata guest agent, including the dm-verity hashes for the container image layers, environment variables, and mount points.</li>
 </ul>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="appraisal-policies-for-evidence">Appraisal Policies for Evidence<a href="#appraisal-policies-for-evidence" class="hash-link" aria-label="Direct link to Appraisal Policies for Evidence" title="Direct link to Appraisal Policies for Evidence">​</a></h3>
