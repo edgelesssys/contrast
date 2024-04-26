@@ -143,9 +143,9 @@ jobs:
         working-directory: contrast-main/docs
         run: |
           nix run .#yarn install
-          nix run .#yarn docusaurus docs:version ${{ needs.process-inputs.outputs.WITHOUT_V }}
+          nix run .#yarn docusaurus docs:version ${{ needs.process-inputs.outputs.MAJOR_MINOR }}
           git add .
-          git commit -am "docs: release ${{ needs.process-inputs.outputs.WITHOUT_V }}"
+          git commit -am "docs: release ${{ needs.process-inputs.outputs.MAJOR_MINOR }}"
           # Clean up auxiliary files, so next steps run on a clean tree
           git clean -fx :/
       - name: Bump flake version to post release patch pre-version
