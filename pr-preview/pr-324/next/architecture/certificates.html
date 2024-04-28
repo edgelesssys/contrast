@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-324/assets/css/styles.e5c0b8b4.css">
-<script src="/contrast/pr-preview/pr-324/assets/js/runtime~main.b92f372d.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-324/assets/js/runtime~main.ceb9bad0.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-324/assets/js/main.50d620ca.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -50,7 +50,7 @@ intermediate CA certificate and mesh CA certificate. If the user doesn&#x27;t
 trust the workload owner, they use the mesh CA certificate obtained when they
 verified the Coordinator and the manifest. This ensures that the user only
 connects to workloads defined in the manifest they verified since only those
-workloads&#x27; certificates are singed with this intermediate private key.</p>
+workloads&#x27; certificates are signed with this intermediate private key.</p>
 <p>Similarly, the service mesh also uses the mesh CA certificate obtained when the
 workload was started, so the workload only trusts endpoints that have been
 verified by the Coordinator based on the same manifest. Consequently, a
@@ -61,7 +61,7 @@ manifest update requires a fresh rollout of the services in the service mesh.</p
 The data owner can use it to verify the mesh certificates of the workloads.
 This should only be used if the data owner trusts all future updates to the
 manifest and workloads. This is, for instance, the case when the workload owner is
-the same person as the data owner.</li>
+the same entity as the data owner.</li>
 <li>The <strong>mesh CA certificate</strong> is returned when verifying the Coordinator.
 The data owner can use it to verify the mesh certificates of the workloads.
 This certificate is bound to the manifest set when the Coordinator is verified.
