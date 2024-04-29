@@ -38,7 +38,7 @@ runtime:
     mkdir -p ./{{ workspace_dir }}/runtime
     nix shell .#contrast --command resourcegen \
       --image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace kube-system \
-      runtime ./{{ workspace_dir }}/runtime/runtime.yml
+      runtime > ./{{ workspace_dir }}/runtime/runtime.yml
 
 # Populate the workspace with a Kubernetes deployment
 populate target=default_deploy_target:
@@ -47,9 +47,10 @@ populate target=default_deploy_target:
     mkdir -p ./{{ workspace_dir }}
     case {{ target }} in
         "openssl" | "emojivoto")
+            mkdir -p ./{{ workspace_dir }}/deployment
             nix shell .#contrast --command resourcegen \
               --image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace {{ target }}${namespace_suffix-} --add-namespace-object \
-              {{ target }} ./{{ workspace_dir }}/deployment/deployment.yml
+              {{ target }} > ./{{ workspace_dir }}/deployment/deployment.yml
         ;;
         *)
             cp -R ./deployments/{{ target }} ./{{ workspace_dir }}/deployment
