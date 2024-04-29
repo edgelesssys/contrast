@@ -90,12 +90,13 @@ By validating the runtime environment and the policies enforced on it, Contrast 
 ### How does Contrast ensure the security of the attestation process?
 
 Contrast leverages hardware-rooted security features such as AMD SEV-SNP to generate cryptographic evidence of a pod’s current state and configuration.
-This evidence is checked against pre-defined appraisal policies to guarantee that only verified and authorized configurations are operational, significantly reducing the risk of malicious modifications.
+This evidence is checked against pre-defined appraisal policies to guarantee that only verified and authorized pods are part of a Contrast deployment.
 
 ### What security benefits does attestation provide?
 
-Attestation confirms the integrity of the operating environment and the compliance of the system with the security policies set by the organization.
-It plays a critical role in preventing unauthorized changes and detecting potential attacks at runtime.
+Attestation confirms the integrity of the runtime environment and the identity of the workloads.
+It plays a critical role in preventing unauthorized changes and detecting potential modifications at runtime.
+The attestation provides integrity and authenticity guarantees, enabling relying parties—such as workload operators or data owners—to confirm the effective protection against potential threats, including malicious cloud insiders, co-tenants, or compromised workload operators.
 More details on the specific security benefits can be found [here](../basics/security-benefits.md).
 
 ### How can I verify the authenticity of attestation results?
