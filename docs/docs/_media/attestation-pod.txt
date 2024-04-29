@@ -21,10 +21,10 @@
           |   |                           |    |    |
           |   |                           |    |    |
           |   '-----------+-------+-------'    |    |
-          |       Part of |       | Evince for |    |
-          |               v       | Runtime    |    |
-          |   .-----------------. | Policy     |    |
-          |   | Runtime Env(B)  | |            |    |
+          |       Part of |       | Evidence   |    |
+          |               v       | for        |    |
+          |   .-----------------. | Runtime    |    |
+          |   | Runtime Env(B)  | | Policy     |    |
           |   |                 | |            |    |
           |   |      Target     | |            |    |
           |   |    Environment  | |            |    |
