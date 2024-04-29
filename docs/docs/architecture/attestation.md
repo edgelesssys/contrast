@@ -26,7 +26,7 @@ The details of this evidence are given below in the section on [Evidence Generat
 
 ![Attestation flow of a confidential pod](../_media/attestation-pod.svg)
 
-Figure 2: ttestation flow of a confidential pod. Based on the layered attester graphic in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-3).
+Figure 2: Attestation flow of a confidential pod. Based on the layered attester graphic in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-3).
 
 Pods run in Contrast's [runtime environment](../components/runtime.md) (B), effectively within a confidential VM.
 During launch, the CPU (A) measures the initial memory content of the confidential VM that contains Contrast's pod-VM image and generates the corresponding attestation evidence.
@@ -80,10 +80,10 @@ The appraisal policies in Contrast consist of two parts:
 
 ## Frequently Asked Questions about Attestation in Contrast
 
-### What is the purpose of remote attestation in Contrast?
+### What's the purpose of remote attestation in Contrast?
 
 Remote attestation in Contrast provides a mechanism to verify the integrity and authenticity of the software running within the deployment.
-By validating the runtime environment and the policies enforced on it, Contrast ensures that the system operates in a trustworthy state and has not been tampered with.
+By validating the runtime environment and the policies enforced on it, Contrast ensures that the system operates in a trustworthy state and hasn't been tampered with.
 
 ### How does Contrast ensure the security of the attestation process?
 
@@ -99,7 +99,7 @@ More details on the specific security benefits can be found [here](../basics/sec
 ### How can I verify the authenticity of Attestation Results?
 
 Attestation Results in Contrast are tied to cryptographic proofs generated and signed by the hardware itself.
-These proofs are then verified using public keys from trusted hardware vendors, ensuring that the results are not only accurate but also resistant to tampering.
+These proofs are then verified using public keys from trusted hardware vendors, ensuring that the results aren't only accurate but also resistant to tampering.
 For further authenticity verification, all of Contrast's code is reproducibly built, and the attestation evidence can be verified locally from the source code.
 
 ### How are Attestation Results used by Relying Parties?

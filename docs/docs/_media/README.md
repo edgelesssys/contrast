@@ -4,7 +4,7 @@ Here is how you can modify and rebuild the attestation graphics.
 
 Requirements:
 
-* [inkscape](https://inkscape.org/)
+* [Inkscape](https://inkscape.org/)
 * [goat](https://github.com/blampe/goat)
 
 1. Edit the ASCII art
