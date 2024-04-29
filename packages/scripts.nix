@@ -199,9 +199,8 @@ with pkgs;
       tmpdir=$(mktemp -d)
       trap 'rm -rf $tmpdir' EXIT
 
-      resourcegen coordinator-release "$tmpdir/coordinator_base.yml"
-      yq < "$tmpdir/coordinator_base.yml" > "$tmpdir/coordinator.yml" \
-         "(select(.kind == \"Deployment\") | .spec.template.spec.containers[0].image) = \"$imageRef\""
+      echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$imageRef" > "$tmpdir/image-replacements.txt"
+      resourcegen --image-replacements "$tmpdir/image-replacements.txt" coordinator-release "$tmpdir/coordinator_base.yml"
 
       pushd "$tmpdir" >/dev/null
       cp ${genpolicy-msft.rules-coordinator}/genpolicy-rules.rego rules.rego
