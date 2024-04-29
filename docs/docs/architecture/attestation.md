@@ -59,7 +59,7 @@ These reference values are built into the CLI during our release process and can
 
 ### Relying Party: Data Owner
 A relying party in the Contrast scenario could be, for example, the [data owner](../basics/security-benefits.md) that interacts with the application.
-The relying party can use the CLI to obtain the attestation results and Contrast's [CA certificates](../architecture/certificates-and-identities/pki.md) bound to these results.
+The relying party can use the CLI to obtain the attestation results and Contrast's [CA certificates](certificates.md) bound to these results.
 The CA certificates can then be used by the relying party to authenticate the application, for example through TLS connections.
 
 
@@ -105,7 +105,7 @@ For further authenticity verification, all of Contrast's code is reproducibly bu
 ### How are Attestation Results used by Relying Parties?
 
 Relying Parties use *Attestation Results* to make informed security decisions, such as allowing access to sensitive data or resources only if the attestation verifies the system's integrity.
-Thereafter, the use of Contrast's [CA certificates in TLS connections](certificates-and-identities/pki.md) provides a practical approach to communicate securely with the application.
+Thereafter, the use of Contrast's [CA certificates in TLS connections](certificates.md) provides a practical approach to communicate securely with the application.
 
 ## Summary
 
