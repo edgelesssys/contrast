@@ -12,6 +12,11 @@ on:
         options: [minor, patch]
         required: true
         default: minor
+      overwrite_published_release:
+        description: Tick this box if you want to overwrite a published release and have a good reason for doing so.
+        type: boolean
+        required: false
+        default: false
 
 env:
   container_registry: ghcr.io/edgelesssys
@@ -24,6 +29,8 @@ jobs:
   process-inputs:
     name: Process inputs
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     env:
       FULL_VERSION: ${{ inputs.version }}
     outputs:
@@ -91,6 +98,17 @@ jobs:
             echo "NEXT_PATCH_PRE_WITHOUT_V=${NEXT_PATCH_PRE_WITHOUT_V}"
           } | tee -a "$GITHUB_OUTPUT"
           echo "RELEASE_BRANCH=${RELEASE_BRANCH}" | tee -a "$GITHUB_ENV"
+      - name: Don't overwrite published releases
+        if: (! inputs.overwrite_published_release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          is_draft=$(gh release view ${{ inputs.version }} --json isDraft -q .isDraft)
+          # If the release is not yet published, is_draft will either be "true" or empty.
+          if [[ "${is_draft}" == "false" ]]; then
+            echo "::error::Release ${{ inputs.version }} is already published."
+            exit 1
+          fi
 
   update-main:
     name: Update main branch
