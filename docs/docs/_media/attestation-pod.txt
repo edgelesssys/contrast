@@ -1,0 +1,43 @@
+              .-------------.
+              |    CPU      |   Endorsement for CPU
+              |   Vendor    +-----------------------.
+              '-------------'                       |
+                                                    v
+              .-------------.   Reference      .-------------.
+              | CLI +       |   Values for     |             |
+              | Edgeless    +----------------->| Coordinator |
+              | Systems     | Runtime Env and  |             |
+              '-------------' Runtime Policy   '-------------'
+                                                    ^
+          .------------------------------------.    |
+          |                                    |    |
+          |                                    |    |
+          |   .---------------------------.    |    |   Evidence for
+          |   | Guest Agent(C)            |    |    |   Runtime Environment
+          |   |                           |    |    |        and
+          |   |   Target                  |    |    |   Runtime Policy
+          |   | Environment               |    |    |
+          |   |                           |    |    |
+          |   |                           |    |    |
+          |   |                           |    |    |
+          |   '-----------+-------+-------'    |    |
+          |       Part of |       | Evince for |    |
+          |               v       | Runtime    |    |
+          |   .-----------------. | Policy     |    |
+          |   | Runtime Env(B)  | |            |    |
+          |   |                 | |            |    |
+          |   |      Target     | |            |    |
+          |   |    Environment  | |            |    |
+          |   |           ^     | |            |    |
+          |   '-----------|-----' |            |    |
+          |       Measure |       |            |    |
+          |               |       |            |    |
+          |               |       |            |    |
+          |   .-----------+-------|-------.    |    |
+          |   | CPU(A): AMD SEV,  v       |    |    |
+          |   | Intel TDX                 |    |    |
+          |   |               Attesting   |    |    |
+          |   |              Environment  +---------'
+          |   '---------------------------'    |
+          |                                    |
+          '------------------------------------'

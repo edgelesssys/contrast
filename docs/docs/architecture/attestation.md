@@ -5,32 +5,9 @@ This document describes the attestation architecture of Contrast, adhering to th
 ## Attestation Architecture
 Contrast integrates with the RATS architecture, leveraging their definition of roles and processes including *Attesters*, *Verifiers*, and *Relying Parties*.
 
-```
-     .--------.     .---------.       .--------.       .-------------.
-    | Endorser |   | Reference |     | Verifier |     | Relying Party |
-     '-+------'    | Value     |     | Owner    |     | Owner         |
-       |           | Provider  |      '---+----'       '----+--------'
-       |            '-----+---'           |                 |
-       |                  |               |                 |
-       | Endorsements     | Reference     | Appraisal       | Appraisal
-       |                  | Values        | Policy for      | Policy for
-       |                  |               | Evidence        | Attestation
-        '-----------.     |               |                 | Results
-                     |    |               |                 |
-                     v    v               v                 |
-                   .-------------------------.              |
-           .------>|         Verifier        +-----.        |
-          |        '-------------------------'      |       |
-          |                                         |       |
-          | Evidence                    Attestation |       |
-          |                             Results     |       |
-          |                                         |       |
-          |                                         v       v
-    .-----+----.                                .---------------.
-    | Attester |                                | Relying Party |
-    '----------'                                '---------------'
-```
-Figure 1: Conceptual Data Flow. Taken from [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-1).
+![Conceptual attestation architecture](../_media/attestation-rats-architecture.svg)
+
+Figure 1: Conceptual attestation architecture. Taken from [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-1).
 
 
 - **Attester**: Assigned to entities that are responsible for creating *Evidence* which is then sent to a *Verifier*.
@@ -45,52 +22,9 @@ This includes all Pods of the Contrast deployment that run inside Confidential C
 Their evidence is rooted in the [hardware measurements](../basics/confidential-containers.md) from the CPU and their [confidential VM environment](../components/runtime.md).
 The details of this evidence are given below in the section on [Evidence Generation and Appraisal](#evidence-generation-and-appraisal).
 
-```
-              .-------------.
-              |    CPU      |   Endorsement for CPU
-              |   Vendor    +-----------------------.
-              '-------------'                       |
-                                                    v
-              .-------------.   Reference      .-------------.
-              | CLI +       |   Values for     |             |
-              | Edgeless    +----------------->| Coordinator |
-              | Systems     | Runtime Env and  |             |
-              '-------------' Runtime Policy   '-------------'
-                                                    ^
-          .------------------------------------.    |
-          |                                    |    |
-          |                                    |    |
-          |   .---------------------------.    |    |   Evidence for
-          |   | Guest Agent(C)            |    |    |   Runtime Environment
-          |   |                           |    |    |        and
-          |   |   Target                  |    |    |   Runtime Policy
-          |   | Environment               |    |    |
-          |   |                           |    |    |
-          |   |                           |    |    |
-          |   |                           |    |    |
-          |   '-----------+-------+-------'    |    |
-          |       Part of |       | Evince for |    |
-          |               v       | Runtime    |    |
-          |   .-----------------. | Policy     |    |
-          |   | Runtime Env(B)  | |            |    |
-          |   |                 | |            |    |
-          |   |      Target     | |            |    |
-          |   |    Environment  | |            |    |
-          |   |           ^     | |            |    |
-          |   '-----------|-----' |            |    |
-          |       Measure |       |            |    |
-          |               |       |            |    |
-          |               |       |            |    |
-          |   .-----------+-------|-------.    |    |
-          |   | CPU(A): AMD SEV,  v       |    |    |
-          |   | Intel TDX                 |    |    |
-          |   |               Attesting   |    |    |
-          |   |              Environment  +---------'
-          |   '---------------------------'    |
-          |                                    |
-          '------------------------------------'
-```
-Figure 2: Pod's attestation flow. Based on the layered attester graphic in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-3).
+![Attestation flow of a confidential pod](../_media/attestation-pod.svg)
+
+Figure 2: ttestation flow of a confidential pod. Based on the layered attester graphic in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-3).
 
 Pods run in Contrast's [runtime environment](../components/runtime.md) (B), effectively within a confidential VM.
 During launch, the CPU (A) measures the initial memory content of the confidential VM that contains Contrast's pod-VM image and generates the corresponding attestation evidence.
@@ -113,32 +47,9 @@ The Coordinator operates within the cluster as a confidential container and prov
 In RATS terminology, the Coordinator's dual role is defined as a lead attester in a composite device which spans the entire deployment: Coordinator and the workload pods.
 It collects evidence from other attesters and conveys it to a verifier, generating evidence about the layout of the whole composite device based on the Manifest as the appraisal policy.
 
-```
-                      .-----------------------------.
-                      |           Verifier          |
-                      '-----------------------------'
-                                      ^
-                                      |
-                                      | Evidence of
-                                      | Composite Device
-                                      |
-   .----------------------------------|-------------------------------.
-   | .--------------------------------|-----.      .------------.     |
-   | |  Collect             .---------+--.  |      |            |     |
-   | |  Claims   .--------->|  Attesting |<--------+ Pod A      +-.   |
-   | |           |          |Environment |  |      '-+----------' |   |
-   | |  .--------+-------.  |            |<----------+ Pod B      +-. |
-   | |  | Runtime Target |  |            |  |        '-+----------' | |
-   | |  | Environment    |  |            |<------------+ ...        | |
-   | |  |                |  '------------'  | Evidence '------------' |
-   | |  '----------------'                  |    of                   |
-   | |                                      |   Pods                  |
-   | | Coordinator                          | (via Pod network)       |
-   | '--------------------------------------'                         |
-   |                                                                  |
-   |                       Composite Device                           |
-   '------------------------------------------------------------------'
-```
+
+![Deployment attestation as a composite device](../_media/attestation-composite-device.svg)
+
 Figure 3: Contrast deployment as a composite device. Based on the composite device in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-4).
 
 The [CLI](../components/index.md#the-cli-command-line-interface) serves as the verifier for the Coordinator and the entire Contrast deployment, containing the reference values for the Coordinator and the endorsements from hardware vendors.
