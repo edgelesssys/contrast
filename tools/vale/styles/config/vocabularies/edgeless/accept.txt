@@ -81,6 +81,7 @@ Rekor
 resizable
 resourceGroup
 rollout
+safeguardable
 SBOM
 sigstore
 SSD

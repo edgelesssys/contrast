@@ -76,7 +76,7 @@ In Contrast, attestation evidence revolves around a hardware-generated attestati
 The appraisal of this evidence in Contrast is governed by two main components:
 
 - **The Manifest**: A JSON file used by the Coordinator to align with reference values. It sets the expectations for runtime policy hashes for each pod and includes what should be reported in the hardware attestation report for each component of the deployment.
-- **The CLI's appraisal policy**: This policy encompasses expected values of the Coordinator’s guest measurements and its runtime policy. It is embedded into the CLI during the build process and ensures that any discrepancy between the built-in values and those reported by the hardware attestation can be identified and addressed. The integrity of this policy is safeguardable through reproducible builds, allowing verification against the source code reference.
+- **The CLI's appraisal policy**: This policy encompasses expected values of the Coordinator’s guest measurements and its runtime policy. It's embedded into the CLI during the build process and ensures that any discrepancy between the built-in values and those reported by the hardware attestation can be identified and addressed. The integrity of this policy is safeguardable through reproducible builds, allowing verification against the source code reference.
 
 
 
