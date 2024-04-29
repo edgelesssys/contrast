@@ -222,15 +222,12 @@ jobs:
         run: |
           echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged" > image-replacements.txt
           echo "ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImg" >> image-replacements.txt
+          echo "ghcr.io/edgelesssys/contrast/node-installer:latest=$nodeInstallerImgTagged" >> image-replacements.txt
       - name: Create portable coordinator resource definitions
         run: |
           mkdir -p workspace
           nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" > workspace/coordinator.yml
-          nix shell .#contrast --command resourcegen runtime workspace/runtime.yml
-          nix run .#kypatch images -- workspace/runtime.yml \
-            --replace "ghcr.io/edgelesssys/contrast/node-installer:latest" "$nodeInstallerImgTagged"
-          nix run .#kypatch namespace -- workspace/runtime.yml \
-            --replace edg-default kube-system
+          nix shell .#contrast --command resourcegen --namespace kube-system --image-replacements ./image-replacements.txt runtime workspace/runtime.yml
           nix run .#scripts.write-emojivoto-demo -- "./image-replacements.txt" "deployment/emojivoto-demo.yml"
           zip -r deployment/emojivoto-demo.zip deployment/emojivoto-demo.yml
       - name: Update coordinator policy hash

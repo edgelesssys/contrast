@@ -36,12 +36,9 @@ runtime:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}/runtime
-    nix shell .#contrast --command resourcegen runtime ./{{ workspace_dir }}/runtime/runtime.yml
-    nix run .#scripts.patch-contrast-image-hashes -- ./{{ workspace_dir }}/runtime
-    nix run .#kypatch images -- ./{{ workspace_dir }}/runtime \
-        --replace ghcr.io/edgelesssys ${container_registry}
-    nix run .#kypatch namespace -- ./{{ workspace_dir }}/runtime \
-        --replace edg-default kube-system
+    nix shell .#contrast --command resourcegen \
+      --image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace kube-system \
+      runtime ./{{ workspace_dir }}/runtime/runtime.yml
 
 # Populate the workspace with a Kubernetes deployment
 populate target=default_deploy_target:
@@ -50,18 +47,20 @@ populate target=default_deploy_target:
     mkdir -p ./{{ workspace_dir }}
     case {{ target }} in
         "openssl" | "emojivoto")
-            nix shell .#contrast --command resourcegen {{ target }} ./{{ workspace_dir }}/deployment/deployment.yml
+            nix shell .#contrast --command resourcegen \
+              --image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace {{ target }}${namespace_suffix-} --add-namespace-object \
+              {{ target }} ./{{ workspace_dir }}/deployment/deployment.yml
         ;;
         *)
             cp -R ./deployments/{{ target }} ./{{ workspace_dir }}/deployment
+            nix run .#scripts.patch-contrast-image-hashes -- ./{{ workspace_dir }}/deployment
+            nix run .#kypatch images -- ./{{ workspace_dir }}/deployment \
+                --replace ghcr.io/edgelesssys ${container_registry}
+            nix run .#kypatch namespace -- ./{{ workspace_dir }}/deployment \
+                --replace edg-default {{ target }}${namespace_suffix-}
         ;;
     esac
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
-    nix run .#scripts.patch-contrast-image-hashes -- ./{{ workspace_dir }}/deployment
-    nix run .#kypatch images -- ./{{ workspace_dir }}/deployment \
-        --replace ghcr.io/edgelesssys ${container_registry}
-    nix run .#kypatch namespace -- ./{{ workspace_dir }}/deployment \
-        --replace edg-default {{ target }}${namespace_suffix-}
 
 # Generate policies, update manifest.
 generate cli=default_cli:
