@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-393/assets/css/styles.e5c0b8b4.css">
-<script src="/contrast/pr-preview/pr-393/assets/js/runtime~main.b90d2517.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-393/assets/js/runtime~main.d20d45e4.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-393/assets/js/main.b6d05a81.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -36,7 +36,7 @@ At the end of this document, we included an <a href="#frequently-asked-questions
 <p>This includes all Pods of the Contrast deployment that run inside Confidential Containers and generate cryptographic evidence reflecting their current configuration and state.
 Their evidence is rooted in the <a href="/contrast/pr-preview/pr-393/next/basics/confidential-containers">hardware measurements</a> from the CPU and their <a href="/contrast/pr-preview/pr-393/next/components/runtime">confidential VM environment</a>.
 The details of this evidence are given below in the section on <a href="#evidence-generation-and-appraisal">evidence generation and appraisal</a>.</p>
-<p><img decoding="async" loading="lazy" alt="Attestation flow of a confidential pod" src="/contrast/pr-preview/pr-393/assets/images/attestation-pod-8bd5a575c32b57a6cff890ab894b52da.svg" width="608" height="697" class="img_ev3q"></p>
+<p><img decoding="async" loading="lazy" alt="Attestation flow of a confidential pod" src="/contrast/pr-preview/pr-393/assets/images/attestation-pod-af4fc34dd97b1fdc20f66ecfa4fdeb1a.svg" width="608" height="697" class="img_ev3q"></p>
 <p>Figure 2: Attestation flow of a confidential pod. Based on the layered attester graphic in <a href="https://www.rfc-editor.org/rfc/rfc9334.html#figure-3" target="_blank" rel="noopener noreferrer">RFC 9334</a>.</p>
 <p>Pods run in Contrast&#x27;s <a href="/contrast/pr-preview/pr-393/next/components/runtime">runtime environment</a> (B), effectively within a confidential VM.
 During launch, the CPU (A) measures the initial memory content of the confidential VM that contains Contrast&#x27;s pod-VM image and generates the corresponding attestation evidence.
@@ -75,7 +75,7 @@ The CA certificates can then be used by the relying party to authenticate the ap
 <p>The appraisal of this evidence in Contrast is governed by two main components:</p>
 <ul>
 <li><strong>The Manifest</strong>: A JSON file used by the Coordinator to align with reference values. It sets the expectations for runtime policy hashes for each pod and includes what should be reported in the hardware attestation report for each component of the deployment.</li>
-<li><strong>The CLI&#x27;s appraisal policy</strong>: This policy encompasses expected values of the Coordinator’s guest measurements and its runtime policy. It is embedded into the CLI during the build process and ensures that any discrepancy between the built-in values and those reported by the hardware attestation can be identified and addressed. The integrity of this policy is safeguardable through reproducible builds, allowing verification against the source code reference.</li>
+<li><strong>The CLI&#x27;s appraisal policy</strong>: This policy encompasses expected values of the Coordinator’s guest measurements and its runtime policy. It&#x27;s embedded into the CLI during the build process and ensures that any discrepancy between the built-in values and those reported by the hardware attestation can be identified and addressed. The integrity of this policy is safeguardable through reproducible builds, allowing verification against the source code reference.</li>
 </ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="frequently-asked-questions-about-attestation-in-contrast">Frequently asked questions about attestation in Contrast<a href="#frequently-asked-questions-about-attestation-in-contrast" class="hash-link" aria-label="Direct link to Frequently asked questions about attestation in Contrast" title="Direct link to Frequently asked questions about attestation in Contrast">​</a></h2>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="whats-the-purpose-of-remote-attestation-in-contrast">What&#x27;s the purpose of remote attestation in Contrast?<a href="#whats-the-purpose-of-remote-attestation-in-contrast" class="hash-link" aria-label="Direct link to What&#x27;s the purpose of remote attestation in Contrast?" title="Direct link to What&#x27;s the purpose of remote attestation in Contrast?">​</a></h3>
