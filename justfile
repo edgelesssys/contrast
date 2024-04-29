@@ -106,6 +106,7 @@ undeploy:
     if kubectl get ns $ns 2> /dev/null; then
         kubectl delete \
             -f ./{{ workspace_dir }}/deployment \
+            --ignore-not-found \
             --grace-period=30 \
             --timeout=10m
     fi
