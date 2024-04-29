@@ -1,6 +1,8 @@
 # Attestation in Contrast
 
 This document describes the attestation architecture of Contrast, adhering to the definitions of Remote ATtestation procedureS (RATS) in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html).
+The following gives a detailed description of Contrast's attestation architecture.
+At the end of this document, we included an [FAQ](#frequently-asked-questions-about-attestation-in-contrast) that answers the most common questions regarding attestation in hindsight of the [security benefits](../basics/security-benefits.md).
 
 ## Attestation Architecture
 Contrast integrates with the RATS architecture, leveraging their definition of roles and processes including *Attesters*, *Verifiers*, and *Relying Parties*.
@@ -74,8 +76,38 @@ The appraisal policies in Contrast consist of two parts:
 - **The Manifest**: A JSON file configuring the Coordinator with reference values for the runtime policy hashes for each pod in the deployment and the expected hardware attestation report evidence.
 - **The CLI's appraisal policy**: Contains the Coordinator's guest measurements and its runtime policy. The policy is baked into the CLI during the build process and can be compared against the source code reference via reproducible builds.
 
+
+
+## Frequently Asked Questions about Attestation in Contrast
+
+### What is the purpose of remote attestation in Contrast?
+
+Remote attestation in Contrast provides a mechanism to verify the integrity and authenticity of the software running within the deployment.
+By validating the runtime environment and the policies enforced on it, Contrast ensures that the system operates in a trustworthy state and has not been tampered with.
+
+### How does Contrast ensure the security of the attestation process?
+
+Contrast leverages hardware-rooted security features such as AMD SEV-SNP to generate cryptographic evidence of a pod’s current state and configuration.
+This evidence is checked against pre-defined appraisal policies to guarantee that only verified and authorized configurations are operational, significantly reducing the risk of malicious modifications.
+
+### What security benefits does attestation provide?
+
+Attestation confirms the integrity of the operating environment and the compliance of the system with the security policies set by the organization.
+It plays a critical role in preventing unauthorized changes and detecting potential attacks at runtime.
+More details on the specific security benefits can be found [here](../basics/security-benefits.md).
+
+### How can I verify the authenticity of Attestation Results?
+
+Attestation Results in Contrast are tied to cryptographic proofs generated and signed by the hardware itself.
+These proofs are then verified using public keys from trusted hardware vendors, ensuring that the results are not only accurate but also resistant to tampering.
+For further authenticity verification, all of Contrast's code is reproducibly built, and the attestation evidence can be verified locally from the source code.
+
+### How are Attestation Results used by Relying Parties?
+
+Relying Parties use *Attestation Results* to make informed security decisions, such as allowing access to sensitive data or resources only if the attestation verifies the system's integrity.
+Thereafter, the use of Contrast's [CA certificates in TLS connections](certificates-and-identities/pki.md) provides a practical approach to communicate securely with the application.
+
 ## Summary
 
-In summary, Contrast's attestation strategy follows the RATS guidelines and consists of two parts:
-- A CPU attestation report for the runtime environment and runtime policy for each Pod in the deployment.
-- The Coordinator attestation service as a lead attester that allows the transitive verification of the entire deployment as composite device.
+In summary, Contrast's attestation strategy adheres to the RATS guidelines and consists of robust verification mechanisms that ensure each component of the deployment is secure and trustworthy.
+This comprehensive approach allows Contrast to provide a high level of security assurance to its users.
