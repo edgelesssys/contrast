@@ -22,7 +22,6 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // ContrastTest is the Contrast test helper struct.
@@ -75,17 +74,9 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
 	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
 	require.NoError(err)
-	var objects []*unstructured.Unstructured
-	for _, obj := range unstructuredResources {
-		// TODO(burgerdev): remove once demo deployments don't contain namespaces anymore.
-		if obj.GetKind() == "Namespace" {
-			continue
-		}
-		objects = append(objects, obj)
-	}
 
 	// Write resources to this test's tempdir.
-	buf, err := kuberesource.EncodeUnstructured(objects)
+	buf, err := kuberesource.EncodeUnstructured(unstructuredResources)
 	require.NoError(err)
 	require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yaml"), buf, 0o644))
 

@@ -29,7 +29,7 @@ func CoordinatorRelease() ([]any, error) {
 
 // Runtime returns a set of resources for registering and installing the runtime.
 func Runtime() ([]any, error) {
-	ns := "edg-default"
+	ns := ""
 
 	runtimeClass := ContrastRuntimeClass().RuntimeClassApplyConfiguration
 	nodeInstaller := NodeInstaller(ns).DaemonSetApplyConfiguration
@@ -44,8 +44,7 @@ func Runtime() ([]any, error) {
 
 // OpenSSL returns a set of resources for testing with OpenSSL.
 func OpenSSL() ([]any, error) {
-	ns := "edg-default"
-	namespace := Namespace(ns)
+	ns := ""
 	coordinator := Coordinator(ns).DeploymentApplyConfiguration
 	coordinatorService := ServiceForDeployment(coordinator)
 
@@ -158,7 +157,6 @@ func OpenSSL() ([]any, error) {
 	frontendService := ServiceForDeployment(frontend)
 
 	resources := []any{
-		namespace,
 		coordinator,
 		coordinatorService,
 		backend,
@@ -173,7 +171,7 @@ func OpenSSL() ([]any, error) {
 
 // Emojivoto returns resources for deploying Emojivoto application.
 func Emojivoto(smMode serviceMeshMode) ([]any, error) {
-	ns := "edg-default"
+	ns := ""
 	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiSvcHost, votingSvcHost string
 	smProxyEmoji := ServiceMeshProxy()
 	smProxyWeb := ServiceMeshProxy()
