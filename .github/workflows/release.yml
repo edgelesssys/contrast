@@ -212,16 +212,18 @@ jobs:
           echo "initializerImg=$initializerImg" | tee -a "$GITHUB_ENV"
       - name: Add tag to Coordinator image
         run: |
-          frontCoord=${coordinatorImg%@*}
-          backCoord=${coordinatorImg#*@}
-          echo "coordinatorImgTagged=${frontCoord}:${{ inputs.version }}@${backCoord}" | tee -a "$GITHUB_ENV"
-          frontNodeInstaller=${nodeInstallerImg%@*}
-          backNodeInstaller=${nodeInstallerImg#*@}
-          echo "nodeInstallerImgTagged=${frontNodeInstaller}:${{ inputs.version }}@${backNodeInstaller}" | tee -a "$GITHUB_ENV"
+          tag() {
+            front=${1%@*}
+            back=${1#*@}
+            printf "%s:%s@%s" "$front" "${{ inputs.version }}" "$back"
+          }
+          echo "coordinatorImgTagged=$(tag "$coordinatorImg")" | tee -a "$GITHUB_ENV"
+          echo "nodeInstallerImgTagged=$(tag "$nodeInstallerImg")" | tee -a "$GITHUB_ENV"
+          echo "initializerImgTagged=$(tag "$initializerImg")" | tee -a "$GITHUB_ENV"
       - name: Create file with image replacements
         run: |
           echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged" > image-replacements.txt
-          echo "ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImg" >> image-replacements.txt
+          echo "ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImgTagged" >> image-replacements.txt
           echo "ghcr.io/edgelesssys/contrast/node-installer:latest=$nodeInstallerImgTagged" >> image-replacements.txt
       - name: Create portable coordinator resource definitions
         run: |
