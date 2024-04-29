@@ -50,6 +50,7 @@ hyperv
 IAM
 Initializer
 initramfs
+Inkscape
 iodepth
 IPSec
 Istio

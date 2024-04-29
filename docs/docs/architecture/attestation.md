@@ -4,7 +4,7 @@ This document describes the attestation architecture of Contrast, adhering to th
 The following gives a detailed description of Contrast's attestation architecture.
 At the end of this document, we included an [FAQ](#frequently-asked-questions-about-attestation-in-contrast) that answers the most common questions regarding attestation in hindsight of the [security benefits](../basics/security-benefits.md).
 
-## Attestation Architecture
+## Attestation architecture
 Contrast integrates with the RATS architecture, leveraging their definition of roles and processes including *Attesters*, *Verifiers*, and *Relying Parties*.
 
 ![Conceptual attestation architecture](../_media/attestation-rats-architecture.svg)
@@ -16,13 +16,13 @@ Figure 1: Conceptual attestation architecture. Taken from [RFC 9334](https://www
 - **Verifier**: These entities utilize the *Evidence*, *Reference Values*, and *Endorsements*. They assess the trustworthiness of the *Attester* by applying an *Appraisal Policy* for *Evidence*. Following this assessment, *Verifiers* generate *Attestation Results* for use by *Relying Parties*. The *Appraisal Policy* for *Evidence* may be provided by the *Verifier Owner*, programmed into the *Verifier*, or acquired through other means.
 - **Relying Party**: Assigned to entities that utilize *Attestation Results*, applying their own appraisal policies to make specific decisions, such as authorization decisions. This process is referred to as the "appraisal of Attestation Results." The *Appraisal Policy* for *Attestation Results* might be sourced from the *Relying Party Owner*, configured by the owner, embedded in the *Relying Party*, or obtained through other protocols or mechanisms.
 
-## Components of Contrast's Attestation
+## Components of Contrast's attestation
 The key components involved in the attestation process of Contrast are detailed below:
 
 ### Attester: Application Pods
 This includes all Pods of the Contrast deployment that run inside Confidential Containers and generate cryptographic evidence reflecting their current configuration and state.
 Their evidence is rooted in the [hardware measurements](../basics/confidential-containers.md) from the CPU and their [confidential VM environment](../components/runtime.md).
-The details of this evidence are given below in the section on [Evidence Generation and Appraisal](#evidence-generation-and-appraisal).
+The details of this evidence are given below in the section on [evidence generation and appraisal](#evidence-generation-and-appraisal).
 
 ![Attestation flow of a confidential pod](../_media/attestation-pod.svg)
 
@@ -80,7 +80,7 @@ The appraisal of this evidence in Contrast is governed by two main components:
 
 
 
-## Frequently Asked Questions about Attestation in Contrast
+## Frequently asked questions about attestation in Contrast
 
 ### What's the purpose of remote attestation in Contrast?
 
@@ -98,15 +98,15 @@ Attestation confirms the integrity of the operating environment and the complian
 It plays a critical role in preventing unauthorized changes and detecting potential attacks at runtime.
 More details on the specific security benefits can be found [here](../basics/security-benefits.md).
 
-### How can I verify the authenticity of Attestation Results?
+### How can I verify the authenticity of attestation results?
 
-Attestation Results in Contrast are tied to cryptographic proofs generated and signed by the hardware itself.
+Attestation results in Contrast are tied to cryptographic proofs generated and signed by the hardware itself.
 These proofs are then verified using public keys from trusted hardware vendors, ensuring that the results aren't only accurate but also resistant to tampering.
 For further authenticity verification, all of Contrast's code is reproducibly built, and the attestation evidence can be verified locally from the source code.
 
-### How are Attestation Results used by Relying Parties?
+### How are Attestation results used by relying parties?
 
-Relying Parties use *Attestation Results* to make informed security decisions, such as allowing access to sensitive data or resources only if the attestation verifies the system's integrity.
+Relying parties use attestation results to make informed security decisions, such as allowing access to sensitive data or resources only if the attestation verifies the system's integrity.
 Thereafter, the use of Contrast's [CA certificates in TLS connections](certificates.md) provides a practical approach to communicate securely with the application.
 
 ## Summary
