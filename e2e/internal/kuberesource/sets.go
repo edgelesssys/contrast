@@ -45,8 +45,6 @@ func Runtime() ([]any, error) {
 // OpenSSL returns a set of resources for testing with OpenSSL.
 func OpenSSL() ([]any, error) {
 	ns := ""
-	coordinator := Coordinator(ns).DeploymentApplyConfiguration
-	coordinatorService := ServiceForDeployment(coordinator)
 
 	backend := Deployment("openssl-backend", ns).
 		WithSpec(DeploymentSpec().
@@ -157,8 +155,6 @@ func OpenSSL() ([]any, error) {
 	frontendService := ServiceForDeployment(frontend)
 
 	resources := []any{
-		coordinator,
-		coordinatorService,
 		backend,
 		backendService,
 		client,
