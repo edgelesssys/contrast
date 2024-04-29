@@ -69,7 +69,7 @@ func main() {
 	kuberesource.PatchImages(resources, replacements)
 	kuberesource.PatchNamespaces(resources, *namespace)
 	if *addNamespaceObject && *namespace != "default" && *namespace != "" {
-		resources = append(resources, kuberesource.Namespace(*namespace))
+		resources = append([]any{kuberesource.Namespace(*namespace)}, resources...)
 	}
 
 	b, err := kuberesource.EncodeResources(resources...)
