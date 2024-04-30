@@ -6,12 +6,15 @@ package main
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -40,11 +43,28 @@ func run() (retErr error) {
 		return fmt.Errorf("creating CA: %w", err)
 	}
 
+	promRegistry := prometheus.NewRegistry()
+
 	meshAuth := newMeshAuthority(caInstance, logger)
-	userAPI := newUserAPIServer(meshAuth, caInstance, logger)
-	meshAPI := newMeshAPIServer(meshAuth, caInstance, logger)
+	userAPI := newUserAPIServer(meshAuth, caInstance, promRegistry, logger)
+	meshAPI := newMeshAPIServer(meshAuth, caInstance, promRegistry, logger)
 
 	eg := errgroup.Group{}
+
+	eg.Go(func() error {
+		logger.Info("Starting prometheus /metrics endpoint")
+		mux := http.NewServeMux()
+		mux.Handle("/metrics", promhttp.InstrumentMetricHandler(
+			promRegistry, promhttp.HandlerFor(
+				promRegistry,
+				promhttp.HandlerOpts{Registry: promRegistry},
+			),
+		))
+		if err := http.ListenAndServe(":9102", mux); err != nil {
+			return fmt.Errorf("serving Prometheus endpoint: %w", err)
+		}
+		return nil
+	})
 
 	eg.Go(func() error {
 		logger.Info("Coordinator user API listening")

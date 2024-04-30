@@ -142,7 +142,7 @@ func Coordinator(namespace string) *CoordinatorConfig {
 			).
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}).
-				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
+				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator", "prometheus.io/scrape": "true"}).
 				WithSpec(PodSpec().
 					WithRuntimeClassName(runtimeHandler).
 					WithContainers(
@@ -156,6 +156,9 @@ func Coordinator(namespace string) *CoordinatorConfig {
 								ContainerPort().
 									WithName("meshapi").
 									WithContainerPort(7777),
+								ContainerPort().
+									WithName("prometheus").
+									WithContainerPort(9102),
 							).
 							WithReadinessProbe(Probe().
 								WithInitialDelaySeconds(1).

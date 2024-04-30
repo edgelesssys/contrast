@@ -23,6 +23,8 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -42,12 +44,25 @@ type userAPIServer struct {
 	userapi.UnimplementedUserAPIServer
 }
 
-func newUserAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, log *slog.Logger) *userAPIServer {
+func newUserAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, reg *prometheus.Registry, log *slog.Logger) *userAPIServer {
 	issuer := snp.NewIssuer(logger.NewNamed(log, "snp-issuer"))
 	credentials := atlscredentials.New(issuer, nil)
+
+	grpcUserAPIMetrics := grpcprometheus.NewServerMetrics(
+		grpcprometheus.WithServerCounterOptions(
+			grpcprometheus.WithSubsystem("userapi"),
+		),
+	)
+
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
 		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
+		grpc.ChainStreamInterceptor(
+			grpcUserAPIMetrics.StreamServerInterceptor(),
+		),
+		grpc.ChainUnaryInterceptor(
+			grpcUserAPIMetrics.UnaryServerInterceptor(),
+		),
 	)
 	s := &userAPIServer{
 		grpc:            grpcServer,
@@ -57,6 +72,10 @@ func newUserAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, log 
 		logger:          log.WithGroup("userapi"),
 	}
 	userapi.RegisterUserAPIServer(s.grpc, s)
+
+	grpcUserAPIMetrics.InitializeMetrics(grpcServer)
+	reg.MustRegister(grpcUserAPIMetrics)
+
 	return s
 }
 

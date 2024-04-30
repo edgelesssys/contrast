@@ -16,6 +16,8 @@ import (
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/meshapi"
+	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
@@ -37,14 +39,27 @@ type certGetter interface {
 	GetCert(peerPublicKeyHashStr string) ([]byte, error)
 }
 
-func newMeshAPIServer(meshAuth *meshAuthority, caGetter certChainGetter, log *slog.Logger) *meshAPIServer {
+func newMeshAPIServer(meshAuth *meshAuthority, caGetter certChainGetter, reg *prometheus.Registry, log *slog.Logger) *meshAPIServer {
 	ticker := clock.RealClock{}.NewTicker(24 * time.Hour)
 	kdsGetter := snp.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter"))
 	validator := snp.NewValidatorWithCallbacks(meshAuth, kdsGetter, logger.NewNamed(log, "snp-validator"), meshAuth)
 	credentials := atlscredentials.New(atls.NoIssuer, []atls.Validator{validator})
+
+	grpcMeshAPIMetrics := grpcprometheus.NewServerMetrics(
+		grpcprometheus.WithServerCounterOptions(
+			grpcprometheus.WithSubsystem("meshapi"),
+		),
+	)
+
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
 		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
+		grpc.ChainStreamInterceptor(
+			grpcMeshAPIMetrics.StreamServerInterceptor(),
+		),
+		grpc.ChainUnaryInterceptor(
+			grpcMeshAPIMetrics.UnaryServerInterceptor(),
+		),
 	)
 	s := &meshAPIServer{
 		grpc:          grpcServer,
@@ -54,6 +69,10 @@ func newMeshAPIServer(meshAuth *meshAuthority, caGetter certChainGetter, log *sl
 		logger:        log.WithGroup("meshapi"),
 	}
 	meshapi.RegisterMeshAPIServer(s.grpc, s)
+
+	grpcMeshAPIMetrics.InitializeMetrics(grpcServer)
+	reg.MustRegister(grpcMeshAPIMetrics)
+
 	return s
 }
 
