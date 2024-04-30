@@ -99,8 +99,10 @@ coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ing
 :::info[Port-forwarding of Confidential Containers]
 
 `kubectl port-forward` uses a Container Runtime Interface (CRI) method that isn't supported by the Kata shim.
-If you can't use a public load balancer, you can deploy a [port-forwarder](https://github.com/edgelesssys/contrast/blob/main/deployments/emojivoto/portforwarder.yml).
+If you can't use a public load balancer, you can deploy a [port-forwarder](https://github.com/edgelesssys/contrast/blob/ddc371b/deployments/emojivoto/portforwarder.yml).
 The port-forwarder relays traffic from a CoCo pod and can be accessed via `kubectl port-forward`.
+
+<!-- TODO(burgerdev): inline port-forwarder definition, it has been removed from main. -->
 
 Upstream tracking issue: https://github.com/kata-containers/kata-containers/issues/1693.
 

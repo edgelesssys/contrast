@@ -45,23 +45,11 @@ populate target=default_deploy_target:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
-    case {{ target }} in
-        "openssl" | "emojivoto")
-            mkdir -p ./{{ workspace_dir }}/deployment
-            nix shell .#contrast --command resourcegen \
-              --image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace {{ target }}${namespace_suffix-} \
-              --add-namespace-object --add-port-forwarders \
-              {{ target }} coordinator > ./{{ workspace_dir }}/deployment/deployment.yml
-        ;;
-        *)
-            cp -R ./deployments/{{ target }} ./{{ workspace_dir }}/deployment
-            nix run .#scripts.patch-contrast-image-hashes -- ./{{ workspace_dir }}/deployment
-            nix run .#kypatch images -- ./{{ workspace_dir }}/deployment \
-                --replace ghcr.io/edgelesssys ${container_registry}
-            nix run .#kypatch namespace -- ./{{ workspace_dir }}/deployment \
-                --replace edg-default {{ target }}${namespace_suffix-}
-        ;;
-    esac
+    mkdir -p ./{{ workspace_dir }}/deployment
+    nix shell .#contrast --command resourcegen \
+        --image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace {{ target }}${namespace_suffix-} \
+        --add-namespace-object --add-port-forwarders \
+        {{ target }} coordinator > ./{{ workspace_dir }}/deployment/deployment.yml
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
 
 # Generate policies, update manifest.
