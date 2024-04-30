@@ -168,7 +168,7 @@ func OpenSSL() ([]any, error) {
 // Emojivoto returns resources for deploying Emojivoto application.
 func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 	ns := ""
-	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiSvcHost, votingSvcHost string
+	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost string
 	smProxyEmoji := ServiceMeshProxy()
 	smProxyWeb := ServiceMeshProxy()
 	smProxyVoting := ServiceMeshProxy()
@@ -177,6 +177,7 @@ func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1"
 		emojiVotingSvcImage = "ghcr.io/3u13r/emojivoto-voting-svc:coco-1"
 		emojiWebImage = "ghcr.io/3u13r/emojivoto-web:coco-1"
+		emojiWebVoteBotImage = emojiWebImage
 		emojiSvcHost = "emoji-svc:8080"
 		votingSvcHost = "voting-svc:8080"
 		smProxyEmoji = nil
@@ -186,6 +187,7 @@ func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 		emojiSvcImage = "docker.l5d.io/buoyantio/emojivoto-emoji-svc:v11"
 		emojiVotingSvcImage = "docker.l5d.io/buoyantio/emojivoto-voting-svc:v11"
 		emojiWebImage = "docker.l5d.io/buoyantio/emojivoto-web:v11"
+		emojiWebVoteBotImage = "ghcr.io/3u13r/emojivoto-web:coco-1"
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
 		smProxyWeb = smProxyWeb.
@@ -201,6 +203,7 @@ func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1"
 		emojiVotingSvcImage = "ghcr.io/3u13r/emojivoto-voting-svc:coco-1"
 		emojiWebImage = "docker.l5d.io/buoyantio/emojivoto-web:v11"
+		emojiWebVoteBotImage = emojiWebImage
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
 		smProxyWeb = smProxyWeb.
@@ -316,7 +319,7 @@ func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 					WithContainers(
 						Container().
 							WithName("vote-bot").
-							WithImage(emojiWebImage).
+							WithImage(emojiWebVoteBotImage).
 							WithCommand("emojivoto-vote-bot").
 							WithEnv(EnvVar().WithName("WEB_HOST").WithValue("web-svc:443")).
 							WithResources(ResourceRequirements().
