@@ -14,7 +14,7 @@ Confidential Containers significantly decrease the size of the trusted computing
 The TCB is the totality of elements in a computing environment that must be trusted not to be compromised.
 A smaller TCB results in a smaller attack surface. The following diagram shows how Confidential Containers remove the *cloud & datacenter infrastructure* and the *physical hosts*, including the hypervisor, the host OS, the Kubernetes control plane, and other components, from the TCB (red).
 In the confidential context, represented by green, only the workload containers along with their confidential micro-VM environment are included within the Trusted Computing Base (TCB).
-Their integrity is attested and can be [verified](../architecture/attestation/hardware.md).
+Their integrity is attested and can be [verified](../architecture/attestation.md).
 
 Confidential Containers use [hardware-based mechanisms](confidential-containers.md), specifically leveraging CPU features, to ensure the isolation of the confidential context.
 This implies that both the CPU and its microcode are integral components of the TCB.
@@ -68,7 +68,7 @@ To help protect the workload from an untrusted workload operator and the infrast
 
 ### Attestation process
 
-The [attestation architecture](../architecture/attestation/hardware.md) describes Contrast's chain of trust and the attestation process in detail.
+The [attestation architecture](../architecture/attestation.md) describes Contrast's chain of trust and the attestation process in detail.
 
 ## Threat model and mitigations
 
@@ -112,8 +112,8 @@ The container root file system with integrity protection is designed to mitigate
 Additionally, the container has no writeable disk partition mounted, hence, data is only stored in-memory and never disclosed to disk.
 
 Risks from network attacks are mitigated by having [authenticated, end-to-end encrypted channels](../components/service-mesh.md).
-An [attestation protocol](../architecture/attestation/hardware.md) helps protect the boot sequence.
-[Runtime policies](../architecture/attestation/runtime-policies.md) verify the runtime environment configuration read from the Kubernetes control plane.
+An [attestation protocol](../architecture/attestation.md) helps protect the boot sequence.
+[Runtime policies](../architecture/attestation.md) verify the runtime environment configuration read from the Kubernetes control plane.
 
 The following tables describe the threats and mitigations:
 

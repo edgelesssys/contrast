@@ -4,6 +4,7 @@ Ansys
 API
 Asciinema
 ASG
+attesters
 auditable
 autoscaler
 autoscaling
@@ -16,6 +17,7 @@ Bootstrapper
 cachable
 cachix
 changeset
+CLI
 cloud
 cmdline
 config
@@ -48,6 +50,7 @@ hyperv
 IAM
 Initializer
 initramfs
+Inkscape
 iodepth
 IPSec
 Istio
@@ -78,6 +81,7 @@ Rekor
 resizable
 resourceGroup
 rollout
+safeguardable
 SBOM
 sigstore
 SSD
@@ -94,6 +98,7 @@ unencrypted
 unspoofable
 untrusted
 updatable
+userland
 UUID
 vCPU
 virsh
