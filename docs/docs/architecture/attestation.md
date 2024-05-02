@@ -35,7 +35,7 @@ The kernel cmdline contains the root hash for [dm-verity](https://www.kernel.org
 The root filesystem contains all  components of the container's runtime environment including the [guest agent](../basics/confidential-containers.md#kata-containers) (C).
 
 In the userland, the guest agent takes care of enforcing the [runtime policy](../components/index.md#runtime-policies) of the pod.
-While the policy is passed in during the initialization procedure via the Kata host, the evidence for the runtime policy is part of the CPU measurements.
+While the policy is passed in during the initialization procedure via the host, the evidence for the runtime policy is part of the CPU measurements.
 During the [deployment](../deployment.md#generate-policy-annotations-and-manifest) the policy is annotated to the Kubernetes Pod resources.
 On AMD SEV-SNP the hash of the policy is then added to the attestation report via the `HOSTDATA` field by the hypervisor.
 When provided with the policy from the Kata host, the guest agent verifies that the policy's hash matches the one in the `HOSTDATA` field.
