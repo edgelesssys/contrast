@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-393/assets/css/styles.c8acb4da.css">
-<script src="/contrast/pr-preview/pr-393/assets/js/runtime~main.7a3cea82.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-393/assets/js/runtime~main.cdd950af.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-393/assets/js/main.0a2e6c6c.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -44,7 +44,7 @@ The image is in <a href="https://github.com/microsoft/igvm" target="_blank" rel=
 The kernel cmdline contains the root hash for <a href="https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/verity.html" target="_blank" rel="noopener noreferrer">dm-verity</a> that ensures the integrity of the root filesystem.
 The root filesystem contains all  components of the container&#x27;s runtime environment including the <a href="/contrast/pr-preview/pr-393/next/basics/confidential-containers#kata-containers">guest agent</a> (C).</p>
 <p>In the userland, the guest agent takes care of enforcing the <a href="/contrast/pr-preview/pr-393/next/components#runtime-policies">runtime policy</a> of the pod.
-While the policy is passed in during the initialization procedure via the Kata host, the evidence for the runtime policy is part of the CPU measurements.
+While the policy is passed in during the initialization procedure via the host, the evidence for the runtime policy is part of the CPU measurements.
 During the <a href="/contrast/pr-preview/pr-393/next/deployment#generate-policy-annotations-and-manifest">deployment</a> the policy is annotated to the Kubernetes Pod resources.
 On AMD SEV-SNP the hash of the policy is then added to the attestation report via the <code>HOSTDATA</code> field by the hypervisor.
 When provided with the policy from the Kata host, the guest agent verifies that the policy&#x27;s hash matches the one in the <code>HOSTDATA</code> field.</p>
