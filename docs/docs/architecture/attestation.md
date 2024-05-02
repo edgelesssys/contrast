@@ -82,8 +82,8 @@ The appraisal of this evidence in Contrast is governed by two main components:
 ## Frequently asked questions about attestation in Contrast
 
 ### What's the purpose of remote attestation in Contrast?
-
-Remote attestation in Contrast provides a mechanism to verify the integrity and authenticity of the software running within the deployment.
+Remote attestation in Contrast ensures that software runs within a secure, isolated confidential computing environment.
+This process certifies that the memory is encrypted and confirms the integrity and authenticity of the software running within the deployment.
 By validating the runtime environment and the policies enforced on it, Contrast ensures that the system operates in a trustworthy state and hasn't been tampered with.
 
 ### How does Contrast ensure the security of the attestation process?
