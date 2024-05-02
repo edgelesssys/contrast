@@ -1,11 +1,11 @@
 # Known Limitations
 
-As Contrast is currently in an early preview stage, it's built on several projects that are also under active development.
+As Contrast is currently in an early development stage, it's built on several projects that are also under active development.
 This section outlines the most significant known limitations, providing stakeholders with clear expectations and understanding of the current state.
 
 ## Availability
 
-- **Platform Support**: At present, Contrast is exclusively available on Azure AKS, supported by the [Confidential Container preview for AMD SEV-SNP](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview). Expansion to other cloud platforms is planned, pending the availability of necessary infrastructure enhancements.
+- **Platform Support**: At present, Contrast is exclusively available on Azure AKS, supported by the [Confidential Container preview for AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview). Expansion to other cloud platforms is planned, pending the availability of necessary infrastructure enhancements.
 
 ## Kubernetes Features
 
