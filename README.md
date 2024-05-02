@@ -61,22 +61,9 @@ You may want to start with one of the following sections.
 * [Security benefits](https://docs.edgeless.systems/contrast/basics/security-benefits)
 * [Components](https://docs.edgeless.systems/contrast/components)
 
-## Current limitations
+## Known limitations
 
-Contrast is in an early preview stage, and most underlying projects are still under development as well.
-As a result, there are currently certain limitations from which we try to document the most significant ones here:
-
-- Only available on AKS with CoCo preview (AMD SEV-SNP)
-- Persistent volumes currently not supported in CoCo
-- While workload policies are functional in general, but [not covering all edge cases](https://github.com/microsoft/kata-containers/releases/tag/genpolicy-0.6.2-5)
-- Port-forwarding isn't supported by Kata Containers yet
-- CLI is only available for Linux (mostly because upstream dependencies aren't available for other platforms)
-- Known bugs and limitations on AKS CoCo
-  * The total amount of container image layers per pod is restricted to 32.
-  * Container memory limits are wrongly applied. Workaround: only use memory requests.
-  * Directories with a large number of files may cause applications to hang. Workarounds:
-    - During image build, try to keep directories under 4096 bytes (~200 files).
-    - At runtime, `touch` a file in the affected directory to force it into the `overlayfs` working directory.
+See the current list of [known limitations](https://docs.edgeless.systems/contrast/known-limitations) in the documentation.
 
 ## Upcoming Contrast features
 
