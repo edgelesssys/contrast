@@ -1,6 +1,6 @@
 # Known Limitations
 
-As Contrast is currently in an early preview stage, it's built on several projects that're also under active development.
+As Contrast is currently in an early preview stage, it's built on several projects that are also under active development.
 This section outlines the most significant known limitations, providing stakeholders with clear expectations and understanding of the current state.
 
 ## Availability
@@ -15,8 +15,8 @@ This section outlines the most significant known limitations, providing stakehol
 
 ## Runtime Policies
 
-- **Coverage**: While the enforcement of workload policies generally functions well, [there're scenarios not yet fully covered](https://github.com/microsoft/kata-containers/releases/tag/genpolicy-0.6.2-5). It's crucial to review deployments specifically for these edge cases.
-- **Policy Evaluation**: The current policy evaluation mechanism on API requests isn't stateful, which means it cannot ensure a prescribed order of events. Consequently, there's no guaranteed enforcement that the [initializer](components/index.md#the-initializer) container runs *before* the workload container. This order is vital for ensuring that all traffic between pods is securely encapsulated within TLS connections. TODO: Consequences
+- **Coverage**: While the enforcement of workload policies generally functions well, [there are scenarios not yet fully covered](https://github.com/microsoft/kata-containers/releases/tag/genpolicy-0.6.2-5). It's crucial to review deployments specifically for these edge cases.
+- **Policy Evaluation**: The current policy evaluation mechanism on API requests isn't stateful, which means it can't ensure a prescribed order of events. Consequently, there's no guaranteed enforcement that the [initializer](components/index.md#the-initializer) container runs *before* the workload container. This order is vital for ensuring that all traffic between pods is securely encapsulated within TLS connections. TODO: Consequences
 
 ## Tooling Integration
 
