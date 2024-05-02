@@ -10,7 +10,7 @@ This section outlines the most significant known limitations, providing stakehol
 ## Kubernetes Features
 
 - **Persistent Volumes**: Not currently supported within Confidential Containers.
-- **Port-Forwarding**: This feature isn't yet supported by Kata Containers.
+- **Port-Forwarding**: This feature [isn't yet supported by Kata Containers](https://github.com/kata-containers/kata-containers/issues/1693). You can [deploy a port-forwarder](https://docs.edgeless.systems/contrast/deployment#connect-to-the-contrast-coordinator) as a workaround.
 - **Resource Limits**: There is an existing bug on AKS where container memory limits are incorrectly applied. The current workaround involves using only memory requests instead of limits.
 
 ## Runtime Policies
