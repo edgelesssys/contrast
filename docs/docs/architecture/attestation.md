@@ -34,9 +34,9 @@ The image is in [IGVM format](https://github.com/microsoft/igvm), encapsulating 
 The kernel cmdline contains the root hash for [dm-verity](https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/verity.html) that ensures the integrity of the root filesystem.
 The root filesystem contains all  components of the container's runtime environment including the [guest agent](../basics/confidential-containers.md#kata-containers) (C).
 
-In the userland, the guest agent takes care of enforcing the containers [runtime policy](../components/index.md#runtime-policies).
+In the userland, the guest agent takes care of enforcing the [runtime policy](../components/index.md#runtime-policies) of the pod.
 While the policy is passed in during the initialization procedure via the Kata host, the evidence for the runtime policy is part of the CPU measurements.
-During the [deployment](../deployment.md#generate-policy-annotations-and-manifest) the expected policy hash is annotated to the Kubernetes Pod resources.
+During the [deployment](../deployment.md#generate-policy-annotations-and-manifest) the policy is annotated to the Kubernetes Pod resources.
 On AMD SEV-SNP the hash of the policy is then added to the attestation report via the `HOSTDATA` field by the hypervisor.
 When provided with the policy from the Kata host, the guest agent verifies that the policy's hash matches the one in the `HOSTDATA` field.
 
@@ -48,7 +48,6 @@ It also pulls endorsements from hardware vendors to verify the hardware claims.
 The Coordinator operates within the cluster as a confidential container and provides similar evidence as any other Pod when it acts as an attester.
 In RATS terminology, the Coordinator's dual role is defined as a lead attester in a composite device which spans the entire deployment: Coordinator and the workload pods.
 It collects evidence from other attesters and conveys it to a verifier, generating evidence about the layout of the whole composite device based on the Manifest as the appraisal policy.
-
 
 ![Deployment attestation as a composite device](../_media/attestation-composite-device.svg)
 
