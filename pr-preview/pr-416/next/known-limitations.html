@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-416/assets/css/styles.c8acb4da.css">
-<script src="/contrast/pr-preview/pr-416/assets/js/runtime~main.ab0735ee.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-416/assets/js/runtime~main.062492b1.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-416/assets/js/main.f3e1c2e2.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -27,13 +27,13 @@ This section outlines the most significant known limitations, providing stakehol
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="kubernetes-features">Kubernetes Features<a href="#kubernetes-features" class="hash-link" aria-label="Direct link to Kubernetes Features" title="Direct link to Kubernetes Features">​</a></h2>
 <ul>
 <li><strong>Persistent Volumes</strong>: Not currently supported within Confidential Containers.</li>
-<li><strong>Port-Forwarding</strong>: This feature isn&#x27;t yet supported by Kata Containers.</li>
+<li><strong>Port-Forwarding</strong>: This feature <a href="https://github.com/kata-containers/kata-containers/issues/1693" target="_blank" rel="noopener noreferrer">isn&#x27;t yet supported by Kata Containers</a>. You can <a href="https://docs.edgeless.systems/contrast/deployment#connect-to-the-contrast-coordinator" target="_blank" rel="noopener noreferrer">deploy a port-forwarder</a> as a workaround.</li>
 <li><strong>Resource Limits</strong>: There is an existing bug on AKS where container memory limits are incorrectly applied. The current workaround involves using only memory requests instead of limits.</li>
 </ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="runtime-policies">Runtime Policies<a href="#runtime-policies" class="hash-link" aria-label="Direct link to Runtime Policies" title="Direct link to Runtime Policies">​</a></h2>
 <ul>
-<li><strong>Coverage</strong>: While the enforcement of workload policies generally functions well, <a href="https://github.com/microsoft/kata-containers/releases/tag/genpolicy-0.6.2-5" target="_blank" rel="noopener noreferrer">there are scenarios not yet fully covered</a>. It&#x27;s crucial to review deployments specifically for these edge cases.</li>
-<li><strong>Policy Evaluation</strong>: The current policy evaluation mechanism on API requests isn&#x27;t stateful, which means it can&#x27;t ensure a prescribed order of events. Consequently, there&#x27;s no guaranteed enforcement that the <a href="/contrast/pr-preview/pr-416/next/components#the-initializer">initializer</a> container runs <em>before</em> the workload container. This order is vital for ensuring that all traffic between pods is securely encapsulated within TLS connections. TODO: Consequences</li>
+<li><strong>Coverage</strong>: While the enforcement of workload policies generally functions well, <a href="https://github.com/microsoft/kata-containers/releases/tag/3.2.0.azl0.genpolicy" target="_blank" rel="noopener noreferrer">there are scenarios not yet fully covered</a>. It&#x27;s crucial to review deployments specifically for these edge cases.</li>
+<li><strong>Policy Evaluation</strong>: The current policy evaluation mechanism on API requests isn&#x27;t stateful, which means it can&#x27;t ensure a prescribed order of events. Consequently, there&#x27;s no guaranteed enforcement that the <a href="/contrast/pr-preview/pr-416/next/components/service-mesh">service mesh sidecar</a> container runs <em>before</em> the workload container. This order is vital for ensuring that all traffic between pods is securely encapsulated within TLS connections. TODO: Consequences</li>
 </ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="tooling-integration">Tooling Integration<a href="#tooling-integration" class="hash-link" aria-label="Direct link to Tooling Integration" title="Direct link to Tooling Integration">​</a></h2>
 <ul>
