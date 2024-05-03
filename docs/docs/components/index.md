@@ -46,19 +46,6 @@ The runtime policy mechanism is based on the Open Policy Agent (OPA) and transla
 The Kata Agent inside the confidential micro-VM then enforces the policy by only acting on permitted requests.
 The Contrast CLI provides the tooling for automatically translating Kubernetes deployment YAML into the Rego policy language of OPA.
 
-The trust chain goes as follows:
-
-1. The Contrast CLI generates a policy and attaches it to the pod definition.
-2. Kubernetes schedules the pod on a node with the confidential computing runtime.
-3. Containerd takes the node, starts the Kata Shim and creates the pod sandbox.
-4. The Kata runtime starts a CVM with the policy's digest as `HOSTDATA`.
-5. The Kata runtime sets the policy using the `SetPolicy` method.
-6. The Kata agent verifies that the incoming policy's digest matches `HOSTDATA`.
-7. The CLI sets a manifest in the Contrast Coordinator, including a list of permitted policies.
-8. The Contrast Coordinator verifies that the started pod has a permitted policy hash in its `HOSTDATA` field.
-
-After the last step, we know that the policy hasn't been tampered with and, thus, that the workload is as intended.
-
 ## The Initializer
 
 Contrast provides an Initializer that handles the remote attestation on the workload side transparently and

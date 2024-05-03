@@ -97,6 +97,11 @@ const sidebars = {
         },
         {
           type: 'doc',
+          label: 'Policies',
+          id: 'components/policies',
+        },
+        {
+          type: 'doc',
           label: 'Service Mesh',
           id: 'components/service-mesh',
         },
