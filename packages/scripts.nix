@@ -214,7 +214,8 @@ with pkgs;
     text = ''
       imageReplacements=$1
       destinationFile=$2
-      resourcegen --image-replacements="$imageReplacements" emojivoto "$destinationFile"
+      # The document at index 0 is the namespace, which we don't want to include in the release.
+      resourcegen --image-replacements="$imageReplacements" emojivoto /dev/stdout | yq 'select(di != 0)' > "$destinationFile"
       nix run .#kypatch namespace -- "$destinationFile" --replace edg-default default
     '';
   };
