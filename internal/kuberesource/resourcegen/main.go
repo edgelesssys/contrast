@@ -15,6 +15,7 @@ import (
 func main() {
 	imageReplacementsPath := flag.String("image-replacements", "", "Path to the image replacements file")
 	namespace := flag.String("namespace", "", "Namespace for namespaced resources")
+	addLoadBalancers := flag.Bool("add-load-balancers", false, "Add load balancers to selected services")
 	addNamespaceObject := flag.Bool("add-namespace-object", false, "Add namespace object with the given namespace")
 	addPortForwarders := flag.Bool("add-port-forwarders", false, "Add port forwarder pods for all services")
 	flag.Usage = func() {
@@ -56,6 +57,10 @@ func main() {
 
 	if *addPortForwarders {
 		resources = kuberesource.AddPortForwarders(resources)
+	}
+
+	if *addLoadBalancers {
+		resources = kuberesource.AddLoadBalancers(resources)
 	}
 
 	var replacements map[string]string

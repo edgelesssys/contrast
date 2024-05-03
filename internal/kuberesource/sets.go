@@ -6,7 +6,6 @@ package kuberesource
 import (
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -16,8 +15,8 @@ import (
 // as release artifact with a pre-generated policy (which is not contained in this function).
 func CoordinatorRelease() ([]any, error) {
 	coordinator := Coordinator("").DeploymentApplyConfiguration
-	coordinatorService := ServiceForDeployment(coordinator)
-	coordinatorService.Spec.WithType(corev1.ServiceTypeLoadBalancer)
+	coordinatorService := ServiceForDeployment(coordinator).
+		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
 
 	resources := []any{
 		coordinator,
@@ -480,6 +479,7 @@ func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 
 	webService := ServiceForDeployment(web).
 		WithName("web-svc").
+		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"}).
 		WithSpec(ServiceSpec().
 			WithSelector(
 				map[string]string{"app.kubernetes.io/name": "web-svc"},

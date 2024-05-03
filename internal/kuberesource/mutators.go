@@ -11,6 +11,8 @@ import (
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
+const exposeServiceAnnotation = "contrast.edgeless.systems/expose-service"
+
 // AddInitializer adds an initializer to a deployment.
 func AddInitializer(
 	deployment *applyappsv1.DeploymentApplyConfiguration,
@@ -102,6 +104,22 @@ func AddPortForwarders(resources []any) []any {
 		switch obj := resource.(type) {
 		case *applycorev1.ServiceApplyConfiguration:
 			out = append(out, PortForwarderForService(obj))
+		}
+		out = append(out, resource)
+	}
+	return out
+}
+
+// AddLoadBalancers adds a load balancer to each Service resource.
+func AddLoadBalancers(resources []any) []any {
+	// "contrast.edgeless.systems/expose-service":"true"
+	var out []any
+	for _, resource := range resources {
+		switch obj := resource.(type) {
+		case *applycorev1.ServiceApplyConfiguration:
+			if obj.Annotations[exposeServiceAnnotation] == "true" {
+				obj.Spec.WithType("LoadBalancer")
+			}
 		}
 		out = append(out, resource)
 	}
