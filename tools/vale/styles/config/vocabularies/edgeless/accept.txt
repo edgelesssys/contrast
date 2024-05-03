@@ -86,6 +86,7 @@ safeguardable
 SBOM
 sigstore
 SSD
+subcommand
 Subresource
 substituters
 superset
