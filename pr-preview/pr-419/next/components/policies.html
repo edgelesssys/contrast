@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-419/assets/css/styles.c8acb4da.css">
-<script src="/contrast/pr-preview/pr-419/assets/js/runtime~main.6e3c59a0.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-419/assets/js/runtime~main.67d0c0ab.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-419/assets/js/main.61e12465.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -39,22 +39,22 @@ These constitute the policy&#x27;s <em>OCI data</em>.</p>
 <p>The generated policy document is annotated to the pod definitions in Base64 encoding.
 This annotation is propagated to the Kata runtime, which calculates the SHA256 checksum for the policy and uses that as <code>HOSTDATA</code> for the confidential micro-VM.</p>
 <p>After the VM launched, the runtime calls the agent&#x27;s <code>SetPolicy</code> method with the full policy document.
-If the policy does not match the checksum in <code>HOSTDATA</code>, the agent rejects the policy.
+If the policy doesn&#x27;t match the checksum in <code>HOSTDATA</code>, the agent rejects the policy.
 Otherwise, it applies the policy to all future <code>AgentService</code> requests.</p>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="guarantees">Guarantees<a href="#guarantees" class="hash-link" aria-label="Direct link to Guarantees" title="Direct link to Guarantees">​</a></h2>
 <p>The policy evaluation provides the following guarantees for pods launched with the correct generated policy:</p>
 <ul>
-<li>Command and its arguments are not tampered with.</li>
+<li>Command and its arguments are set as specified in the resources.</li>
 <li>There are no unexpected additional environment variables.</li>
 <li>The container image layers correspond to the layers observed at policy generation time.</li>
 <li>Executing additional processes in a container is prohibited.</li>
-<li>Sending data to a container&#x27;s stdin is prohibited.</li>
+<li>Sending data to a container&#x27;s standard input is prohibited.</li>
 </ul>
 <p>The current implementation of policy checking has some blind spots:</p>
 <ul>
 <li>Containers can be started in any order, or be omitted entirely.</li>
 <li>Environment variables may be missing.</li>
-<li>Volumes other than the container root volume are not checked (particularly relevant for mounted <code>ConfigMaps</code> and <code>Secrets</code>).</li>
+<li>Volumes other than the container root volume don&#x27;t have integrity checks (particularly relevant for mounted <code>ConfigMaps</code> and <code>Secrets</code>).</li>
 </ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="trust">Trust<a href="#trust" class="hash-link" aria-label="Direct link to Trust" title="Direct link to Trust">​</a></h2>
 <p>Contrast verifies its confidential containers following these steps:</p>
