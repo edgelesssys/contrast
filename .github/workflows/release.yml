@@ -208,9 +208,11 @@ jobs:
           coordinatorImg=$(nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator")
           nodeInstallerImg=$(nix run .#containers.push-node-installer -- "$container_registry/contrast/node-installer")
           initializerImg=$(nix run .#containers.push-initializer -- "$container_registry/contrast/initializer")
+          serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy")
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerImg=$nodeInstallerImg" | tee -a "$GITHUB_ENV"
           echo "initializerImg=$initializerImg" | tee -a "$GITHUB_ENV"
+          echo "serviceMeshImg=$serviceMeshImg" | tee -a "$GITHUB_ENV"
       - name: Add tag to Coordinator image
         run: |
           tag() {
@@ -221,10 +223,12 @@ jobs:
           echo "coordinatorImgTagged=$(tag "$coordinatorImg")" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerImgTagged=$(tag "$nodeInstallerImg")" | tee -a "$GITHUB_ENV"
           echo "initializerImgTagged=$(tag "$initializerImg")" | tee -a "$GITHUB_ENV"
+          echo "serviceMeshImgTagged=$(tag "$serviceMeshImg")" | tee -a "$GITHUB_ENV"
       - name: Create file with image replacements
         run: |
           echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged" > image-replacements.txt
           echo "ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImgTagged" >> image-replacements.txt
+          echo "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged" >> image-replacements.txt
           echo "ghcr.io/edgelesssys/contrast/node-installer:latest=$nodeInstallerImgTagged" >> image-replacements.txt
       - name: Create portable coordinator resource definitions
         run: |
