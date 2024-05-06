@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-423/assets/css/styles.c8acb4da.css">
-<script src="/contrast/pr-preview/pr-423/assets/js/runtime~main.92920773.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-423/assets/js/runtime~main.4b0f7a15.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-423/assets/js/main.069f279f.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -27,14 +27,14 @@ It allows for cloud adoption by maintaining a hardware-based separation from the
 <p>Leveraging Confidential Computing technology, Contrast provides three defining security properties:</p>
 <ul>
 <li><strong>Encryption of data in use</strong>: Contrast ensures that all data processed in memory is encrypted, making it inaccessible to unauthorized users or systems, even if they have physical access to the hardware.</li>
-<li><strong>Workload isolation</strong>: Each container runs in its isolated runtime environment, preventing any cross-contamination between workloads, which is critical for multi-tenant infrastructures.</li>
+<li><strong>Workload isolation</strong>: Each pod runs in its isolated runtime environment, preventing any cross-contamination between workloads, which is critical for multi-tenant infrastructures.</li>
 <li><strong>Remote attestation</strong>: This feature allows data owners and workload operators to verify that the Contrast environment executing their workloads has not been tampered with and is running in a secure, pre-approved configuration.</li>
 </ul>
 <p>The runtime encryption is transparently provided by the confidential computing hardware during the workload&#x27;s lifetime.
 The workload isolation and remote attestation involves two phases:</p>
 <ul>
 <li>An attestation process detects modifications to the workload image or its runtime environment during the initialization. This protects the workload&#x27;s integrity pre-attestation.</li>
-<li>A protected runtime environment and a policy mechanism prevents the workload operator from accessing or compromising the instance at runtime. This protects a workload&#x27;s integrity and confidentiality post-attestation.</li>
+<li>A protected runtime environment and a policy mechanism prevents the platform operator from accessing or compromising the instance at runtime. This protects a workload&#x27;s integrity and confidentiality post-attestation.</li>
 </ul>
 <p>For more details on confidential computing see our <a href="https://content.edgeless.systems/hubfs/Confidential%20Computing%20Whitepaper.pdf" target="_blank" rel="noopener noreferrer">whitepaper</a>.
 The <a href="/contrast/pr-preview/pr-423/next/architecture/attestation">attestation architecture</a> describes Contrast&#x27;s attestation process and the resulting chain of trust in detail.</p>
@@ -45,16 +45,16 @@ The TCB is the totality of elements in a computing environment that must be trus
 A smaller TCB results in a smaller attack surface. The following diagram shows how Confidential Containers remove the <em>cloud &amp; datacenter infrastructure</em> and the <em>physical hosts</em>, including the hypervisor, the host OS, the Kubernetes control plane, and other components, from the TCB (red).
 In the confidential context, represented by green, only the workload containers along with their confidential micro-VM environment are included within the Trusted Computing Base (TCB).
 Their integrity is <a href="/contrast/pr-preview/pr-423/next/architecture/attestation">verifiable through remote attestation</a>.</p>
-<p>Contrast use <a href="/contrast/pr-preview/pr-423/next/basics/confidential-containers">hardware-based mechanisms</a>, specifically leveraging CPU features, such as AMD SEV or Intel TDX, to provide the isolation of the confidential context.
+<p>Contrast uses <a href="/contrast/pr-preview/pr-423/next/basics/confidential-containers">hardware-based mechanisms</a>, specifically leveraging CPU features, such as AMD SEV or Intel TDX, to provide the isolation of the confidential context.
 This implies that both the CPU and its microcode are integral components of the TCB.
 However, it should be noted that the CPU microcode aspects aren&#x27;t depicted in the accompanying graphic.</p>
 <p><img decoding="async" loading="lazy" alt="TCB comparison" src="/contrast/pr-preview/pr-423/assets/images/tcb-89bc6e00f74de788d4a70ce25e55a927.svg" width="3983" height="1380" class="img_ev3q"></p>
-<p>In addition to the pure Confidential Container runtime Contrast adds a few components to a deployment that become part of the TCB.
+<p>Contrast adds the following components to a deployment that become part of the TCB.
 The components that are part of the TCB are:</p>
 <ul>
 <li><strong>The workload containers</strong>: Container images that run the actual application.</li>
 <li><strong><a href="/contrast/pr-preview/pr-423/next/components/runtime">The runtime environment</a></strong>: The confidential micro-VM that acts as the container runtime.</li>
-<li><strong><a href="/contrast/pr-preview/pr-423/next/components/service-mesh">The sidecar containers</a></strong>: Containers that provide additional functionality such as <a href="/contrast/pr-preview/pr-423/next/components#the-initializer">initialization</a> and <a href="/contrast/pr-preview/pr-423/next/components/service-mesh">mTLS</a>.</li>
+<li><strong><a href="/contrast/pr-preview/pr-423/next/components/service-mesh">The sidecar containers</a></strong>: Containers that provide additional functionality such as <a href="/contrast/pr-preview/pr-423/next/components#the-initializer">initialization</a> and <a href="/contrast/pr-preview/pr-423/next/components/service-mesh">serivce mesh</a>.</li>
 <li><strong>The runtime policies</strong>: Policies that enforce the runtime environments for the workload containers during their lifetime.</li>
 <li><strong><a href="/contrast/pr-preview/pr-423/next/components#the-manifest">The manifest</a></strong>: A manifest file defining the reference values of an entire confidential deployment. It contains the policy hashes for all pods of the deployment and the expected hardware reference values for the Confidential Container runtime.</li>
 <li><strong><a href="/contrast/pr-preview/pr-423/next/components#the-coordinator">The Coordinator</a></strong>: An attestation service that runs in a Confidential Container in the Kubernetes cluster. The Coordinator is configured with the manifest. User-facing, you can verify this service and the effective manifest using remote attestation, providing you with a concise attestation for the entire deployment. Cluster-facing, it verifies all pods and their policies based on remote attestation procedures and the manifest.</li>
