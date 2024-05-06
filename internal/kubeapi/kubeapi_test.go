@@ -67,6 +67,24 @@ metadata:
     name: test
 `,
 		},
+		"job": {
+			wantTypes: []any{Job{}},
+			resources: `
+apiVersion: batch/v1
+kind: Job
+metadata:
+    name: test
+`,
+		},
+		"cronjob": {
+			wantTypes: []any{CronJob{}},
+			resources: `
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+    name: test
+`,
+		},
 	}
 
 	for name, tc := range testCases {
