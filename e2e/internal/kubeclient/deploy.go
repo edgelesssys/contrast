@@ -7,7 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"sort"
+	"strconv"
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -146,6 +148,63 @@ func (c *Kubeclient) WaitForDaemonset(ctx context.Context, namespace, name strin
 					logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
 				}
 			}
+		}
+	}
+}
+
+// WaitForLoadBalancer waits until the given service is configured with an external IP and returns it.
+func (c *Kubeclient) WaitForLoadBalancer(ctx context.Context, namespace, name string) (string, error) {
+	watcher, err := c.client.CoreV1().Services(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+	if err != nil {
+		return "", err
+	}
+	var ip string
+	var port int
+loop:
+	for {
+		select {
+		case evt := <-watcher.ResultChan():
+			switch evt.Type {
+			case watch.Added:
+				fallthrough
+			case watch.Modified:
+				svc, ok := evt.Object.(*corev1.Service)
+				if !ok {
+					return "", fmt.Errorf("watcher received unexpected type %T", evt.Object)
+				}
+				for _, ingress := range svc.Status.LoadBalancer.Ingress {
+					if ingress.IP != "" {
+						ip = ingress.IP
+						// TODO(burgerdev): deal with more than one port, and protocols other than TCP
+						port = int(svc.Spec.Ports[0].Port)
+						break loop
+					}
+				}
+			case watch.Deleted:
+				return "", fmt.Errorf("service %s/%s was deleted while waiting for it", namespace, name)
+			default:
+				c.log.Warn("ignoring unexpected watch event", "type", evt.Type, "object", evt.Object)
+			}
+		case <-ctx.Done():
+			return "", fmt.Errorf("LoadBalancer %s/%s did not get a public IP before %w", namespace, name, ctx.Err())
+		}
+	}
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	dialer := &net.Dialer{}
+	for {
+		select {
+		case <-ticker.C:
+			conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(ip, strconv.Itoa(port)))
+			if err == nil {
+				conn.Close()
+				return ip, nil
+			}
+			c.log.Info("probe failed", "namespace", namespace, "name", name, "error", err)
+		case <-ctx.Done():
+			return "", fmt.Errorf("LoadBalancer %s/%s never responded to probing before %w", namespace, name, ctx.Err())
 		}
 	}
 }
