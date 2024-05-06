@@ -21,7 +21,7 @@ This section outlines the most significant known limitations, providing stakehol
 - **Volume integrity checks**: While persistent volumes aren't supported yet, integrity checks don't currently cover other objects such as `ConfigMaps` and `Secrets`.
 
 :::warning
-The policy limitations, in particular the missing guarantee that our service mesh sidecar has been started before the workload container affects the service mesh implementation of Contrast. Currently, this requires inspecting the iptable rules on startup or terminating TLS connections in the workload directly.
+The policy limitations, in particular the missing guarantee that our service mesh sidecar has been started before the workload container affects the service mesh implementation of Contrast. Currently, this requires inspecting the iptables rules on startup or terminating TLS connections in the workload directly.
 :::
 
 ## Tooling Integration
