@@ -142,7 +142,7 @@ First, expose the service on a public IP address via a LoadBalancer service:
 
 ```sh
 kubectl patch svc ${MY_SERVICE} -p '{"spec": {"type": "LoadBalancer"}}'
-timeout 30s bash -c 'until kubectl get service/${MY_SERVICE} --output=jsonpath='{.status.loadBalancer}' | grep "ingress"; do sleep 2 ; done'
+kubectl wait --timeout=30s --for=jsonpath='{.status.loadBalancer.ingress}' service/${MY_SERVICE}
 lbip=$(kubectl get svc ${MY_SERVICE} -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo $lbip
 ```
