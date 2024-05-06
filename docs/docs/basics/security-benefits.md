@@ -1,6 +1,6 @@
 # Contrast security overview
 
-This document outlines the security measures of Contrast and its capability to counter various threats effectively.
+This document outlines the security measures of Contrast and its capability to counter various threats.
 Contrast is designed to shield entire Kubernetes deployments from the infrastructure, enabling entities to manage sensitive information (such as regulated or personally identifiable information (PII)) in the public cloud, while maintaining data confidentiality and ownership.
 
 Contrast is applicable in situations where establishing trust with the workload operator or the underlying infrastructure is challenging.
@@ -147,14 +147,14 @@ This table describes potential threats and mitigation strategies related to work
 | An attacker reads or modifies data written to disk via persistent volumes.     | Currently persistent volumes aren't supported in Contrast. In the future, this threat is mitigated by encrypted and integrity-protected volume mounts.                                | Within the Contrast [runtime environment](../components/runtime.md)|
 | An attacker publishes a new image version containing malicious code.           | The attestation process and the runtime policies require a data owner to accept a specific version of the workload and any update to the workload needs to be explicitly acknowledged. | Within the [attestation](../architecture/attestation.md)    |
 
-### Examples of Contrast use cases
+## Examples of Contrast's threat model in practice
 
 
 The following table describes three example use cases and how they map to the defined threat model in this document:
 
 | Use Case                                 | Example Scenario                                                                                                                                                                                                                                                                                                                           |
 |------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Migrate sensitive workloads to the cloud | TechSolve Inc., a software development firm, aimed to enhance its defense-in-depth strategy for its cloud-based development environment, especially for projects involving proprietary algorithms and client data. TechSolve acts as the image provider, workload operator, and data owner, combining all three personas in this scenario. In our [attestation terminology](../architecture/attestation.md), they are the workload operator and relying party in one entity. Their threat model includes a malicious cloud insider or cloud co-tenant. |
+| Migrate sensitive workloads to the cloud | TechSolve Inc., a software development firm, aimed to enhance its defense-in-depth strategy for its cloud-based development environment, especially for projects involving proprietary algorithms and client data. TechSolve acts as the image provider, workload operator, and data owner, combining all three personas in this scenario. In our [attestation terminology](../architecture/attestation.md), they're the workload operator and relying party in one entity. Their threat model includes a malicious cloud insider and cloud co-tenant. |
 | Make your SaaS more trustworthy          | SaaSProviderX, a company offering cloud-based project management tools, sought to enhance its platform's trustworthiness amidst growing concerns about data breaches and privacy. Here, the [relying party](../architecture/attestation.md) is the SaaS customer as the data owner. The goal is to achieve a form of operator exclusion and only allow selective operations on the deployment. Hence, their threat model includes a malicious workload operator.  |
 | Simplify regulatory compliance           | HealthSecure Inc. has been managing a significant volume of sensitive patient data on-premises. With the increasing demand for advanced data analytics and the need for scalable infrastructure, the firm decides to migrate its data analytics operations to the cloud. However, the primary concern is maintaining the confidentiality and security of patient data during and after the migration, in compliance with healthcare regulations. In this compliance scenario, the regulator serves as an additional relying party. HealthSecure must implement a mechanism that ensures the isolation of patient data can be verifiably guaranteed to the regulator.  |
 
