@@ -16,6 +16,11 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/lates
 
 ## Prepare your Kubernetes resources
 
+Your Kubernetes resources need some modifications to run as Confidential Containers.
+This section guides you through the process and outlines the necessary changes.
+
+### RuntimeClass and Initializer
+
 Contrast will add annotations to your Kubernetes YAML files. If you want to keep the original files
 unchanged, you can copy the files into a separate local directory.
 You can also generate files from a Helm chart or from a Kustomization.
@@ -68,6 +73,83 @@ spec: # v1.PodSpec
   - name: tls-certs
     emptyDir: {}
 ```
+
+### Handling TLS
+
+The initializer populates the shared volume with X.509 certificates for use in your application.
+If you can't handle TLS natively, you can configure the [service mesh](#service-mesh) side car instead.
+
+The mesh certificate contained in `certChain.pem` authenticates this workload, while the mesh CA certificate `mesh-ca.pem` authenticates its peers.
+Your app should turn on client authentication to ensure peers are running as confidential containers, too.
+See the [Certificate Authority](architecture/certificates.md) section for detailed information about these certificates.
+
+The following example shows how to configure a Golang app, with error handling omitted for clarity.
+
+<Tabs groupId="golang-tls-setup">
+<TabItem value="client" label="Client">
+
+```go
+caCerts := x509.NewCertPool()
+caCert, _ := os.ReadFile("/tls-config/mesh-ca.pem")
+caCerts.AppendCertsFromPEM(caCert)
+cert, _ := tls.LoadX509KeyPair("/tls-config/certChain.pem", "/tls-config/key.pem")
+cfg := &tls.Config{
+  Certificates: []tls.Certificate{cert},
+  RootCAs: caCerts,
+}
+```
+
+</TabItem>
+<TabItem value="server" label="Server">
+
+```go
+caCerts := x509.NewCertPool()
+caCert, _ := os.ReadFile("/tls-config/mesh-ca.pem")
+caCerts.AppendCertsFromPEM(caCert)
+cert, _ := tls.LoadX509KeyPair("/tls-config/certChain.pem", "/tls-config/key.pem")
+cfg := &tls.Config{
+  Certificates: []tls.Certificate{cert},
+  ClientAuth: tls.RequireAndVerifyClientCert,
+  ClientCAs: caCerts,
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Service Mesh
+
+Contrast can be configured to handle TLS in a sidecar container.
+This is useful for workloads that are hard to configure with custom certificates, like Java applications.
+
+Configuration of the sidecar depends heavily on the application.
+The following example is for an application with these properties:
+
+* The app has a main application at TCP port 8001, which should be TLS-wrapped and doesn't require client authentication.
+* The app has a metrics endpoint at TCP port 8080, which should be accessible in plain text.
+* All other endpoints require client authentication.
+* The app connects to a Kubernetes service `backend.default:4001`, which requires client authentication.
+
+Add the following sidecar definition to your workload:
+
+```yaml
+spec: # v1.PodSpec
+  initContainers:
+  - name: tls-sidecar
+    image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest"
+    restartPolicy: Always
+    env:
+    - name: EDG_INGRESS_PROXY_CONFIG
+      value: "main#8001#false##metrics#8080#true"
+    - name: EDG_EGRESS_PROXY_CONFIG
+      value: "backend#127.0.0.2:4001#backend.default:4001"
+    volumeMounts:
+    - name: tls-certs
+      mountPath: /tls-config
+```
+
+The only change required to the app itself is to let it connect to `127.0.0.2:4001` to reach the backend service.
+You can find more detailed documentation in the [Service Mesh chapter](components/service-mesh.md).
 
 ## Generate policy annotations and manifest
 
