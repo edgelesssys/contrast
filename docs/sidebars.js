@@ -128,6 +128,11 @@ const sidebars = {
       ]
     },
     {
+      type: 'doc',
+      label: 'Known limitations',
+      id: 'known-limitations',
+    },
+    {
       type: 'category',
       label: 'About',
       link: {
