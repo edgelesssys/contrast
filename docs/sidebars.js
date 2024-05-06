@@ -60,11 +60,6 @@ const sidebars = {
           label: 'Cluster setup',
           id: 'getting-started/cluster-setup',
         },
-        {
-          type: 'doc',
-          label: 'First steps',
-          id: 'getting-started/first-steps',
-        }
       ]
     },
     {
