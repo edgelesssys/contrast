@@ -11,6 +11,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,6 +29,10 @@ type (
 	ReplicaSet = appsv1.ReplicaSet
 	// DaemonSet is a Kubernetes DaemonSet.
 	DaemonSet = appsv1.DaemonSet
+	// Job is a Kubernetes Job.
+	Job = batchv1.Job
+	// CronJob is a Kubernetes CronJob.
+	CronJob = batchv1.CronJob
 )
 
 // UnmarshalK8SResources unmarshals a Kubernetes resource into a list of objects that can be
@@ -75,6 +80,20 @@ func UnmarshalK8SResources(data []byte) ([]any, error) {
 				return nil, err
 			}
 			result = append(result, daemonSet)
+		case "Job":
+			var job batchv1.Job
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &job)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, job)
+		case "CronJob":
+			var cronJob batchv1.CronJob
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &cronJob)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, cronJob)
 		}
 	}
 	return result, nil
