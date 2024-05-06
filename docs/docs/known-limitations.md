@@ -16,7 +16,13 @@ This section outlines the most significant known limitations, providing stakehol
 ## Runtime Policies
 
 - **Coverage**: While the enforcement of workload policies generally functions well, [there are scenarios not yet fully covered](https://github.com/microsoft/kata-containers/releases/tag/3.2.0.azl0.genpolicy). It's crucial to review deployments specifically for these edge cases.
-- **Policy Evaluation**: The current policy evaluation mechanism on API requests isn't stateful, which means it can't ensure a prescribed order of events. Consequently, there's no guaranteed enforcement that the [service mesh sidecar](components/service-mesh.md) container runs *before* the workload container. This order is vital for ensuring that all traffic between pods is securely encapsulated within TLS connections. TODO: Consequences
+- **Order of events**: The current policy evaluation mechanism on API requests isn't stateful, so it can't ensure a prescribed order of events. Consequently, there's no guaranteed enforcement that the [service mesh sidecar](components/service-mesh.md) container runs *before* the workload container. This order ensures that all traffic between pods is securely encapsulated within TLS connections.
+- **Absence of events**: Policies can't ensure certain events have happened. A container, such as the [service mesh sidecar](components/service-mesh.md), can be omitted entirely. Environment variables may be missing.
+- **Volume integrity checks**: While persistent volumes are not supported yet, integrity checks do not currently cover other objects such as `ConfigMaps` and `Secrets`.
+
+:::warning
+The policy limitations, in particular the missing guarantee that our service mesh sidecar has been started before the workload container affects the service mesh implementation of Contrast. Currently, this requires inspecting the iptable rules on startup or terminating TLS connections in the workload directly.
+:::
 
 ## Tooling Integration
 

@@ -78,6 +78,10 @@ deployment files. A `manifest.json` with the reference values of your deployment
 contrast generate resources/
 ```
 
+:::warning
+Please be aware that runtime policies currently have some blind spots. For example, they can't guarantee the starting order of containers. See the [current limitations](known-limitations.md#runtime-policies) for more details.
+:::
+
 ## Apply the resources
 
 Apply the resources to the cluster. Your workloads will block in the initialization phase until a
