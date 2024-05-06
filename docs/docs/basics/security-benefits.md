@@ -13,7 +13,7 @@ Leveraging Confidential Computing technology, Contrast provides three defining s
 
 - **Encryption of data in use**: Contrast ensures that all data processed in memory is encrypted, making it inaccessible to unauthorized users or systems, even if they have physical access to the hardware.
 - **Workload isolation**: Each pod runs in its isolated runtime environment, preventing any cross-contamination between workloads, which is critical for multi-tenant infrastructures.
-- **Remote attestation**: This feature allows data owners and workload operators to verify that the Contrast environment executing their workloads has not been tampered with and is running in a secure, pre-approved configuration.
+- **Remote attestation**: This feature allows data owners and workload operators to verify that the Contrast environment executing their workloads hasn't been tampered with and is running in a secure, pre-approved configuration.
 
 The runtime encryption is transparently provided by the confidential computing hardware during the workload's lifetime.
 The workload isolation and remote attestation involves two phases:
@@ -44,7 +44,7 @@ The components that are part of the TCB are:
 
 * **The workload containers**: Container images that run the actual application.
 * **[The runtime environment](../components/runtime.md)**: The confidential micro-VM that acts as the container runtime.
-* **[The sidecar containers](../components/service-mesh.md)**: Containers that provide additional functionality such as [initialization](../components/index.md#the-initializer) and [serivce mesh](../components/service-mesh.md).
+* **[The sidecar containers](../components/service-mesh.md)**: Containers that provide additional functionality such as [initialization](../components/index.md#the-initializer) and [service mesh](../components/service-mesh.md).
 * **The runtime policies**: Policies that enforce the runtime environments for the workload containers during their lifetime.
 * **[The manifest](../components/index.md#the-manifest)**: A manifest file defining the reference values of an entire confidential deployment. It contains the policy hashes for all pods of the deployment and the expected hardware reference values for the Confidential Container runtime.
 * **[The Coordinator](../components/index.md#the-coordinator)**: An attestation service that runs in a Confidential Container in the Kubernetes cluster. The Coordinator is configured with the manifest. User-facing, you can verify this service and the effective manifest using remote attestation, providing you with a concise attestation for the entire deployment. Cluster-facing, it verifies all pods and their policies based on remote attestation procedures and the manifest.
