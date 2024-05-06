@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-416/assets/css/styles.c8acb4da.css">
-<script src="/contrast/pr-preview/pr-416/assets/js/runtime~main.062492b1.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-416/assets/js/runtime~main.b29ea59f.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-416/assets/js/main.f3e1c2e2.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -33,8 +33,11 @@ This section outlines the most significant known limitations, providing stakehol
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="runtime-policies">Runtime Policies<a href="#runtime-policies" class="hash-link" aria-label="Direct link to Runtime Policies" title="Direct link to Runtime Policies">​</a></h2>
 <ul>
 <li><strong>Coverage</strong>: While the enforcement of workload policies generally functions well, <a href="https://github.com/microsoft/kata-containers/releases/tag/3.2.0.azl0.genpolicy" target="_blank" rel="noopener noreferrer">there are scenarios not yet fully covered</a>. It&#x27;s crucial to review deployments specifically for these edge cases.</li>
-<li><strong>Policy Evaluation</strong>: The current policy evaluation mechanism on API requests isn&#x27;t stateful, which means it can&#x27;t ensure a prescribed order of events. Consequently, there&#x27;s no guaranteed enforcement that the <a href="/contrast/pr-preview/pr-416/next/components/service-mesh">service mesh sidecar</a> container runs <em>before</em> the workload container. This order is vital for ensuring that all traffic between pods is securely encapsulated within TLS connections. TODO: Consequences</li>
+<li><strong>Order of events</strong>: The current policy evaluation mechanism on API requests isn&#x27;t stateful, so it can&#x27;t ensure a prescribed order of events. Consequently, there&#x27;s no guaranteed enforcement that the <a href="/contrast/pr-preview/pr-416/next/components/service-mesh">service mesh sidecar</a> container runs <em>before</em> the workload container. This order ensures that all traffic between pods is securely encapsulated within TLS connections.</li>
+<li><strong>Absence of events</strong>: Policies can&#x27;t ensure certain events have happened. A container, such as the <a href="/contrast/pr-preview/pr-416/next/components/service-mesh">service mesh sidecar</a>, can be omitted entirely. Environment variables may be missing.</li>
+<li><strong>Volume integrity checks</strong>: While persistent volumes are not supported yet, integrity checks do not currently cover other objects such as <code>ConfigMaps</code> and <code>Secrets</code>.</li>
 </ul>
+<div class="theme-admonition theme-admonition-warning admonition_xJq3 alert alert--warning"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.893 1.5c-.183-.31-.52-.5-.887-.5s-.703.19-.886.5L.138 13.499a.98.98 0 0 0 0 1.001c.193.31.53.501.886.501h13.964c.367 0 .704-.19.877-.5a1.03 1.03 0 0 0 .01-1.002L8.893 1.5zm.133 11.497H6.987v-2.003h2.039v2.003zm0-3.004H6.987V5.987h2.039v4.006z"></path></svg></span>warning</div><div class="admonitionContent_BuS1"><p>The policy limitations, in particular the missing guarantee that our service mesh sidecar has been started before the workload container affects the service mesh implementation of Contrast. Currently, this requires inspecting the iptable rules on startup or terminating TLS connections in the workload directly.</p></div></div>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="tooling-integration">Tooling Integration<a href="#tooling-integration" class="hash-link" aria-label="Direct link to Tooling Integration" title="Direct link to Tooling Integration">​</a></h2>
 <ul>
 <li><strong>CLI Availability</strong>: The CLI tool is currently only available for Linux. This limitation arises because certain upstream dependencies haven&#x27;t yet been ported to other platforms.</li>
