@@ -12,14 +12,14 @@ It allows for cloud adoption by maintaining a hardware-based separation from the
 Leveraging Confidential Computing technology, Contrast provides three defining security properties:
 
 - **Encryption of data in use**: Contrast ensures that all data processed in memory is encrypted, making it inaccessible to unauthorized users or systems, even if they have physical access to the hardware.
-- **Workload isolation**: Each container runs in its isolated runtime environment, preventing any cross-contamination between workloads, which is critical for multi-tenant infrastructures.
+- **Workload isolation**: Each pod runs in its isolated runtime environment, preventing any cross-contamination between workloads, which is critical for multi-tenant infrastructures.
 - **Remote attestation**: This feature allows data owners and workload operators to verify that the Contrast environment executing their workloads has not been tampered with and is running in a secure, pre-approved configuration.
 
 The runtime encryption is transparently provided by the confidential computing hardware during the workload's lifetime.
 The workload isolation and remote attestation involves two phases:
 
 * An attestation process detects modifications to the workload image or its runtime environment during the initialization. This protects the workload's integrity pre-attestation.
-* A protected runtime environment and a policy mechanism prevents the workload operator from accessing or compromising the instance at runtime. This protects a workload's integrity and confidentiality post-attestation.
+* A protected runtime environment and a policy mechanism prevents the platform operator from accessing or compromising the instance at runtime. This protects a workload's integrity and confidentiality post-attestation.
 
 For more details on confidential computing see our [whitepaper](https://content.edgeless.systems/hubfs/Confidential%20Computing%20Whitepaper.pdf).
 The [attestation architecture](../architecture/attestation.md) describes Contrast's attestation process and the resulting chain of trust in detail.
@@ -33,18 +33,18 @@ A smaller TCB results in a smaller attack surface. The following diagram shows h
 In the confidential context, represented by green, only the workload containers along with their confidential micro-VM environment are included within the Trusted Computing Base (TCB).
 Their integrity is [verifiable through remote attestation](../architecture/attestation.md).
 
-Contrast use [hardware-based mechanisms](confidential-containers.md), specifically leveraging CPU features, such as AMD SEV or Intel TDX, to provide the isolation of the confidential context.
+Contrast uses [hardware-based mechanisms](confidential-containers.md), specifically leveraging CPU features, such as AMD SEV or Intel TDX, to provide the isolation of the confidential context.
 This implies that both the CPU and its microcode are integral components of the TCB.
 However, it should be noted that the CPU microcode aspects aren't depicted in the accompanying graphic.
 
 ![TCB comparison](../_media/tcb.svg)
 
-In addition to the pure Confidential Container runtime Contrast adds a few components to a deployment that become part of the TCB.
+Contrast adds the following components to a deployment that become part of the TCB.
 The components that are part of the TCB are:
 
 * **The workload containers**: Container images that run the actual application.
 * **[The runtime environment](../components/runtime.md)**: The confidential micro-VM that acts as the container runtime.
-* **[The sidecar containers](../components/service-mesh.md)**: Containers that provide additional functionality such as [initialization](../components/index.md#the-initializer) and [mTLS](../components/service-mesh.md).
+* **[The sidecar containers](../components/service-mesh.md)**: Containers that provide additional functionality such as [initialization](../components/index.md#the-initializer) and [serivce mesh](../components/service-mesh.md).
 * **The runtime policies**: Policies that enforce the runtime environments for the workload containers during their lifetime.
 * **[The manifest](../components/index.md#the-manifest)**: A manifest file defining the reference values of an entire confidential deployment. It contains the policy hashes for all pods of the deployment and the expected hardware reference values for the Confidential Container runtime.
 * **[The Coordinator](../components/index.md#the-coordinator)**: An attestation service that runs in a Confidential Container in the Kubernetes cluster. The Coordinator is configured with the manifest. User-facing, you can verify this service and the effective manifest using remote attestation, providing you with a concise attestation for the entire deployment. Cluster-facing, it verifies all pods and their policies based on remote attestation procedures and the manifest.
