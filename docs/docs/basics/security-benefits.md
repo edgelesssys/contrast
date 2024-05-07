@@ -109,7 +109,7 @@ Contrast shields a workload from the aforementioned threats with three main comp
 2. The [runtime policies](../components/policies.md) safeguard against the Kubernetes control plane and container runtime attack surface.
 3. The [service mesh](../component/service-mesh.md) safeguards against the network attack surface.
 
-The following tables describe concrete threats and how they are mitigated in Contrast grouped by these categories:
+The following tables describe concrete threats and how they're mitigated in Contrast grouped by these categories:
 
 * Attacks on the confidential container environment
 * Attacks on the attestation service
