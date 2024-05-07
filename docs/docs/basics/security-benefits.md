@@ -45,7 +45,7 @@ The components that are part of the TCB are:
 * **The workload containers**: Container images that run the actual application.
 * **[The runtime environment](../components/runtime.md)**: The confidential micro-VM that acts as the container runtime.
 * **[The sidecar containers](../components/service-mesh.md)**: Containers that provide additional functionality such as [initialization](../components/index.md#the-initializer) and [service mesh](../components/service-mesh.md).
-* **The runtime policies**: Policies that enforce the runtime environments for the workload containers during their lifetime.
+* **[The runtime policies](../components/policies.md)**: Policies that enforce the runtime environments for the workload containers during their lifetime.
 * **[The manifest](../components/index.md#the-manifest)**: A manifest file defining the reference values of an entire confidential deployment. It contains the policy hashes for all pods of the deployment and the expected hardware reference values for the Confidential Container runtime.
 * **[The Coordinator](../components/index.md#the-coordinator)**: An attestation service that runs in a Confidential Container in the Kubernetes cluster. The Coordinator is configured with the manifest. User-facing, you can verify this service and the effective manifest using remote attestation, providing you with a concise attestation for the entire deployment. Cluster-facing, it verifies all pods and their policies based on remote attestation procedures and the manifest.
 
@@ -103,19 +103,17 @@ The following table describes the attack surfaces that are available to attacker
 
 ### Threats and mitigations
 
-The container root file system with integrity protection is designed to mitigate risks from disk attacks.
-Additionally, the container has no writeable disk partition mounted, hence, data is only stored in-memory and never disclosed to disk.
+Contrast shields a workload from the aforementioned threats with three main components:
 
-Risks from network attacks are mitigated by having [authenticated, end-to-end encrypted channels](../components/service-mesh.md).
-An [attestation protocol](../architecture/attestation.md) helps protect the boot sequence.
-[Runtime policies](../architecture/attestation.md) verify the runtime environment configuration read from the Kubernetes control plane.
+1. The [runtime environment](../components/runtime.md) safeguards against the physical memory and disk attack surface.
+2. The [runtime policies](../components/policies.md) safeguard against the Kubernetes control plane and container runtime attack surface.
+3. The [service mesh](../component/service-mesh.md) safeguards against the network attack surface.
 
-The following tables describe the threats and mitigations:
+The following tables describe concrete threats and how they are mitigated in Contrast grouped by these categories:
 
 * Attacks on the confidential container environment
 * Attacks on the attestation service
 * Attacks on workloads
-
 
 #### Attacks on the confidential container environment
 
@@ -123,9 +121,9 @@ This table describes potential threats and mitigation strategies related to the 
 
 | Threat                                                                                                                     | Mitigation                                                                                                                                                                                                                                                                                                                                  | Mitigation implementation           |
 |----------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------|
-| An attacker intercepts the network connection of the launcher or image repository.                                         | An attacker can change the image URL and control the workload binary. However these actions are reflected in the attestation report. The image repository isn't controlled using an access list, therefore the image is assumed to be viewable by everyone. You must ensure that the workload container image doesn't contain any secrets. | Within the [runtime policies](../components/index.md#runtime-policies) and [attestation](../architecture/attestation.md) |
+| An attacker intercepts the network connection of the launcher or image repository.                                         | An attacker can change the image URL and control the workload binary. However these actions are reflected in the attestation report. The image repository isn't controlled using an access list, therefore the image is assumed to be viewable by everyone. You must ensure that the workload container image doesn't contain any secrets. | Within the [runtime policies](../components/policies.md) and [attestation](../architecture/attestation.md) |
 | An attacker modifies the workload image on disk after it was downloaded and measured.                                      | This threat is mitigated by a read-only partition that's integrity-protected. The workload image is protected by dm-verity.                                                                                                                                                                                 | Within the Contrast [runtime environment](../components/runtime.md) |
-| An attacker modifies a container's runtime environment configuration in the Kubernetes control plane. | The attestation process and the runtime policies detects unsafe configurations that load non-authentic images or perform any other modification to the expected runtime environment.                                                                                                                                                       | Within the [runtime policies](../components/index.md#runtime-policies) and [attestation](../architecture/attestation.md)         |
+| An attacker modifies a container's runtime environment configuration in the Kubernetes control plane. | The attestation process and the runtime policies detects unsafe configurations that load non-authentic images or perform any other modification to the expected runtime environment.                                                                                                                                                       | Within the [runtime policies](../components/policies.md) and [attestation](../architecture/attestation.md)         |
 
 #### Attacks on the Coordinator attestation service
 
