@@ -15,6 +15,7 @@ If desired, you can replace the configuration using a Kubernetes configmap by mo
 - `files[*].path`: Target location of the file on the host filesystem.
 - `files[*].integrity`: Expected Subresource Integrity (SRI) digest of the file. Only required if URL starts with `http://` or `https://`.
 - `runtimeHandlerName`: Name of the container runtime.
+- `debugRuntime`: If set to true, enables [serial console access via `vsock`](/dev-docs/aks/serial-console.md). A special, debug-capable IGVM file has to be used for this to work.
 
 Consider the following example:
 
@@ -41,6 +42,7 @@ Consider the following example:
             "path": "/opt/edgeless/bin/containerd-shim-contrast-cc-v2",
         }
     ],
-    "runtimeHandlerName": "contrast-cc"
+    "runtimeHandlerName": "contrast-cc",
+    "debugRuntime": false
 }
 ```

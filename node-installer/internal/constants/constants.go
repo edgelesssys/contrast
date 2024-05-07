@@ -27,7 +27,7 @@ var (
 const CRIFQDN = "io.containerd.grpc.v1.cri"
 
 // KataRuntimeConfig returns the Kata runtime configuration.
-func KataRuntimeConfig(baseDir string) config.KataRuntimeConfig {
+func KataRuntimeConfig(baseDir string, debug bool) config.KataRuntimeConfig {
 	var config config.KataRuntimeConfig
 	if err := toml.Unmarshal([]byte(containerdRuntimeBaseConfig), &config); err != nil {
 		panic(err) // should never happen
@@ -36,6 +36,7 @@ func KataRuntimeConfig(baseDir string) config.KataRuntimeConfig {
 	config.Hypervisor["clh"]["igvm"] = filepath.Join(baseDir, "share", "kata-containers-igvm.img")
 	config.Hypervisor["clh"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
 	config.Hypervisor["clh"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")}
+	config.Hypervisor["clh"]["enable_debug"] = debug
 	return config
 }
 
