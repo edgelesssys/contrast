@@ -17,6 +17,10 @@ type Config struct {
 	Files []File `json:"files"`
 	// RuntimeHandlerName is the name of the runtime handler (containerd runtime) to create.
 	RuntimeHandlerName string `json:"runtimeHandlerName"`
+	// DebugRuntime enables the debug mode of the runtime.
+	// This only works if the igvm file has shell access enabled
+	// and has no effect on production images.
+	DebugRuntime bool `json:"debugRuntime"`
 }
 
 // Validate validates the configuration.

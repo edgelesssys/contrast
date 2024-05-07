@@ -89,7 +89,7 @@ func run(ctx context.Context, fetcher assetFetcher) error {
 		}
 	}
 	clhConfigPath := filepath.Join(hostMount, runtimeBase, "etc", "configuration-clh-snp.toml")
-	if err := containerdRuntimeConfig(runtimeBase, clhConfigPath); err != nil {
+	if err := containerdRuntimeConfig(runtimeBase, clhConfigPath, config.DebugRuntime); err != nil {
 		return fmt.Errorf("generating clh_config.toml: %w", err)
 	}
 	containerdConfigPath := filepath.Join(hostMount, "etc", "containerd", "config.toml")
@@ -108,8 +108,8 @@ func envWithDefault(key, dflt string) string {
 	return value
 }
 
-func containerdRuntimeConfig(basePath, configPath string) error {
-	kataRuntimeConfig := constants.KataRuntimeConfig(basePath)
+func containerdRuntimeConfig(basePath, configPath string, debugRuntime bool) error {
+	kataRuntimeConfig := constants.KataRuntimeConfig(basePath, debugRuntime)
 	rawConfig, err := toml.Marshal(kataRuntimeConfig)
 	if err != nil {
 		return err
