@@ -35,7 +35,7 @@ and configured on every SEV-SNP-enabled worker node.
 This installation is performed automatically by the [`node-installer` DaemonSet](#node-installer-daemonset).
 
 <p align="center">
-<img src="../_media/runtime.svg" width="60%" center>
+  <img src="../_media/runtime.svg" width="60%" />
 </p>
 
 ### Containerd shim
