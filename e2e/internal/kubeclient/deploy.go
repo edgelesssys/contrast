@@ -66,14 +66,22 @@ func (c *Kubeclient) WaitForDeployment(ctx context.Context, namespace, name stri
 			case watch.Added:
 				fallthrough
 			case watch.Modified:
-				pod, ok := evt.Object.(*appsv1.Deployment)
+				deploy, ok := evt.Object.(*appsv1.Deployment)
 				if !ok {
 					return fmt.Errorf("watcher received unexpected type %T", evt.Object)
 				}
-				for _, cond := range pod.Status.Conditions {
-					if cond.Type == appsv1.DeploymentAvailable && cond.Status == corev1.ConditionTrue {
-						return nil
+				pods, err := c.PodsFromDeployment(ctx, namespace, name)
+				if err != nil {
+					return err
+				}
+				numPodsReady := 0
+				for _, pod := range pods {
+					if isPodReady(&pod) {
+						numPodsReady++
 					}
+				}
+				if int(*deploy.Spec.Replicas) <= numPodsReady {
+					return nil
 				}
 			case watch.Deleted:
 				return fmt.Errorf("deployment %s/%s was deleted while waiting for it", namespace, name)
@@ -276,4 +284,25 @@ func (c *Kubeclient) Delete(ctx context.Context, objects ...*unstructured.Unstru
 		c.log.Info("object deleted", "namespace", obj.GetNamespace(), "kind", obj.GetKind(), "name", obj.GetName())
 	}
 	return nil
+}
+
+// RestartDeployment restarts a deployment by deleting all of its pods.
+func (c *Kubeclient) RestartDeployment(ctx context.Context, namespace, name string) error {
+	pods, err := c.PodsFromDeployment(ctx, namespace, name)
+	if err != nil {
+		return err
+	}
+	for _, pod := range pods {
+		err := c.client.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{
+			GracePeriodSeconds: toPtr(int64(0)),
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func toPtr[T any](t T) *T {
+	return &t
 }
