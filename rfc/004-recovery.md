@@ -15,7 +15,7 @@ After a full restart of the coordinator, the workload owner needs to be able to 
 - A data owner calling `contrast verify` receives the same information they did before the restart.
 - A workload certificate issued by the coordinator after the restart verifies with the bundles issued before the restart, and vice-versa.
 
-If workload owner and data owner are not mutually trusting, it should not be possible for the workload owner to recover the active mesh CA private key outside a verified coordinator.
+The design should accommodate a future extension allowing for multi-party recovery.
 
 ## Design
 
@@ -33,9 +33,16 @@ A couple of necessary conditions arise immediately from the requirements:
 
 There are basically two options for persistent state in a Kubernetes cluster: persistent volumes and Kubernetes objects.
 
+#### Persistent Volume
+
 Use of persistent volumes for CoCo is not homogenous: AKS supports a few choices, while the upstream project did not settle for an approach.
 It's unlikely that we can come up with a `PersistentVolumeClaim` or `VolumeClaimTemplate` that works everywhere without workload owner interaction.
 On the other hand, managing this persistency would be almost trivial from the Coordinator's point of view.
+
+**Note**: As of 2024-05-07, persistent volumes are not supported on AKS CoCo.
+Recent changes on `msft-main` indicate that they intend to add support, but it's not clear when.
+
+#### Kubernetes Objects
 
 Storing state in Kubernetes objects is convenient because it does not require additional cloud resources.
 However, there is a limit to the amounts of data that a single object can hold, usually on the order of 1MiB.
@@ -48,29 +55,79 @@ A natural way to split the state might look like this:
   This resource would need to be encrypted with authentication.
 
 These resources would need to be managed consistently by the Coordinator.
+See the [Appendix](#kubernetes-object-example) for how these objects might look like.
 
 ### Secret Management
 
 - At the first call to `contrast set`, the coordinator creates a recovery secret.
-- The secret is split into a number of key-shares equal to the number of workload owner keys in `SetManifestRequest`.
-- The `SetManifestResponse` includes the key-shares, each encrypted with one of the workload owner public keys.
-- The caller is responsible to distribute these shares to the key owners.
-
-Possible extensions:
-
-- Configuring a threshold to require `m` out of `n` key shares.
-- Adding or removing shareholders should rekey.
+- The `SetManifestResponse` includes the recovery secret, encrypted with the workload owner public key(s).
 
 ### Recovery
 
-- Add `Recover` method to the user API.
-- At startup, the coordinator checks the persistence layer for existing resources.
-- If resources present, it waits for `m` calls to `Recover`.
+- Add `Recover` method to the user API with the recovery secret in the request.
+- At startup, the coordinator checks the persistence layer for an existing resource matching its name.
+- If resources present, it waits for a call to `Recover`.
 
 ## Future Considerations
 
+### Secret Sharing
+
+The `SetManifestRequest` could be modified to include a recovery threshold parameter.
+If the threshold `n` is greater than 1, the response includes secret shares instead of the full secret.
+Recovery would need to be called `n` times with different shares.
+The threshold would be stored in plain text on the `Contrast` object.
+This is fully backwards compatible with the main proposal.
+
 ### KMS Recovery
+
+TODO
 
 ### Distributed Coordinator Updates
 
-- Must be agreed upon in secret sharing mode
+TODO
+
+## Appendix
+
+### Kubernetes Object Example
+
+```yaml
+apiVersion: contrast.edgeless.systems/v1
+kind: Policy
+metadata:
+  name: 0515b8248a3d44e38e959e2b1fb2b213a2cd35b5186bba84562bc4e51298712f
+spec:
+  content: |
+    package agent_policy
+    default AllowRequestsFailingPolicy := false
+    CreateContainerRequest {
+    ... more rego ...
+---
+apiVersion: contrast.edgeless.systems/v1
+kind: Manifest
+metadata:
+  name: 98e5da0c56eedb63ed9be454c6398c4c209be84adb7e0abfe2d1ca2a4f95b73d
+spec:
+  content: |
+    {
+      "policies": { "0515b8248a3d44e38e959e2b1fb2b213a2cd35b5186bba84562bc4e51298712f": ["my-deployment"] },
+      "referenceValues": ...,
+      "workloadOwnerKeyDigests": ...
+    }
+---
+apiVersion: contrast.edgeless.systems/v1
+kind: Contrast
+metadata:
+  name: coordinator-deployment-name
+spec:
+  nonce: b4231840b79a4adecb81719d
+  state: |
+    aes_gcm(
+      {
+        "manifests": [ "98e5da0c56eedb63ed9be454c6398c4c209be84adb7e0abfe2d1ca2a4f95b73d" ],
+        "root-ca": {"cert": "...", "key": ...},
+        "mesh-ca": {"cert": "...", "key": ...}
+      },
+      nonce="b4231840b79a4adecb81719d",
+      ad="coordinator-deployment-name"
+    )
+```
