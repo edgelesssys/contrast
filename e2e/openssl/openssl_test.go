@@ -9,6 +9,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"flag"
 	"log"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,6 +27,7 @@ import (
 const (
 	opensslFrontend = "openssl-frontend"
 	opensslBackend  = "openssl-backend"
+	opensslArgv     = `printf "GET / HTTP/1.0\nHost: openssl-backend\n" | openssl s_client -connect openssl-backend:443 -verify_return_error -CAfile /tls-config/mesh-ca.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem`
 )
 
 var imageReplacements map[string]string
@@ -96,10 +99,63 @@ func TestOpenSSL(t *testing.T) {
 		// - the certificate in the backend pod can be used as a server certificate
 		// - the backend's CA configuration accepted the frontend certificate
 		// - the frontend's CA configuration accepted the backend certificate
-		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name,
-			[]string{"/bin/bash", "-c", `printf "GET / HTTP/1.0\nHost: openssl-backend\n" | openssl s_client -connect openssl-backend:443 -verify_return_error -CAfile /tls-config/mesh-ca.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem`},
-		)
+		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name, []string{"/bin/bash", "-c", opensslArgv})
 		t.Log(stdout)
+		require.NoError(err, "stderr: %q", stderr)
+	})
+
+	t.Run("access backend after certificate rotation", func(t *testing.T) {
+		require := require.New(t)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+
+		c := kubeclient.NewForTest(t)
+
+		// If in the future a SetManifest call with the same manifest does not result in a certificate rotation,
+		// this change of the manifest makes sure to always rotate certificates.
+		manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
+		require.NoError(err)
+		var m manifest.Manifest
+		require.NoError(json.Unmarshal(manifestBytes, &m))
+		// Add test domain name to first policy.
+		for policyHash := range m.Policies {
+			m.Policies[policyHash] = append(m.Policies[policyHash], "test")
+			break
+		}
+		manifestBytes, err = json.Marshal(m)
+		require.NoError(err)
+		require.NoError(os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
+
+		// SetManifest rotates the certificates in the coordinator.
+		ct.Set(t)
+
+		// Restart the openssl-frontend deployment so it has the new certificates.
+		require.NoError(c.RestartDeployment(ctx, ct.Namespace, opensslFrontend))
+		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
+		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
+
+		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, opensslFrontend)
+		require.NoError(err)
+		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, opensslFrontend)
+
+		// This should not succeed because the certificates have changed.
+		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name, []string{"/bin/bash", "-c", opensslArgv})
+		t.Log("openssl with wrong certificates:", stdout)
+		require.Error(err)
+		require.Contains(stderr, "certificate signature failure")
+
+		// Restart the openssl-backend deployment so both workloads have the same certificate.
+		require.NoError(c.RestartDeployment(ctx, ct.Namespace, opensslBackend))
+		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
+
+		frontendPods, err = c.PodsFromDeployment(ctx, ct.Namespace, opensslFrontend)
+		require.NoError(err)
+		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, opensslFrontend)
+
+		// This should succeed since both workloads now have updated certificates.
+		stdout, stderr, err = c.Exec(ctx, ct.Namespace, frontendPods[0].Name, []string{"/bin/bash", "-c", opensslArgv})
+		t.Log("openssl with correct certificates:", stdout)
 		require.NoError(err, "stderr: %q", stderr)
 	})
 }
