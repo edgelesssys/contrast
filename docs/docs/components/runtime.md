@@ -34,7 +34,7 @@ The runtime consists of additional software components that need to be installed
 and configured on every SEV-SNP-enabled worker node.
 This installation is performed automatically by the [`node-installer` DaemonSet](#node-installer-daemonset).
 
-<img src={require("../_media/runtime.svg").default} alt="node-level components" width="60%"/>
+![Runtime components](../_media/runtime.svg)
 
 ### Containerd shim
 
