@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-428/assets/css/styles.c8acb4da.css">
-<script src="/contrast/pr-preview/pr-428/assets/js/runtime~main.5afc7356.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-428/assets/js/runtime~main.4353e899.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-428/assets/js/main.8b598026.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -42,7 +42,7 @@ workload to use the certificates written to a <code>volumeMount</code> named <co
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="handling-tls">Handling TLS<a href="#handling-tls" class="hash-link" aria-label="Direct link to Handling TLS" title="Direct link to Handling TLS">​</a></h3>
 <p>The initializer populates the shared volume with X.509 certificates for use in your application.
 If you can&#x27;t handle TLS natively, you can configure the <a href="#service-mesh">service mesh</a> side car instead.</p>
-<p>The mesh certificate <code>certChain.pem</code> authenticates this workload, while the mesh CA certificate <code>mesh-ca.pem</code> authenticates its peers.
+<p>The mesh certificate contained in <code>certChain.pem</code> authenticates this workload, while the mesh CA certificate <code>mesh-ca.pem</code> authenticates its peers.
 Your app should turn on client authentication to ensure peers are running as confidential containers, too.
 See the <a href="/contrast/pr-preview/pr-428/next/architecture/certificates">Certificate Authority</a> section for detailed information about these certificates.</p>
 <p>The following example shows how to configure a Golang app, with error handling omitted for clarity.</p>
