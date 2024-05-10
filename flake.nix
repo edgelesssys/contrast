@@ -54,6 +54,30 @@
             yarn install
           '';
         };
+        demo = pkgs.mkShell rec {
+          packages = [];
+
+          # fetch the required contrast sources
+          version = "v0.5.1";
+          contrast = pkgs.fetchurl {
+            url = "https://github.com/edgelesssys/contrast/releases/download/${version}/contrast";
+            hash = "";
+          };
+          coordinator = pkgs.fetchurl {
+            url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator.yml";
+            hash = "";
+          };
+          emojivoto = pkgs.fetchzip {
+            url = "https://github.com/edgelesssys/contrast/releases/download/${version}/emojivoto-demo.zip";
+            hash = "";
+          };
+
+          shellHook = ''
+            cp ${contrast} ./
+            cp ${coordinator} ./
+            cp -r ${emojivoto} ./
+          '';
+        };
       };
 
       formatter = treefmtEval.config.build.wrapper;
