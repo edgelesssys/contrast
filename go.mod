@@ -7,6 +7,7 @@ toolchain go1.22.2
 require (
 	github.com/google/go-github/v61 v61.0.0
 	github.com/google/go-sev-guest v0.11.1
+	github.com/katexochen/sync v0.0.0-20240513141806-f069648d8d08
 	github.com/spf13/afero v1.11.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5

@@ -21,6 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	ksync "github.com/katexochen/sync/api/client"
 	"github.com/stretchr/testify/require"
 )
 
@@ -52,6 +53,20 @@ func New(t *testing.T, imageReplacements map[string]string) *ContrastTest {
 func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	require := require.New(t)
 
+	// If available, acquire a fifo ticket to synchronize cluster access with
+	// other running e2e tests. We request a ticket and wait for our turn.
+	// Ticket is released in the cleanup function. The sync server will ensure
+	// that only one test is using the cluster at a time.
+	var fifo *ksync.Fifo
+	if fifoUUID, ok := os.LookupEnv("SYNC_FIFO_UUID"); ok {
+		syncEndpoint, ok := os.LookupEnv("SYNC_ENDPOINT")
+		require.True(ok, "SYNC_ENDPOINT must be set when SYNC_FIFO_UUID is set")
+		t.Logf("Syncing with fifo %s of endpoint %s", fifoUUID, syncEndpoint)
+		fifo = ksync.FifoFromUUID(syncEndpoint, fifoUUID)
+		require.NoError(fifo.TicketAndWait(context.Background()))
+		t.Logf("Acquired lock on fifo %s", fifoUUID)
+	}
+
 	// Create namespace
 	namespace, err := kuberesource.ResourcesToUnstructured([]any{kuberesource.Namespace(ct.Namespace)})
 	require.NoError(err)
@@ -60,12 +75,20 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	err = ct.Kubeclient.Apply(ctx, namespace...)
 	cancel()
 	require.NoError(err)
+
 	t.Cleanup(func() {
 		// Deleting the namespace may take some time due to pod cleanup, but we don't want to wait until the test times out.
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
+
 		if err := ct.Kubeclient.Delete(ctx, namespace...); err != nil {
 			t.Logf("Could not delete namespace %q: %v", ct.Namespace, err)
+		}
+
+		if fifo != nil {
+			if err := fifo.Done(ctx); err != nil {
+				t.Logf("Could not mark fifo ticket as done: %v", err)
+			}
 		}
 	})
 
