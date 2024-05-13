@@ -35,16 +35,16 @@ There are basically two options for persistent state in a Kubernetes cluster: pe
 
 #### Persistent Volume
 
-Use of persistent volumes for CoCo is not homogenous: AKS supports a few choices, while the upstream project did not settle for an approach.
+Use of persistent volumes for CoCo isn't homogeneous: AKS supports a few choices, while the upstream project didn't settle for an approach.
 It's unlikely that we can come up with a `PersistentVolumeClaim` or `VolumeClaimTemplate` that works everywhere without workload owner interaction.
 On the other hand, managing this persistency would be almost trivial from the Coordinator's point of view.
 
-**Note**: As of 2024-05-07, persistent volumes are not supported on AKS CoCo.
+**Note**: As of 2024-05-07, persistent volumes aren't supported on AKS CoCo.
 Recent changes on `msft-main` indicate that they intend to add support, but it's not clear when.
 
 #### Kubernetes Objects
 
-Storing state in Kubernetes objects is convenient because it does not require additional cloud resources.
+Storing state in Kubernetes objects is convenient because it doesn't require additional cloud resources.
 However, there is a limit to the amounts of data that a single object can hold, usually on the order of 1MiB.
 Given the average size of a policy being 50kiB, it would be necessary to split the state to support Contrast deployments of modest size.
 A natural way to split the state might look like this:
@@ -60,7 +60,7 @@ See the [Appendix](#kubernetes-object-example) for how these objects might look 
 ### Secret Management
 
 - At the first call to `contrast set`, the coordinator creates a recovery secret.
-- The `SetManifestResponse` includes the recovery secret, encrypted with the workload owner public key(s).
+- The `SetManifestResponse` includes the recovery secret, encrypted with the workload owner public keys.
 
 ### Recovery
 
