@@ -164,6 +164,34 @@ func OpenSSL() ([]any, error) {
 	return resources, nil
 }
 
+// GetDEnts returns a set of resources for testing getdents entry limits.
+func GetDEnts() ([]any, error) {
+	tester := Deployment("getdents-tester", "").
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "getdents-tester"}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": "getdents-tester"}).
+				WithSpec(PodSpec().
+					WithRuntimeClassName(runtimeHandler).
+					WithContainers(
+						Container().
+							WithName("getdents-tester").
+							WithImage("ghcr.io/edgelesssys/contrast/getdents-e2e-test:1").
+							WithCommand("/bin/sh", "-c", "sleep inf").
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(50),
+							),
+					),
+				),
+			),
+		)
+
+	return []any{tester}, nil
+}
+
 // Emojivoto returns resources for deploying Emojivoto application.
 func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 	ns := ""
