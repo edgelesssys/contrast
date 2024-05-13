@@ -29,7 +29,7 @@ A couple of necessary conditions arise immediately from the requirements:
 - This state is (partially) secret and needs to be authenticated, thus requiring a persistent secret.
 - As we assume a full loss of the coordinator's internal state, the recovery secret must be kept elsewhere.
 
-### State
+### Persistent State
 
 There are basically two options for persistent state in a Kubernetes cluster: persistent volumes and Kubernetes objects.
 
@@ -50,12 +50,17 @@ Given the average size of a policy being 50kiB, it would be necessary to split t
 A natural way to split the state might look like this:
 
 - A content-addressable `Policy` resource, where the name is the SHA256 sum of the content.
-- A content-addressable `Manifest` resource, which refers to a set of policies (among other manifest content).
-- A `Contrast` resource, which refers to an ordered list of manifest digests and holds certificates and keys.
-  This resource would need to be encrypted with authentication.
+- A content-addressable `Manifest` resource, which refers to a set of policies (among other manifest content) and contains a signature.
 
 These resources would need to be managed consistently by the Coordinator.
-See the [Appendix](#kubernetes-object-example) for how these objects might look like.
+
+#### Combined Approach
+
+Although the initial focus should be on Kubernetes objects, we can design a persistency abstraction that works with both backends.
+The common denominator would be a key-value store interface with multi-part keys.
+The first part of the key corresponds to a Kubernetes resource or a top-level directory, respectively.
+The second part is the object name, under which we store the relevant content.
+The [appendix](#appendix) shows how this structure might look like for the two backends.
 
 ### Secret Management
 
@@ -109,27 +114,24 @@ kind: Manifest
 metadata:
   name: 98e5da0c56eedb63ed9be454c6398c4c209be84adb7e0abfe2d1ca2a4f95b73d
 spec:
-  content: |
+  manifest.json: |
     {
       "policies": { "0515b8248a3d44e38e959e2b1fb2b213a2cd35b5186bba84562bc4e51298712f": ["my-deployment"] },
       "referenceValues": ...,
       "workloadOwnerKeyDigests": ...
     }
----
-apiVersion: contrast.edgeless.systems/v1
-kind: Contrast
-metadata:
-  name: coordinator-deployment-name
-spec:
-  nonce: b4231840b79a4adecb81719d
-  state: |
-    aes_gcm(
-      {
-        "manifests": [ "98e5da0c56eedb63ed9be454c6398c4c209be84adb7e0abfe2d1ca2a4f95b73d" ],
-        "root-ca": {"cert": "...", "key": ...},
-        "mesh-ca": {"cert": "...", "key": ...}
-      },
-      nonce="b4231840b79a4adecb81719d",
-      ad="coordinator-deployment-name"
-    )
+  manifest.json.sig: ...
+```
+
+### Persistent Volume Layout
+
+```txt
+.
+├── manifests
+│   └── 98e5da0c56eedb63ed9be454c6398c4c209be84adb7e0abfe2d1ca2a4f95b73d
+│       ├── manifest.json
+│       └── manifest.json.sig
+└── policies
+    └── 0515b8248a3d44e38e959e2b1fb2b213a2cd35b5186bba84562bc4e51298712f
+        └── policy.rego
 ```
