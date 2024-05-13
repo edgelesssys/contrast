@@ -67,6 +67,8 @@ See the [Appendix](#kubernetes-object-example) for how these objects might look 
 - Add `Recover` method to the user API with the recovery secret in the request.
 - At startup, the coordinator checks the persistence layer for an existing resource matching its name.
 - If resources present, it waits for a call to `Recover`.
+-
+![recovery flow](assets/004-recovery.drawio.svg)
 
 ## Future Considerations
 
