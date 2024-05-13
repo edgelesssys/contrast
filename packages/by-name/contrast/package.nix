@@ -10,7 +10,7 @@
 , runtime-class-files
 }:
 let
-  e2e = buildGoTest rec {
+  e2e = buildGoTest {
     inherit (contrast) version src proxyVendor vendorHash prePatch CGO_ENABLED;
     pname = "${contrast.pname}-e2e";
 
@@ -43,7 +43,7 @@ buildGoModule rec {
   # changes in the other parts of this repo don't trigger a rebuild.
   src =
     let
-      inherit (lib) fileset path hasSuffix;
+      inherit (lib) fileset path;
       root = ../../../.;
     in
     fileset.toSource {
