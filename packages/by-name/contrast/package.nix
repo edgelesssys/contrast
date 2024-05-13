@@ -23,7 +23,7 @@ let
       "-X github.com/edgelesssys/contrast/internal/kuberesource.runtimeHandler=${runtimeHandler}"
     ];
 
-    subPackages = [ "e2e/openssl" "e2e/servicemesh" "e2e/release" ];
+    subPackages = [ "e2e/getdents" "e2e/openssl" "e2e/servicemesh" "e2e/release" ];
   };
 
   launchDigest = builtins.readFile "${runtime-class-files}/launch-digest.hex";
