@@ -19,15 +19,49 @@ The design should accommodate a future extension allowing for multi-party recove
 
 ## Design
 
-A couple of necessary conditions arise immediately from the requirements:
+The overall idea of this proposal is to derive state deterministically from non-sensitive information and a secret seed.
 
-- There needs to be persistent state for storing
-  - the root CA key and certificate,
-  - the active mesh CA key and certificate,
-  - the active manifest and
-  - the history of manifests.
-- This state is (partially) secret and needs to be authenticated, thus requiring a persistent secret.
-- As we assume a full loss of the coordinator's internal state, the recovery secret must be kept elsewhere.
+![recovery flow](assets/004-recovery.drawio.svg)
+
+### State Transitions
+
+The immutable state of a Contrast deployment is the root CA certificate and key, which is derived from the secret seed.
+
+The mutable state consists of the active manifest, a reference to the last state and the mesh CA certificate and keys.
+There's a special state $S_0$ that represents an uninitialized Coordinator, which is the same for all Coordinators.
+
+A state transition is initialized by calling the `SetManifest` endpoint with a new manifest and policies.
+On update, a new mesh CA key is derived from the manifest history (including the new manifest) and the transition event is persisted.
+States thus form a backwards linked list, which can be reconstructed from a list of state transitions, and the last state transition uniquely identifies the current state.
+Therefore, we can replace the _last state_ reference with a reference to the _last state transition_.
+
+The list of state transitions needs to be checked for integrity.
+Otherwise, an attacker that can manipulate the transition objects can set arbitrary manifests.
+Therefore, we sign each state transition with a key derived from the secret seed.
+
+Thus, the final transition object is assembled like this:
+
+```go
+manifest := {
+  content: manifest_bytes,
+  ref: hash(manifest_bytes),
+}
+transition := {
+  manifest: manifest.ref,
+  prev: prev.ref, // or empty, which means S_0
+  ref: hash(manifest.ref || prev.ref),
+  sig: sign(hash(manifest.ref || prev.ref)),
+}
+```
+
+### Cryptography
+
+This proposal relies heavily on the idea of deterministic key generation.
+Since the generated keys will be used for TLS, the choice of algorithms is limited to what's usually supported by TLS implementors.
+The most restrictive applicable standard is the [Baseline Requirements](https://cabforum.org/uploads/CA-Browser-Forum-BR-v2.0.0.pdf) for browsers, which require TLS certificates to use ECDSA or RSA keys.
+Although the Go standard library does not support deterministic generation of these key types, standards-based alternatives are available: <https://pkg.go.dev/filippo.io/keygen#ECDSA>.
+
+The transition signatures do not need to be deterministic, so we can derive an ECDSA key from the seed to sign transitions.
 
 ### Persistent State
 
@@ -50,7 +84,8 @@ Given the average size of a policy being 50kiB, it would be necessary to split t
 A natural way to split the state might look like this:
 
 - A content-addressable `Policy` resource, where the name is the SHA256 sum of the content.
-- A content-addressable `Manifest` resource, which refers to a set of policies (among other manifest content) and contains a signature.
+- A content-addressable `Manifest` resource, which refers to a set of policies (among other manifest content).
+- A content-addressable `Transition` resource.
 
 These resources would need to be managed consistently by the Coordinator.
 
@@ -62,18 +97,12 @@ The first part of the key corresponds to a Kubernetes resource or a top-level di
 The second part is the object name, under which we store the relevant content.
 The [appendix](#appendix) shows how this structure might look like for the two backends.
 
-### Secret Management
-
-- At the first call to `contrast set`, the coordinator creates a recovery secret.
-- The `SetManifestResponse` includes the recovery secret, encrypted with the workload owner public keys.
-
 ### Recovery
 
 - Add `Recover` method to the user API with the recovery secret in the request.
 - At startup, the coordinator checks the persistence layer for an existing resource matching its name.
 - If resources present, it waits for a call to `Recover`.
--
-![recovery flow](assets/004-recovery.drawio.svg)
+- TODO
 
 ## Future Considerations
 
@@ -103,7 +132,7 @@ kind: Policy
 metadata:
   name: 0515b8248a3d44e38e959e2b1fb2b213a2cd35b5186bba84562bc4e51298712f
 spec:
-  content: |
+  policy.rego: |
     package agent_policy
     default AllowRequestsFailingPolicy := false
     CreateContainerRequest {
@@ -120,7 +149,15 @@ spec:
       "referenceValues": ...,
       "workloadOwnerKeyDigests": ...
     }
-  manifest.json.sig: ...
+---
+apiVersion: contrast.edgeless.systems/v1
+kind: Transition
+metadata:
+  name: TODO
+spec:
+  prevRef: TODO
+  manifestRef: 98e5da0c56eedb63ed9be454c6398c4c209be84adb7e0abfe2d1ca2a4f95b73d
+  signature: TODO
 ```
 
 ### Persistent Volume Layout
@@ -130,8 +167,8 @@ spec:
 ├── manifests
 │   └── 98e5da0c56eedb63ed9be454c6398c4c209be84adb7e0abfe2d1ca2a4f95b73d
 │       ├── manifest.json
-│       └── manifest.json.sig
 └── policies
     └── 0515b8248a3d44e38e959e2b1fb2b213a2cd35b5186bba84562bc4e51298712f
         └── policy.rego
+...
 ```
