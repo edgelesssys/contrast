@@ -93,10 +93,28 @@ This allows us to keep the content of the manifests secret, which is not critica
 
 ### Recovery
 
-- Add `Recover` method to the user API with the recovery secret in the request.
-- At startup, the coordinator checks the persistence layer for an existing resource matching its name.
-- If resources present, it waits for a call to `Recover`.
-- TODO
+On startup, the Coordinator checks whether the block device contains a LUKS header.
+If a header is found, it enters into recovery mode, otherwise into normal mode.
+
+#### Recovery Mode
+
+While in _recovery mode_, all calls to `SetManifest` are rejected.
+This prevents accidental or malicious overwrites of the Coordinator's storage.
+
+Instead, the Coordinator waits for calls to a newly added `Recover` method.
+This method accepts the seed and tries to mount the encrypted volume.
+If this is successful, it starts the recovery process.
+
+The Coordinator builds an in-memory tree of transactions loaded from persistence, with a common root at $S_0$ (the empty predecessor).
+It checks the leaves for matching signatures and, on the first match, applies the transitions from $S_0$ to that leaf.
+Note that there should only be one chain, but the storage API can't enforce that.
+Finally, it enters _normal mode_.
+
+#### Normal Mode
+
+While in _normal mode_, all calls to `Recover` are rejected.
+The Coordinator waits for the first call to set, which generates the secret seed.
+During that call, it sets up the volume, filesystem and directory structure.
 
 ## Future Considerations
 
