@@ -5,6 +5,7 @@ package kuberesource
 
 import (
 	"fmt"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
@@ -596,6 +597,43 @@ func PatchNamespaces(resources []any, namespace string) []any {
 			r.Namespace = nsPtr
 		case *applycorev1.ServiceAccountApplyConfiguration:
 			r.Namespace = nsPtr
+		}
+	}
+	return resources
+}
+
+// PatchServiceMeshAdminInterface activates the admin interface on the
+// specified port for all Service Mesh components in a set of resources.
+func PatchServiceMeshAdminInterface(resources []any, port int32) []any {
+	for _, resource := range resources {
+		switch r := resource.(type) {
+		case *applyappsv1.DeploymentApplyConfiguration:
+			for i := 0; i < len(r.Spec.Template.Spec.InitContainers); i++ {
+				// TODO(davidweisse): find service mesh containers by unique name as specified in RFC 005.
+				if strings.Contains(*r.Spec.Template.Spec.InitContainers[i].Image, "service-mesh-proxy") {
+					r.Spec.Template.Spec.InitContainers[i] = *r.Spec.Template.Spec.InitContainers[i].
+						WithEnv(NewEnvVar("EDG_ADMIN_PORT", fmt.Sprint(port))).
+						WithPorts(
+							ContainerPort().
+								WithName("admin-interface").
+								WithContainerPort(port),
+						)
+					ingressProxyConfig := false
+					for j, env := range r.Spec.Template.Spec.InitContainers[i].Env {
+						if *env.Name == "EDG_INGRESS_PROXY_CONFIG" {
+							ingressProxyConfig = true
+							env.WithValue(fmt.Sprintf("%s##admin#%d#true", *env.Value, port))
+							r.Spec.Template.Spec.InitContainers[i].Env[j] = env
+							break
+						}
+					}
+					if !ingressProxyConfig {
+						r.Spec.Template.Spec.InitContainers[i].WithEnv(
+							NewEnvVar("EDG_INGRESS_PROXY_CONFIG", fmt.Sprintf("admin#%d#true", port)),
+						)
+					}
+				}
+			}
 		}
 	}
 	return resources

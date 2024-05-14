@@ -27,8 +27,9 @@ var loopbackCIDR = netip.MustParsePrefix("127.0.0.1/8")
 
 // ProxyConfig represents the configuration for the proxy.
 type ProxyConfig struct {
-	egress  []egressConfigEntry
-	ingress []ingressConfigEntry
+	egress    []egressConfigEntry
+	ingress   []ingressConfigEntry
+	adminPort uint32
 }
 type egressConfigEntry struct {
 	name         string
@@ -52,8 +53,8 @@ type ingressConfigEntry struct {
 // Example:
 //
 //	emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080
-func ParseProxyConfig(ingressConfig, egressConfig string) (ProxyConfig, error) {
-	if ingressConfig == "" && egressConfig == "" {
+func ParseProxyConfig(ingressConfig, egressConfig, adminPort string) (ProxyConfig, error) {
+	if ingressConfig == "" && egressConfig == "" && adminPort == "" {
 		return ProxyConfig{}, nil
 	}
 
@@ -118,6 +119,14 @@ func ParseProxyConfig(ingressConfig, egressConfig string) (ProxyConfig, error) {
 
 	}
 
+	if adminPort != "" {
+		adminPortInt, err := strconv.Atoi(adminPort)
+		if err != nil {
+			return ProxyConfig{}, fmt.Errorf("invalid admin port: %s", adminPort)
+		}
+		cfg.adminPort = uint32(adminPortInt)
+	}
+
 	return cfg, nil
 }
 
@@ -127,6 +136,21 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 	config := &envoyConfigBootstrapV3.Bootstrap{
 		StaticResources: &envoyConfigBootstrapV3.Bootstrap_StaticResources{},
 	}
+	if c.adminPort != 0 {
+		config.Admin = &envoyConfigBootstrapV3.Admin{
+			Address: &envoyCoreV3.Address{
+				Address: &envoyCoreV3.Address_SocketAddress{
+					SocketAddress: &envoyCoreV3.SocketAddress{
+						Address: "0.0.0.0",
+						PortSpecifier: &envoyCoreV3.SocketAddress_PortValue{
+							PortValue: c.adminPort,
+						},
+					},
+				},
+			},
+		}
+	}
+
 	listeners := make([]*envoyConfigListenerV3.Listener, 0)
 	clusters := make([]*envoyConfigClusterV3.Cluster, 0)
 
