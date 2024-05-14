@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 //go:build e2e
-// +build e2e
 
 package openssl
 
