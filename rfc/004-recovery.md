@@ -89,7 +89,7 @@ The [appendix contains an alternative proposal](#kubernetes-objects) and suggest
 As of 2024-05-07, persistent volumes on AKS CoCo are only supported in [`volumeMode: block`](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#raw-block-volume-support).
 This is sufficient for our use case - we can set up a filesystem when we need one.
 The upside of using a block device is that we can easily set it up as a LUKS volume after generating the seed.
-This allows us to keep the content of the manifests secret, which is not critical but still desirable.
+This allows us to keep the content of the manifests secret, which isn't critical but still desirable.
 
 ### Recovery
 
