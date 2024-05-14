@@ -14,6 +14,7 @@ import (
 const (
 	egressProxyConfigEnvVar  = "EDG_EGRESS_PROXY_CONFIG"
 	ingressProxyConfigEnvVar = "EDG_INGRESS_PROXY_CONFIG"
+	adminPortEnvVar          = "EDG_ADMIN_PORT"
 	envoyConfigFile          = "/envoy-config.yml"
 )
 
@@ -35,7 +36,10 @@ func run() (retErr error) {
 	ingressProxyConfig := os.Getenv(ingressProxyConfigEnvVar)
 	log.Println("Egress Proxy configuration:", ingressProxyConfig)
 
-	pconfig, err := ParseProxyConfig(ingressProxyConfig, egressProxyConfig)
+	adminPort := os.Getenv(adminPortEnvVar)
+	log.Println("Port for Envoy admin interface:", adminPort)
+
+	pconfig, err := ParseProxyConfig(ingressProxyConfig, egressProxyConfig, adminPort)
 	if err != nil {
 		return err
 	}

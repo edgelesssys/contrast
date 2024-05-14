@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"testing"
@@ -113,6 +114,27 @@ func TestIngressEgress(t *testing.T) {
 		argv = append(argv, "--cert", "/tls-config/certChain.pem", "--key", "/tls-config/key.pem")
 		stdout, stderr, err = c.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
 		require.NoError(err, "Expected call with client certificate to succeed.\nstdout: %s\nstderr: %q", stdout, stderr)
+	})
+
+	t.Run("admin interface is available", func(t *testing.T) {
+		require := require.New(t)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+
+		c := kubeclient.NewForTest(t)
+
+		backendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "emoji")
+		require.NoError(err)
+		require.Len(backendPods, 1, "pod not found: %s/%s", ct.Namespace, "emoji")
+
+		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "web")
+		require.NoError(err)
+		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, "web")
+
+		argv := []string{"curl", "-fsS", net.JoinHostPort(frontendPods[0].Status.PodIP, "9901") + "/stats/prometheus"}
+		stdout, stderr, err := c.Exec(ctx, ct.Namespace, backendPods[0].Name, argv)
+		require.NoError(err, "Expected Service Mesh admin interface to be reachable.\nstdout: %s\nstderr: %q", stdout, stderr)
 	})
 }
 

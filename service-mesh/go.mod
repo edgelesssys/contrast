@@ -1,11 +1,11 @@
 module github.com/edgelesssys/contrast/service-mesh
 
-go 1.21
+go 1.22.0
 
 require (
 	github.com/coreos/go-iptables v0.7.0
 	github.com/envoyproxy/go-control-plane v0.12.0
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/protobuf v1.34.0
 )
 
 require (

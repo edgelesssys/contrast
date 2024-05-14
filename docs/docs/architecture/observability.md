@@ -35,3 +35,21 @@ The current manifest generation is exposed as a
 [gauge](https://prometheus.io/docs/concepts/metric_types/#gauge) with the metric
 name `coordinator_manifest_generation`. If no manifest is set at the
 Coordinator, this counter will be zero.
+
+## Service Mesh metrics
+
+The [Service Mesh](../components/service-mesh.md) can be configured to expose
+metrics via its [Envoy admin
+interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin). Be
+aware that the admin interface can expose private information and allows
+destructive operations to be performed. To enable the admin interface for the
+Service Mesh, set the environment variable `EDG_ADMIN_PORT` in the configuration
+of the Service Mesh sidecar. If this variable is set, the admin interface will
+be started on this port.
+
+To access the admin interface, the Service Mesh sidecar container needs to have
+a corresponding container port and the ingress settings of the Proxy have to be
+configured to allow access to the specified port (see [Configuring the
+Proxy](../components/service-mesh#configuring-the-proxy)). All metrics will be
+exposed under the `/stats` endpoint. Metrics in Prometheus format can be scraped
+from the `/stats/prometheus` endpoint.
