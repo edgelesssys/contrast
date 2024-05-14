@@ -10,6 +10,7 @@ on:
     pull_request:
       paths-ignore:
         - docs/**
+        - rfc/**
 
 env:
   container_registry: ghcr.io/edgelesssys
