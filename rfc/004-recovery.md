@@ -83,36 +83,13 @@ The transition signatures don't need to be deterministic, so we can derive an EC
 ### Persistent State
 
 There are basically two options for persistent state in a Kubernetes cluster: persistent volumes and Kubernetes objects.
+We propose using persistent volumes because they require less business logic in the Coordinator.
+The [appendix contains an alternative proposal](#kubernetes-objects) and suggestions for supporting both flavours.
 
-#### Persistent Volume
-
-Use of persistent volumes for CoCo isn't homogeneous: AKS supports a few choices, while the upstream project didn't settle for an approach.
-It's unlikely that we can come up with a `PersistentVolumeClaim` or `VolumeClaimTemplate` that works everywhere without workload owner interaction.
-On the other hand, managing this persistency would be almost trivial from the Coordinator's point of view.
-
-**Note**: As of 2024-05-07, persistent volumes aren't supported on AKS CoCo.
-Recent changes on `msft-main` indicate that they intend to add support, but it's not clear when.
-
-#### Kubernetes Objects
-
-Storing state in Kubernetes objects is convenient because it doesn't require additional cloud resources.
-However, there is a limit to the amounts of data that a single object can hold, usually on the order of 1MiB.
-Given the average size of a policy being 50kiB, it would be necessary to split the state to support Contrast deployments of modest size.
-A natural way to split the state might look like this:
-
-- A content-addressable `Policy` resource, where the name is the SHA256 sum of the content.
-- A content-addressable `Manifest` resource, which refers to a set of policies (among other manifest content).
-- A content-addressable `Transition` resource.
-
-These resources would need to be managed consistently by the Coordinator.
-
-#### Combined Approach
-
-Although the initial focus should be on Kubernetes objects, we can design a persistency abstraction that works with both backends.
-The common denominator would be a key-value store interface with multi-part keys.
-The first part of the key corresponds to a Kubernetes resource or a top-level directory, respectively.
-The second part is the object name, under which we store the relevant content.
-The [appendix](#appendix) shows how this structure might look like for the two backends.
+As of 2024-05-07, persistent volumes on AKS CoCo are only supported in [`volumeMode: block`](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#raw-block-volume-support).
+This is sufficient for our use case - we can set up a filesystem when we need one.
+The upside of using a block device is that we can easily set it up as a LUKS volume after generating the seed.
+This allows us to keep the content of the manifests secret, which is not critical but still desirable.
 
 ### Recovery
 
@@ -141,7 +118,41 @@ TODO
 
 ## Appendix
 
-### Kubernetes Object Example
+### Persistent Volume Layout
+
+```txt
+.
+├── manifests
+│   └── 98e5da0c56eedb63ed9be454c6398c4c209be84adb7e0abfe2d1ca2a4f95b73d
+│       └── manifest.json
+├── policies
+│   └── 0515b8248a3d44e38e959e2b1fb2b213a2cd35b5186bba84562bc4e51298712f
+│       └── policy.rego
+└── transitions
+    └── 8bb693aaa143ee0cf97f41d98a22b4d999a46f8eb8103f4fbbb79cb52a0b28ba
+        ├── manifest.sha256
+        ├── previous.sha256
+        └── transition.sig
+...
+```
+
+### Kubernetes Objects
+
+Storing state in Kubernetes objects is convenient because it doesn't require additional cloud resources.
+However, there is a limit to the amounts of data that a single object can hold, usually on the order of 1MiB.
+Given the average size of a policy being 50kiB, it would be necessary to split the state to support Contrast deployments of modest size.
+A natural way to split the state might look like this:
+
+- A content-addressable `Policy` resource, where the name is the SHA256 sum of the content.
+- A content-addressable `Manifest` resource, which refers to a set of policies (among other manifest content).
+- A content-addressable `Transition` resource.
+
+Although the initial focus should be on persistent volumes, we can design a persistency abstraction that works with both backends.
+The common denominator would be a key-value store interface with multi-part keys.
+The first part of the key corresponds to a Kubernetes resource or a top-level directory, respectively.
+The second part is the object name, under which we store the relevant content.
+
+Example CRDs:
 
 ```yaml
 apiVersion: contrast.edgeless.systems/v1
@@ -170,22 +181,9 @@ spec:
 apiVersion: contrast.edgeless.systems/v1
 kind: Transition
 metadata:
-  name: TODO
+  name: 8bb693aaa143ee0cf97f41d98a22b4d999a46f8eb8103f4fbbb79cb52a0b28ba
 spec:
-  prevRef: TODO
+  prevRef: 1f2606ecd68d6405e0e94f4ee5834a33e6b3696c29637cab5832dd23f5ec424a
   manifestRef: 98e5da0c56eedb63ed9be454c6398c4c209be84adb7e0abfe2d1ca2a4f95b73d
-  signature: TODO
-```
-
-### Persistent Volume Layout
-
-```txt
-.
-├── manifests
-│   └── 98e5da0c56eedb63ed9be454c6398c4c209be84adb7e0abfe2d1ca2a4f95b73d
-│       ├── manifest.json
-└── policies
-    └── 0515b8248a3d44e38e959e2b1fb2b213a2cd35b5186bba84562bc4e51298712f
-        └── policy.rego
-...
+  signature: ...
 ```
