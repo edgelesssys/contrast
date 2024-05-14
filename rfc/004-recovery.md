@@ -54,6 +54,23 @@ transition := {
 }
 ```
 
+### Security
+
+We need to provide security for the two different trust models supported by Contrast: the one where the workload owner is trusted
+by the data owner and allowed to update the manifest. In this scenario, a data owner will use the Coordinator root CA certificate
+to verify the service certificate. In the second scenario, the data owner will verify any update to establish trust in the workload
+and thus only trust the mesh CA certificate.
+
+**Scenario 1:** The transaction signing key is derived from the secret seed of the workload owner. Transactions are chained together.
+Through the signing, the transactions are authenticated and integrity protected with the signing key and thus with the seed secret
+only know to the workload owner. Through the chaining, any manipulation or reordering of the manifest history is prevented.
+
+**Scenario 2:** The mesh CA key is deterministically derived from the seed, the history of transactions and the active manifest.
+After recovery, this key can be derived again given the secret seed and the history. In this scenario, the integrity of the history
+isn't relevant to the data owner. The data owner still has the mesh CA certificate from before the restart. Given a correct history,
+the key of the Coordinator will match the users cert. If history was tampered with, it won't. Any alternation of the manifest history
+by either the workload owner or an attacker won't lead to the same public key and thus won't be trusted by the data owner.
+
 ### Cryptography
 
 This proposal relies heavily on the idea of deterministic key generation.
@@ -108,7 +125,7 @@ The [appendix](#appendix) shows how this structure might look like for the two b
 
 ### Secret Sharing
 
-The `SetManifestRequest` could be modified to include a recovery threshold parameter.
+The manifest could be modified to include a recovery threshold parameter.
 If the threshold `n` is greater than 1, the response includes secret shares instead of the full secret.
 Recovery would need to be called `n` times with different shares.
 The threshold would be stored in plain text on the `Contrast` object.
