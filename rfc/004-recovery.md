@@ -74,11 +74,11 @@ by either the workload owner or an attacker won't lead to the same public key an
 ### Cryptography
 
 This proposal relies heavily on the idea of deterministic key generation.
-Since the generated keys will be used for TLS, the choice of algorithms is limited to what's usually supported by TLS implementors.
+Since the generated keys will be used for TLS, the choice of algorithms is limited to what's usually supported by TLS implementers.
 The most restrictive applicable standard is the [Baseline Requirements](https://cabforum.org/uploads/CA-Browser-Forum-BR-v2.0.0.pdf) for browsers, which require TLS certificates to use ECDSA or RSA keys.
-Although the Go standard library does not support deterministic generation of these key types, standards-based alternatives are available: <https://pkg.go.dev/filippo.io/keygen#ECDSA>.
+Although the Go standard library doesn't support deterministic generation of these key types, standards-based alternatives are available: <https://pkg.go.dev/filippo.io/keygen#ECDSA>.
 
-The transition signatures do not need to be deterministic, so we can derive an ECDSA key from the seed to sign transitions.
+The transition signatures don't need to be deterministic, so we can derive an ECDSA key from the seed to sign transitions.
 
 ### Persistent State
 
