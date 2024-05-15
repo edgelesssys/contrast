@@ -5,6 +5,18 @@ confidential and deploying it together with Contrast.
 
 A running CoCo-enabled cluster is required for these steps, see the [setup guide](./getting-started/cluster-setup.md) on how to set it up.
 
+## Deploy the Contrast runtime
+
+Contrast depends on a [custom Kubernetes `RuntimeClass` (`contrast-cc`)](./components/runtime.md),
+which needs to be installed in the cluster prior to the Coordinator or any confidential workloads.
+This consists of a `RuntimeClass` resource and a `DaemonSet` that performs installation on worker nodes.
+This step is only required once for each version of the runtime.
+It can be shared between Contrast deployments.
+
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/latest/runtime.yaml
+```
+
 ## Deploy the Contrast Coordinator
 
 Install the latest Contrast Coordinator release, comprising a single replica deployment and a
