@@ -10,6 +10,11 @@ set -euo pipefail
 # Issue for Terraform support:
 # https://github.com/hashicorp/terraform-provider-azurerm/issues/24196
 #
+
+name=""
+location="westeurope"
+k8sVersion="1.29"
+
 for i in "$@"; do
   case $i in
   --name=*)
@@ -37,13 +42,13 @@ set -x
 # In GH actions, CI=true is part of the environment.
 az group create \
   --name "${name}" \
-  --location "${location:-westeurope}" ||
+  --location "${location}" ||
   $CI
 
 az aks create \
   --resource-group "${name}" \
   --name "${name}" \
-  --kubernetes-version "${k8sVersion:-1.29}" \
+  --kubernetes-version "${k8sVersion}" \
   --os-sku AzureLinux \
   --node-vm-size Standard_DC4as_cc_v5 \
   --node-count 1 \
