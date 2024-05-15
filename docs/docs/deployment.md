@@ -14,7 +14,7 @@ This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/latest/runtime.yaml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/latest/runtime.yml
 ```
 
 ## Deploy the Contrast Coordinator
