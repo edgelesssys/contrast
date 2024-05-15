@@ -128,11 +128,19 @@ This is fully backwards compatible with the main proposal.
 
 ### KMS Recovery
 
-TODO
+Any KMS built for Contrast would require a bootstrap secret, similar to a [Vault sealing key](https://developer.hashicorp.com/vault/docs/concepts/seal).
+Such a key could be derived from the secret seed, bound to the policy of the KMS.
+Recovery of the KMS could then simply be a step in the initialization process.
+This scheme could be directly applied to user workloads, too (e.g. encrypted persistent storage).
 
-### Distributed Coordinator Updates
+### Distributed Coordinator & Updates
 
-TODO
+If there is more than one Coordinator instance, the recovery process could be automatic.
+After entering _recovery mode_, the Coordinator could request the secret seed from a Coordinator in _normal mode_, subject to successful attestation.
+State transitions would need to be announced to all Coordinators in order to update their persistency.
+
+An updated Coordinator instance would start in _recovery mode_ like a restarted instance, and manual recovery would work exactly the same.
+Automatic recovery of updated Coordinators is undesirable due to the change in attestation evidence.
 
 ## Appendix
 
