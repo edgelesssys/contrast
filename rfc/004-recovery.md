@@ -131,7 +131,7 @@ This is fully backwards compatible with the main proposal.
 Any KMS built for Contrast would require a bootstrap secret, similar to a [Vault sealing key](https://developer.hashicorp.com/vault/docs/concepts/seal).
 Such a key could be derived from the secret seed, bound to the policy of the KMS.
 Recovery of the KMS could then simply be a step in the initialization process.
-This scheme could be directly applied to user workloads, too (e.g. encrypted persistent storage).
+This scheme could be directly applied to user workloads, too (unlocking encrypted persistent storage, for example).
 
 ### Distributed Coordinator & Updates
 
