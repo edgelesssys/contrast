@@ -63,7 +63,7 @@ and thus only trust the mesh CA certificate.
 
 **Scenario 1:** The transaction signing key is derived from the secret seed of the workload owner. Transactions are chained together.
 Through the signing, the transactions are authenticated and integrity protected with the signing key and thus with the seed secret
-only know to the workload owner. Through the chaining, any manipulation or reordering of the manifest history is prevented.
+only known to the workload owner. Through the chaining, any manipulation or reordering of the manifest history is prevented.
 
 **Scenario 2:** The mesh CA key is deterministically derived from the seed, the history of transactions and the active manifest.
 After recovery, this key can be derived again given the secret seed and the history. In this scenario, the integrity of the history
