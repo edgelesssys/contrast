@@ -103,7 +103,7 @@ undeploy:
 
 # Create a CoCo-enabled AKS cluster.
 create:
-    nix run .#scripts.create-coco-aks -- --name="$azure_resource_group"
+    nix run .#scripts.create-coco-aks -- --name="$azure_resource_group" --location="$azure_location"
 
 # Set the manifest at the coordinator.
 set cli=default_cli:
@@ -232,6 +232,8 @@ azure_resource_group=""
 # No need to change anything below this line.
 #
 
+# Azure location for the resource group and AKS cluster.
+azure_location="westeurope"
 # Namespace suffix, can be empty. Will be used when patching namespaces.
 namespace_suffix=""
 # Cache directory for the CLI.
