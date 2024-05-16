@@ -35,7 +35,7 @@ where their votes are processed without leaking to the platform provider or work
 
 ### Downloading the deployment
 
-The emojivoto deployment files are part of a zip file in the contrast release. You can download the
+The emojivoto deployment files are part of a zip file in the Contrast release. You can download the
 latest deployment by running:
 
 ```sh
