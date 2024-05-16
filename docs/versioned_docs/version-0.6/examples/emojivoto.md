@@ -30,9 +30,23 @@ where their votes are processed without leaking to the platform provider or work
 - **Running cluster with Confidential Containers support.**
   Please follow the [cluster setup instructions](./../getting-started/cluster-setup.md)
   to create a cluster.
-- **Get the deployment.** This is currently available as part of the preview bundle.
 
 ## Steps to deploy emojivoto with Contrast
+
+### Downloading the deployment
+
+The emojivoto deployment files are part of a zip file in the Contrast release. You can download the
+latest deployment by running:
+
+```sh
+curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.zip
+```
+
+After that, unzip the `emojivoto-demo.zip` file to extract the `deployment/` directory.
+
+```sh
+unzip emojivoto-demo.zip
+```
 
 ### Deploy the Contrast runtime
 
@@ -43,7 +57,7 @@ This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/latest/runtime.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime.yml
 ```
 
 ### Deploy the Contrast Coordinator
@@ -52,7 +66,7 @@ Deploy the Contrast Coordinator, comprising a single replica deployment and a
 LoadBalancer service, into your cluster:
 
 ```sh
-kubectl apply -f coordinator.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml
 ```
 
 ### Generate policy annotations and manifest
