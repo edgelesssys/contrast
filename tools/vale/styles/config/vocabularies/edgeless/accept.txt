@@ -99,6 +99,7 @@ unencrypted
 unspoofable
 untrusted
 updatable
+upsert
 userland
 UUID
 vCPU

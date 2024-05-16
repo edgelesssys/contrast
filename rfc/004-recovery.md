@@ -77,14 +77,27 @@ This proposal relies heavily on the idea of deterministic key generation.
 Since the generated keys will be used for TLS, the choice of algorithms is limited to what's usually supported by TLS implementers.
 The most restrictive applicable standard is the [Baseline Requirements](https://cabforum.org/uploads/CA-Browser-Forum-BR-v2.0.0.pdf) for browsers, which require TLS certificates to use ECDSA or RSA keys.
 Although the Go standard library doesn't support deterministic generation of these key types, standards-based alternatives are available: <https://pkg.go.dev/filippo.io/keygen#ECDSA>.
-
-The transition signatures don't need to be deterministic, so we can derive an ECDSA key from the seed to sign transitions.
+For deterministic signatures, we will use Ed25519.
 
 ### Persistent State
 
-There are basically two options for persistent state in a Kubernetes cluster: persistent volumes and Kubernetes objects.
-We propose using persistent volumes because they require less business logic in the Coordinator.
-The [appendix contains an alternative proposal](#kubernetes-objects) and suggestions for supporting both flavours.
+We're going to store the following types of objects:
+
+- Policies
+- Manifests
+- Transitions
+- _Head_: a reference to the "last applied" transition
+
+All but the last type are content-addressable: their reference is completely determined by their content.
+This makes for some nice properties, like idempotent, conflict-free upsert semantics and natural integrity protection.
+Updates to the head, however, need to have transaction semantics to deal with concurrency.
+This becomes especially important when we want to allow for more than one coordinator instance.
+A storage model that matches our needs is a transactional key-value store.
+
+There are two built-in options for storage in a Kubernetes cluster: persistent volumes and Kubernetes objects.
+We propose starting with persistent volumes, because they require less business logic (operator boilerplate) in the Coordinator.
+Modelling the volume with a KV interface allows for future replacement of the backend.
+The [appendix](#appendix) discusses some options for storage layouts.
 
 As of 2024-05-07, persistent volumes on AKS CoCo are only supported in [`volumeMode: block`](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#raw-block-volume-support).
 This is sufficient for our use case - we can set up a filesystem when we need one.
@@ -99,15 +112,14 @@ If a header is found, it enters into recovery mode, otherwise into normal mode.
 #### Recovery Mode
 
 While in _recovery mode_, all calls to `SetManifest` are rejected.
-This prevents accidental or malicious overwrites of the Coordinator's storage.
+This prevents accidental or malicious overwrites of the Coordinator's storage (a coordinator in $S_0$ accepts manifests from anybody).
 
 Instead, the Coordinator waits for calls to a newly added `Recover` method.
 This method accepts the seed and tries to mount the encrypted volume.
-If this is successful, it starts the recovery process.
+If this is successful, it starts the recovery process by deriving the root CA key and the signing key.
 
-The Coordinator builds an in-memory tree of transactions loaded from persistence, with a common root at $S_0$ (the empty predecessor).
-It checks the leaves for matching signatures and, on the first match, applies the transitions from $S_0$ to that leaf.
-Note that there should only be one chain, but the storage API can't enforce that.
+The Coordinator loads the head transition from persistence and follows the back references to $S_0$.
+Then, starting from $S_0$, it checks the signature for each transaction and applies it.
 Finally, it enters _normal mode_.
 
 #### Normal Mode
@@ -137,17 +149,36 @@ This scheme could be directly applied to user workloads, too (unlocking encrypte
 
 If there is more than one Coordinator instance, the recovery process could be automatic.
 After entering _recovery mode_, the Coordinator could request the secret seed from a Coordinator in _normal mode_, subject to successful attestation.
-State transitions would need to be announced to all Coordinators in order to update their persistency.
+In order to avoid distributed state, the storage backend should then be swapped out with a centralized alternative.
 
 An updated Coordinator instance would start in _recovery mode_ like a restarted instance, and manual recovery would work exactly the same.
 Automatic recovery of updated Coordinators is undesirable due to the change in attestation evidence.
 
 ## Appendix
 
+### Storage Interface
+
+```golang
+type Storage interface {
+  GetHead() (Transition, error)
+  UpdateHead(Transition) error
+
+  GetPolicy(ref string) (Policy, error)
+  PutPolicy(Policy) error
+
+  GetManifest(ref string) (Manifest, error)
+  PutManifest(Manifest) error
+
+  GetTransition(ref string) (Transition, error)
+  PutTransition(Transition) error
+}
+```
+
 ### Persistent Volume Layout
 
 ```txt
 .
+├── HEAD -> transitions/8bb693aaa143ee0cf97f41d98a22b4d999a46f8eb8103f4fbbb79cb52a0b28ba
 ├── manifests
 │   └── 98e5da0c56eedb63ed9be454c6398c4c209be84adb7e0abfe2d1ca2a4f95b73d
 │       └── manifest.json
@@ -159,24 +190,9 @@ Automatic recovery of updated Coordinators is undesirable due to the change in a
         ├── manifest.sha256
         ├── previous.sha256
         └── transition.sig
-...
 ```
 
 ### Kubernetes Objects
-
-Storing state in Kubernetes objects is convenient because it doesn't require additional cloud resources.
-However, there is a limit to the amounts of data that a single object can hold, usually on the order of 1MiB.
-Given the average size of a policy being 50kiB, it would be necessary to split the state to support Contrast deployments of modest size.
-A natural way to split the state might look like this:
-
-- A content-addressable `Policy` resource, where the name is the SHA256 sum of the content.
-- A content-addressable `Manifest` resource, which refers to a set of policies (among other manifest content).
-- A content-addressable `Transition` resource.
-
-Although the initial focus should be on persistent volumes, we can design a persistency abstraction that works with both backends.
-The common denominator would be a key-value store interface with multi-part keys.
-The first part of the key corresponds to a Kubernetes resource or a top-level directory, respectively.
-The second part is the object name, under which we store the relevant content.
 
 Example CRDs:
 
