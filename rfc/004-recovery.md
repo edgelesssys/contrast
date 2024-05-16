@@ -159,7 +159,7 @@ Automatic recovery of updated Coordinators is undesirable due to the change in a
 
 ### Storage Interface
 
-The common interface to persistent storage is a key-value interface with getters and setters.
+The common interface to persistent storage is a key-value interface with get and set operations.
 Implementations of the interface need to support compare-and-set operations on the head transaction:
 The head can only be updated if the current head is the next head's predecessor.
 
