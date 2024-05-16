@@ -30,9 +30,25 @@ where their votes are processed without leaking to the platform provider or work
 - **Running cluster with Confidential Containers support.**
   Please follow the [cluster setup instructions](./../getting-started/cluster-setup.md)
   to create a cluster.
-- **Get the deployment.** This can be downloaded as part of the release.
+- **Get the deployment.**
+  Please follow the [instructions to download the deployment](#downloading-the-deployment).
 
 ## Steps to deploy emojivoto with Contrast
+
+### Downloading the deployment
+
+The emojivoto deployment files are part of a zip file in the contrast release. You can download the
+latest deployment by running the following:
+
+```sh
+curl -O https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.zip
+```
+
+After that, unzip the `emojivoto-demo.zip` file to extract the `deployment/` directory.
+
+```sh
+unzip emojivoto-demo.zip
+```
 
 ### Deploy the Contrast runtime
 
