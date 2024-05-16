@@ -59,7 +59,7 @@ This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/latest/runtime.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime.yml
 ```
 
 ### Deploy the Contrast Coordinator
@@ -68,7 +68,7 @@ Deploy the Contrast Coordinator, comprising a single replica deployment and a
 LoadBalancer service, into your cluster:
 
 ```sh
-kubectl apply -f coordinator.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml
 ```
 
 ### Generate policy annotations and manifest
