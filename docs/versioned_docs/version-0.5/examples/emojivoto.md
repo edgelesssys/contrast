@@ -31,7 +31,7 @@ where their votes are processed without leaking to the platform provider or work
 - **Running cluster with Confidential Containers support.**
   Please follow the [cluster setup instructions](./../getting-started/cluster-setup.md)
   to create a cluster.
-- **Get the deployment.** This can be downloaded as part of the release.
+- **Get the deployment.** This is currently available as part of the preview bundle.
 
 ## Steps to deploy emojivoto with Contrast
 
