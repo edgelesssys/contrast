@@ -21,6 +21,7 @@ on:
 env:
   container_registry: ghcr.io/edgelesssys
   azure_resource_group: contrast-ci
+  DO_NOT_TRACK: 1
 
 concurrency:
   group: ${{ github.ref }}
