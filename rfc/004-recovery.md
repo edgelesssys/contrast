@@ -159,21 +159,9 @@ Automatic recovery of updated Coordinators is undesirable due to the change in a
 
 ### Storage Interface
 
-```golang
-type Storage interface {
-  GetHead() (Transition, error)
-  UpdateHead(Transition) error
-
-  GetPolicy(ref string) (Policy, error)
-  PutPolicy(Policy) error
-
-  GetManifest(ref string) (Manifest, error)
-  PutManifest(Manifest) error
-
-  GetTransition(ref string) (Transition, error)
-  PutTransition(Transition) error
-}
-```
+The common interface to persistent storage is a key-value interface with getters and setters.
+Implementations of the interface need to support compare-and-set operations on the head transaction:
+The head can only be updated if the current head is the next head's predecessor.
 
 ### Persistent Volume Layout
 
