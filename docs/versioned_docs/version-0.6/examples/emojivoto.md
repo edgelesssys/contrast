@@ -39,7 +39,7 @@ The emojivoto deployment files are part of a zip file in the contrast release. Y
 latest deployment by running the following:
 
 ```sh
-curl -O https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.zip
+curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.zip
 ```
 
 After that, unzip the `emojivoto-demo.zip` file to extract the `deployment/` directory.
