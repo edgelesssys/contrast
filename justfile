@@ -200,13 +200,14 @@ fmt:
 lint:
     nix run .#scripts.golangci-lint -- run
 
-demodir namespace="default": coordinator initializer
+demodir namespace="default":
     #!/usr/bin/env bash
     set -eu
     d=$(mktemp -d)
     echo "Creating demo directory at ${d}" >&2
     nix run .#scripts.fetch-latest-contrast -- {{ namespace }} "${d}"
     unzip -d "${d}" "${d}/emojivoto-demo.zip"
+    rm "${d}/emojivoto-demo.zip"
     echo "Demo directory ready at ${d}" >&2
     echo "${d}"
 
