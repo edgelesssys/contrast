@@ -82,11 +82,14 @@ contrast generate deployment/
 :::note[Runtime class and Initializer]
 
 The deployment YAML shipped for this demo is already configured to be used with Contrast.
-A runtime class `contrast-cc-<VERSIONHASH>` was added to the pods to signal they should be run
-as Confidential Containers. In addition, the Contrast Initializer was added
-as an init container to these workloads to facilitate the attestation and certificate pulling
-before the actual workload is started.
+A [runtime class](https://docs.edgeless.systems/contrast/components/runtime) `contrast-cc-<VERSIONHASH>`
+was added to the pods to signal they should be run as Confidential Containers. In addition, the Contrast
+[Initializer](../components/index.md#the-initializer) was added as an init container to these workloads to
+facilitate the attestation and certificate pulling before the actual workload is started.
 
+Further, the deployment YAML is also configured with the Contrast [service mesh](../components/service-mesh.md).
+The configured service mesh proxy provides transparent protection for the communication between
+the different components of emojivoto.
 :::
 
 ### Set the manifest
@@ -118,9 +121,9 @@ kubectl apply -f deployment/
 The Contrast Coordinator issues mesh certificates after successfully validating workloads.
 These certificates can be used for secure inter-deployment communication. The Initializer
 sends an attestation report to the Coordinator, retrieves certificates and a private key in return
-and writes them to a `volumeMount`. The emojivoto version we're using is patched to only communicate
-via mTLS (the original app talks plain HTTP). The different parts of the workload are configured
-to use the credentials from the `volumeMount` when communicating with each other.
+and writes them to a `volumeMount`. The service mesh sidecar is configured to use the credentials
+from the `volumeMount` when communicating with other parts of the deployment over mTLS.
+The public facing frontend for voting uses the mesh certificate without client authentication.
 
 :::
 
