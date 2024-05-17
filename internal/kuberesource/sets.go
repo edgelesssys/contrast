@@ -580,18 +580,22 @@ func PatchImages(resources []any, replacements map[string]string) []any {
 
 // PatchNamespaces replaces namespaces in a set of resources.
 func PatchNamespaces(resources []any, namespace string) []any {
+	var nsPtr *string
+	if namespace != "" {
+		nsPtr = &namespace
+	}
 	for _, resource := range resources {
 		switch r := resource.(type) {
 		case *applycorev1.PodApplyConfiguration:
-			r.Namespace = &namespace
+			r.Namespace = nsPtr
 		case *applyappsv1.DeploymentApplyConfiguration:
-			r.Namespace = &namespace
+			r.Namespace = nsPtr
 		case *applyappsv1.DaemonSetApplyConfiguration:
-			r.Namespace = &namespace
+			r.Namespace = nsPtr
 		case *applycorev1.ServiceApplyConfiguration:
-			r.Namespace = &namespace
+			r.Namespace = nsPtr
 		case *applycorev1.ServiceAccountApplyConfiguration:
-			r.Namespace = &namespace
+			r.Namespace = nsPtr
 		}
 	}
 	return resources
