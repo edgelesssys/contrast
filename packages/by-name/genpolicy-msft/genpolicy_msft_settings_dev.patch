@@ -1,10 +1,8 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-old mode 100755
-new mode 100644
-index 7a732b1..0dd0457
+index 7d35862..536c10e 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -302,10 +290,12 @@
+@@ -315,11 +315,13 @@
          ],
          "ExecProcessRequest": {
              "commands": [],
@@ -13,6 +11,7 @@ index 7a732b1..0dd0457
 +                ".*"
 +            ]
          },
+         "CloseStdinRequest": false,
          "ReadStreamRequest": true,
          "UpdateEphemeralMountsRequest": false,
 -        "WriteStreamRequest": false
