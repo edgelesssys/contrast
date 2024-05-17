@@ -1,0 +1,32 @@
+# Observability
+
+The Contrast Coordinator exposes metrics in the
+[Prometheus](https://prometheus.io/) format. These can be monitored to quickly
+identify problems in the gRPC layer or attestation errors. Prometheus metrics
+are numerical values associated with a name and additional key/values pairs,
+called labels.
+
+## Exposed metrics
+
+The Coordinator pod has the annotation `prometheus.io/scrape` set to `true` so
+it can be found by the [service discovery of
+Prometheus](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#kubernetes_sd_config).
+The metrics can be accessed at the Coordinator pod at port `9102` under the
+`/metrics` endpoint.
+
+The Coordinator starts two gRPC servers, one for the user API on port `1313` and
+one for the mesh API on port `7777`. Metrics for both servers can be accessed
+using different prefixes.
+
+All metric names for the user API are prefixed with `userapi_grpc_server_`.
+Exposed metrics include the number of  handled requests of the methods
+`SetManifest` and `GetManifest`, which get called when [setting the
+manifest](../deployment#set-the-manifest) and [verifying the
+Coordinator](../deployment#verify-the-coordinator) respectively. For each method
+you can see the gRPC status code indicating whether the request succeeded or
+not.
+
+For the mesh API, the metric names are prefixed with `meshapi_grpc_server_`. The
+metrics include similar data to the user API for the method `NewMeshCert` which
+gets called by the [Initializer](../components#the-initializer) when starting a
+new workload.
