@@ -215,6 +215,7 @@ with pkgs;
     runtimeInputs = [
       jq
       github-cli
+      yq-go
     ];
     text = ''
       namespace=$1
