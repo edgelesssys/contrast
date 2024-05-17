@@ -114,9 +114,9 @@ jobs:
 
   update-main:
     name: Update main branch
-    if: ${{ inputs.kind == 'minor' }}
+    if: ${{ inputs.kind == 'minor' }} # TODO: remove to also run on patch and check in steps that only are needed in minor manually
     runs-on: ubuntu-22.04
-    needs: process-inputs
+    needs: [process-inputs, release]
     permissions:
       contents: write
     env:
@@ -157,6 +157,11 @@ jobs:
           version: ${{ needs.process-inputs.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
           working-directory: contrast-main
           commit: false
+      - name: Update versions.json
+        working-directory: contrast-main
+        run: |
+          cp -f ../contrast-working/versions.json .
+          git commit -am "ci: release ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }} versions.json update"
       - name: Create PR
         uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
         with:
@@ -251,6 +256,13 @@ jobs:
       - name: Build CLI
         run: |
           nix build -L .#cli-release
+      - name: Update versions.json in main
+        uses: ./.github/actions/update_versions_json
+        with:
+          version: "${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
+      - name: Commit new versions.json
+        run: |
+          git commit -am "release: update versions.json"
       - name: Create draft release
         uses: softprops/action-gh-release@69320dbe05506a9a39fc8ae11030b214ec2d1f87 # v2.0.5
         with:
