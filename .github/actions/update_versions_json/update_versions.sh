@@ -12,6 +12,15 @@ function append_to {
   ) > versions.json
 }
 
+# `check_for_version` checks if the given entry already contains a version.
+function check_for_version {
+  out=$(cat versions.json | jq --arg NAME "$1" --arg VERSION "$VERSION" '.[$NAME] | map(select(.version == $VERSION))')
+  if [[ ! "$out" = "[]" ]]; then
+    echo "[x] Version $VERSION exists for entry $1"
+    exit 1
+  fi
+}
+
 echo "::group::Updating versions"
 
 # check if the version environment variable is set
@@ -19,6 +28,12 @@ if [[ -z "$VERSION" ]]; then
   echo "[x] VERSION environment variable not set"
   exit 1
 fi
+
+# check if any field contains the given version
+check_for_version "contrast"
+check_for_version "coordinator.yml"
+check_for_version "runtime.yml"
+check_for_version "emojivoto-demo.zip"
 
 echo "[*] Creating hashes"
 contrast_hash=$(create_hash "./result-cli/bin/contrast")
