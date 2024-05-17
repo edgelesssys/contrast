@@ -234,8 +234,8 @@ jobs:
         run: |
           mkdir -p workspace deployment
           nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" > workspace/coordinator.yml
-          nix shell .#contrast --command resourcegen --namespace kube-system --image-replacements ./image-replacements.txt runtime > workspace/runtime.yml
-          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --add-load-balancers emojivoto > deployment/emojivoto-demo.yml
+          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --namespace kube-system runtime > workspace/runtime.yml
+          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --add-load-balancers emojivoto-sm-ingress > deployment/emojivoto-demo.yml
           zip -r workspace/emojivoto-demo.zip deployment/emojivoto-demo.yml
       - name: Update coordinator policy hash
         run: |
