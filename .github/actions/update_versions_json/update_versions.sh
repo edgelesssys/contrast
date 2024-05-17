@@ -29,6 +29,8 @@ if [[ -z "$VERSION" ]]; then
   exit 1
 fi
 
+# declare an associative array that pairs the field name
+# in versions.json with the path to the file
 declare -A fields
 fields["contrast"]="./result-cli/bin/contrast"
 fields["coordinator.yml"]="./workspace/coordinator.yml"
@@ -41,6 +43,7 @@ do
   # check if any field contains the given version
   check_for_version "$field" 
 
+  # get the file path
   file=${fields["$field"]}
 
   echo "[*] Creating hash for $file"
