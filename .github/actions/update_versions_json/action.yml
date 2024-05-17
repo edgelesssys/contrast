@@ -1,0 +1,15 @@
+name: Update versions.json
+description: Update the versions.json file with a new version and generated hashes
+
+inputs:
+  version:
+    description: "The version that will be released"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Update versions.json
+      shell: bash
+      runs: |
+        VERSION=${{ inputs.version }} ./.github/actions/update_versions_json/update_versions.sh
