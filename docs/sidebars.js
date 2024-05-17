@@ -125,6 +125,11 @@ const sidebars = {
           label: 'Certificate authority',
           id: 'architecture/certificates',
         },
+        {
+          type: 'doc',
+          label: 'Observability',
+          id: 'architecture/observability',
+        },
       ]
     },
     {
