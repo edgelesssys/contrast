@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-468/assets/css/styles.5da1b699.css">
-<script src="/contrast/pr-preview/pr-468/assets/js/runtime~main.06d9c211.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-468/assets/js/runtime~main.1ff72413.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-468/assets/js/main.9e8d9a6c.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -86,7 +86,7 @@ we can deploy the application:</p>
 These certificates can be used for secure inter-deployment communication. The Initializer
 sends an attestation report to the Coordinator, retrieves certificates and a private key in return
 and writes them to a <code>volumeMount</code>. The service mesh sidecar is configured to use the credentials
-from the <code>volumeMount</code> when communicating with each other parts of the deployment over mTLS.
+from the <code>volumeMount</code> when communicating with other parts of the deployment over mTLS.
 The public facing frontend for voting uses the mesh certificate without client authentication.</p></div></div>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="voters-perspective-verifying-the-ballot">Voter&#x27;s perspective: Verifying the ballot<a href="#voters-perspective-verifying-the-ballot" class="hash-link" aria-label="Direct link to Voter&#x27;s perspective: Verifying the ballot" title="Direct link to Voter&#x27;s perspective: Verifying the ballot">​</a></h2>
 <p>As voters, we want to verify the fairness and confidentiality of the deployment before
