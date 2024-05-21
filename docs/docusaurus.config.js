@@ -48,10 +48,7 @@ async function createConfig() {
         ({
           docs: {
             sidebarPath: require.resolve('./sidebars.js'),
-            // sidebarPath: 'sidebars.js',
-            // Please change this to your repo.
-            // Remove this to remove the "edit this page" links.
-            //editUrl: 'https://github.com/edgelesssys/contrast/edit/main/docs',
+            editUrl: 'https://github.com/edgelesssys/contrast/edit/main/docs',
             routeBasePath: "/"
           },
           blog: false,
@@ -80,11 +77,11 @@ async function createConfig() {
               type: 'docsVersionDropdown',
               position: 'right',
             },
-            //{
-            //  href: 'https://github.com/edgelesssys/contrast',
-            //  position: 'right',
-            //  className: 'header-github-link',
-            //},
+            {
+              href: 'https://github.com/edgelesssys/contrast',
+              position: 'right',
+              className: 'header-github-link',
+            },
           ],
         },
         colorMode: {
@@ -92,11 +89,11 @@ async function createConfig() {
           disableSwitch: true,
           respectPrefersColorScheme: false,
         },
-        //announcementBar: {
-        //  content:
-        //    'If you like Contrast, give it a star on <a target="_blank" rel="noopener noreferrer" href="https://github.com/edgelesssys/contrast">GitHub</a> ⭐️',
-        //  backgroundColor: '#E7E6E6'
-        //},
+        announcementBar: {
+          content:
+            'Contrast is now open source! Check it out on <a target="_blank" rel="noopener noreferrer" href="https://github.com/edgelesssys/contrast">GitHub</a> and leave us a ⭐️ if you like it!',
+          backgroundColor: '#E7E6E6'
+        },
         footer: {
           style: 'dark',
           links: [
