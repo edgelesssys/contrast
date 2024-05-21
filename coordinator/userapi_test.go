@@ -12,7 +12,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"testing"
 
@@ -20,10 +22,20 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
+)
+
+const (
+	manifestGenerationExpected = `
+# HELP coordinator_manifest_generation Current manifest generation.
+# TYPE coordinator_manifest_generation gauge
+coordinator_manifest_generation %d
+`
 )
 
 func TestManifestSet(t *testing.T) {
@@ -215,11 +227,20 @@ func TestManifestSet(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 
+			manifestPrometheusGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+				Subsystem: "coordinator",
+				Name:      "manifest_generation",
+				Help:      "Current manifest generation.",
+			})
+
 			coordinator := userAPIServer{
 				manifSetGetter:  tc.mSGetter,
 				caChainGetter:   tc.caGetter,
 				policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
 				logger:          slog.Default(),
+				metrics: userAPIMetrics{
+					manifestGeneration: manifestPrometheusGauge,
+				},
 			}
 
 			ctx := rpcContext(tc.workloadOwnerKey)
@@ -233,6 +254,9 @@ func TestManifestSet(t *testing.T) {
 			assert.Equal([]byte("root"), resp.RootCA)
 			assert.Equal([]byte("mesh"), resp.MeshCA)
 			assert.Equal(1, tc.mSGetter.setManifestCount)
+
+			expected := fmt.Sprintf(manifestGenerationExpected, 1)
+			assert.NoError(testutil.CollectAndCompare(manifestPrometheusGauge, strings.NewReader(expected)))
 		})
 	}
 }
@@ -319,11 +343,20 @@ func TestUserAPIConcurrent(t *testing.T) {
 		return b
 	}
 
+	manifestPrometheusGauge := prometheus.NewGauge(prometheus.GaugeOpts{
+		Subsystem: "coordinator",
+		Name:      "manifest_generation",
+		Help:      "Current manifest generation.",
+	})
+
 	coordinator := userAPIServer{
 		manifSetGetter:  &stubManifestSetGetter{},
 		caChainGetter:   &stubCertChainGetter{},
 		policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
 		logger:          slog.Default(),
+		metrics: userAPIMetrics{
+			manifestGeneration: manifestPrometheusGauge,
+		},
 	}
 	setReq := &userapi.SetManifestRequest{
 		Manifest: newManifestBytes(func(m *manifest.Manifest) {
@@ -334,7 +367,7 @@ func TestUserAPIConcurrent(t *testing.T) {
 		}),
 		Policies: [][]byte{
 			[]byte("a"),
-			[]byte("c"),
+			[]byte("b"),
 		},
 	}
 
@@ -364,6 +397,9 @@ func TestUserAPIConcurrent(t *testing.T) {
 	go get()
 	go get()
 	wg.Wait()
+
+	expected := fmt.Sprintf(manifestGenerationExpected, 6)
+	assert.NoError(t, testutil.CollectAndCompare(manifestPrometheusGauge, strings.NewReader(expected)))
 }
 
 type stubManifestSetGetter struct {
@@ -383,6 +419,9 @@ func (s *stubManifestSetGetter) SetManifest(*manifest.Manifest) error {
 func (s *stubManifestSetGetter) GetManifests() []*manifest.Manifest {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
+	if s.getManifestResp == nil {
+		return make([]*manifest.Manifest, s.setManifestCount)
+	}
 	return s.getManifestResp
 }
 

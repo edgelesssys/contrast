@@ -25,6 +25,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/userapi"
 	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -33,6 +34,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type userAPIMetrics struct {
+	manifestGeneration prometheus.Gauge
+}
+
 type userAPIServer struct {
 	grpc            *grpc.Server
 	policyTextStore store[manifest.HexString, manifest.Policy]
@@ -40,6 +45,7 @@ type userAPIServer struct {
 	caChainGetter   certChainGetter
 	logger          *slog.Logger
 	mux             sync.RWMutex
+	metrics         userAPIMetrics
 
 	userapi.UnimplementedUserAPIServer
 }
@@ -53,6 +59,12 @@ func newUserAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, reg 
 			grpcprometheus.WithSubsystem("userapi"),
 		),
 	)
+
+	manifestGeneration := promauto.With(reg).NewGauge(prometheus.GaugeOpts{
+		Subsystem: "coordinator",
+		Name:      "manifest_generation",
+		Help:      "Current manifest generation.",
+	})
 
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
@@ -70,6 +82,9 @@ func newUserAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, reg 
 		manifSetGetter:  mSGetter,
 		caChainGetter:   caGetter,
 		logger:          log.WithGroup("userapi"),
+		metrics: userAPIMetrics{
+			manifestGeneration: manifestGeneration,
+		},
 	}
 	userapi.RegisterUserAPIServer(s.grpc, s)
 
@@ -121,6 +136,8 @@ func (s *userAPIServer) SetManifest(ctx context.Context, req *userapi.SetManifes
 	if err := s.manifSetGetter.SetManifest(m); err != nil {
 		return nil, status.Errorf(codes.Internal, "setting manifest: %v", err)
 	}
+
+	s.metrics.manifestGeneration.Set(float64(len(s.manifSetGetter.GetManifests())))
 
 	resp := &userapi.SetManifestResponse{
 		RootCA: s.caChainGetter.GetRootCACert(),
