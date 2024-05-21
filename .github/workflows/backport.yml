@@ -23,6 +23,8 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        with:
+          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
       - name: Create backport PRs
         uses: korthout/backport-action@ef20d86abccbac3ee3a73cb2efbdc06344c390e5 # v2.5.0
         with:
