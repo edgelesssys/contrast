@@ -105,7 +105,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          is_draft=$(gh release view ${{ inputs.version }} --json isDraft -q .isDraft)
+          is_draft=$(gh release view ${{ inputs.version }} --json isDraft -q .isDraft || true)
           # If the release is not yet published, is_draft will either be "true" or empty.
           if [[ "${is_draft}" == "false" ]]; then
             echo "::error::Release ${{ inputs.version }} is already published."
