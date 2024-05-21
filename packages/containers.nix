@@ -59,6 +59,7 @@ let
         openssl
         procps
         vim
+        curl
       ];
       config = {
         Cmd = [ "bash" ];

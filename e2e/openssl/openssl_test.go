@@ -54,6 +54,22 @@ func TestOpenSSL(t *testing.T) {
 
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
+	t.Run("check coordinator metrics endpoint", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+
+		require := require.New(t)
+
+		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
+
+		frontendPods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, opensslFrontend)
+		require.NoError(err)
+		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, opensslFrontend)
+
+		_, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, frontendPods[0].Name, []string{"/bin/bash", "-c", "curl --fail coordinator:9102/metrics"})
+		require.NoError(err, "stderr: %q", stderr)
+	})
+
 	for cert, pool := range map[string]*x509.CertPool{
 		"mesh CA cert": ct.MeshCACert(),
 		"root CA cert": ct.RootCACert(),
