@@ -16,11 +16,11 @@ Contrast is designed to keep all data always encrypted and to prevent access fro
 
 Contrast integrates fluently with the existing Kubernetes workflows. It's compatible with managed Kubernetes, can be installed as a day-2 operation and imposes only minimal changes to your deployment flow.
 
-## Use Cases
+## Use cases
 
 * Increasing the security of your containers
 * Moving sensitive workloads from on-prem to the cloud with Confidential Computing
-* Shielding the code and data even from the own cluster administrators
+* Shielding the code and data even from your own cluster administrators
 * Increasing the trustworthiness of your SaaS offerings
 * Simplifying regulatory compliance
 * Multi-party computation for data collaboration
