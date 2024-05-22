@@ -17,6 +17,7 @@ import (
 	"github.com/google/go-sev-guest/validate"
 	"github.com/google/go-sev-guest/verify"
 	"github.com/google/go-sev-guest/verify/trust"
+	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -26,6 +27,11 @@ type Validator struct {
 	callbackers     []validateCallbacker
 	kdsGetter       trust.HTTPSGetter
 	logger          *slog.Logger
+	metrics         metrics
+}
+
+type metrics struct {
+	attestationFailures prometheus.Counter
 }
 
 type validateCallbacker interface {
@@ -58,12 +64,13 @@ func NewValidator(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, lo
 }
 
 // NewValidatorWithCallbacks returns a new Validator with callbacks.
-func NewValidatorWithCallbacks(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, log *slog.Logger, callbacks ...validateCallbacker) *Validator {
+func NewValidatorWithCallbacks(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, log *slog.Logger, attestataionFailures prometheus.Counter, callbacks ...validateCallbacker) *Validator {
 	return &Validator{
 		validateOptsGen: optsGen,
 		callbackers:     callbacks,
 		kdsGetter:       kdsGetter,
 		logger:          slog.New(logger.NewHandler(log.Handler(), "snp-validator")),
+		metrics:         metrics{attestationFailures: attestataionFailures},
 	}
 }
 
@@ -78,6 +85,9 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	defer func() {
 		if err != nil {
 			v.logger.Error("Failed to validate attestation document", "err", err)
+			if v.metrics.attestationFailures != nil {
+				v.metrics.attestationFailures.Inc()
+			}
 		}
 	}()
 
