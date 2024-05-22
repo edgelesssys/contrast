@@ -11,7 +11,7 @@ Install the latest Contrast Coordinator release, comprising a single replica dep
 LoadBalancer service, into your cluster.
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/latest/coordinator.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml
 ```
 
 ## Prepare your Kubernetes resources
