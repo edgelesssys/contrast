@@ -18,6 +18,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
@@ -42,7 +43,14 @@ type certGetter interface {
 func newMeshAPIServer(meshAuth *meshAuthority, caGetter certChainGetter, reg *prometheus.Registry, log *slog.Logger) *meshAPIServer {
 	ticker := clock.RealClock{}.NewTicker(24 * time.Hour)
 	kdsGetter := snp.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter"))
-	validator := snp.NewValidatorWithCallbacks(meshAuth, kdsGetter, logger.NewNamed(log, "snp-validator"), meshAuth)
+
+	attestationFailuresCounter := promauto.With(reg).NewCounter(prometheus.CounterOpts{
+		Subsystem: "meshapi",
+		Name:      "attestation_failures",
+		Help:      "Number of attestation failures from workloads to the Coordinator.",
+	})
+
+	validator := snp.NewValidatorWithCallbacks(meshAuth, kdsGetter, logger.NewNamed(log, "snp-validator"), attestationFailuresCounter, meshAuth)
 	credentials := atlscredentials.New(atls.NoIssuer, []atls.Validator{validator})
 
 	grpcMeshAPIMetrics := grpcprometheus.NewServerMetrics(

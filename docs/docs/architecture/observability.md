@@ -29,7 +29,8 @@ not.
 For the mesh API, the metric names are prefixed with `meshapi_grpc_server_`. The
 metrics include similar data to the user API for the method `NewMeshCert` which
 gets called by the [Initializer](../components#the-initializer) when starting a
-new workload.
+new workload. Attestation failures from workloads to the Coordinator can be
+tracked with the counter `meshapi_attestation_failures`.
 
 The current manifest generation is exposed as a
 [gauge](https://prometheus.io/docs/concepts/metric_types/#gauge) with the metric
