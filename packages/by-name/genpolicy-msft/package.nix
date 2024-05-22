@@ -25,8 +25,6 @@ rustPlatform.buildRustPackage rec {
     hash = "sha256-W36RJFf0MVRIBV4ahpv6pqdAwgRYrlqmu4Y/8qiILS8=";
   };
 
-  patchFlags = [ "-p4" ];
-
   sourceRoot = "${src.name}/src/tools/genpolicy";
 
   cargoHash = "sha256-YxIwsjs4K0TNVlwwA+PrOrCf16h7ZW+zU/jXeFfIMZo=";
@@ -53,6 +51,7 @@ rustPlatform.buildRustPackage rec {
   passthru = rec {
     settings = fetchurl {
       name = "${pname}-${version}-settings";
+      # TODO(burgerdev): see whether future releases contain this file as an asset again (not true for 3.2.0.azl1).
       url = "https://raw.githubusercontent.com/microsoft/kata-containers/${version}/src/tools/genpolicy/genpolicy-settings.json";
       hash = "sha256-jrhzDqesm16yCV3aex48c2OcEimCUrxwhoaJUtAMPvo=";
       downloadToTemp = true;
@@ -68,6 +67,7 @@ rustPlatform.buildRustPackage rec {
 
     rules = fetchurl {
       name = "${pname}-${version}-rules";
+      # TODO(burgerdev): see whether future releases contain this file as an asset again (not true for 3.2.0.azl1).
       url = "https://raw.githubusercontent.com/microsoft/kata-containers/${version}/src/tools/genpolicy/rules.rego";
       hash = "sha256-fhE5hDND5QeZtEw3u+qgSVsFO+00cc41k/r/Y+km6TU=";
       downloadToTemp = true;
