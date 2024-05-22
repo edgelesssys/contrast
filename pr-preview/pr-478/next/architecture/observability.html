@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-478/assets/css/styles.5da1b699.css">
-<script src="/contrast/pr-preview/pr-478/assets/js/runtime~main.639bcc39.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-478/assets/js/runtime~main.33784a1d.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-478/assets/js/main.1fb1a1ad.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -52,10 +52,8 @@ destructive operations to be performed. To enable the admin interface for the
 Service Mesh, set the environment variable <code>EDG_ADMIN_PORT</code> in the configuration
 of the Service Mesh sidecar. If this variable is set, the admin interface will
 be started on this port.</p>
-<p>By default, the Service Mesh is configured to start the admin interface on port
-<code>9901</code> and the sidecar container has a corresponding container port. However,
-the interface isn&#x27;t accessible from the outside.</p>
-<p>To access the admin interface, the ingress settings of the Proxy have to be
+<p>To access the admin interface, the Service Mesh sidecar container needs to have
+a corresponding container port and the ingress settings of the Proxy have to be
 configured to allow access to the specified port (see <a href="/contrast/pr-preview/pr-478/next/components/service-mesh#configuring-the-proxy">Configuring the
 Proxy</a>). All metrics will be
 exposed under the <code>/stats</code> endpoint. Metrics in Prometheus format can be scraped
