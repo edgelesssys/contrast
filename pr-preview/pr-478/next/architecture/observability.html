@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-478/assets/css/styles.5da1b699.css">
-<script src="/contrast/pr-preview/pr-478/assets/js/runtime~main.33784a1d.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-478/assets/js/runtime~main.bd968788.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-478/assets/js/main.1fb1a1ad.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -43,6 +43,10 @@ not.</p>
 metrics include similar data to the user API for the method <code>NewMeshCert</code> which
 gets called by the <a href="/contrast/pr-preview/pr-478/next/components#the-initializer">Initializer</a> when starting a
 new workload.</p>
+<p>The current manifest generation is exposed as a
+<a href="https://prometheus.io/docs/concepts/metric_types/#gauge" target="_blank" rel="noopener noreferrer">gauge</a> with the metric
+name <code>coordinator_manifest_generation</code>. If no manifest is set at the
+Coordinator, this counter will be zero.</p>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="service-mesh-metrics">Service Mesh metrics<a href="#service-mesh-metrics" class="hash-link" aria-label="Direct link to Service Mesh metrics" title="Direct link to Service Mesh metrics">​</a></h2>
 <p>The <a href="/contrast/pr-preview/pr-478/next/components/service-mesh">Service Mesh</a> can be configured to expose
 metrics via its <a href="https://www.envoyproxy.io/docs/envoy/latest/operations/admin" target="_blank" rel="noopener noreferrer">Envoy admin
