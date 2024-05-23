@@ -147,39 +147,23 @@ func AddLogging(resources []any, level string) []any {
 
 // PatchImages replaces images in a set of resources.
 func PatchImages(resources []any, replacements map[string]string) []any {
+	var out []any
 	for _, resource := range resources {
-		switch r := resource.(type) {
-		case *applyappsv1.DeploymentApplyConfiguration:
-			for i := 0; i < len(r.Spec.Template.Spec.InitContainers); i++ {
-				if replacement, ok := replacements[*r.Spec.Template.Spec.InitContainers[i].Image]; ok {
-					r.Spec.Template.Spec.InitContainers[i].Image = &replacement
+		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+			for i := 0; i < len(spec.InitContainers); i++ {
+				if replacement, ok := replacements[*spec.InitContainers[i].Image]; ok {
+					spec.InitContainers[i].Image = &replacement
 				}
 			}
-			for i := 0; i < len(r.Spec.Template.Spec.Containers); i++ {
-				if replacement, ok := replacements[*r.Spec.Template.Spec.Containers[i].Image]; ok {
-					r.Spec.Template.Spec.Containers[i].Image = &replacement
+			for i := 0; i < len(spec.Containers); i++ {
+				if replacement, ok := replacements[*spec.Containers[i].Image]; ok {
+					spec.Containers[i].Image = &replacement
 				}
 			}
-		case *applyappsv1.DaemonSetApplyConfiguration:
-			for i := 0; i < len(r.Spec.Template.Spec.InitContainers); i++ {
-				if replacement, ok := replacements[*r.Spec.Template.Spec.InitContainers[i].Image]; ok {
-					r.Spec.Template.Spec.InitContainers[i].Image = &replacement
-				}
-			}
-			for i := 0; i < len(r.Spec.Template.Spec.Containers); i++ {
-				if replacement, ok := replacements[*r.Spec.Template.Spec.Containers[i].Image]; ok {
-					r.Spec.Template.Spec.Containers[i].Image = &replacement
-				}
-			}
-		case *applycorev1.PodApplyConfiguration:
-			for i := 0; i < len(r.Spec.Containers); i++ {
-				if replacement, ok := replacements[*r.Spec.Containers[i].Image]; ok {
-					r.Spec.Containers[i].Image = &replacement
-				}
-			}
-		}
+			return spec
+		}))
 	}
-	return resources
+	return out
 }
 
 // PatchNamespaces replaces namespaces in a set of resources.
