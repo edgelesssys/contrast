@@ -12,7 +12,10 @@ import (
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
-const exposeServiceAnnotation = "contrast.edgeless.systems/expose-service"
+const (
+	exposeServiceAnnotation   = "contrast.edgeless.systems/expose-service"
+	contrastRoleAnnotationKey = "contrast.edgeless.systems/pod-role"
+)
 
 // AddInitializer adds an initializer and its shared volume to the resource.
 //
@@ -188,6 +191,24 @@ func PatchServiceMeshAdminInterface(resources []any, port int32) []any {
 						)
 					}
 				}
+			}
+		}
+	}
+	return resources
+}
+
+// PatchCoordinatorMetrics enables Coordinator metrics on the specified port.
+func PatchCoordinatorMetrics(resources []any, port int32) []any {
+	for _, resource := range resources {
+		switch r := resource.(type) {
+		case *applyappsv1.StatefulSetApplyConfiguration:
+			if r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
+				r.Spec.Template.Spec.Containers[0].WithEnv(NewEnvVar("CONTRAST_METRICS_PORT", fmt.Sprint(port)))
+				r.Spec.Template.Spec.Containers[0].WithPorts(
+					ContainerPort().
+						WithName("prometheus").
+						WithContainerPort(port),
+				)
 			}
 		}
 	}

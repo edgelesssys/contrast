@@ -1,6 +1,6 @@
 # Observability
 
-The Contrast Coordinator exposes metrics in the
+The Contrast Coordinator can expose metrics in the
 [Prometheus](https://prometheus.io/) format. These can be monitored to quickly
 identify problems in the gRPC layer or attestation errors. Prometheus metrics
 are numerical values associated with a name and additional key/values pairs,
@@ -8,11 +8,10 @@ called labels.
 
 ## Exposed metrics
 
-The Coordinator pod has the annotation `prometheus.io/scrape` set to `true` so
-it can be found by the [service discovery of
-Prometheus](https://prometheus.io/docs/prometheus/latest/configuration/configuration/#kubernetes_sd_config).
-The metrics can be accessed at the Coordinator pod at port `9102` under the
-`/metrics` endpoint.
+The metrics can be accessed at the Coordinator pod at the port specified in the
+`CONTRAST_METRICS_PORT` environment variable under the `/metrics` endpoint. By
+default, this environment variable isn't specified, hence no metrics will be
+exposed.
 
 The Coordinator starts two gRPC servers, one for the user API on port `1313` and
 one for the mesh API on port `7777`. Metrics for both servers can be accessed
