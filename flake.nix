@@ -73,9 +73,10 @@
           };
 
           shellHook = ''
-            cp ${contrast} ./
-            cp ${coordinator} ./
-            cp -r ${emojivoto} ./
+            mkdir -p demo
+            cp ${contrast} ./demo/contrast
+            cp ${coordinator} ./demo/coordinator.yml
+            cp -r ${emojivoto} ./demo/deployment
           '';
         };
       };
