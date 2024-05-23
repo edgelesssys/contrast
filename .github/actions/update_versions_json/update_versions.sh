@@ -8,13 +8,13 @@ function create_hash {
 # `update` appends a new version entry to a given section.
 function update {
   echo $(
-    cat ./contrast-main/versions.json | jq --arg NAME "$1" --arg HASH "$2" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' || exit 1
-  ) > ./contrast-main/versions.json
+    cat ./versions.json | jq --arg NAME "$1" --arg HASH "$2" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' || exit 1
+  ) > ./versions.json
 }
 
 # `check_for_version` checks if the given entry already contains a version.
 function check_for_version {
-  out=$(cat ./contrast-main/versions.json | jq --arg NAME "$1" --arg VERSION "$VERSION" '.[$NAME] | map(select(.version == $VERSION))')
+  out=$(cat ./versions.json | jq --arg NAME "$1" --arg VERSION "$VERSION" '.[$NAME] | map(select(.version == $VERSION))')
   if [[ ! "$out" = "[]" ]]; then
     echo "[x] Version $VERSION exists for entry $1"
     exit 1
@@ -30,7 +30,7 @@ if [[ -z "$VERSION" ]]; then
 fi
 
 # declare an associative array that pairs the field name
-# in ./contrast-main/versions.json with the path to the file
+# in ./versions.json with the path to the file
 declare -A fields
 fields["contrast"]="./result-cli/bin/contrast"
 fields["coordinator.yml"]="./workspace/coordinator.yml"
@@ -50,13 +50,13 @@ do
   hash=$(create_hash "$file")
   echo "      $hash"
 
-  echo "[*] Updating ./contrast-main/versions.json for $field"
+  echo "[*] Updating ./versions.json for $field"
   update "$field" "$hash"
 
   echo ""
 done
 
-echo "[*] Formatting ./contrast-main/versions.json"
-cat ./contrast-main/versions.json | jq --indent 2 | tee versions.json > /dev/null
+echo "[*] Formatting ./versions.json"
+cat ./versions.json | jq --indent 2 | tee versions.json > /dev/null
 
 echo "::endgroup::"
