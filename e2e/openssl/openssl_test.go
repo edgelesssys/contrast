@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"flag"
 	"log"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -64,7 +65,12 @@ func TestOpenSSL(t *testing.T) {
 		require.NoError(err)
 		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, opensslFrontend)
 
-		_, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, frontendPods[0].Name, []string{"/bin/bash", "-c", "curl --fail coordinator:9102/metrics"})
+		coordinatorPods, err := ct.Kubeclient.PodsFromOwner(ctx, ct.Namespace, "StatefulSet", "coordinator")
+		require.NoError(err)
+		require.NotEmpty(coordinatorPods, "pod not found: %s/%s", ct.Namespace, "coordinator")
+
+		argv := []string{"/bin/bash", "-c", "curl --fail " + net.JoinHostPort(coordinatorPods[0].Status.PodIP, "9102") + "/metrics"}
+		_, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
 		require.NoError(err, "stderr: %q", stderr)
 	})
 

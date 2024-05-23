@@ -147,7 +147,7 @@ func Coordinator(namespace string) *CoordinatorConfig {
 				WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)). // TODO(burgerdev): this should be RETAIN for released coordinators.
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}).
-				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator", "prometheus.io/scrape": "true"}).
+				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
 				WithSpec(PodSpec().
 					WithRuntimeClassName(runtimeHandler).
 					WithContainers(
@@ -170,9 +170,6 @@ func Coordinator(namespace string) *CoordinatorConfig {
 								ContainerPort().
 									WithName("meshapi").
 									WithContainerPort(7777),
-								ContainerPort().
-									WithName("prometheus").
-									WithContainerPort(9102),
 							).
 							WithReadinessProbe(Probe().
 								WithInitialDelaySeconds(1).

@@ -19,6 +19,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	metricsPortEnvVar = "CONTRAST_METRICS_PORT"
+)
+
 func main() {
 	if err := run(); err != nil {
 		os.Exit(1)
@@ -43,6 +47,8 @@ func run() (retErr error) {
 		return fmt.Errorf("setting up mount: %w", err)
 	}
 
+	metricsPort := os.Getenv(metricsPortEnvVar)
+
 	caInstance, err := ca.New()
 	if err != nil {
 		return fmt.Errorf("creating CA: %w", err)
@@ -57,7 +63,13 @@ func run() (retErr error) {
 	eg := errgroup.Group{}
 
 	eg.Go(func() error {
-		logger.Info("Starting prometheus /metrics endpoint")
+		if metricsPort == "" {
+			return nil
+		}
+		if metricsPort == userapi.Port || metricsPort == meshapi.Port {
+			return fmt.Errorf("invalid port for metrics endpoint: %s", metricsPort)
+		}
+		logger.Info("Starting prometheus /metrics endpoint on port " + metricsPort)
 		mux := http.NewServeMux()
 		mux.Handle("/metrics", promhttp.InstrumentMetricHandler(
 			promRegistry, promhttp.HandlerFor(
@@ -65,7 +77,7 @@ func run() (retErr error) {
 				promhttp.HandlerOpts{Registry: promRegistry},
 			),
 		))
-		if err := http.ListenAndServe(":9102", mux); err != nil {
+		if err := http.ListenAndServe(":"+metricsPort, mux); err != nil {
 			return fmt.Errorf("serving Prometheus endpoint: %w", err)
 		}
 		return nil
