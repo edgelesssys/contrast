@@ -11,5 +11,5 @@ runs:
   steps:
     - name: Update versions.json
       shell: bash
-      runs: |
+      run: |
         VERSION=${{ inputs.version }} ./.github/actions/update_versions_json/update_versions.sh
