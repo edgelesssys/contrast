@@ -114,7 +114,6 @@ jobs:
 
   update-main:
     name: Update main branch
-    if: ${{ inputs.kind == 'minor' }} # TODO: remove to also run on patch and check in steps that only are needed in minor manually
     runs-on: ubuntu-22.04
     needs: [process-inputs, release]
     permissions:
@@ -142,6 +141,7 @@ jobs:
           git config --global user.name "edgelessci"
           git config --global user.email "edgelessci@users.noreply.github.com"
       - name: Create docs release
+        if: ${{ inputs.kind == 'minor' }}
         working-directory: contrast-main/docs
         run: |
           nix run .#yarn install
@@ -151,6 +151,7 @@ jobs:
           # Clean up auxiliary files, so next steps run on a clean tree
           git clean -fx :/
       - name: Bump flake version to post release patch pre-version
+        if: ${{ inputs.kind == 'minor' }}
         id: bump
         uses: ./contrast-working/.github/actions/bump_version # Run action from working branch!
         with:
@@ -158,10 +159,14 @@ jobs:
           working-directory: contrast-main
           commit: false
       - name: Update versions.json
+        id: versions_update
         working-directory: contrast-main
         run: |
           cp -f ../contrast-working/versions.json .
-          git commit -am "ci: release ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }} versions.json update"
+          commit_msg="ci: update versions.json with ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
+          git add versions.json
+          git commit -m "$commit_msg"
+          echo "commit-msg=$commit_msg" | tee -a "$GITHUB_OUTPUT"
       - name: Create PR
         uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
         with:
@@ -169,7 +174,7 @@ jobs:
           body: |
             Updating main as part of the ${{ needs.process-inputs.outputs.WITHOUT_V }} release.
             Only merge after the release is published.
-          commit-message: ${{ steps.bump.outputs.commit-msg }}
+          commit-message: ${{ steps.bump.result == 'skipped' && steps.versions_update.outputs.commit-msg || steps.bump.outputs.commit-msg }}
           base: main
           draft: false
           labels: "no changelog"
