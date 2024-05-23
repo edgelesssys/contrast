@@ -39,9 +39,8 @@ func TestOpenSSL(t *testing.T) {
 	resources, err := kuberesource.OpenSSL()
 	require.NoError(t, err)
 
-	coordinator := kuberesource.Coordinator("").DeploymentApplyConfiguration
-	coordinatorService := kuberesource.ServiceForDeployment(coordinator)
-	resources = append(resources, coordinator, coordinatorService)
+	coordinator := kuberesource.CoordinatorBundle()
+	resources = append(resources, coordinator...)
 
 	resources = kuberesource.AddPortForwarders(resources)
 

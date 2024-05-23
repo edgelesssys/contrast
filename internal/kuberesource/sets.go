@@ -10,9 +10,8 @@ import (
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
-// CoordinatorRelease will generate the Coordinator deployment YAML that is published
-// as release artifact with a pre-generated policy (which is not contained in this function).
-func CoordinatorRelease() ([]any, error) {
+// CoordinatorBundle returns the Coordinator and a matching Service.
+func CoordinatorBundle() []any {
 	coordinator := Coordinator("").DeploymentApplyConfiguration
 	coordinatorService := ServiceForDeployment(coordinator).
 		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
@@ -22,7 +21,7 @@ func CoordinatorRelease() ([]any, error) {
 		coordinatorService,
 	}
 
-	return resources, nil
+	return resources
 }
 
 // Runtime returns a set of resources for registering and installing the runtime.
