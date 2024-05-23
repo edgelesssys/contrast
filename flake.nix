@@ -57,8 +57,14 @@
         demo = pkgs.mkShell rec {
           packages = [];
 
+          json = builtins.fromJSON (builtins.readFile ./versions.json);
+
           # fetch the required contrast sources
-          version = "v0.5.1";
+          version = builtins.readFile ./version.txt;
+
+          # select the correct hashes
+          contrastHash = builtins.elemAt (builtins.filter (a: a.version == version) json.contrast) 0
+
           contrast = pkgs.fetchurl {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/contrast";
             hash = "sha256-bxUIis/6uKTdqOa/uILLGOs0M2XqMkrq371EfnwsvtQ=";
