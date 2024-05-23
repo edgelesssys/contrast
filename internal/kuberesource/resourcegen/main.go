@@ -31,11 +31,7 @@ func main() {
 		var err error
 		switch set {
 		case "coordinator":
-			c := kuberesource.Coordinator("").DeploymentApplyConfiguration
-			s := kuberesource.ServiceForDeployment(c)
-			subResources, err = []any{c, s}, nil
-		case "coordinator-release":
-			subResources, err = kuberesource.CoordinatorRelease()
+			subResources = kuberesource.CoordinatorBundle()
 		case "runtime":
 			subResources, err = kuberesource.Runtime()
 		case "openssl":
