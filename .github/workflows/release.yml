@@ -267,7 +267,8 @@ jobs:
           version: "${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
       - name: Commit new versions.json
         run: |
-          git commit -am "release: update versions.json"
+          git add versions.json
+          git commit -m "release: update versions.json"
       - name: Create draft release
         uses: softprops/action-gh-release@69320dbe05506a9a39fc8ae11030b214ec2d1f87 # v2.0.5
         with:
