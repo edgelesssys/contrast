@@ -114,7 +114,6 @@ func AddPortForwarders(resources []any) []any {
 
 // AddLoadBalancers adds a load balancer to each Service resource.
 func AddLoadBalancers(resources []any) []any {
-	// "contrast.edgeless.systems/expose-service":"true"
 	var out []any
 	for _, resource := range resources {
 		switch obj := resource.(type) {
@@ -130,7 +129,6 @@ func AddLoadBalancers(resources []any) []any {
 
 // AddLogging modifies Contrast Coordinators among the resources to enable debug logging.
 func AddLogging(resources []any, level string) []any {
-	// "contrast.edgeless.systems/pod-role": "coordinator"
 	for _, resource := range resources {
 		switch r := resource.(type) {
 		case *applyappsv1.DeploymentApplyConfiguration:
