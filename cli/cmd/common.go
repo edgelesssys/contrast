@@ -21,6 +21,7 @@ const (
 	workloadOwnerPEM     = "workload-owner.pem"
 	manifestFilename     = "manifest.json"
 	settingsFilename     = "settings.json"
+	seedSharesFilename   = "seed-shares.json"
 	rulesFilename        = "rules.rego"
 	verifyDir            = "./verify"
 	cacheDirEnv          = "CONTRAST_CACHE_DIR"
