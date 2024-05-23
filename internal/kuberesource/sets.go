@@ -5,10 +5,8 @@ package kuberesource
 
 import (
 	"fmt"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
-	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
@@ -540,101 +538,4 @@ func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 	}
 
 	return resources, nil
-}
-
-// PatchImages replaces images in a set of resources.
-func PatchImages(resources []any, replacements map[string]string) []any {
-	for _, resource := range resources {
-		switch r := resource.(type) {
-		case *applyappsv1.DeploymentApplyConfiguration:
-			for i := 0; i < len(r.Spec.Template.Spec.InitContainers); i++ {
-				if replacement, ok := replacements[*r.Spec.Template.Spec.InitContainers[i].Image]; ok {
-					r.Spec.Template.Spec.InitContainers[i].Image = &replacement
-				}
-			}
-			for i := 0; i < len(r.Spec.Template.Spec.Containers); i++ {
-				if replacement, ok := replacements[*r.Spec.Template.Spec.Containers[i].Image]; ok {
-					r.Spec.Template.Spec.Containers[i].Image = &replacement
-				}
-			}
-		case *applyappsv1.DaemonSetApplyConfiguration:
-			for i := 0; i < len(r.Spec.Template.Spec.InitContainers); i++ {
-				if replacement, ok := replacements[*r.Spec.Template.Spec.InitContainers[i].Image]; ok {
-					r.Spec.Template.Spec.InitContainers[i].Image = &replacement
-				}
-			}
-			for i := 0; i < len(r.Spec.Template.Spec.Containers); i++ {
-				if replacement, ok := replacements[*r.Spec.Template.Spec.Containers[i].Image]; ok {
-					r.Spec.Template.Spec.Containers[i].Image = &replacement
-				}
-			}
-		case *applycorev1.PodApplyConfiguration:
-			for i := 0; i < len(r.Spec.Containers); i++ {
-				if replacement, ok := replacements[*r.Spec.Containers[i].Image]; ok {
-					r.Spec.Containers[i].Image = &replacement
-				}
-			}
-		}
-	}
-	return resources
-}
-
-// PatchNamespaces replaces namespaces in a set of resources.
-func PatchNamespaces(resources []any, namespace string) []any {
-	var nsPtr *string
-	if namespace != "" {
-		nsPtr = &namespace
-	}
-	for _, resource := range resources {
-		switch r := resource.(type) {
-		case *applycorev1.PodApplyConfiguration:
-			r.Namespace = nsPtr
-		case *applyappsv1.DeploymentApplyConfiguration:
-			r.Namespace = nsPtr
-		case *applyappsv1.DaemonSetApplyConfiguration:
-			r.Namespace = nsPtr
-		case *applycorev1.ServiceApplyConfiguration:
-			r.Namespace = nsPtr
-		case *applycorev1.ServiceAccountApplyConfiguration:
-			r.Namespace = nsPtr
-		}
-	}
-	return resources
-}
-
-// PatchServiceMeshAdminInterface activates the admin interface on the
-// specified port for all Service Mesh components in a set of resources.
-func PatchServiceMeshAdminInterface(resources []any, port int32) []any {
-	for _, resource := range resources {
-		switch r := resource.(type) {
-		case *applyappsv1.DeploymentApplyConfiguration:
-			for i := 0; i < len(r.Spec.Template.Spec.InitContainers); i++ {
-				// TODO(davidweisse): find service mesh containers by unique name as specified in RFC 005.
-				if strings.Contains(*r.Spec.Template.Spec.InitContainers[i].Image, "service-mesh-proxy") {
-					r.Spec.Template.Spec.InitContainers[i] = *r.Spec.Template.Spec.InitContainers[i].
-						WithEnv(NewEnvVar("EDG_ADMIN_PORT", fmt.Sprint(port))).
-						WithPorts(
-							ContainerPort().
-								WithName("admin-interface").
-								WithContainerPort(port),
-						)
-					ingressProxyConfig := false
-					for j, env := range r.Spec.Template.Spec.InitContainers[i].Env {
-						if *env.Name == "EDG_INGRESS_PROXY_CONFIG" {
-							ingressProxyConfig = true
-							env.WithValue(fmt.Sprintf("%s##admin#%d#true", *env.Value, port))
-							r.Spec.Template.Spec.InitContainers[i].Env[j] = env
-							break
-						}
-					}
-					if !ingressProxyConfig {
-						r.Spec.Template.Spec.InitContainers[i].WithEnv(
-							NewEnvVar("EDG_INGRESS_PROXY_CONFIG", fmt.Sprintf("admin#%d#true", port)),
-						)
-					}
-				}
-			}
-		}
-	}
-	return resources
 }
