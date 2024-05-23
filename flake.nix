@@ -61,15 +61,15 @@
           version = "v0.5.1";
           contrast = pkgs.fetchurl {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/contrast";
-            hash = "";
+            hash = "sha256-bxUIis/6uKTdqOa/uILLGOs0M2XqMkrq371EfnwsvtQ=";
           };
           coordinator = pkgs.fetchurl {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator.yml";
-            hash = "";
+            hash = "sha256-W4K5UJYwBXGxLZ4EJVymHW+Zoc57rDLHfCbQIFic03E=";
           };
           emojivoto = pkgs.fetchzip {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/emojivoto-demo.zip";
-            hash = "";
+            hash = "sha256-MGmN/6lPvGvbrXXvI1z8eUx2qsE8f5NewjTP4Jk5l6U=";
           };
 
           shellHook = ''
