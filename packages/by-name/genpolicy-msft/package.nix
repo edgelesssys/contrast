@@ -3,8 +3,9 @@
 
 { lib
 , fetchFromGitHub
-, fetchurl
+, fetchpatch
 , applyPatches
+, stdenvNoCC
 , rustPlatform
 , openssl
 , pkg-config
@@ -24,6 +25,17 @@ rustPlatform.buildRustPackage rec {
     rev = "refs/tags/${version}";
     hash = "sha256-W36RJFf0MVRIBV4ahpv6pqdAwgRYrlqmu4Y/8qiILS8=";
   };
+
+  patches = [
+    # TODO(burgerdev): drop after Microsoft ported https://github.com/kata-containers/kata-containers/pull/9706
+    (fetchpatch {
+      name = "genpolicy_device_support.patch";
+      url = "https://github.com/kata-containers/kata-containers/commit/f61b43777834f097fcca26864ee634125d9266ef.patch";
+      sha256 = "sha256-wBOyrFY4ZdWBjF5bIrHm7CFy6lVclcvwhF85wXpFZoc=";
+    })
+  ];
+
+  patchFlags = [ "-p4" ];
 
   sourceRoot = "${src.name}/src/tools/genpolicy";
 
@@ -49,14 +61,16 @@ rustPlatform.buildRustPackage rec {
   '';
 
   passthru = rec {
-    settings = fetchurl {
+    settings = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-settings";
-      # TODO(burgerdev): see whether future releases contain this file as an asset again (not true for 3.2.0.azl1).
-      url = "https://raw.githubusercontent.com/microsoft/kata-containers/${version}/src/tools/genpolicy/genpolicy-settings.json";
-      hash = "sha256-jrhzDqesm16yCV3aex48c2OcEimCUrxwhoaJUtAMPvo=";
-      downloadToTemp = true;
-      recursiveHash = true;
-      postFetch = "install -D $downloadedFile $out/genpolicy-settings.json";
+      inherit src sourceRoot patches patchFlags;
+
+      phases = [ "unpackPhase" "patchPhase" "installPhase" ];
+      installPhase = ''
+        runHook preInstall
+        install -D genpolicy-settings.json $out/genpolicy-settings.json
+        runHook postInstall
+      '';
     };
 
     # Settings that allow exec into CVM pods - not safe for production use!
@@ -65,14 +79,16 @@ rustPlatform.buildRustPackage rec {
       patches = [ ./genpolicy_msft_settings_dev.patch ];
     };
 
-    rules = fetchurl {
+    rules = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-rules";
-      # TODO(burgerdev): see whether future releases contain this file as an asset again (not true for 3.2.0.azl1).
-      url = "https://raw.githubusercontent.com/microsoft/kata-containers/${version}/src/tools/genpolicy/rules.rego";
-      hash = "sha256-fhE5hDND5QeZtEw3u+qgSVsFO+00cc41k/r/Y+km6TU=";
-      downloadToTemp = true;
-      recursiveHash = true;
-      postFetch = "install -D $downloadedFile $out/genpolicy-rules.rego";
+      inherit src sourceRoot patches patchFlags;
+
+      phases = [ "unpackPhase" "patchPhase" "installPhase" ];
+      installPhase = ''
+        runHook preInstall
+        install -D rules.rego $out/genpolicy-rules.rego
+        runHook postInstall
+      '';
     };
 
     rules-coordinator = applyPatches {
