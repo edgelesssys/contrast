@@ -155,6 +155,11 @@ jobs:
         with:
           name: versions-json
           path: ./contrast-main/packages/versions.json
+      - name: Commit versions.json
+        working-directory: contrast-main
+        run: |
+          git add ./packages/versions.json
+          git commit -m "ci: update versions.json with ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
       - name: Bump flake version to post release patch pre-version
         if: ${{ inputs.kind == 'minor' }}
         id: bump
@@ -261,11 +266,6 @@ jobs:
         uses: ./.github/actions/update_versions_json
         with:
           version: "${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
-      - name: Commit versions.json
-        shell: bash
-        run: |
-          git add ./packages/versions.json
-          git commit -m "ci: update versions.json with ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
       - name: Upload versions.json
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
