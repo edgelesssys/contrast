@@ -61,7 +61,7 @@ buildGoModule rec {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-13g631l3vb4CZqH2f4Woxu/FTde59TI8YGjETHsbV2g=";
+  vendorHash = "sha256-OPu9jrv9rcSg95mpTyxxxVBv/DBDsxbuxAejvAvFXCw=";
 
   subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
 
