@@ -256,13 +256,13 @@
 
       # `update` appends a new version entry to a given section.
       function update {
-          out=$(jq --arg NAME "$1" --arg HASH "$2" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' versions.json || exit 1) 
-          echo "$out" > versions.json
+          out=$(jq --arg NAME "$1" --arg HASH "$2" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' ./packages/versions.json || exit 1) 
+          echo "$out" > ./packages/versions.json
       }
 
       # `check_for_version` checks if the given entry already contains a version.
       function check_for_version {
-        out=$(jq --arg NAME "$1" --arg VERSION "$VERSION" '.[$NAME] | map(select(.version == $VERSION))' versions.json || exit 1)
+        out=$(jq --arg NAME "$1" --arg VERSION "$VERSION" '.[$NAME] | map(select(.version == $VERSION))' ./packages/versions.json || exit 1)
         if [[ ! "$out" = "[]" ]]; then
           echo "[x] Version $VERSION exists for entry $1"
           exit 1
@@ -289,7 +289,7 @@
       fi
 
       # declare an associative array that pairs the field name
-      # in ./versions.json with the path to the file
+      # in ./packages/versions.json with the path to the file
       declare -A fields
       fields["contrast"]="./workspace/contrast-to-hash"
       fields["coordinator.yml"]="./workspace/coordinator.yml"
@@ -309,15 +309,15 @@
         hash=''$(create_hash "$file")
         echo "      $hash"
 
-        echo "[*] Updating ./versions.json for $field"
+        echo "[*] Updating ./packages/versions.json for $field"
         update "$field" "$hash"
 
         echo ""
       done
 
-      echo "[*] Formatting ./versions.json"
-      out=$(jq --indent 2 . versions.json) 
-      echo "$out" > versions.json
+      echo "[*] Formatting ./packages/versions.json"
+      out=$(jq --indent 2 . ./packages/versions.json) 
+      echo "$out" > ./packages/versions.json
 
       echo "::endgroup::"
     '';
