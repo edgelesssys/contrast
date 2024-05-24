@@ -150,14 +150,6 @@ jobs:
           git commit -am "docs: release ${{ needs.process-inputs.outputs.MAJOR_MINOR }}"
           # Clean up auxiliary files, so next steps run on a clean tree
           git clean -fx :/
-      - name: Bump flake version to post release patch pre-version
-        if: ${{ inputs.kind == 'minor' }}
-        id: bump
-        uses: ./contrast-working/.github/actions/bump_version # Run action from working branch!
-        with:
-          version: ${{ needs.process-inputs.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
-          working-directory: contrast-main
-          commit: false
       - name: Update versions.json
         id: versions_update
         working-directory: contrast-main
@@ -166,7 +158,14 @@ jobs:
           commit_msg="ci: update versions.json with ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
           git add versions.json
           git commit -m "$commit_msg"
-          echo "commit-msg=$commit_msg" | tee -a "$GITHUB_OUTPUT"
+      - name: Bump flake version to post release patch pre-version
+        if: ${{ inputs.kind == 'minor' }}
+        id: bump
+        uses: ./contrast-working/.github/actions/bump_version # Run action from working branch!
+        with:
+          version: ${{ needs.process-inputs.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
+          working-directory: contrast-main
+          commit: false
       - name: Create PR
         uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
         with:
@@ -174,7 +173,7 @@ jobs:
           body: |
             Updating main as part of the ${{ needs.process-inputs.outputs.WITHOUT_V }} release.
             Only merge after the release is published.
-          commit-message: ${{ steps.bump.result == 'skipped' && steps.versions_update.outputs.commit-msg || steps.bump.outputs.commit-msg }}
+          commit-message: ${{ steps.bump.outputs.commit-msg }}
           base: main
           draft: false
           labels: "no changelog"
