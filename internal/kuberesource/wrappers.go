@@ -61,6 +61,30 @@ func DaemonSetSpec() *DaemonSetSpecConfig {
 	return &DaemonSetSpecConfig{applyappsv1.DaemonSetSpec()}
 }
 
+// StatefulSetConfig wraps applyappsv1.StatefulSetApplyConfiguration.
+type StatefulSetConfig struct {
+	*applyappsv1.StatefulSetApplyConfiguration
+}
+
+// StatefulSet creates a new StatefulSetConfig.
+func StatefulSet(name, namespace string) *StatefulSetConfig {
+	s := applyappsv1.StatefulSet(name, namespace)
+	if namespace == "" && s.ObjectMetaApplyConfiguration != nil {
+		s.ObjectMetaApplyConfiguration.Namespace = nil
+	}
+	return &StatefulSetConfig{s}
+}
+
+// StatefulSetSpecConfig wraps applyappsv1.StatefulSetSpecApplyConfiguration.
+type StatefulSetSpecConfig struct {
+	*applyappsv1.StatefulSetSpecApplyConfiguration
+}
+
+// StatefulSetSpec creates a new StatefulSetSpecConfig.
+func StatefulSetSpec() *StatefulSetSpecConfig {
+	return &StatefulSetSpecConfig{applyappsv1.StatefulSetSpec()}
+}
+
 // PodConfig wraps applyappsv1.PodApplyConfiguration.
 type PodConfig struct {
 	*applycorev1.PodApplyConfiguration

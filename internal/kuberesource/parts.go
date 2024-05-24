@@ -215,6 +215,33 @@ func ServiceForDeployment(d *applyappsv1.DeploymentApplyConfiguration) *applycor
 	return s
 }
 
+// ServiceForStatefulSet creates a service for a StatefulSet by exposing the configured ports
+// of the first container.
+func ServiceForStatefulSet(s *applyappsv1.StatefulSetApplyConfiguration) *applycorev1.ServiceApplyConfiguration {
+	selector := s.Spec.Selector.MatchLabels
+	ports := s.Spec.Template.Spec.Containers[0].Ports
+
+	var ns string
+	if s.Namespace != nil {
+		ns = *s.Namespace
+	}
+	svc := Service(*s.Name, ns).
+		WithSpec(ServiceSpec().
+			WithSelector(selector),
+		)
+
+	for _, p := range ports {
+		svc.Spec.WithPorts(
+			ServicePort().
+				WithName(*p.Name).
+				WithPort(*p.ContainerPort).
+				WithTargetPort(intstr.FromInt32(*p.ContainerPort)),
+		)
+	}
+
+	return svc
+}
+
 // PortForwarderForService creates a Pod that forwards network traffic to the given service.
 //
 // Port forwarders are named "port-forwarder-SVCNAME" and forward the first port in the ServiceSpec.

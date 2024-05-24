@@ -146,6 +146,8 @@ func PatchNamespaces(resources []any, namespace string) []any {
 			r.Namespace = nsPtr
 		case *applyappsv1.DaemonSetApplyConfiguration:
 			r.Namespace = nsPtr
+		case *applyappsv1.StatefulSetApplyConfiguration:
+			r.Namespace = nsPtr
 		case *applycorev1.ServiceApplyConfiguration:
 			r.Namespace = nsPtr
 		case *applycorev1.ServiceAccountApplyConfiguration:
