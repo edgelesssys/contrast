@@ -99,7 +99,7 @@ func AddLoadBalancers(resources []any) []any {
 func AddLogging(resources []any, level string) []any {
 	for _, resource := range resources {
 		switch r := resource.(type) {
-		case *applyappsv1.DeploymentApplyConfiguration:
+		case *applyappsv1.StatefulSetApplyConfiguration:
 			if r.Spec.Template.Annotations["contrast.edgeless.systems/pod-role"] == "coordinator" {
 				r.Spec.Template.Spec.Containers[0].WithEnv(
 					NewEnvVar("CONTRAST_LOG_LEVEL", level),

@@ -150,7 +150,7 @@ func (ct *ContrastTest) Set(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
-	require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "coordinator"))
+	require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "coordinator"))
 
 	coordinator, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-coordinator", "1313")
 	require.NoError(err)
@@ -178,7 +178,7 @@ func (ct *ContrastTest) Verify(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
-	require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "coordinator"))
+	require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "coordinator"))
 
 	coordinator, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-coordinator", "1313")
 	require.NoError(err)
