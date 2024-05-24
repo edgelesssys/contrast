@@ -25,18 +25,16 @@ func CoordinatorBundle() []any {
 }
 
 // Runtime returns a set of resources for registering and installing the runtime.
-func Runtime() ([]any, error) {
+func Runtime() []any {
 	ns := ""
 
 	runtimeClass := ContrastRuntimeClass().RuntimeClassApplyConfiguration
 	nodeInstaller := NodeInstaller(ns).DaemonSetApplyConfiguration
 
-	resources := []any{
+	return []any{
 		runtimeClass,
 		nodeInstaller,
 	}
-
-	return resources, nil
 }
 
 // OpenSSL returns a set of resources for testing with OpenSSL.
