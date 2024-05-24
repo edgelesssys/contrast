@@ -9,8 +9,8 @@ function create_hash {
 
 # `update` appends a new version entry to a given section.
 function update {
-  out=$(jq --arg NAME "$1" --arg HASH "$2" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' ./packages/versions.json || exit 1) 
-  echo "$out" > ./packages/versions.json
+  out=$(jq --arg NAME "$1" --arg HASH "$2" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' ./packages/versions.json || exit 1)
+  echo "$out" >./packages/versions.json
 }
 
 # `check_for_version` checks if the given entry already contains a version.
@@ -49,11 +49,9 @@ fields["coordinator.yml"]="./workspace/coordinator.yml"
 fields["runtime.yml"]="./workspace/runtime.yml"
 fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
 
-
-for field in "${!fields[@]}"
-do
+for field in "${!fields[@]}"; do
   # check if any field contains the given version
-  check_for_version "$field" 
+  check_for_version "$field"
 
   # get the file path
   file=${fields["$field"]}
@@ -69,7 +67,7 @@ do
 done
 
 echo "[*] Formatting ./packages/versions.json"
-out=$(jq --indent 2 . ./packages/versions.json) 
-echo "$out" > ./packages/versions.json
+out=$(jq --indent 2 . ./packages/versions.json)
+echo "$out" >./packages/versions.json
 
 echo "::endgroup::"
