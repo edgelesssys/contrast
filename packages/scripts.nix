@@ -316,7 +316,8 @@
       done
 
       echo "[*] Formatting ./versions.json"
-      jq --indent 2 . versions.json | tee versions.json > /dev/null
+      out=$(jq --indent 2 . versions.json) 
+      echo "$out" > versions.json
 
       echo "::endgroup::"
     '';
