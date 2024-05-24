@@ -1,3 +1,6 @@
+# Copyright 2024 Edgeless Systems GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
 # `create_hash` creates a hash for a given file.
 function create_hash {
   nix hash file --sri --type sha256 "$1" || exit 1
