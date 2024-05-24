@@ -256,9 +256,7 @@
 
       # `update` appends a new version entry to a given section.
       function update {
-        echo $(
-          jq --arg NAME "$1" --arg HASH "$2" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' versions.json || exit 1
-        ) > ./versions.json
+          jq --arg NAME "$1" --arg HASH "$2" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' versions.json > versions.json
       }
 
       # `check_for_version` checks if the given entry already contains a version.
@@ -280,7 +278,7 @@
 
       # copy contrast from the symlink to be able to hash it
       if [[ -L "./result-cli/bin/contrast" ]]; then
-        cp $(readlink ./result-cli/bin/contrast) ./workspace/contrast-to-hash
+        cp "$(readlink ./result-cli/bin/contrast)" ./workspace/contrast-to-hash
       else
         cp ./result-cli/bin/contrast ./workspace/contrast-to-hash
       fi
