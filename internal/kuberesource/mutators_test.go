@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
+	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
 func TestPatchNamespaces(t *testing.T) {
 	coordinator := CoordinatorBundle()
-	openssl, err := OpenSSL()
-	require.NoError(t, err)
+	openssl := OpenSSL()
 	emojivoto, err := Emojivoto(ServiceMeshIngressEgress)
 	require.NoError(t, err)
 
@@ -58,4 +59,23 @@ func TestPatchNamespaces(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAddInitializer(t *testing.T) {
+	require := require.New(t)
+	d := applyappsv1.Deployment("test", "default").
+		WithSpec(applyappsv1.DeploymentSpec().
+			WithTemplate(applycorev1.PodTemplateSpec().
+				WithSpec(applycorev1.PodSpec().
+					WithContainers(applycorev1.Container()))))
+
+	AddInitializer(d, Initializer())
+
+	require.NotEmpty(d.Spec.Template.Spec.InitContainers)
+	require.NotEmpty(d.Spec.Template.Spec.InitContainers[0].VolumeMounts)
+	require.NotEmpty(d.Spec.Template.Spec.Containers)
+	require.NotEmpty(d.Spec.Template.Spec.Containers[0].VolumeMounts)
+	require.NotEmpty(d.Spec.Template.Spec.Volumes)
+	require.Equal(*d.Spec.Template.Spec.Volumes[0].Name, *d.Spec.Template.Spec.InitContainers[0].VolumeMounts[0].Name)
+	require.Equal(*d.Spec.Template.Spec.Volumes[0].Name, *d.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name)
 }

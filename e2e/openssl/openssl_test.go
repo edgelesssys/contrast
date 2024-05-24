@@ -36,8 +36,7 @@ var imageReplacements map[string]string
 func TestOpenSSL(t *testing.T) {
 	ct := contrasttest.New(t, imageReplacements)
 
-	resources, err := kuberesource.OpenSSL()
-	require.NoError(t, err)
+	resources := kuberesource.OpenSSL()
 
 	coordinator := kuberesource.CoordinatorBundle()
 	resources = append(resources, coordinator...)
