@@ -154,7 +154,7 @@ jobs:
         uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e #v4.1.7
         with:
           name: versions-json
-          path: ./contrast-main/versions.json
+          path: ./contrast-main/packages/versions.json
       - name: Bump flake version to post release patch pre-version
         if: ${{ inputs.kind == 'minor' }}
         id: bump
@@ -265,7 +265,7 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: versions-json
-          path: ./versions.json
+          path: ./packages/versions.json
       - name: Create draft release
         uses: softprops/action-gh-release@69320dbe05506a9a39fc8ae11030b214ec2d1f87 # v2.0.5
         with:
