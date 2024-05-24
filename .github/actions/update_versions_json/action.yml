@@ -12,4 +12,4 @@ runs:
     - name: Update versions.json
       shell: bash
       run: |
-        VERSION=${{ inputs.version }} ./.github/actions/update_versions_json/update_versions.sh
+        VERSION=${{ inputs.version }} nix run ".#scripts.update-versions-json"
