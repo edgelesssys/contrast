@@ -37,11 +37,11 @@ func main() {
 		case "openssl":
 			subResources = kuberesource.OpenSSL()
 		case "emojivoto":
-			subResources, err = kuberesource.Emojivoto(kuberesource.ServiceMeshDisabled)
+			subResources = kuberesource.Emojivoto(kuberesource.ServiceMeshDisabled)
 		case "emojivoto-sm-ingress":
-			subResources, err = kuberesource.Emojivoto(kuberesource.ServiceMeshIngressEgress)
+			subResources = kuberesource.Emojivoto(kuberesource.ServiceMeshIngressEgress)
 		case "emojivoto-sm-egress":
-			subResources, err = kuberesource.Emojivoto(kuberesource.ServiceMeshEgress)
+			subResources = kuberesource.Emojivoto(kuberesource.ServiceMeshEgress)
 		default:
 			log.Fatalf("Error: unknown set: %s\n", set)
 		}

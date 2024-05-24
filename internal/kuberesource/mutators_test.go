@@ -14,8 +14,7 @@ import (
 func TestPatchNamespaces(t *testing.T) {
 	coordinator := CoordinatorBundle()
 	openssl := OpenSSL()
-	emojivoto, err := Emojivoto(ServiceMeshIngressEgress)
-	require.NoError(t, err)
+	emojivoto := Emojivoto(ServiceMeshIngressEgress)
 
 	for _, tc := range []struct {
 		name string
@@ -78,4 +77,19 @@ func TestAddInitializer(t *testing.T) {
 	require.NotEmpty(d.Spec.Template.Spec.Volumes)
 	require.Equal(*d.Spec.Template.Spec.Volumes[0].Name, *d.Spec.Template.Spec.InitContainers[0].VolumeMounts[0].Name)
 	require.Equal(*d.Spec.Template.Spec.Volumes[0].Name, *d.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name)
+}
+
+func TestAddServiceMesh(t *testing.T) {
+	require := require.New(t)
+	d := applyappsv1.Deployment("test", "default").
+		WithSpec(applyappsv1.DeploymentSpec().
+			WithTemplate(applycorev1.PodTemplateSpec().
+				WithSpec(applycorev1.PodSpec().
+					WithContainers(applycorev1.Container()))))
+
+	smProxy := ServiceMeshProxy()
+	AddServiceMesh(d, smProxy)
+
+	require.NotEmpty(d.Spec.Template.Spec.InitContainers)
+	require.Equal(d.Spec.Template.Spec.InitContainers[0], *smProxy)
 }
