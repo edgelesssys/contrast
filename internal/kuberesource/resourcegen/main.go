@@ -33,7 +33,7 @@ func main() {
 		case "coordinator":
 			subResources = kuberesource.CoordinatorBundle()
 		case "runtime":
-			subResources, err = kuberesource.Runtime()
+			subResources = kuberesource.Runtime()
 		case "openssl":
 			subResources = kuberesource.OpenSSL()
 		case "emojivoto":

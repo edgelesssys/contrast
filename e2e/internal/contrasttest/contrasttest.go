@@ -226,9 +226,7 @@ func (ct *ContrastTest) commonArgs() []string {
 func (ct *ContrastTest) installRuntime(t *testing.T) {
 	require := require.New(t)
 
-	resources, err := kuberesource.Runtime()
-	require.NoError(err)
-
+	resources := kuberesource.Runtime()
 	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
 
