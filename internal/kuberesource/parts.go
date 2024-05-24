@@ -129,14 +129,15 @@ func (p *PortForwarderConfig) WithForwardTarget(host string, port int32) *PortFo
 
 // CoordinatorConfig wraps applyappsv1.DeploymentApplyConfiguration for a coordinator.
 type CoordinatorConfig struct {
-	*applyappsv1.DeploymentApplyConfiguration
+	*applyappsv1.StatefulSetApplyConfiguration
 }
 
 // Coordinator constructs a new CoordinatorConfig.
 func Coordinator(namespace string) *CoordinatorConfig {
-	c := Deployment("coordinator", namespace).
-		WithSpec(DeploymentSpec().
+	c := StatefulSet("coordinator", namespace).
+		WithSpec(StatefulSetSpec().
 			WithReplicas(1).
+			WithServiceName("coordinator").
 			WithSelector(LabelSelector().
 				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}),
 			).
@@ -181,11 +182,6 @@ func Coordinator(namespace string) *CoordinatorConfig {
 func (c *CoordinatorConfig) WithImage(image string) *CoordinatorConfig {
 	c.Spec.Template.Spec.Containers[0].WithImage(image)
 	return c
-}
-
-// GetDeploymentConfig returns the DeploymentConfig of the coordinator.
-func (c *CoordinatorConfig) GetDeploymentConfig() *DeploymentConfig {
-	return &DeploymentConfig{c.DeploymentApplyConfiguration}
 }
 
 // ServiceForDeployment creates a service for a deployment by exposing the configured ports

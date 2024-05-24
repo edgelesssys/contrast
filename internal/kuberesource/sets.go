@@ -12,8 +12,8 @@ import (
 
 // CoordinatorBundle returns the Coordinator and a matching Service.
 func CoordinatorBundle() []any {
-	coordinator := Coordinator("").DeploymentApplyConfiguration
-	coordinatorService := ServiceForDeployment(coordinator).
+	coordinator := Coordinator("").StatefulSetApplyConfiguration
+	coordinatorService := ServiceForStatefulSet(coordinator).
 		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
 
 	resources := []any{
