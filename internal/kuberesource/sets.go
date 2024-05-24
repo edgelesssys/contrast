@@ -40,7 +40,7 @@ func Runtime() ([]any, error) {
 }
 
 // OpenSSL returns a set of resources for testing with OpenSSL.
-func OpenSSL() ([]any, error) {
+func OpenSSL() []any {
 	ns := ""
 
 	backend := Deployment("openssl-backend", ns).
@@ -77,10 +77,7 @@ func OpenSSL() ([]any, error) {
 			),
 		)
 
-	backend, err := AddInitializer(backend, Initializer())
-	if err != nil {
-		return nil, err
-	}
+	AddInitializer(backend, Initializer())
 
 	backendService := ServiceForDeployment(backend)
 
@@ -106,10 +103,7 @@ func OpenSSL() ([]any, error) {
 				),
 			),
 		)
-	client, err = AddInitializer(client, Initializer())
-	if err != nil {
-		return nil, err
-	}
+	AddInitializer(client, Initializer())
 
 	frontend := Deployment("openssl-frontend", ns).
 		WithSpec(DeploymentSpec().
@@ -144,10 +138,7 @@ func OpenSSL() ([]any, error) {
 				),
 			),
 		)
-	frontend, err = AddInitializer(frontend, Initializer())
-	if err != nil {
-		return nil, err
-	}
+	AddInitializer(frontend, Initializer())
 
 	frontendService := ServiceForDeployment(frontend)
 
@@ -159,7 +150,7 @@ func OpenSSL() ([]any, error) {
 		frontendService,
 	}
 
-	return resources, nil
+	return resources
 }
 
 // GetDEnts returns a set of resources for testing getdents entry limits.
@@ -294,10 +285,7 @@ func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 				),
 			),
 		)
-	emoji, err := AddInitializer(emoji, Initializer())
-	if err != nil {
-		return nil, err
-	}
+	AddInitializer(emoji, Initializer())
 
 	emojiService := ServiceForDeployment(emoji).
 		WithName("emoji-svc").
@@ -401,10 +389,7 @@ func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 				),
 			),
 		)
-	voting, err = AddInitializer(voting, Initializer())
-	if err != nil {
-		return nil, err
-	}
+	AddInitializer(voting, Initializer())
 
 	votingService := ServiceForDeployment(voting).
 		WithName("voting-svc").
@@ -479,11 +464,9 @@ func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 				),
 			),
 		)
-	web, err = AddInitializer(web, Initializer())
-	if err != nil {
-		return nil, err
-	}
+	AddInitializer(web, Initializer())
 
+	var err error
 	if smProxyEmoji != nil {
 		emoji, err = AddServiceMesh(emoji, smProxyEmoji, smMode)
 		if err != nil {

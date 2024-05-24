@@ -35,7 +35,7 @@ func main() {
 		case "runtime":
 			subResources, err = kuberesource.Runtime()
 		case "openssl":
-			subResources, err = kuberesource.OpenSSL()
+			subResources = kuberesource.OpenSSL()
 		case "emojivoto":
 			subResources, err = kuberesource.Emojivoto(kuberesource.ServiceMeshDisabled)
 		case "emojivoto-sm-ingress":
