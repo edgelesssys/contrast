@@ -4,7 +4,6 @@
 package kuberesource
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -55,36 +54,17 @@ const (
 	ServiceMeshDisabled serviceMeshMode = "service-mesh-disabled"
 )
 
-// AddServiceMesh adds a service mesh proxy to a deployment.
+// AddServiceMesh adds a service mesh proxy to the resource.
+//
+// If the resource does not contain a PodSpec, this function does nothing.
+// This function is not idempotent.
 func AddServiceMesh(
-	deployment *applyappsv1.DeploymentApplyConfiguration,
+	resource any,
 	serviceMeshProxy *applycorev1.ContainerApplyConfiguration,
-	mode serviceMeshMode,
-) (*applyappsv1.DeploymentApplyConfiguration, error) {
-	if mode == ServiceMeshDisabled {
-		return deployment, nil
-	}
-	if serviceMeshProxy == nil {
-		return nil, errors.New("serviceMeshProxy is nil")
-	}
-	if deployment == nil {
-		return nil, errors.New("deployment is nil")
-	}
-	if deployment.Spec == nil {
-		return nil, errors.New("deployment.Spec is nil")
-	}
-	if deployment.Spec.Template == nil {
-		return nil, errors.New("deployment.Spec.Template is nil")
-	}
-	if deployment.Spec.Template.Spec == nil {
-		return nil, errors.New("deployment.Spec.Template.Spec is nil")
-	}
-
-	// Add the proxy as an init container.
-	deployment.Spec.Template.Spec.WithInitContainers(
-		serviceMeshProxy,
-	)
-	return deployment, nil
+) any {
+	return MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+		return spec.WithInitContainers(serviceMeshProxy)
+	})
 }
 
 // AddPortForwarders adds a port-forwarder for each Service resource.

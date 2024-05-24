@@ -30,8 +30,7 @@ var imageReplacements map[string]string
 func TestIngressEgress(t *testing.T) {
 	ct := contrasttest.New(t, imageReplacements)
 
-	resources, err := kuberesource.Emojivoto(kuberesource.ServiceMeshIngressEgress)
-	require.NoError(t, err)
+	resources := kuberesource.Emojivoto(kuberesource.ServiceMeshIngressEgress)
 
 	coordinator := kuberesource.CoordinatorBundle()
 	resources = append(resources, coordinator...)

@@ -182,7 +182,7 @@ func GetDEnts() ([]any, error) {
 }
 
 // Emojivoto returns resources for deploying Emojivoto application.
-func Emojivoto(smMode serviceMeshMode) ([]any, error) {
+func Emojivoto(smMode serviceMeshMode) []any {
 	ns := ""
 	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost string
 	smProxyEmoji := ServiceMeshProxy()
@@ -466,26 +466,6 @@ func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 		)
 	AddInitializer(web, Initializer())
 
-	var err error
-	if smProxyEmoji != nil {
-		emoji, err = AddServiceMesh(emoji, smProxyEmoji, smMode)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if smProxyWeb != nil {
-		web, err = AddServiceMesh(web, smProxyWeb, smMode)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if smProxyVoting != nil {
-		voting, err = AddServiceMesh(voting, smProxyVoting, smMode)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	webService := ServiceForDeployment(web).
 		WithName("web-svc").
 		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"}).
@@ -519,5 +499,19 @@ func Emojivoto(smMode serviceMeshMode) ([]any, error) {
 		webserviceAccount,
 	}
 
-	return resources, nil
+	if smMode == ServiceMeshDisabled {
+		return resources
+	}
+
+	if smProxyEmoji != nil {
+		AddServiceMesh(emoji, smProxyEmoji)
+	}
+	if smProxyWeb != nil {
+		AddServiceMesh(web, smProxyWeb)
+	}
+	if smProxyVoting != nil {
+		AddServiceMesh(voting, smProxyVoting)
+	}
+
+	return resources
 }
