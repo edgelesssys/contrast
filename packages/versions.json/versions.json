@@ -1,0 +1,114 @@
+{
+  "contrast": [
+    {
+      "version": "v0.2.0",
+      "hash": "sha256-cGyWvUmL/rbjX3Bu1OPGTZlk5PgVW/O0qdo9KmZPo+U="
+    },
+    {
+      "version": "v0.3.0",
+      "hash": "sha256-8yVZLhwf2bsWIMxSAqXUKDNCjltCSGA6bwrXTi+cJB0="
+    },
+    {
+      "version": "v0.4.0",
+      "hash": "sha256-mc0Wqej8yfj1hPFi78JQykFUqHP/ckNX6Fn6B5w2tDI="
+    },
+    {
+      "version": "v0.4.1",
+      "hash": "sha256-cF0H85j2BAREoO0MUINGMT+IHH2CRmH+JPUGGTDA9iw="
+    },
+    {
+      "version": "v0.5.0",
+      "hash": "sha256-X/t9DP858cLpYM4a9ic+DHVOH8N0tu2nfiYbQCzjaZE="
+    },
+    {
+      "version": "v0.5.1",
+      "hash": "sha256-bxUIis/6uKTdqOa/uILLGOs0M2XqMkrq371EfnwsvtQ="
+    },
+    {
+      "version": "v0.6.0",
+      "hash": "sha256-7SNMImiEQijTsMnFaKvmQ9TYQdLa2IaDYmtd13+atfw="
+    },
+    {
+      "version": "v0.6.1",
+      "hash": "sha256-wkFrKsnoTfoe+iKM3GwJShLdLzdgwl5S+3RToGdMdUg="
+    },
+    {
+      "version": "0.6.2",
+      "hash": "sha256-+dOqclNjh1tH/c+4jiS9XKrlxeORyp9ui4kyBf0oP5Y="
+    }
+  ],
+  "coordinator.yml": [
+    {
+      "version": "v0.2.0",
+      "hash": "sha256-ONhHX1xibrk5/yGb2Xpa9iIZCcWskfKCKAV4MZX8daQ="
+    },
+    {
+      "version": "v0.3.0",
+      "hash": "sha256-gvg+uVymlTGLWSC/AQEGGOMF6sOOZMl2sII65jmqeNo="
+    },
+    {
+      "version": "v0.4.0",
+      "hash": "sha256-V/fIBbLWgQTw9DZ2hjJo5kOXe3sKHxh31BmHgGwGpP0="
+    },
+    {
+      "version": "v0.4.1",
+      "hash": "sha256-8b4FNpn33DUs3YYsVAPE6UWoWjudS+aBhiT/178Ro/E="
+    },
+    {
+      "version": "v0.5.0",
+      "hash": "sha256-ElqH1he+uR5sMJUmkAccBQVbdDTN1SRIs24JMJx6wng="
+    },
+    {
+      "version": "v0.5.1",
+      "hash": "sha256-W4K5UJYwBXGxLZ4EJVymHW+Zoc57rDLHfCbQIFic03E="
+    },
+    {
+      "version": "v0.6.0",
+      "hash": "sha256-cha10mx7+1vE86pDxwJNZpcPiDMkSZVapT2P9HdivuA="
+    },
+    {
+      "version": "v0.6.1",
+      "hash": "sha256-Y8SOqsFnknDM8j/bsjLgkEjyLtONUE68SWIWG566QE8="
+    },
+    {
+      "version": "0.6.2",
+      "hash": "sha256-N0eh57KjdaZtO0cZ+vngddfJh3FJefjVaC0eToRD0JM="
+    }
+  ],
+  "emojivoto-demo.zip": [
+    {
+      "version": "v0.5.0",
+      "hash": "sha256-HyhjEfX6YPOw+HogHkxsK6URV+L7rysl6Y6Le+2yBY4="
+    },
+    {
+      "version": "v0.5.1",
+      "hash": "sha256-ts1vjBkWMdUUz4yKQpbVOkVoLHgD2HI2H+hvk5JySZI="
+    },
+    {
+      "version": "v0.6.0",
+      "hash": "sha256-9FGXVk0faiLN3fA/ATPAqJTleyb3yLdw+fyYMzYuR3g="
+    },
+    {
+      "version": "v0.6.1",
+      "hash": "sha256-gkORMN5x9L5QdSSdszaeij57PHkxY12ZpqZ7Ud6VrIg="
+    },
+    {
+      "version": "0.6.2",
+      "hash": "sha256-EcjlH3nj3gbaz72mRx13aid5dw7lG4OZY5Au/s2kC+E="
+    }
+  ],
+  "runtime.yml": [
+    {
+      "version": "v0.6.0",
+      "hash": "sha256-SjLzuO6JPIjMPF7XZuxAJ2eH4TYjum/xZLM+L6NA9Xo="
+    },
+    {
+      "version": "v0.6.1",
+      "hash": "sha256-7A/r68T8BlYeTgMQtrCUqR/+dQlwFimeGz+7JSxAT4w="
+    },
+    {
+      "version": "0.6.2",
+      "hash": "sha256-gOyhN3MKlOW4qg6EYJcaCWugSg3jKZALiLsXslX1ZC8="
+    }
+  ]
+}
