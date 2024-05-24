@@ -146,9 +146,56 @@ func (c *Kubeclient) WaitForDaemonset(ctx context.Context, namespace, name strin
 			// Fetch and print debug information.
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
-			pods, err := c.PodsFromDaemonSet(ctx, namespace, name) //nolint:contextcheck // The parent context expired.
+			pods, err := c.PodsFromOwner(ctx, namespace, "DaemonSet", name) //nolint:contextcheck // The parent context expired.
 			if err != nil {
 				logger.Error("could not fetch pods for daemonset", "name", name, "error", err)
+				return ctx.Err()
+			}
+			for _, pod := range pods {
+				if !isPodReady(&pod) {
+					logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
+				}
+			}
+		}
+	}
+}
+
+// WaitForStatefulSet watches the given StatefulSet and blocks until the desired number of pods are
+// ready or the context expires (is cancelled or times out).
+func (c *Kubeclient) WaitForStatefulSet(ctx context.Context, namespace, name string) error {
+	watcher, err := c.client.AppsV1().StatefulSets(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+	if err != nil {
+		return err
+	}
+	for {
+		select {
+		case evt := <-watcher.ResultChan():
+			switch evt.Type {
+			case watch.Added:
+				fallthrough
+			case watch.Modified:
+				set, ok := evt.Object.(*appsv1.StatefulSet)
+				if !ok {
+					return fmt.Errorf("watcher received unexpected type %T", evt.Object)
+				}
+				if set.Status.AvailableReplicas >= *set.Spec.Replicas {
+					return nil
+				}
+			default:
+				return fmt.Errorf("unexpected watch event while waiting for daemonset %s/%s: %#v", namespace, name, evt.Object)
+			}
+		case <-ctx.Done():
+			logger := c.log.With("namespace", namespace)
+			logger.Error("statefulset did not become ready", "name", name, "contextErr", ctx.Err())
+			if ctx.Err() != context.DeadlineExceeded {
+				return ctx.Err()
+			}
+			// Fetch and print debug information.
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			pods, err := c.PodsFromOwner(ctx, namespace, "StatefulSet", name) //nolint:contextcheck // The parent context expired.
+			if err != nil {
+				logger.Error("could not fetch pods for statefulset", "name", name, "error", err)
 				return ctx.Err()
 			}
 			for _, pod := range pods {
