@@ -57,6 +57,10 @@ func newMeshAPIServer(meshAuth *meshAuthority, caGetter certChainGetter, reg *pr
 		grpcprometheus.WithServerCounterOptions(
 			grpcprometheus.WithSubsystem("meshapi"),
 		),
+		grpcprometheus.WithServerHandlingTimeHistogram(
+			grpcprometheus.WithHistogramSubsystem("meshapi"),
+			grpcprometheus.WithHistogramBuckets([]float64{0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2.5, 5}),
+		),
 	)
 
 	grpcServer := grpc.NewServer(

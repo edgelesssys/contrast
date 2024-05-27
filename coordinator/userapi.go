@@ -58,6 +58,10 @@ func newUserAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, reg 
 		grpcprometheus.WithServerCounterOptions(
 			grpcprometheus.WithSubsystem("userapi"),
 		),
+		grpcprometheus.WithServerHandlingTimeHistogram(
+			grpcprometheus.WithHistogramSubsystem("userapi"),
+			grpcprometheus.WithHistogramBuckets([]float64{0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2.5, 5}),
+		),
 	)
 
 	manifestGeneration := promauto.With(reg).NewGauge(prometheus.GaugeOpts{
