@@ -18,7 +18,7 @@ The Coordinator starts two gRPC servers, one for the user API on port `1313` and
 one for the mesh API on port `7777`. Metrics for both servers can be accessed
 using different prefixes.
 
-All metric names for the user API are prefixed with `userapi_grpc_server_`.
+All metric names for the user API are prefixed with `contrast_userapi_grpc_server_`.
 Exposed metrics include the number of  handled requests of the methods
 `SetManifest` and `GetManifest`, which get called when [setting the
 manifest](../deployment#set-the-manifest) and [verifying the
@@ -26,15 +26,15 @@ Coordinator](../deployment#verify-the-coordinator) respectively. For each method
 you can see the gRPC status code indicating whether the request succeeded or
 not and the request latency.
 
-For the mesh API, the metric names are prefixed with `meshapi_grpc_server_`. The
+For the mesh API, the metric names are prefixed with `contrast_meshapi_grpc_server_`. The
 metrics include similar data to the user API for the method `NewMeshCert` which
 gets called by the [Initializer](../components#the-initializer) when starting a
 new workload. Attestation failures from workloads to the Coordinator can be
-tracked with the counter `meshapi_attestation_failures`.
+tracked with the counter `contrast_meshapi_attestation_failures`.
 
 The current manifest generation is exposed as a
 [gauge](https://prometheus.io/docs/concepts/metric_types/#gauge) with the metric
-name `coordinator_manifest_generation`. If no manifest is set at the
+name `contrast_coordinator_manifest_generation`. If no manifest is set at the
 Coordinator, this counter will be zero.
 
 ## Service Mesh metrics
