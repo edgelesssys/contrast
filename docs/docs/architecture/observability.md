@@ -24,7 +24,7 @@ Exposed metrics include the number of  handled requests of the methods
 manifest](../deployment#set-the-manifest) and [verifying the
 Coordinator](../deployment#verify-the-coordinator) respectively. For each method
 you can see the gRPC status code indicating whether the request succeeded or
-not.
+not and the request latency.
 
 For the mesh API, the metric names are prefixed with `meshapi_grpc_server_`. The
 metrics include similar data to the user API for the method `NewMeshCert` which
