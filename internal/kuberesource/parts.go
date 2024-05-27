@@ -6,6 +6,7 @@ package kuberesource
 import (
 	"strconv"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -141,6 +142,9 @@ func Coordinator(namespace string) *CoordinatorConfig {
 			WithSelector(LabelSelector().
 				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}),
 			).
+			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
+				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
+				WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)). // TODO(burgerdev): this should be RETAIN for released coordinators.
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}).
 				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator", "prometheus.io/scrape": "true"}).
@@ -150,6 +154,10 @@ func Coordinator(namespace string) *CoordinatorConfig {
 						Container().
 							WithName("coordinator").
 							WithImage("ghcr.io/edgelesssys/contrast/coordinator:latest").
+							WithVolumeDevices(applycorev1.VolumeDevice().
+								WithName("state-device").
+								WithDevicePath("/dev/csi0"),
+							).
 							WithPorts(
 								ContainerPort().
 									WithName("userapi").
@@ -170,6 +178,15 @@ func Coordinator(namespace string) *CoordinatorConfig {
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(100),
 							),
+					),
+				),
+			).
+			WithVolumeClaimTemplates(applycorev1.PersistentVolumeClaim("state-device", namespace).
+				WithSpec(applycorev1.PersistentVolumeClaimSpec().
+					WithVolumeMode(corev1.PersistentVolumeBlock).
+					WithAccessModes(corev1.ReadWriteOnce).
+					WithResources(applycorev1.VolumeResourceRequirements().
+						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
 					),
 				),
 			),
