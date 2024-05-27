@@ -1,0 +1,162 @@
+diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
+index 04c88429c..4616551d1 100644
+--- a/src/tools/genpolicy/src/daemon_set.rs
++++ b/src/tools/genpolicy/src/daemon_set.rs
+@@ -140,4 +140,13 @@ impl yaml::K8sResource for DaemonSet {
+         }
+         false
+     }
++
++    fn get_runtime_class_name(&self) -> Option<String> {
++        self.spec
++            .template
++            .spec
++            .runtimeClassName
++            .clone()
++            .or_else(|| Some(String::new()))
++    }
+ }
+diff --git a/src/tools/genpolicy/src/deployment.rs b/src/tools/genpolicy/src/deployment.rs
+index 45b80c83f..2296bc9eb 100644
+--- a/src/tools/genpolicy/src/deployment.rs
++++ b/src/tools/genpolicy/src/deployment.rs
+@@ -138,4 +138,13 @@ impl yaml::K8sResource for Deployment {
+         }
+         false
+     }
++
++    fn get_runtime_class_name(&self) -> Option<String> {
++        self.spec
++            .template
++            .spec
++            .runtimeClassName
++            .clone()
++            .or_else(|| Some(String::new()))
++    }
+ }
+diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
+index c89772993..c7a6ffb29 100644
+--- a/src/tools/genpolicy/src/pod.rs
++++ b/src/tools/genpolicy/src/pod.rs
+@@ -46,7 +46,7 @@ pub struct PodSpec {
+     restartPolicy: Option<String>,
+
+     #[serde(skip_serializing_if = "Option::is_none")]
+-    runtimeClassName: Option<String>,
++    pub runtimeClassName: Option<String>,
+
+     #[serde(skip_serializing_if = "Option::is_none")]
+     pub initContainers: Option<Vec<Container>>,
+@@ -755,5 +755,12 @@ impl yaml::K8sResource for Pod {
+         }
+         false
+     }
++
++    fn get_runtime_class_name(&self) -> Option<String> {
++        self.spec
++            .runtimeClassName
++            .clone()
++            .or_else(|| Some(String::new()))
++    }
+
+     fn get_process_fields(&self, process: &mut policy::KataProcess) {
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index 87b78adda..75cedcc1a 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -9,6 +9,7 @@
+ use crate::config_map;
+ use crate::containerd;
+ use crate::mount_and_storage;
++use crate::no_policy;
+ use crate::pod;
+ use crate::policy;
+ use crate::registry;
+@@ -374,12 +375,23 @@ impl AgentPolicy {
+         let mut resources = Vec::new();
+         let yaml_contents = yaml::get_input_yaml(&config.yaml_file)?;
+
+-        for document in serde_yaml::Deserializer::from_str(&yaml_contents) {
++        for document in serde_yaml::Deserializer::from_str(&yaml_contents) {
+             let doc_mapping = Value::deserialize(document)?;
+             if doc_mapping != Value::Null {
+                 let yaml_string = serde_yaml::to_string(&doc_mapping)?;
+                 let silent = config.silent_unsupported_fields;
+                 let (mut resource, kind) = yaml::new_k8s_resource(&yaml_string, silent)?;
++
++                // Filter out resources that don't match the runtime class name.
++                if let Some(resource_runtime_name) = resource.get_runtime_class_name() {
++                    if !config.runtime_class_names.is_empty() &&
++                       !config.runtime_class_names.iter().any(|prefix| resource_runtime_name.starts_with(prefix)) {
++                        resource = boxed::Box::new(no_policy::NoPolicyResource { yaml: yaml_string });
++                        resources.push(resource);
++                        continue;
++                    }
++                }
++
+                 resource.init(config, &doc_mapping, silent).await;
+
+                 // ConfigMap and Secret documents contain additional input for policy generation.
+diff --git a/src/tools/genpolicy/src/stateful_set.rs b/src/tools/genpolicy/src/stateful_set.rs
+index 5b078eaf5..1c712002b 100644
+--- a/src/tools/genpolicy/src/stateful_set.rs
++++ b/src/tools/genpolicy/src/stateful_set.rs
+@@ -185,6 +185,15 @@ impl yaml::K8sResource for StatefulSet {
+         }
+         false
+     }
++
++    fn get_runtime_class_name(&self) -> Option<String> {
++        self.spec
++            .template
++            .spec
++            .runtimeClassName
++            .clone()
++            .or_else(|| Some(String::new()))
++    }
+ }
+
+ impl StatefulSet {
+diff --git a/src/tools/genpolicy/src/utils.rs b/src/tools/genpolicy/src/utils.rs
+index fc9547951..dfbaf39ba 100644
+--- a/src/tools/genpolicy/src/utils.rs
++++ b/src/tools/genpolicy/src/utils.rs
+@@ -82,3 +82,9 @@ struct CommandLineOptions {
+     containerd_socket_path: Option<String>,
++
++    #[clap(
++        long,
++        help = "If specified, resources that have a runtimeClassName field defined will only receive a policy if the parameter is a prefix one of the given runtime class names."
++    )]
++    runtime_class_names: Vec<String>,
+
+     #[clap(short, long, help = "Print version information and exit")]
+@@ -89,5 +96,6 @@ struct CommandLineOptions {
+ pub struct Config {
+     pub use_cache: bool,
++    pub runtime_class_names: Vec<String>,
+
+     pub yaml_file: Option<String>,
+     pub rego_rules_path: String,
+@@ -121,5 +129,6 @@ impl Config {
+         Self {
+             use_cache: args.use_cached_files,
++            runtime_class_names: args.runtime_class_names,
+             yaml_file: args.yaml_file,
+             rego_rules_path: args.rego_rules_path,
+             settings,
+diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
+index 6b7bf0065..5b02af085 100644
+--- a/src/tools/genpolicy/src/yaml.rs
++++ b/src/tools/genpolicy/src/yaml.rs
+@@ -90,6 +90,10 @@ pub trait K8sResource {
+     fn use_sandbox_pidns(&self) -> bool {
+         panic!("Unsupported");
+     }
++
++    fn get_runtime_class_name(&self) -> Option<String> {
++        None
++    }
+ }
+
+ /// See Reference / Kubernetes API / Common Definitions / LabelSelector.
