@@ -45,7 +45,7 @@ func newMeshAPIServer(meshAuth *meshAuthority, caGetter certChainGetter, reg *pr
 	kdsGetter := snp.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter"))
 
 	attestationFailuresCounter := promauto.With(reg).NewCounter(prometheus.CounterOpts{
-		Subsystem: "meshapi",
+		Subsystem: "contrast_meshapi",
 		Name:      "attestation_failures",
 		Help:      "Number of attestation failures from workloads to the Coordinator.",
 	})
@@ -55,10 +55,10 @@ func newMeshAPIServer(meshAuth *meshAuthority, caGetter certChainGetter, reg *pr
 
 	grpcMeshAPIMetrics := grpcprometheus.NewServerMetrics(
 		grpcprometheus.WithServerCounterOptions(
-			grpcprometheus.WithSubsystem("meshapi"),
+			grpcprometheus.WithSubsystem("contrast_meshapi"),
 		),
 		grpcprometheus.WithServerHandlingTimeHistogram(
-			grpcprometheus.WithHistogramSubsystem("meshapi"),
+			grpcprometheus.WithHistogramSubsystem("contrast_meshapi"),
 			grpcprometheus.WithHistogramBuckets([]float64{0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2.5, 5}),
 		),
 	)
