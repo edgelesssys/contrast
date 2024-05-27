@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-491/assets/css/styles.5da1b699.css">
-<script src="/contrast/pr-preview/pr-491/assets/js/runtime~main.07b2fe50.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-491/assets/js/runtime~main.a572a264.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-491/assets/js/main.b4a49b8b.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -24,10 +24,7 @@ identify problems in the gRPC layer or attestation errors. Prometheus metrics
 are numerical values associated with a name and additional key/values pairs,
 called labels.</p>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="exposed-metrics">Exposed metrics<a href="#exposed-metrics" class="hash-link" aria-label="Direct link to Exposed metrics" title="Direct link to Exposed metrics">​</a></h2>
-<p>The Coordinator pod has the annotation <code>prometheus.io/scrape</code> set to <code>true</code> so
-it can be found by the <a href="https://prometheus.io/docs/prometheus/latest/configuration/configuration/#kubernetes_sd_config" target="_blank" rel="noopener noreferrer">service discovery of
-Prometheus</a>.
-The metrics can be accessed at the Coordinator pod at the port specified in the
+<p>The metrics can be accessed at the Coordinator pod at the port specified in the
 <code>EDG_METRICS_PORT</code> environment variable under the <code>/metrics</code> endpoint. By
 default, this environment variable isn&#x27;t specified, hence no metrics will be
 exposed.</p>
@@ -44,7 +41,8 @@ not.</p>
 <p>For the mesh API, the metric names are prefixed with <code>meshapi_grpc_server_</code>. The
 metrics include similar data to the user API for the method <code>NewMeshCert</code> which
 gets called by the <a href="/contrast/pr-preview/pr-491/next/components#the-initializer">Initializer</a> when starting a
-new workload.</p>
+new workload. Attestation failures from workloads to the Coordinator can be
+tracked with the counter <code>meshapi_attestation_failures</code>.</p>
 <p>The current manifest generation is exposed as a
 <a href="https://prometheus.io/docs/concepts/metric_types/#gauge" target="_blank" rel="noopener noreferrer">gauge</a> with the metric
 name <code>coordinator_manifest_generation</code>. If no manifest is set at the
