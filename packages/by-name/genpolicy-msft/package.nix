@@ -33,6 +33,7 @@ rustPlatform.buildRustPackage rec {
       url = "https://github.com/kata-containers/kata-containers/commit/f61b43777834f097fcca26864ee634125d9266ef.patch";
       sha256 = "sha256-wBOyrFY4ZdWBjF5bIrHm7CFy6lVclcvwhF85wXpFZoc=";
     })
+    ./genpolicy_msft_runtime_class_filter.patch
   ];
 
   patchFlags = [ "-p4" ];

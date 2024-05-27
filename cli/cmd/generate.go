@@ -368,6 +368,7 @@ func generatePolicyForFile(ctx context.Context, genpolicyPath, regoPath, policyP
 	args := []string{
 		"--raw-out",
 		"--use-cached-files",
+		fmt.Sprintf("--runtime-class-names=%s", "contrast-cc"),
 		fmt.Sprintf("--rego-rules-path=%s", regoPath),
 		fmt.Sprintf("--json-settings-path=%s", policyPath),
 		fmt.Sprintf("--yaml-file=%s", yamlPath),
