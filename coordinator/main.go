@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -37,6 +38,10 @@ func run() (retErr error) {
 	}()
 
 	logger.Info("Coordinator started")
+
+	if err := setupMount(context.Background(), logger); err != nil {
+		return fmt.Errorf("setting up mount: %w", err)
+	}
 
 	caInstance, err := ca.New()
 	if err != nil {

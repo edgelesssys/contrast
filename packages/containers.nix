@@ -33,7 +33,13 @@ let
     coordinator = dockerTools.buildImage {
       name = "coordinator";
       tag = "v${pkgs.contrast.version}";
-      copyToRoot = with dockerTools; [ caCertificates ];
+      copyToRoot = (with pkgs; [
+        util-linux
+        e2fsprogs
+        coreutils
+      ]) ++ (with dockerTools; [
+        caCertificates
+      ]);
       config = {
         Cmd = [ "${pkgs.contrast.coordinator}/bin/coordinator" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
