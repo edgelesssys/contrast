@@ -56,19 +56,19 @@ spec:
     spec:
       runtimeClassName: contrast-cc
       initContainers:
-        - name: initializer
+        - name: contrast-initializer
           image: "ghcr.io/edgelesssys/contrast/initializer@sha256:..."
           env:
             - name: COORDINATOR_HOST
               value: coordinator
           volumeMounts:
-            - name: tls-certs
+            - name: contrast-tls-certs-volume
               mountPath: /tls-config
         - name: sidecar
           image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy@sha256:..."
           restartPolicy: Always
           volumeMounts:
-            - name: tls-certs
+            - name: contrast-tls-certs-volume
               mountPath: /tls-config
           env:
             - name: EDG_INGRESS_PROXY_CONFIG
@@ -87,10 +87,10 @@ spec:
             - containerPort: 7890
               name: metrics
           volumeMounts:
-            - name: tls-certs
+            - name: contrast-tls-certs-volume
               mountPath: /tls-config
       volumes:
-        - name: tls-certs
+        - name: contrast-tls-certs-volume
           emptyDir: {}
 ```
 
@@ -128,19 +128,19 @@ spec:
     spec:
       runtimeClassName: contrast-cc
       initContainers:
-        - name: initializer
+        - name: contrast-initializer
           image: "ghcr.io/edgelesssys/contrast/initializer@sha256:..."
           env:
             - name: COORDINATOR_HOST
               value: coordinator
           volumeMounts:
-            - name: tls-certs
+            - name: contrast-tls-certs-volume
               mountPath: /tls-config
         - name: sidecar
           image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy@sha256:..."
           restartPolicy: Always
           volumeMounts:
-            - name: tls-certs
+            - name: contrast-tls-certs-volume
               mountPath: /tls-config
           env:
             - name: EDG_EGRESS_PROXY_CONFIG
@@ -154,9 +154,9 @@ spec:
         - name: currency-conversion
           image: ghcr.io/edgelesssys/conversion:v1.2.3@...
           volumeMounts:
-            - name: tls-certs
+            - name: contrast-tls-certs-volume
               mountPath: /tls-config
       volumes:
-        - name: tls-certs
+        - name: contrast-tls-certs-volume
           emptyDir: {}
 ```

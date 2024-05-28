@@ -39,7 +39,7 @@ Here is a proposed way to do this that optimizes for the common case where most 
 To make `contrast generate` idempotent and handle potential edge cases, we will implement the following behavior:
 
 1. *Container name conflict:*
-   - Use a highly unique name for the initializer container, like `contrast-initializer-container.` This virtually eliminates the chances of name conflicts with user containers.
+   - Use a highly unique name for the initializer container, like `contrast-initializer.` This virtually eliminates the chances of name conflicts with user containers.
    - If an `initContainer` with the same unique name already exists, overwrite it with the current version of the Contrast initializer.
    - If no matching `initContainer` is found, inject a new one using the current version of the Contrast initializer and the unique name.
    - If other `initContainers` exist, insert the Contrast initializer as the first one in the list.

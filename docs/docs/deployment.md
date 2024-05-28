@@ -67,22 +67,22 @@ To specify that a workload (pod, deployment, etc.) should be deployed as confide
 add `runtimeClassName: contrast-cc` to the pod spec (pod definition or template).
 This is a placeholder name that will be replaced by a versioned `runtimeClassName` when generating policies.
 In addition, add the Contrast Initializer as `initContainers` to these workloads and configure the
-workload to use the certificates written to a `volumeMount` named `tls-certs`.
+workload to use the certificates written to a `volumeMount` named `contrast-tls-certs-volume`.
 
 ```yaml
 spec: # v1.PodSpec
   runtimeClassName: contrast-cc
   initContainers:
-  - name: initializer
+  - name: contrast-initializer
     image: "ghcr.io/edgelesssys/contrast/initializer:latest"
     env:
     - name: COORDINATOR_HOST
       value: coordinator
     volumeMounts:
-    - name: tls-certs
+    - name: contrast-tls-certs-volume
       mountPath: /tls-config
   volumes:
-  - name: tls-certs
+  - name: contrast-tls-certs-volume
     emptyDir: {}
 ```
 
@@ -120,7 +120,7 @@ spec: # v1.PodSpec
     - name: EDG_EGRESS_PROXY_CONFIG
       value: "backend#127.0.0.2:4001#backend.default:4001"
     volumeMounts:
-    - name: tls-certs
+    - name: contrast-tls-certs-volume
       mountPath: /tls-config
 ```
 
