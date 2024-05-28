@@ -6,7 +6,7 @@
 , writeTextFile
 }:
 
-python3.pkgs.buildPythonApplication rec {
+python3.pkgs.buildPythonApplication {
   pname = "igvm-signing-keygen";
   version = "1.5.0";
   pyproject = true;

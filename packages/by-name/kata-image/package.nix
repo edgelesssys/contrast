@@ -23,6 +23,7 @@
 , closureInfo
 , erofs-utils
 }:
+
 let
   kata-version = "3.2.0.azl1";
   src = fetchFromGitHub {
@@ -110,6 +111,7 @@ let
     text = builtins.readFile ./buildimage.sh;
   };
 in
+
 stdenv.mkDerivation rec {
   inherit src;
   pname = "kata-image";

@@ -6,7 +6,7 @@
 , contrast
 }:
 
-buildGoModule rec {
+buildGoModule {
   pname = "contrast-node-installer";
   inherit (contrast) version;
 
@@ -22,8 +22,8 @@ buildGoModule rec {
       fileset = fileset.unions [
         (path.append root "go.mod")
         (path.append root "go.sum")
-        (lib.fileset.fileFilter (file: lib.hasSuffix ".toml" file.name) root)
-        (lib.fileset.fileFilter (file: lib.hasSuffix ".go" file.name) root)
+        (fileset.fileFilter (file: hasSuffix ".toml" file.name) root)
+        (fileset.fileFilter (file: hasSuffix ".go" file.name) root)
       ];
     };
 

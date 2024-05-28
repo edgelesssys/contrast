@@ -14,6 +14,7 @@
 , withAgentPolicy ? true
 , withStandardOCIRuntime ? false
 }:
+
 rustPlatform.buildRustPackage rec {
   pname = "kata-agent";
   version = "3.2.0.azl1";

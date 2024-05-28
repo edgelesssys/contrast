@@ -1,26 +1,26 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ pkgs }:
-
-with pkgs;
+{ pkgs
+, writeShellApplication
+}:
 
 {
   create-coco-aks = writeShellApplication {
     name = "create-coco-aks";
-    runtimeInputs = [ azure-cli ];
+    runtimeInputs = with pkgs; [ azure-cli ];
     text = builtins.readFile ./create-coco-aks.sh;
   };
 
   destroy-coco-aks = writeShellApplication {
     name = "destroy-coco-aks";
-    runtimeInputs = [ azure-cli ];
+    runtimeInputs = with pkgs; [ azure-cli ];
     text = builtins.readFile ./destroy-coco-aks.sh;
   };
 
   generate = writeShellApplication {
     name = "generate";
-    runtimeInputs = [
+    runtimeInputs = with pkgs; [
       go
       protobuf
       protoc-gen-go
@@ -56,7 +56,7 @@ with pkgs;
 
   govulncheck = writeShellApplication {
     name = "govulncheck";
-    runtimeInputs = [ go pkgs.govulncheck ];
+    runtimeInputs = with pkgs; [ go govulncheck ];
     text = ''
       exitcode=0
 
@@ -71,7 +71,7 @@ with pkgs;
 
   golangci-lint = writeShellApplication {
     name = "golangci-lint";
-    runtimeInputs = [ go pkgs.golangci-lint ];
+    runtimeInputs = with pkgs; [ go golangci-lint ];
     text = ''
       exitcode=0
 
@@ -89,7 +89,7 @@ with pkgs;
 
   patch-contrast-image-hashes = writeShellApplication {
     name = "patch-contrast-image-hashes";
-    runtimeInputs = [
+    runtimeInputs = with pkgs; [
       crane
       kypatch
       jq
@@ -100,18 +100,18 @@ with pkgs;
       tmpdir=$(mktemp -d)
       trap 'rm -rf $tmpdir' EXIT
 
-      gunzip < "${containers.coordinator}" > "$tmpdir/coordinator.tar"
-      gunzip < "${containers.initializer}" > "$tmpdir/initializer.tar"
-      gunzip < "${containers.openssl}" > "$tmpdir/openssl.tar"
-      gunzip < "${containers.port-forwarder}" > "$tmpdir/port-forwarder.tar"
-      gunzip < "${containers.service-mesh-proxy}" > "$tmpdir/service-mesh-proxy.tar"
+      gunzip < "${pkgs.containers.coordinator}" > "$tmpdir/coordinator.tar"
+      gunzip < "${pkgs.containers.initializer}" > "$tmpdir/initializer.tar"
+      gunzip < "${pkgs.containers.openssl}" > "$tmpdir/openssl.tar"
+      gunzip < "${pkgs.containers.port-forwarder}" > "$tmpdir/port-forwarder.tar"
+      gunzip < "${pkgs.containers.service-mesh-proxy}" > "$tmpdir/service-mesh-proxy.tar"
 
       coordHash=$(crane digest --tarball "$tmpdir/coordinator.tar")
       initHash=$(crane digest --tarball "$tmpdir/initializer.tar")
       opensslHash=$(crane digest --tarball "$tmpdir/openssl.tar")
       forwarderHash=$(crane digest --tarball "$tmpdir/port-forwarder.tar")
       serviceMeshProxyHash=$(crane digest --tarball "$tmpdir/service-mesh-proxy.tar")
-      nodeInstallerHash=$(jq -r '.manifests[0].digest' "${contrast-node-installer-image}/index.json")
+      nodeInstallerHash=$(jq -r '.manifests[0].digest' "${pkgs.contrast-node-installer-image}/index.json")
 
       kypatch images "$targetPath" \
         --replace "contrast/coordinator:latest" "contrast/coordinator@$coordHash" \
@@ -125,7 +125,7 @@ with pkgs;
 
   kubectl-wait-ready = writeShellApplication {
     name = "kubectl-wait-ready";
-    runtimeInputs = [ kubectl ];
+    runtimeInputs = with pkgs; [ kubectl ];
     text = ''
       namespace=$1
       name=$2
@@ -154,7 +154,7 @@ with pkgs;
 
   wait-for-port-listen = writeShellApplication {
     name = "wait-for-port-listen";
-    runtimeInputs = [ iproute2 ];
+    runtimeInputs = with pkgs; [ iproute2 ];
     text = ''
       port=$1
 
@@ -188,7 +188,7 @@ with pkgs;
   # It's intended for two purposes: (1) releasing a portable coordinator.yml and (2) updating the embedded policy hash.
   write-coordinator-yaml = writeShellApplication {
     name = "write-coordinator-policy";
-    runtimeInputs = [
+    runtimeInputs = with pkgs; [
       yq-go
       genpolicy-msft
       contrast
@@ -203,8 +203,8 @@ with pkgs;
       resourcegen --image-replacements "$tmpdir/image-replacements.txt" --add-load-balancers coordinator > "$tmpdir/coordinator_base.yml"
 
       pushd "$tmpdir" >/dev/null
-      cp ${genpolicy-msft.rules-coordinator}/genpolicy-rules.rego rules.rego
-      cp ${genpolicy-msft.settings}/genpolicy-settings.json .
+      cp ${pkgs.genpolicy-msft.rules-coordinator}/genpolicy-rules.rego rules.rego
+      cp ${pkgs.genpolicy-msft.settings}/genpolicy-settings.json .
       genpolicy < "$tmpdir/coordinator_base.yml"
       popd >/dev/null
     '';
@@ -212,7 +212,7 @@ with pkgs;
 
   fetch-latest-contrast = writeShellApplication {
     name = "fetch-latest-contrast";
-    runtimeInputs = [
+    runtimeInputs = with pkgs; [
       jq
       github-cli
       yq-go
@@ -233,7 +233,7 @@ with pkgs;
 
   get-azure-sku-locations = writeShellApplication {
     name = "get-azure-sku-locations";
-    runtimeInputs = [
+    runtimeInputs = with pkgs; [
       azure-cli
       jq
     ];

@@ -9,6 +9,7 @@
   # extraConfig is a set of extra configuration options
 , extraConfig ? { }
 }:
+
 let
   diffIDs = lib.lists.map (layer: builtins.readFile (layer + "/DiffID")) layers;
   config = {
@@ -19,6 +20,7 @@ let
   };
   configJSON = writers.writeJSON "image-config.json" config;
 in
+
 runCommand "oci-image-config"
 {
   buildInputs = [ nix ];

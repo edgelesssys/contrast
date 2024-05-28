@@ -10,6 +10,7 @@
 , pkgsStatic
 , writers
 }:
+
 let
   node-installer = ociLayerTar {
     files = [
@@ -17,8 +18,10 @@ let
       { source = "${pkgsStatic.util-linux}/bin/nsenter"; destination = "/bin/nsenter"; }
     ];
   };
+
   launch-digest = lib.removeSuffix "\n" (builtins.readFile "${runtime-class-files}/launch-digest.hex");
   runtime-handler = lib.removeSuffix "\n" (builtins.readFile "${runtime-class-files}/runtime-handler");
+
   installer-config = ociLayerTar {
     files = [
       {
@@ -36,20 +39,24 @@ let
       }
     ];
   };
+
   kata-container-img = ociLayerTar {
     files = [
       { source = runtime-class-files.rootfs; destination = "/opt/edgeless/share/kata-containers.img"; }
       { source = runtime-class-files.igvm; destination = "/opt/edgeless/share/kata-containers-igvm.img"; }
     ];
   };
+
   cloud-hypervisor = ociLayerTar {
     files = [
       { source = runtime-class-files.cloud-hypervisor-bin; destination = "/opt/edgeless/bin/cloud-hypervisor-snp"; }
     ];
   };
+
   containerd-shim = ociLayerTar {
     files = [{ source = runtime-class-files.containerd-shim-contrast-cc-v2; destination = "/opt/edgeless/bin/containerd-shim-contrast-cc-v2"; }];
   };
+
   manifest = ociImageManifest
     {
       layers = [
@@ -77,8 +84,8 @@ let
         };
       };
     };
-
 in
+
 ociImageLayout {
   manifests = [ manifest ];
 }

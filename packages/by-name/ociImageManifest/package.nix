@@ -16,6 +16,7 @@
   # extraManifest is a set of extra manifest options
 , extraManifest ? { }
 }:
+
 let
   config = ociImageConfig { inherit layers extraConfig; };
   configDescriptor = builtins.fromJSON (builtins.readFile (config + "/media-descriptor.json"));
@@ -29,6 +30,7 @@ let
     layers = layerDescriptors;
   });
 in
+
 runCommand "oci-image-manifest"
 {
   blobDirs = lib.lists.map (layer: layer + "/blobs/sha256") (layers ++ [ config ]);
