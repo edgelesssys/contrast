@@ -6,7 +6,7 @@ toolchain go1.22.2
 
 require (
 	filippo.io/keygen v0.0.0-20230306160926-5201437acf8e
-	github.com/google/go-github/v61 v61.0.0
+	github.com/google/go-github/v62 v62.0.0
 	github.com/google/go-sev-guest v0.11.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
 	github.com/katexochen/sync v0.0.0-20240514113156-35ad50c24f97

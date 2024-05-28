@@ -25,7 +25,7 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
-	"github.com/google/go-github/v61/github"
+	"github.com/google/go-github/v62/github"
 	"github.com/stretchr/testify/require"
 )
 
