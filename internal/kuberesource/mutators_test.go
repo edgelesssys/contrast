@@ -66,9 +66,12 @@ func TestAddInitializer(t *testing.T) {
 		WithSpec(applyappsv1.DeploymentSpec().
 			WithTemplate(applycorev1.PodTemplateSpec().
 				WithSpec(applycorev1.PodSpec().
-					WithContainers(applycorev1.Container()))))
+					WithContainers(applycorev1.Container()).
+					WithRuntimeClassName("contrast-cc"),
+				)))
 
-	AddInitializer(d, Initializer())
+	_, err := AddInitializer(d, Initializer())
+	require.NoError(err)
 
 	require.NotEmpty(d.Spec.Template.Spec.InitContainers)
 	require.NotEmpty(d.Spec.Template.Spec.InitContainers[0].VolumeMounts)

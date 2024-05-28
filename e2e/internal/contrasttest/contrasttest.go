@@ -28,10 +28,11 @@ import (
 // ContrastTest is the Contrast test helper struct.
 type ContrastTest struct {
 	// inputs, usually filled by New()
-	Namespace         string
-	WorkDir           string
-	ImageReplacements map[string]string
-	Kubeclient        *kubeclient.Kubeclient
+	Namespace             string
+	WorkDir               string
+	ImageReplacements     map[string]string
+	ImageReplacementsFile string
+	Kubeclient            *kubeclient.Kubeclient
 
 	// outputs of contrast subcommands
 	coordinatorPolicyHash string
@@ -40,18 +41,23 @@ type ContrastTest struct {
 }
 
 // New creates a new contrasttest.T object bound to the given test.
-func New(t *testing.T, imageReplacements map[string]string) *ContrastTest {
+func New(t *testing.T, imageReplacements string) *ContrastTest {
 	return &ContrastTest{
-		Namespace:         makeNamespace(t),
-		WorkDir:           t.TempDir(),
-		ImageReplacements: imageReplacements,
-		Kubeclient:        kubeclient.NewForTest(t),
+		Namespace:             makeNamespace(t),
+		WorkDir:               t.TempDir(),
+		ImageReplacementsFile: imageReplacements,
+		Kubeclient:            kubeclient.NewForTest(t),
 	}
 }
 
 // Init patches the given resources for the test environment and makes them available to Generate and Set.
 func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	require := require.New(t)
+
+	f, err := os.Open(ct.ImageReplacementsFile)
+	require.NoError(err)
+	ct.ImageReplacements, err = kuberesource.ImageReplacementsFromFile(f)
+	require.NoError(err)
 
 	// If available, acquire a fifo ticket to synchronize cluster access with
 	// other running e2e tests. We request a ticket and wait for our turn.
@@ -112,7 +118,7 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 func (ct *ContrastTest) Generate(t *testing.T) {
 	require := require.New(t)
 
-	args := append(ct.commonArgs(), path.Join(ct.WorkDir, "resources.yaml"))
+	args := append(ct.commonArgs(), "--image-replacements", ct.ImageReplacementsFile, path.Join(ct.WorkDir, "resources.yaml"))
 
 	generate := cmd.NewGenerateCmd()
 	generate.Flags().String("workspace-dir", "", "") // Make generate aware of root flags

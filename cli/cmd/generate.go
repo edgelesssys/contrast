@@ -26,14 +26,16 @@ import (
 	"github.com/edgelesssys/contrast/internal/embedbin"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 
 	"github.com/spf13/cobra"
 )
 
 const (
-	kataPolicyAnnotationKey   = "io.katacontainers.config.agent.policy"
-	contrastRoleAnnotationKey = "contrast.edgeless.systems/pod-role"
+	kataPolicyAnnotationKey      = "io.katacontainers.config.agent.policy"
+	contrastRoleAnnotationKey    = "contrast.edgeless.systems/pod-role"
+	skipInitializerAnnotationKey = "contrast.edgeless.systems/skip-initializer"
 )
 
 // NewGenerateCmd creates the contrast generate subcommand.
@@ -43,10 +45,11 @@ func NewGenerateCmd() *cobra.Command {
 		Short: "generate policies and inject into Kubernetes resources",
 		Long: `Generate policies and inject into the given Kubernetes resources.
 
-This will download the referenced container images to calculate the dm-verity
-hashes of the image layers. In addition, the Rego policy will be used as base
-and updated with the given settings file. For each container workload, the policy
-is added as an annotation to the Kubernetes YAML.
+This will add the Contrast Initializer as an init container to all workloads
+with a contrast-cc runtime and then download the referenced container images to
+calculate the dm-verity hashes of the image layers. In addition, the Rego policy
+will be used as base and updated with the given settings file. For each
+container workload, the policy is added as an annotation to the Kubernetes YAML.
 
 The hashes of the policies are added to the manifest.
 
@@ -62,6 +65,9 @@ subcommands.`,
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringArrayP("workload-owner-key", "w", []string{workloadOwnerPEM}, "path to workload owner key (.pem) file")
 	cmd.Flags().BoolP("disable-updates", "d", false, "prevent further updates of the manifest")
+	cmd.Flags().String("image-replacements", "", "path to image replacements file")
+	cmd.Flags().Bool("skip-initializer", false, "skip injection of Contrast initializer")
+	must(cmd.Flags().MarkHidden("image-replacements"))
 	must(cmd.MarkFlagFilename("policy", "rego"))
 	must(cmd.MarkFlagFilename("settings", "json"))
 	must(cmd.MarkFlagFilename("manifest", "json"))
@@ -88,6 +94,13 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	if err := patchTargets(paths, log); err != nil {
 		return fmt.Errorf("failed to patch targets: %w", err)
 	}
+	if !flags.skipInitializer {
+		if err := injectInitializer(paths, flags.imageReplacementsFile, log); err != nil {
+			return fmt.Errorf("failed to inject initializer: %w", err)
+		}
+		fmt.Fprintln(cmd.OutOrStdout(), "✔️ Injected initializer")
+	}
+
 	if err := generatePolicies(cmd.Context(), flags.policyPath, flags.settingsPath, paths, log); err != nil {
 		return fmt.Errorf("failed to generate policies: %w", err)
 	}
@@ -237,6 +250,55 @@ func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath str
 	return nil
 }
 
+func injectInitializer(paths []string, imageReplacementsFile string, logger *slog.Logger) error {
+	var replacements map[string]string
+	if imageReplacementsFile != "" {
+		f, err := os.Open(imageReplacementsFile)
+		if err != nil {
+			return fmt.Errorf("could not open image definition file %s: %w", imageReplacementsFile, err)
+		}
+		defer f.Close()
+
+		replacements, err = kuberesource.ImageReplacementsFromFile(f)
+		if err != nil {
+			return fmt.Errorf("could not parse image definition file %s: %w", imageReplacementsFile, err)
+		}
+	}
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("failed to read %s: %w", path, err)
+		}
+		kubeObjs, err := kuberesource.UnmarshalApplyConfigurations(data)
+		if err != nil {
+			return fmt.Errorf("failed to unmarshal %s: %w", path, err)
+		}
+
+		for i, resource := range kubeObjs {
+			deploy, ok := resource.(*applyappsv1.DeploymentApplyConfiguration) // TODO(davidweisse): change to StatefulSet
+			if ok && deploy.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
+				continue
+			}
+			resource, err = kuberesource.AddInitializer(resource, kuberesource.Initializer())
+			if err != nil {
+				return err
+			}
+			kubeObjs[i] = resource
+		}
+
+		kuberesource.PatchImages(kubeObjs, replacements)
+		logger.Debug("Updating resources in yaml file", "path", path)
+		modifiedData, err := kuberesource.EncodeResources(kubeObjs...)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(path, modifiedData, 0o644); err != nil {
+			return fmt.Errorf("failed to write %s: %w", path, err)
+		}
+	}
+	return nil
+}
+
 func patchTargets(paths []string, logger *slog.Logger) error {
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
@@ -378,12 +440,14 @@ func newKeyPair() ([]byte, error) {
 }
 
 type generateFlags struct {
-	policyPath        string
-	settingsPath      string
-	manifestPath      string
-	workloadOwnerKeys []string
-	disableUpdates    bool
-	workspaceDir      string
+	policyPath            string
+	settingsPath          string
+	manifestPath          string
+	workloadOwnerKeys     []string
+	disableUpdates        bool
+	workspaceDir          string
+	imageReplacementsFile string
+	skipInitializer       bool
 }
 
 func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
@@ -427,13 +491,24 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		}
 	}
 
+	imageReplacementsFile, err := cmd.Flags().GetString("image-replacements")
+	if err != nil {
+		return nil, err
+	}
+	skipInitializer, err := cmd.Flags().GetBool("skip-initializer")
+	if err != nil {
+		return nil, err
+	}
+
 	return &generateFlags{
-		policyPath:        policyPath,
-		settingsPath:      settingsPath,
-		manifestPath:      manifestPath,
-		workloadOwnerKeys: workloadOwnerKeys,
-		disableUpdates:    disableUpdates,
-		workspaceDir:      workspaceDir,
+		policyPath:            policyPath,
+		settingsPath:          settingsPath,
+		manifestPath:          manifestPath,
+		workloadOwnerKeys:     workloadOwnerKeys,
+		disableUpdates:        disableUpdates,
+		workspaceDir:          workspaceDir,
+		imageReplacementsFile: imageReplacementsFile,
+		skipInitializer:       skipInitializer,
 	}, nil
 }
 

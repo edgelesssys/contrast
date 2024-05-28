@@ -75,8 +75,6 @@ func OpenSSL() []any {
 			),
 		)
 
-	AddInitializer(backend, Initializer())
-
 	backendService := ServiceForDeployment(backend)
 
 	client := Deployment("openssl-client", ns).
@@ -101,7 +99,6 @@ func OpenSSL() []any {
 				),
 			),
 		)
-	AddInitializer(client, Initializer())
 
 	frontend := Deployment("openssl-frontend", ns).
 		WithSpec(DeploymentSpec().
@@ -136,7 +133,6 @@ func OpenSSL() []any {
 				),
 			),
 		)
-	AddInitializer(frontend, Initializer())
 
 	frontendService := ServiceForDeployment(frontend)
 
@@ -283,7 +279,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 				),
 			),
 		)
-	AddInitializer(emoji, Initializer())
 
 	emojiService := ServiceForDeployment(emoji).
 		WithName("emoji-svc").
@@ -387,7 +382,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 				),
 			),
 		)
-	AddInitializer(voting, Initializer())
 
 	votingService := ServiceForDeployment(voting).
 		WithName("voting-svc").
@@ -462,7 +456,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 				),
 			),
 		)
-	AddInitializer(web, Initializer())
 
 	webService := ServiceForDeployment(web).
 		WithName("web-svc").
