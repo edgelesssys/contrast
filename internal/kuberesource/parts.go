@@ -275,14 +275,14 @@ func PortForwarderForService(svc *applycorev1.ServiceApplyConfiguration) *applyc
 // Initializer creates a new InitializerConfig.
 func Initializer() *applycorev1.ContainerApplyConfiguration {
 	return applycorev1.Container().
-		WithName("initializer").
+		WithName("contrast-initializer").
 		WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
 		WithResources(ResourceRequirements().
 			WithMemoryRequest(50),
 		).
 		WithEnv(NewEnvVar("COORDINATOR_HOST", "coordinator")).
 		WithVolumeMounts(VolumeMount().
-			WithName("tls-certs").
+			WithName("contrast-tls-certs").
 			WithMountPath("/tls-config"),
 		)
 }
@@ -294,7 +294,7 @@ func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 		WithImage("ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest").
 		WithRestartPolicy(corev1.ContainerRestartPolicyAlways).
 		WithVolumeMounts(VolumeMount().
-			WithName("tls-certs").
+			WithName("contrast-tls-certs").
 			WithMountPath("/tls-config"),
 		).
 		WithSecurityContext(SecurityContext().
