@@ -83,9 +83,9 @@ contrast generate deployment/
 
 The deployment YAML shipped for this demo is already configured to be used with Contrast.
 A [runtime class](https://docs.edgeless.systems/contrast/components/runtime) `contrast-cc-<VERSIONHASH>`
-was added to the pods to signal they should be run as Confidential Containers. In addition, the Contrast
-[Initializer](../components/index.md#the-initializer) was added as an init container to these workloads to
-facilitate the attestation and certificate pulling before the actual workload is started.
+was added to the pods to signal they should be run as Confidential Containers. During the generation process,
+the Contrast [Initializer](../components/index.md#the-initializer) will be added as an init container to these
+workloads to facilitate the attestation and certificate pulling before the actual workload is started.
 
 Further, the deployment YAML is also configured with the Contrast [service mesh](../components/service-mesh.md).
 The configured service mesh proxy provides transparent protection for the communication between
