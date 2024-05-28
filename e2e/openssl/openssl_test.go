@@ -11,7 +11,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"flag"
-	"log"
 	"net"
 	"os"
 	"testing"
@@ -31,11 +30,11 @@ const (
 	opensslArgv     = `printf "GET / HTTP/1.0\nHost: openssl-backend\n" | openssl s_client -connect openssl-backend:443 -verify_return_error -CAfile /tls-config/mesh-ca.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem`
 )
 
-var imageReplacements map[string]string
+var imageReplacementsFile string
 
 // TestOpenSSL runs e2e tests on the example OpenSSL deployment.
 func TestOpenSSL(t *testing.T) {
-	ct := contrasttest.New(t, imageReplacements)
+	ct := contrasttest.New(t, imageReplacementsFile)
 
 	resources := kuberesource.OpenSSL()
 
@@ -183,14 +182,7 @@ func TestOpenSSL(t *testing.T) {
 func TestMain(m *testing.M) {
 	flag.Parse()
 
-	f, err := os.Open(flag.Arg(0))
-	if err != nil {
-		log.Fatalf("could not open image definition file %q: %v", flag.Arg(0), err)
-	}
-	imageReplacements, err = kuberesource.ImageReplacementsFromFile(f)
-	if err != nil {
-		log.Fatalf("could not parse image definition file %q: %v", flag.Arg(0), err)
-	}
+	imageReplacementsFile = flag.Arg(0)
 
 	os.Exit(m.Run())
 }

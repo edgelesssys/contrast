@@ -5,45 +5,83 @@ package kuberesource
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applybatchv1 "k8s.io/client-go/applyconfigurations/batch/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
 const (
-	exposeServiceAnnotation   = "contrast.edgeless.systems/expose-service"
-	contrastRoleAnnotationKey = "contrast.edgeless.systems/pod-role"
+	exposeServiceAnnotation      = "contrast.edgeless.systems/expose-service"
+	contrastRoleAnnotationKey    = "contrast.edgeless.systems/pod-role"
+	skipInitializerAnnotationKey = "contrast.edgeless.systems/skip-initializer"
 )
 
 // AddInitializer adds an initializer and its shared volume to the resource.
 //
 // If the resource does not contain a PodSpec, this function does nothing.
-// This function is not idempotent.
+// This function is idempotent.
 func AddInitializer(
 	resource any,
 	initializer *applycorev1.ContainerApplyConfiguration,
-) any {
-	return MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		// Add the initializer as an init container.
-		spec.WithInitContainers(
-			initializer,
-		)
-		if len(initializer.VolumeMounts) < 1 {
+) (res any, retErr error) {
+	res = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+		if meta.Annotations[skipInitializerAnnotationKey] == "true" {
 			return spec
 		}
-		// Create the volume written by the initializer.
-		spec.WithVolumes(Volume().
-			WithName(*initializer.VolumeMounts[0].Name).
-			WithEmptyDir(EmptyDirVolumeSource().Inner()),
-		)
-		// Add the volume mount written by the initializer to the worker container.
-		spec.Containers[0].WithVolumeMounts(VolumeMount().
-			WithName(*initializer.VolumeMounts[0].Name).
-			WithMountPath(*initializer.VolumeMounts[0].MountPath))
+		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+			return spec
+		}
+
+		// Remove already existing init containers with unique initializer name.
+		spec.InitContainers = slices.DeleteFunc(spec.InitContainers, func(c applycorev1.ContainerApplyConfiguration) bool {
+			return *c.Name == *initializer.Name
+		})
+		// Add the initializer as first init container.
+		spec.InitContainers = append([]applycorev1.ContainerApplyConfiguration{*initializer}, spec.InitContainers...)
+		// Initializer has to have a volume mount.
+		// This should never error because the Initializer is configured to have a volume mount.
+		if len(initializer.VolumeMounts) < 1 {
+			retErr = fmt.Errorf("initializer volume mount list is empty")
+			return nil
+		}
+
+		// Existing volume with unique name has to be of type EmptyDir.
+		var volumeExists bool
+		for _, volume := range spec.Volumes {
+			if *volume.Name == *initializer.VolumeMounts[0].Name {
+				volumeExists = true
+				if volume.EmptyDir == nil {
+					retErr = fmt.Errorf("volume %s has to be of type EmptyDir", *volume.Name)
+					return nil
+				}
+			}
+		}
+		// Create the volume written by the initializer if it not already exists.
+		if !volumeExists {
+			spec.WithVolumes(Volume().
+				WithName(*initializer.VolumeMounts[0].Name).
+				WithEmptyDir(EmptyDirVolumeSource().Inner()),
+			)
+		}
+
+		// Remove already existing volume mounts on the worker containers with unique volume mount name.
+		for i := range spec.Containers {
+			spec.Containers[i].VolumeMounts = slices.DeleteFunc(spec.Containers[i].VolumeMounts, func(v applycorev1.VolumeMountApplyConfiguration) bool {
+				return *v.Name == *initializer.VolumeMounts[0].Name
+			})
+
+			// Add the volume mount written by the initializer to the worker container.
+			spec.Containers[i].WithVolumeMounts(VolumeMount().
+				WithName(*initializer.VolumeMounts[0].Name).
+				WithMountPath(*initializer.VolumeMounts[0].MountPath))
+		}
 		return spec
 	})
+	return res, retErr
 }
 
 type serviceMeshMode string
@@ -215,28 +253,42 @@ func PatchCoordinatorMetrics(resources []any, port int32) []any {
 	return resources
 }
 
-// MapPodSpec applies a function to a PodSpec in a Kubernetes resource.
-func MapPodSpec(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration) any {
+// MapPodSpecWithMeta applies a function to a PodSpec in a Kubernetes resource,
+// given the ObjectMeta of the resource.
+func MapPodSpecWithMeta(
+	resource any,
+	f func(
+		meta *applymetav1.ObjectMetaApplyConfiguration,
+		spec *applycorev1.PodSpecApplyConfiguration,
+	) *applycorev1.PodSpecApplyConfiguration,
+) any {
 	if resource == nil {
 		return nil
 	}
 	switch r := resource.(type) {
 	case *applybatchv1.CronJobApplyConfiguration:
-		r.Spec.JobTemplate.Spec.Template.Spec = f(r.Spec.JobTemplate.Spec.Template.Spec)
+		r.Spec.JobTemplate.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.JobTemplate.Spec.Template.Spec)
 	case *applyappsv1.DaemonSetApplyConfiguration:
-		r.Spec.Template.Spec = f(r.Spec.Template.Spec)
+		r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 	case *applyappsv1.DeploymentApplyConfiguration:
-		r.Spec.Template.Spec = f(r.Spec.Template.Spec)
+		r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 	case *applybatchv1.JobApplyConfiguration:
-		r.Spec.Template.Spec = f(r.Spec.Template.Spec)
+		r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 	case *applycorev1.PodApplyConfiguration:
-		r.Spec = f(r.Spec)
+		r.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec)
 	case *applyappsv1.ReplicaSetApplyConfiguration:
-		r.Spec.Template.Spec = f(r.Spec.Template.Spec)
+		r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 	case *applycorev1.ReplicationControllerApplyConfiguration:
-		r.Spec.Template.Spec = f(r.Spec.Template.Spec)
+		r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 	case *applyappsv1.StatefulSetApplyConfiguration:
-		r.Spec.Template.Spec = f(r.Spec.Template.Spec)
+		r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 	}
 	return resource
+}
+
+// MapPodSpec applies a function to a PodSpec in a Kubernetes resource.
+func MapPodSpec(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration) any {
+	return MapPodSpecWithMeta(resource, func(_ *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+		return f(spec)
+	})
 }

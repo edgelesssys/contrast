@@ -11,7 +11,6 @@ import (
 	"crypto/x509"
 	"flag"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -24,11 +23,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var imageReplacements map[string]string
+var imageReplacementsFile string
 
 // TestIngressEgress tests that the ingress and egress proxies work as configured.
 func TestIngressEgress(t *testing.T) {
-	ct := contrasttest.New(t, imageReplacements)
+	ct := contrasttest.New(t, imageReplacementsFile)
 
 	resources := kuberesource.Emojivoto(kuberesource.ServiceMeshIngressEgress)
 
@@ -139,14 +138,7 @@ func TestIngressEgress(t *testing.T) {
 func TestMain(m *testing.M) {
 	flag.Parse()
 
-	f, err := os.Open(flag.Arg(0))
-	if err != nil {
-		log.Fatalf("could not open image definition file %q: %v", flag.Arg(0), err)
-	}
-	imageReplacements, err = kuberesource.ImageReplacementsFromFile(f)
-	if err != nil {
-		log.Fatalf("could not parse image definition file %q: %v", flag.Arg(0), err)
-	}
+	imageReplacementsFile = flag.Arg(0)
 
 	os.Exit(m.Run())
 }
