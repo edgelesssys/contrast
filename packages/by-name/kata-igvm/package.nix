@@ -9,6 +9,7 @@
 , kata-image
 , kata-kernel-uvm
 }:
+
 stdenv.mkDerivation rec {
   pname = "kata-igvm";
   # This is not a real version, since the igvm builder is not part of the official release

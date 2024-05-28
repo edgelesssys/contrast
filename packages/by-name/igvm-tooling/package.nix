@@ -57,7 +57,7 @@ python3.pkgs.buildPythonApplication rec {
 
   nativeBuildInputs = [ acpica-tools ];
 
-  propagatedBuildInputs = with python3.pkgs; [
+  propagatedBuildInputs = (with python3.pkgs; [
     setuptools
     ecdsa
     cstruct
@@ -65,7 +65,7 @@ python3.pkgs.buildPythonApplication rec {
     pytest
     cached-property
     frozendict
-  ] ++ [
+  ]) ++ [
     acpica-tools
     which
   ];

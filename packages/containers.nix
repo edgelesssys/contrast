@@ -1,14 +1,16 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ pkgs }:
-
-with pkgs;
+{ lib
+, pkgs
+, writeShellApplication
+, dockerTools
+}:
 
 let
   pushContainer = container: writeShellApplication {
     name = "push-${container.name}";
-    runtimeInputs = [ crane gzip ];
+    runtimeInputs = with pkgs; [ crane gzip ];
     text = ''
       imageName="$1"
       tmpdir=$(mktemp -d)
@@ -20,7 +22,7 @@ let
 
   pushOCIDir = name: dir: tag: writeShellApplication {
     name = "push-${name}";
-    runtimeInputs = [ crane ];
+    runtimeInputs = with pkgs;  [ crane ];
     text = ''
       imageName="$1"
       crane push "${dir}" "$imageName:${tag}"
@@ -30,28 +32,28 @@ let
   containers = {
     coordinator = dockerTools.buildImage {
       name = "coordinator";
-      tag = "v${contrast.version}";
+      tag = "v${pkgs.contrast.version}";
       copyToRoot = with dockerTools; [ caCertificates ];
       config = {
-        Cmd = [ "${contrast.coordinator}/bin/coordinator" ];
+        Cmd = [ "${pkgs.contrast.coordinator}/bin/coordinator" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
       };
     };
 
     initializer = dockerTools.buildImage {
       name = "initializer";
-      tag = "v${contrast.version}";
+      tag = "v${pkgs.contrast.version}";
       copyToRoot = with dockerTools; [ caCertificates ];
       config = {
-        Cmd = [ "${contrast.initializer}/bin/initializer" ];
+        Cmd = [ "${pkgs.contrast.initializer}/bin/initializer" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
       };
     };
 
     openssl = dockerTools.buildImage {
       name = "openssl";
-      tag = "v${contrast.version}";
-      copyToRoot = [
+      tag = "v${pkgs.contrast.version}";
+      copyToRoot = with pkgs; [
         bash
         bashInteractive
         coreutils
@@ -69,23 +71,23 @@ let
 
     port-forwarder = dockerTools.buildImage {
       name = "port-forwarder";
-      tag = "v${contrast.version}";
-      copyToRoot = [ bash socat ];
+      tag = "v${pkgs.contrast.version}";
+      copyToRoot = with pkgs; [ bash socat ];
     };
 
     service-mesh-proxy = dockerTools.buildImage {
       name = "service-mesh-proxy";
-      tag = "v${service-mesh.version}";
-      copyToRoot = [ envoy iptables-legacy ];
+      tag = "v${pkgs.service-mesh.version}";
+      copyToRoot = with pkgs; [ envoy iptables-legacy ];
       config = {
-        Cmd = [ "${service-mesh}/bin/service-mesh" ];
+        Cmd = [ "${pkgs.service-mesh}/bin/service-mesh" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
       };
     };
   };
 in
 containers // {
-  push-node-installer = pushOCIDir "push-node-installer" contrast-node-installer-image "v${contrast.version}";
+  push-node-installer = pushOCIDir "push-node-installer" pkgs.contrast-node-installer-image "v${pkgs.contrast.version}";
 } // (
   lib.concatMapAttrs (name: container: { "push-${name}" = pushContainer container; }) containers
 )

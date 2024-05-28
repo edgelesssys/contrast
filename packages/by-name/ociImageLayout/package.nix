@@ -7,12 +7,14 @@
 , writers
 , nix
 }:
+
 {
   # manifests is a list of ociImageManifest
   manifests ? [ ]
   # extraIndex is a set of additional fields to add to the index.json
 , extraIndex ? { }
 }:
+
 let
   manifestDescriptors = lib.lists.map (manifest: builtins.fromJSON (builtins.readFile (manifest + "/media-descriptor.json"))) manifests;
   index = writers.writeJSON "index.json" (
@@ -24,6 +26,7 @@ let
     }
   );
 in
+
 runCommand "oci-image-layout"
 {
   buildInputs = [ nix ];

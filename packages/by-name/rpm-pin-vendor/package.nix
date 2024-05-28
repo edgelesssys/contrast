@@ -14,6 +14,7 @@
 , fakeroot
 , nix
 }:
+
 let
   dnfConf = writeText "dnf.conf" ''
     [main]
@@ -47,6 +48,7 @@ let
     text = builtins.readFile ./update_lockfile.sh;
   };
 in
+
 runCommand "rpm-pin-vendor" { meta.mainProgram = "update_lockfile"; } ''
   mkdir -p $out/bin
   cp ${lib.getExe update_lockfile} $out/bin/update_lockfile

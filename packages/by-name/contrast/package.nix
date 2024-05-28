@@ -9,6 +9,7 @@
 , contrast
 , runtime-class-files
 }:
+
 let
   e2e = buildGoTest {
     inherit (contrast) version src proxyVendor vendorHash prePatch CGO_ENABLED;
@@ -43,7 +44,7 @@ buildGoModule rec {
   # changes in the other parts of this repo don't trigger a rebuild.
   src =
     let
-      inherit (lib) fileset path;
+      inherit (lib) fileset path hasSuffix;
       root = ../../../.;
     in
     fileset.toSource {
@@ -51,8 +52,8 @@ buildGoModule rec {
       fileset = fileset.unions [
         (path.append root "go.mod")
         (path.append root "go.sum")
-        (lib.fileset.difference
-          (lib.fileset.fileFilter (file: lib.hasSuffix ".go" file.name) root)
+        (fileset.difference
+          (fileset.fileFilter (file: hasSuffix ".go" file.name) root)
           (fileset.unions [
             (path.append root "service-mesh")
             (path.append root "node-installer")

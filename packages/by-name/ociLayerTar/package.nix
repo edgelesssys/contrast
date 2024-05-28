@@ -13,6 +13,7 @@
   # compression is the compression algorithm to use, either "gzip" or "zstd"
 , compression ? "gzip"
 }:
+
 runCommandLocal "ociLayer"
 {
   fileSources = lib.lists.map (file: file.source) files;

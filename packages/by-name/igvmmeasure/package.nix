@@ -4,7 +4,6 @@
 { lib
 , fetchFromGitHub
 , rustPlatform
-, cmake
 }:
 
 rustPlatform.buildRustPackage rec {

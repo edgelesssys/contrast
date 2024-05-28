@@ -9,6 +9,7 @@
 , kata-runtime
 , debugRuntime ? false
 }:
+
 let
   rootfs = kata-image;
   igvm = if debugRuntime then kata-igvm.debug else kata-igvm;
@@ -18,6 +19,7 @@ let
   };
   containerd-shim-contrast-cc-v2 = "${kata-runtime}/bin/containerd-shim-kata-v2";
 in
+
 stdenvNoCC.mkDerivation {
   name = "runtime-class-files";
   version = "1714998420";

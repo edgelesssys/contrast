@@ -53,7 +53,7 @@ rustPlatform.buildRustPackage rec {
     chmod -R +w ../..
   '';
 
-  passthru = rec {
+  passthru = {
     settings = fetchurl {
       name = "${pname}-${version}-settings";
       url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${src.rev}/src/tools/genpolicy/genpolicy-settings.json";
