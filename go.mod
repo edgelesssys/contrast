@@ -2,7 +2,7 @@ module github.com/edgelesssys/contrast
 
 go 1.22.0
 
-toolchain go1.22.2
+toolchain go1.22.3
 
 require (
 	filippo.io/keygen v0.0.0-20230306160926-5201437acf8e
