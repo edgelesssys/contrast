@@ -158,6 +158,11 @@ func Coordinator(namespace string) *CoordinatorConfig {
 								WithName("state-device").
 								WithDevicePath("/dev/csi0"),
 							).
+							WithSecurityContext(SecurityContext().
+								WithCapabilities(applycorev1.Capabilities().
+									WithAdd("SYS_ADMIN"),
+								),
+							).
 							WithPorts(
 								ContainerPort().
 									WithName("userapi").
