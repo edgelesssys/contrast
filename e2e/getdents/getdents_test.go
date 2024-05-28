@@ -10,7 +10,6 @@ import (
 	"context"
 	"flag"
 	"io"
-	"log"
 	"os"
 	"path"
 	"testing"
@@ -26,10 +25,10 @@ const (
 	getdent = "getdents-tester"
 )
 
-var imageReplacements map[string]string
+var imageReplacementsFile string
 
 func TestGetDEnts(t *testing.T) {
-	ct := contrasttest.New(t, imageReplacements)
+	ct := contrasttest.New(t, imageReplacementsFile)
 
 	resources, err := kuberesource.GetDEnts()
 	require.NoError(t, err)
@@ -75,14 +74,7 @@ func TestGetDEnts(t *testing.T) {
 func TestMain(m *testing.M) {
 	flag.Parse()
 
-	f, err := os.Open(flag.Arg(0))
-	if err != nil {
-		log.Fatalf("could not open image definition file %q: %v", flag.Arg(0), err)
-	}
-	imageReplacements, err = kuberesource.ImageReplacementsFromFile(f)
-	if err != nil {
-		log.Fatalf("could not parse image definition file %q: %v", flag.Arg(0), err)
-	}
+	imageReplacementsFile = flag.Arg(0)
 
 	os.Exit(m.Run())
 }

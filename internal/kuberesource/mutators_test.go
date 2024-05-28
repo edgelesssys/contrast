@@ -61,22 +61,127 @@ func TestPatchNamespaces(t *testing.T) {
 }
 
 func TestAddInitializer(t *testing.T) {
-	require := require.New(t)
-	d := applyappsv1.Deployment("test", "default").
-		WithSpec(applyappsv1.DeploymentSpec().
-			WithTemplate(applycorev1.PodTemplateSpec().
-				WithSpec(applycorev1.PodSpec().
-					WithContainers(applycorev1.Container()))))
+	for _, tc := range []struct {
+		name      string
+		d         *applyappsv1.DeploymentApplyConfiguration
+		wantError bool
+	}{
+		{
+			name: "default",
+			d: applyappsv1.Deployment("test", "default").
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithRuntimeClassName("contrast-cc"),
+						))),
+			wantError: false,
+		},
+		{
+			name: "initializer replaced",
+			d: applyappsv1.Deployment("test", "default").
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithInitContainers(Initializer()).
+							WithRuntimeClassName("contrast-cc"),
+						))),
+			wantError: false,
+		},
+		{
+			name: "volume reused",
+			d: applyappsv1.Deployment("test", "default").
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithRuntimeClassName("contrast-cc").
+							WithVolumes(Volume().
+								WithName(*Initializer().VolumeMounts[0].Name).
+								WithEmptyDir(EmptyDirVolumeSource().Inner()),
+							),
+						))),
+			wantError: false,
+		},
+		{
+			name: "volume is not an EmptyDir",
+			d: applyappsv1.Deployment("test", "default").
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithRuntimeClassName("contrast-cc").
+							WithVolumes(Volume().
+								WithName(*Initializer().VolumeMounts[0].Name).
+								WithConfigMap(Volume().ConfigMap),
+							),
+						))),
+			wantError: true,
+		},
+		{
+			name: "volume mount reused",
+			d: applyappsv1.Deployment("test", "default").
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(
+								applycorev1.Container().
+									WithVolumeMounts(
+										VolumeMount().
+											WithName(*Initializer().VolumeMounts[0].Name).
+											WithMountPath(*Initializer().VolumeMounts[0].Name),
+									),
+							).
+							WithRuntimeClassName("contrast-cc"),
+						))),
+			wantError: false,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require := require.New(t)
 
-	AddInitializer(d, Initializer())
+			_, err := AddInitializer(tc.d, Initializer())
+			if tc.wantError {
+				require.Error(err)
+				return
+			}
+			require.NoError(err)
 
-	require.NotEmpty(d.Spec.Template.Spec.InitContainers)
-	require.NotEmpty(d.Spec.Template.Spec.InitContainers[0].VolumeMounts)
-	require.NotEmpty(d.Spec.Template.Spec.Containers)
-	require.NotEmpty(d.Spec.Template.Spec.Containers[0].VolumeMounts)
-	require.NotEmpty(d.Spec.Template.Spec.Volumes)
-	require.Equal(*d.Spec.Template.Spec.Volumes[0].Name, *d.Spec.Template.Spec.InitContainers[0].VolumeMounts[0].Name)
-	require.Equal(*d.Spec.Template.Spec.Volumes[0].Name, *d.Spec.Template.Spec.Containers[0].VolumeMounts[0].Name)
+			require.NotEmpty(tc.d.Spec.Template.Spec.InitContainers)
+			require.Equal(*tc.d.Spec.Template.Spec.InitContainers[0].Name, *Initializer().Name)
+			require.NotEmpty(tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts)
+			require.Equal(*tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts[0].Name, *Initializer().VolumeMounts[0].Name)
+
+			initializerCount := 0
+			for _, c := range tc.d.Spec.Template.Spec.InitContainers {
+				if *c.Name == *Initializer().Name {
+					initializerCount++
+				}
+			}
+			require.Equal(1, initializerCount)
+
+			require.NotEmpty(tc.d.Spec.Template.Spec.Containers)
+			for _, c := range tc.d.Spec.Template.Spec.Containers {
+				initializerVolumeMountCount := 0
+				for _, v := range c.VolumeMounts {
+					if *v.Name == *Initializer().VolumeMounts[0].Name {
+						initializerVolumeMountCount++
+					}
+				}
+				require.Equal(1, initializerVolumeMountCount)
+			}
+
+			require.NotEmpty(tc.d.Spec.Template.Spec.Volumes)
+			initializerVolumeCount := 0
+			for _, v := range tc.d.Spec.Template.Spec.Volumes {
+				if *v.Name == *Initializer().VolumeMounts[0].Name {
+					initializerVolumeCount++
+				}
+			}
+			require.Equal(1, initializerVolumeCount)
+		})
+	}
 }
 
 func TestAddServiceMesh(t *testing.T) {
