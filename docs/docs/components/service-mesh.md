@@ -56,14 +56,6 @@ spec:
     spec:
       runtimeClassName: contrast-cc
       initContainers:
-        - name: contrast-initializer
-          image: "ghcr.io/edgelesssys/contrast/initializer@sha256:..."
-          env:
-            - name: COORDINATOR_HOST
-              value: coordinator
-          volumeMounts:
-            - name: contrast-tls-certs-volume
-              mountPath: /tls-config
         - name: sidecar
           image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy@sha256:..."
           restartPolicy: Always
@@ -128,14 +120,6 @@ spec:
     spec:
       runtimeClassName: contrast-cc
       initContainers:
-        - name: contrast-initializer
-          image: "ghcr.io/edgelesssys/contrast/initializer@sha256:..."
-          env:
-            - name: COORDINATOR_HOST
-              value: coordinator
-          volumeMounts:
-            - name: contrast-tls-certs-volume
-              mountPath: /tls-config
         - name: sidecar
           image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy@sha256:..."
           restartPolicy: Always

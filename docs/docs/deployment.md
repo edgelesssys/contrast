@@ -31,7 +31,7 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 Your Kubernetes resources need some modifications to run as Confidential Containers.
 This section guides you through the process and outlines the necessary changes.
 
-### RuntimeClass and Initializer
+### RuntimeClass
 
 Contrast will add annotations to your Kubernetes YAML files. If you want to keep the original files
 unchanged, you can copy the files into a separate local directory.
@@ -66,24 +66,10 @@ cp -R $MY_RESOURCE_DIR resources/
 To specify that a workload (pod, deployment, etc.) should be deployed as confidential containers,
 add `runtimeClassName: contrast-cc` to the pod spec (pod definition or template).
 This is a placeholder name that will be replaced by a versioned `runtimeClassName` when generating policies.
-In addition, add the Contrast Initializer as `initContainers` to these workloads and configure the
-workload to use the certificates written to a `volumeMount` named `contrast-tls-certs-volume`.
 
 ```yaml
 spec: # v1.PodSpec
   runtimeClassName: contrast-cc
-  initContainers:
-  - name: contrast-initializer
-    image: "ghcr.io/edgelesssys/contrast/initializer:latest"
-    env:
-    - name: COORDINATOR_HOST
-      value: coordinator
-    volumeMounts:
-    - name: contrast-tls-certs-volume
-      mountPath: /tls-config
-  volumes:
-  - name: contrast-tls-certs-volume
-    emptyDir: {}
 ```
 
 ### Handling TLS
@@ -174,7 +160,9 @@ cfg := &tls.Config{
 
 ## Generate policy annotations and manifest
 
-Run the `generate` command to generate the execution policies and add them as annotations to your
+Run the `generate` command to add the necessary components to your deployment files. 
+This will add the Contrast Initializer to every workload with the specified `contrast-cc` runtime class.
+After that, it will generate the execution policies and add them as annotations to your
 deployment files. A `manifest.json` with the reference values of your deployment will be created.
 
 ```sh
@@ -184,6 +172,36 @@ contrast generate resources/
 :::warning
 Please be aware that runtime policies currently have some blind spots. For example, they can't guarantee the starting order of containers. See the [current limitations](known-limitations.md#runtime-policies) for more details.
 :::
+
+If you don't want the Contrast Initializer to automatically be added to your
+workloads, there are two ways you can skip the Initializer injection step,
+depending on how you want to customize your deployment.
+
+<Tabs groupId="initializer-injection">
+<TabItem value="flag" label="Command-Line Flag">
+
+You can disable the Initializer injection completely by specifying the
+`--skip-initializer` flag in the `generate` command.
+
+```sh
+contrast generate --skip-initializer resources/
+```
+
+</TabItem>
+
+<TabItem value="annotation" label="Per-Workload Annotation">
+
+If you want to disable the Initializer injection for a specific workload with
+the `contrast-cc` runtime class, you can do so by adding an annotation to the workload.
+
+```yaml
+metadata: # apps/v1.Deployment, apps/v1.DaemonSet, ...
+  annotations:
+    contrast.edgeless.systems/skip-initializer: "true"
+```
+
+</TabItem>
+</Tabs>
 
 ## Apply the resources
 
