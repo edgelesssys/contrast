@@ -26,16 +26,12 @@ jobs:
         with:
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
       - name: Create backport PRs
-        uses: korthout/backport-action@ef20d86abccbac3ee3a73cb2efbdc06344c390e5 # v2.5.0
+        uses: korthout/backport-action@bd410d37cdcae80be6d969823ff5a225fe5c833f # v3.0.2
         with:
           copy_milestone: true
           copy_labels_pattern: 'changelog'
           pull_title: '[${target_branch}] ${pull_title}'
           github_token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-          experimental: |
-            {
-              "detect_merge_method": true
-            }
           pull_description: |
             Backport of #${pull_number} to `${target_branch}`.
 
