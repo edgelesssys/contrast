@@ -17,7 +17,7 @@ var replacementRE = regexp.MustCompile(`(?P<image>[^\s=]+)\s*=\s*(?P<replacement
 // The file is expected to contain newline-separated pairs of images and their intended
 // replacement, separated by an = sign. Empty lines and lines starting with the pound character
 // are ignored. This file is populated by container image build rules in the justfile.
-func ImageReplacementsFromFile(file io.ReadCloser) (map[string]string, error) {
+func ImageReplacementsFromFile(file io.Reader) (map[string]string, error) {
 	m := make(map[string]string)
 
 	scanner := bufio.NewScanner(file)

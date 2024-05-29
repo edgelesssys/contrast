@@ -247,6 +247,7 @@ func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath str
 
 func patchTargets(paths []string, imageReplacementsFile string, skipInitializer bool, logger *slog.Logger) error {
 	var replacements map[string]string
+	var err error
 	if imageReplacementsFile != "" {
 		f, err := os.Open(imageReplacementsFile)
 		if err != nil {
@@ -257,6 +258,11 @@ func patchTargets(paths []string, imageReplacementsFile string, skipInitializer 
 		replacements, err = kuberesource.ImageReplacementsFromFile(f)
 		if err != nil {
 			return fmt.Errorf("parsing image definition file %s: %w", imageReplacementsFile, err)
+		}
+	} else {
+		replacements, err = kuberesource.ImageReplacementsFromFile(bytes.NewReader(releaseImageReplacements))
+		if err != nil {
+			return fmt.Errorf("parsing release image definitions %s: %w", releaseImageReplacements, err)
 		}
 	}
 	for _, path := range paths {
