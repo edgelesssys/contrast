@@ -52,6 +52,7 @@ buildGoModule rec {
       fileset = fileset.unions [
         (path.append root "go.mod")
         (path.append root "go.sum")
+        (path.append root "cli/cmd/assets/image-replacements.txt")
         (fileset.difference
           (fileset.fileFilter (file: hasSuffix ".go" file.name) root)
           (fileset.unions [
