@@ -252,6 +252,7 @@ func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath str
 
 func injectInitializer(paths []string, imageReplacementsFile string, logger *slog.Logger) error {
 	var replacements map[string]string
+	var err error
 	if imageReplacementsFile != "" {
 		f, err := os.Open(imageReplacementsFile)
 		if err != nil {
@@ -262,6 +263,11 @@ func injectInitializer(paths []string, imageReplacementsFile string, logger *slo
 		replacements, err = kuberesource.ImageReplacementsFromFile(f)
 		if err != nil {
 			return fmt.Errorf("could not parse image definition file %s: %w", imageReplacementsFile, err)
+		}
+	} else {
+		replacements, err = kuberesource.ImageReplacementsFromFile(bytes.NewReader(releaseImageReplacements))
+		if err != nil {
+			return fmt.Errorf("could not parse release image definitions %s: %w", releaseImageReplacements, err)
 		}
 	}
 	for _, path := range paths {
