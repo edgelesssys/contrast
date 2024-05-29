@@ -182,7 +182,7 @@ contrast generate resources/
 ```
 
 :::warning
-Please be aware that runtime policies currently have some blind spots. For example, they can't guarantee the starting order of containers. See the [current limitations](known-limitations.md#runtime-policies) for more details.
+Please be aware that runtime policies currently have some blind spots. For example, they can't guarantee the starting order of containers. See the [current limitations](features-limitations.md#runtime-policies) for more details.
 :::
 
 ## Apply the resources

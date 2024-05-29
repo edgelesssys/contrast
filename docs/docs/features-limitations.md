@@ -1,7 +1,6 @@
-# Known Limitations
+# Planned features and limitations
 
-As Contrast is currently in an early development stage, it's built on several projects that are also under active development.
-This section outlines the most significant known limitations, providing stakeholders with clear expectations and understanding of the current state.
+This section lists planned features and current limitations of Contrast.
 
 ## Availability
 
