@@ -30,17 +30,10 @@ if [[ -z "${VERSION:-}" ]]; then
   exit 1
 fi
 
-# copy contrast from the symlink to be able to hash it
-if [[ -L "./result-cli/bin/contrast" ]]; then
-  cp "$(readlink ./result-cli/bin/contrast)" ./workspace/contrast-to-hash
-else
-  cp ./result-cli/bin/contrast ./workspace/contrast-to-hash
-fi
-
 # declare an associative array that pairs the field name
 # in ./packages/versions.json with the path to the file
 declare -A fields
-fields["contrast"]="./workspace/contrast-to-hash"
+fields["contrast"]="./result-cli/bin/contrast"
 fields["coordinator.yml"]="./workspace/coordinator.yml"
 fields["runtime.yml"]="./workspace/runtime.yml"
 fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
@@ -53,7 +46,7 @@ for field in "${!fields[@]}"; do
   file=${fields["$field"]}
 
   echo "[*] Creating hash for $file"
-  hash=$(create_hash "$file")
+  hash=$(create_hash "$(realpath "$file")")
   echo "      $hash"
 
   echo "[*] Updating ./packages/versions.json for $field"

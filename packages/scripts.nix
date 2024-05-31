@@ -245,7 +245,7 @@
 
   update-versions-json = writeShellApplication {
     name = "update-versions-json";
-    runtimeInputs = [
+    runtimeInputs = with pkgs; [
       jq
     ];
     text = builtins.readFile ./update-versions-json.sh;
