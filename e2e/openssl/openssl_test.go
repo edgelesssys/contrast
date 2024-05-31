@@ -11,6 +11,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"net"
 	"os"
 	"testing"
@@ -27,7 +28,6 @@ import (
 const (
 	opensslFrontend = "openssl-frontend"
 	opensslBackend  = "openssl-backend"
-	opensslArgv     = `printf "GET / HTTP/1.0\nHost: openssl-backend\n" | openssl s_client -connect openssl-backend:443 -verify_return_error -CAfile /tls-config/mesh-ca.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem`
 )
 
 var imageReplacementsFile string
@@ -105,19 +105,14 @@ func TestOpenSSL(t *testing.T) {
 
 		c := kubeclient.NewForTest(t)
 
-		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
 		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
-
-		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, opensslFrontend)
-		require.NoError(err)
-		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, opensslFrontend)
 
 		// Call the backend server from the frontend. If this command produces no TLS error, we verified that
 		// - the certificate in the frontend pod can be used as a client certificate
 		// - the certificate in the backend pod can be used as a server certificate
 		// - the backend's CA configuration accepted the frontend certificate
 		// - the frontend's CA configuration accepted the backend certificate
-		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name, []string{"/bin/bash", "-c", opensslArgv})
+		stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", "mesh-ca.pem")})
 		t.Log(stdout)
 		require.NoError(err, "stderr: %q", stderr)
 	})
@@ -151,14 +146,9 @@ func TestOpenSSL(t *testing.T) {
 		// Restart the openssl-frontend deployment so it has the new certificates.
 		require.NoError(c.RestartDeployment(ctx, ct.Namespace, opensslFrontend))
 		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
-		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
-
-		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, opensslFrontend)
-		require.NoError(err)
-		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, opensslFrontend)
 
 		// This should not succeed because the certificates have changed.
-		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name, []string{"/bin/bash", "-c", opensslArgv})
+		stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", "mesh-ca.pem")})
 		t.Log("openssl with wrong certificates:", stdout)
 		require.Error(err)
 		require.Contains(stderr, "certificate signature failure")
@@ -167,12 +157,8 @@ func TestOpenSSL(t *testing.T) {
 		require.NoError(c.RestartDeployment(ctx, ct.Namespace, opensslBackend))
 		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
 
-		frontendPods, err = c.PodsFromDeployment(ctx, ct.Namespace, opensslFrontend)
-		require.NoError(err)
-		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, opensslFrontend)
-
 		// This should succeed since both workloads now have updated certificates.
-		stdout, stderr, err = c.Exec(ctx, ct.Namespace, frontendPods[0].Name, []string{"/bin/bash", "-c", opensslArgv})
+		stdout, stderr, err = c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", "mesh-ca.pem")})
 		t.Log("openssl with correct certificates:", stdout)
 		require.NoError(err, "stderr: %q", stderr)
 	})
@@ -184,4 +170,10 @@ func TestMain(m *testing.M) {
 	imageReplacementsFile = flag.Arg(0)
 
 	os.Exit(m.Run())
+}
+
+func opensslConnectCmd(addr, caCert string) string {
+	return fmt.Sprintf(
+		`openssl s_client -connect %s -verify_return_error -CAfile /tls-config/%s -cert /tls-config/certChain.pem -key /tls-config/key.pem </dev/null`,
+		addr, caCert)
 }

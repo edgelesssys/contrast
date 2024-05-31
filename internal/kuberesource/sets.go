@@ -55,10 +55,10 @@ func OpenSSL() []any {
 						Container().
 							WithName("openssl-backend").
 							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
-							WithCommand("/bin/bash", "-c", "echo Workload started \nopenssl s_server -port 443 -Verify 2 -CAfile /tls-config/mesh-ca.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem").
+							WithCommand("/bin/bash", "-c", "openssl s_server -port 443 -Verify 2 -CAfile /tls-config/mesh-ca.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem").
 							WithPorts(
 								ContainerPort().
-									WithName("openssl").
+									WithName("https").
 									WithContainerPort(443),
 							).
 							WithResources(ResourceRequirements().
@@ -77,29 +77,6 @@ func OpenSSL() []any {
 
 	backendService := ServiceForDeployment(backend)
 
-	client := Deployment("openssl-client", ns).
-		WithSpec(DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "openssl-client"}),
-			).
-			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-client"}).
-				WithSpec(PodSpec().
-					WithRuntimeClassName(runtimeHandler).
-					WithContainers(
-						Container().
-							WithName("openssl-client").
-							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
-							WithCommand("/bin/bash", "-c", "echo Workload started \nwhile true; do \n  echo \"THIS IS A TEST MESSAGE\" |\n    openssl s_client -connect openssl-frontend:443 -verify_return_error -CAfile /tls-config/coordinator-root-ca.pem\n  sleep 30\ndone\n").
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(50),
-							),
-					),
-				),
-			),
-		)
-
 	frontend := Deployment("openssl-frontend", ns).
 		WithSpec(DeploymentSpec().
 			WithReplicas(1).
@@ -114,10 +91,10 @@ func OpenSSL() []any {
 						Container().
 							WithName("openssl-frontend").
 							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
-							WithCommand("/bin/bash", "-c", "echo Workload started\nopenssl s_server -www -port 443 -cert /tls-config/certChain.pem -key /tls-config/key.pem -cert_chain /tls-config/certChain.pem &\nwhile true; do \n  echo \"THIS IS A TEST MESSAGE\" |\n    openssl s_client -connect openssl-backend:443 -verify_return_error -CAfile /tls-config/mesh-ca.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem\n  sleep 10\ndone\n").
+							WithCommand("/bin/bash", "-c", "openssl s_server -www -port 443 -cert /tls-config/certChain.pem -key /tls-config/key.pem -cert_chain /tls-config/certChain.pem").
 							WithPorts(
 								ContainerPort().
-									WithName("openssl").
+									WithName("https").
 									WithContainerPort(443),
 							).
 							WithReadinessProbe(Probe().
@@ -139,7 +116,6 @@ func OpenSSL() []any {
 	resources := []any{
 		backend,
 		backendService,
-		client,
 		frontend,
 		frontendService,
 	}

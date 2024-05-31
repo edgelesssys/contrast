@@ -168,3 +168,19 @@ func (c *Kubeclient) Exec(ctx context.Context, namespace, pod string, argv []str
 
 	return buf.String(), errBuf.String(), err
 }
+
+// ExecDeployment executes a process in one of the deployment's pods.
+func (c *Kubeclient) ExecDeployment(ctx context.Context, namespace, deployment string, argv []string) (stdout string, stderr string, err error) {
+	if err := c.WaitForDeployment(ctx, namespace, deployment); err != nil {
+		return "", "", fmt.Errorf("deployment not ready: %w", err)
+	}
+
+	pods, err := c.PodsFromDeployment(ctx, namespace, deployment)
+	if err != nil {
+		return "", "", fmt.Errorf("could not get pods for deployment %s/%s: %w", namespace, deployment, err)
+	}
+	if len(pods) == 0 {
+		return "", "", fmt.Errorf("no pods found for deployment %s/%s", namespace, deployment)
+	}
+	return c.Exec(ctx, namespace, pods[0].Name, argv)
+}

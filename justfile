@@ -157,7 +157,6 @@ wait-for-workload target=default_deploy_target:
     case {{ target }} in
         "openssl")
             nix run .#scripts.kubectl-wait-ready -- $ns openssl-backend
-            nix run .#scripts.kubectl-wait-ready -- $ns openssl-client
             nix run .#scripts.kubectl-wait-ready -- $ns openssl-frontend
         ;;
         "emojivoto" | "emojivoto-sm-egress" | "emojivoto-sm-ingress")
