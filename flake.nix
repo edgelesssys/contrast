@@ -70,19 +70,19 @@
 
           contrast = pkgs.fetchurl {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/contrast";
-            hash = contrastHash;
+            hash = builtins.trace "contrast hash: ${contrastHash}" contrastHash;
           };
           coordinator = pkgs.fetchurl {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator.yml";
-            hash = coordinatorHash;
+            hash = builtins.trace "coordinator hash: ${coordinatorHash}" coordinatorHash;
           };
           runtime = pkgs.fetchurl {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/runtime.yml";
-            hash = runtimeHash;
+            hash = builtins.trace "runtime hash: ${runtimeHash}" runtimeHash;
           };
           emojivoto = pkgs.fetchzip {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/emojivoto-demo.zip";
-            hash = emojivotoHash;
+            hash = builtins.trace "emojivoto hash: ${emojivotoHash}" emojivotoHash;
           };
 
           shellHook = ''
