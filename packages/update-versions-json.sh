@@ -4,26 +4,6 @@
 
 set -euo pipefail
 
-# `create_hash` creates a hash for a given file.
-function create_hash {
-  nix hash file --sri --type sha256 "$1"
-}
-
-# `update` appends a new version entry to a given section.
-function update {
-  out=$(jq --arg NAME "$1" --arg HASH "$2" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' ./packages/versions.json)
-  echo "$out" >./packages/versions.json
-}
-
-# `check_for_version` checks if the given entry already contains a version.
-function check_for_version {
-  out=$(jq --arg NAME "$1" --arg VERSION "$VERSION" '.[$NAME] | map(select(.version == $VERSION))' ./packages/versions.json)
-  if [[ ! "$out" = "[]" ]]; then
-    echo "[x] Version $VERSION exists for entry $1"
-    exit 1
-  fi
-}
-
 echo "::group::Updating versions"
 
 # check if the version environment variable is set
@@ -42,17 +22,22 @@ fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
 
 for field in "${!fields[@]}"; do
   # check if any field contains the given version
-  check_for_version "$field"
+  out=$(jq --arg NAME "$field" --arg VERSION "$VERSION" '.[$NAME] | map(select(.version == $VERSION))' ./packages/versions.json)
+  if [[ ! "$out" = "[]" ]]; then
+    echo "[x] Version $VERSION exists for entry $field"
+    exit 1
+  fi
 
   # get the file path
   file=${fields["$field"]}
 
   echo "[*] Creating hash for $file"
-  hash=$(create_hash "$(realpath "$file")")
+  hash=$(nix hash file --sri --type sha256 "$(realpath "$file")")
   echo "      $hash"
 
   echo "[*] Updating ./packages/versions.json for $field"
-  update "$field" "$hash"
+  out=$(jq --arg NAME "$field" --arg HASH "$hash" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' ./packages/versions.json)
+  echo "$out" >./packages/versions.json
 
   echo ""
 done
