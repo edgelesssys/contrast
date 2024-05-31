@@ -4,8 +4,6 @@
 
 set -euo pipefail
 
-echo "::group::Updating versions"
-
 # check if the version environment variable is set
 if [[ -z "${VERSION:-}" ]]; then
   echo "[x] VERSION environment variable not set"
@@ -45,5 +43,3 @@ done
 echo "[*] Formatting ./packages/versions.json"
 out=$(jq --indent 2 . ./packages/versions.json)
 echo "$out" >./packages/versions.json
-
-echo "::endgroup::"
