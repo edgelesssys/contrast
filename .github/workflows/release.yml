@@ -263,9 +263,9 @@ jobs:
         run: |
           nix build -L .#cli-release
       - name: Update versions.json in main
-        uses: ./.github/actions/update_versions_json
-        with:
-          version: "${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
+        env:
+          VERSION: ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}
+        run: nix run ".#scripts.update-versions-json"
       - name: Upload versions.json
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
