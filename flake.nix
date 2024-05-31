@@ -57,32 +57,44 @@
         demo = pkgs.mkShell rec {
           packages = [];
 
-          json = builtins.fromJSON (builtins.readFile ./versions.json);
+          json = builtins.fromJSON (builtins.readFile ./packages/versions.json);
 
-          # fetch the required contrast sources
-          version = builtins.readFile ./version.txt;
+          version = (lib.lists.last json.contrast).version; # select the latest contrast version
 
-          # select the correct hashes
-          contrastHash = builtins.elemAt (builtins.filter (a: a.version == version) json.contrast) 0
+          # select all hashes based on the extracted version; since no "error" version exists the download will fail
+          # if the given version doesn't exist for a file.
+          contrastHash = lib.lists.findFirst (obj: obj.version == version) "error" json.contrast;
+          coordinatorHash = lib.lists.findFirst (obj: obj.version == version) "error" json."coordinator.yml";
+          runtimeHash = lib.lists.findFirst (obj: obj.version == version) "error" json."runtime.yml";
+          emojivotoHash = lib.lists.findFirst (obj: obj.version == version) "error" json."emojivoto-demo.zip";
 
           contrast = pkgs.fetchurl {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/contrast";
-            hash = "sha256-bxUIis/6uKTdqOa/uILLGOs0M2XqMkrq371EfnwsvtQ=";
+            hash = contrastHash;
           };
           coordinator = pkgs.fetchurl {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator.yml";
-            hash = "sha256-W4K5UJYwBXGxLZ4EJVymHW+Zoc57rDLHfCbQIFic03E=";
+            hash = coordinatorHash;
+          };
+          runtime = pkgs.fetchurl {
+            url = "https://github.com/edgelesssys/contrast/releases/download/${version}/runtime.yml";
+            hash = runtimeHash;
           };
           emojivoto = pkgs.fetchzip {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/emojivoto-demo.zip";
-            hash = "sha256-MGmN/6lPvGvbrXXvI1z8eUx2qsE8f5NewjTP4Jk5l6U=";
+            hash = emojivotoHash;
           };
 
           shellHook = ''
-            mkdir -p demo
-            cp ${contrast} ./demo/contrast
-            cp ${coordinator} ./demo/coordinator.yml
-            cp -r ${emojivoto} ./demo/deployment
+            cd "$(mktemp -d)" # create a temporary demodir
+
+            # copy everything over
+            cp ${contrast} ./contrast
+            cp ${coordinator} ./coordinator.yml
+            cp ${runtime} ./runtime.yml
+
+            mkdir -p deployment
+            cp -r ${emojivoto} ./deployment
           '';
         };
       };
