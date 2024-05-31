@@ -96,7 +96,6 @@ func TestOpenSSL(t *testing.T) {
 		})
 	}
 
-	// TODO(burgerdev): this test should be run with its own kubectl apply/contrast set preface.
 	t.Run("certificates can be used by OpenSSL", func(t *testing.T) {
 		// This test verifies that the certificates minted by the coordinator are accepted by OpenSSL in server and client mode.
 		require := require.New(t)
