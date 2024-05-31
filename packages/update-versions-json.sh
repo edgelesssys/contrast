@@ -20,7 +20,12 @@ fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
 
 for field in "${!fields[@]}"; do
   # check if any field contains the given version
-  out=$(jq --arg NAME "$field" --arg VERSION "$VERSION" '.[$NAME] | map(select(.version == $VERSION))' ./packages/versions.json)
+  out=$(
+    jq --arg NAME "$field" \
+      --arg VERSION "$VERSION" \
+      '.[$NAME] | map(select(.version == $VERSION))' \
+      ./packages/versions.json
+    )
   if [[ ! "$out" = "[]" ]]; then
     echo "[x] Version $VERSION exists for entry $field"
     exit 1
@@ -34,7 +39,13 @@ for field in "${!fields[@]}"; do
   echo "      $hash"
 
   echo "[*] Updating ./packages/versions.json for $field"
-  out=$(jq --arg NAME "$field" --arg HASH "$hash" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' ./packages/versions.json)
+  out=$(
+    jq --arg NAME "$field" \
+      --arg HASH "$hash" \
+      --arg VERSION "$VERSION" \
+      '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' \
+      ./packages/versions.json
+    )
   echo "$out" >./packages/versions.json
 
   echo ""
