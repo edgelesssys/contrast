@@ -117,51 +117,63 @@ func TestOpenSSL(t *testing.T) {
 		require.NoError(err, "stderr: %q", stderr)
 	})
 
-	t.Run("access backend after certificate rotation", func(t *testing.T) {
-		require := require.New(t)
+	for _, deploymentToRestart := range []string{opensslBackend, opensslFrontend} {
+		t.Run(fmt.Sprintf("certificate rotation and %s restart", deploymentToRestart), func(t *testing.T) {
+			require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-		defer cancel()
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			defer cancel()
 
-		c := kubeclient.NewForTest(t)
+			c := kubeclient.NewForTest(t)
 
-		// If in the future a SetManifest call with the same manifest does not result in a certificate rotation,
-		// this change of the manifest makes sure to always rotate certificates.
-		manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
-		require.NoError(err)
-		var m manifest.Manifest
-		require.NoError(json.Unmarshal(manifestBytes, &m))
-		// Add test domain name to first policy.
-		for policyHash := range m.Policies {
-			m.Policies[policyHash] = append(m.Policies[policyHash], "test")
-			break
-		}
-		manifestBytes, err = json.Marshal(m)
-		require.NoError(err)
-		require.NoError(os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
+			// If in the future a SetManifest call with the same manifest does not result in a certificate rotation,
+			// this change of the manifest makes sure to always rotate certificates.
+			manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
+			require.NoError(err)
+			var m manifest.Manifest
+			require.NoError(json.Unmarshal(manifestBytes, &m))
+			// Add test domain name to first policy.
+			for policyHash := range m.Policies {
+				m.Policies[policyHash] = append(m.Policies[policyHash], fmt.Sprintf("test-%s", deploymentToRestart))
+				break
+			}
+			manifestBytes, err = json.Marshal(m)
+			require.NoError(err)
+			require.NoError(os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
 
-		// SetManifest rotates the certificates in the coordinator.
-		ct.Set(t)
+			// SetManifest rotates the certificates in the coordinator.
+			ct.Set(t)
 
-		// Restart the openssl-frontend deployment so it has the new certificates.
-		require.NoError(c.RestartDeployment(ctx, ct.Namespace, opensslFrontend))
-		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
+			// Restart one deployment so it has the new certificates.
+			require.NoError(c.RestartDeployment(ctx, ct.Namespace, deploymentToRestart))
+			require.NoError(c.WaitForDeployment(ctx, ct.Namespace, deploymentToRestart))
 
-		// This should not succeed because the certificates have changed.
-		stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", "mesh-ca.pem")})
-		t.Log("openssl with wrong certificates:", stdout)
-		require.Error(err)
-		require.Contains(stderr, "certificate signature failure")
+			// This should not succeed because the certificates have changed.
+			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", "mesh-ca.pem")})
+			t.Log("openssl with wrong certificates:", stdout)
+			require.Error(err)
+			require.Contains(stderr, "certificate signature failure")
 
-		// Restart the openssl-backend deployment so both workloads have the same certificate.
-		require.NoError(c.RestartDeployment(ctx, ct.Namespace, opensslBackend))
-		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
+			// Connect from backend to fronted, because the frontend does not require client certs.
+			// This should succeed because the root cert did not change.
+			stdout, stderr, err = c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-frontend:443", "coordinator-root-ca.pem")})
+			t.Log("openssl with root certificate:", stdout)
+			require.NoError(err, "stderr: %q", stderr)
 
-		// This should succeed since both workloads now have updated certificates.
-		stdout, stderr, err = c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", "mesh-ca.pem")})
-		t.Log("openssl with correct certificates:", stdout)
-		require.NoError(err, "stderr: %q", stderr)
-	})
+			// Restart the other deployment so both workloads have the same certificates.
+			d := opensslBackend
+			if deploymentToRestart == opensslBackend {
+				d = opensslFrontend
+			}
+			require.NoError(c.RestartDeployment(ctx, ct.Namespace, d))
+			require.NoError(c.WaitForDeployment(ctx, ct.Namespace, d))
+
+			// This should succeed since both workloads now have updated certificates.
+			stdout, stderr, err = c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", "mesh-ca.pem")})
+			t.Log("openssl with correct certificates:", stdout)
+			require.NoError(err, "stderr: %q", stderr)
+		})
+	}
 }
 
 func TestMain(m *testing.M) {
