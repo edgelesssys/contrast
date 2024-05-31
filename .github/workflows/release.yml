@@ -271,6 +271,8 @@ jobs:
         with:
           name: versions-json
           path: ./packages/versions.json
+      - name: Clean up git tree
+        run: git clean -fx :/
       - name: Create draft release
         uses: softprops/action-gh-release@69320dbe05506a9a39fc8ae11030b214ec2d1f87 # v2.0.5
         with:
