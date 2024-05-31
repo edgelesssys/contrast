@@ -2,20 +2,22 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
+set -euo pipefail
+
 # `create_hash` creates a hash for a given file.
 function create_hash {
-  nix hash file --sri --type sha256 "$1" || exit 1
+  nix hash file --sri --type sha256 "$1"
 }
 
 # `update` appends a new version entry to a given section.
 function update {
-  out=$(jq --arg NAME "$1" --arg HASH "$2" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' ./packages/versions.json || exit 1)
+  out=$(jq --arg NAME "$1" --arg HASH "$2" --arg VERSION "$VERSION" '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' ./packages/versions.json)
   echo "$out" >./packages/versions.json
 }
 
 # `check_for_version` checks if the given entry already contains a version.
 function check_for_version {
-  out=$(jq --arg NAME "$1" --arg VERSION "$VERSION" '.[$NAME] | map(select(.version == $VERSION))' ./packages/versions.json || exit 1)
+  out=$(jq --arg NAME "$1" --arg VERSION "$VERSION" '.[$NAME] | map(select(.version == $VERSION))' ./packages/versions.json)
   if [[ ! "$out" = "[]" ]]; then
     echo "[x] Version $VERSION exists for entry $1"
     exit 1
