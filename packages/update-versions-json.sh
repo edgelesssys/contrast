@@ -25,7 +25,7 @@ for field in "${!fields[@]}"; do
       --arg VERSION "$VERSION" \
       '.[$NAME] | map(select(.version == $VERSION))' \
       ./packages/versions.json
-    )
+  )
   if [[ ! "$out" = "[]" ]]; then
     echo "[x] Version $VERSION exists for entry $field"
     exit 1
@@ -45,7 +45,7 @@ for field in "${!fields[@]}"; do
       --arg VERSION "$VERSION" \
       '.[$NAME] |= . + [{"version": $VERSION,hash: $HASH}]' \
       ./packages/versions.json
-    )
+  )
   echo "$out" >./packages/versions.json
 
   echo ""
