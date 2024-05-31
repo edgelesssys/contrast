@@ -63,10 +63,10 @@
 
           # select all hashes based on the extracted version; since no "error" version exists the download will fail
           # if the given version doesn't exist for a file.
-          contrastHash = lib.lists.findFirst (obj: obj.version == version) "error" json.contrast;
-          coordinatorHash = lib.lists.findFirst (obj: obj.version == version) "error" json."coordinator.yml";
-          runtimeHash = lib.lists.findFirst (obj: obj.version == version) "error" json."runtime.yml";
-          emojivotoHash = lib.lists.findFirst (obj: obj.version == version) "error" json."emojivoto-demo.zip";
+          contrastHash = (lib.lists.findFirst (obj: obj.version == version) "error" json.contrast).hash;
+          coordinatorHash = (lib.lists.findFirst (obj: obj.version == version) "error" json."coordinator.yml").hash;
+          runtimeHash = (lib.lists.findFirst (obj: obj.version == version) "error" json."runtime.yml").hash;
+          emojivotoHash = (lib.lists.findFirst (obj: obj.version == version) "error" json."emojivoto-demo.zip").hash;
 
           contrast = pkgs.fetchurl {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/contrast";
