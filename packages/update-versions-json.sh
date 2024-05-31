@@ -25,11 +25,7 @@ function check_for_version {
 echo "::group::Updating versions"
 
 # check if the version environment variable is set
-if [[ ! -v VERSION ]]; then
-  echo "[x] VERSION environment variable not bound"
-  exit 1
-fi
-if [[ -z "$VERSION" ]]; then
+if [[ -z "${VERSION:-}" ]]; then
   echo "[x] VERSION environment variable not set"
   exit 1
 fi
