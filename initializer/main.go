@@ -8,9 +8,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
-	"crypto/sha256"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -57,14 +55,6 @@ func run() (retErr error) {
 		return fmt.Errorf("generating key: %w", err)
 	}
 
-	pubKey, err := x509.MarshalPKIXPublicKey(&privKey.PublicKey)
-	if err != nil {
-		return fmt.Errorf("marshaling public key: %w", err)
-	}
-	pubKeyHash := sha256.Sum256(pubKey)
-	pubKeyHashStr := hex.EncodeToString(pubKeyHash[:])
-	log.Info("Deriving public key", "pubKeyHash", pubKeyHashStr)
-
 	requestCert := func() (*meshapi.NewMeshCertResponse, error) {
 		issuer := snp.NewIssuer(logger.NewNamed(log, "snp-issuer"))
 		dial := dialer.NewWithKey(issuer, atls.NoValidator, &net.Dialer{}, privKey)
@@ -76,10 +66,7 @@ func run() (retErr error) {
 
 		client := meshapi.NewMeshAPIClient(conn)
 
-		req := &meshapi.NewMeshCertRequest{
-			PeerPublicKeyHash: pubKeyHashStr,
-		}
-		resp, err := client.NewMeshCert(ctx, req)
+		resp, err := client.NewMeshCert(ctx, &meshapi.NewMeshCertRequest{})
 		if err != nil {
 			return nil, fmt.Errorf("calling NewMeshCert: %w", err)
 		}

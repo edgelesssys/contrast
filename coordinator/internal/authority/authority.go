@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package main
+package authority
 
 import (
 	"context"
@@ -23,24 +23,38 @@ import (
 	"github.com/google/go-sev-guest/validate"
 )
 
-type meshAuthority struct {
-	ca        *ca.CA
-	certs     map[string][]byte
-	certsMux  sync.RWMutex
-	manifests appendableList[*manifest.Manifest]
-	logger    *slog.Logger
+// Bundle is a set of PEM-encoded certificates for Contrast workloads.
+type Bundle struct {
+	WorkloadCert   []byte
+	MeshCA         []byte
+	IntermediateCA []byte
+	RootCA         []byte
 }
 
-func newMeshAuthority(ca *ca.CA, log *slog.Logger) *meshAuthority {
-	return &meshAuthority{
-		ca:        ca,
-		certs:     make(map[string][]byte),
+// Authority manages the manifest state of Contrast.
+type Authority struct {
+	ca         *ca.CA
+	bundles    map[string]Bundle
+	bundlesMux sync.RWMutex
+	manifests  appendableList[*manifest.Manifest]
+	logger     *slog.Logger
+}
+
+// New creates a new Authority instance.
+func New(caInstance *ca.CA, log *slog.Logger) *Authority {
+	return &Authority{
+		ca:        caInstance,
+		bundles:   make(map[string]Bundle),
 		manifests: new(appendable.Appendable[*manifest.Manifest]),
 		logger:    log.WithGroup("mesh-authority"),
 	}
 }
 
-func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error) {
+// SNPValidateOpts returns SNP validation options from reference values.
+//
+// It also ensures that the policy hash in the report's HOSTDATA is allowed by the current
+// manifest.
+func (m *Authority) SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error) {
 	mnfst, err := m.manifests.Latest()
 	if err != nil {
 		return nil, fmt.Errorf("getting latest manifest: %w", err)
@@ -83,13 +97,16 @@ func (m *meshAuthority) SNPValidateOpts(report *sevsnp.Report) (*validate.Option
 	}, nil
 }
 
-func (m *meshAuthority) ValidateCallback(_ context.Context, report *sevsnp.Report,
+// ValidateCallback creates a certificate bundle for the verified client.
+func (m *Authority) ValidateCallback(_ context.Context, report *sevsnp.Report,
 	_ asn1.ObjectIdentifier, _, _, peerPubKeyBytes []byte,
 ) error {
 	mnfst, err := m.manifests.Latest()
 	if err != nil {
 		return fmt.Errorf("getting latest manifest: %w", err)
 	}
+	// TODO(burgerdev): The CA should be tied to the manifest.
+	caInstance := m.ca
 
 	hostData := manifest.NewHexString(report.HostData)
 	dnsNames, ok := mnfst.Policies[hostData]
@@ -106,7 +123,7 @@ func (m *meshAuthority) ValidateCallback(_ context.Context, report *sevsnp.Repor
 	if err != nil {
 		return fmt.Errorf("failed to construct extensions: %w", err)
 	}
-	cert, err := m.ca.NewAttestedMeshCert(dnsNames, extensions, peerPubKey)
+	cert, err := caInstance.NewAttestedMeshCert(dnsNames, extensions, peerPubKey)
 	if err != nil {
 		return fmt.Errorf("failed to issue new attested mesh cert: %w", err)
 	}
@@ -115,30 +132,40 @@ func (m *meshAuthority) ValidateCallback(_ context.Context, report *sevsnp.Repor
 	peerPublicKeyHashStr := hex.EncodeToString(peerPubKeyHash[:])
 	m.logger.Info("Validated peer", "peerPublicKeyHashStr", peerPublicKeyHashStr)
 
-	m.certsMux.Lock()
-	defer m.certsMux.Unlock()
-	m.certs[peerPublicKeyHashStr] = cert
+	m.bundlesMux.Lock()
+	defer m.bundlesMux.Unlock()
+	m.bundles[peerPublicKeyHashStr] = Bundle{
+		WorkloadCert:   cert,
+		MeshCA:         caInstance.GetMeshCACert(),
+		IntermediateCA: caInstance.GetIntermCACert(),
+		RootCA:         caInstance.GetRootCACert(),
+	}
 
 	return nil
 }
 
-func (m *meshAuthority) GetCert(peerPublicKeyHashStr string) ([]byte, error) {
-	m.certsMux.RLock()
-	defer m.certsMux.RUnlock()
+// GetCertBundle retrieves the certificate bundle created for the peer identified by the given public key.
+func (m *Authority) GetCertBundle(peerPublicKeyHashStr string) (Bundle, error) {
+	m.bundlesMux.RLock()
+	defer m.bundlesMux.RUnlock()
 
-	cert, ok := m.certs[peerPublicKeyHashStr]
+	bundle, ok := m.bundles[peerPublicKeyHashStr]
+
 	if !ok {
-		return nil, fmt.Errorf("cert for peer public key %s not found", peerPublicKeyHashStr)
+		return Bundle{}, fmt.Errorf("cert for peer public key %s not found", peerPublicKeyHashStr)
 	}
 
-	return cert, nil
+	return bundle, nil
 }
 
-func (m *meshAuthority) GetManifests() []*manifest.Manifest {
-	return m.manifests.All()
+// GetManifestsAndLatestCA retrieves the manifest history and the currently active CA instance.
+func (m *Authority) GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA) {
+	// TODO(burgerdev): The CA should be tied to the manifest.
+	return m.manifests.All(), m.ca
 }
 
-func (m *meshAuthority) SetManifest(mnfst *manifest.Manifest) error {
+// SetManifest updates the active manifest.
+func (m *Authority) SetManifest(mnfst *manifest.Manifest) error {
 	if err := m.ca.RotateIntermCerts(); err != nil {
 		return fmt.Errorf("rotating intermediate certificates: %w", err)
 	}
@@ -146,7 +173,8 @@ func (m *meshAuthority) SetManifest(mnfst *manifest.Manifest) error {
 	return nil
 }
 
-func (m *meshAuthority) LatestManifest() (*manifest.Manifest, error) {
+// LatestManifest retrieves the active manifest.
+func (m *Authority) LatestManifest() (*manifest.Manifest, error) {
 	return m.manifests.Latest()
 }
 
