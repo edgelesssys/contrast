@@ -12,10 +12,13 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 
+	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/appendable"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/ca"
+	"github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
@@ -33,7 +36,8 @@ type Bundle struct {
 
 // Authority manages the manifest state of Contrast.
 type Authority struct {
-	ca         *ca.CA
+	se         atomic.Pointer[seedengine.SeedEngine]
+	ca         atomic.Pointer[ca.CA]
 	bundles    map[string]Bundle
 	bundlesMux sync.RWMutex
 	manifests  appendableList[*manifest.Manifest]
@@ -41,9 +45,8 @@ type Authority struct {
 }
 
 // New creates a new Authority instance.
-func New(caInstance *ca.CA, log *slog.Logger) *Authority {
+func New(log *slog.Logger) *Authority {
 	return &Authority{
-		ca:        caInstance,
 		bundles:   make(map[string]Bundle),
 		manifests: new(appendable.Appendable[*manifest.Manifest]),
 		logger:    log.WithGroup("mesh-authority"),
@@ -106,7 +109,10 @@ func (m *Authority) ValidateCallback(_ context.Context, report *sevsnp.Report,
 		return fmt.Errorf("getting latest manifest: %w", err)
 	}
 	// TODO(burgerdev): The CA should be tied to the manifest.
-	caInstance := m.ca
+	caInstance := m.ca.Load()
+	if caInstance == nil {
+		return fmt.Errorf("no available CA")
+	}
 
 	hostData := manifest.NewHexString(report.HostData)
 	dnsNames, ok := mnfst.Policies[hostData]
@@ -161,14 +167,34 @@ func (m *Authority) GetCertBundle(peerPublicKeyHashStr string) (Bundle, error) {
 // GetManifestsAndLatestCA retrieves the manifest history and the currently active CA instance.
 func (m *Authority) GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA) {
 	// TODO(burgerdev): The CA should be tied to the manifest.
-	return m.manifests.All(), m.ca
+	return m.manifests.All(), m.ca.Load()
 }
 
 // SetManifest updates the active manifest.
 func (m *Authority) SetManifest(mnfst *manifest.Manifest) error {
-	if err := m.ca.RotateIntermCerts(); err != nil {
-		return fmt.Errorf("rotating intermediate certificates: %w", err)
+	se := m.se.Load()
+	if se == nil {
+		if err := m.createSeedEngine(); err != nil {
+			return fmt.Errorf("could not create SeedEngine: %w", err)
+		}
+		se = m.se.Load()
 	}
+	// TODO(burgerdev): get hash from manifest transition
+	hash, err := crypto.GenerateRandomBytes(32)
+	if err != nil {
+		return fmt.Errorf("generating random bytes: %w", err)
+	}
+	var fixedLengthHash [32]byte
+	copy(fixedLengthHash[:], hash)
+	meshKey, err := se.DeriveMeshCAKey(fixedLengthHash)
+	if err != nil {
+		return fmt.Errorf("deriving new mesh CA key: %w", err)
+	}
+	ca, err := ca.New(se.RootCAKey(), meshKey)
+	if err != nil {
+		return fmt.Errorf("creating new CA: %w", err)
+	}
+	m.ca.Store(ca)
 	m.manifests.Append(mnfst)
 	return nil
 }
@@ -176,6 +202,29 @@ func (m *Authority) SetManifest(mnfst *manifest.Manifest) error {
 // LatestManifest retrieves the active manifest.
 func (m *Authority) LatestManifest() (*manifest.Manifest, error) {
 	return m.manifests.Latest()
+}
+
+// createSeedEngine populates m.se.
+//
+// It is fine to call this function concurrently. After it returns, m.se is guaranteed to be
+// non-nil.
+func (m *Authority) createSeedEngine() error {
+	// TODO(burgerdev): return this seed to the user
+	seed, err := crypto.GenerateRandomBytes(32)
+	if err != nil {
+		return fmt.Errorf("generating random bytes: %w", err)
+	}
+	salt, err := crypto.GenerateRandomBytes(32)
+	if err != nil {
+		return fmt.Errorf("generating random bytes: %w", err)
+	}
+	seedEngine, err := seedengine.New(seed, salt)
+	if err != nil {
+		return fmt.Errorf("creating seed engine: %w", err)
+	}
+	// It's fine if the seedEngine has already been created by another thread.
+	m.se.CompareAndSwap(nil, seedEngine)
+	return nil
 }
 
 type appendableList[T any] interface {

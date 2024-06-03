@@ -11,7 +11,6 @@ import (
 	"os"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
-	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -50,14 +49,9 @@ func run() (retErr error) {
 
 	metricsPort := os.Getenv(metricsPortEnvVar)
 
-	caInstance, err := ca.New()
-	if err != nil {
-		return fmt.Errorf("creating CA: %w", err)
-	}
-
 	promRegistry := prometheus.NewRegistry()
 
-	meshAuth := authority.New(caInstance, logger)
+	meshAuth := authority.New(logger)
 	userAPI := newUserAPIServer(meshAuth, promRegistry, logger)
 	meshAPI := newMeshAPIServer(meshAuth, meshAuth, promRegistry, logger)
 
