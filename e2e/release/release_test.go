@@ -119,7 +119,7 @@ func TestRelease(t *testing.T) {
 		}
 
 		require.NoError(k.Apply(ctx, resources...))
-		require.NoError(k.WaitForDeployment(ctx, *namespace, "coordinator"))
+		require.NoError(k.WaitForStatefulSet(ctx, *namespace, "coordinator"))
 		coordinatorIP, err = k.WaitForLoadBalancer(ctx, *namespace, "coordinator")
 		require.NoError(err)
 	}), "the coordinator is required for subsequent tests to run")
