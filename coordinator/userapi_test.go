@@ -407,7 +407,15 @@ func (s *stubManifestSetGetter) SetManifest(*manifest.Manifest) error {
 }
 
 func (s *stubManifestSetGetter) GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA) {
-	ca, err := ca.New()
+	rootKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+	meshKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+	ca, err := ca.New(rootKey, meshKey)
 	if err != nil {
 		panic(err)
 	}

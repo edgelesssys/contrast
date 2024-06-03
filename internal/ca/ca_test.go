@@ -22,7 +22,10 @@ func TestNewCA(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	ca, err := New()
+	rootCAKey := newKey(require)
+	meshCAKey := newKey(require)
+
+	ca, err := New(rootCAKey, meshCAKey)
 	require.NoError(err)
 	assert.NotNil(ca)
 	assert.NotNil(ca.rootCAPrivKey)
@@ -72,7 +75,9 @@ func TestAttestedMeshCert(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 
-			ca, err := New()
+			rootCAKey := newKey(require)
+			meshCAKey := newKey(require)
+			ca, err := New(rootCAKey, meshCAKey)
 			require.NoError(err)
 
 			pem, err := ca.NewAttestedMeshCert(tc.dnsNames, tc.extensions, tc.subjectPub)
@@ -154,31 +159,13 @@ func TestCreateCert(t *testing.T) {
 	}
 }
 
-func TestRotateIntermCerts(t *testing.T) {
-	assert := assert.New(t)
-	require := require.New(t)
-
-	ca, err := New()
-	require.NoError(err)
-
-	oldIntermCert := ca.intermCACert
-	oldintermPEM := ca.intermCAPEM
-	oldMeshCACert := ca.meshCACert
-	oldMeshCAPEM := ca.meshCAPEM
-
-	err = ca.RotateIntermCerts()
-	assert.NoError(err)
-	assert.NotEqual(oldIntermCert, ca.intermCACert)
-	assert.NotEqual(oldintermPEM, ca.intermCAPEM)
-	assert.NotEqual(oldMeshCACert, ca.meshCACert)
-	assert.NotEqual(oldMeshCAPEM, ca.meshCAPEM)
-}
-
 func TestCAConcurrent(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	ca, err := New()
+	rootCAKey := newKey(require)
+	meshCAKey := newKey(require)
+	ca, err := New(rootCAKey, meshCAKey)
 	require.NoError(err)
 
 	wg := sync.WaitGroup{}
@@ -194,17 +181,13 @@ func TestCAConcurrent(t *testing.T) {
 		defer wg.Done()
 		assert.NotEmpty(ca.GetRootCACert())
 	}
-	rotateIntermCerts := func() {
-		defer wg.Done()
-		assert.NoError(ca.RotateIntermCerts())
-	}
 	newMeshCert := func() {
 		defer wg.Done()
 		_, err := ca.NewAttestedMeshCert([]string{"foo", "bar"}, []pkix.Extension{}, newKey(require).Public())
 		assert.NoError(err)
 	}
 
-	wg.Add(5 * 5)
+	wg.Add(4 * 5)
 	go getIntermCert()
 	go getIntermCert()
 	go getIntermCert()
@@ -222,12 +205,6 @@ func TestCAConcurrent(t *testing.T) {
 	go getRootCACert()
 	go getRootCACert()
 	go getRootCACert()
-
-	go rotateIntermCerts()
-	go rotateIntermCerts()
-	go rotateIntermCerts()
-	go rotateIntermCerts()
-	go rotateIntermCerts()
 
 	go newMeshCert()
 	go newMeshCert()
