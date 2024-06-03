@@ -134,8 +134,8 @@ const sidebars = {
     },
     {
       type: 'doc',
-      label: 'Known limitations',
-      id: 'known-limitations',
+      label: 'Planned features and limitations',
+      id: 'features-limitations',
     },
     {
       type: 'category',

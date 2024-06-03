@@ -63,7 +63,7 @@ You may want to start with one of the following sections.
 
 ## Known limitations
 
-See the current list of [known limitations](https://docs.edgeless.systems/contrast/known-limitations) in the documentation.
+See the current list of [known limitations](https://docs.edgeless.systems/contrast/features-limitations) in the documentation.
 
 ## Upcoming Contrast features
 
