@@ -80,8 +80,8 @@ You can either use an existing one or create a new resource group with the follo
 azLocation="westus" # Select a location from the list above
 
 az group create \
-  --name "$azResourceGroup" \
-  --location "$azLocation"
+  --name "${azResourceGroup:?}" \
+  --location "${azLocation:?}"
 ```
 
 ## Create AKS cluster
@@ -93,8 +93,8 @@ First create an AKS cluster:
 azClusterName="ContrastDemo"
 
 az aks create \
-  --resource-group "$azResourceGroup" \
-  --name "$azClusterName" \
+  --resource-group "${azResourceGroup:?}" \
+  --name "${azClusterName:?}" \
   --kubernetes-version 1.29 \
   --os-sku AzureLinux \
   --node-vm-size Standard_DC4as_cc_v5 \
@@ -106,9 +106,9 @@ We then add a second node pool with CoCo support:
 
 ```bash
 az aks nodepool add \
-  --resource-group "$azResourceGroup" \
+  --resource-group "${azResourceGroup:?}" \
   --name nodepool2 \
-  --cluster-name "$azClusterName" \
+  --cluster-name "${azClusterName:?}" \
   --node-count 1 \
   --os-sku AzureLinux \
   --node-vm-size Standard_DC4as_cc_v5 \
@@ -119,8 +119,8 @@ Finally, update your kubeconfig with the credentials to access the cluster:
 
 ```bash
 az aks get-credentials \
-  --resource-group "$azResourceGroup" \
-  --name "$azClusterName"
+  --resource-group "${azResourceGroup:?}" \
+  --name "${azClusterName:?}"
 ```
 
 For validation, list the available nodes using kubectl:
@@ -144,7 +144,7 @@ In case you've created a new resource group, you can just delete that group with
 
 ```sh
 az group delete \
-  --name "$azResourceGroup"
+  --name "${azResourceGroup:?}"
 ```
 
 Deleting the resource group will also delete the cluster and all other related resources.
@@ -153,6 +153,6 @@ To only cleanup the AKS cluster and node pools, run
 
 ```sh
 az aks delete \
-  --resource-group "$azResourceGroup" \
-  --name "$azClusterName"
+  --resource-group "${azResourceGroup:?}" \
+  --name "${azClusterName:?}"
 ```
