@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
@@ -56,9 +57,9 @@ func run() (retErr error) {
 
 	promRegistry := prometheus.NewRegistry()
 
-	meshAuth := newMeshAuthority(caInstance, logger)
-	userAPI := newUserAPIServer(meshAuth, caInstance, promRegistry, logger)
-	meshAPI := newMeshAPIServer(meshAuth, caInstance, promRegistry, logger)
+	meshAuth := authority.New(caInstance, logger)
+	userAPI := newUserAPIServer(meshAuth, promRegistry, logger)
+	meshAPI := newMeshAPIServer(meshAuth, meshAuth, promRegistry, logger)
 
 	eg := errgroup.Group{}
 

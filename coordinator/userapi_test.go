@@ -12,6 +12,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -19,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/appendable"
+	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -63,7 +65,6 @@ func TestManifestSet(t *testing.T) {
 	testCases := map[string]struct {
 		req              *userapi.SetManifestRequest
 		mSGetter         *stubManifestSetGetter
-		caGetter         *stubCertChainGetter
 		workloadOwnerKey *ecdsa.PrivateKey
 		wantErr          bool
 	}{
@@ -123,7 +124,6 @@ func TestManifestSet(t *testing.T) {
 				},
 			},
 			mSGetter: &stubManifestSetGetter{},
-			caGetter: &stubCertChainGetter{},
 		},
 		"valid manifest but error when setting it": {
 			req: &userapi.SetManifestRequest{
@@ -139,7 +139,6 @@ func TestManifestSet(t *testing.T) {
 				},
 			},
 			mSGetter: &stubManifestSetGetter{setManifestErr: assert.AnError},
-			caGetter: &stubCertChainGetter{},
 			wantErr:  true,
 		},
 		"workload owner key match": {
@@ -158,7 +157,6 @@ func TestManifestSet(t *testing.T) {
 			mSGetter: &stubManifestSetGetter{
 				getManifestResp: []*manifest.Manifest{manifestWithTrustedKey},
 			},
-			caGetter:         &stubCertChainGetter{},
 			workloadOwnerKey: trustedKey,
 		},
 		"workload owner key mismatch": {
@@ -177,7 +175,6 @@ func TestManifestSet(t *testing.T) {
 			mSGetter: &stubManifestSetGetter{
 				getManifestResp: []*manifest.Manifest{manifestWithTrustedKey},
 			},
-			caGetter:         &stubCertChainGetter{},
 			workloadOwnerKey: untrustedKey,
 			wantErr:          true,
 		},
@@ -197,8 +194,7 @@ func TestManifestSet(t *testing.T) {
 			mSGetter: &stubManifestSetGetter{
 				getManifestResp: []*manifest.Manifest{manifestWithTrustedKey},
 			},
-			caGetter: &stubCertChainGetter{},
-			wantErr:  true,
+			wantErr: true,
 		},
 		"manifest not updatable": {
 			req: &userapi.SetManifestRequest{
@@ -216,7 +212,6 @@ func TestManifestSet(t *testing.T) {
 			mSGetter: &stubManifestSetGetter{
 				getManifestResp: []*manifest.Manifest{manifestWithoutTrustedKey},
 			},
-			caGetter:         &stubCertChainGetter{},
 			workloadOwnerKey: trustedKey,
 			wantErr:          true,
 		},
@@ -235,7 +230,6 @@ func TestManifestSet(t *testing.T) {
 
 			coordinator := userAPIServer{
 				manifSetGetter:  tc.mSGetter,
-				caChainGetter:   tc.caGetter,
 				policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
 				logger:          slog.Default(),
 				metrics: userAPIMetrics{
@@ -251,8 +245,8 @@ func TestManifestSet(t *testing.T) {
 				return
 			}
 			require.NoError(err)
-			assert.Equal([]byte("root"), resp.RootCA)
-			assert.Equal([]byte("mesh"), resp.MeshCA)
+			assert.Equal("system:coordinator:root", parsePEMCertificate(t, resp.RootCA).Subject.CommonName)
+			assert.Equal("system:coordinator:intermediate", parsePEMCertificate(t, resp.MeshCA).Subject.CommonName)
 			assert.Equal(1, tc.mSGetter.setManifestCount)
 
 			expected := fmt.Sprintf(manifestGenerationExpected, 1)
@@ -264,13 +258,11 @@ func TestManifestSet(t *testing.T) {
 func TestGetManifests(t *testing.T) {
 	testCases := map[string]struct {
 		mSGetter           *stubManifestSetGetter
-		caGetter           *stubCertChainGetter
 		policyStoreContent map[manifest.HexString]manifest.Policy
 		wantErr            bool
 	}{
 		"no manifest set": {
 			mSGetter: &stubManifestSetGetter{},
-			caGetter: &stubCertChainGetter{},
 			wantErr:  true,
 		},
 		"no policy in store": {
@@ -307,7 +299,6 @@ func TestGetManifests(t *testing.T) {
 
 			coordinator := userAPIServer{
 				manifSetGetter:  tc.mSGetter,
-				caChainGetter:   tc.caGetter,
 				policyTextStore: policyStore,
 				logger:          slog.Default(),
 			}
@@ -320,8 +311,8 @@ func TestGetManifests(t *testing.T) {
 				return
 			}
 			require.NoError(err)
-			assert.Equal([]byte("root"), resp.RootCA)
-			assert.Equal([]byte("mesh"), resp.MeshCA)
+			assert.Equal("system:coordinator:root", parsePEMCertificate(t, resp.RootCA).Subject.CommonName)
+			assert.Equal("system:coordinator:intermediate", parsePEMCertificate(t, resp.MeshCA).Subject.CommonName)
 			assert.Len(resp.Policies, len(tc.policyStoreContent))
 		})
 	}
@@ -351,7 +342,6 @@ func TestUserAPIConcurrent(t *testing.T) {
 
 	coordinator := userAPIServer{
 		manifSetGetter:  &stubManifestSetGetter{},
-		caChainGetter:   &stubCertChainGetter{},
 		policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
 		logger:          slog.Default(),
 		metrics: userAPIMetrics{
@@ -416,13 +406,17 @@ func (s *stubManifestSetGetter) SetManifest(*manifest.Manifest) error {
 	return s.setManifestErr
 }
 
-func (s *stubManifestSetGetter) GetManifests() []*manifest.Manifest {
+func (s *stubManifestSetGetter) GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA) {
+	ca, err := ca.New()
+	if err != nil {
+		panic(err)
+	}
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 	if s.getManifestResp == nil {
-		return make([]*manifest.Manifest, s.setManifestCount)
+		return make([]*manifest.Manifest, s.setManifestCount), ca
 	}
-	return s.getManifestResp
+	return s.getManifestResp, ca
 }
 
 func (s *stubManifestSetGetter) LatestManifest() (*manifest.Manifest, error) {
@@ -433,12 +427,6 @@ func (s *stubManifestSetGetter) LatestManifest() (*manifest.Manifest, error) {
 	}
 	return s.getManifestResp[len(s.getManifestResp)-1], nil
 }
-
-type stubCertChainGetter struct{}
-
-func (s *stubCertChainGetter) GetRootCACert() []byte   { return []byte("root") }
-func (s *stubCertChainGetter) GetMeshCACert() []byte   { return []byte("mesh") }
-func (s *stubCertChainGetter) GetIntermCACert() []byte { return []byte("inter") }
 
 func rpcContext(key *ecdsa.PrivateKey) context.Context {
 	var peerCertificates []*x509.Certificate
@@ -468,6 +456,18 @@ func manifestWithWorkloadOwnerKey(key *ecdsa.PrivateKey) (*manifest.Manifest, er
 	ownerKeyHex := manifest.NewHexString(ownerKeyHash[:])
 	m.WorkloadOwnerKeyDigests = []manifest.HexString{ownerKeyHex}
 	return &m, nil
+}
+
+func parsePEMCertificate(t *testing.T, pemCert []byte) *x509.Certificate {
+	t.Helper()
+
+	block, _ := pem.Decode(pemCert)
+	require.NotNil(t, block, "no pem-encoded certificate found")
+
+	// Parse the certificate
+	cert, err := x509.ParseCertificate(block.Bytes)
+	require.NoError(t, err)
+	return cert
 }
 
 func toPtr[T any](t T) *T {

@@ -18,6 +18,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/appendable"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
+	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -42,7 +43,6 @@ type userAPIServer struct {
 	grpc            *grpc.Server
 	policyTextStore store[manifest.HexString, manifest.Policy]
 	manifSetGetter  manifestSetGetter
-	caChainGetter   certChainGetter
 	logger          *slog.Logger
 	mux             sync.RWMutex
 	metrics         userAPIMetrics
@@ -50,7 +50,7 @@ type userAPIServer struct {
 	userapi.UnimplementedUserAPIServer
 }
 
-func newUserAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, reg *prometheus.Registry, log *slog.Logger) *userAPIServer {
+func newUserAPIServer(mSGetter manifestSetGetter, reg *prometheus.Registry, log *slog.Logger) *userAPIServer {
 	issuer := snp.NewIssuer(logger.NewNamed(log, "snp-issuer"))
 	credentials := atlscredentials.New(issuer, nil)
 
@@ -84,7 +84,6 @@ func newUserAPIServer(mSGetter manifestSetGetter, caGetter certChainGetter, reg 
 		grpc:            grpcServer,
 		policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
 		manifSetGetter:  mSGetter,
-		caChainGetter:   caGetter,
 		logger:          log.WithGroup("userapi"),
 		metrics: userAPIMetrics{
 			manifestGeneration: manifestGeneration,
@@ -141,11 +140,12 @@ func (s *userAPIServer) SetManifest(ctx context.Context, req *userapi.SetManifes
 		return nil, status.Errorf(codes.Internal, "setting manifest: %v", err)
 	}
 
-	s.metrics.manifestGeneration.Set(float64(len(s.manifSetGetter.GetManifests())))
+	manifests, ca := s.manifSetGetter.GetManifestsAndLatestCA()
+	s.metrics.manifestGeneration.Set(float64(len(manifests)))
 
 	resp := &userapi.SetManifestResponse{
-		RootCA: s.caChainGetter.GetRootCACert(),
-		MeshCA: s.caChainGetter.GetMeshCACert(),
+		RootCA: ca.GetRootCACert(),
+		MeshCA: ca.GetMeshCACert(),
 	}
 
 	s.logger.Info("SetManifest succeeded")
@@ -158,7 +158,7 @@ func (s *userAPIServer) GetManifests(_ context.Context, _ *userapi.GetManifestsR
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 
-	manifests := s.manifSetGetter.GetManifests()
+	manifests, ca := s.manifSetGetter.GetManifestsAndLatestCA()
 	if len(manifests) == 0 {
 		return nil, status.Errorf(codes.FailedPrecondition, "no manifests set")
 	}
@@ -176,8 +176,8 @@ func (s *userAPIServer) GetManifests(_ context.Context, _ *userapi.GetManifestsR
 	resp := &userapi.GetManifestsResponse{
 		Manifests: manifestBytes,
 		Policies:  policySliceToBytesSlice(policies),
-		RootCA:    s.caChainGetter.GetRootCACert(),
-		MeshCA:    s.caChainGetter.GetMeshCACert(),
+		RootCA:    ca.GetRootCACert(),
+		MeshCA:    ca.GetMeshCACert(),
 	}
 
 	s.logger.Info("GetManifest succeeded")
@@ -252,15 +252,9 @@ func manifestSliceToBytesSlice(s []*manifest.Manifest) ([][]byte, error) {
 	return manifests, nil
 }
 
-type certChainGetter interface {
-	GetRootCACert() []byte
-	GetMeshCACert() []byte
-	GetIntermCACert() []byte
-}
-
 type manifestSetGetter interface {
 	SetManifest(*manifest.Manifest) error
-	GetManifests() []*manifest.Manifest
+	GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA)
 	LatestManifest() (*manifest.Manifest, error)
 }
 

@@ -9,7 +9,8 @@ service MeshAPI {
 }
 
 message NewMeshCertRequest {
-  string PeerPublicKeyHash = 1;
+  reserved 1;
+  reserved "PeerPublicKeyHash";
 }
 
 message NewMeshCertResponse {

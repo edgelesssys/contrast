@@ -5,11 +5,15 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net"
 	"time"
 
+	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
@@ -20,27 +24,26 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/peer"
 	"k8s.io/utils/clock"
 )
 
 type meshAPIServer struct {
-	grpc          *grpc.Server
-	certGet       certGetter
-	caChainGetter certChainGetter
-	ticker        clock.Ticker
-	logger        *slog.Logger
+	grpc         *grpc.Server
+	bundleGetter certBundleGetter
+	ticker       clock.Ticker
+	logger       *slog.Logger
 
 	meshapi.UnimplementedMeshAPIServer
 }
 
-type certGetter interface {
-	GetCert(peerPublicKeyHashStr string) ([]byte, error)
+type certBundleGetter interface {
+	GetCertBundle(peerPublicKeyHashStr string) (authority.Bundle, error)
 }
 
-func newMeshAPIServer(meshAuth *meshAuthority, caGetter certChainGetter, reg *prometheus.Registry, log *slog.Logger) *meshAPIServer {
+func newMeshAPIServer(meshAuth *authority.Authority, bundleGetter certBundleGetter, reg *prometheus.Registry, log *slog.Logger) *meshAPIServer {
 	ticker := clock.RealClock{}.NewTicker(24 * time.Hour)
 	kdsGetter := snp.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter"))
 
@@ -74,11 +77,10 @@ func newMeshAPIServer(meshAuth *meshAuthority, caGetter certChainGetter, reg *pr
 		),
 	)
 	s := &meshAPIServer{
-		grpc:          grpcServer,
-		certGet:       meshAuth,
-		caChainGetter: caGetter,
-		ticker:        ticker,
-		logger:        log.WithGroup("meshapi"),
+		grpc:         grpcServer,
+		bundleGetter: bundleGetter,
+		ticker:       ticker,
+		logger:       log.WithGroup("meshapi"),
 	}
 	meshapi.RegisterMeshAPIServer(s.grpc, s)
 
@@ -98,22 +100,41 @@ func (i *meshAPIServer) Serve(endpoint string) error {
 	return i.grpc.Serve(lis)
 }
 
-func (i *meshAPIServer) NewMeshCert(_ context.Context, req *meshapi.NewMeshCertRequest,
-) (*meshapi.NewMeshCertResponse, error) {
+func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertRequest) (*meshapi.NewMeshCertResponse, error) {
 	i.logger.Info("NewMeshCert called")
 
-	cert, err := i.certGet.GetCert(req.PeerPublicKeyHash)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal,
-			"getting certificate with public key hash %q: %v", req.PeerPublicKeyHash, err)
+	// Fetch the peer public key from gRPC's TLS context and look up the corresponding cetificate.
+
+	p, ok := peer.FromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to get peer from context")
 	}
 
-	meshCACert := i.caChainGetter.GetMeshCACert()
-	intermCert := i.caChainGetter.GetIntermCACert()
+	tlsInfo, ok := p.AuthInfo.(credentials.TLSInfo)
+	if !ok {
+		return nil, fmt.Errorf("failed to get TLS info from peer")
+	}
+
+	if len(tlsInfo.State.PeerCertificates) == 0 {
+		return nil, fmt.Errorf("no peer certificates found")
+	}
+
+	peerCert := tlsInfo.State.PeerCertificates[0]
+	peerPubKeyBytes, err := x509.MarshalPKIXPublicKey(peerCert.PublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal public key: %w", err)
+	}
+	peerPubKeyHash := sha256.Sum256(peerPubKeyBytes)
+	peerPublicKeyHashStr := hex.EncodeToString(peerPubKeyHash[:])
+
+	bundle, err := i.bundleGetter.GetCertBundle(peerPublicKeyHashStr)
+	if err != nil {
+		return nil, fmt.Errorf("server did not create a bundle for ")
+	}
 
 	return &meshapi.NewMeshCertResponse{
-		MeshCACert: meshCACert,
-		CertChain:  append(cert, intermCert...),
-		RootCACert: i.caChainGetter.GetRootCACert(),
+		MeshCACert: bundle.MeshCA,
+		CertChain:  append(bundle.WorkloadCert, bundle.IntermediateCA...),
+		RootCACert: bundle.RootCA,
 	}, nil
 }
