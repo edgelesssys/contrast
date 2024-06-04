@@ -86,7 +86,7 @@ func (s *SeedEngine) DerivePodSecret(policyHash [hashSize]byte) ([]byte, error) 
 	if policyHash == [hashSize]byte{} {
 		return nil, errors.New("policy hash must not be empty")
 	}
-	if bytes.Equal(policyHash[:], s.hashFun().Sum([]byte{})) {
+	if bytes.Equal(policyHash[:], s.hashFun().Sum(nil)) {
 		return nil, errors.New("policy hash is the hash of an empty byte slice")
 	}
 	return s.hkdfDerive(s.podStateSeed, fmt.Sprintf("POD SECRET %x", policyHash))
@@ -97,7 +97,7 @@ func (s *SeedEngine) DeriveMeshCAKey(transactionHash [hashSize]byte) (*ecdsa.Pri
 	if transactionHash == [hashSize]byte{} {
 		return nil, errors.New("transaction hash must not be empty")
 	}
-	if bytes.Equal(transactionHash[:], s.hashFun().Sum([]byte{})) {
+	if bytes.Equal(transactionHash[:], s.hashFun().Sum(nil)) {
 		return nil, errors.New("transaction hash is the hash of an empty byte slice")
 	}
 	transactionSecret, err := s.hkdfDerive(s.historySeed, fmt.Sprintf("TRANSACTION SECRET %x", transactionHash))
