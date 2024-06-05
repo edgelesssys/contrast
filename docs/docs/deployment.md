@@ -33,8 +33,8 @@ This section guides you through the process and outlines the necessary changes.
 
 ### RuntimeClass
 
-Contrast will add annotations to your Kubernetes YAML files. If you want to keep the original files
-unchanged, you can copy the files into a separate local directory.
+Contrast will add annotations and additional configuration to your Kubernetes YAML files.
+If you want to keep the original files unchanged, you can copy the files into a separate local directory.
 You can also generate files from a Helm chart or from a Kustomization.
 
 <Tabs groupId="yaml-source">
@@ -74,7 +74,7 @@ spec: # v1.PodSpec
 
 ### Handling TLS
 
-The initializer populates the shared volume with X.509 certificates for your workload.
+In the initialization process, the `contrast-tls-certs` shared volume is populated with X.509 certificates for your workload.
 These certificates are used by the [Contrast Service Mesh](components/service-mesh.md), but can also be used by your application directly.
 The following tab group explains the setup for both scenarios.
 
@@ -92,24 +92,16 @@ The following example is for an application with these properties:
 * All other endpoints require client authentication.
 * The app connects to a Kubernetes service `backend.default:4001`, which requires client authentication.
 
-Add the following sidecar definition to your workload:
+Add the following annotations to your workload:
 
 ```yaml
-spec: # v1.PodSpec
-  initContainers:
-  - name: tls-sidecar
-    image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest"
-    restartPolicy: Always
-    env:
-    - name: EDG_INGRESS_PROXY_CONFIG
-      value: "main#8001#false##metrics#8080#true"
-    - name: EDG_EGRESS_PROXY_CONFIG
-      value: "backend#127.0.0.2:4001#backend.default:4001"
-    volumeMounts:
-    - name: contrast-tls-certs
-      mountPath: /tls-config
+metadata: # apps/v1.Deployment, apps/v1.DaemonSet, ...
+  annotations:
+    contrast.edgeless.systems/sm-ingress: "main#8001#false##metrics#8080#true"
+    contrast.edgeless.systems/sm-egress: "backend#127.0.0.2:4001#backend.default:4001"
 ```
 
+During the `generate` step, this configuration will be translated into a Service Mesh sidecar container which handles TLS connections automatically.
 The only change required to the app itself is to let it connect to `127.0.0.2:4001` to reach the backend service.
 You can find more detailed documentation in the [Service Mesh chapter](components/service-mesh.md).
 
@@ -161,9 +153,10 @@ cfg := &tls.Config{
 ## Generate policy annotations and manifest
 
 Run the `generate` command to add the necessary components to your deployment files.
-This will add the Contrast Initializer to every workload with the specified `contrast-cc` runtime class.
-After that, it will generate the execution policies and add them as annotations to your
-deployment files. A `manifest.json` with the reference values of your deployment will be created.
+This will add the Contrast Initializer to every workload with the specified `contrast-cc` runtime class
+and the Contrast Service Mesh to all workloads that have a specified configuration.
+After that, it will generate the execution policies and add them as annotations to your deployment files.
+A `manifest.json` with the reference values of your deployment will be created.
 
 ```sh
 contrast generate resources/
@@ -177,7 +170,7 @@ If you don't want the Contrast Initializer to automatically be added to your
 workloads, there are two ways you can skip the Initializer injection step,
 depending on how you want to customize your deployment.
 
-<Tabs groupId="initializer-injection">
+<Tabs groupId="injection">
 <TabItem value="flag" label="Command-line flag">
 
 You can disable the Initializer injection completely by specifying the

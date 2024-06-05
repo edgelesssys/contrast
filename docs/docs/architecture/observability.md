@@ -43,13 +43,13 @@ metrics via its [Envoy admin
 interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin). Be
 aware that the admin interface can expose private information and allows
 destructive operations to be performed. To enable the admin interface for the
-Service Mesh, set the environment variable `EDG_ADMIN_PORT` in the configuration
-of the Service Mesh sidecar. If this variable is set, the admin interface will
-be started on this port.
+Service Mesh, set the annotation
+`contrast.edgeless.systems/servicemesh-admin-interface-port` in the configuration
+of your workload. If this annotation is set, the admin interface will be started
+on this port.
 
-To access the admin interface, the Service Mesh sidecar container needs to have
-a corresponding container port and the ingress settings of the Proxy have to be
-configured to allow access to the specified port (see [Configuring the
+To access the admin interface, the ingress settings of the Service Mesh have to
+be configured to allow access to the specified port (see [Configuring the
 Proxy](../components/service-mesh#configuring-the-proxy)). All metrics will be
 exposed under the `/stats` endpoint. Metrics in Prometheus format can be scraped
 from the `/stats/prometheus` endpoint.

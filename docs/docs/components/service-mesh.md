@@ -6,16 +6,25 @@ verification of the endpoints in the connection establishment is based on
 certificates that are part of the
 [PKI of the Coordinator](../architecture/certificates.md).
 
-The service mesh can be enabled on a per-pod basis by adding the `service-mesh`
-container as a [sidecar container](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/).
-The service mesh container first sets up `iptables`
-rules based on its configuration and then starts [Envoy](https://www.envoyproxy.io/)
-for TLS origination and termination.
+The service mesh can be enabled on a per-workload basis by adding a service mesh
+configuration to the workload's object annotations. During the `contrast generate`
+step, the service mesh is added as a [sidecar
+container](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/) to
+all workloads which have a specified configuration. The service mesh container first
+sets up `iptables` rules based on its configuration and then starts
+[Envoy](https://www.envoyproxy.io/) for TLS origination and termination.
 
 ## Configuring the Proxy
 
-The service mesh container can be configured using the `EDG_INGRESS_PROXY_CONFIG`
-and `EDG_EGRESS_PROXY_CONFIG` environment variables.
+The service mesh container can be configured using the following object annotations:
+- `contrast.edgeless.systems/servicemesh-ingress` to configure ingress.
+- `contrast.edgeless.systems/servicemesh-egress` to configure egress.
+- `contrast.edgeless.systems/servicemesh-admin-interface-port` to configure the Envoy
+  admin interface. If not specified, no admin interface will be started.
+
+If you aren't using the automatic service mesh injection and want to configure the
+service mesh manually, set the environment variables `EDG_INGRESS_PROXY_CONFIG`,
+`EDG_EGRESS_PROXY_CONFIG` and `EDG_ADMIN_PORT` in the service mesh sidecar directly.
 
 ### Ingress
 
@@ -30,7 +39,7 @@ certificate of the workload and the intermediate CA certificate as the server ce
 
 If the deployment contains workloads which should be reachable from outside the
 Service Mesh, while still handing out the certificate chain, disable client
-authentication by setting the environment variable `EDG_INGRESS_PROXY_CONFIG` as
+authentication by setting the annotation `contrast.edgeless.systems/servicemesh-ingress` as
 `<name>#<port>#false`. Separate multiple entries with `##`. You can choose any
 descriptive string identifying the service on the given port for the
 informational-only field `<name>`.
@@ -50,26 +59,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web
+  annotations:
+    contrast.edgeless.systems/servicemesh-ingress: "web#8080#false##metrics#7890#true"
 spec:
   replicas: 1
   template:
     spec:
       runtimeClassName: contrast-cc
-      initContainers:
-        - name: sidecar
-          image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy@sha256:..."
-          restartPolicy: Always
-          volumeMounts:
-            - name: contrast-tls-certs
-              mountPath: /tls-config
-          env:
-            - name: EDG_INGRESS_PROXY_CONFIG
-              value: "web#8080#false##metrics#7890#true"
-          securityContext:
-            privileged: true
-            capabilities:
-              add:
-                - NET_ADMIN
       containers:
         - name: web-svc
           image: ghcr.io/edgelesssys/frontend:v1.2.3@...
@@ -78,13 +74,34 @@ spec:
               name: web
             - containerPort: 7890
               name: metrics
+```
+
+When invoking `contrast generate`, the resulting deployment will be injected with the
+Contrast service mesh as an init container.
+
+```yaml
+# ...
+      initContainers:
+        - env:
+            - name: EDG_INGRESS_PROXY_CONFIG
+              value: "web#8080#false##metrics#7890#true"
+          image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy@sha256:..."
+          name: contrast-service-mesh
+          restartPolicy: Always
+          securityContext:
+            capabilities:
+              add:
+                - NET_ADMIN
+            privileged: true
           volumeMounts:
             - name: contrast-tls-certs
               mountPath: /tls-config
-      volumes:
-        - name: contrast-tls-certs
-          emptyDir: {}
 ```
+
+Note, that changing the environment variables of the sidecar container directly will
+only have an effect if the workload isn't configured to automatically generate a
+service mesh component on `contrast generate`. Otherwise, the service mesh sidecar
+container will be regenerated on every invocation of the command.
 
 ### Egress
 
@@ -95,8 +112,9 @@ endpoints' IP address and port must be configurable.
 by the pod.
 * Configure the workload to connect to this IP address and port.
 * Set `<name>#<chosen IP>:<chosen port>#<original-hostname-or-ip>:<original-port>`
-as `EDG_EGRESS_PROXY_CONFIG`. Separate multiple entries with `##`. Choose any
-string identifying the service on the given port as `<name>`.
+as the `contrast.edgeless.systems/servicemesh-egress` workload annotation. Separate multiple
+entries with `##`. Choose any string identifying the service on the given port as
+`<name>`.
 
 This redirects the traffic over Envoy. The endpoint must present a valid
 certificate chain which must be verifiable with the
@@ -114,33 +132,14 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web
+  annotations:
+    contrast.edgeless.systems/servicemesh-egress: "billing#127.137.0.1:8081#billing-svc:8080##cart#127.137.0.2:8081#cart-svc:8080"
 spec:
   replicas: 1
   template:
     spec:
       runtimeClassName: contrast-cc
-      initContainers:
-        - name: sidecar
-          image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy@sha256:..."
-          restartPolicy: Always
-          volumeMounts:
-            - name: contrast-tls-certs
-              mountPath: /tls-config
-          env:
-            - name: EDG_EGRESS_PROXY_CONFIG
-              value: "billing#127.137.0.1:8081#billing-svc:8080##cart#127.137.0.2:8081#cart-svc:8080"
-          securityContext:
-            privileged: true
-            capabilities:
-              add:
-                - NET_ADMIN
       containers:
         - name: currency-conversion
           image: ghcr.io/edgelesssys/conversion:v1.2.3@...
-          volumeMounts:
-            - name: contrast-tls-certs
-              mountPath: /tls-config
-      volumes:
-        - name: contrast-tls-certs
-          emptyDir: {}
 ```
