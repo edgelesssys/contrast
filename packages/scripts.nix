@@ -243,11 +243,11 @@
     '';
   };
 
-  update-versions-json = writeShellApplication {
-    name = "update-versions-json";
+  update-contrast-releases = writeShellApplication {
+    name = "update-contrast-releases";
     runtimeInputs = with pkgs; [
       jq
     ];
-    text = builtins.readFile ./update-versions-json.sh;
+    text = builtins.readFile ./update-contrast-releases.sh;
   };
 }

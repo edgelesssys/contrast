@@ -150,16 +150,16 @@ jobs:
           git commit -am "docs: release ${{ needs.process-inputs.outputs.MAJOR_MINOR }}"
           # Clean up auxiliary files, so next steps run on a clean tree
           git clean -fx :/
-      - name: Update versions.json
+      - name: Download updated contrast releases file (from release branch)
         uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e #v4.1.7
         with:
-          name: versions-json
-          path: ./contrast-main/packages/versions.json
-      - name: Commit versions.json
+          name: contrast-releases.json
+          path: ./contrast-main/packages/contrast-releases.json
+      - name: Commit updated contrast-releases.json
         working-directory: contrast-main
         run: |
-          git add ./packages/versions.json
-          git commit -m "ci: update versions.json with ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
+          git add ./packages/contrast-releases.json
+          git commit -m "packages/contrast-releases: add ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
       - name: Bump flake version to post release patch pre-version
         if: ${{ inputs.kind == 'minor' }}
         id: bump
@@ -262,15 +262,15 @@ jobs:
       - name: Build CLI
         run: |
           nix build -L .#cli-release
-      - name: Update versions.json in main
+      - name: Update contrast-releases.json with new release
         env:
           VERSION: ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}
-        run: nix run ".#scripts.update-versions-json"
-      - name: Upload versions.json
+        run: nix run .#scripts.update-contrast-releases
+      - name: Upload updated contrast-releases.json (for main branch PR)
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
-          name: versions-json
-          path: ./packages/versions.json
+          name: contrast-releases.json
+          path: ./packages/contrast-releases.json
       - name: Clean up git tree
         run: git clean -fx :/
       - name: Create draft release
