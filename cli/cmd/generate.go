@@ -45,11 +45,11 @@ func NewGenerateCmd() *cobra.Command {
 		Short: "generate policies and inject into Kubernetes resources",
 		Long: `Generate policies and inject into the given Kubernetes resources.
 
-This will add the Contrast Initializer as an init container to all workloads
-with a contrast-cc runtime and then download the referenced container images to
-calculate the dm-verity hashes of the image layers. In addition, the Rego policy
-will be used as base and updated with the given settings file. For each
-container workload, the policy is added as an annotation to the Kubernetes YAML.
+This will add the Contrast Initializer and Contrast Service Mesh as init containers
+to your workloads and then download the referenced container images to calculate the
+dm-verity hashes of the image layers. In addition, the Rego policy will be used as
+base and updated with the given settings file. For each container workload, the
+policy is added as an annotation to the Kubernetes YAML.
 
 The hashes of the policies are added to the manifest.
 
@@ -280,6 +280,9 @@ func patchTargets(paths []string, imageReplacementsFile string, skipInitializer 
 				return fmt.Errorf("injecting Initializer: %w", err)
 			}
 		}
+		if err := injectServiceMesh(kubeObjs); err != nil {
+			return fmt.Errorf("injecting Service Mesh: %w", err)
+		}
 
 		kubeObjs = kuberesource.PatchImages(kubeObjs, replacements)
 
@@ -307,6 +310,20 @@ func injectInitializer(resources []any) error {
 			continue
 		}
 		_, err := kuberesource.AddInitializer(resource, kuberesource.Initializer())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func injectServiceMesh(resources []any) error {
+	for _, resource := range resources {
+		deploy, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
+		if ok && deploy.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
+			continue
+		}
+		_, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy())
 		if err != nil {
 			return err
 		}

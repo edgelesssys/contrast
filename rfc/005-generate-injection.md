@@ -50,7 +50,19 @@ To make `contrast generate` idempotent and handle potential edge cases, we will 
 
 ### Service Mesh Injection
 
-The service mesh injection will follow a similar approach to the initializer injection outlined, possibly with additional configuration for labels for service discovery/ports. Details of the service mesh injection will be expanded in a future PR update to this RFC.
+The service mesh injection will follow a similar approach to the initializer injection outlined, apart from being opt-in instead of enabled by default.
+During the generation process, all containers with the `contrast-cc` runtime class and a specified service mesh proxy configuration will have a service mesh added as a sidecar init container.
+
+The configuration for the Envoy proxy is handled via Kubernetes object annotations.
+The annotations `contrast.edgeless.systems/servicemesh-ingress`, `contrast.edgeless.systems/servicemesh-egress` and `contrast.edgeless.systems/servicemesh-admin-interface-port` will be written into the environment variables `EDG_INGRESS_PROXY_CONFIG`, `EDG_EGRESS_PROXY_CONFIG` and `EDG_ADMIN_PORT` of the injected service mesh container.
+
+As long as one of the corresponding annotations is present on an object, a service mesh sidecar container will be injected.
+To configure a service mesh with default configuration, the annotation can be left empty.
+
+#### Edge Cases
+
+If a workload already contains a service mesh as an init container, it will be replaced by the injection mechanism.
+Changing the environment variables of the service mesh init container directly will therefore have no effect because the entire service mesh container will be replaced on `contrast generate` using the proxy configuration defined in the annotations.
 
 ### UX Considerations
 

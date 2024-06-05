@@ -290,7 +290,7 @@ func Initializer() *applycorev1.ContainerApplyConfiguration {
 // ServiceMeshProxy creates a new service mesh proxy sidecar container.
 func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 	return applycorev1.Container().
-		WithName("sidecar").
+		WithName("contrast-service-mesh").
 		WithImage("ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest").
 		WithRestartPolicy(corev1.ContainerRestartPolicyAlways).
 		WithVolumeMounts(VolumeMount().

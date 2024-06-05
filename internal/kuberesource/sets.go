@@ -154,10 +154,7 @@ func GetDEnts() ([]any, error) {
 // Emojivoto returns resources for deploying Emojivoto application.
 func Emojivoto(smMode serviceMeshMode) []any {
 	ns := ""
-	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost string
-	smProxyEmoji := ServiceMeshProxy()
-	smProxyWeb := ServiceMeshProxy()
-	smProxyVoting := ServiceMeshProxy()
+	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost, smWebIngress, smWebEgress string
 	switch smMode {
 	case ServiceMeshDisabled:
 		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1"
@@ -166,9 +163,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiWebVoteBotImage = emojiWebImage
 		emojiSvcHost = "emoji-svc:8080"
 		votingSvcHost = "voting-svc:8080"
-		smProxyEmoji = nil
-		smProxyWeb = nil
-		smProxyVoting = nil
 	case ServiceMeshIngressEgress:
 		emojiSvcImage = "docker.l5d.io/buoyantio/emojivoto-emoji-svc:v11"
 		emojiVotingSvcImage = "docker.l5d.io/buoyantio/emojivoto-voting-svc:v11"
@@ -176,15 +170,8 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiWebVoteBotImage = "ghcr.io/3u13r/emojivoto-web:coco-1"
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
-		smProxyWeb = smProxyWeb.
-			WithEnv(EnvVar().
-				WithName("EDG_INGRESS_PROXY_CONFIG").
-				WithValue("web#8080#false"),
-			).
-			WithEnv(EnvVar().
-				WithName("EDG_EGRESS_PROXY_CONFIG").
-				WithValue("emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080"),
-			)
+		smWebIngress = "web#8080#false"
+		smWebEgress = "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080"
 	case ServiceMeshEgress:
 		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1"
 		emojiVotingSvcImage = "ghcr.io/3u13r/emojivoto-voting-svc:coco-1"
@@ -192,19 +179,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiWebVoteBotImage = emojiWebImage
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
-		smProxyWeb = smProxyWeb.
-			WithSecurityContext(SecurityContext().
-				WithPrivileged(true).
-				AddCapabilities("NET_ADMIN").
-				AddCapabilities("NET_RAW").
-				SecurityContextApplyConfiguration,
-			).
-			WithEnv(EnvVar().
-				WithName("EDG_EGRESS_PROXY_CONFIG").
-				WithValue("emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080"),
-			)
-		smProxyEmoji = nil
-		smProxyVoting = nil
+		smWebEgress = "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080"
 	default:
 		panic(fmt.Sprintf("unknown service mesh mode: %s", smMode))
 	}
@@ -470,15 +445,12 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		return resources
 	}
 
-	if smProxyEmoji != nil {
-		AddServiceMesh(emoji, smProxyEmoji)
-	}
-	if smProxyWeb != nil {
-		AddServiceMesh(web, smProxyWeb)
-	}
-	if smProxyVoting != nil {
-		AddServiceMesh(voting, smProxyVoting)
-	}
+	emoji.WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""})
+	voting.WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""})
+	web.WithAnnotations(map[string]string{
+		smIngressConfigAnnotationKey: smWebIngress,
+		smEgressConfigAnnotationKey:  smWebEgress,
+	})
 
 	return resources
 }

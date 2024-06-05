@@ -185,16 +185,117 @@ func TestAddInitializer(t *testing.T) {
 }
 
 func TestAddServiceMesh(t *testing.T) {
-	require := require.New(t)
-	d := applyappsv1.Deployment("test", "default").
-		WithSpec(applyappsv1.DeploymentSpec().
-			WithTemplate(applycorev1.PodTemplateSpec().
-				WithSpec(applycorev1.PodSpec().
-					WithContainers(applycorev1.Container()))))
+	for _, tc := range []struct {
+		name            string
+		d               *applyappsv1.DeploymentApplyConfiguration
+		skipServiceMesh bool
+		wantError       bool
+	}{
+		{
+			name: "default",
+			d: applyappsv1.Deployment("test", "default").
+				WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithRuntimeClassName("contrast-cc"),
+						))),
+			wantError: false,
+		},
+		{
+			name: "no service mesh",
+			d: applyappsv1.Deployment("test", "default").
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithRuntimeClassName("contrast-cc"),
+						))),
+			skipServiceMesh: true,
+			wantError:       false,
+		},
+		{
+			name: "service mesh replaced",
+			d: applyappsv1.Deployment("test", "default").
+				WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithInitContainers(ServiceMeshProxy()).
+							WithRuntimeClassName("contrast-cc"),
+						))),
+			wantError: false,
+		},
+		{
+			name: "volume reused",
+			d: applyappsv1.Deployment("test", "default").
+				WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithRuntimeClassName("contrast-cc").
+							WithVolumes(Volume().
+								WithName(*ServiceMeshProxy().VolumeMounts[0].Name).
+								WithEmptyDir(EmptyDirVolumeSource().Inner()),
+							),
+						))),
+			wantError: false,
+		},
+		{
+			name: "volume is not an EmptyDir",
+			d: applyappsv1.Deployment("test", "default").
+				WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithRuntimeClassName("contrast-cc").
+							WithVolumes(Volume().
+								WithName(*ServiceMeshProxy().VolumeMounts[0].Name).
+								WithConfigMap(Volume().ConfigMap),
+							),
+						))),
+			wantError: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require := require.New(t)
 
-	smProxy := ServiceMeshProxy()
-	AddServiceMesh(d, smProxy)
+			_, err := AddServiceMesh(tc.d, ServiceMeshProxy())
+			if tc.wantError {
+				require.Error(err)
+				return
+			}
+			require.NoError(err)
 
-	require.NotEmpty(d.Spec.Template.Spec.InitContainers)
-	require.Equal(d.Spec.Template.Spec.InitContainers[0], *smProxy)
+			if tc.skipServiceMesh {
+				require.Empty(tc.d.Spec.Template.Spec.InitContainers)
+				return
+			}
+			require.NotEmpty(tc.d.Spec.Template.Spec.InitContainers)
+			require.Equal(*tc.d.Spec.Template.Spec.InitContainers[0].Name, *ServiceMeshProxy().Name)
+			require.NotEmpty(tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts)
+			require.Equal(*tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts[0].Name, *ServiceMeshProxy().VolumeMounts[0].Name)
+
+			serviceMeshCount := 0
+			for _, c := range tc.d.Spec.Template.Spec.InitContainers {
+				if *c.Name == *ServiceMeshProxy().Name {
+					serviceMeshCount++
+				}
+			}
+			require.Equal(1, serviceMeshCount)
+
+			require.NotEmpty(tc.d.Spec.Template.Spec.Volumes)
+			serviceMeshVolumeCount := 0
+			for _, v := range tc.d.Spec.Template.Spec.Volumes {
+				if *v.Name == *ServiceMeshProxy().VolumeMounts[0].Name {
+					serviceMeshVolumeCount++
+				}
+			}
+			require.Equal(1, serviceMeshVolumeCount)
+		})
+	}
 }
