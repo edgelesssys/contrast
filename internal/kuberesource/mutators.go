@@ -6,6 +6,7 @@ package kuberesource
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
@@ -15,9 +16,12 @@ import (
 )
 
 const (
-	exposeServiceAnnotation      = "contrast.edgeless.systems/expose-service"
-	contrastRoleAnnotationKey    = "contrast.edgeless.systems/pod-role"
-	skipInitializerAnnotationKey = "contrast.edgeless.systems/skip-initializer"
+	exposeServiceAnnotation       = "contrast.edgeless.systems/expose-service"
+	contrastRoleAnnotationKey     = "contrast.edgeless.systems/pod-role"
+	skipInitializerAnnotationKey  = "contrast.edgeless.systems/skip-initializer"
+	smIngressConfigAnnotationKey  = "contrast.edgeless.systems/servicemesh-ingress"
+	smEgressConfigAnnotationKey   = "contrast.edgeless.systems/servicemesh-egress"
+	smAdminInterfaceAnnotationKey = "contrast.edgeless.systems/servicemesh-admin-interface-port"
 )
 
 // AddInitializer adds an initializer and its shared volume to the resource.
@@ -28,12 +32,12 @@ func AddInitializer(
 	resource any,
 	initializer *applycorev1.ContainerApplyConfiguration,
 ) (res any, retErr error) {
-	res = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+	res = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
 		if meta.Annotations[skipInitializerAnnotationKey] == "true" {
-			return spec
+			return meta, spec
 		}
 		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
-			return spec
+			return meta, spec
 		}
 
 		// Remove already existing init containers with unique initializer name.
@@ -46,26 +50,12 @@ func AddInitializer(
 		// This should never error because the Initializer is configured to have a volume mount.
 		if len(initializer.VolumeMounts) < 1 {
 			retErr = fmt.Errorf("initializer volume mount list is empty")
-			return nil
+			return nil, nil
 		}
 
-		// Existing volume with unique name has to be of type EmptyDir.
-		var volumeExists bool
-		for _, volume := range spec.Volumes {
-			if *volume.Name == *initializer.VolumeMounts[0].Name {
-				volumeExists = true
-				if volume.EmptyDir == nil {
-					retErr = fmt.Errorf("volume %s has to be of type EmptyDir", *volume.Name)
-					return nil
-				}
-			}
-		}
-		// Create the volume written by the initializer if it not already exists.
-		if !volumeExists {
-			spec.WithVolumes(Volume().
-				WithName(*initializer.VolumeMounts[0].Name).
-				WithEmptyDir(EmptyDirVolumeSource().Inner()),
-			)
+		retErr = ensureVolumeExists(spec, *initializer.VolumeMounts[0].Name)
+		if retErr != nil {
+			return nil, nil
 		}
 
 		// Remove already existing volume mounts on the worker containers with unique volume mount name.
@@ -79,7 +69,7 @@ func AddInitializer(
 				WithName(*initializer.VolumeMounts[0].Name).
 				WithMountPath(*initializer.VolumeMounts[0].MountPath))
 		}
-		return spec
+		return meta, spec
 	})
 	return res, retErr
 }
@@ -95,17 +85,83 @@ const (
 	ServiceMeshDisabled serviceMeshMode = "service-mesh-disabled"
 )
 
-// AddServiceMesh adds a service mesh proxy to the resource.
+// AddServiceMesh adds a service mesh proxy to the resource with the proxy
+// configuration given in the object annotations.
 //
 // If the resource does not contain a PodSpec, this function does nothing.
-// This function is not idempotent.
+// This function is idempotent.
 func AddServiceMesh(
 	resource any,
 	serviceMeshProxy *applycorev1.ContainerApplyConfiguration,
-) any {
-	return MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		return spec.WithInitContainers(serviceMeshProxy)
+) (res any, retErr error) {
+	res = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+			return meta, spec
+		}
+
+		ingressConfig, ingressOk := meta.Annotations[smIngressConfigAnnotationKey]
+		egressConfig, egressOk := meta.Annotations[smEgressConfigAnnotationKey]
+		portAnnotation, portOk := meta.Annotations[smAdminInterfaceAnnotationKey]
+
+		// Don't change anything if automatic service mesh injection isn't enabled.
+		if !ingressOk && !egressOk && !portOk {
+			return meta, spec
+		}
+
+		// Remove already existing init containers with unique service mesh name.
+		spec.InitContainers = slices.DeleteFunc(spec.InitContainers, func(c applycorev1.ContainerApplyConfiguration) bool {
+			return *c.Name == *serviceMeshProxy.Name
+		})
+
+		retErr = ensureVolumeExists(spec, *serviceMeshProxy.VolumeMounts[0].Name)
+		if retErr != nil {
+			return nil, nil
+		}
+
+		if portAnnotation != "" {
+			port, err := strconv.Atoi(portAnnotation)
+			if err != nil {
+				retErr = fmt.Errorf("parsing service mesh admin interface port: %w", err)
+				return nil, nil
+			}
+
+			serviceMeshProxy.
+				WithEnv(NewEnvVar("EDG_ADMIN_PORT", portAnnotation)).
+				WithPorts(
+					ContainerPort().
+						WithName("contrast-admin").
+						WithContainerPort(int32(port)),
+				)
+		}
+
+		if ingressConfig != "" {
+			serviceMeshProxy.WithEnv(NewEnvVar("EDG_INGRESS_PROXY_CONFIG", ingressConfig))
+		}
+		if egressConfig != "" {
+			serviceMeshProxy.WithEnv(NewEnvVar("EDG_EGRESS_PROXY_CONFIG", egressConfig))
+		}
+
+		return meta, spec.WithInitContainers(serviceMeshProxy)
 	})
+	return res, retErr
+}
+
+func ensureVolumeExists(spec *applycorev1.PodSpecApplyConfiguration, volumeName string) error {
+	// Existing volume with unique name has to be of type EmptyDir.
+	for _, volume := range spec.Volumes {
+		if *volume.Name == volumeName {
+			if volume.EmptyDir == nil {
+				return fmt.Errorf("volume %s has to be of type EmptyDir", *volume.Name)
+			}
+			return nil
+		}
+	}
+	// Create the volume written if it not already exists.
+	spec.WithVolumes(Volume().
+		WithName(volumeName).
+		WithEmptyDir(EmptyDirVolumeSource().Inner()),
+	)
+	return nil
 }
 
 // AddPortForwarders adds a port-forwarder for each Service resource.
@@ -201,38 +257,19 @@ func PatchNamespaces(resources []any, namespace string) []any {
 // PatchServiceMeshAdminInterface activates the admin interface on the
 // specified port for all Service Mesh components in a set of resources.
 func PatchServiceMeshAdminInterface(resources []any, port int32) []any {
+	var out []any
 	for _, resource := range resources {
-		switch r := resource.(type) {
-		case *applyappsv1.DeploymentApplyConfiguration:
-			for i := 0; i < len(r.Spec.Template.Spec.InitContainers); i++ {
-				// TODO(davidweisse): find service mesh containers by unique name as specified in RFC 005.
-				if strings.Contains(*r.Spec.Template.Spec.InitContainers[i].Image, "service-mesh-proxy") {
-					r.Spec.Template.Spec.InitContainers[i] = *r.Spec.Template.Spec.InitContainers[i].
-						WithEnv(NewEnvVar("EDG_ADMIN_PORT", fmt.Sprint(port))).
-						WithPorts(
-							ContainerPort().
-								WithName("admin-interface").
-								WithContainerPort(port),
-						)
-					ingressProxyConfig := false
-					for j, env := range r.Spec.Template.Spec.InitContainers[i].Env {
-						if *env.Name == "EDG_INGRESS_PROXY_CONFIG" {
-							ingressProxyConfig = true
-							env.WithValue(fmt.Sprintf("%s##admin#%d#true", *env.Value, port))
-							r.Spec.Template.Spec.InitContainers[i].Env[j] = env
-							break
-						}
-					}
-					if !ingressProxyConfig {
-						r.Spec.Template.Spec.InitContainers[i].WithEnv(
-							NewEnvVar("EDG_INGRESS_PROXY_CONFIG", fmt.Sprintf("admin#%d#true", port)),
-						)
-					}
-				}
+		out = append(out, MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+			_, ingressOk := meta.Annotations[smIngressConfigAnnotationKey]
+			_, egressOk := meta.Annotations[smEgressConfigAnnotationKey]
+			if ingressOk || egressOk {
+				meta.WithAnnotations(map[string]string{smAdminInterfaceAnnotationKey: fmt.Sprint(port)})
+				meta.Annotations[smIngressConfigAnnotationKey] += fmt.Sprintf("##admin#%d#true", port)
 			}
-		}
+			return meta, spec
+		}))
 	}
-	return resources
+	return out
 }
 
 // PatchCoordinatorMetrics enables Coordinator metrics on the specified port.
@@ -254,41 +291,45 @@ func PatchCoordinatorMetrics(resources []any, port int32) []any {
 }
 
 // MapPodSpecWithMeta applies a function to a PodSpec in a Kubernetes resource,
-// given the ObjectMeta of the resource.
+// and its corresponding object metadata.
 func MapPodSpecWithMeta(
 	resource any,
 	f func(
 		meta *applymetav1.ObjectMetaApplyConfiguration,
 		spec *applycorev1.PodSpecApplyConfiguration,
-	) *applycorev1.PodSpecApplyConfiguration,
+	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration),
 ) any {
 	if resource == nil {
 		return nil
 	}
 	switch r := resource.(type) {
 	case *applybatchv1.CronJobApplyConfiguration:
-		r.Spec.JobTemplate.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.JobTemplate.Spec.Template.Spec)
+		r.ObjectMetaApplyConfiguration, r.Spec.JobTemplate.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.JobTemplate.Spec.Template.Spec)
 	case *applyappsv1.DaemonSetApplyConfiguration:
-		r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 	case *applyappsv1.DeploymentApplyConfiguration:
-		r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 	case *applybatchv1.JobApplyConfiguration:
-		r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 	case *applycorev1.PodApplyConfiguration:
-		r.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec)
+		r.ObjectMetaApplyConfiguration, r.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec)
 	case *applyappsv1.ReplicaSetApplyConfiguration:
-		r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 	case *applycorev1.ReplicationControllerApplyConfiguration:
-		r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 	case *applyappsv1.StatefulSetApplyConfiguration:
-		r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 	}
 	return resource
 }
 
 // MapPodSpec applies a function to a PodSpec in a Kubernetes resource.
 func MapPodSpec(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration) any {
-	return MapPodSpecWithMeta(resource, func(_ *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		return f(spec)
-	})
+	return MapPodSpecWithMeta(
+		resource,
+		func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (
+			*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration,
+		) {
+			return meta, f(spec)
+		})
 }
