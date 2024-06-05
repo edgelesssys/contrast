@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
@@ -51,7 +52,11 @@ func run() (retErr error) {
 
 	promRegistry := prometheus.NewRegistry()
 
-	meshAuth := authority.New(promRegistry, logger)
+	hist, err := history.New()
+	if err != nil {
+		return fmt.Errorf("creating history: %w", err)
+	}
+	meshAuth := authority.New(hist, promRegistry, logger)
 	userAPI := newUserAPIServer(meshAuth, promRegistry, logger)
 	meshAPI := newMeshAPIServer(meshAuth, meshAuth, promRegistry, logger)
 
