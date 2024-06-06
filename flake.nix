@@ -57,7 +57,7 @@
         demo = pkgs.mkShell rec {
           packages = [];
 
-          json = builtins.fromJSON (builtins.readFile ./packages/versions.json);
+          json = builtins.fromJSON (builtins.readFile ./packages/contrast-releases.json);
 
           version = (lib.lists.last json.contrast).version; # select the latest contrast version
 
