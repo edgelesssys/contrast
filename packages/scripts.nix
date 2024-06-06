@@ -242,4 +242,12 @@
       az vm list-skus --size "$sku" | jq -r '.[] | .locations.[]'
     '';
   };
+
+  update-contrast-releases = writeShellApplication {
+    name = "update-contrast-releases";
+    runtimeInputs = with pkgs; [
+      jq
+    ];
+    text = builtins.readFile ./update-contrast-releases.sh;
+  };
 }
