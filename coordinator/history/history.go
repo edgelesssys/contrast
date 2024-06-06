@@ -25,25 +25,31 @@ const (
 
 // History is the history of the Coordinator.
 type History struct {
-	store      store
+	store      Store
 	hashFun    func() hash.Hash
 	signingKey *ecdsa.PrivateKey
 }
 
-// New creates a new History with the given signing key.
+// New creates a new History backed by the default filesystem store.
 func New() (*History, error) {
 	osFS := afero.NewOsFs()
 	if err := osFS.MkdirAll(histPath, 0o755); err != nil {
 		return nil, fmt.Errorf("creating history directory: %w", err)
 	}
+	store := newPVStore(&afero.Afero{Fs: afero.NewBasePathFs(osFS, histPath)})
+	return NewWithStore(store), nil
+}
+
+// NewWithStore creates a new History with the given storage backend.
+func NewWithStore(store Store) *History {
 	h := &History{
-		store:   newPVStore(&afero.Afero{Fs: afero.NewBasePathFs(osFS, histPath)}),
+		store:   store,
 		hashFun: sha256.New,
 	}
 	if HashSize != h.hashFun().Size() {
-		return nil, errors.New("mismatch between hashSize and hash function size")
+		panic("mismatch between hashSize and hash function size")
 	}
-	return h, nil
+	return h
 }
 
 // ConfigureSigningKey sets the signing key for validation and signing of the protected history parts.
@@ -226,8 +232,22 @@ func (e HashMismatchError) Error() string {
 	return fmt.Sprintf("hash mismatch: expected %x, got %x", e.Expected, e.Actual)
 }
 
-type store interface {
+// Store defines the Key-Value store interface used by History.
+//
+// In addition to the documented behavior below, History expects all functions to be thread-safe
+// and the Store to be globally consistent.
+type Store interface {
+	// Get the value for key.
+	//
+	// If the key is not found, an error wrapping os.ErrNotExist must be returned.
 	Get(key string) ([]byte, error)
+
+	// Set the value for key.
 	Set(key string, value []byte) error
+
+	// CompareAndSwap sets key to newVal if, and only if, key is currently oldVal.
+	//
+	// If the current value is not equal to oldVal, an error must be returned. The comparison must
+	// treat a nil slice the same as an empty slice.
 	CompareAndSwap(key string, oldVal, newVal []byte) error
 }
