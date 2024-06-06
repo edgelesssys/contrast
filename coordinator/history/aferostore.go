@@ -14,22 +14,26 @@ import (
 	"github.com/spf13/afero"
 )
 
-type fsStore struct {
+// AferoStore is a Store implementation backed by an Afero filesystem.
+type AferoStore struct {
 	fs  *afero.Afero
 	mux sync.RWMutex
 }
 
-func newPVStore(fs *afero.Afero) *fsStore {
-	return &fsStore{fs: fs}
+// NewAferoStore creates a new instance backed by the given fs.
+func NewAferoStore(fs *afero.Afero) *AferoStore {
+	return &AferoStore{fs: fs}
 }
 
-func (s *fsStore) Get(key string) ([]byte, error) {
+// Get the value for key.
+func (s *AferoStore) Get(key string) ([]byte, error) {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 	return s.fs.ReadFile(key)
 }
 
-func (s *fsStore) Set(key string, value []byte) error {
+// Set the value for key.
+func (s *AferoStore) Set(key string, value []byte) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	if err := s.fs.MkdirAll(filepath.Base(key), 0o755); err != nil {
@@ -38,7 +42,8 @@ func (s *fsStore) Set(key string, value []byte) error {
 	return s.fs.WriteFile(key, value, 0o644)
 }
 
-func (s *fsStore) CompareAndSwap(key string, oldVal, newVal []byte) error {
+// CompareAndSwap updates the key to newVal if its current value is oldVal.
+func (s *AferoStore) CompareAndSwap(key string, oldVal, newVal []byte) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	current, err := s.fs.ReadFile(key)
