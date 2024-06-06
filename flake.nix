@@ -54,51 +54,19 @@
             yarn install
           '';
         };
-        demo = let
+        demo =
+        let
+          custom-packages = import ./packages { inherit pkgs lib; };
           json = builtins.fromJSON (builtins.readFile ./packages/contrast-releases.json);
-          version = (lib.lists.last json.contrast).version; # select the latest contrast version
-
-          # select all hashes based on the extracted version; since no "error" version exists the download will fail
-          # if the given version doesn't exist for a file.
-          contrastHash = (lib.lists.findFirst (obj: obj.version == version) "error" json.contrast).hash;
-          coordinatorHash = (lib.lists.findFirst (obj: obj.version == version) "error" json."coordinator.yml").hash;
-          runtimeHash = (lib.lists.findFirst (obj: obj.version == version) "error" json."runtime.yml").hash;
-          emojivotoHash = (lib.lists.findFirst (obj: obj.version == version) "error" json."emojivoto-demo.zip").hash; 
-        in 
-        pkgs.mkShell rec {
-          packages = [];
-
-
-         
-          contrast = pkgs.fetchurl {
-            url = "https://github.com/edgelesssys/contrast/releases/download/${version}/contrast";
-            hash = builtins.trace "contrast hash: ${contrastHash}" contrastHash;
+          demoShell = {version, hash}: {
+            name = builtins.replaceStrings ["."] ["-"] version;
+            value =
+            pkgs.mkShell {
+              packages = [ custom-packages.contrast-releases.${builtins.replaceStrings ["."] ["-"] version} ];
+            };
           };
-          coordinator = pkgs.fetchurl {
-            url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator.yml";
-            hash = builtins.trace "coordinator hash: ${coordinatorHash}" coordinatorHash;
-          };
-          runtime = pkgs.fetchurl {
-            url = "https://github.com/edgelesssys/contrast/releases/download/${version}/runtime.yml";
-            hash = builtins.trace "runtime hash: ${runtimeHash}" runtimeHash;
-          };
-          emojivoto = pkgs.fetchzip {
-            url = "https://github.com/edgelesssys/contrast/releases/download/${version}/emojivoto-demo.zip";
-            hash = builtins.trace "emojivoto hash: ${emojivotoHash}" emojivotoHash;
-          };
-
-          shellHook = ''
-            cd "$(mktemp -d)" # create a temporary demodir
-
-            # copy everything over
-            cp ${contrast} ./contrast
-            cp ${coordinator} ./coordinator.yml
-            cp ${runtime} ./runtime.yml
-
-            mkdir -p deployment
-            cp -r ${emojivoto} ./deployment
-          '';
-        };
+        in
+        builtins.listToAttrs (builtins.map demoShell json.contrast);
       };
 
       formatter = treefmtEval.config.build.wrapper;
