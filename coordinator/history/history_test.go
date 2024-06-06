@@ -537,8 +537,8 @@ func TestHistory_SetGet(t *testing.T) {
 			"Gnügen; oder ist's nötig, noch andere Hilfe zu suchen?",
 	}
 	testFunPairs := map[string]struct {
-		setFun func([]byte) ([hashSize]byte, error)
-		getFun func([hashSize]byte) ([]byte, error)
+		setFun func([]byte) ([HashSize]byte, error)
+		getFun func([HashSize]byte) ([]byte, error)
 	}{
 		"manifest": {h.SetManifest, h.GetManifest},
 		"policy":   {h.SetPolicy, h.GetPolicy},
@@ -574,11 +574,11 @@ xuwYqSFfVxr6ECQWyrTkApzVkz8b6n5BeQ==
 	return key
 }
 
-func strToHash(require *require.Assertions, s string) [hashSize]byte {
+func strToHash(require *require.Assertions, s string) [HashSize]byte {
 	hashSlc, err := hex.DecodeString(s)
 	require.NoError(err)
-	require.Len(hashSlc, hashSize)
-	var hash [hashSize]byte
+	require.Len(hashSlc, HashSize)
+	var hash [HashSize]byte
 	copy(hash[:], hashSlc)
 	return hash
 }
