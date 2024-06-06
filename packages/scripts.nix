@@ -87,42 +87,6 @@
     '';
   };
 
-  patch-contrast-image-hashes = writeShellApplication {
-    name = "patch-contrast-image-hashes";
-    runtimeInputs = with pkgs; [
-      crane
-      kypatch
-      jq
-    ];
-    text = ''
-      targetPath=$1
-
-      tmpdir=$(mktemp -d)
-      trap 'rm -rf $tmpdir' EXIT
-
-      gunzip < "${pkgs.containers.coordinator}" > "$tmpdir/coordinator.tar"
-      gunzip < "${pkgs.containers.initializer}" > "$tmpdir/initializer.tar"
-      gunzip < "${pkgs.containers.openssl}" > "$tmpdir/openssl.tar"
-      gunzip < "${pkgs.containers.port-forwarder}" > "$tmpdir/port-forwarder.tar"
-      gunzip < "${pkgs.containers.service-mesh-proxy}" > "$tmpdir/service-mesh-proxy.tar"
-
-      coordHash=$(crane digest --tarball "$tmpdir/coordinator.tar")
-      initHash=$(crane digest --tarball "$tmpdir/initializer.tar")
-      opensslHash=$(crane digest --tarball "$tmpdir/openssl.tar")
-      forwarderHash=$(crane digest --tarball "$tmpdir/port-forwarder.tar")
-      serviceMeshProxyHash=$(crane digest --tarball "$tmpdir/service-mesh-proxy.tar")
-      nodeInstallerHash=$(jq -r '.manifests[0].digest' "${pkgs.contrast-node-installer-image}/index.json")
-
-      kypatch images "$targetPath" \
-        --replace "contrast/coordinator:latest" "contrast/coordinator@$coordHash" \
-        --replace "contrast/initializer:latest" "contrast/initializer@$initHash" \
-        --replace "contrast/openssl:latest" "contrast/openssl@$opensslHash" \
-        --replace "contrast/port-forwarder:latest" "contrast/port-forwarder@$forwarderHash" \
-        --replace "contrast/service-mesh-proxy:latest" "contrast/service-mesh-proxy@$serviceMeshProxyHash" \
-        --replace "contrast/node-installer:latest" "contrast/node-installer@$nodeInstallerHash"
-    '';
-  };
-
   kubectl-wait-ready = writeShellApplication {
     name = "kubectl-wait-ready";
     runtimeInputs = with pkgs; [ kubectl ];
