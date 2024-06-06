@@ -17,7 +17,9 @@ import (
 )
 
 const (
-	hashSize = sha256.Size // byte, History.hashFun().Size()
+	// HashSize is the number of octets in hashes used by this package.
+	HashSize = sha256.Size
+
 	histPath = "/mnt/state/history"
 )
 
@@ -38,7 +40,7 @@ func New() (*History, error) {
 		store:   newPVStore(&afero.Afero{Fs: afero.NewBasePathFs(osFS, histPath)}),
 		hashFun: sha256.New,
 	}
-	if hashSize != h.hashFun().Size() {
+	if HashSize != h.hashFun().Size() {
 		return nil, errors.New("mismatch between hashSize and hash function size")
 	}
 	return h, nil
@@ -50,27 +52,27 @@ func (h *History) ConfigureSigningKey(signingKey *ecdsa.PrivateKey) {
 }
 
 // GetManifest returns the manifest for the given hash.
-func (h *History) GetManifest(hash [hashSize]byte) ([]byte, error) {
+func (h *History) GetManifest(hash [HashSize]byte) ([]byte, error) {
 	return h.getContentaddressed("manifests/%s", hash)
 }
 
 // SetManifest sets the manifest and returns its hash.
-func (h *History) SetManifest(manifest []byte) ([hashSize]byte, error) {
+func (h *History) SetManifest(manifest []byte) ([HashSize]byte, error) {
 	return h.setContentaddressed("manifests/%s", manifest)
 }
 
 // GetPolicy returns the policy for the given hash.
-func (h *History) GetPolicy(hash [hashSize]byte) ([]byte, error) {
+func (h *History) GetPolicy(hash [HashSize]byte) ([]byte, error) {
 	return h.getContentaddressed("policies/%s", hash)
 }
 
 // SetPolicy sets the policy and returns its hash.
-func (h *History) SetPolicy(policy []byte) ([hashSize]byte, error) {
+func (h *History) SetPolicy(policy []byte) ([HashSize]byte, error) {
 	return h.setContentaddressed("policies/%s", policy)
 }
 
 // GetTransition returns the transition for the given hash.
-func (h *History) GetTransition(hash [hashSize]byte) (*Transition, error) {
+func (h *History) GetTransition(hash [HashSize]byte) (*Transition, error) {
 	transitionBytes, err := h.getContentaddressed("transitions/%s", hash)
 	if err != nil {
 		return nil, err
@@ -83,7 +85,7 @@ func (h *History) GetTransition(hash [hashSize]byte) (*Transition, error) {
 }
 
 // SetTransition sets the transition and returns its hash.
-func (h *History) SetTransition(transition *Transition) ([hashSize]byte, error) {
+func (h *History) SetTransition(transition *Transition) ([HashSize]byte, error) {
 	return h.setContentaddressed("transitions/%s", transition.marshalBinary())
 }
 
@@ -120,7 +122,7 @@ func (h *History) SetLatest(oldT, newT *LatestTransition) error {
 	return nil
 }
 
-func (h *History) getContentaddressed(pathFmt string, hash [hashSize]byte) ([]byte, error) {
+func (h *History) getContentaddressed(pathFmt string, hash [HashSize]byte) ([]byte, error) {
 	hashStr := hex.EncodeToString(hash[:])
 	data, err := h.store.Get(fmt.Sprintf(pathFmt, hashStr))
 	if err != nil {
@@ -133,60 +135,60 @@ func (h *History) getContentaddressed(pathFmt string, hash [hashSize]byte) ([]by
 	return data, nil
 }
 
-func (h *History) setContentaddressed(pathFmt string, data []byte) ([hashSize]byte, error) {
+func (h *History) setContentaddressed(pathFmt string, data []byte) ([HashSize]byte, error) {
 	hash := h.hash(data)
 	hashStr := hex.EncodeToString(hash[:])
 	if err := h.store.Set(fmt.Sprintf(pathFmt, hashStr), data); err != nil {
-		return [hashSize]byte{}, err
+		return [HashSize]byte{}, err
 	}
 	return hash, nil
 }
 
-func (h *History) hash(in []byte) [hashSize]byte {
+func (h *History) hash(in []byte) [HashSize]byte {
 	hf := h.hashFun()
 	_, _ = hf.Write(in) // Hash.Write never returns an error.
 	sum := hf.Sum(nil)
-	var hash [hashSize]byte
+	var hash [HashSize]byte
 	copy(hash[:], sum) // Correct len of sum enforced in constructor.
 	return hash
 }
 
 // Transition is a transition between two manifests.
 type Transition struct {
-	ManifestHash           [hashSize]byte
-	PreviousTransitionHash [hashSize]byte
+	ManifestHash           [HashSize]byte
+	PreviousTransitionHash [HashSize]byte
 }
 
 func (t *Transition) unmarshalBinary(data []byte) error {
-	if len(data) != 2*hashSize {
-		return fmt.Errorf("transition has invalid length %d, expected %d", len(data), 2*hashSize)
+	if len(data) != 2*HashSize {
+		return fmt.Errorf("transition has invalid length %d, expected %d", len(data), 2*HashSize)
 	}
-	copy(t.ManifestHash[:], data[:hashSize])
-	copy(t.PreviousTransitionHash[:], data[hashSize:])
+	copy(t.ManifestHash[:], data[:HashSize])
+	copy(t.PreviousTransitionHash[:], data[HashSize:])
 	return nil
 }
 
 func (t *Transition) marshalBinary() []byte {
-	data := make([]byte, 2*hashSize)
-	copy(data[:hashSize], t.ManifestHash[:])
-	copy(data[hashSize:], t.PreviousTransitionHash[:])
+	data := make([]byte, 2*HashSize)
+	copy(data[:HashSize], t.ManifestHash[:])
+	copy(data[HashSize:], t.PreviousTransitionHash[:])
 	return data
 }
 
 // LatestTransition is the latest transition signed by the Coordinator.
 type LatestTransition struct {
-	TransitionHash [hashSize]byte
+	TransitionHash [HashSize]byte
 	signature      []byte
 }
 
 func (l *LatestTransition) unmarshalBinary(data []byte) error {
-	if len(data) <= hashSize {
+	if len(data) <= HashSize {
 		return errors.New("latest transition has invalid length")
 	}
-	sigLen := len(data) - hashSize
+	sigLen := len(data) - HashSize
 	l.signature = make([]byte, sigLen)
-	copy(l.TransitionHash[:], data[:hashSize])
-	copy(l.signature, data[hashSize:])
+	copy(l.TransitionHash[:], data[:HashSize])
+	copy(l.signature, data[HashSize:])
 	return nil
 }
 
@@ -194,9 +196,9 @@ func (l *LatestTransition) marshalBinary() []byte {
 	if l == nil {
 		return []byte{}
 	}
-	data := make([]byte, hashSize+len(l.signature))
-	copy(data[:hashSize], l.TransitionHash[:])
-	copy(data[hashSize:], l.signature)
+	data := make([]byte, HashSize+len(l.signature))
+	copy(data[:HashSize], l.TransitionHash[:])
+	copy(data[HashSize:], l.signature)
 	return data
 }
 
