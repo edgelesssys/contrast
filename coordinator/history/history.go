@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	hashSize = 32 // byte, History.hashFun().Size()
+	hashSize = sha256.Size // byte, History.hashFun().Size()
 	histPath = "/mnt/state/history"
 )
 
