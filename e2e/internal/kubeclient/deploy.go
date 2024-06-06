@@ -135,7 +135,7 @@ func (c *Kubeclient) WaitForDaemonset(ctx context.Context, namespace, name strin
 					return nil
 				}
 			default:
-				return fmt.Errorf("unexpected watch event while waiting for daemonset %s/%s: %#v", namespace, name, evt.Object)
+				return fmt.Errorf("unexpected watch event while waiting for daemonset %s/%s: type=%s, object=%#v", namespace, name, evt.Type, evt.Object)
 			}
 		case <-ctx.Done():
 			logger := c.log.With("namespace", namespace)
@@ -182,7 +182,7 @@ func (c *Kubeclient) WaitForStatefulSet(ctx context.Context, namespace, name str
 					return nil
 				}
 			default:
-				return fmt.Errorf("unexpected watch event while waiting for daemonset %s/%s: %#v", namespace, name, evt.Object)
+				return fmt.Errorf("unexpected watch event while waiting for daemonset %s/%s: type=%s, object=%#v", namespace, name, evt.Type, evt.Object)
 			}
 		case <-ctx.Done():
 			logger := c.log.With("namespace", namespace)
