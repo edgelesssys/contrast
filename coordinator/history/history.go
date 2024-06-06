@@ -36,7 +36,7 @@ func New() (*History, error) {
 	if err := osFS.MkdirAll(histPath, 0o755); err != nil {
 		return nil, fmt.Errorf("creating history directory: %w", err)
 	}
-	store := newPVStore(&afero.Afero{Fs: afero.NewBasePathFs(osFS, histPath)})
+	store := NewAferoStore(&afero.Afero{Fs: afero.NewBasePathFs(osFS, histPath)})
 	return NewWithStore(store), nil
 }
 

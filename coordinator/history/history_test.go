@@ -85,7 +85,7 @@ func TestHistory_GetLatest(t *testing.T) {
 			}
 
 			h := &History{
-				store:      newPVStore(&fs),
+				store:      NewAferoStore(&fs),
 				hashFun:    sha256.New,
 				signingKey: tc.signingKey,
 			}
@@ -205,7 +205,7 @@ func TestHistory_SetLatest(t *testing.T) {
 			}
 
 			h := &History{
-				store:      newPVStore(&fs),
+				store:      NewAferoStore(&fs),
 				hashFun:    sha256.New,
 				signingKey: tc.signingKey,
 			}
@@ -267,7 +267,7 @@ func TestHistory_GetTransition(t *testing.T) {
 			}
 
 			h := &History{
-				store:   newPVStore(&fs),
+				store:   NewAferoStore(&fs),
 				hashFun: sha256.New,
 			}
 
@@ -343,7 +343,7 @@ func TestHistory_SetTransition(t *testing.T) {
 			}
 
 			h := &History{
-				store:   newPVStore(&fs),
+				store:   NewAferoStore(&fs),
 				hashFun: sha256.New,
 			}
 
@@ -418,7 +418,7 @@ func TestHistory_getCA(t *testing.T) {
 			}
 
 			h := &History{
-				store:   newPVStore(&fs),
+				store:   NewAferoStore(&fs),
 				hashFun: sha256.New,
 			}
 
@@ -490,7 +490,7 @@ func TestHistory_setCA(t *testing.T) {
 			}
 
 			h := &History{
-				store:   newPVStore(&fs),
+				store:   NewAferoStore(&fs),
 				hashFun: sha256.New,
 			}
 
@@ -525,7 +525,7 @@ func TestHistory_setCA(t *testing.T) {
 
 func TestHistory_SetGet(t *testing.T) {
 	h := &History{
-		store:   &fsStore{fs: &afero.Afero{Fs: afero.NewMemMapFs()}},
+		store:   &AferoStore{fs: &afero.Afero{Fs: afero.NewMemMapFs()}},
 		hashFun: sha256.New,
 	}
 
