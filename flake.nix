@@ -54,11 +54,8 @@
             yarn install
           '';
         };
-        demo = pkgs.mkShell rec {
-          packages = [];
-
+        demo = let
           json = builtins.fromJSON (builtins.readFile ./packages/contrast-releases.json);
-
           version = (lib.lists.last json.contrast).version; # select the latest contrast version
 
           # select all hashes based on the extracted version; since no "error" version exists the download will fail
@@ -66,8 +63,13 @@
           contrastHash = (lib.lists.findFirst (obj: obj.version == version) "error" json.contrast).hash;
           coordinatorHash = (lib.lists.findFirst (obj: obj.version == version) "error" json."coordinator.yml").hash;
           runtimeHash = (lib.lists.findFirst (obj: obj.version == version) "error" json."runtime.yml").hash;
-          emojivotoHash = (lib.lists.findFirst (obj: obj.version == version) "error" json."emojivoto-demo.zip").hash;
+          emojivotoHash = (lib.lists.findFirst (obj: obj.version == version) "error" json."emojivoto-demo.zip").hash; 
+        in 
+        pkgs.mkShell rec {
+          packages = [];
 
+
+         
           contrast = pkgs.fetchurl {
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/contrast";
             hash = builtins.trace "contrast hash: ${contrastHash}" contrastHash;
