@@ -55,18 +55,18 @@
           '';
         };
         demo =
-        let
-          custom-packages = import ./packages { inherit pkgs lib; };
-          json = builtins.fromJSON (builtins.readFile ./packages/contrast-releases.json);
-          demoShell = {version, hash}: {
-            name = builtins.replaceStrings ["."] ["-"] version;
-            value =
-            pkgs.mkShell {
-              packages = [ custom-packages.contrast-releases.${builtins.replaceStrings ["."] ["-"] version} ];
+          let
+            custom-packages = import ./packages { inherit pkgs lib; };
+            json = builtins.fromJSON (builtins.readFile ./packages/contrast-releases.json);
+            demoShell = {version, hash}: {
+              name = builtins.replaceStrings ["."] ["-"] version;
+              value =
+              pkgs.mkShell {
+                packages = [ custom-packages.contrast-releases.${builtins.replaceStrings ["."] ["-"] version} ];
+              };
             };
-          };
-        in
-        builtins.listToAttrs (builtins.map demoShell json.contrast);
+          in
+          builtins.listToAttrs (builtins.map demoShell json.contrast);
       };
 
       formatter = treefmtEval.config.build.wrapper;
