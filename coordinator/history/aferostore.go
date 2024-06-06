@@ -36,7 +36,7 @@ func (s *AferoStore) Get(key string) ([]byte, error) {
 func (s *AferoStore) Set(key string, value []byte) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()
-	if err := s.fs.MkdirAll(filepath.Base(key), 0o755); err != nil {
+	if err := s.fs.MkdirAll(filepath.Dir(key), 0o755); err != nil {
 		return fmt.Errorf("creating directory for %q: %w", key, err)
 	}
 	return s.fs.WriteFile(key, value, 0o644)
@@ -54,7 +54,7 @@ func (s *AferoStore) CompareAndSwap(key string, oldVal, newVal []byte) error {
 	if !bytes.Equal(current, oldVal) {
 		return fmt.Errorf("object %q has changed since last read", key)
 	}
-	if err := s.fs.MkdirAll(filepath.Base(key), 0o755); err != nil {
+	if err := s.fs.MkdirAll(filepath.Dir(key), 0o755); err != nil {
 		return fmt.Errorf("creating directory for %q: %w", key, err)
 	}
 	return s.fs.WriteFile(key, newVal, 0o644)
