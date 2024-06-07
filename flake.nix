@@ -29,6 +29,7 @@
       };
       inherit (pkgs) lib;
       treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
+      ourPkgs = import ./packages { inherit pkgs lib; };
     in
     {
       devShells = {
@@ -54,20 +55,15 @@
             yarn install
           '';
         };
-        demo =
-          let
-            custom-packages = import ./packages { inherit pkgs lib; };
-            json = builtins.fromJSON (builtins.readFile ./packages/contrast-releases.json);
-            demoShell = {version, hash}: {
-              name = builtins.replaceStrings ["."] ["-"] version;
-              value =
-              pkgs.mkShell {
-                packages = [ custom-packages.contrast-releases.${builtins.replaceStrings ["."] ["-"] version} ];
-              };
-            };
-          in
-          builtins.listToAttrs (builtins.map demoShell json.contrast);
-      };
+      } // (
+        let
+          toDemoShell = version: contrast-release:
+            lib.nameValuePair "demo-${version}" (pkgs.mkShell {
+              packages = [ contrast-release ];
+            });
+        in
+        lib.mapAttrs' toDemoShell ourPkgs.contrast-releases
+      );
 
       formatter = treefmtEval.config.build.wrapper;
 
@@ -75,7 +71,7 @@
         formatting = treefmtEval.config.build.check self;
       };
 
-      legacyPackages = pkgs // (import ./packages { inherit pkgs lib; });
+      legacyPackages = pkgs // ourPkgs;
     });
 
   nixConfig = {
