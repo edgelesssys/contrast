@@ -170,9 +170,9 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		smProxyWeb = nil
 		smProxyVoting = nil
 	case ServiceMeshIngressEgress:
-		emojiSvcImage = "docker.l5d.io/buoyantio/emojivoto-emoji-svc:v11"
-		emojiVotingSvcImage = "docker.l5d.io/buoyantio/emojivoto-voting-svc:v11"
-		emojiWebImage = "docker.l5d.io/buoyantio/emojivoto-web:v11"
+		emojiSvcImage = "docker.io/buoyantio/emojivoto-emoji-svc:v11"
+		emojiVotingSvcImage = "docker.io/buoyantio/emojivoto-voting-svc:v11"
+		emojiWebImage = "docker.io/buoyantio/emojivoto-web:v11"
 		emojiWebVoteBotImage = "ghcr.io/3u13r/emojivoto-web:coco-1"
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
@@ -188,7 +188,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 	case ServiceMeshEgress:
 		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1"
 		emojiVotingSvcImage = "ghcr.io/3u13r/emojivoto-voting-svc:coco-1"
-		emojiWebImage = "docker.l5d.io/buoyantio/emojivoto-web:v11"
+		emojiWebImage = "docker.io/buoyantio/emojivoto-web:v11"
 		emojiWebVoteBotImage = emojiWebImage
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
