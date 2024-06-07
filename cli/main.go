@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/spf13/cobra"
@@ -29,9 +30,11 @@ func execute() error {
 var version = "0.0.0-dev"
 var launchDigest = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
 var genpolicyVersion = "0.0.0-dev"
+var containerVersions = ""
 
 func newRootCmd() *cobra.Command {
-	version = fmt.Sprintf("%s with launch digest %q, genpolicy version %q", version, launchDigest, genpolicyVersion)
+	containerVersions = strings.ReplaceAll(containerVersions, ",", "\n")
+	version = fmt.Sprintf("%s with launch digest %s, genpolicy version %s and the following container versions:\n%s", version, launchDigest, genpolicyVersion, containerVersions)
 	root := &cobra.Command{
 		Use:              "contrast",
 		Short:            "contrast",
