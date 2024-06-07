@@ -27,8 +27,10 @@ func execute() error {
 }
 
 var version = "0.0.0-dev"
+var trustedMeasurement = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
 
 func newRootCmd() *cobra.Command {
+	version = fmt.Sprintf("%s with launch digest %s", version, trustedMeasurement)
 	root := &cobra.Command{
 		Use:              "contrast",
 		Short:            "contrast",
