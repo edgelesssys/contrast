@@ -203,7 +203,8 @@ lint:
 demodir version="latest":
     #!/usr/bin/env bash
     set -eu
-    nix develop .#demo-{{ version }}
+    v="$(echo {{ version }} | sed 's/\./-/g')"
+    nix develop .#demo-$v
 
 # Remove deployment specific files.
 soft-clean: undeploy
