@@ -51,7 +51,7 @@ func run() (retErr error) {
 
 	promRegistry := prometheus.NewRegistry()
 
-	meshAuth := authority.New(logger)
+	meshAuth := authority.New(promRegistry, logger)
 	userAPI := newUserAPIServer(meshAuth, promRegistry, logger)
 	meshAPI := newMeshAPIServer(meshAuth, meshAuth, promRegistry, logger)
 

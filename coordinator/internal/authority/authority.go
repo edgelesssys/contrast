@@ -24,6 +24,8 @@ import (
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 // Bundle is a set of PEM-encoded certificates for Contrast workloads.
@@ -42,14 +44,28 @@ type Authority struct {
 	bundlesMux sync.RWMutex
 	manifests  appendableList[*manifest.Manifest]
 	logger     *slog.Logger
+	metrics    metrics
+}
+
+type metrics struct {
+	manifestGeneration prometheus.Gauge
 }
 
 // New creates a new Authority instance.
-func New(log *slog.Logger) *Authority {
+func New(reg *prometheus.Registry, log *slog.Logger) *Authority {
+	manifestGeneration := promauto.With(reg).NewGauge(prometheus.GaugeOpts{
+		Subsystem: "contrast_coordinator",
+		Name:      "manifest_generation",
+		Help:      "Current manifest generation.",
+	})
+
 	return &Authority{
 		bundles:   make(map[string]Bundle),
 		manifests: new(appendable.Appendable[*manifest.Manifest]),
 		logger:    log.WithGroup("mesh-authority"),
+		metrics: metrics{
+			manifestGeneration: manifestGeneration,
+		},
 	}
 }
 
@@ -196,6 +212,7 @@ func (m *Authority) SetManifest(mnfst *manifest.Manifest) error {
 	}
 	m.ca.Store(ca)
 	m.manifests.Append(mnfst)
+	m.metrics.manifestGeneration.Set(float64(len(m.manifests.All())))
 	return nil
 }
 
