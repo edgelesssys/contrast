@@ -204,7 +204,7 @@ demodir version="latest":
     #!/usr/bin/env bash
     set -eu
     v="$(echo {{ version }} | sed 's/\./-/g')"
-    nix develop .#demo-$v
+    nix develop -u DIRENV_DIR -u DIRENV_FILE -u DIRENV_DIFF .#demo-$v
 
 # Remove deployment specific files.
 soft-clean: undeploy
