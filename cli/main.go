@@ -28,9 +28,10 @@ func execute() error {
 
 var version = "0.0.0-dev"
 var launchDigest = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+var genpolicyVersion = "0.0.0-dev"
 
 func newRootCmd() *cobra.Command {
-	version = fmt.Sprintf("%s with launch digest %s", version, launchDigest)
+	version = fmt.Sprintf("%s with launch digest %q, genpolicy version %q", version, launchDigest, genpolicyVersion)
 	root := &cobra.Command{
 		Use:              "contrast",
 		Short:            "contrast",
