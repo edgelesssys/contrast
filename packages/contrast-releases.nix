@@ -51,9 +51,10 @@ let
         '' + lib.optionalString runtime.exists ''
           install -m 644 ${runtime} $out/runtime.yml
         '' + lib.optionalString emojivoto.exists ''
-          mkdir -p $out/deployment
-          unzip ${emojivoto} -d $out/deployment
+          unzip ${emojivoto} -d $out
         '');
   };
+  releases = builtins.listToAttrs (builtins.map buildContrastRelease json.contrast);
+  latestVersion = builtins.replaceStrings [ "." ] [ "-" ] (lib.last json.contrast).version;
 in
-builtins.listToAttrs (builtins.map buildContrastRelease json.contrast)
+releases // {latest = releases.${latestVersion};}

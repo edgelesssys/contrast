@@ -60,6 +60,25 @@
           toDemoShell = version: contrast-release:
             lib.nameValuePair "demo-${version}" (pkgs.mkShell {
               packages = [ contrast-release ];
+
+              shellHook = ''
+              cd "$(mktemp -d)"
+
+              if [[ -e ${contrast-release}/runtime.yml ]]
+              then
+                cp ${contrast-release}/runtime.yml .
+              fi
+
+              if [[ -e ${contrast-release}/coordinator.yml ]]
+              then
+                cp ${contrast-release}/coordinator.yml .
+              fi
+              
+              if [[ -d ${contrast-release}/deployment ]]
+              then
+                cp -r ${contrast-release}/deployment . 
+              fi
+              '';
             });
         in
         lib.mapAttrs' toDemoShell ourPkgs.contrast-releases
