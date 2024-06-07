@@ -78,7 +78,7 @@ buildGoModule rec {
     "-s"
     "-w"
     "-X main.version=\"v${version}\""
-    "-X main.trustedMeasurement=${launchDigest}"
+    "-X main.launchDigest=${launchDigest}"
     "-X github.com/edgelesssys/contrast/internal/manifest.trustedMeasurement=${launchDigest}"
     "-X github.com/edgelesssys/contrast/cli/cmd.runtimeHandler=${runtimeHandler}"
     "-X github.com/edgelesssys/contrast/internal/kuberesource.runtimeHandler=${runtimeHandler}"
