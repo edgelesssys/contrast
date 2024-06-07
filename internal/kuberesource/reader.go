@@ -23,7 +23,7 @@ func UnmarshalApplyConfigurations(data []byte) ([]any, error) {
 		if applyConfig == nil {
 			return nil, fmt.Errorf("unmarshalling: unsupported resource type %s for %q", obj.GroupVersionKind().String(), obj.GetName())
 		}
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), applyConfig); err != nil {
+		if err := runtime.DefaultUnstructuredConverter.FromUnstructuredWithValidation(obj.UnstructuredContent(), applyConfig, true); err != nil {
 			return nil, err
 		}
 		result = append(result, applyConfig)
