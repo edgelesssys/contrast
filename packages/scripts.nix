@@ -174,27 +174,6 @@
     '';
   };
 
-  fetch-latest-contrast = writeShellApplication {
-    name = "fetch-latest-contrast";
-    runtimeInputs = with pkgs; [
-      jq
-      github-cli
-      yq-go
-    ];
-    text = ''
-      namespace=$1
-      targetDir=$2
-      release=$(gh release list --json name,isLatest | jq -r '.[] | select(.isLatest) | .name')
-      gh release download "$release" \
-        --repo edgelesssys/contrast \
-        -D "$targetDir" \
-        --skip-existing
-      chmod a+x "$targetDir/contrast"
-
-      yq -i ".metadata.namespace = \"$namespace\"" "$targetDir/coordinator.yml"
-    '';
-  };
-
   get-azure-sku-locations = writeShellApplication {
     name = "get-azure-sku-locations";
     runtimeInputs = with pkgs; [
