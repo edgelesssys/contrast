@@ -14,6 +14,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
+	"github.com/edgelesssys/contrast/internal/recoveryapi"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -49,18 +50,38 @@ func run() (retErr error) {
 	}
 
 	metricsPort := os.Getenv(metricsPortEnvVar)
-
 	promRegistry := prometheus.NewRegistry()
 
 	hist, err := history.New()
 	if err != nil {
 		return fmt.Errorf("creating history: %w", err)
 	}
+
 	meshAuth := authority.New(hist, promRegistry, logger)
+	recoveryAPI := newRecoveryAPIServer(meshAuth, promRegistry, logger)
 	userAPI := newUserAPIServer(meshAuth, promRegistry, logger)
 	meshAPI := newMeshAPIServer(meshAuth, meshAuth, promRegistry, logger)
 
 	eg := errgroup.Group{}
+
+	recoverable, err := meshAuth.Recoverable()
+	if err != nil {
+		return fmt.Errorf("checking recoverability: %w", err)
+	}
+	if recoverable {
+		logger.Warn("Coordinator is in recovery mode")
+
+		eg.Go(func() error {
+			logger.Info("Coordinator recovery API listening")
+			if err := recoveryAPI.Serve(net.JoinHostPort("0.0.0.0", recoveryapi.Port)); err != nil {
+				return fmt.Errorf("serving recovery API: %w", err)
+			}
+			return nil
+		})
+
+		recoveryAPI.WaitRecoveryDone()
+		logger.Info("Coordinator recovery done")
+	}
 
 	eg.Go(func() error {
 		if metricsPort == "" {

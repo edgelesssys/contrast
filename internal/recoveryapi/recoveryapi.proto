@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package recoveryapi;
+
+option go_package = "github.com/edgelesssys/contrast/internal/recoveryapi";
+
+service RecoveryAPI {
+    rpc Recover(RecoverRequest) returns (RecoverResponse);
+}
+
+message RecoverRequest {
+    bytes Seed = 1;
+    bytes Salt = 2;
+}
+
+message RecoverResponse {}

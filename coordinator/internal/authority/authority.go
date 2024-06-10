@@ -329,6 +329,24 @@ func (m *Authority) LatestManifest() (*manifest.Manifest, error) {
 	return c.manifest, nil
 }
 
+// Recoverable returns whether the Authority can be recovered from a persisted state.
+func (m *Authority) Recoverable() (bool, error) {
+	return m.hist.HasLatest()
+}
+
+// Recover recovers the seed engine from a seed and salt.
+func (m *Authority) Recover(seed, salt []byte) error {
+	seedEngine, err := seedengine.New(seed, salt)
+	if err != nil {
+		return fmt.Errorf("creating seed engine: %w", err)
+	}
+	if !m.se.CompareAndSwap(nil, seedEngine) {
+		return errors.New("already recovered")
+	}
+	m.hist.ConfigureSigningKey(m.se.Load().TransactionSigningKey())
+	return nil
+}
+
 // createSeedEngine populates m.se.
 //
 // It is fine to call this function concurrently. After it returns, m.se is guaranteed to be
