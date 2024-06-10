@@ -1,0 +1,35 @@
+name: update rpm packages
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 19 * * 0' # 7pm UTC on Sundays
+
+jobs:
+  update-rpm-packages:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        with:
+          ref: ${{ !github.event.pull_request.head.repo.fork && github.head_ref || '' }}
+          token: ${{ !github.event.pull_request.head.repo.fork && secrets.NUNKI_CI_COMMIT_PUSH_PR || github.token }}
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Update rpm packages
+        run: |
+           nix run .#rpm-pin-vendor > packages/by-name/kata-image/package-index.json
+      - name: Create PR
+        uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
+        with:
+          title: "deps: update pinned rpm packages"
+          body: "Automated updated created by [rpm_updates workflow](https://github.com/edgelesssys/contrast/blob/main/.github/workflows/rpm_updates.yml)."
+          commit-message: "deps: update pinned rpm packages"
+          base: main
+          draft: false
+          labels: "dependencies"
+          committer: edgelessci <edgelessci@users.noreply.github.com>
+          author: edgelessci <edgelessci@users.noreply.github.com>
+          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
