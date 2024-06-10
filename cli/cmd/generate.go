@@ -305,9 +305,12 @@ func patchTargets(paths []string, imageReplacementsFile string, skipInitializer 
 
 func injectInitializer(resources []any) error {
 	for _, resource := range resources {
-		deploy, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
-		if ok && deploy.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
-			continue
+		switch r := resource.(type) {
+		case *applyappsv1.StatefulSetApplyConfiguration:
+			if r.Spec != nil && r.Spec.Template != nil &&
+				r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
+				continue
+			}
 		}
 		_, err := kuberesource.AddInitializer(resource, kuberesource.Initializer())
 		if err != nil {

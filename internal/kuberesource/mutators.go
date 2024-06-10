@@ -42,7 +42,7 @@ func AddInitializer(
 
 		// Remove already existing init containers with unique initializer name.
 		spec.InitContainers = slices.DeleteFunc(spec.InitContainers, func(c applycorev1.ContainerApplyConfiguration) bool {
-			return *c.Name == *initializer.Name
+			return c.Name != nil && *c.Name == *initializer.Name
 		})
 		// Add the initializer as first init container.
 		spec.InitContainers = append([]applycorev1.ContainerApplyConfiguration{*initializer}, spec.InitContainers...)
@@ -61,7 +61,7 @@ func AddInitializer(
 		// Remove already existing volume mounts on the worker containers with unique volume mount name.
 		for i := range spec.Containers {
 			spec.Containers[i].VolumeMounts = slices.DeleteFunc(spec.Containers[i].VolumeMounts, func(v applycorev1.VolumeMountApplyConfiguration) bool {
-				return *v.Name == *initializer.VolumeMounts[0].Name
+				return v.Name != nil && *v.Name == *initializer.VolumeMounts[0].Name
 			})
 
 			// Add the volume mount written by the initializer to the worker container.
@@ -110,7 +110,7 @@ func AddServiceMesh(
 
 		// Remove already existing init containers with unique service mesh name.
 		spec.InitContainers = slices.DeleteFunc(spec.InitContainers, func(c applycorev1.ContainerApplyConfiguration) bool {
-			return *c.Name == *serviceMeshProxy.Name
+			return c.Name != nil && *c.Name == *serviceMeshProxy.Name
 		})
 
 		retErr = ensureVolumeExists(spec, *serviceMeshProxy.VolumeMounts[0].Name)
@@ -149,7 +149,7 @@ func AddServiceMesh(
 func ensureVolumeExists(spec *applycorev1.PodSpecApplyConfiguration, volumeName string) error {
 	// Existing volume with unique name has to be of type EmptyDir.
 	for _, volume := range spec.Volumes {
-		if *volume.Name == volumeName {
+		if volume.Name != nil && *volume.Name == volumeName {
 			if volume.EmptyDir == nil {
 				return fmt.Errorf("volume %s has to be of type EmptyDir", *volume.Name)
 			}
@@ -184,7 +184,9 @@ func AddLoadBalancers(resources []any) []any {
 		switch obj := resource.(type) {
 		case *applycorev1.ServiceApplyConfiguration:
 			if obj.Annotations[exposeServiceAnnotation] == "true" {
-				obj.Spec.WithType("LoadBalancer")
+				if obj.Spec != nil {
+					obj.Spec.WithType("LoadBalancer")
+				}
 			}
 		}
 		out = append(out, resource)
@@ -197,7 +199,8 @@ func AddLogging(resources []any, level string) []any {
 	for _, resource := range resources {
 		switch r := resource.(type) {
 		case *applyappsv1.StatefulSetApplyConfiguration:
-			if r.Spec.Template.Annotations["contrast.edgeless.systems/pod-role"] == "coordinator" {
+			if r.Spec != nil && r.Spec.Template != nil &&
+				r.Spec.Template.Annotations["contrast.edgeless.systems/pod-role"] == "coordinator" {
 				r.Spec.Template.Spec.Containers[0].WithEnv(
 					NewEnvVar("CONTRAST_LOG_LEVEL", level),
 					NewEnvVar("CONTRAST_LOG_SUBSYSTEMS", "*"),
@@ -214,13 +217,17 @@ func PatchImages(resources []any, replacements map[string]string) []any {
 	for _, resource := range resources {
 		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
 			for i := 0; i < len(spec.InitContainers); i++ {
-				if replacement, ok := replacements[*spec.InitContainers[i].Image]; ok {
-					spec.InitContainers[i].Image = &replacement
+				if spec.InitContainers[i].Image != nil {
+					if replacement, ok := replacements[*spec.InitContainers[i].Image]; ok {
+						spec.InitContainers[i].Image = &replacement
+					}
 				}
 			}
 			for i := 0; i < len(spec.Containers); i++ {
-				if replacement, ok := replacements[*spec.Containers[i].Image]; ok {
-					spec.Containers[i].Image = &replacement
+				if spec.Containers[i].Image != nil {
+					if replacement, ok := replacements[*spec.Containers[i].Image]; ok {
+						spec.Containers[i].Image = &replacement
+					}
 				}
 			}
 			return spec
@@ -277,7 +284,9 @@ func PatchCoordinatorMetrics(resources []any, port int32) []any {
 	for _, resource := range resources {
 		switch r := resource.(type) {
 		case *applyappsv1.StatefulSetApplyConfiguration:
-			if r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
+			if r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.Spec != nil &&
+				len(r.Spec.Template.Spec.Containers) > 0 &&
+				r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
 				r.Spec.Template.Spec.Containers[0].WithEnv(NewEnvVar("CONTRAST_METRICS_PORT", fmt.Sprint(port)))
 				r.Spec.Template.Spec.Containers[0].WithPorts(
 					ContainerPort().
@@ -304,21 +313,61 @@ func MapPodSpecWithMeta(
 	}
 	switch r := resource.(type) {
 	case *applybatchv1.CronJobApplyConfiguration:
-		r.ObjectMetaApplyConfiguration, r.Spec.JobTemplate.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.JobTemplate.Spec.Template.Spec)
+		if r.ObjectMetaApplyConfiguration != nil &&
+			r.Spec != nil &&
+			r.Spec.JobTemplate != nil &&
+			r.Spec.JobTemplate.Spec != nil &&
+			r.Spec.JobTemplate.Spec.Template != nil &&
+			r.Spec.JobTemplate.Spec.Template.Spec != nil {
+			r.ObjectMetaApplyConfiguration, r.Spec.JobTemplate.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.JobTemplate.Spec.Template.Spec)
+		}
 	case *applyappsv1.DaemonSetApplyConfiguration:
-		r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		if r.ObjectMetaApplyConfiguration != nil &&
+			r.Spec != nil &&
+			r.Spec.Template != nil &&
+			r.Spec.Template.Spec != nil {
+			r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		}
 	case *applyappsv1.DeploymentApplyConfiguration:
-		r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		if r.ObjectMetaApplyConfiguration != nil &&
+			r.Spec != nil &&
+			r.Spec.Template != nil &&
+			r.Spec.Template.Spec != nil {
+			r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		}
 	case *applybatchv1.JobApplyConfiguration:
-		r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		if r.ObjectMetaApplyConfiguration != nil &&
+			r.Spec != nil &&
+			r.Spec.Template != nil &&
+			r.Spec.Template.Spec != nil {
+			r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		}
 	case *applycorev1.PodApplyConfiguration:
-		r.ObjectMetaApplyConfiguration, r.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec)
+		if r.ObjectMetaApplyConfiguration != nil &&
+			r.Spec != nil {
+			r.ObjectMetaApplyConfiguration, r.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec)
+		}
 	case *applyappsv1.ReplicaSetApplyConfiguration:
-		r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		if r.ObjectMetaApplyConfiguration != nil &&
+			r.Spec != nil &&
+			r.Spec.Template != nil &&
+			r.Spec.Template.Spec != nil {
+			r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		}
 	case *applycorev1.ReplicationControllerApplyConfiguration:
-		r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		if r.ObjectMetaApplyConfiguration != nil &&
+			r.Spec != nil &&
+			r.Spec.Template != nil &&
+			r.Spec.Template.Spec != nil {
+			r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		}
 	case *applyappsv1.StatefulSetApplyConfiguration:
-		r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		if r.ObjectMetaApplyConfiguration != nil &&
+			r.Spec != nil &&
+			r.Spec.Template != nil &&
+			r.Spec.Template.Spec != nil {
+			r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+		}
 	}
 	return resource
 }
