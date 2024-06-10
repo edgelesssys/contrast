@@ -196,6 +196,28 @@ metadata: # apps/v1.Deployment, apps/v1.DaemonSet, ...
 </TabItem>
 </Tabs>
 
+When disabling the automatic Initializer injection, you can manually add the
+Initializer as a sidecar container to your workload before generating the
+policies. Configure the workload to use the certificates written to the
+`contrast-tls-certs` `volumeMount`.
+
+```yaml
+# v1.PodSpec
+spec:
+  initContainers:
+    - env:
+        - name: COORDINATOR_HOST
+          value: coordinator
+      image: "ghcr.io/edgelesssys/contrast/initializer:latest"
+      name: contrast-initializer
+      volumeMounts:
+        - mountPath: /tls-config
+          name: contrast-tls-certs
+  volumes:
+    - emptyDir: {}
+      name: contrast-tls-certs
+```
+
 ## Apply the resources
 
 Apply the resources to the cluster. Your workloads will block in the initialization phase until a
