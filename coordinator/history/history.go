@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"os"
 
 	"github.com/spf13/afero"
 )
@@ -112,6 +113,18 @@ func (h *History) GetLatest() (*LatestTransition, error) {
 		return nil, fmt.Errorf("verifying latest transition: %w", err)
 	}
 	return &latestTransition, nil
+}
+
+// HasLatest returns true if there exist a latest transaction. It does not
+// verify the transaction signature or return the transaction.
+func (h *History) HasLatest() (bool, error) {
+	if _, err := h.store.Get("transitions/latest"); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // SetLatest signs and sets the latest transition if the current latest is equal to oldT.

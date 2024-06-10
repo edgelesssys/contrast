@@ -17,14 +17,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestHistory_GetLatest(t *testing.T) {
+func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 	rq := require.New(t)
 
 	testCases := map[string]struct {
 		fsContent  map[string]string
 		signingKey *ecdsa.PrivateKey
-		wantT      LatestTransition
-		wantErr    bool
+		// wants for GetLatest
+		wantT   LatestTransition
+		wantErr bool
+		// wants for HasLatest
+		wantHasLatest bool
 	}{
 		"success": {
 			fsContent: map[string]string{
@@ -35,32 +38,37 @@ func TestHistory_GetLatest(t *testing.T) {
 				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
 				signature:      []byte(fromHex(rq, "304502210081e237315253991b496bdef5516527533a2bf828bae70a068be38ed612d5b90802207067b76f0a98e72282b276379e3b4d2857a37beea012c1bb3be9902cfc2d510c")),
 			},
+			wantHasLatest: true,
 		},
 		"hash modified": {
 			fsContent: map[string]string{
 				"transitions/latest": fromHex(rq, "3cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"+"304502210081e237315253991b496bdef5516527533a2bf828bae70a068be38ed612d5b90802207067b76f0a98e72282b276379e3b4d2857a37beea012c1bb3be9902cfc2d510c"),
 			},
-			signingKey: testKey(rq),
-			wantErr:    true,
+			signingKey:    testKey(rq),
+			wantErr:       true,
+			wantHasLatest: true,
 		},
 		"signature modified": {
 			fsContent: map[string]string{
 				"transitions/latest": fromHex(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"+"404502210081e237315253991b496bdef5516527533a2bf828bae70a068be38ed612d5b90802207067b76f0a98e72282b276379e3b4d2857a37beea012c1bb3be9902cfc2d510c"),
 			},
-			signingKey: testKey(rq),
-			wantErr:    true,
+			signingKey:    testKey(rq),
+			wantErr:       true,
+			wantHasLatest: true,
 		},
 		"no latest": {
-			fsContent:  map[string]string{},
-			signingKey: testKey(rq),
-			wantErr:    true,
+			fsContent:     map[string]string{},
+			signingKey:    testKey(rq),
+			wantErr:       true,
+			wantHasLatest: false,
 		},
 		"no signature": {
 			fsContent: map[string]string{
 				"transitions/latest": fromHex(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
 			},
-			signingKey: testKey(rq),
-			wantErr:    true,
+			signingKey:    testKey(rq),
+			wantErr:       true,
+			wantHasLatest: true,
 		},
 		"signing key missing": {
 			fsContent: map[string]string{
@@ -70,37 +78,64 @@ func TestHistory_GetLatest(t *testing.T) {
 				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
 				signature:      []byte(fromHex(rq, "304502210081e237315253991b496bdef5516527533a2bf828bae70a068be38ed612d5b90802207067b76f0a98e72282b276379e3b4d2857a37beea012c1bb3be9902cfc2d510c")),
 			},
-			wantErr: true,
+			wantErr:       true,
+			wantHasLatest: true,
 		},
 	}
 
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			require := require.New(t)
-			assert := assert.New(t)
+	t.Run("GetLatest", func(t *testing.T) {
+		for name, tc := range testCases {
+			t.Run(name, func(t *testing.T) {
+				require := require.New(t)
+				assert := assert.New(t)
 
-			fs := afero.Afero{Fs: afero.NewMemMapFs()}
-			for path, content := range tc.fsContent {
-				require.NoError(fs.WriteFile(path, []byte(content), 0o644))
-			}
+				fs := afero.Afero{Fs: afero.NewMemMapFs()}
+				for path, content := range tc.fsContent {
+					require.NoError(fs.WriteFile(path, []byte(content), 0o644))
+				}
 
-			h := &History{
-				store:      NewAferoStore(&fs),
-				hashFun:    sha256.New,
-				signingKey: tc.signingKey,
-			}
+				h := &History{
+					store:      NewAferoStore(&fs),
+					hashFun:    sha256.New,
+					signingKey: tc.signingKey,
+				}
 
-			gotT, err := h.GetLatest()
+				gotT, err := h.GetLatest()
 
-			if tc.wantErr {
-				require.Error(err)
-				return
-			}
-			require.NoError(err)
-			require.NotNil(gotT)
-			assert.Equal(tc.wantT, *gotT)
-		})
-	}
+				if tc.wantErr {
+					require.Error(err)
+					return
+				}
+				require.NoError(err)
+				require.NotNil(gotT)
+				assert.Equal(tc.wantT, *gotT)
+			})
+		}
+	})
+
+	t.Run("HasLatest", func(t *testing.T) {
+		for name, tc := range testCases {
+			t.Run(name, func(t *testing.T) {
+				require := require.New(t)
+
+				fs := afero.Afero{Fs: afero.NewMemMapFs()}
+				for path, content := range tc.fsContent {
+					require.NoError(fs.WriteFile(path, []byte(content), 0o644))
+				}
+
+				h := &History{
+					store:      NewAferoStore(&fs),
+					hashFun:    sha256.New,
+					signingKey: tc.signingKey,
+				}
+
+				got, err := h.HasLatest()
+
+				require.NoError(err)
+				require.Equal(tc.wantHasLatest, got)
+			})
+		}
+	})
 }
 
 func TestHistory_SetLatest(t *testing.T) {
