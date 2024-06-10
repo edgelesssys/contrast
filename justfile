@@ -200,16 +200,11 @@ fmt:
 lint:
     nix run .#scripts.golangci-lint -- run
 
-demodir namespace="default":
+demodir version="latest":
     #!/usr/bin/env bash
     set -eu
-    d=$(mktemp -d)
-    echo "Creating demo directory at ${d}" >&2
-    nix run .#scripts.fetch-latest-contrast -- {{ namespace }} "${d}"
-    unzip -d "${d}" "${d}/emojivoto-demo.zip"
-    rm "${d}/emojivoto-demo.zip"
-    echo "Demo directory ready at ${d}" >&2
-    echo "${d}"
+    v="$(echo {{ version }} | sed 's/\./-/g')"
+    nix develop -u DIRENV_DIR -u DIRENV_FILE -u DIRENV_DIFF .#demo-$v
 
 # Remove deployment specific files.
 soft-clean: undeploy
