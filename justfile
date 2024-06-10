@@ -200,7 +200,7 @@ fmt:
 lint:
     nix run .#scripts.golangci-lint -- run
 
-demodir version="latest":
+demodir version="latest": undeploy
     #!/usr/bin/env bash
     set -eu
     v="$(echo {{ version }} | sed 's/\./-/g')"
