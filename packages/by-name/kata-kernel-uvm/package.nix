@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 { fetchurl
+, microsoft
 , linuxManualConfig
 , patchutils
-, kata-agent
+, kata-agent ? microsoft.kata-agent
 }:
 
 let
