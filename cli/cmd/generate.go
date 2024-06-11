@@ -10,6 +10,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
@@ -67,7 +68,10 @@ subcommands.`,
 	cmd.Flags().StringP("settings", "s", settingsFilename, "path to settings (.json) file")
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().String("reference-values", "", "set the default reference values used for attestation (one of: aks)")
-	cmd.Flags().StringArrayP("workload-owner-key", "w", []string{workloadOwnerPEM}, "path to workload owner key (.pem) file")
+	cmd.Flags().StringArrayP("workload-owner-key", "w", []string{workloadOwnerPEM},
+		"path to workload owner key (.pem) file (can be passed more than once)")
+	cmd.Flags().StringArray("seedshare-owner-key", []string{seedshareOwnerPEM},
+		"path to seedshare owner key (.pem) file (can be passed more than once)")
 	cmd.Flags().BoolP("disable-updates", "d", false, "prevent further updates of the manifest")
 	cmd.Flags().String("image-replacements", "", "path to image replacements file")
 	cmd.Flags().Bool("skip-initializer", false, "skip injection of Contrast Initializer")
@@ -117,6 +121,9 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	if err := generateWorkloadOwnerKey(flags); err != nil {
 		return fmt.Errorf("generating workload owner key: %w", err)
 	}
+	if err := generateSeedshareOwnerKey(flags); err != nil {
+		return fmt.Errorf("generating seedshare owner key: %w", err)
+	}
 
 	defaultManifest := manifest.Default()
 	if flags.referenceValues == "aks" {
@@ -149,6 +156,13 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		}
 	}
 	slices.Sort(manifest.WorkloadOwnerKeyDigests)
+
+	for _, keyPath := range flags.seedshareOwnerKeys {
+		if err := addSeedshareOwnerKeyToManifest(manifest, keyPath); err != nil {
+			return fmt.Errorf("adding seedshare owner key to manifest: %w", err)
+		}
+	}
+	slices.Sort(manifest.SeedshareOwnerPubKeys)
 
 	manifestData, err = json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
@@ -394,6 +408,31 @@ func addWorkloadOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) e
 	return nil
 }
 
+func addSeedshareOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) error {
+	keyData, err := os.ReadFile(keyPath)
+	if err != nil {
+		return fmt.Errorf("reading seedshare owner key: %w", err)
+	}
+	block, _ := pem.Decode(keyData)
+	if block == nil {
+		return errors.New("failed to decode PEM block")
+	}
+	var publicKey manifest.HexString
+	switch block.Type {
+	case "RSA PRIVATE KEY":
+		privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			return fmt.Errorf("parsing RSA private key: %w", err)
+		}
+		publicKey = manifest.MarshalSeedShareOwnerKey(&privateKey.PublicKey)
+	default:
+		return fmt.Errorf("unsupported PEM block type: %s", block.Type)
+	}
+	manifst.SeedshareOwnerPubKeys = append(manifst.SeedshareOwnerPubKeys, publicKey)
+
+	return nil
+}
+
 type logTranslator struct {
 	r         *io.PipeReader
 	w         *io.PipeWriter
@@ -492,13 +531,27 @@ func generateWorkloadOwnerKey(flags *generateFlags) error {
 	}
 	keyPath := flags.workloadOwnerKeys[0]
 
-	if err := createFileWithDefault(keyPath, newKeyPair); err != nil {
+	if err := createFileWithDefault(keyPath, newECDSAKeyPair); err != nil {
 		return fmt.Errorf("creating default workload owner key file: %w", err)
 	}
 	return nil
 }
 
-func newKeyPair() ([]byte, error) {
+func generateSeedshareOwnerKey(flags *generateFlags) error {
+	if len(flags.seedshareOwnerKeys) != 1 {
+		// No need to generate keys
+		// the user has provided a set of (presumably already generated) public keys
+		return nil
+	}
+	keyPath := flags.seedshareOwnerKeys[0]
+
+	if err := createFileWithDefault(keyPath, newRSAKeyPair); err != nil {
+		return fmt.Errorf("creating default seedshare owner key file: %w", err)
+	}
+	return nil
+}
+
+func newECDSAKeyPair() ([]byte, error) {
 	privateKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("generating private key: %w", err)
@@ -510,12 +563,22 @@ func newKeyPair() ([]byte, error) {
 	return pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: privateKeyBytes}), nil
 }
 
+func newRSAKeyPair() ([]byte, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return nil, fmt.Errorf("generating private key: %w", err)
+	}
+	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	return pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privateKeyBytes}), nil
+}
+
 type generateFlags struct {
 	policyPath            string
 	settingsPath          string
 	manifestPath          string
 	referenceValues       string
 	workloadOwnerKeys     []string
+	seedshareOwnerKeys    []string
 	disableUpdates        bool
 	workspaceDir          string
 	imageReplacementsFile string
@@ -546,6 +609,10 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	seedshareOwnerKeys, err := cmd.Flags().GetStringArray("seedshare-owner-key")
+	if err != nil {
+		return nil, err
+	}
 	disableUpdates, err := cmd.Flags().GetBool("disable-updates")
 	if err != nil {
 		return nil, err
@@ -568,6 +635,9 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		if !cmd.Flags().Changed("workload-owner-key") {
 			workloadOwnerKeys = []string{filepath.Join(workspaceDir, workloadOwnerKeys[0])}
 		}
+		if !cmd.Flags().Changed("seedshare-owner-key") {
+			seedshareOwnerKeys = []string{filepath.Join(workspaceDir, seedshareOwnerKeys[0])}
+		}
 	}
 
 	imageReplacementsFile, err := cmd.Flags().GetString("image-replacements")
@@ -586,6 +656,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		manifestPath:          manifestPath,
 		referenceValues:       referenceValues,
 		workloadOwnerKeys:     workloadOwnerKeys,
+		seedshareOwnerKeys:    seedshareOwnerKeys,
 		disableUpdates:        disableUpdates,
 		workspaceDir:          workspaceDir,
 		imageReplacementsFile: imageReplacementsFile,
