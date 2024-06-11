@@ -104,7 +104,7 @@ contrast set -c "${coordinator}:1313" deployment/
 ```
 
 The CLI will use the embedded reference values to attest the Coordinator deployment
-during the TLS handshake. If the connection succeeds, we're ensured that the Coordinator
+during the TLS handshake. If the connection succeeds, it's ensured that the Coordinator
 deployment hasn't been tampered with.
 
 ### Deploy emojivoto
@@ -179,8 +179,8 @@ openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${fron
 ## Certificate SAN and manifest update (optional)
 
 By default, mesh certificates are issued with a wildcard DNS entry. The web frontend is accessed
-via load balancer IP in this demo. Tools like curl check the certificate for IP entries in the SAN field.
-Validation fails since the certificate contains no IP entries as a subject alternative name (SAN).
+via load balancer IP in this demo. Tools like curl check the certificate for IP entries in the subject alternative name (SAN) field.
+Validation fails since the certificate contains no IP entries as a SAN.
 For example, a connection attempt using the curl and the mesh CA certificate with throw the following error:
 
 ```sh
@@ -214,7 +214,7 @@ contrast set -c "${coordinator}:1313" deployment/
 ```
 
 The Contrast Coordinator will rotate the mesh ca certificate on the manifest update. Workload certificates issued
-after the manifest are thus issued by another certificate authority and services receiving the new CA certificate chain
+after the manifest update are thus issued by another certificate authority and services receiving the new CA certificate chain
 won't trust parts of the deployment that got their certificate issued before the update. This way, Contrast ensures
 that parts of the deployment that received a security update won't be infected by parts of the deployment at an older
 patch level that may have been compromised. The `mesh-ca.pem` is updated with the new CA certificate chain.

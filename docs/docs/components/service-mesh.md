@@ -41,8 +41,8 @@ If the deployment contains workloads which should be reachable from outside the
 Service Mesh, while still handing out the certificate chain, disable client
 authentication by setting the annotation `contrast.edgeless.systems/servicemesh-ingress` as
 `<name>#<port>#false`. Separate multiple entries with `##`. You can choose any
-descriptive string identifying the service on the given port for the
-informational-only field `<name>`.
+descriptive string identifying the service on the given port for the `<name>` field,
+as it's only informational.
 
 Disable redirection and TLS termination altogether by specifying
 `<name>#<port>#true`. This can be beneficial if the workload itself handles TLS
@@ -123,7 +123,7 @@ Furthermore, Envoy uses a certificate chain with the mesh certificate of the wor
 and the intermediate CA certificate as the client certificate.
 
 The following example workload has no ingress connections and two egress
-connection to different microservices. The microservices are themselves part
+connection to different microservices. The microservices are part
 of the confidential deployment. One is reachable under `billing-svc:8080` and
 the other under `cart-svc:8080`.
 
