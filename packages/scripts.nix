@@ -193,4 +193,24 @@
     ];
     text = builtins.readFile ./update-contrast-releases.sh;
   };
+
+  update-release-urls = writeShellApplication {
+    name = "update-release-urls";
+    runtimeInputs = with pkgs; [ coreutils findutils gnused ];
+    text = ''
+      tag="[a-zA-Z0-9_.-]\{1,\}"
+      sha="@sha256:[a-fA-F0-9]\{64\}"
+
+      while IFS= read -r line; do
+        image_source=$(echo "$line" | sed "s/:.*//" | sed "s/\./\\\./g")
+        image_target=$(echo "$line" | cut -d"=" -f2)
+        expr="$image_source\(:$tag\($sha\)\?\|$sha\)"
+        find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i "s#$expr#$image_target#g" {} \;
+      done <"../image-replacements.txt"
+
+      link_source="github\.com/edgelesssys/contrast/releases/\(latest/download\|download/$tag\)/"
+      link_target="github\.com/edgelesssys/contrast/releases/download/$VERSION/"
+      find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i "s#$link_source#$link_target#g" {} \;
+    '';
+  };
 }

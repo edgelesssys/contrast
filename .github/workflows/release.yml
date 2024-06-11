@@ -150,11 +150,27 @@ jobs:
           git commit -am "docs: release ${{ needs.process-inputs.outputs.MAJOR_MINOR }}"
           # Clean up auxiliary files, so next steps run on a clean tree
           git clean -fx :/
+      - name: Download image replacements file (from release branch)
+        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e #v4.1.7
+        with:
+          name: image-replacements.txt
+      - name: Update release urls in docs with tags
+        working-directory: contrast-main
+        env:
+          MAJOR_MINOR: ${{ needs.process-inputs.outputs.MAJOR_MINOR }}
+          VERSION: ${{ inputs.version }}
+        run: nix run .#scripts.update-release-urls
+      - name: Commit updated docs
+        working-directory: contrast-main
+        run: |
+          git add docs/versioned_docs/version-${{ needs.process-inputs.outputs.MAJOR_MINOR }}
+          git commit -m "docs: update release download urls"
+          git clean -fx :/
       - name: Download updated contrast releases file (from release branch)
         uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e #v4.1.7
         with:
           name: contrast-releases.json
-          path: ./contrast-main/packages/contrast-releases.json
+          path: ./contrast-main/packages
       - name: Commit updated contrast-releases.json
         working-directory: contrast-main
         run: |
@@ -242,6 +258,11 @@ jobs:
           echo "ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImgTagged" >> image-replacements.txt
           echo "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged" >> image-replacements.txt
           echo "ghcr.io/edgelesssys/contrast/node-installer:latest=$nodeInstallerImgTagged" >> image-replacements.txt
+      - name: Upload image replacements file (for main branch PR)
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: image-replacements.txt
+          path: ./image-replacements.txt
       - name: Create portable coordinator resource definitions
         run: |
           mkdir -p workspace deployment
@@ -275,7 +296,7 @@ jobs:
           name: contrast-releases.json
           path: ./packages/contrast-releases.json
       - name: Clean up git tree
-        run: git clean -fx :/
+        run: git clean -f :/
       - name: Create draft release
         uses: softprops/action-gh-release@69320dbe05506a9a39fc8ae11030b214ec2d1f87 # v2.0.5
         with:
