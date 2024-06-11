@@ -85,7 +85,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("validating manifest: %w", err)
 	}
 
-	workloadOwnerKey, err := loadWorkloadOwnerKey(flags.workloadOwnerKeyPath, m, log)
+	workloadOwnerKey, err := loadWorkloadOwnerKey(flags.workloadOwnerKeyPath, &m, log)
 	if err != nil {
 		return fmt.Errorf("loading workload owner key: %w", err)
 	}
@@ -240,7 +240,7 @@ func policyMapToBytesList(m []deployment) [][]byte {
 	return policies
 }
 
-func loadWorkloadOwnerKey(path string, manifst manifest.Manifest, log *slog.Logger) (*ecdsa.PrivateKey, error) {
+func loadWorkloadOwnerKey(path string, manifst *manifest.Manifest, log *slog.Logger) (*ecdsa.PrivateKey, error) {
 	key, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return nil, nil
@@ -259,20 +259,25 @@ func loadWorkloadOwnerKey(path string, manifst manifest.Manifest, log *slog.Logg
 	if err != nil {
 		return nil, fmt.Errorf("parsing workload owner key: %w", err)
 	}
-	pubKey, err := x509.MarshalPKIXPublicKey(&workloadOwnerKey.PublicKey)
-	if err != nil {
-		return nil, fmt.Errorf("marshaling public key: %w", err)
+
+	// Check workload owner key configuration in manifest on set.
+	if manifst != nil {
+		pubKey, err := x509.MarshalPKIXPublicKey(&workloadOwnerKey.PublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("marshaling public key: %w", err)
+		}
+		ownerKeyHash := sha256.Sum256(pubKey)
+		ownerKeyHex := manifest.NewHexString(ownerKeyHash[:])
+		if len(manifst.WorkloadOwnerKeyDigests) == 0 {
+			log.Warn("No workload owner keys in manifest. Further manifest updates will be rejected by the Coordinator")
+			return workloadOwnerKey, nil
+		}
+		log.Debug("Workload owner keys in manifest", "keys", manifst.WorkloadOwnerKeyDigests)
+		if !slices.Contains(manifst.WorkloadOwnerKeyDigests, ownerKeyHex) {
+			log.Warn("Workload owner key not found in manifest. This may lock you out from further updates")
+		}
 	}
-	ownerKeyHash := sha256.Sum256(pubKey)
-	ownerKeyHex := manifest.NewHexString(ownerKeyHash[:])
-	if len(manifst.WorkloadOwnerKeyDigests) == 0 {
-		log.Warn("No workload owner keys in manifest. Further manifest updates will be rejected by the coordinator")
-		return workloadOwnerKey, nil
-	}
-	log.Debug("Workload owner keys in manifest", "keys", manifst.WorkloadOwnerKeyDigests)
-	if !slices.Contains(manifst.WorkloadOwnerKeyDigests, ownerKeyHex) {
-		log.Warn("Workload owner key not found in manifest. This may lock you out from further updates")
-	}
+
 	return workloadOwnerKey, nil
 }
 

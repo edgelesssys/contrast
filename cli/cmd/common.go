@@ -19,6 +19,7 @@ const (
 	coordRootPEMFilename = "coordinator-root-ca.pem"
 	meshCAPEMFilename    = "mesh-ca.pem"
 	workloadOwnerPEM     = "workload-owner.pem"
+	seedshareOwnerPEM    = "seedshare-owner.pem"
 	manifestFilename     = "manifest.json"
 	settingsFilename     = "settings.json"
 	seedSharesFilename   = "seed-shares.json"
