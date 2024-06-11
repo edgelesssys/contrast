@@ -33,8 +33,8 @@ This section guides you through the process and outlines the necessary changes.
 
 ### RuntimeClass
 
-Contrast will add annotations and additional configuration to your Kubernetes YAML files.
-If you want to keep the original files unchanged, you can copy the files into a separate local directory.
+Contrast will add annotations to your Kubernetes YAML files. If you want to keep the original files
+unchanged, you can copy the files into a separate local directory.
 You can also generate files from a Helm chart or from a Kustomization.
 
 <Tabs groupId="yaml-source">
@@ -87,8 +87,8 @@ This is useful for workloads that are hard to configure with custom certificates
 Configuration of the sidecar depends heavily on the application.
 The following example is for an application with these properties:
 
-* The app has a main application at TCP port 8001, which should be TLS-wrapped and doesn't require client authentication.
-* The app has a metrics endpoint at TCP port 8080, which should be accessible in plain text.
+* The container has a main application at TCP port 8001, which should be TLS-wrapped and doesn't require client authentication.
+* The container has a metrics endpoint at TCP port 8080, which should be accessible in plain text.
 * All other endpoints require client authentication.
 * The app connects to a Kubernetes service `backend.default:4001`, which requires client authentication.
 
@@ -234,7 +234,7 @@ Attest the Coordinator and set the manifest:
 contrast set -c "${coordinator}:1313" resources/
 ```
 
-After this step, the Coordinator will start issuing TLS certs to the workloads. The init container
+After this step, the Coordinator will start issuing TLS certificates to the workloads. The init container
 will fetch a certificate for the workload and the workload is started.
 
 ## Verify the Coordinator

@@ -5,8 +5,8 @@
 Install the latest version of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/).
 
 
-[Login to your account](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli), which has
-the permissions to create an AKS cluster, by executing:
+[Login to your account](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli), which needs
+to have the permissions to create an AKS cluster, by executing:
 
 ```bash
 az login
@@ -86,7 +86,10 @@ az group create \
 
 ## Create AKS cluster
 
-First create an AKS cluster:
+First, we need to create an AKS cluster. We can't directly create a CoCo-enabled cluster, so we'll need to create a
+non-CoCo cluster first, and then add a CoCo node pool, optionally replacing the non-CoCo node pool.
+
+We'll first start by creating the non-CoCo cluster:
 
 ```sh
 # Select the name for your AKS cluster
@@ -113,6 +116,16 @@ az aks nodepool add \
   --os-sku AzureLinux \
   --node-vm-size Standard_DC4as_cc_v5 \
   --workload-runtime KataCcIsolation
+```
+
+
+Optionally, we can now remove the non-CoCo node pool:
+
+```bash
+az aks nodepool delete \
+  --resource-group "${azResourceGroup:?}" \
+  --cluster-name "${azClusterName:?}" \
+  --name nodepool1
 ```
 
 Finally, update your kubeconfig with the credentials to access the cluster:
