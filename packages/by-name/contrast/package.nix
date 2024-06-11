@@ -4,8 +4,8 @@
 { lib
 , buildGoModule
 , buildGoTest
-, genpolicy-msft
-, genpolicy ? genpolicy-msft
+, microsoft
+, genpolicy ? microsoft.genpolicy
 , contrast
 , runtime-class-files
 }:
