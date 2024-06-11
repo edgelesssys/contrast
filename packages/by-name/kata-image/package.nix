@@ -5,11 +5,12 @@
 , stdenv
 , stdenvNoCC
 , distro ? "cbl-mariner"
+, microsoft
 , bubblewrap
 , fakeroot
 , fetchFromGitHub
 , fetchurl
-, kata-agent
+, kata-agent ? microsoft.kata-agent
 , yq-go
 , tdnf
 , curl
