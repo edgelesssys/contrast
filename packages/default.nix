@@ -14,7 +14,7 @@ let
     scripts = callPackages ./scripts.nix { pkgs = pkgs'; };
     contrast-releases = callPackages ./contrast-releases.nix { };
     genpolicy-msft = pkgs.pkgsStatic.callPackage ./by-name/genpolicy-msft/package.nix { };
-    genpolicy-kata = pkgs.pkgsStatic.callPackage ./by-name/genpolicy-kata/package.nix { };
+    kata.genpolicy = pkgs.pkgsStatic.callPackage ./by-name/kata/genpolicy/package.nix { };
   };
 in
 self
