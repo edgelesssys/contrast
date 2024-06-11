@@ -128,8 +128,8 @@
     "hash": "sha256-wWRoNzbo1MX0XEvT6mshHGcxc+ukzxQ6J1FEkHGZF6g="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/glibc-2.35-6.cm2.x86_64.rpm",
-    "hash": "sha256-ENMvERpUqiAGU+o5HnMTBRtFFWNkxdd/gcDWGxfPzfc="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/glibc-2.35-7.cm2.x86_64.rpm",
+    "hash": "sha256-ihRSOw4jeE9n25nIXfpPZJHBkU9oQiDmokr0fo+ro0g="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/gmp-6.2.1-4.cm2.x86_64.rpm",
