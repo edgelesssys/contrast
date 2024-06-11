@@ -3,8 +3,8 @@
 
 { lib
 , contrast
-, genpolicy-msft
-, genpolicy ? genpolicy-msft
+, microsoft
+, genpolicy ? microsoft.genpolicy
 }:
 
 (contrast.overrideAttrs (_finalAttrs: previousAttrs: {

@@ -13,7 +13,7 @@ let
     containers = callPackages ./containers.nix { pkgs = pkgs'; };
     scripts = callPackages ./scripts.nix { pkgs = pkgs'; };
     contrast-releases = callPackages ./contrast-releases.nix { };
-    genpolicy-msft = pkgs.pkgsStatic.callPackage ./by-name/genpolicy-msft/package.nix { };
+    microsoft.genpolicy = pkgs.pkgsStatic.callPackage ./by-name/microsoft/genpolicy/package.nix { };
     kata.genpolicy = pkgs.pkgsStatic.callPackage ./by-name/kata/genpolicy/package.nix { };
   };
 in

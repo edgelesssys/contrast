@@ -154,7 +154,6 @@
     name = "write-coordinator-policy";
     runtimeInputs = with pkgs; [
       yq-go
-      genpolicy-msft
       contrast
     ];
     text = ''
@@ -167,8 +166,8 @@
       resourcegen --image-replacements "$tmpdir/image-replacements.txt" --add-load-balancers coordinator > "$tmpdir/coordinator_base.yml"
 
       pushd "$tmpdir" >/dev/null
-      cp ${pkgs.genpolicy-msft.rules-coordinator}/genpolicy-rules.rego rules.rego
-      cp ${pkgs.genpolicy-msft.settings}/genpolicy-settings.json .
+      cp ${pkgs.microsoft.genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego
+      cp ${pkgs.microsoft.genpolicy.settings}/genpolicy-settings.json .
       genpolicy < "$tmpdir/coordinator_base.yml"
       popd >/dev/null
     '';
