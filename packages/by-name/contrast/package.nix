@@ -103,7 +103,10 @@ buildGoModule rec {
     mv "$cli/bin/cli" "$cli/bin/contrast"
   '';
 
-  passthru.e2e = e2e;
+  passthru = {
+    inherit e2e;
+    inherit (genpolicy) settings rules;
+  };
 
   meta.mainProgram = "contrast";
 }

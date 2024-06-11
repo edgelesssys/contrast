@@ -10,8 +10,8 @@
 (contrast.overrideAttrs (_finalAttrs: previousAttrs: {
   prePatch = ''
     install -D ${lib.getExe genpolicy} cli/cmd/assets/genpolicy
-    install -D ${genpolicy.settings}/genpolicy-settings.json cli/cmd/assets/genpolicy-settings.json
-    install -D ${genpolicy.rules}/genpolicy-rules.rego cli/cmd/assets/genpolicy-rules.rego
+    install -D ${contrast.settings}/genpolicy-settings.json cli/cmd/assets/genpolicy-settings.json
+    install -D ${contrast.rules}/genpolicy-rules.rego cli/cmd/assets/genpolicy-rules.rego
   '';
 
   ldflags = previousAttrs.ldflags ++ [
