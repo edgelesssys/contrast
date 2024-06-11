@@ -3,10 +3,11 @@
 
 { fetchurl
 , stdenvNoCC
+, microsoft
 , igvmmeasure
 , kata-image
 , kata-igvm
-, kata-runtime
+, kata-runtime ? microsoft.kata-runtime
 , debugRuntime ? false
 }:
 
