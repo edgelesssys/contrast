@@ -155,6 +155,7 @@
     runtimeInputs = with pkgs; [
       yq-go
       contrast
+      microsoft.genpolicy
     ];
     text = ''
       imageRef=$1
