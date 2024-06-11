@@ -1,6 +1,6 @@
-## Contributing
+# Contributing
 
-### Getting started
+## Getting started
 
 1. [Install Nix](https://zero-to-nix.com/concepts/nix-installer)
 
@@ -103,3 +103,10 @@ just --list
     ```sh
     nix fmt
     ```
+
+## Handling Pull Requests as a Maintainer
+
+Pull requests should meet all check targets before they can be merged.
+When merging, please merge through a rebase of the commits of the PR onto main. GitHub calls
+this option `Rebase and merge`. The only exception to this are dependency bumps, which may
+be merged by squashing their commits.
