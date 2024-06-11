@@ -6,10 +6,10 @@
 let
   pkgs' = pkgs // self;
   callPackages = lib.callPackagesWith pkgs';
-  self' = (lib.packagesFromDirectoryRecursive {
+  self' = lib.packagesFromDirectoryRecursive {
     callPackage = lib.callPackageWith pkgs';
     directory = ./by-name;
-  });
+  };
   self = self' // {
     containers = callPackages ./containers.nix { pkgs = pkgs'; };
     scripts = callPackages ./scripts.nix { pkgs = pkgs'; };
