@@ -15,13 +15,13 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "genpolicy";
-  version = "3.2.0-unstable-2024-01-18";
+  version = "3.5.0";
 
   src = fetchFromGitHub {
-    owner = "microsoft";
+    owner = "kata-containers";
     repo = "kata-containers";
-    rev = "069680738496d79a103965abcc1cc1fd91a8f24b";
-    hash = "sha256-Ft2JgcGRwfGHqKebelkGgBBXRvvL/8ybMF6PqQMrk1c=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-5pIJpyeydOVA+GrbCvNqJsmK3zbtF/5iSJLI2C1wkLM=";
   };
 
   sourceRoot = "${src.name}/src/tools/genpolicy";
@@ -57,7 +57,7 @@ rustPlatform.buildRustPackage rec {
     settings = fetchurl {
       name = "${pname}-${version}-settings";
       url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${src.rev}/src/tools/genpolicy/genpolicy-settings.json";
-      hash = "sha256-6SbX/dyi9OIHH03TBFBfu5BJ921fNhClrPLfqMyX3hQ=";
+      hash = "sha256-Rlm1BOo0/yNHBf17p2Mk7ta6VbaGcrgezCk8mraFPtU=";
       downloadToTemp = true;
       recursiveHash = true;
       postFetch = "install -D $downloadedFile $out/genpolicy-settings.json";
@@ -66,7 +66,7 @@ rustPlatform.buildRustPackage rec {
     rules = fetchurl {
       name = "${pname}-${version}-rules";
       url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${src.rev}/src/tools/genpolicy/rules.rego";
-      hash = "sha256-Dru5UPWlJM3TEmMUpG+rMKbrJmAb3/v3vlUOZZN3IPI=";
+      hash = "sha256-J4WIgEgCzm3vEji9f/0kF+gLdE8ziio4PAyRWUJjqZk=";
       downloadToTemp = true;
       recursiveHash = true;
       postFetch = "install -D $downloadedFile $out/genpolicy-rules.rego";
