@@ -62,9 +62,9 @@
               packages = [ contrast-release ];
               shellHook = ''
                 cd "$(mktemp -d)"
-                [[ -e ${contrast-release}/runtime.yml ]] && cp ${contrast-release}/runtime.yml .
-                [[ -e ${contrast-release}/coordinator.yml ]] && cp ${contrast-release}/coordinator.yml .
-                [[ -d ${contrast-release}/deployment ]] && cp -r ${contrast-release}/deployment .
+                [[ -e ${contrast-release}/runtime.yml ]] && install -m644 ${contrast-release}/runtime.yml .
+                [[ -e ${contrast-release}/coordinator.yml ]] && install -m644 ${contrast-release}/coordinator.yml .
+                [[ -d ${contrast-release}/deployment ]] && install -m644 -Dt ./deployment ${contrast-release}/deployment/*
                 export DO_NOT_TRACK=1
               '';
             });
