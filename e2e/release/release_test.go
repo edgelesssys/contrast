@@ -7,10 +7,8 @@ package release
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/hex"
 	"flag"
 	"io"
 	"net"
@@ -27,6 +25,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/google/go-github/v62/github"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 const (
@@ -34,11 +33,10 @@ const (
 )
 
 var (
-	owner     = flag.String("owner", "edgelesssys", "Github repository owner")
-	repo      = flag.String("repo", "contrast", "Github repository")
-	tag       = flag.String("tag", "", "tag name of the release to download")
-	namespace = flag.String("namespace", "", "k8s namespace to install resources to (will be deleted unless --keep is set)")
-	keep      = flag.Bool("keep", false, "don't delete test resources and deployment")
+	owner = flag.String("owner", "edgelesssys", "Github repository owner")
+	repo  = flag.String("repo", "contrast", "Github repository")
+	tag   = flag.String("tag", "", "tag name of the release to download")
+	keep  = flag.Bool("keep", false, "don't delete test resources and deployment")
 )
 
 // TestRelease downloads a release from Github, sets up the coordinator, installs the demo
@@ -47,35 +45,6 @@ func TestRelease(t *testing.T) {
 	ctx := context.Background()
 	k := kubeclient.NewForTest(t)
 
-	if *namespace == "" {
-		*namespace = randomNamespace(t)
-		t.Logf("Created test namespace %s", *namespace)
-	}
-
-	require.True(t, t.Run("create-namespace", func(t *testing.T) {
-		require := require.New(t)
-		ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
-		defer cancel()
-
-		res, err := kuberesource.ResourcesToUnstructured([]any{kuberesource.Namespace(*namespace)})
-		require.NoError(err)
-		require.NoError(k.Apply(ctx, res...))
-	}), "the namespace is required for subsequent tests to run")
-
-	t.Cleanup(func() {
-		if *keep {
-			return
-		}
-		ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
-		defer cancel()
-
-		res, err := kuberesource.ResourcesToUnstructured([]any{kuberesource.Namespace(*namespace)})
-		if err != nil {
-			return
-		}
-		k.Delete(ctx, res...)
-	})
-
 	dir := fetchRelease(ctx, t)
 
 	contrast := &contrast{dir}
@@ -83,6 +52,37 @@ func TestRelease(t *testing.T) {
 	for _, sub := range []string{"help"} {
 		contrast.Run(t, ctx, 2*time.Second, sub)
 	}
+
+	t.Cleanup(func() {
+		if *keep {
+			return
+		}
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		defer cancel()
+
+		var resources []*unstructured.Unstructured
+		for _, subdir := range []string{".", "deployment"} {
+			files, err := filepath.Glob(filepath.Join(dir, subdir, "*.yml"))
+			if err != nil {
+				// err is a bad glob pattern, that should not happen!
+				panic(err)
+			}
+			for _, file := range files {
+				t.Logf("reading %q", file)
+				yaml, err := os.ReadFile(file)
+				require.NoError(t, err)
+				rs, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
+				require.NoError(t, err)
+				resources = append(resources, rs...)
+			}
+		}
+
+		// Delete resources 1-by-1 so that we don't stop on errors.
+		for _, resource := range resources {
+			k.Delete(ctx, resource)
+		}
+	})
+
 	require.True(t, t.Run("apply-runtime", func(t *testing.T) {
 		require := require.New(t)
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
@@ -93,14 +93,8 @@ func TestRelease(t *testing.T) {
 		resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
 		require.NoError(err)
 
-		for _, r := range resources {
-			if r.GetKind() != "RuntimeClass" {
-				r.SetNamespace(*namespace)
-			}
-		}
-
 		require.NoError(k.Apply(ctx, resources...))
-		require.NoError(k.WaitForDaemonset(ctx, *namespace, "contrast-node-installer"))
+		require.NoError(k.WaitForDaemonset(ctx, "kube-system", "contrast-node-installer"))
 	}), "the runtime is required for subsequent tests to run")
 
 	var coordinatorIP string
@@ -114,13 +108,9 @@ func TestRelease(t *testing.T) {
 		resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
 		require.NoError(err)
 
-		for _, r := range resources {
-			r.SetNamespace(*namespace)
-		}
-
 		require.NoError(k.Apply(ctx, resources...))
-		require.NoError(k.WaitForStatefulSet(ctx, *namespace, "coordinator"))
-		coordinatorIP, err = k.WaitForLoadBalancer(ctx, *namespace, "coordinator")
+		require.NoError(k.WaitForStatefulSet(ctx, "default", "coordinator"))
+		coordinatorIP, err = k.WaitForLoadBalancer(ctx, "default", "coordinator")
 		require.NoError(err)
 	}), "the coordinator is required for subsequent tests to run")
 
@@ -143,9 +133,6 @@ func TestRelease(t *testing.T) {
 			resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
 			require.NoError(err)
 
-			for _, r := range resources {
-				r.SetNamespace(*namespace)
-			}
 			newYAML, err := kuberesource.EncodeUnstructured(resources)
 			require.NoError(err)
 			require.NoError(os.WriteFile(name, newYAML, 0o644))
@@ -172,10 +159,10 @@ func TestRelease(t *testing.T) {
 			require.NoError(k.Apply(ctx, resources...))
 		}
 
-		require.NoError(k.WaitForDeployment(ctx, *namespace, "vote-bot"))
-		require.NoError(k.WaitForDeployment(ctx, *namespace, "voting"))
-		require.NoError(k.WaitForDeployment(ctx, *namespace, "emoji"))
-		require.NoError(k.WaitForDeployment(ctx, *namespace, "web"))
+		require.NoError(k.WaitForDeployment(ctx, "default", "vote-bot"))
+		require.NoError(k.WaitForDeployment(ctx, "default", "voting"))
+		require.NoError(k.WaitForDeployment(ctx, "default", "emoji"))
+		require.NoError(k.WaitForDeployment(ctx, "default", "web"))
 	}), "applying the demo is required for subsequent tests to run")
 
 	t.Run("test-demo", func(t *testing.T) {
@@ -183,7 +170,7 @@ func TestRelease(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 		defer cancel()
 
-		emojiwebIP, err := k.WaitForLoadBalancer(ctx, *namespace, "web-svc")
+		emojiwebIP, err := k.WaitForLoadBalancer(ctx, "default", "web-svc")
 		require.NoError(err)
 
 		cfg := &tls.Config{RootCAs: x509.NewCertPool()}
@@ -222,14 +209,6 @@ func (c *contrast) Run(t *testing.T, ctx context.Context, timeout time.Duration,
 		out, err := cmd.CombinedOutput()
 		require.NoError(t, err, "output:\n%s", string(out))
 	}), args[0]+" needs to succeed for subsequent tests to run")
-}
-
-func randomNamespace(t *testing.T) string {
-	buf := make([]byte, 4)
-	n, err := rand.Read(buf)
-	require.NoError(t, err)
-	require.Equal(t, 4, n)
-	return "releasetest-" + hex.EncodeToString(buf)
 }
 
 // fetchRelease downloads the release corresponding to the global tag variable and returns the directory.
