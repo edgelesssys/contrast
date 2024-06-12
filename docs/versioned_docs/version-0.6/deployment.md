@@ -14,7 +14,7 @@ This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.6.2/runtime.yml
 ```
 
 ## Deploy the Contrast Coordinator
@@ -23,7 +23,7 @@ Install the latest Contrast Coordinator release, comprising a single replica dep
 LoadBalancer service, into your cluster.
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.6.2/coordinator.yml
 ```
 
 ## Prepare your Kubernetes resources
@@ -74,7 +74,7 @@ spec: # v1.PodSpec
   runtimeClassName: contrast-cc
   initContainers:
   - name: initializer
-    image: "ghcr.io/edgelesssys/contrast/initializer:latest"
+    image: "ghcr.io/edgelesssys/contrast/initializer:v0.6.2@sha256:d96eb61a972c73cb18001ddc4fe068619eddfd28ce5cdfeab02ecb2f895bd5cd"
     env:
     - name: COORDINATOR_HOST
       value: coordinator
@@ -112,7 +112,7 @@ Add the following sidecar definition to your workload:
 spec: # v1.PodSpec
   initContainers:
   - name: tls-sidecar
-    image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest"
+    image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:v0.6.2@sha256:704bb39fb8f374edd9dc8d504f1d8e442ce09f510a1c71247b1dfe0073b03d9f"
     restartPolicy: Always
     env:
     - name: EDG_INGRESS_PROXY_CONFIG
