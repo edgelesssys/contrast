@@ -10,7 +10,6 @@
 , fakeroot
 , fetchFromGitHub
 , fetchurl
-, kata-agent ? microsoft.kata-agent
 , yq-go
 , tdnf
 , curl
@@ -35,7 +34,7 @@ let
   };
   # toplevelNixDeps are packages that get installed to the rootfs of the image
   # they are used to determine the (nix) closure of the rootfs
-  toplevelNixDeps = [ kata-agent ];
+  toplevelNixDeps = [ microsoft.kata-agent ];
   nixClosure = builtins.toString (lib.strings.splitString "\n" (builtins.readFile "${closureInfo {rootPaths = toplevelNixDeps;}}/store-paths"));
   rootfsExtraTree = stdenvNoCC.mkDerivation {
     inherit src;
@@ -121,7 +120,7 @@ stdenv.mkDerivation rec {
   outputs = [ "out" "verity" ];
 
   env = {
-    AGENT_SOURCE_BIN = "${lib.getExe kata-agent}";
+    AGENT_SOURCE_BIN = "${lib.getExe microsoft.kata-agent}";
     CONF_GUEST = "yes";
     RUST_VERSION = "not-needed";
   };

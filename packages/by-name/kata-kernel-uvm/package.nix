@@ -5,7 +5,6 @@
 , microsoft
 , linuxManualConfig
 , patchutils
-, kata-agent ? microsoft.kata-agent
 }:
 
 let
@@ -15,7 +14,7 @@ let
   tarfs_patch = fetchurl {
     name = "tarfs.patch";
     # update whenever tarfs.c changes: https://github.com/microsoft/kata-containers/commits/msft-main/src/tarfs/tarfs.c
-    url = "https://raw.githubusercontent.com/microsoft/kata-containers/${kata-agent.version}/src/tarfs/tarfs.c";
+    url = "https://raw.githubusercontent.com/microsoft/kata-containers/${microsoft.kata-agent.version}/src/tarfs/tarfs.c";
     hash = "sha256-3vuwCOZHgmy0tV9tcgpIRjLxXa4EwNuWIbt9UkRUcDE=";
     downloadToTemp = true;
     recursiveHash = true;
