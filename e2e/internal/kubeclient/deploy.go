@@ -291,7 +291,11 @@ func (c *Kubeclient) resourceInterfaceFor(obj *unstructured.Unstructured) (dynam
 	}
 	c.log.Info("found mapping", "resource", mapping.Resource)
 	ri := dyn.Resource(mapping.Resource)
-	if namespace := obj.GetNamespace(); namespace != "" {
+	if mapping.Scope.Name() == "namespace" {
+		namespace := obj.GetNamespace()
+		if namespace == "" {
+			namespace = "default"
+		}
 		return ri.Namespace(namespace), nil
 	}
 	return ri, nil
