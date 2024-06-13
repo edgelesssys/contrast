@@ -81,9 +81,10 @@ buildGoModule rec {
   imageVersionsCommas = lib.removeSuffix "," (builtins.concatStringsSep "," imageVersionsList);
 
   # `nix build .#contrast` should also work if image-replacements.txt does not contain release info
-  imageVersionsString = if builtins.head (lib.stringToCharacters imageVersionsCommas) == "#" 
-  then "will-be-replaced-in-release@sha256:0000000000000000000000000000000000000000000000000000000000000000" 
-  else imageVersionsCommas;
+  imageVersionsString =
+    if builtins.head (lib.stringToCharacters imageVersionsCommas) == "#"
+    then "will-be-replaced-in-release@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    else imageVersionsCommas;
 
   CGO_ENABLED = 0;
   ldflags = [
