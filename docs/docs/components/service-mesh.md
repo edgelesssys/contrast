@@ -23,8 +23,8 @@ The service mesh container can be configured using the following object annotati
   admin interface. If not specified, no admin interface will be started.
 
 If you aren't using the automatic service mesh injection and want to configure the
-service mesh manually, set the environment variables `EDG_INGRESS_PROXY_CONFIG`,
-`EDG_EGRESS_PROXY_CONFIG` and `EDG_ADMIN_PORT` in the service mesh sidecar directly.
+service mesh manually, set the environment variables `CONTRAST_INGRESS_PROXY_CONFIG`,
+`CONTRAST_EGRESS_PROXY_CONFIG` and `CONTRAST_ADMIN_PORT` in the service mesh sidecar directly.
 
 ### Ingress
 
@@ -83,7 +83,7 @@ Contrast service mesh as an init container.
 # ...
       initContainers:
         - env:
-            - name: EDG_INGRESS_PROXY_CONFIG
+            - name: CONTRAST_INGRESS_PROXY_CONFIG
               value: "web#8080#false##metrics#7890#true"
           image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest"
           name: contrast-service-mesh

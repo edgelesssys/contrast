@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	egressProxyConfigEnvVar  = "EDG_EGRESS_PROXY_CONFIG"
-	ingressProxyConfigEnvVar = "EDG_INGRESS_PROXY_CONFIG"
-	adminPortEnvVar          = "EDG_ADMIN_PORT"
+	egressProxyConfigEnvVar  = "CONTRAST_EGRESS_PROXY_CONFIG"
+	ingressProxyConfigEnvVar = "CONTRAST_INGRESS_PROXY_CONFIG"
+	adminPortEnvVar          = "CONTRAST_ADMIN_PORT"
 	envoyConfigFile          = "/envoy-config.yml"
 )
 
