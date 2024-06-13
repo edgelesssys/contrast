@@ -83,6 +83,11 @@ const sidebars = {
       id: 'deployment',
     },
     {
+      type: 'doc',
+      label: 'Troubleshooting',
+      id: 'troubleshooting',
+    },
+    {
       type: 'category',
       label: 'Components',
       link: {
