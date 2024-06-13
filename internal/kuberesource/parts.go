@@ -301,5 +301,12 @@ func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 			WithPrivileged(true).
 			AddCapabilities("NET_ADMIN").
 			SecurityContextApplyConfiguration,
+		).
+		WithStartupProbe(Probe().
+			WithInitialDelaySeconds(1).
+			WithPeriodSeconds(5).
+			WithFailureThreshold(5).
+			WithTCPSocket(TCPSocketAction().
+				WithPort(intstr.FromInt(15006))),
 		)
 }
