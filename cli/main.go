@@ -27,11 +27,13 @@ func execute() error {
 	return cmd.ExecuteContext(ctx)
 }
 
-var version = "0.0.0-dev"
-var runtimeHandler = "contrast-cc"
-var launchDigest = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-var genpolicyVersion = "0.0.0-dev"
-var containerVersions = ""
+var (
+	version           = "0.0.0-dev"
+	runtimeHandler    = "contrast-cc"
+	launchDigest      = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+	genpolicyVersion  = "0.0.0-dev"
+	containerVersions = ""
+)
 
 func newRootCmd() *cobra.Command {
 	// build the versions string
