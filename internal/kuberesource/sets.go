@@ -220,9 +220,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 							).
 							WithEnv(EnvVar().WithName("GRPC_PORT").WithValue("8080")).
 							WithEnv(EnvVar().WithName("PROM_PORT").WithValue("8801")).
-							WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
-							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/mesh-ca.pem")).
-							WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem")).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(50),
 							),
@@ -323,9 +320,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 							).
 							WithEnv(EnvVar().WithName("GRPC_PORT").WithValue("8080")).
 							WithEnv(EnvVar().WithName("PROM_PORT").WithValue("8801")).
-							WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
-							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/mesh-ca.pem")).
-							WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem")).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(50),
 							),
@@ -391,10 +385,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 							WithEnv(EnvVar().WithName("EMOJISVC_HOST").WithValue(emojiSvcHost)).
 							WithEnv(EnvVar().WithName("VOTINGSVC_HOST").WithValue(votingSvcHost)).
 							WithEnv(EnvVar().WithName("INDEX_BUNDLE").WithValue("dist/index_bundle.js")).
-							WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
-							WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/mesh-ca.pem")).
-							WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem")).
-							WithEnv(EnvVar().WithName("EDG_DISABLE_CLIENT_AUTH").WithValue("true")).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(50),
 							).
@@ -442,6 +432,19 @@ func Emojivoto(smMode serviceMeshMode) []any {
 	}
 
 	if smMode == ServiceMeshDisabled {
+		emoji.Spec.Template.Spec.Containers[0].
+			WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
+			WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/mesh-ca.pem")).
+			WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem"))
+		voting.Spec.Template.Spec.Containers[0].
+			WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
+			WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/mesh-ca.pem")).
+			WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem"))
+		web.Spec.Template.Spec.Containers[0].
+			WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
+			WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/mesh-ca.pem")).
+			WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem")).
+			WithEnv(EnvVar().WithName("EDG_DISABLE_CLIENT_AUTH").WithValue("true"))
 		return resources
 	}
 
