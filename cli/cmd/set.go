@@ -159,9 +159,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("marshaling seed shares: %w", err)
 		}
-		// TODO(katexochen): feat#recovery add file once feature is ready.
-		_ = seedShareFile
-		// filelist[seedSharesFilename] = seedShareFile
+		filelist[seedSharesFilename] = seedShareFile
 	}
 
 	if err := writeFilelist(flags.workspaceDir, filelist); err != nil {
