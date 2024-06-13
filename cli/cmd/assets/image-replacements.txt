@@ -1,5 +1,1 @@
-ghcr.io/edgelesssys/contrast/coordinator:latest=ghcr.io/davidweisse/contrast/coordinator@sha256:50aa525a819c4750ca47abdc177dd3769aa45f6b70beff60733bc330aa2b1443
-ghcr.io/edgelesssys/contrast/initializer:latest=ghcr.io/davidweisse/contrast/initializer@sha256:7cec0ab5ed89e40e4998311d8e4adf0414a60e15f35d1deedec2fcc38f5fcde9
-ghcr.io/edgelesssys/contrast/openssl:latest=ghcr.io/davidweisse/contrast/openssl@sha256:2b75075a8c1273607fa9acbf30792b5d59c2a4b8519ceb8327226ac31d52633f
-ghcr.io/edgelesssys/contrast/port-forwarder:latest=ghcr.io/davidweisse/contrast/port-forwarder@sha256:9a46a363b1664a968202156f6652def1519d9fdaf20828741c39da8f108b8404
-ghcr.io/edgelesssys/contrast/node-installer:latest=ghcr.io/davidweisse/contrast/node-installer@sha256:8d0b554e541759f3e869c75c213a1cfae7dbfc934c6cdd196a792e5801699dfc
+# THIS FILE IS REPLACED DURING RELEASE BUILD TO INCLUDE UPDATED IMAGE REFERENCES
