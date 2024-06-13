@@ -213,4 +213,16 @@
       find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i "s#$link_source#$link_target#g" {} \;
     '';
   };
+
+  # Temporary workaround until the sync server is stateful.
+  renew-sync-fifo = writeShellApplication {
+    name = "renew-sync-fifo";
+    runtimeInputs = with pkgs; [ kubectl ];
+    text = ''
+      kubectl delete configmap sync-server-fifo || true
+      syncIP=$(kubectl get svc sync -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      fifoUUID=$(curl -fsSL "$syncIP:8080/fifo/new" | jq -r '.uuid')
+      kubectl create configmap sync-server-fifo --from-literal=uuid="$fifoUUID"
+    '';
+  };
 }

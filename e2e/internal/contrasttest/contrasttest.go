@@ -69,7 +69,12 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 		require.True(ok, "SYNC_ENDPOINT must be set when SYNC_FIFO_UUID is set")
 		t.Logf("Syncing with fifo %s of endpoint %s", fifoUUID, syncEndpoint)
 		fifo = ksync.FifoFromUUID(syncEndpoint, fifoUUID)
-		require.NoError(fifo.TicketAndWait(context.Background()))
+		err := fifo.TicketAndWait(context.Background())
+		if err != nil {
+			t.Log("If this throws a 404, likely the sync server was restarted.")
+			t.Log("Run 'nix run .#scripts.renew-sync-fifo' against the CI cluster to fix it.")
+			require.NoError(err)
+		}
 		t.Logf("Acquired lock on fifo %s", fifoUUID)
 	}
 
