@@ -4,10 +4,9 @@
 { lib
 , fetchFromGitHub
 , stdenv
-, igvm-signing-keygen
+, microsoft
 , igvm-tooling
-, kata-image
-, kata-kernel-uvm
+, igvm-signing-keygen
 }:
 
 stdenv.mkDerivation rec {
@@ -50,10 +49,10 @@ stdenv.mkDerivation rec {
 
     # prevent non-hermetic download of igvm-tooling / igvmgen
     mkdir -p msigvm-1.2.0
-    ./igvm_builder.sh -k ${kata-kernel-uvm}/bzImage -v ${kata-image.verity}/dm_verity.txt -o $out
+    ./igvm_builder.sh -k ${microsoft.kata-kernel-uvm}/bzImage -v ${microsoft.kata-image.verity}/dm_verity.txt -o $out
     # prevent non-hermetic download of igvm-tooling / igvmgen
     mkdir -p msigvm-1.2.0
-    ./igvm_builder.sh -d -k ${kata-kernel-uvm}/bzImage -v ${kata-image.verity}/dm_verity.txt -o $debug
+    ./igvm_builder.sh -d -k ${microsoft.kata-kernel-uvm}/bzImage -v ${microsoft.kata-image.verity}/dm_verity.txt -o $debug
 
     runHook postBuild
   '';

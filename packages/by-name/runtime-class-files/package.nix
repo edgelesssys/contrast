@@ -5,20 +5,17 @@
 , stdenvNoCC
 , microsoft
 , igvmmeasure
-, kata-image
-, kata-igvm
-, kata-runtime ? microsoft.kata-runtime
 , debugRuntime ? false
 }:
 
 let
-  rootfs = kata-image;
-  igvm = if debugRuntime then kata-igvm.debug else kata-igvm;
+  rootfs = microsoft.kata-image;
+  igvm = if debugRuntime then microsoft.kata-igvm.debug else microsoft.kata-igvm;
   cloud-hypervisor-bin = fetchurl {
     url = "https://cdn.confidential.cloud/contrast/node-components/1714998420/cloud-hypervisor-cvm";
     hash = "sha256-coTHzd5/QLjlPQfrp9d2TJTIXKNuANTN7aNmpa8PRXo=";
   };
-  containerd-shim-contrast-cc-v2 = "${kata-runtime}/bin/containerd-shim-kata-v2";
+  containerd-shim-contrast-cc-v2 = "${microsoft.kata-runtime}/bin/containerd-shim-kata-v2";
 in
 
 stdenvNoCC.mkDerivation {
