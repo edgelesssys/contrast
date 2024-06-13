@@ -14,23 +14,39 @@ import (
 
 func TestHandlerOutput(t *testing.T) {
 	testCases := map[string]struct {
+		logLevel         slog.Level
 		subsystem        string
 		subsystemEnvList string
 		wantMessages     int
 	}{
 		"star": {
+			logLevel:         slog.LevelInfo,
 			subsystem:        "foo",
 			subsystemEnvList: "*",
-			wantMessages:     2, // message and empty line
+			wantMessages:     4, // messages and empty line
 		},
 		"match": {
+			logLevel:         slog.LevelInfo,
 			subsystem:        "foo",
 			subsystemEnvList: "foo,bar,baz",
-			wantMessages:     2, // message and empty line
+			wantMessages:     4, // messages and empty line
 		},
 		"no match": {
+			logLevel:     slog.LevelInfo,
 			subsystem:    "foo",
-			wantMessages: 1, // empty line
+			wantMessages: 3, // warn/error messages and empty line
+		},
+		"base level warn": {
+			logLevel:         slog.LevelWarn,
+			subsystem:        "foo",
+			subsystemEnvList: "*",
+			wantMessages:     3, // warn/error message and empty line
+		},
+		"base level error": {
+			logLevel:         slog.LevelError,
+			subsystem:        "foo",
+			subsystemEnvList: "*",
+			wantMessages:     2, // error message and empty line
 		},
 	}
 
@@ -45,13 +61,16 @@ func TestHandlerOutput(t *testing.T) {
 			buf := bytes.Buffer{}
 
 			handler := &Handler{
-				inner:     slog.NewJSONHandler(&buf, nil).WithGroup(tc.subsystem),
+				inner:     slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: tc.logLevel}).WithGroup(tc.subsystem),
 				subsystem: tc.subsystem,
 				enabled:   subsystemEnvEnabled(getEnv, tc.subsystem),
+				level:     slog.LevelWarn,
 			}
 			logger := slog.New(handler)
 
 			logger.Info("info", "key", "value")
+			logger.Warn("warn", "key", "value")
+			logger.Error("error", "key", "value")
 
 			got := buf.String()
 			lines := strings.Split(got, "\n")

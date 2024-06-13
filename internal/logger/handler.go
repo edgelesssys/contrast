@@ -21,6 +21,7 @@ type Handler struct {
 	inner     slog.Handler
 	subsystem string
 	enabled   bool
+	level     slog.Level
 }
 
 // NewHandler returns a new Handler.
@@ -29,6 +30,7 @@ func NewHandler(inner slog.Handler, subsystem string) *Handler {
 		inner:     inner.WithGroup(subsystem),
 		subsystem: subsystem,
 		enabled:   subsystemEnvEnabled(os.Getenv, subsystem),
+		level:     slog.LevelWarn,
 	}
 	slog.New(handler).Info("Subsystem logger initialized", "subsystem", subsystem, "state", handler.state())
 	return handler
@@ -36,7 +38,7 @@ func NewHandler(inner slog.Handler, subsystem string) *Handler {
 
 // Enabled returns true if the given level is enabled.
 func (h *Handler) Enabled(ctx context.Context, level slog.Level) bool {
-	return h.enabled && h.inner.Enabled(ctx, level)
+	return (h.enabled || level >= h.level) && h.inner.Enabled(ctx, level)
 }
 
 // Handle handles the given record.
