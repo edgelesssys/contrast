@@ -78,13 +78,14 @@ buildGoModule rec {
   imageVersionsList = builtins.map (x: lib.last (lib.splitString "=" x)) imageReplacementsList;
 
   # build a string to embed into the CLI. Since embedding does not allow newlines it is split again in the go program.
-  imageVersionsString = builtins.concatStringsSep "," imageVersionsList;
+  imageVersionsString = lib.removeSuffix "," (builtins.concatStringsSep "," imageVersionsList);
 
   CGO_ENABLED = 0;
   ldflags = [
     "-s"
     "-w"
     "-X main.version=v${version}"
+    "-X main.runtimeHandler=${runtimeHandler}"
     "-X main.launchDigest=${launchDigest}"
     "-X main.genpolicyVersion=${genpolicy.version}"
     "-X main.containerVersions=${imageVersionsString}"

@@ -28,18 +28,30 @@ func execute() error {
 }
 
 var version = "0.0.0-dev"
+var runtimeHandler = "contrast-cc"
 var launchDigest = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
 var genpolicyVersion = "0.0.0-dev"
 var containerVersions = ""
 
 func newRootCmd() *cobra.Command {
-	containerVersions = strings.ReplaceAll(containerVersions, ",", "\n")
-	version = fmt.Sprintf("%s with launch digest %s, genpolicy version %s and the following container versions:\n%s", version, launchDigest, genpolicyVersion, containerVersions)
+	// build the versions string
+	var versionsBuilder strings.Builder
+	versionsBuilder.WriteString(fmt.Sprintf("%s:\n\n", version))
+	versionsBuilder.WriteString(fmt.Sprintf("\truntime handler: %s\n", runtimeHandler))
+	versionsBuilder.WriteString(fmt.Sprintf("\tlaunch digest: %s\n", launchDigest))
+	versionsBuilder.WriteString(fmt.Sprintf("\tgenpolicy version: %s\n", genpolicyVersion))
+	for _, container := range strings.Split(containerVersions, ",") {
+		containerSplit := strings.Split(container, "@")
+		containerName := containerSplit[0]
+		containerVersion := containerSplit[1]
+		versionsBuilder.WriteString(fmt.Sprintf("\t%s: %s\n", containerName, containerVersion))
+	}
+
 	root := &cobra.Command{
 		Use:              "contrast",
 		Short:            "contrast",
 		PersistentPreRun: preRunRoot,
-		Version:          version,
+		Version:          versionsBuilder.String(),
 	}
 	root.SetOut(os.Stdout)
 
