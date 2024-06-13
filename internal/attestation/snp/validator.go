@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/proto/sevsnp"
@@ -69,7 +68,7 @@ func NewValidatorWithCallbacks(optsGen validateOptsGenerator, kdsGetter trust.HT
 		validateOptsGen: optsGen,
 		callbackers:     callbacks,
 		kdsGetter:       kdsGetter,
-		logger:          slog.New(logger.NewHandler(log.Handler(), "snp-validator")),
+		logger:          log,
 		metrics:         metrics{attestationFailures: attestataionFailures},
 	}
 }
