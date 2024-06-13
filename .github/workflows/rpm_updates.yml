@@ -20,7 +20,7 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Update rpm packages
         run: |
-           nix run .#rpm-pin-vendor > packages/by-name/kata-image/package-index.json
+           nix run .#rpm-pin-vendor > packages/by-name/microsoft/kata-image/package-index.json
       - name: Create PR
         uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
         with:
