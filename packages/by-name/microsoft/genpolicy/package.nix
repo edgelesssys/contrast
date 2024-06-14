@@ -23,7 +23,7 @@ rustPlatform.buildRustPackage rec {
     owner = "microsoft";
     repo = "kata-containers";
     rev = "refs/tags/${version}";
-    hash = "sha256-W36RJFf0MVRIBV4ahpv6pqdAwgRYrlqmu4Y/8qiILS8=";
+    hash = "sha256-sFh2V7ylRDL6H50BcaHcgJAhrx4yvXzHNxtdQ9VYXdk=";
   };
 
   patches = [
