@@ -95,10 +95,10 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 				}
 
 				h := &History{
-					store:      NewAferoStore(&fs),
-					hashFun:    sha256.New,
-					signingKey: tc.signingKey,
+					store:   NewAferoStore(&fs),
+					hashFun: sha256.New,
 				}
+				h.signingKey.Store(tc.signingKey)
 
 				gotT, err := h.GetLatest()
 
@@ -124,10 +124,10 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 				}
 
 				h := &History{
-					store:      NewAferoStore(&fs),
-					hashFun:    sha256.New,
-					signingKey: tc.signingKey,
+					store:   NewAferoStore(&fs),
+					hashFun: sha256.New,
 				}
+				h.signingKey.Store(tc.signingKey)
 
 				got, err := h.HasLatest()
 
@@ -240,10 +240,10 @@ func TestHistory_SetLatest(t *testing.T) {
 			}
 
 			h := &History{
-				store:      NewAferoStore(&fs),
-				hashFun:    sha256.New,
-				signingKey: tc.signingKey,
+				store:   NewAferoStore(&fs),
+				hashFun: sha256.New,
 			}
+			h.signingKey.Store(tc.signingKey)
 
 			err := h.SetLatest(tc.oldT, tc.newT)
 
