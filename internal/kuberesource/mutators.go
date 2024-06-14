@@ -126,7 +126,7 @@ func AddServiceMesh(
 			}
 
 			serviceMeshProxy.
-				WithEnv(NewEnvVar("EDG_ADMIN_PORT", portAnnotation)).
+				WithEnv(NewEnvVar("CONTRAST_ADMIN_PORT", portAnnotation)).
 				WithPorts(
 					ContainerPort().
 						WithName("contrast-admin").
@@ -135,10 +135,10 @@ func AddServiceMesh(
 		}
 
 		if ingressConfig != "" {
-			serviceMeshProxy.WithEnv(NewEnvVar("EDG_INGRESS_PROXY_CONFIG", ingressConfig))
+			serviceMeshProxy.WithEnv(NewEnvVar("CONTRAST_INGRESS_PROXY_CONFIG", ingressConfig))
 		}
 		if egressConfig != "" {
-			serviceMeshProxy.WithEnv(NewEnvVar("EDG_EGRESS_PROXY_CONFIG", egressConfig))
+			serviceMeshProxy.WithEnv(NewEnvVar("CONTRAST_EGRESS_PROXY_CONFIG", egressConfig))
 		}
 
 		return meta, spec.WithInitContainers(serviceMeshProxy)
