@@ -43,7 +43,7 @@ type certBundleGetter interface {
 	GetCertBundle(peerPublicKeyHashStr string) (authority.Bundle, error)
 }
 
-func newMeshAPIServer(meshAuth *authority.Authority, bundleGetter certBundleGetter, reg *prometheus.Registry, log *slog.Logger) *meshAPIServer {
+func newMeshAPIServer(meshAuth *authority.Authority, bundleGetter certBundleGetter, reg *prometheus.Registry, serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger) *meshAPIServer {
 	ticker := clock.RealClock{}.NewTicker(24 * time.Hour)
 	kdsGetter := snp.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter"))
 
@@ -56,24 +56,14 @@ func newMeshAPIServer(meshAuth *authority.Authority, bundleGetter certBundleGett
 	validator := snp.NewValidatorWithCallbacks(meshAuth, kdsGetter, logger.NewNamed(log, "snp-validator"), attestationFailuresCounter, meshAuth)
 	credentials := atlscredentials.New(atls.NoIssuer, []atls.Validator{validator})
 
-	grpcMeshAPIMetrics := grpcprometheus.NewServerMetrics(
-		grpcprometheus.WithServerCounterOptions(
-			grpcprometheus.WithSubsystem("contrast_meshapi"),
-		),
-		grpcprometheus.WithServerHandlingTimeHistogram(
-			grpcprometheus.WithHistogramSubsystem("contrast_meshapi"),
-			grpcprometheus.WithHistogramBuckets([]float64{0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2.5, 5}),
-		),
-	)
-
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
 		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
 		grpc.ChainStreamInterceptor(
-			grpcMeshAPIMetrics.StreamServerInterceptor(),
+			serverMetrics.StreamServerInterceptor(),
 		),
 		grpc.ChainUnaryInterceptor(
-			grpcMeshAPIMetrics.UnaryServerInterceptor(),
+			serverMetrics.UnaryServerInterceptor(),
 		),
 	)
 	s := &meshAPIServer{
@@ -83,9 +73,7 @@ func newMeshAPIServer(meshAuth *authority.Authority, bundleGetter certBundleGett
 		logger:       log.WithGroup("meshapi"),
 	}
 	meshapi.RegisterMeshAPIServer(s.grpc, s)
-
-	grpcMeshAPIMetrics.InitializeMetrics(grpcServer)
-	reg.MustRegister(grpcMeshAPIMetrics)
+	serverMetrics.InitializeMetrics(s.grpc)
 
 	return s
 }

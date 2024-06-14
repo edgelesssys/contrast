@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package main
+package authority
 
 import (
 	"bytes"
@@ -11,89 +11,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
-	"net"
-	"time"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/authority"
-	"github.com/edgelesssys/contrast/internal/attestation/snp"
-	"github.com/edgelesssys/contrast/internal/ca"
-	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
-	"github.com/edgelesssys/contrast/internal/logger"
+	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/userapi"
-	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
-	"github.com/prometheus/client_golang/prometheus"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
-type userAPIServer struct {
-	grpc            *grpc.Server
-	policyTextStore store[manifest.HexString, manifest.Policy]
-	manifSetGetter  manifestSetGetter
-	logger          *slog.Logger
+// SetManifest registers a new manifest at the Coordinator.
+func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, error) {
+	a.logger.Info("SetManifest called")
 
-	userapi.UnimplementedUserAPIServer
-}
-
-func newUserAPIServer(mSGetter manifestSetGetter, reg *prometheus.Registry, log *slog.Logger) *userAPIServer {
-	issuer := snp.NewIssuer(logger.NewNamed(log, "snp-issuer"))
-	credentials := atlscredentials.New(issuer, nil)
-
-	grpcUserAPIMetrics := grpcprometheus.NewServerMetrics(
-		grpcprometheus.WithServerCounterOptions(
-			grpcprometheus.WithSubsystem("contrast_userapi"),
-		),
-		grpcprometheus.WithServerHandlingTimeHistogram(
-			grpcprometheus.WithHistogramSubsystem("contrast_userapi"),
-			grpcprometheus.WithHistogramBuckets([]float64{0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2.5, 5}),
-		),
-	)
-
-	grpcServer := grpc.NewServer(
-		grpc.Creds(credentials),
-		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
-		grpc.ChainStreamInterceptor(
-			grpcUserAPIMetrics.StreamServerInterceptor(),
-		),
-		grpc.ChainUnaryInterceptor(
-			grpcUserAPIMetrics.UnaryServerInterceptor(),
-		),
-	)
-	s := &userAPIServer{
-		grpc:            grpcServer,
-		policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
-		manifSetGetter:  mSGetter,
-		logger:          log.WithGroup("userapi"),
-	}
-	userapi.RegisterUserAPIServer(s.grpc, s)
-
-	grpcUserAPIMetrics.InitializeMetrics(grpcServer)
-	reg.MustRegister(grpcUserAPIMetrics)
-
-	return s
-}
-
-func (s *userAPIServer) Serve(endpoint string) error {
-	lis, err := net.Listen("tcp", endpoint)
-	if err != nil {
-		return fmt.Errorf("failed to listen: %w", err)
-	}
-	return s.grpc.Serve(lis)
-}
-
-func (s *userAPIServer) SetManifest(ctx context.Context, req *userapi.SetManifestRequest,
-) (*userapi.SetManifestResponse, error) {
-	s.logger.Info("SetManifest called")
-
-	if err := s.validatePeer(ctx); err != nil {
-		s.logger.Warn("SetManifest peer validation failed", "err", err)
+	if err := a.validatePeer(ctx); err != nil {
+		a.logger.Warn("SetManifest peer validation failed", "err", err)
 		return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
 	}
 
@@ -106,15 +39,7 @@ func (s *userAPIServer) SetManifest(ctx context.Context, req *userapi.SetManifes
 		return nil, status.Error(codes.InvalidArgument, "request must contain exactly the policies referenced in the manifest")
 	}
 
-	for _, policyBytes := range req.Policies {
-		policy := manifest.Policy(policyBytes)
-		if _, ok := m.Policies[policy.Hash()]; !ok {
-			return nil, status.Errorf(codes.InvalidArgument, "policy %v not found in manifest", policy.Hash())
-		}
-		s.policyTextStore.Set(policy.Hash(), policy)
-	}
-
-	ca, err := s.manifSetGetter.SetManifest(req.GetManifest(), req.GetPolicies())
+	ca, err := a.setManifest(req.GetManifest(), req.GetPolicies())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "setting manifest: %v", err)
 	}
@@ -124,15 +49,16 @@ func (s *userAPIServer) SetManifest(ctx context.Context, req *userapi.SetManifes
 		MeshCA: ca.GetMeshCACert(),
 	}
 
-	s.logger.Info("SetManifest succeeded")
+	a.logger.Info("SetManifest succeeded")
 	return resp, nil
 }
 
-func (s *userAPIServer) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
+// GetManifests retrieves the current CA certificates, the manifest history and all policies.
+func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
 ) (*userapi.GetManifestsResponse, error) {
-	s.logger.Info("GetManifest called")
+	a.logger.Info("GetManifest called")
 
-	manifests, ca, err := s.manifSetGetter.GetManifestsAndLatestCA()
+	manifests, ca, err := a.getManifestsAndLatestCA()
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "getting manifests: %v", err)
 	}
@@ -145,26 +71,52 @@ func (s *userAPIServer) GetManifests(_ context.Context, _ *userapi.GetManifestsR
 		return nil, status.Errorf(codes.Internal, "marshaling manifests: %v", err)
 	}
 
-	// TODO(burgerdev): these should be loaded from history.
-	policies := s.policyTextStore.GetAll()
-	if len(policies) == 0 {
-		return nil, status.Error(codes.Internal, "no policies found in store")
+	// TODO(burgerdev): consolidate with getManifestsAndLatestCA
+	policies := make(map[manifest.HexString][]byte)
+	err = a.walkTransitions(a.state.Load().latest.TransitionHash, func(_ [history.HashSize]byte, t *history.Transition) error {
+		manifestBytes, err := a.hist.GetManifest(t.ManifestHash)
+		if err != nil {
+			return fmt.Errorf("getting manifest: %w", err)
+		}
+		var mnfst manifest.Manifest
+		if err := json.Unmarshal(manifestBytes, &mnfst); err != nil {
+			return fmt.Errorf("decoding manifest: %w", err)
+		}
+		for policyHashHex := range mnfst.Policies {
+			policyHash, err := policyHashHex.Bytes()
+			if err != nil {
+				return fmt.Errorf("converting hex to bytes: %w", err)
+			}
+			var policyHashFixed [history.HashSize]byte
+			copy(policyHashFixed[:], policyHash)
+			policyBytes, err := a.hist.GetPolicy(policyHashFixed)
+			if err != nil {
+				return fmt.Errorf("getting policy: %w", err)
+			}
+			policies[policyHashHex] = policyBytes
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "querying policies: %v", err)
 	}
 
 	resp := &userapi.GetManifestsResponse{
 		Manifests: manifestBytes,
-		Policies:  policySliceToBytesSlice(policies),
 		RootCA:    ca.GetRootCACert(),
 		MeshCA:    ca.GetMeshCACert(),
 	}
+	for _, policy := range policies {
+		resp.Policies = append(resp.Policies, policy)
+	}
 
-	s.logger.Info("GetManifest succeeded")
+	a.logger.Info("GetManifest succeeded")
 	return resp, nil
 }
 
-func (s *userAPIServer) validatePeer(ctx context.Context) error {
-	latest, err := s.manifSetGetter.LatestManifest()
-	if err != nil && errors.Is(err, authority.ErrNoManifest) {
+func (a *Authority) validatePeer(ctx context.Context) error {
+	latest, err := a.latestManifest()
+	if err != nil && errors.Is(err, ErrNoManifest) {
 		// in the initial state, no peer validation is required
 		return nil
 	}
@@ -210,14 +162,6 @@ func getPeerPublicKey(ctx context.Context) ([]byte, error) {
 	return x509.MarshalPKIXPublicKey(tlsInfo.State.PeerCertificates[0].PublicKey)
 }
 
-func policySliceToBytesSlice(s []manifest.Policy) [][]byte {
-	var policies [][]byte
-	for _, policy := range s {
-		policies = append(policies, policy)
-	}
-	return policies
-}
-
 func manifestSliceToBytesSlice(s []*manifest.Manifest) ([][]byte, error) {
 	var manifests [][]byte
 	for i, manifest := range s {
@@ -228,16 +172,4 @@ func manifestSliceToBytesSlice(s []*manifest.Manifest) ([][]byte, error) {
 		manifests = append(manifests, manifestBytes)
 	}
 	return manifests, nil
-}
-
-type manifestSetGetter interface {
-	SetManifest(manifest []byte, policies [][]byte) (*ca.CA, error)
-	GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA, error)
-	LatestManifest() (*manifest.Manifest, error)
-}
-
-type store[keyT comparable, valueT any] interface {
-	Get(key keyT) (valueT, bool)
-	GetAll() []valueT
-	Set(key keyT, value valueT)
 }

@@ -35,12 +35,12 @@ func TestEmptyAuthority(t *testing.T) {
 	a, reg := newAuthority(t)
 
 	// A fresh authority does not have a signing key, so this should fail.
-	manifests, ca, err := a.GetManifestsAndLatestCA()
+	manifests, ca, err := a.getManifestsAndLatestCA()
 	assert.Error(t, err)
 	assert.Nil(t, ca)
 	assert.Empty(t, manifests)
 
-	manifest, err := a.LatestManifest()
+	manifest, err := a.latestManifest()
 	assert.Error(t, err)
 	assert.Nil(t, manifest)
 
@@ -52,16 +52,16 @@ func TestSetManifest(t *testing.T) {
 	a, reg := newAuthority(t)
 	expected, mnfstBytes, policies := newManifest(t)
 
-	mnfst, err := a.LatestManifest()
+	mnfst, err := a.latestManifest()
 	require.ErrorIs(err, ErrNoManifest)
 	require.Nil(mnfst)
 
-	ca, err := a.SetManifest(mnfstBytes, policies)
+	ca, err := a.setManifest(mnfstBytes, policies)
 	require.NoError(err)
 	require.NotNil(ca)
 	requireGauge(t, reg, 1)
 
-	actual, err := a.LatestManifest()
+	actual, err := a.latestManifest()
 	require.NoError(err)
 	require.NotNil(actual)
 
@@ -70,7 +70,7 @@ func TestSetManifest(t *testing.T) {
 	// Simulate manifest updates that this instance is not aware of by deleting its state.
 	a.state.Store(nil)
 
-	_, err = a.SetManifest(mnfstBytes, policies)
+	_, err = a.setManifest(mnfstBytes, policies)
 	require.NoError(err)
 	requireGauge(t, reg, 2)
 }
@@ -80,7 +80,7 @@ func TestSetManifest_TooFewPolicies(t *testing.T) {
 	a, reg := newAuthority(t)
 	_, mnfstBytes, _ := newManifest(t)
 
-	ca, err := a.SetManifest(mnfstBytes, [][]byte{})
+	ca, err := a.setManifest(mnfstBytes, [][]byte{})
 	require.Error(err)
 	require.Nil(ca)
 	requireGauge(t, reg, 0)
@@ -91,23 +91,23 @@ func TestSetManifest_BadManifest(t *testing.T) {
 	a, reg := newAuthority(t)
 	_, _, policies := newManifest(t)
 
-	ca, err := a.SetManifest([]byte(`{ "policies": 1 }`), policies)
+	ca, err := a.setManifest([]byte(`{ "policies": 1 }`), policies)
 	require.Error(err)
 	require.Nil(ca)
 	requireGauge(t, reg, 0)
 }
 
-func TestGetManifests(t *testing.T) {
+func TestGetManifestsAndLatestCA(t *testing.T) {
 	require := require.New(t)
 	a, reg := newAuthority(t)
 	originalManifest, mnfstBytes, policies := newManifest(t)
 
-	manifests, ca, err := a.GetManifestsAndLatestCA()
+	manifests, ca, err := a.getManifestsAndLatestCA()
 	require.ErrorIs(err, ErrNoManifest)
 	require.Empty(manifests)
 	require.Nil(ca)
 
-	oldCA, err := a.SetManifest(mnfstBytes, policies)
+	oldCA, err := a.setManifest(mnfstBytes, policies)
 	require.NoError(err)
 	require.NotNil(oldCA)
 	requireGauge(t, reg, 1)
@@ -117,7 +117,7 @@ func TestGetManifests(t *testing.T) {
 	alteredManifestBytes, err := json.Marshal(alteredManifest)
 	require.NoError(err)
 
-	expectedCA, err := a.SetManifest(alteredManifestBytes, policies)
+	expectedCA, err := a.setManifest(alteredManifestBytes, policies)
 	require.NoError(err)
 	require.NotNil(expectedCA)
 	requireGauge(t, reg, 2)
@@ -126,7 +126,7 @@ func TestGetManifests(t *testing.T) {
 
 	expectedManifests := []*manifest.Manifest{originalManifest, &alteredManifest}
 
-	manifests, currentCA, err := a.GetManifestsAndLatestCA()
+	manifests, currentCA, err := a.getManifestsAndLatestCA()
 	require.NoError(err)
 	require.Equal(expectedCA.GetMeshCACert(), currentCA.GetMeshCACert())
 	require.Equal(expectedCA.GetRootCACert(), currentCA.GetRootCACert())
@@ -135,7 +135,7 @@ func TestGetManifests(t *testing.T) {
 	// Simulate manifest updates that this instance is not aware of by deleting its state.
 	a.state.Store(nil)
 
-	manifests, _, err = a.GetManifestsAndLatestCA()
+	manifests, _, err = a.getManifestsAndLatestCA()
 	require.NoError(err)
 	require.Equal(expectedManifests, manifests)
 	requireGauge(t, reg, len(expectedManifests))
@@ -152,7 +152,7 @@ func TestSNPValidateOpts(t *testing.T) {
 	require.Error(err)
 	require.Nil(opts)
 
-	_, err = a.SetManifest(mnfstBytes, policies)
+	_, err = a.setManifest(mnfstBytes, policies)
 	require.NoError(err)
 
 	opts, err = a.SNPValidateOpts(report)

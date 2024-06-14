@@ -13,20 +13,19 @@ The metrics can be accessed at the Coordinator pod at the port specified in the
 default, this environment variable isn't specified, hence no metrics will be
 exposed.
 
-The Coordinator starts two gRPC servers, one for the user API on port `1313` and
-one for the mesh API on port `7777`. Metrics for both servers can be accessed
-using different prefixes.
+The Coordinator exports gRPC metrics under the prefix `contrast_grpc_server_`.
+These metrics are labeled with the gRPC service name and method name.
+Metrics of interest include `contrast_grpc_server_handled_total`, which counts
+the number of requests by return code, and
+`contrast_grpc_server_handling_seconds_bucket`, which produces a histogram of\
+request latency.
 
-All metric names for the user API are prefixed with `contrast_userapi_grpc_server_`.
-Exposed metrics include the number of  handled requests of the methods
+The gRPC service `userapi.UserAPI` records metrics for the methods
 `SetManifest` and `GetManifest`, which get called when [setting the
 manifest](../deployment#set-the-manifest) and [verifying the
-Coordinator](../deployment#verify-the-coordinator) respectively. For each method
-you can see the gRPC status code indicating whether the request succeeded or
-not and the request latency.
+Coordinator](../deployment#verify-the-coordinator) respectively.
 
-For the mesh API, the metric names are prefixed with `contrast_meshapi_grpc_server_`. The
-metrics include similar data to the user API for the method `NewMeshCert` which
+The `meshapi.MeshAPI` service records metrics for the method `NewMeshCert`, which
 gets called by the [Initializer](../components#the-initializer) when starting a
 new workload. Attestation failures from workloads to the Coordinator can be
 tracked with the counter `contrast_meshapi_attestation_failures`.
