@@ -13,10 +13,9 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
-	"sync"
 	"time"
 
-	"github.com/edgelesssys/contrast/internal/appendable"
+	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
@@ -39,7 +38,6 @@ type userAPIServer struct {
 	policyTextStore store[manifest.HexString, manifest.Policy]
 	manifSetGetter  manifestSetGetter
 	logger          *slog.Logger
-	mux             sync.RWMutex
 
 	userapi.UnimplementedUserAPIServer
 }
@@ -93,8 +91,6 @@ func (s *userAPIServer) Serve(endpoint string) error {
 func (s *userAPIServer) SetManifest(ctx context.Context, req *userapi.SetManifestRequest,
 ) (*userapi.SetManifestResponse, error) {
 	s.logger.Info("SetManifest called")
-	s.mux.Lock()
-	defer s.mux.Unlock()
 
 	if err := s.validatePeer(ctx); err != nil {
 		s.logger.Warn("SetManifest peer validation failed", "err", err)
@@ -106,9 +102,6 @@ func (s *userAPIServer) SetManifest(ctx context.Context, req *userapi.SetManifes
 		return nil, status.Errorf(codes.InvalidArgument, "unmarshaling manifest: %v", err)
 	}
 
-	if len(m.Policies) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "manifest must contain at least one policy")
-	}
 	if len(m.Policies) != len(req.Policies) {
 		return nil, status.Error(codes.InvalidArgument, "request must contain exactly the policies referenced in the manifest")
 	}
@@ -121,12 +114,10 @@ func (s *userAPIServer) SetManifest(ctx context.Context, req *userapi.SetManifes
 		s.policyTextStore.Set(policy.Hash(), policy)
 	}
 
-	if err := s.manifSetGetter.SetManifest(m); err != nil {
+	ca, err := s.manifSetGetter.SetManifest(req.GetManifest(), req.GetPolicies())
+	if err != nil {
 		return nil, status.Errorf(codes.Internal, "setting manifest: %v", err)
 	}
-
-	// TODO(burgerdev): CA should be returned by SetManifest
-	_, ca := s.manifSetGetter.GetManifestsAndLatestCA()
 
 	resp := &userapi.SetManifestResponse{
 		RootCA: ca.GetRootCACert(),
@@ -140,10 +131,11 @@ func (s *userAPIServer) SetManifest(ctx context.Context, req *userapi.SetManifes
 func (s *userAPIServer) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
 ) (*userapi.GetManifestsResponse, error) {
 	s.logger.Info("GetManifest called")
-	s.mux.RLock()
-	defer s.mux.RUnlock()
 
-	manifests, ca := s.manifSetGetter.GetManifestsAndLatestCA()
+	manifests, ca, err := s.manifSetGetter.GetManifestsAndLatestCA()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "getting manifests: %v", err)
+	}
 	if len(manifests) == 0 {
 		return nil, status.Errorf(codes.FailedPrecondition, "no manifests set")
 	}
@@ -153,6 +145,7 @@ func (s *userAPIServer) GetManifests(_ context.Context, _ *userapi.GetManifestsR
 		return nil, status.Errorf(codes.Internal, "marshaling manifests: %v", err)
 	}
 
+	// TODO(burgerdev): these should be loaded from history.
 	policies := s.policyTextStore.GetAll()
 	if len(policies) == 0 {
 		return nil, status.Error(codes.Internal, "no policies found in store")
@@ -171,7 +164,7 @@ func (s *userAPIServer) GetManifests(_ context.Context, _ *userapi.GetManifestsR
 
 func (s *userAPIServer) validatePeer(ctx context.Context) error {
 	latest, err := s.manifSetGetter.LatestManifest()
-	if err != nil && errors.Is(err, appendable.ErrIsEmpty) {
+	if err != nil && errors.Is(err, authority.ErrNoManifest) {
 		// in the initial state, no peer validation is required
 		return nil
 	}
@@ -238,8 +231,8 @@ func manifestSliceToBytesSlice(s []*manifest.Manifest) ([][]byte, error) {
 }
 
 type manifestSetGetter interface {
-	SetManifest(*manifest.Manifest) error
-	GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA)
+	SetManifest(manifest []byte, policies [][]byte) (*ca.CA, error)
+	GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA, error)
 	LatestManifest() (*manifest.Manifest, error)
 }
 

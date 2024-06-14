@@ -17,7 +17,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/edgelesssys/contrast/internal/appendable"
+	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/memstore"
@@ -68,7 +68,7 @@ func TestManifestSet(t *testing.T) {
 				}),
 			},
 			mSGetter: &stubManifestSetGetter{},
-			wantErr:  true,
+			wantErr:  false,
 		},
 		"request without policies": {
 			req: &userapi.SetManifestRequest{
@@ -363,14 +363,32 @@ type stubManifestSetGetter struct {
 	getManifestResp  []*manifest.Manifest
 }
 
-func (s *stubManifestSetGetter) SetManifest(*manifest.Manifest) error {
+func (s *stubManifestSetGetter) SetManifest([]byte, [][]byte) (*ca.CA, error) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	s.setManifestCount++
-	return s.setManifestErr
+	return s.randomCA(), s.setManifestErr
 }
 
-func (s *stubManifestSetGetter) GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA) {
+func (s *stubManifestSetGetter) GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA, error) {
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	if s.getManifestResp == nil {
+		return make([]*manifest.Manifest, s.setManifestCount), s.randomCA(), nil
+	}
+	return s.getManifestResp, s.randomCA(), nil
+}
+
+func (s *stubManifestSetGetter) LatestManifest() (*manifest.Manifest, error) {
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	if len(s.getManifestResp) == 0 {
+		return nil, authority.ErrNoManifest
+	}
+	return s.getManifestResp[len(s.getManifestResp)-1], nil
+}
+
+func (s *stubManifestSetGetter) randomCA() *ca.CA {
 	rootKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	if err != nil {
 		panic(err)
@@ -383,21 +401,7 @@ func (s *stubManifestSetGetter) GetManifestsAndLatestCA() ([]*manifest.Manifest,
 	if err != nil {
 		panic(err)
 	}
-	s.mux.RLock()
-	defer s.mux.RUnlock()
-	if s.getManifestResp == nil {
-		return make([]*manifest.Manifest, s.setManifestCount), ca
-	}
-	return s.getManifestResp, ca
-}
-
-func (s *stubManifestSetGetter) LatestManifest() (*manifest.Manifest, error) {
-	s.mux.RLock()
-	defer s.mux.RUnlock()
-	if len(s.getManifestResp) == 0 {
-		return nil, appendable.ErrIsEmpty
-	}
-	return s.getManifestResp[len(s.getManifestResp)-1], nil
+	return ca
 }
 
 func rpcContext(key *ecdsa.PrivateKey) context.Context {
