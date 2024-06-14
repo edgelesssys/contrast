@@ -288,7 +288,7 @@ jobs:
           nix build -L .#cli-release
       - name: Update contrast-releases.json with new release
         env:
-          VERSION: ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}
+          VERSION: ${{ inputs.version }}
         run: nix run .#scripts.update-contrast-releases
       - name: Upload updated contrast-releases.json (for main branch PR)
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
