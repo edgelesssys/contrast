@@ -14,7 +14,7 @@ This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.7.0/runtime.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.7.1/runtime.yml
 ```
 
 ## Deploy the Contrast Coordinator
@@ -23,7 +23,7 @@ Install the latest Contrast Coordinator release, comprising a single replica dep
 LoadBalancer service, into your cluster.
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.7.0/coordinator.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.7.1/coordinator.yml
 ```
 
 ## Prepare your Kubernetes resources
@@ -208,7 +208,7 @@ spec:
     - env:
         - name: COORDINATOR_HOST
           value: coordinator
-      image: "ghcr.io/edgelesssys/contrast/initializer:v0.7.0@sha256:c158627fdecd4c6facd69411252fb1584e9656b4b404f8339cc0b26b63a94703"
+      image: "ghcr.io/edgelesssys/contrast/initializer:v0.7.1@sha256:bef3bc8b06d7323dadf1d8d7aae6213c2c579d25ff3fcafa90e944213e852a76"
       name: contrast-initializer
       volumeMounts:
         - mountPath: /tls-config
