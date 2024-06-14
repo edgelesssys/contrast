@@ -46,8 +46,8 @@ func newRootCmd() *cobra.Command {
 	for _, image := range strings.Split(imageReplacements, "\n") {
 		if !strings.HasPrefix(image, "#") {
 			image = strings.Split(image, "=")[1]
+			versionsBuilder.WriteString(fmt.Sprintf("\t\t%s\n", image))
 		}
-		versionsBuilder.WriteString(fmt.Sprintf("\t\t%s\n", image))
 	}
 
 	root := &cobra.Command{
