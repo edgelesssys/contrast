@@ -1,0 +1,62 @@
+name: e2e policy
+
+on:
+    workflow_dispatch:
+    pull_request:
+      paths-ignore:
+        - docs/**
+        - rfc/**
+
+env:
+  container_registry: ghcr.io/edgelesssys
+  azure_resource_group: contrast-ci
+  DO_NOT_TRACK: 1
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to Azure
+        uses: azure/login@6c251865b4e6290e7b78be643ea2d005bc51f69a # v2.1.1
+        with:
+          creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
+      - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
+      - name: Create justfile.env
+        run: |
+          cat <<EOF > justfile.env
+          container_registry=${{ env.container_registry }}
+          azure_resource_group=${{ env.azure_resource_group }}
+          EOF
+      - name: Get credentials for CI cluster
+        run: |
+          just get-credentials
+      - name: Set sync environemnt
+        run: |
+          sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a $GITHUB_ENV
+          sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
+          echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a $GITHUB_ENV
+      - name: Build and prepare deployments
+        run: |
+          just coordinator initializer port-forwarder service-mesh-proxy node-installer
+      - name: E2E Test
+        run: |
+          nix shell .#contrast.e2e --command policy.test -test.v workspace/just.containerlookup
+      - name: Undeploy
+        if: always() && inputs.skip-undeploy != 'true'
+        run: |
+          just undeploy
