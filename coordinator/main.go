@@ -6,19 +6,26 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	"github.com/edgelesssys/contrast/internal/attestation/snp"
+	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/recoveryapi"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 const (
@@ -51,6 +58,7 @@ func run() (retErr error) {
 
 	metricsPort := os.Getenv(metricsPortEnvVar)
 	promRegistry := prometheus.NewRegistry()
+	serverMetrics := newServerMetrics(promRegistry)
 
 	hist, err := history.New()
 	if err != nil {
@@ -58,30 +66,13 @@ func run() (retErr error) {
 	}
 
 	meshAuth := authority.New(hist, promRegistry, logger)
-	recoveryAPI := newRecoveryAPIServer(meshAuth, promRegistry, logger)
-	userAPI := newUserAPIServer(meshAuth, promRegistry, logger)
-	meshAPI := newMeshAPIServer(meshAuth, meshAuth, promRegistry, logger)
+	grpcServer := newGRPCServer(serverMetrics, logger)
+
+	userapi.RegisterUserAPIServer(grpcServer, meshAuth)
+	recoveryapi.RegisterRecoveryAPIServer(grpcServer, meshAuth)
+	serverMetrics.InitializeMetrics(grpcServer)
 
 	eg := errgroup.Group{}
-
-	recoverable, err := meshAuth.Recoverable()
-	if err != nil {
-		return fmt.Errorf("checking recoverability: %w", err)
-	}
-	if recoverable {
-		logger.Warn("Coordinator is in recovery mode")
-
-		eg.Go(func() error {
-			logger.Info("Coordinator recovery API listening")
-			if err := recoveryAPI.Serve(net.JoinHostPort("0.0.0.0", recoveryapi.Port)); err != nil {
-				return fmt.Errorf("serving recovery API: %w", err)
-			}
-			return nil
-		})
-
-		recoveryAPI.WaitRecoveryDone()
-		logger.Info("Coordinator recovery done")
-	}
 
 	eg.Go(func() error {
 		if metricsPort == "" {
@@ -106,13 +97,18 @@ func run() (retErr error) {
 
 	eg.Go(func() error {
 		logger.Info("Coordinator user API listening")
-		if err := userAPI.Serve(net.JoinHostPort("0.0.0.0", userapi.Port)); err != nil {
+		lis, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", userapi.Port))
+		if err != nil {
+			return fmt.Errorf("failed to listen: %w", err)
+		}
+		if err := grpcServer.Serve(lis); err != nil {
 			return fmt.Errorf("serving Coordinator API: %w", err)
 		}
 		return nil
 	})
 
 	eg.Go(func() error {
+		meshAPI := newMeshAPIServer(meshAuth, meshAuth, promRegistry, serverMetrics, logger)
 		logger.Info("Coordinator mesh API listening")
 		if err := meshAPI.Serve(net.JoinHostPort("0.0.0.0", meshapi.Port)); err != nil {
 			return fmt.Errorf("serving mesh API: %w", err)
@@ -121,4 +117,35 @@ func run() (retErr error) {
 	})
 
 	return eg.Wait()
+}
+
+func newServerMetrics(reg *prometheus.Registry) *grpcprometheus.ServerMetrics {
+	serverMetrics := grpcprometheus.NewServerMetrics(
+		grpcprometheus.WithServerCounterOptions(
+			grpcprometheus.WithSubsystem("contrast"),
+		),
+		grpcprometheus.WithServerHandlingTimeHistogram(
+			grpcprometheus.WithHistogramSubsystem("contrast"),
+			grpcprometheus.WithHistogramBuckets([]float64{0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2.5, 5}),
+		),
+	)
+	reg.MustRegister(serverMetrics)
+	return serverMetrics
+}
+
+func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger) *grpc.Server {
+	issuer := snp.NewIssuer(logger.NewNamed(log, "snp-issuer"))
+	credentials := atlscredentials.New(issuer, nil)
+
+	grpcServer := grpc.NewServer(
+		grpc.Creds(credentials),
+		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
+		grpc.ChainStreamInterceptor(
+			serverMetrics.StreamServerInterceptor(),
+		),
+		grpc.ChainUnaryInterceptor(
+			serverMetrics.UnaryServerInterceptor(),
+		),
+	)
+	return grpcServer
 }

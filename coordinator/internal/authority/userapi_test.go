@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package main
+package authority
 
 import (
 	"context"
@@ -17,15 +17,17 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/authority"
-	"github.com/edgelesssys/contrast/internal/ca"
+	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 )
 
 func TestManifestSet(t *testing.T) {
@@ -52,14 +54,12 @@ func TestManifestSet(t *testing.T) {
 
 	testCases := map[string]struct {
 		req              *userapi.SetManifestRequest
-		mSGetter         *stubManifestSetGetter
 		workloadOwnerKey *ecdsa.PrivateKey
 		wantErr          bool
 	}{
 		"empty request": {
-			req:      &userapi.SetManifestRequest{},
-			mSGetter: &stubManifestSetGetter{},
-			wantErr:  true,
+			req:     &userapi.SetManifestRequest{},
+			wantErr: true,
 		},
 		"manifest without policies": {
 			req: &userapi.SetManifestRequest{
@@ -67,8 +67,7 @@ func TestManifestSet(t *testing.T) {
 					m.Policies = nil
 				}),
 			},
-			mSGetter: &stubManifestSetGetter{},
-			wantErr:  false,
+			wantErr: false,
 		},
 		"request without policies": {
 			req: &userapi.SetManifestRequest{
@@ -79,8 +78,7 @@ func TestManifestSet(t *testing.T) {
 					}
 				}),
 			},
-			mSGetter: &stubManifestSetGetter{},
-			wantErr:  true,
+			wantErr: true,
 		},
 		"policy not in manifest": {
 			req: &userapi.SetManifestRequest{
@@ -95,9 +93,9 @@ func TestManifestSet(t *testing.T) {
 					[]byte("c"),
 				},
 			},
-			mSGetter: &stubManifestSetGetter{},
-			wantErr:  true,
+			wantErr: true,
 		},
+		// TODO(burgerdev): add test for dysfunctional history backend
 		"valid manifest": {
 			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
@@ -111,97 +109,6 @@ func TestManifestSet(t *testing.T) {
 					[]byte("b"),
 				},
 			},
-			mSGetter: &stubManifestSetGetter{},
-		},
-		"valid manifest but error when setting it": {
-			req: &userapi.SetManifestRequest{
-				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
-					}
-				}),
-				Policies: [][]byte{
-					[]byte("a"),
-					[]byte("b"),
-				},
-			},
-			mSGetter: &stubManifestSetGetter{setManifestErr: assert.AnError},
-			wantErr:  true,
-		},
-		"workload owner key match": {
-			req: &userapi.SetManifestRequest{
-				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
-					}
-				}),
-				Policies: [][]byte{
-					[]byte("a"),
-					[]byte("b"),
-				},
-			},
-			mSGetter: &stubManifestSetGetter{
-				getManifestResp: []*manifest.Manifest{manifestWithTrustedKey},
-			},
-			workloadOwnerKey: trustedKey,
-		},
-		"workload owner key mismatch": {
-			req: &userapi.SetManifestRequest{
-				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
-					}
-				}),
-				Policies: [][]byte{
-					[]byte("a"),
-					[]byte("b"),
-				},
-			},
-			mSGetter: &stubManifestSetGetter{
-				getManifestResp: []*manifest.Manifest{manifestWithTrustedKey},
-			},
-			workloadOwnerKey: untrustedKey,
-			wantErr:          true,
-		},
-		"workload owner key missing": {
-			req: &userapi.SetManifestRequest{
-				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
-					}
-				}),
-				Policies: [][]byte{
-					[]byte("a"),
-					[]byte("b"),
-				},
-			},
-			mSGetter: &stubManifestSetGetter{
-				getManifestResp: []*manifest.Manifest{manifestWithTrustedKey},
-			},
-			wantErr: true,
-		},
-		"manifest not updatable": {
-			req: &userapi.SetManifestRequest{
-				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
-					}
-				}),
-				Policies: [][]byte{
-					[]byte("a"),
-					[]byte("b"),
-				},
-			},
-			mSGetter: &stubManifestSetGetter{
-				getManifestResp: []*manifest.Manifest{manifestWithoutTrustedKey},
-			},
-			workloadOwnerKey: trustedKey,
-			wantErr:          true,
 		},
 	}
 
@@ -210,12 +117,7 @@ func TestManifestSet(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 
-			coordinator := userAPIServer{
-				manifSetGetter:  tc.mSGetter,
-				policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
-				logger:          slog.Default(),
-			}
-
+			coordinator := newCoordinator()
 			ctx := rpcContext(tc.workloadOwnerKey)
 			resp, err := coordinator.SetManifest(ctx, tc.req)
 
@@ -226,72 +128,104 @@ func TestManifestSet(t *testing.T) {
 			require.NoError(err)
 			assert.Equal("system:coordinator:root", parsePEMCertificate(t, resp.RootCA).Subject.CommonName)
 			assert.Equal("system:coordinator:intermediate", parsePEMCertificate(t, resp.MeshCA).Subject.CommonName)
-			assert.Equal(1, tc.mSGetter.setManifestCount)
 		})
 	}
+
+	keyTestCases := map[string]struct {
+		workloadOwnerKey *ecdsa.PrivateKey
+		wantCode         codes.Code
+	}{
+		"workload owner key match": {
+			workloadOwnerKey: trustedKey,
+		},
+		"workload owner key mismatch": {
+			workloadOwnerKey: untrustedKey,
+			wantCode:         codes.PermissionDenied,
+		},
+		"workload owner key missing": {
+			wantCode: codes.PermissionDenied,
+		},
+	}
+	for name, tc := range keyTestCases {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			coordinator := newCoordinator()
+			ctx := rpcContext(tc.workloadOwnerKey)
+			m, err := json.Marshal(manifestWithTrustedKey)
+			require.NoError(err)
+			_, err = coordinator.SetManifest(ctx, &userapi.SetManifestRequest{Manifest: m})
+			require.NoError(err)
+
+			req := &userapi.SetManifestRequest{
+				Manifest: newManifestBytes(func(m *manifest.Manifest) {
+					m.Policies = map[manifest.HexString][]string{
+						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
+						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+					}
+				}),
+				Policies: [][]byte{
+					[]byte("a"),
+					[]byte("b"),
+				},
+			}
+			_, err = coordinator.SetManifest(ctx, req)
+			require.Equal(tc.wantCode, status.Code(err))
+		})
+	}
+
+	t.Run("no workload owner key in manifest", func(t *testing.T) {
+		require := require.New(t)
+
+		coordinator := newCoordinator()
+		ctx := rpcContext(trustedKey)
+		m, err := json.Marshal(manifestWithoutTrustedKey)
+		require.NoError(err)
+		req := &userapi.SetManifestRequest{Manifest: m}
+		_, err = coordinator.SetManifest(ctx, req)
+		require.NoError(err)
+		_, err = coordinator.SetManifest(ctx, req)
+		require.Error(err)
+		require.Equal(codes.PermissionDenied, status.Code(err))
+	})
 }
 
 func TestGetManifests(t *testing.T) {
-	testCases := map[string]struct {
-		mSGetter           *stubManifestSetGetter
-		policyStoreContent map[manifest.HexString]manifest.Policy
-		wantErr            bool
-	}{
-		"no manifest set": {
-			mSGetter: &stubManifestSetGetter{},
-			wantErr:  true,
-		},
-		"no policy in store": {
-			mSGetter: &stubManifestSetGetter{
-				getManifestResp: []*manifest.Manifest{
-					toPtr(manifest.Default()),
-					toPtr(manifest.Default()),
-				},
-			},
-			wantErr: true,
-		},
-		"one manifest set": {
-			mSGetter: &stubManifestSetGetter{
-				getManifestResp: []*manifest.Manifest{
-					toPtr(manifest.Default()),
-					toPtr(manifest.Default()),
-				},
-			},
-			policyStoreContent: map[manifest.HexString]manifest.Policy{
-				manifest.HexString("a"): {},
-			},
+	require := require.New(t)
+	assert := assert.New(t)
+
+	coordinator := newCoordinator()
+
+	ctx := context.Background()
+	resp, err := coordinator.GetManifests(ctx, &userapi.GetManifestsRequest{})
+	require.Error(err)
+	assert.Nil(resp)
+
+	m := manifest.Default()
+	m.Policies = map[manifest.HexString][]string{
+		manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
+		manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+	}
+	manifestBytes, err := json.Marshal(m)
+	require.NoError(err)
+
+	req := &userapi.SetManifestRequest{
+		Manifest: manifestBytes,
+		Policies: [][]byte{
+			[]byte("a"),
+			[]byte("b"),
 		},
 	}
+	setResp, err := coordinator.SetManifest(ctx, req)
+	require.NoError(err)
+	assert.NotNil(setResp)
 
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			assert := assert.New(t)
-			require := require.New(t)
+	resp, err = coordinator.GetManifests(ctx, &userapi.GetManifestsRequest{})
 
-			policyStore := memstore.New[manifest.HexString, manifest.Policy]()
-			for k, v := range tc.policyStoreContent {
-				policyStore.Set(k, v)
-			}
-
-			coordinator := userAPIServer{
-				manifSetGetter:  tc.mSGetter,
-				policyTextStore: policyStore,
-				logger:          slog.Default(),
-			}
-
-			ctx := context.Background()
-			resp, err := coordinator.GetManifests(ctx, &userapi.GetManifestsRequest{})
-
-			if tc.wantErr {
-				assert.Error(err)
-				return
-			}
-			require.NoError(err)
-			assert.Equal("system:coordinator:root", parsePEMCertificate(t, resp.RootCA).Subject.CommonName)
-			assert.Equal("system:coordinator:intermediate", parsePEMCertificate(t, resp.MeshCA).Subject.CommonName)
-			assert.Len(resp.Policies, len(tc.policyStoreContent))
-		})
-	}
+	require.NoError(err)
+	assert.Equal("system:coordinator:root", parsePEMCertificate(t, resp.RootCA).Subject.CommonName)
+	assert.Equal("system:coordinator:intermediate", parsePEMCertificate(t, resp.MeshCA).Subject.CommonName)
+	assert.Len(resp.Policies, len(m.Policies))
 }
 
 // TestUserAPIConcurrent tests potential synchronization problems between the different
@@ -310,11 +244,11 @@ func TestUserAPIConcurrent(t *testing.T) {
 		return b
 	}
 
-	coordinator := userAPIServer{
-		manifSetGetter:  &stubManifestSetGetter{},
-		policyTextStore: memstore.New[manifest.HexString, manifest.Policy](),
-		logger:          slog.Default(),
-	}
+	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
+	store := history.NewAferoStore(&afero.Afero{Fs: fs})
+	hist := history.NewWithStore(store)
+	coordinator := New(hist, prometheus.NewRegistry(), slog.Default())
+
 	setReq := &userapi.SetManifestRequest{
 		Manifest: newManifestBytes(func(m *manifest.Manifest) {
 			m.Policies = map[manifest.HexString][]string{
@@ -356,52 +290,11 @@ func TestUserAPIConcurrent(t *testing.T) {
 	wg.Wait()
 }
 
-type stubManifestSetGetter struct {
-	mux              sync.RWMutex
-	setManifestCount int
-	setManifestErr   error
-	getManifestResp  []*manifest.Manifest
-}
-
-func (s *stubManifestSetGetter) SetManifest([]byte, [][]byte) (*ca.CA, error) {
-	s.mux.Lock()
-	defer s.mux.Unlock()
-	s.setManifestCount++
-	return s.randomCA(), s.setManifestErr
-}
-
-func (s *stubManifestSetGetter) GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA, error) {
-	s.mux.RLock()
-	defer s.mux.RUnlock()
-	if s.getManifestResp == nil {
-		return make([]*manifest.Manifest, s.setManifestCount), s.randomCA(), nil
-	}
-	return s.getManifestResp, s.randomCA(), nil
-}
-
-func (s *stubManifestSetGetter) LatestManifest() (*manifest.Manifest, error) {
-	s.mux.RLock()
-	defer s.mux.RUnlock()
-	if len(s.getManifestResp) == 0 {
-		return nil, authority.ErrNoManifest
-	}
-	return s.getManifestResp[len(s.getManifestResp)-1], nil
-}
-
-func (s *stubManifestSetGetter) randomCA() *ca.CA {
-	rootKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	if err != nil {
-		panic(err)
-	}
-	meshKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	if err != nil {
-		panic(err)
-	}
-	ca, err := ca.New(rootKey, meshKey)
-	if err != nil {
-		panic(err)
-	}
-	return ca
+func newCoordinator() *Authority {
+	fs := afero.NewMemMapFs()
+	store := history.NewAferoStore(&afero.Afero{Fs: fs})
+	hist := history.NewWithStore(store)
+	return New(hist, prometheus.NewRegistry(), slog.Default())
 }
 
 func rpcContext(key *ecdsa.PrivateKey) context.Context {
@@ -444,8 +337,4 @@ func parsePEMCertificate(t *testing.T, pemCert []byte) *x509.Certificate {
 	cert, err := x509.ParseCertificate(block.Bytes)
 	require.NoError(t, err)
 	return cert
-}
-
-func toPtr[T any](t T) *T {
-	return &t
 }

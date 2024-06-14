@@ -24,6 +24,8 @@ import (
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/recoveryapi"
+	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/proto/sevsnp"
@@ -55,6 +57,9 @@ type Authority struct {
 	bundlesMux sync.RWMutex
 	logger     *slog.Logger
 	metrics    metrics
+
+	userapi.UnimplementedUserAPIServer
+	recoveryapi.UnimplementedRecoveryAPIServer
 }
 
 type metrics struct {
@@ -187,10 +192,10 @@ func (m *Authority) GetCertBundle(peerPublicKeyHashStr string) (Bundle, error) {
 	return bundle, nil
 }
 
-// GetManifestsAndLatestCA retrieves the manifest history and the currently active CA instance.
+// getManifestsAndLatestCA retrieves the manifest history and the currently active CA instance.
 //
 // If no manifest is configured, it returns an error.
-func (m *Authority) GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA, error) {
+func (m *Authority) getManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA, error) {
 	if m.se.Load() == nil {
 		return nil, nil, ErrNoManifest
 	}
@@ -223,8 +228,8 @@ func (m *Authority) GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA, err
 	return manifests, state.ca, nil
 }
 
-// SetManifest updates the active manifest.
-func (m *Authority) SetManifest(manifestBytes []byte, policies [][]byte) (*ca.CA, error) {
+// setManifest updates the active manifest.
+func (m *Authority) setManifest(manifestBytes []byte, policies [][]byte) (*ca.CA, error) {
 	if err := m.createSeedEngine(); err != nil {
 		return nil, fmt.Errorf("creating SeedEngine: %w", err)
 	}
@@ -314,8 +319,8 @@ func (m *Authority) SetManifest(manifestBytes []byte, policies [][]byte) (*ca.CA
 	return ca, nil
 }
 
-// LatestManifest retrieves the active manifest.
-func (m *Authority) LatestManifest() (*manifest.Manifest, error) {
+// latestManifest retrieves the active manifest.
+func (m *Authority) latestManifest() (*manifest.Manifest, error) {
 	if m.se.Load() == nil {
 		return nil, ErrNoManifest
 	}
@@ -329,19 +334,14 @@ func (m *Authority) LatestManifest() (*manifest.Manifest, error) {
 	return c.manifest, nil
 }
 
-// Recoverable returns whether the Authority can be recovered from a persisted state.
-func (m *Authority) Recoverable() (bool, error) {
-	return m.hist.HasLatest()
-}
-
-// Recover recovers the seed engine from a seed and salt.
-func (m *Authority) Recover(seed, salt []byte) error {
+// recover recovers the seed engine from a seed and salt.
+func (m *Authority) recover(seed, salt []byte) error {
 	seedEngine, err := seedengine.New(seed, salt)
 	if err != nil {
 		return fmt.Errorf("creating seed engine: %w", err)
 	}
 	if !m.se.CompareAndSwap(nil, seedEngine) {
-		return errors.New("already recovered")
+		return ErrAlreadyRecovered
 	}
 	m.hist.ConfigureSigningKey(m.se.Load().TransactionSigningKey())
 	return nil
@@ -365,10 +365,10 @@ func (m *Authority) createSeedEngine() error {
 	if err != nil {
 		return fmt.Errorf("creating seed engine: %w", err)
 	}
-	// It's fine if the seedEngine has already been created by another thread.
-	m.se.CompareAndSwap(nil, seedEngine)
 
-	m.hist.ConfigureSigningKey(m.se.Load().TransactionSigningKey())
+	if m.se.CompareAndSwap(nil, seedEngine) {
+		m.hist.ConfigureSigningKey(seedEngine.TransactionSigningKey())
+	}
 	return nil
 }
 
