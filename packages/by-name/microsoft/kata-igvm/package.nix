@@ -11,8 +11,7 @@
 
 stdenv.mkDerivation rec {
   pname = "kata-igvm";
-  # This is not a real version, since the igvm builder is not part of the official release
-  version = "3.2.0.igvm";
+  version = "3.2.0.azl1.genpolicy0";
 
   outputs = [ "out" "debug" ];
 
@@ -20,13 +19,11 @@ stdenv.mkDerivation rec {
     igvm-tooling
   ];
 
-  # keep up to date with the igvm-builder branch
-  # https://github.com/microsoft/kata-containers/tree/dadelan/igvm-builder
   src = fetchFromGitHub {
     owner = "microsoft";
     repo = "kata-containers";
-    rev = "ad93335ff0d1502a6f094324aa87275c8201c684";
-    hash = "sha256-pVogv30WsQejBtheGz76O4MDUs1+nxm8Xr6LXGmtolg=";
+    rev = "refs/tags/${version}";
+    hash = "sha256-sFh2V7ylRDL6H50BcaHcgJAhrx4yvXzHNxtdQ9VYXdk=";
   };
 
   sourceRoot = "${src.name}/tools/osbuilder/igvm-builder";
@@ -35,24 +32,25 @@ stdenv.mkDerivation rec {
     chmod +x igvm_builder.sh
     substituteInPlace igvm_builder.sh \
       --replace-fail '#!/usr/bin/env bash' '#!${stdenv.shell}' \
-      --replace-fail 'python3 igvm/igvmgen.py' igvmgen \
-      --replace-fail igvm/acpi/acpi-clh/ "${igvm-tooling}/share/igvm-tooling/acpi/acpi-clh/" \
+      --replace-fail 'python3 ''${igvmgen_py_file}' igvmgen \
+      --replace-fail '-svn $SVN' '-svn $SVN -sign_key ${igvm-signing-keygen.snakeoilPem} -sign_deterministic true' \
+      --replace-fail '"''${script_dir}/../root_hash.txt"' ${microsoft.kata-image.verity}/dm_verity.txt \
+      --replace-fail "install_igvm" ""
+
+    substituteInPlace azure-linux/config.sh \
+      --replace-fail '"''${igvm_extract_folder}/src/igvm/acpi/acpi-clh/"' '"${igvm-tooling}/share/igvm-tooling/acpi/acpi-clh/"' \
       --replace-fail rootfstype=ext4 rootfstype=erofs \
       --replace-fail rootflags=data=ordered,errors=remount-ro "" \
-      --replace-fail '-svn 0' '-svn 0 -sign_key ${igvm-signing-keygen.snakeoilPem} -sign_deterministic true' \
-      --replace-fail 'mv ''${igvm_name} ''${script_dir}' "" \
-      --replace-fail sudo ""
+      --replace-fail /usr/share/cloud-hypervisor/bzImage ${microsoft.kata-kernel-uvm}/bzImage
   '';
 
   buildPhase = ''
     runHook preBuild
 
-    # prevent non-hermetic download of igvm-tooling / igvmgen
-    mkdir -p msigvm-1.2.0
-    ./igvm_builder.sh -k ${microsoft.kata-kernel-uvm}/bzImage -v ${microsoft.kata-image.verity}/dm_verity.txt -o $out
-    # prevent non-hermetic download of igvm-tooling / igvmgen
-    mkdir -p msigvm-1.2.0
-    ./igvm_builder.sh -d -k ${microsoft.kata-kernel-uvm}/bzImage -v ${microsoft.kata-image.verity}/dm_verity.txt -o $debug
+    bash -x ./igvm_builder.sh -s 0 -o .
+
+    mv kata-containers-igvm.img $out
+    mv kata-containers-igvm-debug.img $debug
 
     runHook postBuild
   '';
