@@ -28,11 +28,10 @@ func execute() error {
 }
 
 var (
-	version           = "0.0.0-dev"
-	runtimeHandler    = "contrast-cc"
-	launchDigest      = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-	genpolicyVersion  = "0.0.0-dev"
-	containerVersions = ""
+	version          = "0.0.0-dev"
+	runtimeHandler   = "contrast-cc"
+	launchDigest     = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+	genpolicyVersion = "0.0.0-dev"
 )
 
 func newRootCmd() *cobra.Command {
@@ -42,11 +41,13 @@ func newRootCmd() *cobra.Command {
 	versionsBuilder.WriteString(fmt.Sprintf("\truntime handler: %s\n", runtimeHandler))
 	versionsBuilder.WriteString(fmt.Sprintf("\tlaunch digest: %s\n", launchDigest))
 	versionsBuilder.WriteString(fmt.Sprintf("\tgenpolicy version: %s\n", genpolicyVersion))
-	for _, container := range strings.Split(containerVersions, ",") {
-		containerSplit := strings.Split(container, "@")
-		containerName := containerSplit[0]
-		containerVersion := containerSplit[1]
-		versionsBuilder.WriteString(fmt.Sprintf("\t%s: %s\n", containerName, containerVersion))
+	versionsBuilder.WriteString("\timage versions:\n")
+	imageReplacements := strings.Trim(string(cmd.ReleaseImageReplacements), "\n")
+	for _, image := range strings.Split(imageReplacements, "\n") {
+		if !strings.HasPrefix(image, "#") {
+			image = strings.Split(image, "=")[1]
+		}
+		versionsBuilder.WriteString(fmt.Sprintf("\t\t%s\n", image))
 	}
 
 	root := &cobra.Command{

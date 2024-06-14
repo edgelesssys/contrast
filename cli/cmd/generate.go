@@ -260,9 +260,9 @@ func patchTargets(paths []string, imageReplacementsFile string, skipInitializer 
 			return fmt.Errorf("parsing image definition file %s: %w", imageReplacementsFile, err)
 		}
 	} else {
-		replacements, err = kuberesource.ImageReplacementsFromFile(bytes.NewReader(releaseImageReplacements))
+		replacements, err = kuberesource.ImageReplacementsFromFile(bytes.NewReader(ReleaseImageReplacements))
 		if err != nil {
-			return fmt.Errorf("parsing release image definitions %s: %w", releaseImageReplacements, err)
+			return fmt.Errorf("parsing release image definitions %s: %w", ReleaseImageReplacements, err)
 		}
 	}
 	for _, path := range paths {
