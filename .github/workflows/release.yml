@@ -49,7 +49,7 @@ jobs:
       NEXT_MINOR_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
       NEXT_PATCH_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
     steps:
-      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - name: Working branch
         run: |
           echo "WORKING_BRANCH=$(git branch --show-current)" | tee -a "$GITHUB_ENV"
@@ -123,12 +123,12 @@ jobs:
       WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
     steps:
       - name: Checkout working branch
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           path: contrast-working
       - name: Checkout main
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: main
           path: contrast-main
@@ -213,7 +213,7 @@ jobs:
       WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
     steps:
       - name: Checkout
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
       - uses: ./.github/actions/setup_nix
@@ -326,7 +326,7 @@ jobs:
       packages: read
     needs: release
     steps:
-      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -370,7 +370,7 @@ jobs:
       NEXT_MINOR: ${{ needs.process-inputs.outputs.NEXT_MINOR }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
       - name: Create backport label
