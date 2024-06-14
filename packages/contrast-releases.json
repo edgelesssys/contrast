@@ -33,7 +33,7 @@
       "hash": "sha256-wkFrKsnoTfoe+iKM3GwJShLdLzdgwl5S+3RToGdMdUg="
     },
     {
-      "version": "0.7.0",
+      "version": "v0.7.0",
       "hash": "sha256-0arNzOsh9FBUV+uzF/bOZe/2Bat+Qb7EqS5n5VCUcJQ="
     }
   ],
@@ -71,7 +71,7 @@
       "hash": "sha256-Y8SOqsFnknDM8j/bsjLgkEjyLtONUE68SWIWG566QE8="
     },
     {
-      "version": "0.7.0",
+      "version": "v0.7.0",
       "hash": "sha256-SCodY1iwWrGUOY5oMJKBxOvkOnK+ujfNFheV3ip7qCk="
     }
   ],
@@ -93,7 +93,7 @@
       "hash": "sha256-gkORMN5x9L5QdSSdszaeij57PHkxY12ZpqZ7Ud6VrIg="
     },
     {
-      "version": "0.7.0",
+      "version": "v0.7.0",
       "hash": "sha256-7wpPTpxAOh3vsECdZh+BsJQCzkrnJwG+2O+WctKuwlk="
     }
   ],
@@ -107,7 +107,7 @@
       "hash": "sha256-7A/r68T8BlYeTgMQtrCUqR/+dQlwFimeGz+7JSxAT4w="
     },
     {
-      "version": "0.7.0",
+      "version": "v0.7.0",
       "hash": "sha256-HFz0blP1yGs3wjUs5z9/cyPqCkzxh5AWAD25PLRONGw="
     }
   ]
