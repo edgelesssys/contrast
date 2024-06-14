@@ -34,6 +34,7 @@ rustPlatform.buildRustPackage rec {
       sha256 = "sha256-wBOyrFY4ZdWBjF5bIrHm7CFy6lVclcvwhF85wXpFZoc=";
     })
     ./genpolicy_msft_runtime_class_filter.patch
+    ./genpolicy_msft_strict_rules.patch
   ];
 
   patchFlags = [ "-p4" ];

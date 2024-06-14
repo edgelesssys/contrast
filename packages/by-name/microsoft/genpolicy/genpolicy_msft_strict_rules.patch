@@ -1,0 +1,127 @@
+From cd094f7539cbd90d79a5171e8f43c9fca44d5695 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Fri, 14 Jun 2024 22:34:46 +0200
+Subject: [PATCH] genpolicy: reject untested CreateContainer field values
+
+This is a backport of https://github.com/kata-containers/kata-containers/pull/9856,
+precisely
+* https://github.com/kata-containers/kata-containers/commits/5d4813a467e1586f7eec5e6cab16acb8a1b421e2
+* https://github.com/kata-containers/kata-containers/commits/5ef82862f3626bc142229afa403b6f4288978286
+
+---
+ src/tools/genpolicy/genpolicy-settings.json |  1 +
+ src/tools/genpolicy/rules.rego              | 47 +++++++++++++++++----
+ src/tools/genpolicy/src/policy.rs           |  3 ++
+ 3 files changed, 43 insertions(+), 8 deletions(-)
+
+diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
+index 7d35862af..da37c2f03 100644
+--- a/src/tools/genpolicy/genpolicy-settings.json
++++ b/src/tools/genpolicy/genpolicy-settings.json
+@@ -211,6 +211,7 @@
+     },
+     "common": {
+         "cpath": "/run/kata-containers/shared/containers",
++        "mount_source_cpath": "/run/kata-containers/shared/containers",
+         "sfprefix": "^$(cpath)/$(bundle-id)-[a-z0-9]{16}-",
+         "spath": "/run/kata-containers/sandbox/storage",
+         "ip_p": "[0-9]{1,5}",
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index 25c16bada..aaa6fc305 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -52,16 +52,15 @@ default WriteStreamRequest := false
+ default AllowRequestsFailingPolicy := false
+
+ CreateContainerRequest {
++    # Check if the input request should be rejected even before checking the
++    # policy_data.containers information.
++    allow_create_container_input
++
+     i_oci := input.OCI
+     i_storages := input.storages
+     i_devices := input.devices
+
+-    print("CreateContainerRequest: i_oci.Hooks =", i_oci.Hooks)
+-    is_null(i_oci.Hooks)
+-
+-    print("CreateContainerRequest: i_oci.Linux.Seccomp =", i_oci.Linux.Seccomp)
+-    is_null(i_oci.Linux.Seccomp)
+-
++    # Check if any element from the policy_data.containers array allows the input request.
+     some p_container in policy_data.containers
+     print("======== CreateContainerRequest: trying next policy container")
+
+@@ -91,6 +90,38 @@ CreateContainerRequest {
+     print("CreateContainerRequest: true")
+ }
+
++allow_create_container_input {
++    print("allow_create_container_input: input =", input)
++
++    count(input.shared_mounts) == 0
++    is_null(input.string_user)
++
++    i_oci := input.OCI
++    is_null(i_oci.Hooks)
++    is_null(i_oci.Linux.Seccomp)
++    is_null(i_oci.Solaris)
++    is_null(i_oci.Windows)
++
++    i_linux := i_oci.Linux
++    count(i_linux.GIDMappings) == 0
++    count(i_linux.MountLabel) == 0
++    count(i_linux.Resources.Devices) == 0
++    count(i_linux.RootfsPropagation) == 0
++    count(i_linux.UIDMappings) == 0
++    is_null(i_linux.IntelRdt)
++    is_null(i_linux.Resources.BlockIO)
++    is_null(i_linux.Resources.Network)
++    is_null(i_linux.Resources.Pids)
++    is_null(i_linux.Seccomp)
++    i_linux.Sysctl == {}
++
++    i_process := i_oci.Process
++    count(i_process.SelinuxLabel) == 0
++    count(i_process.User.Username) == 0
++
++    print("allow_create_container_input: true")
++}
++
+ # Reject unexpected annotations.
+ allow_anno(p_oci, i_oci) {
+     print("allow_anno 1: start")
+@@ -768,7 +799,7 @@ check_mount(p_mount, i_mount, bundle_id, sandbox_id) {
+ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
+     regex1 := p_mount.source
+     regex2 := replace(regex1, "$(sfprefix)", policy_data.common.sfprefix)
+-    regex3 := replace(regex2, "$(cpath)", policy_data.common.cpath)
++    regex3 := replace(regex2, "$(cpath)", policy_data.common.mount_source_cpath)
+     regex4 := replace(regex3, "$(bundle-id)", bundle_id)
+
+     print("mount_source_allows 1: regex4 =", regex4)
+@@ -779,7 +810,7 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
+ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
+     regex1 := p_mount.source
+     regex2 := replace(regex1, "$(sfprefix)", policy_data.common.sfprefix)
+-    regex3 := replace(regex2, "$(cpath)", policy_data.common.cpath)
++    regex3 := replace(regex2, "$(cpath)", policy_data.common.mount_source_cpath)
+     regex4 := replace(regex3, "$(sandbox-id)", sandbox_id)
+
+     print("mount_source_allows 2: regex4 =", regex4)
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index a1affda77..1f0ef6d6a 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -371,6 +371,9 @@ pub struct CommonData {
+     /// Path to the shared container files - e.g., "/run/kata-containers/shared/containers".
+     pub cpath: String,
+
++    /// Path to the shared container files for mount sources - e.g., "/run/kata-containers/shared/containers".
++    pub mount_source_cpath: String,
++
+     /// Regex prefix for shared file paths - e.g., "^$(cpath)/$(bundle-id)-[a-z0-9]{16}-".
+     pub sfprefix: String,
+
+--
+2.45.2
