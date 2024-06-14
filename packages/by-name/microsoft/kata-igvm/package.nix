@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 { lib
-, fetchFromGitHub
 , stdenv
 , microsoft
 , igvm-tooling
@@ -11,20 +10,13 @@
 
 stdenv.mkDerivation rec {
   pname = "kata-igvm";
-  version = "3.2.0.azl1.genpolicy0";
+  inherit (microsoft.genpolicy) src version;
 
   outputs = [ "out" "debug" ];
 
   nativeBuildInputs = [
     igvm-tooling
   ];
-
-  src = fetchFromGitHub {
-    owner = "microsoft";
-    repo = "kata-containers";
-    rev = "refs/tags/${version}";
-    hash = "sha256-sFh2V7ylRDL6H50BcaHcgJAhrx4yvXzHNxtdQ9VYXdk=";
-  };
 
   sourceRoot = "${src.name}/tools/osbuilder/igvm-builder";
 
