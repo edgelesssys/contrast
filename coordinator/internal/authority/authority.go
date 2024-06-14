@@ -189,7 +189,7 @@ func (m *Authority) GetCertBundle(peerPublicKeyHashStr string) (Bundle, error) {
 
 // GetManifestsAndLatestCA retrieves the manifest history and the currently active CA instance.
 //
-// If no manifest is configured, it returns an empty slice and a nil CA.
+// If no manifest is configured, it returns an error.
 func (m *Authority) GetManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA, error) {
 	if m.se.Load() == nil {
 		return nil, nil, ErrNoManifest
