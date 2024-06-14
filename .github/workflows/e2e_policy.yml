@@ -55,7 +55,7 @@ jobs:
           just coordinator initializer port-forwarder service-mesh-proxy node-installer
       - name: E2E Test
         run: |
-          nix shell .#contrast.e2e --command servicemesh.test -test.v workspace/just.containerlookup
+          nix shell .#contrast.e2e --command policy.test -test.v
       - name: Undeploy
         if: always() && inputs.skip-undeploy != 'true'
         run: |
