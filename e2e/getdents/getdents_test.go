@@ -25,10 +25,13 @@ const (
 	getdent = "getdents-tester"
 )
 
-var imageReplacementsFile string
+var (
+	imageReplacementsFile, namespaceFile string
+	skipUndeploy                         bool
+)
 
 func TestGetDEnts(t *testing.T) {
-	ct := contrasttest.New(t, imageReplacementsFile)
+	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, skipUndeploy)
 
 	resources, err := kuberesource.GetDEnts()
 	require.NoError(t, err)
@@ -72,9 +75,10 @@ func TestGetDEnts(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
+	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
+	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
+	flag.BoolVar(&skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
 	flag.Parse()
-
-	imageReplacementsFile = flag.Arg(0)
 
 	os.Exit(m.Run())
 }

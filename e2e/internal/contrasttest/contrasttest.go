@@ -32,6 +32,8 @@ type ContrastTest struct {
 	WorkDir               string
 	ImageReplacements     map[string]string
 	ImageReplacementsFile string
+	NamespaceFile         string
+	SkipUndeploy          bool
 	Kubeclient            *kubeclient.Kubeclient
 
 	// outputs of contrast subcommands
@@ -41,11 +43,13 @@ type ContrastTest struct {
 }
 
 // New creates a new contrasttest.T object bound to the given test.
-func New(t *testing.T, imageReplacements string) *ContrastTest {
+func New(t *testing.T, imageReplacements, namespaceFile string, skipUndeploy bool) *ContrastTest {
 	return &ContrastTest{
 		Namespace:             makeNamespace(t),
 		WorkDir:               t.TempDir(),
 		ImageReplacementsFile: imageReplacements,
+		NamespaceFile:         namespaceFile,
+		SkipUndeploy:          skipUndeploy,
 		Kubeclient:            kubeclient.NewForTest(t),
 	}
 }
@@ -81,6 +85,9 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	// Create namespace
 	namespace, err := kuberesource.ResourcesToUnstructured([]any{kuberesource.Namespace(ct.Namespace)})
 	require.NoError(err)
+	if ct.NamespaceFile != "" {
+		require.NoError(os.WriteFile(ct.NamespaceFile, []byte(ct.Namespace), 0o644))
+	}
 	// Creating a namespace should not take too long.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	err = ct.Kubeclient.Apply(ctx, namespace...)
@@ -92,8 +99,10 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
 
-		if err := ct.Kubeclient.Delete(ctx, namespace...); err != nil {
-			t.Logf("Could not delete namespace %q: %v", ct.Namespace, err)
+		if !ct.SkipUndeploy {
+			if err := ct.Kubeclient.Delete(ctx, namespace...); err != nil {
+				t.Logf("Could not delete namespace %q: %v", ct.Namespace, err)
+			}
 		}
 
 		if fifo != nil {
