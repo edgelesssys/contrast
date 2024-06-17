@@ -1,5 +1,5 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index 7d35862a..f469b201 100644
+index 7d35862a..4eacc7cd 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
 @@ -307,7 +307,8 @@
@@ -12,20 +12,9 @@ index 7d35862a..f469b201 100644
              ]
          },
          "CopyFileRequest": [
-@@ -315,11 +316,13 @@
-         ],
-         "ExecProcessRequest": {
-             "commands": [],
--            "regex": []
-+            "regex": [
-+                ".*"
-+            ]
-         },
-         "CloseStdinRequest": false,
-         "ReadStreamRequest": true,
+@@ -322,4 +323,4 @@
          "UpdateEphemeralMountsRequest": false,
--        "WriteStreamRequest": false
-+        "WriteStreamRequest": true
+         "WriteStreamRequest": false
      }
 -}
 \ No newline at end of file
