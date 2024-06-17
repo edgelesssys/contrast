@@ -6,7 +6,8 @@ on:
         skip-undeploy:
           description: "Skip undeploy"
           required: false
-          default: "false"
+          type: boolean
+          default: false
     pull_request:
       paths-ignore:
         - docs/**
@@ -60,4 +61,11 @@ jobs:
           just coordinator initializer openssl port-forwarder node-installer
       - name: E2E Test
         run: |
-          nix shell .#contrast.e2e --command openssl.test -test.v workspace/just.containerlookup
+          nix shell .#contrast.e2e --command openssl.test -test.v \
+            --image-replacements workspace/just.containerlookup \
+            --namespace-file workspace/e2e.namespace \
+            --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
+      - name: Cleanup
+        if: cancelled() && !inputs.skip-undeploy
+        run: |
+          kubectl delete ns $(cat workspace/e2e.namespace) --timeout 5m
