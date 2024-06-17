@@ -66,6 +66,7 @@ subcommands.`,
 
 	cmd.Flags().StringP("policy", "p", rulesFilename, "path to policy (.rego) file")
 	cmd.Flags().StringP("settings", "s", settingsFilename, "path to settings (.json) file")
+	cmd.Flags().StringP("genpolicy-cache-path", "c", layersCacheFilename, "path to cache for the cache (.json) file containing the image layers")
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().String("reference-values", "", "set the default reference values used for attestation (one of: aks)")
 	cmd.Flags().StringArrayP("workload-owner-key", "w", []string{workloadOwnerPEM},
@@ -104,7 +105,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
 
-	if err := generatePolicies(cmd.Context(), flags.policyPath, flags.settingsPath, paths, log); err != nil {
+	if err := generatePolicies(cmd.Context(), flags.policyPath, flags.settingsPath, flags.genpolicyCachePath, paths, log); err != nil {
 		return fmt.Errorf("failed to generate policies: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Generated workload policy annotations")
@@ -235,7 +236,7 @@ func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger 
 	return filtered
 }
 
-func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath string, yamlPaths []string, logger *slog.Logger) error {
+func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath, genpolicyCachePath string, yamlPaths []string, logger *slog.Logger) error {
 	if err := createFileWithDefault(policySettingsPath, func() ([]byte, error) { return defaultGenpolicySettings, nil }); err != nil {
 		return fmt.Errorf("creating default policy file: %w", err)
 	}
@@ -256,7 +257,7 @@ func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath str
 		}
 	}()
 	for _, yamlPath := range yamlPaths {
-		policyHash, err := generatePolicyForFile(ctx, genpolicyInstall.Path(), regoRulesPath, policySettingsPath, yamlPath, logger)
+		policyHash, err := generatePolicyForFile(ctx, genpolicyInstall.Path(), regoRulesPath, policySettingsPath, yamlPath, genpolicyCachePath, logger)
 		if err != nil {
 			return fmt.Errorf("failed to generate policy for %s: %w", yamlPath, err)
 		}
@@ -488,14 +489,14 @@ func (l logTranslator) stop() {
 	<-l.stopDoneC
 }
 
-func generatePolicyForFile(ctx context.Context, genpolicyPath, regoPath, policyPath, yamlPath string, logger *slog.Logger) ([32]byte, error) {
+func generatePolicyForFile(ctx context.Context, genpolicyPath, regoPath, policyPath, yamlPath, genpolicyCachePath string, logger *slog.Logger) ([32]byte, error) {
 	args := []string{
 		"--raw-out",
-		"--use-cached-files",
 		fmt.Sprintf("--runtime-class-names=%s", "contrast-cc"),
 		fmt.Sprintf("--rego-rules-path=%s", regoPath),
 		fmt.Sprintf("--json-settings-path=%s", policyPath),
 		fmt.Sprintf("--yaml-file=%s", yamlPath),
+		fmt.Sprintf("--layers-cache-file-path=%s", genpolicyCachePath),
 	}
 	genpolicy := exec.CommandContext(ctx, genpolicyPath, args...)
 	genpolicy.Env = append(genpolicy.Env, "RUST_LOG=info", "RUST_BACKTRACE=1")
@@ -577,6 +578,7 @@ type generateFlags struct {
 	policyPath            string
 	settingsPath          string
 	manifestPath          string
+	genpolicyCachePath    string
 	referenceValues       string
 	workloadOwnerKeys     []string
 	seedshareOwnerKeys    []string
@@ -592,6 +594,10 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		return nil, err
 	}
 	settingsPath, err := cmd.Flags().GetString("settings")
+	if err != nil {
+		return nil, err
+	}
+	genpolicyCachePath, err := cmd.Flags().GetString("genpolicy-cache-path")
 	if err != nil {
 		return nil, err
 	}
@@ -627,6 +633,9 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		if !cmd.Flags().Changed("settings") {
 			settingsPath = filepath.Join(workspaceDir, settingsFilename)
 		}
+		if !cmd.Flags().Changed("genpolicy-cache-path") {
+			genpolicyCachePath = filepath.Join(workspaceDir, genpolicyCachePath)
+		}
 		if !cmd.Flags().Changed("policy") {
 			policyPath = filepath.Join(workspaceDir, rulesFilename)
 		}
@@ -654,6 +663,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	return &generateFlags{
 		policyPath:            policyPath,
 		settingsPath:          settingsPath,
+		genpolicyCachePath:    genpolicyCachePath,
 		manifestPath:          manifestPath,
 		referenceValues:       referenceValues,
 		workloadOwnerKeys:     workloadOwnerKeys,

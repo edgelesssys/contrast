@@ -1,0 +1,260 @@
+From 6a3ed38140ab8e1026f1aca4e3b41646af5b33d9 Mon Sep 17 00:00:00 2001
+From: Leonard Cohnen <lc@edgeless.systems>
+Date: Mon, 17 Jun 2024 22:39:23 +0200
+Subject: [PATCH] genpolicy: allow specifying layer cache file
+
+Add --layers-cache-file-path flag to allow the user to
+specify where the cache file for the container layers
+is saved. This allows e.g. to have one cache file
+independent of the user's working directory.
+
+NOTE: This patch file has been heavily modified so that it
+applies to the microsoft/kata-containers fork.
+Still, of the original commit is adopted at some point,
+this patch can be dropped.
+
+Signed-off-by: Leonard Cohnen <lc@edgeless.systems>
+---
+ src/tools/genpolicy/src/registry.rs           | 28 +++++++++--------
+ .../genpolicy/src/registry_containerd.rs      | 30 +++++++++++--------
+ src/tools/genpolicy/src/utils.rs              | 16 ++++++++++
+ .../kubernetes/k8s-policy-pod.bats            | 14 +++++++++
+ 4 files changed, 63 insertions(+), 25 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index 87d81fb2c..e30405808 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -67,7 +67,7 @@ pub struct ImageLayer {
+ }
+
+ impl Container {
+-    pub async fn new(use_cached_files: bool, image: &str) -> Result<Self> {
++    pub async fn new(layers_cache_file_path: Option<String>, image: &str) -> Result<Self> {
+         info!("============================================");
+         info!("Pulling manifest and config for {:?}", image);
+         let reference: Reference = image.to_string().parse().unwrap();
+@@ -96,7 +96,7 @@ impl Container {
+                 let config_layer: DockerConfigLayer =
+                     serde_json::from_str(&config_layer_str).unwrap();
+                 let image_layers = get_image_layers(
+-                    use_cached_files,
++                    layers_cache_file_path,
+                     &mut client,
+                     &reference,
+                     &manifest,
+@@ -227,7 +227,7 @@ impl Container {
+ }
+
+ async fn get_image_layers(
+-    use_cached_files: bool,
++    layers_cache_file_path: Option<String>,
+     client: &mut Client,
+     reference: &Reference,
+     manifest: &manifest::OciImageManifest,
+@@ -246,7 +246,7 @@ async fn get_image_layers(
+                 layers.push(ImageLayer {
+                     diff_id: config_layer.rootfs.diff_ids[layer_index].clone(),
+                     verity_hash: get_verity_hash(
+-                        use_cached_files,
++                        layers_cache_file_path.clone(),
+                         client,
+                         reference,
+                         &layer.digest,
+@@ -266,7 +266,7 @@ async fn get_image_layers(
+ }
+
+ async fn get_verity_hash(
+-    use_cached_files: bool,
++    layers_cache_file_path: Option<String>,
+     client: &mut Client,
+     reference: &Reference,
+     layer_digest: &str,
+@@ -274,7 +274,6 @@ async fn get_verity_hash(
+ ) -> Result<String> {
+     let temp_dir = tempfile::tempdir_in(".")?;
+     let base_dir = temp_dir.path();
+-    let cache_file = "layers-cache.json";
+     // Use file names supported by both Linux and Windows.
+     let file_name = str::replace(layer_digest, ":", "-");
+     let mut decompressed_path = base_dir.join(file_name);
+@@ -288,8 +287,8 @@ async fn get_verity_hash(
+     let mut error = false;
+
+     // get value from store and return if it exists
+-    if use_cached_files {
+-        verity_hash = read_verity_from_store(cache_file, diff_id)?;
++    if let Some(path) = layers_cache_file_path.as_ref() {
++        verity_hash = read_verity_from_store(path, diff_id)?;
+         info!("Using cache file");
+         info!("dm-verity root hash: {verity_hash}");
+     }
+@@ -317,8 +316,8 @@ async fn get_verity_hash(
+                 }
+                 Ok(v) => {
+                     verity_hash = v;
+-                    if use_cached_files {
+-                        add_verity_to_store(cache_file, diff_id, &verity_hash)?;
++                    if let Some(path) = layers_cache_file_path.as_ref() {
++                        add_verity_to_store(path, diff_id, &verity_hash)?;
+                     }
+                     info!("dm-verity root hash: {verity_hash}");
+                 }
+@@ -329,8 +328,8 @@ async fn get_verity_hash(
+     temp_dir.close()?;
+     if error {
+         // remove the cache file if we're using it
+-        if use_cached_files {
+-            std::fs::remove_file(cache_file)?;
++        if let Some(path) = layers_cache_file_path.as_ref() {
++            std::fs::remove_file(path)?;
+         }
+         warn!("{error_message}");
+     }
+@@ -457,9 +456,14 @@ pub fn get_verity_hash_value(path: &Path) -> Result<String> {
+
+ pub async fn get_container(config: &Config, image: &str) -> Result<Container> {
+     if let Some(socket_path) = &config.containerd_socket_path {
+-        return Container::new_containerd_pull(config.use_cache, image, socket_path).await;
++        return Container::new_containerd_pull(
++            config.layers_cache_file_path.clone(),
++            image,
++            socket_path,
++        )
++        .await;
+     }
+-    Container::new(config.use_cache, image).await
++    Container::new(config.layers_cache_file_path.clone(), image).await
+ }
+
+ fn build_auth(reference: &Reference) -> RegistryAuth {
+diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
+index c63a73f3d..c1338e1ba 100644
+--- a/src/tools/genpolicy/src/registry_containerd.rs
++++ b/src/tools/genpolicy/src/registry_containerd.rs
+@@ -28,7 +28,7 @@ use tower::service_fn;
+
+ impl Container {
+     pub async fn new_containerd_pull(
+-        use_cached_files: bool,
++        layers_cache_file_path: Option<String>,
+         image: &str,
+         containerd_socket_path: &str,
+     ) -> Result<Self> {
+@@ -58,8 +58,13 @@ impl Container {
+         let config_layer = get_config_layer(image_ref_str, k8_cri_image_client)
+             .await
+             .unwrap();
+-        let image_layers =
+-            get_image_layers(use_cached_files, &manifest, &config_layer, &ctrd_client).await?;
++        let image_layers = get_image_layers(
++            layers_cache_file_path,
++            &manifest,
++            &config_layer,
++            &ctrd_client,
++        )
++        .await?;
+
+         Ok(Container {
+             config_layer,
+@@ -242,7 +247,7 @@ pub fn build_auth(reference: &Reference) -> Option<AuthConfig> {
+ }
+
+ pub async fn get_image_layers(
+-    use_cached_files: bool,
++    layers_cache_file_path: Option<String>,
+     manifest: &serde_json::Value,
+     config_layer: &DockerConfigLayer,
+     client: &containerd_client::Client,
+@@ -261,7 +266,7 @@ pub async fn get_image_layers(
+                 let imageLayer = ImageLayer {
+                     diff_id: config_layer.rootfs.diff_ids[layer_index].clone(),
+                     verity_hash: get_verity_hash(
+-                        use_cached_files,
++                        layers_cache_file_path.clone(),
+                         layer["digest"].as_str().unwrap(),
+                         client,
+                         &config_layer.rootfs.diff_ids[layer_index].clone(),
+@@ -280,7 +285,7 @@ pub async fn get_image_layers(
+ }
+
+ async fn get_verity_hash(
+-    use_cached_files: bool,
++    layers_cache_file_path: Option<String>,
+     layer_digest: &str,
+     client: &containerd_client::Client,
+     diff_id: &str,
+@@ -300,8 +305,8 @@ async fn get_verity_hash(
+     let mut error_message = "".to_string();
+     let mut error = false;
+
+-    if use_cached_files {
+-        verity_hash = read_verity_from_store(cache_file, diff_id)?;
++    if let Some(path) = layers_cache_file_path.as_ref() {
++        verity_hash = read_verity_from_store(path, diff_id)?;
+         info!("Using cache file");
+         info!("dm-verity root hash: {verity_hash}");
+     }
+@@ -328,8 +333,8 @@ async fn get_verity_hash(
+                 }
+                 Ok(v) => {
+                     verity_hash = v;
+-                    if use_cached_files {
+-                        add_verity_to_store(cache_file, diff_id, &verity_hash)?;
++                    if let Some(path) = layers_cache_file_path.as_ref() {
++                        add_verity_to_store(path, diff_id, &verity_hash)?;
+                     }
+                     info!("dm-verity root hash: {verity_hash}");
+                 }
+@@ -339,8 +344,8 @@ async fn get_verity_hash(
+     temp_dir.close()?;
+     if error {
+         // remove the cache file if we're using it
+-        if use_cached_files {
+-            std::fs::remove_file(cache_file)?;
++        if let Some(path) = layers_cache_file_path.as_ref() {
++            std::fs::remove_file(path)?;
+         }
+         warn!("{error_message}");
+     }
+diff --git a/src/tools/genpolicy/src/utils.rs b/src/tools/genpolicy/src/utils.rs
+index e0d4b84be..24933075a 100644
+--- a/src/tools/genpolicy/src/utils.rs
++++ b/src/tools/genpolicy/src/utils.rs
+@@ -88,3 +89,11 @@ struct CommandLineOptions {
+     containerd_socket_path: Option<String>,
+
++    #[clap(
++        long,
++        help = "Path to the layers cache file. This file is used to store the layers cache information. The default value is ./layers-cache.json.",
++        default_missing_value = "./layers-cache.json",
++        require_equals = true
++    )]
++    layers_cache_file_path: Option<String>,
++
+     #[clap(short, long, help = "Print version information and exit")]
+@@ -106,4 +115,5 @@ pub struct Config {
+     pub raw_out: bool,
+     pub base64_out: bool,
+     pub containerd_socket_path: Option<String>,
++    pub layers_cache_file_path: Option<String>,
+     pub version: bool,
+@@ -123,2 +133,9 @@ impl Config {
+         let args = CommandLineOptions::parse();
++
++        let mut layers_cache_file_path = args.layers_cache_file_path;
++        // preserve backwards compatibility for only using the `use_cached_files` flag
++        if args.use_cached_files && layers_cache_file_path.is_none() {
++            layers_cache_file_path = Some(String::from("./layers-cache.json"));
++        }
++
+         Self {
+@@ -106,7 +153,8 @@ impl Config {
+             raw_out: args.raw_out,
+             base64_out: args.base64_out,
+             containerd_socket_path: args.containerd_socket_path,
++            layers_cache_file_path: layers_cache_file_path,
+             version: args.version,
+         }
+     }
+ }
