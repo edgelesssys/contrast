@@ -12,7 +12,7 @@ set -euo pipefail
 #
 
 name=""
-location="westeurope"
+location="GermanyWestCentral"
 k8sVersion="1.29"
 
 for i in "$@"; do
