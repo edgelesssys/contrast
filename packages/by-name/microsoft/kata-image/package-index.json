@@ -168,12 +168,12 @@
     "hash": "sha256-dsOH9HRz8wMBsq2aDLHiYjI7dvvQYatobmEAN0WGId8="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/k/kata-packages-uvm-1.0.0-3.cm2.x86_64.rpm",
-    "hash": "sha256-sZX0jUK1L6l9qrtN6PdOAlYKbh4Sq3JDrroMNsCFV1I="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/k/kata-packages-uvm-1.0.0-4.cm2.x86_64.rpm",
+    "hash": "sha256-eNxQ4J00TYohfg5izZknLpQfxmb9uZ/71WjYd46RxpY="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/k/kata-packages-uvm-coco-1.0.0-3.cm2.x86_64.rpm",
-    "hash": "sha256-Vc2arRRbdpnaoPQdlNRNq6gcDb+7DjhgYV3NRdqeOuA="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/k/kata-packages-uvm-coco-1.0.0-4.cm2.x86_64.rpm",
+    "hash": "sha256-mHJPnYEBVxiEeoBiJw/4bDNnVqp9g8WVwq7iL08RNQk="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/k/keyutils-1.6.3-1.cm2.x86_64.rpm",
@@ -260,8 +260,8 @@
     "hash": "sha256-f4FaPv5CDV6YOwbsrGMb7j8JviWeAf8kAeYAAWfy2hs="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libxml2-2.10.4-2.cm2.x86_64.rpm",
-    "hash": "sha256-5UWPvG+KvEgR9Vnyzjaskr9ew8m0BnUcdkaIJ6Cyhk8="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libxml2-2.10.4-3.cm2.x86_64.rpm",
+    "hash": "sha256-AsiXci3voNrsMSJTEjkyn5VZutE58miCru8TUL0gYkg="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/lmdb-libs-0.9.29-1.cm2.x86_64.rpm",
@@ -296,16 +296,12 @@
     "hash": "sha256-hFwa9UTkB3S1SBKShNGT2rrxtyRUN4U6of6GX8R3Muw="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/opa-0.63.0-1.cm2.x86_64.rpm",
-    "hash": "sha256-YBpKbPZv7qwnC2li9Px1Mk9ARR8A7nVH5cWuJ/GcUIc="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/openssl-1.1.1k-32.cm2.x86_64.rpm",
+    "hash": "sha256-gwGGPAs0+oeFQURPnM506gbZ3bJS/cSK/FSZCt23rNk="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/openssl-1.1.1k-30.cm2.x86_64.rpm",
-    "hash": "sha256-rQ4qy8gxYBhEKsxi2vuUsDIZ1Ct3zfIv3fgGw94+kls="
-  },
-  {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/openssl-libs-1.1.1k-30.cm2.x86_64.rpm",
-    "hash": "sha256-C++IUlfjO78v/zZ0ZlofkRXHdfT7lHTUWaFKzDAs224="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/openssl-libs-1.1.1k-32.cm2.x86_64.rpm",
+    "hash": "sha256-ohjfMoEcNIoe71vprzyZEURH52wWm0mEUZcKk75pZ/8="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/p11-kit-0.24.1-1.cm2.x86_64.rpm",
