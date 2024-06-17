@@ -10,6 +10,8 @@ Confidential Containers are Kubernetes pods that are executed inside a confident
 This works with unmodified containers in a lift-and-shift approach.
 Contrast currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview).
 
+<img src="docs/static/img/concept.svg" alt="Concept" width="85%"/>
+
 ## Goal
 
 Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer. It removes the infrastructure provider from the trusted computing base (TCB). This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure, for example, malicious co-tenants escalating their privileges.
