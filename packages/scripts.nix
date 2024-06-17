@@ -168,7 +168,7 @@
 
       pushd "$tmpdir" >/dev/null
       cp ${pkgs.microsoft.genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego
-      cp ${pkgs.microsoft.genpolicy.settings}/genpolicy-settings.json .
+      cp ${pkgs.microsoft.genpolicy.settings-coordinator}/genpolicy-settings.json .
       genpolicy < "$tmpdir/coordinator_base.yml"
       popd >/dev/null
     '';
