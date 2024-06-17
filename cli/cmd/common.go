@@ -25,6 +25,7 @@ const (
 	settingsFilename     = "settings.json"
 	seedSharesFilename   = "seed-shares.json"
 	rulesFilename        = "rules.rego"
+	layersCacheFilename  = "layers-cache.json"
 	verifyDir            = "verify"
 	cacheDirEnv          = "CONTRAST_CACHE_DIR"
 )
