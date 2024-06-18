@@ -8,7 +8,7 @@ shopt -s inherit_errexit
 DNF=${DNF:-dnf4}
 DNFCONFIG=${DNFCONFIG:-@DNFCONFIG@}
 REPOSDIR=${REPOSDIR:-@REPOSDIR@}
-PACKAGESET=${PACKAGESET:-@PACKAGESET@}
+PACKAGESET=("$@")
 OUT=${OUT:-$(mktemp -d)}
 
 dnfroot=$(mktemp -d)
@@ -23,6 +23,7 @@ mkdir -p "$persistdir"
 logdir="$dnfroot/log"
 mkdir -p "$logdir"
 
+echo "Installing RPMs: ${PACKAGESET[*]}" >&2
 echo "Writing rpms to $OUT" >&2
 
 function urllist() {
@@ -45,8 +46,7 @@ function urllist() {
     --urls \
     --resolve \
     --alldeps \
-    $(tr '\n' ' ' <"${PACKAGESET}") \
-    >"$OUT/packages.txt"
+    "${PACKAGESET[@]}" >"$OUT/packages.txt"
 }
 
 function download() {
