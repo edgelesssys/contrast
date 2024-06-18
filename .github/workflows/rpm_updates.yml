@@ -8,7 +8,7 @@ on:
 jobs:
   update-rpm-packages:
     runs-on: ubuntu-22.04
-    timeout-minutes: 20
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -18,9 +18,12 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Update rpm packages
+      - name: Update Microsoft RPMs
         run: |
-           nix run .#rpm-pin-vendor > packages/by-name/microsoft/kata-image/package-index.json
+           nix run .#rpm-pin-vendor -- kata-packages-uvm kata-packages-uvm-coco systemd libseccomp > packages/by-name/microsoft/kata-image/package-index.json
+      - name: Update Kata RPMs
+        run: |
+           nix run .#rpm-pin-vendor -- kata-packages-uvm kata-packages-uvm-coco systemd libseccomp core-packages-base-image > packages/by-name/kata/kata-image/package-index.json
       - name: Create PR
         uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
         with:

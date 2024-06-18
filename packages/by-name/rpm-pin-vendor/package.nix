@@ -34,14 +34,6 @@ let
     enabled=1
     gpgkey=https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/repodata/repomd.xml.key
   '';
-  # Contrast kata agent links with libseccomp from nix store
-  # this packages only exists to satisfy the image builder
-  packages = writeText "packages" ''
-    kata-packages-uvm
-    kata-packages-uvm-coco
-    systemd
-    libseccomp
-  '';
   update_lockfile = writeShellApplication {
     name = "update_lockfile";
     runtimeInputs = [ dnf4 jq wget nix fakeroot ];
@@ -54,6 +46,5 @@ runCommand "rpm-pin-vendor" { meta.mainProgram = "update_lockfile"; } ''
   cp ${lib.getExe update_lockfile} $out/bin/update_lockfile
   substituteInPlace $out/bin/update_lockfile \
     --replace-fail "@DNFCONFIG@" ${dnfConf} \
-    --replace-fail "@REPOSDIR@" ${reposdir}/yum.repos.d \
-    --replace-fail "@PACKAGESET@" ${packages}
+    --replace-fail "@REPOSDIR@" ${reposdir}/yum.repos.d
 ''
