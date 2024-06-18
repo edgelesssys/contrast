@@ -4,6 +4,7 @@
 package authority
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -40,105 +42,7 @@ func TestEmptyAuthority(t *testing.T) {
 	assert.Nil(t, ca)
 	assert.Empty(t, manifests)
 
-	manifest, err := a.latestManifest()
-	assert.Error(t, err)
-	assert.Nil(t, manifest)
-
 	requireGauge(t, reg, 0)
-}
-
-func TestSetManifest(t *testing.T) {
-	require := require.New(t)
-	a, reg := newAuthority(t)
-	expected, mnfstBytes, policies := newManifest(t)
-
-	mnfst, err := a.latestManifest()
-	require.ErrorIs(err, ErrNoManifest)
-	require.Nil(mnfst)
-
-	ca, err := a.setManifest(mnfstBytes, policies)
-	require.NoError(err)
-	require.NotNil(ca)
-	requireGauge(t, reg, 1)
-
-	actual, err := a.latestManifest()
-	require.NoError(err)
-	require.NotNil(actual)
-
-	require.Equal(expected, actual)
-
-	// Simulate manifest updates that this instance is not aware of by deleting its state.
-	a.state.Store(nil)
-
-	_, err = a.setManifest(mnfstBytes, policies)
-	require.NoError(err)
-	requireGauge(t, reg, 2)
-}
-
-func TestSetManifest_TooFewPolicies(t *testing.T) {
-	require := require.New(t)
-	a, reg := newAuthority(t)
-	_, mnfstBytes, _ := newManifest(t)
-
-	ca, err := a.setManifest(mnfstBytes, [][]byte{})
-	require.Error(err)
-	require.Nil(ca)
-	requireGauge(t, reg, 0)
-}
-
-func TestSetManifest_BadManifest(t *testing.T) {
-	require := require.New(t)
-	a, reg := newAuthority(t)
-	_, _, policies := newManifest(t)
-
-	ca, err := a.setManifest([]byte(`{ "policies": 1 }`), policies)
-	require.Error(err)
-	require.Nil(ca)
-	requireGauge(t, reg, 0)
-}
-
-func TestGetManifestsAndLatestCA(t *testing.T) {
-	require := require.New(t)
-	a, reg := newAuthority(t)
-	originalManifest, mnfstBytes, policies := newManifest(t)
-
-	manifests, ca, err := a.getManifestsAndLatestCA()
-	require.ErrorIs(err, ErrNoManifest)
-	require.Empty(manifests)
-	require.Nil(ca)
-
-	oldCA, err := a.setManifest(mnfstBytes, policies)
-	require.NoError(err)
-	require.NotNil(oldCA)
-	requireGauge(t, reg, 1)
-
-	alteredManifest := *originalManifest
-	alteredManifest.WorkloadOwnerKeyDigests = nil
-	alteredManifestBytes, err := json.Marshal(alteredManifest)
-	require.NoError(err)
-
-	expectedCA, err := a.setManifest(alteredManifestBytes, policies)
-	require.NoError(err)
-	require.NotNil(expectedCA)
-	requireGauge(t, reg, 2)
-
-	require.NotEqual(expectedCA.GetMeshCACert(), oldCA.GetMeshCACert())
-
-	expectedManifests := []*manifest.Manifest{originalManifest, &alteredManifest}
-
-	manifests, currentCA, err := a.getManifestsAndLatestCA()
-	require.NoError(err)
-	require.Equal(expectedCA.GetMeshCACert(), currentCA.GetMeshCACert())
-	require.Equal(expectedCA.GetRootCACert(), currentCA.GetRootCACert())
-	require.Equal(expectedManifests, manifests)
-
-	// Simulate manifest updates that this instance is not aware of by deleting its state.
-	a.state.Store(nil)
-
-	manifests, _, err = a.getManifestsAndLatestCA()
-	require.NoError(err)
-	require.Equal(expectedManifests, manifests)
-	requireGauge(t, reg, len(expectedManifests))
 }
 
 func TestSNPValidateOpts(t *testing.T) {
@@ -152,7 +56,11 @@ func TestSNPValidateOpts(t *testing.T) {
 	require.Error(err)
 	require.Nil(opts)
 
-	_, err = a.setManifest(mnfstBytes, policies)
+	req := &userapi.SetManifestRequest{
+		Manifest: mnfstBytes,
+		Policies: policies,
+	}
+	_, err = a.SetManifest(context.Background(), req)
 	require.NoError(err)
 
 	opts, err = a.SNPValidateOpts(report)

@@ -117,17 +117,20 @@ func TestManifestSet(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 
-			coordinator := newCoordinator()
+			reg := prometheus.NewRegistry()
+			coordinator := newCoordinatorWithRegistry(reg)
 			ctx := rpcContext(tc.workloadOwnerKey)
 			resp, err := coordinator.SetManifest(ctx, tc.req)
 
 			if tc.wantErr {
 				assert.Error(err)
+				requireGauge(t, reg, 0)
 				return
 			}
 			require.NoError(err)
 			assert.Equal("system:coordinator:root", parsePEMCertificate(t, resp.RootCA).Subject.CommonName)
 			assert.Equal("system:coordinator:intermediate", parsePEMCertificate(t, resp.MeshCA).Subject.CommonName)
+			requireGauge(t, reg, 1)
 		})
 	}
 
@@ -150,7 +153,8 @@ func TestManifestSet(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			require := require.New(t)
 
-			coordinator := newCoordinator()
+			reg := prometheus.NewRegistry()
+			coordinator := newCoordinatorWithRegistry(reg)
 			ctx := rpcContext(tc.workloadOwnerKey)
 			m, err := json.Marshal(manifestWithTrustedKey)
 			require.NoError(err)
@@ -171,6 +175,11 @@ func TestManifestSet(t *testing.T) {
 			}
 			_, err = coordinator.SetManifest(ctx, req)
 			require.Equal(tc.wantCode, status.Code(err))
+			if tc.wantCode == codes.OK {
+				requireGauge(t, reg, 2)
+			} else {
+				requireGauge(t, reg, 1)
+			}
 		})
 	}
 
@@ -187,6 +196,16 @@ func TestManifestSet(t *testing.T) {
 		_, err = coordinator.SetManifest(ctx, req)
 		require.Error(err)
 		require.Equal(codes.PermissionDenied, status.Code(err))
+	})
+
+	t.Run("broken manifest", func(t *testing.T) {
+		require := require.New(t)
+
+		coordinator := newCoordinator()
+		req := &userapi.SetManifestRequest{Manifest: []byte(`{ "policies": 1 }`)}
+		_, err = coordinator.SetManifest(context.Background(), req)
+		require.Error(err)
+		require.Equal(codes.InvalidArgument, status.Code(err))
 	})
 }
 
@@ -291,10 +310,14 @@ func TestUserAPIConcurrent(t *testing.T) {
 }
 
 func newCoordinator() *Authority {
+	return newCoordinatorWithRegistry(prometheus.NewRegistry())
+}
+
+func newCoordinatorWithRegistry(reg *prometheus.Registry) *Authority {
 	fs := afero.NewMemMapFs()
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(store)
-	return New(hist, prometheus.NewRegistry(), slog.Default())
+	return New(hist, reg, slog.Default())
 }
 
 func rpcContext(key *ecdsa.PrivateKey) context.Context {
