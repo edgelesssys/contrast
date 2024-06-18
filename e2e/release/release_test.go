@@ -94,7 +94,7 @@ func TestRelease(t *testing.T) {
 		require.NoError(err)
 
 		require.NoError(k.Apply(ctx, resources...))
-		require.NoError(k.WaitForDaemonset(ctx, "kube-system", "contrast-node-installer"))
+		require.NoError(k.WaitForDaemonset(ctx, "kube-system", "contrast-node-installer-microsoft"))
 	}), "the runtime is required for subsequent tests to run")
 
 	var coordinatorIP string

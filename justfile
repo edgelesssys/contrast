@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy node-installer runtime (apply "runtime") (deploy target cli) set verify (wait-for-workload target)
+default target=default_deploy_target cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy microsoft-node-installer runtime (apply "runtime") (deploy target cli) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -21,14 +21,14 @@ service-mesh-proxy: (push "service-mesh-proxy")
 # Build the initializer, containerize and push it.
 initializer: (push "initializer")
 
-# Build the node-installer, containerize and push it.
-node-installer: (push "node-installer")
+# Build the microsoft-node-installer, containerize and push it.
+microsoft-node-installer: (push "microsoft-node-installer")
 
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"
 workspace_dir := "workspace"
 
-e2e target=default_deploy_target: coordinator initializer openssl port-forwarder service-mesh-proxy node-installer
+e2e target=default_deploy_target: coordinator initializer openssl port-forwarder service-mesh-proxy microsoft-node-installer
     #!/bin/env bash
     case {{ target }} in
         "openssl" | "servicemesh")

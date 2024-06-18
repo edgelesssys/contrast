@@ -259,7 +259,7 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 
 	require.NoError(ct.Kubeclient.Apply(ctx, unstructuredResources...))
 
-	require.NoError(ct.Kubeclient.WaitForDaemonset(ctx, ct.Namespace, "contrast-node-installer"))
+	require.NoError(ct.Kubeclient.WaitForDaemonset(ctx, ct.Namespace, "contrast-node-installer-microsoft"))
 }
 
 func makeNamespace(t *testing.T) string {
