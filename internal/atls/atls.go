@@ -164,7 +164,7 @@ func getCertificate(ctx context.Context, issuer Issuer, priv, pub any, nonce []b
 	now := time.Now()
 	template := &x509.Certificate{
 		SerialNumber:    serialNumber,
-		Subject:         pkix.Name{CommonName: "Constellation"},
+		Subject:         pkix.Name{CommonName: "Contrast"},
 		NotBefore:       now.Add(-2 * time.Hour),
 		NotAfter:        now.Add(2 * time.Hour),
 		ExtraExtensions: extensions,
