@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -22,7 +21,6 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/ca"
-	"github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/recoveryapi"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -228,114 +226,8 @@ func (m *Authority) getManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA, err
 	return manifests, state.ca, nil
 }
 
-// setManifest updates the active manifest.
-func (m *Authority) setManifest(manifestBytes []byte, policies [][]byte) (*ca.CA, error) {
-	if err := m.createSeedEngine(); err != nil {
-		return nil, fmt.Errorf("creating SeedEngine: %w", err)
-	}
-
-	if err := m.syncState(); err != nil {
-		return nil, fmt.Errorf("syncing internal state: %w", err)
-	}
-
-	var mnfst manifest.Manifest
-	if err := json.Unmarshal(manifestBytes, &mnfst); err != nil {
-		return nil, fmt.Errorf("parsing manifest: %w", err)
-	}
-
-	policyMap := make(map[[history.HashSize]byte][]byte)
-	for _, policy := range policies {
-		policyHash, err := m.hist.SetPolicy(policy)
-		if err != nil {
-			return nil, fmt.Errorf("setting policy: %w", err)
-		}
-		policyMap[policyHash] = policy
-	}
-
-	for hexRef := range mnfst.Policies {
-		var ref [history.HashSize]byte
-		refSlice, err := hexRef.Bytes()
-		if err != nil {
-			return nil, fmt.Errorf("invalid policy hash: %w", err)
-		}
-		copy(ref[:], refSlice)
-		if _, ok := policyMap[ref]; !ok {
-			return nil, fmt.Errorf("no policy for hash %q", hexRef)
-		}
-	}
-
-	manifestHash, err := m.hist.SetManifest(manifestBytes)
-	if err != nil {
-		return nil, fmt.Errorf("setting manifest: %w", err)
-	}
-
-	oldState := m.state.Load()
-
-	nextTransition := &history.Transition{
-		ManifestHash: manifestHash,
-	}
-	var oldLatest *history.LatestTransition
-	var oldGeneration int
-	if oldState != nil {
-		nextTransition.PreviousTransitionHash = oldState.latest.TransitionHash
-		oldLatest = oldState.latest
-		oldGeneration = oldState.generation
-	}
-	nextTransitionHash, err := m.hist.SetTransition(nextTransition)
-	if err != nil {
-		return nil, fmt.Errorf("setting transition: %w", err)
-	}
-	nextLatest := &history.LatestTransition{TransitionHash: nextTransitionHash}
-
-	if err := m.hist.SetLatest(oldLatest, nextLatest); err != nil {
-		return nil, fmt.Errorf("setting latest: %w", err)
-	}
-
-	meshKey, err := m.se.Load().DeriveMeshCAKey(nextTransitionHash)
-	if err != nil {
-		return nil, fmt.Errorf("deriving mesh CA key: %w", err)
-	}
-	ca, err := ca.New(m.se.Load().RootCAKey(), meshKey)
-	if err != nil {
-		return nil, fmt.Errorf("creating CA: %w", err)
-	}
-
-	nextState := &state{
-		latest:     nextLatest,
-		manifest:   &mnfst,
-		ca:         ca,
-		generation: oldGeneration + 1,
-	}
-
-	if m.state.CompareAndSwap(oldState, nextState) {
-		m.metrics.manifestGeneration.Set(float64(nextState.generation))
-	}
-	// If the CompareAndSwap did not go through, this means that another SetManifest happened in
-	// the meantime. This is fine: we know that m.state must be a transition after ours because
-	// the SetLatest call succeeded. That other SetManifest call must have been operating on our
-	// nextState already, because it had to refer to our transition. Thus, we can forget about
-	// the state, except that we need to return the right CA for the manifest _our_ user set.
-
-	return ca, nil
-}
-
-// latestManifest retrieves the active manifest.
-func (m *Authority) latestManifest() (*manifest.Manifest, error) {
-	if m.se.Load() == nil {
-		return nil, ErrNoManifest
-	}
-	if err := m.syncState(); err != nil {
-		return nil, fmt.Errorf("syncing internal state: %w", err)
-	}
-	c := m.state.Load()
-	if c == nil {
-		return nil, ErrNoManifest
-	}
-	return c.manifest, nil
-}
-
-// recover recovers the seed engine from a seed and salt.
-func (m *Authority) recover(seed, salt []byte) error {
+// initSeedEngine recovers the seed engine from a seed and salt.
+func (m *Authority) initSeedEngine(seed, salt []byte) error {
 	seedEngine, err := seedengine.New(seed, salt)
 	if err != nil {
 		return fmt.Errorf("creating seed engine: %w", err)
@@ -347,40 +239,22 @@ func (m *Authority) recover(seed, salt []byte) error {
 	return nil
 }
 
-// createSeedEngine populates m.se.
-//
-// It is fine to call this function concurrently. After it returns, m.se is guaranteed to be
-// non-nil.
-func (m *Authority) createSeedEngine() error {
-	// TODO(burgerdev): the seed should be an input
-	seed, err := crypto.GenerateRandomBytes(32)
-	if err != nil {
-		return fmt.Errorf("generating random bytes: %w", err)
-	}
-	salt, err := crypto.GenerateRandomBytes(32)
-	if err != nil {
-		return fmt.Errorf("generating random bytes: %w", err)
-	}
-	seedEngine, err := seedengine.New(seed, salt)
-	if err != nil {
-		return fmt.Errorf("creating seed engine: %w", err)
-	}
-
-	if m.se.CompareAndSwap(nil, seedEngine) {
-		m.hist.ConfigureSigningKey(seedEngine.TransactionSigningKey())
-	}
-	return nil
-}
-
 // syncState ensures that a.state is up-to-date.
 //
 // This function guarantees to include all state updates committed before it was called.
 func (m *Authority) syncState() error {
+	hasLatest, err := m.hist.HasLatest()
+	if err != nil {
+		return fmt.Errorf("probing latest transition: %w", err)
+	}
+	if !hasLatest {
+		// No history yet -> nothing to sync.
+		return nil
+	}
+
 	oldState := m.state.Load()
 	latest, err := m.hist.GetLatest()
-	if errors.Is(err, os.ErrNotExist) {
-		return nil // No history yet -> nothing to sync.
-	} else if err != nil {
+	if err != nil {
 		return fmt.Errorf("getting latest transition: %w", err)
 	}
 	if oldState != nil && latest.TransitionHash == oldState.latest.TransitionHash {

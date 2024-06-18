@@ -19,7 +19,7 @@ var ErrAlreadyRecovered = errors.New("coordinator is already recovered")
 func (a *Authority) Recover(_ context.Context, req *recoveryapi.RecoverRequest) (*recoveryapi.RecoverResponse, error) {
 	a.logger.Info("Recover called")
 
-	err := a.recover(req.Seed, req.Salt)
+	err := a.initSeedEngine(req.Seed, req.Salt)
 	switch {
 	case errors.Is(err, ErrAlreadyRecovered):
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
