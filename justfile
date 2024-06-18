@@ -28,6 +28,26 @@ default_cli := "contrast.cli"
 default_deploy_target := "openssl"
 workspace_dir := "workspace"
 
+e2e target=default_deploy_target: coordinator initializer openssl port-forwarder service-mesh-proxy node-installer
+    #!/bin/env bash
+    case {{ target }} in
+        "openssl" | "servicemesh")
+        nix shell .#contrast.e2e --command {{ target }}.test -test.v \
+            --image-replacements ./{{ workspace_dir }}/just.containerlookup \
+            --namespace-file ./{{ workspace_dir }}/e2e.namespace \
+            --skip-undeploy=true
+        read -p "Delete namespace $(cat ./{{ workspace_dir }}/e2e.namespace)? (Y/n): " c && [[ -z $c || $c == [yY] || $c == [nN] ]] || exit 1
+        if [[ $c != [nN] ]]; then
+            kubectl delete ns $(cat ./{{ workspace_dir }}/e2e.namespace)
+        fi
+        exit 0
+        ;;
+    *)
+        echo "E2E tests are only available for the following targets: openssl, servicemesh"
+        exit 1
+        ;;
+    esac
+
 # Generate policies, apply Kubernetes manifests.
 deploy target=default_deploy_target cli=default_cli: (populate target) (generate cli) (apply target)
 
