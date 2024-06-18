@@ -9,10 +9,10 @@ require (
 	github.com/google/go-github/v62 v62.0.0
 	github.com/google/go-sev-guest v0.11.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
-	github.com/katexochen/sync v0.0.0-20240514113156-35ad50c24f97
+	github.com/katexochen/sync v0.0.0-20240617152407-6a8003240db0
 	github.com/prometheus/client_golang v1.19.1
 	github.com/spf13/afero v1.11.0
-	github.com/spf13/cobra v1.8.0
+	github.com/spf13/cobra v1.8.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/goleak v1.3.0
