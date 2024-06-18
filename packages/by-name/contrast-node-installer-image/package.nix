@@ -6,7 +6,7 @@
 , ociImageManifest
 , ociImageLayout
 , contrast-node-installer
-, runtime-class-files
+, microsoft
 , pkgsStatic
 , writers
 }:
@@ -19,8 +19,8 @@ let
     ];
   };
 
-  launch-digest = lib.removeSuffix "\n" (builtins.readFile "${runtime-class-files}/launch-digest.hex");
-  runtime-handler = lib.removeSuffix "\n" (builtins.readFile "${runtime-class-files}/runtime-handler");
+  launch-digest = lib.removeSuffix "\n" (builtins.readFile "${microsoft.runtime-class-files}/launch-digest.hex");
+  runtime-handler = lib.removeSuffix "\n" (builtins.readFile "${microsoft.runtime-class-files}/runtime-handler");
 
   installer-config = ociLayerTar {
     files = [
@@ -33,7 +33,7 @@ let
             { url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2"; path = "/opt/edgeless/${runtime-handler}/bin/containerd-shim-contrast-cc-v2"; }
           ];
           runtimeHandlerName = runtime-handler;
-          inherit (runtime-class-files) debugRuntime;
+          inherit (microsoft.runtime-class-files) debugRuntime;
         };
         destination = "/config/contrast-node-install.json";
       }
@@ -42,19 +42,19 @@ let
 
   kata-container-img = ociLayerTar {
     files = [
-      { source = runtime-class-files.rootfs; destination = "/opt/edgeless/share/kata-containers.img"; }
-      { source = runtime-class-files.igvm; destination = "/opt/edgeless/share/kata-containers-igvm.img"; }
+      { source = microsoft.runtime-class-files.rootfs; destination = "/opt/edgeless/share/kata-containers.img"; }
+      { source = microsoft.runtime-class-files.igvm; destination = "/opt/edgeless/share/kata-containers-igvm.img"; }
     ];
   };
 
   cloud-hypervisor = ociLayerTar {
     files = [
-      { source = runtime-class-files.cloud-hypervisor-bin; destination = "/opt/edgeless/bin/cloud-hypervisor-snp"; }
+      { source = microsoft.runtime-class-files.cloud-hypervisor-bin; destination = "/opt/edgeless/bin/cloud-hypervisor-snp"; }
     ];
   };
 
   containerd-shim = ociLayerTar {
-    files = [{ source = runtime-class-files.containerd-shim-contrast-cc-v2; destination = "/opt/edgeless/bin/containerd-shim-contrast-cc-v2"; }];
+    files = [{ source = microsoft.runtime-class-files.containerd-shim-contrast-cc-v2; destination = "/opt/edgeless/bin/containerd-shim-contrast-cc-v2"; }];
   };
 
   manifest = ociImageManifest

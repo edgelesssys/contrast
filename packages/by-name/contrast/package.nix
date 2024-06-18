@@ -7,7 +7,6 @@
 , microsoft
 , genpolicy ? microsoft.genpolicy
 , contrast
-, runtime-class-files
 }:
 
 let
@@ -27,9 +26,9 @@ let
     subPackages = [ "e2e/getdents" "e2e/openssl" "e2e/servicemesh" "e2e/release" ];
   };
 
-  launchDigest = builtins.readFile "${runtime-class-files}/launch-digest.hex";
+  launchDigest = builtins.readFile "${microsoft.runtime-class-files}/launch-digest.hex";
 
-  runtimeHandler = lib.removeSuffix "\n" (builtins.readFile "${runtime-class-files}/runtime-handler");
+  runtimeHandler = lib.removeSuffix "\n" (builtins.readFile "${microsoft.runtime-class-files}/runtime-handler");
 
   packageOutputs = [ "coordinator" "initializer" "cli" ];
 in
