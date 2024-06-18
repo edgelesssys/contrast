@@ -32,7 +32,7 @@ type NodeInstallerConfig struct {
 
 // NodeInstaller constructs a node installer daemon set.
 func NodeInstaller(namespace string) *NodeInstallerConfig {
-	name := "contrast-node-installer"
+	name := "contrast-node-installer-microsoft"
 
 	d := DaemonSet(name, namespace).
 		WithLabels(map[string]string{"app.kubernetes.io/name": name}).
@@ -42,12 +42,12 @@ func NodeInstaller(namespace string) *NodeInstallerConfig {
 			).
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
-				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "contrast-node-installer"}).
+				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "contrast-node-installer-microsoft"}).
 				WithSpec(PodSpec().
 					WithHostPID(true).
 					WithInitContainers(Container().
 						WithName("installer").
-						WithImage("ghcr.io/edgelesssys/contrast/node-installer:latest").
+						WithImage("ghcr.io/edgelesssys/contrast/microsoft-node-installer:latest").
 						WithResources(ResourceRequirements().
 							WithMemoryLimitAndRequest(100),
 						).

@@ -78,8 +78,8 @@ let
       };
       extraManifest = {
         "annotations" = {
-          "org.opencontainers.image.title" = "contrast-node-installer";
-          "org.opencontainers.image.description" = "Contrast Node Installer";
+          "org.opencontainers.image.title" = "contrast-node-installer-microsoft";
+          "org.opencontainers.image.description" = "Contrast Node Installer (Microsoft)";
           "systems.edgeless.contrast.snp-launch-digest" = launch-digest;
         };
       };
