@@ -30,6 +30,7 @@ var version = "0.0.0-dev"
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
+		Use:              "contrast",
 		Short:            "contrast",
 		PersistentPreRun: preRunRoot,
 		Version:          version,
