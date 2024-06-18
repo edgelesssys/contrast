@@ -1,6 +1,21 @@
 ## Contributing
 
-### Getting started
+Thank you for getting involved! Before you start, please familiarize yourself with the [documentation](https://docs.edgeless.systems/contrast).
+
+Please follow our [Code of Conduct](CODE_OF_CONDUCT.md) when interacting with this project.
+
+### Opening an issue, starting a discussion, asking a question
+
+This project uses the GitHub issue tracker. Check the existing issues before submitting to avoid duplicates.
+
+If you have a broader topic to discuss or a question, please [open a discussion](https://github.com/edgelesssys/contrast/discussions) instead.
+
+### Pull requests
+
+Contrast is licensed under the [AGPLv3](LICENSE). When contributing, you also need to agree to our
+[Contributor License Agreement](https://cla-assistant.io/edgelesssys/contrast).
+
+### Development setup
 
 1. [Install Nix](https://zero-to-nix.com/concepts/nix-installer)
 
