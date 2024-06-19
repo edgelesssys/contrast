@@ -54,14 +54,14 @@ jobs:
         run: |
           echo "WORKING_BRANCH=$(git branch --show-current)" | tee -a "$GITHUB_ENV"
       - name: Verify minor version bump
-        if: ${{ inputs.kind == 'minor' }}
+        if: inputs.kind == 'minor'
         run: |
           if [[ ! "${FULL_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Version must be in the form of vX.Y.Z"
             exit 1
           fi
       - name: Verify patch version bump
-        if: ${{ inputs.kind == 'patch' }}
+        if: inputs.kind == 'patch'
         run: |
           if [[ ! "${FULL_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[1-9]+$ ]]; then
             echo "Version must be in the form of vX.Y.Z, where Z > 0"
@@ -141,7 +141,7 @@ jobs:
           git config --global user.name "edgelessci"
           git config --global user.email "edgelessci@users.noreply.github.com"
       - name: Create docs release
-        if: ${{ inputs.kind == 'minor' }}
+        if: inputs.kind == 'minor'
         working-directory: contrast-main/docs
         run: |
           nix run .#yarn install
@@ -177,7 +177,7 @@ jobs:
           git add ./packages/contrast-releases.json
           git commit -m "packages/contrast-releases: add ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
       - name: Bump flake version to post release patch pre-version
-        if: ${{ inputs.kind == 'minor' }}
+        if: inputs.kind == 'minor'
         id: bump
         uses: ./contrast-working/.github/actions/bump_version # Run action from working branch!
         with:
@@ -359,7 +359,7 @@ jobs:
 
   create-github-stuff:
     name: Create backport label and milestone
-    if: ${{ inputs.kind == 'minor' }}
+    if: inputs.kind == 'minor'
     needs: process-inputs
     runs-on: ubuntu-22.04
     permissions:
