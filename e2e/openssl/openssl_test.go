@@ -61,7 +61,7 @@ func TestOpenSSL(t *testing.T) {
 
 		require := require.New(t)
 
-		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
 
 		frontendPods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, opensslFrontend)
 		require.NoError(err)
@@ -86,7 +86,7 @@ func TestOpenSSL(t *testing.T) {
 
 			require := require.New(t)
 
-			require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
+			require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
 
 			addr, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-openssl-frontend", "443")
 			require.NoError(err)
@@ -108,7 +108,7 @@ func TestOpenSSL(t *testing.T) {
 
 		c := kubeclient.NewForTest(t)
 
-		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
+		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
 
 		// Call the backend server from the frontend. If this command produces no TLS error, we verified that
 		// - the certificate in the frontend pod can be used as a client certificate
@@ -149,7 +149,7 @@ func TestOpenSSL(t *testing.T) {
 
 			// Restart one deployment so it has the new certificates.
 			require.NoError(c.RestartDeployment(ctx, ct.Namespace, deploymentToRestart))
-			require.NoError(c.WaitForDeployment(ctx, ct.Namespace, deploymentToRestart))
+			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentToRestart))
 
 			// This should not succeed because the certificates have changed.
 			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", "mesh-ca.pem")})
@@ -169,7 +169,7 @@ func TestOpenSSL(t *testing.T) {
 				d = opensslFrontend
 			}
 			require.NoError(c.RestartDeployment(ctx, ct.Namespace, d))
-			require.NoError(c.WaitForDeployment(ctx, ct.Namespace, d))
+			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, d))
 
 			// This should succeed since both workloads now have updated certificates.
 			stdout, stderr, err = c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", "mesh-ca.pem")})

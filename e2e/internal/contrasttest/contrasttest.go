@@ -171,7 +171,7 @@ func (ct *ContrastTest) Set(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
-	require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "coordinator"))
+	require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
 
 	coordinator, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-coordinator", "1313")
 	require.NoError(err)
@@ -199,7 +199,7 @@ func (ct *ContrastTest) Verify(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
-	require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "coordinator"))
+	require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
 
 	coordinator, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-coordinator", "1313")
 	require.NoError(err)
@@ -259,7 +259,7 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 
 	require.NoError(ct.Kubeclient.Apply(ctx, unstructuredResources...))
 
-	require.NoError(ct.Kubeclient.WaitForDaemonset(ctx, ct.Namespace, "contrast-node-installer"))
+	require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.DaemonSet{}, ct.Namespace, "contrast-node-installer"))
 }
 
 func makeNamespace(t *testing.T) string {

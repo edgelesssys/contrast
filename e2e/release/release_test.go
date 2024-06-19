@@ -94,7 +94,7 @@ func TestRelease(t *testing.T) {
 		require.NoError(err)
 
 		require.NoError(k.Apply(ctx, resources...))
-		require.NoError(k.WaitForDaemonset(ctx, "kube-system", "contrast-node-installer"))
+		require.NoError(k.WaitFor(ctx, kubeclient.DaemonSet{}, "kube-system", "contrast-node-installer"))
 	}), "the runtime is required for subsequent tests to run")
 
 	var coordinatorIP string
@@ -109,7 +109,7 @@ func TestRelease(t *testing.T) {
 		require.NoError(err)
 
 		require.NoError(k.Apply(ctx, resources...))
-		require.NoError(k.WaitForStatefulSet(ctx, "default", "coordinator"))
+		require.NoError(k.WaitFor(ctx, kubeclient.StatefulSet{}, "default", "coordinator"))
 		coordinatorIP, err = k.WaitForLoadBalancer(ctx, "default", "coordinator")
 		require.NoError(err)
 	}), "the coordinator is required for subsequent tests to run")
@@ -159,10 +159,10 @@ func TestRelease(t *testing.T) {
 			require.NoError(k.Apply(ctx, resources...))
 		}
 
-		require.NoError(k.WaitForDeployment(ctx, "default", "vote-bot"))
-		require.NoError(k.WaitForDeployment(ctx, "default", "voting"))
-		require.NoError(k.WaitForDeployment(ctx, "default", "emoji"))
-		require.NoError(k.WaitForDeployment(ctx, "default", "web"))
+		require.NoError(k.WaitFor(ctx, kubeclient.Deployment{}, "default", "vote-bot"))
+		require.NoError(k.WaitFor(ctx, kubeclient.Deployment{}, "default", "voting"))
+		require.NoError(k.WaitFor(ctx, kubeclient.Deployment{}, "default", "emoji"))
+		require.NoError(k.WaitFor(ctx, kubeclient.Deployment{}, "default", "web"))
 	}), "applying the demo is required for subsequent tests to run")
 
 	t.Run("test-demo", func(t *testing.T) {

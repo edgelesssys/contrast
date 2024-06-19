@@ -17,6 +17,7 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
+	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/stretchr/testify/require"
 )
@@ -62,7 +63,7 @@ func TestGetDEnts(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, getdent))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, getdent))
 
 		pods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, getdent)
 		require.NoError(err)
