@@ -24,10 +24,16 @@ spawn asciinema rec --overwrite /recordings/flow.cast
 send "\r"
 expect_prompt
 
+run_command "# Deploy the Contrast runtime"
+expect_prompt
+run_command "kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.7.0/runtime.yml"
+expect_prompt
+
 run_command "# Deploy the Contrast Coordinator"
 expect_prompt
-run_command "kubectl apply -f coordinator.yaml"
+run_command "kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.7.0/coordinator.yml"
 expect_prompt
+
 sleep 3
 run_command "coordinator=`kubectl get svc coordinator -o=jsonpath='\{.status.loadBalancer.ingress\[0\].ip\}'`"
 expect_prompt

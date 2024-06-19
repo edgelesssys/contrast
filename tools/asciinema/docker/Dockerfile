@@ -19,6 +19,8 @@ ENV TERM=xterm-256color
 ENV COLUMNS=512
 # For PS1 to work shell needs to specified
 ENV SHELL=/bin/bash
+# Disable telemetry
+ENV DO_NOT_TRACK=1
 # ANSI color codes are used to control PS1 prompt. We use "\033[38;2;<r>;<g>;<b>m"
 # to control the foreground color with RBG colors [1]. Non-printable characters
 # need to  be escaped with additional \[ and \], see [2].
