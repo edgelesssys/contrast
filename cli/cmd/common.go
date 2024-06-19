@@ -23,7 +23,7 @@ const (
 	settingsFilename     = "settings.json"
 	seedSharesFilename   = "seed-shares.json"
 	rulesFilename        = "rules.rego"
-	verifyDir            = "./verify"
+	verifyDir            = "verify"
 	cacheDirEnv          = "CONTRAST_CACHE_DIR"
 )
 

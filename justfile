@@ -162,7 +162,7 @@ verify cli=default_cli:
     policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
     t=$(date +%s)
     nix run .#{{ cli }} -- verify \
-        --workspace-dir ./{{ workspace_dir }}/verify \
+        --workspace-dir ./{{ workspace_dir }} \
         --coordinator-policy-hash "${policy}" \
         -c localhost:1314
     duration=$(( $(date +%s) - $t ))

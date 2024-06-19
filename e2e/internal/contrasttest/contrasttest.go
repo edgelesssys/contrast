@@ -206,6 +206,7 @@ func (ct *ContrastTest) Verify(t *testing.T) {
 	defer cancelPortForward()
 
 	verify := cmd.NewVerifyCmd()
+	verify.Flags().String("workspace-dir", "", "") // Make verify aware of root flags
 	verify.SetArgs(append(
 		ct.commonArgs(),
 		"--coordinator-policy-hash", ct.coordinatorPolicyHash,

@@ -106,7 +106,10 @@ func runSet(cmd *cobra.Command, args []string) error {
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	validateOptsGen := newCoordinatorValidateOptsGen(flags.policy)
+	validateOptsGen, err := newCoordinatorValidateOptsGen(m, flags.policy)
+	if err != nil {
+		return fmt.Errorf("generating validate opts: %w", err)
+	}
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
 	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
 	validator := snp.NewValidator(validateOptsGen, kdsGetter, log.WithGroup("snp-validator"))
