@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/assets/css/styles.5da1b699.css">
-<script src="/contrast/assets/js/runtime~main.9d87181a.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.99572a0a.js" defer="defer"></script>
 <script src="/contrast/assets/js/main.ce00b37f.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -28,18 +28,17 @@ called labels.</p>
 <code>CONTRAST_METRICS_PORT</code> environment variable under the <code>/metrics</code> endpoint. By
 default, this environment variable isn&#x27;t specified, hence no metrics will be
 exposed.</p>
-<p>The Coordinator starts two gRPC servers, one for the user API on port <code>1313</code> and
-one for the mesh API on port <code>7777</code>. Metrics for both servers can be accessed
-using different prefixes.</p>
-<p>All metric names for the user API are prefixed with <code>contrast_userapi_grpc_server_</code>.
-Exposed metrics include the number of  handled requests of the methods
+<p>The Coordinator exports gRPC metrics under the prefix <code>contrast_grpc_server_</code>.
+These metrics are labeled with the gRPC service name and method name.
+Metrics of interest include <code>contrast_grpc_server_handled_total</code>, which counts
+the number of requests by return code, and
+<code>contrast_grpc_server_handling_seconds_bucket</code>, which produces a histogram of<br>
+<!-- -->request latency.</p>
+<p>The gRPC service <code>userapi.UserAPI</code> records metrics for the methods
 <code>SetManifest</code> and <code>GetManifest</code>, which get called when <a href="/contrast/next/deployment#set-the-manifest">setting the
 manifest</a> and <a href="/contrast/next/deployment#verify-the-coordinator">verifying the
-Coordinator</a> respectively. For each method
-you can see the gRPC status code indicating whether the request succeeded or
-not and the request latency.</p>
-<p>For the mesh API, the metric names are prefixed with <code>contrast_meshapi_grpc_server_</code>. The
-metrics include similar data to the user API for the method <code>NewMeshCert</code> which
+Coordinator</a> respectively.</p>
+<p>The <code>meshapi.MeshAPI</code> service records metrics for the method <code>NewMeshCert</code>, which
 gets called by the <a href="/contrast/next/components#the-initializer">Initializer</a> when starting a
 new workload. Attestation failures from workloads to the Coordinator can be
 tracked with the counter <code>contrast_meshapi_attestation_failures</code>.</p>
