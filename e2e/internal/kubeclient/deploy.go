@@ -103,26 +103,28 @@ func (c *Kubeclient) WaitForPod(ctx context.Context, namespace, name string) err
 		return err
 	}
 	for {
-		select {
-		case evt := <-watcher.ResultChan():
-			switch evt.Type {
-			case watch.Added:
-				fallthrough
-			case watch.Modified:
-				pod, ok := evt.Object.(*corev1.Pod)
-				if !ok {
-					return fmt.Errorf("watcher received unexpected type %T", evt.Object)
-				}
-				if isPodReady(pod) {
-					return nil
-				}
-			case watch.Deleted:
-				return fmt.Errorf("pod %s/%s was deleted while waiting for it", namespace, name)
-			default:
-				c.log.Warn("ignoring unexpected watch event", "type", evt.Type, "object", evt.Object)
+		evt, ok := <-watcher.ResultChan()
+		if !ok {
+			if ctx.Err() == nil {
+				return fmt.Errorf("watcher for Pod %s/%s unexpectedly closed", namespace, name)
 			}
-		case <-ctx.Done():
 			return ctx.Err()
+		}
+		switch evt.Type {
+		case watch.Added:
+			fallthrough
+		case watch.Modified:
+			pod, ok := evt.Object.(*corev1.Pod)
+			if !ok {
+				return fmt.Errorf("watcher received unexpected type %T", evt.Object)
+			}
+			if isPodReady(pod) {
+				return nil
+			}
+		case watch.Deleted:
+			return fmt.Errorf("pod %s/%s was deleted while waiting for it", namespace, name)
+		default:
+			c.log.Warn("ignoring unexpected watch event", "type", evt.Type, "object", evt.Object)
 		}
 	}
 }
@@ -200,31 +202,33 @@ func (c *Kubeclient) WaitForLoadBalancer(ctx context.Context, namespace, name st
 	var port int
 loop:
 	for {
-		select {
-		case evt := <-watcher.ResultChan():
-			switch evt.Type {
-			case watch.Added:
-				fallthrough
-			case watch.Modified:
-				svc, ok := evt.Object.(*corev1.Service)
-				if !ok {
-					return "", fmt.Errorf("watcher received unexpected type %T", evt.Object)
-				}
-				for _, ingress := range svc.Status.LoadBalancer.Ingress {
-					if ingress.IP != "" {
-						ip = ingress.IP
-						// TODO(burgerdev): deal with more than one port, and protocols other than TCP
-						port = int(svc.Spec.Ports[0].Port)
-						break loop
-					}
-				}
-			case watch.Deleted:
-				return "", fmt.Errorf("service %s/%s was deleted while waiting for it", namespace, name)
-			default:
-				c.log.Warn("ignoring unexpected watch event", "type", evt.Type, "object", evt.Object)
+		evt, ok := <-watcher.ResultChan()
+		if !ok {
+			if ctx.Err() == nil {
+				return "", fmt.Errorf("watcher for LoadBalancer %s/%s unexpectedly closed", namespace, name)
 			}
-		case <-ctx.Done():
 			return "", fmt.Errorf("LoadBalancer %s/%s did not get a public IP before %w", namespace, name, ctx.Err())
+		}
+		switch evt.Type {
+		case watch.Added:
+			fallthrough
+		case watch.Modified:
+			svc, ok := evt.Object.(*corev1.Service)
+			if !ok {
+				return "", fmt.Errorf("watcher received unexpected type %T", evt.Object)
+			}
+			for _, ingress := range svc.Status.LoadBalancer.Ingress {
+				if ingress.IP != "" {
+					ip = ingress.IP
+					// TODO(burgerdev): deal with more than one port, and protocols other than TCP
+					port = int(svc.Spec.Ports[0].Port)
+					break loop
+				}
+			}
+		case watch.Deleted:
+			return "", fmt.Errorf("service %s/%s was deleted while waiting for it", namespace, name)
+		default:
+			c.log.Warn("ignoring unexpected watch event", "type", evt.Type, "object", evt.Object)
 		}
 	}
 
