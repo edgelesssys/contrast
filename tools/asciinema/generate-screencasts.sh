@@ -9,20 +9,23 @@
 
 set -euo pipefail
 
-# Setup.
+scriptdir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
+demodir=$(nix develop .#demo-latest --command pwd)
+contrastPath=$(nix build .#contrast-releases.latest && realpath result/bin/contrast)
+version=$(jq -r '.contrast | last | .version' "../../packages/contrast-releases.json")
+sed -i "s#download/.*/#download/$version/#g" ./scripts/flow.expect
 
-demodir=$(just demodir)
-docker build -t screenrecodings docker
+docker build -t screenrecodings "${scriptdir}/docker"
 
-# Screencast.
-docker run -it \
+docker run -t \
   -v "${HOME}/.kube/config:/root/.kube/config" \
-  -v "$(pwd)/recordings:/recordings" \
+  -v "${scriptdir}/recordings:/recordings" \
+  -v "${scriptdir}/scripts:/scripts" \
   -v "${demodir}:/demo" \
-  -v "${demodir}/contrast:/usr/local/bin/contrast" \
-  -v "$(pwd)/scripts:/scripts" \
+  -v "${contrastPath}:/usr/local/bin/contrast" \
   screenrecodings /scripts/flow.expect
 
-# Cleanup.
 kubectl delete -f "${demodir}/deployment/"
-kubectl delete -f "${demodir}/coordinator.yaml"
+kubectl delete -f "${demodir}/coordinator.yml"
+kubectl delete -f "${demodir}/runtime.yml"
+rm result
