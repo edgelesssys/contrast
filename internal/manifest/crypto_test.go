@@ -7,6 +7,8 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
+	"fmt"
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -14,38 +16,61 @@ import (
 )
 
 func TestEncryptDecryptSingleKey(t *testing.T) {
-	require := require.New(t)
+	bits := []int{2048, 4096}
+	seeds := [][]byte{{}, {1, 2, 3, 4, 5, 6, 7, 8}}
 
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(err)
+	for _, b := range bits {
+		for numKeys := range 3 {
+			for _, seed := range seeds {
+				name := fmt.Sprintf("bits=%d numKeys=%d seed=[%d]byte", b, numKeys, len(seed))
+				t.Run(name, func(t *testing.T) {
+					require := require.New(t)
+					keys := make([]*rsa.PrivateKey, numKeys)
+					pubKeys := make([]HexString, numKeys)
+					for i := range numKeys {
+						keys[i] = newKey(t, b)
+						pubKeys[i] = MarshalSeedShareOwnerKey(&keys[i].PublicKey)
+					}
 
-	seed := []byte{1, 2, 3, 4, 5, 6, 7, 8}
+					seedShares, err := EncryptSeedShares(seed, pubKeys)
+					require.NoError(err)
+					require.Len(seedShares, numKeys)
 
-	pubKeyHex := MarshalSeedShareOwnerKey(&key.PublicKey)
+					for i := range numKeys {
+						decryptedSeedShare, err := DecryptSeedShare(keys[i], seedShares[i])
+						require.NoError(err)
 
-	seedShares, err := EncryptSeedShares(seed, []HexString{pubKeyHex})
-	require.NoError(err)
-	require.Len(seedShares, 1)
+						require.Equal(seed, decryptedSeedShare)
+					}
+				})
+			}
+		}
+	}
 
-	decryptedSeedShare, err := DecryptSeedShare(key, seedShares[0])
-	require.NoError(err)
+	t.Run("decrypting with an unrelated key should fail", func(t *testing.T) {
+		require := require.New(t)
 
-	require.Equal(seed, decryptedSeedShare)
+		rightKey := newKey(t, 2048)
+		wrongKey := newKey(t, 2048)
 
-	// Decrypting with another key should fail.
+		seed := []byte{1, 2, 3, 4, 5, 6, 7, 8}
 
-	key2, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(err)
+		pubKeyHex := MarshalSeedShareOwnerKey(&rightKey.PublicKey)
 
-	_, err = DecryptSeedShare(key2, seedShares[0])
-	require.Error(err)
+		seedShares, err := EncryptSeedShares(seed, []HexString{pubKeyHex})
+		require.NoError(err)
+		require.Len(seedShares, 1)
+
+		decryptedSeedShare, err := DecryptSeedShare(wrongKey, seedShares[0])
+		require.Error(err)
+		require.Nil(decryptedSeedShare)
+	})
 }
 
-func TestEncryptDecrypt_WrongLabel(t *testing.T) {
+func TestDecryptSeedShare_WrongLabel(t *testing.T) {
 	require := require.New(t)
 
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(err)
+	key := newKey(t, 2048)
 
 	seed := []byte{1, 2, 3, 4, 5, 6, 7, 8}
 
@@ -60,4 +85,14 @@ func TestEncryptDecrypt_WrongLabel(t *testing.T) {
 
 	_, err = DecryptSeedShare(key, seedShare)
 	require.Error(err)
+}
+
+func newKey(t *testing.T, bits int) *rsa.PrivateKey {
+	t.Helper()
+	key, err := rsa.GenerateKey(rand.Reader, bits)
+	require.NoError(t, err)
+	require.NoError(t, key.Validate())
+
+	t.Logf("generated key: %q", HexString(x509.MarshalPKCS1PrivateKey(key)))
+	return key
 }
