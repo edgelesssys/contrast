@@ -10,6 +10,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+
+	"github.com/google/go-sev-guest/abi"
+	"github.com/google/go-sev-guest/kds"
+	"github.com/google/go-sev-guest/validate"
 )
 
 // Manifest is the Coordinator manifest and contains the reference values of the deployment.
@@ -119,4 +123,39 @@ func (p Policy) Bytes() []byte {
 func (p Policy) Hash() HexString {
 	hashBytes := sha256.Sum256(p)
 	return NewHexString(hashBytes[:])
+}
+
+// SNPValidateOpts returns validate options populated with the manifest's
+// SNP reference values and trusted measurement.
+func (m *Manifest) SNPValidateOpts() (*validate.Options, error) {
+	trustedMeasurement, err := m.ReferenceValues.TrustedMeasurement.Bytes()
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
+	}
+	if trustedMeasurement == nil {
+		// This is required to prevent an empty measurement in the manifest from disabling the measurement check.
+		trustedMeasurement = make([]byte, 48)
+	}
+
+	return &validate.Options{
+		Measurement: trustedMeasurement,
+		GuestPolicy: abi.SnpPolicy{
+			Debug: false,
+			SMT:   true,
+		},
+		VMPL: new(int), // VMPL0
+		MinimumTCB: kds.TCBParts{
+			BlSpl:    m.ReferenceValues.SNP.MinimumTCB.BootloaderVersion.UInt8(),
+			TeeSpl:   m.ReferenceValues.SNP.MinimumTCB.TEEVersion.UInt8(),
+			SnpSpl:   m.ReferenceValues.SNP.MinimumTCB.SNPVersion.UInt8(),
+			UcodeSpl: m.ReferenceValues.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
+		},
+		MinimumLaunchTCB: kds.TCBParts{
+			BlSpl:    m.ReferenceValues.SNP.MinimumTCB.BootloaderVersion.UInt8(),
+			TeeSpl:   m.ReferenceValues.SNP.MinimumTCB.TEEVersion.UInt8(),
+			SnpSpl:   m.ReferenceValues.SNP.MinimumTCB.SNPVersion.UInt8(),
+			UcodeSpl: m.ReferenceValues.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
+		},
+		PermitProvisionalFirmware: true,
+	}, nil
 }

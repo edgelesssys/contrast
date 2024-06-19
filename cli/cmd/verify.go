@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -16,9 +17,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
-	"github.com/google/go-sev-guest/abi"
-	"github.com/google/go-sev-guest/kds"
-	"github.com/google/go-sev-guest/validate"
 	"github.com/spf13/cobra"
 )
 
@@ -39,8 +37,7 @@ all policies, and the certificates of the Coordinator certificate authority.`,
 		RunE: withTelemetry(runVerify),
 	}
 
-	// Override persistent workspace-dir flag with a default value.
-	cmd.Flags().String("workspace-dir", verifyDir, "directory to write files to, if not set explicitly to another location")
+	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
 	cmd.Flags().String("coordinator-policy-hash", DefaultCoordinatorPolicyHash, "override the expected policy hash of the coordinator")
@@ -60,13 +57,25 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	log.Debug("Starting verification")
 
+	manifestBytes, err := os.ReadFile(flags.manifestPath)
+	if err != nil {
+		return fmt.Errorf("failed to read manifest file: %w", err)
+	}
+	var m manifest.Manifest
+	if err := json.Unmarshal(manifestBytes, &m); err != nil {
+		return fmt.Errorf("failed to unmarshal manifest: %w", err)
+	}
+
 	kdsDir, err := cachedir("kds")
 	if err != nil {
 		return fmt.Errorf("getting cache dir: %w", err)
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	validateOptsGen := newCoordinatorValidateOptsGen(flags.policy)
+	validateOptsGen, err := newCoordinatorValidateOptsGen(m, flags.policy)
+	if err != nil {
+		return fmt.Errorf("generating validate opts: %w", err)
+	}
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
 	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
 	validator := snp.NewValidator(validateOptsGen, kdsGetter, log.WithGroup("snp-validator"))
@@ -101,23 +110,28 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 		pHash := manifest.NewHexString(sha256sum[:])
 		filelist[fmt.Sprintf("policy.%s.rego", pHash)] = p
 	}
-	if err := writeFilelist(flags.workspaceDir, filelist); err != nil {
+	if err := writeFilelist(filepath.Join(flags.workspaceDir, verifyDir), filelist); err != nil {
 		return fmt.Errorf("writing filelist: %w", err)
 	}
 
-	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Wrote Coordinator configuration and keys to %s\n", flags.workspaceDir)
+	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Wrote Coordinator configuration and keys to %s\n", filepath.Join(flags.workspaceDir, verifyDir))
 	fmt.Fprintln(cmd.OutOrStdout(), "  Please verify the manifest history and policies")
 
 	return nil
 }
 
 type verifyFlags struct {
+	manifestPath string
 	coordinator  string
 	workspaceDir string
 	policy       []byte
 }
 
 func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
+	manifestPath, err := cmd.Flags().GetString("manifest")
+	if err != nil {
+		return nil, err
+	}
 	coordinator, err := cmd.Flags().GetString("coordinator")
 	if err != nil {
 		return nil, err
@@ -131,48 +145,30 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 		return nil, err
 	}
 
+	if workspaceDir != "" {
+		// Prepend default path with workspaceDir
+		if !cmd.Flags().Changed("manifest") {
+			manifestPath = filepath.Join(workspaceDir, manifestFilename)
+		}
+	}
+
 	return &verifyFlags{
+		manifestPath: manifestPath,
 		coordinator:  coordinator,
 		workspaceDir: workspaceDir,
 		policy:       policy,
 	}, nil
 }
 
-func newCoordinatorValidateOptsGen(hostData []byte) *snp.StaticValidateOptsGenerator {
-	defaultManifest := manifest.Default()
-	trustedMeasurement, err := defaultManifest.ReferenceValues.TrustedMeasurement.Bytes()
+func newCoordinatorValidateOptsGen(mnfst manifest.Manifest, hostData []byte) (*snp.StaticValidateOptsGenerator, error) {
+	validateOpts, err := mnfst.SNPValidateOpts()
 	if err != nil {
-		panic(err) // We are decoding known values, tests should catch any failure.
+		return nil, err
 	}
-	if trustedMeasurement == nil {
-		// This is required to prevent an empty measurement in the manifest from disabling the measurement check.
-		trustedMeasurement = make([]byte, 48)
-	}
-
+	validateOpts.HostData = hostData
 	return &snp.StaticValidateOptsGenerator{
-		Opts: &validate.Options{
-			HostData:    hostData,
-			Measurement: trustedMeasurement,
-			GuestPolicy: abi.SnpPolicy{
-				Debug: false,
-				SMT:   true,
-			},
-			VMPL: new(int), // VMPL0
-			MinimumTCB: kds.TCBParts{
-				BlSpl:    3,
-				TeeSpl:   0,
-				SnpSpl:   8,
-				UcodeSpl: 115,
-			},
-			MinimumLaunchTCB: kds.TCBParts{
-				BlSpl:    3,
-				TeeSpl:   0,
-				SnpSpl:   8,
-				UcodeSpl: 115,
-			},
-			PermitProvisionalFirmware: true,
-		},
-	}
+		Opts: validateOpts,
+	}, nil
 }
 
 func writeFilelist(dir string, filelist map[string][]byte) error {
