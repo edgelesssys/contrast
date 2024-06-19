@@ -1,9 +1,10 @@
 FROM ubuntu:22.04@sha256:340d9b015b194dc6e2a13938944e0d016e57b9679963fdeb9ce021daac430221
 
 # Install requirements
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y software-properties-common &&\
     apt-add-repository ppa:zanchey/asciinema && apt-get update &&\
-    apt-get install -y curl jq expect asciinema sudo unzip &&\
+    apt-get install -y curl jq expect asciinema sudo unzip moreutils &&\
     rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSLO https://dl.k8s.io/release/v1.26.0/bin/linux/amd64/kubectl &&\
@@ -19,6 +20,8 @@ ENV TERM=xterm-256color
 ENV COLUMNS=512
 # For PS1 to work shell needs to specified
 ENV SHELL=/bin/bash
+# Disable telemetry
+ENV DO_NOT_TRACK=1
 # ANSI color codes are used to control PS1 prompt. We use "\033[38;2;<r>;<g>;<b>m"
 # to control the foreground color with RBG colors [1]. Non-printable characters
 # need to  be escaped with additional \[ and \], see [2].

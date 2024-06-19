@@ -24,24 +24,26 @@ spawn asciinema rec --overwrite /recordings/flow.cast
 send "\r"
 expect_prompt
 
+run_command "# Deploy the Contrast runtime"
+expect_prompt
+run_command "kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.8.0/runtime.yml"
+expect_prompt
+
 run_command "# Deploy the Contrast Coordinator"
 expect_prompt
-run_command "kubectl apply -f coordinator.yaml"
+run_command "kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.8.0/coordinator.yml"
 expect_prompt
-sleep 3
-run_command "coordinator=`kubectl get svc coordinator -o=jsonpath='\{.status.loadBalancer.ingress\[0\].ip\}'`"
-expect_prompt
-# run_command "echo \$coordinator"
-# expect_prompt
 
 run_command "# Generate workload policies and manifest"
 expect_prompt
-run_command "contrast generate deployment/"
+run_command "contrast generate --reference-values aks-clh-snp deployment/"
 expect_prompt
 run_command "cat manifest.json | jq"
 expect_prompt
 
 run_command "# Set the manifest at the coordinator"
+expect_prompt
+run_command "coordinator=`kubectl get svc coordinator -o=jsonpath='\{.status.loadBalancer.ingress\[0\].ip\}'`"
 expect_prompt
 run_command "contrast set -c \$coordinator:1313 deployment/"
 expect_prompt
@@ -57,8 +59,31 @@ run_command "contrast verify -c \$coordinator:1313"
 expect_prompt
 run_command "ls ./verify"
 expect_prompt
+
+run_command "# Update the manifest"
+expect_prompt
+run_command "frontendIP=`kubectl get svc web-svc -o=jsonpath='\{.status.loadBalancer.ingress\[0\].ip\}'`"
+expect_prompt
+run_command "jq --arg frontendIP \"\$frontendIP\" '.Policies |= with_entries(select(.value\[0\]==\"web\") .value += \[\$frontendIP\] )' manifest.json | sponge manifest.json"
+expect_prompt
+run_command "cat manifest.json | jq"
+expect_prompt
+run_command "contrast set -c \$coordinator:1313 deployment/"
+expect_prompt
+run_command "kubectl rollout restart deployment/emoji"
+expect_prompt
+run_command "kubectl rollout restart deployment/vote-bot"
+expect_prompt
+run_command "kubectl rollout restart deployment/voting"
+expect_prompt
+run_command "kubectl rollout restart deployment/web"
+expect_prompt
+run_command "kubectl rollout status deployment/web"
+expect_prompt
+
 run_command "# mesh-ca.pem can be used to securely connect to the service"
 expect_prompt
+run_command "curl --cacert ./mesh-ca.pem \"https://\$frontendIP:443\""
 
 # Stop recording
 send "exit"
