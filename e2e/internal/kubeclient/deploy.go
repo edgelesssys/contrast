@@ -18,7 +18,82 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 )
+
+// ResourceWaiter is implemented by resources that can be waited for with WaitFor.
+type ResourceWaiter interface {
+	kind() string
+	watcher(context.Context, *kubernetes.Clientset, string, string) (watch.Interface, error)
+	numDesiredPods(any) (int, error)
+	getPods(context.Context, *Kubeclient, string, string) ([]corev1.Pod, error)
+}
+
+// Deployment implements ResourceWaiter.
+type Deployment struct{}
+
+func (d Deployment) kind() string {
+	return "Deployment"
+}
+
+func (d Deployment) watcher(ctx context.Context, client *kubernetes.Clientset, namespace, name string) (watch.Interface, error) {
+	return client.AppsV1().Deployments(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+}
+
+func (d Deployment) numDesiredPods(obj any) (int, error) {
+	if deploy, ok := obj.(*appsv1.Deployment); ok {
+		return int(*deploy.Spec.Replicas), nil
+	}
+	return 0, fmt.Errorf("watcher received unexpected type %T", obj)
+}
+
+func (d Deployment) getPods(ctx context.Context, client *Kubeclient, namespace, name string) ([]corev1.Pod, error) {
+	return client.PodsFromDeployment(ctx, namespace, name)
+}
+
+// DaemonSet implements ResourceWaiter.
+type DaemonSet struct{}
+
+func (d DaemonSet) kind() string {
+	return "DaemonSet"
+}
+
+func (d DaemonSet) watcher(ctx context.Context, client *kubernetes.Clientset, namespace, name string) (watch.Interface, error) {
+	return client.AppsV1().DaemonSets(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+}
+
+func (d DaemonSet) numDesiredPods(obj any) (int, error) {
+	if ds, ok := obj.(*appsv1.DaemonSet); ok {
+		return int(ds.Status.DesiredNumberScheduled), nil
+	}
+	return 0, fmt.Errorf("watcher received unexpected type %T", obj)
+}
+
+func (d DaemonSet) getPods(ctx context.Context, client *Kubeclient, namespace, name string) ([]corev1.Pod, error) {
+	return client.PodsFromOwner(ctx, namespace, d.kind(), name)
+}
+
+// StatefulSet implements ResourceWaiter.
+type StatefulSet struct{}
+
+func (s StatefulSet) kind() string {
+	return "StatefulSet"
+}
+
+func (s StatefulSet) watcher(ctx context.Context, client *kubernetes.Clientset, namespace, name string) (watch.Interface, error) {
+	return client.AppsV1().StatefulSets(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+}
+
+func (s StatefulSet) numDesiredPods(obj any) (int, error) {
+	if set, ok := obj.(*appsv1.StatefulSet); ok {
+		return int(*set.Spec.Replicas), nil
+	}
+	return 0, fmt.Errorf("watcher received unexpected type %T", obj)
+}
+
+func (s StatefulSet) getPods(ctx context.Context, client *Kubeclient, namespace, name string) ([]corev1.Pod, error) {
+	return client.PodsFromOwner(ctx, namespace, s.kind(), name)
+}
 
 // WaitForPod watches the given pod and blocks until it meets the condition Ready=True or the
 // context expires (is cancelled or times out).
@@ -52,150 +127,31 @@ func (c *Kubeclient) WaitForPod(ctx context.Context, namespace, name string) err
 	}
 }
 
-// WaitForDeployment watches the given deployment and blocks until it meets the condition
-// Available=True or the context expires (is cancelled or times out).
-func (c *Kubeclient) WaitForDeployment(ctx context.Context, namespace, name string) error {
-	watcher, err := c.client.AppsV1().Deployments(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
-	if err != nil {
-		return err
-	}
-	for {
-		select {
-		case evt := <-watcher.ResultChan():
-			switch evt.Type {
-			case watch.Added:
-				fallthrough
-			case watch.Modified:
-				deploy, ok := evt.Object.(*appsv1.Deployment)
-				if !ok {
-					return fmt.Errorf("watcher received unexpected type %T", evt.Object)
-				}
-				pods, err := c.PodsFromDeployment(ctx, namespace, name)
-				if err != nil {
-					return err
-				}
-				numPodsReady := 0
-				for _, pod := range pods {
-					if isPodReady(&pod) {
-						numPodsReady++
-					}
-				}
-				if int(*deploy.Spec.Replicas) <= numPodsReady {
-					return nil
-				}
-			case watch.Deleted:
-				return fmt.Errorf("deployment %s/%s was deleted while waiting for it", namespace, name)
-			default:
-				c.log.Warn("ignoring unexpected watch event", "type", evt.Type, "object", evt.Object)
-			}
-		case <-ctx.Done():
-			logger := c.log.With("namespace", namespace)
-			logger.Error("deployment did not become ready", "name", name, "contextErr", ctx.Err())
-			if ctx.Err() != context.DeadlineExceeded {
-				return ctx.Err()
-			}
-			ctxErr := ctx.Err()
-			// Fetch and print debug information.
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			defer cancel()
-			pods, err := c.PodsFromDeployment(ctx, namespace, name) //nolint:contextcheck // The parent context expired.
-			if err != nil {
-				logger.Error("could not fetch pods for deployment", "name", name, "error", err)
-				return ctxErr
-			}
-			for _, pod := range pods {
-				if !isPodReady(&pod) {
-					logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
-				}
-			}
-			return ctxErr
-		}
-	}
-}
-
-// WaitForDaemonset watches the given daemonset and blocks until the desired number of pods are
+// WaitFor watches the given resource kind and blocks until the desired number of pods are
 // ready or the context expires (is cancelled or times out).
-func (c *Kubeclient) WaitForDaemonset(ctx context.Context, namespace, name string) error {
-	watcher, err := c.client.AppsV1().DaemonSets(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+func (c *Kubeclient) WaitFor(ctx context.Context, resource ResourceWaiter, namespace, name string) error {
+	watcher, err := resource.watcher(ctx, c.client, namespace, name)
 	if err != nil {
 		return err
 	}
-	for {
-		select {
-		case evt := <-watcher.ResultChan():
-			switch evt.Type {
-			case watch.Added:
-				fallthrough
-			case watch.Modified:
-				ds, ok := evt.Object.(*appsv1.DaemonSet)
-				if !ok {
-					return fmt.Errorf("watcher received unexpected type %T", evt.Object)
-				}
-				if ds.Status.NumberReady >= ds.Status.DesiredNumberScheduled {
-					return nil
-				}
-			default:
-				return fmt.Errorf("unexpected watch event while waiting for daemonset %s/%s: type=%s, object=%#v", namespace, name, evt.Type, evt.Object)
-			}
-		case <-ctx.Done():
-			logger := c.log.With("namespace", namespace)
-			logger.Error("daemonset did not become ready", "name", name, "contextErr", ctx.Err())
-			if ctx.Err() != context.DeadlineExceeded {
-				return ctx.Err()
-			}
-			// Fetch and print debug information.
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			defer cancel()
-			pods, err := c.PodsFromOwner(ctx, namespace, "DaemonSet", name) //nolint:contextcheck // The parent context expired.
-			if err != nil {
-				logger.Error("could not fetch pods for daemonset", "name", name, "error", err)
-				return ctx.Err()
-			}
-			for _, pod := range pods {
-				if !isPodReady(&pod) {
-					logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
-				}
-			}
-		}
-	}
-}
 
-// WaitForStatefulSet watches the given StatefulSet and blocks until the desired number of pods are
-// ready or the context expires (is cancelled or times out).
-func (c *Kubeclient) WaitForStatefulSet(ctx context.Context, namespace, name string) error {
-	watcher, err := c.client.AppsV1().StatefulSets(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
-	if err != nil {
-		return err
-	}
 	for {
-		select {
-		case evt := <-watcher.ResultChan():
-			switch evt.Type {
-			case watch.Added:
-				fallthrough
-			case watch.Modified:
-				set, ok := evt.Object.(*appsv1.StatefulSet)
-				if !ok {
-					return fmt.Errorf("watcher received unexpected type %T", evt.Object)
-				}
-				if set.Status.AvailableReplicas >= *set.Spec.Replicas {
-					return nil
-				}
-			default:
-				return fmt.Errorf("unexpected watch event while waiting for daemonset %s/%s: type=%s, object=%#v", namespace, name, evt.Type, evt.Object)
+		evt, ok := <-watcher.ResultChan()
+		if !ok {
+			if ctx.Err() == nil {
+				return fmt.Errorf("watcher for %s %s/%s unexpectedly closed", resource.kind(), namespace, name)
 			}
-		case <-ctx.Done():
 			logger := c.log.With("namespace", namespace)
-			logger.Error("statefulset did not become ready", "name", name, "contextErr", ctx.Err())
+			logger.Error("resource did not become ready", "kind", resource, "name", name, "contextErr", ctx.Err())
 			if ctx.Err() != context.DeadlineExceeded {
 				return ctx.Err()
 			}
 			// Fetch and print debug information.
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
-			pods, err := c.PodsFromOwner(ctx, namespace, "StatefulSet", name) //nolint:contextcheck // The parent context expired.
+			pods, err := resource.getPods(ctx, c, namespace, name) //nolint:contextcheck // The parent context expired.
 			if err != nil {
-				logger.Error("could not fetch pods for statefulset", "name", name, "error", err)
+				logger.Error("could not fetch pods for resource", "kind", resource.kind(), "name", name, "error", err)
 				return ctx.Err()
 			}
 			for _, pod := range pods {
@@ -203,6 +159,33 @@ func (c *Kubeclient) WaitForStatefulSet(ctx context.Context, namespace, name str
 					logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
 				}
 			}
+			return ctx.Err()
+		}
+		switch evt.Type {
+		case watch.Added:
+			fallthrough
+		case watch.Modified:
+			pods, err := resource.getPods(ctx, c, namespace, name)
+			if err != nil {
+				return err
+			}
+			numPodsReady := 0
+			for _, pod := range pods {
+				if isPodReady(&pod) {
+					numPodsReady++
+				}
+			}
+			desiredPods, err := resource.numDesiredPods(evt.Object)
+			if err != nil {
+				return err
+			}
+			if desiredPods <= numPodsReady {
+				return nil
+			}
+		case watch.Deleted:
+			return fmt.Errorf("%s %s/%s was deleted while waiting for it", resource.kind(), namespace, name)
+		default:
+			return fmt.Errorf("unexpected watch event while waiting for %s %s/%s: type=%s, object=%#v", resource.kind(), namespace, name, evt.Type, evt.Object)
 		}
 	}
 }
