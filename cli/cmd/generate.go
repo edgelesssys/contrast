@@ -63,6 +63,7 @@ subcommands.`,
 	cmd.Flags().StringP("policy", "p", rulesFilename, "path to policy (.rego) file")
 	cmd.Flags().StringP("settings", "s", settingsFilename, "path to settings (.json) file")
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
+	cmd.Flags().String("reference-values", "", "set the default reference values used for attestation (one of: aks)")
 	cmd.Flags().StringArrayP("workload-owner-key", "w", []string{workloadOwnerPEM}, "path to workload owner key (.pem) file")
 	cmd.Flags().BoolP("disable-updates", "d", false, "prevent further updates of the manifest")
 	cmd.Flags().String("image-replacements", "", "path to image replacements file")
@@ -115,6 +116,9 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	defaultManifest := manifest.Default()
+	if flags.referenceValues == "aks" {
+		defaultManifest = manifest.DefaultAKS()
+	}
 	defaultManifestData, err := json.MarshalIndent(&defaultManifest, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshaling default manifest: %w", err)
@@ -445,6 +449,7 @@ type generateFlags struct {
 	policyPath            string
 	settingsPath          string
 	manifestPath          string
+	referenceValues       string
 	workloadOwnerKeys     []string
 	disableUpdates        bool
 	workspaceDir          string
@@ -464,6 +469,13 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	manifestPath, err := cmd.Flags().GetString("manifest")
 	if err != nil {
 		return nil, err
+	}
+	referenceValues, err := cmd.Flags().GetString("reference-values")
+	if err != nil {
+		return nil, err
+	}
+	if !slices.Contains([]string{"", "aks"}, referenceValues) {
+		return nil, fmt.Errorf("unknown reference values")
 	}
 	workloadOwnerKeys, err := cmd.Flags().GetStringArray("workload-owner-key")
 	if err != nil {
@@ -507,6 +519,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		policyPath:            policyPath,
 		settingsPath:          settingsPath,
 		manifestPath:          manifestPath,
+		referenceValues:       referenceValues,
 		workloadOwnerKeys:     workloadOwnerKeys,
 		disableUpdates:        disableUpdates,
 		workspaceDir:          workspaceDir,

@@ -79,7 +79,7 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 	policyHash := sha256.Sum256(policy)
 	policyHashHex := manifest.NewHexString(policyHash[:])
 
-	mnfst := manifest.Default()
+	mnfst := manifest.DefaultAKS()
 	mnfst.Policies = map[manifest.HexString][]string{policyHashHex: {"test"}}
 	mnfst.WorkloadOwnerKeyDigests = []manifest.HexString{keyDigest}
 	mnfstBytes, err := json.Marshal(mnfst)
