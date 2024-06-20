@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/spf13/cobra"
@@ -37,18 +38,20 @@ var (
 func newRootCmd() *cobra.Command {
 	// build the versions string
 	var versionsBuilder strings.Builder
-	versionsBuilder.WriteString(fmt.Sprintf("%s:\n\n", version))
-	versionsBuilder.WriteString(fmt.Sprintf("\truntime handler: %s\n", runtimeHandler))
-	versionsBuilder.WriteString(fmt.Sprintf("\tlaunch digest: %s\n", launchDigest))
-	versionsBuilder.WriteString(fmt.Sprintf("\tgenpolicy version: %s\n", genpolicyVersion))
-	versionsBuilder.WriteString("\timage versions:\n")
+	versionsWriter := tabwriter.NewWriter(&versionsBuilder, 0, 0, 4, ' ', 0)
+	fmt.Fprintf(versionsWriter, "%s:\n\n", version)
+	fmt.Fprintf(versionsWriter, "\truntime handler:\t%s\n", runtimeHandler)
+	fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", launchDigest)
+	fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", genpolicyVersion)
+	fmt.Fprintf(versionsWriter, "\timage versions:\n")
 	imageReplacements := strings.Trim(string(cmd.ReleaseImageReplacements), "\n")
 	for _, image := range strings.Split(imageReplacements, "\n") {
 		if !strings.HasPrefix(image, "#") {
 			image = strings.Split(image, "=")[1]
-			versionsBuilder.WriteString(fmt.Sprintf("\t\t%s\n", image))
+			fmt.Fprintf(versionsWriter, "\t\t%s\n", image)
 		}
 	}
+	versionsWriter.Flush()
 
 	root := &cobra.Command{
 		Use:              "contrast",
