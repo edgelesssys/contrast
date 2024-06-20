@@ -9,8 +9,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/edgelesssys/contrast/internal/flavours"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/node-installer/flavours"
 )
 
 func main() {

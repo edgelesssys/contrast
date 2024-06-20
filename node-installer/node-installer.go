@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edgelesssys/contrast/internal/flavours"
+	"github.com/edgelesssys/contrast/node-installer/flavours"
 	"github.com/edgelesssys/contrast/node-installer/internal/asset"
 	"github.com/edgelesssys/contrast/node-installer/internal/config"
 	"github.com/edgelesssys/contrast/node-installer/internal/constants"
@@ -100,8 +100,18 @@ func run(ctx context.Context, fetcher assetFetcher, flavour flavours.Flavour) er
 			return fmt.Errorf("chmod %q: %w", item.Name(), err)
 		}
 	}
-	clhConfigPath := filepath.Join(hostMount, runtimeBase, "etc", "configuration-clh-snp.toml")
-	if err := containerdRuntimeConfig(runtimeBase, clhConfigPath, flavour, config.DebugRuntime); err != nil {
+
+	kataConfigPath := filepath.Join(hostMount, runtimeBase, "etc")
+	switch flavour {
+	case flavours.AKSCLHSNP:
+		kataConfigPath = filepath.Join(kataConfigPath, "configuration-clh-snp.toml")
+	case flavours.BareMetalQEMUTDX:
+		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
+	default:
+		return fmt.Errorf("unsupported flavour %q", flavour)
+	}
+
+	if err := containerdRuntimeConfig(runtimeBase, kataConfigPath, flavour, config.DebugRuntime); err != nil {
 		return fmt.Errorf("generating clh_config.toml: %w", err)
 	}
 	containerdConfigPath := filepath.Join(hostMount, "etc", "containerd", "config.toml")
@@ -138,12 +148,14 @@ func patchContainerdConfig(runtimeName, basePath, configPath string, flavour fla
 		existing = constants.ContainerdBaseConfig()
 	}
 
-	// Add tardev snapshotter
-	if existing.ProxyPlugins == nil {
-		existing.ProxyPlugins = make(map[string]config.ProxyPlugin)
-	}
-	if _, ok := existing.ProxyPlugins["tardev"]; !ok {
-		existing.ProxyPlugins["tardev"] = constants.TardevSnapshotterConfigFragment()
+	// Add tardev snapshotter, only required for AKS deployments
+	if flavour == flavours.AKSCLHSNP {
+		if existing.ProxyPlugins == nil {
+			existing.ProxyPlugins = make(map[string]config.ProxyPlugin)
+		}
+		if _, ok := existing.ProxyPlugins["tardev"]; !ok {
+			existing.ProxyPlugins["tardev"] = constants.TardevSnapshotterConfigFragment()
+		}
 	}
 
 	// Add contrast-cc runtime

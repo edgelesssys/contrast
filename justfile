@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target flavour=default_flavour cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy microsoft-node-installer runtime (apply "runtime") (deploy target cli) set verify (wait-for-workload target)
+default target=default_deploy_target flavour=default_flavour cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer flavour) (runtime flavour) (apply "runtime") (deploy target cli) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -21,16 +21,31 @@ service-mesh-proxy: (push "service-mesh-proxy")
 # Build the initializer, containerize and push it.
 initializer: (push "initializer")
 
-# Build the microsoft-node-installer, containerize and push it.
-microsoft-node-installer: (push "microsoft-node-installer")
-
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"
 default_flavour := "AKS-CLH-SNP"
 workspace_dir := "workspace"
 
-e2e target=default_deploy_target: coordinator initializer openssl port-forwarder service-mesh-proxy node-installer
+# Build the node-installer, containerize and push it.
+node-installer flavour=default_flavour:
     #!/usr/bin/env bash
+    case {{ flavour }} in
+        "AKS-CLH-SNP")
+            just push "microsoft-node-installer"
+            exit 0
+        ;;
+        "BareMetal-QEMU-TDX")
+            just push "kata-node-installer"
+            exit 0
+        ;;
+        *)
+            echo "Unsupported flavour: {{ flavour }}"
+            exit 1
+        ;;
+    esac
+
+e2e target=default_deploy_target: coordinator initializer openssl port-forwarder service-mesh-proxy node-installer
+    #!/bin/env bash
     set -euo pipefail
     case {{ target }} in
         "openssl" | "servicemesh")

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/edgelesssys/contrast/internal/flavours"
+	"github.com/edgelesssys/contrast/node-installer/flavours"
 	"github.com/edgelesssys/contrast/node-installer/internal/config"
 	"github.com/pelletier/go-toml/v2"
 )

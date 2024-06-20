@@ -10,7 +10,7 @@ import (
 
 	_ "embed"
 
-	"github.com/edgelesssys/contrast/internal/flavours"
+	"github.com/edgelesssys/contrast/node-installer/flavours"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
