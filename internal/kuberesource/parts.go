@@ -4,8 +4,10 @@
 package kuberesource
 
 import (
+	"fmt"
 	"strconv"
 
+	"github.com/edgelesssys/contrast/internal/flavours"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -31,8 +33,20 @@ type NodeInstallerConfig struct {
 }
 
 // NodeInstaller constructs a node installer daemon set.
-func NodeInstaller(namespace string) *NodeInstallerConfig {
-	name := "contrast-node-installer-microsoft"
+func NodeInstaller(namespace string, flavour flavours.Flavour) (*NodeInstallerConfig, error) {
+	name := "contrast-node-installer"
+
+	var podRole, imageURL string
+	switch flavour {
+	case flavours.AKSCLHSNP:
+		podRole = "contrast-node-installer-microsoft"
+		imageURL = "ghcr.io/edgelesssys/contrast/microsoft-node-installer:latest"
+	case flavours.BareMetalQEMUTDX:
+		podRole = "contrast-node-installer-kata"
+		imageURL = "ghcr.io/edgelesssys/contrast/kata-node-installer:latest"
+	default:
+		return nil, fmt.Errorf("unsupported flavour %q", flavour)
+	}
 
 	d := DaemonSet(name, namespace).
 		WithLabels(map[string]string{"app.kubernetes.io/name": name}).
@@ -42,19 +56,20 @@ func NodeInstaller(namespace string) *NodeInstallerConfig {
 			).
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
-				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "contrast-node-installer-microsoft"}).
+				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": podRole}).
 				WithSpec(PodSpec().
 					WithHostPID(true).
 					WithInitContainers(Container().
 						WithName("installer").
-						WithImage("ghcr.io/edgelesssys/contrast/microsoft-node-installer:latest").
+						WithImage(imageURL).
 						WithResources(ResourceRequirements().
 							WithMemoryLimitAndRequest(100),
 						).
 						WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
 						WithVolumeMounts(VolumeMount().
 							WithName("host-mount").
-							WithMountPath("/host")),
+							WithMountPath("/host")).
+						WithCommand("/bin/node-installer", flavour.String()),
 					).
 					WithContainers(
 						Container().
@@ -76,7 +91,7 @@ func NodeInstaller(namespace string) *NodeInstallerConfig {
 			),
 		)
 
-	return &NodeInstallerConfig{d}
+	return &NodeInstallerConfig{d}, nil
 }
 
 // PortForwarderConfig wraps a PodApplyConfiguration for a port forwarder.

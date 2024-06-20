@@ -272,9 +272,10 @@ jobs:
       - name: Create portable coordinator resource definitions
         run: |
           mkdir -p workspace deployment
-          nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" > workspace/coordinator.yml
-          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --namespace kube-system runtime > workspace/runtime.yml
-          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --add-load-balancers emojivoto-sm-ingress > deployment/emojivoto-demo.yml
+          # TODO(msanft): Release for all flavours once stable
+          nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" AKS-CLH-SNP > workspace/coordinator.yml
+          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --namespace kube-system --flavour AKS-CLH-SNP runtime > workspace/runtime.yml
+          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --add-load-balancers --flavour AKS-CLH-SNP emojivoto-sm-ingress > deployment/emojivoto-demo.yml
           zip -r workspace/emojivoto-demo.zip deployment/emojivoto-demo.yml
       - name: Update coordinator policy hash
         run: |

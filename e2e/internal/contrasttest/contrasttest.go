@@ -20,6 +20,7 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
+	"github.com/edgelesssys/contrast/internal/flavours"
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	ksync "github.com/katexochen/sync/api/client"
@@ -254,7 +255,8 @@ func (ct *ContrastTest) commonArgs() []string {
 func (ct *ContrastTest) installRuntime(t *testing.T) {
 	require := require.New(t)
 
-	resources := kuberesource.Runtime()
+	resources, err := kuberesource.Runtime(flavours.AKSCLHSNP)
+	require.NoError(err)
 	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
 
