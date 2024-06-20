@@ -133,7 +133,12 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 func (ct *ContrastTest) Generate(t *testing.T) {
 	require := require.New(t)
 
-	args := append(ct.commonArgs(), "--image-replacements", ct.ImageReplacementsFile, path.Join(ct.WorkDir, "resources.yaml"))
+	args := append(
+		ct.commonArgs(),
+		"--image-replacements", ct.ImageReplacementsFile,
+		"--reference-values", "aks",
+		path.Join(ct.WorkDir, "resources.yaml"),
+	)
 
 	generate := cmd.NewGenerateCmd()
 	generate.Flags().String("workspace-dir", "", "") // Make generate aware of root flags
