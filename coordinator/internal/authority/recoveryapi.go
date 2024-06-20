@@ -12,22 +12,28 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// ErrAlreadyRecovered is returned if recovery was requested but a seed is already set.
-var ErrAlreadyRecovered = errors.New("coordinator is already recovered")
+var (
+	// ErrAlreadyRecovered is returned if seedEngine initialization was requested but a seed is already set.
+	ErrAlreadyRecovered = errors.New("coordinator is already recovered")
+	// ErrNeedsRecovery is returned if state exists, but no secrets are available, e.g. after restart.
+	ErrNeedsRecovery = errors.New("coordinator is in recovery mode")
+)
 
 // Recover recovers the Coordinator from a seed and salt.
 func (a *Authority) Recover(_ context.Context, req *recoveryapi.RecoverRequest) (*recoveryapi.RecoverResponse, error) {
 	a.logger.Info("Recover called")
 
-	err := a.initSeedEngine(req.Seed, req.Salt)
-	switch {
-	case errors.Is(err, ErrAlreadyRecovered):
+	if err := a.initSeedEngine(req.Seed, req.Salt); errors.Is(err, ErrAlreadyRecovered) {
 		return nil, status.Error(codes.FailedPrecondition, err.Error())
-	case err == nil:
-		return &recoveryapi.RecoverResponse{}, nil
-	default:
+	} else if err != nil {
 		// Pretty sure this failed because the seed was bad.
-		return nil, status.Errorf(codes.InvalidArgument, err.Error())
-
+		return nil, status.Errorf(codes.InvalidArgument, "initializing seed engine: %v", err)
 	}
+
+	if err := a.syncState(); err != nil {
+		// This recovery attempt did not lead to a good state, let's roll it back.
+		a.se.Store(nil)
+		return nil, status.Errorf(codes.InvalidArgument, "recovery failed and was rolled back: %v", err)
+	}
+	return &recoveryapi.RecoverResponse{}, nil
 }

@@ -28,7 +28,9 @@ import (
 func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, error) {
 	a.logger.Info("SetManifest called")
 
-	if err := a.syncState(); err != nil {
+	if err := a.syncState(); errors.Is(err, ErrNeedsRecovery) {
+		return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
+	} else if err != nil {
 		return nil, status.Errorf(codes.Internal, "syncing internal state: %v", err)
 	}
 
@@ -40,7 +42,13 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 	var resp userapi.SetManifestResponse
 
 	oldState := a.state.Load()
-	if oldState == nil {
+	if oldState != nil {
+		// Subsequent SetManifest call, check permissions of caller.
+		if err := a.validatePeer(ctx, oldState.manifest); err != nil {
+			a.logger.Warn("SetManifest peer validation failed", "err", err)
+			return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
+		}
+	} else if a.se.Load() == nil {
 		// First SetManifest call, initialize seed engine.
 		seedSalt, err := crypto.GenerateRandomBytes(64)
 		if err != nil {
@@ -48,23 +56,18 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 		}
 		seed, salt := seedSalt[:32], seedSalt[32:]
 
-		// TODO(burgerdev): requires https://github.com/edgelesssys/contrast/commit/bae8e7f
-		seedShares, err := manifest.EncryptSeedShares(seed /*m.SeedshareOwnerPubKeys*/, nil)
+		seedShares, err := manifest.EncryptSeedShares(seed, m.SeedshareOwnerPubKeys)
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "initializing seed engine: %v", err)
 		}
-		if err := a.initSeedEngine(seed, salt); err != nil {
+		if err := a.initSeedEngine(seed, salt); errors.Is(err, ErrAlreadyRecovered) {
+			return nil, status.Error(codes.Unavailable, "concurrent initialization through SetManifest detected")
+		} else if err != nil {
 			return nil, status.Errorf(codes.Internal, "setting seed: %v", err)
 		}
 		resp.SeedSharesDoc = &userapi.SeedShareDocument{
 			Salt:       salt,
 			SeedShares: seedShares,
-		}
-	} else {
-		// Subsequent SetManifest call, check permissions of caller.
-		if err := a.validatePeer(ctx, oldState.manifest); err != nil {
-			a.logger.Warn("SetManifest peer validation failed", "err", err)
-			return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
 		}
 	}
 

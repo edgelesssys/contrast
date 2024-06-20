@@ -183,6 +183,11 @@ func (m *Authority) syncState() error {
 		// No history yet -> nothing to sync.
 		return nil
 	}
+	se := m.se.Load()
+	if se == nil {
+		// There are transitions in history, but we don't have a signing key -> recovery mode.
+		return ErrNeedsRecovery
+	}
 
 	oldState := m.state.Load()
 	latest, err := m.hist.GetLatest()
@@ -209,11 +214,11 @@ func (m *Authority) syncState() error {
 		return fmt.Errorf("parsing manifest: %w", err)
 	}
 
-	meshKey, err := m.se.Load().DeriveMeshCAKey(latest.TransitionHash)
+	meshKey, err := se.DeriveMeshCAKey(latest.TransitionHash)
 	if err != nil {
 		return fmt.Errorf("deriving mesh CA key: %w", err)
 	}
-	ca, err := ca.New(m.se.Load().RootCAKey(), meshKey)
+	ca, err := ca.New(se.RootCAKey(), meshKey)
 	if err != nil {
 		return fmt.Errorf("creating CA: %w", err)
 	}
