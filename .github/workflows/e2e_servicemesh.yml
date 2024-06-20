@@ -58,7 +58,7 @@ jobs:
           echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a $GITHUB_ENV
       - name: Build and prepare deployments
         run: |
-          just coordinator initializer port-forwarder service-mesh-proxy microsoft-node-installer
+          just coordinator initializer port-forwarder service-mesh-proxy node-installer
       - name: E2E Test
         run: |
           nix shell .#contrast.e2e --command servicemesh.test -test.v \
