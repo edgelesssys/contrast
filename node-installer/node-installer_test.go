@@ -8,108 +8,63 @@ import (
 	"path/filepath"
 	"testing"
 
+	_ "embed"
+
+	"github.com/edgelesssys/contrast/internal/flavours"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	//go:embed testdata/expected-aks-clh-snp.toml
+	expectedConfAKSCLHSNP []byte
+
+	//go:embed testdata/expected-bare-metal-qemu-tdx.toml
+	expectedConfBareMetalQEMUTDX []byte
+)
+
 func TestPatchContainerdConfig(t *testing.T) {
-	assert := assert.New(t)
-	require := require.New(t)
+	testCases := map[string]struct {
+		flavour  flavours.Flavour
+		expected []byte
+		wantErr  bool
+	}{
+		"AKSCLHSNP": {
+			flavour:  flavours.AKSCLHSNP,
+			expected: expectedConfAKSCLHSNP,
+		},
+		"BareMetalQEMUTDX": {
+			flavour:  flavours.BareMetalQEMUTDX,
+			expected: expectedConfBareMetalQEMUTDX,
+		},
+		"Unknown": {
+			flavour: flavours.Unknown,
+			wantErr: true,
+		},
+	}
 
-	tmpDir, err := os.MkdirTemp("", "patch-containerd-config-test")
-	require.NoError(err)
-	t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
 
-	configPath := filepath.Join(tmpDir, "config.toml")
+			tmpDir, err := os.MkdirTemp("", "patch-containerd-config-test")
+			require.NoError(err)
+			t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
 
-	require.NoError(patchContainerdConfig("my-runtime", "/opt/edgeless/my-runtime", configPath))
+			configPath := filepath.Join(tmpDir, "config.toml")
 
-	configData, err := os.ReadFile(configPath)
-	require.NoError(err)
-	assert.Equal(`version = 2
-root = ''
-state = ''
-temp = ''
-plugin_dir = ''
-disabled_plugins = []
-required_plugins = []
-oom_score = 0
-imports = []
+			err = patchContainerdConfig("my-runtime", "/opt/edgeless/my-runtime",
+				configPath, tc.flavour)
+			if tc.wantErr {
+				require.Error(err)
+				return
+			}
+			require.NoError(err)
 
-[metrics]
-address = '0.0.0.0:10257'
-
-[plugins]
-[plugins.'io.containerd.grpc.v1.cri']
-sandbox_image = 'mcr.microsoft.com/oss/kubernetes/pause:3.6'
-
-[plugins.'io.containerd.grpc.v1.cri'.cni]
-bin_dir = '/opt/cni/bin'
-conf_dir = '/etc/cni/net.d'
-conf_template = '/etc/containerd/kubenet_template.conf'
-
-[plugins.'io.containerd.grpc.v1.cri'.containerd]
-default_runtime_name = 'runc'
-disable_snapshot_annotations = false
-
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes]
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.kata]
-runtime_type = 'io.containerd.kata.v2'
-
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.kata-cc]
-pod_annotations = ['io.katacontainers.*']
-privileged_without_host_devices = true
-runtime_type = 'io.containerd.kata-cc.v2'
-snapshotter = 'tardev'
-
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.kata-cc.options]
-ConfigPath = '/opt/confidential-containers/share/defaults/kata-containers/configuration-clh-snp.toml'
-
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.katacli]
-runtime_type = 'io.containerd.runc.v1'
-
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.katacli.options]
-BinaryName = '/usr/bin/kata-runtime'
-CriuPath = ''
-IoGid = 0
-IoUid = 0
-NoNewKeyring = false
-NoPivotRoot = false
-Root = ''
-ShimCgroup = ''
-SystemdCgroup = false
-
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.my-runtime]
-runtime_type = 'io.containerd.contrast-cc.v2'
-runtime_path = '/opt/edgeless/my-runtime/bin/containerd-shim-contrast-cc-v2'
-pod_annotations = ['io.katacontainers.*']
-privileged_without_host_devices = true
-snapshotter = 'tardev'
-
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.my-runtime.options]
-ConfigPath = '/opt/edgeless/my-runtime/etc/configuration-clh-snp.toml'
-
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.runc]
-runtime_type = 'io.containerd.runc.v2'
-
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.runc.options]
-BinaryName = '/usr/bin/runc'
-
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.untrusted]
-runtime_type = 'io.containerd.runc.v2'
-
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.untrusted.options]
-BinaryName = '/usr/bin/runc'
-
-[plugins.'io.containerd.grpc.v1.cri'.registry]
-config_path = '/etc/containerd/certs.d'
-
-[plugins.'io.containerd.grpc.v1.cri'.registry.headers]
-X-Meta-Source-Client = ['azure/aks']
-
-[proxy_plugins]
-[proxy_plugins.tardev]
-type = 'snapshot'
-address = '/run/containerd/tardev-snapshotter.sock'
-`, string(configData))
+			configData, err := os.ReadFile(configPath)
+			require.NoError(err)
+			assert.Equal(tc.expected, configData)
+		})
+	}
 }

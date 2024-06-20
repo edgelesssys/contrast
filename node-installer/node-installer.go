@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/edgelesssys/contrast/internal/flavours"
 	"github.com/edgelesssys/contrast/node-installer/internal/asset"
 	"github.com/edgelesssys/contrast/node-installer/internal/config"
 	"github.com/edgelesssys/contrast/node-installer/internal/constants"
@@ -21,15 +22,26 @@ import (
 )
 
 func main() {
+	if len(os.Args) != 2 {
+		fmt.Println("Usage: node-installer <flavour>")
+		os.Exit(1)
+	}
+
+	flavour, err := flavours.FromString(os.Args[1])
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
 	fetcher := asset.NewDefaultFetcher()
-	if err := run(context.Background(), fetcher); err != nil {
+	if err := run(context.Background(), fetcher, flavour); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 	fmt.Println("Installation completed successfully.")
 }
 
-func run(ctx context.Context, fetcher assetFetcher) error {
+func run(ctx context.Context, fetcher assetFetcher, flavour flavours.Flavour) error {
 	configDir := envWithDefault("CONFIG_DIR", "/config")
 	hostMount := envWithDefault("HOST_MOUNT", "/host")
 
@@ -89,11 +101,11 @@ func run(ctx context.Context, fetcher assetFetcher) error {
 		}
 	}
 	clhConfigPath := filepath.Join(hostMount, runtimeBase, "etc", "configuration-clh-snp.toml")
-	if err := containerdRuntimeConfig(runtimeBase, clhConfigPath, config.DebugRuntime); err != nil {
+	if err := containerdRuntimeConfig(runtimeBase, clhConfigPath, flavour, config.DebugRuntime); err != nil {
 		return fmt.Errorf("generating clh_config.toml: %w", err)
 	}
 	containerdConfigPath := filepath.Join(hostMount, "etc", "containerd", "config.toml")
-	if err := patchContainerdConfig(config.RuntimeHandlerName, runtimeBase, containerdConfigPath); err != nil {
+	if err := patchContainerdConfig(config.RuntimeHandlerName, runtimeBase, containerdConfigPath, flavour); err != nil {
 		return fmt.Errorf("patching containerd config: %w", err)
 	}
 
@@ -108,16 +120,19 @@ func envWithDefault(key, dflt string) string {
 	return value
 }
 
-func containerdRuntimeConfig(basePath, configPath string, debugRuntime bool) error {
-	kataRuntimeConfig := constants.KataRuntimeConfig(basePath, debugRuntime)
+func containerdRuntimeConfig(basePath, configPath string, flavour flavours.Flavour, debugRuntime bool) error {
+	kataRuntimeConfig, err := constants.KataRuntimeConfig(basePath, flavour, debugRuntime)
+	if err != nil {
+		return fmt.Errorf("generating kata runtime config: %w", err)
+	}
 	rawConfig, err := toml.Marshal(kataRuntimeConfig)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshaling kata runtime config: %w", err)
 	}
 	return os.WriteFile(configPath, rawConfig, os.ModePerm)
 }
 
-func patchContainerdConfig(runtimeName, basePath, configPath string) error {
+func patchContainerdConfig(runtimeName, basePath, configPath string, flavour flavours.Flavour) error {
 	existingRaw, existing, err := parseExistingContainerdConfig(configPath)
 	if err != nil {
 		existing = constants.ContainerdBaseConfig()
@@ -133,11 +148,15 @@ func patchContainerdConfig(runtimeName, basePath, configPath string) error {
 
 	// Add contrast-cc runtime
 	runtimes := ensureMapPath(&existing.Plugins, constants.CRIFQDN, "containerd", "runtimes")
-	runtimes[runtimeName] = constants.ContainerdRuntimeConfigFragment(basePath)
+	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, flavour)
+	if err != nil {
+		return fmt.Errorf("generating containerd runtime config: %w", err)
+	}
+	runtimes[runtimeName] = containerdRuntimeConfig
 
 	rawConfig, err := toml.Marshal(existing)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshaling containerd config: %w", err)
 	}
 
 	if slices.Equal(existingRaw, rawConfig) {
