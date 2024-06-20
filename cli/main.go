@@ -39,7 +39,7 @@ func newRootCmd() *cobra.Command {
 	// build the versions string
 	var versionsBuilder strings.Builder
 	versionsWriter := tabwriter.NewWriter(&versionsBuilder, 0, 0, 4, ' ', 0)
-	fmt.Fprintf(versionsWriter, "%s:\n\n", version)
+	fmt.Fprintf(versionsWriter, "%s\n\n", version)
 	fmt.Fprintf(versionsWriter, "\truntime handler:\t%s\n", runtimeHandler)
 	fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", launchDigest)
 	fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", genpolicyVersion)
