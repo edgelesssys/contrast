@@ -25,7 +25,7 @@ jobs:
         run: |
            nix run .#rpm-pin-vendor -- kata-packages-uvm kata-packages-uvm-coco systemd libseccomp core-packages-base-image > packages/by-name/kata/kata-image/package-index.json
       - name: Create PR
-        uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6.1.0
         with:
           title: "deps: update pinned rpm packages"
           body: "Automated updated created by [rpm_updates workflow](https://github.com/edgelesssys/contrast/blob/main/.github/workflows/rpm_updates.yml)."
