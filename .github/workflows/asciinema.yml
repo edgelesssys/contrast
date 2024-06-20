@@ -1,0 +1,70 @@
+name: update asciinema screencasts
+
+on:
+  workflow_dispatch:
+
+env:
+  container_registry: ghcr.io/edgelesssys
+  azure_resource_group: contrast-ci
+  DO_NOT_TRACK: 1
+
+jobs:
+  asciinema:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Configure git
+        run: |
+          git config --global user.name "edgelessci"
+          git config --global user.email "edgelessci@users.noreply.github.com"
+      - name: Login to Azure
+        uses: azure/login@6c251865b4e6290e7b78be643ea2d005bc51f69a # v2.1.1
+        with:
+          creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
+      - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
+      - name: Create justfile.env
+        run: |
+          cat <<EOF > justfile.env
+          container_registry=${{ env.container_registry }}
+          azure_resource_group=${{ env.azure_resource_group }}
+          EOF
+      - name: Get credentials for CI cluster
+        run: |
+          just get-credentials
+      - name: Get ticket for the CI cluster
+        run: |
+          syncIP="$(kubectl get svc sync -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+          fifo="$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')"
+          ticket="$(curl -fsSL "${syncIP}:8080/fifo/${fifo}/ticket" | jq -r '.ticket')"
+          echo "SYNC_IP=$syncIP" | tee -a "$GITHUB_ENV"
+          echo "SYNC_FIFO=$fifo" | tee -a "$GITHUB_ENV"
+          echo "SYNC_TICKET=$ticket" | tee -a "$GITHUB_ENV"
+          curl -fsSL "${syncIP}:8080/fifo/${fifo}/wait/$ticket"
+      - name: Update asciinema screencast
+        working-directory: tools/asciinema
+        run: |
+          ./generate-screencasts.sh
+      - name: Mark ticket done
+        run: |
+          curl -fsSL "${SYNC_IP}:8080/fifo/${SYNC_FIFO}/done/${SYNC_TICKET}"
+      - name: Create PR
+        uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
+        with:
+          title: "tools/asciinema: update screencast"
+          commit-message: "tools/asciinema: update screencast"
+          base: main
+          draft: false
+          labels: "no changelog"
+          branch: automated/update-aciinema-screencasts
+          committer: edgelessci <edgelessci@users.noreply.github.com>
+          author: edgelessci <edgelessci@users.noreply.github.com>
+          token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
