@@ -25,7 +25,7 @@ In confidential mode, the guest agent is configured with an [Open Policy Agent](
 This policy also contains checksums for the expected container images.
 It's derived from Kubernetes resource definitions and its checksum is included in the attestation report.
 
-## AKS CoCo Preview
+## AKS CoCo preview
 
 [Azure Kubernetes Service](https://learn.microsoft.com/en-us/azure/aks/) (AKS) provides CoCo-enabled node pools as a [preview offering](https://learn.microsoft.com/en-us/azure/aks/confidential-containers-overview).
 These node pools leverage Azure VM types capable of nested virtualization (CVM-in-VM) and the CoCo stack is pre-installed.

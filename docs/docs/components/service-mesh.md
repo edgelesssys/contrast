@@ -1,4 +1,4 @@
-# Service Mesh
+# Service mesh
 
 The Contrast service mesh secures the communication of the workload by automatically
 wrapping the network traffic inside mutual TLS (mTLS) connections. The
@@ -14,7 +14,7 @@ all workloads which have a specified configuration. The service mesh container f
 sets up `iptables` rules based on its configuration and then starts
 [Envoy](https://www.envoyproxy.io/) for TLS origination and termination.
 
-## Configuring the Proxy
+## Configuring the proxy
 
 The service mesh container can be configured using the following object annotations:
 - `contrast.edgeless.systems/servicemesh-ingress` to configure ingress.
