@@ -34,7 +34,7 @@ e2e target=default_deploy_target: coordinator initializer openssl port-forwarder
     #!/usr/bin/env bash
     set -euo pipefail
     case {{ target }} in
-        "openssl" | "servicemesh")
+        "openssl" | "servicemesh" | "policy")
         nix shell .#contrast.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/e2e.namespace \
@@ -46,7 +46,7 @@ e2e target=default_deploy_target: coordinator initializer openssl port-forwarder
         exit 0
         ;;
     *)
-        echo "E2E tests are only available for the following targets: openssl, servicemesh"
+        echo "E2E tests are only available for the following targets: openssl, servicemesh, policy"
         exit 1
         ;;
     esac
