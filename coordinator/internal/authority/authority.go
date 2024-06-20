@@ -13,7 +13,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -157,42 +156,6 @@ func (m *Authority) GetCertBundle(peerPublicKeyHashStr string) (Bundle, error) {
 	}
 
 	return bundle, nil
-}
-
-// getManifestsAndLatestCA retrieves the manifest history and the currently active CA instance.
-//
-// If no manifest is configured, it returns an error.
-func (m *Authority) getManifestsAndLatestCA() ([]*manifest.Manifest, *ca.CA, error) {
-	if m.se.Load() == nil {
-		return nil, nil, ErrNoManifest
-	}
-	if err := m.syncState(); err != nil {
-		return nil, nil, fmt.Errorf("syncing internal state: %w", err)
-	}
-	state := m.state.Load()
-	if state == nil {
-		return nil, nil, ErrNoManifest
-	}
-
-	var manifests []*manifest.Manifest
-	err := m.walkTransitions(state.latest.TransitionHash, func(_ [history.HashSize]byte, t *history.Transition) error {
-		manifestBytes, err := m.hist.GetManifest(t.ManifestHash)
-		if err != nil {
-			return err
-		}
-		var mnfst manifest.Manifest
-		if err := json.Unmarshal(manifestBytes, &mnfst); err != nil {
-			return err
-		}
-		manifests = append(manifests, &mnfst)
-		return nil
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-	// Traversing the history yields manifests in the wrong order, so reverse the slice.
-	slices.Reverse(manifests)
-	return manifests, state.ca, nil
 }
 
 // initSeedEngine recovers the seed engine from a seed and salt.

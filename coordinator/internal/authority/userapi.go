@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/ca"
@@ -154,31 +155,28 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
 ) (*userapi.GetManifestsResponse, error) {
 	a.logger.Info("GetManifest called")
-
-	manifests, ca, err := a.getManifestsAndLatestCA()
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "getting manifests: %v", err)
+	if err := a.syncState(); err != nil {
+		return nil, status.Errorf(codes.Internal, "syncing internal state: %v", err)
 	}
-	if len(manifests) == 0 {
-		return nil, status.Errorf(codes.FailedPrecondition, "no manifests set")
-	}
-
-	manifestBytes, err := manifestSliceToBytesSlice(manifests)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "marshaling manifests: %v", err)
+	state := a.state.Load()
+	if state == nil {
+		return nil, status.Error(codes.FailedPrecondition, ErrNoManifest.Error())
 	}
 
-	// TODO(burgerdev): consolidate with getManifestsAndLatestCA
+	var manifests [][]byte
 	policies := make(map[manifest.HexString][]byte)
-	err = a.walkTransitions(a.state.Load().latest.TransitionHash, func(_ [history.HashSize]byte, t *history.Transition) error {
+	err := a.walkTransitions(state.latest.TransitionHash, func(_ [history.HashSize]byte, t *history.Transition) error {
 		manifestBytes, err := a.hist.GetManifest(t.ManifestHash)
 		if err != nil {
-			return fmt.Errorf("getting manifest: %w", err)
+			return err
 		}
+		manifests = append(manifests, manifestBytes)
+
 		var mnfst manifest.Manifest
 		if err := json.Unmarshal(manifestBytes, &mnfst); err != nil {
-			return fmt.Errorf("decoding manifest: %w", err)
+			return err
 		}
+
 		for policyHashHex := range mnfst.Policies {
 			policyHash, err := policyHashHex.Bytes()
 			if err != nil {
@@ -195,13 +193,15 @@ func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsReque
 		return nil
 	})
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "querying policies: %v", err)
+		return nil, status.Errorf(codes.Internal, "fetching manifests from history: %v", err)
 	}
+	// Traversing the history yields manifests in the wrong order, so reverse the slice.
+	slices.Reverse(manifests)
 
 	resp := &userapi.GetManifestsResponse{
-		Manifests: manifestBytes,
-		RootCA:    ca.GetRootCACert(),
-		MeshCA:    ca.GetMeshCACert(),
+		Manifests: manifests,
+		RootCA:    state.ca.GetRootCACert(),
+		MeshCA:    state.ca.GetMeshCACert(),
 	}
 	for _, policy := range policies {
 		resp.Policies = append(resp.Policies, policy)
@@ -249,16 +249,4 @@ func getPeerPublicKey(ctx context.Context) ([]byte, error) {
 		return nil, errors.New("peer public key is not of type ECDSA")
 	}
 	return x509.MarshalPKIXPublicKey(tlsInfo.State.PeerCertificates[0].PublicKey)
-}
-
-func manifestSliceToBytesSlice(s []*manifest.Manifest) ([][]byte, error) {
-	var manifests [][]byte
-	for i, manifest := range s {
-		manifestBytes, err := json.MarshalIndent(manifest, "", "  ")
-		if err != nil {
-			return nil, fmt.Errorf("mashaling manifest %d manifest: %w", i, err)
-		}
-		manifests = append(manifests, manifestBytes)
-	}
-	return manifests, nil
 }
