@@ -12,13 +12,17 @@ func Default() Manifest {
 		ReferenceValues: ReferenceValues{
 			SNP: SNPReferenceValues{
 				MinimumTCB: SNPTCB{
-					BootloaderVersion: 3,
-					TEEVersion:        0,
-					SNPVersion:        8,
-					MicrocodeVersion:  115,
+					BootloaderVersion: toPtr(SVN(3)),
+					TEEVersion:        toPtr(SVN(0)),
+					SNPVersion:        toPtr(SVN(8)),
+					MicrocodeVersion:  toPtr(SVN(115)),
 				},
 			},
 			TrustedMeasurement: HexString(trustedMeasurement),
 		},
 	}
+}
+
+func toPtr[T any](t T) *T {
+	return &t
 }
