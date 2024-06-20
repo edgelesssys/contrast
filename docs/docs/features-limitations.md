@@ -4,13 +4,13 @@ This section lists planned features and current limitations of Contrast.
 
 ## Availability
 
-- **Platform Support**: At present, Contrast is exclusively available on Azure AKS, supported by the [Confidential Container preview for AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview). Expansion to other cloud platforms is planned, pending the availability of necessary infrastructure enhancements.
+- **Platform support**: At present, Contrast is exclusively available on Azure AKS, supported by the [Confidential Container preview for AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview). Expansion to other cloud platforms is planned, pending the availability of necessary infrastructure enhancements.
 
 ## Kubernetes Features
 
-- **Persistent Volumes**: Not currently supported within Confidential Containers.
-- **Port-Forwarding**: This feature [isn't yet supported by Kata Containers](https://github.com/kata-containers/kata-containers/issues/1693). You can [deploy a port-forwarder](https://docs.edgeless.systems/contrast/deployment#connect-to-the-contrast-coordinator) as a workaround.
-- **Resource Limits**: There is an existing bug on AKS where container memory limits are incorrectly applied. The current workaround involves using only memory requests instead of limits.
+- **Persistent volumes**: Not currently supported within Confidential Containers.
+- **Port forwarding**: This feature [isn't yet supported by Kata Containers](https://github.com/kata-containers/kata-containers/issues/1693). You can [deploy a port-forwarder](https://docs.edgeless.systems/contrast/deployment#connect-to-the-contrast-coordinator) as a workaround.
+- **Resource limits**: There is an existing bug on AKS where container memory limits are incorrectly applied. The current workaround involves using only memory requests instead of limits.
 
 ## Runtime Policies
 
@@ -25,4 +25,4 @@ The policy limitations, in particular the missing guarantee that our service mes
 
 ## Tooling Integration
 
-- **CLI Availability**: The CLI tool is currently only available for Linux. This limitation arises because certain upstream dependencies haven't yet been ported to other platforms.
+- **CLI availability**: The CLI tool is currently only available for Linux. This limitation arises because certain upstream dependencies haven't yet been ported to other platforms.
