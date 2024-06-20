@@ -38,18 +38,18 @@ type SNPReferenceValues struct {
 
 // SNPTCB represents a set of SNP TCB values.
 type SNPTCB struct {
-	BootloaderVersion SVN
-	TEEVersion        SVN
-	SNPVersion        SVN
-	MicrocodeVersion  SVN
+	BootloaderVersion *SVN
+	TEEVersion        *SVN
+	SNPVersion        *SVN
+	MicrocodeVersion  *SVN
 }
 
 // SVN is a SNP secure version number.
 type SVN uint8
 
 // UInt8 returns the uint8 value of the SVN.
-func (s SVN) UInt8() uint8 {
-	return uint8(s)
+func (s *SVN) UInt8() uint8 {
+	return uint8(*s)
 }
 
 // MarshalJSON marshals the SVN to JSON.
@@ -137,6 +137,10 @@ func (m *Manifest) SNPValidateOpts() (*validate.Options, error) {
 		trustedMeasurement = make([]byte, 48)
 	}
 
+	if err = checkNullFields(m.ReferenceValues.SNP.MinimumTCB); err != nil {
+		return nil, err
+	}
+
 	return &validate.Options{
 		Measurement: trustedMeasurement,
 		GuestPolicy: abi.SnpPolicy{
@@ -158,4 +162,17 @@ func (m *Manifest) SNPValidateOpts() (*validate.Options, error) {
 		},
 		PermitProvisionalFirmware: true,
 	}, nil
+}
+
+func checkNullFields(tcb SNPTCB) error {
+	if tcb.BootloaderVersion == nil {
+		return fmt.Errorf("field BootloaderVersion in manifest cannot be empty")
+	} else if tcb.TEEVersion == nil {
+		return fmt.Errorf("field TEEVersion in manifest cannot be empty")
+	} else if tcb.SNPVersion == nil {
+		return fmt.Errorf("field SNPVersion in manifest cannot be empty")
+	} else if tcb.MicrocodeVersion == nil {
+		return fmt.Errorf("field MicrocodeVersion in manifest cannot be empty")
+	}
+	return nil
 }

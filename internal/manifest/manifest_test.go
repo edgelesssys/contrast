@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/google/go-sev-guest/kds"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -144,4 +145,64 @@ func TestPolicy(t *testing.T) {
 
 		assert.Error(err)
 	})
+}
+
+func TestSNPValidateOpts(t *testing.T) {
+	testCases := []struct {
+		tcb     SNPTCB
+		tm      HexString
+		wantErr bool
+	}{
+		{
+			tcb: SNPTCB{
+				BootloaderVersion: toPtr(SVN(0)),
+				TEEVersion:        toPtr(SVN(1)),
+				SNPVersion:        toPtr(SVN(2)),
+				MicrocodeVersion:  toPtr(SVN(3)),
+			},
+			tm: HexString("000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		},
+		{
+			tcb:     SNPTCB{},
+			wantErr: true,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			assert := assert.New(t)
+
+			mnfst := Manifest{
+				ReferenceValues: ReferenceValues{
+					SNP:                SNPReferenceValues{MinimumTCB: tc.tcb},
+					TrustedMeasurement: tc.tm,
+				},
+			}
+
+			opts, err := mnfst.SNPValidateOpts()
+			if tc.wantErr {
+				assert.Error(err)
+				return
+			}
+			assert.NoError(err)
+
+			assert.NotNil(tc.tcb.BootloaderVersion)
+			assert.NotNil(tc.tcb.TEEVersion)
+			assert.NotNil(tc.tcb.SNPVersion)
+			assert.NotNil(tc.tcb.MicrocodeVersion)
+
+			trustedMeasurement, err := tc.tm.Bytes()
+			assert.NoError(err)
+			assert.Equal(trustedMeasurement, opts.Measurement)
+
+			tcbParts := kds.TCBParts{
+				BlSpl:    tc.tcb.BootloaderVersion.UInt8(),
+				TeeSpl:   tc.tcb.TEEVersion.UInt8(),
+				SnpSpl:   tc.tcb.SNPVersion.UInt8(),
+				UcodeSpl: tc.tcb.MicrocodeVersion.UInt8(),
+			}
+			assert.Equal(tcbParts, opts.MinimumTCB)
+			assert.Equal(tcbParts, opts.MinimumLaunchTCB)
+		})
+	}
 }

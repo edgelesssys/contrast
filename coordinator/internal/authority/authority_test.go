@@ -91,13 +91,13 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 	policy := []byte("=== SOME REGO HERE ===")
 	policyHash := sha256.Sum256(policy)
 	policyHashHex := manifest.NewHexString(policyHash[:])
-	mnfst := &manifest.Manifest{
-		Policies:                map[manifest.HexString][]string{policyHashHex: {"test"}},
-		WorkloadOwnerKeyDigests: []manifest.HexString{keyDigest},
-	}
+
+	mnfst := manifest.Default()
+	mnfst.Policies = map[manifest.HexString][]string{policyHashHex: {"test"}}
+	mnfst.WorkloadOwnerKeyDigests = []manifest.HexString{keyDigest}
 	mnfstBytes, err := json.Marshal(mnfst)
 	require.NoError(t, err)
-	return mnfst, mnfstBytes, [][]byte{policy}
+	return &mnfst, mnfstBytes, [][]byte{policy}
 }
 
 func requireGauge(t *testing.T, reg *prometheus.Registry, val int) {
