@@ -185,7 +185,7 @@ jobs:
           working-directory: contrast-main
           commit: false
       - name: Create PR
-        uses: peter-evans/create-pull-request@6d6857d36972b65feb161a90e484f2984215f83e # v6.0.5
+        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6.1.0
         with:
           title: Post ${{ needs.process-inputs.outputs.WITHOUT_V }} release updates to main
           body: |
@@ -298,7 +298,7 @@ jobs:
       - name: Clean up git tree
         run: git clean -f :/
       - name: Create draft release
-        uses: softprops/action-gh-release@69320dbe05506a9a39fc8ae11030b214ec2d1f87 # v2.0.5
+        uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0 # v2.0.6
         with:
           draft: true
           generate_release_notes: true
