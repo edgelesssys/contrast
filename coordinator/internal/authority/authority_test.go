@@ -19,7 +19,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/spf13/afero"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,18 +31,6 @@ contrast_coordinator_manifest_generation %d
 )
 
 var keyDigest = manifest.HexString("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
-
-func TestEmptyAuthority(t *testing.T) {
-	a, reg := newAuthority(t)
-
-	// A fresh authority does not have a signing key, so this should fail.
-	manifests, ca, err := a.getManifestsAndLatestCA()
-	assert.Error(t, err)
-	assert.Nil(t, ca)
-	assert.Empty(t, manifests)
-
-	requireGauge(t, reg, 0)
-}
 
 func TestSNPValidateOpts(t *testing.T) {
 	require := require.New(t)

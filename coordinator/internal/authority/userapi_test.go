@@ -217,7 +217,7 @@ func TestGetManifests(t *testing.T) {
 
 	ctx := context.Background()
 	resp, err := coordinator.GetManifests(ctx, &userapi.GetManifestsRequest{})
-	require.Error(err)
+	require.Equal(codes.FailedPrecondition, status.Code(err))
 	assert.Nil(resp)
 
 	m := manifest.Default()
