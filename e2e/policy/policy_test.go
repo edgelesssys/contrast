@@ -15,25 +15,60 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var imageReplacementsFile, namespaceFile string
-var skipUndeploy bool
+var (
+	imageReplacementsFile, namespaceFile string
+	skipUndeploy                         bool
+)
 
 func TestPolicy(t *testing.T) {
 	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, skipUndeploy)
 
-	// NOTE: curently this probably is overkill, but its a helpful start
-	resources := kuberesource.Emojivoto(kuberesource.ServiceMeshIngressEgress)
+	resources := kuberesource.OpenSSL()
 	resources = append(resources, kuberesource.CoordinatorBundle()...)
+
+	pod := kuberesource.Deployment("testDeployment", ct.Namespace).
+		WithLabels(map[string]string{
+			"app.kubernetes.io/name": "testDeployment",
+		}).
+		WithSpec(kuberesource.DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(kuberesource.LabelSelector().
+				WithMatchLabels(map[string]string{
+					"app.kubernetes.io/name": "hello-world",
+					"version":                "nanoserver-ltsc2022",
+				}),
+			).
+			WithTemplate(kuberesource.PodTemplateSpec().
+				WithLabels(map[string]string{
+					"app.kubernetes.io/name": "hello-world",
+					"version":                "nanoserver-ltsc2022",
+				}).
+				WithSpec(kuberesource.PodSpec().
+					WithContainers(
+						kuberesource.Container().
+							WithName("hello-world").
+							WithImage("hello-world"),
+					),
+				),
+			),
+		)
+
+	resources = append(resources, pod)
 	resources = kuberesource.AddPortForwarders(resources)
 
 	ct.Init(t, resources)
 
+	// initial deployment with pod allowed
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 
 	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+
+	t.Run("pod cannot join after it was removed from the manifest", func(t *testing.T) {})
+
+	t.Run("manifest does not allow pod with valid policy", func(t *testing.T) {})
 }
 
 func TestMain(m *testing.M) {
