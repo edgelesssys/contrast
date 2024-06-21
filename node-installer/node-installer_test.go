@@ -34,7 +34,7 @@ func TestPatchContainerdConfig(t *testing.T) {
 			expected: expectedConfAKSCLHSNP,
 		},
 		"BareMetalQEMUTDX": {
-			flavour:  flavours.BareMetalQEMUTDX,
+			flavour:  flavours.K3sQEMUTDX,
 			expected: expectedConfBareMetalQEMUTDX,
 		},
 		"Unknown": {

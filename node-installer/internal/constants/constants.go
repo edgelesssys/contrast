@@ -49,7 +49,7 @@ func KataRuntimeConfig(baseDir string, flavour flavours.Flavour, debug bool) (*c
 		config.Hypervisor["clh"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")}
 		config.Hypervisor["clh"]["enable_debug"] = debug
 		return &config, nil
-	case flavours.BareMetalQEMUTDX:
+	case flavours.K3sQEMUTDX, flavours.RKE2QEMUTDX:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
@@ -94,7 +94,7 @@ func ContainerdRuntimeConfigFragment(baseDir string, flavour flavours.Flavour) (
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
 		}
-	case flavours.BareMetalQEMUTDX:
+	case flavours.K3sQEMUTDX, flavours.RKE2QEMUTDX:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
 		}

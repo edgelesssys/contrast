@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -21,11 +22,14 @@ import (
 	"github.com/pelletier/go-toml/v2"
 )
 
+var shouldRestartContainerd = flag.Bool("restart", true, "Restart containerd after the runtime installation to make the changes effective.")
+
 func main() {
-	if len(os.Args) != 2 {
+	if len(os.Args) < 2 {
 		fmt.Println("Usage: node-installer <flavour>")
 		os.Exit(1)
 	}
+	flag.Parse()
 
 	flavour, err := flavours.FromString(os.Args[1])
 	if err != nil {
@@ -102,24 +106,71 @@ func run(ctx context.Context, fetcher assetFetcher, flavour flavours.Flavour) er
 	}
 
 	kataConfigPath := filepath.Join(hostMount, runtimeBase, "etc")
+	var containerdConfigPath string
 	switch flavour {
 	case flavours.AKSCLHSNP:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-clh-snp.toml")
-	case flavours.BareMetalQEMUTDX:
+		containerdConfigPath = filepath.Join(hostMount, "etc", "containerd", "config.toml")
+	case flavours.K3sQEMUTDX:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
+		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "k3s", "agent", "etc", "containerd", "config.toml")
+	case flavours.RKE2QEMUTDX:
+		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
+		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "rke2", "agent", "etc", "containerd", "config.toml")
 	default:
 		return fmt.Errorf("unsupported flavour %q", flavour)
 	}
 
 	if err := containerdRuntimeConfig(runtimeBase, kataConfigPath, flavour, config.DebugRuntime); err != nil {
-		return fmt.Errorf("generating clh_config.toml: %w", err)
-	}
-	containerdConfigPath := filepath.Join(hostMount, "etc", "containerd", "config.toml")
-	if err := patchContainerdConfig(config.RuntimeHandlerName, runtimeBase, containerdConfigPath, flavour); err != nil {
-		return fmt.Errorf("patching containerd config: %w", err)
+		return fmt.Errorf("generating kata runtime configuration: %w", err)
 	}
 
-	return restartHostContainerd(containerdConfigPath)
+	switch flavour {
+	case flavours.AKSCLHSNP:
+		// AKS or any external-containerd based K8s distro: We can just patch the existing containerd config at /etc/containerd/config.toml
+		if err := patchContainerdConfig(config.RuntimeHandlerName, runtimeBase, containerdConfigPath, flavour); err != nil {
+			return fmt.Errorf("patching containerd configuration: %w", err)
+		}
+	case flavours.K3sQEMUTDX, flavours.RKE2QEMUTDX:
+		// K3s or RKE2: We need to extend the configuration template, which, in it's un-templated form, is non-TOML.
+		// Therefore just write the TOML configuration fragment ourselves and append it to the template file.
+		// This assumes that the user does not yet have a runtime with the same name configured himself,
+		// but as our runtimes are hash-named, this should be a safe assumption.
+		if err := patchContainerdConfigTemplate(config.RuntimeHandlerName, runtimeBase, containerdConfigPath, flavour); err != nil {
+			return fmt.Errorf("patching containerd configuration: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported flavour %q", flavour)
+	}
+
+	// If the user opted to not have us restart containerd, we're done here.
+	if !*shouldRestartContainerd {
+		return nil
+	}
+
+	switch flavour {
+	case flavours.AKSCLHSNP:
+		return restartHostContainerd(containerdConfigPath, "containerd")
+	case flavours.K3sQEMUTDX:
+		if hostServiceExists("k3s") {
+			return restartHostContainerd(containerdConfigPath, "k3s")
+		} else if hostServiceExists("k3s-agent") {
+			return restartHostContainerd(containerdConfigPath, "k3s-agent")
+		} else {
+			return fmt.Errorf("neither k3s nor k3s-agent service found")
+		}
+	case flavours.RKE2QEMUTDX:
+		if hostServiceExists("rke2-server") {
+			return restartHostContainerd(containerdConfigPath, "rke2-server")
+		} else if hostServiceExists("rke2-agent") {
+			return restartHostContainerd(containerdConfigPath, "rke2-agent")
+		} else {
+			return fmt.Errorf("neither rke2-server nor rke2-agent service found")
+		}
+
+	default:
+		return fmt.Errorf("unsupported flavour %q", flavour)
+	}
 }
 
 func envWithDefault(key, dflt string) string {
@@ -148,7 +199,7 @@ func patchContainerdConfig(runtimeName, basePath, configPath string, flavour fla
 		existing = constants.ContainerdBaseConfig()
 	}
 
-	// Add tardev snapshotter, only required for AKS deployments
+	// Add tardev snapshotter, only required for AKS
 	if flavour == flavours.AKSCLHSNP {
 		if existing.ProxyPlugins == nil {
 			existing.ProxyPlugins = make(map[string]config.ProxyPlugin)
@@ -180,6 +231,36 @@ func patchContainerdConfig(runtimeName, basePath, configPath string, flavour fla
 	return os.WriteFile(configPath, rawConfig, os.ModePerm)
 }
 
+func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath string, flavour flavours.Flavour) error {
+	existingConfig, err := os.ReadFile(configTemplatePath)
+	if err != nil {
+		return fmt.Errorf("reading containerd config template: %w", err)
+	}
+
+	// Extend a scratchpad config with the new plugin configuration. (including the new contrast-cc runtime)
+	var newConfigFragment config.ContainerdConfig
+	runtimes := ensureMapPath(&newConfigFragment.Plugins, constants.CRIFQDN, "containerd", "runtimes")
+	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, flavour)
+	if err != nil {
+		return fmt.Errorf("generating containerd runtime config: %w", err)
+	}
+	runtimes[runtimeName] = containerdRuntimeConfig
+
+	// We purposely don't marshal the full config, as we only want to append the plugin section.
+	rawNewPluginConfig, err := toml.Marshal(newConfigFragment.Plugins)
+	if err != nil {
+		return fmt.Errorf("marshaling containerd runtime config: %w", err)
+	}
+
+	// First append the existing config template by a newline, so that if it ends without a newline,
+	// the new config fragment isn't appended to the last line..
+	newRawConfig := append(existingConfig, []byte("\n")...)
+	// ..then append the new config fragment
+	newRawConfig = append(newRawConfig, rawNewPluginConfig...)
+
+	return os.WriteFile(configTemplatePath, newRawConfig, os.ModePerm)
+}
+
 func parseExistingContainerdConfig(path string) ([]byte, config.ContainerdConfig, error) {
 	configData, err := os.ReadFile(path)
 	if err != nil {
@@ -194,7 +275,7 @@ func parseExistingContainerdConfig(path string) ([]byte, config.ContainerdConfig
 	return configData, cfg, nil
 }
 
-func restartHostContainerd(containerdConfigPath string) error {
+func restartHostContainerd(containerdConfigPath, service string) error {
 	// get mtime of the config file
 	info, err := os.Stat(containerdConfigPath)
 	if err != nil {
@@ -204,38 +285,46 @@ func restartHostContainerd(containerdConfigPath string) error {
 
 	// get containerd start time
 	// Note that "--timestamp=unix" is not supported in the installed version of systemd (v250) at the time of writing.
-	containerdStartTime, err := exec.Command(
+	serviceStartTime, err := exec.Command(
 		"nsenter", "--target", "1", "--mount", "--",
-		"systemctl", "show", "--timestamp=utc", "--property=ActiveEnterTimestamp", "containerd",
+		"systemctl", "show", "--timestamp=utc", "--property=ActiveEnterTimestamp", service,
 	).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("getting containerd start time: %w %q", err, containerdStartTime)
+		return fmt.Errorf("getting service start time: %w %q", err, serviceStartTime)
 	}
 
 	// format: ActiveEnterTimestamp=Day YYYY-MM-DD HH:MM:SS UTC
-	dayUTC := strings.TrimPrefix(strings.TrimSpace(string(containerdStartTime)), "ActiveEnterTimestamp=")
+	dayUTC := strings.TrimPrefix(strings.TrimSpace(string(serviceStartTime)), "ActiveEnterTimestamp=")
 	startTime, err := time.Parse("Mon 2006-01-02 15:04:05 MST", dayUTC)
 	if err != nil {
-		return fmt.Errorf("parsing containerd start time: %w", err)
+		return fmt.Errorf("parsing service start time: %w", err)
 	}
 
-	fmt.Printf("containerd start time: %s\n", startTime.Format(time.RFC3339))
+	fmt.Printf("service (%s) start time: %s\n", service, startTime.Format(time.RFC3339))
 	fmt.Printf("config mtime:          %s\n", configMtime.Format(time.RFC3339))
 	if startTime.After(configMtime) {
-		fmt.Println("containerd already running with the newest config")
+		fmt.Println("service already running with the newest config")
 		return nil
 	}
 
 	// This command will restart containerd on the host and will take down the installer with it.
 	out, err := exec.Command(
 		"nsenter", "--target", "1", "--mount", "--",
-		"systemctl", "restart", "containerd",
+		"systemctl", "restart", service,
 	).CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("restarting containerd: %w: %s", err, out)
+		return fmt.Errorf("restarting service: %w: %s", err, out)
 	}
-	fmt.Printf("containerd restarted: %s\n", out)
+	fmt.Printf("service (%s) restarted: %s\n", service, out)
 	return nil
+}
+
+func hostServiceExists(service string) bool {
+	if err := exec.Command("nsenter", "--target", "1", "--mount", "--",
+		"systemctl", "status", service).Run(); err != nil {
+		return false
+	}
+	return true
 }
 
 // ensureMapPath ensures that the given path exists in the map and

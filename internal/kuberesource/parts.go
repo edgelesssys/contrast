@@ -41,7 +41,7 @@ func NodeInstaller(namespace string, flavour flavours.Flavour) (*NodeInstallerCo
 	case flavours.AKSCLHSNP:
 		podRole = "contrast-node-installer-microsoft"
 		imageURL = "ghcr.io/edgelesssys/contrast/microsoft-node-installer:latest"
-	case flavours.BareMetalQEMUTDX:
+	case flavours.K3sQEMUTDX, flavours.RKE2QEMUTDX:
 		podRole = "contrast-node-installer-kata"
 		imageURL = "ghcr.io/edgelesssys/contrast/kata-node-installer:latest"
 	default:
