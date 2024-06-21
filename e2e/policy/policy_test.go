@@ -26,9 +26,9 @@ func TestPolicy(t *testing.T) {
 	resources := kuberesource.OpenSSL()
 	resources = append(resources, kuberesource.CoordinatorBundle()...)
 
-	pod := kuberesource.Deployment("testDeployment", ct.Namespace).
+	pod := kuberesource.Deployment("test-deployment", ct.Namespace).
 		WithLabels(map[string]string{
-			"app.kubernetes.io/name": "testDeployment",
+			"app.kubernetes.io/name": "test-deployment",
 		}).
 		WithSpec(kuberesource.DeploymentSpec().
 			WithReplicas(1).
