@@ -3,13 +3,19 @@
 
 { stdenvNoCC
 , kata
-, qemu
+, fetchurl
 }:
 
 let
   image = kata.kata-image;
   kernel = "${kata.kata-kernel-uvm}/bzImage";
-  qemu-bin = "${qemu}/bin/qemu-system-x86_64";
+
+  # TODO(msanft): building a non-NixOS QEMU is hard, investigate later and pin it for now.
+  qemu-bin = fetchurl {
+    url = "https://cdn.confidential.cloud/contrast/node-components/1718800762/qemu-system-x86_64";
+    sha256 = "sha256-7MS/tK6q4D8y/FH6VcfARQLhIuvtNP6TsGfy+0o9kSc=";
+  };
+
   containerd-shim-contrast-cc-v2 = "${kata.kata-runtime}/bin/containerd-shim-kata-v2";
 in
 
