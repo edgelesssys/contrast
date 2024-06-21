@@ -163,6 +163,15 @@ func TestSNPValidateOpts(t *testing.T) {
 			tm: HexString("000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 		},
 		{
+			tcb: SNPTCB{
+				BootloaderVersion: toPtr(SVN(0)),
+				TEEVersion:        toPtr(SVN(1)),
+				SNPVersion:        toPtr(SVN(2)),
+				MicrocodeVersion:  toPtr(SVN(3)),
+			},
+			tm: HexString(""),
+		},
+		{
 			tcb:     SNPTCB{},
 			wantErr: true,
 		},
@@ -193,7 +202,11 @@ func TestSNPValidateOpts(t *testing.T) {
 
 			trustedMeasurement, err := tc.tm.Bytes()
 			assert.NoError(err)
-			assert.Equal(trustedMeasurement, opts.Measurement)
+			if len(tc.tm.String()) == 0 {
+				assert.Equal(make([]byte, 48), opts.Measurement)
+			} else {
+				assert.Equal(trustedMeasurement, opts.Measurement)
+			}
 
 			tcbParts := kds.TCBParts{
 				BlSpl:    tc.tcb.BootloaderVersion.UInt8(),

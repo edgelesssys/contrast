@@ -132,7 +132,7 @@ func (m *Manifest) SNPValidateOpts() (*validate.Options, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
 	}
-	if trustedMeasurement == nil {
+	if len(trustedMeasurement) == 0 {
 		// This is required to prevent an empty measurement in the manifest from disabling the measurement check.
 		trustedMeasurement = make([]byte, 48)
 	}
