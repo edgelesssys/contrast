@@ -6,6 +6,7 @@ package cmd
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -34,8 +35,6 @@ var (
 	defaultGenpolicySettings []byte
 	//go:embed assets/genpolicy-rules.rego
 	defaultRules []byte
-	// This value is injected at build time.
-	runtimeHandler = "contrast-cc"
 	// ReleaseImageReplacements contains the image replacements used by contrast.
 	//go:embed assets/image-replacements.txt
 	ReleaseImageReplacements []byte
@@ -44,6 +43,10 @@ var (
 	// It is intentionally left empty for dev builds.
 	DefaultCoordinatorPolicyHash = ""
 )
+
+func runtimeHandler(digest string) string {
+	return fmt.Sprintf("contrast-cc-%s", digest[:32])
+}
 
 func cachedir(subdir string) (string, error) {
 	dir := os.Getenv(cacheDirEnv)
