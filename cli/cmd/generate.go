@@ -359,13 +359,14 @@ func injectServiceMesh(resources []any) error {
 }
 
 func runtimeClassNamePatcher() func(*applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+	handler := runtimeHandler(manifest.TrustedMeasurement)
 	return func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		if spec.RuntimeClassName == nil || *spec.RuntimeClassName == runtimeHandler {
+		if spec.RuntimeClassName == nil || *spec.RuntimeClassName == handler {
 			return spec
 		}
 
 		if strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || *spec.RuntimeClassName == "kata-cc-isolation" {
-			spec.RuntimeClassName = &runtimeHandler
+			spec.RuntimeClassName = &handler
 		}
 		return spec
 	}

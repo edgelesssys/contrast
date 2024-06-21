@@ -3,14 +3,14 @@
 
 package manifest
 
-// This value is injected at build time.
-var trustedMeasurement = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+// TrustedMeasurement contains the expected launch digest and is injected at build time.
+var TrustedMeasurement = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
 
 // Default returns a default manifest.
 func Default() Manifest {
 	return Manifest{
 		ReferenceValues: ReferenceValues{
-			TrustedMeasurement: HexString(trustedMeasurement),
+			TrustedMeasurement: HexString(TrustedMeasurement),
 		},
 	}
 }

@@ -19,8 +19,7 @@ let
 
     ldflags = [
       "-s"
-      "-X github.com/edgelesssys/contrast/internal/manifest.trustedMeasurement=${launchDigest}"
-      "-X github.com/edgelesssys/contrast/cli/cmd.runtimeHandler=${runtimeHandler}"
+      "-X github.com/edgelesssys/contrast/internal/manifest.TrustedMeasurement=${launchDigest}"
       "-X github.com/edgelesssys/contrast/internal/kuberesource.runtimeHandler=${runtimeHandler}"
     ];
 
@@ -78,11 +77,8 @@ buildGoModule rec {
     "-s"
     "-w"
     "-X main.version=v${version}"
-    "-X main.runtimeHandler=${runtimeHandler}"
-    "-X main.launchDigest=${launchDigest}"
     "-X main.genpolicyVersion=${genpolicy.version}"
-    "-X github.com/edgelesssys/contrast/internal/manifest.trustedMeasurement=${launchDigest}"
-    "-X github.com/edgelesssys/contrast/cli/cmd.runtimeHandler=${runtimeHandler}"
+    "-X github.com/edgelesssys/contrast/internal/manifest.TrustedMeasurement=${launchDigest}"
     "-X github.com/edgelesssys/contrast/internal/kuberesource.runtimeHandler=${runtimeHandler}"
   ];
 
