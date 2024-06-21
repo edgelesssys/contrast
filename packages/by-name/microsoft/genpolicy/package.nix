@@ -27,6 +27,8 @@ rustPlatform.buildRustPackage rec {
   };
 
   patches = [
+    # TODO(burgerdev): drop after Microsoft reverted it
+    ./genpolicy_msft_revert_special_symlink_names.patch
     # TODO(burgerdev): drop after Microsoft ported https://github.com/kata-containers/kata-containers/pull/9706
     (fetchpatch {
       name = "genpolicy_device_support.patch";
@@ -36,9 +38,11 @@ rustPlatform.buildRustPackage rec {
     ./genpolicy_msft_runtime_class_filter.patch
   ];
 
-  patchFlags = [ "-p4" ];
+  postPatch = ''
+    ln -s src/tools/genpolicy/Cargo.lock Cargo.lock
+  '';
 
-  sourceRoot = "${src.name}/src/tools/genpolicy";
+  buildAndTestSubdir = "src/tools/genpolicy";
 
   cargoHash = "sha256-YxIwsjs4K0TNVlwwA+PrOrCf16h7ZW+zU/jXeFfIMZo=";
 
@@ -58,18 +62,18 @@ rustPlatform.buildRustPackage rec {
   ];
 
   preBuild = ''
-    make src/version.rs
+    make -C src/tools/genpolicy src/version.rs
   '';
 
   passthru = rec {
     settings = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-settings";
-      inherit src sourceRoot patches patchFlags;
+      inherit src patches;
 
       phases = [ "unpackPhase" "patchPhase" "installPhase" ];
       installPhase = ''
         runHook preInstall
-        install -D genpolicy-settings.json $out/genpolicy-settings.json
+        install -D src/tools/genpolicy/genpolicy-settings.json $out/genpolicy-settings.json
         runHook postInstall
       '';
     };
@@ -87,12 +91,12 @@ rustPlatform.buildRustPackage rec {
 
     rules = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-rules";
-      inherit src sourceRoot patches patchFlags;
+      inherit src patches;
 
       phases = [ "unpackPhase" "patchPhase" "installPhase" ];
       installPhase = ''
         runHook preInstall
-        install -D rules.rego $out/genpolicy-rules.rego
+        install -D src/tools/genpolicy/rules.rego $out/genpolicy-rules.rego
         runHook postInstall
       '';
     };
