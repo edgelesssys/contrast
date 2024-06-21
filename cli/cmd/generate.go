@@ -168,7 +168,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal manifest: %w", err)
 	}
-	if err := os.WriteFile(flags.manifestPath, manifestData, 0o644); err != nil {
+	if err := os.WriteFile(flags.manifestPath, append(manifestData, '\n'), 0o644); err != nil {
 		return fmt.Errorf("failed to write manifest: %w", err)
 	}
 

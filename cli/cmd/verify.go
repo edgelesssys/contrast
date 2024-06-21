@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -99,7 +100,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	log.Debug("Got response")
 
-	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Successfully verified coordinator")
+	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Successfully verified Coordinator CVM based on reference values from manifest")
 
 	filelist := map[string][]byte{
 		coordRootPEMFilename: resp.RootCA,
@@ -118,6 +119,13 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 
 	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Wrote Coordinator configuration and keys to %s\n", filepath.Join(flags.workspaceDir, verifyDir))
+
+	currentManifest := resp.Manifests[len(resp.Manifests)-1]
+	if !bytes.Equal(currentManifest, manifestBytes) {
+		return fmt.Errorf("manifest active at Coordinator does not match expected manifest")
+	}
+
+	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Manifest active at Coordinator matches expected manifest")
 	fmt.Fprintln(cmd.OutOrStdout(), "  Please verify the manifest history and policies")
 
 	return nil
