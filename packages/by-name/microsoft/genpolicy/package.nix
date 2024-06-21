@@ -19,32 +19,30 @@ rustPlatform.buildRustPackage rec {
   pname = "genpolicy";
   version = "3.2.0.azl1.genpolicy0";
 
-  src = fetchFromGitHub {
-    owner = "microsoft";
-    repo = "kata-containers";
-    rev = "refs/tags/${version}";
-    hash = "sha256-sFh2V7ylRDL6H50BcaHcgJAhrx4yvXzHNxtdQ9VYXdk=";
+  src = applyPatches {
+    src = fetchFromGitHub {
+      owner = "microsoft";
+      repo = "kata-containers";
+      rev = "refs/tags/${version}";
+      hash = "sha256-sFh2V7ylRDL6H50BcaHcgJAhrx4yvXzHNxtdQ9VYXdk=";
+    };
+
+    patches = [
+      # TODO(burgerdev): drop after Microsoft reverted it
+      ./genpolicy_msft_revert_special_symlink_names.patch
+      # TODO(burgerdev): drop after Microsoft ported https://github.com/kata-containers/kata-containers/pull/9706
+      (fetchpatch {
+        name = "genpolicy_device_support.patch";
+        url = "https://github.com/kata-containers/kata-containers/commit/f61b43777834f097fcca26864ee634125d9266ef.patch";
+        sha256 = "sha256-wBOyrFY4ZdWBjF5bIrHm7CFy6lVclcvwhF85wXpFZoc=";
+      })
+      ./genpolicy_msft_runtime_class_filter.patch
+    ];
   };
 
-  patches = [
-    # TODO(burgerdev): drop after Microsoft reverted it
-    ./genpolicy_msft_revert_special_symlink_names.patch
-    # TODO(burgerdev): drop after Microsoft ported https://github.com/kata-containers/kata-containers/pull/9706
-    (fetchpatch {
-      name = "genpolicy_device_support.patch";
-      url = "https://github.com/kata-containers/kata-containers/commit/f61b43777834f097fcca26864ee634125d9266ef.patch";
-      sha256 = "sha256-wBOyrFY4ZdWBjF5bIrHm7CFy6lVclcvwhF85wXpFZoc=";
-    })
-    ./genpolicy_msft_runtime_class_filter.patch
-  ];
+  sourceRoot = "${src.name}/src/tools/genpolicy";
 
-  postPatch = ''
-    ln -s src/tools/genpolicy/Cargo.lock Cargo.lock
-  '';
-
-  buildAndTestSubdir = "src/tools/genpolicy";
-
-  cargoHash = "sha256-YxIwsjs4K0TNVlwwA+PrOrCf16h7ZW+zU/jXeFfIMZo=";
+  cargoHash = "";
 
   OPENSSL_NO_VENDOR = 1;
 
@@ -68,7 +66,7 @@ rustPlatform.buildRustPackage rec {
   passthru = rec {
     settings = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-settings";
-      inherit src patches;
+      inherit src;
 
       phases = [ "unpackPhase" "patchPhase" "installPhase" ];
       installPhase = ''
@@ -91,7 +89,7 @@ rustPlatform.buildRustPackage rec {
 
     rules = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-rules";
-      inherit src patches;
+      inherit src;
 
       phases = [ "unpackPhase" "patchPhase" "installPhase" ];
       installPhase = ''
