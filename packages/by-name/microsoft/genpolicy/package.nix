@@ -60,18 +60,18 @@ rustPlatform.buildRustPackage rec {
   ];
 
   preBuild = ''
-    make -C src/tools/genpolicy src/version.rs
+    make src/version.rs
   '';
 
   passthru = rec {
     settings = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-settings";
-      inherit src;
+      inherit src sourceRoot;
 
       phases = [ "unpackPhase" "patchPhase" "installPhase" ];
       installPhase = ''
         runHook preInstall
-        install -D src/tools/genpolicy/genpolicy-settings.json $out/genpolicy-settings.json
+        install -D genpolicy-settings.json $out/genpolicy-settings.json
         runHook postInstall
       '';
     };
@@ -89,12 +89,12 @@ rustPlatform.buildRustPackage rec {
 
     rules = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-rules";
-      inherit src;
+      inherit src sourceRoot;
 
       phases = [ "unpackPhase" "patchPhase" "installPhase" ];
       installPhase = ''
         runHook preInstall
-        install -D src/tools/genpolicy/rules.rego $out/genpolicy-rules.rego
+        install -D rules.rego $out/genpolicy-rules.rego
         runHook postInstall
       '';
     };
