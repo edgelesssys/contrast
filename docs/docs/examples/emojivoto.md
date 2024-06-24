@@ -103,7 +103,7 @@ echo "The user API of your Contrast Coordinator is available at $coordinator:131
 contrast set -c "${coordinator}:1313" deployment/
 ```
 
-The CLI will use the embedded reference values to attest the Coordinator deployment
+The CLI will use the reference values from the manifest to attest the Coordinator deployment
 during the TLS handshake. If the connection succeeds, it's ensured that the Coordinator
 deployment hasn't been tampered with.
 
@@ -142,10 +142,12 @@ A potential voter can verify the Contrast deployment using the verify
 command:
 
 ```sh
-contrast verify -c "${coordinator}:1313"
+contrast verify -c "${coordinator}:1313" -m manifest.json
 ```
 
-The CLI will attest the Coordinator using embedded reference values. If the command succeeds,
+The CLI will attest the Coordinator using the reference values from a given manifest. This manifest needs
+to be communicated out of band to everyone wanting to verify the deployment, as the `verify` command checks
+if the currently active manifest at the Coordinator matches the manifest given to the CLI. If the command succeeds,
 the Coordinator deployment was successfully verified to be running in the expected Confidential
 Computing environment with the expected code version. The Coordinator will then return its
 configuration over the established TLS channel. The CLI will store this information, namely the root
