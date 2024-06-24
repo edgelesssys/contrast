@@ -34,6 +34,8 @@ var (
 	defaultGenpolicySettings []byte
 	//go:embed assets/genpolicy-rules.rego
 	defaultRules []byte
+	// This value is injected at build time.
+	runtimeHandler = "contrast-cc"
 	// ReleaseImageReplacements contains the image replacements used by contrast.
 	//go:embed assets/image-replacements.txt
 	ReleaseImageReplacements []byte
