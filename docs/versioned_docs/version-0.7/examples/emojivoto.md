@@ -39,7 +39,7 @@ The emojivoto deployment files are part of a zip file in the Contrast release. Y
 latest deployment by running:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/download/v0.7.0/emojivoto-demo.zip
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v0.7.1/emojivoto-demo.zip
 ```
 
 After that, unzip the `emojivoto-demo.zip` file to extract the `deployment/` directory.
@@ -57,7 +57,7 @@ This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.7.0/runtime.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.7.1/runtime.yml
 ```
 
 ### Deploy the Contrast Coordinator
@@ -66,7 +66,7 @@ Deploy the Contrast Coordinator, comprising a single replica deployment and a
 LoadBalancer service, into your cluster:
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.7.0/coordinator.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.7.1/coordinator.yml
 ```
 
 ### Generate policy annotations and manifest
