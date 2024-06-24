@@ -1,22 +1,20 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ stdenvNoCC
+{ lib
+, stdenvNoCC
 , microsoft
 , igvmmeasure
 , debugRuntime ? false
 }:
 
 let
-  rootfs = microsoft.kata-image;
   igvm = if debugRuntime then microsoft.kata-igvm.debug else microsoft.kata-igvm;
-  cloud-hypervisor-bin = "${microsoft.cloud-hypervisor}/bin/cloud-hypervisor";
-  containerd-shim-contrast-cc-v2 = "${microsoft.kata-runtime}/bin/containerd-shim-kata-v2";
 in
 
 stdenvNoCC.mkDerivation {
   name = "runtime-class-files";
-  version = "1714998420";
+  inherit (microsoft.kata-igvm) version;
 
   dontUnpack = true;
 
@@ -30,6 +28,9 @@ stdenvNoCC.mkDerivation {
   '';
 
   passthru = {
-    inherit debugRuntime rootfs igvm cloud-hypervisor-bin containerd-shim-contrast-cc-v2;
+    inherit debugRuntime igvm;
+    rootfs = microsoft.kata-image;
+    cloud-hypervisor-exe = lib.getExe microsoft.cloud-hypervisor;
+    containerd-shim-contrast-cc-v2 = lib.getExe microsoft.kata-runtime;
   };
 }

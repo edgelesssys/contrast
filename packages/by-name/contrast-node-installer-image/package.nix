@@ -49,7 +49,7 @@ let
 
   cloud-hypervisor = ociLayerTar {
     files = [
-      { source = runtime-class-files.cloud-hypervisor-bin; destination = "/opt/edgeless/bin/cloud-hypervisor-snp"; }
+      { source = runtime-class-files.cloud-hypervisor-exe; destination = "/opt/edgeless/bin/cloud-hypervisor-snp"; }
     ];
   };
 
