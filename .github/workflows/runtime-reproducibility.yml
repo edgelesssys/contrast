@@ -1,0 +1,76 @@
+name: verify runtime stack reproducibility
+
+on:
+    workflow_dispatch:
+    schedule:
+      - cron: '0 19 * * 0' # 7pm UTC on Sundays
+
+jobs:
+  os-matrix:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+        # As we do not use the Cachix cache containing the artifacts built by developers in this workflow,
+        # building the node-installer-image ensures that the whole transitive closure of the packages we build (i.e. everything
+        # except what's in cache.nixos.org). Therefore, building this ensures that the kernel, image, IGVM, runtime and the image itself
+        # is reproducible across individual builds (as the --rebuild flag is used, causing Nix to rebuild the node-installer-image derivation)
+        # and across independent builds on Ubuntu 20.04 and 22.04 (which also test the reproducibility of the transitive closure of our packages, as no shared
+        # cache is present between the two machines)
+        build-target: [contrast-node-installer-image]
+    # Usually we would define the matrix outputs here, but as GitHub Actions don't seem to allow per-combination outputs,
+    # we'll write the outputs without defining them here. See https://github.com/orgs/community/discussions/17245#discussioncomment-3814009.
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+      - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
+      - name: Build
+        id: build
+        run: |
+            nix build .#${{ matrix.build-target }} --option substituters https://cache.nixos.org --builders ""
+            reference_checksum="$(cat result/index.json | jq  -r '.manifests[0].digest')"
+            echo "reference-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$reference_checksum" >> "$GITHUB_OUTPUT"
+
+            nix build .#${{ matrix.build-target }} --rebuild --option substituters https://cache.nixos.org --builders "" -o rebuild
+            rebuild_checksum="$(cat rebuild/index.json | jq  -r '.manifests[0].digest')"
+            echo "rebuild-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$rebuild_checksum" >> "$GITHUB_OUTPUT"
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: ${{ matrix.build-target }}-${{ matrix.os }}
+          path: result
+      - name: Upload Build Artifacts (Rebuild)
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        with:
+          name: ${{ matrix.build-target }}-${{ matrix.os }}-rebuild
+          path: rebuild
+
+  collect-checksums:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    needs: os-matrix
+    steps:
+      - name: Collect checksums
+        id: collect
+        shell: python
+        run: |
+          import json, os
+          seen = {}
+          with open(os.getenv("GITHUB_OUTPUT")) as f:
+              for line in f:
+                  matrix, checksum = line.strip().split("=")
+                  if not checksum in seen:
+                      seen[checksum] = []
+                  seen[checksum].append(matrix)
+
+          if len(seen) > 1:
+            print("At least one checksum mismatched:")
+            print(json.dumps(seen, indent=2))
+            exit(1)
+
+          print("All checksums were equal")
