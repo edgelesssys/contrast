@@ -140,7 +140,8 @@ func (c *Kubeclient) WaitFor(ctx context.Context, resource ResourceWaiter, names
 	for {
 		evt, ok := <-watcher.ResultChan()
 		if !ok {
-			if ctx.Err() == nil {
+			origErr := ctx.Err()
+			if origErr == nil {
 				return fmt.Errorf("watcher for %s %s/%s unexpectedly closed", resource.kind(), namespace, name)
 			}
 			logger := c.log.With("namespace", namespace)
@@ -154,14 +155,14 @@ func (c *Kubeclient) WaitFor(ctx context.Context, resource ResourceWaiter, names
 			pods, err := resource.getPods(ctx, c, namespace, name) //nolint:contextcheck // The parent context expired.
 			if err != nil {
 				logger.Error("could not fetch pods for resource", "kind", resource.kind(), "name", name, "error", err)
-				return ctx.Err()
+				return origErr
 			}
 			for _, pod := range pods {
 				if !isPodReady(&pod) {
 					logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
 				}
 			}
-			return ctx.Err()
+			return origErr
 		}
 		switch evt.Type {
 		case watch.Added:
