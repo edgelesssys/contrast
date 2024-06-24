@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
+	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
@@ -149,6 +150,37 @@ func GetDEnts() ([]any, error) {
 		)
 
 	return []any{tester}, nil
+}
+
+// GenpolicyRegressionTests returns deployments for regression testing genpolicy.
+func GenpolicyRegressionTests() map[string]*applyappsv1.DeploymentApplyConfiguration {
+	out := make(map[string]*applyappsv1.DeploymentApplyConfiguration)
+
+	// Reproduces https://github.com/edgelesssys/contrast/issues/624.
+	badLayer := "bad-layer"
+	out[badLayer] = Deployment(badLayer, "").
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": badLayer}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": badLayer}).
+				WithSpec(PodSpec().
+					WithRuntimeClassName(runtimeHandler).
+					WithContainers(
+						Container().
+							WithName(badLayer).
+							WithImage("docker.io/library/httpd:2.4.59-bookworm@sha256:10182d88d7fbc5161ae0f6f758cba7adc56d4aae2dc950e51d72c0cf68967cea").
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(50),
+							),
+					),
+				),
+			),
+		)
+
+	return out
 }
 
 // Emojivoto returns resources for deploying Emojivoto application.

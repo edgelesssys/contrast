@@ -1,13 +1,15 @@
-name: e2e test getdents
+name: regression tests
 
 on:
-    workflow_dispatch:
-      inputs:
-        skip-undeploy:
-          description: "Skip undeploy"
-          required: false
-          type: boolean
-          default: false
+  schedule:
+    - cron: "16 6 * * 6" # 6:16 on Saturdays
+  workflow_dispatch:
+    inputs:
+      skip-undeploy:
+        description: "Skip undeploy"
+        required: false
+        type: boolean
+        default: false
 
 env:
   container_registry: ghcr.io/edgelesssys
@@ -15,11 +17,16 @@ env:
   DO_NOT_TRACK: 1
 
 jobs:
-  test:
+  regression-test:
     runs-on: ubuntu-22.04
     permissions:
       contents: read
       packages: write
+    strategy:
+      matrix:
+        case:
+        - getdents
+        - genpolicy
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - uses: ./.github/actions/setup_nix
@@ -49,9 +56,9 @@ jobs:
       - name: Build and prepare deployments
         run: |
           just node-installer
-      - name: E2E Test
+      - name: Run regression test
         run: |
-          nix shell .#contrast.e2e --command getdents.test -test.v \
+          nix shell .#contrast.e2e --command ${{ matrix.case }}.test -test.v \
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
             --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
