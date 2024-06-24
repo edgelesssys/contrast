@@ -69,7 +69,6 @@ func newRootCmd() *cobra.Command {
 		cmd.NewGenerateCmd(),
 		cmd.NewSetCmd(),
 		cmd.NewVerifyCmd(),
-		cmd.NewRuntimeCmd(),
 	)
 
 	return root
