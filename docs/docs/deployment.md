@@ -256,6 +256,7 @@ Attest the Coordinator and set the manifest:
 contrast set -c "${coordinator}:1313" resources/
 ```
 
+This will use the reference values from the manifest file to attest the Coordinator.
 After this step, the Coordinator will start issuing TLS certificates to the workloads. The init container
 will fetch a certificate for the workload and the workload is started.
 
@@ -267,9 +268,10 @@ An end user (data owner) can verify the Contrast deployment using the `verify` c
 contrast verify -c "${coordinator}:1313"
 ```
 
-The CLI will attest the Coordinator using embedded reference values. The CLI will write the service mesh
-root certificate and the history of manifests into the `verify/` directory. In addition, the policies referenced
-in the manifest are also written to the directory.
+The CLI will attest the Coordinator using the reference values from the given manifest file. It will then write the
+service mesh root certificate and the history of manifests into the `verify/` directory. In addition, the policies
+referenced in the active manifest are also written to the directory. The verification will fail if the active
+manifest at the Coordinator doesn't match the manifest passed to the CLI.
 
 ## Communicate with workloads
 
