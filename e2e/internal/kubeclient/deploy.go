@@ -64,7 +64,15 @@ func (d DaemonSet) watcher(ctx context.Context, client *kubernetes.Clientset, na
 
 func (d DaemonSet) numDesiredPods(obj any) (int, error) {
 	if ds, ok := obj.(*appsv1.DaemonSet); ok {
-		return int(ds.Status.DesiredNumberScheduled), nil
+		n := int(ds.Status.DesiredNumberScheduled)
+		if n == 0 {
+			// DaemonSets start out with empty DesiredNumberScheduled, which then gets filled in by
+			// a controller. We don't expect any DaemonSets in our test resources that are
+			// intended to be empty, so we artificially require one pod until the status is set
+			// correctly.
+			n = 1
+		}
+		return n, nil
 	}
 	return 0, fmt.Errorf("watcher received unexpected type %T", obj)
 }
