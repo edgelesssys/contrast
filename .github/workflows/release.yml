@@ -166,16 +166,22 @@ jobs:
           git add docs/versioned_docs/version-${{ needs.process-inputs.outputs.MAJOR_MINOR }}
           git commit -m "docs: update release download urls"
           git clean -fx :/
-      - name: Download updated contrast releases file (from release branch)
+      - name: Download release artifacts (from release branch)
         uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e #v4.1.7
         with:
-          name: contrast-releases.json
-          path: ./contrast-main/packages
+          name: contrast-release-artifacts
+          path: ./contrast-main
+      - name: Update contrast-releases.json with new release
+        working-directory: contrast-main
+        env:
+          VERSION: ${{ inputs.version }}
+        run: nix run .#scripts.update-contrast-releases
       - name: Commit updated contrast-releases.json
         working-directory: contrast-main
         run: |
           git add ./packages/contrast-releases.json
           git commit -m "packages/contrast-releases: add ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
+          git clean -fx :/
       - name: Bump flake version to post release patch pre-version
         if: inputs.kind == 'minor'
         id: bump
@@ -286,17 +292,15 @@ jobs:
       - name: Build CLI
         run: |
           nix build -L .#cli-release
-      - name: Update contrast-releases.json with new release
-        env:
-          VERSION: ${{ inputs.version }}
-        run: nix run .#scripts.update-contrast-releases
-      - name: Upload updated contrast-releases.json (for main branch PR)
+      - name: Upload release artifacts (for main branch PR)
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
-          name: contrast-releases.json
-          path: ./packages/contrast-releases.json
-      - name: Clean up git tree
-        run: git clean -f :/
+          name: contrast-release-artifacts
+          path: |
+            result-cli/bin/contrast
+            workspace/coordinator.yml
+            workspace/runtime.yml
+            workspace/emojivoto-demo.zip
       - name: Create draft release
         uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0 # v2.0.6
         with:
