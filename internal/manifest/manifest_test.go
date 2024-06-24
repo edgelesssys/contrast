@@ -147,59 +147,91 @@ func TestPolicy(t *testing.T) {
 	})
 }
 
-func TestSNPValidateOpts(t *testing.T) {
+func TestValidate(t *testing.T) {
 	testCases := []struct {
-		tcb     SNPTCB
-		tm      HexString
+		m       Manifest
 		wantErr bool
 	}{
 		{
-			tcb: SNPTCB{
-				BootloaderVersion: toPtr(SVN(0)),
-				TEEVersion:        toPtr(SVN(1)),
-				SNPVersion:        toPtr(SVN(2)),
-				MicrocodeVersion:  toPtr(SVN(3)),
-			},
-			tm: HexString("000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+			m: DefaultAKS(),
 		},
 		{
-			tcb:     SNPTCB{},
+			m:       Default(),
 			wantErr: true,
 		},
+		{
+			m: Manifest{
+				Policies:        map[HexString][]string{HexString(""): {}},
+				ReferenceValues: DefaultAKS().ReferenceValues,
+			},
+			wantErr: true,
+		},
+		{
+			m: Manifest{
+				Policies: map[HexString][]string{HexString(""): {}},
+				ReferenceValues: ReferenceValues{
+					SNP:                Default().ReferenceValues.SNP,
+					TrustedMeasurement: "",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			m: Manifest{
+				ReferenceValues:         Default().ReferenceValues,
+				WorkloadOwnerKeyDigests: []HexString{HexString("")},
+			},
+			wantErr: true,
+		},
+	}
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			assert := assert.New(t)
+
+			if tc.wantErr {
+				assert.Error(tc.m.Validate())
+				return
+			}
+			assert.NoError(tc.m.Validate())
+		})
+	}
+}
+
+func TestSNPValidateOpts(t *testing.T) {
+	testCases := []struct {
+		m       Manifest
+		wantErr bool
+	}{
+		{m: DefaultAKS()},
+		{m: Default(), wantErr: true},
 	}
 
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			assert := assert.New(t)
 
-			mnfst := Manifest{
-				ReferenceValues: ReferenceValues{
-					SNP:                SNPReferenceValues{MinimumTCB: tc.tcb},
-					TrustedMeasurement: tc.tm,
-				},
-			}
-
-			opts, err := mnfst.SNPValidateOpts()
+			opts, err := tc.m.SNPValidateOpts()
 			if tc.wantErr {
 				assert.Error(err)
 				return
 			}
 			assert.NoError(err)
 
-			assert.NotNil(tc.tcb.BootloaderVersion)
-			assert.NotNil(tc.tcb.TEEVersion)
-			assert.NotNil(tc.tcb.SNPVersion)
-			assert.NotNil(tc.tcb.MicrocodeVersion)
+			tcb := tc.m.ReferenceValues.SNP.MinimumTCB
+			assert.NotNil(tcb.BootloaderVersion)
+			assert.NotNil(tcb.TEEVersion)
+			assert.NotNil(tcb.SNPVersion)
+			assert.NotNil(tcb.MicrocodeVersion)
 
-			trustedMeasurement, err := tc.tm.Bytes()
+			trustedMeasurement, err := tc.m.ReferenceValues.TrustedMeasurement.Bytes()
 			assert.NoError(err)
 			assert.Equal(trustedMeasurement, opts.Measurement)
 
 			tcbParts := kds.TCBParts{
-				BlSpl:    tc.tcb.BootloaderVersion.UInt8(),
-				TeeSpl:   tc.tcb.TEEVersion.UInt8(),
-				SnpSpl:   tc.tcb.SNPVersion.UInt8(),
-				UcodeSpl: tc.tcb.MicrocodeVersion.UInt8(),
+				BlSpl:    tcb.BootloaderVersion.UInt8(),
+				TeeSpl:   tcb.TEEVersion.UInt8(),
+				SnpSpl:   tcb.SNPVersion.UInt8(),
+				UcodeSpl: tcb.MicrocodeVersion.UInt8(),
 			}
 			assert.Equal(tcbParts, opts.MinimumTCB)
 			assert.Equal(tcbParts, opts.MinimumLaunchTCB)

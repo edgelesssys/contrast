@@ -81,6 +81,9 @@ func runSet(cmd *cobra.Command, args []string) error {
 	if err := json.Unmarshal(manifestBytes, &m); err != nil {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
+	if err := m.Validate(); err != nil {
+		return fmt.Errorf("validating manifest: %w", err)
+	}
 
 	workloadOwnerKey, err := loadWorkloadOwnerKey(flags.workloadOwnerKeyPath, m, log)
 	if err != nil {

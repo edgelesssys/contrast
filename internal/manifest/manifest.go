@@ -126,20 +126,60 @@ func (p Policy) Hash() HexString {
 	return NewHexString(hashBytes[:])
 }
 
+// Validate checks the validity of all fields in the reference values.
+func (r ReferenceValues) Validate() error {
+	if r.SNP.MinimumTCB.BootloaderVersion == nil {
+		return fmt.Errorf("field BootloaderVersion in manifest cannot be empty")
+	} else if r.SNP.MinimumTCB.TEEVersion == nil {
+		return fmt.Errorf("field TEEVersion in manifest cannot be empty")
+	} else if r.SNP.MinimumTCB.SNPVersion == nil {
+		return fmt.Errorf("field SNPVersion in manifest cannot be empty")
+	} else if r.SNP.MinimumTCB.MicrocodeVersion == nil {
+		return fmt.Errorf("field MicrocodeVersion in manifest cannot be empty")
+	}
+
+	if len(r.TrustedMeasurement) != abi.MeasurementSize*2 {
+		return fmt.Errorf("trusted measurement has invalid length: %d (expected %d)", len(r.TrustedMeasurement), abi.MeasurementSize*2)
+	}
+
+	return nil
+}
+
+// Validate checks the validity of all fields in the manifest.
+func (m *Manifest) Validate() error {
+	for policyHash := range m.Policies {
+		if _, err := policyHash.Bytes(); err != nil {
+			return fmt.Errorf("decoding policy hash %s: %w", policyHash, err)
+		} else if len(policyHash) != sha256.Size*2 {
+			return fmt.Errorf("policy hash %s has invalid length: %d (expected %d)", policyHash, len(policyHash), sha256.Size*2)
+		}
+	}
+
+	if err := m.ReferenceValues.Validate(); err != nil {
+		return fmt.Errorf("validating reference values: %w", err)
+	}
+
+	for _, keyDigest := range m.WorkloadOwnerKeyDigests {
+		if _, err := keyDigest.Bytes(); err != nil {
+			return fmt.Errorf("decoding key digest %s: %w", keyDigest, err)
+		} else if len(keyDigest) != sha256.Size*2 {
+			return fmt.Errorf("workload owner key digest %s has invalid length: %d (expected %d)", keyDigest, len(keyDigest), sha256.Size*2)
+		}
+	}
+
+	// TODO(davidweisse): validate SeedshareOwnerPubKeys field once it is being used.
+	return nil
+}
+
 // SNPValidateOpts returns validate options populated with the manifest's
 // SNP reference values and trusted measurement.
 func (m *Manifest) SNPValidateOpts() (*validate.Options, error) {
+	if err := m.Validate(); err != nil {
+		return nil, fmt.Errorf("validating manifest: %w", err)
+	}
 	trustedMeasurement, err := m.ReferenceValues.TrustedMeasurement.Bytes()
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
-	}
-	if trustedMeasurement == nil {
-		// This is required to prevent an empty measurement in the manifest from disabling the measurement check.
-		trustedMeasurement = make([]byte, 48)
-	}
-
-	if err = checkNullFields(m.ReferenceValues.SNP.MinimumTCB); err != nil {
-		return nil, err
 	}
 
 	return &validate.Options{
@@ -163,17 +203,4 @@ func (m *Manifest) SNPValidateOpts() (*validate.Options, error) {
 		},
 		PermitProvisionalFirmware: true,
 	}, nil
-}
-
-func checkNullFields(tcb SNPTCB) error {
-	if tcb.BootloaderVersion == nil {
-		return fmt.Errorf("field BootloaderVersion in manifest cannot be empty")
-	} else if tcb.TEEVersion == nil {
-		return fmt.Errorf("field TEEVersion in manifest cannot be empty")
-	} else if tcb.SNPVersion == nil {
-		return fmt.Errorf("field SNPVersion in manifest cannot be empty")
-	} else if tcb.MicrocodeVersion == nil {
-		return fmt.Errorf("field MicrocodeVersion in manifest cannot be empty")
-	}
-	return nil
 }

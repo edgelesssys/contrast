@@ -132,6 +132,9 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
 	manifest.Policies = policyMap
+	if err := manifest.Validate(); err != nil {
+		return fmt.Errorf("validating manifest: %w", err)
+	}
 
 	if flags.disableUpdates {
 		manifest.WorkloadOwnerKeyDigests = nil
