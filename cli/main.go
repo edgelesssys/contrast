@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/spf13/cobra"
@@ -26,14 +28,36 @@ func execute() error {
 	return cmd.ExecuteContext(ctx)
 }
 
-var version = "0.0.0-dev"
+var (
+	version          = "0.0.0-dev"
+	runtimeHandler   = "contrast-cc"
+	launchDigest     = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+	genpolicyVersion = "0.0.0-dev"
+)
 
 func newRootCmd() *cobra.Command {
+	// build the versions string
+	var versionsBuilder strings.Builder
+	versionsWriter := tabwriter.NewWriter(&versionsBuilder, 0, 0, 4, ' ', 0)
+	fmt.Fprintf(versionsWriter, "%s\n\n", version)
+	fmt.Fprintf(versionsWriter, "\truntime handler:\t%s\n", runtimeHandler)
+	fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", launchDigest)
+	fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", genpolicyVersion)
+	fmt.Fprintf(versionsWriter, "\timage versions:\n")
+	imageReplacements := strings.Trim(string(cmd.ReleaseImageReplacements), "\n")
+	for _, image := range strings.Split(imageReplacements, "\n") {
+		if !strings.HasPrefix(image, "#") {
+			image = strings.Split(image, "=")[1]
+			fmt.Fprintf(versionsWriter, "\t\t%s\n", image)
+		}
+	}
+	versionsWriter.Flush()
+
 	root := &cobra.Command{
 		Use:              "contrast",
 		Short:            "contrast",
 		PersistentPreRun: preRunRoot,
-		Version:          version,
+		Version:          versionsBuilder.String(),
 	}
 	root.SetOut(os.Stdout)
 
