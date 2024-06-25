@@ -225,4 +225,39 @@
       kubectl create configmap sync-server-fifo --from-literal=uuid="$fifoUUID"
     '';
   };
+
+  # Usage: cat events.log | parse-blocked-by-policy
+  parse-blocked-by-policy = writeShellApplication {
+    name = "parse-blocked-by-policy";
+    runtimeInputs = with pkgs; [ gnugrep gnused ];
+    text = ''
+      set -euo pipefail
+      grep "CreateContainerRequest is blocked by policy" |
+      sed 's/ agent_policy:/\nagent_policy:/g' |
+      sed 's/\\"/"/g'
+    '';
+  };
+
+  # Usage: cat deployment.yml | extract-policies
+  extract-policies = writeShellApplication {
+    name = "extract-policies";
+    runtimeInputs = with pkgs; [ yq-go ];
+    text = ''
+      set -euo pipefail
+      while read -r line; do
+          name=$(echo "$line" | cut -d' ' -f1)
+          namespace=$(echo "$line" | cut -d' ' -f2)
+          echo "Extracting policy for $namespace.$name" >&2
+          echo "$line" | cut -d' ' -f3 | base64 -d > "$namespace.$name.rego"
+      done < <(
+        yq '.metadata.name
+          + " "
+          + .metadata.namespace
+          // "default"
+          + " "
+          + .spec.template.metadata.annotations["io.katacontainers.config.agent.policy"]
+          // .metadata.annotations["io.katacontainers.config.agent.policy"]'
+      )
+    '';
+  };
 }
