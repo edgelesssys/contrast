@@ -274,8 +274,7 @@ jobs:
           mkdir -p workspace deployment
           nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" > workspace/coordinator.yml
           nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --namespace kube-system runtime > workspace/runtime.yml
-          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --add-load-balancers emojivoto-sm-ingress > deployment/emojivoto-demo.yml
-          zip -r workspace/emojivoto-demo.zip deployment/emojivoto-demo.yml
+          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --add-load-balancers emojivoto-sm-ingress > workspace/emojivoto-demo.yml
       - name: Update coordinator policy hash
         run: |
           yq < workspace/coordinator.yml \
@@ -300,7 +299,7 @@ jobs:
             result-cli/bin/contrast
             workspace/coordinator.yml
             workspace/runtime.yml
-            workspace/emojivoto-demo.zip
+            workspace/emojivoto-demo.yml
       - name: Create draft release
         uses: softprops/action-gh-release@a74c6b72af54cfa997e81df42d94703d6313a2d0 # v2.0.6
         with:
@@ -312,7 +311,7 @@ jobs:
             result-cli/bin/contrast
             workspace/coordinator.yml
             workspace/runtime.yml
-            workspace/emojivoto-demo.zip
+            workspace/emojivoto-demo.yml
       - name: Reset temporary changes
         run: |
           git reset --hard ${{ needs.process-inputs.outputs.WORKING_BRANCH }}

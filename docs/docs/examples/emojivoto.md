@@ -35,17 +35,11 @@ where their votes are processed without leaking to the platform provider or work
 
 ### Downloading the deployment
 
-The emojivoto deployment files are part of a zip file in the Contrast release. You can download the
+The emojivoto deployment files are part of Contrast release. You can download the
 latest deployment by running:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.zip
-```
-
-After that, unzip the `emojivoto-demo.zip` file to extract the `deployment/` directory.
-
-```sh
-unzip emojivoto-demo.zip
+curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.yml --create-dirs --output-dir deployment
 ```
 
 ### Deploy the Contrast runtime
