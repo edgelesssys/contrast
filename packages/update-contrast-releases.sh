@@ -19,8 +19,24 @@ fields["contrast"]="./result-cli/bin/contrast"
 fields["coordinator.yml"]="./workspace/coordinator.yml"
 fields["runtime.yml"]="./workspace/runtime.yml"
 fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
+fields["emojivoto-demo.yml"]="./workspace/emojivoto-demo.yml"
 
 for field in "${!fields[@]}"; do
+  # get the file path
+  file=${fields["$field"]}
+
+  # skip files which are not included in current release
+  if [[ ! -f $file ]]; then
+    continue
+  fi
+
+  out=$(
+    jq --arg NAME "$field" \
+      'if has($NAME) then . else . + {($NAME): []} end' \
+      "${versionsFile}"
+  )
+  echo "$out" >"${versionsFile}"
+
   # check if any field contains the given version
   out=$(
     jq --arg NAME "$field" \
@@ -32,9 +48,6 @@ for field in "${!fields[@]}"; do
     echo "[x] Error: version $VERSION exists for entry $field" >&2
     exit 1
   fi
-
-  # get the file path
-  file=${fields["$field"]}
 
   echo "[*] Creating hash for $file" >&2
   hash=$(nix hash file --sri --type sha256 "$(realpath "$file")")
@@ -54,5 +67,5 @@ for field in "${!fields[@]}"; do
 done
 
 echo "[*] Formatting ${versionsFile}"
-out=$(jq --indent 2 . "${versionsFile}")
+out=$(jq --indent 2 'to_entries | sort_by(.key) | from_entries' "${versionsFile}")
 echo "$out" >"${versionsFile}"
