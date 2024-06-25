@@ -116,13 +116,9 @@ func TestRelease(t *testing.T) {
 
 	require.True(t, t.Run("unpack-deployment", func(t *testing.T) {
 		require := require.New(t)
-		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-		defer cancel()
 
-		cmd := exec.CommandContext(ctx, "unzip", "emojivoto-demo.zip")
-		cmd.Dir = dir
-		out, err := cmd.CombinedOutput()
-		require.NoError(err, "output:\n%s", string(out))
+		require.NoError(os.Mkdir(path.Join(dir, "deployment"), 0o777))
+		require.NoError(os.Rename(path.Join(dir, "emojivoto-demo.yml"), path.Join(dir, "deployment", "emojivoto-demo.yml")))
 
 		infos, err := os.ReadDir(path.Join(dir, "deployment"))
 		require.NoError(err)
