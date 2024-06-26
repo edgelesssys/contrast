@@ -29,7 +29,8 @@ default_deploy_target := "openssl"
 workspace_dir := "workspace"
 
 e2e target=default_deploy_target: coordinator initializer openssl port-forwarder service-mesh-proxy node-installer
-    #!/bin/env bash
+    #!/usr/bin/env bash
+    set -euo pipefail
     case {{ target }} in
         "openssl" | "servicemesh")
         nix shell .#contrast.e2e --command {{ target }}.test -test.v \
