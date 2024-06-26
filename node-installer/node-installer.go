@@ -15,10 +15,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edgelesssys/contrast/node-installer/flavours"
 	"github.com/edgelesssys/contrast/node-installer/internal/asset"
 	"github.com/edgelesssys/contrast/node-installer/internal/config"
 	"github.com/edgelesssys/contrast/node-installer/internal/constants"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -26,26 +26,26 @@ var shouldRestartContainerd = flag.Bool("restart", true, "Restart containerd aft
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: node-installer <flavour>")
+		fmt.Println("Usage: node-installer <platform>")
 		os.Exit(1)
 	}
 	flag.Parse()
 
-	flavour, err := flavours.FromString(os.Args[1])
+	platform, err := platforms.FromString(os.Args[1])
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
 	fetcher := asset.NewDefaultFetcher()
-	if err := run(context.Background(), fetcher, flavour); err != nil {
+	if err := run(context.Background(), fetcher, platform); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 	fmt.Println("Installation completed successfully.")
 }
 
-func run(ctx context.Context, fetcher assetFetcher, flavour flavours.Flavour) error {
+func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform) error {
 	configDir := envWithDefault("CONFIG_DIR", "/config")
 	hostMount := envWithDefault("HOST_MOUNT", "/host")
 
@@ -107,40 +107,40 @@ func run(ctx context.Context, fetcher assetFetcher, flavour flavours.Flavour) er
 
 	kataConfigPath := filepath.Join(hostMount, runtimeBase, "etc")
 	var containerdConfigPath string
-	switch flavour {
-	case flavours.AKSCLHSNP:
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-clh-snp.toml")
 		containerdConfigPath = filepath.Join(hostMount, "etc", "containerd", "config.toml")
-	case flavours.K3sQEMUTDX:
+	case platforms.K3sQEMUTDX:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
 		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "k3s", "agent", "etc", "containerd", "config.toml")
-	case flavours.RKE2QEMUTDX:
+	case platforms.RKE2QEMUTDX:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
 		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "rke2", "agent", "etc", "containerd", "config.toml")
 	default:
-		return fmt.Errorf("unsupported flavour %q", flavour)
+		return fmt.Errorf("unsupported platform %q", platform)
 	}
 
-	if err := containerdRuntimeConfig(runtimeBase, kataConfigPath, flavour, config.DebugRuntime); err != nil {
+	if err := containerdRuntimeConfig(runtimeBase, kataConfigPath, platform, config.DebugRuntime); err != nil {
 		return fmt.Errorf("generating kata runtime configuration: %w", err)
 	}
 
-	switch flavour {
-	case flavours.AKSCLHSNP:
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
 		// AKS or any external-containerd based K8s distro: We can just patch the existing containerd config at /etc/containerd/config.toml
-		if err := patchContainerdConfig(config.RuntimeHandlerName, runtimeBase, containerdConfigPath, flavour); err != nil {
+		if err := patchContainerdConfig(config.RuntimeHandlerName, runtimeBase, containerdConfigPath, platform); err != nil {
 			return fmt.Errorf("patching containerd configuration: %w", err)
 		}
-	case flavours.K3sQEMUTDX, flavours.RKE2QEMUTDX:
+	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		// K3s or RKE2: We need to extend the configuration template, which, in it's un-templated form, is non-TOML.
 		// Therefore just write the TOML configuration fragment ourselves and append it to the template file.
 		// This assumes that the user does not yet have a runtime with the same name configured himself,
 		// but as our runtimes are hash-named, this should be a safe assumption.
-		if err := patchContainerdConfigTemplate(config.RuntimeHandlerName, runtimeBase, containerdConfigPath, flavour); err != nil {
+		if err := patchContainerdConfigTemplate(config.RuntimeHandlerName, runtimeBase, containerdConfigPath, platform); err != nil {
 			return fmt.Errorf("patching containerd configuration: %w", err)
 		}
 	default:
-		return fmt.Errorf("unsupported flavour %q", flavour)
+		return fmt.Errorf("unsupported platform %q", platform)
 	}
 
 	// If the user opted to not have us restart containerd, we're done here.
@@ -148,10 +148,10 @@ func run(ctx context.Context, fetcher assetFetcher, flavour flavours.Flavour) er
 		return nil
 	}
 
-	switch flavour {
-	case flavours.AKSCLHSNP:
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
 		return restartHostContainerd(containerdConfigPath, "containerd")
-	case flavours.K3sQEMUTDX:
+	case platforms.K3sQEMUTDX:
 		if hostServiceExists("k3s") {
 			return restartHostContainerd(containerdConfigPath, "k3s")
 		} else if hostServiceExists("k3s-agent") {
@@ -159,7 +159,7 @@ func run(ctx context.Context, fetcher assetFetcher, flavour flavours.Flavour) er
 		} else {
 			return fmt.Errorf("neither k3s nor k3s-agent service found")
 		}
-	case flavours.RKE2QEMUTDX:
+	case platforms.RKE2QEMUTDX:
 		if hostServiceExists("rke2-server") {
 			return restartHostContainerd(containerdConfigPath, "rke2-server")
 		} else if hostServiceExists("rke2-agent") {
@@ -169,7 +169,7 @@ func run(ctx context.Context, fetcher assetFetcher, flavour flavours.Flavour) er
 		}
 
 	default:
-		return fmt.Errorf("unsupported flavour %q", flavour)
+		return fmt.Errorf("unsupported platform %q", platform)
 	}
 }
 
@@ -181,8 +181,8 @@ func envWithDefault(key, dflt string) string {
 	return value
 }
 
-func containerdRuntimeConfig(basePath, configPath string, flavour flavours.Flavour, debugRuntime bool) error {
-	kataRuntimeConfig, err := constants.KataRuntimeConfig(basePath, flavour, debugRuntime)
+func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, debugRuntime bool) error {
+	kataRuntimeConfig, err := constants.KataRuntimeConfig(basePath, platform, debugRuntime)
 	if err != nil {
 		return fmt.Errorf("generating kata runtime config: %w", err)
 	}
@@ -193,14 +193,14 @@ func containerdRuntimeConfig(basePath, configPath string, flavour flavours.Flavo
 	return os.WriteFile(configPath, rawConfig, os.ModePerm)
 }
 
-func patchContainerdConfig(runtimeName, basePath, configPath string, flavour flavours.Flavour) error {
+func patchContainerdConfig(runtimeName, basePath, configPath string, platform platforms.Platform) error {
 	existingRaw, existing, err := parseExistingContainerdConfig(configPath)
 	if err != nil {
 		existing = constants.ContainerdBaseConfig()
 	}
 
 	// Add tardev snapshotter, only required for AKS
-	if flavour == flavours.AKSCLHSNP {
+	if platform == platforms.AKSCloudHypervisorSNP {
 		if existing.ProxyPlugins == nil {
 			existing.ProxyPlugins = make(map[string]config.ProxyPlugin)
 		}
@@ -211,7 +211,7 @@ func patchContainerdConfig(runtimeName, basePath, configPath string, flavour fla
 
 	// Add contrast-cc runtime
 	runtimes := ensureMapPath(&existing.Plugins, constants.CRIFQDN, "containerd", "runtimes")
-	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, flavour)
+	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, platform)
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime config: %w", err)
 	}
@@ -231,7 +231,7 @@ func patchContainerdConfig(runtimeName, basePath, configPath string, flavour fla
 	return os.WriteFile(configPath, rawConfig, os.ModePerm)
 }
 
-func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath string, flavour flavours.Flavour) error {
+func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath string, platform platforms.Platform) error {
 	existingConfig, err := os.ReadFile(configTemplatePath)
 	if err != nil {
 		return fmt.Errorf("reading containerd config template: %w", err)
@@ -240,7 +240,7 @@ func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath str
 	// Extend a scratchpad config with the new plugin configuration. (including the new contrast-cc runtime)
 	var newConfigFragment config.ContainerdConfig
 	runtimes := ensureMapPath(&newConfigFragment.Plugins, constants.CRIFQDN, "containerd", "runtimes")
-	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, flavour)
+	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, platform)
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime config: %w", err)
 	}

@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target flavour=default_flavour cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer flavour) (runtime flavour) (apply "runtime") (deploy target cli) set verify (wait-for-workload target)
+default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform) (runtime platform) (apply "runtime") (deploy target cli) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -23,13 +23,13 @@ initializer: (push "initializer")
 
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"
-default_flavour := "AKS-CLH-SNP"
+default_platform := "AKS-CLH-SNP"
 workspace_dir := "workspace"
 
 # Build the node-installer, containerize and push it.
-node-installer flavour=default_flavour:
+node-installer platform=default_platform:
     #!/usr/bin/env bash
-    case {{ flavour }} in
+    case {{ platform }} in
         "AKS-CLH-SNP")
             just push "microsoft-node-installer"
             exit 0
@@ -39,7 +39,7 @@ node-installer flavour=default_flavour:
             exit 0
         ;;
         *)
-            echo "Unsupported flavour: {{ flavour }}"
+            echo "Unsupported platform: {{ platform }}"
             exit 1
         ;;
     esac
@@ -69,23 +69,23 @@ e2e target=default_deploy_target: coordinator initializer openssl port-forwarder
 deploy target=default_deploy_target cli=default_cli: (populate target) (generate cli) (apply target)
 
 # Populate the workspace with a runtime class deployment
-runtime flavour=default_flavour:
+runtime platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}/runtime
     nix shell .#contrast --command resourcegen \
-      --image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace kube-system --flavour {{ flavour }} \
+      --image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace kube-system --platform {{ platform }} \
       runtime > ./{{ workspace_dir }}/runtime/runtime.yml
 
 # Populate the workspace with a Kubernetes deployment
-populate target=default_deploy_target flavour=default_flavour:
+populate target=default_deploy_target platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
     mkdir -p ./{{ workspace_dir }}/deployment
     nix shell .#contrast --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace {{ target }}${namespace_suffix-} \
-        --add-namespace-object --add-port-forwarders --flavour {{ flavour }} \
+        --add-namespace-object --add-port-forwarders --platform {{ platform }} \
         {{ target }} coordinator > ./{{ workspace_dir }}/deployment/deployment.yml
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
 

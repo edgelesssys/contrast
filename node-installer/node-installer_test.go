@@ -10,7 +10,7 @@ import (
 
 	_ "embed"
 
-	"github.com/edgelesssys/contrast/node-installer/flavours"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,21 +25,21 @@ var (
 
 func TestPatchContainerdConfig(t *testing.T) {
 	testCases := map[string]struct {
-		flavour  flavours.Flavour
+		platform platforms.Platform
 		expected []byte
 		wantErr  bool
 	}{
 		"AKSCLHSNP": {
-			flavour:  flavours.AKSCLHSNP,
+			platform: platforms.AKSCloudHypervisorSNP,
 			expected: expectedConfAKSCLHSNP,
 		},
 		"BareMetalQEMUTDX": {
-			flavour:  flavours.K3sQEMUTDX,
+			platform: platforms.K3sQEMUTDX,
 			expected: expectedConfBareMetalQEMUTDX,
 		},
 		"Unknown": {
-			flavour: flavours.Unknown,
-			wantErr: true,
+			platform: platforms.Unknown,
+			wantErr:  true,
 		},
 	}
 
@@ -55,7 +55,7 @@ func TestPatchContainerdConfig(t *testing.T) {
 			configPath := filepath.Join(tmpDir, "config.toml")
 
 			err = patchContainerdConfig("my-runtime", "/opt/edgeless/my-runtime",
-				configPath, tc.flavour)
+				configPath, tc.platform)
 			if tc.wantErr {
 				require.Error(err)
 				return

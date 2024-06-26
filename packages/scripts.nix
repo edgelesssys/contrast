@@ -159,13 +159,13 @@
     ];
     text = ''
       imageRef=$1
-      flavour=$2
+      platform=$2
 
       tmpdir=$(mktemp -d)
       trap 'rm -rf $tmpdir' EXIT
 
       echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$imageRef" > "$tmpdir/image-replacements.txt"
-      resourcegen --image-replacements "$tmpdir/image-replacements.txt" --add-load-balancers --flavour $flavour coordinator > "$tmpdir/coordinator_base.yml"
+      resourcegen --image-replacements "$tmpdir/image-replacements.txt" --add-load-balancers --platform $platform coordinator > "$tmpdir/coordinator_base.yml"
 
       pushd "$tmpdir" >/dev/null
       cp ${pkgs.microsoft.genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego

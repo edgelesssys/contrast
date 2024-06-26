@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/edgelesssys/contrast/node-installer/flavours"
 	"github.com/edgelesssys/contrast/node-installer/internal/config"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -36,10 +36,10 @@ var (
 const CRIFQDN = "io.containerd.grpc.v1.cri"
 
 // KataRuntimeConfig returns the Kata runtime configuration.
-func KataRuntimeConfig(baseDir string, flavour flavours.Flavour, debug bool) (*config.KataRuntimeConfig, error) {
+func KataRuntimeConfig(baseDir string, platform platforms.Platform, debug bool) (*config.KataRuntimeConfig, error) {
 	var config config.KataRuntimeConfig
-	switch flavour {
-	case flavours.AKSCLHSNP:
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
 		if err := toml.Unmarshal([]byte(kataCLHSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
@@ -49,7 +49,7 @@ func KataRuntimeConfig(baseDir string, flavour flavours.Flavour, debug bool) (*c
 		config.Hypervisor["clh"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")}
 		config.Hypervisor["clh"]["enable_debug"] = debug
 		return &config, nil
-	case flavours.K3sQEMUTDX, flavours.RKE2QEMUTDX:
+	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
@@ -66,7 +66,7 @@ func KataRuntimeConfig(baseDir string, flavour flavours.Flavour, debug bool) (*c
 		}
 		return &config, nil
 	default:
-		return nil, fmt.Errorf("unsupported flavour: %s", flavour)
+		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
 }
 
@@ -80,7 +80,7 @@ func ContainerdBaseConfig() config.ContainerdConfig {
 }
 
 // ContainerdRuntimeConfigFragment returns the containerd runtime configuration fragment.
-func ContainerdRuntimeConfigFragment(baseDir string, flavour flavours.Flavour) (*config.Runtime, error) {
+func ContainerdRuntimeConfigFragment(baseDir string, platform platforms.Platform) (*config.Runtime, error) {
 	cfg := config.Runtime{
 		Type:                         "io.containerd.contrast-cc.v2",
 		Path:                         filepath.Join(baseDir, "bin", "containerd-shim-contrast-cc-v2"),
@@ -88,18 +88,18 @@ func ContainerdRuntimeConfigFragment(baseDir string, flavour flavours.Flavour) (
 		PrivilegedWithoutHostDevices: true,
 	}
 
-	switch flavour {
-	case flavours.AKSCLHSNP:
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
 		cfg.Snapshotter = "tardev"
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
 		}
-	case flavours.K3sQEMUTDX, flavours.RKE2QEMUTDX:
+	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
 		}
 	default:
-		return nil, fmt.Errorf("unsupported flavour: %s", flavour)
+		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
 
 	return &cfg, nil

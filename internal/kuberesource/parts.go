@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/edgelesssys/contrast/node-installer/flavours"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -33,19 +33,19 @@ type NodeInstallerConfig struct {
 }
 
 // NodeInstaller constructs a node installer daemon set.
-func NodeInstaller(namespace string, flavour flavours.Flavour) (*NodeInstallerConfig, error) {
+func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstallerConfig, error) {
 	name := "contrast-node-installer"
 
 	var podRole, imageURL string
-	switch flavour {
-	case flavours.AKSCLHSNP:
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
 		podRole = "contrast-node-installer-microsoft"
 		imageURL = "ghcr.io/edgelesssys/contrast/microsoft-node-installer:latest"
-	case flavours.K3sQEMUTDX, flavours.RKE2QEMUTDX:
+	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		podRole = "contrast-node-installer-kata"
 		imageURL = "ghcr.io/edgelesssys/contrast/kata-node-installer:latest"
 	default:
-		return nil, fmt.Errorf("unsupported flavour %q", flavour)
+		return nil, fmt.Errorf("unsupported platform %q", platform)
 	}
 
 	d := DaemonSet(name, namespace).
@@ -69,7 +69,7 @@ func NodeInstaller(namespace string, flavour flavours.Flavour) (*NodeInstallerCo
 						WithVolumeMounts(VolumeMount().
 							WithName("host-mount").
 							WithMountPath("/host")).
-						WithCommand("/bin/node-installer", flavour.String()),
+						WithCommand("/bin/node-installer", platform.String()),
 					).
 					WithContainers(
 						Container().

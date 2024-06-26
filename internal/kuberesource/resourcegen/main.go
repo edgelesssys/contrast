@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
-	"github.com/edgelesssys/contrast/node-installer/flavours"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 )
 
 func main() {
@@ -19,7 +19,7 @@ func main() {
 	addLoadBalancers := flag.Bool("add-load-balancers", false, "Add load balancers to selected services")
 	addNamespaceObject := flag.Bool("add-namespace-object", false, "Add namespace object with the given namespace")
 	addPortForwarders := flag.Bool("add-port-forwarders", false, "Add port forwarder pods for all services")
-	rawFlavour := flag.String("flavour", "", "Deployment flavour to generate the runtime configuration for")
+	rawplatform := flag.String("platform", "", "Deployment platform to generate the runtime configuration for")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [flags] <set>...\n", os.Args[0])
 		flag.PrintDefaults()
@@ -27,9 +27,9 @@ func main() {
 
 	flag.Parse()
 
-	flavour, err := flavours.FromString(*rawFlavour)
+	platform, err := platforms.FromString(*rawplatform)
 	if err != nil {
-		log.Fatalf("Error parsing flavour: %v", err)
+		log.Fatalf("Error parsing platform: %v", err)
 	}
 
 	var resources []any
@@ -40,7 +40,7 @@ func main() {
 		case "coordinator":
 			subResources = kuberesource.CoordinatorBundle()
 		case "runtime":
-			subResources, err = kuberesource.Runtime(flavour)
+			subResources, err = kuberesource.Runtime(platform)
 			if err != nil {
 				log.Fatalf("Error generating runtime: %v", err)
 			}
