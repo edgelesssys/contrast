@@ -240,7 +240,7 @@ jobs:
       - name: Push containers with release tag
         run: |
           coordinatorImg=$(nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator")
-          nodeInstallerImg=$(nix run .#containers.push-node-installer -- "$container_registry/contrast/node-installer")
+          nodeInstallerImg=$(nix run .#containers.push-node-installer-microsoft -- "$container_registry/contrast/node-installer-microsoft")
           initializerImg=$(nix run .#containers.push-initializer -- "$container_registry/contrast/initializer")
           serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy")
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
@@ -263,7 +263,7 @@ jobs:
           echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged" > image-replacements.txt
           echo "ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImgTagged" >> image-replacements.txt
           echo "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged" >> image-replacements.txt
-          echo "ghcr.io/edgelesssys/contrast/node-installer:latest=$nodeInstallerImgTagged" >> image-replacements.txt
+          echo "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=$nodeInstallerImgTagged" >> image-replacements.txt
       - name: Upload image replacements file (for main branch PR)
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
