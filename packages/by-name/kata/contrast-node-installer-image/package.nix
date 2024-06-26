@@ -30,6 +30,8 @@ let
             { url = "file:///opt/edgeless/share/kata-containers.img"; path = "/opt/edgeless/${runtime-handler}/share/kata-containers.img"; }
             { url = "file:///opt/edgeless/share/kata-kernel"; path = "/opt/edgeless/${runtime-handler}/share/kata-kernel"; }
             { url = "file:///opt/edgeless/bin/qemu-system-x86_64"; path = "/opt/edgeless/${runtime-handler}/bin/qemu-system-x86_64"; }
+            { url = "file:///opt/edgeless/share/OVMF_CODE.fd"; path = "/opt/edgeless/${runtime-handler}/share/OVMF_CODE.fd"; }
+            { url = "file:///opt/edgeless/share/OVMF_VARS.fd"; path = "/opt/edgeless/${runtime-handler}/share/OVMF_VARS.fd"; }
             { url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2"; path = "/opt/edgeless/${runtime-handler}/bin/containerd-shim-contrast-cc-v2"; }
           ];
           runtimeHandlerName = runtime-handler;
@@ -44,6 +46,13 @@ let
     files = [
       { source = kata.runtime-class-files.image; destination = "/opt/edgeless/share/kata-containers.img"; }
       { source = kata.runtime-class-files.kernel; destination = "/opt/edgeless/share/kata-kernel"; }
+    ];
+  };
+
+  ovmf = ociLayerTar {
+    files = [
+      { source = kata.runtime-class-files.ovmf-code; destination = "/opt/edgeless/share/OVMF_CODE.fd"; }
+      { source = kata.runtime-class-files.ovmf-vars; destination = "/opt/edgeless/share/OVMF_VARS.fd"; }
     ];
   };
 
@@ -63,6 +72,7 @@ let
         node-installer
         installer-config
         kata-container-img
+        ovmf
         qemu
         containerd-shim
       ];

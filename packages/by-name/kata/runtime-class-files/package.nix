@@ -4,6 +4,7 @@
 { stdenvNoCC
 , kata
 , fetchurl
+, OVMF
 }:
 
 let
@@ -15,6 +16,9 @@ let
     url = "https://cdn.confidential.cloud/contrast/node-components/1718800762/qemu-system-x86_64";
     sha256 = "sha256-7MS/tK6q4D8y/FH6VcfARQLhIuvtNP6TsGfy+0o9kSc=";
   };
+
+  ovmf-code = OVMF.firmware;
+  ovmf-vars = OVMF.variables;
 
   containerd-shim-contrast-cc-v2 = "${kata.kata-runtime}/bin/containerd-shim-kata-v2";
 in
@@ -34,6 +38,6 @@ stdenvNoCC.mkDerivation {
   '';
 
   passthru = {
-    inherit kernel image qemu-bin containerd-shim-contrast-cc-v2;
+    inherit kernel image qemu-bin containerd-shim-contrast-cc-v2 ovmf-code ovmf-vars;
   };
 }
