@@ -47,7 +47,7 @@ func NodeInstaller(namespace string) *NodeInstallerConfig {
 					WithHostPID(true).
 					WithInitContainers(Container().
 						WithName("installer").
-						WithImage("ghcr.io/edgelesssys/contrast/node-installer:latest").
+						WithImage("ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest").
 						WithResources(ResourceRequirements().
 							WithMemoryLimitAndRequest(100),
 						).
