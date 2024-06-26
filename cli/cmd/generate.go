@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/ecdsa"
@@ -16,10 +17,12 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -388,6 +391,60 @@ func addWorkloadOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) e
 	return nil
 }
 
+type logTranslator struct {
+	r         *io.PipeReader
+	w         *io.PipeWriter
+	logger    *slog.Logger
+	stopDoneC chan struct{}
+}
+
+func newLogTranslator(logger *slog.Logger) logTranslator {
+	r, w := io.Pipe()
+	l := logTranslator{
+		r:         r,
+		w:         w,
+		logger:    logger,
+		stopDoneC: make(chan struct{}),
+	}
+	l.startTranslate()
+	return l
+}
+
+func (l logTranslator) Write(p []byte) (n int, err error) {
+	return l.w.Write(p)
+}
+
+var genpolicyLogPrefixReg = regexp.MustCompile(`^\[[^\]\s]+\s+(\w+)\s+([^\]\s]+)\] (.*)`)
+
+func (l logTranslator) startTranslate() {
+	go func() {
+		defer close(l.stopDoneC)
+		scanner := bufio.NewScanner(l.r)
+		for scanner.Scan() {
+			line := scanner.Text()
+			match := genpolicyLogPrefixReg.FindStringSubmatch(line)
+			if len(match) != 4 {
+				// genpolicy prints some warnings without the logger
+				l.logger.Warn(line)
+			} else {
+				switch match[1] {
+				case "ERROR":
+					l.logger.Error(match[3], "position", match[2])
+				case "WARN":
+					l.logger.Warn(match[3], "position", match[2])
+				case "INFO": // prints quite a lot, only show on debug
+					l.logger.Debug(match[3], "position", match[2])
+				}
+			}
+		}
+	}()
+}
+
+func (l logTranslator) stop() {
+	l.w.Close()
+	<-l.stopDoneC
+}
+
 func generatePolicyForFile(ctx context.Context, genpolicyPath, regoPath, policyPath, yamlPath string, logger *slog.Logger) ([32]byte, error) {
 	args := []string{
 		"--raw-out",
@@ -399,22 +456,27 @@ func generatePolicyForFile(ctx context.Context, genpolicyPath, regoPath, policyP
 	}
 	genpolicy := exec.CommandContext(ctx, genpolicyPath, args...)
 	genpolicy.Env = append(genpolicy.Env, "RUST_LOG=info")
-	var stdout, stderr bytes.Buffer
+
+	logFilter := newLogTranslator(logger)
+	defer logFilter.stop()
+	var stdout bytes.Buffer
 	genpolicy.Stdout = &stdout
-	genpolicy.Stderr = &stderr
+	genpolicy.Stderr = logFilter
+
 	if err := genpolicy.Run(); err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
-			return [32]byte{}, fmt.Errorf("genpolicy failed with exit code %d: %s",
-				exitErr.ExitCode(), stderr.String())
+			return [32]byte{}, fmt.Errorf("genpolicy failed with exit code %d", exitErr.ExitCode())
 		}
 		return [32]byte{}, fmt.Errorf("genpolicy failed: %w", err)
 	}
+
 	if stdout.Len() == 0 {
 		logger.Info("Policy output is empty, ignoring the file", "yamlPath", yamlPath)
 		return [32]byte{}, nil
 	}
 	policyHash := sha256.Sum256(stdout.Bytes())
+
 	return policyHash, nil
 }
 
