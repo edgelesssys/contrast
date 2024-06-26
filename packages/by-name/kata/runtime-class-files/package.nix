@@ -21,7 +21,7 @@ in
 
 stdenvNoCC.mkDerivation {
   name = "runtime-class-files";
-  version = "1718800762";
+  inherit (kata.kata-image) version;
 
   dontUnpack = true;
 

@@ -9,7 +9,6 @@
 , kata
 , pkgsStatic
 , writers
-, debugRuntime ? false
 }:
 
 let
@@ -34,7 +33,7 @@ let
             { url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2"; path = "/opt/edgeless/${runtime-handler}/bin/containerd-shim-contrast-cc-v2"; }
           ];
           runtimeHandlerName = runtime-handler;
-          inherit debugRuntime;
+          inherit (kata.runtime-class-files) debugRuntime;
         };
         destination = "/config/contrast-node-install.json";
       }
