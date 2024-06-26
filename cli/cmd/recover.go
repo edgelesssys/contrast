@@ -18,7 +18,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/recoveryapi"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/spf13/cobra"
 )
@@ -101,8 +100,8 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 	}
 	defer conn.Close()
 
-	client := recoveryapi.NewRecoveryAPIClient(conn)
-	req := &recoveryapi.RecoverRequest{
+	client := userapi.NewUserAPIClient(conn)
+	req := &userapi.RecoverRequest{
 		Seed: seed,
 		Salt: salt,
 	}
