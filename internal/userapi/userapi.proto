@@ -7,6 +7,7 @@ option go_package = "github.com/edgelesssys/contrast/internal/userapi";
 service UserAPI {
   rpc SetManifest(SetManifestRequest) returns (SetManifestResponse);
   rpc GetManifests(GetManifestsRequest) returns (GetManifestsResponse);
+  rpc Recover(RecoverRequest) returns (RecoverResponse);
 }
 
 message SetManifestRequest {
@@ -43,3 +44,10 @@ message GetManifestsResponse {
   // PEM-encoded certificate
   bytes MeshCA = 4;
 }
+
+message RecoverRequest {
+    bytes Seed = 1;
+    bytes Salt = 2;
+}
+
+message RecoverResponse {}

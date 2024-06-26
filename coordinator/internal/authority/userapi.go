@@ -214,6 +214,25 @@ func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsReque
 	return resp, nil
 }
 
+// Recover recovers the Coordinator from a seed and salt.
+func (a *Authority) Recover(_ context.Context, req *userapi.RecoverRequest) (*userapi.RecoverResponse, error) {
+	a.logger.Info("Recover called")
+
+	if err := a.initSeedEngine(req.Seed, req.Salt); errors.Is(err, ErrAlreadyRecovered) {
+		return nil, status.Error(codes.FailedPrecondition, err.Error())
+	} else if err != nil {
+		// Pretty sure this failed because the seed was bad.
+		return nil, status.Errorf(codes.InvalidArgument, "initializing seed engine: %v", err)
+	}
+
+	if err := a.syncState(); err != nil {
+		// This recovery attempt did not lead to a good state, let's roll it back.
+		a.se.Store(nil)
+		return nil, status.Errorf(codes.InvalidArgument, "recovery failed and was rolled back: %v", err)
+	}
+	return &userapi.RecoverResponse{}, nil
+}
+
 func (a *Authority) validatePeer(ctx context.Context, latest *manifest.Manifest) error {
 	if len(latest.WorkloadOwnerKeyDigests) == 0 {
 		return errors.New("setting manifest is disabled")
@@ -253,3 +272,10 @@ func getPeerPublicKey(ctx context.Context) ([]byte, error) {
 	}
 	return x509.MarshalPKIXPublicKey(tlsInfo.State.PeerCertificates[0].PublicKey)
 }
+
+var (
+	// ErrAlreadyRecovered is returned if seedEngine initialization was requested but a seed is already set.
+	ErrAlreadyRecovered = errors.New("coordinator is already recovered")
+	// ErrNeedsRecovery is returned if state exists, but no secrets are available, e.g. after restart.
+	ErrNeedsRecovery = errors.New("coordinator is in recovery mode")
+)

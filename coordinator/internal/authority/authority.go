@@ -21,7 +21,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/recoveryapi"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
@@ -54,7 +53,6 @@ type Authority struct {
 	metrics    metrics
 
 	userapi.UnimplementedUserAPIServer
-	recoveryapi.UnimplementedRecoveryAPIServer
 }
 
 type metrics struct {
