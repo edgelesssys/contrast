@@ -93,7 +93,8 @@ let
   };
 in
 containers // {
-  push-node-installer = pushOCIDir "push-node-installer-microsoft" pkgs.microsoft.contrast-node-installer-image "v${pkgs.contrast.version}";
+  push-node-installer-microsoft = pushOCIDir "push-node-installer-microsoft" pkgs.microsoft.contrast-node-installer-image "v${pkgs.contrast.version}";
+  push-node-installer-kata = pushOCIDir "push-node-installer-kata" pkgs.kata.contrast-node-installer-image "v${pkgs.contrast.version}";
 } // (
   lib.concatMapAttrs (name: container: { "push-${name}" = pushContainer container; }) containers
 )
