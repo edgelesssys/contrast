@@ -42,7 +42,11 @@ func TestGetDEnts(t *testing.T) {
 	// Call generate to patch the runtime class.
 	require.True(t, t.Run("generate", func(t *testing.T) {
 		require := require.New(t)
-		args := append([]string{"--workspace-dir", ct.WorkDir}, path.Join(ct.WorkDir, "resources.yaml"))
+		args := []string{
+			"--workspace-dir", ct.WorkDir,
+			"--skip-initializer",
+			path.Join(ct.WorkDir, "resources.yaml"),
+		}
 		generate := cmd.NewGenerateCmd()
 		generate.Flags().String("workspace-dir", "", "") // Make generate aware of root flags
 		generate.SetArgs(args)
