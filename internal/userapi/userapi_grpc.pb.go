@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion7
 const (
 	UserAPI_SetManifest_FullMethodName  = "/userapi.UserAPI/SetManifest"
 	UserAPI_GetManifests_FullMethodName = "/userapi.UserAPI/GetManifests"
+	UserAPI_Recover_FullMethodName      = "/userapi.UserAPI/Recover"
 )
 
 // UserAPIClient is the client API for UserAPI service.
@@ -29,6 +30,7 @@ const (
 type UserAPIClient interface {
 	SetManifest(ctx context.Context, in *SetManifestRequest, opts ...grpc.CallOption) (*SetManifestResponse, error)
 	GetManifests(ctx context.Context, in *GetManifestsRequest, opts ...grpc.CallOption) (*GetManifestsResponse, error)
+	Recover(ctx context.Context, in *RecoverRequest, opts ...grpc.CallOption) (*RecoverResponse, error)
 }
 
 type userAPIClient struct {
@@ -57,12 +59,22 @@ func (c *userAPIClient) GetManifests(ctx context.Context, in *GetManifestsReques
 	return out, nil
 }
 
+func (c *userAPIClient) Recover(ctx context.Context, in *RecoverRequest, opts ...grpc.CallOption) (*RecoverResponse, error) {
+	out := new(RecoverResponse)
+	err := c.cc.Invoke(ctx, UserAPI_Recover_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserAPIServer is the server API for UserAPI service.
 // All implementations must embed UnimplementedUserAPIServer
 // for forward compatibility
 type UserAPIServer interface {
 	SetManifest(context.Context, *SetManifestRequest) (*SetManifestResponse, error)
 	GetManifests(context.Context, *GetManifestsRequest) (*GetManifestsResponse, error)
+	Recover(context.Context, *RecoverRequest) (*RecoverResponse, error)
 	mustEmbedUnimplementedUserAPIServer()
 }
 
@@ -75,6 +87,9 @@ func (UnimplementedUserAPIServer) SetManifest(context.Context, *SetManifestReque
 }
 func (UnimplementedUserAPIServer) GetManifests(context.Context, *GetManifestsRequest) (*GetManifestsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetManifests not implemented")
+}
+func (UnimplementedUserAPIServer) Recover(context.Context, *RecoverRequest) (*RecoverResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Recover not implemented")
 }
 func (UnimplementedUserAPIServer) mustEmbedUnimplementedUserAPIServer() {}
 
@@ -125,6 +140,24 @@ func _UserAPI_GetManifests_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserAPI_Recover_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecoverRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserAPIServer).Recover(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserAPI_Recover_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserAPIServer).Recover(ctx, req.(*RecoverRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // UserAPI_ServiceDesc is the grpc.ServiceDesc for UserAPI service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -139,6 +172,10 @@ var UserAPI_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetManifests",
 			Handler:    _UserAPI_GetManifests_Handler,
+		},
+		{
+			MethodName: "Recover",
+			Handler:    _UserAPI_Recover_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

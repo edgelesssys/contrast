@@ -18,7 +18,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
-	"github.com/edgelesssys/contrast/internal/recoveryapi"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -69,7 +68,6 @@ func run() (retErr error) {
 	grpcServer := newGRPCServer(serverMetrics, logger)
 
 	userapi.RegisterUserAPIServer(grpcServer, meshAuth)
-	recoveryapi.RegisterRecoveryAPIServer(grpcServer, meshAuth)
 	serverMetrics.InitializeMetrics(grpcServer)
 
 	eg := errgroup.Group{}
