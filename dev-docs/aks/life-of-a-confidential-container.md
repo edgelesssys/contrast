@@ -420,5 +420,3 @@ drwxr-xr-x 3 root root  60 Jun 26 16:25 var
 ```
 
 </details>
-
-<details>
