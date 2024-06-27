@@ -41,6 +41,7 @@ func TestGenpolicy(t *testing.T) {
 				require := require.New(t)
 				args := []string{
 					"--workspace-dir", ct.WorkDir,
+					"--reference-values", "aks",
 					"--skip-initializer",
 					path.Join(ct.WorkDir, "resources.yaml"),
 				}
