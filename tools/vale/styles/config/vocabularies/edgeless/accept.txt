@@ -44,8 +44,10 @@ frontend
 Fulcio
 Gbps
 GCP
+genpolicy
 gRPC
 Grype
+hostname
 hyperv
 IAM
 Initializer
@@ -70,6 +72,7 @@ MicroK8s
 mitigations
 namespace
 Nginx
+overlayfs
 paravisor
 PCR
 plaintext
@@ -82,6 +85,7 @@ Rekor
 resizable
 resourceGroup
 rollout
+runtime
 safeguardable
 SBOM
 sigstore
@@ -93,6 +97,8 @@ substituters
 superset
 Syft
 systemd
+tardev
+tarfs
 Terraform
 Tink
 TPM
