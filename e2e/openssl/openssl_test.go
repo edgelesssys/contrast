@@ -21,6 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,6 +29,9 @@ import (
 const (
 	opensslFrontend = "openssl-frontend"
 	opensslBackend  = "openssl-backend"
+
+	meshCAFile = "mesh-ca.pem"
+	rootCAFile = "coordinator-root-ca.pem"
 )
 
 var (
@@ -115,7 +119,7 @@ func TestOpenSSL(t *testing.T) {
 		// - the certificate in the backend pod can be used as a server certificate
 		// - the backend's CA configuration accepted the frontend certificate
 		// - the frontend's CA configuration accepted the backend certificate
-		stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", "mesh-ca.pem")})
+		stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", meshCAFile)})
 		t.Log(stdout)
 		require.NoError(err, "stderr: %q", stderr)
 	})
@@ -152,14 +156,14 @@ func TestOpenSSL(t *testing.T) {
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentToRestart))
 
 			// This should not succeed because the certificates have changed.
-			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", "mesh-ca.pem")})
+			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", meshCAFile)})
 			t.Log("openssl with wrong certificates:", stdout)
 			require.Error(err)
 			require.Contains(stderr, "certificate signature failure")
 
 			// Connect from backend to fronted, because the frontend does not require client certs.
 			// This should succeed because the root cert did not change.
-			stdout, stderr, err = c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-frontend:443", "coordinator-root-ca.pem")})
+			stdout, stderr, err = c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-frontend:443", rootCAFile)})
 			t.Log("openssl with root certificate:", stdout)
 			require.NoError(err, "stderr: %q", stderr)
 
@@ -172,11 +176,41 @@ func TestOpenSSL(t *testing.T) {
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, d))
 
 			// This should succeed since both workloads now have updated certificates.
-			stdout, stderr, err = c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", "mesh-ca.pem")})
+			stdout, stderr, err = c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-backend:443", meshCAFile)})
 			t.Log("openssl with correct certificates:", stdout)
 			require.NoError(err, "stderr: %q", stderr)
 		})
 	}
+
+	t.Run("coordinator recovery", func(t *testing.T) {
+		require := require.New(t)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		defer cancel()
+
+		c := kubeclient.NewForTest(t)
+
+		require.NoError(c.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
+
+		require.ErrorContains(ct.RunVerify(), "recovery")
+
+		require.True(t.Run("contrast recover", ct.Recover))
+
+		require.True(t.Run("contrast verify", ct.Verify))
+
+		require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
+		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
+
+		for _, cert := range []string{rootCAFile, meshCAFile} {
+			t.Run(cert, func(t *testing.T) {
+				stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-frontend:443", cert)})
+				if err != nil {
+					t.Logf("openssl with %q after recovery:\n%s", cert, stdout)
+				}
+				assert.NoError(t, err, "stderr: %q", stderr)
+			})
+		}
+	})
 }
 
 func TestMain(m *testing.M) {
