@@ -10,6 +10,7 @@ on:
           default: false
     pull_request:
       paths-ignore:
+        - dev-docs/**
         - docs/**
         - rfc/**
 
