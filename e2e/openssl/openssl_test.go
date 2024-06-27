@@ -148,7 +148,7 @@ func TestOpenSSL(t *testing.T) {
 			ct.Set(t)
 
 			// Restart one deployment so it has the new certificates.
-			require.NoError(c.RestartDeployment(ctx, ct.Namespace, deploymentToRestart))
+			require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentToRestart))
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentToRestart))
 
 			// This should not succeed because the certificates have changed.
@@ -168,7 +168,7 @@ func TestOpenSSL(t *testing.T) {
 			if deploymentToRestart == opensslBackend {
 				d = opensslFrontend
 			}
-			require.NoError(c.RestartDeployment(ctx, ct.Namespace, d))
+			require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, d))
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, d))
 
 			// This should succeed since both workloads now have updated certificates.
