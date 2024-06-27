@@ -143,6 +143,7 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 
 	generate := cmd.NewGenerateCmd()
 	generate.Flags().String("workspace-dir", "", "") // Make generate aware of root flags
+	generate.Flags().String("log-level", "debug", "")
 	generate.SetArgs(args)
 	generate.SetOut(io.Discard)
 	errBuf := &bytes.Buffer{}
