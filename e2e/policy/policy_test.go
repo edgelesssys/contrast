@@ -6,12 +6,18 @@
 package policy
 
 import (
+	"context"
+	"encoding/json"
 	"flag"
 	"os"
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
+	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/stretchr/testify/require"
 )
 
@@ -66,11 +72,41 @@ func TestPolicy(t *testing.T) {
 	t.Run("pod cannot join after it was removed from the manifest", func(t *testing.T) {
 		// TODO: Remove the policy hash for the test-deployment from `manifest.json` and set the new manifest.
 		// (look at `openssl_test.go` for an example of editing the manifest file)
-	})
+		require := require.New(t)
 
-	t.Run("manifest does not allow pod with valid policy", func(t *testing.T) {
-		// TODO: Create a new pod with a valid policy but with contents that don't match the manifest (like ports?).
-		// Joining of that pod should fail.
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		defer cancel()
+
+		c := kubeclient.NewForTest(t)
+
+		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "test-deployment"))
+
+		// parse the manifest
+		manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
+		require.NoError(err)
+		var m manifest.Manifest
+		require.NoError(json.Unmarshal(manifestBytes, &m))
+		t.Log("original manifest:", manifestBytes)
+
+		// remove the test deployment
+		newPolicies := make(map[manifest.HexString][]string)
+		for policyHash := range m.Policies {
+			if slices.Contains(m.Policies[policyHash], "test-deployment") {
+				continue // skip the policy
+			}
+			newPolicies[policyHash] = m.Policies[policyHash]
+		}
+		m.Policies = newPolicies
+		manifestBytes, err = json.Marshal(m)
+		require.NoError(err)
+		require.NoError(os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
+		t.Log("new manifest:", manifestBytes)
+
+		// set the new manifest
+		ct.Set(t)
+
+		// restart the deployment - this should fail since the manifest disallows the hash
+		require.Error(c.RestartDeployment(ctx, ct.Namespace, "test-deployment"))
 	})
 }
 
