@@ -5,9 +5,9 @@
 , buildGoModule
 , buildGoTest
 , microsoft
+, runtime ? microsoft
 , genpolicy ? microsoft.genpolicy
 , contrast
-, runtime-class-files
 }:
 
 let
@@ -26,9 +26,9 @@ let
     subPackages = [ "e2e/genpolicy" "e2e/getdents" "e2e/openssl" "e2e/servicemesh" "e2e/release" ];
   };
 
-  launchDigest = builtins.readFile "${runtime-class-files}/launch-digest.hex";
+  launchDigest = builtins.readFile "${runtime.runtime-class-files}/launch-digest.hex";
 
-  runtimeHandler = lib.removeSuffix "\n" (builtins.readFile "${runtime-class-files}/runtime-handler");
+  runtimeHandler = lib.removeSuffix "\n" (builtins.readFile "${runtime.runtime-class-files}/runtime-handler");
 
   packageOutputs = [ "coordinator" "initializer" "cli" ];
 in
@@ -52,12 +52,11 @@ buildGoModule rec {
         (path.append root "go.mod")
         (path.append root "go.sum")
         (path.append root "cli/cmd/assets/image-replacements.txt")
+        (path.append root "node-installer")
         (fileset.difference
           (fileset.fileFilter (file: hasSuffix ".go" file.name) root)
-          (fileset.unions [
-            (path.append root "service-mesh")
-            (path.append root "node-installer")
-          ]))
+          (path.append root "service-mesh")
+        )
       ];
     };
 

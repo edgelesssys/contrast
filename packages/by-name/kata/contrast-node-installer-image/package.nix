@@ -6,7 +6,7 @@
 , ociImageManifest
 , ociImageLayout
 , contrast-node-installer
-, runtime-class-files
+, kata
 , pkgsStatic
 , writers
 }:
@@ -19,8 +19,8 @@ let
     ];
   };
 
-  launch-digest = lib.removeSuffix "\n" (builtins.readFile "${runtime-class-files}/launch-digest.hex");
-  runtime-handler = lib.removeSuffix "\n" (builtins.readFile "${runtime-class-files}/runtime-handler");
+  launch-digest = lib.removeSuffix "\n" (builtins.readFile "${kata.runtime-class-files}/launch-digest.hex");
+  runtime-handler = lib.removeSuffix "\n" (builtins.readFile "${kata.runtime-class-files}/runtime-handler");
 
   installer-config = ociLayerTar {
     files = [
@@ -28,12 +28,14 @@ let
         source = writers.writeJSON "contrast-node-install.json" {
           files = [
             { url = "file:///opt/edgeless/share/kata-containers.img"; path = "/opt/edgeless/${runtime-handler}/share/kata-containers.img"; }
-            { url = "file:///opt/edgeless/share/kata-containers-igvm.img"; path = "/opt/edgeless/${runtime-handler}/share/kata-containers-igvm.img"; }
-            { url = "file:///opt/edgeless/bin/cloud-hypervisor-snp"; path = "/opt/edgeless/${runtime-handler}/bin/cloud-hypervisor-snp"; }
+            { url = "file:///opt/edgeless/share/kata-kernel"; path = "/opt/edgeless/${runtime-handler}/share/kata-kernel"; }
+            { url = "file:///opt/edgeless/bin/qemu-system-x86_64"; path = "/opt/edgeless/${runtime-handler}/bin/qemu-system-x86_64"; }
+            { url = "file:///opt/edgeless/share/OVMF_CODE.fd"; path = "/opt/edgeless/${runtime-handler}/share/OVMF_CODE.fd"; }
+            { url = "file:///opt/edgeless/share/OVMF_VARS.fd"; path = "/opt/edgeless/${runtime-handler}/share/OVMF_VARS.fd"; }
             { url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2"; path = "/opt/edgeless/${runtime-handler}/bin/containerd-shim-contrast-cc-v2"; }
           ];
           runtimeHandlerName = runtime-handler;
-          inherit (runtime-class-files) debugRuntime;
+          inherit (kata.runtime-class-files) debugRuntime;
         };
         destination = "/config/contrast-node-install.json";
       }
@@ -42,19 +44,26 @@ let
 
   kata-container-img = ociLayerTar {
     files = [
-      { source = runtime-class-files.rootfs; destination = "/opt/edgeless/share/kata-containers.img"; }
-      { source = runtime-class-files.igvm; destination = "/opt/edgeless/share/kata-containers-igvm.img"; }
+      { source = kata.runtime-class-files.image; destination = "/opt/edgeless/share/kata-containers.img"; }
+      { source = kata.runtime-class-files.kernel; destination = "/opt/edgeless/share/kata-kernel"; }
     ];
   };
 
-  cloud-hypervisor = ociLayerTar {
+  ovmf = ociLayerTar {
     files = [
-      { source = runtime-class-files.cloud-hypervisor-exe; destination = "/opt/edgeless/bin/cloud-hypervisor-snp"; }
+      { source = kata.runtime-class-files.ovmf-code; destination = "/opt/edgeless/share/OVMF_CODE.fd"; }
+      { source = kata.runtime-class-files.ovmf-vars; destination = "/opt/edgeless/share/OVMF_VARS.fd"; }
+    ];
+  };
+
+  qemu = ociLayerTar {
+    files = [
+      { source = kata.runtime-class-files.qemu-bin; destination = "/opt/edgeless/bin/qemu-system-x86_64"; }
     ];
   };
 
   containerd-shim = ociLayerTar {
-    files = [{ source = runtime-class-files.containerd-shim-contrast-cc-v2; destination = "/opt/edgeless/bin/containerd-shim-contrast-cc-v2"; }];
+    files = [{ source = kata.runtime-class-files.containerd-shim-contrast-cc-v2; destination = "/opt/edgeless/bin/containerd-shim-contrast-cc-v2"; }];
   };
 
   manifest = ociImageManifest
@@ -63,7 +72,8 @@ let
         node-installer
         installer-config
         kata-container-img
-        cloud-hypervisor
+        ovmf
+        qemu
         containerd-shim
       ];
       extraConfig = {
@@ -78,8 +88,8 @@ let
       };
       extraManifest = {
         "annotations" = {
-          "org.opencontainers.image.title" = "contrast-node-installer";
-          "org.opencontainers.image.description" = "Contrast Node Installer";
+          "org.opencontainers.image.title" = "contrast-node-installer-kata";
+          "org.opencontainers.image.description" = "Contrast Node Installer (Kata)";
           "systems.edgeless.contrast.snp-launch-digest" = launch-digest;
         };
       };

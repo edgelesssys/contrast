@@ -5,17 +5,26 @@ package constants
 
 import (
 	_ "embed"
+	"fmt"
 	"path/filepath"
 
 	"github.com/edgelesssys/contrast/node-installer/internal/config"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/pelletier/go-toml/v2"
 )
 
 var (
-	// containerdRuntimeBaseConfig is the configuration file for the containerd runtime
+	// kataCLHSNPBaseConfig is the configuration file for the Kata runtime on AKS SEV-SNP
+	// with Cloud-Hypervisor.
 	//
 	//go:embed configuration-clh-snp.toml
-	containerdRuntimeBaseConfig string
+	kataCLHSNPBaseConfig string
+
+	// kataBareMetalQEMUTDXBaseConfig is the configuration file for the Kata runtime on bare-metal TDX
+	// with QEMU.
+	//
+	//go:embed configuration-qemu-tdx.toml
+	kataBareMetalQEMUTDXBaseConfig string
 
 	// containerdBaseConfig is the base configuration file for containerd
 	//
@@ -27,17 +36,40 @@ var (
 const CRIFQDN = "io.containerd.grpc.v1.cri"
 
 // KataRuntimeConfig returns the Kata runtime configuration.
-func KataRuntimeConfig(baseDir string, debug bool) config.KataRuntimeConfig {
+func KataRuntimeConfig(baseDir string, platform platforms.Platform, debug bool) (*config.KataRuntimeConfig, error) {
 	var config config.KataRuntimeConfig
-	if err := toml.Unmarshal([]byte(containerdRuntimeBaseConfig), &config); err != nil {
-		panic(err) // should never happen
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
+		if err := toml.Unmarshal([]byte(kataCLHSNPBaseConfig), &config); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
+		}
+		config.Hypervisor["clh"]["path"] = filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")
+		config.Hypervisor["clh"]["igvm"] = filepath.Join(baseDir, "share", "kata-containers-igvm.img")
+		config.Hypervisor["clh"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
+		config.Hypervisor["clh"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")}
+		config.Hypervisor["clh"]["enable_debug"] = debug
+		return &config, nil
+	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
+		}
+		config.Hypervisor["qemu"]["path"] = filepath.Join(baseDir, "bin", "qemu-system-x86_64")
+		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "shae", "OVMF_CODE.fd")
+		config.Hypervisor["qemu"]["firmware_volume"] = filepath.Join(baseDir, "share", "OVMF_VARS.fd")
+		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
+		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
+		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "qemu-system-x86_64")}
+		if debug {
+			config.Hypervisor["qemu"]["enable_debug"] = true
+			config.Hypervisor["qemu"]["kernel_params"] = " agent.log=debug initcall_debug"
+			config.Agent["kata"]["enable_debug"] = true
+			config.Agent["kata"]["debug_console_enabled"] = true
+			config.Runtime["enable_debug"] = true
+		}
+		return &config, nil
+	default:
+		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
-	config.Hypervisor["clh"]["path"] = filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")
-	config.Hypervisor["clh"]["igvm"] = filepath.Join(baseDir, "share", "kata-containers-igvm.img")
-	config.Hypervisor["clh"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
-	config.Hypervisor["clh"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")}
-	config.Hypervisor["clh"]["enable_debug"] = debug
-	return config
 }
 
 // ContainerdBaseConfig returns the base containerd configuration.
@@ -50,17 +82,29 @@ func ContainerdBaseConfig() config.ContainerdConfig {
 }
 
 // ContainerdRuntimeConfigFragment returns the containerd runtime configuration fragment.
-func ContainerdRuntimeConfigFragment(baseDir string) config.Runtime {
-	return config.Runtime{
-		Type:           "io.containerd.contrast-cc.v2",
-		Path:           filepath.Join(baseDir, "bin", "containerd-shim-contrast-cc-v2"),
-		PodAnnotations: []string{"io.katacontainers.*"},
-		Options: map[string]any{
-			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
-		},
+func ContainerdRuntimeConfigFragment(baseDir string, platform platforms.Platform) (*config.Runtime, error) {
+	cfg := config.Runtime{
+		Type:                         "io.containerd.contrast-cc.v2",
+		Path:                         filepath.Join(baseDir, "bin", "containerd-shim-contrast-cc-v2"),
+		PodAnnotations:               []string{"io.katacontainers.*"},
 		PrivilegedWithoutHostDevices: true,
-		Snapshotter:                  "tardev",
 	}
+
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
+		cfg.Snapshotter = "tardev"
+		cfg.Options = map[string]any{
+			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
+		}
+	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+		cfg.Options = map[string]any{
+			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
+		}
+	default:
+		return nil, fmt.Errorf("unsupported platform: %s", platform)
+	}
+
+	return &cfg, nil
 }
 
 // TardevSnapshotterConfigFragment returns the tardev snapshotter configuration fragment.

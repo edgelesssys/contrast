@@ -240,7 +240,7 @@ jobs:
       - name: Push containers with release tag
         run: |
           coordinatorImg=$(nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator")
-          nodeInstallerImg=$(nix run .#containers.push-node-installer -- "$container_registry/contrast/node-installer")
+          nodeInstallerImg=$(nix run .#containers.push-microsoft-node-installer -- "$container_registry/contrast/microsoft-node-installer")
           initializerImg=$(nix run .#containers.push-initializer -- "$container_registry/contrast/initializer")
           serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy")
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
@@ -263,7 +263,7 @@ jobs:
           echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged" > image-replacements.txt
           echo "ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImgTagged" >> image-replacements.txt
           echo "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged" >> image-replacements.txt
-          echo "ghcr.io/edgelesssys/contrast/node-installer:latest=$nodeInstallerImgTagged" >> image-replacements.txt
+          echo "ghcr.io/edgelesssys/contrast/microsoft-node-installer:latest=$nodeInstallerImgTagged" >> image-replacements.txt
       - name: Upload image replacements file (for main branch PR)
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
@@ -272,9 +272,10 @@ jobs:
       - name: Create portable coordinator resource definitions
         run: |
           mkdir -p workspace deployment
-          nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" > workspace/coordinator.yml
-          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --namespace kube-system runtime > workspace/runtime.yml
-          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --add-load-balancers emojivoto-sm-ingress > deployment/emojivoto-demo.yml
+          # TODO(msanft): Release for all platforms once stable
+          nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" AKS-CLH-SNP > workspace/coordinator.yml
+          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --namespace kube-system --platform AKS-CLH-SNP runtime > workspace/runtime.yml
+          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --add-load-balancers --platform AKS-CLH-SNP emojivoto-sm-ingress > deployment/emojivoto-demo.yml
           zip -r workspace/emojivoto-demo.zip deployment/emojivoto-demo.yml
       - name: Update coordinator policy hash
         run: |
