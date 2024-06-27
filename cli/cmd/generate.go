@@ -397,7 +397,10 @@ func addSeedshareOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) 
 	if err != nil {
 		return fmt.Errorf("extracting seed share public key: %w", err)
 	}
-	manifst.SeedshareOwnerPubKeys = append(manifst.SeedshareOwnerPubKeys, publicKey)
+	if !slices.Contains(manifst.SeedshareOwnerPubKeys, publicKey) {
+		manifst.SeedshareOwnerPubKeys = append(manifst.SeedshareOwnerPubKeys, publicKey)
+	}
+
 	return nil
 }
 
