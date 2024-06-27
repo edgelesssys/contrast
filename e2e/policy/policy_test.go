@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build e2e
+///go:build e2e
 
 package policy
 
@@ -23,31 +23,28 @@ var (
 func TestPolicy(t *testing.T) {
 	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, skipUndeploy)
 
-	resources := kuberesource.OpenSSL()
-	resources = append(resources, kuberesource.CoordinatorBundle()...)
+	resources := kuberesource.CoordinatorBundle()
 
 	pod := kuberesource.Deployment("test-deployment", ct.Namespace).
 		WithLabels(map[string]string{
-			"app.kubernetes.io/name": "test-deployment",
+			"app.kubernetes.io/name": "hello-world",
 		}).
 		WithSpec(kuberesource.DeploymentSpec().
 			WithReplicas(1).
 			WithSelector(kuberesource.LabelSelector().
 				WithMatchLabels(map[string]string{
 					"app.kubernetes.io/name": "hello-world",
-					"version":                "nanoserver-ltsc2022",
 				}),
 			).
 			WithTemplate(kuberesource.PodTemplateSpec().
 				WithLabels(map[string]string{
 					"app.kubernetes.io/name": "hello-world",
-					"version":                "nanoserver-ltsc2022",
 				}).
 				WithSpec(kuberesource.PodSpec().
 					WithContainers(
 						kuberesource.Container().
 							WithName("hello-world").
-							WithImage("hello-world"),
+							WithImage("hello-world:latest"),
 					),
 				),
 			),
@@ -66,9 +63,15 @@ func TestPolicy(t *testing.T) {
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-	t.Run("pod cannot join after it was removed from the manifest", func(t *testing.T) {})
+	t.Run("pod cannot join after it was removed from the manifest", func(t *testing.T) {
+		// TODO: Remove the policy hash for the test-deployment from `manifest.json` and set the new manifest.
+		// (look at `openssl_test.go` for an example of editing the manifest file)
+	})
 
-	t.Run("manifest does not allow pod with valid policy", func(t *testing.T) {})
+	t.Run("manifest does not allow pod with valid policy", func(t *testing.T) {
+		// TODO: Create a new pod with a valid policy but with contents that don't match the manifest (like ports?).
+		// Joining of that pod should fail.
+	})
 }
 
 func TestMain(m *testing.M) {
