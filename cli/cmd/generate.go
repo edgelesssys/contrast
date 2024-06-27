@@ -429,7 +429,9 @@ func addSeedshareOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) 
 	default:
 		return fmt.Errorf("unsupported PEM block type: %s", block.Type)
 	}
-	manifst.SeedshareOwnerPubKeys = append(manifst.SeedshareOwnerPubKeys, publicKey)
+	if !slices.Contains(manifst.SeedshareOwnerPubKeys, publicKey) {
+		manifst.SeedshareOwnerPubKeys = append(manifst.SeedshareOwnerPubKeys, publicKey)
+	}
 
 	return nil
 }
