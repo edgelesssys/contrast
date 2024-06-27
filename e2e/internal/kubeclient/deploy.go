@@ -333,9 +333,9 @@ func (c *Kubeclient) Delete(ctx context.Context, objects ...*unstructured.Unstru
 	return nil
 }
 
-// RestartDeployment restarts a deployment by deleting all of its pods.
-func (c *Kubeclient) RestartDeployment(ctx context.Context, namespace, name string) error {
-	pods, err := c.PodsFromDeployment(ctx, namespace, name)
+// Restart a resource by deleting all of its dependent pods.
+func (c *Kubeclient) Restart(ctx context.Context, resource ResourceWaiter, namespace, name string) error {
+	pods, err := resource.getPods(ctx, c, namespace, name)
 	if err != nil {
 		return err
 	}
