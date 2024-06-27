@@ -498,7 +498,7 @@ func generatePolicyForFile(ctx context.Context, genpolicyPath, regoPath, policyP
 		fmt.Sprintf("--yaml-file=%s", yamlPath),
 	}
 	genpolicy := exec.CommandContext(ctx, genpolicyPath, args...)
-	genpolicy.Env = append(genpolicy.Env, "RUST_LOG=info")
+	genpolicy.Env = append(genpolicy.Env, "RUST_LOG=info", "RUST_BACKTRACE=1")
 
 	logFilter := newLogTranslator(logger)
 	defer logFilter.stop()
