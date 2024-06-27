@@ -171,6 +171,27 @@ verify cli=default_cli:
     echo "Verified in $duration seconds."
     echo "verify $duration" >> ./{{ workspace_dir }}/just.perf
 
+# Recover the Coordinator.
+recover cli=default_cli:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ns=$(cat ./{{ workspace_dir }}/just.namespace)
+    nix run .#scripts.kubectl-wait-ready -- $ns coordinator
+    nix run .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
+    kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
+    PID=$!
+    trap "kill $PID" EXIT
+    nix run .#scripts.wait-for-port-listen -- 1313
+    policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
+    t=$(date +%s)
+    nix run .#{{ cli }} -- recover \
+        --workspace-dir ./{{ workspace_dir }} \
+        --coordinator-policy-hash "$policy" \
+        -c localhost:1313
+    duration=$(( $(date +%s) - $t ))
+    echo "Recovered in $duration seconds."
+    echo "recover $duration" >> ./{{ workspace_dir }}/just.perf
+
 # Wait for workloads to become ready.
 wait-for-workload target=default_deploy_target:
     #!/usr/bin/env bash
