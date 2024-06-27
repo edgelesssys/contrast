@@ -3,9 +3,11 @@ default target=default_deploy_target cli=default_cli: soft-clean coordinator ini
 
 # Build and push a container image.
 push target:
+    #!/usr/bin/env bash
+    set -eu
     mkdir -p {{ workspace_dir }}
-    printf "ghcr.io/edgelesssys/contrast/%s:latest=" "{{ target }}" >> {{ workspace_dir }}/just.containerlookup
-    nix run .#containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}" >> {{ workspace_dir }}/just.containerlookup
+    pushedImg=$(nix run .#containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}")
+    printf "ghcr.io/edgelesssys/contrast/%s:latest=%s\n" "{{ target }}" "$pushedImg" >> {{ workspace_dir }}/just.containerlookup
 
 # Build the coordinator, containerize and push it.
 coordinator: (push "coordinator")
