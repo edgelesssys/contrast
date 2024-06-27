@@ -10,6 +10,11 @@ on:
         required: false
         type: boolean
         default: false
+  pull_request:
+    paths:
+      - .github/workflows/e2e_regression.yml
+      - e2e/getdents/**
+      - e2e/genpolicy/**
 
 env:
   container_registry: ghcr.io/edgelesssys
