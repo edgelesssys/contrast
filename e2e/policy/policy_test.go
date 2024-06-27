@@ -1,16 +1,16 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build e2e
+///go:build e2e
 
 package policy
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"flag"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -22,6 +22,7 @@ import (
 )
 
 const opensslBackend = "openssl-backend"
+const opensslFrontend = "openssl-frontend"
 
 var (
 	imageReplacementsFile, namespaceFile string
@@ -64,15 +65,16 @@ func TestPolicy(t *testing.T) {
 		require.NoError(json.Unmarshal(manifestBytes, &m))
 		t.Log("original manifest:", string(manifestBytes))
 
-		// Replace all policy hashes with empty ones.
+		// Replace all policy hashes with random ones.
 		// This is needed because `ct.Set` fails if the
 		// number of policy hashes doesn't match the current deployment
 		newPolicies := make(map[manifest.HexString][]string)
-		i := 0
 		for range m.Policies {
-			newPolicies[manifest.HexString(strconv.Itoa(i))] = []string{""}
-			i += 1
+			hash := make([]byte, 32)
+			rand.Read(hash)
+			newPolicies[manifest.NewHexString(hash)] = []string{""}
 		}
+		m.Policies = newPolicies
 
 		// write the new manifest
 		manifestBytes, err = json.Marshal(m)
