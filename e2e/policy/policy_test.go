@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-///go:build e2e
+//go:build e2e
 
 package policy
 
@@ -21,6 +21,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const opensslBackend = "openssl-backend"
+
 var (
 	imageReplacementsFile, namespaceFile string
 	skipUndeploy                         bool
@@ -29,34 +31,10 @@ var (
 func TestPolicy(t *testing.T) {
 	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, skipUndeploy)
 
-	resources := kuberesource.CoordinatorBundle()
+	resources := kuberesource.OpenSSL()
 
-	pod := kuberesource.Deployment("test-deployment", ct.Namespace).
-		WithLabels(map[string]string{
-			"app.kubernetes.io/name": "hello-world",
-		}).
-		WithSpec(kuberesource.DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(kuberesource.LabelSelector().
-				WithMatchLabels(map[string]string{
-					"app.kubernetes.io/name": "hello-world",
-				}),
-			).
-			WithTemplate(kuberesource.PodTemplateSpec().
-				WithLabels(map[string]string{
-					"app.kubernetes.io/name": "hello-world",
-				}).
-				WithSpec(kuberesource.PodSpec().
-					WithContainers(
-						kuberesource.Container().
-							WithName("hello-world").
-							WithImage("hello-world:latest"),
-					),
-				),
-			),
-		)
-
-	resources = append(resources, pod)
+	coordinator := kuberesource.CoordinatorBundle()
+	resources = append(resources, coordinator...)
 	resources = kuberesource.AddPortForwarders(resources)
 
 	ct.Init(t, resources)
@@ -70,8 +48,6 @@ func TestPolicy(t *testing.T) {
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
 	t.Run("pod cannot join after it was removed from the manifest", func(t *testing.T) {
-		// TODO: Remove the policy hash for the test-deployment from `manifest.json` and set the new manifest.
-		// (look at `openssl_test.go` for an example of editing the manifest file)
 		require := require.New(t)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
@@ -79,7 +55,7 @@ func TestPolicy(t *testing.T) {
 
 		c := kubeclient.NewForTest(t)
 
-		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "test-deployment"))
+		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
 
 		// parse the manifest
 		manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
@@ -88,10 +64,10 @@ func TestPolicy(t *testing.T) {
 		require.NoError(json.Unmarshal(manifestBytes, &m))
 		t.Log("original manifest:", manifestBytes)
 
-		// remove the test deployment
+		// remove the openssl backend from the policy hashes
 		newPolicies := make(map[manifest.HexString][]string)
 		for policyHash := range m.Policies {
-			if slices.Contains(m.Policies[policyHash], "test-deployment") {
+			if slices.Contains(m.Policies[policyHash], opensslBackend) {
 				continue // skip the policy
 			}
 			newPolicies[policyHash] = m.Policies[policyHash]
@@ -106,7 +82,7 @@ func TestPolicy(t *testing.T) {
 		ct.Set(t)
 
 		// restart the deployment - this should fail since the manifest disallows the hash
-		require.Error(c.RestartDeployment(ctx, ct.Namespace, "test-deployment"))
+		require.Error(c.RestartDeployment(ctx, ct.Namespace, opensslBackend))
 	})
 }
 
