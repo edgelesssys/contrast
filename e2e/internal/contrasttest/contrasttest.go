@@ -199,17 +199,19 @@ func (ct *ContrastTest) Set(t *testing.T) {
 	require.NoError(set.Execute(), "could not set manifest at coordinator: %s", errBuf)
 }
 
-// Verify runs the contrast verify subcommand.
-func (ct *ContrastTest) Verify(t *testing.T) {
-	require := require.New(t)
-
+// RunVerify runs the contrast verify subcommand.
+func (ct *ContrastTest) RunVerify() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
-	require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
+	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"); err != nil {
+		return fmt.Errorf("waiting for coordinator: %w", err)
+	}
 
 	coordinator, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-coordinator", "1313")
-	require.NoError(err)
+	if err != nil {
+		return err
+	}
 	defer cancelPortForward()
 
 	verify := cmd.NewVerifyCmd()
@@ -223,12 +225,51 @@ func (ct *ContrastTest) Verify(t *testing.T) {
 	errBuf := &bytes.Buffer{}
 	verify.SetErr(errBuf)
 
-	require.NoError(verify.Execute(), "could not verify coordinator: %s", errBuf)
+	if err := verify.Execute(); err != nil {
+		return fmt.Errorf("running verify failed: %w\n%s", err, errBuf)
+	}
 
 	ct.meshCACertPEM, err = os.ReadFile(path.Join(ct.WorkDir, "mesh-ca.pem"))
-	require.NoError(err)
+	if err != nil {
+		return fmt.Errorf("no mesh ca cert: %w", err)
+	}
 	ct.rootCACertPEM, err = os.ReadFile(path.Join(ct.WorkDir, "coordinator-root-ca.pem"))
+	if err != nil {
+		return fmt.Errorf("no root ca cert: %w", err)
+	}
+	return nil
+}
+
+// Verify runs the contrast verify subcommand and fails the test if it is not successful.
+func (ct *ContrastTest) Verify(t *testing.T) {
+	require.NoError(t, ct.RunVerify())
+}
+
+// Recover runs the contrast recover subcommand.
+func (ct *ContrastTest) Recover(t *testing.T) {
+	require := require.New(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
+
+	coordinator, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-coordinator", "1313")
 	require.NoError(err)
+	defer cancelPortForward()
+
+	args := append(ct.commonArgs(),
+		"--coordinator-policy-hash", ct.coordinatorPolicyHash,
+		"--coordinator", coordinator)
+
+	set := cmd.NewRecoverCmd()
+	set.Flags().String("workspace-dir", "", "") // Make set aware of root flags
+	set.SetArgs(args)
+	set.SetOut(io.Discard)
+	errBuf := &bytes.Buffer{}
+	set.SetErr(errBuf)
+
+	require.NoError(set.Execute(), "could not recover coordinator: %s", errBuf)
 }
 
 // MeshCACert returns a CertPool that contains the coordinator mesh CA cert.
