@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
-	"slices"
+	"strconv"
 	"testing"
 	"time"
 
@@ -62,26 +62,28 @@ func TestPolicy(t *testing.T) {
 		require.NoError(err)
 		var m manifest.Manifest
 		require.NoError(json.Unmarshal(manifestBytes, &m))
-		t.Log("original manifest:", manifestBytes)
+		t.Log("original manifest:", string(manifestBytes))
 
-		// remove the openssl backend from the policy hashes
+		// Replace all policy hashes with empty ones.
+		// This is needed because `ct.Set` fails if the
+		// number of policy hashes doesn't match the current deployment
 		newPolicies := make(map[manifest.HexString][]string)
-		for policyHash := range m.Policies {
-			if slices.Contains(m.Policies[policyHash], opensslBackend) {
-				continue // skip the policy
-			}
-			newPolicies[policyHash] = m.Policies[policyHash]
+		i := 0
+		for range m.Policies {
+			newPolicies[manifest.HexString(strconv.Itoa(i))] = []string{""}
+			i += 1
 		}
-		m.Policies = newPolicies
+
+		// write the new manifest
 		manifestBytes, err = json.Marshal(m)
 		require.NoError(err)
 		require.NoError(os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
-		t.Log("new manifest:", manifestBytes)
+		t.Log("new manifest:", string(manifestBytes))
 
 		// set the new manifest
 		ct.Set(t)
 
-		// restart the deployment - this should fail since the manifest disallows the hash
+		// restart a deployment - this should fail since the manifest disallows the hash
 		require.Error(c.RestartDeployment(ctx, ct.Namespace, opensslBackend))
 	})
 }
