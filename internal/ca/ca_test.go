@@ -35,9 +35,7 @@ func TestNewCA(t *testing.T) {
 	assert.NotNil(ca.intermCACert)
 	assert.NotNil(ca.intermCAPEM)
 
-	root := x509.NewCertPool()
-	ok := root.AppendCertsFromPEM(ca.rootCAPEM)
-	assert.True(ok)
+	root := pool(t, ca.rootCAPEM)
 
 	cert := parsePEMCertificate(t, ca.intermCAPEM)
 
@@ -213,6 +211,61 @@ func TestCAConcurrent(t *testing.T) {
 	go newMeshCert()
 
 	wg.Wait()
+}
+
+// TestCARecovery asserts that certificates issued by a CA verify correctly under a new CA using the same keys.
+func TestCARecovery(t *testing.T) {
+	require := require.New(t)
+	rootCAKey := newKey(require)
+	meshCAKey := newKey(require)
+
+	oldCA, err := New(rootCAKey, meshCAKey)
+	require.NoError(err)
+
+	newCA, err := New(rootCAKey, meshCAKey)
+	require.NoError(err)
+
+	key := newKey(require)
+	oldCert, err := oldCA.NewAttestedMeshCert([]string{"localhost"}, nil, key.Public())
+	require.NoError(err)
+	newCert, err := newCA.NewAttestedMeshCert([]string{"localhost"}, nil, key.Public())
+	require.NoError(err)
+
+	require.NotEqual(oldCA.GetRootCACert(), newCA.GetRootCACert())
+	require.NotEqual(oldCert, newCert)
+
+	require.Equal(parsePEMCertificate(t, oldCA.GetIntermCACert()).SubjectKeyId, parsePEMCertificate(t, oldCA.GetMeshCACert()).SubjectKeyId)
+
+	// Clients are represented by their configured root certificate and the
+	// additional intermediates they should have received from the server.
+	clients := map[string]x509.VerifyOptions{
+		"old-root": {Roots: pool(t, oldCA.GetRootCACert()), Intermediates: pool(t, oldCA.GetIntermCACert())},
+		"new-root": {Roots: pool(t, newCA.GetRootCACert()), Intermediates: pool(t, newCA.GetIntermCACert())},
+		"old-mesh": {Roots: pool(t, oldCA.GetMeshCACert())},
+		"new-mesh": {Roots: pool(t, newCA.GetMeshCACert())},
+	}
+
+	servers := map[string]*x509.Certificate{
+		"old": parsePEMCertificate(t, oldCert),
+		"new": parsePEMCertificate(t, newCert),
+	}
+
+	for clientName, client := range clients {
+		t.Run("client="+clientName, func(t *testing.T) {
+			for serverName, server := range servers {
+				t.Run("server="+serverName, func(t *testing.T) {
+					_, err = server.Verify(client)
+					assert.NoError(t, err)
+				})
+			}
+		})
+	}
+}
+
+func pool(t *testing.T, pem []byte) *x509.CertPool {
+	pool := x509.NewCertPool()
+	require.True(t, pool.AppendCertsFromPEM(pem))
+	return pool
 }
 
 func newKey(require *require.Assertions) *ecdsa.PrivateKey {
