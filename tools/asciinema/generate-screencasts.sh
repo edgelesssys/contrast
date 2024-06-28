@@ -12,6 +12,9 @@ set -euo pipefail
 scriptdir=$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")
 demodir=$(nix develop .#demo-latest --command pwd)
 contrastPath=$(nix build .#contrast-releases.latest && realpath result/bin/contrast)
+version=$(jq -r '.contrast | last | .version' "../../packages/contrast-releases.json")
+sed -i "s#download/.*/#download/$version/#g" ./scripts/flow.expect
+
 docker build -t screenrecodings "${scriptdir}/docker"
 
 docker run -t \
