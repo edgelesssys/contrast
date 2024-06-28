@@ -26,21 +26,15 @@ func main() {
 	shouldRestartContainerd := flag.Bool("restart", true, "Restart containerd after the runtime installation to make the changes effective.")
 	flag.Parse()
 
-	var platform platforms.Platform
 	if len(os.Args) < 2 {
-		// For now, fall back to the default platform (AKS Cloud Hypervisor SNP) if no platform is specified.
-		platform = platforms.AKSCloudHypervisorSNP
-		// TODO(msanft): Remove this fallback once the node-installer deployment is platform-aware.
-		// fmt.Println("Usage: node-installer <platform>")
-		// os.Exit(1)
-	} else {
-		var err error
+		fmt.Println("Usage: node-installer <platform>")
+		os.Exit(1)
+	}
 
-		platform, err = platforms.FromString(os.Args[1])
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+	platform, err := platforms.FromString(os.Args[1])
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	fetcher := asset.NewDefaultFetcher()
