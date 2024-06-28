@@ -4,7 +4,6 @@
 package ca
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/x509"
@@ -29,13 +28,11 @@ import (
 // https://docs.edgeless.systems/marblerun/architecture/security#public-key-infrastructure-and-certificate-authority
 type CA struct {
 	rootCAPrivKey *ecdsa.PrivateKey
-	rootCACert    *x509.Certificate
 	rootCAPEM     []byte
 
 	intermPrivKey *ecdsa.PrivateKey
 
-	intermCACert *x509.Certificate
-	intermCAPEM  []byte
+	intermCAPEM []byte
 
 	meshCACert *x509.Certificate
 	meshCAPEM  []byte
@@ -47,7 +44,7 @@ func New(rootPrivKey, intermPrivKey *ecdsa.PrivateKey) (*CA, error) {
 	notBefore := now.Add(-time.Hour)
 	notAfter := now.AddDate(10, 0, 0)
 
-	root := &x509.Certificate{
+	rootTemplate := &x509.Certificate{
 		Subject:               pkix.Name{CommonName: "system:coordinator:root"},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
@@ -55,13 +52,13 @@ func New(rootPrivKey, intermPrivKey *ecdsa.PrivateKey) (*CA, error) {
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
-	rootPEM, err := createCert(root, root, &rootPrivKey.PublicKey, rootPrivKey)
+	rootCert, rootPEM, err := createCert(rootTemplate, rootTemplate, &rootPrivKey.PublicKey, rootPrivKey)
 	if err != nil {
 		return nil, fmt.Errorf("creating root certificate: %w", err)
 	}
 
 	notAfter = now.AddDate(10, 0, 0)
-	intermCACert := &x509.Certificate{
+	intermCACertTemplate := &x509.Certificate{
 		Subject:               pkix.Name{CommonName: "system:coordinator:intermediate"},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
@@ -69,12 +66,12 @@ func New(rootPrivKey, intermPrivKey *ecdsa.PrivateKey) (*CA, error) {
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
-	intermCAPEM, err := createCert(intermCACert, root, &intermPrivKey.PublicKey, rootPrivKey)
+	_, intermCAPEM, err := createCert(intermCACertTemplate, rootCert, &intermPrivKey.PublicKey, rootPrivKey)
 	if err != nil {
 		return nil, fmt.Errorf("creating intermediate certificate: %w", err)
 	}
 
-	meshCACert := &x509.Certificate{
+	meshCACertTemplate := &x509.Certificate{
 		Subject:               pkix.Name{CommonName: "system:coordinator:intermediate"},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
@@ -82,17 +79,15 @@ func New(rootPrivKey, intermPrivKey *ecdsa.PrivateKey) (*CA, error) {
 		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
 		BasicConstraintsValid: true,
 	}
-	meshCAPEM, err := createCert(meshCACert, meshCACert, &intermPrivKey.PublicKey, intermPrivKey)
+	meshCACert, meshCAPEM, err := createCert(meshCACertTemplate, meshCACertTemplate, &intermPrivKey.PublicKey, intermPrivKey)
 	if err != nil {
 		return nil, fmt.Errorf("creating mesh certificate: %w", err)
 	}
 
 	ca := CA{
 		rootCAPrivKey: rootPrivKey,
-		rootCACert:    root,
 		rootCAPEM:     rootPEM,
 		intermPrivKey: intermPrivKey,
-		intermCACert:  intermCACert,
 		intermCAPEM:   intermCAPEM,
 		meshCACert:    meshCACert,
 		meshCAPEM:     meshCAPEM,
@@ -118,7 +113,6 @@ func (c *CA) NewAttestedMeshCert(names []string, extensions []pkix.Extension, su
 	now := time.Now()
 	certTemplate := &x509.Certificate{
 		Subject:               pkix.Name{CommonName: dnsNames[0]},
-		Issuer:                pkix.Name{CommonName: "system:coordinator:intermediate"},
 		NotBefore:             now.Add(-time.Hour),
 		NotAfter:              now.AddDate(1, 0, 0),
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
@@ -129,7 +123,7 @@ func (c *CA) NewAttestedMeshCert(names []string, extensions []pkix.Extension, su
 		IPAddresses:           ips,
 	}
 
-	certPEM, err := createCert(certTemplate, c.meshCACert, subjectPublicKey, c.intermPrivKey)
+	_, certPEM, err := createCert(certTemplate, c.meshCACert, subjectPublicKey, c.intermPrivKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create certificate: %w", err)
 	}
@@ -152,35 +146,40 @@ func (c *CA) GetMeshCACert() []byte {
 	return c.meshCAPEM
 }
 
-func createCert(template, parent *x509.Certificate, pub, priv any) ([]byte, error) {
+// createCert issues a new certificate for pub, based on template, signed by parent with priv.
+//
+// It returns the certificate both in PEM encoding and as an x509 struct.
+func createCert(template, parent *x509.Certificate, pub, priv any) (*x509.Certificate, []byte, error) {
 	if parent == nil {
-		return nil, errors.New("parent cannot be nil")
+		return nil, nil, errors.New("parent cannot be nil")
 	}
 	if template == nil {
-		return nil, errors.New("cert cannot be nil")
+		return nil, nil, errors.New("cert cannot be nil")
 	}
 	if template.SerialNumber != nil {
-		return nil, errors.New("cert serial number must be nil")
+		return nil, nil, errors.New("cert serial number must be nil")
 	}
 
 	serialNum, err := crypto.GenerateCertificateSerialNumber()
 	if err != nil {
-		return nil, fmt.Errorf("generating serial number: %w", err)
+		return nil, nil, fmt.Errorf("generating serial number: %w", err)
 	}
 	template.SerialNumber = serialNum
 
-	certBytes, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
+	certDER, err := x509.CreateCertificate(rand.Reader, template, parent, pub, priv)
 	if err != nil {
-		return nil, fmt.Errorf("creating certificate: %w", err)
+		return nil, nil, fmt.Errorf("creating certificate: %w", err)
 	}
 
-	certPEM := new(bytes.Buffer)
-	if err := pem.Encode(certPEM, &pem.Block{
+	certPem := pem.EncodeToMemory(&pem.Block{
 		Type:  "CERTIFICATE",
-		Bytes: certBytes,
-	}); err != nil {
-		return nil, fmt.Errorf("encoding certificate: %w", err)
+		Bytes: certDER,
+	})
+
+	cert, err := x509.ParseCertificate(certDER)
+	if err != nil {
+		return nil, nil, fmt.Errorf("parsing the created certificate: %w", err)
 	}
 
-	return certPEM.Bytes(), nil
+	return cert, certPem, nil
 }
