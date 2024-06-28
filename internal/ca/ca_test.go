@@ -29,10 +29,8 @@ func TestNewCA(t *testing.T) {
 	require.NoError(err)
 	assert.NotNil(ca)
 	assert.NotNil(ca.rootCAPrivKey)
-	assert.NotNil(ca.rootCACert)
 	assert.NotNil(ca.rootCAPEM)
 	assert.NotNil(ca.intermPrivKey)
-	assert.NotNil(ca.intermCACert)
 	assert.NotNil(ca.intermCAPEM)
 
 	root := pool(t, ca.rootCAPEM)
@@ -145,14 +143,19 @@ func TestCreateCert(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			pem, err := createCert(tc.template, tc.parent, tc.pub, tc.priv)
+			cert, pem, err := createCert(tc.template, tc.parent, tc.pub, tc.priv)
 			if tc.wantErr {
 				assert.Error(err)
 				return
 			}
 
-			assert.NoError(err)
-			parsePEMCertificate(t, pem)
+			require.NoError(t, err)
+			parsedCert := parsePEMCertificate(t, pem)
+			assert.Equal(*parsedCert.SerialNumber, *cert.SerialNumber)
+			assert.Equal(parsedCert.Subject, cert.Subject)
+			assert.Equal(parsedCert.SubjectKeyId, cert.SubjectKeyId)
+			assert.Equal(parsedCert.Issuer, cert.Issuer)
+			assert.Equal(parsedCert.AuthorityKeyId, cert.AuthorityKeyId)
 		})
 	}
 }
@@ -211,6 +214,34 @@ func TestCAConcurrent(t *testing.T) {
 	go newMeshCert()
 
 	wg.Wait()
+}
+
+func TestCertValidity(t *testing.T) {
+	require := require.New(t)
+	rootCAKey := newKey(require)
+	meshCAKey := newKey(require)
+	key := newKey(require)
+
+	ca, err := New(rootCAKey, meshCAKey)
+	require.NoError(err)
+	crt, err := ca.NewAttestedMeshCert([]string{"localhost"}, nil, key.Public())
+	require.NoError(err)
+
+	assertValidPEMCert(t, ca.GetRootCACert())
+	assertValidPEMCert(t, ca.GetMeshCACert())
+	assertValidPEMCert(t, ca.GetIntermCACert())
+	assertValidPEMCert(t, crt)
+}
+
+func assertValidPEMCert(t *testing.T, pem []byte) {
+	crt := parsePEMCertificate(t, pem)
+	if crt.IsCA {
+		assert.NotEmpty(t, crt.SubjectKeyId, "TLSv3 requires a Subject Key ID for CA certificates")
+	}
+	if crt.Issuer.CommonName != crt.Subject.CommonName {
+		assert.NotEmpty(t, crt.AuthorityKeyId, "TLSv3 requires an Authority Key ID for non-root certificates")
+	}
+	assert.Equal(t, 3, crt.Version, "certificate should be TLSv3")
 }
 
 // TestCARecovery asserts that certificates issued by a CA verify correctly under a new CA using the same keys.
