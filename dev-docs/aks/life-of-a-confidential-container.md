@@ -119,7 +119,7 @@ spec:
 
 We use the [`genpolicy`] tool to generate a runtime policy for the pod.
 This policy defines what OCI runtime parameters are acceptable for this pod.
-Runtime policies are covered in more detail in a [dedicated document](../coco/policy).
+Runtime policies are covered in more detail in a [dedicated document](../coco/policy.md).
 It also calculates a `dm-verity` hash, but more on that later.
 
 [`genpolicy`]: https://github.com/microsoft/kata-containers/tree/3.2.0.azl1.genpolicy0/src/tools/genpolicy
@@ -339,7 +339,7 @@ curl -s --unix-socket /run/vc/vm/6aa04b0c9483817bb9da7216c352348d33d6fda1ecd10ac
 ## Kata Agent
 
 Inside the confidential VM, the Kata Agent starts up and serves the [agent API].
-If we configured Kata for [debug mode](serial-console), we can log into the container by sandbox id:
+If we configured Kata for [debug mode](serial-console.md), we can log into the container by sandbox id:
 
 ```sh
 kata-runtime exec 6aa04b0c9483817bb9da7216c352348d33d6fda1ecd10ac5c836bcd4a1652bed
