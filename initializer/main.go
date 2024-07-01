@@ -18,9 +18,19 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
+	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
+	"github.com/klauspost/cpuid/v2"
+)
+
+type platform int
+
+const (
+	unknownPlatform platform = iota
+	tdxPlatform
+	snpPlatform
 )
 
 func main() {
@@ -55,8 +65,19 @@ func run() (retErr error) {
 		return fmt.Errorf("generating key: %w", err)
 	}
 
+	platform := deducePlatform()
+
+	var issuer atls.Issuer
+	switch platform {
+	case snpPlatform:
+		issuer = snp.NewIssuer(logger.NewNamed(log, "snp-issuer"))
+	case tdxPlatform:
+		issuer = tdx.NewIssuer(logger.NewNamed(log, "tdx-issuer"))
+	default:
+		return fmt.Errorf("unsupported platform: %T", platform)
+	}
+
 	requestCert := func() (*meshapi.NewMeshCertResponse, error) {
-		issuer := snp.NewIssuer(logger.NewNamed(log, "snp-issuer"))
 		dial := dialer.NewWithKey(issuer, atls.NoValidator, &net.Dialer{}, privKey)
 		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorHostname, meshapi.Port))
 		if err != nil {
@@ -115,4 +136,16 @@ func run() (retErr error) {
 
 	log.Info("Initializer done")
 	return nil
+}
+
+// deducePlatform tries to determine the TEE platform the initializer is running on.
+func deducePlatform() platform {
+	cpuid.Detect()
+	if cpuid.CPU.Supports(cpuid.SEV_SNP) {
+		return snpPlatform
+	}
+	if cpuid.CPU.Supports(cpuid.TDX_GUEST) {
+		return tdxPlatform
+	}
+	return unknownPlatform
 }

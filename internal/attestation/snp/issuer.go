@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/oid"
 	snpabi "github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/client"
@@ -53,7 +54,7 @@ func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (re
 	}
 	defer snpGuestDevice.Close()
 
-	reportData := constructReportData(ownPublicKey, nonce)
+	reportData := attestation.ConstructReportData(ownPublicKey, nonce)
 
 	// Get quote from SNP device
 	quoteProvider, err := client.GetQuoteProvider()

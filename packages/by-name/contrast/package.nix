@@ -51,17 +51,16 @@ buildGoModule rec {
         (path.append root "go.mod")
         (path.append root "go.sum")
         (path.append root "cli/cmd/assets/image-replacements.txt")
+        (path.append root "node-installer")
         (fileset.difference
           (fileset.fileFilter (file: hasSuffix ".go" file.name) root)
-          (fileset.unions [
-            (path.append root "service-mesh")
-            (path.append root "node-installer")
-          ]))
+          (path.append root "service-mesh")
+        )
       ];
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-9RtHcArCyJqvC3VfNOyuyeN9+KyVu+wWKpSxXoCj/3o=";
+  vendorHash = "sha256-CFjXhI5w4waOxaWBpzL0h646PeWAB52hkPR5mGkHtTA=";
 
   subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
 

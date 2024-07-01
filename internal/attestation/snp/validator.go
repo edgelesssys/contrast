@@ -11,6 +11,7 @@ import (
 	"log/slog"
 
 	"github.com/edgelesssys/contrast/internal/oid"
+	attHelpers "github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
@@ -120,7 +121,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	// Validate the report data.
 
-	reportDataExpected := constructReportData(peerPublicKey, nonce)
+	reportDataExpected := attHelpers.ConstructReportData(peerPublicKey, nonce)
 	validateOpts, err := v.validateOptsGen.SNPValidateOpts(attestation.Report)
 	if err != nil {
 		return fmt.Errorf("generating validation options: %w", err)
