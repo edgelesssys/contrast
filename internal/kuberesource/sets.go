@@ -6,6 +6,7 @@ package kuberesource
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -187,12 +188,14 @@ func GenpolicyRegressionTests() map[string]*applyappsv1.DeploymentApplyConfigura
 func Emojivoto(smMode serviceMeshMode) []any {
 	ns := ""
 	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost, smWebIngress, smWebEgress string
+	var emojiWebProbeScheme corev1.URIScheme
 	switch smMode {
 	case ServiceMeshDisabled:
 		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1"
 		emojiVotingSvcImage = "ghcr.io/3u13r/emojivoto-voting-svc:coco-1"
 		emojiWebImage = "ghcr.io/3u13r/emojivoto-web:coco-1"
 		emojiWebVoteBotImage = emojiWebImage
+		emojiWebProbeScheme = corev1.URISchemeHTTP
 		emojiSvcHost = "emoji-svc:8080"
 		votingSvcHost = "voting-svc:8080"
 	case ServiceMeshIngressEgress:
@@ -200,6 +203,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiVotingSvcImage = "docker.io/buoyantio/emojivoto-voting-svc:v11"
 		emojiWebImage = "docker.io/buoyantio/emojivoto-web:v11"
 		emojiWebVoteBotImage = "ghcr.io/3u13r/emojivoto-web:coco-1"
+		emojiWebProbeScheme = corev1.URISchemeHTTPS
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
 		smWebIngress = "web#8080#false"
@@ -209,6 +213,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiVotingSvcImage = "ghcr.io/3u13r/emojivoto-voting-svc:coco-1"
 		emojiWebImage = "docker.io/buoyantio/emojivoto-web:v11"
 		emojiWebVoteBotImage = emojiWebImage
+		emojiWebProbeScheme = corev1.URISchemeHTTP
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
 		smWebEgress = "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080"
@@ -421,7 +426,10 @@ func Emojivoto(smMode serviceMeshMode) []any {
 								WithMemoryLimitAndRequest(50),
 							).
 							WithReadinessProbe(applycorev1.Probe().
-								WithTCPSocket(TCPSocketAction().WithPort(intstr.FromInt(8080))).
+								WithHTTPGet(applycorev1.HTTPGetAction().
+									WithPort(intstr.FromInt(8080)).
+									WithScheme(emojiWebProbeScheme),
+								).
 								WithInitialDelaySeconds(1).
 								WithPeriodSeconds(5),
 							),
