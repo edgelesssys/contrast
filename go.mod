@@ -4,8 +4,11 @@ go 1.22.0
 
 toolchain go1.22.4
 
+replace github.com/edgelesssys/contrast/node-installer => ./node-installer
+
 require (
 	filippo.io/keygen v0.0.0-20230306160926-5201437acf8e
+	github.com/edgelesssys/contrast/node-installer v0.0.0-00010101000000-000000000000
 	github.com/google/go-github/v62 v62.0.0
 	github.com/google/go-sev-guest v0.11.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1

@@ -6,6 +6,7 @@ package kuberesource
 import (
 	"fmt"
 
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -26,16 +27,19 @@ func CoordinatorBundle() []any {
 }
 
 // Runtime returns a set of resources for registering and installing the runtime.
-func Runtime() []any {
+func Runtime(platform platforms.Platform) ([]any, error) {
 	ns := ""
 
 	runtimeClass := ContrastRuntimeClass().RuntimeClassApplyConfiguration
-	nodeInstaller := NodeInstaller(ns).DaemonSetApplyConfiguration
+	nodeInstaller, err := NodeInstaller(ns, platform)
+	if err != nil {
+		return nil, fmt.Errorf("creating node installer: %w", err)
+	}
 
 	return []any{
 		runtimeClass,
-		nodeInstaller,
-	}
+		nodeInstaller.DaemonSetApplyConfiguration,
+	}, nil
 }
 
 // OpenSSL returns a set of resources for testing with OpenSSL.

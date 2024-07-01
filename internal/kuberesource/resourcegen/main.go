@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 )
 
 func main() {
@@ -18,12 +19,22 @@ func main() {
 	addLoadBalancers := flag.Bool("add-load-balancers", false, "Add load balancers to selected services")
 	addNamespaceObject := flag.Bool("add-namespace-object", false, "Add namespace object with the given namespace")
 	addPortForwarders := flag.Bool("add-port-forwarders", false, "Add port forwarder pods for all services")
+	rawPlatform := flag.String("platform", "", "Deployment platform to generate the runtime configuration for")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [flags] <set>...\n", os.Args[0])
 		flag.PrintDefaults()
 	}
 
 	flag.Parse()
+
+	var platform platforms.Platform
+	if *rawPlatform != "" {
+		var err error
+		platform, err = platforms.FromString(*rawPlatform)
+		if err != nil {
+			log.Fatalf("Error parsing platform: %v", err)
+		}
+	}
 
 	var resources []any
 	for _, set := range flag.Args() {
@@ -33,7 +44,10 @@ func main() {
 		case "coordinator":
 			subResources = kuberesource.CoordinatorBundle()
 		case "runtime":
-			subResources = kuberesource.Runtime()
+			subResources, err = kuberesource.Runtime(platform)
+			if err != nil {
+				log.Fatalf("Error generating runtime: %v", err)
+			}
 		case "openssl":
 			subResources = kuberesource.OpenSSL()
 		case "emojivoto":
