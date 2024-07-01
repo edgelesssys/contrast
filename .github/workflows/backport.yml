@@ -29,7 +29,7 @@ jobs:
         uses: korthout/backport-action@bd410d37cdcae80be6d969823ff5a225fe5c833f # v3.0.2
         with:
           copy_milestone: true
-          copy_labels_pattern: 'changelog'
+          copy_labels_pattern: '.*'
           pull_title: '[${target_branch}] ${pull_title}'
           github_token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
           pull_description: |
