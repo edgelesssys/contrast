@@ -167,7 +167,11 @@ func (m *Manifest) Validate() error {
 		}
 	}
 
-	// TODO(davidweisse): validate SeedshareOwnerPubKeys field once it is being used.
+	for _, key := range m.SeedshareOwnerPubKeys {
+		if _, err := ParseSeedShareOwnerKey(key); err != nil {
+			return fmt.Errorf("invalid seed share owner public key %s: %w", key, err)
+		}
+	}
 	return nil
 }
 
