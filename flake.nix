@@ -35,12 +35,15 @@
       devShells = {
         default = pkgs.mkShell {
           packages = with pkgs; [
+            azure-cli
+            crane
             delve
             go
             golangci-lint
             gopls
             gotools
             just
+            kubectl
           ];
           shellHook = ''
             alias make=just
