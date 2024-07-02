@@ -4,13 +4,14 @@
 package manifest
 
 import (
-"crypto/ecdsa"
+	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
-"encoding/pem"
+	"encoding/pem"
+	"errors"
 	"fmt"
 
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -82,4 +83,31 @@ func NewWorkloadOwnerKey() ([]byte, error) {
 		return nil, fmt.Errorf("marshaling private key: %w", err)
 	}
 	return pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: privateKeyBytes}), nil
+}
+
+// ExtractWorkloadOwnerPublicKey extracts the public key for a workload owner and returns it as serialized DER.
+//
+// This function supports PEM-encoded public and private keys.
+func ExtractWorkloadOwnerPublicKey(keyData []byte) ([]byte, error) {
+	block, _ := pem.Decode(keyData)
+	if block == nil {
+		return nil, errors.New("failed to decode PEM block")
+	}
+	var publicKey []byte
+	switch block.Type {
+	case "PUBLIC KEY":
+		return block.Bytes, nil
+	case "EC PRIVATE KEY":
+		privateKey, err := x509.ParseECPrivateKey(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("parsing EC private key: %w", err)
+		}
+		publicKey, err = x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("marshaling public key: %w", err)
+		}
+		return publicKey, nil
+	default:
+		return nil, fmt.Errorf("unsupported PEM block type: %s", block.Type)
+	}
 }
