@@ -27,6 +27,29 @@ func NewSeedShareOwnerPrivateKey() ([]byte, error) {
 	return pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privateKeyBytes}), nil
 }
 
+// ExtractSeedshareOwnerPublicKey extracts the public key for a seedshare owner and returns it as serialized DER.
+//
+// This function supports PEM-encoded public and private keys.
+func ExtractSeedshareOwnerPublicKey(keyData []byte) (HexString, error) {
+	block, _ := pem.Decode(keyData)
+	if block == nil {
+		return "", fmt.Errorf("decoding seedshare owner key: no key found")
+	}
+	switch block.Type {
+	case "PUBLIC KEY":
+		return NewHexString(block.Bytes), nil
+	case "RSA PRIVATE KEY":
+		privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			return "", fmt.Errorf("parsing seedshare owner key: %w", err)
+		}
+		publicKey := MarshalSeedShareOwnerKey(&privateKey.PublicKey)
+		return publicKey, nil
+	default:
+		return "", fmt.Errorf("unsupported PEM block type: %s", block.Type)
+	}
+}
+
 // MarshalSeedShareOwnerKey converts a public key into the format for userapi.SetManifestRequest.
 func MarshalSeedShareOwnerKey(pubKey *rsa.PublicKey) HexString {
 	return NewHexString(x509.MarshalPKCS1PublicKey(pubKey))
