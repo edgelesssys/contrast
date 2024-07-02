@@ -4,10 +4,7 @@
 package cmd
 
 import (
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"net"
 	"os"
@@ -125,7 +122,11 @@ type recoverFlags struct {
 }
 
 func decryptedSeedFromShares(seedSharesPath, seedShareOwnerKeyPath string) ([]byte, []byte, error) {
-	key, err := loadSeedshareOwnerKey(seedShareOwnerKeyPath)
+	keyBytes, err := os.ReadFile(seedShareOwnerKeyPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("reading seedshare owner key: %w", err)
+	}
+	key, err := manifest.ParseSeedshareOwnerPrivateKey(keyBytes)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -206,23 +207,4 @@ func parseRecoverFlags(cmd *cobra.Command) (*recoverFlags, error) {
 		manifestPath:          manifestPath,
 		workspaceDir:          workspaceDir,
 	}, nil
-}
-
-func loadSeedshareOwnerKey(path string) (*rsa.PrivateKey, error) {
-	keyBytes, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("reading seedshare owner key: %w", err)
-	}
-	block, _ := pem.Decode(keyBytes)
-	if block == nil {
-		return nil, fmt.Errorf("decoding seedshare owner key: no key found")
-	}
-	if block.Type != "RSA PRIVATE KEY" {
-		return nil, fmt.Errorf("decoding seedshare owner key: invalid key type %q", block.Type)
-	}
-	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("parsing seedshare owner key: %w", err)
-	}
-	return key, nil
 }
