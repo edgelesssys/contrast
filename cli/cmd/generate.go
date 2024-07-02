@@ -374,25 +374,9 @@ func addWorkloadOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) e
 	if err != nil {
 		return fmt.Errorf("reading workload owner key: %w", err)
 	}
-	block, _ := pem.Decode(keyData)
-	if block == nil {
-		return errors.New("failed to decode PEM block")
-	}
-	var publicKey []byte
-	switch block.Type {
-	case "PUBLIC KEY":
-		publicKey = block.Bytes
-	case "EC PRIVATE KEY":
-		privateKey, err := x509.ParseECPrivateKey(block.Bytes)
-		if err != nil {
-			return fmt.Errorf("parsing EC private key: %w", err)
-		}
-		publicKey, err = x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
-		if err != nil {
-			return fmt.Errorf("marshaling public key: %w", err)
-		}
-	default:
-		return fmt.Errorf("unsupported PEM block type: %s", block.Type)
+	publicKey, err := manifest.ExtractWorkloadOwnerPublicKey(keyData)
+	if err != nil {
+		return fmt.Errorf("reading workload owner key: %w", err)
 	}
 
 	hash := sha256.Sum256(publicKey)
