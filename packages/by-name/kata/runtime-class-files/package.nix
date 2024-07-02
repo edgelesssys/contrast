@@ -3,7 +3,7 @@
 
 { stdenvNoCC
 , kata
-, fetchurl
+, fetchzip
 , OVMF
 }:
 
@@ -11,11 +11,21 @@ let
   image = kata.kata-image;
   kernel = "${kata.kata-kernel-uvm}/bzImage";
 
-  # TODO(msanft): building a non-NixOS QEMU is hard, investigate later and pin it for now.
-  # Binary is sourced from: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/qemu/1:8.2.2+ds-0ubuntu1/qemu_8.2.2+ds.orig.tar.xz
-  qemu-bin = fetchurl {
-    url = "https://cdn.confidential.cloud/contrast/node-components/1718800762/qemu-system-x86_64";
-    hash = "sha256-7MS/tK6q4D8y/FH6VcfARQLhIuvtNP6TsGfy+0o9kSc=";
+  # TODO(msanft): building a static qemu with nix.
+  qemu-bin = stdenvNoCC.mkDerivation rec {
+    pname = "qemu-static-kata";
+    version = "3.6.0";
+
+    src = fetchzip {
+      url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
+      hash = "sha256-ynMzMoJ90BzKuE6ih6DmbM2zWTDxsMwkAKsI8pbO3sg=";
+    };
+
+    dontBuild = true;
+
+    installPhase = ''
+      install -Dt $out/bin kata/bin/qemu-system-x86_64
+    '';
   };
 
   ovmf-code = OVMF.firmware;
