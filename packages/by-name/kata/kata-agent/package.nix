@@ -3,7 +3,7 @@
 
 { lib
 , rustPlatform
-, fetchFromGitHub
+, kata
 , cmake
 , pkg-config
 , protobuf
@@ -17,14 +17,7 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "kata-agent";
-  version = "3.5.0";
-
-  src = fetchFromGitHub {
-    owner = "kata-containers";
-    repo = "kata-containers";
-    rev = version;
-    hash = "sha256-5pIJpyeydOVA+GrbCvNqJsmK3zbtF/5iSJLI2C1wkLM=";
-  };
+  inherit (kata.kata-runtime) version src;
 
   sourceRoot = "${src.name}/src/agent";
 
