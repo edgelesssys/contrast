@@ -50,6 +50,22 @@ func ExtractSeedshareOwnerPublicKey(keyData []byte) (HexString, error) {
 	}
 }
 
+// ParseSeedshareOwnerPrivateKey decodes a PEM-encoded seed share private key.
+func ParseSeedshareOwnerPrivateKey(keyData []byte) (*rsa.PrivateKey, error) {
+	block, _ := pem.Decode(keyData)
+	if block == nil {
+		return nil, fmt.Errorf("decoding seedshare owner key: no key found")
+	}
+	if block.Type != "RSA PRIVATE KEY" {
+		return nil, fmt.Errorf("decoding seedshare owner key: invalid key type %q", block.Type)
+	}
+	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("parsing seedshare owner key: %w", err)
+	}
+	return key, nil
+}
+
 // MarshalSeedShareOwnerKey converts a public key into the format for userapi.SetManifestRequest.
 func MarshalSeedShareOwnerKey(pubKey *rsa.PublicKey) HexString {
 	return NewHexString(x509.MarshalPKCS1PublicKey(pubKey))
