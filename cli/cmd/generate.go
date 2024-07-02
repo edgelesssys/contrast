@@ -8,10 +8,8 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -395,23 +393,11 @@ func addSeedshareOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) 
 	if err != nil {
 		return fmt.Errorf("reading seedshare owner key: %w", err)
 	}
-	block, _ := pem.Decode(keyData)
-	if block == nil {
-		return errors.New("failed to decode PEM block")
-	}
-	var publicKey manifest.HexString
-	switch block.Type {
-	case "RSA PRIVATE KEY":
-		privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-		if err != nil {
-			return fmt.Errorf("parsing RSA private key: %w", err)
-		}
-		publicKey = manifest.MarshalSeedShareOwnerKey(&privateKey.PublicKey)
-	default:
-		return fmt.Errorf("unsupported PEM block type: %s", block.Type)
+	publicKey, err := manifest.ExtractSeedshareOwnerPublicKey(keyData)
+	if err != nil {
+		return fmt.Errorf("extracting seed share public key: %w", err)
 	}
 	manifst.SeedshareOwnerPubKeys = append(manifst.SeedshareOwnerPubKeys, publicKey)
-
 	return nil
 }
 
