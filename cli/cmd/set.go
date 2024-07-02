@@ -6,8 +6,6 @@ package cmd
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/sha256"
-	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -249,17 +247,12 @@ func loadWorkloadOwnerKey(path string, manifst *manifest.Manifest, log *slog.Log
 
 	// Check workload owner key configuration in manifest on set.
 	if manifst != nil {
-		pubKey, err := x509.MarshalPKIXPublicKey(&workloadOwnerKey.PublicKey)
-		if err != nil {
-			return nil, fmt.Errorf("marshaling public key: %w", err)
-		}
-		ownerKeyHash := sha256.Sum256(pubKey)
-		ownerKeyHex := manifest.NewHexString(ownerKeyHash[:])
 		if len(manifst.WorkloadOwnerKeyDigests) == 0 {
 			log.Warn("No workload owner keys in manifest. Further manifest updates will be rejected by the Coordinator")
 			return workloadOwnerKey, nil
 		}
 		log.Debug("Workload owner keys in manifest", "keys", manifst.WorkloadOwnerKeyDigests)
+		ownerKeyHex := manifest.HashWorkloadOwnerKey(&workloadOwnerKey.PublicKey)
 		if !slices.Contains(manifst.WorkloadOwnerKeyDigests, ownerKeyHex) {
 			log.Warn("Workload owner key not found in manifest. This may lock you out from further updates")
 		}
