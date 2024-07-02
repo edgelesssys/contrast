@@ -97,8 +97,8 @@ Add the following annotations to your workload:
 ```yaml
 metadata: # apps/v1.Deployment, apps/v1.DaemonSet, ...
   annotations:
-    contrast.edgeless.systems/sm-ingress: "main#8001#false##metrics#8080#true"
-    contrast.edgeless.systems/sm-egress: "backend#127.0.0.2:4001#backend.default:4001"
+    contrast.edgeless.systems/servicemesh-ingress: "main#8001#false##metrics#8080#true"
+    contrast.edgeless.systems/servicemesh-egress: "backend#127.0.0.2:4001#backend.default:4001"
 ```
 
 During the `generate` step, this configuration will be translated into a Service Mesh sidecar container which handles TLS connections automatically.
