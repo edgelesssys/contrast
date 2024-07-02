@@ -190,7 +190,7 @@ func GenpolicyRegressionTests() map[string]*applyappsv1.DeploymentApplyConfigura
 // Emojivoto returns resources for deploying Emojivoto application.
 func Emojivoto(smMode serviceMeshMode) []any {
 	ns := ""
-	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost, smWebIngress, smWebEgress string
+	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost string
 	switch smMode {
 	case ServiceMeshDisabled:
 		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1"
@@ -206,16 +206,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiWebVoteBotImage = "ghcr.io/3u13r/emojivoto-web:coco-1"
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
-		smWebIngress = "web#8080#false"
-		smWebEgress = "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080"
-	case ServiceMeshEgress:
-		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1"
-		emojiVotingSvcImage = "ghcr.io/3u13r/emojivoto-voting-svc:coco-1"
-		emojiWebImage = "docker.io/buoyantio/emojivoto-web:v11"
-		emojiWebVoteBotImage = emojiWebImage
-		emojiSvcHost = "127.137.0.1:8081"
-		votingSvcHost = "127.137.0.2:8081"
-		smWebEgress = "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080"
 	default:
 		panic(fmt.Sprintf("unknown service mesh mode: %s", smMode))
 	}
@@ -487,8 +477,8 @@ func Emojivoto(smMode serviceMeshMode) []any {
 	emoji.WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""})
 	voting.WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""})
 	web.WithAnnotations(map[string]string{
-		smIngressConfigAnnotationKey: smWebIngress,
-		smEgressConfigAnnotationKey:  smWebEgress,
+		smIngressConfigAnnotationKey: "web#8080#false",
+		smEgressConfigAnnotationKey:  "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080",
 	})
 
 	return resources
