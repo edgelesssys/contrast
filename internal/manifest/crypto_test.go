@@ -8,10 +8,12 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -95,4 +97,46 @@ func newKey(t *testing.T, bits int) *rsa.PrivateKey {
 
 	t.Logf("generated key: %q", HexString(x509.MarshalPKCS1PrivateKey(key)))
 	return key
+}
+
+func TestSeedShareKeyParseMarshal(t *testing.T) {
+	keyData, err := NewSeedShareOwnerPrivateKey()
+	require.NoError(t, err)
+
+	key, err := ParseSeedshareOwnerPrivateKey(keyData)
+	require.NoError(t, err)
+
+	pubHexStr := MarshalSeedShareOwnerKey(&key.PublicKey)
+
+	_, err = ParseSeedShareOwnerKey(pubHexStr)
+	require.NoError(t, err)
+
+	publicKeyHexStr, err := ExtractSeedshareOwnerPublicKey(keyData)
+	require.NoError(t, err)
+
+	publicKeyBytes, err := publicKeyHexStr.Bytes()
+	require.NoError(t, err)
+	publicKeyPem := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicKeyBytes})
+	publicKeyHexStrReparsed, err := ExtractSeedshareOwnerPublicKey(publicKeyPem)
+	require.NoError(t, err)
+	assert.Equal(t, publicKeyHexStr, publicKeyHexStrReparsed)
+}
+
+func TestWorkloadOwnerKeyParseMarshal(t *testing.T) {
+	keyData, err := NewWorkloadOwnerKey()
+	require.NoError(t, err)
+
+	privateKey, err := ParseWorkloadOwnerPrivateKey(keyData)
+	require.NoError(t, err)
+
+	keyDigest := HashWorkloadOwnerKey(&privateKey.PublicKey)
+	assert.Len(t, keyDigest, 64)
+
+	publicKeyBytes, err := ExtractWorkloadOwnerPublicKey(keyData)
+	require.NoError(t, err)
+
+	publicKeyPem := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicKeyBytes})
+	publicKeyBytesReparsed, err := ExtractWorkloadOwnerPublicKey(publicKeyPem)
+	require.NoError(t, err)
+	assert.Equal(t, publicKeyBytes, publicKeyBytesReparsed)
 }
