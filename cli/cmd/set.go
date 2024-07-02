@@ -10,7 +10,6 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 	"io"
 	"log/slog"
@@ -243,17 +242,7 @@ func loadWorkloadOwnerKey(path string, manifst *manifest.Manifest, log *slog.Log
 	if os.IsNotExist(err) {
 		return nil, nil
 	}
-	if err != nil {
-		return nil, fmt.Errorf("reading workload owner key: %w", err)
-	}
-	pemBlock, _ := pem.Decode(key)
-	if pemBlock == nil {
-		return nil, fmt.Errorf("decoding workload owner key: %w", err)
-	}
-	if pemBlock.Type != "EC PRIVATE KEY" {
-		return nil, fmt.Errorf("workload owner key is not an EC private key")
-	}
-	workloadOwnerKey, err := x509.ParseECPrivateKey(pemBlock.Bytes)
+	workloadOwnerKey, err := manifest.ParseWorkloadOwnerPrivateKey(key)
 	if err != nil {
 		return nil, fmt.Errorf("parsing workload owner key: %w", err)
 	}
