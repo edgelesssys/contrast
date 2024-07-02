@@ -7,10 +7,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
@@ -533,7 +529,7 @@ func generateWorkloadOwnerKey(flags *generateFlags) error {
 	}
 	keyPath := flags.workloadOwnerKeys[0]
 
-	if err := createFileWithDefault(keyPath, newECDSAKeyPair); err != nil {
+	if err := createFileWithDefault(keyPath, manifest.NewWorkloadOwnerKey); err != nil {
 		return fmt.Errorf("creating default workload owner key file: %w", err)
 	}
 	return nil
@@ -547,31 +543,10 @@ func generateSeedshareOwnerKey(flags *generateFlags) error {
 	}
 	keyPath := flags.seedshareOwnerKeys[0]
 
-	if err := createFileWithDefault(keyPath, newRSAKeyPair); err != nil {
+	if err := createFileWithDefault(keyPath, manifest.NewSeedShareOwnerPrivateKey); err != nil {
 		return fmt.Errorf("creating default seedshare owner key file: %w", err)
 	}
 	return nil
-}
-
-func newECDSAKeyPair() ([]byte, error) {
-	privateKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	if err != nil {
-		return nil, fmt.Errorf("generating private key: %w", err)
-	}
-	privateKeyBytes, err := x509.MarshalECPrivateKey(privateKey)
-	if err != nil {
-		return nil, fmt.Errorf("marshaling private key: %w", err)
-	}
-	return pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: privateKeyBytes}), nil
-}
-
-func newRSAKeyPair() ([]byte, error) {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
-	if err != nil {
-		return nil, fmt.Errorf("generating private key: %w", err)
-	}
-	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-	return pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privateKeyBytes}), nil
 }
 
 type generateFlags struct {

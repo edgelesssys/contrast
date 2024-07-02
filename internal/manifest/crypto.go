@@ -4,14 +4,27 @@
 package manifest
 
 import (
+"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+"encoding/pem"
 	"fmt"
 
 	"github.com/edgelesssys/contrast/internal/userapi"
 )
+
+// NewSeedShareOwnerPrivateKey creates and PEM-encodes a new seed share private key.
+func NewSeedShareOwnerPrivateKey() ([]byte, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return nil, fmt.Errorf("generating private key: %w", err)
+	}
+	privateKeyBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+	return pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: privateKeyBytes}), nil
+}
 
 // MarshalSeedShareOwnerKey converts a public key into the format for userapi.SetManifestRequest.
 func MarshalSeedShareOwnerKey(pubKey *rsa.PublicKey) HexString {
@@ -56,4 +69,17 @@ func EncryptSeedShares(seed []byte, ownerPubKeys []HexString) ([]*userapi.SeedSh
 func DecryptSeedShare(key *rsa.PrivateKey, seedShare *userapi.SeedShare) ([]byte, error) {
 	// TODO(burgerdev): check seedShare.PublicKey?
 	return rsa.DecryptOAEP(sha256.New(), nil, key, seedShare.GetEncryptedSeed(), []byte("seedshare"))
+}
+
+// NewWorkloadOwnerKey creates and marshals a private key.
+func NewWorkloadOwnerKey() ([]byte, error) {
+	privateKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("generating private key: %w", err)
+	}
+	privateKeyBytes, err := x509.MarshalECPrivateKey(privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling private key: %w", err)
+	}
+	return pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: privateKeyBytes}), nil
 }
