@@ -15,7 +15,7 @@ let
   # Binary is sourced from: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/qemu/1:8.2.2+ds-0ubuntu1/qemu_8.2.2+ds.orig.tar.xz
   qemu-bin = fetchurl {
     url = "https://cdn.confidential.cloud/contrast/node-components/1718800762/qemu-system-x86_64";
-    sha256 = "sha256-7MS/tK6q4D8y/FH6VcfARQLhIuvtNP6TsGfy+0o9kSc=";
+    hash = "sha256-7MS/tK6q4D8y/FH6VcfARQLhIuvtNP6TsGfy+0o9kSc=";
   };
 
   ovmf-code = OVMF.firmware;
