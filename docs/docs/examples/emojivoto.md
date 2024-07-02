@@ -70,7 +70,7 @@ annotations to your deployment files. A `manifest.json` file with the reference 
 of your deployment will be created:
 
 ```sh
-contrast generate deployment/
+contrast generate --reference-values aks deployment/
 ```
 
 :::note[Runtime class and Initializer]
