@@ -140,6 +140,20 @@ func ParseWorkloadOwnerPrivateKey(keyBytes []byte) (*ecdsa.PrivateKey, error) {
 	return workloadOwnerKey, nil
 }
 
+// HashWorkloadOwnerKey converts a public key into the format for Manifest.WorkloadOwnerKeyDigests.
+func HashWorkloadOwnerKey(pubKey *ecdsa.PublicKey) HexString {
+	keyData, err := x509.MarshalPKIXPublicKey(pubKey)
+	if err != nil {
+		// According to the docs for MarshalPKIXPublicKey, an error should only
+		// occur for unsupported key types. *ecdsa.PublicKey is a supported key
+		// type.
+		panic(fmt.Errorf("failed to marshal key: %w", err))
+	}
+
+	ownerKeyHash := sha256.Sum256(keyData)
+	return NewHexString(ownerKeyHash[:])
+}
+
 // ExtractWorkloadOwnerPublicKey extracts the public key for a workload owner and returns it as serialized DER.
 //
 // This function supports PEM-encoded public and private keys.
