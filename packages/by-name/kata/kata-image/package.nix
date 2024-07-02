@@ -8,7 +8,6 @@
 , kata
 , bubblewrap
 , fakeroot
-, fetchFromGitHub
 , fetchurl
 , yq-go
 , tdnf
@@ -25,21 +24,13 @@
 }:
 
 let
-  kata-version = "3.6.0";
-  src = fetchFromGitHub {
-    owner = "kata-containers";
-    repo = "kata-containers";
-    rev = kata-version;
-    hash = "sha256-Setg6qmkUVn57BQ3wqqNpzmfXeYhJJt9Q4AVFbGrCug=";
-  };
   # toplevelNixDeps are packages that get installed to the rootfs of the image
   # they are used to determine the (nix) closure of the rootfs
   toplevelNixDeps = [ kata.kata-agent ];
   nixClosure = builtins.toString (lib.strings.splitString "\n" (builtins.readFile "${closureInfo {rootPaths = toplevelNixDeps;}}/store-paths"));
   rootfsExtraTree = stdenvNoCC.mkDerivation {
-    inherit src;
     pname = "rootfs-extra-tree";
-    version = kata-version;
+    inherit (kata.kata-runtime) src version;
 
     # https://github.com/microsoft/azurelinux/blob/59ce246f224f282b3e199d9a2dacaa8011b75a06/SPECS/kata-containers-cc/mariner-coco-build-uvm.sh#L34-L41
     # TODO(msanft): Use a more constrained policy.
@@ -114,9 +105,8 @@ let
 in
 
 stdenv.mkDerivation rec {
-  inherit src;
   pname = "kata-image";
-  version = kata-version;
+  inherit (kata.kata-runtime) src version;
 
   outputs = [ "out" "verity" ];
 
