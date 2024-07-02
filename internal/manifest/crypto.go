@@ -124,6 +124,22 @@ func NewWorkloadOwnerKey() ([]byte, error) {
 	return pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: privateKeyBytes}), nil
 }
 
+// ParseWorkloadOwnerPrivateKey parses a PEM-encoded private key.
+func ParseWorkloadOwnerPrivateKey(keyBytes []byte) (*ecdsa.PrivateKey, error) {
+	pemBlock, _ := pem.Decode(keyBytes)
+	if pemBlock == nil {
+		return nil, fmt.Errorf("decoding workload owner key: no key found")
+	}
+	if pemBlock.Type != "EC PRIVATE KEY" {
+		return nil, fmt.Errorf("workload owner key is not an EC private key")
+	}
+	workloadOwnerKey, err := x509.ParseECPrivateKey(pemBlock.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("parsing workload owner key: %w", err)
+	}
+	return workloadOwnerKey, nil
+}
+
 // ExtractWorkloadOwnerPublicKey extracts the public key for a workload owner and returns it as serialized DER.
 //
 // This function supports PEM-encoded public and private keys.
