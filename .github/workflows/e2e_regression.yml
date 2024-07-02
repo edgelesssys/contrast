@@ -1,4 +1,4 @@
-name: regression tests
+name: e2e test regression
 
 on:
   schedule:
