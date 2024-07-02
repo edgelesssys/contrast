@@ -1,4 +1,4 @@
-name: verify runtime stack reproducibility
+name: e2e test runtime reproducibility
 
 on:
     workflow_dispatch:
