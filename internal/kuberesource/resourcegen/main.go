@@ -54,8 +54,6 @@ func main() {
 			subResources = kuberesource.Emojivoto(kuberesource.ServiceMeshDisabled)
 		case "emojivoto-sm-ingress":
 			subResources = kuberesource.Emojivoto(kuberesource.ServiceMeshIngressEgress)
-		case "emojivoto-sm-egress":
-			subResources = kuberesource.Emojivoto(kuberesource.ServiceMeshEgress)
 		default:
 			log.Fatalf("Error: unknown set: %s\n", set)
 		}

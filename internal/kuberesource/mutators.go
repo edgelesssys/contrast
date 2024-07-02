@@ -79,8 +79,6 @@ type serviceMeshMode string
 const (
 	// ServiceMeshIngressEgress sets the service mesh mode to ingress and egress.
 	ServiceMeshIngressEgress serviceMeshMode = "service-mesh-ingress-egress"
-	// ServiceMeshEgress sets the service mesh mode to egress.
-	ServiceMeshEgress serviceMeshMode = "service-mesh-egress"
 	// ServiceMeshDisabled disables the service mesh.
 	ServiceMeshDisabled serviceMeshMode = "service-mesh-disabled"
 )
