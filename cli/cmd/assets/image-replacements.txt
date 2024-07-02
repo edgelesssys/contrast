@@ -1,4 +1,4 @@
-ghcr.io/edgelesssys/contrast/coordinator:latest=ghcr.io/edgelesssys/contrast/coordinator:v0.7.1@sha256:fcc93f84b9b95ffe8cacfc138a97c6173428a213ce00c66f1661cc18ba654783
-ghcr.io/edgelesssys/contrast/initializer:latest=ghcr.io/edgelesssys/contrast/initializer:v0.7.1@sha256:6a9439f67c55b9fabd7f4e437cbe052e82d2f51e13a52dd18ab738f54563a4b3
-ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=ghcr.io/edgelesssys/contrast/service-mesh-proxy:v0.7.1@sha256:816be82b8df9e426a4bcc3ce2cd8e9aa8915c9c1364e7bac2ff0e65587d92b67
-ghcr.io/edgelesssys/contrast/node-installer:latest=ghcr.io/edgelesssys/contrast/node-installer:v0.7.1@sha256:fa74ab1c1f7716de065777c4b4ba6472e30001defdb48c6df272730cf2eeb47d
+ghcr.io/edgelesssys/contrast/coordinator:latest=ghcr.io/edgelesssys/contrast/coordinator:v0.7.2@sha256:d1b493447172e8b36bf67ff255e86060dc49defed6656da25ed77b108c322c6d
+ghcr.io/edgelesssys/contrast/initializer:latest=ghcr.io/edgelesssys/contrast/initializer:v0.7.2@sha256:4a1b1b13b1f9af589db8001a57f779ebdd91b15b78b3e1b92cce06022debf77f
+ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=ghcr.io/edgelesssys/contrast/service-mesh-proxy:v0.7.2@sha256:eab39182268fa6cf6a515d3b2d74795711f828f73660bd33a8b3108bebd7c3a0
+ghcr.io/edgelesssys/contrast/node-installer:latest=ghcr.io/edgelesssys/contrast/node-installer:v0.7.2@sha256:fa74ab1c1f7716de065777c4b4ba6472e30001defdb48c6df272730cf2eeb47d
