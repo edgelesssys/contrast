@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-///go:build e2e
+//go:build e2e
 
 package policy
 
@@ -26,9 +26,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const opensslBackend = "openssl-backend"
-const opensslFrontend = "openssl-frontend"
-const coordinator = "coordinator"
+const (
+	opensslBackend  = "openssl-backend"
+	opensslFrontend = "openssl-frontend"
+	coordinator     = "coordinator"
+)
 
 var (
 	imageReplacementsFile, namespaceFile string
@@ -69,7 +71,7 @@ func TestPolicy(t *testing.T) {
 		time.Sleep(5 * time.Second) // let the error counter go up initially
 
 		// get the attestation failures before removing a policy
-		initialFailures := getFailures(t, ctx, ct)
+		initialFailures := getFailures(ctx, t, ct)
 
 		t.Log("Initial failures:", initialFailures)
 
@@ -128,12 +130,11 @@ func TestPolicy(t *testing.T) {
 		// wait a bit to let the attestation failure counter go up
 		time.Sleep(5 * time.Second)
 
-		newFailures := getFailures(t, ctx, ct)
+		newFailures := getFailures(ctx, t, ct)
 		t.Log("New failures:", newFailures)
 		// errors should happen
-		require.True(newFailures > initialFailures)
+		require.Greater(newFailures, initialFailures)
 	})
-
 }
 
 func TestMain(m *testing.M) {
@@ -150,15 +151,17 @@ func parsePrometheus(input string) (map[string]*dto.MetricFamily, error) {
 	return parser.TextToMetricFamilies(strings.NewReader(input))
 }
 
-func getFailures(t *testing.T, ctx context.Context, ct *contrasttest.ContrastTest) int {
+func getFailures(ctx context.Context, t *testing.T, ct *contrasttest.ContrastTest) int {
 	require := require.New(t)
 
 	coordPods, err := ct.Kubeclient.PodsFromOwner(ctx, ct.Namespace, "StatefulSet", coordinator)
+	require.NoError(err)
 	require.NotEmpty(coordPods, "pod not found: %s/%s", ct.Namespace, coordinator)
-	coordIp := coordPods[0].Status.PodIP
+	coordIP := coordPods[0].Status.PodIP
 	backendPods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, opensslBackend)
+	require.NoError(err)
 	require.NotEmpty(backendPods, "pod not found: %s/%s", ct.Namespace, opensslBackend)
-	metricsString, _, err := ct.Kubeclient.Exec(ctx, ct.Namespace, backendPods[0].Name, []string{"curl", coordIp + ":9102/metrics"})
+	metricsString, _, err := ct.Kubeclient.Exec(ctx, ct.Namespace, backendPods[0].Name, []string{"curl", coordIP + ":9102/metrics"})
 	require.NoError(err)
 	metrics, err := parsePrometheus(metricsString)
 	require.NoError(err)
