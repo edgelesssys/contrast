@@ -63,8 +63,8 @@ subcommands.`,
 	cmd.Flags().StringP("genpolicy-cache-path", "c", layersCacheFilename, "path to cache for the cache (.json) file containing the image layers")
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().String("reference-values", "", "set the default reference values used for attestation (one of: aks)")
-	cmd.Flags().StringArrayP("workload-owner-key", "w", []string{workloadOwnerPEM},
-		"path to workload owner key (.pem) file (can be passed more than once)")
+	cmd.Flags().StringArrayP("add-workload-owner-key", "w", []string{workloadOwnerPEM},
+		"add a workload owner key from a PEM file to the manifest (pass more than once to add multiple keys)")
 	cmd.Flags().StringArray("seedshare-owner-key", []string{seedshareOwnerPEM},
 		"path to seedshare owner key (.pem) file (can be passed more than once)")
 	cmd.Flags().BoolP("disable-updates", "d", false, "prevent further updates of the manifest")
@@ -74,7 +74,7 @@ subcommands.`,
 	must(cmd.MarkFlagFilename("policy", "rego"))
 	must(cmd.MarkFlagFilename("settings", "json"))
 	must(cmd.MarkFlagFilename("manifest", "json"))
-	cmd.MarkFlagsMutuallyExclusive("workload-owner-key", "disable-updates")
+	cmd.MarkFlagsMutuallyExclusive("add-workload-owner-key", "disable-updates")
 	return cmd
 }
 
@@ -557,7 +557,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if !slices.Contains([]string{"", "aks"}, referenceValues) {
 		return nil, fmt.Errorf("unknown reference values")
 	}
-	workloadOwnerKeys, err := cmd.Flags().GetStringArray("workload-owner-key")
+	workloadOwnerKeys, err := cmd.Flags().GetStringArray("add-workload-owner-key")
 	if err != nil {
 		return nil, err
 	}
@@ -587,7 +587,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		if !cmd.Flags().Changed("manifest") {
 			manifestPath = filepath.Join(workspaceDir, manifestFilename)
 		}
-		if !cmd.Flags().Changed("workload-owner-key") {
+		if !cmd.Flags().Changed("add-workload-owner-key") {
 			workloadOwnerKeys = []string{filepath.Join(workspaceDir, workloadOwnerKeys[0])}
 		}
 		if !cmd.Flags().Changed("seedshare-owner-key") {
