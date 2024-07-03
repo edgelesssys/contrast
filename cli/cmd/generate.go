@@ -65,8 +65,8 @@ subcommands.`,
 	cmd.Flags().String("reference-values", "", "set the default reference values used for attestation (one of: aks)")
 	cmd.Flags().StringArrayP("add-workload-owner-key", "w", []string{workloadOwnerPEM},
 		"add a workload owner key from a PEM file to the manifest (pass more than once to add multiple keys)")
-	cmd.Flags().StringArray("seedshare-owner-key", []string{seedshareOwnerPEM},
-		"path to seedshare owner key (.pem) file (can be passed more than once)")
+	cmd.Flags().StringArray("add-seedshare-owner-key", []string{seedshareOwnerPEM},
+		"add a seedshare owner key from a PEM file to the manifest (pass more than once to add multiple keys)")
 	cmd.Flags().BoolP("disable-updates", "d", false, "prevent further updates of the manifest")
 	cmd.Flags().String("image-replacements", "", "path to image replacements file")
 	cmd.Flags().Bool("skip-initializer", false, "skip injection of Contrast Initializer")
@@ -564,7 +564,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
-	seedshareOwnerKeys, err := cmd.Flags().GetStringArray("seedshare-owner-key")
+	seedshareOwnerKeys, err := cmd.Flags().GetStringArray("add-seedshare-owner-key")
 	if err != nil {
 		return nil, err
 	}
@@ -593,7 +593,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		if !cmd.Flags().Changed("add-workload-owner-key") {
 			workloadOwnerKeys = []string{filepath.Join(workspaceDir, workloadOwnerKeys[0])}
 		}
-		if !cmd.Flags().Changed("seedshare-owner-key") {
+		if !cmd.Flags().Changed("add-seedshare-owner-key") {
 			seedshareOwnerKeys = []string{filepath.Join(workspaceDir, seedshareOwnerKeys[0])}
 		}
 	}
