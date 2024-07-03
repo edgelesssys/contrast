@@ -28,8 +28,6 @@ rustPlatform.buildRustPackage rec {
     };
 
     patches = [
-      # TODO(burgerdev): drop after Microsoft reverted it
-      ./genpolicy_msft_revert_special_symlink_names.patch
       # TODO(burgerdev): drop after Microsoft ported https://github.com/kata-containers/kata-containers/pull/9706
       (fetchpatch {
         name = "genpolicy_device_support.patch";
