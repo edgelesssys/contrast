@@ -19,7 +19,9 @@ let
       cloud-hypervisor = pkgs.pkgsStatic.callPackage ./by-name/microsoft/cloud-hypervisor/package.nix { };
     };
     kata = self'.kata // {
-      genpolicy = pkgs.pkgsStatic.callPackage ./by-name/kata/genpolicy/package.nix { };
+      genpolicy = pkgs.pkgsStatic.callPackage ./by-name/kata/genpolicy/package.nix {
+        inherit (self) kata; # This is only to inherit src/version, must not be depended on.
+      };
     };
   };
 in
