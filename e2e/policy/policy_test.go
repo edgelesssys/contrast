@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build e2e
+///go:build e2e
 
 package policy
 
@@ -24,7 +24,6 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 const opensslBackend = "openssl-backend"
@@ -44,10 +43,6 @@ func TestPolicy(t *testing.T) {
 	coordinatorBundle := kuberesource.CoordinatorBundle()
 	resources = append(resources, coordinatorBundle...)
 	resources = kuberesource.AddPortForwarders(resources)
-	// resources = kuberesource.PatchCoordinatorMetrics(resources, 8080)
-
-	// TODO: Set all resources, wait for them, get counter from init container, remove policy, restart pod, get counter again and compare
-	// counter should go up
 
 	ct.Init(t, resources)
 
@@ -67,41 +62,27 @@ func TestPolicy(t *testing.T) {
 
 		c := kubeclient.NewForTest(t)
 
+		t.Log("Waiting for deployments")
 		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
 		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
-		// require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, coordinator))
+
+		time.Sleep(5 * time.Second) // let the error counter go up initially
 
 		// get the attestation failures before removing a policy
-		coordPods, err := ct.Kubeclient.PodsFromOwner(ctx, ct.Namespace, "StatefulSet", coordinator)
-		require.NotEmpty(coordPods, "pod not found: %s/%s", ct.Namespace, coordinator)
-		coordIp := coordPods[0].Status.PodIP
-		t.Log("coordinator IP:", coordIp)
-		backendPods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, opensslBackend)
-		require.NotEmpty(backendPods, "pod not found: %s/%s", ct.Namespace, opensslBackend)
-		metricsString, _, err := c.Exec(ctx, ct.Namespace, backendPods[0].Name, []string{"curl", coordIp + ":9102/metrics"})
-		require.NoError(err)
-		metrics, err := parsePrometheus(metricsString)
-		require.NoError(err)
-		var initialAttestationFailures int
-		for k, v := range metrics {
-			if k == "contrast_meshapi_attestation_failures" {
-				t.Log("metric:", v.GetMetric()[0])
-				initialAttestationFailures = int(v.GetMetric()[0].GetCounter().GetValue())
-			}
-		}
-		t.Log("Initial failures:", initialAttestationFailures)
+		initialFailures := getFailures(t, ctx, ct)
+
+		t.Log("Initial failures:", initialFailures)
 
 		// parse the manifest
 		manifestBytes, err := os.ReadFile(path.Join(ct.WorkDir, "manifest.json"))
 		require.NoError(err)
 		var m manifest.Manifest
 		require.NoError(json.Unmarshal(manifestBytes, &m))
-		t.Log("original manifest:", string(manifestBytes))
 
 		// Remove a policy from the manifest.
 		newPolicies := make(map[manifest.HexString][]string)
 		for policyHash := range m.Policies {
-			if slices.Contains(m.Policies[policyHash], opensslBackend) {
+			if slices.Contains(m.Policies[policyHash], opensslFrontend) {
 				continue
 			}
 			newPolicies[policyHash] = m.Policies[policyHash]
@@ -112,22 +93,26 @@ func TestPolicy(t *testing.T) {
 		manifestBytes, err = json.Marshal(m)
 		require.NoError(err)
 		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "manifest.json"), manifestBytes, 0o644))
-		t.Log("new manifest:", string(manifestBytes))
 
+		// parse the original resources
 		resourceBytes, err := os.ReadFile(path.Join(ct.WorkDir, "resources.yaml"))
 		require.NoError(err)
 		r, err := kubeapi.UnmarshalUnstructuredK8SResource(resourceBytes)
 		require.NoError(err)
-		for i, resource := range r {
-			name, found, err := unstructured.NestedString(resource.Object, "metadata", "name")
+
+		// remove everything from the openssl-frontend
+		newResources := r[:0]
+		for _, resource := range r {
+			name := resource.GetName()
 			require.NoError(err)
-			t.Log("iterating ", name)
-			if found {
-				if name == opensslFrontend || name == "port-forwarder-"+opensslFrontend {
-					r = slices.Delete(r, i, i)
-				}
+			if name == opensslFrontend || name == "port-forwarder-"+opensslFrontend {
+				continue
 			}
+			newResources = append(newResources, resource)
 		}
+
+		// write the new resources yaml
+		r = newResources
 		resourceBytes, err = kuberesource.EncodeUnstructured(r)
 		require.NoError(err)
 		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yaml"), resourceBytes, 0o644))
@@ -135,9 +120,20 @@ func TestPolicy(t *testing.T) {
 		// set the new manifest
 		ct.Set(t)
 
-		// restart a deployment - this should fail since the manifest disallows the hash
-		require.Error(c.RestartDeployment(ctx, ct.Namespace, opensslFrontend))
+		// restart the deployments
+		require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend)) // not waiting since it would fail
+		require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
+		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
+
+		// wait a bit to let the attestation failure counter go up
+		time.Sleep(5 * time.Second)
+
+		newFailures := getFailures(t, ctx, ct)
+		t.Log("New failures:", newFailures)
+		// errors should happen
+		require.True(newFailures > initialFailures)
 	})
+
 }
 
 func TestMain(m *testing.M) {
@@ -152,4 +148,25 @@ func TestMain(m *testing.M) {
 func parsePrometheus(input string) (map[string]*dto.MetricFamily, error) {
 	var parser expfmt.TextParser
 	return parser.TextToMetricFamilies(strings.NewReader(input))
+}
+
+func getFailures(t *testing.T, ctx context.Context, ct *contrasttest.ContrastTest) int {
+	require := require.New(t)
+
+	coordPods, err := ct.Kubeclient.PodsFromOwner(ctx, ct.Namespace, "StatefulSet", coordinator)
+	require.NotEmpty(coordPods, "pod not found: %s/%s", ct.Namespace, coordinator)
+	coordIp := coordPods[0].Status.PodIP
+	backendPods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, opensslBackend)
+	require.NotEmpty(backendPods, "pod not found: %s/%s", ct.Namespace, opensslBackend)
+	metricsString, _, err := ct.Kubeclient.Exec(ctx, ct.Namespace, backendPods[0].Name, []string{"curl", coordIp + ":9102/metrics"})
+	require.NoError(err)
+	metrics, err := parsePrometheus(metricsString)
+	require.NoError(err)
+	var failures int
+	for k, v := range metrics {
+		if k == "contrast_meshapi_attestation_failures" {
+			failures = int(v.GetMetric()[0].GetCounter().GetValue())
+		}
+	}
+	return failures
 }
