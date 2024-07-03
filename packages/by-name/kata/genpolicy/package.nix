@@ -3,7 +3,7 @@
 
 { lib
 , fetchurl
-, fetchFromGitHub
+, kata
 , rustPlatform
 , openssl
 , pkg-config
@@ -15,14 +15,7 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "genpolicy";
-  version = "3.5.0";
-
-  src = fetchFromGitHub {
-    owner = "kata-containers";
-    repo = "kata-containers";
-    rev = "refs/tags/${version}";
-    hash = "sha256-5pIJpyeydOVA+GrbCvNqJsmK3zbtF/5iSJLI2C1wkLM=";
-  };
+  inherit (kata.kata-runtime) version src;
 
   sourceRoot = "${src.name}/src/tools/genpolicy";
 
