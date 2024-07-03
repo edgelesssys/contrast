@@ -2,6 +2,12 @@ name: e2e policy
 
 on:
     workflow_dispatch:
+      inputs:
+        skip-undeploy:
+          description: "Skip undeploy"
+          required: false
+          type: boolean
+          default: false
     pull_request:
       paths-ignore:
         - docs/**
@@ -52,10 +58,13 @@ jobs:
           echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a $GITHUB_ENV
       - name: Build and prepare deployments
         run: |
-          just coordinator initializer port-forwarder service-mesh-proxy node-installer
+          just coordinator initializer openssl port-forwarder node-installer
       - name: E2E Test
         run: |
-          nix shell .#contrast.e2e --command policy.test -test.v workspace/just.containerlookup
+          nix shell .#contrast.e2e --command policy.test -test.v \
+            --image-replacements workspace/just.containerlookup \
+            --namespace-file workspace/e2e.namespace \
+            --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
       - name: Undeploy
         if: always() && inputs.skip-undeploy != 'true'
         run: |
