@@ -3,7 +3,38 @@
 
 { fetchurl
 , linuxManualConfig
+, stdenvNoCC
+, fetchzip
 }:
+
+let
+  configfile = stdenvNoCC.mkDerivation rec {
+    pname = "kata-kernel-config-confidential";
+    version = "3.6.0";
+
+    src = fetchzip {
+      url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
+      hash = "sha256-ynMzMoJ90BzKuE6ih6DmbM2zWTDxsMwkAKsI8pbO3sg=";
+    };
+
+    # We don't use an initrd.
+    postPatch = ''
+      cat <<- EOF > kata/share/kata-containers/config-6.7-132-confidential
+      CONFIG_INITRAMFS_SOURCE=""
+      EOF
+    '';
+
+    dontBuild = true;
+
+    installPhase = ''
+      runHook preInstall
+
+      cp kata/share/kata-containers/config-6.7-132-confidential $out
+
+      runHook postInstall
+    '';
+  };
+in
 
 linuxManualConfig rec {
   version = "6.7";
@@ -14,11 +45,6 @@ linuxManualConfig rec {
     hash = "sha256-7zEUSiV20IDYwxaY6D7J9mv5fGd/oqrw1bu58zRbEGk=";
   };
 
-  # Built from Kata upstream via:
-  # kata-containers/tools/packaging/kernel/build-kernel.sh -a x86_64 -m -t kvm -x -f setup
-  # Note: initramfs sources are removed, as we do not supply them in the build.
-  # TODO(msanft): possibly package the config generation in Nix.
-  configfile = ./kernel.config;
-
+  inherit configfile;
   allowImportFromDerivation = true;
 }
