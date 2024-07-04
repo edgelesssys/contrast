@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build e2e
+///go:build e2e
 
 package policy
 
@@ -82,14 +82,11 @@ func TestPolicy(t *testing.T) {
 		require.NoError(json.Unmarshal(manifestBytes, &m))
 
 		// Remove a policy from the manifest.
-		newPolicies := make(map[manifest.HexString][]string)
 		for policyHash := range m.Policies {
 			if slices.Contains(m.Policies[policyHash], opensslFrontend) {
-				continue
+				delete(m.Policies, policyHash)
 			}
-			newPolicies[policyHash] = m.Policies[policyHash]
 		}
-		m.Policies = newPolicies
 
 		// write the new manifest
 		manifestBytes, err = json.Marshal(m)
