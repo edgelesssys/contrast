@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-///go:build e2e
+//go:build e2e
 
 package policy
 
@@ -21,7 +21,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -148,11 +147,6 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func parsePrometheus(input string) (map[string]*dto.MetricFamily, error) {
-	var parser expfmt.TextParser
-	return parser.TextToMetricFamilies(strings.NewReader(input))
-}
-
 func getFailures(ctx context.Context, t *testing.T, ct *contrasttest.ContrastTest) int {
 	require := require.New(t)
 
@@ -165,7 +159,9 @@ func getFailures(ctx context.Context, t *testing.T, ct *contrasttest.ContrastTes
 	require.NotEmpty(backendPods, "pod not found: %s/%s", ct.Namespace, opensslBackend)
 	metricsString, _, err := ct.Kubeclient.Exec(ctx, ct.Namespace, backendPods[0].Name, []string{"curl", coordIP + ":9102/metrics"})
 	require.NoError(err)
-	metrics, err := parsePrometheus(metricsString)
+
+	// parse the logs
+	metrics, err := (&expfmt.TextParser{}).TextToMetricFamilies(strings.NewReader(metricsString))
 	require.NoError(err)
 	var failures int
 	for k, v := range metrics {
