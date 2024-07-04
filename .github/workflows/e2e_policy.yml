@@ -1,4 +1,4 @@
-name: e2e policy
+name: e2e malicious pod
 
 on:
     workflow_dispatch:
