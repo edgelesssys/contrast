@@ -5,6 +5,7 @@
 , unzip
 , fetchurl
 , runCommand
+, installShellFiles
 }:
 
 let
@@ -54,11 +55,16 @@ let
       in
       runCommand version
         {
-          buildInputs = [ unzip ]; # needed to unzip emojivoto-demo.zip
+          buildInputs = [ unzip installShellFiles ]; # needed to unzip emojivoto-demo.zip
         }
         (''
           mkdir -p $out/bin
           install -m 777 ${cli} $out/bin/contrast
+          installShellCompletion --cmd contrast \
+            --bash <($out/bin/contrast completion bash) \
+            --fish <($out/bin/contrast completion fish) \
+            --zsh <($out/bin/contrast completion zsh)
+
           install -m 644 ${coordinator} $out/coordinator.yml
         '' + lib.optionalString runtime.exists ''
           install -m 644 ${runtime} $out/runtime.yml

@@ -7,6 +7,7 @@
 , microsoft
 , genpolicy ? microsoft.genpolicy
 , contrast
+, installShellFiles
 }:
 
 let
@@ -62,6 +63,8 @@ buildGoModule rec {
   proxyVendor = true;
   vendorHash = "sha256-9RtHcArCyJqvC3VfNOyuyeN9+KyVu+wWKpSxXoCj/3o=";
 
+  nativeBuildInputs = [ installShellFiles ];
+
   subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
 
   prePatch = ''
@@ -98,6 +101,14 @@ buildGoModule rec {
 
     # rename the cli binary to contrast
     mv "$cli/bin/cli" "$cli/bin/contrast"
+
+    installShellCompletion --cmd contrast \
+      --bash <($cli/bin/contrast completion bash) \
+      --fish <($cli/bin/contrast completion fish) \
+      --zsh <($cli/bin/contrast completion zsh)
+
+    mkdir -p $cli/share
+    mv $out/share/* $cli/share
   '';
 
   passthru = {
