@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build e2e
+///go:build e2e
 
 package policy
 
@@ -163,11 +163,15 @@ func getFailures(ctx context.Context, t *testing.T, ct *contrasttest.ContrastTes
 	// parse the logs
 	metrics, err := (&expfmt.TextParser{}).TextToMetricFamilies(strings.NewReader(metricsString))
 	require.NoError(err)
-	var failures int
+	failures := -1
 	for k, v := range metrics {
 		if k == "contrast_meshapi_attestation_failures" {
 			failures = int(v.GetMetric()[0].GetCounter().GetValue())
 		}
+	}
+	if failures == -1 {
+		// metric not found
+		t.Error("metric \"contrast_meshapi_attestation_failures\" not found")
 	}
 	return failures
 }
