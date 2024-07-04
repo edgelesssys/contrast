@@ -44,17 +44,17 @@ jobs:
           renovate-commit-msg: "fixup: update generated code"
 
   govulncheck:
-      runs-on: ubuntu-22.04
-      timeout-minutes: 15
-      steps:
-        - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-        - uses: ./.github/actions/setup_nix
-          with:
-            githubToken: ${{ secrets.GITHUB_TOKEN }}
-            cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-        - name: Run govulncheck
-          run: |
-            nix run .#scripts.govulncheck -- ./...
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Run govulncheck
+        run: |
+          nix run .#scripts.govulncheck -- ./...
 
   golangci-lint:
     runs-on: ubuntu-22.04

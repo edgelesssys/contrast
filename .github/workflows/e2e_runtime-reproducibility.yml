@@ -1,9 +1,9 @@
 name: e2e test runtime reproducibility
 
 on:
-    workflow_dispatch:
-    schedule:
-      - cron: '0 19 * * 0' # 7pm UTC on Sundays
+  workflow_dispatch:
+  schedule:
+    - cron: '0 19 * * 0' # 7pm UTC on Sundays
 
 jobs:
   os-matrix:
@@ -31,13 +31,13 @@ jobs:
       - name: Build
         id: build
         run: |
-            nix build .#${{ matrix.build-target }} --option substituters https://cache.nixos.org --builders ""
-            reference_checksum="$(cat result/index.json | jq  -r '.manifests[0].digest')"
-            echo "reference-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$reference_checksum" >> "$GITHUB_OUTPUT"
+          nix build .#${{ matrix.build-target }} --option substituters https://cache.nixos.org --builders ""
+          reference_checksum="$(cat result/index.json | jq  -r '.manifests[0].digest')"
+          echo "reference-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$reference_checksum" >> "$GITHUB_OUTPUT"
 
-            nix build .#${{ matrix.build-target }} --rebuild --option substituters https://cache.nixos.org --builders "" -o rebuild
-            rebuild_checksum="$(cat rebuild/index.json | jq  -r '.manifests[0].digest')"
-            echo "rebuild-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$rebuild_checksum" >> "$GITHUB_OUTPUT"
+          nix build .#${{ matrix.build-target }} --rebuild --option substituters https://cache.nixos.org --builders "" -o rebuild
+          rebuild_checksum="$(cat rebuild/index.json | jq  -r '.manifests[0].digest')"
+          echo "rebuild-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$rebuild_checksum" >> "$GITHUB_OUTPUT"
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
