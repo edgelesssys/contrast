@@ -69,7 +69,7 @@ func TestPolicy(t *testing.T) {
 		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
 		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
 
-		time.Sleep(5 * time.Second) // let the error counter go up initially
+		time.Sleep(5 * time.Second)
 
 		// get the attestation failures before removing a policy
 		initialFailures := getFailures(ctx, t, ct)
@@ -124,9 +124,17 @@ func TestPolicy(t *testing.T) {
 		require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
 		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
 
-		// wait a bit to let the attestation failure counter go up
-		time.Sleep(5 * time.Second)
-
+		// wait for the init container of the openssl-frontend pod to enter the running state
+		ready := false
+		for !ready {
+			time.Sleep(1 * time.Second)
+			pods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, opensslFrontend)
+			require.NoError(err)
+			require.NotEmpty(pods, "pod not found: %s/%s", ct.Namespace, opensslFrontend)
+			require.NotEmpty(pods[0].Status.InitContainerStatuses, "pod doesn't contain init container statuses: %s/%s", ct.Namespace, opensslFrontend)
+			t.Log("container state:", pods[0].Status.InitContainerStatuses[0].State.String())
+			ready = pods[0].Status.InitContainerStatuses[0].State.Running != nil
+		}
 		newFailures := getFailures(ctx, t, ct)
 		t.Log("New failures:", newFailures)
 		// errors should happen
