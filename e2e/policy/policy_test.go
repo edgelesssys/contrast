@@ -24,6 +24,7 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 const (
@@ -100,19 +101,18 @@ func TestPolicy(t *testing.T) {
 		require.NoError(err)
 
 		// remove everything from the openssl-frontend
-		newResources := r[:0]
+		newResources := make([]*unstructured.Unstructured, 0, len(r))
 		for _, resource := range r {
 			name := resource.GetName()
 			require.NoError(err)
-			if name == opensslFrontend || name == "port-forwarder-"+opensslFrontend {
+			if strings.Contains(name, opensslFrontend) {
 				continue
 			}
 			newResources = append(newResources, resource)
 		}
 
 		// write the new resources yaml
-		r = newResources
-		resourceBytes, err = kuberesource.EncodeUnstructured(r)
+		resourceBytes, err = kuberesource.EncodeUnstructured(newResources)
 		require.NoError(err)
 		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yaml"), resourceBytes, 0o644))
 
