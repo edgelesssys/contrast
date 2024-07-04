@@ -20,10 +20,10 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Update Microsoft RPMs
         run: |
-           nix run .#rpm-pin-vendor -- kata-packages-uvm kata-packages-uvm-coco systemd libseccomp > packages/by-name/microsoft/kata-image/package-index.json
+          nix run .#rpm-pin-vendor -- kata-packages-uvm kata-packages-uvm-coco systemd libseccomp > packages/by-name/microsoft/kata-image/package-index.json
       - name: Update Kata RPMs
         run: |
-           nix run .#rpm-pin-vendor -- kata-packages-uvm kata-packages-uvm-coco systemd libseccomp core-packages-base-image > packages/by-name/kata/kata-image/package-index.json
+          nix run .#rpm-pin-vendor -- kata-packages-uvm kata-packages-uvm-coco systemd libseccomp core-packages-base-image > packages/by-name/kata/kata-image/package-index.json
       - name: Create PR
         uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6.1.0
         with:
