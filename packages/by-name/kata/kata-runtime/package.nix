@@ -26,9 +26,7 @@ buildGoModule rec {
   subPackages = [
     "cmd/containerd-shim-kata-v2"
     "cmd/kata-monitor"
-    # TODO(msanft): enable kata-runtime
-    # It depends on CGO and kvm
-    # "cmd/kata-runtime"
+    "cmd/kata-runtime"
   ];
 
   preBuild = ''
@@ -44,8 +42,12 @@ buildGoModule rec {
     git
   ];
 
-  CGO_ENABLED = 0;
   ldflags = [ "-s" ];
+
+  # Hack to skip all kata-runtime tests, which require a Git repo.
+  preCheck = ''
+    rm cmd/kata-runtime/*_test.go
+  '';
 
   checkFlags =
     let

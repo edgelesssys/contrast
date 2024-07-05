@@ -58,6 +58,10 @@ let
               url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
               path = "/opt/edgeless/${runtime-handler}/bin/containerd-shim-contrast-cc-v2";
             }
+            {
+              url = "file:///opt/edgeless/bin/kata-runtime";
+              path = "/opt/edgeless/${runtime-handler}/bin/kata-runtime";
+            }
           ];
           runtimeHandlerName = runtime-handler;
           inherit (kata.runtime-class-files) debugRuntime;
@@ -98,8 +102,12 @@ let
     ];
   };
 
-  containerd-shim = ociLayerTar {
+  kata-runtime = ociLayerTar {
     files = [
+      {
+        source = kata.runtime-class-files.kata-runtime;
+        destination = "/opt/edgeless/bin/kata-runtime";
+      }
       {
         source = kata.runtime-class-files.containerd-shim-contrast-cc-v2;
         destination = "/opt/edgeless/bin/containerd-shim-contrast-cc-v2";
@@ -114,7 +122,7 @@ let
       kata-container-img
       ovmf
       qemu
-      containerd-shim
+      kata-runtime
     ];
     extraConfig = {
       "config" = {
