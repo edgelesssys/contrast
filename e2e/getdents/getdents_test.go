@@ -44,7 +44,7 @@ func TestGetDEnts(t *testing.T) {
 		require := require.New(t)
 		args := []string{
 			"--workspace-dir", ct.WorkDir,
-			"--reference-values", "aks",
+			"--reference-values", "aks-clh-snp",
 			"--skip-initializer",
 			path.Join(ct.WorkDir, "resources.yaml"),
 		}
