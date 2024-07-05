@@ -41,7 +41,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 	case platforms.AKSCloudHypervisorSNP:
 		imageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
 	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
-		imageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
+		imageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", platform)
 	}
