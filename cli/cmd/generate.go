@@ -24,6 +24,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/embedbin"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 
@@ -62,7 +63,11 @@ subcommands.`,
 	cmd.Flags().StringP("settings", "s", settingsFilename, "path to settings (.json) file")
 	cmd.Flags().StringP("genpolicy-cache-path", "c", layersCacheFilename, "path to cache for the cache (.json) file containing the image layers")
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
-	cmd.Flags().String("reference-values", "", "set the default reference values used for attestation (one of: aks)")
+	cmd.Flags().String("reference-values", "",
+		fmt.Sprintf("set the default reference values used for attestation (one of: %s)",
+			strings.Join(platforms.AllStrings(), ", "),
+		),
+	)
 	cmd.Flags().StringArrayP("add-workload-owner-key", "w", []string{workloadOwnerPEM},
 		"add a workload owner key from a PEM file to the manifest (pass more than once to add multiple keys)")
 	cmd.Flags().StringArray("add-seedshare-owner-key", []string{seedshareOwnerPEM},
@@ -121,9 +126,11 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	defaultManifest := manifest.Default()
-	if flags.referenceValues == "aks" {
+	switch flags.referenceValuesPlatform {
+	case platforms.AKSCloudHypervisorSNP:
 		defaultManifest = manifest.DefaultAKS()
 	}
+
 	defaultManifestData, err := json.MarshalIndent(&defaultManifest, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshaling default manifest: %w", err)
@@ -523,17 +530,17 @@ func generateSeedshareOwnerKey(flags *generateFlags) error {
 }
 
 type generateFlags struct {
-	policyPath            string
-	settingsPath          string
-	manifestPath          string
-	genpolicyCachePath    string
-	referenceValues       string
-	workloadOwnerKeys     []string
-	seedshareOwnerKeys    []string
-	disableUpdates        bool
-	workspaceDir          string
-	imageReplacementsFile string
-	skipInitializer       bool
+	policyPath              string
+	settingsPath            string
+	manifestPath            string
+	genpolicyCachePath      string
+	referenceValuesPlatform platforms.Platform
+	workloadOwnerKeys       []string
+	seedshareOwnerKeys      []string
+	disableUpdates          bool
+	workspaceDir            string
+	imageReplacementsFile   string
+	skipInitializer         bool
 }
 
 func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
@@ -557,8 +564,9 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !slices.Contains([]string{"", "aks"}, referenceValues) {
-		return nil, fmt.Errorf("unknown reference values")
+	referenceValuesPlatform, err := platforms.FromString(referenceValues)
+	if err != nil {
+		return nil, fmt.Errorf("invalid reference-values platform: %w", err)
 	}
 	workloadOwnerKeys, err := cmd.Flags().GetStringArray("add-workload-owner-key")
 	if err != nil {
@@ -609,17 +617,17 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	}
 
 	return &generateFlags{
-		policyPath:            policyPath,
-		settingsPath:          settingsPath,
-		genpolicyCachePath:    genpolicyCachePath,
-		manifestPath:          manifestPath,
-		referenceValues:       referenceValues,
-		workloadOwnerKeys:     workloadOwnerKeys,
-		seedshareOwnerKeys:    seedshareOwnerKeys,
-		disableUpdates:        disableUpdates,
-		workspaceDir:          workspaceDir,
-		imageReplacementsFile: imageReplacementsFile,
-		skipInitializer:       skipInitializer,
+		policyPath:              policyPath,
+		settingsPath:            settingsPath,
+		genpolicyCachePath:      genpolicyCachePath,
+		manifestPath:            manifestPath,
+		referenceValuesPlatform: referenceValuesPlatform,
+		workloadOwnerKeys:       workloadOwnerKeys,
+		seedshareOwnerKeys:      seedshareOwnerKeys,
+		disableUpdates:          disableUpdates,
+		workspaceDir:            workspaceDir,
+		imageReplacementsFile:   imageReplacementsFile,
+		skipInitializer:         skipInitializer,
 	}, nil
 }
 

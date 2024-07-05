@@ -159,7 +159,7 @@ After that, it will generate the execution policies and add them as annotations 
 A `manifest.json` with the reference values of your deployment will be created.
 
 ```sh
-contrast generate --reference-values aks resources/
+contrast generate --reference-values aks-clh-snp resources/
 ```
 
 :::warning
@@ -177,7 +177,7 @@ You can disable the Initializer injection completely by specifying the
 `--skip-initializer` flag in the `generate` command.
 
 ```sh
-contrast generate --reference-values aks --skip-initializer resources/
+contrast generate --reference-values aks-clh-snp --skip-initializer resources/
 ```
 
 </TabItem>
