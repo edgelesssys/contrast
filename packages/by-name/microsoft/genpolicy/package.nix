@@ -1,18 +1,19 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ lib
-, fetchFromGitHub
-, fetchpatch
-, applyPatches
-, stdenvNoCC
-, rustPlatform
-, openssl
-, pkg-config
-, libiconv
-, zlib
-, cmake
-, protobuf
+{
+  lib,
+  fetchFromGitHub,
+  fetchpatch,
+  applyPatches,
+  stdenvNoCC,
+  rustPlatform,
+  openssl,
+  pkg-config,
+  libiconv,
+  zlib,
+  cmake,
+  protobuf,
 }:
 
 rustPlatform.buildRustPackage rec {
@@ -67,7 +68,11 @@ rustPlatform.buildRustPackage rec {
       name = "${pname}-${version}-settings";
       inherit src sourceRoot;
 
-      phases = [ "unpackPhase" "patchPhase" "installPhase" ];
+      phases = [
+        "unpackPhase"
+        "patchPhase"
+        "installPhase"
+      ];
       installPhase = ''
         runHook preInstall
         install -D genpolicy-settings.json $out/genpolicy-settings.json
@@ -90,7 +95,11 @@ rustPlatform.buildRustPackage rec {
       name = "${pname}-${version}-rules";
       inherit src sourceRoot;
 
-      phases = [ "unpackPhase" "patchPhase" "installPhase" ];
+      phases = [
+        "unpackPhase"
+        "patchPhase"
+        "installPhase"
+      ];
       installPhase = ''
         runHook preInstall
         install -D rules.rego $out/genpolicy-rules.rego

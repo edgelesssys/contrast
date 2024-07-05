@@ -1,16 +1,17 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ lib
-, fetchurl
-, kata
-, rustPlatform
-, openssl
-, pkg-config
-, protobuf
-, libiconv
-, zlib
-, cmake
+{
+  lib,
+  fetchurl,
+  kata,
+  rustPlatform,
+  openssl,
+  pkg-config,
+  protobuf,
+  libiconv,
+  zlib,
+  cmake,
 }:
 
 rustPlatform.buildRustPackage rec {

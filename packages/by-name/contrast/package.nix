@@ -1,18 +1,26 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ lib
-, buildGoModule
-, buildGoTest
-, microsoft
-, genpolicy ? microsoft.genpolicy
-, contrast
-, installShellFiles
+{
+  lib,
+  buildGoModule,
+  buildGoTest,
+  microsoft,
+  genpolicy ? microsoft.genpolicy,
+  contrast,
+  installShellFiles,
 }:
 
 let
   e2e = buildGoTest {
-    inherit (contrast) version src proxyVendor vendorHash prePatch CGO_ENABLED;
+    inherit (contrast)
+      version
+      src
+      proxyVendor
+      vendorHash
+      prePatch
+      CGO_ENABLED
+      ;
     pname = "${contrast.pname}-e2e";
 
     tags = [ "e2e" ];
@@ -23,14 +31,26 @@ let
       "-X github.com/edgelesssys/contrast/internal/kuberesource.runtimeHandler=${runtimeHandler}"
     ];
 
-    subPackages = [ "e2e/genpolicy" "e2e/getdents" "e2e/openssl" "e2e/servicemesh" "e2e/release" ];
+    subPackages = [
+      "e2e/genpolicy"
+      "e2e/getdents"
+      "e2e/openssl"
+      "e2e/servicemesh"
+      "e2e/release"
+    ];
   };
 
   launchDigest = builtins.readFile "${microsoft.runtime-class-files}/launch-digest.hex";
 
-  runtimeHandler = lib.removeSuffix "\n" (builtins.readFile "${microsoft.runtime-class-files}/runtime-handler");
+  runtimeHandler = lib.removeSuffix "\n" (
+    builtins.readFile "${microsoft.runtime-class-files}/runtime-handler"
+  );
 
-  packageOutputs = [ "coordinator" "initializer" "cli" ];
+  packageOutputs = [
+    "coordinator"
+    "initializer"
+    "cli"
+  ];
 in
 
 buildGoModule rec {
@@ -53,10 +73,9 @@ buildGoModule rec {
         (path.append root "go.sum")
         (path.append root "cli/cmd/assets/image-replacements.txt")
         (path.append root "node-installer")
-        (fileset.difference
-          (fileset.fileFilter (file: hasSuffix ".go" file.name) root)
-          (path.append root "service-mesh")
-        )
+        (fileset.difference (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
+          path.append root "service-mesh"
+        ))
       ];
     };
 

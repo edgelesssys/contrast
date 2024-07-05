@@ -1,11 +1,12 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ lib
-, stdenvNoCC
-, microsoft
-, igvmmeasure
-, debugRuntime ? false
+{
+  lib,
+  stdenvNoCC,
+  microsoft,
+  igvmmeasure,
+  debugRuntime ? false,
 }:
 
 let

@@ -1,10 +1,11 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ buildGoModule
-, fetchFromGitHub
-, yq-go
-, git
+{
+  buildGoModule,
+  fetchFromGitHub,
+  yq-go,
+  git,
 }:
 
 buildGoModule rec {

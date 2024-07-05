@@ -1,10 +1,11 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ fetchurl
-, linuxManualConfig
-, stdenvNoCC
-, fetchzip
+{
+  fetchurl,
+  linuxManualConfig,
+  stdenvNoCC,
+  fetchzip,
 }:
 
 let

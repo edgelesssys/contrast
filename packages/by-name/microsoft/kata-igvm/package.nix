@@ -1,22 +1,24 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ lib
-, stdenv
-, microsoft
-, igvm-tooling
-, igvm-signing-keygen
+{
+  lib,
+  stdenv,
+  microsoft,
+  igvm-tooling,
+  igvm-signing-keygen,
 }:
 
 stdenv.mkDerivation rec {
   pname = "kata-igvm";
   inherit (microsoft.genpolicy) src version;
 
-  outputs = [ "out" "debug" ];
-
-  nativeBuildInputs = [
-    igvm-tooling
+  outputs = [
+    "out"
+    "debug"
   ];
+
+  nativeBuildInputs = [ igvm-tooling ];
 
   sourceRoot = "${src.name}/tools/osbuilder/igvm-builder";
 

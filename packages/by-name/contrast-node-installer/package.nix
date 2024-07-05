@@ -1,9 +1,10 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ lib
-, buildGoModule
-, contrast
+{
+  lib,
+  buildGoModule,
+  contrast,
 }:
 
 buildGoModule {
@@ -33,9 +34,7 @@ buildGoModule {
   subPackages = [ "." ];
 
   CGO_ENABLED = 0;
-  ldflags = [
-    "-s"
-  ];
+  ldflags = [ "-s" ];
 
   preCheck = ''
     export CGO_ENABLED=1

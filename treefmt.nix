@@ -36,13 +36,16 @@
       ];
     };
     vale = {
-      command = "${pkgs.vale.withStyles (s: with s; [ microsoft google ])}/bin/vale";
-      options = [
-        "--no-wrap"
-      ];
-      includes = [
-        "*.md"
-      ];
+      command = "${
+        pkgs.vale.withStyles (
+          s: with s; [
+            microsoft
+            google
+          ]
+        )
+      }/bin/vale";
+      options = [ "--no-wrap" ];
+      includes = [ "*.md" ];
       excludes = [
         "CODE_OF_CONDUCT.md"
         "LICENSE"
@@ -52,10 +55,11 @@
     # https://github.com/numtide/treefmt-nix/pull/193 is merged.
     yamlfmt = {
       command = "${lib.getExe pkgs.yamlfmt}";
-      options = [
-        "-formatter=retain_line_breaks_single=true"
+      options = [ "-formatter=retain_line_breaks_single=true" ];
+      includes = [
+        "*.yaml"
+        "*.yml"
       ];
-      includes = [ "*.yaml" "*.yml" ];
     };
   };
 }

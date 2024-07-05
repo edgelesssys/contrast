@@ -1,18 +1,19 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ lib
-, rustPlatform
-, fetchFromGitHub
-, cmake
-, pkg-config
-, protobuf
-, withSeccomp ? true
-, libseccomp
-, lvm2
-, openssl
-, withAgentPolicy ? true
-, withStandardOCIRuntime ? false
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  cmake,
+  pkg-config,
+  protobuf,
+  withSeccomp ? true,
+  libseccomp,
+  lvm2,
+  openssl,
+  withAgentPolicy ? true,
+  withStandardOCIRuntime ? false,
 }:
 
 rustPlatform.buildRustPackage rec {
@@ -42,16 +43,18 @@ rustPlatform.buildRustPackage rec {
     protobuf
   ];
 
-  buildInputs = [
-    openssl
-    openssl.dev
-    lvm2.dev
-    rustPlatform.bindgenHook
-  ] ++ lib.optionals withSeccomp [
-    libseccomp.dev
-    libseccomp.lib
-    libseccomp
-  ];
+  buildInputs =
+    [
+      openssl
+      openssl.dev
+      lvm2.dev
+      rustPlatform.bindgenHook
+    ]
+    ++ lib.optionals withSeccomp [
+      libseccomp.dev
+      libseccomp.lib
+      libseccomp
+    ];
 
   # Build.rs writes to src
   postConfigure = ''

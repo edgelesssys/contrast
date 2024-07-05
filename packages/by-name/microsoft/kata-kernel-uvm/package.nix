@@ -1,10 +1,11 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ fetchurl
-, microsoft
-, linuxManualConfig
-, patchutils
+{
+  fetchurl,
+  microsoft,
+  linuxManualConfig,
+  patchutils,
 }:
 
 let
@@ -18,7 +19,10 @@ let
     hash = "sha256-3vuwCOZHgmy0tV9tcgpIRjLxXa4EwNuWIbt9UkRUcDE=";
     downloadToTemp = true;
     recursiveHash = true;
-    nativeBuildInputs = [ tarfs_make patchutils ];
+    nativeBuildInputs = [
+      tarfs_make
+      patchutils
+    ];
     # create a diff where files under fs/tarfs are added to the kernel build
     # "a" is the kernel source tree without tarfs
     # "b" is the kernel source tree with tarfs
@@ -41,9 +45,15 @@ linuxManualConfig {
   };
   kernelPatches = [
     # this patches the existing Makefile and Kconfig to know about CONFIG_TARFS_FS and fs/tarfs
-    { name = "build_tarfs"; patch = ./0001-kernel-uvm-6-1-build-tarfs.patch; }
+    {
+      name = "build_tarfs";
+      patch = ./0001-kernel-uvm-6-1-build-tarfs.patch;
+    }
     # this adds fs/tarfs
-    { name = "tarfs"; patch = tarfs_patch; }
+    {
+      name = "tarfs";
+      patch = tarfs_patch;
+    }
   ];
   configfile = fetchurl {
     url = "https://raw.githubusercontent.com/microsoft/azurelinux/59ce246f224f282b3e199d9a2dacaa8011b75a06/SPECS/kernel-uvm/config";

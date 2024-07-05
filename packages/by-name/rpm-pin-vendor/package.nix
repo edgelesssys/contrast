@@ -1,18 +1,19 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ lib
-, dnf-plugins-core
-, writeText
-, writeTextDir
-, writeShellApplication
-, runCommand
-, dnf4
-, jq
-, wget
-, python3
-, fakeroot
-, nix
+{
+  lib,
+  dnf-plugins-core,
+  writeText,
+  writeTextDir,
+  writeShellApplication,
+  runCommand,
+  dnf4,
+  jq,
+  wget,
+  python3,
+  fakeroot,
+  nix,
 }:
 
 let
@@ -36,7 +37,13 @@ let
   '';
   update_lockfile = writeShellApplication {
     name = "update_lockfile";
-    runtimeInputs = [ dnf4 jq wget nix fakeroot ];
+    runtimeInputs = [
+      dnf4
+      jq
+      wget
+      nix
+      fakeroot
+    ];
     text = builtins.readFile ./update_lockfile.sh;
   };
 in
