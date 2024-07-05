@@ -9,7 +9,6 @@
   microsoft,
   bubblewrap,
   fakeroot,
-  fetchFromGitHub,
   fetchurl,
   yq-go,
   tdnf,
@@ -26,13 +25,6 @@
 }:
 
 let
-  kata-version = "3.2.0.azl1";
-  src = fetchFromGitHub {
-    owner = "microsoft";
-    repo = "kata-containers";
-    rev = kata-version;
-    hash = "sha256-W36RJFf0MVRIBV4ahpv6pqdAwgRYrlqmu4Y/8qiILS8=";
-  };
   # toplevelNixDeps are packages that get installed to the rootfs of the image
   # they are used to determine the (nix) closure of the rootfs
   toplevelNixDeps = [ microsoft.kata-agent ];
@@ -42,9 +34,8 @@ let
     )
   );
   rootfsExtraTree = stdenvNoCC.mkDerivation {
-    inherit src;
     pname = "rootfs-extra-tree";
-    version = kata-version;
+    inherit (microsoft.genpolicy) src version;
 
     # https://github.com/microsoft/azurelinux/blob/59ce246f224f282b3e199d9a2dacaa8011b75a06/SPECS/kata-containers-cc/mariner-coco-build-uvm.sh#L34-L41
     buildPhase = ''
@@ -123,9 +114,8 @@ let
 in
 
 stdenv.mkDerivation rec {
-  inherit src;
   pname = "kata-image";
-  version = kata-version;
+  inherit (microsoft.genpolicy) src version;
 
   outputs = [
     "out"
