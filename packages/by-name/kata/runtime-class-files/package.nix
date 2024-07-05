@@ -1,10 +1,11 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ stdenvNoCC
-, kata
-, fetchzip
-, OVMF
+{
+  stdenvNoCC,
+  kata,
+  fetchzip,
+  OVMF,
 }:
 
 let
@@ -48,6 +49,13 @@ stdenvNoCC.mkDerivation {
   '';
 
   passthru = {
-    inherit kernel image qemu-bin containerd-shim-contrast-cc-v2 ovmf-code ovmf-vars;
+    inherit
+      kernel
+      image
+      qemu-bin
+      containerd-shim-contrast-cc-v2
+      ovmf-code
+      ovmf-vars
+      ;
   };
 }

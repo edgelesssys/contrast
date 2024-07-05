@@ -1,27 +1,28 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ lib
-, stdenv
-, stdenvNoCC
-, distro ? "cbl-mariner"
-, microsoft
-, bubblewrap
-, fakeroot
-, fetchFromGitHub
-, fetchurl
-, yq-go
-, tdnf
-, curl
-, util-linux
-, writeText
-, writeTextDir
-, createrepo_c
-, writeShellApplication
-, parted
-, cryptsetup
-, closureInfo
-, erofs-utils
+{
+  lib,
+  stdenv,
+  stdenvNoCC,
+  distro ? "cbl-mariner",
+  microsoft,
+  bubblewrap,
+  fakeroot,
+  fetchFromGitHub,
+  fetchurl,
+  yq-go,
+  tdnf,
+  curl,
+  util-linux,
+  writeText,
+  writeTextDir,
+  createrepo_c,
+  writeShellApplication,
+  parted,
+  cryptsetup,
+  closureInfo,
+  erofs-utils,
 }:
 
 let
@@ -35,7 +36,11 @@ let
   # toplevelNixDeps are packages that get installed to the rootfs of the image
   # they are used to determine the (nix) closure of the rootfs
   toplevelNixDeps = [ microsoft.kata-agent ];
-  nixClosure = builtins.toString (lib.strings.splitString "\n" (builtins.readFile "${closureInfo {rootPaths = toplevelNixDeps;}}/store-paths"));
+  nixClosure = builtins.toString (
+    lib.strings.splitString "\n" (
+      builtins.readFile "${closureInfo { rootPaths = toplevelNixDeps; }}/store-paths"
+    )
+  );
   rootfsExtraTree = stdenvNoCC.mkDerivation {
     inherit src;
     pname = "rootfs-extra-tree";
@@ -62,8 +67,13 @@ let
     dontInstall = true;
   };
   packageIndex = builtins.fromJSON (builtins.readFile ./package-index.json);
-  rpmSources = lib.forEach packageIndex
-    (p: lib.concatStringsSep "#" [ (fetchurl p) (builtins.baseNameOf p.url) ]);
+  rpmSources = lib.forEach packageIndex (
+    p:
+    lib.concatStringsSep "#" [
+      (fetchurl p)
+      (builtins.baseNameOf p.url)
+    ]
+  );
 
   mirror = stdenvNoCC.mkDerivation {
     name = "mirror";
@@ -117,7 +127,10 @@ stdenv.mkDerivation rec {
   pname = "kata-image";
   version = kata-version;
 
-  outputs = [ "out" "verity" ];
+  outputs = [
+    "out"
+    "verity"
+  ];
 
   env = {
     AGENT_SOURCE_BIN = "${lib.getExe microsoft.kata-agent}";

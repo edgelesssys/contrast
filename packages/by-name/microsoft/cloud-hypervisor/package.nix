@@ -1,15 +1,16 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ lib
-, rustPlatform
-, fetchFromGitHub
-, pkg-config
-, openssl
-, patchelf
-, withIGVM ? true
-, withSEVSNP ? true
-, withTDX ? false
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  pkg-config,
+  openssl,
+  patchelf,
+  withIGVM ? true,
+  withSEVSNP ? true,
+  withTDX ? false,
 }:
 
 rustPlatform.buildRustPackage rec {
@@ -40,16 +41,21 @@ rustPlatform.buildRustPackage rec {
 
   separateDebugInfo = true;
 
-  nativeBuildInputs = [ pkg-config patchelf ];
+  nativeBuildInputs = [
+    pkg-config
+    patchelf
+  ];
   buildInputs = [ openssl ];
 
   buildNoDefaultFeatures = true;
-  buildFeatures = [
-    "mshv"
-    "kvm"
-  ] ++ lib.optional withIGVM [ "igvm" ]
-  ++ lib.optional withSEVSNP [ "snp" ]
-  ++ lib.optional withTDX [ "tdx" ];
+  buildFeatures =
+    [
+      "mshv"
+      "kvm"
+    ]
+    ++ lib.optional withIGVM [ "igvm" ]
+    ++ lib.optional withSEVSNP [ "snp" ]
+    ++ lib.optional withTDX [ "tdx" ];
 
   OPENSSL_NO_VENDOR = true;
 
@@ -67,7 +73,10 @@ rustPlatform.buildRustPackage rec {
     homepage = "https://github.com/microsoft/cloud-hypervisor";
     description = "Open source Virtual Machine Monitor (VMM) that runs on top of KVM";
     changelog = "https://github.com/microsoft/cloud-hypervisor/releases/tag/msft/v${version}";
-    license = with lib.licenses; [ asl20 bsd3 ];
+    license = with lib.licenses; [
+      asl20
+      bsd3
+    ];
     mainProgram = "cloud-hypervisor";
   };
 }

@@ -1,9 +1,7 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ pkgs
-, writeShellApplication
-}:
+{ pkgs, writeShellApplication }:
 
 {
   create-coco-aks = writeShellApplication {
@@ -56,7 +54,10 @@
 
   govulncheck = writeShellApplication {
     name = "govulncheck";
-    runtimeInputs = with pkgs; [ go govulncheck ];
+    runtimeInputs = with pkgs; [
+      go
+      govulncheck
+    ];
     text = ''
       exitcode=0
 
@@ -71,7 +72,10 @@
 
   golangci-lint = writeShellApplication {
     name = "golangci-lint";
-    runtimeInputs = with pkgs; [ go golangci-lint ];
+    runtimeInputs = with pkgs; [
+      go
+      golangci-lint
+    ];
     text = ''
       exitcode=0
 
@@ -216,15 +220,17 @@
 
   update-contrast-releases = writeShellApplication {
     name = "update-contrast-releases";
-    runtimeInputs = with pkgs; [
-      jq
-    ];
+    runtimeInputs = with pkgs; [ jq ];
     text = builtins.readFile ./update-contrast-releases.sh;
   };
 
   update-release-urls = writeShellApplication {
     name = "update-release-urls";
-    runtimeInputs = with pkgs; [ coreutils findutils gnused ];
+    runtimeInputs = with pkgs; [
+      coreutils
+      findutils
+      gnused
+    ];
     text = ''
       tag="[a-zA-Z0-9_.-]\{1,\}"
       sha="@sha256:[a-fA-F0-9]\{64\}"
@@ -257,7 +263,10 @@
   # Usage: cat events.log | parse-blocked-by-policy
   parse-blocked-by-policy = writeShellApplication {
     name = "parse-blocked-by-policy";
-    runtimeInputs = with pkgs; [ gnugrep gnused ];
+    runtimeInputs = with pkgs; [
+      gnugrep
+      gnused
+    ];
     text = ''
       set -euo pipefail
       grep "CreateContainerRequest is blocked by policy" |
