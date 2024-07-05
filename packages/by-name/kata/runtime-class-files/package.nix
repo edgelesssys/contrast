@@ -29,8 +29,7 @@ let
     '';
   };
 
-  ovmf-code = OVMF.firmware;
-  ovmf-vars = OVMF.variables;
+  ovmf = "${OVMF.fd}/FV/OVMF.fd";
 
   containerd-shim-contrast-cc-v2 = "${kata.kata-runtime}/bin/containerd-shim-kata-v2";
 in
@@ -44,7 +43,7 @@ stdenvNoCC.mkDerivation {
   # TODO(msanft): perform the actual launch digest calculation.
   buildPhase = ''
     mkdir -p $out
-    sha256sum ${image} ${kernel} ${qemu-bin} ${containerd-shim-contrast-cc-v2} ${ovmf-code} ${ovmf-vars} | sha256sum | cut -d " " -f 1 > $out/launch-digest.hex
+    sha256sum ${image} ${kernel} ${qemu-bin} ${containerd-shim-contrast-cc-v2} ${ovmf} | sha256sum | cut -d " " -f 1 > $out/launch-digest.hex
     printf "contrast-cc-%s" "$(cat $out/launch-digest.hex | head -c 32)" > $out/runtime-handler
   '';
 
@@ -54,8 +53,7 @@ stdenvNoCC.mkDerivation {
       image
       qemu-bin
       containerd-shim-contrast-cc-v2
-      ovmf-code
-      ovmf-vars
+      ovmf
       ;
   };
 }

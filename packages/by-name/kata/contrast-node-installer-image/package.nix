@@ -51,12 +51,8 @@ let
               path = "/opt/edgeless/${runtime-handler}/bin/qemu-system-x86_64";
             }
             {
-              url = "file:///opt/edgeless/share/OVMF_CODE.fd";
-              path = "/opt/edgeless/${runtime-handler}/share/OVMF_CODE.fd";
-            }
-            {
-              url = "file:///opt/edgeless/share/OVMF_VARS.fd";
-              path = "/opt/edgeless/${runtime-handler}/share/OVMF_VARS.fd";
+              url = "file:///opt/edgeless/share/OVMF.fd";
+              path = "/opt/edgeless/${runtime-handler}/share/OVMF.fd";
             }
             {
               url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
@@ -87,12 +83,8 @@ let
   ovmf = ociLayerTar {
     files = [
       {
-        source = kata.runtime-class-files.ovmf-code;
-        destination = "/opt/edgeless/share/OVMF_CODE.fd";
-      }
-      {
-        source = kata.runtime-class-files.ovmf-vars;
-        destination = "/opt/edgeless/share/OVMF_VARS.fd";
+        source = kata.runtime-class-files.ovmf;
+        destination = "/opt/edgeless/share/OVMF.fd";
       }
     ];
   };
