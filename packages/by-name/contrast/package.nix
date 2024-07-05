@@ -72,6 +72,8 @@ buildGoModule rec {
         (path.append root "go.mod")
         (path.append root "go.sum")
         (path.append root "cli/cmd/assets/image-replacements.txt")
+        (path.append root "internal/attestation/snp/Milan.pem")
+        (path.append root "internal/attestation/snp/Genoa.pem")
         (path.append root "node-installer")
         (fileset.difference (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
           path.append root "service-mesh"

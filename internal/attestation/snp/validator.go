@@ -5,6 +5,7 @@ package snp
 
 import (
 	"context"
+	_ "embed"
 	"encoding/asn1"
 	"encoding/hex"
 	"fmt"
@@ -107,6 +108,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	v.logger.Info("Report decoded", "reportRaw", hex.EncodeToString(reportRaw))
 
 	verifyOpts := verify.DefaultOptions()
+	verifyOpts.TrustedRoots = trustedRoots
 	verifyOpts.Product = attestation.Product
 	verifyOpts.CheckRevocations = true
 	verifyOpts.Getter = v.kdsGetter
@@ -143,4 +145,30 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	v.logger.Info("Validate finished successfully")
 	return nil
+}
+
+var (
+	// source: https://kdsintf.amd.com/vcek/v1/Milan/cert_chain
+	//go:embed Milan.pem
+	askArkMilanVcekBytes []byte
+	// source: https://kdsintf.amd.com/vcek/v1/Genoa/cert_chain
+	//go:embed Genoa.pem
+	askArkGenoaVcekBytes []byte
+	trustedRoots         = make(map[string][]*trust.AMDRootCerts)
+)
+
+func init() {
+	milanCerts := trust.AMDRootCertsProduct("Milan")
+	err := milanCerts.FromKDSCertBytes(askArkMilanVcekBytes)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse cert: %w", err))
+	}
+	trustedRoots["Milan"] = []*trust.AMDRootCerts{milanCerts}
+
+	genoaCerts := trust.AMDRootCertsProduct("Genoa")
+	err = genoaCerts.FromKDSCertBytes(askArkGenoaVcekBytes)
+	if err != nil {
+		panic(fmt.Errorf("failed to parse cert: %w", err))
+	}
+	trustedRoots["Genoa"] = []*trust.AMDRootCerts{genoaCerts}
 }
