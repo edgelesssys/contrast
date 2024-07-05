@@ -5,7 +5,10 @@
 // of Contrast.
 package platforms
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // Platform is a type that represents a deployment platform of Contrast.
 type Platform int
@@ -20,6 +23,20 @@ const (
 	// RKE2QEMUTDX represents a deployment with QEMU on bare-metal TDX RKE2.
 	RKE2QEMUTDX
 )
+
+// All returns a list of all available platforms.
+func All() []Platform {
+	return []Platform{AKSCloudHypervisorSNP, K3sQEMUTDX, RKE2QEMUTDX}
+}
+
+// AllStrings returns a list of all available platforms as strings.
+func AllStrings() []string {
+	platformStrings := make([]string, 0, len(All()))
+	for _, p := range All() {
+		platformStrings = append(platformStrings, p.String())
+	}
+	return platformStrings
+}
 
 // String returns the string representation of the Platform type.
 func (p Platform) String() string {
@@ -37,12 +54,12 @@ func (p Platform) String() string {
 
 // FromString returns the Platform type corresponding to the given string.
 func FromString(s string) (Platform, error) {
-	switch s {
-	case "AKS-CLH-SNP":
+	switch strings.ToLower(s) {
+	case "aks-clh-snp":
 		return AKSCloudHypervisorSNP, nil
-	case "K3s-QEMU-TDX":
+	case "k3s-qemu-tdx":
 		return K3sQEMUTDX, nil
-	case "RKE2-QEMU-TDX":
+	case "rke2-qemu-tdx":
 		return RKE2QEMUTDX, nil
 	default:
 		return Unknown, fmt.Errorf("unknown platform: %s", s)

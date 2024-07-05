@@ -83,7 +83,7 @@ generate cli=default_cli:
     nix run .#{{ cli }} -- generate \
         --workspace-dir ./{{ workspace_dir }} \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
-        --reference-values aks \
+        --reference-values aks-clh-snp \
         ./{{ workspace_dir }}/deployment/*.yml
     duration=$(( $(date +%s) - $t ))
     echo "Generated policies in $duration seconds."

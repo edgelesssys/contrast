@@ -138,7 +138,7 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 	args := append(
 		ct.commonArgs(),
 		"--image-replacements", ct.ImageReplacementsFile,
-		"--reference-values", "aks",
+		"--reference-values", "aks-clh-snp",
 		path.Join(ct.WorkDir, "resources.yaml"),
 	)
 
