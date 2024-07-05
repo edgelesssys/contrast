@@ -18,10 +18,14 @@ openssl: (push "openssl")
 # Build the port-forwarder container and push it.
 port-forwarder: (push "port-forwarder")
 
+# Build the service-mesh-proxy container and push it.
 service-mesh-proxy: (push "service-mesh-proxy")
 
 # Build the initializer, containerize and push it.
 initializer: (push "initializer")
+
+# Build the tardev-snapshotter, containerize and push it.
+tardev-snapshotter: (push "tardev-snapshotter")
 
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"

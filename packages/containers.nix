@@ -104,6 +104,15 @@ let
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
       };
     };
+
+    tardev-snapshotter = dockerTools.buildImage {
+      name = "tardev-snapshotter";
+      tag = "v${pkgs.microsoft.tardev-snapshotter.version}";
+      copyToRoot = with pkgs; [ microsoft.tardev-snapshotter ];
+      config = {
+        Cmd = [ "${lib.getExe pkgs.microsoft.tardev-snapshotter}" ];
+      };
+    };
   };
 in
 containers
