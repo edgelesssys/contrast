@@ -22,6 +22,7 @@ let
       genpolicy = pkgs.pkgsStatic.callPackage ./by-name/kata/genpolicy/package.nix {
         inherit (self) kata; # This is only to inherit src/version, must not be depended on.
       };
+      kata-runtime = pkgs.pkgsStatic.callPackage ./by-name/kata/kata-runtime/package.nix { };
     };
   };
 in

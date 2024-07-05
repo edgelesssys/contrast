@@ -32,6 +32,8 @@ let
   ovmf = "${OVMF.fd}/FV/OVMF.fd";
 
   containerd-shim-contrast-cc-v2 = "${kata.kata-runtime}/bin/containerd-shim-kata-v2";
+
+  kata-runtime = "${kata.kata-runtime}/bin/kata-runtime";
 in
 
 stdenvNoCC.mkDerivation {
@@ -54,6 +56,7 @@ stdenvNoCC.mkDerivation {
       qemu-bin
       containerd-shim-contrast-cc-v2
       ovmf
+      kata-runtime
       ;
   };
 }
