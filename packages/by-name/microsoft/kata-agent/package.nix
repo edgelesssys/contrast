@@ -4,7 +4,7 @@
 {
   lib,
   rustPlatform,
-  fetchFromGitHub,
+  microsoft,
   cmake,
   pkg-config,
   protobuf,
@@ -18,14 +18,7 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "kata-agent";
-  version = "3.2.0.azl1";
-
-  src = fetchFromGitHub {
-    owner = "microsoft";
-    repo = "kata-containers";
-    rev = version;
-    hash = "sha256-W36RJFf0MVRIBV4ahpv6pqdAwgRYrlqmu4Y/8qiILS8=";
-  };
+  inherit (microsoft.kata-runtime) version src;
 
   sourceRoot = "${src.name}/src/agent";
 
