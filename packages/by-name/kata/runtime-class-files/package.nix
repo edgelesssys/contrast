@@ -6,6 +6,7 @@
   kata,
   fetchzip,
   OVMF,
+  debugRuntime ? false,
 }:
 
 let
@@ -57,6 +58,7 @@ stdenvNoCC.mkDerivation {
       containerd-shim-contrast-cc-v2
       ovmf
       kata-runtime
+      debugRuntime
       ;
   };
 }
