@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/edgelesssys/contrast/internal/oid"
+	"github.com/google/go-sev-guest/abi"
 	snpabi "github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/client"
 	spb "github.com/google/go-sev-guest/proto/sevsnp"
@@ -47,12 +48,6 @@ func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (re
 		}
 	}()
 
-	snpGuestDevice, err := client.OpenDevice()
-	if err != nil {
-		return nil, fmt.Errorf("issuer: opening device: %w", err)
-	}
-	defer snpGuestDevice.Close()
-
 	reportData := constructReportData(ownPublicKey, nonce)
 
 	// Get quote from SNP device
@@ -84,7 +79,7 @@ func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (re
 	}
 
 	// Get SNP product info from cpuid
-	product := snpGuestDevice.Product()
+	product := abi.SevProduct()
 	i.logger.Info("cpuid product info", "name", product.GetName(), "machineStepping", product.GetMachineStepping().Value)
 	// Host cpuid can result in incorrect stepping: https://github.com/google/go-sev-guest/issues/115
 	product.MachineStepping = &wrapperspb.UInt32Value{Value: 0}
