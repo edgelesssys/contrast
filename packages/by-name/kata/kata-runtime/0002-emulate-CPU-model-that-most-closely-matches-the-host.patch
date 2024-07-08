@@ -1,0 +1,40 @@
+From 5f827c88c43c0e3143543d59f8b6f12a7b936832 Mon Sep 17 00:00:00 2001
+From: Tom Dohrmann <erbse.13@gmx.de>
+Date: Mon, 8 Jul 2024 07:35:54 +0000
+Subject: [PATCH 2/3] emulate CPU model that most closely matches the host
+
+QEMU's CPU model 'host' still doesn't support SNP, but by using the
+correct model, the guest is able to figure out the correct CPU model
+which is important for fetching the correct ARK/ASK certificates for
+attestation.
+---
+ src/runtime/virtcontainers/qemu_amd64.go | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
+index ade7356eb..ca8f9998c 100644
+--- a/src/runtime/virtcontainers/qemu_amd64.go
++++ b/src/runtime/virtcontainers/qemu_amd64.go
+@@ -188,7 +188,18 @@ func (q *qemuAmd64) cpuModel() string {
+ 	protection, err := availableGuestProtection()
+ 	if err == nil {
+ 		if protection == snpProtection && q.snpGuest {
+-			cpuModel = "EPYC-v4"
++			// Decide which CPU model line to emulate based on the host CPU's
++			// model value.
++			switch cpuid.DisplayModel {
++			case 0x01:
++				cpuModel = "EPYC-Milan"
++			case 0x11:
++				cpuModel = "EPYC-Genoa"
++			default:
++				// Fall back to a generic CPU.
++				cpuModel = "EPYC-v4"
++			}
++
+ 		}
+ 	}
+ 
+-- 
+2.34.1
+
