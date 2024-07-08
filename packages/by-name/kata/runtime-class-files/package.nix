@@ -14,21 +14,25 @@ let
   kernel = "${kata.kata-kernel-uvm}/bzImage";
 
   # TODO(msanft): building a static qemu with nix.
-  qemu-bin = stdenvNoCC.mkDerivation rec {
-    pname = "qemu-static-kata";
-    version = "3.6.0";
+  qemu-bin =
+    let
+      qemuDrv = stdenvNoCC.mkDerivation rec {
+        pname = "qemu-static-kata";
+        version = "3.6.0";
 
-    src = fetchzip {
-      url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
-      hash = "sha256-ynMzMoJ90BzKuE6ih6DmbM2zWTDxsMwkAKsI8pbO3sg=";
-    };
+        src = fetchzip {
+          url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
+          hash = "sha256-ynMzMoJ90BzKuE6ih6DmbM2zWTDxsMwkAKsI8pbO3sg=";
+        };
 
-    dontBuild = true;
+        dontBuild = true;
 
-    installPhase = ''
-      install -Dt $out/bin kata/bin/qemu-system-x86_64
-    '';
-  };
+        installPhase = ''
+          install -Dt $out/bin kata/bin/qemu-system-x86_64
+        '';
+      };
+    in
+    "${qemuDrv}/bin/qemu-system-x86_64";
 
   ovmf = "${OVMF.fd}/FV/OVMF.fd";
 
