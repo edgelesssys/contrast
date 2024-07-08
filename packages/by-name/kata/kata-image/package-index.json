@@ -416,8 +416,8 @@
     "hash": "sha256-BJPpicUC7x/QgERAgW41ZuMbxitstXD6EdN2MYu79W0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/openssh-clients-8.9p1-4.cm2.x86_64.rpm",
-    "hash": "sha256-QZnrXGBuXwN2DpXcmZXN3iAdDPuuLeO1oipVqw6w8bk="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/openssh-clients-8.9p1-6.cm2.x86_64.rpm",
+    "hash": "sha256-J1yAu+hXfR3LeafO06Efpwe2QnRYKKnj5FNQ5EH5pb8="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/openssl-1.1.1k-32.cm2.x86_64.rpm",
