@@ -1,0 +1,27 @@
+From a46de714d843d27d6176ceae8242011a926d90b3 Mon Sep 17 00:00:00 2001
+From: Tom Dohrmann <erbse.13@gmx.de>
+Date: Fri, 5 Jul 2024 08:43:13 +0000
+Subject: [PATCH 1/3] govmm: pass -bios instead of -if=pflash
+
+---
+ src/runtime/pkg/govmm/qemu/qemu.go | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/runtime/pkg/govmm/qemu/qemu.go b/src/runtime/pkg/govmm/qemu/qemu.go
+index e752f8181..b493c49bb 100644
+--- a/src/runtime/pkg/govmm/qemu/qemu.go
++++ b/src/runtime/pkg/govmm/qemu/qemu.go
+@@ -389,8 +389,8 @@ func (object Object) QemuParams(config *Config) []string {
+ 		objectParams = append(objectParams, fmt.Sprintf("reduced-phys-bits=%d", object.ReducedPhysBits))
+ 		objectParams = append(objectParams, "kernel-hashes=on")
+ 
+-		driveParams = append(driveParams, "if=pflash,format=raw,readonly=on")
+-		driveParams = append(driveParams, fmt.Sprintf("file=%s", object.File))
++		qemuParams = append(qemuParams, "-bios")
++		qemuParams = append(qemuParams, object.File)
+ 	case SecExecGuest:
+ 		objectParams = append(objectParams, string(object.Type))
+ 		objectParams = append(objectParams, fmt.Sprintf("id=%s", object.ID))
+-- 
+2.34.1
+

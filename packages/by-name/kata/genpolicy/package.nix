@@ -50,7 +50,7 @@ rustPlatform.buildRustPackage rec {
   passthru = {
     settings = fetchurl {
       name = "${pname}-${version}-settings";
-      url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${src.rev}/src/tools/genpolicy/genpolicy-settings.json";
+      url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${version}/src/tools/genpolicy/genpolicy-settings.json";
       hash = "sha256-Rlm1BOo0/yNHBf17p2Mk7ta6VbaGcrgezCk8mraFPtU=";
       downloadToTemp = true;
       recursiveHash = true;
@@ -59,7 +59,7 @@ rustPlatform.buildRustPackage rec {
 
     rules = fetchurl {
       name = "${pname}-${version}-rules";
-      url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${src.rev}/src/tools/genpolicy/rules.rego";
+      url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${version}/src/tools/genpolicy/rules.rego";
       hash = "sha256-J4WIgEgCzm3vEji9f/0kF+gLdE8ziio4PAyRWUJjqZk=";
       downloadToTemp = true;
       recursiveHash = true;
