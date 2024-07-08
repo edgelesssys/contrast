@@ -14,6 +14,7 @@
   openssl,
   withAgentPolicy ? true,
   withStandardOCIRuntime ? false,
+  fetchpatch,
 }:
 
 rustPlatform.buildRustPackage rec {
@@ -30,6 +31,15 @@ rustPlatform.buildRustPackage rec {
       "sigstore-0.8.0" = "sha256-lmcokyIx4R84miC8Rf3NjV3QS6XffbhzQeZGCM0u7lc=";
     };
   };
+
+  patches = [
+    # Mount configfs into the workload container from the UVM.
+    (fetchpatch {
+      url = "https://github.com/kata-containers/kata-containers/commit/779152b91b20b22009d215887d06908c638d2efc.patch";
+      stripLen = 2;
+      hash = "sha256-gs1EgD+1Ol9rg0oo14WFQ3H7GCAU5EQrXSuQW+DtEWk=";
+    })
+  ];
 
   nativeBuildInputs = [
     cmake
