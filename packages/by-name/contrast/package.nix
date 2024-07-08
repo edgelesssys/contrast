@@ -6,7 +6,8 @@
   buildGoModule,
   buildGoTest,
   microsoft,
-  genpolicy ? microsoft.genpolicy,
+  kata,
+  genpolicy ? kata.genpolicy,
   contrast,
   installShellFiles,
 }:
@@ -82,7 +83,7 @@ buildGoModule rec {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-9RtHcArCyJqvC3VfNOyuyeN9+KyVu+wWKpSxXoCj/3o=";
+  vendorHash = "sha256-5p3pDRIwS4B3sNO4yEE/8RwRKLZc2lgIabBJPJwl1Z0=";
 
   nativeBuildInputs = [ installShellFiles ];
 
@@ -90,7 +91,7 @@ buildGoModule rec {
 
   prePatch = ''
     install -D ${lib.getExe genpolicy} cli/cmd/assets/genpolicy
-    install -D ${genpolicy.settings-dev}/genpolicy-settings.json cli/cmd/assets/genpolicy-settings.json
+    install -D ${genpolicy.settings}/genpolicy-settings.json cli/cmd/assets/genpolicy-settings.json
     install -D ${genpolicy.rules}/genpolicy-rules.rego cli/cmd/assets/genpolicy-rules.rego
   '';
 

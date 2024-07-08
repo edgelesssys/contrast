@@ -465,7 +465,7 @@ func generatePolicyForFile(ctx context.Context, genpolicyPath, regoPath, policyP
 		fmt.Sprintf("--rego-rules-path=%s", regoPath),
 		fmt.Sprintf("--json-settings-path=%s", policyPath),
 		fmt.Sprintf("--yaml-file=%s", yamlPath),
-		fmt.Sprintf("--layers-cache-file-path=%s", genpolicyCachePath),
+		// fmt.Sprintf("--layers-cache-file-path=%s", genpolicyCachePath),
 	}
 	genpolicy := exec.CommandContext(ctx, genpolicyPath, args...)
 	genpolicy.Env = append(genpolicy.Env, "RUST_LOG=info", "RUST_BACKTRACE=1")
