@@ -37,6 +37,14 @@ rustPlatform.buildRustPackage rec {
       # Backport of https://github.com/kata-containers/kata-containers/pull/9864
       # remove when picked up by Microsoft/kata-containers fork.
       ./0003-genpolicy-allow-specifying-layer-cache-file.patch
+      # As we use a pinned version of the tardev-snapshotter per runtime version, and
+      # the tardev-snapshotter's directory has a hash suffix, we must allow multiple
+      # layer source directories. For now, match the layer-src-prefix with a regex.
+      # We could think about moving the specific path into the settings and set it
+      # to the expected value.
+      #
+      # This patch is not upstreamable.
+      ./0004-genpolicy-regex-check-contrast-specific-layer-src-pr.patch
     ];
   };
 
