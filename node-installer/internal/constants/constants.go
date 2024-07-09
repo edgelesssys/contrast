@@ -81,7 +81,7 @@ func ContainerdBaseConfig() config.ContainerdConfig {
 }
 
 // ContainerdRuntimeConfigFragment returns the containerd runtime configuration fragment.
-func ContainerdRuntimeConfigFragment(baseDir string, platform platforms.Platform) (*config.Runtime, error) {
+func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platforms.Platform) (*config.Runtime, error) {
 	cfg := config.Runtime{
 		Type:                         "io.containerd.contrast-cc.v2",
 		Path:                         filepath.Join(baseDir, "bin", "containerd-shim-contrast-cc-v2"),
@@ -91,7 +91,7 @@ func ContainerdRuntimeConfigFragment(baseDir string, platform platforms.Platform
 
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
-		cfg.Snapshotter = "tardev"
+		cfg.Snapshotter = snapshotter
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
 		}
@@ -104,12 +104,4 @@ func ContainerdRuntimeConfigFragment(baseDir string, platform platforms.Platform
 	}
 
 	return &cfg, nil
-}
-
-// TardevSnapshotterConfigFragment returns the tardev snapshotter configuration fragment.
-func TardevSnapshotterConfigFragment() config.ProxyPlugin {
-	return config.ProxyPlugin{
-		Type:    "snapshot",
-		Address: "/run/containerd/tardev-snapshotter.sock",
-	}
 }

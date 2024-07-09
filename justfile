@@ -33,7 +33,7 @@ default_platform := "AKS-CLH-SNP"
 workspace_dir := "workspace"
 
 # Build the node-installer, containerize and push it.
-node-installer platform=default_platform:
+node-installer platform=default_platform: tardev-snapshotter
     #!/usr/bin/env bash
     case {{ platform }} in
         "AKS-CLH-SNP")

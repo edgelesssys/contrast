@@ -64,7 +64,7 @@ func TestPatchContainerdConfig(t *testing.T) {
 
 			configData, err := os.ReadFile(configPath)
 			require.NoError(err)
-			assert.Equal(tc.expected, configData)
+			assert.Equal(string(tc.expected), string(configData))
 		})
 	}
 }

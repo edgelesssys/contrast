@@ -199,19 +199,23 @@ func patchContainerdConfig(runtimeName, basePath, configPath string, platform pl
 		existing = constants.ContainerdBaseConfig()
 	}
 
+	snapshotterName := "no-snapshotter"
 	// Add tardev snapshotter, only required for AKS
 	if platform == platforms.AKSCloudHypervisorSNP {
 		if existing.ProxyPlugins == nil {
 			existing.ProxyPlugins = make(map[string]config.ProxyPlugin)
 		}
-		if _, ok := existing.ProxyPlugins["tardev"]; !ok {
-			existing.ProxyPlugins["tardev"] = constants.TardevSnapshotterConfigFragment()
+		snapshotterName = fmt.Sprintf("tardev-%s", runtimeName)
+		socketName := fmt.Sprintf("/run/containerd/tardev-snapshotter-%s.sock", runtimeName)
+		existing.ProxyPlugins[snapshotterName] = config.ProxyPlugin{
+			Type:    "snapshot",
+			Address: socketName,
 		}
 	}
 
 	// Add contrast-cc runtime
 	runtimes := ensureMapPath(&existing.Plugins, constants.CRIFQDN, "containerd", "runtimes")
-	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, platform)
+	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, snapshotterName, platform)
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime config: %w", err)
 	}
@@ -240,7 +244,7 @@ func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath str
 	// Extend a scratchpad config with the new plugin configuration. (including the new contrast-cc runtime)
 	var newConfigFragment config.ContainerdConfig
 	runtimes := ensureMapPath(&newConfigFragment.Plugins, constants.CRIFQDN, "containerd", "runtimes")
-	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, platform)
+	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, "no-snapshotter", platform)
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime config: %w", err)
 	}
