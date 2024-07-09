@@ -4,7 +4,6 @@
 {
   lib,
   fetchFromGitHub,
-  fetchpatch,
   applyPatches,
   stdenvNoCC,
   rustPlatform,
@@ -29,14 +28,15 @@ rustPlatform.buildRustPackage rec {
     };
 
     patches = [
-      # TODO(burgerdev): drop after Microsoft ported https://github.com/kata-containers/kata-containers/pull/9706
-      (fetchpatch {
-        name = "genpolicy_device_support.patch";
-        url = "https://github.com/kata-containers/kata-containers/commit/f61b43777834f097fcca26864ee634125d9266ef.patch";
-        hash = "sha256-wBOyrFY4ZdWBjF5bIrHm7CFy6lVclcvwhF85wXpFZoc=";
-      })
-      ./genpolicy_msft_runtime_class_filter.patch
-      ./genpolicy_msft_cache_path.patch
+      # Backport of https://github.com/kata-containers/kata-containers/pull/9706,
+      # remove when picked up by Microsoft/kata-containers fork.
+      ./0001-genpolicy-add-rules-and-types-for-volumeDevices.patch
+      # Backport of https://github.com/kata-containers/kata-containers/pull/9725,
+      # remove when picked up by Microsoft/kata-containers fork.
+      ./0002-genpolicy-add-ability-to-filter-for-runtimeClassName.patch
+      # Backport of https://github.com/kata-containers/kata-containers/pull/9864
+      # remove when picked up by Microsoft/kata-containers fork.
+      ./0003-genpolicy-allow-specifying-layer-cache-file.patch
     ];
   };
 
