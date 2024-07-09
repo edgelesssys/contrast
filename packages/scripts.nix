@@ -282,18 +282,22 @@
     text = ''
       set -euo pipefail
       while read -r line; do
+          if [[ "$line" == "---" ]]; then
+              continue
+          fi
           name=$(echo "$line" | cut -d' ' -f1)
           namespace=$(echo "$line" | cut -d' ' -f2)
           echo "Extracting policy for $namespace.$name" >&2
           echo "$line" | cut -d' ' -f3 | base64 -d > "$namespace.$name.rego"
       done < <(
         yq '.metadata.name
-          + " "
-          + .metadata.namespace
-          // "default"
-          + " "
-          + .spec.template.metadata.annotations["io.katacontainers.config.agent.policy"]
-          // .metadata.annotations["io.katacontainers.config.agent.policy"]'
+          + " " + (
+            .metadata.namespace
+            // "default"
+          ) + " " + (
+            .spec.template.metadata.annotations["io.katacontainers.config.agent.policy"]
+            // .metadata.annotations["io.katacontainers.config.agent.policy"]
+          )'
       )
     '';
   };
