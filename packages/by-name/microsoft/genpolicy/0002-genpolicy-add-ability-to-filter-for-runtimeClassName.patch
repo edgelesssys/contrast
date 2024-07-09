@@ -1,9 +1,24 @@
-# TODO(burgerdev): git format-patch
+From 2752fe7dd88dd8b09c2fb041f30f607c871cc2b9 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <49727155+katexochen@users.noreply.github.com>
+Date: Tue, 9 Jul 2024 16:07:09 +0200
+Subject: [PATCH 2/4] genpolicy: add ability to filter for runtimeClassName
+
+Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
+---
+ src/tools/genpolicy/src/daemon_set.rs   |  9 +++++++++
+ src/tools/genpolicy/src/deployment.rs   |  9 +++++++++
+ src/tools/genpolicy/src/pod.rs          |  9 ++++++++-
+ src/tools/genpolicy/src/policy.rs       | 12 ++++++++++++
+ src/tools/genpolicy/src/stateful_set.rs |  9 +++++++++
+ src/tools/genpolicy/src/utils.rs        |  8 ++++++++
+ src/tools/genpolicy/src/yaml.rs         |  4 ++++
+ 7 files changed, 59 insertions(+), 1 deletion(-)
+
 diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
-index 04c88429c..4616551d1 100644
+index 5b18d96d9..90ea48597 100644
 --- a/src/tools/genpolicy/src/daemon_set.rs
 +++ b/src/tools/genpolicy/src/daemon_set.rs
-@@ -140,4 +140,13 @@ impl yaml::K8sResource for DaemonSet {
+@@ -143,4 +143,13 @@ impl yaml::K8sResource for DaemonSet {
          }
          false
      }
@@ -18,10 +33,10 @@ index 04c88429c..4616551d1 100644
 +    }
  }
 diff --git a/src/tools/genpolicy/src/deployment.rs b/src/tools/genpolicy/src/deployment.rs
-index 45b80c83f..2296bc9eb 100644
+index f1b8e8d80..890579cdf 100644
 --- a/src/tools/genpolicy/src/deployment.rs
 +++ b/src/tools/genpolicy/src/deployment.rs
-@@ -138,4 +138,13 @@ impl yaml::K8sResource for Deployment {
+@@ -141,4 +141,13 @@ impl yaml::K8sResource for Deployment {
          }
          false
      }
@@ -36,51 +51,45 @@ index 45b80c83f..2296bc9eb 100644
 +    }
  }
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index c89772993..c7a6ffb29 100644
+index da2a47ee2..4a40c9570 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
-@@ -46,7 +46,7 @@ pub struct PodSpec {
+@@ -47,7 +47,7 @@ pub struct PodSpec {
      restartPolicy: Option<String>,
-
+ 
      #[serde(skip_serializing_if = "Option::is_none")]
 -    runtimeClassName: Option<String>,
 +    pub runtimeClassName: Option<String>,
-
+ 
      #[serde(skip_serializing_if = "Option::is_none")]
      pub initContainers: Option<Vec<Container>>,
-@@ -755,5 +755,12 @@ impl yaml::K8sResource for Pod {
-         }
+@@ -889,6 +889,13 @@ impl yaml::K8sResource for Pod {
          false
      }
-+
+ 
 +    fn get_runtime_class_name(&self) -> Option<String> {
 +        self.spec
 +            .runtimeClassName
 +            .clone()
 +            .or_else(|| Some(String::new()))
 +    }
-
++
      fn get_process_fields(&self, process: &mut policy::KataProcess) {
+         if let Some(context) = &self.spec.securityContext {
+             if let Some(uid) = context.runAsUser {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 87b78adda..75cedcc1a 100644
+index 7c1479d57..a1affda77 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -9,6 +9,7 @@
+@@ -10,6 +10,7 @@ use crate::agent;
  use crate::config_map;
  use crate::containerd;
  use crate::mount_and_storage;
 +use crate::no_policy;
  use crate::pod;
  use crate::policy;
- use crate::registry;
-@@ -374,12 +375,23 @@ impl AgentPolicy {
-         let mut resources = Vec::new();
-         let yaml_contents = yaml::get_input_yaml(&config.yaml_file)?;
-
--        for document in serde_yaml::Deserializer::from_str(&yaml_contents) {
-+        for document in serde_yaml::Deserializer::from_str(&yaml_contents) {
-             let doc_mapping = Value::deserialize(document)?;
-             if doc_mapping != Value::Null {
+ use crate::pvc;
+@@ -434,6 +435,17 @@ impl AgentPolicy {
                  let yaml_string = serde_yaml::to_string(&doc_mapping)?;
                  let silent = config.silent_unsupported_fields;
                  let (mut resource, kind) = yaml::new_k8s_resource(&yaml_string, silent)?;
@@ -96,13 +105,13 @@ index 87b78adda..75cedcc1a 100644
 +                }
 +
                  resource.init(config, &doc_mapping, silent).await;
-
+ 
                  // ConfigMap and Secret documents contain additional input for policy generation.
 diff --git a/src/tools/genpolicy/src/stateful_set.rs b/src/tools/genpolicy/src/stateful_set.rs
-index 5b078eaf5..1c712002b 100644
+index 096cafbeb..73f0b0a30 100644
 --- a/src/tools/genpolicy/src/stateful_set.rs
 +++ b/src/tools/genpolicy/src/stateful_set.rs
-@@ -185,6 +185,15 @@ impl yaml::K8sResource for StatefulSet {
+@@ -187,6 +187,15 @@ impl yaml::K8sResource for StatefulSet {
          }
          false
      }
@@ -116,48 +125,56 @@ index 5b078eaf5..1c712002b 100644
 +            .or_else(|| Some(String::new()))
 +    }
  }
-
+ 
  impl StatefulSet {
 diff --git a/src/tools/genpolicy/src/utils.rs b/src/tools/genpolicy/src/utils.rs
-index fc9547951..dfbaf39ba 100644
+index e45b188d4..2402c2ed2 100644
 --- a/src/tools/genpolicy/src/utils.rs
 +++ b/src/tools/genpolicy/src/utils.rs
-@@ -82,3 +82,9 @@ struct CommandLineOptions {
+@@ -72,6 +72,12 @@ struct CommandLineOptions {
+     )]
      containerd_socket_path: Option<String>,
-+
+ 
 +    #[clap(
 +        long,
 +        help = "If specified, resources that have a runtimeClassName field defined will only receive a policy if the parameter is a prefix one of the given runtime class names."
 +    )]
 +    runtime_class_names: Vec<String>,
-
++
      #[clap(short, long, help = "Print version information and exit")]
-@@ -89,5 +96,6 @@ struct CommandLineOptions {
+     version: bool,
+ }
+@@ -80,6 +86,7 @@ struct CommandLineOptions {
+ #[derive(Clone, Debug)]
  pub struct Config {
      pub use_cache: bool,
 +    pub runtime_class_names: Vec<String>,
-
+ 
      pub yaml_file: Option<String>,
      pub rego_rules_path: String,
-@@ -121,5 +129,6 @@ impl Config {
+@@ -98,6 +105,7 @@ impl Config {
+         let args = CommandLineOptions::parse();
          Self {
              use_cache: args.use_cached_files,
 +            runtime_class_names: args.runtime_class_names,
              yaml_file: args.yaml_file,
              rego_rules_path: args.rego_rules_path,
-             settings,
+             json_settings_path: args.json_settings_path,
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 6b7bf0065..5b02af085 100644
+index 8f06d291e..c898240af 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
-@@ -90,6 +90,10 @@ pub trait K8sResource {
-     fn use_sandbox_pidns(&self) -> bool {
-         panic!("Unsupported");
+@@ -75,6 +75,10 @@ pub trait K8sResource {
+         // Just Pods can have a PodSecurityContext field, so the other
+         // resources can use this default get_process_fields implementation.
      }
 +
 +    fn get_runtime_class_name(&self) -> Option<String> {
 +        None
 +    }
  }
-
+ 
  /// See Reference / Kubernetes API / Common Definitions / LabelSelector.
+-- 
+2.45.1
+
