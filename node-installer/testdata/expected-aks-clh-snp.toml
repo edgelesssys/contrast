@@ -56,7 +56,7 @@ runtime_type = 'io.containerd.contrast-cc.v2'
 runtime_path = '/opt/edgeless/my-runtime/bin/containerd-shim-contrast-cc-v2'
 pod_annotations = ['io.katacontainers.*']
 privileged_without_host_devices = true
-snapshotter = 'tardev'
+snapshotter = 'tardev-my-runtime'
 
 [plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.my-runtime.options]
 ConfigPath = '/opt/edgeless/my-runtime/etc/configuration-clh-snp.toml'
@@ -80,6 +80,6 @@ config_path = '/etc/containerd/certs.d'
 X-Meta-Source-Client = ['azure/aks']
 
 [proxy_plugins]
-[proxy_plugins.tardev]
+[proxy_plugins.tardev-my-runtime]
 type = 'snapshot'
-address = '/run/containerd/tardev-snapshotter.sock'
+address = '/run/containerd/tardev-snapshotter-my-runtime.sock'

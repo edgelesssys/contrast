@@ -36,12 +36,12 @@ type NodeInstallerConfig struct {
 func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstallerConfig, error) {
 	name := "contrast-node-installer"
 
-	var imageURL string
+	var nodeInstallerImageURL string
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
-		imageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
+		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
 	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
-		imageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
+		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", platform)
 	}
@@ -62,7 +62,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 					WithHostPID(true).
 					WithInitContainers(Container().
 						WithName("installer").
-						WithImage(imageURL).
+						WithImage(nodeInstallerImageURL).
 						WithResources(ResourceRequirements().
 							WithMemoryLimitAndRequest(100),
 						).
@@ -74,10 +74,27 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 					).
 					WithContainers(
 						Container().
-							WithName("pause").
-							WithImage("k8s.gcr.io/pause").
+							WithName("tardev-snapshotter").
+							WithImage("ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest").
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(10),
+								WithMemoryLimitAndRequest(800),
+							).
+							WithVolumeMounts(
+								VolumeMount().
+									WithName("host-mount").
+									WithMountPath("/host"),
+								VolumeMount().
+									WithName("var-lib-containerd").
+									WithMountPath("/var/lib/containerd"),
+							).
+							WithArgs(
+								"tardev-snapshotter",
+								fmt.Sprintf("/var/lib/containerd/io.containerd.snapshotter.v1.tardev-%s", runtimeHandler),
+								fmt.Sprintf("/host/run/containerd/tardev-snapshotter-%s.sock", runtimeHandler),
+								"/host/var/run/containerd/containerd.sock",
+							).
+							WithEnv(
+								NewEnvVar("RUST_LOG", "tardev_snapshotter=trace"),
 							),
 					).
 					WithVolumes(
@@ -85,6 +102,12 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 							WithName("host-mount").
 							WithHostPath(HostPathVolumeSource().
 								WithPath("/").
+								WithType(corev1.HostPathDirectory),
+							),
+						Volume().
+							WithName("var-lib-containerd").
+							WithHostPath(HostPathVolumeSource().
+								WithPath("/var/lib/containerd").
 								WithType(corev1.HostPathDirectory),
 							),
 					),
