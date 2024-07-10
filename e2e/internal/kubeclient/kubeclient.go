@@ -184,3 +184,38 @@ func (c *Kubeclient) ExecDeployment(ctx context.Context, namespace, deployment s
 	}
 	return c.Exec(ctx, namespace, pods[0].Name, argv)
 }
+
+// LogDebugInfo collects pod information from the cluster and writes it to the logger.
+func (c *Kubeclient) LogDebugInfo(ctx context.Context) {
+	namespaces, err := c.client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		c.log.Error("Could not get namespaces", "error", err)
+		return
+	}
+
+	for _, namespace := range namespaces.Items {
+		c.log.Debug("Collecting debug info for pods", "namespace", namespace.Name)
+		pods, err := c.client.CoreV1().Pods(namespace.Name).List(ctx, metav1.ListOptions{})
+		if err != nil {
+			c.log.Error("Could not get pods", "namespace", namespace.Name, "error", err)
+			continue
+		}
+		for _, pod := range pods.Items {
+			c.logContainerStatus(pod)
+		}
+	}
+}
+
+func (c *Kubeclient) logContainerStatus(pod v1.Pod) {
+	c.log.Debug("pod status", "name", pod.Name, "phase", pod.Status.Phase, "reason", pod.Status.Reason, "message", pod.Status.Message)
+	for containerType, containers := range map[string][]v1.ContainerStatus{
+		"init":      pod.Status.InitContainerStatuses,
+		"main":      pod.Status.ContainerStatuses,
+		"ephemeral": pod.Status.EphemeralContainerStatuses,
+	} {
+		log := c.log.With("pod", pod.Name, "type", containerType)
+		for _, container := range containers {
+			log.Debug("container status", "name", container.Name, "started", container.Started, "ready", container.Ready, "state", container.State)
+		}
+	}
+}
