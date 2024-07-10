@@ -68,6 +68,7 @@ subcommands.`,
 			strings.Join(platforms.AllStrings(), ", "),
 		),
 	)
+	must(cmd.MarkFlagRequired("reference-values"))
 	cmd.Flags().StringArrayP("add-workload-owner-key", "w", []string{workloadOwnerPEM},
 		"add a workload owner key from a PEM file to the manifest (pass more than once to add multiple keys)")
 	cmd.Flags().StringArray("add-seedshare-owner-key", []string{seedshareOwnerPEM},
