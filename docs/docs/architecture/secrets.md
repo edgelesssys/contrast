@@ -17,7 +17,7 @@ Thus, the manifest is stored in plain text, but is signed with a private key der
 
 ## Recovery
 
-When a Coordinator starts up, it doesn't have access to the signing secret and can thus not verify the persisted manifests' integrity.
+When a Coordinator starts up, it doesn't have access to the signing secret and can thus not verify the integrity of the persisted manifests.
 It needs to be provided with the secret seed, from which it can derive the signing key that verifies the signatures.
 This procedure is called recovery and is initiated by the workload owner.
 The CLI decrypts the secret seed using the private seed share owner key, verifies the Coordinator and sends the seed through the `Recover` method.
