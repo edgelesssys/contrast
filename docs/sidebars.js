@@ -127,7 +127,7 @@ const sidebars = {
         },
         {
           type: 'doc',
-          label: 'Secrets & Recovery',
+          label: 'Secrets & recovery',
           id: 'architecture/secrets',
         },
         {

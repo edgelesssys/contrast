@@ -1,4 +1,4 @@
-# Secrets & Recovery
+# Secrets & recovery
 
 When the Coordinator is configured with the initial manifest, it generates a random secret seed.
 From this seed, it uses an HKDF to derive the CA root key and a signing key for the manifest history.
