@@ -1,6 +1,8 @@
 run:
   timeout: 5m
   modules-download-mode: readonly
+  build-tags:
+    - e2e
 
 output:
   formats:
