@@ -308,6 +308,7 @@ jobs:
           generate_release_notes: true
           tag_name: ${{ inputs.version }}
           target_commitish: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          fail_on_unmatched_files: true
           files: |
             result-cli/bin/contrast
             workspace/coordinator.yml
