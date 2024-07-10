@@ -39,12 +39,12 @@ jobs:
           rebuild_checksum="$(cat rebuild/index.json | jq  -r '.manifests[0].digest')"
           echo "rebuild-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$rebuild_checksum" >> "$GITHUB_OUTPUT"
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: ${{ matrix.build-target }}-${{ matrix.os }}
           path: result
       - name: Upload Build Artifacts (Rebuild)
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: ${{ matrix.build-target }}-${{ matrix.os }}-rebuild
           path: rebuild

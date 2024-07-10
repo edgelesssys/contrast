@@ -151,7 +151,7 @@ jobs:
           # Clean up auxiliary files, so next steps run on a clean tree
           git clean -fx :/
       - name: Download image replacements file (from release branch)
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e #v4.1.7
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: image-replacements.txt
       - name: Update release urls in docs with tags
@@ -167,7 +167,7 @@ jobs:
           git commit -m "docs: update release download urls"
           git clean -fx :/
       - name: Download release artifacts (from release branch)
-        uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e #v4.1.7
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
           name: contrast-release-artifacts
           path: ./contrast-main
@@ -265,7 +265,7 @@ jobs:
           echo "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged" >> image-replacements.txt
           echo "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=$nodeInstallerImgTagged" >> image-replacements.txt
       - name: Upload image replacements file (for main branch PR)
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: image-replacements.txt
           path: ./image-replacements.txt
@@ -293,7 +293,7 @@ jobs:
         run: |
           nix build -L .#cli-release
       - name: Upload release artifacts (for main branch PR)
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
           name: contrast-release-artifacts
           path: |
