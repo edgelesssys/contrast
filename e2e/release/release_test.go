@@ -50,7 +50,7 @@ func TestRelease(t *testing.T) {
 	contrast := &contrast{dir}
 
 	for _, sub := range []string{"help"} {
-		contrast.Run(t, ctx, 2*time.Second, sub)
+		contrast.Run(ctx, t, 2*time.Second, sub)
 	}
 
 	t.Cleanup(func() {
@@ -79,7 +79,9 @@ func TestRelease(t *testing.T) {
 
 		// Delete resources 1-by-1 so that we don't stop on errors.
 		for _, resource := range resources {
-			k.Delete(ctx, resource)
+			if err := k.Delete(ctx, resource); err != nil {
+				t.Logf("deleting resource %s: %v", resource.GetName(), err)
+			}
 		}
 	})
 
@@ -136,9 +138,9 @@ func TestRelease(t *testing.T) {
 		}
 	}), "unpacking needs to succeed for subsequent tests to run")
 
-	contrast.Run(t, ctx, 2*time.Minute, "generate", "--reference-values", "aks-clh-snp", "deployment/")
-	contrast.Run(t, ctx, 1*time.Minute, "set", "-c", coordinatorIP+":1313", "deployment/")
-	contrast.Run(t, ctx, 1*time.Minute, "verify", "-c", coordinatorIP+":1313")
+	contrast.Run(ctx, t, 2*time.Minute, "generate", "--reference-values", "aks-clh-snp", "deployment/")
+	contrast.Run(ctx, t, 1*time.Minute, "set", "-c", coordinatorIP+":1313", "deployment/")
+	contrast.Run(ctx, t, 1*time.Minute, "verify", "-c", coordinatorIP+":1313")
 
 	require.True(t, t.Run("apply-demo", func(t *testing.T) {
 		require := require.New(t)
@@ -176,7 +178,7 @@ func TestRelease(t *testing.T) {
 
 		c := http.Client{
 			Transport: &http.Transport{
-				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 					return (&net.Dialer{}).DialContext(ctx, "tcp", net.JoinHostPort(emojiwebIP, "443"))
 				},
 				TLSClientConfig: cfg,
@@ -186,6 +188,7 @@ func TestRelease(t *testing.T) {
 		require.NoError(err)
 		resp, err := c.Do(req)
 		require.NoError(err)
+		defer resp.Body.Close()
 		require.Equal(http.StatusOK, resp.StatusCode)
 	})
 }
@@ -194,7 +197,7 @@ type contrast struct {
 	dir string
 }
 
-func (c *contrast) Run(t *testing.T, ctx context.Context, timeout time.Duration, args ...string) {
+func (c *contrast) Run(ctx context.Context, t *testing.T, timeout time.Duration, args ...string) {
 	require.True(t, t.Run(args[0], func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
