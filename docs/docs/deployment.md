@@ -314,7 +314,7 @@ For demonstration purposes, you can simulate this scenario by deleting the Coord
 kubectl delete pod -l app.kubernetes.io/name=coordinator
 ```
 
-Kubernetes schedules a new pod, but that pod does not have access to the key material and can't issue certificates for workloads yet.
+Kubernetes schedules a new pod, but that pod doesn't have access to the key material and can't issue certificates for workloads yet.
 You can confirm this by running `verify` again, or you can restart a workload pod, which should stay in the initialization phase.
 However, the secret seed in your working directory is sufficient to recover the coordinator.
 
