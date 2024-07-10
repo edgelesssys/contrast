@@ -77,7 +77,7 @@ func TestIngressEgress(t *testing.T) {
 
 			tlsConf := &tls.Config{RootCAs: pool}
 			hc := &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConf}}
-			req, err := http.NewRequest("GET", fmt.Sprintf("https://%s/", web), nil)
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s/", web), http.NoBody)
 			require.NoError(err)
 			resp, err := hc.Do(req)
 			require.NoError(err)

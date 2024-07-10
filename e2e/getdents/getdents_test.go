@@ -76,7 +76,7 @@ func TestGetDEnts(t *testing.T) {
 
 		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, pods[0].Name, []string{"/bin/sh", "-c", "find /toomany | wc -l"})
 		require.NoError(err, "stderr: %q", stderr)
-		require.Equal(stdout, "10001\n", "output: %s", stdout)
+		require.Equal("10001\n", stdout, "output: %s", stdout)
 	})
 }
 
