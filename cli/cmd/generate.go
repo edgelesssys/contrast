@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -238,10 +239,10 @@ func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger 
 }
 
 func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath, genpolicyCachePath string, yamlPaths []string, logger *slog.Logger) error {
-	if err := createFileWithDefault(policySettingsPath, func() ([]byte, error) { return defaultGenpolicySettings, nil }); err != nil {
+	if err := createFileWithDefault(policySettingsPath, 0o644, func() ([]byte, error) { return defaultGenpolicySettings, nil }); err != nil {
 		return fmt.Errorf("creating default policy file: %w", err)
 	}
-	if err := createFileWithDefault(regoRulesPath, func() ([]byte, error) { return defaultRules, nil }); err != nil {
+	if err := createFileWithDefault(regoRulesPath, 0o644, func() ([]byte, error) { return defaultRules, nil }); err != nil {
 		return fmt.Errorf("creating default policy.rego file: %w", err)
 	}
 	binaryInstallDir, err := installDir()
@@ -509,7 +510,7 @@ func generateWorkloadOwnerKey(flags *generateFlags) error {
 	}
 	keyPath := flags.workloadOwnerKeys[0]
 
-	if err := createFileWithDefault(keyPath, manifest.NewWorkloadOwnerKey); err != nil {
+	if err := createFileWithDefault(keyPath, 0o600, manifest.NewWorkloadOwnerKey); err != nil {
 		return fmt.Errorf("creating default workload owner key file: %w", err)
 	}
 	return nil
@@ -523,7 +524,7 @@ func generateSeedshareOwnerKey(flags *generateFlags) error {
 	}
 	keyPath := flags.seedshareOwnerKeys[0]
 
-	if err := createFileWithDefault(keyPath, manifest.NewSeedShareOwnerPrivateKey); err != nil {
+	if err := createFileWithDefault(keyPath, 0o600, manifest.NewSeedShareOwnerPrivateKey); err != nil {
 		return fmt.Errorf("creating default seedshare owner key file: %w", err)
 	}
 	return nil
@@ -646,8 +647,8 @@ func readFileOrDefault(path string, deflt []byte) ([]byte, error) {
 
 // createFileWithDefault creates the file at path with the default value,
 // if it doesn't exist.
-func createFileWithDefault(path string, dflt func() ([]byte, error)) error {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+func createFileWithDefault(path string, perm fs.FileMode, dflt func() ([]byte, error)) error {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, perm)
 	if os.IsExist(err) {
 		return nil
 	}
