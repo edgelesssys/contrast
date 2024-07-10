@@ -136,7 +136,7 @@ func TestRelease(t *testing.T) {
 		}
 	}), "unpacking needs to succeed for subsequent tests to run")
 
-	contrast.Run(t, ctx, 2*time.Minute, "generate", "deployment/")
+	contrast.Run(t, ctx, 2*time.Minute, "generate", "--reference-values", "aks-clh-snp", "deployment/")
 	contrast.Run(t, ctx, 1*time.Minute, "set", "-c", coordinatorIP+":1313", "deployment/")
 	contrast.Run(t, ctx, 1*time.Minute, "verify", "-c", coordinatorIP+":1313")
 
