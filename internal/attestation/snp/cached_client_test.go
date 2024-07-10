@@ -113,9 +113,6 @@ func TestMemcachedHTTPSGetter(t *testing.T) {
 		go getFunc()
 		go getFunc()
 		wg.Wait()
-
-		// It's possible that the cache is not yet populated when it is checked by the second Get.
-		assert.Less(fakeGetter.hits["foo"], numGets)
 	})
 }
 
