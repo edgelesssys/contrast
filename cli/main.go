@@ -48,7 +48,7 @@ func buildVersionString() string {
 		}
 	}
 	fmt.Fprint(versionsWriter, "\n")
-	fmt.Fprintf(versionsWriter, "reference values %s\n", platforms.AKSCloudHypervisorSNP.String())
+	fmt.Fprintf(versionsWriter, "reference values for %s platform:\n", platforms.AKSCloudHypervisorSNP.String())
 	fmt.Fprintf(versionsWriter, "\truntime handler:\tcontrast-cc-%s\n", manifest.TrustedMeasurement[:32])
 	fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", manifest.TrustedMeasurement)
 	fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", genpolicyVersion)
