@@ -26,3 +26,9 @@ The policy limitations, in particular the missing guarantee that our service mes
 ## Tooling integration
 
 - **CLI availability**: The CLI tool is currently only available for Linux. This limitation arises because certain upstream dependencies haven't yet been ported to other platforms.
+
+## Automatic Recovery and High Availability
+
+The Contrast Coordinator is a singleton and can't be scaled to more than one instance.
+When this instance's pod is restarted, for example for node maintenance, it needs to be recovered manually.
+In a future release, we plan to support distributed Coordinator instances that can recover automatically.

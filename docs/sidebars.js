@@ -127,6 +127,11 @@ const sidebars = {
         },
         {
           type: 'doc',
+          label: 'Secrets & Recovery',
+          id: 'architecture/secrets',
+        },
+        {
+          type: 'doc',
           label: 'Certificate authority',
           id: 'architecture/certificates',
         },
