@@ -101,6 +101,10 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
 
+		if t.Failed() {
+			ct.Kubeclient.LogDebugInfo(ctx)
+		}
+
 		if !ct.SkipUndeploy {
 			if err := ct.Kubeclient.Delete(ctx, namespace...); err != nil {
 				t.Logf("Could not delete namespace %q: %v", ct.Namespace, err)
