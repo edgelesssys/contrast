@@ -13,6 +13,7 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/spf13/cobra"
 )
 
@@ -34,29 +35,33 @@ var (
 	genpolicyVersion = "0.0.0-dev"
 )
 
-func newRootCmd() *cobra.Command {
-	// build the versions string
+func buildVersionString() string {
 	var versionsBuilder strings.Builder
 	versionsWriter := tabwriter.NewWriter(&versionsBuilder, 0, 0, 4, ' ', 0)
 	fmt.Fprintf(versionsWriter, "%s\n\n", version)
-	fmt.Fprintf(versionsWriter, "\truntime handler:\tcontrast-cc-%s\n", manifest.TrustedMeasurement[:32])
-	fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", manifest.TrustedMeasurement)
-	fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", genpolicyVersion)
-	fmt.Fprintf(versionsWriter, "\timage versions:\n")
+	fmt.Fprintf(versionsWriter, "container image versions:\n")
 	imageReplacements := strings.Trim(string(cmd.ReleaseImageReplacements), "\n")
 	for _, image := range strings.Split(imageReplacements, "\n") {
 		if !strings.HasPrefix(image, "#") {
 			image = strings.Split(image, "=")[1]
-			fmt.Fprintf(versionsWriter, "\t\t%s\n", image)
+			fmt.Fprintf(versionsWriter, "\t%s\n", image)
 		}
 	}
+	fmt.Fprint(versionsWriter, "\n")
+	fmt.Fprintf(versionsWriter, "reference values for %s platform:\n", platforms.AKSCloudHypervisorSNP.String())
+	fmt.Fprintf(versionsWriter, "\truntime handler:\tcontrast-cc-%s\n", manifest.TrustedMeasurement[:32])
+	fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", manifest.TrustedMeasurement)
+	fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", genpolicyVersion)
 	versionsWriter.Flush()
+	return versionsBuilder.String()
+}
 
+func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:              "contrast",
 		Short:            "contrast",
 		PersistentPreRun: preRunRoot,
-		Version:          versionsBuilder.String(),
+		Version:          buildVersionString(),
 	}
 	root.SetOut(os.Stdout)
 
