@@ -1,0 +1,59 @@
+From c72d6884359e14fddb5da54d9bf57939985ba323 Mon Sep 17 00:00:00 2001
+From: Tom Dohrmann <erbse.13@gmx.de>
+Date: Wed, 10 Jul 2024 13:31:34 +0200
+Subject: [PATCH 2/2] add options for library paths
+
+For some reason meson fails to find these when building with pkgsStatic
+in Nix.
+---
+ meson.build       | 6 ++++--
+ meson_options.txt | 2 ++
+ 2 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/meson.build b/meson.build
+index 91a0aa64c6..dd72a76c86 100644
+--- a/meson.build
++++ b/meson.build
+@@ -990,7 +990,8 @@ zlib = dependency('zlib', required: true)
+ libaio = not_found
+ if not get_option('linux_aio').auto() or have_block
+   libaio = cc.find_library('aio', has_headers: ['libaio.h'],
+-                           required: get_option('linux_aio'))
++                           required: get_option('linux_aio'),
++                           dirs: [get_option('linux_aio_path')])
+ endif
+ 
+ linux_io_uring_test = '''
+@@ -3171,7 +3172,8 @@ if fdt_required.length() > 0 or fdt_opt == 'enabled'
+     if get_option('wrap_mode') == 'nodownload'
+       fdt_opt = 'system'
+     endif
+-    fdt = cc.find_library('fdt', required: fdt_opt == 'system')
++    fdt = cc.find_library('fdt', required: fdt_opt == 'system',
++                           dirs: [get_option('linux_fdt_path')])
+     if fdt.found() and cc.links('''
+        #include <libfdt.h>
+        #include <libfdt_env.h>
+diff --git a/meson_options.txt b/meson_options.txt
+index 0a99a059ec..ad5067e84d 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -186,6 +186,7 @@ option('libusb', type : 'feature', value : 'auto',
+        description: 'libusb support for USB passthrough')
+ option('linux_aio', type : 'feature', value : 'auto',
+        description: 'Linux AIO support')
++option('linux_aio_path', type: 'string', value: '', description: 'Path for libaio.a')
+ option('linux_io_uring', type : 'feature', value : 'auto',
+        description: 'Linux io_uring support')
+ option('lzfse', type : 'feature', value : 'auto',
+@@ -311,6 +312,7 @@ option('capstone', type: 'feature', value: 'auto',
+ option('fdt', type: 'combo', value: 'auto',
+        choices: ['disabled', 'enabled', 'auto', 'system', 'internal'],
+        description: 'Whether and how to find the libfdt library')
++option('linux_fdt_path', type: 'string', value: '', description: 'Path for libfdt.a')
+ 
+ option('selinux', type: 'feature', value: 'auto',
+        description: 'SELinux support in qemu-nbd')
+-- 
+2.45.1
+

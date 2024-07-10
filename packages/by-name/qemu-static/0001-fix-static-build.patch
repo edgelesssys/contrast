@@ -1,0 +1,39 @@
+From 810a25b750a9852cb916e596cb94a40191c57e04 Mon Sep 17 00:00:00 2001
+From: Tom Dohrmann <erbse.13@gmx.de>
+Date: Wed, 10 Jul 2024 13:26:36 +0200
+Subject: [PATCH] fix static build
+
+---
+ libfdt/meson.build | 2 +-
+ tests/run_tests.sh | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/libfdt/meson.build b/libfdt/meson.build
+index 240bdf4..91b05f3 100644
+--- a/libfdt/meson.build
++++ b/libfdt/meson.build
+@@ -53,7 +53,7 @@ install_headers(
+ pkgconfig = import('pkgconfig')
+ 
+ pkgconfig.generate(
+-  libraries: libfdt,
++  libraries: link_with,
+   version: meson.project_version(),
+   filebase: 'libfdt',
+   name: 'libfdt',
+diff --git a/tests/run_tests.sh b/tests/run_tests.sh
+index 91350ad..a398e03 100755
+--- a/tests/run_tests.sh
++++ b/tests/run_tests.sh
+@@ -185,7 +185,7 @@ run_dtc_test () {
+ }
+ 
+ asm_to_so () {
+-    $CC -shared -o $1.test.so "$SRCDIR/data.S" $1.test.s
++    :
+ }
+ 
+ asm_to_so_test () {
+-- 
+2.45.1
+
