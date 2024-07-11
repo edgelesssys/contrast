@@ -48,14 +48,10 @@ rustPlatform.buildRustPackage rec {
   buildInputs = [ openssl ];
 
   buildNoDefaultFeatures = true;
-  buildFeatures =
-    [
-      "mshv"
-      "kvm"
-    ]
-    ++ lib.optional withIGVM [ "igvm" ]
-    ++ lib.optional withSEVSNP [ "snp" ]
-    ++ lib.optional withTDX [ "tdx" ];
+  buildFeatures = [
+    "mshv"
+    "kvm"
+  ] ++ lib.optional withIGVM "igvm" ++ lib.optional withSEVSNP "snp" ++ lib.optional withTDX "tdx";
 
   OPENSSL_NO_VENDOR = true;
 
