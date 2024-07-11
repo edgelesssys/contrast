@@ -6,6 +6,7 @@
   projectRootFile = "flake.nix";
   programs = {
     # keep-sorted start block=true
+    actionlint.enable = true;
     deadnix.enable = true;
     formatjson5 = {
       enable = true;
