@@ -5,21 +5,56 @@ package kubeclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 )
 
-// PortForwardPod starts a port forward to the selected pod.
+// WithForwardedPort opens a local port, forwards it to the given pod and invokes the func with the local address.
 //
-// On success, the function returns a TCP address that clients can connect to and a function to
-// cancel the port forwarding.
-func (k *Kubeclient) PortForwardPod(ctx context.Context, namespace, podName, remotePort string) (string, func(), error) {
+// If the func fails and port-forwarding had an error, too, the func is retried up to two times.
+func (k *Kubeclient) WithForwardedPort(ctx context.Context, namespace, podName, remotePort string, f func(addr string) error) error {
+	var funcErr error
+	for i := range 3 {
+		log := k.log.With("attempt", i, "namespace", namespace, "pod", podName, "port", remotePort)
+
+		addr, cancel, errorCh, err := k.portForwardPod(ctx, namespace, podName, remotePort)
+		if err != nil {
+			log.Error("Could not forward port", "error", err)
+			funcErr = err
+			continue
+		}
+		log.Info("forwarded port", "addr", addr)
+		funcErr = f(addr)
+		cancel()
+		if funcErr == nil {
+			return nil
+		}
+		log.Error("port-forwarded func failed", "error", err)
+		select {
+		case err := <-errorCh:
+			log.Error("Encountered port forwarding error", "error", err)
+			continue
+		default:
+			if errors.Is(funcErr, io.EOF) {
+				log.Info("io.EOF during port-forwarding triggered retry")
+				continue
+			}
+			log.Info("no port-forwarding error")
+			return funcErr
+		}
+	}
+	return funcErr
+}
+
+func (k *Kubeclient) portForwardPod(ctx context.Context, namespace, podName, remotePort string) (string, func(), <-chan error, error) {
 	// We can only forward to the pod once it's ready.
 	if err := k.WaitForPod(ctx, namespace, podName); err != nil {
-		return "", nil, fmt.Errorf("waiting for pod %s: %w", podName, err)
+		return "", nil, nil, fmt.Errorf("waiting for pod %s: %w", podName, err)
 	}
 
 	// This channel sends a stop request to the portforwarding goroutine.
@@ -38,7 +73,7 @@ func (k *Kubeclient) PortForwardPod(ctx context.Context, namespace, podName, rem
 
 	transport, upgrader, err := spdy.RoundTripperFor(k.config)
 	if err != nil {
-		return "", nil, fmt.Errorf("creating round tripper: %w", err)
+		return "", nil, nil, fmt.Errorf("creating round tripper: %w", err)
 	}
 
 	dialer := spdy.NewDialer(upgrader, &http.Client{Transport: transport}, http.MethodPost, req.URL())
@@ -51,7 +86,7 @@ func (k *Kubeclient) PortForwardPod(ctx context.Context, namespace, podName, rem
 		nil, nil,
 	)
 	if err != nil {
-		return "", nil, fmt.Errorf("creating portforwarder: %w", err)
+		return "", nil, nil, fmt.Errorf("creating portforwarder: %w", err)
 	}
 
 	go func() {
@@ -65,18 +100,18 @@ func (k *Kubeclient) PortForwardPod(ctx context.Context, namespace, podName, rem
 		ports, err := fw.GetPorts()
 		if err != nil {
 			close(stopCh)
-			return "", nil, fmt.Errorf("getting ports: %w", err)
+			return "", nil, nil, fmt.Errorf("getting ports: %w", err)
 		}
 		cleanUp := func() {
 			close(stopCh)
 		}
-		return fmt.Sprintf("localhost:%d", ports[0].Local), cleanUp, nil
+		return fmt.Sprintf("localhost:%d", ports[0].Local), cleanUp, errorCh, nil
 
 	case <-ctx.Done():
 		close(stopCh)
-		return "", nil, fmt.Errorf("waiting for port forward to be ready: %w", ctx.Err())
+		return "", nil, nil, fmt.Errorf("waiting for port forward to be ready: %w", ctx.Err())
 	case err := <-errorCh:
 		close(stopCh)
-		return "", nil, fmt.Errorf("background port-forwarding routine failed: %w", err)
+		return "", nil, nil, fmt.Errorf("background port-forwarding routine failed: %w", err)
 	}
 }

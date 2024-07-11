@@ -20,6 +20,7 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,18 +72,21 @@ func TestIngressEgress(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 			defer cancel()
 
-			web, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-web-svc", "443")
-			require.NoError(err)
-			t.Cleanup(cancelPortForward)
-
-			tlsConf := &tls.Config{RootCAs: pool}
-			hc := &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConf}}
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s/", web), http.NoBody)
-			require.NoError(err)
-			resp, err := hc.Do(req)
-			require.NoError(err)
-			defer resp.Body.Close()
-			require.Equal(http.StatusOK, resp.StatusCode)
+			require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-web-svc", "443", func(addr string) error {
+				tlsConf := &tls.Config{RootCAs: pool}
+				hc := &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConf}}
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s/", addr), http.NoBody)
+				if !assert.NoError(t, err) {
+					return nil
+				}
+				resp, err := hc.Do(req)
+				if err != nil {
+					return err
+				}
+				resp.Body.Close()
+				assert.Equal(t, http.StatusOK, resp.StatusCode)
+				return nil
+			}))
 		})
 	}
 
