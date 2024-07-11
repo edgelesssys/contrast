@@ -24,6 +24,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/node-installer/platforms"
 	ksync "github.com/katexochen/sync/api/client"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 )
 
@@ -180,60 +181,22 @@ func (ct *ContrastTest) Apply(t *testing.T) {
 func (ct *ContrastTest) Set(t *testing.T) {
 	require := require.New(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
-	require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
-
-	coordinator, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-coordinator", "1313")
-	require.NoError(err)
-	defer cancelPortForward()
-
-	args := append(ct.commonArgs(),
-		"--coordinator-policy-hash", ct.coordinatorPolicyHash,
-		"--coordinator", coordinator,
-		path.Join(ct.WorkDir, "resources.yaml"))
-
-	set := cmd.NewSetCmd()
-	set.Flags().String("workspace-dir", "", "") // Make set aware of root flags
-	set.SetArgs(args)
-	set.SetOut(io.Discard)
-	errBuf := &bytes.Buffer{}
-	set.SetErr(errBuf)
-
-	require.NoError(set.Execute(), "could not set manifest at coordinator: %s", errBuf)
+	require.NoError(ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), path.Join(ct.WorkDir, "resources.yaml")))
 }
 
 // RunVerify runs the contrast verify subcommand.
 func (ct *ContrastTest) RunVerify() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
-	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"); err != nil {
-		return fmt.Errorf("waiting for coordinator: %w", err)
-	}
-
-	coordinator, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-coordinator", "1313")
-	if err != nil {
+	if err := ct.runAgainstCoordinator(ctx, cmd.NewVerifyCmd()); err != nil {
 		return err
 	}
-	defer cancelPortForward()
 
-	verify := cmd.NewVerifyCmd()
-	verify.Flags().String("workspace-dir", "", "") // Make verify aware of root flags
-	verify.SetArgs(append(
-		ct.commonArgs(),
-		"--coordinator-policy-hash", ct.coordinatorPolicyHash,
-		"--coordinator", coordinator,
-	))
-	verify.SetOut(io.Discard)
-	errBuf := &bytes.Buffer{}
-	verify.SetErr(errBuf)
-
-	if err := verify.Execute(); err != nil {
-		return fmt.Errorf("running verify failed: %w\n%s", err, errBuf)
-	}
-
+	var err error
 	ct.meshCACertPEM, err = os.ReadFile(path.Join(ct.WorkDir, "mesh-ca.pem"))
 	if err != nil {
 		return fmt.Errorf("no mesh ca cert: %w", err)
@@ -254,27 +217,10 @@ func (ct *ContrastTest) Verify(t *testing.T) {
 func (ct *ContrastTest) Recover(t *testing.T) {
 	require := require.New(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
-	require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
-
-	coordinator, cancelPortForward, err := ct.Kubeclient.PortForwardPod(ctx, ct.Namespace, "port-forwarder-coordinator", "1313")
-	require.NoError(err)
-	defer cancelPortForward()
-
-	args := append(ct.commonArgs(),
-		"--coordinator-policy-hash", ct.coordinatorPolicyHash,
-		"--coordinator", coordinator)
-
-	set := cmd.NewRecoverCmd()
-	set.Flags().String("workspace-dir", "", "") // Make set aware of root flags
-	set.SetArgs(args)
-	set.SetOut(io.Discard)
-	errBuf := &bytes.Buffer{}
-	set.SetErr(errBuf)
-
-	require.NoError(set.Execute(), "could not recover coordinator: %s", errBuf)
+	require.NoError(ct.runAgainstCoordinator(ctx, cmd.NewRecoverCmd()))
 }
 
 // MeshCACert returns a CertPool that contains the coordinator mesh CA cert.
@@ -315,6 +261,32 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 	require.NoError(ct.Kubeclient.Apply(ctx, unstructuredResources...))
 
 	require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.DaemonSet{}, ct.Namespace, "contrast-node-installer"))
+}
+
+// runAgainstCoordinator forwards the coordinator port and executes the command against it.
+func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Command, args ...string) error {
+	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"); err != nil {
+		return fmt.Errorf("waiting for coordinator: %w", err)
+	}
+
+	// Make the subcommand aware of the persistent flag.
+	// Do it outside the closure because declaring a flag twice panics.
+	cmd.Flags().String("workspace-dir", "", "")
+
+	return ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", "1313", func(addr string) error {
+		commonArgs := append(ct.commonArgs(),
+			"--coordinator-policy-hash", ct.coordinatorPolicyHash,
+			"--coordinator", addr)
+		cmd.SetArgs(append(commonArgs, args...))
+		cmd.SetOut(io.Discard)
+		errBuf := &bytes.Buffer{}
+		cmd.SetErr(errBuf)
+
+		if err := cmd.Execute(); err != nil {
+			return fmt.Errorf("running %q: %s", cmd.Use, errBuf)
+		}
+		return nil
+	})
 }
 
 func makeNamespace(t *testing.T) string {
