@@ -70,4 +70,4 @@ jobs:
       - name: Cleanup
         if: cancelled() && !inputs.skip-undeploy
         run: |
-          kubectl delete ns $(cat workspace/e2e.namespace) --timeout 5m
+          kubectl delete ns "$(cat workspace/e2e.namespace)" --timeout 5m
