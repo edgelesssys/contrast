@@ -27,6 +27,7 @@ runs:
       run: |
         cd ${{ inputs.working-directory }}
 
+        current=$(<version.txt)
         echo -n "${{ inputs.version }}" > version.txt
 
         commit_msg="flake: ${current} -> ${{ inputs.version }}"
