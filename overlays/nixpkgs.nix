@@ -10,15 +10,6 @@ final: prev: {
   #     hash = "";
   #   };
   # });
-  go_1_22 = prev.go_1_22.overrideAttrs (
-    finalAttrs: _prevAttrs: {
-      version = "1.22.4";
-      src = final.fetchurl {
-        url = "https://go.dev/dl/go${finalAttrs.version}.src.tar.gz";
-        hash = "sha256-/tcgZ45yinyjC6jR3tHKr+J9FgKPqwIyuLqOIgCPt4Q=";
-      };
-    }
-  );
 
   # Add the required extensions to the Azure CLI.
   azure-cli = prev.azure-cli.override {
