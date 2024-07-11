@@ -54,9 +54,9 @@ jobs:
       - name: Set sync environemnt
         run: |
           sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a $GITHUB_ENV
+          echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"
           sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
-          echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a $GITHUB_ENV
+          echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
       - name: Build and prepare deployments
         run: |
           just coordinator initializer openssl port-forwarder node-installer
@@ -69,4 +69,4 @@ jobs:
       - name: Cleanup
         if: cancelled() && !inputs.skip-undeploy
         run: |
-          kubectl delete ns $(cat workspace/e2e.namespace) --timeout 5m
+          kubectl delete ns "$(cat workspace/e2e.namespace)" --timeout 5m

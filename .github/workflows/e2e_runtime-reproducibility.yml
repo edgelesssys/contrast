@@ -27,16 +27,17 @@ jobs:
       - uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: "" # Don't use the cachix cache
       - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
       - name: Build
         id: build
         run: |
           nix build .#${{ matrix.build-target }} --option substituters https://cache.nixos.org --builders ""
-          reference_checksum="$(cat result/index.json | jq  -r '.manifests[0].digest')"
+          reference_checksum="$(jq  -r '.manifests[0].digest' result/index.json)"
           echo "reference-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$reference_checksum" >> "$GITHUB_OUTPUT"
 
           nix build .#${{ matrix.build-target }} --rebuild --option substituters https://cache.nixos.org --builders "" -o rebuild
-          rebuild_checksum="$(cat rebuild/index.json | jq  -r '.manifests[0].digest')"
+          rebuild_checksum="$(jq  -r '.manifests[0].digest' rebuild/index.json)"
           echo "rebuild-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$rebuild_checksum" >> "$GITHUB_OUTPUT"
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
