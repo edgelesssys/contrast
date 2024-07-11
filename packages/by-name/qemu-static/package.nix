@@ -112,5 +112,5 @@ in
         # We applied the same change done to libaio to libfdt as well.
         ./0002-add-options-for-library-paths.patch
       ]
-      ++ lib.optional snpSupport [ snpPatches ];
+      ++ lib.optional snpSupport snpPatches;
   })
