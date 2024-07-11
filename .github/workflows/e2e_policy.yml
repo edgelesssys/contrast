@@ -1,18 +1,18 @@
 name: e2e malicious pod
 
 on:
-    workflow_dispatch:
-      inputs:
-        skip-undeploy:
-          description: "Skip undeploy"
-          required: false
-          type: boolean
-          default: false
-    pull_request:
-      paths-ignore:
-        - dev-docs/**
-        - docs/**
-        - rfc/**
+  workflow_dispatch:
+    inputs:
+      skip-undeploy:
+        description: "Skip undeploy"
+        required: false
+        type: boolean
+        default: false
+  pull_request:
+    paths-ignore:
+      - dev-docs/**
+      - docs/**
+      - rfc/**
 
 env:
   container_registry: ghcr.io/edgelesssys
