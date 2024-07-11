@@ -37,6 +37,7 @@ let
       "e2e/openssl"
       "e2e/servicemesh"
       "e2e/release"
+      "e2e/policy"
     ];
   };
 
