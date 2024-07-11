@@ -1,4 +1,4 @@
-name: stactic checks
+name: static checks
 
 on:
   workflow_dispatch:
