@@ -1,4 +1,4 @@
-name: e2e malicious pod
+name: e2e test malicious pod
 
 on:
   workflow_dispatch:
