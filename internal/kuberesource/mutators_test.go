@@ -52,8 +52,9 @@ func TestPatchNamespaces(t *testing.T) {
 			require.NoError(err)
 			require.NotEmpty(u)
 			for _, obj := range u {
-				meta := obj.Object["metadata"].(map[string]any)
-				_, ok := meta["namespace"]
+				meta, ok := obj.Object["metadata"].(map[string]any)
+				require.True(ok)
+				_, ok = meta["namespace"]
 				require.False(ok, "namespace should have been deleted")
 			}
 		})
