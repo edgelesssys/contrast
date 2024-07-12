@@ -342,10 +342,12 @@ func ensureMapPath(in *map[string]any, path ...string) map[string]any {
 	}
 	current := *in
 	for _, p := range path {
-		if current[p] == nil {
-			current[p] = make(map[string]any)
+		cur, ok := current[p].(map[string]any)
+		if !ok || cur == nil {
+			cur = make(map[string]any)
+			current[p] = cur
 		}
-		current = current[p].(map[string]any)
+		current = cur
 	}
 	return current
 }

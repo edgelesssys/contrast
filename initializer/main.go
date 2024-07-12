@@ -73,7 +73,7 @@ func run() (retErr error) {
 		return resp, nil
 	}
 
-	resp := &meshapi.NewMeshCertResponse{}
+	var resp *meshapi.NewMeshCertResponse
 	for {
 		resp, err = requestCert()
 		if err == nil {
