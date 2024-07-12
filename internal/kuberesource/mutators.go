@@ -214,14 +214,14 @@ func PatchImages(resources []any, replacements map[string]string) []any {
 	var out []any
 	for _, resource := range resources {
 		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-			for i := 0; i < len(spec.InitContainers); i++ {
+			for i := range len(spec.InitContainers) {
 				if spec.InitContainers[i].Image != nil {
 					if replacement, ok := replacements[*spec.InitContainers[i].Image]; ok {
 						spec.InitContainers[i].Image = &replacement
 					}
 				}
 			}
-			for i := 0; i < len(spec.Containers); i++ {
+			for i := range len(spec.Containers) {
 				if spec.Containers[i].Image != nil {
 					if replacement, ok := replacements[*spec.Containers[i].Image]; ok {
 						spec.Containers[i].Image = &replacement
