@@ -31,7 +31,7 @@ func CoordinatorBundle() []any {
 func Runtime(platform platforms.Platform) ([]any, error) {
 	ns := ""
 
-	runtimeClass := ContrastRuntimeClass().RuntimeClassApplyConfiguration
+	runtimeClass := ContrastRuntimeClass(platform).RuntimeClassApplyConfiguration
 	nodeInstaller, err := NodeInstaller(ns, platform)
 	if err != nil {
 		return nil, fmt.Errorf("creating node installer: %w", err)
