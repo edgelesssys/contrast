@@ -28,7 +28,7 @@ Coordinator](../deployment#verify-the-coordinator) respectively.
 The `meshapi.MeshAPI` service records metrics for the method `NewMeshCert`, which
 gets called by the [Initializer](../components#the-initializer) when starting a
 new workload. Attestation failures from workloads to the Coordinator can be
-tracked with the counter `contrast_meshapi_attestation_failures`.
+tracked with the counter `contrast_meshapi_attestation_failures_total`.
 
 The current manifest generation is exposed as a
 [gauge](https://prometheus.io/docs/concepts/metric_types/#gauge) with the metric

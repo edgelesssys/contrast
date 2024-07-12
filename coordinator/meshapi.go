@@ -49,7 +49,7 @@ func newMeshAPIServer(meshAuth *authority.Authority, bundleGetter certBundleGett
 
 	attestationFailuresCounter := promauto.With(reg).NewCounter(prometheus.CounterOpts{
 		Subsystem: "contrast_meshapi",
-		Name:      "attestation_failures",
+		Name:      "attestation_failures_total",
 		Help:      "Number of attestation failures from workloads to the Coordinator.",
 	})
 
