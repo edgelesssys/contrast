@@ -4,7 +4,7 @@
 {
   stdenvNoCC,
   kata,
-  OVMF,
+  OVMF-SNP,
   debugRuntime ? false,
   qemu-static,
 }:
@@ -15,7 +15,7 @@ let
 
   qemu-bin = "${qemu-static}/bin/qemu-system-x86_64";
 
-  ovmf = "${OVMF.fd}/FV/OVMF.fd";
+  ovmf = "${OVMF-SNP}/FV/OVMF.fd";
 
   containerd-shim-contrast-cc-v2 = "${kata.kata-runtime}/bin/containerd-shim-kata-v2";
 
