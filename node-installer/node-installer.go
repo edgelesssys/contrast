@@ -4,6 +4,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -241,8 +243,21 @@ func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath str
 		return fmt.Errorf("reading containerd config template: %w", err)
 	}
 
+	// Don't add the runtime section if it already exists.
+	runtimeSection := fmt.Sprintf("[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.%s]", runtimeName)
+	if bytes.Contains(existingConfig, []byte(runtimeSection)) {
+		fmt.Printf("Runtime section %q already exists\n", runtimeSection)
+		return nil
+	}
+
+	// PluginFragment contains just the `Plugins` property used to configure containerd.
+	type PluginFragment struct {
+		// Plugins provides plugin specific configuration for the initialization of a plugin
+		Plugins map[string]any `toml:"plugins"`
+	}
+
 	// Extend a scratchpad config with the new plugin configuration. (including the new contrast-cc runtime)
-	var newConfigFragment config.ContainerdConfig
+	var newConfigFragment PluginFragment
 	runtimes := ensureMapPath(&newConfigFragment.Plugins, constants.CRIFQDN, "containerd", "runtimes")
 	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, "no-snapshotter", platform)
 	if err != nil {
@@ -250,8 +265,7 @@ func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath str
 	}
 	runtimes[runtimeName] = containerdRuntimeConfig
 
-	// We purposely don't marshal the full config, as we only want to append the plugin section.
-	rawNewPluginConfig, err := toml.Marshal(newConfigFragment.Plugins)
+	rawNewPluginConfig, err := toml.Marshal(newConfigFragment)
 	if err != nil {
 		return fmt.Errorf("marshaling containerd runtime config: %w", err)
 	}
@@ -259,8 +273,58 @@ func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath str
 	// First append the existing config template by a newline, so that if it ends without a newline,
 	// the new config fragment isn't appended to the last line..
 	newRawConfig := append(existingConfig, []byte("\n")...)
-	// ..then append the new config fragment
-	newRawConfig = append(newRawConfig, rawNewPluginConfig...)
+
+	// The marshalled config is shaped like a tree with the important bits at
+	// the leaves and lots of empty parent nodes (except for the link the one
+	// child):
+	// A > B > C > D > E=foo
+	//             | > F > G=bar
+	//                 | > H=baz
+	// Nodes that don't contain any keys, but only contain a links to children
+	// are marshalled as empty sections:
+	// ```toml
+	// [A] # <- empty section
+	// [A.B] # <- empty section
+	// [A.B.C] # <- empty section
+	// [A.B.C.D] # <- non-empty section
+	// E = "foo"
+	// [A.B.C.D.F] # <- non-empty section
+	// G = "bar"
+	// H = "baz"
+	// ```
+	// We want to avoid appending empty sections (i.e. sections with only a
+	// section header, but no keys) to the file because there's a chance that
+	// they already exist in the template and creating duplicate sections is
+	// illegal.
+	// On the other hand, omitting intermediate empty sections is always legal
+	// in TOML, so there's no risk in omitting empty sections.
+	//
+	// We iterate over the marshalled config line by line. If we encounter a
+	// section header, we don't immediately append it to the file, but buffer
+	// it in `pendingHeaderSection`. If the next line is also a section header,
+	// we discard the value in `pendingHeaderSection` and fill it with the new
+	// section header. If we encounter a non-section header line, we flush the
+	// value of `pendingHeaderSection` to the file, before adding the
+	// non-section header line.
+	//
+	// TODO(freax13): One day, go-toml might add an option to omit empty
+	//                sections: https://github.com/pelletier/go-toml/issues/957
+	var pendingHeaderSection []byte
+	scanner := bufio.NewScanner(bytes.NewReader(rawNewPluginConfig))
+	for scanner.Scan() {
+		// Is the line a section header?
+		if strings.HasPrefix(scanner.Text(), "[") {
+			pendingHeaderSection = scanner.Bytes()
+			continue
+		}
+		if len(pendingHeaderSection) != 0 {
+			newRawConfig = append(newRawConfig, pendingHeaderSection...)
+			newRawConfig = append(newRawConfig, []byte("\n")...)
+			pendingHeaderSection = []byte{}
+		}
+		newRawConfig = append(newRawConfig, scanner.Bytes()...)
+		newRawConfig = append(newRawConfig, []byte("\n")...)
+	}
 
 	return os.WriteFile(configTemplatePath, newRawConfig, os.ModePerm)
 }
