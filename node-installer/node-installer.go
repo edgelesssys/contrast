@@ -116,6 +116,9 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	case platforms.K3sQEMUTDX:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
 		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "k3s", "agent", "etc", "containerd", "config.toml")
+	case platforms.K3sQEMUSNP:
+		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-snp.toml")
+		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "k3s", "agent", "etc", "containerd", "config.toml.tmpl")
 	case platforms.RKE2QEMUTDX:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
 		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "rke2", "agent", "etc", "containerd", "config.toml")
@@ -133,7 +136,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 		if err := patchContainerdConfig(config.RuntimeHandlerName, runtimeBase, containerdConfigPath, platform); err != nil {
 			return fmt.Errorf("patching containerd configuration: %w", err)
 		}
-	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
 		// K3s or RKE2: We need to extend the configuration template, which, in it's un-templated form, is non-TOML.
 		// Therefore just write the TOML configuration fragment ourselves and append it to the template file.
 		// This assumes that the user does not yet have a runtime with the same name configured himself,
@@ -153,7 +156,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		return restartHostContainerd(containerdConfigPath, "containerd")
-	case platforms.K3sQEMUTDX:
+	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP:
 		if hostServiceExists("k3s") {
 			return restartHostContainerd(containerdConfigPath, "k3s")
 		} else if hostServiceExists("k3s-agent") {
