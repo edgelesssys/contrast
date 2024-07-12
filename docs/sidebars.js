@@ -112,7 +112,7 @@ const sidebars = {
         },
         {
           type: 'doc',
-          label: 'Service Mesh',
+          label: 'Service mesh',
           id: 'components/service-mesh',
         },
       ]
