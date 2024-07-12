@@ -178,14 +178,14 @@ func AddPortForwarders(resources []any) []any {
 
 // AddPortForwardersForAllPorts adds a port-forwarder for each Service resource that forwardsall ports of that service.
 // This should never be used together with AddPortForwarders.
-func AddPortForwardersForAllPorts(resources []any, ports []int32) []any {
+func AddPortForwardersForAllPorts(resources []any) []any {
 	var out []any
 
 	// construct the port forwarder
 	for _, resource := range resources {
 		switch obj := resource.(type) {
 		case *applycorev1.ServiceApplyConfiguration:
-			out = append(out, AllPortsForwarderForService(obj))
+			out = append(out, PortForwarderForServiceAllPorts(obj))
 		}
 		out = append(out, resource)
 	}

@@ -176,8 +176,8 @@ func (p *PortForwarderConfig) WithForwardTarget(host string, port int32) *PortFo
 	return p
 }
 
-// MultiplePortsForwarder constructs a port forwarder pod for multiple ports.
-func MultiplePortsForwarder(name, namespace string) *PortForwarderConfig {
+// PortForwarderMultiplePorts constructs a port forwarder pod for multiple ports.
+func PortForwarderMultiplePorts(name, namespace string) *PortForwarderConfig {
 	name = "port-forwarder-" + name
 
 	p := Pod(name, namespace).
@@ -197,7 +197,7 @@ func MultiplePortsForwarder(name, namespace string) *PortForwarderConfig {
 	return &PortForwarderConfig{p}
 }
 
-// WithListenPorts sets multiple ports to listen on.
+// WithListenPorts sets multiple ports to listen on. Should only be used if PortForwarderMultiplePorts was used initially.
 func (p *PortForwarderConfig) WithListenPorts(ports []int32) *PortForwarderConfig {
 	var containerPorts []*applycorev1.ContainerPortApplyConfiguration
 	var envVar string
@@ -355,10 +355,10 @@ func PortForwarderForService(svc *applycorev1.ServiceApplyConfiguration) *applyc
 		PodApplyConfiguration
 }
 
-// AllPortsForwarderForService creates a Pod that forwards a list of ports to the given service.
+// PortForwarderForServiceAllPorts creates a Pod that forwards a list of ports to the given service.
 //
 // Port forwarders are named "port-forwarder-SVCNAME".
-func AllPortsForwarderForService(svc *applycorev1.ServiceApplyConfiguration) *applycorev1.PodApplyConfiguration {
+func PortForwarderForServiceAllPorts(svc *applycorev1.ServiceApplyConfiguration) *applycorev1.PodApplyConfiguration {
 	namespace := ""
 	if svc.Namespace != nil {
 		namespace = *svc.Namespace
@@ -369,7 +369,7 @@ func AllPortsForwarderForService(svc *applycorev1.ServiceApplyConfiguration) *ap
 		ports = append(ports, *port.Port)
 	}
 
-	forwarder := MultiplePortsForwarder(*svc.Name, namespace).
+	forwarder := PortForwarderMultiplePorts(*svc.Name, namespace).
 		WithListenPorts(ports).
 		WithForwardTarget(*svc.Name, -1) // port can be -1 since MultiplePortsForwarder ignores FORWARD_PORT env
 
