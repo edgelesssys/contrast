@@ -44,8 +44,7 @@ func TestPolicy(t *testing.T) {
 
 	coordinatorBundle := kuberesource.CoordinatorBundle()
 	resources = append(resources, coordinatorBundle...)
-	//	resources = kuberesource.AddPortForwarders(resources)
-	resources = kuberesource.AddPortForwardersForAllPorts(resources, []int32{123, 456})
+	resources = kuberesource.AddPortForwarders(resources)
 
 	ct.Init(t, resources)
 
