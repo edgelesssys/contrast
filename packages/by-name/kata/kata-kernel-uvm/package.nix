@@ -20,9 +20,8 @@ let
 
     # We don't use an initrd.
     postPatch = ''
-      cat <<- EOF > kata/share/kata-containers/config-6.7-132-confidential
-      CONFIG_INITRAMFS_SOURCE=""
-      EOF
+      substituteInPlace kata/share/kata-containers/config-6.7-132-confidential \
+        --replace-fail 'CONFIG_INITRAMFS_SOURCE="initramfs.cpio.gz"' 'CONFIG_INITRAMFS_SOURCE=""'
     '';
 
     dontBuild = true;
