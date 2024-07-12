@@ -14,15 +14,15 @@
 /** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
 const sidebars = {
   docs: [
-
+    {
+      type: 'doc',
+      label: 'What is Contrast?',
+      id: 'intro',
+    },
     {
       type: 'category',
-      label: 'What is Contrast?',
+      label: 'Basics',
       collapsed: false,
-      link: {
-        type: 'doc',
-        id: 'intro'
-      },
       items: [
         {
           type: 'doc',
@@ -45,10 +45,6 @@ const sidebars = {
       type: 'category',
       label: 'Getting started',
       collapsed: false,
-      link: {
-        type: 'doc',
-        id: 'getting-started/index'
-      },
       items: [
         {
           type: 'doc',
@@ -65,10 +61,6 @@ const sidebars = {
     {
       type: 'category',
       label: 'Examples',
-      link: {
-        type: 'doc',
-        id: 'examples/index'
-      },
       items: [
         {
           type: 'doc',
@@ -90,10 +82,6 @@ const sidebars = {
     {
       type: 'category',
       label: 'Components',
-      link: {
-        type: 'doc',
-        id: 'components/index'
-      },
       items: [
         {
           type: 'doc',
@@ -120,10 +108,6 @@ const sidebars = {
     {
       type: 'category',
       label: 'Architecture',
-      link: {
-        type: 'doc',
-        id: 'architecture/index'
-      },
       items: [
         {
           type: 'doc',
@@ -155,10 +139,6 @@ const sidebars = {
     {
       type: 'category',
       label: 'About',
-      link: {
-        type: 'doc',
-        id: 'about/index'
-      },
       items: [
         {
           type: 'doc',

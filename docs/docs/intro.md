@@ -38,4 +38,4 @@ Contrast provides unique security [features](basics/features.md) and [benefits](
 
 ## Next steps
 
-You can learn more about the concept of [Confidential Containers](basics/confidential-containers.md), [features](basics/features.md), and [security benefits](basics/security-benefits.md) of Contrast in this section. To jump right into the action head to [*Getting started*](getting-started).
+You can learn more about the concept of [Confidential Containers](basics/confidential-containers.md), [features](basics/features.md), and [security benefits](basics/security-benefits.md) of Contrast in this section. To jump right into the action head to [*Getting started*](getting-started/install.md).
