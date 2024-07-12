@@ -36,7 +36,7 @@ The current manifest generation is exposed as a
 name `contrast_coordinator_manifest_generation`. If no manifest is set at the
 Coordinator, this counter will be zero.
 
-## Service Mesh metrics
+## Service mesh metrics
 
 The [Service Mesh](../components/service-mesh.md) can be configured to expose
 metrics via its [Envoy admin

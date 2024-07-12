@@ -56,7 +56,7 @@ Figure 3: Contrast deployment as a composite device. Based on the composite devi
 The [CLI](../components/index.md#the-cli-command-line-interface) serves as the verifier for the Coordinator and the entire Contrast deployment, containing the reference values for the Coordinator and the endorsements from hardware vendors.
 These reference values are built into the CLI during our release process and can be reproduced offline via reproducible builds.
 
-### Relying Party: Data Owner
+### Relying Party: Data owner
 A relying party in the Contrast scenario could be, for example, the [data owner](../basics/security-benefits.md) that interacts with the application.
 The relying party can use the CLI to obtain the attestation results and Contrast's [CA certificates](certificates.md) bound to these results.
 The CA certificates can then be used by the relying party to authenticate the application, for example through TLS connections.
@@ -104,7 +104,7 @@ Attestation results in Contrast are tied to cryptographic proofs generated and s
 These proofs are then verified using public keys from trusted hardware vendors, ensuring that the results aren't only accurate but also resistant to tampering.
 For further authenticity verification, all of Contrast's code is reproducibly built, and the attestation evidence can be verified locally from the source code.
 
-### How are Attestation results used by relying parties?
+### How are attestation results used by relying parties?
 
 Relying parties use attestation results to make informed security decisions, such as allowing access to sensitive data or resources only if the attestation verifies the system's integrity.
 Thereafter, the use of Contrast's [CA certificates in TLS connections](certificates.md) provides a practical approach to communicate securely with the application.

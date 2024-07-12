@@ -11,9 +11,9 @@ It allows for cloud adoption by maintaining a hardware-based separation from the
 
 Leveraging Confidential Computing technology, Contrast provides three defining security properties:
 
-- **Encryption of data in use**: Contrast ensures that all data processed in memory is encrypted, making it inaccessible to unauthorized users or systems, even if they have physical access to the hardware.
-- **Workload isolation**: Each pod runs in its isolated runtime environment, preventing any cross-contamination between workloads, which is critical for multi-tenant infrastructures.
-- **Remote attestation**: This feature allows data owners and workload operators to verify that the Contrast environment executing their workloads hasn't been tampered with and is running in a secure, pre-approved configuration.
+* **Encryption of data in use**: Contrast ensures that all data processed in memory is encrypted, making it inaccessible to unauthorized users or systems, even if they have physical access to the hardware.
+* **Workload isolation**: Each pod runs in its isolated runtime environment, preventing any cross-contamination between workloads, which is critical for multi-tenant infrastructures.
+* **Remote attestation**: This feature allows data owners and workload operators to verify that the Contrast environment executing their workloads hasn't been tampered with and is running in a secure, pre-approved configuration.
 
 The runtime encryption is transparently provided by the confidential computing hardware during the workload's lifetime.
 The workload isolation and remote attestation involves two phases:
@@ -44,10 +44,10 @@ The components that are part of the TCB are:
 
 * **The workload containers**: Container images that run the actual application.
 * **[The runtime environment](../components/runtime.md)**: The confidential micro-VM that acts as the container runtime.
-* **[The sidecar containers](../components/service-mesh.md)**: Containers that provide additional functionality such as [initialization](../components/index.md#the-initializer) and [service mesh](../components/service-mesh.md).
+* **[The sidecar containers](../components/service-mesh.md)**: Containers that provide additional functionality such as [initialization](../components/overview.md#the-initializer) and [service mesh](../components/service-mesh.md).
 * **[The runtime policies](../components/policies.md)**: Policies that enforce the runtime environments for the workload containers during their lifetime.
-* **[The manifest](../components/index.md#the-manifest)**: A manifest file defining the reference values of an entire confidential deployment. It contains the policy hashes for all pods of the deployment and the expected hardware reference values for the Confidential Container runtime.
-* **[The Coordinator](../components/index.md#the-coordinator)**: An attestation service that runs in a Confidential Container in the Kubernetes cluster. The Coordinator is configured with the manifest. User-facing, you can verify this service and the effective manifest using remote attestation, providing you with a concise attestation for the entire deployment. Cluster-facing, it verifies all pods and their policies based on remote attestation procedures and the manifest.
+* **[The manifest](../components/overview.md#the-manifest)**: A manifest file defining the reference values of an entire confidential deployment. It contains the policy hashes for all pods of the deployment and the expected hardware reference values for the Confidential Container runtime.
+* **[The Coordinator](../components/overview.md#the-coordinator)**: An attestation service that runs in a Confidential Container in the Kubernetes cluster. The Coordinator is configured with the manifest. User-facing, you can verify this service and the effective manifest using remote attestation, providing you with a concise attestation for the entire deployment. Cluster-facing, it verifies all pods and their policies based on remote attestation procedures and the manifest.
 
 ## Personas in a Contrast deployment
 
@@ -74,7 +74,6 @@ The following attacks are out of scope for this document:
 * Attacks on the application code itself, such as insufficient access controls.
 * Attacks on the Confidential Computing hardware directly, such as side-channel attacks.
 * Attacks on the availability, such as denial-of-service (DOS) attacks.
-
 
 ### Possible attacks
 
@@ -133,8 +132,9 @@ This table describes potential threats and mitigation strategies to the attestat
 |-----------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------|
 | An attacker intercepts the Coordinator deployment and modifies the image or hijacks the runtime environment.                | This threat is mitigated by having an attestation procedure and attested, encrypted TLS connections to the Coordinator. The attestation evidence for the Coordinator image is distributed with our releases, protected by supply chain security, and fully reproducible.                                                                                                                                                                                                                                                    | Within the [attestation](../architecture/attestation.md)                            |
 | An attacker intercepts the network connection between the workload and the Coordinator and reads secret keys from the wire. | This threat is mitigated by having an attested, encrypted TLS connection. This connection helps protect the secrets from passive eavesdropping. The attacker can't create valid workload certificates that would be accepted in Contrast's service mesh. An attacker can't impersonate a valid workload container because the container's identity is guaranteed by the attestation protocol. | Within the network between your workload and the Coordinator. |
-| An attacker exploits parsing discrepancies, which leads to undetected changes in the attestation process.                   | This risk is mitigated by having a parsing engine written in memory-safe Go that's tested against the attestation specification of the hardware vendor. The runtime policies are available as an attestation artifact for further inspection and audits to verify their effectiveness.                                                                                                                                                                                                                 | Within the [Coordinator](../components/index.md#the-coordinator)                                        |
-| An attacker uses all service resources, which brings the Coordinator down in a denial of service (DoS) attack.              | In the future, this reliability risk is mitigated by having a distributed Coordinator service that can be easily replicated and scaled out as needed.                                                                                                                                                                                                                                                                                                                                                                | Within the [Coordinator](../components/index.md#the-coordinator)                                        |
+| An attacker exploits parsing discrepancies, which leads to undetected changes in the attestation process.                   | This risk is mitigated by having a parsing engine written in memory-safe Go that's tested against the attestation specification of the hardware vendor. The runtime policies are available as an attestation artifact for further inspection and audits to verify their effectiveness.                                                                                                                                                                                                                 | Within the [Coordinator](../components/overview.md#the-coordinator)                                        |
+| An attacker uses all service resources, which brings the Coordinator down in a denial of service (DoS) attack.              | In the future, this reliability risk is mitigated by having a distributed Coordinator service that can be easily replicated and scaled out as needed.                                                                                                                                                                                                                                                                                                                                                                | Within the [Coordinator](../components/overview.md#the-coordinator)                                        |
+
 #### Attacks on workloads
 
 This table describes potential threats and mitigation strategies related to workloads.
@@ -146,7 +146,6 @@ This table describes potential threats and mitigation strategies related to work
 | An attacker publishes a new image version containing malicious code.           | The attestation process and the runtime policies require a data owner to accept a specific version of the workload and any update to the workload needs to be explicitly acknowledged. | Within the [attestation](../architecture/attestation.md)    |
 
 ## Examples of Contrast's threat model in practice
-
 
 The following table describes three example use cases and how they map to the defined threat model in this document:
 

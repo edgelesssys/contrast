@@ -2,7 +2,7 @@
 
 Contrast uses some building blocks from [Confidential Containers](https://confidentialcontainers.org) (CoCo), a [CNCF Sandbox project](https://www.cncf.io/projects/confidential-containers/) that aims to standardize confidential computing at the pod level.
 The project is under active development and many of the high-level features are still in flux.
-Contrast uses the more stable, core primitive provided by CoCo: its Kubernetes runtime.
+Contrast uses the more stable core primitive provided by CoCo: its Kubernetes runtime.
 
 ## Kubernetes RuntimeClass
 
@@ -14,7 +14,7 @@ In CoCo's case, the runtime is Kata Containers with added confidential computing
 ## Kata Containers
 
 [Kata Containers](https://katacontainers.io/) is an OCI runtime that runs pods in VMs.
-The guest VM spawns an agent process that accepts management commands from the Kata runtime running on the host.
+The pod VM spawns an agent process that accepts management commands from the Kata runtime running on the host.
 There are two options for creating pod VMs: local to the Kubernetes node, or remote VMs created with cloud provider APIs.
 Using local VMs requires either bare metal servers or VMs with support for nested virtualization.
 Local VMs communicate with the host over a virtual socket.
@@ -25,7 +25,7 @@ In confidential mode, the guest agent is configured with an [Open Policy Agent](
 This policy also contains checksums for the expected container images.
 It's derived from Kubernetes resource definitions and its checksum is included in the attestation report.
 
-## AKS CoCo Preview
+## AKS CoCo preview
 
 [Azure Kubernetes Service](https://learn.microsoft.com/en-us/azure/aks/) (AKS) provides CoCo-enabled node pools as a [preview offering](https://learn.microsoft.com/en-us/azure/aks/confidential-containers-overview).
 These node pools leverage Azure VM types capable of nested virtualization (CVM-in-VM) and the CoCo stack is pre-installed.

@@ -4,9 +4,8 @@
 
 Install the latest version of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/).
 
-
-[Login to your account](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli), which has
-the permissions to create an AKS cluster, by executing:
+[Login to your account](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli), which needs
+to have the permissions to create an AKS cluster, by executing:
 
 ```bash
 az login
