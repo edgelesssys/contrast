@@ -165,13 +165,13 @@ func getFailures(ctx context.Context, t *testing.T, ct *contrasttest.ContrastTes
 	require.NoError(err)
 	failures := -1
 	for k, v := range metrics {
-		if k == "contrast_meshapi_attestation_failures" {
+		if k == "contrast_meshapi_attestation_failures_total" {
 			failures = int(v.GetMetric()[0].GetCounter().GetValue())
 		}
 	}
 	if failures == -1 {
 		// metric not found
-		t.Error("metric \"contrast_meshapi_attestation_failures\" not found")
+		t.Error("metric \"contrast_meshapi_attestation_failures_total\" not found")
 	}
 	return failures
 }
