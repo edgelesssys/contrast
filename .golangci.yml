@@ -25,26 +25,37 @@ linters:
     - staticcheck
     - unused
     # Additional linters
+    # keep-sorted start
     - bodyclose
+    - contextcheck
+    - copyloopvar
+    - errchkjson
     - errname
+    - errorlint
     - exportloopref
+    - forcetypeassert
+    - gocheckcompilerdirectives
+    - gochecknoinits
     - godot
     - gofumpt
+    - intrange
     - misspell
+    - nilerr
     - noctx
+    - nolintlint
+    - nosprintfhostport
+    - predeclared
+    - promlinter
+    - reassign
     - revive
+    - sloglint
     - tenv
+    - testifylint
     - unconvert
     - unparam
-    - contextcheck
-    - errchkjson
-    - errorlint
-    - gocheckcompilerdirectives
-    - nilerr
-    - predeclared
-    - sloglint
-    - testifylint
     - usestdlibvars
+    - wastedassign
+    # keep-sorted end
 
 issues:
   max-issues-per-linter: 0
