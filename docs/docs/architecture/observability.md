@@ -26,7 +26,7 @@ manifest](../deployment#set-the-manifest) and [verifying the
 Coordinator](../deployment#verify-the-coordinator) respectively.
 
 The `meshapi.MeshAPI` service records metrics for the method `NewMeshCert`, which
-gets called by the [Initializer](../components#the-initializer) when starting a
+gets called by the [Initializer](../components/overview.md#the-initializer) when starting a
 new workload. Attestation failures from workloads to the Coordinator can be
 tracked with the counter `contrast_meshapi_attestation_failures`.
 
