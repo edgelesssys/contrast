@@ -26,6 +26,12 @@ var (
 	//go:embed configuration-qemu-tdx.toml
 	kataBareMetalQEMUTDXBaseConfig string
 
+	// kataBareMetalQEMUSNPBaseConfig is the configuration file for the Kata runtime on bare-metal SNP
+	// with QEMU.
+	//
+	//go:embed configuration-qemu-snp.toml
+	kataBareMetalQEMUSNPBaseConfig string
+
 	// containerdBaseConfig is the base configuration file for containerd
 	//
 	//go:embed containerd-config.toml
@@ -66,6 +72,27 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, debug bool) 
 			config.Runtime["enable_debug"] = true
 		}
 		return &config, nil
+	case platforms.K3sQEMUSNP:
+		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
+		}
+		config.Hypervisor["qemu"]["path"] = filepath.Join(baseDir, "bin", "qemu-system-x86_64")
+		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "share", "OVMF.fd")
+		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
+		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
+		delete(config.Hypervisor["qemu"], "initrd")
+		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
+		config.Hypervisor["qemu"]["shared_fs"] = "virtio-9p"
+		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "qemu-system-x86_64")}
+		config.Hypervisor["qemu"]["rootfs_type"] = "erofs"
+		if debug {
+			config.Hypervisor["qemu"]["enable_debug"] = true
+			config.Hypervisor["qemu"]["kernel_params"] = " agent.log=debug initcall_debug"
+			config.Agent["kata"]["enable_debug"] = true
+			config.Agent["kata"]["debug_console_enabled"] = true
+			config.Runtime["enable_debug"] = true
+		}
+		return &config, nil
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
@@ -98,6 +125,10 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
+		}
+	case platforms.K3sQEMUSNP:
+		cfg.Options = map[string]any{
+			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-snp.toml"),
 		}
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)

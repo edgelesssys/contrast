@@ -21,6 +21,8 @@ var (
 
 	//go:embed testdata/expected-bare-metal-qemu-tdx.toml
 	expectedConfBareMetalQEMUTDX []byte
+	//go:embed testdata/expected-bare-metal-qemu-snp.toml
+	expectedConfBareMetalQEMUSNP []byte
 )
 
 func TestPatchContainerdConfig(t *testing.T) {
@@ -36,6 +38,10 @@ func TestPatchContainerdConfig(t *testing.T) {
 		"BareMetalQEMUTDX": {
 			platform: platforms.K3sQEMUTDX,
 			expected: expectedConfBareMetalQEMUTDX,
+		},
+		"BareMetalQEMUSNP": {
+			platform: platforms.K3sQEMUSNP,
+			expected: expectedConfBareMetalQEMUSNP,
 		},
 		"Unknown": {
 			platform: platforms.Unknown,

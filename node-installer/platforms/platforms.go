@@ -20,13 +20,15 @@ const (
 	AKSCloudHypervisorSNP
 	// K3sQEMUTDX represents a deployment with QEMU on bare-metal TDX K3s.
 	K3sQEMUTDX
+	// K3sQEMUSNP represents a deployment with QEMU on bare-metal SNP K3s.
+	K3sQEMUSNP
 	// RKE2QEMUTDX represents a deployment with QEMU on bare-metal TDX RKE2.
 	RKE2QEMUTDX
 )
 
 // All returns a list of all available platforms.
 func All() []Platform {
-	return []Platform{AKSCloudHypervisorSNP, K3sQEMUTDX, RKE2QEMUTDX}
+	return []Platform{AKSCloudHypervisorSNP, K3sQEMUTDX, K3sQEMUSNP, RKE2QEMUTDX}
 }
 
 // AllStrings returns a list of all available platforms as strings.
@@ -45,6 +47,8 @@ func (p Platform) String() string {
 		return "AKS-CLH-SNP"
 	case K3sQEMUTDX:
 		return "K3s-QEMU-TDX"
+	case K3sQEMUSNP:
+		return "K3s-QEMU-SNP"
 	case RKE2QEMUTDX:
 		return "RKE2-QEMU-TDX"
 	default:
@@ -59,6 +63,8 @@ func FromString(s string) (Platform, error) {
 		return AKSCloudHypervisorSNP, nil
 	case "k3s-qemu-tdx":
 		return K3sQEMUTDX, nil
+	case "k3s-qemu-snp":
+		return K3sQEMUSNP, nil
 	case "rke2-qemu-tdx":
 		return RKE2QEMUTDX, nil
 	default:
