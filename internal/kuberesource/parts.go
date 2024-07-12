@@ -17,12 +17,15 @@ import (
 )
 
 // ContrastRuntimeClass creates a new RuntimeClassConfig.
-func ContrastRuntimeClass() *RuntimeClassConfig {
+func ContrastRuntimeClass(platform platforms.Platform) *RuntimeClassConfig {
 	r := RuntimeClass(runtimeHandler).
 		WithHandler(runtimeHandler).
 		WithLabels(map[string]string{"addonmanager.kubernetes.io/mode": "Reconcile"}).
-		WithOverhead(Overhead(corev1.ResourceList{"memory": resource.MustParse("1152Mi")})).
-		WithScheduling(Scheduling(map[string]string{"kubernetes.azure.com/kata-cc-isolation": "true"}))
+		WithOverhead(Overhead(corev1.ResourceList{"memory": resource.MustParse("1152Mi")}))
+
+	if platform == platforms.AKSCloudHypervisorSNP {
+		r.WithScheduling(Scheduling(map[string]string{"kubernetes.azure.com/kata-cc-isolation": "true"}))
+	}
 
 	return &RuntimeClassConfig{r}
 }
