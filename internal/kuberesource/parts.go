@@ -130,6 +130,12 @@ func (p *PortForwarderConfig) WithListenPort(port int32) *PortForwarderConfig {
 		).
 		WithEnv(
 			NewEnvVar("LISTEN_PORT", strconv.Itoa(int(port))),
+		).
+		WithStartupProbe(Probe().
+			WithInitialDelaySeconds(1).
+			WithPeriodSeconds(1).
+			WithTCPSocket(TCPSocketAction().
+				WithPort(intstr.FromInt32(port))),
 		)
 	return p
 }
