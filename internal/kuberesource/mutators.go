@@ -175,6 +175,22 @@ func AddPortForwarders(resources []any) []any {
 	return out
 }
 
+// AddAllPortsForwarder adds a port-forwarder for each Service resource that forwardsall ports of that service.
+func AddAllPortsForwarder(resources []any, ports []int32) []any {
+	var out []any
+
+	// construct the port forwarder
+	for _, resource := range resources {
+		switch obj := resource.(type) {
+		case *applycorev1.ServiceApplyConfiguration:
+			out = append(out, AllPortsForwarderForService(obj))
+		}
+		out = append(out, resource)
+	}
+
+	return out
+}
+
 // AddLoadBalancers adds a load balancer to each Service resource.
 func AddLoadBalancers(resources []any) []any {
 	var out []any

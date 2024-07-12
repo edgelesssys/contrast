@@ -176,6 +176,41 @@ func (p *PortForwarderConfig) WithForwardTarget(host string, port int32) *PortFo
 	return p
 }
 
+// MultiplePortsForwarder constructs a port forwarder pod for multiple ports.
+func MultiplePortsForwarder(name, namespace string) *PortForwarderConfig {
+	name = "port-forwarder-" + name
+
+	p := Pod(name, namespace).
+		WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+		WithSpec(PodSpec().
+			WithContainers(
+				Container().
+					WithName("port-forwarder").
+					WithImage("ghcr.io/edgelesssys/contrast/port-forwarder:latest").
+					WithCommand("/bin/bash", "-c", "echo Starting port-forward with socat; for port in ${LISTEN_PORTS}; do exec socat -d -d TCP-LISTEN:$port,fork TCP:${FORWARD_HOST}:$port & done; while true; do sleep 10; done;").
+					WithResources(ResourceRequirements().
+						WithMemoryLimitAndRequest(50),
+					),
+			),
+		)
+
+	return &PortForwarderConfig{p}
+}
+
+// WithListenPorts sets multiple ports to listen on.
+func (p *PortForwarderConfig) WithListenPorts(ports []int32) *PortForwarderConfig {
+	var containerPorts []*applycorev1.ContainerPortApplyConfiguration
+	var envVar string
+	for _, port := range ports {
+		containerPorts = append(containerPorts, ContainerPort().WithContainerPort(port))
+		envVar += " " + strconv.Itoa(int(port))
+	}
+	p.Spec.Containers[0].
+		WithPorts(containerPorts...).
+		WithEnv(NewEnvVar("LISTEN_PORTS", envVar))
+	return p
+}
+
 // CoordinatorConfig wraps applyappsv1.DeploymentApplyConfiguration for a coordinator.
 type CoordinatorConfig struct {
 	*applyappsv1.StatefulSetApplyConfiguration
@@ -318,6 +353,27 @@ func PortForwarderForService(svc *applycorev1.ServiceApplyConfiguration) *applyc
 		WithListenPort(port).
 		WithForwardTarget(*svc.Name, port).
 		PodApplyConfiguration
+}
+
+// AllPortsForwarderForService creates a Pod that forwards a list of ports to the given service.
+//
+// Port forwarders are named "port-forwarder-SVCNAME".
+func AllPortsForwarderForService(svc *applycorev1.ServiceApplyConfiguration) *applycorev1.PodApplyConfiguration {
+	namespace := ""
+	if svc.Namespace != nil {
+		namespace = *svc.Namespace
+	}
+
+	var ports []int32
+	for _, port := range svc.Spec.Ports {
+		ports = append(ports, *port.Port)
+	}
+
+	forwarder := MultiplePortsForwarder(*svc.Name, namespace).
+		WithListenPorts(ports).
+		WithForwardTarget(*svc.Name, -1) // port can be -1 since MultiplePortsForwarder ignores FORWARD_PORT env
+
+	return forwarder.PodApplyConfiguration
 }
 
 // Initializer creates a new InitializerConfig.
