@@ -97,6 +97,11 @@ const sidebars = {
       items: [
         {
           type: 'doc',
+          label: 'Overview',
+          id: 'components/overview',
+        },
+        {
+          type: 'doc',
           label: 'Runtime',
           id: 'components/runtime',
         },
