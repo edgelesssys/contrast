@@ -244,8 +244,8 @@
     "hash": "sha256-GubbB8lO6NJKURIn8hzJAWsshmR52aQniybY3alvO5k="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libarchive-3.6.1-2.cm2.x86_64.rpm",
-    "hash": "sha256-eQ00MPKITbKJdGyzqzUZJDx2xU1zso+U8fLDyEKMt8s="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libarchive-3.6.1-3.cm2.x86_64.rpm",
+    "hash": "sha256-KEffcZfB3tshgBhFyQN/vHOXlpLmK2a6kNDiLzPs9ok="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libassuan-2.5.5-2.cm2.x86_64.rpm",
@@ -360,8 +360,8 @@
     "hash": "sha256-B9pc1N0WbufYfjCBtX1uca+TczWWEmuuT3Frgq/etjo="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-release-2.0-63.cm2.noarch.rpm",
-    "hash": "sha256-zfdcEgbiivXm9VnbF8Y7KRGL9dLAYIkdNyoklW2QsVQ="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-release-2.0-64.cm2.noarch.rpm",
+    "hash": "sha256-Tq09z+L+rQH5qnHMUX3/sYGmPDVfnmfGoWw00po/W/s="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-repos-2.0-9.cm2.noarch.rpm",
