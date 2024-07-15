@@ -14,6 +14,7 @@ let
   kernel = "${kata.kata-kernel-uvm}/bzImage";
 
   qemu-bin = "${qemu-static}/bin/qemu-system-x86_64";
+  qemu-share = "${qemu-static}/share/qemu";
 
   ovmf = "${sev-ovmf}/FV/OVMF.fd";
 
@@ -40,6 +41,7 @@ stdenvNoCC.mkDerivation {
       kernel
       image
       qemu-bin
+      qemu-share
       containerd-shim-contrast-cc-v2
       ovmf
       kata-runtime

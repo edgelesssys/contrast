@@ -62,6 +62,18 @@ let
               url = "file:///opt/edgeless/bin/kata-runtime";
               path = "/opt/edgeless/${runtime-handler}/bin/kata-runtime";
             }
+            {
+              url = "file:///opt/edgeless/share/qemu/kvmvapic.bin";
+              path = "/opt/edgeless/${runtime-handler}/share/qemu/kvmvapic.bin";
+            }
+            {
+              url = "file:///opt/edgeless/share/qemu/linuxboot_dma.bin";
+              path = "/opt/edgeless/${runtime-handler}/share/qemu/linuxboot_dma.bin";
+            }
+            {
+              url = "file:///opt/edgeless/share/qemu/efi-virtio.rom";
+              path = "/opt/edgeless/${runtime-handler}/share/qemu/efi-virtio.rom";
+            }
           ];
           runtimeHandlerName = runtime-handler;
           inherit (kata.runtime-class-files) debugRuntime;
@@ -98,6 +110,18 @@ let
       {
         source = kata.runtime-class-files.qemu-bin;
         destination = "/opt/edgeless/bin/qemu-system-x86_64";
+      }
+      {
+        source = "${kata.runtime-class-files.qemu-share}/kvmvapic.bin";
+        destination = "/opt/edgeless/share/qemu/kvmvapic.bin";
+      }
+      {
+        source = "${kata.runtime-class-files.qemu-share}/linuxboot_dma.bin";
+        destination = "/opt/edgeless/share/qemu/linuxboot_dma.bin";
+      }
+      {
+        source = "${kata.runtime-class-files.qemu-share}/efi-virtio.rom";
+        destination = "/opt/edgeless/share/qemu/efi-virtio.rom";
       }
     ];
   };
