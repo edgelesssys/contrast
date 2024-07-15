@@ -83,15 +83,11 @@ populate target=default_deploy_target:
 # Generate policies, update manifest.
 generate cli=default_cli:
     #!/usr/bin/env bash
-    t=$(date +%s)
     nix run .#{{ cli }} -- generate \
         --workspace-dir ./{{ workspace_dir }} \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --reference-values aks-clh-snp \
         ./{{ workspace_dir }}/deployment/*.yml
-    duration=$(( $(date +%s) - $t ))
-    echo "Generated policies in $duration seconds."
-    echo "generate $duration" >> ./{{ workspace_dir }}/just.perf
 
 # Apply Kubernetes manifests from /deployment
 apply target=default_deploy_target:
@@ -153,15 +149,11 @@ set cli=default_cli:
     trap "kill $PID" EXIT
     nix run .#scripts.wait-for-port-listen -- 1313
     policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
-    t=$(date +%s)
     nix run .#{{ cli }} -- set \
         --workspace-dir ./{{ workspace_dir }} \
         -c localhost:1313 \
         --coordinator-policy-hash "${policy}" \
         ./{{ workspace_dir }}/deployment/*.yml
-    duration=$(( $(date +%s) - $t ))
-    echo "Set manifest in $duration seconds."
-    echo "set $duration" >> ./{{ workspace_dir }}/just.perf
 
 # Verify the Coordinator.
 verify cli=default_cli:
@@ -175,14 +167,10 @@ verify cli=default_cli:
     trap "kill $PID" EXIT
     nix run .#scripts.wait-for-port-listen -- 1314
     policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
-    t=$(date +%s)
     nix run .#{{ cli }} -- verify \
         --workspace-dir ./{{ workspace_dir }} \
         --coordinator-policy-hash "${policy}" \
         -c localhost:1314
-    duration=$(( $(date +%s) - $t ))
-    echo "Verified in $duration seconds."
-    echo "verify $duration" >> ./{{ workspace_dir }}/just.perf
 
 # Recover the Coordinator.
 recover cli=default_cli:
@@ -196,14 +184,10 @@ recover cli=default_cli:
     trap "kill $PID" EXIT
     nix run .#scripts.wait-for-port-listen -- 1313
     policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
-    t=$(date +%s)
     nix run .#{{ cli }} -- recover \
         --workspace-dir ./{{ workspace_dir }} \
         --coordinator-policy-hash "$policy" \
         -c localhost:1313
-    duration=$(( $(date +%s) - $t ))
-    echo "Recovered in $duration seconds."
-    echo "recover $duration" >> ./{{ workspace_dir }}/just.perf
 
 # Wait for workloads to become ready.
 wait-for-workload target=default_deploy_target:
