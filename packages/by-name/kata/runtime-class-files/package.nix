@@ -13,8 +13,8 @@ let
   image = kata.kata-image;
   kernel = "${kata.kata-kernel-uvm}/bzImage";
 
-  qemu-bin = "${qemu-static}/bin/qemu-system-x86_64";
-  qemu-share = "${qemu-static}/share/qemu";
+  qemu-bin = "${qemu-static.override { snpSupport = true; }}/bin/qemu-system-x86_64";
+  qemu-share = "${qemu-static.override { snpSupport = true; }}/share/qemu";
 
   ovmf = "${sev-ovmf}/FV/OVMF.fd";
 

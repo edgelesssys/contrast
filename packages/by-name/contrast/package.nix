@@ -5,8 +5,8 @@
   lib,
   buildGoModule,
   buildGoTest,
-  microsoft,
-  genpolicy ? microsoft.genpolicy,
+  kata,
+  genpolicy ? kata.genpolicy,
   contrast,
   installShellFiles,
 }:
@@ -41,10 +41,10 @@ let
     ];
   };
 
-  launchDigest = builtins.readFile "${microsoft.runtime-class-files}/launch-digest.hex";
+  launchDigest = builtins.readFile "${kata.runtime-class-files}/launch-digest.hex";
 
   runtimeHandler = lib.removeSuffix "\n" (
-    builtins.readFile "${microsoft.runtime-class-files}/runtime-handler"
+    builtins.readFile "${kata.runtime-class-files}/runtime-handler"
   );
 
   packageOutputs = [
@@ -91,7 +91,7 @@ buildGoModule rec {
 
   prePatch = ''
     install -D ${lib.getExe genpolicy} cli/cmd/assets/genpolicy
-    install -D ${genpolicy.settings-dev}/genpolicy-settings.json cli/cmd/assets/genpolicy-settings.json
+    install -D ${genpolicy.settings}/genpolicy-settings.json cli/cmd/assets/genpolicy-settings.json
     install -D ${genpolicy.rules}/genpolicy-rules.rego cli/cmd/assets/genpolicy-rules.rego
   '';
 
