@@ -4,6 +4,7 @@ Most relevant Microsoft forks for us:
 
 - https://github.com/microsoft/kata-containers
 - https://github.com/microsoft/cloud-hypervisor
+- https://github.com/microsoft/confidential-containers-containerd
 
 ## Release flow
 
