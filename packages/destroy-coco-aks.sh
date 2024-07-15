@@ -19,7 +19,13 @@ done
 
 set -x
 
-az aks delete \
-  --resource-group "${name}" \
-  --name "${name}" \
-  --yes
+if [[ -z ${CI:-} ]]; then
+  az group delete \
+    --name "${name}" \
+    --yes
+else
+  az aks delete \
+    --resource-group "${name}" \
+    --name "${name}" \
+    --yes
+fi
