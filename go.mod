@@ -4,7 +4,13 @@ go 1.22.0
 
 toolchain go1.22.5
 
-replace github.com/edgelesssys/contrast/node-installer => ./node-installer
+replace (
+	github.com/edgelesssys/contrast/node-installer => ./node-installer
+	// The upstream package has some stepping issues with Genoa:
+	// https://github.com/google/go-sev-guest/issues/115
+	// https://github.com/google/go-sev-guest/issues/103
+	github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20240705062330-4bd4b2483aa0
+)
 
 require (
 	filippo.io/keygen v0.0.0-20230306160926-5201437acf8e
@@ -64,7 +70,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
-	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
