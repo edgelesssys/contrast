@@ -71,7 +71,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	if err := os.MkdirAll(binDir, os.ModePerm); err != nil {
 		return fmt.Errorf("creating runtime bin directory: %w", err)
 	}
-	if err := os.MkdirAll(filepath.Join(hostMount, runtimeBase, "share"), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Join(hostMount, runtimeBase, "share/qemu"), os.ModePerm); err != nil {
 		return fmt.Errorf("creating runtime share directory: %w", err)
 	}
 	if err := os.MkdirAll(filepath.Join(hostMount, runtimeBase, "etc"), os.ModePerm); err != nil {

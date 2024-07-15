@@ -14,6 +14,7 @@ let
   kernel = "${kata.kata-kernel-uvm}/bzImage";
 
   qemu-bin = "${qemu-static}/bin/qemu-system-x86_64";
+  qemu-share = "${qemu-static}/share/qemu";
 
   ovmf = "${OVMF-SNP}/FV/OVMF.fd";
 
@@ -31,7 +32,7 @@ stdenvNoCC.mkDerivation {
   # TODO(msanft): perform the actual launch digest calculation.
   buildPhase = ''
     mkdir -p $out
-    sha256sum ${image} ${kernel} ${qemu-bin} ${containerd-shim-contrast-cc-v2} ${ovmf} | sha256sum | cut -d " " -f 1 > $out/launch-digest.hex
+    sha256sum ${image} ${kernel} ${qemu-bin} ${qemu-share}/kvmvapic.bin ${qemu-share}/linuxboot_dma.bin ${qemu-share}/efi-virtio.rom ${containerd-shim-contrast-cc-v2} ${ovmf} | sha256sum | cut -d " " -f 1 > $out/launch-digest.hex
     printf "contrast-cc-%s" "$(cat $out/launch-digest.hex | head -c 32)" > $out/runtime-handler
   '';
 
@@ -40,6 +41,7 @@ stdenvNoCC.mkDerivation {
       kernel
       image
       qemu-bin
+      qemu-share
       containerd-shim-contrast-cc-v2
       ovmf
       kata-runtime
