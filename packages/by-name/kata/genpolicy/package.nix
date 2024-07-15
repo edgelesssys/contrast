@@ -51,7 +51,7 @@ rustPlatform.buildRustPackage rec {
     settings = fetchurl {
       name = "${pname}-${version}-settings";
       url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${version}/src/tools/genpolicy/genpolicy-settings.json";
-      hash = "sha256-Rlm1BOo0/yNHBf17p2Mk7ta6VbaGcrgezCk8mraFPtU=";
+      hash = "sha256-4uBxU71wwvS2vMVxSizTBmy+C+VXIeAHgcrATgaqgD4=";
       downloadToTemp = true;
       recursiveHash = true;
       postFetch = "install -D $downloadedFile $out/genpolicy-settings.json";
@@ -60,7 +60,7 @@ rustPlatform.buildRustPackage rec {
     rules = fetchurl {
       name = "${pname}-${version}-rules";
       url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${version}/src/tools/genpolicy/rules.rego";
-      hash = "sha256-J4WIgEgCzm3vEji9f/0kF+gLdE8ziio4PAyRWUJjqZk=";
+      hash = "sha256-AAO0bsM1pcsafR6YHbqH9NbPMFPQty9o+jLSUmYfScs=";
       downloadToTemp = true;
       recursiveHash = true;
       postFetch = "install -D $downloadedFile $out/genpolicy-rules.rego";
