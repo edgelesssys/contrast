@@ -18,11 +18,19 @@ import (
 var (
 	//go:embed testdata/expected-aks-clh-snp.toml
 	expectedConfAKSCLHSNP []byte
-
 	//go:embed testdata/expected-bare-metal-qemu-tdx.toml
 	expectedConfBareMetalQEMUTDX []byte
 	//go:embed testdata/expected-bare-metal-qemu-snp.toml
 	expectedConfBareMetalQEMUSNP []byte
+
+	//go:embed testdata/input-bare-metal-qemu-tdx.toml.tmpl
+	inputConfTmplBareMetalQEMUTDX []byte
+	//go:embed testdata/expected-bare-metal-qemu-tdx.toml.tmpl
+	expectedConfTmplBareMetalQEMUTDX []byte
+	//go:embed testdata/input-bare-metal-qemu-snp.toml.tmpl
+	inputConfTmplBareMetalQEMUSNP []byte
+	//go:embed testdata/expected-bare-metal-qemu-snp.toml.tmpl
+	expectedConfTmplBareMetalQEMUSNP []byte
 )
 
 func TestPatchContainerdConfig(t *testing.T) {
@@ -69,6 +77,62 @@ func TestPatchContainerdConfig(t *testing.T) {
 			require.NoError(err)
 
 			configData, err := os.ReadFile(configPath)
+			require.NoError(err)
+			assert.Equal(string(tc.expected), string(configData))
+		})
+	}
+}
+
+func TestPatchContainerdConfigTemplate(t *testing.T) {
+	testCases := map[string]struct {
+		platform platforms.Platform
+		input    []byte
+		expected []byte
+	}{
+		"BareMetalQEMUTDX": {
+			platform: platforms.K3sQEMUTDX,
+			input:    inputConfTmplBareMetalQEMUTDX,
+			expected: expectedConfTmplBareMetalQEMUTDX,
+		},
+		"BareMetalQEMUSNP": {
+			platform: platforms.K3sQEMUSNP,
+			input:    inputConfTmplBareMetalQEMUSNP,
+			expected: expectedConfTmplBareMetalQEMUSNP,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			tmpDir, err := os.MkdirTemp("", "patch-containerd-config-test")
+			require.NoError(err)
+			t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
+
+			// Unlike patchContainerdConfig, patchContainerdConfigTemplate
+			// requires the file to exist already. Create one.
+			configTemplatePath := filepath.Join(tmpDir, "config.toml.tmpl")
+			err = os.WriteFile(configTemplatePath, tc.input, os.ModePerm)
+			require.NoError(err)
+
+			// Testing patching a config template.
+
+			err = patchContainerdConfigTemplate("my-runtime", "/opt/edgeless/my-runtime",
+				configTemplatePath, tc.platform)
+			require.NoError(err)
+
+			configData, err := os.ReadFile(configTemplatePath)
+			require.NoError(err)
+			assert.Equal(string(tc.expected), string(configData))
+
+			// Test that patching the same template twice doesn't change it.
+
+			err = patchContainerdConfigTemplate("my-runtime", "/opt/edgeless/my-runtime",
+				configTemplatePath, tc.platform)
+			require.NoError(err)
+
+			configData, err = os.ReadFile(configTemplatePath)
 			require.NoError(err)
 			assert.Equal(string(tc.expected), string(configData))
 		})

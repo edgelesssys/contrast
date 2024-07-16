@@ -24,6 +24,7 @@ buildGoModule {
         (path.append root "go.mod")
         (path.append root "go.sum")
         (fileset.fileFilter (file: hasSuffix ".toml" file.name) root)
+        (fileset.fileFilter (file: hasSuffix ".toml.tmpl" file.name) root)
         (fileset.fileFilter (file: hasSuffix ".go" file.name) root)
       ];
     };
