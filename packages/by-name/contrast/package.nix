@@ -133,6 +133,10 @@ buildGoModule rec {
     mv $out/share/* $cli/share
   '';
 
+  # Skip fixup as binaries are already stripped and we don't
+  # need any other fixup, saving some seconds.
+  dontFixup = true;
+
   passthru = {
     inherit e2e;
     inherit (genpolicy) settings rules;
