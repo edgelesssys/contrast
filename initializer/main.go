@@ -64,7 +64,7 @@ func run() (retErr error) {
 		dial := dialer.NewWithKey(issuer, atls.NoValidator, &net.Dialer{}, privKey)
 		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorHostname, meshapi.Port))
 		if err != nil {
-			return nil, fmt.Errorf("dialing: %w", err)
+			return nil, fmt.Errorf("test: %w", err)
 		}
 		defer conn.Close()
 
