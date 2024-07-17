@@ -14,7 +14,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
-	"github.com/edgelesssys/contrast/internal/attestation/snp"
+	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
@@ -65,7 +65,10 @@ func run() (retErr error) {
 	}
 
 	meshAuth := authority.New(hist, promRegistry, logger)
-	grpcServer := newGRPCServer(serverMetrics, logger)
+	grpcServer, err := newGRPCServer(serverMetrics, logger)
+	if err != nil {
+		return fmt.Errorf("creating gRPC server: %w", err)
+	}
 
 	userapi.RegisterUserAPIServer(grpcServer, meshAuth)
 	serverMetrics.InitializeMetrics(grpcServer)
@@ -131,8 +134,12 @@ func newServerMetrics(reg *prometheus.Registry) *grpcprometheus.ServerMetrics {
 	return serverMetrics
 }
 
-func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger) *grpc.Server {
-	issuer := snp.NewIssuer(logger.NewNamed(log, "snp-issuer"))
+func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger) (*grpc.Server, error) {
+	issuer, err := attestation.PlatformIssuer(log)
+	if err != nil {
+		return nil, fmt.Errorf("creating issuer: %w", err)
+	}
+
 	credentials := atlscredentials.New(issuer, nil)
 
 	grpcServer := grpc.NewServer(
@@ -145,5 +152,5 @@ func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger
 			serverMetrics.UnaryServerInterceptor(),
 		),
 	)
-	return grpcServer
+	return grpcServer, nil
 }
