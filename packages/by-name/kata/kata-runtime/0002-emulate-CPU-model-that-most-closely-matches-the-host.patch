@@ -1,4 +1,4 @@
-From 5f827c88c43c0e3143543d59f8b6f12a7b936832 Mon Sep 17 00:00:00 2001
+From ffbe9644ce1b2013a3678bf05e19ea21a2f60385 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:35:54 +0000
 Subject: [PATCH 2/3] emulate CPU model that most closely matches the host
@@ -36,5 +36,5 @@ index ade7356eb..ca8f9998c 100644
  	}
  
 -- 
-2.34.1
+2.45.2
 
