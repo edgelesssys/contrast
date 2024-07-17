@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/assets/css/styles.06de3aec.css">
-<script src="/contrast/assets/js/runtime~main.61e19a46.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.d178fb27.js" defer="defer"></script>
 <script src="/contrast/assets/js/main.9809ad98.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -26,7 +26,7 @@
 </ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="kubernetes-features">Kubernetes features<a href="#kubernetes-features" class="hash-link" aria-label="Direct link to Kubernetes features" title="Direct link to Kubernetes features">​</a></h2>
 <ul>
-<li><strong>Persistent volumes</strong>: Not currently supported within Confidential Containers.</li>
+<li><strong>Persistent volumes</strong>: Contrast only supports volumes with <a href="https://kubernetes.io/docs/concepts/storage/persistent-volumes/#volume-mode" target="_blank" rel="noopener noreferrer"><code>volumeMode: Block</code></a>. These block devices are provided by the untrusted environment and should be treated accordingly. We plan to provide transparent encryption on top of block devices in a future release.</li>
 <li><strong>Port forwarding</strong>: This feature <a href="https://github.com/kata-containers/kata-containers/issues/1693" target="_blank" rel="noopener noreferrer">isn&#x27;t yet supported by Kata Containers</a>. You can <a href="https://docs.edgeless.systems/contrast/deployment#connect-to-the-contrast-coordinator" target="_blank" rel="noopener noreferrer">deploy a port-forwarder</a> as a workaround.</li>
 <li><strong>Resource limits</strong>: There is an existing bug on AKS where container memory limits are incorrectly applied. The current workaround involves using only memory requests instead of limits.</li>
 </ul>
