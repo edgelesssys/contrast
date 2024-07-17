@@ -17,8 +17,10 @@ require (
 	github.com/edgelesssys/contrast/node-installer v0.0.0-20240711120720-005f613ddf37
 	github.com/google/go-github/v62 v62.0.0
 	github.com/google/go-sev-guest v0.11.1
+	github.com/google/go-tdx-guest v0.3.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
 	github.com/katexochen/sync v0.0.0-20240617152407-6a8003240db0
+	github.com/klauspost/cpuid/v2 v2.2.8
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/common v0.55.0
 	github.com/spf13/afero v1.11.0
