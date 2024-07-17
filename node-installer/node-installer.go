@@ -63,26 +63,18 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	if err := config.Validate(); err != nil {
 		return fmt.Errorf("validating config: %w", err)
 	}
+	fmt.Printf("Using config: %+v\n", config)
 
 	runtimeBase := filepath.Join("/opt", "edgeless", config.RuntimeHandlerName)
-	binDir := filepath.Join(hostMount, runtimeBase, "bin")
 
-	// Create directory structure
-	if err := os.MkdirAll(binDir, os.ModePerm); err != nil {
-		return fmt.Errorf("creating runtime bin directory: %w", err)
-	}
-	if err := os.MkdirAll(filepath.Join(hostMount, runtimeBase, "share/qemu"), os.ModePerm); err != nil {
-		return fmt.Errorf("creating runtime share directory: %w", err)
-	}
-	if err := os.MkdirAll(filepath.Join(hostMount, runtimeBase, "etc"), os.ModePerm); err != nil {
-		return fmt.Errorf("creating runtime etc directory: %w", err)
-	}
-	if err := os.MkdirAll(filepath.Join(hostMount, "etc", "containerd"), os.ModePerm); err != nil {
-		return fmt.Errorf("creating /etc/containerd directory: %w", err)
-	}
-
+	// Copy the files
 	for _, file := range config.Files {
 		fmt.Printf("Fetching %q to %q\n", file.URL, file.Path)
+
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(hostMount, file.Path)), os.ModePerm); err != nil {
+			return fmt.Errorf("creating directory %q: %w", filepath.Dir(file.Path), err)
+		}
+
 		var fetchErr error
 		if file.Integrity == "" {
 			_, fetchErr = fetcher.FetchUnchecked(ctx, file.URL, filepath.Join(hostMount, file.Path))
@@ -93,35 +85,49 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 			return fmt.Errorf("fetching file from %q to %q: %w", file.URL, file.Path, fetchErr)
 		}
 	}
-	items, err := os.ReadDir(binDir)
-	if err != nil {
-		return fmt.Errorf("reading bin directory %q: %w", binDir, err)
-	}
 
-	for _, item := range items {
-		if !item.Type().IsRegular() {
-			continue
+	// Fix-up the permissions of executables
+	binDirs := []string{filepath.Join(hostMount, runtimeBase, "bin")}
+	switch platform {
+	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+		binDirs = append(binDirs, filepath.Join(hostMount, runtimeBase, "tdx", "bin"))
+	case platforms.K3sQEMUSNP:
+		binDirs = append(binDirs, filepath.Join(hostMount, runtimeBase, "snp", "bin"))
+	}
+	for _, binDir := range binDirs {
+		items, err := os.ReadDir(binDir)
+		if err != nil {
+			return fmt.Errorf("reading bin directory %q: %w", binDir, err)
 		}
-		if err := os.Chmod(filepath.Join(binDir, item.Name()), 0o755); err != nil {
-			return fmt.Errorf("chmod %q: %w", item.Name(), err)
+
+		for _, item := range items {
+			if !item.Type().IsRegular() {
+				continue
+			}
+			if err := os.Chmod(filepath.Join(binDir, item.Name()), 0o755); err != nil {
+				return fmt.Errorf("chmod %q: %w", item.Name(), err)
+			}
 		}
 	}
 
 	kataConfigPath := filepath.Join(hostMount, runtimeBase, "etc")
+	if err := os.MkdirAll(kataConfigPath, os.ModePerm); err != nil {
+		return fmt.Errorf("creating directory %q: %w", kataConfigPath, err)
+	}
 	var containerdConfigPath string
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-clh-snp.toml")
 		containerdConfigPath = filepath.Join(hostMount, "etc", "containerd", "config.toml")
-	case platforms.K3sQEMUTDX:
-		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
-		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "k3s", "agent", "etc", "containerd", "config.toml")
 	case platforms.K3sQEMUSNP:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-snp.toml")
 		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "k3s", "agent", "etc", "containerd", "config.toml.tmpl")
+	case platforms.K3sQEMUTDX:
+		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
+		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "k3s", "agent", "etc", "containerd", "config.toml.tmpl")
 	case platforms.RKE2QEMUTDX:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
-		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "rke2", "agent", "etc", "containerd", "config.toml")
+		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "rke2", "agent", "etc", "containerd", "config.toml.tmpl")
 	default:
 		return fmt.Errorf("unsupported platform %q", platform)
 	}
@@ -245,6 +251,7 @@ func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath str
 	if err != nil {
 		return fmt.Errorf("reading containerd config template: %w", err)
 	}
+	fmt.Printf("Existing containerd config template:\n%s\n", existingConfig)
 
 	// Don't add the runtime section if it already exists.
 	runtimeSection := fmt.Sprintf("[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.%s]", runtimeName)
@@ -329,6 +336,7 @@ func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath str
 		newRawConfig = append(newRawConfig, []byte("\n")...)
 	}
 
+	fmt.Printf("New containerd config template:\n%s\n", newRawConfig)
 	return os.WriteFile(configTemplatePath, newRawConfig, os.ModePerm)
 }
 

@@ -47,12 +47,20 @@ let
               path = "/opt/edgeless/${runtime-handler}/share/kata-kernel";
             }
             {
-              url = "file:///opt/edgeless/bin/qemu-system-x86_64";
-              path = "/opt/edgeless/${runtime-handler}/bin/qemu-system-x86_64";
+              url = "file:///opt/edgeless/snp/bin/qemu-system-x86_64";
+              path = "/opt/edgeless/${runtime-handler}/snp/bin/qemu-system-x86_64";
             }
             {
-              url = "file:///opt/edgeless/share/OVMF.fd";
-              path = "/opt/edgeless/${runtime-handler}/share/OVMF.fd";
+              url = "file:///opt/edgeless/tdx/bin/qemu-system-x86_64";
+              path = "/opt/edgeless/${runtime-handler}/tdx/bin/qemu-system-x86_64";
+            }
+            {
+              url = "file:///opt/edgeless/snp/share/OVMF.fd";
+              path = "/opt/edgeless/${runtime-handler}/snp/share/OVMF.fd";
+            }
+            {
+              url = "file:///opt/edgeless/tdx/share/OVMF.fd";
+              path = "/opt/edgeless/${runtime-handler}/tdx/share/OVMF.fd";
             }
             {
               url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
@@ -63,16 +71,28 @@ let
               path = "/opt/edgeless/${runtime-handler}/bin/kata-runtime";
             }
             {
-              url = "file:///opt/edgeless/share/qemu/kvmvapic.bin";
-              path = "/opt/edgeless/${runtime-handler}/share/qemu/kvmvapic.bin";
+              url = "file:///opt/edgeless/snp/share/qemu/kvmvapic.bin";
+              path = "/opt/edgeless/${runtime-handler}/snp/share/qemu/kvmvapic.bin";
             }
             {
-              url = "file:///opt/edgeless/share/qemu/linuxboot_dma.bin";
-              path = "/opt/edgeless/${runtime-handler}/share/qemu/linuxboot_dma.bin";
+              url = "file:///opt/edgeless/snp/share/qemu/linuxboot_dma.bin";
+              path = "/opt/edgeless/${runtime-handler}/snp/share/qemu/linuxboot_dma.bin";
             }
             {
-              url = "file:///opt/edgeless/share/qemu/efi-virtio.rom";
-              path = "/opt/edgeless/${runtime-handler}/share/qemu/efi-virtio.rom";
+              url = "file:///opt/edgeless/snp/share/qemu/efi-virtio.rom";
+              path = "/opt/edgeless/${runtime-handler}/snp/share/qemu/efi-virtio.rom";
+            }
+            {
+              url = "file:///opt/edgeless/tdx/share/qemu/kvmvapic.bin";
+              path = "/opt/edgeless/${runtime-handler}/tdx/share/qemu/kvmvapic.bin";
+            }
+            {
+              url = "file:///opt/edgeless/tdx/share/qemu/linuxboot_dma.bin";
+              path = "/opt/edgeless/${runtime-handler}/tdx/share/qemu/linuxboot_dma.bin";
+            }
+            {
+              url = "file:///opt/edgeless/tdx/share/qemu/efi-virtio.rom";
+              path = "/opt/edgeless/${runtime-handler}/tdx/share/qemu/efi-virtio.rom";
             }
           ];
           runtimeHandlerName = runtime-handler;
@@ -96,32 +116,62 @@ let
     ];
   };
 
-  ovmf = ociLayerTar {
+  ovmf-snp = ociLayerTar {
     files = [
       {
-        source = kata.runtime-class-files.ovmf;
-        destination = "/opt/edgeless/share/OVMF.fd";
+        source = kata.runtime-class-files.ovmf-snp;
+        destination = "/opt/edgeless/snp/share/OVMF.fd";
       }
     ];
   };
 
-  qemu = ociLayerTar {
+  qemu-snp = ociLayerTar {
     files = [
       {
-        source = kata.runtime-class-files.qemu-bin;
-        destination = "/opt/edgeless/bin/qemu-system-x86_64";
+        source = kata.runtime-class-files.qemu-snp.bin;
+        destination = "/opt/edgeless/snp/bin/qemu-system-x86_64";
       }
       {
-        source = "${kata.runtime-class-files.qemu-share}/kvmvapic.bin";
-        destination = "/opt/edgeless/share/qemu/kvmvapic.bin";
+        source = "${kata.runtime-class-files.qemu-snp.share}/kvmvapic.bin";
+        destination = "/opt/edgeless/snp/share/qemu/kvmvapic.bin";
       }
       {
-        source = "${kata.runtime-class-files.qemu-share}/linuxboot_dma.bin";
-        destination = "/opt/edgeless/share/qemu/linuxboot_dma.bin";
+        source = "${kata.runtime-class-files.qemu-snp.share}/linuxboot_dma.bin";
+        destination = "/opt/edgeless/snp/share/qemu/linuxboot_dma.bin";
       }
       {
-        source = "${kata.runtime-class-files.qemu-share}/efi-virtio.rom";
-        destination = "/opt/edgeless/share/qemu/efi-virtio.rom";
+        source = "${kata.runtime-class-files.qemu-snp.share}/efi-virtio.rom";
+        destination = "/opt/edgeless/snp/share/qemu/efi-virtio.rom";
+      }
+    ];
+  };
+
+  ovmf-tdx = ociLayerTar {
+    files = [
+      {
+        source = kata.runtime-class-files.ovmf-tdx;
+        destination = "/opt/edgeless/tdx/share/OVMF.fd";
+      }
+    ];
+  };
+
+  qemu-tdx = ociLayerTar {
+    files = [
+      {
+        source = kata.runtime-class-files.qemu-tdx.bin;
+        destination = "/opt/edgeless/tdx/bin/qemu-system-x86_64";
+      }
+      {
+        source = "${kata.runtime-class-files.qemu-tdx.share}/kvmvapic.bin";
+        destination = "/opt/edgeless/tdx/share/qemu/kvmvapic.bin";
+      }
+      {
+        source = "${kata.runtime-class-files.qemu-tdx.share}/linuxboot_dma.bin";
+        destination = "/opt/edgeless/tdx/share/qemu/linuxboot_dma.bin";
+      }
+      {
+        source = "${kata.runtime-class-files.qemu-tdx.share}/efi_virtio.rom";
+        destination = "/opt/edgeless/tdx/share/qemu/efi-virtio.rom";
       }
     ];
   };
@@ -144,8 +194,10 @@ let
       node-installer
       installer-config
       kata-container-img
-      ovmf
-      qemu
+      ovmf-snp
+      ovmf-tdx
+      qemu-snp
+      qemu-tdx
       kata-runtime
     ];
     extraConfig = {
