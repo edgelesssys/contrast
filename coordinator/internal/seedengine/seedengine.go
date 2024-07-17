@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -92,23 +93,9 @@ func (s *SeedEngine) DerivePodSecret(policyHash [hashSize]byte) ([]byte, error) 
 	return s.hkdfDerive(s.podStateSeed, fmt.Sprintf("POD SECRET %x", policyHash))
 }
 
-// DeriveMeshCAKey derives a secret for a mesh CA from the transaction hash and the secret seed.
-func (s *SeedEngine) DeriveMeshCAKey(transactionHash [hashSize]byte) (*ecdsa.PrivateKey, error) {
-	if transactionHash == [hashSize]byte{} {
-		return nil, errors.New("transaction hash must not be empty")
-	}
-	if bytes.Equal(transactionHash[:], s.hashFun().Sum(nil)) {
-		return nil, errors.New("transaction hash is the hash of an empty byte slice")
-	}
-	transactionSecret, err := s.hkdfDerive(s.historySeed, fmt.Sprintf("TRANSACTION SECRET %x", transactionHash))
-	if err != nil {
-		return nil, err
-	}
-	meshCASeed, err := s.hkdfDerive(transactionSecret, "MESH CA SECRET")
-	if err != nil {
-		return nil, err
-	}
-	return s.generateECDSAPrivateKey(meshCASeed)
+// GenerateMeshCAKey generates a new random key for the mesh authority.
+func (s *SeedEngine) GenerateMeshCAKey() (*ecdsa.PrivateKey, error) {
+	return ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 }
 
 // RootCAKey returns the root CA key which is derived from the secret seed.

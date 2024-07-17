@@ -122,7 +122,7 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 	}
 
 	se := a.se.Load()
-	meshKey, err := se.DeriveMeshCAKey(nextTransitionHash)
+	meshKey, err := se.GenerateMeshCAKey()
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "deriving mesh CA key: %v", err)
 	}

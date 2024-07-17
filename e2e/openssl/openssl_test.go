@@ -201,15 +201,29 @@ func TestOpenSSL(t *testing.T) {
 		require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
 		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
 
-		for _, cert := range []string{rootCAFile, meshCAFile} {
-			t.Run(cert, func(t *testing.T) {
-				stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-frontend:443", cert)})
-				if err != nil {
-					t.Logf("openssl with %q after recovery:\n%s", cert, stdout)
-				}
-				assert.NoError(t, err, "stderr: %q", stderr)
-			})
-		}
+		t.Run("root CA is still accepted after coordinator recovery", func(t *testing.T) {
+			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-frontend:443", rootCAFile)})
+			if err != nil {
+				t.Logf("openssl with %q after recovery:\n%s", rootCAFile, stdout)
+			}
+			assert.NoError(t, err, "stderr: %q", stderr)
+		})
+
+		t.Run("coordinator can't recover mesh CA key", func(t *testing.T) {
+			_, _, err := c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-frontend:443", meshCAFile)})
+			assert.Error(t, err)
+		})
+
+		require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
+		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
+
+		t.Run("mesh CA after coordinator recovery is accepted when workloads are restarted", func(t *testing.T) {
+			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/bash", "-c", opensslConnectCmd("openssl-frontend:443", meshCAFile)})
+			if err != nil {
+				t.Logf("openssl with %q after recovery:\n%s", meshCAFile, stdout)
+			}
+			assert.NoError(t, err, "stderr: %q", stderr)
+		})
 	})
 }
 

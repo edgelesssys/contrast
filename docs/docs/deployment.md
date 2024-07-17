@@ -324,3 +324,11 @@ contrast recover -c "${coordinator}:1313"
 
 Now that the Coordinator is recovered, all workloads should pass initialization and enter the running state.
 You can now verify the Coordinator again, which should return the same manifest you set before.
+
+:::warning
+
+The recovery process invalidates the mesh CA certificate:
+existing workloads won't be able to communicate with workloads newly spawned.
+All workloads should be restarted after the recovery succeeded.
+
+:::
