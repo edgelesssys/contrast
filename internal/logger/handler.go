@@ -16,6 +16,17 @@ func NewNamed(logger *slog.Logger, name string) *slog.Logger {
 	return slog.New(NewHandler(logger.Handler(), name))
 }
 
+// NewWithAttrs creates a new logger with a string-to-string map of attributes
+// that will be included in all log messages.
+func NewWithAttrs(logger *slog.Logger, attrs map[string]string) *slog.Logger {
+	slogAttrs := make([]slog.Attr, 0, len(attrs))
+	for k, v := range attrs {
+		slogAttrs = append(slogAttrs, slog.Attr{Key: k, Value: slog.StringValue(v)})
+	}
+
+	return slog.New(logger.Handler().WithAttrs(slogAttrs))
+}
+
 // Handler is a slog.Handler that can be used to enable logging on a per-subsystem basis.
 type Handler struct {
 	inner     slog.Handler

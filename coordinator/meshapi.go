@@ -53,7 +53,9 @@ func newMeshAPIServer(meshAuth *authority.Authority, bundleGetter certBundleGett
 		Help:      "Number of attestation failures from workloads to the Coordinator.",
 	})
 
-	validator := snp.NewValidatorWithCallbacks(meshAuth, kdsGetter, logger.NewNamed(log, "snp-validator"), attestationFailuresCounter, meshAuth)
+	validator := snp.NewValidatorWithCallbacks(meshAuth, kdsGetter,
+		logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
+		attestationFailuresCounter, meshAuth)
 	credentials := atlscredentials.New(atls.NoIssuer, []atls.Validator{validator})
 
 	grpcServer := grpc.NewServer(

@@ -19,9 +19,13 @@ func PlatformIssuer(log *slog.Logger) (atls.Issuer, error) {
 	cpuid.Detect()
 	switch {
 	case cpuid.CPU.Supports(cpuid.SEV_SNP):
-		return snp.NewIssuer(logger.NewNamed(log, "snp-issuer")), nil
+		return snp.NewIssuer(
+			logger.NewWithAttrs(logger.NewNamed(log, "issuer"), map[string]string{"tee-type": "snp"}),
+		), nil
 	case cpuid.CPU.Supports(cpuid.TDX_GUEST):
-		return tdx.NewIssuer(logger.NewNamed(log, "tdx-issuer")), nil
+		return tdx.NewIssuer(
+			logger.NewWithAttrs(logger.NewNamed(log, "issuer"), map[string]string{"tee-type": "tdx"}),
+		), nil
 	default:
 		return nil, fmt.Errorf("unsupported platform: %T", cpuid.CPU)
 	}

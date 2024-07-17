@@ -26,8 +26,8 @@ environment variables `CONTRAST_LOG_LEVEL`, `CONTRAST_LOG_FORMAT` and
   format (defaults to `text`).
 - `CONTRAST_LOG_SUBSYSTEMS` is a comma-seperated list of subsystems that should
   be enabled for logging, which are disabled by default. Subsystems include:
-  `snp-issuer`, `kds-getter`, and `snp-validator`. To enable all subsystems, use
-  `*` as the value for this environment variable.
+   `kds-getter`, `issuer` and `validator`.
+  To enable all subsystems, use `*` as the value for this environment variable.
   Warnings and error messages from subsystems get printed regardless of whether
   the subsystem is listed in the `CONTRAST_LOG_SUBSYSTEMS` environment variable.
 
