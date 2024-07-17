@@ -77,5 +77,10 @@
         "rollback",
       ],
     },
+    {
+      // Disable updating of locally-replaced dependencies.
+      matchPackageNames: [ "github.com/edgelesssys/contrast/node-installer" ],
+      enabled: false,
+    },
   ],
 }
