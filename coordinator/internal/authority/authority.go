@@ -212,7 +212,7 @@ func (m *Authority) syncState() error {
 		return fmt.Errorf("parsing manifest: %w", err)
 	}
 
-	meshKey, err := se.DeriveMeshCAKey(latest.TransitionHash)
+	meshKey, err := se.GenerateMeshCAKey()
 	if err != nil {
 		return fmt.Errorf("deriving mesh CA key: %w", err)
 	}
