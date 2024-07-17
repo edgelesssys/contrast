@@ -16,6 +16,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
+	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/spf13/cobra"
@@ -82,7 +83,9 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
 	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
-	validator := snp.NewValidator(validateOptsGen, kdsGetter, log.WithGroup("snp-validator"))
+	validator := snp.NewValidator(validateOptsGen, kdsGetter,
+		logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
+	)
 	dialer := dialer.New(atls.NoIssuer, validator, &net.Dialer{})
 
 	log.Debug("Dialing coordinator", "endpoint", flags.coordinator)

@@ -22,6 +22,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	grpcRetry "github.com/edgelesssys/contrast/internal/grpc/retry"
+	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/retry"
 	"github.com/edgelesssys/contrast/internal/spinner"
@@ -112,7 +113,9 @@ func runSet(cmd *cobra.Command, args []string) error {
 	}
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
 	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
-	validator := snp.NewValidator(validateOptsGen, kdsGetter, log.WithGroup("snp-validator"))
+	validator := snp.NewValidator(validateOptsGen, kdsGetter,
+		logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
+	)
 	dialer := dialer.NewWithKey(atls.NoIssuer, validator, &net.Dialer{}, workloadOwnerKey)
 
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
