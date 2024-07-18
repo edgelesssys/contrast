@@ -166,7 +166,6 @@ func ensureVolumeExists(spec *applycorev1.PodSpecApplyConfiguration, volumeName 
 func AddPortForwarders(resources []any) []any {
 	var out []any
 
-	// construct the port forwarder
 	for _, resource := range resources {
 		switch obj := resource.(type) {
 		case *applycorev1.ServiceApplyConfiguration:
