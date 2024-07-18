@@ -26,10 +26,20 @@ buildGoModule rec {
       ./0002-emulate-CPU-model-that-most-closely-matches-the-host.patch
       # This patch makes the v2 shim set the host-data field for SNP and makes
       # kata-agent verify it against the policy.
-      # source: https://github.com/kata-containers/kata-containers/pull/8469
+      # It was adapted from https://github.com/kata-containers/kata-containers/pull/8469,
+      # with the following modifications:
+      # - Rebase on 3.7.0 picked up regorus, guest-pull capabilities, SNP certificates and TDX fixes.
+      # - The TDX parameters for QEMU needed to be converted to a JSON object.
+      # - The encoding of MRCONFIGID needed to be switched from hex to base64.
+      # This patch is not going to be accepted upstream. The declared path
+      # forward is the initdata proposal, https://github.com/kata-containers/kata-containers/issues/9468,
+      # which extends the hostdata to arbitrary config beyond the policy and
+      # delegates hash verification to the AA. Until that effort lands, we're
+      # sticking with the policy verification from AKS CoCo.
+      #
       # Note that these patches are incomplete/insecure because kata-agent just
-      # continue running if it can't query the host-data:
-      # https://github.com/kata-containers/kata-containers/blob/61c83dfde3e38aab53b66f46f860347f1753ef5c/src/agent/src/policy.rs#L320
+      # continue running if it can't query the host-data.
+      # TODO(Freax13): fail verify_policy_digest without TEE data
       ./0003-runtime-agent-verify-the-agent-policy-hash.patch
     ];
   };

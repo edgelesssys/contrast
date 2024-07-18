@@ -1,4 +1,4 @@
-From cf4f4d946cbc78a9e37386f5be95ebdc39040e4c Mon Sep 17 00:00:00 2001
+From 5228b0f7a667c700dbe9d169d7c735f1625f242a Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:51:20 +0000
 Subject: [PATCH 3/3] runtime: agent: verify the agent policy hash
@@ -24,10 +24,10 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/agent/src/policy.rs                       |  68 +++++-
  src/agent/src/sev.rs                          |  19 ++
  src/agent/src/tdx.rs                          | 194 ++++++++++++++++++
- src/runtime/pkg/govmm/qemu/qemu.go            |   8 +
+ src/runtime/pkg/govmm/qemu/qemu.go            |  25 ++-
  src/runtime/virtcontainers/hypervisor.go      |   4 +
  src/runtime/virtcontainers/qemu.go            |   2 +-
- src/runtime/virtcontainers/qemu_amd64.go      |  38 +++-
+ src/runtime/virtcontainers/qemu_amd64.go      |  37 +++-
  src/runtime/virtcontainers/qemu_amd64_test.go | 116 ++++++++++-
  src/runtime/virtcontainers/qemu_arch_base.go  |   4 +-
  src/runtime/virtcontainers/qemu_arm64.go      |   2 +-
@@ -37,7 +37,7 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/runtime/virtcontainers/qemu_s390x.go      |   2 +-
  src/runtime/virtcontainers/qemu_s390x_test.go |  51 ++++-
  src/runtime/virtcontainers/sandbox.go         |   1 +
- 19 files changed, 684 insertions(+), 36 deletions(-)
+ 19 files changed, 698 insertions(+), 38 deletions(-)
  create mode 100644 src/agent/src/sev.rs
  create mode 100644 src/agent/src/tdx.rs
 
@@ -588,7 +588,7 @@ index 000000000..1531e72a8
 +    Ok(mrconfigid)
 +}
 diff --git a/src/runtime/pkg/govmm/qemu/qemu.go b/src/runtime/pkg/govmm/qemu/qemu.go
-index 4cc2239ec..5d669ca21 100644
+index 4cc2239ec..f5ff0fc95 100644
 --- a/src/runtime/pkg/govmm/qemu/qemu.go
 +++ b/src/runtime/pkg/govmm/qemu/qemu.go
 @@ -320,6 +320,11 @@ type Object struct {
@@ -613,6 +613,39 @@ index 4cc2239ec..5d669ca21 100644
  		config.Bios = object.File
  	case SecExecGuest:
  		objectParams = append(objectParams, string(object.Type))
+@@ -435,6 +443,10 @@ type SocketAddress struct {
+ type TdxQomObject struct {
+ 	QomType               string        `json:"qom-type"`
+ 	Id                    string        `json:"id"`
++	SeptVEDisable         *bool         `json:"sept-ve-disable,omitempty"`
++	MRConfigID            string        `json:"mrconfigid,omitempty"`
++	MROwner               string        `json:"mrowner,omitempty"`
++	MROwnerConfig         string        `json:"mrownerconfig,omitempty"`
+ 	QuoteGenerationSocket SocketAddress `json:"quote-generation-socket"`
+ 	Debug                 *bool         `json:"debug,omitempty"`
+ }
+@@ -463,10 +475,19 @@ func (this *TdxQomObject) String() string {
+ 
+ func prepareObjectWithTdxQgs(object Object) string {
+ 	qgsSocket := SocketAddress{"vsock", fmt.Sprint(VsockHostCid), fmt.Sprint(object.QgsPort)}
+-	tdxObject := TdxQomObject{string(object.Type), object.ID, qgsSocket, nil}
++	tdxObject := TdxQomObject{
++		QomType:               string(object.Type),
++		Id:                    object.ID,
++		QuoteGenerationSocket: qgsSocket,
++	}
+ 
+ 	if object.Debug {
+-		*tdxObject.Debug = true
++		t := true
++		tdxObject.Debug = &t
++	}
++
++	if len(object.TEEConfigData) > 0 {
++		tdxObject.MRConfigID = object.TEEConfigData
+ 	}
+ 
+ 	return tdxObject.String()
 diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
 index cc3743310..0c24183a3 100644
 --- a/src/runtime/virtcontainers/hypervisor.go
@@ -642,21 +675,20 @@ index 7a189bb91..509f74a3c 100644
  		return err
  	}
 diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
-index 6ebee26ce..7b702c305 100644
+index 6ebee26ce..44e0e3956 100644
 --- a/src/runtime/virtcontainers/qemu_amd64.go
 +++ b/src/runtime/virtcontainers/qemu_amd64.go
-@@ -9,6 +9,10 @@ package virtcontainers
+@@ -9,6 +9,9 @@ package virtcontainers
  
  import (
  	"context"
 +	"crypto/sha256"
 +	"crypto/sha512"
 +	"encoding/base64"
-+	"encoding/hex"
  	"fmt"
  	"time"
  
-@@ -280,7 +284,7 @@ func (q *qemuAmd64) enableProtection() error {
+@@ -280,7 +283,7 @@ func (q *qemuAmd64) enableProtection() error {
  }
  
  // append protection device
@@ -665,7 +697,7 @@ index 6ebee26ce..7b702c305 100644
  	if q.sgxEPCSize != 0 {
  		devices = append(devices,
  			govmmQemu.Object{
-@@ -305,6 +309,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -305,6 +308,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  				Debug:          false,
  				File:           firmware,
  				FirmwareVolume: firmwareVolume,
@@ -673,7 +705,7 @@ index 6ebee26ce..7b702c305 100644
  			}), "", nil
  	case sevProtection:
  		return append(devices,
-@@ -326,6 +331,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -326,6 +330,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  				CBitPos:         cpuid.AMDMemEncrypt.CBitPosition,
  				ReducedPhysBits: 1,
  				SnpCertsPath:    q.snpCertsPath,
@@ -681,7 +713,7 @@ index 6ebee26ce..7b702c305 100644
  			}), "", nil
  	case noneProtection:
  
-@@ -335,3 +341,33 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -335,3 +340,33 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  		return devices, "", fmt.Errorf("Unsupported guest protection technology: %v", q.protection)
  	}
  }
@@ -713,7 +745,7 @@ index 6ebee26ce..7b702c305 100644
 +	hash := h.Sum(nil)
 +	hvLogger.WithField("hash", hash).Info("policy hash")
 +
-+	return hex.EncodeToString(hash)
++	return base64.StdEncoding.EncodeToString(hash)
 +}
 diff --git a/src/runtime/virtcontainers/qemu_amd64_test.go b/src/runtime/virtcontainers/qemu_amd64_test.go
 index 1425cb38c..f0a9c691a 100644
@@ -1255,5 +1287,5 @@ index b58daccaa..af35af12e 100644
  	spec := s.GetPatchedOCISpec()
  	if spec != nil && spec.Process.SelinuxLabel != "" {
 -- 
-2.45.1
+2.45.2
 
