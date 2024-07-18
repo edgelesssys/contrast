@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis-alpine
+spec:
+  containers:
+    - name: redis
+      image: docker.io/redis:7.4-rc2-alpine
+      ports:
+        - redis: 6379
