@@ -162,30 +162,15 @@ func ensureVolumeExists(spec *applycorev1.PodSpecApplyConfiguration, volumeName 
 	return nil
 }
 
-// AddPortForwarders adds a port-forwarder for each Service resource.
-// This should never be used together with AddPortForwardersForAllPorts.
+// AddPortForwarders adds a port-forwarder for each Service.
 func AddPortForwarders(resources []any) []any {
-	var out []any
-	for _, resource := range resources {
-		switch obj := resource.(type) {
-		case *applycorev1.ServiceApplyConfiguration:
-			out = append(out, PortForwarderForService(obj))
-		}
-		out = append(out, resource)
-	}
-	return out
-}
-
-// AddPortForwardersForAllPorts adds a port-forwarder for each Service resource that forwardsall ports of that service.
-// This should never be used together with AddPortForwarders.
-func AddPortForwardersForAllPorts(resources []any) []any {
 	var out []any
 
 	// construct the port forwarder
 	for _, resource := range resources {
 		switch obj := resource.(type) {
 		case *applycorev1.ServiceApplyConfiguration:
-			out = append(out, PortForwarderForServiceAllPorts(obj))
+			out = append(out, PortForwarderForService(obj))
 		}
 		out = append(out, resource)
 	}

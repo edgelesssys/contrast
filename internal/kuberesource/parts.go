@@ -344,21 +344,6 @@ func ServiceForStatefulSet(s *applyappsv1.StatefulSetApplyConfiguration) *applyc
 //
 // Port forwarders are named "port-forwarder-SVCNAME" and forward the first port in the ServiceSpec.
 func PortForwarderForService(svc *applycorev1.ServiceApplyConfiguration) *applycorev1.PodApplyConfiguration {
-	port := *svc.Spec.Ports[0].Port
-	namespace := ""
-	if svc.Namespace != nil {
-		namespace = *svc.Namespace
-	}
-	return PortForwarder(*svc.Name, namespace).
-		WithListenPort(port).
-		WithForwardTarget(*svc.Name, port).
-		PodApplyConfiguration
-}
-
-// PortForwarderForServiceAllPorts creates a Pod that forwards a list of ports to the given service.
-//
-// Port forwarders are named "port-forwarder-SVCNAME".
-func PortForwarderForServiceAllPorts(svc *applycorev1.ServiceApplyConfiguration) *applycorev1.PodApplyConfiguration {
 	namespace := ""
 	if svc.Namespace != nil {
 		namespace = *svc.Namespace
