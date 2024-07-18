@@ -13,7 +13,7 @@ replace (
 )
 
 require (
-	filippo.io/keygen v0.0.0-20230306160926-5201437acf8e
+	filippo.io/keygen v0.0.0-20240718133620-7f162efbbd87
 	github.com/edgelesssys/contrast/node-installer v0.0.0-20240711120720-005f613ddf37
 	github.com/google/go-github/v62 v62.0.0
 	github.com/google/go-sev-guest v0.11.1
@@ -43,7 +43,7 @@ require (
 )
 
 require (
-	filippo.io/bigmod v0.0.1 // indirect
+	filippo.io/bigmod v0.0.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
