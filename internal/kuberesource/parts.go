@@ -187,7 +187,7 @@ func PortForwarderMultiplePorts(name, namespace string) *PortForwarderConfig {
 				Container().
 					WithName("port-forwarder").
 					WithImage("ghcr.io/edgelesssys/contrast/port-forwarder:latest").
-					WithCommand("/bin/bash", "-c", "echo Starting port-forward with socat; for port in ${LISTEN_PORTS}; do exec socat -d -d TCP-LISTEN:$port,fork TCP:${FORWARD_HOST}:$port & done; while true; do sleep 10; done;").
+					WithCommand("/bin/bash", "-c", "echo Starting port-forward with socat; for port in ${LISTEN_PORTS}; do exec socat -d -d TCP-LISTEN:$port,fork TCP:${FORWARD_HOST}:$port & done; wait").
 					WithResources(ResourceRequirements().
 						WithMemoryLimitAndRequest(50),
 					),
