@@ -1,41 +1,41 @@
 # Obtain a serial console inside the podvm
 
+Set `debug ? true` in `packages/{kata,microsoft}/runtime-class-files/package.nix` and run `just`.
+
 Get a shell on the AKS node. If in doubt, use [nsenter-node.sh](https://github.com/alexei-led/nsenter/blob/master/nsenter-node.sh).
-Now run the following commands to use a debug [IGVM](https://docs.google.com/presentation/d/1uWeyqtYV53Vtxd3ayYWWTLbxasYNr35a/) and enable debugging for the Kata runtime.
 
-```sh
-sed -i -e 's#^igvm = "\(.*\)"#igvm = "/opt/confidential-containers/share/kata-containers/kata-containers-igvm-debug.img"#g' /opt/confidential-containers/share/defaults/kata-containers/configuration-clh-snp.toml
-sed -i -e 's/^#enable_debug = true/enable_debug = true/g' /opt/confidential-containers/share/defaults/kata-containers/configuration-clh-snp.toml
-systemctl restart containerd
-```
-
-Now you need to reconnect to the host. Use the following commands to print the sandbox ids of Kata VMs.
+Use the following commands to print the sandbox ids of Kata VMs.
 Please note that only the pause container of every pod has the `clh.sock`.  Other containers are part of the same VM.
 
-```shell-session
-$ ctr --namespace k8s.io container ls "runtime.name==io.containerd.kata-cc.v2"
-$ sandbox_id=ENTER_SANDBOX_ID_HERE
-```
-
-And attach to the serial console using `socat`. You need to type `CONNECT 1026<ENTER>` to get a shell.
-
-```shell-session
-$ cd /var/run/vc/vm/${sandbox_id}/ && socat stdin unix-connect:clh.sock
-CONNECT 1026
-```
-
-Alternatively, you can use `kata-runtime exec`, which gives you proper TTY behavior including tab completion.
-First ensure the `kata-monitor` is running, then connect.
-
-```
-$ kata-monitor &
-$ kata-runtime exec ${sandbox_id}
-```
-
-If you are done, use the following commands to go back to a release IGVM.
+Set the name of the pod you want to access:
 
 ```sh
-sed -i -e 's#^igvm = "\(.*\)"#igvm = "/opt/confidential-containers/share/kata-containers/kata-containers-igvm.img"#g' /opt/confidential-containers/share/defaults/kata-containers/configuration-clh-snp.toml
-sed -i -e 's/^enable_debug = true/#enable_debug = true/g' /opt/confidential-containers/share/defaults/kata-containers/configuration-clh-snp.toml
-systemctl restart containerd
+podName=<coordinator-0>
+```
+
+Run the following command to get the sandbox ID:
+
+```sh
+sandbox_id=$(crictl pods -o json | jq -r ".items[] | select(.metadata.name == \"${podName}\" and .state == \"SANDBOX_READY\") | .id")
+```
+
+You can use `kata-runtime exec`, which gives you proper TTY behavior including tab completion.
+First ensure the `kata-monitor` is running, then connect.
+
+```sh
+kata-monitor &
+kata-runtime exec ${sandbox_id}
+```
+
+You might need to point `kata-runtime` to the config, for example
+
+```sh
+kata-runtime --config /opt/edgeless/contrast-cc-31695b720e385ba6ecbc4db97ae8ce28/etc/configuration-clh-snp.toml exec ${sandbox_id}
+```
+
+Alternatively, you can attach to the serial console using `socat`. You need to type `CONNECT 1026<ENTER>` to get a shell.
+
+```sh
+(cd /var/run/vc/vm/${sandbox_id}/ && socat stdin unix-connect:clh.sock)
+CONNECT 1026
 ```
