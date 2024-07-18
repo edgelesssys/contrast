@@ -38,14 +38,16 @@ let
     inherit (kata.kata-runtime) src version;
 
     # https://github.com/microsoft/azurelinux/blob/59ce246f224f282b3e199d9a2dacaa8011b75a06/SPECS/kata-containers-cc/mariner-coco-build-uvm.sh#L34-L41
-    # TODO(msanft): Use a more constrained policy.
     buildPhase = ''
       runHook preBuild
 
       mkdir -p /build/rootfs/etc/kata-opa /build/rootfs/usr/lib/systemd/system /build/rootfs/nix/store
       cp src/agent/kata-agent.service.in /build/rootfs/usr/lib/systemd/system/kata-agent.service
       cp src/agent/kata-containers.target /build/rootfs/usr/lib/systemd/system/kata-containers.target
-      cp src/kata-opa/allow-all.rego /build/rootfs/etc/kata-opa/default-policy.rego
+      cat > /build/rootfs/etc/kata-opa/default-policy.rego <<EOF
+      package agent_policy
+      default SetPolicyRequest := true
+      EOF
       sed -i 's/@BINDIR@\/@AGENT_NAME@/\/usr\/bin\/kata-agent/g'  /build/rootfs/usr/lib/systemd/system/kata-agent.service
       touch /build/rootfs/etc/machine-id
 
