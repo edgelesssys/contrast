@@ -120,3 +120,7 @@ WireGuard
 Xeon
 xsltproc
 Zipkin
+vendored
+noogle
+nixpkgs
+rebase
