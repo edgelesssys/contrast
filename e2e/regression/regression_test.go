@@ -6,12 +6,12 @@
 package regression
 
 import (
+	"bytes"
 	"flag"
 	"os"
 	"testing"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
-	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/stretchr/testify/require"
 )
@@ -26,15 +26,20 @@ func TestRegression(t *testing.T) {
 
 	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, skipUndeploy)
 
-	currentYaml, err := os.ReadFile("./e2e/regression/test-data/redis-alpine.yaml")
-	require.NoError(err)
+	resources := kuberesource.CoordinatorBundle()
 
-	resources, err := kubeapi.UnmarshalK8SResources(currentYaml)
+	yaml, err := os.ReadFile("./e2e/regression/test-data/redis-alpine.yaml")
 	require.NoError(err)
-
-	ct.Init(t, resources)
+	yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_NAMESPACE"), []byte(ct.Namespace))
+	yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_RUNTIME"), []byte(kuberesource.RuntimeHandler))
+	yamlResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
+	require.NoError(err)
+	resources = append(resources, yamlResources)
 
 	resources = kuberesource.AddPortForwarders(resources)
+	t.Logf("config:\n%s", resources)
+
+	ct.Init(t, resources)
 
 	require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 
