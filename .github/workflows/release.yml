@@ -363,7 +363,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          nix shell .#contrast.e2e --command release.test -test.v --tag ${{ inputs.version }}
+          nix shell -L .#contrast.e2e --command release.test -test.v --tag ${{ inputs.version }}
 
   create-github-stuff:
     name: Create backport label and milestone

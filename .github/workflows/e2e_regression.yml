@@ -63,7 +63,7 @@ jobs:
           just node-installer
       - name: Run regression test
         run: |
-          nix shell .#contrast.e2e --command ${{ matrix.case }}.test -test.v \
+          nix shell -L .#contrast.e2e --command ${{ matrix.case }}.test -test.v \
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
             --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
