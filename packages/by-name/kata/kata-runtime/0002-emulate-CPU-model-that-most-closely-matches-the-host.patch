@@ -1,4 +1,4 @@
-From ffbe9644ce1b2013a3678bf05e19ea21a2f60385 Mon Sep 17 00:00:00 2001
+From 9be4faa0887716435e290beccef7f7bca0cb3960 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:35:54 +0000
 Subject: [PATCH 2/3] emulate CPU model that most closely matches the host
@@ -12,10 +12,10 @@ attestation.
  1 file changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
-index ade7356eb..ca8f9998c 100644
+index 1d1be1711..6ebee26ce 100644
 --- a/src/runtime/virtcontainers/qemu_amd64.go
 +++ b/src/runtime/virtcontainers/qemu_amd64.go
-@@ -188,7 +188,18 @@ func (q *qemuAmd64) cpuModel() string {
+@@ -191,7 +191,18 @@ func (q *qemuAmd64) cpuModel() string {
  	protection, err := availableGuestProtection()
  	if err == nil {
  		if protection == snpProtection && q.snpGuest {
@@ -36,5 +36,5 @@ index ade7356eb..ca8f9998c 100644
  	}
  
 -- 
-2.45.2
+2.45.1
 

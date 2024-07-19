@@ -11,16 +11,17 @@
 let
   configfile = stdenvNoCC.mkDerivation rec {
     pname = "kata-kernel-config-confidential";
-    version = "3.6.0";
+    version = "3.7.0";
 
     src = fetchzip {
       url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
-      hash = "sha256-ynMzMoJ90BzKuE6ih6DmbM2zWTDxsMwkAKsI8pbO3sg=";
+      hash = "sha256-SY75Ond2WLkY17Zal22GXgNKB3L1LGIyLKv8H/M0Wbw=";
     };
 
     # We don't use an initrd.
     postPatch = ''
-      substituteInPlace kata/share/kata-containers/config-6.7-132-confidential \
+      config=$(find . -regex '.*/config-[0-9.-]+-confidential')
+      substituteInPlace $config \
         --replace-fail 'CONFIG_INITRAMFS_SOURCE="initramfs.cpio.gz"' 'CONFIG_INITRAMFS_SOURCE=""'
     '';
 
@@ -29,7 +30,7 @@ let
     installPhase = ''
       runHook preInstall
 
-      cp kata/share/kata-containers/config-6.7-132-confidential $out
+      cp $config $out
 
       runHook postInstall
     '';
