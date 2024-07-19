@@ -15,6 +15,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -79,12 +80,13 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 	policyHash := sha256.Sum256(policy)
 	policyHashHex := manifest.NewHexString(policyHash[:])
 
-	mnfst := manifest.DefaultAKS()
+	mnfst, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
+	require.NoError(t, err)
 	mnfst.Policies = map[manifest.HexString][]string{policyHashHex: {"test"}}
 	mnfst.WorkloadOwnerKeyDigests = []manifest.HexString{keyDigest}
 	mnfstBytes, err := json.Marshal(mnfst)
 	require.NoError(t, err)
-	return &mnfst, mnfstBytes, [][]byte{policy}
+	return mnfst, mnfstBytes, [][]byte{policy}
 }
 
 func requireGauge(t *testing.T, reg *prometheus.Registry, val int) {

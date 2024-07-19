@@ -20,6 +20,8 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,10 +35,19 @@ var (
 func TestIngressEgress(t *testing.T) {
 	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, skipUndeploy)
 
+	// TODO(msanft): Make this configurable
+	platform := platforms.AKSCloudHypervisorSNP
+
+	runtimeHandler, err := manifest.DefaultPlatformHandler(platform)
+	require.NoError(t, err)
+
 	resources := kuberesource.Emojivoto(kuberesource.ServiceMeshIngressEgress)
 
 	coordinator := kuberesource.CoordinatorBundle()
+
 	resources = append(resources, coordinator...)
+
+	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 
 	resources = kuberesource.AddPortForwarders(resources)
 

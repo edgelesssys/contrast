@@ -19,6 +19,8 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,13 +31,19 @@ var (
 
 // TestGenpolicy runs regression tests for generated policies.
 func TestGenpolicy(t *testing.T) {
+	// TODO(msanft): Make this configurable
+	platform := platforms.AKSCloudHypervisorSNP
+
 	testCases := kuberesource.GenpolicyRegressionTests()
+
+	runtimeHandler, err := manifest.DefaultPlatformHandler(platform)
+	require.NoError(t, err)
 
 	for name, deploy := range testCases {
 		t.Run(name, func(t *testing.T) {
 			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, skipUndeploy)
 
-			ct.Init(t, []any{deploy})
+			ct.Init(t, kuberesource.PatchRuntimeHandlers([]any{deploy}, runtimeHandler))
 
 			require.True(t, t.Run("generate", func(t *testing.T) {
 				require := require.New(t)

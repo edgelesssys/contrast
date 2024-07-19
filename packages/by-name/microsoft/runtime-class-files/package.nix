@@ -24,8 +24,7 @@ stdenvNoCC.mkDerivation {
   buildPhase = ''
     mkdir -p $out
     igvmmeasure -b ${igvm} | dd conv=lcase > $out/launch-digest.hex
-    echo -n "contrast-cc-" > $out/runtime-handler
-    cat $out/launch-digest.hex | head -c 32 >> $out/runtime-handler
+    printf "contrast-cc-%s" "$(cat $out/launch-digest.hex | head -c 32)" > $out/runtime-handler
   '';
 
   passthru = {

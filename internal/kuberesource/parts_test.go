@@ -24,9 +24,7 @@ func TestNewPortForwarder(t *testing.T) {
 func TestCoordinator(t *testing.T) {
 	require := require.New(t)
 
-	config := Coordinator("default")
-
-	b, err := EncodeResources(config)
+	b, err := EncodeResources(Coordinator("default"))
 	require.NoError(err)
 	t.Log("\n" + string(b))
 }

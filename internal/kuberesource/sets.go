@@ -15,12 +15,12 @@ import (
 
 // CoordinatorBundle returns the Coordinator and a matching Service.
 func CoordinatorBundle() []any {
-	coordinator := Coordinator("").StatefulSetApplyConfiguration
-	coordinatorService := ServiceForStatefulSet(coordinator).
+	coordinatorSfSets := Coordinator("").StatefulSetApplyConfiguration
+	coordinatorService := ServiceForStatefulSet(coordinatorSfSets).
 		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
 
 	resources := []any{
-		coordinator,
+		coordinatorSfSets,
 		coordinatorService,
 	}
 
@@ -31,14 +31,19 @@ func CoordinatorBundle() []any {
 func Runtime(platform platforms.Platform) ([]any, error) {
 	ns := ""
 
-	runtimeClass := ContrastRuntimeClass(platform).RuntimeClassApplyConfiguration
+	runtimeClass, err := ContrastRuntimeClass(platform)
+	if err != nil {
+		return nil, fmt.Errorf("creating runtime class: %w", err)
+	}
+
+	runtimeClassApplyConfig := runtimeClass.RuntimeClassApplyConfiguration
 	nodeInstaller, err := NodeInstaller(ns, platform)
 	if err != nil {
 		return nil, fmt.Errorf("creating node installer: %w", err)
 	}
 
 	return []any{
-		runtimeClass,
+		runtimeClassApplyConfig,
 		nodeInstaller.DaemonSetApplyConfiguration,
 	}, nil
 }
@@ -46,7 +51,6 @@ func Runtime(platform platforms.Platform) ([]any, error) {
 // OpenSSL returns a set of resources for testing with OpenSSL.
 func OpenSSL() []any {
 	ns := ""
-
 	backend := Deployment("openssl-backend", ns).
 		WithSpec(DeploymentSpec().
 			WithReplicas(1).
@@ -56,7 +60,6 @@ func OpenSSL() []any {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-backend"}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName(runtimeHandler).
 					WithContainers(
 						Container().
 							WithName("openssl-backend").
@@ -92,7 +95,6 @@ func OpenSSL() []any {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "openssl-frontend"}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName(runtimeHandler).
 					WithContainers(
 						Container().
 							WithName("openssl-frontend").
@@ -130,7 +132,7 @@ func OpenSSL() []any {
 }
 
 // GetDEnts returns a set of resources for testing getdents entry limits.
-func GetDEnts() ([]any, error) {
+func GetDEnts() []any {
 	tester := Deployment("getdents-tester", "").
 		WithSpec(DeploymentSpec().
 			WithReplicas(1).
@@ -140,7 +142,6 @@ func GetDEnts() ([]any, error) {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "getdents-tester"}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName(runtimeHandler).
 					WithContainers(
 						Container().
 							WithName("getdents-tester").
@@ -154,7 +155,7 @@ func GetDEnts() ([]any, error) {
 			),
 		)
 
-	return []any{tester}, nil
+	return []any{tester}
 }
 
 // GenpolicyRegressionTests returns deployments for regression testing genpolicy.
@@ -172,7 +173,6 @@ func GenpolicyRegressionTests() map[string]*applyappsv1.DeploymentApplyConfigura
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": badLayer}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName(runtimeHandler).
 					WithContainers(
 						Container().
 							WithName(badLayer).
@@ -234,7 +234,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 					"version":                "v11",
 				}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName(runtimeHandler).
 					WithServiceAccountName("emoji").
 					WithContainers(
 						Container().
@@ -340,7 +339,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 					"version":                "v11",
 				}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName(runtimeHandler).
 					WithServiceAccountName("voting").
 					WithContainers(
 						Container().
@@ -412,7 +410,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 					"version":                "v11",
 				}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName(runtimeHandler).
 					WithServiceAccountName("web").
 					WithContainers(
 						Container().

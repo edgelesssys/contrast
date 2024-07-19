@@ -6,6 +6,7 @@
   buildGoModule,
   buildGoTest,
   microsoft,
+  kata,
   genpolicy ? microsoft.genpolicy,
   contrast,
   installShellFiles,
@@ -25,11 +26,7 @@ let
 
     tags = [ "e2e" ];
 
-    ldflags = [
-      "-s"
-      "-X github.com/edgelesssys/contrast/internal/manifest.TrustedMeasurement=${launchDigest}"
-      "-X github.com/edgelesssys/contrast/internal/kuberesource.runtimeHandler=${runtimeHandler}"
-    ];
+    ldflags = [ "-s" ];
 
     subPackages = [
       "e2e/genpolicy"
@@ -41,10 +38,29 @@ let
     ];
   };
 
-  launchDigest = builtins.readFile "${microsoft.runtime-class-files}/launch-digest.hex";
-
-  runtimeHandler = lib.removeSuffix "\n" (
-    builtins.readFile "${microsoft.runtime-class-files}/runtime-handler"
+  # Reference values that we embed into the Contrast CLI for
+  # deployment generation and attestation.
+  embeddedReferenceValues = builtins.toFile "reference-values.json" (
+    builtins.toJSON {
+      aks = {
+        snp = {
+          minimumTCB = {
+            bootloaderVersion = 3;
+            teeVersion = 0;
+            snpVersion = 8;
+            microcodeVersion = 115;
+          };
+        };
+        trustedMeasurement = lib.removeSuffix "\n" (
+          builtins.readFile "${microsoft.runtime-class-files}/launch-digest.hex"
+        );
+      };
+      bareMetalTDX = {
+        trustedMeasurement = lib.removeSuffix "\n" (
+          builtins.readFile "${kata.runtime-class-files}/launch-digest.hex"
+        );
+      };
+    }
   );
 
   packageOutputs = [
@@ -93,6 +109,7 @@ buildGoModule rec {
     install -D ${lib.getExe genpolicy} cli/cmd/assets/genpolicy
     install -D ${genpolicy.settings-dev}/genpolicy-settings.json cli/cmd/assets/genpolicy-settings.json
     install -D ${genpolicy.rules}/genpolicy-rules.rego cli/cmd/assets/genpolicy-rules.rego
+    install -D ${embeddedReferenceValues} internal/manifest/assets/reference-values.json
   '';
 
   CGO_ENABLED = 0;
@@ -101,8 +118,6 @@ buildGoModule rec {
     "-w"
     "-X github.com/edgelesssys/contrast/cli/constants.Version=${version}"
     "-X github.com/edgelesssys/contrast/cli/constants.GenpolicyVersion=${genpolicy.version}"
-    "-X github.com/edgelesssys/contrast/internal/manifest.TrustedMeasurement=${launchDigest}"
-    "-X github.com/edgelesssys/contrast/internal/kuberesource.runtimeHandler=${runtimeHandler}"
   ];
 
   preCheck = ''

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/node-installer/platforms"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,7 +18,12 @@ import (
 )
 
 // ContrastRuntimeClass creates a new RuntimeClassConfig.
-func ContrastRuntimeClass(platform platforms.Platform) *RuntimeClassConfig {
+func ContrastRuntimeClass(platform platforms.Platform) (*RuntimeClassConfig, error) {
+	runtimeHandler, err := manifest.DefaultPlatformHandler(platform)
+	if err != nil {
+		return nil, fmt.Errorf("getting default runtime handler: %w", err)
+	}
+
 	r := RuntimeClass(runtimeHandler).
 		WithHandler(runtimeHandler).
 		WithLabels(map[string]string{"addonmanager.kubernetes.io/mode": "Reconcile"}).
@@ -27,7 +33,7 @@ func ContrastRuntimeClass(platform platforms.Platform) *RuntimeClassConfig {
 		r.WithScheduling(Scheduling(map[string]string{"kubernetes.azure.com/kata-cc-isolation": "true"}))
 	}
 
-	return &RuntimeClassConfig{r}
+	return &RuntimeClassConfig{r}, nil
 }
 
 // NodeInstallerConfig wraps a DaemonSetApplyConfiguration for a node installer.
@@ -38,6 +44,11 @@ type NodeInstallerConfig struct {
 // NodeInstaller constructs a node installer daemon set.
 func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstallerConfig, error) {
 	name := "contrast-node-installer"
+
+	runtimeHandler, err := manifest.DefaultPlatformHandler(platform)
+	if err != nil {
+		return nil, fmt.Errorf("getting default runtime handler: %w", err)
+	}
 
 	var nodeInstallerImageURL string
 	switch platform {
@@ -232,7 +243,6 @@ func Coordinator(namespace string) *CoordinatorConfig {
 				WithLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}).
 				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
 				WithSpec(PodSpec().
-					WithRuntimeClassName(runtimeHandler).
 					WithContainers(
 						Container().
 							WithName("coordinator").

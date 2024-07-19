@@ -5,90 +5,14 @@ package manifest
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"strconv"
 	"testing"
 
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
-
-func TestSVN(t *testing.T) {
-	testCases := []struct {
-		enc     string
-		dec     SVN
-		wantErr bool
-	}{
-		{enc: "0", dec: 0},
-		{enc: "1", dec: 1},
-		{enc: "255", dec: 255},
-		{enc: "256", dec: 0, wantErr: true},
-		{enc: "-1", dec: 0, wantErr: true},
-	}
-
-	t.Run("MarshalJSON", func(t *testing.T) {
-		for _, tc := range testCases {
-			if tc.wantErr {
-				continue
-			}
-			t.Run(tc.enc, func(t *testing.T) {
-				assert := assert.New(t)
-				enc, err := json.Marshal(tc.dec)
-				assert.NoError(err)
-				assert.Equal(tc.enc, string(enc))
-			})
-		}
-	})
-
-	t.Run("UnmarshalJSON", func(t *testing.T) {
-		for _, tc := range testCases {
-			t.Run(tc.enc, func(t *testing.T) {
-				assert := assert.New(t)
-				var dec SVN
-				err := json.Unmarshal([]byte(tc.enc), &dec)
-				if tc.wantErr {
-					assert.Error(err)
-					return
-				}
-				assert.NoError(err)
-				assert.Equal(tc.dec, dec)
-			})
-		}
-	})
-}
-
-func TestHexString(t *testing.T) {
-	testCases := []struct {
-		b []byte
-		s string
-	}{
-		{b: []byte{0x00}, s: "00"},
-		{b: []byte{0x01}, s: "01"},
-		{b: []byte{0x0f}, s: "0f"},
-		{b: []byte{0x10}, s: "10"},
-		{b: []byte{0x11}, s: "11"},
-		{b: []byte{0xff}, s: "ff"},
-		{b: []byte{0x00, 0x01}, s: "0001"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.s, func(t *testing.T) {
-			assert := assert.New(t)
-			hexString := NewHexString(tc.b)
-			assert.Equal(tc.s, hexString.String())
-			b, err := hexString.Bytes()
-			assert.NoError(err)
-			assert.Equal(tc.b, b)
-		})
-	}
-
-	t.Run("invalid hexstring", func(t *testing.T) {
-		assert := assert.New(t)
-		hexString := HexString("invalid")
-		_, err := hexString.Bytes()
-		assert.Error(err)
-	})
-}
 
 func TestHexStrings(t *testing.T) {
 	testCases := []struct {
@@ -148,37 +72,38 @@ func TestPolicy(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
+	mnf, err := Default(platforms.AKSCloudHypervisorSNP)
+	require.NoError(t, err)
+
 	testCases := []struct {
-		m       Manifest
+		m       *Manifest
 		wantErr bool
 	}{
 		{
-			m: DefaultAKS(),
+			m: mnf,
 		},
 		{
-			m:       Default(),
-			wantErr: true,
-		},
-		{
-			m: Manifest{
+			m: &Manifest{
 				Policies:        map[HexString][]string{HexString(""): {}},
-				ReferenceValues: DefaultAKS().ReferenceValues,
+				ReferenceValues: mnf.ReferenceValues,
 			},
 			wantErr: true,
 		},
 		{
-			m: Manifest{
+			m: &Manifest{
 				Policies: map[HexString][]string{HexString(""): {}},
 				ReferenceValues: ReferenceValues{
-					SNP:                Default().ReferenceValues.SNP,
-					TrustedMeasurement: "",
+					AKS: &AKSReferenceValues{
+						SNP:                mnf.ReferenceValues.AKS.SNP,
+						TrustedMeasurement: "",
+					},
 				},
 			},
 			wantErr: true,
 		},
 		{
-			m: Manifest{
-				ReferenceValues:         Default().ReferenceValues,
+			m: &Manifest{
+				ReferenceValues:         mnf.ReferenceValues,
 				WorkloadOwnerKeyDigests: []HexString{HexString("")},
 			},
 			wantErr: true,
@@ -197,44 +122,31 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func TestSNPValidateOpts(t *testing.T) {
-	testCases := []struct {
-		m       Manifest
-		wantErr bool
-	}{
-		{m: DefaultAKS()},
-		{m: Default(), wantErr: true},
+func TestAKSValidateOpts(t *testing.T) {
+	assert := assert.New(t)
+
+	m, err := Default(platforms.AKSCloudHypervisorSNP)
+	require.NoError(t, err)
+
+	opts, err := m.AKSValidateOpts()
+	assert.NoError(err)
+
+	tcb := m.ReferenceValues.AKS.SNP.MinimumTCB
+	assert.NotNil(tcb.BootloaderVersion)
+	assert.NotNil(tcb.TEEVersion)
+	assert.NotNil(tcb.SNPVersion)
+	assert.NotNil(tcb.MicrocodeVersion)
+
+	trustedMeasurement, err := m.ReferenceValues.AKS.TrustedMeasurement.Bytes()
+	assert.NoError(err)
+	assert.Equal(trustedMeasurement, opts.Measurement)
+
+	tcbParts := kds.TCBParts{
+		BlSpl:    tcb.BootloaderVersion.UInt8(),
+		TeeSpl:   tcb.TEEVersion.UInt8(),
+		SnpSpl:   tcb.SNPVersion.UInt8(),
+		UcodeSpl: tcb.MicrocodeVersion.UInt8(),
 	}
-
-	for i, tc := range testCases {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			assert := assert.New(t)
-
-			opts, err := tc.m.SNPValidateOpts()
-			if tc.wantErr {
-				assert.Error(err)
-				return
-			}
-			assert.NoError(err)
-
-			tcb := tc.m.ReferenceValues.SNP.MinimumTCB
-			assert.NotNil(tcb.BootloaderVersion)
-			assert.NotNil(tcb.TEEVersion)
-			assert.NotNil(tcb.SNPVersion)
-			assert.NotNil(tcb.MicrocodeVersion)
-
-			trustedMeasurement, err := tc.m.ReferenceValues.TrustedMeasurement.Bytes()
-			assert.NoError(err)
-			assert.Equal(trustedMeasurement, opts.Measurement)
-
-			tcbParts := kds.TCBParts{
-				BlSpl:    tcb.BootloaderVersion.UInt8(),
-				TeeSpl:   tcb.TEEVersion.UInt8(),
-				SnpSpl:   tcb.SNPVersion.UInt8(),
-				UcodeSpl: tcb.MicrocodeVersion.UInt8(),
-			}
-			assert.Equal(tcbParts, opts.MinimumTCB)
-			assert.Equal(tcbParts, opts.MinimumLaunchTCB)
-		})
-	}
+	assert.Equal(tcbParts, opts.MinimumTCB)
+	assert.Equal(tcbParts, opts.MinimumLaunchTCB)
 }
