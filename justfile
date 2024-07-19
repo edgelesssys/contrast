@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform) (runtime platform) (apply "runtime") (deploy target cli) set verify (wait-for-workload target)
+default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform) (runtime platform) (apply "runtime") (deploy target cli platform) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -57,7 +57,7 @@ e2e target=default_deploy_target: soft-clean coordinator initializer openssl por
             --skip-undeploy=true
 
 # Generate policies, apply Kubernetes manifests.
-deploy target=default_deploy_target cli=default_cli: (populate target) (generate cli) (apply target)
+deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target) (generate cli platform) (apply target)
 
 # Populate the workspace with a runtime class deployment
 runtime platform=default_platform:
@@ -69,24 +69,24 @@ runtime platform=default_platform:
       runtime > ./{{ workspace_dir }}/runtime/runtime.yml
 
 # Populate the workspace with a Kubernetes deployment
-populate target=default_deploy_target:
+populate target=default_deploy_target platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
     mkdir -p ./{{ workspace_dir }}/deployment
     nix shell .#contrast --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace {{ target }}${namespace_suffix-} \
-        --add-namespace-object --add-port-forwarders \
+        --add-namespace-object --add-port-forwarders --platform {{ platform }} \
         {{ target }} coordinator > ./{{ workspace_dir }}/deployment/deployment.yml
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
 
 # Generate policies, update manifest.
-generate cli=default_cli:
+generate cli=default_cli platform=default_platform:
     #!/usr/bin/env bash
     nix run .#{{ cli }} -- generate \
         --workspace-dir ./{{ workspace_dir }} \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
-        --reference-values aks-clh-snp \
+        --reference-values {{ platform }}\
         ./{{ workspace_dir }}/deployment/*.yml
 
 # Apply Kubernetes manifests from /deployment
