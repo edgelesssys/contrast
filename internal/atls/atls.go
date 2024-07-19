@@ -21,6 +21,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/crypto"
 )
 
@@ -31,6 +32,11 @@ var (
 	NoValidator Validator
 	// NoIssuer skips embedding the client's attestation document.
 	NoIssuer Issuer
+
+	// ErrNoValidAttestationExtensions is returned when no valid attestation document certificate extensions are found.
+	ErrNoValidAttestationExtensions = errors.New("no valid attestation document certificate extensions found")
+	// ErrNoMatchingValidators is returned when no validator matches the attestation document.
+	ErrNoMatchingValidators = errors.New("no matching validators found")
 )
 
 // CreateAttestationServerTLSConfig creates a tls.Config object with a self-signed certificate and an embedded attestation document.
@@ -205,19 +211,56 @@ func processCertificate(rawCerts [][]byte, _ [][]*x509.Certificate) (*x509.Certi
 }
 
 // verifyEmbeddedReport verifies an aTLS certificate by validating the attestation document embedded in the TLS certificate.
-func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, peerPublicKey, nonce []byte) error {
-	for _, ex := range cert.Extensions {
-		for _, validator := range validators {
-			if ex.Id.Equal(validator.OID()) {
-				ctx, cancel := context.WithTimeout(context.Background(), attestationTimeout)
-				defer cancel()
+//
+// It will check against all applicable validator for the type of attestation document, and return success on the first match.
+func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, peerPublicKey, nonce []byte) (retErr error) {
+	// For better error reporting, let's keep track of whether we've found a valid extension at all..
+	var foundExtension bool
+	// .. and whether we've found a matching validator.
+	var foundMatchingValidator bool
 
-				return validator.Validate(ctx, ex.Value, nonce, peerPublicKey)
+	// We'll need to have a look at all extensions in the certificate to find the attestation document.
+	for _, ex := range cert.Extensions {
+		// Optimization: Skip the extension early before heading into the m*n complexity of the validator check
+		// if the extension is not an attestation document.
+		if !attestation.IsAttestationDocumentExtension(ex.Id) {
+			continue
+		}
+
+		// We have a valid attestation document. Let's check it against all applicable validators.
+		foundExtension = true
+		for _, validator := range validators {
+			// Optimization: Skip the validator if it doesn't match the attestation type of the document.
+			if !ex.Id.Equal(validator.OID()) {
+				continue
 			}
+
+			// We've found a matching validator. Let's validate the document.
+			foundMatchingValidator = true
+
+			ctx, cancel := context.WithTimeout(context.Background(), attestationTimeout)
+			defer cancel()
+
+			validationErr := validator.Validate(ctx, ex.Value, nonce, peerPublicKey)
+			if validationErr == nil {
+				// The validator has successfully verified the document. We can exit.
+				return nil
+			}
+			// Otherwise, we'll keep track of the error and continue with the next validator.
+			retErr = errors.Join(retErr, fmt.Errorf("validator %s failed: %w", validator.OID(), validationErr))
 		}
 	}
 
-	return errors.New("certificate does not contain attestation document")
+	if !foundExtension {
+		return ErrNoValidAttestationExtensions
+	}
+
+	if !foundMatchingValidator {
+		return ErrNoMatchingValidators
+	}
+
+	// If we're here, an error must've happened during validation.
+	return retErr
 }
 
 // encodeNonceToCertPool returns a cert pool that contains a certificate whose CN is the base64-encoded nonce.
