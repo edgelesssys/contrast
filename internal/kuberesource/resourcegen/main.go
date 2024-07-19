@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/node-installer/platforms"
 )
 
@@ -28,11 +29,17 @@ func main() {
 	flag.Parse()
 
 	var platform platforms.Platform
+	var runtimeHandler string
 	if *rawPlatform != "" {
 		var err error
 		platform, err = platforms.FromString(*rawPlatform)
 		if err != nil {
 			log.Fatalf("Error parsing platform: %v", err)
+		}
+
+		runtimeHandler, err = manifest.DefaultPlatformHandler(platform)
+		if err != nil {
+			log.Fatalf("Error getting default runtime handler: %v", err)
 		}
 	}
 
@@ -42,18 +49,17 @@ func main() {
 		var err error
 		switch set {
 		case "coordinator":
-			subResources = kuberesource.CoordinatorBundle()
+			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.CoordinatorBundle(), runtimeHandler)
 		case "runtime":
 			subResources, err = kuberesource.Runtime(platform)
-			if err != nil {
-				log.Fatalf("Error generating runtime: %v", err)
-			}
 		case "openssl":
-			subResources = kuberesource.OpenSSL()
+			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.OpenSSL(), runtimeHandler)
 		case "emojivoto":
 			subResources = kuberesource.Emojivoto(kuberesource.ServiceMeshDisabled)
+			subResources = kuberesource.PatchRuntimeHandlers(subResources, runtimeHandler)
 		case "emojivoto-sm-ingress":
 			subResources = kuberesource.Emojivoto(kuberesource.ServiceMeshIngressEgress)
+			subResources = kuberesource.PatchRuntimeHandlers(subResources, runtimeHandler)
 		default:
 			log.Fatalf("Error: unknown set: %s\n", set)
 		}

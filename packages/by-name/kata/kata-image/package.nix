@@ -146,6 +146,21 @@ stdenv.mkDerivation rec {
   buildPhase = ''
     runHook preBuild
 
+    # Check if filesystem is ext.*
+    fstype=$(stat -f -c %T .)
+    if [[ $fstye == "ext4" || $fstype == "ext2/ext3" ]]; then
+      echo "Due to a bug in the image build, kata-image can unfortunately not be built on $fstype filesystems."
+      echo "As a workaround, you can build the derivation on a different filesystem with the following:"
+      echo "systemctl edit nix-daemon"
+      echo "Then, when editing the unit, enter:"
+      echo "[Service]"
+      echo 'Environment=TMPDIR=/some-non-ext*-filesystem'
+      echo "Then restart the nix-daemon with:"
+      echo "systemctl restart nix-daemon"
+      echo "Then rebuild the derivation."
+      exit 1
+    fi
+
     # use a fakeroot environment to build the rootfs as a tar
     # this is required to create files with the correct ownership and permissions
     # including suid

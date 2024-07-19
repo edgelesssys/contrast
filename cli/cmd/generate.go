@@ -88,7 +88,7 @@ subcommands.`,
 func runGenerate(cmd *cobra.Command, args []string) error {
 	flags, err := parseGenerateFlags(cmd)
 	if err != nil {
-		return fmt.Errorf("failed to parse flags: %w", err)
+		return fmt.Errorf("parse flags: %w", err)
 	}
 
 	log, err := newCLILogger(cmd)
@@ -101,23 +101,48 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if err := patchTargets(paths, flags.imageReplacementsFile, flags.skipInitializer, log); err != nil {
-		return fmt.Errorf("failed to patch targets: %w", err)
+	// generate a manifest by checking if a manifest exists and using that,
+	// or otherwise using a default.
+	var mnf *manifest.Manifest
+	existingManifest, err := os.ReadFile(flags.manifestPath)
+	if errors.Is(err, fs.ErrNotExist) {
+		// Manifest does not exist, create a new one
+		mnf, err = manifest.Default(flags.referenceValuesPlatform)
+		if err != nil {
+			return fmt.Errorf("create default manifest: %w", err)
+		}
+	} else if err != nil {
+		// Manifest exists but could not be read, return error
+		return fmt.Errorf("read existing manifest: %w", err)
+	} else {
+		// Manifest exists and was read successfully, unmarshal it
+		if err := json.Unmarshal(existingManifest, &mnf); err != nil {
+			return fmt.Errorf("unmarshal existing manifest: %w", err)
+		}
+	}
+
+	runtimeHandler, err := mnf.RuntimeHandler(flags.referenceValuesPlatform)
+	if err != nil {
+		return fmt.Errorf("get runtime handler: %w", err)
+	}
+
+	if err := patchTargets(paths, flags.imageReplacementsFile, runtimeHandler, flags.skipInitializer, log); err != nil {
+		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
 
 	if err := generatePolicies(cmd.Context(), flags.policyPath, flags.settingsPath, flags.genpolicyCachePath, paths, log); err != nil {
-		return fmt.Errorf("failed to generate policies: %w", err)
+		return fmt.Errorf("generate policies: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Generated workload policy annotations")
 
 	policies, err := policiesFromKubeResources(paths)
 	if err != nil {
-		return fmt.Errorf("failed to find kube resources with policy: %w", err)
+		return fmt.Errorf("find kube resources with policy: %w", err)
 	}
 	policyMap, err := manifestPolicyMapFromPolicies(policies)
 	if err != nil {
-		return fmt.Errorf("failed to create policy map: %w", err)
+		return fmt.Errorf("create policy map: %w", err)
 	}
 
 	if err := generateWorkloadOwnerKey(flags); err != nil {
@@ -127,53 +152,35 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("generating seedshare owner key: %w", err)
 	}
 
-	defaultManifest := manifest.Default()
-	switch flags.referenceValuesPlatform {
-	case platforms.AKSCloudHypervisorSNP:
-		defaultManifest = manifest.DefaultAKS()
-	}
-
-	defaultManifestData, err := json.MarshalIndent(&defaultManifest, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshaling default manifest: %w", err)
-	}
-	manifestData, err := readFileOrDefault(flags.manifestPath, defaultManifestData)
-	if err != nil {
-		return fmt.Errorf("failed to read manifest file: %w", err)
-	}
-	var manifest *manifest.Manifest
-	if err := json.Unmarshal(manifestData, &manifest); err != nil {
-		return fmt.Errorf("failed to unmarshal manifest: %w", err)
-	}
-	manifest.Policies = policyMap
-	if err := manifest.Validate(); err != nil {
+	mnf.Policies = policyMap
+	if err := mnf.Validate(); err != nil {
 		return fmt.Errorf("validating manifest: %w", err)
 	}
 
 	if flags.disableUpdates {
-		manifest.WorkloadOwnerKeyDigests = nil
+		mnf.WorkloadOwnerKeyDigests = nil
 	} else {
 		for _, keyPath := range flags.workloadOwnerKeys {
-			if err := addWorkloadOwnerKeyToManifest(manifest, keyPath); err != nil {
+			if err := addWorkloadOwnerKeyToManifest(mnf, keyPath); err != nil {
 				return fmt.Errorf("adding workload owner key to manifest: %w", err)
 			}
 		}
 	}
-	slices.Sort(manifest.WorkloadOwnerKeyDigests)
+	slices.Sort(mnf.WorkloadOwnerKeyDigests)
 
 	for _, keyPath := range flags.seedshareOwnerKeys {
-		if err := addSeedshareOwnerKeyToManifest(manifest, keyPath); err != nil {
+		if err := addSeedshareOwnerKeyToManifest(mnf, keyPath); err != nil {
 			return fmt.Errorf("adding seedshare owner key to manifest: %w", err)
 		}
 	}
-	slices.Sort(manifest.SeedshareOwnerPubKeys)
+	slices.Sort(mnf.SeedshareOwnerPubKeys)
 
-	manifestData, err = json.MarshalIndent(manifest, "", "  ")
+	manifestData, err := json.MarshalIndent(mnf, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal manifest: %w", err)
+		return fmt.Errorf("marshal manifest: %w", err)
 	}
 	if err := os.WriteFile(flags.manifestPath, append(manifestData, '\n'), 0o644); err != nil {
-		return fmt.Errorf("failed to write manifest: %w", err)
+		return fmt.Errorf("write manifest: %w", err)
 	}
 
 	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Updated manifest %s\n", flags.manifestPath)
@@ -181,7 +188,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	if hash := getCoordinatorPolicyHash(policies, log); hash != "" {
 		coordHashPath := filepath.Join(flags.workspaceDir, coordHashFilename)
 		if err := os.WriteFile(coordHashPath, []byte(hash), 0o644); err != nil {
-			return fmt.Errorf("failed to write coordinator policy hash: %w", err)
+			return fmt.Errorf("write coordinator policy hash: %w", err)
 		}
 	}
 
@@ -207,7 +214,7 @@ func findGenerateTargets(args []string, logger *slog.Logger) ([]string, error) {
 			return nil
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to walk %s: %w", path, err)
+			return nil, fmt.Errorf("walk %s: %w", path, err)
 		}
 	}
 	if len(paths) == 0 {
@@ -227,7 +234,7 @@ func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger 
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {
-			logger.Warn("Failed to read file", "path", path, "err", err)
+			logger.Warn("read file", "path", path, "err", err)
 			continue
 		}
 		if !bytes.Contains(data, []byte(runtimeClassNamePrefix)) {
@@ -248,21 +255,21 @@ func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath, ge
 	}
 	binaryInstallDir, err := installDir()
 	if err != nil {
-		return fmt.Errorf("failed to get install dir: %w", err)
+		return fmt.Errorf("get install dir: %w", err)
 	}
 	genpolicyInstall, err := embedbin.New().Install(binaryInstallDir, genpolicyBin)
 	if err != nil {
-		return fmt.Errorf("failed to install genpolicy: %w", err)
+		return fmt.Errorf("install genpolicy: %w", err)
 	}
 	defer func() {
 		if err := genpolicyInstall.Uninstall(); err != nil {
-			logger.Warn("Failed to uninstall genpolicy tool", "err", err)
+			logger.Warn("uninstall genpolicy tool", "err", err)
 		}
 	}()
 	for _, yamlPath := range yamlPaths {
 		policyHash, err := generatePolicyForFile(ctx, genpolicyInstall.Path(), regoRulesPath, policySettingsPath, yamlPath, genpolicyCachePath, logger)
 		if err != nil {
-			return fmt.Errorf("failed to generate policy for %s: %w", yamlPath, err)
+			return fmt.Errorf("generate policy for %s: %w", yamlPath, err)
 		}
 		if policyHash == [32]byte{} {
 			continue
@@ -273,7 +280,7 @@ func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath, ge
 	return nil
 }
 
-func patchTargets(paths []string, imageReplacementsFile string, skipInitializer bool, logger *slog.Logger) error {
+func patchTargets(paths []string, imageReplacementsFile, runtimeHandler string, skipInitializer bool, logger *slog.Logger) error {
 	var replacements map[string]string
 	var err error
 	if imageReplacementsFile != "" {
@@ -296,11 +303,11 @@ func patchTargets(paths []string, imageReplacementsFile string, skipInitializer 
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {
-			return fmt.Errorf("failed to read %s: %w", path, err)
+			return fmt.Errorf("read %s: %w", path, err)
 		}
 		kubeObjs, err := kuberesource.UnmarshalApplyConfigurations(data)
 		if err != nil {
-			return fmt.Errorf("failed to unmarshal %s: %w", path, err)
+			return fmt.Errorf("unmarshal %s: %w", path, err)
 		}
 
 		if !skipInitializer {
@@ -314,7 +321,7 @@ func patchTargets(paths []string, imageReplacementsFile string, skipInitializer 
 
 		kubeObjs = kuberesource.PatchImages(kubeObjs, replacements)
 
-		replaceRuntimeClassName := runtimeClassNamePatcher()
+		replaceRuntimeClassName := runtimeClassNamePatcher(runtimeHandler)
 		for i := range kubeObjs {
 			kubeObjs[i] = kuberesource.MapPodSpec(kubeObjs[i], replaceRuntimeClassName)
 		}
@@ -325,7 +332,7 @@ func patchTargets(paths []string, imageReplacementsFile string, skipInitializer 
 			return err
 		}
 		if err := os.WriteFile(path, resource, os.ModePerm); err != nil {
-			return fmt.Errorf("failed to write %s: %w", path, err)
+			return fmt.Errorf("write %s: %w", path, err)
 		}
 	}
 	return nil
@@ -362,8 +369,7 @@ func injectServiceMesh(resources []any) error {
 	return nil
 }
 
-func runtimeClassNamePatcher() func(*applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-	handler := runtimeHandler(manifest.TrustedMeasurement)
+func runtimeClassNamePatcher(handler string) func(*applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
 	return func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
 		if spec.RuntimeClassName == nil || *spec.RuntimeClassName == handler {
 			return spec
@@ -631,19 +637,6 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		imageReplacementsFile:   imageReplacementsFile,
 		skipInitializer:         skipInitializer,
 	}, nil
-}
-
-// readFileOrDefault reads the file at path,
-// or returns the default value if the file doesn't exist.
-func readFileOrDefault(path string, deflt []byte) ([]byte, error) {
-	data, err := os.ReadFile(path)
-	if err == nil {
-		return data, nil
-	}
-	if !os.IsNotExist(err) {
-		return nil, err
-	}
-	return deflt, nil
 }
 
 // createFileWithDefault creates the file at path with the default value,

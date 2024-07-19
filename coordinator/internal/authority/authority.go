@@ -94,7 +94,7 @@ func (m *Authority) SNPValidateOpts(report *sevsnp.Report) (*validate.Options, e
 		return nil, fmt.Errorf("hostdata %s not found in manifest", hostData)
 	}
 
-	return mnfst.SNPValidateOpts()
+	return mnfst.AKSValidateOpts()
 }
 
 // ValidateCallback creates a certificate bundle for the verified client.

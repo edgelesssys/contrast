@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -14,7 +15,6 @@ import (
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/cli/constants"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/spf13/cobra"
 )
 
@@ -43,11 +43,10 @@ func buildVersionString() string {
 			fmt.Fprintf(versionsWriter, "\t%s\n", image)
 		}
 	}
-	fmt.Fprint(versionsWriter, "\n")
-	fmt.Fprintf(versionsWriter, "reference values for %s platform:\n", platforms.AKSCloudHypervisorSNP.String())
-	fmt.Fprintf(versionsWriter, "\truntime handler:\tcontrast-cc-%s\n", manifest.TrustedMeasurement[:32])
-	fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", manifest.TrustedMeasurement)
-	fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", constants.GenpolicyVersion)
+	if refValues, err := json.MarshalIndent(manifest.EmbeddedReferenceValues(), "\t", "  "); err == nil {
+		fmt.Fprintf(versionsWriter, "embedded reference values:\t%s\n", refValues)
+	}
+	fmt.Fprintf(versionsWriter, "genpolicy version:\t%s\n", constants.GenpolicyVersion)
 	versionsWriter.Flush()
 	return versionsBuilder.String()
 }
