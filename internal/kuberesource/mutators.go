@@ -236,6 +236,18 @@ func PatchImages(resources []any, replacements map[string]string) []any {
 	return out
 }
 
+// PatchRuntimeHandlers replaces runtime handlers in a set of resources.
+func PatchRuntimeHandlers(resources []any, runtimeHandler string) []any {
+	var out []any
+	for _, resource := range resources {
+		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+			spec.RuntimeClassName = &runtimeHandler
+			return spec
+		}))
+	}
+	return out
+}
+
 // PatchNamespaces replaces namespaces in a set of resources.
 func PatchNamespaces(resources []any, namespace string) []any {
 	var nsPtr *string

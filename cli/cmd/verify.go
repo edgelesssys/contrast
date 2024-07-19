@@ -175,7 +175,7 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 }
 
 func newCoordinatorValidateOptsGen(mnfst manifest.Manifest, hostData []byte) (*snp.StaticValidateOptsGenerator, error) {
-	validateOpts, err := mnfst.SNPValidateOpts()
+	validateOpts, err := mnfst.AKSValidateOpts()
 	if err != nil {
 		return nil, err
 	}

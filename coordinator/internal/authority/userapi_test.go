@@ -21,6 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -32,13 +33,15 @@ import (
 )
 
 func TestManifestSet(t *testing.T) {
-	newBaseManifest := func() manifest.Manifest {
-		return manifest.Default()
+	newBaseManifest := func() *manifest.Manifest {
+		mnf, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
+		require.NoError(t, err)
+		return mnf
 	}
 	newManifestBytes := func(f func(*manifest.Manifest)) []byte {
 		m := newBaseManifest()
 		if f != nil {
-			f(&m)
+			f(m)
 		}
 		b, err := json.Marshal(m)
 		require.NoError(t, err)
@@ -221,7 +224,8 @@ func TestGetManifests(t *testing.T) {
 	require.Equal(codes.FailedPrecondition, status.Code(err))
 	assert.Nil(resp)
 
-	m := manifest.Default()
+	m, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
+	require.NoError(err)
 	m.Policies = map[manifest.HexString][]string{
 		manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
 		manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
@@ -373,13 +377,15 @@ func TestRecoveryFlow(t *testing.T) {
 // TestUserAPIConcurrent tests potential synchronization problems between the different
 // gRPCs of the server.
 func TestUserAPIConcurrent(t *testing.T) {
-	newBaseManifest := func() manifest.Manifest {
-		return manifest.Default()
+	newBaseManifest := func() *manifest.Manifest {
+		mnf, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
+		require.NoError(t, err)
+		return mnf
 	}
 	newManifestBytes := func(f func(*manifest.Manifest)) []byte {
 		m := newBaseManifest()
 		if f != nil {
-			f(&m)
+			f(m)
 		}
 		b, err := json.Marshal(m)
 		require.NoError(t, err)
@@ -459,9 +465,12 @@ func rpcContext(key *ecdsa.PrivateKey) context.Context {
 }
 
 func manifestWithWorkloadOwnerKey(key *ecdsa.PrivateKey) (*manifest.Manifest, error) {
-	m := manifest.Default()
+	m, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
+	if err != nil {
+		return nil, err
+	}
 	if key == nil {
-		return &m, nil
+		return m, nil
 	}
 	pubKey, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
 	if err != nil {
@@ -470,7 +479,7 @@ func manifestWithWorkloadOwnerKey(key *ecdsa.PrivateKey) (*manifest.Manifest, er
 	ownerKeyHash := sha256.Sum256(pubKey)
 	ownerKeyHex := manifest.NewHexString(ownerKeyHash[:])
 	m.WorkloadOwnerKeyDigests = []manifest.HexString{ownerKeyHex}
-	return &m, nil
+	return m, nil
 }
 
 func parsePEMCertificate(t *testing.T, pemCert []byte) *x509.Certificate {

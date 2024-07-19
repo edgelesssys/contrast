@@ -6,11 +6,9 @@ package manifest
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"strconv"
 
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/validate"
@@ -23,72 +21,6 @@ type Manifest struct {
 	ReferenceValues         ReferenceValues
 	WorkloadOwnerKeyDigests []HexString
 	SeedshareOwnerPubKeys   []HexString
-}
-
-// ReferenceValues contains the workload independent reference values.
-type ReferenceValues struct {
-	SNP SNPReferenceValues
-	// TrustedMeasurement is the hash of the trusted launch digest.
-	TrustedMeasurement HexString
-}
-
-// SNPReferenceValues contains reference values for the SNP report.
-type SNPReferenceValues struct {
-	MinimumTCB SNPTCB
-}
-
-// SNPTCB represents a set of SNP TCB values.
-type SNPTCB struct {
-	BootloaderVersion *SVN
-	TEEVersion        *SVN
-	SNPVersion        *SVN
-	MicrocodeVersion  *SVN
-}
-
-// SVN is a SNP secure version number.
-type SVN uint8
-
-// UInt8 returns the uint8 value of the SVN.
-func (s *SVN) UInt8() uint8 {
-	return uint8(*s)
-}
-
-// MarshalJSON marshals the SVN to JSON.
-func (s SVN) MarshalJSON() ([]byte, error) {
-	return []byte(strconv.Itoa(int(s))), nil
-}
-
-// UnmarshalJSON unmarshals the SVN from a JSON.
-func (s *SVN) UnmarshalJSON(data []byte) error {
-	var value float64
-	if err := json.Unmarshal(data, &value); err != nil {
-		return err
-	}
-
-	if value < 0 || value > 255 { // Ensure the value fits into uint8 range
-		return fmt.Errorf("value out of range for uint8")
-	}
-
-	*s = SVN(value)
-	return nil
-}
-
-// HexString is a hex encoded string.
-type HexString string
-
-// NewHexString creates a new HexString from a byte slice.
-func NewHexString(b []byte) HexString {
-	return HexString(hex.EncodeToString(b))
-}
-
-// String returns the string representation of the HexString.
-func (h HexString) String() string {
-	return string(h)
-}
-
-// Bytes returns the byte slice representation of the HexString.
-func (h HexString) Bytes() ([]byte, error) {
-	return hex.DecodeString(string(h))
 }
 
 // HexStrings is a slice of HexString.
@@ -128,6 +60,26 @@ func (p Policy) Hash() HexString {
 
 // Validate checks the validity of all fields in the reference values.
 func (r ReferenceValues) Validate() error {
+	if r.AKS != nil {
+		if err := r.AKS.Validate(); err != nil {
+			return fmt.Errorf("validating AKS reference values: %w", err)
+		}
+	}
+	if r.BareMetalTDX != nil {
+		if err := r.BareMetalTDX.Validate(); err != nil {
+			return fmt.Errorf("validating bare metal TDX reference values: %w", err)
+		}
+	}
+
+	if r.BareMetalTDX == nil && r.AKS == nil {
+		return fmt.Errorf("reference values in manifest cannot be empty. Is the chosen platform supported?")
+	}
+
+	return nil
+}
+
+// Validate checks the validity of all fields in the AKS reference values.
+func (r AKSReferenceValues) Validate() error {
 	if r.SNP.MinimumTCB.BootloaderVersion == nil {
 		return fmt.Errorf("field BootloaderVersion in manifest cannot be empty")
 	} else if r.SNP.MinimumTCB.TEEVersion == nil {
@@ -142,6 +94,14 @@ func (r ReferenceValues) Validate() error {
 		return fmt.Errorf("trusted measurement has invalid length: %d (expected %d)", len(r.TrustedMeasurement), abi.MeasurementSize*2)
 	}
 
+	return nil
+}
+
+// Validate checks the validity of all fields in the bare metal TDX reference values.
+func (r BareMetalTDXReferenceValues) Validate() error {
+	if r.TrustedMeasurement == "" {
+		return fmt.Errorf("field TrustedMeasurement in manifest cannot be empty")
+	}
 	return nil
 }
 
@@ -175,13 +135,17 @@ func (m *Manifest) Validate() error {
 	return nil
 }
 
-// SNPValidateOpts returns validate options populated with the manifest's
-// SNP reference values and trusted measurement.
-func (m *Manifest) SNPValidateOpts() (*validate.Options, error) {
+// AKSValidateOpts returns validate options populated with the manifest's
+// AKS reference values and trusted measurement.
+func (m *Manifest) AKSValidateOpts() (*validate.Options, error) {
+	if m.ReferenceValues.AKS == nil {
+		return nil, fmt.Errorf("no AKS reference values present in manifest")
+	}
+
 	if err := m.Validate(); err != nil {
 		return nil, fmt.Errorf("validating manifest: %w", err)
 	}
-	trustedMeasurement, err := m.ReferenceValues.TrustedMeasurement.Bytes()
+	trustedMeasurement, err := m.ReferenceValues.AKS.TrustedMeasurement.Bytes()
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
 	}
@@ -194,17 +158,29 @@ func (m *Manifest) SNPValidateOpts() (*validate.Options, error) {
 		},
 		VMPL: new(int), // VMPL0
 		MinimumTCB: kds.TCBParts{
-			BlSpl:    m.ReferenceValues.SNP.MinimumTCB.BootloaderVersion.UInt8(),
-			TeeSpl:   m.ReferenceValues.SNP.MinimumTCB.TEEVersion.UInt8(),
-			SnpSpl:   m.ReferenceValues.SNP.MinimumTCB.SNPVersion.UInt8(),
-			UcodeSpl: m.ReferenceValues.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
+			BlSpl:    m.ReferenceValues.AKS.SNP.MinimumTCB.BootloaderVersion.UInt8(),
+			TeeSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.TEEVersion.UInt8(),
+			SnpSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.SNPVersion.UInt8(),
+			UcodeSpl: m.ReferenceValues.AKS.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
 		},
 		MinimumLaunchTCB: kds.TCBParts{
-			BlSpl:    m.ReferenceValues.SNP.MinimumTCB.BootloaderVersion.UInt8(),
-			TeeSpl:   m.ReferenceValues.SNP.MinimumTCB.TEEVersion.UInt8(),
-			SnpSpl:   m.ReferenceValues.SNP.MinimumTCB.SNPVersion.UInt8(),
-			UcodeSpl: m.ReferenceValues.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
+			BlSpl:    m.ReferenceValues.AKS.SNP.MinimumTCB.BootloaderVersion.UInt8(),
+			TeeSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.TEEVersion.UInt8(),
+			SnpSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.SNPVersion.UInt8(),
+			UcodeSpl: m.ReferenceValues.AKS.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
 		},
 		PermitProvisionalFirmware: true,
 	}, nil
+}
+
+// RuntimeHandler returns the runtime handler for the given platform.
+func (m *Manifest) RuntimeHandler(platform platforms.Platform) (string, error) {
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
+		return fmt.Sprintf("contrast-cc-%s", m.ReferenceValues.AKS.TrustedMeasurement[:32]), nil
+	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+		return fmt.Sprintf("contrast-cc-%s", m.ReferenceValues.BareMetalTDX.TrustedMeasurement[:32]), nil
+	default:
+		return "", fmt.Errorf("unsupported platform %s", platform)
+	}
 }

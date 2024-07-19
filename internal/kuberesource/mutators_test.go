@@ -12,6 +12,8 @@ import (
 )
 
 func TestPatchNamespaces(t *testing.T) {
+	require := require.New(t)
+
 	coordinator := CoordinatorBundle()
 	openssl := OpenSSL()
 	emojivoto := Emojivoto(ServiceMeshIngressEgress)
@@ -33,8 +35,7 @@ func TestPatchNamespaces(t *testing.T) {
 			set:  emojivoto,
 		},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			require := require.New(t)
+		t.Run(tc.name, func(_ *testing.T) {
 			expectedNamespace := "right-namespace"
 			set := PatchNamespaces(tc.set, expectedNamespace)
 			u, err := ResourcesToUnstructured(set)
@@ -44,8 +45,7 @@ func TestPatchNamespaces(t *testing.T) {
 				require.Equal(expectedNamespace, obj.GetNamespace())
 			}
 		})
-		t.Run(tc.name+"-empty-namespace", func(t *testing.T) {
-			require := require.New(t)
+		t.Run(tc.name+"-empty-namespace", func(_ *testing.T) {
 			set := PatchNamespaces(tc.set, "some-namespace")
 			set = PatchNamespaces(set, "")
 			u, err := ResourcesToUnstructured(set)

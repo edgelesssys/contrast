@@ -3,32 +3,58 @@
 
 package manifest
 
-// TrustedMeasurement contains the expected launch digest and is injected at build time.
-var TrustedMeasurement = "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+import (
+	"encoding/json"
+	"fmt"
 
-// Default returns a default manifest.
-func Default() Manifest {
-	return Manifest{
-		ReferenceValues: ReferenceValues{
-			TrustedMeasurement: HexString(TrustedMeasurement),
-		},
+	"github.com/edgelesssys/contrast/node-installer/platforms"
+)
+
+// Default returns a default manifest with reference values for the given platform.
+func Default(platform platforms.Platform) (*Manifest, error) {
+	refValues := setReferenceValuesIfUninitialized()
+
+	mnfst := Manifest{}
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
+		return &Manifest{
+			ReferenceValues: ReferenceValues{
+				AKS: refValues.AKS,
+			},
+		}, nil
+	case platforms.RKE2QEMUTDX, platforms.K3sQEMUTDX:
+		return &Manifest{
+			ReferenceValues: ReferenceValues{
+				BareMetalTDX: refValues.BareMetalTDX,
+			},
+		}, nil
 	}
+	return &mnfst, nil
 }
 
-// DefaultAKS returns a default manifest with AKS reference values.
-func DefaultAKS() Manifest {
-	mnfst := Default()
-	mnfst.ReferenceValues.SNP = SNPReferenceValues{
-		MinimumTCB: SNPTCB{
-			BootloaderVersion: toPtr(SVN(3)),
-			TEEVersion:        toPtr(SVN(0)),
-			SNPVersion:        toPtr(SVN(8)),
-			MicrocodeVersion:  toPtr(SVN(115)),
-		},
+// DefaultPlatformHandler is a short-hand for getting the default runtime handler for a platform.
+func DefaultPlatformHandler(platform platforms.Platform) (string, error) {
+	mnf, err := Default(platform)
+	if err != nil {
+		return "", fmt.Errorf("generating manifest: %w", err)
 	}
-	return mnfst
+	return mnf.RuntimeHandler(platform)
 }
 
-func toPtr[T any](t T) *T {
-	return &t
+// EmbeddedReferenceValues returns the reference values embedded in the binary.
+func EmbeddedReferenceValues() ReferenceValues {
+	return setReferenceValuesIfUninitialized()
+}
+
+// EmbeddedReferenceValuesIfUninitialized returns the reference values embedded in the binary.
+func setReferenceValuesIfUninitialized() ReferenceValues {
+	var embeddedReferenceValues *ReferenceValues
+
+	if err := json.Unmarshal(EmbeddedReferenceValuesJSON, &embeddedReferenceValues); err != nil {
+		// As this relies on a constant, predictable value (i.e. the embedded JSON), which -- in a correctly built binary -- should
+		// unmarshal safely into the [ReferenceValues], it's acceptable to panic here.
+		panic(fmt.Errorf("failed to unmarshal embedded reference values: %w", err))
+	}
+
+	return *embeddedReferenceValues
 }
