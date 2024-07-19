@@ -14,7 +14,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
-	"github.com/edgelesssys/contrast/internal/attestation"
+	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
@@ -135,7 +135,7 @@ func newServerMetrics(reg *prometheus.Registry) *grpcprometheus.ServerMetrics {
 }
 
 func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger) (*grpc.Server, error) {
-	issuer, err := attestation.PlatformIssuer(log)
+	issuer, err := atls.PlatformIssuer(log)
 	if err != nil {
 		return nil, fmt.Errorf("creating issuer: %w", err)
 	}

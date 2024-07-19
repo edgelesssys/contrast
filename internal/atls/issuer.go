@@ -1,13 +1,12 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package attestation
+package atls
 
 import (
 	"fmt"
 	"log/slog"
 
-	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/logger"
@@ -15,7 +14,7 @@ import (
 )
 
 // PlatformIssuer creates an attestation issuer for the current platform.
-func PlatformIssuer(log *slog.Logger) (atls.Issuer, error) {
+func PlatformIssuer(log *slog.Logger) (Issuer, error) {
 	cpuid.Detect()
 	switch {
 	case cpuid.CPU.Supports(cpuid.SEV_SNP):

@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
@@ -55,7 +54,7 @@ func run() (retErr error) {
 		return fmt.Errorf("generating key: %w", err)
 	}
 
-	issuer, err := attestation.PlatformIssuer(log)
+	issuer, err := atls.PlatformIssuer(log)
 	if err != nil {
 		return fmt.Errorf("creating issuer: %w", err)
 	}
