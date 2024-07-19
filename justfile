@@ -224,6 +224,20 @@ get-credentials-ci:
         --name "contrast-ci" \
         --admin
 
+get-credentials-tdxbm:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    tmpConfig=$(mktemp)
+    gcloud secrets versions access \
+        projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/2 \
+        --out-file="$tmpConfig"
+    mergedConfig=$(mktemp)
+    KUBECONFIG_BAK=${KUBECONFIG:-~/.kube/config}
+    KUBECONFIG=$tmpConfig:${KUBECONFIG_BAK} kubectl config view --flatten > $mergedConfig
+    export newContext=$(yq -r '.contexts.[0].name' $tmpConfig)
+    yq -i '.current-context = env(newContext)' $mergedConfig
+    mv $mergedConfig ${KUBECONFIG_BAK%%:*}
+
 # Destroy a running AKS cluster.
 destroy:
     nix run .#scripts.destroy-coco-aks -- --name="$azure_resource_group"
