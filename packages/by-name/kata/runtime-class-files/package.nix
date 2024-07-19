@@ -9,6 +9,7 @@
   debugRuntime ? false,
   qemu-static,
   fetchzip,
+  python3Packages,
 }:
 
 let
@@ -51,10 +52,17 @@ stdenvNoCC.mkDerivation {
 
   dontUnpack = true;
 
-  # TODO(msanft): perform the actual launch digest calculation.
+  # TODO(freax13): Calculate launch measurements for CPU models other than Genoa.
   buildPhase = ''
     mkdir -p $out
-    sha256sum ${image} ${kernel} ${qemu-snp.bin} ${qemu-tdx.bin} ${containerd-shim-contrast-cc-v2} ${ovmf-snp} ${ovmf-tdx} | sha256sum | cut -d " " -f 1 > $out/launch-digest.hex
+    ${python3Packages.sev-snp-measure}/bin/sev-snp-measure \
+      --mode snp \
+      --ovmf ${ovmf-snp} \
+      --vcpus 1 \
+      --vcpu-type EPYC-Genoa \
+      --kernel ${kernel} \
+      --append "tsc=reliable no_timer_check rcupdate.rcu_expedited=1 i8042.direct=1 i8042.dumbkbd=1 i8042.nopnp=1 i8042.noaux=1 noreplace-smp reboot=k cryptomgr.notests net.ifnames=0 pci=lastbus=0 root=/dev/vda1 rootflags=ro rootfstype=erofs console=hvc0 console=hvc1 quiet systemd.show_status=false panic=1 nr_cpus=1 selinux=0 systemd.unit=kata-containers.target systemd.mask=systemd-networkd.service systemd.mask=systemd-networkd.socket scsi_mod.scan=none" \
+      --output-format hex > $out/launch-digest.hex
     printf "contrast-cc-%s" "$(cat $out/launch-digest.hex | head -c 32)" > $out/runtime-handler
   '';
 
