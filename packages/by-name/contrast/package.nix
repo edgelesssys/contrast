@@ -69,9 +69,7 @@ let
         snp = [
           {
             inherit (builtins.head aksRefVals.snp) minimumTCB;
-            trustedMeasurement = lib.removeSuffix "\n" (
-              builtins.readFile "${kata.contrast-node-installer-image.runtimeHash}"
-            );
+            trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile kata.snp-launch-digest);
           }
         ];
       };
