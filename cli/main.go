@@ -31,9 +31,7 @@ func execute() error {
 	return cmd.ExecuteContext(ctx)
 }
 
-var (
-	genpolicyVersion = "0.0.0-dev"
-)
+var genpolicyVersion = "0.0.0-dev"
 
 func buildVersionString() string {
 	var versionsBuilder strings.Builder

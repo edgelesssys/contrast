@@ -3,7 +3,5 @@
 
 package constants
 
-var (
-	/// This value is injected at build time.
-	Version = "0.0.0-dev"
-)
+// Version value is injected at build time.
+var Version = "0.0.0-dev"
