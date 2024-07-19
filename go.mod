@@ -9,7 +9,7 @@ replace (
 	// The upstream package has some stepping issues with Genoa:
 	// https://github.com/google/go-sev-guest/issues/115
 	// https://github.com/google/go-sev-guest/issues/103
-	github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20240705062330-4bd4b2483aa0
+	github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20240719074306-114f78ece7a7
 )
 
 require (
@@ -72,7 +72,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
