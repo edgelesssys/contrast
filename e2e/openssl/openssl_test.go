@@ -194,6 +194,7 @@ func TestOpenSSL(t *testing.T) {
 		c := kubeclient.NewForTest(t)
 
 		require.NoError(c.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
+		require.NoError(c.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
 
 		require.ErrorContains(ct.RunVerify(), "recovery")
 
