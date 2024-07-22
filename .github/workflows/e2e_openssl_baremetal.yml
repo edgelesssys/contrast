@@ -1,0 +1,55 @@
+name: e2e test openssl baremetal
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip-undeploy:
+        description: "Skip undeploy"
+        required: false
+        type: boolean
+        default: false
+  pull_request:
+    paths-ignore:
+      - dev-docs/**
+      - docs/**
+      - rfc/**
+
+env:
+  container_registry: ghcr.io/edgelesssys
+  DO_NOT_TRACK: 1
+
+jobs:
+  test:
+    runs-on:
+      labels: snp
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@0d4c9c5ea7693da7b068278f7b52bda2a190a446 # v3.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
+      - name: Create justfile.env
+        run: |
+          cat <<EOF > justfile.env
+          container_registry=${{ env.container_registry }}
+          EOF
+      - name: Build and prepare deployments
+        run: |
+          just coordinator initializer openssl port-forwarder node-installer K3s-QEMU-SNP
+      - name: E2E Test
+        run: |
+          nix shell .#contrast.e2e --command openssl.test -test.v \
+            --image-replacements workspace/just.containerlookup \
+            --namespace-file workspace/e2e.namespace \
+            --platform K3s-QEMU-SNP \
+            --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
+      - name: Cleanup
+        if: cancelled() && !inputs.skip-undeploy
+        run: |
+          kubectl delete ns "$(cat workspace/e2e.namespace)" --timeout 5m
