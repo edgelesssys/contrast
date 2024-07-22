@@ -43,7 +43,7 @@ node-installer platform=default_platform: tardev-snapshotter nydus-snapshotter
         "AKS-CLH-SNP")
             just push "node-installer-microsoft"
         ;;
-        "K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             just push "node-installer-kata"
         ;;
         *)
