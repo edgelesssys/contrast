@@ -17,8 +17,8 @@ let
   kernel = "${kata.kata-kernel-uvm}/bzImage";
 
   qemu-snp = {
-    bin = "${qemu-static}/bin/qemu-system-x86_64";
-    share = "${qemu-static}/share/qemu";
+    bin = "${qemu-static.override { snpSupport = true; }}/bin/qemu-system-x86_64";
+    share = "${qemu-static.override { snpSupport = true; }}/share/qemu";
   };
 
   ovmf-snp = "${OVMF-SNP}/FV/OVMF.fd";
