@@ -19,12 +19,16 @@ let
       src
       proxyVendor
       vendorHash
-      prePatch
       CGO_ENABLED
       ;
     pname = "${contrast.pname}-e2e";
 
     tags = [ "e2e" ];
+
+    prePatch = ''
+      ${contrast.prePatch}
+      install -D ${genpolicy.src}/src/kata-opa/allow-all.rego e2e/internal/contrasttest/assets/allow-all.rego
+    '';
 
     ldflags = [ "-s" ];
 
