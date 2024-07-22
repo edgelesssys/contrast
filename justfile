@@ -48,12 +48,13 @@ node-installer platform=default_platform: tardev-snapshotter
         ;;
     esac
 
-e2e target=default_deploy_target: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy node-installer
+e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy node-installer
     #!/usr/bin/env bash
     set -euo pipefail
     nix shell .#contrast.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
+            --platform {{ platform }} \
             --skip-undeploy=true
 
 # Generate policies, apply Kubernetes manifests.
