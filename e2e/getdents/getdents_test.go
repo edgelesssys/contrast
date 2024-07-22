@@ -19,6 +19,7 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,12 +28,14 @@ const (
 )
 
 var (
-	imageReplacementsFile, namespaceFile string
-	skipUndeploy                         bool
+	imageReplacementsFile, namespaceFile, platformStr string
+	skipUndeploy                                      bool
 )
 
 func TestGetDEnts(t *testing.T) {
-	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, skipUndeploy)
+	platform, err := platforms.FromString(platformStr)
+	require.NoError(t, err)
+	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, skipUndeploy)
 
 	resources, err := kuberesource.GetDEnts()
 	require.NoError(t, err)
@@ -83,6 +86,7 @@ func TestGetDEnts(t *testing.T) {
 func TestMain(m *testing.M) {
 	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
 	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
+	flag.StringVar(&platformStr, "platform", "", "Deployment platform")
 	flag.BoolVar(&skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
 	flag.Parse()
 

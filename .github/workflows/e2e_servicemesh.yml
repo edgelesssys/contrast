@@ -66,6 +66,7 @@ jobs:
           nix shell -L .#contrast.e2e --command servicemesh.test -test.v \
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
+            --platform aks-clh-snp \
             --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
       - name: Cleanup
         if: cancelled() && !inputs.skip-undeploy
