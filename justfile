@@ -29,7 +29,7 @@ tardev-snapshotter: (push "tardev-snapshotter")
 
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"
-default_platform := "AKS-CLH-SNP"
+default_platform := "$default_platform"
 workspace_dir := "workspace"
 
 # Build the node-installer, containerize and push it.
@@ -290,6 +290,8 @@ namespace_suffix=""
 CONTRAST_CACHE_DIR="./workspace.cache"
 # Log level for the CLI.
 CONTRAST_LOG_LEVEL=""
+# Default platform to deploy to.
+default_platform="AKS-CLH-SNP"
 '''
 
 # Developer onboarding.
