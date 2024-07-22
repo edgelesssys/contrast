@@ -93,6 +93,7 @@ buildGoModule rec {
     install -D ${lib.getExe genpolicy} cli/cmd/assets/genpolicy
     install -D ${genpolicy.settings-dev}/genpolicy-settings.json cli/cmd/assets/genpolicy-settings.json
     install -D ${genpolicy.rules}/genpolicy-rules.rego cli/cmd/assets/genpolicy-rules.rego
+    install -D ${genpolicy.src}/src/kata-opa/allow-all.rego e2e/internal/contrasttest/assets/allow-all.rego
   '';
 
   CGO_ENABLED = 0;

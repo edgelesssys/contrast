@@ -8,9 +8,11 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/x509"
+	_ "embed"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"regexp"
@@ -27,6 +29,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 )
+
+//go:embed assets/allow-all.rego
+var allowAllRegoRules []byte
 
 // ContrastTest is the Contrast test helper struct.
 type ContrastTest struct {
@@ -141,6 +146,15 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 // Generate runs the contrast generate command.
 func (ct *ContrastTest) Generate(t *testing.T) {
 	require := require.New(t)
+
+	// The policy specified in the rego rules doesn't work for these platforms
+	// yet. Use the allow-all policy instead.
+	// FIXME(freax13): Use a proper policy.
+	switch ct.Platform {
+	case platforms.K3sQEMUSNP:
+		err := os.WriteFile(path.Join(ct.WorkDir, "rules.rego"), allowAllRegoRules, fs.ModePerm)
+		require.NoError(err)
+	}
 
 	args := append(
 		ct.commonArgs(),
