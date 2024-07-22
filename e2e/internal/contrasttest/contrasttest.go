@@ -35,6 +35,7 @@ type ContrastTest struct {
 	WorkDir               string
 	ImageReplacements     map[string]string
 	ImageReplacementsFile string
+	Platform              platforms.Platform
 	NamespaceFile         string
 	SkipUndeploy          bool
 	Kubeclient            *kubeclient.Kubeclient
@@ -46,11 +47,12 @@ type ContrastTest struct {
 }
 
 // New creates a new contrasttest.T object bound to the given test.
-func New(t *testing.T, imageReplacements, namespaceFile string, skipUndeploy bool) *ContrastTest {
+func New(t *testing.T, imageReplacements, namespaceFile string, platform platforms.Platform, skipUndeploy bool) *ContrastTest {
 	return &ContrastTest{
 		Namespace:             makeNamespace(t),
 		WorkDir:               t.TempDir(),
 		ImageReplacementsFile: imageReplacements,
+		Platform:              platform,
 		NamespaceFile:         namespaceFile,
 		SkipUndeploy:          skipUndeploy,
 		Kubeclient:            kubeclient.NewForTest(t),
@@ -143,7 +145,7 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 	args := append(
 		ct.commonArgs(),
 		"--image-replacements", ct.ImageReplacementsFile,
-		"--reference-values", "aks-clh-snp",
+		"--reference-values", ct.Platform.String(),
 		path.Join(ct.WorkDir, "resources.yaml"),
 	)
 
@@ -247,7 +249,7 @@ func (ct *ContrastTest) commonArgs() []string {
 func (ct *ContrastTest) installRuntime(t *testing.T) {
 	require := require.New(t)
 
-	resources, err := kuberesource.Runtime(platforms.AKSCloudHypervisorSNP)
+	resources, err := kuberesource.Runtime(ct.Platform)
 	require.NoError(err)
 	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
