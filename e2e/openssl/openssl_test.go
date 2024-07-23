@@ -56,6 +56,25 @@ func TestOpenSSL(t *testing.T) {
 	ct.Init(t, resources)
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 
+	if platform == platforms.K3sQEMUSNP {
+		// The generate command doesn't fill in all required fields when
+		// generating a manifest for baremetal SNP. Do that now.
+
+		manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
+		require.NoError(t, err)
+		var m manifest.Manifest
+		require.NoError(t, json.Unmarshal(manifestBytes, &m))
+
+		m.ReferenceValues.SNP.MinimumTCB.BootloaderVersion = toPtr(manifest.SVN(0))
+		m.ReferenceValues.SNP.MinimumTCB.TEEVersion = toPtr(manifest.SVN(0))
+		m.ReferenceValues.SNP.MinimumTCB.SNPVersion = toPtr(manifest.SVN(0))
+		m.ReferenceValues.SNP.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
+
+		manifestBytes, err = json.Marshal(m)
+		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
+	}
+
 	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
@@ -245,4 +264,8 @@ func opensslConnectCmd(addr, caCert string) string {
 	return fmt.Sprintf(
 		`openssl s_client -connect %s -verify_return_error -x509_strict -CAfile /tls-config/%s -cert /tls-config/certChain.pem -key /tls-config/key.pem </dev/null`,
 		addr, caCert)
+}
+
+func toPtr[T any](t T) *T {
+	return &t
 }
