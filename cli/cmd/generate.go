@@ -148,8 +148,9 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	mnf.Policies = policyMap
+	// Only tell to user to fill in reference values if the manifest is not already valid.
 	if err := mnf.Validate(); err != nil {
-		return fmt.Errorf("validating manifest: %w", err)
+		fmt.Fprintf(cmd.OutOrStdout(), "  Please fill in the reference values for %s\n", flags.referenceValuesPlatform.String())
 	}
 
 	if flags.disableUpdates {
