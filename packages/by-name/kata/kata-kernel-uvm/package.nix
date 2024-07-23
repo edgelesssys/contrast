@@ -18,11 +18,14 @@ let
       hash = "sha256-SY75Ond2WLkY17Zal22GXgNKB3L1LGIyLKv8H/M0Wbw=";
     };
 
-    # We don't use an initrd.
     postPatch = ''
       config=$(find . -regex '.*/config-[0-9.-]+-confidential')
+
+      # 1. We don't use an initrd.
+      # 2. Enable dm-init, so that we can use `dm-mod.create`.
       substituteInPlace $config \
-        --replace-fail 'CONFIG_INITRAMFS_SOURCE="initramfs.cpio.gz"' 'CONFIG_INITRAMFS_SOURCE=""'
+        --replace-fail 'CONFIG_INITRAMFS_SOURCE="initramfs.cpio.gz"' 'CONFIG_INITRAMFS_SOURCE=""' \
+        --replace-fail '# CONFIG_DM_INIT is not set' 'CONFIG_DM_INIT=y'
     '';
 
     dontBuild = true;
