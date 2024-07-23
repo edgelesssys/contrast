@@ -96,6 +96,7 @@ let
             }
           ];
           runtimeHandlerName = runtime-handler;
+          qemuExtraKernelParams = kata.runtime-class-files.dmVerityArgs;
           inherit (kata.runtime-class-files) debugRuntime;
         };
         destination = "/config/contrast-node-install.json";

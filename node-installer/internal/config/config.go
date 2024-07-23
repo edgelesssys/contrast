@@ -17,6 +17,8 @@ type Config struct {
 	Files []File `json:"files"`
 	// RuntimeHandlerName is the name of the runtime handler (containerd runtime) to create.
 	RuntimeHandlerName string `json:"runtimeHandlerName"`
+	// QemuExtraKernelParams is an additional set of kernel parameters to pass kernels started with QEMU.
+	QemuExtraKernelParams string `json:"QemuExtraKernelParams"`
 	// DebugRuntime enables the debug mode of the runtime.
 	// This only works if the igvm file has shell access enabled
 	// and has no effect on production images.
