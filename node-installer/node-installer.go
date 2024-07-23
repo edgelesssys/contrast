@@ -132,7 +132,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 		return fmt.Errorf("unsupported platform %q", platform)
 	}
 
-	if err := containerdRuntimeConfig(runtimeBase, kataConfigPath, platform, config.DebugRuntime); err != nil {
+	if err := containerdRuntimeConfig(runtimeBase, kataConfigPath, platform, config.QemuExtraKernelParams, config.DebugRuntime); err != nil {
 		return fmt.Errorf("generating kata runtime configuration: %w", err)
 	}
 
@@ -192,8 +192,8 @@ func envWithDefault(key, dflt string) string {
 	return value
 }
 
-func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, debugRuntime bool) error {
-	kataRuntimeConfig, err := constants.KataRuntimeConfig(basePath, platform, debugRuntime)
+func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams string, debugRuntime bool) error {
+	kataRuntimeConfig, err := constants.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, debugRuntime)
 	if err != nil {
 		return fmt.Errorf("generating kata runtime config: %w", err)
 	}
