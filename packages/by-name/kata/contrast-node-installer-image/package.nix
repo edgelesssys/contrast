@@ -87,6 +87,7 @@ let
               path = "@@runtimeBase@@/tdx/share/qemu/efi-virtio.rom";
             }
           ];
+          qemuExtraKernelParams = kata.runtime-class-files.dmVerityArgs;
           inherit (kata.runtime-class-files) debugRuntime;
         };
         destination = "/config/contrast-node-install.json";
