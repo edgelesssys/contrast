@@ -100,6 +100,7 @@ let
             }
           ];
           inherit debugRuntime;
+          qemuExtraKernelParams = kata.snp-launch-digest.dmVerityArgs;
         };
         destination = "/config/contrast-node-install.json";
       }

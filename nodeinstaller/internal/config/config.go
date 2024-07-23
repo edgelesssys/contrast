@@ -15,6 +15,8 @@ import (
 type Config struct {
 	// Files is a list of files to download.
 	Files []File `json:"files"`
+	// QemuExtraKernelParams is an additional set of kernel parameters to pass kernels started with QEMU.
+	QemuExtraKernelParams string `json:"QemuExtraKernelParams"`
 	// DebugRuntime enables the debug mode of the runtime.
 	// This only works if the igvm file has shell access enabled
 	// and has no effect on production images.

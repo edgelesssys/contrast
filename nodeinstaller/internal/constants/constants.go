@@ -45,7 +45,7 @@ var (
 const CRIFQDN = "io.containerd.grpc.v1.cri"
 
 // KataRuntimeConfig returns the Kata runtime configuration.
-func KataRuntimeConfig(baseDir string, platform platforms.Platform, debug bool) (*config.KataRuntimeConfig, error) {
+func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKernelParams string, debug bool) (*config.KataRuntimeConfig, error) {
 	var config config.KataRuntimeConfig
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
@@ -68,13 +68,17 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, debug bool) 
 		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")}
 		config.Hypervisor["qemu"]["shared_fs"] = "none"
+		kernelParams := qemuExtraKernelParams
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
-			config.Hypervisor["qemu"]["kernel_params"] = " agent.log=debug initcall_debug"
 			config.Agent["kata"]["enable_debug"] = true
 			config.Agent["kata"]["debug_console_enabled"] = true
 			config.Runtime["enable_debug"] = true
+			kernelParams += " agent.log=debug initcall_debug"
 		}
+		// Replace the kernel params entirely (and don't append) since that's
+		// also what we do when calculating the launch measurement.
+		config.Hypervisor["qemu"]["kernel_params"] = kernelParams
 		return &config, nil
 	case platforms.K3sQEMUSNP:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
@@ -89,13 +93,17 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, debug bool) 
 		config.Hypervisor["qemu"]["shared_fs"] = "none"
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "snp", "bin", "qemu-system-x86_64")}
 		config.Hypervisor["qemu"]["rootfs_type"] = "erofs"
+		kernelParams := qemuExtraKernelParams
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
-			config.Hypervisor["qemu"]["kernel_params"] = " agent.log=debug initcall_debug"
 			config.Agent["kata"]["enable_debug"] = true
 			config.Agent["kata"]["debug_console_enabled"] = true
 			config.Runtime["enable_debug"] = true
+			kernelParams += " agent.log=debug initcall_debug"
 		}
+		// Replace the kernel params entirely (and don't append) since that's
+		// also what we do when calculating the launch measurement.
+		config.Hypervisor["qemu"]["kernel_params"] = kernelParams
 		return &config, nil
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
