@@ -24,7 +24,9 @@ let
       };
       kata-runtime = pkgs.pkgsStatic.callPackage ./by-name/kata/kata-runtime/package.nix { };
     };
-    qemu-static = pkgs.pkgsStatic.callPackage ./by-name/qemu-static/package.nix { };
+    qemu-static = pkgs.pkgsStatic.callPackage ./by-name/qemu-static/package.nix {
+      libigvm = pkgs.pkgsStatic.callPackage ./by-name/libigvm/package.nix { };
+    };
   };
 in
 self

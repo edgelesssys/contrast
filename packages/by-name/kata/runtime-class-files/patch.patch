@@ -1,0 +1,26 @@
+diff --git a/igvm/igvmbase.py b/igvm/igvmbase.py
+index 6f05713..958bba9 100644
+--- a/igvm/igvmbase.py
++++ b/igvm/igvmbase.py
+@@ -55,7 +55,7 @@ class IGVMBaseGenerator(object):
+         self.secrets_page = self.state.memory.allocate(PGSIZE)
+         self.param_page = self.state.memory.allocate(PGSIZE)
+         # VMSA page at 0x803000
+-        vmsa_page = self.state.memory.allocate(PGSIZE)  # VMSA page
++        vmsa_page = 0xFFFFFFFFF000  # VMSA page
+         # Load vmlinux image
+         kernel_entry = self.load_code()
+ 
+diff --git a/igvm/igvmfile.py b/igvm/igvmfile.py
+index 0594a47..c413933 100644
+--- a/igvm/igvmfile.py
++++ b/igvm/igvmfile.py
+@@ -543,7 +543,7 @@ class IGVMFile(VMState):
+     def gen_vmsa(self) -> struct_vmcb_save_area:
+         """Return SVM_VMSA page content"""
+         self.vmsa._0._0.sev_feature_snp = 1
+-        self.vmsa._0._0.sev_feature_restrict_injection = 1
++        # self.vmsa._0._0.sev_feature_restrict_injection = 1
+         self.vmsa.virtual_tom = 0x0
+         self.vmsa.xcr0 = 0x1
+         return self.vmsa

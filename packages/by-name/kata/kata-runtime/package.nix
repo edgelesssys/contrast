@@ -31,6 +31,7 @@ buildGoModule rec {
       # continue running if it can't query the host-data:
       # https://github.com/kata-containers/kata-containers/blob/61c83dfde3e38aab53b66f46f860347f1753ef5c/src/agent/src/policy.rs#L320
       ./0003-runtime-agent-verify-the-agent-policy-hash.patch
+      ./patch.patch
     ];
   };
 

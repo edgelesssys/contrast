@@ -5,12 +5,9 @@
   qemu,
   libaio,
   dtc,
-  stdenvNoCC,
-  writeShellScript,
   runCommand,
   buildPackages,
-  lib,
-  snpSupport ? false,
+  libigvm,
 }:
 let
   patchedDtc = dtc.overrideAttrs (previousAttrs: {
@@ -26,29 +23,7 @@ let
   # function makes it possible to fetch many commits without using fetchPatch
   # for every single commit. `start` and `end` are both inclusive. Changes to
   # submodules are ommited in the diff file.
-  fetchPatches =
-    args:
-    stdenvNoCC.mkDerivation {
-      name = "patchset";
-
-      builder = writeShellScript "builder.sh" ''
-        ${buildPackages.git}/bin/git clone $url source/
-        cd source/
-        ${buildPackages.git}/bin/git diff $start~1..$end --submodule=log > $out
-      '';
-      inherit (args) url start end;
-
-      outputHashMode = "flat";
-      outputHashAlgo = "sha256";
-      outputHash = args.hash;
-    };
   # These patches are compatible with the Linux KVM host patches at https://github.com/AMDESE/linux/tree/snp-guest-req-v3.
-  snpPatches = fetchPatches {
-    url = "https://github.com/amdese/qemu.git";
-    start = "f3245d7fa3bd572933c819c71b41526aebb815b0";
-    end = "fb924a5139bff1d31520e007ef97b616af1e22a1";
-    hash = "sha256-BJbqi31oj03AbDHXpENmne3gbWIC2XNKtxd55gtdrKM=";
-  };
 
 in
 (qemu.override (_previous: {
@@ -97,8 +72,9 @@ in
     src =
       runCommand "qemu-src"
         {
-          version = "9.0.2";
-          src = "https://gitlab.com/qemu-project/qemu.git";
+          # TODO(freax13): igvm_master_v4 is likely not fixed.
+          version = "igvm_master_v4";
+          src = "https://github.com/roy-hopkins/qemu";
           nativeBuildInputs = with buildPackages; [
             git
             meson
@@ -108,16 +84,17 @@ in
           env."GIT_SSL_CAINFO" = "${buildPackages.cacert}/etc/ssl/certs/ca-bundle.crt";
           outputHashMode = "recursive";
           outputHashAlgo = "sha256";
-          outputHash = "sha256-EXC7b3FAKeWvSCU4RjoQMNCYMfOJAlOusIbO5y7Cu6s=";
+          outputHash = "sha256-pJ8Y9HL1i/sLZcUB5FatWSfpw81mWpINEecM30pi0Ks=";
         }
         ''
           # Clone qemu and checkout the release rev.
-          git clone $src -b "v$version" --single-branch --depth 1 source
+          git clone $src -b "$version" --single-branch --depth 1 source
           cd source/
 
           # Fix the release script and run it.
           substituteInPlace ./scripts/make-release \
-            --replace-fail "./make_version.sh" "bash ./make_version.sh"
+            --replace-fail "./make_version.sh" "bash ./make_version.sh" \
+            --replace-fail "v\''${version}" "\''${version}"
           bash ./scripts/make-release $src "$version"
 
           # Extract the release tarball into the out directory.
@@ -125,9 +102,9 @@ in
           tar -xf qemu-"$version".tar.xz -C "$out" --strip-components=1
         '';
 
-    propagatedBuildInputs = builtins.filter (
-      input: input.pname != "texinfo"
-    ) previousAttrs.propagatedBuildInputs;
+    propagatedBuildInputs =
+      builtins.filter (input: input.pname != "texinfo") previousAttrs.propagatedBuildInputs
+      ++ [ libigvm ];
     configureFlags =
       (
         # By the time overrideAttrs gets to see the attributes, it's too late
@@ -142,13 +119,10 @@ in
         "-Dlinux_aio_path=${libaio}/lib"
         "-Dlinux_fdt_path=${patchedDtc}/lib"
       ];
-    patches =
-      previousAttrs.patches
-      ++ [
-        ./0001-avoid-duplicate-definitions.patch
-        # Based on https://github.com/NixOS/nixpkgs/pull/300070/commits/96054ca98020df125bb91e5cf49bec107bea051b#diff-7246126ac058898e6da6aadc1e831bb26afe07fa145958e55c5e112dc2c578fd.
-        # We applied the same change done to libaio to libfdt as well.
-        ./0002-add-options-for-library-paths.patch
-      ]
-      ++ lib.optional snpSupport snpPatches;
+    patches = [
+      ./0001-avoid-duplicate-definitions.patch
+      # Based on https://github.com/NixOS/nixpkgs/pull/300070/commits/96054ca98020df125bb91e5cf49bec107bea051b#diff-7246126ac058898e6da6aadc1e831bb26afe07fa145958e55c5e112dc2c578fd.
+      # We applied the same change done to libaio to libfdt as well.
+      ./0002-add-options-for-library-paths.patch
+    ];
   })

@@ -87,6 +87,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		config.Hypervisor["qemu"]["shared_fs"] = "virtio-9p"
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "snp", "bin", "qemu-system-x86_64")}
 		config.Hypervisor["qemu"]["rootfs_type"] = "erofs"
+		config.Hypervisor["qemu"]["snp_certs_path"] = ""
 		kernelParams := qemuExtraKernelParams
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true

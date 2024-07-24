@@ -6,6 +6,7 @@
   buildGoModule,
   buildGoTest,
   microsoft,
+  kata,
   genpolicy ? microsoft.genpolicy,
   contrast,
   installShellFiles,
@@ -41,10 +42,10 @@ let
     ];
   };
 
-  launchDigest = builtins.readFile "${microsoft.runtime-class-files}/launch-digest.hex";
+  launchDigest = builtins.readFile "${kata.runtime-class-files}/launch-digest.hex";
 
   runtimeHandler = lib.removeSuffix "\n" (
-    builtins.readFile "${microsoft.runtime-class-files}/runtime-handler"
+    builtins.readFile "${kata.runtime-class-files}/runtime-handler"
   );
 
   packageOutputs = [

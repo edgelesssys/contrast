@@ -9,8 +9,10 @@
   debugRuntime ? false,
   qemu-static,
   fetchzip,
-  python3Packages,
   lib,
+  igvm-tooling,
+  igvmmeasure,
+  runCommand,
 }:
 
 let
@@ -18,8 +20,8 @@ let
   kernel = "${kata.kata-kernel-uvm}/bzImage";
 
   qemu-snp = {
-    bin = "${qemu-static.override { snpSupport = true; }}/bin/qemu-system-x86_64";
-    share = "${qemu-static.override { snpSupport = true; }}/share/qemu";
+    bin = "${qemu-static}/bin/qemu-system-x86_64";
+    share = "${qemu-static}/share/qemu";
   };
 
   ovmf-snp = "${OVMF-SNP}/FV/OVMF.fd";
@@ -54,6 +56,23 @@ let
   dataSectorsPerBlock = (lib.strings.toInt dataBlockSize) / 512;
   dataSectors = (lib.strings.toInt dataBlocks) * dataSectorsPerBlock;
   dmVerityArgs = "dm-mod.create=\"dm-verity,,,ro,0 ${toString dataSectors} verity 1 /dev/vda1 /dev/vda2 ${dataBlockSize} ${hashBlockSize} ${dataBlocks} 0 sha256 ${rootHash} ${salt}\" root=/dev/dm-0";
+
+  snpIgvmFile = runCommand "igvm-file" { } ''
+    ${
+      igvm-tooling.overrideAttrs (previousAttrs: {
+        patches = previousAttrs.patches ++ [ ./patch.patch ];
+
+      })
+    }/bin/igvmgen -o $out \
+      -boot_mode x64 \
+      -kernel ${kernel} \
+      -append 'tsc=reliable no_timer_check rcupdate.rcu_expedited=1 i8042.direct=1 i8042.dumbkbd=1 i8042.nopnp=1 i8042.noaux=1 noreplace-smp reboot=k cryptomgr.notests net.ifnames=0 pci=lastbus=0 root=/dev/vda1 rootflags=ro rootfstype=erofs console=hvc0 console=hvc1 quiet systemd.show_status=false panic=1 nr_cpus=1 selinux=0 systemd.unit=kata-containers.target systemd.mask=systemd-networkd.service systemd.mask=systemd-networkd.socket scsi_mod.scan=none ${dmVerityArgs}' \
+      -vtl 0 \
+      -inform bzImage \
+      -svme 1 \
+      -encrypted_page 1 \
+      -pvalidate_opt 0
+  '';
 in
 
 stdenvNoCC.mkDerivation {
@@ -65,14 +84,7 @@ stdenvNoCC.mkDerivation {
   # TODO(freax13): Calculate launch measurements for CPU models other than Genoa.
   buildPhase = ''
     mkdir -p $out
-    ${python3Packages.sev-snp-measure}/bin/sev-snp-measure \
-      --mode snp \
-      --ovmf ${ovmf-snp} \
-      --vcpus 1 \
-      --vcpu-type EPYC-Genoa \
-      --kernel ${kernel} \
-      --append 'tsc=reliable no_timer_check rcupdate.rcu_expedited=1 i8042.direct=1 i8042.dumbkbd=1 i8042.nopnp=1 i8042.noaux=1 noreplace-smp reboot=k cryptomgr.notests net.ifnames=0 pci=lastbus=0 root=/dev/vda1 rootflags=ro rootfstype=erofs console=hvc0 console=hvc1 quiet systemd.show_status=false panic=1 nr_cpus=1 selinux=0 systemd.unit=kata-containers.target systemd.mask=systemd-networkd.service systemd.mask=systemd-networkd.socket scsi_mod.scan=none ${dmVerityArgs}' \
-      --output-format hex > $out/launch-digest.hex
+    ${igvmmeasure}/bin/igvmmeasure -b ${snpIgvmFile} | awk '{print tolower($0)}' > $out/launch-digest.hex
     printf "contrast-cc-%s" "$(cat $out/launch-digest.hex | head -c 32)" > $out/runtime-handler
   '';
 
@@ -88,6 +100,7 @@ stdenvNoCC.mkDerivation {
       kata-runtime
       debugRuntime
       dmVerityArgs
+      snpIgvmFile
       ;
   };
 }

@@ -1,0 +1,25 @@
+From 0a3cfa6ce63cc45939cc6d19b1f453f31da6df00 Mon Sep 17 00:00:00 2001
+From: Tom Dohrmann <erbse.13@gmx.de>
+Date: Wed, 24 Jul 2024 11:04:11 +0000
+Subject: [PATCH] WIP
+
+---
+ src/runtime/pkg/govmm/qemu/qemu.go | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/src/runtime/pkg/govmm/qemu/qemu.go b/src/runtime/pkg/govmm/qemu/qemu.go
+index 6d71e28f9..7aee72b55 100644
+--- a/src/runtime/pkg/govmm/qemu/qemu.go
++++ b/src/runtime/pkg/govmm/qemu/qemu.go
+@@ -1298,9 +1298,6 @@ func (blkdev BlockDevice) QemuParams(config *Config) []string {
+ 		deviceParams = append(deviceParams, s)
+ 	}
+ 	deviceParams = append(deviceParams, fmt.Sprintf("drive=%s", blkdev.ID))
+-	if !blkdev.SCSI {
+-		deviceParams = append(deviceParams, "scsi=off")
+-	}
+
+ 	if !blkdev.WCE {
+ 		deviceParams = append(deviceParams, "config-wce=off")
+--
+2.34.1
