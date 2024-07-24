@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/assets/css/styles.06de3aec.css">
-<script src="/contrast/assets/js/runtime~main.04a6158b.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.506dbedc.js" defer="defer"></script>
 <script src="/contrast/assets/js/main.9809ad98.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -62,7 +62,7 @@ command.</p>
 <div class="codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token plain">LAST SEEN  TYPE     REASON  OBJECT             MESSAGE</span><br></span><span class="token-line" style="color:#393A34"><span class="token plain">32m        Warning  Failed  Pod/coordinator-0  kubelet  Error: failed to create containerd task: failed to create shim task: &quot;CreateContainerRequest is blocked by policy: ...</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
 <p>A common error, as in this example, is that the container creation was blocked by the
 policy. Potential reasons are a modification of the deployment YAML without updating
-the policies afterwards, or a version mismatch between Contrast components.</p>
+the policies afterward, or a version mismatch between Contrast components.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="regenerating-the-policies">Regenerating the policies<a href="#regenerating-the-policies" class="hash-link" aria-label="Direct link to Regenerating the policies" title="Direct link to Regenerating the policies">​</a></h3>
 <p>To ensure there isn&#x27;t a mismatch between Kubernetes resource YAML and the annotated
 policies, rerun</p>
