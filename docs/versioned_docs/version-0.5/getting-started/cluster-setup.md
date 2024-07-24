@@ -4,7 +4,6 @@
 
 Install the latest version of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/).
 
-
 [Login to your account](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli), which has
 the permissions to create an AKS cluster, by executing:
 
@@ -44,7 +43,7 @@ az feature show \
     --output table
 ```
 
-Afterwards, refresh the registration of the ContainerService provider:
+Afterward, refresh the registration of the ContainerService provider:
 
 ```sh
 az provider register \

@@ -43,7 +43,7 @@ az feature show \
     --output table
 ```
 
-Afterwards, refresh the registration of the ContainerService provider:
+Afterward, refresh the registration of the ContainerService provider:
 
 ```sh
 az provider register \
