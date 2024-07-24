@@ -7,6 +7,7 @@
   dtc,
   stdenvNoCC,
   writeShellScript,
+  runCommand,
   buildPackages,
   lib,
   snpSupport ? false,
@@ -87,6 +88,43 @@ in
   hostCpuTargets = [ "x86_64-softmmu" ];
 })).overrideAttrs
   (previousAttrs: {
+    # Use a newer src.
+    #
+    # We can't just fetch from git because QEMU release tarballs contain some
+    # extra files that QEMU expects to be there at build-time. Instead we
+    # invoke QEMU's make-release script, which is how QEMU release tarballs are
+    # created. We need to run this in a fixed output derivation.
+    src =
+      runCommand "qemu-src"
+        {
+          version = "9.0.2";
+          src = "https://gitlab.com/qemu-project/qemu.git";
+          nativeBuildInputs = with buildPackages; [
+            git
+            meson
+            gnutar
+            bash
+          ];
+          env."GIT_SSL_CAINFO" = "${buildPackages.cacert}/etc/ssl/certs/ca-bundle.crt";
+          outputHashMode = "recursive";
+          outputHashAlgo = "sha256";
+          outputHash = "sha256-EXC7b3FAKeWvSCU4RjoQMNCYMfOJAlOusIbO5y7Cu6s=";
+        }
+        ''
+          # Clone qemu and checkout the release rev.
+          git clone $src -b "v$version" --single-branch --depth 1 source
+          cd source/
+
+          # Fix the release script and run it.
+          substituteInPlace ./scripts/make-release \
+            --replace-fail "./make_version.sh" "bash ./make_version.sh"
+          bash ./scripts/make-release $src "$version"
+
+          # Extract the release tarball into the out directory.
+          mkdir $out
+          tar -xf qemu-"$version".tar.xz -C "$out" --strip-components=1
+        '';
+
     propagatedBuildInputs = builtins.filter (
       input: input.pname != "texinfo"
     ) previousAttrs.propagatedBuildInputs;
