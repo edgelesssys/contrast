@@ -1,4 +1,6 @@
+# keep-sorted start case=no
 Affero
+Agent
 agent
 Ansys
 API
@@ -72,6 +74,8 @@ MicroK8s
 mitigations
 namespace
 Nginx
+nixpkgs
+noogle
 overlayfs
 paravisor
 PCR
@@ -80,6 +84,7 @@ podman
 protobuf
 proxied
 QEMU
+rebase
 Rego
 Rekor
 resizable
@@ -111,6 +116,7 @@ upsert
 userland
 UUID
 vCPU
+vendored
 virsh
 VM
 VSCode
@@ -120,7 +126,4 @@ WireGuard
 Xeon
 xsltproc
 Zipkin
-vendored
-noogle
-nixpkgs
-rebase
+# keep-sorted end

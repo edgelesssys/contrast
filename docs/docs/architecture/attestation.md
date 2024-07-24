@@ -102,7 +102,7 @@ It plays a critical role in preventing unauthorized changes and detecting potent
 The attestation provides integrity and authenticity guarantees, enabling relying parties—such as workload operators or data owners—to confirm the effective protection against potential threats, including malicious cloud insiders, co-tenants, or compromised workload operators.
 More details on the specific security benefits can be found [here](../basics/security-benefits.md).
 
-### How can I verify the authenticity of attestation results?
+### How can you verify the authenticity of attestation results?
 
 Attestation results in Contrast are tied to cryptographic proofs generated and signed by the hardware itself.
 These proofs are then verified using public keys from trusted hardware vendors, ensuring that the results aren't only accurate but also resistant to tampering.

@@ -20,6 +20,7 @@ problem lies.
 The logs from the Coordinator and the Initializer can be configured via the
 environment variables `CONTRAST_LOG_LEVEL`, `CONTRAST_LOG_FORMAT` and
 `CONTRAST_LOG_SUBSYSTEMS`.
+
 - `CONTRAST_LOG_LEVEL` can be set to one of either `debug`, `info`, `warn`, or
   `error`, similar to the CLI (defaults to `info`).
 - `CONTRAST_LOG_FORMAT` can be set to `text` or `json`, determining the output
@@ -81,7 +82,7 @@ LAST SEEN  TYPE     REASON  OBJECT             MESSAGE
 
 A common error, as in this example, is that the container creation was blocked by the
 policy. Potential reasons are a modification of the deployment YAML without updating
-the policies afterwards, or a version mismatch between Contrast components.
+the policies afterward, or a version mismatch between Contrast components.
 
 ### Regenerating the policies
 
