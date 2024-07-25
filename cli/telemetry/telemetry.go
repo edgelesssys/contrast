@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"runtime"
 
+	"github.com/edgelesssys/contrast/cli/constants"
 	"github.com/spf13/cobra"
 )
 
@@ -51,12 +52,8 @@ func NewClient() *Client {
 func (c *Client) SendTelemetry(ctx context.Context, cmd *cobra.Command, cmdErr error) error {
 	cmdErrClass := classifyCmdErr(cmdErr)
 
-	if cmd.Root().Version == "" {
-		return fmt.Errorf("no cli version found")
-	}
-
 	telemetryRequest := RequestV1{
-		Version:     cmd.Root().Version,
+		Version:     constants.Version,
 		GOOS:        runtime.GOOS,
 		GOARCH:      runtime.GOARCH,
 		Cmd:         cmd.Name(),

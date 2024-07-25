@@ -30,8 +30,6 @@ func TestSendTelemetry(t *testing.T) {
 	goodTestCmd := &cobra.Command{}
 	rootTestCmd.AddCommand(goodTestCmd)
 
-	badTestCmd := &cobra.Command{}
-
 	testCases := map[string]struct {
 		cmd                *cobra.Command
 		cmdErr             error
@@ -49,12 +47,6 @@ func TestSendTelemetry(t *testing.T) {
 			cmdErr:             fmt.Errorf("test error"),
 			serverResponseCode: http.StatusOK,
 			wantError:          false,
-		},
-		"bad command": {
-			cmd:                badTestCmd,
-			cmdErr:             nil,
-			serverResponseCode: http.StatusOK,
-			wantError:          true,
 		},
 		"bad http response": {
 			cmd:                goodTestCmd,
