@@ -12,6 +12,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/edgelesssys/contrast/cli/cmd"
+	"github.com/edgelesssys/contrast/cli/constants"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/spf13/cobra"
@@ -30,15 +31,10 @@ func execute() error {
 	return cmd.ExecuteContext(ctx)
 }
 
-var (
-	version          = "0.0.0-dev"
-	genpolicyVersion = "0.0.0-dev"
-)
-
 func buildVersionString() string {
 	var versionsBuilder strings.Builder
 	versionsWriter := tabwriter.NewWriter(&versionsBuilder, 0, 0, 4, ' ', 0)
-	fmt.Fprintf(versionsWriter, "%s\n\n", version)
+	fmt.Fprintf(versionsWriter, "%s\n\n", constants.Version)
 	fmt.Fprintf(versionsWriter, "container image versions:\n")
 	imageReplacements := strings.Trim(string(cmd.ReleaseImageReplacements), "\n")
 	for _, image := range strings.Split(imageReplacements, "\n") {
@@ -51,7 +47,7 @@ func buildVersionString() string {
 	fmt.Fprintf(versionsWriter, "reference values for %s platform:\n", platforms.AKSCloudHypervisorSNP.String())
 	fmt.Fprintf(versionsWriter, "\truntime handler:\tcontrast-cc-%s\n", manifest.TrustedMeasurement[:32])
 	fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", manifest.TrustedMeasurement)
-	fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", genpolicyVersion)
+	fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", constants.GenpolicyVersion)
 	versionsWriter.Flush()
 	return versionsBuilder.String()
 }
