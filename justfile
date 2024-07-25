@@ -27,13 +27,16 @@ initializer: (push "initializer")
 # Build the tardev-snapshotter, containerize and push it.
 tardev-snapshotter: (push "tardev-snapshotter")
 
+# Build the nydus-snapshotter, containerize and push it.
+nydus-snapshotter: (push "nydus-snapshotter")
+
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"
 default_platform := "AKS-CLH-SNP"
 workspace_dir := "workspace"
 
 # Build the node-installer, containerize and push it.
-node-installer platform=default_platform: tardev-snapshotter
+node-installer platform=default_platform: tardev-snapshotter nydus-snapshotter
     #!/usr/bin/env bash
     case {{ platform }} in
         "AKS-CLH-SNP")
