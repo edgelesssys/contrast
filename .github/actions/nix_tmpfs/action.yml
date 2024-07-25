@@ -1,0 +1,13 @@
+name: use tmpfs for nix builds
+description: Set Nix' build directory to a tmpfs to fix builds that don't work in the runner-provisioned ext2/ext3 filesystem
+
+runs:
+  using: "composite"
+  steps:
+    - name: use tmpfs for nix builds
+      shell: bash
+      run: |
+        sudo mkdir -p /etc/systemd/system/nix-daemon.service.d
+        echo -e "[Service]\nEnvironment=TMPDIR=/dev/shm" | sudo tee /etc/systemd/system/nix-daemon.service.d/tmpfs.conf
+        sudo systemctl daemon-reload
+        sudo systemctl restart nix-daemon
