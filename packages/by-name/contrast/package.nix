@@ -5,6 +5,7 @@
   lib,
   buildGoModule,
   buildGoTest,
+  buildGoCache,
   microsoft,
   genpolicy ? microsoft.genpolicy,
   contrast,
@@ -12,6 +13,10 @@
 }:
 
 let
+  goCache = buildGoCache {
+    importPackagesFile = ./imported-packages;
+    inherit (contrast) vendorHash proxyVendor src;
+  };
   e2e = buildGoTest {
     inherit (contrast)
       version
@@ -22,6 +27,8 @@ let
       CGO_ENABLED
       ;
     pname = "${contrast.pname}-e2e";
+
+    buildInputs = [ goCache ];
 
     tags = [ "e2e" ];
 
@@ -87,6 +94,8 @@ buildGoModule rec {
 
   nativeBuildInputs = [ installShellFiles ];
 
+  buildInputs = [ goCache ];
+
   subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
 
   prePatch = ''
@@ -115,6 +124,8 @@ buildGoModule rec {
     runHook postCheck
   '';
 
+  # doCheck = false;
+
   postInstall = ''
     for sub in ${builtins.concatStringsSep " " packageOutputs}; do
       mkdir -p "''${!sub}/bin"
@@ -138,7 +149,7 @@ buildGoModule rec {
   dontFixup = true;
 
   passthru = {
-    inherit e2e;
+    inherit e2e goCache;
     inherit (genpolicy) settings rules;
   };
 

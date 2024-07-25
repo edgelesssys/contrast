@@ -13,6 +13,10 @@
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    build-go-cache = {
+      url = "github:katexochen/build-go-cache/fork";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -21,6 +25,7 @@
       nixpkgs,
       flake-utils,
       treefmt-nix,
+      build-go-cache,
       ...
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -28,7 +33,10 @@
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ (import ./overlays/nixpkgs.nix) ];
+          overlays = [
+            (_final: _prev: { inherit (build-go-cache.legacyPackages.${system}) buildGoCache; })
+            (import ./overlays/nixpkgs.nix)
+          ];
         };
         inherit (pkgs) lib;
         treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
