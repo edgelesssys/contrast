@@ -22,6 +22,9 @@
   cryptsetup,
   closureInfo,
   erofs-utils,
+  # pause-bundle is needed for nydus-snapshotter
+  withPauseBundle ? true,
+  pause-bundle,
 }:
 
 let
@@ -38,25 +41,30 @@ let
     inherit (kata.kata-runtime) src version;
 
     # https://github.com/microsoft/azurelinux/blob/59ce246f224f282b3e199d9a2dacaa8011b75a06/SPECS/kata-containers-cc/mariner-coco-build-uvm.sh#L34-L41
-    buildPhase = ''
-      runHook preBuild
+    buildPhase =
+      ''
+        runHook preBuild
 
-      mkdir -p /build/rootfs/etc/kata-opa /build/rootfs/usr/lib/systemd/system /build/rootfs/nix/store
-      cp src/agent/kata-agent.service.in /build/rootfs/usr/lib/systemd/system/kata-agent.service
-      cp src/agent/kata-containers.target /build/rootfs/usr/lib/systemd/system/kata-containers.target
-      cat > /build/rootfs/etc/kata-opa/default-policy.rego <<EOF
-      package agent_policy
-      default SetPolicyRequest := true
-      EOF
-      sed -i 's/@BINDIR@\/@AGENT_NAME@/\/usr\/bin\/kata-agent/g'  /build/rootfs/usr/lib/systemd/system/kata-agent.service
-      touch /build/rootfs/etc/machine-id
+        mkdir -p /build/rootfs/etc/kata-opa /build/rootfs/usr/lib/systemd/system /build/rootfs/nix/store
+        cp src/agent/kata-agent.service.in /build/rootfs/usr/lib/systemd/system/kata-agent.service
+        cp src/agent/kata-containers.target /build/rootfs/usr/lib/systemd/system/kata-containers.target
+        cat > /build/rootfs/etc/kata-opa/default-policy.rego <<EOF
+        package agent_policy
+        default SetPolicyRequest := true
+        EOF
+        sed -i 's/@BINDIR@\/@AGENT_NAME@/\/usr\/bin\/kata-agent/g'  /build/rootfs/usr/lib/systemd/system/kata-agent.service
+        touch /build/rootfs/etc/machine-id
+      ''
+      + lib.optionalString withPauseBundle ''
+        cp -r ${pause-bundle}/pause_bundle /build/rootfs/pause_bundle
+      ''
+      + ''
+        tar --sort=name --mtime="@$SOURCE_DATE_EPOCH" -cvf /build/rootfs-extra-tree.tar -C /build/rootfs .
 
-      tar --sort=name --mtime="@$SOURCE_DATE_EPOCH" -cvf /build/rootfs-extra-tree.tar -C /build/rootfs .
+        mv /build/rootfs-extra-tree.tar $out
 
-      mv /build/rootfs-extra-tree.tar $out
-
-      runHook postBuild
-    '';
+        runHook postBuild
+      '';
 
     dontInstall = true;
   };
