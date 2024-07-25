@@ -28,13 +28,13 @@ func TestRegression(t *testing.T) {
 
 	resources := kuberesource.CoordinatorBundle()
 
-	yaml, err := os.ReadFile("./e2e/regression/test-data/redis-alpine.yaml")
+	yaml, err := os.ReadFile("./e2e/regression/test-data/hello-world.yaml")
 	require.NoError(err)
 	yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_NAMESPACE"), []byte(ct.Namespace))
 	yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_RUNTIME"), []byte(kuberesource.RuntimeHandler))
 	yamlResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
 	require.NoError(err)
-	resources = append(resources, yamlResources)
+	resources = append(resources, yamlResources...)
 
 	resources = kuberesource.AddPortForwarders(resources)
 	t.Logf("config:\n%s", resources)
