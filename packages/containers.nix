@@ -113,6 +113,19 @@ let
         Cmd = [ "${lib.getExe pkgs.microsoft.tardev-snapshotter}" ];
       };
     };
+
+    nydus-snapshotter = dockerTools.buildImage {
+      name = "nydus-snapshotter";
+      tag = "v${pkgs.nydus-snapshotter.version}";
+      copyToRoot = with pkgs; [
+        getconf
+        nydus-snapshotter
+        nydus-snapshotter.config
+      ];
+      config = {
+        Cmd = [ "${lib.getExe pkgs.nydus-snapshotter}" ];
+      };
+    };
   };
 in
 containers
