@@ -3,6 +3,8 @@
 
 {
   lib,
+  writers,
+  runCommand,
   buildGoModule,
   fetchFromGitHub,
 }:
@@ -32,6 +34,22 @@ buildGoModule rec {
     "-s"
     "-X github.com/containerd/nydus-snapshotter/version.Version=${version}"
   ];
+
+  passthru = {
+    # Based on https://github.com/confidential-containers/operator/blob/6b249fd671a683120a9aac860b953fe7f0e40a1b/install/pre-install-payload/remote-snapshotter/nydus-snapshotter/config-coco-guest-pulling.toml
+    config =
+      let
+        configFile = writers.writeTOML "nydus-snapshotter-config" {
+          version = 1;
+          daemon.fs_driver = "proxy";
+          snapshot.enable_kata_volume = true;
+        };
+      in
+      runCommand "config-coco-guest-pulling.toml" { } ''
+        mkdir -p $out/share/nydus-snapshotter
+        ln -s ${configFile} $out/share/nydus-snapshotter/config-coco-guest-pulling.toml
+      '';
+  };
 
   meta = with lib; {
     description = "A containerd snapshotter with data deduplication and lazy loading in P2P fashion";
