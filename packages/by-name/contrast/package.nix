@@ -99,8 +99,8 @@ buildGoModule rec {
   ldflags = [
     "-s"
     "-w"
-    "-X main.genpolicyVersion=${genpolicy.version}"
     "-X github.com/edgelesssys/contrast/cli/constants.Version=${version}"
+    "-X github.com/edgelesssys/contrast/cli/constants.GenpolicyVersion=${genpolicy.version}"
     "-X github.com/edgelesssys/contrast/internal/manifest.TrustedMeasurement=${launchDigest}"
     "-X github.com/edgelesssys/contrast/internal/kuberesource.runtimeHandler=${runtimeHandler}"
   ];

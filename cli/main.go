@@ -31,8 +31,6 @@ func execute() error {
 	return cmd.ExecuteContext(ctx)
 }
 
-var genpolicyVersion = "0.0.0-dev"
-
 func buildVersionString() string {
 	var versionsBuilder strings.Builder
 	versionsWriter := tabwriter.NewWriter(&versionsBuilder, 0, 0, 4, ' ', 0)
@@ -49,7 +47,7 @@ func buildVersionString() string {
 	fmt.Fprintf(versionsWriter, "reference values for %s platform:\n", platforms.AKSCloudHypervisorSNP.String())
 	fmt.Fprintf(versionsWriter, "\truntime handler:\tcontrast-cc-%s\n", manifest.TrustedMeasurement[:32])
 	fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", manifest.TrustedMeasurement)
-	fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", genpolicyVersion)
+	fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", constants.GenpolicyVersion)
 	versionsWriter.Flush()
 	return versionsBuilder.String()
 }

@@ -4,4 +4,7 @@
 package constants
 
 // Version value is injected at build time.
-var Version = "0.0.0-dev"
+var (
+	Version          = "0.0.0-dev"
+	GenpolicyVersion = "0.0.0-dev"
+)
