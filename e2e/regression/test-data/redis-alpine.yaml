@@ -17,6 +17,13 @@ spec:
       containers:
         - name: redis
           image: docker.io/redis:7.4-rc2-alpine
+          volumeMounts:
+            - mountPath: /data
+              name: data
           ports:
             - containerPort: 6379
+      volumes:
+        - name: data
+          emptyDir:
+            sizeLimit: 10Mi
       runtimeClassName: REPLACE_RUNTIME

@@ -28,7 +28,7 @@ func TestRegression(t *testing.T) {
 
 	resources := kuberesource.CoordinatorBundle()
 
-	yaml, err := os.ReadFile("./e2e/regression/test-data/hello-world.yaml")
+	yaml, err := os.ReadFile("./e2e/regression/test-data/redis-alpine.yaml")
 	require.NoError(err)
 	yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_NAMESPACE"), []byte(ct.Namespace))
 	yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_RUNTIME"), []byte(kuberesource.RuntimeHandler))
