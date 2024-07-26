@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: redis-alpine
+  name: redis-bookworm
   namespace: REPLACE_NAMESPACE
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: redis-alpine
+      app.kubernetes.io/name: redis-bookworm
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: redis-alpine
+        app.kubernetes.io/name: redis-bookworm
     spec:
       containers:
-        - name: redis-alpine
-          image: docker.io/redis:7.4-rc2-alpine
+        - name: redis
+          image: docker.io/redis:7.4-rc2-bookworm
           volumeMounts:
             - mountPath: /data
               name: data
