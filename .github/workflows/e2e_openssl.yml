@@ -13,6 +13,8 @@ on:
       - dev-docs/**
       - docs/**
       - rfc/**
+      - tools/asciinema/**
+      - tools/vale/**
 
 env:
   container_registry: ghcr.io/edgelesssys
