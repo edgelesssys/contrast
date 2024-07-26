@@ -119,9 +119,9 @@ func getCoordinatorPolicyHash(policies []deployment, log *slog.Logger) string {
 		}
 		if deployment.policy.Hash().String() != DefaultCoordinatorPolicyHash {
 			log.Warn("Found unexpected coordinator policy", "name", deployment.name, "hash", deployment.policy.Hash())
-			hash = deployment.policy.Hash().String()
-			// Keep going, in case we need to warn about another coordinator.
 		}
+		hash = deployment.policy.Hash().String()
+		// Keep going, in case we need to warn about another coordinator.
 	}
 	return hash
 }
