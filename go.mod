@@ -15,7 +15,7 @@ replace (
 require (
 	filippo.io/keygen v0.0.0-20240718133620-7f162efbbd87
 	github.com/edgelesssys/contrast/node-installer v0.0.0-20240711120720-005f613ddf37
-	github.com/google/go-github/v62 v62.0.0
+	github.com/google/go-github/v63 v63.0.0
 	github.com/google/go-sev-guest v0.11.1
 	github.com/google/go-tdx-guest v0.3.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
