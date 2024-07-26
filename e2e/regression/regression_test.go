@@ -7,11 +7,14 @@ package regression
 
 import (
 	"bytes"
+	"context"
 	"flag"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
+	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/stretchr/testify/require"
 )
@@ -22,31 +25,47 @@ var (
 )
 
 func TestRegression(t *testing.T) {
-	require := require.New(t)
 
-	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, skipUndeploy)
+	yamlDir := "./e2e/regression/test-data/"
+	files, err := os.ReadDir(yamlDir)
+	require.NoError(t, err)
 
-	resources := kuberesource.CoordinatorBundle()
+	for _, file := range files {
+		t.Run(file.Name(), func(t *testing.T) {
+			require := require.New(t)
 
-	yaml, err := os.ReadFile("./e2e/regression/test-data/redis-alpine.yaml")
-	require.NoError(err)
-	yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_NAMESPACE"), []byte(ct.Namespace))
-	yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_RUNTIME"), []byte(kuberesource.RuntimeHandler))
-	yamlResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
-	require.NoError(err)
-	resources = append(resources, yamlResources...)
+			c := kubeclient.NewForTest(t)
+			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, skipUndeploy)
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			defer cancel()
 
-	resources = kuberesource.AddPortForwarders(resources)
-	t.Logf("config:\n%s", resources)
+			resources := kuberesource.CoordinatorBundle()
 
-	ct.Init(t, resources)
+			yaml, err := os.ReadFile(yamlDir + file.Name())
+			require.NoError(err)
+			yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_NAMESPACE"), []byte(ct.Namespace))
+			yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_RUNTIME"), []byte(kuberesource.RuntimeHandler))
 
-	require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+			yamlResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
+			require.NoError(err)
+			resources = append(resources, yamlResources...)
 
-	require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+			resources = kuberesource.AddPortForwarders(resources)
+			t.Logf("config:\n%s", resources)
 
-	require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
-	require.True(t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+			ct.Init(t, resources)
+
+			require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+
+			require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+
+			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
+			require.True(t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+
+			// cleanup resources
+			require.NoError(c.DeleteNamespace(ctx, ct.Namespace))
+		})
+	}
 }
 
 func TestMain(m *testing.M) {

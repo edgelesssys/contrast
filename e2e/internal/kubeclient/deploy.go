@@ -347,6 +347,11 @@ func (c *Kubeclient) Delete(ctx context.Context, objects ...*unstructured.Unstru
 	return nil
 }
 
+// Delete a namespace.
+func (c *Kubeclient) DeleteNamespace(ctx context.Context, namespace string) error {
+	return c.client.CoreV1().Namespaces().Delete(ctx, namespace, metav1.DeleteOptions{})
+}
+
 // Restart a resource by deleting all of its dependent pods.
 func (c *Kubeclient) Restart(ctx context.Context, resource ResourceWaiter, namespace, name string) error {
 	pods, err := resource.getPods(ctx, c, namespace, name)
