@@ -2,19 +2,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hello-world
+  name: rockylinux
   namespace: REPLACE_NAMESPACE
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: hello-world
+      app.kubernetes.io/name: rockylinux
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: hello-world
+        app.kubernetes.io/name: rockylinux
     spec:
       containers:
-        - name: hello-world
-          image: docker.io/hello-world:linux
+        - name: rockylinux
+          image: docker.io/rockylinux:9.3
       runtimeClassName: REPLACE_RUNTIME

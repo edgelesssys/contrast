@@ -10,6 +10,7 @@ import (
 	"context"
 	"flag"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -61,6 +62,9 @@ func TestRegression(t *testing.T) {
 
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 			require.True(t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+
+			deploymentName, _ := strings.CutSuffix(file.Name(), ".yaml")
+			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentName))
 
 			// cleanup resources
 			require.NoError(c.DeleteNamespace(ctx, ct.Namespace))
