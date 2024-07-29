@@ -19,25 +19,25 @@ import (
 // Dialer can open grpc client connections with different levels of ATLS encryption / verification.
 type Dialer struct {
 	issuer    atls.Issuer
-	validator atls.Validator
+	validators []atls.Validator
 	netDialer NetDialer
 	privKey   *ecdsa.PrivateKey
 }
 
 // New creates a new Dialer.
-func New(issuer atls.Issuer, validator atls.Validator, netDialer NetDialer) *Dialer {
+func New(issuer atls.Issuer, validators []atls.Validator, netDialer NetDialer) *Dialer {
 	return &Dialer{
 		issuer:    issuer,
-		validator: validator,
+		validators: validators,
 		netDialer: netDialer,
 	}
 }
 
 // NewWithKey creates a new Dialer with the given private key.
-func NewWithKey(issuer atls.Issuer, validator atls.Validator, netDialer NetDialer, privKey *ecdsa.PrivateKey) *Dialer {
+func NewWithKey(issuer atls.Issuer, validators []atls.Validator, netDialer NetDialer, privKey *ecdsa.PrivateKey) *Dialer {
 	return &Dialer{
 		issuer:    issuer,
-		validator: validator,
+		validators: validators,
 		netDialer: netDialer,
 		privKey:   privKey,
 	}
@@ -45,11 +45,7 @@ func NewWithKey(issuer atls.Issuer, validator atls.Validator, netDialer NetDiale
 
 // Dial creates a new grpc client connection to the given target using the atls validator.
 func (d *Dialer) Dial(_ context.Context, target string) (*grpc.ClientConn, error) {
-	var validators []atls.Validator
-	if d.validator != nil {
-		validators = append(validators, d.validator)
-	}
-	credentials := atlscredentials.NewWithKey(d.issuer, validators, d.privKey)
+	credentials := atlscredentials.NewWithKey(d.issuer, d.validators, d.privKey)
 
 	return grpc.NewClient(target,
 		d.grpcWithDialer(),

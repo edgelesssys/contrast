@@ -106,7 +106,7 @@ func dialCoordinatorWithKey(ctx context.Context, log *slog.Logger, m manifest.Ma
 		return nil, fmt.Errorf("getting local validators: %w", err)
 	}
 
-	dialer := dialer.NewWithKey(atls.NoIssuer, validators[0], &net.Dialer{}, workloadOwnerKey)
+	dialer := dialer.NewWithKey(atls.NoIssuer, validators, &net.Dialer{}, workloadOwnerKey)
 
 	log.Debug("Dialing coordinator", "endpoint", coordinatorEndpoint)
 	conn, err := dialer.Dial(ctx, coordinatorEndpoint)

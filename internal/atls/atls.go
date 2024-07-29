@@ -212,7 +212,7 @@ func processCertificate(rawCerts [][]byte, _ [][]*x509.Certificate) (*x509.Certi
 
 // verifyEmbeddedReport verifies an aTLS certificate by validating the attestation document embedded in the TLS certificate.
 //
-// It will check against all applicable validator for the type of attestation document, and return success on the first match.
+// It will check against all applicable validators for the type of attestation document, and return success on the first match.
 func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, peerPublicKey, nonce []byte) (retErr error) {
 	// For better error reporting, let's keep track of whether we've found a valid extension at all..
 	var foundExtension bool
