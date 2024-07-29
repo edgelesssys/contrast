@@ -71,7 +71,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	attestation := &sevsnp.Attestation{}
 	if err := proto.Unmarshal(attDocRaw, attestation); err != nil {
-		return fmt.Errorf("unmarshalling attestation: %w", err)
+		return fmt.Errorf("unmarshaling attestation: %w", err)
 	}
 
 	if attestation.Report == nil {
@@ -79,7 +79,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	}
 	reportRaw, err := abi.ReportToAbiBytes(attestation.Report)
 	if err != nil {
-		return fmt.Errorf("converting report to abi: %w", err)
+		return fmt.Errorf("converting report to abi format: %w", err)
 	}
 	v.logger.Info("Report decoded", "reportRaw", hex.EncodeToString(reportRaw))
 
@@ -90,7 +90,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	}
 	v.logger.Info("Successfully verified report signature")
 
-	// Validate the report data.
+	// Build the validation options.
 
 	reportDataExpected := reportdata.Construct(peerPublicKey, nonce)
 	v.validateOpts.ReportData = reportDataExpected[:]
