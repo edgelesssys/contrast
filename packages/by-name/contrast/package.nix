@@ -59,6 +59,11 @@ let
           builtins.readFile "${microsoft.runtime-class-files}/launch-digest.hex"
         );
       };
+      bareMetalSNP = {
+        trustedMeasurement = lib.removeSuffix "\n" (
+          builtins.readFile "${kata.runtime-class-files}/launch-digest.hex"
+        );
+      };
       bareMetalTDX = {
         trustedMeasurement = lib.removeSuffix "\n" (
           builtins.readFile "${kata.runtime-class-files}/launch-digest.hex"

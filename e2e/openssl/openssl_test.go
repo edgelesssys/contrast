@@ -70,10 +70,10 @@ func TestOpenSSL(t *testing.T) {
 		var m manifest.Manifest
 		require.NoError(t, json.Unmarshal(manifestBytes, &m))
 
-		m.ReferenceValues.AKS.SNP.MinimumTCB.BootloaderVersion = toPtr(manifest.SVN(0))
-		m.ReferenceValues.AKS.SNP.MinimumTCB.TEEVersion = toPtr(manifest.SVN(0))
-		m.ReferenceValues.AKS.SNP.MinimumTCB.SNPVersion = toPtr(manifest.SVN(0))
-		m.ReferenceValues.AKS.SNP.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
+		m.ReferenceValues.BareMetalSNP.SNP.MinimumTCB.BootloaderVersion = toPtr(manifest.SVN(0))
+		m.ReferenceValues.BareMetalSNP.SNP.MinimumTCB.TEEVersion = toPtr(manifest.SVN(0))
+		m.ReferenceValues.BareMetalSNP.SNP.MinimumTCB.SNPVersion = toPtr(manifest.SVN(0))
+		m.ReferenceValues.BareMetalSNP.SNP.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
 
 		manifestBytes, err = json.Marshal(m)
 		require.NoError(t, err)
