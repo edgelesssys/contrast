@@ -225,16 +225,7 @@ get-credentials-ci:
         --admin
 
 get-credentials-from-gcloud path:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    tmpConfig=$(mktemp)
-    gcloud secrets versions access {{ path }} --out-file="$tmpConfig"
-    mergedConfig=$(mktemp)
-    KUBECONFIG_BAK=${KUBECONFIG:-~/.kube/config}
-    KUBECONFIG=$tmpConfig:${KUBECONFIG_BAK} kubectl config view --flatten > $mergedConfig
-    export newContext=$(yq -r '.contexts.[0].name' $tmpConfig)
-    yq -i '.current-context = env(newContext)' $mergedConfig
-    mv $mergedConfig ${KUBECONFIG_BAK%%:*}
+    nix run .#scripts.get-credentials {{ path }}
 
 get-credentials-tdxbm: (get-credentials-from-gcloud "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/2")
 
