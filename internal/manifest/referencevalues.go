@@ -23,10 +23,10 @@ var (
 
 // ReferenceValues contains the workload-independent reference values for each platform.
 type ReferenceValues struct {
-	// AKS holds the reference values for AKS.
-	AKS *AKSReferenceValues `json:"aks,omitempty"`
-	// BareMetalTDX holds the reference values for TDX on bare metal.
-	BareMetalTDX *BareMetalTDXReferenceValues `json:"bareMetalTDX,omitempty"`
+	// AKS holds the acceptable reference values for AKS.
+	AKS []*AKSReferenceValues `json:"aks,omitempty"`
+	// BareMetalTDX holds the acceptable reference values for TDX on bare metal.
+	BareMetalTDX []*BareMetalTDXReferenceValues `json:"bareMetalTDX,omitempty"`
 }
 
 // AKSReferenceValues contains reference values for AKS.

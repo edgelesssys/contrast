@@ -130,9 +130,9 @@ func localValidators(log *slog.Logger, m manifest.Manifest, hostData []byte) ([]
 	if err != nil {
 		return nil, fmt.Errorf("generating validate opts: %w", err)
 	}
-	kdsCache := fsstore.New(certCacheDir, log.WithGroup("kds-cache"))
-	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
-	validator := snp.NewValidator(validateOptsGen, kdsGetter,
+	certCache := fsstore.New(certCacheDir, log.WithGroup("cert-cache"))
+	certGetter := snp.NewCachedHTTPSGetter(certCache, snp.NeverGCTicker, log.WithGroup("cert-getter"))
+	validator := snp.NewValidator(validateOptsGen, certGetter,
 		logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
 	)
 

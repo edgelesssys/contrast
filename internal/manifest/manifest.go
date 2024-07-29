@@ -135,17 +135,10 @@ func (m *Manifest) Validate() error {
 	return nil
 }
 
-// AKSValidateOpts returns validate options populated with the manifest's
-// AKS reference values and trusted measurement.
-func (m *Manifest) AKSValidateOpts() (*validate.Options, error) {
-	if m.ReferenceValues.AKS == nil {
-		return nil, fmt.Errorf("no AKS reference values present in manifest")
-	}
-
-	if err := m.Validate(); err != nil {
-		return nil, fmt.Errorf("validating manifest: %w", err)
-	}
-	trustedMeasurement, err := m.ReferenceValues.AKS.TrustedMeasurement.Bytes()
+// ValidateOpts returns validate options populated with the given
+// AKS reference values.
+func (r *AKSReferenceValues) ValidateOpts() (*validate.Options, error) {
+	trustedMeasurement, err := r.TrustedMeasurement.Bytes()
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
 	}
@@ -158,16 +151,16 @@ func (m *Manifest) AKSValidateOpts() (*validate.Options, error) {
 		},
 		VMPL: new(int), // VMPL0
 		MinimumTCB: kds.TCBParts{
-			BlSpl:    m.ReferenceValues.AKS.SNP.MinimumTCB.BootloaderVersion.UInt8(),
-			TeeSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.TEEVersion.UInt8(),
-			SnpSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.SNPVersion.UInt8(),
-			UcodeSpl: m.ReferenceValues.AKS.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
+			BlSpl:    r.SNP.MinimumTCB.BootloaderVersion.UInt8(),
+			TeeSpl:   r.SNP.MinimumTCB.TEEVersion.UInt8(),
+			SnpSpl:   r.SNP.MinimumTCB.SNPVersion.UInt8(),
+			UcodeSpl: r.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
 		},
 		MinimumLaunchTCB: kds.TCBParts{
-			BlSpl:    m.ReferenceValues.AKS.SNP.MinimumTCB.BootloaderVersion.UInt8(),
-			TeeSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.TEEVersion.UInt8(),
-			SnpSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.SNPVersion.UInt8(),
-			UcodeSpl: m.ReferenceValues.AKS.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
+			BlSpl:    r.SNP.MinimumTCB.BootloaderVersion.UInt8(),
+			TeeSpl:   r.SNP.MinimumTCB.TEEVersion.UInt8(),
+			SnpSpl:   r.SNP.MinimumTCB.SNPVersion.UInt8(),
+			UcodeSpl: r.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
 		},
 		PermitProvisionalFirmware: true,
 	}, nil
