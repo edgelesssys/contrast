@@ -65,14 +65,11 @@ func NewValidator(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, lo
 }
 
 // NewValidatorWithCallbacks returns a new Validator with callbacks.
-func NewValidatorWithCallbacks(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, log *slog.Logger, attestataionFailures prometheus.Counter, callbacks ...validateCallbacker) *Validator {
-	return &Validator{
-		validateOptsGen: optsGen,
-		callbackers:     callbacks,
-		kdsGetter:       kdsGetter,
-		logger:          log,
-		metrics:         metrics{attestationFailures: attestataionFailures},
-	}
+func NewValidatorWithCallbacks(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, log *slog.Logger, attestationFailures prometheus.Counter, callbacks ...validateCallbacker) *Validator {
+	v := NewValidator(optsGen, kdsGetter, log)
+	v.callbackers = callbacks
+	v.metrics = metrics{attestationFailures: attestationFailures}
+	return v
 }
 
 // OID returns the OID of the validator.
@@ -96,7 +93,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	attestation := &sevsnp.Attestation{}
 	if err := proto.Unmarshal(attDocRaw, attestation); err != nil {
-		return fmt.Errorf("unmarshalling attestation: %w", err)
+		return fmt.Errorf("unmarshaling attestation: %w", err)
 	}
 
 	if attestation.Report == nil {
@@ -104,9 +101,11 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	}
 	reportRaw, err := abi.ReportToAbiBytes(attestation.Report)
 	if err != nil {
-		return fmt.Errorf("converting report to abi: %w", err)
+		return fmt.Errorf("converting report to abi format: %w", err)
 	}
 	v.logger.Info("Report decoded", "reportRaw", hex.EncodeToString(reportRaw))
+
+	// Build the verification options.
 
 	verifyOpts := verify.DefaultOptions()
 	// TODO(Freax13): We won't need this once https://github.com/google/go-sev-guest/pull/127 is merged.
@@ -115,14 +114,14 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	verifyOpts.CheckRevocations = true
 	verifyOpts.Getter = v.kdsGetter
 
-	// Report signature verification.
+	// Verify the report signature.
 
 	if err := verify.SnpAttestation(attestation, verifyOpts); err != nil {
 		return fmt.Errorf("verifying report: %w", err)
 	}
 	v.logger.Info("Successfully verified report signature")
 
-	// Validate the report data.
+	// Build the validation options.
 
 	reportDataExpected := reportdata.Construct(peerPublicKey, nonce)
 	validateOpts, err := v.validateOptsGen.SNPValidateOpts(attestation.Report)
@@ -130,6 +129,9 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 		return fmt.Errorf("generating validation options: %w", err)
 	}
 	validateOpts.ReportData = reportDataExpected[:]
+
+	// Validate the report data.
+
 	if err := validate.SnpAttestation(attestation, validateOpts); err != nil {
 		return fmt.Errorf("validating report claims: %w", err)
 	}
