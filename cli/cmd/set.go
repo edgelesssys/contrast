@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
@@ -112,7 +113,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("generating validate opts: %w", err)
 	}
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
-	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
+	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter"))
 	validator := snp.NewValidator(validateOptsGen, kdsGetter,
 		logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
 	)
