@@ -14,6 +14,7 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/telemetry"
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/logger"
@@ -88,7 +89,7 @@ func validatorsFromManifest(m *manifest.Manifest, log *slog.Logger, hostData []b
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
-	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
+	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter"))
 
 	opts, err := m.SNPValidateOpts(kdsGetter)
 	if err != nil {
