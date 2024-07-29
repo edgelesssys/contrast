@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -31,13 +32,13 @@ type Credentials struct {
 
 	logger                     *slog.Logger
 	attestationFailuresCounter prometheus.Counter
-	kdsGetter                  *snp.CachedHTTPSGetter
+	kdsGetter                  *certcache.CachedHTTPSGetter
 }
 
 // Credentials creates new transport credentials that validate peers according to the latest manifest.
 func (a *Authority) Credentials(reg *prometheus.Registry, issuer atls.Issuer) (*Credentials, func()) {
 	ticker := clock.RealClock{}.NewTicker(24 * time.Hour)
-	kdsGetter := snp.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(a.logger, "kds-getter"))
+	kdsGetter := certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(a.logger, "kds-getter"))
 	attestationFailuresCounter := promauto.With(reg).NewCounter(prometheus.CounterOpts{
 		Subsystem: "contrast_meshapi",
 		Name:      "attestation_failures_total",
