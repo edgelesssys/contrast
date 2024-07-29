@@ -6,12 +6,22 @@ package cmd
 import (
 	"context"
 	_ "embed"
+	"fmt"
+	"log/slog"
+	"net"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/edgelesssys/contrast/cli/telemetry"
+	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/snp"
+	"github.com/edgelesssys/contrast/internal/fsstore"
+	"github.com/edgelesssys/contrast/internal/grpc/dialer"
+	"github.com/edgelesssys/contrast/internal/logger"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -77,4 +87,54 @@ func withTelemetry(runFunc func(*cobra.Command, []string) error) func(*cobra.Com
 
 		return cmdErr
 	}
+}
+
+// dialCoordinatorWithKey establishes an attested gRPC connection to the coordinator at the given endpoint,
+// verifying the attestation report against the given private key.
+//
+// The resulting connection must be closed by the caller.
+func dialCoordinatorWithKey(ctx context.Context, log *slog.Logger, m manifest.Manifest, hostData []byte,
+	coordinatorEndpoint, workloadOwnerKeyPath string,
+) (*grpc.ClientConn, error) {
+	workloadOwnerKey, err := loadWorkloadOwnerKey(workloadOwnerKeyPath, nil, log)
+	if err != nil {
+		return nil, fmt.Errorf("loading workload owner key: %w", err)
+	}
+
+	validators, err := localValidators(log, m, hostData)
+	if err != nil {
+		return nil, fmt.Errorf("getting local validators: %w", err)
+	}
+
+	dialer := dialer.NewWithKey(atls.NoIssuer, validators[0], &net.Dialer{}, workloadOwnerKey)
+
+	log.Debug("Dialing coordinator", "endpoint", coordinatorEndpoint)
+	conn, err := dialer.Dial(ctx, coordinatorEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("dialing coordinator: %w", err)
+	}
+
+	return conn, nil
+}
+
+// localValidators returns a list of validators according to the given manifest and the local certificate
+// cache directory.
+func localValidators(log *slog.Logger, m manifest.Manifest, hostData []byte) ([]atls.Validator, error) {
+	certCacheDir, err := cachedir("certs")
+	if err != nil {
+		return nil, fmt.Errorf("getting cache dir: %w", err)
+	}
+	log.Debug("Using certificate cache dir", "dir", certCacheDir)
+
+	validateOptsGen, err := newCoordinatorValidateOptsGen(m, hostData)
+	if err != nil {
+		return nil, fmt.Errorf("generating validate opts: %w", err)
+	}
+	kdsCache := fsstore.New(certCacheDir, log.WithGroup("kds-cache"))
+	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
+	validator := snp.NewValidator(validateOptsGen, kdsGetter,
+		logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
+	)
+
+	return []atls.Validator{validator}, nil
 }

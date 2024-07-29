@@ -6,15 +6,9 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 
-	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/internal/attestation/snp"
-	"github.com/edgelesssys/contrast/internal/fsstore"
-	"github.com/edgelesssys/contrast/internal/grpc/dialer"
-	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/spf13/cobra"
@@ -67,34 +61,13 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 	if err := json.Unmarshal(manifestBytes, &m); err != nil {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
-	workloadOwnerKey, err := loadWorkloadOwnerKey(flags.workloadOwnerKeyPath, nil, log)
-	if err != nil {
-		return fmt.Errorf("loading workload owner key: %w", err)
-	}
+
 	seed, salt, err := decryptedSeedFromShares(flags.seedSharesFilename, flags.seedShareOwnerKeyPath)
 	if err != nil {
 		return fmt.Errorf("decrypting seed: %w", err)
 	}
 
-	kdsDir, err := cachedir("kds")
-	if err != nil {
-		return fmt.Errorf("getting cache dir: %w", err)
-	}
-	log.Debug("Using KDS cache dir", "dir", kdsDir)
-
-	validateOptsGen, err := newCoordinatorValidateOptsGen(m, flags.policy)
-	if err != nil {
-		return fmt.Errorf("generating validate opts: %w", err)
-	}
-	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
-	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
-	validator := snp.NewValidator(validateOptsGen, kdsGetter,
-		logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
-	)
-	dialer := dialer.NewWithKey(atls.NoIssuer, validator, &net.Dialer{}, workloadOwnerKey)
-
-	log.Debug("Dialing coordinator", "endpoint", flags.coordinator)
-	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
+	conn, err := dialCoordinatorWithKey(cmd.Context(), log, m, flags.policy, flags.coordinator, flags.workloadOwnerKeyPath)
 	if err != nil {
 		return fmt.Errorf("dialing coordinator: %w", err)
 	}
