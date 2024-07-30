@@ -123,8 +123,19 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 
 	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Wrote Coordinator configuration and keys to %s\n", filepath.Join(flags.workspaceDir, verifyDir))
 
-	currentManifest := resp.Manifests[len(resp.Manifests)-1]
-	if !bytes.Equal(currentManifest, manifestBytes) {
+	// Compact both manifests (i.e. remove all unneeded white-space) and
+	// compare them.
+	var canonicalManifestBytes bytes.Buffer
+	err = json.Compact(&canonicalManifestBytes, manifestBytes)
+	if err != nil {
+		return fmt.Errorf("compact expected manifest: %w", err)
+	}
+	var canonicalCurrentManifest bytes.Buffer
+	err = json.Compact(&canonicalCurrentManifest, resp.Manifests[len(resp.Manifests)-1])
+	if err != nil {
+		return fmt.Errorf("compact current manifest: %w", err)
+	}
+	if !bytes.Equal(canonicalManifestBytes.Bytes(), canonicalCurrentManifest.Bytes()) {
 		return fmt.Errorf("manifest active at Coordinator does not match expected manifest")
 	}
 
