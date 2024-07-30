@@ -1,4 +1,4 @@
-From caf72c1574aed9c501894323bca868aec400e288 Mon Sep 17 00:00:00 2001
+From f4d02f06c8a36b1e33e39a7fd1e94a5c48b2ccf4 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:51:20 +0000
 Subject: [PATCH] runtime: agent: verify the agent policy hash
@@ -21,7 +21,7 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/agent/Cargo.lock                          |  98 +++++++++
  src/agent/Cargo.toml                          |   7 +-
  src/agent/src/main.rs                         |   4 +
- src/agent/src/policy.rs                       |  50 ++++-
+ src/agent/src/policy.rs                       |  49 ++++-
  src/agent/src/sev.rs                          |  19 ++
  src/agent/src/tdx.rs                          | 194 ++++++++++++++++++
  src/runtime/pkg/govmm/qemu/qemu.go            |  25 ++-
@@ -37,7 +37,7 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/runtime/virtcontainers/qemu_s390x.go      |   2 +-
  src/runtime/virtcontainers/qemu_s390x_test.go |  51 ++++-
  src/runtime/virtcontainers/sandbox.go         |   1 +
- 19 files changed, 680 insertions(+), 38 deletions(-)
+ 19 files changed, 679 insertions(+), 38 deletions(-)
  create mode 100644 src/agent/src/sev.rs
  create mode 100644 src/agent/src/tdx.rs
 
@@ -268,7 +268,7 @@ index ccde79e98..6b4ad3e06 100644
  cfg_if! {
      if #[cfg(target_arch = "s390x")] {
 diff --git a/src/agent/src/policy.rs b/src/agent/src/policy.rs
-index d709515ff..98b7552e1 100644
+index d709515ff..44f1803a8 100644
 --- a/src/agent/src/policy.rs
 +++ b/src/agent/src/policy.rs
 @@ -3,12 +3,15 @@
@@ -296,7 +296,7 @@ index d709515ff..98b7552e1 100644
          self.engine = Self::new_engine();
          self.engine
              .add_policy("agent_policy".to_string(), policy.to_string())?;
-@@ -161,3 +165,47 @@ impl AgentPolicy {
+@@ -161,3 +165,46 @@ impl AgentPolicy {
          }
      }
  }
@@ -309,8 +309,7 @@ index d709515ff..98b7552e1 100644
 +        info!(sl!(), "policy: SNP expected digest ({:?})", expected_digest);
 +        verify_sha_256(policy, expected_digest.as_slice())
 +    } else {
-+        warn!(sl!(), "policy: integrity has not been verified!");
-+        Ok(())
++        bail!("couldn't find host data to verify the integrity of the policy");
 +    }
 +}
 +
