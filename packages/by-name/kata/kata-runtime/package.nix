@@ -37,10 +37,6 @@ buildGoModule rec {
       # which extends the hostdata to arbitrary config beyond the policy and
       # delegates hash verification to the AA. Until that effort lands, we're
       # sticking with the policy verification from AKS CoCo.
-      #
-      # Note that these patches are incomplete/insecure because kata-agent just
-      # continue running if it can't query the host-data.
-      # TODO(Freax13): fail verify_policy_digest without TEE data
       ./0003-runtime-agent-verify-the-agent-policy-hash.patch
     ];
   };
