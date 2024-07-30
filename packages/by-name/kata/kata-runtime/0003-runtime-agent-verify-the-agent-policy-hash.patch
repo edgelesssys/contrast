@@ -1,4 +1,4 @@
-From f4d02f06c8a36b1e33e39a7fd1e94a5c48b2ccf4 Mon Sep 17 00:00:00 2001
+From 9a0c4195f2051d2e49218a48700f6d2952ddd3f6 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:51:20 +0000
 Subject: [PATCH] runtime: agent: verify the agent policy hash
@@ -21,13 +21,13 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/agent/Cargo.lock                          |  98 +++++++++
  src/agent/Cargo.toml                          |   7 +-
  src/agent/src/main.rs                         |   4 +
- src/agent/src/policy.rs                       |  49 ++++-
+ src/agent/src/policy.rs                       |  46 ++++-
  src/agent/src/sev.rs                          |  19 ++
  src/agent/src/tdx.rs                          | 194 ++++++++++++++++++
  src/runtime/pkg/govmm/qemu/qemu.go            |  25 ++-
  src/runtime/virtcontainers/hypervisor.go      |   4 +
  src/runtime/virtcontainers/qemu.go            |   2 +-
- src/runtime/virtcontainers/qemu_amd64.go      |  37 +++-
+ src/runtime/virtcontainers/qemu_amd64.go      |  39 +++-
  src/runtime/virtcontainers/qemu_amd64_test.go | 116 ++++++++++-
  src/runtime/virtcontainers/qemu_arch_base.go  |   4 +-
  src/runtime/virtcontainers/qemu_arm64.go      |   2 +-
@@ -37,7 +37,7 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/runtime/virtcontainers/qemu_s390x.go      |   2 +-
  src/runtime/virtcontainers/qemu_s390x_test.go |  51 ++++-
  src/runtime/virtcontainers/sandbox.go         |   1 +
- 19 files changed, 679 insertions(+), 38 deletions(-)
+ 19 files changed, 678 insertions(+), 38 deletions(-)
  create mode 100644 src/agent/src/sev.rs
  create mode 100644 src/agent/src/tdx.rs
 
@@ -268,7 +268,7 @@ index ccde79e98..6b4ad3e06 100644
  cfg_if! {
      if #[cfg(target_arch = "s390x")] {
 diff --git a/src/agent/src/policy.rs b/src/agent/src/policy.rs
-index d709515ff..44f1803a8 100644
+index d709515ff..ee4f1f324 100644
 --- a/src/agent/src/policy.rs
 +++ b/src/agent/src/policy.rs
 @@ -3,12 +3,15 @@
@@ -278,7 +278,7 @@ index d709515ff..44f1803a8 100644
 -use anyhow::Result;
 +use anyhow::{bail, ensure, Result};
  use protobuf::MessageDyn;
-+use sha2::{Digest, Sha256, Sha384};
++use sha2::{Digest, Sha256};
  use slog::Drain;
  use tokio::io::AsyncWriteExt;
  
@@ -296,38 +296,35 @@ index d709515ff..44f1803a8 100644
          self.engine = Self::new_engine();
          self.engine
              .add_policy("agent_policy".to_string(), policy.to_string())?;
-@@ -161,3 +165,46 @@ impl AgentPolicy {
+@@ -161,3 +165,43 @@ impl AgentPolicy {
          }
      }
  }
 +
 +fn verify_policy_digest(policy: &str) -> Result<()> {
 +    if let Ok(expected_digest) = get_tdx_mrconfigid() {
++        info!(sl!(), "policy: TDX MrConfigId ({:?})", expected_digest);
++
++        // The MrConfigId used with TDX is longer than the host-data field used
++        // with SNP, but we don't want to use different hashes for different
++        // platforms. Instead we truncate the MrConfigId to 256-bit and always
++        // use sha-256.
++        let (expected_digest, trailing_data) =
++            expected_digest.split_at(<Sha256 as Digest>::output_size());
++
++        ensure!(
++            trailing_data.iter().all(|&d| d == 0),
++            "hash isn't padded with zeros: MrConfigId={expected_digest:?}"
++        );
++
 +        info!(sl!(), "policy: TDX expected digest ({:?})", expected_digest);
-+        verify_sha_384(policy, expected_digest.as_slice())
++        verify_sha_256(policy, expected_digest)
 +    } else if let Ok(expected_digest) = get_snp_host_data() {
 +        info!(sl!(), "policy: SNP expected digest ({:?})", expected_digest);
 +        verify_sha_256(policy, expected_digest.as_slice())
 +    } else {
 +        bail!("couldn't find host data to verify the integrity of the policy");
 +    }
-+}
-+
-+fn verify_sha_384(policy: &str, expected_digest: &[u8]) -> Result<()> {
-+    let mut hasher = Sha384::new();
-+    hasher.update(policy.as_bytes());
-+    let digest = hasher.finalize();
-+    info!(sl!(), "policy: calculated digest ({:?})", digest);
-+
-+    if expected_digest != digest.as_slice() {
-+        bail!(
-+            "policy: rejecting unexpected digest ({:?}), expected ({:?})",
-+            digest.as_slice(),
-+            expected_digest
-+        );
-+    }
-+
-+    Ok(())
 +}
 +
 +pub fn verify_sha_256(policy: &str, expected_digest: &[u8]) -> Result<()> {
@@ -656,20 +653,19 @@ index 7a189bb91..509f74a3c 100644
  		return err
  	}
 diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
-index 6ebee26ce..44e0e3956 100644
+index 6ebee26ce..0a0451cba 100644
 --- a/src/runtime/virtcontainers/qemu_amd64.go
 +++ b/src/runtime/virtcontainers/qemu_amd64.go
-@@ -9,6 +9,9 @@ package virtcontainers
+@@ -9,6 +9,8 @@ package virtcontainers
  
  import (
  	"context"
 +	"crypto/sha256"
-+	"crypto/sha512"
 +	"encoding/base64"
  	"fmt"
  	"time"
  
-@@ -280,7 +283,7 @@ func (q *qemuAmd64) enableProtection() error {
+@@ -280,7 +282,7 @@ func (q *qemuAmd64) enableProtection() error {
  }
  
  // append protection device
@@ -678,7 +674,7 @@ index 6ebee26ce..44e0e3956 100644
  	if q.sgxEPCSize != 0 {
  		devices = append(devices,
  			govmmQemu.Object{
-@@ -305,6 +308,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -305,6 +307,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  				Debug:          false,
  				File:           firmware,
  				FirmwareVolume: firmwareVolume,
@@ -686,7 +682,7 @@ index 6ebee26ce..44e0e3956 100644
  			}), "", nil
  	case sevProtection:
  		return append(devices,
-@@ -326,6 +330,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -326,6 +329,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  				CBitPos:         cpuid.AMDMemEncrypt.CBitPosition,
  				ReducedPhysBits: 1,
  				SnpCertsPath:    q.snpCertsPath,
@@ -694,7 +690,7 @@ index 6ebee26ce..44e0e3956 100644
  			}), "", nil
  	case noneProtection:
  
-@@ -335,3 +340,33 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -335,3 +339,36 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  		return devices, "", fmt.Errorf("Unsupported guest protection technology: %v", q.protection)
  	}
  }
@@ -721,12 +717,15 @@ index 6ebee26ce..44e0e3956 100644
 +		return ""
 +	}
 +
-+	h := sha512.New384()
++	h := sha256.New()
 +	h.Write([]byte(policy))
 +	hash := h.Sum(nil)
 +	hvLogger.WithField("hash", hash).Info("policy hash")
 +
-+	return base64.StdEncoding.EncodeToString(hash)
++	// Pad the hash to 48-bytes.
++	mrConfigId := append(hash, (&[16]byte{})[:]...)
++
++	return base64.StdEncoding.EncodeToString(mrConfigId)
 +}
 diff --git a/src/runtime/virtcontainers/qemu_amd64_test.go b/src/runtime/virtcontainers/qemu_amd64_test.go
 index 1425cb38c..f0a9c691a 100644
