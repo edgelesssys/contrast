@@ -31,6 +31,7 @@ buildGoModule rec {
       # - Rebase on 3.7.0 picked up regorus, guest-pull capabilities, SNP certificates and TDX fixes.
       # - The TDX parameters for QEMU needed to be converted to a JSON object.
       # - The encoding of MRCONFIGID needed to be switched from hex to base64.
+      # - Don't allow skipping the policy checks.
       # This patch is not going to be accepted upstream. The declared path
       # forward is the initdata proposal, https://github.com/kata-containers/kata-containers/issues/9468,
       # which extends the hostdata to arbitrary config beyond the policy and

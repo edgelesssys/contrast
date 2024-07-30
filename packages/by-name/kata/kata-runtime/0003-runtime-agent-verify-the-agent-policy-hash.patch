@@ -1,7 +1,7 @@
-From 5228b0f7a667c700dbe9d169d7c735f1625f242a Mon Sep 17 00:00:00 2001
+From caf72c1574aed9c501894323bca868aec400e288 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:51:20 +0000
-Subject: [PATCH 3/3] runtime: agent: verify the agent policy hash
+Subject: [PATCH] runtime: agent: verify the agent policy hash
 
 For TEE Guests that support the inclusion of immutable Host owned
 data in their configuration (SNP HostData and TDX MRCONFIGID):
@@ -21,7 +21,7 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/agent/Cargo.lock                          |  98 +++++++++
  src/agent/Cargo.toml                          |   7 +-
  src/agent/src/main.rs                         |   4 +
- src/agent/src/policy.rs                       |  68 +++++-
+ src/agent/src/policy.rs                       |  50 ++++-
  src/agent/src/sev.rs                          |  19 ++
  src/agent/src/tdx.rs                          | 194 ++++++++++++++++++
  src/runtime/pkg/govmm/qemu/qemu.go            |  25 ++-
@@ -37,7 +37,7 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/runtime/virtcontainers/qemu_s390x.go      |   2 +-
  src/runtime/virtcontainers/qemu_s390x_test.go |  51 ++++-
  src/runtime/virtcontainers/sandbox.go         |   1 +
- 19 files changed, 698 insertions(+), 38 deletions(-)
+ 19 files changed, 680 insertions(+), 38 deletions(-)
  create mode 100644 src/agent/src/sev.rs
  create mode 100644 src/agent/src/tdx.rs
 
@@ -268,7 +268,7 @@ index ccde79e98..6b4ad3e06 100644
  cfg_if! {
      if #[cfg(target_arch = "s390x")] {
 diff --git a/src/agent/src/policy.rs b/src/agent/src/policy.rs
-index d709515ff..fe1461e5c 100644
+index d709515ff..98b7552e1 100644
 --- a/src/agent/src/policy.rs
 +++ b/src/agent/src/policy.rs
 @@ -3,12 +3,15 @@
@@ -276,7 +276,7 @@ index d709515ff..fe1461e5c 100644
  //
  
 -use anyhow::Result;
-+use anyhow::{Result, bail};
++use anyhow::{bail, ensure, Result};
  use protobuf::MessageDyn;
 +use sha2::{Digest, Sha256, Sha384};
  use slog::Drain;
@@ -296,24 +296,18 @@ index d709515ff..fe1461e5c 100644
          self.engine = Self::new_engine();
          self.engine
              .add_policy("agent_policy".to_string(), policy.to_string())?;
-@@ -161,3 +165,65 @@ impl AgentPolicy {
+@@ -161,3 +165,47 @@ impl AgentPolicy {
          }
      }
  }
 +
 +fn verify_policy_digest(policy: &str) -> Result<()> {
-+    // TODO: check if the user configured this Guest VM as using either SNP or TDX,
-+    // and if that's the case return an error if the TEE attestation report didn't
-+    // provide a policy digest value.
-+
 +    if let Ok(expected_digest) = get_tdx_mrconfigid() {
 +        info!(sl!(), "policy: TDX expected digest ({:?})", expected_digest);
 +        verify_sha_384(policy, expected_digest.as_slice())
 +    } else if let Ok(expected_digest) = get_snp_host_data() {
 +        info!(sl!(), "policy: SNP expected digest ({:?})", expected_digest);
-+        // TODO: fix the SNP CI machines and then don't ignore zeroes anymore.
-+        let ignore_zero_digest = true;
-+        verify_sha_256(policy, expected_digest.as_slice(), ignore_zero_digest)
++        verify_sha_256(policy, expected_digest.as_slice())
 +    } else {
 +        warn!(sl!(), "policy: integrity has not been verified!");
 +        Ok(())
@@ -337,29 +331,17 @@ index d709515ff..fe1461e5c 100644
 +    Ok(())
 +}
 +
-+pub fn verify_sha_256(
-+    policy: &str,
-+    expected_digest: &[u8],
-+    ignore_zero_digest: bool,
-+) -> Result<()> {
++pub fn verify_sha_256(policy: &str, expected_digest: &[u8]) -> Result<()> {
 +    let mut hasher = Sha256::new();
 +    hasher.update(policy.as_bytes());
 +    let digest = hasher.finalize();
 +    info!(sl!(), "policy: calculated digest ({:?})", digest);
-+
-+    if expected_digest != digest.as_slice() {
-+        if ignore_zero_digest && !expected_digest.iter().any(|&x| x != 0) {
-+            error!(sl!(), "Temporarily ignoring incorrect SNP Host Data field");
-+            return Ok(());
-+        }
-+
-+        bail!(
-+            "policy: rejecting unexpected digest ({:?}), expected ({:?})",
-+            digest,
-+            expected_digest
-+        );
-+    }
-+
++    ensure!(
++        expected_digest == digest.as_slice(),
++        "policy: rejecting unexpected digest ({:?}), expected ({:?})",
++        digest,
++        expected_digest
++    );
 +    Ok(())
 +}
 diff --git a/src/agent/src/sev.rs b/src/agent/src/sev.rs
@@ -1287,5 +1269,5 @@ index b58daccaa..af35af12e 100644
  	spec := s.GetPatchedOCISpec()
  	if spec != nil && spec.Process.SelinuxLabel != "" {
 -- 
-2.45.2
+2.45.1
 
