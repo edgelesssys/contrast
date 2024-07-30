@@ -72,7 +72,7 @@ rustPlatform.buildRustPackage rec {
   '';
 
   passthru = rec {
-    settings = stdenvNoCC.mkDerivation {
+    settings-base = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-settings";
       inherit src sourceRoot;
 
@@ -88,14 +88,19 @@ rustPlatform.buildRustPackage rec {
       '';
     };
 
+    settings = applyPatches {
+      src = settings-base;
+      patches = [ ./genpolicy_msft_settings_prod.patch ];
+    };
+
     settings-coordinator = applyPatches {
-      src = settings;
+      src = settings-base;
       patches = [ ./genpolicy_msft_settings_coordinator.patch ];
     };
 
     # Settings that allow exec into CVM pods - not safe for production use!
     settings-dev = applyPatches {
-      src = settings;
+      src = settings-base;
       patches = [ ./genpolicy_msft_settings_dev.patch ];
     };
 

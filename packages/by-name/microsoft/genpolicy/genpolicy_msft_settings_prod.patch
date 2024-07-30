@@ -1,0 +1,13 @@
+diff --git a/genpolicy-settings.json b/genpolicy-settings.json
+index 7d35862af..4e468d78e 100644
+--- a/genpolicy-settings.json
++++ b/genpolicy-settings.json
+@@ -318,7 +318,7 @@
+             "regex": []
+         },
+         "CloseStdinRequest": false,
+-        "ReadStreamRequest": true,
++        "ReadStreamRequest": false,
+         "UpdateEphemeralMountsRequest": false,
+         "WriteStreamRequest": false
+     }
