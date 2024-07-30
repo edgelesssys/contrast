@@ -29,9 +29,6 @@ let
   launch-digest = lib.removeSuffix "\n" (
     builtins.readFile "${kata.runtime-class-files}/launch-digest.hex"
   );
-  runtime-handler = lib.removeSuffix "\n" (
-    builtins.readFile "${kata.runtime-class-files}/runtime-handler"
-  );
 
   installer-config = ociLayerTar {
     files = [
@@ -40,62 +37,61 @@ let
           files = [
             {
               url = "file:///opt/edgeless/share/kata-containers.img";
-              path = "/opt/edgeless/${runtime-handler}/share/kata-containers.img";
+              path = "/share/kata-containers.img";
             }
             {
               url = "file:///opt/edgeless/share/kata-kernel";
-              path = "/opt/edgeless/${runtime-handler}/share/kata-kernel";
+              path = "/share/kata-kernel";
             }
             {
               url = "file:///opt/edgeless/snp/bin/qemu-system-x86_64";
-              path = "/opt/edgeless/${runtime-handler}/snp/bin/qemu-system-x86_64";
+              path = "/snp/bin/qemu-system-x86_64";
             }
             {
               url = "file:///opt/edgeless/tdx/bin/qemu-system-x86_64";
-              path = "/opt/edgeless/${runtime-handler}/tdx/bin/qemu-system-x86_64";
+              path = "/tdx/bin/qemu-system-x86_64";
             }
             {
               url = "file:///opt/edgeless/snp/share/OVMF.fd";
-              path = "/opt/edgeless/${runtime-handler}/snp/share/OVMF.fd";
+              path = "/snp/share/OVMF.fd";
             }
             {
               url = "file:///opt/edgeless/tdx/share/OVMF.fd";
-              path = "/opt/edgeless/${runtime-handler}/tdx/share/OVMF.fd";
+              path = "/tdx/share/OVMF.fd";
             }
             {
               url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
-              path = "/opt/edgeless/${runtime-handler}/bin/containerd-shim-contrast-cc-v2";
+              path = "/bin/containerd-shim-contrast-cc-v2";
             }
             {
               url = "file:///opt/edgeless/bin/kata-runtime";
-              path = "/opt/edgeless/${runtime-handler}/bin/kata-runtime";
+              path = "/bin/kata-runtime";
             }
             {
               url = "file:///opt/edgeless/snp/share/qemu/kvmvapic.bin";
-              path = "/opt/edgeless/${runtime-handler}/snp/share/qemu/kvmvapic.bin";
+              path = "/snp/share/qemu/kvmvapic.bin";
             }
             {
               url = "file:///opt/edgeless/snp/share/qemu/linuxboot_dma.bin";
-              path = "/opt/edgeless/${runtime-handler}/snp/share/qemu/linuxboot_dma.bin";
+              path = "/snp/share/qemu/linuxboot_dma.bin";
             }
             {
               url = "file:///opt/edgeless/snp/share/qemu/efi-virtio.rom";
-              path = "/opt/edgeless/${runtime-handler}/snp/share/qemu/efi-virtio.rom";
+              path = "/snp/share/qemu/efi-virtio.rom";
             }
             {
               url = "file:///opt/edgeless/tdx/share/qemu/kvmvapic.bin";
-              path = "/opt/edgeless/${runtime-handler}/tdx/share/qemu/kvmvapic.bin";
+              path = "/tdx/share/qemu/kvmvapic.bin";
             }
             {
               url = "file:///opt/edgeless/tdx/share/qemu/linuxboot_dma.bin";
-              path = "/opt/edgeless/${runtime-handler}/tdx/share/qemu/linuxboot_dma.bin";
+              path = "/tdx/share/qemu/linuxboot_dma.bin";
             }
             {
               url = "file:///opt/edgeless/tdx/share/qemu/efi-virtio.rom";
-              path = "/opt/edgeless/${runtime-handler}/tdx/share/qemu/efi-virtio.rom";
+              path = "/tdx/share/qemu/efi-virtio.rom";
             }
           ];
-          runtimeHandlerName = runtime-handler;
           inherit (kata.runtime-class-files) debugRuntime;
         };
         destination = "/config/contrast-node-install.json";

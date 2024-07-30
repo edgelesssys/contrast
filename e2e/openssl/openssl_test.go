@@ -22,6 +22,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/node-installer/runtimehandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -47,7 +48,7 @@ func TestOpenSSL(t *testing.T) {
 	// TODO(msanft): Make this configurable
 	platform := platforms.AKSCloudHypervisorSNP
 
-	runtimeHandler, err := manifest.DefaultPlatformHandler(platform)
+	runtimeHandler, err := runtimehandler.Name(platform)
 	require.NoError(t, err)
 
 	resources := kuberesource.OpenSSL()

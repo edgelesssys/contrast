@@ -32,15 +32,6 @@ func Default(platform platforms.Platform) (*Manifest, error) {
 	return &mnfst, nil
 }
 
-// DefaultPlatformHandler is a short-hand for getting the default runtime handler for a platform.
-func DefaultPlatformHandler(platform platforms.Platform) (string, error) {
-	mnf, err := Default(platform)
-	if err != nil {
-		return "", fmt.Errorf("generating manifest: %w", err)
-	}
-	return mnf.RuntimeHandler(platform)
-}
-
 // EmbeddedReferenceValues returns the reference values embedded in the binary.
 func EmbeddedReferenceValues() ReferenceValues {
 	return setReferenceValuesIfUninitialized()

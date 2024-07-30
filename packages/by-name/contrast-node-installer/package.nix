@@ -7,7 +7,7 @@
   contrast,
 }:
 
-buildGoModule {
+buildGoModule rec {
   pname = "contrast-node-installer";
   inherit (contrast) version;
 
@@ -35,7 +35,10 @@ buildGoModule {
   subPackages = [ "." ];
 
   CGO_ENABLED = 0;
-  ldflags = [ "-s" ];
+  ldflags = [
+    "-s"
+    "-X github.com/edgelesssys/contrast/node-installer/constants.Version=${version}"
+  ];
 
   preCheck = ''
     export CGO_ENABLED=1

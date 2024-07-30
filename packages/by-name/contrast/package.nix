@@ -99,7 +99,7 @@ buildGoModule rec {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-8l/QXPbPstVtpqAdctnz5hiW5a61gGoF0DYz6XQeDtk=";
+  vendorHash = "sha256-C7nbHoH+LCKgjxFHtZdj+7NvyurY9q6QHz4JRNDonvY=";
 
   nativeBuildInputs = [ installShellFiles ];
 
@@ -116,8 +116,8 @@ buildGoModule rec {
   ldflags = [
     "-s"
     "-w"
-    "-X github.com/edgelesssys/contrast/cli/constants.Version=${version}"
-    "-X github.com/edgelesssys/contrast/cli/constants.GenpolicyVersion=${genpolicy.version}"
+    "-X github.com/edgelesssys/contrast/internal/constants.Version=${version}"
+    "-X github.com/edgelesssys/contrast/internal/constants.GenpolicyVersion=${genpolicy.version}"
   ];
 
   preCheck = ''

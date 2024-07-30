@@ -1,10 +1,10 @@
 {{ template "base" . }}
 
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.my-runtime]
+[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.contrast-cc-0-0-0-dev-k3s-qemu-tdx]
 runtime_type = 'io.containerd.contrast-cc.v2'
-runtime_path = '/opt/edgeless/my-runtime/bin/containerd-shim-contrast-cc-v2'
+runtime_path = '/opt/edgeless/contrast-cc-0-0-0-dev-k3s-qemu-tdx/bin/containerd-shim-contrast-cc-v2'
 pod_annotations = ['io.katacontainers.*']
 privileged_without_host_devices = true
 
-[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.my-runtime.options]
-ConfigPath = '/opt/edgeless/my-runtime/etc/configuration-qemu-tdx.toml'
+[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.contrast-cc-0-0-0-dev-k3s-qemu-tdx.options]
+ConfigPath = '/opt/edgeless/contrast-cc-0-0-0-dev-k3s-qemu-tdx/etc/configuration-qemu-tdx.toml'

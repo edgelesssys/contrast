@@ -55,7 +55,6 @@ stdenvNoCC.mkDerivation {
   buildPhase = ''
     mkdir -p $out
     sha256sum ${image} ${kernel} ${qemu-snp.bin} ${qemu-tdx.bin} ${containerd-shim-contrast-cc-v2} ${ovmf-snp} ${ovmf-tdx} | sha256sum | cut -d " " -f 1 > $out/launch-digest.hex
-    printf "contrast-cc-%s" "$(cat $out/launch-digest.hex | head -c 32)" > $out/runtime-handler
   '';
 
   passthru = {

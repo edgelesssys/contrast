@@ -11,6 +11,7 @@ import (
 	_ "embed"
 
 	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/node-installer/runtimehandler"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,10 +52,6 @@ func TestPatchContainerdConfig(t *testing.T) {
 			platform: platforms.K3sQEMUSNP,
 			expected: expectedConfBareMetalQEMUSNP,
 		},
-		"Unknown": {
-			platform: platforms.Unknown,
-			wantErr:  true,
-		},
 	}
 
 	for name, tc := range testCases {
@@ -68,7 +65,10 @@ func TestPatchContainerdConfig(t *testing.T) {
 
 			configPath := filepath.Join(tmpDir, "config.toml")
 
-			err = patchContainerdConfig("my-runtime", "/opt/edgeless/my-runtime",
+			runtimeHandler, err := runtimehandler.Name(tc.platform)
+			require.NoError(err)
+
+			err = patchContainerdConfig(filepath.Join("/opt/edgeless", runtimeHandler),
 				configPath, tc.platform)
 			if tc.wantErr {
 				require.Error(err)
@@ -118,7 +118,10 @@ func TestPatchContainerdConfigTemplate(t *testing.T) {
 
 			// Testing patching a config template.
 
-			err = patchContainerdConfigTemplate("my-runtime", "/opt/edgeless/my-runtime",
+			runtimeHandler, err := runtimehandler.Name(tc.platform)
+			require.NoError(err)
+
+			err = patchContainerdConfigTemplate(filepath.Join("/opt/edgeless", runtimeHandler),
 				configTemplatePath, tc.platform)
 			require.NoError(err)
 
@@ -128,7 +131,7 @@ func TestPatchContainerdConfigTemplate(t *testing.T) {
 
 			// Test that patching the same template twice doesn't change it.
 
-			err = patchContainerdConfigTemplate("my-runtime", "/opt/edgeless/my-runtime",
+			err = patchContainerdConfigTemplate("/opt/edgeless/my-runtime",
 				configTemplatePath, tc.platform)
 			require.NoError(err)
 

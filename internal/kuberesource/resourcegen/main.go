@@ -10,8 +10,8 @@ import (
 	"os"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
-	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/node-installer/runtimehandler"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 			log.Fatalf("Error parsing platform: %v", err)
 		}
 
-		runtimeHandler, err = manifest.DefaultPlatformHandler(platform)
+		runtimeHandler, err = runtimehandler.Name(platform)
 		if err != nil {
 			log.Fatalf("Error getting default runtime handler: %v", err)
 		}

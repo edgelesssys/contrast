@@ -23,7 +23,6 @@ func TestValidate(t *testing.T) {
 		{
 			name: "valid http File",
 			config: Config{
-				RuntimeHandlerName: "contrast-cc",
 				Files: []File{{
 					URL:       "https://example.com/file1",
 					Path:      "/path/to/file1",
@@ -35,7 +34,6 @@ func TestValidate(t *testing.T) {
 		{
 			name: "valid file File",
 			config: Config{
-				RuntimeHandlerName: "contrast-cc",
 				Files: []File{{
 					URL:       "file:////example.com/file1",
 					Path:      "/path/to/file1",
@@ -45,41 +43,8 @@ func TestValidate(t *testing.T) {
 			valid: true,
 		},
 		{
-			name: "missing RuntimeHandlerName",
-			config: Config{
-				Files: []File{{
-					URL:       "https://example.com/file1",
-					Path:      "/path/to/file1",
-					Integrity: "sha256-abcdef123456",
-				}},
-			},
-		},
-		{
-			name: "RuntimeHandlerName too long",
-			config: Config{
-				RuntimeHandlerName: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-				Files: []File{{
-					URL:       "https://example.com/file1",
-					Path:      "/path/to/file1",
-					Integrity: "sha256-abcdef123456",
-				}},
-			},
-		},
-		{
-			name: "RuntimeHandlerName has invalid characters",
-			config: Config{
-				RuntimeHandlerName: "invalid name=",
-				Files: []File{{
-					URL:       "https://example.com/file1",
-					Path:      "/path/to/file1",
-					Integrity: "sha256-abcdef123456",
-				}},
-			},
-		},
-		{
 			name: "missing URL",
 			config: Config{
-				RuntimeHandlerName: "contrast-cc",
 				Files: []File{{
 					Path:      "/path/to/file1",
 					Integrity: "sha256-abcdef123456",
@@ -89,7 +54,6 @@ func TestValidate(t *testing.T) {
 		{
 			name: "missing Path",
 			config: Config{
-				RuntimeHandlerName: "contrast-cc",
 				Files: []File{{
 					URL:       "https://example.com/file1",
 					Integrity: "sha256-abcdef123456",
@@ -99,7 +63,6 @@ func TestValidate(t *testing.T) {
 		{
 			name: "missing relative path",
 			config: Config{
-				RuntimeHandlerName: "contrast-cc",
 				Files: []File{{
 					URL:       "https://example.com/file1",
 					Path:      "path/to/file1",
@@ -110,7 +73,6 @@ func TestValidate(t *testing.T) {
 		{
 			name: "missing Integrity",
 			config: Config{
-				RuntimeHandlerName: "contrast-cc",
 				Files: []File{{
 					URL:  "https://example.com/file1",
 					Path: "/path/to/file1",
@@ -120,7 +82,6 @@ func TestValidate(t *testing.T) {
 		{
 			name: "invalid URL",
 			config: Config{
-				RuntimeHandlerName: "contrast-cc",
 				Files: []File{{
 					URL:       "invalid\x00url",
 					Path:      "/path/to/file1",
@@ -131,7 +92,6 @@ func TestValidate(t *testing.T) {
 		{
 			name: "invalid scheme",
 			config: Config{
-				RuntimeHandlerName: "contrast-cc",
 				Files: []File{{
 					URL:       "ftp://example.com/file1",
 					Path:      "/path/to/file1",
@@ -142,7 +102,6 @@ func TestValidate(t *testing.T) {
 		{
 			name: "invalid Integrity algorithm",
 			config: Config{
-				RuntimeHandlerName: "contrast-cc",
 				Files: []File{{
 					URL:       "https://example.com/file1",
 					Path:      "/path/to/file1",
@@ -153,7 +112,6 @@ func TestValidate(t *testing.T) {
 		{
 			name: "invalid Integrity value",
 			config: Config{
-				RuntimeHandlerName: "contrast-cc",
 				Files: []File{{
 					URL:       "https://example.com/file1",
 					Path:      "/path/to/file1",
