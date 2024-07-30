@@ -49,6 +49,7 @@ GCP
 genpolicy
 gRPC
 Grype
+Hashicorp
 hostname
 hyperv
 IAM
@@ -106,6 +107,7 @@ tardev
 tarfs
 Terraform
 Tink
+tmpfs
 TPM
 underspecified
 unencrypted
