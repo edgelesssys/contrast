@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-///go:build e2e
+//go:build e2e
 
 package regression
 
@@ -74,9 +74,9 @@ func TestRegression(t *testing.T) {
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentName))
 
 			// cleanup resources
-			if !skipUndeploy {
-				require.NoError(c.DeleteNamespace(ctx, ct.Namespace))
-			}
+			//			if !skipUndeploy {
+			require.NoError(c.DeleteNamespace(ctx, ct.Namespace))
+			//			}
 		})
 	}
 }
