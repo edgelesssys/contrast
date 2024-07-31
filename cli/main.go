@@ -46,7 +46,7 @@ func buildVersionString() string {
 	if refValues, err := json.MarshalIndent(manifest.GetEmbeddedReferenceValues(), "\t", "  "); err == nil {
 		fmt.Fprintf(versionsWriter, "embedded reference values:\t%s\n", refValues)
 	}
-	fmt.Fprintf(versionsWriter, "genpolicy version:\t%s\n", constants.GenpolicyVersion)
+	fmt.Fprintf(versionsWriter, "genpolicy version:\t%s\n", constants.MicrosoftGenpolicyVersion)
 	versionsWriter.Flush()
 	return versionsBuilder.String()
 }

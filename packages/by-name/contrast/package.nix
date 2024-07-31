@@ -152,7 +152,8 @@ buildGoModule rec {
     "-s"
     "-w"
     "-X github.com/edgelesssys/contrast/internal/constants.Version=${version}"
-    "-X github.com/edgelesssys/contrast/internal/constants.GenpolicyVersion=${genpolicy.version}"
+    "-X github.com/edgelesssys/contrast/internal/constants.MicrosoftGenpolicyVersion=${genpolicy.version}"
+    "-X github.com/edgelesssys/contrast/internal/constants.KataGenpolicyVersion=${kata.genpolicy.version}"
   ];
 
   preCheck = ''
