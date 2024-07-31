@@ -90,6 +90,7 @@ buildGoModule rec {
         (path.append root "go.mod")
         (path.append root "go.sum")
         (path.append root "cli/cmd/assets/image-replacements.txt")
+        (path.append root "cli/genpolicy/assets/allow-all.rego")
         (path.append root "internal/attestation/snp/Milan.pem")
         (path.append root "internal/attestation/snp/Genoa.pem")
         (path.append root "nodeinstaller")
@@ -107,9 +108,10 @@ buildGoModule rec {
   subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
 
   prePatch = ''
-    install -D ${lib.getExe genpolicy} cli/cmd/assets/genpolicy
-    install -D ${genpolicy.settings-dev}/genpolicy-settings.json cli/cmd/assets/genpolicy-settings.json
-    install -D ${genpolicy.rules}/genpolicy-rules.rego cli/cmd/assets/genpolicy-rules.rego
+    install -D ${lib.getExe genpolicy} cli/genpolicy/assets/genpolicy
+    install -D ${genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings.json
+    install -D ${genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules.rego
+    install -D ${genpolicy.src}/src/kata-opa/allow-all.rego cli/genpolicy/assets/allow-all.rego
     install -D ${embeddedReferenceValues} internal/manifest/assets/reference-values.json
   '';
 

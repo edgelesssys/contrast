@@ -48,7 +48,7 @@ func TestRunner(t *testing.T) {
 	logger := slog.Default()
 
 	d := t.TempDir()
-	genpolicyBin := []byte(fmt.Sprintf(scriptTemplate, d))
+	genpolicyBin = []byte(fmt.Sprintf(scriptTemplate, d))
 
 	expectedRulesPath := "/rules.rego"
 	rulesPathFile := filepath.Join(d, "rules_path")
@@ -58,7 +58,7 @@ func TestRunner(t *testing.T) {
 	expectedYAMLPath := filepath.Join(d, "test.yaml")
 	yamlPathFile := filepath.Join(d, "yaml_path")
 
-	r, err := New(genpolicyBin, expectedRulesPath, expectedSettingsPath, cachePath)
+	r, err := New(expectedRulesPath, expectedSettingsPath, cachePath)
 	require.NoError(err)
 
 	require.NoError(r.Run(ctx, expectedYAMLPath, logger))

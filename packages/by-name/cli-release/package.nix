@@ -11,9 +11,10 @@
 (contrast.overrideAttrs (
   _finalAttrs: previousAttrs: {
     prePatch = ''
-      install -D ${lib.getExe genpolicy} cli/cmd/assets/genpolicy
-      install -D ${contrast.settings}/genpolicy-settings.json cli/cmd/assets/genpolicy-settings.json
-      install -D ${contrast.rules}/genpolicy-rules.rego cli/cmd/assets/genpolicy-rules.rego
+      install -D ${lib.getExe genpolicy} cli/genpolicy/assets/genpolicy
+      install -D ${contrast.settings}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings.json
+      install -D ${contrast.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules.rego
+      # TODO(burgerdev): cli/genpolicy/assets/allow-all.rego is insecure and deliberately omitted
       install -D ${contrast.embeddedReferenceValues} internal/manifest/assets/reference-values.json
     '';
 

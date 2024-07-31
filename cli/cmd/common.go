@@ -30,12 +30,6 @@ const (
 )
 
 var (
-	//go:embed assets/genpolicy
-	genpolicyBin []byte
-	//go:embed assets/genpolicy-settings.json
-	defaultGenpolicySettings []byte
-	//go:embed assets/genpolicy-rules.rego
-	defaultRules []byte
 	// ReleaseImageReplacements contains the image replacements used by contrast.
 	//go:embed assets/image-replacements.txt
 	ReleaseImageReplacements []byte
