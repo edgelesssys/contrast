@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: redis
-          image: docker.io/redis:7.4-rc2-bookworm
+          image: docker.io/redis@sha256:4d08a8fc92f2ae6508cc4a622a95a75c0549f43da7c13542e8deb031e1c0b629
           volumeMounts:
             - mountPath: /data
               name: data

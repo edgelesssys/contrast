@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: redis-alpine
-          image: docker.io/redis:7.4-rc2-alpine
+          image: docker.io/redis@sha256:a61cb3cf95ea311ed943d2615383c2987dcc5138ee46dd3045e5e597926df51a
           volumeMounts:
             - mountPath: /data
               name: data
