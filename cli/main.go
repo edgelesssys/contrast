@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -15,6 +14,7 @@ import (
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/spf13/cobra"
 )
 
@@ -25,16 +25,21 @@ func main() {
 }
 
 func execute() error {
-	cmd := newRootCmd()
+	cmd, err := newRootCmd()
+	if err != nil {
+		return fmt.Errorf("create root cmd: %w", err)
+	}
+
 	ctx, cancel := signalContext(context.Background(), os.Interrupt)
 	defer cancel()
 	return cmd.ExecuteContext(ctx)
 }
 
-func buildVersionString() string {
+func buildVersionString() (string, error) {
 	var versionsBuilder strings.Builder
 	versionsWriter := tabwriter.NewWriter(&versionsBuilder, 0, 0, 4, ' ', 0)
 	fmt.Fprintf(versionsWriter, "%s\n\n", constants.Version)
+
 	fmt.Fprintf(versionsWriter, "container image versions:\n")
 	imageReplacements := strings.Trim(string(cmd.ReleaseImageReplacements), "\n")
 	for _, image := range strings.Split(imageReplacements, "\n") {
@@ -43,20 +48,60 @@ func buildVersionString() string {
 			fmt.Fprintf(versionsWriter, "\t%s\n", image)
 		}
 	}
-	if refValues, err := json.MarshalIndent(manifest.GetEmbeddedReferenceValues(), "\t", "  "); err == nil {
-		fmt.Fprintf(versionsWriter, "embedded reference values:\t%s\n", refValues)
+
+	embeddedReferenceValues := manifest.GetEmbeddedReferenceValues()
+	for _, platform := range platforms.All() {
+		fmt.Fprintf(versionsWriter, "\nreference values for %s platform:\n", platform.String())
+
+		runtimeHandlerName, err := manifest.RuntimeHandler(platform)
+		if err != nil {
+			return "", fmt.Errorf("getting runtime handler name: %w", err)
+		}
+		fmt.Fprintf(versionsWriter, "\truntime handler:\t%s\n", runtimeHandlerName)
+
+		values, err := embeddedReferenceValues.ForPlatform(platform)
+		if err != nil {
+			return "", fmt.Errorf("getting reference values: %w", err)
+		}
+		// Make sure that there's only one set of reference values. If this is
+		// not the case, the output might be confusing.
+		if len(values.SNP)+len(values.TDX) != 1 {
+			return "", fmt.Errorf("platform %s doesn't have exactly one reference value", platform.String())
+		}
+		for _, snp := range values.SNP {
+			fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", snp.TrustedMeasurement.String())
+			fmt.Fprint(versionsWriter, "\tdefault SNP TCB:\t\n")
+			fmt.Fprintf(versionsWriter, "\t    bootloader:\t%d\n", snp.MinimumTCB.BootloaderVersion.UInt8())
+			fmt.Fprintf(versionsWriter, "\t    tee:\t%d\n", snp.MinimumTCB.TEEVersion.UInt8())
+			fmt.Fprintf(versionsWriter, "\t    snp:\t%d\n", snp.MinimumTCB.SNPVersion.UInt8())
+			fmt.Fprintf(versionsWriter, "\t    microcode:\t%d\n", snp.MinimumTCB.MicrocodeVersion.UInt8())
+		}
+		for _, tdx := range values.TDX {
+			fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", tdx.TrustedMeasurement.String())
+		}
+
+		switch platform {
+		case platforms.AKSCloudHypervisorSNP:
+			fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", constants.MicrosoftGenpolicyVersion)
+		case platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+			fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", constants.KataGenpolicyVersion)
+		}
 	}
-	fmt.Fprintf(versionsWriter, "genpolicy version:\t%s\n", constants.MicrosoftGenpolicyVersion)
+
 	versionsWriter.Flush()
-	return versionsBuilder.String()
+	return versionsBuilder.String(), nil
 }
 
-func newRootCmd() *cobra.Command {
+func newRootCmd() (*cobra.Command, error) {
+	version, err := buildVersionString()
+	if err != nil {
+		return nil, fmt.Errorf("build version string: %w", err)
+	}
 	root := &cobra.Command{
 		Use:              "contrast",
 		Short:            "contrast",
 		PersistentPreRun: preRunRoot,
-		Version:          buildVersionString(),
+		Version:          version,
 	}
 	root.SetOut(os.Stdout)
 
@@ -71,7 +116,7 @@ func newRootCmd() *cobra.Command {
 		cmd.NewRecoverCmd(),
 	)
 
-	return root
+	return root, nil
 }
 
 // signalContext returns a context that is canceled on the handed signal.
