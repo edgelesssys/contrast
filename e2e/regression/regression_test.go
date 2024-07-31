@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build e2e
+///go:build e2e
 
 package regression
 
@@ -18,7 +18,7 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/stretchr/testify/require"
 )
 
@@ -62,22 +62,16 @@ func TestRegression(t *testing.T) {
 			resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 
 			resources = kuberesource.AddPortForwarders(resources)
-			t.Logf("config:\n%s", resources)
 
 			ct.Init(t, resources)
 
 			require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
-
 			require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
-
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 			require.True(t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
 			deploymentName, _ := strings.CutSuffix(file.Name(), ".yaml")
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentName))
-
-			// cleanup resources
-			require.NoError(c.DeleteNamespace(ctx, ct.Namespace))
 		})
 	}
 }
