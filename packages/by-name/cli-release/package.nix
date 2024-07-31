@@ -14,6 +14,7 @@
       install -D ${lib.getExe genpolicy} cli/cmd/assets/genpolicy
       install -D ${contrast.settings}/genpolicy-settings.json cli/cmd/assets/genpolicy-settings.json
       install -D ${contrast.rules}/genpolicy-rules.rego cli/cmd/assets/genpolicy-rules.rego
+      install -D ${contrast.embeddedReferenceValues} internal/manifest/assets/reference-values.json
     '';
 
     ldflags = previousAttrs.ldflags ++ [
