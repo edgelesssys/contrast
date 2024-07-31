@@ -126,7 +126,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
 
-	if err := generatePolicies(cmd.Context(), flags.policyPath, flags.settingsPath, flags.genpolicyCachePath, paths, log); err != nil {
+	if err := generatePolicies(cmd.Context(), flags, paths, log); err != nil {
 		return fmt.Errorf("generate policies: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Generated workload policy annotations")
@@ -241,15 +241,16 @@ func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger 
 	return filtered
 }
 
-func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath, genpolicyCachePath string, yamlPaths []string, logger *slog.Logger) error {
-	if err := createFileWithDefault(policySettingsPath, 0o644, func() ([]byte, error) { return defaultGenpolicySettings, nil }); err != nil {
+func generatePolicies(ctx context.Context, flags *generateFlags, yamlPaths []string, logger *slog.Logger) error {
+	cfg := genpolicy.NewConfig(flags.referenceValuesPlatform)
+	if err := createFileWithDefault(flags.settingsPath, 0o644, func() ([]byte, error) { return cfg.Settings, nil }); err != nil {
 		return fmt.Errorf("creating default policy file: %w", err)
 	}
-	if err := createFileWithDefault(regoRulesPath, 0o644, func() ([]byte, error) { return defaultRules, nil }); err != nil {
+	if err := createFileWithDefault(flags.policyPath, 0o644, func() ([]byte, error) { return cfg.Rules, nil }); err != nil {
 		return fmt.Errorf("creating default policy.rego file: %w", err)
 	}
 
-	runner, err := genpolicy.New(genpolicyBin, regoRulesPath, policySettingsPath, genpolicyCachePath)
+	runner, err := genpolicy.New(flags.policyPath, flags.settingsPath, flags.genpolicyCachePath)
 	if err != nil {
 		return fmt.Errorf("preparing genpolicy: %w", err)
 	}
