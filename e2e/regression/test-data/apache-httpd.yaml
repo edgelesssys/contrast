@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: apache-httpd
-          image: docker.io/httpd:2.4.62
+          image: docker.io/httpd:2.4.62-alpine
           ports:
             - containerPort: 80
       runtimeClassName: REPLACE_RUNTIME
