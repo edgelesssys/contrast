@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-///go:build e2e
+//go:build e2e
 
 package regression
 
@@ -58,6 +58,8 @@ func TestRegression(t *testing.T) {
 			yamlResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
 			require.NoError(err)
 			resources = append(resources, yamlResources...)
+
+			resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 
 			resources = kuberesource.AddPortForwarders(resources)
 			t.Logf("config:\n%s", resources)
