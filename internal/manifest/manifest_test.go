@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/platforms"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,7 +52,7 @@ func TestPolicy(t *testing.T) {
 		assert := assert.New(t)
 
 		policy := []byte("test-policy")
-		expectedHash := HexString("48a7cea3db9b9bf087e58bdff6e7a4260a0227b90ba0fceb97060a3c76e004e1")
+		expectedHash := platforms.HexString("48a7cea3db9b9bf087e58bdff6e7a4260a0227b90ba0fceb97060a3c76e004e1")
 
 		annotation := base64.StdEncoding.EncodeToString(policy)
 		p, err := NewPolicyFromAnnotation([]byte(annotation))
@@ -84,16 +84,16 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			m: &Manifest{
-				Policies:        map[HexString][]string{HexString(""): {}},
+				Policies:        map[platforms.HexString][]string{platforms.HexString(""): {}},
 				ReferenceValues: mnf.ReferenceValues,
 			},
 			wantErr: true,
 		},
 		{
 			m: &Manifest{
-				Policies: map[HexString][]string{HexString(""): {}},
-				ReferenceValues: ReferenceValues{
-					AKS: &AKSReferenceValues{
+				Policies: map[platforms.HexString][]string{platforms.HexString(""): {}},
+				ReferenceValues: platforms.ReferenceValues{
+					AKS: &platforms.AKSReferenceValues{
 						SNP:                mnf.ReferenceValues.AKS.SNP,
 						TrustedMeasurement: "",
 					},
@@ -104,7 +104,7 @@ func TestValidate(t *testing.T) {
 		{
 			m: &Manifest{
 				ReferenceValues:         mnf.ReferenceValues,
-				WorkloadOwnerKeyDigests: []HexString{HexString("")},
+				WorkloadOwnerKeyDigests: []platforms.HexString{platforms.HexString("")},
 			},
 			wantErr: true,
 		},

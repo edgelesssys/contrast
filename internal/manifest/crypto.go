@@ -15,6 +15,7 @@ import (
 	"fmt"
 
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/platforms"
 )
 
 // NewSeedShareOwnerPrivateKey creates and PEM-encodes a new seed share private key.
@@ -30,14 +31,14 @@ func NewSeedShareOwnerPrivateKey() ([]byte, error) {
 // ExtractSeedshareOwnerPublicKey extracts the public key for a seedshare owner and returns it as serialized DER.
 //
 // This function supports PEM-encoded public and private keys.
-func ExtractSeedshareOwnerPublicKey(keyData []byte) (HexString, error) {
+func ExtractSeedshareOwnerPublicKey(keyData []byte) (platforms.HexString, error) {
 	block, _ := pem.Decode(keyData)
 	if block == nil {
 		return "", fmt.Errorf("decoding seedshare owner key: no key found")
 	}
 	switch block.Type {
 	case "PUBLIC KEY":
-		return NewHexString(block.Bytes), nil
+		return platforms.NewHexString(block.Bytes), nil
 	case "RSA PRIVATE KEY":
 		privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 		if err != nil {
@@ -67,12 +68,12 @@ func ParseSeedshareOwnerPrivateKey(keyData []byte) (*rsa.PrivateKey, error) {
 }
 
 // MarshalSeedShareOwnerKey converts a public key into the format for userapi.SetManifestRequest.
-func MarshalSeedShareOwnerKey(pubKey *rsa.PublicKey) HexString {
-	return NewHexString(x509.MarshalPKCS1PublicKey(pubKey))
+func MarshalSeedShareOwnerKey(pubKey *rsa.PublicKey) platforms.HexString {
+	return platforms.NewHexString(x509.MarshalPKCS1PublicKey(pubKey))
 }
 
 // ParseSeedShareOwnerKey reads a public key embedded in a userapi.SetManifestRequest.
-func ParseSeedShareOwnerKey(pubKeyHex HexString) (*rsa.PublicKey, error) {
+func ParseSeedShareOwnerKey(pubKeyHex platforms.HexString) (*rsa.PublicKey, error) {
 	pubKeyBytes, err := pubKeyHex.Bytes()
 	if err != nil {
 		return nil, fmt.Errorf("parsing from hex: %w", err)
@@ -85,7 +86,7 @@ func ParseSeedShareOwnerKey(pubKeyHex HexString) (*rsa.PublicKey, error) {
 }
 
 // EncryptSeedShares encrypts a seed for owners identified by their public keys and returns a SeedShare slice suitable for userapi.SetManifestResponse.
-func EncryptSeedShares(seed []byte, ownerPubKeys []HexString) ([]*userapi.SeedShare, error) {
+func EncryptSeedShares(seed []byte, ownerPubKeys []platforms.HexString) ([]*userapi.SeedShare, error) {
 	var out []*userapi.SeedShare
 	for _, pubKeyHex := range ownerPubKeys {
 		pubKey, err := ParseSeedShareOwnerKey(pubKeyHex)
@@ -141,7 +142,7 @@ func ParseWorkloadOwnerPrivateKey(keyBytes []byte) (*ecdsa.PrivateKey, error) {
 }
 
 // HashWorkloadOwnerKey converts a public key into the format for Manifest.WorkloadOwnerKeyDigests.
-func HashWorkloadOwnerKey(pubKey *ecdsa.PublicKey) HexString {
+func HashWorkloadOwnerKey(pubKey *ecdsa.PublicKey) platforms.HexString {
 	keyData, err := x509.MarshalPKIXPublicKey(pubKey)
 	if err != nil {
 		// According to the docs for MarshalPKIXPublicKey, an error should only
@@ -151,7 +152,7 @@ func HashWorkloadOwnerKey(pubKey *ecdsa.PublicKey) HexString {
 	}
 
 	ownerKeyHash := sha256.Sum256(keyData)
-	return NewHexString(ownerKeyHash[:])
+	return platforms.NewHexString(ownerKeyHash[:])
 }
 
 // ExtractWorkloadOwnerPublicKey extracts the public key for a workload owner and returns it as serialized DER.

@@ -4,17 +4,13 @@ go 1.22.0
 
 toolchain go1.22.5
 
-replace (
-	github.com/edgelesssys/contrast/node-installer => ./node-installer
-	// The upstream package has some stepping issues with Genoa:
-	// https://github.com/google/go-sev-guest/issues/115
-	// https://github.com/google/go-sev-guest/issues/103
-	github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20240719074306-114f78ece7a7
-)
+// The upstream package has some stepping issues with Genoa:
+// https://github.com/google/go-sev-guest/issues/115
+// https://github.com/google/go-sev-guest/issues/103
+replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20240719074306-114f78ece7a7
 
 require (
 	filippo.io/keygen v0.0.0-20240718133620-7f162efbbd87
-	github.com/edgelesssys/contrast/node-installer v0.0.0-20240711120720-005f613ddf37
 	github.com/google/go-github/v63 v63.0.0
 	github.com/google/go-sev-guest v0.11.1
 	github.com/google/go-tdx-guest v0.3.1
@@ -72,7 +68,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
-	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect

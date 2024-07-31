@@ -11,6 +11,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/platforms"
 )
 
 func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
@@ -76,8 +77,8 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 	return deployments, nil
 }
 
-func manifestPolicyMapFromPolicies(policies []deployment) (map[manifest.HexString][]string, error) {
-	policyHashes := make(map[manifest.HexString][]string)
+func manifestPolicyMapFromPolicies(policies []deployment) (map[platforms.HexString][]string, error) {
+	policyHashes := make(map[platforms.HexString][]string)
 	for _, depl := range policies {
 		if existingNames, ok := policyHashes[depl.policy.Hash()]; ok {
 			if slices.Equal(existingNames, depl.DNSNames()) {
@@ -91,7 +92,7 @@ func manifestPolicyMapFromPolicies(policies []deployment) (map[manifest.HexStrin
 	return policyHashes, nil
 }
 
-func checkPoliciesMatchManifest(policies []deployment, policyHashes map[manifest.HexString][]string) error {
+func checkPoliciesMatchManifest(policies []deployment, policyHashes map[platforms.HexString][]string) error {
 	if len(policies) != len(policyHashes) {
 		return fmt.Errorf("policy count mismatch: %d policies in deployment, but %d in manifest",
 			len(policies), len(policyHashes))

@@ -21,8 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
-	"github.com/edgelesssys/contrast/node-installer/runtimehandler"
+	"github.com/edgelesssys/contrast/platforms"
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -45,7 +44,7 @@ func TestPolicy(t *testing.T) {
 	// TODO(msanft): Make this configurable
 	platform := platforms.AKSCloudHypervisorSNP
 
-	runtimeHandler, err := runtimehandler.Name(platform)
+	runtimeHandler, err := platforms.RuntimeHandler(platform)
 	require.NoError(t, err)
 
 	resources := kuberesource.OpenSSL()

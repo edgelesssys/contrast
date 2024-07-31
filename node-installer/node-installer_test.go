@@ -10,8 +10,7 @@ import (
 
 	_ "embed"
 
-	"github.com/edgelesssys/contrast/node-installer/platforms"
-	"github.com/edgelesssys/contrast/node-installer/runtimehandler"
+	"github.com/edgelesssys/contrast/platforms"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -65,7 +64,7 @@ func TestPatchContainerdConfig(t *testing.T) {
 
 			configPath := filepath.Join(tmpDir, "config.toml")
 
-			runtimeHandler, err := runtimehandler.Name(tc.platform)
+			runtimeHandler, err := platforms.RuntimeHandler(tc.platform)
 			require.NoError(err)
 
 			err = patchContainerdConfig(filepath.Join("/opt/edgeless", runtimeHandler),
@@ -118,7 +117,7 @@ func TestPatchContainerdConfigTemplate(t *testing.T) {
 
 			// Testing patching a config template.
 
-			runtimeHandler, err := runtimehandler.Name(tc.platform)
+			runtimeHandler, err := platforms.RuntimeHandler(tc.platform)
 			require.NoError(err)
 
 			err = patchContainerdConfigTemplate(filepath.Join("/opt/edgeless", runtimeHandler),

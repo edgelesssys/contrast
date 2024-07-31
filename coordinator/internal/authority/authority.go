@@ -22,6 +22,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/platforms"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
 	"github.com/prometheus/client_golang/prometheus"
@@ -89,7 +90,7 @@ func (m *Authority) SNPValidateOpts(report *sevsnp.Report) (*validate.Options, e
 	}
 	mnfst := state.manifest
 
-	hostData := manifest.NewHexString(report.HostData)
+	hostData := platforms.NewHexString(report.HostData)
 	if _, ok := mnfst.Policies[hostData]; !ok {
 		return nil, fmt.Errorf("hostdata %s not found in manifest", hostData)
 	}
@@ -106,7 +107,7 @@ func (m *Authority) ValidateCallback(_ context.Context, report *sevsnp.Report,
 		return ErrNoManifest
 	}
 
-	hostData := manifest.NewHexString(report.HostData)
+	hostData := platforms.NewHexString(report.HostData)
 	dnsNames, ok := state.manifest.Policies[hostData]
 	if !ok {
 		return fmt.Errorf("report data %s not found in manifest", hostData)

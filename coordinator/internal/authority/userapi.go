@@ -18,6 +18,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/platforms"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
@@ -167,7 +168,7 @@ func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsReque
 	}
 
 	var manifests [][]byte
-	policies := make(map[manifest.HexString][]byte)
+	policies := make(map[platforms.HexString][]byte)
 	err := a.walkTransitions(state.latest.TransitionHash, func(_ [history.HashSize]byte, t *history.Transition) error {
 		manifestBytes, err := a.hist.GetManifest(t.ManifestHash)
 		if err != nil {

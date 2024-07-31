@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/platforms"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,7 +29,7 @@ func TestEncryptDecryptSingleKey(t *testing.T) {
 				t.Run(name, func(t *testing.T) {
 					require := require.New(t)
 					keys := make([]*rsa.PrivateKey, numKeys)
-					pubKeys := make([]HexString, numKeys)
+					pubKeys := make([]platforms.HexString, numKeys)
 					for i := range numKeys {
 						keys[i] = getTestKey(t, b, i)
 						pubKeys[i] = MarshalSeedShareOwnerKey(&keys[i].PublicKey)
@@ -59,7 +60,7 @@ func TestEncryptDecryptSingleKey(t *testing.T) {
 
 		pubKeyHex := MarshalSeedShareOwnerKey(&rightKey.PublicKey)
 
-		seedShares, err := EncryptSeedShares(seed, []HexString{pubKeyHex})
+		seedShares, err := EncryptSeedShares(seed, []platforms.HexString{pubKeyHex})
 		require.NoError(err)
 		require.Len(seedShares, 1)
 

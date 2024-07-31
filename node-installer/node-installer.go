@@ -20,8 +20,7 @@ import (
 	"github.com/edgelesssys/contrast/node-installer/internal/asset"
 	"github.com/edgelesssys/contrast/node-installer/internal/config"
 	"github.com/edgelesssys/contrast/node-installer/internal/constants"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
-	"github.com/edgelesssys/contrast/node-installer/runtimehandler"
+	"github.com/edgelesssys/contrast/platforms"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -66,7 +65,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	}
 	fmt.Printf("Using config: %+v\n", config)
 
-	runtimeHandlerName, err := runtimehandler.Name(platform)
+	runtimeHandlerName, err := platforms.RuntimeHandler(platform)
 	if err != nil {
 		return fmt.Errorf("getting runtime handler name: %w", err)
 	}
@@ -219,7 +218,7 @@ func patchContainerdConfig(basePath, configPath string, platform platforms.Platf
 		existing = constants.ContainerdBaseConfig()
 	}
 
-	runtimeName, err := runtimehandler.Name(platform)
+	runtimeName, err := platforms.RuntimeHandler(platform)
 	if err != nil {
 		return fmt.Errorf("getting runtime name: %w", err)
 	}
@@ -267,7 +266,7 @@ func patchContainerdConfigTemplate(basePath, configTemplatePath string, platform
 	}
 	fmt.Printf("Existing containerd config template:\n%s\n", existingConfig)
 
-	runtimeName, err := runtimehandler.Name(platform)
+	runtimeName, err := platforms.RuntimeHandler(platform)
 	if err != nil {
 		return fmt.Errorf("getting runtime name: %w", err)
 	}

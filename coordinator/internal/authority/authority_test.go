@@ -15,7 +15,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/platforms"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -31,7 +31,7 @@ contrast_coordinator_manifest_generation %d
 `
 )
 
-var keyDigest = manifest.HexString("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
+var keyDigest = platforms.HexString("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
 
 func TestSNPValidateOpts(t *testing.T) {
 	require := require.New(t)
@@ -78,12 +78,12 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 	t.Helper()
 	policy := []byte("=== SOME REGO HERE ===")
 	policyHash := sha256.Sum256(policy)
-	policyHashHex := manifest.NewHexString(policyHash[:])
+	policyHashHex := platforms.NewHexString(policyHash[:])
 
 	mnfst, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
 	require.NoError(t, err)
-	mnfst.Policies = map[manifest.HexString][]string{policyHashHex: {"test"}}
-	mnfst.WorkloadOwnerKeyDigests = []manifest.HexString{keyDigest}
+	mnfst.Policies = map[platforms.HexString][]string{policyHashHex: {"test"}}
+	mnfst.WorkloadOwnerKeyDigests = []platforms.HexString{keyDigest}
 	mnfstBytes, err := json.Marshal(mnfst)
 	require.NoError(t, err)
 	return mnfst, mnfstBytes, [][]byte{policy}

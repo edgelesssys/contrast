@@ -25,8 +25,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/embedbin"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
-	"github.com/edgelesssys/contrast/node-installer/runtimehandler"
+	"github.com/edgelesssys/contrast/platforms"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 
@@ -122,7 +121,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	runtimeHandler, err := runtimehandler.Name(flags.referenceValuesPlatform)
+	runtimeHandler, err := platforms.RuntimeHandler(flags.referenceValuesPlatform)
 	if err != nil {
 		return fmt.Errorf("get runtime handler: %w", err)
 	}
@@ -394,7 +393,7 @@ func addWorkloadOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) e
 	}
 
 	hash := sha256.Sum256(publicKey)
-	hashString := manifest.NewHexString(hash[:])
+	hashString := platforms.NewHexString(hash[:])
 	for _, existingHash := range manifst.WorkloadOwnerKeyDigests {
 		if existingHash == hashString {
 			return nil

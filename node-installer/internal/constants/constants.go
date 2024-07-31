@@ -9,14 +9,11 @@ import (
 	"path/filepath"
 
 	"github.com/edgelesssys/contrast/node-installer/internal/config"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/platforms"
 	"github.com/pelletier/go-toml/v2"
 )
 
 var (
-	// Version value is injected at build time.
-	Version = "0.0.0-dev"
-
 	// kataCLHSNPBaseConfig is the configuration file for the Kata runtime on AKS SEV-SNP
 	// with Cloud-Hypervisor.
 	//

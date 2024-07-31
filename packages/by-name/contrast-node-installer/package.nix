@@ -16,18 +16,23 @@ buildGoModule rec {
   src =
     let
       inherit (lib) fileset path hasSuffix;
-      root = ../../../node-installer;
+      root = ../../../.;
+      node-installer = ../../../node-installer;
     in
     fileset.toSource {
       inherit root;
       fileset = fileset.unions [
         (path.append root "go.mod")
         (path.append root "go.sum")
-        (fileset.fileFilter (file: hasSuffix ".toml" file.name) root)
-        (fileset.fileFilter (file: hasSuffix ".toml.tmpl" file.name) root)
-        (fileset.fileFilter (file: hasSuffix ".go" file.name) root)
+        (path.append node-installer "go.mod")
+        (path.append node-installer "go.sum")
+        (fileset.fileFilter (file: hasSuffix ".toml" file.name) node-installer)
+        (fileset.fileFilter (file: hasSuffix ".toml.tmpl" file.name) node-installer)
+        (fileset.fileFilter (file: hasSuffix ".go" file.name) node-installer)
+        (path.append root "platforms")
       ];
     };
+  sourceRoot = "${src.name}/node-installer";
 
   proxyVendor = true;
   vendorHash = "sha256-VogMwIzO8ocHBTqemhsJcUEXIXJpyJOPjnqORBDp+Eg=";
@@ -35,10 +40,7 @@ buildGoModule rec {
   subPackages = [ "." ];
 
   CGO_ENABLED = 0;
-  ldflags = [
-    "-s"
-    "-X github.com/edgelesssys/contrast/node-installer/constants.Version=${version}"
-  ];
+  ldflags = [ "-s" ];
 
   preCheck = ''
     export CGO_ENABLED=1

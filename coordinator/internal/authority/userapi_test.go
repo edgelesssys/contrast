@@ -21,7 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/platforms"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -76,9 +76,9 @@ func TestManifestSet(t *testing.T) {
 		"request without policies": {
 			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("a"): {"a1", "a2"},
-						manifest.HexString("b"): {"b1", "b2"},
+					m.Policies = map[platforms.HexString][]string{
+						platforms.HexString("a"): {"a1", "a2"},
+						platforms.HexString("b"): {"b1", "b2"},
 					}
 				}),
 			},
@@ -87,9 +87,9 @@ func TestManifestSet(t *testing.T) {
 		"policy not in manifest": {
 			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+					m.Policies = map[platforms.HexString][]string{
+						platforms.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
+						platforms.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
 					}
 				}),
 				Policies: [][]byte{
@@ -103,9 +103,9 @@ func TestManifestSet(t *testing.T) {
 		"valid manifest": {
 			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+					m.Policies = map[platforms.HexString][]string{
+						platforms.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
+						platforms.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
 					}
 				}),
 				Policies: [][]byte{
@@ -167,9 +167,9 @@ func TestManifestSet(t *testing.T) {
 
 			req := &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+					m.Policies = map[platforms.HexString][]string{
+						platforms.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
+						platforms.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
 					}
 				}),
 				Policies: [][]byte{
@@ -226,9 +226,9 @@ func TestGetManifests(t *testing.T) {
 
 	m, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
 	require.NoError(err)
-	m.Policies = map[manifest.HexString][]string{
-		manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-		manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+	m.Policies = map[platforms.HexString][]string{
+		platforms.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
+		platforms.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
 	}
 	manifestBytes, err := json.Marshal(m)
 	require.NoError(err)
@@ -320,7 +320,7 @@ func TestRecoveryFlow(t *testing.T) {
 	seedShareOwnerKeyBytes := manifest.MarshalSeedShareOwnerKey(&seedShareOwnerKey.PublicKey)
 
 	mnfst, _, policies := newManifest(t)
-	mnfst.SeedshareOwnerPubKeys = []manifest.HexString{seedShareOwnerKeyBytes}
+	mnfst.SeedshareOwnerPubKeys = []platforms.HexString{seedShareOwnerKeyBytes}
 	manifestBytes, err := json.Marshal(mnfst)
 	require.NoError(err)
 
@@ -399,9 +399,9 @@ func TestUserAPIConcurrent(t *testing.T) {
 
 	setReq := &userapi.SetManifestRequest{
 		Manifest: newManifestBytes(func(m *manifest.Manifest) {
-			m.Policies = map[manifest.HexString][]string{
-				manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-				manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+			m.Policies = map[platforms.HexString][]string{
+				platforms.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
+				platforms.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
 			}
 		}),
 		Policies: [][]byte{
@@ -477,8 +477,8 @@ func manifestWithWorkloadOwnerKey(key *ecdsa.PrivateKey) (*manifest.Manifest, er
 		return nil, err
 	}
 	ownerKeyHash := sha256.Sum256(pubKey)
-	ownerKeyHex := manifest.NewHexString(ownerKeyHash[:])
-	m.WorkloadOwnerKeyDigests = []manifest.HexString{ownerKeyHex}
+	ownerKeyHex := platforms.NewHexString(ownerKeyHash[:])
+	m.WorkloadOwnerKeyDigests = []platforms.HexString{ownerKeyHex}
 	return m, nil
 }
 

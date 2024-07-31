@@ -19,8 +19,7 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
-	"github.com/edgelesssys/contrast/node-installer/runtimehandler"
+	"github.com/edgelesssys/contrast/platforms"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +35,7 @@ func TestGenpolicy(t *testing.T) {
 
 	testCases := kuberesource.GenpolicyRegressionTests()
 
-	runtimeHandler, err := runtimehandler.Name(platform)
+	runtimeHandler, err := platforms.RuntimeHandler(platform)
 	require.NoError(t, err)
 
 	for name, deploy := range testCases {

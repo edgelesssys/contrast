@@ -7,8 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/edgelesssys/contrast/node-installer/platforms"
-	"github.com/edgelesssys/contrast/node-installer/runtimehandler"
+	"github.com/edgelesssys/contrast/platforms"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -19,7 +18,7 @@ import (
 
 // ContrastRuntimeClass creates a new RuntimeClassConfig.
 func ContrastRuntimeClass(platform platforms.Platform) (*RuntimeClassConfig, error) {
-	runtimeHandler, err := runtimehandler.Name(platform)
+	runtimeHandler, err := platforms.RuntimeHandler(platform)
 	if err != nil {
 		return nil, fmt.Errorf("getting default runtime handler: %w", err)
 	}
@@ -45,7 +44,7 @@ type NodeInstallerConfig struct {
 func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstallerConfig, error) {
 	name := "contrast-node-installer"
 
-	runtimeHandler, err := runtimehandler.Name(platform)
+	runtimeHandler, err := platforms.RuntimeHandler(platform)
 	if err != nil {
 		return nil, fmt.Errorf("getting default runtime handler: %w", err)
 	}

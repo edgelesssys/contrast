@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/edgelesssys/contrast/platforms"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/validate"
@@ -16,14 +17,14 @@ import (
 // Manifest is the Coordinator manifest and contains the reference values of the deployment.
 type Manifest struct {
 	// policyHash/HOSTDATA -> commonName
-	Policies                map[HexString][]string
-	ReferenceValues         ReferenceValues
-	WorkloadOwnerKeyDigests []HexString
-	SeedshareOwnerPubKeys   []HexString
+	Policies                map[platforms.HexString][]string
+	ReferenceValues         platforms.ReferenceValues
+	WorkloadOwnerKeyDigests []platforms.HexString
+	SeedshareOwnerPubKeys   []platforms.HexString
 }
 
 // HexStrings is a slice of HexString.
-type HexStrings []HexString
+type HexStrings []platforms.HexString
 
 // ByteSlices returns the byte slice representation of the HexStrings.
 func (l *HexStrings) ByteSlices() ([][]byte, error) {
@@ -52,57 +53,12 @@ func (p Policy) Bytes() []byte {
 }
 
 // Hash returns the hash of the policy.
-func (p Policy) Hash() HexString {
+func (p Policy) Hash() platforms.HexString {
 	hashBytes := sha256.Sum256(p)
-	return NewHexString(hashBytes[:])
+	return platforms.NewHexString(hashBytes[:])
 }
 
-// Validate checks the validity of all fields in the reference values.
-func (r ReferenceValues) Validate() error {
-	if r.AKS != nil {
-		if err := r.AKS.Validate(); err != nil {
-			return fmt.Errorf("validating AKS reference values: %w", err)
-		}
-	}
-	if r.BareMetalTDX != nil {
-		if err := r.BareMetalTDX.Validate(); err != nil {
-			return fmt.Errorf("validating bare metal TDX reference values: %w", err)
-		}
-	}
 
-	if r.BareMetalTDX == nil && r.AKS == nil {
-		return fmt.Errorf("reference values in manifest cannot be empty. Is the chosen platform supported?")
-	}
-
-	return nil
-}
-
-// Validate checks the validity of all fields in the AKS reference values.
-func (r AKSReferenceValues) Validate() error {
-	if r.SNP.MinimumTCB.BootloaderVersion == nil {
-		return fmt.Errorf("field BootloaderVersion in manifest cannot be empty")
-	} else if r.SNP.MinimumTCB.TEEVersion == nil {
-		return fmt.Errorf("field TEEVersion in manifest cannot be empty")
-	} else if r.SNP.MinimumTCB.SNPVersion == nil {
-		return fmt.Errorf("field SNPVersion in manifest cannot be empty")
-	} else if r.SNP.MinimumTCB.MicrocodeVersion == nil {
-		return fmt.Errorf("field MicrocodeVersion in manifest cannot be empty")
-	}
-
-	if len(r.TrustedMeasurement) != abi.MeasurementSize*2 {
-		return fmt.Errorf("trusted measurement has invalid length: %d (expected %d)", len(r.TrustedMeasurement), abi.MeasurementSize*2)
-	}
-
-	return nil
-}
-
-// Validate checks the validity of all fields in the bare metal TDX reference values.
-func (r BareMetalTDXReferenceValues) Validate() error {
-	if r.TrustedMeasurement == "" {
-		return fmt.Errorf("field TrustedMeasurement in manifest cannot be empty")
-	}
-	return nil
-}
 
 // Validate checks the validity of all fields in the manifest.
 func (m *Manifest) Validate() error {

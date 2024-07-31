@@ -19,6 +19,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/platforms"
 	"github.com/spf13/cobra"
 )
 
@@ -114,7 +115,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	for _, p := range resp.Policies {
 		sha256sum := sha256.Sum256(p)
-		pHash := manifest.NewHexString(sha256sum[:])
+		pHash := platforms.NewHexString(sha256sum[:])
 		filelist[fmt.Sprintf("policy.%s.rego", pHash)] = p
 	}
 	if err := writeFilelist(filepath.Join(flags.workspaceDir, verifyDir), filelist); err != nil {
