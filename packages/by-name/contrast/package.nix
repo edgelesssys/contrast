@@ -67,6 +67,7 @@ let
     "coordinator"
     "initializer"
     "cli"
+    "nodeinstaller"
   ];
 in
 
@@ -91,7 +92,7 @@ buildGoModule rec {
         (path.append root "cli/cmd/assets/image-replacements.txt")
         (path.append root "internal/attestation/snp/Milan.pem")
         (path.append root "internal/attestation/snp/Genoa.pem")
-        (path.append root "node-installer")
+        (path.append root "nodeinstaller")
         (fileset.difference (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
           path.append root "service-mesh"
         ))
@@ -99,7 +100,7 @@ buildGoModule rec {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-8l/QXPbPstVtpqAdctnz5hiW5a61gGoF0DYz6XQeDtk=";
+  vendorHash = "sha256-C7nbHoH+LCKgjxFHtZdj+7NvyurY9q6QHz4JRNDonvY=";
 
   nativeBuildInputs = [ installShellFiles ];
 
@@ -138,6 +139,9 @@ buildGoModule rec {
 
     # rename the cli binary to contrast
     mv "$cli/bin/cli" "$cli/bin/contrast"
+
+    # rename the nodeinstaller binary to node-installer
+    mv "$nodeinstaller/bin/nodeinstaller" "$nodeinstaller/bin/node-installer"
 
     installShellCompletion --cmd contrast \
       --bash <($cli/bin/contrast completion bash) \

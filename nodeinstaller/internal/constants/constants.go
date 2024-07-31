@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/edgelesssys/contrast/node-installer/internal/config"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/config"
 	"github.com/pelletier/go-toml/v2"
 )
 

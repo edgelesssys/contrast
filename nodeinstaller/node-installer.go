@@ -17,10 +17,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/edgelesssys/contrast/node-installer/internal/asset"
-	"github.com/edgelesssys/contrast/node-installer/internal/config"
-	"github.com/edgelesssys/contrast/node-installer/internal/constants"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/asset"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/config"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/constants"
 	"github.com/pelletier/go-toml/v2"
 )
 

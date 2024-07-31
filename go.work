@@ -4,6 +4,5 @@ toolchain go1.22.2
 
 use (
 	.
-	./node-installer
 	./service-mesh
 )

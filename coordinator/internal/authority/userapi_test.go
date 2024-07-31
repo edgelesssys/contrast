@@ -20,8 +20,8 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"

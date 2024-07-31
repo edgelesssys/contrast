@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/edgelesssys/contrast/node-installer/internal/fileop"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/fileop"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"

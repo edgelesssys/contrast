@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

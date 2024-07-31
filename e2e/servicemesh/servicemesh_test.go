@@ -21,7 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

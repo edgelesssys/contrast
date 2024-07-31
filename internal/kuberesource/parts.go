@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"

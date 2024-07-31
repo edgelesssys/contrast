@@ -22,7 +22,7 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
-	"github.com/edgelesssys/contrast/node-installer/platforms"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	ksync "github.com/katexochen/sync/api/client"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"

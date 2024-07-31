@@ -13,7 +13,7 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/edgelesssys/contrast/node-installer/internal/fileop"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/fileop"
 )
 
 // HTTPFetcher is a Fetcher that retrieves assets from http(s).
