@@ -1,0 +1,30 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: REPLACE_NAMESPACE
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mysql
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: docker.io/mysql:9.0
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: mysql
+          ports:
+            - containerPort: 3306
+            - containerPort: 33060
+      volumes:
+        - name: mysql
+          emptyDir:
+            sizeLimit: 10Mi
+      runtimeClassName: REPLACE_RUNTIME
