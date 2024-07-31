@@ -91,6 +91,7 @@ buildGoModule rec {
         (path.append root "cli/cmd/assets/image-replacements.txt")
         (path.append root "internal/attestation/snp/Milan.pem")
         (path.append root "internal/attestation/snp/Genoa.pem")
+        (path.append root "internal/attestation/tdx/Intel_SGX_Provisioning_Certification_RootCA.pem")
         (path.append root "node-installer")
         (fileset.difference (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
           path.append root "service-mesh"

@@ -15,6 +15,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/contrast/internal/logger"
@@ -45,7 +46,7 @@ type certBundleGetter interface {
 
 func newMeshAPIServer(meshAuth *authority.Authority, bundleGetter certBundleGetter, reg *prometheus.Registry, serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger) *meshAPIServer {
 	ticker := clock.RealClock{}.NewTicker(24 * time.Hour)
-	kdsGetter := snp.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter"))
+	kdsGetter := certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter"))
 
 	attestationFailuresCounter := promauto.With(reg).NewCounter(prometheus.CounterOpts{
 		Subsystem: "contrast_meshapi",
