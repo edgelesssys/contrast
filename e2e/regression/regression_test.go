@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build e2e
+///go:build e2e
 
 package regression
 
@@ -17,6 +17,8 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/node-installer/platforms"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,6 +31,12 @@ func TestRegression(t *testing.T) {
 
 	yamlDir := "./e2e/regression/test-data/"
 	files, err := os.ReadDir(yamlDir)
+	require.NoError(t, err)
+
+	// TODO(miampf): Make this configurable
+	platform := platforms.AKSCloudHypervisorSNP
+
+	runtimeHandler, err := manifest.DefaultPlatformHandler(platform)
 	require.NoError(t, err)
 
 	for _, file := range files {
@@ -45,7 +53,7 @@ func TestRegression(t *testing.T) {
 			yaml, err := os.ReadFile(yamlDir + file.Name())
 			require.NoError(err)
 			yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_NAMESPACE"), []byte(ct.Namespace))
-			yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_RUNTIME"), []byte(kuberesource.RuntimeHandler))
+			yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_RUNTIME"), []byte(runtimeHandler))
 
 			yamlResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
 			require.NoError(err)
