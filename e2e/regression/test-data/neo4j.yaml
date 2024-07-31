@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: neo4j
-          image: docker.io/neo4j:5.22.0
+          image: docker.io/neo4j@sha256:e559d4000b000c05b10110e0b0356bac6779538efebbfe9aa6af4823e8dc0eca
           volumeMounts:
             - mountPath: /data
               name: data
