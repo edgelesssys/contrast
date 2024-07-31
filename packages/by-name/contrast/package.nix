@@ -153,7 +153,7 @@ buildGoModule rec {
   dontFixup = true;
 
   passthru = {
-    inherit e2e;
+    inherit e2e embeddedReferenceValues;
     inherit (genpolicy) settings rules;
   };
 
