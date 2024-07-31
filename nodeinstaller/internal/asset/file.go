@@ -12,7 +12,7 @@ import (
 	"os"
 	"slices"
 
-	"github.com/edgelesssys/contrast/node-installer/internal/fileop"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/fileop"
 )
 
 // FileFetcher is a Fetcher that retrieves assets from a file.

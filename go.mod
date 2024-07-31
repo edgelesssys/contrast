@@ -4,23 +4,20 @@ go 1.22.0
 
 toolchain go1.22.5
 
-replace (
-	github.com/edgelesssys/contrast/node-installer => ./node-installer
-	// The upstream package has some stepping issues with Genoa:
-	// https://github.com/google/go-sev-guest/issues/115
-	// https://github.com/google/go-sev-guest/issues/103
-	github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20240719074306-114f78ece7a7
-)
+// The upstream package has some stepping issues with Genoa:
+// https://github.com/google/go-sev-guest/issues/115
+// https://github.com/google/go-sev-guest/issues/103
+replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20240719074306-114f78ece7a7
 
 require (
 	filippo.io/keygen v0.0.0-20240718133620-7f162efbbd87
-	github.com/edgelesssys/contrast/node-installer v0.0.0-20240711120720-005f613ddf37
 	github.com/google/go-github/v63 v63.0.0
 	github.com/google/go-sev-guest v0.11.1
 	github.com/google/go-tdx-guest v0.3.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
 	github.com/katexochen/sync v0.0.0-20240617152407-6a8003240db0
 	github.com/klauspost/cpuid/v2 v2.2.8
+	github.com/pelletier/go-toml/v2 v2.2.2
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/common v0.55.0
 	github.com/spf13/afero v1.11.0

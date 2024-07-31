@@ -6,7 +6,7 @@
   ociLayerTar,
   ociImageManifest,
   ociImageLayout,
-  contrast-node-installer,
+  contrast,
   microsoft,
   pkgsStatic,
   writers,
@@ -16,7 +16,7 @@ let
   node-installer = ociLayerTar {
     files = [
       {
-        source = lib.getExe contrast-node-installer;
+        source = "${contrast.nodeinstaller}/bin/node-installer";
         destination = "/bin/node-installer";
       }
       {
