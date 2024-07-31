@@ -4,25 +4,20 @@
 package cmd
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 
-	"github.com/edgelesssys/contrast/internal/embedbin"
+	"github.com/edgelesssys/contrast/cli/genpolicy"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -253,29 +248,22 @@ func generatePolicies(ctx context.Context, regoRulesPath, policySettingsPath, ge
 	if err := createFileWithDefault(regoRulesPath, 0o644, func() ([]byte, error) { return defaultRules, nil }); err != nil {
 		return fmt.Errorf("creating default policy.rego file: %w", err)
 	}
-	binaryInstallDir, err := installDir()
+
+	runner, err := genpolicy.New(genpolicyBin, regoRulesPath, policySettingsPath, genpolicyCachePath)
 	if err != nil {
-		return fmt.Errorf("get install dir: %w", err)
+		return fmt.Errorf("preparing genpolicy: %w", err)
 	}
-	genpolicyInstall, err := embedbin.New().Install(binaryInstallDir, genpolicyBin)
-	if err != nil {
-		return fmt.Errorf("install genpolicy: %w", err)
-	}
+
 	defer func() {
-		if err := genpolicyInstall.Uninstall(); err != nil {
-			logger.Warn("uninstall genpolicy tool", "err", err)
+		if err := runner.Teardown(); err != nil {
+			logger.Warn("Cleanup failed", "err", err)
 		}
 	}()
-	for _, yamlPath := range yamlPaths {
-		policyHash, err := generatePolicyForFile(ctx, genpolicyInstall.Path(), regoRulesPath, policySettingsPath, yamlPath, genpolicyCachePath, logger)
-		if err != nil {
-			return fmt.Errorf("generate policy for %s: %w", yamlPath, err)
-		}
-		if policyHash == [32]byte{} {
-			continue
-		}
 
-		logger.Info("Calculated policy hash", "hash", hex.EncodeToString(policyHash[:]), "path", yamlPath)
+	for _, yamlPath := range yamlPaths {
+		if err := runner.Run(ctx, yamlPath, logger); err != nil {
+			return fmt.Errorf("failed to generate policy for %s: %w", yamlPath, err)
+		}
 	}
 	return nil
 }
@@ -417,95 +405,6 @@ func addSeedshareOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) 
 	}
 
 	return nil
-}
-
-type logTranslator struct {
-	r         *io.PipeReader
-	w         *io.PipeWriter
-	logger    *slog.Logger
-	stopDoneC chan struct{}
-}
-
-func newLogTranslator(logger *slog.Logger) logTranslator {
-	r, w := io.Pipe()
-	l := logTranslator{
-		r:         r,
-		w:         w,
-		logger:    logger,
-		stopDoneC: make(chan struct{}),
-	}
-	l.startTranslate()
-	return l
-}
-
-func (l logTranslator) Write(p []byte) (n int, err error) {
-	return l.w.Write(p)
-}
-
-var genpolicyLogPrefixReg = regexp.MustCompile(`^\[[^\]\s]+\s+(\w+)\s+([^\]\s]+)\] (.*)`)
-
-func (l logTranslator) startTranslate() {
-	go func() {
-		defer close(l.stopDoneC)
-		scanner := bufio.NewScanner(l.r)
-		for scanner.Scan() {
-			line := scanner.Text()
-			match := genpolicyLogPrefixReg.FindStringSubmatch(line)
-			if len(match) != 4 {
-				// genpolicy prints some warnings without the logger
-				l.logger.Warn(line)
-			} else {
-				switch match[1] {
-				case "ERROR":
-					l.logger.Error(match[3], "position", match[2])
-				case "WARN":
-					l.logger.Warn(match[3], "position", match[2])
-				case "INFO": // prints quite a lot, only show on debug
-					l.logger.Debug(match[3], "position", match[2])
-				}
-			}
-		}
-	}()
-}
-
-func (l logTranslator) stop() {
-	l.w.Close()
-	<-l.stopDoneC
-}
-
-func generatePolicyForFile(ctx context.Context, genpolicyPath, regoPath, policyPath, yamlPath, genpolicyCachePath string, logger *slog.Logger) ([32]byte, error) {
-	args := []string{
-		"--raw-out",
-		fmt.Sprintf("--runtime-class-names=%s", "contrast-cc"),
-		fmt.Sprintf("--rego-rules-path=%s", regoPath),
-		fmt.Sprintf("--json-settings-path=%s", policyPath),
-		fmt.Sprintf("--yaml-file=%s", yamlPath),
-		fmt.Sprintf("--layers-cache-file-path=%s", genpolicyCachePath),
-	}
-	genpolicy := exec.CommandContext(ctx, genpolicyPath, args...)
-	genpolicy.Env = append(genpolicy.Env, "RUST_LOG=info", "RUST_BACKTRACE=1")
-
-	logFilter := newLogTranslator(logger)
-	defer logFilter.stop()
-	var stdout bytes.Buffer
-	genpolicy.Stdout = &stdout
-	genpolicy.Stderr = logFilter
-
-	if err := genpolicy.Run(); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
-			return [32]byte{}, fmt.Errorf("genpolicy failed with exit code %d", exitErr.ExitCode())
-		}
-		return [32]byte{}, fmt.Errorf("genpolicy failed: %w", err)
-	}
-
-	if stdout.Len() == 0 {
-		logger.Info("Policy output is empty, ignoring the file", "yamlPath", yamlPath)
-		return [32]byte{}, nil
-	}
-	policyHash := sha256.Sum256(stdout.Bytes())
-
-	return policyHash, nil
 }
 
 func generateWorkloadOwnerKey(flags *generateFlags) error {
@@ -656,12 +555,4 @@ func createFileWithDefault(path string, perm fs.FileMode, dflt func() ([]byte, e
 	}
 	_, err = file.Write(content)
 	return err
-}
-
-func installDir() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, ".contrast"), nil
 }
