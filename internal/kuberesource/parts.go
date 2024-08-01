@@ -50,12 +50,91 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		return nil, fmt.Errorf("getting default runtime handler: %w", err)
 	}
 
+	tardevSnapshotter := Container().
+		WithName("tardev-snapshotter").
+		WithImage("ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest").
+		WithResources(ResourceRequirements().
+			WithMemoryLimitAndRequest(800),
+		).
+		WithVolumeMounts(
+			VolumeMount().
+				WithName("host-mount").
+				WithMountPath("/host"),
+			VolumeMount().
+				WithName("var-lib-containerd").
+				WithMountPath("/var/lib/containerd"),
+		).
+		WithArgs(
+			"tardev-snapshotter",
+			fmt.Sprintf("/var/lib/containerd/io.containerd.snapshotter.v1.tardev-%s", runtimeHandler),
+			fmt.Sprintf("/host/run/containerd/tardev-snapshotter-%s.sock", runtimeHandler),
+			"/host/var/run/containerd/containerd.sock",
+		).
+		WithEnv(
+			NewEnvVar("RUST_LOG", "tardev_snapshotter=trace"),
+		)
+	tardevSnapshotterVolumes := []*applycorev1.VolumeApplyConfiguration{
+		Volume().
+			WithName("var-lib-containerd").
+			WithHostPath(HostPathVolumeSource().
+				WithPath("/var/lib/containerd").
+				WithType(corev1.HostPathDirectory),
+			),
+	}
+
+	nydusSnapshotter := Container().
+		WithName("nydus-snapshotter").
+		WithImage("ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest").
+		WithResources(ResourceRequirements().
+			WithMemoryLimitAndRequest(800),
+		).
+		WithVolumeMounts(
+			VolumeMount().
+				WithName("host-mount").
+				WithMountPath("/host"),
+			VolumeMount().
+				WithName("var-lib-containerd").
+				WithMountPath("/var/lib/containerd"),
+			VolumeMount().
+				WithName("var-lib-nydus-snapshotter").
+				WithMountPath(fmt.Sprintf("/var/lib/nydus-snapshotter/%s", runtimeHandler)),
+		).
+		WithArgs(
+			"containerd-nydus-grpc",
+			// Snapshotter will write to this path and tell containerd to read from it, so
+			// path must be shared and the same on the host. See 'var-lib-nydus-snapshotter' volume.
+			fmt.Sprintf("--root=/var/lib/nydus-snapshotter/%s", runtimeHandler),
+			"--config=/share/nydus-snapshotter/config-coco-guest-pulling.toml",
+			fmt.Sprintf("--address=/host/run/containerd/containerd-nydus-grpc-%s.sock", runtimeHandler),
+			"--log-to-stdout",
+		)
+	nydusSnapshotterVolumes := []*applycorev1.VolumeApplyConfiguration{
+		Volume().
+			WithName("var-lib-containerd").
+			WithHostPath(HostPathVolumeSource().
+				WithPath("/var/lib/rancher/k3s/agent/containerd").
+				WithType(corev1.HostPathDirectory),
+			),
+		Volume().
+			WithName("var-lib-nydus-snapshotter").
+			WithHostPath(HostPathVolumeSource().
+				WithPath(fmt.Sprintf("/var/lib/nydus-snapshotter/%s", runtimeHandler)).
+				WithType(corev1.HostPathDirectoryOrCreate),
+			),
+	}
+
 	var nodeInstallerImageURL string
+	var snapshotter *applycorev1.ContainerApplyConfiguration
+	var snapshotterVolumes []*applycorev1.VolumeApplyConfiguration
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
+		snapshotter = tardevSnapshotter
+		snapshotterVolumes = tardevSnapshotterVolumes
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
+		snapshotter = nydusSnapshotter
+		snapshotterVolumes = nydusSnapshotterVolumes
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", platform)
 	}
@@ -87,43 +166,17 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 						WithCommand("/bin/node-installer", platform.String()),
 					).
 					WithContainers(
-						Container().
-							WithName("tardev-snapshotter").
-							WithImage("ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest").
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(800),
-							).
-							WithVolumeMounts(
-								VolumeMount().
-									WithName("host-mount").
-									WithMountPath("/host"),
-								VolumeMount().
-									WithName("var-lib-containerd").
-									WithMountPath("/var/lib/containerd"),
-							).
-							WithArgs(
-								"tardev-snapshotter",
-								fmt.Sprintf("/var/lib/containerd/io.containerd.snapshotter.v1.tardev-%s", runtimeHandler),
-								fmt.Sprintf("/host/run/containerd/tardev-snapshotter-%s.sock", runtimeHandler),
-								"/host/var/run/containerd/containerd.sock",
-							).
-							WithEnv(
-								NewEnvVar("RUST_LOG", "tardev_snapshotter=trace"),
-							),
+						snapshotter,
 					).
-					WithVolumes(
+					WithVolumes(append(
+						snapshotterVolumes,
 						Volume().
 							WithName("host-mount").
 							WithHostPath(HostPathVolumeSource().
 								WithPath("/").
 								WithType(corev1.HostPathDirectory),
 							),
-						Volume().
-							WithName("var-lib-containerd").
-							WithHostPath(HostPathVolumeSource().
-								WithPath("/var/lib/containerd").
-								WithType(corev1.HostPathDirectory),
-							),
+					)...,
 					),
 				),
 			),

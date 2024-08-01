@@ -67,6 +67,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, debug bool) 
 		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
 		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")}
+		config.Hypervisor["qemu"]["shared_fs"] = "none"
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
 			config.Hypervisor["qemu"]["kernel_params"] = " agent.log=debug initcall_debug"
@@ -85,7 +86,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, debug bool) 
 		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
 		delete(config.Hypervisor["qemu"], "initrd")
 		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
-		config.Hypervisor["qemu"]["shared_fs"] = "virtio-9p"
+		config.Hypervisor["qemu"]["shared_fs"] = "none"
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "snp", "bin", "qemu-system-x86_64")}
 		config.Hypervisor["qemu"]["rootfs_type"] = "erofs"
 		if debug {
@@ -117,11 +118,11 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 		Path:                         filepath.Join(baseDir, "bin", "containerd-shim-contrast-cc-v2"),
 		PodAnnotations:               []string{"io.katacontainers.*"},
 		PrivilegedWithoutHostDevices: true,
+		Snapshotter:                  snapshotter,
 	}
 
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
-		cfg.Snapshotter = snapshotter
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
 		}
