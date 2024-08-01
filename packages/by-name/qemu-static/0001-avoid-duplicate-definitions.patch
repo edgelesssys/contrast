@@ -1,4 +1,4 @@
-From 96b8af73b050482c83a3d3f7056e381724581884 Mon Sep 17 00:00:00 2001
+From c4477cb82dcb0ba6bbe84caf9d1d9919be09d85d Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Wed, 10 Jul 2024 13:30:51 +0200
 Subject: [PATCH 1/2] avoid duplicate definitions
@@ -66,10 +66,10 @@ index 88b4d2b3b3..52ba066c2e 100644
  
  #endif
 diff --git a/target/arm/helper.c b/target/arm/helper.c
-index a620481d7c..17b45161e2 100644
+index 8fb4b474e8..f6fde26489 100644
 --- a/target/arm/helper.c
 +++ b/target/arm/helper.c
-@@ -12316,7 +12316,7 @@ uint32_t HELPER(crc32c)(uint32_t acc, uint32_t val, uint32_t bytes)
+@@ -12409,7 +12409,7 @@ uint32_t HELPER(crc32c)(uint32_t acc, uint32_t val, uint32_t bytes)
      stl_le_p(buf, val);
  
      /* Linux crc32c converts the output to one's complement.  */
@@ -79,10 +79,10 @@ index a620481d7c..17b45161e2 100644
  
  /*
 diff --git a/target/arm/tcg/helper-a64.c b/target/arm/tcg/helper-a64.c
-index ebaa7f00df..e818f34079 100644
+index c60d2a7ec9..a8cc45de84 100644
 --- a/target/arm/tcg/helper-a64.c
 +++ b/target/arm/tcg/helper-a64.c
-@@ -478,7 +478,7 @@ float32 HELPER(fcvtx_f64_to_f32)(float64 a, CPUARMState *env)
+@@ -490,7 +490,7 @@ float32 HELPER(fcvtx_f64_to_f32)(float64 a, CPUARMState *env)
  }
  
  /* 64-bit versions of the CRC helpers. Note that although the operation
@@ -91,7 +91,7 @@ index ebaa7f00df..e818f34079 100644
   * 32 bits of the accumulator and result are used, we pass and return
   * uint64_t for convenience of the generated code. Unlike the 32-bit
   * instruction set versions, val may genuinely have 64 bits of data in it.
-@@ -502,7 +502,7 @@ uint64_t HELPER(crc32c_64)(uint64_t acc, uint64_t val, uint32_t bytes)
+@@ -514,7 +514,7 @@ uint64_t HELPER(crc32c_64)(uint64_t acc, uint64_t val, uint32_t bytes)
      stq_le_p(buf, val);
  
      /* Linux crc32c converts the output to one's complement.  */
@@ -136,5 +136,5 @@ index ea7f345de8..d6b5fab137 100644
      }
      return crc ^ 0xffffffff;
 -- 
-2.45.1
+2.45.2
 

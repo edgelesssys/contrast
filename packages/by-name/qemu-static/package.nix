@@ -5,11 +5,7 @@
   qemu,
   libaio,
   dtc,
-  stdenvNoCC,
-  writeShellScript,
-  buildPackages,
-  lib,
-  snpSupport ? false,
+  fetchurl,
 }:
 let
   patchedDtc = dtc.overrideAttrs (previousAttrs: {
@@ -21,34 +17,6 @@ let
       ./0001-fix-static-build.patch
     ];
   });
-  # Fetch a range of commits and write them into a single diff file. This
-  # function makes it possible to fetch many commits without using fetchPatch
-  # for every single commit. `start` and `end` are both inclusive. Changes to
-  # submodules are ommited in the diff file.
-  fetchPatches =
-    args:
-    stdenvNoCC.mkDerivation {
-      name = "patchset";
-
-      builder = writeShellScript "builder.sh" ''
-        ${buildPackages.git}/bin/git clone $url source/
-        cd source/
-        ${buildPackages.git}/bin/git diff $start~1..$end --submodule=log > $out
-      '';
-      inherit (args) url start end;
-
-      outputHashMode = "flat";
-      outputHashAlgo = "sha256";
-      outputHash = args.hash;
-    };
-  # These patches are compatible with the Linux KVM host patches at https://github.com/AMDESE/linux/tree/snp-guest-req-v3.
-  snpPatches = fetchPatches {
-    url = "https://github.com/amdese/qemu.git";
-    start = "f3245d7fa3bd572933c819c71b41526aebb815b0";
-    end = "fb924a5139bff1d31520e007ef97b616af1e22a1";
-    hash = "sha256-BJbqi31oj03AbDHXpENmne3gbWIC2XNKtxd55gtdrKM=";
-  };
-
 in
 (qemu.override (_previous: {
   dtc = patchedDtc;
@@ -86,7 +54,14 @@ in
   hostCpuOnly = true;
   hostCpuTargets = [ "x86_64-softmmu" ];
 })).overrideAttrs
-  (previousAttrs: {
+  (previousAttrs: rec {
+    version = "9.1.0-rc0";
+
+    src = fetchurl {
+      url = "https://download.qemu.org/qemu-${version}.tar.xz";
+      hash = "sha256-3Y3dl1EF18l2axZcHI3JvYY7CNJqzR8G9wxcsDKnnn0=";
+    };
+
     propagatedBuildInputs = builtins.filter (
       input: input.pname != "texinfo"
     ) previousAttrs.propagatedBuildInputs;
@@ -104,13 +79,10 @@ in
         "-Dlinux_aio_path=${libaio}/lib"
         "-Dlinux_fdt_path=${patchedDtc}/lib"
       ];
-    patches =
-      previousAttrs.patches
-      ++ [
-        ./0001-avoid-duplicate-definitions.patch
-        # Based on https://github.com/NixOS/nixpkgs/pull/300070/commits/96054ca98020df125bb91e5cf49bec107bea051b#diff-7246126ac058898e6da6aadc1e831bb26afe07fa145958e55c5e112dc2c578fd.
-        # We applied the same change done to libaio to libfdt as well.
-        ./0002-add-options-for-library-paths.patch
-      ]
-      ++ lib.optional snpSupport snpPatches;
+    patches = [
+      ./0001-avoid-duplicate-definitions.patch
+      # Based on https://github.com/NixOS/nixpkgs/pull/300070/commits/96054ca98020df125bb91e5cf49bec107bea051b#diff-7246126ac058898e6da6aadc1e831bb26afe07fa145958e55c5e112dc2c578fd.
+      # We applied the same change done to libaio to libfdt as well.
+      ./0002-add-options-for-library-paths.patch
+    ];
   })
