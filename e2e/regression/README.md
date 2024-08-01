@@ -11,5 +11,6 @@
 
 - [Alpine](./test-data/redis-alpine.yaml)
 - [Debian](./test-data/redis-bookworm.yaml)
-- [Ubuntu](./test-data/mongo-jammy.yaml)
-- [Oracle Linux](./test-data/mysql.yaml)
+- [Ubuntu](./test-data/mongodb.yaml)
+- [Cent OS](./test-data/mysql.yaml)
+- [Fedora](./test-data/apache-httpd.yaml)
