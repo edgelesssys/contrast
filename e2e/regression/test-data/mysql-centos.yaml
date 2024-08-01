@@ -2,20 +2,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mysql
+  name: mysql-centos
   namespace: REPLACE_NAMESPACE
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: mysql
+      app.kubernetes.io/name: mysql-centos
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: mysql
+        app.kubernetes.io/name: mysql-centos
     spec:
       containers:
-        - name: mysql
+        - name: mysql-centos
           image: quay.io/sclorg/mysql-80-c9s@sha256:bc6bf18a8aa5efe09418ba251b4a7e37b92697b4d03788f68efefeba002da587
           ports:
             - containerPort: 3306

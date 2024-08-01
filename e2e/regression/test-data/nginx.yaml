@@ -1,0 +1,22 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: REPLACE_NAMESPACE
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: quay.io/nginx/nginx-unprivileged@sha256:a30a0565b20529d70babf04b81cc64d2dc04cfce9ff55d535710fcb35ca4b425
+          ports:
+            - containerPort: 8080
+      runtimeClassName: REPLACE_RUNTIME

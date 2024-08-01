@@ -2,21 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: apache-httpd
+  name: apache-httpd-centos
   namespace: REPLACE_NAMESPACE
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: apache-httpd
+      app.kubernetes.io/name: apache-httpd-centos
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: apache-httpd
+        app.kubernetes.io/name: apache-httpd-centos
     spec:
       containers:
-        - name: apache-httpd
-          image: quay.io/fedora/httpd-24-micro@sha256:f8f7d90feb8beace46a9f235e1a215042c7a5d04e1567e11173f7b73ab621a1d
+        - name: apache-httpd-centos
+          image: quay.io/sclorg/httpd-24-micro-c9s@sha256:80b0ca364c3bf773f5a1a85fea5df8fa303ac75693c3dd5dfaad22ddb9206e67
           ports:
             - containerPort: 8443
             - containerPort: 8080

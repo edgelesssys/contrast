@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-///go:build e2e
+//go:build e2e
 
 package regression
 
@@ -24,7 +24,7 @@ import (
 
 var (
 	imageReplacementsFile, namespaceFile string
-	skipUndeploy                         bool
+	_skipUndeploy                        bool // just here for interoptability, ignored in this test
 )
 
 func TestRegression(t *testing.T) {
@@ -36,7 +36,7 @@ func TestRegression(t *testing.T) {
 	// TODO(miampf): Make this configurable
 	platform := platforms.AKSCloudHypervisorSNP
 
-	runtimeHandler, err := manifest.DefaultPlatformHandler(platform)
+	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
 	for _, file := range files {
@@ -44,7 +44,7 @@ func TestRegression(t *testing.T) {
 			require := require.New(t)
 
 			c := kubeclient.NewForTest(t)
-			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, skipUndeploy)
+			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, true)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
 
@@ -79,7 +79,9 @@ func TestRegression(t *testing.T) {
 func TestMain(m *testing.M) {
 	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
 	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
-	flag.BoolVar(&skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
+
+	// ignored and just here for interoptability, we always undeploy to save resources
+	flag.BoolVar(&_skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
 	flag.Parse()
 
 	os.Exit(m.Run())

@@ -1,0 +1,23 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: varnish
+  namespace: REPLACE_NAMESPACE
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: varnish
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: varnish
+    spec:
+      containers:
+        - name: varnish
+          image: quay.io/sclorg/varnish-6-c9s@sha256:269c6a36a1eaddaed952657a268c8276262b25b116c86a55f5d053ef278caa21
+          ports:
+            - containerPort: 8443
+            - containerPort: 8080
+      runtimeClassName: REPLACE_RUNTIME
