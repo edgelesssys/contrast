@@ -68,8 +68,10 @@ func TestPatchContainerdConfig(t *testing.T) {
 
 			configPath := filepath.Join(tmpDir, "config.toml")
 
-			err = patchContainerdConfig("my-runtime", "/opt/edgeless/my-runtime",
-				configPath, tc.platform)
+			runtimeHandler := "my-runtime"
+
+			err = patchContainerdConfig(runtimeHandler,
+				filepath.Join("/opt/edgeless", runtimeHandler), configPath, tc.platform)
 			if tc.wantErr {
 				require.Error(err)
 				return
@@ -118,8 +120,10 @@ func TestPatchContainerdConfigTemplate(t *testing.T) {
 
 			// Testing patching a config template.
 
-			err = patchContainerdConfigTemplate("my-runtime", "/opt/edgeless/my-runtime",
-				configTemplatePath, tc.platform)
+			runtimeHandler := "my-runtime"
+
+			err = patchContainerdConfigTemplate(runtimeHandler,
+				filepath.Join("/opt/edgeless", runtimeHandler), configTemplatePath, tc.platform)
 			require.NoError(err)
 
 			configData, err := os.ReadFile(configTemplatePath)
@@ -128,8 +132,8 @@ func TestPatchContainerdConfigTemplate(t *testing.T) {
 
 			// Test that patching the same template twice doesn't change it.
 
-			err = patchContainerdConfigTemplate("my-runtime", "/opt/edgeless/my-runtime",
-				configTemplatePath, tc.platform)
+			err = patchContainerdConfigTemplate(runtimeHandler,
+				filepath.Join("/opt/edgeless", runtimeHandler), configTemplatePath, tc.platform)
 			require.NoError(err)
 
 			configData, err = os.ReadFile(configTemplatePath)

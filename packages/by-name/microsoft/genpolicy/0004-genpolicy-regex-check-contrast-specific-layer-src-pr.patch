@@ -14,13 +14,12 @@ index 25c16bada..4f622a9f7 100644
 +++ b/src/tools/genpolicy/rules.rego
 @@ -887,7 +887,7 @@ allow_storage_options(p_storage, i_storage, layer_ids, root_hashes) {
      i_count == p_count + 3
- 
+
      print("allow_storage_options 2: i_storage.options[0] =", i_storage.options[0])
 -    i_storage.options[0] == "io.katacontainers.fs-opt.layer-src-prefix=/var/lib/containerd/io.containerd.snapshotter.v1.tardev/layers"
-+    regex.match(`io\.katacontainers\.fs-opt\.layer-src-prefix=/var/lib/containerd/io\.containerd\.snapshotter\.v1\.tardev-contrast-cc-[a-f0-9]{32}/layers`, i_storage.options[0])
- 
++    regex.match(`io\.katacontainers\.fs-opt\.layer-src-prefix=/var/lib/containerd/io\.containerd\.snapshotter\.v1\.tardev-contrast-cc-(aks|k3s|rke2)-(qemu|clh)-(snp|tdx)-[a-f0-9]{8}/layers`, i_storage.options[0])
+
      print("allow_storage_options 2: i_storage.options[i_count - 2] =", i_storage.options[i_count - 2])
      i_storage.options[i_count - 2] == "io.katacontainers.fs-opt.overlay-rw"
--- 
+--
 2.45.1
-

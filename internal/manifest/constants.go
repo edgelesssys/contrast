@@ -12,7 +12,11 @@ import (
 
 // Default returns a default manifest with reference values for the given platform.
 func Default(platform platforms.Platform) (*Manifest, error) {
-	refValues := setReferenceValuesIfUninitialized()
+	embeddedRefValues := GetEmbeddedReferenceValues()
+	refValues, err := embeddedRefValues.ForPlatform(platform)
+	if err != nil {
+		return nil, fmt.Errorf("get reference values for platform %s: %w", platform, err)
+	}
 
 	mnfst := Manifest{}
 	switch platform {
@@ -32,23 +36,9 @@ func Default(platform platforms.Platform) (*Manifest, error) {
 	return &mnfst, nil
 }
 
-// DefaultPlatformHandler is a short-hand for getting the default runtime handler for a platform.
-func DefaultPlatformHandler(platform platforms.Platform) (string, error) {
-	mnf, err := Default(platform)
-	if err != nil {
-		return "", fmt.Errorf("generating manifest: %w", err)
-	}
-	return mnf.RuntimeHandler(platform)
-}
-
-// EmbeddedReferenceValues returns the reference values embedded in the binary.
-func EmbeddedReferenceValues() ReferenceValues {
-	return setReferenceValuesIfUninitialized()
-}
-
-// EmbeddedReferenceValuesIfUninitialized returns the reference values embedded in the binary.
-func setReferenceValuesIfUninitialized() ReferenceValues {
-	var embeddedReferenceValues *ReferenceValues
+// GetEmbeddedReferenceValues returns the reference values embedded in the binary.
+func GetEmbeddedReferenceValues() EmbeddedReferenceValues {
+	var embeddedReferenceValues EmbeddedReferenceValues
 
 	if err := json.Unmarshal(EmbeddedReferenceValuesJSON, &embeddedReferenceValues); err != nil {
 		// As this relies on a constant, predictable value (i.e. the embedded JSON), which -- in a correctly built binary -- should
@@ -56,5 +46,5 @@ func setReferenceValuesIfUninitialized() ReferenceValues {
 		panic(fmt.Errorf("failed to unmarshal embedded reference values: %w", err))
 	}
 
-	return *embeddedReferenceValues
+	return embeddedReferenceValues
 }

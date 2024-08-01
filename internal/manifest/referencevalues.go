@@ -9,10 +9,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
+
+	"github.com/edgelesssys/contrast/internal/platforms"
 )
 
 // EmbeddedReferenceValuesJSON contains the embedded reference values in JSON format.
-// At startup, they are unmarshaled into a globally-shared ReferenceValues struct.
 //
 //go:embed assets/reference-values.json
 var EmbeddedReferenceValuesJSON []byte
@@ -24,6 +26,10 @@ type ReferenceValues struct {
 	// BareMetalTDX holds the reference values for TDX on bare metal.
 	BareMetalTDX *BareMetalTDXReferenceValues `json:"bareMetalTDX,omitempty"`
 }
+
+// EmbeddedReferenceValues is a map of runtime handler names to reference values, as
+// embedded in the binary.
+type EmbeddedReferenceValues map[string]ReferenceValues
 
 // AKSReferenceValues contains reference values for AKS.
 type AKSReferenceValues struct {
@@ -93,4 +99,47 @@ func (h HexString) String() string {
 // Bytes returns the byte slice representation of the HexString.
 func (h HexString) Bytes() ([]byte, error) {
 	return hex.DecodeString(string(h))
+}
+
+// ForPlatform returns the reference values for the given platform.
+func (e *EmbeddedReferenceValues) ForPlatform(platform platforms.Platform) (*ReferenceValues, error) {
+	var mapping EmbeddedReferenceValues
+	if err := json.Unmarshal(EmbeddedReferenceValuesJSON, &mapping); err != nil {
+		return nil, fmt.Errorf("unmarshal embedded reference values mapping: %w", err)
+	}
+
+	for handler, referenceValues := range mapping {
+		p, err := platformFromHandler(handler)
+		if err != nil {
+			return nil, fmt.Errorf("invalid handler name: %w", err)
+		}
+
+		if p == platform {
+			return &referenceValues, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no embedded reference values found for platform: %s", platform)
+}
+
+// platformFromHandler extracts the platform from the runtime handler name.
+func platformFromHandler(handler string) (platforms.Platform, error) {
+	rest, found := strings.CutPrefix(handler, "contrast-cc-")
+	if !found {
+		return platforms.Unknown, fmt.Errorf("invalid handler name: %s", handler)
+	}
+
+	parts := strings.Split(rest, "-")
+	if len(parts) != 4 {
+		return platforms.Unknown, fmt.Errorf("invalid handler name: %s", handler)
+	}
+
+	rawPlatform := fmt.Sprintf("%s-%s-%s", parts[0], parts[1], parts[2])
+
+	platform, err := platforms.FromString(rawPlatform)
+	if err != nil {
+		return platforms.Unknown, fmt.Errorf("invalid platform in handler name: %w", err)
+	}
+
+	return platform, nil
 }

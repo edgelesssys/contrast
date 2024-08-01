@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/asset"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/config"
@@ -65,24 +66,32 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	}
 	fmt.Printf("Using config: %+v\n", config)
 
-	runtimeBase := filepath.Join("/opt", "edgeless", config.RuntimeHandlerName)
+	runtimeHandlerName, err := manifest.RuntimeHandler(platform)
+	if err != nil {
+		return fmt.Errorf("getting runtime handler name: %w", err)
+	}
+
+	runtimeBase := filepath.Join("/opt", "edgeless", runtimeHandlerName)
 
 	// Copy the files
 	for _, file := range config.Files {
-		fmt.Printf("Fetching %q to %q\n", file.URL, file.Path)
+		// Replace @@runtimeBase@@ in the target path with the actual base directory.
+		targetPath := strings.ReplaceAll(file.Path, constants.RuntimeBasePlaceholder, runtimeBase)
 
-		if err := os.MkdirAll(filepath.Dir(filepath.Join(hostMount, file.Path)), os.ModePerm); err != nil {
-			return fmt.Errorf("creating directory %q: %w", filepath.Dir(file.Path), err)
+		fmt.Printf("Fetching %q to %q\n", file.URL, targetPath)
+
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(hostMount, targetPath)), os.ModePerm); err != nil {
+			return fmt.Errorf("creating directory %q: %w", filepath.Dir(targetPath), err)
 		}
 
 		var fetchErr error
 		if file.Integrity == "" {
-			_, fetchErr = fetcher.FetchUnchecked(ctx, file.URL, filepath.Join(hostMount, file.Path))
+			_, fetchErr = fetcher.FetchUnchecked(ctx, file.URL, filepath.Join(hostMount, targetPath))
 		} else {
-			_, fetchErr = fetcher.Fetch(ctx, file.URL, filepath.Join(hostMount, file.Path), file.Integrity)
+			_, fetchErr = fetcher.Fetch(ctx, file.URL, filepath.Join(hostMount, targetPath), file.Integrity)
 		}
 		if fetchErr != nil {
-			return fmt.Errorf("fetching file from %q to %q: %w", file.URL, file.Path, fetchErr)
+			return fmt.Errorf("fetching file from %q to %q: %w", file.URL, targetPath, fetchErr)
 		}
 	}
 
@@ -136,10 +145,15 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 		return fmt.Errorf("generating kata runtime configuration: %w", err)
 	}
 
+	runtimeHandler, err := manifest.RuntimeHandler(platform)
+	if err != nil {
+		return fmt.Errorf("getting runtime handler name: %w", err)
+	}
+
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		// AKS or any external-containerd based K8s distro: We can just patch the existing containerd config at /etc/containerd/config.toml
-		if err := patchContainerdConfig(config.RuntimeHandlerName, runtimeBase, containerdConfigPath, platform); err != nil {
+		if err := patchContainerdConfig(runtimeHandler, runtimeBase, containerdConfigPath, platform); err != nil {
 			return fmt.Errorf("patching containerd configuration: %w", err)
 		}
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
@@ -147,7 +161,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 		// Therefore just write the TOML configuration fragment ourselves and append it to the template file.
 		// This assumes that the user does not yet have a runtime with the same name configured himself,
 		// but as our runtimes are hash-named, this should be a safe assumption.
-		if err := patchContainerdConfigTemplate(config.RuntimeHandlerName, runtimeBase, containerdConfigPath, platform); err != nil {
+		if err := patchContainerdConfigTemplate(runtimeHandler, runtimeBase, containerdConfigPath, platform); err != nil {
 			return fmt.Errorf("patching containerd configuration: %w", err)
 		}
 	default:
@@ -204,7 +218,7 @@ func containerdRuntimeConfig(basePath, configPath string, platform platforms.Pla
 	return os.WriteFile(configPath, rawConfig, os.ModePerm)
 }
 
-func patchContainerdConfig(runtimeName, basePath, configPath string, platform platforms.Platform) error {
+func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform platforms.Platform) error {
 	existingRaw, existing, err := parseExistingContainerdConfig(configPath)
 	if err != nil {
 		existing = constants.ContainerdBaseConfig()
@@ -216,8 +230,8 @@ func patchContainerdConfig(runtimeName, basePath, configPath string, platform pl
 		if existing.ProxyPlugins == nil {
 			existing.ProxyPlugins = make(map[string]config.ProxyPlugin)
 		}
-		snapshotterName = fmt.Sprintf("tardev-%s", runtimeName)
-		socketName := fmt.Sprintf("/run/containerd/tardev-snapshotter-%s.sock", runtimeName)
+		snapshotterName = fmt.Sprintf("tardev-%s", runtimeHandler)
+		socketName := fmt.Sprintf("/run/containerd/tardev-snapshotter-%s.sock", runtimeHandler)
 		existing.ProxyPlugins[snapshotterName] = config.ProxyPlugin{
 			Type:    "snapshot",
 			Address: socketName,
@@ -230,7 +244,7 @@ func patchContainerdConfig(runtimeName, basePath, configPath string, platform pl
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime config: %w", err)
 	}
-	runtimes[runtimeName] = containerdRuntimeConfig
+	runtimes[runtimeHandler] = containerdRuntimeConfig
 
 	rawConfig, err := toml.Marshal(existing)
 	if err != nil {
@@ -246,7 +260,7 @@ func patchContainerdConfig(runtimeName, basePath, configPath string, platform pl
 	return os.WriteFile(configPath, rawConfig, os.ModePerm)
 }
 
-func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath string, platform platforms.Platform) error {
+func patchContainerdConfigTemplate(runtimeHandler, basePath, configTemplatePath string, platform platforms.Platform) error {
 	existingConfig, err := os.ReadFile(configTemplatePath)
 	if err != nil {
 		return fmt.Errorf("reading containerd config template: %w", err)
@@ -254,7 +268,7 @@ func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath str
 	fmt.Printf("Existing containerd config template:\n%s\n", existingConfig)
 
 	// Don't add the runtime section if it already exists.
-	runtimeSection := fmt.Sprintf("[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.%s]", runtimeName)
+	runtimeSection := fmt.Sprintf("[plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.%s]", runtimeHandler)
 	if bytes.Contains(existingConfig, []byte(runtimeSection)) {
 		fmt.Printf("Runtime section %q already exists\n", runtimeSection)
 		return nil
@@ -273,7 +287,7 @@ func patchContainerdConfigTemplate(runtimeName, basePath, configTemplatePath str
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime config: %w", err)
 	}
-	runtimes[runtimeName] = containerdRuntimeConfig
+	runtimes[runtimeHandler] = containerdRuntimeConfig
 
 	rawNewPluginConfig, err := toml.Marshal(newConfigFragment)
 	if err != nil {

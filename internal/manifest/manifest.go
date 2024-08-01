@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/validate"
@@ -171,16 +170,4 @@ func (m *Manifest) AKSValidateOpts() (*validate.Options, error) {
 		},
 		PermitProvisionalFirmware: true,
 	}, nil
-}
-
-// RuntimeHandler returns the runtime handler for the given platform.
-func (m *Manifest) RuntimeHandler(platform platforms.Platform) (string, error) {
-	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
-		return fmt.Sprintf("contrast-cc-%s", m.ReferenceValues.AKS.TrustedMeasurement[:32]), nil
-	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
-		return fmt.Sprintf("contrast-cc-%s", m.ReferenceValues.BareMetalTDX.TrustedMeasurement[:32]), nil
-	default:
-		return "", fmt.Errorf("unsupported platform %s", platform)
-	}
 }

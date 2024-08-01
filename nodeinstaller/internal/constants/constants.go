@@ -36,6 +36,9 @@ var (
 	//
 	//go:embed containerd-config.toml
 	containerdBaseConfig string
+
+	// RuntimeBasePlaceholder is the placeholder for the per-runtime path (i.e. /opt/edgeless/contrast-cc...) in the target file paths.
+	RuntimeBasePlaceholder = "@@runtimeBase@@"
 )
 
 // CRIFQDN is the fully qualified domain name of the CRI service.
