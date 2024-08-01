@@ -259,12 +259,21 @@ func patchContainerdConfigTemplate(runtimeHandler, basePath, configTemplatePath 
 	type PluginFragment struct {
 		// Plugins provides plugin specific configuration for the initialization of a plugin
 		Plugins map[string]any `toml:"plugins"`
+		// ProxyPlugins provides a map of proxy plugins to be used by containerd
+		ProxyPlugins map[string]config.ProxyPlugin `toml:"proxy_plugins"`
 	}
 
 	// Extend a scratchpad config with the new plugin configuration. (including the new contrast-cc runtime)
 	var newConfigFragment PluginFragment
+	newConfigFragment.ProxyPlugins = make(map[string]config.ProxyPlugin)
+	snapshotterName := fmt.Sprintf("nydus-%s", runtimeName)
+	socketName := fmt.Sprintf("/run/containerd/containerd-nydus-grpc-%s.sock", runtimeName)
+	newConfigFragment.ProxyPlugins[snapshotterName] = config.ProxyPlugin{
+		Type:    "snapshot",
+		Address: socketName,
+	}
 	runtimes := ensureMapPath(&newConfigFragment.Plugins, constants.CRIFQDN, "containerd", "runtimes")
-	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, "no-snapshotter", platform)
+	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, snapshotterName, platform)
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime config: %w", err)
 	}
