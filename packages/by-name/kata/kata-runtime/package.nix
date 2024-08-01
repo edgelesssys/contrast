@@ -39,6 +39,9 @@ buildGoModule rec {
       # delegates hash verification to the AA. Until that effort lands, we're
       # sticking with the policy verification from AKS CoCo.
       ./0003-runtime-agent-verify-the-agent-policy-hash.patch
+      # This patches fixes compatibility issues with QEMU 9.1.
+      # https://github.com/kata-containers/kata-containers/pull/10113
+      ./0004-qemu-don-t-emit-scsi-parameter.patch
     ];
   };
 
