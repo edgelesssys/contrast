@@ -128,10 +128,7 @@ This should give you output similar to the following one.
 
 ```sh
 NAME                                           HANDLER                                        AGE
-contrast-cc-30bfa8706b542271ec9b7762bbb400af   contrast-cc-30bfa8706b542271ec9b7762bbb400af   23d
-contrast-cc-4d70a6e266cca46dfa8e41d92874e638   contrast-cc-4d70a6e266cca46dfa8e41d92874e638   7d
-contrast-cc-b817659e094106f61bf6c178c27153ba   contrast-cc-b817659e094106f61bf6c178c27153ba   2d19h
-contrast-cc-beee79ca916b9e5dc59602788cbfb097   contrast-cc-beee79ca916b9e5dc59602788cbfb097   121m
+contrast-cc-aks-clh-snp-7173acb5               contrast-cc-aks-clh-snp-7173acb5               23h
 kata-cc-isolation                              kata-cc                                        45d
 ```
 
@@ -149,8 +146,7 @@ kubectl -n <namespace> get -o=jsonpath='{.spec.runtimeClassName}' pod/<coordinat
 The output should list the runtime class the pod is using:
 
 ```sh
-contrast-cc-beee79ca916b9e5dc59602788cbfb097
-contrast-cc-beee79ca916b9e5dc59602788cbfb097
+contrast-cc-aks-clh-snp-7173acb5
 ```
 
 Version information about the currently used CLI can be obtained via the `version` flag:
@@ -162,7 +158,7 @@ contrast --version
 ```sh
 contrast version v0.X.0
 
-    runtime handler:      contrast-cc-beee79ca916b9e5dc59602788cbfb097
+    runtime handler:      contrast-cc-aks-clh-snp-7173acb5
     launch digest:        beee79ca916b9e5dc59602788cbfb097721cde34943e1583a3918f21011a71c47f371f68e883f5e474a6d4053d931a35
     genpolicy version:    3.2.0.azl1.genpolicy0
     image versions:       ghcr.io/edgelesssys/contrast/coordinator@sha256:...

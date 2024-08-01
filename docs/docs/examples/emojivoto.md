@@ -76,7 +76,7 @@ contrast generate --reference-values aks-clh-snp deployment/
 :::note[Runtime class and Initializer]
 
 The deployment YAML shipped for this demo is already configured to be used with Contrast.
-A [runtime class](https://docs.edgeless.systems/contrast/components/runtime) `contrast-cc-<VERSIONHASH>`
+A [runtime class](https://docs.edgeless.systems/contrast/components/runtime) `contrast-cc-<platform>-<runtime-hash>`
 was added to the pods to signal they should be run as Confidential Containers. During the generation process,
 the Contrast [Initializer](../components/overview.md#the-initializer) will be added as an init container to these
 workloads to facilitate the attestation and certificate pulling before the actual workload is started.
