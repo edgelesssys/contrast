@@ -42,9 +42,6 @@
       echo "Updating vendorHash of service-mesh package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.service-mesh
 
-      echo "Updating vendorHash of node-installer package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast.nodeinstaller
-
       echo "Updateing yarn offlineCache hash of contrast-docs package" >&2
       nix-update --version=skip --flake \
         --override-filename=packages/by-name/contrast-docs/package.nix \
