@@ -57,9 +57,23 @@ let
       };
       bareMetalTDX = {
         trustedMeasurement = lib.removeSuffix "\n" (
-          builtins.readFile "${kata.runtime-class-files}/launch-digest.hex"
+          builtins.readFile "${kata.runtime-class-files}/launch-digest-tdx.hex"
         );
       };
+    }
+  );
+
+  embeddedPlatformHandlerMapping = builtins.toFile "platform-runtime-mapping.json" (
+    builtins.toJSON {
+      "aks" = lib.removeSuffix "\n" (
+        builtins.readFile "${microsoft.runtime-class-files}/runtime-hash.hex"
+      );
+      "bareMetalTDX" = lib.removeSuffix "\n" (
+        builtins.readFile "${kata.runtime-class-files}/runtime-hash-tdx.hex"
+      );
+      "bareMetalSNP" = lib.removeSuffix "\n" (
+        builtins.readFile "${kata.runtime-class-files}/runtime-hash-snp.hex"
+      );
     }
   );
 
@@ -113,14 +127,15 @@ buildGoModule rec {
     install -D ${genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules.rego
     install -D ${genpolicy.src}/src/kata-opa/allow-all.rego cli/genpolicy/assets/allow-all.rego
     install -D ${embeddedReferenceValues} internal/manifest/assets/reference-values.json
+    install -D ${embeddedPlatformHandlerMapping} internal/manifest/assets/platform-runtime-mapping.json
   '';
 
   CGO_ENABLED = 0;
   ldflags = [
     "-s"
     "-w"
-    "-X github.com/edgelesssys/contrast/cli/constants.Version=${version}"
-    "-X github.com/edgelesssys/contrast/cli/constants.GenpolicyVersion=${genpolicy.version}"
+    "-X github.com/edgelesssys/contrast/internal/constants.Version=${version}"
+    "-X github.com/edgelesssys/contrast/internal/constants.GenpolicyVersion=${genpolicy.version}"
   ];
 
   preCheck = ''
@@ -159,7 +174,7 @@ buildGoModule rec {
   dontFixup = true;
 
   passthru = {
-    inherit e2e embeddedReferenceValues;
+    inherit e2e embeddedReferenceValues embeddedPlatformHandlerMapping;
     inherit (genpolicy) settings rules;
   };
 

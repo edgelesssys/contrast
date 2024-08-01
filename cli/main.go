@@ -13,7 +13,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/edgelesssys/contrast/cli/cmd"
-	"github.com/edgelesssys/contrast/cli/constants"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/spf13/cobra"
 )

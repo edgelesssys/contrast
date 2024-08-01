@@ -36,7 +36,7 @@ func TestGenpolicy(t *testing.T) {
 
 	testCases := kuberesource.GenpolicyRegressionTests()
 
-	runtimeHandler, err := manifest.DefaultPlatformHandler(platform)
+	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
 	for name, deploy := range testCases {

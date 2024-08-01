@@ -16,6 +16,7 @@
       install -D ${contrast.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules.rego
       # TODO(burgerdev): cli/genpolicy/assets/allow-all.rego is insecure and deliberately omitted
       install -D ${contrast.embeddedReferenceValues} internal/manifest/assets/reference-values.json
+      install -D ${contrast.embeddedPlatformHandlerMapping} internal/manifest/assets/platform-runtime-mapping.json
     '';
 
     ldflags = previousAttrs.ldflags ++ [

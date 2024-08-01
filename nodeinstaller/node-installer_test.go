@@ -4,12 +4,15 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	_ "embed"
 
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,10 +54,6 @@ func TestPatchContainerdConfig(t *testing.T) {
 			platform: platforms.K3sQEMUSNP,
 			expected: expectedConfBareMetalQEMUSNP,
 		},
-		"Unknown": {
-			platform: platforms.Unknown,
-			wantErr:  true,
-		},
 	}
 
 	for name, tc := range testCases {
@@ -68,7 +67,10 @@ func TestPatchContainerdConfig(t *testing.T) {
 
 			configPath := filepath.Join(tmpDir, "config.toml")
 
-			err = patchContainerdConfig("my-runtime", "/opt/edgeless/my-runtime",
+			runtimeHandler, err := manifest.RuntimeHandler(tc.platform)
+			require.NoError(err)
+
+			err = patchContainerdConfig(filepath.Join("/opt/edgeless", runtimeHandler),
 				configPath, tc.platform)
 			if tc.wantErr {
 				require.Error(err)
@@ -78,7 +80,9 @@ func TestPatchContainerdConfig(t *testing.T) {
 
 			configData, err := os.ReadFile(configPath)
 			require.NoError(err)
-			assert.Equal(string(tc.expected), string(configData))
+			expected := strings.ReplaceAll(string(tc.expected), "RUNTIMEHANDLER", runtimeHandler)
+			fmt.Println("expected: ", expected)
+			assert.Equal(expected, string(configData))
 		})
 	}
 }
@@ -118,23 +122,27 @@ func TestPatchContainerdConfigTemplate(t *testing.T) {
 
 			// Testing patching a config template.
 
-			err = patchContainerdConfigTemplate("my-runtime", "/opt/edgeless/my-runtime",
+			runtimeHandler, err := manifest.RuntimeHandler(tc.platform)
+			require.NoError(err)
+
+			err = patchContainerdConfigTemplate(filepath.Join("/opt/edgeless", runtimeHandler),
 				configTemplatePath, tc.platform)
 			require.NoError(err)
 
 			configData, err := os.ReadFile(configTemplatePath)
 			require.NoError(err)
-			assert.Equal(string(tc.expected), string(configData))
+			expected := strings.ReplaceAll(string(tc.expected), "RUNTIMEHANDLER", runtimeHandler)
+			assert.Equal(expected, string(configData))
 
 			// Test that patching the same template twice doesn't change it.
 
-			err = patchContainerdConfigTemplate("my-runtime", "/opt/edgeless/my-runtime",
+			err = patchContainerdConfigTemplate("/opt/edgeless/my-runtime",
 				configTemplatePath, tc.platform)
 			require.NoError(err)
 
 			configData, err = os.ReadFile(configTemplatePath)
 			require.NoError(err)
-			assert.Equal(string(tc.expected), string(configData))
+			assert.Equal(expected, string(configData))
 		})
 	}
 }

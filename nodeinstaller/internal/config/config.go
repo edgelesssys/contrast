@@ -8,15 +8,12 @@ import (
 	"errors"
 	"net/url"
 	"path/filepath"
-	"regexp"
 )
 
 // Config is the configuration for the node-installer.
 type Config struct {
 	// Files is a list of files to download.
 	Files []File `json:"files"`
-	// RuntimeHandlerName is the name of the runtime handler (containerd runtime) to create.
-	RuntimeHandlerName string `json:"runtimeHandlerName"`
 	// DebugRuntime enables the debug mode of the runtime.
 	// This only works if the igvm file has shell access enabled
 	// and has no effect on production images.
@@ -25,19 +22,6 @@ type Config struct {
 
 // Validate validates the configuration.
 func (c Config) Validate() error {
-	if c.RuntimeHandlerName == "" {
-		return errors.New("runtimeHandlerName is required")
-	}
-	if len(c.RuntimeHandlerName) > 63 {
-		return errors.New("runtimeHandlerName must be 63 characters or fewer")
-	}
-	matched, err := regexp.Match(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`, []byte(c.RuntimeHandlerName))
-	if err != nil {
-		return err
-	}
-	if !matched {
-		return errors.New("runtimeHandlerName must be a lowercase RFC 1123 subdomain")
-	}
 	for _, file := range c.Files {
 		if err := file.Validate(); err != nil {
 			return err

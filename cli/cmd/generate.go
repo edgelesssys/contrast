@@ -116,7 +116,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	runtimeHandler, err := mnf.RuntimeHandler(flags.referenceValuesPlatform)
+	runtimeHandler, err := manifest.RuntimeHandler(flags.referenceValuesPlatform)
 	if err != nil {
 		return fmt.Errorf("get runtime handler: %w", err)
 	}

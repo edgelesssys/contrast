@@ -54,8 +54,10 @@ stdenvNoCC.mkDerivation {
   # TODO(msanft): perform the actual launch digest calculation.
   buildPhase = ''
     mkdir -p $out
-    sha256sum ${image} ${kernel} ${qemu-snp.bin} ${qemu-tdx.bin} ${containerd-shim-contrast-cc-v2} ${ovmf-snp} ${ovmf-tdx} | sha256sum | cut -d " " -f 1 > $out/launch-digest.hex
-    printf "contrast-cc-%s" "$(cat $out/launch-digest.hex | head -c 32)" > $out/runtime-handler
+    sha256sum ${image} ${kernel} ${qemu-tdx.bin} ${containerd-shim-contrast-cc-v2} ${ovmf-tdx} | sha256sum | cut -d " " -f 1 > $out/launch-digest-tdx.hex
+    cp $out/launch-digest-tdx.hex $out/runtime-hash-tdx.hex
+    sha256sum ${image} ${kernel} ${qemu-snp.bin} ${containerd-shim-contrast-cc-v2} ${ovmf-snp} | sha256sum | cut -d " " -f 1 > $out/launch-digest-snp.hex
+    cp $out/launch-digest-snp.hex $out/runtime-hash-snp.hex
   '';
 
   passthru = {

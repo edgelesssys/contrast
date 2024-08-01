@@ -37,7 +37,7 @@ func main() {
 			log.Fatalf("Error parsing platform: %v", err)
 		}
 
-		runtimeHandler, err = manifest.DefaultPlatformHandler(platform)
+		runtimeHandler, err = manifest.RuntimeHandler(platform)
 		if err != nil {
 			log.Fatalf("Error getting default runtime handler: %v", err)
 		}

@@ -11,11 +11,17 @@ import (
 	"strconv"
 )
 
-// EmbeddedReferenceValuesJSON contains the embedded reference values in JSON format.
-// At startup, they are unmarshaled into a globally-shared ReferenceValues struct.
-//
-//go:embed assets/reference-values.json
-var EmbeddedReferenceValuesJSON []byte
+var (
+	// EmbeddedPlatformRuntimeMappingJSON is a 1:1 mapping of platform names to their runtime component hashes.
+	//
+	//go:embed assets/platform-runtime-mapping.json
+	EmbeddedPlatformRuntimeMappingJSON []byte
+
+	// EmbeddedReferenceValuesJSON contains the embedded reference values in JSON format.
+	//
+	//go:embed assets/reference-values.json
+	EmbeddedReferenceValuesJSON []byte
+)
 
 // ReferenceValues contains the workload-independent reference values for each platform.
 type ReferenceValues struct {
@@ -23,6 +29,13 @@ type ReferenceValues struct {
 	AKS *AKSReferenceValues `json:"aks,omitempty"`
 	// BareMetalTDX holds the reference values for TDX on bare metal.
 	BareMetalTDX *BareMetalTDXReferenceValues `json:"bareMetalTDX,omitempty"`
+}
+
+// PlatformRuntimeMapping is a 1:1 mapping of platform names to their runtime component hashes.
+type PlatformRuntimeMapping struct {
+	AKS          string `json:"aks,omitempty"`
+	BareMetalTDX string `json:"bareMetalTDX,omitempty"`
+	BareMetalSNP string `json:"bareMetalSNP,omitempty"`
 }
 
 // AKSReferenceValues contains reference values for AKS.
