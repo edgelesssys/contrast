@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 {
-  lib,
   ociLayerTar,
   ociImageManifest,
   ociImageLayout,
@@ -26,13 +25,6 @@ let
     ];
   };
 
-  launch-digest = lib.removeSuffix "\n" (
-    builtins.readFile "${microsoft.runtime-class-files}/launch-digest.hex"
-  );
-  runtime-handler = lib.removeSuffix "\n" (
-    builtins.readFile "${microsoft.runtime-class-files}/runtime-handler"
-  );
-
   installer-config = ociLayerTar {
     files = [
       {
@@ -40,22 +32,21 @@ let
           files = [
             {
               url = "file:///opt/edgeless/share/kata-containers.img";
-              path = "/opt/edgeless/${runtime-handler}/share/kata-containers.img";
+              path = "@@runtimeBase@@/share/kata-containers.img";
             }
             {
               url = "file:///opt/edgeless/share/kata-containers-igvm.img";
-              path = "/opt/edgeless/${runtime-handler}/share/kata-containers-igvm.img";
+              path = "@@runtimeBase@@/share/kata-containers-igvm.img";
             }
             {
               url = "file:///opt/edgeless/bin/cloud-hypervisor-snp";
-              path = "/opt/edgeless/${runtime-handler}/bin/cloud-hypervisor-snp";
+              path = "@@runtimeBase@@/bin/cloud-hypervisor-snp";
             }
             {
               url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
-              path = "/opt/edgeless/${runtime-handler}/bin/containerd-shim-contrast-cc-v2";
+              path = "@@runtimeBase@@/bin/containerd-shim-contrast-cc-v2";
             }
           ];
-          runtimeHandlerName = runtime-handler;
           inherit (microsoft.runtime-class-files) debugRuntime;
         };
         destination = "/config/contrast-node-install.json";
@@ -116,7 +107,6 @@ let
       "annotations" = {
         "org.opencontainers.image.title" = "contrast-node-installer-microsoft";
         "org.opencontainers.image.description" = "Contrast Node Installer (Microsoft)";
-        "systems.edgeless.contrast.snp-launch-digest" = launch-digest;
       };
     };
   };

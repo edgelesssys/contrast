@@ -12,7 +12,7 @@ import (
 	"net/url"
 	"runtime"
 
-	"github.com/edgelesssys/contrast/cli/constants"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/spf13/cobra"
 )
 

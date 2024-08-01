@@ -11,6 +11,8 @@
 
 let
   igvm = if debugRuntime then microsoft.kata-igvm.debug else microsoft.kata-igvm;
+  cloud-hypervisor-exe = lib.getExe microsoft.cloud-hypervisor;
+  containerd-shim-contrast-cc-v2 = lib.getExe microsoft.kata-runtime;
 in
 
 stdenvNoCC.mkDerivation {
@@ -24,13 +26,16 @@ stdenvNoCC.mkDerivation {
   buildPhase = ''
     mkdir -p $out
     igvmmeasure -b ${igvm} | dd conv=lcase > $out/launch-digest.hex
-    printf "contrast-cc-%s" "$(cat $out/launch-digest.hex | head -c 32)" > $out/runtime-handler
+    sha256sum ${igvm} ${cloud-hypervisor-exe} ${containerd-shim-contrast-cc-v2}| cut -d " " -f 1 > $out/runtime-hash.hex
   '';
 
   passthru = {
-    inherit debugRuntime igvm;
+    inherit
+      debugRuntime
+      igvm
+      cloud-hypervisor-exe
+      containerd-shim-contrast-cc-v2
+      ;
     rootfs = microsoft.kata-image;
-    cloud-hypervisor-exe = lib.getExe microsoft.cloud-hypervisor;
-    containerd-shim-contrast-cc-v2 = lib.getExe microsoft.kata-runtime;
   };
 }

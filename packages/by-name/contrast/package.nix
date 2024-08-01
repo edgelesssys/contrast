@@ -40,28 +40,59 @@ let
 
   # Reference values that we embed into the Contrast CLI for
   # deployment generation and attestation.
-  embeddedReferenceValues = builtins.toFile "reference-values.json" (
-    builtins.toJSON {
-      aks = {
-        snp = {
-          minimumTCB = {
-            bootloaderVersion = 3;
-            teeVersion = 0;
-            snpVersion = 8;
-            microcodeVersion = 115;
+  embeddedReferenceValues =
+    let
+      runtimeHandler =
+        platform:
+        (
+          launchDigestFile:
+          "contrast-cc-${platform}-${builtins.substring 0 8 (builtins.readFile launchDigestFile)}"
+        );
+
+      aks-clh-snp-handler = runtimeHandler "aks-clh-snp" "${microsoft.runtime-class-files}/runtime-hash.hex";
+      k3s-qemu-tdx-handler = runtimeHandler "k3s-qemu-tdx" "${kata.runtime-class-files}/runtime-hash-tdx.hex";
+      rke2-qemu-tdx-handler = runtimeHandler "rke2-qemu-tdx" "${kata.runtime-class-files}/runtime-hash-tdx.hex";
+      k3s-qemu-snp-handler = runtimeHandler "k3s-qemu-snp" "${kata.runtime-class-files}/runtime-hash-snp.hex";
+
+      aksRefVals = {
+        aks = {
+          snp = {
+            minimumTCB = {
+              bootloaderVersion = 3;
+              teeVersion = 0;
+              snpVersion = 8;
+              microcodeVersion = 115;
+            };
           };
+          trustedMeasurement = lib.removeSuffix "\n" (
+            builtins.readFile "${microsoft.runtime-class-files}/launch-digest.hex"
+          );
         };
+      };
+
+      snpRefVals = {
+        inherit (aksRefVals.aks) snp;
         trustedMeasurement = lib.removeSuffix "\n" (
-          builtins.readFile "${microsoft.runtime-class-files}/launch-digest.hex"
+          builtins.readFile "${kata.runtime-class-files}/launch-digest-snp.hex"
         );
       };
-      bareMetalTDX = {
-        trustedMeasurement = lib.removeSuffix "\n" (
-          builtins.readFile "${kata.runtime-class-files}/launch-digest.hex"
-        );
+
+      tdxRefVals = {
+        bareMetalTDX = {
+          trustedMeasurement = lib.removeSuffix "\n" (
+            builtins.readFile "${kata.runtime-class-files}/launch-digest-tdx.hex"
+          );
+        };
       };
-    }
-  );
+    in
+    builtins.toFile "reference-values.json" (
+      builtins.toJSON {
+        "${aks-clh-snp-handler}" = aksRefVals;
+        "${k3s-qemu-tdx-handler}" = tdxRefVals;
+        "${rke2-qemu-tdx-handler}" = tdxRefVals;
+        "${k3s-qemu-snp-handler}" = snpRefVals;
+      }
+    );
 
   packageOutputs = [
     "coordinator"
@@ -119,8 +150,8 @@ buildGoModule rec {
   ldflags = [
     "-s"
     "-w"
-    "-X github.com/edgelesssys/contrast/cli/constants.Version=${version}"
-    "-X github.com/edgelesssys/contrast/cli/constants.GenpolicyVersion=${genpolicy.version}"
+    "-X github.com/edgelesssys/contrast/internal/constants.Version=${version}"
+    "-X github.com/edgelesssys/contrast/internal/constants.GenpolicyVersion=${genpolicy.version}"
   ];
 
   preCheck = ''

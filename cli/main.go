@@ -13,7 +13,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/edgelesssys/contrast/cli/cmd"
-	"github.com/edgelesssys/contrast/cli/constants"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +43,7 @@ func buildVersionString() string {
 			fmt.Fprintf(versionsWriter, "\t%s\n", image)
 		}
 	}
-	if refValues, err := json.MarshalIndent(manifest.EmbeddedReferenceValues(), "\t", "  "); err == nil {
+	if refValues, err := json.MarshalIndent(manifest.GetEmbeddedReferenceValues(), "\t", "  "); err == nil {
 		fmt.Fprintf(versionsWriter, "embedded reference values:\t%s\n", refValues)
 	}
 	fmt.Fprintf(versionsWriter, "genpolicy version:\t%s\n", constants.GenpolicyVersion)

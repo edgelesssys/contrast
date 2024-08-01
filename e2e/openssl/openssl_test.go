@@ -47,7 +47,7 @@ func TestOpenSSL(t *testing.T) {
 	// TODO(msanft): Make this configurable
 	platform := platforms.AKSCloudHypervisorSNP
 
-	runtimeHandler, err := manifest.DefaultPlatformHandler(platform)
+	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
 	resources := kuberesource.OpenSSL()
