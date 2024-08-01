@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -38,6 +39,9 @@ func main() {
 }
 
 func run() (retErr error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	logger, err := logger.Default()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: creating logger: %v\n", err)
@@ -69,8 +73,10 @@ func run() (retErr error) {
 
 	userapi.RegisterUserAPIServer(grpcServer, meshAuth)
 	serverMetrics.InitializeMetrics(grpcServer)
+	meshAPI := newMeshAPIServer(meshAuth, meshAuth, promRegistry, serverMetrics, logger)
+	metricsServer := &http.Server{}
 
-	eg := errgroup.Group{}
+	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
 		if metricsPort == "" {
@@ -87,7 +93,10 @@ func run() (retErr error) {
 				promhttp.HandlerOpts{Registry: promRegistry},
 			),
 		))
-		if err := http.ListenAndServe(":"+metricsPort, mux); err != nil {
+		metricsServer.Addr = ":" + metricsPort
+		metricsServer.Handler = mux
+		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Serving Prometheus /metrics endpoint", "err", err)
 			return fmt.Errorf("serving Prometheus endpoint: %w", err)
 		}
 		return nil
@@ -100,18 +109,28 @@ func run() (retErr error) {
 			return fmt.Errorf("failed to listen: %w", err)
 		}
 		if err := grpcServer.Serve(lis); err != nil {
+			logger.Error("Serving Coordinator API", "err", err)
 			return fmt.Errorf("serving Coordinator API: %w", err)
 		}
 		return nil
 	})
 
 	eg.Go(func() error {
-		meshAPI := newMeshAPIServer(meshAuth, meshAuth, promRegistry, serverMetrics, logger)
 		logger.Info("Coordinator mesh API listening")
 		if err := meshAPI.Serve(net.JoinHostPort("0.0.0.0", meshapi.Port)); err != nil {
+			logger.Error("Serving mesh API", "err", err)
 			return fmt.Errorf("serving mesh API: %w", err)
 		}
 		return nil
+	})
+
+	eg.Go(func() error {
+		<-ctx.Done()
+		logger.Info("Error detected, shutting down")
+		grpcServer.GracefulStop()
+		meshAPI.grpc.GracefulStop()
+		//nolint:contextcheck // fresh context for cleanup
+		return metricsServer.Shutdown(context.Background())
 	})
 
 	return eg.Wait()
