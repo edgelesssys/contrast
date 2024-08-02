@@ -84,14 +84,14 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			m: &Manifest{
-				Policies:        map[HexString][]string{HexString(""): {}},
+				Policies:        map[HexString]PolicyEntry{HexString(""): {}},
 				ReferenceValues: mnf.ReferenceValues,
 			},
 			wantErr: true,
 		},
 		{
 			m: &Manifest{
-				Policies: map[HexString][]string{HexString(""): {}},
+				Policies: map[HexString]PolicyEntry{HexString(""): {}},
 				ReferenceValues: ReferenceValues{
 					AKS: &AKSReferenceValues{
 						SNP:                mnf.ReferenceValues.AKS.SNP,

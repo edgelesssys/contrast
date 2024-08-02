@@ -91,7 +91,7 @@ func TestPolicy(t *testing.T) {
 
 		// Remove a policy from the manifest.
 		for policyHash := range m.Policies {
-			if slices.Contains(m.Policies[policyHash], opensslFrontend) {
+			if slices.Contains(m.Policies[policyHash].SANs, opensslFrontend) {
 				delete(m.Policies, policyHash)
 			}
 		}
