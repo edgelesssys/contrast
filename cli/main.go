@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/signal"
@@ -15,6 +14,7 @@ import (
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/spf13/cobra"
 )
 
@@ -35,6 +35,7 @@ func buildVersionString() string {
 	var versionsBuilder strings.Builder
 	versionsWriter := tabwriter.NewWriter(&versionsBuilder, 0, 0, 4, ' ', 0)
 	fmt.Fprintf(versionsWriter, "%s\n\n", constants.Version)
+
 	fmt.Fprintf(versionsWriter, "container image versions:\n")
 	imageReplacements := strings.Trim(string(cmd.ReleaseImageReplacements), "\n")
 	for _, image := range strings.Split(imageReplacements, "\n") {
@@ -43,10 +44,37 @@ func buildVersionString() string {
 			fmt.Fprintf(versionsWriter, "\t%s\n", image)
 		}
 	}
-	if refValues, err := json.MarshalIndent(manifest.EmbeddedReferenceValues(), "\t", "  "); err == nil {
-		fmt.Fprintf(versionsWriter, "embedded reference values:\t%s\n", refValues)
+
+	embeddedReferenceValues := manifest.EmbeddedReferenceValues()
+	for _, platform := range platforms.All() {
+		fmt.Fprintf(versionsWriter, "\nreference values for %s platform:\n", platform.String())
+
+		runtimeHandlerName, err := manifest.RuntimeHandler(platform)
+		if err != nil {
+			panic(fmt.Sprintf("Couldn't get runtime handler name for platform %s", platform.String()))
+		}
+		fmt.Fprintf(versionsWriter, "\truntime handler:\t%s\n", runtimeHandlerName)
+
+		switch platform {
+		case platforms.AKSCloudHypervisorSNP:
+			fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", embeddedReferenceValues.AKS.TrustedMeasurement.String())
+			fmt.Fprint(versionsWriter, "\tdefault SNP TCB:\t\n")
+			fmt.Fprintf(versionsWriter, "\t    bootloader:\t%d\n", embeddedReferenceValues.AKS.SNP.MinimumTCB.BootloaderVersion.UInt8())
+			fmt.Fprintf(versionsWriter, "\t    tee:\t%d\n", embeddedReferenceValues.AKS.SNP.MinimumTCB.TEEVersion.UInt8())
+			fmt.Fprintf(versionsWriter, "\t    snp:\t%d\n", embeddedReferenceValues.AKS.SNP.MinimumTCB.SNPVersion.UInt8())
+			fmt.Fprintf(versionsWriter, "\t    microcode:\t%d\n", embeddedReferenceValues.AKS.SNP.MinimumTCB.MicrocodeVersion.UInt8())
+		case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+			fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", embeddedReferenceValues.BareMetalTDX.TrustedMeasurement.String())
+		}
+
+		switch platform {
+		case platforms.AKSCloudHypervisorSNP:
+			fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", constants.MicrosoftGenpolicyVersion)
+		case platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+			fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", constants.KataGenpolicyVersion)
+		}
 	}
-	fmt.Fprintf(versionsWriter, "genpolicy version:\t%s\n", constants.GenpolicyVersion)
+
 	versionsWriter.Flush()
 	return versionsBuilder.String()
 }

@@ -5,6 +5,7 @@ package constants
 
 // Version value is injected at build time.
 var (
-	Version          = "0.0.0-dev"
-	GenpolicyVersion = "0.0.0-dev"
+	Version                   = "0.0.0-dev"
+	MicrosoftGenpolicyVersion = "0.0.0-dev"
+	KataGenpolicyVersion      = "0.0.0-dev"
 )
