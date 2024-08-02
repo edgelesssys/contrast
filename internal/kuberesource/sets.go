@@ -192,14 +192,12 @@ func GenpolicyRegressionTests() map[string]*applyappsv1.DeploymentApplyConfigura
 func Emojivoto(smMode serviceMeshMode) []any {
 	ns := ""
 	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost string
-	var httpProbeScheme corev1.URIScheme
 	switch smMode {
 	case ServiceMeshDisabled:
 		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1"
 		emojiVotingSvcImage = "ghcr.io/3u13r/emojivoto-voting-svc:coco-1"
 		emojiWebImage = "ghcr.io/3u13r/emojivoto-web:coco-1"
 		emojiWebVoteBotImage = emojiWebImage
-		httpProbeScheme = corev1.URISchemeHTTP
 		emojiSvcHost = "emoji-svc:8080"
 		votingSvcHost = "voting-svc:8080"
 	case ServiceMeshIngressEgress:
@@ -207,7 +205,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiVotingSvcImage = "docker.io/buoyantio/emojivoto-voting-svc:v11"
 		emojiWebImage = "docker.io/buoyantio/emojivoto-web:v11"
 		emojiWebVoteBotImage = "ghcr.io/3u13r/emojivoto-web:coco-1"
-		httpProbeScheme = corev1.URISchemeHTTPS
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
 	default:
@@ -430,7 +427,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 							WithReadinessProbe(applycorev1.Probe().
 								WithHTTPGet(applycorev1.HTTPGetAction().
 									WithPort(intstr.FromInt(8080)).
-									WithScheme(httpProbeScheme),
+									WithScheme(corev1.URISchemeHTTPS),
 								).
 								WithInitialDelaySeconds(1).
 								WithPeriodSeconds(5),
