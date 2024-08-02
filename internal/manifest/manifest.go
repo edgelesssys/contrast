@@ -16,10 +16,16 @@ import (
 // Manifest is the Coordinator manifest and contains the reference values of the deployment.
 type Manifest struct {
 	// policyHash/HOSTDATA -> commonName
-	Policies                map[HexString][]string
+	Policies                map[HexString]PolicyEntry
 	ReferenceValues         ReferenceValues
 	WorkloadOwnerKeyDigests []HexString
 	SeedshareOwnerPubKeys   []HexString
+}
+
+// PolicyEntry is a policy entry in the manifest. It contains further information the user wants to associate with the policy.
+type PolicyEntry struct {
+	SANs             []string
+	WorkloadSecretID string `json:",omitempty"`
 }
 
 // HexStrings is a slice of HexString.

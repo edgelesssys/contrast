@@ -76,22 +76,23 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 	return deployments, nil
 }
 
-func manifestPolicyMapFromPolicies(policies []deployment) (map[manifest.HexString][]string, error) {
-	policyHashes := make(map[manifest.HexString][]string)
+func manifestPolicyMapFromPolicies(policies []deployment) (map[manifest.HexString]manifest.PolicyEntry, error) {
+	policyHashes := make(map[manifest.HexString]manifest.PolicyEntry)
 	for _, depl := range policies {
-		if existingNames, ok := policyHashes[depl.policy.Hash()]; ok {
-			if slices.Equal(existingNames, depl.DNSNames()) {
+		if entry, ok := policyHashes[depl.policy.Hash()]; ok {
+			if slices.Equal(entry.SANs, depl.DNSNames()) {
 				return nil, fmt.Errorf("policy hash collision: %s and %s have the same hash %v",
-					existingNames, depl.name, depl.policy.Hash())
+					entry.SANs, depl.name, depl.policy.Hash())
 			}
 			continue
 		}
-		policyHashes[depl.policy.Hash()] = depl.DNSNames()
+		entry := manifest.PolicyEntry{SANs: depl.DNSNames(), WorkloadSecretID: depl.name}
+		policyHashes[depl.policy.Hash()] = entry
 	}
 	return policyHashes, nil
 }
 
-func checkPoliciesMatchManifest(policies []deployment, policyHashes map[manifest.HexString][]string) error {
+func checkPoliciesMatchManifest(policies []deployment, policyHashes map[manifest.HexString]manifest.PolicyEntry) error {
 	if len(policies) != len(policyHashes) {
 		return fmt.Errorf("policy count mismatch: %d policies in deployment, but %d in manifest",
 			len(policies), len(policyHashes))

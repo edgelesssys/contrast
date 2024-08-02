@@ -107,10 +107,11 @@ func (m *Authority) ValidateCallback(_ context.Context, report *sevsnp.Report,
 	}
 
 	hostData := manifest.NewHexString(report.HostData)
-	dnsNames, ok := state.manifest.Policies[hostData]
+	entry, ok := state.manifest.Policies[hostData]
 	if !ok {
 		return fmt.Errorf("report data %s not found in manifest", hostData)
 	}
+	dnsNames := entry.SANs
 
 	peerPubKey, err := x509.ParsePKIXPublicKey(peerPubKeyBytes)
 	if err != nil {

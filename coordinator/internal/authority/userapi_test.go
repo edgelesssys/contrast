@@ -76,9 +76,9 @@ func TestManifestSet(t *testing.T) {
 		"request without policies": {
 			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("a"): {"a1", "a2"},
-						manifest.HexString("b"): {"b1", "b2"},
+					m.Policies = map[manifest.HexString]manifest.PolicyEntry{
+						manifest.HexString("a"): {SANs: []string{"a1", "a2"}, WorkloadSecretID: "a3"},
+						manifest.HexString("b"): {SANs: []string{"b1", "b2"}, WorkloadSecretID: "b3"},
 					}
 				}),
 			},
@@ -87,9 +87,9 @@ func TestManifestSet(t *testing.T) {
 		"policy not in manifest": {
 			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+					m.Policies = map[manifest.HexString]manifest.PolicyEntry{
+						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {SANs: []string{"a1", "a2"}, WorkloadSecretID: "a3"},
+						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {SANs: []string{"b1", "b2"}, WorkloadSecretID: "b3"},
 					}
 				}),
 				Policies: [][]byte{
@@ -103,9 +103,9 @@ func TestManifestSet(t *testing.T) {
 		"valid manifest": {
 			req: &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+					m.Policies = map[manifest.HexString]manifest.PolicyEntry{
+						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {SANs: []string{"a1", "a2"}, WorkloadSecretID: "a3"},
+						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {SANs: []string{"b1", "b2"}, WorkloadSecretID: "b3"},
 					}
 				}),
 				Policies: [][]byte{
@@ -167,9 +167,9 @@ func TestManifestSet(t *testing.T) {
 
 			req := &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
-					m.Policies = map[manifest.HexString][]string{
-						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+					m.Policies = map[manifest.HexString]manifest.PolicyEntry{
+						manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {SANs: []string{"a1", "a2"}, WorkloadSecretID: "a3"},
+						manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {SANs: []string{"b1", "b2"}, WorkloadSecretID: "b3"},
 					}
 				}),
 				Policies: [][]byte{
@@ -226,9 +226,9 @@ func TestGetManifests(t *testing.T) {
 
 	m, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
 	require.NoError(err)
-	m.Policies = map[manifest.HexString][]string{
-		manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-		manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+	m.Policies = map[manifest.HexString]manifest.PolicyEntry{
+		manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {SANs: []string{"a1", "a2"}, WorkloadSecretID: "a3"},
+		manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {SANs: []string{"b1", "b2"}, WorkloadSecretID: "b3"},
 	}
 	manifestBytes, err := json.Marshal(m)
 	require.NoError(err)
@@ -399,9 +399,9 @@ func TestUserAPIConcurrent(t *testing.T) {
 
 	setReq := &userapi.SetManifestRequest{
 		Manifest: newManifestBytes(func(m *manifest.Manifest) {
-			m.Policies = map[manifest.HexString][]string{
-				manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {"a1", "a2"},
-				manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {"b1", "b2"},
+			m.Policies = map[manifest.HexString]manifest.PolicyEntry{
+				manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {SANs: []string{"a1", "a2"}, WorkloadSecretID: "a3"},
+				manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {SANs: []string{"b1", "b2"}, WorkloadSecretID: "b3"},
 			}
 		}),
 		Policies: [][]byte{

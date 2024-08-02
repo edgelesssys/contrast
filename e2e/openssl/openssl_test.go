@@ -150,7 +150,9 @@ func TestOpenSSL(t *testing.T) {
 			require.NoError(json.Unmarshal(manifestBytes, &m))
 			// Add test domain name to first policy.
 			for policyHash := range m.Policies {
-				m.Policies[policyHash] = append(m.Policies[policyHash], fmt.Sprintf("test-%s", deploymentToRestart))
+				entry := m.Policies[policyHash]
+				entry.SANs = append(entry.SANs, fmt.Sprintf("test-%s", deploymentToRestart))
+				m.Policies[policyHash] = entry
 				break
 			}
 			manifestBytes, err = json.Marshal(m)
