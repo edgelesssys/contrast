@@ -15,6 +15,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/logger"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/prometheus/client_golang/prometheus"
@@ -72,11 +73,24 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	authInfo := AuthInfo{State: state}
 
-	validator := snp.NewValidatorWithCallbacks(state, c.kdsGetter,
-		logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "snp"}),
-		c.attestationFailuresCounter, &authInfo)
+	opts, err := state.Manifest.SNPValidateOpts()
+	if err != nil {
+		return nil, nil, fmt.Errorf("generating SNP validation options: %w", err)
+	}
 
-	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, []atls.Validator{validator})
+	var allowedHostDataEntries []manifest.HexString
+	for entry := range state.Manifest.Policies {
+		allowedHostDataEntries = append(allowedHostDataEntries, entry)
+	}
+
+	var validators []atls.Validator
+	for _, opt := range opts {
+		validator := snp.NewValidatorWithCallbacks(opt, allowedHostDataEntries, c.kdsGetter,
+			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "snp"}),
+			c.attestationFailuresCounter, &authInfo)
+		validators = append(validators, validator)
+	}
+	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validators)
 	if err != nil {
 		return nil, nil, err
 	}

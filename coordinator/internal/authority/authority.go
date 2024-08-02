@@ -15,8 +15,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
-	"github.com/google/go-sev-guest/proto/sevsnp"
-	"github.com/google/go-sev-guest/validate"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -170,20 +168,4 @@ type State struct {
 
 	latest     *history.LatestTransition
 	generation int
-}
-
-// SNPValidateOpts returns SNP validation options from reference values.
-//
-// It also ensures that the policy hash in the report's HOSTDATA is allowed by the current
-// manifest.
-// TODO(msanft): make the manifest authoritative and allow other types of reference values.
-func (s *State) SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error) {
-	mnfst := s.Manifest
-
-	hostData := manifest.NewHexString(report.HostData)
-	if _, ok := mnfst.Policies[hostData]; !ok {
-		return nil, fmt.Errorf("hostdata %s not found in manifest", hostData)
-	}
-
-	return mnfst.AKSValidateOpts()
 }

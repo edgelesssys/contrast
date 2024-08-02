@@ -18,11 +18,8 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/internal/attestation/snp"
-	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	grpcRetry "github.com/edgelesssys/contrast/internal/grpc/retry"
-	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/retry"
 	"github.com/edgelesssys/contrast/internal/spinner"
@@ -101,22 +98,11 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("checking policies match manifest: %w", err)
 	}
 
-	kdsDir, err := cachedir("kds")
+	validators, err := validatorsFromManifest(&m, log, flags.policy)
 	if err != nil {
-		return fmt.Errorf("getting cache dir: %w", err)
+		return fmt.Errorf("getting validators: %w", err)
 	}
-	log.Debug("Using KDS cache dir", "dir", kdsDir)
-
-	validateOptsGen, err := newCoordinatorValidateOptsGen(m, flags.policy)
-	if err != nil {
-		return fmt.Errorf("generating validate opts: %w", err)
-	}
-	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
-	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
-	validator := snp.NewValidator(validateOptsGen, kdsGetter,
-		logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
-	)
-	dialer := dialer.NewWithKey(atls.NoIssuer, validator, &net.Dialer{}, workloadOwnerKey)
+	dialer := dialer.NewWithKey(atls.NoIssuer, validators, &net.Dialer{}, workloadOwnerKey)
 
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
 	if err != nil {

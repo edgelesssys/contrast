@@ -60,7 +60,9 @@ func run() (retErr error) {
 	}
 
 	requestCert := func() (*meshapi.NewMeshCertResponse, error) {
-		dial := dialer.NewWithKey(issuer, atls.NoValidator, &net.Dialer{}, privKey)
+		// Supply an empty list of validators, as the coordinator does not need to be
+		// validated by the initializer.
+		dial := dialer.NewWithKey(issuer, atls.NoValidators, &net.Dialer{}, privKey)
 		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorHostname, meshapi.Port))
 		if err != nil {
 			return nil, fmt.Errorf("dialing: %w", err)

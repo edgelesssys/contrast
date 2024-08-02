@@ -10,8 +10,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/edgelesssys/contrast/internal/attestation/reportdata"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/proto/sevsnp"
@@ -24,11 +26,12 @@ import (
 
 // Validator validates attestation statements.
 type Validator struct {
-	validateOptsGen validateOptsGenerator
-	callbackers     []validateCallbacker
-	kdsGetter       trust.HTTPSGetter
-	logger          *slog.Logger
-	metrics         metrics
+	opts                   *validate.Options
+	allowedHostDataEntries []manifest.HexString // Allowed host data entries in the report. If any of these is present, the report is considered valid.
+	callbackers            []validateCallbacker
+	kdsGetter              trust.HTTPSGetter
+	logger                 *slog.Logger
+	metrics                metrics
 }
 
 type metrics struct {
@@ -40,38 +43,29 @@ type validateCallbacker interface {
 		reportRaw, nonce, peerPublicKey []byte) error
 }
 
-type validateOptsGenerator interface {
-	SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error)
-}
-
-// StaticValidateOptsGenerator returns validate.Options generator that returns
-// static validation options.
-type StaticValidateOptsGenerator struct {
-	Opts *validate.Options
-}
-
-// SNPValidateOpts return the SNP validation options.
-func (v *StaticValidateOptsGenerator) SNPValidateOpts(_ *sevsnp.Report) (*validate.Options, error) {
-	return v.Opts, nil
-}
-
 // NewValidator returns a new Validator.
-func NewValidator(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, log *slog.Logger) *Validator {
+func NewValidator(opts *validate.Options, allowedHostDataEntries []manifest.HexString,
+	kdsGetter trust.HTTPSGetter, log *slog.Logger,
+) *Validator {
 	return &Validator{
-		validateOptsGen: optsGen,
-		kdsGetter:       kdsGetter,
-		logger:          log,
+		opts:                   opts,
+		allowedHostDataEntries: allowedHostDataEntries,
+		kdsGetter:              kdsGetter,
+		logger:                 log,
 	}
 }
 
 // NewValidatorWithCallbacks returns a new Validator with callbacks.
-func NewValidatorWithCallbacks(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, log *slog.Logger, attestataionFailures prometheus.Counter, callbacks ...validateCallbacker) *Validator {
+func NewValidatorWithCallbacks(opts *validate.Options, allowedHostDataEntries []manifest.HexString, kdsGetter trust.HTTPSGetter,
+	log *slog.Logger, attestationFailures prometheus.Counter, callbacks ...validateCallbacker,
+) *Validator {
 	return &Validator{
-		validateOptsGen: optsGen,
-		callbackers:     callbacks,
-		kdsGetter:       kdsGetter,
-		logger:          log,
-		metrics:         metrics{attestationFailures: attestataionFailures},
+		opts:                   opts,
+		allowedHostDataEntries: allowedHostDataEntries,
+		callbackers:            callbacks,
+		kdsGetter:              kdsGetter,
+		logger:                 log,
+		metrics:                metrics{attestationFailures: attestationFailures},
 	}
 }
 
@@ -125,15 +119,19 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	// Validate the report data.
 
 	reportDataExpected := reportdata.Construct(peerPublicKey, nonce)
-	validateOpts, err := v.validateOptsGen.SNPValidateOpts(attestation.Report)
-	if err != nil {
-		return fmt.Errorf("generating validation options: %w", err)
-	}
-	validateOpts.ReportData = reportDataExpected[:]
-	if err := validate.SnpAttestation(attestation, validateOpts); err != nil {
+	v.opts.ReportData = reportDataExpected[:]
+	if err := validate.SnpAttestation(attestation, v.opts); err != nil {
 		return fmt.Errorf("validating report claims: %w", err)
 	}
 	v.logger.Info("Successfully validated report data")
+
+	// Validate the host data.
+
+	if !slices.ContainsFunc(v.allowedHostDataEntries, func(entry manifest.HexString) bool {
+		return manifest.NewHexString(attestation.Report.HostData) == entry
+	}) {
+		return fmt.Errorf("host data not allowed (found: %v allowed: %v)", attestation.Report.HostData, v.allowedHostDataEntries)
+	}
 
 	// Run callbacks.
 

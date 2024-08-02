@@ -19,35 +19,30 @@ import (
 //go:embed assets/reference-values.json
 var EmbeddedReferenceValuesJSON []byte
 
-// ReferenceValues contains the workload-independent reference values for each platform.
+// ReferenceValues contains the workload-independent reference values for each TEE type.
 type ReferenceValues struct {
-	// AKS holds the reference values for AKS.
-	AKS *AKSReferenceValues `json:"aks,omitempty"`
-	// BareMetalTDX holds the reference values for TDX on bare metal.
-	BareMetalTDX *BareMetalTDXReferenceValues `json:"bareMetalTDX,omitempty"`
+	// SNP holds the reference values for SNP.
+	SNP []SNPReferenceValues `json:"snp,omitempty"`
+	// TDX holds the reference values for TDX.
+	TDX []TDXReferenceValues `json:"tdx,omitempty"`
 }
 
-// EmbeddedReferenceValues is a map of runtime handler names to reference values, as
-// embedded in the binary.
+// EmbeddedReferenceValues is a map of runtime handler names to a list of reference values
+// for the runtime handler, as embedded in the binary.
 type EmbeddedReferenceValues map[string]ReferenceValues
 
-// AKSReferenceValues contains reference values for AKS.
-type AKSReferenceValues struct {
-	SNP                SNPReferenceValues
-	TrustedMeasurement HexString
-}
-
-// BareMetalTDXReferenceValues contains reference values for BareMetalTDX.
-type BareMetalTDXReferenceValues struct {
-	TrustedMeasurement HexString
-}
-
-// SNPReferenceValues contains reference values for the SNP report.
+// SNPReferenceValues contains reference values for SEV-SNP.
 type SNPReferenceValues struct {
-	MinimumTCB SNPTCB
+	MinimumTCB         SNPTCB
+	TrustedMeasurement HexString
 }
 
-// SNPTCB represents a set of SNP TCB values.
+// TDXReferenceValues contains reference values for TDX.
+type TDXReferenceValues struct {
+	TrustedMeasurement HexString
+}
+
+// SNPTCB represents a set of SEV-SNP TCB values.
 type SNPTCB struct {
 	BootloaderVersion *SVN
 	TEEVersion        *SVN

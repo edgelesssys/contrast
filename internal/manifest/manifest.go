@@ -6,6 +6,7 @@ package manifest
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 
 	"github.com/google/go-sev-guest/abi"
@@ -16,7 +17,10 @@ import (
 // Manifest is the Coordinator manifest and contains the reference values of the deployment.
 type Manifest struct {
 	// policyHash/HOSTDATA -> commonName
-	Policies                map[HexString]PolicyEntry
+	Policies map[HexString]PolicyEntry
+	// ReferenceValues specifies the allowed TEE configurations in the deployment. If ANY
+	// of the reference values validates the attestation report of the workload,
+	// the workload is considered valid.
 	ReferenceValues         ReferenceValues
 	WorkloadOwnerKeyDigests []HexString
 	SeedshareOwnerPubKeys   []HexString
@@ -65,18 +69,18 @@ func (p Policy) Hash() HexString {
 
 // Validate checks the validity of all fields in the reference values.
 func (r ReferenceValues) Validate() error {
-	if r.AKS != nil {
-		if err := r.AKS.Validate(); err != nil {
-			return fmt.Errorf("validating AKS reference values: %w", err)
+	for _, v := range r.SNP {
+		if err := v.Validate(); err != nil {
+			return fmt.Errorf("validating SNP reference values: %w", err)
 		}
 	}
-	if r.BareMetalTDX != nil {
-		if err := r.BareMetalTDX.Validate(); err != nil {
-			return fmt.Errorf("validating bare metal TDX reference values: %w", err)
+	for _, v := range r.TDX {
+		if err := v.Validate(); err != nil {
+			return fmt.Errorf("validating TDX reference values: %w", err)
 		}
 	}
 
-	if r.BareMetalTDX == nil && r.AKS == nil {
+	if len(r.SNP)+len(r.TDX) == 0 {
 		return fmt.Errorf("reference values in manifest cannot be empty. Is the chosen platform supported?")
 	}
 
@@ -84,14 +88,14 @@ func (r ReferenceValues) Validate() error {
 }
 
 // Validate checks the validity of all fields in the AKS reference values.
-func (r AKSReferenceValues) Validate() error {
-	if r.SNP.MinimumTCB.BootloaderVersion == nil {
+func (r SNPReferenceValues) Validate() error {
+	if r.MinimumTCB.BootloaderVersion == nil {
 		return fmt.Errorf("field BootloaderVersion in manifest cannot be empty")
-	} else if r.SNP.MinimumTCB.TEEVersion == nil {
+	} else if r.MinimumTCB.TEEVersion == nil {
 		return fmt.Errorf("field TEEVersion in manifest cannot be empty")
-	} else if r.SNP.MinimumTCB.SNPVersion == nil {
+	} else if r.MinimumTCB.SNPVersion == nil {
 		return fmt.Errorf("field SNPVersion in manifest cannot be empty")
-	} else if r.SNP.MinimumTCB.MicrocodeVersion == nil {
+	} else if r.MinimumTCB.MicrocodeVersion == nil {
 		return fmt.Errorf("field MicrocodeVersion in manifest cannot be empty")
 	}
 
@@ -103,7 +107,7 @@ func (r AKSReferenceValues) Validate() error {
 }
 
 // Validate checks the validity of all fields in the bare metal TDX reference values.
-func (r BareMetalTDXReferenceValues) Validate() error {
+func (r TDXReferenceValues) Validate() error {
 	if r.TrustedMeasurement == "" {
 		return fmt.Errorf("field TrustedMeasurement in manifest cannot be empty")
 	}
@@ -140,40 +144,56 @@ func (m *Manifest) Validate() error {
 	return nil
 }
 
-// AKSValidateOpts returns validate options populated with the manifest's
-// AKS reference values and trusted measurement.
-func (m *Manifest) AKSValidateOpts() (*validate.Options, error) {
-	if m.ReferenceValues.AKS == nil {
-		return nil, fmt.Errorf("no AKS reference values present in manifest")
+// TODO(msanft): add generic validation interface for other attestation types.
+
+// SNPValidateOpts returns validate options generators populated with the manifest's
+// SNP reference values and trusted measurement for the given runtime.
+func (m *Manifest) SNPValidateOpts() ([]*validate.Options, error) {
+	if len(m.ReferenceValues.SNP) == 0 {
+		return nil, errors.New("reference values cannot be empty")
 	}
 
 	if err := m.Validate(); err != nil {
 		return nil, fmt.Errorf("validating manifest: %w", err)
 	}
-	trustedMeasurement, err := m.ReferenceValues.AKS.TrustedMeasurement.Bytes()
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
+
+	var out []*validate.Options
+	for _, refVal := range m.ReferenceValues.SNP {
+		if len(refVal.TrustedMeasurement) == 0 {
+			return nil, errors.New("trusted measurement cannot be empty")
+		}
+
+		trustedMeasurement, err := refVal.TrustedMeasurement.Bytes()
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
+		}
+
+		out = append(out, &validate.Options{
+			Measurement: trustedMeasurement,
+			GuestPolicy: abi.SnpPolicy{
+				Debug: false,
+				SMT:   true,
+			},
+			VMPL: new(int), // VMPL0
+			MinimumTCB: kds.TCBParts{
+				BlSpl:    refVal.MinimumTCB.BootloaderVersion.UInt8(),
+				TeeSpl:   refVal.MinimumTCB.TEEVersion.UInt8(),
+				SnpSpl:   refVal.MinimumTCB.SNPVersion.UInt8(),
+				UcodeSpl: refVal.MinimumTCB.MicrocodeVersion.UInt8(),
+			},
+			MinimumLaunchTCB: kds.TCBParts{
+				BlSpl:    refVal.MinimumTCB.BootloaderVersion.UInt8(),
+				TeeSpl:   refVal.MinimumTCB.TEEVersion.UInt8(),
+				SnpSpl:   refVal.MinimumTCB.SNPVersion.UInt8(),
+				UcodeSpl: refVal.MinimumTCB.MicrocodeVersion.UInt8(),
+			},
+			PermitProvisionalFirmware: true,
+		})
 	}
 
-	return &validate.Options{
-		Measurement: trustedMeasurement,
-		GuestPolicy: abi.SnpPolicy{
-			Debug: false,
-			SMT:   true,
-		},
-		VMPL: new(int), // VMPL0
-		MinimumTCB: kds.TCBParts{
-			BlSpl:    m.ReferenceValues.AKS.SNP.MinimumTCB.BootloaderVersion.UInt8(),
-			TeeSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.TEEVersion.UInt8(),
-			SnpSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.SNPVersion.UInt8(),
-			UcodeSpl: m.ReferenceValues.AKS.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
-		},
-		MinimumLaunchTCB: kds.TCBParts{
-			BlSpl:    m.ReferenceValues.AKS.SNP.MinimumTCB.BootloaderVersion.UInt8(),
-			TeeSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.TEEVersion.UInt8(),
-			SnpSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.SNPVersion.UInt8(),
-			UcodeSpl: m.ReferenceValues.AKS.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
-		},
-		PermitProvisionalFirmware: true,
-	}, nil
+	if len(out) == 0 {
+		return nil, errors.New("no SNP reference values found in manifest")
+	}
+
+	return out, nil
 }
