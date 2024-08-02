@@ -204,6 +204,11 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
 		snapshotterName = fmt.Sprintf("nydus-%s", runtimeHandler)
 		socketName = fmt.Sprintf("/run/containerd/containerd-nydus-grpc-%s.sock", runtimeHandler)
+
+		// Configure the containerd plugin
+		containerdPlugin := ensureMapPath(&existing.Plugins, constants.CRIFQDN, "containerd")
+		containerdPlugin["discard_unpacked_layers"] = false
+		containerdPlugin["disable_snapshot_annotations"] = false
 	}
 
 	// Add the snapshotter proxy plugin.
