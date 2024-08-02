@@ -92,10 +92,12 @@ func TestValidate(t *testing.T) {
 		{
 			m: &Manifest{
 				Policies: map[HexString]PolicyEntry{HexString(""): {}},
-				ReferenceValues: ReferenceValues{
-					AKS: &AKSReferenceValues{
-						SNP:                mnf.ReferenceValues.AKS.SNP,
-						TrustedMeasurement: "",
+				ReferenceValues: []ReferenceValues{
+					{
+						SNP: &SNPReferenceValues{
+							MinimumTCB:         mnf.ReferenceValues[0].SNP.MinimumTCB,
+							TrustedMeasurement: "",
+						},
 					},
 				},
 			},
@@ -109,6 +111,7 @@ func TestValidate(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			assert := assert.New(t)
@@ -128,18 +131,20 @@ func TestAKSValidateOpts(t *testing.T) {
 	m, err := Default(platforms.AKSCloudHypervisorSNP)
 	require.NoError(t, err)
 
-	opts, err := m.AKSValidateOpts()
+	optsGen, err := m.SNPValidateOpts()
 	assert.NoError(err)
+	assert.Len(optsGen, 1)
 
-	tcb := m.ReferenceValues.AKS.SNP.MinimumTCB
+	tcb := m.ReferenceValues[0].SNP.MinimumTCB
 	assert.NotNil(tcb.BootloaderVersion)
 	assert.NotNil(tcb.TEEVersion)
 	assert.NotNil(tcb.SNPVersion)
 	assert.NotNil(tcb.MicrocodeVersion)
 
-	trustedMeasurement, err := m.ReferenceValues.AKS.TrustedMeasurement.Bytes()
+	trustedMeasurement, err := m.ReferenceValues[0].SNP.TrustedMeasurement.Bytes()
 	assert.NoError(err)
-	assert.Equal(trustedMeasurement, opts.Measurement)
+
+	assert.Equal(trustedMeasurement, optsGen[0].opts.Measurement)
 
 	tcbParts := kds.TCBParts{
 		BlSpl:    tcb.BootloaderVersion.UInt8(),
@@ -147,6 +152,6 @@ func TestAKSValidateOpts(t *testing.T) {
 		SnpSpl:   tcb.SNPVersion.UInt8(),
 		UcodeSpl: tcb.MicrocodeVersion.UInt8(),
 	}
-	assert.Equal(tcbParts, opts.MinimumTCB)
-	assert.Equal(tcbParts, opts.MinimumLaunchTCB)
+	assert.Equal(tcbParts, optsGen[0].opts.MinimumTCB)
+	assert.Equal(tcbParts, optsGen[0].opts.MinimumLaunchTCB)
 }

@@ -47,16 +47,20 @@ func TestSNPValidateOpts(t *testing.T) {
 	_, err := a.SetManifest(context.Background(), req)
 	require.NoError(err)
 
-	opts, err := a.state.Load().SNPValidateOpts(report)
+	gens, err := a.state.Load().Manifest.SNPValidateOpts()
 	require.NoError(err)
-	require.NotNil(opts)
+	require.NotNil(gens)
 
 	// Change to unknown policy hash in HostData.
 	report.HostData[0]++
 
-	opts, err = a.state.Load().SNPValidateOpts(report)
+	gens, err = a.state.Load().Manifest.SNPValidateOpts()
+	require.NoError(err)
+	require.NotNil(gens)
+
+	gen := gens[0].WithReportHostData()
+	_, err = gen.SNPValidateOpts(report)
 	require.Error(err)
-	require.Nil(opts)
 }
 
 // TODO(burgerdev): test ValidateCallback and GetCertBundle

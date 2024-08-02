@@ -28,8 +28,6 @@ import (
 const attestationTimeout = 30 * time.Second
 
 var (
-	// NoValidator skips validation of the server's attestation document.
-	NoValidator Validator
 	// NoIssuer skips embedding the client's attestation document.
 	NoIssuer Issuer
 

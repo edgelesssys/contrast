@@ -13,27 +13,13 @@ import (
 // Default returns a default manifest with reference values for the given platform.
 func Default(platform platforms.Platform) (*Manifest, error) {
 	embeddedRefValues := GetEmbeddedReferenceValues()
+
 	refValues, err := embeddedRefValues.ForPlatform(platform)
 	if err != nil {
 		return nil, fmt.Errorf("get reference values for platform %s: %w", platform, err)
 	}
 
-	mnfst := Manifest{}
-	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
-		return &Manifest{
-			ReferenceValues: ReferenceValues{
-				AKS: refValues.AKS,
-			},
-		}, nil
-	case platforms.RKE2QEMUTDX, platforms.K3sQEMUTDX:
-		return &Manifest{
-			ReferenceValues: ReferenceValues{
-				BareMetalTDX: refValues.BareMetalTDX,
-			},
-		}, nil
-	}
-	return &mnfst, nil
+	return &Manifest{ReferenceValues: *refValues}, nil
 }
 
 // GetEmbeddedReferenceValues returns the reference values embedded in the binary.
