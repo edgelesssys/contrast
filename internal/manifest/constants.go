@@ -26,6 +26,12 @@ func Default(platform platforms.Platform) (*Manifest, error) {
 				AKS: refValues.AKS,
 			},
 		}, nil
+	case platforms.K3sQEMUSNP:
+		return &Manifest{
+			ReferenceValues: ReferenceValues{
+				BareMetalSNP: refValues.BareMetalSNP,
+			},
+		}, nil
 	case platforms.RKE2QEMUTDX, platforms.K3sQEMUTDX:
 		return &Manifest{
 			ReferenceValues: ReferenceValues{

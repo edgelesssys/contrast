@@ -23,6 +23,8 @@ var EmbeddedReferenceValuesJSON []byte
 type ReferenceValues struct {
 	// AKS holds the reference values for AKS.
 	AKS *AKSReferenceValues `json:"aks,omitempty"`
+	// BareMetalSNP holds the reference values for SNP on bare metal.
+	BareMetalSNP *BareMetalSNPReferenceValues `json:"bareMetalSNP,omitempty"`
 	// BareMetalTDX holds the reference values for TDX on bare metal.
 	BareMetalTDX *BareMetalTDXReferenceValues `json:"bareMetalTDX,omitempty"`
 }
@@ -33,6 +35,12 @@ type EmbeddedReferenceValues map[string]ReferenceValues
 
 // AKSReferenceValues contains reference values for AKS.
 type AKSReferenceValues struct {
+	SNP                SNPReferenceValues
+	TrustedMeasurement HexString
+}
+
+// BareMetalSNPReferenceValues contains reference values for BareMetalSNP.
+type BareMetalSNPReferenceValues struct {
 	SNP                SNPReferenceValues
 	TrustedMeasurement HexString
 }
