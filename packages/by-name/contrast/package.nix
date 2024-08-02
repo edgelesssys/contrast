@@ -52,32 +52,38 @@ let
       k3s-qemu-snp-handler = runtimeHandler "k3s-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
 
       aksRefVals = {
-        aks = {
-          snp = {
+        snp = [
+          {
             minimumTCB = {
               bootloaderVersion = 3;
               teeVersion = 0;
               snpVersion = 8;
               microcodeVersion = 115;
             };
-          };
-          trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile microsoft.kata-igvm.launch-digest);
-        };
+            trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile microsoft.kata-igvm.launch-digest);
+          }
+        ];
       };
 
       snpRefVals = {
-        inherit (aksRefVals.aks) snp;
-        trustedMeasurement = lib.removeSuffix "\n" (
-          builtins.readFile "${kata.contrast-node-installer-image.runtimeHash}"
-        );
+        snp = [
+          {
+            inherit (builtins.head aksRefVals.snp) minimumTCB;
+            trustedMeasurement = lib.removeSuffix "\n" (
+              builtins.readFile "${kata.contrast-node-installer-image.runtimeHash}"
+            );
+          }
+        ];
       };
 
       tdxRefVals = {
-        bareMetalTDX = {
-          trustedMeasurement = lib.removeSuffix "\n" (
-            builtins.readFile "${kata.contrast-node-installer-image.runtimeHash}"
-          );
-        };
+        tdx = [
+          {
+            trustedMeasurement = lib.removeSuffix "\n" (
+              builtins.readFile "${kata.contrast-node-installer-image.runtimeHash}"
+            );
+          }
+        ];
       };
     in
     builtins.toFile "reference-values.json" (

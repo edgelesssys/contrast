@@ -16,7 +16,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
-	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/spf13/afero"
@@ -37,8 +36,6 @@ func TestSNPValidateOpts(t *testing.T) {
 	require := require.New(t)
 	a, _ := newAuthority(t)
 	_, mnfstBytes, policies := newManifest(t)
-	policyHash := sha256.Sum256(policies[0])
-	report := &sevsnp.Report{HostData: policyHash[:]}
 
 	req := &userapi.SetManifestRequest{
 		Manifest: mnfstBytes,
@@ -47,16 +44,9 @@ func TestSNPValidateOpts(t *testing.T) {
 	_, err := a.SetManifest(context.Background(), req)
 	require.NoError(err)
 
-	opts, err := a.state.Load().SNPValidateOpts(report)
+	gens, err := a.state.Load().Manifest.SNPValidateOpts()
 	require.NoError(err)
-	require.NotNil(opts)
-
-	// Change to unknown policy hash in HostData.
-	report.HostData[0]++
-
-	opts, err = a.state.Load().SNPValidateOpts(report)
-	require.Error(err)
-	require.Nil(opts)
+	require.NotNil(gens)
 }
 
 // TODO(burgerdev): test ValidateCallback and GetCertBundle

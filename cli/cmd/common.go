@@ -6,11 +6,18 @@ package cmd
 import (
 	"context"
 	_ "embed"
+	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/edgelesssys/contrast/cli/telemetry"
+	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/snp"
+	"github.com/edgelesssys/contrast/internal/fsstore"
+	"github.com/edgelesssys/contrast/internal/logger"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/spf13/cobra"
 )
 
@@ -71,4 +78,28 @@ func withTelemetry(runFunc func(*cobra.Command, []string) error) func(*cobra.Com
 
 		return cmdErr
 	}
+}
+
+// validatorsFromManifest returns a list of validators corresponding to the reference values in the given manifest.
+func validatorsFromManifest(m *manifest.Manifest, log *slog.Logger, hostData []byte) ([]atls.Validator, error) {
+	kdsDir, err := cachedir("kds")
+	if err != nil {
+		return nil, fmt.Errorf("getting cache dir: %w", err)
+	}
+	log.Debug("Using KDS cache dir", "dir", kdsDir)
+	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
+	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
+
+	opts, err := m.SNPValidateOpts()
+	if err != nil {
+		return nil, fmt.Errorf("getting SNP validate options: %w", err)
+	}
+
+	var validators []atls.Validator
+	for _, opt := range opts {
+		validators = append(validators, snp.NewValidator(opt, []manifest.HexString{manifest.NewHexString(hostData)}, kdsGetter,
+			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
+		))
+	}
+	return validators, nil
 }
