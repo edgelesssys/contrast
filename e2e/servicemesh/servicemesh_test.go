@@ -117,7 +117,7 @@ func TestIngressEgress(t *testing.T) {
 		// This test also verifies that client connections are not affected by the ingress proxy,
 		// because we're running the commands on a pod with enabled proxy.
 
-		argv := []string{"curl", "-sS", "--cacert", "/tls-config/mesh-ca.pem", "https://emoji:8801/metrics"}
+		argv := []string{"curl", "-sS", "--cacert", "/contrast/tls-config/mesh-ca.pem", "https://emoji:8801/metrics"}
 		// curl does not like the wildcard cert and the service name does not match the deployment
 		// name (i.e., the CN), so we tell curl to connect to expect the deployment name but
 		// resolve the service name.
@@ -125,7 +125,7 @@ func TestIngressEgress(t *testing.T) {
 		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
 		require.Error(err, "Expected call without client certificate to fail.\nstdout: %s\nstderr: %q", stdout, stderr)
 
-		argv = append(argv, "--cert", "/tls-config/certChain.pem", "--key", "/tls-config/key.pem")
+		argv = append(argv, "--cert", "/contrast/tls-config/certChain.pem", "--key", "/contrast/tls-config/key.pem")
 		stdout, stderr, err = c.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
 		require.NoError(err, "Expected call with client certificate to succeed.\nstdout: %s\nstderr: %q", stdout, stderr)
 	})

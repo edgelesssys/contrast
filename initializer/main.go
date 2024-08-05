@@ -9,6 +9,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -100,22 +101,34 @@ func run() (retErr error) {
 		Bytes: privKeyBytes,
 	})
 
+	// make sure directories exist
+	if err := os.MkdirAll("/contrast/tls-config", 0o755); err != nil {
+		return fmt.Errorf("creating tls-config directory: %w", err)
+	}
+	if err := os.MkdirAll("/contrast/secrets", 0o755); err != nil {
+		return fmt.Errorf("creating secrets directory: %w", err)
+	}
+
 	// write files to disk
-	err = os.WriteFile("/tls-config/mesh-ca.pem", resp.MeshCACert, 0o644)
+	err = os.WriteFile("/contrast/tls-config/mesh-ca.pem", resp.MeshCACert, 0o644)
 	if err != nil {
 		return fmt.Errorf("writing mesh-ca.pem: %w", err)
 	}
-	err = os.WriteFile("/tls-config/certChain.pem", resp.CertChain, 0o644)
+	err = os.WriteFile("/contrast/tls-config/certChain.pem", resp.CertChain, 0o644)
 	if err != nil {
 		return fmt.Errorf("writing certChain.pem: %w", err)
 	}
-	err = os.WriteFile("/tls-config/key.pem", pemEncodedPrivKey, 0o600)
+	err = os.WriteFile("/contrast/tls-config/key.pem", pemEncodedPrivKey, 0o600)
 	if err != nil {
 		return fmt.Errorf("writing key.pem: %w", err)
 	}
-	err = os.WriteFile("/tls-config/coordinator-root-ca.pem", resp.RootCACert, 0o644)
+	err = os.WriteFile("/contrast/tls-config/coordinator-root-ca.pem", resp.RootCACert, 0o644)
 	if err != nil {
 		return fmt.Errorf("writing coordinator-root-ca.pem: %w", err)
+	}
+	err = os.WriteFile("/contrast/secrets/workload-secret-seed", []byte(hex.EncodeToString(resp.WorkloadSecret)), 0o400)
+	if err != nil {
+		return fmt.Errorf("writing workload-secret-seed: %w", err)
 	}
 
 	log.Info("Initializer done")

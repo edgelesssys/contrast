@@ -322,12 +322,12 @@ func upstreamTLSTransportSocket() (*envoyCoreV3.TransportSocket, error) {
 				{
 					PrivateKey: &envoyCoreV3.DataSource{
 						Specifier: &envoyCoreV3.DataSource_Filename{
-							Filename: "/tls-config/key.pem",
+							Filename: "/contrast/tls-config/key.pem",
 						},
 					},
 					CertificateChain: &envoyCoreV3.DataSource{
 						Specifier: &envoyCoreV3.DataSource_Filename{
-							Filename: "/tls-config/certChain.pem",
+							Filename: "/contrast/tls-config/certChain.pem",
 						},
 					},
 				},
@@ -336,7 +336,7 @@ func upstreamTLSTransportSocket() (*envoyCoreV3.TransportSocket, error) {
 				ValidationContext: &envoyTLSV3.CertificateValidationContext{
 					TrustedCa: &envoyCoreV3.DataSource{
 						Specifier: &envoyCoreV3.DataSource_Filename{
-							Filename: "/tls-config/mesh-ca.pem",
+							Filename: "/contrast/tls-config/mesh-ca.pem",
 						},
 					},
 				},
@@ -363,12 +363,12 @@ func downstreamTLSTransportSocket(requireClientCertificate bool) (*envoyCoreV3.T
 				{
 					PrivateKey: &envoyCoreV3.DataSource{
 						Specifier: &envoyCoreV3.DataSource_Filename{
-							Filename: "/tls-config/key.pem",
+							Filename: "/contrast/tls-config/key.pem",
 						},
 					},
 					CertificateChain: &envoyCoreV3.DataSource{
 						Specifier: &envoyCoreV3.DataSource_Filename{
-							Filename: "/tls-config/certChain.pem",
+							Filename: "/contrast/tls-config/certChain.pem",
 						},
 					},
 				},
@@ -377,7 +377,7 @@ func downstreamTLSTransportSocket(requireClientCertificate bool) (*envoyCoreV3.T
 				ValidationContext: &envoyTLSV3.CertificateValidationContext{
 					TrustedCa: &envoyCoreV3.DataSource{
 						Specifier: &envoyCoreV3.DataSource_Filename{
-							Filename: "/tls-config/mesh-ca.pem",
+							Filename: "/contrast/tls-config/mesh-ca.pem",
 						},
 					},
 				},
