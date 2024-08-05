@@ -85,6 +85,7 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 	state := authInfo.State
 	report := authInfo.Report
 	tlsInfo := authInfo.TLSInfo
+	seedEngine := authInfo.SeedEngine
 
 	if len(tlsInfo.State.PeerCertificates) == 0 {
 		return nil, fmt.Errorf("no peer certificates found")
@@ -117,9 +118,15 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 		return nil, fmt.Errorf("failed to issue new attested mesh cert: %w", err)
 	}
 
+	workloadSecret, err := seedEngine.DeriveWorkloadSecret(entry.WorkloadSecretID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to derive workload secret: %w", err)
+	}
+
 	return &meshapi.NewMeshCertResponse{
-		MeshCACert: state.CA.GetMeshCACert(),
-		CertChain:  append(cert, state.CA.GetIntermCACert()...),
-		RootCACert: state.CA.GetRootCACert(),
+		MeshCACert:     state.CA.GetMeshCACert(),
+		CertChain:      append(cert, state.CA.GetIntermCACert()...),
+		RootCACert:     state.CA.GetRootCACert(),
+		WorkloadSecret: workloadSecret,
 	}, nil
 }

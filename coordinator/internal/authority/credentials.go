@@ -12,6 +12,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/logger"
@@ -25,8 +26,9 @@ import (
 
 // Credentials are gRPC transport credentials that dynamically update with the Coordinator state.
 type Credentials struct {
-	issuer   atls.Issuer
-	getState func() (*State, error)
+	issuer        atls.Issuer
+	getState      func() (*State, error)
+	getSeedEngine func() (*seedengine.SeedEngine, error)
 
 	logger                     *slog.Logger
 	attestationFailuresCounter prometheus.Counter
@@ -55,6 +57,13 @@ func (a *Authority) Credentials(reg *prometheus.Registry, issuer atls.Issuer) (*
 			}
 			return state, nil
 		},
+		getSeedEngine: func() (*seedengine.SeedEngine, error) {
+			se := a.se.Load()
+			if se == nil {
+				return nil, errors.New("seed engine not initialized")
+			}
+			return se, nil
+		},
 		logger:                     a.logger,
 		attestationFailuresCounter: attestationFailuresCounter,
 		kdsGetter:                  kdsGetter,
@@ -70,7 +79,15 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		return nil, nil, fmt.Errorf("getting state: %w", err)
 	}
 
-	authInfo := AuthInfo{State: state}
+	seedEngine, err := c.getSeedEngine()
+	if err != nil {
+		return nil, nil, fmt.Errorf("getting seed engine: %w", err)
+	}
+
+	authInfo := AuthInfo{
+		State:      state,
+		SeedEngine: seedEngine,
+	}
 
 	validator := snp.NewValidatorWithCallbacks(state, c.kdsGetter,
 		logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "snp"}),
@@ -125,6 +142,8 @@ type AuthInfo struct {
 	State *State
 	// Report is the attestation report sent by the peer.
 	Report *sevsnp.Report
+	// SeedEngine is the seed engine used to derive secrets.
+	SeedEngine *seedengine.SeedEngine
 }
 
 // ValidateCallback takes the validated report and attaches it to the [AuthInfo].
