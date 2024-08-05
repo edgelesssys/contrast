@@ -133,3 +133,48 @@ func TestSeedEngine_DerivePodSecret(t *testing.T) {
 		})
 	}
 }
+
+func TestSeedEngine_DeriveWorkloadSecret(t *testing.T) {
+	require := require.New(t)
+
+	// policyHash -> want
+	testCases := map[string]struct {
+		podSecret string
+		err       bool
+	}{
+		/*
+			Crypto-determinism regression test cases.
+
+			DO NOT CHANGE!
+		*/
+		"workload-1": {podSecret: "5e0e6bcb5831d3919b86a194f8972d5664687e107c835a559134bee6ab8fdc6c"},
+		"emoji-pod ": {podSecret: "b80c3e366eb9855cc8e2ce1f7d3525ed91fd81882a13dc6e825ae6aba8c077eb"},
+		"   ":        {podSecret: "4b7872c72d0cae3cd93fe7bc1807bd241e1aadba110fb653f90acc3004ff28c8"},
+		"12345":      {podSecret: "b1a7172d420cbbd3b8673488e5fb71cabe08014680d934803309181485bf33c2"},
+		"":           {err: true},
+	}
+
+	secretSeed, err := hex.DecodeString("9c7f285a46704602f8b6d9d4a89193579a979f144a9d8733fddd4f2bbcecd77f")
+	require.NoError(err)
+	salt, err := hex.DecodeString("6227b2cae740349beaff040af74aa1566ac330e9b54ce0e58f8d5ee47281745a")
+	require.NoError(err)
+
+	se, err := New(secretSeed, salt)
+	require.NoError(err)
+
+	for workloadName, want := range testCases {
+		t.Run(workloadName, func(t *testing.T) {
+			assert := assert.New(t)
+
+			workloadSecret, err := se.DeriveWorkloadSecret(workloadName)
+
+			if want.err {
+				require.Error(err)
+				return
+			}
+			assert.NoError(err)
+
+			assert.Equal(want.podSecret, hex.EncodeToString(workloadSecret))
+		})
+	}
+}

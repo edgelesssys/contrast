@@ -93,6 +93,14 @@ func (s *SeedEngine) DerivePodSecret(policyHash [hashSize]byte) ([]byte, error) 
 	return s.hkdfDerive(s.podStateSeed, fmt.Sprintf("POD SECRET %x", policyHash))
 }
 
+// DeriveWorkloadSecret derives a secret for a workload from the workload name and the secret seed.
+func (s *SeedEngine) DeriveWorkloadSecret(workloadName string) ([]byte, error) {
+	if workloadName == "" {
+		return nil, errors.New("workload name must not be empty")
+	}
+	return s.hkdfDerive(s.podStateSeed, fmt.Sprintf("workload-key:%s", workloadName))
+}
+
 // GenerateMeshCAKey generates a new random key for the mesh authority.
 func (s *SeedEngine) GenerateMeshCAKey() (*ecdsa.PrivateKey, error) {
 	return ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
