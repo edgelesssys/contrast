@@ -161,6 +161,15 @@ func (m *Authority) walkTransitions(transitionRef [history.HashSize]byte, consum
 	return nil
 }
 
+// GetSeedEngine returns the seed engine.
+func (m *Authority) GetSeedEngine() (*seedengine.SeedEngine, error) {
+	se := m.se.Load()
+	if se == nil {
+		return nil, errors.New("seed engine not initialized")
+	}
+	return se, nil
+}
+
 // State is a snapshot of the Coordinator's manifest history.
 type State struct {
 	Manifest *manifest.Manifest

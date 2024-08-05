@@ -20,4 +20,6 @@ message NewMeshCertResponse {
   bytes CertChain = 2;
   // PEM-encoded certificate when workloads trust also workloads from previous manifests
   bytes RootCACert = 3;
+  // Raw byte slice which can be used to derive more secrets
+  bytes WorkloadSecret = 4;
 }

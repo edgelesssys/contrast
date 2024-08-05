@@ -76,7 +76,7 @@ func run() (retErr error) {
 
 	userapi.RegisterUserAPIServer(grpcServer, meshAuth)
 	serverMetrics.InitializeMetrics(grpcServer)
-	meshAPI := newMeshAPIServer(meshAuth, promRegistry, serverMetrics, logger)
+	meshAPI := newMeshAPIServer(meshAuth, promRegistry, serverMetrics, meshAuth, logger)
 	metricsServer := &http.Server{}
 
 	eg, ctx := errgroup.WithContext(ctx)
