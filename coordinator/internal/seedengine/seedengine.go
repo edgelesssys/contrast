@@ -6,7 +6,6 @@
 package seedengine
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -19,8 +18,6 @@ import (
 	"filippo.io/keygen"
 	"golang.org/x/crypto/hkdf"
 )
-
-const hashSize = 32 // byte, SeedEngine.hashFun().Size()
 
 // SeedEngine provides deterministic key derivation of ECDSA and symmetric keys
 // from a secret seed.
@@ -82,15 +79,12 @@ func New(secretSeed []byte, salt []byte) (*SeedEngine, error) {
 	return se, nil
 }
 
-// DerivePodSecret derives a secret for a pod from the policy hash and the secret seed.
-func (s *SeedEngine) DerivePodSecret(policyHash [hashSize]byte) ([]byte, error) {
-	if policyHash == [hashSize]byte{} {
-		return nil, errors.New("policy hash must not be empty")
+// DeriveWorkloadSecret derives a secret for a workload from the workload name and the secret seed.
+func (s *SeedEngine) DeriveWorkloadSecret(workloadSecretID string) ([]byte, error) {
+	if workloadSecretID == "" {
+		return nil, errors.New("workload secret ID must not be empty")
 	}
-	if bytes.Equal(policyHash[:], s.hashFun().Sum(nil)) {
-		return nil, errors.New("policy hash is the hash of an empty byte slice")
-	}
-	return s.hkdfDerive(s.podStateSeed, fmt.Sprintf("POD SECRET %x", policyHash))
+	return s.hkdfDerive(s.podStateSeed, fmt.Sprintf("WORKLOAD SECRET ID: %s", workloadSecretID))
 }
 
 // GenerateMeshCAKey generates a new random key for the mesh authority.
