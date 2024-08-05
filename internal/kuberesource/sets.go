@@ -64,7 +64,7 @@ func OpenSSL() []any {
 						Container().
 							WithName("openssl-backend").
 							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
-							WithCommand("/bin/bash", "-c", "openssl s_server -port 443 -Verify 2 -CAfile /tls-config/mesh-ca.pem -cert /tls-config/certChain.pem -key /tls-config/key.pem").
+							WithCommand("/bin/bash", "-c", "openssl s_server -port 443 -Verify 2 -CAfile /contrast/tls-config/mesh-ca.pem -cert /contrast/tls-config/certChain.pem -key /contrast/tls-config/key.pem").
 							WithPorts(
 								ContainerPort().
 									WithName("https").
@@ -99,7 +99,7 @@ func OpenSSL() []any {
 						Container().
 							WithName("openssl-frontend").
 							WithImage("ghcr.io/edgelesssys/contrast/openssl:latest").
-							WithCommand("/bin/bash", "-c", "openssl s_server -www -port 443 -cert /tls-config/certChain.pem -key /tls-config/key.pem -cert_chain /tls-config/certChain.pem").
+							WithCommand("/bin/bash", "-c", "openssl s_server -www -port 443 -cert /contrast/tls-config/certChain.pem -key /contrast/tls-config/key.pem -cert_chain /contrast/tls-config/certChain.pem").
 							WithPorts(
 								ContainerPort().
 									WithName("https").
@@ -472,17 +472,17 @@ func Emojivoto(smMode serviceMeshMode) []any {
 
 	if smMode == ServiceMeshDisabled {
 		emoji.Spec.Template.Spec.Containers[0].
-			WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
-			WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/mesh-ca.pem")).
-			WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem"))
+			WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/contrast/tls-config/certChain.pem")).
+			WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/contrast/tls-config/mesh-ca.pem")).
+			WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/contrast/tls-config/key.pem"))
 		voting.Spec.Template.Spec.Containers[0].
-			WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
-			WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/mesh-ca.pem")).
-			WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem"))
+			WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/contrast/tls-config/certChain.pem")).
+			WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/contrast/tls-config/mesh-ca.pem")).
+			WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/contrast/tls-config/key.pem"))
 		web.Spec.Template.Spec.Containers[0].
-			WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/tls-config/certChain.pem")).
-			WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/tls-config/mesh-ca.pem")).
-			WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/tls-config/key.pem")).
+			WithEnv(EnvVar().WithName("EDG_CERT_PATH").WithValue("/contrast/tls-config/certChain.pem")).
+			WithEnv(EnvVar().WithName("EDG_CA_PATH").WithValue("/contrast/tls-config/mesh-ca.pem")).
+			WithEnv(EnvVar().WithName("EDG_KEY_PATH").WithValue("/contrast/tls-config/key.pem")).
 			WithEnv(EnvVar().WithName("EDG_DISABLE_CLIENT_AUTH").WithValue("true"))
 		return resources
 	}

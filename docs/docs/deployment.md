@@ -120,9 +120,9 @@ The following example shows how to configure a Golang app, with error handling o
 
 ```go
 caCerts := x509.NewCertPool()
-caCert, _ := os.ReadFile("/tls-config/mesh-ca.pem")
+caCert, _ := os.ReadFile("/contrast/tls-config/mesh-ca.pem")
 caCerts.AppendCertsFromPEM(caCert)
-cert, _ := tls.LoadX509KeyPair("/tls-config/certChain.pem", "/tls-config/key.pem")
+cert, _ := tls.LoadX509KeyPair("/contrast/tls-config/certChain.pem", "/contrast/tls-config/key.pem")
 cfg := &tls.Config{
   Certificates: []tls.Certificate{cert},
   RootCAs: caCerts,
@@ -134,9 +134,9 @@ cfg := &tls.Config{
 
 ```go
 caCerts := x509.NewCertPool()
-caCert, _ := os.ReadFile("/tls-config/mesh-ca.pem")
+caCert, _ := os.ReadFile("/contrast/tls-config/mesh-ca.pem")
 caCerts.AppendCertsFromPEM(caCert)
-cert, _ := tls.LoadX509KeyPair("/tls-config/certChain.pem", "/tls-config/key.pem")
+cert, _ := tls.LoadX509KeyPair("/contrast/tls-config/certChain.pem", "/contrast/tls-config/key.pem")
 cfg := &tls.Config{
   Certificates: []tls.Certificate{cert},
   ClientAuth: tls.RequireAndVerifyClientCert,
@@ -211,7 +211,7 @@ spec:
       image: "ghcr.io/edgelesssys/contrast/initializer:latest"
       name: contrast-initializer
       volumeMounts:
-        - mountPath: /tls-config
+        - mountPath: /contrast
           name: contrast-tls-certs
   volumes:
     - emptyDir: {}
