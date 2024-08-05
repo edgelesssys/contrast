@@ -58,7 +58,6 @@ jobs:
       - name: Get credentials for CI cluster
         run: |
           just get-credentials
-      - uses: ./.github/actions/nix_tmpfs
       - name: Build and prepare deployments
         run: |
           just node-installer
