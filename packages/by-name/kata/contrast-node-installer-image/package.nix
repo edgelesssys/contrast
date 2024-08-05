@@ -32,59 +32,59 @@ let
           files = [
             {
               url = "file:///opt/edgeless/share/kata-containers.img";
-              path = "@@runtimeBase@@/share/kata-containers.img";
+              path = "/opt/edgeless/@@runtimeName@@/share/kata-containers.img";
             }
             {
               url = "file:///opt/edgeless/share/kata-kernel";
-              path = "@@runtimeBase@@/share/kata-kernel";
+              path = "/opt/edgeless/@@runtimeName@@/share/kata-kernel";
             }
             {
               url = "file:///opt/edgeless/snp/bin/qemu-system-x86_64";
-              path = "@@runtimeBase@@/snp/bin/qemu-system-x86_64";
+              path = "/opt/edgeless/@@runtimeName@@/snp/bin/qemu-system-x86_64";
             }
             {
               url = "file:///opt/edgeless/tdx/bin/qemu-system-x86_64";
-              path = "@@runtimeBase@@/tdx/bin/qemu-system-x86_64";
+              path = "/opt/edgeless/@@runtimeName@@/tdx/bin/qemu-system-x86_64";
             }
             {
               url = "file:///opt/edgeless/snp/share/OVMF.fd";
-              path = "@@runtimeBase@@/snp/share/OVMF.fd";
+              path = "/opt/edgeless/@@runtimeName@@/snp/share/OVMF.fd";
             }
             {
               url = "file:///opt/edgeless/tdx/share/OVMF.fd";
-              path = "@@runtimeBase@@/tdx/share/OVMF.fd";
+              path = "/opt/edgeless/@@runtimeName@@/tdx/share/OVMF.fd";
             }
             {
               url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
-              path = "@@runtimeBase@@/bin/containerd-shim-contrast-cc-v2";
+              path = "/opt/edgeless/@@runtimeName@@/bin/containerd-shim-contrast-cc-v2";
             }
             {
               url = "file:///opt/edgeless/bin/kata-runtime";
-              path = "@@runtimeBase@@/bin/kata-runtime";
+              path = "/opt/edgeless/@@runtimeName@@/bin/kata-runtime";
             }
             {
               url = "file:///opt/edgeless/snp/share/qemu/kvmvapic.bin";
-              path = "@@runtimeBase@@/snp/share/qemu/kvmvapic.bin";
+              path = "/opt/edgeless/@@runtimeName@@/snp/share/qemu/kvmvapic.bin";
             }
             {
               url = "file:///opt/edgeless/snp/share/qemu/linuxboot_dma.bin";
-              path = "@@runtimeBase@@/snp/share/qemu/linuxboot_dma.bin";
+              path = "/opt/edgeless/@@runtimeName@@/snp/share/qemu/linuxboot_dma.bin";
             }
             {
               url = "file:///opt/edgeless/snp/share/qemu/efi-virtio.rom";
-              path = "@@runtimeBase@@/snp/share/qemu/efi-virtio.rom";
+              path = "/opt/edgeless/@@runtimeName@@/snp/share/qemu/efi-virtio.rom";
             }
             {
               url = "file:///opt/edgeless/tdx/share/qemu/kvmvapic.bin";
-              path = "@@runtimeBase@@/tdx/share/qemu/kvmvapic.bin";
+              path = "/opt/edgeless/@@runtimeName@@/tdx/share/qemu/kvmvapic.bin";
             }
             {
               url = "file:///opt/edgeless/tdx/share/qemu/linuxboot_dma.bin";
-              path = "@@runtimeBase@@/tdx/share/qemu/linuxboot_dma.bin";
+              path = "/opt/edgeless/@@runtimeName@@/tdx/share/qemu/linuxboot_dma.bin";
             }
             {
               url = "file:///opt/edgeless/tdx/share/qemu/efi-virtio.rom";
-              path = "@@runtimeBase@@/tdx/share/qemu/efi-virtio.rom";
+              path = "/opt/edgeless/@@runtimeName@@/tdx/share/qemu/efi-virtio.rom";
             }
           ];
           inherit (kata.runtime-class-files) debugRuntime;

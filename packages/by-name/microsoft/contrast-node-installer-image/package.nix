@@ -32,19 +32,19 @@ let
           files = [
             {
               url = "file:///opt/edgeless/share/kata-containers.img";
-              path = "@@runtimeBase@@/share/kata-containers.img";
+              path = "/opt/edgeless/@@runtimeName@@/share/kata-containers.img";
             }
             {
               url = "file:///opt/edgeless/share/kata-containers-igvm.img";
-              path = "@@runtimeBase@@/share/kata-containers-igvm.img";
+              path = "/opt/edgeless/@@runtimeName@@/share/kata-containers-igvm.img";
             }
             {
               url = "file:///opt/edgeless/bin/cloud-hypervisor-snp";
-              path = "@@runtimeBase@@/bin/cloud-hypervisor-snp";
+              path = "/opt/edgeless/@@runtimeName@@/bin/cloud-hypervisor-snp";
             }
             {
               url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
-              path = "@@runtimeBase@@/bin/containerd-shim-contrast-cc-v2";
+              path = "/opt/edgeless/@@runtimeName@@/bin/containerd-shim-contrast-cc-v2";
             }
           ];
           inherit (microsoft.runtime-class-files) debugRuntime;
