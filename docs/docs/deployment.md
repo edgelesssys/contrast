@@ -74,7 +74,7 @@ spec: # v1.PodSpec
 
 ### Handling TLS
 
-In the initialization process, the `contrast-tls-certs` shared volume is populated with X.509 certificates for your workload.
+In the initialization process, the `contrast-secrets` shared volume is populated with X.509 certificates for your workload.
 These certificates are used by the [Contrast Service Mesh](components/service-mesh.md), but can also be used by your application directly.
 The following tab group explains the setup for both scenarios.
 
@@ -120,9 +120,9 @@ The following example shows how to configure a Golang app, with error handling o
 
 ```go
 caCerts := x509.NewCertPool()
-caCert, _ := os.ReadFile("/tls-config/mesh-ca.pem")
+caCert, _ := os.ReadFile("/contrast/tls-config/mesh-ca.pem")
 caCerts.AppendCertsFromPEM(caCert)
-cert, _ := tls.LoadX509KeyPair("/tls-config/certChain.pem", "/tls-config/key.pem")
+cert, _ := tls.LoadX509KeyPair("/contrast/tls-config/certChain.pem", "/contrast/tls-config/key.pem")
 cfg := &tls.Config{
   Certificates: []tls.Certificate{cert},
   RootCAs: caCerts,
@@ -134,9 +134,9 @@ cfg := &tls.Config{
 
 ```go
 caCerts := x509.NewCertPool()
-caCert, _ := os.ReadFile("/tls-config/mesh-ca.pem")
+caCert, _ := os.ReadFile("/contrast/tls-config/mesh-ca.pem")
 caCerts.AppendCertsFromPEM(caCert)
-cert, _ := tls.LoadX509KeyPair("/tls-config/certChain.pem", "/tls-config/key.pem")
+cert, _ := tls.LoadX509KeyPair("/contrast/tls-config/certChain.pem", "/contrast/tls-config/key.pem")
 cfg := &tls.Config{
   Certificates: []tls.Certificate{cert},
   ClientAuth: tls.RequireAndVerifyClientCert,
@@ -199,7 +199,7 @@ metadata: # apps/v1.Deployment, apps/v1.DaemonSet, ...
 When disabling the automatic Initializer injection, you can manually add the
 Initializer as a sidecar container to your workload before generating the
 policies. Configure the workload to use the certificates written to the
-`contrast-tls-certs` `volumeMount`.
+`contrast-secrets` `volumeMount`.
 
 ```yaml
 # v1.PodSpec
@@ -211,11 +211,11 @@ spec:
       image: "ghcr.io/edgelesssys/contrast/initializer:latest"
       name: contrast-initializer
       volumeMounts:
-        - mountPath: /tls-config
-          name: contrast-tls-certs
+        - mountPath: /contrast
+          name: contrast-secrets
   volumes:
     - emptyDir: {}
-      name: contrast-tls-certs
+      name: contrast-secrets
 ```
 
 ## Apply the resources
