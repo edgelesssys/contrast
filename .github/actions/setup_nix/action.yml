@@ -19,3 +19,14 @@ runs:
       with:
         name: edgelesssys
         authToken: ${{ inputs.cachixToken }}
+    - name: use btrfs for nix builds
+      shell: bash
+      run: |
+        sudo mkdir /nixbld
+        truncate -s 3G btrfs.img
+        sudo mkfs.btrfs -f btrfs.img
+        sudo mount btrfs.img /nixbld
+        sudo mkdir -p /etc/systemd/system/nix-daemon.service.d
+        echo -e "[Service]\nEnvironment=TMPDIR=/nixbld" | sudo tee /etc/systemd/system/nix-daemon.service.d/btrfs.conf
+        sudo systemctl daemon-reload
+        sudo systemctl restart nix-daemon

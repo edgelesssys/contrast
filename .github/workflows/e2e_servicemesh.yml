@@ -59,7 +59,6 @@ jobs:
           echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"
           sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
           echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
-      - uses: ./.github/actions/nix_tmpfs
       - name: Build and prepare deployments
         run: |
           just coordinator initializer port-forwarder service-mesh-proxy node-installer
