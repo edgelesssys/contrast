@@ -80,7 +80,7 @@ func TestSeedEngine_New(t *testing.T) {
 	}
 }
 
-func TestSeedEngine_DerivePodSecret(t *testing.T) {
+func TestSeedEngine_DeriveWorkloadSecret(t *testing.T) {
 	require := require.New(t)
 
 	// policyHash -> want
@@ -93,35 +93,26 @@ func TestSeedEngine_DerivePodSecret(t *testing.T) {
 
 			DO NOT CHANGE!
 		*/
-		"8d62644ef9944dbbb1a2b1a574840cbd6b09e5e7f96ac0f82a8a37271edd983b": {podSecret: "27a9ce52ad64f131d7e44c655d4ab0b0ab41b38a538615d2b28f88cbfeac2c70"},
-		"b838a7adb60d110d6c3c7a1dfa51b439b78386f439a092eda0d67d53cc01c02e": {podSecret: "257172cbb64f1681f25168d46f361aa512c08c11c21ef6ad0b7d8b46ad29d443"},
-		"11103d1efce19d05f5aaac2c8af405136ad91dae9f64ba25c2402100ff0e03eb": {podSecret: "425b229b7f327ca82ee39941cce26ea84e6a78aef3358c0c98b76515129dac32"},
-		"d229c5714ca84d4e73b973636723e6cd5fe49f3c3e486732facfba61f94a10fc": {podSecret: "9e743b32c2fb0a9d791ba4cbd51445478d118ea88c4a0953576ed1ef4c1e353f"},
-		"91b7513a7709d2ab92d2c1fe1e431e37f0bea18165dd908b0e6386817b0c6faf": {podSecret: "86343cf90cecf6a1582465d50c33a6ef38dea6ca95e1424dc0bca37d5c8e076f"},
-		"99704c8b2a08ae9b8165a300ea05dbeae3b4c9a2096a6221aa4175bad43d53ec": {podSecret: "4006cbada495cb8f95e67f1b55466d63d94ca321789090bb80f01ae6c19ce8bf"},
-		"f2e57529d3b92832eef960b75b2d299aadf1e373473bebf28cc105dae55c5f4e": {podSecret: "66d4fd6a3bfeac05490a29e6e3c4191cb2400a1949d3b4bc726a08d12415eeb5"},
-		"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855": {err: true},
-		"": {err: true},
+		"workload-1": {podSecret: "87668b2d30e7538b5643e42bcc0f1a7b532833f47fcd1293f779d9f2abf9e708"},
+		"emoji-pod ": {podSecret: "345f575cdd9fa8fbe61d35186266aaadd440a06db34beb52d85e3b678dc29e01"},
+		"   ":        {podSecret: "4874199bd19baf510bc5a5c71918c5263be4fb870efcf1bdd73e17249e3cb385"},
+		"12345":      {podSecret: "c5dfeb23e39da9807d6260e6825d8367b47052fcb6bb4c79624fc5936921a0d0"},
+		"":           {err: true},
 	}
 
-	secretSeed, err := hex.DecodeString("ccebed634ddee7535cd593e1e200b19b780f3906d8782207fa09c59e87a07cb3")
+	secretSeed, err := hex.DecodeString("9c7f285a46704602f8b6d9d4a89193579a979f144a9d8733fddd4f2bbcecd77f")
 	require.NoError(err)
-	salt, err := hex.DecodeString("8c1b1225c5f6cb7eef6dbd8f77a1e1e149de031d6e3718e660a8b04c8e2b0037")
+	salt, err := hex.DecodeString("6227b2cae740349beaff040af74aa1566ac330e9b54ce0e58f8d5ee47281745a")
 	require.NoError(err)
 
 	se, err := New(secretSeed, salt)
 	require.NoError(err)
 
-	for policyHashStr, want := range testCases {
-		t.Run(policyHashStr, func(t *testing.T) {
+	for workloadName, want := range testCases {
+		t.Run(workloadName, func(t *testing.T) {
 			assert := assert.New(t)
 
-			var policyHash [32]byte
-			policyHashSlice, err := hex.DecodeString(policyHashStr)
-			require.NoError(err)
-			copy(policyHash[:], policyHashSlice)
-
-			podSecret, err := se.DerivePodSecret(policyHash)
+			workloadSecret, err := se.DeriveWorkloadSecret(workloadName)
 
 			if want.err {
 				require.Error(err)
@@ -129,7 +120,7 @@ func TestSeedEngine_DerivePodSecret(t *testing.T) {
 			}
 			assert.NoError(err)
 
-			assert.Equal(want.podSecret, hex.EncodeToString(podSecret))
+			assert.Equal(want.podSecret, hex.EncodeToString(workloadSecret))
 		})
 	}
 }
