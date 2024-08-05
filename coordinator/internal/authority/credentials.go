@@ -71,7 +71,9 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		return nil, nil, fmt.Errorf("getting state: %w", err)
 	}
 
-	authInfo := AuthInfo{State: state}
+	authInfo := AuthInfo{
+		State: state,
+	}
 
 	opts, err := state.Manifest.SNPValidateOpts(c.kdsGetter)
 	if err != nil {
