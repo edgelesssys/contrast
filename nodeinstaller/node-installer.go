@@ -71,12 +71,10 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 		return fmt.Errorf("getting runtime handler name: %w", err)
 	}
 
-	runtimeBase := filepath.Join("/opt", "edgeless", runtimeHandlerName)
-
 	// Copy the files
 	for _, file := range config.Files {
-		// Replace @@runtimeBase@@ in the target path with the actual base directory.
-		targetPath := strings.ReplaceAll(file.Path, constants.RuntimeBasePlaceholder, runtimeBase)
+		// Replace @@runtimeName@@ in the target path with the actual base directory.
+		targetPath := strings.ReplaceAll(file.Path, constants.RuntimeNamePlaceholder, runtimeHandlerName)
 
 		fmt.Printf("Fetching %q to %q\n", file.URL, targetPath)
 
@@ -96,6 +94,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	}
 
 	// Fix-up the permissions of executables
+	runtimeBase := filepath.Join("/opt", "edgeless", runtimeHandlerName)
 	binDirs := []string{filepath.Join(hostMount, runtimeBase, "bin")}
 	switch platform {
 	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
