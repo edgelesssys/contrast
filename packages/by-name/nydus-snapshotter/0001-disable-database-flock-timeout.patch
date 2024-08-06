@@ -1,7 +1,7 @@
-From 6df4f8ea61ca8de08d7f2a87f9f80f2ba4b4513d Mon Sep 17 00:00:00 2001
+From 03e2e6d8a2f6e5e2b11ee76b7f6ea4b2de808331 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Tue, 27 Aug 2024 10:18:42 +0200
-Subject: [PATCH] disable database flock timeout
+Subject: [PATCH 1/2] disable database flock timeout
 
 If there's another snapshotter instance running and that snapshotter
 has already acquired the file lock, we don't mind waiting indefinitely
