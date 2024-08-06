@@ -41,10 +41,12 @@ let
             {
               url = "file:///opt/edgeless/snp/bin/qemu-system-x86_64";
               path = "/opt/edgeless/@@runtimeName@@/snp/bin/qemu-system-x86_64";
+              executable = true;
             }
             {
               url = "file:///opt/edgeless/tdx/bin/qemu-system-x86_64";
               path = "/opt/edgeless/@@runtimeName@@/tdx/bin/qemu-system-x86_64";
+              executable = true;
             }
             {
               url = "file:///opt/edgeless/snp/share/OVMF.fd";
@@ -57,10 +59,12 @@ let
             {
               url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
               path = "/opt/edgeless/@@runtimeName@@/bin/containerd-shim-contrast-cc-v2";
+              executable = true;
             }
             {
               url = "file:///opt/edgeless/bin/kata-runtime";
               path = "/opt/edgeless/@@runtimeName@@/bin/kata-runtime";
+              executable = true;
             }
             {
               url = "file:///opt/edgeless/snp/share/qemu/kvmvapic.bin";
