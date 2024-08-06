@@ -1,4 +1,4 @@
-![Contrast](docs/static/img/banner.svg)
+![Contrast](docs/static/img/GitHub-Banner_Contrast_2024.gif)
 
 # Contrast
 
