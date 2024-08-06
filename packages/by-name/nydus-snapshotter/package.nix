@@ -11,7 +11,7 @@
 
 buildGoModule rec {
   pname = "nydus-snapshotter";
-  version = "0.13.13";
+  version = "0.13.13-p1";
 
   src = fetchFromGitHub {
     owner = "containerd";
@@ -19,6 +19,8 @@ buildGoModule rec {
     rev = "v${version}";
     hash = "sha256-InUBFTGBQR7LAv4rs9Smcdr7+iD1EHZr/JZ0M3pYK1Q=";
   };
+
+  patches = [ ./0001-snapshotter-enable-configuration-of-nydus-overlayfs-.patch ];
 
   vendorHash = "sha256-Lb0j+VnjDyWmi09CHa8P48psVeZHUxI5I++ZaIV4Yog=";
   proxyVendor = true;
