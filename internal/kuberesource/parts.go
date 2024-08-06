@@ -107,6 +107,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 			"--config=/share/nydus-snapshotter/config-coco-guest-pulling.toml",
 			fmt.Sprintf("--address=/host/run/containerd/containerd-nydus-grpc-%s.sock", runtimeHandler),
 			"--log-to-stdout",
+			fmt.Sprintf("--nydus-overlayfs-path=/opt/edgeless/%s/bin/nydus-overlayfs", runtimeHandler),
 		)
 	nydusSnapshotterVolumes := []*applycorev1.VolumeApplyConfiguration{
 		Volume().
