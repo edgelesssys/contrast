@@ -44,7 +44,7 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 	oldState := a.state.Load()
 	if oldState != nil {
 		// Subsequent SetManifest call, check permissions of caller.
-		if err := a.validatePeer(ctx, oldState.manifest); err != nil {
+		if err := a.validatePeer(ctx, oldState.Manifest); err != nil {
 			a.logger.Warn("SetManifest peer validation failed", "err", err)
 			return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
 		}
@@ -131,10 +131,10 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 		return nil, status.Errorf(codes.Internal, "creating CA: %v", err)
 	}
 
-	nextState := &state{
+	nextState := &State{
 		latest:     nextLatest,
-		manifest:   m,
-		ca:         ca,
+		Manifest:   m,
+		CA:         ca,
 		generation: oldGeneration + 1,
 	}
 
@@ -203,8 +203,8 @@ func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsReque
 
 	resp := &userapi.GetManifestsResponse{
 		Manifests: manifests,
-		RootCA:    state.ca.GetRootCACert(),
-		MeshCA:    state.ca.GetMeshCACert(),
+		RootCA:    state.CA.GetRootCACert(),
+		MeshCA:    state.CA.GetMeshCACert(),
 	}
 	for _, policy := range policies {
 		resp.Policies = append(resp.Policies, policy)

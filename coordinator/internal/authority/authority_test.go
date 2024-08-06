@@ -40,25 +40,21 @@ func TestSNPValidateOpts(t *testing.T) {
 	policyHash := sha256.Sum256(policies[0])
 	report := &sevsnp.Report{HostData: policyHash[:]}
 
-	opts, err := a.SNPValidateOpts(report)
-	require.Error(err)
-	require.Nil(opts)
-
 	req := &userapi.SetManifestRequest{
 		Manifest: mnfstBytes,
 		Policies: policies,
 	}
-	_, err = a.SetManifest(context.Background(), req)
+	_, err := a.SetManifest(context.Background(), req)
 	require.NoError(err)
 
-	opts, err = a.SNPValidateOpts(report)
+	opts, err := a.state.Load().SNPValidateOpts(report)
 	require.NoError(err)
 	require.NotNil(opts)
 
 	// Change to unknown policy hash in HostData.
 	report.HostData[0]++
 
-	opts, err = a.SNPValidateOpts(report)
+	opts, err = a.state.Load().SNPValidateOpts(report)
 	require.Error(err)
 	require.Nil(opts)
 }
