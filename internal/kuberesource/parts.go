@@ -107,6 +107,9 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 			"--config=/share/nydus-snapshotter/config-coco-guest-pulling.toml",
 			fmt.Sprintf("--address=/host/run/containerd/containerd-nydus-grpc-%s.sock", runtimeHandler),
 			"--log-to-stdout",
+			// The best thing we can currently do is to place a binary with a runtime specific name
+			// in $PATH of the host, as it isn't possible to pass a mount helper via path.
+			fmt.Sprintf("--nydus-overlayfs-name=nydus-overlayfs-%s", runtimeHandler),
 		)
 	nydusSnapshotterVolumes := []*applycorev1.VolumeApplyConfiguration{
 		Volume().

@@ -7,6 +7,7 @@
   ociImageLayout,
   contrast,
   kata,
+  nydus-snapshotter,
   pkgsStatic,
   writers,
 }:
@@ -89,6 +90,11 @@ let
             {
               url = "file:///opt/edgeless/tdx/share/qemu/efi-virtio.rom";
               path = "/opt/edgeless/@@runtimeName@@/tdx/share/qemu/efi-virtio.rom";
+            }
+            {
+              url = "file:///bin/nydus-overlayfs";
+              path = "/usr/local/bin/nydus-overlayfs-@@runtimeName@@";
+              executable = true;
             }
           ];
           inherit (kata.runtime-class-files) debugRuntime;
@@ -184,6 +190,15 @@ let
     ];
   };
 
+  nydus = ociLayerTar {
+    files = [
+      {
+        source = "${nydus-snapshotter}/bin/nydus-overlayfs";
+        destination = "/bin/nydus-overlayfs";
+      }
+    ];
+  };
+
   manifest = ociImageManifest {
     layers = [
       node-installer
@@ -194,6 +209,7 @@ let
       qemu-snp
       qemu-tdx
       kata-runtime
+      nydus
     ];
     extraConfig = {
       "config" = {
