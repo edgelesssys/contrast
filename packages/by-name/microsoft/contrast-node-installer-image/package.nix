@@ -41,10 +41,12 @@ let
             {
               url = "file:///opt/edgeless/bin/cloud-hypervisor-snp";
               path = "/opt/edgeless/@@runtimeName@@/bin/cloud-hypervisor-snp";
+              executable = true;
             }
             {
               url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
               path = "/opt/edgeless/@@runtimeName@@/bin/containerd-shim-contrast-cc-v2";
+              executable = true;
             }
           ];
           inherit (microsoft.runtime-class-files) debugRuntime;

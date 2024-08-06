@@ -37,6 +37,8 @@ type File struct {
 	URL string `json:"url"`
 	// Path is the absolute path (on the host) to save the file to.
 	Path string `json:"path"`
+	// Executable is true if the file should be executable.
+	Executable bool `json:"executable"`
 	// Integrity is the content subresource integrity (expected hash) of the file. Required if the file is downloaded.
 	// The format of a subresource integrity string is defined here:
 	// https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity
