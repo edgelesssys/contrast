@@ -243,10 +243,12 @@ jobs:
           nodeInstallerImg=$(nix run .#containers.push-node-installer-microsoft -- "$container_registry/contrast/node-installer-microsoft")
           initializerImg=$(nix run .#containers.push-initializer -- "$container_registry/contrast/initializer")
           serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy")
+          tardevSnapshotterImg=$(nix run .#containers.push-tardev-snapshotter -- "$container_registry/contrast/tardev-snapshotter")
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerImg=$nodeInstallerImg" | tee -a "$GITHUB_ENV"
           echo "initializerImg=$initializerImg" | tee -a "$GITHUB_ENV"
           echo "serviceMeshImg=$serviceMeshImg" | tee -a "$GITHUB_ENV"
+          echo "tardevSnapshotterImg=$tardevSnapshotterImg" | tee -a "$GITHUB_ENV"
       - name: Add tag to Coordinator image
         run: |
           tag() {
@@ -258,6 +260,11 @@ jobs:
           echo "nodeInstallerImgTagged=$(tag "$nodeInstallerImg")" | tee -a "$GITHUB_ENV"
           echo "initializerImgTagged=$(tag "$initializerImg")" | tee -a "$GITHUB_ENV"
           echo "serviceMeshImgTagged=$(tag "$serviceMeshImg")" | tee -a "$GITHUB_ENV"
+
+          tardevVer=$(nix eval --impure --raw --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.microsoft.tardev-snapshotter.version")
+          front=${tardevSnapshotterImg%@*}
+          back=${tardevSnapshotterImg#*@}
+          echo "tardevSnapshotterImgTagged=$(printf "%s:%s@%s" "$front" "$tardevVer" "$back")" | tee -a "$GITHUB_ENV"
       - name: Create file with image replacements
         run: |
           {
@@ -265,6 +272,7 @@ jobs:
             echo "ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImgTagged"
             echo "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged"
             echo "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=$nodeInstallerImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged"
           } > image-replacements.txt
       - name: Upload image replacements file (for main branch PR)
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
