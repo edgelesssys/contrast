@@ -86,7 +86,7 @@ Contrast service mesh as an init container.
         - env:
             - name: CONTRAST_INGRESS_PROXY_CONFIG
               value: "web#8080#false##metrics#7890#true"
-          image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest"
+          image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:v0.9.0@sha256:d97397770b8ea13082eab96099629f971688508e5b0cc1596df07aa5510d5972"
           name: contrast-service-mesh
           restartPolicy: Always
           securityContext:
