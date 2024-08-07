@@ -36,16 +36,15 @@ const (
 )
 
 var (
-	imageReplacementsFile, namespaceFile string
-	skipUndeploy                         bool
+	imageReplacementsFile, namespaceFile, platformStr string
+	skipUndeploy                                      bool
 )
 
 // TestOpenSSL runs e2e tests on the example OpenSSL deployment.
 func TestOpenSSL(t *testing.T) {
-	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, skipUndeploy)
-
-	// TODO(msanft): Make this configurable
-	platform := platforms.AKSCloudHypervisorSNP
+	platform, err := platforms.FromString(platformStr)
+	require.NoError(t, err)
+	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, skipUndeploy)
 
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
@@ -61,6 +60,31 @@ func TestOpenSSL(t *testing.T) {
 
 	ct.Init(t, resources)
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+
+	if platform == platforms.K3sQEMUSNP {
+		// The generate command doesn't fill in all required fields when
+		// generating a manifest for baremetal SNP. Do that now.
+
+		manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
+		require.NoError(t, err)
+		var m manifest.Manifest
+		require.NoError(t, json.Unmarshal(manifestBytes, &m))
+
+		m.ReferenceValues.BareMetalSNP.SNP.MinimumTCB.BootloaderVersion = toPtr(manifest.SVN(0))
+		m.ReferenceValues.BareMetalSNP.SNP.MinimumTCB.TEEVersion = toPtr(manifest.SVN(0))
+		m.ReferenceValues.BareMetalSNP.SNP.MinimumTCB.SNPVersion = toPtr(manifest.SVN(0))
+		m.ReferenceValues.BareMetalSNP.SNP.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
+
+		// TODO(freax13): Remove this once we also use the BareMetalSNP reference values for attestation.
+		m.ReferenceValues.AKS = &manifest.AKSReferenceValues{
+			SNP:                m.ReferenceValues.BareMetalSNP.SNP,
+			TrustedMeasurement: m.ReferenceValues.BareMetalSNP.TrustedMeasurement,
+		}
+
+		manifestBytes, err = json.Marshal(m)
+		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
+	}
 
 	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
@@ -202,6 +226,7 @@ func TestOpenSSL(t *testing.T) {
 		c := kubeclient.NewForTest(t)
 
 		require.NoError(c.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
+		require.NoError(c.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
 
 		require.ErrorContains(ct.RunVerify(), "recovery")
 
@@ -241,6 +266,7 @@ func TestOpenSSL(t *testing.T) {
 func TestMain(m *testing.M) {
 	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
 	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
+	flag.StringVar(&platformStr, "platform", "", "Deployment platform")
 	flag.BoolVar(&skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
 	flag.Parse()
 
@@ -251,4 +277,8 @@ func opensslConnectCmd(addr, caCert string) string {
 	return fmt.Sprintf(
 		`openssl s_client -connect %s -verify_return_error -x509_strict -CAfile /tls-config/%s -cert /tls-config/certChain.pem -key /tls-config/key.pem </dev/null`,
 		addr, caCert)
+}
+
+func toPtr[T any](t T) *T {
+	return &t
 }

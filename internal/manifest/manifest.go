@@ -75,24 +75,50 @@ func (r ReferenceValues) Validate() error {
 			return fmt.Errorf("validating bare metal TDX reference values: %w", err)
 		}
 	}
+	if r.BareMetalSNP != nil {
+		if err := r.BareMetalSNP.Validate(); err != nil {
+			return fmt.Errorf("validating bare metal TDX reference values: %w", err)
+		}
+	}
 
-	if r.BareMetalTDX == nil && r.AKS == nil {
+	if r.BareMetalTDX == nil && r.BareMetalSNP == nil && r.AKS == nil {
 		return fmt.Errorf("reference values in manifest cannot be empty. Is the chosen platform supported?")
 	}
 
 	return nil
 }
 
+// Validate checks the validity of all fields in the SNP TCB reference values.
+func (s SNPTCB) Validate() error {
+	if s.BootloaderVersion == nil {
+		return fmt.Errorf("field BootloaderVersion in manifest cannot be empty")
+	} else if s.TEEVersion == nil {
+		return fmt.Errorf("field TEEVersion in manifest cannot be empty")
+	} else if s.SNPVersion == nil {
+		return fmt.Errorf("field SNPVersion in manifest cannot be empty")
+	} else if s.MicrocodeVersion == nil {
+		return fmt.Errorf("field MicrocodeVersion in manifest cannot be empty")
+	}
+	return nil
+}
+
 // Validate checks the validity of all fields in the AKS reference values.
 func (r AKSReferenceValues) Validate() error {
-	if r.SNP.MinimumTCB.BootloaderVersion == nil {
-		return fmt.Errorf("field BootloaderVersion in manifest cannot be empty")
-	} else if r.SNP.MinimumTCB.TEEVersion == nil {
-		return fmt.Errorf("field TEEVersion in manifest cannot be empty")
-	} else if r.SNP.MinimumTCB.SNPVersion == nil {
-		return fmt.Errorf("field SNPVersion in manifest cannot be empty")
-	} else if r.SNP.MinimumTCB.MicrocodeVersion == nil {
-		return fmt.Errorf("field MicrocodeVersion in manifest cannot be empty")
+	if err := r.SNP.MinimumTCB.Validate(); err != nil {
+		return fmt.Errorf("validating SNP TCB: %w", err)
+	}
+
+	if len(r.TrustedMeasurement) != abi.MeasurementSize*2 {
+		return fmt.Errorf("trusted measurement has invalid length: %d (expected %d)", len(r.TrustedMeasurement), abi.MeasurementSize*2)
+	}
+
+	return nil
+}
+
+// Validate checks the validity of all fields in the bare metal TDX reference values.
+func (r BareMetalSNPReferenceValues) Validate() error {
+	if err := r.SNP.MinimumTCB.Validate(); err != nil {
+		return fmt.Errorf("validating SNP TCB: %w", err)
 	}
 
 	if len(r.TrustedMeasurement) != abi.MeasurementSize*2 {

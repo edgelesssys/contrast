@@ -1,6 +1,8 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
+//go:build e2e
+
 package contrasttest
 
 import (
@@ -8,9 +10,11 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/x509"
+	_ "embed"
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"regexp"
@@ -28,6 +32,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//go:embed assets/allow-all.rego
+var allowAllRegoRules []byte
+
 // ContrastTest is the Contrast test helper struct.
 type ContrastTest struct {
 	// inputs, usually filled by New()
@@ -35,6 +42,7 @@ type ContrastTest struct {
 	WorkDir               string
 	ImageReplacements     map[string]string
 	ImageReplacementsFile string
+	Platform              platforms.Platform
 	NamespaceFile         string
 	SkipUndeploy          bool
 	Kubeclient            *kubeclient.Kubeclient
@@ -46,11 +54,12 @@ type ContrastTest struct {
 }
 
 // New creates a new contrasttest.T object bound to the given test.
-func New(t *testing.T, imageReplacements, namespaceFile string, skipUndeploy bool) *ContrastTest {
+func New(t *testing.T, imageReplacements, namespaceFile string, platform platforms.Platform, skipUndeploy bool) *ContrastTest {
 	return &ContrastTest{
 		Namespace:             makeNamespace(t),
 		WorkDir:               t.TempDir(),
 		ImageReplacementsFile: imageReplacements,
+		Platform:              platform,
 		NamespaceFile:         namespaceFile,
 		SkipUndeploy:          skipUndeploy,
 		Kubeclient:            kubeclient.NewForTest(t),
@@ -140,10 +149,19 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 func (ct *ContrastTest) Generate(t *testing.T) {
 	require := require.New(t)
 
+	// The policy specified in the rego rules doesn't work for these platforms
+	// yet. Use the allow-all policy instead.
+	// FIXME(freax13): Use a proper policy.
+	switch ct.Platform {
+	case platforms.K3sQEMUSNP:
+		err := os.WriteFile(path.Join(ct.WorkDir, "rules.rego"), allowAllRegoRules, fs.ModePerm)
+		require.NoError(err)
+	}
+
 	args := append(
 		ct.commonArgs(),
 		"--image-replacements", ct.ImageReplacementsFile,
-		"--reference-values", "aks-clh-snp",
+		"--reference-values", ct.Platform.String(),
 		path.Join(ct.WorkDir, "resources.yaml"),
 	)
 
@@ -247,7 +265,7 @@ func (ct *ContrastTest) commonArgs() []string {
 func (ct *ContrastTest) installRuntime(t *testing.T) {
 	require := require.New(t)
 
-	resources, err := kuberesource.Runtime(platforms.AKSCloudHypervisorSNP)
+	resources, err := kuberesource.Runtime(ct.Platform)
 	require.NoError(err)
 	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
