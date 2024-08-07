@@ -165,7 +165,7 @@
       trap 'rm -rf $tmpdir' EXIT
 
       echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$imageRef" > "$tmpdir/image-replacements.txt"
-      resourcegen --image-replacements "$tmpdir/image-replacements.txt" --add-load-balancers coordinator > "$tmpdir/coordinator_base.yml"
+      resourcegen --platform AKS-CLH-SNP --image-replacements "$tmpdir/image-replacements.txt" --add-load-balancers coordinator > "$tmpdir/coordinator_base.yml"
 
       pushd "$tmpdir" >/dev/null
       cp ${pkgs.microsoft.genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego
