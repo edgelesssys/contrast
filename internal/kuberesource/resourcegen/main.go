@@ -28,19 +28,18 @@ func main() {
 
 	flag.Parse()
 
-	var platform platforms.Platform
-	var runtimeHandler string
-	if *rawPlatform != "" {
-		var err error
-		platform, err = platforms.FromString(*rawPlatform)
-		if err != nil {
-			log.Fatalf("Error parsing platform: %v", err)
-		}
+	if *rawPlatform == "" {
+		log.Fatalf("--platform must be set to one of %v", platforms.AllStrings())
+	}
 
-		runtimeHandler, err = manifest.RuntimeHandler(platform)
-		if err != nil {
-			log.Fatalf("Error getting default runtime handler: %v", err)
-		}
+	platform, err := platforms.FromString(*rawPlatform)
+	if err != nil {
+		log.Fatalf("Error parsing platform: %v", err)
+	}
+
+	runtimeHandler, err := manifest.RuntimeHandler(platform)
+	if err != nil {
+		log.Fatalf("Error getting default runtime handler: %v", err)
 	}
 
 	var resources []any
