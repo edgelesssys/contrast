@@ -28,7 +28,6 @@ var (
 )
 
 func TestRegression(t *testing.T) {
-
 	yamlDir := "./e2e/regression/test-data/"
 	files, err := os.ReadDir(yamlDir)
 	require.NoError(t, err)
