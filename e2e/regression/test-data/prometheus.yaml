@@ -19,8 +19,8 @@ spec:
           image: quay.io/prometheus/prometheus@sha256:f20d3127bf2876f4a1df76246fca576b41ddf1125ed1c546fbd8b16ea55117e6
           volumeMounts:
             - mountPath: /prometheus
-              name: db
-          ports:
+              name: prometheus
+              ports:
             - containerPort: 9090
       volumes:
         - name: prometheus
