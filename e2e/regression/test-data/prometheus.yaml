@@ -20,8 +20,10 @@ spec:
           volumeMounts:
             - mountPath: /prometheus
               name: prometheus
-              ports:
+          ports:
             - containerPort: 9090
+          securityContext:
+            runAsUser: 65534
       volumes:
         - name: prometheus
           emptyDir:

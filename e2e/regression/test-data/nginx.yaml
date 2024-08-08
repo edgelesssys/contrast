@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: quay.io/nginx/nginx-unprivileged@sha256:ec783757c240e99a713eba1def9a88b983a133da215f517ed2d9a6fd734c2ad1
+          image: quay.io/nginx/nginx-unprivileged@sha256:a30a0565b20529d70babf04b81cc64d2dc04cfce9ff55d535710fcb35ca4b425
           ports:
             - containerPort: 8080
       runtimeClassName: REPLACE_RUNTIME
