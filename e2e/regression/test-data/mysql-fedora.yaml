@@ -18,4 +18,4 @@ spec:
           image: quay.io/fedora/mysql-80@sha256:4d74e013519e4f9a3adbdeed8350e3fffb92364d137b14a824a509dbbc045769
           ports:
             - containerPort: 3306
-      runtimeClassName: REPLACE_RUNTIME
+      runtimeClassName: contrast-cc

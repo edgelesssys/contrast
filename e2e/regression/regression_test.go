@@ -52,7 +52,6 @@ func TestRegression(t *testing.T) {
 			yaml, err := os.ReadFile(yamlDir + file.Name())
 			require.NoError(err)
 			yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_NAMESPACE"), []byte(ct.Namespace))
-			yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_RUNTIME"), []byte(runtimeHandler))
 
 			yamlResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
 			require.NoError(err)
