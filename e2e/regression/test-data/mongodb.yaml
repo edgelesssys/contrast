@@ -24,6 +24,8 @@ spec:
               name: configdb
           ports:
             - containerPort: 27017
+      securityContext:
+        runAsUser: 101
       volumes:
         - name: db
           emptyDir:
