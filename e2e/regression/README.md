@@ -1,12 +1,12 @@
 # Services Tested
 
-- [redis](./test-data/redis.yaml)
+- [Redis](./test-data/redis.yaml)
 - [mongo db](./test-data/mongodb.yaml)
-- [apache httpd](./test-data/apache-httpd-fedora.yaml)
-- [mysql](./test-data/mysql-fedora.yaml)
-- [keycloak](./test-data/keycloak.yaml)
+- [apache HTTPD](./test-data/apache-httpd-fedora.yaml)
+- [MySQL](./test-data/mysql-fedora.yaml)
+- [KeyCloak](./test-data/keycloak.yaml)
 - [nginx](./test-data/nginx.yaml)
-- [prometheus](./test-data/prometheus.yaml)
+- [Prometheus](./test-data/prometheus.yaml)
 - [varnish](./test-data/varnish.yaml)
 
 # Operating Systems Tested
