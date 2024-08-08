@@ -6,7 +6,7 @@
   kata,
   OVMF-SNP,
   OVMF,
-  debugRuntime ? false,
+  debugRuntime ? true,
   qemu-static,
   fetchzip,
 }:

@@ -23,6 +23,19 @@ done < <(
   cut -d' ' -f1
 )
 
+while read -r content; do
+  ctr "${ctrOpts[@]}" content rm "${content}"
+done < <(
+  ctr "${ctrOpts[@]}" content list |
+  tail -n +2 |
+  cut -d$'\t' -f1
+)
+
 for image in "${pauseImages[@]}"; do
   ctr "${ctrOpts[@]}" content fetch "${image}"
 done
+
+if ctr "${ctrOpts[@]}" image check | grep --exit-code "incomplete"; then
+  echo "Incomplete images detected"
+  exit 1
+fi
