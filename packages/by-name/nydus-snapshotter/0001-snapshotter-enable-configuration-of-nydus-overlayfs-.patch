@@ -1,4 +1,4 @@
-From 9295b2399702207d8df6e7ef9216f6c36eb70bdf Mon Sep 17 00:00:00 2001
+From da022b076326cd67f4eaa19be5fddbf8c93a6774 Mon Sep 17 00:00:00 2001
 From: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 Date: Mon, 5 Aug 2024 16:51:09 +0200
 Subject: [PATCH] snapshotter: enable configuration of nydus-overlayfs name
