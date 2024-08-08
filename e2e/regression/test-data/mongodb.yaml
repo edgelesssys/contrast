@@ -32,4 +32,4 @@ spec:
         - name: configdb
           emptyDir:
             sizeLimit: 10Mi
-      runtimeClassName: REPLACE_RUNTIME
+      runtimeClassName: contrast-cc

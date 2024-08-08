@@ -20,4 +20,4 @@ spec:
             - containerPort: 9000
             - containerPort: 8443
             - containerPort: 8080
-      runtimeClassName: REPLACE_RUNTIME
+      runtimeClassName: contrast-cc

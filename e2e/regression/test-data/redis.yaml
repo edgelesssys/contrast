@@ -25,4 +25,4 @@ spec:
         - name: data
           emptyDir:
             sizeLimit: 10Mi
-      runtimeClassName: REPLACE_RUNTIME
+      runtimeClassName: contrast-cc
