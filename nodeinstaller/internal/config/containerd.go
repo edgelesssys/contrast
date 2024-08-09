@@ -22,7 +22,7 @@ type ContainerdConfig struct {
 	// TTRPC configuration settings
 	TTRPC any `toml:"ttrpc,omitempty"`
 	// Debug and profiling settings
-	Debug any `toml:"debug,omitempty"`
+	Debug Debug `toml:"debug,omitempty"`
 	// Metrics and monitoring settings
 	Metrics any `toml:"metrics,omitempty"`
 	// DisabledPlugins are IDs of plugins to disable. Disabled plugins won't be
@@ -95,4 +95,14 @@ type Runtime struct {
 	// shim - means use whatever Controller implementation provided by shim (e.g. use RemoteController).
 	// podsandbox - means use Controller implementation from sbserver podsandbox package.
 	Sandboxer string `toml:"sandboxer,omitempty" json:"sandboxer,omitempty"`
+}
+
+// Debug provides debug configuration.
+type Debug struct {
+	Address string `toml:"address,omitempty"`
+	UID     int    `toml:"uid,omitempty"`
+	GID     int    `toml:"gid,omitempty"`
+	Level   string `toml:"level,omitempty"`
+	// Format represents the logging format. Supported values are 'text' and 'json'.
+	Format string `toml:"format,omitempty"`
 }
