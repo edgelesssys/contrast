@@ -38,12 +38,18 @@ func TestRegression(t *testing.T) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
+	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, false)
+	namespace := ct.Namespace
+
 	for _, file := range files {
 		t.Run(file.Name(), func(t *testing.T) {
 			require := require.New(t)
 
+			deploymentName, _ := strings.CutSuffix(file.Name(), ".yaml")
+
+			ct.Namespace = namespace + "-" + deploymentName
+
 			c := kubeclient.NewForTest(t)
-			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, false)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
 
@@ -68,7 +74,6 @@ func TestRegression(t *testing.T) {
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 			require.True(t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-			deploymentName, _ := strings.CutSuffix(file.Name(), ".yaml")
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentName))
 		})
 	}
