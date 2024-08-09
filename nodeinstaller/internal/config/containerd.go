@@ -10,41 +10,41 @@ type ContainerdConfig struct {
 	// Version of the config file
 	Version int `toml:"version"`
 	// Root is the path to a directory where containerd will store persistent data
-	Root string `toml:"root"`
+	Root string `toml:"root,omitempty"`
 	// State is the path to a directory where containerd will store transient data
-	State string `toml:"state"`
+	State string `toml:"state,omitempty"`
 	// TempDir is the path to a directory where to place containerd temporary files
-	TempDir string `toml:"temp"`
+	TempDir string `toml:"temp,omitempty"`
 	// PluginDir is the directory for dynamic plugins to be stored
-	PluginDir string `toml:"plugin_dir"`
+	PluginDir string `toml:"plugin_dir,omitempty"`
 	// GRPC configuration settings
-	GRPC any `toml:"grpc"`
+	GRPC any `toml:"grpc,omitempty"`
 	// TTRPC configuration settings
-	TTRPC any `toml:"ttrpc"`
+	TTRPC any `toml:"ttrpc,omitempty"`
 	// Debug and profiling settings
-	Debug any `toml:"debug"`
+	Debug any `toml:"debug,omitempty"`
 	// Metrics and monitoring settings
-	Metrics any `toml:"metrics"`
+	Metrics any `toml:"metrics,omitempty"`
 	// DisabledPlugins are IDs of plugins to disable. Disabled plugins won't be
 	// initialized and started.
-	DisabledPlugins []string `toml:"disabled_plugins"`
+	DisabledPlugins []string `toml:"disabled_plugins,omitempty"`
 	// RequiredPlugins are IDs of required plugins. Containerd exits if any
 	// required plugin doesn't exist or fails to be initialized or started.
-	RequiredPlugins []string `toml:"required_plugins"`
+	RequiredPlugins []string `toml:"required_plugins,omitempty"`
 	// Plugins provides plugin specific configuration for the initialization of a plugin
-	Plugins map[string]any `toml:"plugins"`
+	Plugins map[string]any `toml:"plugins,omitempty"`
 	// OOMScore adjust the containerd's oom score
-	OOMScore int `toml:"oom_score"`
+	OOMScore int `toml:"oom_score,omitempty"`
 	// Cgroup specifies cgroup information for the containerd daemon process
-	Cgroup any `toml:"cgroup"`
+	Cgroup any `toml:"cgroup,omitempty"`
 	// ProxyPlugins configures plugins which are communicated to over GRPC
-	ProxyPlugins map[string]ProxyPlugin `toml:"proxy_plugins"`
+	ProxyPlugins map[string]ProxyPlugin `toml:"proxy_plugins,omitempty"`
 	// Timeouts specified as a duration
-	Timeouts map[string]string `toml:"timeouts"`
+	Timeouts map[string]string `toml:"timeouts,omitempty"`
 	// Imports are additional file path list to config files that can overwrite main config file fields
-	Imports []string `toml:"imports"`
+	Imports []string `toml:"imports,omitempty"`
 	// StreamProcessors configuration
-	StreamProcessors map[string]any `toml:"stream_processors"`
+	StreamProcessors map[string]any `toml:"stream_processors,omitempty"`
 }
 
 // ProxyPlugin provides a proxy plugin configuration.

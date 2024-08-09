@@ -1,12 +1,4 @@
 version = 2
-root = ''
-state = ''
-temp = ''
-plugin_dir = ''
-disabled_plugins = []
-required_plugins = []
-oom_score = 0
-imports = []
 
 [metrics]
 address = '0.0.0.0:10257'
