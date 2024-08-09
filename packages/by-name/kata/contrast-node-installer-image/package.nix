@@ -5,10 +5,18 @@
   ociLayerTar,
   ociImageManifest,
   ociImageLayout,
+  writers,
+  hashDirs,
+
   contrast,
   kata,
   pkgsStatic,
-  writers,
+  qemu-static,
+  qemu-tdx-bin,
+  OVMF-SNP,
+  OVMF,
+
+  debugRuntime ? false,
 }:
 
 let
@@ -91,7 +99,7 @@ let
               path = "/opt/edgeless/@@runtimeName@@/tdx/share/qemu/efi-virtio.rom";
             }
           ];
-          inherit (kata.runtime-class-files) debugRuntime;
+          inherit debugRuntime;
         };
         destination = "/config/contrast-node-install.json";
       }
@@ -101,11 +109,11 @@ let
   kata-container-img = ociLayerTar {
     files = [
       {
-        source = kata.runtime-class-files.image;
+        source = kata.kata-image;
         destination = "/opt/edgeless/share/kata-containers.img";
       }
       {
-        source = kata.runtime-class-files.kernel;
+        source = "${kata.kata-kernel-uvm}/bzImage";
         destination = "/opt/edgeless/share/kata-kernel";
       }
     ];
@@ -114,7 +122,7 @@ let
   ovmf-snp = ociLayerTar {
     files = [
       {
-        source = kata.runtime-class-files.ovmf-snp;
+        source = "${OVMF-SNP}/FV/OVMF.fd";
         destination = "/opt/edgeless/snp/share/OVMF.fd";
       }
     ];
@@ -123,19 +131,19 @@ let
   qemu-snp = ociLayerTar {
     files = [
       {
-        source = kata.runtime-class-files.qemu-snp.bin;
+        source = "${qemu-static}/bin/qemu-system-x86_64";
         destination = "/opt/edgeless/snp/bin/qemu-system-x86_64";
       }
       {
-        source = "${kata.runtime-class-files.qemu-snp.share}/kvmvapic.bin";
+        source = "${qemu-static}/share/qemu/kvmvapic.bin";
         destination = "/opt/edgeless/snp/share/qemu/kvmvapic.bin";
       }
       {
-        source = "${kata.runtime-class-files.qemu-snp.share}/linuxboot_dma.bin";
+        source = "${qemu-static}/share/qemu/linuxboot_dma.bin";
         destination = "/opt/edgeless/snp/share/qemu/linuxboot_dma.bin";
       }
       {
-        source = "${kata.runtime-class-files.qemu-snp.share}/efi-virtio.rom";
+        source = "${qemu-static}/share/qemu/efi-virtio.rom";
         destination = "/opt/edgeless/snp/share/qemu/efi-virtio.rom";
       }
     ];
@@ -144,7 +152,7 @@ let
   ovmf-tdx = ociLayerTar {
     files = [
       {
-        source = kata.runtime-class-files.ovmf-tdx;
+        source = "${OVMF.fd}/FV/OVMF.fd";
         destination = "/opt/edgeless/tdx/share/OVMF.fd";
       }
     ];
@@ -153,19 +161,19 @@ let
   qemu-tdx = ociLayerTar {
     files = [
       {
-        source = kata.runtime-class-files.qemu-tdx.bin;
+        source = "${qemu-tdx-bin}/bin/qemu-system-x86_64";
         destination = "/opt/edgeless/tdx/bin/qemu-system-x86_64";
       }
       {
-        source = "${kata.runtime-class-files.qemu-tdx.share}/kvmvapic.bin";
+        source = "${qemu-tdx-bin}/share/qemu/kvmvapic.bin";
         destination = "/opt/edgeless/tdx/share/qemu/kvmvapic.bin";
       }
       {
-        source = "${kata.runtime-class-files.qemu-tdx.share}/linuxboot_dma.bin";
+        source = "${qemu-tdx-bin}/share/qemu/linuxboot_dma.bin";
         destination = "/opt/edgeless/tdx/share/qemu/linuxboot_dma.bin";
       }
       {
-        source = "${kata.runtime-class-files.qemu-tdx.share}/efi_virtio.rom";
+        source = "${qemu-tdx-bin}/share/qemu/efi_virtio.rom";
         destination = "/opt/edgeless/tdx/share/qemu/efi-virtio.rom";
       }
     ];
@@ -174,27 +182,28 @@ let
   kata-runtime = ociLayerTar {
     files = [
       {
-        source = kata.runtime-class-files.kata-runtime;
+        source = "${kata.kata-runtime}/bin/kata-runtime";
         destination = "/opt/edgeless/bin/kata-runtime";
       }
       {
-        source = kata.runtime-class-files.containerd-shim-contrast-cc-v2;
+        source = "${kata.kata-runtime}/bin/containerd-shim-kata-v2";
         destination = "/opt/edgeless/bin/containerd-shim-contrast-cc-v2";
       }
     ];
   };
 
+  layers = [
+    installer-config
+    kata-container-img
+    ovmf-snp
+    ovmf-tdx
+    qemu-snp
+    qemu-tdx
+    kata-runtime
+  ];
+
   manifest = ociImageManifest {
-    layers = [
-      node-installer
-      installer-config
-      kata-container-img
-      ovmf-snp
-      ovmf-tdx
-      qemu-snp
-      qemu-tdx
-      kata-runtime
-    ];
+    layers = layers ++ [ node-installer ];
     extraConfig = {
       "config" = {
         "Env" = [
@@ -214,4 +223,10 @@ let
   };
 in
 
-ociImageLayout { manifests = [ manifest ]; }
+ociImageLayout {
+  manifests = [ manifest ];
+  passthru.runtimeHash = hashDirs {
+    dirs = layers; # Layers without node-installer, or we have a circular dependency!
+    name = "runtime-hash-kata";
+  };
+}

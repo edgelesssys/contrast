@@ -2,13 +2,18 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 {
+  lib,
   ociLayerTar,
   ociImageManifest,
   ociImageLayout,
+  writers,
+  hashDirs,
+
   contrast,
   microsoft,
   pkgsStatic,
-  writers,
+
+  debugRuntime ? false,
 }:
 
 let
@@ -49,7 +54,7 @@ let
               executable = true;
             }
           ];
-          inherit (microsoft.runtime-class-files) debugRuntime;
+          inherit debugRuntime;
         };
         destination = "/config/contrast-node-install.json";
       }
@@ -59,11 +64,11 @@ let
   kata-container-img = ociLayerTar {
     files = [
       {
-        source = microsoft.runtime-class-files.rootfs;
+        source = microsoft.kata-image;
         destination = "/opt/edgeless/share/kata-containers.img";
       }
       {
-        source = microsoft.runtime-class-files.igvm;
+        source = if debugRuntime then microsoft.kata-igvm.debug else microsoft.kata-igvm;
         destination = "/opt/edgeless/share/kata-containers-igvm.img";
       }
     ];
@@ -72,7 +77,7 @@ let
   cloud-hypervisor = ociLayerTar {
     files = [
       {
-        source = microsoft.runtime-class-files.cloud-hypervisor-exe;
+        source = lib.getExe microsoft.cloud-hypervisor;
         destination = "/opt/edgeless/bin/cloud-hypervisor-snp";
       }
     ];
@@ -81,20 +86,21 @@ let
   containerd-shim = ociLayerTar {
     files = [
       {
-        source = microsoft.runtime-class-files.containerd-shim-contrast-cc-v2;
+        source = lib.getExe microsoft.kata-runtime;
         destination = "/opt/edgeless/bin/containerd-shim-contrast-cc-v2";
       }
     ];
   };
 
+  layers = [
+    installer-config
+    kata-container-img
+    cloud-hypervisor
+    containerd-shim
+  ];
+
   manifest = ociImageManifest {
-    layers = [
-      node-installer
-      installer-config
-      kata-container-img
-      cloud-hypervisor
-      containerd-shim
-    ];
+    layers = layers ++ [ node-installer ];
     extraConfig = {
       "config" = {
         "Env" = [
@@ -114,4 +120,10 @@ let
   };
 in
 
-ociImageLayout { manifests = [ manifest ]; }
+ociImageLayout {
+  manifests = [ manifest ];
+  passthru.runtimeHash = hashDirs {
+    dirs = layers; # Layers without node-installer, or we have a circular dependency!
+    name = "runtime-hash-microsoft";
+  };
+}

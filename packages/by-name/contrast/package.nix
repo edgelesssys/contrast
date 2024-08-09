@@ -43,16 +43,13 @@ let
   embeddedReferenceValues =
     let
       runtimeHandler =
-        platform:
-        (
-          launchDigestFile:
-          "contrast-cc-${platform}-${builtins.substring 0 8 (builtins.readFile launchDigestFile)}"
-        );
+        platform: hashFile:
+        "contrast-cc-${platform}-${builtins.substring 0 8 (builtins.readFile hashFile)}";
 
-      aks-clh-snp-handler = runtimeHandler "aks-clh-snp" "${microsoft.runtime-class-files}/runtime-hash.hex";
-      k3s-qemu-tdx-handler = runtimeHandler "k3s-qemu-tdx" "${kata.runtime-class-files}/runtime-hash-tdx.hex";
-      rke2-qemu-tdx-handler = runtimeHandler "rke2-qemu-tdx" "${kata.runtime-class-files}/runtime-hash-tdx.hex";
-      k3s-qemu-snp-handler = runtimeHandler "k3s-qemu-snp" "${kata.runtime-class-files}/runtime-hash-snp.hex";
+      aks-clh-snp-handler = runtimeHandler "aks-clh-snp" microsoft.contrast-node-installer-image.runtimeHash;
+      k3s-qemu-tdx-handler = runtimeHandler "k3s-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
+      rke2-qemu-tdx-handler = runtimeHandler "rke2-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
+      k3s-qemu-snp-handler = runtimeHandler "k3s-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
 
       aksRefVals = {
         aks = {
@@ -64,23 +61,21 @@ let
               microcodeVersion = 115;
             };
           };
-          trustedMeasurement = lib.removeSuffix "\n" (
-            builtins.readFile "${microsoft.runtime-class-files}/launch-digest.hex"
-          );
+          trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile microsoft.kata-igvm.launch-digest);
         };
       };
 
       snpRefVals = {
         inherit (aksRefVals.aks) snp;
         trustedMeasurement = lib.removeSuffix "\n" (
-          builtins.readFile "${kata.runtime-class-files}/launch-digest-snp.hex"
+          builtins.readFile "${kata.contrast-node-installer-image.runtimeHash}"
         );
       };
 
       tdxRefVals = {
         bareMetalTDX = {
           trustedMeasurement = lib.removeSuffix "\n" (
-            builtins.readFile "${kata.runtime-class-files}/launch-digest-tdx.hex"
+            builtins.readFile "${kata.contrast-node-installer-image.runtimeHash}"
           );
         };
       };
