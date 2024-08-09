@@ -24,14 +24,6 @@ import (
 // ErrNoManifest is returned when a manifest is needed but not present.
 var ErrNoManifest = errors.New("no manifest configured")
 
-// Bundle is a set of PEM-encoded certificates for Contrast workloads.
-type Bundle struct {
-	WorkloadCert   []byte
-	MeshCA         []byte
-	IntermediateCA []byte
-	RootCA         []byte
-}
-
 // Authority manages the manifest state of Contrast.
 type Authority struct {
 	// state holds all required configuration to serve requests from userapi.
