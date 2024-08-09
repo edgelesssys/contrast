@@ -166,29 +166,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 						WithCommand("/bin/node-installer", platform.String()),
 					).
 					WithContainers(
-						Container().
-							WithName("tardev-snapshotter").
-							WithImage("ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest").
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(800),
-							).
-							WithVolumeMounts(
-								VolumeMount().
-									WithName("host-mount").
-									WithMountPath("/host"),
-								VolumeMount().
-									WithName("var-lib-containerd").
-									WithMountPath("/var/lib/containerd"),
-							).
-							WithArgs(
-								"tardev-snapshotter",
-								fmt.Sprintf("/var/lib/containerd/io.containerd.snapshotter.v1.tardev-%s", runtimeHandler),
-								fmt.Sprintf("/host/run/containerd/tardev-snapshotter-%s.sock", runtimeHandler),
-								"/host/var/run/containerd/containerd.sock",
-							).
-							WithEnv(
-								NewEnvVar("RUST_LOG", "tardev_snapshotter=trace"),
-							),
+						snapshotter,
 					).
 					WithVolumes(append(
 						snapshotterVolumes,
