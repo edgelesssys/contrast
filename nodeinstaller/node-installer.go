@@ -129,7 +129,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 		return fmt.Errorf("getting runtime handler name: %w", err)
 	}
 
-	if err := patchContainerdConfig(runtimeHandler, runtimeBase, containerdConfigPath, platform); err != nil {
+	if err := patchContainerdConfig(runtimeHandler, runtimeBase, containerdConfigPath, platform, config.DebugRuntime); err != nil {
 		return fmt.Errorf("patching containerd configuration: %w", err)
 	}
 
@@ -183,12 +183,17 @@ func containerdRuntimeConfig(basePath, configPath string, platform platforms.Pla
 	return os.WriteFile(configPath, rawConfig, os.ModePerm)
 }
 
-func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform platforms.Platform) error {
+func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform platforms.Platform, debugRuntime bool) error {
 	existingRaw, existing, err := parseExistingContainerdConfig(configPath)
 	if err != nil {
 		fmt.Printf("Failed to parse existing containerd config: %v\n", err)
 		fmt.Println("Creating a new containerd base config.")
 		existing = constants.ContainerdBaseConfig()
+	}
+
+	if debugRuntime {
+		// Enable containerd debug logging.
+		existing.Debug.Level = "debug"
 	}
 
 	// Ensure section for the snapshotter proxy plugin exists.

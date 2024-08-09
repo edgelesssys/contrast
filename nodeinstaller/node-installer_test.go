@@ -62,7 +62,7 @@ func TestPatchContainerdConfig(t *testing.T) {
 			runtimeHandler := "my-runtime"
 
 			err = patchContainerdConfig(runtimeHandler,
-				filepath.Join("/opt/edgeless", runtimeHandler), configPath, tc.platform)
+				filepath.Join("/opt/edgeless", runtimeHandler), configPath, tc.platform, true)
 			if tc.wantErr {
 				require.Error(err)
 				return
