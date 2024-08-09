@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: REPLACE_NAMESPACE
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+    spec:
+      containers:
+        - name: redis
+          image: docker.io/redis@sha256:a61cb3cf95ea311ed943d2615383c2987dcc5138ee46dd3045e5e597926df51a
+          volumeMounts:
+            - mountPath: /data
+              name: data
+          ports:
+            - containerPort: 6379
+      volumes:
+        - name: data
+          emptyDir:
+            sizeLimit: 10Mi
+      runtimeClassName: contrast-cc
