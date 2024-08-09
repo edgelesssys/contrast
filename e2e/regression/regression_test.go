@@ -23,8 +23,8 @@ import (
 )
 
 var (
-	imageReplacementsFile, namespaceFile string
-	_skipUndeploy                        bool // just here for interoptability, ignored in this test
+	imageReplacementsFile, namespaceFile, platformStr string
+	_skipUndeploy                                     bool // just here for interoptability, ignored in this test
 )
 
 func TestRegression(t *testing.T) {
@@ -32,18 +32,23 @@ func TestRegression(t *testing.T) {
 	files, err := os.ReadDir(yamlDir)
 	require.NoError(t, err)
 
-	// TODO(miampf): Make this configurable
-	platform := platforms.AKSCloudHypervisorSNP
+	platform, err := platforms.FromString(platformStr)
 
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
+
+	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, false)
+	namespace := ct.Namespace
 
 	for _, file := range files {
 		t.Run(file.Name(), func(t *testing.T) {
 			require := require.New(t)
 
+			deploymentName, _ := strings.CutSuffix(file.Name(), ".yaml")
+
+			ct.Namespace = namespace + "-" + deploymentName
+
 			c := kubeclient.NewForTest(t)
-			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, false)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
 
@@ -68,7 +73,6 @@ func TestRegression(t *testing.T) {
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 			require.True(t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-			deploymentName, _ := strings.CutSuffix(file.Name(), ".yaml")
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentName))
 		})
 	}
@@ -77,6 +81,7 @@ func TestRegression(t *testing.T) {
 func TestMain(m *testing.M) {
 	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
 	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
+	flag.StringVar(&platformStr, "platform", "", "Deployment platform")
 
 	// ignored and just here for interoptability, we always undeploy to save resources
 	flag.BoolVar(&_skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
