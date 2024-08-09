@@ -72,11 +72,19 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	authInfo := AuthInfo{State: state}
 
-	validator := snp.NewValidatorWithCallbacks(state, c.kdsGetter,
-		logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "snp"}),
-		c.attestationFailuresCounter, &authInfo)
+	optsGens, err := state.Manifest.SNPValidateOpts()
+	if err != nil {
+		return nil, nil, fmt.Errorf("generating SNP validation options: %w", err)
+	}
 
-	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, []atls.Validator{validator})
+	var validators []atls.Validator
+	for _, gen := range optsGens {
+		validator := snp.NewValidatorWithCallbacks(gen.WithReportHostData(), c.kdsGetter,
+			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "snp"}),
+			c.attestationFailuresCounter, &authInfo)
+		validators = append(validators, validator)
+	}
+	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validators)
 	if err != nil {
 		return nil, nil, err
 	}

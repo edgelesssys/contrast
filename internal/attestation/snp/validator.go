@@ -44,13 +44,13 @@ type validateOptsGenerator interface {
 	SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error)
 }
 
-// StaticValidateOptsGenerator returns validate.Options generator that returns
+// StaticValidateOptsGenerator is a [validate.Options] generator that returns
 // static validation options.
 type StaticValidateOptsGenerator struct {
 	Opts *validate.Options
 }
 
-// SNPValidateOpts return the SNP validation options.
+// SNPValidateOpts returns the SNP validation options.
 func (v *StaticValidateOptsGenerator) SNPValidateOpts(_ *sevsnp.Report) (*validate.Options, error) {
 	return v.Opts, nil
 }
@@ -65,13 +65,13 @@ func NewValidator(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, lo
 }
 
 // NewValidatorWithCallbacks returns a new Validator with callbacks.
-func NewValidatorWithCallbacks(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, log *slog.Logger, attestataionFailures prometheus.Counter, callbacks ...validateCallbacker) *Validator {
+func NewValidatorWithCallbacks(optsGen validateOptsGenerator, kdsGetter trust.HTTPSGetter, log *slog.Logger, attestationFailures prometheus.Counter, callbacks ...validateCallbacker) *Validator {
 	return &Validator{
 		validateOptsGen: optsGen,
 		callbackers:     callbacks,
 		kdsGetter:       kdsGetter,
 		logger:          log,
-		metrics:         metrics{attestationFailures: attestataionFailures},
+		metrics:         metrics{attestationFailures: attestationFailures},
 	}
 }
 

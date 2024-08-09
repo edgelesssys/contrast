@@ -6,10 +6,12 @@ package manifest
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
+	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
 )
 
@@ -17,7 +19,7 @@ import (
 type Manifest struct {
 	// policyHash/HOSTDATA -> commonName
 	Policies                map[HexString]PolicyEntry
-	ReferenceValues         ReferenceValues
+	ReferenceValues         []ReferenceValues
 	WorkloadOwnerKeyDigests []HexString
 	SeedshareOwnerPubKeys   []HexString
 }
@@ -65,18 +67,18 @@ func (p Policy) Hash() HexString {
 
 // Validate checks the validity of all fields in the reference values.
 func (r ReferenceValues) Validate() error {
-	if r.AKS != nil {
-		if err := r.AKS.Validate(); err != nil {
+	if r.SNP != nil {
+		if err := r.SNP.Validate(); err != nil {
 			return fmt.Errorf("validating AKS reference values: %w", err)
 		}
 	}
-	if r.BareMetalTDX != nil {
-		if err := r.BareMetalTDX.Validate(); err != nil {
+	if r.TDX != nil {
+		if err := r.TDX.Validate(); err != nil {
 			return fmt.Errorf("validating bare metal TDX reference values: %w", err)
 		}
 	}
 
-	if r.BareMetalTDX == nil && r.AKS == nil {
+	if r.TDX == nil && r.SNP == nil {
 		return fmt.Errorf("reference values in manifest cannot be empty. Is the chosen platform supported?")
 	}
 
@@ -84,14 +86,14 @@ func (r ReferenceValues) Validate() error {
 }
 
 // Validate checks the validity of all fields in the AKS reference values.
-func (r AKSReferenceValues) Validate() error {
-	if r.SNP.MinimumTCB.BootloaderVersion == nil {
+func (r SNPReferenceValues) Validate() error {
+	if r.MinimumTCB.BootloaderVersion == nil {
 		return fmt.Errorf("field BootloaderVersion in manifest cannot be empty")
-	} else if r.SNP.MinimumTCB.TEEVersion == nil {
+	} else if r.MinimumTCB.TEEVersion == nil {
 		return fmt.Errorf("field TEEVersion in manifest cannot be empty")
-	} else if r.SNP.MinimumTCB.SNPVersion == nil {
+	} else if r.MinimumTCB.SNPVersion == nil {
 		return fmt.Errorf("field SNPVersion in manifest cannot be empty")
-	} else if r.SNP.MinimumTCB.MicrocodeVersion == nil {
+	} else if r.MinimumTCB.MicrocodeVersion == nil {
 		return fmt.Errorf("field MicrocodeVersion in manifest cannot be empty")
 	}
 
@@ -103,7 +105,7 @@ func (r AKSReferenceValues) Validate() error {
 }
 
 // Validate checks the validity of all fields in the bare metal TDX reference values.
-func (r BareMetalTDXReferenceValues) Validate() error {
+func (r TDXReferenceValues) Validate() error {
 	if r.TrustedMeasurement == "" {
 		return fmt.Errorf("field TrustedMeasurement in manifest cannot be empty")
 	}
@@ -120,8 +122,10 @@ func (m *Manifest) Validate() error {
 		}
 	}
 
-	if err := m.ReferenceValues.Validate(); err != nil {
-		return fmt.Errorf("validating reference values: %w", err)
+	for i, rv := range m.ReferenceValues {
+		if err := rv.Validate(); err != nil {
+			return fmt.Errorf("validating reference values [%d]: %w", i, err)
+		}
 	}
 
 	for _, keyDigest := range m.WorkloadOwnerKeyDigests {
@@ -140,40 +144,94 @@ func (m *Manifest) Validate() error {
 	return nil
 }
 
-// AKSValidateOpts returns validate options populated with the manifest's
-// AKS reference values and trusted measurement.
-func (m *Manifest) AKSValidateOpts() (*validate.Options, error) {
-	if m.ReferenceValues.AKS == nil {
-		return nil, fmt.Errorf("no AKS reference values present in manifest")
+// SNPValidateOptsGenerator generates SNP validation options and
+// can be instantiated from a manifest only.
+type SNPValidateOptsGenerator struct {
+	opts        *validate.Options
+	manifest    *Manifest
+	extraChecks []func(report *sevsnp.Report) error // additional checks that need to pass for the validation to succeed.
+}
+
+// SNPValidateOpts returns the SNP validation options.
+func (g *SNPValidateOptsGenerator) SNPValidateOpts(report *sevsnp.Report) (*validate.Options, error) {
+	for _, check := range g.extraChecks {
+		if err := check(report); err != nil {
+			return nil, fmt.Errorf("additional check failed: %w", err)
+		}
+	}
+	return g.opts, nil
+}
+
+// TODO(msanft): add generic validation interface for other attestation types.
+
+// SNPValidateOpts returns validate options generators populated with the manifest's
+// SNP reference values and trusted measurement for the given runtime.
+func (m *Manifest) SNPValidateOpts() ([]*SNPValidateOptsGenerator, error) {
+	if m.ReferenceValues == nil {
+		return nil, errors.New("reference values cannot be empty")
 	}
 
 	if err := m.Validate(); err != nil {
 		return nil, fmt.Errorf("validating manifest: %w", err)
 	}
-	trustedMeasurement, err := m.ReferenceValues.AKS.TrustedMeasurement.Bytes()
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
+
+	var out []*SNPValidateOptsGenerator
+	for _, refVal := range m.ReferenceValues {
+		trustedMeasurement, err := refVal.SNP.TrustedMeasurement.Bytes()
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
+		}
+
+		out = append(out, &SNPValidateOptsGenerator{
+			manifest: m,
+			opts: &validate.Options{
+				Measurement: trustedMeasurement,
+				GuestPolicy: abi.SnpPolicy{
+					Debug: false,
+					SMT:   true,
+				},
+				VMPL: new(int), // VMPL0
+				MinimumTCB: kds.TCBParts{
+					BlSpl:    refVal.SNP.MinimumTCB.BootloaderVersion.UInt8(),
+					TeeSpl:   refVal.SNP.MinimumTCB.TEEVersion.UInt8(),
+					SnpSpl:   refVal.SNP.MinimumTCB.SNPVersion.UInt8(),
+					UcodeSpl: refVal.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
+				},
+				MinimumLaunchTCB: kds.TCBParts{
+					BlSpl:    refVal.SNP.MinimumTCB.BootloaderVersion.UInt8(),
+					TeeSpl:   refVal.SNP.MinimumTCB.TEEVersion.UInt8(),
+					SnpSpl:   refVal.SNP.MinimumTCB.SNPVersion.UInt8(),
+					UcodeSpl: refVal.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
+				},
+				PermitProvisionalFirmware: true,
+			},
+		})
 	}
 
-	return &validate.Options{
-		Measurement: trustedMeasurement,
-		GuestPolicy: abi.SnpPolicy{
-			Debug: false,
-			SMT:   true,
-		},
-		VMPL: new(int), // VMPL0
-		MinimumTCB: kds.TCBParts{
-			BlSpl:    m.ReferenceValues.AKS.SNP.MinimumTCB.BootloaderVersion.UInt8(),
-			TeeSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.TEEVersion.UInt8(),
-			SnpSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.SNPVersion.UInt8(),
-			UcodeSpl: m.ReferenceValues.AKS.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
-		},
-		MinimumLaunchTCB: kds.TCBParts{
-			BlSpl:    m.ReferenceValues.AKS.SNP.MinimumTCB.BootloaderVersion.UInt8(),
-			TeeSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.TEEVersion.UInt8(),
-			SnpSpl:   m.ReferenceValues.AKS.SNP.MinimumTCB.SNPVersion.UInt8(),
-			UcodeSpl: m.ReferenceValues.AKS.SNP.MinimumTCB.MicrocodeVersion.UInt8(),
-		},
-		PermitProvisionalFirmware: true,
-	}, nil
+	if len(out) == 0 {
+		return nil, errors.New("no AKS reference values found in manifest")
+	}
+
+	return out, nil
+}
+
+// WithReportHostData augments the validate options generator with
+// a check that verifies whether the policy hash in the report's
+// HOSTDATA is allowed by the manifest.
+func (g *SNPValidateOptsGenerator) WithReportHostData() *SNPValidateOptsGenerator {
+	g.extraChecks = append(g.extraChecks, func(report *sevsnp.Report) error {
+		hostData := NewHexString(report.HostData)
+		if _, ok := g.manifest.Policies[hostData]; !ok {
+			return fmt.Errorf("hostdata %s not found in manifest", hostData)
+		}
+		return nil
+	})
+	return g
+}
+
+// WithStaticHostData augments the validate options with
+// the given host data.
+func (g *SNPValidateOptsGenerator) WithStaticHostData(hostData []byte) *SNPValidateOptsGenerator {
+	g.opts.HostData = hostData
+	return g
 }
