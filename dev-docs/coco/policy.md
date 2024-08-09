@@ -89,12 +89,94 @@ The request template data is appended to the rules file, and together they form 
 
 ## Policy Evaluation and Debugging
 
-The only practical way to debug policy decisions right now is to look at OPA logs inside the guest image.
-For that, you need to [enable serial console access](../aks/serial-console.md) and log into the guest VM.
-Stepping through policy evaluation isn't supported by OPA.
-The generated policies contain some print statements that give a rough impression of what's going on.
+The only practical way to debug policy decisions right now is to look at OPA logs.
+These logs are included in the containerd error message and need to be extracted first:
 
-An alternative strategy for testing policies is to launch a pod, collect the `CreateContainerRequest` observed by the agent and evaluate the policy locally.
+```sh
+kubectl events --for pod/${failing_pod} -o json |
+  jq -r '.items[-1].message' |
+  nix run .#scripts.parse-blocked-by-policy
+```
+
+This yields a long list of print statements issued during policy evaluation that allow tracing the execution.
+
+<details>
+<summary>It might look something like this:</summary>
+
+```data
+agent_policy:59:  CreateContainerRequest: i_oci.Hooks = null
+agent_policy:62:  CreateContainerRequest: i_oci.Linux.Seccomp = null
+agent_policy:66:  ======== CreateContainerRequest: trying next policy container
+agent_policy:70:  CreateContainerRequest: p_pidns = false i_pidns = false
+agent_policy:75:  CreateContainerRequest: p Version = 1.1.0-rc.1 i Version = 1.1.0-rc.1
+agent_policy:78:  CreateContainerRequest: p Readonly = true i Readonly = true
+agent_policy:96:  allow_anno 1: start
+agent_policy:103:  allow_anno 2: p Annotations = {"io.katacontainers.pkg.oci.bundle_path":"/run/containerd/io.containerd.runtime.v2.task/k8s.io/$(bundle-id)","io.katacontainers.pkg.oci.container_type":"pod_sandbox","io.kubernetes.cri.container-type":"sandbox","io.kubernetes.cri.sandbox-id":"^[a-z0-9]{64}$","io.kubernetes.cri.sandbox-log-directory":"^/var/log/pods/$(sandbox-namespace)_$(sandbox-name)_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$","io.kubernetes.cri.sandbox-namespace":"default","nerdctl/network-namespace":"^/var/run/netns/cni-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"}
+agent_policy:104:  allow_anno 2: i Annotations = {"io.katacontainers.pkg.oci.bundle_path":"/run/containerd/io.containerd.runtime.v2.task/k8s.io/9aeb4dfa752e8607354029e3a22f0ddbb6f0aee44898ab4054ea8d50c595abcb","io.katacontainers.pkg.oci.container_type":"pod_sandbox","io.kubernetes.cri.container-type":"sandbox","io.kubernetes.cri.sandbox-cpu-period":"100000","io.kubernetes.cri.sandbox-cpu-quota":"0","io.kubernetes.cri.sandbox-cpu-shares":"2","io.kubernetes.cri.sandbox-id":"9aeb4dfa752e8607354029e3a22f0ddbb6f0aee44898ab4054ea8d50c595abcb","io.kubernetes.cri.sandbox-log-directory":"/var/log/pods/default_mongodb-74d9c7d6f5-b6tvr_268c2a50-6bf6-443f-8c65-59ebefabd52d","io.kubernetes.cri.sandbox-memory":"0","io.kubernetes.cri.sandbox-name":"mongodb-74d9c7d6f5-b6tvr","io.kubernetes.cri.sandbox-namespace":"default","io.kubernetes.cri.sandbox-uid":"268c2a50-6bf6-443f-8c65-59ebefabd52d","nerdctl/network-namespace":"/var/run/netns/cni-bedfd802-2831-03e4-2dfa-58569cfd2cfa"}
+agent_policy:107:  allow_anno 2: i keys = ["io.katacontainers.pkg.oci.bundle_path","io.katacontainers.pkg.oci.container_type","io.kubernetes.cri.container-type","io.kubernetes.cri.sandbox-cpu-period","io.kubernetes.cri.sandbox-cpu-quota","io.kubernetes.cri.sandbox-cpu-shares","io.kubernetes.cri.sandbox-id","io.kubernetes.cri.sandbox-log-directory","io.kubernetes.cri.sandbox-memory","io.kubernetes.cri.sandbox-name","io.kubernetes.cri.sandbox-namespace","io.kubernetes.cri.sandbox-uid","nerdctl/network-namespace"]
+agent_policy:117:  allow_anno_key 1: i key = io.katacontainers.pkg.oci.bundle_path
+agent_policy:124:  allow_anno_key 2: i key = io.katacontainers.pkg.oci.bundle_path
+agent_policy:129:  allow_anno_key 2: true
+[...]
+agent_policy:1116:  match_caps 3: start
+agent_policy:1092:  allow_caps: policy Permitted = ["$(default_caps)"]
+agent_policy:1093:  allow_caps: input Permitted = ["CAP_CHOWN","CAP_DAC_OVERRIDE","CAP_FSETID","CAP_FOWNER","CAP_MKNOD","CAP_NET_RAW","CAP_SETGID","CAP_SETUID","CAP_SETFCAP","CAP_SETPCAP","CAP_NET_BIND_SERVICE","CAP_SYS_CHROOT","CAP_KILL","CAP_AUDIT_WRITE"]
+agent_policy:1098:  match_caps 1: start
+agent_policy:1105:  match_caps 2: start
+agent_policy:1110:  match_caps 2: default_caps = ["CAP_CHOWN","CAP_DAC_OVERRIDE","CAP_FSETID","CAP_FOWNER","CAP_MKNOD","CAP_NET_RAW","CAP_SETGID","CAP_SETUID","CAP_SETFCAP","CAP_SETPCAP","CAP_NET_BIND_SERVICE","CAP_SYS_CHROOT","CAP_KILL","CAP_AUDIT_WRITE"]
+agent_policy:1113:  match_caps 2: true
+agent_policy:1116:  match_caps 3: start
+agent_policy:509:  allow_user: input uid = 101 policy uid = 65535
+agent_policy:149:  allow_by_anno 2: start
+agent_policy:66:  ======== CreateContainerRequest: trying next policy container
+agent_policy:70:  CreateContainerRequest: p_pidns = false i_pidns = false
+agent_policy:75:  CreateContainerRequest: p Version = 1.1.0-rc.1 i Version = 1.1.0-rc.1
+agent_policy:78:  CreateContainerRequest: p Readonly = false i Readonly = true": unknown
+```
+
+</details>
+
+The messages contain line numbers that allow following the execution in the policy source, which can be rendered with
+
+```sh
+cat deployment.yaml | nix run .#scripts.extract-policies
+```
+
+At first, we see that there are two `CreateContainerRequest: trying next policy container` messages.
+For every `CreateContainerRequest`, the policy checks the input against all of the containers generated by genpolicy.
+Usually, only one of the containers has meaningful overlap with the input and is thus likely to be the intended match.
+In the log above this is the pause container, identified by the annotation `"io.kubernetes.cri.container-type":"sandbox"`.
+For regular containers, their name is present in the annotation `io.kubernetes.cri.container-name`.
+
+The messages usually follow this structure:
+
+```data
+<function> <id>: start
+<function> <id>: input_data = value1 policy_data = value1
+<function> <id>: true
+```
+
+The ID is necessary to tell rules with multiple definitions apart.
+If a rule can't be satisfied, the corresponding `... true` statement is missing.
+A good strategy for finding the failing rule is to go back to the last `... true` line and look at what follows immediately after.
+For the example above, that would be
+
+```data
+agent_policy:1113:  match_caps 2: true
+agent_policy:1116:  match_caps 3: start
+agent_policy:509:  allow_user: input uid = 101 policy uid = 65535
+agent_policy:149:  allow_by_anno 2: start
+```
+
+First, we look at `match_caps 3`.
+It's unclear why this was even started, given that `match_caps 2` succeeded and returned to `allow_process`.
+Anyway, the next rule to evaluate is `allow_user`, which has an obvious mismatch which turns out to be the root cause.
+`allow_by_anno 2` is then tried as a last resort, but that fails early due to a missing annotation.
+
+### Offline testing
+
+An alternative strategy for testing policies is to launch a pod and collect the `CreateContainerRequest` observed by the agent.
+See the [serial console](../aks/serial-console.md) doc for instructions on how to do that.
 Assuming the request encoded in `request.json` (in Rust's serialization!) and the generated policy in `policy.rego`, execute OPA with
 
 ```sh
