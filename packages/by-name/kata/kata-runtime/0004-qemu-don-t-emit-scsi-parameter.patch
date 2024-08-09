@@ -1,7 +1,7 @@
-From 08d7d998c183f8beb92a334f0e08b5baab1cc866 Mon Sep 17 00:00:00 2001
+From 5a791cdde29be3a98d68fb14a7dd98a78f7fc46e Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Thu, 1 Aug 2024 14:42:17 +0200
-Subject: [PATCH 4/4] qemu: don't emit scsi parameter
+Subject: [PATCH 4/5] qemu: don't emit scsi parameter
 
 This parameter has been deprecated for a long time and QEMU 9.1.0 finally removes it.
 
@@ -112,5 +112,5 @@ index 8fc960905..181eb6506 100644
  		DisableModern: true,
  		ROMFile:       romfile,
 -- 
-2.45.1
+2.45.2
 

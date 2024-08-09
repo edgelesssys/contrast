@@ -1,0 +1,31 @@
+From 6b932404bfa8f05d3a732bda34241fe0d44db05f Mon Sep 17 00:00:00 2001
+From: Paul Meyer <49727155+katexochen@users.noreply.github.com>
+Date: Fri, 9 Aug 2024 11:06:04 +0200
+Subject: [PATCH 5/5] containerd-shim-v2: trim mount type suffix for
+ nydus-overlayfs
+
+Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
+---
+ src/runtime/pkg/containerd-shim-v2/create.go | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/src/runtime/pkg/containerd-shim-v2/create.go b/src/runtime/pkg/containerd-shim-v2/create.go
+index d0c5634a9..f66377f7e 100644
+--- a/src/runtime/pkg/containerd-shim-v2/create.go
++++ b/src/runtime/pkg/containerd-shim-v2/create.go
+@@ -79,7 +79,11 @@ func create(ctx context.Context, s *service, r *taskAPI.CreateTaskRequest) (*con
+ 	if len(r.Rootfs) == 1 {
+ 		m := r.Rootfs[0]
+ 		rootFs.Source = m.Source
+-		rootFs.Type = m.Type
++		if strings.HasPrefix(m.Type, vc.NydusRootFSType) {
++			rootFs.Type = vc.NydusRootFSType
++		} else {
++			rootFs.Type = m.Type
++		}
+ 		rootFs.Options = m.Options
+ 	}
+ 
+-- 
+2.45.2
+

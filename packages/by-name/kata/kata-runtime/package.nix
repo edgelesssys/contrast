@@ -42,6 +42,7 @@ buildGoModule rec {
       # This patches fixes compatibility issues with QEMU 9.1.
       # https://github.com/kata-containers/kata-containers/pull/10113
       ./0004-qemu-don-t-emit-scsi-parameter.patch
+      ./0005-containerd-shim-v2-trim-mount-type-suffix-for-nydus-.patch
     ];
   };
 
