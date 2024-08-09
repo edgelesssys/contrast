@@ -14,6 +14,7 @@
   manifests ? [ ],
   # extraIndex is a set of additional fields to add to the index.json
   extraIndex ? { },
+  passthru,
 }:
 
 let
@@ -36,7 +37,7 @@ runCommand "oci-image-layout"
   {
     buildInputs = [ nix ];
     blobDirs = lib.lists.map (manifest: manifest + "/blobs/sha256") manifests;
-    inherit index;
+    inherit index passthru;
   }
   ''
     # add the index.json, image-layout file and all blobs to the output

@@ -4,9 +4,11 @@
 {
   lib,
   stdenv,
+  stdenvNoCC,
   microsoft,
   igvm-tooling,
   igvm-signing-keygen,
+  igvmmeasure,
 }:
 
 stdenv.mkDerivation rec {
@@ -48,6 +50,15 @@ stdenv.mkDerivation rec {
 
     runHook postBuild
   '';
+
+  passthru.launch-digest = stdenvNoCC.mkDerivation {
+    name = "launch-digest";
+    dontUnpack = true;
+    buildInputs = [ igvmmeasure ];
+    buildPhase = ''
+      igvmmeasure -b ${microsoft.kata-igvm} | dd conv=lcase > $out
+    '';
+  };
 
   meta = {
     description = "The Contrast runtime IGVM file defines the initial state of a pod-VM.";
