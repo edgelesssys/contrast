@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform) (runtime platform) (apply "runtime") (deploy target cli platform) set verify (wait-for-workload target)
+default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform) (runtime target platform) (apply "runtime") (deploy target cli platform) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -38,6 +38,7 @@ workspace_dir := "workspace"
 # Build the node-installer, containerize and push it.
 node-installer platform=default_platform: tardev-snapshotter nydus-snapshotter
     #!/usr/bin/env bash
+    set -euo pipefail
     case {{ platform }} in
         "AKS-CLH-SNP")
             just push "node-installer-microsoft"
@@ -63,12 +64,15 @@ e2e target=default_deploy_target: soft-clean coordinator initializer openssl por
 deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target) (generate cli platform) (apply target)
 
 # Populate the workspace with a runtime class deployment
-runtime platform=default_platform:
+runtime target=default_deploy_target platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}/runtime
     nix shell .#contrast --command resourcegen \
-      --image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace kube-system --platform {{ platform }} \
+      --image-replacements ./{{ workspace_dir }}/just.containerlookup \
+      --namespace {{ target }}${namespace_suffix-} \
+      --add-namespace-object \
+      --platform {{ platform }} \
       runtime > ./{{ workspace_dir }}/runtime/runtime.yml
 
 # Populate the workspace with a Kubernetes deployment
@@ -78,14 +82,17 @@ populate target=default_deploy_target platform=default_platform:
     mkdir -p ./{{ workspace_dir }}
     mkdir -p ./{{ workspace_dir }}/deployment
     nix shell .#contrast --command resourcegen \
-        --image-replacements ./{{ workspace_dir }}/just.containerlookup --namespace {{ target }}${namespace_suffix-} \
-        --add-namespace-object --add-port-forwarders --platform {{ platform }} \
+        --image-replacements ./{{ workspace_dir }}/just.containerlookup \
+        --namespace {{ target }}${namespace_suffix-} \
+        --add-port-forwarders \
+        --platform {{ platform }} \
         {{ target }} coordinator > ./{{ workspace_dir }}/deployment/deployment.yml
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
 
 # Generate policies, update manifest.
 generate cli=default_cli platform=default_platform:
     #!/usr/bin/env bash
+    set -euo pipefail
     nix run .#{{ cli }} -- generate \
         --workspace-dir ./{{ workspace_dir }} \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
@@ -95,6 +102,7 @@ generate cli=default_cli platform=default_platform:
 # Apply Kubernetes manifests from /deployment
 apply target=default_deploy_target:
     #!/usr/bin/env bash
+    set -euo pipefail
     case {{ target }} in
         "runtime")
             kubectl apply -f ./{{ workspace_dir }}/runtime
@@ -252,7 +260,7 @@ lint:
 
 demodir version="latest": undeploy
     #!/usr/bin/env bash
-    set -eu
+    set -euo pipefail
     v="$(echo {{ version }} | sed 's/\./-/g')"
     nix develop -u DIRENV_DIR -u DIRENV_FILE -u DIRENV_DIFF .#demo-$v
 
