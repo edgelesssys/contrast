@@ -434,8 +434,8 @@ func Initializer() *applycorev1.ContainerApplyConfiguration {
 		).
 		WithEnv(NewEnvVar("COORDINATOR_HOST", "coordinator")).
 		WithVolumeMounts(VolumeMount().
-			WithName("contrast-tls-certs").
-			WithMountPath("/tls-config"),
+			WithName("contrast-secrets").
+			WithMountPath("/contrast"),
 		)
 }
 
@@ -446,8 +446,8 @@ func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 		WithImage("ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest").
 		WithRestartPolicy(corev1.ContainerRestartPolicyAlways).
 		WithVolumeMounts(VolumeMount().
-			WithName("contrast-tls-certs").
-			WithMountPath("/tls-config"),
+			WithName("contrast-secrets").
+			WithMountPath("/contrast"),
 		).
 		WithSecurityContext(SecurityContext().
 			WithPrivileged(true).

@@ -96,7 +96,7 @@ Contrast service mesh as an init container.
             privileged: true
           volumeMounts:
             - name: contrast-tls-certs
-              mountPath: /tls-config
+              mountPath: /contrast
 ```
 
 Note, that changing the environment variables of the sidecar container directly will
