@@ -41,13 +41,13 @@ func TestRegression(t *testing.T) {
 	for _, file := range files {
 		t.Run(file.Name(), func(t *testing.T) {
 			// mongodb currently has policy problems so we don't run the test atm
-			if strings.Contains(file.Name(), "mongodb") {
+			if !strings.Contains(file.Name(), "mongodb") {
 				return
 			}
 			require := require.New(t)
 
 			c := kubeclient.NewForTest(t)
-			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, false)
+			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, true)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
 
