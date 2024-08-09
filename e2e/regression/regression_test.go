@@ -43,7 +43,7 @@ func TestRegression(t *testing.T) {
 			require := require.New(t)
 
 			c := kubeclient.NewForTest(t)
-			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, true)
+			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, false)
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 			defer cancel()
 
