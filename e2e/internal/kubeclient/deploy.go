@@ -13,6 +13,7 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -361,6 +362,15 @@ func (c *Kubeclient) Restart(ctx context.Context, resource ResourceWaiter, names
 		}
 	}
 	return nil
+}
+
+// ScaleDeployment scales a deployment to the given number of replicas.
+func (c *Kubeclient) ScaleDeployment(ctx context.Context, namespace, name string, replicas int32) error {
+	_, err := c.client.AppsV1().Deployments(namespace).UpdateScale(ctx, name, &autoscalingv1.Scale{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+		Spec:       autoscalingv1.ScaleSpec{Replicas: replicas},
+	}, metav1.UpdateOptions{})
+	return err
 }
 
 func toPtr[T any](t T) *T {
