@@ -25,7 +25,7 @@ jobs:
   test_matrix:
     strategy:
       matrix:
-        test_name: [servicemesh, openssl, policy]
+        test_name: [servicemesh, openssl, policy, workloadsecret]
 
     runs-on: ubuntu-22.04
     permissions:
@@ -57,7 +57,7 @@ jobs:
       - name: Get credentials for CI cluster
         run: |
           just get-credentials
-      - name: Set sync environemnt
+      - name: Set sync environment
         run: |
           sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"

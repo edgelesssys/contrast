@@ -35,6 +35,7 @@ let
       "e2e/servicemesh"
       "e2e/release"
       "e2e/policy"
+      "e2e/workloadsecret"
     ];
   };
 
