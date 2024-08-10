@@ -193,12 +193,15 @@ the list that already contains the `"web"` DNS entry:
 ```diff
    "Policies": {
      ...
-     "99dd77cbd7fe2c4e1f29511014c14054a21a376f7d58a48d50e9e036f4522f6b": [
-       "web",
--      "*"
-+      "*",
-+      "203.0.113.34"
-     ],
+     "99dd77cbd7fe2c4e1f29511014c14054a21a376f7d58a48d50e9e036f4522f6b": {
+       "SANs": [
+         "web",
+-        "*"
++        "*",
++        "203.0.113.34"
+       ],
+       "WorkloadSecretID": "web"
+      },
 ```
 
 ### Update the manifest

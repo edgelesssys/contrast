@@ -22,3 +22,16 @@ It needs to be provided with the secret seed, from which it can derive the signi
 This procedure is called recovery and is initiated by the workload owner.
 The CLI decrypts the secret seed using the private seed share owner key, verifies the Coordinator and sends the seed through the `Recover` method.
 The Coordinator recovers its key material and verifies the manifest history signature.
+
+## Workload Secrets
+
+The Coordinator provides each workload a secret seed during attestation. This secret can be used by the workload to derive additional secrets for example to
+encrypt persistent data. Like the workload certificates it's mounted in the shared Kubernetes volume `contrast-secrets` in the path `<mountpoint>/secrets/workload-secret-seed`.
+
+:::warning
+
+The workload owner can decrypt data encrypted with secrets derived from the workload secret.
+The workload owner can derive the workload secret themselves, since it's derived from the secret seed known to the workload owner.
+If the data owner and the workload owner is the same entity, then they can safely use the workload secrets.
+
+:::
