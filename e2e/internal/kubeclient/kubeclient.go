@@ -16,7 +16,7 @@ import (
 	"os"
 	"testing"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -88,7 +88,7 @@ func NewForTest(t *testing.T) *Kubeclient {
 //
 // A pod is considered to belong to a deployment if it is owned by a ReplicaSet which is in turn
 // owned by the Deployment in question.
-func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployment string) ([]v1.Pod, error) {
+func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployment string) ([]corev1.Pod, error) {
 	replicasets, err := c.client.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("listing replicasets: %w", err)
@@ -98,7 +98,7 @@ func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployme
 		return nil, fmt.Errorf("listing pods: %w", err)
 	}
 
-	var out []v1.Pod
+	var out []corev1.Pod
 	for _, replicaset := range replicasets.Items {
 		for _, ref := range replicaset.OwnerReferences {
 			if ref.Kind != "Deployment" || ref.Name != deployment {
@@ -118,13 +118,13 @@ func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployme
 }
 
 // PodsFromOwner returns the pods owned by an object in the namespace of the given kind.
-func (c *Kubeclient) PodsFromOwner(ctx context.Context, namespace, kind, name string) ([]v1.Pod, error) {
+func (c *Kubeclient) PodsFromOwner(ctx context.Context, namespace, kind, name string) ([]corev1.Pod, error) {
 	pods, err := c.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("listing pods: %w", err)
 	}
 
-	var out []v1.Pod
+	var out []corev1.Pod
 	for _, pod := range pods.Items {
 		for _, ref := range pod.OwnerReferences {
 			if ref.Kind == kind && ref.Name == name {
@@ -148,7 +148,7 @@ func (c *Kubeclient) Exec(ctx context.Context, namespace, pod string, argv []str
 		Resource("pods").
 		Name(pod).
 		SubResource("exec").
-		VersionedParams(&v1.PodExecOptions{
+		VersionedParams(&corev1.PodExecOptions{
 			Command: argv,
 			Stdin:   false,
 			Stdout:  true,
@@ -206,9 +206,9 @@ func (c *Kubeclient) LogDebugInfo(ctx context.Context) {
 	}
 }
 
-func (c *Kubeclient) logContainerStatus(pod v1.Pod) {
+func (c *Kubeclient) logContainerStatus(pod corev1.Pod) {
 	c.log.Debug("pod status", "name", pod.Name, "phase", pod.Status.Phase, "reason", pod.Status.Reason, "message", pod.Status.Message)
-	for containerType, containers := range map[string][]v1.ContainerStatus{
+	for containerType, containers := range map[string][]corev1.ContainerStatus{
 		"init":      pod.Status.InitContainerStatuses,
 		"main":      pod.Status.ContainerStatuses,
 		"ephemeral": pod.Status.EphemeralContainerStatuses,
