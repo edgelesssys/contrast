@@ -17,6 +17,7 @@ import (
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -97,7 +98,7 @@ func TestWorkloadSecrets(t *testing.T) {
 		require.NotEmpty(stdout)
 		webWorkloadSecretBytes, err = hex.DecodeString(stdout)
 		require.NoError(err)
-		require.Len(webWorkloadSecretBytes, 32)
+		require.Len(webWorkloadSecretBytes, constants.SecretSeedSize)
 	})
 
 	t.Run("workload secret seed is the same between pods in the same deployment", func(t *testing.T) {
@@ -111,7 +112,7 @@ func TestWorkloadSecrets(t *testing.T) {
 		require.NotEmpty(stdout)
 		otherWebWorkloadSecretBytes, err := hex.DecodeString(stdout)
 		require.NoError(err)
-		require.Len(otherWebWorkloadSecretBytes, 32)
+		require.Len(otherWebWorkloadSecretBytes, constants.SecretSeedSize)
 		require.Equal(webWorkloadSecretBytes, otherWebWorkloadSecretBytes)
 	})
 
@@ -131,7 +132,7 @@ func TestWorkloadSecrets(t *testing.T) {
 		require.NotEmpty(stdout)
 		emojiWorkloadSecretBytes, err = hex.DecodeString(stdout)
 		require.NoError(err)
-		require.Len(emojiWorkloadSecretBytes, 32)
+		require.Len(emojiWorkloadSecretBytes, constants.SecretSeedSize)
 		require.NotEqual(webWorkloadSecretBytes, emojiWorkloadSecretBytes)
 	})
 }
