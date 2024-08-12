@@ -110,19 +110,19 @@ func run() (retErr error) {
 	}
 
 	// write files to disk
-	err = os.WriteFile("/contrast/tls-config/mesh-ca.pem", resp.MeshCACert, 0o644)
+	err = os.WriteFile("/contrast/tls-config/mesh-ca.pem", resp.MeshCACert, 0o444)
 	if err != nil {
 		return fmt.Errorf("writing mesh-ca.pem: %w", err)
 	}
-	err = os.WriteFile("/contrast/tls-config/certChain.pem", resp.CertChain, 0o644)
+	err = os.WriteFile("/contrast/tls-config/certChain.pem", resp.CertChain, 0o444)
 	if err != nil {
 		return fmt.Errorf("writing certChain.pem: %w", err)
 	}
-	err = os.WriteFile("/contrast/tls-config/key.pem", pemEncodedPrivKey, 0o600)
+	err = os.WriteFile("/contrast/tls-config/key.pem", pemEncodedPrivKey, 0o400)
 	if err != nil {
 		return fmt.Errorf("writing key.pem: %w", err)
 	}
-	err = os.WriteFile("/contrast/tls-config/coordinator-root-ca.pem", resp.RootCACert, 0o644)
+	err = os.WriteFile("/contrast/tls-config/coordinator-root-ca.pem", resp.RootCACert, 0o444)
 	if err != nil {
 		return fmt.Errorf("writing coordinator-root-ca.pem: %w", err)
 	}
