@@ -15,6 +15,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/ca"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -50,11 +51,14 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 		}
 	} else if a.se.Load() == nil {
 		// First SetManifest call, initialize seed engine.
-		seedSalt, err := crypto.GenerateRandomBytes(64)
+		seed, err := crypto.GenerateRandomBytes(constants.SecretSeedSize)
 		if err != nil {
-			return nil, status.Errorf(codes.Internal, "generating random bytes: %v", err)
+			return nil, status.Errorf(codes.Internal, "generating random bytes for seed: %v", err)
 		}
-		seed, salt := seedSalt[:32], seedSalt[32:]
+		salt, err := crypto.GenerateRandomBytes(constants.SecretSeedSaltSize)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "generating random bytes for seed salt: %v", err)
+		}
 
 		seedShares, err := manifest.EncryptSeedShares(seed, m.SeedshareOwnerPubKeys)
 		if err != nil {
