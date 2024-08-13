@@ -203,6 +203,11 @@ func TestOpenSSL(t *testing.T) {
 		require.NoError(c.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
 		require.NoError(c.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
 
+		// TODO(freax13): The following verify sometimes fails spuriously due to
+		//                connection issues. Waiting a little bit longer makes
+		//                the whole test less flaky.
+		time.Sleep(5 * time.Second)
+
 		require.ErrorContains(ct.RunVerify(), "recovery")
 
 		require.True(t.Run("contrast recover", ct.Recover))
