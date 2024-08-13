@@ -140,63 +140,76 @@ func (c *Kubeclient) WaitForPod(ctx context.Context, namespace, name string) err
 // WaitFor watches the given resource kind and blocks until the desired number of pods are
 // ready or the context expires (is cancelled or times out).
 func (c *Kubeclient) WaitFor(ctx context.Context, resource ResourceWaiter, namespace, name string) error {
-	watcher, err := resource.watcher(ctx, c.client, namespace, name)
-	if err != nil {
-		return err
-	}
+	// When the node-installer restarts K3s, the watcher fails. The watcher has
+	// a retry loop internally, but it only retries starting the request, once
+	// it has established a request and that request dies spuriously, the
+	// watcher doesn't reconnect. To fix this we add another retry loop.
+	retryCounter := 3
 
+retryLoop:
 	for {
-		evt, ok := <-watcher.ResultChan()
-		if !ok {
-			origErr := ctx.Err()
-			if origErr == nil {
-				return fmt.Errorf("watcher for %s %s/%s unexpectedly closed", resource.kind(), namespace, name)
-			}
-			logger := c.log.With("namespace", namespace)
-			logger.Error("resource did not become ready", "kind", resource, "name", name, "contextErr", ctx.Err())
-			if ctx.Err() != context.DeadlineExceeded {
-				return ctx.Err()
-			}
-			// Fetch and print debug information.
-			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			defer cancel()
-			pods, err := resource.getPods(ctx, c, namespace, name) //nolint:contextcheck // The parent context expired.
-			if err != nil {
-				logger.Error("could not fetch pods for resource", "kind", resource.kind(), "name", name, "error", err)
+		watcher, err := resource.watcher(ctx, c.client, namespace, name)
+		if err != nil {
+			return err
+		}
+
+		for {
+			evt, ok := <-watcher.ResultChan()
+			if !ok {
+				origErr := ctx.Err()
+				if origErr == nil {
+					retryCounter--
+					if retryCounter != 0 {
+						continue retryLoop
+					}
+					return fmt.Errorf("watcher for %s %s/%s unexpectedly closed", resource.kind(), namespace, name)
+				}
+				logger := c.log.With("namespace", namespace)
+				logger.Error("resource did not become ready", "kind", resource, "name", name, "contextErr", ctx.Err())
+				if ctx.Err() != context.DeadlineExceeded {
+					return ctx.Err()
+				}
+				// Fetch and print debug information.
+				ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+				defer cancel()
+				pods, err := resource.getPods(ctx, c, namespace, name) //nolint:contextcheck // The parent context expired.
+				if err != nil {
+					logger.Error("could not fetch pods for resource", "kind", resource.kind(), "name", name, "error", err)
+					return origErr
+				}
+				for _, pod := range pods {
+					if !isPodReady(&pod) {
+						logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
+					}
+				}
 				return origErr
 			}
-			for _, pod := range pods {
-				if !isPodReady(&pod) {
-					logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
+			switch evt.Type {
+			case watch.Added:
+				fallthrough
+			case watch.Modified:
+				pods, err := resource.getPods(ctx, c, namespace, name)
+				if err != nil {
+					return err
 				}
-			}
-			return origErr
-		}
-		switch evt.Type {
-		case watch.Added:
-			fallthrough
-		case watch.Modified:
-			pods, err := resource.getPods(ctx, c, namespace, name)
-			if err != nil {
-				return err
-			}
-			numPodsReady := 0
-			for _, pod := range pods {
-				if isPodReady(&pod) {
-					numPodsReady++
+				numPodsReady := 0
+				for _, pod := range pods {
+					if isPodReady(&pod) {
+						numPodsReady++
+					}
 				}
+				desiredPods, err := resource.numDesiredPods(evt.Object)
+				if err != nil {
+					return err
+				}
+				if desiredPods <= numPodsReady {
+					return nil
+				}
+			case watch.Deleted:
+				return fmt.Errorf("%s %s/%s was deleted while waiting for it", resource.kind(), namespace, name)
+			default:
+				return fmt.Errorf("unexpected watch event while waiting for %s %s/%s: type=%s, object=%#v", resource.kind(), namespace, name, evt.Type, evt.Object)
 			}
-			desiredPods, err := resource.numDesiredPods(evt.Object)
-			if err != nil {
-				return err
-			}
-			if desiredPods <= numPodsReady {
-				return nil
-			}
-		case watch.Deleted:
-			return fmt.Errorf("%s %s/%s was deleted while waiting for it", resource.kind(), namespace, name)
-		default:
-			return fmt.Errorf("unexpected watch event while waiting for %s %s/%s: type=%s, object=%#v", resource.kind(), namespace, name, evt.Type, evt.Object)
 		}
 	}
 }
