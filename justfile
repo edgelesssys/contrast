@@ -52,7 +52,7 @@ node-installer platform=default_platform: tardev-snapshotter nydus-snapshotter
         ;;
     esac
 
-e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy node-installer
+e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
     nix shell .#contrast.e2e --command {{ target }}.test -test.v \
@@ -62,7 +62,7 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
             --skip-undeploy=true
 
 # Generate policies, apply Kubernetes manifests.
-deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target) (generate cli platform) (apply target)
+deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target platform) (generate cli platform) (apply target)
 
 # Populate the workspace with a runtime class deployment
 runtime target=default_deploy_target platform=default_platform:
