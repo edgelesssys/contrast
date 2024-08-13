@@ -55,11 +55,11 @@ in
   hostCpuTargets = [ "x86_64-softmmu" ];
 })).overrideAttrs
   (previousAttrs: rec {
-    version = "9.1.0-rc0";
+    version = "9.1.0-rc1";
 
     src = fetchurl {
       url = "https://download.qemu.org/qemu-${version}.tar.xz";
-      hash = "sha256-3Y3dl1EF18l2axZcHI3JvYY7CNJqzR8G9wxcsDKnnn0=";
+      hash = "sha256-JDcnzpkwfzwa5ofMjS1HYy7BDJ79EunIdMqW5kdfauk=";
     };
 
     propagatedBuildInputs = builtins.filter (
