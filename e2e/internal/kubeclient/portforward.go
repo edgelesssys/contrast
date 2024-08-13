@@ -34,7 +34,7 @@ func (k *Kubeclient) WithForwardedPort(ctx context.Context, namespace, podName, 
 		if funcErr == nil {
 			return nil
 		}
-		log.Error("port-forwarded func failed", "error", err)
+		log.Error("port-forwarded func failed", "error", funcErr)
 		select {
 		case err := <-errorCh:
 			log.Error("Encountered port forwarding error", "error", err)
