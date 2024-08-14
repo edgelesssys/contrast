@@ -15,27 +15,27 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "cloud-hypervisor";
-  version = "32.0.317";
+  version = "38.0.72.2";
 
   src = fetchFromGitHub {
     owner = "microsoft";
     repo = "cloud-hypervisor";
     rev = "refs/tags/msft/v${version}";
-    hash = "sha256-D9wfCat0GVHUpppjFghKTYPl5rXE12aVxVkAFxxq78U=";
+    hash = "sha256-4Xpeu0MM59t5G0oFGLyG/CV5nRumzATArPRchxS8ONY=";
   };
 
   cargoLock = {
     lockFile = "${src}/Cargo.lock";
     outputHashes = {
-      "acpi_tables-0.1.0" = "sha256-aT0p85QDGjBEnbABedm0q7JPpiNjhupoIzBWifQ0RaQ=";
-      "micro_http-0.1.0" = "sha256-w2witqKXE60P01oQleujmHSnzMKxynUGKWyq5GEh1Ew=";
-      "mshv-bindings-0.1.1" = "sha256-9Q7IXznZ+qdf/d4gO7qVEjbNUUygQDNYLNxz2BECLHc=";
-      "vfio-bindings-0.4.0" = "sha256-lKdoo/bmnZTRV7RRWugwHDFFCB6FKxpzxDEEMVqSbwA=";
-      "vfio_user-0.1.0" = "sha256-JYNiONQNNpLu57Pjdn2BlWOdmSf3c4/XJg/RsVxH3uk=";
-      "vm-fdt-0.2.0" = "sha256-gVKGiE3ZSe+z3oOHR3zqVdc7XMHzkp4kO4p/WfK0VI8=";
-      "kvm-bindings-0.6.0" = "sha256-wGdAuPwsgRIqx9dh0m+hC9A/Akz9qg9BM+p06Fi5ACM=";
-      "kvm-ioctls-0.13.0" = "sha256-jHnFGwBWnAa2lRu4a5eRNy1Y26NX5MV8alJ86VR++QE=";
-      "versionize_derive-0.1.4" = "sha256-BPl294UqjVl8tThuvylXUFjFNjJx8OSfBGJLg8jIkWw=";
+      "acpi_tables-0.1.0" = "sha256-syDq+db1hTne6QoP0vMGUv4tB0J9arQG2Ea2hHW1k3M=";
+      "micro_http-0.1.0" = "sha256-gyeOop6AMXEIbLXhJMN/oYGGU8Un8Y0nFZc9ucCa0y4=";
+      "mshv-bindings-0.1.1" = "sha256-vg4kStPBvHtXLuHMQzzpn4voDcVgruO+OqQ1yUCAi/U=";
+      "vfio-bindings-0.4.0" = "sha256-Dk4T2dMzPZ+Aoq1YSXX2z1Nky8zvyDl7b+A8NH57Hkc=";
+      "vfio_user-0.1.0" = "sha256-LJ84k9pMkSAaWkuaUd+2LnPXnNgrP5LdbPOc1Yjz5xA=";
+      "vm-fdt-0.2.0" = "sha256-lKW4ZUraHomSDyxgNlD5qTaBTZqM0Fwhhh/08yhrjyE=";
+      "kvm-bindings-0.7.0" = "sha256-hXv5N3TTwGQaVxdQ/DTzLt+uwLxFnstJwNhxRD2K8TM=";
+      "igvm-0.1.0" = "sha256-l+Qyhdy3b8h8hPLHg5M0os8aSkjM55hAP5nqi0AGmjo=";
+      "versionize_derive-0.1.6" = "sha256-eI9fM8WnEBZvskPhU67IWeN6QAPg2u5EBT+AOxfb/fY=";
     };
   };
 
@@ -48,10 +48,12 @@ rustPlatform.buildRustPackage rec {
   buildInputs = [ openssl ];
 
   buildNoDefaultFeatures = true;
-  buildFeatures = [
-    "mshv"
-    "kvm"
-  ] ++ lib.optional withIGVM "igvm" ++ lib.optional withSEVSNP "snp" ++ lib.optional withTDX "tdx";
+  buildFeatures =
+    [
+      "mshv"
+      "kvm"
+    ]
+    ++ lib.optional withIGVM "igvm" ++ lib.optional withSEVSNP "sev_snp" ++ lib.optional withTDX "tdx";
 
   OPENSSL_NO_VENDOR = true;
 
