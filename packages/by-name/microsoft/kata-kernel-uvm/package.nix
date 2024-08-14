@@ -9,8 +9,8 @@
 }:
 
 let
-  kver = "6.1.0";
-  modDirVersion = "${kver}.mshv16";
+  kver = "6.1.58";
+  modDirVersion = "${kver}.mshv4";
   tarfs_make = ./src;
   tarfs_patch = fetchurl {
     name = "tarfs.patch";
@@ -40,8 +40,8 @@ linuxManualConfig {
   src = fetchurl {
     # Kernel source as defined in
     # https://github.com/microsoft/azurelinux/blob/59ce246f224f282b3e199d9a2dacaa8011b75a06/SPECS/kernel-uvm/kernel-uvm.spec#L19
-    url = "https://cblmarinerstorage.blob.core.windows.net/sources/core/kernel-uvm-${modDirVersion}.tar.gz";
-    hash = "sha256-8EU8NmU4eiqHdDeCNH28y2wKLaHx6fNcBKzWupqf2Sw=";
+    url = "https://azurelinuxsrcstorage.blob.core.windows.net/sources/core/kernel-uvm-${modDirVersion}.tar.gz";
+    hash = "sha256-gayZqwbPffCEXwvVlrOUZY+z8YAdCtmF9bZP+j2Q6Ao=";
   };
   kernelPatches = [
     # this patches the existing Makefile and Kconfig to know about CONFIG_TARFS_FS and fs/tarfs
@@ -56,7 +56,7 @@ linuxManualConfig {
     }
   ];
   configfile = fetchurl {
-    url = "https://raw.githubusercontent.com/microsoft/azurelinux/59ce246f224f282b3e199d9a2dacaa8011b75a06/SPECS/kernel-uvm/config";
+    url = "https://raw.githubusercontent.com/microsoft/azurelinux/4e90dd61c165a167d96987d1eb63c49d6ceae721/SPECS/kernel-uvm/config";
     # Contrast additionally requires the following features:
     # - erofs
     #
@@ -74,7 +74,7 @@ linuxManualConfig {
       CONFIG_EROFS_FS_ONDEMAND=y
       EOF
     '';
-    hash = "sha256-c1+FQzzJQbAvRhV2j0OqRYWcET5kMqvz3vNL7exkudg=";
+    hash = "sha256-+vOS82pZE0YuloIaOT3VthlQs7vr8QwmVJDpCvNyrKk=";
   };
   version = kver;
   inherit modDirVersion;
