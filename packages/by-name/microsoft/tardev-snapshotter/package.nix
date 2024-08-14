@@ -15,7 +15,7 @@ rustPlatform.buildRustPackage rec {
 
   sourceRoot = "${src.name}/src/tardev-snapshotter";
 
-  cargoHash = "sha256-0Jj0+Dsm2wykNopy1Oga0wSQEGIl66AppwmWfjm14mg=";
+  cargoHash = "sha256-d3bDtkB+9pL2Zq5ZGG3Q3bG0YAWBVpYw1ZthacGeUyY=";
 
   nativeBuildInputs = [
     cmake
