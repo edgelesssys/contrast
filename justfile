@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform) (runtime target platform) (apply "runtime") (deploy target cli platform) set verify (wait-for-workload target)
+default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform) (deploy target cli platform) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -62,7 +62,7 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
             --skip-undeploy=true
 
 # Generate policies, apply Kubernetes manifests.
-deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target platform) (generate cli platform) (apply target)
+deploy target=default_deploy_target cli=default_cli platform=default_platform: (runtime target platform) (apply "runtime") (populate target platform) (generate cli platform) (apply target)
 
 # Populate the workspace with a runtime class deployment
 runtime target=default_deploy_target platform=default_platform:
