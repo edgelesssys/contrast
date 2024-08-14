@@ -67,7 +67,16 @@ let
 
       snpRefVals = {
         snp = [
-          { trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile kata.snp-launch-digest); }
+          {
+            trustedMeasurement = lib.removeSuffix "\n" (
+              builtins.readFile "${kata.snp-launch-digest}/milan.hex"
+            );
+          }
+          {
+            trustedMeasurement = lib.removeSuffix "\n" (
+              builtins.readFile "${kata.snp-launch-digest}/genoa.hex"
+            );
+          }
         ];
       };
 
