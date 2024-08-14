@@ -63,13 +63,8 @@ func buildVersionString() (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("getting reference values: %w", err)
 		}
-		// Make sure that there's only one set of reference values. If this is
-		// not the case, the output might be confusing.
-		if len(values.SNP)+len(values.TDX) != 1 {
-			return "", fmt.Errorf("platform %s doesn't have exactly one reference value", platform.String())
-		}
 		printOptional := func(label string, value *manifest.SVN) {
-			fmt.Fprintf(versionsWriter, "\t    %s:\t", label)
+			fmt.Fprintf(versionsWriter, "\t      %s:\t", label)
 			if value != nil {
 				fmt.Fprintf(versionsWriter, "%d", value.UInt8())
 			} else {
@@ -78,15 +73,15 @@ func buildVersionString() (string, error) {
 			fmt.Fprint(versionsWriter, "\n")
 		}
 		for _, snp := range values.SNP {
-			fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", snp.TrustedMeasurement.String())
-			fmt.Fprint(versionsWriter, "\tdefault SNP TCB:\t\n")
+			fmt.Fprintf(versionsWriter, "\t- launch digest:\t%s\n", snp.TrustedMeasurement.String())
+			fmt.Fprint(versionsWriter, "\t  default SNP TCB:\t\n")
 			printOptional("bootloader", snp.MinimumTCB.BootloaderVersion)
 			printOptional("tee", snp.MinimumTCB.TEEVersion)
 			printOptional("snp", snp.MinimumTCB.SNPVersion)
 			printOptional("microcode", snp.MinimumTCB.MicrocodeVersion)
 		}
 		for _, tdx := range values.TDX {
-			fmt.Fprintf(versionsWriter, "\tlaunch digest:\t%s\n", tdx.TrustedMeasurement.String())
+			fmt.Fprintf(versionsWriter, "\t- launch digest:\t%s\n", tdx.TrustedMeasurement.String())
 		}
 
 		switch platform {
