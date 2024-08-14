@@ -47,6 +47,11 @@ const CRIFQDN = "io.containerd.grpc.v1.cri"
 // KataRuntimeConfig returns the Kata runtime configuration.
 func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKernelParams string, debug bool) (*config.KataRuntimeConfig, error) {
 	var config config.KataRuntimeConfig
+	if debug {
+		config.Agent["kata"]["enable_debug"] = true
+		config.Agent["kata"]["debug_console_enabled"] = true
+		config.Runtime["enable_debug"] = true
+	}
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		if err := toml.Unmarshal([]byte(kataCLHSNPBaseConfig), &config); err != nil {
@@ -71,9 +76,6 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		kernelParams := qemuExtraKernelParams
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
-			config.Agent["kata"]["enable_debug"] = true
-			config.Agent["kata"]["debug_console_enabled"] = true
-			config.Runtime["enable_debug"] = true
 			kernelParams += " agent.log=debug initcall_debug"
 		}
 		// Replace the kernel params entirely (and don't append) since that's
@@ -96,9 +98,6 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		kernelParams := qemuExtraKernelParams
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
-			config.Agent["kata"]["enable_debug"] = true
-			config.Agent["kata"]["debug_console_enabled"] = true
-			config.Runtime["enable_debug"] = true
 			kernelParams += " agent.log=debug initcall_debug"
 		}
 		// Replace the kernel params entirely (and don't append) since that's
