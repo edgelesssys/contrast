@@ -100,6 +100,15 @@ generate cli=default_cli platform=default_platform:
         --reference-values {{ platform }}\
         ./{{ workspace_dir }}/deployment/*.yml
 
+    # On baremetal SNP, we don't have default values for MinimumTCB, so we need to set some here.
+    case {{ platform }} in
+        "K3s-QEMU-SNP")
+            yq --inplace \
+            '.ReferenceValues.snp.[].MinimumTCB = {"BootloaderVersion":0,"TEEVersion":0,"SNPVersion":0,"MicrocodeVersion":0}' \
+            {{ workspace_dir }}/manifest.json
+        ;;
+    esac
+
 # Apply Kubernetes manifests from /deployment
 apply target=default_deploy_target:
     #!/usr/bin/env bash

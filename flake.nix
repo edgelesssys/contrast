@@ -48,6 +48,7 @@
                 gotools
                 just
                 kubectl
+                yq-go
               ];
               shellHook = ''
                 alias make=just
