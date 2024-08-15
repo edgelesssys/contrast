@@ -86,6 +86,7 @@ populate target=default_deploy_target platform=default_platform:
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --add-port-forwarders \
+        --add-logging \
         --platform {{ platform }} \
         {{ target }} coordinator > ./{{ workspace_dir }}/deployment/deployment.yml
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace

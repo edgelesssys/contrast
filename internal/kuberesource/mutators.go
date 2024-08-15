@@ -195,7 +195,7 @@ func AddLoadBalancers(resources []any) []any {
 }
 
 // AddLogging modifies Contrast Coordinators among the resources to enable debug logging.
-func AddLogging(resources []any, level string) []any {
+func AddLogging(resources []any, level, subsystem string) []any {
 	for _, resource := range resources {
 		switch r := resource.(type) {
 		case *applyappsv1.StatefulSetApplyConfiguration:
@@ -203,7 +203,7 @@ func AddLogging(resources []any, level string) []any {
 				r.Spec.Template.Annotations["contrast.edgeless.systems/pod-role"] == "coordinator" {
 				r.Spec.Template.Spec.Containers[0].WithEnv(
 					NewEnvVar("CONTRAST_LOG_LEVEL", level),
-					NewEnvVar("CONTRAST_LOG_SUBSYSTEMS", "*"),
+					NewEnvVar("CONTRAST_LOG_SUBSYSTEMS", subsystem),
 				)
 			}
 		}
