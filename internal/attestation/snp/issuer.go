@@ -52,7 +52,7 @@ func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (re
 	reportData := reportdata.Construct(ownPublicKey, nonce)
 
 	// Get quote from SNP device
-	quoteProvider, err := client.GetQuoteProvider()
+	quoteProvider, err := getQuoteProvider(i.logger)
 	if err != nil {
 		return nil, fmt.Errorf("issuer: getting quote provider: %w", err)
 	}
@@ -99,4 +99,22 @@ func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (re
 
 	i.logger.Info("Successfully issued attestation statement")
 	return attRaw, nil
+}
+
+// getQuoteProvider returns the first supported quote provider.
+// This is the improved version of https://pkg.go.dev/github.com/google/go-sev-guest@v0.11.1/client#GetQuoteProvider,
+// with a check for ioctl support and logging.
+func getQuoteProvider(logger *slog.Logger) (client.QuoteProvider, error) {
+	var provider client.QuoteProvider
+	provider = &client.LinuxConfigFsQuoteProvider{}
+	if provider.IsSupported() {
+		logger.Debug("Using LinuxConfigFsQuoteProvider")
+		return provider, nil
+	}
+	provider = &client.LinuxIoctlQuoteProvider{}
+	if provider.IsSupported() {
+		logger.Debug("Using LinuxIoctlQuoteProvider")
+		return provider, nil
+	}
+	return nil, fmt.Errorf("no supported quote provider found")
 }
