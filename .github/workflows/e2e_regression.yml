@@ -63,6 +63,10 @@ jobs:
       - name: Build and prepare deployments
         run: |
           just node-installer
+          if [[ "${{ matrix.case }}" == "regression" ]]; then
+            # push other dependencies for the regression test
+            just coordinator initializer port-forwarder openssl service-mesh-proxy
+          fi
       - name: Run regression test
         run: |
           nix shell -L .#contrast.e2e --command ${{ matrix.case }}.test -test.v \
