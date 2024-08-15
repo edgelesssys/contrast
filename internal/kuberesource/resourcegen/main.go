@@ -20,6 +20,7 @@ func main() {
 	addLoadBalancers := flag.Bool("add-load-balancers", false, "Add load balancers to selected services")
 	addNamespaceObject := flag.Bool("add-namespace-object", false, "Add namespace object with the given namespace")
 	addPortForwarders := flag.Bool("add-port-forwarders", false, "Add port forwarder pods for all services")
+	addLogging := flag.Bool("add-logging", false, "Add logging configuration, based on CONTRAST_LOG_LEVEL and CONTRAST_LOG_SUBSYSTEMS environment variables")
 	rawPlatform := flag.String("platform", "", "Deployment platform to generate the runtime configuration for")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [flags] <set>...\n", os.Args[0])
@@ -74,6 +75,18 @@ func main() {
 
 	if *addLoadBalancers {
 		resources = kuberesource.AddLoadBalancers(resources)
+	}
+
+	if *addLogging {
+		logLevel := os.Getenv("CONTRAST_LOG_LEVEL")
+		if logLevel == "" {
+			logLevel = "info"
+		}
+		logSubSystems := os.Getenv("CONTRAST_LOG_SUBSYSTEMS")
+		if logSubSystems == "" {
+			logSubSystems = "*"
+		}
+		resources = kuberesource.AddLogging(resources, logLevel, logSubSystems)
 	}
 
 	var replacements map[string]string
