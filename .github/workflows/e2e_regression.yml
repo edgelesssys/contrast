@@ -64,7 +64,7 @@ jobs:
         run: |
           just node-installer
           if [[ "${{ matrix.case }}" == "regression" ]]; then
-            # push other dependencies for the regression test
+            # build and push other dependencies for the regression test
             just coordinator initializer port-forwarder openssl service-mesh-proxy
           fi
       - name: Run regression test

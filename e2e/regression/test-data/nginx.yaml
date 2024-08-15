@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: quay.io/nginx/nginx-unprivileged@sha256:a30a0565b20529d70babf04b81cc64d2dc04cfce9ff55d535710fcb35ca4b425
+          image: ghcr.io/edgelesssys/nginx-unprivileged@sha256:1d5be2aa3c296bd589ddd3c9bf2f560919e31ac32bae799a15dd182b6fdb042b
           ports:
             - containerPort: 8080
       runtimeClassName: contrast-cc
