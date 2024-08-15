@@ -15,13 +15,13 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "cloud-hypervisor";
-  version = "38.0.72.2";
+  version = "38.0.72";
 
   src = fetchFromGitHub {
     owner = "microsoft";
     repo = "cloud-hypervisor";
     rev = "refs/tags/msft/v${version}";
-    hash = "sha256-4Xpeu0MM59t5G0oFGLyG/CV5nRumzATArPRchxS8ONY=";
+    hash = "sha256-wGLRBMZUiGRphED0a+GvKPDyhZBtg6aYoyOlvRtmmEA=";
   };
 
   cargoLock = {
@@ -38,6 +38,8 @@ rustPlatform.buildRustPackage rec {
       "versionize_derive-0.1.6" = "sha256-eI9fM8WnEBZvskPhU67IWeN6QAPg2u5EBT+AOxfb/fY=";
     };
   };
+
+  patches = [ ./0001-snp-fix-panic-when-rejecting-extended-guest-report.patch ];
 
   separateDebugInfo = true;
 
