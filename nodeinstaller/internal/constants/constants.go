@@ -47,11 +47,6 @@ const CRIFQDN = "io.containerd.grpc.v1.cri"
 // KataRuntimeConfig returns the Kata runtime configuration.
 func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKernelParams string, debug bool) (*config.KataRuntimeConfig, error) {
 	var config config.KataRuntimeConfig
-	if debug {
-		config.Agent["kata"]["enable_debug"] = true
-		config.Agent["kata"]["debug_console_enabled"] = true
-		config.Runtime["enable_debug"] = true
-	}
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		if err := toml.Unmarshal([]byte(kataCLHSNPBaseConfig), &config); err != nil {
@@ -62,7 +57,6 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		config.Hypervisor["clh"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
 		config.Hypervisor["clh"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")}
 		config.Hypervisor["clh"]["enable_debug"] = debug
-		return &config, nil
 	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
@@ -81,7 +75,6 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		// Replace the kernel params entirely (and don't append) since that's
 		// also what we do when calculating the launch measurement.
 		config.Hypervisor["qemu"]["kernel_params"] = kernelParams
-		return &config, nil
 	case platforms.K3sQEMUSNP:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
@@ -103,10 +96,15 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		// Replace the kernel params entirely (and don't append) since that's
 		// also what we do when calculating the launch measurement.
 		config.Hypervisor["qemu"]["kernel_params"] = kernelParams
-		return &config, nil
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
+	if debug {
+		config.Agent["kata"]["enable_debug"] = true
+		config.Agent["kata"]["debug_console_enabled"] = true
+		config.Runtime["enable_debug"] = true
+	}
+	return &config, nil
 }
 
 // ContainerdBaseConfig returns the base containerd configuration.
