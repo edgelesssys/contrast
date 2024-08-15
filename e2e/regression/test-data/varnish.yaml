@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: varnish
-          image: quay.io/sclorg/varnish-6-c9s@sha256:269c6a36a1eaddaed952657a268c8276262b25b116c86a55f5d053ef278caa21
+          image: quay.io/fedora/varnish-7@sha256:0f6cb7d79de84071f1c67ce4d3ec6449522084044b090b9f31017bf98e8e2155
           ports:
             - containerPort: 8443
             - containerPort: 8080
