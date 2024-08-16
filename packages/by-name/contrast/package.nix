@@ -55,10 +55,10 @@ let
         snp = [
           {
             minimumTCB = {
-              bootloaderVersion = 3;
+              bootloaderVersion = 4;
               teeVersion = 0;
-              snpVersion = 8;
-              microcodeVersion = 115;
+              snpVersion = 21;
+              microcodeVersion = 211;
             };
             trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile microsoft.kata-igvm.launch-digest);
           }
