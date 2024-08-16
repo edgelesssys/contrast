@@ -107,7 +107,7 @@ func (s StatefulSet) getPods(ctx context.Context, client *Kubeclient, namespace,
 // WaitForPod watches the given pod and blocks until it meets the condition Ready=True or the
 // context expires (is cancelled or times out).
 func (c *Kubeclient) WaitForPod(ctx context.Context, namespace, name string) error {
-	watcher, err := c.client.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+	watcher, err := c.Client.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (c *Kubeclient) WaitFor(ctx context.Context, resource ResourceWaiter, names
 
 retryLoop:
 	for {
-		watcher, err := resource.watcher(ctx, c.client, namespace, name)
+		watcher, err := resource.watcher(ctx, c.Client, namespace, name)
 		if err != nil {
 			return err
 		}
@@ -217,7 +217,7 @@ retryLoop:
 
 // WaitForLoadBalancer waits until the given service is configured with an external IP and returns it.
 func (c *Kubeclient) WaitForLoadBalancer(ctx context.Context, namespace, name string) (string, error) {
-	watcher, err := c.client.CoreV1().Services(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+	watcher, err := c.Client.CoreV1().Services(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
 	if err != nil {
 		return "", err
 	}
@@ -292,7 +292,7 @@ func isPodReady(pod *corev1.Pod) bool {
 }
 
 func (c *Kubeclient) resourceInterfaceFor(obj *unstructured.Unstructured) (dynamic.ResourceInterface, error) {
-	dyn := dynamic.New(c.client.RESTClient())
+	dyn := dynamic.New(c.Client.RESTClient())
 	gvk := obj.GroupVersionKind()
 
 	mapping, err := c.restMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
@@ -354,7 +354,7 @@ func (c *Kubeclient) Restart(ctx context.Context, resource ResourceWaiter, names
 		return err
 	}
 	for _, pod := range pods {
-		err := c.client.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{
+		err := c.Client.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{
 			GracePeriodSeconds: toPtr(int64(0)),
 		})
 		if err != nil {

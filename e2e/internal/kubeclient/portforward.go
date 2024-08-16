@@ -65,7 +65,7 @@ func (k *Kubeclient) portForwardPod(ctx context.Context, namespace, podName, rem
 	errorCh := make(chan error)
 
 	// Ports are forwarded by upgrading this POST request to a SPDY connection.
-	req := k.client.CoreV1().RESTClient().Post().
+	req := k.Client.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Namespace(namespace).
 		Name(podName).
