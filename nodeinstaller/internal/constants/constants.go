@@ -70,7 +70,6 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		kernelParams := qemuExtraKernelParams
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
-			kernelParams += " agent.log=debug initcall_debug"
 		}
 		// Replace the kernel params entirely (and don't append) since that's
 		// also what we do when calculating the launch measurement.
@@ -91,7 +90,6 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		kernelParams := qemuExtraKernelParams
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
-			kernelParams += " agent.log=debug initcall_debug"
 		}
 		// Replace the kernel params entirely (and don't append) since that's
 		// also what we do when calculating the launch measurement.

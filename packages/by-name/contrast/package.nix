@@ -73,18 +73,18 @@ let
       };
 
       snpRefVals = {
-        snp = [
-          {
-            trustedMeasurement = lib.removeSuffix "\n" (
-              builtins.readFile "${kata.snp-launch-digest}/milan.hex"
-            );
-          }
-          {
-            trustedMeasurement = lib.removeSuffix "\n" (
-              builtins.readFile "${kata.snp-launch-digest}/genoa.hex"
-            );
-          }
-        ];
+        snp =
+          let
+            launch-digest =
+              if kata.contrast-node-installer-image.debugRuntime then
+                kata.snp-launch-digest.override { debug = true; }
+              else
+                kata.snp-launch-digest;
+          in
+          [
+            { trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile "${launch-digest}/milan.hex"); }
+            { trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile "${launch-digest}/genoa.hex"); }
+          ];
       };
 
       tdxRefVals = {

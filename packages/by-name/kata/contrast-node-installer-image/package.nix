@@ -226,8 +226,11 @@ in
 
 ociImageLayout {
   manifests = [ manifest ];
-  passthru.runtimeHash = hashDirs {
-    dirs = layers; # Layers without node-installer, or we have a circular dependency!
-    name = "runtime-hash-kata";
+  passthru = {
+    inherit debugRuntime;
+    runtimeHash = hashDirs {
+      dirs = layers; # Layers without node-installer, or we have a circular dependency!
+      name = "runtime-hash-kata";
+    };
   };
 }
