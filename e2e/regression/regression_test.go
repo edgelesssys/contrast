@@ -28,7 +28,7 @@ var (
 )
 
 func TestRegression(t *testing.T) {
-	yamlDir := "./e2e/regression/test-data/"
+	yamlDir := "./e2e/regression/testdata/"
 	files, err := os.ReadDir(yamlDir)
 	require.NoError(t, err)
 
@@ -51,7 +51,7 @@ func TestRegression(t *testing.T) {
 
 			yaml, err := os.ReadFile(yamlDir + file.Name())
 			require.NoError(err)
-			yaml = bytes.ReplaceAll(yaml, []byte("REPLACE_NAMESPACE"), []byte(ct.Namespace))
+			yaml = bytes.ReplaceAll(yaml, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
 
 			yamlResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
 			require.NoError(err)
@@ -66,7 +66,7 @@ func TestRegression(t *testing.T) {
 			require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 			require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
-			require.True(t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+			require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
 			deploymentName, _ := strings.CutSuffix(file.Name(), ".yaml")
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentName))
