@@ -72,7 +72,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("getting validators: %w", err)
 	}
-	dialer := dialer.New(atls.NoIssuer, validators, &net.Dialer{})
+	dialer := dialer.New(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{})
 
 	log.Debug("Dialing coordinator", "endpoint", flags.coordinator)
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)

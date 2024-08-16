@@ -159,7 +159,7 @@ func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger
 		return nil, fmt.Errorf("creating issuer: %w", err)
 	}
 
-	credentials := atlscredentials.New(issuer, nil)
+	credentials := atlscredentials.New(issuer, atls.NoValidators, atls.NoMetrics)
 
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),

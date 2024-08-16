@@ -20,7 +20,6 @@ import (
 	"github.com/google/go-sev-guest/validate"
 	"github.com/google/go-sev-guest/verify"
 	"github.com/google/go-sev-guest/verify/trust"
-	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -31,11 +30,6 @@ type Validator struct {
 	callbackers            []validateCallbacker
 	kdsGetter              trust.HTTPSGetter
 	logger                 *slog.Logger
-	metrics                metrics
-}
-
-type metrics struct {
-	attestationFailures prometheus.Counter
 }
 
 type validateCallbacker interface {
@@ -57,7 +51,7 @@ func NewValidator(opts *validate.Options, allowedHostDataEntries []manifest.HexS
 
 // NewValidatorWithCallbacks returns a new Validator with callbacks.
 func NewValidatorWithCallbacks(opts *validate.Options, allowedHostDataEntries []manifest.HexString, kdsGetter trust.HTTPSGetter,
-	log *slog.Logger, attestationFailures prometheus.Counter, callbacks ...validateCallbacker,
+	log *slog.Logger, callbacks ...validateCallbacker,
 ) *Validator {
 	return &Validator{
 		opts:                   opts,
@@ -65,7 +59,6 @@ func NewValidatorWithCallbacks(opts *validate.Options, allowedHostDataEntries []
 		callbackers:            callbacks,
 		kdsGetter:              kdsGetter,
 		logger:                 log,
-		metrics:                metrics{attestationFailures: attestationFailures},
 	}
 }
 
@@ -77,14 +70,6 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 // Validate a TPM based attestation.
 func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
 	v.logger.Info("Validate called", "nonce", hex.EncodeToString(nonce))
-	defer func() {
-		if err != nil {
-			v.logger.Error("Failed to validate attestation document", "err", err)
-			if v.metrics.attestationFailures != nil {
-				v.metrics.attestationFailures.Inc()
-			}
-		}
-	}()
 
 	// Parse the attestation document.
 

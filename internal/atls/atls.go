@@ -23,6 +23,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/crypto"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const attestationTimeout = 30 * time.Second
@@ -32,6 +33,8 @@ var (
 	NoValidators = []Validator{}
 	// NoIssuer skips embedding the client's attestation document.
 	NoIssuer Issuer
+	// NoMetrics skips collecting metrics for attestation failures.
+	NoMetrics prometheus.Counter
 
 	// ErrNoValidAttestationExtensions is returned when no valid attestation document certificate extensions are found.
 	ErrNoValidAttestationExtensions = errors.New("no valid attestation document certificate extensions found")
@@ -42,8 +45,8 @@ var (
 // CreateAttestationServerTLSConfig creates a tls.Config object with a self-signed certificate and an embedded attestation document.
 // Pass a list of validators to enable mutual aTLS.
 // If issuer is nil, no attestation will be embedded.
-func CreateAttestationServerTLSConfig(issuer Issuer, validators []Validator) (*tls.Config, error) {
-	getConfigForClient, err := getATLSConfigForClientFunc(issuer, validators)
+func CreateAttestationServerTLSConfig(issuer Issuer, validators []Validator, attestationFailures prometheus.Counter) (*tls.Config, error) {
+	getConfigForClient, err := getATLSConfigForClientFunc(issuer, validators, attestationFailures)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +100,7 @@ type Validator interface {
 // getATLSConfigForClientFunc returns a config setup function that is called once for every client connecting to the server.
 // This allows for different server configuration for every client.
 // In aTLS this is used to generate unique nonces for every client.
-func getATLSConfigForClientFunc(issuer Issuer, validators []Validator) (func(*tls.ClientHelloInfo) (*tls.Config, error), error) {
+func getATLSConfigForClientFunc(issuer Issuer, validators []Validator, attestationFailures prometheus.Counter) (func(*tls.ClientHelloInfo) (*tls.Config, error), error) {
 	// generate key for the server
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -113,10 +116,11 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []Validator) (func(*tl
 		}
 
 		serverConn := &serverConnection{
-			privKey:     priv,
-			issuer:      issuer,
-			validators:  validators,
-			serverNonce: serverNonce,
+			privKey:             priv,
+			issuer:              issuer,
+			validators:          validators,
+			attestationFailures: attestationFailures,
+			serverNonce:         serverNonce,
 		}
 
 		cfg := &tls.Config{
@@ -358,10 +362,11 @@ func (c *clientConnection) getCertificate(cri *tls.CertificateRequestInfo) (*tls
 
 // serverConnection holds state for server to client connections.
 type serverConnection struct {
-	issuer      Issuer
-	validators  []Validator
-	privKey     *ecdsa.PrivateKey
-	serverNonce []byte
+	issuer              Issuer
+	validators          []Validator
+	attestationFailures prometheus.Counter
+	privKey             *ecdsa.PrivateKey
+	serverNonce         []byte
 }
 
 // verify the validity of a clients aTLS certificate.
@@ -372,7 +377,11 @@ func (c *serverConnection) verify(rawCerts [][]byte, verifiedChains [][]*x509.Ce
 		return err
 	}
 
-	return verifyEmbeddedReport(c.validators, cert, pubBytes, c.serverNonce)
+	err = verifyEmbeddedReport(c.validators, cert, pubBytes, c.serverNonce)
+	if err != nil && c.attestationFailures != nil {
+		c.attestationFailures.Inc()
+	}
+	return err
 }
 
 // getCertificate generates a client certificate for aTLS connections.

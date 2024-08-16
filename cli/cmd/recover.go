@@ -78,7 +78,7 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("getting validators: %w", err)
 	}
 
-	dialer := dialer.NewWithKey(atls.NoIssuer, validators, &net.Dialer{}, workloadOwnerKey)
+	dialer := dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, workloadOwnerKey)
 
 	log.Debug("Dialing coordinator", "endpoint", flags.coordinator)
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
