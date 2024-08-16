@@ -21,6 +21,7 @@ spec:
               name: data
           ports:
             - containerPort: 6379
+      # TODO(miampf): Remove this after https://github.com/kata-containers/kata-containers/pull/10136/files is merged
       volumes:
         - name: data
           emptyDir:
