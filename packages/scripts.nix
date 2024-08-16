@@ -317,4 +317,34 @@
       mv "$mergedConfig" "''${KUBECONFIG_BAK%%:*}"
     '';
   };
+
+  # Usage: get-logs $namespaceFile
+  get-logs = writeShellApplication {
+    name = "get-logs";
+    runtimeInputs = with pkgs; [ kubectl ];
+    text = ''
+      set -euo pipefail
+      # wait until namespace file is populated
+      while ! [[ -s "$1" ]]; do
+        sleep 1
+      done
+      namespace="$(head -n1 "$1")"
+      while kubectl get ns "$namespace"; do
+        pods="$(kubectl get pods -n "$namespace" | awk '!/^NAME/{print $1}')"
+        mkdir -p "workspace/namespace-logs"
+        while IFS= read -r pod; do
+          logfile="workspace/namespace-logs/$pod.log"
+          if ! [[ -f "$logfile" ]]; then
+            {
+              touch "$logfile" # prevents creation of to much processes
+              # wait for all containers of the pod to come online, then collect the logs
+              kubectl wait pod --all --for=condition=Ready --timeout="-1s" -n "$namespace" "$pod"
+              kubectl logs -f --all-containers=true -n "$namespace" "$pod" > "$logfile"
+            } &
+          fi
+        done <<< "$pods"
+      done
+      wait
+    '';
+  };
 }
