@@ -11,29 +11,33 @@ import (
 	"net"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc/credentials"
 )
 
 // Credentials for attested TLS (ATLS).
 type Credentials struct {
-	issuer     atls.Issuer
-	validators []atls.Validator
-	privKey    *ecdsa.PrivateKey
+	issuer              atls.Issuer
+	validators          []atls.Validator
+	attestationFailures prometheus.Counter
+	privKey             *ecdsa.PrivateKey
 }
 
 // New creates new ATLS credentials.
-func New(issuer atls.Issuer, validators []atls.Validator) *Credentials {
+func New(issuer atls.Issuer, validators []atls.Validator, attestationFailures prometheus.Counter) *Credentials {
 	return &Credentials{
-		issuer:     issuer,
-		validators: validators,
+		issuer:              issuer,
+		attestationFailures: attestationFailures,
+		validators:          validators,
 	}
 }
 
 // NewWithKey creates new ATLS credentials for the given key.
-func NewWithKey(issuer atls.Issuer, validators []atls.Validator, key *ecdsa.PrivateKey) *Credentials {
+func NewWithKey(issuer atls.Issuer, validators []atls.Validator, attestationFailures prometheus.Counter, key *ecdsa.PrivateKey) *Credentials {
 	c := &Credentials{privKey: key}
 	c.issuer = issuer
 	c.validators = validators
+	c.attestationFailures = attestationFailures
 	return c
 }
 
@@ -49,7 +53,7 @@ func (c *Credentials) ClientHandshake(ctx context.Context, authority string, raw
 
 // ServerHandshake performs the server handshake.
 func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
-	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, c.validators)
+	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, c.validators, c.attestationFailures)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -87,10 +87,10 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 	for _, opt := range opts {
 		validator := snp.NewValidatorWithCallbacks(opt, allowedHostDataEntries, c.kdsGetter,
 			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "snp"}),
-			c.attestationFailuresCounter, &authInfo)
+			&authInfo)
 		validators = append(validators, validator)
 	}
-	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validators)
+	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validators, c.attestationFailuresCounter)
 	if err != nil {
 		return nil, nil, err
 	}

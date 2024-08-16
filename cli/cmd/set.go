@@ -102,7 +102,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("getting validators: %w", err)
 	}
-	dialer := dialer.NewWithKey(atls.NoIssuer, validators, &net.Dialer{}, workloadOwnerKey)
+	dialer := dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, workloadOwnerKey)
 
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
 	if err != nil {
