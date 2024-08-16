@@ -42,6 +42,8 @@ func TestRegression(t *testing.T) {
 
 	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, false)
 
+	// Initially just deploy the coordinator bundle
+
 	resources := kuberesource.CoordinatorBundle()
 	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 	resources = kuberesource.AddPortForwarders(resources)
@@ -67,7 +69,6 @@ func TestRegression(t *testing.T) {
 
 			newResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
 			require.NoError(err)
-			// newResources := append(resources, yamlResources...)
 
 			newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
 			newResources = kuberesource.AddPortForwarders(newResources)
@@ -77,10 +78,11 @@ func TestRegression(t *testing.T) {
 			require.NoError(err)
 			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yaml"), resourceBytes, 0o644))
 
-			// generate and set
+			// generate, set, deploy and verify the new policy
 			require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 			require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
+			require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
 			deploymentName, _ := strings.CutSuffix(file.Name(), ".yaml")
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentName))
