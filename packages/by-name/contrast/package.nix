@@ -60,7 +60,14 @@ let
               snpVersion = 8;
               microcodeVersion = 115;
             };
-            trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile microsoft.kata-igvm.launch-digest);
+            trustedMeasurement = lib.removeSuffix "\n" (
+              builtins.readFile (
+                if microsoft.contrast-node-installer-image.debugRuntime then
+                  (microsoft.kata-igvm.override { debug = true; }).launch-digest
+                else
+                  microsoft.kata-igvm.launch-digest
+              )
+            );
           }
         ];
       };

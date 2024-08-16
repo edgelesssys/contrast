@@ -68,7 +68,8 @@ let
         destination = "/opt/edgeless/share/kata-containers.img";
       }
       {
-        source = if debugRuntime then microsoft.kata-igvm.debug else microsoft.kata-igvm;
+        source =
+          if debugRuntime then (microsoft.kata-igvm.override { debug = true; }) else microsoft.kata-igvm;
         destination = "/opt/edgeless/share/kata-containers-igvm.img";
       }
     ];
@@ -122,8 +123,11 @@ in
 
 ociImageLayout {
   manifests = [ manifest ];
-  passthru.runtimeHash = hashDirs {
-    dirs = layers; # Layers without node-installer, or we have a circular dependency!
-    name = "runtime-hash-microsoft";
+  passthru = {
+    inherit debugRuntime;
+    runtimeHash = hashDirs {
+      dirs = layers; # Layers without node-installer, or we have a circular dependency!
+      name = "runtime-hash-microsoft";
+    };
   };
 }
