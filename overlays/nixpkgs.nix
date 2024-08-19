@@ -15,4 +15,30 @@ final: prev: {
   azure-cli = prev.azure-cli.override {
     withExtensions = with final.azure-cli.extensions; [ aks-preview ];
   };
+
+  pythonPackagesExtensions = prev.pythonPackagesExtensions ++ [
+    (_pythonFinal: pythonPrev: {
+      # Temporary fix for azure-cli https://github.com/NixOS/nixpkgs/issues/335750
+      # Remove after pulling in https://github.com/NixOS/nixpkgs/pull/335225
+      msal = pythonPrev.msal.overrideAttrs (oldAttrs: rec {
+        version = "1.30.0";
+        src = final.fetchPypi {
+          inherit version;
+          inherit (oldAttrs) pname;
+          hash = "sha256-tL8AhQCS5GUVfYFO+iShj3iChMmkeUkQJNYpAwheovs=";
+        };
+      });
+      # Temporary fix for azure-cli https://github.com/NixOS/nixpkgs/issues/335750
+      # Remove after pulling in https://github.com/NixOS/nixpkgs/pull/335225
+      msal-extensions = pythonPrev.msal-extensions.overrideAttrs (_oldAttrs: rec {
+        version = "1.2.0";
+        src = final.fetchFromGitHub {
+          owner = "AzureAD";
+          repo = "microsoft-authentication-extensions-for-python";
+          rev = "refs/tags/${version}";
+          hash = "sha256-javYE1XDW1yrMZ/BLqIu/pUXChlBZlACctbD2RfWuis=";
+        };
+      });
+    })
+  ];
 }
