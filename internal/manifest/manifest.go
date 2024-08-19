@@ -99,6 +99,12 @@ func (r SNPReferenceValues) Validate() error {
 		return fmt.Errorf("field MicrocodeVersion in manifest cannot be empty")
 	}
 
+	switch r.ProductName {
+	case Milan, Genoa:
+	default:
+		return fmt.Errorf("unknown product name: %s", r.ProductName)
+	}
+
 	if len(r.TrustedMeasurement) != abi.MeasurementSize*2 {
 		return fmt.Errorf("trusted measurement has invalid length: %d (expected %d)", len(r.TrustedMeasurement), abi.MeasurementSize*2)
 	}

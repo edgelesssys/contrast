@@ -34,6 +34,7 @@ type EmbeddedReferenceValues map[string]ReferenceValues
 // SNPReferenceValues contains reference values for SEV-SNP.
 type SNPReferenceValues struct {
 	MinimumTCB         SNPTCB
+	ProductName        ProductName
 	TrustedMeasurement HexString
 }
 
@@ -77,6 +78,16 @@ func (s *SVN) UnmarshalJSON(data []byte) error {
 	*s = SVN(value)
 	return nil
 }
+
+// ProductName is the name mentioned in the VCEK/ASK/ARK.
+type ProductName string
+
+const (
+	// Milan is the product name for 3rd generation EPYC CPUs.
+	Milan ProductName = "Milan"
+	// Genoa is the product name for 4th generation EPYC CPUs.
+	Genoa ProductName = "Genoa"
+)
 
 // HexString is a hex encoded string.
 type HexString string
