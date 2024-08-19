@@ -68,6 +68,7 @@ let
                   microsoft.kata-igvm.launch-digest
               )
             );
+            productName = "Milan";
           }
         ];
       };
@@ -82,8 +83,14 @@ let
                 kata.snp-launch-digest;
           in
           [
-            { trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile "${launch-digest}/milan.hex"); }
-            { trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile "${launch-digest}/genoa.hex"); }
+            {
+              trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile "${launch-digest}/milan.hex");
+              productName = "Milan";
+            }
+            {
+              trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile "${launch-digest}/genoa.hex");
+              productName = "Genoa";
+            }
           ];
       };
 
