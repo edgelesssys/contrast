@@ -20,6 +20,10 @@ fields["coordinator.yml"]="./workspace/coordinator.yml"
 fields["runtime.yml"]="./workspace/runtime.yml"
 fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
 fields["emojivoto-demo.yml"]="./workspace/emojivoto-demo.yml"
+for platform in aks-clh-snp k3s-qemu-tdx k3s-qemu-snp rke2-qemu-tdx; do
+  fields["coordinator-${platform}.yml"]="./workspace/coordinator-${platform}.yml"
+  fields["runtime-${platform}.yml"]="./workspace/runtime-${platform}.yml"
+done
 
 for field in "${!fields[@]}"; do
   # get the file path
