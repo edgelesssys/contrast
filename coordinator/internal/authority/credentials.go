@@ -73,7 +73,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	authInfo := AuthInfo{State: state}
 
-	opts, err := state.Manifest.SNPValidateOpts()
+	opts, err := state.Manifest.SNPValidateOpts(c.kdsGetter)
 	if err != nil {
 		return nil, nil, fmt.Errorf("generating SNP validation options: %w", err)
 	}
@@ -85,7 +85,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	var validators []atls.Validator
 	for _, opt := range opts {
-		validator := snp.NewValidatorWithCallbacks(opt, allowedHostDataEntries, c.kdsGetter,
+		validator := snp.NewValidatorWithCallbacks(opt.VerifyOpts, opt.ValidateOpts, allowedHostDataEntries,
 			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "snp"}),
 			&authInfo)
 		validators = append(validators, validator)

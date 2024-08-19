@@ -90,14 +90,14 @@ func validatorsFromManifest(m *manifest.Manifest, log *slog.Logger, hostData []b
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
 	kdsGetter := snp.NewCachedHTTPSGetter(kdsCache, snp.NeverGCTicker, log.WithGroup("kds-getter"))
 
-	opts, err := m.SNPValidateOpts()
+	opts, err := m.SNPValidateOpts(kdsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("getting SNP validate options: %w", err)
 	}
 
 	var validators []atls.Validator
 	for _, opt := range opts {
-		validators = append(validators, snp.NewValidator(opt, []manifest.HexString{manifest.NewHexString(hostData)}, kdsGetter,
+		validators = append(validators, snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, []manifest.HexString{manifest.NewHexString(hostData)},
 			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
 		))
 	}

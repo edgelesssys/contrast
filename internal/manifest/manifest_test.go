@@ -132,7 +132,7 @@ func TestAKSValidateOpts(t *testing.T) {
 	m, err := Default(platforms.AKSCloudHypervisorSNP)
 	require.NoError(err)
 
-	opts, err := m.SNPValidateOpts()
+	opts, err := m.SNPValidateOpts(nil)
 	require.NoError(err)
 	require.Len(opts, 1)
 
@@ -145,7 +145,7 @@ func TestAKSValidateOpts(t *testing.T) {
 	trustedMeasurement, err := m.ReferenceValues.SNP[0].TrustedMeasurement.Bytes()
 	assert.NoError(err)
 
-	assert.Equal(trustedMeasurement, opts[0].Measurement)
+	assert.Equal(trustedMeasurement, opts[0].ValidateOpts.Measurement)
 
 	tcbParts := kds.TCBParts{
 		BlSpl:    tcb.BootloaderVersion.UInt8(),
@@ -153,6 +153,18 @@ func TestAKSValidateOpts(t *testing.T) {
 		SnpSpl:   tcb.SNPVersion.UInt8(),
 		UcodeSpl: tcb.MicrocodeVersion.UInt8(),
 	}
-	assert.Equal(tcbParts, opts[0].MinimumTCB)
-	assert.Equal(tcbParts, opts[0].MinimumLaunchTCB)
+	assert.Equal(tcbParts, opts[0].ValidateOpts.MinimumTCB)
+	assert.Equal(tcbParts, opts[0].ValidateOpts.MinimumLaunchTCB)
+}
+
+func TestTrustedRoots(t *testing.T) {
+	roots, err := trustedRoots(Milan)
+	assert.NoError(t, err)
+	assert.Contains(t, roots, "Milan")
+	assert.NotContains(t, roots, "Genoa")
+
+	roots, err = trustedRoots(Genoa)
+	assert.NoError(t, err)
+	assert.NotContains(t, roots, "Milan")
+	assert.Contains(t, roots, "Genoa")
 }

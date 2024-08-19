@@ -5,7 +5,6 @@ package snp
 
 import (
 	"context"
-	_ "embed"
 	"encoding/asn1"
 	"encoding/hex"
 	"fmt"
@@ -19,16 +18,15 @@ import (
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
 	"github.com/google/go-sev-guest/verify"
-	"github.com/google/go-sev-guest/verify/trust"
 	"google.golang.org/protobuf/proto"
 )
 
 // Validator validates attestation statements.
 type Validator struct {
-	opts                   *validate.Options
+	verifyOpts             *verify.Options
+	validateOpts           *validate.Options
 	allowedHostDataEntries []manifest.HexString // Allowed host data entries in the report. If any of these is present, the report is considered valid.
 	callbackers            []validateCallbacker
-	kdsGetter              trust.HTTPSGetter
 	logger                 *slog.Logger
 }
 
@@ -38,26 +36,24 @@ type validateCallbacker interface {
 }
 
 // NewValidator returns a new Validator.
-func NewValidator(opts *validate.Options, allowedHostDataEntries []manifest.HexString,
-	kdsGetter trust.HTTPSGetter, log *slog.Logger,
-) *Validator {
+func NewValidator(VerifyOpts *verify.Options, ValidateOpts *validate.Options, allowedHostDataEntries []manifest.HexString, log *slog.Logger) *Validator {
 	return &Validator{
-		opts:                   opts,
+		verifyOpts:             VerifyOpts,
+		validateOpts:           ValidateOpts,
 		allowedHostDataEntries: allowedHostDataEntries,
-		kdsGetter:              kdsGetter,
 		logger:                 log,
 	}
 }
 
 // NewValidatorWithCallbacks returns a new Validator with callbacks.
-func NewValidatorWithCallbacks(opts *validate.Options, allowedHostDataEntries []manifest.HexString, kdsGetter trust.HTTPSGetter,
+func NewValidatorWithCallbacks(VerifyOpts *verify.Options, ValidateOpts *validate.Options, allowedHostDataEntries []manifest.HexString,
 	log *slog.Logger, callbacks ...validateCallbacker,
 ) *Validator {
 	return &Validator{
-		opts:                   opts,
+		verifyOpts:             VerifyOpts,
+		validateOpts:           ValidateOpts,
 		allowedHostDataEntries: allowedHostDataEntries,
 		callbackers:            callbacks,
-		kdsGetter:              kdsGetter,
 		logger:                 log,
 	}
 }
@@ -87,16 +83,9 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	}
 	v.logger.Info("Report decoded", "reportRaw", hex.EncodeToString(reportRaw))
 
-	verifyOpts := verify.DefaultOptions()
-	// TODO(Freax13): We won't need this once https://github.com/google/go-sev-guest/pull/127 is merged.
-	verifyOpts.TrustedRoots = trustedRoots()
-	verifyOpts.Product = attestation.Product
-	verifyOpts.CheckRevocations = true
-	verifyOpts.Getter = v.kdsGetter
-
 	// Report signature verification.
 
-	if err := verify.SnpAttestation(attestation, verifyOpts); err != nil {
+	if err := verify.SnpAttestation(attestation, v.verifyOpts); err != nil {
 		return fmt.Errorf("verifying report: %w", err)
 	}
 	v.logger.Info("Successfully verified report signature")
@@ -104,8 +93,8 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	// Validate the report data.
 
 	reportDataExpected := reportdata.Construct(peerPublicKey, nonce)
-	v.opts.ReportData = reportDataExpected[:]
-	if err := validate.SnpAttestation(attestation, v.opts); err != nil {
+	v.validateOpts.ReportData = reportDataExpected[:]
+	if err := validate.SnpAttestation(attestation, v.validateOpts); err != nil {
 		return fmt.Errorf("validating report claims: %w", err)
 	}
 	v.logger.Info("Successfully validated report data")
@@ -130,31 +119,4 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	v.logger.Info("Validate finished successfully")
 	return nil
-}
-
-var (
-	// source: https://kdsintf.amd.com/vcek/v1/Milan/cert_chain
-	//go:embed Milan.pem
-	askArkMilanVcekBytes []byte
-	// source: https://kdsintf.amd.com/vcek/v1/Genoa/cert_chain
-	//go:embed Genoa.pem
-	askArkGenoaVcekBytes []byte
-)
-
-func trustedRoots() map[string][]*trust.AMDRootCerts {
-	trustedRoots := make(map[string][]*trust.AMDRootCerts)
-
-	milanCerts := trust.AMDRootCertsProduct("Milan")
-	if err := milanCerts.FromKDSCertBytes(askArkMilanVcekBytes); err != nil {
-		panic(fmt.Errorf("failed to parse cert: %w", err))
-	}
-	trustedRoots["Milan"] = []*trust.AMDRootCerts{milanCerts}
-
-	genoaCerts := trust.AMDRootCertsProduct("Genoa")
-	if err := genoaCerts.FromKDSCertBytes(askArkGenoaVcekBytes); err != nil {
-		panic(fmt.Errorf("failed to parse cert: %w", err))
-	}
-	trustedRoots["Genoa"] = []*trust.AMDRootCerts{genoaCerts}
-
-	return trustedRoots
 }
