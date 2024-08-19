@@ -14,6 +14,7 @@
   openssl,
   withAgentPolicy ? true,
   withStandardOCIRuntime ? false,
+  withGuestPull ? true,
   fetchpatch,
 }:
 
@@ -60,27 +61,33 @@ rustPlatform.buildRustPackage rec {
       libseccomp
     ];
 
+  postPatch = ''
+    substitute src/version.rs.in src/version.rs \
+      --replace @@AGENT_VERSION@@ ${version} \
+      --replace @@API_VERSION@@ 0.0.1 \
+      --replace @@VERSION_COMMIT@@ ${version} \
+      --replace @@COMMIT@@ "" \
+      --replace @@AGENT_NAME@@ kata-agent \
+      --replace @@AGENT_DIR@@ /usr/bin \
+      --replace @@AGENT_PATH@@ /usr/bin/kata-agent
+  '';
+
   # Build.rs writes to src
   postConfigure = ''
     chmod -R +w ../..
   '';
 
+  buildFeatures =
+    lib.optional withSeccomp "seccomp"
+    ++ lib.optional withAgentPolicy "agent-policy"
+    ++ lib.optional withStandardOCIRuntime "standard-oci-runtime"
+    ++ lib.optional withGuestPull "guest-pull"
+    ++ lib.optional (!withGuestPull) "default-pull";
+
   env = {
     LIBC = "gnu";
-    SECCOMP = if withSeccomp then "yes" else "no";
-    AGENT_POLICY = if withAgentPolicy then "yes" else "no";
-    STANDARD_OCI_RUNTIME = if withStandardOCIRuntime then "yes" else "no";
     OPENSSL_NO_VENDOR = 1;
-    RUST_BACKTRACE = 1;
   };
-
-  buildPhase = ''
-    runHook preBuild
-
-    make
-
-    runHook postBuild
-  '';
 
   checkFlags = [
     "--skip=mount::tests::test_already_baremounted"
