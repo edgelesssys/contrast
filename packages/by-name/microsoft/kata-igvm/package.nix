@@ -53,7 +53,7 @@ let
       dontUnpack = true;
       buildInputs = [ igvmmeasure ];
       buildPhase = ''
-        igvmmeasure -b ${igvm} | dd conv=lcase > $out
+        igvmmeasure ${igvm} measure -b | dd conv=lcase > $out
       '';
     };
 
