@@ -22,11 +22,23 @@ runs:
     - name: use btrfs for nix builds
       shell: bash
       run: |
-        sudo mkdir /nixbld
-        truncate -s 3G btrfs.img
-        sudo mkfs.btrfs -f btrfs.img
-        sudo mount btrfs.img /nixbld
+        sudo df -h
+
+        echo "Removing unwanted software... "
+        sudo rm -rf /usr/share/dotnet
+        sudo rm -rf /usr/local/lib/android
+        sudo rm -rf /opt/ghc
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+        sudo docker system prune --all --force
+        sudo df -h
+
+        echo "Setting up btrfs nix builder volume..."
+        sudo mkdir -p /mnt/nixbld
+        sudo truncate -s 20G /mnt/btrfs.img
+        sudo mkfs.btrfs -f /mnt/btrfs.img
+        sudo mount /mnt/btrfs.img /mnt/nixbld
         sudo mkdir -p /etc/systemd/system/nix-daemon.service.d
-        echo -e "[Service]\nEnvironment=TMPDIR=/nixbld" | sudo tee /etc/systemd/system/nix-daemon.service.d/btrfs.conf
+        echo -e "[Service]\nEnvironment=TMPDIR=/mnt/nixbld" | sudo tee /etc/systemd/system/nix-daemon.service.d/btrfs.conf
         sudo systemctl daemon-reload
         sudo systemctl restart nix-daemon
+        sudo df -h
