@@ -5,6 +5,7 @@ package manifest
 
 import (
 	"crypto/sha256"
+	_ "embed"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -12,6 +13,8 @@ import (
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/validate"
+	"github.com/google/go-sev-guest/verify"
+	"github.com/google/go-sev-guest/verify/trust"
 )
 
 // Manifest is the Coordinator manifest and contains the reference values of the deployment.
@@ -101,6 +104,7 @@ func (r SNPReferenceValues) Validate() error {
 
 	switch r.ProductName {
 	case Milan, Genoa:
+		// These are valid. We don't need to report an error.
 	default:
 		return fmt.Errorf("unknown product name: %s", r.ProductName)
 	}
@@ -152,9 +156,16 @@ func (m *Manifest) Validate() error {
 
 // TODO(msanft): add generic validation interface for other attestation types.
 
+// ValidatorOptions contains the verification and validation options to be used
+// by a Validator.
+type ValidatorOptions struct {
+	VerifyOpts   *verify.Options
+	ValidateOpts *validate.Options
+}
+
 // SNPValidateOpts returns validate options generators populated with the manifest's
 // SNP reference values and trusted measurement for the given runtime.
-func (m *Manifest) SNPValidateOpts() ([]*validate.Options, error) {
+func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOptions, error) {
 	if len(m.ReferenceValues.SNP) == 0 {
 		return nil, errors.New("reference values cannot be empty")
 	}
@@ -163,7 +174,7 @@ func (m *Manifest) SNPValidateOpts() ([]*validate.Options, error) {
 		return nil, fmt.Errorf("validating manifest: %w", err)
 	}
 
-	var out []*validate.Options
+	var out []ValidatorOptions
 	for _, refVal := range m.ReferenceValues.SNP {
 		if len(refVal.TrustedMeasurement) == 0 {
 			return nil, errors.New("trusted measurement cannot be empty")
@@ -174,7 +185,15 @@ func (m *Manifest) SNPValidateOpts() ([]*validate.Options, error) {
 			return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
 		}
 
-		out = append(out, &validate.Options{
+		verifyOpts := verify.DefaultOptions()
+		verifyOpts.TrustedRoots, err = trustedRoots(refVal.ProductName)
+		if err != nil {
+			return nil, fmt.Errorf("determine trusted roots: %w", err)
+		}
+		verifyOpts.CheckRevocations = true
+		verifyOpts.Getter = kdsGetter
+
+		validateOpts := validate.Options{
 			Measurement: trustedMeasurement,
 			GuestPolicy: abi.SnpPolicy{
 				Debug: false,
@@ -194,7 +213,9 @@ func (m *Manifest) SNPValidateOpts() ([]*validate.Options, error) {
 				UcodeSpl: refVal.MinimumTCB.MicrocodeVersion.UInt8(),
 			},
 			PermitProvisionalFirmware: true,
-		})
+		}
+
+		out = append(out, ValidatorOptions{VerifyOpts: verifyOpts, ValidateOpts: &validateOpts})
 	}
 
 	if len(out) == 0 {
@@ -202,4 +223,36 @@ func (m *Manifest) SNPValidateOpts() ([]*validate.Options, error) {
 	}
 
 	return out, nil
+}
+
+var (
+	// source: https://kdsintf.amd.com/vcek/v1/Milan/cert_chain
+	//go:embed Milan.pem
+	askArkMilanVcekBytes []byte
+	// source: https://kdsintf.amd.com/vcek/v1/Genoa/cert_chain
+	//go:embed Genoa.pem
+	askArkGenoaVcekBytes []byte
+)
+
+func trustedRoots(productName ProductName) (map[string][]*trust.AMDRootCerts, error) {
+	trustedRoots := make(map[string][]*trust.AMDRootCerts)
+
+	switch productName {
+	case Milan:
+		milanCerts := trust.AMDRootCertsProduct("Milan")
+		if err := milanCerts.FromKDSCertBytes(askArkMilanVcekBytes); err != nil {
+			panic(fmt.Errorf("failed to parse cert: %w", err))
+		}
+		trustedRoots["Milan"] = []*trust.AMDRootCerts{milanCerts}
+	case Genoa:
+		genoaCerts := trust.AMDRootCertsProduct("Genoa")
+		if err := genoaCerts.FromKDSCertBytes(askArkGenoaVcekBytes); err != nil {
+			panic(fmt.Errorf("failed to parse cert: %w", err))
+		}
+		trustedRoots["Genoa"] = []*trust.AMDRootCerts{genoaCerts}
+	default:
+		return nil, fmt.Errorf("unknown product name: %s", productName)
+	}
+
+	return trustedRoots, nil
 }
