@@ -245,12 +245,14 @@ jobs:
           initializerImg=$(nix run .#containers.push-initializer -- "$container_registry/contrast/initializer")
           serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy")
           tardevSnapshotterImg=$(nix run .#containers.push-tardev-snapshotter -- "$container_registry/contrast/tardev-snapshotter")
+          nydusSnapshotterImg=$(nix run .#containers.push-nydus-snapshotter -- "$container_registry/contrast/nydus-snapshotter")
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerKataImg=$nodeInstallerKataImg" | tee -a "$GITHUB_ENV"
           echo "initializerImg=$initializerImg" | tee -a "$GITHUB_ENV"
           echo "serviceMeshImg=$serviceMeshImg" | tee -a "$GITHUB_ENV"
           echo "tardevSnapshotterImg=$tardevSnapshotterImg" | tee -a "$GITHUB_ENV"
+          echo "nydusSnapshotterImg=$nydusSnapshotterImg" | tee -a "$GITHUB_ENV"
       - name: Add tag to Coordinator image
         run: |
           tag() {
@@ -268,6 +270,11 @@ jobs:
           front=${tardevSnapshotterImg%@*}
           back=${tardevSnapshotterImg#*@}
           echo "tardevSnapshotterImgTagged=$(printf "%s:%s@%s" "$front" "$tardevVer" "$back")" | tee -a "$GITHUB_ENV"
+
+          nydusVer=$(nix eval --impure --raw --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.nydus-snapshotter.version")
+          front=${nydusSnapshotterImg%@*}
+          back=${nydusSnapshotterImg#*@}
+          echo "nydusSnapshotterImgTagged=$(printf "%s:%s@%s" "$front" "$nydusVer" "$back")" | tee -a "$GITHUB_ENV"
       - name: Create file with image replacements
         run: |
           {
@@ -277,6 +284,7 @@ jobs:
             echo "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=$nodeInstallerMsftImgTagged"
             echo "ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged"
             echo "ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest=$nydusSnapshotterImgTagged"
           } > image-replacements.txt
       - name: Upload image replacements file (for main branch PR)
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
