@@ -90,7 +90,7 @@ func TestRelease(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 
-		yaml, err := os.ReadFile(path.Join(dir, "runtime.yml"))
+		yaml, err := os.ReadFile(path.Join(dir, "runtime-aks-clh-snp.yml"))
 		require.NoError(err)
 		resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
 		require.NoError(err)
@@ -105,7 +105,7 @@ func TestRelease(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 
-		yaml, err := os.ReadFile(path.Join(dir, "coordinator.yml"))
+		yaml, err := os.ReadFile(path.Join(dir, "coordinator-aks-clh-snp.yml"))
 		require.NoError(err)
 		resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
 		require.NoError(err)
