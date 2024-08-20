@@ -31,6 +31,7 @@ let
             inherit version;
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator.yml";
             inherit (findVersion "coordinator.yml" version) hash;
+            passthru.exists = (builtins.compareVersions version "v0.10.0") < 0;
           };
 
           runtime = fetchurl {
@@ -38,7 +39,9 @@ let
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/runtime.yml";
             inherit (findVersion "runtime.yml" version) hash;
             # runtime.yml was introduced in release v0.6.0
-            passthru.exists = (builtins.compareVersions "v0.6.0" version) <= 0;
+            passthru.exists =
+              (builtins.compareVersions "v0.6.0" version) <= 0
+              && (builtins.compareVersions version "v0.10.0") < 0;
           };
 
           emojivoto-zip = fetchurl {
@@ -58,6 +61,33 @@ let
             # emojivoto-demo.yml was changed from zip to yml in version v0.8.0
             passthru.exists = (builtins.compareVersions "v0.8.0" version) <= 0;
           };
+
+          # starting with version v0.10.0 all files has a platform-specific suffix.
+          platformSpecificFiles = builtins.listToAttrs (
+            lib.lists.map
+              (
+                platform:
+                lib.attrsets.nameValuePair platform {
+                  exist = (builtins.compareVersions "v0.10.0" version) <= 0;
+                  coordinator = fetchurl {
+                    inherit version;
+                    url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator-${platform}.yml";
+                    inherit (findVersion "coordinator-${platform}.yml" version) hash;
+                  };
+                  runtime = fetchurl {
+                    inherit version;
+                    url = "https://github.com/edgelesssys/contrast/releases/download/${version}/runtime-${platform}.yml";
+                    inherit (findVersion "runtime-${platform}.yml" version) hash;
+                  };
+                }
+              )
+              [
+                "aks-clh-snp"
+                "k3s-qemu-tdx"
+                "k3s-qemu-snp"
+                "rke2-qemu-tdx"
+              ]
+          );
         in
         runCommand version
           {
@@ -74,7 +104,8 @@ let
                 --bash <($out/bin/contrast completion bash) \
                 --fish <($out/bin/contrast completion fish) \
                 --zsh <($out/bin/contrast completion zsh)
-
+            ''
+            + lib.optionalString coordinator.exists ''
               install -m 644 ${coordinator} $out/coordinator.yml
             ''
             + lib.optionalString runtime.exists ''
@@ -87,6 +118,15 @@ let
               mkdir -p $out/deployment
               install -m 644 ${emojivoto} $out/deployment/emojivoto-demo.yml
             ''
+            + lib.concatStrings (
+              lib.attrsets.mapAttrsToList (
+                platform: files:
+                lib.optionalString files.exist ''
+                  install -m 644 ${files.coordinator} $out/coordinator-${platform}.yml
+                  install -m 644 ${files.runtime} $out/runtime-${platform}.yml
+                ''
+              ) platformSpecificFiles
+            )
           );
     };
   releases = builtins.listToAttrs (builtins.map buildContrastRelease json.contrast);
