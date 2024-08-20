@@ -29,37 +29,42 @@ func main() {
 
 	flag.Parse()
 
-	if *rawPlatform == "" {
-		log.Fatalf("--platform must be set to one of %v", platforms.AllStrings())
-	}
-
-	platform, err := platforms.FromString(*rawPlatform)
-	if err != nil {
-		log.Fatalf("Error parsing platform: %v", err)
-	}
-
-	runtimeHandler, err := manifest.RuntimeHandler(platform)
-	if err != nil {
-		log.Fatalf("Error getting default runtime handler: %v", err)
-	}
-
 	var resources []any
 	for _, set := range flag.Args() {
 		var subResources []any
 		var err error
 		switch set {
 		case "coordinator":
+			if *rawPlatform == "" {
+				log.Fatalf("--platform must be set to one of %v", platforms.AllStrings())
+			}
+			platform, err := platforms.FromString(*rawPlatform)
+			if err != nil {
+				log.Fatalf("Error parsing platform: %v", err)
+			}
+			runtimeHandler, err := manifest.RuntimeHandler(platform)
+			if err != nil {
+				log.Fatalf("Error getting default runtime handler: %v", err)
+			}
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.CoordinatorBundle(), runtimeHandler)
 		case "runtime":
+			if *rawPlatform == "" {
+				log.Fatalf("--platform must be set to one of %v", platforms.AllStrings())
+			}
+			var platform platforms.Platform
+			platform, err = platforms.FromString(*rawPlatform)
+			if err != nil {
+				log.Fatalf("Error parsing platform: %v", err)
+			}
 			subResources, err = kuberesource.Runtime(platform)
 		case "openssl":
-			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.OpenSSL(), runtimeHandler)
+			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.OpenSSL(), "contrast-cc")
 		case "emojivoto":
 			subResources = kuberesource.Emojivoto(kuberesource.ServiceMeshDisabled)
-			subResources = kuberesource.PatchRuntimeHandlers(subResources, runtimeHandler)
+			subResources = kuberesource.PatchRuntimeHandlers(subResources, "contrast-cc")
 		case "emojivoto-sm-ingress":
 			subResources = kuberesource.Emojivoto(kuberesource.ServiceMeshIngressEgress)
-			subResources = kuberesource.PatchRuntimeHandlers(subResources, runtimeHandler)
+			subResources = kuberesource.PatchRuntimeHandlers(subResources, "contrast-cc")
 		default:
 			log.Fatalf("Error: unknown set: %s\n", set)
 		}
