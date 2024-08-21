@@ -66,6 +66,11 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 // Validate a TPM based attestation.
 func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
 	v.logger.Info("Validate called", "nonce", hex.EncodeToString(nonce))
+	defer func() {
+		if err != nil {
+			v.logger.Error("Validate to verify attestation report", "err", err)
+		}
+	}()
 
 	// Parse the attestation document.
 
