@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-fedora
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mysql-fedora
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mysql-fedora
+    spec:
+      containers:
+        - name: mysql-fedora
+          image: quay.io/fedora/mysql-80@sha256:4d74e013519e4f9a3adbdeed8350e3fffb92364d137b14a824a509dbbc045769
+          ports:
+            - containerPort: 3306
+      runtimeClassName: contrast-cc

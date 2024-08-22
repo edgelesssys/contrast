@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+    spec:
+      containers:
+        - name: redis
+          image: ghcr.io/edgelesssys/redis@sha256:ecb0a964c259a166a1eb62f0eb19621d42bd1cce0bc9bb0c71c828911d4ba93d
+          volumeMounts:
+            - mountPath: /data
+              name: data
+          ports:
+            - containerPort: 6379
+      # TODO(miampf): Remove this after https://github.com/kata-containers/kata-containers/pull/10136/files is merged
+      volumes:
+        - name: data
+          emptyDir:
+            sizeLimit: 10Mi
+      runtimeClassName: contrast-cc

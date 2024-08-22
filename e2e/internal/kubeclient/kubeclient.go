@@ -31,8 +31,8 @@ import (
 type Kubeclient struct {
 	log *slog.Logger
 
-	// client is the underlying Kubernetes client.
-	client *kubernetes.Clientset
+	// Client is the underlying Kubernetes Client.
+	Client *kubernetes.Clientset
 	// restMapper allows to look up schema information for dynamic resources
 	restMapper meta.RESTMapper
 	// config is the "Kubeconfig" for the client
@@ -53,7 +53,7 @@ func New(config *rest.Config, log *slog.Logger) (*Kubeclient, error) {
 
 	return &Kubeclient{
 		log:        log,
-		client:     client,
+		Client:     client,
 		config:     config,
 		restMapper: restmapper.NewDiscoveryRESTMapper(resources),
 	}, nil
@@ -89,11 +89,11 @@ func NewForTest(t *testing.T) *Kubeclient {
 // A pod is considered to belong to a deployment if it is owned by a ReplicaSet which is in turn
 // owned by the Deployment in question.
 func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployment string) ([]corev1.Pod, error) {
-	replicasets, err := c.client.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
+	replicasets, err := c.Client.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("listing replicasets: %w", err)
 	}
-	pods, err := c.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	pods, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("listing pods: %w", err)
 	}
@@ -119,7 +119,7 @@ func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployme
 
 // PodsFromOwner returns the pods owned by an object in the namespace of the given kind.
 func (c *Kubeclient) PodsFromOwner(ctx context.Context, namespace, kind, name string) ([]corev1.Pod, error) {
-	pods, err := c.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	pods, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("listing pods: %w", err)
 	}
@@ -142,7 +142,7 @@ func (c *Kubeclient) Exec(ctx context.Context, namespace, pod string, argv []str
 ) {
 	buf := &bytes.Buffer{}
 	errBuf := &bytes.Buffer{}
-	request := c.client.CoreV1().RESTClient().
+	request := c.Client.CoreV1().RESTClient().
 		Post().
 		Namespace(namespace).
 		Resource("pods").
@@ -187,7 +187,7 @@ func (c *Kubeclient) ExecDeployment(ctx context.Context, namespace, deployment s
 
 // LogDebugInfo collects pod information from the cluster and writes it to the logger.
 func (c *Kubeclient) LogDebugInfo(ctx context.Context) {
-	namespaces, err := c.client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	namespaces, err := c.Client.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		c.log.Error("Could not get namespaces", "error", err)
 		return
@@ -195,7 +195,7 @@ func (c *Kubeclient) LogDebugInfo(ctx context.Context) {
 
 	for _, namespace := range namespaces.Items {
 		c.log.Debug("Collecting debug info for pods", "namespace", namespace.Name)
-		pods, err := c.client.CoreV1().Pods(namespace.Name).List(ctx, metav1.ListOptions{})
+		pods, err := c.Client.CoreV1().Pods(namespace.Name).List(ctx, metav1.ListOptions{})
 		if err != nil {
 			c.log.Error("Could not get pods", "namespace", namespace.Name, "error", err)
 			continue

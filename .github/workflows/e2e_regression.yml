@@ -15,6 +15,7 @@ on:
       - .github/workflows/e2e_regression.yml
       - e2e/getdents/**
       - e2e/genpolicy/**
+      - e2e/regression/**
 
 env:
   container_registry: ghcr.io/edgelesssys
@@ -32,6 +33,7 @@ jobs:
         case:
           - getdents
           - genpolicy
+          - regression
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - uses: ./.github/actions/setup_nix
@@ -61,6 +63,10 @@ jobs:
       - name: Build and prepare deployments
         run: |
           just node-installer
+          if [[ "${{ matrix.case }}" == "regression" ]]; then
+            # build and push other dependencies for the regression test
+            just coordinator initializer port-forwarder openssl service-mesh-proxy
+          fi
       - name: Run regression test
         run: |
           nix shell -L .#contrast.e2e --command ${{ matrix.case }}.test -test.v \

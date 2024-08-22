@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: ghcr.io/edgelesssys/nginx-unprivileged@sha256:1d5be2aa3c296bd589ddd3c9bf2f560919e31ac32bae799a15dd182b6fdb042b
+          ports:
+            - containerPort: 8080
+      runtimeClassName: contrast-cc
