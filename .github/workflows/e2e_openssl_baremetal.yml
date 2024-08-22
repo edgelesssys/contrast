@@ -50,11 +50,18 @@ jobs:
           just coordinator initializer openssl port-forwarder node-installer K3s-QEMU-${{ matrix.tee }}
       - name: E2E Test
         run: |
+          nix run .#scripts.get-logs workspace/e2e.namespace 1> /dev/null 2> /dev/null &
           nix shell .#contrast.e2e --command openssl.test -test.v \
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
             --platform K3s-QEMU-${{ matrix.tee }} \
             --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
+        with:
+          name: e2e_pod_logs
+          path: workspace/namespace-logs
       - name: Cleanup
         if: cancelled() && !inputs.skip-undeploy
         run: |
