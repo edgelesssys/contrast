@@ -89,7 +89,7 @@ func NewForTest(t *testing.T) *Kubeclient {
 // A pod is considered to belong to a deployment if it is owned by a ReplicaSet which is in turn
 // owned by the Deployment in question.
 func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployment string) ([]corev1.Pod, error) {
-	replicasets, err := c.client.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
+	replicasets, err := c.Client.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("listing replicasets: %w", err)
 	}
@@ -119,7 +119,7 @@ func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployme
 
 // PodsFromOwner returns the pods owned by an object in the namespace of the given kind.
 func (c *Kubeclient) PodsFromOwner(ctx context.Context, namespace, kind, name string) ([]corev1.Pod, error) {
-	pods, err := c.client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	pods, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("listing pods: %w", err)
 	}
