@@ -90,6 +90,8 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 
 // Validate a TDX attestation.
 func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
+	// TODO(freax13): Validate the memory integrity mode (logical vs cryptographic) in the provisioning certificate.
+
 	v.logger.Info("Validate called", "nonce", hex.EncodeToString(nonce))
 	defer func() {
 		if err != nil {
