@@ -15,6 +15,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
+	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/memstore"
@@ -76,6 +77,8 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		State: state,
 	}
 
+	var validators []atls.Validator
+
 	opts, err := state.Manifest.SNPValidateOpts(c.kdsGetter)
 	if err != nil {
 		return nil, nil, fmt.Errorf("generating SNP validation options: %w", err)
@@ -86,13 +89,22 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		allowedHostDataEntries = append(allowedHostDataEntries, entry)
 	}
 
-	var validators []atls.Validator
 	for _, opt := range opts {
 		validator := snp.NewValidatorWithCallbacks(opt.VerifyOpts, opt.ValidateOpts, allowedHostDataEntries,
 			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "snp"}),
 			&authInfo)
 		validators = append(validators, validator)
 	}
+
+	tdxOpts, err := state.Manifest.TDXValidateOpts()
+	if err != nil {
+		return nil, nil, fmt.Errorf("generating TDX validation options: %w", err)
+	}
+	for _, opt := range tdxOpts {
+		validators = append(validators, tdx.NewValidator(&tdx.StaticValidateOptsGenerator{Opts: opt},
+			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "tdx"})))
+	}
+
 	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validators, c.attestationFailuresCounter)
 	if err != nil {
 		return nil, nil, err

@@ -12,9 +12,10 @@ import (
 
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
-	"github.com/google/go-sev-guest/validate"
+	snpvalidate "github.com/google/go-sev-guest/validate"
 	"github.com/google/go-sev-guest/verify"
 	"github.com/google/go-sev-guest/verify/trust"
+	tdxvalidate "github.com/google/go-tdx-guest/validate"
 )
 
 // Manifest is the Coordinator manifest and contains the reference values of the deployment.
@@ -191,16 +192,12 @@ func (m *Manifest) Validate() error {
 // by a Validator.
 type ValidatorOptions struct {
 	VerifyOpts   *verify.Options
-	ValidateOpts *validate.Options
+	ValidateOpts *snpvalidate.Options
 }
 
 // SNPValidateOpts returns validate options generators populated with the manifest's
 // SNP reference values and trusted measurement for the given runtime.
 func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOptions, error) {
-	if len(m.ReferenceValues.SNP) == 0 {
-		return nil, errors.New("reference values cannot be empty")
-	}
-
 	if err := m.Validate(); err != nil {
 		return nil, fmt.Errorf("validating manifest: %w", err)
 	}
@@ -224,7 +221,7 @@ func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOpti
 		verifyOpts.CheckRevocations = true
 		verifyOpts.Getter = kdsGetter
 
-		validateOpts := validate.Options{
+		validateOpts := snpvalidate.Options{
 			Measurement: trustedMeasurement,
 			GuestPolicy: abi.SnpPolicy{
 				Debug: false,
@@ -247,10 +244,6 @@ func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOpti
 		}
 
 		out = append(out, ValidatorOptions{VerifyOpts: verifyOpts, ValidateOpts: &validateOpts})
-	}
-
-	if len(out) == 0 {
-		return nil, errors.New("no SNP reference values found in manifest")
 	}
 
 	return out, nil
@@ -286,4 +279,73 @@ func trustedRoots(productName ProductName) (map[string][]*trust.AMDRootCerts, er
 	}
 
 	return trustedRoots, nil
+}
+
+// The QE Vendor ID used by Intel.
+var intelQeVendorID = []byte{0x93, 0x9a, 0x72, 0x33, 0xf7, 0x9c, 0x4c, 0xa9, 0x94, 0x0a, 0x0d, 0xb3, 0x95, 0x7f, 0x06, 0x07}
+
+// TDXValidateOpts returns validate options generators populated with the manifest's
+// TDX reference values and trusted measurement for the given runtime.
+func (m *Manifest) TDXValidateOpts() ([]*tdxvalidate.Options, error) {
+	if err := m.Validate(); err != nil {
+		return nil, fmt.Errorf("validating manifest: %w", err)
+	}
+
+	var out []*tdxvalidate.Options
+	for _, refVal := range m.ReferenceValues.TDX {
+		mrTd, err := refVal.MrTd.Bytes()
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert MrTd from manifest to byte slices: %w", err)
+		}
+
+		minimumTeeTcbSvn, err := refVal.MinimumTeeTcbSvn.Bytes()
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert MinimumTeeTcbSvn from manifest to byte slices: %w", err)
+		}
+
+		mrSeam, err := refVal.MrSeam.Bytes()
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert MrSeam from manifest to byte slices: %w", err)
+		}
+
+		tdAttributes, err := refVal.TdAttributes.Bytes()
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert TdAttributes from manifest to byte slices: %w", err)
+		}
+
+		xfam, err := refVal.Xfam.Bytes()
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert Xfam from manifest to byte slices: %w", err)
+		}
+
+		var rtmrs [4][]byte
+		for i, rtmr := range refVal.Rtrms {
+			bytes, err := rtmr.Bytes()
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert Rtmr[%d] from manifest to byte slices: %w", i, err)
+			}
+			rtmrs[i] = bytes
+		}
+
+		out = append(out, &tdxvalidate.Options{
+			HeaderOptions: tdxvalidate.HeaderOptions{
+				MinimumQeSvn:  *refVal.MinimumQeSvn,
+				MinimumPceSvn: *refVal.MinimumPceSvn,
+				QeVendorID:    intelQeVendorID,
+			},
+			TdQuoteBodyOptions: tdxvalidate.TdQuoteBodyOptions{
+				MinimumTeeTcbSvn: minimumTeeTcbSvn,
+				MrSeam:           mrSeam,
+				TdAttributes:     tdAttributes,
+				Xfam:             xfam,
+				// TODO(freax13): Re-enable validation of those fields once we figure out how to calculate the launch measurement.
+				// MrTd:             mrTd,
+				// Rtmrs:            rtmrs[:],
+			},
+		})
+		_ = mrTd
+		_ = rtmrs
+	}
+
+	return out, nil
 }
