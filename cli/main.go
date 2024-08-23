@@ -63,7 +63,7 @@ func buildVersionString() (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("getting reference values: %w", err)
 		}
-		printOptional := func(label string, value *manifest.SVN) {
+		printOptionalSVN := func(label string, value *manifest.SVN) {
 			fmt.Fprintf(versionsWriter, "\t      %s:\t", label)
 			if value != nil {
 				fmt.Fprintf(versionsWriter, "%d", value.UInt8())
@@ -72,16 +72,34 @@ func buildVersionString() (string, error) {
 			}
 			fmt.Fprint(versionsWriter, "\n")
 		}
+		printOptionalUint16 := func(label string, value *uint16) {
+			fmt.Fprintf(versionsWriter, "\t  %s:\t", label)
+			if value != nil {
+				fmt.Fprintf(versionsWriter, "%d", *value)
+			} else {
+				fmt.Fprint(versionsWriter, "(no default)")
+			}
+			fmt.Fprint(versionsWriter, "\n")
+		}
 		for _, snp := range values.SNP {
 			fmt.Fprintf(versionsWriter, "\t- launch digest:\t%s\n", snp.TrustedMeasurement.String())
 			fmt.Fprint(versionsWriter, "\t  default SNP TCB:\t\n")
-			printOptional("bootloader", snp.MinimumTCB.BootloaderVersion)
-			printOptional("tee", snp.MinimumTCB.TEEVersion)
-			printOptional("snp", snp.MinimumTCB.SNPVersion)
-			printOptional("microcode", snp.MinimumTCB.MicrocodeVersion)
+			printOptionalSVN("bootloader", snp.MinimumTCB.BootloaderVersion)
+			printOptionalSVN("tee", snp.MinimumTCB.TEEVersion)
+			printOptionalSVN("snp", snp.MinimumTCB.SNPVersion)
+			printOptionalSVN("microcode", snp.MinimumTCB.MicrocodeVersion)
 		}
 		for _, tdx := range values.TDX {
-			fmt.Fprintf(versionsWriter, "\t- launch digest:\t%s\n", tdx.TrustedMeasurement.String())
+			fmt.Fprintf(versionsWriter, "\t- mrTd:\t%s\n", tdx.MrTd.String())
+			for i, rtmr := range tdx.Rtrms {
+				fmt.Fprintf(versionsWriter, "\t  rtrm[%d]:\t%s\n", i, rtmr.String())
+			}
+			printOptionalUint16("minimum qe svn", tdx.MinimumPceSvn)
+			printOptionalUint16("minimum pce svn", tdx.MinimumPceSvn)
+			fmt.Fprintf(versionsWriter, "\t  minimum tee tcb svn:\t%s\n", tdx.MinimumTeeTcbSvn.String())
+			fmt.Fprintf(versionsWriter, "\t  mrSeam:\t%s\n", tdx.MrSeam.String())
+			fmt.Fprintf(versionsWriter, "\t  tdAttributes:\t%s\n", tdx.TdAttributes.String())
+			fmt.Fprintf(versionsWriter, "\t  xfam:\t%s\n", tdx.Xfam.String())
 		}
 
 		switch platform {

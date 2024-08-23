@@ -40,7 +40,14 @@ type SNPReferenceValues struct {
 
 // TDXReferenceValues contains reference values for TDX.
 type TDXReferenceValues struct {
-	TrustedMeasurement HexString
+	MrTd             HexString
+	Rtrms            [4]HexString
+	MinimumQeSvn     *uint16
+	MinimumPceSvn    *uint16
+	MinimumTeeTcbSvn HexString
+	MrSeam           HexString
+	TdAttributes     HexString
+	Xfam             HexString
 }
 
 // SNPTCB represents a set of SEV-SNP TCB values.
