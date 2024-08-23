@@ -16,6 +16,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
+	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -91,16 +92,25 @@ func validatorsFromManifest(m *manifest.Manifest, log *slog.Logger, hostData []b
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
 	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter"))
 
+	var validators []atls.Validator
+
 	opts, err := m.SNPValidateOpts(kdsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("getting SNP validate options: %w", err)
 	}
-
-	var validators []atls.Validator
 	for _, opt := range opts {
 		validators = append(validators, snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, []manifest.HexString{manifest.NewHexString(hostData)},
 			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
 		))
 	}
+
+	tdxOpts, err := m.TDXValidateOpts()
+	if err != nil {
+		return nil, fmt.Errorf("generating TDX validation options: %w", err)
+	}
+	for _, opt := range tdxOpts {
+		validators = append(validators, tdx.NewValidator(&tdx.StaticValidateOptsGenerator{Opts: opt}, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "tdx"})))
+	}
+
 	return validators, nil
 }
