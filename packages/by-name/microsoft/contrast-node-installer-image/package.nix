@@ -13,7 +13,7 @@
   microsoft,
   pkgsStatic,
 
-  debugRuntime ? false,
+  debugRuntime ? true,
 }:
 
 let

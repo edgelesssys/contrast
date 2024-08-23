@@ -35,7 +35,7 @@ func NewConfig(platform platforms.Platform) *Config {
 	}
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
-		cfg.Rules = aksCloudHypervisorSNPRules
+		cfg.Rules = permissiveRules
 	default:
 		// TODO(burgerdev): use real rules for supported platforms.
 		cfg.Rules = permissiveRules
