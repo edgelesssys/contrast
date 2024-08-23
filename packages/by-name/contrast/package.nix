@@ -96,12 +96,25 @@ let
           ];
       };
 
+      fakeSha384Hash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
       tdxRefVals = {
         tdx = [
           {
-            trustedMeasurement = lib.removeSuffix "\n" (
-              builtins.readFile "${kata.contrast-node-installer-image.runtimeHash}"
-            );
+            mrTd = fakeSha384Hash;
+            rtrms = [
+              fakeSha384Hash
+              fakeSha384Hash
+              fakeSha384Hash
+              fakeSha384Hash
+            ];
+            minimumQeSvn = 0;
+            minimumPceSvn = 0;
+            # TODO(freax13): Remove this. We should ask the user to fill this in instead of providing our own defaults.
+            minimumTeeTcbSvn = "04010200000000000000000000000000";
+            # TODO(freax13): Remove this. We should ask the user to fill this in instead of providing our own defaults.
+            mrSeam = "9790d89a10210ec6968a773cee2ca05b5aa97309f36727a968527be4606fc19e6f73acce350946c9d46a9bf7a63f8430";
+            tdAttributes = "0000001000000000";
+            xfam = "e702060000000000";
           }
         ];
       };
