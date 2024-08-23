@@ -50,7 +50,7 @@ jobs:
           just coordinator initializer openssl port-forwarder node-installer K3s-QEMU-${{ matrix.tee }}
       - name: E2E Test
         run: |
-          nix run .#scripts.get-logs workspace/e2e.namespace 1> /dev/null 2> /dev/null &
+          nix run .#scripts.get-logs workspace/e2e.namespace &
           nix shell .#contrast.e2e --command openssl.test -test.v \
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \

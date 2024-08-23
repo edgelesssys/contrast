@@ -329,7 +329,7 @@
         sleep 1
       done
       namespace="$(head -n1 "$1")"
-      while kubectl get ns "$namespace"; do
+      while kubectl get ns "$namespace" 1>/dev/null 2>/dev/null; do
         pods="$(kubectl get pods -n "$namespace" | awk '!/^NAME/{print $1}')"
         mkdir -p "workspace/namespace-logs"
         while IFS= read -r pod; do
@@ -338,7 +338,7 @@
             {
               touch "$logfile" # prevents creation of to much processes
               # wait for all containers of the pod to come online, then collect the logs
-              kubectl wait pod --all --for=condition=Ready --timeout="-1s" -n "$namespace" "$pod"
+              kubectl wait pod --all --for=condition=Ready --timeout="-1s" -n "$namespace" "$pod" 1>/dev/null 2>/dev/null
               kubectl logs -f --all-containers=true -n "$namespace" "$pod" > "$logfile"
             } &
           fi
