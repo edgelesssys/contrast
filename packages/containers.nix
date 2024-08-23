@@ -126,6 +126,35 @@ let
         Cmd = [ "${lib.getExe pkgs.nydus-snapshotter}" ];
       };
     };
+
+    dmesg = dockerTools.buildImage {
+      name = "dmesg";
+      tag = "v0.0.1";
+      copyToRoot = with pkgs; [
+        util-linux
+        bash
+        bashInteractive
+        coreutils
+      ];
+      config = {
+        Cmd = [
+          "bash"
+          "-c"
+          "mknod /dev/kmsg c 1 11 && dmesg --follow --color=always --nopager"
+        ];
+        Env = [ "PATH=/bin" ]; # This is only here for policy generation.
+      };
+    };
+
+    snp-issuer = dockerTools.buildImage {
+      name = "snp-issuer";
+      tag = "v${pkgs.snp-issuer.version}";
+      copyToRoot = with pkgs; [ snp-issuer ];
+      config = {
+        Cmd = [ "${lib.getExe pkgs.snp-issuer}" ];
+        Env = [ "PATH=/bin" ]; # This is only here for policy generation.
+      };
+    };
   };
 in
 containers

@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snp-report-debug
+  namespace: openssl-p
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: snp-report-debug
+  template:
+    metadata:
+      labels:
+        app: snp-report-debug
+    spec:
+      runtimeClassName: kata-cc-isolation
+      containers:
+        - name: snp-issuer
+          image: ghcr.io/katexochen/contrast/snp-issuer:v0.0.1@sha256:bb48d90297a6ba691b6c78d57dbd15406e04add51b71c7e29ecc74451ded5d4e
+        - name: dmesg
+          image: ghcr.io/katexochen/contrast/dmesg:v0.0.1@sha256:271395cd7a895026ea29b1adf5265e75f8cfbd4fcd33040144b113306b973e92
+          securityContext:
+            privileged: true
