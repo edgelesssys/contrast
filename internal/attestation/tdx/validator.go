@@ -18,7 +18,6 @@ import (
 	"github.com/google/go-tdx-guest/proto/tdx"
 	"github.com/google/go-tdx-guest/validate"
 	"github.com/google/go-tdx-guest/verify"
-	"github.com/google/go-tdx-guest/verify/trust"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/protobuf/proto"
 )
@@ -37,7 +36,6 @@ var tdxRootCert []byte
 type Validator struct {
 	validateOptsGen validateOptsGenerator
 	callbackers     []validateCallbacker
-	certGetter      trust.HTTPSGetter
 	logger          *slog.Logger
 	metrics         metrics
 }
@@ -67,17 +65,16 @@ func (v *StaticValidateOptsGenerator) TDXValidateOpts(_ *tdx.QuoteV4) (*validate
 }
 
 // NewValidator returns a new Validator.
-func NewValidator(optsGen validateOptsGenerator, certGetter trust.HTTPSGetter, log *slog.Logger) *Validator {
+func NewValidator(optsGen validateOptsGenerator, log *slog.Logger) *Validator {
 	return &Validator{
 		validateOptsGen: optsGen,
-		certGetter:      certGetter,
 		logger:          log,
 	}
 }
 
 // NewValidatorWithCallbacks returns a new Validator with callbacks.
-func NewValidatorWithCallbacks(optsGen validateOptsGenerator, certGetter trust.HTTPSGetter, log *slog.Logger, attestationFailures prometheus.Counter, callbacks ...validateCallbacker) *Validator {
-	v := NewValidator(optsGen, certGetter, log)
+func NewValidatorWithCallbacks(optsGen validateOptsGenerator, log *slog.Logger, attestationFailures prometheus.Counter, callbacks ...validateCallbacker) *Validator {
+	v := NewValidator(optsGen, log)
 	v.callbackers = callbacks
 	v.metrics = metrics{attestationFailures: attestationFailures}
 	return v
@@ -125,7 +122,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	verifyOpts.TrustedRoots = rootCerts
 	verifyOpts.CheckRevocations = true
 	verifyOpts.GetCollateral = true
-	verifyOpts.Getter = v.certGetter
+	// TODO(freax13): Set .Getter with a caching HTTP getter implementation.
 
 	// Verify the report signature.
 
