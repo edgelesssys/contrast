@@ -122,6 +122,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	}
 	verifyOpts.TrustedRoots = rootCerts
 	verifyOpts.CheckRevocations = true
+	verifyOpts.GetCollateral = true
 	verifyOpts.Getter = v.certGetter
 
 	// Verify the report signature.
