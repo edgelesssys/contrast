@@ -90,6 +90,14 @@ func (r ReferenceValues) Validate() error {
 	return nil
 }
 
+func validateHexString(value HexString, expectedNumBytes int) error {
+	if len(value) != expectedNumBytes*2 {
+		return fmt.Errorf("invalid length: %d (expected %d)", len(value), expectedNumBytes*2)
+	}
+	_, err := value.Bytes()
+	return err
+}
+
 // Validate checks the validity of all fields in the AKS reference values.
 func (r SNPReferenceValues) Validate() error {
 	if r.MinimumTCB.BootloaderVersion == nil {
@@ -109,8 +117,8 @@ func (r SNPReferenceValues) Validate() error {
 		return fmt.Errorf("unknown product name: %s", r.ProductName)
 	}
 
-	if len(r.TrustedMeasurement) != abi.MeasurementSize*2 {
-		return fmt.Errorf("trusted measurement has invalid length: %d (expected %d)", len(r.TrustedMeasurement), abi.MeasurementSize*2)
+	if err := validateHexString(r.TrustedMeasurement, abi.MeasurementSize); err != nil {
+		return fmt.Errorf("trusted measurement is invalid: %w", err)
 	}
 
 	return nil
@@ -118,8 +126,31 @@ func (r SNPReferenceValues) Validate() error {
 
 // Validate checks the validity of all fields in the bare metal TDX reference values.
 func (r TDXReferenceValues) Validate() error {
-	if r.TrustedMeasurement == "" {
-		return fmt.Errorf("field TrustedMeasurement in manifest cannot be empty")
+	if err := validateHexString(r.MrTd, 48); err != nil {
+		return fmt.Errorf("MrTd is invalid: %w", err)
+	}
+	if r.MinimumQeSvn == nil {
+		return fmt.Errorf("MinimumQeSvn is not set")
+	}
+	if r.MinimumPceSvn == nil {
+		return fmt.Errorf("MinimumPceSvn is not set")
+	}
+	if err := validateHexString(r.MinimumTeeTcbSvn, 16); err != nil {
+		return fmt.Errorf("MinimumTeeTcbSvn is invalid: %w", err)
+	}
+	if err := validateHexString(r.MrSeam, 48); err != nil {
+		return fmt.Errorf("MrSeam is invalid: %w", err)
+	}
+	if err := validateHexString(r.TdAttributes, 8); err != nil {
+		return fmt.Errorf("TdAttributes is invalid: %w", err)
+	}
+	if err := validateHexString(r.Xfam, 8); err != nil {
+		return fmt.Errorf("Xfam is invalid: %w", err)
+	}
+	for i, rtmr := range r.Rtrms {
+		if err := validateHexString(rtmr, 48); err != nil {
+			return fmt.Errorf("Rtmr[%d] is invalid: %w", i, err)
+		}
 	}
 	return nil
 }
