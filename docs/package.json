@@ -28,10 +28,8 @@
   "devDependencies": {
     "@docusaurus/module-type-aliases": "3.5.2"
   },
-  "overrides": {
-    "@cmfcmf/docusaurus-search-local": {
-      "@docusaurus/core": "3.5.2"
-    }
+  "resolutions": {
+    "cheerio": "1.0.0-rc.12"
   },
   "browserslist": {
     "production": [
