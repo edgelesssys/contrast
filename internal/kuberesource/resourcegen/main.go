@@ -22,6 +22,7 @@ func main() {
 	addPortForwarders := flag.Bool("add-port-forwarders", false, "Add port forwarder pods for all services")
 	addLogging := flag.Bool("add-logging", false, "Add logging configuration, based on CONTRAST_LOG_LEVEL and CONTRAST_LOG_SUBSYSTEMS environment variables")
 	rawPlatform := flag.String("platform", "", "Deployment platform to generate the runtime configuration for")
+	addDmesg := flag.Bool("add-dmesg", false, "Add dmesg container")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [flags] <set>...\n", os.Args[0])
 		flag.PrintDefaults()
@@ -80,6 +81,10 @@ func main() {
 
 	if *addLoadBalancers {
 		resources = kuberesource.AddLoadBalancers(resources)
+	}
+
+	if *addDmesg {
+		resources = kuberesource.AddDmesg(resources)
 	}
 
 	if *addLogging {

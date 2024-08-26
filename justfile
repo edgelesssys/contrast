@@ -87,6 +87,7 @@ populate target=default_deploy_target platform=default_platform:
         --namespace {{ target }}${namespace_suffix-} \
         --add-port-forwarders \
         --add-logging \
+        --add-dmesg \
         --platform {{ platform }} \
         {{ target }} coordinator > ./{{ workspace_dir }}/deployment/deployment.yml
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
