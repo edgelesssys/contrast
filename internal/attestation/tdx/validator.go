@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/reportdata"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-tdx-guest/abi"
@@ -45,7 +46,7 @@ type metrics struct {
 }
 
 type validateCallbacker interface {
-	ValidateCallback(ctx context.Context, quote *tdx.QuoteV4, validatorOID asn1.ObjectIdentifier,
+	ValidateCallback(ctx context.Context, report attestation.Report, validatorOID asn1.ObjectIdentifier,
 		reportRaw, nonce, peerPublicKey []byte) error
 }
 
@@ -151,7 +152,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	for _, callbacker := range v.callbackers {
 		if err := callbacker.ValidateCallback(
-			ctx, quote, v.OID(), quoteRaw, nonce, peerPublicKey,
+			ctx, attestation.Report{Tdx: quote}, v.OID(), quoteRaw, nonce, peerPublicKey,
 		); err != nil {
 			return fmt.Errorf("callback failed: %w", err)
 		}

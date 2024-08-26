@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
 	"log/slog"
 	"net"
@@ -14,7 +15,6 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
@@ -106,7 +106,15 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 		return nil, fmt.Errorf("could not marshal public key: %w", err)
 	}
 
-	hostData := manifest.NewHexString(report.HostData)
+	var hostData manifest.HexString
+	if report.Snp != nil {
+		hostData = manifest.NewHexString(report.Snp.HostData)
+	} else if report.Tdx != nil {
+		hostData = manifest.NewHexString(report.Tdx.TdQuoteBody.MrConfigId[:32])
+	} else {
+		panic("TODO(freax13): Return error")
+	}
+
 	entry, ok := state.Manifest.Policies[hostData]
 	if !ok {
 		return nil, fmt.Errorf("report data %s not found in manifest", hostData)
@@ -118,11 +126,11 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 		return nil, fmt.Errorf("failed to parse peer public key: %w", err)
 	}
 
-	extensions, err := snp.ClaimsToCertExtension(report)
-	if err != nil {
-		return nil, fmt.Errorf("failed to construct extensions: %w", err)
-	}
-	cert, err := state.CA.NewAttestedMeshCert(dnsNames, extensions, peerPubKey)
+	// extensions, err := snp.ClaimsToCertExtension(report)
+	// if err != nil {
+	// return nil, fmt.Errorf("failed to construct extensions: %w", err)
+	// }
+	cert, err := state.CA.NewAttestedMeshCert(dnsNames, []pkix.Extension{}, peerPubKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to issue new attested mesh cert: %w", err)
 	}

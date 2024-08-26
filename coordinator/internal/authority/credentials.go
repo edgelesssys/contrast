@@ -13,13 +13,13 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/memstore"
-	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/credentials"
@@ -101,8 +101,8 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		return nil, nil, fmt.Errorf("generating TDX validation options: %w", err)
 	}
 	for _, opt := range tdxOpts {
-		validators = append(validators, tdx.NewValidator(&tdx.StaticValidateOptsGenerator{Opts: opt},
-			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "tdx"})))
+		validators = append(validators, tdx.NewValidatorWithCallbacks(&tdx.StaticValidateOptsGenerator{Opts: opt},
+			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "tdx"}), nil, &authInfo))
 	}
 
 	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validators, c.attestationFailuresCounter)
@@ -153,11 +153,11 @@ type AuthInfo struct {
 	// State is the coordinator state at the time of the TLS handshake.
 	State *State
 	// Report is the attestation report sent by the peer.
-	Report *sevsnp.Report
+	Report *attestation.Report
 }
 
 // ValidateCallback takes the validated report and attaches it to the [AuthInfo].
-func (a *AuthInfo) ValidateCallback(_ context.Context, report *sevsnp.Report, _ asn1.ObjectIdentifier, _, _, _ []byte) error {
-	a.Report = report
+func (a *AuthInfo) ValidateCallback(_ context.Context, report attestation.Report, _ asn1.ObjectIdentifier, _, _, _ []byte) error {
+	a.Report = &report
 	return nil
 }
