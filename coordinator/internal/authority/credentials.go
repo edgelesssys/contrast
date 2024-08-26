@@ -5,7 +5,6 @@ package authority
 
 import (
 	"context"
-	"encoding/asn1"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -13,13 +12,13 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/memstore"
-	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/credentials"
@@ -90,7 +89,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 	}
 
 	for _, opt := range opts {
-		validator := snp.NewValidatorWithCallbacks(opt.VerifyOpts, opt.ValidateOpts, allowedHostDataEntries,
+		validator := snp.NewValidatorWithReportSetter(opt.VerifyOpts, opt.ValidateOpts, allowedHostDataEntries,
 			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "snp"}),
 			&authInfo)
 		validators = append(validators, validator)
@@ -153,11 +152,10 @@ type AuthInfo struct {
 	// State is the coordinator state at the time of the TLS handshake.
 	State *State
 	// Report is the attestation report sent by the peer.
-	Report *sevsnp.Report
+	Report attestation.Report
 }
 
-// ValidateCallback takes the validated report and attaches it to the [AuthInfo].
-func (a *AuthInfo) ValidateCallback(_ context.Context, report *sevsnp.Report, _ asn1.ObjectIdentifier, _, _, _ []byte) error {
+// SetReport takes the validated report and attaches it to the [AuthInfo].
+func (a *AuthInfo) SetReport(report attestation.Report) {
 	a.Report = report
-	return nil
 }

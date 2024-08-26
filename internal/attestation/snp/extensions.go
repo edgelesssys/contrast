@@ -123,8 +123,8 @@ type extension interface {
 	toExtension() (pkix.Extension, error)
 }
 
-// ClaimsToCertExtension constructs certificate extensions from a SNP report.
-func ClaimsToCertExtension(report *sevsnp.Report) ([]pkix.Extension, error) {
+// claimsToCertExtension constructs certificate extensions from a SNP report.
+func claimsToCertExtension(report *sevsnp.Report) ([]pkix.Extension, error) {
 	var extensions []extension
 	extensions = append(extensions, bigIntExtension{OID: versionOID, Val: usingedToBigInt(report.Version)})
 	extensions = append(extensions, bigIntExtension{OID: guestSVNOID, Val: usingedToBigInt(report.GuestSvn)})

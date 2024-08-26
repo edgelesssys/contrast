@@ -4,14 +4,16 @@
 package tdx
 
 import (
-	"context"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	_ "embed"
 	"encoding/asn1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
 
+	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/reportdata"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-tdx-guest/abi"
@@ -34,13 +36,8 @@ var tdxRootCert []byte
 // Validator validates attestation statements.
 type Validator struct {
 	validateOptsGen validateOptsGenerator
-	callbackers     []validateCallbacker
+	reportSetter    attestation.ReportSetter
 	logger          *slog.Logger
-}
-
-type validateCallbacker interface {
-	ValidateCallback(ctx context.Context, quote *tdx.QuoteV4, validatorOID asn1.ObjectIdentifier,
-		reportRaw, nonce, peerPublicKey []byte) error
 }
 
 type validateOptsGenerator interface {
@@ -66,10 +63,10 @@ func NewValidator(optsGen validateOptsGenerator, log *slog.Logger) *Validator {
 	}
 }
 
-// NewValidatorWithCallbacks returns a new Validator with callbacks.
-func NewValidatorWithCallbacks(optsGen validateOptsGenerator, log *slog.Logger, callbacks ...validateCallbacker) *Validator {
+// NewValidatorWithReportSetter returns a new Validator with a report setter.
+func NewValidatorWithReportSetter(optsGen validateOptsGenerator, log *slog.Logger, reportSetter attestation.ReportSetter) *Validator {
 	v := NewValidator(optsGen, log)
-	v.callbackers = callbacks
+	v.reportSetter = reportSetter
 	return v
 }
 
@@ -79,7 +76,7 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 }
 
 // Validate a TDX attestation.
-func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
+func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
 	// TODO(freax13): Validate the memory integrity mode (logical vs cryptographic) in the provisioning certificate.
 
 	v.logger.Info("Validate called", "nonce", hex.EncodeToString(nonce))
@@ -132,14 +129,9 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	}
 	v.logger.Info("Successfully validated report data")
 
-	// Run callbacks.
-
-	for _, callbacker := range v.callbackers {
-		if err := callbacker.ValidateCallback(
-			ctx, quote, v.OID(), quoteRaw, nonce, peerPublicKey,
-		); err != nil {
-			return fmt.Errorf("callback failed: %w", err)
-		}
+	if v.reportSetter != nil {
+		report := tdxReport{quote: quote}
+		v.reportSetter.SetReport(report)
 	}
 
 	v.logger.Info("Validate finished successfully")
@@ -152,4 +144,16 @@ func trustedRoots() (*x509.CertPool, error) {
 		return nil, fmt.Errorf("failed to append root certificate")
 	}
 	return rootCerts, nil
+}
+
+type tdxReport struct {
+	quote *tdx.QuoteV4
+}
+
+func (t tdxReport) HostData() []byte {
+	return t.quote.TdQuoteBody.MrConfigId[:32]
+}
+
+func (t tdxReport) ClaimsToCertExtension() ([]pkix.Extension, error) {
+	return nil, errors.New("TODO(freax13): implement this")
 }
