@@ -26,8 +26,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const attestationTimeout = 30 * time.Second
-
 var (
 	// NoValidators skips validation of the server's attestation document.
 	NoValidators = []Validator{}
@@ -94,7 +92,7 @@ type Issuer interface {
 // Validator is able to validate an attestation document.
 type Validator interface {
 	Getter
-	Validate(ctx context.Context, attDoc []byte, nonce []byte, peerPublicKey []byte) error
+	Validate(attDoc []byte, nonce []byte, peerPublicKey []byte) error
 }
 
 // getATLSConfigForClientFunc returns a config setup function that is called once for every client connecting to the server.
@@ -242,10 +240,7 @@ func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, peerPu
 			// We've found a matching validator. Let's validate the document.
 			foundMatchingValidator = true
 
-			ctx, cancel := context.WithTimeout(context.Background(), attestationTimeout)
-			defer cancel()
-
-			validationErr := validator.Validate(ctx, ex.Value, nonce, peerPublicKey)
+			validationErr := validator.Validate(ex.Value, nonce, peerPublicKey)
 			if validationErr == nil {
 				// The validator has successfully verified the document. We can exit.
 				return nil
@@ -429,7 +424,7 @@ func NewFakeValidators(oid Getter) []Validator {
 }
 
 // Validate unmarshals the attestation document and verifies the nonce.
-func (v FakeValidator) Validate(_ context.Context, attDoc []byte, nonce []byte, _ []byte) error {
+func (v FakeValidator) Validate(attDoc []byte, nonce []byte, _ []byte) error {
 	var doc FakeAttestationDoc
 	if err := json.Unmarshal(attDoc, &doc); err != nil {
 		return err

@@ -15,7 +15,7 @@ func TestClaimsToCertExtension(t *testing.T) {
 	report := &sevsnp.Report{
 		Policy: 0x00000000000f0000,
 	}
-	exts, err := ClaimsToCertExtension(report)
+	exts, err := claimsToCertExtension(report)
 	require.NoError(err)
 
 	// Check that no OIDs are used multiple times

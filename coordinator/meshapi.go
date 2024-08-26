@@ -14,7 +14,6 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
@@ -106,7 +105,7 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 		return nil, fmt.Errorf("could not marshal public key: %w", err)
 	}
 
-	hostData := manifest.NewHexString(report.HostData)
+	hostData := manifest.NewHexString(report.HostData())
 	entry, ok := state.Manifest.Policies[hostData]
 	if !ok {
 		return nil, fmt.Errorf("report data %s not found in manifest", hostData)
@@ -118,7 +117,7 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 		return nil, fmt.Errorf("failed to parse peer public key: %w", err)
 	}
 
-	extensions, err := snp.ClaimsToCertExtension(report)
+	extensions, err := report.ClaimsToCertExtension()
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct extensions: %w", err)
 	}
