@@ -18,7 +18,6 @@ import (
 	"github.com/google/go-tdx-guest/proto/tdx"
 	"github.com/google/go-tdx-guest/validate"
 	"github.com/google/go-tdx-guest/verify"
-	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -37,11 +36,6 @@ type Validator struct {
 	validateOptsGen validateOptsGenerator
 	callbackers     []validateCallbacker
 	logger          *slog.Logger
-	metrics         metrics
-}
-
-type metrics struct {
-	attestationFailures prometheus.Counter
 }
 
 type validateCallbacker interface {
@@ -73,10 +67,9 @@ func NewValidator(optsGen validateOptsGenerator, log *slog.Logger) *Validator {
 }
 
 // NewValidatorWithCallbacks returns a new Validator with callbacks.
-func NewValidatorWithCallbacks(optsGen validateOptsGenerator, log *slog.Logger, attestationFailures prometheus.Counter, callbacks ...validateCallbacker) *Validator {
+func NewValidatorWithCallbacks(optsGen validateOptsGenerator, log *slog.Logger, callbacks ...validateCallbacker) *Validator {
 	v := NewValidator(optsGen, log)
 	v.callbackers = callbacks
-	v.metrics = metrics{attestationFailures: attestationFailures}
 	return v
 }
 
@@ -90,14 +83,6 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	// TODO(freax13): Validate the memory integrity mode (logical vs cryptographic) in the provisioning certificate.
 
 	v.logger.Info("Validate called", "nonce", hex.EncodeToString(nonce))
-	defer func() {
-		if err != nil {
-			v.logger.Error("Failed to validate attestation document", "err", err)
-			if v.metrics.attestationFailures != nil {
-				v.metrics.attestationFailures.Inc()
-			}
-		}
-	}()
 
 	// Parse the attestation document.
 
