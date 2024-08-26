@@ -9,7 +9,6 @@ import (
 	_ "embed"
 	"encoding/asn1"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"log/slog"
 
@@ -155,5 +154,5 @@ func (t tdxReport) HostData() []byte {
 }
 
 func (t tdxReport) ClaimsToCertExtension() ([]pkix.Extension, error) {
-	return nil, errors.New("TODO(freax13): implement this")
+	return claimsToCertExtension(t.quote)
 }
