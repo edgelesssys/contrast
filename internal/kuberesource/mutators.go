@@ -177,6 +177,31 @@ func AddPortForwarders(resources []any) []any {
 	return out
 }
 
+// AddDmesg adds a dmesg logging container.
+func AddDmesg(resources []any) []any {
+	dmesgContainer := Container().
+		WithName("dmesg").
+		WithImage("ghcr.io/edgelesssys/contrast/dmesg:v0.0.1@sha256:6ad6bbb5735b84b10af42d2441e8d686b1d9a6cbf096b53842711ef5ddabd28d").
+		WithSecurityContext(SecurityContext().
+			WithPrivileged(true).SecurityContextApplyConfiguration)
+
+	addDmesg := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration,
+	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+			return meta, spec
+		}
+		spec.Containers = append(spec.Containers, *dmesgContainer)
+		return meta, spec
+	}
+
+	var out []any
+	for _, resource := range resources {
+		out = append(out, MapPodSpecWithMeta(resource, addDmesg))
+	}
+
+	return out
+}
+
 // AddLoadBalancers adds a load balancer to each Service resource.
 func AddLoadBalancers(resources []any) []any {
 	var out []any
