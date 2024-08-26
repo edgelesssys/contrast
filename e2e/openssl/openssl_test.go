@@ -273,11 +273,19 @@ func patchReferenceValues(t *testing.T, platform platforms.Platform, ct *contras
 	var m manifest.Manifest
 	require.NoError(t, json.Unmarshal(manifestBytes, &m))
 
-	// Duplicate the reference values to test multiple validators by having at least 2.
-	m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1])
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
+		// Duplicate the reference values to test multiple validators by having at least 2.
+		m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1])
 
-	// Fill in bare-metal-SNP-specific values.
-	if platform == platforms.K3sQEMUSNP {
+		// Make the last set of reference values invalid by changing the SVNs.
+		m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1].MinimumTCB = manifest.SNPTCB{
+			BootloaderVersion: toPtr(manifest.SVN(255)),
+			TEEVersion:        toPtr(manifest.SVN(255)),
+			SNPVersion:        toPtr(manifest.SVN(255)),
+			MicrocodeVersion:  toPtr(manifest.SVN(255)),
+		}
+	case platforms.K3sQEMUSNP:
 		// The generate command doesn't fill in all required fields when
 		// generating a manifest for baremetal SNP. Do that now.
 		for i, snp := range m.ReferenceValues.SNP {
@@ -287,14 +295,6 @@ func patchReferenceValues(t *testing.T, platform platforms.Platform, ct *contras
 			snp.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
 			m.ReferenceValues.SNP[i] = snp
 		}
-	}
-
-	// Make the last set of reference values invalid by changing the SVNs.
-	m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1].MinimumTCB = manifest.SNPTCB{
-		BootloaderVersion: toPtr(manifest.SVN(255)),
-		TEEVersion:        toPtr(manifest.SVN(255)),
-		SNPVersion:        toPtr(manifest.SVN(255)),
-		MicrocodeVersion:  toPtr(manifest.SVN(255)),
 	}
 
 	manifestBytes, err = json.Marshal(m)
