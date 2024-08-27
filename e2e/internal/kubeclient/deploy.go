@@ -151,6 +151,16 @@ retryLoop:
 	for {
 		watcher, err := resource.watcher(ctx, c.Client, namespace, name)
 		if err != nil {
+			// If the server is down (because K3s was restarted), wait for a
+			// second and try again.
+			retryCounter--
+			if retryCounter != 0 {
+				sleep, cancel := context.WithTimeout(ctx, time.Second*1)
+				defer cancel()
+				<-sleep.Done()
+				continue retryLoop
+			}
+
 			return err
 		}
 
