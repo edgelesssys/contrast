@@ -145,7 +145,7 @@ func (c *Kubeclient) WaitFor(ctx context.Context, resource ResourceWaiter, names
 	// a retry loop internally, but it only retries starting the request, once
 	// it has established a request and that request dies spuriously, the
 	// watcher doesn't reconnect. To fix this we add another retry loop.
-	retryCounter := 3
+	retryCounter := 30
 
 retryLoop:
 	for {
