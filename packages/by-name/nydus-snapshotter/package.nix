@@ -20,6 +20,8 @@ buildGoModule rec {
     hash = "sha256-DlBYZtgYl200ZEO2tbSte5bGFIJw6UWeRbMzpe2gp2U=";
   };
 
+  patches = [ ./0001-disable-database-flock-timeout.patch ];
+
   vendorHash = "sha256-sbdlxmuqN72YbEGv4BPYsTBrowX8YtsFDuHf1SdJ4tw=";
   proxyVendor = true;
 

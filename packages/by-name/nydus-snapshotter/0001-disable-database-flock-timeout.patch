@@ -1,0 +1,37 @@
+From 6df4f8ea61ca8de08d7f2a87f9f80f2ba4b4513d Mon Sep 17 00:00:00 2001
+From: Tom Dohrmann <erbse.13@gmx.de>
+Date: Tue, 27 Aug 2024 10:18:42 +0200
+Subject: [PATCH] disable database flock timeout
+
+If there's another snapshotter instance running and that snapshotter
+has already acquired the file lock, we don't mind waiting indefinitely
+or until the other snapshotter dies. We don't want to fail because
+another snapshotter is already running.
+---
+ pkg/store/database.go | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/pkg/store/database.go b/pkg/store/database.go
+index c227a4a..101a7cf 100644
+--- a/pkg/store/database.go
++++ b/pkg/store/database.go
+@@ -12,7 +12,6 @@ import (
+ 	"encoding/json"
+ 	"os"
+ 	"path/filepath"
+-	"time"
+ 
+ 	"github.com/containerd/log"
+ 	"github.com/containerd/nydus-snapshotter/pkg/daemon"
+@@ -56,7 +55,7 @@ func NewDatabase(rootDir string) (*Database, error) {
+ 		return nil, err
+ 	}
+ 
+-	opts := bolt.Options{Timeout: time.Second * 4}
++	opts := bolt.Options{}
+ 
+ 	db, err := bolt.Open(f, 0600, &opts)
+ 	if err != nil {
+-- 
+2.45.2
+
