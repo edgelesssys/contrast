@@ -5,12 +5,15 @@ package certcache
 
 import (
 	"log/slog"
+	"regexp"
 	"time"
 
 	"github.com/google/go-sev-guest/verify/trust"
 	"k8s.io/utils/clock"
 	testingclock "k8s.io/utils/clock/testing"
 )
+
+var crlURL = regexp.MustCompile(`^https://kdsintf\.amd\.com/vcek/v1/[A-Za-z]*/crl$`)
 
 // CachedHTTPSGetter is a HTTPS client that caches responses in memory.
 type CachedHTTPSGetter struct {
@@ -41,9 +44,15 @@ func (c *CachedHTTPSGetter) Get(url string) ([]byte, error) {
 	default:
 	}
 
-	if cached, ok := c.cache.Get(url); ok {
-		c.logger.Debug("Get cached", "url", url)
-		return cached, nil
+	// Don't cache CRLs. Unlike VCEKs, these can change over time and the KDS
+	// doesn't rate-limit requests to these.
+	canCache := !crlURL.MatchString(url)
+
+	if canCache {
+		if cached, ok := c.cache.Get(url); ok {
+			c.logger.Debug("Get cached", "url", url)
+			return cached, nil
+		}
 	}
 
 	c.logger.Debug("Get not cached", "url", url)
@@ -51,7 +60,9 @@ func (c *CachedHTTPSGetter) Get(url string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.cache.Set(url, res)
+	if canCache {
+		c.cache.Set(url, res)
+	}
 	return res, nil
 }
 
