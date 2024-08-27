@@ -39,7 +39,10 @@ rustPlatform.buildRustPackage rec {
     };
   };
 
-  patches = [ ./0001-snp-fix-panic-when-rejecting-extended-guest-report.patch ];
+  patches = [
+    ./0001-snp-fix-panic-when-rejecting-extended-guest-report.patch
+    ./0002-hypervisor-mshv-implement-extended-guest-requests-wi.patch
+  ];
 
   separateDebugInfo = true;
 
