@@ -57,10 +57,10 @@ let
         snp = [
           {
             minimumTCB = {
-              bootloaderVersion = 4;
+              bootloaderVersion = 3;
               teeVersion = 0;
-              snpVersion = 21;
-              microcodeVersion = 211;
+              snpVersion = 8;
+              microcodeVersion = 115;
             };
             trustedMeasurement = lib.removeSuffix "\n" (
               builtins.readFile (
