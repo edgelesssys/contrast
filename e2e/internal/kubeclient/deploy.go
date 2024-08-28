@@ -280,13 +280,18 @@ func (c *Kubeclient) waitForEvent(ctx context.Context, name string, namespace st
 				return nil
 			}
 		case <-ctx.Done():
-			return fmt.Errorf("Context deadline exceeded")
+			return ctx.Err()
 		}
 	}
 }
 
 func (c *Kubeclient) waitForRunning(ctx context.Context, name string, namespace string) error {
 	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
 		time.Sleep(1 * time.Second)
 		pods, err := c.PodsFromDeployment(ctx, namespace, name)
 		if err != nil {
@@ -305,13 +310,13 @@ func (c *Kubeclient) WaitFor(ctx context.Context, condition WaitCondition, resou
 	case Ready:
 		return c.waitForReady(ctx, name, namespace, resource)
 	case Added:
-		c.waitForEvent(ctx, name, namespace, resource, watch.Added)
+		return c.waitForEvent(ctx, name, namespace, resource, watch.Added)
 	case Modified:
-		c.waitForEvent(ctx, name, namespace, resource, watch.Modified)
+		return c.waitForEvent(ctx, name, namespace, resource, watch.Modified)
 	case Deleted:
-		c.waitForEvent(ctx, name, namespace, resource, watch.Deleted)
+		return c.waitForEvent(ctx, name, namespace, resource, watch.Deleted)
 	case Running:
-		// TODO
+		return c.waitForRunning(ctx, name, namespace)
 	}
 	return fmt.Errorf("Provided wait condition is not supported")
 }
