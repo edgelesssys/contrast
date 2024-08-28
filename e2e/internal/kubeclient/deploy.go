@@ -267,6 +267,24 @@ retryLoop:
 	}
 }
 
+func (c *Kubeclient) waitForEvent(ctx context.Context, name string, namespace string, resource ResourceWaiter, waitEvent watch.EventType) error {
+	watcher, err := resource.watcher(ctx, c.Client, namespace, name)
+	if err != nil {
+		return err
+	}
+
+	for {
+		select {
+		case event := <-watcher.ResultChan():
+			if event.Type == waitEvent {
+				return nil
+			}
+		case <-ctx.Done():
+			return fmt.Errorf("Context deadline exceeded")
+		}
+	}
+}
+
 // WaitFor watches the given resource kind and blocks until the desired number of pods are
 // ready or the context expires (is cancelled or times out).
 func (c *Kubeclient) WaitFor(ctx context.Context, condition WaitCondition, resource ResourceWaiter, namespace, name string) error {
@@ -274,11 +292,11 @@ func (c *Kubeclient) WaitFor(ctx context.Context, condition WaitCondition, resou
 	case Ready:
 		return c.waitForReady(ctx, name, namespace, resource)
 	case Added:
-		// TODO
+		c.waitForEvent(ctx, name, namespace, resource, watch.Added)
 	case Modified:
-		// TODO
+		c.waitForEvent(ctx, name, namespace, resource, watch.Modified)
 	case Deleted:
-		// TODO
+		c.waitForEvent(ctx, name, namespace, resource, watch.Deleted)
 	case Running:
 		// TODO
 	}
