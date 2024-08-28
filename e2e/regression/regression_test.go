@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-///go:build e2e
+//go:build e2e
 
 package regression
 
@@ -82,6 +82,7 @@ func TestRegression(t *testing.T) {
 
 			t.Cleanup(func() {
 				// delete the deployment
+				ctx = context.Background()
 				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(ctx, deploymentName, metav1.DeleteOptions{}))
 			})
 
