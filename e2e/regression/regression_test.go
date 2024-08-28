@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build e2e
+///go:build e2e
 
 package regression
 
@@ -78,17 +78,20 @@ func TestRegression(t *testing.T) {
 			require.NoError(err)
 			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yaml"), resourceBytes, 0o644))
 
+			deploymentName, _ := strings.CutSuffix(file.Name(), ".yaml")
+
+			t.Cleanup(func() {
+				// delete the deployment
+				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(ctx, deploymentName, metav1.DeleteOptions{}))
+			})
+
 			// generate, set, deploy and verify the new policy
 			require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 			require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 			require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-			deploymentName, _ := strings.CutSuffix(file.Name(), ".yaml")
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentName))
-
-			// delete the deployment
-			require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(ctx, deploymentName, metav1.DeleteOptions{}))
 		})
 	}
 }
