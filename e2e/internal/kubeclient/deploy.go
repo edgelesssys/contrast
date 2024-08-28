@@ -285,6 +285,19 @@ func (c *Kubeclient) waitForEvent(ctx context.Context, name string, namespace st
 	}
 }
 
+func (c *Kubeclient) waitForRunning(ctx context.Context, name string, namespace string) error {
+	for {
+		time.Sleep(1 * time.Second)
+		pods, err := c.PodsFromDeployment(ctx, namespace, name)
+		if err != nil {
+			return err
+		}
+		if pods[0].Status.InitContainerStatuses[0].State.Running != nil {
+			return nil
+		}
+	}
+}
+
 // WaitFor watches the given resource kind and blocks until the desired number of pods are
 // ready or the context expires (is cancelled or times out).
 func (c *Kubeclient) WaitFor(ctx context.Context, condition WaitCondition, resource ResourceWaiter, namespace, name string) error {
