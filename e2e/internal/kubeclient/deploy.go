@@ -22,6 +22,18 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+type WaitCondition int
+
+const (
+	_ WaitCondition = iota
+	Ready
+	Added
+	Modified
+	Deleted
+	Bookmark
+	Running
+)
+
 // ResourceWaiter is implemented by resources that can be waited for with WaitFor.
 type ResourceWaiter interface {
 	kind() string
@@ -255,8 +267,26 @@ retryLoop:
 	}
 }
 
-// WaitForService waits until the given service is configured with an external IP and returns it.
-func (c *Kubeclient) WaitForService(ctx context.Context, namespace, name string, loadBalancer bool) (string, error) {
+// WaitFor watches the given resource kind and blocks until the desired number of pods are
+// ready or the context expires (is cancelled or times out).
+func (c *Kubeclient) WaitFor(ctx context.Context, condition WaitCondition, resource ResourceWaiter, namespace, name string) error {
+	switch condition {
+	case Ready:
+		return c.waitForReady(ctx, name, namespace, resource)
+	case Added:
+		// TODO
+	case Modified:
+		// TODO
+	case Deleted:
+		// TODO
+	case Running:
+		// TODO
+	}
+	return fmt.Errorf("Provided wait condition is not supported")
+}
+
+// WaitForLoadBalancer waits until the given service is configured with an external IP and returns it.
+func (c *Kubeclient) WaitForLoadBalancer(ctx context.Context, namespace, name string) (string, error) {
 	watcher, err := c.Client.CoreV1().Services(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
 	if err != nil {
 		return "", err
