@@ -111,8 +111,16 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 		}
 
 		if !ct.SkipUndeploy {
-			if err := ct.Kubeclient.Delete(ctx, namespace...); err != nil {
-				t.Logf("Could not delete namespace %q: %v", ct.Namespace, err)
+			// Deleting the namespace sometimes fails when the cluster is
+			// unavailable (e.g. after a K3s restart). Retry deleting for up to
+			// 30 seconds.
+			for range 30 {
+				if err := ct.Kubeclient.Delete(ctx, namespace...); err != nil {
+					t.Logf("Could not delete namespace %q: %v", ct.Namespace, err)
+					time.Sleep(1 * time.Second)
+				} else {
+					break
+				}
 			}
 		}
 
