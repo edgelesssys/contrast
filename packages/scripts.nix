@@ -332,7 +332,7 @@
       while kubectl get ns "$namespace" 1>/dev/null 2>/dev/null; do
         pods="$(kubectl get pods -n "$namespace" | awk '!/^NAME/{print $1}')"
         mkdir -p "workspace/namespace-logs"
-        while IFS= read -r pod; do
+        for pod in $pods; do
           logfile="workspace/namespace-logs/$pod.log"
           if ! [[ -f "$logfile" ]]; then
             {
@@ -342,7 +342,7 @@
               kubectl logs -f --all-containers=true -n "$namespace" "$pod" > "$logfile"
             } &
           fi
-        done <<< "$pods"
+        done
       done
       wait
     '';
