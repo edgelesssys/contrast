@@ -24,6 +24,7 @@ jobs:
       matrix:
         test_name: [servicemesh, openssl, policy, workloadsecret]
         tee: [SNP, TDX]
+      fail-fast: false
 
     runs-on:
       labels: ${{ matrix.tee }}

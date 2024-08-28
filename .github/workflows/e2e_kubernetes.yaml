@@ -26,6 +26,7 @@ jobs:
     strategy:
       matrix:
         test_name: [servicemesh, openssl, policy, workloadsecret]
+      fail-fast: false
 
     runs-on: ubuntu-22.04
     permissions:
