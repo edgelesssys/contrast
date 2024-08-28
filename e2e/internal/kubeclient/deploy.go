@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -286,6 +287,13 @@ func (c *Kubeclient) waitForEvent(ctx context.Context, name string, namespace st
 }
 
 func (c *Kubeclient) waitForRunning(ctx context.Context, name string, namespace string) error {
+	pod, err := c.Client.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	toBeRunning := len(pod.Spec.Containers)
+	running := []string{}
 	for {
 		select {
 		case <-ctx.Done():
@@ -293,13 +301,16 @@ func (c *Kubeclient) waitForRunning(ctx context.Context, name string, namespace 
 		default:
 		}
 		time.Sleep(1 * time.Second)
-		pods, err := c.PodsFromDeployment(ctx, namespace, name)
-		if err != nil {
-			return err
+
+		for _, status := range pod.Status.ContainerStatuses {
+			if status.State.Running != nil {
+				if !slices.Contains(running, status.Name) {
+					running = append(running, status.Name)
+					toBeRunning--
+				}
+			}
 		}
-		// TODO(miampf): Currently this just checks if the init container enters the running state.
-		// Change this so that it checks every container in the pod.
-		if pods[0].Status.InitContainerStatuses[0].State.Running != nil {
+		if toBeRunning == 0 {
 			return nil
 		}
 	}
