@@ -297,6 +297,8 @@ func (c *Kubeclient) waitForRunning(ctx context.Context, name string, namespace 
 		if err != nil {
 			return err
 		}
+		// TODO(miampf): Currently this just checks if the init container enters the running state.
+		// Change this so that it checks every container in the pod.
 		if pods[0].Status.InitContainerStatuses[0].State.Running != nil {
 			return nil
 		}

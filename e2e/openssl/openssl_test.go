@@ -121,7 +121,7 @@ func TestOpenSSL(t *testing.T) {
 
 		c := kubeclient.NewForTest(t)
 
-		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
+		require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
 
 		// Call the backend server from the frontend. If this command produces no TLS error, we verified that
 		// - the certificate in the frontend pod can be used as a client certificate
@@ -164,7 +164,7 @@ func TestOpenSSL(t *testing.T) {
 
 			// Restart one deployment so it has the new certificates.
 			require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentToRestart))
-			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentToRestart))
+			require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, deploymentToRestart))
 
 			// This should not succeed because the certificates have changed.
 			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/sh", "-c", opensslConnectCmd("openssl-backend:443", meshCAFile)})
@@ -184,7 +184,7 @@ func TestOpenSSL(t *testing.T) {
 				d = opensslFrontend
 			}
 			require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, d))
-			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, d))
+			require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, d))
 
 			// This should succeed since both workloads now have updated certificates.
 			stdout, stderr, err = c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/sh", "-c", opensslConnectCmd("openssl-backend:443", meshCAFile)})
@@ -202,7 +202,7 @@ func TestOpenSSL(t *testing.T) {
 		c := kubeclient.NewForTest(t)
 
 		require.NoError(c.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
-		require.NoError(c.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
+		require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
 
 		// TODO(freax13): The following verify sometimes fails spuriously due to
 		//                connection issues. Waiting a little bit longer makes
@@ -216,7 +216,7 @@ func TestOpenSSL(t *testing.T) {
 		require.True(t.Run("contrast verify", ct.Verify))
 
 		require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
-		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
+		require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
 
 		t.Run("root CA is still accepted after coordinator recovery", func(t *testing.T) {
 			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/sh", "-c", opensslConnectCmd("openssl-frontend:443", rootCAFile)})
@@ -232,7 +232,7 @@ func TestOpenSSL(t *testing.T) {
 		})
 
 		require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
-		require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
+		require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
 
 		t.Run("mesh CA after coordinator recovery is accepted when workloads are restarted", func(t *testing.T) {
 			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/sh", "-c", opensslConnectCmd("openssl-frontend:443", meshCAFile)})
