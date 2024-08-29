@@ -32,6 +32,7 @@ const (
 	Deleted
 	Bookmark
 	Running
+	InitContainersRunning
 )
 
 // ResourceWaiter is implemented by resources that can be waited for with WaitFor.
@@ -259,7 +260,15 @@ retryLoop:
 					return nil
 				}
 			case Running:
-				running, err := c.checkIfRunning(ctx, name, namespace, resource)
+				running, err := c.checkIfRunning(ctx, name, namespace, resource, false)
+				if err != nil {
+					return err
+				}
+				if running {
+					return nil
+				}
+			case InitContainersRunning:
+				running, err := c.checkIfRunning(ctx, name, namespace, resource, true)
 				if err != nil {
 					return err
 				}

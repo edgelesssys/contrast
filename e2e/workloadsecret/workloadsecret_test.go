@@ -64,10 +64,10 @@ func TestWorkloadSecrets(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "vote-bot"))
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "emoji"))
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "voting"))
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "web"))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, "vote-bot"))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, "emoji"))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, "voting"))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, "web"))
 	}), "deployments need to be ready for subsequent tests")
 
 	// Scale web deployment to 2 replicas.
@@ -78,7 +78,7 @@ func TestWorkloadSecrets(t *testing.T) {
 		defer cancel()
 
 		require.NoError(ct.Kubeclient.ScaleDeployment(ctx, ct.Namespace, "web", 2))
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "web"))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, "web"))
 	}), "web deployment needs to be scaled for subsequent tests")
 
 	var webWorkloadSecretBytes []byte

@@ -65,11 +65,10 @@ func TestIngressEgress(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "vote-bot"))
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "emoji"))
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "voting"))
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "web"))
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Pod{}, ct.Namespace, "port-forwarder-web-svc"))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, "vote-bot"))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, "emoji"))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, "voting"))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, "web"))
 	}), "deployments need to be ready for subsequent tests")
 
 	certs := map[string]*x509.CertPool{

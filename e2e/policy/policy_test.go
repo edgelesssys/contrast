@@ -131,7 +131,7 @@ func TestPolicy(t *testing.T) {
 		require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
 
 		// wait for the init container of the openssl-frontend pod to enter the running state
-		require.NoError(c.WaitFor(ctx, kubeclient.Running, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
+		require.NoError(c.WaitFor(ctx, kubeclient.InitContainersRunning, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
 		newFailures := getFailures(ctx, t, ct)
 		t.Log("New failures:", newFailures)
 		// errors should happen

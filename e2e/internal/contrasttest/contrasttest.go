@@ -313,12 +313,12 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 
 	require.NoError(ct.Kubeclient.Apply(ctx, unstructuredResources...))
 
-	require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.DaemonSet{}, ct.Namespace, "contrast-node-installer"))
+	require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.DaemonSet{}, ct.Namespace, "contrast-node-installer"))
 }
 
 // runAgainstCoordinator forwards the coordinator port and executes the command against it.
 func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Command, args ...string) error {
-	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"); err != nil {
+	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"); err != nil {
 		return fmt.Errorf("waiting for coordinator: %w", err)
 	}
 	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.Pod{}, ct.Namespace, "port-forwarder-coordinator"); err != nil {
