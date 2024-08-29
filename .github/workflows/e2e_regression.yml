@@ -70,11 +70,18 @@ jobs:
           fi
       - name: Run regression test
         run: |
+          nix run .#scripts.get-logs workspace/e2e.namespace &
           nix shell -L .#contrast.e2e --command ${{ matrix.case }}.test -test.v \
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
             --platform aks-clh-snp \
             --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
+        with:
+          name: e2e_pod_logs-${{ matrix.case }}
+          path: workspace/namespace-logs
       - name: Cleanup
         if: cancelled() && !inputs.skip-undeploy
         run: |
