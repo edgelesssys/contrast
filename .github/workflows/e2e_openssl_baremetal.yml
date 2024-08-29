@@ -22,7 +22,7 @@ jobs:
   test:
     strategy:
       matrix:
-        test_name: [servicemesh, openssl, policy, workloadsecret]
+        test_name: [servicemesh, openssl, workloadsecret]
         tee: [SNP, TDX]
       fail-fast: false
 
@@ -47,11 +47,11 @@ jobs:
           EOF
       - name: Build and prepare deployments
         run: |
-          just coordinator initializer openssl port-forwarder node-installer K3s-QEMU-${{ matrix.tee }}
+          just coordinator initializer openssl port-forwarder service-mesh-proxy node-installer K3s-QEMU-${{ matrix.tee }}
       - name: E2E Test
         run: |
           nix run .#scripts.get-logs workspace/e2e.namespace &
-          nix shell .#contrast.e2e --command openssl.test -test.v \
+          nix shell .#contrast.e2e --command ${{ matrix.test_name }}.test -test.v \
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
             --platform K3s-QEMU-${{ matrix.tee }} \
