@@ -68,14 +68,9 @@ let
       name = "openssl";
       tag = "v${pkgs.contrast.version}";
       copyToRoot = with pkgs; [
-        bash
-        bashInteractive
-        coreutils
-        ncurses
+        busybox
         openssl
-        procps
-        vim
-        curl
+        curlMinimal
       ];
       config = {
         Cmd = [ "bash" ];
