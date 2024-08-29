@@ -259,7 +259,13 @@ retryLoop:
 					return nil
 				}
 			case Running:
-				// TODO
+				running, err := c.checkIfRunning(ctx, name, namespace, resource)
+				if err != nil {
+					return err
+				}
+				if running {
+					return nil
+				}
 			}
 		}
 	}
