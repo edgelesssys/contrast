@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"slices"
 	"sort"
 	"strconv"
 	"time"
@@ -214,7 +213,8 @@ retryLoop:
 					}
 					return fmt.Errorf("watcher for %s %s/%s unexpectedly closed", resource.kind(), namespace, name)
 				}
-				logger.Error("resource did not become ready", "kind", resource, "name", name, "contextErr", ctx.Err())
+				logger := c.log.With("namespace", namespace)
+				logger.Error("failed to wait for resource", "condition", condition, "kind", resource, "name", name, "contextErr", ctx.Err())
 				if ctx.Err() != context.DeadlineExceeded {
 					return ctx.Err()
 				}
@@ -233,105 +233,36 @@ retryLoop:
 				}
 				return origErr
 			}
-			switch evt.Type {
-			case watch.Added:
-				fallthrough
-			case watch.Modified:
-				pods, err := resource.getPods(ctx, c, namespace, name)
+			switch condition {
+			case Ready:
+				ready, err := c.checkIfReady(ctx, name, namespace, evt, resource)
 				if err != nil {
 					return err
 				}
-				numPodsReady := 0
-				for _, pod := range pods {
-					if isPodReady(&pod) {
-						numPodsReady++
-					}
-				}
-				desiredPods, err := resource.numDesiredPods(evt.Object)
-				if err != nil {
-					return err
-				}
-				if desiredPods <= numPodsReady {
-					// Wait for 5 more seconds just to be *really* sure that
-					// the pods are actually up.
-					sleep, cancel := context.WithTimeout(ctx, time.Second*5)
-					defer cancel()
-					<-sleep.Done()
+				if ready {
 					return nil
 				}
-			case watch.Deleted:
-				return fmt.Errorf("%s %s/%s was deleted while waiting for it", resource.kind(), namespace, name)
-			default:
-				return fmt.Errorf("unexpected watch event while waiting for %s %s/%s: type=%s, object=%#v", resource.kind(), namespace, name, evt.Type, evt.Object)
-			}
-		}
-	}
-}
-
-func (c *Kubeclient) waitForEvent(ctx context.Context, name string, namespace string, resource ResourceWaiter, waitEvent watch.EventType) error {
-	watcher, err := resource.watcher(ctx, c.Client, namespace, name)
-	if err != nil {
-		return err
-	}
-
-	for {
-		select {
-		case event := <-watcher.ResultChan():
-			if event.Type == waitEvent {
-				return nil
-			}
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-}
-
-func (c *Kubeclient) waitForRunning(ctx context.Context, name string, namespace string) error {
-	pod, err := c.Client.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
-
-	toBeRunning := len(pod.Spec.Containers)
-	running := []string{}
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-		time.Sleep(1 * time.Second)
-
-		for _, status := range pod.Status.ContainerStatuses {
-			if status.State.Running != nil {
-				if !slices.Contains(running, status.Name) {
-					running = append(running, status.Name)
-					toBeRunning--
+			case Added:
+				if evt.Type == watch.Added {
+					return nil
 				}
+			case Bookmark:
+				if evt.Type == watch.Bookmark {
+					return nil
+				}
+			case Deleted:
+				if evt.Type == watch.Deleted {
+					return nil
+				}
+			case Modified:
+				if evt.Type == watch.Modified {
+					return nil
+				}
+			case Running:
+				// TODO
 			}
 		}
-		if toBeRunning == 0 {
-			return nil
-		}
 	}
-}
-
-// WaitFor watches the given resource kind and blocks until the desired number of pods are
-// ready or the context expires (is cancelled or times out).
-func (c *Kubeclient) WaitFor(ctx context.Context, condition WaitCondition, resource ResourceWaiter, namespace, name string) error {
-	switch condition {
-	case Ready:
-		return c.waitForReady(ctx, name, namespace, resource)
-	case Added:
-		return c.waitForEvent(ctx, name, namespace, resource, watch.Added)
-	case Modified:
-		return c.waitForEvent(ctx, name, namespace, resource, watch.Modified)
-	case Deleted:
-		return c.waitForEvent(ctx, name, namespace, resource, watch.Deleted)
-	case Running:
-		return c.waitForRunning(ctx, name, namespace)
-	}
-	return fmt.Errorf("Provided wait condition is not supported")
 }
 
 // WaitForLoadBalancer waits until the given service is configured with an external IP and returns it.
