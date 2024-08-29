@@ -15,7 +15,6 @@
   withAgentPolicy ? true,
   withStandardOCIRuntime ? false,
   withGuestPull ? true,
-  fetchpatch,
 }:
 
 rustPlatform.buildRustPackage rec {
@@ -27,7 +26,7 @@ rustPlatform.buildRustPackage rec {
   cargoLock = {
     lockFile = "${src}/src/agent/Cargo.lock";
     outputHashes = {
-      "attester-0.1.0" = "sha256-sRkBoBtE1irZxo5y3Ined6wMUmwxXq9c+Trt99q7kRk=";
+      "attester-0.1.0" = "sha256-qQcQv4byjGTP5mUUt1xMSZnHA0m39QhPew/t/SKlleQ=";
       "loopdev-0.5.0" = "sha256-PD+iuZWPAFd3VUCgNB0ZrH/aCM2VMqJEyAv5/j1kqlA=";
       "sigstore-0.9.0" = "sha256-IeHuB5d5IU9YryeD47Qht0x806kJCoIOHsoEATRV+MY=";
     };
@@ -35,12 +34,15 @@ rustPlatform.buildRustPackage rec {
 
   patches = [
     # Mount configfs into the workload container from the UVM.
-    (fetchpatch {
-      url = "https://github.com/kata-containers/kata-containers/commit/779152b91b20b22009d215887d06908c638d2efc.patch";
-      stripLen = 2;
-      hash = "sha256-gs1EgD+1Ol9rg0oo14WFQ3H7GCAU5EQrXSuQW+DtEWk=";
-    })
+    # Based on https://github.com/kata-containers/kata-containers/pull/9554,
+    # which wasn't accepted upstream.
+    #
+    # Rebase 3.8.0, changes squashed into patch:
+    #   - fix 'field `annotations` of struct `oci_spec::runtime::Spec` is private'
+    ./0001-runtime-agent-mounts-Mount-configfs-into-the-contain.patch
   ];
+
+  patchFlags = [ "-p3" ];
 
   nativeBuildInputs = [
     cmake

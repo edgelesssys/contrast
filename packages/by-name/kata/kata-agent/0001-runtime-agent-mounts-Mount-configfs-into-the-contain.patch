@@ -1,0 +1,58 @@
+From 6ac3bfc6df55ba3cc0fdd80860f85621f345cd90 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Fabiano=20Fid=C3=AAncio?= <fabiano.fidencio@intel.com>
+Date: Thu, 25 Apr 2024 10:34:26 +0200
+Subject: [PATCH] runtime: agent: mounts: Mount configfs into the container
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+configfs is used to get a quote generated, and having this information
+available from inside the container (in case the container itself wants
+to attest something) is a must.
+
+It's important to note that this is not really needed by Confidential
+Containers, as the attestation-agent (which is running on the pod
+sandbox VM) has access to this and is able to get the quote generated on
+the guest without any kind of issue.  However, this is still reasonable
+to have exposed to the container, as it may and will help doing some
+simpler tests.
+
+Signed-off-by: Fabiano Fidêncio <fabiano.fidencio@intel.com>
+---
+ src/agent/rustjail/src/mount.rs | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/src/agent/rustjail/src/mount.rs b/src/agent/rustjail/src/mount.rs
+index 14e3d9560..b5f857913 100644
+--- a/src/agent/rustjail/src/mount.rs
++++ b/src/agent/rustjail/src/mount.rs
+@@ -288,6 +288,26 @@ pub fn init_rootfs(
+         }
+     }
+ 
++    if let Some(annotations) = spec.annotations() {
++        annotations.iter().for_each(|(k, v)| {
++            if k == "io.katacontainers.pkg.oci.container_type" && v != "pod_sandbox" {
++                let err = mount(
++                    Some("configfs"),
++                    format!("{}/sys/kernel/config", rootfs).as_str(),
++                    Some("configfs"),
++                    MsFlags::MS_NODEV | MsFlags::MS_NOSUID | MsFlags::MS_NOEXEC | MsFlags::MS_RELATIME,
++                    None::<&str>,
++                );
++                match err {
++                    Ok(_) => (),
++                    Err(e) => {
++                        log_child!(cfd_log, "mount /sys/kernel/config configs error: {}", e.to_string());
++                    }
++                }
++            }
++        });
++    }
++
+     let olddir = unistd::getcwd()?;
+     unistd::chdir(rootfs)?;
+ 
+-- 
+2.45.2
+
