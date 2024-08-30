@@ -11,6 +11,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -24,6 +25,7 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	ksync "github.com/katexochen/sync/api/client"
 	"github.com/spf13/cobra"
@@ -172,6 +174,45 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 	require.NoError(err)
 	require.NotEmpty(hash, "expected apply to fill coordinator policy hash")
 	ct.coordinatorPolicyHash = string(hash)
+
+	ct.patchReferenceValues(t, ct.Platform)
+}
+
+// patchReferenceValues modifies the manifest to contain multiple reference values for testing
+// cases with multiple validators, as well as filling in bare-metal SNP-specific values.
+func (ct *ContrastTest) patchReferenceValues(t *testing.T, platform platforms.Platform) {
+	manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
+	require.NoError(t, err)
+	var m manifest.Manifest
+	require.NoError(t, json.Unmarshal(manifestBytes, &m))
+
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
+		// Duplicate the reference values to test multiple validators by having at least 2.
+		m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1])
+
+		// Make the last set of reference values invalid by changing the SVNs.
+		m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1].MinimumTCB = manifest.SNPTCB{
+			BootloaderVersion: toPtr(manifest.SVN(255)),
+			TEEVersion:        toPtr(manifest.SVN(255)),
+			SNPVersion:        toPtr(manifest.SVN(255)),
+			MicrocodeVersion:  toPtr(manifest.SVN(255)),
+		}
+	case platforms.K3sQEMUSNP:
+		// The generate command doesn't fill in all required fields when
+		// generating a manifest for baremetal SNP. Do that now.
+		for i, snp := range m.ReferenceValues.SNP {
+			snp.MinimumTCB.BootloaderVersion = toPtr(manifest.SVN(0))
+			snp.MinimumTCB.TEEVersion = toPtr(manifest.SVN(0))
+			snp.MinimumTCB.SNPVersion = toPtr(manifest.SVN(0))
+			snp.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
+			m.ReferenceValues.SNP[i] = snp
+		}
+	}
+
+	manifestBytes, err = json.Marshal(m)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
 }
 
 // Apply the generated resources to the Kubernetes test environment.
@@ -309,4 +350,8 @@ func makeNamespace(t *testing.T) string {
 	require.Equal(t, 4, n)
 
 	return strings.Join(append(re.FindAllString(strings.ToLower(t.Name()), -1), hex.EncodeToString(buf)), "-")
+}
+
+func toPtr[T any](t T) *T {
+	return &t
 }
