@@ -61,8 +61,6 @@ func TestOpenSSL(t *testing.T) {
 	ct.Init(t, resources)
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 
-	patchReferenceValues(t, platform, ct)
-
 	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
@@ -259,45 +257,4 @@ func opensslConnectCmd(addr, caCert string) string {
 	return fmt.Sprintf(
 		`openssl s_client -connect %s -verify_return_error -x509_strict -CAfile /contrast/tls-config/%s -cert /contrast/tls-config/certChain.pem -key /contrast/tls-config/key.pem </dev/null`,
 		addr, caCert)
-}
-
-func toPtr[T any](t T) *T {
-	return &t
-}
-
-// patchReferenceValues modifies the manifest to contain multiple reference values for testing
-// cases with multiple validators, as well as filling in bare-metal SNP-specific values.
-func patchReferenceValues(t *testing.T, platform platforms.Platform, ct *contrasttest.ContrastTest) {
-	manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
-	require.NoError(t, err)
-	var m manifest.Manifest
-	require.NoError(t, json.Unmarshal(manifestBytes, &m))
-
-	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
-		// Duplicate the reference values to test multiple validators by having at least 2.
-		m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1])
-
-		// Make the last set of reference values invalid by changing the SVNs.
-		m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1].MinimumTCB = manifest.SNPTCB{
-			BootloaderVersion: toPtr(manifest.SVN(255)),
-			TEEVersion:        toPtr(manifest.SVN(255)),
-			SNPVersion:        toPtr(manifest.SVN(255)),
-			MicrocodeVersion:  toPtr(manifest.SVN(255)),
-		}
-	case platforms.K3sQEMUSNP:
-		// The generate command doesn't fill in all required fields when
-		// generating a manifest for baremetal SNP. Do that now.
-		for i, snp := range m.ReferenceValues.SNP {
-			snp.MinimumTCB.BootloaderVersion = toPtr(manifest.SVN(0))
-			snp.MinimumTCB.TEEVersion = toPtr(manifest.SVN(0))
-			snp.MinimumTCB.SNPVersion = toPtr(manifest.SVN(0))
-			snp.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
-			m.ReferenceValues.SNP[i] = snp
-		}
-	}
-
-	manifestBytes, err = json.Marshal(m)
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
 }
