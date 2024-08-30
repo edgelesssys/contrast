@@ -342,6 +342,19 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 	})
 }
 
+// FactorPlatformTimeout returns a timeout that is adjusted for the platform.
+// Baseline is AKS.
+func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Duration {
+	switch ct.Platform {
+	case platforms.AKSCloudHypervisorSNP: // AKS defined is the baseline
+		return timeout
+	case platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+		return 2 * timeout
+	default:
+		return timeout
+	}
+}
+
 func makeNamespace(t *testing.T) string {
 	buf := make([]byte, 4)
 	re := regexp.MustCompile("[a-z0-9-]+")

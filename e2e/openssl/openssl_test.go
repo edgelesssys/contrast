@@ -68,7 +68,7 @@ func TestOpenSSL(t *testing.T) {
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
 	t.Run("check coordinator metrics endpoint", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
 		require := require.New(t)
@@ -93,7 +93,7 @@ func TestOpenSSL(t *testing.T) {
 		"root CA cert": ct.RootCACert(),
 	} {
 		t.Run("go dial frontend with "+cert, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 			defer cancel()
 
 			require := require.New(t)
@@ -115,7 +115,7 @@ func TestOpenSSL(t *testing.T) {
 		// This test verifies that the certificates minted by the coordinator are accepted by OpenSSL in server and client mode.
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
 		c := kubeclient.NewForTest(t)
@@ -136,7 +136,7 @@ func TestOpenSSL(t *testing.T) {
 		t.Run(fmt.Sprintf("certificate rotation and %s restart", deploymentToRestart), func(t *testing.T) {
 			require := require.New(t)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 			defer cancel()
 
 			c := kubeclient.NewForTest(t)
@@ -195,7 +195,7 @@ func TestOpenSSL(t *testing.T) {
 	t.Run("coordinator recovery", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute) // Already long timeout, not using ct.FactorPlatformTimeout.
 		defer cancel()
 
 		c := kubeclient.NewForTest(t)

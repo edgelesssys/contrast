@@ -62,7 +62,7 @@ func TestIngressEgress(t *testing.T) {
 	require.True(t, t.Run("deployments become available", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
 		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "vote-bot"))
@@ -79,7 +79,7 @@ func TestIngressEgress(t *testing.T) {
 		t.Run("go dial web with ca "+certFile, func(t *testing.T) {
 			require := require.New(t)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 			defer cancel()
 
 			require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-web-svc", "443", func(addr string) error {
@@ -103,7 +103,7 @@ func TestIngressEgress(t *testing.T) {
 	t.Run("client certificates are required if not explicitly disabled", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
 		c := kubeclient.NewForTest(t)
@@ -133,7 +133,7 @@ func TestIngressEgress(t *testing.T) {
 	t.Run("admin interface is available", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
 		c := kubeclient.NewForTest(t)

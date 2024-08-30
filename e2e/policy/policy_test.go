@@ -68,7 +68,7 @@ func TestPolicy(t *testing.T) {
 	t.Run("pod cannot join after it was removed from the manifest", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
 		c := kubeclient.NewForTest(t)
