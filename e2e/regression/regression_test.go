@@ -60,8 +60,6 @@ func TestRegression(t *testing.T) {
 			require := require.New(t)
 
 			c := kubeclient.NewForTest(t)
-			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute) // Already long timeout, not using ct.FactorPlatformTimeout.
-			defer cancel()
 
 			yaml, err := os.ReadFile(yamlDir + file.Name())
 			require.NoError(err)
@@ -82,8 +80,7 @@ func TestRegression(t *testing.T) {
 
 			t.Cleanup(func() {
 				// delete the deployment
-				ctx = context.Background()
-				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(ctx, deploymentName, metav1.DeleteOptions{}))
+				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), deploymentName, metav1.DeleteOptions{}))
 			})
 
 			// generate, set, deploy and verify the new policy
@@ -92,6 +89,8 @@ func TestRegression(t *testing.T) {
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 			require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute) // Already long timeout, not using ct.FactorPlatformTimeout.
+			defer cancel()
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentName))
 		})
 	}
