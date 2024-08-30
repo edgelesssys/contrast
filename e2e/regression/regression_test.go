@@ -60,7 +60,7 @@ func TestRegression(t *testing.T) {
 			require := require.New(t)
 
 			c := kubeclient.NewForTest(t)
-			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute) // Already long timeout, not using ct.FactorPlatformTimeout.
 			defer cancel()
 
 			yaml, err := os.ReadFile(yamlDir + file.Name())

@@ -61,7 +61,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	require.True(t, t.Run("deployments become available", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
 		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "vote-bot"))
@@ -74,7 +74,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	require.True(t, t.Run("scale web deployment to 2 pods", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(30*time.Second))
 		defer cancel()
 
 		require.NoError(ct.Kubeclient.ScaleDeployment(ctx, ct.Namespace, "web", 2))
@@ -86,7 +86,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	t.Run("workload secret seed exists", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(30*time.Second))
 		defer cancel()
 
 		webPods, err = ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, "web")
@@ -104,7 +104,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	t.Run("workload secret seed is the same between pods in the same deployment", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(30*time.Second))
 		defer cancel()
 
 		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, webPods[1].Name, []string{"/bin/sh", "-c", "cat /contrast/secrets/workload-secret-seed"})
@@ -120,7 +120,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	t.Run("workload secret seeds differ between deployments by default", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(30*time.Second))
 		defer cancel()
 
 		emojiPods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, "emoji")
