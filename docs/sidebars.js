@@ -56,6 +56,11 @@ const sidebars = {
           label: 'Cluster setup',
           id: 'getting-started/cluster-setup',
         },
+        {
+          type: 'doc',
+          label: 'Bare metal setup',
+          id: 'getting-started/bare-metal',
+        },
       ]
     },
     {

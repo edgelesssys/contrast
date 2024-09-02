@@ -28,7 +28,7 @@ where their votes are processed without leaking to the platform provider or work
 - **Installed Contrast CLI.**
   See the [installation instructions](./../getting-started/install.md) on how to get it.
 - **Running cluster with Confidential Containers support.**
-  Please follow the [cluster setup instructions](./../getting-started/cluster-setup.md)
+  Please follow the [AKS cluster setup instructions](./../getting-started/cluster-setup.md) or [bare metal setup instructions](./../getting-started/bare metal.md)
   to create a cluster.
 
 ## Steps to deploy emojivoto with Contrast
