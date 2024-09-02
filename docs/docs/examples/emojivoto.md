@@ -50,18 +50,36 @@ This consists of a `RuntimeClass` resource and a `DaemonSet` that performs insta
 This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
 
+<Tabs queryString="platform">
+<TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-aks-clh-snp.yml
 ```
+</TabItem>
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp.yml
+```
+</TabItem>
+</Tabs>
 
 ### Deploy the Contrast Coordinator
 
 Deploy the Contrast Coordinator, comprising a single replica deployment and a
 LoadBalancer service, into your cluster:
 
+<Tabs queryString="platform">
+<TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-aks-clh-snp.yml
 ```
+</TabItem>
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp.yml
+```
+</TabItem>
+</Tabs>
 
 ### Generate policy annotations and manifest
 
@@ -69,9 +87,18 @@ Run the `generate` command to generate the execution policies and add them as
 annotations to your deployment files. A `manifest.json` file with the reference values
 of your deployment will be created:
 
+<Tabs queryString="platform">
+<TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
 contrast generate --reference-values aks-clh-snp deployment/
 ```
+</TabItem>
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+```sh
+contrast generate --reference-values k3s-qemu-snp deployment/
+```
+</TabItem>
+</Tabs>
 
 :::note[Runtime class and Initializer]
 
