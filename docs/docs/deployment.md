@@ -20,18 +20,36 @@ This consists of a `RuntimeClass` resource and a `DaemonSet` that performs insta
 This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
 
+<Tabs queryString="platform">
+<TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-aks-clh-snp.yml
 ```
+</TabItem>
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp.yml
+```
+</TabItem>
+</Tabs>
 
 ## Deploy the Contrast Coordinator
 
 Install the latest Contrast Coordinator release, comprising a single replica deployment and a
 LoadBalancer service, into your cluster.
 
+<Tabs queryString="platform">
+<TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-aks-clh-snp.yml
 ```
+</TabItem>
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp.yml
+```
+</TabItem>
+</Tabs>
 
 ## Prepare your Kubernetes resources
 
@@ -165,9 +183,18 @@ and the Contrast Service Mesh to all workloads that have a specified configurati
 After that, it will generate the execution policies and add them as annotations to your deployment files.
 A `manifest.json` with the reference values of your deployment will be created.
 
+<Tabs queryString="platform">
+<TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
 contrast generate --reference-values aks-clh-snp resources/
 ```
+</TabItem>
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+```sh
+contrast generate --reference-values k3s-qemu-snp resources/
+```
+</TabItem>
+</Tabs>
 
 :::warning
 Please be aware that runtime policies currently have some blind spots. For example, they can't guarantee the starting order of containers. See the [current limitations](features-limitations.md#runtime-policies) for more details.
@@ -183,9 +210,18 @@ depending on how you want to customize your deployment.
 You can disable the Initializer injection completely by specifying the
 `--skip-initializer` flag in the `generate` command.
 
+<Tabs queryString="platform">
+<TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
 contrast generate --reference-values aks-clh-snp --skip-initializer resources/
 ```
+</TabItem>
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+```sh
+contrast generate --reference-values k3s-qemu-snp --skip-initializer resources/
+```
+</TabItem>
+</Tabs>
 
 </TabItem>
 
