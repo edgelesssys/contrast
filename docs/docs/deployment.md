@@ -3,7 +3,14 @@
 The following instructions will guide you through the process of making an existing Kubernetes deployment
 confidential and deploying it together with Contrast.
 
-A running CoCo-enabled cluster is required for these steps, see the [setup guide](./getting-started/cluster-setup.md) on how to set it up.
+<Tabs queryString="platform">
+<TabItem value="aks-clh-snp" label="AKS" default>
+A running CoCo-enabled cluster is required for these steps, see the [setup guide](./getting-started/cluster-setup.md) on how to set up a cluster on AKS.
+</TabItem>
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+A running CoCo-enabled cluster is required for these steps, see the [setup guide](./getting-started//bare-metal.md) on how to set up a bare metal cluster.
+</TabItem>
+</Tabs>
 
 ## Deploy the Contrast runtime
 
