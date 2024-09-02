@@ -42,17 +42,24 @@ The `handler` field in the Kubernetes `RuntimeClass` instructs containerd not to
 Instead, containerd invokes a custom plugin called `containerd-shim-contrast-cc-v2`.
 This shim is described in more detail in the [upstream source repository](https://github.com/kata-containers/kata-containers/tree/3.4.0/src/runtime) and in the [containerd documentation](https://github.com/containerd/containerd/blob/main/core/runtime/v2/README.md).
 
-### `cloud-hypervisor` virtual machine manager (VMM)
+### Virtual machine manager (VMM)
 
-The `containerd` shim uses [`cloud-hypervisor`](https://www.cloudhypervisor.org) to create a confidential virtual machine for every pod.
-This requires the `cloud-hypervisor` binary to be installed on every node (responsibility of the [`node-installer`](#node-installer-daemonset)).
+The `containerd` shim uses a virtual machine monitor to create a confidential virtual machine for every pod.
+On AKS, Contrast uses [`cloud-hypervisor`](https://www.cloudhypervisor.org).
+On bare metal, Contrast uses [`QEMU`](https://www.qemu.org/).
+The appropriate files are installed on every node by the [`node-installer`](#node-installer-daemonset).
 
-### `Tardev snapshotter`
+### Snapshotters
 
-Contrast uses a special [`containerd` snapshotter](https://github.com/containerd/containerd/tree/v1.7.16/docs/snapshotters/README.md) ([`tardev`](https://github.com/kata-containers/tardev-snapshotter)) to provide container images as block devices to the pod-VM. This snapshotter consists of a host component that pulls container images and a guest component (kernel module) used to mount container images.
+Contrast uses [`containerd` snapshotters](https://github.com/containerd/containerd/tree/v1.7.16/docs/snapshotters/README.md) to provide container images to the pod-VM.
+Each snapshotter consists of a host component that pulls container images and a guest component used to mount/pull container images.
+
+On AKS, Contrast uses the [`tardev`](https://github.com/kata-containers/tardev-snapshotter) snapshotter to provide container images as block devices to the pod-VM.
 The `tardev` snapshotter uses [`dm-verity`](https://docs.kernel.org/admin-guide/device-mapper/verity.html) to protect the integrity of container images.
 Expected `dm-verity` container image hashes are part of Contrast runtime policies and are enforced by the kata-agent.
 This enables workload attestation by specifying the allowed container image as part of the policy. Read [the chapter on policies](policies.md) for more information.
+
+On bare metal, Contrast uses the [`nydus`](https://github.com/containerd/nydus-snapshotter) snapshotter to store metadata about the images. This metadata is communicated to the guest, so that it can pull the images itself.
 
 ### Pod-VM image
 
@@ -77,8 +84,8 @@ The node-level installation is carried out by the Contrast node-installer
 After deploying the installer, it performs the following steps on each node:
 
 - Install the Contrast containerd shim (`containerd-shim-contrast-cc-v2`)
-- Install `cloud-hypervisor` as the virtual machine manager (VMM)
-- Install an IGVM file for pod-VMs of this class
+- Install `cloud-hypervisor` or `QEMU` as the virtual machine manager (VMM)
+- Install an IGVM file or separate firmware and kernel files for pod-VMs of this class
 - Install a read only root filesystem disk image for the pod-VMs of this class
 - Reconfigure `containerd` by adding a runtime plugin that corresponds to the `handler` field of the Kubernetes `RuntimeClass`
 - Restart `containerd` to make it aware of the new plugin
