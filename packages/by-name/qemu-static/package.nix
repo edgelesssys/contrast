@@ -29,11 +29,11 @@ in
   hostCpuTargets = [ "x86_64-softmmu" ];
 })).overrideAttrs
   (previousAttrs: rec {
-    version = "9.1.0-rc1";
+    version = "9.1.0-rc4";
 
     src = fetchurl {
       url = "https://download.qemu.org/qemu-${version}.tar.xz";
-      hash = "sha256-JDcnzpkwfzwa5ofMjS1HYy7BDJ79EunIdMqW5kdfauk=";
+      hash = "sha256-gnvAOou9nR+yU67yK4Sa2fM2ZChR8zINoLy12ZROhSw=";
     };
 
     configureFlags = previousAttrs.configureFlags ++ [
