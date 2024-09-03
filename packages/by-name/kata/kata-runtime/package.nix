@@ -39,6 +39,7 @@ buildGoModule rec {
       # delegates hash verification to the AA. Until that effort lands, we're
       # sticking with the policy verification from AKS CoCo.
       ./0003-runtime-agent-verify-the-agent-policy-hash.patch
+      ./0004-virtcontainers-allow-specifying-nydus-overlayfs-bina.patch
     ];
   };
 
