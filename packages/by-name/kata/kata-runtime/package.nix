@@ -40,6 +40,38 @@ buildGoModule rec {
       # sticking with the policy verification from AKS CoCo.
       ./0003-runtime-agent-verify-the-agent-policy-hash.patch
       ./0004-virtcontainers-allow-specifying-nydus-overlayfs-bina.patch
+
+      #
+      # Patch set to enable policy support for bare metal with Nydus guest pull.
+      #
+
+      # Backport of https://github.com/kata-containers/kata-containers/pull/9911.
+      # TODO(burgerdev): remove after upgrading to Kata 3.9
+      ./0005-genpolicy-deny-UpdateEphemeralMountsRequest.patch
+      # Cherry-pick from https://github.com/microsoft/kata-containers/pull/139/commits/e4465090e693807d6ccc044344ad44789acda3e2,
+      # fixes https://github.com/kata-containers/kata-containers/issues/10046.
+      # Currently not possible to backport because it would break integration testing with virtiofs.
+      ./0006-genpolicy-validate-create-sandbox-storages.patch
+      # Fixes https://github.com/kata-containers/kata-containers/issues/10064.
+      # TODO(burgerdev): backport
+      ./0007-genpolicy-enable-sysctl-checks.patch
+      # Fixes https://github.com/kata-containers/kata-containers/issues/10065.
+      # TODO(burgerdev): backport
+      ./0008-genpolicy-read-bundle-id-from-rootfs.patch
+      # Contrast specific layer-src-prefix, also applied to microsoft.kata-runtime.
+      # TODO(burgerdev): discuss relaxing the checks for host paths with Kata maintainers.
+      ./0009-genpolicy-regex-check-contrast-specific-layer-src-pr.patch
+      # Kata hard-codes OCI version 1.1.0, but latest K3S has 1.2.0.
+      # TODO(burgerdev): discuss relaxing the OCI version checks with Kata maintainers.
+      # TODO(burgerdev): move to genpolicy-settings patches
+      ./0010-genpolicy-settings-bump-OCI-version.patch
+      # Nydus uses a different base dir for container rootfs,
+      # see https://github.com/kata-containers/kata-containers/blob/775f6bd/tests/integration/kubernetes/tests_common.sh#L139.
+      # TODO(burgerdev): discuss the discrepancy and path forward with Kata maintainers.
+      ./0011-genpolicy-settings-change-cpath-for-Nydus-guest-pull.patch
+      # Implements ideas from https://github.com/kata-containers/kata-containers/issues/10088.
+      # TODO(burgerdev): backport
+      ./0012-genpolicy-allow-image_guest_pull.patch
     ];
   };
 

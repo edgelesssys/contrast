@@ -1,0 +1,33 @@
+From 649a0721c6dcce35912c18499e8027663b6470e3 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Wed, 24 Jul 2024 11:16:37 +0200
+Subject: [PATCH 10/12] genpolicy-settings: bump OCI version
+
+Kata hard-codes OCI version 1.1.0, but latest K3S has 1.2.0.
+---
+ src/tools/genpolicy/genpolicy-settings.json | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
+index e50d5e545..fcafa46cc 100644
+--- a/src/tools/genpolicy/genpolicy-settings.json
++++ b/src/tools/genpolicy/genpolicy-settings.json
+@@ -312,7 +312,7 @@
+     },
+     "kata_config": {
+         "confidential_guest": false,
+-        "oci_version": "1.1.0"
++        "oci_version": "1.2.0"
+     },
+     "cluster_config": {
+         "default_namespace": "default",
+@@ -348,4 +348,4 @@
+         "UpdateEphemeralMountsRequest": false,
+         "WriteStreamRequest": false
+     }
+-}
+\ No newline at end of file
++}
+-- 
+2.46.0
+
