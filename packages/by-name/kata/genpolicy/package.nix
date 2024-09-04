@@ -47,6 +47,10 @@ rustPlatform.buildRustPackage rec {
     chmod -R +w ../..
   '';
 
+  preBuild = ''
+    make src/version.rs
+  '';
+
   passthru = {
     settings = fetchurl {
       name = "${pname}-${version}-settings";
