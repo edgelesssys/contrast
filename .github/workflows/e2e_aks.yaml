@@ -77,7 +77,7 @@ jobs:
             --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
       - name: Upload logs
         if: always()
-        uses: actions/upload-artifact@b18b1d32f3f31abcdc29dee3f2484801fe7822f4
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: e2e_pod_logs-${{ matrix.test_name }}
           path: workspace/namespace-logs
