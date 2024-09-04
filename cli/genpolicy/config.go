@@ -14,10 +14,10 @@ var (
 	genpolicyBin []byte
 	//go:embed assets/genpolicy-settings.json
 	defaultGenpolicySettings []byte
-	//go:embed assets/genpolicy-rules.rego
-	aksCloudHypervisorSNPRules []byte
-	//go:embed assets/allow-all.rego
-	permissiveRules []byte
+	//go:embed assets/genpolicy-rules-microsoft.rego
+	aksRules []byte
+	//go:embed assets/genpolicy-rules-kata.rego
+	kataRules []byte
 )
 
 // Config contains configuration files for genpolicy.
@@ -35,10 +35,9 @@ func NewConfig(platform platforms.Platform) *Config {
 	}
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
-		cfg.Rules = aksCloudHypervisorSNPRules
-	default:
-		// TODO(burgerdev): use real rules for supported platforms.
-		cfg.Rules = permissiveRules
+		cfg.Rules = aksRules
+	case platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+		cfg.Rules = kataRules
 	}
 	return cfg
 }
