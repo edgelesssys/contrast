@@ -36,14 +36,16 @@ default_platform := "AKS-CLH-SNP"
 workspace_dir := "workspace"
 
 # Build the node-installer, containerize and push it.
-node-installer platform=default_platform: tardev-snapshotter nydus-snapshotter
+node-installer platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
     case {{ platform }} in
         "AKS-CLH-SNP")
+            just push "tardev-snapshotter"
             just push "node-installer-microsoft"
         ;;
         "K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+            just push "nydus-snapshotter"
             just push "node-installer-kata"
         ;;
         *)
