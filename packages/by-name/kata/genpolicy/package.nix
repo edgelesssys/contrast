@@ -3,7 +3,6 @@
 
 {
   lib,
-  fetchurl,
   kata,
   rustPlatform,
   openssl,
@@ -12,6 +11,8 @@
   libiconv,
   zlib,
   cmake,
+  stdenvNoCC,
+  applyPatches,
 }:
 
 rustPlatform.buildRustPackage rec {
@@ -59,24 +60,55 @@ rustPlatform.buildRustPackage rec {
     "--skip=test_create_container_process"
   ];
 
-  passthru = {
-    settings = fetchurl {
+  passthru = rec {
+    settings-base = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-settings";
-      url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${version}/src/tools/genpolicy/genpolicy-settings.json";
-      hash = "sha256-kalmW/gWMJIWUNk7IzA0l1saMFu8QYb1DXZ8cU/QSxs=";
-      downloadToTemp = true;
-      recursiveHash = true;
-      postFetch = "install -D $downloadedFile $out/genpolicy-settings.json";
+      inherit src sourceRoot;
+
+      phases = [
+        "unpackPhase"
+        "patchPhase"
+        "installPhase"
+      ];
+      installPhase = ''
+        runHook preInstall
+        install -D genpolicy-settings.json $out/genpolicy-settings.json
+        runHook postInstall
+      '';
     };
 
-    # TODO(freax13): use real rules.
-    rules = fetchurl {
+    settings = settings-base;
+
+    settings-coordinator = applyPatches {
+      src = settings-base;
+      patches = [ ./genpolicy_settings_coordinator.patch ];
+    };
+
+    # Settings that allow exec into CVM pods - not safe for production use!
+    settings-dev = applyPatches {
+      src = settings-base;
+      patches = [ ./genpolicy_settings_dev.patch ];
+    };
+
+    rules = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-rules";
-      url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${version}/src/kata-opa/allow-all.rego";
-      hash = "sha256-ubjA2RqoNurJphlH4wUNvdOxxtkvLlsaYfWsGYb9NLA=";
-      downloadToTemp = true;
-      recursiveHash = true;
-      postFetch = "install -D $downloadedFile $out/genpolicy-rules.rego";
+      inherit src sourceRoot;
+
+      phases = [
+        "unpackPhase"
+        "patchPhase"
+        "installPhase"
+      ];
+      installPhase = ''
+        runHook preInstall
+        install -D rules.rego $out/genpolicy-rules.rego
+        runHook postInstall
+      '';
+    };
+
+    rules-coordinator = applyPatches {
+      src = rules;
+      patches = [ ./genpolicy_rules_coordinator.patch ];
     };
   };
 

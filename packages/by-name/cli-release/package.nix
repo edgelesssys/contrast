@@ -1,12 +1,17 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ contrast }:
+{
+  contrast,
+  kata,
+  microsoft,
+}:
 
 (contrast.overrideAttrs (
   _finalAttrs: previousAttrs: {
     postPatch = ''
-      install -D ${contrast.settings}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings.json
+      install -D ${microsoft.genpolicy.settings}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-microsoft.json
+      install -D ${kata.genpolicy.settings}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-kata.json
     '';
 
     ldflags = previousAttrs.ldflags ++ [

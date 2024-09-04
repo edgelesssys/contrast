@@ -184,14 +184,15 @@ buildGoModule rec {
 
   # postPatch will be overwritten by the release-cli derivation, prePatch
   postPatch = ''
-    install -D ${genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings.json
+    install -D ${microsoft.genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-microsoft.json
+    install -D ${kata.genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-kata.json
   '';
 
   CGO_ENABLED = 0;
   ldflags = [
     "-s"
     "-X github.com/edgelesssys/contrast/internal/constants.Version=${version}"
-    "-X github.com/edgelesssys/contrast/internal/constants.MicrosoftGenpolicyVersion=${genpolicy.version}"
+    "-X github.com/edgelesssys/contrast/internal/constants.MicrosoftGenpolicyVersion=${microsoft.genpolicy.version}"
     "-X github.com/edgelesssys/contrast/internal/constants.KataGenpolicyVersion=${kata.genpolicy.version}"
   ];
 
@@ -232,7 +233,6 @@ buildGoModule rec {
 
   passthru = {
     inherit e2e embeddedReferenceValues;
-    inherit (genpolicy) settings;
   };
 
   meta.mainProgram = "contrast";
