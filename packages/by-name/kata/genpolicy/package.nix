@@ -67,10 +67,11 @@ rustPlatform.buildRustPackage rec {
       postFetch = "install -D $downloadedFile $out/genpolicy-settings.json";
     };
 
+    # TODO(freax13): use real rules.
     rules = fetchurl {
       name = "${pname}-${version}-rules";
-      url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${version}/src/tools/genpolicy/rules.rego";
-      hash = "sha256-8CcGFEeAMxTFvZmJh2v7NNIEQXg+g8cCA73/nmOhCns=";
+      url = "https://raw.githubusercontent.com/kata-containers/kata-containers/${version}/src/kata-opa/allow-all.rego";
+      hash = "sha256-ubjA2RqoNurJphlH4wUNvdOxxtkvLlsaYfWsGYb9NLA=";
       downloadToTemp = true;
       recursiveHash = true;
       postFetch = "install -D $downloadedFile $out/genpolicy-rules.rego";
