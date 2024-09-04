@@ -7,7 +7,6 @@
   buildGoTest,
   microsoft,
   kata,
-  genpolicy ? microsoft.genpolicy,
   contrast,
   installShellFiles,
 }:
@@ -174,10 +173,11 @@ buildGoModule rec {
   subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
 
   prePatch = ''
-    install -D ${lib.getExe genpolicy} cli/genpolicy/assets/genpolicy
-    install -D ${genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings.json
-    install -D ${genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules.rego
-    install -D ${genpolicy.src}/src/kata-opa/allow-all.rego cli/genpolicy/assets/allow-all.rego
+    install -D ${lib.getExe microsoft.genpolicy} cli/genpolicy/assets/genpolicy
+    install -D ${microsoft.genpolicy.settings}/genpolicy-settings.json cli/genpolicy/assets/microsoft/genpolicy-settings.json
+    install -D ${microsoft.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/microsoft/genpolicy-rules.rego
+    install -D ${kata.genpolicy.settings}/genpolicy-settings.json cli/genpolicy/assets/kata/genpolicy-settings.json
+    install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/kata/genpolicy-rules.rego
     install -D ${embeddedReferenceValues} internal/manifest/assets/reference-values.json
   '';
 
@@ -186,7 +186,7 @@ buildGoModule rec {
     "-s"
     "-w"
     "-X github.com/edgelesssys/contrast/internal/constants.Version=${version}"
-    "-X github.com/edgelesssys/contrast/internal/constants.MicrosoftGenpolicyVersion=${genpolicy.version}"
+    "-X github.com/edgelesssys/contrast/internal/constants.MicrosoftGenpolicyVersion=${microsoft.genpolicy.version}"
     "-X github.com/edgelesssys/contrast/internal/constants.KataGenpolicyVersion=${kata.genpolicy.version}"
   ];
 
@@ -227,7 +227,6 @@ buildGoModule rec {
 
   passthru = {
     inherit e2e embeddedReferenceValues;
-    inherit (genpolicy) settings rules;
   };
 
   meta.mainProgram = "contrast";
