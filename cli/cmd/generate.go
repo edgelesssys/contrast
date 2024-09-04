@@ -251,7 +251,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, yamlPaths []str
 		return fmt.Errorf("creating default policy.rego file: %w", err)
 	}
 
-	runner, err := genpolicy.New(flags.policyPath, flags.settingsPath, flags.genpolicyCachePath)
+	runner, err := genpolicy.New(flags.policyPath, flags.settingsPath, flags.genpolicyCachePath, cfg.Bin)
 	if err != nil {
 		return fmt.Errorf("preparing genpolicy: %w", err)
 	}
