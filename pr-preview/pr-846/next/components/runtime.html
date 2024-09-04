@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-846/assets/css/styles.e12c56bb.css">
-<script src="/contrast/pr-preview/pr-846/assets/js/runtime~main.7a44569f.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-846/assets/js/runtime~main.8118d72e.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-846/assets/js/main.9eaed400.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -40,15 +40,15 @@ This shim is described in more detail in the <a href="https://github.com/kata-co
 <p>The <code>containerd</code> shim uses a virtual machine monitor to create a confidential virtual machine for every pod.
 On AKS, Contrast uses <a href="https://www.cloudhypervisor.org" target="_blank" rel="noopener noreferrer"><code>cloud-hypervisor</code></a>.
 On bare metal, Contrast uses <a href="https://www.qemu.org/" target="_blank" rel="noopener noreferrer"><code>QEMU</code></a>.
-The appropriate files need to be installed on every node (which is the responsibility of the <a href="#node-installer-daemonset"><code>node-installer</code></a>).</p>
+The appropriate files are installed on every node by the <a href="#node-installer-daemonset"><code>node-installer</code></a>.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="snapshotters">Snapshotters<a href="#snapshotters" class="hash-link" aria-label="Direct link to Snapshotters" title="Direct link to Snapshotters">​</a></h3>
-<p>Contrast uses special <a href="https://github.com/containerd/containerd/tree/v1.7.16/docs/snapshotters/README.md" target="_blank" rel="noopener noreferrer"><code>containerd</code> snapshotters</a> to provide container images to the pod-VM.
+<p>Contrast uses <a href="https://github.com/containerd/containerd/tree/v1.7.16/docs/snapshotters/README.md" target="_blank" rel="noopener noreferrer"><code>containerd</code> snapshotters</a> to provide container images to the pod-VM.
 Each snapshotter consists of a host component that pulls container images and a guest component used to mount/pull container images.</p>
 <p>On AKS, Contrast uses the <a href="https://github.com/kata-containers/tardev-snapshotter" target="_blank" rel="noopener noreferrer"><code>tardev</code></a> snapshotter to provide container images as block devices to the pod-VM.
 The <code>tardev</code> snapshotter uses <a href="https://docs.kernel.org/admin-guide/device-mapper/verity.html" target="_blank" rel="noopener noreferrer"><code>dm-verity</code></a> to protect the integrity of container images.
-Expected <code>dm-verity</code> container image hashes are part of Contrast runtime policies and are enforced by the kata-agent.</p>
-<p>On bare metal, Contrast uses the <a href="https://nydus.dev/" target="_blank" rel="noopener noreferrer"><code>nydus</code></a> snapshotter to allow the guest to pull container images securely.</p>
-<p>In all cases, hashes of the container images are stored in the Contrast runtime policies to enable workload attestation. Read <a href="/contrast/pr-preview/pr-846/next/components/policies">the chapter on policies</a> for more information.</p>
+Expected <code>dm-verity</code> container image hashes are part of Contrast runtime policies and are enforced by the kata-agent.
+This enables workload attestation by specifying the allowed container image as part of the policy. Read <a href="/contrast/pr-preview/pr-846/next/components/policies">the chapter on policies</a> for more information.</p>
+<p>On bare metal, Contrast uses the <a href="https://github.com/containerd/nydus-snapshotter" target="_blank" rel="noopener noreferrer"><code>nydus</code></a> snapshotter to store metadata about the images. This metadata is communicated to the guest, so that it can pull the images itself.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="pod-vm-image">Pod-VM image<a href="#pod-vm-image" class="hash-link" aria-label="Direct link to Pod-VM image" title="Direct link to Pod-VM image">​</a></h3>
 <p>Every pod-VM starts with the same guest image. It consists of an IGVM file and a root filesystem.
 The IGVM file describes the initial memory contents of a pod-VM and consists of:</p>
