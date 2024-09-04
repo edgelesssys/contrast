@@ -12,8 +12,10 @@ import (
 var (
 	//go:embed assets/genpolicy
 	genpolicyBin []byte
-	//go:embed assets/genpolicy-settings.json
-	defaultGenpolicySettings []byte
+	//go:embed assets/genpolicy-settings-microsoft.json
+	aksSettings []byte
+	//go:embed assets/genpolicy-settings-kata.json
+	kataSettings []byte
 	//go:embed assets/genpolicy-rules-microsoft.rego
 	aksRules []byte
 	//go:embed assets/genpolicy-rules-kata.rego
@@ -30,14 +32,18 @@ type Config struct {
 
 // NewConfig selects the appropriate genpolicy configuration for the target platform.
 func NewConfig(platform platforms.Platform) *Config {
-	cfg := &Config{
-		Settings: defaultGenpolicySettings,
-	}
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
-		cfg.Rules = aksRules
+		return &Config{
+			Rules:    aksRules,
+			Settings: aksSettings,
+		}
 	case platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
-		cfg.Rules = kataRules
+		return &Config{
+			Rules:    kataRules,
+			Settings: kataSettings,
+		}
+	default:
+		return nil
 	}
-	return cfg
 }
