@@ -6,7 +6,7 @@ push target:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p {{ workspace_dir }}
-    pushedImg=$(nix run .#containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}")
+    pushedImg=$(nix run -L .#containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}")
     printf "ghcr.io/edgelesssys/contrast/%s:latest=%s\n" "{{ target }}" "$pushedImg" >> {{ workspace_dir }}/just.containerlookup
 
 # Build the coordinator, containerize and push it.
@@ -98,7 +98,7 @@ populate target=default_deploy_target platform=default_platform:
 generate cli=default_cli platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
-    nix run .#{{ cli }} -- generate \
+    nix run -L .#{{ cli }} -- generate \
         --workspace-dir ./{{ workspace_dir }} \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --reference-values {{ platform }}\
@@ -160,21 +160,21 @@ undeploy:
 
 # Create a CoCo-enabled AKS cluster.
 create:
-    nix run .#scripts.create-coco-aks -- --name="$azure_resource_group" --location="$azure_location"
+    nix run -L .#scripts.create-coco-aks -- --name="$azure_resource_group" --location="$azure_location"
 
 # Set the manifest at the coordinator.
 set cli=default_cli:
     #!/usr/bin/env bash
     set -euo pipefail
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
-    nix run .#scripts.kubectl-wait-ready -- $ns coordinator
-    nix run .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
+    nix run -L .#scripts.kubectl-wait-ready -- $ns coordinator
+    nix run -L .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
     trap "kill $PID" EXIT
-    nix run .#scripts.wait-for-port-listen -- 1313
+    nix run -L .#scripts.wait-for-port-listen -- 1313
     policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
-    nix run .#{{ cli }} -- set \
+    nix run -L .#{{ cli }} -- set \
         --workspace-dir ./{{ workspace_dir }} \
         -c localhost:1313 \
         --coordinator-policy-hash "${policy}" \
@@ -186,13 +186,13 @@ verify cli=default_cli:
     set -euo pipefail
     rm -rf ./{{ workspace_dir }}/verify
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
-    nix run .#scripts.kubectl-wait-ready -- $ns coordinator
+    nix run -L .#scripts.kubectl-wait-ready -- $ns coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1314:1313 &
     PID=$!
     trap "kill $PID" EXIT
-    nix run .#scripts.wait-for-port-listen -- 1314
+    nix run -L .#scripts.wait-for-port-listen -- 1314
     policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
-    nix run .#{{ cli }} -- verify \
+    nix run -L .#{{ cli }} -- verify \
         --workspace-dir ./{{ workspace_dir }} \
         --coordinator-policy-hash "${policy}" \
         -c localhost:1314
@@ -202,14 +202,14 @@ recover cli=default_cli:
     #!/usr/bin/env bash
     set -euo pipefail
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
-    nix run .#scripts.kubectl-wait-ready -- $ns coordinator
-    nix run .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
+    nix run -L .#scripts.kubectl-wait-ready -- $ns coordinator
+    nix run -L .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
     trap "kill $PID" EXIT
-    nix run .#scripts.wait-for-port-listen -- 1313
+    nix run -L .#scripts.wait-for-port-listen -- 1313
     policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
-    nix run .#{{ cli }} -- recover \
+    nix run -L .#{{ cli }} -- recover \
         --workspace-dir ./{{ workspace_dir }} \
         --coordinator-policy-hash "$policy" \
         -c localhost:1313
@@ -221,14 +221,14 @@ wait-for-workload target=default_deploy_target:
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
     case {{ target }} in
         "openssl")
-            nix run .#scripts.kubectl-wait-ready -- $ns openssl-backend
-            nix run .#scripts.kubectl-wait-ready -- $ns openssl-frontend
+            nix run -L .#scripts.kubectl-wait-ready -- $ns openssl-backend
+            nix run -L .#scripts.kubectl-wait-ready -- $ns openssl-frontend
         ;;
         "emojivoto" | "emojivoto-sm-egress" | "emojivoto-sm-ingress")
-            nix run .#scripts.kubectl-wait-ready -- $ns emoji-svc
-            nix run .#scripts.kubectl-wait-ready -- $ns vote-bot
-            nix run .#scripts.kubectl-wait-ready -- $ns voting-svc
-            nix run .#scripts.kubectl-wait-ready -- $ns web-svc
+            nix run -L .#scripts.kubectl-wait-ready -- $ns emoji-svc
+            nix run -L .#scripts.kubectl-wait-ready -- $ns vote-bot
+            nix run -L .#scripts.kubectl-wait-ready -- $ns voting-svc
+            nix run -L .#scripts.kubectl-wait-ready -- $ns web-svc
         ;;
         *)
             echo "Please register workloads of new targets in wait-for-workload"
@@ -238,19 +238,19 @@ wait-for-workload target=default_deploy_target:
 
 # Load the kubeconfig from the running AKS cluster.
 get-credentials:
-    nix run .#azure-cli -- aks get-credentials \
+    nix run -L .#azure-cli -- aks get-credentials \
         --resource-group "$azure_resource_group" \
         --name "$azure_resource_group"
 
 # Load the kubeconfig from the CI AKS cluster.
 get-credentials-ci:
-    nix run .#azure-cli -- aks get-credentials \
+    nix run -L .#azure-cli -- aks get-credentials \
         --resource-group "contrast-ci" \
         --name "contrast-ci" \
         --admin
 
 get-credentials-from-gcloud path:
-    nix run .#scripts.get-credentials {{ path }}
+    nix run -L .#scripts.get-credentials {{ path }}
 
 get-credentials-tdxbm: (get-credentials-from-gcloud "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/2")
 
@@ -258,11 +258,11 @@ get-credentials-snpbm: (get-credentials-from-gcloud "projects/796962942582/secre
 
 # Destroy a running AKS cluster.
 destroy:
-    nix run .#scripts.destroy-coco-aks -- --name="$azure_resource_group"
+    nix run -L .#scripts.destroy-coco-aks -- --name="$azure_resource_group"
 
 # Run code generators.
 codegen:
-    nix run .#scripts.generate
+    nix run -L .#scripts.generate
 
 # Format code.
 fmt:
@@ -270,7 +270,7 @@ fmt:
 
 # Lint code.
 lint:
-    nix run .#scripts.golangci-lint -- run
+    nix run -L .#scripts.golangci-lint -- run
 
 demodir version="latest": undeploy
     #!/usr/bin/env bash
