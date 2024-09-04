@@ -28,9 +28,9 @@ type Runner struct {
 }
 
 // New creates a new Runner for the given configuration.
-func New(rulesPath, settingsPath, cachePath string) (*Runner, error) {
+func New(rulesPath, settingsPath, cachePath string, bin []byte) (*Runner, error) {
 	e := embedbin.New()
-	genpolicy, err := e.Install("", genpolicyBin)
+	genpolicy, err := e.Install("", bin)
 	if err != nil {
 		return nil, fmt.Errorf("installing genpolicy: %w", err)
 	}

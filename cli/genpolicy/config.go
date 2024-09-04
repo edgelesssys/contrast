@@ -10,8 +10,10 @@ import (
 )
 
 var (
-	//go:embed assets/genpolicy
-	genpolicyBin []byte
+	//go:embed assets/genpolicy-microsoft
+	aksGenpolicyBin []byte
+	//go:embed assets/genpolicy-kata
+	kataGenpolicyBin []byte
 	//go:embed assets/genpolicy-settings-microsoft.json
 	aksSettings []byte
 	//go:embed assets/genpolicy-settings-kata.json
@@ -28,6 +30,8 @@ type Config struct {
 	Rules []byte
 	// Settings is a json config file that holds platform-specific configuration.
 	Settings []byte
+	// Bin is the genpolicy binary.
+	Bin []byte
 }
 
 // NewConfig selects the appropriate genpolicy configuration for the target platform.
@@ -37,11 +41,13 @@ func NewConfig(platform platforms.Platform) *Config {
 		return &Config{
 			Rules:    aksRules,
 			Settings: aksSettings,
+			Bin:      aksGenpolicyBin,
 		}
 	case platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		return &Config{
 			Rules:    kataRules,
 			Settings: kataSettings,
+			Bin:      kataGenpolicyBin,
 		}
 	default:
 		return nil

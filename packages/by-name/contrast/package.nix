@@ -7,7 +7,6 @@
   buildGoTest,
   microsoft,
   kata,
-  genpolicy ? microsoft.genpolicy,
   contrast,
   installShellFiles,
 }:
@@ -176,7 +175,8 @@ buildGoModule rec {
   subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
 
   prePatch = ''
-    install -D ${lib.getExe genpolicy} cli/genpolicy/assets/genpolicy
+    install -D ${lib.getExe microsoft.genpolicy} cli/genpolicy/assets/genpolicy-microsoft
+    install -D ${lib.getExe kata.genpolicy} cli/genpolicy/assets/genpolicy-kata
     install -D ${microsoft.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-microsoft.rego
     install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
     install -D ${embeddedReferenceValues} internal/manifest/assets/reference-values.json
