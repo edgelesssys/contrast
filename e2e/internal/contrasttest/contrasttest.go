@@ -321,6 +321,9 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"); err != nil {
 		return fmt.Errorf("waiting for coordinator: %w", err)
 	}
+	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.Pod{}, ct.Namespace, "port-forwarder-coordinator"); err != nil {
+		return fmt.Errorf("waiting for port-forwarder-coordinator: %w", err)
+	}
 
 	// Make the subcommand aware of the persistent flag.
 	// Do it outside the closure because declaring a flag twice panics.
