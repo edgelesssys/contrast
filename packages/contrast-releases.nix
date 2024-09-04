@@ -62,13 +62,13 @@ let
             passthru.exists = (builtins.compareVersions "v0.8.0" version) <= 0;
           };
 
-          # starting with version v0.10.0 all files has a platform-specific suffix.
+          # starting with version v1.1.0 all files has a platform-specific suffix.
           platformSpecificFiles = builtins.listToAttrs (
             lib.lists.map
               (
                 platform:
                 lib.attrsets.nameValuePair platform {
-                  exist = (builtins.compareVersions "v0.10.0" version) <= 0;
+                  exist = (builtins.compareVersions "v1.1.0" version) <= 0;
                   coordinator = fetchurl {
                     inherit version;
                     url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator-${platform}.yml";
