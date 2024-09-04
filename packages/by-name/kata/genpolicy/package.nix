@@ -51,6 +51,12 @@ rustPlatform.buildRustPackage rec {
     make src/version.rs
   '';
 
+  checkFlags = [
+    # these want internet access, disable them
+    "--skip=test_copyfile"
+    "--skip=test_create_sandbox"
+  ];
+
   passthru = {
     settings = fetchurl {
       name = "${pname}-${version}-settings";
