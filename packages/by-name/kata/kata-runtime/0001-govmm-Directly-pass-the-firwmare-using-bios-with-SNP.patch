@@ -1,7 +1,7 @@
-From c7462075ed2bca6a56da5f246dbaddf128073eba Mon Sep 17 00:00:00 2001
+From 786d23a72425fb55d1ba043f1a64026abea266e1 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Fri, 5 Jul 2024 08:43:13 +0000
-Subject: [PATCH 1/4] govmm: Directly pass the firwmare using -bios with SNP
+Subject: [PATCH 01/12] govmm: Directly pass the firwmare using -bios with SNP
 
 3e158001993cc2356d6ac084e6c82714210c9f24, but for SNP.
 ---
@@ -24,5 +24,5 @@ index 47322c803..6b2b6b02d 100644
  		objectParams = append(objectParams, string(object.Type))
  		objectParams = append(objectParams, fmt.Sprintf("id=%s", object.ID))
 -- 
-2.45.2
+2.46.0
 
