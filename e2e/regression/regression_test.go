@@ -89,7 +89,7 @@ func TestRegression(t *testing.T) {
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 			require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute) // Already long timeout, not using ct.FactorPlatformTimeout.
+			ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(3*time.Minute))
 			defer cancel()
 			require.NoError(c.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentName))
 		})
