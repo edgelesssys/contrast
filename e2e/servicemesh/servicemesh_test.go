@@ -69,6 +69,7 @@ func TestIngressEgress(t *testing.T) {
 		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "emoji"))
 		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "voting"))
 		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, "web"))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Pod{}, ct.Namespace, "port-forwarder-web-svc"))
 	}), "deployments need to be ready for subsequent tests")
 
 	certs := map[string]*x509.CertPool{

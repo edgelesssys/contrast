@@ -30,6 +30,29 @@ type ResourceWaiter interface {
 	getPods(context.Context, *Kubeclient, string, string) ([]corev1.Pod, error)
 }
 
+// Pod implements ResourceWaiter.
+type Pod struct{}
+
+func (p Pod) kind() string {
+	return "Pod"
+}
+
+func (p Pod) watcher(ctx context.Context, client *kubernetes.Clientset, namespace, name string) (watch.Interface, error) {
+	return client.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+}
+
+func (p Pod) numDesiredPods(_ any) (int, error) {
+	return 1, nil
+}
+
+func (p Pod) getPods(ctx context.Context, client *Kubeclient, namespace, name string) ([]corev1.Pod, error) {
+	pod, err := client.Client.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return []corev1.Pod{*pod}, nil
+}
+
 // Deployment implements ResourceWaiter.
 type Deployment struct{}
 
@@ -141,6 +164,9 @@ func (c *Kubeclient) WaitForPod(ctx context.Context, namespace, name string) err
 // WaitFor watches the given resource kind and blocks until the desired number of pods are
 // ready or the context expires (is cancelled or times out).
 func (c *Kubeclient) WaitFor(ctx context.Context, resource ResourceWaiter, namespace, name string) error {
+	logger := c.log.With("namespace", namespace)
+	logger.Info(fmt.Sprintf("Waiting for %s %s/%s to become ready", resource.kind(), namespace, name))
+
 	// When the node-installer restarts K3s, the watcher fails. The watcher has
 	// a retry loop internally, but it only retries starting the request, once
 	// it has established a request and that request dies spuriously, the
@@ -175,7 +201,6 @@ retryLoop:
 					}
 					return fmt.Errorf("watcher for %s %s/%s unexpectedly closed", resource.kind(), namespace, name)
 				}
-				logger := c.log.With("namespace", namespace)
 				logger.Error("resource did not become ready", "kind", resource, "name", name, "contextErr", ctx.Err())
 				if ctx.Err() != context.DeadlineExceeded {
 					return ctx.Err()
