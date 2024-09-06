@@ -9,7 +9,9 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -17,12 +19,14 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/google/go-github/v63/github"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -33,10 +37,11 @@ const (
 )
 
 var (
-	owner = flag.String("owner", "edgelesssys", "Github repository owner")
-	repo  = flag.String("repo", "contrast", "Github repository")
-	tag   = flag.String("tag", "", "tag name of the release to download")
-	keep  = flag.Bool("keep", false, "don't delete test resources and deployment")
+	owner       = flag.String("owner", "edgelesssys", "Github repository owner")
+	repo        = flag.String("repo", "contrast", "Github repository")
+	tag         = flag.String("tag", "", "tag name of the release to download")
+	keep        = flag.Bool("keep", false, "don't delete test resources and deployment")
+	platformStr = flag.String("platform", "", "Deployment platform")
 )
 
 // TestRelease downloads a release from Github, sets up the coordinator, installs the demo
@@ -44,6 +49,8 @@ var (
 func TestRelease(t *testing.T) {
 	ctx := context.Background()
 	k := kubeclient.NewForTest(t)
+
+	lowerPlatformStr := strings.ToLower(*platformStr)
 
 	dir := fetchRelease(ctx, t)
 
@@ -90,7 +97,7 @@ func TestRelease(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 
-		yaml, err := os.ReadFile(path.Join(dir, "runtime-aks-clh-snp.yml"))
+		yaml, err := os.ReadFile(path.Join(dir, fmt.Sprintf("runtime-%s.yml", lowerPlatformStr)))
 		require.NoError(err)
 		resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
 		require.NoError(err)
@@ -105,7 +112,7 @@ func TestRelease(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 
-		yaml, err := os.ReadFile(path.Join(dir, "coordinator-aks-clh-snp.yml"))
+		yaml, err := os.ReadFile(path.Join(dir, fmt.Sprintf("coordinator-%s.yml", lowerPlatformStr)))
 		require.NoError(err)
 		resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
 		require.NoError(err)
@@ -138,9 +145,18 @@ func TestRelease(t *testing.T) {
 		}
 	}), "unpacking needs to succeed for subsequent tests to run")
 
-	contrast.Run(ctx, t, 2*time.Minute, "generate", "--reference-values", "aks-clh-snp", "deployment/")
-	contrast.Run(ctx, t, 1*time.Minute, "set", "-c", coordinatorIP+":1313", "deployment/")
-	contrast.Run(ctx, t, 1*time.Minute, "verify", "-c", coordinatorIP+":1313")
+	contrast.Run(ctx, t, 2*time.Minute, "generate", "--reference-values", *platformStr, "deployment/")
+	contrast.patchReferenceValues(t, lowerPlatformStr)
+
+	overrideFlags := contrast.coordinatorPolicyHashOverride(t, lowerPlatformStr)
+
+	setFlags := []string{"set", "-c", coordinatorIP + ":1313", "deployment/"}
+	setFlags = append(setFlags, overrideFlags...)
+	contrast.Run(ctx, t, 1*time.Minute, setFlags...)
+
+	verifyFlags := []string{"verify", "-c", coordinatorIP + ":1313"}
+	verifyFlags = append(verifyFlags, overrideFlags...)
+	contrast.Run(ctx, t, 1*time.Minute, verifyFlags...)
 
 	require.True(t, t.Run("apply-demo", func(t *testing.T) {
 		require := require.New(t)
@@ -254,6 +270,61 @@ func fetchRelease(ctx context.Context, t *testing.T) string {
 	}
 
 	return dir
+}
+
+func (c *contrast) coordinatorPolicyHashOverride(t *testing.T, lowerPlatformStr string) []string {
+	// Don't override the coordinator policy hash on AKS-CLH-SNP our
+	// "default" platform. On this platform the default value for the
+	// `coordinator-policy-hash` flag should contain the correct value and we
+	// shouldn't need to override it.
+	if lowerPlatformStr == "aks-clh-snp" {
+		return []string{}
+	}
+
+	// On all other platforms, override the coordinator policy hash with the
+	// value in the hash file.
+	hashesBytes, err := os.ReadFile(c.dir + "/coordinator-policy.hash")
+	require.NoError(t, err)
+	hashes := string(hashesBytes)
+	prefix := lowerPlatformStr + " "
+	for _, line := range strings.Split(hashes, "\n") {
+		if strings.HasPrefix(line, prefix) {
+			hash := strings.TrimPrefix(line, prefix)
+			return []string{"--coordinator-policy-hash", hash}
+		}
+	}
+
+	require.Fail(t, "Couldn't find coordinator policy has for "+lowerPlatformStr)
+	return []string{}
+}
+
+// patchReferenceValues modifies the manifest to contain multiple reference values for testing
+// cases with multiple validators, as well as filling in bare-metal SNP-specific values.
+func (c *contrast) patchReferenceValues(t *testing.T, lowerPlatformStr string) {
+	manifestBytes, err := os.ReadFile(c.dir + "/manifest.json")
+	require.NoError(t, err)
+	var m manifest.Manifest
+	require.NoError(t, json.Unmarshal(manifestBytes, &m))
+
+	if lowerPlatformStr == "k3s-qemu-snp" {
+		// The generate command doesn't fill in all required fields when
+		// generating a manifest for baremetal SNP. Do that now.
+		for i, snp := range m.ReferenceValues.SNP {
+			snp.MinimumTCB.BootloaderVersion = toPtr(manifest.SVN(0))
+			snp.MinimumTCB.TEEVersion = toPtr(manifest.SVN(0))
+			snp.MinimumTCB.SNPVersion = toPtr(manifest.SVN(0))
+			snp.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
+			m.ReferenceValues.SNP[i] = snp
+		}
+	}
+
+	manifestBytes, err = json.Marshal(m)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(c.dir+"/manifest.json", manifestBytes, 0o644))
+}
+
+func toPtr[T any](t T) *T {
+	return &t
 }
 
 func TestMain(m *testing.M) {
