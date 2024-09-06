@@ -156,7 +156,6 @@
     runtimeInputs = with pkgs; [
       yq-go
       contrast
-      microsoft.genpolicy
     ];
     text = ''
       imageRef=$1
@@ -169,9 +168,24 @@
       resourcegen --platform "$platform" --image-replacements "$tmpdir/image-replacements.txt" --add-load-balancers coordinator > "$tmpdir/coordinator_base.yml"
 
       pushd "$tmpdir" >/dev/null
-      cp ${pkgs.microsoft.genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego
-      cp ${pkgs.microsoft.genpolicy.settings-coordinator}/genpolicy-settings.json .
-      genpolicy < "$tmpdir/coordinator_base.yml"
+
+      case $platform in
+        "aks-clh-snp")
+          cp ${pkgs.microsoft.genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego
+          cp ${pkgs.microsoft.genpolicy.settings-coordinator}/genpolicy-settings.json .
+          ${pkgs.microsoft.genpolicy}/bin/genpolicy < "$tmpdir/coordinator_base.yml"
+        ;;
+        "k3s-qemu-snp"|"k3s-qemu-tdx"|"rke2-qemu-tdx")
+          cp ${pkgs.kata.genpolicy.rules}/genpolicy-rules.rego rules.rego
+          cp ${pkgs.kata.genpolicy.settings}/genpolicy-settings.json .
+          ${pkgs.kata.genpolicy}/bin/genpolicy < "$tmpdir/coordinator_base.yml"
+        ;;
+        *)
+          echo "Unsupported platform: {{ platform }}"
+          exit 1
+        ;;
+      esac
+
       popd >/dev/null
     '';
   };
