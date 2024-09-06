@@ -173,9 +173,10 @@ buildGoModule rec {
   subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
 
   prePatch = ''
-    install -D ${lib.getExe microsoft.genpolicy} cli/genpolicy/assets/genpolicy
+    install -D ${lib.getExe microsoft.genpolicy} cli/genpolicy/assets/microsoft/genpolicy
     install -D ${microsoft.genpolicy.settings}/genpolicy-settings.json cli/genpolicy/assets/microsoft/genpolicy-settings.json
     install -D ${microsoft.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/microsoft/genpolicy-rules.rego
+    install -D ${lib.getExe kata.genpolicy} cli/genpolicy/assets/kata/genpolicy
     install -D ${kata.genpolicy.settings}/genpolicy-settings.json cli/genpolicy/assets/kata/genpolicy-settings.json
     install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/kata/genpolicy-rules.rego
     install -D ${embeddedReferenceValues} internal/manifest/assets/reference-values.json

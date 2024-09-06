@@ -10,14 +10,15 @@ import (
 )
 
 var (
-	//go:embed assets/genpolicy
+	//go:embed assets/microsoft/genpolicy
 	genpolicyBin []byte
-
 	//go:embed assets/microsoft/genpolicy-settings.json
 	aksGenpolicySettings []byte
 	//go:embed assets/microsoft/genpolicy-rules.rego
 	aksCloudHypervisorSNPRules []byte
 
+	//go:embed assets/kata/genpolicy
+	kataGenpolicyBin []byte
 	//go:embed assets/kata/genpolicy-settings.json
 	kataGenpolicySettings []byte
 	//go:embed assets/kata/genpolicy-rules.rego

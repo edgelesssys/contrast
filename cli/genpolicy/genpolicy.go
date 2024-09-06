@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 
 	"github.com/edgelesssys/contrast/internal/embedbin"
+	"github.com/edgelesssys/contrast/internal/platforms"
 )
 
 // Runner is a wrapper around the genpolicy tool.
@@ -28,8 +29,15 @@ type Runner struct {
 }
 
 // New creates a new Runner for the given configuration.
-func New(rulesPath, settingsPath, cachePath string) (*Runner, error) {
+func New(platform platforms.Platform, rulesPath, settingsPath, cachePath string) (*Runner, error) {
 	e := embedbin.New()
+	var genpolicyBin []byte
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
+		genpolicyBin = aksGenpolicyBin
+	default:
+		genpolicyBin = kataGenpolicyBin
+	}
 	genpolicy, err := e.Install("", genpolicyBin)
 	if err != nil {
 		return nil, fmt.Errorf("installing genpolicy: %w", err)
