@@ -154,7 +154,6 @@ buildGoModule rec {
         (path.append root "go.mod")
         (path.append root "go.sum")
         (path.append root "cli/cmd/assets/image-replacements.txt")
-        (path.append root "cli/genpolicy/assets/allow-all.rego")
         (path.append root "internal/manifest/Milan.pem")
         (path.append root "internal/manifest/Genoa.pem")
         (path.append root "nodeinstaller")

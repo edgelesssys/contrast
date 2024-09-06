@@ -159,6 +159,7 @@
       microsoft.genpolicy
     ];
     text = ''
+      # TODO: Use different genpolicy depending on platform.
       imageRef=$1
       platform=$2
 

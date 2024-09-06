@@ -11,6 +11,7 @@
 (contrast.overrideAttrs (
   _finalAttrs: previousAttrs: {
     prePatch = ''
+      # Genpolicy
       install -D ${lib.getExe genpolicy} cli/genpolicy/assets/genpolicy
       install -D ${contrast.settings}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings.json
       install -D ${contrast.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules.rego
