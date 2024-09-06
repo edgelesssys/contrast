@@ -1,4 +1,4 @@
-name: e2e test AKS
+name: e2e test
 
 on:
   workflow_dispatch:
@@ -25,16 +25,40 @@ jobs:
   test_matrix:
     strategy:
       matrix:
+        platform:
+          - name: AKS-CLH-SNP
+            runner: ubuntu-22.04
+            self-hosted: false
+          - name: K3s-QEMU-SNP
+            runner: SNP
+            self-hosted: true
+          - name: K3s-QEMU-TDX
+            runner: TDX
+            self-hosted: true
         test_name: [servicemesh, openssl, policy, workloadsecret]
+        exclude:
+          # We don't have policies on K3s-qemu yet, so there's no point in
+          # running those tests.
+          - platform:
+              name: K3s-QEMU-SNP
+              runner: SNP
+              self-hosted: true
+            test_name: policy
+          - platform:
+              name: K3s-QEMU-TDX
+              runner: TDX
+              self-hosted: true
+            test_name: policy
       fail-fast: false
-    name: ${{ matrix.test_name }}
-    runs-on: ubuntu-22.04
+    name: "${{ matrix.platform.name }} / ${{ matrix.test_name }}"
+    runs-on: ${{ matrix.platform.runner }}
     permissions:
       contents: read
       packages: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - uses: ./.github/actions/setup_nix
+      - if: ${{ !matrix.platform.self-hosted }}
+        uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -44,7 +68,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Login to Azure
+      - if: ${{ !matrix.platform.self-hosted }}
+        name: Login to Azure
         uses: azure/login@6c251865b4e6290e7b78be643ea2d005bc51f69a # v2.1.1
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
@@ -55,10 +80,12 @@ jobs:
           container_registry=${{ env.container_registry }}
           azure_resource_group=${{ env.azure_resource_group }}
           EOF
-      - name: Get credentials for CI cluster
+      - if: ${{ !matrix.platform.self-hosted }}
+        name: Get credentials for CI cluster
         run: |
           just get-credentials
-      - name: Set sync environment
+      - if: ${{ !matrix.platform.self-hosted }}
+        name: Set sync environment
         run: |
           sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"
@@ -66,20 +93,20 @@ jobs:
           echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
       - name: Build and prepare deployments
         run: |
-          just coordinator initializer port-forwarder openssl service-mesh-proxy node-installer
+          just coordinator initializer port-forwarder openssl service-mesh-proxy node-installer ${{ matrix.platform.name }}
       - name: E2E Test
         run: |
           nix run .#scripts.get-logs workspace/e2e.namespace &
           nix shell -L .#contrast.e2e --command ${{ matrix.test_name }}.test -test.v \
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
-            --platform aks-clh-snp \
+            --platform ${{ matrix.platform.name }} \
             --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
-          name: e2e_pod_logs-${{ matrix.test_name }}
+          name: e2e_pod_logs-${{ matrix.platform.name }}-${{ matrix.test_name }}
           path: workspace/namespace-logs
       - name: Cleanup
         if: cancelled() && !inputs.skip-undeploy
