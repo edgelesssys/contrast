@@ -66,6 +66,8 @@ func main() {
 		case "emojivoto-sm-ingress":
 			subResources = kuberesource.Emojivoto(kuberesource.ServiceMeshIngressEgress)
 			subResources = kuberesource.PatchRuntimeHandlers(subResources, "contrast-cc")
+		case "volume-stateful-set":
+			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.VolumeStatefulSet(), "contrast-cc")
 		default:
 			log.Fatalf("Error: unknown set: %s\n", set)
 		}

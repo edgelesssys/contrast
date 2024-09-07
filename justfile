@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform) (deploy target cli platform) set verify (wait-for-workload target)
+default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl cryptsetup port-forwarder service-mesh-proxy (node-installer platform) (deploy target cli platform) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -14,6 +14,9 @@ coordinator: (push "coordinator")
 
 # Build the openssl container and push it.
 openssl: (push "openssl")
+
+# Build the cryptsetup container and push it.
+cryptsetup: (push "cryptsetup")
 
 # Build the port-forwarder container and push it.
 port-forwarder: (push "port-forwarder")
@@ -122,7 +125,7 @@ apply target=default_deploy_target:
             kubectl apply -f ./{{ workspace_dir }}/runtime
             exit 0
         ;;
-        "openssl" | "emojivoto")
+        "openssl" | "emojivoto" | "volume-stateful-set")
             :
         ;;
         *)
@@ -229,6 +232,9 @@ wait-for-workload target=default_deploy_target:
             nix run -L .#scripts.kubectl-wait-ready -- $ns vote-bot
             nix run -L .#scripts.kubectl-wait-ready -- $ns voting-svc
             nix run -L .#scripts.kubectl-wait-ready -- $ns web-svc
+        ;;
+        "volume-stateful-set")
+            nix run .#scripts.kubectl-wait-ready -- $ns volume-tester
         ;;
         *)
             echo "Please register workloads of new targets in wait-for-workload"

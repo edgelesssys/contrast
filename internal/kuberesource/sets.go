@@ -8,6 +8,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -495,4 +496,129 @@ func Emojivoto(smMode serviceMeshMode) []any {
 	})
 
 	return resources
+}
+
+// VolumeStatefulSet returns a stateful set for testing volume mounts and the
+// mounting of encrypted luks volumes using the workload-secret.
+func VolumeStatefulSet() []any {
+	initCommand := `#!/bin/bash
+# cryptsetup complains if there is no /run directory.
+mkdir /run
+set -e
+# device is the path to the block device to be encrypted.
+device="/dev/csi0"
+# workload_secret_path is the path to the Contrast workload secret.
+workload_secret_path="/contrast/secrets/workload-secret-seed"
+# tmp_key_path is the path to a temporary key file.
+tmp_key_path="/dev/shm/key"
+# disk_encryption_key_path is the path to the disk encryption key.
+disk_encryption_key_path="/dev/shm/disk-key"
+
+# If the device is not already a LUKS device, format it.
+if ! cryptsetup isLuks "${device}"; then
+	# Generate a random key for the first initialization.
+	dd if=/dev/urandom bs=1 count=32 2>/dev/null | base64 | tr -d '\n' > "${tmp_key_path}"
+	cryptsetup luksFormat $device "${tmp_key_path}" </dev/null
+
+	# Now we can get the LUKS UUID and deterministically derive the disk encryption key from the workload secret.
+	uuid=$(blkid "${device}" -s UUID -o value)
+	openssl kdf -keylen 32 -kdfopt digest:SHA2-256 -kdfopt key:$(cat "${workload_secret_path}") \
+		-kdfopt info:${uuid} -binary HKDF | base64 | tr -d '\n' > "${disk_encryption_key_path}"
+	cryptsetup luksChangeKey "${device}" --key-file "${tmp_key_path}" "${disk_encryption_key_path}"
+	cryptsetup open "${device}" state -d "${disk_encryption_key_path}"
+	mkfs.ext4 /dev/mapper/state
+	cryptsetup close state
+fi
+
+# No matter if this is the first initialization derive the key (again) and open the device.
+uuid=$(blkid "${device}" -s UUID -o value)
+openssl kdf -keylen 32 -kdfopt digest:SHA2-256 -kdfopt key:$(cat "${workload_secret_path}") \
+	-kdfopt info:${uuid} -binary HKDF | base64 | tr -d '\n' > "${disk_encryption_key_path}"
+cryptsetup luksUUID "${device}"
+cryptsetup open "${device}" state -d "${disk_encryption_key_path}"
+mkdir -p /srv/state
+mount /dev/mapper/state /srv/state
+sleep inf
+`
+
+	vss := StatefulSet("volume-tester", "").
+		WithSpec(StatefulSetSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "volume-tester"}),
+			).
+			WithServiceName("volume-tester").
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": "volume-tester"}).
+				WithSpec(
+					PodSpec().
+						WithInitContainers(
+							Container().
+								WithName("volume-tester-init").
+								WithImage("ghcr.io/edgelesssys/contrast/cryptsetup:latest").
+								WithCommand("/bin/sh", "-c", initCommand).
+								WithVolumeDevices(
+									applycorev1.VolumeDevice().
+										WithName("state").
+										WithDevicePath("/dev/csi0"),
+								).
+								WithVolumeMounts(
+									VolumeMount().
+										WithName("share").
+										WithMountPath("/srv").
+										WithMountPropagation(corev1.MountPropagationBidirectional),
+									VolumeMount().
+										WithName("contrast-secrets").
+										WithMountPath("/contrast"),
+								).
+								WithSecurityContext(
+									applycorev1.SecurityContext().
+										WithPrivileged(true),
+								).
+								WithResources(ResourceRequirements().
+									WithMemoryLimitAndRequest(100),
+								).
+								WithReadinessProbe(
+									Probe().
+										WithInitialDelaySeconds(1).
+										WithPeriodSeconds(5).
+										WithExec(applycorev1.ExecAction().
+											WithCommand("/bin/sh", "-c", "ls /srv/state"),
+										),
+								).
+								WithRestartPolicy(
+									corev1.ContainerRestartPolicyAlways,
+								),
+						).
+						WithContainers(
+							Container().
+								WithName("volume-tester").
+								WithImage("ghcr.io/edgelesssys/contrast/cryptsetup:latest").
+								WithCommand("/bin/sh", "-c", "sleep inf").
+								WithVolumeMounts(
+									VolumeMount().
+										WithName("share").
+										WithMountPath("/srv").
+										WithMountPropagation(corev1.MountPropagationHostToContainer),
+								),
+						).
+						WithVolumes(
+							applycorev1.Volume().
+								WithName("share").
+								WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
+						),
+				),
+			).
+			WithVolumeClaimTemplates(applycorev1.PersistentVolumeClaim("state", "").
+				WithSpec(applycorev1.PersistentVolumeClaimSpec().
+					WithVolumeMode(corev1.PersistentVolumeBlock).
+					WithAccessModes(corev1.ReadWriteOnce).
+					WithResources(applycorev1.VolumeResourceRequirements().
+						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
+					),
+				),
+			),
+		)
+
+	return []any{vss}
 }
