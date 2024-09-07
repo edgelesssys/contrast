@@ -1,0 +1,60 @@
+From e60354b386c9b50ee5f3a0804be66152fe0849d7 Mon Sep 17 00:00:00 2001
+From: Leonard Cohnen <lc@edgeless.systems>
+Date: Thu, 29 Aug 2024 03:45:24 +0200
+Subject: [PATCH 5/6] genpolicy: propagate mount_options for empty dirs
+
+In order to mount empty dirs e.g., with mount propagation "Bidirectional", we need the yaml value to the policy
+---
+ src/tools/genpolicy/src/mount_and_storage.rs | 16 +++++++++++++---
+ 1 file changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
+index 520d3a8cb..05a4521f0 100644
+--- a/src/tools/genpolicy/src/mount_and_storage.rs
++++ b/src/tools/genpolicy/src/mount_and_storage.rs
+@@ -127,7 +127,14 @@ pub fn get_mount_and_storage(
+         } else {
+             false
+         };
+-        get_empty_dir_mount_and_storage(settings, p_mounts, storages, yaml_mount, memory_medium);
++        get_empty_dir_mount_and_storage(
++            settings,
++            p_mounts,
++            storages,
++            yaml_mount,
++            memory_medium,
++            mount_options,
++        );
+     } else if yaml_volume.persistentVolumeClaim.is_some() {
+         get_persistent_volume_claim_mount(
+             settings,
+@@ -169,6 +176,7 @@ fn get_empty_dir_mount_and_storage(
+     storages: &mut Vec<agent::Storage>,
+     yaml_mount: &pod::VolumeMount,
+     memory_medium: bool,
++    mount_options: (&str, &str),
+ ) {
+     let settings_volumes = &settings.volumes;
+     let settings_empty_dir = if memory_medium {
+@@ -204,14 +212,16 @@ fn get_empty_dir_mount_and_storage(
+         &settings_empty_dir.mount_type
+     };
+ 
++    let (propagation, access) = mount_options;
++
+     p_mounts.push(policy::KataMount {
+         destination: yaml_mount.mountPath.to_string(),
+         type_: mount_type.to_string(),
+         source,
+         options: vec![
+             "rbind".to_string(),
+-            "rprivate".to_string(),
+-            "rw".to_string(),
++            propagation.to_string(),
++            access.to_string(),
+         ],
+     });
+ }
+-- 
+2.34.1
+

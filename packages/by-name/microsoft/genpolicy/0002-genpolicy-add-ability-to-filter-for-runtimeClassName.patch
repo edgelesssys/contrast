@@ -1,7 +1,7 @@
-From 2752fe7dd88dd8b09c2fb041f30f607c871cc2b9 Mon Sep 17 00:00:00 2001
+From c890911981a072a14c69d92f82ece28e5d55d7fa Mon Sep 17 00:00:00 2001
 From: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 Date: Tue, 9 Jul 2024 16:07:09 +0200
-Subject: [PATCH 2/4] genpolicy: add ability to filter for runtimeClassName
+Subject: [PATCH 2/6] genpolicy: add ability to filter for runtimeClassName
 
 Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 ---
@@ -176,5 +176,5 @@ index 8f06d291e..c898240af 100644
  
  /// See Reference / Kubernetes API / Common Definitions / LabelSelector.
 -- 
-2.45.1
+2.34.1
 

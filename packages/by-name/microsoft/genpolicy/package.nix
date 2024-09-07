@@ -45,6 +45,16 @@ rustPlatform.buildRustPackage rec {
       #
       # This patch is not upstreamable.
       ./0004-genpolicy-regex-check-contrast-specific-layer-src-pr.patch
+      # This patch builds on top of the Azure CSI patches specific to the msft
+      # version of genpolicy. Therefore, we don't attempt to upstream those changes.
+      # We can revisit this if microsoft upstreamed
+      # https://github.com/microsoft/kata-containers/pull/174
+      ./0005-genpolicy-propagate-mount_options-for-empty-dirs.patch
+      # This patch builds on top of the Azure CSI patches specific to the msft
+      # version of genpolicy. Therefore, we don't attempt to upstream those changes.
+      # We can revisit this if microsoft upstreamed
+      # https://github.com/microsoft/kata-containers/pull/174
+      ./0006-genpolicy-support-HostToContainer-mount-propagation.patch
     ];
   };
 

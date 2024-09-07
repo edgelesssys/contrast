@@ -1,7 +1,7 @@
-From 6b3b7179f3bc4b6109b9953d8447f763370840b4 Mon Sep 17 00:00:00 2001
+From 41f26a5803fa50abf3bd0d6cfebc8106ae9dcbc8 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Thu, 23 May 2024 09:20:20 +0200
-Subject: [PATCH 1/4] genpolicy: add rules and types for volumeDevices
+Subject: [PATCH 1/6] genpolicy: add rules and types for volumeDevices
 
 Signed-off-by: Markus Rudy <mr@edgeless.systems>
 ---
@@ -231,5 +231,5 @@ index 0a768ed8e..61d0ce3f0 100644
  }
  
 -- 
-2.45.1
+2.34.1
 
