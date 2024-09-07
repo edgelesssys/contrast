@@ -17,6 +17,7 @@ func TestPatchNamespaces(t *testing.T) {
 	coordinator := CoordinatorBundle()
 	openssl := OpenSSL()
 	emojivoto := Emojivoto(ServiceMeshIngressEgress)
+	volumeStatefulSet := VolumeStatefulSet()
 
 	for _, tc := range []struct {
 		name string
@@ -33,6 +34,10 @@ func TestPatchNamespaces(t *testing.T) {
 		{
 			name: "emojivoto",
 			set:  emojivoto,
+		},
+		{
+			name: "volume-stateful-set",
+			set:  volumeStatefulSet,
 		},
 	} {
 		t.Run(tc.name, func(_ *testing.T) {
