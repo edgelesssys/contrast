@@ -1,0 +1,28 @@
+From 8255b303a8d1c21ed22f2d9f7166101de151a9f4 Mon Sep 17 00:00:00 2001
+From: Leonard Cohnen <lc@edgeless.systems>
+Date: Fri, 30 Aug 2024 00:30:57 +0200
+Subject: [PATCH 6/6] genpolicy: support HostToContainer mount propagation
+
+---
+ src/tools/genpolicy/src/mount_and_storage.rs | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
+index 05a4521f0..c81dc0c52 100644
+--- a/src/tools/genpolicy/src/mount_and_storage.rs
++++ b/src/tools/genpolicy/src/mount_and_storage.rs
+@@ -108,8 +108,9 @@ pub fn get_mount_and_storage(
+     yaml_volume: &volume::Volume,
+     yaml_mount: &pod::VolumeMount,
+ ) {
+-    let propagation = match &yaml_mount.mountPropagation {
+-        Some(p) if p == "Bidirectional" => "rshared",
++    let propagation = match yaml_mount.mountPropagation.as_deref() {
++        Some("Bidirectional") => "rshared",
++        Some("HostToContainer") => "rslave",
+         _ => "rprivate",
+     };
+ 
+-- 
+2.34.1
+
