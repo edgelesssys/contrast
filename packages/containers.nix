@@ -78,6 +78,23 @@ let
       };
     };
 
+    cryptsetup = dockerTools.buildImage {
+      name = "cryptsetup";
+      tag = "v${pkgs.contrast.version}";
+      copyToRoot = with pkgs; [
+        busybox
+        cryptsetup
+        e2fsprogs # mkfs.ext4
+        mount
+        util-linux # blkid
+        openssl
+      ];
+      config = {
+        Cmd = [ "bash" ];
+        Env = [ "PATH=/bin" ]; # This is only here for policy generation.
+      };
+    };
+
     port-forwarder = dockerTools.buildImage {
       name = "port-forwarder";
       tag = "v${pkgs.contrast.version}";
