@@ -35,7 +35,7 @@ jobs:
           - name: K3s-QEMU-TDX
             runner: TDX
             self-hosted: true
-        test_name: [servicemesh, openssl, policy, workloadsecret]
+        test_name: [servicemesh, openssl, policy, workloadsecret, volumestatefulset]
         exclude:
           # We don't have policies on K3s-qemu yet, so there's no point in
           # running those tests.
@@ -49,6 +49,17 @@ jobs:
               runner: TDX
               self-hosted: true
             test_name: policy
+          # We don't have the policy support for CSI storage on K3s-qemu yet
+          - platform:
+              name: K3s-QEMU-SNP
+              runner: SNP
+              self-hosted: true
+            test_name: volumestatefulset
+          - platform:
+              name: K3s-QEMU-TDX
+              runner: TDX
+              self-hosted: true
+            test_name: volumestatefulset
       fail-fast: false
     name: "${{ matrix.platform.name }} / ${{ matrix.test_name }}"
     runs-on: ${{ matrix.platform.runner }}
@@ -93,7 +104,7 @@ jobs:
           echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
       - name: Build and prepare deployments
         run: |
-          just coordinator initializer port-forwarder openssl service-mesh-proxy node-installer ${{ matrix.platform.name }}
+          just coordinator initializer port-forwarder openssl cryptsetup service-mesh-proxy node-installer ${{ matrix.platform.name }}
       - name: E2E Test
         run: |
           nix run .#scripts.get-logs workspace/e2e.namespace &
