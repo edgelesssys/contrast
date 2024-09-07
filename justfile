@@ -57,7 +57,7 @@ node-installer platform=default_platform:
         ;;
     esac
 
-e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform)
+e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer cryptsetup openssl port-forwarder service-mesh-proxy (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
     nix shell .#contrast.e2e --command {{ target }}.test -test.v \

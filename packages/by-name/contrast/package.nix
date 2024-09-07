@@ -36,6 +36,7 @@ let
       "e2e/release"
       "e2e/policy"
       "e2e/workloadsecret"
+      "e2e/volumestatefulset"
       "e2e/regression"
     ];
   };
