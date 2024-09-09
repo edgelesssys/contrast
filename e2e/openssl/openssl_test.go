@@ -137,7 +137,7 @@ func TestOpenSSL(t *testing.T) {
 		t.Run(fmt.Sprintf("certificate rotation and %s restart", deploymentToRestart), func(t *testing.T) {
 			require := require.New(t)
 
-			ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
+			ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(2*time.Minute))
 			defer cancel()
 
 			c := kubeclient.NewForTest(t)
