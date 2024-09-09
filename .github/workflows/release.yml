@@ -296,6 +296,10 @@ jobs:
           mkdir -p workspace
           for platform in aks-clh-snp k3s-qemu-tdx k3s-qemu-snp rke2-qemu-tdx; do
             nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" "${platform}" > workspace/coordinator-$platform.yml
+            echo -n "${platform} " >> workspace/coordinator-policy.hash
+            yq < workspace/coordinator-$platform.yml \
+              'select(.kind == "StatefulSet") | .spec.template.metadata.annotations["io.katacontainers.config.agent.policy"]' |
+              base64 -d | sha256sum | cut -d " " -f1 >> workspace/coordinator-policy.hash
             nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --platform $platform \
               --namespace kube-system runtime > workspace/runtime-$platform.yml
           done
@@ -337,6 +341,7 @@ jobs:
           files: |
             result-cli/bin/contrast
             workspace/coordinator-*.yml
+            workspace/coordinator-policy.hash
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
       - name: Reset temporary changes
