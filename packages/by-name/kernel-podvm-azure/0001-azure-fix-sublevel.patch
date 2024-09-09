@@ -1,0 +1,25 @@
+From d492c78b4db68c39ee38799b8fe0fee5c9ba4e9f Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Mon, 15 Apr 2024 16:54:38 +0200
+Subject: [PATCH] fix sublevel
+
+Signed-off-by: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+---
+ Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Makefile b/Makefile
+index 15958568c..da457313a 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0
+ VERSION = 6
+ PATCHLEVEL = 2
+-SUBLEVEL = 16
++SUBLEVEL = 0
+ EXTRAVERSION =
+ NAME = Hurr durr I'ma ninja sloth
+
+--
+2.44.0
