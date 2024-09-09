@@ -29,6 +29,8 @@
         pkgs = import nixpkgs {
           inherit system;
           overlays = [ (import ./overlays/nixpkgs.nix) ];
+          config.allowUnfree = true;
+          config.nvidia.acceptLicense = true;
         };
         inherit (pkgs) lib;
         treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
