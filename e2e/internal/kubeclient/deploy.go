@@ -239,6 +239,11 @@ retryLoop:
 					return err
 				}
 				if desiredPods <= numPodsReady {
+					// Wait for 5 more seconds just to be *really* sure that
+					// the pods are actually up.
+					sleep, cancel := context.WithTimeout(ctx, time.Second*5)
+					defer cancel()
+					<-sleep.Done()
 					return nil
 				}
 			case watch.Deleted:
