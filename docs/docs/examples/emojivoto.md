@@ -63,6 +63,11 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp.yml
 ```
 </TabItem>
+<TabItem value="k3s-qemu-tdx" label="Bare Metal (TDX)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-tdx.yml
+```
+</TabItem>
 </Tabs>
 
 ### Deploy the Contrast Coordinator
@@ -79,6 +84,11 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 <TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp.yml
+```
+</TabItem>
+<TabItem value="k3s-qemu-tdx" label="Bare Metal (TDX)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-tdx.yml
 ```
 </TabItem>
 </Tabs>
@@ -98,6 +108,11 @@ contrast generate --reference-values aks-clh-snp deployment/
 <TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
 ```sh
 contrast generate --reference-values k3s-qemu-snp deployment/
+```
+</TabItem>
+<TabItem value="k3s-qemu-tdx" label="Bare Metal (TDX)">
+```sh
+contrast generate --reference-values k3s-qemu-tdx deployment/
 ```
 </TabItem>
 </Tabs>

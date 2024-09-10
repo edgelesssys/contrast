@@ -8,7 +8,10 @@ confidential and deploying it together with Contrast.
 A running CoCo-enabled cluster is required for these steps, see the [setup guide](./getting-started/cluster-setup.md) on how to set up a cluster on AKS.
 </TabItem>
 <TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
-A running CoCo-enabled cluster is required for these steps, see the [setup guide](./getting-started//bare-metal.md) on how to set up a bare metal cluster.
+A running CoCo-enabled cluster is required for these steps, see the [setup guide](./getting-started/bare-metal.md) on how to set up a bare metal cluster.
+</TabItem>
+<TabItem value="k3s-qemu-tdx" label="Bare Metal (TDX)">
+A running CoCo-enabled cluster is required for these steps, see the [setup guide](./getting-started/bare-metal.md) on how to set up a bare metal cluster.
 </TabItem>
 </Tabs>
 
@@ -31,6 +34,11 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp.yml
 ```
 </TabItem>
+<TabItem value="k3s-qemu-tdx" label="Bare Metal (TDX)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-tdx.yml
+```
+</TabItem>
 </Tabs>
 
 ## Deploy the Contrast Coordinator
@@ -47,6 +55,11 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 <TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp.yml
+```
+</TabItem>
+<TabItem value="k3s-qemu-tdx" label="Bare Metal (TDX)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-tdx.yml
 ```
 </TabItem>
 </Tabs>
@@ -194,6 +207,11 @@ contrast generate --reference-values aks-clh-snp resources/
 contrast generate --reference-values k3s-qemu-snp resources/
 ```
 </TabItem>
+<TabItem value="k3s-qemu-tdx" label="Bare Metal (TDX)">
+```sh
+contrast generate --reference-values k3s-qemu-tdx resources/
+```
+</TabItem>
 </Tabs>
 
 :::warning
@@ -219,6 +237,11 @@ contrast generate --reference-values aks-clh-snp --skip-initializer resources/
 <TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
 ```sh
 contrast generate --reference-values k3s-qemu-snp --skip-initializer resources/
+```
+</TabItem>
+<TabItem value="k3s-qemu-tdx" label="Bare Metal (TDX)">
+```sh
+contrast generate --reference-values k3s-qemu-tdx --skip-initializer resources/
 ```
 </TabItem>
 </Tabs>
