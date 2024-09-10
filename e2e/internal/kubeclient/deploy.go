@@ -255,8 +255,8 @@ retryLoop:
 	}
 }
 
-// WaitForLoadBalancer waits until the given service is configured with an external IP and returns it.
-func (c *Kubeclient) WaitForLoadBalancer(ctx context.Context, namespace, name string) (string, error) {
+// WaitForService waits until the given service is configured with an external IP and returns it.
+func (c *Kubeclient) WaitForService(ctx context.Context, namespace, name string, loadBalancer bool) (string, error) {
 	watcher, err := c.Client.CoreV1().Services(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
 	if err != nil {
 		return "", err
@@ -280,13 +280,20 @@ loop:
 			if !ok {
 				return "", fmt.Errorf("watcher received unexpected type %T", evt.Object)
 			}
-			for _, ingress := range svc.Status.LoadBalancer.Ingress {
-				if ingress.IP != "" {
-					ip = ingress.IP
-					// TODO(burgerdev): deal with more than one port, and protocols other than TCP
-					port = int(svc.Spec.Ports[0].Port)
-					break loop
+			if loadBalancer {
+				for _, ingress := range svc.Status.LoadBalancer.Ingress {
+					if ingress.IP != "" {
+						ip = ingress.IP
+						// TODO(burgerdev): deal with more than one port, and protocols other than TCP
+						port = int(svc.Spec.Ports[0].Port)
+						break loop
+					}
 				}
+			} else {
+				ip = svc.Spec.ClusterIP
+				// TODO(burgerdev): deal with more than one port, and protocols other than TCP
+				port = int(svc.Spec.Ports[0].Port)
+				break loop
 			}
 		case watch.Deleted:
 			return "", fmt.Errorf("service %s/%s was deleted while waiting for it", namespace, name)
