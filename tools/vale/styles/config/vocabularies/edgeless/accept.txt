@@ -18,6 +18,7 @@ bootloader
 Bootstrapper
 cachable
 cachix
+Canonical
 changeset
 CLI
 cloud
