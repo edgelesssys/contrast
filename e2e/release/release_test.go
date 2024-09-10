@@ -51,6 +51,8 @@ func TestRelease(t *testing.T) {
 	k := kubeclient.NewForTest(t)
 
 	lowerPlatformStr := strings.ToLower(*platformStr)
+	// On AKS, wait for a load balancer, on bare-metal connect directly to the cluster IP.
+	hasLoadBalancer := strings.HasPrefix(lowerPlatformStr, "aks-")
 
 	dir := fetchRelease(ctx, t)
 
@@ -119,7 +121,7 @@ func TestRelease(t *testing.T) {
 
 		require.NoError(k.Apply(ctx, resources...))
 		require.NoError(k.WaitFor(ctx, kubeclient.StatefulSet{}, "default", "coordinator"))
-		coordinatorIP, err = k.WaitForLoadBalancer(ctx, "default", "coordinator")
+		coordinatorIP, err = k.WaitForService(ctx, "default", "coordinator", hasLoadBalancer)
 		require.NoError(err)
 	}), "the coordinator is required for subsequent tests to run")
 
@@ -184,7 +186,7 @@ func TestRelease(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 		defer cancel()
 
-		emojiwebIP, err := k.WaitForLoadBalancer(ctx, "default", "web-svc")
+		emojiwebIP, err := k.WaitForService(ctx, "default", "web-svc", hasLoadBalancer)
 		require.NoError(err)
 
 		cfg := &tls.Config{RootCAs: x509.NewCertPool()}
