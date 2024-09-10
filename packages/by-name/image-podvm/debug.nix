@@ -19,29 +19,19 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs; [
+      busybox
       tpm2-tools
       ncurses
       findutils
       curlMinimal
       util-linux
       coreutils
-      busybox
       strace
-      kata-agent
     ];
-
-    virtualisation.docker.enable = true;
 
     services.getty.autologinUser = "root";
-    users.users.root.initialPassword = "";
 
-    boot.kernelParams = [
-      "console=ttyS0"
-      "console=ttyS1"
-      "console=tty0"
-      "console=tty1"
-    ];
-
+    boot.kernelParams = [ "console=ttyS0" ];
     boot.initrd.systemd.emergencyAccess = true;
     systemd.enableEmergencyMode = true;
   };
