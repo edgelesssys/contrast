@@ -37,6 +37,9 @@
 
       # Root filesystem.
       "10-root" = {
+        contents = {
+          "/pause_bundle".source = "${pkgs.pause-bundle}/pause_bundle";
+        };
         storePaths = [ config.system.build.toplevel ];
         repartConfig = {
           Type = "root";

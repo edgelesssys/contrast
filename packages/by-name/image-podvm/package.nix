@@ -8,7 +8,7 @@
   jq,
 
   withDebug ? true,
-  withGPU ? true,
+  withGPU ? false,
   withCSP ? "azure",
 }:
 
@@ -35,6 +35,7 @@ in
       ./debug.nix
       ./gpu.nix
       ./image.nix
+      ./kata.nix
       ./system.nix
     ];
 
@@ -45,7 +46,12 @@ in
     # TODO(katexochen): imporve, see comment above.
     nixpkgs.overlays = [
       (_self: _super: {
-        inherit (outerPkgs) azure-no-agent kernel-podvm-azure;
+        inherit (outerPkgs)
+          azure-no-agent
+          cloud-api-adaptor
+          kernel-podvm-azure
+          pause-bundle
+          ;
         inherit (outerPkgs.kata) kata-agent;
       })
     ];

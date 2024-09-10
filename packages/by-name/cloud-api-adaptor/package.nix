@@ -7,6 +7,9 @@
   fetchFromGitHub,
   pkg-config,
   libvirt,
+  writeShellApplication,
+  gnugrep,
+  runCommand,
 
   # List of supported cloud providers
   builtinCloudProviders ? [
@@ -18,6 +21,8 @@
     # "libvirt"
     # "docker"
   ],
+
+  cloud-api-adaptor,
 }:
 
 let
@@ -57,6 +62,18 @@ buildGoModule rec {
   ldflags = [
     "-X 'github.com/confidential-containers/cloud-api-adaptor/src/cloud-api-adaptor/cmd.VERSION=${version}'"
   ];
+
+  passthru = {
+    kata-agent-clean = writeShellApplication {
+      name = "kata-agent-clean";
+      runtimeInputs = [ gnugrep ];
+      text = builtins.readFile "${cloud-api-adaptor.src}/src/cloud-api-adaptor/podvm/files/usr/local/bin/kata-agent-clean";
+    };
+
+    default-policy = runCommand "default-policy" { } ''
+      cp ${cloud-api-adaptor.src}/src/cloud-api-adaptor/podvm/files/etc/kata-opa/allow-all.rego $out
+    '';
+  };
 
   meta = {
     description = "Ability to create Kata pods using cloud provider APIs aka the peer-pods approach";
