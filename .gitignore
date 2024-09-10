@@ -14,3 +14,10 @@ node_modules
 .docusaurus
 build/
 .worktree
+.terraform*
+*.tfvars
+terraform.tfstate*
+id_rsa*
+kube.conf
+out.env
+infra/**/kustomization.yaml
