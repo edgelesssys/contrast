@@ -38,7 +38,7 @@ following variables to your container definition.
 ```yaml
 spec: # v1.PodSpec
   containers:
-    image: "ghcr.io/edgelesssys/contrast/coordinator:latest"
+    image: "ghcr.io/edgelesssys/contrast/coordinator:v1.1.0@sha256:dcecf2994bdeb290e215c480748dbbbc08a07763dad5d3f8ea2ae0bba084174e"
     name: coordinator
     env:
     - name: CONTRAST_LOG_LEVEL
