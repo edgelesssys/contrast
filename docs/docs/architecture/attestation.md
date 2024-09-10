@@ -39,8 +39,8 @@ The root filesystem contains all  components of the container's runtime environm
 In the userland, the guest agent takes care of enforcing the [runtime policy](../components/overview.md#runtime-policies) of the pod.
 While the policy is passed in during the initialization procedure via the host, the evidence for the runtime policy is part of the CPU measurements.
 During the [deployment](../deployment.md#generate-policy-annotations-and-manifest) the policy is annotated to the Kubernetes Pod resources.
-On AMD SEV-SNP the hash of the policy is then added to the attestation report via the `HOSTDATA` field by the hypervisor.
-When provided with the policy from the Kata host, the guest agent verifies that the policy's hash matches the one in the `HOSTDATA` field.
+The hypervisor adds the hash of the policy to the attestation report via the HOSTDATA (on AMD SEV-SNP) or MRCONFIGID (Intel TDX) fields.
+When provided with the policy from the Kata host, the guest agent verifies that the policy's hash matches the one in the `HOSTDATA`/`MRCONFIGID` field.
 
 In summary a Pod's evidence is the attestation report of the CPU that provides evidence for runtime environment and the runtime policy.
 
@@ -92,7 +92,7 @@ By validating the runtime environment and the policies enforced on it, Contrast 
 
 ### How does Contrast ensure the security of the attestation process?
 
-Contrast leverages hardware-rooted security features such as AMD SEV-SNP to generate cryptographic evidence of a pod’s current state and configuration.
+Contrast leverages hardware-rooted security features such as AMD SEV-SNP or Intel TDX to generate cryptographic evidence of a pod’s current state and configuration.
 This evidence is checked against pre-defined appraisal policies to guarantee that only verified and authorized pods are part of a Contrast deployment.
 
 ### What security benefits does attestation provide?

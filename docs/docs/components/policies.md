@@ -36,10 +36,10 @@ These constitute the policy's *OCI data*.
 ## Evaluation
 
 The generated policy document is annotated to the pod definitions in Base64 encoding.
-This annotation is propagated to the Kata runtime, which calculates the SHA256 checksum for the policy and uses that as SNP `HOSTDATA` for the confidential micro-VM.
+This annotation is propagated to the Kata runtime, which calculates the SHA256 checksum for the policy and uses that as SNP `HOSTDATA` or TDX `MRCONFIGID` for the confidential micro-VM.
 
 After the VM launched, the runtime calls the agent's `SetPolicy` method with the full policy document.
-If the policy doesn't match the checksum in `HOSTDATA`, the agent rejects the policy.
+If the policy doesn't match the checksum in `HOSTDATA` or `MRCONFIGID`, the agent rejects the policy.
 Otherwise, it applies the policy to all future `AgentService` requests.
 
 ## Guarantees
@@ -66,12 +66,12 @@ Contrast verifies its confidential containers following these steps:
 1. The Contrast CLI generates a policy and attaches it to the pod definition.
 2. Kubernetes schedules the pod on a node with the confidential computing runtime.
 3. Containerd invokes the Kata runtime to create the pod sandbox.
-4. The Kata runtime starts a CVM with the policy's digest as `HOSTDATA`.
+4. The Kata runtime starts a CVM with the policy's digest as `HOSTDATA`/`MRCONFIGID`.
 5. The Kata runtime sets the policy using the `SetPolicy` method.
-6. The Kata agent verifies that the incoming policy's digest matches `HOSTDATA`.
+6. The Kata agent verifies that the incoming policy's digest matches `HOSTDATA`/`MRCONFIGID`.
 7. The CLI sets a manifest in the Contrast Coordinator, including a list of permitted policies.
 8. The Contrast Initializer sends an attestation report to the Contrast Coordinator, asking for a mesh certificate.
-9. The Contrast Coordinator verifies that the started pod has a permitted policy hash in its `HOSTDATA` field.
+9. The Contrast Coordinator verifies that the started pod has a permitted policy hash in its `HOSTDATA`/`MRCONFIGID` field.
 
 After the last step, we know that the policy hasn't been tampered with and, thus, that the workload matches expectations and may receive mesh certificates.
 
