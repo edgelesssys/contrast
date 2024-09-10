@@ -33,3 +33,7 @@ The policy limitations, in particular the missing guarantee that our service mes
 The Contrast Coordinator is a singleton and can't be scaled to more than one instance.
 When this instance's pod is restarted, for example for node maintenance, it needs to be recovered manually.
 In a future release, we plan to support distributed Coordinator instances that can recover automatically.
+
+## Attestation
+
+Attestation for TDX isn't completely implemented yet and shouldn't yet be relied upon for security. This will be fixed in a future release.
