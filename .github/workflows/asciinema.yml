@@ -57,7 +57,7 @@ jobs:
         run: |
           curl -fsSL "${SYNC_IP}:8080/fifo/${SYNC_FIFO}/done/${SYNC_TICKET}"
       - name: Create PR
-        uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c # v6.1.0
+        uses: peter-evans/create-pull-request@8867c4aba1b742c39f8d0ba35429c2dfa4b6cb20 # v7.0.1
         with:
           title: "tools/asciinema: update screencast"
           commit-message: "tools/asciinema: update screencast"
