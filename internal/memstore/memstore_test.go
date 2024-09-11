@@ -177,7 +177,7 @@ func TestStoreConcurrent(t *testing.T) {
 			defer wg.Done()
 			s.Set(key, value)
 		}
-		clear := func() {
+		clearStore := func() {
 			defer wg.Done()
 			s.Clear()
 		}
@@ -187,10 +187,10 @@ func TestStoreConcurrent(t *testing.T) {
 		}
 
 		wg.Add(16)
-		go clear()
-		go clear()
-		go clear()
-		go clear()
+		go clearStore()
+		go clearStore()
+		go clearStore()
+		go clearStore()
 		go set("foo", 1)
 		go set("bar", 2)
 		go set("baz", 3)
@@ -199,10 +199,10 @@ func TestStoreConcurrent(t *testing.T) {
 		go getAll()
 		go getAll()
 		go getAll()
-		go clear()
-		go clear()
-		go clear()
-		go clear()
+		go clearStore()
+		go clearStore()
+		go clearStore()
+		go clearStore()
 		wg.Wait()
 
 		s.Clear()
