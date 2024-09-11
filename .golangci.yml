@@ -32,7 +32,6 @@ linters:
     - errchkjson
     - errname
     - errorlint
-    - exportloopref
     - forcetypeassert
     - gocheckcompilerdirectives
     - gochecknoinits
