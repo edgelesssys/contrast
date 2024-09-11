@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/assets/css/styles.e12c56bb.css">
-<script src="/contrast/assets/js/runtime~main.cc6106aa.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.ed81b61f.js" defer="defer"></script>
 <script src="/contrast/assets/js/main.4e433634.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -76,6 +76,7 @@ for the load balancer to be created and the Coordinator being available.</p>
 <p>The CLI will use the reference values from the manifest to attest the Coordinator deployment
 during the TLS handshake. If the connection succeeds, it&#x27;s ensured that the Coordinator
 deployment hasn&#x27;t been tampered with.</p>
+<div class="theme-admonition theme-admonition-warning admonition_xJq3 alert alert--warning"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.893 1.5c-.183-.31-.52-.5-.887-.5s-.703.19-.886.5L.138 13.499a.98.98 0 0 0 0 1.001c.193.31.53.501.886.501h13.964c.367 0 .704-.19.877-.5a1.03 1.03 0 0 0 .01-1.002L8.893 1.5zm.133 11.497H6.987v-2.003h2.039v2.003zm0-3.004H6.987V5.987h2.039v4.006z"></path></svg></span>warning</div><div class="admonitionContent_BuS1"><p>On bare metal, the <a href="/contrast/next/components/policies#platform-differences">coordinator policy hash</a> must be overwritten using <code>--coordinator-policy-hash</code>.</p></div></div>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="deploy-emojivoto">Deploy emojivoto<a href="#deploy-emojivoto" class="hash-link" aria-label="Direct link to Deploy emojivoto" title="Direct link to Deploy emojivoto">​</a></h3>
 <p>Now that the coordinator has a manifest set, which defines the emojivoto deployment as an allowed workload,
 we can deploy the application:</p>
@@ -105,6 +106,7 @@ Computing environment with the expected code version. The Coordinator will then 
 configuration over the established TLS channel. The CLI will store this information, namely the root
 certificate of the mesh (<code>mesh-ca.pem</code>) and the history of manifests, into the <code>verify/</code> directory.
 In addition, the policies referenced in the manifest history are also written into the same directory.</p>
+<div class="theme-admonition theme-admonition-warning admonition_xJq3 alert alert--warning"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.893 1.5c-.183-.31-.52-.5-.887-.5s-.703.19-.886.5L.138 13.499a.98.98 0 0 0 0 1.001c.193.31.53.501.886.501h13.964c.367 0 .704-.19.877-.5a1.03 1.03 0 0 0 .01-1.002L8.893 1.5zm.133 11.497H6.987v-2.003h2.039v2.003zm0-3.004H6.987V5.987h2.039v4.006z"></path></svg></span>warning</div><div class="admonitionContent_BuS1"><p>On bare metal, the <a href="/contrast/next/components/policies#platform-differences">coordinator policy hash</a> must be overwritten using <code>--coordinator-policy-hash</code>.</p></div></div>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="manifest-history-and-artifact-audit">Manifest history and artifact audit<a href="#manifest-history-and-artifact-audit" class="hash-link" aria-label="Direct link to Manifest history and artifact audit" title="Direct link to Manifest history and artifact audit">​</a></h3>
 <p>In the next step, the Coordinator configuration that was written by the <code>verify</code> command needs to be audited.
 A potential voter should inspect the manifest and the referenced policies. They could delegate
@@ -135,6 +137,7 @@ after the manifest update are thus issued by another certificate authority and s
 won&#x27;t trust parts of the deployment that got their certificate issued before the update. This way, Contrast ensures
 that parts of the deployment that received a security update won&#x27;t be infected by parts of the deployment at an older
 patch level that may have been compromised. The <code>mesh-ca.pem</code> is updated with the new CA certificate chain.</p>
+<div class="theme-admonition theme-admonition-warning admonition_xJq3 alert alert--warning"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.893 1.5c-.183-.31-.52-.5-.887-.5s-.703.19-.886.5L.138 13.499a.98.98 0 0 0 0 1.001c.193.31.53.501.886.501h13.964c.367 0 .704-.19.877-.5a1.03 1.03 0 0 0 .01-1.002L8.893 1.5zm.133 11.497H6.987v-2.003h2.039v2.003zm0-3.004H6.987V5.987h2.039v4.006z"></path></svg></span>warning</div><div class="admonitionContent_BuS1"><p>On bare metal, the <a href="/contrast/next/components/policies#platform-differences">coordinator policy hash</a> must be overwritten using <code>--coordinator-policy-hash</code>.</p></div></div>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="rolling-out-the-update">Rolling out the update<a href="#rolling-out-the-update" class="hash-link" aria-label="Direct link to Rolling out the update" title="Direct link to Rolling out the update">​</a></h3>
 <p>The Coordinator has the new manifest set, but the different containers of the app are still
 using the older certificate authority. The Contrast Initializer terminates after the initial attestation
