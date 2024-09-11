@@ -5,7 +5,6 @@
   qemu,
   libaio,
   dtc,
-  fetchurl,
   python3Packages,
 }:
 let
@@ -29,13 +28,6 @@ in
   hostCpuTargets = [ "x86_64-softmmu" ];
 })).overrideAttrs
   (previousAttrs: rec {
-    version = "9.1.0-rc4";
-
-    src = fetchurl {
-      url = "https://download.qemu.org/qemu-${version}.tar.xz";
-      hash = "sha256-gnvAOou9nR+yU67yK4Sa2fM2ZChR8zINoLy12ZROhSw=";
-    };
-
     configureFlags = previousAttrs.configureFlags ++ [
       "-Dlinux_aio_path=${libaio}/lib"
       "-Dlinux_fdt_path=${patchedDtc}/lib"
