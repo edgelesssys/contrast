@@ -101,7 +101,7 @@ let
       tdxRefVals = {
         tdx = [
           {
-            mrTd = fakeSha384Hash;
+            mrTd = builtins.readFile "${kata.tdx-launch-digests}/mrtd.hex";
             rtrms = [
               fakeSha384Hash
               fakeSha384Hash
