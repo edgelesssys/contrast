@@ -162,7 +162,10 @@ buildGoModule rec {
         (path.append root "nodeinstaller")
         (path.append root "internal/attestation/tdx/Intel_SGX_Provisioning_Certification_RootCA.pem")
         (fileset.difference (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
-          path.append root "service-mesh"
+          fileset.unions [
+            (path.append root "service-mesh")
+            (path.append root "tools/tdx-measure")
+          ]
         ))
       ];
     };
