@@ -94,7 +94,7 @@ azClusterName="ContrastDemo"
 az aks create \
   --resource-group "${azResourceGroup:?}" \
   --name "${azClusterName:?}" \
-  --kubernetes-version 1.29 \
+  --kubernetes-version 1.30 \
   --os-sku AzureLinux \
   --node-vm-size Standard_DC4as_cc_v5 \
   --workload-runtime KataCcIsolation \
