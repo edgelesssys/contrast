@@ -13,7 +13,7 @@ set -euo pipefail
 
 name=""
 location="GermanyWestCentral"
-k8sVersion="1.29"
+k8sVersion="1.30"
 
 for i in "$@"; do
   case $i in
