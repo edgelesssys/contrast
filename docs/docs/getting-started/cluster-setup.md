@@ -85,10 +85,7 @@ az group create \
 
 ## Create AKS cluster
 
-First, we need to create an AKS cluster. We can't directly create a CoCo-enabled cluster, so we'll need to create a
-non-CoCo cluster first, and then add a CoCo node pool, optionally replacing the non-CoCo node pool.
-
-We'll first start by creating the non-CoCo cluster:
+First, create a CoCo enabled AKS cluster with:
 
 ```sh
 # Select the name for your AKS cluster
@@ -100,30 +97,9 @@ az aks create \
   --kubernetes-version 1.29 \
   --os-sku AzureLinux \
   --node-vm-size Standard_DC4as_cc_v5 \
+  --workload-runtime KataCcIsolation \
   --node-count 1 \
   --generate-ssh-keys
-```
-
-We then add a second node pool with CoCo support:
-
-```bash
-az aks nodepool add \
-  --resource-group "${azResourceGroup:?}" \
-  --name nodepool2 \
-  --cluster-name "${azClusterName:?}" \
-  --node-count 1 \
-  --os-sku AzureLinux \
-  --node-vm-size Standard_DC4as_cc_v5 \
-  --workload-runtime KataCcIsolation
-```
-
-Optionally, we can now remove the non-CoCo node pool:
-
-```bash
-az aks nodepool delete \
-  --resource-group "${azResourceGroup:?}" \
-  --cluster-name "${azClusterName:?}" \
-  --name nodepool1
 ```
 
 Finally, update your kubeconfig with the credentials to access the cluster:
@@ -140,12 +116,11 @@ For validation, list the available nodes using kubectl:
 kubectl get nodes
 ```
 
-It should show two nodes:
+It should show a single node:
 
 ```bash
 NAME                                STATUS   ROLES    AGE     VERSION
 aks-nodepool1-32049705-vmss000000   Ready    <none>   9m47s   v1.29.0
-aks-nodepool2-32238657-vmss000000   Ready    <none>   45s     v1.29.0
 ```
 
 ## Cleanup
