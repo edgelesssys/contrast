@@ -96,12 +96,12 @@
     "hash": "sha256-pco7TmLwLTuWKT87qTTAnin5IeoHAiXzbK3p6nJ0BKI="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-8.8.0-1.cm2.x86_64.rpm",
-    "hash": "sha256-BjePq1rlNEVhTR6adGLXeOWS8Q1LCI70ozfoyTyrlmg="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-8.8.0-2.cm2.x86_64.rpm",
+    "hash": "sha256-05xesJ8/PxUUVNcHRt5Jwt8K2nH0zvdzpuOno17qdig="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-libs-8.8.0-1.cm2.x86_64.rpm",
-    "hash": "sha256-/fALuc8RCVVc3d0IpJqHcbBXi/b8e4xReqeBPJ62UFU="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-libs-8.8.0-2.cm2.x86_64.rpm",
+    "hash": "sha256-HCnEvNvhdzQlm/Nk/iV+ampCUrykhasYHRvD7x4OGvQ="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/cyrus-sasl-lib-2.1.28-4.cm2.x86_64.rpm",
@@ -140,12 +140,12 @@
     "hash": "sha256-pRI7/zb7FDLFSiKHWqkm+ijy4YBk928n6l7D7ydkpLw="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/e/expat-2.6.2-2.cm2.x86_64.rpm",
-    "hash": "sha256-6I2mCGEGprX5C4qNct6PaPfFAU+7hPiOfhBxcl72xd8="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/e/expat-2.6.3-1.cm2.x86_64.rpm",
+    "hash": "sha256-qQhh9sJcB+ts0gAlsjdx37MEze3JC3RjjyiPXS1LtlY="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/e/expat-libs-2.6.2-2.cm2.x86_64.rpm",
-    "hash": "sha256-5bbAXY/HU8kZK45+9JCq/8SZRBdKuGH9AtHJLnPmLgs="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/e/expat-libs-2.6.3-1.cm2.x86_64.rpm",
+    "hash": "sha256-6A7QgPmQ/VfufP9ptj3DJBOdAEqrS6vwcPipSVw1VAE="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/f/file-5.40-2.cm2.x86_64.rpm",
