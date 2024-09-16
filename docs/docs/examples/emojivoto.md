@@ -5,7 +5,7 @@
 ![screenshot of the emojivoto UI](../_media/emoijvoto.png)
 
 **This tutorial guides you through deploying [emojivoto](https://github.com/BuoyantIO/emojivoto) as a
-confidential Contrast deployment and validating the deployment from a voters perspective.**
+confidential Contrast deployment and validating the deployment from a voter's perspective.**
 
 Emojivoto is an example app allowing users to vote for different emojis and view votes
 on a leader board. It has a microservice architecture consisting of a

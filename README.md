@@ -10,7 +10,7 @@ Confidential Containers are Kubernetes pods that are executed inside a confident
 This works with unmodified containers in a lift-and-shift approach.
 Contrast currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview).
 
-<img src="docs/static/img/concept.svg" alt="Concept" width="85%"/>
+<img src="docs/static/img/concept.svg" alt="Concept" width="80%"/>
 
 ## Goal
 
