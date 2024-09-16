@@ -339,8 +339,7 @@ func (m *Manifest) TDXValidateOpts() ([]*tdxvalidate.Options, error) {
 				TdAttributes:     tdAttributes,
 				Xfam:             xfam,
 				MrTd:             mrTd,
-				// TODO(freax13): Re-enable validation of those fields once we figure out how to calculate the launch measurement.
-				// Rtmrs:            rtmrs[:],
+				Rtmrs:            rtmrs[:],
 			},
 		})
 		_ = mrTd

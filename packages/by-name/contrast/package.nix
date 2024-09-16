@@ -96,17 +96,15 @@ let
             }
           ];
       };
-
-      fakeSha384Hash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
       tdxRefVals = {
         tdx = [
           {
             mrTd = builtins.readFile "${kata.tdx-launch-digests}/mrtd.hex";
             rtrms = [
-              fakeSha384Hash
-              fakeSha384Hash
-              fakeSha384Hash
-              fakeSha384Hash
+              (builtins.readFile "${kata.tdx-launch-digests}/rtmr0.hex")
+              (builtins.readFile "${kata.tdx-launch-digests}/rtmr1.hex")
+              (builtins.readFile "${kata.tdx-launch-digests}/rtmr2.hex")
+              (builtins.readFile "${kata.tdx-launch-digests}/rtmr3.hex")
             ];
             minimumQeSvn = 0;
             minimumPceSvn = 0;
