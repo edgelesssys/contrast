@@ -22,3 +22,5 @@ id_rsa*
 kube.conf
 out.env
 infra/**/kustomization.yaml
+infra/**/workload-identity.yaml
+uplosi.conf*
