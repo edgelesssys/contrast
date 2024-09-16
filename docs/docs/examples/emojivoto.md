@@ -169,16 +169,16 @@ In addition, the policies referenced in the manifest history are also written in
 On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
 :::
 
-### Manifest history and artifact audit
+### Auditing the manifest history and artifacts
 
 In the next step, the Coordinator configuration that was written by the `verify` command needs to be audited.
 A potential voter should inspect the manifest and the referenced policies. They could delegate
 this task to an entity they trust.
 
-### Confidential connection to the attested workload
+### Connecting securely to the application
 
 After ensuring the configuration of the Coordinator fits the expectation, the user can securely connect
-to the workloads using the Coordinator's `mesh-ca.pem` as a trusted CA certificate.
+to the application using the Coordinator's `mesh-ca.pem` as a trusted CA certificate.
 
 To access the web frontend, expose the service on a public IP address via a LoadBalancer service:
 
@@ -193,7 +193,7 @@ Using `openssl`, the certificate of the service can be validated with the `mesh-
 openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
 ```
 
-## Certificate SAN and manifest update (optional)
+## Updating the certificate SAN and the manifest (optional)
 
 By default, mesh certificates are issued with a wildcard DNS entry. The web frontend is accessed
 via load balancer IP in this demo. Tools like curl check the certificate for IP entries in the subject alternative name (SAN) field.
@@ -205,7 +205,7 @@ $ curl --cacert ./verify/mesh-ca.pem "https://${frontendIP}:443"
 curl: (60) SSL: no alternative certificate subject name matches target host name '203.0.113.34'
 ```
 
-### Configure the service SAN in the manifest
+### Configuring the service SAN in the manifest
 
 The `Policies` section of the manifest maps policy hashes to a list of SANs. To enable certificate verification
 of the web frontend with tools like curl, edit the policy with your favorite editor and add the `frontendIP` to
@@ -225,7 +225,7 @@ the list that already contains the `"web"` DNS entry:
       },
 ```
 
-### Update the manifest
+### Updatating the manifest
 
 Next, set the changed manifest at the coordinator with:
 
