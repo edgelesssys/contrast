@@ -134,7 +134,7 @@ az aks get-credentials \
   --name "${azClusterName:?}"
 ```
 
-For validation, list the available nodes using kubectl:
+For validation, list the available nodes using `kubectl`:
 
 ```bash
 kubectl get nodes
@@ -147,6 +147,8 @@ NAME                                STATUS   ROLES    AGE     VERSION
 aks-nodepool1-32049705-vmss000000   Ready    <none>   9m47s   v1.29.0
 aks-nodepool2-32238657-vmss000000   Ready    <none>   45s     v1.29.0
 ```
+
+🥳 Congratulations. You're now ready to set up your first application with Contrast. Follow this [example](../examples/emojivoto.md) to learn how.
 
 ## Cleanup
 
