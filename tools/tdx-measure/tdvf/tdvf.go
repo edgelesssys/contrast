@@ -58,6 +58,8 @@ type tdvfSection struct {
 
 type tdvfSectionType uint32
 
+const cfv tdvfSectionType = 1
+
 type tdvfSectionAttributes uint32
 
 const (
@@ -133,4 +135,21 @@ func CalculateMrTd(firmware []byte) ([48]byte, error) {
 
 	digest := launchContext.Finalize()
 	return digest, nil
+}
+
+// FindCfv looks up the CFV (Configuration Firmware Volume) in the firmware file.
+func FindCfv(firmware []byte) ([]byte, error) {
+	sections, err := parseTdvfSections(firmware)
+	if err != nil {
+		return nil, fmt.Errorf("can't parse TDVF sections: %w", err)
+	}
+
+	for _, section := range sections {
+		if section.Type == cfv {
+			data := firmware[section.DataOffset:][:section.RawDataSize]
+			return data, nil
+		}
+	}
+
+	return nil, errors.New("can't find CFV section")
 }
