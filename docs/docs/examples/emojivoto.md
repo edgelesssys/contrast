@@ -142,17 +142,14 @@ The public facing frontend for voting uses the mesh certificate without client a
 
 :::
 
-## Voter's perspective: Verifying the ballot
+## Verifying the deployment as a user
 
-As voters, we want to verify the fairness and confidentiality of the deployment before
-deciding to vote. Regardless of the scale of our distributed deployment, Contrast only
-needs a single remote attestation step to verify the deployment. By verifying the Coordinator, we transitively verify those systems the Coordinator has already verified
-or will verify in the future. Successful verification of the Coordinator means that
-we can be sure it will enforce the configured manifest.
+In different scenarios, users of an app may want to verify its security and identity before sharing data, e.g., before casting a vote. With Contrast, a user only needs a single remote-attestation step to verify the deployment - regardless of the size or scale of the deployment. Contrast is designed such that, by verifying the Coordinator, the user transitively verifies those systems the Coordinator has already verified or will verify in the future. Successful verification of the Coordinator means that
+the user can be sure that the given manifest will be enforced.
 
 ### Verifying the Coordinator
 
-A potential voter can verify the Contrast deployment using the verify
+A user can verify the Contrast deployment using the verify
 command:
 
 ```sh
@@ -180,7 +177,7 @@ this task to an entity they trust.
 
 ### Confidential connection to the attested workload
 
-After ensuring the configuration of the Coordinator fits the expectation, you can securely connect
+After ensuring the configuration of the Coordinator fits the expectation, the user can securely connect
 to the workloads using the Coordinator's `mesh-ca.pem` as a trusted CA certificate.
 
 To access the web frontend, expose the service on a public IP address via a LoadBalancer service:
