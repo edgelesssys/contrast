@@ -2,16 +2,16 @@
 
 ## Prerequisites
 
-Install the latest version of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/).
+* Install a recent version of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/). Note that `apt install` will likely install an outdated version.
+* Install a recent version of [kubectl](https://kubernetes.io/docs/tasks/tools/).
 
-[Login to your account](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli), which needs
-to have the permissions to create an AKS cluster, by executing:
+## Prepare using the AKS preview
+
+First, log in to your Azure subscription:
 
 ```bash
 az login
 ```
-
-## Prepare using the AKS preview
 
 CoCo on AKS is currently in preview. An extension for the `az` CLI is needed to create such a cluster.
 Add the extension with the following commands:
