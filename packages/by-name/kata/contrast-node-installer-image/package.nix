@@ -15,7 +15,7 @@
   qemu-static,
   qemu-tdx-static,
   OVMF-SNP,
-  OVMF,
+  OVMF-TDX,
 
   debugRuntime ? false,
 }:
@@ -159,7 +159,7 @@ let
   ovmf-tdx = ociLayerTar {
     files = [
       {
-        source = "${OVMF.fd}/FV/OVMF.fd";
+        source = "${OVMF-TDX}/FV/OVMF.fd";
         destination = "/opt/edgeless/tdx/share/OVMF.fd";
       }
     ];

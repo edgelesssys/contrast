@@ -5,7 +5,7 @@
   lib,
   stdenvNoCC,
   kata,
-  OVMF,
+  OVMF-TDX,
   tdx-measure,
 }:
 
@@ -18,6 +18,6 @@ stdenvNoCC.mkDerivation {
   buildPhase = ''
     mkdir $out
 
-    ${lib.getExe tdx-measure} mrtd -f ${OVMF.fd}/FV/OVMF.fd > $out/mrtd.hex
+    ${lib.getExe tdx-measure} mrtd -f ${OVMF-TDX}/FV/OVMF.fd > $out/mrtd.hex
   '';
 }
