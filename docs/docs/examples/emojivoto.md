@@ -17,28 +17,16 @@ votes to the frontend.
 
 ![emojivoto components topology](https://raw.githubusercontent.com/BuoyantIO/emojivoto/e490d5789086e75933a474b22f9723fbfa0b29ba/assets/emojivoto-topology.png)
 
-### Motivation
-
-Using a voting service, users' votes are considered highly sensitive data, as we require
-a secret ballot. Also, users are likely interested in the fairness of the ballot. For
-both requirements, we can use Confidential Computing and, specifically, workload attestation
-to prove to those interested in voting that the app is running in a protected environment
-where their votes are processed without leaking to the platform provider or workload owner.
-
 ## Prerequisites
 
-- **Installed Contrast CLI.**
-  See the [installation instructions](./../getting-started/install.md) on how to get it.
-- **Running cluster with Confidential Containers support.**
-  Please follow the [AKS cluster setup instructions](./../getting-started/cluster-setup.md) or [bare metal setup instructions](./../getting-started/bare metal.md)
-  to create a cluster.
+- Installed Contrast CLI
+- A running Kubernetes cluster with support for confidential containers, either on [AKS](../getting-started/cluster-setup.md) or on [bare metal](../getting-started/bare-metal.md).
 
 ## Steps to deploy emojivoto with Contrast
 
-### Downloading the deployment
+### Download the deployment files
 
-The emojivoto deployment files are part of Contrast release. You can download the
-latest deployment by running:
+The emojivoto deployment files are part of the Contrast release. You can download them by running:
 
 ```sh
 curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.yml --create-dirs --output-dir deployment
@@ -46,8 +34,8 @@ curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emoji
 
 ### Deploy the Contrast runtime
 
-Contrast depends on a [custom Kubernetes `RuntimeClass` (`contrast-cc`)](../components/runtime.md),
-which needs to be installed in the cluster prior to the Coordinator or any confidential workloads.
+Contrast depends on the [custom Kubernetes RuntimeClass](../components/runtime.md) `contrast-cc`,
+which needs to be installed to the cluster initially.
 This consists of a `RuntimeClass` resource and a `DaemonSet` that performs installation on worker nodes.
 This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
@@ -58,7 +46,7 @@ It can be shared between Contrast deployments.
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-aks-clh-snp.yml
 ```
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SEV-SNP)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp.yml
 ```
@@ -76,7 +64,7 @@ LoadBalancer service, into your cluster:
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-aks-clh-snp.yml
 ```
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SEV-SNP)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp.yml
 ```
@@ -95,7 +83,7 @@ of your deployment will be created:
 contrast generate --reference-values aks-clh-snp deployment/
 ```
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SEV-SNP)">
 ```sh
 contrast generate --reference-values k3s-qemu-snp deployment/
 ```
@@ -158,12 +146,11 @@ The public facing frontend for voting uses the mesh certificate without client a
 
 As voters, we want to verify the fairness and confidentiality of the deployment before
 deciding to vote. Regardless of the scale of our distributed deployment, Contrast only
-needs a single remote attestation step to verify the deployment. By doing remote attestation
-of the Coordinator, we transitively verify those systems the Coordinator has already attested
-or will attest in the future. Successful verification of the Coordinator means that
+needs a single remote attestation step to verify the deployment. By verifying the Coordinator, we transitively verify those systems the Coordinator has already verified
+or will verify in the future. Successful verification of the Coordinator means that
 we can be sure it will enforce the configured manifest.
 
-### Attest the Coordinator
+### Verifying the Coordinator
 
 A potential voter can verify the Contrast deployment using the verify
 command:
@@ -172,7 +159,7 @@ command:
 contrast verify -c "${coordinator}:1313" -m manifest.json
 ```
 
-The CLI will attest the Coordinator using the reference values from a given manifest. This manifest needs
+The CLI will verify the Coordinator via remote attestation using the reference values from a given manifest. This manifest needs
 to be communicated out of band to everyone wanting to verify the deployment, as the `verify` command checks
 if the currently active manifest at the Coordinator matches the manifest given to the CLI. If the command succeeds,
 the Coordinator deployment was successfully verified to be running in the expected Confidential
