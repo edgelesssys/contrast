@@ -51,24 +51,10 @@ az aks create \
   --kubernetes-version "${k8sVersion}" \
   --os-sku AzureLinux \
   --node-vm-size Standard_DC4as_cc_v5 \
+  --workload-runtime KataCcIsolation \
   --node-count 1 \
   --generate-ssh-keys
-
-az aks nodepool add \
-  --resource-group "${name}" \
-  --name nodepool2 \
-  --cluster-name "${name}" \
-  --mode System \
-  --node-count 1 \
-  --os-sku AzureLinux \
-  --node-vm-size Standard_DC4as_cc_v5 \
-  --workload-runtime KataCcIsolation
 
 az aks get-credentials \
   --resource-group "${name}" \
   --name "${name}"
-
-az aks nodepool delete \
-  --resource-group "${name}" \
-  --cluster-name "${name}" \
-  --name nodepool1
