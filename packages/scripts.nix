@@ -212,7 +212,7 @@
       set -euo pipefail
 
       name=""
-      pool="nodepool2"
+      pool="nodepool1"
 
       for i in "$@"; do
         case $i in
