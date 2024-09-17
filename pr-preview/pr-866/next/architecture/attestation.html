@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-866/assets/css/styles.e12c56bb.css">
-<script src="/contrast/pr-preview/pr-866/assets/js/runtime~main.c6128fff.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-866/assets/js/runtime~main.c1d5aa12.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-866/assets/js/main.71dde171.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -46,8 +46,7 @@ The root filesystem contains all  components of the container&#x27;s runtime env
 <p>In the userland, the guest agent takes care of enforcing the <a href="/contrast/pr-preview/pr-866/next/components/overview#runtime-policies">runtime policy</a> of the pod.
 While the policy is passed in during the initialization procedure via the host, the evidence for the runtime policy is part of the CPU measurements.
 During the <a href="/contrast/pr-preview/pr-866/next/deployment#generate-policy-annotations-and-manifest">deployment</a> the policy is annotated to the Kubernetes Pod resources.
-On AMD SEV-SNP the hash of the policy is then added to the attestation report via the <code>HOSTDATA</code> field by the hypervisor.
-On Intel TDX the hash of the policy is then added to the attestation report via the <code>MRCONFIGID</code> field by the hypervisor.
+The hypervisor adds the hash of the policy to the attestation report via the HOSTDATA (on AMD SEV-SNP) or MRCONFIGID (Intel TDX) fields.
 When provided with the policy from the Kata host, the guest agent verifies that the policy&#x27;s hash matches the one in the <code>HOSTDATA</code>/<code>MRCONFIGID</code> field.</p>
 <p>In summary a Pod&#x27;s evidence is the attestation report of the CPU that provides evidence for runtime environment and the runtime policy.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="verifier-coordinator-and-cli">Verifier: Coordinator and CLI<a href="#verifier-coordinator-and-cli" class="hash-link" aria-label="Direct link to Verifier: Coordinator and CLI" title="Direct link to Verifier: Coordinator and CLI">​</a></h3>
