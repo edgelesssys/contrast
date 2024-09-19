@@ -49,6 +49,13 @@ linuxManualConfig rec {
     hash = "sha256-7zEUSiV20IDYwxaY6D7J9mv5fGd/oqrw1bu58zRbEGk=";
   };
 
+  kernelPatches = [
+    {
+      name = "work-around-the-segfault-issue-in-glibc-2-35";
+      patch = ./work-around-the-segfault-issue-in-glibc-2-35.patch;
+    }
+  ];
+
   inherit configfile;
   allowImportFromDerivation = true;
 }
