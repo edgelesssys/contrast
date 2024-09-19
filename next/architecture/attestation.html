@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/assets/css/styles.e12c56bb.css">
-<script src="/contrast/assets/js/runtime~main.8725f1e7.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.dfad040f.js" defer="defer"></script>
 <script src="/contrast/assets/js/main.4e433634.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -46,8 +46,8 @@ The root filesystem contains all  components of the container&#x27;s runtime env
 <p>In the userland, the guest agent takes care of enforcing the <a href="/contrast/next/components/overview#runtime-policies">runtime policy</a> of the pod.
 While the policy is passed in during the initialization procedure via the host, the evidence for the runtime policy is part of the CPU measurements.
 During the <a href="/contrast/next/deployment#generate-policy-annotations-and-manifest">deployment</a> the policy is annotated to the Kubernetes Pod resources.
-On AMD SEV-SNP the hash of the policy is then added to the attestation report via the <code>HOSTDATA</code> field by the hypervisor.
-When provided with the policy from the Kata host, the guest agent verifies that the policy&#x27;s hash matches the one in the <code>HOSTDATA</code> field.</p>
+The hypervisor adds the hash of the policy to the attestation report via the HOSTDATA (on AMD SEV-SNP) or MRCONFIGID (Intel TDX) fields.
+When provided with the policy from the Kata host, the guest agent verifies that the policy&#x27;s hash matches the one in the <code>HOSTDATA</code>/<code>MRCONFIGID</code> field.</p>
 <p>In summary a Pod&#x27;s evidence is the attestation report of the CPU that provides evidence for runtime environment and the runtime policy.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="verifier-coordinator-and-cli">Verifier: Coordinator and CLI<a href="#verifier-coordinator-and-cli" class="hash-link" aria-label="Direct link to Verifier: Coordinator and CLI" title="Direct link to Verifier: Coordinator and CLI">​</a></h3>
 <p>The <a href="/contrast/next/components/overview#the-coordinator">Coordinator</a> acts as a verifier within the Contrast deployment, configured with a <a href="/contrast/next/components/overview#the-manifest">Manifest</a> that defines the reference values and serves as an appraisal policy for all pods in the deployment.
@@ -83,7 +83,7 @@ The CA certificates can then be used by the relying party to authenticate the ap
 This process certifies that the memory is encrypted and confirms the integrity and authenticity of the software running within the deployment.
 By validating the runtime environment and the policies enforced on it, Contrast ensures that the system operates in a trustworthy state and hasn&#x27;t been tampered with.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="how-does-contrast-ensure-the-security-of-the-attestation-process">How does Contrast ensure the security of the attestation process?<a href="#how-does-contrast-ensure-the-security-of-the-attestation-process" class="hash-link" aria-label="Direct link to How does Contrast ensure the security of the attestation process?" title="Direct link to How does Contrast ensure the security of the attestation process?">​</a></h3>
-<p>Contrast leverages hardware-rooted security features such as AMD SEV-SNP to generate cryptographic evidence of a pod’s current state and configuration.
+<p>Contrast leverages hardware-rooted security features such as AMD SEV-SNP or Intel TDX to generate cryptographic evidence of a pod’s current state and configuration.
 This evidence is checked against pre-defined appraisal policies to guarantee that only verified and authorized pods are part of a Contrast deployment.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="what-security-benefits-does-attestation-provide">What security benefits does attestation provide?<a href="#what-security-benefits-does-attestation-provide" class="hash-link" aria-label="Direct link to What security benefits does attestation provide?" title="Direct link to What security benefits does attestation provide?">​</a></h3>
 <p>Attestation confirms the integrity of the runtime environment and the identity of the workloads.
