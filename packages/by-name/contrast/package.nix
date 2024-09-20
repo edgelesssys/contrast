@@ -113,7 +113,7 @@ let
             # TODO(freax13): Remove this. We should ask the user to fill this in instead of providing our own defaults.
             minimumTeeTcbSvn = "04010200000000000000000000000000";
             # TODO(freax13): Remove this. We should ask the user to fill this in instead of providing our own defaults.
-            mrSeam = "9790d89a10210ec6968a773cee2ca05b5aa97309f36727a968527be4606fc19e6f73acce350946c9d46a9bf7a63f8430";
+            mrSeam = "1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04";
             tdAttributes = "0000001000000000";
             xfam = "e702060000000000";
           }
