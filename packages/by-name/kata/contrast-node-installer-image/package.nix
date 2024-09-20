@@ -13,7 +13,7 @@
   nydus-snapshotter,
   pkgsStatic,
   qemu-static,
-  qemu-tdx-bin,
+  qemu-tdx-static,
   OVMF-SNP,
   OVMF,
 
@@ -168,19 +168,19 @@ let
   qemu-tdx = ociLayerTar {
     files = [
       {
-        source = "${qemu-tdx-bin}/bin/qemu-system-x86_64";
+        source = "${qemu-tdx-static}/bin/qemu-system-x86_64";
         destination = "/opt/edgeless/tdx/bin/qemu-system-x86_64";
       }
       {
-        source = "${qemu-tdx-bin}/share/qemu/kvmvapic.bin";
+        source = "${qemu-tdx-static}/share/qemu/kvmvapic.bin";
         destination = "/opt/edgeless/tdx/share/qemu/kvmvapic.bin";
       }
       {
-        source = "${qemu-tdx-bin}/share/qemu/linuxboot_dma.bin";
+        source = "${qemu-tdx-static}/share/qemu/linuxboot_dma.bin";
         destination = "/opt/edgeless/tdx/share/qemu/linuxboot_dma.bin";
       }
       {
-        source = "${qemu-tdx-bin}/share/qemu/efi_virtio.rom";
+        source = "${qemu-tdx-static}/share/qemu/efi-virtio.rom";
         destination = "/opt/edgeless/tdx/share/qemu/efi-virtio.rom";
       }
     ];

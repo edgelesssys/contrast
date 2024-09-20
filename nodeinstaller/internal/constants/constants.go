@@ -66,6 +66,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
 		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")}
+		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
 		config.Hypervisor["qemu"]["shared_fs"] = "none"
 		kernelParams := qemuExtraKernelParams
 		if debug {
