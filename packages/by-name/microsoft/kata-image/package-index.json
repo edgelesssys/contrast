@@ -184,8 +184,8 @@
     "hash": "sha256-2PFXCoxuz9v+SuQn5+opDbP3pNKuKZoH4wEA9Oy9Pxw="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/k/krb5-1.21.3-2.cm2.x86_64.rpm",
-    "hash": "sha256-T01Ew7aDakvBzlSrGsGEeY4a2krfFtwz13BIDN7JSfo="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/k/krb5-1.19.4-3.cm2.x86_64.rpm",
+    "hash": "sha256-lRRwDgW2nPba1jYgOEfr2mUYlmA2etdSvECzrW9lyUc="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libaio-0.3.112-4.cm2.x86_64.rpm",
@@ -260,8 +260,8 @@
     "hash": "sha256-f4FaPv5CDV6YOwbsrGMb7j8JviWeAf8kAeYAAWfy2hs="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libxml2-2.10.4-3.cm2.x86_64.rpm",
-    "hash": "sha256-AsiXci3voNrsMSJTEjkyn5VZutE58miCru8TUL0gYkg="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libxml2-2.10.4-4.cm2.x86_64.rpm",
+    "hash": "sha256-FRx1WGoG0/xHt3BTcSawbCyHN44d4PHn6Vq/FuJjDdU="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/lmdb-libs-0.9.29-1.cm2.x86_64.rpm",
