@@ -361,4 +361,44 @@
       wait
     '';
   };
+
+  deploy-caa = writeShellApplication {
+    name = "deploy-caa";
+    runtimeInputs = with pkgs; [ kubectl ];
+    text = ''
+      set -euo pipefail
+
+      for i in "$@"; do
+        case $i in
+        --kustomization=*)
+          kustomizationFile="''${i#*=}"
+          shift
+          ;;
+        --workload-identity=*)
+          workloadIdentityFile="''${i#*=}"
+          shift
+          ;;
+        --pub-key=*)
+          pubKeyFile="''${i#*=}"
+          shift
+          ;;
+        *)
+          echo "Unknown option $i"
+          exit 1
+          ;;
+        esac
+      done
+
+      tmpdir=$(mktemp -d)
+      cp -r ${pkgs.cloud-api-adaptor.src}/src/cloud-api-adaptor/install/* "$tmpdir"
+      chmod -R +w "$tmpdir"
+      cp "$kustomizationFile" "$tmpdir/overlays/azure/kustomization.yaml"
+      cp "$workloadIdentityFile" "$tmpdir/overlays/azure/workload-identity.yaml"
+      cp "$pubKeyFile" "$tmpdir/overlays/azure/id_rsa.pub"
+
+      kubectl apply -k "github.com/confidential-containers/operator/config/release?ref=v${pkgs.cloud-api-adaptor.version}"
+      kubectl apply -k "github.com/confidential-containers/operator/config/samples/ccruntime/peer-pods?ref=v${pkgs.cloud-api-adaptor.version}"
+      kubectl apply -k "$tmpdir/overlays/azure"
+    '';
+  };
 }
