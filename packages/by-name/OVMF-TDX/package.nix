@@ -15,6 +15,11 @@ edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" rec {
     acpica-tools
   ];
 
+  patches = [
+    # Make the RTMR[0] measurement independent of the amount of memory.
+    ./0001-verify-Hobs-instead-of-measuring-them.patch
+  ];
+
   hardeningDisable = [
     "format"
     "stackprotector"
