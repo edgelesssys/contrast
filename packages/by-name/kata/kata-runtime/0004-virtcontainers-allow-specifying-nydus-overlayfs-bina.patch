@@ -1,7 +1,7 @@
 From bfcf9e110f0037b7997f64316df69b1fa5a481ca Mon Sep 17 00:00:00 2001
 From: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 Date: Fri, 9 Aug 2024 11:06:04 +0200
-Subject: [PATCH 04/13] virtcontainers: allow specifying nydus-overlayfs binary
+Subject: [PATCH 04/15] virtcontainers: allow specifying nydus-overlayfs binary
  by path
 
 ...or by using a binary with additional suffix.

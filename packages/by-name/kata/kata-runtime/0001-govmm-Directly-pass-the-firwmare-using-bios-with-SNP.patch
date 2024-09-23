@@ -1,7 +1,7 @@
 From 411bd00786e7ed1f75f2207093b05a5ee2406cb6 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Fri, 5 Jul 2024 08:43:13 +0000
-Subject: [PATCH 01/13] govmm: Directly pass the firwmare using -bios with SNP
+Subject: [PATCH 01/15] govmm: Directly pass the firwmare using -bios with SNP
 
 3e158001993cc2356d6ac084e6c82714210c9f24, but for SNP.
 ---

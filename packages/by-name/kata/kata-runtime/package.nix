@@ -79,6 +79,10 @@ buildGoModule rec {
       # Rebase 3.8.0, changes squashed into patch:
       #   - fix 'field `annotations` of struct `oci_spec::runtime::Spec` is private'
       ./0013-runtime-agent-mounts-Mount-configfs-into-the-contain.patch
+      # The following two patches update the image-rs and oci-distribution version.
+      # TODO(burgerdev): backport
+      ./0014-genpolicy-bump-oci-distribution-to-v0.12.0.patch
+      ./0015-agent-bump-image-rs-version.patch
     ];
   };
 

@@ -1,7 +1,7 @@
 From d52d9b317afd106b9e353a48997340ecf43c7cbb Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Wed, 24 Jul 2024 09:48:48 +0200
-Subject: [PATCH 07/13] genpolicy: enable sysctl checks
+Subject: [PATCH 07/15] genpolicy: enable sysctl checks
 
 Sysctls may be added to a container by the Kubernetes pod definition or
 by containerd configuration. This commit adds support for the
