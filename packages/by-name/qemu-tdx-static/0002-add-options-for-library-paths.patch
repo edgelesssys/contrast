@@ -1,7 +1,7 @@
 From 0a2595335f47457ed21bf16762d3f38473a5a5fa Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Fri, 20 Sep 2024 16:01:46 +0200
-Subject: [PATCH 2/2] add options for library paths
+Subject: [PATCH 2/3] add options for library paths
 
 For some reason meson fails to find these when building with pkgsStatic
 in Nix.
