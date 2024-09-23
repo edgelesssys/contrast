@@ -53,5 +53,8 @@ in
       # Based on https://github.com/NixOS/nixpkgs/pull/300070/commits/96054ca98020df125bb91e5cf49bec107bea051b#diff-7246126ac058898e6da6aadc1e831bb26afe07fa145958e55c5e112dc2c578fd.
       # We applied the same change done to libaio to libfdt as well.
       ./0002-add-options-for-library-paths.patch
+      # Make the generated ACPI tables more deterministic, so that we get a
+      # fixed hash for attestation.
+      ./0003-i386-omit-some-unneeded-ACPI-tables.patch
     ];
   })
