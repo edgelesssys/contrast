@@ -84,14 +84,7 @@ var (
 func CalcRtmr0(firmware []byte) ([48]byte, error) {
 	var rtmr Rtmr
 
-	// This is the hash for the TDVF handoff blob.
-	// TODO(freax13): Don't hard-code this, calculate it instead.
-	hobHash := "40d4d32837fad8e321850fa6d62e231e9381f83037febf152ae3c67ea492315e5d9e7587ce35c7dbced397ca3ef404ca"
-	var buffer [48]byte
-	if _, err := hex.Decode(buffer[:], []byte(hobHash)); err != nil {
-		panic(err)
-	}
-	rtmr.Extend(buffer)
+	// We don't measure the Hobs, the firmware verifies them instead.
 
 	cvf, err := tdvf.FindCfv(firmware)
 	if err != nil {

@@ -1,0 +1,181 @@
+From 649d2928a8f6552ba0644e6f9a7f719dfbdabe60 Mon Sep 17 00:00:00 2001
+From: Tom Dohrmann <erbse.13@gmx.de>
+Date: Mon, 23 Sep 2024 10:57:09 +0200
+Subject: [PATCH] verify Hobs instead of measuring them
+
+We don't want the measurement to change depending on the amount of
+memory assigned to the CVM. Instead verify the Hobs to make sure that
+they contain reasonable values and don't measure anything.
+---
+ OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c  | 106 ++++++++++++++----
+ .../IntelTdx/TdxHelperLib/SecTdxHelperLib.inf |  19 +++-
+ 2 files changed, 100 insertions(+), 25 deletions(-)
+
+diff --git a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
+index 19e9b1bf54..f5cd850b84 100644
+--- a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
++++ b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
+@@ -873,44 +873,106 @@ TdxHelperMeasureTdHob (
+   )
+ {
+   EFI_PEI_HOB_POINTERS  Hob;
+-  EFI_STATUS            Status;
+-  UINT8                 Digest[SHA384_DIGEST_SIZE];
+-  OVMF_WORK_AREA        *WorkArea;
++  EFI_PEI_HOB_POINTERS  LastHob;
+   VOID                  *TdHob;
++  EFI_PHYSICAL_ADDRESS  LastAddress = 0;
+ 
+   TdHob   = (VOID *)(UINTN)FixedPcdGet32 (PcdOvmfSecGhcbBase);
+   Hob.Raw = (UINT8 *)TdHob;
+ 
+   //
+-  // Walk thru the TdHob list until end of list.
++  // Extract the last address of  usable memory from the last Resource
++  // Descriptor Hob.
+   //
++  Hob.Raw = (UINT8 *)TdHob;
+   while (!END_OF_HOB_LIST (Hob)) {
++    if (GET_HOB_TYPE (Hob) == EFI_HOB_TYPE_RESOURCE_DESCRIPTOR) {
++      LastAddress = Hob.ResourceDescriptor->PhysicalStart + Hob.ResourceDescriptor->ResourceLength;
++
++      // Make sure that there was no overflow.
++      if (LastAddress < Hob.ResourceDescriptor->PhysicalStart) return EFI_INVALID_PARAMETER;
++    }
+     Hob.Raw = GET_NEXT_HOB (Hob);
+   }
+ 
+-  Status = HashAndExtendToRtmr (
+-             0,
+-             (UINT8 *)TdHob,
+-             (UINTN)((UINT8 *)Hob.Raw - (UINT8 *)TdHob),
+-             Digest,
+-             SHA384_DIGEST_SIZE
+-             );
++  //
++  // Make sure that the last address is reasonable.
++  // 
++  if (LastAddress >= SIZE_64GB) return EFI_INVALID_PARAMETER;
+ 
+-  if (EFI_ERROR (Status)) {
+-    return Status;
+-  }
++  // Save the location of the end-of-hob-list hob.
++  LastHob = Hob;
+ 
+   //
+-  // This function is called in SEC phase and at that moment the Hob service
+-  // is not available. So the TdHob measurement value is stored in workarea.
++  // Verify all the Hobs. We expect one handoff-info hob, followed only by
++  // resource descriptor hobs and one end-of-hob-list hob.
+   //
+-  WorkArea = (OVMF_WORK_AREA *)FixedPcdGet32 (PcdOvmfWorkAreaBase);
+-  if (WorkArea == NULL) {
+-    return EFI_DEVICE_ERROR;
+-  }
+ 
+-  WorkArea->TdxWorkArea.SecTdxWorkArea.TdxMeasurementsData.MeasurementsBitmap |= TDX_MEASUREMENT_TDHOB_BITMASK;
+-  CopyMem (WorkArea->TdxWorkArea.SecTdxWorkArea.TdxMeasurementsData.TdHobHashValue, Digest, SHA384_DIGEST_SIZE);
++  Hob.Raw = (UINT8 *)TdHob;
++  if (GET_HOB_TYPE (Hob) != EFI_HOB_TYPE_HANDOFF) return EFI_INVALID_PARAMETER;
++  if (Hob.HandoffInformationTable->BootMode != BOOT_WITH_FULL_CONFIGURATION) return EFI_INVALID_PARAMETER;
++  if (Hob.HandoffInformationTable->EfiMemoryTop != 0) return EFI_INVALID_PARAMETER;
++  if (Hob.HandoffInformationTable->EfiMemoryBottom != 0) return EFI_INVALID_PARAMETER;
++  if (Hob.HandoffInformationTable->EfiFreeMemoryTop != 0) return EFI_INVALID_PARAMETER;
++  if (Hob.HandoffInformationTable->EfiFreeMemoryBottom != 0) return EFI_INVALID_PARAMETER;
++  if (Hob.HandoffInformationTable->EfiEndOfHobList != (EFI_PHYSICAL_ADDRESS) GET_NEXT_HOB (LastHob)) return EFI_INVALID_PARAMETER;
++  Hob.Raw = GET_NEXT_HOB (Hob);
++    
++  #define OVMF_PAGE_TABLE_BASE FixedPcdGet32 (PcdOvmfSecPageTablesBase)
++  #define OVMF_PAGE_TABLE_SIZE FixedPcdGet32 (PcdOvmfSecPageTablesSize)
++  #define OVMF_PAGE_TABLE_END (OVMF_PAGE_TABLE_BASE + OVMF_PAGE_TABLE_SIZE)
++
++  #define TDX_HOB_MEMORY_BASE FixedPcdGet32 (PcdOvmfSecGhcbBase)
++  #define TDX_HOB_MEMORY_SIZE FixedPcdGet32 (PcdOvmfSecGhcbSize)
++  #define TDX_HOB_MEMORY_END (TDX_HOB_MEMORY_BASE + TDX_HOB_MEMORY_SIZE)
++  
++  #define TDX_INIT_MEMORY_BASE FixedPcdGet32 (PcdOvmfWorkAreaBase)
++  #define TDX_INIT_MEMORY_SIZE (FixedPcdGet32 (PcdOvmfWorkAreaSize) + FixedPcdGet32 (PcdOvmfSecGhcbBackupSize))
++  #define TDX_INIT_MEMORY_END (TDX_INIT_MEMORY_BASE + TDX_INIT_MEMORY_SIZE)
++  
++  #define TDX_HEAP_STACK_BASE FixedPcdGet32 (PcdOvmfSecPeiTempRamBase)
++  #define TDX_HEAP_STACK_SIZE FixedPcdGet32 (PcdOvmfSecPeiTempRamSize)
++  #define TDX_HEAP_STACK_END (TDX_HEAP_STACK_BASE + TDX_HEAP_STACK_SIZE)
++
++  #define EXPECT_RESOURCE_DESCRIPTOR_HOB(type, start, length) \
++    if (length != 0) { \
++      if (GET_HOB_TYPE (Hob) != EFI_HOB_TYPE_RESOURCE_DESCRIPTOR) return EFI_INVALID_PARAMETER; \
++      if (!IsZeroGuid (&Hob.ResourceDescriptor->Owner)) return EFI_INVALID_PARAMETER; \
++      if (Hob.ResourceDescriptor->ResourceType != type) return EFI_INVALID_PARAMETER; \
++      if (Hob.ResourceDescriptor->ResourceAttribute != (EFI_RESOURCE_ATTRIBUTE_PRESENT | EFI_RESOURCE_ATTRIBUTE_INITIALIZED | EFI_RESOURCE_ATTRIBUTE_TESTED)) return EFI_INVALID_PARAMETER; \
++      if (Hob.ResourceDescriptor->PhysicalStart != start) return EFI_INVALID_PARAMETER; \
++      if (Hob.ResourceDescriptor->ResourceLength != length) return EFI_INVALID_PARAMETER; \
++      Hob.Raw = GET_NEXT_HOB (Hob); \
++    }
++
++  EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_MEMORY_UNACCEPTED, 0x0, OVMF_PAGE_TABLE_BASE);
++  EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_SYSTEM_MEMORY    , OVMF_PAGE_TABLE_BASE, OVMF_PAGE_TABLE_SIZE);
++  EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_MEMORY_UNACCEPTED, OVMF_PAGE_TABLE_END, TDX_HOB_MEMORY_BASE - OVMF_PAGE_TABLE_END);
++  EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_SYSTEM_MEMORY    , TDX_HOB_MEMORY_BASE, TDX_HOB_MEMORY_SIZE);
++  EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_MEMORY_UNACCEPTED, TDX_HOB_MEMORY_END, TDX_INIT_MEMORY_BASE - TDX_HOB_MEMORY_END);
++  EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_SYSTEM_MEMORY    , TDX_INIT_MEMORY_BASE,   TDX_INIT_MEMORY_SIZE);
++  EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_MEMORY_UNACCEPTED, TDX_INIT_MEMORY_END,   TDX_HEAP_STACK_BASE - TDX_INIT_MEMORY_END);
++  EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_SYSTEM_MEMORY    , TDX_HEAP_STACK_BASE,  TDX_HEAP_STACK_SIZE);
++
++  //
++  // QEMU generates different Hobs depending on whether or not it had to place
++  // memory after 4GiB. 
++  //
++  if (LastAddress <= SIZE_4GB) {
++    // 
++    // Make sure that the memory doesn't overlap with the special addresses in
++    // the 0xfeXXXXXX range. Usually QEMU won't even come close to this, so
++    // check with a big safety margin.
++    // 
++    if (LastAddress > 0xb0000000) return EFI_INVALID_PARAMETER;
++
++    EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_MEMORY_UNACCEPTED, TDX_HEAP_STACK_END, LastAddress - TDX_HEAP_STACK_END);
++  } else {
++    EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_MEMORY_UNACCEPTED, TDX_HEAP_STACK_END, SIZE_2GB - TDX_HEAP_STACK_END);
++    EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_MEMORY_UNACCEPTED, SIZE_4GB, LastAddress - SIZE_4GB);
++  }
++  
++  if (!END_OF_HOB_LIST (Hob)) return EFI_INVALID_PARAMETER;
+ 
+   return EFI_SUCCESS;
+ }
+diff --git a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf
+index d17b84c01f..dc2a822b90 100644
+--- a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf
++++ b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf
+@@ -43,11 +43,24 @@
+   TdxLib
+ 
+ [FixedPcd]
++  gUefiOvmfPkgTokenSpaceGuid.PcdBfvBase
++  gUefiOvmfPkgTokenSpaceGuid.PcdBfvRawDataOffset
++  gUefiOvmfPkgTokenSpaceGuid.PcdBfvRawDataSize
++  gUefiOvmfPkgTokenSpaceGuid.PcdCfvBase
++  gUefiOvmfPkgTokenSpaceGuid.PcdCfvRawDataOffset
++  gUefiOvmfPkgTokenSpaceGuid.PcdCfvRawDataSize
++  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfFlashNvStorageVariableBase
++  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecGhcbBackupSize
++  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecGhcbBase
++  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecGhcbBase
++  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecGhcbSize
++  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecPageTablesBase
++  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecPageTablesSize
++  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecPeiTempRamBase
++  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecPeiTempRamSize
+   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaBase
++  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaSize
+   gUefiOvmfPkgTokenSpaceGuid.PcdTdxAcceptPageSize
+-  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfSecGhcbBase
+-  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfFlashNvStorageVariableBase
+-  gUefiOvmfPkgTokenSpaceGuid.PcdCfvRawDataSize
+ 
+ [Guids]
+   gCcEventEntryHobGuid
+-- 
+2.46.0
+
