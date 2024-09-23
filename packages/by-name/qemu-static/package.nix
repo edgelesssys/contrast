@@ -7,19 +7,7 @@
   dtc,
   python3Packages,
 }:
-let
-  patchedDtc = dtc.overrideAttrs (previousAttrs: {
-    patches = previousAttrs.patches ++ [
-      # Based on https://github.com/NixOS/nixpkgs/pull/309929/commits/13efe012c484484d48661ce3ad1862a718d1991c.
-      # We dropped the change to the output library name from "fdt-so" to "fdt"
-      # because it's not entirely clear what this change intended and because
-      # this actually breaks the QEMU build.
-      ./0001-fix-static-build.patch
-    ];
-  });
-in
 (qemu.override (_previous: {
-  dtc = patchedDtc;
   minimal = true;
   enableBlobs = true;
   uringSupport = false;
@@ -30,7 +18,7 @@ in
   (previousAttrs: rec {
     configureFlags = previousAttrs.configureFlags ++ [
       "-Dlinux_aio_path=${libaio}/lib"
-      "-Dlinux_fdt_path=${patchedDtc}/lib"
+      "-Dlinux_fdt_path=${dtc}/lib"
     ];
 
     nativeBuildInputs = previousAttrs.nativeBuildInputs ++ [ python3Packages.packaging ];
