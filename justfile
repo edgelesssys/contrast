@@ -51,6 +51,12 @@ node-installer platform=default_platform:
             just push "nydus-snapshotter"
             just push "node-installer-kata"
         ;;
+        "AKS-PEER-SNP")
+            nix run -L .#scripts.deploy-caa -- \
+                --kustomization=./infra/azure-peerpods/kustomization.yaml \
+                --workload-identity=./infra/azure-peerpods/workload-identity.yaml \
+                --pub-key=./infra/azure-peerpods/id_rsa.pub
+        ;;
         *)
             echo "Unsupported platform: {{ platform }}"
             exit 1
