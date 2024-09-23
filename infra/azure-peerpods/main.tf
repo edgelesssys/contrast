@@ -51,23 +51,35 @@ resource "azuread_application" "app" {
 }
 
 resource "azuread_service_principal" "sp" {
-  application_id               = azuread_application.app.application_id
+  client_id                    = azuread_application.app.client_id
   app_role_assignment_required = false
   owners                       = [data.azuread_client_config.current.object_id]
 }
 
-resource "azurerm_role_assignment" "ra" {
+resource "azurerm_role_assignment" "ra_vm_contributor" {
   scope                = azurerm_resource_group.rg.id
-  role_definition_name = "Contributor"
+  role_definition_name = "Virtual Machine Contributor"
+  principal_id         = azuread_service_principal.sp.id
+}
+
+resource "azurerm_role_assignment" "ra_reader" {
+  scope                = azurerm_resource_group.rg.id
+  role_definition_name = "Reader"
+  principal_id         = azuread_service_principal.sp.id
+}
+
+resource "azurerm_role_assignment" "ra_network_contributor" {
+  scope                = azurerm_resource_group.rg.id
+  role_definition_name = "Network Contributor"
   principal_id         = azuread_service_principal.sp.id
 }
 
 resource "azuread_application_federated_identity_credential" "federated_credentials" {
   display_name   = local.name
-  application_id = azuread_application.app.object_id
-  audiences      = ["api://AzureADTokenExchange"]
+  application_id = azuread_application.app.id
   issuer         = azurerm_kubernetes_cluster.cluster.oidc_issuer_url
   subject        = "system:serviceaccount:confidential-containers-system:cloud-api-adaptor"
+  audiences      = ["api://AzureADTokenExchange"]
 }
 
 resource "azurerm_role_assignment" "ra_image" {
@@ -77,7 +89,7 @@ resource "azurerm_role_assignment" "ra_image" {
 }
 
 resource "azuread_application_password" "cred" {
-  application_object_id = azuread_application.app.object_id
+  application_id = azuread_application.app.id
 }
 
 resource "azurerm_virtual_network" "main" {
@@ -107,19 +119,20 @@ resource "azurerm_kubernetes_cluster" "cluster" {
 
   linux_profile {
     admin_username = "azuser"
-    ssh_key { key_data = file("id_rsa.pub") }
+    ssh_key { key_data = file(var.ssh_pub_key_path) }
   }
 
   default_node_pool {
     name                 = "default"
     node_count           = 1
-    vm_size              = "Standard_D4s_v5"
+    vm_size              = "Standard_F4s_v2"
     os_sku               = "Ubuntu"
     auto_scaling_enabled = false
     type                 = "VirtualMachineScaleSets"
     vnet_subnet_id       = one(azurerm_virtual_network.main.subnet.*.id)
     node_labels = {
-      "node.kubernetes.io/worker" = ""
+      "node.kubernetes.io/worker"      = ""
+      "katacontainers.io/kata-runtime" = "true"
     }
   }
 }
@@ -130,18 +143,28 @@ resource "local_file" "kubeconfig" {
   content    = azurerm_kubernetes_cluster.cluster.kube_config_raw
 }
 
-resource "local_file" "env" {
-  filename        = "./out.env"
+resource "local_file" "workload_identity" {
+  filename        = "./workload-identity.yaml"
   file_permission = "0777"
   content         = <<EOF
-AZURE_SUBSCRIPTION_ID=${data.azurerm_subscription.current.subscription_id}
-AZURE_TENANT_ID=${data.azurerm_subscription.current.tenant_id}
-AZURE_REGION=${azurerm_resource_group.rg.location}
-IMAGE_RESOURCE_GROUP=${data.azurerm_resource_group.rg_podvm_image.name}
-CLUSTER_RESOURCE_GROUP=${azurerm_resource_group.rg.name}
-CLUSTER_CLIENT_ID=${azuread_application.app.application_id}
-CLUSTER_SUBNET_ID=${one(azurerm_virtual_network.main.subnet.*.id)}
-CLUSTER_CLIENT_SECRET=${azuread_application_password.cred.value}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cloud-api-adaptor-daemonset
+  namespace: confidential-containers-system
+spec:
+  template:
+    metadata:
+      labels:
+        azure.workload.identity/use: "true"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cloud-api-adaptor
+  namespace: confidential-containers-system
+  annotations:
+    azure.workload.identity/client-id: ${azuread_application.app.client_id}
 EOF
 }
 
@@ -169,7 +192,7 @@ configMapGenerator:
   - AZURE_INSTANCE_SIZE=Standard_DC2as_v5
   - AZURE_RESOURCE_GROUP=${azurerm_resource_group.rg.name}
   - AZURE_SUBNET_ID=${one(azurerm_virtual_network.main.subnet.*.id)}
-  - AZURE_IMAGE_ID=/subscriptions/0d202bbb-4fa7-4af8-8125-58c269a05435/resourceGroups/otto-dev/providers/Microsoft.Compute/galleries/cocopriv/images/coco-gpus/versions/0.0.19
+  - AZURE_IMAGE_ID=/subscriptions/0d202bbb-4fa7-4af8-8125-58c269a05435/resourceGroups/otto-dev/providers/Microsoft.Compute/galleries/cocopriv/images/coco-gpus/versions/0.0.33
   - DISABLECVM=false
 secretGenerator:
 - name: peer-pods-secret
