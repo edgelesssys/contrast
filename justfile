@@ -271,6 +271,9 @@ get-credentials:
         --resource-group "$azure_resource_group" \
         --name "$azure_resource_group"
 
+get-credentials-peerpod:
+    nix run -L .#scripts.merge-kube-config -- ./infra/azure-peerpods/kube.conf
+
 # Load the kubeconfig from the CI AKS cluster.
 get-credentials-ci:
     nix run -L .#azure-cli -- aks get-credentials \

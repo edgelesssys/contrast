@@ -314,21 +314,33 @@
     '';
   };
 
+  merge-kube-config = writeShellApplication {
+    name = "merge-kube-config";
+    runtimeInputs = with pkgs; [ yq-go ];
+    text = ''
+      set -euo pipefail
+      mergedConfig=$(mktemp)
+      KUBECONFIG_BAK=''${KUBECONFIG:-~/.kube/config}
+      KUBECONFIG=$1:''${KUBECONFIG_BAK} kubectl config view --flatten > "$mergedConfig"
+      newContext=$(yq -r '.contexts.[0].name' "$1")
+      declare -x newContext
+      yq -i '.current-context = env(newContext)' "$mergedConfig"
+      mv "$mergedConfig" "''${KUBECONFIG_BAK%%:*}"
+    '';
+  };
+
   # Usage: get-credentials $gcloudSecretRef
   get-credentials = writeShellApplication {
     name = "extract-policies";
-    runtimeInputs = with pkgs; [ google-cloud-sdk ];
+    runtimeInputs = with pkgs; [
+      google-cloud-sdk
+      merge-kube-config
+    ];
     text = ''
       set -euo pipefail
       tmpConfig=$(mktemp)
       gcloud secrets versions access "$1" --out-file="$tmpConfig"
-      mergedConfig=$(mktemp)
-      KUBECONFIG_BAK=''${KUBECONFIG:-~/.kube/config}
-      KUBECONFIG=$tmpConfig:''${KUBECONFIG_BAK} kubectl config view --flatten > "$mergedConfig"
-      newContext=$(yq -r '.contexts.[0].name' "$tmpConfig")
-      declare -x newContext
-      yq -i '.current-context = env(newContext)' "$mergedConfig"
-      mv "$mergedConfig" "''${KUBECONFIG_BAK%%:*}"
+      merge-kube-config "$tmpConfig"
     '';
   };
 
