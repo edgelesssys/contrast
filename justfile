@@ -168,8 +168,25 @@ undeploy:
     fi
 
 # Create a CoCo-enabled AKS cluster.
-create:
-    nix run -L .#scripts.create-coco-aks -- --name="$azure_resource_group" --location="$azure_location"
+create platform=default_platform:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case {{ platform }} in
+        "AKS-CLH-SNP")
+            nix run -L .#scripts.create-coco-aks -- --name="$azure_resource_group" --location="$azure_location"
+        ;;
+        "K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+            :
+        ;;
+        "AKS-PEER-SNP")
+            nix run -L .#terraform -- -chdir=infra/azure-peerpods init
+            nix run -L .#terraform -- -chdir=infra/azure-peerpods apply
+        ;;
+        *)
+            echo "Unsupported platform: {{ platform }}"
+            exit 1
+        ;;
+    esac
 
 # Set the manifest at the coordinator.
 set cli=default_cli:
@@ -269,8 +286,24 @@ get-credentials-tdxbm: (get-credentials-from-gcloud "projects/796962942582/secre
 get-credentials-snpbm: (get-credentials-from-gcloud "projects/796962942582/secrets/discovery-kubeconf/versions/1")
 
 # Destroy a running AKS cluster.
-destroy:
-    nix run -L .#scripts.destroy-coco-aks -- --name="$azure_resource_group"
+destroy platform=default_platform:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case {{ platform }} in
+        "AKS-CLH-SNP")
+            nix run -L .#scripts.destroy-coco-aks -- --name="$azure_resource_group"
+        ;;
+        "K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+            :
+        ;;
+        "AKS-PEER-SNP")
+            nix run -L .#terraform -- -chdir=infra/azure-peerpods destroy
+        ;;
+        *)
+            echo "Unsupported platform: {{ platform }}"
+            exit 1
+        ;;
+    esac
 
 # Run code generators.
 codegen:
