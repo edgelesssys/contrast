@@ -1,0 +1,641 @@
+From fe09addb23320b1ac3d11052992f2db9dd764e22 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Mon, 12 Aug 2024 13:45:43 +0200
+Subject: [PATCH 14/15] genpolicy: bump oci-distribution to v0.12.0
+
+This picks up a security fix for confidential pulling of unsigned
+images.
+
+The crate moved permanently to oci-client, which required a few import
+changes.
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/tools/genpolicy/Cargo.lock                | 262 ++++++++++++------
+ src/tools/genpolicy/Cargo.toml                |   2 +-
+ src/tools/genpolicy/src/registry.rs           |   4 +-
+ .../genpolicy/src/registry_containerd.rs      |   2 +-
+ 4 files changed, 183 insertions(+), 87 deletions(-)
+
+diff --git a/src/tools/genpolicy/Cargo.lock b/src/tools/genpolicy/Cargo.lock
+index 6dafe279f..60bb05bf8 100644
+--- a/src/tools/genpolicy/Cargo.lock
++++ b/src/tools/genpolicy/Cargo.lock
+@@ -98,9 +98,9 @@ dependencies = [
+  "bitflags 1.3.2",
+  "bytes",
+  "futures-util",
+- "http",
+- "http-body",
+- "hyper",
++ "http 0.2.9",
++ "http-body 0.4.5",
++ "hyper 0.14.24",
+  "itoa",
+  "matchit",
+  "memchr",
+@@ -109,7 +109,7 @@ dependencies = [
+  "pin-project-lite",
+  "rustversion",
+  "serde",
+- "sync_wrapper",
++ "sync_wrapper 0.1.2",
+  "tower",
+  "tower-layer",
+  "tower-service",
+@@ -124,8 +124,8 @@ dependencies = [
+  "async-trait",
+  "bytes",
+  "futures-util",
+- "http",
+- "http-body",
++ "http 0.2.9",
++ "http-body 0.4.5",
+  "mime",
+  "rustversion",
+  "tower-layer",
+@@ -159,6 +159,12 @@ version = "0.21.7"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
+ 
++[[package]]
++name = "base64"
++version = "0.22.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
++
+ [[package]]
+ name = "bitflags"
+ version = "1.3.2"
+@@ -273,9 +279,9 @@ checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
+ 
+ [[package]]
+ name = "bytes"
+-version = "1.1.0"
++version = "1.7.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "c4872d67bab6358e59559027aa3b9157c53d9358c51423c17554809a8858e0f8"
++checksum = "8318a53db07bb3f8dca91a600466bdb3f2eaadeedfdbcf02e1accbad9271ba50"
+ 
+ [[package]]
+ name = "cc"
+@@ -628,15 +634,6 @@ version = "1.9.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
+ 
+-[[package]]
+-name = "encoding_rs"
+-version = "0.8.32"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "071a31f4ee85403370b58aca746f01041ede6f0da2730960ad001edc2b71b394"
+-dependencies = [
+- "cfg-if",
+-]
+-
+ [[package]]
+ name = "env_logger"
+ version = "0.10.2"
+@@ -766,11 +763,10 @@ checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
+ 
+ [[package]]
+ name = "form_urlencoded"
+-version = "1.0.1"
++version = "1.2.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "5fc25a87fa4fd2094bffb06925852034d90a17f0d1e05197d4956d3555752191"
++checksum = "e13624c2627564efccf4934284bdd98cbaa14e79b0b5a141218e507b3a823456"
+ dependencies = [
+- "matches",
+  "percent-encoding",
+ ]
+ 
+@@ -878,7 +874,7 @@ dependencies = [
+  "k8s-cri",
+  "libz-ng-sys",
+  "log",
+- "oci-distribution",
++ "oci-client",
+  "oci-spec",
+  "openssl",
+  "protobuf 3.3.0",
+@@ -944,7 +940,7 @@ dependencies = [
+  "futures-core",
+  "futures-sink",
+  "futures-util",
+- "http",
++ "http 0.2.9",
+  "indexmap 1.9.2",
+  "slab",
+  "tokio",
+@@ -1038,6 +1034,17 @@ dependencies = [
+  "itoa",
+ ]
+ 
++[[package]]
++name = "http"
++version = "1.1.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "21b9ddb458710bc376481b842f5da65cdf31522de232c1ca8146abce2a358258"
++dependencies = [
++ "bytes",
++ "fnv",
++ "itoa",
++]
++
+ [[package]]
+ name = "http-auth"
+ version = "0.1.8"
+@@ -1054,7 +1061,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "d5f38f16d184e36f2408a55281cd658ecbd3ca05cce6d6510a176eca393e26d1"
+ dependencies = [
+  "bytes",
+- "http",
++ "http 0.2.9",
++ "pin-project-lite",
++]
++
++[[package]]
++name = "http-body"
++version = "1.0.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "1efedce1fb8e6913f23e0c92de8e62cd5b772a67e7b3946df930a62566c93184"
++dependencies = [
++ "bytes",
++ "http 1.1.0",
++]
++
++[[package]]
++name = "http-body-util"
++version = "0.1.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "793429d76616a256bcb62c2a2ec2bed781c8307e797e2598c50010f2bee2544f"
++dependencies = [
++ "bytes",
++ "futures-util",
++ "http 1.1.0",
++ "http-body 1.0.1",
+  "pin-project-lite",
+ ]
+ 
+@@ -1087,8 +1117,8 @@ dependencies = [
+  "futures-core",
+  "futures-util",
+  "h2",
+- "http",
+- "http-body",
++ "http 0.2.9",
++ "http-body 0.4.5",
+  "httparse",
+  "httpdate",
+  "itoa",
+@@ -1100,13 +1130,32 @@ dependencies = [
+  "want",
+ ]
+ 
++[[package]]
++name = "hyper"
++version = "1.4.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "50dfd22e0e76d0f662d429a5f80fcaf3855009297eab6a0a9f8543834744ba05"
++dependencies = [
++ "bytes",
++ "futures-channel",
++ "futures-util",
++ "http 1.1.0",
++ "http-body 1.0.1",
++ "httparse",
++ "itoa",
++ "pin-project-lite",
++ "smallvec",
++ "tokio",
++ "want",
++]
++
+ [[package]]
+ name = "hyper-timeout"
+ version = "0.4.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "bbb958482e8c7be4bc3cf272a766a2b0bf1a6755e7a6ae777f017a31d11b13b1"
+ dependencies = [
+- "hyper",
++ "hyper 0.14.24",
+  "pin-project-lite",
+  "tokio",
+  "tokio-io-timeout",
+@@ -1114,15 +1163,38 @@ dependencies = [
+ 
+ [[package]]
+ name = "hyper-tls"
+-version = "0.5.0"
++version = "0.6.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
++checksum = "70206fc6890eaca9fde8a0bf71caa2ddfc9fe045ac9e5c70df101a7dbde866e0"
+ dependencies = [
+  "bytes",
+- "hyper",
++ "http-body-util",
++ "hyper 1.4.1",
++ "hyper-util",
+  "native-tls",
+  "tokio",
+  "tokio-native-tls",
++ "tower-service",
++]
++
++[[package]]
++name = "hyper-util"
++version = "0.1.7"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "cde7055719c54e36e95e8719f95883f22072a48ede39db7fc17a4e1d5281e9b9"
++dependencies = [
++ "bytes",
++ "futures-channel",
++ "futures-util",
++ "http 1.1.0",
++ "http-body 1.0.1",
++ "hyper 1.4.1",
++ "pin-project-lite",
++ "socket2 0.5.5",
++ "tokio",
++ "tower",
++ "tower-service",
++ "tracing",
+ ]
+ 
+ [[package]]
+@@ -1156,11 +1228,10 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
+ 
+ [[package]]
+ name = "idna"
+-version = "0.2.3"
++version = "0.5.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "418a0a6fab821475f634efe3ccc45c013f742efe03d853e8d3355d5cb850ecf8"
++checksum = "634d9b1461af396cad843f47fdba5597a4f9e6ddd4bfb6ff5d85028c25cb12f6"
+ dependencies = [
+- "matches",
+  "unicode-bidi",
+  "unicode-normalization",
+ ]
+@@ -1248,9 +1319,9 @@ checksum = "453ad9f582a441959e5f0d088b02ce04cfe8d51a8eaf077f12ac6d3e94164ca6"
+ 
+ [[package]]
+ name = "js-sys"
+-version = "0.3.61"
++version = "0.3.70"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "445dde2150c55e483f3d8416706b97ec8e8237c307e5b7b4b8dd15e6af2a0730"
++checksum = "1868808506b929d7b0cfa8f75951347aa71bb21144b7791bae35d9bccfcfe37a"
+ dependencies = [
+  "wasm-bindgen",
+ ]
+@@ -1386,12 +1457,6 @@ version = "0.4.22"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
+ 
+-[[package]]
+-name = "matches"
+-version = "0.1.10"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2532096657941c2fea9c289d370a250971c689d4f143798ff67113ec042024a5"
+-
+ [[package]]
+ name = "matchit"
+ version = "0.7.3"
+@@ -1611,15 +1676,15 @@ dependencies = [
+ ]
+ 
+ [[package]]
+-name = "oci-distribution"
+-version = "0.10.0"
++name = "oci-client"
++version = "0.12.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2a635cabf7a6eb4e5f13e9e82bd9503b7c2461bf277132e38638a935ebd684b4"
++checksum = "ce611137700c3ec179993d5357dddde194bd706690b361f2f6b9235d4e29830e"
+ dependencies = [
+  "bytes",
+  "chrono",
+  "futures-util",
+- "http",
++ "http 1.1.0",
+  "http-auth",
+  "jwt",
+  "lazy_static",
+@@ -1731,9 +1796,9 @@ checksum = "9b7820b9daea5457c9f21c69448905d723fbd21136ccf521748f23fd49e723ee"
+ 
+ [[package]]
+ name = "percent-encoding"
+-version = "2.1.0"
++version = "2.3.1"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
++checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
+ 
+ [[package]]
+ name = "petgraph"
+@@ -2195,20 +2260,20 @@ dependencies = [
+ 
+ [[package]]
+ name = "reqwest"
+-version = "0.11.14"
++version = "0.12.5"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "21eed90ec8570952d53b772ecf8f206aa1ec9a3d76b2521c56c42973f2d91ee9"
++checksum = "c7d6d2a27d57148378eb5e111173f4276ad26340ecc5c49a4a2152167a2d6a37"
+ dependencies = [
+- "base64 0.21.7",
++ "base64 0.22.1",
+  "bytes",
+- "encoding_rs",
+  "futures-core",
+  "futures-util",
+- "h2",
+- "http",
+- "http-body",
+- "hyper",
++ "http 1.1.0",
++ "http-body 1.0.1",
++ "http-body-util",
++ "hyper 1.4.1",
+  "hyper-tls",
++ "hyper-util",
+  "ipnet",
+  "js-sys",
+  "log",
+@@ -2217,9 +2282,11 @@ dependencies = [
+  "once_cell",
+  "percent-encoding",
+  "pin-project-lite",
++ "rustls-pemfile",
+  "serde",
+  "serde_json",
+  "serde_urlencoded",
++ "sync_wrapper 1.0.1",
+  "tokio",
+  "tokio-native-tls",
+  "tokio-util",
+@@ -2333,6 +2400,22 @@ dependencies = [
+  "windows-sys 0.48.0",
+ ]
+ 
++[[package]]
++name = "rustls-pemfile"
++version = "2.1.3"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "196fe16b00e106300d3e45ecfcb764fa292a535d7326a29a5875c579c7417425"
++dependencies = [
++ "base64 0.22.1",
++ "rustls-pki-types",
++]
++
++[[package]]
++name = "rustls-pki-types"
++version = "1.8.0"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "fc0a2ce646f8655401bb81e7927b812614bd5d91dbc968696be50603510fcaf0"
++
+ [[package]]
+ name = "rustversion"
+ version = "1.0.14"
+@@ -2556,6 +2639,12 @@ dependencies = [
+  "slog",
+ ]
+ 
++[[package]]
++name = "smallvec"
++version = "1.13.2"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
++
+ [[package]]
+ name = "socket2"
+ version = "0.4.9"
+@@ -2663,6 +2752,12 @@ version = "0.1.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
+ 
++[[package]]
++name = "sync_wrapper"
++version = "1.0.1"
++source = "registry+https://github.com/rust-lang/crates.io-index"
++checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
++
+ [[package]]
+ name = "sysinfo"
+ version = "0.30.13"
+@@ -2831,16 +2926,15 @@ dependencies = [
+ 
+ [[package]]
+ name = "tokio-util"
+-version = "0.7.7"
++version = "0.7.11"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "5427d89453009325de0d8f342c9490009f76e999cb7672d77e46267448f7e6b2"
++checksum = "9cf6b47b3771c49ac75ad09a6162f53ad4b8088b76ac60e8ec1455b31a189fe1"
+ dependencies = [
+  "bytes",
+  "futures-core",
+  "futures-sink",
+  "pin-project-lite",
+  "tokio",
+- "tracing",
+ ]
+ 
+ [[package]]
+@@ -2882,9 +2976,9 @@ dependencies = [
+  "futures-core",
+  "futures-util",
+  "h2",
+- "http",
+- "http-body",
+- "hyper",
++ "http 0.2.9",
++ "http-body 0.4.5",
++ "hyper 0.14.24",
+  "hyper-timeout",
+  "percent-encoding",
+  "pin-project",
+@@ -3082,9 +3176,9 @@ checksum = "1dd624098567895118886609431a7c3b8f516e41d30e0643f03d94592a147e36"
+ 
+ [[package]]
+ name = "url"
+-version = "2.3.0"
++version = "2.5.2"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "22fe195a4f217c25b25cb5058ced57059824a678474874038dc88d211bf508d3"
++checksum = "22784dbdf76fdde8af1aeda5622b546b422b6fc585325248a2bf9f5e41e94d6c"
+ dependencies = [
+  "form_urlencoded",
+  "idna",
+@@ -3133,34 +3227,35 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
+ 
+ [[package]]
+ name = "wasm-bindgen"
+-version = "0.2.84"
++version = "0.2.93"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "31f8dcbc21f30d9b8f2ea926ecb58f6b91192c17e9d33594b3df58b2007ca53b"
++checksum = "a82edfc16a6c469f5f44dc7b571814045d60404b55a0ee849f9bcfa2e63dd9b5"
+ dependencies = [
+  "cfg-if",
++ "once_cell",
+  "wasm-bindgen-macro",
+ ]
+ 
+ [[package]]
+ name = "wasm-bindgen-backend"
+-version = "0.2.84"
++version = "0.2.93"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "95ce90fd5bcc06af55a641a86428ee4229e44e07033963a2290a8e241607ccb9"
++checksum = "9de396da306523044d3302746f1208fa71d7532227f15e347e2d93e4145dd77b"
+ dependencies = [
+  "bumpalo",
+  "log",
+  "once_cell",
+  "proc-macro2",
+  "quote",
+- "syn 1.0.109",
++ "syn 2.0.58",
+  "wasm-bindgen-shared",
+ ]
+ 
+ [[package]]
+ name = "wasm-bindgen-futures"
+-version = "0.4.34"
++version = "0.4.43"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "f219e0d211ba40266969f6dbdd90636da12f75bee4fc9d6c23d1260dadb51454"
++checksum = "61e9300f63a621e96ed275155c108eb6f843b6a26d053f122ab69724559dc8ed"
+ dependencies = [
+  "cfg-if",
+  "js-sys",
+@@ -3170,9 +3265,9 @@ dependencies = [
+ 
+ [[package]]
+ name = "wasm-bindgen-macro"
+-version = "0.2.84"
++version = "0.2.93"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "4c21f77c0bedc37fd5dc21f897894a5ca01e7bb159884559461862ae90c0b4c5"
++checksum = "585c4c91a46b072c92e908d99cb1dcdf95c5218eeb6f3bf1efa991ee7a68cccf"
+ dependencies = [
+  "quote",
+  "wasm-bindgen-macro-support",
+@@ -3180,28 +3275,28 @@ dependencies = [
+ 
+ [[package]]
+ name = "wasm-bindgen-macro-support"
+-version = "0.2.84"
++version = "0.2.93"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "2aff81306fcac3c7515ad4e177f521b5c9a15f2b08f4e32d823066102f35a5f6"
++checksum = "afc340c74d9005395cf9dd098506f7f44e38f2b4a21c6aaacf9a105ea5e1e836"
+ dependencies = [
+  "proc-macro2",
+  "quote",
+- "syn 1.0.109",
++ "syn 2.0.58",
+  "wasm-bindgen-backend",
+  "wasm-bindgen-shared",
+ ]
+ 
+ [[package]]
+ name = "wasm-bindgen-shared"
+-version = "0.2.84"
++version = "0.2.93"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0046fef7e28c3804e5e38bfa31ea2a0f73905319b677e57ebe37e49358989b5d"
++checksum = "c62a0a307cb4a311d3a07867860911ca130c3494e8c2719593806c08bc5d0484"
+ 
+ [[package]]
+ name = "wasm-streams"
+-version = "0.2.3"
++version = "0.4.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "6bbae3363c08332cadccd13b67db371814cd214c2524020932f0804b8cf7c078"
++checksum = "b65dc4c90b63b118468cf747d8bf3566c1913ef60be765b5730ead9e0a3ba129"
+ dependencies = [
+  "futures-util",
+  "js-sys",
+@@ -3212,9 +3307,9 @@ dependencies = [
+ 
+ [[package]]
+ name = "web-sys"
+-version = "0.3.61"
++version = "0.3.70"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e33b99f4b23ba3eec1a53ac264e35a755f00e966e0065077d6027c0f575b0b97"
++checksum = "26fdeaafd9bd129f65e7c031593c24d62186301e0c72c8978fa1678be7d532c0"
+ dependencies = [
+  "js-sys",
+  "wasm-bindgen",
+@@ -3513,11 +3608,12 @@ dependencies = [
+ 
+ [[package]]
+ name = "winreg"
+-version = "0.10.1"
++version = "0.52.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "80d0f4e272c85def139476380b12f9ac60926689dd2e01d4923222f40580869d"
++checksum = "a277a57398d4bfa075df44f501a17cfdf8542d224f0d36095a2adc7aee4ef0a5"
+ dependencies = [
+- "winapi",
++ "cfg-if",
++ "windows-sys 0.48.0",
+ ]
+ 
+ [[package]]
+diff --git a/src/tools/genpolicy/Cargo.toml b/src/tools/genpolicy/Cargo.toml
+index 72f92ab9a..7108f15b9 100644
+--- a/src/tools/genpolicy/Cargo.toml
++++ b/src/tools/genpolicy/Cargo.toml
+@@ -41,7 +41,7 @@ async-trait = "0.1.68"
+ docker_credential = "1.3.1"
+ flate2 = { version = "1.0.26", features = ["zlib-ng"], default-features = false }
+ libz-ng-sys = "1.1.15" # force newer version that compiles on ppc64le
+-oci-distribution = { version = "0.10.0" }
++oci-client = { version = "0.12.0" }
+ openssl = { version = "0.10.54", features = ["vendored"] }
+ serde_ignored = "0.1.7"
+ serde_json = "1.0.39"
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index af41737ea..20917b7b6 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -15,7 +15,7 @@ use anyhow::{anyhow, Result};
+ use docker_credential::{CredentialRetrievalError, DockerCredential};
+ use fs2::FileExt;
+ use log::{debug, info, warn, LevelFilter};
+-use oci_distribution::{
++use oci_client::{
+     client::{linux_amd64_resolver, ClientConfig, ClientProtocol},
+     manifest,
+     secrets::RegistryAuth,
+@@ -128,7 +128,7 @@ impl Container {
+                     image_layers,
+                 })
+             }
+-            Err(oci_distribution::errors::OciDistributionError::AuthenticationFailure(message)) => {
++            Err(oci_client::errors::OciDistributionError::AuthenticationFailure(message)) => {
+                 panic!("Container image registry authentication failure ({}). Are docker credentials set-up for current user?", &message);
+             }
+             Err(e) => {
+diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
+index 6e0d6af3f..c206dec86 100644
+--- a/src/tools/genpolicy/src/registry_containerd.rs
++++ b/src/tools/genpolicy/src/registry_containerd.rs
+@@ -15,7 +15,7 @@ use containerd_client::{services::v1::GetImageRequest, with_namespace};
+ use docker_credential::{CredentialRetrievalError, DockerCredential};
+ use k8s_cri::v1::{image_service_client::ImageServiceClient, AuthConfig};
+ use log::{debug, info, warn};
+-use oci_distribution::Reference;
++use oci_client::Reference;
+ use std::{collections::HashMap, convert::TryFrom, io::Seek, io::Write, path::Path};
+ use tokio::{
+     io,
+-- 
+2.46.1
+
