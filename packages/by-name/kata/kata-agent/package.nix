@@ -32,18 +32,6 @@ rustPlatform.buildRustPackage rec {
     };
   };
 
-  patches = [
-    # Mount configfs into the workload container from the UVM.
-    # Based on https://github.com/kata-containers/kata-containers/pull/9554,
-    # which wasn't accepted upstream.
-    #
-    # Rebase 3.8.0, changes squashed into patch:
-    #   - fix 'field `annotations` of struct `oci_spec::runtime::Spec` is private'
-    ./0001-runtime-agent-mounts-Mount-configfs-into-the-contain.patch
-  ];
-
-  patchFlags = [ "-p3" ];
-
   nativeBuildInputs = [
     cmake
     pkg-config

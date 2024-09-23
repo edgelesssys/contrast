@@ -1,7 +1,8 @@
-From 6ac3bfc6df55ba3cc0fdd80860f85621f345cd90 Mon Sep 17 00:00:00 2001
+From b5f23b723f7e5eef438698d93c0d69328b722e0e Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabiano=20Fid=C3=AAncio?= <fabiano.fidencio@intel.com>
 Date: Thu, 25 Apr 2024 10:34:26 +0200
-Subject: [PATCH] runtime: agent: mounts: Mount configfs into the container
+Subject: [PATCH 13/13] runtime: agent: mounts: Mount configfs into the
+ container
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -54,5 +55,5 @@ index 14e3d9560..b5f857913 100644
      unistd::chdir(rootfs)?;
  
 -- 
-2.45.2
+2.46.1
 

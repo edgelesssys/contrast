@@ -72,6 +72,13 @@ buildGoModule rec {
       # Implements ideas from https://github.com/kata-containers/kata-containers/issues/10088.
       # TODO(burgerdev): backport
       ./0012-genpolicy-allow-image_guest_pull.patch
+      # Mount configfs into the workload container from the UVM.
+      # Based on https://github.com/kata-containers/kata-containers/pull/9554,
+      # which wasn't accepted upstream.
+      #
+      # Rebase 3.8.0, changes squashed into patch:
+      #   - fix 'field `annotations` of struct `oci_spec::runtime::Spec` is private'
+      ./0013-runtime-agent-mounts-Mount-configfs-into-the-contain.patch
     ];
   };
 
