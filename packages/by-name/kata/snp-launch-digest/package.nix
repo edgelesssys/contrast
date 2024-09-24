@@ -15,14 +15,7 @@ let
   kernel = "${kata.kata-kernel-uvm}/bzImage";
   ovmf-snp = "${OVMF-SNP}/FV/OVMF.fd";
   image = kata.kata-image;
-  dataBlockSize = builtins.readFile "${image.verity}/data_block_size";
-  hashBlockSize = builtins.readFile "${image.verity}/hash_block_size";
-  dataBlocks = builtins.readFile "${image.verity}/data_blocks";
-  rootHash = builtins.readFile "${image.verity}/roothash";
-  salt = builtins.readFile "${image.verity}/salt";
-  dataSectorsPerBlock = (lib.strings.toInt dataBlockSize) / 512;
-  dataSectors = (lib.strings.toInt dataBlocks) * dataSectorsPerBlock;
-  dmVerityArgs = "dm-mod.create=\"dm-verity,,,ro,0 ${toString dataSectors} verity 1 /dev/vda1 /dev/vda2 ${dataBlockSize} ${hashBlockSize} ${dataBlocks} 0 sha256 ${rootHash} ${salt}\" root=/dev/dm-0";
+  inherit (image) dmVerityArgs;
   cmdlineBase = "tsc=reliable no_timer_check rcupdate.rcu_expedited=1 i8042.direct=1 i8042.dumbkbd=1 i8042.nopnp=1 i8042.noaux=1 noreplace-smp reboot=k cryptomgr.notests net.ifnames=0 pci=lastbus=0 root=/dev/vda1 rootflags=ro rootfstype=erofs console=hvc0 console=hvc1 quiet systemd.show_status=false panic=1 nr_cpus=1 selinux=0 systemd.unit=kata-containers.target systemd.mask=systemd-networkd.service systemd.mask=systemd-networkd.socket scsi_mod.scan=none";
   cmdlineBaseDebug = "tsc=reliable no_timer_check rcupdate.rcu_expedited=1 i8042.direct=1 i8042.dumbkbd=1 i8042.nopnp=1 i8042.noaux=1 noreplace-smp reboot=k cryptomgr.notests net.ifnames=0 pci=lastbus=0 root=/dev/vda1 rootflags=ro rootfstype=erofs console=hvc0 console=hvc1 debug systemd.show_status=true systemd.log_level=debug panic=1 nr_cpus=1 selinux=0 systemd.unit=kata-containers.target systemd.mask=systemd-networkd.service systemd.mask=systemd-networkd.socket scsi_mod.scan=none agent.log=debug agent.debug_console agent.debug_console_vport=1026";
   cmdline = "${if debug then cmdlineBaseDebug else cmdlineBase} ${dmVerityArgs}";

@@ -122,107 +122,121 @@ let
     ];
     text = builtins.readFile ./buildimage.sh;
   };
-in
+  kata-image = stdenv.mkDerivation rec {
+    pname = "kata-image";
+    inherit (kata.kata-runtime) src version;
 
-stdenv.mkDerivation rec {
-  pname = "kata-image";
-  inherit (kata.kata-runtime) src version;
+    outputs = [
+      "out"
+      "verity"
+    ];
 
-  outputs = [
-    "out"
-    "verity"
-  ];
+    env = {
+      AGENT_SOURCE_BIN = "${lib.getExe kata.kata-agent}";
+      CONF_GUEST = "yes";
+      RUST_VERSION = "not-needed";
+    };
 
-  env = {
-    AGENT_SOURCE_BIN = "${lib.getExe kata.kata-agent}";
-    CONF_GUEST = "yes";
-    RUST_VERSION = "not-needed";
+    nativeBuildInputs = [
+      yq-go
+      curl
+      fakeroot
+      bubblewrap
+      util-linux
+      tdnf
+      buildimage
+    ];
+
+    sourceRoot = "${src.name}/tools/osbuilder/rootfs-builder";
+
+    buildPhase = ''
+      runHook preBuild
+
+      # Check if filesystem is ext.*
+      fstype=$(stat -f -c %T .)
+      if [[ $fstye == "ext4" || $fstype == "ext2/ext3" ]]; then
+        echo "Due to a bug in the image build, kata-image can unfortunately not be built on $fstype filesystems."
+        echo "As a workaround, you can build the derivation on a different filesystem with the following:"
+        echo "systemctl edit nix-daemon"
+        echo "Then, when editing the unit, enter:"
+        echo "[Service]"
+        echo 'Environment=TMPDIR=/some-non-ext*-filesystem'
+        echo "Then restart the nix-daemon with:"
+        echo "systemctl restart nix-daemon"
+        echo "Then rebuild the derivation."
+        exit 1
+      fi
+
+      # use a fakeroot environment to build the rootfs as a tar
+      # this is required to create files with the correct ownership and permissions
+      # including suid
+      # Upstream build invokation:
+      # https://github.com/microsoft/azurelinux/blob/59ce246f224f282b3e199d9a2dacaa8011b75a06/SPECS/kata-containers-cc/mariner-coco-build-uvm.sh#L18
+      mkdir -p /build/var/run
+      mkdir -p /build/var/tdnf
+      mkdir -p /build/var/lib/tdnf
+      mkdir -p /build/var/cache/tdnf
+      mkdir -p /build/root
+      unshare --map-root-user bwrap \
+        --bind /nix /nix \
+        --bind ${tdnfConf} /etc/tdnf/tdnf.conf \
+        --bind ${vendor-reposdir}/yum.repos.d /etc/yum.repos.d \
+        --bind /build /build \
+        --bind /build/var /var \
+        --dev-bind /dev/null /dev/null \
+        fakeroot bash -c "bash $(pwd)/rootfs.sh -r /build/root ${distro} && \
+          tar \
+            --exclude='./usr/lib/systemd/system/systemd-coredump@*' \
+            --exclude='./usr/lib/systemd/system/systemd-journald*' \
+            --exclude='./usr/lib/systemd/system/systemd-journald-dev-log*' \
+            --exclude='./usr/lib/systemd/system/systemd-journal-flush*' \
+            --exclude='./usr/lib/systemd/system/systemd-random-seed*' \
+            --exclude='./usr/lib/systemd/system/systemd-timesyncd*' \
+            --exclude='./usr/lib/systemd/system/systemd-tmpfiles-setup*' \
+            --exclude='./usr/lib/systemd/system/systemd-update-utmp*' \
+            --exclude='./usr/lib/sysimage/tdnf/history.db' \
+            --exclude='*systemd-bless-boot-generator*' \
+            --exclude='*systemd-fstab-generator*' \
+            --exclude='*systemd-getty-generator*' \
+            --exclude='*systemd-gpt-auto-generator*' \
+            --exclude='*systemd-tmpfiles-cleanup.timer*' \
+            --sort=name --mtime='UTC 1970-01-01' -C /build/root -c . -f /build/rootfs.tar"
+
+      # add the extra tree to the rootfs
+      tar --concatenate --file=/build/rootfs.tar ${rootfsExtraTree}
+      # add the closure to the rootfs
+      tar --hard-dereference --transform 's+^+./+' -cf /build/closure.tar --mtime="@$SOURCE_DATE_EPOCH" --sort=name ${nixClosure}
+      # combine the rootfs and the closure
+      tar --concatenate --file=/build/rootfs.tar /build/closure.tar
+
+      # convert tar to a squashfs image with dm-verity hash
+      ${lib.getExe buildimage} /build/rootfs.tar $out
+
+      runHook postBuild
+    '';
+
+    postInstall = ''
+      # split outputs into raw image (out) and dm-verity data (verity)
+      mkdir -p $verity
+      mv $out/{dm_verity.txt,roothash,salt,hash_type,data_blocks,data_block_size,hash_blocks,hash_block_size,hash_algorithm} $verity/
+      mv $out/raw.img /build/raw.img
+      rm -rf $out
+      mv /build/raw.img $out
+    '';
+
+    passthru = {
+      dmVerityArgs =
+        let
+          dataBlockSize = builtins.readFile "${kata-image.verity}/data_block_size";
+          hashBlockSize = builtins.readFile "${kata-image.verity}/hash_block_size";
+          dataBlocks = builtins.readFile "${kata-image.verity}/data_blocks";
+          rootHash = builtins.readFile "${kata-image.verity}/roothash";
+          salt = builtins.readFile "${kata-image.verity}/salt";
+          dataSectorsPerBlock = (lib.strings.toInt dataBlockSize) / 512;
+          dataSectors = (lib.strings.toInt dataBlocks) * dataSectorsPerBlock;
+        in
+        "dm-mod.create=\"dm-verity,,,ro,0 ${toString dataSectors} verity 1 /dev/vda1 /dev/vda2 ${dataBlockSize} ${hashBlockSize} ${dataBlocks} 0 sha256 ${rootHash} ${salt}\" root=/dev/dm-0";
+    };
   };
-
-  nativeBuildInputs = [
-    yq-go
-    curl
-    fakeroot
-    bubblewrap
-    util-linux
-    tdnf
-    buildimage
-  ];
-
-  sourceRoot = "${src.name}/tools/osbuilder/rootfs-builder";
-
-  buildPhase = ''
-    runHook preBuild
-
-    # Check if filesystem is ext.*
-    fstype=$(stat -f -c %T .)
-    if [[ $fstye == "ext4" || $fstype == "ext2/ext3" ]]; then
-      echo "Due to a bug in the image build, kata-image can unfortunately not be built on $fstype filesystems."
-      echo "As a workaround, you can build the derivation on a different filesystem with the following:"
-      echo "systemctl edit nix-daemon"
-      echo "Then, when editing the unit, enter:"
-      echo "[Service]"
-      echo 'Environment=TMPDIR=/some-non-ext*-filesystem'
-      echo "Then restart the nix-daemon with:"
-      echo "systemctl restart nix-daemon"
-      echo "Then rebuild the derivation."
-      exit 1
-    fi
-
-    # use a fakeroot environment to build the rootfs as a tar
-    # this is required to create files with the correct ownership and permissions
-    # including suid
-    # Upstream build invokation:
-    # https://github.com/microsoft/azurelinux/blob/59ce246f224f282b3e199d9a2dacaa8011b75a06/SPECS/kata-containers-cc/mariner-coco-build-uvm.sh#L18
-    mkdir -p /build/var/run
-    mkdir -p /build/var/tdnf
-    mkdir -p /build/var/lib/tdnf
-    mkdir -p /build/var/cache/tdnf
-    mkdir -p /build/root
-    unshare --map-root-user bwrap \
-      --bind /nix /nix \
-      --bind ${tdnfConf} /etc/tdnf/tdnf.conf \
-      --bind ${vendor-reposdir}/yum.repos.d /etc/yum.repos.d \
-      --bind /build /build \
-      --bind /build/var /var \
-      --dev-bind /dev/null /dev/null \
-      fakeroot bash -c "bash $(pwd)/rootfs.sh -r /build/root ${distro} && \
-        tar \
-          --exclude='./usr/lib/systemd/system/systemd-coredump@*' \
-          --exclude='./usr/lib/systemd/system/systemd-journald*' \
-          --exclude='./usr/lib/systemd/system/systemd-journald-dev-log*' \
-          --exclude='./usr/lib/systemd/system/systemd-journal-flush*' \
-          --exclude='./usr/lib/systemd/system/systemd-random-seed*' \
-          --exclude='./usr/lib/systemd/system/systemd-timesyncd*' \
-          --exclude='./usr/lib/systemd/system/systemd-tmpfiles-setup*' \
-          --exclude='./usr/lib/systemd/system/systemd-update-utmp*' \
-          --exclude='./usr/lib/sysimage/tdnf/history.db' \
-          --exclude='*systemd-bless-boot-generator*' \
-          --exclude='*systemd-fstab-generator*' \
-          --exclude='*systemd-getty-generator*' \
-          --exclude='*systemd-gpt-auto-generator*' \
-          --exclude='*systemd-tmpfiles-cleanup.timer*' \
-          --sort=name --mtime='UTC 1970-01-01' -C /build/root -c . -f /build/rootfs.tar"
-
-    # add the extra tree to the rootfs
-    tar --concatenate --file=/build/rootfs.tar ${rootfsExtraTree}
-    # add the closure to the rootfs
-    tar --hard-dereference --transform 's+^+./+' -cf /build/closure.tar --mtime="@$SOURCE_DATE_EPOCH" --sort=name ${nixClosure}
-    # combine the rootfs and the closure
-    tar --concatenate --file=/build/rootfs.tar /build/closure.tar
-
-    # convert tar to a squashfs image with dm-verity hash
-    ${lib.getExe buildimage} /build/rootfs.tar $out
-
-    runHook postBuild
-  '';
-
-  postInstall = ''
-    # split outputs into raw image (out) and dm-verity data (verity)
-    mkdir -p $verity
-    mv $out/{dm_verity.txt,roothash,salt,hash_type,data_blocks,data_block_size,hash_blocks,hash_block_size,hash_algorithm} $verity/
-    mv $out/raw.img /build/raw.img
-    rm -rf $out
-    mv /build/raw.img $out
-  '';
-}
+in
+kata-image
