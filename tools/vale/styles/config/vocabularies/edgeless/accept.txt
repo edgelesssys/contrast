@@ -105,6 +105,7 @@ Subresource
 substituters
 superset
 Syft
+sysctl
 systemd
 tardev
 tarfs
