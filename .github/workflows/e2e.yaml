@@ -49,17 +49,6 @@ jobs:
               runner: TDX
               self-hosted: true
             test_name: policy
-          # We don't have the policy support for CSI storage on K3s-qemu yet
-          - platform:
-              name: K3s-QEMU-SNP
-              runner: SNP
-              self-hosted: true
-            test_name: volumestatefulset
-          - platform:
-              name: K3s-QEMU-TDX
-              runner: TDX
-              self-hosted: true
-            test_name: volumestatefulset
       fail-fast: false
     name: "${{ matrix.platform.name }} / ${{ matrix.test_name }}"
     runs-on: ${{ matrix.platform.runner }}
