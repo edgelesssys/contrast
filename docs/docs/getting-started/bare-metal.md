@@ -26,6 +26,8 @@ Follow Canonical's instructions on [setting up Intel TDX on Ubuntu 24.04](https:
 </TabItem>
 </Tabs>
 
+Increase the `user.max_inotify_instances` sysctl limit by adding `user.max_inotify_instances=8192` to `/etc/sysctl.d/99-sysctl.conf` and running `sysctl --system`.
+
 ## K3s Setup
 
 1. Follow the [K3s setup instructions](https://docs.k3s.io/) to create a cluster.
