@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-* Install a recent version of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/). Note that `apt install` will likely install an outdated version.
+* Install version 2.44.1 or newer of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/). Note that your package manager will likely install an outdated version.
 * Install a recent version of [kubectl](https://kubernetes.io/docs/tasks/tools/).
 
 ## Prepare using the AKS preview

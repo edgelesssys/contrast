@@ -13,6 +13,10 @@ web frontend (`web`), a gRPC backend for listing available emojis (`emoji`), and
 the voting and leader board logic (`voting`). The `vote-bot` simulates user traffic by submitting
 votes to the frontend.
 
+Emojivoto can be seen as a lighthearted example of an app dealing with sensitive data.
+Contrast protects emojivoto in two ways. First, it shields emojivoto as a whole from the infrastructure e.g., Azure.
+Second, it can be configured to also prevent data access even from the administrator of the app. In the case of emojivoto, this gives assurance to users that their votes remain secret.
+
 <!-- TODO(katexochen): recreate in our design -->
 
 ![emojivoto components topology](https://raw.githubusercontent.com/BuoyantIO/emojivoto/e490d5789086e75933a474b22f9723fbfa0b29ba/assets/emojivoto-topology.png)
@@ -34,7 +38,7 @@ curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emoji
 
 ### Deploy the Contrast runtime
 
-Contrast depends on the [custom Kubernetes RuntimeClass](../components/runtime.md) `contrast-cc`,
+Contrast depends on a [custom Kubernetes RuntimeClass](../components/runtime.md),
 which needs to be installed to the cluster initially.
 This consists of a `RuntimeClass` resource and a `DaemonSet` that performs installation on worker nodes.
 This step is only required once for each version of the runtime.
@@ -144,8 +148,10 @@ The public facing frontend for voting uses the mesh certificate without client a
 
 ## Verifying the deployment as a user
 
-In different scenarios, users of an app may want to verify its security and identity before sharing data, e.g., before casting a vote. With Contrast, a user only needs a single remote-attestation step to verify the deployment - regardless of the size or scale of the deployment. Contrast is designed such that, by verifying the Coordinator, the user transitively verifies those systems the Coordinator has already verified or will verify in the future. Successful verification of the Coordinator means that
-the user can be sure that the given manifest will be enforced.
+In different scenarios, users of an app may want to verify its security and identity before sharing data, e.g., before casting a vote.
+With Contrast, a user only needs a single remote-attestation step to verify the deployment - regardless of the size or scale of the deployment.
+Contrast is designed such that, by verifying the Coordinator, the user transitively verifies those systems the Coordinator has already verified or will verify in the future.
+Successful verification of the Coordinator means that the user can be sure that the given manifest will be enforced.
 
 ### Verifying the Coordinator
 
