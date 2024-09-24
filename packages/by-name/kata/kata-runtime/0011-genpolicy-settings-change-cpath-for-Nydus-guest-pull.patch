@@ -1,7 +1,7 @@
-From ebf6f448e2069019c6c8975bac82f499e8d69197 Mon Sep 17 00:00:00 2001
+From 898be6d6076647b09350cadd4ee0495d31b5eb79 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Mon, 12 Aug 2024 14:18:43 +0200
-Subject: [PATCH 11/15] genpolicy-settings: change cpath for Nydus guest pull
+Subject: [PATCH 11/16] genpolicy-settings: change cpath for Nydus guest pull
 
 Nydus uses a different base dir for container rootfs, see
 https://github.com/kata-containers/kata-containers/blob/775f6bd/tests/integration/kubernetes/tests_common.sh#L139
@@ -23,5 +23,5 @@ index fcafa46cc..4e9f6481d 100644
          "sfprefix": "^$(cpath)/$(bundle-id)-[a-z0-9]{16}-",
          "ip_p": "[0-9]{1,5}",
 -- 
-2.46.1
+2.46.2
 

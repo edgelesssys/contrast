@@ -1,0 +1,58 @@
+From f7100bd145c2702546633dde0192cce6d53f032a Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Tue, 24 Sep 2024 16:05:31 +0200
+Subject: [PATCH 16/16] genpolicy: support mount propagation and ro-mounts
+
+---
+ src/tools/genpolicy/rules.rego               |  3 ++-
+ src/tools/genpolicy/src/mount_and_storage.rs | 14 ++++++++++++--
+ 2 files changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index 685109ba6..85d70d9b3 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -105,7 +105,8 @@ allow_create_container_input {
+     count(i_linux.GIDMappings) == 0
+     count(i_linux.MountLabel) == 0
+     count(i_linux.Resources.Devices) == 0
+-    count(i_linux.RootfsPropagation) == 0
++    # TODO(burgerdev): is it harmful to always allow RootfsPropagation?
++    # count(i_linux.RootfsPropagation) == 0
+     count(i_linux.UIDMappings) == 0
+     is_null(i_linux.IntelRdt)
+     is_null(i_linux.Resources.BlockIO)
+diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
+index 0e5a5da19..0e354584b 100644
+--- a/src/tools/genpolicy/src/mount_and_storage.rs
++++ b/src/tools/genpolicy/src/mount_and_storage.rs
+@@ -181,14 +181,24 @@ fn get_empty_dir_mount_and_storage(
+         &settings_empty_dir.mount_type
+     };
+ 
++    let rw_opt = match yaml_mount.readOnly {
++        Some(true) => "ro",
++        _ => "rw",
++    };
++    let mount_propagation = match &yaml_mount.mountPropagation {
++        Some(mode) if mode == "Bidirectional" => "rshared",
++        Some(mode) if mode == "HostToContainer" => "rslave",
++        _ => "rprivate",
++    };
++
+     p_mounts.push(policy::KataMount {
+         destination: yaml_mount.mountPath.to_string(),
+         type_: mount_type.to_string(),
+         source,
+         options: vec![
+             "rbind".to_string(),
+-            "rprivate".to_string(),
+-            "rw".to_string(),
++            mount_propagation.to_string(),
++            rw_opt.to_string(),
+         ],
+     });
+ }
+-- 
+2.46.2
+

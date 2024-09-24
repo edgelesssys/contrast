@@ -83,6 +83,11 @@ buildGoModule rec {
       # TODO(burgerdev): backport
       ./0014-genpolicy-bump-oci-distribution-to-v0.12.0.patch
       ./0015-agent-bump-image-rs-version.patch
+
+      # This is an alternative implementation of
+      # packages/by-name/microsoft/genpolicy/0005-genpolicy-propagate-mount_options-for-empty-dirs.patch
+      # that does not depend on the CSI enabling changes exclusive to the Microsoft fork.
+      ./0016-genpolicy-support-mount-propagation-and-ro-mounts.patch
     ];
   };
 

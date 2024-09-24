@@ -1,7 +1,7 @@
-From fe60478b58770704074b1552629c362037d89e71 Mon Sep 17 00:00:00 2001
+From bbe2c34d00d62473d24799470fdb22e6e9e65d0a Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Thu, 1 Aug 2024 15:58:42 +0200
-Subject: [PATCH 12/15] genpolicy: allow image_guest_pull
+Subject: [PATCH 12/16] genpolicy: allow image_guest_pull
 
 This adds an alternative version of allow_storages that checks Nydus
 guest pull instructions. The image reference is present in two
@@ -2343,5 +2343,5 @@ index 000000000..2f21e0674
 +  }
 +]
 -- 
-2.46.1
+2.46.2
 

@@ -1,7 +1,7 @@
-From fe09addb23320b1ac3d11052992f2db9dd764e22 Mon Sep 17 00:00:00 2001
+From f1810865d1996d3c75fcb40b4105a0b622036d15 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Mon, 12 Aug 2024 13:45:43 +0200
-Subject: [PATCH 14/15] genpolicy: bump oci-distribution to v0.12.0
+Subject: [PATCH 14/16] genpolicy: bump oci-distribution to v0.12.0
 
 This picks up a security fix for confidential pulling of unsigned
 images.
@@ -637,5 +637,5 @@ index 6e0d6af3f..c206dec86 100644
  use tokio::{
      io,
 -- 
-2.46.1
+2.46.2
 
