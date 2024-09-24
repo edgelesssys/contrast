@@ -231,7 +231,7 @@ the list that already contains the `"web"` DNS entry:
       },
 ```
 
-### Updatating the manifest
+### Updating the manifest
 
 Next, set the changed manifest at the coordinator with:
 
