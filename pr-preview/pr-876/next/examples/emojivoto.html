@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-876/assets/css/styles.e12c56bb.css">
-<script src="/contrast/pr-preview/pr-876/assets/js/runtime~main.b7745e1d.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-876/assets/js/runtime~main.4a4c3ea3.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-876/assets/js/main.5bf0ee9f.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -27,7 +27,7 @@ web frontend (<code>web</code>), a gRPC backend for listing available emojis (<c
 the voting and leader board logic (<code>voting</code>). The <code>vote-bot</code> simulates user traffic by submitting
 votes to the frontend.</p>
 <p>Emojivoto can be seen as a lighthearted example of an app dealing with sensitive data.
-Contrast protects emojivoto in two ways. First, it shields emojivoto as a whole from the infrastructure e.g., Azure.
+Contrast protects emojivoto in two ways. First, it shields emojivoto as a whole from the infrastructure, for example, Azure.
 Second, it can be configured to also prevent data access even from the administrator of the app. In the case of emojivoto, this gives assurance to users that their votes remain secret.</p>
 <p><img decoding="async" loading="lazy" src="https://raw.githubusercontent.com/BuoyantIO/emojivoto/e490d5789086e75933a474b22f9723fbfa0b29ba/assets/emojivoto-topology.png" alt="emojivoto components topology" class="img_ev3q"></p>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="prerequisites">Prerequisites<a href="#prerequisites" class="hash-link" aria-label="Direct link to Prerequisites" title="Direct link to Prerequisites">​</a></h2>
@@ -81,7 +81,7 @@ and writes them to a <code>volumeMount</code>. The service mesh sidecar is confi
 from the <code>volumeMount</code> when communicating with other parts of the deployment over mTLS.
 The public facing frontend for voting uses the mesh certificate without client authentication.</p></div></div>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="verifying-the-deployment-as-a-user">Verifying the deployment as a user<a href="#verifying-the-deployment-as-a-user" class="hash-link" aria-label="Direct link to Verifying the deployment as a user" title="Direct link to Verifying the deployment as a user">​</a></h2>
-<p>In different scenarios, users of an app may want to verify its security and identity before sharing data, e.g., before casting a vote.
+<p>In different scenarios, users of an app may want to verify its security and identity before sharing data, for example, before casting a vote.
 With Contrast, a user only needs a single remote-attestation step to verify the deployment - regardless of the size or scale of the deployment.
 Contrast is designed such that, by verifying the Coordinator, the user transitively verifies those systems the Coordinator has already verified or will verify in the future.
 Successful verification of the Coordinator means that the user can be sure that the given manifest will be enforced.</p>
