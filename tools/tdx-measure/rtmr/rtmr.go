@@ -144,6 +144,20 @@ func CalcRtmr1(kernelFile []byte) ([48]byte, error) {
 	return rtmr.Get(), nil
 }
 
+// CalcRtmr2 calculates RTMR[2] for the given kernel command line.
+func CalcRtmr2(cmdLine string) ([48]byte, error) {
+	var rtmr Rtmr
+
+	codepoints := utf16.Encode([]rune(cmdLine))
+	bytes := make([]byte, (len(codepoints)+1)*2)
+	for i, codepoint := range codepoints {
+		binary.LittleEndian.PutUint16(bytes[i*2:][:2], codepoint)
+	}
+	rtmr.hashAndExtend(bytes)
+
+	return rtmr.Get(), nil
+}
+
 func hashKernel(kernelFile []byte) ([]byte, error) {
 	patchKernel(kernelFile)
 
