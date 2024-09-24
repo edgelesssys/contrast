@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -543,6 +544,9 @@ sleep inf
 
 	vss := StatefulSet("volume-tester", "").
 		WithSpec(StatefulSetSpec().
+			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
+				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
+				WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
 			WithReplicas(1).
 			WithSelector(LabelSelector().
 				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "volume-tester"}),
