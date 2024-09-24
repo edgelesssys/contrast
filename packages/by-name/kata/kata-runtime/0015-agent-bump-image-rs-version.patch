@@ -1,7 +1,7 @@
-From 55176b158d2fe2b58c82d6ece687b77d816f0cdf Mon Sep 17 00:00:00 2001
+From ff84e4320e8b2a47bfa7ba8b0ff405ccb42074c8 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Fri, 13 Sep 2024 10:33:30 +0200
-Subject: [PATCH 15/15] agent: bump image-rs version
+Subject: [PATCH 15/16] agent: bump image-rs version
 
 The oci-distribution crate was recently renamed to oci-client, and new
 releases are only published for oci-client. image-rs needed to migrate
@@ -530,5 +530,5 @@ index 4b9a0ed48..005c551cc 100644
  # Agent Policy
  regorus = { version = "0.1.4", default-features = false, features = [
 -- 
-2.46.1
+2.46.2
 

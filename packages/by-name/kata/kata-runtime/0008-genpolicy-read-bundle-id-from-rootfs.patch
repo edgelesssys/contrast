@@ -1,7 +1,7 @@
-From 092cbc6954d4c00822e59a96fc4e787e24b13879 Mon Sep 17 00:00:00 2001
+From 6ae1803e02b0b6bd036a432ef919b5fb5e1df0ad Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Wed, 24 Jul 2024 09:51:57 +0200
-Subject: [PATCH 08/15] genpolicy: read bundle-id from rootfs
+Subject: [PATCH 08/16] genpolicy: read bundle-id from rootfs
 
 The host path of bundles is not portable and could be literally anything
 depending on containerd configuration, so we can't rely on a specific
@@ -68,5 +68,5 @@ index fe80ed11f..7cd3d4202 100644
  allow_mount(p_oci, i_mount, bundle_id, sandbox_id) {
      print("allow_mount: i_mount =", i_mount)
 -- 
-2.46.1
+2.46.2
 

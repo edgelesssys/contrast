@@ -1,7 +1,7 @@
-From bfcf9e110f0037b7997f64316df69b1fa5a481ca Mon Sep 17 00:00:00 2001
+From a5f9f9f9ec4c39cba26bcb44f7723167dfeaafe6 Mon Sep 17 00:00:00 2001
 From: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 Date: Fri, 9 Aug 2024 11:06:04 +0200
-Subject: [PATCH 04/15] virtcontainers: allow specifying nydus-overlayfs binary
+Subject: [PATCH 04/16] virtcontainers: allow specifying nydus-overlayfs binary
  by path
 
 ...or by using a binary with additional suffix.
@@ -179,5 +179,5 @@ index be76a93a6..a809bb018 100644
  			} else {
  				errors = merr.Append(errors, bindUnmountContainerRootfs(ctx, sharedDir, c.id))
 -- 
-2.46.1
+2.46.2
 

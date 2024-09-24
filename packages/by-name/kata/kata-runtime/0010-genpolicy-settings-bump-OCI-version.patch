@@ -1,7 +1,7 @@
-From 1fc19b89f1b50e1807ebbfe0db17ceb1c502fba5 Mon Sep 17 00:00:00 2001
+From 430ce6de80cd7fecb1c81b8c43a51f4e4a5d6c8e Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Wed, 24 Jul 2024 11:16:37 +0200
-Subject: [PATCH 10/15] genpolicy-settings: bump OCI version
+Subject: [PATCH 10/16] genpolicy-settings: bump OCI version
 
 Kata hard-codes OCI version 1.1.0, but latest K3S has 1.2.0.
 ---
@@ -29,5 +29,5 @@ index e50d5e545..fcafa46cc 100644
 \ No newline at end of file
 +}
 -- 
-2.46.1
+2.46.2
 
