@@ -519,13 +519,13 @@ disk_encryption_key_path="/dev/shm/disk-key"
 if ! cryptsetup isLuks "${device}"; then
 	# Generate a random key for the first initialization.
 	dd if=/dev/urandom bs=1 count=32 2>/dev/null | base64 | tr -d '\n' > "${tmp_key_path}"
-	cryptsetup luksFormat $device "${tmp_key_path}" </dev/null
+	cryptsetup luksFormat --pbkdf-memory=10240 $device "${tmp_key_path}" </dev/null
 
 	# Now we can get the LUKS UUID and deterministically derive the disk encryption key from the workload secret.
 	uuid=$(blkid "${device}" -s UUID -o value)
 	openssl kdf -keylen 32 -kdfopt digest:SHA2-256 -kdfopt key:$(cat "${workload_secret_path}") \
 		-kdfopt info:${uuid} -binary HKDF | base64 | tr -d '\n' > "${disk_encryption_key_path}"
-	cryptsetup luksChangeKey "${device}" --key-file "${tmp_key_path}" "${disk_encryption_key_path}"
+	cryptsetup luksChangeKey --pbkdf-memory=10240 "${device}" --key-file "${tmp_key_path}" "${disk_encryption_key_path}"
 	cryptsetup open "${device}" state -d "${disk_encryption_key_path}"
 	mkfs.ext4 /dev/mapper/state
 	cryptsetup close state
