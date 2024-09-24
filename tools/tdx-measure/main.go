@@ -106,6 +106,7 @@ func newRtMrCmd() *cobra.Command {
 	if err := cmd.MarkFlagFilename("kernel"); err != nil {
 		panic(err)
 	}
+	cmd.Flags().StringP("cmdline", "c", "", "kernel command line")
 	return cmd
 }
 
@@ -141,7 +142,14 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("can't calculate RTMR 1: %w", err)
 		}
 	case "2":
-		digest = [48]byte{}
+		cmdLine, err := cmd.Flags().GetString("cmdline")
+		if err != nil {
+			return err
+		}
+		digest, err = rtmr.CalcRtmr2(cmdLine)
+		if err != nil {
+			return fmt.Errorf("can't calculate RTMR 2: %w", err)
+		}
 	case "3":
 		digest = [48]byte{}
 	}

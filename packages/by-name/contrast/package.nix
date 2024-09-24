@@ -98,23 +98,32 @@ let
       };
       tdxRefVals = {
         tdx = [
-          {
-            mrTd = builtins.readFile "${kata.tdx-launch-digests}/mrtd.hex";
-            rtrms = [
-              (builtins.readFile "${kata.tdx-launch-digests}/rtmr0.hex")
-              (builtins.readFile "${kata.tdx-launch-digests}/rtmr1.hex")
-              (builtins.readFile "${kata.tdx-launch-digests}/rtmr2.hex")
-              (builtins.readFile "${kata.tdx-launch-digests}/rtmr3.hex")
-            ];
-            minimumQeSvn = 0;
-            minimumPceSvn = 0;
-            # TODO(freax13): Remove this. We should ask the user to fill this in instead of providing our own defaults.
-            minimumTeeTcbSvn = "04010200000000000000000000000000";
-            # TODO(freax13): Remove this. We should ask the user to fill this in instead of providing our own defaults.
-            mrSeam = "1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04";
-            tdAttributes = "0000001000000000";
-            xfam = "e702060000000000";
-          }
+          (
+            let
+              launch-digests =
+                if kata.contrast-node-installer-image.debugRuntime then
+                  kata.tdx-launch-digests.override { debug = true; }
+                else
+                  kata.tdx-launch-digests;
+            in
+            {
+              mrTd = builtins.readFile "${launch-digests}/mrtd.hex";
+              rtrms = [
+                (builtins.readFile "${launch-digests}/rtmr0.hex")
+                (builtins.readFile "${launch-digests}/rtmr1.hex")
+                (builtins.readFile "${launch-digests}/rtmr2.hex")
+                (builtins.readFile "${launch-digests}/rtmr3.hex")
+              ];
+              minimumQeSvn = 0;
+              minimumPceSvn = 0;
+              # TODO(freax13): Remove this. We should ask the user to fill this in instead of providing our own defaults.
+              minimumTeeTcbSvn = "04010200000000000000000000000000";
+              # TODO(freax13): Remove this. We should ask the user to fill this in instead of providing our own defaults.
+              mrSeam = "1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04";
+              tdAttributes = "0000001000000000";
+              xfam = "e702060000000000";
+            }
+          )
         ];
       };
     in
