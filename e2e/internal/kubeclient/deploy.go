@@ -22,16 +22,24 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// WaitCondition is an enum type for the possible wait conditions when using `kubeclient.WaitFor`.
 type WaitCondition int
 
 const (
 	_ WaitCondition = iota
+	// Ready waits until the resource becomes ready.
 	Ready
+	// Added waits until a `watch.Added` event occurs.
 	Added
+	// Modified waits until a `watch.Modified` event occurs.
 	Modified
+	// Deleted waits until a `watch.Deleted` event occurs.
 	Deleted
+	// Bookmark waits until a `watch.Bookmark` event occurs.
 	Bookmark
+	// Running waits until all containers of all pods of the resource are running.
 	Running
+	// InitContainersRunning waits until all initial containers of all pods of the resource are running.
 	InitContainersRunning
 )
 
