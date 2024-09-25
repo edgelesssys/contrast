@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-887/assets/css/styles.e12c56bb.css">
-<script src="/contrast/pr-preview/pr-887/assets/js/runtime~main.18194f43.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-887/assets/js/runtime~main.056d44d8.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-887/assets/js/main.390d51f3.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -26,7 +26,7 @@
 </ol><p>Consult AMD&#x27;s <a href="https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/tuning-guides/58207-using-sev-with-amd-epyc-processors.pdf" target="_blank" rel="noopener noreferrer">Using SEV with AMD EPYC Processors user guide</a> for more information.</p></div><div role="tabpanel" class="tabItem_Ymn6" hidden=""><p>Follow Canonical&#x27;s instructions on <a href="https://github.com/canonical/tdx?tab=readme-ov-file#43-enable-intel-tdx-in-the-hosts-bios" target="_blank" rel="noopener noreferrer">setting up Intel TDX in the host&#x27;s BIOS</a>.</p></div></div></div>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="kernel-setup">Kernel Setup<a href="#kernel-setup" class="hash-link" aria-label="Direct link to Kernel Setup" title="Direct link to Kernel Setup">​</a></h2>
 <div class="tabs-container tabList__CuJ"><ul role="tablist" aria-orientation="horizontal" class="tabs"><li role="tab" tabindex="0" aria-selected="true" class="tabs__item tabItem_LNqP tabs__item--active">AMD SEV-SNP</li><li role="tab" tabindex="-1" aria-selected="false" class="tabs__item tabItem_LNqP">Intel TDX</li></ul><div class="margin-top--md"><div role="tabpanel" class="tabItem_Ymn6"><p>Install a kernel with version 6.11 or greater. If you&#x27;re following this guide before 6.11 has been released, use 6.11-rc3. Don&#x27;t use 6.11-rc4 - 6.11-rc6 as they contain a regression. 6.11-rc7+ might work.</p></div><div role="tabpanel" class="tabItem_Ymn6" hidden=""><p>Follow Canonical&#x27;s instructions on <a href="https://github.com/canonical/tdx?tab=readme-ov-file#41-install-ubuntu-2404-server-image" target="_blank" rel="noopener noreferrer">setting up Intel TDX on Ubuntu 24.04</a>. Note that Contrast currently only supports Intel TDX with Ubuntu 24.04.</p></div></div></div>
-<p>Increase the <code>user.max_inotify_instances</code> sysctl limit by adding <code>user.max_inotify_instances=8192</code> to <code>/etc/sysctl.d/99-sysctl.conf</code> and running <code>sysctl -p</code>.</p>
+<p>Increase the <code>user.max_inotify_instances</code> sysctl limit by adding <code>user.max_inotify_instances=8192</code> to <code>/etc/sysctl.d/99-sysctl.conf</code> and running <code>sysctl --system</code>.</p>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="k3s-setup">K3s Setup<a href="#k3s-setup" class="hash-link" aria-label="Direct link to K3s Setup" title="Direct link to K3s Setup">​</a></h2>
 <ol>
 <li>Follow the <a href="https://docs.k3s.io/" target="_blank" rel="noopener noreferrer">K3s setup instructions</a> to create a cluster.</li>
