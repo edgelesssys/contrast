@@ -2,16 +2,16 @@
 
 ## Prerequisites
 
-Install the latest version of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/).
+* Install version 2.44.1 or newer of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/). Note that your package manager will likely install an outdated version.
+* Install a recent version of [kubectl](https://kubernetes.io/docs/tasks/tools/).
 
-[Login to your account](https://docs.microsoft.com/en-us/cli/azure/authenticate-azure-cli), which needs
-to have the permissions to create an AKS cluster, by executing:
+## Prepare using the AKS preview
+
+First, log in to your Azure subscription:
 
 ```bash
 az login
 ```
-
-## Prepare using the AKS preview
 
 CoCo on AKS is currently in preview. An extension for the `az` CLI is needed to create such a cluster.
 Add the extension with the following commands:
@@ -110,7 +110,7 @@ az aks get-credentials \
   --name "${azClusterName:?}"
 ```
 
-For validation, list the available nodes using kubectl:
+For validation, list the available nodes using `kubectl`:
 
 ```bash
 kubectl get nodes
@@ -122,6 +122,8 @@ It should show a single node:
 NAME                                STATUS   ROLES    AGE     VERSION
 aks-nodepool1-32049705-vmss000000   Ready    <none>   9m47s   v1.29.0
 ```
+
+🥳 Congratulations. You're now ready to set up your first application with Contrast. Follow this [example](../examples/emojivoto.md) to learn how.
 
 ## Cleanup
 

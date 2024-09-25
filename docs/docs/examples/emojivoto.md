@@ -5,7 +5,7 @@
 ![screenshot of the emojivoto UI](../_media/emoijvoto.png)
 
 **This tutorial guides you through deploying [emojivoto](https://github.com/BuoyantIO/emojivoto) as a
-confidential Contrast deployment and validating the deployment from a voters perspective.**
+confidential Contrast deployment and validating the deployment from a voter's perspective.**
 
 Emojivoto is an example app allowing users to vote for different emojis and view votes
 on a leader board. It has a microservice architecture consisting of a
@@ -13,32 +13,24 @@ web frontend (`web`), a gRPC backend for listing available emojis (`emoji`), and
 the voting and leader board logic (`voting`). The `vote-bot` simulates user traffic by submitting
 votes to the frontend.
 
+Emojivoto can be seen as a lighthearted example of an app dealing with sensitive data.
+Contrast protects emojivoto in two ways. First, it shields emojivoto as a whole from the infrastructure, for example, Azure.
+Second, it can be configured to also prevent data access even from the administrator of the app. In the case of emojivoto, this gives assurance to users that their votes remain secret.
+
 <!-- TODO(katexochen): recreate in our design -->
 
 ![emojivoto components topology](https://raw.githubusercontent.com/BuoyantIO/emojivoto/e490d5789086e75933a474b22f9723fbfa0b29ba/assets/emojivoto-topology.png)
 
-### Motivation
-
-Using a voting service, users' votes are considered highly sensitive data, as we require
-a secret ballot. Also, users are likely interested in the fairness of the ballot. For
-both requirements, we can use Confidential Computing and, specifically, workload attestation
-to prove to those interested in voting that the app is running in a protected environment
-where their votes are processed without leaking to the platform provider or workload owner.
-
 ## Prerequisites
 
-- **Installed Contrast CLI.**
-  See the [installation instructions](./../getting-started/install.md) on how to get it.
-- **Running cluster with Confidential Containers support.**
-  Please follow the [AKS cluster setup instructions](./../getting-started/cluster-setup.md) or [bare metal setup instructions](./../getting-started/bare metal.md)
-  to create a cluster.
+- Installed Contrast CLI
+- A running Kubernetes cluster with support for confidential containers, either on [AKS](../getting-started/cluster-setup.md) or on [bare metal](../getting-started/bare-metal.md).
 
 ## Steps to deploy emojivoto with Contrast
 
-### Downloading the deployment
+### Download the deployment files
 
-The emojivoto deployment files are part of Contrast release. You can download the
-latest deployment by running:
+The emojivoto deployment files are part of the Contrast release. You can download them by running:
 
 ```sh
 curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.yml --create-dirs --output-dir deployment
@@ -46,8 +38,8 @@ curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emoji
 
 ### Deploy the Contrast runtime
 
-Contrast depends on a [custom Kubernetes `RuntimeClass` (`contrast-cc`)](../components/runtime.md),
-which needs to be installed in the cluster prior to the Coordinator or any confidential workloads.
+Contrast depends on a [custom Kubernetes RuntimeClass](../components/runtime.md),
+which needs to be installed to the cluster initially.
 This consists of a `RuntimeClass` resource and a `DaemonSet` that performs installation on worker nodes.
 This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
@@ -58,7 +50,7 @@ It can be shared between Contrast deployments.
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-aks-clh-snp.yml
 ```
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SEV-SNP)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp.yml
 ```
@@ -81,7 +73,7 @@ LoadBalancer service, into your cluster:
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-aks-clh-snp.yml
 ```
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SEV-SNP)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp.yml
 ```
@@ -105,7 +97,7 @@ of your deployment will be created:
 contrast generate --reference-values aks-clh-snp deployment/
 ```
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare Metal (SNP)">
+<TabItem value="k3s-qemu-snp" label="Bare Metal (SEV-SNP)">
 ```sh
 contrast generate --reference-values k3s-qemu-snp deployment/
 ```
@@ -169,25 +161,23 @@ The public facing frontend for voting uses the mesh certificate without client a
 
 :::
 
-## Voter's perspective: Verifying the ballot
+## Verifying the deployment as a user
 
-As voters, we want to verify the fairness and confidentiality of the deployment before
-deciding to vote. Regardless of the scale of our distributed deployment, Contrast only
-needs a single remote attestation step to verify the deployment. By doing remote attestation
-of the Coordinator, we transitively verify those systems the Coordinator has already attested
-or will attest in the future. Successful verification of the Coordinator means that
-we can be sure it will enforce the configured manifest.
+In different scenarios, users of an app may want to verify its security and identity before sharing data, for example, before casting a vote.
+With Contrast, a user only needs a single remote-attestation step to verify the deployment - regardless of the size or scale of the deployment.
+Contrast is designed such that, by verifying the Coordinator, the user transitively verifies those systems the Coordinator has already verified or will verify in the future.
+Successful verification of the Coordinator means that the user can be sure that the given manifest will be enforced.
 
-### Attest the Coordinator
+### Verifying the Coordinator
 
-A potential voter can verify the Contrast deployment using the verify
+A user can verify the Contrast deployment using the verify
 command:
 
 ```sh
 contrast verify -c "${coordinator}:1313" -m manifest.json
 ```
 
-The CLI will attest the Coordinator using the reference values from a given manifest. This manifest needs
+The CLI will verify the Coordinator via remote attestation using the reference values from a given manifest. This manifest needs
 to be communicated out of band to everyone wanting to verify the deployment, as the `verify` command checks
 if the currently active manifest at the Coordinator matches the manifest given to the CLI. If the command succeeds,
 the Coordinator deployment was successfully verified to be running in the expected Confidential
@@ -200,16 +190,16 @@ In addition, the policies referenced in the manifest history are also written in
 On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
 :::
 
-### Manifest history and artifact audit
+### Auditing the manifest history and artifacts
 
 In the next step, the Coordinator configuration that was written by the `verify` command needs to be audited.
 A potential voter should inspect the manifest and the referenced policies. They could delegate
 this task to an entity they trust.
 
-### Confidential connection to the attested workload
+### Connecting securely to the application
 
-After ensuring the configuration of the Coordinator fits the expectation, you can securely connect
-to the workloads using the Coordinator's `mesh-ca.pem` as a trusted CA certificate.
+After ensuring the configuration of the Coordinator fits the expectation, the user can securely connect
+to the application using the Coordinator's `mesh-ca.pem` as a trusted CA certificate.
 
 To access the web frontend, expose the service on a public IP address via a LoadBalancer service:
 
@@ -224,7 +214,7 @@ Using `openssl`, the certificate of the service can be validated with the `mesh-
 openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
 ```
 
-## Certificate SAN and manifest update (optional)
+## Updating the certificate SAN and the manifest (optional)
 
 By default, mesh certificates are issued with a wildcard DNS entry. The web frontend is accessed
 via load balancer IP in this demo. Tools like curl check the certificate for IP entries in the subject alternative name (SAN) field.
@@ -236,7 +226,7 @@ $ curl --cacert ./verify/mesh-ca.pem "https://${frontendIP}:443"
 curl: (60) SSL: no alternative certificate subject name matches target host name '203.0.113.34'
 ```
 
-### Configure the service SAN in the manifest
+### Configuring the service SAN in the manifest
 
 The `Policies` section of the manifest maps policy hashes to a list of SANs. To enable certificate verification
 of the web frontend with tools like curl, edit the policy with your favorite editor and add the `frontendIP` to
@@ -256,7 +246,7 @@ the list that already contains the `"web"` DNS entry:
       },
 ```
 
-### Update the manifest
+### Updating the manifest
 
 Next, set the changed manifest at the coordinator with:
 
