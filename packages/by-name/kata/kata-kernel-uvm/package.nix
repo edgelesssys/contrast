@@ -23,9 +23,11 @@ let
 
       # 1. We don't use an initrd.
       # 2. Enable dm-init, so that we can use `dm-mod.create`.
+      # 3. Disable module signing to make the build reproducable.
       substituteInPlace $config \
         --replace-fail 'CONFIG_INITRAMFS_SOURCE="initramfs.cpio.gz"' 'CONFIG_INITRAMFS_SOURCE=""' \
-        --replace-fail '# CONFIG_DM_INIT is not set' 'CONFIG_DM_INIT=y'
+        --replace-fail '# CONFIG_DM_INIT is not set' 'CONFIG_DM_INIT=y' \
+        --replace-fail 'CONFIG_MODULE_SIG=y' 'CONFIG_MODULE_SIG=n'
     '';
 
     dontBuild = true;
