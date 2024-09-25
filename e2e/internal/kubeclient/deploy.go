@@ -174,12 +174,70 @@ func (c *Kubeclient) WaitForPod(ctx context.Context, namespace, name string) err
 	}
 }
 
+func (c *Kubeclient) checkIfReady(ctx context.Context, name string, namespace string, evt watch.Event, resource ResourceWaiter) (bool, error) {
+	switch evt.Type {
+	case watch.Added:
+		fallthrough
+	case watch.Modified:
+		pods, err := resource.getPods(ctx, c, namespace, name)
+		if err != nil {
+			return false, err
+		}
+		numPodsReady := 0
+		for _, pod := range pods {
+			if isPodReady(&pod) {
+				numPodsReady++
+			}
+		}
+		desiredPods, err := resource.numDesiredPods(evt.Object)
+		if err != nil {
+			return false, err
+		}
+		if desiredPods <= numPodsReady {
+			return true, nil
+		}
+	case watch.Deleted:
+		return false, fmt.Errorf("%s %s/%s was deleted while waiting for it", resource.kind(), namespace, name)
+	default:
+		return false, fmt.Errorf("unexpected watch event while waiting for %s %s/%s: type=%s, object=%#v", resource.kind(), namespace, name, evt.Type, evt.Object)
+	}
+	return false, nil
+}
+
+func (c *Kubeclient) checkIfRunning(ctx context.Context, name string, namespace string, resource ResourceWaiter, onlyCheckInitContainers bool) (bool, error) {
+	pods, err := resource.getPods(ctx, c, namespace, name)
+	if err != nil {
+		return false, err
+	}
+	toBeRunningPods := len(pods)
+	for _, pod := range pods {
+		// check if all containers in the pod are running
+		var containers []corev1.ContainerStatus
+		if onlyCheckInitContainers {
+			containers = pod.Status.InitContainerStatuses
+		} else {
+			containers = pod.Status.ContainerStatuses
+		}
+		toBeRunningContainers := len(containers)
+
+		for _, container := range containers {
+			if container.State.Running != nil {
+				toBeRunningContainers--
+			}
+		}
+		if toBeRunningContainers == 0 {
+			toBeRunningPods--
+		}
+	}
+	if toBeRunningPods == 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
 // WaitFor watches the given resource kind and blocks until the desired number of pods are
 // ready or the context expires (is cancelled or times out).
-func (c *Kubeclient) WaitFor(ctx context.Context, resource ResourceWaiter, namespace, name string) error {
-	logger := c.log.With("namespace", namespace)
-	logger.Info(fmt.Sprintf("Waiting for %s %s/%s to become ready", resource.kind(), namespace, name))
-
+func (c *Kubeclient) WaitFor(ctx context.Context, condition WaitCondition, resource ResourceWaiter, namespace, name string) error {
 	// When the node-installer restarts K3s, the watcher fails. The watcher has
 	// a retry loop internally, but it only retries starting the request, once
 	// it has established a request and that request dies spuriously, the
@@ -259,16 +317,12 @@ retryLoop:
 				if evt.Type == watch.Modified {
 					return nil
 				}
-			case Running:
-				running, err := c.checkIfRunning(ctx, name, namespace, resource, false)
-				if err != nil {
-					return err
-				}
-				if running {
-					return nil
-				}
 			case InitContainersRunning:
-				running, err := c.checkIfRunning(ctx, name, namespace, resource, true)
+				// essentially the same case as `Running`, both just check different containers
+				fallthrough
+			case Running:
+				checkOnlyInitContainers := condition == InitContainersRunning
+				running, err := c.checkIfRunning(ctx, name, namespace, resource, checkOnlyInitContainers)
 				if err != nil {
 					return err
 				}
@@ -280,8 +334,8 @@ retryLoop:
 	}
 }
 
-// WaitForLoadBalancer waits until the given service is configured with an external IP and returns it.
-func (c *Kubeclient) WaitForLoadBalancer(ctx context.Context, namespace, name string) (string, error) {
+// WaitForService waits until the given service is configured with an external IP and returns it.
+func (c *Kubeclient) WaitForService(ctx context.Context, namespace, name string, loadBalancer bool) (string, error) {
 	watcher, err := c.Client.CoreV1().Services(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
 	if err != nil {
 		return "", err
@@ -319,6 +373,65 @@ loop:
 				// TODO(burgerdev): deal with more than one port, and protocols other than TCP
 				port = int(svc.Spec.Ports[0].Port)
 				break loop
+			}
+		case watch.Deleted:
+			return "", fmt.Errorf("service %s/%s was deleted while waiting for it", namespace, name)
+		default:
+			c.log.Warn("ignoring unexpected watch event", "type", evt.Type, "object", evt.Object)
+		}
+	}
+
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	dialer := &net.Dialer{}
+	for {
+		select {
+		case <-ticker.C:
+			conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(ip, strconv.Itoa(port)))
+			if err == nil {
+				conn.Close()
+				return ip, nil
+			}
+			c.log.Info("probe failed", "namespace", namespace, "name", name, "error", err)
+		case <-ctx.Done():
+			return "", fmt.Errorf("LoadBalancer %s/%s never responded to probing before %w", namespace, name, ctx.Err())
+		}
+	}
+}
+
+// WaitForLoadBalancer waits until the given service is configured with an external IP and returns it.
+func (c *Kubeclient) WaitForLoadBalancer(ctx context.Context, namespace, name string) (string, error) {
+	watcher, err := c.Client.CoreV1().Services(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+	if err != nil {
+		return "", err
+	}
+	var ip string
+	var port int
+loop:
+	for {
+		evt, ok := <-watcher.ResultChan()
+		if !ok {
+			if ctx.Err() == nil {
+				return "", fmt.Errorf("watcher for LoadBalancer %s/%s unexpectedly closed", namespace, name)
+			}
+			return "", fmt.Errorf("LoadBalancer %s/%s did not get a public IP before %w", namespace, name, ctx.Err())
+		}
+		switch evt.Type {
+		case watch.Added:
+			fallthrough
+		case watch.Modified:
+			svc, ok := evt.Object.(*corev1.Service)
+			if !ok {
+				return "", fmt.Errorf("watcher received unexpected type %T", evt.Object)
+			}
+			for _, ingress := range svc.Status.LoadBalancer.Ingress {
+				if ingress.IP != "" {
+					ip = ingress.IP
+					// TODO(burgerdev): deal with more than one port, and protocols other than TCP
+					port = int(svc.Spec.Ports[0].Port)
+					break loop
+				}
 			}
 		case watch.Deleted:
 			return "", fmt.Errorf("service %s/%s was deleted while waiting for it", namespace, name)

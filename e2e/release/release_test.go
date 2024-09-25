@@ -121,7 +121,7 @@ func TestRelease(t *testing.T) {
 
 		require.NoError(k.Apply(ctx, resources...))
 		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, "default", "coordinator"))
-		coordinatorIP, err = k.WaitForLoadBalancer(ctx, "default", "coordinator")
+		coordinatorIP, err = k.WaitForService(ctx, "default", "coordinator", hasLoadBalancer)
 		require.NoError(err)
 	}), "the coordinator is required for subsequent tests to run")
 
