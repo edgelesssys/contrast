@@ -1,0 +1,15 @@
+name: Test post to teams
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: test post
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: ./.github/actions/post_to_teams
+        with:
+          webhook: "https://webhook.site/0eb1d17a-817f-476d-93e1-745a6390b068"
+          message: "Test webhook"

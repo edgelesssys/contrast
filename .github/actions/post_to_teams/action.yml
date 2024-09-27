@@ -1,0 +1,23 @@
+name: Post to teams
+description: Post a message to the teams channel
+
+inputs:
+  webhook:
+    description: "The webhook to send the message to."
+    required: true
+  message:
+    description: "The message to be sent."
+    required: true
+
+outputs:
+  commit-msg:
+    description: "Commit message"
+    value: ${{ steps.bump-version.outputs.commit-msg }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Post to teams
+      shell: bash
+      run: |
+        curl -H "Content-Type: application/json" -d '{"job_id": "${{github.job}}", "ref": "${{github.ref_name}}", "message": "${{inputs.message}}"}' ${{inputs.webhook}}
