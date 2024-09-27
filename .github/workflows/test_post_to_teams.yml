@@ -2,6 +2,7 @@ name: Test post to teams
 
 on:
   workflow_dispatch:
+  push:
 
 jobs:
   test:
