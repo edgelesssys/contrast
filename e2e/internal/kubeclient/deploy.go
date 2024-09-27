@@ -29,16 +29,6 @@ const (
 	_ WaitCondition = iota
 	// Ready waits until the resource becomes ready.
 	Ready
-	// Added waits until a `watch.Added` event occurs.
-	Added
-	// Modified waits until a `watch.Modified` event occurs.
-	Modified
-	// Deleted waits until a `watch.Deleted` event occurs.
-	Deleted
-	// Bookmark waits until a `watch.Bookmark` event occurs.
-	Bookmark
-	// Running waits until all containers of all pods of the resource are running.
-	Running
 	// InitContainersRunning waits until all initial containers of all pods of the resource are running.
 	InitContainersRunning
 )
@@ -212,19 +202,14 @@ func (c *Kubeclient) checkIfReady(ctx context.Context, name string, namespace st
 	return false, nil
 }
 
-func (c *Kubeclient) checkIfRunning(ctx context.Context, name string, namespace string, resource ResourceWaiter, onlyCheckInitContainers bool) (bool, error) {
+func (c *Kubeclient) checkIfRunning(ctx context.Context, name string, namespace string, resource ResourceWaiter) (bool, error) {
 	pods, err := resource.getPods(ctx, c, namespace, name)
 	if err != nil {
 		return false, err
 	}
 	for _, pod := range pods {
 		// check if all containers in the pod are running
-		var containers []corev1.ContainerStatus
-		if onlyCheckInitContainers {
-			containers = pod.Status.InitContainerStatuses
-		} else {
-			containers = pod.Status.ContainerStatuses
-		}
+		containers := pod.Status.InitContainerStatuses
 
 		for _, container := range containers {
 			if container.State.Running == nil {
@@ -301,28 +286,8 @@ retryLoop:
 				if ready {
 					return nil
 				}
-			case Added:
-				if evt.Type == watch.Added {
-					return nil
-				}
-			case Bookmark:
-				if evt.Type == watch.Bookmark {
-					return nil
-				}
-			case Deleted:
-				if evt.Type == watch.Deleted {
-					return nil
-				}
-			case Modified:
-				if evt.Type == watch.Modified {
-					return nil
-				}
 			case InitContainersRunning:
-				// essentially the same case as `Running`, both just check different containers
-				fallthrough
-			case Running:
-				checkOnlyInitContainers := condition == InitContainersRunning
-				running, err := c.checkIfRunning(ctx, name, namespace, resource, checkOnlyInitContainers)
+				running, err := c.checkIfRunning(ctx, name, namespace, resource)
 				if err != nil {
 					return err
 				}
