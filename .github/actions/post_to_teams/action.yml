@@ -20,4 +20,7 @@ runs:
     - name: Post to teams
       shell: bash
       run: |
-        curl -H "Content-Type: application/json" -d '{"job_id": "${{github.job}}", "ref": "${{github.ref_name}}", "message": "${{inputs.message}}"}' "${{inputs.webhook}}"
+        curl \
+          -H "Content-Type: application/json" \
+          -d '{"workflow_name": "${{github.workflow}}", "job_id": "${{github.job}}", "run_id": "${{github.run_id}}", "ref": "${{github.ref_name}}", "message": "${{inputs.message}}"}' \
+          "${{inputs.webhook}}"
