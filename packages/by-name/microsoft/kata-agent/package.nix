@@ -51,13 +51,10 @@ rustPlatform.buildRustPackage rec {
 
   postPatch = ''
     substitute src/version.rs.in src/version.rs \
-      --replace @@AGENT_VERSION@@ ${version} \
-      --replace @@API_VERSION@@ 0.0.1 \
-      --replace @@VERSION_COMMIT@@ ${version} \
-      --replace @@COMMIT@@ "" \
-      --replace @@AGENT_NAME@@ kata-agent \
-      --replace @@AGENT_DIR@@ /usr/bin \
-      --replace @@AGENT_PATH@@ /usr/bin/kata-agent
+      --replace-fail @AGENT_VERSION@ ${version} \
+      --replace-fail @API_VERSION@ 0.0.1 \
+      --replace-fail @VERSION_COMMIT@ ${version} \
+      --replace-fail @COMMIT@ ""
   '';
 
   # Build.rs writes to src
