@@ -38,6 +38,7 @@ let
       "e2e/workloadsecret"
       "e2e/volumestatefulset"
       "e2e/regression"
+      "e2e/aks-runtime"
     ];
   };
 
