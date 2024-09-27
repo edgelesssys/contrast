@@ -11,5 +11,5 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - uses: ./.github/actions/post_to_teams
         with:
-          webhook: "https://webhook.site/0eb1d17a-817f-476d-93e1-745a6390b068"
-          message: "Test modified action (last test, sorry for the spam) :)"
+          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
+          message: "Test modified action"
