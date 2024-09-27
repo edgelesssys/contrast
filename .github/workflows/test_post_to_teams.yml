@@ -12,4 +12,4 @@ jobs:
       - uses: ./.github/actions/post_to_teams
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
-          message: "Test teams"
+          message: "Test teams over github action"
