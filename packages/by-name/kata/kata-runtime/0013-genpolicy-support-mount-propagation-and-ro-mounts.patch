@@ -1,15 +1,15 @@
-From f7100bd145c2702546633dde0192cce6d53f032a Mon Sep 17 00:00:00 2001
+From 4c802603f48d1901170a5228445efaee4bb28849 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Tue, 24 Sep 2024 16:05:31 +0200
-Subject: [PATCH 16/16] genpolicy: support mount propagation and ro-mounts
+Subject: [PATCH 13/13] genpolicy: support mount propagation and ro-mounts
 
 ---
- src/tools/genpolicy/rules.rego               |  3 ++-
- src/tools/genpolicy/src/mount_and_storage.rs | 14 ++++++++++++--
- 2 files changed, 14 insertions(+), 3 deletions(-)
+ src/tools/genpolicy/rules.rego               | 3 ++-
+ src/tools/genpolicy/src/mount_and_storage.rs | 8 +++++++-
+ 2 files changed, 9 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 685109ba6..85d70d9b3 100644
+index 80ce58b7d..bee6dea70 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -105,7 +105,8 @@ allow_create_container_input {
@@ -23,17 +23,13 @@ index 685109ba6..85d70d9b3 100644
      is_null(i_linux.IntelRdt)
      is_null(i_linux.Resources.BlockIO)
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 0e5a5da19..0e354584b 100644
+index 394c06658..8dbe524ae 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -181,14 +181,24 @@ fn get_empty_dir_mount_and_storage(
-         &settings_empty_dir.mount_type
+@@ -189,13 +189,19 @@ fn get_empty_dir_mount_and_storage(
+         _ => "rw",
      };
  
-+    let rw_opt = match yaml_mount.readOnly {
-+        Some(true) => "ro",
-+        _ => "rw",
-+    };
 +    let mount_propagation = match &yaml_mount.mountPropagation {
 +        Some(mode) if mode == "Bidirectional" => "rshared",
 +        Some(mode) if mode == "HostToContainer" => "rslave",
@@ -47,12 +43,10 @@ index 0e5a5da19..0e354584b 100644
          options: vec![
              "rbind".to_string(),
 -            "rprivate".to_string(),
--            "rw".to_string(),
 +            mount_propagation.to_string(),
-+            rw_opt.to_string(),
+             access.to_string(),
          ],
      });
- }
 -- 
-2.46.2
+2.45.2
 

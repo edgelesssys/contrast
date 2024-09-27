@@ -26,7 +26,7 @@ rustPlatform.buildRustPackage rec {
   cargoLock = {
     lockFile = "${src}/src/agent/Cargo.lock";
     outputHashes = {
-      "attester-0.1.0" = "sha256-LlSGSGSWMhNwHGomSe6MgKLjw27r8FHAtn7ktPxgNQ8=";
+      "attester-0.1.0" = "sha256-hx5Z5HxsyAPCQLY62koNGFHpG5M5PfG9Kagfsey58oI=";
       "loopdev-0.5.0" = "sha256-PD+iuZWPAFd3VUCgNB0ZrH/aCM2VMqJEyAv5/j1kqlA=";
       "sigstore-0.9.0" = "sha256-IeHuB5d5IU9YryeD47Qht0x806kJCoIOHsoEATRV+MY=";
     };

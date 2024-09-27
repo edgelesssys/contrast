@@ -1,7 +1,7 @@
-From 2bc191c283ac45aa817ba381113ed7a64adb15b8 Mon Sep 17 00:00:00 2001
+From 28b9a9a0c7d53fd23b70dc13c2a022d763a5760c Mon Sep 17 00:00:00 2001
 From: Dan Mihai <dmihai@microsoft.com>
 Date: Thu, 4 Jan 2024 22:28:24 +0000
-Subject: [PATCH 06/16] genpolicy: validate create sandbox storages
+Subject: [PATCH 04/13] genpolicy: validate create sandbox storages
 
 Reject any unexpected values from the CreateSandboxRequest storages
 field.
@@ -45,10 +45,10 @@ index b8b321f36..fe1625bac 100644
          "cpath": "/run/kata-containers/shared/containers",
          "mount_source_cpath": "/run/kata-containers/shared/containers",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 9f463dc0b..de128476d 100644
+index d1cefc63b..361bd7e8b 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -824,7 +824,7 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
+@@ -823,7 +823,7 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
  }
  
  ######################################################################
@@ -57,7 +57,7 @@ index 9f463dc0b..de128476d 100644
  
  allow_storages(p_storages, i_storages, bundle_id, sandbox_id) {
      p_count := count(p_storages)
-@@ -1097,6 +1097,27 @@ check_directory_traversal(i_path) {
+@@ -1096,6 +1096,27 @@ check_directory_traversal(i_path) {
      not regex.match("(^|/)..($|/)", i_path)
  }
  
@@ -85,7 +85,7 @@ index 9f463dc0b..de128476d 100644
  CopyFileRequest {
      print("CopyFileRequest: input.path =", input.path)
  
-@@ -1123,6 +1144,8 @@ CreateSandboxRequest {
+@@ -1122,6 +1143,8 @@ CreateSandboxRequest {
      i_pidns := input.sandbox_pidns
      print("CreateSandboxRequest: i_pidns =", i_pidns)
      i_pidns == false
@@ -143,5 +143,5 @@ index 949f6ad27..b7f0515d1 100644
  
  /// Volume settings loaded from genpolicy-settings.json.
 -- 
-2.46.2
+2.45.2
 

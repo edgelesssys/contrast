@@ -1,7 +1,7 @@
-From 6ae1803e02b0b6bd036a432ef919b5fb5e1df0ad Mon Sep 17 00:00:00 2001
+From 39785331fe10fb00a7fed8272a8d1be88fd4726f Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Wed, 24 Jul 2024 09:51:57 +0200
-Subject: [PATCH 08/16] genpolicy: read bundle-id from rootfs
+Subject: [PATCH 06/13] genpolicy: read bundle-id from rootfs
 
 The host path of bundles is not portable and could be literally anything
 depending on containerd configuration, so we can't rely on a specific
@@ -14,7 +14,7 @@ NOTE: fixes https://github.com/kata-containers/kata-containers/issues/10065
  1 file changed, 8 insertions(+), 21 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index fe80ed11f..7cd3d4202 100644
+index 6a3a04da6..0cb0218cc 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -509,9 +509,6 @@ allow_linux_sysctl(p_linux, i_linux) {
@@ -43,7 +43,7 @@ index fe80ed11f..7cd3d4202 100644
  
      every i_mount in input.OCI.Mounts {
          allow_mount(p_oci, i_mount, bundle_id, sandbox_id)
-@@ -772,23 +776,6 @@ is_ip_other_byte(component) {
+@@ -771,23 +775,6 @@ is_ip_other_byte(component) {
      number <= 255
  }
  
@@ -68,5 +68,5 @@ index fe80ed11f..7cd3d4202 100644
  allow_mount(p_oci, i_mount, bundle_id, sandbox_id) {
      print("allow_mount: i_mount =", i_mount)
 -- 
-2.46.2
+2.45.2
 

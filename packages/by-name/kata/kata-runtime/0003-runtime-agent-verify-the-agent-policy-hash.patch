@@ -1,7 +1,7 @@
-From 0bac64b0dfa8ff2d55065dff6df106a6f02f19a3 Mon Sep 17 00:00:00 2001
+From 7437e837763ba04f80f72fd825b793e88bd39068 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:51:20 +0000
-Subject: [PATCH 03/16] runtime: agent: verify the agent policy hash
+Subject: [PATCH 03/13] runtime: agent: verify the agent policy hash
 
 For TEE Guests that support the inclusion of immutable Host owned
 data in their configuration (SNP HostData and TDX MRCONFIGID):
@@ -24,7 +24,7 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/agent/src/policy.rs                       |  46 ++++-
  src/agent/src/sev.rs                          |  19 ++
  src/agent/src/tdx.rs                          | 194 ++++++++++++++++++
- src/runtime/pkg/govmm/qemu/qemu.go            |  25 ++-
+ src/runtime/pkg/govmm/qemu/qemu.go            |  17 +-
  src/runtime/virtcontainers/hypervisor.go      |  10 +-
  src/runtime/virtcontainers/qemu.go            |   2 +-
  src/runtime/virtcontainers/qemu_amd64.go      |  39 +++-
@@ -37,12 +37,12 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/runtime/virtcontainers/qemu_s390x.go      |   2 +-
  src/runtime/virtcontainers/qemu_s390x_test.go |  51 ++++-
  src/runtime/virtcontainers/sandbox.go         |   1 +
- 19 files changed, 681 insertions(+), 41 deletions(-)
+ 19 files changed, 674 insertions(+), 40 deletions(-)
  create mode 100644 src/agent/src/sev.rs
  create mode 100644 src/agent/src/tdx.rs
 
 diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
-index 7afdf286a..f7a96e0b7 100644
+index f55144570..6c9342ddb 100644
 --- a/src/agent/Cargo.lock
 +++ b/src/agent/Cargo.lock
 @@ -542,6 +542,12 @@ version = "0.6.3"
@@ -58,7 +58,7 @@ index 7afdf286a..f7a96e0b7 100644
  [[package]]
  name = "bitflags"
  version = "1.3.2"
-@@ -973,6 +979,12 @@ dependencies = [
+@@ -967,6 +973,12 @@ dependencies = [
   "wasm-bindgen",
  ]
  
@@ -71,7 +71,7 @@ index 7afdf286a..f7a96e0b7 100644
  [[package]]
  name = "combine"
  version = "4.6.7"
-@@ -1479,6 +1491,15 @@ dependencies = [
+@@ -1473,6 +1485,15 @@ dependencies = [
   "subtle",
  ]
  
@@ -87,7 +87,7 @@ index 7afdf286a..f7a96e0b7 100644
  [[package]]
  name = "dirs-next"
  version = "2.0.0"
-@@ -1489,6 +1510,18 @@ dependencies = [
+@@ -1483,6 +1504,18 @@ dependencies = [
   "dirs-sys-next",
  ]
  
@@ -106,7 +106,7 @@ index 7afdf286a..f7a96e0b7 100644
  [[package]]
  name = "dirs-sys-next"
  version = "0.1.2"
-@@ -2575,6 +2608,12 @@ dependencies = [
+@@ -2570,6 +2603,12 @@ dependencies = [
   "windows-sys 0.48.0",
  ]
  
@@ -119,7 +119,7 @@ index 7afdf286a..f7a96e0b7 100644
  [[package]]
  name = "iovec"
  version = "0.1.4"
-@@ -2813,6 +2852,8 @@ dependencies = [
+@@ -2808,6 +2847,8 @@ dependencies = [
   "serde",
   "serde_json",
   "serial_test",
@@ -128,7 +128,7 @@ index 7afdf286a..f7a96e0b7 100644
   "slog",
   "slog-scope",
   "slog-stdlog",
-@@ -2830,6 +2871,7 @@ dependencies = [
+@@ -2825,6 +2866,7 @@ dependencies = [
   "tracing-subscriber",
   "ttrpc",
   "url",
@@ -136,7 +136,7 @@ index 7afdf286a..f7a96e0b7 100644
   "vsock-exporter",
   "which",
  ]
-@@ -3737,6 +3779,12 @@ dependencies = [
+@@ -3759,6 +3801,12 @@ dependencies = [
   "tokio-stream",
  ]
  
@@ -149,7 +149,7 @@ index 7afdf286a..f7a96e0b7 100644
  [[package]]
  name = "ordered-stream"
  version = "0.2.0"
-@@ -5173,6 +5221,15 @@ dependencies = [
+@@ -5201,6 +5249,15 @@ dependencies = [
   "syn 1.0.109",
  ]
  
@@ -165,7 +165,7 @@ index 7afdf286a..f7a96e0b7 100644
  [[package]]
  name = "serde-enum-str"
  version = "0.4.0"
-@@ -5192,6 +5249,15 @@ version = "0.2.2"
+@@ -5220,6 +5277,15 @@ version = "0.2.2"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "794e44574226fc701e3be5c651feb7939038fc67fb73f6f4dd5c4ba90fd3be70"
  
@@ -181,7 +181,7 @@ index 7afdf286a..f7a96e0b7 100644
  [[package]]
  name = "serde_derive"
  version = "1.0.204"
-@@ -5295,6 +5361,28 @@ dependencies = [
+@@ -5323,6 +5389,28 @@ dependencies = [
   "syn 1.0.109",
  ]
  
@@ -210,7 +210,7 @@ index 7afdf286a..f7a96e0b7 100644
  [[package]]
  name = "sha1"
  version = "0.10.6"
-@@ -6362,6 +6450,16 @@ version = "0.9.4"
+@@ -6370,6 +6458,16 @@ version = "0.9.4"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
  
@@ -228,7 +228,7 @@ index 7afdf286a..f7a96e0b7 100644
  name = "vsock"
  version = "0.2.6"
 diff --git a/src/agent/Cargo.toml b/src/agent/Cargo.toml
-index b545449b8..4b9a0ed48 100644
+index a8ed5d081..d5b3db965 100644
 --- a/src/agent/Cargo.toml
 +++ b/src/agent/Cargo.toml
 @@ -85,6 +85,11 @@ regorus = { version = "0.1.4", default-features = false, features = [
@@ -253,10 +253,10 @@ index b545449b8..4b9a0ed48 100644
  
  [[bin]]
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
-index 6d1327d76..25746ffda 100644
+index 88a5ec01a..9e98794d4 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
-@@ -86,6 +86,10 @@ mod tracer;
+@@ -85,6 +85,10 @@ mod tracer;
  
  #[cfg(feature = "agent-policy")]
  mod policy;
@@ -268,10 +268,10 @@ index 6d1327d76..25746ffda 100644
  cfg_if! {
      if #[cfg(target_arch = "s390x")] {
 diff --git a/src/agent/src/policy.rs b/src/agent/src/policy.rs
-index 241611585..c01f756b7 100644
+index ccac317d0..2f1da9ecd 100644
 --- a/src/agent/src/policy.rs
 +++ b/src/agent/src/policy.rs
-@@ -3,12 +3,15 @@
+@@ -3,11 +3,14 @@
  // SPDX-License-Identifier: Apache-2.0
  //
  
@@ -279,16 +279,15 @@ index 241611585..c01f756b7 100644
 +use anyhow::{bail, ensure, Result};
  use protobuf::MessageDyn;
 +use sha2::{Digest, Sha256};
- use slog::Drain;
  use tokio::io::AsyncWriteExt;
  
  use crate::rpc::ttrpc_error;
 +use crate::sev::get_snp_host_data;
 +use crate::tdx::get_tdx_mrconfigid;
- use crate::AGENT_POLICY;
+ use crate::{AGENT_CONFIG, AGENT_POLICY};
  
  static POLICY_LOG_FILE: &str = "/tmp/policy.txt";
-@@ -137,6 +140,7 @@ impl AgentPolicy {
+@@ -145,6 +148,7 @@ impl AgentPolicy {
  
      /// Replace the Policy in regorus.
      pub async fn set_policy(&mut self, policy: &str) -> Result<()> {
@@ -296,7 +295,7 @@ index 241611585..c01f756b7 100644
          self.engine = Self::new_engine();
          self.engine
              .add_policy("agent_policy".to_string(), policy.to_string())?;
-@@ -184,3 +188,43 @@ impl AgentPolicy {
+@@ -192,3 +196,43 @@ impl AgentPolicy {
          Ok(())
      }
  }
@@ -566,7 +565,7 @@ index 000000000..1531e72a8
 +    Ok(mrconfigid)
 +}
 diff --git a/src/runtime/pkg/govmm/qemu/qemu.go b/src/runtime/pkg/govmm/qemu/qemu.go
-index 6b2b6b02d..bcb6cd2ad 100644
+index b3b3fb4bd..5070ecd1e 100644
 --- a/src/runtime/pkg/govmm/qemu/qemu.go
 +++ b/src/runtime/pkg/govmm/qemu/qemu.go
 @@ -320,6 +320,11 @@ type Object struct {
@@ -591,27 +590,24 @@ index 6b2b6b02d..bcb6cd2ad 100644
  		config.Bios = object.File
  	case SecExecGuest:
  		objectParams = append(objectParams, string(object.Type))
-@@ -435,6 +443,10 @@ type SocketAddress struct {
+@@ -435,6 +443,7 @@ type SocketAddress struct {
  type TdxQomObject struct {
  	QomType               string        `json:"qom-type"`
  	Id                    string        `json:"id"`
 +	SeptVEDisable         *bool         `json:"sept-ve-disable,omitempty"`
-+	MRConfigID            string        `json:"mrconfigid,omitempty"`
-+	MROwner               string        `json:"mrowner,omitempty"`
-+	MROwnerConfig         string        `json:"mrownerconfig,omitempty"`
- 	QuoteGenerationSocket SocketAddress `json:"quote-generation-socket"`
- 	Debug                 *bool         `json:"debug,omitempty"`
- }
-@@ -463,10 +475,19 @@ func (this *TdxQomObject) String() string {
- 
- func prepareObjectWithTdxQgs(object Object) string {
- 	qgsSocket := SocketAddress{"vsock", fmt.Sprint(VsockHostCid), fmt.Sprint(object.QgsPort)}
--	tdxObject := TdxQomObject{string(object.Type), object.ID, qgsSocket, nil}
-+	tdxObject := TdxQomObject{
-+		QomType:               string(object.Type),
-+		Id:                    object.ID,
-+		QuoteGenerationSocket: qgsSocket,
-+	}
+ 	MrConfigId            string        `json:"mrconfigid,omitempty"`
+ 	MrOwner               string        `json:"mrowner,omitempty"`
+ 	MrOwnerConfig         string        `json:"mrownerconfig,omitempty"`
+@@ -469,6 +478,7 @@ func prepareTDXObject(object Object) string {
+ 	tdxObject := TdxQomObject{
+ 		string(object.Type), // qom-type
+ 		object.ID,           // id
++		nil,                 // sept-ve-disable
+ 		"",                  // mrconfigid
+ 		"",                  // mrowner
+ 		"",                  // mrownerconfig
+@@ -476,7 +486,12 @@ func prepareTDXObject(object Object) string {
+ 		nil}
  
  	if object.Debug {
 -		*tdxObject.Debug = true
@@ -620,7 +616,7 @@ index 6b2b6b02d..bcb6cd2ad 100644
 +	}
 +
 +	if len(object.TEEConfigData) > 0 {
-+		tdxObject.MRConfigID = object.TEEConfigData
++		tdxObject.MrConfigId = object.TEEConfigData
  	}
  
  	return tdxObject.String()
@@ -1275,10 +1271,10 @@ index 24a67bdd9..3f5f84aff 100644
 +	assert.Equal(expectedOut, devices)
  }
 diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
-index b58daccaa..af35af12e 100644
+index 8df2b7cc5..07df77478 100644
 --- a/src/runtime/virtcontainers/sandbox.go
 +++ b/src/runtime/virtcontainers/sandbox.go
-@@ -596,6 +596,7 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
+@@ -608,6 +608,7 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
  
  	sandboxConfig.HypervisorConfig.VMStorePath = s.store.RunVMStoragePath()
  	sandboxConfig.HypervisorConfig.RunStorePath = s.store.RunStoragePath()
@@ -1287,5 +1283,5 @@ index b58daccaa..af35af12e 100644
  	spec := s.GetPatchedOCISpec()
  	if spec != nil && spec.Process.SelinuxLabel != "" {
 -- 
-2.46.2
+2.45.2
 
