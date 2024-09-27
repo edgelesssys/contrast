@@ -10,7 +10,7 @@ terraform {
     }
     local = {
       source  = "hashicorp/local"
-      version = "2.1.0"
+      version = "2.5.2"
     }
   }
 }
