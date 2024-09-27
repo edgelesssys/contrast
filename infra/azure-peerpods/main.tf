@@ -192,7 +192,7 @@ configMapGenerator:
   - AZURE_INSTANCE_SIZE=Standard_DC2as_v5
   - AZURE_RESOURCE_GROUP=${azurerm_resource_group.rg.name}
   - AZURE_SUBNET_ID=${one(azurerm_virtual_network.main.subnet.*.id)}
-  - AZURE_IMAGE_ID=/subscriptions/0d202bbb-4fa7-4af8-8125-58c269a05435/resourceGroups/otto-dev/providers/Microsoft.Compute/galleries/cocopriv/images/coco-gpus/versions/0.0.33
+  - AZURE_IMAGE_ID=/subscriptions/0d202bbb-4fa7-4af8-8125-58c269a05435/resourceGroups/otto-dev/providers/Microsoft.Compute/galleries/cocopriv/images/coco-gpus/versions/0.0.35
   - DISABLECVM=false
 secretGenerator:
 - name: peer-pods-secret
