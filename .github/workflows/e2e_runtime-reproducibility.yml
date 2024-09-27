@@ -3,7 +3,7 @@ name: e2e test runtime reproducibility
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 19 * * 0' # 7pm UTC on Sundays
+    - cron: "0 19 * * 0" # 7pm UTC on Sundays
 
 jobs:
   os-matrix:
@@ -50,6 +50,12 @@ jobs:
         with:
           name: ${{ matrix.build-target }}-${{ matrix.os }}-rebuild
           path: rebuild
+      - name: Notify teams channel of failure
+        if: ${{ failure() && github.ref == 'main' }}
+        uses: ./.github/actions/post_to_teams
+        with:
+          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
+          message: "Runtime reproducibility test failed on ${{ matrix.build-target }}-${{ matrix.os }}"
 
   collect-checksums:
     runs-on: ubuntu-22.04
@@ -76,3 +82,9 @@ jobs:
             exit(1)
 
           print("All checksums were equal")
+      - name: Notify teams channel of failure
+        if: ${{ failure() && github.ref == 'main' }}
+        uses: ./.github/actions/post_to_teams
+        with:
+          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
+          message: "Runtime reproducibility test failed to collect checksums"

@@ -3,7 +3,7 @@ name: update rpm packages
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 19 * * 0' # 7pm UTC on Sundays
+    - cron: "0 19 * * 0" # 7pm UTC on Sundays
 
 jobs:
   update-rpm-packages:
@@ -36,3 +36,9 @@ jobs:
           committer: edgelessci <edgelessci@users.noreply.github.com>
           author: edgelessci <edgelessci@users.noreply.github.com>
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+      - name: Notify teams channel of failure
+        if: ${{ failure() && github.ref == 'main' }}
+        uses: ./.github/actions/post_to_teams
+        with:
+          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
+          message: "Updating RPM packages failed"
