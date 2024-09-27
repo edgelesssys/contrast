@@ -1,7 +1,7 @@
-From bbe2c34d00d62473d24799470fdb22e6e9e65d0a Mon Sep 17 00:00:00 2001
+From 1fa9568d60412c806ede083f0f3b8babb6c3a22e Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Thu, 1 Aug 2024 15:58:42 +0200
-Subject: [PATCH 12/16] genpolicy: allow image_guest_pull
+Subject: [PATCH 10/13] genpolicy: allow image_guest_pull
 
 This adds an alternative version of allow_storages that checks Nydus
 guest pull instructions. The image reference is present in two
@@ -39,7 +39,7 @@ index 4e9f6481d..e3b36a655 100644
              "source": "local",
              "fstype": "local",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 768d126f5..685109ba6 100644
+index 696439c4a..80ce58b7d 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -80,7 +80,7 @@ CreateContainerRequest {
@@ -132,7 +132,7 @@ index 768d126f5..685109ba6 100644
  
      print("allow_by_bundle_or_sandbox_id: true")
  }
-@@ -830,30 +831,109 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
+@@ -829,30 +830,109 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
  ######################################################################
  # Create container Storages
  
@@ -2343,5 +2343,5 @@ index 000000000..2f21e0674
 +  }
 +]
 -- 
-2.46.2
+2.45.2
 

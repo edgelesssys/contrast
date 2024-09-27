@@ -1,7 +1,7 @@
-From 733116619a9b1253e9ffaeb0a7ea940824a689ec Mon Sep 17 00:00:00 2001
+From 8086c7a042bcf54ee739c683588a5db6ffd26acd Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:35:54 +0000
-Subject: [PATCH 02/16] emulate CPU model that most closely matches the host
+Subject: [PATCH 02/13] emulate CPU model that most closely matches the host
 
 QEMU's CPU model 'host' still doesn't support SNP, but by using the
 correct model, the guest is able to figure out the correct CPU model
@@ -36,5 +36,5 @@ index 1d1be1711..6ebee26ce 100644
  	}
  
 -- 
-2.46.2
+2.45.2
 

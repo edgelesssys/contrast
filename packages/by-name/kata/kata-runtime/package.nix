@@ -11,14 +11,14 @@
 
 buildGoModule rec {
   pname = "kata-runtime";
-  version = "3.8.0";
+  version = "3.9.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = version;
-      hash = "sha256-62qoAMlE62hS02+Bj5HNgNyGVTk7SVLJaqN9GhCWQXc=";
+      hash = "sha256-aBcu59LybgZ9xkCDUzZXb60FeClQNG1ivfC6lWQdlb0=";
     };
 
     patches = [
@@ -39,55 +39,50 @@ buildGoModule rec {
       # delegates hash verification to the AA. Until that effort lands, we're
       # sticking with the policy verification from AKS CoCo.
       ./0003-runtime-agent-verify-the-agent-policy-hash.patch
-      ./0004-virtcontainers-allow-specifying-nydus-overlayfs-bina.patch
 
       #
       # Patch set to enable policy support for bare metal with Nydus guest pull.
       #
 
-      # Backport of https://github.com/kata-containers/kata-containers/pull/9911.
-      # TODO(burgerdev): remove after upgrading to Kata 3.9
-      ./0005-genpolicy-deny-UpdateEphemeralMountsRequest.patch
       # Cherry-pick from https://github.com/microsoft/kata-containers/pull/139/commits/e4465090e693807d6ccc044344ad44789acda3e2,
       # fixes https://github.com/kata-containers/kata-containers/issues/10046.
       # Currently not possible to backport because it would break integration testing with virtiofs.
-      ./0006-genpolicy-validate-create-sandbox-storages.patch
+      ./0004-genpolicy-validate-create-sandbox-storages.patch
       # Fixes https://github.com/kata-containers/kata-containers/issues/10064.
       # TODO(burgerdev): backport
-      ./0007-genpolicy-enable-sysctl-checks.patch
+      ./0005-genpolicy-enable-sysctl-checks.patch
       # Fixes https://github.com/kata-containers/kata-containers/issues/10065.
       # TODO(burgerdev): backport
-      ./0008-genpolicy-read-bundle-id-from-rootfs.patch
+      ./0006-genpolicy-read-bundle-id-from-rootfs.patch
       # Contrast specific layer-src-prefix, also applied to microsoft.kata-runtime.
       # TODO(burgerdev): discuss relaxing the checks for host paths with Kata maintainers.
-      ./0009-genpolicy-regex-check-contrast-specific-layer-src-pr.patch
+      ./0007-genpolicy-regex-check-contrast-specific-layer-src-pr.patch
       # Kata hard-codes OCI version 1.1.0, but latest K3S has 1.2.0.
       # TODO(burgerdev): discuss relaxing the OCI version checks with Kata maintainers.
       # TODO(burgerdev): move to genpolicy-settings patches
-      ./0010-genpolicy-settings-bump-OCI-version.patch
+      ./0008-genpolicy-settings-bump-OCI-version.patch
       # Nydus uses a different base dir for container rootfs,
       # see https://github.com/kata-containers/kata-containers/blob/775f6bd/tests/integration/kubernetes/tests_common.sh#L139.
       # TODO(burgerdev): discuss the discrepancy and path forward with Kata maintainers.
-      ./0011-genpolicy-settings-change-cpath-for-Nydus-guest-pull.patch
+      ./0009-genpolicy-settings-change-cpath-for-Nydus-guest-pull.patch
       # Implements ideas from https://github.com/kata-containers/kata-containers/issues/10088.
       # TODO(burgerdev): backport
-      ./0012-genpolicy-allow-image_guest_pull.patch
+      ./0010-genpolicy-allow-image_guest_pull.patch
       # Mount configfs into the workload container from the UVM.
       # Based on https://github.com/kata-containers/kata-containers/pull/9554,
       # which wasn't accepted upstream.
       #
       # Rebase 3.8.0, changes squashed into patch:
       #   - fix 'field `annotations` of struct `oci_spec::runtime::Spec` is private'
-      ./0013-runtime-agent-mounts-Mount-configfs-into-the-contain.patch
+      ./0011-runtime-agent-mounts-Mount-configfs-into-the-contain.patch
       # The following two patches update the image-rs and oci-distribution version.
       # TODO(burgerdev): backport
-      ./0014-genpolicy-bump-oci-distribution-to-v0.12.0.patch
-      ./0015-agent-bump-image-rs-version.patch
+      ./0012-genpolicy-bump-oci-distribution-to-v0.12.0.patch
 
       # This is an alternative implementation of
       # packages/by-name/microsoft/genpolicy/0005-genpolicy-propagate-mount_options-for-empty-dirs.patch
       # that does not depend on the CSI enabling changes exclusive to the Microsoft fork.
-      ./0016-genpolicy-support-mount-propagation-and-ro-mounts.patch
+      ./0013-genpolicy-support-mount-propagation-and-ro-mounts.patch
     ];
   };
 

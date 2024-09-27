@@ -1,7 +1,7 @@
-From f1810865d1996d3c75fcb40b4105a0b622036d15 Mon Sep 17 00:00:00 2001
+From c6832d84caf49fc4ce7fcb0d3444c1eede6a250f Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Mon, 12 Aug 2024 13:45:43 +0200
-Subject: [PATCH 14/16] genpolicy: bump oci-distribution to v0.12.0
+Subject: [PATCH 12/13] genpolicy: bump oci-distribution to v0.12.0
 
 This picks up a security fix for confidential pulling of unsigned
 images.
@@ -18,7 +18,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  4 files changed, 183 insertions(+), 87 deletions(-)
 
 diff --git a/src/tools/genpolicy/Cargo.lock b/src/tools/genpolicy/Cargo.lock
-index 6dafe279f..60bb05bf8 100644
+index 7655b8d6e..9d0573c8e 100644
 --- a/src/tools/genpolicy/Cargo.lock
 +++ b/src/tools/genpolicy/Cargo.lock
 @@ -98,9 +98,9 @@ dependencies = [
@@ -95,7 +95,7 @@ index 6dafe279f..60bb05bf8 100644
  [[package]]
  name = "env_logger"
  version = "0.10.2"
-@@ -766,11 +763,10 @@ checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
+@@ -765,11 +762,10 @@ checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
  
  [[package]]
  name = "form_urlencoded"
@@ -109,7 +109,7 @@ index 6dafe279f..60bb05bf8 100644
   "percent-encoding",
  ]
  
-@@ -878,7 +874,7 @@ dependencies = [
+@@ -877,7 +873,7 @@ dependencies = [
   "k8s-cri",
   "libz-ng-sys",
   "log",
@@ -377,7 +377,7 @@ index 6dafe279f..60bb05bf8 100644
   "tokio-native-tls",
   "tokio-util",
 @@ -2333,6 +2400,22 @@ dependencies = [
-  "windows-sys 0.48.0",
+  "windows-sys 0.52.0",
  ]
  
 +[[package]]
@@ -572,7 +572,7 @@ index 6dafe279f..60bb05bf8 100644
  dependencies = [
   "js-sys",
   "wasm-bindgen",
-@@ -3513,11 +3608,12 @@ dependencies = [
+@@ -3522,11 +3617,12 @@ dependencies = [
  
  [[package]]
  name = "winreg"
@@ -589,7 +589,7 @@ index 6dafe279f..60bb05bf8 100644
  
  [[package]]
 diff --git a/src/tools/genpolicy/Cargo.toml b/src/tools/genpolicy/Cargo.toml
-index 72f92ab9a..7108f15b9 100644
+index f14643503..c6c0b94ee 100644
 --- a/src/tools/genpolicy/Cargo.toml
 +++ b/src/tools/genpolicy/Cargo.toml
 @@ -41,7 +41,7 @@ async-trait = "0.1.68"
@@ -602,7 +602,7 @@ index 72f92ab9a..7108f15b9 100644
  serde_ignored = "0.1.7"
  serde_json = "1.0.39"
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index af41737ea..20917b7b6 100644
+index 7aa0e66a9..9491b2acf 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -15,7 +15,7 @@ use anyhow::{anyhow, Result};
@@ -614,7 +614,7 @@ index af41737ea..20917b7b6 100644
      client::{linux_amd64_resolver, ClientConfig, ClientProtocol},
      manifest,
      secrets::RegistryAuth,
-@@ -128,7 +128,7 @@ impl Container {
+@@ -158,7 +158,7 @@ impl Container {
                      image_layers,
                  })
              }
@@ -624,7 +624,7 @@ index af41737ea..20917b7b6 100644
              }
              Err(e) => {
 diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
-index 6e0d6af3f..c206dec86 100644
+index 9a02b5419..6541cfbda 100644
 --- a/src/tools/genpolicy/src/registry_containerd.rs
 +++ b/src/tools/genpolicy/src/registry_containerd.rs
 @@ -15,7 +15,7 @@ use containerd_client::{services::v1::GetImageRequest, with_namespace};
@@ -637,5 +637,5 @@ index 6e0d6af3f..c206dec86 100644
  use tokio::{
      io,
 -- 
-2.46.2
+2.45.2
 
