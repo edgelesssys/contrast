@@ -56,6 +56,11 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 Your Kubernetes resources need some modifications to run as Confidential Containers.
 This section guides you through the process and outlines the necessary changes.
 
+### Security review
+
+Contrast ensures integrity and confidentiality of the applications, but interactions with untrusted systems require the developers' attention.
+Review the [security considerations](architecture/security-considerations.md) and the [certificates](architecture/certificates.md) section for writing secure Contrast application.
+
 ### RuntimeClass
 
 Contrast will add annotations to your Kubernetes YAML files. If you want to keep the original files

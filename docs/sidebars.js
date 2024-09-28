@@ -131,6 +131,11 @@ const sidebars = {
         },
         {
           type: 'doc',
+          label: 'Security considerations',
+          id: 'architecture/security-considerations',
+        },
+        {
+          type: 'doc',
           label: 'Observability',
           id: 'architecture/observability',
         },
