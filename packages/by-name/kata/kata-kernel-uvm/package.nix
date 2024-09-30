@@ -6,12 +6,13 @@
   linuxManualConfig,
   stdenvNoCC,
   fetchzip,
+  kata,
 }:
 
 let
   configfile = stdenvNoCC.mkDerivation rec {
     pname = "kata-kernel-config-confidential";
-    version = "3.7.0";
+    inherit (kata.kata-runtime) version;
 
     src = fetchzip {
       url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
