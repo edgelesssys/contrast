@@ -1,7 +1,7 @@
 From 3e97fb1b2be9f19414cf3f4587dbfb0ed433967d Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Wed, 24 Jul 2024 09:48:48 +0200
-Subject: [PATCH 05/13] genpolicy: enable sysctl checks
+Subject: [PATCH] genpolicy: enable sysctl checks
 
 Sysctls may be added to a container by the Kubernetes pod definition or
 by containerd configuration. This commit adds support for the
@@ -218,6 +218,3 @@ index 973643e1f..adbdf97f3 100644
          ContainerPolicy {
              OCI: KataSpec {
                  Version: self.config.settings.kata_config.oci_version.clone(),
--- 
-2.45.2
-
