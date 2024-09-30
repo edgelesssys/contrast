@@ -173,15 +173,20 @@ func getFailures(ctx context.Context, t *testing.T, ct *contrasttest.ContrastTes
 	// parse the logs
 	metrics, err := (&expfmt.TextParser{}).TextToMetricFamilies(strings.NewReader(metricsString))
 	require.NoError(err)
-	failures := -1
-	for k, v := range metrics {
-		if k == "contrast_meshapi_attestation_failures_total" {
-			failures = int(v.GetMetric()[0].GetCounter().GetValue())
+	const metricName = "contrast_grpc_server_handled_total"
+	metricFamily, ok := metrics[metricName]
+	require.True(ok, "metric family %q not found", metricName)
+	failures := 0
+	for _, metric := range metricFamily.GetMetric() {
+		for _, labelPair := range metric.GetLabel() {
+			if labelPair.Name == nil || *labelPair.Name != "grpc_code" {
+				continue
+			}
+			if labelPair.Value == nil || *labelPair.Value != "PermissionDenied" {
+				break
+			}
+			failures += int(metric.GetCounter().GetValue())
 		}
-	}
-	if failures == -1 {
-		// metric not found
-		t.Error("metric \"contrast_meshapi_attestation_failures_total\" not found")
 	}
 	return failures
 }

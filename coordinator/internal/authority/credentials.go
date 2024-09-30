@@ -17,7 +17,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/logger"
-	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -83,13 +82,8 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		return nil, nil, fmt.Errorf("generating SNP validation options: %w", err)
 	}
 
-	var allowedHostDataEntries []manifest.HexString
-	for entry := range state.Manifest.Policies {
-		allowedHostDataEntries = append(allowedHostDataEntries, entry)
-	}
-
 	for _, opt := range opts {
-		validator := snp.NewValidatorWithReportSetter(opt.VerifyOpts, opt.ValidateOpts, allowedHostDataEntries,
+		validator := snp.NewValidatorWithReportSetter(opt.VerifyOpts, opt.ValidateOpts,
 			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "snp"}),
 			&authInfo)
 		validators = append(validators, validator)
