@@ -70,7 +70,7 @@ git checkout $rev
 Apply the existing patch set:
 
 ```sh
-git am -3 $pkgDir/*.patch
+git am --committer-date-is-author-date -3 $pkgDir/*.patch
 ```
 
 This will apply and commit each patch on top of `rev`.
@@ -82,7 +82,7 @@ When updating a package, you might need to rebase the current patch set.
 When done, recreate the patch set:
 
 ```sh
-git format-patch -o $pkgDir $rev
+git format-patch -N --no-signature -o $pkgDir $rev
 ```
 
 # Patch documentation conventions
