@@ -19,8 +19,10 @@ import (
 	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 )
 
 type meshAPIServer struct {
@@ -108,7 +110,7 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 	hostData := manifest.NewHexString(report.HostData())
 	entry, ok := state.Manifest.Policies[hostData]
 	if !ok {
-		return nil, fmt.Errorf("report data %s not found in manifest", hostData)
+		return nil, status.Errorf(codes.PermissionDenied, "policy hash %s not found in manifest", hostData)
 	}
 	dnsNames := entry.SANs
 
