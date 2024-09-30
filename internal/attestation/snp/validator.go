@@ -9,11 +9,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
-	"slices"
 
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/reportdata"
-	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/proto/sevsnp"
@@ -24,33 +22,30 @@ import (
 
 // Validator validates attestation statements.
 type Validator struct {
-	verifyOpts             *verify.Options
-	validateOpts           *validate.Options
-	allowedHostDataEntries []manifest.HexString // Allowed host data entries in the report. If any of these is present, the report is considered valid.
-	reportSetter           attestation.ReportSetter
-	logger                 *slog.Logger
+	verifyOpts   *verify.Options
+	validateOpts *validate.Options
+	reportSetter attestation.ReportSetter
+	logger       *slog.Logger
 }
 
 // NewValidator returns a new Validator.
-func NewValidator(VerifyOpts *verify.Options, ValidateOpts *validate.Options, allowedHostDataEntries []manifest.HexString, log *slog.Logger) *Validator {
+func NewValidator(VerifyOpts *verify.Options, ValidateOpts *validate.Options, log *slog.Logger) *Validator {
 	return &Validator{
-		verifyOpts:             VerifyOpts,
-		validateOpts:           ValidateOpts,
-		allowedHostDataEntries: allowedHostDataEntries,
-		logger:                 log,
+		verifyOpts:   VerifyOpts,
+		validateOpts: ValidateOpts,
+		logger:       log,
 	}
 }
 
 // NewValidatorWithReportSetter returns a new Validator with a report setter.
-func NewValidatorWithReportSetter(VerifyOpts *verify.Options, ValidateOpts *validate.Options, allowedHostDataEntries []manifest.HexString,
+func NewValidatorWithReportSetter(VerifyOpts *verify.Options, ValidateOpts *validate.Options,
 	log *slog.Logger, reportSetter attestation.ReportSetter,
 ) *Validator {
 	return &Validator{
-		verifyOpts:             VerifyOpts,
-		validateOpts:           ValidateOpts,
-		allowedHostDataEntries: allowedHostDataEntries,
-		reportSetter:           reportSetter,
-		logger:                 log,
+		verifyOpts:   VerifyOpts,
+		validateOpts: ValidateOpts,
+		reportSetter: reportSetter,
+		logger:       log,
 	}
 }
 
@@ -94,14 +89,6 @@ func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byt
 		return fmt.Errorf("validating report claims: %w", err)
 	}
 	v.logger.Info("Successfully validated report data")
-
-	// Validate the host data.
-
-	if !slices.ContainsFunc(v.allowedHostDataEntries, func(entry manifest.HexString) bool {
-		return manifest.NewHexString(attestationData.Report.HostData) == entry
-	}) {
-		return fmt.Errorf("host data not allowed (found: %v allowed: %v)", attestationData.Report.HostData, v.allowedHostDataEntries)
-	}
 
 	if v.reportSetter != nil {
 		report := snpReport{report: attestationData.Report}

@@ -99,7 +99,8 @@ func validatorsFromManifest(m *manifest.Manifest, log *slog.Logger, hostData []b
 		return nil, fmt.Errorf("getting SNP validate options: %w", err)
 	}
 	for _, opt := range opts {
-		validators = append(validators, snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, []manifest.HexString{manifest.NewHexString(hostData)},
+		opt.ValidateOpts.HostData = hostData
+		validators = append(validators, snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts,
 			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
 		))
 	}
