@@ -80,7 +80,7 @@ func CreateAttestationClientTLSConfig(issuer Issuer, validators []Validator, pri
 		InsecureSkipVerify:    true,                                           // disable default verification because we use our own verify func
 		ServerName:            base64.StdEncoding.EncodeToString(clientNonce), // abuse ServerName as a channel to transmit the nonce
 		MinVersion:            tls.VersionTLS12,
-		NextProtos:            []string{"h2"},
+		NextProtos:            []string{"h2"}, // grpc-go requires us to advertise HTTP/2 (h2) over ALPN
 	}, nil
 }
 
@@ -126,7 +126,7 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []Validator, attestati
 			GetCertificate: serverConn.getCertificate,
 			MinVersion:     tls.VersionTLS12,
 			ClientAuth:     tls.RequestClientCert, // request client certificate but don't require it
-			NextProtos:     []string{"h2"},
+			NextProtos:     []string{"h2"},        // grpc-go requires us to advertise HTTP/2 (h2) over ALPN
 		}
 
 		// ugly hack: abuse acceptable client CAs as a channel to transmit the nonce
