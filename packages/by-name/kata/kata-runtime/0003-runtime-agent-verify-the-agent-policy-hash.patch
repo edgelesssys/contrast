@@ -1,7 +1,7 @@
 From 7437e837763ba04f80f72fd825b793e88bd39068 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:51:20 +0000
-Subject: [PATCH 03/13] runtime: agent: verify the agent policy hash
+Subject: [PATCH] runtime: agent: verify the agent policy hash
 
 For TEE Guests that support the inclusion of immutable Host owned
 data in their configuration (SNP HostData and TDX MRCONFIGID):
@@ -1282,6 +1282,3 @@ index 8df2b7cc5..07df77478 100644
  
  	spec := s.GetPatchedOCISpec()
  	if spec != nil && spec.Process.SelinuxLabel != "" {
--- 
-2.45.2
-

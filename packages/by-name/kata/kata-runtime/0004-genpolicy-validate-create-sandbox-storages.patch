@@ -1,7 +1,7 @@
 From 28b9a9a0c7d53fd23b70dc13c2a022d763a5760c Mon Sep 17 00:00:00 2001
 From: Dan Mihai <dmihai@microsoft.com>
 Date: Thu, 4 Jan 2024 22:28:24 +0000
-Subject: [PATCH 04/13] genpolicy: validate create sandbox storages
+Subject: [PATCH] genpolicy: validate create sandbox storages
 
 Reject any unexpected values from the CreateSandboxRequest storages
 field.
@@ -142,6 +142,3 @@ index 949f6ad27..b7f0515d1 100644
  }
  
  /// Volume settings loaded from genpolicy-settings.json.
--- 
-2.45.2
-
