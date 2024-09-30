@@ -36,19 +36,6 @@ jobs:
             runner: TDX
             self-hosted: true
         test_name: [servicemesh, openssl, policy, workloadsecret, volumestatefulset]
-        exclude:
-          # We don't have policies on K3s-qemu yet, so there's no point in
-          # running those tests.
-          - platform:
-              name: K3s-QEMU-SNP
-              runner: SNP
-              self-hosted: true
-            test_name: policy
-          - platform:
-              name: K3s-QEMU-TDX
-              runner: TDX
-              self-hosted: true
-            test_name: policy
       fail-fast: false
     name: "${{ matrix.platform.name }} / ${{ matrix.test_name }}"
     runs-on: ${{ matrix.platform.runner }}
