@@ -258,7 +258,7 @@ get-credentials-ci:
 get-credentials-from-gcloud path:
     nix run -L .#scripts.get-credentials {{ path }}
 
-get-credentials-tdxbm: (get-credentials-from-gcloud "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/2")
+get-credentials-tdxbm: (get-credentials-from-gcloud "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/5")
 
 get-credentials-snpbm: (get-credentials-from-gcloud "projects/796962942582/secrets/discovery-kubeconf/versions/1")
 
