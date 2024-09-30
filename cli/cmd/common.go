@@ -108,7 +108,10 @@ func validatorsFromManifest(m *manifest.Manifest, log *slog.Logger, hostData []b
 	if err != nil {
 		return nil, fmt.Errorf("generating TDX validation options: %w", err)
 	}
+	var mrConfigID [48]byte
+	copy(mrConfigID[:], hostData)
 	for _, opt := range tdxOpts {
+		opt.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]
 		validators = append(validators, tdx.NewValidator(&tdx.StaticValidateOptsGenerator{Opts: opt}, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "tdx"})))
 	}
 
