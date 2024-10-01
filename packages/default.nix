@@ -15,7 +15,7 @@ let
     containers = callPackages ./containers.nix { pkgs = pkgs'; };
     scripts = callPackages ./scripts.nix { pkgs = pkgs'; };
     contrast-releases = callPackages ./contrast-releases.nix { };
-    image-podvm = callPackage ./by-name/image-podvm/package.nix { pkgs = pkgs'; };
+    mkNixosConfig = callPackage ./by-name/mkNixosConfig/package.nix { pkgs = pkgs'; };
     microsoft = self'.microsoft // {
       genpolicy = pkgs.pkgsStatic.callPackage ./by-name/microsoft/genpolicy/package.nix { };
       cloud-hypervisor = pkgs.pkgsStatic.callPackage ./by-name/microsoft/cloud-hypervisor/package.nix { };

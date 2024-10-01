@@ -3,9 +3,8 @@
 
 {
   lib,
-  nixos,
-  pkgs,
   jq,
+  mkNixosConfig,
 
   withDebug ? true,
   withGPU ? false,
@@ -13,52 +12,17 @@
 }:
 
 let
-  # We write this placeholder into the command line and replace it with the real root hash
-  # after the image is built.
   roothashPlaceholder = "61fe0f0c98eff2a595dd2f63a5e481a0a25387261fa9e34c37e3a4910edf32b8";
-
-  # 'nixos' uses 'pkgs' from the point in time where nixpkgs function is evaluated. According
-  # to the documentation, we should be able to overwrite 'pkgs' by setting nixpkgs.pkgs in
-  # the config, but that doesn't seem to work. We use an overlay for now instead.
-  # TODO(katexochen): Investigate why the config option doesn't work.
-  outerPkgs = pkgs;
 in
 
-(nixos (
-  { modulesPath, ... }:
+(mkNixosConfig {
+  inherit roothashPlaceholder;
 
-  {
-    imports = [
-      "${modulesPath}/image/repart.nix"
-      "${modulesPath}/system/boot/uki.nix"
-      ./azure.nix
-      ./debug.nix
-      ./gpu.nix
-      ./image.nix
-      ./kata.nix
-      ./system.nix
-    ];
+  contrast.debug.enable = withDebug;
+  contrast.gpu.enable = withGPU;
+  contrast.azure.enable = withCSP == "azure";
 
-    contrast.debug.enable = withDebug;
-    contrast.gpu.enable = withGPU;
-    contrast.azure.enable = withCSP == "azure";
-
-    # TODO(katexochen): imporve, see comment above.
-    nixpkgs.overlays = [
-      (_self: _super: {
-        inherit (outerPkgs)
-          azure-no-agent
-          cloud-api-adaptor
-          kernel-podvm-azure
-          pause-bundle
-          ;
-        inherit (outerPkgs.kata) kata-agent;
-      })
-    ];
-
-    boot.kernelParams = [ "roothash=${roothashPlaceholder}" ];
-  }
-)).image.overrideAttrs
+}).image.overrideAttrs
   (oldAttrs: {
     nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ jq ];
     # Replace the placeholder with the real root hash.
