@@ -15,6 +15,7 @@ node_modules
 build/
 .worktree
 .terraform*
+!.terraform.lock.hcl
 *.tfvars
 terraform.tfstate*
 id_rsa*
