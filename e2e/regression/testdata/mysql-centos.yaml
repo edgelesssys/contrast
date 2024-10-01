@@ -16,6 +16,9 @@ spec:
       containers:
         - name: mysql-centos
           image: quay.io/sclorg/mysql-80-c9s@sha256:bc6bf18a8aa5efe09418ba251b4a7e37b92697b4d03788f68efefeba002da587
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: admin
           ports:
             - containerPort: 3306
       runtimeClassName: contrast-cc
