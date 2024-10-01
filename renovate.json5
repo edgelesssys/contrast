@@ -78,6 +78,21 @@
       ],
     },
     {
+      // Group update of Terraform dependencies.
+      groupName: "Terraform dependencies",
+      matchManagers: [ "terraform" ],
+      matchUpdateTypes: [
+        "bump",
+        "digest",
+        "lockFileMaintenance",
+        "minor",
+        "patch",
+        "pin",
+        "pinDigest",
+        "rollback",
+      ],
+    },
+    {
       // Disable updating of locally-replaced dependencies.
       matchPackageNames: [ "github.com/edgelesssys/contrast/node-installer" ],
       enabled: false,
