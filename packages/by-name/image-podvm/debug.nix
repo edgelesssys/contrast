@@ -30,8 +30,6 @@ in
       kata-agent
     ];
 
-    virtualisation.docker.enable = true;
-
     services.getty.autologinUser = "root";
     users.users.root.initialPassword = "";
 
@@ -44,5 +42,14 @@ in
 
     boot.initrd.systemd.emergencyAccess = true;
     systemd.enableEmergencyMode = true;
+
+    virtualisation.docker = {
+        enable = true;
+        enableOnBoot = true;
+
+        daemon.settings = {
+          features.cdi = true;
+        };
+    };
   };
 }
