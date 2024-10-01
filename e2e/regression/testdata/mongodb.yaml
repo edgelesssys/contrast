@@ -25,6 +25,12 @@ spec:
               name: configdb
           ports:
             - containerPort: 27017
+          # The memory limit is chosen to allow guest pull of the image (1.2G).
+          resources:
+            limits:
+              memory: 1500Mi
+            requests:
+              memory: 1500Mi
       # TODO(miampf): Remove this after https://github.com/kata-containers/kata-containers/pull/10136/files is merged
       volumes:
         - name: db
