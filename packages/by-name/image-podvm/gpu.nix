@@ -18,10 +18,14 @@ in
       package = lib.mkDefault config.boot.kernelPackages.nvidiaPackages.production;
       nvidiaPersistenced = true;
     };
-    hardware.graphics = {
+
+    hardware.opengl = {
       enable = true;
-      enable32Bit = true;
+      driSupport = true;
+      driSupport32Bit = true;
+      setLdLibraryPath = true;
     };
+
     hardware.nvidia-container-toolkit.enable = true;
 
     boot.initrd.kernelModules = [

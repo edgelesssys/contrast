@@ -48,7 +48,7 @@
     # Create tmpfs on directories that need to be writable for activation.
     # TODO(msanft): This needs better support upstream.
     // lib.listToAttrs (
-      lib.map
+      builtins.map
         (path: {
           name = path;
           value = {
