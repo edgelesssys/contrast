@@ -117,11 +117,6 @@ resource "azurerm_kubernetes_cluster" "cluster" {
     type = "SystemAssigned"
   }
 
-  linux_profile {
-    admin_username = "azuser"
-    ssh_key { key_data = file(var.ssh_pub_key_path) }
-  }
-
   default_node_pool {
     name                 = "default"
     node_count           = 1
