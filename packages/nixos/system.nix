@@ -44,6 +44,14 @@
         device = "/dev/mapper/root";
         fsType = "erofs";
       };
+      "/usr/share" = lib.mkForce {
+        neededForBoot = false;
+        overlay = {
+          lowerdir = [ "/usr/share" ];
+          upperdir = "/tmp/upper";
+          workdir = "/tmp/work";
+        };
+      };
     }
     # Create tmpfs on directories that need to be writable for activation.
     # TODO(msanft): This needs better support upstream.
@@ -60,7 +68,7 @@
           "/var"
           "/etc"
           "/bin"
-          "/usr"
+          "/usr/bin"
           "/tmp"
           "/lib"
           "/root"
