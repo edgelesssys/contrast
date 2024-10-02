@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cuda-vectoradd
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: cuda-vectoradd
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cuda-vectoradd
+    spec:
+      runtimeClassName: kata-remote
+      containers:
+      - name: cuda-vectoradd
+        image: ubuntu
+        imagePullPolicy: Always
+        env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: "all"

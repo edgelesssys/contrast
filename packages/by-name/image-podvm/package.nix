@@ -6,7 +6,7 @@
   mkNixosConfig,
 
   withDebug ? true,
-  withGPU ? false,
+  withGPU ? true,
   withCSP ? "azure",
 }:
 

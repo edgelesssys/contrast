@@ -45,7 +45,7 @@
           Minimize = "best";
           # We need to ensure that mountpoints are available.
           # TODO (Maybe): This could be done more elegantly with CopyFiles and a skeleton tree in the vcs.
-          MakeDirectories = "/bin /boot /dev /etc /home /lib /lib64 /mnt /nix /opt /proc /root /run /srv /sys /tmp /usr /var";
+          MakeDirectories = "/bin /boot /dev /etc /home /lib /lib64 /mnt /nix /opt /proc /root /run /srv /sys /tmp/work /tmp/upper /usr/bin /var";
         };
       };
 
