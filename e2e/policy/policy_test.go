@@ -137,6 +137,24 @@ func TestPolicy(t *testing.T) {
 		// errors should happen
 		require.Greater(newFailures, initialFailures)
 	})
+
+	t.Run("cli does not verify coordinator with unexpected policy hash", func(t *testing.T) {
+		require := require.New(t)
+
+		// change expected coordinator policy hash
+		policyHash, err := os.ReadFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"))
+		require.NoError(err)
+		require.NotEmpty(policyHash)
+		policyHash[0] ^= 1
+		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"), policyHash, 0o644))
+
+		// verification should fail
+		require.ErrorContains(ct.RunVerify(), "validating report")
+
+		// restore correct coordinator policy hash
+		policyHash[0] ^= 1
+		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"), policyHash, 0o644))
+	})
 }
 
 func TestMain(m *testing.M) {
