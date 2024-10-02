@@ -24,20 +24,41 @@ env:
 
 jobs:
   regression-test:
-    runs-on: ubuntu-22.04
     permissions:
       contents: read
       packages: write
     strategy:
       matrix:
+        platform:
+          - name: AKS-CLH-SNP
+            runner: ubuntu-22.04
+            self-hosted: false
+          - name: K3s-QEMU-SNP
+            runner: SNP
+            self-hosted: true
+          - name: K3s-QEMU-TDX
+            runner: TDX
+            self-hosted: true
         case:
           - getdents
           - genpolicy
           - regression
+        exclude:
+          # getdents is a regression test for tardev-snapshotter
+          - platform:
+              self-hosted: true
+            case: getdents
+          # genpolicy is (currently) a regression test for tardev-snapshotter
+          - platform:
+              self-hosted: true
+            case: genpolicy
       fail-fast: false
+    name: "${{ matrix.platform.name }} / ${{ matrix.case }}"
+    runs-on: ${{ matrix.platform.runner }}
     steps:
       - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
       - uses: ./.github/actions/setup_nix
+        if: ${{ !matrix.platform.self-hosted }}
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -48,6 +69,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Login to Azure
+        if: ${{ !matrix.platform.self-hosted }}
         uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
@@ -59,28 +81,32 @@ jobs:
           azure_resource_group=${{ env.azure_resource_group }}
           EOF
       - name: Get credentials for CI cluster
+        if: ${{ !matrix.platform.self-hosted }}
         run: |
           just get-credentials
+      - if: ${{ !matrix.platform.self-hosted }}
+        name: Set sync environment
+        run: |
+          sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"
+          sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
+          echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
       - name: Build and prepare deployments
         run: |
-          just node-installer
-          if [[ "${{ matrix.case }}" == "regression" ]]; then
-            # build and push other dependencies for the regression test
-            just coordinator initializer port-forwarder openssl service-mesh-proxy
-          fi
+          just coordinator initializer port-forwarder openssl service-mesh-proxy node-installer ${{ matrix.platform.name }}
       - name: Run regression test
         run: |
           nix run .#scripts.get-logs workspace/e2e.namespace &
           nix shell -L .#contrast.e2e --command ${{ matrix.case }}.test -test.v \
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
-            --platform aks-clh-snp \
+            --platform ${{ matrix.platform.name }} \
             --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
-          name: e2e_pod_logs-${{ matrix.case }}
+          name: e2e_pod_logs-${{ matrix.platform.name }}-${{ matrix.case }}
           path: workspace/namespace-logs
       - name: Notify teams channel of failure
         if: ${{ failure() && github.ref == 'main' }}
