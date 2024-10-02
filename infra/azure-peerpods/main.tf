@@ -59,19 +59,19 @@ resource "azuread_service_principal" "sp" {
 resource "azurerm_role_assignment" "ra_vm_contributor" {
   scope                = azurerm_resource_group.rg.id
   role_definition_name = "Virtual Machine Contributor"
-  principal_id         = azuread_service_principal.sp.id
+  principal_id         = azuread_service_principal.sp.object_id
 }
 
 resource "azurerm_role_assignment" "ra_reader" {
   scope                = azurerm_resource_group.rg.id
   role_definition_name = "Reader"
-  principal_id         = azuread_service_principal.sp.id
+  principal_id         = azuread_service_principal.sp.object_id
 }
 
 resource "azurerm_role_assignment" "ra_network_contributor" {
   scope                = azurerm_resource_group.rg.id
   role_definition_name = "Network Contributor"
-  principal_id         = azuread_service_principal.sp.id
+  principal_id         = azuread_service_principal.sp.object_id
 }
 
 resource "azuread_application_federated_identity_credential" "federated_credentials" {
@@ -85,7 +85,7 @@ resource "azuread_application_federated_identity_credential" "federated_credenti
 resource "azurerm_role_assignment" "ra_image" {
   scope                = data.azurerm_resource_group.rg_podvm_image.id
   role_definition_name = "Reader"
-  principal_id         = azuread_service_principal.sp.id
+  principal_id         = azuread_service_principal.sp.object_id
 }
 
 resource "azuread_application_password" "cred" {
