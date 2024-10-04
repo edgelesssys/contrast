@@ -83,6 +83,13 @@ buildGoModule rec {
       # packages/by-name/microsoft/genpolicy/0005-genpolicy-propagate-mount_options-for-empty-dirs.patch
       # that does not depend on the CSI enabling changes exclusive to the Microsoft fork.
       ./0013-genpolicy-support-mount-propagation-and-ro-mounts.patch
+      # Prevent cleanup of the build root to allow adding files before running rootfs.sh.
+      # This allows working around a bug in the script, which assumes existence of a file that's
+      # only added later:
+      # https://github.com/kata-containers/kata-containers/blame/94bc54f4d21fe74e078880a6b5f9f96137a9e6bb/tools/osbuilder/rootfs-builder/rootfs.sh#L723.
+      # The patch is not sufficient for upstream, because it requires the extraRootFs content from
+      # our Nix packaging.
+      ./0014-tools-don-t-clean-build-root-when-generating-rootfs.patch
     ];
   };
 

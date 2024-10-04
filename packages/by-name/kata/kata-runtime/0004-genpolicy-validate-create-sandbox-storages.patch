@@ -1,4 +1,4 @@
-From 28b9a9a0c7d53fd23b70dc13c2a022d763a5760c Mon Sep 17 00:00:00 2001
+From 2ce00e84c352f445e86f1f40d6745ed6c087776e Mon Sep 17 00:00:00 2001
 From: Dan Mihai <dmihai@microsoft.com>
 Date: Thu, 4 Jan 2024 22:28:24 +0000
 Subject: [PATCH] genpolicy: validate create sandbox storages
