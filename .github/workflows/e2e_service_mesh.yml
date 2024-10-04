@@ -1,0 +1,35 @@
+name: e2e test
+
+on:
+  pull_request:
+    paths:
+      - e2e/servicemesh/**
+      - service-mesh/**
+
+jobs:
+  test_matrix:
+    strategy:
+      matrix:
+        platform:
+          - name: AKS-CLH-SNP
+            runner: ubuntu-22.04
+            self-hosted: false
+          - name: K3s-QEMU-SNP
+            runner: SNP
+            self-hosted: true
+          - name: K3s-QEMU-TDX
+            runner: TDX
+            self-hosted: true
+      fail-fast: false
+    name: "${{ matrix.platform.name }}"
+    uses: ./.github/workflows/e2e.yaml
+    with:
+      skip-undeploy: false
+      test-name: servicemesh
+      platform: ${{ matrix.platform.name }}
+      runner: ${{ matrix.platform.runner }}
+      self-hosted: ${{ matrix.platform.self-hosted }}
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write

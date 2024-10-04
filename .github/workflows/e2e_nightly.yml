@@ -1,0 +1,34 @@
+name: e2e test
+
+on:
+  schedule:
+    - cron: "30 4 * * *" # 4:30 a.m. every day
+
+jobs:
+  test_matrix:
+    strategy:
+      matrix:
+        platform:
+          - name: AKS-CLH-SNP
+            runner: ubuntu-22.04
+            self-hosted: false
+          - name: K3s-QEMU-SNP
+            runner: SNP
+            self-hosted: true
+          - name: K3s-QEMU-TDX
+            runner: TDX
+            self-hosted: true
+        test-name: [servicemesh, openssl, policy, workloadsecret, volumestatefulset]
+      fail-fast: false
+    name: "${{ matrix.platform.name }}"
+    uses: ./.github/workflows/e2e.yaml
+    with:
+      skip-undeploy: false
+      test-name: ${{ matrix.test-name }}
+      platform: ${{ matrix.platform.name }}
+      runner: ${{ matrix.platform.runner }}
+      self-hosted: ${{ matrix.platform.self-hosted }}
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write

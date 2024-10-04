@@ -1,0 +1,76 @@
+name: e2e test
+
+on:
+  workflow_dispatch:
+    inputs:
+      test-name:
+        description: "Test Name"
+        required: true
+        type: choice
+        options:
+          - genpolicy
+          - getdents
+          - openssl
+          - policy
+          - regression
+          - servicemesh
+          - volumestatefulset
+          - workloadsecret
+        default: "openssl"
+      platform:
+        description: "Platform"
+        required: true
+        type: choice
+        options:
+          - AKS-CLH-SNP
+          - K3s-QEMU-SNP
+          - K3s-QEMU-TDX
+      skip-undeploy:
+        description: "Skip undeploy"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  determine-platform-params:
+    runs-on: ubuntu-22.04
+    outputs:
+      runner: ${{ steps.determine-platform-params.outputs.runner }}
+      self-hosted: ${{ steps.determine-platform-params.outputs.self-hosted }}
+    steps:
+      - name: Determine Platform Parameters
+        id: determine-platform-params
+        run: |
+          case ${{ inputs.platform }} in
+            "AKS-CLH-SNP")
+              echo "runner=ubuntu-22.04" >> "$GITHUB_OUTPUT"
+              echo "self-hosted=false" >> "$GITHUB_OUTPUT"
+            ;;
+            "K3s-QEMU-SNP")
+              echo "runner=SNP" >> "$GITHUB_OUTPUT"
+              echo "self-hosted=true" >> "$GITHUB_OUTPUT"
+            ;;
+            "K3s-QEMU-TDX")
+              echo "runner=TDX" >> "$GITHUB_OUTPUT"
+              echo "self-hosted=true" >> "$GITHUB_OUTPUT"
+            ;;
+            *)
+              echo "Unsupported platform: {{ platform }}"
+              exit 1
+            ;;
+          esac
+
+  test:
+    name: "${{ inputs.platform }}"
+    needs: [determine-platform-params]
+    uses: ./.github/workflows/e2e.yaml
+    with:
+      skip-undeploy: ${{ inputs.skip-undeploy }}
+      test-name: ${{ inputs.test-name }}
+      platform: ${{ inputs.platform }}
+      runner: ${{ needs.determine-platform-params.outputs.runner }}
+      self-hosted: ${{ fromJSON(needs.determine-platform-params.outputs.self-hosted) }}
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
