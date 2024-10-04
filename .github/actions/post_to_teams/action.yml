@@ -1,0 +1,23 @@
+name: Post to teams
+description: Post a message to the teams channel
+
+inputs:
+  webhook:
+    description: "The webhook to send the message to."
+    required: true
+  message:
+    description: "The message to be sent. Note that you may not use quotes or escaped quotes in your message."
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Post to teams
+      shell: bash
+      run: |
+        run_url="${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"
+        payload="$(printf '{"workflow_name": "%s", "job_id": "%s", "run_id": "%s", "ref": "%s", "message": "%s", "run_url": "%s"}' \
+                     "${{github.workflow}}" "${{github.job}}" "${{github.run_id}}" "${{github.ref_name}}" "${{inputs.message}}" "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}")"
+        curl \
+          -H "Content-Type: application/json" \
+          -d "$payload" \
+          "${{inputs.webhook}}"

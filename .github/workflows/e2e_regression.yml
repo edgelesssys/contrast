@@ -82,6 +82,12 @@ jobs:
         with:
           name: e2e_pod_logs-${{ matrix.case }}
           path: workspace/namespace-logs
+      - name: Notify teams channel of failure
+        if: ${{ failure() && github.ref == 'main' }}
+        uses: ./.github/actions/post_to_teams
+        with:
+          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
+          message: "Regression test failed"
       - name: Cleanup
         if: cancelled() && !inputs.skip-undeploy
         run: |
