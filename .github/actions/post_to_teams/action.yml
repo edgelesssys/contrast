@@ -6,7 +6,7 @@ inputs:
     description: "The webhook to send the message to."
     required: true
   message:
-    description: "The message to be sent."
+    description: "The message to be sent. Note that you may not use quotes or escaped quotes in your message."
     required: true
 
 outputs:
