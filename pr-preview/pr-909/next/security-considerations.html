@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-909/assets/css/styles.e12c56bb.css">
-<script src="/contrast/pr-preview/pr-909/assets/js/runtime~main.75623055.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-909/assets/js/runtime~main.513e8130.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-909/assets/js/main.f5c2e5e8.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -24,11 +24,11 @@ This page presents some tips for writing secure applications and outlines the tr
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="general-recommendations">General recommendations<a href="#general-recommendations" class="hash-link" aria-label="Direct link to General recommendations" title="Direct link to General recommendations">​</a></h2>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="authentication">Authentication<a href="#authentication" class="hash-link" aria-label="Direct link to Authentication" title="Direct link to Authentication">​</a></h3>
 <p>The application receives credentials from the Contrast Coordinator during initialization.
-This allows to authenticate towards peers, and to verify credentials received from peers.
-The application should use the certificate bundle to authenticate incoming requests, and be wary of unauthenticated requests or requests with a different root of trust (e.g. internet PKI).</p>
-<p>This recommendation applies to network traffic, but also to volumes, GPUs and other devices.
+This allows to authenticate towards peers and to verify credentials received from peers.
+The application should use the certificate bundle to authenticate incoming requests and be wary of unauthenticated requests or requests with a different root of trust (e.g. internet PKI).</p>
+<p>The recommendation to authenticate not only applies to network traffic, but also to volumes, GPUs and other devices.
 Generally speaking, all information provided by the world outside the confidential VM should be treated with due scepticism, especially if it is not authenticated.
-Examples include dynamic information from the k8s API server, the kubelet, DNS and others.</p>
+Common cases where Kubernetes apps interact with external services include DNS, Kubernetes API clients and cloud storage endpoints.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="encryption">Encryption<a href="#encryption" class="hash-link" aria-label="Direct link to Encryption" title="Direct link to Encryption">​</a></h3>
 <p>Any external persistence should be encrypted with an authenticated cipher.
 This recommendation applies to block devices or filesystems mounted into the container, but also to cloud blob storage or external databases.</p>
@@ -44,10 +44,11 @@ This recommendation applies to block devices or filesystems mounted into the con
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="limitations-inherent-to-policy-checking">Limitations inherent to policy checking<a href="#limitations-inherent-to-policy-checking" class="hash-link" aria-label="Direct link to Limitations inherent to policy checking" title="Direct link to Limitations inherent to policy checking">​</a></h3>
 <p>Workload policies serve as workload identities.
 From the perspective of the Contrast Coordinator, all workloads that authenticate with the same policy are equal.
-Thus, it&#x27;s not possible to disambiguate, for example, pods spawned from a deployment, or to limit the amount of certificates issued per policy.</p>
+Thus, it&#x27;s not possible to disambiguate, for example, pods spawned from a deployment or to limit the amount of certificates issued per policy.</p>
 <p>Container image references from Kubernetes resource definitions are taken into account when generating the policy.
 A mutable reference may lead to policy failures or unverified image content, depending on the Contrast runtime.
-Reliability and security can only be ensured with a full image reference, including digest.</p>
+Reliability and security can only be ensured with a full image reference, including digest.
+The <a href="https://docs.docker.com/reference/cli/docker/image/pull/#pull-an-image-by-digest-immutable-identifier" target="_blank" rel="noopener noreferrer"><code>docker pull</code> documentation</a> explains pinned image references in detail.</p>
 <p>Policies can only verify what can be inferred at generation time.
 Some attributes of Kubernetes pods can&#x27;t be predicted and thus can&#x27;t be verified.
 Particularly the <a href="https://kubernetes.io/docs/concepts/workloads/pods/downward-api/" target="_blank" rel="noopener noreferrer">downward API</a> contains many fields that are dynamic or depend on the host environment, rendering it unsafe for process environment or arguments.
