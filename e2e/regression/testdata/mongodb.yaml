@@ -29,7 +29,7 @@ spec:
       volumes:
         - name: db
           emptyDir:
-            sizeLimit: 10Mi
+            sizeLimit: 350Mi
         - name: configdb
           emptyDir:
             sizeLimit: 10Mi
