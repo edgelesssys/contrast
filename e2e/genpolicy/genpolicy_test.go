@@ -66,7 +66,7 @@ func TestGenpolicy(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 			t.Cleanup(cancel)
-			require.NoError(t, ct.Kubeclient.WaitFor(ctx, kubeclient.Deployment{}, ct.Namespace, name))
+			require.NoError(t, ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, name))
 		})
 	}
 }
