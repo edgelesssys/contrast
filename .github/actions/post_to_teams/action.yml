@@ -20,7 +20,10 @@ runs:
     - name: Post to teams
       shell: bash
       run: |
+        run_url="${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"
+        payload="$(printf '{"workflow_name": "%s", "job_id": "%s", "run_id": "%s", "ref": "%s", "message": "%s", "run_url": "%s"}' \
+                     "${{github.workflow}}" "${{github.job}}" "${{github.run_id}}" "${{github.ref_name}}" "${{inputs.message}}" "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}")"
         curl \
           -H "Content-Type: application/json" \
-          -d '{"workflow_name": "${{github.workflow}}", "job_id": "${{github.job}}", "run_id": "${{github.run_id}}", "ref": "${{github.ref_name}}", "message": "${{inputs.message}}"}' \
+          -d "$payload" \
           "${{inputs.webhook}}"
