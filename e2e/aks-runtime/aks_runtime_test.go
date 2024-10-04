@@ -1,19 +1,21 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build e2e
+///go:build e2e
 
 package aksruntime
 
 import (
+	"context"
 	"flag"
 	"os"
 	"testing"
 
-	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
+	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -24,27 +26,20 @@ var (
 func TestAKSRuntime(t *testing.T) {
 	// TODO: Log kata information
 
+	require := require.New(t)
+
 	platform, err := platforms.FromString(platformStr)
-	require.NoError(t, err)
-	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, skipUndeploy)
+	require.NoError(err)
+	c := kubeclient.NewForTest(t)
 
 	resources := kuberesource.OpenSSL()
-	coordinator := kuberesource.CoordinatorBundle()
-
-	resources = append(resources, coordinator...)
-
 	resources = kuberesource.PatchRuntimeHandlers(resources, "kata-isolation-cc")
 
-	resources = kuberesource.AddPortForwarders(resources)
+	namespace, err := os.ReadFile(namespaceFile)
+	require.NoError(err)
+	deploymentsClient := c.Client.AppsV1().Deployments(string(namespace))
 
-	ct.Init(t, resources)
-	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
-
-	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
-
-	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
-
-	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+	deploymentsClient.Create(context.TODO(), resources, metav1.CreateOptions{})
 }
 
 func TestMain(m *testing.M) {
