@@ -1,21 +1,27 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-///go:build e2e
+//go:build e2e
 
 package aksruntime
 
 import (
+	"bytes"
 	"context"
 	"flag"
+	"io"
 	"os"
+	"path"
 	"testing"
+	"time"
 
+	"github.com/edgelesssys/contrast/cli/cmd"
+	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
+	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/stretchr/testify/require"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -25,21 +31,78 @@ var (
 
 func TestAKSRuntime(t *testing.T) {
 	// TODO: Log kata information
-
 	require := require.New(t)
+
+	workdir := t.TempDir()
+
+	f, err := os.Open(imageReplacementsFile)
+	require.NoError(err)
+	imageReplacements, err := kuberesource.ImageReplacementsFromFile(f)
+	require.NoError(err)
+	namespace := contrasttest.MakeNamespace(t)
+
+	c := kubeclient.NewForTest(t)
+
+	// create the namespace
+	ns, err := kuberesource.ResourcesToUnstructured([]any{kuberesource.Namespace(namespace)})
+	require.NoError(err)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	err = c.Apply(ctx, ns...)
+	cancel()
+	require.NoError(err)
+	if namespaceFile != "" {
+		require.NoError(os.WriteFile(namespaceFile, []byte(namespace), 0o644))
+	}
+
+	// define resources
+	resources := kuberesource.OpenSSL()
+	// TODO: check if this can be removed since they are overwritten later
+	resources = kuberesource.PatchRuntimeHandlers(resources, "kata-cc-isolation")
+	resources = kuberesource.PatchNamespaces(resources, namespace)
+	resources = kuberesource.PatchImages(resources, imageReplacements)
+
+	toWrite, err := kuberesource.ResourcesToUnstructured(resources)
+	require.NoError(err)
+
+	t.Log("generating policies...")
+	// generate policies
+	resourceBytes, err := kuberesource.EncodeUnstructured(toWrite)
+	require.NoError(err)
+	require.NoError(os.WriteFile(path.Join(workdir, "resources.yaml"), resourceBytes, 0o644))
 
 	platform, err := platforms.FromString(platformStr)
 	require.NoError(err)
-	c := kubeclient.NewForTest(t)
+	args := []string{
+		"--image-replacements", imageReplacementsFile,
+		"--reference-values", platform.String(),
+		path.Join(workdir, "resources.yaml"),
+	}
 
-	resources := kuberesource.OpenSSL()
-	resources = kuberesource.PatchRuntimeHandlers(resources, "kata-isolation-cc")
+	generate := cmd.NewGenerateCmd()
+	generate.Flags().String("workspace-dir", "", "") // Make generate aware of root flags
+	generate.Flags().String("log-level", "debug", "")
+	generate.SetArgs(args)
+	generate.SetOut(io.Discard)
+	errBuf := &bytes.Buffer{}
+	generate.SetErr(errBuf)
 
-	namespace, err := os.ReadFile(namespaceFile)
+	// load in generated resources and patch the runtime handler again
+	resourceBytes, err = os.ReadFile(path.Join(workdir, "resources.yaml"))
 	require.NoError(err)
-	deploymentsClient := c.Client.AppsV1().Deployments(string(namespace))
+	toApply, err := kubeapi.UnmarshalUnstructuredK8SResource(resourceBytes)
+	require.NoError(err)
+	t.Logf("%#v", toApply)
 
-	deploymentsClient.Create(context.TODO(), resources, metav1.CreateOptions{})
+	t.Log("policies generated!")
+
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Minute)
+	err = c.Apply(ctx, toApply...)
+	cancel()
+	require.NoError(err)
+
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Minute)
+	c.LogDebugInfo(context.Background())
+	cancel()
 }
 
 func TestMain(m *testing.M) {
