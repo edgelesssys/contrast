@@ -1,4 +1,4 @@
-From 7437e837763ba04f80f72fd825b793e88bd39068 Mon Sep 17 00:00:00 2001
+From 1f16f82b5e639861e53edb4e258bf4aa2794bd4c Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:51:20 +0000
 Subject: [PATCH] runtime: agent: verify the agent policy hash

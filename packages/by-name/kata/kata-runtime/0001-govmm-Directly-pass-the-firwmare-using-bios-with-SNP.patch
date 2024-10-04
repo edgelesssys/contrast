@@ -1,4 +1,4 @@
-From a6c6d12b6e067c5bbd193c6dde3e1deb4700e33d Mon Sep 17 00:00:00 2001
+From 3beb8ad9581c8e090061b5f5b2d56d9dff4789c6 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Fri, 5 Jul 2024 08:43:13 +0000
 Subject: [PATCH] govmm: Directly pass the firwmare using -bios with SNP

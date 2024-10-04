@@ -1,4 +1,4 @@
-From 3e97fb1b2be9f19414cf3f4587dbfb0ed433967d Mon Sep 17 00:00:00 2001
+From ca06944ca5c4152d5d79fe173bf191222dfc7738 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Wed, 24 Jul 2024 09:48:48 +0200
 Subject: [PATCH] genpolicy: enable sysctl checks

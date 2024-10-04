@@ -167,6 +167,8 @@ let
         exit 1
       fi
 
+      export CONFIDENTIAL_GUEST=yes
+
       # use a fakeroot environment to build the rootfs as a tar
       # this is required to create files with the correct ownership and permissions
       # including suid
@@ -177,6 +179,8 @@ let
       mkdir -p /build/var/lib/tdnf
       mkdir -p /build/var/cache/tdnf
       mkdir -p /build/root
+      # add the extra files before building to make the systemd units available
+      tar --extract --file=${rootfsExtraTree} --directory=/build/root
       unshare --map-root-user bwrap \
         --bind /nix /nix \
         --bind ${tdnfConf} /etc/tdnf/tdnf.conf \
@@ -202,8 +206,6 @@ let
             --exclude='*systemd-tmpfiles-cleanup.timer*' \
             --sort=name --mtime='UTC 1970-01-01' -C /build/root -c . -f /build/rootfs.tar"
 
-      # add the extra tree to the rootfs
-      tar --concatenate --file=/build/rootfs.tar ${rootfsExtraTree}
       # add the closure to the rootfs
       tar --hard-dereference --transform 's+^+./+' -cf /build/closure.tar --mtime="@$SOURCE_DATE_EPOCH" --sort=name ${nixClosure}
       # combine the rootfs and the closure

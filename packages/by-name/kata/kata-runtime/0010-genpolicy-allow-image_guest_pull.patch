@@ -1,4 +1,4 @@
-From 1fa9568d60412c806ede083f0f3b8babb6c3a22e Mon Sep 17 00:00:00 2001
+From e7e5ef9123e071e9f1c6cb4e42649f6c24edbc7b Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Thu, 1 Aug 2024 15:58:42 +0200
 Subject: [PATCH] genpolicy: allow image_guest_pull

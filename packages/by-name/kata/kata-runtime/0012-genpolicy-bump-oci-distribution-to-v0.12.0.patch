@@ -1,4 +1,4 @@
-From c6832d84caf49fc4ce7fcb0d3444c1eede6a250f Mon Sep 17 00:00:00 2001
+From fd128e868a42359e3abf3d10d3ffa9c134094523 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Mon, 12 Aug 2024 13:45:43 +0200
 Subject: [PATCH] genpolicy: bump oci-distribution to v0.12.0
