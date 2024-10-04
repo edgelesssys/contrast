@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
@@ -20,6 +21,12 @@ import (
 func (k *Kubeclient) WithForwardedPort(ctx context.Context, namespace, podName, remotePort string, f func(addr string) error) error {
 	var funcErr error
 	for i := range 3 {
+		// Apply backoff after first attempt.
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Duration(i) * time.Second):
+		}
 		log := k.log.With("attempt", i, "namespace", namespace, "pod", podName, "port", remotePort)
 
 		addr, cancel, errorCh, err := k.portForwardPod(ctx, namespace, podName, remotePort)
