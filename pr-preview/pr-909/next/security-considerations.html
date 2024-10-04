@@ -13,7 +13,7 @@
 
 <script id="Cookiebot" src="https://consent.cookiebot.com/uc.js" data-cbid="a0cc864f-0b67-49be-8d65-9ed354de2ee6" data-blockingmode="auto"></script>
 <script id="CookieDeclaration" src="https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-909/assets/css/styles.e12c56bb.css">
-<script src="/contrast/pr-preview/pr-909/assets/js/runtime~main.513e8130.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-909/assets/js/runtime~main.bb7b73e3.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-909/assets/js/main.f5c2e5e8.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -25,9 +25,9 @@ This page presents some tips for writing secure applications and outlines the tr
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="authentication">Authentication<a href="#authentication" class="hash-link" aria-label="Direct link to Authentication" title="Direct link to Authentication">​</a></h3>
 <p>The application receives credentials from the Contrast Coordinator during initialization.
 This allows to authenticate towards peers and to verify credentials received from peers.
-The application should use the certificate bundle to authenticate incoming requests and be wary of unauthenticated requests or requests with a different root of trust (e.g. internet PKI).</p>
+The application should use the certificate bundle to authenticate incoming requests and be wary of unauthenticated requests or requests with a different root of trust (for example the internet PKI).</p>
 <p>The recommendation to authenticate not only applies to network traffic, but also to volumes, GPUs and other devices.
-Generally speaking, all information provided by the world outside the confidential VM should be treated with due scepticism, especially if it is not authenticated.
+Generally speaking, all information provided by the world outside the confidential VM should be treated with due scepticism, especially if it&#x27;s not authenticated.
 Common cases where Kubernetes apps interact with external services include DNS, Kubernetes API clients and cloud storage endpoints.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="encryption">Encryption<a href="#encryption" class="hash-link" aria-label="Direct link to Encryption" title="Direct link to Encryption">​</a></h3>
 <p>Any external persistence should be encrypted with an authenticated cipher.
