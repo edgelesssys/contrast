@@ -8,12 +8,6 @@ inputs:
   message:
     description: "The message to be sent. Note that you may not use quotes or escaped quotes in your message."
     required: true
-
-outputs:
-  commit-msg:
-    description: "Commit message"
-    value: ${{ steps.bump-version.outputs.commit-msg }}
-
 runs:
   using: "composite"
   steps:
