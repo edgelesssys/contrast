@@ -50,7 +50,7 @@ func TestGenpolicy(t *testing.T) {
 					"--workspace-dir", ct.WorkDir,
 					"--reference-values", "aks-clh-snp",
 					"--skip-initializer",
-					path.Join(ct.WorkDir, "resources.yaml"),
+					path.Join(ct.WorkDir, "resources.yml"),
 				}
 				generate := cmd.NewGenerateCmd()
 				generate.Flags().String("workspace-dir", "", "") // Make generate aware of root flags
