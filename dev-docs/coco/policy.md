@@ -45,7 +45,7 @@ The upstream tool `genpolicy` supports an additional settings file to augment th
 
 The data section is specific to the pod at hand and is generated from the deployment YAML.
 
-Next to this document, you can find a [pod definition](example-policy.yaml) and the corresponding [generated policy](example-policy.rego).
+Next to this document, you can find a [pod definition](example-policy.yml) and the corresponding [generated policy](example-policy.rego).
 The policy was created with `nix run .#cli-release` at commit `6d25a1b4c82adeb4fff2771453bc38ca44cde466`.
 
 [Rego]: https://www.openpolicyagent.org/docs/latest/policy-language/
