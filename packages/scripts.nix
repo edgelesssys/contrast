@@ -33,14 +33,15 @@
         go generate ./...
       done < <(go list -f '{{.Dir}}' -m)
 
-      # All binaries of the main Go module share the same builder,
-      # we only need to update one of them to update the vendorHash
-      # of the builder.
       echo "Updating vendorHash of contrast.cli package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast.cli
-
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast
       echo "Updating vendorHash of service-mesh package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.service-mesh
+      echo "Updating vendorHash of tdx-measure package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.tdx-measure
+
+      echo "Updating src hash of kata.kata-kernel-uvm.configfile" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.kata.kata-kernel-uvm.configfile
 
       echo "Updateing yarn offlineCache hash of contrast-docs package" >&2
       nix-update --version=skip --flake \
