@@ -53,8 +53,8 @@ node-installer platform=default_platform:
         ;;
         "AKS-PEER-SNP")
             nix run -L .#scripts.deploy-caa -- \
-                --kustomization=./infra/azure-peerpods/kustomization.yaml \
-                --workload-identity=./infra/azure-peerpods/workload-identity.yaml \
+                --kustomization=./infra/azure-peerpods/kustomization.yml \
+                --workload-identity=./infra/azure-peerpods/workload-identity.yml \
                 --pub-key=./infra/azure-peerpods/id_rsa.pub
         ;;
         *)

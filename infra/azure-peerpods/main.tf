@@ -139,7 +139,7 @@ resource "local_file" "kubeconfig" {
 }
 
 resource "local_file" "workload_identity" {
-  filename        = "./workload-identity.yaml"
+  filename        = "./workload-identity.yml"
   file_permission = "0777"
   content         = <<EOF
 apiVersion: apps/v1
@@ -164,7 +164,7 @@ EOF
 }
 
 resource "local_file" "kustomization" {
-  filename        = "./kustomization.yaml"
+  filename        = "./kustomization.yml"
   file_permission = "0777"
   content         = <<EOF
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -197,6 +197,6 @@ secretGenerator:
   files:
   - id_rsa.pub
 patchesStrategicMerge:
-- workload-identity.yaml
+- workload-identity.yml
 EOF
 }
