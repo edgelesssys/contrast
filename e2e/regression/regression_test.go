@@ -71,12 +71,12 @@ func TestRegression(t *testing.T) {
 			newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
 			newResources = kuberesource.AddPortForwarders(newResources)
 
-			// write the new resources.yaml
+			// write the new resources.yml
 			resourceBytes, err := kuberesource.EncodeResources(newResources...)
 			require.NoError(err)
-			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yaml"), resourceBytes, 0o644))
+			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
 
-			deploymentName, _ := strings.CutSuffix(file.Name(), ".yaml")
+			deploymentName, _ := strings.CutSuffix(file.Name(), ".yml")
 
 			t.Cleanup(func() {
 				// delete the deployment

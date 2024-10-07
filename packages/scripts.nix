@@ -404,8 +404,8 @@
       tmpdir=$(mktemp -d)
       cp -r ${pkgs.cloud-api-adaptor.src}/src/cloud-api-adaptor/install/* "$tmpdir"
       chmod -R +w "$tmpdir"
-      cp "$kustomizationFile" "$tmpdir/overlays/azure/kustomization.yaml"
-      cp "$workloadIdentityFile" "$tmpdir/overlays/azure/workload-identity.yaml"
+      cp "$kustomizationFile" "$tmpdir/overlays/azure/kustomization.yml"
+      cp "$workloadIdentityFile" "$tmpdir/overlays/azure/workload-identity.yml"
       cp "$pubKeyFile" "$tmpdir/overlays/azure/id_rsa.pub"
 
       kubectl apply -k "github.com/confidential-containers/operator/config/release?ref=v${pkgs.cloud-api-adaptor.version}"

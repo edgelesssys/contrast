@@ -25,7 +25,7 @@ jobs:
             self-hosted: true
       fail-fast: false
     name: "${{ matrix.platform.name }}"
-    uses: ./.github/workflows/e2e.yaml
+    uses: ./.github/workflows/e2e.yml
     with:
       skip-undeploy: false
       test-name: openssl
