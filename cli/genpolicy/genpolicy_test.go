@@ -55,7 +55,7 @@ func TestRunner(t *testing.T) {
 	expectedSettingsPath := "/settings.json"
 	settingsPathFile := filepath.Join(d, "settings_path")
 	cachePath := filepath.Join(d, "cache", "cache.json")
-	expectedYAMLPath := filepath.Join(d, "test.yaml")
+	expectedYAMLPath := filepath.Join(d, "test.yml")
 	yamlPathFile := filepath.Join(d, "yaml_path")
 
 	r, err := New(expectedRulesPath, expectedSettingsPath, cachePath, genpolicyBin)
