@@ -70,7 +70,7 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 		{
 			name: "valid input",
 			files: map[string]string{
-				"deployment.yaml": validDeploymentYAML,
+				"deployment.yml": validDeploymentYAML,
 			},
 			expectedOutput: []deployment{
 				{
@@ -83,21 +83,21 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 		{
 			name: "missing annotation",
 			files: map[string]string{
-				"pod.yaml": podYAML,
+				"pod.yml": podYAML,
 			},
 		},
 		{
 			name: "invalid policy annotation",
 			files: map[string]string{
-				"deployment.yaml": invalidPolicyYAML,
+				"deployment.yml": invalidPolicyYAML,
 			},
 			expectedErr: "failed to parse policy test",
 		},
 		{
 			name: "multiple files",
 			files: map[string]string{
-				"deployment.yaml": validDeploymentYAML,
-				"pod.yaml":        anotherValidPodYAML,
+				"deployment.yml": validDeploymentYAML,
+				"pod.yml":        anotherValidPodYAML,
 			},
 			expectedOutput: []deployment{
 				{
