@@ -144,7 +144,7 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	// Write resources to this test's tempdir.
 	buf, err := kuberesource.EncodeUnstructured(unstructuredResources)
 	require.NoError(err)
-	require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yaml"), buf, 0o644))
+	require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), buf, 0o644))
 
 	ct.installRuntime(t)
 }
@@ -157,7 +157,7 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 		ct.commonArgs(),
 		"--image-replacements", ct.ImageReplacementsFile,
 		"--reference-values", ct.Platform.String(),
-		path.Join(ct.WorkDir, "resources.yaml"),
+		path.Join(ct.WorkDir, "resources.yml"),
 	)
 
 	generate := cmd.NewGenerateCmd()
@@ -225,7 +225,7 @@ func (ct *ContrastTest) patchReferenceValues(t *testing.T, platform platforms.Pl
 func (ct *ContrastTest) Apply(t *testing.T) {
 	require := require.New(t)
 
-	yaml, err := os.ReadFile(path.Join(ct.WorkDir, "resources.yaml"))
+	yaml, err := os.ReadFile(path.Join(ct.WorkDir, "resources.yml"))
 	require.NoError(err)
 	objects, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
 	require.NoError(err)
@@ -243,7 +243,7 @@ func (ct *ContrastTest) Set(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
-	require.NoError(ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), path.Join(ct.WorkDir, "resources.yaml")))
+	require.NoError(ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), path.Join(ct.WorkDir, "resources.yml")))
 }
 
 // RunVerify runs the contrast verify subcommand.

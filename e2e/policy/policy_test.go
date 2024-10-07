@@ -102,7 +102,7 @@ func TestPolicy(t *testing.T) {
 		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "manifest.json"), manifestBytes, 0o644))
 
 		// parse the original resources
-		resourceBytes, err := os.ReadFile(path.Join(ct.WorkDir, "resources.yaml"))
+		resourceBytes, err := os.ReadFile(path.Join(ct.WorkDir, "resources.yml"))
 		require.NoError(err)
 		r, err := kubeapi.UnmarshalUnstructuredK8SResource(resourceBytes)
 		require.NoError(err)
@@ -121,7 +121,7 @@ func TestPolicy(t *testing.T) {
 		// write the new resources yaml
 		resourceBytes, err = kuberesource.EncodeUnstructured(newResources)
 		require.NoError(err)
-		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yaml"), resourceBytes, 0o644))
+		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
 
 		// set the new manifest
 		ct.Set(t)
