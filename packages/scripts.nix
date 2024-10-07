@@ -334,7 +334,7 @@
     name = "extract-policies";
     runtimeInputs = with pkgs; [
       google-cloud-sdk
-      merge-kube-config
+      scripts.merge-kube-config
     ];
     text = ''
       set -euo pipefail
