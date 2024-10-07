@@ -3,13 +3,6 @@ name: e2e test regression
 on:
   schedule:
     - cron: "16 6 * * 6" # 6:16 on Saturdays
-  workflow_dispatch:
-    inputs:
-      skip-undeploy:
-        description: "Skip undeploy"
-        required: false
-        type: boolean
-        default: false
   pull_request:
     paths:
       - .github/workflows/e2e_regression.yml
@@ -17,16 +10,8 @@ on:
       - e2e/genpolicy/**
       - e2e/regression/**
 
-env:
-  container_registry: ghcr.io/edgelesssys
-  azure_resource_group: contrast-ci
-  DO_NOT_TRACK: 1
-
 jobs:
   regression-test:
-    permissions:
-      contents: read
-      packages: write
     strategy:
       matrix:
         platform:
@@ -39,82 +24,26 @@ jobs:
           - name: K3s-QEMU-TDX
             runner: TDX
             self-hosted: true
-        case:
-          - getdents
-          - genpolicy
-          - regression
+        test-name: [getdents, genpolicy, regression]
         exclude:
           # getdents is a regression test for tardev-snapshotter
           - platform:
               self-hosted: true
-            case: getdents
+            test-name: getdents
           # genpolicy is (currently) a regression test for tardev-snapshotter
           - platform:
               self-hosted: true
-            case: genpolicy
+            test-name: genpolicy
       fail-fast: false
-    name: "${{ matrix.platform.name }} / ${{ matrix.case }}"
-    runs-on: ${{ matrix.platform.runner }}
-    steps:
-      - uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
-      - uses: ./.github/actions/setup_nix
-        if: ${{ !matrix.platform.self-hosted }}
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      - name: Log in to ghcr.io Container registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Login to Azure
-        if: ${{ !matrix.platform.self-hosted }}
-        uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
-        with:
-          creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
-      - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
-      - name: Create justfile.env
-        run: |
-          cat <<EOF > justfile.env
-          container_registry=${{ env.container_registry }}
-          azure_resource_group=${{ env.azure_resource_group }}
-          EOF
-      - name: Get credentials for CI cluster
-        if: ${{ !matrix.platform.self-hosted }}
-        run: |
-          just get-credentials
-      - if: ${{ !matrix.platform.self-hosted }}
-        name: Set sync environment
-        run: |
-          sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"
-          sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
-          echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
-      - name: Build and prepare deployments
-        run: |
-          just coordinator initializer port-forwarder openssl service-mesh-proxy node-installer ${{ matrix.platform.name }}
-      - name: Run regression test
-        run: |
-          nix run .#scripts.get-logs workspace/e2e.namespace &
-          nix shell -L .#contrast.e2e --command ${{ matrix.case }}.test -test.v \
-            --image-replacements workspace/just.containerlookup \
-            --namespace-file workspace/e2e.namespace \
-            --platform ${{ matrix.platform.name }} \
-            --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
-      - name: Upload logs
-        if: always()
-        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
-        with:
-          name: e2e_pod_logs-${{ matrix.platform.name }}-${{ matrix.case }}
-          path: workspace/namespace-logs
-      - name: Notify teams channel of failure
-        if: ${{ failure() && github.ref == 'main' }}
-        uses: ./.github/actions/post_to_teams
-        with:
-          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
-          message: "Regression test failed"
-      - name: Cleanup
-        if: cancelled() && !inputs.skip-undeploy
-        run: |
-          kubectl delete ns "$(cat workspace/e2e.namespace)" --timeout 5m
+    name: "${{ matrix.platform.name }}"
+    uses: ./.github/workflows/e2e.yaml
+    with:
+      skip-undeploy: false
+      test-name: ${{ matrix.test-name }}
+      platform: ${{ matrix.platform.name }}
+      runner: ${{ matrix.platform.runner }}
+      self-hosted: ${{ matrix.platform.self-hosted }}
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
