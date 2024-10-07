@@ -63,7 +63,7 @@ jobs:
   test:
     name: "${{ inputs.platform }}"
     needs: [determine-platform-params]
-    uses: ./.github/workflows/e2e.yaml
+    uses: ./.github/workflows/e2e.yml
     with:
       skip-undeploy: ${{ inputs.skip-undeploy }}
       test-name: ${{ inputs.test-name }}
