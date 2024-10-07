@@ -120,6 +120,11 @@ generate cli=default_cli platform=default_platform:
             '.ReferenceValues.snp.[].MinimumTCB = {"BootloaderVersion":0,"TEEVersion":0,"SNPVersion":0,"MicrocodeVersion":0}' \
             {{ workspace_dir }}/manifest.json
         ;;
+        "K3s-QEMU-TDX" | "RKE2-QEMU-TDX")
+            yq --inplace \
+            '.ReferenceValues.tdx.[].MinimumTeeTcbSvn = "04010200000000000000000000000000" | .ReferenceValues.tdx.[].MrSeam = "1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04"' \
+            {{ workspace_dir }}/manifest.json
+        ;;
     esac
 
 # Apply Kubernetes manifests from /deployment

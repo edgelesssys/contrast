@@ -308,7 +308,8 @@ func (c *contrast) patchReferenceValues(t *testing.T, lowerPlatformStr string) {
 	var m manifest.Manifest
 	require.NoError(t, json.Unmarshal(manifestBytes, &m))
 
-	if lowerPlatformStr == "k3s-qemu-snp" {
+	switch lowerPlatformStr {
+	case "k3s-qemu-snp":
 		// The generate command doesn't fill in all required fields when
 		// generating a manifest for baremetal SNP. Do that now.
 		for i, snp := range m.ReferenceValues.SNP {
@@ -317,6 +318,14 @@ func (c *contrast) patchReferenceValues(t *testing.T, lowerPlatformStr string) {
 			snp.MinimumTCB.SNPVersion = toPtr(manifest.SVN(0))
 			snp.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
 			m.ReferenceValues.SNP[i] = snp
+		}
+	case "k3s-qemu-tdx", "rke2-qemu-tdx":
+		// The generate command doesn't fill in all required fields when
+		// generating a manifest for baremetal TDX. Do that now.
+		for i, tdx := range m.ReferenceValues.TDX {
+			tdx.MinimumTeeTcbSvn = manifest.HexString("04010200000000000000000000000000")
+			tdx.MrSeam = manifest.HexString("1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04")
+			m.ReferenceValues.TDX[i] = tdx
 		}
 	}
 

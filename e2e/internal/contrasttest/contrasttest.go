@@ -208,6 +208,14 @@ func (ct *ContrastTest) patchReferenceValues(t *testing.T, platform platforms.Pl
 			snp.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
 			m.ReferenceValues.SNP[i] = snp
 		}
+	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+		// The generate command doesn't fill in all required fields when
+		// generating a manifest for baremetal TDX. Do that now.
+		for i, tdx := range m.ReferenceValues.TDX {
+			tdx.MinimumTeeTcbSvn = manifest.HexString("04010200000000000000000000000000")
+			tdx.MrSeam = manifest.HexString("1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04")
+			m.ReferenceValues.TDX[i] = tdx
+		}
 	}
 
 	manifestBytes, err = json.Marshal(m)
