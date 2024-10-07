@@ -101,11 +101,21 @@ contrast generate --reference-values aks-clh-snp deployment/
 ```sh
 contrast generate --reference-values k3s-qemu-snp deployment/
 ```
+:::note[Missing TCB values]
+On bare metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms.
+They will have to be filled in manually.
+If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":255,"SNPVersion":255,"MicrocodeVersion":255}` and observe the real values in the error messages in the following steps. This should only be done in a secure environment. Note that the values will differ between CPU models.
+:::
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare Metal (TDX)">
 ```sh
 contrast generate --reference-values k3s-qemu-tdx deployment/
 ```
+:::note[Missing TCB values]
+On bare metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values as they can vary between platforms.
+They will have to be filled in manually.
+If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and `000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000` respectively and observe the real values in the error messages in the following steps. This should only be done in a secure environment.
+:::
 </TabItem>
 </Tabs>
 
