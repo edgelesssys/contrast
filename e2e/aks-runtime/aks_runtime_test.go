@@ -24,6 +24,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	opensslFrontend = "openssl-frontend"
+	opensslBackend  = "openssl-backend"
+)
+
 var (
 	imageReplacementsFile, namespaceFile, platformStr string
 	skipUndeploy                                      bool
@@ -96,13 +101,12 @@ func TestAKSRuntime(t *testing.T) {
 	t.Log("policies generated!")
 
 	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
 	err = c.Apply(ctx, toApply...)
-	cancel()
 	require.NoError(err)
-
-	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Minute)
+	require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, namespace, opensslBackend))
+	require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, namespace, opensslFrontend))
 	c.LogDebugInfo(context.Background())
-	cancel()
 }
 
 func TestMain(m *testing.M) {
