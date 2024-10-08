@@ -42,6 +42,7 @@ lib.makeOverridable (
             kernel-podvm-azure
             pause-bundle
             nvidia-ctk-prestart
+            nvidia-ctk-with-config
             ;
           inherit (outerPkgs.kata) kata-agent;
         })

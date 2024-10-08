@@ -29,8 +29,11 @@ in
     };
     hardware.nvidia-container-toolkit.enable = true;
 
-    image.repart.partitions."10-root".contents."/usr/share/oci/hooks/prestart/nvidia-container-toolkit.sh".source =
-      (lib.getExe pkgs.nvidia-ctk-prestart);
+    image.repart.partitions."10-root".contents."/usr/share/oci/hooks/prestart/nvidia-container-toolkit.sh".source = (
+      lib.getExe pkgs.nvidia-ctk-prestart
+    );
+
+    environment.systemPackages = [ pkgs.nvidia-ctk-with-config ];
 
     boot.initrd.kernelModules = [
       # Extra kernel modules required to talk to the GPU in CC-Mode.

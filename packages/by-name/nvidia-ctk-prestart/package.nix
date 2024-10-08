@@ -3,17 +3,15 @@
 
 {
   writeShellApplication,
-  nvidia-container-toolkit,
+  nvidia-ctk-with-config,
   lib,
 }:
-
 writeShellApplication {
   name = "nvidia-ctk-prestart";
-  runtimeInputs = [ nvidia-container-toolkit ];
   text = ''
-    #!/usr/bin/env bash -x
-
     # Log the o/p of the hook to a file
-    ${lib.getExe' nvidia-container-toolkit "nvidia-container-runtime-hook"} -debug "$@" > /var/log/nvidia-hook.log 2>&1
+    ${lib.getExe' nvidia-ctk-with-config "nvidia-container-runtime-hook"} \
+      -config ${nvidia-ctk-with-config}/etc/nvidia-container-runtime/config.toml \
+      -debug "$@" > /var/log/nvidia-hook.log 2>&1
   '';
 }
