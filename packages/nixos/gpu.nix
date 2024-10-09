@@ -30,7 +30,11 @@ in
     hardware.nvidia-container-toolkit.enable = true;
 
     image.repart.partitions."10-root".contents."/usr/share/oci/hooks/prestart/nvidia-container-toolkit.sh".source = (
-      lib.getExe pkgs.nvidia-ctk-prestart
+      lib.getExe (
+        pkgs.nvidia-ctk-prestart.override {
+          nvidiaPath = config.hardware.nvidia.package;
+        }
+      )
     );
 
     environment.systemPackages = [ pkgs.nvidia-ctk-with-config ];
