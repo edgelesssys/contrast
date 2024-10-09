@@ -54,3 +54,13 @@ Ideally, a volume is mounted as a raw block device and authenticated encryption 
 
 [`docker pull` documentation]: https://docs.docker.com/reference/cli/docker/image/pull/#pull-an-image-by-digest-immutable-identifier
 [downward API]: https://kubernetes.io/docs/concepts/workloads/pods/downward-api/
+
+### Logs
+
+By default, container logs are visible to the host.
+Sensitive information shouldn't be logged.
+
+As of right now, hiding logs isn't natively supported.
+If `ReadStreamRequest` is denied in the policy, the Kata Agent stops reading the logs.
+This causes the pipes used for standard out and standard error to fill up and potentially deadlock the container.
+If absolutely required, standard out and standard error should be manually redirected to `/dev/null` inside the container.
