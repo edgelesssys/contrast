@@ -12,3 +12,13 @@ index 4e9f6481d..7d0356b90 100644
              ]
          },
          "CopyFileRequest": [
+@@ -343,9 +343,9 @@
+             "allowed_commands": [],
+             "regex": []
+         },
+         "CloseStdinRequest": false,
+-        "ReadStreamRequest": false,
++        "ReadStreamRequest": true,
+         "UpdateEphemeralMountsRequest": false,
+         "WriteStreamRequest": false
+     }
