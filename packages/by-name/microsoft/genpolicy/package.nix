@@ -98,10 +98,7 @@ rustPlatform.buildRustPackage rec {
       '';
     };
 
-    settings = applyPatches {
-      src = settings-base;
-      patches = [ ./genpolicy_msft_settings_prod.patch ];
-    };
+    settings = settings-base;
 
     settings-coordinator = applyPatches {
       src = settings-base;

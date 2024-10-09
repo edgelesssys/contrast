@@ -77,7 +77,10 @@ rustPlatform.buildRustPackage rec {
       '';
     };
 
-    settings = settings-base;
+    settings = applyPatches {
+      src = settings-base;
+      patches = [ ./genpolicy_settings_prod.patch ];
+    };
 
     settings-coordinator = applyPatches {
       src = settings-base;
