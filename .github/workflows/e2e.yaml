@@ -89,7 +89,7 @@ jobs:
         uses: ./.github/actions/post_to_teams
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
-          message: "e2e test ${{ inputs.test-name }} failed"
+          message: "e2e test ${{ inputs.test-name }} failed on platform ${{ inputs.platform }}"
       - name: Cleanup
         if: cancelled() && !inputs.skip-undeploy
         run: |
