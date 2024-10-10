@@ -29,7 +29,7 @@ runs:
         yq -oj -iP '.body[0].columns[1].items[0].text = "${{inputs.title}}"' ./template.json
 
         # add the message
-        yq -oj -iP '.body[1].text = "${{inputs.message}}"'
+        yq -oj -iP '.body[1].text = "${{inputs.message}}"' ./template.json
 
         # add the run url to the clickable button
         yq -oj -iP '.actions[0].url = "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"' ./template.json
