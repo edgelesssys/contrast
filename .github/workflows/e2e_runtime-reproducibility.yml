@@ -55,7 +55,9 @@ jobs:
         uses: ./.github/actions/post_to_teams
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
-          message: "Runtime reproducibility test failed on ${{ matrix.build-target }}-${{ matrix.os }}"
+          title: "Runtime reproducibility test failed"
+          message: "Runtime reproducibility test failed on ${{ matrix.build-target}}-${{matrix.os }}"
+          additionalFields: '[{"title": "Build target", "value": "${{ matrix.build-target }}"}, {"title": "OS", "value": "${{ matrix.os }}"}]'
 
   collect-checksums:
     runs-on: ubuntu-22.04
@@ -87,4 +89,5 @@ jobs:
         uses: ./.github/actions/post_to_teams
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
-          message: "Runtime reproducibility test failed to collect checksums"
+          title: "Runtime reproducibility test failed"
+          message: "failed to collect checksums"

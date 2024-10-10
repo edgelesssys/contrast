@@ -41,4 +41,5 @@ jobs:
         uses: ./.github/actions/post_to_teams
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
-          message: "Updating RPM packages failed"
+          title: "Failed to update RPM packages"
+          message: ""
