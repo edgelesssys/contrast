@@ -45,6 +45,7 @@ runs:
         # add additional buttons
         yq -oj -iP '.actions += ${{inputs.additionalActions}}' ./template.json
 
+        payload="$(cat ./template.json)"
         curl \
           -H "Content-Type: application/json" \
           -d "$payload" \
