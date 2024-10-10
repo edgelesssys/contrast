@@ -44,6 +44,7 @@ lib.makeOverridable (
             nvidia-ctk-prestart
             nvidia-ctk-with-config
             ;
+          libnvidia-container = outerPkgs.libnvidia-container-custom;
           inherit (outerPkgs.kata) kata-agent;
         })
       ];

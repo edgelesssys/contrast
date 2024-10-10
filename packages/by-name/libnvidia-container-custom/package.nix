@@ -28,7 +28,7 @@ let
   };
 in
 stdenv.mkDerivation rec {
-  pname = "libnvidia-container";
+  pname = "libnvidia-container-custom";
   version = "1.16.2";
 
   src = fetchFromGitHub {
