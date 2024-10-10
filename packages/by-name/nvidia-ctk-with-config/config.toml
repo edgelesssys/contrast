@@ -27,7 +27,7 @@ runtimes = ["docker-runc", "runc", "crun"]
 [nvidia-container-runtime.modes.cdi]
 annotation-prefixes = ["cdi.k8s.io/"]
 default-kind = "nvidia.com/gpu"
-spec-dirs = ["/etc/cdi", "/var/run/cdi"]
+spec-dirs = ["/var/run/cdi"]
 
 [nvidia-container-runtime.modes.csv]
 mount-spec-path = "/etc/nvidia-container-runtime/host-files-for-container.d"
