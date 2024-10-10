@@ -11,7 +11,7 @@ replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0
 
 require (
 	filippo.io/keygen v0.0.0-20240718133620-7f162efbbd87
-	github.com/google/go-github/v64 v64.0.0
+	github.com/google/go-github/v66 v66.0.0
 	github.com/google/go-sev-guest v0.11.1
 	github.com/google/go-tdx-guest v0.3.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
