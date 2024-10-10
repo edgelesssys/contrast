@@ -19,7 +19,7 @@ path = "@nvidia-container-cli@"
 [nvidia-container-runtime]
 debug = "/var/log/nvidia-kata-container/nvidia-container-runtime.log"
 log-level = "debug"
-mode = "auto"
+mode = "cdi"
 runtimes = ["docker-runc", "runc", "crun"]
 
 [nvidia-container-runtime.modes]
@@ -34,7 +34,7 @@ mount-spec-path = "/etc/nvidia-container-runtime/host-files-for-container.d"
 
 [nvidia-container-runtime-hook]
 path = "@nvidia-container-runtime-hook@"
-skip-mode-detection = false
+skip-mode-detection = true
 
 [nvidia-ctk]
 path = "@nvidia-ctk@"
