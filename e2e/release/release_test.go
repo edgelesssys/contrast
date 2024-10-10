@@ -27,7 +27,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/google/go-github/v64/github"
+	"github.com/google/go-github/v66/github"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
