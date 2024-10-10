@@ -5,18 +5,47 @@ inputs:
   webhook:
     description: "The webhook to send the message to."
     required: true
+  title:
+    description: "The title of the notification."
+    required: true
   message:
     description: "The message to be sent. Note that you may not use quotes or escaped quotes in your message."
     required: true
+  additionalFields:
+    description: "Additional fields to add to the Teams message (JSON formatted)"
+    default: "[]"
+  additionalActions:
+    description: "Additional actions (buttons) to add to the Teams message (JSON formatted)"
+    default: "[]"
 runs:
   using: "composite"
   steps:
     - name: Post to teams
       shell: bash
       run: |
-        run_url="${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"
-        payload="$(printf '{"workflow_name": "%s", "job_id": "%s", "run_id": "%s", "ref": "%s", "message": "%s", "run_url": "%s"}' \
-                     "${{github.workflow}}" "${{github.job}}" "${{github.run_id}}" "${{github.ref_name}}" "${{inputs.message}}" "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}")"
+        cp .github/actions/post_to_teams/teams_card_template.json template.json
+
+        # add the title
+        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[0].text = "${{inputs.title}}"' ./template.json
+
+        # add the message
+        yq -oj -iP '.attachments[0].content.body[1].text = "${{inputs.message}}"' ./template.json
+
+        # add the run url to the clickable button
+        yq -oj -iP '.attachments[0].content.actions[0].url = "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"' ./template.json
+
+        # update the fact set
+        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts[0].value = "${{github.job}}"' ./template.json
+        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts[1].value = "${{github.run_id}}"' ./template.json
+        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts[2].value = "${{github.ref_name}}"' ./template.json
+
+        # add additional fields
+        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts += ${{inputs.additionalFields}}' ./template.json
+
+        # add additional buttons
+        yq -oj -iP '.attachments[0].content.actions += ${{inputs.additionalActions}}' ./template.json
+
+        payload="$(cat ./template.json)"
         curl \
           -H "Content-Type: application/json" \
           -d "$payload" \
