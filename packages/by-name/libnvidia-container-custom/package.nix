@@ -33,7 +33,7 @@ stdenv.mkDerivation rec {
 
   src = fetchFromGitHub {
     owner = "NVIDIA";
-    repo = pname;
+    repo = "libnvidia-container";
     rev = "v${version}";
     sha256 = "sha256-hX+2B+0kHiAC2lyo6kwe7DctPLJWgRdbhlc316OO3r8=";
   };
@@ -43,7 +43,7 @@ stdenv.mkDerivation rec {
     # doesn't get used on NixOS. Additional support binaries like nvidia-smi
     # are not resolved via the environment PATH but via the derivation output
     # path.
-    # ./libnvc-ldconfig-and-path-fixes.patch
+    ./0001-fix-library-resolving.patch
 
     # fix bogus struct declaration
     ./inline-c-struct.patch
