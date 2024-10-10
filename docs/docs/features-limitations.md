@@ -5,7 +5,7 @@ This section lists planned features and current limitations of Contrast.
 ## Availability
 
 - **Platform support**: At present, Contrast is exclusively available on Azure AKS, supported by the [Confidential Container preview for AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview). Expansion to other cloud platforms is planned, pending the availability of necessary infrastructure enhancements.
-- **Bare metal support**: Support for running Contrast on bare metal Kubernetes will be available soon for AMD SEV and Intel TDX.
+- **Bare-metal support**: Support for running [Contrast on bare-metal Kubernetes](getting-started/bare-metal.md) is available for AMD SEV-SNP and Intel TDX.
 
 ## Kubernetes features
 
@@ -33,7 +33,3 @@ The policy limitations, in particular the missing guarantee that our service mes
 The Contrast Coordinator is a singleton and can't be scaled to more than one instance.
 When this instance's pod is restarted, for example for node maintenance, it needs to be recovered manually.
 In a future release, we plan to support distributed Coordinator instances that can recover automatically.
-
-## Attestation
-
-Attestation for TDX isn't completely implemented yet and shouldn't yet be relied upon for security. This will be fixed in a future release.
