@@ -1,4 +1,4 @@
-# Prepare a bare metal instance
+# Prepare a bare-metal instance
 
 ## Hardware and firmware setup
 

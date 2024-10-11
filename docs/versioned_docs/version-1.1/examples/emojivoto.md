@@ -50,12 +50,12 @@ It can be shared between Contrast deployments.
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.0/runtime-aks-clh-snp.yml
 ```
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare Metal (SEV-SNP)">
+<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.0/runtime-k3s-qemu-snp.yml
 ```
 </TabItem>
-<TabItem value="k3s-qemu-tdx" label="Bare Metal (TDX)">
+<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.0/runtime-k3s-qemu-tdx.yml
 ```
@@ -73,12 +73,12 @@ LoadBalancer service, into your cluster:
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.0/coordinator-aks-clh-snp.yml
 ```
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare Metal (SEV-SNP)">
+<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.0/coordinator-k3s-qemu-snp.yml
 ```
 </TabItem>
-<TabItem value="k3s-qemu-tdx" label="Bare Metal (TDX)">
+<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.0/coordinator-k3s-qemu-tdx.yml
 ```
@@ -97,22 +97,22 @@ of your deployment will be created:
 contrast generate --reference-values aks-clh-snp deployment/
 ```
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare Metal (SEV-SNP)">
+<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
 contrast generate --reference-values k3s-qemu-snp deployment/
 ```
 :::note[Missing TCB values]
-On bare metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms.
+On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms.
 They will have to be filled in manually.
 If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":255,"SNPVersion":255,"MicrocodeVersion":255}` and observe the real values in the error messages in the following steps. This should only be done in a secure environment. Note that the values will differ between CPU models.
 :::
 </TabItem>
-<TabItem value="k3s-qemu-tdx" label="Bare Metal (TDX)">
+<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 ```sh
 contrast generate --reference-values k3s-qemu-tdx deployment/
 ```
 :::note[Missing TCB values]
-On bare metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values as they can vary between platforms.
+On bare-metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values as they can vary between platforms.
 They will have to be filled in manually.
 If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and `000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000` respectively and observe the real values in the error messages in the following steps. This should only be done in a secure environment.
 :::
