@@ -30,7 +30,7 @@ final: prev: {
           sha256sum "$o" >> "$TMPDIR/inspector-foo-$d.log"
         fi
         if [[ -d $o ]]; then
-          find "$o" -type f -exec sha256sum {} \; >> "$TMPDIR/inspector-foo-$d.log"
+          find "$o" -type f | sort -k2 | xargs stat >> "$TMPDIR/inspector-foo-$d.log" || true
         fi
       done
     '';
@@ -40,7 +40,6 @@ final: prev: {
     name = "inspector-foo-post";
     text = ''
       echo "inspector-foo-post"
-      cat "$TMPDIR"/inspector-foo-*.log
     '';
   };
 
