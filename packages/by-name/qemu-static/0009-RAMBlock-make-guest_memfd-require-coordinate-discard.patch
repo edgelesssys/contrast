@@ -1,0 +1,29 @@
+From e9ba216a062efcfff2831edb214815cce88c80dd Mon Sep 17 00:00:00 2001
+From: Chenyi Qiang <chenyi.qiang@intel.com>
+Date: Thu, 25 Jul 2024 03:21:15 -0400
+Subject: [PATCH 6/6] RAMBlock: make guest_memfd require coordinate discard
+
+As guest_memfd is now managed by guest_memfd_manager with
+RamDiscardManager, only block uncoordinated discard.
+
+Signed-off-by: Chenyi Qiang <chenyi.qiang@intel.com>
+---
+ system/physmem.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/system/physmem.c b/system/physmem.c
+index a10f769cb5..6aae81812e 100644
+--- a/system/physmem.c
++++ b/system/physmem.c
+@@ -1886,7 +1886,7 @@ static void ram_block_add(RAMBlock *new_block, Error **errp)
+         assert(kvm_enabled());
+         assert(new_block->guest_memfd < 0);
+ 
+-        ret = ram_block_discard_require(true);
++        ret = ram_block_coordinated_discard_require(true);
+         if (ret < 0) {
+             error_setg_errno(errp, -ret,
+                              "cannot set up private guest memory: discard currently blocked");
+-- 
+2.34.1
+
