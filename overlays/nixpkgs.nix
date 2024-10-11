@@ -15,4 +15,43 @@ final: prev: {
   azure-cli = prev.azure-cli.override {
     withExtensions = with final.azure-cli.extensions; [ aks-preview ];
   };
+
+  inspector-foo = final.writeShellApplication {
+    name = "inspector-foo";
+    text = ''
+      d=$(date +%s)
+      echo "$@" > "$TMPDIR/inspector-foo-$d.log"
+      for o in "$@"; do
+        echo "$o" >> "$TMPDIR/inspector-foo-$d.log"
+        if [[ $o != /* ]]; then
+          continue
+        fi
+        if [[ -f $o ]]; then
+          sha256sum "$o" >> "$TMPDIR/inspector-foo-$d.log"
+        fi
+        if [[ -d $o ]]; then
+          find "$o" -type f -exec sha256sum {} \; >> "$TMPDIR/inspector-foo-$d.log"
+        fi
+      done
+    '';
+  };
+
+  inspector-foo-post = final.writeShellApplication {
+    name = "inspector-foo-post";
+    text = ''
+      echo "inspector-foo-post"
+      cat "$TMPDIR"/inspector-foo-*.log
+    '';
+  };
+
+  erofs-utils = prev.erofs-utils.overrideAttrs (
+    finalAttrs: prevAttrs: {
+      nativeBuildInputs = prevAttrs.nativeBuildInputs ++ [ final.makeWrapper ];
+      postFixup = ''
+        wrapProgram $out/bin/mkfs.erofs
+        substituteInPlace $out/bin/mkfs.erofs \
+          --replace-fail exec '${final.inspector-foo}/bin/inspector-foo "$@" ; exec'
+      '';
+    }
+  );
 }
