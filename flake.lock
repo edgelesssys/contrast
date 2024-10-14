@@ -20,16 +20,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1726871744,
-        "narHash": "sha256-V5LpfdHyQkUF7RfOaDPrZDP+oqz88lTJrMT1+stXNwo=",
-        "owner": "NixOS",
+        "lastModified": 1728898467,
+        "narHash": "sha256-MRdeIlLHIJ2TB1mY2DbidPL8p9w6/PKTMepK+tsNm7A=",
+        "owner": "katexochen",
         "repo": "nixpkgs",
-        "rev": "a1d92660c6b3b7c26fb883500a80ea9d33321be2",
+        "rev": "2f6e0c8de3120add9fc81a3671a20e577931564c",
         "type": "github"
       },
       "original": {
-        "owner": "NixOS",
-        "ref": "nixpkgs-unstable",
+        "owner": "katexochen",
+        "ref": "testing/systemd-initrd/kmod-blacklist-ubuntu",
         "repo": "nixpkgs",
         "type": "github"
       }

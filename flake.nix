@@ -4,7 +4,7 @@
 {
   inputs = {
     nixpkgs = {
-      url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+      url = "github:katexochen/nixpkgs/testing/systemd-initrd/kmod-blacklist-ubuntu";
     };
     flake-utils = {
       url = "github:numtide/flake-utils";
