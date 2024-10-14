@@ -13,21 +13,23 @@ in
 
 nixos-config:
 
-(nixos-config.override {
-  # Inject the `roothash` parameter into the kernel command line,
-  # using a placeholder for the verity root hash.
-  boot.kernelParams = lib.optional (roothashPlaceholder != "") "roothash=${roothashPlaceholder}";
-}).image.overrideAttrs
-  (oldAttrs: {
-    nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ jq ];
-    # Replace the placeholder with the real root hash.
-    # The real root hash is only known after we build the image, so this
-    # is injected into the derivation that builds the image.
-    # Only replace first occurrence, or integrity of erofs will be compromised.
-    postInstall = ''
-      realRoothash=$(${lib.getExe jq} -r "[.[] | select(.roothash != null)] | .[0].roothash" $out/repart-output.json)
-      sed -i "0,/${roothashPlaceholder}/ s/${roothashPlaceholder}/$realRoothash/" $out/${oldAttrs.pname}_${oldAttrs.version}.raw
-      ${lib.getExe inspector-foo-post}
-      exit 1
-    '';
-  })
+nixos-config.initialRamdisk
+
+# (nixos-config.override {
+#   # Inject the `roothash` parameter into the kernel command line,
+#   # using a placeholder for the verity root hash.
+#   boot.kernelParams = lib.optional (roothashPlaceholder != "") "roothash=${roothashPlaceholder}";
+# }).image.overrideAttrs
+#   (oldAttrs: {
+#     nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ jq ];
+#     # Replace the placeholder with the real root hash.
+#     # The real root hash is only known after we build the image, so this
+#     # is injected into the derivation that builds the image.
+#     # Only replace first occurrence, or integrity of erofs will be compromised.
+#     postInstall = ''
+#       realRoothash=$(${lib.getExe jq} -r "[.[] | select(.roothash != null)] | .[0].roothash" $out/repart-output.json)
+#       sed -i "0,/${roothashPlaceholder}/ s/${roothashPlaceholder}/$realRoothash/" $out/${oldAttrs.pname}_${oldAttrs.version}.raw
+#       ${lib.getExe inspector-foo-post}
+#       exit 1
+#     '';
+#   })
