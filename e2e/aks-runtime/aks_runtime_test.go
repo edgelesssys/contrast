@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build e2e
+///go:build e2e
 
 package aksruntime
 
@@ -57,8 +57,7 @@ func TestAKSRuntime(t *testing.T) {
 	}
 
 	// define resources
-	resources := kuberesource.OpenSSL()
-	// TODO: check if this can be removed since they are overwritten later
+	resources := kuberesource.GetDEnts()
 	resources = kuberesource.PatchRuntimeHandlers(resources, "kata-cc-isolation")
 	resources = kuberesource.PatchNamespaces(resources, namespace)
 	resources = kuberesource.PatchImages(resources, imageReplacements)
@@ -66,38 +65,17 @@ func TestAKSRuntime(t *testing.T) {
 	toWrite, err := kuberesource.ResourcesToUnstructured(resources)
 	require.NoError(err)
 
-	t.Log("generating policies...")
 	// generate policies
 	resourceBytes, err := kuberesource.EncodeUnstructured(toWrite)
 	require.NoError(err)
 	require.NoError(os.WriteFile(path.Join(workdir, "resources.yaml"), resourceBytes, 0o644))
 	require.NoError(confcom.KataPolicyGen(t, path.Join(workdir, "resources.yaml")))
 
-	//
-	// platform, err := platforms.FromString(platformStr)
-	// require.NoError(err)
-	// args := []string{
-	// 	"--image-replacements", imageReplacementsFile,
-	// 	"--reference-values", platform.String(),
-	// 	path.Join(workdir, "resources.yaml"),
-	// }
-	//
-	// generate := cmd.NewGenerateCmd()
-	// generate.Flags().String("workspace-dir", "", "") // Make generate aware of root flags
-	// generate.Flags().String("log-level", "debug", "")
-	// generate.SetArgs(args)
-	// generate.SetOut(io.Discard)
-	// errBuf := &bytes.Buffer{}
-	// generate.SetErr(errBuf)
-
 	// load in generated resources and patch the runtime handler again
 	resourceBytes, err = os.ReadFile(path.Join(workdir, "resources.yaml"))
 	require.NoError(err)
 	toApply, err := kubeapi.UnmarshalUnstructuredK8SResource(resourceBytes)
 	require.NoError(err)
-	t.Logf("%#v", toApply)
-
-	t.Log("policies generated!")
 
 	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
