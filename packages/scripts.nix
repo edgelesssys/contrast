@@ -490,4 +490,14 @@
       kubectl apply -k "$tmpdir/overlays/azure"
     '';
   };
+
+  cleanup-bm = writeShellApplication {
+    name = "cleanup-bm";
+    runtimeInputs = with pkgs; [
+      busybox
+      kubectl
+      dasel
+    ];
+    text = builtins.readFile ./cleanup-bm.sh;
+  };
 }

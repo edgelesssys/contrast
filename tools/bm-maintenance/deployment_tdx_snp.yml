@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cleanup-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cleanup-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["list"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["list"]
+  - apiGroups: ["node.k8s.io"]
+    resources: ["runtimeclasses"]
+    verbs: ["list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cleanup-binding
+subjects:
+  - kind: ServiceAccount
+    name: cleanup-sa
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: cleanup-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup-maintenance
+spec:
+  schedule: "0 0 * * 0"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: cleanup-sa
+          containers:
+            - name: cleanup
+              image: ghcr.io/edgelesssys/contrast/cleanup-bm:v0.0.1
+              env:
+                - name: OPTEDGELESS
+                  value: /opt/edgeless
+                - name: CONFIG
+                  value: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
+                - name: SNAPSHOTTER
+                  value: nydus
+              volumeMounts:
+                - name: opt-edgeless
+                  mountPath: /opt/edgeless
+                - name: snapshotter-data
+                  mountPath: /var/lib/nydus-snapshotter
+                - name: containerd-config
+                  mountPath: /var/lib/rancher/k3s/agent/etc/containerd
+          volumes:
+            - name: opt-edgeless
+              hostPath:
+                path: /opt/edgeless
+                type: Directory
+            - name: snapshotter-data
+              hostPath:
+                path: /var/lib/nydus-snapshotter
+                type: Directory
+            - name: containerd-config
+              hostPath:
+                path: /var/lib/rancher/k3s/agent/etc/containerd
+                type: Directory
+          restartPolicy: OnFailure
