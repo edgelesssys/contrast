@@ -42,7 +42,7 @@ data "azurerm_resource_group" "rg_podvm_image" {
 
 resource "azurerm_resource_group" "rg" {
   name     = local.name
-  location = "germanywestcentral"
+  location = "westeurope"
 }
 
 resource "azuread_application" "app" {
