@@ -3,6 +3,8 @@
 
 {
   lib,
+  azure-cli,
+  makeWrapper,
   buildGoModule,
   buildGoTest,
   microsoft,
@@ -26,7 +28,13 @@ let
 
     tags = [ "e2e" ];
 
-    ldflags = [ "-s" ];
+    nativeBuildInputs = [
+      makeWrapper
+    ];
+
+    ldflags = [ 
+      "-s"
+    ];
 
     subPackages = [
       "e2e/genpolicy"
@@ -40,6 +48,11 @@ let
       "e2e/regression"
       "e2e/aks-runtime"
     ];
+
+    postInstall = ''
+      wrapProgram $out/bin/aks-runtime.test \
+        --prefix PATH : ${lib.makeBinPath [ azure-cli ]}
+    '';
   };
 
   # Reference values that we embed into the Contrast CLI for
