@@ -25,8 +25,7 @@ index 38bab05..e1abc89 100644
 -
 -                if (!(flags & LD_ELF) || (flags & LD_ARCH_MASK) != arch)
 +        for (size_t j = 0; j < size; ++j) {
-+                snprintf(dir, 100, "/run/opengl-driver%s/lib",
-+                    arch == LD_I386_LIB32 ? "-32" : "");
++                snprintf(dir, 100, "@driverLink@");
 +                if (!strncmp(libs[j], "libvdpau_nvidia.so", 100))
 +                  strcat(dir, "/vdpau");
 +                snprintf(lib, 100, "%s/%s.%s", dir, libs[j], version);
