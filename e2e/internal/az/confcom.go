@@ -7,17 +7,20 @@ package az
 
 import (
 	"os/exec"
+	"strings"
 	"testing"
 )
 
-// KataPolicyGen executes `az confcom katapolicygen --yaml <resourcePath>`.
-func KataPolicyGen(t *testing.T, resourcePath string) error {
-	// log versions and extensions that are used
+// KataPolicyGenVersion gets the version string of `az confcom katapolicygen`.
+func KataPolicyGenVersion() (string, error) {
 	out, err := exec.Command("az", "confcom", "katapolicygen", "--print-version").Output()
 	if err != nil {
-		return err
+		return "", err
 	}
-	t.Log(string(out))
+	return strings.TrimSpace(string(out)), nil
+}
 
+// KataPolicyGen executes `az confcom katapolicygen --yaml <resourcePath>`.
+func KataPolicyGen(t *testing.T, resourcePath string) error {
 	return exec.Command("az", "confcom", "katapolicygen", "--yaml", resourcePath).Run()
 }
