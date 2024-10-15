@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
+	"strings"
 )
 
 // NodeImageVersion gets the node image version from the specified cluster
@@ -25,5 +26,5 @@ func NodeImageVersion(clusterName string, rg string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("%s", outMap[0]["nodeImageVersion"]), nil
+	return strings.TrimSpace(fmt.Sprintf("%s", outMap[0]["nodeImageVersion"])), nil
 }
