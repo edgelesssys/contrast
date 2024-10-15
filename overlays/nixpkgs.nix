@@ -15,4 +15,14 @@ final: prev: {
   azure-cli = prev.azure-cli.override {
     withExtensions = with final.azure-cli.extensions; [ aks-preview ];
   };
+
+  # Use a newer uplosi that has fixes for private galleries.
+  uplosi = prev.uplosi.overrideAttrs (prev: {
+    src = final.fetchFromGitHub {
+      owner = "edgelesssys";
+      repo = prev.pname;
+      rev = "fb292c23ed805cb4005fca41159d0f54bb0a5bcc";
+      hash = "sha256-MsZ4Bl8sW1dZUB9cYPsaLtc8P8RRx4hafSbNB4vXqi4=";
+    };
+  });
 }
