@@ -539,6 +539,7 @@ cryptsetup luksUUID "${device}"
 cryptsetup open "${device}" state -d "${disk_encryption_key_path}"
 mkdir -p /srv/state
 mount /dev/mapper/state /srv/state
+touch /done
 sleep inf
 `
 
@@ -582,12 +583,12 @@ sleep inf
 								WithResources(ResourceRequirements().
 									WithMemoryLimitAndRequest(100),
 								).
-								WithReadinessProbe(
+								WithStartupProbe(
 									Probe().
-										WithInitialDelaySeconds(1).
+										WithFailureThreshold(20).
 										WithPeriodSeconds(5).
 										WithExec(applycorev1.ExecAction().
-											WithCommand("/bin/sh", "-c", "ls /srv/state"),
+											WithCommand("/bin/sh", "-c", "cat /done"),
 										),
 								).
 								WithRestartPolicy(
