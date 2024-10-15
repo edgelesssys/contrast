@@ -379,7 +379,7 @@ echo $lbip
 By default, mesh certificates are issued with a wildcard DNS entry. The web frontend is accessed
 via load balancer IP in this demo. Tools like curl check the certificate for IP entries in the SAN field.
 Validation fails since the certificate contains no IP entries as a subject alternative name (SAN).
-For example, a connection attempt using the curl and the mesh CA certificate with throw the following error:
+For example, attempting to connect with curl and the mesh CA certificate will throw the following error:
 
 ```sh
 $ curl --cacert ./verify/mesh-ca.pem "https://${frontendIP}:443"
