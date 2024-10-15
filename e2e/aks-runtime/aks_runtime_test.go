@@ -6,21 +6,18 @@
 package aksruntime
 
 import (
-	"bytes"
 	"context"
 	"flag"
-	"io"
 	"os"
 	"path"
 	"testing"
 	"time"
 
-	"github.com/edgelesssys/contrast/cli/cmd"
+	"github.com/edgelesssys/contrast/e2e/internal/confcom"
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
-	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/stretchr/testify/require"
 )
 
@@ -74,22 +71,24 @@ func TestAKSRuntime(t *testing.T) {
 	resourceBytes, err := kuberesource.EncodeUnstructured(toWrite)
 	require.NoError(err)
 	require.NoError(os.WriteFile(path.Join(workdir, "resources.yaml"), resourceBytes, 0o644))
+	require.NoError(confcom.KataPolicyGen(t, path.Join(workdir, "resources.yaml")))
 
-	platform, err := platforms.FromString(platformStr)
-	require.NoError(err)
-	args := []string{
-		"--image-replacements", imageReplacementsFile,
-		"--reference-values", platform.String(),
-		path.Join(workdir, "resources.yaml"),
-	}
-
-	generate := cmd.NewGenerateCmd()
-	generate.Flags().String("workspace-dir", "", "") // Make generate aware of root flags
-	generate.Flags().String("log-level", "debug", "")
-	generate.SetArgs(args)
-	generate.SetOut(io.Discard)
-	errBuf := &bytes.Buffer{}
-	generate.SetErr(errBuf)
+	//
+	// platform, err := platforms.FromString(platformStr)
+	// require.NoError(err)
+	// args := []string{
+	// 	"--image-replacements", imageReplacementsFile,
+	// 	"--reference-values", platform.String(),
+	// 	path.Join(workdir, "resources.yaml"),
+	// }
+	//
+	// generate := cmd.NewGenerateCmd()
+	// generate.Flags().String("workspace-dir", "", "") // Make generate aware of root flags
+	// generate.Flags().String("log-level", "debug", "")
+	// generate.SetArgs(args)
+	// generate.SetOut(io.Discard)
+	// errBuf := &bytes.Buffer{}
+	// generate.SetErr(errBuf)
 
 	// load in generated resources and patch the runtime handler again
 	resourceBytes, err = os.ReadFile(path.Join(workdir, "resources.yaml"))
