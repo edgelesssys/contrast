@@ -173,6 +173,9 @@ undeploy:
     fi
 
 upload-image:
+    # Ensure that the resource group exists.
+    az group create  --name "${azure_resource_group}_caa_cluster" --location "$azure_location"
+
     nix run -L .#scripts.upload-image -- --subscription-id="$azure_subscription_id" --location="$azure_location" --resource-group="${azure_resource_group}_caa_cluster"
 
 # Create a CoCo-enabled AKS cluster.
@@ -187,8 +190,7 @@ create platform=default_platform:
             :
         ;;
         "AKS-PEER-SNP")
-            # Ensure that the resource group exists.
-            az group create  --name "${azure_resource_group}_caa_cluster" --location "$azure_location"
+            just upload-image
 
             nix run -L .#terraform -- -chdir=infra/azure-peerpods init
             nix run -L .#terraform -- -chdir=infra/azure-peerpods apply
