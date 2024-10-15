@@ -25,13 +25,82 @@ The Coordinator recovers its key material and verifies the manifest history sign
 
 ## Workload Secrets
 
-The Coordinator provides each workload a secret seed during attestation. This secret can be used by the workload to derive additional secrets for example to
-encrypt persistent data. Like the workload certificates it's mounted in the shared Kubernetes volume `contrast-secrets` in the path `<mountpoint>/secrets/workload-secret-seed`.
+The Coordinator provides each workload a secret seed during attestation.
+This secret can be used by the workload to derive additional secrets for example to encrypt persistent data.
+Like the workload certificates, it's written to the `secrets/workload-secret-seed` path under the shared Kubernetes volume `contrast-secrets`.
 
 :::warning
 
 The workload owner can decrypt data encrypted with secrets derived from the workload secret.
 The workload owner can derive the workload secret themselves, since it's derived from the secret seed known to the workload owner.
 If the data owner and the workload owner is the same entity, then they can safely use the workload secrets.
+
+:::
+
+### Secure persistence
+
+Remember that persistent volumes from the cloud provider are untrusted.
+Using the workload secret, applications can set up trusted storage on top of untrusted block devices.
+The following, slightly abbreviated resource outlines how this could be realized:
+
+:::warning
+
+This configuration snippet is intended to be educational and needs to be refined and adapted to your production environment.
+Using it as-is may result in data corruption or data loss.
+
+:::
+
+```yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: volume-tester
+spec:
+  template:
+    spec:
+      containers:
+      - name: main
+        image: my.registry/my-image@sha256:0123...
+        command:
+        - /bin/sh
+        - -ec
+        - | # <-- Custom script that mounts the encrypted disk and then calls the original application.
+          device=/dev/csi0
+          if ! cryptsetup isLuks $device; then
+            cryptsetup luksFormat $device /contrast/secrets/workload-secret-seed
+            cryptsetup open $device state -d /contrast/secrets/workload-secret-seed
+            mkfs.ext4 /dev/mapper/state
+            cryptsetup close state
+          fi
+          cryptsetup open $device state -d /contrast/secrets/workload-secret-seed
+          /path/to/original/app
+        name: volume-tester
+        volumeDevices:
+        - name: state
+          devicePath: /dev/csi0
+        securityContext:
+          privileged: true # <-- This is necessary for mounting devices.
+      runtimeClassName: contrast-cc
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: state
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      volumeMode: Block # <-- The requested volume needs to be a raw block device.
+```
+
+:::note
+
+This example assumes that you can modify the container image to include a shell and the `cryptsetup` utility.
+Alternatively, you can set up a secure mount from a sidecar container inside an `emptyDir` mount shared with the main container.
+The Contrast end-to-end tests include [an example] of this type of mount.
+
+[an example]: https://github.com/edgelesssys/contrast/blob/0662a2e/internal/kuberesource/sets.go#L504
 
 :::
