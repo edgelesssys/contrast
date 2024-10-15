@@ -13,3 +13,8 @@ variable "subscription_id" {
 variable "image_id" {
   type = string
 }
+
+variable "cluster_type" {
+  type    = string
+  default = "Free"
+}

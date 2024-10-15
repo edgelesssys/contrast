@@ -101,6 +101,7 @@ resource "azurerm_kubernetes_cluster" "cluster" {
   dns_prefix                = "aks"
   oidc_issuer_enabled       = true
   workload_identity_enabled = true
+  sku_tier                  = var.cluster_type
 
   identity {
     type = "SystemAssigned"
