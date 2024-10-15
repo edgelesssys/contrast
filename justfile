@@ -187,6 +187,8 @@ create platform=default_platform:
             :
         ;;
         "AKS-PEER-SNP")
+            just upload-image
+
             nix run -L .#terraform -- -chdir=infra/azure-peerpods init
             nix run -L .#terraform -- -chdir=infra/azure-peerpods apply
         ;;
