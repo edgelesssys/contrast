@@ -21,10 +21,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	opensslFrontend = "openssl-frontend"
-	opensslBackend  = "openssl-backend"
-)
+const getdentsTester = "getdents-tester"
 
 var (
 	imageReplacementsFile, namespaceFile, platformStr string
@@ -32,7 +29,6 @@ var (
 )
 
 func TestAKSRuntime(t *testing.T) {
-	// TODO: Log kata information
 	require := require.New(t)
 
 	workdir := t.TempDir()
@@ -57,6 +53,7 @@ func TestAKSRuntime(t *testing.T) {
 	}
 
 	// define resources
+	// TODO: Log kata-agent, guest kernel, node image version with custom container deployment
 	resources := kuberesource.GetDEnts()
 	resources = kuberesource.PatchRuntimeHandlers(resources, "kata-cc-isolation")
 	resources = kuberesource.PatchNamespaces(resources, namespace)
@@ -81,9 +78,7 @@ func TestAKSRuntime(t *testing.T) {
 	defer cancel()
 	err = c.Apply(ctx, toApply...)
 	require.NoError(err)
-	require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, namespace, opensslBackend))
-	require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, namespace, opensslFrontend))
-	c.LogDebugInfo(context.Background())
+	require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, namespace, getdentsTester))
 }
 
 func TestMain(m *testing.M) {
