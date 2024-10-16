@@ -25,7 +25,7 @@ in
 lib.makeOverridable (
   args:
   nixos (
-    { modulesPath, ... }:
+    { modulesPath, config, ... }:
 
     {
       imports = [
@@ -35,20 +35,32 @@ lib.makeOverridable (
 
       # TODO(katexochen): imporve, see comment above.
       nixpkgs.overlays = [
-        (_self: _super: {
-          inherit (outerPkgs)
-            azure-no-agent
-            cloud-api-adaptor
-            kernel-podvm-azure
-            pause-bundle
-            nvidia-ctk-prestart
-            nvidia-ctk-with-config
-            ;
-          libnvidia-container = outerPkgs.libnvidia-container-custom;
-          inherit (outerPkgs.kata) kata-agent;
-        })
-      ];
+        (
+          _self: _super:
+          {
+            inherit (outerPkgs)
+              azure-no-agent
+              cloud-api-adaptor
+              kernel-podvm-azure
+              pause-bundle
+              ;
 
+            inherit (outerPkgs.kata) kata-agent;
+          }
+          // lib.optionalAttrs config.contrast.gpu.enable {
+            inherit (outerPkgs)
+              nvidia-ctk-prestart
+              nvidia-ctk-with-config
+              ;
+            libnvidia-container = outerPkgs.libnvidia-container-custom.override {
+              binaryPaths = [
+                config.hardware.nvidia.package
+                config.hardware.nvidia.package.persistenced
+              ];
+            };
+          }
+        )
+      ];
     }
     // args
   )

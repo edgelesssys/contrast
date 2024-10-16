@@ -12,7 +12,9 @@
   makeWrapper,
   substituteAll,
   removeReferencesTo,
+  replaceVars,
   go,
+  binaryPaths ? [ ],
 }:
 let
   modprobeVersion = "550.54.14";
@@ -39,11 +41,16 @@ stdenv.mkDerivation rec {
   };
 
   patches = [
-    # locations of nvidia-driver libraries are not resolved via ldconfig which
-    # doesn't get used on NixOS. Additional support binaries like nvidia-smi
+    # Locations of nvidia driver libraries are not resolved via ldconfig which
+    # doesn't get used on NixOS.
+    # TODO: The latter doesn't really apply anymore.
+    # Additional support binaries like nvidia-smi
     # are not resolved via the environment PATH but via the derivation output
     # path.
-    ./0001-fix-library-resolving.patch
+    (replaceVars ./fix-library-resolving.patch {
+      inherit (addDriverRunpath) driverLink;
+      binaryPath = lib.makeBinPath binaryPaths;
+    })
 
     # fix bogus struct declaration
     ./inline-c-struct.patch
@@ -90,9 +97,9 @@ stdenv.mkDerivation rec {
     HOME="$(mktemp -d)"
   '';
 
-  env.NIX_CFLAGS_COMPILE = toString [ "-I${libtirpc.dev}/include/tirpc" ];
+  env.NIX_CFLAGS_COMPILE = toString [ "-I${lib.getInclude libtirpc}/include/tirpc" ];
   NIX_LDFLAGS = [
-    "-L${libtirpc.dev}/lib"
+    "-L${lib.getLib libtirpc}/lib"
     "-ltirpc"
   ];
 
@@ -134,13 +141,4 @@ stdenv.mkDerivation rec {
       wrapProgram $out/bin/nvidia-container-cli --prefix LD_LIBRARY_PATH : ${libraryPath}
     '';
   disallowedReferences = [ go ];
-
-  meta = with lib; {
-    homepage = "https://github.com/NVIDIA/libnvidia-container";
-    description = "NVIDIA container runtime library";
-    license = licenses.asl20;
-    platforms = platforms.linux;
-    mainProgram = "nvidia-container-cli";
-    maintainers = with maintainers; [ cpcloud ];
-  };
 }

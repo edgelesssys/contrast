@@ -4,21 +4,10 @@
 {
   writeShellApplication,
   nvidia-ctk-with-config,
-  nvidiaPath ? null,
   lib,
 }:
 writeShellApplication {
   name = "nvidia-ctk-prestart";
-
-  runtimeInputs =
-    [ ]
-    ++ lib.optionals (nvidiaPath != null) [
-      # nvidia driver to be added to PATH (e.g. for nvidia-smi)
-      nvidiaPath
-      nvidiaPath.persistenced
-      # nvidiaPath.firmware
-      # nvidiaPath.lib32
-    ];
 
   text = ''
     # Log the o/p of the hook to a file
