@@ -17,8 +17,6 @@
     name = "image-podvm-gpu";
     version = "1-rc1";
 
-    mkfsOptions.erofs = [ "-E noinline_data" ];
-
     # This defines the actual partition layout.
     partitions = {
       # EFI System Partition, holds the UKI.
