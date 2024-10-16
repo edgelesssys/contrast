@@ -136,6 +136,8 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
 		snapshotter = nydusSnapshotter
 		snapshotterVolumes = nydusSnapshotterVolumes
+	case platforms.AKSPEERSNP:
+		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", platform)
 	}

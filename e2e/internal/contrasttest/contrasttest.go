@@ -146,7 +146,11 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	require.NoError(err)
 	require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yaml"), buf, 0o644))
 
-	ct.installRuntime(t)
+	if ct.Platform == platforms.AKSPEERSNP {
+		t.Log("Skipping runtime installation for AKS-PEER-SNP")
+	} else {
+		ct.installRuntime(t)
+	}
 }
 
 // Generate runs the contrast generate command.
