@@ -1,12 +1,7 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ config, pkgs, ... }:
 
 {
   # We build the image with systemd-repart, which integrates well
@@ -66,9 +61,4 @@
       };
     };
   };
-
-  # TODO(msanft): fix upstream, patch available here:
-  # https://github.com/edgelesssys/nixpkgs/commit/7d68972f2a145b6705b901d3ec7eebb235b7aca8?diff=split&w=1#diff-b636d2e49e098b09a6f1b276ad981f0772cc9f93b23c3d23b3bdff54cd8fb287R702-R703
-  # But we don't want to use a forked nixpkgs.
-  assertions = lib.mkForce [ ];
 }
