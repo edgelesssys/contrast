@@ -15,4 +15,14 @@ final: prev: {
   azure-cli = prev.azure-cli.override {
     withExtensions = with final.azure-cli.extensions; [ aks-preview ];
   };
+
+  erofs-utils = prev.erofs-utils.overrideAttrs (
+    finalAttrs: _prevAttrs: {
+      version = "1.7.1";
+      src = final.fetchurl {
+        url = "https://git.kernel.org/pub/scm/linux/kernel/git/xiang/erofs-utils.git/snapshot/erofs-utils-${finalAttrs.version}.tar.gz";
+        hash = "sha256-GWCD1j5eIx+1eZ586GqUS7ylZNqrzj3pIlqKyp3K/xU=";
+      };
+    }
+  );
 }
