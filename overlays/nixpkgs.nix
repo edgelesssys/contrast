@@ -18,10 +18,10 @@ final: prev: {
 
   erofs-utils = prev.erofs-utils.overrideAttrs (
     finalAttrs: _prevAttrs: {
-      version = "1.7.1";
+      version = "1.8.2";
       src = final.fetchurl {
         url = "https://git.kernel.org/pub/scm/linux/kernel/git/xiang/erofs-utils.git/snapshot/erofs-utils-${finalAttrs.version}.tar.gz";
-        hash = "sha256-GWCD1j5eIx+1eZ586GqUS7ylZNqrzj3pIlqKyp3K/xU=";
+        hash = "sha256-ZLb/fomfYkgCg87mN4fzfw+cS+emvHoj1zSqqHOmz/Q=";
       };
     }
   );
