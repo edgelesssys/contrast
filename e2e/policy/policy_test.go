@@ -7,6 +7,7 @@ package policy
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"os"
@@ -141,19 +142,24 @@ func TestPolicy(t *testing.T) {
 	t.Run("cli does not verify coordinator with unexpected policy hash", func(t *testing.T) {
 		require := require.New(t)
 
-		// change expected coordinator policy hash
-		policyHash, err := os.ReadFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"))
+		// read expected coordinator policy hash
+		policyHashBytes, err := os.ReadFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"))
 		require.NoError(err)
-		require.NotEmpty(policyHash)
+		require.NotEmpty(policyHashBytes)
+		policyHash := make([]byte, len(policyHashBytes)/2)
+		_, err = hex.Decode(policyHash, policyHashBytes)
+		require.NoError(err)
+
+		// change expected coordinator policy hash
 		policyHash[0] ^= 1
-		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"), policyHash, 0o644))
+		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"), []byte(hex.EncodeToString(policyHash)), 0o644))
 
 		// verification should fail
 		require.ErrorContains(ct.RunVerify(), "validating report")
 
 		// restore correct coordinator policy hash
 		policyHash[0] ^= 1
-		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"), policyHash, 0o644))
+		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"), []byte(hex.EncodeToString(policyHash)), 0o644))
 	})
 }
 
