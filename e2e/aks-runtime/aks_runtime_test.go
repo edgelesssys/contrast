@@ -19,13 +19,15 @@ import (
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const testContainer = "testcontainer"
 
 var (
-	imageReplacementsFile, namespaceFile, platformStr string
-	skipUndeploy                                      bool
+	imageReplacementsFile, namespaceFile, _platformStr string
+	skipUndeploy                                       bool
 )
 
 func TestAKSRuntime(t *testing.T) {
@@ -42,7 +44,8 @@ func TestAKSRuntime(t *testing.T) {
 	// Log versions
 	kataPolicyGenV, err := az.KataPolicyGenVersion()
 	require.NoError(err)
-	nodeImageV, err := az.NodeImageVersion("rgMiampf", "rgMiampf")
+	rg := os.Getenv("azure_resource_group")
+	nodeImageV, err := az.NodeImageVersion(rg, rg)
 	require.NoError(err)
 	t.Log("katapolicygen version: ", kataPolicyGenV)
 	t.Log("node image version: ", nodeImageV)
@@ -60,6 +63,7 @@ func TestAKSRuntime(t *testing.T) {
 		require.NoError(os.WriteFile(namespaceFile, []byte(namespace), 0o644))
 	}
 
+	// simple deployment that logs the kernel version and then sleeps
 	deployment := kuberesource.Deployment(testContainer, "").
 		WithSpec(kuberesource.DeploymentSpec().
 			WithReplicas(1).
@@ -72,14 +76,13 @@ func TestAKSRuntime(t *testing.T) {
 					WithContainers(kuberesource.Container().
 						WithName(testContainer).
 						WithImage("docker.io/bash@sha256:ce062497c248eb1cf4d32927f8c1780cce158d3ed0658c586a5be7308d583cbb").
-						WithCommand("/usr/local/bin/bash", "-c", "while true; do sleep 10; done"),
+						WithCommand("/usr/local/bin/bash", "-c", "uname -r; while true; do sleep 10; done"),
 					),
 				),
 			),
 		)
 
 	// define resources
-	// TODO: Log kata-agent, guest kernel, node image version with custom container deployment
 	resources := []any{deployment}
 	resources = kuberesource.PatchRuntimeHandlers(resources, "kata-cc-isolation")
 	resources = kuberesource.PatchNamespaces(resources, namespace)
@@ -105,12 +108,32 @@ func TestAKSRuntime(t *testing.T) {
 	err = c.Apply(ctx, toApply...)
 	require.NoError(err)
 	require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, namespace, testContainer))
+
+	t.Cleanup(func() {
+		if skipUndeploy {
+			return
+		}
+
+		// delete the deployment
+		deletePolicy := metav1.DeletePropagationForeground
+		require.NoError(c.Client.AppsV1().Deployments(namespace).Delete(context.Background(), testContainer, metav1.DeleteOptions{
+			PropagationPolicy: &deletePolicy,
+		}))
+	})
+
+	pods, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	require.NoError(err)
+	pod := pods.Items[0] // only one pod was deployed
+
+	logs, err := c.Client.CoreV1().Pods(namespace).GetLogs(pod.Name, &corev1.PodLogOptions{}).DoRaw(ctx)
+	require.NoError(err)
+	t.Logf("kernel version in pod %s: %s", pod.Name, string(logs))
 }
 
 func TestMain(m *testing.M) {
 	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
 	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
-	flag.StringVar(&platformStr, "platform", "", "Deployment platform")
+	flag.StringVar(&_platformStr, "platform", "", "Deployment platform")
 	flag.BoolVar(&skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
 	flag.Parse()
 
