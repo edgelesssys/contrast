@@ -360,8 +360,8 @@
     "hash": "sha256-B9pc1N0WbufYfjCBtX1uca+TczWWEmuuT3Frgq/etjo="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-release-2.0-66.cm2.noarch.rpm",
-    "hash": "sha256-N4OH7U2RZwNg3e8RQcoP/EBO4AbNgq3j+g+VPzfL2MY="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-release-2.0-67.cm2.noarch.rpm",
+    "hash": "sha256-25uq8hO4ULtdboS5H6Dwc6G248cm83b7e1yF0OGZHkk="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-repos-2.0-9.cm2.noarch.rpm",
