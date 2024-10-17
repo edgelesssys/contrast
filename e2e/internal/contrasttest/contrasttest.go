@@ -372,6 +372,7 @@ func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Durati
 	}
 }
 
+// MakeNamespace creates a namespace string using a given *testing.T.
 func MakeNamespace(t *testing.T) string {
 	buf := make([]byte, 4)
 	re := regexp.MustCompile("[a-z0-9-]+")
