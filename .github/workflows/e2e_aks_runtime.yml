@@ -1,0 +1,25 @@
+name: e2e test aks runtime
+
+on:
+  schedule:
+    - cron: "16 6 * * 6" # 6:16 on Saturdays
+  pull_request:
+    paths:
+      - e2e/aks-runtime/**
+
+jobs:
+  test_matrix:
+    strategy:
+      fail-fast: false
+    name: Test aks runtime
+    uses: ./.github/workflows/e2e.yml
+    with:
+      skip-undeploy: false
+      test-name: aks-runtime
+      platform: AKS-CLH-SNP
+      runner: ubuntu-22.04
+      self-hosted: false
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
