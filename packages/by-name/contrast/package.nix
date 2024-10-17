@@ -32,7 +32,7 @@ let
       makeWrapper
     ];
 
-    ldflags = [ 
+    ldflags = [
       "-s"
     ];
 

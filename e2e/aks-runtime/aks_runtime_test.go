@@ -95,7 +95,7 @@ func TestAKSRuntime(t *testing.T) {
 	resourceBytes, err := kuberesource.EncodeUnstructured(toWrite)
 	require.NoError(err)
 	require.NoError(os.WriteFile(path.Join(workdir, "resources.yaml"), resourceBytes, 0o644))
-	require.NoError(az.KataPolicyGen(t, path.Join(workdir, "resources.yaml")))
+	require.NoError(az.KataPolicyGen(path.Join(workdir, "resources.yaml")))
 
 	// load in generated resources and patch the runtime handler again
 	resourceBytes, err = os.ReadFile(path.Join(workdir, "resources.yaml"))
