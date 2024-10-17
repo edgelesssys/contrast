@@ -36,10 +36,6 @@ locals {
   name = "${var.name_prefix}_caa_cluster"
 }
 
-data "azurerm_resource_group" "rg_podvm_image" {
-  name = var.image_resource_group_name
-}
-
 data "azurerm_resource_group" "rg" {
   name = local.name
 }
@@ -79,12 +75,6 @@ resource "azuread_application_federated_identity_credential" "federated_credenti
   issuer         = azurerm_kubernetes_cluster.cluster.oidc_issuer_url
   subject        = "system:serviceaccount:confidential-containers-system:cloud-api-adaptor"
   audiences      = ["api://AzureADTokenExchange"]
-}
-
-resource "azurerm_role_assignment" "ra_image" {
-  scope                = data.azurerm_resource_group.rg_podvm_image.id
-  role_definition_name = "Reader"
-  principal_id         = azuread_service_principal.sp.object_id
 }
 
 resource "azuread_application_password" "cred" {
