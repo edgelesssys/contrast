@@ -30,5 +30,14 @@
       ./0002-add-options-for-library-paths.patch
       # Fix needed for a behaviour change in Linux 6.11-rc4.
       ./0003-accel-kvm-check-for-KVM_CAP_READONLY_MEM-on-VM.patch
+      # This series allows VFIO to work on SNP.
+      ./0004-guest_memfd-Introduce-an-object-to-manage-the-guest-.patch
+      ./0005-guest_memfd-Introduce-a-helper-to-notify-the-shared-.patch
+      ./0006-KVM-Notify-the-state-change-via-RamDiscardManager-he.patch
+      ./0007-memory-Register-the-RamDiscardManager-instance-upon-.patch
+      ./0008-guest-memfd-Default-to-discarded-private-in-guest_me.patch
+      ./0009-RAMBlock-make-guest_memfd-require-coordinate-discard.patch
+      # Fix needed for map large devices using VFIO.
+      ./0010-increase-min-granularity-for-memfd.patch
     ];
   })
