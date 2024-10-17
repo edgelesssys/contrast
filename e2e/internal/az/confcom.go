@@ -8,7 +8,6 @@ package az
 import (
 	"os/exec"
 	"strings"
-	"testing"
 )
 
 // KataPolicyGenVersion gets the version string of `az confcom katapolicygen`.
@@ -21,6 +20,6 @@ func KataPolicyGenVersion() (string, error) {
 }
 
 // KataPolicyGen executes `az confcom katapolicygen --yaml <resourcePath>`.
-func KataPolicyGen(t *testing.T, resourcePath string) error {
+func KataPolicyGen(resourcePath string) error {
 	return exec.Command("az", "confcom", "katapolicygen", "--yaml", resourcePath).Run()
 }
