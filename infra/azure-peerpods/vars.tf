@@ -9,3 +9,7 @@ variable "image_resource_group_name" {
 variable "subscription_id" {
   type = string
 }
+
+variable "image_id" {
+  type = string
+}

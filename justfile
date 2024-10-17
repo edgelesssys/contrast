@@ -172,6 +172,9 @@ undeploy:
         kubectl delete namespace $ns
     fi
 
+upload-image:
+    nix run -L .#scripts.upload-image -- --subscription-id="$azure_subscription_id" --location="$azure_location" --resource-group="${azure_resource_group}"
+
 # Create a CoCo-enabled AKS cluster.
 create platform=default_platform:
     #!/usr/bin/env bash
@@ -184,6 +187,13 @@ create platform=default_platform:
             :
         ;;
         "AKS-PEER-SNP")
+            just upload-image
+
+            # Populate Terraform variables.
+            echo "name_prefix = \"$azure_resource_group\"" > infra/azure-peerpods/just.auto.tfvars
+            echo "image_resource_group_name = \"$azure_resource_group\"" >> infra/azure-peerpods/just.auto.tfvars
+            echo "subscription_id = \"$azure_subscription_id\"" >> infra/azure-peerpods/just.auto.tfvars
+
             nix run -L .#terraform -- -chdir=infra/azure-peerpods init
             nix run -L .#terraform -- -chdir=infra/azure-peerpods apply
         ;;
@@ -306,6 +316,11 @@ destroy platform=default_platform:
         ;;
         "AKS-PEER-SNP")
             nix run -L .#terraform -- -chdir=infra/azure-peerpods destroy
+
+            # Clean-up cached image ids.
+            rm -f ${CONTRAST_CACHE_DIR}/*.image-id
+
+            nix run -L .#scripts.destroy-coco-aks -- --name="$azure_resource_group"
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
@@ -355,6 +370,8 @@ azure_resource_group=""
 
 # Azure location for the resource group and AKS cluster.
 azure_location="westeurope"
+# Azure subscription id.
+azure_subscription_id="0d202bbb-4fa7-4af8-8125-58c269a05435"
 # Namespace suffix, can be empty. Will be used when patching namespaces.
 namespace_suffix=""
 # Cache directory for the CLI.
