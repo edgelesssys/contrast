@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 final: prev:
+# TODO(miampf): Remove unneccessary block once https://github.com/NixOS/nixpkgs/pull/345326 is merged into unstable nixpkgs
 let
   # Builder for Azure CLI extensions. Extensions are Python wheels that
   # outside of nix would be fetched by the CLI itself from various sources.
