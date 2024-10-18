@@ -16,6 +16,82 @@
     text = builtins.readFile ./destroy-coco-aks.sh;
   };
 
+  upload-image = writeShellApplication {
+    name = "upload-image";
+    runtimeInputs = with pkgs; [
+      azure-cli
+      gnused
+      uplosi
+    ];
+    text =
+      let
+        image = pkgs.image-podvm;
+      in
+      ''
+        subscriptionId=""
+        location="GermanyWestCentral"
+        resourceGroup=""
+
+        for i in "$@"; do
+          case $i in
+          --subscription-id=*)
+            subscriptionId="''${i#*=}"
+            shift
+            ;;
+          --location=*)
+            location="''${i#*=}"
+            shift
+            ;;
+          --resource-group=*)
+            resourceGroup="''${i#*=}"
+            shift
+            ;;
+          *)
+            echo "Unknown option $i"
+            exit 1
+            ;;
+          esac
+        done
+
+        set -x
+
+        # Create a unique, semver compatible version.
+        imageVersion=0.0.$(date "+%s")
+
+        # Create an uplosi config.
+        cat <<EOF > uplosi.conf
+        [base]
+        imageVersion = "''${imageVersion}"
+        name = "contrast"
+        provider = "azure"
+
+        [base.azure]
+        subscriptionID = "''${subscriptionId}"
+        location = "''${location}"
+        resourceGroup = "''${resourceGroup}"
+        sharedImageGallery = "''${resourceGroup}_contrast"
+        sharingProfile = "private"
+        EOF
+
+        imageCacheDir="''${CONTRAST_CACHE_DIR}"/image-upload
+        mkdir -p "''${imageCacheDir}"
+
+        cacheFile="''${imageCacheDir}"/${builtins.baseNameOf image}.image-id
+        # Check if th image has been cached.
+        if [[ ! -f "$cacheFile" ]]; then
+          # Upload the image.
+          image_id=$(uplosi upload ${image}/*.raw)
+          echo "$image_id" > "$cacheFile"
+        else
+          # Use the image id in the cache.
+          image_id=$(cat "$cacheFile")
+        fi
+
+        # Store the image id in a terraform variable.
+        echo "image_id = \"''${image_id}\"" > infra/azure-peerpods/image_id.auto.tfvars
+      '';
+  };
+
   generate = writeShellApplication {
     name = "generate";
     runtimeInputs = with pkgs; [
