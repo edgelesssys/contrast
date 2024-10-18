@@ -184,6 +184,9 @@ create platform=default_platform:
             :
         ;;
         "AKS-PEER-SNP")
+            # Ensure that the resource group exists.
+            az group create  --name "${azure_resource_group}_caa_cluster" --location "$azure_location"
+
             nix run -L .#terraform -- -chdir=infra/azure-peerpods init
             nix run -L .#terraform -- -chdir=infra/azure-peerpods apply
         ;;
@@ -306,6 +309,8 @@ destroy platform=default_platform:
         ;;
         "AKS-PEER-SNP")
             nix run -L .#terraform -- -chdir=infra/azure-peerpods destroy
+
+            az group delete --name "${azure_resource_group}_caa_cluster" --yes
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
@@ -355,6 +360,8 @@ azure_resource_group=""
 
 # Azure location for the resource group and AKS cluster.
 azure_location="westeurope"
+# Azure subscription id.
+azure_subscription_id="0d202bbb-4fa7-4af8-8125-58c269a05435"
 # Namespace suffix, can be empty. Will be used when patching namespaces.
 namespace_suffix=""
 # Cache directory for the CLI.
