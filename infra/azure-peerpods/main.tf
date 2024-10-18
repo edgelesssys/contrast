@@ -40,9 +40,8 @@ data "azurerm_resource_group" "rg_podvm_image" {
   name = var.image_resource_group_name
 }
 
-resource "azurerm_resource_group" "rg" {
-  name     = local.name
-  location = "germanywestcentral"
+data "azurerm_resource_group" "rg" {
+  name = local.name
 }
 
 resource "azuread_application" "app" {
@@ -57,19 +56,19 @@ resource "azuread_service_principal" "sp" {
 }
 
 resource "azurerm_role_assignment" "ra_vm_contributor" {
-  scope                = azurerm_resource_group.rg.id
+  scope                = data.azurerm_resource_group.rg.id
   role_definition_name = "Virtual Machine Contributor"
   principal_id         = azuread_service_principal.sp.object_id
 }
 
 resource "azurerm_role_assignment" "ra_reader" {
-  scope                = azurerm_resource_group.rg.id
+  scope                = data.azurerm_resource_group.rg.id
   role_definition_name = "Reader"
   principal_id         = azuread_service_principal.sp.object_id
 }
 
 resource "azurerm_role_assignment" "ra_network_contributor" {
-  scope                = azurerm_resource_group.rg.id
+  scope                = data.azurerm_resource_group.rg.id
   role_definition_name = "Network Contributor"
   principal_id         = azuread_service_principal.sp.object_id
 }
@@ -95,8 +94,8 @@ resource "azuread_application_password" "cred" {
 resource "azurerm_virtual_network" "main" {
   name                = local.name
   address_space       = ["10.0.0.0/8"]
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
 
   subnet {
     name             = "${local.name}_nodenet"
@@ -106,9 +105,9 @@ resource "azurerm_virtual_network" "main" {
 
 resource "azurerm_kubernetes_cluster" "cluster" {
   name                      = "${local.name}_aks"
-  resource_group_name       = azurerm_resource_group.rg.name
+  resource_group_name       = data.azurerm_resource_group.rg.name
   node_resource_group       = "${local.name}_node_rg"
-  location                  = azurerm_resource_group.rg.location
+  location                  = data.azurerm_resource_group.rg.location
   dns_prefix                = "aks"
   oidc_issuer_enabled       = true
   workload_identity_enabled = true
@@ -183,9 +182,9 @@ configMapGenerator:
   literals:
   - CLOUD_PROVIDER=azure
   - AZURE_SUBSCRIPTION_ID=${data.azurerm_subscription.current.subscription_id}
-  - AZURE_REGION=${azurerm_resource_group.rg.location}
+  - AZURE_REGION=${data.azurerm_resource_group.rg.location}
   - AZURE_INSTANCE_SIZE=Standard_DC2as_v5
-  - AZURE_RESOURCE_GROUP=${azurerm_resource_group.rg.name}
+  - AZURE_RESOURCE_GROUP=${data.azurerm_resource_group.rg.name}
   - AZURE_SUBNET_ID=${one(azurerm_virtual_network.main.subnet.*.id)}
   - AZURE_IMAGE_ID=${var.image_id}
   - DISABLECVM=false
