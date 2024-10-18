@@ -18,7 +18,7 @@ require (
 	github.com/katexochen/sync v0.0.0-20240617152407-6a8003240db0
 	github.com/klauspost/cpuid/v2 v2.2.8
 	github.com/pelletier/go-toml/v2 v2.2.3
-	github.com/prometheus/client_golang v1.20.4
+	github.com/prometheus/client_golang v1.20.5
 	github.com/prometheus/common v0.60.0
 	github.com/spf13/afero v1.11.0
 	github.com/spf13/cobra v1.8.1
