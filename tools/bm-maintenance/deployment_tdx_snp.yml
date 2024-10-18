@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cleanup-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cleanup-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["list"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["list"]
+  - apiGroups: ["node.k8s.io"]
+    resources: ["runtimeclasses"]
+    verbs: ["list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cleanup-binding
+subjects:
+  - kind: ServiceAccount
+    name: cleanup-sa
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: cleanup-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup-maintenance
+spec:
+  schedule: "0 0 * * 0"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: cleanup-sa
+          containers:
+            - name: cleanup
+              image: ghcr.io/edgelesssys/contrast/cleanup-bm@sha256:83a8f984d25a0bab6ca2ffbdbbe04aa61a6b9cbc657ebd635992e134fa82c542
+              env:
+                - name: OPTEDGELESS
+                  value: /opt/edgeless
+                - name: CONFIG
+                  value: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
+                - name: SNAPSHOTTER
+                  value: nydus
+              volumeMounts:
+                - name: opt-edgeless
+                  mountPath: /opt/edgeless
+                - name: containerd-config
+                  mountPath: /var/lib/rancher/k3s/agent/etc/containerd
+          restartPolicy: OnFailure
+          volumes:
+            - name: containerd-config
+              hostPath:
+                path: /var/lib/rancher/k3s/agent/etc/containerd
+                type: Directory
+            - name: opt-edgeless
+              hostPath:
+                path: /opt/edgeless
+                type: Directory
+          restartPolicy: OnFailure

@@ -155,6 +155,19 @@ let
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
       };
     };
+
+    cleanup-bm = dockerTools.buildImage {
+      name = "cleanup-bm";
+      tag = "v0.0.1";
+      copyToRoot = with pkgs; [
+        busybox
+        kubectl
+        dasel
+      ];
+      config = {
+        Cmd = [ "${lib.getExe pkgs.scripts.cleanup-bm}" ];
+      };
+    };
   };
 in
 containers
