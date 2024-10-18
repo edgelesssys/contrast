@@ -172,6 +172,9 @@ undeploy:
         kubectl delete namespace $ns
     fi
 
+upload-image:
+    nix run -L .#scripts.upload-image -- --subscription-id="$azure_subscription_id" --location="$azure_location" --resource-group="${azure_resource_group}_caa_cluster"
+
 # Create a CoCo-enabled AKS cluster.
 create platform=default_platform:
     #!/usr/bin/env bash
@@ -309,6 +312,9 @@ destroy platform=default_platform:
         ;;
         "AKS-PEER-SNP")
             nix run -L .#terraform -- -chdir=infra/azure-peerpods destroy
+
+            # Clean-up cached image ids.
+            rm -f ${CONTRAST_CACHE_DIR}/image-upload/*.image-id
 
             az group delete --name "${azure_resource_group}_caa_cluster" --yes
         ;;
