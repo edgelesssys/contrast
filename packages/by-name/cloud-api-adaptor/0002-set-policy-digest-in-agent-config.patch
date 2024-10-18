@@ -1,0 +1,82 @@
+From 9bb45bab97264a15e36a4b9b9cd06531852d23af Mon Sep 17 00:00:00 2001
+From: Markus Rudy <webmaster@burgerdev.de>
+Date: Thu, 17 Oct 2024 10:20:09 +0200
+Subject: [PATCH] set policy digest in agent config
+
+---
+ src/cloud-api-adaptor/pkg/adaptor/cloud/cloud.go |  2 +-
+ src/cloud-api-adaptor/pkg/agent/config.go        | 10 +++++++++-
+ src/cloud-api-adaptor/pkg/util/cloud.go          |  9 +++++++++
+ 3 files changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/src/cloud-api-adaptor/pkg/adaptor/cloud/cloud.go b/src/cloud-api-adaptor/pkg/adaptor/cloud/cloud.go
+index 5a3ab96..0a83683 100644
+--- a/src/cloud-api-adaptor/pkg/adaptor/cloud/cloud.go
++++ b/src/cloud-api-adaptor/pkg/adaptor/cloud/cloud.go
+@@ -239,7 +239,7 @@ func (s *cloudService) CreateVM(ctx context.Context, req *pb.CreateVMRequest) (r
+ 		logger.Printf("configure agent to use credentials file %s", SrcAuthfilePath)
+ 	}
+ 
+-	agentConfig, err := agent.CreateConfigFile(authFilePath)
++	agentConfig, err := agent.CreateConfigFile(authFilePath, util.GetPolicyFromAnnotation(req.Annotations))
+ 	if err != nil {
+ 		return nil, fmt.Errorf("creating agent config: %w", err)
+ 	}
+diff --git a/src/cloud-api-adaptor/pkg/agent/config.go b/src/cloud-api-adaptor/pkg/agent/config.go
+index 58bcc83..c0d5b58 100644
+--- a/src/cloud-api-adaptor/pkg/agent/config.go
++++ b/src/cloud-api-adaptor/pkg/agent/config.go
+@@ -1,6 +1,9 @@
+ package agent
+ 
+ import (
++	"crypto/sha256"
++	"encoding/hex"
++
+ 	"github.com/pelletier/go-toml/v2"
+ )
+ 
+@@ -13,10 +16,11 @@ const (
+ type agentConfig struct {
+ 	ServerAddr           string `toml:"server_addr"`
+ 	GuestComponentsProcs string `toml:"guest_components_procs"`
++	PolicySHA256Hex      string `toml:"policy_digest_sha256_hex,omitempty"`
+ 	ImageRegistryAuth    string `toml:"image_registry_auth,omitempty"`
+ }
+ 
+-func CreateConfigFile(authJsonPath string) (string, error) {
++func CreateConfigFile(authJsonPath string, policy []byte) (string, error) {
+ 	var imageRegistryAuth string
+ 	if authJsonPath != "" {
+ 		imageRegistryAuth = "file://" + authJsonPath
+@@ -27,6 +31,10 @@ func CreateConfigFile(authJsonPath string) (string, error) {
+ 		GuestComponentsProcs: GuestComponentsProcs,
+ 		ImageRegistryAuth:    imageRegistryAuth,
+ 	}
++	if policy != nil {
++		digest := sha256.Sum256(policy)
++		config.PolicySHA256Hex = hex.EncodeToString(digest[:])
++	}
+ 
+ 	bytes, err := toml.Marshal(config)
+ 	if err != nil {
+diff --git a/src/cloud-api-adaptor/pkg/util/cloud.go b/src/cloud-api-adaptor/pkg/util/cloud.go
+index b2ba396..e317495 100644
+--- a/src/cloud-api-adaptor/pkg/util/cloud.go
++++ b/src/cloud-api-adaptor/pkg/util/cloud.go
+@@ -69,6 +69,15 @@ func GetCPUAndMemoryFromAnnotation(annotations map[string]string) (int64, int64)
+ 	return vcpuInt, memoryInt
+ }
+ 
++func GetPolicyFromAnnotation(annotations map[string]string) []byte {
++	// The policy is already base64-decoded in this annotation map.
++	policy, ok := annotations[hypannotations.Policy]
++	if !ok {
++		return nil
++	}
++	return []byte(policy)
++}
++
+ // Method to check if a string exists in a slice
+ func Contains(slice []string, s string) bool {
+ 	for _, item := range slice {
