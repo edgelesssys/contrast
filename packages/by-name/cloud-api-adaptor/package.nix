@@ -40,10 +40,23 @@ buildGoModule rec {
     hash = "sha256-5tDG0sEiRAsb259lPui5ntR6DVHDdcXhb04UESJzHhE=";
   };
 
+  patches = [
+    # Make the process-user-data job measure the agent config file into PCR10 (which is otherwise
+    # unused), so that it can be verified in an attestation report.
+    # The CAA attestation story is not decided yet. This patch enables one possible solution for
+    # Contrast.
+    ./0001-measure-agent-config.toml-into-PCR-10.patch
+    # Forward the expected policy hash as part of the agent-config.toml via instance user-data.
+    # Not upstreamable, like the patch above.
+    ./0002-set-policy-digest-in-agent-config.patch
+  ];
+
+  patchFlags = [ "-p3" ];
+
   sourceRoot = "${src.name}/src/cloud-api-adaptor";
 
   proxyVendor = true;
-  vendorHash = "sha256-kqzi7jRF3tQ4/yLkJXfZly4EvVKFb400/WXlN0WjYm8=";
+  vendorHash = "sha256-6FWMh2G5yM0QnhpfLS+fRfP6bpPtuGCeCvCNutog3YU=";
 
   nativeBuildInputs = lib.optional withLibvirt pkg-config;
 
