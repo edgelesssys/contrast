@@ -90,6 +90,16 @@ buildGoModule rec {
       # The patch is not sufficient for upstream, because it requires the extraRootFs content from
       # our Nix packaging.
       ./0014-tools-don-t-clean-build-root-when-generating-rootfs.patch
+
+      # A peer-pod VM does not have HOSTDATA or MRCONFIGID, so the expected policy hash needs to
+      # be configured differently. This patch adds a policy hash config field to the agent config,
+      # which is passed by the CAA and loaded from user-data.
+      # The upstream plan-of-record is the initdata proposal, which will eventually provide all
+      # podvm configuration in a measurable way. Unfortunately, this proposal has diverged between
+      # Kata and CAA, so we're implementing our own solution here.
+      ./0015-agent-read-policy-hash-from-config.patch
+      # This patch makes the remote hypervisor aware of the workload policy.
+      ./0016-runtime-forward-policy-to-remote-hypervisor.patch
     ];
   };
 
