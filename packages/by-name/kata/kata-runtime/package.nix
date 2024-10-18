@@ -90,6 +90,9 @@ buildGoModule rec {
       # The patch is not sufficient for upstream, because it requires the extraRootFs content from
       # our Nix packaging.
       ./0014-tools-don-t-clean-build-root-when-generating-rootfs.patch
+
+      ./0015-agent-read-policy-hash-from-config.patch
+      ./0016-runtime-forward-policy-to-remote-hypervisor.patch
     ];
   };
 

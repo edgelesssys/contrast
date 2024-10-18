@@ -1,0 +1,116 @@
+From 797a113c80c9fd3dfbd4d7b153d3de245c97044f Mon Sep 17 00:00:00 2001
+From: Markus Rudy <webmaster@burgerdev.de>
+Date: Wed, 16 Oct 2024 16:12:19 +0200
+Subject: [PATCH] measure agent-config.toml into PCR 10
+
+---
+ src/cloud-api-adaptor/go.mod                  |  5 +++-
+ src/cloud-api-adaptor/go.sum                  |  2 ++
+ .../pkg/userdata/provision.go                 | 27 ++++++++++++++++++-
+ 3 files changed, 32 insertions(+), 2 deletions(-)
+
+diff --git a/src/cloud-api-adaptor/go.mod b/src/cloud-api-adaptor/go.mod
+index bd419f6..011870a 100644
+--- a/src/cloud-api-adaptor/go.mod
++++ b/src/cloud-api-adaptor/go.mod
+@@ -1,6 +1,8 @@
+ module github.com/confidential-containers/cloud-api-adaptor/src/cloud-api-adaptor
+ 
+-go 1.21
++go 1.22
++
++toolchain go1.23.2
+ 
+ require (
+ 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.11.1
+@@ -52,6 +54,7 @@ require (
+ 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
+ 	github.com/docker/docker v25.0.5+incompatible
+ 	github.com/golang-jwt/jwt/v5 v5.2.1
++	github.com/google/go-tpm v0.9.1
+ 	github.com/moby/sys/mountinfo v0.7.1
+ 	github.com/pelletier/go-toml/v2 v2.1.0
+ 	github.com/sirupsen/logrus v1.9.3
+diff --git a/src/cloud-api-adaptor/go.sum b/src/cloud-api-adaptor/go.sum
+index 0dd05c2..1ffa1f8 100644
+--- a/src/cloud-api-adaptor/go.sum
++++ b/src/cloud-api-adaptor/go.sum
+@@ -322,6 +322,8 @@ github.com/google/go-cmp v0.5.8/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeN
+ github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
+ github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
+ github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
++github.com/google/go-tpm v0.9.1 h1:0pGc4X//bAlmZzMKf8iz6IsDo1nYTbYJ6FZN/rg4zdM=
++github.com/google/go-tpm v0.9.1/go.mod h1:h9jEsEECg7gtLis0upRBQU+GhYVH6jMjrFxI8u6bVUY=
+ github.com/google/gofuzz v1.0.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
+ github.com/google/gofuzz v1.2.0 h1:xRy4A+RhZaiKjJ1bPfwQ8sedCA+YS2YcCHW6ec7JMi0=
+ github.com/google/gofuzz v1.2.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
+diff --git a/src/cloud-api-adaptor/pkg/userdata/provision.go b/src/cloud-api-adaptor/pkg/userdata/provision.go
+index 5c3b6ca..222d509 100644
+--- a/src/cloud-api-adaptor/pkg/userdata/provision.go
++++ b/src/cloud-api-adaptor/pkg/userdata/provision.go
+@@ -2,6 +2,7 @@ package userdata
+ 
+ import (
+ 	"context"
++	"crypto/sha256"
+ 	"fmt"
+ 	"log"
+ 	"os"
+@@ -12,6 +13,8 @@ import (
+ 	"github.com/confidential-containers/cloud-api-adaptor/src/cloud-providers/aws"
+ 	"github.com/confidential-containers/cloud-api-adaptor/src/cloud-providers/azure"
+ 	"github.com/confidential-containers/cloud-api-adaptor/src/cloud-providers/docker"
++	"github.com/google/go-tpm/legacy/tpm2"
++	"github.com/google/go-tpm/tpmutil"
+ 	"gopkg.in/yaml.v2"
+ )
+ 
+@@ -162,6 +165,7 @@ func findConfigEntry(path string, cc *CloudConfig) []byte {
+ type entry struct {
+ 	path     string
+ 	optional bool
++	pcrIndex *int
+ }
+ 
+ func (f *entry) writeFile(cc *CloudConfig) error {
+@@ -179,6 +183,10 @@ func (f *entry) writeFile(cc *CloudConfig) error {
+ 		return fmt.Errorf("failed to create directory: %w", err)
+ 	}
+ 
++	if f.pcrIndex != nil {
++		extendPCR(*f.pcrIndex, bytes)
++	}
++
+ 	err = os.WriteFile(f.path, bytes, 0644)
+ 	if err != nil {
+ 		return fmt.Errorf("failed to write file: %w", err)
+@@ -189,7 +197,7 @@ func (f *entry) writeFile(cc *CloudConfig) error {
+ 
+ func processCloudConfig(cfg *Config, cc *CloudConfig) error {
+ 	entries := []entry{
+-		{path: cfg.paths.agentConfig, optional: false},
++		{path: cfg.paths.agentConfig, optional: false, pcrIndex: toPtr(10)},
+ 		{path: cfg.paths.daemonConfig, optional: false},
+ 		{path: cfg.paths.aaConfig, optional: true},
+ 		{path: cfg.paths.cdhConfig, optional: true},
+@@ -228,3 +236,20 @@ func ProvisionFiles(cfg *Config) error {
+ 
+ 	return nil
+ }
++
++func extendPCR(pcrIndex int, data []byte) error {
++	digest := sha256.Sum256(data)
++
++	handle, err := tpm2.OpenTPM()
++	if err != nil {
++		return fmt.Errorf("opening TPM device: %w", err)
++	}
++	if err := tpm2.PCRExtend(handle, tpmutil.Handle(pcrIndex), tpm2.AlgSHA256, digest[:], ""); err != nil {
++		return fmt.Errorf("extending PCR %d: %w", pcrIndex, err)
++	}
++	return nil
++}
++
++func toPtr[A any](a A) *A {
++	return &a
++}

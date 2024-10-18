@@ -40,10 +40,17 @@ buildGoModule rec {
     hash = "sha256-5tDG0sEiRAsb259lPui5ntR6DVHDdcXhb04UESJzHhE=";
   };
 
+  patches = [
+    ./0001-measure-agent-config.toml-into-PCR-10.patch
+    ./0002-set-policy-digest-in-agent-config.patch
+  ];
+
+  patchFlags = [ "-p3" ];
+
   sourceRoot = "${src.name}/src/cloud-api-adaptor";
 
   proxyVendor = true;
-  vendorHash = "sha256-kqzi7jRF3tQ4/yLkJXfZly4EvVKFb400/WXlN0WjYm8=";
+  vendorHash = "sha256-6FWMh2G5yM0QnhpfLS+fRfP6bpPtuGCeCvCNutog3YU=";
 
   nativeBuildInputs = lib.optional withLibvirt pkg-config;
 
