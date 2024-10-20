@@ -158,7 +158,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 						WithName("installer").
 						WithImage(nodeInstallerImageURL).
 						WithResources(ResourceRequirements().
-							WithMemoryLimitAndRequest(100),
+							WithMemoryLimitAndRequest(700),
 						).
 						WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
 						WithVolumeMounts(VolumeMount().
