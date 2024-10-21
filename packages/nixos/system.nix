@@ -60,7 +60,7 @@
           "/var"
           "/etc"
           "/bin"
-          "/usr"
+          "/usr/bin"
           "/tmp"
           "/lib"
           "/root"
