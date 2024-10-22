@@ -194,7 +194,6 @@ create platform=default_platform:
 
             # Populate Terraform variables.
             echo "name_prefix = \"$azure_resource_group\"" > infra/azure-peerpods/just.auto.tfvars
-            echo "image_resource_group_name = \"$azure_resource_group\"" >> infra/azure-peerpods/just.auto.tfvars
             echo "subscription_id = \"$azure_subscription_id\"" >> infra/azure-peerpods/just.auto.tfvars
 
             nix run -L .#terraform -- -chdir=infra/azure-peerpods init
