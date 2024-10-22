@@ -73,6 +73,7 @@ jobs:
           seen = {}
           with open(os.getenv("GITHUB_OUTPUT")) as f:
               for line in f:
+                  print(line)
                   matrix, checksum = line.strip().split("=")
                   if not checksum in seen:
                       seen[checksum] = []
