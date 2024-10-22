@@ -54,7 +54,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		WithName("tardev-snapshotter").
 		WithImage("ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest").
 		WithResources(ResourceRequirements().
-			WithMemoryLimitAndRequest(800),
+			WithMemoryRequest(800),
 		).
 		WithVolumeMounts(
 			VolumeMount().
@@ -86,7 +86,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		WithName("nydus-snapshotter").
 		WithImage("ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest").
 		WithResources(ResourceRequirements().
-			WithMemoryLimitAndRequest(800),
+			WithMemoryRequest(800),
 		).
 		WithVolumeMounts(
 			VolumeMount().
@@ -158,7 +158,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 						WithName("installer").
 						WithImage(nodeInstallerImageURL).
 						WithResources(ResourceRequirements().
-							WithMemoryLimitAndRequest(700),
+							WithMemoryRequest(700),
 						).
 						WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
 						WithVolumeMounts(VolumeMount().
