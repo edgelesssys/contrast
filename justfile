@@ -221,7 +221,8 @@ create platform=default_platform:
         ;;
         "AKS-PEER-SNP")
             # Populate Terraform variables.
-            echo "subscription_id = \"$azure_subscription_id\"" > infra/azure-peerpods/just.auto.tfvars
+            echo "name_prefix = \"$azure_resource_group\"" > infra/azure-peerpods/just.auto.tfvars
+            echo "subscription_id = \"$azure_subscription_id\"" >> infra/azure-peerpods/just.auto.tfvars
 
             nix run -L .#terraform -- -chdir=infra/azure-peerpods init
             nix run -L .#terraform -- -chdir=infra/azure-peerpods apply --auto-approve
