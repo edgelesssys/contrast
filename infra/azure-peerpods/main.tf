@@ -9,6 +9,13 @@ terraform {
       version = "2.5.2"
     }
   }
+
+  backend "azurerm" {
+    resource_group_name  = "contrast-peerpods-tf"
+    storage_account_name = "contrastpeerpodsstorage"
+    container_name       = "tfstate"
+    key                  = "azure.tfstate"
+  }
 }
 
 provider "azurerm" {
