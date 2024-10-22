@@ -131,6 +131,15 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Generated workload policy annotations")
 
+	// Print yaml files with updated policies
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read %s: %w", path, err)
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "XXXXXXXXXX %s: %s\n", path, data)
+	}
+
 	policies, err := policiesFromKubeResources(paths)
 	if err != nil {
 		return fmt.Errorf("find kube resources with policy: %w", err)
@@ -217,12 +226,16 @@ func findGenerateTargets(args []string, logger *slog.Logger) ([]string, error) {
 		return nil, fmt.Errorf("no .yml/.yaml files found")
 	}
 
-	paths = filterNonCoCoRuntime("contrast-cc", paths, logger)
-	if len(paths) == 0 {
-		return nil, fmt.Errorf("no .yml/.yaml files with 'contrast-cc' runtime found")
+	contrastPaths := filterNonCoCoRuntime("contrast-cc", paths, logger)
+	if len(contrastPaths) != 0 {
+		return contrastPaths, nil
+	}
+	peerPaths := filterNonCoCoRuntime("kata-remote", paths, logger)
+	if len(peerPaths) != 0 {
+		return peerPaths, nil
 	}
 
-	return paths, nil
+	return nil, fmt.Errorf("no .yml/.yaml files with 'contrast-cc' or 'kata-remote' runtime found")
 }
 
 func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger *slog.Logger) []string {
@@ -235,6 +248,8 @@ func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger 
 		}
 		if !bytes.Contains(data, []byte(runtimeClassNamePrefix)) {
 			logger.Info("Ignoring non-CoCo runtime", "className", runtimeClassNamePrefix, "path", path)
+			fmt.Printf("Ignoring non-CoCo runtime %s in %s\n", runtimeClassNamePrefix, path)
+			// fmt.Printf("XXX data: %s\n", data)
 			continue
 		}
 		filtered = append(filtered, path)
@@ -243,7 +258,11 @@ func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger 
 }
 
 func generatePolicies(ctx context.Context, flags *generateFlags, yamlPaths []string, logger *slog.Logger) error {
-	cfg := genpolicy.NewConfig(flags.referenceValuesPlatform)
+	cfg, err := genpolicy.NewConfig(flags.referenceValuesPlatform)
+	if err != nil {
+		return fmt.Errorf("getting genpolicy config: %w", err)
+	}
+
 	if err := createFileWithDefault(flags.settingsPath, 0o644, func() ([]byte, error) { return cfg.Settings, nil }); err != nil {
 		return fmt.Errorf("creating default policy file: %w", err)
 	}
@@ -324,6 +343,8 @@ func patchTargets(paths []string, imageReplacementsFile, runtimeHandler string, 
 		if err := os.WriteFile(path, resource, os.ModePerm); err != nil {
 			return fmt.Errorf("write %s: %w", path, err)
 		}
+
+		fmt.Printf("XXXXXXXXXXXXX output: %s\n", resource)
 	}
 	return nil
 }

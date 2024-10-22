@@ -48,6 +48,7 @@ func TestOpenSSL(t *testing.T) {
 
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
+	fmt.Println("runtime handler:", runtimeHandler)
 
 	resources := kuberesource.OpenSSL()
 	coordinator := kuberesource.CoordinatorBundle()
