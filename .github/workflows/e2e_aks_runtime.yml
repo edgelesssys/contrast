@@ -9,8 +9,6 @@ on:
 
 jobs:
   test_matrix:
-    strategy:
-      fail-fast: false
     name: Test aks runtime
     uses: ./.github/workflows/e2e.yml
     with:
