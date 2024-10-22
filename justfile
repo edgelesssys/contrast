@@ -341,6 +341,19 @@ get-credentials-ci:
         --name "contrast-ci" \
         --admin
 
+get-credentials-ci-peerpods:
+  nix run -L .#azure-cli -- aks get-credentials \
+      --resource-group "contrast-ci-peerpods_caa_cluster"
+      --name "contrast-ci-peerpods_caa_cluster"
+      --admin
+
+get-credentials-from-gcloud path:
+    nix run -L .#scripts.get-credentials {{ path }}
+
+get-credentials-tdxbm: (get-credentials-from-gcloud "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/5")
+
+get-credentials-snpbm: (get-credentials-from-gcloud "projects/796962942582/secrets/discovery-kubeconf/versions/2")
+
 # Destroy a running AKS cluster.
 destroy platform=default_platform:
     #!/usr/bin/env bash
