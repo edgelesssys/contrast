@@ -35,7 +35,7 @@ nydus-snapshotter: (push "nydus-snapshotter")
 
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"
-default_platform := "AKS-CLH-SNP"
+default_platform := "${default_platform}"
 workspace_dir := "workspace"
 
 # Build the node-installer, containerize and push it.
@@ -366,6 +366,8 @@ rctemplate := '''
 container_registry=""
 # Azure resource group/ resource name. Resource group will be created.
 azure_resource_group=""
+# Platform to deploy on
+default_platform="AKS-CLH-SNP"
 
 #
 # No need to change anything below this line.
