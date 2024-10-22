@@ -16,11 +16,7 @@ jobs:
         # is reproducible across individual builds (as the --rebuild flag is used, causing Nix to rebuild the node-installer-image derivation)
         # and across independent builds on Ubuntu 20.04 and 22.04 (which also test the reproducibility of the transitive closure of our packages, as no shared
         # cache is present between the two machines)
-        build-target:
-          [
-            "microsoft.contrast-node-installer-image",
-            "kata.contrast-node-installer-image",
-          ]
+        build-target: ["microsoft.contrast-node-installer-image", "kata.contrast-node-installer-image"]
       fail-fast: false
     # Usually we would define the matrix outputs here, but as GitHub Actions don't seem to allow per-combination outputs,
     # we'll write the outputs without defining them here. See https://github.com/orgs/community/discussions/17245#discussioncomment-3814009.
