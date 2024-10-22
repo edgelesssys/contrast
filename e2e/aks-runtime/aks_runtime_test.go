@@ -76,7 +76,7 @@ func TestAKSRuntime(t *testing.T) {
 					WithContainers(kuberesource.Container().
 						WithName(testContainer).
 						WithImage("docker.io/bash@sha256:ce062497c248eb1cf4d32927f8c1780cce158d3ed0658c586a5be7308d583cbb").
-						WithCommand("/usr/local/bin/bash", "-c", "uname -r; while true; do sleep 10; done"),
+						WithCommand("/usr/local/bin/bash", "-c", "uname -r; sleep infinity"),
 					),
 				),
 			),
@@ -97,7 +97,7 @@ func TestAKSRuntime(t *testing.T) {
 	require.NoError(os.WriteFile(path.Join(workdir, "resources.yaml"), resourceBytes, 0o644))
 	require.NoError(az.KataPolicyGen(path.Join(workdir, "resources.yaml")))
 
-	// load in generated resources and patch the runtime handler again
+	// load in generated resources
 	resourceBytes, err = os.ReadFile(path.Join(workdir, "resources.yaml"))
 	require.NoError(err)
 	toApply, err := kubeapi.UnmarshalUnstructuredK8SResource(resourceBytes)
