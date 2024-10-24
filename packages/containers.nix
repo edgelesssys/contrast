@@ -22,7 +22,9 @@ let
         tmpdir=$(mktemp -d)
         trap 'rm -rf $tmpdir' EXIT
         gunzip < "${container}" > "$tmpdir/image.tar"
-        crane push "$tmpdir/image.tar" "$imageName:${container.imageTag}"
+        docker import "$tmpdir/image.tar" "$imageName:${container.imageTag}"
+        docker push "$imageName:${container.imageTag}"
+        # crane push "$tmpdir/image.tar" "$imageName:${container.imageTag}"
       '';
     };
 

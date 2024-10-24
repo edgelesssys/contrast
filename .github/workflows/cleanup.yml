@@ -1,6 +1,10 @@
 name: push cleanup-bm image
 
 on:
+  pull_request:
+    paths:
+      - .github/workflows/cleaup.yml
+      - packages/**
   # FIXME(freax13): Remove this.
   workflow_dispatch:
 
@@ -25,7 +29,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ github.token }}
       - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
       - name: Create justfile.env
         run: |
