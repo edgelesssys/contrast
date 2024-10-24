@@ -39,11 +39,11 @@ jobs:
         run: |
           nix build .#${{ matrix.build-target }} --option substituters https://cache.nixos.org --builders ""
           reference_checksum="$(jq  -r '.manifests[0].digest' result/index.json)"
-          echo "$reference_checksum" > reference_checksum.txt
+          echo "$reference_checksum" > ${{ matrix.build-target }}-${{ matrix.os }}-reference_checksum.txt
 
           nix build .#${{ matrix.build-target }} --rebuild --option substituters https://cache.nixos.org --builders "" -o rebuild
           rebuild_checksum="$(jq  -r '.manifests[0].digest' rebuild/index.json)"
-          echo "$rebuild_checksum" > rebuild_checksum.txt
+          echo "$rebuild_checksum" > ${{ matrix.build-target }}-${{ matrix.os }}-rebuild_checksum.txt
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
