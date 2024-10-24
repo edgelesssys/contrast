@@ -343,10 +343,10 @@ get-credentials-ci:
         --admin
 
 get-credentials-ci-peerpods:
-  nix run -L .#azure-cli -- aks get-credentials \
-      --resource-group "contrast-ci-peerpods_caa_cluster"
-      --name "contrast-ci-peerpods_caa_cluster"
-      --admin
+    nix run -L .#azure-cli -- aks get-credentials \
+        --resource-group "contrast-ci-peerpods_caa_cluster" \
+        --name "contrast-ci-peerpods_caa_cluster" \
+        --admin
 
 get-credentials-from-gcloud path:
     nix run -L .#scripts.get-credentials {{ path }}
