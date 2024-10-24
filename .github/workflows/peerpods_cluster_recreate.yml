@@ -6,7 +6,6 @@ on:
 env:
   azure_resource_group: contrast-ci
   TF_VAR_name_prefix: contrast-ci-peerpods
-  TF_VAR_image_id: TODO
 
 jobs:
   recreate:
@@ -24,6 +23,10 @@ jobs:
       - name: Cleanup .azure dir
         run: |
           rm "$HOME/.azure/{commandIndex.json,versionCheck.json}"
+      - name: Upload the image
+        run: |
+          # this also sets the image_id terraform variable
+          nix run .#scripts.upload-image
       - name: Destroy existing CI cluster
         continue-on-error: true
         run: |
