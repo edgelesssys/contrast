@@ -97,8 +97,8 @@ jobs:
               for system in os_list:
                   reference_checksum_filename = f"{target}-{system}-reference_checksum.txt"
                   rebuild_checksum_filename = f"{target}-{system}-rebuild_checksum.txt"
-                  with open(os.path.join(download_dir, reference_checksum_filename)) as f_reference:
-                      with open(os.path.join(download_dir, rebuild_checksum_filename)) as f_rebuild:
+                  with open(os.path.join(download_dir, f"{target}-{system}-checksum-reference", reference_checksum_filename)) as f_reference:
+                      with open(os.path.join(download_dir, f"{target}-{system}-checksum-rebuild", rebuild_checksum_filename)) as f_rebuild:
                           reference_checksum = f_reference.readline()
                           if not reference_checksum in seen:
                               seen[reference_checksum] = []
