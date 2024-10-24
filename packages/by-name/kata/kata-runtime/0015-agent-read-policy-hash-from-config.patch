@@ -1,0 +1,102 @@
+From 1ba75161e0ac5d404ddf645cdcea848a3a41c2a7 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Thu, 24 Oct 2024 17:06:26 +0200
+Subject: [PATCH] agent: read policy hash from config
+
+---
+ src/agent/Cargo.lock    | 4 ++++
+ src/agent/Cargo.toml    | 1 +
+ src/agent/src/config.rs | 8 ++++++++
+ src/agent/src/policy.rs | 5 ++++-
+ 4 files changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
+index 6c9342ddb..1bfc716d3 100644
+--- a/src/agent/Cargo.lock
++++ b/src/agent/Cargo.lock
+@@ -2818,6 +2818,7 @@ dependencies = [
+  "const_format",
+  "derivative",
+  "futures",
++ "hex",
+  "image-rs",
+  "ipnetwork",
+  "kata-sys-util",
+@@ -6439,6 +6440,9 @@ name = "uuid"
+ version = "1.10.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "81dfa00651efa65069b0b6b651f4aaa31ba9e3c3ce0137aaad053604ee7e0314"
++dependencies = [
++ "serde",
++]
+ 
+ [[package]]
+ name = "valuable"
+diff --git a/src/agent/Cargo.toml b/src/agent/Cargo.toml
+index d5b3db965..44612495a 100644
+--- a/src/agent/Cargo.toml
++++ b/src/agent/Cargo.toml
+@@ -89,6 +89,7 @@ regorus = { version = "0.1.4", default-features = false, features = [
+ sha2 = { version = "0.10.6", optional = true }
+ sev = { version = "2.0.2", default-features = false, features = ["snp"], optional = true }
+ vmm-sys-util = { version = "0.11.0", optional = true }
++hex = "0.4.3"
+ 
+ [dev-dependencies]
+ tempfile = "3.1.0"
+diff --git a/src/agent/src/config.rs b/src/agent/src/config.rs
+index a83328440..a984f9dcc 100644
+--- a/src/agent/src/config.rs
++++ b/src/agent/src/config.rs
+@@ -131,6 +131,8 @@ pub struct AgentConfig {
+     pub image_policy_file: String,
+     #[cfg(feature = "agent-policy")]
+     pub policy_file: String,
++    #[cfg(feature = "agent-policy")]
++    pub policy_digest_sha256_hex: String,
+ }
+ 
+ #[derive(Debug, Deserialize)]
+@@ -160,6 +162,8 @@ pub struct AgentConfigBuilder {
+     pub image_policy_file: Option<String>,
+     #[cfg(feature = "agent-policy")]
+     pub policy_file: Option<String>,
++    #[cfg(feature = "agent-policy")]
++    pub policy_digest_sha256_hex: Option<String>,
+ }
+ 
+ macro_rules! config_override {
+@@ -235,6 +239,8 @@ impl Default for AgentConfig {
+             image_policy_file: String::from(""),
+             #[cfg(feature = "agent-policy")]
+             policy_file: String::from(""),
++            #[cfg(feature = "agent-policy")]
++            policy_digest_sha256_hex: String::from(""),
+         }
+     }
+ }
+@@ -287,6 +293,8 @@ impl FromStr for AgentConfig {
+ 
+         #[cfg(feature = "agent-policy")]
+         config_override!(agent_config_builder, agent_config, policy_file);
++        #[cfg(feature = "agent-policy")]
++        config_override!(agent_config_builder, agent_config, policy_digest_sha256_hex);
+         Ok(agent_config)
+     }
+ }
+diff --git a/src/agent/src/policy.rs b/src/agent/src/policy.rs
+index 2f1da9ecd..840385fc3 100644
+--- a/src/agent/src/policy.rs
++++ b/src/agent/src/policy.rs
+@@ -198,7 +198,10 @@ impl AgentPolicy {
+ }
+ 
+ fn verify_policy_digest(policy: &str) -> Result<()> {
+-    if let Ok(expected_digest) = get_tdx_mrconfigid() {
++    if !AGENT_CONFIG.policy_digest_sha256_hex.is_empty() {
++        let expected_digest = hex::decode(&AGENT_CONFIG.policy_digest_sha256_hex)?;
++        verify_sha_256(policy, expected_digest.as_slice())
++    } else if let Ok(expected_digest) = get_tdx_mrconfigid() {
+         info!(sl!(), "policy: TDX MrConfigId ({:?})", expected_digest);
+ 
+         // The MrConfigId used with TDX is longer than the host-data field used
