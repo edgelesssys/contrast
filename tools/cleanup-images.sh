@@ -37,7 +37,7 @@ for image in "${pauseImages[@]}"; do
   ctr "${ctrOpts[@]}" content fetch "${image}"
 done
 
-if ctr "${ctrOpts[@]}" image check | grep --exit-code "incomplete"; then
+if ctr "${ctrOpts[@]}" image check | grep "incomplete"; then
   echo "Incomplete images detected"
   exit 1
 fi
