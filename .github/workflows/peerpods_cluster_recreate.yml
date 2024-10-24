@@ -6,6 +6,7 @@ on:
 env:
   azure_resource_group: contrast-ci
   TF_VAR_name_prefix: contrast-ci-peerpods
+  CONTRAST_CACHE_DIR: /tmp
 
 jobs:
   recreate:
