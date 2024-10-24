@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-///go:build e2e
+//go:build e2e
 
 package aksruntime
 
@@ -123,6 +123,7 @@ func TestAKSRuntime(t *testing.T) {
 
 	pods, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	require.NoError(err)
+	require.Equal(len(pods.Items), 1)
 	pod := pods.Items[0] // only one pod was deployed
 
 	logs, err := c.Client.CoreV1().Pods(namespace).GetLogs(pod.Name, &corev1.PodLogOptions{}).DoRaw(ctx)
