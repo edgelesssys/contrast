@@ -28,7 +28,7 @@ jobs:
           azure_subscription_id="$(az account show | jq '.id')"
           echo "azure_subscription_id=$azure_subscription_id" >> "$GITHUB_ENV"
           echo "TF_VAR_subscription_id=$azure_subscription_id" >> "$GITHUB_ENV"
-          just upload-image
+          nix run .#just -- upload-image
       - name: Destroy existing CI cluster
         continue-on-error: true
         run: |
