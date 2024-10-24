@@ -82,6 +82,11 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 			),
 	}
 
+	containerdPath := "/var/lib/rancher/k3s/agent/containerd"
+	if platform == platforms.AKSPeerSNP {
+		containerdPath = "/var/lib/containerd"
+	}
+
 	nydusSnapshotter := Container().
 		WithName("nydus-snapshotter").
 		WithImage("ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest").
@@ -113,7 +118,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		Volume().
 			WithName("var-lib-containerd").
 			WithHostPath(HostPathVolumeSource().
-				WithPath("/var/lib/rancher/k3s/agent/containerd").
+				WithPath(containerdPath).
 				WithType(corev1.HostPathDirectory),
 			),
 		Volume().
@@ -124,18 +129,103 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 			),
 	}
 
+	cloudAPIAdaptor := Container().
+		WithName("cloud-api-adaptor").
+		WithImage("quay.io/confidential-containers/cloud-api-adaptor:v0.9.0-amd64"). // FIXME(freax13): Don't hard-code this
+		WithVolumeMounts(
+			VolumeMount().
+				WithName("ssh").
+				WithMountPath("/root/.ssh/").
+				WithReadOnly(true),
+			VolumeMount().
+				WithName("pods-dir").
+				WithMountPath("/run/peerpod"),
+			VolumeMount().
+				WithName("netns").
+				WithMountPath("/run/netns").
+				WithMountPropagation(corev1.MountPropagationHostToContainer),
+			VolumeMount().
+				WithName("azure-identity-token").
+				WithMountPath("/var/run/secrets/azure/tokens").
+				WithReadOnly(true),
+		).
+		WithArgs(
+			"/usr/local/bin/entrypoint.sh",
+		).
+		WithEnv(
+			NewEnvVar("AZURE_CLIENT_ID", "8b6ef83e-186e-49b0-a2f7-aefbf4712749"),
+			NewEnvVar("AZURE_TENANT_ID", "adb650a8-5da3-4b15-b4b0-3daf65ff7626"),
+			NewEnvVar("AZURE_FEDERATED_TOKEN_FILE", "/var/run/secrets/azure/tokens/azure-identity-token"),
+			NewEnvVar("AZURE_AUTHORITY_HOST", "https://login.microsoftonline.com/"),
+			NewEnvVar("optionals", fmt.Sprintf("-socket /run/peerpod/hypervisor-%s.sock ", runtimeHandler)),
+		).
+		WithEnvFrom(
+			applycorev1.EnvFromSource().
+				WithConfigMapRef(
+					applycorev1.ConfigMapEnvSource().
+						WithName("peer-pods-cm"),
+				),
+		).
+		WithSecurityContext(
+			applycorev1.SecurityContext().
+				WithCapabilities(
+					applycorev1.Capabilities().
+						WithAdd(
+							corev1.Capability("NET_ADMIN"),
+							corev1.Capability("SYS_ADMIN"),
+						),
+				),
+		)
+	cloudAPIAdaptorVolumes := []*applycorev1.VolumeApplyConfiguration{
+		Volume().
+			WithName("pods-dir").
+			WithHostPath(HostPathVolumeSource().
+				WithPath("/run/peerpod").
+				WithType(corev1.HostPathDirectoryOrCreate),
+			),
+		Volume().
+			WithName("netns").
+			WithHostPath(HostPathVolumeSource().
+				WithPath("/run/netns").
+				WithType(corev1.HostPathDirectory),
+			),
+		Volume().
+			WithName("azure-identity-token").
+			WithProjected(applycorev1.ProjectedVolumeSource().
+				WithDefaultMode(420).
+				WithSources(applycorev1.VolumeProjection().
+					WithServiceAccountToken(
+						applycorev1.ServiceAccountTokenProjection().
+							WithAudience("api://AzureADTokenExchange").
+							WithExpirationSeconds(3600).
+							WithPath("azure-identity-token"),
+					),
+				),
+			),
+		Volume().
+			WithName("ssh").
+			WithSecret(applycorev1.SecretVolumeSource().
+				WithDefaultMode(384).
+				WithSecretName("ssh-key-secret"),
+			),
+	}
+
 	var nodeInstallerImageURL string
-	var snapshotter *applycorev1.ContainerApplyConfiguration
-	var snapshotterVolumes []*applycorev1.VolumeApplyConfiguration
+	var containers []*applycorev1.ContainerApplyConfiguration
+	var volumes []*applycorev1.VolumeApplyConfiguration
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
-		snapshotter = tardevSnapshotter
-		snapshotterVolumes = tardevSnapshotterVolumes
+		containers = []*applycorev1.ContainerApplyConfiguration{tardevSnapshotter}
+		volumes = tardevSnapshotterVolumes
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
-		snapshotter = nydusSnapshotter
-		snapshotterVolumes = nydusSnapshotterVolumes
+		containers = []*applycorev1.ContainerApplyConfiguration{nydusSnapshotter}
+		volumes = nydusSnapshotterVolumes
+	case platforms.AKSPeerSNP:
+		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
+		containers = []*applycorev1.ContainerApplyConfiguration{nydusSnapshotter, cloudAPIAdaptor}
+		volumes = append(nydusSnapshotterVolumes, cloudAPIAdaptorVolumes...)
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", platform)
 	}
@@ -167,10 +257,10 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 						WithCommand("/bin/node-installer", platform.String()),
 					).
 					WithContainers(
-						snapshotter,
+						containers...,
 					).
 					WithVolumes(append(
-						snapshotterVolumes,
+						volumes,
 						Volume().
 							WithName("host-mount").
 							WithHostPath(HostPathVolumeSource().

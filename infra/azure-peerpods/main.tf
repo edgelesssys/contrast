@@ -73,7 +73,7 @@ resource "azuread_application_federated_identity_credential" "federated_credenti
   display_name   = local.name
   application_id = azuread_application.app.id
   issuer         = azurerm_kubernetes_cluster.cluster.oidc_issuer_url
-  subject        = "system:serviceaccount:confidential-containers-system:cloud-api-adaptor"
+  subject        = "system:serviceaccount:openssl:default"
   audiences      = ["api://AzureADTokenExchange"]
 }
 
@@ -187,5 +187,34 @@ secretGenerator:
   - id_rsa.pub
 patchesStrategicMerge:
 - workload-identity.yaml
+EOF
+}
+
+resource "local_file" "peer-pods-cm" {
+  filename        = "./peer-pods-cm.yaml"
+  file_permission = "0777"
+  content         = <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: peer-pods-cm
+  namespace: confidential-containers-system
+data:
+  AZURE_IMAGE_ID: ${var.image_id}
+  AZURE_INSTANCE_SIZE: Standard_DC2as_v5
+  AZURE_REGION: ${data.azurerm_resource_group.rg.location}
+  AZURE_RESOURCE_GROUP: ${data.azurerm_resource_group.rg.name}
+  AZURE_SUBNET_ID: ${one(azurerm_virtual_network.main.subnet.*.id)}
+  AZURE_SUBSCRIPTION_ID: ${data.azurerm_subscription.current.subscription_id}
+  CLOUD_PROVIDER: azure
+  DISABLECVM: "false"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cloud-api-adaptor
+  namespace: confidential-containers-system
+  annotations:
+    azure.workload.identity/client-id: ${azuread_application.app.client_id}
 EOF
 }

@@ -1,0 +1,23 @@
+apiVersion: v1
+data:
+  AZURE_IMAGE_ID: /subscriptions/0d202bbb-4fa7-4af8-8125-58c269a05435/resourceGroups/tomcontrast_caa_cluster/providers/Microsoft.Compute/galleries/tomcontrast_caa_cluster_contrast/images/contrast/versions/0.0.1729677680
+  AZURE_INSTANCE_SIZE: Standard_DC2as_v5
+  AZURE_REGION: germanywestcentral
+  AZURE_RESOURCE_GROUP: tomcontrast_caa_cluster
+  AZURE_SUBNET_ID: /subscriptions/0d202bbb-4fa7-4af8-8125-58c269a05435/resourceGroups/tomcontrast_caa_cluster/providers/Microsoft.Network/virtualNetworks/tomcontrast_caa_cluster/subnets/tomcontrast_caa_cluster_nodenet
+  AZURE_SUBSCRIPTION_ID: 0d202bbb-4fa7-4af8-8125-58c269a05435
+  CLOUD_PROVIDER: azure
+  DISABLECVM: "false"
+kind: ConfigMap
+metadata:
+  name: peer-pods-cm
+  namespace: openssl
+---
+apiVersion: v1
+data:
+  id_rsa.pub: c3NoLXJzYSBBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFCQVFEV0NIZGNiREJ5b1RUU2lEb3hhYWtXWStVZWVGZWxDM2NIUVVQdVl5SlZDQkpNblFKRzZicGcycllSUGwxbUxlempIVTRYMTBMK09mVWk5Z1c5aGtWWjg2YTVJMm5JS0xEaEh4dVBHaVJudE16ZW40VjNQTWdiTDUwUXVrQkhOTlozdmQrZ0Y3dUQ5eXR3YnJCbWdzK2M1b25UY1R6QzNQR2VJcEtUZGVxQnUzTitHSUhXaEtKMG1IS3NjeHFNMGdkK0ozZzlOWmlveFVnNkJqdGJQWlBoVm45ZWxNS0VxUExIRFhJc1EwamZibWxyeDhHTjJzU0FwY0hyTzMwR01FcXA0bm9MUTZsVVNDZGRYUFZTcVZJenNCVXVxNnlGWnZaalY1ak9TU20yWE55eVVTanA5N3BiSWdkdmJwQ3hKNDdQNStFNTdtdVo3RGY5Q25hSFFqcm4=
+kind: Secret
+metadata:
+  name: ssh-key-secret
+  namespace: openssl
+type: Opaque

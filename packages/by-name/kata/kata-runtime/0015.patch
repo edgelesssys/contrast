@@ -1,0 +1,16 @@
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index bee6dea70..7e7a3c91d 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -71,8 +71,9 @@ CreateContainerRequest {
+ 
+     p_oci := p_container.OCI
+ 
+-    print("CreateContainerRequest: p Version =", p_oci.Version, "i Version =", i_oci.Version)
+-    p_oci.Version == i_oci.Version
++    some p_version in ["1.1.0", "1.2.0"]
++    print("CreateContainerRequest: p Version =", p_version, "i Version =", i_oci.Version)
++    p_version == i_oci.Version
+ 
+     print("CreateContainerRequest: p Readonly =", p_oci.Root.Readonly, "i Readonly =", i_oci.Root.Readonly)
+     p_oci.Root.Readonly == i_oci.Root.Readonly

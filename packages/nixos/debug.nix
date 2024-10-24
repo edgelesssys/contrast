@@ -27,6 +27,7 @@ in
       util-linux
       coreutils
       strace
+      tcpdump
     ];
 
     services.getty.autologinUser = "root";

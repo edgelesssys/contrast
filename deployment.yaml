@@ -1,0 +1,291 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openssl-backend
+  namespace: openssl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openssl-backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openssl-backend
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - openssl s_server -port 443 -Verify 2 -CAfile /contrast/tls-config/mesh-ca.pem
+          -cert /contrast/tls-config/certChain.pem -key /contrast/tls-config/key.pem
+        image: ghcr.io/freax13/contrast/openssl@sha256:541ca38727bc543977b8033cb1a6cd327f2ea0a9aa98c80f3dd6b2341cabc9ad
+        name: openssl-backend
+        ports:
+        - containerPort: 443
+          name: https
+        readinessProbe:
+          initialDelaySeconds: 1
+          periodSeconds: 5
+          tcpSocket:
+            port: 443
+        resources:
+          limits:
+            memory: 50Mi
+          requests:
+            memory: 50Mi
+      - image: ghcr.io/edgelesssys/contrast/dmesg:v0.0.1@sha256:6ad6bbb5735b84b10af42d2441e8d686b1d9a6cbf096b53842711ef5ddabd28d
+        name: dmesg
+        securityContext:
+          privileged: true
+      runtimeClassName: kata-remote
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app.kubernetes.io/name: port-forwarder-openssl-backend
+  name: port-forwarder-openssl-backend
+  namespace: openssl
+spec:
+  containers:
+  - command:
+    - /bin/bash
+    - -c
+    - echo Starting port-forward with socat; for port in ${LISTEN_PORTS}; do socat
+      -d -d TCP-LISTEN:$port,fork TCP:${FORWARD_HOST}:$port & done; wait
+    env:
+    - name: LISTEN_PORTS
+      value: ' 443'
+    - name: FORWARD_HOST
+      value: openssl-backend
+    - name: FORWARD_PORT
+      value: "-1"
+    image: ghcr.io/freax13/contrast/port-forwarder@sha256:d3e90d07e4385e7ecddfe431b9e3a030737c0923e6fb1feedb9f87e8b58de366
+    name: port-forwarder
+    ports:
+    - containerPort: 443
+    resources:
+      limits:
+        memory: 50Mi
+      requests:
+        memory: 50Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openssl-backend
+  namespace: openssl
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 443
+  selector:
+    app.kubernetes.io/name: openssl-backend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openssl-frontend
+  namespace: openssl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: openssl-frontend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: openssl-frontend
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - openssl s_server -www -port 443 -cert /contrast/tls-config/certChain.pem
+          -key /contrast/tls-config/key.pem -cert_chain /contrast/tls-config/certChain.pem
+        image: ghcr.io/freax13/contrast/openssl@sha256:541ca38727bc543977b8033cb1a6cd327f2ea0a9aa98c80f3dd6b2341cabc9ad
+        name: openssl-frontend
+        ports:
+        - containerPort: 443
+          name: https
+        readinessProbe:
+          initialDelaySeconds: 1
+          periodSeconds: 5
+          tcpSocket:
+            port: 443
+        resources:
+          limits:
+            memory: 50Mi
+          requests:
+            memory: 50Mi
+      - image: ghcr.io/edgelesssys/contrast/dmesg:v0.0.1@sha256:6ad6bbb5735b84b10af42d2441e8d686b1d9a6cbf096b53842711ef5ddabd28d
+        name: dmesg
+        securityContext:
+          privileged: true
+      runtimeClassName: kata-remote
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app.kubernetes.io/name: port-forwarder-openssl-frontend
+  name: port-forwarder-openssl-frontend
+  namespace: openssl
+spec:
+  containers:
+  - command:
+    - /bin/bash
+    - -c
+    - echo Starting port-forward with socat; for port in ${LISTEN_PORTS}; do socat
+      -d -d TCP-LISTEN:$port,fork TCP:${FORWARD_HOST}:$port & done; wait
+    env:
+    - name: LISTEN_PORTS
+      value: ' 443'
+    - name: FORWARD_HOST
+      value: openssl-frontend
+    - name: FORWARD_PORT
+      value: "-1"
+    image: ghcr.io/freax13/contrast/port-forwarder@sha256:d3e90d07e4385e7ecddfe431b9e3a030737c0923e6fb1feedb9f87e8b58de366
+    name: port-forwarder
+    ports:
+    - containerPort: 443
+    resources:
+      limits:
+        memory: 50Mi
+      requests:
+        memory: 50Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openssl-frontend
+  namespace: openssl
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 443
+  selector:
+    app.kubernetes.io/name: openssl-frontend
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: coordinator
+  namespace: openssl
+spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
+    whenScaled: Delete
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: coordinator
+  serviceName: coordinator
+  template:
+    metadata:
+      annotations:
+        contrast.edgeless.systems/pod-role: coordinator
+      labels:
+        app.kubernetes.io/name: coordinator
+    spec:
+      containers:
+      - env:
+        - name: CONTRAST_LOG_LEVEL
+          value: info
+        - name: CONTRAST_LOG_SUBSYSTEMS
+          value: '*'
+        image: ghcr.io/freax13/contrast/coordinator@sha256:b7a5c31989f0f5f6b088b004bf8a7508a5a807418622095ac551b36dc1e6627d
+        name: coordinator
+        ports:
+        - containerPort: 1313
+          name: userapi
+        - containerPort: 7777
+          name: meshapi
+        readinessProbe:
+          initialDelaySeconds: 1
+          periodSeconds: 5
+          tcpSocket:
+            port: 1313
+        resources:
+          limits:
+            memory: 100Mi
+          requests:
+            memory: 100Mi
+        securityContext:
+          capabilities:
+            add:
+            - SYS_ADMIN
+        volumeDevices:
+        - devicePath: /dev/csi0
+          name: state-device
+      - image: ghcr.io/edgelesssys/contrast/dmesg:v0.0.1@sha256:6ad6bbb5735b84b10af42d2441e8d686b1d9a6cbf096b53842711ef5ddabd28d
+        name: dmesg
+        securityContext:
+          privileged: true
+      runtimeClassName: kata-remote-aks-clh-snp-acffb6db
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: state-device
+      namespace: ""
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      volumeMode: Block
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app.kubernetes.io/name: port-forwarder-coordinator
+  name: port-forwarder-coordinator
+  namespace: openssl
+spec:
+  containers:
+  - command:
+    - /bin/bash
+    - -c
+    - echo Starting port-forward with socat; for port in ${LISTEN_PORTS}; do socat
+      -d -d TCP-LISTEN:$port,fork TCP:${FORWARD_HOST}:$port & done; wait
+    env:
+    - name: LISTEN_PORTS
+      value: ' 1313 7777'
+    - name: FORWARD_HOST
+      value: coordinator
+    - name: FORWARD_PORT
+      value: "-1"
+    image: ghcr.io/freax13/contrast/port-forwarder@sha256:d3e90d07e4385e7ecddfe431b9e3a030737c0923e6fb1feedb9f87e8b58de366
+    name: port-forwarder
+    ports:
+    - containerPort: 1313
+    - containerPort: 7777
+    resources:
+      limits:
+        memory: 50Mi
+      requests:
+        memory: 50Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    contrast.edgeless.systems/expose-service: "true"
+  name: coordinator
+  namespace: openssl
+spec:
+  ports:
+  - name: userapi
+    port: 1313
+    targetPort: 1313
+  - name: meshapi
+    port: 7777
+    targetPort: 7777
+  selector:
+    app.kubernetes.io/name: coordinator

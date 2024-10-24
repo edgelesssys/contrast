@@ -38,7 +38,7 @@ buildGoModule rec {
       # which extends the hostdata to arbitrary config beyond the policy and
       # delegates hash verification to the AA. Until that effort lands, we're
       # sticking with the policy verification from AKS CoCo.
-      ./0003-runtime-agent-verify-the-agent-policy-hash.patch
+      # ./0003-runtime-agent-verify-the-agent-policy-hash.patch
 
       #
       # Patch set to enable policy support for bare metal with Nydus guest pull.
@@ -90,6 +90,8 @@ buildGoModule rec {
       # The patch is not sufficient for upstream, because it requires the extraRootFs content from
       # our Nix packaging.
       ./0014-tools-don-t-clean-build-root-when-generating-rootfs.patch
+
+      ./0015.patch
     ];
   };
 

@@ -47,15 +47,9 @@ node-installer platform=default_platform:
             just push "tardev-snapshotter"
             just push "node-installer-microsoft"
         ;;
-        "K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "AKS-PEER-SNP"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             just push "nydus-snapshotter"
             just push "node-installer-kata"
-        ;;
-        "AKS-PEER-SNP")
-            nix run -L .#scripts.deploy-caa -- \
-                --kustomization=./infra/azure-peerpods/kustomization.yaml \
-                --workload-identity=./infra/azure-peerpods/workload-identity.yaml \
-                --pub-key=./infra/azure-peerpods/id_rsa.pub
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
@@ -86,6 +80,7 @@ runtime target=default_deploy_target platform=default_platform:
       --add-namespace-object \
       --platform {{ platform }} \
       runtime > ./{{ workspace_dir }}/runtime/runtime.yml
+
 
 # Populate the workspace with a Kubernetes deployment
 populate target=default_deploy_target platform=default_platform:
