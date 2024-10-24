@@ -6,6 +6,7 @@
 package az
 
 import (
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -21,5 +22,7 @@ func KataPolicyGenVersion() (string, error) {
 
 // KataPolicyGen executes `az confcom katapolicygen --yaml <resourcePath>`.
 func KataPolicyGen(resourcePath string) error {
-	return exec.Command("az", "confcom", "katapolicygen", "--yaml", resourcePath).Run()
+	cmd := exec.Command("az", "confcom", "katapolicygen", "--yaml", resourcePath)
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
