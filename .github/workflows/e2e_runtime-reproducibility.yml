@@ -16,6 +16,8 @@ jobs:
         # is reproducible across individual builds (as the --rebuild flag is used, causing Nix to rebuild the node-installer-image derivation)
         # and across independent builds on Ubuntu 20.04 and 22.04 (which also test the reproducibility of the transitive closure of our packages, as no shared
         # cache is present between the two machines)
+        #
+        # If adjusting the build-target, remember to also adjust the matrix for the collect-checksums job
         build-target: ["microsoft.contrast-node-installer-image", "kata.contrast-node-installer-image"]
       fail-fast: false
     # Usually we would define the matrix outputs here, but as GitHub Actions don't seem to allow per-combination outputs,
@@ -35,11 +37,11 @@ jobs:
         run: |
           nix build .#${{ matrix.build-target }} --option substituters https://cache.nixos.org --builders ""
           reference_checksum="$(jq  -r '.manifests[0].digest' result/index.json)"
-          echo "reference-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$reference_checksum" >> "$GITHUB_OUTPUT"
+          echo "$reference_checksum" > ${{ matrix.build-target }}-${{ matrix.os }}-reference_checksum.txt
 
           nix build .#${{ matrix.build-target }} --rebuild --option substituters https://cache.nixos.org --builders "" -o rebuild
           rebuild_checksum="$(jq  -r '.manifests[0].digest' rebuild/index.json)"
-          echo "rebuild-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$rebuild_checksum" >> "$GITHUB_OUTPUT"
+          echo "$rebuild_checksum" > ${{ matrix.build-target }}-${{ matrix.os }}-rebuild_checksum.txt
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
@@ -50,6 +52,11 @@ jobs:
         with:
           name: ${{ matrix.build-target }}-${{ matrix.os }}-rebuild
           path: rebuild
+      - name: Upload checksums
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: ${{ matrix.build-target }}-${{ matrix.os }}-checksums
+          path: ${{ matrix.build-target }}-${{ matrix.os }}-*_checksum.txt
       - name: Notify teams channel of failure
         if: ${{ failure() && github.ref == 'main' && github.run_attempt == 1 }}
         uses: ./.github/actions/post_to_teams
@@ -64,25 +71,32 @@ jobs:
     permissions:
       contents: read
     needs: os-matrix
+    strategy:
+      matrix:
+        build-target: ["microsoft.contrast-node-installer-image", "kata.contrast-node-installer-image"]
     steps:
+      - name: Download all checksum artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          pattern: "${{matrix.build-target}}-*-checksums"
+          path: "./checksums"
+          merge-multiple: true
       - name: Collect checksums
         id: collect
         shell: python
         run: |
-          import json, os
+          import json, os, pathlib
           seen = {}
-          with open(os.getenv("GITHUB_OUTPUT")) as f:
-              for line in f:
-                  matrix, checksum = line.strip().split("=")
-                  if not checksum in seen:
-                      seen[checksum] = []
-                  seen[checksum].append(matrix)
-
+          for file in os.listdir("./checksums"):
+              checksum = pathlib.Path("./checksums", file).read_text()
+              if not checksum in seen:
+                  seen[checksum] = []
+              seen[checksum].append(file)
+          assert len(seen) > 0
           if len(seen) > 1:
-            print("At least one checksum mismatched:")
-            print(json.dumps(seen, indent=2))
-            exit(1)
-
+              print("At least one checksum mismatched:")
+              print(json.dumps(seen, indent=2))
+              exit(1)
           print("All checksums were equal")
       - name: Notify teams channel of failure
         if: ${{ failure() && github.ref == 'main' && github.run_attempt == 1 }}
@@ -91,3 +105,4 @@ jobs:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
           title: "Runtime reproducibility test failed"
           message: "failed to collect checksums"
+          additionalFields: '[{"title": "Build target", "value": "${{matrix.build-target}}"}]'
