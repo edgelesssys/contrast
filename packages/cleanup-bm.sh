@@ -56,3 +56,6 @@ for runtimeClass in "${unusedRuntimeClasses[@]}"; do
   dasel delete --file "${CONFIG}" --indent 0 --read toml --write toml "plugins.io\.containerd\.grpc\.v1\.cri.containerd.runtimes.${runtimeClass}" 2>/dev/null
   dasel delete --file "${CONFIG}" --indent 0 --read toml --write toml "proxy_plugins.${SNAPSHOTTER}-${runtimeClass}" 2>/dev/null
 done
+
+# Fix the state for removed snapshotters.
+cleanup-images
