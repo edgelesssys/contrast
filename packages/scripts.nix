@@ -497,6 +497,7 @@
       busybox
       kubectl
       dasel
+      scripts.cleanup-images
     ];
     text = builtins.readFile ./cleanup-bm.sh;
   };
