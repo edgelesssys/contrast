@@ -15,6 +15,9 @@ nixos-config:
   boot.kernelParams = lib.optional (roothashPlaceholder != "") "roothash=${roothashPlaceholder}";
 }).image.overrideAttrs
   (oldAttrs: {
+    preBuild = ''
+      echo Building on file system $(stat -f -c %T .)
+    '';
     nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ jq ];
     # Replace the placeholder with the real root hash.
     # The real root hash is only known after we build the image, so this
