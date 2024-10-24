@@ -9,7 +9,8 @@ on:
       - e2e/aks-runtime/**
 
 jobs:
-  test_matrix:
+  install-software:
+    runs-on: ubuntu-22.04
     steps:
       - name: Install `az` with extensions
         run: |
@@ -17,7 +18,7 @@ jobs:
           sudo apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
           sudo mkdir -p /etc/apt/keyrings
           curl -sLS https://packages.microsoft.com/keys/microsoft.asc |
-            gpg --dearmor | sudo tee /etc/apt/keyrings/microsoft.gpg > /dev/null
+          gpg --dearmor | sudo tee /etc/apt/keyrings/microsoft.gpg > /dev/null
           sudo chmod go+r /etc/apt/keyrings/microsoft.gpg
           AZ_DIST=$(lsb_release -cs)
           echo "Types: deb
@@ -31,16 +32,19 @@ jobs:
 
           az extension add --name aks-preview
           az extension add --name confcom
-      - name: Test aks runtime
-        uses: ./.github/workflows/e2e.yml
-        with:
-          skip-undeploy: false
-          test-name: aks-runtime
-          platform: AKS-CLH-SNP
-          runner: ubuntu-22.04
-          self-hosted: false
-          run-without-nix: true
-        secrets: inherit
-        permissions:
-          contents: read
-          packages: write
+
+  test_matrix:
+    name: Test aks runtime
+    needs: install-software
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/e2e.yml
+    with:
+      skip-undeploy: false
+      test-name: aks-runtime
+      platform: AKS-CLH-SNP
+      runner: ubuntu-22.04
+      self-hosted: false
+      run-without-nix: true
