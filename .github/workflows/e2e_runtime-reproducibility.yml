@@ -16,7 +16,11 @@ jobs:
         # is reproducible across individual builds (as the --rebuild flag is used, causing Nix to rebuild the node-installer-image derivation)
         # and across independent builds on Ubuntu 20.04 and 22.04 (which also test the reproducibility of the transitive closure of our packages, as no shared
         # cache is present between the two machines)
-        build-target: ["microsoft.contrast-node-installer-image", "kata.contrast-node-installer-image"]
+        build-target:
+          [
+            "microsoft.contrast-node-installer-image",
+            "kata.contrast-node-installer-image",
+          ]
       fail-fast: false
     # Usually we would define the matrix outputs here, but as GitHub Actions don't seem to allow per-combination outputs,
     # we'll write the outputs without defining them here. See https://github.com/orgs/community/discussions/17245#discussioncomment-3814009.
@@ -35,11 +39,11 @@ jobs:
         run: |
           nix build .#${{ matrix.build-target }} --option substituters https://cache.nixos.org --builders ""
           reference_checksum="$(jq  -r '.manifests[0].digest' result/index.json)"
-          echo "reference-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$reference_checksum" >> "$GITHUB_OUTPUT"
+          echo "$reference_checksum" > reference_checksum.txt
 
           nix build .#${{ matrix.build-target }} --rebuild --option substituters https://cache.nixos.org --builders "" -o rebuild
           rebuild_checksum="$(jq  -r '.manifests[0].digest' rebuild/index.json)"
-          echo "rebuild-checksum-${{ matrix.os }}-${{ matrix.build-target}}=$rebuild_checksum" >> "$GITHUB_OUTPUT"
+          echo "$rebuild_checksum" > rebuild_checksum.txt
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
@@ -50,6 +54,16 @@ jobs:
         with:
           name: ${{ matrix.build-target }}-${{ matrix.os }}-rebuild
           path: rebuild
+      - name: Upload reference checksum
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: ${{ matrix.build-target }}-${{ matrix.os }}-checksum-reference
+          path: ${{ matrix.build-target }}-${{ matrix.os }}-reference_checksum.txt
+      - name: Upload rebuild checksum
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: ${{ matrix.build-target }}-${{ matrix.os }}-checksum-rebuild
+          path: ${{ matrix.build-target }}-${{ matrix.os }}-rebuild_checksum.txt
       - name: Notify teams channel of failure
         if: ${{ failure() && github.ref == 'main' }}
         uses: ./.github/actions/post_to_teams
@@ -65,24 +79,40 @@ jobs:
       contents: read
     needs: os-matrix
     steps:
+      - name: Download all checksum artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          pattern: "*-*-checksum-*"
       - name: Collect checksums
         id: collect
         shell: python
         run: |
           import json, os
-          seen = {}
-          with open(os.getenv("GITHUB_OUTPUT")) as f:
-              for line in f:
-                  matrix, checksum = line.strip().split("=")
-                  if not checksum in seen:
-                      seen[checksum] = []
-                  seen[checksum].append(matrix)
-
-          if len(seen) > 1:
-            print("At least one checksum mismatched:")
-            print(json.dumps(seen, indent=2))
-            exit(1)
-
+          download_dir = os.getenv("GITHUB_WORKSPACE")
+          targets = ["microsoft.contrast-node-installer-image", "kata.contrast-node-installer-image"]
+          os_list = ["ubuntu-22.04", "ubuntu-20.04"]
+          checksum_mismatch = False
+          for target in targets:
+              seen = {}
+              for system in os_list:
+                  reference_checksum_filename = f"{target}-{system}-reference_checksum.txt"
+                  rebuild_checksum_filename = f"{target}-{system}-rebuild_checksum.txt"
+                  with open(os.path.join(download_dir, reference_checksum_filename)) as f_reference:
+                      with open(os.path.join(download_dir, rebuild_checksum_filename)) as f_rebuild:
+                          reference_checksum = f_reference.readline()
+                          if not reference_checksum in seen:
+                              seen[reference_checksum] = []
+                          seen[reference_checksum].append(f"{target}-{system}-reference")
+                          rebuild_checksum = f_rebuild.readline()
+                          if not rebuild_checksum in seen:
+                              seen[rebuild_checksum] = []
+                          seen[rebuild_checksum].append(f"{target}-{system}-rebuild")
+              if len(seen) > 1:
+                  print(f"At least one checksum mismatched for {target}:")
+                  print(json.dumps(seen, indent=2))
+                  checksum_mismatch = True
+          if checksum_mismatch:
+              exit(1)
           print("All checksums were equal")
       - name: Notify teams channel of failure
         if: ${{ failure() && github.ref == 'main' }}
