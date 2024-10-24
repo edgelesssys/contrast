@@ -18,6 +18,11 @@ on:
       self-hosted:
         description: "Self Hosted"
         type: boolean
+      run-without-nix:
+        description: "Run the E2E test without using a nix shell"
+        type: boolean
+        required: false
+        default: false
 
 env:
   container_registry: ghcr.io/edgelesssys
@@ -73,11 +78,22 @@ jobs:
       - name: E2E Test
         run: |
           nix run .#scripts.get-logs workspace/e2e.namespace &
-          nix shell -L .#contrast.e2e --command ${{ inputs.test-name }}.test -test.v \
-            --image-replacements workspace/just.containerlookup \
-            --namespace-file workspace/e2e.namespace \
-            --platform ${{ inputs.platform }} \
-            --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
+          if [[ "${{inputs.run-without-nix}}" == "false" ]]; then
+            echo "Running with nix"
+            nix shell -L .#contrast.e2e --command ${{ inputs.test-name }}.test -test.v \
+              --image-replacements workspace/just.containerlookup \
+              --namespace-file workspace/e2e.namespace \
+              --platform ${{ inputs.platform }} \
+              --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
+          else
+            echo "Running without nix"
+            nix build .#contrast.e2e
+            ./result/bin/${{ inputs.test-name }}.test -test.v \
+              --image-replacements workspace/just.containerlookup \
+              --namespace-file workspace/e2e.namespace \
+              --platform ${{ inputs.platform }} \
+              --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
+          fi
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
