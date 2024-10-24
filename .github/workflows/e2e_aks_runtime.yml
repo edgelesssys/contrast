@@ -9,6 +9,7 @@ on:
       - e2e/aks-runtime/**
 
 jobs:
+  # steps taken from https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt#option-2-step-by-step-installation-instructions
   install-software:
     runs-on: ubuntu-22.04
     steps:
