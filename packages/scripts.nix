@@ -77,7 +77,7 @@
         mkdir -p "''${imageCacheDir}"
 
         cacheFile="''${imageCacheDir}"/${builtins.baseNameOf image}.image-id
-        # Check if th image has been cached.
+        # Check if the image has been cached.
         if [[ ! -f "$cacheFile" ]]; then
           # Upload the image.
           image_id=$(uplosi upload ${image}/*.raw)
