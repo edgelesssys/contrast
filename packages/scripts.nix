@@ -500,4 +500,14 @@
     ];
     text = builtins.readFile ./cleanup-bm.sh;
   };
+
+  cleanup-images = writeShellApplication {
+    name = "cleanup-images";
+    runtimeInputs = with pkgs; [
+      gnugrep
+      busybox
+      containerd
+    ];
+    text = builtins.readFile ./cleanup-images.sh;
+  };
 }
