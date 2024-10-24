@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build e2e
+///go:build e2e
 
 package aksruntime
 
@@ -116,7 +116,7 @@ func TestAKSRuntime(t *testing.T) {
 
 		// delete the deployment
 		deletePolicy := metav1.DeletePropagationForeground
-		require.NoError(c.Client.AppsV1().Deployments(namespace).Delete(context.Background(), testContainer, metav1.DeleteOptions{
+		require.NoError(c.Client.CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{
 			PropagationPolicy: &deletePolicy,
 		}))
 	})
