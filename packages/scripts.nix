@@ -69,7 +69,7 @@
         subscriptionID = "''${subscriptionId}"
         location = "''${location}"
         resourceGroup = "''${resourceGroup}"
-        sharedImageGallery = "''${resourceGroup}_contrast"
+        sharedImageGallery = "$(echo "''${resourceGroup}_contrast" | sed 's/-/_/')"
         sharingProfile = "private"
         EOF
 
