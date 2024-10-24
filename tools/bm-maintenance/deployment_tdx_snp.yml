@@ -62,6 +62,8 @@ spec:
                   mountPath: /var/lib/nydus-snapshotter
                 - name: containerd-config
                   mountPath: /var/lib/rancher/k3s/agent/etc/containerd
+                - name: containerd-run
+                  mountPath: /run/k3s/containerd/
           volumes:
             - name: opt-edgeless
               hostPath:
@@ -74,5 +76,9 @@ spec:
             - name: containerd-config
               hostPath:
                 path: /var/lib/rancher/k3s/agent/etc/containerd
+                type: Directory
+            - name: containerd-run
+              hostPath:
+                path: /run/k3s/containerd/
                 type: Directory
           restartPolicy: OnFailure

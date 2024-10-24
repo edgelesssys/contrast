@@ -24,7 +24,7 @@ done
 
 kubectl get pods --all-namespaces -o jsonpath='{.items[?(@.metadata.annotations.contrast\.edgeless\.systems/pod-role=="contrast-node-installer")].spec.containers[0].args[1]}' |
   tr ' ' '\n' |
-  grep -o "contrast-cc-.\+" >>usedRuntimeClasses
+  grep -o "contrast-cc-.\+" >>usedRuntimeClasses || true
 sort -u usedRuntimeClasses -o usedRuntimeClasses
 
 mapfile -t unusedRuntimeClasses < <(
@@ -56,3 +56,6 @@ for runtimeClass in "${unusedRuntimeClasses[@]}"; do
   dasel delete --file "${CONFIG}" --indent 0 --read toml --write toml "plugins.io\.containerd\.grpc\.v1\.cri.containerd.runtimes.${runtimeClass}" 2>/dev/null
   dasel delete --file "${CONFIG}" --indent 0 --read toml --write toml "proxy_plugins.${SNAPSHOTTER}-${runtimeClass}" 2>/dev/null
 done
+
+# Fix the state for removed snapshotters.
+cleanup-images

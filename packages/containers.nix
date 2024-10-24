@@ -22,7 +22,9 @@ let
         tmpdir=$(mktemp -d)
         trap 'rm -rf $tmpdir' EXIT
         gunzip < "${container}" > "$tmpdir/image.tar"
-        crane push "$tmpdir/image.tar" "$imageName:${container.imageTag}"
+        docker import "$tmpdir/image.tar" "$imageName:${container.imageTag}"
+        docker push "$imageName:${container.imageTag}"
+        # crane push "$tmpdir/image.tar" "$imageName:${container.imageTag}"
       '';
     };
 
@@ -159,6 +161,9 @@ let
     cleanup-bm = dockerTools.buildImage {
       name = "cleanup-bm";
       tag = "v0.0.1";
+      copyToRoot = with pkgs; [
+        cacert
+      ];
       config = {
         Cmd = [ "${lib.getExe pkgs.scripts.cleanup-bm}" ];
       };

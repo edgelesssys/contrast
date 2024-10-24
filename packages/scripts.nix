@@ -3,7 +3,7 @@
 
 { pkgs, writeShellApplication }:
 
-{
+rec {
   create-coco-aks = writeShellApplication {
     name = "create-coco-aks";
     runtimeInputs = with pkgs; [ azure-cli ];
@@ -497,7 +497,18 @@
       busybox
       kubectl
       dasel
+      cleanup-images
     ];
     text = builtins.readFile ./cleanup-bm.sh;
+  };
+
+  cleanup-images = writeShellApplication {
+    name = "cleanup-images";
+    runtimeInputs = with pkgs; [
+      gnugrep
+      busybox
+      containerd
+    ];
+    text = builtins.readFile ./cleanup-images.sh;
   };
 }
