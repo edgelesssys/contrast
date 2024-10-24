@@ -24,7 +24,7 @@ done
 
 kubectl get pods --all-namespaces -o jsonpath='{.items[?(@.metadata.annotations.contrast\.edgeless\.systems/pod-role=="contrast-node-installer")].spec.containers[0].args[1]}' |
   tr ' ' '\n' |
-  grep -o "contrast-cc-.\+" >>usedRuntimeClasses
+  grep -o "contrast-cc-.\+" >>usedRuntimeClasses || true
 sort -u usedRuntimeClasses -o usedRuntimeClasses
 
 mapfile -t unusedRuntimeClasses < <(
