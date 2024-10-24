@@ -5,6 +5,8 @@ on:
 
 env:
   azure_resource_group: contrast-ci
+  TF_VAR_name_prefix: contrast-ci-peerpods
+  TF_VAR_image_id: TODO
 
 jobs:
   recreate:
@@ -25,13 +27,13 @@ jobs:
       - name: Destroy existing CI cluster
         continue-on-error: true
         run: |
+          echo "TF_VAR_subscription_id=$(az account show | jq '.id')" >> "$GITHUB_ENV"
           cd infra/azure-peerpods
           nix run .#terraform -- init
           nix run .#terraform -- destroy
       - name: Create CI cluster
         run: |
           cd infra/azure-peerpods
-          # TODO(miampf): Figure out good defaults for the variables and apply them
           nix run .#terraform -- apply
       - name: Deploy sync server
         run: |

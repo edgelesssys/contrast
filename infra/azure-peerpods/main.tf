@@ -10,6 +10,9 @@ terraform {
     }
   }
 
+  # TODO(miampf): It would be nice to still be able to set up everything locally
+  # without a remote state over `just`.
+  # Useful links: https://brendanthompson.com/dynamic-terraform-backend-configuration/
   backend "azurerm" {
     resource_group_name  = "contrast-peerpods-tf"
     storage_account_name = "contrastpeerpodsstorage"
