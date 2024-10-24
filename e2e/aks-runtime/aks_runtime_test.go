@@ -75,7 +75,7 @@ func TestAKSRuntime(t *testing.T) {
 				WithSpec(kuberesource.PodSpec().
 					WithContainers(kuberesource.Container().
 						WithName(testContainer).
-						WithImage("docker.io/bash@sha256:ce062497c248eb1cf4d32927f8c1780cce158d3ed0658c586a5be7308d583cbb").
+						WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
 						WithCommand("/usr/local/bin/bash", "-c", "uname -r; sleep infinity"),
 					),
 				),
