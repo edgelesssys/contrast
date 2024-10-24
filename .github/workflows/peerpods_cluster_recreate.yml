@@ -30,11 +30,11 @@ jobs:
           echo "TF_VAR_subscription_id=$(az account show | jq '.id')" >> "$GITHUB_ENV"
           cd infra/azure-peerpods
           nix run .#terraform -- init
-          nix run .#terraform -- destroy
+          nix run .#terraform -- destroy -auto-approve
       - name: Create CI cluster
         run: |
           cd infra/azure-peerpods
-          nix run .#terraform -- apply
+          nix run .#terraform -- apply -auto-approve
       - name: Deploy sync server
         run: |
           kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/f069648d8d08951b503559bab367036290d1f50a/server/deployment.yml
