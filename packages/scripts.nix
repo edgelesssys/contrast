@@ -491,15 +491,15 @@
     '';
   };
 
-  cleanup-bm = writeShellApplication {
-    name = "cleanup-bm";
+  cleanup-bare-metal = writeShellApplication {
+    name = "cleanup-bare-metal";
     runtimeInputs = with pkgs; [
       busybox
       kubectl
       dasel
       scripts.cleanup-images
     ];
-    text = builtins.readFile ./cleanup-bm.sh;
+    text = builtins.readFile ./cleanup-bare-metal.sh;
   };
 
   cleanup-images = writeShellApplication {

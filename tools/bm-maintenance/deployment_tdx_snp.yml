@@ -47,7 +47,7 @@ spec:
           serviceAccountName: cleanup-sa
           containers:
             - name: cleanup
-              image: ghcr.io/edgelesssys/contrast/cleanup-bm:v0.0.1
+              image: ghcr.io/edgelesssys/contrast/cleanup-bare-metal:v0.0.1
               env:
                 - name: OPTEDGELESS
                   value: /opt/edgeless
