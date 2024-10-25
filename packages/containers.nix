@@ -156,14 +156,14 @@ let
       };
     };
 
-    cleanup-bm = dockerTools.buildImage {
-      name = "cleanup-bm";
+    cleanup-bare-metal = dockerTools.buildImage {
+      name = "cleanup-bare-metal";
       tag = "v0.0.1";
       copyToRoot = with pkgs; [
         cacert
       ];
       config = {
-        Cmd = [ "${lib.getExe pkgs.scripts.cleanup-bm}" ];
+        Cmd = [ "${lib.getExe pkgs.scripts.cleanup-bare-metal}" ];
       };
     };
   };

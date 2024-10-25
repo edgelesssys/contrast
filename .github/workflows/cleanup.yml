@@ -1,4 +1,4 @@
-name: push cleanup-bm image
+name: push cleanup-bare-metal image
 
 on:
   pull_request:
@@ -34,6 +34,6 @@ jobs:
           cat <<EOF > justfile.env
           container_registry=${{ env.container_registry }}
           EOF
-      - name: Build and push cleanup-bm image
+      - name: Build and push cleanup-bare-metal image
         run: |
-          just push cleanup-bm
+          just push cleanup-bare-metal
