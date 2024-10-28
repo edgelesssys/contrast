@@ -37,7 +37,7 @@ jobs:
           author: edgelessci <edgelessci@users.noreply.github.com>
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
       - name: Notify teams channel of failure
-        if: ${{ failure() && github.ref == 'main' }}
+        if: ${{ failure() && github.ref == 'main' && github.run_attempt == 1 }}
         uses: ./.github/actions/post_to_teams
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
