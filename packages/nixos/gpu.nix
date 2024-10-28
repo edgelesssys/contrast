@@ -1,7 +1,12 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.contrast.gpu;
@@ -34,6 +39,8 @@ in
       enable32Bit = true;
     };
     hardware.nvidia-container-toolkit.enable = true;
+
+    image.repart.partitions."10-root".contents."/usr/share/oci/hooks/prestart/nvidia-container-toolkit.sh".source = lib.getExe pkgs.nvidia-ctk-oci-hook;
 
     boot.initrd.kernelModules = [
       # Extra kernel modules required to talk to the GPU in CC-Mode.
