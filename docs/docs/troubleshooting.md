@@ -25,7 +25,7 @@ environment variables `CONTRAST_LOG_LEVEL`, `CONTRAST_LOG_FORMAT` and
   `error`, similar to the CLI (defaults to `info`).
 - `CONTRAST_LOG_FORMAT` can be set to `text` or `json`, determining the output
   format (defaults to `text`).
-- `CONTRAST_LOG_SUBSYSTEMS` is a comma-seperated list of subsystems that should
+- `CONTRAST_LOG_SUBSYSTEMS` is a comma-separated list of subsystems that should
   be enabled for logging, which are disabled by default. Subsystems include:
    `kds-getter`, `issuer` and `validator`.
   To enable all subsystems, use `*` as the value for this environment variable.
