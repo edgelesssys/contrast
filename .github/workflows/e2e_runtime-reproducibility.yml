@@ -51,7 +51,7 @@ jobs:
           name: ${{ matrix.build-target }}-${{ matrix.os }}-rebuild
           path: rebuild
       - name: Notify teams channel of failure
-        if: ${{ failure() && github.ref == 'main' }}
+        if: ${{ failure() && github.ref == 'main' && github.run_attempt == 1 }}
         uses: ./.github/actions/post_to_teams
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
@@ -85,7 +85,7 @@ jobs:
 
           print("All checksums were equal")
       - name: Notify teams channel of failure
-        if: ${{ failure() && github.ref == 'main' }}
+        if: ${{ failure() && github.ref == 'main' && github.run_attempt == 1 }}
         uses: ./.github/actions/post_to_teams
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
