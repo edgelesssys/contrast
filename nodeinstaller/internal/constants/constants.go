@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/config"
 	"github.com/pelletier/go-toml/v2"
@@ -19,6 +20,11 @@ var (
 	//
 	//go:embed configuration-clh-snp.toml
 	kataCLHSNPBaseConfig string
+
+	// kataPeerpodBaseConfig is the configuration file for the Kata runtime with peerpod.
+	//
+	//go:embed configuration-peerpod.toml
+	kataPeerpodBaseConfig string
 
 	// kataBareMetalQEMUTDXBaseConfig is the configuration file for the Kata runtime on bare-metal TDX
 	// with QEMU.
@@ -95,6 +101,15 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		// Replace the kernel params entirely (and don't append) since that's
 		// also what we do when calculating the launch measurement.
 		config.Hypervisor["qemu"]["kernel_params"] = kernelParams
+	case platforms.AKSPeerSNP:
+		if err := toml.Unmarshal([]byte(kataPeerpodBaseConfig), &config); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
+		}
+		runtimeHandlerName, err := manifest.RuntimeHandler(platform)
+		if err != nil {
+			return nil, fmt.Errorf("getting default runtime handler: %w", err)
+		}
+		config.Hypervisor["remote"]["remote_hypervisor_socket"] = filepath.Join("/run", "peerpod", fmt.Sprintf("hypervisor-%s.sock", runtimeHandlerName))
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
@@ -137,6 +152,10 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 	case platforms.K3sQEMUSNP:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-snp.toml"),
+		}
+	case platforms.AKSPeerSNP:
+		cfg.Options = map[string]any{
+			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-peer-snp.toml"),
 		}
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
