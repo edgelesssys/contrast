@@ -41,6 +41,7 @@ lib.makeOverridable (
             cloud-api-adaptor
             kernel-podvm-azure
             pause-bundle
+            nvidia-ctk-with-config
             ;
           inherit (outerPkgs.kata) kata-agent;
         })
