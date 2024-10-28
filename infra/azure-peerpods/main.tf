@@ -190,3 +190,47 @@ patchesStrategicMerge:
 - workload-identity.yaml
 EOF
 }
+
+
+data "local_file" "id_rsa" {
+  filename = "id_rsa.pub"
+}
+
+resource "local_file" "peer-pods-config" {
+  filename        = "./peer-pods-config.yaml"
+  file_permission = "0777"
+  content         = <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: peer-pods-cm
+data:
+  AZURE_CLIENT_ID: ${azuread_application.app.client_id}
+  AZURE_TENANT_ID: ${data.azurerm_subscription.current.tenant_id}
+  AZURE_AUTHORITY_HOST: https://login.microsoftonline.com/
+  AZURE_IMAGE_ID: ${var.image_id}
+  AZURE_INSTANCE_SIZE: Standard_DC2as_v5
+  AZURE_REGION: ${data.azurerm_resource_group.rg.location}
+  AZURE_RESOURCE_GROUP: ${data.azurerm_resource_group.rg.name}
+  AZURE_SUBNET_ID: ${one(azurerm_virtual_network.main.subnet.*.id)}
+  AZURE_SUBSCRIPTION_ID: ${data.azurerm_subscription.current.subscription_id}
+  CLOUD_PROVIDER: azure
+  DISABLECVM: "false"
+---
+apiVersion: v1
+data:
+  AZURE_CLIENT_SECRET: ${base64encode(azuread_application_password.cred.value)}
+kind: Secret
+metadata:
+  name: azure-client-secret
+---
+type: Opaque
+apiVersion: v1
+data:
+  id_rsa.pub: ${data.local_file.id_rsa.content_base64}
+kind: Secret
+metadata:
+  name: ssh-key-secret
+type: Opaque
+EOF
+}
