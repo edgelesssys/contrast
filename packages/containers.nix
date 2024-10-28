@@ -158,7 +158,7 @@ let
 
     cleanup-bare-metal = dockerTools.buildImage {
       name = "cleanup-bare-metal";
-      tag = "v0.0.1";
+      tag = "latest";
       copyToRoot = with pkgs; [
         cacert
       ];
