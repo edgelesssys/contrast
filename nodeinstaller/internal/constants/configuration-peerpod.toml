@@ -1,0 +1,23 @@
+# upstream source: https://github.com/kata-containers/kata-containers/blob/51bc71b8d96874cf4a555e1084ee07e948bff957/src/runtime/config/configuration-remote.toml.in
+[hypervisor.remote]
+remote_hypervisor_socket = "/run/peerpod/hypervisor.sock"
+remote_hypervisor_timeout = 600
+enable_annotations = ["machine_type", "default_memory", "default_vcpus"]
+firmware = ""
+default_bridges = 1
+disable_selinux = false
+disable_guest_selinux = true
+
+[agent.kata]
+
+[runtime]
+internetworking_model = "none"
+disable_guest_seccomp = true
+disable_new_netns = true
+sandbox_cgroup_only = false
+static_sandbox_resource_mgmt = true
+vfio_mode = "guest-kernel"
+disable_guest_empty_dir = false
+experimental = []
+create_container_timeout = 60
+dan_conf = "/run/edgeless/kata-containers/dans"
