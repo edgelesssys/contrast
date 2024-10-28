@@ -197,7 +197,7 @@ buildGoModule rec {
   CGO_ENABLED = 0;
   ldflags = [
     "-s"
-    "-X github.com/edgelesssys/contrast/internal/constants.Version=${version}"
+    "-X github.com/edgelesssys/contrast/internal/constants.Version=v${version}"
     "-X github.com/edgelesssys/contrast/internal/constants.MicrosoftGenpolicyVersion=${microsoft.genpolicy.version}"
     "-X github.com/edgelesssys/contrast/internal/constants.KataGenpolicyVersion=${kata.genpolicy.version}"
   ];
