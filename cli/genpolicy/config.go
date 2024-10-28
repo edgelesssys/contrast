@@ -43,7 +43,7 @@ func NewConfig(platform platforms.Platform) *Config {
 			Settings: aksSettings,
 			Bin:      aksGenpolicyBin,
 		}
-	case platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+	case platforms.AKSPeerSNP, platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		return &Config{
 			Rules:    kataRules,
 			Settings: kataSettings,
