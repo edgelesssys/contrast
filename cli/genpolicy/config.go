@@ -5,6 +5,7 @@ package genpolicy
 
 import (
 	_ "embed"
+	"fmt"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 )
@@ -35,21 +36,21 @@ type Config struct {
 }
 
 // NewConfig selects the appropriate genpolicy configuration for the target platform.
-func NewConfig(platform platforms.Platform) *Config {
+func NewConfig(platform platforms.Platform) (*Config, error) {
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		return &Config{
 			Rules:    aksRules,
 			Settings: aksSettings,
 			Bin:      aksGenpolicyBin,
-		}
+		}, nil
 	case platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		return &Config{
 			Rules:    kataRules,
 			Settings: kataSettings,
 			Bin:      kataGenpolicyBin,
-		}
+		}, nil
 	default:
-		return nil
+		return nil, fmt.Errorf("unsupported platform %s", platform)
 	}
 }

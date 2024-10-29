@@ -243,7 +243,11 @@ func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger 
 }
 
 func generatePolicies(ctx context.Context, flags *generateFlags, yamlPaths []string, logger *slog.Logger) error {
-	cfg := genpolicy.NewConfig(flags.referenceValuesPlatform)
+	cfg, err := genpolicy.NewConfig(flags.referenceValuesPlatform)
+	if err != nil {
+		return fmt.Errorf("getting genpolicy config: %w", err)
+	}
+
 	if err := createFileWithDefault(flags.settingsPath, 0o644, func() ([]byte, error) { return cfg.Settings, nil }); err != nil {
 		return fmt.Errorf("creating default policy file: %w", err)
 	}
