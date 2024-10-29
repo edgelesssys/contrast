@@ -9,10 +9,37 @@ on:
       - e2e/aks-runtime/**
 
 jobs:
-  # steps taken from https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt#option-2-step-by-step-installation-instructions
-  install-software:
+  test:
     runs-on: ubuntu-22.04
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Login to Azure
+        uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+        with:
+          creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
+      - name: Create justfile.env
+        run: |
+          cat <<EOF > justfile.env
+          container_registry=${{ env.container_registry }}
+          azure_resource_group=${{ env.azure_resource_group }}
+          EOF
+      - name: Get credentials for CI cluster
+        run: |
+          nix run .#just -- get-credentials
+      - name: Set sync environment
+        run: |
+          sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"
+          sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
+          echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
+      - name: Build and prepare deployments
+        run: |
+          nix run .#just -- coordinator initializer port-forwarder openssl cryptsetup service-mesh-proxy node-installer AKS-CLH-SNP
+      # steps taken from https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt#option-2-step-by-step-installation-instructions
       - name: Install `az` with extensions
         run: |
           sudo apt-get update
@@ -37,19 +64,30 @@ jobs:
 
           az extension add --name aks-preview
           az extension add --name confcom
-
-  test_matrix:
-    name: Test aks runtime
-    needs: install-software
-    secrets: inherit
-    permissions:
-      contents: read
-      packages: write
-    uses: ./.github/workflows/e2e.yml
-    with:
-      skip-undeploy: false
-      test-name: aks-runtime
-      platform: AKS-CLH-SNP
-      runner: ubuntu-22.04
-      self-hosted: false
-      run-without-nix: true
+      - name: E2E test
+        run: |
+          nix run .#scripts.get-logs workspace/e2e.namespace &
+          nix build .#contrast.e2e
+          ./result/bin/aks-runtime.test -test.v \
+            --image-replacements workspace/just.containerlookup \
+            --namespace-file workspace/e2e.namespace \
+            --platform AKS-CLH-SNP \
+            --skip-undeploy="false"
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        with:
+          name: e2e_pod_logs-AKS-CLH-SNP-aks-runtime
+          path: workspace/namespace-logs
+      - name: Notify teams channel of failure
+        if: ${{ failure() && github.event_name == 'schedule' }}
+        uses: ./.github/actions/post_to_teams
+        with:
+          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
+          title: "aks-runtime test failed"
+          message: "e2e test aks-runtime failed"
+          additionalFields: '[{"title": "Platform", "value": "AKS-CLH-SNP"}]'
+      - name: Cleanup
+        if: cancelled()
+        run: |
+          kubectl delete ns "$(cat workspace/e2e.namespace)" --timeout 5m
