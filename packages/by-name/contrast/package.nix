@@ -48,11 +48,6 @@ let
       "e2e/regression"
       "e2e/aks-runtime"
     ];
-
-    postInstall = ''
-      wrapProgram $out/bin/aks-runtime.test \
-        --prefix PATH : ${lib.makeBinPath [ azure-cli ]}
-    '';
   };
 
   # Reference values that we embed into the Contrast CLI for
