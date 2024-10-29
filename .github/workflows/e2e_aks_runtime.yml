@@ -8,6 +8,11 @@ on:
     paths:
       - e2e/aks-runtime/**
 
+env:
+  container_registry: ghcr.io/edgelesssys
+  azure_resource_group: contrast-ci
+  DO_NOT_TRACK: 1
+
 jobs:
   test:
     runs-on: ubuntu-22.04
