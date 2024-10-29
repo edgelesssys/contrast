@@ -23,12 +23,18 @@ jobs:
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       - uses: nicknovitski/nix-develop@8b263330c8f0999d6ce564372b099f00af6f8e8a # v1.1.1
+      - name: Set environment variables
+        run: |
+          subid="$(az account show | jq -r '.id')"
+          echo "azure_subscription_id=$subid" >> "$GITHUB_ENV"
+          echo "TF_VAR_subscription_id=$subid" >> "$GITHUB_ENV"
+          echo "ARM_SUBSCRIPTION_ID=$subid" >> "$GITHUB_ENV"
+          echo "ARM_TENANT_ID=$(az account show | jq -r '.tenantId')" >> "$GITHUB_ENV"
+          echo "ARM_CLIENT_ID=$(az ad app list --all | jq -r '.[] | select(.displayName == "contrast-ci") | .appId')" >> "$GITHUB_ENV"
+          echo "ARM_CLIENT_SECRET=${{ secrets.CONTRAST_CI_CLIENT_SECRET_AZURE }}" >> "$GITHUB_ENV"
       - name: Upload the image
         run: |
           # this also sets the image_id terraform variable
-          azure_subscription_id="$(az account show | jq -r '.id')"
-          echo "azure_subscription_id=$azure_subscription_id" >> "$GITHUB_ENV"
-          echo "TF_VAR_subscription_id=$azure_subscription_id" >> "$GITHUB_ENV"
           nix run -L .#scripts.upload-image -- --subscription-id="$azure_subscription_id" --location="$azure_location" --resource-group="${azure_resource_group}"
       - name: Destroy existing CI cluster
         continue-on-error: true
