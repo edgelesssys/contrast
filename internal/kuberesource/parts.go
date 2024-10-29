@@ -136,6 +136,9 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
 		snapshotter = nydusSnapshotter
 		snapshotterVolumes = nydusSnapshotterVolumes
+	case platforms.AKSPEERSNP:
+		// Node installer for SNP peer pods is currently not implemented. Wait for https://github.com/edgelesssys/contrast/pull/959.
+		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", platform)
 	}
@@ -282,7 +285,7 @@ type CoordinatorConfig struct {
 }
 
 // Coordinator constructs a new CoordinatorConfig.
-func Coordinator(namespace string) *CoordinatorConfig {
+func Coordinator(namespace string, withoutState bool) *CoordinatorConfig {
 	c := StatefulSet("coordinator", namespace).
 		WithSpec(StatefulSetSpec().
 			WithReplicas(1).
@@ -340,6 +343,50 @@ func Coordinator(namespace string) *CoordinatorConfig {
 				),
 			),
 		)
+
+	if withoutState {
+		c = StatefulSet("coordinator", namespace).
+			WithSpec(StatefulSetSpec().
+				WithReplicas(1).
+				WithServiceName("coordinator").
+				WithSelector(LabelSelector().
+					WithMatchLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}),
+				).
+				WithTemplate(PodTemplateSpec().
+					WithLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}).
+					WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
+					WithSpec(PodSpec().
+						WithContainers(
+							Container().
+								WithName("coordinator").
+								WithImage("ghcr.io/edgelesssys/contrast/coordinator:latest").
+								WithSecurityContext(SecurityContext().
+									WithCapabilities(applycorev1.Capabilities().
+										WithAdd("SYS_ADMIN"),
+									),
+								).
+								WithPorts(
+									ContainerPort().
+										WithName("userapi").
+										WithContainerPort(1313),
+									ContainerPort().
+										WithName("meshapi").
+										WithContainerPort(7777),
+								).
+								WithReadinessProbe(Probe().
+									WithInitialDelaySeconds(1).
+									WithPeriodSeconds(5).
+									WithTCPSocket(TCPSocketAction().
+										WithPort(intstr.FromInt(1313))),
+								).
+								WithResources(ResourceRequirements().
+									WithMemoryLimitAndRequest(100),
+								),
+						),
+					),
+				),
+			)
+	}
 
 	return &CoordinatorConfig{c}
 }

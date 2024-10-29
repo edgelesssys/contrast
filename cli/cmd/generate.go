@@ -217,12 +217,16 @@ func findGenerateTargets(args []string, logger *slog.Logger) ([]string, error) {
 		return nil, fmt.Errorf("no .yml/.yaml files found")
 	}
 
-	paths = filterNonCoCoRuntime("contrast-cc", paths, logger)
-	if len(paths) == 0 {
-		return nil, fmt.Errorf("no .yml/.yaml files with 'contrast-cc' runtime found")
+	contrastPaths := filterNonCoCoRuntime("contrast-cc", paths, logger)
+	if len(contrastPaths) != 0 {
+		return contrastPaths, nil
+	}
+	peerPaths := filterNonCoCoRuntime("kata-remote", paths, logger)
+	if len(peerPaths) != 0 {
+		return peerPaths, nil
 	}
 
-	return paths, nil
+	return nil, fmt.Errorf("no .yml/.yaml files with 'contrast-cc' or 'kata-remote' runtime found")
 }
 
 func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger *slog.Logger) []string {

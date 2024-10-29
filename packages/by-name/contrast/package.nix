@@ -53,6 +53,8 @@ let
       k3s-qemu-tdx-handler = runtimeHandler "k3s-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
       rke2-qemu-tdx-handler = runtimeHandler "rke2-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
       k3s-qemu-snp-handler = runtimeHandler "k3s-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
+      # We currently don't have our own node installer. Wait for https://github.com/edgelesssys/contrast/pull/959.
+      aks-peer-snp-handler = runtimeHandler "aks-peer-snp" kata.contrast-node-installer-image.runtimeHash;
 
       aksRefVals = {
         snp = [
@@ -129,6 +131,9 @@ let
         "${k3s-qemu-tdx-handler}" = tdxRefVals;
         "${rke2-qemu-tdx-handler}" = tdxRefVals;
         "${k3s-qemu-snp-handler}" = snpRefVals;
+        # TODO(@3u13r): We don't currently have an implemented attestation story for SNP peer pods.
+        # Use the snpRefVals as a placeholder for now.
+        "${aks-peer-snp-handler}" = snpRefVals;
       }
     );
 

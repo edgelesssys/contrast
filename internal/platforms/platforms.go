@@ -24,6 +24,8 @@ const (
 	K3sQEMUSNP
 	// RKE2QEMUTDX represents a deployment with QEMU on bare-metal TDX RKE2.
 	RKE2QEMUTDX
+	// AKSPEERSNP represents a deployment with PeerPod on SEV-SNP AKS.
+	AKSPEERSNP
 )
 
 // All returns a list of all available platforms.
@@ -51,6 +53,8 @@ func (p Platform) String() string {
 		return "K3s-QEMU-SNP"
 	case RKE2QEMUTDX:
 		return "RKE2-QEMU-TDX"
+	case AKSPEERSNP:
+		return "AKS-PEER-SNP"
 	default:
 		return "Unknown"
 	}
@@ -67,6 +71,8 @@ func FromString(s string) (Platform, error) {
 		return K3sQEMUSNP, nil
 	case "rke2-qemu-tdx":
 		return RKE2QEMUTDX, nil
+	case "aks-peer-snp":
+		return AKSPEERSNP, nil
 	default:
 		return Unknown, fmt.Errorf("unknown platform: %s", s)
 	}

@@ -17,6 +17,10 @@ func RuntimeHandler(platform platforms.Platform) (string, error) {
 		return "", fmt.Errorf("unmarshal embedded reference values mapping: %w", err)
 	}
 
+	if platform == platforms.AKSPEERSNP {
+		return "kata-remote", nil
+	}
+
 	for runtimeHandler := range mapping {
 		p, err := platformFromHandler(runtimeHandler)
 		if err != nil {
