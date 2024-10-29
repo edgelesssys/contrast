@@ -3,7 +3,6 @@
 
 {
   lib,
-  azure-cli,
   makeWrapper,
   buildGoModule,
   buildGoTest,
