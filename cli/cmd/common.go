@@ -15,6 +15,7 @@ import (
 	"github.com/edgelesssys/contrast/cli/telemetry"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
+	atlsinsecure "github.com/edgelesssys/contrast/internal/attestation/insecure"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/fsstore"
@@ -115,6 +116,9 @@ func validatorsFromManifest(m *manifest.Manifest, log *slog.Logger, hostData []b
 		opt.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]
 		validators = append(validators, tdx.NewValidator(&tdx.StaticValidateOptsGenerator{Opts: opt}, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "tdx"})))
 	}
+
+	// TODO(@3u13r): Don't add the insecure validator for all manifests.
+	validators = append(validators, atlsinsecure.NewValidator(log))
 
 	return validators, nil
 }

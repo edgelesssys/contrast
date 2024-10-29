@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	atlsinsecure "github.com/edgelesssys/contrast/internal/attestation/insecure"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
@@ -48,6 +49,9 @@ func run() (retErr error) {
 		return errors.New("COORDINATOR_HOST not set")
 	}
 
+	_, insecure := os.LookupEnv("COORDINATOR_INSECURE")
+	insecure = true
+
 	ctx := context.Background()
 
 	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -55,9 +59,15 @@ func run() (retErr error) {
 		return fmt.Errorf("generating key: %w", err)
 	}
 
-	issuer, err := atls.PlatformIssuer(log)
-	if err != nil {
-		return fmt.Errorf("creating issuer: %w", err)
+	var issuer atls.Issuer
+	if !insecure {
+		issuer, err = atls.PlatformIssuer(log)
+		if err != nil {
+			return fmt.Errorf("creating issuer: %w", err)
+		}
+	} else {
+		log.Warn("Running in insecure mode")
+		issuer = atlsinsecure.NewIssuer(log)
 	}
 
 	requestCert := func() (*meshapi.NewMeshCertResponse, error) {

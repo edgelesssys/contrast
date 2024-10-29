@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/atls"
+	atlsinsecure "github.com/edgelesssys/contrast/internal/attestation/insecure"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
@@ -108,10 +110,20 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 	}
 
 	hostData := manifest.NewHexString(report.HostData())
-	entry, ok := state.Manifest.Policies[hostData]
-	if !ok {
-		return nil, status.Errorf(codes.PermissionDenied, "policy hash %s not found in manifest", hostData)
+	var entry manifest.PolicyEntry
+	// TODO(@3u13r): Once we get the policy hash via the vTPM use that to fetch the policy entry
+	if bytes.Equal(report.HostData(), []byte(atlsinsecure.MagicHostData)) {
+		for _, v := range state.Manifest.Policies {
+			entry = v
+			break
+		}
+	} else {
+		entry, ok = state.Manifest.Policies[hostData]
+		if !ok {
+			return nil, status.Errorf(codes.PermissionDenied, "policy hash %s not found in manifest", hostData)
+		}
 	}
+
 	dnsNames := entry.SANs
 
 	peerPubKey, err := x509.ParsePKIXPublicKey(peerPubKeyBytes)
