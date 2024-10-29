@@ -66,8 +66,11 @@ func (a *Authority) Credentials(reg *prometheus.Registry, issuer atls.Issuer) (*
 //
 // If successful, the state will be passed to gRPC as [AuthInfo].
 func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
+	c.logger.Debug("ServerHandshake started")
+
 	state, err := c.getState()
 	if err != nil {
+		c.logger.Error("getting state", "err", err)
 		return nil, nil, fmt.Errorf("getting state: %w", err)
 	}
 
@@ -79,6 +82,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	opts, err := state.Manifest.SNPValidateOpts(c.kdsGetter)
 	if err != nil {
+		c.logger.Error("generating SNP validation options", "err", err)
 		return nil, nil, fmt.Errorf("generating SNP validation options: %w", err)
 	}
 
@@ -91,6 +95,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	tdxOpts, err := state.Manifest.TDXValidateOpts()
 	if err != nil {
+		c.logger.Error("generating TDX validation options", "err", err)
 		return nil, nil, fmt.Errorf("generating TDX validation options: %w", err)
 	}
 	for _, opt := range tdxOpts {
@@ -100,11 +105,13 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validators, c.attestationFailuresCounter)
 	if err != nil {
+		c.logger.Error("creating server TLS config", "err", err)
 		return nil, nil, err
 	}
 
 	conn, info, err := credentials.NewTLS(serverCfg).ServerHandshake(rawConn)
 	if err != nil {
+		c.logger.Error("credentials.NewTLS.ServerHandshake", "err", err)
 		return nil, nil, err
 	}
 	tlsInfo, ok := info.(credentials.TLSInfo)
@@ -113,6 +120,8 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 	} else {
 		c.logger.Error("credentials.NewTLS returned unexpected AuthInfo", "obj", info)
 	}
+
+	c.logger.Debug("ServerHandshake completed", "peer", tlsInfo.State.PeerCertificates[0].Subject.CommonName)
 
 	return conn, authInfo, nil
 }
