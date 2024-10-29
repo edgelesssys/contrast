@@ -166,6 +166,17 @@ let
         Cmd = [ "${lib.getExe pkgs.scripts.cleanup-bare-metal}" ];
       };
     };
+
+    cloud-api-adaptor = dockerTools.buildImage {
+      name = "cloud-api-adaptor";
+      tag = "v${pkgs.cloud-api-adaptor.version}";
+      copyToRoot = with pkgs; [
+        cacert
+      ];
+      config = {
+        Cmd = [ "${lib.getExe pkgs.cloud-api-adaptor.entrypoint}" ];
+      };
+    };
   };
 in
 containers
