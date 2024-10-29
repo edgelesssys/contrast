@@ -7,6 +7,7 @@ package az
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -24,6 +25,9 @@ func NodeImageVersion(clusterName string, rg string) (string, error) {
 	err = json.Unmarshal(out, &outMap)
 	if err != nil {
 		return "", err
+	}
+	if len(outMap) == 0 {
+		return "", errors.New("No nodepools could be listed")
 	}
 
 	return strings.TrimSpace(fmt.Sprintf("%s", outMap[0]["nodeImageVersion"])), nil

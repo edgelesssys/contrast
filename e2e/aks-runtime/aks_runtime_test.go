@@ -116,9 +116,11 @@ func TestAKSRuntime(t *testing.T) {
 
 		// delete the deployment
 		deletePolicy := metav1.DeletePropagationForeground
-		require.NoError(c.Client.CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{
+		if err = c.Client.CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{
 			PropagationPolicy: &deletePolicy,
-		}))
+		}); err != nil {
+			t.Fatalf("Failed to delete namespace %s", &namespace)
+		}
 	})
 
 	pods, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
