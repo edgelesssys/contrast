@@ -3,7 +3,6 @@
 
 {
   lib,
-  makeWrapper,
   buildGoModule,
   buildGoTest,
   microsoft,
@@ -26,14 +25,6 @@ let
     pname = "${contrast.pname}-e2e";
 
     tags = [ "e2e" ];
-
-    nativeBuildInputs = [
-      makeWrapper
-    ];
-
-    ldflags = [
-      "-s"
-    ];
 
     subPackages = [
       "e2e/genpolicy"
