@@ -57,7 +57,7 @@ jobs:
       - name: Install `az` with extensions
         run: |
           sudo apt-get update
-          sudo apt-get install apt-transport-https ca-certificates curl gnupg lsb-release
+          sudo apt-get -y install apt-transport-https ca-certificates curl gnupg lsb-release
           sudo mkdir -p /etc/apt/keyrings
           curl -sLS https://packages.microsoft.com/keys/microsoft.asc |
           gpg --dearmor | sudo tee /etc/apt/keyrings/microsoft.gpg > /dev/null
@@ -74,7 +74,7 @@ jobs:
           EOF
 
           sudo apt-get update
-          sudo apt-get install azure-cli
+          sudo apt-get -y install azure-cli
 
           az extension add --name aks-preview
           az extension add --name confcom
