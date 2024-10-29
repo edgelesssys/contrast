@@ -119,7 +119,7 @@ func TestAKSRuntime(t *testing.T) {
 		if err = c.Client.CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{
 			PropagationPolicy: &deletePolicy,
 		}); err != nil {
-			t.Fatalf("Failed to delete namespace %s", &namespace)
+			t.Fatalf("Failed to delete namespace %s", namespace)
 		}
 	})
 
