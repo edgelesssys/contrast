@@ -26,6 +26,12 @@ jobs:
         uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env
