@@ -26,8 +26,6 @@ let
 
     tags = [ "e2e" ];
 
-    ldflags = [ "-s" ];
-
     subPackages = [
       "e2e/genpolicy"
       "e2e/getdents"
@@ -38,6 +36,7 @@ let
       "e2e/workloadsecret"
       "e2e/volumestatefulset"
       "e2e/regression"
+      "e2e/aks-runtime"
     ];
   };
 

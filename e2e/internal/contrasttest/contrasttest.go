@@ -52,7 +52,7 @@ type ContrastTest struct {
 // New creates a new contrasttest.T object bound to the given test.
 func New(t *testing.T, imageReplacements, namespaceFile string, platform platforms.Platform, skipUndeploy bool) *ContrastTest {
 	return &ContrastTest{
-		Namespace:             makeNamespace(t),
+		Namespace:             MakeNamespace(t),
 		WorkDir:               t.TempDir(),
 		ImageReplacementsFile: imageReplacements,
 		Platform:              platform,
@@ -372,7 +372,8 @@ func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Durati
 	}
 }
 
-func makeNamespace(t *testing.T) string {
+// MakeNamespace creates a namespace string using a given *testing.T.
+func MakeNamespace(t *testing.T) string {
 	buf := make([]byte, 4)
 	re := regexp.MustCompile("[a-z0-9-]+")
 	n, err := rand.Reader.Read(buf)
