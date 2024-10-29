@@ -57,7 +57,7 @@ func run() (retErr error) {
 	logger.Info("Coordinator started")
 
 	if err := setupMount(context.Background(), logger); err != nil {
-		return fmt.Errorf("setting up mount: %w", err)
+		logger.Error("Error setting up mount, Contrast recovery is disabled", "err", err)
 	}
 
 	metricsPort := os.Getenv(metricsPortEnvVar)
