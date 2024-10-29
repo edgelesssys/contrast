@@ -91,6 +91,55 @@
       '';
   };
 
+  upload-release-image = writeShellApplication {
+    name = "upload-release-image";
+    runtimeInputs = with pkgs; [
+      azure-cli
+      uplosi
+    ];
+    text =
+      let
+        image = pkgs.image-podvm;
+      in
+      ''
+        imageVersion=""
+
+        for i in "$@"; do
+          case $i in
+          --version=*)
+            imageVersion="''${i#*=}"
+            shift
+            ;;
+          *)
+            echo "Unknown option $i"
+            exit 1
+            ;;
+          esac
+        done
+
+        set -x
+
+        # Create an uplosi config.
+        cat <<EOF > uplosi.conf
+        [base]
+        imageVersion = "''${imageVersion}"
+        name = "contrast"
+        provider = "azure"
+
+        [base.azure]
+        subscriptionID = "0d202bbb-4fa7-4af8-8125-58c269a05435"
+        location = "GermanyWestCentral"
+        resourceGroup = "contrast-images"
+        sharedImageGallery = "contrast_images"
+        sharingProfile = "community"
+        sharingNamePrefix = "Contrast"
+        replicationRegions = ["northeurope", "westeurope", "eastus", "westus"]
+        EOF
+
+        uplosi upload ${image}/*.raw
+      '';
+  };
+
   generate = writeShellApplication {
     name = "generate";
     runtimeInputs = with pkgs; [
