@@ -73,6 +73,19 @@ buildGoModule rec {
     default-policy = runCommand "default-policy" { } ''
       cp ${cloud-api-adaptor.src}/src/cloud-api-adaptor/podvm/files/etc/kata-opa/allow-all.rego $out
     '';
+
+    entrypoint = writeShellApplication {
+      name = "entrypoint";
+      runtimeInputs = [ cloud-api-adaptor ];
+      text = builtins.readFile "${cloud-api-adaptor.src}/src/cloud-api-adaptor/entrypoint.sh";
+      bashOptions = [
+        "pipefail"
+      ];
+      excludeShellChecks = [
+        "SC2086"
+        "SC2153"
+      ];
+    };
   };
 
   meta = {
