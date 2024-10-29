@@ -29,7 +29,7 @@ jobs:
           azure_subscription_id="$(az account show | jq -r '.id')"
           echo "azure_subscription_id=$azure_subscription_id" >> "$GITHUB_ENV"
           echo "TF_VAR_subscription_id=$azure_subscription_id" >> "$GITHUB_ENV"
-          nix run -L .#scripts.upload-image -- --subscription-id="$azure_subscription_id" --location="$azure_location" --resource-group="${azure_resource_group}_caa_cluster"
+          nix run -L .#scripts.upload-image -- --subscription-id="$azure_subscription_id" --location="$azure_location" --resource-group="${azure_resource_group}"
       - name: Destroy existing CI cluster
         continue-on-error: true
         run: |
