@@ -22,6 +22,7 @@ jobs:
         uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
+      - uses: nicknovitski/nix-develop@8b263330c8f0999d6ce564372b099f00af6f8e8a # v1.1.1
       - name: Upload the image
         run: |
           # this also sets the image_id terraform variable
@@ -33,12 +34,12 @@ jobs:
         continue-on-error: true
         run: |
           cd infra/azure-peerpods
-          nix run .#terraform -- init
-          nix run .#terraform -- destroy -auto-approve
+          terraform init
+          terraform destroy -auto-approve
       - name: Create CI cluster
         run: |
           cd infra/azure-peerpods
-          nix run .#terraform -- apply -auto-approve
+          terraform apply -auto-approve
       - name: Deploy sync server
         run: |
           kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/f069648d8d08951b503559bab367036290d1f50a/server/deployment.yml
