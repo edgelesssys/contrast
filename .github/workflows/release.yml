@@ -232,6 +232,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login to Azure
+        uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+        with:
+          creds: ${{ secrets.CONTRAST_IMAGES_CI_INFRA_AZURE }}
       - name: Bump flake version temporarily to release version
         uses: ./.github/actions/bump_version
         with:
@@ -275,6 +279,8 @@ jobs:
           front=${nydusSnapshotterImg%@*}
           back=${nydusSnapshotterImg#*@}
           echo "nydusSnapshotterImgTagged=$(printf "%s:%s@%s" "$front" "$nydusVer" "$back")" | tee -a "$GITHUB_ENV"
+      - name: Upload peerpods images
+        run: nix run .#scripts.upload-release-image -- --version=${{ needs.process-inputs.outputs.WITHOUT_V }}
       - name: Create file with image replacements
         run: |
           {
