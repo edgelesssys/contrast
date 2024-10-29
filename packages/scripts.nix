@@ -20,7 +20,6 @@
     name = "upload-image";
     runtimeInputs = with pkgs; [
       azure-cli
-      gnused
       uplosi
     ];
     text =
