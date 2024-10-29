@@ -283,14 +283,30 @@ wait-for-workload target=default_deploy_target:
         ;;
     esac
 
-# Load the kubeconfig from the running AKS cluster.
-get-credentials:
-    nix run -L .#azure-cli -- aks get-credentials \
-        --resource-group "$azure_resource_group" \
-        --name "$azure_resource_group"
-
-get-credentials-peerpod:
-    nix run -L .#scripts.merge-kube-config -- ./infra/azure-peerpods/kube.conf
+# Load the kubeconfig for the given platform.
+get-credentials platform=default_platform:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case {{ platform }} in
+        "AKS-CLH-SNP")
+            nix run -L .#azure-cli -- aks get-credentials \
+                --resource-group "$azure_resource_group" \
+                --name "$azure_resource_group"
+        ;;
+        "AKS-PEER-SNP")
+            nix run -L .#scripts.merge-kube-config -- ./infra/azure-peerpods/kube.conf
+            ;;
+        "K3s-QEMU-TDX")
+            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/5"
+        ;;
+        "K3s-QEMU-SNP")
+            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/2"
+        ;;
+        *)
+            echo "Unsupported platform: {{ platform }}"
+            exit 1
+        ;;
+    esac
 
 # Load the kubeconfig from the CI AKS cluster.
 get-credentials-ci:
@@ -298,13 +314,6 @@ get-credentials-ci:
         --resource-group "contrast-ci" \
         --name "contrast-ci" \
         --admin
-
-get-credentials-from-gcloud path:
-    nix run -L .#scripts.get-credentials {{ path }}
-
-get-credentials-tdxbm: (get-credentials-from-gcloud "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/5")
-
-get-credentials-snpbm: (get-credentials-from-gcloud "projects/796962942582/secrets/discovery-kubeconf/versions/2")
 
 # Destroy a running AKS cluster.
 destroy platform=default_platform:

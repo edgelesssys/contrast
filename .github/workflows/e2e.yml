@@ -55,6 +55,7 @@ jobs:
           cat <<EOF > justfile.env
           container_registry=${{ env.container_registry }}
           azure_resource_group=${{ env.azure_resource_group }}
+          default_platform=${{ inputs.platform }}
           EOF
       - if: ${{ !inputs.self-hosted }}
         name: Get credentials for CI cluster
