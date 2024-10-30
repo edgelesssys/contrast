@@ -87,5 +87,16 @@ in
     patches = final.lib.optionals (prev ? patches) prev.patches ++ [
       ./erofs-utils-reproducibility.patch
     ];
+    # The build environment sets SOURCE_DATE_EPOCH to 1980, but as mkfs.erofs
+    # implements timestamp clamping, and files from the store have a 1970
+    # timestamp, we end up with different file metadata in the image
+    # (in addition, it is not reproducible which files are touched during
+    # the build). We cannot use the -T flag as env has precedence over
+    # the flag. We therefore wrap the binary to set SOURCE_DATE_EPOCH to 0.
+    nativeBuildInputs = prev.nativeBuildInputs ++ [ final.makeWrapper ];
+    postFixup = ''
+      wrapProgram $out/bin/mkfs.erofs \
+        --set SOURCE_DATE_EPOCH 0
+    '';
   });
 }
