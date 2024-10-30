@@ -85,5 +85,20 @@ in
         ExecStart = "${lib.getExe pkgs.azure-no-agent}";
       };
     };
+
+    systemd.services.setup-nat-for-imds = {
+      wantedBy = [
+        "basic.target"
+        "multi-user.target"
+      ];
+      wants = [ "network-online.target" ];
+      after = [ "network-online.target" ];
+      description = "Setup NAT for IMDS";
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = "yes";
+        ExecStart = "${lib.getExe pkgs.peerpod-imds-nat}";
+      };
+    };
   };
 }

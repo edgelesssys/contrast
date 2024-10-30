@@ -51,6 +51,7 @@ lib.makeOverridable (
             inherit (outerPkgs)
               nvidia-ctk-prestart
               nvidia-ctk-with-config
+              peerpod-imds-nat
               ;
             libnvidia-container = outerPkgs.libnvidia-container-custom;
           }
