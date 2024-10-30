@@ -31,10 +31,6 @@
           overlays = [ (import ./overlays/nixpkgs.nix) ];
           config.allowUnfree = true;
           config.nvidia.acceptLicense = true;
-          # TODO(miampf): REMOVE AGAIN ONCE UNNEEDED
-          config.permittedInsecurePackages = [
-            "openssl-1.1.1w"
-          ];
         };
         inherit (pkgs) lib;
         treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
