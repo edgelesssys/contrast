@@ -1,0 +1,47 @@
+From ca7c9dfae2880adfdd8886657ca6bc352fc949a2 Mon Sep 17 00:00:00 2001
+From: "alex.lyn" <alex.lyn@antgroup.com>
+Date: Sat, 12 Oct 2024 17:39:00 +0800
+Subject: [PATCH] kata-agent: fixing bug of unable setting hostname correctly.
+
+When do update_container_namespaces updating namespaces, setting
+all UTS(and IPC) namespace paths to None resulted in hostnames
+set prior to the update becoming ineffective. This was primarily
+due to an error made while aligning with the oci spec: in an attempt
+to match empty strings with None values in oci-spec-rs, all paths
+were incorrectly set to None.
+
+Fixes #10325
+
+Signed-off-by: alex.lyn <alex.lyn@antgroup.com>
+---
+ src/agent/src/rpc.rs | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
+index 9f13af0f0..a2efb8396 100644
+--- a/src/agent/src/rpc.rs
++++ b/src/agent/src/rpc.rs
+@@ -1726,13 +1726,19 @@ fn update_container_namespaces(
+     if let Some(namespaces) = linux.namespaces_mut() {
+         for namespace in namespaces.iter_mut() {
+             if namespace.typ().to_string() == NSTYPEIPC {
+-                namespace.set_path(Some(PathBuf::from(&sandbox.shared_ipcns.path.clone())));
+-                namespace.set_path(None);
++                namespace.set_path(if !sandbox.shared_ipcns.path.is_empty() {
++                    Some(PathBuf::from(&sandbox.shared_ipcns.path))
++                } else {
++                    None
++                });
+                 continue;
+             }
+             if namespace.typ().to_string() == NSTYPEUTS {
+-                namespace.set_path(Some(PathBuf::from(&sandbox.shared_utsns.path.clone())));
+-                namespace.set_path(None);
++                namespace.set_path(if !sandbox.shared_utsns.path.is_empty() {
++                    Some(PathBuf::from(&sandbox.shared_utsns.path))
++                } else {
++                    None
++                });
+                 continue;
+             }
+         }

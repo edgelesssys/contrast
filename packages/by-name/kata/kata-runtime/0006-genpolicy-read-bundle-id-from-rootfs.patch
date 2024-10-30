@@ -1,4 +1,4 @@
-From 4f3d1bf8749fe7d11095f564ed6299207138c9aa Mon Sep 17 00:00:00 2001
+From a91041e762342a76065e51c4076574aba7c63c42 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Wed, 24 Jul 2024 09:51:57 +0200
 Subject: [PATCH] genpolicy: read bundle-id from rootfs

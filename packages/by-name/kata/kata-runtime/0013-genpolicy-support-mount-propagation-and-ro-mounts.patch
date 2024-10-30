@@ -1,4 +1,4 @@
-From 318c6540f5c5e959b3cfac06541b9ffad808ff5a Mon Sep 17 00:00:00 2001
+From 1870d6484813b4700dad2e5795924d050138a4a3 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Tue, 24 Sep 2024 16:05:31 +0200
 Subject: [PATCH] genpolicy: support mount propagation and ro-mounts

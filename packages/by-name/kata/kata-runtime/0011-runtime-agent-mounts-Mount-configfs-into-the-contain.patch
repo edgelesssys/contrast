@@ -1,4 +1,4 @@
-From ef7aed6e4bf202e387c13ad44e41f7db317b22f6 Mon Sep 17 00:00:00 2001
+From b7e3a9272cdce44e6087bcf35673365b3e576672 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabiano=20Fid=C3=AAncio?= <fabiano.fidencio@intel.com>
 Date: Thu, 25 Apr 2024 10:34:26 +0200
 Subject: [PATCH] runtime: agent: mounts: Mount configfs into the container

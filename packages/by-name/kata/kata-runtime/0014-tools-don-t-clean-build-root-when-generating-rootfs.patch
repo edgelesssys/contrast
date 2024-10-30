@@ -1,4 +1,4 @@
-From 460679591d0cbcf0da51dc7ce7b83ac8e9fe2007 Mon Sep 17 00:00:00 2001
+From 1ab3e3189814a6ddd64676749b4c3c94c210aba9 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Fri, 4 Oct 2024 11:27:37 +0200
 Subject: [PATCH] tools: don't clean build root when generating rootfs
