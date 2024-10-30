@@ -82,4 +82,10 @@ in
       hash = "sha256-MsZ4Bl8sW1dZUB9cYPsaLtc8P8RRx4hafSbNB4vXqi4=";
     };
   });
+
+  erofs-utils = prev.erofs-utils.overrideAttrs (prev: {
+    patches = final.lib.optionals (prev ? patches) prev.patches ++ [
+      ./erofs-utils-reproducibility.patch
+    ];
+  });
 }
