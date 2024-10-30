@@ -52,12 +52,7 @@ lib.makeOverridable (
               nvidia-ctk-prestart
               nvidia-ctk-with-config
               ;
-            libnvidia-container = outerPkgs.libnvidia-container-custom.override {
-              binaryPaths = [
-                config.hardware.nvidia.package
-                config.hardware.nvidia.package.persistenced
-              ];
-            };
+            libnvidia-container = outerPkgs.libnvidia-container-custom;
           }
         )
       ];

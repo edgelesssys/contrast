@@ -14,7 +14,7 @@
   removeReferencesTo,
   replaceVars,
   go,
-  binaryPaths ? [ ],
+  binaryPaths ? [ "/run/current-system/sw" ],
 }:
 let
   modprobeVersion = "550.54.14";
@@ -49,7 +49,7 @@ stdenv.mkDerivation rec {
     # path.
     (replaceVars ./fix-library-resolving.patch {
       inherit (addDriverRunpath) driverLink;
-      binaryPath = lib.makeBinPath binaryPaths;
+      binaryPath = (lib.makeBinPath binaryPaths);
     })
 
     # fix bogus struct declaration
