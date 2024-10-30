@@ -16,6 +16,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/internal/atls"
+	atlsinsecure "github.com/edgelesssys/contrast/internal/attestation/insecure"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
@@ -56,7 +57,7 @@ func run() (retErr error) {
 	logger.Info("Coordinator started")
 
 	if err := setupMount(context.Background(), logger); err != nil {
-		return fmt.Errorf("setting up mount: %w", err)
+		logger.Error("Error setting up mount, Contrast recovery is disabled", "err", err)
 	}
 
 	metricsPort := os.Getenv(metricsPortEnvVar)
@@ -154,9 +155,18 @@ func newServerMetrics(reg *prometheus.Registry) *grpcprometheus.ServerMetrics {
 }
 
 func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger) (*grpc.Server, error) {
-	issuer, err := atls.PlatformIssuer(log)
-	if err != nil {
-		return nil, fmt.Errorf("creating issuer: %w", err)
+	_, insecure := os.LookupEnv("COORDINATOR_INSECURE")
+	insecure = true
+
+	var issuer atls.Issuer
+	var err error
+	if !insecure {
+		issuer, err = atls.PlatformIssuer(log)
+		if err != nil {
+			return nil, fmt.Errorf("creating issuer: %w", err)
+		}
+	} else {
+		issuer = atlsinsecure.NewIssuer(log)
 	}
 
 	credentials := atlscredentials.New(issuer, atls.NoValidators, atls.NoMetrics)

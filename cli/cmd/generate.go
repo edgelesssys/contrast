@@ -217,12 +217,16 @@ func findGenerateTargets(args []string, logger *slog.Logger) ([]string, error) {
 		return nil, fmt.Errorf("no .yml/.yaml files found")
 	}
 
-	paths = filterNonCoCoRuntime("contrast-cc", paths, logger)
-	if len(paths) == 0 {
-		return nil, fmt.Errorf("no .yml/.yaml files with 'contrast-cc' runtime found")
+	contrastPaths := filterNonCoCoRuntime("contrast-cc", paths, logger)
+	if len(contrastPaths) != 0 {
+		return contrastPaths, nil
+	}
+	peerPaths := filterNonCoCoRuntime("kata-remote", paths, logger)
+	if len(peerPaths) != 0 {
+		return peerPaths, nil
 	}
 
-	return paths, nil
+	return nil, fmt.Errorf("no .yml/.yaml files with 'contrast-cc' or 'kata-remote' runtime found")
 }
 
 func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger *slog.Logger) []string {
@@ -243,7 +247,11 @@ func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger 
 }
 
 func generatePolicies(ctx context.Context, flags *generateFlags, yamlPaths []string, logger *slog.Logger) error {
-	cfg := genpolicy.NewConfig(flags.referenceValuesPlatform)
+	cfg, err := genpolicy.NewConfig(flags.referenceValuesPlatform)
+	if err != nil {
+		return fmt.Errorf("getting genpolicy config: %w", err)
+	}
+
 	if err := createFileWithDefault(flags.settingsPath, 0o644, func() ([]byte, error) { return cfg.Settings, nil }); err != nil {
 		return fmt.Errorf("creating default policy file: %w", err)
 	}

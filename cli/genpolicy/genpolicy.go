@@ -54,6 +54,7 @@ func New(rulesPath, settingsPath, cachePath string, bin []byte) (*Runner, error)
 func (r *Runner) Run(ctx context.Context, yamlPath string, logger *slog.Logger) error {
 	args := []string{
 		"--runtime-class-names=contrast-cc",
+		"--runtime-class-names=kata-remote",
 		"--rego-rules-path=" + r.rulesPath,
 		"--json-settings-path=" + r.settingsPath,
 		"--layers-cache-file-path=" + r.cachePath,

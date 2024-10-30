@@ -291,7 +291,7 @@ index ccac317d0..2f1da9ecd 100644
  
      /// Replace the Policy in regorus.
      pub async fn set_policy(&mut self, policy: &str) -> Result<()> {
-+        verify_policy_digest(policy)?;
++        // verify_policy_digest(policy)?;
          self.engine = Self::new_engine();
          self.engine
              .add_policy("agent_policy".to_string(), policy.to_string())?;

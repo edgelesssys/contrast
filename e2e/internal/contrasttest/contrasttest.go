@@ -146,7 +146,11 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	require.NoError(err)
 	require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), buf, 0o644))
 
-	ct.installRuntime(t)
+	if ct.Platform == platforms.AKSPEERSNP {
+		t.Log("Skipping runtime installation for AKS-PEER-SNP")
+	} else {
+		ct.installRuntime(t)
+	}
 }
 
 // Generate runs the contrast generate command.
@@ -196,7 +200,7 @@ func (ct *ContrastTest) patchReferenceValues(t *testing.T, platform platforms.Pl
 			SNPVersion:        toPtr(manifest.SVN(255)),
 			MicrocodeVersion:  toPtr(manifest.SVN(255)),
 		}
-	case platforms.K3sQEMUSNP:
+	case platforms.K3sQEMUSNP, platforms.AKSPEERSNP:
 		// The generate command doesn't fill in all required fields when
 		// generating a manifest for baremetal SNP. Do that now.
 		for i, snp := range m.ReferenceValues.SNP {
@@ -214,6 +218,8 @@ func (ct *ContrastTest) patchReferenceValues(t *testing.T, platform platforms.Pl
 			tdx.MrSeam = manifest.HexString("1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04")
 			m.ReferenceValues.TDX[i] = tdx
 		}
+	default:
+		require.NoError(t, fmt.Errorf("unsupported platform %s", platform))
 	}
 
 	manifestBytes, err = json.Marshal(m)
@@ -367,6 +373,8 @@ func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Durati
 		return timeout
 	case platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		return 2 * timeout
+	case platforms.AKSPEERSNP:
+		return 3 * timeout
 	default:
 		return timeout
 	}

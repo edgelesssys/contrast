@@ -50,7 +50,7 @@ func TestOpenSSL(t *testing.T) {
 	require.NoError(t, err)
 
 	resources := kuberesource.OpenSSL()
-	coordinator := kuberesource.CoordinatorBundle()
+	coordinator := kuberesource.CoordinatorBundleWith(true)
 
 	resources = append(resources, coordinator...)
 
@@ -194,6 +194,10 @@ func TestOpenSSL(t *testing.T) {
 	}
 
 	t.Run("coordinator recovery", func(t *testing.T) {
+		if platform == platforms.AKSPEERSNP {
+			t.Skip("coordinator recovery test is not supported on AKSPEERSNP")
+		}
+
 		require := require.New(t)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute) // Already long timeout, not using ct.FactorPlatformTimeout.

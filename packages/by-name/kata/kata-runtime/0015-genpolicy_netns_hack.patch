@@ -1,0 +1,15 @@
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index 9402e87ed..1b62be7f9 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -982,5 +982,10 @@ pub fn get_kata_namespaces(
+         Path: "".to_string(),
+     });
+
++    namespaces.push(KataLinuxNamespace {
++        Type: "network".to_string(),
++        Path: "/run/netns/podns".to_string(),
++    });
++
+     namespaces
+ }

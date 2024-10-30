@@ -36,7 +36,7 @@ func AddInitializer(
 		if meta.Annotations[skipInitializerAnnotationKey] == "true" {
 			return meta, spec
 		}
-		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec.RuntimeClassName == nil || (!strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") && !strings.HasPrefix(*spec.RuntimeClassName, "kata-remote")) {
 			return meta, spec
 		}
 

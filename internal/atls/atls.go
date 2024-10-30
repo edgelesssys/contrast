@@ -21,8 +21,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/crypto"
+	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -227,7 +227,7 @@ func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, peerPu
 	for _, ex := range cert.Extensions {
 		// Optimization: Skip the extension early before heading into the m*n complexity of the validator check
 		// if the extension is not an attestation document.
-		if !attestation.IsAttestationDocumentExtension(ex.Id) {
+		if !oid.IsAttestationDocumentExtension(ex.Id) {
 			continue
 		}
 

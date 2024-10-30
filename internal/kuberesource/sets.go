@@ -17,7 +17,21 @@ import (
 
 // CoordinatorBundle returns the Coordinator and a matching Service.
 func CoordinatorBundle() []any {
-	coordinatorSfSets := Coordinator("").StatefulSetApplyConfiguration
+	coordinatorSfSets := Coordinator("", false).StatefulSetApplyConfiguration
+	coordinatorService := ServiceForStatefulSet(coordinatorSfSets).
+		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
+
+	resources := []any{
+		coordinatorSfSets,
+		coordinatorService,
+	}
+
+	return resources
+}
+
+// CoordinatorBundleWith returns the Coordinator and a matching Service.
+func CoordinatorBundleWith(withoutState bool) []any {
+	coordinatorSfSets := Coordinator("", withoutState).StatefulSetApplyConfiguration
 	coordinatorService := ServiceForStatefulSet(coordinatorSfSets).
 		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
 
