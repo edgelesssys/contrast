@@ -1,0 +1,73 @@
+From fe0c4d181cb68b471b46dd94046bba13aabd74c9 Mon Sep 17 00:00:00 2001
+From: Simon Kaegi <simon.kaegi@gmail.com>
+Date: Thu, 24 Oct 2024 16:23:49 -0400
+Subject: [PATCH] agent: Correct rustjail device filemode permission typo
+
+Corrects device filemode permissions typo/regression in rustjail to `666` instead of `066`.
+`666` is the standard and expected value for these devices in containers.
+
+Fixes: #10454
+
+Signed-off-by: Simon Kaegi <simon.kaegi@gmail.com>
+---
+ src/agent/rustjail/src/container.rs | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/src/agent/rustjail/src/container.rs b/src/agent/rustjail/src/container.rs
+index a8334fed9..a1eb6974a 100644
+--- a/src/agent/rustjail/src/container.rs
++++ b/src/agent/rustjail/src/container.rs
+@@ -158,7 +158,7 @@ lazy_static! {
+                 .typ(oci::LinuxDeviceType::C)
+                 .major(1)
+                 .minor(3)
+-                .file_mode(0o066_u32)
++                .file_mode(0o666_u32)
+                 .uid(0xffffffff_u32)
+                 .gid(0xffffffff_u32)
+                 .build()
+@@ -168,7 +168,7 @@ lazy_static! {
+                 .typ(oci::LinuxDeviceType::C)
+                 .major(1)
+                 .minor(5)
+-                .file_mode(0o066_u32)
++                .file_mode(0o666_u32)
+                 .uid(0xffffffff_u32)
+                 .gid(0xffffffff_u32)
+                 .build()
+@@ -178,7 +178,7 @@ lazy_static! {
+                 .typ(oci::LinuxDeviceType::C)
+                 .major(1)
+                 .minor(7)
+-                .file_mode(0o066_u32)
++                .file_mode(0o666_u32)
+                 .uid(0xffffffff_u32)
+                 .gid(0xffffffff_u32)
+                 .build()
+@@ -188,7 +188,7 @@ lazy_static! {
+                 .typ(oci::LinuxDeviceType::C)
+                 .major(5)
+                 .minor(0)
+-                .file_mode(0o066_u32)
++                .file_mode(0o666_u32)
+                 .uid(0xffffffff_u32)
+                 .gid(0xffffffff_u32)
+                 .build()
+@@ -198,7 +198,7 @@ lazy_static! {
+                 .typ(oci::LinuxDeviceType::C)
+                 .major(1)
+                 .minor(9)
+-                .file_mode(0o066_u32)
++                .file_mode(0o666_u32)
+                 .uid(0xffffffff_u32)
+                 .gid(0xffffffff_u32)
+                 .build()
+@@ -208,7 +208,7 @@ lazy_static! {
+                 .typ(oci::LinuxDeviceType::C)
+                 .major(1)
+                 .minor(8)
+-                .file_mode(0o066_u32)
++                .file_mode(0o666_u32)
+                 .uid(0xffffffff_u32)
+                 .gid(0xffffffff_u32)
+                 .build()

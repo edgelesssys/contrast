@@ -90,6 +90,11 @@ buildGoModule rec {
       # The patch is not sufficient for upstream, because it requires the extraRootFs content from
       # our Nix packaging.
       ./0014-tools-don-t-clean-build-root-when-generating-rootfs.patch
+
+      # Cherry-pick of bug fixes from the Kata v3.10.1 patch release.
+      # Drop when upgrading to v3.10.
+      ./0015-kata-agent-fixing-bug-of-unable-setting-hostname-cor.patch
+      ./0016-agent-Correct-rustjail-device-filemode-permission-ty.patch
     ];
   };
 

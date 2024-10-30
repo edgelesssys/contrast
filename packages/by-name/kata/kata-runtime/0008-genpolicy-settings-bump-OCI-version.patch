@@ -1,4 +1,4 @@
-From 49d5646a9c93ecae2575c686d94be19cf8dc6086 Mon Sep 17 00:00:00 2001
+From f970b8d4fe08d4a3e5d4dcefc3f71415c560c5d1 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Wed, 24 Jul 2024 11:16:37 +0200
 Subject: [PATCH] genpolicy-settings: bump OCI version
