@@ -66,6 +66,9 @@ node-installer platform=default_platform:
 e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer cryptsetup openssl port-forwarder service-mesh-proxy (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
+    if [[ "{{ target }}" == "aks-runtime" ]]; then
+      echo "WARNING(miampf): The aks-runtime test cannot be executed over just since the confcom azure CLI extension is not installed. Install it first if you want to runt this test over just."
+    fi
     nix shell .#contrast.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
