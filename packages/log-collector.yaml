@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: log-collector
+  namespace: @@NAMESPACE@@
+spec:
+  selector:
+    matchLabels:
+      name: log-collector
+  template:
+    metadata:
+      labels:
+        name: log-collector
+    spec:
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: log-collector
+          image: docker.io/bash:latest # TODO(miampf): Replace with non docker.io image
+          volumeMounts:
+            - mountPath: /logs
+              name: log-volume
+              readOnly: true
+          command:
+            - /usr/local/bin/bash
+            - -c
+            - |
+              ls /logs
+      volumes:
+        - name: log-volume
+          # mount the nodes logs to the container
+          hostPath:
+            path: /var/log/pods
+            type: Directory

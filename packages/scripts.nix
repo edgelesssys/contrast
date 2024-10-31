@@ -429,28 +429,16 @@
     name = "get-logs";
     runtimeInputs = with pkgs; [ kubectl ];
     text = ''
-      set -euo pipefail
-      # wait until namespace file is populated
       while ! [[ -s "$1" ]]; do
         sleep 1
       done
       namespace="$(head -n1 "$1")"
-      while kubectl get ns "$namespace" 1>/dev/null 2>/dev/null; do
-        pods="$(kubectl get pods -n "$namespace" | awk '!/^NAME/{print $1}')"
-        mkdir -p "workspace/namespace-logs"
-        for pod in $pods; do
-          logfile="workspace/namespace-logs/$pod.log"
-          if ! [[ -f "$logfile" ]]; then
-            {
-              touch "$logfile" # prevents creation of to much processes
-              # wait for all containers of the pod to come online, then collect the logs
-              kubectl wait pod --all --for=condition=Ready --timeout="-1s" -n "$namespace" "$pod" 1>/dev/null 2>/dev/null
-              kubectl logs -f --all-containers=true -n "$namespace" "$pod" > "$logfile"
-            } &
-          fi
-        done
-      done
-      wait
+
+      cp ./packages/log-collector.yaml ./workspace/log-collector.yaml
+      sed -i "s/@@NAMESPACE@@/''${namespace}/g" ./workspace/log-collector.yaml
+
+      kubectl get namespace | grep -q "^$namespace" || kubectl create namespace "$namespace"
+      kubectl apply -f ./workspace/log-collector.yaml
     '';
   };
 
