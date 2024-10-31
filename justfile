@@ -63,6 +63,7 @@ node-installer platform=default_platform:
         ;;
     esac
 
+# WARNING(miampf): The `aks-runtime` test cannot be executed over just since the `confcom` azure CLI extension is not installed. Install it first if you want to run this test over just.
 e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer cryptsetup openssl port-forwarder service-mesh-proxy (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
