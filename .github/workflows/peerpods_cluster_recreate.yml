@@ -30,7 +30,7 @@ jobs:
           echo "TF_VAR_subscription_id=$subid" >> "$GITHUB_ENV"
           echo "ARM_SUBSCRIPTION_ID=$subid" >> "$GITHUB_ENV"
           echo "ARM_TENANT_ID=$(az account show | jq -r '.tenantId')" >> "$GITHUB_ENV"
-          echo "ARM_CLIENT_ID=$(az ad app list --all | jq -r '.[] | select(.displayName == "contrast-ci") | .appId')" >> "$GITHUB_ENV"
+          echo "ARM_CLIENT_ID=${{ secrets.CONTRAST_CI_APP_ID }}" >> "$GITHUB_ENV"
           echo "ARM_CLIENT_SECRET=${{ secrets.CONTRAST_CI_CLIENT_SECRET_AZURE }}" >> "$GITHUB_ENV"
       - name: Upload the image
         run: |
