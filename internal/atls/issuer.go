@@ -6,6 +6,7 @@ package atls
 import (
 	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
@@ -15,17 +16,41 @@ import (
 
 // PlatformIssuer creates an attestation issuer for the current platform.
 func PlatformIssuer(log *slog.Logger) (Issuer, error) {
-	cpuid.Detect()
+	var issuer Issuer
 	switch {
 	case cpuid.CPU.Supports(cpuid.SEV_SNP):
-		return snp.NewIssuer(
+		issuer = snp.NewIssuer(
 			logger.NewWithAttrs(logger.NewNamed(log, "issuer"), map[string]string{"tee-type": "snp"}),
-		), nil
+		)
 	case cpuid.CPU.Supports(cpuid.TDX_GUEST):
-		return tdx.NewIssuer(
+		issuer = tdx.NewIssuer(
 			logger.NewWithAttrs(logger.NewNamed(log, "issuer"), map[string]string{"tee-type": "tdx"}),
-		), nil
+		)
 	default:
 		return nil, fmt.Errorf("unsupported platform: %T", cpuid.CPU)
 	}
+
+	if hasTPM() {
+		issuer = &vtpmIssuer{Issuer: issuer}
+	}
+	return issuer, nil
+}
+
+var tpmDevice = "/dev/tpm0"
+
+func hasTPM() bool {
+	f, err := os.Open(tpmDevice)
+	if err == nil {
+		f.Close()
+		return true
+	}
+	// If the device does not exist, we don't have a TPM.
+	// If the device exists but there is no backing TPM, the Open call fails with ENODEV.
+	return false
+}
+
+// vtpmIssuer issues attestation statements for VMs with a TPM.
+// TODO(burgerdev): this is currently a mock that just delegates to an underlying issuer.
+type vtpmIssuer struct {
+	Issuer
 }
