@@ -96,12 +96,12 @@
     "hash": "sha256-pco7TmLwLTuWKT87qTTAnin5IeoHAiXzbK3p6nJ0BKI="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-8.8.0-2.cm2.x86_64.rpm",
-    "hash": "sha256-05xesJ8/PxUUVNcHRt5Jwt8K2nH0zvdzpuOno17qdig="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-8.8.0-3.cm2.x86_64.rpm",
+    "hash": "sha256-oLZxugZQP3waugcYuYOpXN1wZj+MV79Xppq/VDVKobI="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-libs-8.8.0-2.cm2.x86_64.rpm",
-    "hash": "sha256-HCnEvNvhdzQlm/Nk/iV+ampCUrykhasYHRvD7x4OGvQ="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-libs-8.8.0-3.cm2.x86_64.rpm",
+    "hash": "sha256-6J0kkncYa8YMXqdBHb7Ed6a15FL1fbmTaRAa9nBRrxE="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/cyrus-sasl-lib-2.1.28-4.cm2.x86_64.rpm",
@@ -360,8 +360,8 @@
     "hash": "sha256-B9pc1N0WbufYfjCBtX1uca+TczWWEmuuT3Frgq/etjo="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-release-2.0-67.cm2.noarch.rpm",
-    "hash": "sha256-25uq8hO4ULtdboS5H6Dwc6G248cm83b7e1yF0OGZHkk="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-release-2.0-68.cm2.noarch.rpm",
+    "hash": "sha256-hpQbcYMD6EI/J7XmJUCbubVjVQH/LVv7HoWllK5mt7g="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-repos-2.0-9.cm2.noarch.rpm",
@@ -404,8 +404,8 @@
     "hash": "sha256-JOpgdnPQXqDfSw3fNaC8TO1pZG4MtywQ1E3nGNIlXr4="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/nghttp2-1.57.0-1.cm2.x86_64.rpm",
-    "hash": "sha256-hFwa9UTkB3S1SBKShNGT2rrxtyRUN4U6of6GX8R3Muw="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/nghttp2-1.57.0-2.cm2.x86_64.rpm",
+    "hash": "sha256-XuF58f/+HmhZRp/gZyigIZ3n701luhOuncZUTFDW0l4="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/npth-1.6-4.cm2.x86_64.rpm",
