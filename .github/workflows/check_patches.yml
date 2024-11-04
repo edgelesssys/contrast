@@ -1,0 +1,40 @@
+name: check patches
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/check_patches.yml
+      - packages/by-name/kata/kata-runtime/package.nix
+      - packages/by-name/kata/kata-runtime/0*.patch
+
+jobs:
+  check-patches:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: contrast
+      - uses: ./contrast/.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - id: kataversion
+        working-directory: contrast
+        run: |
+          echo "v=$(nix eval --raw .#kata.kata-runtime.version)" >> "$GITHUB_OUTPUT"
+      - name: Check out Kata
+        run: |
+          git clone --depth 1 -b "${{ steps.kataversion.outputs.v }}" https://github.com/kata-containers/kata-containers.git kata
+      - name: Apply patches
+        working-directory: kata
+        run: |
+          git config --global user.email "actionsbot@example.invalid"
+          git config --global user.name "Actions Bot"
+          git am --no-3way ../contrast/packages/by-name/kata/kata-runtime/0*.patch
+          git format-patch -N --no-signature --zero-commit --full-index -o ../contrast/packages/by-name/kata/kata-runtime/ "${{ steps.kataversion.outputs.v }}"
+      - name: Check for diff
+        working-directory: contrast
+        run: |
+          git diff --exit-code
