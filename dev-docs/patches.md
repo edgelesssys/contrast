@@ -70,10 +70,14 @@ git checkout $rev
 Apply the existing patch set:
 
 ```sh
-git am --committer-date-is-author-date -3 $pkgDir/*.patch
+git am --no-3way $pkgDir/0*.patch
 ```
 
 This will apply and commit each patch on top of `rev`.
+Some directories contain patches that aren't meant to be applied to the source, those are excluded by the `0` prefix.
+The `--no-3way` flag will abort application of unclean patches.
+If the existing patches can't be applied without a three-way merge, you can pass `-3` instead.
+This situation should then be resolved in a separate commit.
 
 You can then place new commits on top or modify existing commits. Remember to keep the git history clean.
 
@@ -82,8 +86,13 @@ When updating a package, you might need to rebase the current patch set.
 When done, recreate the patch set:
 
 ```sh
-git format-patch -N --no-signature -o $pkgDir $rev
+git format-patch -N --no-signature --zero-commit --full-index -o $pkgDir $rev
 ```
+
+Don't forget to `git add` patches you just added and to `git rm` patches you removed or renamed.
+
+The `static.yml` workflow ensures that patches can be reapplied cleanly.
+If this workflow fails, applying the rendered diff should be sufficient to appease it.
 
 # Patch documentation conventions
 
