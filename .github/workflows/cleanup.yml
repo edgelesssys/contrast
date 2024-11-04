@@ -17,7 +17,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -28,7 +28,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: nicknovitski/nix-develop@a2060d116a50b36dfab02280af558e73ab52427d # v1.1.0
+      - uses: nicknovitski/nix-develop@c2bcf9062b7c3a24659d915b8f272c1931a5802f # v1.2.0
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env

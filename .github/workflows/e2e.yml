@@ -49,7 +49,7 @@ jobs:
         uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
-      - uses: nicknovitski/nix-develop@8b263330c8f0999d6ce564372b099f00af6f8e8a # v1.1.1
+      - uses: nicknovitski/nix-develop@c2bcf9062b7c3a24659d915b8f272c1931a5802f # v1.2.0
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env
