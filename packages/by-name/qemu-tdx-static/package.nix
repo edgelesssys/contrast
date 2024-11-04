@@ -36,6 +36,11 @@ in
       "-Dlinux_fdt_path=${dtc}/lib"
     ];
 
+    # The upstream derivation removes the dtc dependency when minimal is set,
+    # but QEMU needs it when not only building usermode emulators.
+    # TODO(freax13): Fix this upstream.
+    buildInputs = previousAttrs.buildInputs ++ [ dtc ];
+
     nativeBuildInputs = previousAttrs.nativeBuildInputs ++ [ python3Packages.packaging ];
 
     prePatch = ''
