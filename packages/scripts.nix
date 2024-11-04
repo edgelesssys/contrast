@@ -109,12 +109,13 @@
         go generate ./...
       done < <(go list -f '{{.Dir}}' -m)
 
-      echo "Updating vendorHash of contrast.cli package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast
-      echo "Updating vendorHash of service-mesh package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.service-mesh
+      # Notice: Order matters! Packages must be updated before their dependents.
       echo "Updating vendorHash of tdx-measure package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.tdx-measure
+      echo "Updating vendorHash of service-mesh package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.service-mesh
+      echo "Updating vendorHash of contrast.cli package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast
 
       echo "Updating src hash of kata.kata-kernel-uvm.configfile" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.kata.kata-kernel-uvm.configfile
