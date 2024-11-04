@@ -44,4 +44,14 @@ final: prev:
         --set SOURCE_DATE_EPOCH 0
     '';
   });
+
+  # Upstream PR is currently in staging: https://github.com/NixOS/nixpkgs/pull/349201.
+  dtc = prev.dtc.overrideAttrs (prev: {
+    patches = final.lib.optionals (prev ? patches) prev.patches ++ [
+      (final.fetchpatch2 {
+        url = "https://github.com/dgibson/dtc/commit/56a7d0cb3be5f2f7604bc42299e24d13a39c72d8.patch";
+        hash = "sha256-GmAyk/K2OolH/Z8SsgwCcq3/GOlFuSpnVPr7jsy8Cs0=";
+      })
+    ];
+  });
 }
