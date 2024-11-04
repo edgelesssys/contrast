@@ -1,4 +1,4 @@
-From 3c05719560ccc658440af1d12542a9b2b1b68dea Mon Sep 17 00:00:00 2001
+From cc68c48a9af8cbdd6ffd8a74d7960adc22150f08 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Wed, 24 Jul 2024 09:48:48 +0200
 Subject: [PATCH] genpolicy: enable sysctl checks
@@ -44,7 +44,7 @@ index fe1625bac..e50d5e545 100644
      },
      "volumes": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 361bd7e8b..6a3a04da6 100644
+index 1d95bfe69..a89b13ed1 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -112,7 +112,6 @@ allow_create_container_input {
