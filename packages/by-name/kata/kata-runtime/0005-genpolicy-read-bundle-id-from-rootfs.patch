@@ -1,4 +1,4 @@
-From eed3e15bfd5468480e07b08dbf5266a75a61e076 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Wed, 24 Jul 2024 09:51:57 +0200
 Subject: [PATCH] genpolicy: read bundle-id from rootfs
@@ -14,7 +14,7 @@ NOTE: fixes https://github.com/kata-containers/kata-containers/issues/10065
  1 file changed, 8 insertions(+), 21 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index a89b13ed1..d9b68e3ac 100644
+index a89b13ed158ad8524e11ffbdad8ccb1ce7692aed..d9b68e3ac0758f0d15bc1415300573082d7e1949 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -509,9 +509,6 @@ allow_linux_sysctl(p_linux, i_linux) {

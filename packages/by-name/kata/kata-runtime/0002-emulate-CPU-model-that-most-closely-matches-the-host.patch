@@ -1,4 +1,4 @@
-From b73c887c4b00d58b1a9bf403c5b2d05b02574731 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:35:54 +0000
 Subject: [PATCH] emulate CPU model that most closely matches the host
@@ -12,7 +12,7 @@ attestation.
  1 file changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
-index 1d1be1711..6ebee26ce 100644
+index 1d1be17118f397445941c50a5276fb8aec2411e3..6ebee26ce34b5137f88a78219340b1f0867bc7a8 100644
 --- a/src/runtime/virtcontainers/qemu_amd64.go
 +++ b/src/runtime/virtcontainers/qemu_amd64.go
 @@ -191,7 +191,18 @@ func (q *qemuAmd64) cpuModel() string {

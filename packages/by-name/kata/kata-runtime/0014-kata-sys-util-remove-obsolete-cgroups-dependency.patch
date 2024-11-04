@@ -1,4 +1,4 @@
-From d589bc79cae6c05106fac50e07abe83945db1bf5 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Tue, 15 Oct 2024 16:11:21 +0200
 Subject: [PATCH] kata-sys-util: remove obsolete cgroups dependency
@@ -21,7 +21,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  9 files changed, 148 insertions(+), 105 deletions(-)
 
 diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
-index 8cf40f7ec..8d9877928 100644
+index 8cf40f7ec7d12b6e206d49f4b6adff05d347262d..8d9877928d7dca14f5a072357c6e03da3d2eba89 100644
 --- a/src/agent/Cargo.lock
 +++ b/src/agent/Cargo.lock
 @@ -2877,7 +2877,6 @@ version = "0.1.0"
@@ -33,7 +33,7 @@ index 8cf40f7ec..8d9877928 100644
   "common-path",
   "fail",
 diff --git a/src/libs/Cargo.lock b/src/libs/Cargo.lock
-index 8bf4e8e04..253ffcf94 100644
+index 8bf4e8e0457f047d8b0c4eda957f8fbf56bf8c96..253ffcf94fdad07de7b4cb99524345c72139f735 100644
 --- a/src/libs/Cargo.lock
 +++ b/src/libs/Cargo.lock
 @@ -240,19 +240,6 @@ version = "1.0.0"
@@ -84,7 +84,7 @@ index 8bf4e8e04..253ffcf94 100644
  name = "nix"
  version = "0.26.4"
 diff --git a/src/libs/kata-sys-util/Cargo.toml b/src/libs/kata-sys-util/Cargo.toml
-index 13d860ee4..079339c9c 100644
+index 13d860ee4579415aa37fda9c9a54f0b7823ae8f5..079339c9cfbfbcf7c98688fc60a59767c0c64d99 100644
 --- a/src/libs/kata-sys-util/Cargo.toml
 +++ b/src/libs/kata-sys-util/Cargo.toml
 @@ -13,7 +13,6 @@ edition = "2018"
@@ -96,7 +96,7 @@ index 13d860ee4..079339c9c 100644
  common-path = "=1.0.0"
  fail = "0.5.0"
 diff --git a/src/libs/kata-sys-util/README.md b/src/libs/kata-sys-util/README.md
-index 0c3f887bc..14bebfef8 100644
+index 0c3f887bcbeab53c80dc69af95a1aca57d093016..14bebfef881ff92b6848696aea0fe09b602f425d 100644
 --- a/src/libs/kata-sys-util/README.md
 +++ b/src/libs/kata-sys-util/README.md
 @@ -1,10 +1,9 @@
@@ -112,7 +112,7 @@ index 0c3f887bc..14bebfef8 100644
  - mount
  - NUMA
 diff --git a/src/runtime-rs/Cargo.lock b/src/runtime-rs/Cargo.lock
-index 45e80c388..216c3e41e 100644
+index 45e80c388e05feca6949957d2981069441482a2c..216c3e41e81306885a697ae1463dcb06a00a3e88 100644
 --- a/src/runtime-rs/Cargo.lock
 +++ b/src/runtime-rs/Cargo.lock
 @@ -1839,7 +1839,6 @@ version = "0.1.0"
@@ -124,7 +124,7 @@ index 45e80c388..216c3e41e 100644
   "common-path",
   "fail",
 diff --git a/src/tools/agent-ctl/Cargo.lock b/src/tools/agent-ctl/Cargo.lock
-index 7ecbd1ac0..d931c1b73 100644
+index 7ecbd1ac05e1801b4bf7ccfd9584433ac0fe123e..d931c1b735d56d33f2bed5f9c9447a7fc8b7e4cb 100644
 --- a/src/tools/agent-ctl/Cargo.lock
 +++ b/src/tools/agent-ctl/Cargo.lock
 @@ -1186,7 +1186,6 @@ version = "0.1.0"
@@ -136,7 +136,7 @@ index 7ecbd1ac0..d931c1b73 100644
   "common-path",
   "fail",
 diff --git a/src/tools/genpolicy/Cargo.lock b/src/tools/genpolicy/Cargo.lock
-index 9d0573c8e..8d68348c4 100644
+index 9d0573c8ec413e511405c5debd2b8f4df14900c3..8d68348c495552ba0960ebf26ee889e0f1e3215d 100644
 --- a/src/tools/genpolicy/Cargo.lock
 +++ b/src/tools/genpolicy/Cargo.lock
 @@ -301,19 +301,6 @@ version = "0.2.1"
@@ -187,7 +187,7 @@ index 9d0573c8e..8d68348c4 100644
  name = "nix"
  version = "0.26.4"
 diff --git a/src/tools/kata-ctl/Cargo.lock b/src/tools/kata-ctl/Cargo.lock
-index 2746bf64e..7499a3516 100644
+index 2746bf64ea94009962a070e962b8ab2cdce9018b..7499a3516176193536429663a75f3cc2842c766a 100644
 --- a/src/tools/kata-ctl/Cargo.lock
 +++ b/src/tools/kata-ctl/Cargo.lock
 @@ -27,7 +27,7 @@ dependencies = [
@@ -577,7 +577,7 @@ index 2746bf64e..7499a3516 100644
  name = "subprocess"
  version = "0.2.9"
 diff --git a/src/tools/runk/Cargo.lock b/src/tools/runk/Cargo.lock
-index e1afc6f91..b84227308 100644
+index e1afc6f91c3d62eb639d2b9b8e1e5322dbd27afb..b842273083b04c42b2704b8acd3857683831ced7 100644
 --- a/src/tools/runk/Cargo.lock
 +++ b/src/tools/runk/Cargo.lock
 @@ -1391,7 +1391,6 @@ version = "0.1.0"

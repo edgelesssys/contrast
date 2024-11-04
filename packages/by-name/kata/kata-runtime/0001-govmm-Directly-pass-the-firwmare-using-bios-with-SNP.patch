@@ -1,4 +1,4 @@
-From 099fd9159c03561ed738dacb370d18183f8601aa Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Fri, 5 Jul 2024 08:43:13 +0000
 Subject: [PATCH] govmm: Directly pass the firwmare using -bios with SNP
@@ -9,7 +9,7 @@ Subject: [PATCH] govmm: Directly pass the firwmare using -bios with SNP
  1 file changed, 1 insertion(+), 3 deletions(-)
 
 diff --git a/src/runtime/pkg/govmm/qemu/qemu.go b/src/runtime/pkg/govmm/qemu/qemu.go
-index e1070b731..b3b3fb4bd 100644
+index e1070b731920f00625dc58a9ce3e6b985af3a8ba..b3b3fb4bdbe99e6fc1a89db49be984b92a19551c 100644
 --- a/src/runtime/pkg/govmm/qemu/qemu.go
 +++ b/src/runtime/pkg/govmm/qemu/qemu.go
 @@ -395,9 +395,7 @@ func (object Object) QemuParams(config *Config) []string {

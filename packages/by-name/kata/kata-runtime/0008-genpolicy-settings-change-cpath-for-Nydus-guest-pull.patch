@@ -1,4 +1,4 @@
-From cfa3376d255617815b8ef10bdc6026bf38a99889 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Mon, 12 Aug 2024 14:18:43 +0200
 Subject: [PATCH] genpolicy-settings: change cpath for Nydus guest pull
@@ -10,7 +10,7 @@ https://github.com/kata-containers/kata-containers/blob/775f6bd/tests/integratio
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index fcafa46cc..4e9f6481d 100644
+index fcafa46cc3b62b74aa5ba08fdbd76fa3370ae77e..4e9f6481d649fc45716f182c394f38059792eb91 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -243,7 +243,7 @@

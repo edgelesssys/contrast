@@ -1,4 +1,4 @@
-From cc68c48a9af8cbdd6ffd8a74d7960adc22150f08 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Wed, 24 Jul 2024 09:48:48 +0200
 Subject: [PATCH] genpolicy: enable sysctl checks
@@ -16,7 +16,7 @@ environment-dependent sysctls in the settings file.
  5 files changed, 62 insertions(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index fe1625bac..e50d5e545 100644
+index fe1625bac119b59ce2094b2220e2a87c486e670a..e50d5e545e3fe42db486771345310d4c2157be2f 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -39,6 +39,10 @@
@@ -44,7 +44,7 @@ index fe1625bac..e50d5e545 100644
      },
      "volumes": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 1d95bfe69..a89b13ed1 100644
+index 1d95bfe699bb5082f8bbfb2cc4d89c8bde3a08ec..a89b13ed158ad8524e11ffbdad8ccb1ce7692aed 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -112,7 +112,6 @@ allow_create_container_input {
@@ -88,7 +88,7 @@ index 1d95bfe69..a89b13ed1 100644
  # and io.kubernetes.cri.sandbox-id" values with other fields.
  allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) {
 diff --git a/src/tools/genpolicy/src/containerd.rs b/src/tools/genpolicy/src/containerd.rs
-index 075fced5b..2922ea0ab 100644
+index 075fced5bfec11b27e529f0b1d2dba5e6271ba82..2922ea0ab54671269c8eedab3890ba35529db05a 100644
 --- a/src/tools/genpolicy/src/containerd.rs
 +++ b/src/tools/genpolicy/src/containerd.rs
 @@ -3,6 +3,8 @@
@@ -117,7 +117,7 @@ index 075fced5b..2922ea0ab 100644
      }
  }
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 19f882239..5030144c6 100644
+index 19f8822395ca225961bcf77bc3e5ae25e3c31119..5030144c6364cd929c53d18a24459748c1ce20aa 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
 @@ -21,6 +21,7 @@ use log::{debug, warn};
@@ -176,7 +176,7 @@ index 19f882239..5030144c6 100644
          ..Default::default()
      };
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 973643e1f..adbdf97f3 100644
+index 973643e1f270b589e30e0b2e9235dbfa70df0f20..adbdf97f33c449e905cbf9044a118da4598c69cd 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -27,6 +27,7 @@ use serde_yaml::Value;

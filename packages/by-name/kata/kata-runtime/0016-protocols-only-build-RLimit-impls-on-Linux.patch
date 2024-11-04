@@ -1,4 +1,4 @@
-From 4be30f25ebeb5d843ddc6bcbbbc9eabcbbd71add Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Tue, 15 Oct 2024 16:11:21 +0200
 Subject: [PATCH] protocols: only build RLimit impls on Linux
@@ -15,7 +15,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  1 file changed, 6 insertions(+)
 
 diff --git a/src/libs/protocols/src/trans.rs b/src/libs/protocols/src/trans.rs
-index d7cbba30a..e55957244 100644
+index d7cbba30ac64578c7c06b5f683bea63c87b13a78..e559572448ccebd458e20ffe99f84a2e8ae7c7c3 100644
 --- a/src/libs/protocols/src/trans.rs
 +++ b/src/libs/protocols/src/trans.rs
 @@ -97,6 +97,8 @@ impl From<oci::LinuxCapabilities> for grpc::LinuxCapabilities {

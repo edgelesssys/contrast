@@ -1,4 +1,4 @@
-From 731cb67511c10e51b88d69227d952c4d1c0cb2c8 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: =?UTF-8?q?Fabiano=20Fid=C3=AAncio?= <fabiano.fidencio@intel.com>
 Date: Thu, 25 Apr 2024 10:34:26 +0200
 Subject: [PATCH] runtime: agent: mounts: Mount configfs into the container
@@ -23,7 +23,7 @@ Signed-off-by: Fabiano Fidêncio <fabiano.fidencio@intel.com>
  1 file changed, 20 insertions(+)
 
 diff --git a/src/agent/rustjail/src/mount.rs b/src/agent/rustjail/src/mount.rs
-index 14e3d9560..b5f857913 100644
+index 14e3d95608784d18c4978fa2c89d1f523335a7e3..b5f8579132f262be66f2d73baa76a73fdff13e5d 100644
 --- a/src/agent/rustjail/src/mount.rs
 +++ b/src/agent/rustjail/src/mount.rs
 @@ -288,6 +288,26 @@ pub fn init_rootfs(

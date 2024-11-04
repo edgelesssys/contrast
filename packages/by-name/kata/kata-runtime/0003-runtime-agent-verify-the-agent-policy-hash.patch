@@ -1,4 +1,4 @@
-From d3bc2eb74a14272afb10d20c63e4d938538acbfe Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:51:20 +0000
 Subject: [PATCH] runtime: agent: verify the agent policy hash
@@ -42,7 +42,7 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  create mode 100644 src/agent/src/tdx.rs
 
 diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
-index f55144570..8cf40f7ec 100644
+index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05d347262d 100644
 --- a/src/agent/Cargo.lock
 +++ b/src/agent/Cargo.lock
 @@ -542,6 +542,12 @@ version = "0.6.3"
@@ -238,7 +238,7 @@ index f55144570..8cf40f7ec 100644
  name = "vsock"
  version = "0.2.6"
 diff --git a/src/agent/Cargo.toml b/src/agent/Cargo.toml
-index a8ed5d081..d5b3db965 100644
+index a8ed5d081cf87b19f4ce5c5bdb9cc4efa694a6e3..d5b3db965fe75cbccc182825a4115bdc57a9705b 100644
 --- a/src/agent/Cargo.toml
 +++ b/src/agent/Cargo.toml
 @@ -85,6 +85,11 @@ regorus = { version = "0.1.4", default-features = false, features = [
@@ -263,7 +263,7 @@ index a8ed5d081..d5b3db965 100644
  
  [[bin]]
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
-index 8a057bb36..22d858c10 100644
+index 8a057bb367537cfac988f20fda86b2e23a681682..22d858c10468478dacb7e7e9b9133a756abc1ea8 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
 @@ -85,6 +85,10 @@ mod tracer;
@@ -278,7 +278,7 @@ index 8a057bb36..22d858c10 100644
  cfg_if! {
      if #[cfg(target_arch = "s390x")] {
 diff --git a/src/agent/src/policy.rs b/src/agent/src/policy.rs
-index ccac317d0..2f1da9ecd 100644
+index ccac317d0ff707c1fd1242a144886d5e8c000a90..2f1da9ecd0d0ee1be06218d5bc9e58cd93defa8c 100644
 --- a/src/agent/src/policy.rs
 +++ b/src/agent/src/policy.rs
 @@ -3,11 +3,14 @@
@@ -351,7 +351,7 @@ index ccac317d0..2f1da9ecd 100644
 +}
 diff --git a/src/agent/src/sev.rs b/src/agent/src/sev.rs
 new file mode 100644
-index 000000000..3257eabaf
+index 0000000000000000000000000000000000000000..3257eabafcc971df7219d71186383616ee19a672
 --- /dev/null
 +++ b/src/agent/src/sev.rs
 @@ -0,0 +1,19 @@
@@ -376,7 +376,7 @@ index 000000000..3257eabaf
 +}
 diff --git a/src/agent/src/tdx.rs b/src/agent/src/tdx.rs
 new file mode 100644
-index 000000000..1531e72a8
+index 0000000000000000000000000000000000000000..1531e72a8b8db6e357d02ecdd431a9b88af3b30d
 --- /dev/null
 +++ b/src/agent/src/tdx.rs
 @@ -0,0 +1,194 @@
@@ -575,7 +575,7 @@ index 000000000..1531e72a8
 +    Ok(mrconfigid)
 +}
 diff --git a/src/runtime/pkg/govmm/qemu/qemu.go b/src/runtime/pkg/govmm/qemu/qemu.go
-index b3b3fb4bd..5070ecd1e 100644
+index b3b3fb4bdbe99e6fc1a89db49be984b92a19551c..5070ecd1e78ca04383637e662b3c8e4f8ec0ae5e 100644
 --- a/src/runtime/pkg/govmm/qemu/qemu.go
 +++ b/src/runtime/pkg/govmm/qemu/qemu.go
 @@ -320,6 +320,11 @@ type Object struct {
@@ -631,7 +631,7 @@ index b3b3fb4bd..5070ecd1e 100644
  
  	return tdxObject.String()
 diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
-index 5eb922980..0e5205cc9 100644
+index 5eb922980be33de9afc25ffaae65dd222f976c52..0e5205cc99da99e929365cbfe8637465872addb9 100644
 --- a/src/runtime/virtcontainers/hypervisor.go
 +++ b/src/runtime/virtcontainers/hypervisor.go
 @@ -545,7 +545,7 @@ type HypervisorConfig struct {
@@ -666,7 +666,7 @@ index 5eb922980..0e5205cc9 100644
  	tdxProtection
  
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index ba86c3d63..2c6311c06 100644
+index ba86c3d63a6c5158b3d0f7e6ae6af865dddb9d8d..2c6311c067935a2c5da0a1018420bab684b670e8 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -681,7 +681,7 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi
@@ -679,7 +679,7 @@ index ba86c3d63..2c6311c06 100644
  		return err
  	}
 diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
-index 6ebee26ce..0a0451cba 100644
+index 6ebee26ce34b5137f88a78219340b1f0867bc7a8..0a0451cba1565358225875cf6506381f5d221aec 100644
 --- a/src/runtime/virtcontainers/qemu_amd64.go
 +++ b/src/runtime/virtcontainers/qemu_amd64.go
 @@ -9,6 +9,8 @@ package virtcontainers
@@ -754,7 +754,7 @@ index 6ebee26ce..0a0451cba 100644
 +	return base64.StdEncoding.EncodeToString(mrConfigId)
 +}
 diff --git a/src/runtime/virtcontainers/qemu_amd64_test.go b/src/runtime/virtcontainers/qemu_amd64_test.go
-index 1425cb38c..f0a9c691a 100644
+index 1425cb38cfd79ab06b04f1dafbab9b7440901688..f0a9c691a6ffc6356f8f9a335e72b81239a2ef2c 100644
 --- a/src/runtime/virtcontainers/qemu_amd64_test.go
 +++ b/src/runtime/virtcontainers/qemu_amd64_test.go
 @@ -9,6 +9,10 @@ package virtcontainers
@@ -943,7 +943,7 @@ index 1425cb38c..f0a9c691a 100644
 +	assert.Equal(expectedOut, devices)
  }
 diff --git a/src/runtime/virtcontainers/qemu_arch_base.go b/src/runtime/virtcontainers/qemu_arch_base.go
-index fd92be772..662466f58 100644
+index fd92be772446f30058d4424f7a330a0bc23ff433..662466f5846c22b4c7fa6b62b1a272258e2e4143 100644
 --- a/src/runtime/virtcontainers/qemu_arch_base.go
 +++ b/src/runtime/virtcontainers/qemu_arch_base.go
 @@ -162,7 +162,7 @@ type qemuArch interface {
@@ -965,7 +965,7 @@ index fd92be772..662466f58 100644
  	return devices, firmware, nil
  }
 diff --git a/src/runtime/virtcontainers/qemu_arm64.go b/src/runtime/virtcontainers/qemu_arm64.go
-index a9b803f73..112fe358e 100644
+index a9b803f73275c1d5b9212a63fda097ebc33f1c9f..112fe358e4d76700ebe7a1d36e9ae42eb93611b7 100644
 --- a/src/runtime/virtcontainers/qemu_arm64.go
 +++ b/src/runtime/virtcontainers/qemu_arm64.go
 @@ -154,7 +154,7 @@ func (q *qemuArm64) enableProtection() error {
@@ -978,7 +978,7 @@ index a9b803f73..112fe358e 100644
  	if err != nil {
  		hvLogger.WithField("arch", runtime.GOARCH).Error(err)
 diff --git a/src/runtime/virtcontainers/qemu_arm64_test.go b/src/runtime/virtcontainers/qemu_arm64_test.go
-index 07e67ac8c..8b6bd03eb 100644
+index 07e67ac8c1479c67f4b4ffa850dddb8d1e0680e4..8b6bd03eb9d10f0c37dbdbb3fb5fa48585659e96 100644
 --- a/src/runtime/virtcontainers/qemu_arm64_test.go
 +++ b/src/runtime/virtcontainers/qemu_arm64_test.go
 @@ -182,42 +182,77 @@ func TestQemuArm64AppendProtectionDevice(t *testing.T) {
@@ -1066,7 +1066,7 @@ index 07e67ac8c..8b6bd03eb 100644
  	assert.Empty(bios)
  	assert.NoError(err)
 diff --git a/src/runtime/virtcontainers/qemu_ppc64le.go b/src/runtime/virtcontainers/qemu_ppc64le.go
-index d2e0228c8..ed7a14c4d 100644
+index d2e0228c8be8eae3ae24f3aa81b6423735f51320..ed7a14c4dc4262a0f1d77f6efa11310479fa1ecb 100644
 --- a/src/runtime/virtcontainers/qemu_ppc64le.go
 +++ b/src/runtime/virtcontainers/qemu_ppc64le.go
 @@ -157,7 +157,7 @@ func (q *qemuPPC64le) enableProtection() error {
@@ -1079,7 +1079,7 @@ index d2e0228c8..ed7a14c4d 100644
  	case pefProtection:
  		return append(devices,
 diff --git a/src/runtime/virtcontainers/qemu_ppc64le_test.go b/src/runtime/virtcontainers/qemu_ppc64le_test.go
-index 85e1dfe80..0c2f4b923 100644
+index 85e1dfe8050e3c64545e2031420058aad004f2ab..0c2f4b923d5550b67ad8c767124d8414b47d4c0b 100644
 --- a/src/runtime/virtcontainers/qemu_ppc64le_test.go
 +++ b/src/runtime/virtcontainers/qemu_ppc64le_test.go
 @@ -60,39 +60,63 @@ func TestQemuPPC64leAppendProtectionDevice(t *testing.T) {
@@ -1174,7 +1174,7 @@ index 85e1dfe80..0c2f4b923 100644
 +	assert.Equal(expectedOut, devices)
  }
 diff --git a/src/runtime/virtcontainers/qemu_s390x.go b/src/runtime/virtcontainers/qemu_s390x.go
-index 29eaafe5b..787a0e589 100644
+index 29eaafe5b3fe0ecf9f10bc49ede3465d2cf8ec3e..787a0e589a71dabb5acaedd66e36bb5f7d9662d0 100644
 --- a/src/runtime/virtcontainers/qemu_s390x.go
 +++ b/src/runtime/virtcontainers/qemu_s390x.go
 @@ -337,7 +337,7 @@ func (q *qemuS390x) enableProtection() error {
@@ -1187,7 +1187,7 @@ index 29eaafe5b..787a0e589 100644
  	case seProtection:
  		return append(devices,
 diff --git a/src/runtime/virtcontainers/qemu_s390x_test.go b/src/runtime/virtcontainers/qemu_s390x_test.go
-index 24a67bdd9..3f5f84aff 100644
+index 24a67bdd9e591ead96fbaea473cb662526dedbf3..3f5f84afffeec6fed0ba624408158425090fe88a 100644
 --- a/src/runtime/virtcontainers/qemu_s390x_test.go
 +++ b/src/runtime/virtcontainers/qemu_s390x_test.go
 @@ -111,40 +111,64 @@ func TestQemuS390xAppendProtectionDevice(t *testing.T) {
@@ -1281,7 +1281,7 @@ index 24a67bdd9..3f5f84aff 100644
 +	assert.Equal(expectedOut, devices)
  }
 diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
-index ac0d35e9c..ff7a46b4e 100644
+index ac0d35e9c854d6b5eea52e716137fe62414d51a7..ff7a46b4e05dbef2d8d1981897b04e639fda5527 100644
 --- a/src/runtime/virtcontainers/sandbox.go
 +++ b/src/runtime/virtcontainers/sandbox.go
 @@ -613,6 +613,7 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
