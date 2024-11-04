@@ -1,4 +1,4 @@
-From b2f09cebe1d383ef00fd84af79a45e4848ea4b69 Mon Sep 17 00:00:00 2001
+From cfa3376d255617815b8ef10bdc6026bf38a99889 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Mon, 12 Aug 2024 14:18:43 +0200
 Subject: [PATCH] genpolicy-settings: change cpath for Nydus guest pull

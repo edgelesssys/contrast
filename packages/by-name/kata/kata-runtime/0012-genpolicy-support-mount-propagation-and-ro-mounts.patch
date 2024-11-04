@@ -1,4 +1,4 @@
-From 1870d6484813b4700dad2e5795924d050138a4a3 Mon Sep 17 00:00:00 2001
+From d7b170e9bc52af5b595d21246e8cca56dfdb59b1 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Tue, 24 Sep 2024 16:05:31 +0200
 Subject: [PATCH] genpolicy: support mount propagation and ro-mounts
@@ -9,7 +9,7 @@ Subject: [PATCH] genpolicy: support mount propagation and ro-mounts
  2 files changed, 9 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 80ce58b7d..bee6dea70 100644
+index 50219c038..9de56a429 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -105,7 +105,8 @@ allow_create_container_input {

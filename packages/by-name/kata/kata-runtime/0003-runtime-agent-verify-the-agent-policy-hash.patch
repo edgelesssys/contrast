@@ -1,4 +1,4 @@
-From 9213830793a4a8fc04bdd063c8746d41b6bca4f6 Mon Sep 17 00:00:00 2001
+From d3bc2eb74a14272afb10d20c63e4d938538acbfe Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 8 Jul 2024 07:51:20 +0000
 Subject: [PATCH] runtime: agent: verify the agent policy hash
@@ -18,7 +18,7 @@ the Agent has the expected contents.
 Signed-off-by: Dan Mihai <dmihai@microsoft.com>
 Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
 ---
- src/agent/Cargo.lock                          |  98 +++++++++
+ src/agent/Cargo.lock                          | 101 +++++++++
  src/agent/Cargo.toml                          |   7 +-
  src/agent/src/main.rs                         |   4 +
  src/agent/src/policy.rs                       |  46 ++++-
@@ -37,12 +37,12 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/runtime/virtcontainers/qemu_s390x.go      |   2 +-
  src/runtime/virtcontainers/qemu_s390x_test.go |  51 ++++-
  src/runtime/virtcontainers/sandbox.go         |   1 +
- 19 files changed, 674 insertions(+), 40 deletions(-)
+ 19 files changed, 677 insertions(+), 40 deletions(-)
  create mode 100644 src/agent/src/sev.rs
  create mode 100644 src/agent/src/tdx.rs
 
 diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
-index f55144570..6c9342ddb 100644
+index f55144570..8cf40f7ec 100644
 --- a/src/agent/Cargo.lock
 +++ b/src/agent/Cargo.lock
 @@ -542,6 +542,12 @@ version = "0.6.3"
@@ -210,7 +210,17 @@ index f55144570..6c9342ddb 100644
  [[package]]
  name = "sha1"
  version = "0.10.6"
-@@ -6370,6 +6458,16 @@ version = "0.9.4"
+@@ -6351,6 +6439,9 @@ name = "uuid"
+ version = "1.10.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "81dfa00651efa65069b0b6b651f4aaa31ba9e3c3ce0137aaad053604ee7e0314"
++dependencies = [
++ "serde",
++]
+ 
+ [[package]]
+ name = "valuable"
+@@ -6370,6 +6461,16 @@ version = "0.9.4"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
  
@@ -253,7 +263,7 @@ index a8ed5d081..d5b3db965 100644
  
  [[bin]]
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
-index 88a5ec01a..9e98794d4 100644
+index 8a057bb36..22d858c10 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
 @@ -85,6 +85,10 @@ mod tracer;
@@ -621,10 +631,10 @@ index b3b3fb4bd..5070ecd1e 100644
  
  	return tdxObject.String()
 diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
-index 853ad4d5b..c47029e1d 100644
+index 5eb922980..0e5205cc9 100644
 --- a/src/runtime/virtcontainers/hypervisor.go
 +++ b/src/runtime/virtcontainers/hypervisor.go
-@@ -559,7 +559,7 @@ type HypervisorConfig struct {
+@@ -545,7 +545,7 @@ type HypervisorConfig struct {
  	// NumVCPUs specifies default number of vCPUs for the VM.
  	NumVCPUsF float32
  
@@ -633,7 +643,7 @@ index 853ad4d5b..c47029e1d 100644
  	DefaultMaxVCPUs uint32
  
  	// DefaultMem specifies default memory size in MiB for the VM.
-@@ -687,6 +687,10 @@ type HypervisorConfig struct {
+@@ -673,6 +673,10 @@ type HypervisorConfig struct {
  
  	// Initdata defines the initdata passed into guest when CreateVM
  	Initdata string
@@ -644,7 +654,7 @@ index 853ad4d5b..c47029e1d 100644
  }
  
  // vcpu mapping from vcpu number to thread number
-@@ -1048,8 +1052,8 @@ type guestProtection uint8
+@@ -1027,8 +1031,8 @@ type guestProtection uint8
  const (
  	noneProtection guestProtection = iota
  
@@ -656,7 +666,7 @@ index 853ad4d5b..c47029e1d 100644
  	tdxProtection
  
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 7a189bb91..509f74a3c 100644
+index ba86c3d63..2c6311c06 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -681,7 +681,7 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi
@@ -1271,10 +1281,10 @@ index 24a67bdd9..3f5f84aff 100644
 +	assert.Equal(expectedOut, devices)
  }
 diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
-index 8df2b7cc5..07df77478 100644
+index ac0d35e9c..ff7a46b4e 100644
 --- a/src/runtime/virtcontainers/sandbox.go
 +++ b/src/runtime/virtcontainers/sandbox.go
-@@ -608,6 +608,7 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
+@@ -613,6 +613,7 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
  
  	sandboxConfig.HypervisorConfig.VMStorePath = s.store.RunVMStoragePath()
  	sandboxConfig.HypervisorConfig.RunStorePath = s.store.RunStoragePath()

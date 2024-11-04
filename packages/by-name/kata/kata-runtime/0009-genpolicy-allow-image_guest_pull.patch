@@ -1,4 +1,4 @@
-From 36fd802eb33442c7a9a7897847b13a2a364d888b Mon Sep 17 00:00:00 2001
+From f9e3e6924f326af2cbac10476f663a6bfb86685a Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Thu, 1 Aug 2024 15:58:42 +0200
 Subject: [PATCH] genpolicy: allow image_guest_pull
@@ -39,7 +39,7 @@ index 4e9f6481d..e3b36a655 100644
              "source": "local",
              "fstype": "local",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 696439c4a..80ce58b7d 100644
+index 6ddcd18cd..50219c038 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -80,7 +80,7 @@ CreateContainerRequest {
