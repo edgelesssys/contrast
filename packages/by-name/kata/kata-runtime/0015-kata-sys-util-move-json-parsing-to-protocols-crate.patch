@@ -1,4 +1,4 @@
-From 3adff7459b506c8bbf4dd71370bbeb468c299a4d Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Tue, 15 Oct 2024 16:11:21 +0200
 Subject: [PATCH] kata-sys-util: move json parsing to protocols crate
@@ -26,7 +26,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  10 files changed, 46 insertions(+), 593 deletions(-)
 
 diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
-index 8d9877928..eae6db554 100644
+index 8d9877928d7dca14f5a072357c6e03da3d2eba89..eae6db554824b9de0d9694d583d0b05d610c5d9a 100644
 --- a/src/agent/Cargo.lock
 +++ b/src/agent/Cargo.lock
 @@ -4423,7 +4423,6 @@ name = "protocols"
@@ -38,7 +38,7 @@ index 8d9877928..eae6db554 100644
   "protobuf 3.5.1",
   "serde",
 diff --git a/src/libs/Cargo.lock b/src/libs/Cargo.lock
-index 253ffcf94..ed7184c48 100644
+index 253ffcf94fdad07de7b4cb99524345c72139f735..ed7184c48e33a63005b70215676a486a3358c07f 100644
 --- a/src/libs/Cargo.lock
 +++ b/src/libs/Cargo.lock
 @@ -1290,7 +1290,6 @@ name = "protocols"
@@ -50,7 +50,7 @@ index 253ffcf94..ed7184c48 100644
   "protobuf 3.2.0",
   "serde",
 diff --git a/src/libs/kata-sys-util/src/spec.rs b/src/libs/kata-sys-util/src/spec.rs
-index c7a7ba405..762af62b1 100644
+index c7a7ba405edb2df3954a74e70c9b0d1096c91a54..762af62b1242587c71eaade02787a5c0ff270c8e 100644
 --- a/src/libs/kata-sys-util/src/spec.rs
 +++ b/src/libs/kata-sys-util/src/spec.rs
 @@ -97,11 +97,3 @@ pub fn load_oci_spec() -> Result<oci::Spec, OciSpecError> {
@@ -66,7 +66,7 @@ index c7a7ba405..762af62b1 100644
 -    stripped_str
 -}
 diff --git a/src/libs/protocols/Cargo.toml b/src/libs/protocols/Cargo.toml
-index 366e1bea2..2b945f42c 100644
+index 366e1bea23e0861a5047f7166fb82db51adc454a..2b945f42c75eb61d6949043c0143ffd53bd6b23d 100644
 --- a/src/libs/protocols/Cargo.toml
 +++ b/src/libs/protocols/Cargo.toml
 @@ -7,19 +7,17 @@ license = "Apache-2.0"
@@ -93,7 +93,7 @@ index 366e1bea2..2b945f42c 100644
  ttrpc-codegen = "0.4.2"
  protobuf = { version = "3.2.0" }
 diff --git a/src/libs/protocols/src/trans.rs b/src/libs/protocols/src/trans.rs
-index 38428a880..d7cbba30a 100644
+index 38428a880455cae36bd84a832dd52d84d82f70f5..d7cbba30ac64578c7c06b5f683bea63c87b13a78 100644
 --- a/src/libs/protocols/src/trans.rs
 +++ b/src/libs/protocols/src/trans.rs
 @@ -10,7 +10,6 @@ use std::convert::TryFrom;
@@ -156,7 +156,7 @@ index 38428a880..d7cbba30a 100644
 +    }
  }
 diff --git a/src/runtime-rs/Cargo.lock b/src/runtime-rs/Cargo.lock
-index 216c3e41e..a19e72476 100644
+index 216c3e41e81306885a697ae1463dcb06a00a3e88..a19e7247641fbecd633f4f1a4b4830fad9bcd66f 100644
 --- a/src/runtime-rs/Cargo.lock
 +++ b/src/runtime-rs/Cargo.lock
 @@ -2993,9 +2993,10 @@ name = "protocols"
@@ -172,7 +172,7 @@ index 216c3e41e..a19e72476 100644
   "ttrpc-codegen",
  ]
 diff --git a/src/tools/agent-ctl/Cargo.lock b/src/tools/agent-ctl/Cargo.lock
-index d931c1b73..8dc37616c 100644
+index d931c1b735d56d33f2bed5f9c9447a7fc8b7e4cb..8dc37616cd7c0764a9f1e84453f1b10a6e9e9759 100644
 --- a/src/tools/agent-ctl/Cargo.lock
 +++ b/src/tools/agent-ctl/Cargo.lock
 @@ -1681,7 +1681,6 @@ dependencies = [
@@ -184,7 +184,7 @@ index d931c1b73..8dc37616c 100644
   "protobuf 3.2.0",
   "serde",
 diff --git a/src/tools/genpolicy/Cargo.lock b/src/tools/genpolicy/Cargo.lock
-index 8d68348c4..470859f51 100644
+index 8d68348c495552ba0960ebf26ee889e0f1e3215d..470859f514a303b7efee40f0f96cb342ed8da453 100644
 --- a/src/tools/genpolicy/Cargo.lock
 +++ b/src/tools/genpolicy/Cargo.lock
 @@ -17,17 +17,6 @@ version = "1.0.2"
@@ -1074,7 +1074,7 @@ index 8d68348c4..470859f51 100644
  name = "xattr"
  version = "1.3.1"
 diff --git a/src/tools/kata-ctl/Cargo.lock b/src/tools/kata-ctl/Cargo.lock
-index 7499a3516..bd2de0038 100644
+index 7499a3516176193536429663a75f3cc2842c766a..bd2de00388756dc4ee8193f998ab195f215971e0 100644
 --- a/src/tools/kata-ctl/Cargo.lock
 +++ b/src/tools/kata-ctl/Cargo.lock
 @@ -1944,9 +1944,10 @@ name = "protocols"
@@ -1090,7 +1090,7 @@ index 7499a3516..bd2de0038 100644
   "ttrpc-codegen",
  ]
 diff --git a/src/tools/runk/Cargo.lock b/src/tools/runk/Cargo.lock
-index b84227308..6f41aef6e 100644
+index b842273083b04c42b2704b8acd3857683831ced7..6f41aef6ecab798781e5a0ce1c68c548db2d22d4 100644
 --- a/src/tools/runk/Cargo.lock
 +++ b/src/tools/runk/Cargo.lock
 @@ -2067,9 +2067,10 @@ dependencies = [

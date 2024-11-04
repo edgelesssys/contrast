@@ -1,4 +1,4 @@
-From f9e3e6924f326af2cbac10476f663a6bfb86685a Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Thu, 1 Aug 2024 15:58:42 +0200
 Subject: [PATCH] genpolicy: allow image_guest_pull
@@ -26,7 +26,7 @@ don't even bother handling that case.
  create mode 100644 src/tools/genpolicy/tests/testdata/createcontainer/guest_pull/testcases.json
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 4e9f6481d..e3b36a655 100644
+index 4e9f6481d649fc45716f182c394f38059792eb91..e3b36a6555a646ffefc7733c807d6b0da9967dea 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -148,7 +148,7 @@
@@ -39,7 +39,7 @@ index 4e9f6481d..e3b36a655 100644
              "source": "local",
              "fstype": "local",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 6ddcd18cd..50219c038 100644
+index 6ddcd18cd1334dfabeadd1b0e7a54c723c7cae4d..44af45437f550877652c33019f42b0b29fdcfbdb 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -80,7 +80,7 @@ CreateContainerRequest {
@@ -153,7 +153,7 @@ index 6ddcd18cd..50219c038 100644
 +    p_mount_point := concat("/", [policy_data.common.cpath, bundle_id, "rootfs"])
 +    print("allow_storages 1: i_storage.mount_point =", i_storage.mount_point, "p_mount_point =", p_mount_point)
 +    i_storage.mount_point == p_mount_point
-+    
++
 +    print("allow_storages 1: p_container.image =", p_container.image, "i_storage.source =", i_storage.source)
 +
 +    count(i_storage.driver_options) == 1
@@ -215,7 +215,7 @@ index 6ddcd18cd..50219c038 100644
 +}
 +
 +# Allow tardev-snapshotter storage
-+allow_storages(p_container, i_storages, bundle_id, sandbox_id) {    
++allow_storages(p_container, i_storages, bundle_id, sandbox_id) {
 +    p_storages := p_container.storages
      p_count := count(p_storages)
      i_count := count(i_storages)
@@ -249,7 +249,7 @@ index 6ddcd18cd..50219c038 100644
  
  allow_storage(p_storages, i_storage, bundle_id, sandbox_id, layer_ids, root_hashes) {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index adbdf97f3..c4dc4ac3c 100644
+index adbdf97f33c449e905cbf9044a118da4598c69cd..c4dc4ac3c2a10211909ae8ee8d77050add0e5cc1 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -270,6 +270,9 @@ pub struct ContainerPolicy {
@@ -271,7 +271,7 @@ index adbdf97f3..c4dc4ac3c 100644
              devices,
              sandbox_pidns,
 diff --git a/src/tools/genpolicy/tests/main.rs b/src/tools/genpolicy/tests/main.rs
-index 565b3e2a0..a3a08d96e 100644
+index 565b3e2a0b0368ccbecd778cb70fa9f94596de51..a3a08d96e865eb992ef5607ec050a58ea0749dfc 100644
 --- a/src/tools/genpolicy/tests/main.rs
 +++ b/src/tools/genpolicy/tests/main.rs
 @@ -9,7 +9,7 @@ use std::path;
@@ -294,7 +294,7 @@ index 565b3e2a0..a3a08d96e 100644
 +}
 diff --git a/src/tools/genpolicy/tests/testdata/createcontainer/guest_pull/pod.yaml b/src/tools/genpolicy/tests/testdata/createcontainer/guest_pull/pod.yaml
 new file mode 100644
-index 000000000..203af19a6
+index 0000000000000000000000000000000000000000..203af19a6f7a200580cdd39cd38e50fe23403710
 --- /dev/null
 +++ b/src/tools/genpolicy/tests/testdata/createcontainer/guest_pull/pod.yaml
 @@ -0,0 +1,11 @@
@@ -311,7 +311,7 @@ index 000000000..203af19a6
 +      privileged: true
 diff --git a/src/tools/genpolicy/tests/testdata/createcontainer/guest_pull/testcases.json b/src/tools/genpolicy/tests/testdata/createcontainer/guest_pull/testcases.json
 new file mode 100644
-index 000000000..2f21e0674
+index 0000000000000000000000000000000000000000..2f21e0674e496f9d496553311cb4c24f96449401
 --- /dev/null
 +++ b/src/tools/genpolicy/tests/testdata/createcontainer/guest_pull/testcases.json
 @@ -0,0 +1,2027 @@

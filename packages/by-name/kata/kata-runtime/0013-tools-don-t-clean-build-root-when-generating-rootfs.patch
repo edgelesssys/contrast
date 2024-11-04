@@ -1,4 +1,4 @@
-From 75333c341d1a5f34030f4be7c32f6db609f358db Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Fri, 4 Oct 2024 11:27:37 +0200
 Subject: [PATCH] tools: don't clean build root when generating rootfs
@@ -8,7 +8,7 @@ Subject: [PATCH] tools: don't clean build root when generating rootfs
  1 file changed, 6 deletions(-)
 
 diff --git a/tools/osbuilder/rootfs-builder/rootfs.sh b/tools/osbuilder/rootfs-builder/rootfs.sh
-index 04a855a0c..f53b52460 100755
+index 04a855a0ceccf094a36c1b4a79b4dc90e9822d29..f53b524601cdff4b38f41834796856624fac812f 100755
 --- a/tools/osbuilder/rootfs-builder/rootfs.sh
 +++ b/tools/osbuilder/rootfs-builder/rootfs.sh
 @@ -401,12 +401,6 @@ build_rootfs_distro()

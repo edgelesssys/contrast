@@ -1,4 +1,4 @@
-From 3b46844789f76480c030342d37577286a045041e Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Mon, 12 Aug 2024 13:45:43 +0200
 Subject: [PATCH] genpolicy: bump oci-distribution to v0.12.0
@@ -18,7 +18,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  4 files changed, 183 insertions(+), 87 deletions(-)
 
 diff --git a/src/tools/genpolicy/Cargo.lock b/src/tools/genpolicy/Cargo.lock
-index 7655b8d6e..9d0573c8e 100644
+index 7655b8d6e45fb6544d3c904fe8ad26ff03b04751..9d0573c8ec413e511405c5debd2b8f4df14900c3 100644
 --- a/src/tools/genpolicy/Cargo.lock
 +++ b/src/tools/genpolicy/Cargo.lock
 @@ -98,9 +98,9 @@ dependencies = [
@@ -589,7 +589,7 @@ index 7655b8d6e..9d0573c8e 100644
  
  [[package]]
 diff --git a/src/tools/genpolicy/Cargo.toml b/src/tools/genpolicy/Cargo.toml
-index f14643503..c6c0b94ee 100644
+index f146435032b10c301b99e2e4cf24e6a1b123ad20..c6c0b94eea163fbc8748896def52e1f6eaef85ff 100644
 --- a/src/tools/genpolicy/Cargo.toml
 +++ b/src/tools/genpolicy/Cargo.toml
 @@ -41,7 +41,7 @@ async-trait = "0.1.68"
@@ -602,7 +602,7 @@ index f14643503..c6c0b94ee 100644
  serde_ignored = "0.1.7"
  serde_json = "1.0.39"
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index 7aa0e66a9..9491b2acf 100644
+index 7aa0e66a9c21d623ccf905de626e4f2b872978dd..9491b2acfb8af1f8c4e4c971a6787c2d803e46ec 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -15,7 +15,7 @@ use anyhow::{anyhow, Result};
@@ -624,7 +624,7 @@ index 7aa0e66a9..9491b2acf 100644
              }
              Err(e) => {
 diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
-index 9a02b5419..6541cfbda 100644
+index 9a02b54193750df4d0190b6d614f01c467bb7746..6541cfbda5379a4caea0361a5993db8f15adf6a2 100644
 --- a/src/tools/genpolicy/src/registry_containerd.rs
 +++ b/src/tools/genpolicy/src/registry_containerd.rs
 @@ -15,7 +15,7 @@ use containerd_client::{services::v1::GetImageRequest, with_namespace};

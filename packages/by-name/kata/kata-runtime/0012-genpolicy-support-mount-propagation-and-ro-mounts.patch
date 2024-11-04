@@ -1,4 +1,4 @@
-From d7b170e9bc52af5b595d21246e8cca56dfdb59b1 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Tue, 24 Sep 2024 16:05:31 +0200
 Subject: [PATCH] genpolicy: support mount propagation and ro-mounts
@@ -9,7 +9,7 @@ Subject: [PATCH] genpolicy: support mount propagation and ro-mounts
  2 files changed, 9 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 50219c038..9de56a429 100644
+index 44af45437f550877652c33019f42b0b29fdcfbdb..823e5e76d55bac47ad9c79d8916f92702efa316d 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -105,7 +105,8 @@ allow_create_container_input {
@@ -23,7 +23,7 @@ index 50219c038..9de56a429 100644
      is_null(i_linux.IntelRdt)
      is_null(i_linux.Resources.BlockIO)
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 394c06658..8dbe524ae 100644
+index 394c06658565230ba2cde520e850b7bfe44b1637..8dbe524ae2c42172ed08a03bd5e570e8a1accd3d 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
 @@ -189,13 +189,19 @@ fn get_empty_dir_mount_and_storage(
