@@ -102,7 +102,7 @@ func TestOpenSSL(t *testing.T) {
 			require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Pod{}, ct.Namespace, "port-forwarder-openssl-frontend"))
 
 			require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-openssl-frontend", "443", func(addr string) error {
-				dialer := &tls.Dialer{Config: &tls.Config{RootCAs: pool}}
+				dialer := &tls.Dialer{Config: &tls.Config{RootCAs: pool, ServerName: opensslFrontend}}
 				conn, err := dialer.DialContext(ctx, "tcp", addr)
 				if err == nil {
 					conn.Close()
