@@ -34,6 +34,7 @@
       # We applied the same change done to libaio to libfdt as well.
       ./0002-add-options-for-library-paths.patch
       # Fix needed for a behaviour change in Linux 6.11-rc4.
+      # TODO(freax13): Remove this when QEMU 9.1.2 is released.
       ./0003-accel-kvm-check-for-KVM_CAP_READONLY_MEM-on-VM.patch
     ];
   })
