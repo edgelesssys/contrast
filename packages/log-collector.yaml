@@ -30,7 +30,11 @@ spec:
             - /usr/local/bin/bash
             - -c
             - |
-              ls /logs
+              inotifywait -m /logs -e create -e moved_to |
+                while read path action file; do
+                  echo "$file was created."
+                  tail --follow=name -v "$file" &
+                done
       volumes:
         - name: log-volume
           # mount the nodes logs to the container
