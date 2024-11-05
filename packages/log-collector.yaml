@@ -21,19 +21,26 @@ spec:
           effect: NoSchedule
       containers:
         - name: log-collector
-          image: docker.io/bash:latest # TODO(miampf): Replace with non docker.io image
+          image: docker.io/ubuntu:oracular # TODO(miampf): Replace with non docker.io image
           volumeMounts:
             - mountPath: /logs
               name: log-volume
               readOnly: true
           command:
-            - /usr/local/bin/bash
+            - /usr/bin/bash
             - -c
             - |
-              inotifywait -m /logs -e create -e moved_to |
+              # TODO(miampf): Prepare an image that already has inotify-tools installed
+              apt-get update && apt-get install -y inotify-tools
+              inotifywait -m /logs -r -e create -e moved_to |
                 while read path action file; do
-                  echo "$file was created."
-                  tail --follow=name -v "$file" &
+                  echo "DEBUG: $path; $action; $file"
+                  filepath="$path$file"
+                  echo "DEBUG: $filepath"
+                  if [[ -f "$filepath" ]]; then
+                    echo "$filepath was created."
+                    tail --follow=name -v "$filepath" &
+                  fi
                 done
       volumes:
         - name: log-volume
