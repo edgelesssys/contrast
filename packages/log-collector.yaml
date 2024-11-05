@@ -30,15 +30,15 @@ spec:
             - /usr/bin/bash
             - -c
             - |
+              mkdir /export
               # TODO(miampf): Prepare an image that already has required tools installed
               apt-get update && apt-get install -y inotify-tools ncompress
-              mkdir /export
               inotifywait -m /logs -r -e create -e moved_to |
                 while read path action file; do
                   filepath="$path$file"
                   if [[ -f "$filepath" ]]; then
                     mkdir -p "/export$path"
-                    tail --follow=name -v "$filepath" | compress > "/export$filepath.Z" &
+                    tail --follow=name -v "$filepath" | compress -f >"/export$filepath" &
                   fi
                 done
       volumes:

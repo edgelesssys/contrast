@@ -427,7 +427,10 @@
   # Usage: get-logs $namespaceFile
   get-logs = writeShellApplication {
     name = "get-logs";
-    runtimeInputs = with pkgs; [ kubectl ];
+    runtimeInputs = with pkgs; [ 
+      kubectl
+      ncompress
+    ];
     text = ''
       while ! [[ -s "$1" ]]; do
         sleep 1
@@ -438,6 +441,24 @@
       sed -i "s/@@NAMESPACE@@/''${namespace}/g" ./workspace/log-collector.yaml
 
       kubectl apply -f ./workspace/log-collector.yaml
+
+      pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
+      echo "$pod"
+      mkdir -p ./workspace/logs
+      kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod" #1>/dev/null 2>/dev/null
+      echo "DEBUG: Pod $pod running"
+      # Download and extract the logs every 3 seconds
+      while true; do
+        kubectl exec -n "$namespace" "$pod" -- bash -c "rm -f /exported-logs.tar.gz; tar zcvf /exported-logs.tar.gz /export" #1>/dev/null 2>/dev/null
+        echo "DEBUG: compressed archive"
+        rm -f ./workspace/logs/exported-logs.tar.gz
+        kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz #1>/dev/null 2>/dev/null
+        echo "DEBUG: downloaded archive"
+        tar xzvf ./workspace/logs/exported-logs.tar.gz --directory ./workspace/logs #1>/dev/null 2>/dev/null
+        find ./workspace/logs -type f -exec bash -c compress -d {} \;
+        echo "DEBUG: extracted archive"
+        sleep 3
+      done
     '';
   };
 
