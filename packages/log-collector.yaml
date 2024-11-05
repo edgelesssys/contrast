@@ -35,11 +35,8 @@ spec:
               mkdir /export
               inotifywait -m /logs -r -e create -e moved_to |
                 while read path action file; do
-                  echo "DEBUG: $path; $action; $file"
                   filepath="$path$file"
-                  echo "DEBUG: $filepath"
                   if [[ -f "$filepath" ]]; then
-                    echo "$filepath was created."
                     mkdir -p "/export$path"
                     tail --follow=name -v "$filepath" | compress > "/export$filepath.Z" &
                   fi
