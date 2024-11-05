@@ -437,7 +437,6 @@
       cp ./packages/log-collector.yaml ./workspace/log-collector.yaml
       sed -i "s/@@NAMESPACE@@/''${namespace}/g" ./workspace/log-collector.yaml
 
-      kubectl get namespace | grep -q "^$namespace" || kubectl create namespace "$namespace"
       kubectl apply -f ./workspace/log-collector.yaml
     '';
   };
