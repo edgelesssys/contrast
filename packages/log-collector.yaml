@@ -30,8 +30,9 @@ spec:
             - /usr/bin/bash
             - -c
             - |
-              # TODO(miampf): Prepare an image that already has inotify-tools installed
-              apt-get update && apt-get install -y inotify-tools
+              # TODO(miampf): Prepare an image that already has required tools installed
+              apt-get update && apt-get install -y inotify-tools ncompress
+              mkdir /export
               inotifywait -m /logs -r -e create -e moved_to |
                 while read path action file; do
                   echo "DEBUG: $path; $action; $file"
@@ -39,7 +40,8 @@ spec:
                   echo "DEBUG: $filepath"
                   if [[ -f "$filepath" ]]; then
                     echo "$filepath was created."
-                    tail --follow=name -v "$filepath" &
+                    mkdir -p "/export$path"
+                    tail --follow=name -v "$filepath" | compress > "/export$filepath.Z" &
                   fi
                 done
       volumes:
