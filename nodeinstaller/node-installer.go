@@ -119,6 +119,9 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	default:
 		return fmt.Errorf("unsupported platform %q", platform)
 	}
+	if containerdConfigOverridePath := os.Getenv("CONTAINERD_CONFIG_PATH"); containerdConfigOverridePath != "" {
+		containerdConfigPath = containerdConfigOverridePath
+	}
 
 	if err := containerdRuntimeConfig(runtimeBase, kataConfigPath, platform, config.QemuExtraKernelParams, config.DebugRuntime); err != nil {
 		return fmt.Errorf("generating kata runtime configuration: %w", err)
