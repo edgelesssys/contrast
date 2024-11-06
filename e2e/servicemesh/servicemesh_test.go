@@ -83,7 +83,7 @@ func TestIngressEgress(t *testing.T) {
 			defer cancel()
 
 			require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-web-svc", "443", func(addr string) error {
-				tlsConf := &tls.Config{RootCAs: pool}
+				tlsConf := &tls.Config{RootCAs: pool, ServerName: "web"}
 				hc := &http.Client{Transport: &http.Transport{TLSClientConfig: tlsConf}}
 				req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("https://%s/", addr), http.NoBody)
 				if !assert.NoError(t, err) {
