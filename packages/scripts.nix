@@ -431,6 +431,7 @@
       kubectl
     ];
     text = ''
+      set -euo pipefail
       while ! [[ -s "$1" ]]; do
         sleep 1
       done
