@@ -447,7 +447,7 @@
       kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod" 1>/dev/null 2>/dev/null
       # Download and extract the logs every 3 seconds
       while true; do
-        kubectl exec -n "$namespace" "$pod" -- bash -c "rm -f /exported-logs.tar.gz; tar zcvf /exported-logs.tar.gz /export" 1>/dev/null 2>/dev/null
+        kubectl exec -n "$namespace" "$pod" -- /bin/bash -c "rm -f /exported-logs.tar.gz; tar zcvf /exported-logs.tar.gz /export" 1>/dev/null 2>/dev/null
         rm -f ./workspace/logs/exported-logs.tar.gz
         kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz 1>/dev/null 2>/dev/null
         tar xzvf ./workspace/logs/exported-logs.tar.gz --directory ./workspace/logs 1>/dev/null 2>/dev/null

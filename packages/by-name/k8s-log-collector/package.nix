@@ -4,8 +4,13 @@
 {
   dockerTools,
   writeShellApplication,
+  buildEnv,
   inotify-tools,
-  busybox
+  coreutils,
+  findutils,
+  bash,
+  gnutar,
+  gzip
 }:
 
 let
@@ -13,7 +18,8 @@ let
     name = "collect-logs";
     runtimeInputs = [
       inotify-tools
-      busybox
+      coreutils
+      findutils
     ];
     text = ''
       set -euo pipefail
@@ -23,7 +29,7 @@ let
         while read -r file; do
           if [[ -f "$file" && "$file" == *"$POD_NAMESPACE"* ]]; then
             mkdir -p "/export$(dirname "$file")"
-            tail --follow=name "$file" > "export$file" &
+            tail --follow=name "$file" >"/export$file" &
           fi
         done
       inotifywait -m /logs -r -e create -e moved_to |
@@ -37,9 +43,19 @@ let
     '';
   };
 in
-dockerTools.buildLayeredImage {
+dockerTools.buildImage {
   name = "k8s-log-collector";
   tag = "0.1.0";
+  copyToRoot = buildEnv {
+    name = "bin";
+    paths = [ 
+      bash
+      coreutils
+      gnutar
+      gzip
+    ];
+    pathsToLink = "/bin";
+  };
   config = {
     Cmd = [ "${collection-script}/bin/collect-logs" ];
     Volumes = { "/logs" = {}; };
