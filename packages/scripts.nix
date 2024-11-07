@@ -429,7 +429,6 @@
     name = "get-logs";
     runtimeInputs = with pkgs; [ 
       kubectl
-      ncompress
     ];
     text = ''
       while ! [[ -s "$1" ]]; do
@@ -455,7 +454,6 @@
         kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz #1>/dev/null 2>/dev/null
         echo "DEBUG: downloaded archive"
         tar xzvf ./workspace/logs/exported-logs.tar.gz --directory ./workspace/logs #1>/dev/null 2>/dev/null
-        find ./workspace/logs -type f -exec bash -c compress -d {} \;
         echo "DEBUG: extracted archive"
         sleep 3
       done
