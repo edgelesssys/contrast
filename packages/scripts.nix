@@ -439,22 +439,18 @@
       cp ./packages/log-collector.yaml ./workspace/log-collector.yaml
       sed -i "s/@@NAMESPACE@@/''${namespace}/g" ./workspace/log-collector.yaml
 
-      kubectl apply -f ./workspace/log-collector.yaml
+      kubectl apply -f ./workspace/log-collector.yaml 1>/dev/null 2>/dev/null
 
       pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
       echo "$pod"
       mkdir -p ./workspace/logs
-      kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod" #1>/dev/null 2>/dev/null
-      echo "DEBUG: Pod $pod running"
+      kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod" 1>/dev/null 2>/dev/null
       # Download and extract the logs every 3 seconds
       while true; do
-        kubectl exec -n "$namespace" "$pod" -- bash -c "rm -f /exported-logs.tar.gz; tar zcvf /exported-logs.tar.gz /export" #1>/dev/null 2>/dev/null
-        echo "DEBUG: compressed archive"
+        kubectl exec -n "$namespace" "$pod" -- bash -c "rm -f /exported-logs.tar.gz; tar zcvf /exported-logs.tar.gz /export" 1>/dev/null 2>/dev/null
         rm -f ./workspace/logs/exported-logs.tar.gz
-        kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz #1>/dev/null 2>/dev/null
-        echo "DEBUG: downloaded archive"
-        tar xzvf ./workspace/logs/exported-logs.tar.gz --directory ./workspace/logs #1>/dev/null 2>/dev/null
-        echo "DEBUG: extracted archive"
+        kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz 1>/dev/null 2>/dev/null
+        tar xzvf ./workspace/logs/exported-logs.tar.gz --directory ./workspace/logs 1>/dev/null 2>/dev/null
         sleep 3
       done
     '';
