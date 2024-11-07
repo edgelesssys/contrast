@@ -443,7 +443,6 @@
       kubectl apply -f ./workspace/log-collector.yaml 1>/dev/null 2>/dev/null
 
       pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
-      echo "$pod"
       mkdir -p ./workspace/logs
       kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod" 1>/dev/null 2>/dev/null
       # Download and extract the logs every 3 seconds
