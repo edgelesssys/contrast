@@ -12,6 +12,7 @@ spec:
       labels:
         name: log-collector
     spec:
+      priorityClassName: high-priority-logcollector
       tolerations:
         - key: node-role.kubernetes.io/control-plane
           operator: Exists
@@ -47,3 +48,11 @@ spec:
           hostPath:
             path: /var/log/pods
             type: Directory
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority-logcollector
+value: 10000000
+globalDefault: false
+description: "This priority class is used to prioritise the log collector pod creation before anything else"
