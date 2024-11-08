@@ -7,9 +7,15 @@
   stdenvNoCC,
   fetchzip,
   kata,
+  my-image,
+  runCommand,
 }:
 
 let
+  initrd = runCommand "initrd.cpio.zstd" { } ''
+    cp ${my-image.config.initialRamdisk}/initrd $out
+  '';
+
   configfile = stdenvNoCC.mkDerivation rec {
     pname = "kata-kernel-config-confidential";
     inherit (kata.kata-runtime) version;
@@ -28,7 +34,9 @@ let
       substituteInPlace $config \
         --replace-fail 'CONFIG_INITRAMFS_SOURCE="initramfs.cpio.gz"' 'CONFIG_INITRAMFS_SOURCE=""' \
         --replace-fail '# CONFIG_DM_INIT is not set' 'CONFIG_DM_INIT=y' \
-        --replace-fail 'CONFIG_MODULE_SIG=y' 'CONFIG_MODULE_SIG=n'
+        --replace-fail 'CONFIG_MODULE_SIG=y' 'CONFIG_MODULE_SIG=n' \
+        --replace-fail '# CONFIG_RD_ZSTD is not set' 'CONFIG_RD_ZSTD=y' \
+        --replace-fail 'CONFIG_INITRAMFS_SOURCE=""' 'CONFIG_INITRAMFS_SOURCE="${initrd}"'
     '';
 
     dontBuild = true;

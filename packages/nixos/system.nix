@@ -22,6 +22,10 @@
       "dm_mod"
       "dm_verity"
       "overlay"
+      "virtio"
+      "virtio-blk"
+      "virtio-scsi"
+      "virtio-pci"
     ];
     services.lvm.enable = true; # For additional udev rules needed by dm-verity.
     systemd = {
@@ -77,4 +81,9 @@
   nixpkgs.hostPlatform.system = "x86_64-linux";
   system.switch.enable = false;
   system.stateVersion = "24.05";
+
+  environment.etc."machine-id" = {
+    mode = "0444";
+    text = "0d09941d9cc3b28c04c731736bb12296";
+  };
 }

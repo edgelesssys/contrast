@@ -17,7 +17,11 @@
   OVMF-SNP,
   OVMF-TDX,
 
-  debugRuntime ? false,
+  my-image,
+  runCommand,
+  lib,
+
+  debugRuntime ? true,
 }:
 
 let
@@ -106,7 +110,7 @@ let
             }
           ];
           inherit debugRuntime;
-          qemuExtraKernelParams = kata.snp-launch-digest.dmVerityArgs;
+          qemuExtraKernelParams = "init=${my-image.config.toplevel}/init ${toString my-image.config.config.boot.kernelParams} ${kata.snp-launch-digest.dmVerityArgs}"; # kata.snp-launch-digest.dmVerityArgs;
         };
         destination = "/config/contrast-node-install.json";
       }
@@ -116,11 +120,29 @@ let
   kata-container-img = ociLayerTar {
     files = [
       {
-        source = kata.kata-image;
+        source = "${my-image.image}/image-podvm-gpu_1-rc1.raw";
         destination = "/opt/edgeless/share/kata-containers.img";
       }
       {
-        source = "${kata.kata-kernel-uvm}/bzImage";
+        source = "${
+          (builtins.trace 4 (
+            my-image.config.config.boot.kernelPackages.kernel.override {
+              structuredExtraConfig = builtins.trace 1 (
+                let
+                  initrd = runCommand "initrd.cpio.zstd" { } ''
+                    cp ${my-image.config.initialRamdisk}/initrd $out
+                  '';
+                in
+                with lib.kernel;
+                {
+                  # why doesn't this work?
+                  INITRAMFS_SOURCE = builtins.trace 2 (freeform "${initrd}");
+                }
+              );
+              kernelPatches = builtins.trace 5;
+            }
+          ))
+        }/bzImage";
         destination = "/opt/edgeless/share/kata-kernel";
       }
     ];

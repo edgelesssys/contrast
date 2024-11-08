@@ -229,15 +229,10 @@ let
     passthru = {
       dmVerityArgs =
         let
-          dataBlockSize = builtins.readFile "${kata-image.verity}/data_block_size";
-          hashBlockSize = builtins.readFile "${kata-image.verity}/hash_block_size";
-          dataBlocks = builtins.readFile "${kata-image.verity}/data_blocks";
           rootHash = builtins.readFile "${kata-image.verity}/roothash";
-          salt = builtins.readFile "${kata-image.verity}/salt";
-          dataSectorsPerBlock = (lib.strings.toInt dataBlockSize) / 512;
-          dataSectors = (lib.strings.toInt dataBlocks) * dataSectorsPerBlock;
         in
-        "dm-mod.create=\"dm-verity,,,ro,0 ${toString dataSectors} verity 1 /dev/vda1 /dev/vda2 ${dataBlockSize} ${hashBlockSize} ${dataBlocks} 0 sha256 ${rootHash} ${salt}\" root=/dev/dm-0";
+        # FIXME: This is the wrong hash.
+        "roothash=${rootHash}";
     };
   };
 in

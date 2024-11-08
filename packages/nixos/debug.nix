@@ -27,6 +27,7 @@ in
       util-linux
       coreutils
       strace
+      gnugrep
     ];
 
     services.getty.autologinUser = "root";
@@ -34,5 +35,16 @@ in
     boot.kernelParams = [ "console=ttyS0" ];
     boot.initrd.systemd.emergencyAccess = true;
     systemd.enableEmergencyMode = true;
+
+    # boot.kernelModules = lib.mkForce [];
+    # boot.initrd.kernelModules = lib.mkForce [];
+
+    # users.users.root.hashedPassword = "";
+    # users.users.root.hashedPassword = "$y$j9T$Reh8JLZxWs32RCjgWstcp1$I4PucGQuG9n/zzQcTC/qcU93BcuPZmI7QUB1ac98ZKB";
+
+    # users.users.root.hashedPassword = ""; # "" means passwordless login
+    # services.openssh.settings.PermitRootLogin = "yes";
+    # services.openssh.settings.PermitEmptyPasswords = "yes";
+    # security.pam.services.sshd.allowNullPassword = true;
   };
 }
