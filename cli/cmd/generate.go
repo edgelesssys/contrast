@@ -321,7 +321,7 @@ func patchTargets(paths []string, imageReplacementsFile, runtimeHandler string, 
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(path, resource, os.ModePerm); err != nil {
+		if err := os.WriteFile(path, resource, 0o666); err != nil {
 			return fmt.Errorf("write %s: %w", path, err)
 		}
 	}

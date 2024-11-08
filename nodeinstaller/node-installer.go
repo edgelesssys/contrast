@@ -76,7 +76,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 
 		fmt.Printf("Fetching %q to %q\n", file.URL, targetPath)
 
-		if err := os.MkdirAll(filepath.Dir(filepath.Join(hostMount, targetPath)), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(hostMount, targetPath)), 0o777); err != nil {
 			return fmt.Errorf("creating directory %q: %w", filepath.Dir(targetPath), err)
 		}
 
@@ -99,7 +99,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 
 	runtimeBase := filepath.Join("/opt", "edgeless", runtimeHandlerName)
 	kataConfigPath := filepath.Join(hostMount, runtimeBase, "etc")
-	if err := os.MkdirAll(kataConfigPath, os.ModePerm); err != nil {
+	if err := os.MkdirAll(kataConfigPath, 0o777); err != nil {
 		return fmt.Errorf("creating directory %q: %w", kataConfigPath, err)
 	}
 	var containerdConfigPath string
@@ -180,7 +180,7 @@ func containerdRuntimeConfig(basePath, configPath string, platform platforms.Pla
 	if err != nil {
 		return fmt.Errorf("marshaling kata runtime config: %w", err)
 	}
-	return os.WriteFile(configPath, rawConfig, os.ModePerm)
+	return os.WriteFile(configPath, rawConfig, 0o666)
 }
 
 func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform platforms.Platform, debugRuntime bool) error {
@@ -241,7 +241,7 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	}
 
 	fmt.Printf("Patching containerd config at %s\n", configPath)
-	return os.WriteFile(configPath, rawConfig, os.ModePerm)
+	return os.WriteFile(configPath, rawConfig, 0o666)
 }
 
 func parseExistingContainerdConfig(path string) ([]byte, config.ContainerdConfig, error) {
