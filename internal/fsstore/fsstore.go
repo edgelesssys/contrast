@@ -45,7 +45,7 @@ func (s *Store) Get(key string) ([]byte, bool) {
 
 // Set sets the value for the given key.
 func (s *Store) Set(key string, value []byte) {
-	if err := s.fs.MkdirAll("/", 0o755); err != nil {
+	if err := s.fs.MkdirAll("/", 0o777); err != nil {
 		s.logger.Error("failed to create dir")
 		return
 	}
