@@ -14,7 +14,10 @@
   removeReferencesTo,
   replaceVars,
   go,
-  binaryPaths ? [ "/run/current-system/sw" ],
+  binaryPaths ? [
+    "/run/current-system/sw"
+    "/run/opengl-driver/lib"
+  ],
 }:
 let
   modprobeVersion = "550.54.14";
