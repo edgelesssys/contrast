@@ -72,10 +72,7 @@ in
 
     services.udev.extraRules = azure-storage-rules;
     systemd.services.azure-readiness-report = {
-      wantedBy = [
-        "basic.target"
-        "multi-user.target"
-      ];
+      wantedBy = [ "multi-user.target" ];
       wants = [ "network-online.target" ];
       after = [ "network-online.target" ];
       description = "Azure Readiness Report";
@@ -87,16 +84,15 @@ in
     };
 
     systemd.services.setup-nat-for-imds = {
-      wantedBy = [
-        "basic.target"
-        "multi-user.target"
-      ];
+      wantedBy = [ "multi-user.target" ];
       wants = [ "network-online.target" ];
       after = [ "network-online.target" ];
       description = "Setup NAT for IMDS";
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = "yes";
+        Restart = "on-failure";
+        RestartSec = "5s";
         ExecStart = "${lib.getExe pkgs.peerpod-imds-nat}";
       };
     };
