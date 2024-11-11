@@ -8,16 +8,20 @@
   acpica-tools,
 }:
 
-edk2.mkDerivation "OvmfPkg/AmdSev/AmdSevX64.dsc" rec {
+edk2.mkDerivation "OvmfPkg/AmdSev/AmdSevX64.dsc" {
   name = "OVMF-SNP";
+
   src = fetchFromGitHub {
-    owner = "amdese";
+    owner = "edgelesssys";
     repo = "ovmf";
-    # https://github.com/AMDESE/ovmf/tree/apic-mmio-fix4
-    rev = "64b3116ed087f8cb026201e56e42efe751e2cf7d";
+    # https://github.com/edgelesssys/ovmf/commits/apic-mmio-fix4-edgeless/
+    # which is https://github.com/AMDESE/ovmf/commits/apic-mmio-fix4
+    # including https://github.com/tianocore/edk2/commit/95d8a1c255cfb8e063d679930d08ca6426eb5701.
+    rev = "3c5968fd4e5fed316c3435bd266142dfc2d2840e";
     fetchSubmodules = true;
-    hash = "sha256-nb4p01Y+M5a3EEJb9692hcFkU7HgpbG1rZa60T+I8N4=";
+    hash = "sha256-0ijeEmBOhuBEvNxkGBsP/yUqWEzEXy928X0RHFl00d4=";
   };
+
   postPatch = ''
     touch OvmfPkg/AmdSev/Grub/grub.efi
   '';
