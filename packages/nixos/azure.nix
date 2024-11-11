@@ -85,5 +85,25 @@ in
         ExecStart = "${lib.getExe pkgs.azure-no-agent}";
       };
     };
+
+    systemd.services.setup-nat-for-imds = {
+      wantedBy = [ "multi-user.target" ];
+      requires = [ "netns@podns.service" ];
+      wants = [ "network-online.target" ];
+      after = [
+        "network-online.target"
+        "netns@podns.service"
+      ];
+      description = "Setup NAT for IMDS";
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = "yes";
+        # TODO(msanft): Find out why just ordering this after network-online.target
+        # isn't sufficient. (Errors with saying that the network is unreachable)
+        Restart = "on-failure";
+        RestartSec = "5s";
+        ExecStart = "${lib.getExe pkgs.cloud-api-adaptor.setup-nat-for-imds}";
+      };
+    };
   };
 }

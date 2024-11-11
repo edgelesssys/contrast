@@ -10,6 +10,9 @@
   writeShellApplication,
   gnugrep,
   iptables,
+  iproute2,
+  sysctl,
+  gawk,
   runCommand,
   applyPatches,
   makeWrapper,
@@ -101,6 +104,22 @@ buildGoModule rec {
         "SC2086"
         "SC2153"
       ];
+    };
+
+    setup-nat-for-imds = writeShellApplication {
+      name = "setup-nat-for-imds";
+      runtimeInputs = [
+        iproute2
+        iptables
+        sysctl
+        gawk
+      ];
+      # TODO(burgerdev): generalize for all link-local IPs and investigate routing simplification
+      text = builtins.readFile "${cloud-api-adaptor.src}/src/cloud-api-adaptor/podvm/files/usr/local/bin/setup-nat-for-imds.sh";
+      meta = {
+        mainProgram = "setup-nat-for-imds";
+        homepage = "https://github.com/confidential-containers/cloud-api-adaptor/blob/main/src/cloud-api-adaptor/podvm/files/usr/local/bin/setup-nat-for-imds.sh";
+      };
     };
   };
 
