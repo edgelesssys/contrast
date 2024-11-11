@@ -1,10 +1,7 @@
 name: push cleanup-bare-metal image
 
 on:
-  pull_request:
-    paths:
-      - .github/workflows/cleaup.yml
-      - packages/**
+  workflow_dispatch:
 
 env:
   container_registry: ghcr.io/edgelesssys
