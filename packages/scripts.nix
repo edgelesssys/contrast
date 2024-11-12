@@ -133,6 +133,10 @@
         sharedImageGallery = "contrast_images"
         sharingProfile = "community"
         sharingNamePrefix = "Contrast"
+        publisher = "edgelesssys"
+        offer = "contrast"
+        sku = "peer-pods"
+
         replicationRegions = ["northeurope", "westeurope", "eastus", "westus"]
         EOF
 
