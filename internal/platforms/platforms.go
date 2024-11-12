@@ -18,8 +18,6 @@ const (
 	Unknown Platform = iota
 	// AKSCloudHypervisorSNP represents a deployment with Cloud-Hypervisor on SEV-SNP AKS.
 	AKSCloudHypervisorSNP
-	// AKSPeerSNP represents a deployment with peer-pods on SEV-SNP AKS.
-	AKSPeerSNP
 	// K3sQEMUTDX represents a deployment with QEMU on bare-metal TDX K3s.
 	K3sQEMUTDX
 	// K3sQEMUSNP represents a deployment with QEMU on bare-metal SNP K3s.
@@ -30,7 +28,7 @@ const (
 
 // All returns a list of all available platforms.
 func All() []Platform {
-	return []Platform{AKSCloudHypervisorSNP, AKSPeerSNP, K3sQEMUTDX, K3sQEMUSNP, RKE2QEMUTDX}
+	return []Platform{AKSCloudHypervisorSNP, K3sQEMUTDX, K3sQEMUSNP, RKE2QEMUTDX}
 }
 
 // AllStrings returns a list of all available platforms as strings.
@@ -47,8 +45,6 @@ func (p Platform) String() string {
 	switch p {
 	case AKSCloudHypervisorSNP:
 		return "AKS-CLH-SNP"
-	case AKSPeerSNP:
-		return "AKS-PEER-SNP"
 	case K3sQEMUTDX:
 		return "K3s-QEMU-TDX"
 	case K3sQEMUSNP:
@@ -65,8 +61,6 @@ func FromString(s string) (Platform, error) {
 	switch strings.ToLower(s) {
 	case "aks-clh-snp":
 		return AKSCloudHypervisorSNP, nil
-	case "aks-peer-snp":
-		return AKSPeerSNP, nil
 	case "k3s-qemu-tdx":
 		return K3sQEMUTDX, nil
 	case "k3s-qemu-snp":
