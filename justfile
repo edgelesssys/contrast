@@ -47,14 +47,9 @@ node-installer platform=default_platform:
             just push "tardev-snapshotter"
             just push "node-installer-microsoft"
         ;;
-        "K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "AKS-PEER-SNP"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             just push "nydus-snapshotter"
             just push "node-installer-kata"
-        ;;
-        "AKS-PEER-SNP")
-            just push "nydus-snapshotter"
-            just push "node-installer-kata"
-            just push "cloud-api-adaptor"
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
