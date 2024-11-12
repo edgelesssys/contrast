@@ -39,7 +39,7 @@ kind: CronJob
 metadata:
   name: cleanup-maintenance
 spec:
-  schedule: "0 0 * * 0"
+  schedule: "0 2 * * *" # 2 AM every day
   jobTemplate:
     spec:
       template:
