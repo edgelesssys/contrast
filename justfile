@@ -195,7 +195,7 @@ create platform=default_platform:
             echo "subscription_id = \"$azure_subscription_id\"" >> infra/azure-peerpods/just.auto.tfvars
 
             nix run -L .#terraform -- -chdir=infra/azure-peerpods init
-            nix run -L .#terraform -- -chdir=infra/azure-peerpods apply
+            nix run -L .#terraform -- -chdir=infra/azure-peerpods apply -auto-approve
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
@@ -324,7 +324,7 @@ destroy platform=default_platform:
             :
         ;;
         "AKS-PEER-SNP")
-            nix run -L .#terraform -- -chdir=infra/azure-peerpods destroy
+            nix run -L .#terraform -- -chdir=infra/azure-peerpods destroy -auto-approve
 
             # Clean-up cached image ids.
             rm -f ${CONTRAST_CACHE_DIR}/image-upload/*.image-id
