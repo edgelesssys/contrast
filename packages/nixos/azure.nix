@@ -55,6 +55,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    boot.kernelPackages = pkgs.recurseIntoAttrs (pkgs.linuxPackagesFor pkgs.kernel-podvm-azure);
+
     boot.initrd = {
       kernelModules = [
         "hv_storvsc"

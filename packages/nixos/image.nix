@@ -15,20 +15,20 @@
     # This defines the actual partition layout.
     partitions = {
       # EFI System Partition, holds the UKI.
-      "00-esp" = {
-        contents = {
-          "/".source = pkgs.runCommand "esp-contents" { } ''
-            mkdir -p $out/EFI/BOOT
-            cp ${config.system.build.uki}/${config.system.boot.loader.ukiFile} $out/EFI/BOOT/BOOTX64.EFI
-          '';
-        };
-        repartConfig = {
-          Type = "esp";
-          Format = "vfat";
-          SizeMinBytes = "64M";
-          UUID = "null"; # Fix partition UUID for reproducibility.
-        };
-      };
+      # "00-esp" = {
+      #   contents = {
+      #     "/".source = pkgs.runCommand "esp-contents" { } ''
+      #       mkdir -p $out/EFI/BOOT
+      #       cp ${config.system.build.uki}/${config.system.boot.loader.ukiFile} $out/EFI/BOOT/BOOTX64.EFI
+      #     '';
+      #   };
+      #   repartConfig = {
+      #     Type = "esp";
+      #     Format = "vfat";
+      #     SizeMinBytes = "64M";
+      #     UUID = "null"; # Fix partition UUID for reproducibility.
+      #   };
+      # };
 
       # Root filesystem.
       "10-root" = {

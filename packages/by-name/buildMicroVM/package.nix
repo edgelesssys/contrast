@@ -21,6 +21,10 @@ lib.throwIf
   ) false nixos-config.config.image.repart.partitions)
   "MicroVM images should not contain an ESP."
 
+  # lib.throwIf
+  # (lib.foldl' (acc: v: acc || (lib.hasInfix "root=" v)) false nixos-config.config.boot.kernelParams)
+  # "MicroVM images should not set the `root=` commandline parameter, as it will need to be decided by the VMM."
+
   symlinkJoin
   {
     name = "microvm-image";
@@ -30,7 +34,13 @@ lib.throwIf
       nixos-config.config.system.build.image
     ];
 
-    postBuild = ''
-      echo -n ${lib.concatStringsSep " " nixos-config.config.boot.kernelParams} > $out/kernel-params
-    '';
+    postBuild =
+      let
+        kernelParams = nixos-config.config.boot.kernelParams ++ [
+          "init=${nixos-config.config.system.build.toplevel}/init"
+        ];
+      in
+      ''
+        echo -n ${lib.concatStringsSep " " kernelParams} > $out/kernel-params
+      '';
   }

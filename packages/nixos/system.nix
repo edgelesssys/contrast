@@ -10,7 +10,6 @@
 
 {
   boot.loader.grub.enable = false;
-  boot.kernelPackages = pkgs.recurseIntoAttrs (pkgs.linuxPackagesFor pkgs.kernel-podvm-azure);
   boot.kernelParams = [
     "systemd.verity=yes"
     "selinux=0"

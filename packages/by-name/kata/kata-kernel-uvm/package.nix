@@ -7,6 +7,7 @@
   stdenvNoCC,
   fetchzip,
   kata,
+  ... # to satisfy `linuxPackagesFor`, which passes `features` to this.
 }:
 
 let
@@ -28,7 +29,10 @@ let
       substituteInPlace $config \
         --replace-fail 'CONFIG_INITRAMFS_SOURCE="initramfs.cpio.gz"' 'CONFIG_INITRAMFS_SOURCE=""' \
         --replace-fail '# CONFIG_DM_INIT is not set' 'CONFIG_DM_INIT=y' \
-        --replace-fail 'CONFIG_MODULE_SIG=y' 'CONFIG_MODULE_SIG=n'
+        --replace-fail 'CONFIG_MODULE_SIG=y' 'CONFIG_MODULE_SIG=n' \
+        --replace-fail '# CONFIG_DMIID is not set' 'CONFIG_DMIID=y' \
+        --replace-fail '# CONFIG_TMPFS_POSIX_ACL is not set' 'CONFIG_TMPFS_POSIX_ACL=y' \
+        --replace-fail '# CONFIG_TMPFS_XATTR is not set' 'CONFIG_TMPFS_XATTR=y'
     '';
 
     dontBuild = true;

@@ -8,9 +8,14 @@
 }:
 
 writeShellApplication {
-  name = "boot-image";
+  name = "boot-microvm";
   runtimeInputs = [ qemu ];
   text = ''
+    if [ ! -f "$1/kernel-params" ]; then
+      echo "Error: $1/kernel-params not found" >&2
+      exit 1
+    fi
+    
     tmpFile=$(mktemp)
     cp "$1" "$tmpFile"
     qemu-system-x86_64 \
@@ -19,6 +24,8 @@ writeShellApplication {
       -nographic \
       -drive if=pflash,format=raw,readonly=on,file=${OVMF.firmware} \
       -drive if=pflash,format=raw,readonly=on,file=${OVMF.variables} \
+      -kernel $1/bzImage \
+      -append "$(cat $1/kernel-params)" \
       -drive "format=raw,file=$tmpFile"
   '';
 }

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 {
-  buildVerityUKI,
+  buildMicroVM,
   mkNixosConfig,
 
   withDebug ? true,
@@ -10,10 +10,10 @@
   withCSP ? "azure",
 }:
 
-buildVerityUKI (mkNixosConfig {
+buildMicroVM (mkNixosConfig {
   contrast = {
     debug.enable = withDebug;
     gpu.enable = withGPU;
-    azure.enable = withCSP == "azure";
+    qemu.enable = true;
   };
 })
