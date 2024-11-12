@@ -5,7 +5,7 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: log-collector
-  namespace: @@NAMESPACE@@
+  namespace: "@@NAMESPACE@@"
 spec:
   selector:
     matchLabels:

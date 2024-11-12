@@ -10,7 +10,7 @@
   findutils,
   bash,
   gnutar,
-  gzip
+  gzip,
 }:
 
 let
@@ -48,7 +48,7 @@ dockerTools.buildImage {
   tag = "0.1.0";
   copyToRoot = buildEnv {
     name = "bin";
-    paths = [ 
+    paths = [
       bash
       coreutils
       gnutar
@@ -58,6 +58,8 @@ dockerTools.buildImage {
   };
   config = {
     Cmd = [ "${collection-script}/bin/collect-logs" ];
-    Volumes = { "/logs" = {}; };
+    Volumes = {
+      "/logs" = { };
+    };
   };
 }

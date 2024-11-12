@@ -427,7 +427,7 @@
   # Usage: get-logs $namespaceFile
   get-logs = writeShellApplication {
     name = "get-logs";
-    runtimeInputs = with pkgs; [ 
+    runtimeInputs = with pkgs; [
       kubectl
     ];
     text = ''
