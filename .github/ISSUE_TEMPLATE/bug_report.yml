@@ -1,0 +1,41 @@
+name: Bug report
+description: File a bug report to help us improve
+labels: ["bug", "needs: assignee"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ####
+        Please take a look at the [Troubleshooting Documentation](https://docs.edgeless.systems/contrast/troubleshooting) before reporting a bug.
+        Further please ensure that the provided CLI logs are configured with the `--log-level` command-line flag set to `debug`.
+
+        Thanks for taking the time to fill out this bug report!
+
+  - type: input
+    id: version
+    attributes:
+      label: Contrast version
+      description: "In which version do you encounter this bug? (first line of output of `contrast --version`) If you are building an unreleased version of Contrast, please additionally provide the latest Github commit hash to allow us to determine your current project state!"
+      placeholder: "v0.0.0"
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Deployment platform
+      description: "On which platform do you encounter this bug?"
+      placeholder: "AKS-CLH-SNP"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Issue description + logs
+      description: A concise description of what you're experiencing. Please upload the logs of CLI(with `--log-level debug`), Coordinator or other components as file.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to reproduce the behavior
+      description: Please provide a step-by-step guide on how to reproduce the issue.
