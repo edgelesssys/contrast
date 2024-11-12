@@ -142,6 +142,14 @@ apply-runtime target=default_deploy_target platform=default_platform:
 apply target=default_deploy_target:
     #!/usr/bin/env bash
     set -euo pipefail
+    case {{ target }} in
+        "openssl" | "emojivoto" | "volume-stateful-set")
+            :
+        ;;
+        *)
+            kubectl apply -f ./{{ workspace_dir }}/deployment/ns.yml
+        ;;
+    esac
     kubectl apply -f ./{{ workspace_dir }}/deployment
 
 # Delete Kubernetes manifests.
@@ -167,7 +175,15 @@ undeploy platform=default_platform:
             --cascade=foreground \
             --ignore-not-found
     fi
-    kubectl delete namespace $ns
+    if [[ -f ./{{ workspace_dir }}/deployment/ns.yml ]]; then
+        kubectl delete \
+            -f ./{{ workspace_dir }}/deployment \
+            --ignore-not-found \
+            --grace-period=30 \
+            --timeout=10m
+    else
+        kubectl delete namespace $ns
+    fi
 
 upload-image:
     # Ensure that the resource group exists.
