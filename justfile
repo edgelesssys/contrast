@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target platform=default_platform cli=default_cli: (soft-clean platform) coordinator initializer openssl cryptsetup port-forwarder service-mesh-proxy (node-installer platform) (deploy target cli platform) set verify (wait-for-workload target)
+default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl cryptsetup port-forwarder service-mesh-proxy (node-installer platform) (deploy target cli platform) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -62,7 +62,7 @@ node-installer platform=default_platform:
         ;;
     esac
 
-e2e target=default_deploy_target platform=default_platform: (soft-clean platform) coordinator initializer cryptsetup openssl port-forwarder service-mesh-proxy (node-installer platform)
+e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer cryptsetup openssl port-forwarder service-mesh-proxy (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ "{{ target }}" == "aks-runtime" ]]; then
@@ -153,7 +153,7 @@ apply target=default_deploy_target:
     kubectl apply -f ./{{ workspace_dir }}/deployment
 
 # Delete Kubernetes manifests.
-undeploy platform=default_platform:
+undeploy:
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ ! -d ./{{ workspace_dir }} ]]; then
@@ -168,12 +168,6 @@ undeploy platform=default_platform:
     if ! kubectl get ns $ns 2> /dev/null; then
         echo "Namespace $ns does not exist, nothing to undeploy."
         exit 0
-    fi
-    if [[ {{ platform }} == "AKS-PEER-SNP" ]]; then
-        kubectl delete \
-            -f ./{{ workspace_dir }}/deployment \
-            --cascade=foreground \
-            --ignore-not-found
     fi
     if [[ -f ./{{ workspace_dir }}/deployment/ns.yml ]]; then
         kubectl delete \
@@ -365,18 +359,18 @@ fmt:
 lint:
     nix run -L .#scripts.golangci-lint -- run
 
-demodir version="latest" platform=default_platform: (undeploy platform)
+demodir version="latest": undeploy
     #!/usr/bin/env bash
     set -euo pipefail
     v="$(echo {{ version }} | sed 's/\./-/g')"
     nix develop -u DIRENV_DIR -u DIRENV_FILE -u DIRENV_DIFF .#demo-$v
 
 # Remove deployment specific files.
-soft-clean platform=default_platform: (undeploy platform)
+soft-clean: undeploy
     rm -rf ./{{ workspace_dir }}
 
 # Cleanup all auxiliary files, caches etc.
-clean platform=default_platform: (soft-clean platform)
+clean: soft-clean
     rm -rf ./{{ workspace_dir }}.cache
     rm -rf ./layers_cache
     rm -f ./layers-cache.json
