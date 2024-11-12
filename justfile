@@ -47,9 +47,15 @@ node-installer platform=default_platform:
             just push "tardev-snapshotter"
             just push "node-installer-microsoft"
         ;;
-        "AKS-PEER-SNP"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             just push "nydus-snapshotter"
             just push "node-installer-kata"
+        ;;
+        "AKS-PEER-SNP")
+            nix run -L .#scripts.deploy-caa -- \
+                --kustomization=./infra/azure-peerpods/kustomization.yaml \
+                --workload-identity=./infra/azure-peerpods/workload-identity.yaml \
+                --pub-key=./infra/azure-peerpods/id_rsa.pub
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
@@ -70,7 +76,7 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
             --skip-undeploy=true
 
 # Generate policies, apply Kubernetes manifests.
-deploy target=default_deploy_target cli=default_cli platform=default_platform: (runtime target platform) (apply-runtime target platform) (populate target platform) (generate cli platform) (apply target)
+deploy target=default_deploy_target cli=default_cli platform=default_platform: (runtime target platform) (apply "runtime") (populate target platform) (generate cli platform) (apply target)
 
 # Populate the workspace with a runtime class deployment
 runtime target=default_deploy_target platform=default_platform:
@@ -124,20 +130,15 @@ generate cli=default_cli platform=default_platform:
         ;;
     esac
 
-# Apply the runtime.
-apply-runtime target=default_deploy_target platform=default_platform:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    kubectl apply -f ./{{ workspace_dir }}/runtime
-    if [[ {{ platform }} == "AKS-PEER-SNP" ]]; then
-        kubectl apply -f ./infra/azure-peerpods/peer-pods-config.yaml --namespace {{ target }}${namespace_suffix-}
-    fi
-
 # Apply Kubernetes manifests from /deployment
 apply target=default_deploy_target:
     #!/usr/bin/env bash
     set -euo pipefail
     case {{ target }} in
+        "runtime")
+            kubectl apply -f ./{{ workspace_dir }}/runtime
+            exit 0
+        ;;
         "openssl" | "emojivoto" | "volume-stateful-set")
             :
         ;;
