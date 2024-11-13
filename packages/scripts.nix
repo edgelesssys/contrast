@@ -254,8 +254,8 @@
           ${pkgs.microsoft.genpolicy}/bin/genpolicy < "$tmpdir/coordinator_base.yml"
         ;;
         "k3s-qemu-snp"|"k3s-qemu-tdx"|"rke2-qemu-tdx")
-          cp ${pkgs.kata.genpolicy.rules}/genpolicy-rules.rego rules.rego
-          cp ${pkgs.kata.genpolicy.settings}/genpolicy-settings.json .
+          cp ${pkgs.kata.genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego
+          cp ${pkgs.kata.genpolicy.settings-coordinator}/genpolicy-settings.json .
           ${pkgs.kata.genpolicy}/bin/genpolicy < "$tmpdir/coordinator_base.yml"
         ;;
         *)
