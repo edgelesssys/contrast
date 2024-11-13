@@ -26,17 +26,17 @@ It can be shared between Contrast deployments.
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.0/runtime-aks-clh-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.1/runtime-aks-clh-snp.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.0/runtime-k3s-qemu-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.1/runtime-k3s-qemu-snp.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.0/runtime-k3s-qemu-tdx.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.1/runtime-k3s-qemu-tdx.yml
 ```
 </TabItem>
 </Tabs>
@@ -49,17 +49,17 @@ LoadBalancer service, into your cluster.
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.0/coordinator-aks-clh-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.1/coordinator-aks-clh-snp.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.0/coordinator-k3s-qemu-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.1/coordinator-k3s-qemu-snp.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.0/coordinator-k3s-qemu-tdx.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.1.1/coordinator-k3s-qemu-tdx.yml
 ```
 </TabItem>
 </Tabs>
@@ -289,7 +289,7 @@ spec:
     - env:
         - name: COORDINATOR_HOST
           value: coordinator
-      image: "ghcr.io/edgelesssys/contrast/initializer:v1.1.0@sha256:af86d81dd673338321d655af966557faa00d354a08885b353be27462e6ffb0f1"
+      image: "ghcr.io/edgelesssys/contrast/initializer:v1.1.1@sha256:d89d4f5113c8869088ff3a28e02802d7b72304d4bbb50fb664f1c6cba7fcb722"
       name: contrast-initializer
       volumeMounts:
         - mountPath: /contrast
