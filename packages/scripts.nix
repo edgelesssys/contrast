@@ -402,7 +402,9 @@
       newContext=$(yq -r '.contexts.[0].name' "$1")
       declare -x newContext
       yq -i '.current-context = env(newContext)' "$mergedConfig"
-      mv "$mergedConfig" "''${KUBECONFIG_BAK%%:*}"
+      targetFile="''${KUBECONFIG_BAK%%:*}"
+      mkdir -p "$(dirname "$targetFile")"
+      mv "$mergedConfig" "$targetFile"
     '';
   };
 
