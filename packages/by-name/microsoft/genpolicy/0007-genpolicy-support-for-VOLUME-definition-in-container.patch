@@ -1,0 +1,641 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: miampf <miampf@proton.me>
+Date: Thu, 14 Nov 2024 12:34:56 +0100
+Subject: [PATCH] genpolicy: support for VOLUME definition in container image
+
+---
+ src/tools/genpolicy/genpolicy-settings.json   | 14 ++++-
+ src/tools/genpolicy/src/daemon_set.rs         | 18 +++---
+ src/tools/genpolicy/src/deployment.rs         | 18 +++---
+ src/tools/genpolicy/src/job.rs                | 18 +++---
+ src/tools/genpolicy/src/mount_and_storage.rs  | 58 +++++++++++++++++++
+ src/tools/genpolicy/src/pod.rs                | 18 +++---
+ src/tools/genpolicy/src/registry.rs           | 21 ++++++-
+ .../genpolicy/src/registry_containerd.rs      |  4 +-
+ src/tools/genpolicy/src/replica_set.rs        | 18 +++---
+ .../genpolicy/src/replication_controller.rs   | 18 +++---
+ src/tools/genpolicy/src/settings.rs           | 12 ++++
+ src/tools/genpolicy/src/stateful_set.rs       | 20 +++----
+ src/tools/genpolicy/src/yaml.rs               | 43 +++++++++-----
+ .../kubernetes/k8s-policy-deployments.bats    | 47 +++++++++++++++
+ .../kubernetes/run_kubernetes_tests.sh        |  1 +
+ .../k8s-policy-deployment.yaml                | 36 ++++++++++++
+ 16 files changed, 275 insertions(+), 89 deletions(-)
+ create mode 100644 tests/integration/kubernetes/k8s-policy-deployments.bats
+ create mode 100644 tests/integration/kubernetes/runtimeclass_workloads/k8s-policy-deployment.yaml
+
+diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
+index 7d35862afa73e9f4c9004189d3ec50ebd3e8855d..fd998a41be8978b85928d12101c7ff4fdc38e4eb 100644
+--- a/src/tools/genpolicy/genpolicy-settings.json
++++ b/src/tools/genpolicy/genpolicy-settings.json
+@@ -178,6 +178,18 @@
+                 "rprivate",
+                 "ro"
+             ]
++        },
++        "image_volume": {
++            "mount_type": "bind",
++            "mount_source": "$(sfprefix)",
++            "driver": "local",
++            "source": "local",
++            "fstype": "bind",
++            "options": [
++                "rbind",
++                "rprivate",
++                "rw"
++            ]
+         }
+     },
+     "mount_destinations": [
+@@ -322,4 +334,4 @@
+         "UpdateEphemeralMountsRequest": false,
+         "WriteStreamRequest": false
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
+index 90ea48597605f056250424ff0d8758017d20220f..d5a159c318f65339a9044a85a08bfae91f839e01 100644
+--- a/src/tools/genpolicy/src/daemon_set.rs
++++ b/src/tools/genpolicy/src/daemon_set.rs
+@@ -98,16 +98,14 @@ impl yaml::K8sResource for DaemonSet {
+         container: &pod::Container,
+         settings: &settings::Settings,
+     ) {
+-        if let Some(volumes) = &self.spec.template.spec.volumes {
+-            yaml::get_container_mounts_and_storages(
+-                policy_mounts,
+-                storages,
+-                persistent_volume_claims,
+-                container,
+-                settings,
+-                volumes,
+-            )
+-        }
++        yaml::get_container_mounts_and_storages(
++            policy_mounts,
++            storages,
++            persistent_volume_claims,
++            container,
++            settings,
++            &self.spec.template.spec.volumes,
++        );
+     }
+ 
+     fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
+diff --git a/src/tools/genpolicy/src/deployment.rs b/src/tools/genpolicy/src/deployment.rs
+index 890579cdfbd67cd7f5949c817dbd9391043b1cf0..65db6937e874ce13d655498b441e5c71913fca97 100644
+--- a/src/tools/genpolicy/src/deployment.rs
++++ b/src/tools/genpolicy/src/deployment.rs
+@@ -96,16 +96,14 @@ impl yaml::K8sResource for Deployment {
+         container: &pod::Container,
+         settings: &settings::Settings,
+     ) {
+-        if let Some(volumes) = &self.spec.template.spec.volumes {
+-            yaml::get_container_mounts_and_storages(
+-                policy_mounts,
+-                storages,
+-                persistent_volume_claims,
+-                container,
+-                settings,
+-                volumes,
+-            );
+-        }
++        yaml::get_container_mounts_and_storages(
++            policy_mounts,
++            storages,
++            persistent_volume_claims,
++            container,
++            settings,
++            &self.spec.template.spec.volumes,
++        );
+     }
+ 
+     fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
+diff --git a/src/tools/genpolicy/src/job.rs b/src/tools/genpolicy/src/job.rs
+index bca1463017bb7359fb59d1ebbf1ae801c0f17190..32c1048f6b979b38e598169892c75adbb725a983 100644
+--- a/src/tools/genpolicy/src/job.rs
++++ b/src/tools/genpolicy/src/job.rs
+@@ -70,16 +70,14 @@ impl yaml::K8sResource for Job {
+         container: &pod::Container,
+         settings: &settings::Settings,
+     ) {
+-        if let Some(volumes) = &self.spec.template.spec.volumes {
+-            yaml::get_container_mounts_and_storages(
+-                policy_mounts,
+-                storages,
+-                persistent_volume_claims,
+-                container,
+-                settings,
+-                volumes,
+-            );
+-        }
++        yaml::get_container_mounts_and_storages(
++            policy_mounts,
++            storages,
++            persistent_volume_claims,
++            container,
++            settings,
++            &self.spec.template.spec.volumes,
++        );
+     }
+ 
+     fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
+diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
+index 09bc89fdf7e6eb239428adbb093c9cb5962da8a7..0c2b5e58a45317d4d614ac51b7e0b5f035c8f11f 100644
+--- a/src/tools/genpolicy/src/mount_and_storage.rs
++++ b/src/tools/genpolicy/src/mount_and_storage.rs
+@@ -108,6 +108,10 @@ pub fn get_mount_and_storage(
+     yaml_volume: &volume::Volume,
+     yaml_mount: &pod::VolumeMount,
+ ) {
++    debug!(
++        "get_mount_and_storage: adding mount and storage for: {:?}",
++        &yaml_volume
++    );
+     let propagation = match yaml_mount.mountPropagation.as_deref() {
+         Some("Bidirectional") => "rshared",
+         Some("HostToContainer") => "rslave",
+@@ -422,6 +426,60 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
+     }
+ }
+ 
++pub fn get_image_mount_and_storage(
++    settings: &settings::Settings,
++    p_mounts: &mut Vec<policy::KataMount>,
++    storages: &mut Vec<agent::Storage>,
++    destination: &str,
++) {
++    // https://github.com/kubernetes/examples/blob/master/cassandra/image/Dockerfile
++    // has a volume mount starting with two '/' characters:
++    //
++    // CASSANDRA_DATA=/cassandra_data
++    // VOLUME ["/$CASSANDRA_DATA"]
++    let mut destination_string = destination.to_string();
++    while destination_string.contains("//") {
++        destination_string = destination_string.replace("//", "/");
++    }
++    debug!("get_image_mount_and_storage: image dest = {destination}, dest = {destination_string}");
++
++    for mount in &mut *p_mounts {
++        if mount.destination == destination_string {
++            debug!(
++                "get_image_mount_and_storage: mount {destination_string} already defined by YAML"
++            );
++            return;
++        }
++    }
++
++    let settings_image = &settings.volumes.image_volume;
++    debug!(
++        "get_image_mount_and_storage: settings for container image volumes: {:?}",
++        settings_image
++    );
++
++    storages.push(agent::Storage {
++        driver: settings_image.driver.clone(),
++        driver_options: Vec::new(),
++        source: settings_image.source.clone(),
++        fstype: settings_image.fstype.clone(),
++        options: settings_image.options.clone(),
++        mount_point: destination_string.clone(),
++        fs_group: None,
++    });
++
++    let file_name = Path::new(&destination_string).file_name().unwrap();
++    let name = OsString::from(file_name).into_string().unwrap();
++    let source = format!("{}{name}$", &settings_image.mount_source);
++
++    p_mounts.push(policy::KataMount {
++        destination: destination_string,
++        type_: settings_image.fstype.clone(),
++        source,
++        options: settings_image.options.clone(),
++    });
++}
++
+ fn get_ephemeral_mount(
+     settings: &settings::Settings,
+     yaml_mount: &pod::VolumeMount,
+diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
+index 4a40c957042e73ba584b66bc681469458a7f18f4..f5bf61bec420ed7ee642818e10ecdca80f710ad8 100644
+--- a/src/tools/genpolicy/src/pod.rs
++++ b/src/tools/genpolicy/src/pod.rs
+@@ -846,16 +846,14 @@ impl yaml::K8sResource for Pod {
+         container: &Container,
+         settings: &settings::Settings,
+     ) {
+-        if let Some(volumes) = &self.spec.volumes {
+-            yaml::get_container_mounts_and_storages(
+-                policy_mounts,
+-                storages,
+-                persistent_volume_claims,
+-                container,
+-                settings,
+-                volumes,
+-            );
+-        }
++        yaml::get_container_mounts_and_storages(
++            policy_mounts,
++            storages,
++            persistent_volume_claims,
++            container,
++            settings,
++            &self.spec.volumes,
++        );
+     }
+ 
+     fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index b212eeb8bca209d9916249fe8e01351f5943823c..bdce2d40e3a7c3ec34137ceb3685fcc94aedcb39 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -23,11 +23,13 @@ use sha2::{digest::typenum::Unsigned, digest::OutputSizeUser, Sha256};
+ use std::fs::OpenOptions;
+ use std::io::BufWriter;
+ use std::{io, io::Seek, io::Write, path::Path};
++use std::collections::BTreeMap;
+ use tokio::io::AsyncWriteExt;
+ 
+ /// Container image properties obtained from an OCI repository.
+ #[derive(Clone, Debug, Default)]
+ pub struct Container {
++    pub image: String,
+     pub config_layer: DockerConfigLayer,
+     pub image_layers: Vec<ImageLayer>,
+ }
+@@ -36,19 +38,20 @@ pub struct Container {
+ #[derive(Clone, Debug, Default, Deserialize, Serialize)]
+ pub struct DockerConfigLayer {
+     architecture: String,
+-    config: DockerImageConfig,
++    pub config: DockerImageConfig,
+     pub rootfs: DockerRootfs,
+ }
+ 
+-/// Image config properties.
++/// See: https://docs.docker.com/reference/dockerfile/.
+ #[derive(Clone, Debug, Default, Deserialize, Serialize)]
+-struct DockerImageConfig {
++pub struct DockerImageConfig {
+     User: Option<String>,
+     Tty: Option<bool>,
+     Env: Option<Vec<String>>,
+     Cmd: Option<Vec<String>>,
+     WorkingDir: Option<String>,
+     Entrypoint: Option<Vec<String>>,
++    pub Volumes: Option<BTreeMap<String, DockerVolumeHostDirectory>>
+ }
+ 
+ /// Container rootfs information.
+@@ -65,10 +68,20 @@ pub struct ImageLayer {
+     pub verity_hash: String,
+ }
+ 
++/// See https://docs.docker.com/reference/dockerfile/#volume.
++#[derive(Clone, Debug, Serialize, Deserialize)]
++pub struct DockerVolumeHostDirectory {
++    // This struct is empty because, according to the documentation:
++    // "The VOLUME instruction does not support specifying a host-dir
++    // parameter. You must specify the mountpoint when you create or
++    // run the container."
++}
++
+ impl Container {
+     pub async fn new(layers_cache_file_path: Option<String>, image: &str) -> Result<Self> {
+         info!("============================================");
+         info!("Pulling manifest and config for {:?}", image);
++        let image_string = image.to_string();
+         let reference: Reference = image.to_string().parse().unwrap();
+         let auth = build_auth(&reference);
+ 
+@@ -94,6 +107,7 @@ impl Container {
+ 
+                 let config_layer: DockerConfigLayer =
+                     serde_json::from_str(&config_layer_str).unwrap();
++                debug!("config_layer: {:?}", &config_layer);
+                 let image_layers = get_image_layers(
+                     layers_cache_file_path,
+                     &mut client,
+@@ -105,6 +119,7 @@ impl Container {
+                 .unwrap();
+ 
+                 Ok(Container {
++                    image: image_string,
+                     config_layer,
+                     image_layers,
+                 })
+diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
+index 333a4dd33032c4842e70d5e618b4660fa2ffb6c5..793137224b88d4a562ea214bbc8d93316563f863 100644
+--- a/src/tools/genpolicy/src/registry_containerd.rs
++++ b/src/tools/genpolicy/src/registry_containerd.rs
+@@ -46,7 +46,8 @@ impl Container {
+         let ctrd_client = containerd_client::Client::from(containerd_channel.clone());
+         let k8_cri_image_client = ImageServiceClient::new(containerd_channel);
+ 
+-        let image_ref: Reference = image.to_string().parse().unwrap();
++        let image_str = image.to_string();
++        let image_ref: Reference = image_str.parse().unwrap();
+ 
+         info!("Pulling image: {:?}", image_ref);
+ 
+@@ -67,6 +68,7 @@ impl Container {
+         .await?;
+ 
+         Ok(Container {
++            image: image_str,
+             config_layer,
+             image_layers,
+         })
+diff --git a/src/tools/genpolicy/src/replica_set.rs b/src/tools/genpolicy/src/replica_set.rs
+index 094daf1da4cf2f202cfc41e76a0f693bdf84e46a..205937f0a9f1e17b5e2b1a6ab9e3d67d5263daa5 100644
+--- a/src/tools/genpolicy/src/replica_set.rs
++++ b/src/tools/genpolicy/src/replica_set.rs
+@@ -68,16 +68,14 @@ impl yaml::K8sResource for ReplicaSet {
+         container: &pod::Container,
+         settings: &settings::Settings,
+     ) {
+-        if let Some(volumes) = &self.spec.template.spec.volumes {
+-            yaml::get_container_mounts_and_storages(
+-                policy_mounts,
+-                storages,
+-                persistent_volume_claims,
+-                container,
+-                settings,
+-                volumes,
+-            );
+-        }
++        yaml::get_container_mounts_and_storages(
++            policy_mounts,
++            storages,
++            persistent_volume_claims,
++            container,
++            settings,
++            &self.spec.template.spec.volumes,
++        );
+     }
+ 
+     fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
+diff --git a/src/tools/genpolicy/src/replication_controller.rs b/src/tools/genpolicy/src/replication_controller.rs
+index 55788a45c2e0ede93b5fb27349b9096d6dc706ef..049e6a1394ba4c1151f44dc56abe1392102f5582 100644
+--- a/src/tools/genpolicy/src/replication_controller.rs
++++ b/src/tools/genpolicy/src/replication_controller.rs
+@@ -70,16 +70,14 @@ impl yaml::K8sResource for ReplicationController {
+         container: &pod::Container,
+         settings: &settings::Settings,
+     ) {
+-        if let Some(volumes) = &self.spec.template.spec.volumes {
+-            yaml::get_container_mounts_and_storages(
+-                policy_mounts,
+-                storages,
+-                persistent_volume_claims,
+-                container,
+-                settings,
+-                volumes,
+-            );
+-        }
++        yaml::get_container_mounts_and_storages(
++            policy_mounts,
++            storages,
++            persistent_volume_claims,
++            container,
++            settings,
++            &self.spec.template.spec.volumes,
++        );
+     }
+ 
+     fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
+diff --git a/src/tools/genpolicy/src/settings.rs b/src/tools/genpolicy/src/settings.rs
+index 3d86971914ad4a659cab4bba0737ca53a183c2ba..a388f074e5168abb14c40c324c8aeef74062cdc0 100644
+--- a/src/tools/genpolicy/src/settings.rs
++++ b/src/tools/genpolicy/src/settings.rs
+@@ -34,6 +34,7 @@ pub struct Volumes {
+     pub emptyDir_memory: EmptyDirVolume,
+     pub configMap: ConfigMapVolume,
+     pub confidential_configMap: ConfigMapVolume,
++    pub image_volume: ImageVolume
+ }
+ 
+ /// EmptyDir volume settings loaded from genpolicy-settings.json.
+@@ -59,6 +60,17 @@ pub struct ConfigMapVolume {
+     pub options: Vec<String>,
+ }
+ 
++/// Container image volume settings loaded from genpolicy-settings.json.
++#[derive(Clone, Debug, Serialize, Deserialize)]
++pub struct ImageVolume {
++    pub mount_type: String,
++    pub mount_source: String,
++    pub driver: String,
++    pub source: String,
++    pub fstype: String,
++    pub options: Vec<String>,
++}
++
+ /// Data corresponding to the kata runtime config file data, loaded from
+ /// genpolicy-settings.json.
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+diff --git a/src/tools/genpolicy/src/stateful_set.rs b/src/tools/genpolicy/src/stateful_set.rs
+index d25398358f526116f5b766ffba6db2e287e0f8e9..aa25bf5a78443dce6493fe5a2a2c3a3b6bd8c00c 100644
+--- a/src/tools/genpolicy/src/stateful_set.rs
++++ b/src/tools/genpolicy/src/stateful_set.rs
+@@ -118,17 +118,6 @@ impl yaml::K8sResource for StatefulSet {
+         container: &pod::Container,
+         settings: &settings::Settings,
+     ) {
+-        if let Some(volumes) = &self.spec.template.spec.volumes {
+-            yaml::get_container_mounts_and_storages(
+-                policy_mounts,
+-                storages,
+-                persistent_volume_claims,
+-                container,
+-                settings,
+-                volumes,
+-            );
+-        }
+-
+         // Example:
+         //
+         // containers:
+@@ -159,6 +148,15 @@ impl yaml::K8sResource for StatefulSet {
+                 );
+             }
+         }
++
++        yaml::get_container_mounts_and_storages(
++            policy_mounts,
++            storages,
++            persistent_volume_claims,
++            container,
++            settings,
++            &self.spec.template.spec.volumes,
++        );
+     }
+ 
+     fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
+diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
+index c898240af337f3cb7cfc34fa1398cb5a6bd828a5..07ebb32aea0ae8265c8deb8c32fb02242d1a7d84 100644
+--- a/src/tools/genpolicy/src/yaml.rs
++++ b/src/tools/genpolicy/src/yaml.rs
+@@ -251,24 +251,41 @@ pub fn get_container_mounts_and_storages(
+     persistent_volume_claims: &[pvc::PersistentVolumeClaim],
+     container: &pod::Container,
+     settings: &settings::Settings,
+-    volumes: &Vec<volume::Volume>,
++    volumes_option: &Option<Vec<volume::Volume>>,
+ ) {
+-    if let Some(volume_mounts) = &container.volumeMounts {
+-        for volume in volumes {
+-            for volume_mount in volume_mounts {
+-                if volume_mount.name.eq(&volume.name) {
+-                    mount_and_storage::get_mount_and_storage(
+-                        settings,
+-                        policy_mounts,
+-                        storages,
+-                        persistent_volume_claims,
+-                        volume,
+-                        volume_mount,
+-                    );
++    if let Some(volumes) = volumes_option {
++        if let Some(volume_mounts) = &container.volumeMounts {
++            for volume in volumes {
++                for volume_mount in volume_mounts {
++                    if volume_mount.name.eq(&volume.name) {
++                        mount_and_storage::get_mount_and_storage(
++                            settings,
++                            policy_mounts,
++                            storages,
++                            persistent_volume_claims,
++                            volume,
++                            volume_mount,
++                        );
++                    }
+                 }
+             }
+         }
+     }
++
++    // Add storage and mount for each volume defined in the docker container image
++    // configuration layer.
++    if let Some(volumes) = &container.registry.config_layer.config.Volumes {
++        for volume in volumes {
++            debug!("get_container_mounts_and_storages: {:?}", &volume);
++
++            mount_and_storage::get_image_mount_and_storage(
++                settings,
++                policy_mounts,
++                storages,
++                volume.0,
++            );
++        }
++    }
+ }
+ 
+ /// Add the "io.katacontainers.config.agent.policy" annotation into
+diff --git a/tests/integration/kubernetes/k8s-policy-deployments.bats b/tests/integration/kubernetes/k8s-policy-deployments.bats
+new file mode 100644
+index 0000000000000000000000000000000000000000..8919c7dae1536ba62a84a8ab27370498f2a76704
+--- /dev/null
++++ b/tests/integration/kubernetes/k8s-policy-deployments.bats
+@@ -0,0 +1,47 @@
++#!/usr/bin/env bats
++#
++# Copyright (c) 2024 Microsoft.
++#
++# SPDX-License-Identifier: Apache-2.0
++#
++
++load "${BATS_TEST_DIRNAME}/../../common.bash"
++load "${BATS_TEST_DIRNAME}/tests_common.sh"
++
++setup() {
++    auto_generate_policy_enabled || skip "Auto-generated policy tests are disabled."
++
++    get_pod_config_dir
++
++    deployment_name="policy-redis-deployment"
++    deployment_yaml="${pod_config_dir}/k8s-policy-deployment.yaml"
++
++    # Add an appropriate policy to the correct YAML file.
++    policy_settings_dir="$(create_tmp_policy_settings_dir "${pod_config_dir}")"
++    add_requests_to_policy_settings "${policy_settings_dir}" "ReadStreamRequest"
++    auto_generate_policy "${policy_settings_dir}" "${deployment_yaml}"
++}
++
++@test "Successful deployment with auto-generated policy and container image volumes" {
++    # Initiate deployment
++    kubectl apply -f "${deployment_yaml}"
++
++    # Wait for the deployment to be created
++    cmd="kubectl rollout status --timeout=1s deployment/${deployment_name} | grep 'successfully rolled out'"
++    info "Waiting for: ${cmd}"
++    waitForProcess "${wait_time}" "${sleep_time}" "${cmd}"
++}
++
++teardown() {
++    auto_generate_policy_enabled || skip "Auto-generated policy tests are disabled."
++
++    # Debugging information
++    info "Deployment ${deployment_name}:"
++    kubectl describe deployment "${deployment_name}"
++    kubectl rollout status deployment/${deployment_name}
++
++    # Clean-up
++    kubectl delete deployment "${deployment_name}"
++
++    delete_tmp_policy_settings_dir "${policy_settings_dir}"
++}
+diff --git a/tests/integration/kubernetes/run_kubernetes_tests.sh b/tests/integration/kubernetes/run_kubernetes_tests.sh
+index b16c22ae64fa23f3a42fd4915d9c1f0eee6812eb..203128f51e357b17c4a8c0e832619c08c1b35746 100644
+--- a/tests/integration/kubernetes/run_kubernetes_tests.sh
++++ b/tests/integration/kubernetes/run_kubernetes_tests.sh
+@@ -45,6 +45,7 @@ else
+ 		"k8s-optional-empty-secret.bats" \
+ 		"k8s-pid-ns.bats" \
+ 		"k8s-pod-quota.bats" \
++    "k8s-policy-deployments.bats" \
+ 		"k8s-port-forward.bats" \
+ 		"k8s-projected-volume.bats" \
+ 		"k8s-qos-pods.bats" \
+diff --git a/tests/integration/kubernetes/runtimeclass_workloads/k8s-policy-deployment.yaml b/tests/integration/kubernetes/runtimeclass_workloads/k8s-policy-deployment.yaml
+new file mode 100644
+index 0000000000000000000000000000000000000000..407b99729061dc7e651296afcc10ce6138e481af
+--- /dev/null
++++ b/tests/integration/kubernetes/runtimeclass_workloads/k8s-policy-deployment.yaml
+@@ -0,0 +1,36 @@
++#
++# Copyright (c) 2024 Microsoft
++#
++# SPDX-License-Identifier: Apache-2.0
++#
++apiVersion: apps/v1
++kind: Deployment
++metadata:
++  name: policy-redis-deployment
++  labels:
++    app: policyredis
++spec:
++  selector:
++    matchLabels:
++      app: policyredis
++      role: master
++      tier: backend
++  replicas: 1
++  template:
++    metadata:
++      labels:
++        app: policyredis
++        role: master
++        tier: backend
++    spec:
++      terminationGracePeriodSeconds: 0
++      runtimeClassName: kata
++      containers:
++      - name: master
++        image: quay.io/opstree/redis
++        resources:
++          requests:
++            cpu: 100m
++            memory: 100Mi
++        ports:
++        - containerPort: 6379

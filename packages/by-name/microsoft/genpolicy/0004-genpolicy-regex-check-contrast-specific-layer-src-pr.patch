@@ -1,7 +1,7 @@
-From 3b444c242de3bc130f0cf73d1a89ab540690c9f0 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 Date: Thu, 11 Jul 2024 12:05:00 +0200
-Subject: [PATCH 4/6] genpolicy: regex check contrast specific layer-src-prefix
+Subject: [PATCH] genpolicy: regex check contrast specific layer-src-prefix
 
 Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 ---
@@ -9,7 +9,7 @@ Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 25c16bada..d933b928d 100644
+index 25c16badaddea436539c9ec8b8bd210461cda615..d933b928d21b549ef7c315a9e0c5cbb4bbbe88b3 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -887,7 +887,7 @@ allow_storage_options(p_storage, i_storage, layer_ids, root_hashes) {
@@ -21,6 +21,3 @@ index 25c16bada..d933b928d 100644
  
      print("allow_storage_options 2: i_storage.options[i_count - 2] =", i_storage.options[i_count - 2])
      i_storage.options[i_count - 2] == "io.katacontainers.fs-opt.overlay-rw"
--- 
-2.34.1
-

@@ -1,7 +1,7 @@
-From cf495b76fe64e56b3c18a7175cb4e01d27d02dc7 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 Date: Tue, 9 Jul 2024 16:14:46 +0200
-Subject: [PATCH 3/6] genpolicy: allow specifying layer cache file
+Subject: [PATCH] genpolicy: allow specifying layer cache file
 
 Add --layers-cache-file-path flag to allow the user to
 specify where the cache file for the container layers
@@ -23,7 +23,7 @@ Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
  3 files changed, 52 insertions(+), 26 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index 97e35ee60..b212eeb8b 100644
+index 97e35ee601beed99929e36661dadfd6ed15dfc5f..b212eeb8bca209d9916249fe8e01351f5943823c 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -66,7 +66,7 @@ pub struct ImageLayer {
@@ -130,7 +130,7 @@ index 97e35ee60..b212eeb8b 100644
  
  #[cfg(target_os = "windows")]
 diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
-index fcc51ad78..333a4dd33 100644
+index fcc51ad783afb392e706e92a63efed0fe3f416a1..333a4dd33032c4842e70d5e618b4660fa2ffb6c5 100644
 --- a/src/tools/genpolicy/src/registry_containerd.rs
 +++ b/src/tools/genpolicy/src/registry_containerd.rs
 @@ -28,7 +28,7 @@ use tower::service_fn;
@@ -219,7 +219,7 @@ index fcc51ad78..333a4dd33 100644
          warn!("{error_message}");
      }
 diff --git a/src/tools/genpolicy/src/utils.rs b/src/tools/genpolicy/src/utils.rs
-index 2402c2ed2..7579d74bf 100644
+index 2402c2ed213e45b89c47b2b6a94d54f8d200edb1..7579d74bf5a488bf6f577949862e6f976fa14ac5 100644
 --- a/src/tools/genpolicy/src/utils.rs
 +++ b/src/tools/genpolicy/src/utils.rs
 @@ -78,6 +78,14 @@ struct CommandLineOptions {
@@ -266,6 +266,3 @@ index 2402c2ed2..7579d74bf 100644
              version: args.version,
          }
      }
--- 
-2.34.1
-
