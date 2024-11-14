@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Leonard Cohnen <lc@edgeless.systems>
 Date: Fri, 30 Aug 2024 00:30:57 +0200
-Subject: [PATCH] genpolicy: support HostToContainer mount propagation
+Subject: [PATCH 6/7] genpolicy: support HostToContainer mount propagation
 
 ---
  src/tools/genpolicy/src/mount_and_storage.rs | 5 +++--

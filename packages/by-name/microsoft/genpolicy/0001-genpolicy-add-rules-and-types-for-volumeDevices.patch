@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Thu, 23 May 2024 09:20:20 +0200
-Subject: [PATCH] genpolicy: add rules and types for volumeDevices
+Subject: [PATCH 1/7] genpolicy: add rules and types for volumeDevices
 
 Signed-off-by: Markus Rudy <mr@edgeless.systems>
 ---

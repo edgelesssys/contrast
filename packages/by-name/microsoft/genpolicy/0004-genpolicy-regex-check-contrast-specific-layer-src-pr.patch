@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 Date: Thu, 11 Jul 2024 12:05:00 +0200
-Subject: [PATCH] genpolicy: regex check contrast specific layer-src-prefix
+Subject: [PATCH 4/7] genpolicy: regex check contrast specific layer-src-prefix
 
 Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 ---
