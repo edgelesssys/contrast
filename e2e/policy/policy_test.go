@@ -32,6 +32,8 @@ const (
 	opensslBackend  = "openssl-backend"
 	opensslFrontend = "openssl-frontend"
 	coordinator     = "coordinator"
+	// Persistent pod identifier of StatefulSet Coordinator is used.
+	coordinatorPod = "coordinator-0"
 )
 
 var (
@@ -58,11 +60,34 @@ func TestPolicy(t *testing.T) {
 
 	ct.Init(t, resources)
 
+	// Apply deployment using default policies
+	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+
+	t.Run("check containers without policy annotation do not start", func(t *testing.T) {
+		require := require.New(t)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(2*time.Minute))
+		defer cancel()
+
+		c := kubeclient.NewForTest(t)
+
+		t.Log("Waiting to ensure container start up failed")
+
+		err := c.WaitForEvent(ctx, kubeclient.StartingBlocked, kubeclient.Pod{}, ct.Namespace, coordinatorPod)
+		require.NoError(err)
+
+		t.Log("Restarting container")
+
+		require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, coordinator))
+		t.Log("Waiting to ensure container start up failed")
+
+		errRst := c.WaitForEvent(ctx, kubeclient.StartingBlocked, kubeclient.Pod{}, ct.Namespace, coordinatorPod)
+		require.NoError(errRst)
+	})
+
 	// initial deployment with pod allowed
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 
 	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
-
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
