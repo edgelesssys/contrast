@@ -4,10 +4,6 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "4.8.0"
     }
-    azuread = {
-      source  = "hashicorp/azuread"
-      version = "3.0.2"
-    }
     local = {
       source  = "hashicorp/local"
       version = "2.5.2"
@@ -26,63 +22,16 @@ provider "azurerm" {
 
 data "azurerm_subscription" "current" {}
 
-data "azuread_client_config" "current" {}
-
-provider "azuread" {
-  tenant_id = data.azurerm_subscription.current.tenant_id
-}
-
 locals {
-  name = "${var.name_prefix}_caa_cluster"
+  name = "${var.name_prefix}contrast_pp"
 }
 
 data "azurerm_resource_group" "rg" {
-  name = local.name
-}
-
-resource "azuread_application" "app" {
-  display_name = local.name
-  owners       = [data.azuread_client_config.current.object_id]
-}
-
-resource "azuread_service_principal" "sp" {
-  client_id                    = azuread_application.app.client_id
-  app_role_assignment_required = false
-  owners                       = [data.azuread_client_config.current.object_id]
-}
-
-resource "azurerm_role_assignment" "ra_vm_contributor" {
-  scope                = data.azurerm_resource_group.rg.id
-  role_definition_name = "Virtual Machine Contributor"
-  principal_id         = azuread_service_principal.sp.object_id
-}
-
-resource "azurerm_role_assignment" "ra_reader" {
-  scope                = data.azurerm_resource_group.rg.id
-  role_definition_name = "Reader"
-  principal_id         = azuread_service_principal.sp.object_id
-}
-
-resource "azurerm_role_assignment" "ra_network_contributor" {
-  scope                = data.azurerm_resource_group.rg.id
-  role_definition_name = "Network Contributor"
-  principal_id         = azuread_service_principal.sp.object_id
-}
-
-resource "azuread_application_federated_identity_credential" "federated_credentials" {
-  display_name   = local.name
-  application_id = azuread_application.app.id
-  issuer         = azurerm_kubernetes_cluster.cluster.oidc_issuer_url
-  subject        = "system:serviceaccount:confidential-containers-system:cloud-api-adaptor"
-  audiences      = ["api://AzureADTokenExchange"]
-}
-
-resource "azuread_application_password" "cred" {
-  application_id = azuread_application.app.id
+  name = var.resource_group
 }
 
 resource "azurerm_virtual_network" "main" {
-  name                = local.name
+  name                = "${local.name}_net"
   address_space       = ["10.0.0.0/8"]
   location            = data.azurerm_resource_group.rg.location
   resource_group_name = data.azurerm_resource_group.rg.name
@@ -96,7 +45,7 @@ resource "azurerm_virtual_network" "main" {
 resource "azurerm_kubernetes_cluster" "cluster" {
   name                      = "${local.name}_aks"
   resource_group_name       = data.azurerm_resource_group.rg.name
-  node_resource_group       = "${local.name}_node_rg"
+  node_resource_group       = "${var.resource_group}_aks_node_rg"
   location                  = data.azurerm_resource_group.rg.location
   dns_prefix                = "aks"
   oidc_issuer_enabled       = true
@@ -128,31 +77,6 @@ resource "local_file" "kubeconfig" {
   content    = azurerm_kubernetes_cluster.cluster.kube_config_raw
 }
 
-resource "local_file" "workload_identity" {
-  filename        = "./workload-identity.yaml"
-  file_permission = "0777"
-  content         = <<EOF
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: cloud-api-adaptor-daemonset
-  namespace: confidential-containers-system
-spec:
-  template:
-    metadata:
-      labels:
-        azure.workload.identity/use: "true"
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: cloud-api-adaptor
-  namespace: confidential-containers-system
-  annotations:
-    azure.workload.identity/client-id: ${azuread_application.app.client_id}
-EOF
-}
-
 resource "local_file" "kustomization" {
   filename        = "./kustomization.yaml"
   file_permission = "0777"
@@ -178,6 +102,9 @@ configMapGenerator:
   - AZURE_RESOURCE_GROUP=${data.azurerm_resource_group.rg.name}
   - AZURE_SUBNET_ID=${one(azurerm_virtual_network.main.subnet.*.id)}
   - AZURE_IMAGE_ID=${var.image_id}
+  - AZURE_CLIENT_ID=${var.client_id}
+  - AZURE_TENANT_ID=${var.tenant_id}
+  - AZURE_CLIENT_SECRET=${var.client_secret}
   - DISABLECVM=false
 secretGenerator:
 - name: peer-pods-secret
@@ -186,7 +113,5 @@ secretGenerator:
   namespace: confidential-containers-system
   files:
   - id_rsa.pub
-patchesStrategicMerge:
-- workload-identity.yaml
 EOF
 }
