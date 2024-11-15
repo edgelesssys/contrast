@@ -69,7 +69,7 @@
         subscriptionID = "''${subscriptionId}"
         location = "''${location}"
         resourceGroup = "''${resourceGroup}"
-        sharedImageGallery = "''${resourceGroup}_contrast"
+        sharedImageGallery = "''${resourceGroup//-/_}_contrast"
         sharingProfile = "private"
         EOF
 
