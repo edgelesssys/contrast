@@ -54,7 +54,6 @@ node-installer platform=default_platform:
         "AKS-PEER-SNP")
             nix run -L .#scripts.deploy-caa -- \
                 --kustomization=./infra/azure-peerpods/kustomization.yaml \
-                --workload-identity=./infra/azure-peerpods/workload-identity.yaml \
                 --pub-key=./infra/azure-peerpods/id_rsa.pub
         ;;
         *)
@@ -177,9 +176,32 @@ undeploy:
 
 upload-image:
     # Ensure that the resource group exists.
-    az group create  --name "${azure_resource_group}_caa_cluster" --location "$azure_location"
+    az group create  --name "${azure_resource_group}" --location "$azure_location"
 
     nix run -L .#scripts.upload-image -- --subscription-id="$azure_subscription_id" --location="$azure_location" --resource-group="${azure_resource_group}_caa_cluster"
+
+# Create foundational dependencies of a CoCo-enabled cluster.
+create-pre platform=default_platform:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case {{ platform }} in
+        "AKS-CLH-SNP"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+            :
+        ;;
+        "AKS-PEER-SNP")
+            # Ensure that the resource group exists.
+            az group create  --name "${azure_resource_group}" --location "${azure_location}"
+            echo "resource_group = \"${azure_resource_group}\"" > infra/azure-peerpods-iam/just.auto.tfvars
+            echo "subscription_id = \"${azure_subscription_id}\"" >> infra/azure-peerpods-iam/just.auto.tfvars
+            nix run -L .#terraform -- -chdir=infra/azure-peerpods-iam init
+            nix run -L .#terraform -- -chdir=infra/azure-peerpods-iam apply --auto-approve
+            nix run -L .#terraform -- -chdir=infra/azure-peerpods-iam output -raw client_secret_env > infra/azure-peerpods/iam.auto.tfvars
+        ;;
+        *)
+            echo "Unsupported platform: {{ platform }}"
+            exit 1
+        ;;
+    esac
 
 # Create a CoCo-enabled AKS cluster.
 create platform=default_platform:
@@ -197,11 +219,11 @@ create platform=default_platform:
 
             # Populate Terraform variables.
             echo "name_prefix = \"$azure_resource_group\"" > infra/azure-peerpods/just.auto.tfvars
-            echo "image_resource_group_name = \"$azure_resource_group\"" >> infra/azure-peerpods/just.auto.tfvars
+            echo "resource_group = \"$azure_resource_group\"" >> infra/azure-peerpods/just.auto.tfvars
             echo "subscription_id = \"$azure_subscription_id\"" >> infra/azure-peerpods/just.auto.tfvars
 
             nix run -L .#terraform -- -chdir=infra/azure-peerpods init
-            nix run -L .#terraform -- -chdir=infra/azure-peerpods apply
+            nix run -L .#terraform -- -chdir=infra/azure-peerpods apply --auto-approve
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
@@ -330,12 +352,12 @@ destroy platform=default_platform:
             :
         ;;
         "AKS-PEER-SNP")
-            nix run -L .#terraform -- -chdir=infra/azure-peerpods destroy
+            nix run -L .#terraform -- -chdir=infra/azure-peerpods destroy --auto-approve
 
             # Clean-up cached image ids.
             rm -f ${CONTRAST_CACHE_DIR}/image-upload/*.image-id
 
-            az group delete --name "${azure_resource_group}_caa_cluster" --yes
+            az group delete --name "${azure_resource_group}" --yes
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"

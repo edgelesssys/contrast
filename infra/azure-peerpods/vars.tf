@@ -2,11 +2,23 @@ variable "name_prefix" {
   type = string
 }
 
-variable "image_resource_group_name" {
+variable "resource_group" {
   type = string
 }
 
 variable "subscription_id" {
+  type = string
+}
+
+variable "client_id" {
+  type = string
+}
+
+variable "tenant_id" {
+  type = string
+}
+
+variable "client_secret" {
   type = string
 }
 
