@@ -508,4 +508,14 @@
     ];
     text = builtins.readFile ./cleanup-images.sh;
   };
+
+  test-peerpods = writeShellApplication {
+    name = "test-peerpods";
+    runtimeInputs = with pkgs; [
+      just
+      azure-cli
+      kubectl
+    ];
+    text = builtins.readFile ./test-peerpods.sh;
+  };
 }
