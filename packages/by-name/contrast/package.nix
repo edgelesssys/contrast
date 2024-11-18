@@ -7,6 +7,7 @@
   buildGoTest,
   microsoft,
   kata,
+  peerpod,
   contrast,
   installShellFiles,
 }:
@@ -52,7 +53,7 @@ let
       k3s-qemu-tdx-handler = runtimeHandler "k3s-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
       rke2-qemu-tdx-handler = runtimeHandler "rke2-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
       k3s-qemu-snp-handler = runtimeHandler "k3s-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
-      aks-peer-snp-handler = runtimeHandler "aks-peer-snp" kata.contrast-node-installer-image.runtimeHash;
+      aks-peer-snp-handler = runtimeHandler "aks-peer-snp" peerpod.contrast-node-installer-image.runtimeHash;
 
       aksRefVals = {
         snp = [

@@ -53,7 +53,7 @@ node-installer platform=default_platform:
         ;;
         "AKS-PEER-SNP")
             just push "nydus-snapshotter"
-            just push "node-installer-kata"
+            just push "node-installer-peerpod"
             just push "cloud-api-adaptor"
         ;;
         *)

@@ -207,7 +207,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		containers = []*applycorev1.ContainerApplyConfiguration{nydusSnapshotter}
 		volumes = nydusSnapshotterVolumes
 	case platforms.AKSPeerSNP:
-		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
+		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-peerpod:latest"
 		containers = []*applycorev1.ContainerApplyConfiguration{nydusSnapshotter, cloudAPIAdaptor}
 		volumes = append(nydusSnapshotterVolumes, cloudAPIAdaptorVolumes...)
 	default:

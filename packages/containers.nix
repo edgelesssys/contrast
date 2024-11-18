@@ -187,5 +187,8 @@ containers
   push-node-installer-kata =
     pushOCIDir "push-node-installer-kata" pkgs.kata.contrast-node-installer-image
       "v${pkgs.contrast.version}";
+  push-node-installer-peerpod =
+    pushOCIDir "push-node-installer-peerpod" pkgs.peerpod.contrast-node-installer-image
+      "v${pkgs.contrast.version}";
 }
 // (lib.concatMapAttrs (name: container: { "push-${name}" = pushContainer container; }) containers)
