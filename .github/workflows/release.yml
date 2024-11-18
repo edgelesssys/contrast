@@ -331,7 +331,7 @@ jobs:
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
       - name: Create draft release
-        uses: softprops/action-gh-release@e7a8f85e1c67a31e6ed99a94b41bd0b71bbee6b8 # v2.0.9
+        uses: softprops/action-gh-release@01570a1f39cb168c169c802c3bceb9e93fb10974 # v2.1.0
         with:
           draft: true
           generate_release_notes: true
@@ -393,7 +393,7 @@ jobs:
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       - if: ${{ !matrix.platform.self-hosted }}
-        uses: nicknovitski/nix-develop@c2bcf9062b7c3a24659d915b8f272c1931a5802f # v1.2.0
+        uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env

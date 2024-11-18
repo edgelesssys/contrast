@@ -28,7 +28,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: nicknovitski/nix-develop@c2bcf9062b7c3a24659d915b8f272c1931a5802f # v1.2.0
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env
