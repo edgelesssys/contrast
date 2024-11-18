@@ -66,8 +66,10 @@ func (a *Authority) Credentials(reg *prometheus.Registry, issuer atls.Issuer) (*
 //
 // If successful, the state will be passed to gRPC as [AuthInfo].
 func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
+	log := c.logger.With("peer", rawConn.RemoteAddr())
 	state, err := c.getState()
 	if err != nil {
+		log.Error("Could not get manifest state to validate peer", "error", err)
 		return nil, nil, fmt.Errorf("getting state: %w", err)
 	}
 
@@ -79,6 +81,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	opts, err := state.Manifest.SNPValidateOpts(c.kdsGetter)
 	if err != nil {
+		log.Error("Could not generate SNP validation options", "error", err)
 		return nil, nil, fmt.Errorf("generating SNP validation options: %w", err)
 	}
 
@@ -91,6 +94,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	tdxOpts, err := state.Manifest.TDXValidateOpts()
 	if err != nil {
+		log.Error("Could not generate TDX validation options", "error", err)
 		return nil, nil, fmt.Errorf("generating TDX validation options: %w", err)
 	}
 	for _, opt := range tdxOpts {
@@ -100,18 +104,20 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validators, c.attestationFailuresCounter)
 	if err != nil {
+		log.Error("Could not create TLS config", "error", err)
 		return nil, nil, err
 	}
 
 	conn, info, err := credentials.NewTLS(serverCfg).ServerHandshake(rawConn)
 	if err != nil {
+		log.Error("ServerHandshake failed", "error", err)
 		return nil, nil, err
 	}
 	tlsInfo, ok := info.(credentials.TLSInfo)
 	if ok {
 		authInfo.TLSInfo = tlsInfo
 	} else {
-		c.logger.Error("credentials.NewTLS returned unexpected AuthInfo", "obj", info)
+		log.Error("credentials.NewTLS returned unexpected AuthInfo", "obj", info)
 	}
 
 	return conn, authInfo, nil
