@@ -106,6 +106,10 @@ func newRtMrCmd() *cobra.Command {
 	if err := cmd.MarkFlagFilename("kernel"); err != nil {
 		panic(err)
 	}
+	cmd.Flags().StringP("initrd", "i", "initrd.zst", "path to initrd file")
+	if err := cmd.MarkFlagFilename("initrd"); err != nil {
+		panic(err)
+	}
 	cmd.Flags().StringP("cmdline", "c", "", "kernel command line")
 	return cmd
 }
@@ -136,8 +140,15 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("can't read kernel file: %w", err)
 		}
-
-		digest, err = rtmr.CalcRtmr1(kernel)
+		initrdPath, err := cmd.Flags().GetString("initrd")
+		if err != nil {
+			return err
+		}
+		initrd, err := os.ReadFile(initrdPath)
+		if err != nil {
+			return fmt.Errorf("can't read initrd file: %w", err)
+		}
+		digest, err = rtmr.CalcRtmr1(kernel, initrd)
 		if err != nil {
 			return fmt.Errorf("can't calculate RTMR 1: %w", err)
 		}
@@ -146,7 +157,15 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		digest, err = rtmr.CalcRtmr2(cmdLine)
+		initrdPath, err := cmd.Flags().GetString("initrd")
+		if err != nil {
+			return err
+		}
+		initrd, err := os.ReadFile(initrdPath)
+		if err != nil {
+			return fmt.Errorf("can't read initrd file: %w", err)
+		}
+		digest, err = rtmr.CalcRtmr2(cmdLine, initrd)
 		if err != nil {
 			return fmt.Errorf("can't calculate RTMR 2: %w", err)
 		}

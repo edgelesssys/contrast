@@ -34,3 +34,10 @@ Currently, this requires inspecting the iptables rules on startup or terminating
 The Contrast Coordinator is a singleton and can't be scaled to more than one instance.
 When this instance's pod is restarted, for example for node maintenance, it needs to be recovered manually.
 In a future release, we plan to support distributed Coordinator instances that can recover automatically.
+
+## Overriding Kata configuration
+
+Kata Containers supports [overriding certain configuration values via Kubernetes annotations](https://github.com/kata-containers/kata-containers/blob/b4da4b5e3b9b21048af9333b071235a57a3e9493/docs/how-to/how-to-set-sandbox-config-kata.md).
+
+It needs to be noted that setting these values is unsupported, and doing so may lead to unexpected
+behaviour, as Contrast isn't tested against all possible configuration combinations.

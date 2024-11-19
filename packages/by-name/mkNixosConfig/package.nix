@@ -45,7 +45,11 @@ lib.makeOverridable (
             nvidia-ctk-with-config
             tdx-tools
             ;
-          inherit (outerPkgs.kata) kata-agent;
+          inherit (outerPkgs.kata)
+            kata-agent
+            kata-runtime
+            kata-kernel-uvm
+            ;
         })
       ];
 

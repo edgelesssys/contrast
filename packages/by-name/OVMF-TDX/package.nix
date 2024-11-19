@@ -9,7 +9,7 @@
   debug ? false,
 }:
 
-edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" rec {
+edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
   name = "OVMF-TDX";
 
   buildFlags = lib.optionals debug [ "-D DEBUG_ON_SERIAL_PORT=TRUE" ];
