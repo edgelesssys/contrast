@@ -424,7 +424,7 @@
     '';
   };
 
-  # Usage: get-logs $namespaceFile
+  # Usage: get-logs [start | download] $namespaceFile
   get-logs = writeShellApplication {
     name = "get-logs";
     runtimeInputs = with pkgs; [
@@ -432,27 +432,45 @@
     ];
     text = ''
       set -euo pipefail
-      while ! [[ -s "$1" ]]; do
-        sleep 1
-      done
-      namespace="$(head -n1 "$1")"
 
-      cp ./packages/log-collector.yaml ./workspace/log-collector.yaml
-      sed -i "s/@@NAMESPACE@@/''${namespace}/g" ./workspace/log-collector.yaml
-
-      kubectl apply -f ./workspace/log-collector.yaml 1>/dev/null 2>/dev/null
-
-      pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
-      mkdir -p ./workspace/logs
-      kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod" 1>/dev/null 2>/dev/null
-      # Download and extract the logs every 3 seconds
-      while true; do
+      if [[ -z "''${1-}" ]]; then
+        echo "Usage: get-logs [start | download] namespaceFile"
+        exit 1
+      fi
+      case $1 in
+      start)
+        if [[ -z "''${2-}" ]]; then
+          echo "Please add the path to the namespace file."
+          echo "Usage: get-logs start namespaceFile"
+          exit 1
+        fi
+        while ! [[ -s "$2" ]]; do
+          sleep 1
+        done
+        namespace="$(head -n1 "$2")"
+        cp ./packages/log-collector.yaml ./workspace/log-collector.yaml
+        sed -i "s/@@NAMESPACE@@/''${namespace}/g" ./workspace/log-collector.yaml
+        kubectl apply -f ./workspace/log-collector.yaml 1>/dev/null 2>/dev/null
+        ;;
+      download)
+        if [[ -z "''${2-}" ]]; then
+          echo "Please add the path to the namespace file."
+          echo "Usage: get-logs download namespaceFile"
+          exit 1
+        fi
+        namespace="$(head -n1 "$2")"
+        pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
+        mkdir -p ./workspace/logs
+        kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod" 1>/dev/null 2>/dev/null
         kubectl exec -n "$namespace" "$pod" -- /bin/bash -c "rm -f /exported-logs.tar.gz; tar zcvf /exported-logs.tar.gz /export" 1>/dev/null 2>/dev/null
-        rm -f ./workspace/logs/exported-logs.tar.gz
         kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz 1>/dev/null 2>/dev/null
         tar xzvf ./workspace/logs/exported-logs.tar.gz --directory ./workspace/logs 1>/dev/null 2>/dev/null
-        sleep 3
-      done
+        ;;
+      *)
+        echo "Unknown option $1"
+        echo "Usage: get-logs [start | download] namespaceFile"
+        exit 1
+      esac
     '';
   };
 
