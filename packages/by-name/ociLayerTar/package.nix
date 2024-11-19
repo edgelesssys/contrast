@@ -52,8 +52,11 @@ runCommandLocal "ociLayer"
 
     # Copy files into the tree (./root/)
     for i in ''${!srcs[@]}; do
+        # resolve symlinks
+        src=$(readlink -f ''${srcs[i]})
+
         mkdir -p "./root/$(dirname ''${dests[$i]})"
-        cp -rT "''${srcs[i]}" "./root/''${dests[$i]}"
+        cp -rT "''${src}" "./root/''${dests[$i]}"
     done
 
     # Create the layer tarball
