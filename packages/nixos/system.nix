@@ -4,20 +4,24 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
 {
   boot.loader.grub.enable = false;
-  boot.kernelPackages = pkgs.recurseIntoAttrs (pkgs.linuxPackagesFor pkgs.kernel-podvm-azure);
   boot.kernelParams = [
     "systemd.verity=yes"
     "selinux=0"
   ];
-  boot.supportedFilesystems = [ "erofs" ];
+  boot.supportedFilesystems = [
+    "erofs"
+    "vfat"
+  ];
   boot.initrd = {
-    supportedFilesystems = [ "erofs" ];
+    supportedFilesystems = [
+      "erofs"
+      "vfat"
+    ];
     availableKernelModules = [
       "dm_mod"
       "dm_verity"

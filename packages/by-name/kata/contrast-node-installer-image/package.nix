@@ -48,6 +48,10 @@ let
               path = "/opt/edgeless/@@runtimeName@@/share/kata-kernel";
             }
             {
+              url = "file:///opt/edgeless/share/kata-initrd.zst";
+              path = "/opt/edgeless/@@runtimeName@@/share/kata-initrd.zst";
+            }
+            {
               url = "file:///opt/edgeless/snp/bin/qemu-system-x86_64";
               path = "/opt/edgeless/@@runtimeName@@/snp/bin/qemu-system-x86_64";
               executable = true;
@@ -106,7 +110,7 @@ let
             }
           ];
           inherit debugRuntime;
-          qemuExtraKernelParams = kata.snp-launch-digest.dmVerityArgs;
+          qemuExtraKernelParams = kata.kata-image.cmdline;
         };
         destination = "/config/contrast-node-install.json";
       }
@@ -116,12 +120,16 @@ let
   kata-container-img = ociLayerTar {
     files = [
       {
-        source = kata.kata-image;
+        source = "${kata.kata-image.image}/${kata.kata-image.imageFileName}";
         destination = "/opt/edgeless/share/kata-containers.img";
       }
       {
-        source = "${kata.kata-kernel-uvm}/bzImage";
+        source = "${kata.kata-image.kernel}/bzImage";
         destination = "/opt/edgeless/share/kata-kernel";
+      }
+      {
+        source = "${kata.kata-image.initialRamdisk}/initrd";
+        destination = "/opt/edgeless/share/kata-initrd.zst";
       }
     ];
   };

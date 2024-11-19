@@ -18,6 +18,9 @@ cpu_features="-vmx-rdseed-exit,pmu=off"
 default_vcpus = 1
 default_maxvcpus = 0
 default_bridges = 1
+# On TDX, when lowering this, the patch:
+# packages/by-name/qemu-tdx-static/0004-hw-x86-load-initrd-to-static-address.patch
+# needs to be updated accordingly.
 default_memory = 2048
 default_maxmemory = 0
 disable_block_device_use = false

@@ -243,23 +243,33 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 }
 
 // CalcRtmr1 calculates RTMR[1] for the given kernel.
-func CalcRtmr1(kernelFile []byte) ([48]byte, error) {
+func CalcRtmr1(kernelFile, initrdFile []byte) ([48]byte, error) {
 	var rtmr Rtmr
-	kernelHashContent, err := hashKernel(kernelFile)
+
+	kernelHashContent, err := hashKernel(kernelFile, initrdFile)
 	if err != nil {
 		return [48]byte{}, fmt.Errorf("can't hash kernel: %w", err)
 	}
 	rtmr.hashAndExtend(kernelHashContent)
+
+	// https://github.com/tianocore/edk2/blob/0f3867fa6ef0553e26c42f7d71ff6bdb98429742/OvmfPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.c#L2155
 	rtmr.hashAndExtend([]byte("Calling EFI Application from Boot Option"))
+	// https://github.com/tianocore/edk2/blob/0f3867fa6ef0553e26c42f7d71ff6bdb98429742/OvmfPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.c#L2243
 	rtmr.hashAndExtend([]byte("Exit Boot Services Invocation"))
+	// https://github.com/tianocore/edk2/blob/0f3867fa6ef0553e26c42f7d71ff6bdb98429742/OvmfPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.c#L2254
 	rtmr.hashAndExtend([]byte("Exit Boot Services Returned with Success"))
 	return rtmr.Get(), nil
 }
 
-// CalcRtmr2 calculates RTMR[2] for the given kernel command line.
-func CalcRtmr2(cmdLine string) ([48]byte, error) {
+// CalcRtmr2 calculates RTMR[2] for the given kernel command line and initrd.
+func CalcRtmr2(cmdLine string, initrdFile []byte) ([48]byte, error) {
 	var rtmr Rtmr
 
+	// TODO(msanft): find out which component silently adds this string to the commandline.
+	// Suspects: QEMU-TDX, OVMF-TDX, Linux EFI Stub
+	cmdLine += " initrd=initrd"
+
+	// https://elixir.bootlin.com/linux/v6.11.8/source/drivers/firmware/efi/libstub/efi-stub-helper.c#L342
 	codepoints := utf16.Encode([]rune(cmdLine))
 	bytes := make([]byte, (len(codepoints)+1)*2)
 	for i, codepoint := range codepoints {
@@ -267,11 +277,14 @@ func CalcRtmr2(cmdLine string) ([48]byte, error) {
 	}
 	rtmr.hashAndExtend(bytes)
 
+	// https://elixir.bootlin.com/linux/v6.11.8/source/drivers/firmware/efi/libstub/efi-stub-helper.c#L625
+	rtmr.hashAndExtend(initrdFile)
+
 	return rtmr.Get(), nil
 }
 
-func hashKernel(kernelFile []byte) ([]byte, error) {
-	patchKernel(kernelFile)
+func hashKernel(kernelFile, initrdFile []byte) ([]byte, error) {
+	patchKernel(kernelFile, initrdFile)
 
 	kernel, err := authenticode.Parse(bytes.NewReader(kernelFile))
 	if err != nil {
@@ -281,7 +294,7 @@ func hashKernel(kernelFile []byte) ([]byte, error) {
 	return kernel.HashContent.Bytes(), nil
 }
 
-func patchKernel(kernelFile []byte) {
+func patchKernel(kernelFile, initrdFile []byte) {
 	// QEMU patches some header bytes in the kernel before loading it into memory.
 	// Sources:
 	// - https://gitlab.com/qemu-project/qemu/-/blob/28ae3179fc52d2e4d870b635c4a412aab99759e7/hw/i386/x86-common.c#L837
@@ -299,4 +312,19 @@ func patchKernel(kernelFile []byte) {
 	kernelFile[0x229] = 0x00
 	kernelFile[0x22A] = 0x02
 	kernelFile[0x22B] = 0x00
+
+	// https://github.com/qemu/qemu/blob/f48c205fb42be48e2e47b7e1cd9a2802e5ca17b0/hw/i386/x86.c#L1036
+	// Maximum size of the initrd as calculated by QEMU. Normally, this would be dependent on the VM
+	// memory size, but we have a QEMU patch that removes that fixes this to make RTMR1 reproducible.
+	// Our QEMU patch has a commented-out line to print this value upon start, so it's easy to find
+	// when updating QEMU, as the value might change on QEMU updates.
+	initrdMax := 0x7ffd7fff
+	initrdSize := len(initrdFile)
+	initrdAddr := (initrdMax - initrdSize) & ^4095
+
+	// https://github.com/qemu/qemu/blob/f48c205fb42be48e2e47b7e1cd9a2802e5ca17b0/hw/i386/x86.c#L1044
+	binary.LittleEndian.PutUint32(kernelFile[0x218:][:4], uint32(initrdAddr))
+
+	// https://github.com/qemu/qemu/blob/f48c205fb42be48e2e47b7e1cd9a2802e5ca17b0/hw/i386/x86.c#L1045
+	binary.LittleEndian.PutUint32(kernelFile[0x21C:][:4], uint32(initrdSize))
 }

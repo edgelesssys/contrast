@@ -7,6 +7,7 @@
   stdenvNoCC,
   fetchzip,
   kata,
+  ... # Required for invocation through `linuxPackagesFor`, which calls this with the `features` argument.
 }:
 
 let

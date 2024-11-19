@@ -64,17 +64,17 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		config.Hypervisor["qemu"]["path"] = filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "tdx", "share", "OVMF.fd")
 		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
-		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")}
 		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
 		config.Hypervisor["qemu"]["shared_fs"] = "none"
-		kernelParams := qemuExtraKernelParams
+		config.Hypervisor["qemu"]["initrd"] = filepath.Join(baseDir, "share", "kata-initrd.zst")
+		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
+		// Replace the kernel params entirely (and don't append) since that's
+		// also what we do when calculating the launch measurement.
+		config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
 		}
-		// Replace the kernel params entirely (and don't append) since that's
-		// also what we do when calculating the launch measurement.
-		config.Hypervisor["qemu"]["kernel_params"] = kernelParams
 	case platforms.K3sQEMUSNP:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
@@ -82,19 +82,18 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		config.Hypervisor["qemu"]["path"] = filepath.Join(baseDir, "snp", "bin", "qemu-system-x86_64")
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "snp", "share", "OVMF.fd")
 		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
-		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
-		delete(config.Hypervisor["qemu"], "initrd")
 		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
 		config.Hypervisor["qemu"]["shared_fs"] = "none"
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "snp", "bin", "qemu-system-x86_64")}
 		config.Hypervisor["qemu"]["rootfs_type"] = "erofs"
-		kernelParams := qemuExtraKernelParams
+		config.Hypervisor["qemu"]["initrd"] = filepath.Join(baseDir, "share", "kata-initrd.zst")
+		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
+		// Replace the kernel params entirely (and don't append) since that's
+		// also what we do when calculating the launch measurement.
+		config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
 		}
-		// Replace the kernel params entirely (and don't append) since that's
-		// also what we do when calculating the launch measurement.
-		config.Hypervisor["qemu"]["kernel_params"] = kernelParams
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}

@@ -15,5 +15,6 @@ buildVerityUKI (mkNixosConfig {
     debug.enable = withDebug;
     gpu.enable = withGPU;
     azure.enable = withCSP == "azure";
+    peerpods.enable = true;
   };
 })
