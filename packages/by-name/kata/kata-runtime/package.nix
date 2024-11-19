@@ -93,6 +93,9 @@ buildGoModule rec {
       ./0014-kata-sys-util-remove-obsolete-cgroups-dependency.patch
       ./0015-kata-sys-util-move-json-parsing-to-protocols-crate.patch
       ./0016-protocols-only-build-RLimit-impls-on-Linux.patch
+
+      # Disable a bogus check in Kata that prevents to set both image and initrd.
+      ./0017-runtime-allow-initrd-AND-image-to-be-set.patch
     ];
   };
 
@@ -143,6 +146,11 @@ buildGoModule rec {
       ];
     in
     [ "-skip=^${builtins.concatStringsSep "$|^" skippedTests}$" ];
+
+  passthru.cmdline = {
+    default = "tsc=reliable no_timer_check rcupdate.rcu_expedited=1 i8042.direct=1 i8042.dumbkbd=1 i8042.nopnp=1 i8042.noaux=1 noreplace-smp reboot=k cryptomgr.notests net.ifnames=0 pci=lastbus=0 root=/dev/vda1 rootflags=ro rootfstype=erofs console=hvc0 console=hvc1 quiet systemd.show_status=false panic=1 nr_cpus=1 selinux=0 systemd.unit=kata-containers.target systemd.mask=systemd-networkd.service systemd.mask=systemd-networkd.socket scsi_mod.scan=none";
+    debug = "tsc=reliable no_timer_check rcupdate.rcu_expedited=1 i8042.direct=1 i8042.dumbkbd=1 i8042.nopnp=1 i8042.noaux=1 noreplace-smp reboot=k cryptomgr.notests net.ifnames=0 pci=lastbus=0 root=/dev/vda1 rootflags=ro rootfstype=erofs console=hvc0 console=hvc1 debug systemd.show_status=true systemd.log_level=debug panic=1 nr_cpus=1 selinux=0 systemd.unit=kata-containers.target systemd.mask=systemd-networkd.service systemd.mask=systemd-networkd.socket scsi_mod.scan=none agent.log=debug agent.debug_console agent.debug_console_vport=1026";
+  };
 
   meta.mainProgram = "containerd-shim-kata-v2";
 }
