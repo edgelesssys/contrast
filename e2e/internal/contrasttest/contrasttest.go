@@ -67,9 +67,9 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	require := require.New(t)
 
 	f, err := os.Open(ct.ImageReplacementsFile)
-	require.NoError(err, fmt.Sprintf("Image replacements %s file not found", ct.ImageReplacementsFile))
+	require.NoError(err, "Image replacements %s file not found", ct.ImageReplacementsFile)
 	ct.ImageReplacements, err = kuberesource.ImageReplacementsFromFile(f)
-	require.NoError(err, fmt.Sprintf("Parsing image replacements from %s failed", ct.ImageReplacementsFile))
+	require.NoError(err, "Parsing image replacements from %s failed", ct.ImageReplacementsFile)
 
 	// If available, acquire a fifo ticket to synchronize cluster access with
 	// other running e2e tests. We request a ticket and wait for our turn.
