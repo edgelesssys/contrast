@@ -61,5 +61,7 @@ in
       # Make the generated ACPI tables more deterministic, so that we get a
       # fixed hash for attestation.
       ./0003-i386-omit-some-unneeded-ACPI-tables.patch
+      # Load the initrd to a static address to make RTMRs predictable.
+      ./0004-hw-x86-load-initrd-to-static-address.patch
     ];
   })

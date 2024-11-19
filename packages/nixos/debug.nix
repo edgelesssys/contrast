@@ -31,7 +31,9 @@ in
 
     services.getty.autologinUser = "root";
 
-    boot.kernelParams = [ "console=ttyS0" ];
+    # required for local booting, but no boot logs in kata with this
+    boot.kernelParams = lib.optionals config.contrast.azure.enable [ "console=ttyS0" ];
+
     boot.initrd.systemd.emergencyAccess = true;
     systemd.enableEmergencyMode = true;
   };

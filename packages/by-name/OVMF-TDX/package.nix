@@ -7,7 +7,7 @@
   acpica-tools,
 }:
 
-edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" rec {
+edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
   name = "OVMF-TDX";
 
   nativeBuildInputs = [

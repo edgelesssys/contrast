@@ -44,7 +44,10 @@ lib.makeOverridable (
             nvidia-ctk-oci-hook
             nvidia-ctk-with-config
             ;
-          inherit (outerPkgs.kata) kata-agent;
+          inherit (outerPkgs.kata)
+            kata-agent
+            kata-kernel-uvm
+            ;
         })
       ];
 

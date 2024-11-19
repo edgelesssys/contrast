@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Thu, 21 Nov 2024 14:36:23 +0100
+Subject: [PATCH] hw/x86: load initrd to static address
+
+For TDX RTMRs to be predictable regardless of VM memory size, we need to
+load the initrd to a static address, so no dynamic value ends up in the
+mapped kernel image. (as the initrd address does)
+As we control the minimum VM memory size in Contrast, we just load the initrd
+to the address it gets loaded to for Contrast's minimum VM memory, regardless
+of if the VM has more memory, as it would otherwise happen with QEMU's 4Gi
+constraint.
+
+*IMPORTANT*: When changing this patch, TDX RTMR precalculation will need to be
+adjusted accordingly.
+
+Signed-off-by: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+---
+ hw/i386/x86.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/hw/i386/x86.c b/hw/i386/x86.c
+index 504575abfa98bc25e498e219a2d58d8d31e5feaa..b65ff86ff329ca5e8c6f80eabd86daa7987f57b4 100644
+--- a/hw/i386/x86.c
++++ b/hw/i386/x86.c
+@@ -953,6 +953,16 @@ void x86_load_linux(X86MachineState *x86ms,
+         initrd_max = x86ms->below_4g_mem_size - acpi_data_size - 1;
+     }
+
++    // For TDX RTMRs to be predictable regardless of VM memory size, we need to
++    // load the initrd to a static address, so no dynamic value ends up in the
++    // mapped kernel image. (as the initrd address does)
++    // As we control the minimum VM memory size in Contrast, we just load the initrd
++    // to the address it gets loaded to for Contrast's minimum VM memory, regardless
++    // of if the VM has more memory, as it would otherwise happen with QEMU's 4Gi
++    // constraint.
++    uint32_t contrast_min_memory = 0x80000000;
++    initrd_max = contrast_min_memory - acpi_data_size - 1;
++    // printf("initrd max: %x\n", initrd_max); // Comment in to see the maximum initrd address when updating QEMU.
+     fw_cfg_add_i32(fw_cfg, FW_CFG_CMDLINE_ADDR, cmdline_addr);
+     fw_cfg_add_i32(fw_cfg, FW_CFG_CMDLINE_SIZE, strlen(kernel_cmdline) + 1);
+     fw_cfg_add_string(fw_cfg, FW_CFG_CMDLINE_DATA, kernel_cmdline);
