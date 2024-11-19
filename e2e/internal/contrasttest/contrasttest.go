@@ -339,9 +339,10 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 		return fmt.Errorf("waiting for port-forwarder-coordinator: %w", err)
 	}
 
-	// Make the subcommand aware of the persistent flag.
+	// Make the subcommand aware of the persistent flags.
 	// Do it outside the closure because declaring a flag twice panics.
 	cmd.Flags().String("workspace-dir", "", "")
+	cmd.Flags().String("log-level", "debug", "")
 
 	return ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", "1313", func(addr string) error {
 		commonArgs := append(ct.commonArgs(),
