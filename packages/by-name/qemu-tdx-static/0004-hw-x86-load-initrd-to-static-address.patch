@@ -46,7 +46,7 @@ index 504575abfa98bc25e498e219a2d58d8d31e5feaa..0763462c16f4106d0aa6a46c2b9c360e
 @@ -953,6 +953,41 @@ void x86_load_linux(X86MachineState *x86ms,
          initrd_max = x86ms->below_4g_mem_size - acpi_data_size - 1;
      }
- 
+
 +    /*
 +     * For TDX RTMRs to be predictable regardless of VM memory size, we need to
 +     * load the initrd to a static address, so no dynamic value ends up in the
