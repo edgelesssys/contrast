@@ -73,7 +73,7 @@ func TestRunner(t *testing.T) {
 
 	yamlPath, err := os.ReadFile(yamlPathFile)
 	require.NoError(err)
-	assert.Equal(expectedYAMLPath, string(yamlPath))
+	assert.YAMLEq(expectedYAMLPath, string(yamlPath))
 
 	require.NoError(r.Teardown())
 }
