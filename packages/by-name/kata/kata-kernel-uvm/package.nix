@@ -27,8 +27,19 @@ let
       # 3. Disable module signing to make the build reproducable.
       substituteInPlace $config \
         --replace-fail 'CONFIG_INITRAMFS_SOURCE="initramfs.cpio.gz"' 'CONFIG_INITRAMFS_SOURCE=""' \
+        --replace-fail 'CONFIG_MODULE_SIG=y' 'CONFIG_MODULE_SIG=n' \
         --replace-fail '# CONFIG_DM_INIT is not set' 'CONFIG_DM_INIT=y' \
-        --replace-fail 'CONFIG_MODULE_SIG=y' 'CONFIG_MODULE_SIG=n'
+        --replace-fail '# CONFIG_DMIID is not set' 'CONFIG_DMIID=y' \
+        --replace-fail '# CONFIG_TMPFS_POSIX_ACL is not set' 'CONFIG_TMPFS_POSIX_ACL=y' \
+        --replace-fail '# CONFIG_TMPFS_XATTR is not set' 'CONFIG_TMPFS_XATTR=y' \
+        --replace-fail '# CONFIG_EFIVAR_FS is not set' 'CONFIG_EFIVAR_FS=y' \
+        --replace-fail '# CONFIG_RD_ZSTD is not set' 'CONFIG_RD_ZSTD=y' \
+        --replace-fail '# CONFIG_VFAT_FS is not se' 'CONFIG_VFAT_FS=y' \
+        --replace-fail '# CONFIG_NLS_CODEPAGE_437 is not set' 'CONFIG_NLS_CODEPAGE_437=y' \
+        --replace-fail '# CONFIG_NLS_ISO8859_1 is not set' 'CONFIG_NLS_ISO8859_1=y' \
+        --replace-fail '# CONFIG_ATA is not set' 'CONFIG_ATA=y'
+
+      echo "CONFIG_ATA_PIIX=y" >> $config
     '';
 
     dontBuild = true;
