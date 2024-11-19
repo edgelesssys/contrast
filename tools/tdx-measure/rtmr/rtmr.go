@@ -38,6 +38,9 @@ func (r *Rtmr) Get() [48]byte {
 // Some helpers for common events:
 
 func (r *Rtmr) hashAndExtend(bytes []byte) {
+	// Comment out the following lines for debugging of the event log.
+	// sum := sha512.Sum384(bytes)
+	// fmt.Println(hex.EncodeToString(sum[:]))
 	r.Extend(sha512.Sum384(bytes))
 }
 
