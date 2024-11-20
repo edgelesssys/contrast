@@ -1,10 +1,14 @@
 # Obtain a serial console inside the podvm
 
-Set `debug ? true` in `packages/{kata,microsoft}/runtime-class-files/package.nix` and run `just`.
+Set `debugRuntime ? true` in `packages/{kata,microsoft}/contrast-node-installer-image/package.nix` and `debug ? true` in `packages/kata/kata-image/package.nix`, if on bare-metal.
 
-Get a shell on the AKS node. If in doubt, use [nsenter-node.sh](https://github.com/alexei-led/nsenter/blob/master/nsenter-node.sh).
+Then, run `just`.
 
-Use the following commands to print the sandbox ids of Kata VMs.
+Get a shell on the Kubernetes node. If in doubt, use [nsenter-node.sh](https://github.com/alexei-led/nsenter/blob/master/nsenter-node.sh).
+
+## AKS
+
+Use the following commands to print the sandbox IDs of Kata VMs.
 Please note that only the pause container of every pod has the `clh.sock`.  Other containers are part of the same VM.
 
 Set the name of the pod you want to access:
@@ -38,4 +42,14 @@ Alternatively, you can attach to the serial console using `socat`. You need to t
 ```sh
 (cd /var/run/vc/vm/${sandbox_id}/ && socat stdin unix-connect:clh.sock)
 CONNECT 1026
+```
+
+## Bare-Metal
+
+Copy `packages/kata-debug-shell.sh` to the host and run it, specifying the container ID as the only argument.
+
+If the container with ID `containerd://34f1d6a9be40aa5e2d92d6ff9876ab71e06758780a238521c9fca6816c2f28dd` should be debugged, run:
+
+```sh
+./kata-debug-shell.sh 34f1d6a9be40aa5e2d92d6ff9876ab71e06758780a238521c9fca6816c2f28dd
 ```
