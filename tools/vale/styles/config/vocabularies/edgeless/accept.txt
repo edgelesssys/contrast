@@ -133,3 +133,7 @@ Xeon
 xsltproc
 Zipkin
 # keep-sorted end
+RTMR
+RTMRs
+precalculator
+initrd
