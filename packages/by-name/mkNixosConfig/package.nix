@@ -43,6 +43,7 @@ lib.makeOverridable (
             pause-bundle
             nvidia-ctk-oci-hook
             nvidia-ctk-with-config
+            tdx-tools
             ;
           inherit (outerPkgs.kata) kata-agent;
         })
