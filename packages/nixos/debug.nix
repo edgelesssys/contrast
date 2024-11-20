@@ -27,6 +27,7 @@ in
       util-linux
       coreutils
       strace
+      tdx-tools
     ];
 
     services.getty.autologinUser = "root";
