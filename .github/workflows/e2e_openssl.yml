@@ -2,12 +2,17 @@ name: e2e test
 
 on:
   pull_request:
-    paths-ignore:
-      - dev-docs/**
-      - docs/**
-      - rfc/**
-      - tools/asciinema/**
-      - tools/vale/**
+    paths:
+      - "**"
+      - "!.github/**"
+      - ".github/actions/setup_nix.yml"
+      - ".github/workflows/e2e.yml"
+      - ".github/workflows/e2e_openssl.yml"
+      - "!dev-docs/**"
+      - "!docs/**"
+      - "!rfc/**"
+      - "!tools/asciinema/**"
+      - "!tools/vale/**"
 
 jobs:
   test_matrix:
