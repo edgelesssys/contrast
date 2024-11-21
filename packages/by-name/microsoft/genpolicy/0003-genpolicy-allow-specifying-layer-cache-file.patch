@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 Date: Tue, 9 Jul 2024 16:14:46 +0200
-Subject: [PATCH] genpolicy: allow specifying layer cache file
+Subject: [PATCH 3/7] genpolicy: allow specifying layer cache file
 
 Add --layers-cache-file-path flag to allow the user to
 specify where the cache file for the container layers

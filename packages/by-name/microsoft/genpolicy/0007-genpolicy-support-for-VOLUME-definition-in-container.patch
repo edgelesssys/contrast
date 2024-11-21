@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: miampf <miampf@proton.me>
 Date: Thu, 14 Nov 2024 12:34:56 +0100
-Subject: [PATCH] genpolicy: support for VOLUME definition in container image
+Subject: [PATCH 7/7] genpolicy: support for VOLUME definition in container image
 
 ---
  src/tools/genpolicy/genpolicy-settings.json   | 14 +++++-

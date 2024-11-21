@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 Date: Tue, 9 Jul 2024 16:07:09 +0200
-Subject: [PATCH] genpolicy: add ability to filter for runtimeClassName
+Subject: [PATCH 2/7] genpolicy: add ability to filter for runtimeClassName
 
 Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
 ---
