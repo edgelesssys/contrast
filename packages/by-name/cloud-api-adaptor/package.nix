@@ -9,7 +9,10 @@
   libvirt,
   writeShellApplication,
   gnugrep,
+  iptables,
   runCommand,
+  applyPatches,
+  makeWrapper,
 
   # List of supported cloud providers
   builtinCloudProviders ? [
@@ -31,21 +34,30 @@ in
 
 buildGoModule rec {
   pname = "cloud-api-adaptor";
-  version = "0.9.0";
+  version = "0.10.0";
 
-  src = fetchFromGitHub {
-    owner = "confidential-containers";
-    repo = "cloud-api-adaptor";
-    rev = "v${version}";
-    hash = "sha256-5tDG0sEiRAsb259lPui5ntR6DVHDdcXhb04UESJzHhE=";
+  src = applyPatches {
+    src = fetchFromGitHub {
+      owner = "confidential-containers";
+      repo = "cloud-api-adaptor";
+      rev = "v${version}";
+      hash = "sha256-OaSIO26nlkeI2olSx0o8xdwhLMZ8eH753pUbyHypI+E=";
+    };
+
+    patches = [
+      # This fixes a route setting problem we see with our NixOS image that
+      # does not seem to occur with the upstream image.
+      # TODO(burgerdev): upstream
+      ./0001-netops-replace-routes-instead-of-adding-them.patch
+    ];
   };
 
   sourceRoot = "${src.name}/src/cloud-api-adaptor";
 
   proxyVendor = true;
-  vendorHash = "sha256-kqzi7jRF3tQ4/yLkJXfZly4EvVKFb400/WXlN0WjYm8=";
+  vendorHash = "sha256-FsckYZAiBfTEp25+dDNqPpB/550NqeEsutWC34s+GmE=";
 
-  nativeBuildInputs = lib.optional withLibvirt pkg-config;
+  nativeBuildInputs = [ makeWrapper ] ++ lib.optional withLibvirt pkg-config;
 
   buildInputs = lib.optional withLibvirt libvirt;
 
@@ -62,6 +74,10 @@ buildGoModule rec {
   ldflags = [
     "-X 'github.com/confidential-containers/cloud-api-adaptor/src/cloud-api-adaptor/cmd.VERSION=${version}'"
   ];
+
+  postInstall = ''
+    wrapProgram $out/bin/agent-protocol-forwarder --prefix PATH : ${lib.makeBinPath [ iptables ]}
+  '';
 
   passthru = {
     kata-agent-clean = writeShellApplication {
