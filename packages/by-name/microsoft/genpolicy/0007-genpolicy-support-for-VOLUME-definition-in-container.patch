@@ -1,26 +1,26 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: miampf <miampf@proton.me>
 Date: Thu, 14 Nov 2024 12:34:56 +0100
-Subject: [PATCH 7/7] genpolicy: support for VOLUME definition in container image
+Subject: [PATCH] genpolicy: support for VOLUME definition in container image
 
 ---
- src/tools/genpolicy/genpolicy-settings.json   | 14 ++++-
- src/tools/genpolicy/src/daemon_set.rs         | 18 +++---
- src/tools/genpolicy/src/deployment.rs         | 18 +++---
- src/tools/genpolicy/src/job.rs                | 18 +++---
- src/tools/genpolicy/src/mount_and_storage.rs  | 58 +++++++++++++++++++
- src/tools/genpolicy/src/pod.rs                | 18 +++---
- src/tools/genpolicy/src/registry.rs           | 21 ++++++-
+ src/tools/genpolicy/genpolicy-settings.json   | 14 +++++-
+ src/tools/genpolicy/src/daemon_set.rs         | 18 ++++---
+ src/tools/genpolicy/src/deployment.rs         | 18 ++++---
+ src/tools/genpolicy/src/job.rs                | 18 ++++---
+ src/tools/genpolicy/src/mount_and_storage.rs  | 48 +++++++++++++++++++
+ src/tools/genpolicy/src/pod.rs                | 18 ++++---
+ src/tools/genpolicy/src/registry.rs           | 21 ++++++--
  .../genpolicy/src/registry_containerd.rs      |  4 +-
- src/tools/genpolicy/src/replica_set.rs        | 18 +++---
- .../genpolicy/src/replication_controller.rs   | 18 +++---
- src/tools/genpolicy/src/settings.rs           | 12 ++++
- src/tools/genpolicy/src/stateful_set.rs       | 20 +++----
- src/tools/genpolicy/src/yaml.rs               | 43 +++++++++-----
- .../kubernetes/k8s-policy-deployments.bats    | 47 +++++++++++++++
+ src/tools/genpolicy/src/replica_set.rs        | 18 ++++---
+ .../genpolicy/src/replication_controller.rs   | 18 ++++---
+ src/tools/genpolicy/src/settings.rs           | 12 +++++
+ src/tools/genpolicy/src/stateful_set.rs       | 20 ++++----
+ src/tools/genpolicy/src/yaml.rs               | 43 ++++++++++++-----
+ .../kubernetes/k8s-policy-deployments.bats    | 47 ++++++++++++++++++
  .../kubernetes/run_kubernetes_tests.sh        |  1 +
- .../k8s-policy-deployment.yaml                | 36 ++++++++++++
- 16 files changed, 275 insertions(+), 89 deletions(-)
+ .../k8s-policy-deployment.yaml                | 36 ++++++++++++++
+ 16 files changed, 265 insertions(+), 89 deletions(-)
  create mode 100644 tests/integration/kubernetes/k8s-policy-deployments.bats
  create mode 100644 tests/integration/kubernetes/runtimeclass_workloads/k8s-policy-deployment.yaml
 
@@ -142,7 +142,7 @@ index bca1463017bb7359fb59d1ebbf1ae801c0f17190..32c1048f6b979b38e598169892c75adb
  
      fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 09bc89fdf7e6eb239428adbb093c9cb5962da8a7..0c2b5e58a45317d4d614ac51b7e0b5f035c8f11f 100644
+index 09bc89fdf7e6eb239428adbb093c9cb5962da8a7..070824f1fabce743e69f6822e70dc1aed0811cda 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
 @@ -108,6 +108,10 @@ pub fn get_mount_and_storage(
@@ -156,7 +156,7 @@ index 09bc89fdf7e6eb239428adbb093c9cb5962da8a7..0c2b5e58a45317d4d614ac51b7e0b5f0
      let propagation = match yaml_mount.mountPropagation.as_deref() {
          Some("Bidirectional") => "rshared",
          Some("HostToContainer") => "rslave",
-@@ -422,6 +426,60 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
+@@ -422,6 +426,50 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
      }
  }
  
@@ -191,16 +191,6 @@ index 09bc89fdf7e6eb239428adbb093c9cb5962da8a7..0c2b5e58a45317d4d614ac51b7e0b5f0
 +        "get_image_mount_and_storage: settings for container image volumes: {:?}",
 +        settings_image
 +    );
-+
-+    storages.push(agent::Storage {
-+        driver: settings_image.driver.clone(),
-+        driver_options: Vec::new(),
-+        source: settings_image.source.clone(),
-+        fstype: settings_image.fstype.clone(),
-+        options: settings_image.options.clone(),
-+        mount_point: destination_string.clone(),
-+        fs_group: None,
-+    });
 +
 +    let file_name = Path::new(&destination_string).file_name().unwrap();
 +    let name = OsString::from(file_name).into_string().unwrap();
