@@ -18,4 +18,32 @@ spec:
           image: ghcr.io/edgelesssys/nginx-unprivileged@sha256:1d5be2aa3c296bd589ddd3c9bf2f560919e31ac32bae799a15dd182b6fdb042b
           ports:
             - containerPort: 8080
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+              readOnly: true
+      volumes:
+        - name: html
+          configMap:
+            name: nginx-html
       runtimeClassName: contrast-cc
+---
+# This ConfigMap is a regression test to verify that a large number of entries can be mounted to
+# a Contrast app.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-html
+  namespace: "@@REPLACE_NAMESPACE@@"
+data:
+  index.html: |
+    <h1>Hello World</h1>
+  1.html: ""
+  2.html: ""
+  3.html: ""
+  4.html: ""
+  5.html: ""
+  6.html: ""
+  7.html: ""
+  8.html: ""
+  9.html: ""
