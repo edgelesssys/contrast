@@ -80,19 +80,20 @@ jobs:
           az extension add --name confcom
       - name: E2E test
         run: |
-          nix run .#scripts.get-logs workspace/e2e.namespace &
+          nix run .#scripts.get-logs start workspace/e2e.namespace &
           nix build .#contrast.e2e
           ./result/bin/aks-runtime.test -test.v \
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
             --platform AKS-CLH-SNP \
             --skip-undeploy="false"
+          nix run .#scripts.get-logs download workspace/e2e.namespace
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: e2e_pod_logs-AKS-CLH-SNP-aks-runtime
-          path: workspace/namespace-logs
+          path: workspace/logs/export/logs
       - name: Notify teams channel of failure
         if: ${{ failure() && github.event_name == 'schedule' && github.run_attempt == 1 }}
         uses: ./.github/actions/post_to_teams

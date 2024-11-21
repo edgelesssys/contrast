@@ -1,0 +1,51 @@
+# Copyright 2024 Edgeless Systems GmbH
+# SPDX-License-Identifier: AGPL-3.0-only
+
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: log-collector
+  namespace: "@@NAMESPACE@@"
+spec:
+  selector:
+    matchLabels:
+      name: log-collector
+  template:
+    metadata:
+      labels:
+        name: log-collector
+    spec:
+      priorityClassName: high-priority-logcollector
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: log-collector
+          image: "ghcr.io/edgelesssys/k8s-log-collector@sha256:fd173230870b9e19a342627e31a50a0d6e45e7c8770c133b62e72cb4e898bc3e"
+          volumeMounts:
+            - mountPath: /logs
+              name: log-volume
+              readOnly: true
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+      volumes:
+        - name: log-volume
+          # mount the nodes logs to the container
+          hostPath:
+            path: /var/log/pods
+            type: Directory
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: high-priority-logcollector
+value: 10000000
+globalDefault: false
+description: "This priority class is used to prioritise the log collector pod creation before anything else"
