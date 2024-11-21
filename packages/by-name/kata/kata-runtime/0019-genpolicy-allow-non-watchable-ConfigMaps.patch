@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Thu, 21 Nov 2024 19:54:09 +0100
+Subject: [PATCH] genpolicy: allow non-watchable ConfigMaps
+
+If a ConfigMap has more than 8 files it will not be mounted watchable
+[1]. However, genpolicy assumes that ConfigMaps are always mounted at a
+watchable path, so containers with large ConfigMap mounts fail
+verification.
+
+This commit allows mounting ConfigMaps from watchable and non-watchable
+directories. ConfigMap mounts can't be meaningfully verified anyway, so
+the exact location of the data does not matter, except that we stay in
+the sandbox data dirs.
+
+[1]: https://github.com/kata-containers/kata-containers/blob/0ce3f5fc6fd86c53d8b5e197d12887b712ce57d4/docs/design/inotify.md?plain=1#L11-L21
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/tools/genpolicy/genpolicy-settings.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
+index ef20413eacc029d4fcb0b1d2f538a13314a25670..a218a4d9c4717e4dd2abdc3fd4b0d1a6d8171661 100644
+--- a/src/tools/genpolicy/genpolicy-settings.json
++++ b/src/tools/genpolicy/genpolicy-settings.json
+@@ -179,7 +179,7 @@
+         "configMap": {
+             "mount_type": "bind",
+             "mount_source": "$(sfprefix)",
+-            "mount_point": "^$(cpath)/watchable/$(bundle-id)-[a-z0-9]{16}-",
++            "mount_point": "^$(cpath)/(watchable/)?$(bundle-id)-[a-z0-9]{16}-",
+             "driver": "watchable-bind",
+             "fstype": "bind",
+             "options": [
