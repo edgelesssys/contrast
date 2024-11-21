@@ -42,6 +42,30 @@ resource "azurerm_virtual_network" "main" {
   }
 }
 
+resource "azurerm_public_ip" "nat_ip" {
+  name                = "${local.name}_nat_ip"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+}
+
+resource "azurerm_nat_gateway" "nat" {
+  name                = "${local.name}_nat"
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
+}
+
+resource "azurerm_nat_gateway_public_ip_association" "ip_to_nat" {
+  nat_gateway_id       = azurerm_nat_gateway.nat.id
+  public_ip_address_id = azurerm_public_ip.nat_ip.id
+}
+
+resource "azurerm_subnet_nat_gateway_association" "subnet_to_nat" {
+  subnet_id      = one(azurerm_virtual_network.main.subnet.*.id)
+  nat_gateway_id = azurerm_nat_gateway.nat.id
+}
+
 resource "azurerm_kubernetes_cluster" "cluster" {
   name                      = "${local.name}_aks"
   resource_group_name       = data.azurerm_resource_group.rg.name
@@ -88,7 +112,7 @@ bases:
 images:
 - name: cloud-api-adaptor
   newName: quay.io/confidential-containers/cloud-api-adaptor
-  newTag: v0.9.0-amd64
+  newTag: v0.10.0-amd64
 generatorOptions:
   disableNameSuffixHash: true
 configMapGenerator:
