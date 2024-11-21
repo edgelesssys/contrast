@@ -433,17 +433,12 @@
     text = ''
       set -euo pipefail
 
-      if [[ -z "''${1-}" ]]; then
+      if [[ $# -lt 2 ]]; then
         echo "Usage: get-logs [start | download] namespaceFile"
         exit 1
       fi
       case $1 in
       start)
-        if [[ -z "''${2-}" ]]; then
-          echo "Please add the path to the namespace file."
-          echo "Usage: get-logs start namespaceFile"
-          exit 1
-        fi
         while ! [[ -s "$2" ]]; do
           sleep 1
         done
@@ -453,11 +448,6 @@
         kubectl apply -f ./workspace/log-collector.yaml 1>/dev/null 2>/dev/null
         ;;
       download)
-        if [[ -z "''${2-}" ]]; then
-          echo "Please add the path to the namespace file."
-          echo "Usage: get-logs download namespaceFile"
-          exit 1
-        fi
         namespace="$(head -n1 "$2")"
         pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
         mkdir -p ./workspace/logs
