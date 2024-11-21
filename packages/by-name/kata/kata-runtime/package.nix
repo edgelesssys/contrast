@@ -107,6 +107,13 @@ buildGoModule rec {
       # This avoids printing the entire annotation on log level debug, which resulted in errors of the logtranslator.go
       # TODO(jmxnzo): remove when upstream patch is merged: https://github.com/kata-containers/kata-containers/pull/10647
       ./0018-genpolicy-do-not-log-policy-annotation-in-debug.patch
+
+      # Fixes a bug with ConfigMaps exceeding 8 entries, see description.
+      # The situation upstream is complicated, because the paths relevant for genpolicy differ
+      # between different CI systems and TEE configurations. This makes it hard to reproduce in a
+      # vanilla Kata setting.
+      # Relevant discussion: https://github.com/kata-containers/kata-containers/pull/10614.
+      ./0019-genpolicy-allow-non-watchable-ConfigMaps.patch
     ];
   };
 
