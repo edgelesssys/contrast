@@ -1,18 +1,20 @@
-From 649d2928a8f6552ba0644e6f9a7f719dfbdabe60 Mon Sep 17 00:00:00 2001
-From: Tom Dohrmann <erbse.13@gmx.de>
-Date: Mon, 23 Sep 2024 10:57:09 +0200
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Thu, 21 Nov 2024 09:43:08 +0100
 Subject: [PATCH] verify Hobs instead of measuring them
 
 We don't want the measurement to change depending on the amount of
 memory assigned to the CVM. Instead verify the Hobs to make sure that
 they contain reasonable values and don't measure anything.
+
+Authored-by: Tom Dohrmann <erbse.13@gmx.de>
 ---
  OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c  | 106 ++++++++++++++----
  .../IntelTdx/TdxHelperLib/SecTdxHelperLib.inf |  19 +++-
  2 files changed, 100 insertions(+), 25 deletions(-)
 
 diff --git a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
-index 19e9b1bf54..f5cd850b84 100644
+index 19e9b1bf5491e004773a4034e0b7664ce49cbbaa..f5cd850b84b7b22745035fac0dc263a1fcff6d11 100644
 --- a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
 +++ b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
 @@ -873,44 +873,106 @@ TdxHelperMeasureTdHob (
@@ -145,7 +147,7 @@ index 19e9b1bf54..f5cd850b84 100644
    return EFI_SUCCESS;
  }
 diff --git a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf
-index d17b84c01f..dc2a822b90 100644
+index d17b84c01f202abd9860e093d57917d04b6dbce0..dc2a822b902ea47a861ffd0d4513bc769431f2b5 100644
 --- a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf
 +++ b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf
 @@ -43,11 +43,24 @@
@@ -176,6 +178,3 @@ index d17b84c01f..dc2a822b90 100644
  
  [Guids]
    gCcEventEntryHobGuid
--- 
-2.46.0
-
