@@ -24,8 +24,11 @@ async function createConfig() {
 
     // scripts
     scripts: [
-      { id: "Cookiebot", src: "https://consent.cookiebot.com/uc.js", "data-cbid": "a0cc864f-0b67-49be-8d65-9ed354de2ee6", "data-blockingmode": "auto" },
-      { id: "CookieDeclaration", src: "https://consent.cookiebot.com/a0cc864f-0b67-49be-8d65-9ed354de2ee6/cd.js" }
+      {
+        src: '/contrast/gtagman.js',
+        async: true,
+        "data-cookieconsent": "ignore",
+      },
     ],
 
     // Even if you don't use internalization, you can use this field to set useful
@@ -56,10 +59,6 @@ async function createConfig() {
           theme: {
             customCss: require.resolve('./src/css/custom.css'),
           },
-          gtag: {
-            trackingID: 'G-3DVYB2CHLG',
-            anonymizeIP: true,
-          }
         }),
       ],
     ],
