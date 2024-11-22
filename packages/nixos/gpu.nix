@@ -34,10 +34,8 @@ in
       );
       nvidiaPersistenced = true;
     };
-    hardware.graphics = {
-      enable = true;
-      enable32Bit = true;
-    };
+
+    hardware.graphics.enable = true;
     hardware.nvidia-container-toolkit.enable = true;
 
     image.repart.partitions."10-root".contents."/usr/share/oci/hooks/prestart/nvidia-container-toolkit.sh".source =
@@ -48,6 +46,8 @@ in
       "ecdsa_generic"
       "ecdh"
     ];
+
+    boot.kernelParams = lib.optionals config.contrast.kata.enable [ "pci=realloc=off" ];
 
     services.xserver.videoDrivers = [ "nvidia" ];
   };

@@ -8,7 +8,7 @@
   stdenvNoCC,
   fetchzip,
   kata,
-  withGPU ? false,
+  withGPU ? true,
   ... # Required for invocation through `linuxPackagesFor`, which calls this with the `features` argument.
 }:
 
