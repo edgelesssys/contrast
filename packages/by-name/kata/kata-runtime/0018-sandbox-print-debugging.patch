@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Fri, 29 Nov 2024 09:47:13 +0100
+Subject: [PATCH] sandbox: print-debugging!
+
+Signed-off-by: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+---
+ src/runtime/virtcontainers/sandbox.go | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
+index ff7a46b4e05dbef2d8d1981897b04e639fda5527..d2485fb6f5322a867359367935a6c6b5e2fb9e5f 100644
+--- a/src/runtime/virtcontainers/sandbox.go
++++ b/src/runtime/virtcontainers/sandbox.go
+@@ -594,6 +594,7 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
+ 		swapSizeBytes:   0,
+ 		swapDevices:     []*config.BlockDrive{},
+ 	}
++	s.Logger().Infof("EDGELESS: newSandbox: sandboxConfig: %+v\n", sandboxConfig)
+ 
+ 	fsShare, err := NewFilesystemShare(s)
+ 	if err != nil {
+@@ -711,6 +712,7 @@ func (s *Sandbox) coldOrHotPlugVFIO(sandboxConfig *SandboxConfig) (bool, error)
+ 	// If we have a confidential guest we need to cold-plug the PCIe VFIO devices
+ 	// until we have TDISP/IDE PCIe support.
+ 	coldPlugVFIO := (sandboxConfig.HypervisorConfig.ColdPlugVFIO != config.NoPort)
++	s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO: coldPlugVFIO: %+v\n", coldPlugVFIO)
+ 	// Aggregate all the containner devices for hot-plug and use them to dedcue
+ 	// the correct amount of ports to reserve for the hypervisor.
+ 	hotPlugVFIO := (sandboxConfig.HypervisorConfig.HotPlugVFIO != config.NoPort)
+@@ -727,6 +729,7 @@ func (s *Sandbox) coldOrHotPlugVFIO(sandboxConfig *SandboxConfig) (bool, error)
+ 	//io.katacontainers.pkg.oci.container_type:pod_sandbox
+ 
+ 	for cnt, container := range sandboxConfig.Containers {
++		s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, checking container: container: %+v\n", container)
+ 		// Do not alter the original spec, we do not want to inject
+ 		// CDI devices into the sandbox container, were using the CDI
+ 		// devices as additional information to determine the number of
+@@ -734,6 +737,7 @@ func (s *Sandbox) coldOrHotPlugVFIO(sandboxConfig *SandboxConfig) (bool, error)
+ 		// A single_container type will have the CDI devices injected
+ 		// only do this if we're a pod_sandbox type.
+ 		if container.Annotations["io.katacontainers.pkg.oci.container_type"] == "pod_sandbox" && container.CustomSpec != nil {
++			s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, container has container_type annotation: container.CustomSpec: %+v\n", container.CustomSpec)
+ 			cdiSpec := container.CustomSpec
+ 			// We can provide additional directories where to search for
+ 			// CDI specs if needed. immutable OS's only have specific
+@@ -745,9 +749,13 @@ func (s *Sandbox) coldOrHotPlugVFIO(sandboxConfig *SandboxConfig) (bool, error)
+ 			if err != nil {
+ 				return coldPlugVFIO, fmt.Errorf("adding CDI devices failed")
+ 			}
++			s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, CDI device adding succeeded: cdiSpec: %+v\n", cdiSpec)
++			s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, CDI device adding succeeded: cdiSpec.Linux: %+v\n", cdiSpec.Linux)
++			s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, CDI device adding succeeded: cdiSpec.Linux.Devices: %+v\n", cdiSpec.Linux.Devices)
+ 
+ 			for _, dev := range cdiSpec.Linux.Devices {
+ 				isVFIODevice := deviceManager.IsVFIODevice(dev.Path)
++				s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, checking device: isVFIODevice: %+v, dev: %+v\n", isVFIODevice, dev)
+ 				if hotPlugVFIO && isVFIODevice {
+ 					vfioDev := config.DeviceInfo{
+ 						ColdPlug:      true,
+@@ -790,6 +798,7 @@ func (s *Sandbox) coldOrHotPlugVFIO(sandboxConfig *SandboxConfig) (bool, error)
+ 					}
+ 
+ 					vfioDevices = append(vfioDevices, vfioDev)
++					s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, coldPlugVFIO: added VFIO device: %+v\n", vfioDev)
+ 					continue
+ 				}
+ 			}

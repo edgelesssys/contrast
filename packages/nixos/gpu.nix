@@ -90,6 +90,7 @@ in
       videoAcceleration = false;
     };
 
+    hardware.graphics.enable = true;
     hardware.nvidia-container-toolkit.enable = true;
 
     # Make NVIDIA the "default" graphics driver to replace Mesa,
@@ -105,6 +106,8 @@ in
       "ecdsa_generic"
       "ecdh"
     ];
+
+    boot.kernelParams = lib.optionals config.contrast.kata.enable [ "pci=realloc=off" ];
 
     services.xserver.videoDrivers = [ "nvidia" ];
   };

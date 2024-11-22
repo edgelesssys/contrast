@@ -5,8 +5,8 @@
   buildVerityMicroVM,
   mkNixosConfig,
 
-  withDebug ? false,
-  withGPU ? false,
+  withDebug ? true,
+  withGPU ? true,
 }:
 
 buildVerityMicroVM (mkNixosConfig {
