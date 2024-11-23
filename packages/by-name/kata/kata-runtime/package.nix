@@ -93,6 +93,16 @@ buildGoModule rec {
       ./0014-kata-sys-util-remove-obsolete-cgroups-dependency.patch
       ./0015-kata-sys-util-move-json-parsing-to-protocols-crate.patch
       ./0016-protocols-only-build-RLimit-impls-on-Linux.patch
+
+      # A peer-pod VM does not have HOSTDATA or MRCONFIGID, so the expected policy hash needs to
+      # be configured differently. This patch adds a policy hash config field to the agent config,
+      # which is passed by the CAA and loaded from user-data.
+      # The upstream plan-of-record is the initdata proposal, which will eventually provide all
+      # podvm configuration in a measurable way. Unfortunately, this proposal has diverged between
+      # Kata and CAA, so we're implementing our own solution here.
+      ./0017-agent-read-policy-hash-from-config.patch
+      # This patch makes the remote hypervisor aware of the workload policy.
+      ./0018-runtime-forward-policy-to-remote-hypervisor.patch
     ];
   };
 

@@ -1,0 +1,21 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Fri, 18 Oct 2024 09:58:47 +0200
+Subject: [PATCH] runtime: forward policy to remote hypervisor
+
+---
+ src/runtime/virtcontainers/remote.go | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/runtime/virtcontainers/remote.go b/src/runtime/virtcontainers/remote.go
+index 047f09fe8c2db38469440508996b8359cfc8fcba..e95763e44c9bc3c167bbafa615069ef1b0af41a2 100644
+--- a/src/runtime/virtcontainers/remote.go
++++ b/src/runtime/virtcontainers/remote.go
+@@ -81,6 +81,7 @@ func (rh *remoteHypervisor) CreateVM(ctx context.Context, id string, network Net
+ 	annotations[hypannotations.DefaultVCPUs] = strconv.FormatUint(uint64(hypervisorConfig.NumVCPUs()), 10)
+ 	annotations[hypannotations.DefaultMemory] = strconv.FormatUint(uint64(hypervisorConfig.MemorySize), 10)
+ 	annotations[hypannotations.Initdata] = hypervisorConfig.Initdata
++	annotations[hypannotations.Policy] = hypervisorConfig.AgentPolicy
+ 
+ 	req := &pb.CreateVMRequest{
+ 		Id:                   id,
