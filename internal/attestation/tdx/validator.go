@@ -15,10 +15,10 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/reportdata"
 	"github.com/edgelesssys/contrast/internal/oid"
-	"github.com/google/go-tdx-guest/abi"
 	"github.com/google/go-tdx-guest/proto/tdx"
 	"github.com/google/go-tdx-guest/validate"
 	"github.com/google/go-tdx-guest/verify"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -79,6 +79,13 @@ func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byt
 	// TODO(freax13): Validate the memory integrity mode (logical vs cryptographic) in the provisioning certificate.
 
 	v.logger.Info("Validate called", "nonce", hex.EncodeToString(nonce))
+	defer func() {
+		if err != nil {
+			v.logger.Error("Validation failed", "error", err)
+		} else {
+			v.logger.Info("Validation successful")
+		}
+	}()
 
 	// Parse the attestation document.
 
@@ -87,11 +94,7 @@ func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byt
 		return fmt.Errorf("unmarshaling attestation: %w", err)
 	}
 
-	quoteRaw, err := abi.QuoteToAbiBytes(quote)
-	if err != nil {
-		return fmt.Errorf("converting quote to abi format: %w", err)
-	}
-	v.logger.Info("Quote decoded", "quoteRaw", hex.EncodeToString(quoteRaw))
+	v.logger.Info("Quote decoded", "quote", protojson.MarshalOptions{Multiline: false}.Format(quote))
 
 	// Build the verification options.
 
@@ -126,14 +129,11 @@ func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byt
 	if err := validate.TdxQuote(quote, validateOpts); err != nil {
 		return fmt.Errorf("validating report data: %w", err)
 	}
-	v.logger.Info("Successfully validated report data")
 
 	if v.reportSetter != nil {
 		report := tdxReport{quote: quote}
 		v.reportSetter.SetReport(report)
 	}
-
-	v.logger.Info("Validate finished successfully")
 	return nil
 }
 

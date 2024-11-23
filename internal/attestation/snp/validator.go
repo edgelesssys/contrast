@@ -13,10 +13,10 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/reportdata"
 	"github.com/edgelesssys/contrast/internal/oid"
-	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
 	"github.com/google/go-sev-guest/verify"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -57,6 +57,13 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 // Validate a TPM based attestation.
 func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
 	v.logger.Info("Validate called", "nonce", hex.EncodeToString(nonce))
+	defer func() {
+		if err != nil {
+			v.logger.Error("Validation failed", "error", err)
+		} else {
+			v.logger.Info("Validation successful")
+		}
+	}()
 
 	// Parse the attestation document.
 
@@ -68,11 +75,7 @@ func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byt
 	if attestationData.Report == nil {
 		return fmt.Errorf("attestation missing report")
 	}
-	reportRaw, err := abi.ReportToAbiBytes(attestationData.Report)
-	if err != nil {
-		return fmt.Errorf("converting report to abi format: %w", err)
-	}
-	v.logger.Info("Report decoded", "reportRaw", hex.EncodeToString(reportRaw))
+	v.logger.Info("Report decoded", "report", protojson.MarshalOptions{Multiline: false}.Format(attestationData.Report))
 
 	// Report signature verification.
 
@@ -88,14 +91,11 @@ func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byt
 	if err := validate.SnpAttestation(attestationData, v.validateOpts); err != nil {
 		return fmt.Errorf("validating report claims: %w", err)
 	}
-	v.logger.Info("Successfully validated report data")
 
 	if v.reportSetter != nil {
 		report := snpReport{report: attestationData.Report}
 		v.reportSetter.SetReport(report)
 	}
-
-	v.logger.Info("Validate finished successfully")
 	return nil
 }
 
