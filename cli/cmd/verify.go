@@ -4,18 +4,13 @@
 package cmd
 
 import (
-	"bytes"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 
-	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
 )
 
@@ -60,33 +55,13 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to read manifest file: %w", err)
 	}
-	var m manifest.Manifest
-	if err := json.Unmarshal(manifestBytes, &m); err != nil {
-		return fmt.Errorf("failed to unmarshal manifest: %w", err)
-	}
-	if err := m.Validate(); err != nil {
-		return fmt.Errorf("validating manifest: %w", err)
+
+	sdkClient := sdk.New(log)
+	resp, err := sdkClient.GetManifests(cmd.Context(), manifestBytes, flags.coordinator, flags.policy)
+	if err != nil {
+		return fmt.Errorf("getting manifests: %w", err)
 	}
 
-	validators, err := validatorsFromManifest(&m, log, flags.policy)
-	if err != nil {
-		return fmt.Errorf("getting validators: %w", err)
-	}
-	dialer := dialer.New(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{})
-
-	log.Debug("Dialing coordinator", "endpoint", flags.coordinator)
-	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
-	if err != nil {
-		return fmt.Errorf("Error: failed to dial coordinator: %w", err)
-	}
-	defer conn.Close()
-
-	log.Debug("Getting manifest")
-	client := userapi.NewUserAPIClient(conn)
-	resp, err := client.GetManifests(cmd.Context(), &userapi.GetManifestsRequest{})
-	if err != nil {
-		return fmt.Errorf("failed to get manifest: %w", err)
-	}
 	log.Debug("Got response")
 
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Successfully verified Coordinator CVM based on reference values from manifest")
@@ -109,9 +84,8 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 
 	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Wrote Coordinator configuration and keys to %s\n", filepath.Join(flags.workspaceDir, verifyDir))
 
-	currentManifest := resp.Manifests[len(resp.Manifests)-1]
-	if !bytes.Equal(currentManifest, manifestBytes) {
-		return fmt.Errorf("manifest active at Coordinator does not match expected manifest")
+	if err := sdk.Verify(manifestBytes, resp.Manifests); err != nil {
+		return fmt.Errorf("failed to verify Coordinator manifest: %w", err)
 	}
 
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Manifest active at Coordinator matches expected manifest")

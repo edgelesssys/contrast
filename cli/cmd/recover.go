@@ -14,6 +14,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
 )
 
@@ -73,7 +74,7 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("decrypting seed: %w", err)
 	}
 
-	validators, err := validatorsFromManifest(&m, log, flags.policy)
+	validators, err := sdk.ValidatorsFromManifest(&m, log, flags.policy)
 	if err != nil {
 		return fmt.Errorf("getting validators: %w", err)
 	}
