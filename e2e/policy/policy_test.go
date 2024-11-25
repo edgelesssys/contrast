@@ -77,7 +77,7 @@ func TestPolicy(t *testing.T) {
 
 		t.Log("Restarting container")
 
-		require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, coordinator))
+		require.NoError(c.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, coordinator))
 		t.Log("Waiting to ensure container start up failed")
 
 		errRst := c.WaitForEvent(ctx, kubeclient.StartingBlocked, kubeclient.Pod{}, ct.Namespace, coordinatorPod)
@@ -85,9 +85,17 @@ func TestPolicy(t *testing.T) {
 	})
 
 	// initial deployment with pod allowed
-	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 
+	ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
+	defer cancel()
+
+	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+
+	require.NoError(t, ct.Kubeclient.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, coordinator))
+	require.NoError(t, ct.Kubeclient.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
+	require.NoError(t, ct.Kubeclient.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
+	// Set always waits for the coordinator to be ready, therefore we don not require an explicit waitFor() here
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
