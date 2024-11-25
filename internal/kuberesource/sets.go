@@ -502,47 +502,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 // VolumeStatefulSet returns a stateful set for testing volume mounts and the
 // mounting of encrypted luks volumes using the workload-secret.
 func VolumeStatefulSet() []any {
-	initCommand := `#!/bin/bash
-# cryptsetup complains if there is no /run directory.
-mkdir /run
-set -e
-# device is the path to the block device to be encrypted.
-device="/dev/csi0"
-# workload_secret_path is the path to the Contrast workload secret.
-workload_secret_path="/contrast/secrets/workload-secret-seed"
-# tmp_key_path is the path to a temporary key file.
-tmp_key_path="/dev/shm/key"
-# disk_encryption_key_path is the path to the disk encryption key.
-disk_encryption_key_path="/dev/shm/disk-key"
-
-# If the device is not already a LUKS device, format it.
-if ! cryptsetup isLuks "${device}"; then
-	# Generate a random key for the first initialization.
-	dd if=/dev/urandom bs=1 count=32 2>/dev/null | base64 | tr -d '\n' > "${tmp_key_path}"
-	cryptsetup luksFormat --pbkdf-memory=10240 $device "${tmp_key_path}" </dev/null
-
-	# Now we can get the LUKS UUID and deterministically derive the disk encryption key from the workload secret.
-	uuid=$(blkid "${device}" -s UUID -o value)
-	openssl kdf -keylen 32 -kdfopt digest:SHA2-256 -kdfopt key:$(cat "${workload_secret_path}") \
-		-kdfopt info:${uuid} -binary HKDF | base64 | tr -d '\n' > "${disk_encryption_key_path}"
-	cryptsetup luksChangeKey --pbkdf-memory=10240 "${device}" --key-file "${tmp_key_path}" "${disk_encryption_key_path}"
-	cryptsetup open "${device}" state -d "${disk_encryption_key_path}"
-	mkfs.ext4 /dev/mapper/state
-	cryptsetup close state
-fi
-
-# No matter if this is the first initialization derive the key (again) and open the device.
-uuid=$(blkid "${device}" -s UUID -o value)
-openssl kdf -keylen 32 -kdfopt digest:SHA2-256 -kdfopt key:$(cat "${workload_secret_path}") \
-	-kdfopt info:${uuid} -binary HKDF | base64 | tr -d '\n' > "${disk_encryption_key_path}"
-cryptsetup luksUUID "${device}"
-cryptsetup open "${device}" state -d "${disk_encryption_key_path}"
-mkdir -p /srv/state
-mount /dev/mapper/state /srv/state
-touch /done
-sleep inf
-`
-
 	vss := StatefulSet("volume-tester", "").
 		WithSpec(StatefulSetSpec().
 			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
@@ -561,7 +520,7 @@ sleep inf
 							Container().
 								WithName("volume-tester-init").
 								WithImage("ghcr.io/edgelesssys/contrast/cryptsetup:latest").
-								WithCommand("/bin/sh", "-c", initCommand).
+								WithCommand("/bin/sh", "-c", CryptsetupInitCommand()).
 								WithVolumeDevices(
 									applycorev1.VolumeDevice().
 										WithName("state").
@@ -569,8 +528,11 @@ sleep inf
 								).
 								WithVolumeMounts(
 									VolumeMount().
+										WithName("run").
+										WithMountPath("/run"),
+									VolumeMount().
 										WithName("share").
-										WithMountPath("/srv").
+										WithMountPath("/state").
 										WithMountPropagation(corev1.MountPropagationBidirectional),
 									VolumeMount().
 										WithName("contrast-secrets").
@@ -588,7 +550,7 @@ sleep inf
 										WithFailureThreshold(20).
 										WithPeriodSeconds(5).
 										WithExec(applycorev1.ExecAction().
-											WithCommand("/bin/sh", "-c", "cat /done"),
+											WithCommand("/bin/test", "-f", "/done"),
 										),
 								).
 								WithRestartPolicy(
@@ -603,11 +565,14 @@ sleep inf
 								WithVolumeMounts(
 									VolumeMount().
 										WithName("share").
-										WithMountPath("/srv").
+										WithMountPath("/state").
 										WithMountPropagation(corev1.MountPropagationHostToContainer),
 								),
 						).
 						WithVolumes(
+							applycorev1.Volume().
+								WithName("run").
+								WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
 							applycorev1.Volume().
 								WithName("share").
 								WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
@@ -626,4 +591,125 @@ sleep inf
 		)
 
 	return []any{vss}
+}
+
+// MySQL returns the resources for deploying a MySQL database
+// with an encrypted luks volume using the workload-secret.
+func MySQL() []any {
+	backend := StatefulSet("mysql", "").
+		WithSpec(StatefulSetSpec().
+			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
+				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
+				WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "mysql"}),
+			).
+			WithServiceName("mysql-svc").
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": "mysql"}).
+				WithSpec(
+					PodSpec().
+						WithInitContainers(
+							Container().
+								WithName("luks-setup").
+								WithImage("ghcr.io/edgelesssys/contrast/cryptsetup:latest").
+								WithCommand("/bin/sh", "-c", CryptsetupInitCommand()).
+								WithVolumeDevices(
+									applycorev1.VolumeDevice().
+										WithName("state").
+										WithDevicePath("/dev/csi0"),
+								).
+								WithVolumeMounts(
+									VolumeMount().
+										WithName("run").
+										WithMountPath("/run"),
+									VolumeMount().
+										WithName("share").
+										WithMountPath("/state").
+										WithMountPropagation(corev1.MountPropagationBidirectional),
+									VolumeMount().
+										WithName("contrast-secrets").
+										WithMountPath("/contrast"),
+								).
+								WithSecurityContext(
+									applycorev1.SecurityContext().
+										WithPrivileged(true),
+								).
+								WithResources(ResourceRequirements().
+									WithMemoryLimitAndRequest(100),
+								).
+								WithStartupProbe(
+									Probe().
+										WithFailureThreshold(20).
+										WithPeriodSeconds(5).
+										WithExec(applycorev1.ExecAction().
+											WithCommand("/bin/test", "-f", "/done"),
+										),
+								).
+								WithRestartPolicy(
+									corev1.ContainerRestartPolicyAlways,
+								),
+						).
+						WithContainers(
+							Container().
+								WithName("mysql").
+								WithImage("docker.io/library/mysql:latest").
+								WithEnv(NewEnvVar("MYSQL_ROOT_PASSWORD", "password")).
+								WithPorts(
+									ContainerPort().
+										WithName("mysql").
+										WithContainerPort(3306),
+								).
+								WithVolumeMounts(
+									VolumeMount().
+										WithName("share").
+										WithMountPath("/var/lib/mysql").
+										WithMountPropagation(corev1.MountPropagationHostToContainer),
+								).
+								WithResources(ResourceRequirements().
+									WithMemoryLimitAndRequest(1000),
+								),
+						).
+						WithVolumes(
+							applycorev1.Volume().
+								WithName("run").
+								WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
+							applycorev1.Volume().
+								WithName("share").
+								WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
+						),
+				),
+			).
+			WithVolumeClaimTemplates(applycorev1.PersistentVolumeClaim("state", "").
+				WithSpec(applycorev1.PersistentVolumeClaimSpec().
+					WithVolumeMode(corev1.PersistentVolumeBlock).
+					WithAccessModes(corev1.ReadWriteOnce).
+					WithResources(applycorev1.VolumeResourceRequirements().
+						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
+					),
+				),
+			),
+		)
+
+	backendService := ServiceForStatefulSet(backend).
+		WithName("mysql-svc").
+		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"}).
+		WithSpec(ServiceSpec().
+			WithSelector(
+				map[string]string{"app.kubernetes.io/name": "mysql"},
+			).
+			WithType("ClusterIP").
+			WithPorts(
+				ServicePort().
+					WithName("mysql").
+					WithPort(3306).
+					WithTargetPort(intstr.FromInt(3306)),
+			),
+		)
+
+	return []any{
+		backend,
+		backendService,
+	}
 }
