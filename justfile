@@ -138,7 +138,7 @@ apply target=default_deploy_target:
             kubectl apply -f ./{{ workspace_dir }}/runtime
             exit 0
         ;;
-        "openssl" | "emojivoto" | "volume-stateful-set")
+        "openssl" | "emojivoto" | "volume-stateful-set" | "mysql")
             :
         ;;
         *)
@@ -301,6 +301,9 @@ wait-for-workload target=default_deploy_target:
         ;;
         "volume-stateful-set")
             nix run .#scripts.kubectl-wait-ready -- $ns volume-tester
+        ;;
+        "mysql")
+            nix run .#scripts.kubectl-wait-ready -- $ns mysql
         ;;
         *)
             echo "Please register workloads of new targets in wait-for-workload"
