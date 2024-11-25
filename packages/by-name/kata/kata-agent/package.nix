@@ -64,6 +64,13 @@ rustPlatform.buildRustPackage rec {
     chmod -R +w ../..
   '';
 
+  # https://crates.io/crates/sev produces libsev.so, which is not needed for
+  # the agent binary and pulls in a large dependency on rustc. Thus, we remove
+  # it from the output.
+  postInstall = ''
+    rm -rf $out/lib
+  '';
+
   buildFeatures =
     lib.optional withSeccomp "seccomp"
     ++ lib.optional withAgentPolicy "agent-policy"
