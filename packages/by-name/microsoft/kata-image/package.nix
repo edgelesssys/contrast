@@ -54,8 +54,8 @@ let
 
       runHook postBuild
     '';
-
     dontInstall = true;
+    dontPatchELF = true;
   };
   packageIndex = builtins.fromJSON (builtins.readFile ./package-index.json);
   rpmSources = lib.forEach packageIndex (
@@ -84,6 +84,7 @@ let
 
       runHook postBuild
     '';
+    dontPatchELF = true;
   };
 
   tdnfConf = writeText "tdnf.conf" ''
@@ -198,4 +199,5 @@ stdenv.mkDerivation rec {
     rm -rf $out
     mv /build/raw.img $out
   '';
+  dontPatchELF = true;
 }

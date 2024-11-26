@@ -67,6 +67,7 @@ let
       '';
 
     dontInstall = true;
+    dontPatchELF = true;
   };
   packageIndex = builtins.fromJSON (builtins.readFile ./package-index.json);
   rpmSources = lib.forEach packageIndex (
@@ -95,6 +96,7 @@ let
 
       runHook postBuild
     '';
+    dontPatchELF = true;
   };
 
   tdnfConf = writeText "tdnf.conf" ''
@@ -239,6 +241,7 @@ let
         in
         "dm-mod.create=\"dm-verity,,,ro,0 ${toString dataSectors} verity 1 /dev/vda1 /dev/vda2 ${dataBlockSize} ${hashBlockSize} ${dataBlocks} 0 sha256 ${rootHash} ${salt}\" root=/dev/dm-0";
     };
+    dontPatchELF = true;
   };
 in
 kata-image
