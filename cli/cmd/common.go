@@ -7,6 +7,7 @@ import (
 	"context"
 	_ "embed"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/edgelesssys/contrast/cli/telemetry"
@@ -14,6 +15,7 @@ import (
 )
 
 const (
+	cacheDirEnv          = "CONTRAST_CACHE_DIR"
 	coordHashFilename    = "coordinator-policy.sha256"
 	coordRootPEMFilename = "coordinator-root-ca.pem"
 	meshCAPEMFilename    = "mesh-ca.pem"
@@ -57,4 +59,16 @@ func withTelemetry(runFunc func(*cobra.Command, []string) error) func(*cobra.Com
 
 		return cmdErr
 	}
+}
+
+func cachedir(subdir string) (string, error) {
+	dir := os.Getenv(cacheDirEnv)
+	if dir == "" {
+		cachedir, err := os.UserCacheDir()
+		if err != nil {
+			return "", err
+		}
+		dir = filepath.Join(cachedir, "contrast")
+	}
+	return filepath.Join(dir, subdir), nil
 }

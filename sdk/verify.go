@@ -39,19 +39,19 @@ func Verify(expected []byte, history [][]byte) error {
 	return nil
 }
 
-// GetManifests calls GetManifests on the coordinator's userapi.
-func (c Client) GetManifests(ctx context.Context, manifestBytes []byte, endpoint string, policyHash []byte) (GetManifestsResponse, error) {
+// GetCoordinatorState calls GetManifests on the coordinator's userapi via aTLS.
+func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint string, policyHash []byte) (CoordinatorState, error) {
 	var m manifest.Manifest
 	if err := json.Unmarshal(manifestBytes, &m); err != nil {
-		return GetManifestsResponse{}, fmt.Errorf("unmarshalling manifest: %w", err)
+		return CoordinatorState{}, fmt.Errorf("unmarshalling manifest: %w", err)
 	}
 	if err := m.Validate(); err != nil {
-		return GetManifestsResponse{}, fmt.Errorf("validating manifest: %w", err)
+		return CoordinatorState{}, fmt.Errorf("validating manifest: %w", err)
 	}
 
-	validators, err := ValidatorsFromManifest(&m, c.log, policyHash)
+	validators, err := ValidatorsFromManifest(kdsDir, &m, c.log, policyHash)
 	if err != nil {
-		return GetManifestsResponse{}, fmt.Errorf("getting validators: %w", err)
+		return CoordinatorState{}, fmt.Errorf("getting validators: %w", err)
 	}
 	dialer := dialer.New(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{})
 
@@ -59,7 +59,7 @@ func (c Client) GetManifests(ctx context.Context, manifestBytes []byte, endpoint
 
 	conn, err := dialer.Dial(ctx, endpoint)
 	if err != nil {
-		return GetManifestsResponse{}, fmt.Errorf("dialing coordinator: %w", err)
+		return CoordinatorState{}, fmt.Errorf("dialing coordinator: %w", err)
 	}
 	defer conn.Close()
 
@@ -68,10 +68,10 @@ func (c Client) GetManifests(ctx context.Context, manifestBytes []byte, endpoint
 	client := userapi.NewUserAPIClient(conn)
 	resp, err := client.GetManifests(ctx, &userapi.GetManifestsRequest{})
 	if err != nil {
-		return GetManifestsResponse{}, fmt.Errorf("getting manifests: %w", err)
+		return CoordinatorState{}, fmt.Errorf("getting manifests: %w", err)
 	}
 
-	return GetManifestsResponse{
+	return CoordinatorState{
 		Manifests: resp.Manifests,
 		Policies:  resp.Policies,
 		RootCA:    resp.RootCA,
@@ -79,8 +79,8 @@ func (c Client) GetManifests(ctx context.Context, manifestBytes []byte, endpoint
 	}, nil
 }
 
-// GetManifestsResponse contains the Coordinator's response to a GetManifests call.
-type GetManifestsResponse struct {
+// CoordinatorState contains the Coordinator's response to a GetManifests call.
+type CoordinatorState struct {
 	Manifests [][]byte
 	Policies  [][]byte
 	// PEM-encoded certificate

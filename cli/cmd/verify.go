@@ -56,8 +56,14 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to read manifest file: %w", err)
 	}
 
+	kdsDir, err := cachedir("kds")
+	if err != nil {
+		return fmt.Errorf("getting cache dir: %w", err)
+	}
+	log.Debug("Using KDS cache dir", "dir", kdsDir)
+
 	sdkClient := sdk.New(log)
-	resp, err := sdkClient.GetManifests(cmd.Context(), manifestBytes, flags.coordinator, flags.policy)
+	resp, err := sdkClient.GetCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator, flags.policy)
 	if err != nil {
 		return fmt.Errorf("getting manifests: %w", err)
 	}
