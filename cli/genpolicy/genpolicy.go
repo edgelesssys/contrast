@@ -60,7 +60,13 @@ func (r *Runner) Run(ctx context.Context, yamlPath string, logger *slog.Logger) 
 		"--yaml-file=" + yamlPath,
 	}
 	genpolicy := exec.CommandContext(ctx, r.genpolicy.Path(), args...)
-	genpolicy.Env = append(genpolicy.Env, "RUST_LOG=info", "RUST_BACKTRACE=1")
+	genpolicy.Env = os.Environ()
+	if _, hasRustLog := os.LookupEnv("RUST_LOG"); !hasRustLog {
+		genpolicy.Env = append(genpolicy.Env, "RUST_LOG=info")
+	}
+	if _, hasRustBacktrace := os.LookupEnv("RUST_BACKTRACE"); !hasRustBacktrace {
+		genpolicy.Env = append(genpolicy.Env, "RUST_BACKTRACE=1")
+	}
 
 	logFilter := newLogTranslator(logger)
 	defer logFilter.stop()

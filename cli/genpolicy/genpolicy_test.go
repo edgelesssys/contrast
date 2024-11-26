@@ -39,6 +39,8 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+echo -e "HOME=${HOME}\nXDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}\nDOCKER_CONFIG=${DOCKER_CONFIG}\nREGISTRY_AUTH_FILE=${REGISTRY_AUTH_FILE}" >env_path
 `
 
 func TestRunner(t *testing.T) {
@@ -46,6 +48,11 @@ func TestRunner(t *testing.T) {
 	assert := assert.New(t)
 	ctx := context.Background()
 	logger := slog.Default()
+
+	t.Setenv("HOME", "/invalid/home")
+	t.Setenv("XDG_RUNTIME_DIR", "/invalid/xdg")
+	t.Setenv("DOCKER_CONFIG", "/invalid/docker")
+	t.Setenv("REGISTRY_AUTH_FILE", "/invalid/registry")
 
 	d := t.TempDir()
 	genpolicyBin := []byte(fmt.Sprintf(scriptTemplate, d))
@@ -57,6 +64,7 @@ func TestRunner(t *testing.T) {
 	cachePath := filepath.Join(d, "cache", "cache.json")
 	expectedYAMLPath := filepath.Join(d, "test.yml")
 	yamlPathFile := filepath.Join(d, "yaml_path")
+	envFile := filepath.Join(d, "env_path")
 
 	r, err := New(expectedRulesPath, expectedSettingsPath, cachePath, genpolicyBin)
 	require.NoError(err)
@@ -74,6 +82,18 @@ func TestRunner(t *testing.T) {
 	yamlPath, err := os.ReadFile(yamlPathFile)
 	require.NoError(err)
 	assert.YAMLEq(expectedYAMLPath, string(yamlPath))
+
+	env, err := os.ReadFile(envFile)
+	require.NoError(err)
+	assert.YAMLEq(expectedYAMLPath, string(yamlPath))
+	for _, expected := range []string{
+		"HOME=/invalid/home",
+		"XDG_RUNTIME_DIR=/invalid/xdg",
+		"DOCKER_CONFIG=/invalid/docker",
+		"REGISTRY_AUTH_FILE=/invalid/registry",
+	} {
+		assert.Contains(string(env), expected)
+	}
 
 	require.NoError(r.Teardown())
 }
