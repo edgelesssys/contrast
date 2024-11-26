@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: miampf <miampf@proton.me>
-Date: Thu, 14 Nov 2024 12:34:56 +0100
-Subject: [PATCH 7/7] genpolicy: support for VOLUME definition in container image
+Date: Tue, 26 Nov 2024 11:29:14 +0100
+Subject: [PATCH] genpolicy: support for VOLUME definition in container image
 
 ---
  src/tools/genpolicy/genpolicy-settings.json   | 14 +++++-
@@ -17,12 +17,7 @@ Subject: [PATCH 7/7] genpolicy: support for VOLUME definition in container image
  src/tools/genpolicy/src/settings.rs           | 12 +++++
  src/tools/genpolicy/src/stateful_set.rs       | 20 ++++----
  src/tools/genpolicy/src/yaml.rs               | 43 ++++++++++++-----
- .../kubernetes/k8s-policy-deployments.bats    | 47 ++++++++++++++++++
- .../kubernetes/run_kubernetes_tests.sh        |  1 +
- .../k8s-policy-deployment.yaml                | 36 ++++++++++++++
- 16 files changed, 265 insertions(+), 89 deletions(-)
- create mode 100644 tests/integration/kubernetes/k8s-policy-deployments.bats
- create mode 100644 tests/integration/kubernetes/runtimeclass_workloads/k8s-policy-deployment.yaml
+ 13 files changed, 181 insertions(+), 89 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
 index 7d35862afa73e9f4c9004189d3ec50ebd3e8855d..fd998a41be8978b85928d12101c7ff4fdc38e4eb 100644
@@ -522,110 +517,3 @@ index c898240af337f3cb7cfc34fa1398cb5a6bd828a5..07ebb32aea0ae8265c8deb8c32fb0224
  }
  
  /// Add the "io.katacontainers.config.agent.policy" annotation into
-diff --git a/tests/integration/kubernetes/k8s-policy-deployments.bats b/tests/integration/kubernetes/k8s-policy-deployments.bats
-new file mode 100644
-index 0000000000000000000000000000000000000000..8919c7dae1536ba62a84a8ab27370498f2a76704
---- /dev/null
-+++ b/tests/integration/kubernetes/k8s-policy-deployments.bats
-@@ -0,0 +1,47 @@
-+#!/usr/bin/env bats
-+#
-+# Copyright (c) 2024 Microsoft.
-+#
-+# SPDX-License-Identifier: Apache-2.0
-+#
-+
-+load "${BATS_TEST_DIRNAME}/../../common.bash"
-+load "${BATS_TEST_DIRNAME}/tests_common.sh"
-+
-+setup() {
-+    auto_generate_policy_enabled || skip "Auto-generated policy tests are disabled."
-+
-+    get_pod_config_dir
-+
-+    deployment_name="policy-redis-deployment"
-+    deployment_yaml="${pod_config_dir}/k8s-policy-deployment.yaml"
-+
-+    # Add an appropriate policy to the correct YAML file.
-+    policy_settings_dir="$(create_tmp_policy_settings_dir "${pod_config_dir}")"
-+    add_requests_to_policy_settings "${policy_settings_dir}" "ReadStreamRequest"
-+    auto_generate_policy "${policy_settings_dir}" "${deployment_yaml}"
-+}
-+
-+@test "Successful deployment with auto-generated policy and container image volumes" {
-+    # Initiate deployment
-+    kubectl apply -f "${deployment_yaml}"
-+
-+    # Wait for the deployment to be created
-+    cmd="kubectl rollout status --timeout=1s deployment/${deployment_name} | grep 'successfully rolled out'"
-+    info "Waiting for: ${cmd}"
-+    waitForProcess "${wait_time}" "${sleep_time}" "${cmd}"
-+}
-+
-+teardown() {
-+    auto_generate_policy_enabled || skip "Auto-generated policy tests are disabled."
-+
-+    # Debugging information
-+    info "Deployment ${deployment_name}:"
-+    kubectl describe deployment "${deployment_name}"
-+    kubectl rollout status deployment/${deployment_name}
-+
-+    # Clean-up
-+    kubectl delete deployment "${deployment_name}"
-+
-+    delete_tmp_policy_settings_dir "${policy_settings_dir}"
-+}
-diff --git a/tests/integration/kubernetes/run_kubernetes_tests.sh b/tests/integration/kubernetes/run_kubernetes_tests.sh
-index b16c22ae64fa23f3a42fd4915d9c1f0eee6812eb..203128f51e357b17c4a8c0e832619c08c1b35746 100644
---- a/tests/integration/kubernetes/run_kubernetes_tests.sh
-+++ b/tests/integration/kubernetes/run_kubernetes_tests.sh
-@@ -45,6 +45,7 @@ else
- 		"k8s-optional-empty-secret.bats" \
- 		"k8s-pid-ns.bats" \
- 		"k8s-pod-quota.bats" \
-+    "k8s-policy-deployments.bats" \
- 		"k8s-port-forward.bats" \
- 		"k8s-projected-volume.bats" \
- 		"k8s-qos-pods.bats" \
-diff --git a/tests/integration/kubernetes/runtimeclass_workloads/k8s-policy-deployment.yaml b/tests/integration/kubernetes/runtimeclass_workloads/k8s-policy-deployment.yaml
-new file mode 100644
-index 0000000000000000000000000000000000000000..407b99729061dc7e651296afcc10ce6138e481af
---- /dev/null
-+++ b/tests/integration/kubernetes/runtimeclass_workloads/k8s-policy-deployment.yaml
-@@ -0,0 +1,36 @@
-+#
-+# Copyright (c) 2024 Microsoft
-+#
-+# SPDX-License-Identifier: Apache-2.0
-+#
-+apiVersion: apps/v1
-+kind: Deployment
-+metadata:
-+  name: policy-redis-deployment
-+  labels:
-+    app: policyredis
-+spec:
-+  selector:
-+    matchLabels:
-+      app: policyredis
-+      role: master
-+      tier: backend
-+  replicas: 1
-+  template:
-+    metadata:
-+      labels:
-+        app: policyredis
-+        role: master
-+        tier: backend
-+    spec:
-+      terminationGracePeriodSeconds: 0
-+      runtimeClassName: kata
-+      containers:
-+      - name: master
-+        image: quay.io/opstree/redis
-+        resources:
-+          requests:
-+            cpu: 100m
-+            memory: 100Mi
-+        ports:
-+        - containerPort: 6379
