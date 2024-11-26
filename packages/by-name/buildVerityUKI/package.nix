@@ -24,4 +24,5 @@ nixos-config:
       realRoothash=$(${lib.getExe jq} -r "[.[] | select(.roothash != null)] | .[0].roothash" $out/repart-output.json)
       sed -i "0,/${roothashPlaceholder}/ s/${roothashPlaceholder}/$realRoothash/" $out/${oldAttrs.pname}_${oldAttrs.version}.raw
     '';
+    dontPatchELF = true;
   })

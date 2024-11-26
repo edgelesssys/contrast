@@ -57,6 +57,8 @@ let
       '';
     };
 
+    dontPatchELF = true;
+
     meta = {
       description = "The Contrast runtime IGVM file defines the initial state of a pod-VM.";
       license = lib.licenses.asl20;
