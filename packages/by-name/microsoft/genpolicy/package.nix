@@ -56,8 +56,8 @@ rustPlatform.buildRustPackage rec {
       # https://github.com/microsoft/kata-containers/pull/174
       ./0006-genpolicy-support-HostToContainer-mount-propagation.patch
       # This patch is a port of https://github.com/kata-containers/kata-containers/pull/10136/files
-      # to microsofts genpolicy.
-      # remove when picked up by Microsoft/kata-containers fork.
+      # to Microsofts genpolicy.
+      # TODO(miampf): remove when picked up by microsoft/kata-containers fork.
       ./0007-genpolicy-support-for-VOLUME-definition-in-container.patch
     ];
   };
