@@ -30,9 +30,13 @@ func New(log *slog.Logger) Client {
 }
 
 // Verify checks if a given manifest is the latest manifest in the given history.
-func Verify(expected []byte, history [][]byte) error {
-	currentManifest := history[len(history)-1]
-	if !bytes.Equal(currentManifest, expected) {
+func Verify(expectedManifest []byte, manifestHistory [][]byte) error {
+	if len(manifestHistory) == 0 {
+		return fmt.Errorf("manifest history is empty")
+	}
+
+	currentManifest := manifestHistory[len(manifestHistory)-1]
+	if !bytes.Equal(currentManifest, expectedManifest) {
 		return fmt.Errorf("active manifest does not match expected manifest")
 	}
 
