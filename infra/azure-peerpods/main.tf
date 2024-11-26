@@ -45,7 +45,7 @@ resource "azurerm_virtual_network" "main" {
 resource "azurerm_kubernetes_cluster" "cluster" {
   name                      = "${local.name}_aks"
   resource_group_name       = data.azurerm_resource_group.rg.name
-  node_resource_group       = "${var.resource_group}_aks_node_rg"
+  node_resource_group       = "${local.name}_aks_node_rg"
   location                  = data.azurerm_resource_group.rg.location
   dns_prefix                = "aks"
   oidc_issuer_enabled       = true
