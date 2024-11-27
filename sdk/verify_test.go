@@ -27,6 +27,11 @@ func TestVerify(t *testing.T) {
 			manifestHistory:  [][]byte{[]byte("old"), []byte("current")},
 			errMsg:           "active manifest does not match expected manifest",
 		},
+		"Matching manifest is not latest": {
+			expectedManifest: []byte("expected"),
+			manifestHistory:  [][]byte{[]byte("expected"), []byte("current")},
+			errMsg:           "active manifest does not match expected manifest",
+		},
 	}
 
 	for name, tt := range tests {

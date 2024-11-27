@@ -8,9 +8,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
-	"os"
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
@@ -23,11 +23,10 @@ type Client struct {
 	log *slog.Logger
 }
 
-// New returns a Client with a default logger.
-// Configures logging via slog to write to stderr.
+// New returns a Client with logging disabled.
 func New() Client {
 	return Client{
-		log: slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{})),
+		log: slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
 	}
 }
 
@@ -79,7 +78,7 @@ func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifest
 }
 
 // Verify checks if a given manifest is the latest manifest in the given history.
-// The expected manifest should be supplied by the verifying party, the history should be received from the coordinator.
+// The expected manifest should be supplied by the caller, the history should be received from the coordinator.
 func (Client) Verify(expectedManifest []byte, manifestHistory [][]byte) error {
 	if len(manifestHistory) == 0 {
 		return fmt.Errorf("manifest history is empty")
@@ -93,11 +92,11 @@ func (Client) Verify(expectedManifest []byte, manifestHistory [][]byte) error {
 	return nil
 }
 
-// CoordinatorState contains the Coordinator's response to a GetManifests call.
+// CoordinatorState represents the state of the Contrast Coordinator at a fixed point in time.
 type CoordinatorState struct {
-	// Manifests is a slice of manifests. It represents the manifest history of the Coordinator it was received from.
+	// Manifests is a slice of manifests. It represents the manifest history of the Coordinator it was received from, sorted from oldest to newest.
 	Manifests [][]byte
-	// Policies is a slice of policies. It contains all policies that have been referenced in any of the manifests in the manifest history. Used to verify the guarantees a deployment had over its lifetime.
+	// Policies contains all policies that have been referenced in any manifest in Manifests. Used to verify the guarantees a deployment had over its lifetime.
 	Policies [][]byte
 	// PEM-encoded certificate of the deployment's root CA.
 	RootCA []byte
