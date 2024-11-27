@@ -51,6 +51,11 @@ node-installer platform=default_platform:
             just push "nydus-snapshotter"
             just push "node-installer-kata"
         ;;
+        "AKS-PEER-SNP")
+            just push "nydus-snapshotter"
+            just push "node-installer-kata"
+            just push "cloud-api-adaptor"
+        ;;
         *)
             echo "Unsupported platform: {{ platform }}"
             exit 1
