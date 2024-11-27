@@ -62,7 +62,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	sdkClient := sdk.New(log)
+	sdkClient := sdk.NewWithSlog(log)
 	resp, err := sdkClient.GetCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator, flags.policy)
 	if err != nil {
 		return fmt.Errorf("getting manifests: %w", err)
@@ -90,7 +90,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 
 	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Wrote Coordinator configuration and keys to %s\n", filepath.Join(flags.workspaceDir, verifyDir))
 
-	if err := sdk.Verify(manifestBytes, resp.Manifests); err != nil {
+	if err := sdkClient.Verify(manifestBytes, resp.Manifests); err != nil {
 		return fmt.Errorf("failed to verify Coordinator manifest: %w", err)
 	}
 
