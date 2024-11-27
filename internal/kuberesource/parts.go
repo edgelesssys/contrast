@@ -131,12 +131,11 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 
 	cloudAPIAdaptor := Container().
 		WithName("cloud-api-adaptor").
-		// TODO(freax13): Don't hard-code this
-		WithImage("quay.io/confidential-containers/cloud-api-adaptor:v0.9.0-amd64").
+		WithImage("ghcr.io/edgelesssys/contrast/cloud-api-adaptor:latest").
 		WithVolumeMounts(
 			VolumeMount().
 				WithName("ssh").
-				WithMountPath("/root/.ssh/").
+				WithMountPath("/.ssh/").
 				WithReadOnly(true),
 			VolumeMount().
 				WithName("pods-dir").
@@ -145,9 +144,10 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 				WithName("netns").
 				WithMountPath("/run/netns").
 				WithMountPropagation(corev1.MountPropagationHostToContainer),
-		).
-		WithArgs(
-			"/usr/local/bin/entrypoint.sh",
+			VolumeMount().
+				WithName("netns").
+				WithMountPath("/var/run/netns").
+				WithMountPropagation(corev1.MountPropagationHostToContainer),
 		).
 		WithEnv(
 			NewEnvVar("optionals", fmt.Sprintf("-socket /run/peerpod/hypervisor-%s.sock ", runtimeHandler)),
