@@ -3,6 +3,8 @@
 
 package config
 
+import "github.com/pelletier/go-toml/v2"
+
 // KataRuntimeConfig is the configuration for the Kata runtime.
 // Source: https://github.com/kata-containers/kata-containers/blob/4029d154ba0c26fcf4a8f9371275f802e3ef522c/src/runtime/pkg/katautils/config.go
 // This is a simplified version of the actual configuration.
@@ -12,6 +14,11 @@ type KataRuntimeConfig struct {
 	Image      Image
 	Factory    Factory
 	Runtime    KataRuntime
+}
+
+// Marshal encodes the configuration as TOML.
+func (k *KataRuntimeConfig) Marshal() ([]byte, error) {
+	return toml.Marshal(k)
 }
 
 // Image is the configuration for the image.
