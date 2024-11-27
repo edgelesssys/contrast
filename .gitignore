@@ -21,5 +21,6 @@ terraform.tfstate*
 id_rsa*
 kube.conf
 out.env
+infra/**/peer-pods-config.yaml
 infra/**/kustomization.yaml
 uplosi.conf*
