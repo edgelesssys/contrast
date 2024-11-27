@@ -97,7 +97,7 @@ func (Client) Verify(expectedManifest []byte, manifestHistory [][]byte) error {
 type CoordinatorState struct {
 	// Manifests is a slice of manifests. It represents the manifest history of the Coordinator it was received from.
 	Manifests [][]byte
-	// TODO (derpsteb): Update this comment.
+	// Policies is a slice of policies. It contains all policies that have been referenced in any of the manifests in the manifest history. Used to verify the guarantees a deployment had over its lifetime.
 	Policies [][]byte
 	// PEM-encoded certificate of the deployment's root CA.
 	RootCA []byte
