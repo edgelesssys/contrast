@@ -123,14 +123,81 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 			),
 	}
 
+	cloudAPIAdaptor := Container().
+		WithName("cloud-api-adaptor").
+		// TODO(freax13): Don't hard-code this
+		WithImage("quay.io/confidential-containers/cloud-api-adaptor:v0.9.0-amd64").
+		WithVolumeMounts(
+			VolumeMount().
+				WithName("ssh").
+				WithMountPath("/root/.ssh/").
+				WithReadOnly(true),
+			VolumeMount().
+				WithName("pods-dir").
+				WithMountPath("/run/peerpod"),
+			VolumeMount().
+				WithName("netns").
+				WithMountPath("/run/netns").
+				WithMountPropagation(corev1.MountPropagationHostToContainer),
+		).
+		WithArgs(
+			"/usr/local/bin/entrypoint.sh",
+		).
+		WithEnv(
+			NewEnvVar("optionals", fmt.Sprintf("-socket /run/peerpod/hypervisor-%s.sock ", runtimeHandler)),
+			applycorev1.EnvVar().WithName("NODE_NAME").WithValueFrom(applycorev1.EnvVarSource().WithFieldRef(applycorev1.ObjectFieldSelector().WithFieldPath("spec.nodeName"))),
+		).
+		WithEnvFrom(
+			applycorev1.EnvFromSource().
+				WithConfigMapRef(
+					applycorev1.ConfigMapEnvSource().
+						WithName("peer-pods-cm"),
+				),
+			applycorev1.EnvFromSource().
+				WithSecretRef(applycorev1.SecretEnvSource().
+					WithName("azure-client-secret"),
+				),
+		).
+		WithSecurityContext(
+			applycorev1.SecurityContext().
+				WithCapabilities(
+					applycorev1.Capabilities().
+						WithAdd(
+							corev1.Capability("NET_ADMIN"),
+							corev1.Capability("SYS_ADMIN"),
+						),
+				),
+		)
+	cloudAPIAdaptorVolumes := []*applycorev1.VolumeApplyConfiguration{
+		Volume().
+			WithName("pods-dir").
+			WithHostPath(HostPathVolumeSource().
+				WithPath("/run/peerpod").
+				WithType(corev1.HostPathDirectoryOrCreate),
+			),
+		Volume().
+			WithName("netns").
+			WithHostPath(HostPathVolumeSource().
+				WithPath("/run/netns").
+				WithType(corev1.HostPathDirectory),
+			),
+		Volume().
+			WithName("ssh").
+			WithSecret(applycorev1.SecretVolumeSource().
+				WithDefaultMode(0o600).
+				WithSecretName("ssh-key-secret"),
+			),
+	}
+
 	var nodeInstallerImageURL string
-	var snapshotter *applycorev1.ContainerApplyConfiguration
-	var snapshotterVolumes []*applycorev1.VolumeApplyConfiguration
+	var serviceAccount string
+	var containers []*applycorev1.ContainerApplyConfiguration
+	var volumes []*applycorev1.VolumeApplyConfiguration
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
 		snapshotter = tardevSnapshotter
-		snapshotterVolumes = tardevSnapshotterVolumes
+		volumes = tardevSnapshotterVolumes
 	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
 		snapshotter = nydusSnapshotter
@@ -140,7 +207,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 				WithPath("/var/lib/containerd").
 				WithType(corev1.HostPathDirectory),
 			))
-		snapshotterVolumes = nydusSnapshotterVolumes
+		volumes = nydusSnapshotterVolumes
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
 		snapshotter = nydusSnapshotter
@@ -150,7 +217,18 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 				WithPath("/var/lib/rancher/k3s/agent/containerd").
 				WithType(corev1.HostPathDirectory),
 			))
-		snapshotterVolumes = nydusSnapshotterVolumes
+		volumes = nydusSnapshotterVolumes
+	case platforms.AKSPeerSNP:
+		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
+		containers = []*applycorev1.ContainerApplyConfiguration{nydusSnapshotter, cloudAPIAdaptor}
+		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes, Volume().
+			WithName("var-lib-containerd").
+			WithHostPath(HostPathVolumeSource().
+				WithPath("/var/lib/containerd").
+				WithType(corev1.HostPathDirectory),
+			))
+		volumes = append(nydusSnapshotterVolumes, cloudAPIAdaptorVolumes...)
+		serviceAccount = "cloud-api-adaptor"
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", platform)
 	}
@@ -169,6 +247,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 				}).
 				WithSpec(PodSpec().
 					WithHostPID(true).
+					WithHostNetwork(true).
 					WithInitContainers(Container().
 						WithName("installer").
 						WithImage(nodeInstallerImageURL).
@@ -181,11 +260,13 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 							WithMountPath("/host")).
 						WithCommand("/bin/node-installer", platform.String()),
 					).
+					WithServiceAccountName(serviceAccount).
+					WithAutomountServiceAccountToken(true).
 					WithContainers(
-						snapshotter,
+						containers...,
 					).
 					WithVolumes(append(
-						snapshotterVolumes,
+						volumes,
 						Volume().
 							WithName("host-mount").
 							WithHostPath(HostPathVolumeSource().
