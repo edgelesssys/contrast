@@ -53,8 +53,9 @@ node-installer platform=default_platform:
         ;;
         "AKS-PEER-SNP")
             nix run -L .#scripts.deploy-caa -- \
-                --kustomization=./infra/azure-peerpods/kustomization.yaml \
-                --pub-key=./infra/azure-peerpods/id_rsa.pub
+                --copy=./infra/azure-peerpods/kustomization.yaml \
+                --copy=./infra/azure-peerpods/patch_ds.yaml \
+                --copy=./infra/azure-peerpods/id_rsa.pub
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
@@ -220,7 +221,9 @@ create platform=default_platform:
         ;;
         "AKS-PEER-SNP")
             # Populate Terraform variables.
+            image=$(nix run -L .#containers.push-cloud-api-adaptor -- "$container_registry/contrast/cloud-api-adaptor")
             echo "subscription_id = \"$azure_subscription_id\"" > infra/azure-peerpods/just.auto.tfvars
+            echo "caa_image = \"$image\"" >> infra/azure-peerpods/just.auto.tfvars
 
             nix run -L .#terraform -- -chdir=infra/azure-peerpods init
             nix run -L .#terraform -- -chdir=infra/azure-peerpods apply --auto-approve

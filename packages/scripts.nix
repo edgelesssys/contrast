@@ -470,14 +470,14 @@
     text = ''
       set -euo pipefail
 
+      tmpdir=$(mktemp -d)
+      cp -r ${pkgs.cloud-api-adaptor.src}/src/cloud-api-adaptor/install/* "$tmpdir"
+      chmod -R +w "$tmpdir"
+
       for i in "$@"; do
         case $i in
-        --kustomization=*)
-          kustomizationFile="''${i#*=}"
-          shift
-          ;;
-        --pub-key=*)
-          pubKeyFile="''${i#*=}"
+        --copy=*)
+          cp "''${i#*=}" "$tmpdir/overlays/azure/"
           shift
           ;;
         *)
@@ -487,11 +487,6 @@
         esac
       done
 
-      tmpdir=$(mktemp -d)
-      cp -r ${pkgs.cloud-api-adaptor.src}/src/cloud-api-adaptor/install/* "$tmpdir"
-      chmod -R +w "$tmpdir"
-      cp "$kustomizationFile" "$tmpdir/overlays/azure/kustomization.yaml"
-      cp "$pubKeyFile" "$tmpdir/overlays/azure/id_rsa.pub"
 
       kubectl apply -k "github.com/confidential-containers/operator/config/release?ref=v${pkgs.cloud-api-adaptor.version}"
       kubectl apply -k "github.com/confidential-containers/operator/config/samples/ccruntime/peer-pods?ref=v${pkgs.cloud-api-adaptor.version}"

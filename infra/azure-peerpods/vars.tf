@@ -27,6 +27,10 @@ variable "image_id" {
   type = string
 }
 
+variable "caa_image" {
+  type = string
+}
+
 variable "cluster_type" {
   type    = string
   default = "Free"

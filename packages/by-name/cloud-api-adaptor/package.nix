@@ -77,6 +77,7 @@ buildGoModule rec {
 
   postInstall = ''
     wrapProgram $out/bin/agent-protocol-forwarder --prefix PATH : ${lib.makeBinPath [ iptables ]}
+    wrapProgram $out/bin/cloud-api-adaptor --prefix PATH : ${lib.makeBinPath [ iptables ]}
   '';
 
   passthru = {

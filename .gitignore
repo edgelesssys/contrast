@@ -22,4 +22,5 @@ id_rsa*
 kube.conf
 out.env
 infra/**/kustomization.yaml
+infra/**/patch_ds.yaml
 uplosi.conf*

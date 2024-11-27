@@ -137,5 +137,32 @@ secretGenerator:
   namespace: confidential-containers-system
   files:
   - id_rsa.pub
+patches:
+- path: patch_ds.yaml
+EOF
+}
+
+resource "local_file" "patch_ds" {
+  filename        = "./patch_ds.yaml"
+  file_permission = "0777"
+  content         = <<EOF
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: cloud-api-adaptor-daemonset
+  namespace: confidential-containers-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: cloud-api-adaptor-con
+        image: ${var.caa_image}
+        env:
+        - name: HOME
+          value: /root
+        volumeMounts:
+        - name: netns
+          mountPropagation: HostToContainer
+          mountPath: /var/run/netns
 EOF
 }

@@ -173,6 +173,10 @@ let
       copyToRoot = with pkgs; [
         cacert
       ];
+      runAsRoot = ''
+        mkdir -p /usr/local/bin
+        ln -s "${lib.getExe pkgs.cloud-api-adaptor.entrypoint}" /usr/local/bin/entrypoint.sh
+      '';
       config = {
         Cmd = [ "${lib.getExe pkgs.cloud-api-adaptor.entrypoint}" ];
       };
