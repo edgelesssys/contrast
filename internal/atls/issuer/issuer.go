@@ -15,8 +15,8 @@ import (
 	"github.com/klauspost/cpuid/v2"
 )
 
-// PlatformIssuer creates an attestation issuer for the current platform.
-func PlatformIssuer(log *slog.Logger) (Issuer, error) {
+// New creates an attestation issuer for the current platform.
+func New(log *slog.Logger) (Issuer, error) {
 	cpuid.Detect()
 	switch {
 	case cpuid.CPU.Supports(cpuid.SEV_SNP):

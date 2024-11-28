@@ -56,7 +56,7 @@ func run() (retErr error) {
 		return fmt.Errorf("generating key: %w", err)
 	}
 
-	issuer, err := issuer.PlatformIssuer(log)
+	issuer, err := issuer.New(log)
 	if err != nil {
 		return fmt.Errorf("creating issuer: %w", err)
 	}

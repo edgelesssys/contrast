@@ -155,7 +155,7 @@ func newServerMetrics(reg *prometheus.Registry) *grpcprometheus.ServerMetrics {
 }
 
 func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger) (*grpc.Server, error) {
-	issuer, err := issuer.PlatformIssuer(log)
+	issuer, err := issuer.New(log)
 	if err != nil {
 		return nil, fmt.Errorf("creating issuer: %w", err)
 	}
