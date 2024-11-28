@@ -1,7 +1,7 @@
-From 41f26a5803fa50abf3bd0d6cfebc8106ae9dcbc8 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Thu, 23 May 2024 09:20:20 +0200
-Subject: [PATCH 1/6] genpolicy: add rules and types for volumeDevices
+Subject: [PATCH] genpolicy: add rules and types for volumeDevices
 
 Signed-off-by: Markus Rudy <mr@edgeless.systems>
 ---
@@ -14,7 +14,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  6 files changed, 85 insertions(+)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index c3eb33461..25c16bada 100644
+index c3eb334612fc0ff05c49031e7b305fd10297896a..25c16badaddea436539c9ec8b8bd210461cda615 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -54,6 +54,7 @@ default AllowRequestsFailingPolicy := false
@@ -75,7 +75,7 @@ index c3eb33461..25c16bada 100644
  # and io.kubernetes.cri.sandbox-id" values with other fields.
  allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) {
 diff --git a/src/tools/genpolicy/src/agent.rs b/src/tools/genpolicy/src/agent.rs
-index 19a934d81..f3f398b0e 100644
+index 19a934d81995ece42a148e733b41e96474921b3a..f3f398b0ee052ba02a3b5ecae884fed646b38cc3 100644
 --- a/src/tools/genpolicy/src/agent.rs
 +++ b/src/tools/genpolicy/src/agent.rs
 @@ -16,3 +16,12 @@ pub struct SerializedFsGroup {
@@ -92,7 +92,7 @@ index 19a934d81..f3f398b0e 100644
 +    pub options: Vec<String>,
 +}  
 diff --git a/src/tools/genpolicy/src/containerd.rs b/src/tools/genpolicy/src/containerd.rs
-index 2b826a51a..075fced5b 100644
+index 2b826a51a4f587e2ca45f0b304b0eed29046b104..075fced5bfec11b27e529f0b1d2dba5e6271ba82 100644
 --- a/src/tools/genpolicy/src/containerd.rs
 +++ b/src/tools/genpolicy/src/containerd.rs
 @@ -152,12 +152,14 @@ pub fn get_linux(privileged_container: bool) -> policy::KataLinux {
@@ -111,7 +111,7 @@ index 2b826a51a..075fced5b 100644
      }
  }
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 2ea8fdb9b..da2a47ee2 100644
+index 2ea8fdb9be848c8c00f634ec813475ebaf3d55bb..da2a47ee2d6affc43dc9246670675e3367d73bfe 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
 @@ -120,6 +120,9 @@ pub struct Container {
@@ -139,7 +139,7 @@ index 2ea8fdb9b..da2a47ee2 100644
  #[derive(Clone, Debug, Serialize, Deserialize)]
  struct ResourceRequirements {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index baa382b76..7c1479d57 100644
+index baa382b7646a11cd1fa18274801616eb36f04db6..7c1479d571dc163e4fe0bacef15cf60e8dd85920 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -198,6 +198,10 @@ pub struct KataLinux {
@@ -217,7 +217,7 @@ index baa382b76..7c1479d57 100644
              exec_commands,
          }
 diff --git a/src/tools/genpolicy/src/pvc.rs b/src/tools/genpolicy/src/pvc.rs
-index 0a768ed8e..61d0ce3f0 100644
+index 0a768ed8e0e16965270be44f94b8d60d0eb4381c..61d0ce3f08686843ce1095e7e108636e5bd34ad9 100644
 --- a/src/tools/genpolicy/src/pvc.rs
 +++ b/src/tools/genpolicy/src/pvc.rs
 @@ -34,6 +34,9 @@ pub struct PersistentVolumeClaimSpec {
@@ -230,6 +230,3 @@ index 0a768ed8e..61d0ce3f0 100644
      // TODO: additional fields.
  }
  
--- 
-2.34.1
-

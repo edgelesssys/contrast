@@ -1,7 +1,7 @@
-From e60354b386c9b50ee5f3a0804be66152fe0849d7 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Leonard Cohnen <lc@edgeless.systems>
 Date: Thu, 29 Aug 2024 03:45:24 +0200
-Subject: [PATCH 5/6] genpolicy: propagate mount_options for empty dirs
+Subject: [PATCH] genpolicy: propagate mount_options for empty dirs
 
 In order to mount empty dirs e.g., with mount propagation "Bidirectional", we need the yaml value to the policy
 ---
@@ -9,7 +9,7 @@ In order to mount empty dirs e.g., with mount propagation "Bidirectional", we ne
  1 file changed, 13 insertions(+), 3 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 520d3a8cb..05a4521f0 100644
+index ecb8bf5776ffb946bdab3b594a1f5bcb43799e84..327dd6990f8e7a275cf7561e20d2ce5cc0eeab2e 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
 @@ -127,7 +127,14 @@ pub fn get_mount_and_storage(
@@ -55,6 +55,3 @@ index 520d3a8cb..05a4521f0 100644
          ],
      });
  }
--- 
-2.34.1
-

@@ -18,11 +18,6 @@ spec:
           securityContext:
             runAsUser: 101
           image: quay.io/mongodb/mongodb-community-server@sha256:8b73733842da21b6bbb6df4d7b2449229bb3135d2ec8c6880314d88205772a11
-          volumeMounts:
-            - mountPath: /data/db
-              name: db
-            - mountPath: /data/configdb
-              name: configdb
           ports:
             - containerPort: 27017
           # The memory limit is chosen to allow guest pull of the image (1.2G).
@@ -31,12 +26,4 @@ spec:
               memory: 1500Mi
             requests:
               memory: 1500Mi
-      # TODO(miampf): Remove this after https://github.com/kata-containers/kata-containers/pull/10136/files is merged
-      volumes:
-        - name: db
-          emptyDir:
-            sizeLimit: 350Mi
-        - name: configdb
-          emptyDir:
-            sizeLimit: 10Mi
       runtimeClassName: contrast-cc
