@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package userapi;
+package edgelesssys.contrast.userapi;
 
 option go_package = "github.com/edgelesssys/contrast/internal/userapi";
 
