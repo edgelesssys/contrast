@@ -73,12 +73,16 @@ jobs:
           just coordinator initializer port-forwarder openssl cryptsetup service-mesh-proxy node-installer ${{ inputs.platform }}
       - name: E2E Test
         run: |
+          nix build .#scripts.get-logs
           nix run .#scripts.get-logs start workspace/e2e.namespace &
           nix shell -L .#contrast.e2e --command ${{ inputs.test-name }}.test -test.v \
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
             --platform ${{ inputs.platform }} \
             --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
+      - name: Download logs
+        if: always()
+        run: |
           nix run .#scripts.get-logs download workspace/e2e.namespace
       - name: Upload logs
         if: always()
