@@ -18,8 +18,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -34,7 +43,9 @@ jobs:
           azure_image_id: ${{ inputs.image-id }}
           azure_resource_group: contrast-ci
           azure_location: germanywestcentral
+          container_registry: ghcr.io/edgelesssys
           CONTRAST_CACHE_DIR: "./workspace.cache"
+          DO_NOT_TRACK: 1
         run: |
           ssh-keygen -t rsa -f ./infra/azure-peerpods/id_rsa -N ""
           cat >infra/azure-peerpods/iam.auto.tfvars <<EOF
