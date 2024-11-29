@@ -34,4 +34,19 @@ final: prev:
         --set SOURCE_DATE_EPOCH 0
     '';
   });
+
+  # There is a regression in 2.1.0, so pin to 2.0.5 for now.
+  # TODO(katexochen): In contact with upstream maintainers to resolve the issue.
+  treefmt2 = prev.treefmt2.overrideAttrs (
+    finalAttrs: _prevAttrs: {
+      version = "2.0.5";
+      src = final.fetchFromGitHub {
+        owner = "numtide";
+        repo = "treefmt";
+        rev = "v${finalAttrs.version}";
+        hash = "sha256-lDQbrq9AWH5Hjgy5AllbLLBUl/JkYGw68M5wob14kus=";
+      };
+      vendorHash = "sha256-OyOgTBwcRNd6kdnn3TFuq7xukeK0A1imK/WMer0tldk=";
+    }
+  );
 }
