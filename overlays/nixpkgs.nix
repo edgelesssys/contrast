@@ -35,18 +35,24 @@ final: prev:
     '';
   });
 
-  # There is a regression in 2.1.0, so pin to 2.0.5 for now.
-  # TODO(katexochen): In contact with upstream maintainers to resolve the issue.
+  # There is a regression in 2.1.0, and 2.1.1 isn't available in nixpkgs yet.
+  # TODO(katexochen): Remove with the next nixpkgs update.
   treefmt2 = prev.treefmt2.overrideAttrs (
     finalAttrs: _prevAttrs: {
-      version = "2.0.5";
+      version = "2.1.1";
       src = final.fetchFromGitHub {
         owner = "numtide";
         repo = "treefmt";
         rev = "v${finalAttrs.version}";
-        hash = "sha256-lDQbrq9AWH5Hjgy5AllbLLBUl/JkYGw68M5wob14kus=";
+        hash = "sha256-XD61nZhdXYrFzprv/YuazjXK/NWP5a9oCF6WBO2XTY0=";
       };
-      vendorHash = "sha256-OyOgTBwcRNd6kdnn3TFuq7xukeK0A1imK/WMer0tldk=";
+      vendorHash = "sha256-0qCOpLMuuiYNCX2Lqa/DUlkmDoPIyUzUHIsghoIaG1s=";
+      ldflags = [
+        "-s"
+        "-w"
+        "-X github.com/numtide/treefmt/v2/build.Name=treefmt"
+        "-X github.com/numtide/treefmt/v2/build.Version=v${finalAttrs.version}"
+      ];
     }
   );
 }
