@@ -20,6 +20,6 @@ sbx_id=$(echo "$container_info" | jq -r '.Spec.annotations."io.kubernetes.cri.sa
 runtime_class_name=$(echo "$container_info" | jq -r '.Snapshotter' | cut -c7-)
 
 kata_runtime="/opt/edgeless/${runtime_class_name}/bin/kata-runtime"
-config_file=$(ls -1 /opt/edgeless/${runtime_class_name}/etc/configuration-*.toml)
+config_file=$(ls -1 /opt/edgeless/"${runtime_class_name}"/etc/configuration-*.toml)
 
-${kata_runtime} --config "${config_file}" exec ${sbx_id}
+${kata_runtime} --config "${config_file}" exec "${sbx_id}"
