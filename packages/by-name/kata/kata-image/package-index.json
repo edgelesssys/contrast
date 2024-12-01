@@ -512,8 +512,8 @@
     "hash": "sha256-aCP9r25fzsZG2rbFP/P/Ox2IIQlhALUbh4xX7l+qEdM="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/t/tar-1.34-2.cm2.x86_64.rpm",
-    "hash": "sha256-TilL7GxKGaGJx9k05zzRflNf12/LZHqnzMz3YDxMSHk="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/t/tar-1.34-3.cm2.x86_64.rpm",
+    "hash": "sha256-yAfK4yvqbuXyyUivDPh8dt98M0ajqqgzmby2ajBO1FU="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/t/tdnf-3.5.2-4.cm2.x86_64.rpm",
