@@ -72,6 +72,11 @@ const sidebars = {
           label: 'Confidential emoji voting',
           id: 'examples/emojivoto'
         },
+        {
+          type: 'doc',
+          label: 'Encrypted volume mount',
+          id: 'examples/mysql'
+        },
       ]
     },
     {
