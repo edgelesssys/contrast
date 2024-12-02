@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.3.0
 // - protoc             v5.28.3
-// source: userapi.proto
+// source: internal/userapi/userapi.proto
 
 package userapi
 
@@ -19,9 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	UserAPI_SetManifest_FullMethodName  = "/userapi.UserAPI/SetManifest"
-	UserAPI_GetManifests_FullMethodName = "/userapi.UserAPI/GetManifests"
-	UserAPI_Recover_FullMethodName      = "/userapi.UserAPI/Recover"
+	UserAPI_SetManifest_FullMethodName  = "/edgelesssys.contrast.userapi.UserAPI/SetManifest"
+	UserAPI_GetManifests_FullMethodName = "/edgelesssys.contrast.userapi.UserAPI/GetManifests"
+	UserAPI_Recover_FullMethodName      = "/edgelesssys.contrast.userapi.UserAPI/Recover"
 )
 
 // UserAPIClient is the client API for UserAPI service.
@@ -162,7 +162,7 @@ func _UserAPI_Recover_Handler(srv interface{}, ctx context.Context, dec func(int
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var UserAPI_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "userapi.UserAPI",
+	ServiceName: "edgelesssys.contrast.userapi.UserAPI",
 	HandlerType: (*UserAPIServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -179,5 +179,5 @@ var UserAPI_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "userapi.proto",
+	Metadata: "internal/userapi/userapi.proto",
 }
