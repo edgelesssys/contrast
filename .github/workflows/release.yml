@@ -246,6 +246,7 @@ jobs:
           serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy")
           tardevSnapshotterImg=$(nix run .#containers.push-tardev-snapshotter -- "$container_registry/contrast/tardev-snapshotter")
           nydusSnapshotterImg=$(nix run .#containers.push-nydus-snapshotter -- "$container_registry/contrast/nydus-snapshotter")
+          cryptsetupImg=$(nix run .#containers.push-cryptsetup -- "$container_registry/contrast/cryptsetup")
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerKataImg=$nodeInstallerKataImg" | tee -a "$GITHUB_ENV"
@@ -253,6 +254,7 @@ jobs:
           echo "serviceMeshImg=$serviceMeshImg" | tee -a "$GITHUB_ENV"
           echo "tardevSnapshotterImg=$tardevSnapshotterImg" | tee -a "$GITHUB_ENV"
           echo "nydusSnapshotterImg=$nydusSnapshotterImg" | tee -a "$GITHUB_ENV"
+          echo "cryptsetupImg=$cryptsetupImg" | tee -a "$GITHUB_ENV"
       - name: Add tag to Coordinator image
         run: |
           tag() {
@@ -265,6 +267,7 @@ jobs:
           echo "nodeInstallerKataImgTagged=$(tag "$nodeInstallerKataImg")" | tee -a "$GITHUB_ENV"
           echo "initializerImgTagged=$(tag "$initializerImg")" | tee -a "$GITHUB_ENV"
           echo "serviceMeshImgTagged=$(tag "$serviceMeshImg")" | tee -a "$GITHUB_ENV"
+          echo "cryptsetupImgTagged=$(tag "$cryptsetupImg")" | tee -a "$GITHUB_ENV"
 
           tardevVer=$(nix eval --impure --raw --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.microsoft.tardev-snapshotter.version")
           front=${tardevSnapshotterImg%@*}
@@ -285,6 +288,7 @@ jobs:
             echo "ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged"
             echo "ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged"
             echo "ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest=$nydusSnapshotterImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/cryptsetup:latest=$cryptsetupImgTagged"
           } > image-replacements.txt
       - name: Upload image replacements file (for main branch PR)
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
@@ -305,6 +309,8 @@ jobs:
           done
           nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt \
             --add-load-balancers emojivoto-sm-ingress > workspace/emojivoto-demo.yml
+          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt \
+            --add-load-balancers mysql > workspace/mysql-demo.yml
       - name: Update coordinator policy hash
         run: |
           yq < workspace/coordinator-aks-clh-snp.yml \
@@ -330,6 +336,7 @@ jobs:
             workspace/coordinator-*.yml
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
+            workspace/mysql-demo.yml
       - name: Create draft release
         uses: softprops/action-gh-release@7b4da11513bf3f43f9999e90eabced41ab8bb048 # v2.2.0
         with:
@@ -344,6 +351,7 @@ jobs:
             workspace/coordinator-policy.hash
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
+            workspace/mysql-demo.yml
       - name: Reset temporary changes
         run: |
           git reset --hard ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
