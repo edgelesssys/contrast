@@ -201,6 +201,8 @@ buildGoModule rec {
     "-X github.com/edgelesssys/contrast/internal/constants.KataGenpolicyVersion=${kata.genpolicy.version}"
   ];
 
+  tags = [ "contrast_unstable_api" ];
+
   preCheck = ''
     export CGO_ENABLED=1
   '';
