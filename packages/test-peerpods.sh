@@ -39,9 +39,17 @@ if [[ $found != true ]]; then
   exit 1
 fi
 
+run_tests() {
+  pod="$(kubectl get pod -l app=alpine -o jsonpath='{.items[0].metadata.name}')"
+
+  # Check IMDS functionality.
+  # -f makes this fail on a 500 status code.
+  kubectl exec "$pod" -- curl -f -i -H "Metadata: true" http://169.254.169.254/metadata/THIM/amd/certification
+}
+
 cleanup() {
-  kubectl delete deploy nginx
-  kubectl wait --for=delete pod --selector=app=nginx --timeout=5m
+  kubectl delete deploy alpine
+  kubectl wait --for=delete pod --selector=app=alpine --timeout=5m
 }
 
 trap cleanup EXIT
@@ -52,26 +60,29 @@ kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx
+  name: alpine
 spec:
   selector:
     matchLabels:
-      app: nginx
+      app: alpine
   replicas: 1
   template:
     metadata:
       labels:
-        app: nginx
+        app: alpine
     spec:
       runtimeClassName: kata-remote
       containers:
-      - name: nginx
-        image: nginx
+      - name: alpine
+        image: alpine/curl
         imagePullPolicy: Always
+        command: ["sleep", "3600"]
 EOF
 
-if ! kubectl wait --for=condition=available --timeout=5m deployment/nginx; then
+if ! kubectl wait --for=condition=available --timeout=5m deployment/alpine; then
   kubectl describe pods
   kubectl logs -n confidential-containers-system -l app=cloud-api-adaptor --tail=-1 --all-containers
   exit 1
 fi
+
+run_tests
