@@ -24,7 +24,7 @@ let
       ;
     pname = "${contrast.pname}-e2e";
 
-    tags = [ "e2e" ];
+    tags = [ "e2e" "contrast_unstable_api" ];
 
     subPackages = [
       "e2e/genpolicy"
