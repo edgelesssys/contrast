@@ -59,6 +59,13 @@ rustPlatform.buildRustPackage rec {
       # to Microsofts genpolicy.
       # TODO(miampf): remove when picked up by microsoft/kata-containers fork.
       ./0007-genpolicy-support-for-VOLUME-definition-in-container.patch
+
+      # Simple genpolicy logging patch to include the image reference in case of authentication failure
+      # TODO(jmxnzo): remove when authentication failure error logging includes image reference on microsoft/kata-containers fork.
+      # This will be achieved when updating oci_distribution to oci_client crate on microsoft/kata-containers fork.
+      # kata/kata-runtime/0011-genpolicy-bump-oci-distribution-to-v0.12.0.patch introduces this update to kata-containers.
+      # After upstreaming, microsoft/kata-containers fork would need to pick up the changes.
+      ./0008-genpolicy-include-reference-in-logs-when-auth-failure.patch
     ];
   };
 
