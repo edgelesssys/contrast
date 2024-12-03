@@ -1,0 +1,62 @@
+name: recreate peerpod ci cluster
+
+on:
+  workflow_dispatch:
+
+env:
+  azure_resource_group: contrast-ci
+  azure_location: germanywestcentral
+  TF_VAR_name_prefix: contrast-ci-peerpods
+  CONTRAST_CACHE_DIR: /tmp
+
+jobs:
+  recreate:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871 # v4.2.1
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Login to Azure
+        uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+        with:
+          creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
+      - uses: nicknovitski/nix-develop@8b263330c8f0999d6ce564372b099f00af6f8e8a # v1.1.1
+      - name: Set environment variables
+        run: |
+          subid="$(az account show | jq -r '.id')"
+          echo "azure_subscription_id=$subid" >> "$GITHUB_ENV"
+          echo "TF_VAR_subscription_id=$subid" >> "$GITHUB_ENV"
+          echo "ARM_SUBSCRIPTION_ID=$subid" >> "$GITHUB_ENV"
+          echo "ARM_TENANT_ID=$(az account show | jq -r '.tenantId')" >> "$GITHUB_ENV"
+          echo "ARM_CLIENT_ID=${{ secrets.CONTRAST_CI_APP_ID }}" >> "$GITHUB_ENV"
+          echo "ARM_CLIENT_SECRET=${{ secrets.CONTRAST_CI_CLIENT_SECRET_AZURE }}" >> "$GITHUB_ENV"
+      - name: Upload the image
+        run: |
+          # this also sets the image_id terraform variable
+          nix run -L .#scripts.upload-image -- --subscription-id="$azure_subscription_id" --location="$azure_location" --resource-group="${azure_resource_group}"
+      - name: Destroy existing CI cluster
+        continue-on-error: true
+        run: |
+          cd infra/azure-peerpods
+          terraform init
+          terraform destroy -auto-approve
+      - name: Create CI cluster
+        run: |
+          cd infra/azure-peerpods
+          terraform apply -auto-approve
+      - name: Deploy sync server
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/f069648d8d08951b503559bab367036290d1f50a/server/deployment.yml
+          kubectl wait --for=condition=available --timeout=5m deployment/sync
+      - name: Get sync server IP
+        run: |
+          kubectl wait --for=jsonpath='{.status.loadBalancer.ingress[0].ip}' --timeout=5m svc/sync
+          SYNC_IP=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "SYNC_IP=$SYNC_IP" | tee -a "$GITHUB_ENV"
+      - name: Create fifo
+        run: |
+          fifoUUID=$(curl -fsSL "http://$SYNC_IP:8080/fifo/new" | jq -r '.uuid')
+          echo "Fifo UUID: $fifoUUID"
+          kubectl create configmap sync-server-fifo "--from-literal=uuid=$fifoUUID"
