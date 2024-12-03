@@ -3,6 +3,7 @@ run:
   modules-download-mode: readonly
   build-tags:
     - e2e
+    - contrast_unstable_api
 
 output:
   formats:
