@@ -51,7 +51,7 @@ disable_guest_selinux=true
 
 [agent.kata]
 kernel_modules=[]
-dial_timeout = 90
+dial_timeout = 600
 
 [runtime]
 internetworking_model="tcfilter"
@@ -62,5 +62,5 @@ sandbox_bind_mounts=[]
 vfio_mode="guest-kernel"
 disable_guest_empty_dir=false
 experimental=[]
-create_container_timeout = 60
+create_container_timeout = 600
 dan_conf = "/run/kata-containers/dans"
