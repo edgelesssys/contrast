@@ -100,6 +100,6 @@ jobs:
           message: "e2e test ${{ inputs.test-name }} failed"
           additionalFields: '[{"title": "Platform", "value": "${{ inputs.platform }}"}]'
       - name: Cleanup
-        if: cancelled() && !inputs.skip-undeploy
+        if: always() && !inputs.skip-undeploy
         run: |
-          kubectl delete ns "$(cat workspace/e2e.namespace)" --timeout 5m
+          kubectl delete ns "$(cat workspace/e2e.namespace)" --timeout 10m
