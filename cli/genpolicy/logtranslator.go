@@ -51,7 +51,9 @@ func (l logTranslator) startTranslate() {
 					l.logger.Error(match[3], "position", match[2])
 				case "WARN":
 					l.logger.Warn(match[3], "position", match[2])
-				case "INFO": // prints quite a lot, only show on debug
+				case "INFO":
+					fallthrough // prints quite a lot, only show on debug
+				case "DEBUG":
 					l.logger.Debug(match[3], "position", match[2])
 				}
 			}
