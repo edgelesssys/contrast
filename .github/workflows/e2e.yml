@@ -85,7 +85,7 @@ jobs:
         run: |
           nix run .#scripts.get-logs download workspace/e2e.namespace
       - name: Undeploy
-        if: !inputs.skip-undeploy
+        if: ${{ !inputs.skip-undeploy }}
         run: |
           kubectl delete ns "$(cat workspace/e2e.namespace)" --timeout 5m
       - name: Upload logs
