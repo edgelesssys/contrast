@@ -48,7 +48,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
 @@ -542,6 +542,12 @@ version = "0.6.3"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
- 
+
 +[[package]]
 +name = "bitfield"
 +version = "0.13.2"
@@ -61,7 +61,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
 @@ -967,6 +973,12 @@ dependencies = [
   "wasm-bindgen",
  ]
- 
+
 +[[package]]
 +name = "codicon"
 +version = "3.0.0"
@@ -74,7 +74,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
 @@ -1473,6 +1485,15 @@ dependencies = [
   "subtle",
  ]
- 
+
 +[[package]]
 +name = "dirs"
 +version = "5.0.1"
@@ -90,7 +90,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
 @@ -1483,6 +1504,18 @@ dependencies = [
   "dirs-sys-next",
  ]
- 
+
 +[[package]]
 +name = "dirs-sys"
 +version = "0.4.1"
@@ -109,7 +109,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
 @@ -2570,6 +2603,12 @@ dependencies = [
   "windows-sys 0.48.0",
  ]
- 
+
 +[[package]]
 +name = "iocuddle"
 +version = "0.1.1"
@@ -139,7 +139,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
 @@ -3759,6 +3801,12 @@ dependencies = [
   "tokio-stream",
  ]
- 
+
 +[[package]]
 +name = "option-ext"
 +version = "0.2.0"
@@ -152,7 +152,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
 @@ -5201,6 +5249,15 @@ dependencies = [
   "syn 1.0.109",
  ]
- 
+
 +[[package]]
 +name = "serde-big-array"
 +version = "0.5.1"
@@ -168,7 +168,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
 @@ -5220,6 +5277,15 @@ version = "0.2.2"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "794e44574226fc701e3be5c651feb7939038fc67fb73f6f4dd5c4ba90fd3be70"
- 
+
 +[[package]]
 +name = "serde_bytes"
 +version = "0.11.10"
@@ -184,7 +184,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
 @@ -5323,6 +5389,28 @@ dependencies = [
   "syn 1.0.109",
  ]
- 
+
 +[[package]]
 +name = "sev"
 +version = "2.0.2"
@@ -217,13 +217,13 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
 +dependencies = [
 + "serde",
 +]
- 
+
  [[package]]
  name = "valuable"
 @@ -6370,6 +6461,16 @@ version = "0.9.4"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
- 
+
 +[[package]]
 +name = "vmm-sys-util"
 +version = "0.11.2"
@@ -244,7 +244,7 @@ index a8ed5d081cf87b19f4ce5c5bdb9cc4efa694a6e3..d5b3db965fe75cbccc182825a4115bdc
 @@ -85,6 +85,11 @@ regorus = { version = "0.1.4", default-features = false, features = [
      "regex",
  ], optional = true }
- 
+
 +# Policy validation
 +sha2 = { version = "0.10.6", optional = true }
 +sev = { version = "2.0.2", default-features = false, features = ["snp"], optional = true }
@@ -260,21 +260,21 @@ index a8ed5d081cf87b19f4ce5c5bdb9cc4efa694a6e3..d5b3db965fe75cbccc182825a4115bdc
 -agent-policy = ["regorus"]
 +agent-policy = ["regorus", "sev", "sha2", "vmm-sys-util"]
  guest-pull = ["image-rs/kata-cc-rustls-tls"]
- 
+
  [[bin]]
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
 index 8a057bb367537cfac988f20fda86b2e23a681682..22d858c10468478dacb7e7e9b9133a756abc1ea8 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
 @@ -85,6 +85,10 @@ mod tracer;
- 
+
  #[cfg(feature = "agent-policy")]
  mod policy;
 +#[cfg(feature = "agent-policy")]
 +mod sev;
 +#[cfg(feature = "agent-policy")]
 +mod tdx;
- 
+
  cfg_if! {
      if #[cfg(target_arch = "s390x")] {
 diff --git a/src/agent/src/policy.rs b/src/agent/src/policy.rs
@@ -284,24 +284,24 @@ index ccac317d0ff707c1fd1242a144886d5e8c000a90..2f1da9ecd0d0ee1be06218d5bc9e58cd
 @@ -3,11 +3,14 @@
  // SPDX-License-Identifier: Apache-2.0
  //
- 
+
 -use anyhow::Result;
-+use anyhow::{bail, ensure, Result};
++use anyhow::{bail, ensure, Context, Result};
  use protobuf::MessageDyn;
 +use sha2::{Digest, Sha256};
  use tokio::io::AsyncWriteExt;
- 
+
  use crate::rpc::ttrpc_error;
 +use crate::sev::get_snp_host_data;
 +use crate::tdx::get_tdx_mrconfigid;
  use crate::{AGENT_CONFIG, AGENT_POLICY};
- 
+
  static POLICY_LOG_FILE: &str = "/tmp/policy.txt";
 @@ -145,6 +148,7 @@ impl AgentPolicy {
- 
+
      /// Replace the Policy in regorus.
      pub async fn set_policy(&mut self, policy: &str) -> Result<()> {
-+        verify_policy_digest(policy)?;
++        verify_policy_digest(policy).context("ONLY FOR HASH DIFF")?;
          self.engine = Self::new_engine();
          self.engine
              .add_policy("agent_policy".to_string(), policy.to_string())?;
@@ -579,7 +579,7 @@ index b3b3fb4bdbe99e6fc1a89db49be984b92a19551c..5070ecd1e78ca04383637e662b3c8e4f
 --- a/src/runtime/pkg/govmm/qemu/qemu.go
 +++ b/src/runtime/pkg/govmm/qemu/qemu.go
 @@ -320,6 +320,11 @@ type Object struct {
- 
+
  	// QgsPort defines Intel Quote Generation Service port exposed from the host
  	QgsPort uint32
 +
@@ -588,7 +588,7 @@ index b3b3fb4bdbe99e6fc1a89db49be984b92a19551c..5070ecd1e78ca04383637e662b3c8e4f
 +	// objects and is encoded in the format expected by QEMU for each TEE type.
 +	TEEConfigData string
  }
- 
+
  // Valid returns true if the Object structure is valid and complete.
 @@ -395,6 +400,9 @@ func (object Object) QemuParams(config *Config) []string {
  		if object.SnpCertsPath != "" {
@@ -618,7 +618,7 @@ index b3b3fb4bdbe99e6fc1a89db49be984b92a19551c..5070ecd1e78ca04383637e662b3c8e4f
  		"",                  // mrownerconfig
 @@ -476,7 +486,12 @@ func prepareTDXObject(object Object) string {
  		nil}
- 
+
  	if object.Debug {
 -		*tdxObject.Debug = true
 +		t := true
@@ -628,7 +628,7 @@ index b3b3fb4bdbe99e6fc1a89db49be984b92a19551c..5070ecd1e78ca04383637e662b3c8e4f
 +	if len(object.TEEConfigData) > 0 {
 +		tdxObject.MrConfigId = object.TEEConfigData
  	}
- 
+
  	return tdxObject.String()
 diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
 index 5eb922980be33de9afc25ffaae65dd222f976c52..0e5205cc99da99e929365cbfe8637465872addb9 100644
@@ -637,14 +637,14 @@ index 5eb922980be33de9afc25ffaae65dd222f976c52..0e5205cc99da99e929365cbfe8637465
 @@ -545,7 +545,7 @@ type HypervisorConfig struct {
  	// NumVCPUs specifies default number of vCPUs for the VM.
  	NumVCPUsF float32
- 
+
 -	//DefaultMaxVCPUs specifies the maximum number of vCPUs for the VM.
 +	// DefaultMaxVCPUs specifies the maximum number of vCPUs for the VM.
  	DefaultMaxVCPUs uint32
- 
+
  	// DefaultMem specifies default memory size in MiB for the VM.
 @@ -673,6 +673,10 @@ type HypervisorConfig struct {
- 
+
  	// Initdata defines the initdata passed into guest when CreateVM
  	Initdata string
 +
@@ -652,19 +652,19 @@ index 5eb922980be33de9afc25ffaae65dd222f976c52..0e5205cc99da99e929365cbfe8637465
 +	// annotation
 +	AgentPolicy string
  }
- 
+
  // vcpu mapping from vcpu number to thread number
 @@ -1027,8 +1031,8 @@ type guestProtection uint8
  const (
  	noneProtection guestProtection = iota
- 
+
 -	//Intel Trust Domain Extensions
 -	//https://software.intel.com/content/www/us/en/develop/articles/intel-trust-domain-extensions.html
 +	// Intel Trust Domain Extensions
 +	// https://software.intel.com/content/www/us/en/develop/articles/intel-trust-domain-extensions.html
  	// Exclude from lint checking for it won't be used on arm64 code
  	tdxProtection
- 
+
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
 index ba86c3d63a6c5158b3d0f7e6ae6af865dddb9d8d..2c6311c067935a2c5da0a1018420bab684b670e8 100644
 --- a/src/runtime/virtcontainers/qemu.go
@@ -672,7 +672,7 @@ index ba86c3d63a6c5158b3d0f7e6ae6af865dddb9d8d..2c6311c067935a2c5da0a1018420bab6
 @@ -681,7 +681,7 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi
  		Debug:          hypervisorConfig.Debug,
  	}
- 
+
 -	qemuConfig.Devices, qemuConfig.Bios, err = q.arch.appendProtectionDevice(qemuConfig.Devices, firmwarePath, firmwareVolumePath)
 +	qemuConfig.Devices, qemuConfig.Bios, err = q.arch.appendProtectionDevice(qemuConfig.Devices, firmwarePath, firmwareVolumePath, q.config.AgentPolicy)
  	if err != nil {
@@ -683,17 +683,17 @@ index 6ebee26ce34b5137f88a78219340b1f0867bc7a8..0a0451cba1565358225875cf6506381f
 --- a/src/runtime/virtcontainers/qemu_amd64.go
 +++ b/src/runtime/virtcontainers/qemu_amd64.go
 @@ -9,6 +9,8 @@ package virtcontainers
- 
+
  import (
  	"context"
 +	"crypto/sha256"
 +	"encoding/base64"
  	"fmt"
  	"time"
- 
+
 @@ -280,7 +282,7 @@ func (q *qemuAmd64) enableProtection() error {
  }
- 
+
  // append protection device
 -func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string) ([]govmmQemu.Device, string, error) {
 +func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string, agentPolicy string) ([]govmmQemu.Device, string, error) {
@@ -715,7 +715,7 @@ index 6ebee26ce34b5137f88a78219340b1f0867bc7a8..0a0451cba1565358225875cf6506381f
 +				TEEConfigData:   snpHostData(agentPolicy),
  			}), "", nil
  	case noneProtection:
- 
+
 @@ -335,3 +339,36 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  		return devices, "", fmt.Errorf("Unsupported guest protection technology: %v", q.protection)
  	}
@@ -758,7 +758,7 @@ index 1425cb38cfd79ab06b04f1dafbab9b7440901688..f0a9c691a6ffc6356f8f9a335e72b812
 --- a/src/runtime/virtcontainers/qemu_amd64_test.go
 +++ b/src/runtime/virtcontainers/qemu_amd64_test.go
 @@ -9,6 +9,10 @@ package virtcontainers
- 
+
  import (
  	"context"
 +	"crypto/sha256"
@@ -771,7 +771,7 @@ index 1425cb38cfd79ab06b04f1dafbab9b7440901688..f0a9c691a6ffc6356f8f9a335e72b812
 @@ -247,6 +251,34 @@ func TestQemuAmd64Microvm(t *testing.T) {
  	assert.False(amd64.supportGuestMemoryHotplug())
  }
- 
+
 +// return the policy hash in the host-data format expected by QEMU for SEV-SNP.
 +func testSnpHostData(policy string) string {
 +	if len(policy) == 0 {
@@ -804,7 +804,7 @@ index 1425cb38cfd79ab06b04f1dafbab9b7440901688..f0a9c691a6ffc6356f8f9a335e72b812
  	var devices []govmmQemu.Device
  	assert := assert.New(t)
 @@ -255,30 +287,48 @@ func TestQemuAmd64AppendProtectionDevice(t *testing.T) {
- 
+
  	id := amd64.(*qemuAmd64).devLoadersCount
  	firmware := "tdvf.fd"
 +	policy := "package test1"
@@ -814,7 +814,7 @@ index 1425cb38cfd79ab06b04f1dafbab9b7440901688..f0a9c691a6ffc6356f8f9a335e72b812
  	var err error
 -	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "")
 -	assert.NoError(err)
- 
+
  	// non-protection
 +	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "", "")
 +	assert.NoError(err)
@@ -823,7 +823,7 @@ index 1425cb38cfd79ab06b04f1dafbab9b7440901688..f0a9c691a6ffc6356f8f9a335e72b812
 +	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "", policy)
 +	assert.NoError(err)
  	assert.NotEmpty(bios)
- 
+
  	// pef protection
  	amd64.(*qemuAmd64).protection = pefProtection
 -	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "")
@@ -836,7 +836,7 @@ index 1425cb38cfd79ab06b04f1dafbab9b7440901688..f0a9c691a6ffc6356f8f9a335e72b812
 +	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "", policy)
  	assert.Error(err)
  	assert.Empty(bios)
- 
+
  	// Secure Execution protection
  	amd64.(*qemuAmd64).protection = seProtection
 -	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "")
@@ -848,19 +848,19 @@ index 1425cb38cfd79ab06b04f1dafbab9b7440901688..f0a9c691a6ffc6356f8f9a335e72b812
 +	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "", policy)
  	assert.Error(err)
  	assert.Empty(bios)
- 
+
  	// sev protection
  	amd64.(*qemuAmd64).protection = sevProtection
- 
+
 -	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "")
 +	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "", "")
  	assert.NoError(err)
  	assert.Empty(bios)
- 
+
 @@ -295,10 +345,42 @@ func TestQemuAmd64AppendProtectionDevice(t *testing.T) {
- 
+
  	assert.Equal(expectedOut, devices)
- 
+
 +	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "", policy)
 +	assert.NoError(err)
 +	assert.Empty(bios)
@@ -880,7 +880,7 @@ index 1425cb38cfd79ab06b04f1dafbab9b7440901688..f0a9c691a6ffc6356f8f9a335e72b812
 +
  	// snp protection
  	amd64.(*qemuAmd64).protection = snpProtection
- 
+
 -	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "")
 +	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "", "")
 +	assert.NoError(err)
@@ -900,7 +900,7 @@ index 1425cb38cfd79ab06b04f1dafbab9b7440901688..f0a9c691a6ffc6356f8f9a335e72b812
 +	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "", policy)
  	assert.NoError(err)
  	assert.Empty(bios)
- 
+
 @@ -310,6 +392,7 @@ func TestQemuAmd64AppendProtectionDevice(t *testing.T) {
  			File:            firmware,
  			CBitPos:         cpuid.AMDMemEncrypt.CBitPosition,
@@ -908,19 +908,19 @@ index 1425cb38cfd79ab06b04f1dafbab9b7440901688..f0a9c691a6ffc6356f8f9a335e72b812
 +			TEEConfigData:   hostData,
  		},
  	)
- 
+
 @@ -318,7 +401,7 @@ func TestQemuAmd64AppendProtectionDevice(t *testing.T) {
  	// tdxProtection
  	amd64.(*qemuAmd64).protection = tdxProtection
- 
+
 -	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "")
 +	devices, bios, err = amd64.appendProtectionDevice(devices, firmware, "", "")
  	assert.NoError(err)
  	assert.Empty(bios)
- 
+
 @@ -334,4 +417,23 @@ func TestQemuAmd64AppendProtectionDevice(t *testing.T) {
  	)
- 
+
  	assert.Equal(expectedOut, devices)
 +
 +	id += 1
@@ -952,12 +952,12 @@ index fd92be772446f30058d4424f7a330a0bc23ff433..662466f5846c22b4c7fa6b62b1a27225
  	// be used with the -bios option, ommit -bios option if the path is empty.
 -	appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string) ([]govmmQemu.Device, string, error)
 +	appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string, agentPolicy string) ([]govmmQemu.Device, string, error)
- 
+
  	// scans the PCIe space and returns the biggest BAR sizes for 32-bit
  	// and 64-bit addressable memory
 @@ -897,7 +897,7 @@ func (q *qemuArchBase) setPFlash(p []string) {
  }
- 
+
  // append protection device
 -func (q *qemuArchBase) appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string) ([]govmmQemu.Device, string, error) {
 +func (q *qemuArchBase) appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string, agentPolicy string) ([]govmmQemu.Device, string, error) {
@@ -971,7 +971,7 @@ index a9b803f73275c1d5b9212a63fda097ebc33f1c9f..112fe358e4d76700ebe7a1d36e9ae42e
 @@ -154,7 +154,7 @@ func (q *qemuArm64) enableProtection() error {
  	return nil
  }
- 
+
 -func (q *qemuArm64) appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string) ([]govmmQemu.Device, string, error) {
 +func (q *qemuArm64) appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string, agentPolicy string) ([]govmmQemu.Device, string, error) {
  	err := q.enableProtection()
@@ -983,7 +983,7 @@ index 07e67ac8c1479c67f4b4ffa850dddb8d1e0680e4..8b6bd03eb9d10f0c37dbdbb3fb5fa485
 +++ b/src/runtime/virtcontainers/qemu_arm64_test.go
 @@ -182,42 +182,77 @@ func TestQemuArm64AppendProtectionDevice(t *testing.T) {
  	var err error
- 
+
  	// no protection
 -	devices, bios, err = arm64.appendProtectionDevice(devices, firmware, "")
 +	devices, bios, err = arm64.appendProtectionDevice(devices, firmware, "", "")
@@ -995,7 +995,7 @@ index 07e67ac8c1479c67f4b4ffa850dddb8d1e0680e4..8b6bd03eb9d10f0c37dbdbb3fb5fa485
  	assert.Empty(devices)
  	assert.Empty(bios)
  	assert.NoError(err)
- 
+
  	// PEF protection
  	arm64.(*qemuArm64).protection = pefProtection
 -	devices, bios, err = arm64.appendProtectionDevice(devices, firmware, "")
@@ -1009,7 +1009,7 @@ index 07e67ac8c1479c67f4b4ffa850dddb8d1e0680e4..8b6bd03eb9d10f0c37dbdbb3fb5fa485
  	assert.Empty(devices)
  	assert.Empty(bios)
  	assert.NoError(err)
- 
+
  	// Secure Execution protection
  	arm64.(*qemuArm64).protection = seProtection
 -	devices, bios, err = arm64.appendProtectionDevice(devices, firmware, "")
@@ -1023,7 +1023,7 @@ index 07e67ac8c1479c67f4b4ffa850dddb8d1e0680e4..8b6bd03eb9d10f0c37dbdbb3fb5fa485
  	assert.Empty(devices)
  	assert.Empty(bios)
  	assert.NoError(err)
- 
+
  	// SEV protection
  	arm64.(*qemuArm64).protection = sevProtection
 -	devices, bios, err = arm64.appendProtectionDevice(devices, firmware, "")
@@ -1037,7 +1037,7 @@ index 07e67ac8c1479c67f4b4ffa850dddb8d1e0680e4..8b6bd03eb9d10f0c37dbdbb3fb5fa485
  	assert.Empty(devices)
  	assert.Empty(bios)
  	assert.NoError(err)
- 
+
  	// SNP protection
  	arm64.(*qemuArm64).protection = snpProtection
 -	devices, bios, err = arm64.appendProtectionDevice(devices, firmware, "")
@@ -1051,7 +1051,7 @@ index 07e67ac8c1479c67f4b4ffa850dddb8d1e0680e4..8b6bd03eb9d10f0c37dbdbb3fb5fa485
  	assert.Empty(devices)
  	assert.Empty(bios)
  	assert.NoError(err)
- 
+
  	// TDX protection
  	arm64.(*qemuArm64).protection = tdxProtection
 -	devices, bios, err = arm64.appendProtectionDevice(devices, firmware, "")
@@ -1071,7 +1071,7 @@ index d2e0228c8be8eae3ae24f3aa81b6423735f51320..ed7a14c4dc4262a0f1d77f6efa113104
 +++ b/src/runtime/virtcontainers/qemu_ppc64le.go
 @@ -157,7 +157,7 @@ func (q *qemuPPC64le) enableProtection() error {
  }
- 
+
  // append protection device
 -func (q *qemuPPC64le) appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string) ([]govmmQemu.Device, string, error) {
 +func (q *qemuPPC64le) appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string, agentPolicy string) ([]govmmQemu.Device, string, error) {
@@ -1088,7 +1088,7 @@ index 85e1dfe8050e3c64545e2031420058aad004f2ab..0c2f4b923d5550b67ad8c767124d8414
  	var err error
 -	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "")
 -	assert.NoError(err)
- 
+
  	//no protection
 +	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "", "")
 +	assert.NoError(err)
@@ -1097,7 +1097,7 @@ index 85e1dfe8050e3c64545e2031420058aad004f2ab..0c2f4b923d5550b67ad8c767124d8414
 +	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "", "FOObar")
 +	assert.NoError(err)
  	assert.Empty(bios)
- 
+
  	//Secure Execution protection
  	ppc64le.(*qemuPPC64le).protection = seProtection
 -	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "")
@@ -1109,7 +1109,7 @@ index 85e1dfe8050e3c64545e2031420058aad004f2ab..0c2f4b923d5550b67ad8c767124d8414
 +	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "", "adasawdq")
  	assert.Error(err)
  	assert.Empty(bios)
- 
+
  	//SEV protection
  	ppc64le.(*qemuPPC64le).protection = sevProtection
 -	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "")
@@ -1121,7 +1121,7 @@ index 85e1dfe8050e3c64545e2031420058aad004f2ab..0c2f4b923d5550b67ad8c767124d8414
 +	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "", "Fc+jr0/5HZMfG0uu54bbUsYuu8K0G7PXH8WNc4idAT8=")
  	assert.Error(err)
  	assert.Empty(bios)
- 
+
  	//SNP protection
  	ppc64le.(*qemuPPC64le).protection = snpProtection
 -	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "")
@@ -1133,7 +1133,7 @@ index 85e1dfe8050e3c64545e2031420058aad004f2ab..0c2f4b923d5550b67ad8c767124d8414
 +	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "", "Fc+jr0/5HZMfG0uu54bbUsYuu8K0G7PXH8WNc4idAT8=")
  	assert.Error(err)
  	assert.Empty(bios)
- 
+
  	//TDX protection
  	ppc64le.(*qemuPPC64le).protection = tdxProtection
 -	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "")
@@ -1145,18 +1145,18 @@ index 85e1dfe8050e3c64545e2031420058aad004f2ab..0c2f4b923d5550b67ad8c767124d8414
 +	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "", "123456789012345678901234567890123456789012345678")
  	assert.Error(err)
  	assert.Empty(bios)
- 
+
  	//PEF protection
  	ppc64le.(*qemuPPC64le).protection = pefProtection
 -	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "")
 +	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "", "")
  	assert.NoError(err)
  	assert.Empty(bios)
- 
+
 @@ -107,4 +131,19 @@ func TestQemuPPC64leAppendProtectionDevice(t *testing.T) {
  	}
  	assert.Equal(expectedOut, devices)
- 
+
 +	devices, bios, err = ppc64le.appendProtectionDevice(devices, firmware, "", "abc")
 +	assert.NoError(err)
 +	assert.Empty(bios)
@@ -1178,7 +1178,7 @@ index 29eaafe5b3fe0ecf9f10bc49ede3465d2cf8ec3e..787a0e589a71dabb5acaedd66e36bb5f
 --- a/src/runtime/virtcontainers/qemu_s390x.go
 +++ b/src/runtime/virtcontainers/qemu_s390x.go
 @@ -337,7 +337,7 @@ func (q *qemuS390x) enableProtection() error {
- 
+
  // appendProtectionDevice appends a QEMU object for Secure Execution.
  // Takes devices and returns updated version. Takes BIOS and returns it (no modification on s390x).
 -func (q *qemuS390x) appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string) ([]govmmQemu.Device, string, error) {
@@ -1196,7 +1196,7 @@ index 24a67bdd9e591ead96fbaea473cb662526dedbf3..3f5f84afffeec6fed0ba624408158425
  	var err error
 -	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "")
 -	assert.NoError(err)
- 
+
  	// no protection
 +	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "", "")
 +	assert.NoError(err)
@@ -1205,7 +1205,7 @@ index 24a67bdd9e591ead96fbaea473cb662526dedbf3..3f5f84afffeec6fed0ba624408158425
 +	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "", "s390x_test")
 +	assert.NoError(err)
  	assert.Empty(bios)
- 
+
  	// PEF protection
  	s390x.(*qemuS390x).protection = pefProtection
 -	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "")
@@ -1217,7 +1217,7 @@ index 24a67bdd9e591ead96fbaea473cb662526dedbf3..3f5f84afffeec6fed0ba624408158425
 +	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "", "1234")
  	assert.Error(err)
  	assert.Empty(bios)
- 
+
  	// TDX protection
  	s390x.(*qemuS390x).protection = tdxProtection
 -	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "")
@@ -1229,7 +1229,7 @@ index 24a67bdd9e591ead96fbaea473cb662526dedbf3..3f5f84afffeec6fed0ba624408158425
 +	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "", "123456789012345678901234567890123456789012345678")
  	assert.Error(err)
  	assert.Empty(bios)
- 
+
  	// SEV protection
  	s390x.(*qemuS390x).protection = sevProtection
 -	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "")
@@ -1241,7 +1241,7 @@ index 24a67bdd9e591ead96fbaea473cb662526dedbf3..3f5f84afffeec6fed0ba624408158425
 +	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "", "Fc+jr0/5HZMfG0uu54bbUsYuu8K0G7PXH8WNc4idAT8=")
  	assert.Error(err)
  	assert.Empty(bios)
- 
+
  	// SNP protection
  	s390x.(*qemuS390x).protection = snpProtection
 -	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "")
@@ -1253,15 +1253,15 @@ index 24a67bdd9e591ead96fbaea473cb662526dedbf3..3f5f84afffeec6fed0ba624408158425
 +	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "", "Fc+jr0/5HZMfG0uu54bbUsYuu8K0G7PXH8WNc4idAT8=")
  	assert.Error(err)
  	assert.Empty(bios)
- 
+
  	// Secure Execution protection
  	s390x.(*qemuS390x).protection = seProtection
- 
+
 -	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "")
 +	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "", "")
  	assert.NoError(err)
  	assert.Empty(bios)
- 
+
 @@ -155,4 +179,17 @@ func TestQemuS390xAppendProtectionDevice(t *testing.T) {
  		},
  	}
@@ -1285,10 +1285,10 @@ index ac0d35e9c854d6b5eea52e716137fe62414d51a7..ff7a46b4e05dbef2d8d1981897b04e63
 --- a/src/runtime/virtcontainers/sandbox.go
 +++ b/src/runtime/virtcontainers/sandbox.go
 @@ -613,6 +613,7 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
- 
+
  	sandboxConfig.HypervisorConfig.VMStorePath = s.store.RunVMStoragePath()
  	sandboxConfig.HypervisorConfig.RunStorePath = s.store.RunStoragePath()
 +	sandboxConfig.HypervisorConfig.AgentPolicy = sandboxConfig.AgentConfig.Policy
- 
+
  	spec := s.GetPatchedOCISpec()
  	if spec != nil && spec.Process.SelinuxLabel != "" {
