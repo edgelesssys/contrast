@@ -7,5 +7,4 @@ The SDK allows writing programs that interact with a Contrast deployment like th
 
 # Building
 
-To build the SDK please add the build tag `contrast_unstable_api` to the importing module's files and build commands.
-This tag will be removed once the SDK is officially removed.
+If you decide to use the unstable API and accept the risk of breakage, you need to set the Go build tag `contrast_unstable_api`.
