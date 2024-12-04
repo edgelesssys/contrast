@@ -212,7 +212,7 @@ buildGoModule rec {
 
   checkPhase = ''
     runHook preCheck
-    go test -race ./...
+    go test -tags=contrast_unstable_api -race ./...
     runHook postCheck
   '';
 
