@@ -48,6 +48,7 @@ lib.makeOverridable (
             kata-agent
             kata-kernel-uvm
             ;
+          libnvidia-container = outerPkgs.libnvidia-container-custom;
         })
       ];
 
