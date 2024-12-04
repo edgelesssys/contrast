@@ -94,6 +94,8 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
 		}
+		// TODO(msanft): this applies to GPU images only!
+		config.Hypervisor["qemu"]["guest_hook_path"] = "/usr/share/oci/hooks"
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
