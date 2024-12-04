@@ -50,7 +50,7 @@ SystemdCgroup = false
 [plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.my-runtime]
 runtime_type = 'io.containerd.contrast-cc.v2'
 runtime_path = '/opt/edgeless/my-runtime/bin/containerd-shim-contrast-cc-v2'
-pod_annotations = ['io.katacontainers.*']
+pod_annotations = ['io.katacontainers.*', 'cdi.k8s.io/*']
 privileged_without_host_devices = true
 snapshotter = 'nydus-my-runtime'
 
