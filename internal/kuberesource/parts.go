@@ -111,12 +111,6 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		)
 	nydusSnapshotterVolumes := []*applycorev1.VolumeApplyConfiguration{
 		Volume().
-			WithName("var-lib-containerd").
-			WithHostPath(HostPathVolumeSource().
-				WithPath("/var/lib/rancher/k3s/agent/containerd").
-				WithType(corev1.HostPathDirectory),
-			),
-		Volume().
 			WithName("var-lib-nydus-snapshotter").
 			WithHostPath(HostPathVolumeSource().
 				WithPath(fmt.Sprintf("/var/lib/nydus-snapshotter/%s", runtimeHandler)).
@@ -132,9 +126,25 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
 		snapshotter = tardevSnapshotter
 		snapshotterVolumes = tardevSnapshotterVolumes
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX:
+		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
+		snapshotter = nydusSnapshotter
+		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes, Volume().
+			WithName("var-lib-containerd").
+			WithHostPath(HostPathVolumeSource().
+				WithPath("/var/lib/containerd").
+				WithType(corev1.HostPathDirectory),
+			))
+		snapshotterVolumes = nydusSnapshotterVolumes
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
 		snapshotter = nydusSnapshotter
+		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes, Volume().
+			WithName("var-lib-containerd").
+			WithHostPath(HostPathVolumeSource().
+				WithPath("/var/lib/rancher/k3s/agent/containerd").
+				WithType(corev1.HostPathDirectory),
+			))
 		snapshotterVolumes = nydusSnapshotterVolumes
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", platform)
