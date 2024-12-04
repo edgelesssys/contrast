@@ -93,6 +93,7 @@ buildGoModule rec {
       ./0014-kata-sys-util-remove-obsolete-cgroups-dependency.patch
       ./0015-kata-sys-util-move-json-parsing-to-protocols-crate.patch
       ./0016-protocols-only-build-RLimit-impls-on-Linux.patch
+      ./hax.patch
     ];
   };
 
