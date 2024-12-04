@@ -24,11 +24,15 @@ const (
 	K3sQEMUSNP
 	// RKE2QEMUTDX represents a deployment with QEMU on bare-metal TDX RKE2.
 	RKE2QEMUTDX
+	// MetalQEMUSNP is the generic platform for bare-metal SNP deployments.
+	MetalQEMUSNP
+	// MetalQEMUTDX is the generic platform for bare-metal TDX deployments.
+	MetalQEMUTDX
 )
 
 // All returns a list of all available platforms.
 func All() []Platform {
-	return []Platform{AKSCloudHypervisorSNP, K3sQEMUTDX, K3sQEMUSNP, RKE2QEMUTDX}
+	return []Platform{AKSCloudHypervisorSNP, K3sQEMUTDX, K3sQEMUSNP, RKE2QEMUTDX, MetalQEMUSNP, MetalQEMUTDX}
 }
 
 // AllStrings returns a list of all available platforms as strings.
@@ -51,6 +55,10 @@ func (p Platform) String() string {
 		return "K3s-QEMU-SNP"
 	case RKE2QEMUTDX:
 		return "RKE2-QEMU-TDX"
+	case MetalQEMUSNP:
+		return "Metal-QEMU-SNP"
+	case MetalQEMUTDX:
+		return "Metal-QEMU-TDX"
 	default:
 		return "Unknown"
 	}
@@ -67,6 +75,10 @@ func FromString(s string) (Platform, error) {
 		return K3sQEMUSNP, nil
 	case "rke2-qemu-tdx":
 		return RKE2QEMUTDX, nil
+	case "metal-qemu-snp":
+		return MetalQEMUSNP, nil
+	case "metal-qemu-tdx":
+		return MetalQEMUTDX, nil
 	default:
 		return Unknown, fmt.Errorf("unknown platform: %s", s)
 	}

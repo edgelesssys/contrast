@@ -52,8 +52,10 @@ let
         "contrast-cc-${platform}-${builtins.substring 0 8 (builtins.readFile hashFile)}";
 
       aks-clh-snp-handler = runtimeHandler "aks-clh-snp" microsoft.contrast-node-installer-image.runtimeHash;
+      metal-qemu-tdx-handler = runtimeHandler "metal-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
       k3s-qemu-tdx-handler = runtimeHandler "k3s-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
       rke2-qemu-tdx-handler = runtimeHandler "rke2-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
+      metal-qemu-snp-handler = runtimeHandler "metal-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
       k3s-qemu-snp-handler = runtimeHandler "k3s-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
 
       aksRefVals = {
@@ -128,8 +130,10 @@ let
     builtins.toFile "reference-values.json" (
       builtins.toJSON {
         "${aks-clh-snp-handler}" = aksRefVals;
+        "${metal-qemu-tdx-handler}" = tdxRefVals;
         "${k3s-qemu-tdx-handler}" = tdxRefVals;
         "${rke2-qemu-tdx-handler}" = tdxRefVals;
+        "${metal-qemu-snp-handler}" = snpRefVals;
         "${k3s-qemu-snp-handler}" = snpRefVals;
       }
     );
