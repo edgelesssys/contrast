@@ -196,7 +196,7 @@ func (ct *ContrastTest) patchReferenceValues(t *testing.T, platform platforms.Pl
 			SNPVersion:        toPtr(manifest.SVN(255)),
 			MicrocodeVersion:  toPtr(manifest.SVN(255)),
 		}
-	case platforms.K3sQEMUSNP:
+	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP:
 		// The generate command doesn't fill in all required fields when
 		// generating a manifest for baremetal SNP. Do that now.
 		for i, snp := range m.ReferenceValues.SNP {
@@ -206,7 +206,7 @@ func (ct *ContrastTest) patchReferenceValues(t *testing.T, platform platforms.Pl
 			snp.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
 			m.ReferenceValues.SNP[i] = snp
 		}
-	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		// The generate command doesn't fill in all required fields when
 		// generating a manifest for baremetal TDX. Do that now.
 		for i, tdx := range m.ReferenceValues.TDX {
@@ -366,7 +366,7 @@ func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Durati
 	switch ct.Platform {
 	case platforms.AKSCloudHypervisorSNP: // AKS defined is the baseline
 		return timeout
-	case platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		return 2 * timeout
 	default:
 		return timeout

@@ -57,7 +57,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		config.Hypervisor["clh"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
 		config.Hypervisor["clh"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")}
 		config.Hypervisor["clh"]["enable_debug"] = debug
-	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
@@ -75,7 +75,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
 		}
-	case platforms.K3sQEMUSNP:
+	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
@@ -129,11 +129,11 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
 		}
-	case platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
 		}
-	case platforms.K3sQEMUSNP:
+	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-snp.toml"),
 		}

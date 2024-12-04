@@ -107,6 +107,12 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	case platforms.AKSCloudHypervisorSNP:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-clh-snp.toml")
 		containerdConfigPath = filepath.Join(hostMount, "etc", "containerd", "config.toml")
+	case platforms.MetalQEMUSNP:
+		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-snp.toml")
+		containerdConfigPath = filepath.Join(hostMount, "etc", "containerd", "config.toml")
+	case platforms.MetalQEMUTDX:
+		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
+		containerdConfigPath = filepath.Join(hostMount, "etc", "containerd", "config.toml")
 	case platforms.K3sQEMUSNP:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-snp.toml")
 		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "k3s", "agent", "etc", "containerd", "config.toml.tmpl")
@@ -139,7 +145,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	}
 
 	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
+	case platforms.AKSCloudHypervisorSNP, platforms.MetalQEMUSNP, platforms.MetalQEMUTDX:
 		return restartHostContainerd(containerdConfigPath, "containerd")
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP:
 		if hostServiceExists("k3s") {
@@ -206,7 +212,7 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	case platforms.AKSCloudHypervisorSNP:
 		snapshotterName = fmt.Sprintf("tardev-%s", runtimeHandler)
 		socketName = fmt.Sprintf("/run/containerd/tardev-snapshotter-%s.sock", runtimeHandler)
-	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
+	case platforms.MetalQEMUTDX, platforms.MetalQEMUSNP, platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
 		snapshotterName = fmt.Sprintf("nydus-%s", runtimeHandler)
 		socketName = fmt.Sprintf("/run/containerd/containerd-nydus-grpc-%s.sock", runtimeHandler)
 
