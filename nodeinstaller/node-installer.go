@@ -234,6 +234,7 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime config: %w", err)
 	}
+	containerdRuntimeConfig.PodAnnotations = append(containerdRuntimeConfig.PodAnnotations, "cdi.k8s.io/*")
 	runtimes[runtimeHandler] = containerdRuntimeConfig
 
 	rawConfig, err := toml.Marshal(existing)
