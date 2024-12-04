@@ -155,7 +155,7 @@ let
       runHook preBuild
 
       # Check if filesystem is ext.*
-      fstype=$(stat -f -c %T .)
+      fstype=$(df -T . | awk '{print $2}' | tail -n 1)
       if [[ $fstye == "ext4" || $fstype == "ext2/ext3" ]]; then
         echo "Due to a bug in the image build, kata-image can unfortunately not be built on $fstype filesystems."
         echo "As a workaround, you can build the derivation on a different filesystem with the following:"
