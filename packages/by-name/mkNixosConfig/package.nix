@@ -46,6 +46,7 @@ lib.makeOverridable (
             tdx-tools
             ;
           inherit (outerPkgs.kata) kata-agent;
+          libnvidia-container = outerPkgs.libnvidia-container-custom;
         })
       ];
 
