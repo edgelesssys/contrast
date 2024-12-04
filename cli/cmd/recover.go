@@ -14,6 +14,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
 )
 
@@ -73,7 +74,13 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("decrypting seed: %w", err)
 	}
 
-	validators, err := validatorsFromManifest(&m, log, flags.policy)
+	kdsDir, err := cachedir("kds")
+	if err != nil {
+		return fmt.Errorf("getting cache dir: %w", err)
+	}
+	log.Debug("Using KDS cache dir", "dir", kdsDir)
+
+	validators, err := sdk.ValidatorsFromManifest(kdsDir, &m, log, flags.policy)
 	if err != nil {
 		return fmt.Errorf("getting validators: %w", err)
 	}

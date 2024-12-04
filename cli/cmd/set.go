@@ -24,6 +24,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/retry"
 	"github.com/edgelesssys/contrast/internal/spinner"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"google.golang.org/grpc/codes"
@@ -98,7 +99,13 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("checking policies match manifest: %w", err)
 	}
 
-	validators, err := validatorsFromManifest(&m, log, flags.policy)
+	kdsDir, err := cachedir("kds")
+	if err != nil {
+		return fmt.Errorf("getting cache dir: %w", err)
+	}
+	log.Debug("Using KDS cache dir", "dir", kdsDir)
+
+	validators, err := sdk.ValidatorsFromManifest(kdsDir, &m, log, flags.policy)
 	if err != nil {
 		return fmt.Errorf("getting validators: %w", err)
 	}

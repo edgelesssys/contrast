@@ -24,7 +24,10 @@ let
       ;
     pname = "${contrast.pname}-e2e";
 
-    tags = [ "e2e" ];
+    tags = [
+      "e2e"
+      "contrast_unstable_api"
+    ];
 
     subPackages = [
       "e2e/genpolicy"
@@ -201,13 +204,15 @@ buildGoModule rec {
     "-X github.com/edgelesssys/contrast/internal/constants.KataGenpolicyVersion=${kata.genpolicy.version}"
   ];
 
+  tags = [ "contrast_unstable_api" ];
+
   preCheck = ''
     export CGO_ENABLED=1
   '';
 
   checkPhase = ''
     runHook preCheck
-    go test -race ./...
+    go test -tags=contrast_unstable_api -race ./...
     runHook postCheck
   '';
 
