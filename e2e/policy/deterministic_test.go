@@ -19,8 +19,8 @@ import (
 )
 
 func TestDeterminsticPolicyGeneration(t *testing.T) {
-	platform, err := platforms.FromString(platformStr)
 	require := require.New(t)
+	platform, err := platforms.FromString(platformStr)
 	require.NoError(err)
 	skipUndeploy := true // doesn't matter, because we don't deploy
 	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, skipUndeploy)
@@ -29,7 +29,7 @@ func TestDeterminsticPolicyGeneration(t *testing.T) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(err)
 	resources := kuberesource.OpenSSL()
-	coordinatorBundle := kuberesource.CoordinatorBundle()
+	coordinatorBundle := kuberesource.CoordinatorBundle() // only required because ct.Generate requires the coordinator hash file to be present
 	resources = append(resources, coordinatorBundle...)
 	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
