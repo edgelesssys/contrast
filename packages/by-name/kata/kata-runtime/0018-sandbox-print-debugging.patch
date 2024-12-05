@@ -5,9 +5,36 @@ Subject: [PATCH] sandbox: print-debugging!
 
 Signed-off-by: Moritz Sanft <58110325+msanft@users.noreply.github.com>
 ---
+ src/agent/src/rpc.rs                  | 2 ++
+ src/libs/kata-sys-util/src/hooks.rs   | 1 +
  src/runtime/virtcontainers/sandbox.go | 9 +++++++++
- 1 file changed, 9 insertions(+)
+ 3 files changed, 12 insertions(+)
 
+diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
+index 67fd95ebf5955d3f9041879ff79bd6ca7f71526a..69a4f941ab0f5cf2a9b66e3c6c228b405b8a2add 100644
+--- a/src/agent/src/rpc.rs
++++ b/src/agent/src/rpc.rs
+@@ -277,6 +277,8 @@ impl AgentService {
+             container_name,
+         };
+
++        info!(sl(), "EDGELESS: OCI spec: {:?}", oci);
++
+         let mut ctr: LinuxContainer = LinuxContainer::new(
+             cid.as_str(),
+             CONTAINER_BASE,
+diff --git a/src/libs/kata-sys-util/src/hooks.rs b/src/libs/kata-sys-util/src/hooks.rs
+index 8dea2e499f12398e25d8f7af5bdf9e8290a7b980..189393f23fd233831d73bb9bde8d1cb72b823170 100644
+--- a/src/libs/kata-sys-util/src/hooks.rs
++++ b/src/libs/kata-sys-util/src/hooks.rs
+@@ -240,6 +240,7 @@ impl<'a> HookExecutor<'a> {
+
+     fn execute_with_input(&mut self, popen: &mut Popen, state: runtime_spec::State) -> Result<()> {
+         let st = serde_json::to_string(&state)?;
++        info!(sl!(), "EDGELESS: hook input for {}: {}", self.hook.path().display(), st);
+         let (stdout, stderr) = popen
+             .communicate_start(Some(st.as_bytes().to_vec()))
+             .limit_time(Duration::from_secs(self.timeout))
 diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
 index ff7a46b4e05dbef2d8d1981897b04e639fda5527..d2485fb6f5322a867359367935a6c6b5e2fb9e5f 100644
 --- a/src/runtime/virtcontainers/sandbox.go
@@ -17,7 +44,7 @@ index ff7a46b4e05dbef2d8d1981897b04e639fda5527..d2485fb6f5322a867359367935a6c6b5
  		swapDevices:     []*config.BlockDrive{},
  	}
 +	s.Logger().Infof("EDGELESS: newSandbox: sandboxConfig: %+v\n", sandboxConfig)
- 
+
  	fsShare, err := NewFilesystemShare(s)
  	if err != nil {
 @@ -711,6 +712,7 @@ func (s *Sandbox) coldOrHotPlugVFIO(sandboxConfig *SandboxConfig) (bool, error)
@@ -30,7 +57,7 @@ index ff7a46b4e05dbef2d8d1981897b04e639fda5527..d2485fb6f5322a867359367935a6c6b5
  	hotPlugVFIO := (sandboxConfig.HypervisorConfig.HotPlugVFIO != config.NoPort)
 @@ -727,6 +729,7 @@ func (s *Sandbox) coldOrHotPlugVFIO(sandboxConfig *SandboxConfig) (bool, error)
  	//io.katacontainers.pkg.oci.container_type:pod_sandbox
- 
+
  	for cnt, container := range sandboxConfig.Containers {
 +		s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, checking container: container: %+v\n", container)
  		// Do not alter the original spec, we do not want to inject
@@ -51,7 +78,7 @@ index ff7a46b4e05dbef2d8d1981897b04e639fda5527..d2485fb6f5322a867359367935a6c6b5
 +			s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, CDI device adding succeeded: cdiSpec: %+v\n", cdiSpec)
 +			s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, CDI device adding succeeded: cdiSpec.Linux: %+v\n", cdiSpec.Linux)
 +			s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, CDI device adding succeeded: cdiSpec.Linux.Devices: %+v\n", cdiSpec.Linux.Devices)
- 
+
  			for _, dev := range cdiSpec.Linux.Devices {
  				isVFIODevice := deviceManager.IsVFIODevice(dev.Path)
 +				s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, checking device: isVFIODevice: %+v, dev: %+v\n", isVFIODevice, dev)
@@ -60,7 +87,7 @@ index ff7a46b4e05dbef2d8d1981897b04e639fda5527..d2485fb6f5322a867359367935a6c6b5
  						ColdPlug:      true,
 @@ -790,6 +798,7 @@ func (s *Sandbox) coldOrHotPlugVFIO(sandboxConfig *SandboxConfig) (bool, error)
  					}
- 
+
  					vfioDevices = append(vfioDevices, vfioDev)
 +					s.Logger().Infof("EDGELESS: coldOrHotPlugVFIO, coldPlugVFIO: added VFIO device: %+v\n", vfioDev)
  					continue
