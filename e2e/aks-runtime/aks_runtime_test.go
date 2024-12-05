@@ -25,9 +25,7 @@ import (
 
 const testContainer = "testcontainer"
 
-var (
-	imageReplacementsFile, namespaceFile, _platformStr string
-)
+var imageReplacementsFile, namespaceFile, _platformStr string
 
 func TestAKSRuntime(t *testing.T) {
 	require := require.New(t)
