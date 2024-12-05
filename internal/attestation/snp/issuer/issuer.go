@@ -1,7 +1,10 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package snp
+//go:build linux
+
+// package issuer provides functions to create an aTLS issuer.
+package issuer
 
 import (
 	"context"
@@ -27,8 +30,8 @@ type Issuer struct {
 	logger     *slog.Logger
 }
 
-// NewIssuer returns a new Issuer.
-func NewIssuer(log *slog.Logger) *Issuer {
+// New returns a new Issuer.
+func New(log *slog.Logger) *Issuer {
 	return &Issuer{
 		thimGetter: NewTHIMGetter(http.DefaultClient),
 		logger:     log,
