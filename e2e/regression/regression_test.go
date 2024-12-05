@@ -39,7 +39,7 @@ func TestRegression(t *testing.T) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
-	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, false)
+	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform)
 
 	// Initially just deploy the coordinator bundle
 
