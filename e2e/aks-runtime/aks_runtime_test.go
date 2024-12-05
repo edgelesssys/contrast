@@ -27,7 +27,6 @@ const testContainer = "testcontainer"
 
 var (
 	imageReplacementsFile, namespaceFile, _platformStr string
-	skipUndeploy                                       bool
 )
 
 func TestAKSRuntime(t *testing.T) {
@@ -109,20 +108,6 @@ func TestAKSRuntime(t *testing.T) {
 	require.NoError(err)
 	require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, namespace, testContainer))
 
-	t.Cleanup(func() {
-		if skipUndeploy {
-			return
-		}
-
-		// delete the deployment
-		deletePolicy := metav1.DeletePropagationForeground
-		if err = c.Client.CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{
-			PropagationPolicy: &deletePolicy,
-		}); err != nil {
-			t.Fatalf("Failed to delete namespace %s", namespace)
-		}
-	})
-
 	pods, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	require.NoError(err)
 	require.Len(pods.Items, 1)
@@ -137,7 +122,6 @@ func TestMain(m *testing.M) {
 	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
 	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
 	flag.StringVar(&_platformStr, "platform", "", "Deployment platform")
-	flag.BoolVar(&skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
 	flag.Parse()
 
 	os.Exit(m.Run())

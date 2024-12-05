@@ -26,7 +26,6 @@ import (
 
 var (
 	imageReplacementsFile, namespaceFile, platformStr string
-	skipUndeploy                                      bool
 )
 
 // TestGenpolicy runs regression tests for generated policies.
@@ -40,7 +39,7 @@ func TestGenpolicy(t *testing.T) {
 
 	for name, deploy := range testCases {
 		t.Run(name, func(t *testing.T) {
-			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, skipUndeploy)
+			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform)
 
 			ct.Init(t, kuberesource.PatchRuntimeHandlers([]any{deploy}, runtimeHandler))
 
@@ -75,7 +74,6 @@ func TestMain(m *testing.M) {
 	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
 	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
 	flag.StringVar(&platformStr, "platform", "", "Deployment platform")
-	flag.BoolVar(&skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
 	flag.Parse()
 
 	os.Exit(m.Run())

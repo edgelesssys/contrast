@@ -26,7 +26,6 @@ import (
 
 var (
 	imageReplacementsFile, namespaceFile, platformStr string
-	_skipUndeploy                                     bool // just here for interoptability, ignored in this test
 )
 
 func TestRegression(t *testing.T) {
@@ -101,8 +100,6 @@ func TestMain(m *testing.M) {
 	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
 	flag.StringVar(&platformStr, "platform", "", "Deployment platform")
 
-	// ignored and just here for interoptability, we always undeploy to save resources
-	flag.BoolVar(&_skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
 	flag.Parse()
 
 	os.Exit(m.Run())
