@@ -1,7 +1,7 @@
-//go:build linux
-
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
+
+//go:build linux
 
 package issuer
 
