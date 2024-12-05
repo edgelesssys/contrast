@@ -62,7 +62,6 @@ type ContrastTest struct {
 	ImageReplacementsFile string
 	Platform              platforms.Platform
 	NamespaceFile         string
-	SkipUndeploy          bool
 	Kubeclient            *kubeclient.Kubeclient
 
 	// outputs of contrast subcommands
@@ -80,8 +79,7 @@ func New(t *testing.T) *ContrastTest {
 		WorkDir:               t.TempDir(),
 		ImageReplacementsFile: Flags.ImageReplacementsFile,
 		Platform:              platform,
-		NamespaceFile:         Flags.NamespaceFile,
-		SkipUndeploy:          Flags.SkipUndeploy,
+		NamespaceFile:         namespaceFile,
 		Kubeclient:            kubeclient.NewForTest(t),
 	}
 }
@@ -133,20 +131,6 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 
 		if t.Failed() {
 			ct.Kubeclient.LogDebugInfo(ctx)
-		}
-
-		if !ct.SkipUndeploy {
-			// Deleting the namespace sometimes fails when the cluster is
-			// unavailable (e.g. after a K3s restart). Retry deleting for up to
-			// 30 seconds.
-			for range 30 {
-				if err := ct.Kubeclient.Delete(ctx, namespace...); err != nil {
-					t.Logf("Could not delete namespace %q: %v", ct.Namespace, err)
-					time.Sleep(1 * time.Second)
-				} else {
-					break
-				}
-			}
 		}
 
 		if fifo != nil {
