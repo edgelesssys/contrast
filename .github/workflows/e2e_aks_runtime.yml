@@ -95,6 +95,10 @@ jobs:
         if: always()
         run: |
           nix run .#scripts.get-logs download workspace/e2e.namespace
+      - name: Undeploy
+        if: always()
+        run: |
+          kubectl delete ns "$(cat workspace/e2e.namespace)" --timeout 5m
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
