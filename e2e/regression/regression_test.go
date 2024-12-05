@@ -24,9 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
-	imageReplacementsFile, namespaceFile, platformStr string
-)
+var imageReplacementsFile, namespaceFile, platformStr string
 
 func TestRegression(t *testing.T) {
 	yamlDir := "./e2e/regression/testdata/"

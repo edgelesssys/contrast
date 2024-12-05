@@ -35,9 +35,7 @@ const (
 	rootCAFile = "coordinator-root-ca.pem"
 )
 
-var (
-	imageReplacementsFile, namespaceFile, platformStr string
-)
+var imageReplacementsFile, namespaceFile, platformStr string
 
 // TestOpenSSL runs e2e tests on the example OpenSSL deployment.
 func TestOpenSSL(t *testing.T) {

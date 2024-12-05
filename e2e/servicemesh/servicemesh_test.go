@@ -26,9 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	imageReplacementsFile, namespaceFile, platformStr string
-)
+var imageReplacementsFile, namespaceFile, platformStr string
 
 // TestIngressEgress tests that the ingress and egress proxies work as configured.
 func TestIngressEgress(t *testing.T) {

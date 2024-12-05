@@ -36,9 +36,7 @@ const (
 	coordinatorPod = "coordinator-0"
 )
 
-var (
-	imageReplacementsFile, namespaceFile, platformStr string
-)
+var imageReplacementsFile, namespaceFile, platformStr string
 
 func TestPolicy(t *testing.T) {
 	platform, err := platforms.FromString(platformStr)

@@ -24,9 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	imageReplacementsFile, namespaceFile, platformStr string
-)
+var imageReplacementsFile, namespaceFile, platformStr string
 
 // TestWorkloadSecrets tests that secrets are correctly injected into workloads.
 func TestWorkloadSecrets(t *testing.T) {
