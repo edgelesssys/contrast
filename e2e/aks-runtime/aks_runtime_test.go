@@ -20,7 +20,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const testContainer = "testcontainer"
@@ -103,20 +102,6 @@ func TestAKSRuntime(t *testing.T) {
 	err = c.Apply(ctx, toApply...)
 	require.NoError(err)
 	require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, namespace, testContainer))
-
-	t.Cleanup(func() {
-		if contrasttest.Flags.SkipUndeploy {
-			return
-		}
-
-		// delete the deployment
-		deletePolicy := metav1.DeletePropagationForeground
-		if err = c.Client.CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{
-			PropagationPolicy: &deletePolicy,
-		}); err != nil {
-			t.Fatalf("Failed to delete namespace %s", namespace)
-		}
-	})
 
 	pods, err := c.PodsFromDeployment(ctx, namespace, testContainer)
 	require.NoError(err)
