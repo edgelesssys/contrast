@@ -71,6 +71,34 @@ let
           });
         };
       });
+
+  # nix-store-mount-hook mounts the VM's nix store into the container.
+  # TODO(burgerdev): only do that for GPU containers
+  nix-store-mount-hook = pkgs.writeShellApplication {
+    name = "nix-store-mount-hook";
+    runtimeInputs = with pkgs; [
+      coreutils
+      util-linux
+      jq
+    ];
+    text = ''
+      # Reads from the state JSON supplied on stdin.
+      bundle="$(jq -r .bundle)"
+      rootfs="$bundle/rootfs"
+      id="$(basename "$bundle")"
+
+      lower=/nix/store
+      target="$rootfs$lower"
+      mkdir -p "$target"
+
+      overlays="/run/kata-containers/nix-overlays/$id"
+      upperdir="$overlays/upperdir"
+      workdir="$overlays/workdir"
+      mkdir -p "$upperdir" "$workdir"
+
+      mount -t overlay -o "lowerdir=$lower:$target,upperdir=$upperdir,workdir=$workdir" none "$target"
+    '';
+  };
 in
 
 {
@@ -98,8 +126,11 @@ in
     hardware.graphics.package = nvidiaPackage;
     hardware.graphics.package32 = nvidiaPackage;
 
-    image.repart.partitions."10-root".contents."/usr/share/oci/hooks/prestart/nvidia-container-toolkit.sh".source =
-      lib.getExe pkgs.nvidia-ctk-oci-hook;
+    image.repart.partitions."10-root".contents = {
+      "/usr/share/oci/hooks/prestart/nvidia-container-toolkit.sh".source =
+        lib.getExe pkgs.nvidia-ctk-oci-hook;
+      "/usr/share/oci/hooks/prestart/nix-store-mount-hook.sh".source = lib.getExe nix-store-mount-hook;
+    };
 
     environment.systemPackages = [ pkgs.nvidia-ctk-with-config ];
 
