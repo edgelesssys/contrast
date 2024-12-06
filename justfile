@@ -72,7 +72,8 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
             --platform {{ platform }} \
-            --skip-undeploy=true
+            --skip-undeploy=true \
+            --namespace-suffix=${namespace_suffix-}
 
 # Generate policies, apply Kubernetes manifests.
 deploy target=default_deploy_target cli=default_cli platform=default_platform: (runtime target platform) (apply "runtime") (populate target platform) (generate cli platform) (apply target)

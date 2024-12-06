@@ -10,7 +10,6 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -41,6 +40,7 @@ type testFlags struct {
 	PlatformStr           string
 	ImageReplacementsFile string
 	NamespaceFile         string
+	NamespaceSuffix       string
 	SkipUndeploy          bool
 }
 
@@ -48,6 +48,7 @@ type testFlags struct {
 func RegisterFlags() {
 	flag.StringVar(&Flags.ImageReplacementsFile, "image-replacements", "", "path to image replacements file")
 	flag.StringVar(&Flags.NamespaceFile, "namespace-file", "", "file to store the namespace in")
+	flag.StringVar(&Flags.NamespaceSuffix, "namespace-suffix", "", "suffix to append to the namespace")
 	flag.StringVar(&Flags.PlatformStr, "platform", "", "Deployment platform")
 	flag.BoolVar(&Flags.SkipUndeploy, "skip-undeploy", false, "Skip undeploying the test namespace")
 }
@@ -75,7 +76,7 @@ func New(t *testing.T) *ContrastTest {
 	require.NoError(t, err)
 
 	return &ContrastTest{
-		Namespace:             MakeNamespace(t),
+		Namespace:             MakeNamespace(t, Flags.NamespaceSuffix),
 		WorkDir:               t.TempDir(),
 		ImageReplacementsFile: Flags.ImageReplacementsFile,
 		Platform:              platform,
@@ -397,14 +398,22 @@ func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Durati
 }
 
 // MakeNamespace creates a namespace string using a given *testing.T.
-func MakeNamespace(t *testing.T) string {
-	buf := make([]byte, 4)
+func MakeNamespace(t *testing.T, namespaceSuffix string) string {
+	var namespaceParts []string
+
+	// First part(s) are consist of all valid characters in the lower case test name.
 	re := regexp.MustCompile("[a-z0-9-]+")
+	namespaceParts = append(namespaceParts, re.FindAllString(strings.ToLower(t.Name()), -1)...)
+
+	// Append some randomness
+	buf := make([]byte, 4)
 	n, err := rand.Reader.Read(buf)
 	require.NoError(t, err)
 	require.Equal(t, 4, n)
 
-	return strings.Join(append(re.FindAllString(strings.ToLower(t.Name()), -1), hex.EncodeToString(buf)), "-")
+	namespaceParts = append(namespaceParts, fmt.Sprintf("%x", buf))
+
+	return strings.Join(namespaceParts, "-") + namespaceSuffix
 }
 
 func toPtr[T any](t T) *T {

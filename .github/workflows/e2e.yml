@@ -79,7 +79,8 @@ jobs:
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
             --platform ${{ inputs.platform }} \
-            --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}"
+            --skip-undeploy="${{ inputs.skip-undeploy && 'true' || 'false' }}" \
+            --namespace-suffix="-ci"
       - name: Download logs
         if: always()
         run: |
