@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <49727155+katexochen@users.noreply.github.com>
+Date: Fri, 6 Dec 2024 15:16:45 +0100
+Subject: [PATCH] genpolicy/rules: remove check for OCI version
+
+Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
+---
+ src/tools/genpolicy/rules.rego | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index 6ddcd18cd1334dfabeadd1b0e7a54c723c7cae4d..c8de30897a01a0de49b99587c7e12ef534c353bc 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -71,9 +71,6 @@ CreateContainerRequest {
+ 
+     p_oci := p_container.OCI
+ 
+-    print("CreateContainerRequest: p Version =", p_oci.Version, "i Version =", i_oci.Version)
+-    p_oci.Version == i_oci.Version
+-
+     print("CreateContainerRequest: p Readonly =", p_oci.Root.Readonly, "i Readonly =", i_oci.Root.Readonly)
+     p_oci.Root.Readonly == i_oci.Root.Readonly
+ 
