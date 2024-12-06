@@ -26,7 +26,7 @@ don't even bother handling that case.
  create mode 100644 src/tools/genpolicy/tests/testdata/createcontainer/guest_pull/testcases.json
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 4e9f6481d649fc45716f182c394f38059792eb91..e3b36a6555a646ffefc7733c807d6b0da9967dea 100644
+index d2d1511ae75d56c4f39915515343b2cd20d9d65a..ef20413eacc029d4fcb0b1d2f538a13314a25670 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -148,7 +148,7 @@
@@ -39,10 +39,10 @@ index 4e9f6481d649fc45716f182c394f38059792eb91..e3b36a6555a646ffefc7733c807d6b0d
              "source": "local",
              "fstype": "local",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 6ddcd18cd1334dfabeadd1b0e7a54c723c7cae4d..44af45437f550877652c33019f42b0b29fdcfbdb 100644
+index c8de30897a01a0de49b99587c7e12ef534c353bc..b9cf357508e632b2d64a5332a3c4e7a6442852de 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -80,7 +80,7 @@ CreateContainerRequest {
+@@ -77,7 +77,7 @@ CreateContainerRequest {
      allow_anno(p_oci, i_oci)
  
      p_storages := p_container.storages
@@ -51,7 +51,7 @@ index 6ddcd18cd1334dfabeadd1b0e7a54c723c7cae4d..44af45437f550877652c33019f42b0b2
  
      p_devices := p_container.devices
      allow_devices(p_devices, i_devices)
-@@ -160,47 +160,48 @@ allow_anno_key(i_key, p_oci) {
+@@ -157,47 +157,48 @@ allow_anno_key(i_key, p_oci) {
  
  # Get the value of the "io.kubernetes.cri.sandbox-name" annotation and
  # correlate it with other annotations and process fields.
@@ -108,7 +108,7 @@ index 6ddcd18cd1334dfabeadd1b0e7a54c723c7cae4d..44af45437f550877652c33019f42b0b2
      allow_process(p_oci, i_oci, s_name)
  
      print("allow_by_sandbox_name: true")
-@@ -506,11 +507,12 @@ allow_linux_sysctl(p_linux, i_linux) {
+@@ -503,11 +504,12 @@ allow_linux_sysctl(p_linux, i_linux) {
  
  # Check the consistency of the input "io.katacontainers.pkg.oci.bundle_path"
  # and io.kubernetes.cri.sandbox-id" values with other fields.
@@ -122,7 +122,7 @@ index 6ddcd18cd1334dfabeadd1b0e7a54c723c7cae4d..44af45437f550877652c33019f42b0b2
      p_regex := p_oci.Annotations[key]
      sandbox_id := i_oci.Annotations[key]
  
-@@ -530,8 +532,7 @@ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) {
+@@ -527,8 +529,7 @@ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) {
          allow_mount(p_oci, i_mount, bundle_id, sandbox_id)
      }
  
@@ -132,7 +132,7 @@ index 6ddcd18cd1334dfabeadd1b0e7a54c723c7cae4d..44af45437f550877652c33019f42b0b2
  
      print("allow_by_bundle_or_sandbox_id: true")
  }
-@@ -829,30 +830,109 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
+@@ -826,30 +827,109 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
  ######################################################################
  # Create container Storages
  

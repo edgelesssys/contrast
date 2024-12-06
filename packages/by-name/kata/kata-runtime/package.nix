@@ -53,10 +53,13 @@ buildGoModule rec {
       # Contrast specific layer-src-prefix, also applied to microsoft.kata-runtime.
       # TODO(burgerdev): discuss relaxing the checks for host paths with Kata maintainers.
       ./0006-genpolicy-regex-check-contrast-specific-layer-src-pr.patch
-      # Kata hard-codes OCI version 1.1.0, but latest K3S has 1.2.0.
-      # TODO(burgerdev): discuss relaxing the OCI version checks with Kata maintainers.
-      # TODO(burgerdev): move to genpolicy-settings patches
-      ./0007-genpolicy-settings-bump-OCI-version.patch
+      # An attacker can set any OCI version they like, so we can't rely on it.
+      # The policy must be secure no matter what OCI version is communicated.
+      # TODO(kateoxchen): upstream. See https://github.com/kata-containers/kata-containers/issues/10632.
+      # TODO(katexochen): Additional security measures should be taken to ensure the OCI
+      # version is the same well use to create the container and the policy covers all the
+      # fields of the spec.
+      ./0007-genpolicy-rules-remove-check-for-OCI-version.patch
       # Nydus uses a different base dir for container rootfs,
       # see https://github.com/kata-containers/kata-containers/blob/775f6bd/tests/integration/kubernetes/tests_common.sh#L139.
       # TODO(burgerdev): discuss the discrepancy and path forward with Kata maintainers.
