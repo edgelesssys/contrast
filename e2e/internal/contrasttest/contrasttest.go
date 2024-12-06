@@ -12,6 +12,7 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -32,6 +33,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Flags contains the parsed Flags for the test.
+var Flags testFlags
+
+// testFlags contains the flags for the test.
+type testFlags struct {
+	PlatformStr           string
+	ImageReplacementsFile string
+	NamespaceFile         string
+	SkipUndeploy          bool
+}
+
+// RegisterFlags registers the flags that are shared between all tests.
+func RegisterFlags() {
+	flag.StringVar(&Flags.ImageReplacementsFile, "image-replacements", "", "path to image replacements file")
+	flag.StringVar(&Flags.NamespaceFile, "namespace-file", "", "file to store the namespace in")
+	flag.StringVar(&Flags.PlatformStr, "platform", "", "Deployment platform")
+	flag.BoolVar(&Flags.SkipUndeploy, "skip-undeploy", false, "Skip undeploying the test namespace")
+}
+
 // ContrastTest is the Contrast test helper struct.
 type ContrastTest struct {
 	// inputs, usually filled by New()
@@ -50,14 +70,17 @@ type ContrastTest struct {
 }
 
 // New creates a new contrasttest.T object bound to the given test.
-func New(t *testing.T, imageReplacements, namespaceFile string, platform platforms.Platform, skipUndeploy bool) *ContrastTest {
+func New(t *testing.T) *ContrastTest {
+	platform, err := platforms.FromString(Flags.PlatformStr)
+	require.NoError(t, err)
+
 	return &ContrastTest{
 		Namespace:             MakeNamespace(t),
 		WorkDir:               t.TempDir(),
-		ImageReplacementsFile: imageReplacements,
+		ImageReplacementsFile: Flags.ImageReplacementsFile,
 		Platform:              platform,
-		NamespaceFile:         namespaceFile,
-		SkipUndeploy:          skipUndeploy,
+		NamespaceFile:         Flags.NamespaceFile,
+		SkipUndeploy:          Flags.SkipUndeploy,
 		Kubeclient:            kubeclient.NewForTest(t),
 	}
 }

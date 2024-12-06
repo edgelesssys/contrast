@@ -24,23 +24,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	imageReplacementsFile, namespaceFile, platformStr string
-	skipUndeploy                                      bool
-)
-
 // TestGenpolicy runs regression tests for generated policies.
 func TestGenpolicy(t *testing.T) {
 	testCases := kuberesource.GenpolicyRegressionTests()
 
-	platform, err := platforms.FromString(platformStr)
+	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
 	for name, deploy := range testCases {
 		t.Run(name, func(t *testing.T) {
-			ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, skipUndeploy)
+			ct := contrasttest.New(t)
 
 			ct.Init(t, kuberesource.PatchRuntimeHandlers([]any{deploy}, runtimeHandler))
 
@@ -72,10 +67,7 @@ func TestGenpolicy(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
-	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
-	flag.StringVar(&platformStr, "platform", "", "Deployment platform")
-	flag.BoolVar(&skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
+	contrasttest.RegisterFlags()
 	flag.Parse()
 
 	os.Exit(m.Run())

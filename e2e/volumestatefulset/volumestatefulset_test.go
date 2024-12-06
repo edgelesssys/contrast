@@ -21,16 +21,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	imageReplacementsFile, namespaceFile, platformStr string
-	skipUndeploy                                      bool
-)
-
 // TestWorkloadSecrets tests that secrets are correctly injected into workloads.
 func TestVolumeStatefulSet(t *testing.T) {
-	platform, err := platforms.FromString(platformStr)
+	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
-	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, skipUndeploy)
+	ct := contrasttest.New(t)
 
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
@@ -106,10 +101,7 @@ func TestVolumeStatefulSet(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
-	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
-	flag.StringVar(&platformStr, "platform", "", "Deployment platform")
-	flag.BoolVar(&skipUndeploy, "skip-undeploy", true, "skip undeploy step in the test")
+	contrasttest.RegisterFlags()
 	flag.Parse()
 
 	os.Exit(m.Run())

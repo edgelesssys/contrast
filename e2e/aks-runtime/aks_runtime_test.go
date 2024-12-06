@@ -25,17 +25,12 @@ import (
 
 const testContainer = "testcontainer"
 
-var (
-	imageReplacementsFile, namespaceFile, _platformStr string
-	skipUndeploy                                       bool
-)
-
 func TestAKSRuntime(t *testing.T) {
 	require := require.New(t)
 
 	workdir := t.TempDir()
 
-	f, err := os.Open(imageReplacementsFile)
+	f, err := os.Open(contrasttest.Flags.ImageReplacementsFile)
 	require.NoError(err)
 	imageReplacements, err := kuberesource.ImageReplacementsFromFile(f)
 	require.NoError(err)
@@ -59,8 +54,8 @@ func TestAKSRuntime(t *testing.T) {
 	err = c.Apply(ctx, ns...)
 	cancel()
 	require.NoError(err)
-	if namespaceFile != "" {
-		require.NoError(os.WriteFile(namespaceFile, []byte(namespace), 0o644))
+	if contrasttest.Flags.NamespaceFile != "" {
+		require.NoError(os.WriteFile(contrasttest.Flags.NamespaceFile, []byte(namespace), 0o644))
 	}
 
 	// simple deployment that logs the kernel version and then sleeps
@@ -110,7 +105,7 @@ func TestAKSRuntime(t *testing.T) {
 	require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, namespace, testContainer))
 
 	t.Cleanup(func() {
-		if skipUndeploy {
+		if contrasttest.Flags.SkipUndeploy {
 			return
 		}
 
@@ -134,10 +129,7 @@ func TestAKSRuntime(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
-	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
-	flag.StringVar(&_platformStr, "platform", "", "Deployment platform")
-	flag.BoolVar(&skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
+	contrasttest.RegisterFlags()
 	flag.Parse()
 
 	os.Exit(m.Run())
