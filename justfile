@@ -47,7 +47,7 @@ node-installer platform=default_platform:
             just push "tardev-snapshotter"
             just push "node-installer-microsoft"
         ;;
-        "K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             just push "nydus-snapshotter"
             just push "node-installer-kata"
         ;;
@@ -117,12 +117,12 @@ generate cli=default_cli platform=default_platform:
 
     # On baremetal SNP, we don't have default values for MinimumTCB, so we need to set some here.
     case {{ platform }} in
-        "K3s-QEMU-SNP")
+        "Metal-QEMU-SNP"|"K3s-QEMU-SNP")
             yq --inplace \
             '.ReferenceValues.snp.[].MinimumTCB = {"BootloaderVersion":0,"TEEVersion":0,"SNPVersion":0,"MicrocodeVersion":0}' \
             {{ workspace_dir }}/manifest.json
         ;;
-        "K3s-QEMU-TDX" | "RKE2-QEMU-TDX")
+        "Metal-QEMU-TDX"|"K3s-QEMU-TDX" | "RKE2-QEMU-TDX")
             yq --inplace \
             '.ReferenceValues.tdx.[].MinimumTeeTcbSvn = "04010200000000000000000000000000" | .ReferenceValues.tdx.[].MrSeam = "1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04"' \
             {{ workspace_dir }}/manifest.json
@@ -186,7 +186,7 @@ create-pre platform=default_platform:
             # TODO(burgerdev): this should create the resource group for consistency
             :
         ;;
-        "K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             :
         ;;
         "AKS-PEER-SNP")
@@ -215,7 +215,7 @@ create platform=default_platform:
         "AKS-CLH-SNP")
             nix run -L .#scripts.create-coco-aks -- --name="$azure_resource_group" --location="$azure_location"
         ;;
-        "K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             :
         ;;
         "AKS-PEER-SNP")
