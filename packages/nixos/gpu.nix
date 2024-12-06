@@ -118,6 +118,11 @@ in
       videoAcceleration = false;
     };
 
+    # Configure the persistenced for use with CC GPUs (e.g. H100).
+    # TODO(msanft): This needs to be adjusted for non-CC-GPUs.
+    # See: https://docs.nvidia.com/cc-deployment-guide-snp.pdf (Page 23 & 24)
+    systemd.services."nvidia-persistenced".serviceConfig.ExecStart = lib.mkForce "${lib.getExe config.hardware.nvidia.package.persistenced} --uvm-persistence-mode --verbose";
+
     hardware.graphics.enable = true;
     hardware.nvidia-container-toolkit.enable = true;
 
