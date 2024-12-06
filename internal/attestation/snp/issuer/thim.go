@@ -4,6 +4,7 @@
 package issuer
 
 import (
+	"context"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
@@ -78,7 +79,7 @@ func NewTHIMGetter(httpClient httpClient) *THIMGetter {
 }
 
 // GetCertification returns the THIM certification.
-func (t *THIMGetter) GetCertification() (THIMSNPCertification, error) {
+func (t *THIMGetter) GetCertification(ctx context.Context) (THIMSNPCertification, error) {
 	// Return cached response if it is still valid.
 	if cached := t.getCached(); cached != nil {
 		var certification THIMSNPCertification
@@ -102,7 +103,9 @@ func (t *THIMGetter) GetCertification() (THIMSNPCertification, error) {
 			"Metadata": {"true"},
 		},
 	}
-	resp, err := t.httpClient.Do(req)
+	reqCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	resp, err := t.httpClient.Do(req.WithContext(reqCtx))
 	if err != nil {
 		return THIMSNPCertification{}, fmt.Errorf("getting THIM certification: %w", err)
 	}
