@@ -20,10 +20,9 @@ import (
 
 func TestDeterminsticPolicyGeneration(t *testing.T) {
 	require := require.New(t)
-	platform, err := platforms.FromString(platformStr)
+	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(err)
-	skipUndeploy := true // doesn't matter, because we don't deploy
-	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, skipUndeploy)
+	ct := contrasttest.New(t)
 
 	// create K8s resources
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
