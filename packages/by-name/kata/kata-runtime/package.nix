@@ -101,6 +101,8 @@ buildGoModule rec {
       ./0017-runtime-allow-initrd-AND-image-to-be-set.patch
 
       ./0018-sandbox-print-debugging.patch
+
+      ./0019-genpolicy-support-guest-hooks.patch
     ];
   };
 
