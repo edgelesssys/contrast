@@ -6,6 +6,11 @@ on:
       image-id:
         description: "ID of the guest VM image to test (default: build a fresh image)"
         required: false
+      skip-undeploy:
+        description: "Skip undeploy"
+        required: false
+        type: boolean
+        default: false
   pull_request:
     paths:
       - .github/workflows/e2e_peerpods.yml
@@ -56,6 +61,6 @@ jobs:
           EOF
           nix run .#scripts.test-peerpods
       - name: Terminate cluster
-        if: always()
+        if: always() && !inputs.skip-undeploy
         run: |
           nix run -L .#terraform -- -chdir=infra/azure-peerpods destroy --auto-approve
