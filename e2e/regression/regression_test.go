@@ -24,23 +24,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
-	imageReplacementsFile, namespaceFile, platformStr string
-	_skipUndeploy                                     bool // just here for interoptability, ignored in this test
-)
-
 func TestRegression(t *testing.T) {
 	yamlDir := "./e2e/regression/testdata/"
 	files, err := os.ReadDir(yamlDir)
 	require.NoError(t, err)
 
-	platform, err := platforms.FromString(platformStr)
+	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
 
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
-	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, false)
+	ct := contrasttest.New(t)
 
 	// Initially just deploy the coordinator bundle
 
@@ -97,12 +92,7 @@ func TestRegression(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
-	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
-	flag.StringVar(&platformStr, "platform", "", "Deployment platform")
-
-	// ignored and just here for interoptability, we always undeploy to save resources
-	flag.BoolVar(&_skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
+	contrasttest.RegisterFlags()
 	flag.Parse()
 
 	os.Exit(m.Run())

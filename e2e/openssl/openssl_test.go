@@ -35,16 +35,11 @@ const (
 	rootCAFile = "coordinator-root-ca.pem"
 )
 
-var (
-	imageReplacementsFile, namespaceFile, platformStr string
-	skipUndeploy                                      bool
-)
-
 // TestOpenSSL runs e2e tests on the example OpenSSL deployment.
 func TestOpenSSL(t *testing.T) {
-	platform, err := platforms.FromString(platformStr)
+	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
-	ct := contrasttest.New(t, imageReplacementsFile, namespaceFile, platform, skipUndeploy)
+	ct := contrasttest.New(t)
 
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
@@ -245,10 +240,7 @@ func TestOpenSSL(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
-	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
-	flag.StringVar(&platformStr, "platform", "", "Deployment platform")
-	flag.BoolVar(&skipUndeploy, "skip-undeploy", false, "skip undeploy step in the test")
+	contrasttest.RegisterFlags()
 	flag.Parse()
 
 	os.Exit(m.Run())
