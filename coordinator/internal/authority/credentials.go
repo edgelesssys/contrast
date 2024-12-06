@@ -69,7 +69,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 	log := c.logger.With("peer", rawConn.RemoteAddr())
 	state, err := c.getState()
 	if err != nil {
-		log.Error("Could not get manifest state to validate peer", "error", err)
+		log.Warn("Could not get manifest state to validate peer", "error", err)
 		return nil, nil, fmt.Errorf("getting state: %w", err)
 	}
 
