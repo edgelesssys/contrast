@@ -87,7 +87,8 @@ jobs:
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
             --platform AKS-CLH-SNP \
-            --skip-undeploy="false"
+            --skip-undeploy="false" \
+            --namespace-suffix="-ci"
       - name: Download logs
         if: always()
         run: |

@@ -34,7 +34,7 @@ func TestAKSRuntime(t *testing.T) {
 	require.NoError(err)
 	imageReplacements, err := kuberesource.ImageReplacementsFromFile(f)
 	require.NoError(err)
-	namespace := contrasttest.MakeNamespace(t)
+	namespace := contrasttest.MakeNamespace(t, contrasttest.Flags.NamespaceSuffix)
 
 	// Log versions
 	kataPolicyGenV, err := az.KataPolicyGenVersion()
