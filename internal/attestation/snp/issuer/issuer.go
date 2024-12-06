@@ -44,7 +44,7 @@ func (i *Issuer) OID() asn1.ObjectIdentifier {
 }
 
 // Issue the attestation document.
-func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (res []byte, err error) {
+func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (res []byte, err error) {
 	i.logger.Info("Issue called")
 	defer func() {
 		if err != nil {
@@ -71,7 +71,7 @@ func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (re
 
 	// Get cert chain from THIM
 	var certChain *spb.CertificateChain
-	thimRaw, err := i.thimGetter.GetCertification()
+	thimRaw, err := i.thimGetter.GetCertification(ctx)
 	if err != nil {
 		i.logger.Info("Could not retrieve THIM certification", "error", err)
 	} else {
