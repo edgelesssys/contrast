@@ -116,6 +116,8 @@ buildGoModule rec {
       ./0019-genpolicy-allow-non-watchable-ConfigMaps.patch
 
       ./0018-sandbox-print-debugging.patch
+
+      ./0019-genpolicy-support-guest-hooks.patch
     ];
   };
 
