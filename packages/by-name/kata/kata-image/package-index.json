@@ -8,6 +8,10 @@
     "hash": "sha256-ThaBW0Ncj45PBFetz3YeQdcFV3qQkhLUPnjc0iERN0s="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/b/bc-1.07.1-4.cm2.x86_64.rpm",
+    "hash": "sha256-V3voScF7Xe831YpKhtAQkijMPR7terd8s+9v7Oq9Kk0="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/b/bind-libs-9.16.50-1.cm2.x86_64.rpm",
     "hash": "sha256-yPoDwzXXy5Q/5P/s5fnq/cuChH1hScP/8cbMrGiu12s="
   },
@@ -20,12 +24,24 @@
     "hash": "sha256-5wPM7kasKSjl/PKeRtpwNiETjZtrlYXlNqjRQ7jssqE="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/b/bridge-utils-1.7.1-2.cm2.x86_64.rpm",
+    "hash": "sha256-ErLVq6o7vhPBzkSbXl18h5IAMBOOqio5C8GTrbd54hA="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/b/bzip2-1.0.8-1.cm2.x86_64.rpm",
+    "hash": "sha256-GPa2ZcpiiedP5TpfBNwVpvNlfoEiYuxQO2PYt0CrgsI="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/b/bzip2-libs-1.0.8-1.cm2.x86_64.rpm",
     "hash": "sha256-xy3NTfx4doQNZyzw2flp7ObWz0HkpGXySQ54DAYV8H8="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/ca-certificates-2.0.0-18.cm2.noarch.rpm",
     "hash": "sha256-3TvuEZmvV8e3zIRidySAmN+S9MGxMkkL4KXZIj4K9Cs="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/ca-certificates-base-2.0.0-18.cm2.noarch.rpm",
+    "hash": "sha256-s+5ZTaQjTr5qs9ewWPPsFCaw77EX9/sSe4mOK50ijHU="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/ca-certificates-shared-2.0.0-18.cm2.noarch.rpm",
@@ -46,6 +62,14 @@
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/cifs-utils-6.14-2.cm2.x86_64.rpm",
     "hash": "sha256-2J+ybspZFthyKq9jnXRKbEPc8A07AuX7XbiABKHc1bY="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/core-packages-base-image-2.0-8.cm2.x86_64.rpm",
+    "hash": "sha256-g8oIsNCIihNNBbs41I/8614jTIQtayn8NJchPHX5yeY="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/core-packages-container-2.0-8.cm2.x86_64.rpm",
+    "hash": "sha256-AvGiZXDeH1i0vT+NaaVJowEfhNv+CNBc4YfHFPs16f0="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/coreutils-8.32-7.cm2.x86_64.rpm",
@@ -80,6 +104,10 @@
     "hash": "sha256-6J0kkncYa8YMXqdBHb7Ed6a15FL1fbmTaRAa9nBRrxE="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/cyrus-sasl-lib-2.1.28-4.cm2.x86_64.rpm",
+    "hash": "sha256-jsX83c9gctllHEk2hOa8WIf1sLUXd2s4sRKc6dUmPAg="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/d/dbus-1.15.6-1.cm2.x86_64.rpm",
     "hash": "sha256-wckUbLIkZlarlQBtxI+vZoHPGAdG4dd0cHuDem+b+Q8="
   },
@@ -100,6 +128,10 @@
     "hash": "sha256-Jyjy2IfuKM8ImBytElAN+vl79Uqdc79YTL2XZdIQA48="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/e/e2fsprogs-1.46.5-3.cm2.x86_64.rpm",
+    "hash": "sha256-xq9SvSg7M6aeg/vmEooNAd9OEJ1sYr43y43aLU9klAs="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/e/e2fsprogs-libs-1.46.5-3.cm2.x86_64.rpm",
     "hash": "sha256-V4exraE0dMe3ddS8PVtzwsP4W3FsZBk//866Vcjv3As="
   },
@@ -116,12 +148,24 @@
     "hash": "sha256-n5K0N9UAPmPRQ5dIywnQ3IZPiLiRz57i2s0ImiYdnm4="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/f/file-5.40-2.cm2.x86_64.rpm",
+    "hash": "sha256-bcMQVAkvoY4aRazaQTNFLSf+eofMbYiZZTOIBi1xIo8="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/f/file-libs-5.40-2.cm2.x86_64.rpm",
     "hash": "sha256-d7J5iFwn/Sorzbl49E9u3n0z/Iw9dTzCdrQLYjzCLpU="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/f/filesystem-1.1-20.cm2.x86_64.rpm",
     "hash": "sha256-n6iNUlfrX2WRcQGA+fglFeOt44fG+89y4oz+v/rgHuI="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/f/findutils-4.8.0-5.cm2.x86_64.rpm",
+    "hash": "sha256-BO6S/wrhyFjXtSB/2kvIv/oNBKz7sYJzOmcjy9sJttQ="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/gdbm-1.21-1.cm2.x86_64.rpm",
+    "hash": "sha256-EabAF/yQigDCXyHjMz+0krDq4M10JHtMQqdNBWez5nM="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/glib-2.71.0-3.cm2.x86_64.rpm",
@@ -134,6 +178,14 @@
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/gmp-6.2.1-4.cm2.x86_64.rpm",
     "hash": "sha256-bnJ3D11SQi5WfnpuiSQFnLw8ssQ22ErcefG4IwdkS3o="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/gnupg2-2.4.0-2.cm2.x86_64.rpm",
+    "hash": "sha256-A3OX8UfloyDEgjPVcGN8xOWTrFLQqgOTChoL3HbX3cM="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/gpgme-1.16.0-2.cm2.x86_64.rpm",
+    "hash": "sha256-APEWBTJJoPn+qG8E3aNL/v88pY0B0+6zxRcnm57WTO8="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/grep-3.7-2.cm2.x86_64.rpm",
@@ -192,12 +244,24 @@
     "hash": "sha256-GubbB8lO6NJKURIn8hzJAWsshmR52aQniybY3alvO5k="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libarchive-3.6.1-4.cm2.x86_64.rpm",
+    "hash": "sha256-/P2GzBpY530yoHPHkihVCoGEMJvRYJXTFGxd6o870Os="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libassuan-2.5.5-2.cm2.x86_64.rpm",
+    "hash": "sha256-Vroe0tFtlgvGDstpMUYcSTKugkAbkV2VttURBVUBluw="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libcap-2.60-2.cm2.x86_64.rpm",
     "hash": "sha256-vh8o1sFZ0pNCx75g+1aeAvCH6fZib4cpu+0XATlK3wA="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libcap-ng-0.8.2-2.cm2.x86_64.rpm",
     "hash": "sha256-hbj5/nlIlftez1UU/h4//DEgELfz7HbpQ5qiLLcFG8I="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libdb-5.3.28-7.cm2.x86_64.rpm",
+    "hash": "sha256-8SHWMLtJtCXtbo44BFXlPIPTPmsm4zcnayKXd5FOo3c="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libedit-3.1.20210910-1.cm2.x86_64.rpm",
@@ -220,8 +284,16 @@
     "hash": "sha256-JpDOmG/y3I4mTpVcESf+DOmePuSkTyfmpSC9mZE85KU="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libksba-1.6.3-1.cm2.x86_64.rpm",
+    "hash": "sha256-swan1Euq7DG9z5SzyNdodfyJqKWoUQIH9q8KCNSVJ7k="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libmnl-1.0.4-6.cm2.x86_64.rpm",
     "hash": "sha256-qdDvZd5IjjmRNqv1ORGbp7vxqC6weBtUX99kL+xERK0="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libpkgconf-1.8.0-3.cm2.x86_64.rpm",
+    "hash": "sha256-MZi/sMPe+DFHws2FGAsDNLp6K4Uz+I7z9vpz9sm5UXQ="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libpwquality-1.4.4-1.cm2.x86_64.rpm",
@@ -244,6 +316,10 @@
     "hash": "sha256-iweA41BQuSYGkwEE7vD9GvUDSFnk1Hb+C2VZc/XsiCw="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libsolv-0.7.24-1.cm2.x86_64.rpm",
+    "hash": "sha256-KTqumlw9Rt1k9NYuf6KC9PCIcX7H2IzP5Gtr2RPGKz0="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libssh2-1.9.0-4.cm2.x86_64.rpm",
     "hash": "sha256-FAwwrXlYYoFPO8CkYdCW3ioR0h0JYNSiSqnxei6taSU="
   },
@@ -254,6 +330,10 @@
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libtasn1-4.19.0-1.cm2.x86_64.rpm",
     "hash": "sha256-a5Zc9qACmE2Uj+JNj1rvKjuBtxPmPCNz7KrzX/RywNY="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libtool-2.4.6-8.cm2.x86_64.rpm",
+    "hash": "sha256-NnaIVXLFLcX1YvDzlC/ySMOmQ/79AchaX3M3RzUF8zo="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libuv-1.43.0-2.cm2.x86_64.rpm",
@@ -268,6 +348,10 @@
     "hash": "sha256-PsSD81SHiCHWVrxXZ1kP4TnQaVQVbxt+ME/qkwch73c="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/lua-libs-5.4.4-1.cm2.x86_64.rpm",
+    "hash": "sha256-5YwCaHwNkA3dln09WoUv2Bg4mFIoCPu13rwS6Cgi4Ck="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/lvm2-2.03.15-3.cm2.x86_64.rpm",
     "hash": "sha256-Qro2ZHBptJFBtW6zUSmphkKJrbSVfUbnnAfKZAiVVjA="
   },
@@ -276,12 +360,40 @@
     "hash": "sha256-B9pc1N0WbufYfjCBtX1uca+TczWWEmuuT3Frgq/etjo="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-release-2.0-68.cm2.noarch.rpm",
+    "hash": "sha256-hpQbcYMD6EI/J7XmJUCbubVjVQH/LVv7HoWllK5mt7g="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-repos-2.0-9.cm2.noarch.rpm",
+    "hash": "sha256-DOlTg2FG+lREEZ3IL34g9j4FiGV8djgaOjD6VLa9Gak="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-repos-extras-2.0-9.cm2.noarch.rpm",
+    "hash": "sha256-rWD3EHg0vEKxDeLcSbIhSeWRK+Uuqay7nSGlFXJtlL4="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-repos-microsoft-2.0-9.cm2.noarch.rpm",
+    "hash": "sha256-DuX7mm5GsLUuR/X62smAM0Vv9oWZxFZ4SkVtcz3dd6E="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-repos-shared-2.0-9.cm2.noarch.rpm",
+    "hash": "sha256-ATNFrwjKKHl6xKxr9zu3xHJMqgOO3FU/SYOJ9eGqqcA="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/m/mariner-rpm-macros-2.0-25.cm2.noarch.rpm",
+    "hash": "sha256-vz1LyLbAXDBfBrcdFRcOvksc3fR+SNW4bQss14Uf10M="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/ncurses-6.4-3.cm2.x86_64.rpm",
     "hash": "sha256-/jW1NoknOOLlqkL1+ZuPM7/eC6XiWO3rfzWW3Dmq9YM="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/ncurses-libs-6.4-3.cm2.x86_64.rpm",
     "hash": "sha256-DZD0TQ6NQM8NBAzSN9QEDRjlvWAm7GMChsf4PM0+Ze4="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/net-tools-2.10-3.cm2.x86_64.rpm",
+    "hash": "sha256-YRIVTtyC2XBAfNd+GREt5ZcCAGUp5JvkUIZ8T6iKFTU="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/nettle-3.7.3-3.cm2.x86_64.rpm",
@@ -294,6 +406,18 @@
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/nghttp2-1.57.0-2.cm2.x86_64.rpm",
     "hash": "sha256-XuF58f/+HmhZRp/gZyigIZ3n701luhOuncZUTFDW0l4="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/npth-1.6-4.cm2.x86_64.rpm",
+    "hash": "sha256-mSkp1/58/hSRh7OtRPg9hn6+gETsKvLFImjD+H00bTc="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/openldap-2.4.57-9.cm2.x86_64.rpm",
+    "hash": "sha256-mkw/M94jLEIYwhFveetb2yq8FrUbAUBRxo7c8PZO6Uo="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/openssh-clients-8.9p1-6.cm2.x86_64.rpm",
+    "hash": "sha256-J1yAu+hXfR3LeafO06Efpwe2QnRYKKnj5FNQ5EH5pb8="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/openssl-1.1.1k-35.cm2.x86_64.rpm",
@@ -324,6 +448,22 @@
     "hash": "sha256-a+5GUpTEWh6gZekstJyoZLUJvdiDtq+1j/XghKWzz3Q="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/pinentry-1.2.0-1.cm2.x86_64.rpm",
+    "hash": "sha256-0xNVCMY6Nz766MmKPs0zBMq+mXtjw6SCio0tsc7vyMI="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/pkgconf-1.8.0-3.cm2.x86_64.rpm",
+    "hash": "sha256-CGvrVc0eIRs1tGXJvbn70rUSqi8To74HSElkzTXXR7c="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/pkgconf-m4-1.8.0-3.cm2.noarch.rpm",
+    "hash": "sha256-pvN4ywNh/eysI9qzKsJtFYvy5aNIP7XcRCVOR8T/d3Y="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/pkgconf-pkg-config-1.8.0-3.cm2.x86_64.rpm",
+    "hash": "sha256-hVvFRxsd6HEO+HcJASnNgxwyWsFT9tnWNZfiXkyyPMc="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/popt-1.18-1.cm2.x86_64.rpm",
     "hash": "sha256-ldYUsNFpIo5fC/09SIB3HbXH9F4a3eoO/KuYD62elqg="
   },
@@ -334,6 +474,14 @@
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/r/readline-8.1-1.cm2.x86_64.rpm",
     "hash": "sha256-qfmf8QCo83/QXkKIJAfJrMx2Vv6ozco0RlqpI1b4CTI="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/r/rpm-4.18.0-4.cm2.x86_64.rpm",
+    "hash": "sha256-Fx05hcb7qfoiz5UVFFWQcBf3/8EMlT8n//gWKPanQ9I="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/r/rpm-libs-4.18.0-4.cm2.x86_64.rpm",
+    "hash": "sha256-aGQ2tOfZZKewRLs9S4Q27f+ByXB2RsUGrFarmfbhZ40="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/s/sed-4.8-3.cm2.x86_64.rpm",
@@ -348,6 +496,14 @@
     "hash": "sha256-gTRB1RxZmn9AqvvLA1sB/8pdhEpz4tySH8nuS4TtoEA="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/s/sqlite-libs-3.39.2-3.cm2.x86_64.rpm",
+    "hash": "sha256-28fCucOtzXHZLKiryg79NVHhlmsKFJU1DGs7z75RMWI="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/s/sudo-1.9.15p5-1.cm2.x86_64.rpm",
+    "hash": "sha256-vLcX9e4wzILO54mC1U3OO+VYwwH0xfm0/KEO4zy3Z9k="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/s/systemd-250.3-21.cm2.x86_64.rpm",
     "hash": "sha256-YVg6D3xfaTDq4TtoPbNs3Ue+i4JhS0zPU0ftvjEuq1Y="
   },
@@ -360,6 +516,18 @@
     "hash": "sha256-yAfK4yvqbuXyyUivDPh8dt98M0ajqqgzmby2ajBO1FU="
   },
   {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/t/tdnf-3.5.2-4.cm2.x86_64.rpm",
+    "hash": "sha256-Wpe2F7lVB2V9T1VIRHVKoejvsxh/cjA6Xk3etVXE3fc="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/t/tdnf-cli-libs-3.5.2-4.cm2.x86_64.rpm",
+    "hash": "sha256-oyWs6IL0d5/ORUO3i5uh1VVwBTarOoXnshoZ/2zSYx4="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/t/tdnf-plugin-repogpgcheck-3.5.2-4.cm2.x86_64.rpm",
+    "hash": "sha256-HlKSuio9358b1S3RiSEwZ8mbSZbqy92fKRCYH36+jKM="
+  },
+  {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/t/tzdata-2024a-1.cm2.noarch.rpm",
     "hash": "sha256-OOfIUtDsDkrDSdJEC5FoM9TFA3FznvowI1ucaI+ToQg="
   },
@@ -370,6 +538,10 @@
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/u/util-linux-libs-2.37.4-9.cm2.x86_64.rpm",
     "hash": "sha256-wxO+hrh6t8+k45/mBrcj3a6hpkSkG8sakShB4hF87m0="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/w/which-2.21-8.cm2.x86_64.rpm",
+    "hash": "sha256-cvnjnOS2+DlZhGnAypznD7KyLM+Wv4AWMdwlyK8cEec="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/x/xz-5.2.5-1.cm2.x86_64.rpm",
