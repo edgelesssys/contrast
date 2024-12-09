@@ -1,39 +1,30 @@
-# Confidential emoji voting
+# Encrypted volume mount
 
-<!-- TODO(katexochen): create a screenshot with fixed format -->
+**This tutorial guides you through deploying a simple application with an
+encrypted MySQL database using the Contrast [workload
+secret](../architecture/secrets.md#workload-secrets).**
 
-![screenshot of the emojivoto UI](../_media/emoijvoto.png)
-
-**This tutorial guides you through deploying [emojivoto](https://github.com/BuoyantIO/emojivoto) as a
-confidential Contrast deployment and validating the deployment from a voter's perspective.**
-
-Emojivoto is an example app allowing users to vote for different emojis and view votes
-on a leader board. It has a microservice architecture consisting of a
-web frontend (`web`), a gRPC backend for listing available emojis (`emoji`), and a backend for
-the voting and leader board logic (`voting`). The `vote-bot` simulates user traffic by submitting
-votes to the frontend.
-
-Emojivoto can be seen as a lighthearted example of an app dealing with sensitive data.
-Contrast protects emojivoto in two ways. First, it shields emojivoto as a whole from the infrastructure, for example, Azure.
-Second, it can be configured to also prevent data access even from the administrator of the app. In the case of emojivoto, this gives assurance to users that their votes remain secret.
-
-<!-- TODO(katexochen): recreate in our design -->
-
-![emojivoto components topology](https://raw.githubusercontent.com/BuoyantIO/emojivoto/e490d5789086e75933a474b22f9723fbfa0b29ba/assets/emojivoto-topology.png)
+[MySQL](https://mysql.com) is an open-source database used to organize data into
+tables and quickly retrieve information about its content. All of the data in a
+MySQL database is stored in the `/var/lib/mysql` directory. In this example, we
+use the workload secret to setup an encrypted LUKS mount for the
+`/var/lib/mysql` directory to easily deploy an application with encrypted
+persistent storage using Contrast.
 
 ## Prerequisites
 
 - Installed Contrast CLI
 - A running Kubernetes cluster with support for confidential containers, either on [AKS](../getting-started/cluster-setup.md) or on [bare metal](../getting-started/bare-metal.md).
+- Installed MySQL CLI
 
-## Steps to deploy emojivoto with Contrast
+## Steps to deploy MySQL with Contrast
 
 ### Download the deployment files
 
-The emojivoto deployment files are part of the Contrast release. You can download them by running:
+The MySQL deployment files are part of the Contrast release. You can download them by running:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.yml --create-dirs --output-dir deployment
+curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/mysql-demo.yml --create-dirs --output-dir deployment
 ```
 
 ### Deploy the Contrast runtime
@@ -125,11 +116,8 @@ The deployment YAML shipped for this demo is already configured to be used with 
 A [runtime class](../components/runtime) `contrast-cc`
 was added to the pods to signal they should be run as Confidential Containers. During the generation process,
 the Contrast [Initializer](../components/overview.md#the-initializer) will be added as an init container to these
-workloads to facilitate the attestation and certificate pulling before the actual workload is started.
+workloads. It will attest the pod to the Coordinator and fetch the workload certificates and the workload secret.
 
-Further, the deployment YAML is also configured with the Contrast [service mesh](../components/service-mesh.md).
-The configured service mesh proxy provides transparent protection for the communication between
-the different components of emojivoto.
 :::
 
 ### Set the manifest
@@ -151,29 +139,35 @@ deployment hasn't been tampered with.
 On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
 :::
 
-### Deploy emojivoto
+### Deploy MySQL
 
-Now that the coordinator has a manifest set, which defines the emojivoto deployment as an allowed workload,
+Now that the coordinator has a manifest set, which defines the MySQL deployment as an allowed workload,
 we can deploy the application:
 
 ```sh
 kubectl apply -f deployment/
 ```
 
-:::note[Inter-deployment communication]
+:::note[Persistent workload secrets]
 
-The Contrast Coordinator issues mesh certificates after successfully validating workloads.
-These certificates can be used for secure inter-deployment communication. The Initializer
-sends an attestation report to the Coordinator, retrieves certificates and a private key in return
-and writes them to a `volumeMount`. The service mesh sidecar is configured to use the credentials
-from the `volumeMount` when communicating with other parts of the deployment over mTLS.
-The public facing frontend for voting uses the mesh certificate without client authentication.
+During the initialization process of the workload pod, the Contrast Initializer
+sends an attestation report to the Coordinator and retrieves a randomly
+generated workload secret, seeded with the workload secret ID specified in the
+manifest, and writes it to a secure in-memory `volumeMount`.
 
 :::
 
+The MySQL deployment is declared as a StatefulSet with a mounted block device.
+An init container running `cryptsetup` uses the workload secret at
+`/contrast/secrets/workload-secret-seed` to generate a key and setup the block
+device as a LUKS partition. Before starting the MySQL container, the init
+container uses the generated key to open the LUKS device, which is then mounted
+by the MySQL container. For the MySQL container, this process is completely
+transparent and works like mounting any other volume.
+
 ## Verifying the deployment as a user
 
-In different scenarios, users of an app may want to verify its security and identity before sharing data, for example, before casting a vote.
+In different scenarios, users of an app may want to verify its security and identity before sharing data, for example, before connecting to the database.
 With Contrast, a user only needs a single remote-attestation step to verify the deployment - regardless of the size or scale of the deployment.
 Contrast is designed such that, by verifying the Coordinator, the user transitively verifies those systems the Coordinator has already verified or will verify in the future.
 Successful verification of the Coordinator means that the user can be sure that the given manifest will be enforced.
@@ -203,95 +197,64 @@ On bare metal, the [coordinator policy hash](components/policies.md#platform-dif
 ### Auditing the manifest history and artifacts
 
 In the next step, the Coordinator configuration that was written by the `verify` command needs to be audited.
-A potential voter should inspect the manifest and the referenced policies. They could delegate
+A user of the application should inspect the manifest and the referenced policies. They could delegate
 this task to an entity they trust.
 
-### Connecting securely to the application
+### Connecting to the application
 
-After ensuring the configuration of the Coordinator fits the expectation, the user can securely connect
-to the application using the Coordinator's `mesh-ca.pem` as a trusted CA certificate.
-
-To access the web frontend, expose the service on a public IP address via a LoadBalancer service:
+To access the MySQL database from the command line, expose the service on a public IP address via a LoadBalancer service:
 
 ```sh
-frontendIP=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo "Frontend is available at  https://$frontendIP, you can visit it in your browser."
+mysqlIP=$(kubectl get svc mysql-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo "MySQL is available at the IP  $mysqlIP."
 ```
 
-Using `openssl`, the certificate of the service can be validated with the `mesh-ca.pem`:
+Using the `mysql` command line interface, you can connect to the database as the
+root user with the password specified in the deployment YAML (`password`).
 
 ```sh
-openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
+mysql -h $mysqlIP -u root -p
 ```
 
-## Updating the certificate SAN and the manifest (optional)
+:::warning
+Avoid including the MySQL root user password directly in the Kubernetes
+configuraiton files to prevent exposing sensitive credentials. Use [Kubernetes
+Secrets](https://kubernetes.io/docs/concepts/configuration/secret/) in
+production to securely manage and reference the password instead.
+:::
 
-By default, mesh certificates are issued with a wildcard DNS entry. The web frontend is accessed
-via load balancer IP in this demo. Tools like curl check the certificate for IP entries in the subject alternative name (SAN) field.
-Validation fails since the certificate contains no IP entries as a SAN.
-For example, a connection attempt using the curl and the mesh CA certificate with throw the following error:
+For a production environment, where the database only needs to be directly
+accessed by other confidential workloads, the [service
+mesh](../components/service-mesh.md) can be used to establish a secure
+connection between pods using the workload's certificates. When building a
+confidential application, please also refer to the [security
+considerations](../architecture/security-considerations.md).
+
+## Updating the deployment
+
+Because the workload secret is derived from the `WorkloadSecredID` specified in
+the manifest and not to an individual pod, once the pod restarts, the
+`cryptsetup` init container can deterministically generate the same key again
+and open the already partitioned LUKS device.
+For more information on using the workload secret, see [Workload
+Secrets](../architecture/secrets.md#workload-secrets).
+
+For example, after making changes to the deployment files, the runtime policies
+need to be regenerated with `contrast generate` and the new manifest needs to be
+set using `contrast set`.
 
 ```sh
-$ curl --cacert ./verify/mesh-ca.pem "https://${frontendIP}:443"
-curl: (60) SSL: no alternative certificate subject name matches target host name '203.0.113.34'
-```
-
-### Configuring the service SAN in the manifest
-
-The `Policies` section of the manifest maps policy hashes to a list of SANs. To enable certificate verification
-of the web frontend with tools like curl, edit the policy with your favorite editor and add the `frontendIP` to
-the list that already contains the `"web"` DNS entry:
-
-```diff
-   "Policies": {
-     ...
-     "99dd77cbd7fe2c4e1f29511014c14054a21a376f7d58a48d50e9e036f4522f6b": {
-       "SANs": [
-         "web",
--        "*"
-+        "*",
-+        "203.0.113.34"
-       ],
-       "WorkloadSecretID": "web"
-      },
-```
-
-### Updating the manifest
-
-Next, set the changed manifest at the coordinator with:
-
-```sh
+contrast generate deployment/
 contrast set -c "${coordinator}:1313" deployment/
 ```
 
-The Contrast Coordinator will rotate the mesh ca certificate on the manifest update. Workload certificates issued
-after the manifest update are thus issued by another certificate authority and services receiving the new CA certificate chain
-won't trust parts of the deployment that got their certificate issued before the update. This way, Contrast ensures
-that parts of the deployment that received a security update won't be infected by parts of the deployment at an older
-patch level that may have been compromised. The `mesh-ca.pem` is updated with the new CA certificate chain.
-
-:::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
-:::
-
-### Rolling out the update
-
-The Coordinator has the new manifest set, but the different containers of the app are still
-using the older certificate authority. The Contrast Initializer terminates after the initial attestation
-flow and won't pull new certificates on manifest updates.
-
-To roll out the update, use:
+The new deployment can then be applied by running:
 
 ```sh
-kubectl rollout restart deployment/emoji
-kubectl rollout restart deployment/vote-bot
-kubectl rollout restart deployment/voting
-kubectl rollout restart deployment/web
+kubectl rollout restart statefulset/mysql
 ```
 
-After the update has been rolled out, connecting to the frontend using curl will successfully validate
-the service certificate and return the HTML document of the voting site:
-
-```sh
-curl --cacert ./mesh-ca.pem "https://${frontendIP}:443"
-```
+The new MySQL pod will then start up the `cryptsetup` init container which
+receives the same workload secret as before and can therefore generate the
+correct key to open the LUKS device. All previously stored data in the MySQL
+database is available in the newly created pod in an encrypted volume mount.

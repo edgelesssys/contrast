@@ -473,3 +473,44 @@ func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 				WithPort(intstr.FromInt(15006))),
 		)
 }
+
+// CryptsetupInitCommand returns the init command for the cryptsetup
+// container to setup an encrypted LUKS mount.
+func CryptsetupInitCommand() string {
+	return `#!/bin/bash
+set -e
+# device is the path to the block device to be encrypted.
+device="/dev/csi0"
+# workload_secret_path is the path to the Contrast workload secret.
+workload_secret_path="/contrast/secrets/workload-secret-seed"
+# tmp_key_path is the path to a temporary key file.
+tmp_key_path="/dev/shm/key"
+# disk_encryption_key_path is the path to the disk encryption key.
+disk_encryption_key_path="/dev/shm/disk-key"
+
+# If the device is not already a LUKS device, format it.
+if ! cryptsetup isLuks "${device}"; then
+	# Generate a random key for the first initialization.
+	dd if=/dev/urandom bs=1 count=32 2>/dev/null | base64 -w0 > "${tmp_key_path}"
+	cryptsetup luksFormat --pbkdf-memory=10240 $device "${tmp_key_path}" </dev/null
+
+	uuid=$(blkid "${device}" -s UUID -o value)
+	openssl kdf -keylen 32 -kdfopt digest:SHA2-256 -kdfopt hexkey:$(cat "${workload_secret_path}") \
+		-kdfopt info:${uuid} -binary HKDF | base64 -w0 > "${disk_encryption_key_path}" 2>/dev/null
+	cryptsetup luksChangeKey --pbkdf-memory=10240 "${device}" --key-file "${tmp_key_path}" "${disk_encryption_key_path}"
+	cryptsetup open "${device}" state -d "${disk_encryption_key_path}"
+	mkfs.ext4 /dev/mapper/state
+	cryptsetup close state
+fi
+
+# No matter if this is the first initialization derive the key (again) and open the device.
+uuid=$(blkid "${device}" -s UUID -o value)
+openssl kdf -keylen 32 -kdfopt digest:SHA2-256 -kdfopt hexkey:$(cat "${workload_secret_path}") \
+	-kdfopt info:${uuid} -binary HKDF | base64 -w0 > "${disk_encryption_key_path}" 2>/dev/null
+cryptsetup luksUUID "${device}"
+cryptsetup open "${device}" state -d "${disk_encryption_key_path}"
+mount /dev/mapper/state /state
+touch /done
+sleep inf
+`
+}
