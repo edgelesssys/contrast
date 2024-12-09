@@ -6,6 +6,7 @@ on:
     - cron: "16 6 * * 6" # 6:16 on Saturdays
   pull_request:
     paths:
+      - .github/workflows/e2e_aks_runtime.yml
       - e2e/aks-runtime/**
 
 env:
