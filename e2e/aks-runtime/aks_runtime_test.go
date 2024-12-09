@@ -124,6 +124,8 @@ func TestAKSRuntime(t *testing.T) {
 	})
 
 	pods, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	t.Log(pods)
+	t.Log(err)
 	require.NoError(err)
 	require.Len(pods.Items, 1)
 	pod := pods.Items[0] // only one pod was deployed
