@@ -23,7 +23,6 @@ in
         "basic.target"
         "tmp.mount"
         "kata-agent.service"
-        "multi-user.target"
       ];
       wantedBy = [ "basic.target" ];
       wants = [
@@ -36,7 +35,6 @@ in
         "rescue.target"
       ];
       after = [
-        "multi-user.target"
         "basic.target"
         "rescue.service"
         "rescue.target"
@@ -44,7 +42,27 @@ in
       unitConfig.AllowIsolate = true;
     };
 
-    # https://github.com/kata-containers/kata-containers/blob/3.10.1/src/agent/kata-agent.service.in
+    # The DHCP daemon, which is pulled in via `multi-user.target` may overwrite
+    # the network settings of the PodVM, which are given by an agent call, and
+    # thus should not be overwritten by settings gathered via DHCP.
+    # networking.dhcpcd.enable = false;
+    # services.nscd.enable = false;
+    # system.nssModules = lib.mkForce [ ];
+
+    # # We don't want a virtual console to be set up, as this breaks the vsock-based
+    # # debug shell set up by the Kata agent. An interactive session in the podvm is
+    # # of no use anyway, as its consoles are not connected to anything besides the
+    # # vsock anyway.
+    # console.enable = false;
+    # systemd.services."systemd-user-sessions".enable = false;
+    # systemd.services."reload-systemd-vconsole-setup".enable = false;
+    # systemd.services."systemd-logind".enable = false;
+    # systemd.services."rescue".enable = false;
+    # systemd.targets."rescue".enable = false;
+    # systemd.targets."machines".enable = false;
+    # systemd.targets."network-online".enable = false;
+    # systemd.sockets."nix-daemon".enable = false;
+
     systemd.services.kata-agent = {
       description = "Kata Containers Agent";
       documentation = [ "https://github.com/kata-containers/kata-containers" ];
