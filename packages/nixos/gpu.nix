@@ -20,24 +20,23 @@ let
       util-linux
       jq
     ];
-    text =
-      ''
-        # Reads from the state JSON supplied on stdin.
-        bundle="$(jq -r .bundle)"
-        rootfs="$bundle/rootfs"
-        id="$(basename "$bundle")"
+    text = ''
+      # Reads from the state JSON supplied on stdin.
+      bundle="$(jq -r .bundle)"
+      rootfs="$bundle/rootfs"
+      id="$(basename "$bundle")"
 
-        lower=/nix/store
-        target="$rootfs$lower"
-        mkdir -p "$target"
+      lower=/nix/store
+      target="$rootfs$lower"
+      mkdir -p "$target"
 
-        overlays="/run/kata-containers/nix-overlays/$id"
-        upperdir="$overlays/upperdir"
-        workdir="$overlays/workdir"
-        mkdir -p "$upperdir" "$workdir"
+      overlays="/run/kata-containers/nix-overlays/$id"
+      upperdir="$overlays/upperdir"
+      workdir="$overlays/workdir"
+      mkdir -p "$upperdir" "$workdir"
 
-        mount -t overlay -o "lowerdir=$lower:$target,upperdir=$upperdir,workdir=$workdir" none "$target"
-      '';
+      mount -t overlay -o "lowerdir=$lower:$target,upperdir=$upperdir,workdir=$workdir" none "$target"
+    '';
   };
 in
 
@@ -67,7 +66,10 @@ in
     # Configure the persistenced for use with CC GPUs (e.g. H100).
     # TODO(msanft): This needs to be adjusted for non-CC-GPUs.
     # See: https://docs.nvidia.com/cc-deployment-guide-snp.pdf (Page 23 & 24)
-    systemd.services."nvidia-persistenced".serviceConfig.ExecStart = lib.mkForce "${lib.getExe config.hardware.nvidia.package.persistenced} --uvm-persistence-mode --verbose";
+    systemd.services."nvidia-persistenced" = {
+      wantedBy = [ "kata-containers.target" ];
+      serviceConfig.ExecStart = lib.mkForce "${lib.getExe config.hardware.nvidia.package.persistenced} --uvm-persistence-mode --verbose";
+    };
 
     hardware.graphics.enable = true;
     hardware.nvidia-container-toolkit.enable = true;
