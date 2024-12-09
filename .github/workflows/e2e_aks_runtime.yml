@@ -40,6 +40,7 @@ jobs:
           cat <<EOF > justfile.env
           container_registry=${{ env.container_registry }}
           azure_resource_group=${{ env.azure_resource_group }}
+          default_platform=AKS-CLH-SNP
           EOF
       - name: Get credentials for CI cluster
         run: |
@@ -52,7 +53,7 @@ jobs:
           echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
       - name: Build and prepare deployments
         run: |
-          nix shell .#just --command just coordinator initializer port-forwarder openssl cryptsetup service-mesh-proxy node-installer AKS-CLH-SNP
+          nix shell .#just --command just coordinator initializer port-forwarder openssl cryptsetup service-mesh-proxy node-installer
       # steps taken from https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt#option-2-step-by-step-installation-instructions
       - name: Install `az` with extensions
         run: |
