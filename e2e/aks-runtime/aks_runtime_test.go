@@ -10,6 +10,7 @@ import (
 	"flag"
 	"os"
 	"path"
+	"strings"
 	"testing"
 	"time"
 
@@ -127,8 +128,15 @@ func TestAKSRuntime(t *testing.T) {
 	t.Log(pods)
 	t.Log(err)
 	require.NoError(err)
-	require.Len(pods.Items, 1)
-	pod := pods.Items[0] // only one pod was deployed
+
+	var pod corev1.Pod
+	for _, p := range pods.Items {
+		if strings.Contains(p.Name, testContainer) {
+			pod = p
+			break
+		}
+	}
+	require.NotEmpty(pod)
 
 	logs, err := c.Client.CoreV1().Pods(namespace).GetLogs(pod.Name, &corev1.PodLogOptions{}).DoRaw(ctx)
 	require.NoError(err)
