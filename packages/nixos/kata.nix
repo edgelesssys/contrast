@@ -23,7 +23,6 @@ in
         "basic.target"
         "tmp.mount"
         "kata-agent.service"
-        "multi-user.target"
       ];
       wantedBy = [ "basic.target" ];
       wants = [
@@ -36,7 +35,6 @@ in
         "rescue.target"
       ];
       after = [
-        "multi-user.target"
         "basic.target"
         "rescue.service"
         "rescue.target"
