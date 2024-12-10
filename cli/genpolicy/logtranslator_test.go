@@ -11,11 +11,12 @@ import (
 
 func TestGenpolicyLogPrefixReg(t *testing.T) {
 	testCases := []struct {
-		logLine      string
-		wantMatch    bool
-		wantLevel    string
-		wantPosition string
-		wantMessage  string
+		logLine              string
+		wantMatch            bool
+		wantLevel            string
+		wantPosition         string
+		wantMessage          string
+		wantNoPrefixErrMatch bool
 	}{
 		{
 			logLine:      `[2024-06-26T09:09:40Z INFO  genpolicy::registry] ============================================`,
@@ -53,6 +54,11 @@ func TestGenpolicyLogPrefixReg(t *testing.T) {
 			wantMessage:  "Using cache file",
 		},
 		{
+			logLine:              `thread 'main' panicked at src/registry.rs:131:17:`,
+			wantMatch:            false,
+			wantNoPrefixErrMatch: true,
+		},
+		{
 			logLine:   `Success!"`,
 			wantMatch: false,
 		},
@@ -66,6 +72,9 @@ func TestGenpolicyLogPrefixReg(t *testing.T) {
 
 			if !tc.wantMatch {
 				assert.Nil(match)
+				if tc.wantNoPrefixErrMatch {
+					assert.True(errorMessage.MatchString(tc.logLine))
+				}
 				return
 			}
 			assert.Len(match, 4)

@@ -33,18 +33,40 @@ func (l logTranslator) Write(p []byte) (n int, err error) {
 	return l.w.Write(p)
 }
 
-var genpolicyLogPrefixReg = regexp.MustCompile(`^\[[^\]\s]+\s+(\w+)\s+([^\]\s]+)\] (.*)`)
+var (
+	genpolicyLogPrefixReg = regexp.MustCompile(`^\[[^\]\s]+\s+(\w+)\s+([^\]\s]+)\] (.*)`)
+	errorMessage          = regexp.MustCompile(`^thread\s+'main'\s+panicked\s+at`)
+)
 
 func (l logTranslator) startTranslate() {
 	go func() {
 		defer close(l.stopDoneC)
 		scanner := bufio.NewScanner(l.r)
+		// Default log level is initially set to 'WARN'. This is only relevant if the first line does not match the logging pattern.
+		logLevel := "WARN"
+
 		for scanner.Scan() {
 			line := scanner.Text()
 			match := genpolicyLogPrefixReg.FindStringSubmatch(line)
 			if len(match) != 4 {
 				// genpolicy prints some warnings without the logger
-				l.logger.Warn(line)
+				// we continue logging on the latest used log-level
+
+				// Error is written to stderr by genpolicy without using the logger,
+				// simple regex to detect the error message on stderr
+				if errorMessage.MatchString(line) {
+					logLevel = "ERROR"
+				}
+				switch logLevel {
+				case "ERROR":
+					l.logger.Error(line)
+				case "WARN":
+					l.logger.Warn(line)
+				case "INFO":
+					fallthrough
+				case "DEBUG":
+					l.logger.Debug(line)
+				}
 			} else {
 				switch match[1] {
 				case "ERROR":
@@ -56,7 +78,10 @@ func (l logTranslator) startTranslate() {
 				case "DEBUG":
 					l.logger.Debug(match[3], "position", match[2])
 				}
+				// Update the latest log level
+				logLevel = match[1]
 			}
+
 		}
 	}()
 }
