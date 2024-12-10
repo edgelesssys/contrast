@@ -191,11 +191,11 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
-		snapshotter = tardevSnapshotter
+		containers = append(containers, tardevSnapshotter)
 		volumes = tardevSnapshotterVolumes
 	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
-		snapshotter = nydusSnapshotter
+		containers = append(containers, nydusSnapshotter)
 		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes, Volume().
 			WithName("var-lib-containerd").
 			WithHostPath(HostPathVolumeSource().
@@ -205,7 +205,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		volumes = nydusSnapshotterVolumes
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
-		snapshotter = nydusSnapshotter
+		containers = append(containers, nydusSnapshotter)
 		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes, Volume().
 			WithName("var-lib-containerd").
 			WithHostPath(HostPathVolumeSource().
@@ -215,7 +215,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		volumes = nydusSnapshotterVolumes
 	case platforms.AKSPeerSNP:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
-		containers = []*applycorev1.ContainerApplyConfiguration{nydusSnapshotter, cloudAPIAdaptor}
+		containers = append(containers, nydusSnapshotter, cloudAPIAdaptor)
 		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes, Volume().
 			WithName("var-lib-containerd").
 			WithHostPath(HostPathVolumeSource().
