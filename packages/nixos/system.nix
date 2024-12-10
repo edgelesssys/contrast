@@ -47,6 +47,7 @@
       "/" = {
         device = "/dev/mapper/root";
         fsType = "erofs";
+        options = [ "ro" ];
       };
     }
     # Create tmpfs on directories that need to be writable for activation.
@@ -71,10 +72,6 @@
           "/lib64"
         ]
     );
-
-  # We cant remount anything in the userspace, as we already
-  # have the rootfs mounted read-only from the initrd.
-  systemd.suppressedSystemUnits = [ "systemd-remount-fs.service" ];
 
   networking.firewall.enable = false;
 
