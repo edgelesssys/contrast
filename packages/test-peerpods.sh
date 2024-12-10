@@ -22,22 +22,25 @@ EOF
 just create AKS-PEER-SNP
 just get-credentials AKS-PEER-SNP
 just node-installer AKS-PEER-SNP
+just runtime default AKS-PEER-SNP
+just apply-runtime default AKS-PEER-SNP
 
 set +x
-found=false
-for _ in $(seq 30); do
-  if kubectl get runtimeclass | grep -q kata-remote; then
-    found=true
-    break
-  fi
-  echo "Waiting for Kata installation to succeed ..."
-  sleep 10
-done
+runtime=$(kubectl get runtimeclass -o json | jq -r '.items[] | .metadata.name | select(startswith("contrast-cc-aks-peer"))')
 
-if [[ $found != true ]]; then
-  echo "Kata RuntimeClass not ready" >&2
+if [[ $runtime == "" ]]; then
+  echo "Contrast RuntimeClass not ready" >&2
   exit 1
 fi
+
+kubectl wait "--for=jsonpath={.status.numberReady}=1" ds/contrast-node-installer --timeout=5m
+
+cleanup() {
+  kubectl delete deploy alpine
+  kubectl wait --for=delete pod --selector=app=alpine --timeout=5m
+}
+
+trap cleanup EXIT
 
 run_tests() {
   pod="$(kubectl get pod -l app=alpine -o jsonpath='{.items[0].metadata.name}')"
@@ -46,13 +49,6 @@ run_tests() {
   # -f makes this fail on a 500 status code.
   kubectl exec "$pod" -- curl -f -i -H "Metadata: true" http://169.254.169.254/metadata/THIM/amd/certification
 }
-
-cleanup() {
-  kubectl delete deploy alpine
-  kubectl wait --for=delete pod --selector=app=alpine --timeout=5m
-}
-
-trap cleanup EXIT
 
 set -x
 
@@ -71,17 +67,17 @@ spec:
       labels:
         app: alpine
     spec:
-      runtimeClassName: kata-remote
+      runtimeClassName: "$runtime"
       containers:
       - name: alpine
         image: alpine/curl
         imagePullPolicy: Always
-        command: ["sleep", "3600"]
+        command: ["sleep", "infinity"]
 EOF
 
 if ! kubectl wait --for=condition=available --timeout=5m deployment/alpine; then
   kubectl describe pods
-  kubectl logs -n confidential-containers-system -l app=cloud-api-adaptor --tail=-1 --all-containers
+  kubectl logs -l app.kubernetes.io/name=contrast-node-installer --tail=-1 --all-containers
   exit 1
 fi
 

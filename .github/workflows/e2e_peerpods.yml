@@ -6,6 +6,11 @@ on:
       image-id:
         description: "ID of the guest VM image to test (default: build a fresh image)"
         required: false
+      skip-undeploy:
+        description: "Skip undeploy"
+        required: false
+        type: boolean
+        default: false
   pull_request:
     paths:
       - .github/workflows/e2e_peerpods.yml
@@ -18,8 +23,17 @@ on:
 jobs:
   test:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -34,7 +48,9 @@ jobs:
           azure_image_id: ${{ inputs.image-id }}
           azure_resource_group: contrast-ci
           azure_location: germanywestcentral
+          container_registry: ghcr.io/edgelesssys
           CONTRAST_CACHE_DIR: "./workspace.cache"
+          DO_NOT_TRACK: 1
         run: |
           ssh-keygen -t rsa -f ./infra/azure-peerpods/id_rsa -N ""
           cat >infra/azure-peerpods/iam.auto.tfvars <<EOF
@@ -45,6 +61,6 @@ jobs:
           EOF
           nix run .#scripts.test-peerpods
       - name: Terminate cluster
-        if: always()
+        if: always() && !inputs.skip-undeploy
         run: |
           nix run -L .#terraform -- -chdir=infra/azure-peerpods destroy --auto-approve
