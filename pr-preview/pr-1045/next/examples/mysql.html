@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.6.3">
 <title data-rh="true">Encrypted volume mount | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/pr-preview/pr-1045/next/examples/mysql"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Encrypted volume mount | Contrast"><meta data-rh="true" name="description" content="This tutorial guides you through deploying a simple application with an"><meta data-rh="true" property="og:description" content="This tutorial guides you through deploying a simple application with an"><link data-rh="true" rel="icon" href="/contrast/pr-preview/pr-1045/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1045/next/examples/mysql"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1045/next/examples/mysql" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1045/next/examples/mysql" hreflang="x-default"><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-1045/assets/css/styles.e9486642.css">
-<script src="/contrast/pr-preview/pr-1045/assets/js/runtime~main.74015005.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-1045/assets/js/runtime~main.22e7e046.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-1045/assets/js/main.84d8a5b5.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -18,6 +18,14 @@ MySQL database is stored in the <code>/var/lib/mysql</code> directory. In this e
 use the workload secret to setup an encrypted LUKS mount for the
 <code>/var/lib/mysql</code> directory to easily deploy an application with encrypted
 persistent storage using Contrast.</p>
+<p>The resources provided in this demo are designed for educational purposes and
+should not be used in a production environment without proper evaluation. When
+working with persistent storage, regular backups are recommended in order to
+prevent data loss. For confidential applications, please also refer to the
+<a href="/contrast/pr-preview/pr-1045/next/architecture/security-considerations">security considerations</a>. Also be
+aware of the differences in security implications of the workload secrets for
+the data owner and the workload owner. For more details, see the <a href="/contrast/pr-preview/pr-1045/next/architecture/secrets#workload-secrets">Workload
+Secrets</a> documentation.</p>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="prerequisites">Prerequisites<a href="#prerequisites" class="hash-link" aria-label="Direct link to Prerequisites" title="Direct link to Prerequisites">​</a></h2>
 <ul>
 <li>Installed Contrast CLI</li>
@@ -111,9 +119,7 @@ production to securely manage and reference the password instead.</p></div></div
 <p>For a production environment, where the database only needs to be directly
 accessed by other confidential workloads, the <a href="/contrast/pr-preview/pr-1045/next/components/service-mesh">service
 mesh</a> can be used to establish a secure
-connection between pods using the workload&#x27;s certificates. When building a
-confidential application, please also refer to the <a href="/contrast/pr-preview/pr-1045/next/architecture/security-considerations">security
-considerations</a>.</p>
+connection between pods using the workload&#x27;s certificates.</p>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="updating-the-deployment">Updating the deployment<a href="#updating-the-deployment" class="hash-link" aria-label="Direct link to Updating the deployment" title="Direct link to Updating the deployment">​</a></h2>
 <p>Because the workload secret is derived from the <code>WorkloadSecredID</code> specified in
 the manifest and not to an individual pod, once the pod restarts, the
