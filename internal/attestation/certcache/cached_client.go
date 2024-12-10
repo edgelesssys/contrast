@@ -44,25 +44,33 @@ func (c *CachedHTTPSGetter) Get(url string) ([]byte, error) {
 	default:
 	}
 
-	// Don't cache CRLs. Unlike VCEKs, these can change over time and the KDS
-	// doesn't rate-limit requests to these.
-	canCache := !crlURL.MatchString(url)
-
-	if canCache {
+	if crlURL.MatchString(url) {
+		// For CRLs always query. When request failure, fallback to cache.
+		c.logger.Debug("Request CRL", "url", url)
+		res, err := c.HTTPSGetter.Get(url)
+		if err == nil {
+			c.cache.Set(url, res)
+			return res, nil
+		}
+		c.logger.Warn("Could not reach KDS", "error", err)
 		if cached, ok := c.cache.Get(url); ok {
-			c.logger.Debug("Get cached", "url", url)
+			c.logger.Debug("CRL request failed, fallback to cached CRL", "url", url)
 			return cached, nil
 		}
+		c.logger.Debug("CRL request failed and CRL was not found in cache", "url", url)
+		return nil, err
 	}
-
-	c.logger.Debug("Get not cached", "url", url)
+	// For VCEK get cache first and request if not present
+	if cached, ok := c.cache.Get(url); ok {
+		c.logger.Debug("Get cached VCEK", "url", url)
+		return cached, nil
+	}
+	c.logger.Debug("Request VCEK, missing in cache", "url", url)
 	res, err := c.HTTPSGetter.Get(url)
 	if err != nil {
 		return nil, err
 	}
-	if canCache {
-		c.cache.Set(url, res)
-	}
+	c.cache.Set(url, res)
 	return res, nil
 }
 
