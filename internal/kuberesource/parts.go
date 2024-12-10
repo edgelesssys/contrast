@@ -82,11 +82,6 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 			),
 	}
 
-	containerdPath := "/var/lib/rancher/k3s/agent/containerd"
-	if platform == platforms.AKSPeerSNP {
-		containerdPath = "/var/lib/containerd"
-	}
-
 	nydusSnapshotter := Container().
 		WithName("nydus-snapshotter").
 		WithImage("ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest").
