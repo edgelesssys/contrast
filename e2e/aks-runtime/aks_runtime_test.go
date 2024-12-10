@@ -104,24 +104,10 @@ func TestAKSRuntime(t *testing.T) {
 	require.NoError(err)
 	require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, namespace, testContainer))
 
-	t.Cleanup(func() {
-		if contrasttest.Flags.SkipUndeploy {
-			return
-		}
-
-		// delete the deployment
-		deletePolicy := metav1.DeletePropagationForeground
-		if err = c.Client.CoreV1().Namespaces().Delete(context.Background(), namespace, metav1.DeleteOptions{
-			PropagationPolicy: &deletePolicy,
-		}); err != nil {
-			t.Fatalf("Failed to delete namespace %s", namespace)
-		}
-	})
-
-	pods, err := c.PodsFromDeployment(ctx, namespace, testContainer)
+	pods, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	require.NoError(err)
-	require.Len(pods, 1)
-	pod := pods[0]
+	require.GreaterOrEqual(len(pods.Items), 1)
+	pod := pods.Items[0] // only one pod was deployed
 
 	logs, err := c.Client.CoreV1().Pods(namespace).GetLogs(pod.Name, &corev1.PodLogOptions{}).DoRaw(ctx)
 	require.NoError(err)

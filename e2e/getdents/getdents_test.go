@@ -28,6 +28,8 @@ const (
 	getdent = "getdents-tester"
 )
 
+var imageReplacementsFile, namespaceFile, platformStr string
+
 func TestGetDEnts(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)

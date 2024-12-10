@@ -24,6 +24,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var imageReplacementsFile, namespaceFile, platformStr string
+
 // TestGenpolicy runs regression tests for generated policies.
 func TestGenpolicy(t *testing.T) {
 	testCases := kuberesource.GenpolicyRegressionTests()

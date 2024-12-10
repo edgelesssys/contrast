@@ -453,10 +453,10 @@
         namespace="$(head -n1 "$2")"
         pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
         mkdir -p ./workspace/logs
-        kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod" 1>/dev/null 2>/dev/null
-        kubectl exec -n "$namespace" "$pod" -- /bin/bash -c "rm -f /exported-logs.tar.gz; tar zcvf /exported-logs.tar.gz /export" 1>/dev/null 2>/dev/null
-        kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz 1>/dev/null 2>/dev/null
-        tar xzvf ./workspace/logs/exported-logs.tar.gz --directory ./workspace/logs 1>/dev/null 2>/dev/null
+        kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod"
+        kubectl exec -n "$namespace" "$pod" -- /bin/bash -c "rm -f /exported-logs.tar.gz; tar zcvf /exported-logs.tar.gz /export"
+        kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz
+        tar xzvf ./workspace/logs/exported-logs.tar.gz --directory ./workspace/logs
         ;;
       *)
         echo "Unknown option $1"
