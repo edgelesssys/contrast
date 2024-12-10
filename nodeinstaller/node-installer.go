@@ -215,11 +215,7 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	case platforms.AKSCloudHypervisorSNP:
 		snapshotterName = fmt.Sprintf("tardev-%s", runtimeHandler)
 		socketName = fmt.Sprintf("/run/containerd/tardev-snapshotter-%s.sock", runtimeHandler)
-<<<<<<< HEAD
-	case platforms.MetalQEMUTDX, platforms.MetalQEMUSNP, platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
-=======
-	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX, platforms.AKSPeerSNP:
->>>>>>> ad38711d5 (Reapply "node-installer: support AKS-PEER-SNP when patching containerd config")
+	case platforms.AKSPeerSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNP, platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
 		snapshotterName = fmt.Sprintf("nydus-%s", runtimeHandler)
 		socketName = fmt.Sprintf("/run/containerd/containerd-nydus-grpc-%s.sock", runtimeHandler)
 
