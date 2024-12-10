@@ -25,8 +25,6 @@ import (
 
 const testContainer = "testcontainer"
 
-var imageReplacementsFile, namespaceFile, _platformStr string
-
 func TestAKSRuntime(t *testing.T) {
 	require := require.New(t)
 
@@ -117,9 +115,7 @@ func TestAKSRuntime(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	flag.StringVar(&imageReplacementsFile, "image-replacements", "", "path to image replacements file")
-	flag.StringVar(&namespaceFile, "namespace-file", "", "file to store the namespace in")
-	flag.StringVar(&_platformStr, "platform", "", "Deployment platform")
+	contrasttest.RegisterFlags()
 	flag.Parse()
 
 	os.Exit(m.Run())

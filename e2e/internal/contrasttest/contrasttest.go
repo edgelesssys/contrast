@@ -41,7 +41,6 @@ type testFlags struct {
 	ImageReplacementsFile string
 	NamespaceFile         string
 	NamespaceSuffix       string
-	SkipUndeploy          bool
 }
 
 // RegisterFlags registers the flags that are shared between all tests.
@@ -50,7 +49,6 @@ func RegisterFlags() {
 	flag.StringVar(&Flags.NamespaceFile, "namespace-file", "", "file to store the namespace in")
 	flag.StringVar(&Flags.NamespaceSuffix, "namespace-suffix", "", "suffix to append to the namespace")
 	flag.StringVar(&Flags.PlatformStr, "platform", "", "Deployment platform")
-	flag.BoolVar(&Flags.SkipUndeploy, "skip-undeploy", false, "Skip undeploying the test namespace")
 }
 
 // ContrastTest is the Contrast test helper struct.
@@ -79,7 +77,7 @@ func New(t *testing.T) *ContrastTest {
 		WorkDir:               t.TempDir(),
 		ImageReplacementsFile: Flags.ImageReplacementsFile,
 		Platform:              platform,
-		NamespaceFile:         namespaceFile,
+		NamespaceFile:         Flags.NamespaceFile,
 		Kubeclient:            kubeclient.NewForTest(t),
 	}
 }
