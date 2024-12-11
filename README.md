@@ -69,8 +69,8 @@ See the current list of [known limitations](https://docs.edgeless.systems/contra
 
 ## Upcoming Contrast features
 
-- Plugin for a key management service (KMS) for attestation/coordinator certificate-based key release
-- High availability (distributed Contrast Coordinator)
+* Plugin for a key management service (KMS) for attestation/coordinator certificate-based key release
+* High availability (distributed Contrast Coordinator)
 
 ## Contributing
 
@@ -83,3 +83,10 @@ Please follow the [Code of Conduct](/CODE_OF_CONDUCT.md).
 * Please file an [issue](https://github.com/edgelesssys/contrast/issues) to get help or report a bug.
 * Visit our [blog](https://www.edgeless.systems/blog/) for technical deep-dives and tutorials and follow us on [LinkedIn](https://www.linkedin.com/company/edgeless-systems) for news.
 * Edgeless Systems also offers [Enterprise Support](https://www.edgeless.systems/products/contrast/).
+
+## License
+
+Contrast follows the open-core model.
+The core project is licensed under AGPLv3.
+The Enterprise Edition is licensed under BUSL-1.1.
+See the [LICENSE](LICENSE) file for details.
