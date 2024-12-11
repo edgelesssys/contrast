@@ -65,7 +65,12 @@ rustPlatform.buildRustPackage rec {
       # This will be achieved when updating oci_distribution to oci_client crate on microsoft/kata-containers fork.
       # kata/kata-runtime/0011-genpolicy-bump-oci-distribution-to-v0.12.0.patch introduces this update to kata-containers.
       # After upstreaming, microsoft/kata-containers fork would need to pick up the changes.
-      ./0008-genpolicy-include-reference-in-logs-when-auth-failure.patch
+      ./0008-genpolicy-include-reference-in-logs-when-auth-failur.patch
+
+      # Simple genpolicy logging redaction of the policy annotation
+      # This avoids printing the entire annotation on log level debug, which resulted in errors of the logtranslator.go
+      # TODO(jmxnzo): remove when https://github.com/kata-containers/kata-containers/pull/10647 is picked up by microsoft/kata-containers fork
+      ./0009-genpolicy-do-not-log-policy-annotation-in-debug.patch
     ];
   };
 
