@@ -62,6 +62,7 @@ spec:
     matchLabels:
       app: alpine
   replicas: 1
+  minReadySeconds: 60
   template:
     metadata:
       labels:
@@ -70,7 +71,7 @@ spec:
       runtimeClassName: "$runtime"
       containers:
       - name: alpine
-        image: alpine/curl
+        image: alpine/curl@sha256:b5b6a32ca3986d4d8f3af31bf9cdb6ec28c345130bd57a7130eaeca7ce64da4e
         imagePullPolicy: Always
         command: ["sleep", "infinity"]
 EOF
