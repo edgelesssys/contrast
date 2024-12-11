@@ -36,6 +36,7 @@ type Config struct {
 
 // NewConfig selects the appropriate genpolicy configuration for the target platform.
 func NewConfig(platform platforms.Platform) *Config {
+	// MARKER(burgerdev): platform used to switch the embedded genpolicy (real info bit: MSFT vs Kata)
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		return &Config{

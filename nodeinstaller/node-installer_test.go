@@ -30,6 +30,7 @@ func TestPatchContainerdConfig(t *testing.T) {
 		expected []byte
 		wantErr  bool
 	}{
+		// MARKER(burgerdev): platform used to decide expected containerd config for tests.
 		"AKSCLHSNP": {
 			platform: platforms.AKSCloudHypervisorSNP,
 			expected: expectedConfAKSCLHSNP,

@@ -103,6 +103,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 		return fmt.Errorf("creating directory %q: %w", kataConfigPath, err)
 	}
 	var containerdConfigPath string
+	// MARKER(burgerdev): platform used to decide kataConfigPath (real info bits: hypervisor and attestation) and containerdConfigPath (real info bit: host containerd setup)
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-clh-snp.toml")
@@ -144,6 +145,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 		return nil
 	}
 
+	// MARKER(burgerdev): platform used to decide which containerd unit to restart (real info bit: host containerd setup)
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP, platforms.MetalQEMUSNP, platforms.MetalQEMUTDX:
 		return restartHostContainerd(containerdConfigPath, "containerd")
@@ -208,6 +210,8 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	}
 
 	var snapshotterName, socketName string
+	// MARKER(burgerdev): platform used to decide which snapshotter to use (real info bit: MSFT vs Kata)
+	// TODO(burgerdev): the 1:1 relationship between snapshotter and platform might not stay.
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		snapshotterName = fmt.Sprintf("tardev-%s", runtimeHandler)

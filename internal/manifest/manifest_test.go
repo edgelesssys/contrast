@@ -72,6 +72,7 @@ func TestPolicy(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
+	// MARKER(burgerdev): arbitrary choice for testing
 	mnf, err := Default(platforms.AKSCloudHypervisorSNP)
 	require.NoError(t, err)
 
@@ -129,6 +130,7 @@ func TestAKSValidateOpts(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
+	// MARKER(burgerdev): arbitrary choice for testing
 	m, err := Default(platforms.AKSCloudHypervisorSNP)
 	require.NoError(err)
 

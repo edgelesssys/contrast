@@ -29,6 +29,7 @@ func ContrastRuntimeClass(platform platforms.Platform) (*RuntimeClassConfig, err
 		WithLabels(map[string]string{"addonmanager.kubernetes.io/mode": "Reconcile"}).
 		WithOverhead(Overhead(corev1.ResourceList{"memory": resource.MustParse("1152Mi")}))
 
+	// MARKER(burgerdev): platform used to patch runtimeclass (real info bit: MSFT vs Kata)
 	if platform == platforms.AKSCloudHypervisorSNP {
 		r.WithScheduling(Scheduling(map[string]string{"kubernetes.azure.com/kata-cc-isolation": "true"}))
 	}
@@ -121,6 +122,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 	var nodeInstallerImageURL string
 	var snapshotter *applycorev1.ContainerApplyConfiguration
 	var snapshotterVolumes []*applycorev1.VolumeApplyConfiguration
+	// MARKER(burgerdev): platform used to decide which node-installer container image to use (real info bit: MSFT vs Kata)
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"

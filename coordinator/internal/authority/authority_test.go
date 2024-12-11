@@ -66,6 +66,7 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 	policyHash := sha256.Sum256(policy)
 	policyHashHex := manifest.NewHexString(policyHash[:])
 
+	// MARKER(burgerdev): arbitrary choice for testing
 	mnfst, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
 	require.NoError(t, err)
 	mnfst.Policies = map[manifest.HexString]manifest.PolicyEntry{policyHashHex: {SANs: []string{"test"}, WorkloadSecretID: "test2"}}

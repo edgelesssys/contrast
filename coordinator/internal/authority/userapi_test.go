@@ -34,6 +34,7 @@ import (
 
 func TestManifestSet(t *testing.T) {
 	newBaseManifest := func() *manifest.Manifest {
+		// MARKER(burgerdev): arbitrary choice for testing
 		mnf, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
 		require.NoError(t, err)
 		return mnf
@@ -224,6 +225,7 @@ func TestGetManifests(t *testing.T) {
 	require.Equal(codes.FailedPrecondition, status.Code(err))
 	assert.Nil(resp)
 
+	// MARKER(burgerdev): arbitrary choice for testing
 	m, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
 	require.NoError(err)
 	m.Policies = map[manifest.HexString]manifest.PolicyEntry{
@@ -378,6 +380,7 @@ func TestRecoveryFlow(t *testing.T) {
 // gRPCs of the server.
 func TestUserAPIConcurrent(t *testing.T) {
 	newBaseManifest := func() *manifest.Manifest {
+		// MARKER(burgerdev): arbitrary choice for testing
 		mnf, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
 		require.NoError(t, err)
 		return mnf
@@ -465,6 +468,7 @@ func rpcContext(key *ecdsa.PrivateKey) context.Context {
 }
 
 func manifestWithWorkloadOwnerKey(key *ecdsa.PrivateKey) (*manifest.Manifest, error) {
+	// MARKER(burgerdev): arbitrary choice for testing
 	m, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
 	if err != nil {
 		return nil, err

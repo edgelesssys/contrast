@@ -102,6 +102,8 @@ func buildVersionString() (string, error) {
 			fmt.Fprintf(versionsWriter, "\t  xfam:\t%s\n", tdx.Xfam.String())
 		}
 
+		// MARKER(burgerdev): platform used to switch the embedded genpolicy (real info bit: MSFT vs Kata)
+		// TODO(burgerdev): this should be part of the config.
 		switch platform {
 		case platforms.AKSCloudHypervisorSNP:
 			fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", constants.MicrosoftGenpolicyVersion)

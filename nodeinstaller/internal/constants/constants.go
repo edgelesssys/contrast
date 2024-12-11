@@ -47,6 +47,7 @@ const CRIFQDN = "io.containerd.grpc.v1.cri"
 // KataRuntimeConfig returns the Kata runtime configuration.
 func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKernelParams string, debug bool) (*config.KataRuntimeConfig, error) {
 	var config config.KataRuntimeConfig
+	// MARKER(burgerdev): platform used to generate containerd configuration (real info bits: attestation variant and hypervisor)
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		if err := toml.Unmarshal([]byte(kataCLHSNPBaseConfig), &config); err != nil {
@@ -124,6 +125,7 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 		Snapshotter:                  snapshotter,
 	}
 
+	// MARKER(burgerdev): platform used to configure containerd with a Kata config (real info bits: hypervisor and attestation)
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		cfg.Options = map[string]any{

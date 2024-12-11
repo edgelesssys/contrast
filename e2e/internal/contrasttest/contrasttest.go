@@ -208,6 +208,7 @@ func (ct *ContrastTest) patchReferenceValues(t *testing.T, platform platforms.Pl
 	var m manifest.Manifest
 	require.NoError(t, json.Unmarshal(manifestBytes, &m))
 
+	// MARKER(burgerdev): platform used to fill in reference values for tests
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		// Duplicate the reference values to test multiple validators by having at least 2.
@@ -387,6 +388,7 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 // FactorPlatformTimeout returns a timeout that is adjusted for the platform.
 // Baseline is AKS.
 func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Duration {
+	// MARKER(burgerdev): platform used to decide how long stuff should take (real info bit: bare metal/peerpods vs. AKS)
 	switch ct.Platform {
 	case platforms.AKSCloudHypervisorSNP: // AKS defined is the baseline
 		return timeout
