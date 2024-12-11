@@ -102,6 +102,11 @@ buildGoModule rec {
       # No upstream patch available, changes first need to be discussed with Kata maintainers.
       # See https://katacontainers.slack.com/archives/C879ACQ00/p1731928491942299
       ./0017-runtime-allow-initrd-AND-image-to-be-set.patch
+
+      # Simple genpolicy logging redaction of the policy annotation
+      # This avoids printing the entire annotation on log level debug, which resulted in errors of the logtranslator.go
+      # TODO(jmxnzo): remove when upstream patch is merged: https://github.com/kata-containers/kata-containers/pull/10647
+      ./0018-genpolicy-do-not-log-policy-annotation-in-debug.patch
     ];
   };
 
