@@ -75,6 +75,9 @@
 
   networking.firewall.enable = false;
 
+  # Images are immutable, so no need to include Nix.
+  nix.enable = false;
+
   nixpkgs.hostPlatform.system = "x86_64-linux";
   system.switch.enable = false;
   system.stateVersion = "24.05";
