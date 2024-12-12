@@ -87,12 +87,8 @@ in
     };
 
     networking.resolvconf.enable = false;
-    systemd.tmpfiles.settings."10-etc-resolvconf"."/etc/resolv.conf".f = {
-      group = "root";
-      mode = "0755";
-      user = "root";
-    };
 
+    environment.etc."resolv.conf".text = "dummy file, to be bind-mounted by the Kata agent when writing network configuration";
     environment.etc."kata-opa/default-policy.rego".source = "${pkgs.kata-runtime.src}/src/kata-opa/allow-set-policy.rego";
   };
 }

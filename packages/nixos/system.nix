@@ -63,7 +63,6 @@
         })
         [
           "/var"
-          "/etc"
           "/bin"
           "/usr/bin"
           "/tmp"
@@ -77,6 +76,38 @@
 
   # Images are immutable, so no need to include Nix.
   nix.enable = false;
+
+  # Interpreter-less activation bits, tailored to our needs:
+  # Source: https://github.com/NixOS/nixpkgs/blob/a4741ea333f97cca0680d1eb485907f0e4a0eb3a/nixos/modules/profiles/perlless.nix
+  # We do not include the upstream module as-is, as we don't need sophisticated user generation, for example.
+
+  # Remove perl from activation
+  system.etc.overlay = {
+    enable = true;
+    mutable = false;
+  };
+
+  # simple replacement for update-users-groups.pl
+  systemd.sysusers.enable = true;
+
+  # Random perl remnants
+  system.disableInstallerTools = true;
+  programs.less.lessopen = null;
+  programs.command-not-found.enable = false;
+  boot.enableContainers = false;
+  environment.defaultPackages = [ ];
+  documentation.enable = false;
+
+  # Check that the system does not contain a Nix store path that contains the
+  # string "perl" or "python".
+  system.forbiddenDependenciesRegexes =
+    [
+      "perl"
+    ]
+    ++ lib.optionals (!config.contrast.debug.enable) [
+      # Some of the debug packages need Python.
+      "python"
+    ];
 
   nixpkgs.hostPlatform.system = "x86_64-linux";
   system.switch.enable = false;
