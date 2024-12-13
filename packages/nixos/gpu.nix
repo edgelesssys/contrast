@@ -126,7 +126,6 @@ in
       serviceConfig.ExecStart = lib.mkForce "${lib.getExe config.hardware.nvidia.package.persistenced} --uvm-persistence-mode --verbose";
     };
 
-    hardware.graphics.enable = true;
     hardware.nvidia-container-toolkit.enable = true;
 
     # Make NVIDIA the "default" graphics driver to replace Mesa,
