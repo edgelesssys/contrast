@@ -97,6 +97,19 @@ in
         ExecStop = "${pkgs.iproute2}/bin/ip netns del %I";
       };
     };
+    # Contrary to bare-metal, a peer pod needs regular network access and DNS. The default setup
+    # with dhcpcd and resolvconf does not play well with the immutable /etc, so we use the full
+    # systemd stack instead.
+    networking.dhcpcd.enable = false;
+    systemd.network.enable = true;
+    networking.useNetworkd = true;
+    services.resolved.enable = true;
+
+    # The /etc/machine-id should be populated by systemd, but the immutable /etc seems to prevent
+    # that. We manually fill this file with `uninitialized` to force first-boot behavior. This is
+    # required by systemd-networkd.
+    # https://www.man7.org/linux//man-pages/man5/machine-id.5.html#FIRST_BOOT_SEMANTICS
+    environment.etc."machine-id".text = "uninitialized";
 
     environment.etc."kata-opa/default-policy.rego".source = pkgs.cloud-api-adaptor.default-policy;
   };

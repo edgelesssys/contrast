@@ -55,7 +55,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    boot.kernelPackages = pkgs.recurseIntoAttrs (pkgs.linuxPackagesFor pkgs.kernel-podvm-azure);
+    # TODO(burgerdev): find a recent kernel tailored for Azure.
+    boot.kernelPackages = pkgs.linuxPackages_latest;
 
     boot.initrd = {
       kernelModules = [
