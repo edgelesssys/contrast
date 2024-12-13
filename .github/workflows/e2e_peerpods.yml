@@ -13,7 +13,7 @@ on:
       - packages/by-name/cloud-api-adaptor/**
       - packages/by-name/kata/**
       - packages/by-name/image-podvm/**
-      - packages/nixos
+      - packages/nixos/**
 
 jobs:
   test:
