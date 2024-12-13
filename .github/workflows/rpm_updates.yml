@@ -21,9 +21,6 @@ jobs:
       - name: Update Microsoft RPMs
         run: |
           nix run .#rpm-pin-vendor -- kata-packages-uvm kata-packages-uvm-coco systemd libseccomp > packages/by-name/microsoft/kata-image/package-index.json
-      - name: Update Kata RPMs
-        run: |
-          nix run .#rpm-pin-vendor -- kata-packages-uvm kata-packages-uvm-coco systemd libseccomp core-packages-base-image > packages/by-name/kata/kata-image/package-index.json
       - name: Create PR
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
