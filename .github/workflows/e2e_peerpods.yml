@@ -6,6 +6,12 @@ on:
       image-id:
         description: "ID of the guest VM image to test (default: build a fresh image)"
         required: false
+  workflow_call:
+    inputs:
+      image-id:
+        description: "ID of the guest VM image to test (default: build a fresh image)"
+        type: string
+        required: false
   pull_request:
     paths:
       - .github/workflows/e2e_peerpods.yml
