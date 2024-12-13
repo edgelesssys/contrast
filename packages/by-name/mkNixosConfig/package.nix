@@ -39,7 +39,6 @@ lib.makeOverridable (
           inherit (outerPkgs)
             azure-no-agent
             cloud-api-adaptor
-            kernel-podvm-azure
             pause-bundle
             nvidia-ctk-oci-hook
             nvidia-ctk-with-config
