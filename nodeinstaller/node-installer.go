@@ -182,7 +182,7 @@ func containerdRuntimeConfig(basePath, configPath string, platform platforms.Pla
 	if err != nil {
 		return fmt.Errorf("generating kata runtime config: %w", err)
 	}
-	rawConfig, err := toml.Marshal(kataRuntimeConfig)
+	rawConfig, err := kataRuntimeConfig.Marshal()
 	if err != nil {
 		return fmt.Errorf("marshaling kata runtime config: %w", err)
 	}
