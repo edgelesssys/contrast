@@ -100,8 +100,12 @@
       protoc-gen-go
       protoc-gen-go-grpc
       nix-update
+      scripts.go-directive-sync
     ];
     text = ''
+      echo "Syncing go directive versions in go.mod/go.work files" >&2
+      go-directive-sync
+
       while IFS= read -r dir; do
         echo "Running go mod tidy on $dir" >&2
         go mod tidy
@@ -530,5 +534,33 @@
       kubectl
     ];
     text = builtins.readFile ./test-peerpods.sh;
+  };
+
+  # Sync the go directive between go.mod/go.work files (that is, the 'go' statement of these files).
+  # We take the latest version we find and use that everywhere.
+  go-directive-sync = writeShellApplication {
+    name = "go-directive-sync";
+    runtimeInputs = with pkgs; [
+      go
+      findutils
+      coreutils
+    ];
+    text = ''
+      set -euo pipefail
+
+      modFiles=$(find . -regex '.*/go[.]\(mod\|work\)$')
+
+      goVers=()
+      while IFS= read -r f; do
+        ver=$(grep -E '^go [0-9]+[.][0-9]+[.][0-9]+$' "$f")
+        goVers+=("$ver")
+      done <<< "$modFiles"
+
+      maxVer=$(printf "%s\n" "''${goVers[@]}" | sort -V | tail -n1)
+
+      while IFS= read -r f; do
+        sed -i "s/^go [0-9]\+\.[0-9]\+\.[0-9]\+$/''${maxVer}/" "$f"
+      done <<< "$modFiles"
+    '';
   };
 }
