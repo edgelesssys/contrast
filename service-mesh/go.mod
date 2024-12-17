@@ -1,6 +1,6 @@
 module github.com/edgelesssys/contrast/service-mesh
 
-go 1.22.0
+go 1.23.0
 
 require (
 	github.com/coreos/go-iptables v0.8.0
