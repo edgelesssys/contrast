@@ -71,6 +71,10 @@
     {
       "version": "v1.1.1",
       "hash": "sha256-muOarmU9dJYDf/NI2YpgaJQ94FZqq0zPMRF5G56uKtg="
+    },
+    {
+      "version": "v1.2.0",
+      "hash": "sha256-EOcEvjQJVjr9HL+UITSi3nqTENqX/KyRrKH8zHaICdY="
     }
   ],
   "coordinator-aks-clh-snp.yml": [
@@ -81,6 +85,10 @@
     {
       "version": "v1.1.1",
       "hash": "sha256-qszhc9royX8inGGwop4VrSDMTHPNy+Ed0xcmRW8Xd7Y="
+    },
+    {
+      "version": "v1.2.0",
+      "hash": "sha256-r+z9mKB7h0poRo6wwqEzmkpBxS4cgg+pgh8EvpOPgi0="
     }
   ],
   "coordinator-k3s-qemu-snp.yml": [
@@ -91,6 +99,10 @@
     {
       "version": "v1.1.1",
       "hash": "sha256-XxbzhFw72ijVDSNjkEcfHlI5Hs6992TOLqd256uNS9k="
+    },
+    {
+      "version": "v1.2.0",
+      "hash": "sha256-N7V/ISNu9956b9NlMklDoUdXrFcN/Dr6kXZt9xylLJk="
     }
   ],
   "coordinator-k3s-qemu-tdx.yml": [
@@ -101,6 +113,10 @@
     {
       "version": "v1.1.1",
       "hash": "sha256-4JtzXbNikUuIT9F+wWJKZNUkZfcyE/3gB6+SN4kmBwQ="
+    },
+    {
+      "version": "v1.2.0",
+      "hash": "sha256-9I2WB6/gZiv6Y5s155+M0djgTuYOJvNN0uS/N8thXw8="
     }
   ],
   "coordinator-rke2-qemu-tdx.yml": [
@@ -111,6 +127,10 @@
     {
       "version": "v1.1.1",
       "hash": "sha256-LFxYqkKx4tqW4zmUucxzvri+xEDAupwFmcka7PH0vJc="
+    },
+    {
+      "version": "v1.2.0",
+      "hash": "sha256-HMYEvALslDZ0b53+vPh5bt3l+7+oN2PlCX6VqV4V/dY="
     }
   ],
   "coordinator.yml": [
@@ -203,6 +223,10 @@
     {
       "version": "v1.1.1",
       "hash": "sha256-c1vUO+pgsqiV5Oa7eFtI2QcDykd8GFH6IH3HG7LWL7w="
+    },
+    {
+      "version": "v1.2.0",
+      "hash": "sha256-c1vUO+pgsqiV5Oa7eFtI2QcDykd8GFH6IH3HG7LWL7w="
     }
   ],
   "emojivoto-demo.zip": [
@@ -247,6 +271,10 @@
     {
       "version": "v1.1.1",
       "hash": "sha256-UEQust0Hl5HPKktgbvS+ae6F397T79HLGc3YiXU5PIA="
+    },
+    {
+      "version": "v1.2.0",
+      "hash": "sha256-Y6r3fDWhCLo3EtgFD6OAyh+aj4QP3cIkS0uhThRcNW4="
     }
   ],
   "runtime-k3s-qemu-snp.yml": [
@@ -257,6 +285,10 @@
     {
       "version": "v1.1.1",
       "hash": "sha256-MOAP+zhX8vXRDcClDZRc3D5tafWhL6GK5ZRb+8+bgOA="
+    },
+    {
+      "version": "v1.2.0",
+      "hash": "sha256-aXC4o1dM1DlIvTerYBijr5VK6aBShQoJ07Hbr/9sz2c="
     }
   ],
   "runtime-k3s-qemu-tdx.yml": [
@@ -267,6 +299,10 @@
     {
       "version": "v1.1.1",
       "hash": "sha256-cKgDymIelsLN528e5weOst+OuufAGJL2KdEfj3BdeoU="
+    },
+    {
+      "version": "v1.2.0",
+      "hash": "sha256-wgzuQeheVULfB8lgnXNQQnIWmUzCz7bucIoC9uefJnA="
     }
   ],
   "runtime-rke2-qemu-tdx.yml": [
@@ -277,6 +313,10 @@
     {
       "version": "v1.1.1",
       "hash": "sha256-wfP23ptGT2Lmah5vHndkiioJVwaho202R8xSAyW8H4s="
+    },
+    {
+      "version": "v1.2.0",
+      "hash": "sha256-RYQbNqAp5cLjUGig9HHLi4SHlpn3qerygbF/E/92Xug="
     }
   ],
   "runtime.yml": [
