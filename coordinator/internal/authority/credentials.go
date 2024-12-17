@@ -36,7 +36,8 @@ type Credentials struct {
 
 // Credentials creates new transport credentials that validate peers according to the latest manifest.
 func (a *Authority) Credentials(reg *prometheus.Registry, issuer atls.Issuer) (*Credentials, func()) {
-	ticker := clock.RealClock{}.NewTicker(24 * time.Hour)
+	month := 30 * 24 * time.Hour
+	ticker := clock.RealClock{}.NewTicker(9 * month)
 	kdsGetter := certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(a.logger, "kds-getter"))
 	attestationFailuresCounter := promauto.With(reg).NewCounter(prometheus.CounterOpts{
 		Subsystem: "contrast_meshapi",
