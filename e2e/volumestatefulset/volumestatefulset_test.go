@@ -59,7 +59,7 @@ func TestVolumeStatefulSet(t *testing.T) {
 		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, ct.Namespace, "volume-tester"))
 	}), "deployments need to be ready for subsequent tests")
 
-	filePath := "/srv/state/test"
+	filePath := "/state/test"
 	t.Run("can create file in mounted path", func(t *testing.T) {
 		require := require.New(t)
 
