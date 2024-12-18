@@ -88,7 +88,9 @@ in
 
     networking.resolvconf.enable = false;
 
-    environment.etc."resolv.conf".text = "dummy file, to be bind-mounted by the Kata agent when writing network configuration";
-    environment.etc."kata-opa/default-policy.rego".source = "${pkgs.kata-runtime.src}/src/kata-opa/allow-set-policy.rego";
+    environment.etc."resolv.conf".text =
+      "dummy file, to be bind-mounted by the Kata agent when writing network configuration";
+    environment.etc."kata-opa/default-policy.rego".source =
+      "${pkgs.kata-runtime.src}/src/kata-opa/allow-set-policy.rego";
   };
 }

@@ -21,6 +21,10 @@
     shfmt.enable = true;
     statix.enable = true;
     terraform.enable = true;
+    yamlfmt = {
+      enable = true;
+      settings.formatter.retain_line_breaks_single = true;
+    };
     # keep-sorted end
   };
   settings.formatter = {
@@ -51,16 +55,6 @@
       excludes = [
         "CODE_OF_CONDUCT.md"
         "LICENSE"
-      ];
-    };
-    # TODO(katexochen): move back to programs after
-    # https://github.com/numtide/treefmt-nix/pull/193 is merged.
-    yamlfmt = {
-      command = "${lib.getExe pkgs.yamlfmt}";
-      options = [ "-formatter=retain_line_breaks_single=true" ];
-      includes = [
-        "*.yaml"
-        "*.yml"
       ];
     };
   };

@@ -237,8 +237,6 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 	}
 	rtmr.extendVariableValue(boot0000)
 
-	rtmr.extendSeparator()
-
 	return rtmr.Get(), nil
 }
 
@@ -254,6 +252,10 @@ func CalcRtmr1(kernelFile, initrdFile []byte) ([48]byte, error) {
 
 	// https://github.com/tianocore/edk2/blob/0f3867fa6ef0553e26c42f7d71ff6bdb98429742/OvmfPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.c#L2155
 	rtmr.hashAndExtend([]byte("Calling EFI Application from Boot Option"))
+
+	// https://github.com/tianocore/edk2/blob/efaf8931bbfa33a81b8792fbf9e2ccc239d53204/OvmfPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.c#L2171
+	rtmr.extendSeparator()
+
 	// https://github.com/tianocore/edk2/blob/0f3867fa6ef0553e26c42f7d71ff6bdb98429742/OvmfPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.c#L2243
 	rtmr.hashAndExtend([]byte("Exit Boot Services Invocation"))
 	// https://github.com/tianocore/edk2/blob/0f3867fa6ef0553e26c42f7d71ff6bdb98429742/OvmfPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.c#L2254

@@ -25,10 +25,15 @@ edk2.mkDerivation "OvmfPkg/AmdSev/AmdSevX64.dsc" {
   postPatch = ''
     touch OvmfPkg/AmdSev/Grub/grub.efi
   '';
-  # Disable making all warnings errors. Nix's GCC is fairly new, so it spews a
-  # few more warnings, but that shouldn't prevent us from building OVMF.
+
   postConfigure = ''
+    # Disable making all warnings errors. Nix's GCC is fairly new, so it spews a
+    # few more warnings, but that shouldn't prevent us from building OVMF.
     sed -i "s/-Werror//g" Conf/tools_def.txt
+
+    # Disable the stack protection manually. We can't use `hardeningDisable` as it gets
+    # overriden by the GCC flags in the EDK2 build system. (See Conf/tools_def.txt)
+    sed -i "s/-fstack-protector/-fno-stack-protector/g" Conf/tools_def.txt
   '';
 
   nativeBuildInputs = [
@@ -38,7 +43,6 @@ edk2.mkDerivation "OvmfPkg/AmdSev/AmdSevX64.dsc" {
 
   hardeningDisable = [
     "format"
-    "stackprotector"
     "pic"
     "fortify"
   ];
