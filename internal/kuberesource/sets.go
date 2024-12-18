@@ -196,17 +196,17 @@ func Emojivoto(smMode serviceMeshMode) []any {
 	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost string
 	switch smMode {
 	case ServiceMeshDisabled:
-		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1"
-		emojiVotingSvcImage = "ghcr.io/3u13r/emojivoto-voting-svc:coco-1"
-		emojiWebImage = "ghcr.io/3u13r/emojivoto-web:coco-1"
+		emojiSvcImage = "ghcr.io/3u13r/emojivoto-emoji-svc:coco-1@sha256:fa80600859cda06079a542632713b2cc67ed836e429753a799a6c313322d1426"
+		emojiVotingSvcImage = "ghcr.io/3u13r/emojivoto-voting-svc:coco-1@sha256:bb7fbea32bf28c6201602b473bf7e0f40290642e3f783dcfa4b8e3c693531cba"
+		emojiWebImage = "ghcr.io/3u13r/emojivoto-web:coco-1@sha256:0fd9bf6f7dcb99bdb076144546b663ba6c3eb457cbb48c1d3fceb591d207289c"
 		emojiWebVoteBotImage = emojiWebImage
 		emojiSvcHost = "emoji-svc:8080"
 		votingSvcHost = "voting-svc:8080"
 	case ServiceMeshIngressEgress:
-		emojiSvcImage = "docker.io/buoyantio/emojivoto-emoji-svc:v11"
-		emojiVotingSvcImage = "docker.io/buoyantio/emojivoto-voting-svc:v11"
-		emojiWebImage = "docker.io/buoyantio/emojivoto-web:v11"
-		emojiWebVoteBotImage = "ghcr.io/3u13r/emojivoto-web:coco-1"
+		emojiSvcImage = "docker.io/buoyantio/emojivoto-emoji-svc:v11@sha256:957949355653776b65fafc2ee22f737cd21e090d4ace63f3b99f6e16976f0458"
+		emojiVotingSvcImage = "docker.io/buoyantio/emojivoto-voting-svc:v11@sha256:a57ac67af7a5b05988a38b49568eca6a078ef27a71c148c44c9db4efb1dac58b"
+		emojiWebImage = "docker.io/buoyantio/emojivoto-web:v11@sha256:d21f9fdb794f754b076344ce01c4858c499617c952cc6a941ac3cefbf5ccedfd"
+		emojiWebVoteBotImage = "ghcr.io/3u13r/emojivoto-web:coco-1@sha256:0fd9bf6f7dcb99bdb076144546b663ba6c3eb457cbb48c1d3fceb591d207289c"
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
 	default:
@@ -723,7 +723,7 @@ done
 						WithContainers(
 							Container().
 								WithName("mysql-client").
-								WithImage("docker.io/library/mysql:latest").
+								WithImage("docker.io/library/mysql:9.1.0@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6").
 								WithEnv(NewEnvVar("MYSQL_ALLOW_EMPTY_PASSWORD", "1")).
 								WithCommand("/bin/sh", "-c", clientCmd).
 								WithResources(ResourceRequirements().
