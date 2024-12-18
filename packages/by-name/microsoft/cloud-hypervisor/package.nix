@@ -58,7 +58,9 @@ rustPlatform.buildRustPackage rec {
       "mshv"
       "kvm"
     ]
-    ++ lib.optional withIGVM "igvm" ++ lib.optional withSEVSNP "sev_snp" ++ lib.optional withTDX "tdx";
+    ++ lib.optional withIGVM "igvm"
+    ++ lib.optional withSEVSNP "sev_snp"
+    ++ lib.optional withTDX "tdx";
 
   OPENSSL_NO_VENDOR = true;
 

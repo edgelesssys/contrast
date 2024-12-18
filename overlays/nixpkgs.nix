@@ -34,25 +34,4 @@ final: prev:
         --set SOURCE_DATE_EPOCH 0
     '';
   });
-
-  # There is a regression in 2.1.0, and 2.1.1 isn't available in nixpkgs yet.
-  # TODO(katexochen): Remove with the next nixpkgs update.
-  treefmt2 = prev.treefmt2.overrideAttrs (
-    finalAttrs: _prevAttrs: {
-      version = "2.1.1";
-      src = final.fetchFromGitHub {
-        owner = "numtide";
-        repo = "treefmt";
-        rev = "v${finalAttrs.version}";
-        hash = "sha256-XD61nZhdXYrFzprv/YuazjXK/NWP5a9oCF6WBO2XTY0=";
-      };
-      vendorHash = "sha256-0qCOpLMuuiYNCX2Lqa/DUlkmDoPIyUzUHIsghoIaG1s=";
-      ldflags = [
-        "-s"
-        "-w"
-        "-X github.com/numtide/treefmt/v2/build.Name=treefmt"
-        "-X github.com/numtide/treefmt/v2/build.Version=v${finalAttrs.version}"
-      ];
-    }
-  );
 }
