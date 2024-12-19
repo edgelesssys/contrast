@@ -94,6 +94,14 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
 		}
+		// GPU-specific settings
+		if platform == platforms.K3sQEMUSNPGPU {
+			config.Hypervisor["qemu"]["guest_hook_path"] = "/usr/share/oci/hooks"
+			config.Hypervisor["qemu"]["cold_plug_vfio"] = "root-port"
+			// GPU images tend to be larger, so give a better default timeout that
+			// allows for pulling those.
+			config.Runtime["create_container_timeout"] = 600
+		}
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
@@ -136,6 +144,10 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-snp.toml"),
+		}
+		// For GPU support, we need to pass through the CDI annotations.
+		if platform == platforms.K3sQEMUSNPGPU {
+			cfg.PodAnnotations = append(cfg.PodAnnotations, "cdi.k8s.io/*")
 		}
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
