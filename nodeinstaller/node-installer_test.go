@@ -42,6 +42,10 @@ func TestPatchContainerdConfig(t *testing.T) {
 			platform: platforms.K3sQEMUSNP,
 			expected: expectedConfBareMetalQEMUSNP,
 		},
+		"BareMetalQEMUSNPGPU": {
+			platform: platforms.K3sQEMUSNPGPU,
+			expected: expectedConfBareMetalQEMUSNP,
+		},
 		"Unknown": {
 			platform: platforms.Unknown,
 			wantErr:  true,
