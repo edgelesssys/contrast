@@ -137,6 +137,10 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-snp.toml"),
 		}
+		// For GPU support, we need to pass through the CDI annotations.
+		if platform == platforms.K3sQEMUSNPGPU {
+			cfg.PodAnnotations = append(cfg.PodAnnotations, "cdi.k8s.io/*")
+		}
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
