@@ -21,7 +21,7 @@ fields["runtime.yml"]="./workspace/runtime.yml"
 fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
 fields["emojivoto-demo.yml"]="./workspace/emojivoto-demo.yml"
 fields["mysql-demo.yml"]="./workspace/mysql-demo.yml"
-for platform in aks-clh-snp metal-qemu-tdx k3s-qemu-tdx metal-qemu-snp k3s-qemu-snp rke2-qemu-tdx; do
+for platform in aks-clh-snp metal-qemu-tdx k3s-qemu-tdx metal-qemu-snp k3s-qemu-snp k3s-qemu-snp-gpu rke2-qemu-tdx; do
   fields["coordinator-${platform}.yml"]="./workspace/coordinator-${platform}.yml"
   fields["runtime-${platform}.yml"]="./workspace/runtime-${platform}.yml"
 done

@@ -303,7 +303,7 @@ jobs:
       - name: Create coordinator resource definitions
         run: |
           mkdir -p workspace
-          for platform in aks-clh-snp metal-qemu-tdx k3s-qemu-tdx metal-qemu-snp k3s-qemu-snp rke2-qemu-tdx; do
+          for platform in aks-clh-snp metal-qemu-tdx k3s-qemu-tdx metal-qemu-snp k3s-qemu-snp k3s-qemu-snp-gpu rke2-qemu-tdx; do
             nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" "${platform}" > workspace/coordinator-$platform.yml
             echo -n "${platform} " >> workspace/coordinator-policy.hash
             yq < workspace/coordinator-$platform.yml \
