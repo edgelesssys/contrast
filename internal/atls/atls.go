@@ -15,6 +15,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -94,6 +95,7 @@ type Issuer interface {
 type Validator interface {
 	Getter
 	Validate(attDoc []byte, nonce []byte, peerPublicKey []byte) error
+	Name() string
 }
 
 // getATLSConfigForClientFunc returns a config setup function that is called once for every client connecting to the server.
@@ -233,7 +235,7 @@ func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, peerPu
 
 		// We have a valid attestation document. Let's check it against all applicable validators.
 		foundExtension = true
-		for _, validator := range validators {
+		for vId, validator := range validators {
 			// Optimization: Skip the validator if it doesn't match the attestation type of the document.
 			if !ex.Id.Equal(validator.OID()) {
 				continue
@@ -248,7 +250,13 @@ func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, peerPu
 				return nil
 			}
 			// Otherwise, we'll keep track of the error and continue with the next validator.
-			retErr = errors.Join(retErr, fmt.Errorf("validator %s failed: %w", validator.OID(), validationErr))
+			// The joined error should reveal the atls nonce once to maintain readability. Because the error is only revealed if all validators fail,
+			// we can implicitly include the nonce in the first validator error and the concatenate the other errors.
+			if vId == 0 {
+				retErr = errors.Join(retErr, fmt.Errorf("AtlsConnectionNonce: %s || validator %s failed: %w ||", hex.EncodeToString(nonce), validator.Name(), validationErr))
+			} else {
+				retErr = errors.Join(retErr, fmt.Errorf(" validator %s failed: %w ||", validator.Name(), validationErr))
+			}
 		}
 	}
 
@@ -437,6 +445,11 @@ func (v FakeValidator) Validate(attDoc []byte, nonce []byte, _ []byte) error {
 	}
 
 	return v.err
+}
+
+// Name returns the name of the validator.
+func (v *FakeValidator) Name() string {
+	return ""
 }
 
 // FakeAttestationDoc is a fake attestation document used for testing.
