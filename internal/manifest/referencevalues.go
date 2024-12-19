@@ -143,11 +143,11 @@ func platformFromHandler(handler string) (platforms.Platform, error) {
 	}
 
 	parts := strings.Split(rest, "-")
-	if len(parts) != 4 {
+	if len(parts) != 4 && len(parts) != 5 {
 		return platforms.Unknown, fmt.Errorf("invalid handler name: %s", handler)
 	}
 
-	rawPlatform := fmt.Sprintf("%s-%s-%s", parts[0], parts[1], parts[2])
+	rawPlatform := strings.Join(parts[:len(parts)-1], "-")
 
 	platform, err := platforms.FromString(rawPlatform)
 	if err != nil {

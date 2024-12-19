@@ -75,7 +75,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
 		}
-	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP:
+	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
@@ -133,7 +133,7 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
 		}
-	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP:
+	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-snp.toml"),
 		}
