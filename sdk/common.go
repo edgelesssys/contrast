@@ -8,6 +8,7 @@ package sdk
 import (
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
@@ -31,10 +32,11 @@ func ValidatorsFromManifest(kdsDir string, m *manifest.Manifest, log *slog.Logge
 	if err != nil {
 		return nil, fmt.Errorf("getting SNP validate options: %w", err)
 	}
-	for _, opt := range opts {
+	for i, opt := range opts {
 		opt.ValidateOpts.HostData = coordinatorPolicyChecksum
+		name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
 		validators = append(validators, snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts,
-			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "snp"}),
+			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name,
 		))
 	}
 
@@ -44,9 +46,10 @@ func ValidatorsFromManifest(kdsDir string, m *manifest.Manifest, log *slog.Logge
 	}
 	var mrConfigID [48]byte
 	copy(mrConfigID[:], coordinatorPolicyChecksum)
-	for _, opt := range tdxOpts {
+	for i, opt := range tdxOpts {
+		name := fmt.Sprintf("tdx-%d", i)
 		opt.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]
-		validators = append(validators, tdx.NewValidator(&tdx.StaticValidateOptsGenerator{Opts: opt}, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"tee-type": "tdx"})))
+		validators = append(validators, tdx.NewValidator(&tdx.StaticValidateOptsGenerator{Opts: opt}, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name))
 	}
 
 	return validators, nil

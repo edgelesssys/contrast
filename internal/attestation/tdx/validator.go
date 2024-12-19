@@ -37,6 +37,7 @@ type Validator struct {
 	validateOptsGen validateOptsGenerator
 	reportSetter    attestation.ReportSetter
 	logger          *slog.Logger
+	name            string
 }
 
 type validateOptsGenerator interface {
@@ -55,21 +56,22 @@ func (v *StaticValidateOptsGenerator) TDXValidateOpts(_ *tdx.QuoteV4) (*validate
 }
 
 // NewValidator returns a new Validator.
-func NewValidator(optsGen validateOptsGenerator, log *slog.Logger) *Validator {
+func NewValidator(optsGen validateOptsGenerator, log *slog.Logger, name string) *Validator {
 	return &Validator{
 		validateOptsGen: optsGen,
 		logger:          log,
+		name:            name,
 	}
 }
 
 // NewValidatorWithReportSetter returns a new Validator with a report setter.
-func NewValidatorWithReportSetter(optsGen validateOptsGenerator, log *slog.Logger, reportSetter attestation.ReportSetter) *Validator {
-	v := NewValidator(optsGen, log)
+func NewValidatorWithReportSetter(optsGen validateOptsGenerator, log *slog.Logger, reportSetter attestation.ReportSetter, name string) *Validator {
+	v := NewValidator(optsGen, log, name)
 	v.reportSetter = reportSetter
 	return v
 }
 
-// OID returns the OID of the validator.
+// OID returns the OID for the raw TDX report extension used by the validator.
 func (v *Validator) OID() asn1.ObjectIdentifier {
 	return oid.RawTDXReport
 }
@@ -78,12 +80,12 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
 	// TODO(freax13): Validate the memory integrity mode (logical vs cryptographic) in the provisioning certificate.
 
-	v.logger.Info("Validate called", "nonce", hex.EncodeToString(nonce))
+	v.logger.Info("Validate called", "name", v.name, "nonce", hex.EncodeToString(nonce))
 	defer func() {
 		if err != nil {
-			v.logger.Error("Validation failed", "error", err)
+			v.logger.Debug("Validate failed", "name", v.name, "nonce", hex.EncodeToString(nonce), "error", err)
 		} else {
-			v.logger.Info("Validation successful")
+			v.logger.Info("Validate succeeded", "name", v.name, "nonce", hex.EncodeToString(nonce))
 		}
 	}()
 
@@ -135,6 +137,11 @@ func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byt
 		v.reportSetter.SetReport(report)
 	}
 	return nil
+}
+
+// String returns the name as identifier of the validator.
+func (v *Validator) String() string {
+	return v.name
 }
 
 func trustedRoots() (*x509.CertPool, error) {

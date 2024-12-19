@@ -26,42 +26,45 @@ type Validator struct {
 	validateOpts *validate.Options
 	reportSetter attestation.ReportSetter
 	logger       *slog.Logger
+	name         string
 }
 
 // NewValidator returns a new Validator.
-func NewValidator(VerifyOpts *verify.Options, ValidateOpts *validate.Options, log *slog.Logger) *Validator {
+func NewValidator(VerifyOpts *verify.Options, ValidateOpts *validate.Options, log *slog.Logger, name string) *Validator {
 	return &Validator{
 		verifyOpts:   VerifyOpts,
 		validateOpts: ValidateOpts,
 		logger:       log,
+		name:         name,
 	}
 }
 
 // NewValidatorWithReportSetter returns a new Validator with a report setter.
 func NewValidatorWithReportSetter(VerifyOpts *verify.Options, ValidateOpts *validate.Options,
-	log *slog.Logger, reportSetter attestation.ReportSetter,
+	log *slog.Logger, reportSetter attestation.ReportSetter, name string,
 ) *Validator {
 	return &Validator{
 		verifyOpts:   VerifyOpts,
 		validateOpts: ValidateOpts,
 		reportSetter: reportSetter,
 		logger:       log,
+		name:         name,
 	}
 }
 
-// OID returns the OID of the validator.
+// OID returns the OID for the raw SNP report extension used by the validator.
 func (v *Validator) OID() asn1.ObjectIdentifier {
 	return oid.RawSNPReport
 }
 
 // Validate a TPM based attestation.
 func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
-	v.logger.Info("Validate called", "nonce", hex.EncodeToString(nonce))
+	v.logger.Info("Validate called", "name", v.name, "nonce", hex.EncodeToString(nonce))
 	defer func() {
 		if err != nil {
-			v.logger.Error("Validation failed", "error", err)
+			v.logger.Debug("Validate failed", "name", v.name, "nonce", hex.EncodeToString(nonce), "error", err)
 		} else {
-			v.logger.Info("Validation successful")
+			v.logger.Info("Validate succeeded", "name", v.name, "nonce", hex.EncodeToString(nonce))
 		}
 	}()
 
@@ -97,6 +100,11 @@ func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byt
 		v.reportSetter.SetReport(report)
 	}
 	return nil
+}
+
+// String returns the name as identifier of the validator.
+func (v *Validator) String() string {
+	return v.name
 }
 
 type snpReport struct {
