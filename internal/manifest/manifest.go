@@ -214,6 +214,11 @@ func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOpti
 		}
 
 		verifyOpts := verify.DefaultOptions()
+		// Setting the productLine explicitly, because of full dependence of trustedMeasurements and derivation of trustedRoots on productLine.
+		verifyOpts.Product, err = kds.ParseProductLine(string(refVal.ProductName))
+		if err != nil {
+			return nil, fmt.Errorf("SNP reference values: %w", err)
+		}
 		verifyOpts.TrustedRoots, err = trustedRoots(refVal.ProductName)
 		if err != nil {
 			return nil, fmt.Errorf("determine trusted roots: %w", err)
