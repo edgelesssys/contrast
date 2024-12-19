@@ -50,7 +50,8 @@ in
       after = [ "systemd-tmpfiles-setup.service" ]; # Not upstream, but required for /etc/resolv.conf bind mount.
       serviceConfig = {
         Type = "exec"; # Not upstream.
-        StandardOutput = "tty";
+        StandardOutput = "journal+console";
+        StandardError = "inherit";
         ExecStart = "${lib.getExe pkgs.kata-agent}";
         LimitNOFILE = 1048576;
         ExecStop = "${pkgs.coreutils}/bin/sync ; ${config.systemd.package}/bin/systemctl --force poweroff";
