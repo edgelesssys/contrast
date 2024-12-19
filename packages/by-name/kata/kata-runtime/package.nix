@@ -114,6 +114,12 @@ buildGoModule rec {
       # vanilla Kata setting.
       # Relevant discussion: https://github.com/kata-containers/kata-containers/pull/10614.
       ./0019-genpolicy-allow-non-watchable-ConfigMaps.patch
+
+      # Guest hooks are required for GPU support, but unsupported in
+      # upstream Kata / genpolicy as of now. This patch adds a new
+      # `allowed_guest_hooks` setting , which controls what paths may be set for hooks.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10633
+      ./0020-genpolicy-support-guest-hooks.patch
     ];
   };
 
