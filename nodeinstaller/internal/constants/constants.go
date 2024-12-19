@@ -94,6 +94,14 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
 		}
+		// GPU-specific settings
+		if platform == platforms.K3sQEMUSNPGPU {
+			config.Hypervisor["qemu"]["guest_hook_path"] = "/usr/share/oci/hooks"
+			config.Hypervisor["qemu"]["cold_plug_vfio"] = "root-port"
+			// GPU images tend to be larger, so give a better default timeout that
+			// allows for pulling those.
+			config.Runtime["create_container_timeout"] = 600
+		}
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
