@@ -137,3 +137,6 @@ RTMR
 RTMRs
 precalculator
 initrd
+deduplicated
+unrepresentable
+serializable
