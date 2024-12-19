@@ -15,6 +15,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -94,6 +95,7 @@ type Issuer interface {
 type Validator interface {
 	Getter
 	Validate(attDoc []byte, nonce []byte, peerPublicKey []byte) error
+	fmt.Stringer
 }
 
 // getATLSConfigForClientFunc returns a config setup function that is called once for every client connecting to the server.
@@ -248,7 +250,7 @@ func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, peerPu
 				return nil
 			}
 			// Otherwise, we'll keep track of the error and continue with the next validator.
-			retErr = errors.Join(retErr, fmt.Errorf("validator %s failed: %w", validator.OID(), validationErr))
+			retErr = errors.Join(retErr, fmt.Errorf(" validator %s failed: %w", validator.String(), validationErr))
 		}
 	}
 
@@ -258,6 +260,11 @@ func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, peerPu
 
 	if !foundMatchingValidator {
 		return ErrNoMatchingValidators
+	}
+
+	// The joined error should reveal the atls nonce once to maintain readability.
+	if retErr != nil {
+		retErr = fmt.Errorf("with AtlsConnectionNonce %s: %w", hex.EncodeToString(nonce), retErr)
 	}
 
 	// If we're here, an error must've happened during validation.
@@ -437,6 +444,11 @@ func (v FakeValidator) Validate(attDoc []byte, nonce []byte, _ []byte) error {
 	}
 
 	return v.err
+}
+
+// String returns the name as identifier of the validator.
+func (v *FakeValidator) String() string {
+	return ""
 }
 
 // FakeAttestationDoc is a fake attestation document used for testing.
