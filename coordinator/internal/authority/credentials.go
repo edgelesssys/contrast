@@ -10,6 +10,8 @@ import (
 	"log/slog"
 	"net"
 	"time"
+	"strconv"
+	"strings"
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation"
@@ -86,10 +88,11 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		return nil, nil, fmt.Errorf("generating SNP validation options: %w", err)
 	}
 
-	for _, opt := range opts {
+	for i, opt := range opts {
+		name := "snp-" + strconv.Itoa(i) + "-" + strings.TrimLeft(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_")
 		validator := snp.NewValidatorWithReportSetter(opt.VerifyOpts, opt.ValidateOpts,
 			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "snp"}),
-			&authInfo)
+			&authInfo, name)
 		validators = append(validators, validator)
 	}
 
@@ -98,9 +101,10 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		log.Error("Could not generate TDX validation options", "error", err)
 		return nil, nil, fmt.Errorf("generating TDX validation options: %w", err)
 	}
-	for _, opt := range tdxOpts {
+	for i, opt := range tdxOpts {
+		name := "tdx" + strconv.Itoa(i)
 		validators = append(validators, tdx.NewValidatorWithReportSetter(&tdx.StaticValidateOptsGenerator{Opts: opt},
-			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "tdx"}), &authInfo))
+			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"tee-type": "tdx"}), &authInfo, name))
 	}
 
 	serverCfg, err := atls.CreateAttestationServerTLSConfig(c.issuer, validators, c.attestationFailuresCounter)
