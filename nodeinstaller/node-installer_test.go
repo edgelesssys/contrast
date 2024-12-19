@@ -22,6 +22,8 @@ var (
 	expectedConfBareMetalQEMUTDX []byte
 	//go:embed testdata/expected-bare-metal-qemu-snp.toml
 	expectedConfBareMetalQEMUSNP []byte
+	//go:embed testdata/expected-bare-metal-qemu-snp-gpu.toml
+	expectedConfBareMetalQEMUSNPGPU []byte
 )
 
 func TestPatchContainerdConfig(t *testing.T) {
@@ -44,7 +46,7 @@ func TestPatchContainerdConfig(t *testing.T) {
 		},
 		"BareMetalQEMUSNPGPU": {
 			platform: platforms.K3sQEMUSNPGPU,
-			expected: expectedConfBareMetalQEMUSNP,
+			expected: expectedConfBareMetalQEMUSNPGPU,
 		},
 		"Unknown": {
 			platform: platforms.Unknown,
