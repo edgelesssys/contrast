@@ -28,11 +28,13 @@ const (
 	MetalQEMUSNP
 	// MetalQEMUTDX is the generic platform for bare-metal TDX deployments.
 	MetalQEMUTDX
+	// K3sQEMUSNPGPU represents a deployment with QEMU on bare-metal SNP K3s with GPU passthrough.
+	K3sQEMUSNPGPU
 )
 
 // All returns a list of all available platforms.
 func All() []Platform {
-	return []Platform{AKSCloudHypervisorSNP, K3sQEMUTDX, K3sQEMUSNP, RKE2QEMUTDX, MetalQEMUSNP, MetalQEMUTDX}
+	return []Platform{AKSCloudHypervisorSNP, K3sQEMUTDX, K3sQEMUSNP, RKE2QEMUTDX, MetalQEMUSNP, MetalQEMUTDX, K3sQEMUSNPGPU}
 }
 
 // AllStrings returns a list of all available platforms as strings.
@@ -53,6 +55,8 @@ func (p Platform) String() string {
 		return "K3s-QEMU-TDX"
 	case K3sQEMUSNP:
 		return "K3s-QEMU-SNP"
+	case K3sQEMUSNPGPU:
+		return "K3s-QEMU-SNP-GPU"
 	case RKE2QEMUTDX:
 		return "RKE2-QEMU-TDX"
 	case MetalQEMUSNP:
@@ -73,6 +77,8 @@ func FromString(s string) (Platform, error) {
 		return K3sQEMUTDX, nil
 	case "k3s-qemu-snp":
 		return K3sQEMUSNP, nil
+	case "k3s-qemu-snp-gpu":
+		return K3sQEMUSNPGPU, nil
 	case "rke2-qemu-tdx":
 		return RKE2QEMUTDX, nil
 	case "metal-qemu-snp":

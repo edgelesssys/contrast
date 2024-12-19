@@ -47,7 +47,7 @@ node-installer platform=default_platform:
             just push "tardev-snapshotter"
             just push "node-installer-microsoft"
         ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             just push "nydus-snapshotter"
             just push "node-installer-kata"
         ;;
@@ -186,7 +186,7 @@ create-pre platform=default_platform:
             # TODO(burgerdev): this should create the resource group for consistency
             :
         ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             :
         ;;
         "AKS-PEER-SNP")
@@ -215,7 +215,7 @@ create platform=default_platform:
         "AKS-CLH-SNP")
             nix run -L .#scripts.create-coco-aks -- --name="$azure_resource_group" --location="$azure_location"
         ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             :
         ;;
         "AKS-PEER-SNP")
@@ -328,7 +328,7 @@ get-credentials platform=default_platform:
         "K3s-QEMU-TDX")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/5"
         ;;
-        "K3s-QEMU-SNP")
+        "K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/2"
         ;;
         *)
@@ -352,7 +352,7 @@ destroy platform=default_platform:
         "AKS-CLH-SNP")
             nix run -L .#scripts.destroy-coco-aks -- --name="$azure_resource_group"
         ;;
-        "K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             :
         ;;
         "AKS-PEER-SNP")
@@ -377,7 +377,7 @@ destroy-post platform=default_platform:
             # TODO(burgerdev): this should destroy the resource group for consistency.
             :
         ;;
-        "K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             :
         ;;
         "AKS-PEER-SNP")

@@ -136,7 +136,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 				WithType(corev1.HostPathDirectory),
 			))
 		snapshotterVolumes = nydusSnapshotterVolumes
-	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.RKE2QEMUTDX:
+	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.RKE2QEMUTDX:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
 		snapshotter = nydusSnapshotter
 		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes, Volume().
