@@ -19,6 +19,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -37,14 +38,14 @@ type Kubeclient struct {
 	restMapper meta.RESTMapper
 	// config is the "Kubeconfig" for the client
 	config *rest.Config
+	// dyn is a dynamic API client that can work with unstructured resources
+	dyn *dynamic.DynamicClient
 }
 
 // New creates a new Kubeclient from a given Kubeconfig.
 func New(config *rest.Config, log *slog.Logger) (*Kubeclient, error) {
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("creating kubernetes client: %w", err)
-	}
+	client := kubernetes.NewForConfigOrDie(config)
+	dyn := dynamic.NewForConfigOrDie(config)
 
 	resources, err := restmapper.GetAPIGroupResources(client.Discovery())
 	if err != nil {
@@ -56,6 +57,7 @@ func New(config *rest.Config, log *slog.Logger) (*Kubeclient, error) {
 		Client:     client,
 		config:     config,
 		restMapper: restmapper.NewDiscoveryRESTMapper(resources),
+		dyn:        dyn,
 	}, nil
 }
 
