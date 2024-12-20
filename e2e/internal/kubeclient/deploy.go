@@ -491,7 +491,6 @@ func isPodReady(pod *corev1.Pod) bool {
 }
 
 func (c *Kubeclient) resourceInterfaceFor(obj *unstructured.Unstructured) (dynamic.ResourceInterface, error) {
-	dyn := dynamic.New(c.Client.RESTClient())
 	gvk := obj.GroupVersionKind()
 
 	mapping, err := c.restMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
@@ -499,7 +498,7 @@ func (c *Kubeclient) resourceInterfaceFor(obj *unstructured.Unstructured) (dynam
 		return nil, fmt.Errorf("getting resource for %#v: %w", gvk, err)
 	}
 	c.log.Info("found mapping", "resource", mapping.Resource)
-	ri := dyn.Resource(mapping.Resource)
+	ri := c.dyn.Resource(mapping.Resource)
 	if mapping.Scope.Name() == "namespace" {
 		namespace := obj.GetNamespace()
 		if namespace == "" {
