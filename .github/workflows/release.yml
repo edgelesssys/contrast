@@ -417,7 +417,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          nix shell -L .#contrast.e2e --command release.test -test.v --tag ${{ inputs.version }} --platform ${{ matrix.platform.name }}
+          nix shell -L .#contrast.e2e --command release.test -test.v --tag ${{ inputs.version }} --platform ${{ matrix.platform.name }} --skip-undeploy=false
 
   create-github-stuff:
     name: Create backport label and milestone
