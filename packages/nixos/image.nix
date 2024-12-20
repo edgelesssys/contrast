@@ -28,6 +28,12 @@ in
       name = "image-podvm-gpu";
       inherit (config.system.image) version;
 
+      mkfsOptions.erofs = [
+        # Dereference hardlinks to avoid different number of inodes between images
+        # built on systems with nix store optimization enabled and disabled.
+        "--hard-dereference"
+      ];
+
       # This defines the actual partition layout.
       partitions = {
         # EFI System Partition, holds the UKI.
