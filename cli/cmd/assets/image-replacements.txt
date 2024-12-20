@@ -1,1 +1,8 @@
-# THIS FILE IS REPLACED DURING RELEASE BUILD TO INCLUDE UPDATED IMAGE REFERENCES
+ghcr.io/edgelesssys/contrast/coordinator:latest=ghcr.io/edgelesssys/contrast/coordinator:v1.3.0@sha256:bffd2d83937f93386dde6b2ca4deceff9e7c3033e5bab33e5950755e4cf5cf1b
+ghcr.io/edgelesssys/contrast/initializer:latest=ghcr.io/edgelesssys/contrast/initializer:v1.3.0@sha256:9aca740fe8801bf464ef9e770273d5e70198c303dbdebf75c0dcb75998628c3e
+ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=ghcr.io/edgelesssys/contrast/service-mesh-proxy:v1.3.0@sha256:ec278389997ed7323a370c7ce5aaa035de7e6cc1d8d9b6fc1c7b0419ce7166f3
+ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=ghcr.io/edgelesssys/contrast/node-installer-microsoft:v1.3.0@sha256:99be61e3779c2b20f732803ed742b8371fee4e3f2b73b7fda5fe46b159aba60a
+ghcr.io/edgelesssys/contrast/node-installer-kata:latest=ghcr.io/edgelesssys/contrast/node-installer-kata:v1.3.0@sha256:6c704edc936d9277c5a4535d2502eaabe3255e237eea94e04234817b8c03dbaa
+ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=ghcr.io/edgelesssys/contrast/tardev-snapshotter:3.2.0.azl2@sha256:278a9405340fc86ef0ad5eebcba259611131d0e7b9d9703ab692f5dd9d729263
+ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest=ghcr.io/edgelesssys/contrast/nydus-snapshotter:0.13.14@sha256:ed466f9ecc3ab49a32b51381d963cd4a1b59fe504f20fc1e55b665a14ef829e3
+ghcr.io/edgelesssys/contrast/cryptsetup:latest=ghcr.io/edgelesssys/contrast/cryptsetup:v1.3.0@sha256:5801f65d54983f7bb062adb022530677a7036a340b9dadbf6e4cd95af3258988
