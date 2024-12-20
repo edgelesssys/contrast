@@ -19,9 +19,6 @@ final: prev:
   };
 
   erofs-utils = prev.erofs-utils.overrideAttrs (prev: {
-    patches = final.lib.optionals (prev ? patches) prev.patches ++ [
-      ./erofs-utils-reproducibility.patch
-    ];
     # The build environment sets SOURCE_DATE_EPOCH to 1980, but as mkfs.erofs
     # implements timestamp clamping, and files from the store have a 1970
     # timestamp, we end up with different file metadata in the image
