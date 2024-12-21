@@ -57,6 +57,7 @@ let
       rke2-qemu-tdx-handler = runtimeHandler "rke2-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
       metal-qemu-snp-handler = runtimeHandler "metal-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
       k3s-qemu-snp-handler = runtimeHandler "k3s-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
+      k3s-qemu-snp-gpu-handler = runtimeHandler "k3s-qemu-snp-gpu" kata.contrast-node-installer-image.runtimeHash;
 
       aksRefVals = {
         snp = [
@@ -135,6 +136,7 @@ let
         "${rke2-qemu-tdx-handler}" = tdxRefVals;
         "${metal-qemu-snp-handler}" = snpRefVals;
         "${k3s-qemu-snp-handler}" = snpRefVals;
+        "${k3s-qemu-snp-gpu-handler}" = snpRefVals;
       }
     );
 
