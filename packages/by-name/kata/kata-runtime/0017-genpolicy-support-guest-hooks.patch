@@ -31,10 +31,10 @@ index a218a4d9c4717e4dd2abdc3fd4b0d1a6d8171661..a9ca4960e9e6879109a4f0b50b9aebe3
      "common": {
          "cpath": "/run/kata-containers",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 6cabea53a52c2e0b9b52a086d166613d3440d5c4..810fb327b06d654b48ce8e76eb7d325cd39de52a 100644
+index dba71d4785fccf4717f66013a56fbbd4bff764b6..73adb09377a57e25ae9171a43b314ac3fc26298b 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1217,7 +1217,7 @@ CopyFileRequest {
+@@ -1266,7 +1266,7 @@ CopyFileRequest {
  
  CreateSandboxRequest {
      print("CreateSandboxRequest: input.guest_hook_path =", input.guest_hook_path)
@@ -43,7 +43,7 @@ index 6cabea53a52c2e0b9b52a086d166613d3440d5c4..810fb327b06d654b48ce8e76eb7d325c
  
      print("CreateSandboxRequest: input.kernel_modules =", input.kernel_modules)
      count(input.kernel_modules) == 0
-@@ -1228,6 +1228,21 @@ CreateSandboxRequest {
+@@ -1277,6 +1277,21 @@ CreateSandboxRequest {
      allow_sandbox_storages(input.storages)
  }
  

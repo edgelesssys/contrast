@@ -29,6 +29,7 @@ rustPlatform.buildRustPackage rec {
       "attester-0.1.0" = "sha256-hx5Z5HxsyAPCQLY62koNGFHpG5M5PfG9Kagfsey58oI=";
       "loopdev-0.5.0" = "sha256-PD+iuZWPAFd3VUCgNB0ZrH/aCM2VMqJEyAv5/j1kqlA=";
       "sigstore-0.9.0" = "sha256-IeHuB5d5IU9YryeD47Qht0x806kJCoIOHsoEATRV+MY=";
+      "cdi-0.1.0" = "sha256-DbXa6h678WYdBdQrVpetkfY8QzamW9lZIjd0u1fQgd4=";
     };
   };
 
