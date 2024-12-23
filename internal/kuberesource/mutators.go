@@ -13,6 +13,7 @@ import (
 	applybatchv1 "k8s.io/client-go/applyconfigurations/batch/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+	applyrbacv1 "k8s.io/client-go/applyconfigurations/rbac/v1"
 )
 
 const (
@@ -293,6 +294,10 @@ func PatchNamespaces(resources []any, namespace string) []any {
 			r.Namespace = nsPtr
 		case *applycorev1.ServiceAccountApplyConfiguration:
 			r.Namespace = nsPtr
+		case *applyrbacv1.ClusterRoleBindingApplyConfiguration:
+			for i := range len(r.Subjects) {
+				r.Subjects[i].Namespace = nsPtr
+			}
 		}
 	}
 	return resources

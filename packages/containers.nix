@@ -177,6 +177,16 @@ let
         Cmd = [ "${lib.getExe pkgs.cloud-api-adaptor.entrypoint}" ];
       };
     };
+
+    nydus-pull = dockerTools.buildImage {
+      name = "nydus-pull";
+      tag = "v${pkgs.contrast.version}";
+      copyToRoot = with dockerTools; [ caCertificates ];
+      config = {
+        Entrypoint = [ "${pkgs.contrast.nyduspull}/bin/nyduspull" ];
+        Env = [ "PATH=/bin" ]; # This is only here for policy generation.
+      };
+    };
   };
 in
 containers
