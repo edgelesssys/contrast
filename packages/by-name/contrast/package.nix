@@ -143,6 +143,7 @@ let
     "initializer"
     "cli"
     "nodeinstaller"
+    "nyduspull"
   ];
 in
 
@@ -180,7 +181,7 @@ buildGoModule rec {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-xWyjFGoHjivwnFw8IqbElzuL1mvNltVWGhwpQ7vSqDk=";
+  vendorHash = "sha256-h3efJ+fzof+Nrpb4Xq49EUZ0YEIhU5HjFQ/i14h3EFk=";
 
   nativeBuildInputs = [ installShellFiles ];
 
