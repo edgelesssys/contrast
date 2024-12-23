@@ -251,6 +251,7 @@ jobs:
           serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy")
           tardevSnapshotterImg=$(nix run .#containers.push-tardev-snapshotter -- "$container_registry/contrast/tardev-snapshotter")
           nydusSnapshotterImg=$(nix run .#containers.push-nydus-snapshotter -- "$container_registry/contrast/nydus-snapshotter")
+          nydusPullImg=$(nix run .#containers.push-nydus-pull -- "$container_registry/contrast/nydus-pull")
           cryptsetupImg=$(nix run .#containers.push-cryptsetup -- "$container_registry/contrast/cryptsetup")
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_ENV"
@@ -259,6 +260,7 @@ jobs:
           echo "serviceMeshImg=$serviceMeshImg" | tee -a "$GITHUB_ENV"
           echo "tardevSnapshotterImg=$tardevSnapshotterImg" | tee -a "$GITHUB_ENV"
           echo "nydusSnapshotterImg=$nydusSnapshotterImg" | tee -a "$GITHUB_ENV"
+          echo "nydusPullImg=$nydusPullImg" | tee -a "$GITHUB_ENV"
           echo "cryptsetupImg=$cryptsetupImg" | tee -a "$GITHUB_ENV"
       - name: Add tag to Coordinator image
         run: |
@@ -272,6 +274,7 @@ jobs:
           echo "nodeInstallerKataImgTagged=$(tag "$nodeInstallerKataImg")" | tee -a "$GITHUB_ENV"
           echo "initializerImgTagged=$(tag "$initializerImg")" | tee -a "$GITHUB_ENV"
           echo "serviceMeshImgTagged=$(tag "$serviceMeshImg")" | tee -a "$GITHUB_ENV"
+          echo "nydusPullImgTagged=$(tag "$nydusPullImg")" | tee -a "$GITHUB_ENV"
           echo "cryptsetupImgTagged=$(tag "$cryptsetupImg")" | tee -a "$GITHUB_ENV"
 
           tardevVer=$(nix eval --impure --raw --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.microsoft.tardev-snapshotter.version")
@@ -293,6 +296,7 @@ jobs:
             echo "ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged"
             echo "ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged"
             echo "ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest=$nydusSnapshotterImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/nydus-pull:latest=$nydusPullImgTagged"
             echo "ghcr.io/edgelesssys/contrast/cryptsetup:latest=$cryptsetupImgTagged"
           } > image-replacements.txt
       - name: Upload image replacements file (for main branch PR)
