@@ -179,52 +179,61 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 	require.NoError(err)
 	require.NotEmpty(hash, "expected apply to fill coordinator policy hash")
 
-	ct.patchReferenceValues(t, ct.Platform)
+	ct.PatchManifest(t, patchReferenceValues(ct.Platform))
 }
 
-// patchReferenceValues modifies the manifest to contain multiple reference values for testing
-// cases with multiple validators, as well as filling in bare-metal SNP-specific values.
-func (ct *ContrastTest) patchReferenceValues(t *testing.T, platform platforms.Platform) {
+// PatchManifestFunc defines a function type allowing the given manifest to be modified.
+type PatchManifestFunc func(manifest.Manifest) manifest.Manifest
+
+// PatchManifest modifies the current manifest by executing a provided PatchManifestFunc on it.
+func (ct *ContrastTest) PatchManifest(t *testing.T, patchFn PatchManifestFunc) {
 	manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
 	require.NoError(t, err)
 	var m manifest.Manifest
 	require.NoError(t, json.Unmarshal(manifestBytes, &m))
-
-	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
-		// Duplicate the reference values to test multiple validators by having at least 2.
-		m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1])
-
-		// Make the last set of reference values invalid by changing the SVNs.
-		m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1].MinimumTCB = manifest.SNPTCB{
-			BootloaderVersion: toPtr(manifest.SVN(255)),
-			TEEVersion:        toPtr(manifest.SVN(255)),
-			SNPVersion:        toPtr(manifest.SVN(255)),
-			MicrocodeVersion:  toPtr(manifest.SVN(255)),
-		}
-	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP:
-		// The generate command doesn't fill in all required fields when
-		// generating a manifest for baremetal SNP. Do that now.
-		for i, snp := range m.ReferenceValues.SNP {
-			snp.MinimumTCB.BootloaderVersion = toPtr(manifest.SVN(0))
-			snp.MinimumTCB.TEEVersion = toPtr(manifest.SVN(0))
-			snp.MinimumTCB.SNPVersion = toPtr(manifest.SVN(0))
-			snp.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
-			m.ReferenceValues.SNP[i] = snp
-		}
-	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
-		// The generate command doesn't fill in all required fields when
-		// generating a manifest for baremetal TDX. Do that now.
-		for i, tdx := range m.ReferenceValues.TDX {
-			tdx.MinimumTeeTcbSvn = manifest.HexString("04010200000000000000000000000000")
-			tdx.MrSeam = manifest.HexString("1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04")
-			m.ReferenceValues.TDX[i] = tdx
-		}
-	}
-
-	manifestBytes, err = json.Marshal(m)
+	patchedManifest := patchFn(m)
+	manifestBytes, err = json.Marshal(patchedManifest)
 	require.NoError(t, err)
 	require.NoError(t, os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
+}
+
+// patchReferenceValues returns a PatchManifestFunc which modifies a manifest to contain multiple reference values for testing
+// cases with multiple validators, as well as filling in bare-metal SNP-specific values.
+func patchReferenceValues(platform platforms.Platform) PatchManifestFunc {
+	return func(m manifest.Manifest) manifest.Manifest {
+		switch platform {
+		case platforms.AKSCloudHypervisorSNP:
+			// Duplicate the reference values to test multiple validators by having at least 2.
+			m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1])
+
+			// Make the last set of reference values invalid by changing the SVNs.
+			m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1].MinimumTCB = manifest.SNPTCB{
+				BootloaderVersion: toPtr(manifest.SVN(255)),
+				TEEVersion:        toPtr(manifest.SVN(255)),
+				SNPVersion:        toPtr(manifest.SVN(255)),
+				MicrocodeVersion:  toPtr(manifest.SVN(255)),
+			}
+		case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP:
+			// The generate command doesn't fill in all required fields when
+			// generating a manifest for baremetal SNP. Do that now.
+			for i, snp := range m.ReferenceValues.SNP {
+				snp.MinimumTCB.BootloaderVersion = toPtr(manifest.SVN(0))
+				snp.MinimumTCB.TEEVersion = toPtr(manifest.SVN(0))
+				snp.MinimumTCB.SNPVersion = toPtr(manifest.SVN(0))
+				snp.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
+				m.ReferenceValues.SNP[i] = snp
+			}
+		case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+			// The generate command doesn't fill in all required fields when
+			// generating a manifest for baremetal TDX. Do that now.
+			for i, tdx := range m.ReferenceValues.TDX {
+				tdx.MinimumTeeTcbSvn = manifest.HexString("04010200000000000000000000000000")
+				tdx.MrSeam = manifest.HexString("1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04")
+				m.ReferenceValues.TDX[i] = tdx
+			}
+		}
+		return m
+	}
 }
 
 // Apply the generated resources to the Kubernetes test environment.
