@@ -11,14 +11,14 @@
 
 buildGoModule rec {
   pname = "kata-runtime";
-  version = "3.11.0";
+  version = "3.12.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = version;
-      hash = "sha256-fIjHtTBWeU6Kp83YGuaL3h0wq4lqUyNKrkFIsCzII6c=";
+      hash = "sha256-0pJx8ASUeJjLubu/QV72avntkaU3b5PC5V1H54SrPIs=";
     };
 
     patches = [

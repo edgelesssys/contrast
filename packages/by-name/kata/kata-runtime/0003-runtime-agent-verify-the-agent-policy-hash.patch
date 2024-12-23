@@ -270,7 +270,7 @@ index 5dd9c1e2616b8cd47a60a5644ec9d88705fe3fbd..b8b216c6b24829a457ae55209c63d091
  
  [[bin]]
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
-index 3e2e22d698f98c9ea3bb9807694e8d93f5cd8d9a..8912b8c76b64619f5251fd2f95c2da2e2f45937e 100644
+index 17d1d34a147d58fe6cab10d21b54af4fffc4be63..033aac8530390129638d6feff64818d3ebbce20d 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
 @@ -85,6 +85,10 @@ mod tracer;

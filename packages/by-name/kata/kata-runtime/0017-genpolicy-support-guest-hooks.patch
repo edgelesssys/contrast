@@ -17,7 +17,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  3 files changed, 20 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index a218a4d9c4717e4dd2abdc3fd4b0d1a6d8171661..a9ca4960e9e6879109a4f0b50b9aebe33430e674 100644
+index 1e43545320d474ce5994514165176cd8c48db425..9b95f9f7462717d04f0b9ce685d97c0455f949da 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -240,7 +240,8 @@
@@ -31,10 +31,10 @@ index a218a4d9c4717e4dd2abdc3fd4b0d1a6d8171661..a9ca4960e9e6879109a4f0b50b9aebe3
      "common": {
          "cpath": "/run/kata-containers",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index dba71d4785fccf4717f66013a56fbbd4bff764b6..73adb09377a57e25ae9171a43b314ac3fc26298b 100644
+index 0e6d5dadd3a69f472a37326bb34a1b05d12bb85d..e83c35d54f273838d4b717c6c4dad03f52b1a04e 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1266,7 +1266,7 @@ CopyFileRequest {
+@@ -1282,7 +1282,7 @@ CopyFileRequest {
  
  CreateSandboxRequest {
      print("CreateSandboxRequest: input.guest_hook_path =", input.guest_hook_path)
@@ -43,7 +43,7 @@ index dba71d4785fccf4717f66013a56fbbd4bff764b6..73adb09377a57e25ae9171a43b314ac3
  
      print("CreateSandboxRequest: input.kernel_modules =", input.kernel_modules)
      count(input.kernel_modules) == 0
-@@ -1277,6 +1277,21 @@ CreateSandboxRequest {
+@@ -1293,6 +1293,21 @@ CreateSandboxRequest {
      allow_sandbox_storages(input.storages)
  }
  
@@ -66,10 +66,10 @@ index dba71d4785fccf4717f66013a56fbbd4bff764b6..73adb09377a57e25ae9171a43b314ac3
      print("ExecProcessRequest 1: input =", input)
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 9e69126d9008f361e77086018414abc75a8cc092..9f4accaca8c57620f9becd1d10d9606004be3adb 100644
+index 4601b85893e1c63eaf4b68403713894001dc9ffd..e2012bf6f2d80ffea678a38803d8e85f5369b9dc 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -408,6 +408,8 @@ pub struct ClusterConfig {
+@@ -406,6 +406,8 @@ pub struct ClusterConfig {
  pub struct SandboxData {
      /// Expected value of the CreateSandboxRequest storages field.
      pub storages: Vec<agent::Storage>,
