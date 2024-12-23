@@ -24,7 +24,7 @@ index 1225271a2a4c5d9340022c22ee6889171bc21b93..a3398bcf6fac68e272a4ca1de962e585
  
  	if conf.NumVCPUs == 0 {
 diff --git a/src/runtime/virtcontainers/hypervisor_config_linux.go b/src/runtime/virtcontainers/hypervisor_config_linux.go
-index f41cd22bd4ba96e5305ccb58e74c6d983b077974..8e1ca38eb620d58ffd4c83bbf4c666c1bc21efc3 100644
+index 1bcd47218c3c6e336b443eb3b7337bf35602cae4..e695aa52f23e86687b9481e92d6b0c523fda10ac 100644
 --- a/src/runtime/virtcontainers/hypervisor_config_linux.go
 +++ b/src/runtime/virtcontainers/hypervisor_config_linux.go
 @@ -28,8 +28,6 @@ func validateHypervisorConfig(conf *HypervisorConfig) error {

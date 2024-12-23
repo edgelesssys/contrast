@@ -11,14 +11,14 @@
 
 buildGoModule rec {
   pname = "kata-runtime";
-  version = "3.10.1";
+  version = "3.11.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = version;
-      hash = "sha256-lk9BZeNc8StLxu0frRfh7h5Xk3w75SUeZP1ddES7a20=";
+      hash = "sha256-fIjHtTBWeU6Kp83YGuaL3h0wq4lqUyNKrkFIsCzII6c=";
     };
 
     patches = [
@@ -90,36 +90,29 @@ buildGoModule rec {
       # our Nix packaging.
       ./0013-tools-don-t-clean-build-root-when-generating-rootfs.patch
 
-      # Fixes https://github.com/kata-containers/kata-containers/issues/10424
-      # Those patches only got merged after v3.10.1 was released
-      # Drop when upgrading to v3.11+
-      ./0014-kata-sys-util-remove-obsolete-cgroups-dependency.patch
-      ./0015-kata-sys-util-move-json-parsing-to-protocols-crate.patch
-      ./0016-protocols-only-build-RLimit-impls-on-Linux.patch
-
       # Disable a check in Kata that prevents to set both image and initrd.
       # For us, there's no practical reason not to do so.
       # No upstream patch available, changes first need to be discussed with Kata maintainers.
       # See https://katacontainers.slack.com/archives/C879ACQ00/p1731928491942299
-      ./0017-runtime-allow-initrd-AND-image-to-be-set.patch
+      ./0014-runtime-allow-initrd-AND-image-to-be-set.patch
 
       # Simple genpolicy logging redaction of the policy annotation
       # This avoids printing the entire annotation on log level debug, which resulted in errors of the logtranslator.go
       # TODO(jmxnzo): remove when upstream patch is merged: https://github.com/kata-containers/kata-containers/pull/10647
-      ./0018-genpolicy-do-not-log-policy-annotation-in-debug.patch
+      ./0015-genpolicy-do-not-log-policy-annotation-in-debug.patch
 
       # Fixes a bug with ConfigMaps exceeding 8 entries, see description.
       # The situation upstream is complicated, because the paths relevant for genpolicy differ
       # between different CI systems and TEE configurations. This makes it hard to reproduce in a
       # vanilla Kata setting.
       # Relevant discussion: https://github.com/kata-containers/kata-containers/pull/10614.
-      ./0019-genpolicy-allow-non-watchable-ConfigMaps.patch
+      ./0016-genpolicy-allow-non-watchable-ConfigMaps.patch
 
       # Guest hooks are required for GPU support, but unsupported in
       # upstream Kata / genpolicy as of now. This patch adds a new
       # `allowed_guest_hooks` setting , which controls what paths may be set for hooks.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10633
-      ./0020-genpolicy-support-guest-hooks.patch
+      ./0017-genpolicy-support-guest-hooks.patch
     ];
   };
 

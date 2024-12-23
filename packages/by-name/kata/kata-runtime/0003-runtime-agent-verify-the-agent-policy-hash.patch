@@ -18,14 +18,14 @@ the Agent has the expected contents.
 Signed-off-by: Dan Mihai <dmihai@microsoft.com>
 Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
 ---
- src/agent/Cargo.lock                          | 101 +++++++++
+ src/agent/Cargo.lock                          | 105 +++++++++-
  src/agent/Cargo.toml                          |   7 +-
  src/agent/src/main.rs                         |   4 +
  src/agent/src/policy.rs                       |  46 ++++-
  src/agent/src/sev.rs                          |  19 ++
  src/agent/src/tdx.rs                          | 194 ++++++++++++++++++
  src/runtime/pkg/govmm/qemu/qemu.go            |  17 +-
- src/runtime/virtcontainers/hypervisor.go      |  10 +-
+ src/runtime/virtcontainers/hypervisor.go      |  12 +-
  src/runtime/virtcontainers/qemu.go            |   2 +-
  src/runtime/virtcontainers/qemu_amd64.go      |  39 +++-
  src/runtime/virtcontainers/qemu_amd64_test.go | 116 ++++++++++-
@@ -37,15 +37,15 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/runtime/virtcontainers/qemu_s390x.go      |   2 +-
  src/runtime/virtcontainers/qemu_s390x_test.go |  51 ++++-
  src/runtime/virtcontainers/sandbox.go         |   1 +
- 19 files changed, 677 insertions(+), 40 deletions(-)
+ 19 files changed, 680 insertions(+), 43 deletions(-)
  create mode 100644 src/agent/src/sev.rs
  create mode 100644 src/agent/src/tdx.rs
 
 diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
-index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05d347262d 100644
+index 67b1830278ca52904a73c6281693049cb5d85283..d53facd717f2428f7790d5b65bdf4bde70ac7d64 100644
 --- a/src/agent/Cargo.lock
 +++ b/src/agent/Cargo.lock
-@@ -542,6 +542,12 @@ version = "0.6.3"
+@@ -605,6 +605,12 @@ version = "0.6.3"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
  
@@ -58,7 +58,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
  [[package]]
  name = "bitflags"
  version = "1.3.2"
-@@ -967,6 +973,12 @@ dependencies = [
+@@ -1100,11 +1106,17 @@ dependencies = [
   "wasm-bindgen",
  ]
  
@@ -69,9 +69,16 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
 +checksum = "12170080f3533d6f09a19f81596f836854d0fa4867dc32c8172b8474b4e9de61"
 +
  [[package]]
+ name = "colorchoice"
+-version = "1.0.2"
++version = "1.0.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "d3fd119d74b830634cea2a0f58bbd0d54540518a14397557951e79340abc28c0"
++checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
+ 
+ [[package]]
  name = "combine"
- version = "4.6.7"
-@@ -1473,6 +1485,15 @@ dependencies = [
+@@ -1612,6 +1624,15 @@ dependencies = [
   "subtle",
  ]
  
@@ -87,7 +94,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
  [[package]]
  name = "dirs-next"
  version = "2.0.0"
-@@ -1483,6 +1504,18 @@ dependencies = [
+@@ -1622,6 +1643,18 @@ dependencies = [
   "dirs-sys-next",
  ]
  
@@ -106,7 +113,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
  [[package]]
  name = "dirs-sys-next"
  version = "0.1.2"
-@@ -2570,6 +2603,12 @@ dependencies = [
+@@ -2748,6 +2781,12 @@ dependencies = [
   "windows-sys 0.48.0",
  ]
  
@@ -119,7 +126,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
  [[package]]
  name = "iovec"
  version = "0.1.4"
-@@ -2808,6 +2847,8 @@ dependencies = [
+@@ -3047,6 +3086,8 @@ dependencies = [
   "serde",
   "serde_json",
   "serial_test",
@@ -128,7 +135,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
   "slog",
   "slog-scope",
   "slog-stdlog",
-@@ -2825,6 +2866,7 @@ dependencies = [
+@@ -3064,6 +3105,7 @@ dependencies = [
   "tracing-subscriber",
   "ttrpc",
   "url",
@@ -136,7 +143,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
   "vsock-exporter",
   "which",
  ]
-@@ -3759,6 +3801,12 @@ dependencies = [
+@@ -4054,6 +4096,12 @@ dependencies = [
   "tokio-stream",
  ]
  
@@ -149,7 +156,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
  [[package]]
  name = "ordered-stream"
  version = "0.2.0"
-@@ -5201,6 +5249,15 @@ dependencies = [
+@@ -5500,6 +5548,15 @@ dependencies = [
   "syn 1.0.109",
  ]
  
@@ -165,7 +172,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
  [[package]]
  name = "serde-enum-str"
  version = "0.4.0"
-@@ -5220,6 +5277,15 @@ version = "0.2.2"
+@@ -5519,6 +5576,15 @@ version = "0.2.2"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "794e44574226fc701e3be5c651feb7939038fc67fb73f6f4dd5c4ba90fd3be70"
  
@@ -181,7 +188,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
  [[package]]
  name = "serde_derive"
  version = "1.0.204"
-@@ -5323,6 +5389,28 @@ dependencies = [
+@@ -5622,6 +5688,28 @@ dependencies = [
   "syn 1.0.109",
  ]
  
@@ -210,7 +217,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
  [[package]]
  name = "sha1"
  version = "0.10.6"
-@@ -6351,6 +6439,9 @@ name = "uuid"
+@@ -6656,6 +6744,9 @@ name = "uuid"
  version = "1.10.0"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "81dfa00651efa65069b0b6b651f4aaa31ba9e3c3ce0137aaad053604ee7e0314"
@@ -220,7 +227,7 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
  
  [[package]]
  name = "valuable"
-@@ -6370,6 +6461,16 @@ version = "0.9.4"
+@@ -6675,6 +6766,16 @@ version = "0.9.4"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
  
@@ -238,12 +245,12 @@ index f5514457031ed7f0b4d1c5c6bee7ec5ec8b9ad72..8cf40f7ec7d12b6e206d49f4b6adff05
  name = "vsock"
  version = "0.2.6"
 diff --git a/src/agent/Cargo.toml b/src/agent/Cargo.toml
-index a8ed5d081cf87b19f4ce5c5bdb9cc4efa694a6e3..d5b3db965fe75cbccc182825a4115bdc57a9705b 100644
+index 5dd9c1e2616b8cd47a60a5644ec9d88705fe3fbd..b8b216c6b24829a457ae55209c63d09187c02d24 100644
 --- a/src/agent/Cargo.toml
 +++ b/src/agent/Cargo.toml
-@@ -85,6 +85,11 @@ regorus = { version = "0.1.4", default-features = false, features = [
-     "regex",
- ], optional = true }
+@@ -88,6 +88,11 @@ regorus = { version = "0.2.6", default-features = false, features = [
+ cdi = { git = "https://github.com/cncf-tags/container-device-interface-rs", rev = "fba5677a8e7cc962fc6e495fcec98d7d765e332a" }
+ json-patch = "2.0.0"
  
 +# Policy validation
 +sha2 = { version = "0.10.6", optional = true }
@@ -253,7 +260,7 @@ index a8ed5d081cf87b19f4ce5c5bdb9cc4efa694a6e3..d5b3db965fe75cbccc182825a4115bdc
  [dev-dependencies]
  tempfile = "3.1.0"
  test-utils = { path = "../libs/test-utils" }
-@@ -103,7 +108,7 @@ lto = true
+@@ -106,7 +111,7 @@ lto = true
  default-pull = ["guest-pull"]
  seccomp = ["rustjail/seccomp"]
  standard-oci-runtime = ["rustjail/standard-oci-runtime"]
@@ -263,7 +270,7 @@ index a8ed5d081cf87b19f4ce5c5bdb9cc4efa694a6e3..d5b3db965fe75cbccc182825a4115bdc
  
  [[bin]]
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
-index 8a057bb367537cfac988f20fda86b2e23a681682..22d858c10468478dacb7e7e9b9133a756abc1ea8 100644
+index 3e2e22d698f98c9ea3bb9807694e8d93f5cd8d9a..8912b8c76b64619f5251fd2f95c2da2e2f45937e 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
 @@ -85,6 +85,10 @@ mod tracer;
@@ -278,14 +285,14 @@ index 8a057bb367537cfac988f20fda86b2e23a681682..22d858c10468478dacb7e7e9b9133a75
  cfg_if! {
      if #[cfg(target_arch = "s390x")] {
 diff --git a/src/agent/src/policy.rs b/src/agent/src/policy.rs
-index ccac317d0ff707c1fd1242a144886d5e8c000a90..2f1da9ecd0d0ee1be06218d5bc9e58cd93defa8c 100644
+index 08587a6d03bb53ed82b62c48b658b9dbd8b07c6c..875a48127f5ceabcb6afb9cedaae74e5e0099d24 100644
 --- a/src/agent/src/policy.rs
 +++ b/src/agent/src/policy.rs
 @@ -3,11 +3,14 @@
  // SPDX-License-Identifier: Apache-2.0
  //
  
--use anyhow::Result;
+-use anyhow::{bail, Result};
 +use anyhow::{bail, ensure, Result};
  use protobuf::MessageDyn;
 +use sha2::{Digest, Sha256};
@@ -297,7 +304,7 @@ index ccac317d0ff707c1fd1242a144886d5e8c000a90..2f1da9ecd0d0ee1be06218d5bc9e58cd
  use crate::{AGENT_CONFIG, AGENT_POLICY};
  
  static POLICY_LOG_FILE: &str = "/tmp/policy.txt";
-@@ -145,6 +148,7 @@ impl AgentPolicy {
+@@ -217,6 +220,7 @@ impl AgentPolicy {
  
      /// Replace the Policy in regorus.
      pub async fn set_policy(&mut self, policy: &str) -> Result<()> {
@@ -305,7 +312,7 @@ index ccac317d0ff707c1fd1242a144886d5e8c000a90..2f1da9ecd0d0ee1be06218d5bc9e58cd
          self.engine = Self::new_engine();
          self.engine
              .add_policy("agent_policy".to_string(), policy.to_string())?;
-@@ -192,3 +196,43 @@ impl AgentPolicy {
+@@ -264,3 +268,43 @@ impl AgentPolicy {
          Ok(())
      }
  }
@@ -631,7 +638,7 @@ index b3b3fb4bdbe99e6fc1a89db49be984b92a19551c..5070ecd1e78ca04383637e662b3c8e4f
  
  	return tdxObject.String()
 diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
-index 5eb922980be33de9afc25ffaae65dd222f976c52..0e5205cc99da99e929365cbfe8637465872addb9 100644
+index cad5e85d7440550422154729e443448a9223250d..646720f3261e361ee0893dd511d6c11b2a7706c6 100644
 --- a/src/runtime/virtcontainers/hypervisor.go
 +++ b/src/runtime/virtcontainers/hypervisor.go
 @@ -545,7 +545,7 @@ type HypervisorConfig struct {
@@ -643,10 +650,15 @@ index 5eb922980be33de9afc25ffaae65dd222f976c52..0e5205cc99da99e929365cbfe8637465
  	DefaultMaxVCPUs uint32
  
  	// DefaultMem specifies default memory size in MiB for the VM.
-@@ -673,6 +673,10 @@ type HypervisorConfig struct {
- 
- 	// Initdata defines the initdata passed into guest when CreateVM
+@@ -675,10 +675,14 @@ type HypervisorConfig struct {
  	Initdata string
+ 
+ 	// GPU specific annotations (currently only applicable for Remote Hypervisor)
+-	//DefaultGPUs specifies the number of GPUs required for the Kata VM
++	// DefaultGPUs specifies the number of GPUs required for the Kata VM
+ 	DefaultGPUs uint32
+ 	// DefaultGPUModel specifies GPU model like tesla, h100, readeon etc.
+ 	DefaultGPUModel string
 +
 +	// Policy text, for sandboxes created using a valid io.katacontainers.config.agent.policy
 +	// annotation
@@ -654,7 +666,7 @@ index 5eb922980be33de9afc25ffaae65dd222f976c52..0e5205cc99da99e929365cbfe8637465
  }
  
  // vcpu mapping from vcpu number to thread number
-@@ -1027,8 +1031,8 @@ type guestProtection uint8
+@@ -1033,8 +1037,8 @@ type guestProtection uint8
  const (
  	noneProtection guestProtection = iota
  
@@ -1281,7 +1293,7 @@ index 24a67bdd9e591ead96fbaea473cb662526dedbf3..3f5f84afffeec6fed0ba624408158425
 +	assert.Equal(expectedOut, devices)
  }
 diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
-index ac0d35e9c854d6b5eea52e716137fe62414d51a7..ff7a46b4e05dbef2d8d1981897b04e639fda5527 100644
+index 33244bc5358c7b50fdc9dcced29c13e24d2e0e39..8cfb80dcde865aa679c12f68173ae168d38c4b20 100644
 --- a/src/runtime/virtcontainers/sandbox.go
 +++ b/src/runtime/virtcontainers/sandbox.go
 @@ -613,6 +613,7 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor

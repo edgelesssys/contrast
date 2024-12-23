@@ -19,7 +19,8 @@ let
 
     src = fetchzip {
       url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
-      hash = "sha256-VcbOY86p8VkI6XvdhHfZNnWVHKuMLW7Xj7uzHHDiVsk=";
+      hash = "sha256-zxCp7iDVq/Oy21S5pv/z6iVCrFF02UHYjd/JAB8iUzQ=";
+      stripRoot = false;
     };
 
     postPatch =

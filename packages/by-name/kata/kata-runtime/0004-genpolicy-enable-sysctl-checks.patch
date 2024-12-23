@@ -44,10 +44,10 @@ index fe1625bac119b59ce2094b2220e2a87c486e670a..e50d5e545e3fe42db486771345310d4c
      },
      "volumes": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 1d95bfe699bb5082f8bbfb2cc4d89c8bde3a08ec..a89b13ed158ad8524e11ffbdad8ccb1ce7692aed 100644
+index ed6b4893a9c4c8b49dc26cc645d763ee7e36eb4f..1a7f7107030b4af11a43e26b6481d3a0016f7816 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -112,7 +112,6 @@ allow_create_container_input {
+@@ -120,7 +120,6 @@ allow_create_container_input {
      is_null(i_linux.Resources.Network)
      is_null(i_linux.Resources.Pids)
      is_null(i_linux.Seccomp)
@@ -55,7 +55,7 @@ index 1d95bfe699bb5082f8bbfb2cc4d89c8bde3a08ec..a89b13ed158ad8524e11ffbdad8ccb1c
  
      i_process := i_oci.Process
      count(i_process.SelinuxLabel) == 0
-@@ -389,6 +388,7 @@ allow_linux(p_oci, i_oci) {
+@@ -438,6 +437,7 @@ allow_linux(p_oci, i_oci) {
      allow_masked_paths(p_oci, i_oci)
      allow_readonly_paths(p_oci, i_oci)
      allow_linux_devices(p_oci.Linux.Devices, i_oci.Linux.Devices)
@@ -63,7 +63,7 @@ index 1d95bfe699bb5082f8bbfb2cc4d89c8bde3a08ec..a89b13ed158ad8524e11ffbdad8ccb1c
  
      print("allow_linux: true")
  }
-@@ -487,6 +487,23 @@ allow_linux_devices(p_devices, i_devices) {
+@@ -536,6 +536,23 @@ allow_linux_devices(p_devices, i_devices) {
      print("allow_linux_devices: true")
  }
  

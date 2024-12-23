@@ -9,10 +9,10 @@ Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index d9b68e3ac0758f0d15bc1415300573082d7e1949..6ddcd18cd1334dfabeadd1b0e7a54c723c7cae4d 100644
+index b9ea01e439b55c12600765a73321e76b8311d5a4..d86a8718e221e1b428d34db5af97911f9609d392 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -905,7 +905,7 @@ allow_storage_options(p_storage, i_storage, layer_ids, root_hashes) {
+@@ -954,7 +954,7 @@ allow_storage_options(p_storage, i_storage, layer_ids, root_hashes) {
      i_count == p_count + 3
  
      print("allow_storage_options 2: i_storage.options[0] =", i_storage.options[0])
