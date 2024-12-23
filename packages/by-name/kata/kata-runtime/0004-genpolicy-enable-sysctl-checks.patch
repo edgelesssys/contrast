@@ -16,7 +16,7 @@ environment-dependent sysctls in the settings file.
  5 files changed, 61 insertions(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index fe1625bac119b59ce2094b2220e2a87c486e670a..e50d5e545e3fe42db486771345310d4c2157be2f 100644
+index 5bbb306e3f4a2c01f482da11b2b27da502635c1d..c84550181b98913ece32eff3e2a7a0164ec2ce12 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -39,6 +39,10 @@
@@ -44,10 +44,10 @@ index fe1625bac119b59ce2094b2220e2a87c486e670a..e50d5e545e3fe42db486771345310d4c
      },
      "volumes": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index ed6b4893a9c4c8b49dc26cc645d763ee7e36eb4f..1a7f7107030b4af11a43e26b6481d3a0016f7816 100644
+index 6caba4435722f22712f42502e881957f2206b8f2..b2fdb5813a1ff17ceab60cae61b31868316b1f85 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -120,7 +120,6 @@ allow_create_container_input {
+@@ -129,7 +129,6 @@ allow_create_container_input {
      is_null(i_linux.Resources.Network)
      is_null(i_linux.Resources.Pids)
      is_null(i_linux.Seccomp)
@@ -55,7 +55,7 @@ index ed6b4893a9c4c8b49dc26cc645d763ee7e36eb4f..1a7f7107030b4af11a43e26b6481d3a0
  
      i_process := i_oci.Process
      count(i_process.SelinuxLabel) == 0
-@@ -438,6 +437,7 @@ allow_linux(p_oci, i_oci) {
+@@ -451,6 +450,7 @@ allow_linux(p_oci, i_oci) {
      allow_masked_paths(p_oci, i_oci)
      allow_readonly_paths(p_oci, i_oci)
      allow_linux_devices(p_oci.Linux.Devices, i_oci.Linux.Devices)
@@ -63,7 +63,7 @@ index ed6b4893a9c4c8b49dc26cc645d763ee7e36eb4f..1a7f7107030b4af11a43e26b6481d3a0
  
      print("allow_linux: true")
  }
-@@ -536,6 +536,23 @@ allow_linux_devices(p_devices, i_devices) {
+@@ -549,6 +549,23 @@ allow_linux_devices(p_devices, i_devices) {
      print("allow_linux_devices: true")
  }
  
@@ -176,7 +176,7 @@ index 19f8822395ca225961bcf77bc3e5ae25e3c31119..1769ca02e1e159e977d22e216b540e29
          ..Default::default()
      };
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 973643e1f270b589e30e0b2e9235dbfa70df0f20..c2753c0f89f28638f955903db412407cb6b90ef9 100644
+index 656e410668eb4c5fbcddcb732f36325bcfc0e372..6ce6805b299d0ea1d233fb11992b7a7065130cdb 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -180,14 +180,20 @@ pub struct KataLinux {
@@ -200,7 +200,7 @@ index 973643e1f270b589e30e0b2e9235dbfa70df0f20..c2753c0f89f28638f955903db412407c
  }
  
  /// OCI container LinuxNamespace struct. This struct is similar to the LinuxNamespace
-@@ -616,6 +622,9 @@ impl AgentPolicy {
+@@ -606,6 +612,9 @@ impl AgentPolicy {
              linux.Devices.push(default_device.clone())
          }
  
