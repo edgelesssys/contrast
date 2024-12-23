@@ -33,6 +33,9 @@ tardev-snapshotter: (push "tardev-snapshotter")
 # Build the nydus-snapshotter, containerize and push it.
 nydus-snapshotter: (push "nydus-snapshotter")
 
+# Build the nydus-pull container and push it.
+nydus-pull: (push "nydus-pull")
+
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"
 default_platform := "${default_platform}"
@@ -49,6 +52,7 @@ node-installer platform=default_platform:
         ;;
         "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             just push "nydus-snapshotter"
+            just push "nydus-pull"
             just push "node-installer-kata"
         ;;
         "AKS-PEER-SNP")

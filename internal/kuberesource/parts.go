@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	applyrbacv1 "k8s.io/client-go/applyconfigurations/rbac/v1"
 )
 
 // ContrastRuntimeClass creates a new RuntimeClassConfig.
@@ -39,6 +40,9 @@ func ContrastRuntimeClass(platform platforms.Platform) (*RuntimeClassConfig, err
 // NodeInstallerConfig wraps a DaemonSetApplyConfiguration for a node installer.
 type NodeInstallerConfig struct {
 	*applyappsv1.DaemonSetApplyConfiguration
+	*applycorev1.ServiceAccountApplyConfiguration
+	*applyrbacv1.ClusterRoleApplyConfiguration
+	*applyrbacv1.ClusterRoleBindingApplyConfiguration
 }
 
 // NodeInstaller constructs a node installer daemon set.
@@ -118,33 +122,70 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 			),
 	}
 
+	nydusPull := Container().
+		WithName("nydus-pull").
+		WithImage("ghcr.io/edgelesssys/contrast/nydus-pull:latest").
+		WithArgs(runtimeHandler).
+		WithEnv(
+			EnvVar().
+				WithName("NODE_NAME").
+				WithValueFrom(
+					applycorev1.EnvVarSource().
+						WithFieldRef(
+							applycorev1.ObjectFieldSelector().
+								WithFieldPath("spec.nodeName"),
+						),
+				),
+		).
+		WithVolumeMounts(
+			VolumeMount().
+				WithName("containerd-socket").
+				WithMountPath("/run/containerd/containerd.sock"),
+		)
+
 	var nodeInstallerImageURL string
-	var snapshotter *applycorev1.ContainerApplyConfiguration
+	var containers []*applycorev1.ContainerApplyConfiguration
 	var snapshotterVolumes []*applycorev1.VolumeApplyConfiguration
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
-		snapshotter = tardevSnapshotter
+		containers = append(containers, tardevSnapshotter)
 		snapshotterVolumes = tardevSnapshotterVolumes
 	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
-		snapshotter = nydusSnapshotter
-		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes, Volume().
-			WithName("var-lib-containerd").
-			WithHostPath(HostPathVolumeSource().
-				WithPath("/var/lib/containerd").
-				WithType(corev1.HostPathDirectory),
-			))
+		containers = append(containers, nydusSnapshotter, nydusPull)
+		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes,
+			Volume().
+				WithName("var-lib-containerd").
+				WithHostPath(HostPathVolumeSource().
+					WithPath("/var/lib/containerd").
+					WithType(corev1.HostPathDirectory),
+				),
+			Volume().
+				WithName("containerd-socket").
+				WithHostPath(HostPathVolumeSource().
+					WithPath("/run/containerd/containerd.sock").
+					WithType(corev1.HostPathSocket),
+				),
+		)
 		snapshotterVolumes = nydusSnapshotterVolumes
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.RKE2QEMUTDX:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
-		snapshotter = nydusSnapshotter
-		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes, Volume().
-			WithName("var-lib-containerd").
-			WithHostPath(HostPathVolumeSource().
-				WithPath("/var/lib/rancher/k3s/agent/containerd").
-				WithType(corev1.HostPathDirectory),
-			))
+		containers = append(containers, nydusSnapshotter, nydusPull)
+		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes,
+			Volume().
+				WithName("var-lib-containerd").
+				WithHostPath(HostPathVolumeSource().
+					WithPath("/var/lib/rancher/k3s/agent/containerd").
+					WithType(corev1.HostPathDirectory),
+				),
+			Volume().
+				WithName("containerd-socket").
+				WithHostPath(HostPathVolumeSource().
+					WithPath("/run/k3s/containerd/containerd.sock").
+					WithType(corev1.HostPathSocket),
+				),
+		)
 		snapshotterVolumes = nydusSnapshotterVolumes
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", platform)
@@ -163,6 +204,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 					"contrast.edgeless.systems/platform": platform.String(),
 				}).
 				WithSpec(PodSpec().
+					WithServiceAccountName("nodeinstaller-serviceaccount").
 					WithHostPID(true).
 					WithInitContainers(Container().
 						WithName("installer").
@@ -177,7 +219,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 						WithCommand("/bin/node-installer", platform.String()),
 					).
 					WithContainers(
-						snapshotter,
+						containers...,
 					).
 					WithVolumes(append(
 						snapshotterVolumes,
@@ -193,7 +235,36 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 			),
 		)
 
-	return &NodeInstallerConfig{d}, nil
+	serviceAccount := applycorev1.ServiceAccount("nodeinstaller-serviceaccount", "")
+
+	clusterRole := applyrbacv1.ClusterRole("nodeinstaller-clusterrole").
+		WithRules(
+			applyrbacv1.PolicyRule().
+				WithAPIGroups("").
+				WithResources("pods").
+				WithVerbs("watch"),
+		)
+
+	clusterRoleBinding := applyrbacv1.ClusterRoleBinding("nodeinstaller-clusterrole-binding").
+		WithSubjects(
+			applyrbacv1.Subject().
+				WithKind("ServiceAccount").
+				WithName("nodeinstaller-serviceaccount").
+				WithNamespace(namespace),
+		).
+		WithRoleRef(
+			applyrbacv1.RoleRef().
+				WithKind("ClusterRole").
+				WithName("nodeinstaller-clusterrole").
+				WithAPIGroup("rbac.authorization.k8s.io"),
+		)
+
+	return &NodeInstallerConfig{
+		DaemonSetApplyConfiguration:          d,
+		ServiceAccountApplyConfiguration:     serviceAccount,
+		ClusterRoleApplyConfiguration:        clusterRole,
+		ClusterRoleBindingApplyConfiguration: clusterRoleBinding,
+	}, nil
 }
 
 // PortForwarderConfig wraps a PodApplyConfiguration for a port forwarder.

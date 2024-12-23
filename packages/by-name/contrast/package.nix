@@ -176,7 +176,7 @@ buildGoModule rec {
         (fileset.difference (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
           fileset.unions [
             (path.append root "service-mesh")
-            (path.append root "tools/tdx-measure")
+            (path.append root "tools")
           ]
         ))
       ];
