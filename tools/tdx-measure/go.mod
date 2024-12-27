@@ -3,7 +3,7 @@ module github.com/edgelesssys/contrast/tdx-measure
 go 1.23.0
 
 require (
-	github.com/foxboron/go-uefi v0.0.0-20241017190036-fab4fdf2f2f3
+	github.com/foxboron/go-uefi v0.0.0-20241219185318-19dc140271bf
 	github.com/spf13/cobra v1.8.1
 )
 
