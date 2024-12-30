@@ -259,13 +259,13 @@
           cp ${pkgs.microsoft.genpolicy.settings-coordinator}/genpolicy-settings.json .
           ${pkgs.microsoft.genpolicy}/bin/genpolicy < "$tmpdir/coordinator_base.yml"
         ;;
-        "k3s-qemu-snp"|"k3s-qemu-tdx"|"rke2-qemu-tdx")
+        "metal-qemu-snp"|"k3s-qemu-snp"|"metal-qemu-tdx"|"k3s-qemu-tdx"|"rke2-qemu-tdx")
           cp ${pkgs.kata.genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego
           cp ${pkgs.kata.genpolicy.settings-coordinator}/genpolicy-settings.json .
           ${pkgs.kata.genpolicy}/bin/genpolicy < "$tmpdir/coordinator_base.yml"
         ;;
         *)
-          echo "Unsupported platform: {{ platform }}"
+          echo "Unsupported platform: {{ platform }}" >&2
           exit 1
         ;;
       esac
