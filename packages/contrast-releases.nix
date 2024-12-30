@@ -62,6 +62,14 @@ let
             passthru.exists = (builtins.compareVersions "v0.8.0" version) <= 0;
           };
 
+          mysql-demo = fetchurl {
+            inherit version;
+            url = "https://github.com/edgelesssys/contrast/releases/download/${version}/mysql-demo.yml";
+            inherit (findVersion "mysql-demo.yml" version) hash;
+            # mysql-demo.yml was introduced in version v1.2.0
+            passthru.exists = (builtins.compareVersions "v1.2.0" version) <= 0;
+          };
+
           # starting with version v1.1.0 all files have a platform-specific suffix.
           platformSpecificFiles = builtins.listToAttrs (
             lib.lists.map
@@ -125,6 +133,10 @@ let
             + lib.optionalString emojivoto.exists ''
               mkdir -p $out/deployment
               install -m 644 ${emojivoto} $out/deployment/emojivoto-demo.yml
+            ''
+            + lib.optionalString mysql-demo.exists ''
+              mkdir -p $out/deployment
+              install -m 644 ${mysql-demo} $out/deployment/mysql-demo.yml
             ''
             + lib.concatStrings (
               lib.attrsets.mapAttrsToList (
