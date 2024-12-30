@@ -126,7 +126,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
 		snapshotter = tardevSnapshotter
 		snapshotterVolumes = tardevSnapshotterVolumes
-	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX:
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
 		snapshotter = nydusSnapshotter
 		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes, Volume().
