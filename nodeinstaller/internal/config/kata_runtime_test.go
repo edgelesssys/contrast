@@ -28,7 +28,9 @@ func TestKataConfig(t *testing.T) {
 			assert.Contains(string(configBytes), "[Runtime]")
 
 			switch platform {
-			case platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.K3sQEMUTDX, platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.RKE2QEMUTDX:
+			case platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.K3sQEMUTDX,
+				platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.RKE2QEMUTDX,
+				platforms.MetalQEMUSNPGPU:
 				assert.Contains(string(configBytes), "[Hypervisor.qemu]")
 			case platforms.AKSCloudHypervisorSNP:
 				assert.Contains(string(configBytes), "[Hypervisor.clh]")

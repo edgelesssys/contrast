@@ -105,7 +105,9 @@ func buildVersionString() (string, error) {
 		switch platform {
 		case platforms.AKSCloudHypervisorSNP:
 			fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", constants.MicrosoftGenpolicyVersion)
-		case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.K3sQEMUSNP, platforms.K3sQEMUTDX, platforms.K3sQEMUSNPGPU, platforms.RKE2QEMUTDX:
+		case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.K3sQEMUSNP,
+			platforms.K3sQEMUTDX, platforms.K3sQEMUSNPGPU, platforms.RKE2QEMUTDX,
+			platforms.MetalQEMUSNPGPU:
 			fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", constants.KataGenpolicyVersion)
 		}
 	}

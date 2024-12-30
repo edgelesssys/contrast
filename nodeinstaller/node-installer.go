@@ -107,7 +107,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	case platforms.AKSCloudHypervisorSNP:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-clh-snp.toml")
 		containerdConfigPath = filepath.Join(hostMount, "etc", "containerd", "config.toml")
-	case platforms.MetalQEMUSNP:
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU:
 		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-snp.toml")
 		containerdConfigPath = filepath.Join(hostMount, "etc", "containerd", "config.toml")
 	case platforms.MetalQEMUTDX:
@@ -145,7 +145,8 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	}
 
 	switch platform {
-	case platforms.AKSCloudHypervisorSNP, platforms.MetalQEMUSNP, platforms.MetalQEMUTDX:
+	case platforms.AKSCloudHypervisorSNP, platforms.MetalQEMUSNP, platforms.MetalQEMUTDX,
+		platforms.MetalQEMUSNPGPU:
 		return restartHostContainerd(containerdConfigPath, "containerd")
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
 		if hostServiceExists("k3s") {
@@ -212,7 +213,9 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	case platforms.AKSCloudHypervisorSNP:
 		snapshotterName = fmt.Sprintf("tardev-%s", runtimeHandler)
 		socketName = fmt.Sprintf("/run/containerd/tardev-snapshotter-%s.sock", runtimeHandler)
-	case platforms.MetalQEMUTDX, platforms.MetalQEMUSNP, platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.RKE2QEMUTDX:
+	case platforms.MetalQEMUTDX, platforms.MetalQEMUSNP, platforms.K3sQEMUTDX,
+		platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.RKE2QEMUTDX,
+		platforms.MetalQEMUSNPGPU:
 		snapshotterName = fmt.Sprintf("nydus-%s", runtimeHandler)
 		socketName = fmt.Sprintf("/run/containerd/containerd-nydus-grpc-%s.sock", runtimeHandler)
 

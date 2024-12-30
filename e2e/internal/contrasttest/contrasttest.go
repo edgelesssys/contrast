@@ -213,7 +213,7 @@ func patchReferenceValues(platform platforms.Platform) PatchManifestFunc {
 				SNPVersion:        toPtr(manifest.SVN(255)),
 				MicrocodeVersion:  toPtr(manifest.SVN(255)),
 			}
-		case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
+		case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
 			// The generate command doesn't fill in all required fields when
 			// generating a manifest for baremetal SNP. Do that now.
 			for i, snp := range m.ReferenceValues.SNP {
@@ -381,7 +381,9 @@ func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Durati
 	switch ct.Platform {
 	case platforms.AKSCloudHypervisorSNP: // AKS defined is the baseline
 		return timeout
-	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.K3sQEMUSNP,
+		platforms.K3sQEMUSNPGPU, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX,
+		platforms.MetalQEMUSNPGPU:
 		return 2 * timeout
 	default:
 		return timeout

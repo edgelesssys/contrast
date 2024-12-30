@@ -47,7 +47,7 @@ node-installer platform=default_platform:
             just push "tardev-snapshotter"
             just push "node-installer-microsoft"
         ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             just push "nydus-snapshotter"
             just push "node-installer-kata"
         ;;
@@ -117,7 +117,7 @@ generate cli=default_cli platform=default_platform:
 
     # On baremetal SNP, we don't have default values for MinimumTCB, so we need to set some here.
     case {{ platform }} in
-        "Metal-QEMU-SNP"|"K3s-QEMU-SNP")
+        "Metal-QEMU-SNP"|"Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU")
             yq --inplace \
             '.ReferenceValues.snp.[].MinimumTCB = {"BootloaderVersion":0,"TEEVersion":0,"SNPVersion":0,"MicrocodeVersion":0}' \
             {{ workspace_dir }}/manifest.json
@@ -186,7 +186,7 @@ create-pre platform=default_platform:
             # TODO(burgerdev): this should create the resource group for consistency
             :
         ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             :
         ;;
         "AKS-PEER-SNP")
@@ -215,7 +215,7 @@ create platform=default_platform:
         "AKS-CLH-SNP")
             nix run -L .#scripts.create-coco-aks -- --name="$azure_resource_group" --location="$azure_location"
         ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             :
         ;;
         "AKS-PEER-SNP")
