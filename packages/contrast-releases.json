@@ -263,6 +263,12 @@
       "hash": "sha256-kPVlu+RyADUfQ6PPfR2NANR0BCuarfwDEe/VOvuI48g="
     }
   ],
+  "mysql-demo.yml": [
+    {
+      "version": "v1.2.0",
+      "hash": "sha256-20oA0xafefkRQhz69E3d9kS1XV0WOBMQockcADA9l+Y="
+    }
+  ],
   "runtime-aks-clh-snp.yml": [
     {
       "version": "v1.1.0",
