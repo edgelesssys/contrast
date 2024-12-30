@@ -62,13 +62,19 @@ let
             passthru.exists = (builtins.compareVersions "v0.8.0" version) <= 0;
           };
 
-          # starting with version v1.1.0 all files has a platform-specific suffix.
+          # starting with version v1.1.0 all files have a platform-specific suffix.
           platformSpecificFiles = builtins.listToAttrs (
             lib.lists.map
               (
                 platform:
                 lib.attrsets.nameValuePair platform {
-                  exist = (builtins.compareVersions "v1.1.0" version) <= 0;
+                  exist =
+                    ((builtins.compareVersions "v1.1.0" version) <= 0)
+                    && (
+                      # These platforms were introduced as part of the v1.2.1 release.
+                      (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp")
+                      && (builtins.compareVersions "v1.2.1" version) <= 0
+                    );
                   coordinator = fetchurl {
                     inherit version;
                     url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator-${platform}.yml";
@@ -83,6 +89,8 @@ let
               )
               [
                 "aks-clh-snp"
+                "metal-qemu-snp"
+                "metal-qemu-tdx"
                 "k3s-qemu-tdx"
                 "k3s-qemu-snp"
                 "rke2-qemu-tdx"
@@ -94,7 +102,7 @@ let
             buildInputs = [
               unzip
               installShellFiles
-            ]; # needed to unzip emojivoto-demo.zip
+            ];
           }
           (
             ''
