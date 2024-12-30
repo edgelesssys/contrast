@@ -36,15 +36,15 @@ func TestPatchContainerdConfig(t *testing.T) {
 			platform: platforms.AKSCloudHypervisorSNP,
 			expected: expectedConfAKSCLHSNP,
 		},
-		"BareMetalQEMUTDX": {
+		"K3sQEMUTDX": {
 			platform: platforms.K3sQEMUTDX,
 			expected: expectedConfBareMetalQEMUTDX,
 		},
-		"BareMetalQEMUSNP": {
+		"K3sQEMUSNP": {
 			platform: platforms.K3sQEMUSNP,
 			expected: expectedConfBareMetalQEMUSNP,
 		},
-		"BareMetalQEMUSNPGPU": {
+		"K3sQEMUSNPGPU": {
 			platform: platforms.K3sQEMUSNPGPU,
 			expected: expectedConfBareMetalQEMUSNPGPU,
 		},
