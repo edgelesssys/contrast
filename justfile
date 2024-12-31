@@ -408,7 +408,7 @@ demodir version="latest": undeploy
     #!/usr/bin/env bash
     set -euo pipefail
     v="$(echo {{ version }} | sed 's/\./-/g')"
-    nix develop -u DIRENV_DIR -u DIRENV_FILE -u DIRENV_DIFF .#demo-$v
+    nix develop -u DIRENV_DIR -u DIRENV_FILE -u DIRENV_DIFF -u DIRENV_WATCHES .#demo-$v
 
 # Remove deployment specific files.
 soft-clean: undeploy
