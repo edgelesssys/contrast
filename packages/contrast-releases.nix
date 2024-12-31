@@ -77,12 +77,10 @@ let
                 platform:
                 lib.attrsets.nameValuePair platform {
                   exist =
-                    ((builtins.compareVersions "v1.1.0" version) <= 0)
-                    && (
-                      # These platforms were introduced as part of the v1.2.1 release.
-                      (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp")
-                      && (builtins.compareVersions "v1.2.1" version) <= 0
-                    );
+                    if (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp") then
+                      (builtins.compareVersions "v1.2.1" version) <= 0
+                    else
+                      (builtins.compareVersions "v1.1.0" version) <= 0;
                   coordinator = fetchurl {
                     inherit version;
                     url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator-${platform}.yml";
