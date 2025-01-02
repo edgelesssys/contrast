@@ -221,3 +221,13 @@ func (c *Kubeclient) logContainerStatus(pod corev1.Pod) {
 		}
 	}
 }
+
+// GetConfigMapData returns the byte representation of the value stored under the provided key in the data section of the ConfigMap.
+func (c *Kubeclient) GetConfigMapData(ctx context.Context, namespace, name, key string) ([]byte, error) {
+	configMap, err := c.Client.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		c.log.Error("Could not get ConfigMap", "namespace", namespace, "name", name, "error", err)
+		return nil, err
+	}
+	return []byte(configMap.Data[key]), nil
+}
