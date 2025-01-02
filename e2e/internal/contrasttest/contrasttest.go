@@ -30,6 +30,7 @@ import (
 	ksync "github.com/katexochen/sync/api/client"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Flags contains the parsed Flags for the test.
@@ -178,8 +179,10 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 	hash, err := os.ReadFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"))
 	require.NoError(err)
 	require.NotEmpty(hash, "expected apply to fill coordinator policy hash")
-
-	ct.PatchManifest(t, patchReferenceValues(ct.Platform))
+	patchManifestFunc, err := patchReferenceValues(ct.Kubeclient, ct.Platform)
+	require.NoError(err)
+	ct.PatchManifest(t, patchManifestFunc)
+	ct.PatchManifest(t, addInvalidReferenceValues(ct.Platform))
 }
 
 // PatchManifestFunc defines a function type allowing the given manifest to be modified.
@@ -197,12 +200,11 @@ func (ct *ContrastTest) PatchManifest(t *testing.T, patchFn PatchManifestFunc) {
 	require.NoError(t, os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
 }
 
-// patchReferenceValues returns a PatchManifestFunc which modifies a manifest to contain multiple reference values for testing
-// cases with multiple validators, as well as filling in bare-metal SNP-specific values.
-func patchReferenceValues(platform platforms.Platform) PatchManifestFunc {
+// addInvalidReferenceValues returns a PatchManifestFunc which adds a fresh, invalid entry to the specified reference values.
+func addInvalidReferenceValues(platform platforms.Platform) PatchManifestFunc {
 	return func(m manifest.Manifest) manifest.Manifest {
 		switch platform {
-		case platforms.AKSCloudHypervisorSNP:
+		case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.AKSCloudHypervisorSNP:
 			// Duplicate the reference values to test multiple validators by having at least 2.
 			m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1])
 
@@ -213,27 +215,69 @@ func patchReferenceValues(platform platforms.Platform) PatchManifestFunc {
 				SNPVersion:        toPtr(manifest.SVN(255)),
 				MicrocodeVersion:  toPtr(manifest.SVN(255)),
 			}
-		case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
-			// The generate command doesn't fill in all required fields when
-			// generating a manifest for baremetal SNP. Do that now.
-			for i, snp := range m.ReferenceValues.SNP {
-				snp.MinimumTCB.BootloaderVersion = toPtr(manifest.SVN(0))
-				snp.MinimumTCB.TEEVersion = toPtr(manifest.SVN(0))
-				snp.MinimumTCB.SNPVersion = toPtr(manifest.SVN(0))
-				snp.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
-				m.ReferenceValues.SNP[i] = snp
-			}
 		case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
-			// The generate command doesn't fill in all required fields when
-			// generating a manifest for baremetal TDX. Do that now.
-			for i, tdx := range m.ReferenceValues.TDX {
-				tdx.MinimumTeeTcbSvn = manifest.HexString("04010200000000000000000000000000")
-				tdx.MrSeam = manifest.HexString("1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04")
-				m.ReferenceValues.TDX[i] = tdx
-			}
+			// Duplicate the reference values to test multiple validators by having at least 2.
+			m.ReferenceValues.TDX = append(m.ReferenceValues.TDX, m.ReferenceValues.TDX[len(m.ReferenceValues.TDX)-1])
+
+			// Make the last set of reference values invalid by changing the SVNs.
+			m.ReferenceValues.TDX[len(m.ReferenceValues.TDX)-1].MinimumTeeTcbSvn = manifest.HexString("11111111111111111111111111111111")
+			m.ReferenceValues.TDX[len(m.ReferenceValues.TDX)-1].MrSeam = manifest.HexString("111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")
 		}
 		return m
 	}
+}
+
+// patchReferenceValues returns a PatchManifestFunc which modifies the reference values in a manifest
+// based on the 'bm-tcb-specs' ConfigMap persistently stored in the 'default' namespace.
+func patchReferenceValues(k *kubeclient.Kubeclient, platform platforms.Platform) (PatchManifestFunc, error) {
+	var baremetalRefVal manifest.ReferenceValues
+	// ConfigMap bm-tcb-specs will only exist on baremetal instances.
+	if platform != platforms.AKSCloudHypervisorSNP {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		configMap, err := k.Client.CoreV1().ConfigMaps("default").Get(ctx, "bm-tcb-specs", metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("getting ConfigMap bm-tcb-specs: %w", err)
+		}
+		err = json.Unmarshal([]byte(configMap.Data["tcb-specs.json"]), &baremetalRefVal)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshaling reference values: %w", err)
+		}
+	}
+	return func(m manifest.Manifest) manifest.Manifest {
+		switch platform {
+		case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
+			// Overwrite the minimumTCB values with the ones loaded from the path tcbSpecificationFile.
+			var snpReferenceValues []manifest.SNPReferenceValues
+			for _, manifestSNP := range m.ReferenceValues.SNP {
+				for _, overwriteSNP := range baremetalRefVal.SNP {
+					if manifestSNP.ProductName == overwriteSNP.ProductName {
+						manifestSNP.MinimumTCB = overwriteSNP.MinimumTCB
+						// Filter to only use the reference values of specified baremetal SNP runners
+						snpReferenceValues = append(snpReferenceValues, manifestSNP)
+					}
+				}
+			}
+			m.ReferenceValues.SNP = snpReferenceValues
+
+		case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+
+			// Overwrite the fields MinimumTeeTcbSvn and MrSeam with the ones loaded from the path tcbSpecificationFile.
+			var tdxReferenceValues []manifest.TDXReferenceValues
+			for _, manifestTDX := range m.ReferenceValues.TDX {
+				for _, overwriteTDX := range baremetalRefVal.TDX {
+					manifestTDX.MrSeam = overwriteTDX.MrSeam
+					manifestTDX.MinimumTeeTcbSvn = overwriteTDX.MinimumTeeTcbSvn
+					// Filter to only use the reference values of specified baremetal SNP runners
+					tdxReferenceValues = append(tdxReferenceValues, manifestTDX)
+				}
+			}
+			m.ReferenceValues.TDX = tdxReferenceValues
+
+		default:
+		}
+		return m
+	}, nil
 }
 
 // Apply the generated resources to the Kubernetes test environment.
