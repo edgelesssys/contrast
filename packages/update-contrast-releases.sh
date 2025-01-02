@@ -26,6 +26,9 @@ for platform in aks-clh-snp metal-qemu-tdx k3s-qemu-tdx metal-qemu-snp k3s-qemu-
   fields["runtime-${platform}.yml"]="./workspace/runtime-${platform}.yml"
 done
 
+echo #### Running from PR! #### >&2
+exit 123
+
 for field in "${!fields[@]}"; do
   # get the file path
   file=${fields["$field"]}
