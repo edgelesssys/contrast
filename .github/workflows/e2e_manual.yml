@@ -37,11 +37,13 @@ jobs:
     outputs:
       runner: ${{ steps.determine-platform-params.outputs.runner }}
       self-hosted: ${{ steps.determine-platform-params.outputs.self-hosted }}
+    env:
+      platform: ${{ inputs.platform }}
     steps:
       - name: Determine Platform Parameters
         id: determine-platform-params
         run: |
-          case ${{ inputs.platform }} in
+          case "${platform}" in
             "AKS-CLH-SNP")
               echo "runner=ubuntu-22.04" >> "$GITHUB_OUTPUT"
               echo "self-hosted=false" >> "$GITHUB_OUTPUT"
@@ -55,7 +57,7 @@ jobs:
               echo "self-hosted=true" >> "$GITHUB_OUTPUT"
             ;;
             *)
-              echo "Unsupported platform: {{ platform }}"
+              echo "Unsupported platform: ${platform}"
               exit 1
             ;;
           esac
