@@ -17,6 +17,11 @@ on:
         type: boolean
         required: false
         default: false
+      checkout_main_ref:
+        description: Checkout this git ref as main branch (some workflows run on this state)
+        type: string
+        required: false
+        default: main
 
 env:
   container_registry: ghcr.io/edgelesssys
@@ -130,7 +135,7 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: main
+          ref: ${{ inputs.checkout_main_ref }}
           path: contrast-main
       - uses: ./contrast-working/.github/actions/setup_nix
         with:
