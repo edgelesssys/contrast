@@ -253,7 +253,7 @@
 
       pushd "$tmpdir" >/dev/null
 
-      case $platform in
+      case "$platform" in
         "aks-clh-snp")
           cp ${pkgs.microsoft.genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego
           cp ${pkgs.microsoft.genpolicy.settings-coordinator}/genpolicy-settings.json .
@@ -265,7 +265,7 @@
           ${pkgs.kata.genpolicy}/bin/genpolicy < "$tmpdir/coordinator_base.yml"
         ;;
         *)
-          echo "Unsupported platform: {{ platform }}" >&2
+          echo "Unsupported platform: $platform" >&2
           exit 1
         ;;
       esac
