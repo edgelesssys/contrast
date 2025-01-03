@@ -128,17 +128,21 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 		return nil, fmt.Errorf("failed to issue new attested mesh cert: %w", err)
 	}
 
-	workloadSecret, err := seedEngine.DeriveWorkloadSecret(entry.WorkloadSecretID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to derive workload secret: %w", err)
+	resp := &meshapi.NewMeshCertResponse{
+		MeshCACert: state.CA.GetMeshCACert(),
+		CertChain:  append(cert, state.CA.GetIntermCACert()...),
+		RootCACert: state.CA.GetRootCACert(),
 	}
 
-	return &meshapi.NewMeshCertResponse{
-		MeshCACert:     state.CA.GetMeshCACert(),
-		CertChain:      append(cert, state.CA.GetIntermCACert()...),
-		RootCACert:     state.CA.GetRootCACert(),
-		WorkloadSecret: workloadSecret,
-	}, nil
+	if entry.WorkloadSecretID != "" {
+		workloadSecret, err := seedEngine.DeriveWorkloadSecret(entry.WorkloadSecretID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to derive workload secret: %w", err)
+		}
+		resp.WorkloadSecret = workloadSecret
+	}
+
+	return resp, nil
 }
 
 type seedEngineGetter interface {
