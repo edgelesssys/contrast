@@ -9,7 +9,7 @@ metadata:
     io.katacontainers.config.runtime.create_container_timeout: "6000"
     cdi.k8s.io/gpu: "nvidia.com/pgpu=0"
 spec:
-  runtimeClassName: contrast-cc-k3s-qemu-snp-86634f8f
+  runtimeClassName: contrast-cc-k3s-qemu-snp-gpu-73bf8301
   restartPolicy: OnFailure
   containers:
   - name: vllm
