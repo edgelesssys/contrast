@@ -113,11 +113,8 @@ buildGoModule rec {
       # `allowed_guest_hooks` setting , which controls what paths may be set for hooks.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10633
       ./0017-genpolicy-support-guest-hooks.patch
-      ./0019-genpolicy-allow-non-watchable-ConfigMaps.patch
-
+      
       ./0018-sandbox-print-debugging.patch
-
-      ./0019-genpolicy-support-guest-hooks.patch
     ];
   };
 
