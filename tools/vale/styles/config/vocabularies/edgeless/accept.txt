@@ -33,6 +33,7 @@ cyber
 datacenter
 Datadog
 deallocate
+deduplicate
 DEK
 Dockerfile
 Dynatrace
@@ -57,6 +58,7 @@ hyperv
 IAM
 Initializer
 initramfs
+initrd
 Inkscape
 iodepth
 IPSec
@@ -85,6 +87,7 @@ paravisor
 PCR
 plaintext
 podman
+precalculator
 protobuf
 proxied
 QEMU
@@ -94,9 +97,11 @@ Rekor
 resizable
 resourceGroup
 rollout
+RTMR
 runtime
 safeguardable
 SBOM
+serializable
 sigstore
 snapshotter
 SSD
@@ -115,6 +120,7 @@ tmpfs
 TPM
 underspecified
 unencrypted
+unrepresentable
 unspoofable
 untrusted
 updatable
@@ -133,7 +139,3 @@ Xeon
 xsltproc
 Zipkin
 # keep-sorted end
-RTMR
-RTMRs
-precalculator
-initrd
