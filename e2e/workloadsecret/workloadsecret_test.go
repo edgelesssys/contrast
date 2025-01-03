@@ -164,6 +164,32 @@ func TestWorkloadSecrets(t *testing.T) {
 		require.Len(secrets, 2)
 		require.Equal(secrets[0], secrets[1])
 	})
+
+	t.Run("workload secrets are not created if not configured in the manifest", func(t *testing.T) {
+		require := require.New(t)
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(60*time.Second))
+		defer cancel()
+
+		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
+			for key, policy := range m.Policies {
+				policy.WorkloadSecretID = ""
+				m.Policies[key] = policy
+			}
+			return m
+		})
+
+		t.Run("set", ct.Set)
+		require.NoError(ct.Kubeclient.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, "web"))
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, "web"))
+
+		webPods, err = ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, "web")
+		require.NoError(err)
+		require.Len(webPods, 2, "pod not found: %s/%s", ct.Namespace, "web")
+
+		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, webPods[0].Name, []string{"/bin/sh", "-c", "test ! -f /contrast/secrets/workload-secret-seed"})
+		require.NoError(err, "stderr: %q", stderr)
+		require.Empty(stdout)
+	})
 }
 
 func TestMain(m *testing.M) {

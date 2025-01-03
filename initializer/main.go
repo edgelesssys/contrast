@@ -148,9 +148,12 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	if err != nil {
 		return fmt.Errorf("writing coordinator-root-ca.pem: %w", err)
 	}
-	err = os.WriteFile("/contrast/secrets/workload-secret-seed", []byte(hex.EncodeToString(resp.WorkloadSecret)), 0o400)
-	if err != nil {
-		return fmt.Errorf("writing workload-secret-seed: %w", err)
+
+	if len(resp.WorkloadSecret) > 0 {
+		err = os.WriteFile("/contrast/secrets/workload-secret-seed", []byte(hex.EncodeToString(resp.WorkloadSecret)), 0o400)
+		if err != nil {
+			return fmt.Errorf("writing workload-secret-seed: %w", err)
+		}
 	}
 
 	log.Info("Initializer done")
