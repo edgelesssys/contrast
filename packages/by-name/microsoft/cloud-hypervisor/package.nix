@@ -39,6 +39,14 @@ rustPlatform.buildRustPackage rec {
     };
   };
 
+  # Allow compilation with Rust 1.83.0, which requires public methods in
+  # test modules to have documentation when the `missing_docs` lint is enabled.
+  # Upstream issue: https://github.com/cloud-hypervisor/cloud-hypervisor/issues/6903
+  postPatch = ''
+    substituteInPlace rate_limiter/src/lib.rs \
+      --replace-fail '#![deny(missing_docs)]' ""
+  '';
+
   patches = [
     ./0001-snp-fix-panic-when-rejecting-extended-guest-report.patch
     ./0002-hypervisor-mshv-implement-extended-guest-requests-wi.patch
