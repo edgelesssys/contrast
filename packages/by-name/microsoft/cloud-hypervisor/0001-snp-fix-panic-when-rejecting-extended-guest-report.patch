@@ -23,6 +23,5 @@ index f60d8ceb..b8fccf31 100644
                                      self.fd
                                          .gpa_write(&mut swei2_rw_gpa_arg)
                                          .map_err(|e| cpu::HypervisorCpuError::GpaWrite(e.into()))?;
--- 
+--
 2.45.2
-
