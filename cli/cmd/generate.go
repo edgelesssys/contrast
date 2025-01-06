@@ -28,9 +28,8 @@ import (
 )
 
 const (
-	kataPolicyAnnotationKey      = "io.katacontainers.config.agent.policy"
-	contrastRoleAnnotationKey    = "contrast.edgeless.systems/pod-role"
-	skipInitializerAnnotationKey = "contrast.edgeless.systems/skip-initializer"
+	kataPolicyAnnotationKey   = "io.katacontainers.config.agent.policy"
+	contrastRoleAnnotationKey = "contrast.edgeless.systems/pod-role"
 )
 
 // NewGenerateCmd creates the contrast generate subcommand.
