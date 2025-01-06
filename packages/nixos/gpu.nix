@@ -126,6 +126,11 @@ in
       serviceConfig.ExecStart = lib.mkForce "${lib.getExe config.hardware.nvidia.package.persistenced} --uvm-persistence-mode --verbose";
     };
 
+    # kata-containers.target needs to pull this in so that we get a valid
+    # CDI configuration inside the PodVM. This is not necessary, as we use the
+    # legacy mode as of now, but will be once we switch to CDI.
+    systemd.services."nvidia-container-toolkit-cdi-generator".wantedBy = [ "kata-containers.target" ];
+
     hardware.nvidia-container-toolkit.enable = true;
 
     # Make NVIDIA the "default" graphics driver to replace Mesa,

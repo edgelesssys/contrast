@@ -113,8 +113,13 @@ buildGoModule rec {
       # `allowed_guest_hooks` setting , which controls what paths may be set for hooks.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10633
       ./0017-genpolicy-support-guest-hooks.patch
-      
-      ./0018-sandbox-print-debugging.patch
+
+      # Revert CDI support in kata-agent, which breaks legacy mode GPU facilitation which
+      # we currently use.
+      # TODO(msanft): Get native CDI working, which will allow us to drop this patch / undo the revert.
+      # See https://dev.azure.com/Edgeless/Edgeless/_workitems/edit/5061
+      ./0018-Revert-agent-Added-test-case-for-handle_cdi_devices.patch
+      ./0019-Revert-kata-agent-Add-CDI-support.patch
     ];
   };
 
