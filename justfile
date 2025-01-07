@@ -95,6 +95,11 @@ populate target=default_deploy_target platform=default_platform:
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
     mkdir -p ./{{ workspace_dir }}/deployment
+    target="{{ target }}"
+    if [[ "${target}" == "custom" ]]; then
+        target=""
+        cp -r ./.custom/* ./{{ workspace_dir }}/deployment/
+    fi
     nix shell .#contrast --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
@@ -102,7 +107,7 @@ populate target=default_deploy_target platform=default_platform:
         --add-logging \
         --add-dmesg \
         --platform {{ platform }} \
-        {{ target }} coordinator > ./{{ workspace_dir }}/deployment/deployment.yml
+        ${target} coordinator > ./{{ workspace_dir }}/deployment/deployment.yml
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
 
 # Generate policies, update manifest.
@@ -136,16 +141,11 @@ apply target=default_deploy_target:
     case {{ target }} in
         "runtime")
             kubectl apply -f ./{{ workspace_dir }}/runtime
-            exit 0
-        ;;
-        "openssl" | "emojivoto" | "volume-stateful-set" | "mysql")
-            :
         ;;
         *)
-            kubectl apply -f ./{{ workspace_dir }}/deployment/ns.yml
+            kubectl apply -f ./{{ workspace_dir }}/deployment
         ;;
     esac
-    kubectl apply -f ./{{ workspace_dir }}/deployment
 
 # Delete Kubernetes manifests.
 undeploy:
@@ -305,6 +305,9 @@ wait-for-workload target=default_deploy_target:
         "mysql")
             nix run .#scripts.kubectl-wait-ready -- $ns mysql-backend
             nix run .#scripts.kubectl-wait-ready -- $ns mysql-client
+        ;;
+        "custom")
+            :
         ;;
         *)
             echo "Please register workloads of new targets in wait-for-workload"
