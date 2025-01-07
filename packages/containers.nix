@@ -112,7 +112,8 @@ let
         iptables-legacy
       ];
       config = {
-        Cmd = [ "${pkgs.service-mesh}/bin/service-mesh" ];
+        # Use Entrypoint so we can append arguments.
+        Entrypoint = [ "${pkgs.service-mesh}/bin/service-mesh" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
       };
     };
