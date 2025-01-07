@@ -72,6 +72,7 @@ subcommands.`,
 	cmd.Flags().BoolP("disable-updates", "d", false, "prevent further updates of the manifest")
 	cmd.Flags().String("image-replacements", "", "path to image replacements file")
 	cmd.Flags().Bool("skip-initializer", false, "skip injection of Contrast Initializer")
+	cmd.Flags().Bool("skip-service-mesh", false, "skip injection of Contrast service mesh sidecar")
 	must(cmd.Flags().MarkHidden("image-replacements"))
 	must(cmd.MarkFlagFilename("policy", "rego"))
 	must(cmd.MarkFlagFilename("settings", "json"))
@@ -121,7 +122,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get runtime handler: %w", err)
 	}
 
-	if err := patchTargets(paths, flags.imageReplacementsFile, runtimeHandler, flags.skipInitializer, log); err != nil {
+	if err := patchTargets(paths, flags.imageReplacementsFile, runtimeHandler, flags.skipInitializer, flags.skipServiceMesh, log); err != nil {
 		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
@@ -270,7 +271,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, yamlPaths []str
 	return nil
 }
 
-func patchTargets(paths []string, imageReplacementsFile, runtimeHandler string, skipInitializer bool, logger *slog.Logger) error {
+func patchTargets(paths []string, imageReplacementsFile, runtimeHandler string, skipInitializer, skipServiceMesh bool, logger *slog.Logger) error {
 	var replacements map[string]string
 	var err error
 	if imageReplacementsFile != "" {
@@ -305,8 +306,10 @@ func patchTargets(paths []string, imageReplacementsFile, runtimeHandler string, 
 				return fmt.Errorf("injecting Initializer: %w", err)
 			}
 		}
-		if err := injectServiceMesh(kubeObjs); err != nil {
-			return fmt.Errorf("injecting Service Mesh: %w", err)
+		if !skipServiceMesh {
+			if err := injectServiceMesh(kubeObjs); err != nil {
+				return fmt.Errorf("injecting Service Mesh: %w", err)
+			}
 		}
 
 		kubeObjs = kuberesource.PatchImages(kubeObjs, replacements)
@@ -450,6 +453,7 @@ type generateFlags struct {
 	workspaceDir            string
 	imageReplacementsFile   string
 	skipInitializer         bool
+	skipServiceMesh         bool
 }
 
 func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
@@ -514,13 +518,15 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 			seedshareOwnerKeys = []string{filepath.Join(workspaceDir, seedshareOwnerKeys[0])}
 		}
 	}
-
 	imageReplacementsFile, err := cmd.Flags().GetString("image-replacements")
 	if err != nil {
 		return nil, err
 	}
-
 	skipInitializer, err := cmd.Flags().GetBool("skip-initializer")
+	if err != nil {
+		return nil, err
+	}
+	skipServiceMesh, err := cmd.Flags().GetBool("skip-service-mesh")
 	if err != nil {
 		return nil, err
 	}
@@ -537,6 +543,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		workspaceDir:            workspaceDir,
 		imageReplacementsFile:   imageReplacementsFile,
 		skipInitializer:         skipInitializer,
+		skipServiceMesh:         skipServiceMesh,
 	}, nil
 }
 
