@@ -471,6 +471,9 @@ func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 			WithFailureThreshold(5).
 			WithTCPSocket(TCPSocketAction().
 				WithPort(intstr.FromInt(15006))),
+		).
+		WithArgs(
+			"-l", "debug",
 		)
 }
 
