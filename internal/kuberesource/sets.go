@@ -522,7 +522,7 @@ func VolumeStatefulSet() []any {
 						WithInitContainers(
 							Container().
 								WithName("volume-tester-init").
-								WithImage("ghcr.io/edgelesssys/contrast/cryptsetup:latest").
+								WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
 								WithCommand("/bin/sh", "-c", CryptsetupInitCommand()).
 								WithVolumeDevices(
 									applycorev1.VolumeDevice().
@@ -563,7 +563,7 @@ func VolumeStatefulSet() []any {
 						WithContainers(
 							Container().
 								WithName("volume-tester").
-								WithImage("ghcr.io/edgelesssys/contrast/cryptsetup:latest").
+								WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
 								WithCommand("/bin/sh", "-c", "sleep inf").
 								WithVolumeMounts(
 									VolumeMount().
@@ -617,7 +617,7 @@ func MySQL() []any {
 						WithInitContainers(
 							Container().
 								WithName("luks-setup").
-								WithImage("ghcr.io/edgelesssys/contrast/cryptsetup:latest").
+								WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
 								WithCommand("/bin/sh", "-c", CryptsetupInitCommand()).
 								WithVolumeDevices(
 									applycorev1.VolumeDevice().
