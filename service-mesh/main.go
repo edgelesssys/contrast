@@ -66,6 +66,7 @@ func run() (retErr error) {
 	}
 
 	log.Println("Starting envoy")
-
-	return syscall.Exec(envoyBin, []string{"envoy", "-c", envoyConfigFile}, os.Environ())
+	args := []string{"envoy", "-c", envoyConfigFile}
+	args = append(args, os.Args[1:]...)
+	return syscall.Exec(envoyBin, args, os.Environ())
 }
