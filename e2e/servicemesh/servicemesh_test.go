@@ -42,6 +42,7 @@ func TestIngressEgress(t *testing.T) {
 	resources = append(resources, coordinator...)
 
 	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
+	resources = kuberesource.AddLoadBalancers(resources)
 
 	resources = kuberesource.AddPortForwarders(resources)
 
