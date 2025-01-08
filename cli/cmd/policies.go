@@ -8,13 +8,17 @@ import (
 	"log/slog"
 	"os"
 	"slices"
+	"strings"
 
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type k8sObject interface {
 	GetName() string
+	GetNamespace() string
+	GetObjectKind() schema.ObjectKind
 }
 
 func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
@@ -38,6 +42,10 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 			continue
 		}
 		name := meta.GetName()
+		namespace := orDefault(meta.GetNamespace(), "default")
+
+		gvk := meta.GetObjectKind().GroupVersionKind()
+		workloadSecretID := strings.Join([]string{orDefault(gvk.Group, "core"), gvk.Version, gvk.Kind, namespace, name}, "/")
 
 		var annotation, role string
 		switch obj := objAny.(type) {
@@ -75,9 +83,10 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 			return nil, fmt.Errorf("failed to parse policy %s: %w", name, err)
 		}
 		deployments = append(deployments, deployment{
-			name:   name,
-			policy: policy,
-			role:   role,
+			name:             name,
+			policy:           policy,
+			role:             role,
+			workloadSecretID: workloadSecretID,
 		})
 	}
 
@@ -94,7 +103,7 @@ func manifestPolicyMapFromPolicies(policies []deployment) (map[manifest.HexStrin
 			}
 			continue
 		}
-		entry := manifest.PolicyEntry{SANs: depl.DNSNames(), WorkloadSecretID: depl.name}
+		entry := manifest.PolicyEntry{SANs: depl.DNSNames(), WorkloadSecretID: depl.workloadSecretID}
 		policyHashes[depl.policy.Hash()] = entry
 	}
 	return policyHashes, nil
@@ -136,11 +145,19 @@ func getCoordinatorPolicyHash(policies []deployment, log *slog.Logger) string {
 }
 
 type deployment struct {
-	name   string
-	policy manifest.Policy
-	role   string
+	name             string
+	policy           manifest.Policy
+	role             string
+	workloadSecretID string
 }
 
 func (d deployment) DNSNames() []string {
 	return []string{d.name, "*"}
+}
+
+func orDefault(s, d string) string {
+	if s == "" {
+		return d
+	}
+	return s
 }

@@ -74,9 +74,10 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 			},
 			expectedOutput: []deployment{
 				{
-					name:   "test",
-					policy: manifest.Policy([]byte(`valid-agent-policy`)),
-					role:   "coordinator",
+					name:             "test",
+					policy:           manifest.Policy([]byte(`valid-agent-policy`)),
+					role:             "coordinator",
+					workloadSecretID: "apps/v1/Deployment/default/test",
 				},
 			},
 		},
@@ -101,14 +102,16 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 			},
 			expectedOutput: []deployment{
 				{
-					name:   "test",
-					policy: manifest.Policy([]byte(`valid-agent-policy`)),
-					role:   "coordinator",
+					name:             "test",
+					policy:           manifest.Policy([]byte(`valid-agent-policy`)),
+					role:             "coordinator",
+					workloadSecretID: "apps/v1/Deployment/default/test",
 				},
 				{
-					name:   "another-pod",
-					policy: manifest.Policy([]byte(`valid-agent-policy`)),
-					role:   "worker",
+					name:             "another-pod",
+					policy:           manifest.Policy([]byte(`valid-agent-policy`)),
+					role:             "worker",
+					workloadSecretID: "core/v1/Pod/default/another-pod",
 				},
 			},
 		},
