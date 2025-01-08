@@ -14,18 +14,18 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  6 files changed, 85 insertions(+)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index c3eb334612fc0ff05c49031e7b305fd10297896a..25c16badaddea436539c9ec8b8bd210461cda615 100644
+index 2ecbeba7cc9d9600c122f4de4baf741dbc8a8095..ac84a6f6ec39aba77427b588bd6037dce1f1ac76 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -54,6 +54,7 @@ default AllowRequestsFailingPolicy := false
- CreateContainerRequest {
+@@ -58,6 +58,7 @@ CreateContainerRequest {
+ 
      i_oci := input.OCI
      i_storages := input.storages
 +    i_devices := input.devices
  
-     print("CreateContainerRequest: i_oci.Hooks =", i_oci.Hooks)
-     is_null(i_oci.Hooks)
-@@ -82,6 +83,9 @@ CreateContainerRequest {
+     # Check if any element from the policy_data.containers array allows the input request.
+     some p_container in policy_data.containers
+@@ -81,6 +82,9 @@ CreateContainerRequest {
      p_storages := p_container.storages
      allow_by_anno(p_oci, i_oci, p_storages, i_storages)
  
@@ -35,7 +35,7 @@ index c3eb334612fc0ff05c49031e7b305fd10297896a..25c16badaddea436539c9ec8b8bd2104
      allow_linux(p_oci, i_oci)
  
      print("CreateContainerRequest: true")
-@@ -333,6 +337,16 @@ allow_log_directory(p_oci, i_oci) {
+@@ -363,6 +367,16 @@ allow_log_directory(p_oci, i_oci) {
      print("allow_log_directory: true")
  }
  
@@ -52,7 +52,7 @@ index c3eb334612fc0ff05c49031e7b305fd10297896a..25c16badaddea436539c9ec8b8bd2104
  allow_linux(p_oci, i_oci) {
      p_namespaces := p_oci.Linux.Namespaces
      print("allow_linux: p namespaces =", p_namespaces)
-@@ -344,6 +358,7 @@ allow_linux(p_oci, i_oci) {
+@@ -374,6 +388,7 @@ allow_linux(p_oci, i_oci) {
  
      allow_masked_paths(p_oci, i_oci)
      allow_readonly_paths(p_oci, i_oci)
@@ -60,7 +60,7 @@ index c3eb334612fc0ff05c49031e7b305fd10297896a..25c16badaddea436539c9ec8b8bd2104
  
      print("allow_linux: true")
  }
-@@ -432,6 +447,13 @@ allow_readonly_path(p_elem, i_array, masked_paths) {
+@@ -462,6 +477,13 @@ allow_readonly_path(p_elem, i_array, masked_paths) {
      print("allow_readonly_path 2: true")
  }
  

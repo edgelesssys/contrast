@@ -25,14 +25,16 @@ let
     postPatch = ''
       chmod +x igvm_builder.sh
       substituteInPlace igvm_builder.sh \
-        --replace-fail '#!/usr/bin/env bash' '#!${stdenv.shell}' \
-        --replace-fail 'python3 ''${igvmgen_py_file}' igvmgen \
+        --replace-fail '#!/usr/bin/env bash' '#!${stdenv.shell}'
+
+      substituteInPlace azure-linux/igvm_lib.sh \
+        --replace-fail 'python3 ''${IGVM_PY_FILE}' igvmgen \
         --replace-fail '-svn $SVN' '-svn $SVN -sign_key ${igvm-signing-keygen.snakeoilPem} -sign_deterministic true' \
-        --replace-fail '"''${script_dir}/../root_hash.txt"' ${microsoft.kata-image.verity}/dm_verity.txt \
-        --replace-fail "install_igvm" ""
+        --replace-fail '"''${SCRIPT_DIR}/../root_hash.txt"' ${microsoft.kata-image.verity}/dm_verity.txt
 
       substituteInPlace azure-linux/config.sh \
-        --replace-fail '"''${igvm_extract_folder}/src/igvm/acpi/acpi-clh/"' '"${igvm-tooling}/share/igvm-tooling/acpi/acpi-clh/"' \
+        --replace-fail '"''${IGVM_EXTRACT_FOLDER}/src/igvm/acpi/acpi-clh/"' '"${igvm-tooling}/share/igvm-tooling/acpi/acpi-clh/"' \
+        --replace-fail '"''${IGVM_EXTRACT_FOLDER}/src/igvm/igvmgen.py"' '"${igvm-tooling}/bin/igvmgen"' \
         --replace-fail rootfstype=ext4 rootfstype=erofs \
         --replace-fail rootflags=data=ordered,errors=remount-ro "" \
         --replace-fail /usr/share/cloud-hypervisor/bzImage ${microsoft.kata-kernel-uvm}/bzImage

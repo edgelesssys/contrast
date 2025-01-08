@@ -5,6 +5,7 @@ Subject: [PATCH] genpolicy: support for VOLUME definition in container image
 
 ---
  src/tools/genpolicy/genpolicy-settings.json   | 14 +++++-
+ src/tools/genpolicy/src/cronjob.rs            | 18 ++++---
  src/tools/genpolicy/src/daemon_set.rs         | 18 ++++---
  src/tools/genpolicy/src/deployment.rs         | 18 ++++---
  src/tools/genpolicy/src/job.rs                | 18 ++++---
@@ -17,7 +18,7 @@ Subject: [PATCH] genpolicy: support for VOLUME definition in container image
  src/tools/genpolicy/src/settings.rs           | 12 +++++
  src/tools/genpolicy/src/stateful_set.rs       | 20 ++++----
  src/tools/genpolicy/src/yaml.rs               | 43 ++++++++++++-----
- 13 files changed, 181 insertions(+), 89 deletions(-)
+ 14 files changed, 189 insertions(+), 99 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
 index 7d35862afa73e9f4c9004189d3ec50ebd3e8855d..fd998a41be8978b85928d12101c7ff4fdc38e4eb 100644
@@ -49,6 +50,35 @@ index 7d35862afa73e9f4c9004189d3ec50ebd3e8855d..fd998a41be8978b85928d12101c7ff4f
 -}
 \ No newline at end of file
 +}
+diff --git a/src/tools/genpolicy/src/cronjob.rs b/src/tools/genpolicy/src/cronjob.rs
+index 5da0989a77870bf9809a609b26269f59e7c3e2b5..6a2d63de3138d7728d430aad1a9b15201f61b62a 100644
+--- a/src/tools/genpolicy/src/cronjob.rs
++++ b/src/tools/genpolicy/src/cronjob.rs
+@@ -96,16 +96,14 @@ impl yaml::K8sResource for CronJob {
+         container: &pod::Container,
+         settings: &settings::Settings,
+     ) {
+-        if let Some(volumes) = &self.spec.jobTemplate.spec.template.spec.volumes {
+-            yaml::get_container_mounts_and_storages(
+-                policy_mounts,
+-                storages,
+-                persistent_volume_claims,
+-                container,
+-                settings,
+-                volumes,
+-            );
+-        }
++        yaml::get_container_mounts_and_storages(
++            policy_mounts,
++            storages,
++            persistent_volume_claims,
++            container,
++            settings,
++            &self.spec.jobTemplate.spec.template.spec.volumes,
++        );
+     }
+ 
+     fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
 index 90ea48597605f056250424ff0d8758017d20220f..d5a159c318f65339a9044a85a08bfae91f839e01 100644
 --- a/src/tools/genpolicy/src/daemon_set.rs
@@ -108,7 +138,7 @@ index 890579cdfbd67cd7f5949c817dbd9391043b1cf0..65db6937e874ce13d655498b441e5c71
  
      fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/job.rs b/src/tools/genpolicy/src/job.rs
-index bca1463017bb7359fb59d1ebbf1ae801c0f17190..32c1048f6b979b38e598169892c75adbb725a983 100644
+index ebe4cc871ff7f9c244c93e4b909cbd519a438069..39c0a4c62ee8f59108dd9e0ba90f51e43d7a115c 100644
 --- a/src/tools/genpolicy/src/job.rs
 +++ b/src/tools/genpolicy/src/job.rs
 @@ -70,16 +70,14 @@ impl yaml::K8sResource for Job {
@@ -459,10 +489,10 @@ index d25398358f526116f5b766ffba6db2e287e0f8e9..aa25bf5a78443dce6493fe5a2a2c3a3b
  
      fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index c898240af337f3cb7cfc34fa1398cb5a6bd828a5..07ebb32aea0ae8265c8deb8c32fb02242d1a7d84 100644
+index 0f94371052675049c19e4e057ea72e68432ce5ec..d8a4fd5a4c1797bba19262566b31698c03a641f5 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
-@@ -251,24 +251,41 @@ pub fn get_container_mounts_and_storages(
+@@ -260,24 +260,41 @@ pub fn get_container_mounts_and_storages(
      persistent_volume_claims: &[pvc::PersistentVolumeClaim],
      container: &pod::Container,
      settings: &settings::Settings,
