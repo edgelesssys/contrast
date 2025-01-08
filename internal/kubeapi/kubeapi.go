@@ -51,49 +51,49 @@ func UnmarshalK8SResources(data []byte) ([]any, error) {
 			if err != nil {
 				return nil, err
 			}
-			result = append(result, pod)
+			result = append(result, &pod)
 		case "Deployment":
 			var deployment appsv1.Deployment
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &deployment)
 			if err != nil {
 				return nil, err
 			}
-			result = append(result, deployment)
+			result = append(result, &deployment)
 		case "StatefulSet":
 			var statefulSet appsv1.StatefulSet
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &statefulSet)
 			if err != nil {
 				return nil, err
 			}
-			result = append(result, statefulSet)
+			result = append(result, &statefulSet)
 		case "ReplicaSet":
 			var replicaSet appsv1.ReplicaSet
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &replicaSet)
 			if err != nil {
 				return nil, err
 			}
-			result = append(result, replicaSet)
+			result = append(result, &replicaSet)
 		case "DaemonSet":
 			var daemonSet appsv1.DaemonSet
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &daemonSet)
 			if err != nil {
 				return nil, err
 			}
-			result = append(result, daemonSet)
+			result = append(result, &daemonSet)
 		case "Job":
 			var job batchv1.Job
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &job)
 			if err != nil {
 				return nil, err
 			}
-			result = append(result, job)
+			result = append(result, &job)
 		case "CronJob":
 			var cronJob batchv1.CronJob
 			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &cronJob)
 			if err != nil {
 				return nil, err
 			}
-			result = append(result, cronJob)
+			result = append(result, &cronJob)
 		}
 	}
 	return result, nil

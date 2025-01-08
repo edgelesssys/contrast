@@ -13,6 +13,10 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 )
 
+type k8sObject interface {
+	GetName() string
+}
+
 func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 	var kubeObjs []any
 	for _, path := range yamlPaths {
@@ -29,30 +33,30 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 
 	var deployments []deployment
 	for _, objAny := range kubeObjs {
-		var name, annotation, role string
+		meta, ok := objAny.(k8sObject)
+		if !ok {
+			continue
+		}
+		name := meta.GetName()
+
+		var annotation, role string
 		switch obj := objAny.(type) {
-		case kubeapi.Pod:
-			name = obj.Name
+		case *kubeapi.Pod:
 			annotation = obj.Annotations[kataPolicyAnnotationKey]
 			role = obj.Annotations[contrastRoleAnnotationKey]
-		case kubeapi.Deployment:
-			name = obj.Name
+		case *kubeapi.Deployment:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
-		case kubeapi.ReplicaSet:
-			name = obj.Name
+		case *kubeapi.ReplicaSet:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
-		case kubeapi.StatefulSet:
-			name = obj.Name
+		case *kubeapi.StatefulSet:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
-		case kubeapi.DaemonSet:
-			name = obj.Name
+		case *kubeapi.DaemonSet:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
-		case kubeapi.Job:
-			name = obj.Name
+		case *kubeapi.Job:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
 		case kubeapi.CronJob:

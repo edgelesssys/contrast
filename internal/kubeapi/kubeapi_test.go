@@ -26,7 +26,7 @@ metadata:
 `,
 		},
 		"pod": {
-			wantTypes: []any{Pod{}},
+			wantTypes: []any{&Pod{}},
 			resources: `
 apiVersion: v1
 kind: Pod
@@ -35,7 +35,7 @@ metadata:
 `,
 		},
 		"deployment, ignored service, daemonset": {
-			wantTypes: []any{Deployment{}, DaemonSet{}},
+			wantTypes: []any{&Deployment{}, &DaemonSet{}},
 			resources: `
 apiVersion: apps/v1
 kind: Deployment
@@ -54,7 +54,7 @@ metadata:
 `,
 		},
 		"statefulset, replicaset": {
-			wantTypes: []any{StatefulSet{}, ReplicaSet{}},
+			wantTypes: []any{&StatefulSet{}, &ReplicaSet{}},
 			resources: `
 apiVersion: apps/v1
 kind: StatefulSet
@@ -68,7 +68,7 @@ metadata:
 `,
 		},
 		"job": {
-			wantTypes: []any{Job{}},
+			wantTypes: []any{&Job{}},
 			resources: `
 apiVersion: batch/v1
 kind: Job
@@ -77,7 +77,7 @@ metadata:
 `,
 		},
 		"cronjob": {
-			wantTypes: []any{CronJob{}},
+			wantTypes: []any{&CronJob{}},
 			resources: `
 apiVersion: batch/v1
 kind: CronJob
