@@ -161,10 +161,10 @@ index e45b188d40a82a32547290ccdfd4a263e193e1c2..2402c2ed213e45b89c47b2b6a94d54f8
              rego_rules_path: args.rego_rules_path,
              json_settings_path: args.json_settings_path,
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 8f06d291e97b6955f2970b05c5987678362602eb..c898240af337f3cb7cfc34fa1398cb5a6bd828a5 100644
+index 378374dbf249ea0722a93bf024de177c48639b8f..0f94371052675049c19e4e057ea72e68432ce5ec 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
-@@ -75,6 +75,10 @@ pub trait K8sResource {
+@@ -76,6 +76,10 @@ pub trait K8sResource {
          // Just Pods can have a PodSecurityContext field, so the other
          // resources can use this default get_process_fields implementation.
      }
