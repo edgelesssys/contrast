@@ -55,6 +55,10 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 			name = obj.Name
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
+		case kubeapi.CronJob:
+			name = obj.Name
+			annotation = obj.Spec.JobTemplate.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			role = obj.Spec.JobTemplate.Spec.Template.Annotations[contrastRoleAnnotationKey]
 		}
 		if annotation == "" {
 			continue
