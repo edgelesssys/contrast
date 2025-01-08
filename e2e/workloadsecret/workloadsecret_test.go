@@ -111,7 +111,6 @@ func TestWorkloadSecrets(t *testing.T) {
 		require.Equal(webWorkloadSecretBytes, otherWebWorkloadSecretBytes)
 	})
 
-	var emojiWorkloadSecretBytes []byte
 	t.Run("workload secret seeds differ between deployments by default", func(t *testing.T) {
 		require := require.New(t)
 
@@ -125,7 +124,7 @@ func TestWorkloadSecrets(t *testing.T) {
 		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, emojiPods[0].Name, []string{"/bin/sh", "-c", "cat /contrast/secrets/workload-secret-seed"})
 		require.NoError(err, "stderr: %q", stderr)
 		require.NotEmpty(stdout)
-		emojiWorkloadSecretBytes, err = hex.DecodeString(stdout)
+		emojiWorkloadSecretBytes, err := hex.DecodeString(stdout)
 		require.NoError(err)
 		require.Len(emojiWorkloadSecretBytes, constants.SecretSeedSize)
 		require.NotEqual(webWorkloadSecretBytes, emojiWorkloadSecretBytes)
@@ -136,38 +135,35 @@ func TestWorkloadSecrets(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(60*time.Second))
 		defer cancel()
 
-		ct.PatchManifest(t, patchWorkloadSecretID("web", "emoji"))
-
-		t.Run("set", ct.Set)
-		require.NoError(ct.Kubeclient.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, "web"))
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, "web"))
-
-		webPods, err = ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, "web")
-		require.NoError(err)
-		require.Len(webPods, 2, "pod not found: %s/%s", ct.Namespace, "web")
-
-		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, webPods[0].Name, []string{"/bin/sh", "-c", "cat /contrast/secrets/workload-secret-seed"})
-		require.NoError(err, "stderr: %q", stderr)
-		require.NotEmpty(stdout)
-		webWorkloadSecretBytes, err = hex.DecodeString(stdout)
-		require.NoError(err)
-		require.Len(webWorkloadSecretBytes, constants.SecretSeedSize)
-		require.Equal(webWorkloadSecretBytes, emojiWorkloadSecretBytes)
-	})
-}
-
-// patchWorkloadSecretID returns a PatchManifestFunc which overwrites the expectedWorkloadSecretID with the patchWorkloadSecretID
-// in a manifest.
-func patchWorkloadSecretID(expectedWorkloadSecretID string, patchWorkloadSecretID string) contrasttest.PatchManifestFunc {
-	return func(m manifest.Manifest) manifest.Manifest {
-		for key, policy := range m.Policies {
-			if policy.WorkloadSecretID == expectedWorkloadSecretID {
-				policy.WorkloadSecretID = patchWorkloadSecretID
+		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
+			for key, policy := range m.Policies {
+				policy.WorkloadSecretID = "custom"
 				m.Policies[key] = policy
 			}
+			return m
+		})
+
+		t.Run("set", ct.Set)
+
+		var secrets [][]byte
+		for _, deploy := range []string{"web", "emoji"} {
+			require.NoError(ct.Kubeclient.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, deploy))
+			require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, deploy))
+
+			pods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, deploy)
+			require.NoError(err)
+			require.GreaterOrEqual(len(pods), 1, "pod not found: %s/%s", ct.Namespace, deploy)
+
+			stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, pods[0].Name, []string{"/bin/sh", "-c", "cat /contrast/secrets/workload-secret-seed"})
+			require.NoError(err, "stderr: %q", stderr)
+			require.NotEmpty(stdout)
+			secretBytes, err := hex.DecodeString(stdout)
+			require.NoError(err)
+			secrets = append(secrets, secretBytes)
 		}
-		return m
-	}
+		require.Len(secrets, 2)
+		require.Equal(secrets[0], secrets[1])
+	})
 }
 
 func TestMain(m *testing.M) {
