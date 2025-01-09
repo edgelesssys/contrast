@@ -160,7 +160,13 @@ func TestWorkloadSecrets(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(60*time.Second))
 		defer cancel()
 
-		ct.PatchManifest(t, patchWorkloadSecretID("web", ""))
+		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
+			for key, policy := range m.Policies {
+				policy.WorkloadSecretID = ""
+				m.Policies[key] = policy
+			}
+			return m
+		})
 
 		t.Run("set", ct.Set)
 		require.NoError(ct.Kubeclient.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, "web"))
