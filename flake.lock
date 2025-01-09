@@ -20,16 +20,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1736342513,
-        "narHash": "sha256-JS6fzwuVpk6/yfnS1zaSaZdMF3oVyZW7emh1CsYX/+w=",
-        "owner": "NixOS",
+        "lastModified": 1736429215,
+        "narHash": "sha256-7Y1vjcANknoOfV6jBvx6fYzx+SGYzR8hyCDwD296qWY=",
+        "owner": "msanft",
         "repo": "nixpkgs",
-        "rev": "728e7f4861d5acac1f2345fac9108b7b57dee878",
+        "rev": "07db7b594ec3ee81bcd7e20cd43acab4659ed5d0",
         "type": "github"
       },
       "original": {
-        "owner": "NixOS",
-        "ref": "master",
+        "owner": "msanft",
+        "ref": "msanft/libnvidia-container/driver-bins",
         "repo": "nixpkgs",
         "type": "github"
       }
