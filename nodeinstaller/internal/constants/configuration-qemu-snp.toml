@@ -5,11 +5,6 @@ path = "/usr/bin/qemu-system-x86_64"
 kernel = "/opt/kata/share/kata-containers/vmlinuz-confidential.container"
 initrd = "/opt/kata/share/kata-containers/kata-containers-initrd-confidential.img"
 machine_type = "q35"
-# GPU OPTIONS, TODO
-cold_plug_vfio = "root-port"
-# pcie_root_port = 1 # causes 'pcieport' device to show up in guest
-# guest_hook_path = "/usr/share/oci/hooks"
-# ----
 rootfs_type="erofs"
 confidential_guest = true
 sev_snp_guest = true
@@ -51,7 +46,7 @@ disable_guest_selinux=true
 
 [agent.kata]
 kernel_modules=[]
-dial_timeout = 600
+dial_timeout = 90
 
 [runtime]
 internetworking_model="tcfilter"
