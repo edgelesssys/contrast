@@ -71,6 +71,34 @@ let
           });
         };
       });
+
+  # nix-store-mount-hook mounts the VM's nix store into the container.
+  # TODO(burgerdev): only do that for containers that actually get a GPU device.
+  nix-store-mount-hook = pkgs.writeShellApplication {
+    name = "nix-store-mount-hook";
+    runtimeInputs = with pkgs; [
+      coreutils
+      util-linux
+      jq
+    ];
+    text = ''
+      # Reads from the state JSON supplied on stdin.
+      bundle="$(jq -r .bundle)"
+      rootfs="$bundle/rootfs"
+      id="$(basename "$bundle")"
+
+      lower=/nix/store
+      target="$rootfs$lower"
+      mkdir -p "$target"
+
+      overlays="/run/kata-containers/nix-overlays/$id"
+      upperdir="$overlays/upperdir"
+      workdir="$overlays/workdir"
+      mkdir -p "$upperdir" "$workdir"
+
+      mount -t overlay -o "lowerdir=$lower:$target,upperdir=$upperdir,workdir=$workdir" none "$target"
+    '';
+  };
 in
 
 {
@@ -90,6 +118,23 @@ in
       videoAcceleration = false;
     };
 
+    # WARNING: Kata sets systemd's default target to `kata-containers.target`. Thus, some upstream services may not work out-of-the-box,
+    # as they are `WantedBy=multi-user.target` or similar. In such cases, the service needs to be adjusted to be `WantedBy=kata-containers.target`
+    # instead.
+
+    # Configure the persistenced for use with CC GPUs (e.g. H100).
+    # TODO(msanft): This needs to be adjusted for non-CC-GPUs.
+    # See: https://docs.nvidia.com/cc-deployment-guide-snp.pdf (Page 23 & 24)
+    systemd.services."nvidia-persistenced" = {
+      wantedBy = [ "kata-containers.target" ];
+      serviceConfig.ExecStart = lib.mkForce "${lib.getExe config.hardware.nvidia.package.persistenced} --uvm-persistence-mode --verbose";
+    };
+
+    # kata-containers.target needs to pull this in so that we get a valid
+    # CDI configuration inside the PodVM. This is not necessary, as we use the
+    # legacy mode as of now, but will be once we switch to CDI.
+    systemd.services."nvidia-container-toolkit-cdi-generator".wantedBy = [ "kata-containers.target" ];
+
     hardware.nvidia-container-toolkit.enable = true;
 
     # Make NVIDIA the "default" graphics driver to replace Mesa,
@@ -97,8 +142,13 @@ in
     hardware.graphics.package = nvidiaPackage;
     hardware.graphics.package32 = nvidiaPackage;
 
-    image.repart.partitions."10-root".contents."/usr/share/oci/hooks/prestart/nvidia-container-toolkit.sh".source =
-      lib.getExe pkgs.nvidia-ctk-oci-hook;
+    image.repart.partitions."10-root".contents = {
+      "/usr/share/oci/hooks/prestart/nvidia-container-toolkit.sh".source =
+        lib.getExe pkgs.nvidia-ctk-oci-hook;
+      "/usr/share/oci/hooks/prestart/nix-store-mount-hook.sh".source = lib.getExe nix-store-mount-hook;
+    };
+
+    environment.systemPackages = [ pkgs.nvidia-ctk-with-config ];
 
     boot.initrd.kernelModules = [
       # Extra kernel modules required to talk to the GPU in CC-Mode.
