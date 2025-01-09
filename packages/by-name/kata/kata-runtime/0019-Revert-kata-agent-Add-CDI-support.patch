@@ -1,0 +1,695 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Fri, 3 Jan 2025 13:30:01 +0100
+Subject: [PATCH] Revert "kata-agent: Add CDI support"
+
+This reverts commit 3995fe71f9b7b4304dc9cdfd842d296a633c15c3.
+---
+ src/agent/Cargo.lock        | 315 +-----------------------------------
+ src/agent/src/device/mod.rs | 119 --------------
+ src/agent/src/rpc.rs        |  13 +-
+ 3 files changed, 6 insertions(+), 441 deletions(-)
+
+diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
+index 5a9674f56d5741aa841bbfcbe8c30a05ba839f6d..2a4e3ced8025bf279b581a4375e46d4212e5c206 100644
+--- a/src/agent/Cargo.lock
++++ b/src/agent/Cargo.lock
+@@ -64,20 +64,6 @@ dependencies = [
+  "version_check",
+ ]
+ 
+-[[package]]
+-name = "ahash"
+-version = "0.8.11"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "e89da841a80418a9b391ebaea17f5c112ffaaa96f621d2c285b5174da76b9011"
+-dependencies = [
+- "cfg-if 1.0.0",
+- "getrandom",
+- "once_cell",
+- "serde",
+- "version_check",
+- "zerocopy",
+-]
+-
+ [[package]]
+ name = "aho-corasick"
+ version = "1.1.3"
+@@ -111,55 +97,6 @@ dependencies = [
+  "winapi",
+ ]
+ 
+-[[package]]
+-name = "anstream"
+-version = "0.6.15"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "64e15c1ab1f89faffbf04a634d5e1962e9074f2741eef6d97f3c4e322426d526"
+-dependencies = [
+- "anstyle",
+- "anstyle-parse",
+- "anstyle-query",
+- "anstyle-wincon",
+- "colorchoice",
+- "is_terminal_polyfill",
+- "utf8parse",
+-]
+-
+-[[package]]
+-name = "anstyle"
+-version = "1.0.8"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "1bec1de6f59aedf83baf9ff929c98f2ad654b97c9510f4e70cf6f661d49fd5b1"
+-
+-[[package]]
+-name = "anstyle-parse"
+-version = "0.2.5"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "eb47de1e80c2b463c735db5b217a0ddc39d612e7ac9e2e96a5aed1f57616c1cb"
+-dependencies = [
+- "utf8parse",
+-]
+-
+-[[package]]
+-name = "anstyle-query"
+-version = "1.1.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "6d36fc52c7f6c869915e99412912f22093507da8d9e942ceaf66fe4b7c14422a"
+-dependencies = [
+- "windows-sys 0.52.0",
+-]
+-
+-[[package]]
+-name = "anstyle-wincon"
+-version = "3.0.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "5bf74e1b6e971609db8ca7a9ce79fd5768ab6ae46441c572e46cf596f59e57f8"
+-dependencies = [
+- "anstyle",
+- "windows-sys 0.52.0",
+-]
+-
+ [[package]]
+ name = "anyhow"
+ version = "1.0.86"
+@@ -781,12 +718,6 @@ dependencies = [
+  "syn 1.0.109",
+ ]
+ 
+-[[package]]
+-name = "bytecount"
+-version = "0.6.8"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "5ce89b21cab1437276d2650d57e971f9d548a2d9037cc231abdc0562b97498ce"
+-
+ [[package]]
+ name = "byteorder"
+ version = "1.5.0"
+@@ -889,30 +820,6 @@ dependencies = [
+  "libc",
+ ]
+ 
+-[[package]]
+-name = "cdi"
+-version = "0.1.0"
+-source = "git+https://github.com/cncf-tags/container-device-interface-rs?rev=19763bcf0de62599ce8b88558418b4dac1154745#19763bcf0de62599ce8b88558418b4dac1154745"
+-dependencies = [
+- "anyhow",
+- "clap 4.5.13",
+- "const_format",
+- "jsonschema",
+- "lazy_static",
+- "libc",
+- "nix 0.24.3",
+- "notify",
+- "oci-spec",
+- "once_cell",
+- "path-clean",
+- "regex",
+- "semver",
+- "serde",
+- "serde_derive",
+- "serde_json",
+- "serde_yaml",
+-]
+-
+ [[package]]
+ name = "cesu8"
+ version = "1.1.0"
+@@ -1013,8 +920,8 @@ checksum = "4ea181bf566f71cb9a5d17a59e1871af638180a18fb0035c92ae62b705207123"
+ dependencies = [
+  "atty",
+  "bitflags 1.3.2",
+- "clap_derive 3.2.25",
+- "clap_lex 0.2.4",
++ "clap_derive",
++ "clap_lex",
+  "indexmap 1.9.3",
+  "once_cell",
+  "strsim 0.10.0",
+@@ -1022,28 +929,6 @@ dependencies = [
+  "textwrap",
+ ]
+ 
+-[[package]]
+-name = "clap"
+-version = "4.5.13"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0fbb260a053428790f3de475e304ff84cdbc4face759ea7a3e64c1edd938a7fc"
+-dependencies = [
+- "clap_builder",
+- "clap_derive 4.5.13",
+-]
+-
+-[[package]]
+-name = "clap_builder"
+-version = "4.5.13"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "64b17d7ea74e9f833c7dbf2cbe4fb12ff26783eda4782a8975b72f895c9b4d99"
+-dependencies = [
+- "anstream",
+- "anstyle",
+- "clap_lex 0.7.2",
+- "strsim 0.11.1",
+-]
+-
+ [[package]]
+ name = "clap_derive"
+ version = "3.2.25"
+@@ -1057,18 +942,6 @@ dependencies = [
+  "syn 1.0.109",
+ ]
+ 
+-[[package]]
+-name = "clap_derive"
+-version = "4.5.13"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "501d359d5f3dcaf6ecdeee48833ae73ec6e42723a1e52419c79abf9507eec0a0"
+-dependencies = [
+- "heck 0.5.0",
+- "proc-macro2",
+- "quote",
+- "syn 2.0.71",
+-]
+-
+ [[package]]
+ name = "clap_lex"
+ version = "0.2.4"
+@@ -1078,12 +951,6 @@ dependencies = [
+  "os_str_bytes",
+ ]
+ 
+-[[package]]
+-name = "clap_lex"
+-version = "0.7.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
+-
+ [[package]]
+ name = "cmac"
+ version = "0.7.2"
+@@ -1112,12 +979,6 @@ version = "3.0.0"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "12170080f3533d6f09a19f81596f836854d0fa4867dc32c8172b8474b4e9de61"
+ 
+-[[package]]
+-name = "colorchoice"
+-version = "1.0.3"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
+-
+ [[package]]
+ name = "combine"
+ version = "4.6.7"
+@@ -1913,17 +1774,6 @@ dependencies = [
+  "rand",
+ ]
+ 
+-[[package]]
+-name = "fancy-regex"
+-version = "0.13.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "531e46835a22af56d1e3b66f04844bed63158bc094a628bec1d321d9b4c44bf2"
+-dependencies = [
+- "bit-set",
+- "regex-automata 0.4.7",
+- "regex-syntax 0.8.4",
+-]
+-
+ [[package]]
+ name = "fastrand"
+ version = "1.9.0"
+@@ -2019,25 +1869,6 @@ dependencies = [
+  "percent-encoding",
+ ]
+ 
+-[[package]]
+-name = "fraction"
+-version = "0.15.3"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "0f158e3ff0a1b334408dc9fb811cd99b446986f4d8b741bb08f9df1604085ae7"
+-dependencies = [
+- "lazy_static",
+- "num",
+-]
+-
+-[[package]]
+-name = "fsevent-sys"
+-version = "4.1.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "76ee7a02da4d231650c7cea31349b889be2f45ddb3ef3032d2ec8185f6313fd2"
+-dependencies = [
+- "libc",
+-]
+-
+ [[package]]
+ name = "funty"
+ version = "2.0.0"
+@@ -2263,7 +2094,7 @@ version = "0.12.3"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
+ dependencies = [
+- "ahash 0.7.8",
++ "ahash",
+ ]
+ 
+ [[package]]
+@@ -2822,21 +2653,6 @@ dependencies = [
+  "windows-sys 0.52.0",
+ ]
+ 
+-[[package]]
+-name = "is_terminal_polyfill"
+-version = "1.70.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
+-
+-[[package]]
+-name = "iso8601"
+-version = "0.6.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "924e5d73ea28f59011fec52a0d12185d496a9b075d360657aed2a5707f701153"
+-dependencies = [
+- "nom",
+-]
+-
+ [[package]]
+ name = "itertools"
+ version = "0.10.5"
+@@ -2955,36 +2771,6 @@ dependencies = [
+  "serde_json",
+ ]
+ 
+-[[package]]
+-name = "jsonschema"
+-version = "0.18.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "ec0afd06142c9bcb03f4a8787c77897a87b6be9c4918f1946c33caa714c27578"
+-dependencies = [
+- "ahash 0.8.11",
+- "anyhow",
+- "base64 0.22.1",
+- "bytecount",
+- "clap 4.5.13",
+- "fancy-regex",
+- "fraction",
+- "getrandom",
+- "iso8601",
+- "itoa",
+- "memchr",
+- "num-cmp",
+- "once_cell",
+- "parking_lot 0.12.3",
+- "percent-encoding",
+- "regex",
+- "reqwest",
+- "serde",
+- "serde_json",
+- "time",
+- "url",
+- "uuid",
+-]
+-
+ [[package]]
+ name = "jwt"
+ version = "0.16.0"
+@@ -3049,10 +2835,9 @@ dependencies = [
+  "async-std",
+  "async-trait",
+  "capctl",
+- "cdi",
+  "cfg-if 1.0.0",
+  "cgroups-rs",
+- "clap 3.2.25",
++ "clap",
+  "const_format",
+  "derivative",
+  "futures",
+@@ -3214,26 +2999,6 @@ dependencies = [
+  "zeroize",
+ ]
+ 
+-[[package]]
+-name = "kqueue"
+-version = "1.0.8"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "7447f1ca1b7b563588a205fe93dea8df60fd981423a768bc1c0ded35ed147d0c"
+-dependencies = [
+- "kqueue-sys",
+- "libc",
+-]
+-
+-[[package]]
+-name = "kqueue-sys"
+-version = "1.0.4"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "ed9625ffda8729b85e45cf04090035ac368927b8cebc34898e7c120f52e4838b"
+-dependencies = [
+- "bitflags 1.3.2",
+- "libc",
+-]
+-
+ [[package]]
+ name = "krata-tokio-tar"
+ version = "0.4.2"
+@@ -3585,18 +3350,6 @@ dependencies = [
+  "adler",
+ ]
+ 
+-[[package]]
+-name = "mio"
+-version = "0.8.11"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "a4a650543ca06a924e8b371db273b2756685faae30f8487da1b56505a8f78b0c"
+-dependencies = [
+- "libc",
+- "log",
+- "wasi",
+- "windows-sys 0.48.0",
+-]
+-
+ [[package]]
+ name = "mio"
+ version = "1.0.2"
+@@ -3777,25 +3530,6 @@ dependencies = [
+  "minimal-lexical",
+ ]
+ 
+-[[package]]
+-name = "notify"
+-version = "6.1.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "6205bd8bb1e454ad2e27422015fb5e4f2bcc7e08fa8f27058670d208324a4d2d"
+-dependencies = [
+- "bitflags 2.6.0",
+- "crossbeam-channel",
+- "filetime",
+- "fsevent-sys",
+- "inotify",
+- "kqueue",
+- "libc",
+- "log",
+- "mio 0.8.11",
+- "walkdir",
+- "windows-sys 0.48.0",
+-]
+-
+ [[package]]
+ name = "ntapi"
+ version = "0.4.1"
+@@ -3846,12 +3580,6 @@ dependencies = [
+  "zeroize",
+ ]
+ 
+-[[package]]
+-name = "num-cmp"
+-version = "0.1.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "63335b2e2c34fae2fb0aa2cecfd9f0832a1e24b3b32ecec612c3426d46dc8aaa"
+-
+ [[package]]
+ name = "num-complex"
+ version = "0.4.6"
+@@ -4237,12 +3965,6 @@ dependencies = [
+  "slash-formatter",
+ ]
+ 
+-[[package]]
+-name = "path-clean"
+-version = "1.0.1"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "17359afc20d7ab31fdb42bb844c8b3bb1dabd7dcf7e68428492da7f16966fcef"
+-
+ [[package]]
+ name = "path-dedot"
+ version = "1.2.4"
+@@ -5012,7 +4734,6 @@ dependencies = [
+  "bytes 1.6.1",
+  "cookie",
+  "cookie_store",
+- "futures-channel",
+  "futures-core",
+  "futures-util",
+  "http",
+@@ -6306,7 +6027,7 @@ dependencies = [
+  "backtrace",
+  "bytes 1.6.1",
+  "libc",
+- "mio 1.0.2",
++ "mio",
+  "parking_lot 0.12.3",
+  "pin-project-lite",
+  "signal-hook-registry",
+@@ -6733,12 +6454,6 @@ version = "1.0.4"
+ source = "registry+https://github.com/rust-lang/crates.io-index"
+ checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
+ 
+-[[package]]
+-name = "utf8parse"
+-version = "0.2.2"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
+-
+ [[package]]
+ name = "uuid"
+ version = "1.10.0"
+@@ -7427,26 +7142,6 @@ dependencies = [
+  "zvariant",
+ ]
+ 
+-[[package]]
+-name = "zerocopy"
+-version = "0.7.35"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "1b9b4fd18abc82b8136838da5d50bae7bdea537c574d8dc1a34ed098d6c166f0"
+-dependencies = [
+- "zerocopy-derive",
+-]
+-
+-[[package]]
+-name = "zerocopy-derive"
+-version = "0.7.35"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "fa4f8080344d4671fb4e831a13ad1e68092748387dfc4f55e356242fae12ce3e"
+-dependencies = [
+- "proc-macro2",
+- "quote",
+- "syn 2.0.71",
+-]
+-
+ [[package]]
+ name = "zerofrom"
+ version = "0.1.4"
+diff --git a/src/agent/src/device/mod.rs b/src/agent/src/device/mod.rs
+index ac7c96e16759862bafd69f4b6a1270dac5595a26..53e77d82c88912488ead9052f44e397345f8b8ad 100644
+--- a/src/agent/src/device/mod.rs
++++ b/src/agent/src/device/mod.rs
+@@ -11,9 +11,6 @@ use self::vfio_device_handler::{VfioApDeviceHandler, VfioPciDeviceHandler};
+ use crate::pci;
+ use crate::sandbox::Sandbox;
+ use anyhow::{anyhow, Context, Result};
+-use cdi::annotations::parse_annotations;
+-use cdi::cache::{new_cache, CdiOption, with_auto_refresh};
+-use cdi::spec_dirs::with_spec_dirs;
+ use kata_types::device::DeviceHandlerManager;
+ use nix::sys::stat;
+ use oci::{LinuxDeviceCgroup, Spec};
+@@ -28,8 +25,6 @@ use std::path::PathBuf;
+ use std::str::FromStr;
+ use std::sync::Arc;
+ use tokio::sync::Mutex;
+-use tokio::time;
+-use tokio::time::Duration;
+ use tracing::instrument;
+ 
+ pub mod block_device_handler;
+@@ -40,8 +35,6 @@ pub mod vfio_device_handler;
+ 
+ pub const BLOCK: &str = "block";
+ 
+-
+-
+ #[derive(Debug, Clone)]
+ pub struct DeviceInfo {
+     // Device type, "b" for block device and "c" for character device
+@@ -245,61 +238,6 @@ pub async fn add_devices(
+     update_spec_devices(logger, spec, dev_updates)
+ }
+ 
+-#[instrument]
+-pub async fn handle_cdi_devices(logger: &Logger, spec: &mut Spec, spec_dir: &str, cdi_timeout: u64) -> Result<()> {
+-    if let Some(container_type) = spec
+-        .annotations()
+-        .as_ref()
+-        .and_then(|a| a.get("io.katacontainers.pkg.oci.container_type"))
+-    {
+-        if container_type == "pod_sandbox" {
+-            return Ok(());
+-        }
+-    }
+-
+-    let (_, devices) = parse_annotations(spec.annotations().as_ref().unwrap())?;
+-
+-    if devices.is_empty() {
+-        info!(logger, "no CDI annotations, no devices to inject");
+-        return Ok(());
+-    }
+-    // Explicitly set the cache options to disable auto-refresh and
+-    // to use the single spec dir "/var/run/cdi" for tests it can be overridden
+-    let options: Vec<CdiOption> = vec![
+-        with_auto_refresh(true),
+-        with_spec_dirs(&[spec_dir]),
+-    ];
+-
+-    let cache: Arc<std::sync::Mutex<cdi::cache::Cache>> = new_cache(options);
+-
+-    for _ in 0..=cdi_timeout {
+-        let inject_result = {
+-            // Lock cache within this scope, std::sync::Mutex has no Send
+-            // and await will not work with time::sleep
+-            let mut cache = cache.lock().unwrap();
+-            cache.inject_devices(Some(spec), devices.clone())
+-        };
+-
+-        match inject_result {
+-            Ok(_) => {
+-                info!(
+-                    logger,
+-                    "all devices injected successfully, modified CDI container spec: {:?}", &spec
+-                );
+-                return Ok(());
+-            }
+-            Err(e) => {
+-                info!(logger, "error injecting devices: {:?}", e);
+-            }
+-        }
+-        time::sleep(Duration::from_millis(1000)).await;
+-    }
+-    Err(anyhow!(
+-        "failed to inject devices after CDI timeout of {} seconds",
+-        cdi_timeout
+-    ))
+-}
+-
+ #[instrument]
+ async fn validate_device(
+     logger: &Logger,
+@@ -1172,61 +1110,4 @@ mod tests {
+         assert!(name.is_ok(), "{}", name.unwrap_err());
+         assert_eq!(name.unwrap(), devname);
+     }
+-
+-    #[tokio::test]
+-    async fn test_handle_cdi_devices() {
+-
+-        let logger = slog::Logger::root(slog::Discard, o!());
+-        let mut spec = Spec::default();
+-
+-        let mut annotations = HashMap::new();
+-        // cdi.k8s.io/vendor1_devices: vendor1.com/device=foo
+-        annotations.insert(
+-            "cdi.k8s.io/vfio17".to_string(),
+-            "kata.com/gpu=0".to_string(),
+-        );
+-        spec.set_annotations(Some(annotations));
+-
+-
+-        // create a file in /tmp/cdi with nvidia.json content
+-        let cdi_dir = PathBuf::from("/tmp/cdi");
+-        let cdi_file = cdi_dir.join("kata.json");
+-        let cdi_content = r#"{
+-            "cdiVersion": "0.7.0",
+-            "kind": "kata.com/gpu",
+-            "devices": [
+-                {
+-                    "name": "0",
+-                    "annotations": {
+-                        "whatever": "false",
+-                        "whenever": "true"
+-                    },
+-                    "containerEdits": {
+-                        "deviceNodes": [
+-                            {
+-                                "path": "/dev/rtc0"
+-                            }
+-                        ]
+-                    }
+-                }
+-            ]
+-        }
+-        "#;
+-
+-        fs::write(&cdi_file, cdi_content).expect("Failed to write CDI file");
+-
+-
+-        let res = handle_cdi_devices(&logger, &mut spec, "/tmp/cdi", 1).await;
+-        assert!(res.is_ok(), "{}", res.err().unwrap());
+-
+-
+-        //let linux = spec.linux().as_ref().unwrap();
+-        //let devices = linux.resources().as_ref().unwrap().devices().as_ref().unwrap();
+-        //assert_eq!(devices.len(), 1);
+-
+-        //let dev = &devices[0];
+-        //assert_eq!(dev.major(), 10);
+-        //assert_eq!(dev.minor(), 200);
+-
+-    }
+ }
+diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
+index 0a1c6d34adfffcbc3aef1b55a77556b8b82e85c0..b3888633744a718586069314a192c9c0fd92459e 100644
+--- a/src/agent/src/rpc.rs
++++ b/src/agent/src/rpc.rs
+@@ -58,7 +58,7 @@ use rustjail::process::ProcessOperations;
+ use crate::cdh;
+ use crate::device::block_device_handler::get_virtio_blk_pci_device_name;
+ use crate::device::network_device_handler::wait_for_net_interface;
+-use crate::device::{add_devices, handle_cdi_devices, update_env_pci};
++use crate::device::{add_devices, update_env_pci};
+ use crate::features::get_build_features;
+ use crate::image::KATA_IMAGE_WORK_DIR;
+ use crate::linux_abi::*;
+@@ -130,8 +130,6 @@ const ERR_NO_SANDBOX_PIDNS: &str = "Sandbox does not have sandbox_pidns";
+ // not available.
+ const IPTABLES_RESTORE_WAIT_SEC: u64 = 5;
+ 
+-const CDI_TIMEOUT_LIMIT: u64 = 100;
+-
+ // Convenience function to obtain the scope logger.
+ fn sl() -> slog::Logger {
+     slog_scope::logger()
+@@ -226,15 +224,6 @@ impl AgentService {
+         // cannot predict everything from the caller.
+         add_devices(&sl(), &req.devices, &mut oci, &self.sandbox).await?;
+ 
+-        // In guest-kernel mode some devices need extra handling. Taking the
+-        // GPU as an example the shim will inject CDI annotations that will
+-        // be used by the kata-agent to do containerEdits according to the
+-        // CDI spec coming from a registry that is created on the fly by UDEV
+-        // or other entities for a specifc device.
+-        // In Kata we only consider the directory "/var/run/cdi", "/etc" may be
+-        // readonly
+-        handle_cdi_devices(&sl(), &mut oci, "/var/run/cdi", CDI_TIMEOUT_LIMIT).await?;
+-
+         cdh_handler(&mut oci).await?;
+ 
+         // Both rootfs and volumes (invoked with --volume for instance) will
