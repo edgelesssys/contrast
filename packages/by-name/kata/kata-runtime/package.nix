@@ -113,6 +113,11 @@ buildGoModule rec {
       # `allowed_guest_hooks` setting , which controls what paths may be set for hooks.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10633
       ./0017-genpolicy-support-guest-hooks.patch
+
+      # Correctly type QEMU QMP command options for the `device_add` command.
+      # See: https://github.com/kata-containers/kata-containers/pull/10719
+      # TODO(msanft): Remove once upstream PR is released.
+      ./0018-runtime-use-actual-booleans-for-QMP-device_add-boole.patch
     ];
   };
 
