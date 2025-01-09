@@ -101,6 +101,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 			config.Hypervisor["qemu"]["cold_plug_vfio"] = "root-port"
 			// GPU images tend to be larger, so give a better default timeout that
 			// allows for pulling those.
+			config.Agent["kata"]["dial_timeout"] = 600
 			config.Runtime["create_container_timeout"] = 600
 		}
 	default:
