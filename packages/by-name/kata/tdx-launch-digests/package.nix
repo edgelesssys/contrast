@@ -8,7 +8,7 @@
   OVMF-TDX,
   tdx-measure,
 
-  debug ? false,
+  debug ? true,
 }:
 let
   ovmf-tdx = "${OVMF-TDX}/FV/OVMF.fd";

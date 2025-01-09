@@ -17,7 +17,7 @@
   OVMF-SNP,
   OVMF-TDX,
 
-  debugRuntime ? false,
+  debugRuntime ? true,
 }:
 
 let

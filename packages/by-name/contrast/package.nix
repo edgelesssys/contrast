@@ -32,6 +32,7 @@ let
     subPackages = [
       "e2e/genpolicy"
       "e2e/getdents"
+      "e2e/gpu"
       "e2e/openssl"
       "e2e/servicemesh"
       "e2e/release"

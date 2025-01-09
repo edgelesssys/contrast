@@ -10,6 +10,7 @@ on:
         options:
           - genpolicy
           - getdents
+          - gpu
           - openssl
           - policy
           - regression
@@ -24,6 +25,7 @@ on:
         options:
           - AKS-CLH-SNP
           - K3s-QEMU-SNP
+          - K3s-QEMU-SNP-GPU
           - K3s-QEMU-TDX
       skip-undeploy:
         description: "Skip undeploy"
