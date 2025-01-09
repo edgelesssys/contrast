@@ -120,6 +120,11 @@ buildGoModule rec {
       # See https://dev.azure.com/Edgeless/Edgeless/_workitems/edit/5061
       ./0018-Revert-agent-Added-test-case-for-handle_cdi_devices.patch
       ./0019-Revert-kata-agent-Add-CDI-support.patch
+
+      # Correctly type QEMU QMP command options for the `device_add` command.
+      # See: https://github.com/kata-containers/kata-containers/pull/10719
+      # TODO(msanft): Remove once upstream PR is released.
+      ./0020-runtime-use-actual-booleans-for-QMP-device_add-boole.patch
     ];
   };
 
