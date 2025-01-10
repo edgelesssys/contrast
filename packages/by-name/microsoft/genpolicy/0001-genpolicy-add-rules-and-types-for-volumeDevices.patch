@@ -14,7 +14,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  6 files changed, 85 insertions(+)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 13128b2e6dc061675e624b2cca09a6d12ebd58a5..a7fb7fba7ba1e4e486c2b43b8b626a32b9aa5164 100644
+index a462c0692dabf796355ca14ee89e06ea45ff6c2b..fe872732cb83a6278a9413d2f0208c8917e0ba99 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -58,6 +58,7 @@ CreateContainerRequest {
