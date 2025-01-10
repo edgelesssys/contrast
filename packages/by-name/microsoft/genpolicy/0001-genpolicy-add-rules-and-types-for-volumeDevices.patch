@@ -14,10 +14,10 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  6 files changed, 85 insertions(+)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index a462c0692dabf796355ca14ee89e06ea45ff6c2b..fe872732cb83a6278a9413d2f0208c8917e0ba99 100644
+index a5208cf9d3b38edfe6ab777ce0bafb81bf3b84dc..aa0488ae2dffc63780967ca706ea2c8ffcfb1391 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -58,6 +58,7 @@ CreateContainerRequest {
+@@ -62,6 +62,7 @@ CreateContainerRequest {
  
      i_oci := input.OCI
      i_storages := input.storages
@@ -25,7 +25,7 @@ index a462c0692dabf796355ca14ee89e06ea45ff6c2b..fe872732cb83a6278a9413d2f0208c89
  
      # Check if any element from the policy_data.containers array allows the input request.
      some p_container in policy_data.containers
-@@ -81,6 +82,9 @@ CreateContainerRequest {
+@@ -85,6 +86,9 @@ CreateContainerRequest {
      p_storages := p_container.storages
      allow_by_anno(p_oci, i_oci, p_storages, i_storages)
  
@@ -35,7 +35,7 @@ index a462c0692dabf796355ca14ee89e06ea45ff6c2b..fe872732cb83a6278a9413d2f0208c89
      allow_linux(p_oci, i_oci)
  
      print("CreateContainerRequest: true")
-@@ -363,6 +367,16 @@ allow_log_directory(p_oci, i_oci) {
+@@ -361,6 +365,16 @@ allow_log_directory(p_oci, i_oci) {
      print("allow_log_directory: true")
  }
  
@@ -52,7 +52,7 @@ index a462c0692dabf796355ca14ee89e06ea45ff6c2b..fe872732cb83a6278a9413d2f0208c89
  allow_linux(p_oci, i_oci) {
      p_namespaces := p_oci.Linux.Namespaces
      print("allow_linux: p namespaces =", p_namespaces)
-@@ -374,6 +388,7 @@ allow_linux(p_oci, i_oci) {
+@@ -372,6 +386,7 @@ allow_linux(p_oci, i_oci) {
  
      allow_masked_paths(p_oci, i_oci)
      allow_readonly_paths(p_oci, i_oci)
@@ -60,7 +60,7 @@ index a462c0692dabf796355ca14ee89e06ea45ff6c2b..fe872732cb83a6278a9413d2f0208c89
  
      print("allow_linux: true")
  }
-@@ -462,6 +477,13 @@ allow_readonly_path(p_elem, i_array, masked_paths) {
+@@ -460,6 +475,13 @@ allow_readonly_path(p_elem, i_array, masked_paths) {
      print("allow_readonly_path 2: true")
  }
  
@@ -139,7 +139,7 @@ index 16d633aa2b29eaa4f4f497fb4de306b51e05c8b7..cae93c53257ec8b2195974b14589cb55
  #[derive(Clone, Debug, Serialize, Deserialize)]
  struct ResourceRequirements {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 012eb9add230268c6ee29395a91f85fc1ef3a4f0..b612bcc52ad59be4790accea5074418eb4d050a8 100644
+index 8528d84827139a89d056a717f2d868d9c9c9f5f8..ff06786ca8610a71059d469dac613750cc0c8623 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -198,6 +198,10 @@ pub struct KataLinux {
@@ -182,7 +182,7 @@ index 012eb9add230268c6ee29395a91f85fc1ef3a4f0..b612bcc52ad59be4790accea5074418e
      /// Data compared with req.sandbox_pidns for CreateContainerRequest calls.
      sandbox_pidns: bool,
  
-@@ -595,6 +614,25 @@ impl AgentPolicy {
+@@ -601,6 +620,25 @@ impl AgentPolicy {
          };
          let exec_commands = yaml_container.get_exec_commands();
  
@@ -208,7 +208,7 @@ index 012eb9add230268c6ee29395a91f85fc1ef3a4f0..b612bcc52ad59be4790accea5074418e
          ContainerPolicy {
              OCI: KataSpec {
                  Version: version_default(),
-@@ -606,6 +644,7 @@ impl AgentPolicy {
+@@ -612,6 +650,7 @@ impl AgentPolicy {
                  Linux: linux,
              },
              storages,
