@@ -78,7 +78,13 @@ in
     };
 
     # Not used directly, but required for kernel-specific driver builds.
-    boot.kernelPackages = pkgs.recurseIntoAttrs (pkgs.linuxPackagesFor pkgs.kata-kernel-uvm);
+    boot.kernelPackages = pkgs.recurseIntoAttrs (
+      pkgs.linuxPackagesFor (
+        pkgs.kata-kernel-uvm.override {
+          withGPU = config.contrast.gpu.enable;
+        }
+      )
+    );
 
     boot.initrd = {
       # Don't require TPM2 support. (additional modules)
