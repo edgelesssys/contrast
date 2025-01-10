@@ -1,0 +1,25 @@
+# TODO(msanft): Move this to internal/kuberesource/sets.go as soon as genpolicy
+# support for GPU pods is added.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gpu-pod
+  namespace: "@@REPLACE_NAMESPACE@@"
+  annotations:
+    # Allow-all policy
+    # TODO(msanft): Generate a policy dynamically once we support policy generation for GPU pods.
+    io.katacontainers.config.agent.policy: IyBDb3B5cmlnaHQgKGMpIDIwMjMgTWljcm9zb2Z0IENvcnBvcmF0aW9uCiMKIyBTUERYLUxpY2Vuc2UtSWRlbnRpZmllcjogQXBhY2hlLTIuMAojCgpwYWNrYWdlIGFnZW50X3BvbGljeQoKZGVmYXVsdCBBZGRBUlBOZWlnaGJvcnNSZXF1ZXN0IDo9IHRydWUKZGVmYXVsdCBBZGRTd2FwUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgQ2xvc2VTdGRpblJlcXVlc3QgOj0gdHJ1ZQpkZWZhdWx0IENvcHlGaWxlUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgQ3JlYXRlQ29udGFpbmVyUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgQ3JlYXRlU2FuZGJveFJlcXVlc3QgOj0gdHJ1ZQpkZWZhdWx0IERlc3Ryb3lTYW5kYm94UmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgRXhlY1Byb2Nlc3NSZXF1ZXN0IDo9IHRydWUKZGVmYXVsdCBHZXRNZXRyaWNzUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgR2V0T09NRXZlbnRSZXF1ZXN0IDo9IHRydWUKZGVmYXVsdCBHdWVzdERldGFpbHNSZXF1ZXN0IDo9IHRydWUKZGVmYXVsdCBMaXN0SW50ZXJmYWNlc1JlcXVlc3QgOj0gdHJ1ZQpkZWZhdWx0IExpc3RSb3V0ZXNSZXF1ZXN0IDo9IHRydWUKZGVmYXVsdCBNZW1Ib3RwbHVnQnlQcm9iZVJlcXVlc3QgOj0gdHJ1ZQpkZWZhdWx0IE9ubGluZUNQVU1lbVJlcXVlc3QgOj0gdHJ1ZQpkZWZhdWx0IFBhdXNlQ29udGFpbmVyUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgUHVsbEltYWdlUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgUmVhZFN0cmVhbVJlcXVlc3QgOj0gdHJ1ZQpkZWZhdWx0IFJlbW92ZUNvbnRhaW5lclJlcXVlc3QgOj0gdHJ1ZQpkZWZhdWx0IFJlbW92ZVN0YWxlVmlydGlvZnNTaGFyZU1vdW50c1JlcXVlc3QgOj0gdHJ1ZQpkZWZhdWx0IFJlc2VlZFJhbmRvbURldlJlcXVlc3QgOj0gdHJ1ZQpkZWZhdWx0IFJlc3VtZUNvbnRhaW5lclJlcXVlc3QgOj0gdHJ1ZQpkZWZhdWx0IFNldEd1ZXN0RGF0ZVRpbWVSZXF1ZXN0IDo9IHRydWUKZGVmYXVsdCBTZXRQb2xpY3lSZXF1ZXN0IDo9IHRydWUKZGVmYXVsdCBTaWduYWxQcm9jZXNzUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgU3RhcnRDb250YWluZXJSZXF1ZXN0IDo9IHRydWUKZGVmYXVsdCBTdGFydFRyYWNpbmdSZXF1ZXN0IDo9IHRydWUKZGVmYXVsdCBTdGF0c0NvbnRhaW5lclJlcXVlc3QgOj0gdHJ1ZQpkZWZhdWx0IFN0b3BUcmFjaW5nUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgVHR5V2luUmVzaXplUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgVXBkYXRlQ29udGFpbmVyUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgVXBkYXRlRXBoZW1lcmFsTW91bnRzUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgVXBkYXRlSW50ZXJmYWNlUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgVXBkYXRlUm91dGVzUmVxdWVzdCA6PSB0cnVlCmRlZmF1bHQgV2FpdFByb2Nlc3NSZXF1ZXN0IDo9IHRydWUKZGVmYXVsdCBXcml0ZVN0cmVhbVJlcXVlc3QgOj0gdHJ1ZQo=
+    io.katacontainers.config.hypervisor.default_memory: "15258"
+    cdi.k8s.io/gpu: "nvidia.com/pgpu=0"
+spec:
+  runtimeClassName: "@@REPLACE_RUNTIME@@"
+  restartPolicy: OnFailure
+  containers:
+    - name: vllm
+      image: ghcr.io/edgelesssys/contrast/ubuntu:24.04
+      env:
+        - name: NVIDIA_VISIBLE_DEVICES
+          value: all
+      resources:
+        limits:
+          "nvidia.com/GH100_H100_PCIE": 1

@@ -34,6 +34,28 @@ jobs:
       contents: read
       packages: write
 
+  gpu-test-matrix:
+    strategy:
+      matrix:
+        platform:
+          - name: K3s-QEMU-SNP-GPU
+            runner: SNP
+            self-hosted: true
+        test-name: [servicemesh, openssl, policy, workloadsecret, volumestatefulset, gpu]
+      fail-fast: false
+    name: "${{ matrix.platform.name }}"
+    uses: ./.github/workflows/e2e.yml
+    with:
+      skip-undeploy: false
+      test-name: ${{ matrix.test-name }}
+      platform: ${{ matrix.platform.name }}
+      runner: ${{ matrix.platform.runner }}
+      self-hosted: ${{ matrix.platform.self-hosted }}
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+
   peerpods:
     name: AKS-PEER-SNP
     uses: ./.github/workflows/e2e_peerpods.yml
