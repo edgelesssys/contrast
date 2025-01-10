@@ -15,13 +15,13 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "cloud-hypervisor";
-  version = "38.0.72";
+  version = "38.0.72.3";
 
   src = fetchFromGitHub {
     owner = "microsoft";
     repo = "cloud-hypervisor";
     rev = "refs/tags/msft/v${version}";
-    hash = "sha256-wGLRBMZUiGRphED0a+GvKPDyhZBtg6aYoyOlvRtmmEA=";
+    hash = "sha256-14/OZhmiHDgJAZxMvD+vsepaB4gudThl+4nZyacywTI=";
   };
 
   cargoLock = {
