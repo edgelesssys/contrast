@@ -4,7 +4,7 @@ Date: Tue, 26 Nov 2024 11:29:14 +0100
 Subject: [PATCH] genpolicy: support for VOLUME definition in container image
 
 ---
- src/tools/genpolicy/genpolicy-settings.json   | 14 +++++-
+ src/tools/genpolicy/genpolicy-settings.json   | 12 +++++
  src/tools/genpolicy/src/cronjob.rs            | 18 ++++---
  src/tools/genpolicy/src/daemon_set.rs         | 18 ++++---
  src/tools/genpolicy/src/deployment.rs         | 18 ++++---
@@ -18,10 +18,10 @@ Subject: [PATCH] genpolicy: support for VOLUME definition in container image
  src/tools/genpolicy/src/settings.rs           | 12 +++++
  src/tools/genpolicy/src/stateful_set.rs       | 20 ++++----
  src/tools/genpolicy/src/yaml.rs               | 43 ++++++++++++-----
- 14 files changed, 189 insertions(+), 99 deletions(-)
+ 14 files changed, 188 insertions(+), 98 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 7d35862afa73e9f4c9004189d3ec50ebd3e8855d..fd998a41be8978b85928d12101c7ff4fdc38e4eb 100644
+index 15bf78d93e3b07370cec924c4459b89caaaeb3ce..611fde8068b5880865327dd7097466c1fcce57cf 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -178,6 +178,18 @@
@@ -43,13 +43,6 @@ index 7d35862afa73e9f4c9004189d3ec50ebd3e8855d..fd998a41be8978b85928d12101c7ff4f
          }
      },
      "mount_destinations": [
-@@ -322,4 +334,4 @@
-         "UpdateEphemeralMountsRequest": false,
-         "WriteStreamRequest": false
-     }
--}
-\ No newline at end of file
-+}
 diff --git a/src/tools/genpolicy/src/cronjob.rs b/src/tools/genpolicy/src/cronjob.rs
 index 5da0989a77870bf9809a609b26269f59e7c3e2b5..6a2d63de3138d7728d430aad1a9b15201f61b62a 100644
 --- a/src/tools/genpolicy/src/cronjob.rs
@@ -80,7 +73,7 @@ index 5da0989a77870bf9809a609b26269f59e7c3e2b5..6a2d63de3138d7728d430aad1a9b1520
  
      fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
-index 90ea48597605f056250424ff0d8758017d20220f..d5a159c318f65339a9044a85a08bfae91f839e01 100644
+index b543b989095300ec3a8bc0e00137e1087d24f90c..bed1eb8bc88a4b0a94a988d712bc155d1bb14d25 100644
 --- a/src/tools/genpolicy/src/daemon_set.rs
 +++ b/src/tools/genpolicy/src/daemon_set.rs
 @@ -98,16 +98,14 @@ impl yaml::K8sResource for DaemonSet {
@@ -109,7 +102,7 @@ index 90ea48597605f056250424ff0d8758017d20220f..d5a159c318f65339a9044a85a08bfae9
  
      fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/deployment.rs b/src/tools/genpolicy/src/deployment.rs
-index 890579cdfbd67cd7f5949c817dbd9391043b1cf0..65db6937e874ce13d655498b441e5c71913fca97 100644
+index 8cd9ff51a7fdbcf232141b255e008babc6a4b108..90f15617ec6b68a1410d9077df26f7290c817397 100644
 --- a/src/tools/genpolicy/src/deployment.rs
 +++ b/src/tools/genpolicy/src/deployment.rs
 @@ -96,16 +96,14 @@ impl yaml::K8sResource for Deployment {
@@ -138,7 +131,7 @@ index 890579cdfbd67cd7f5949c817dbd9391043b1cf0..65db6937e874ce13d655498b441e5c71
  
      fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/job.rs b/src/tools/genpolicy/src/job.rs
-index ebe4cc871ff7f9c244c93e4b909cbd519a438069..39c0a4c62ee8f59108dd9e0ba90f51e43d7a115c 100644
+index b48d4480346b8af590b60fdb0278343ce28ab25c..e9dc76532d8bdd975cdff16bdc4b8c981ea93d33 100644
 --- a/src/tools/genpolicy/src/job.rs
 +++ b/src/tools/genpolicy/src/job.rs
 @@ -70,16 +70,14 @@ impl yaml::K8sResource for Job {
@@ -167,10 +160,10 @@ index ebe4cc871ff7f9c244c93e4b909cbd519a438069..39c0a4c62ee8f59108dd9e0ba90f51e4
  
      fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 09bc89fdf7e6eb239428adbb093c9cb5962da8a7..070824f1fabce743e69f6822e70dc1aed0811cda 100644
+index 1f19d1daaf84a3b8800b0a55188205fd0ba9b2d8..bc2aae47a3993dc0efa2c1a51c0901518143f1be 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -108,6 +108,10 @@ pub fn get_mount_and_storage(
+@@ -142,6 +142,10 @@ pub fn get_mount_and_storage(
      yaml_volume: &volume::Volume,
      yaml_mount: &pod::VolumeMount,
  ) {
@@ -181,7 +174,7 @@ index 09bc89fdf7e6eb239428adbb093c9cb5962da8a7..070824f1fabce743e69f6822e70dc1ae
      let propagation = match yaml_mount.mountPropagation.as_deref() {
          Some("Bidirectional") => "rshared",
          Some("HostToContainer") => "rslave",
-@@ -422,6 +426,50 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
+@@ -461,6 +465,50 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
      }
  }
  
@@ -233,7 +226,7 @@ index 09bc89fdf7e6eb239428adbb093c9cb5962da8a7..070824f1fabce743e69f6822e70dc1ae
      settings: &settings::Settings,
      yaml_mount: &pod::VolumeMount,
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 4a40c957042e73ba584b66bc681469458a7f18f4..f5bf61bec420ed7ee642818e10ecdca80f710ad8 100644
+index 45111763af659f7c86640779be95280eb8a4c23f..a9bd1638b7cc7e7a0652d2df78e8d2cd24fa449b 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
 @@ -846,16 +846,14 @@ impl yaml::K8sResource for Pod {
@@ -363,7 +356,7 @@ index 333a4dd33032c4842e70d5e618b4660fa2ffb6c5..793137224b88d4a562ea214bbc8d9331
              image_layers,
          })
 diff --git a/src/tools/genpolicy/src/replica_set.rs b/src/tools/genpolicy/src/replica_set.rs
-index 094daf1da4cf2f202cfc41e76a0f693bdf84e46a..205937f0a9f1e17b5e2b1a6ab9e3d67d5263daa5 100644
+index 12e515ad8203f8180bacdf70e7a8e24ad98238e0..27e70d20f0085e36b7170d6c24eea3f7771cbb1f 100644
 --- a/src/tools/genpolicy/src/replica_set.rs
 +++ b/src/tools/genpolicy/src/replica_set.rs
 @@ -68,16 +68,14 @@ impl yaml::K8sResource for ReplicaSet {
@@ -392,7 +385,7 @@ index 094daf1da4cf2f202cfc41e76a0f693bdf84e46a..205937f0a9f1e17b5e2b1a6ab9e3d67d
  
      fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/replication_controller.rs b/src/tools/genpolicy/src/replication_controller.rs
-index 55788a45c2e0ede93b5fb27349b9096d6dc706ef..049e6a1394ba4c1151f44dc56abe1392102f5582 100644
+index e6279fbac5c4cb4544338f7d453a7896fe75368f..9029c5a9173c1aa0e6b27f4314f35eacdd7a5e65 100644
 --- a/src/tools/genpolicy/src/replication_controller.rs
 +++ b/src/tools/genpolicy/src/replication_controller.rs
 @@ -70,16 +70,14 @@ impl yaml::K8sResource for ReplicationController {
@@ -451,7 +444,7 @@ index 3d86971914ad4a659cab4bba0737ca53a183c2ba..a388f074e5168abb14c40c324c8aeef7
  /// genpolicy-settings.json.
  #[derive(Clone, Debug, Serialize, Deserialize)]
 diff --git a/src/tools/genpolicy/src/stateful_set.rs b/src/tools/genpolicy/src/stateful_set.rs
-index d25398358f526116f5b766ffba6db2e287e0f8e9..aa25bf5a78443dce6493fe5a2a2c3a3b6bd8c00c 100644
+index a987e5e72292d36f5bbc3b27265002daf42c2819..298af4eb577687246125dc567743a2f49742d905 100644
 --- a/src/tools/genpolicy/src/stateful_set.rs
 +++ b/src/tools/genpolicy/src/stateful_set.rs
 @@ -118,17 +118,6 @@ impl yaml::K8sResource for StatefulSet {
@@ -489,7 +482,7 @@ index d25398358f526116f5b766ffba6db2e287e0f8e9..aa25bf5a78443dce6493fe5a2a2c3a3b
  
      fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 0f94371052675049c19e4e057ea72e68432ce5ec..d8a4fd5a4c1797bba19262566b31698c03a641f5 100644
+index f3748f0e079766de08f26c38e9ff2c4ade0a7c7a..8ae1000eb319267a7732132ee42731c792ebd48c 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -260,24 +260,41 @@ pub fn get_container_mounts_and_storages(

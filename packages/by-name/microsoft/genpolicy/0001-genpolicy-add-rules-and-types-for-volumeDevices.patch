@@ -14,7 +14,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  6 files changed, 85 insertions(+)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 2ecbeba7cc9d9600c122f4de4baf741dbc8a8095..ac84a6f6ec39aba77427b588bd6037dce1f1ac76 100644
+index 13128b2e6dc061675e624b2cca09a6d12ebd58a5..a7fb7fba7ba1e4e486c2b43b8b626a32b9aa5164 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -58,6 +58,7 @@ CreateContainerRequest {
@@ -111,7 +111,7 @@ index 2b826a51a4f587e2ca45f0b304b0eed29046b104..075fced5bfec11b27e529f0b1d2dba5e
      }
  }
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 2ea8fdb9be848c8c00f634ec813475ebaf3d55bb..da2a47ee2d6affc43dc9246670675e3367d73bfe 100644
+index 16d633aa2b29eaa4f4f497fb4de306b51e05c8b7..cae93c53257ec8b2195974b14589cb5571d10623 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
 @@ -120,6 +120,9 @@ pub struct Container {
@@ -139,7 +139,7 @@ index 2ea8fdb9be848c8c00f634ec813475ebaf3d55bb..da2a47ee2d6affc43dc9246670675e33
  #[derive(Clone, Debug, Serialize, Deserialize)]
  struct ResourceRequirements {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index baa382b7646a11cd1fa18274801616eb36f04db6..7c1479d571dc163e4fe0bacef15cf60e8dd85920 100644
+index 012eb9add230268c6ee29395a91f85fc1ef3a4f0..b612bcc52ad59be4790accea5074418eb4d050a8 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -198,6 +198,10 @@ pub struct KataLinux {
@@ -182,7 +182,7 @@ index baa382b7646a11cd1fa18274801616eb36f04db6..7c1479d571dc163e4fe0bacef15cf60e
      /// Data compared with req.sandbox_pidns for CreateContainerRequest calls.
      sandbox_pidns: bool,
  
-@@ -588,6 +607,25 @@ impl AgentPolicy {
+@@ -595,6 +614,25 @@ impl AgentPolicy {
          };
          let exec_commands = yaml_container.get_exec_commands();
  
@@ -208,7 +208,7 @@ index baa382b7646a11cd1fa18274801616eb36f04db6..7c1479d571dc163e4fe0bacef15cf60e
          ContainerPolicy {
              OCI: KataSpec {
                  Version: version_default(),
-@@ -599,6 +637,7 @@ impl AgentPolicy {
+@@ -606,6 +644,7 @@ impl AgentPolicy {
                  Linux: linux,
              },
              storages,

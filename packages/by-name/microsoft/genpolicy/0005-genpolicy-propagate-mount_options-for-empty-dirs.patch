@@ -9,10 +9,10 @@ In order to mount empty dirs e.g., with mount propagation "Bidirectional", we ne
  1 file changed, 13 insertions(+), 3 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index ecb8bf5776ffb946bdab3b594a1f5bcb43799e84..327dd6990f8e7a275cf7561e20d2ce5cc0eeab2e 100644
+index 922a224a523765161083f961fa7cd32599f1901d..82304ba640cbe2ca056309b0c9b8c792e1523675 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -127,7 +127,14 @@ pub fn get_mount_and_storage(
+@@ -161,7 +161,14 @@ pub fn get_mount_and_storage(
          } else {
              false
          };
@@ -28,7 +28,7 @@ index ecb8bf5776ffb946bdab3b594a1f5bcb43799e84..327dd6990f8e7a275cf7561e20d2ce5c
      } else if yaml_volume.persistentVolumeClaim.is_some() {
          get_persistent_volume_claim_mount(
              settings,
-@@ -169,6 +176,7 @@ fn get_empty_dir_mount_and_storage(
+@@ -203,6 +210,7 @@ fn get_empty_dir_mount_and_storage(
      storages: &mut Vec<agent::Storage>,
      yaml_mount: &pod::VolumeMount,
      memory_medium: bool,
@@ -36,7 +36,7 @@ index ecb8bf5776ffb946bdab3b594a1f5bcb43799e84..327dd6990f8e7a275cf7561e20d2ce5c
  ) {
      let settings_volumes = &settings.volumes;
      let settings_empty_dir = if memory_medium {
-@@ -204,14 +212,16 @@ fn get_empty_dir_mount_and_storage(
+@@ -238,14 +246,16 @@ fn get_empty_dir_mount_and_storage(
          &settings_empty_dir.mount_type
      };
  
