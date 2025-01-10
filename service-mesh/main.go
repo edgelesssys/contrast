@@ -4,11 +4,13 @@
 package main
 
 import (
+	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
-	"syscall"
+	"time"
 )
 
 const (
@@ -64,9 +66,41 @@ func run() (retErr error) {
 	if err != nil {
 		return err
 	}
+	_ = envoyBin
 
-	log.Println("Starting envoy")
-	args := []string{"envoy", "-c", envoyConfigFile}
-	args = append(args, os.Args[1:]...)
-	return syscall.Exec(envoyBin, args, os.Environ())
+	log.Printf("starting ingress proxy")
+	cert, err := tls.LoadX509KeyPair("/contrast/tls-config/certChain.pem", "/contrast/tls-config/key.pem")
+	if err != nil {
+		log.Fatal(err)
+	}
+	go func() {
+		cfg := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}
+		if err := ListenAndServe(context.Background(), "0.0.0.0:15006", cfg); err != nil {
+			log.Fatal(err)
+		}
+	}()
+	go func() {
+		cfg := &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}
+		if err := ListenAndServe(context.Background(), "0.0.0.0:15007", cfg); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// TODO(burgerdev): proper wait group handling
+	time.Sleep(time.Hour)
+	log.Printf("ingress proxy done?")
+
+	// TODO(burgerdev): launch envoy
+
+	/*
+		log.Println("Starting envoy")
+		args := []string{"envoy", "-c", envoyConfigFile}
+		args = append(args, os.Args[1:]...)
+		return syscall.Exec(envoyBin, args, os.Environ())
+	*/
+	return nil
 }

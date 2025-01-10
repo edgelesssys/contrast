@@ -168,27 +168,6 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 		clusters = append(clusters, cluster)
 	}
 
-	// Create listeners and clusters for ingress traffic.
-	ingrListenerClientAuth, err := ingressListener("ingress", 15006, true)
-	if err != nil {
-		return nil, err
-	}
-	ingrListenerNoClientAuth, err := ingressListener("ingressWithoutClientAuth", 15007, false)
-	if err != nil {
-		return nil, err
-	}
-
-	ingressCluster := &envoyConfigClusterV3.Cluster{
-		Name:                 "ingress",
-		ClusterDiscoveryType: &envoyConfigClusterV3.Cluster_Type{Type: envoyConfigClusterV3.Cluster_ORIGINAL_DST},
-		DnsLookupFamily:      envoyConfigClusterV3.Cluster_V4_ONLY,
-		LbPolicy:             envoyConfigClusterV3.Cluster_CLUSTER_PROVIDED,
-	}
-
-	listeners = append(listeners, ingrListenerClientAuth)
-	listeners = append(listeners, ingrListenerNoClientAuth)
-	clusters = append(clusters, ingressCluster)
-
 	config.StaticResources.Listeners = listeners
 	config.StaticResources.Clusters = clusters
 
