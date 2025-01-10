@@ -188,5 +188,9 @@ containers
   push-node-installer-kata =
     pushOCIDir "push-node-installer-kata" pkgs.kata.contrast-node-installer-image
       "v${pkgs.contrast.version}";
+  push-node-installer-kata-gpu = pushOCIDir "push-node-installer-kata-gpu" (
+    pkgs.kata.contrast-node-installer-image.override
+    { withGPU = true; }
+  ) "v${pkgs.contrast.version}";
 }
 // (lib.concatMapAttrs (name: container: { "push-${name}" = pushContainer container; }) containers)

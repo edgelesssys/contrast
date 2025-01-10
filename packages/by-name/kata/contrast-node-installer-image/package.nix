@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 {
+  lib,
   ociLayerTar,
   ociImageManifest,
   ociImageLayout,
@@ -18,9 +19,14 @@
   OVMF-TDX,
 
   debugRuntime ? true,
+  withGPU ? false,
 }:
 
 let
+  os-image = kata.kata-image.override {
+    inherit withGPU;
+  };
+
   node-installer = ociLayerTar {
     files = [
       {
@@ -38,79 +44,82 @@ let
     files = [
       {
         source = writers.writeJSON "contrast-node-install.json" {
-          files = [
-            {
-              url = "file:///opt/edgeless/share/kata-containers.img";
-              path = "/opt/edgeless/@@runtimeName@@/share/kata-containers.img";
-            }
-            {
-              url = "file:///opt/edgeless/share/kata-kernel";
-              path = "/opt/edgeless/@@runtimeName@@/share/kata-kernel";
-            }
-            {
-              url = "file:///opt/edgeless/share/kata-initrd.zst";
-              path = "/opt/edgeless/@@runtimeName@@/share/kata-initrd.zst";
-            }
-            {
-              url = "file:///opt/edgeless/snp/bin/qemu-system-x86_64";
-              path = "/opt/edgeless/@@runtimeName@@/snp/bin/qemu-system-x86_64";
-              executable = true;
-            }
-            {
-              url = "file:///opt/edgeless/tdx/bin/qemu-system-x86_64";
-              path = "/opt/edgeless/@@runtimeName@@/tdx/bin/qemu-system-x86_64";
-              executable = true;
-            }
-            {
-              url = "file:///opt/edgeless/snp/share/OVMF.fd";
-              path = "/opt/edgeless/@@runtimeName@@/snp/share/OVMF.fd";
-            }
-            {
-              url = "file:///opt/edgeless/tdx/share/OVMF.fd";
-              path = "/opt/edgeless/@@runtimeName@@/tdx/share/OVMF.fd";
-            }
-            {
-              url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
-              path = "/opt/edgeless/@@runtimeName@@/bin/containerd-shim-contrast-cc-v2";
-              executable = true;
-            }
-            {
-              url = "file:///opt/edgeless/bin/kata-runtime";
-              path = "/opt/edgeless/@@runtimeName@@/bin/kata-runtime";
-              executable = true;
-            }
-            {
-              url = "file:///opt/edgeless/snp/share/qemu/kvmvapic.bin";
-              path = "/opt/edgeless/@@runtimeName@@/snp/share/qemu/kvmvapic.bin";
-            }
-            {
-              url = "file:///opt/edgeless/snp/share/qemu/linuxboot_dma.bin";
-              path = "/opt/edgeless/@@runtimeName@@/snp/share/qemu/linuxboot_dma.bin";
-            }
-            {
-              url = "file:///opt/edgeless/snp/share/qemu/efi-virtio.rom";
-              path = "/opt/edgeless/@@runtimeName@@/snp/share/qemu/efi-virtio.rom";
-            }
-            {
-              url = "file:///opt/edgeless/tdx/share/qemu/kvmvapic.bin";
-              path = "/opt/edgeless/@@runtimeName@@/tdx/share/qemu/kvmvapic.bin";
-            }
-            {
-              url = "file:///opt/edgeless/tdx/share/qemu/linuxboot_dma.bin";
-              path = "/opt/edgeless/@@runtimeName@@/tdx/share/qemu/linuxboot_dma.bin";
-            }
-            {
-              url = "file:///opt/edgeless/tdx/share/qemu/efi-virtio.rom";
-              path = "/opt/edgeless/@@runtimeName@@/tdx/share/qemu/efi-virtio.rom";
-            }
-            {
-              url = "file:///bin/nydus-overlayfs";
-              path = "/opt/edgeless/@@runtimeName@@/bin/nydus-overlayfs";
-              executable = true;
-            }
-          ];
+          files =
+            [
+              {
+                url = "file:///opt/edgeless/share/kata-containers.img";
+                path = "/opt/edgeless/@@runtimeName@@/share/kata-containers.img";
+              }
+              {
+                url = "file:///opt/edgeless/share/kata-kernel";
+                path = "/opt/edgeless/@@runtimeName@@/share/kata-kernel";
+              }
+              {
+                url = "file:///opt/edgeless/share/kata-initrd.zst";
+                path = "/opt/edgeless/@@runtimeName@@/share/kata-initrd.zst";
+              }
+              {
+                url = "file:///opt/edgeless/snp/bin/qemu-system-x86_64";
+                path = "/opt/edgeless/@@runtimeName@@/snp/bin/qemu-system-x86_64";
+                executable = true;
+              }
+              {
+                url = "file:///opt/edgeless/snp/share/OVMF.fd";
+                path = "/opt/edgeless/@@runtimeName@@/snp/share/OVMF.fd";
+              }
+              {
+                url = "file:///opt/edgeless/bin/containerd-shim-contrast-cc-v2";
+                path = "/opt/edgeless/@@runtimeName@@/bin/containerd-shim-contrast-cc-v2";
+                executable = true;
+              }
+              {
+                url = "file:///opt/edgeless/bin/kata-runtime";
+                path = "/opt/edgeless/@@runtimeName@@/bin/kata-runtime";
+                executable = true;
+              }
+              {
+                url = "file:///opt/edgeless/snp/share/qemu/kvmvapic.bin";
+                path = "/opt/edgeless/@@runtimeName@@/snp/share/qemu/kvmvapic.bin";
+              }
+              {
+                url = "file:///opt/edgeless/snp/share/qemu/linuxboot_dma.bin";
+                path = "/opt/edgeless/@@runtimeName@@/snp/share/qemu/linuxboot_dma.bin";
+              }
+              {
+                url = "file:///opt/edgeless/snp/share/qemu/efi-virtio.rom";
+                path = "/opt/edgeless/@@runtimeName@@/snp/share/qemu/efi-virtio.rom";
+              }
+              {
+                url = "file:///bin/nydus-overlayfs";
+                path = "/opt/edgeless/@@runtimeName@@/bin/nydus-overlayfs";
+                executable = true;
+              }
+            ]
+            ++ lib.optionals (!withGPU) [
+              {
+                url = "file:///opt/edgeless/tdx/share/OVMF.fd";
+                path = "/opt/edgeless/@@runtimeName@@/tdx/share/OVMF.fd";
+              }
+              {
+                url = "file:///opt/edgeless/tdx/bin/qemu-system-x86_64";
+                path = "/opt/edgeless/@@runtimeName@@/tdx/bin/qemu-system-x86_64";
+                executable = true;
+              }
+              {
+                url = "file:///opt/edgeless/tdx/share/qemu/kvmvapic.bin";
+                path = "/opt/edgeless/@@runtimeName@@/tdx/share/qemu/kvmvapic.bin";
+              }
+              {
+                url = "file:///opt/edgeless/tdx/share/qemu/linuxboot_dma.bin";
+                path = "/opt/edgeless/@@runtimeName@@/tdx/share/qemu/linuxboot_dma.bin";
+              }
+              {
+                url = "file:///opt/edgeless/tdx/share/qemu/efi-virtio.rom";
+                path = "/opt/edgeless/@@runtimeName@@/tdx/share/qemu/efi-virtio.rom";
+              }
+            ];
           inherit debugRuntime;
-          qemuExtraKernelParams = kata.kata-image.cmdline;
+          qemuExtraKernelParams = os-image.cmdline;
         };
         destination = "/config/contrast-node-install.json";
       }
@@ -120,15 +129,15 @@ let
   kata-container-img = ociLayerTar {
     files = [
       {
-        source = "${kata.kata-image.image}/${kata.kata-image.imageFileName}";
+        source = "${os-image.image}/${os-image.imageFileName}";
         destination = "/opt/edgeless/share/kata-containers.img";
       }
       {
-        source = "${kata.kata-image.kernel}/bzImage";
+        source = "${os-image.kernel}/bzImage";
         destination = "/opt/edgeless/share/kata-kernel";
       }
       {
-        source = "${kata.kata-image.initialRamdisk}/initrd";
+        source = "${os-image.initialRamdisk}/initrd";
         destination = "/opt/edgeless/share/kata-initrd.zst";
       }
     ];
@@ -216,16 +225,19 @@ let
     ];
   };
 
-  layers = [
-    installer-config
-    kata-container-img
-    ovmf-snp
-    ovmf-tdx
-    qemu-snp
-    qemu-tdx
-    kata-runtime
-    nydus
-  ];
+  layers =
+    [
+      installer-config
+      kata-container-img
+      kata-runtime
+      ovmf-snp
+      qemu-snp
+      nydus
+    ]
+    ++ lib.optionals (!withGPU) [
+      qemu-tdx
+      ovmf-tdx
+    ];
 
   manifest = ociImageManifest {
     layers = layers ++ [ node-installer ];
@@ -256,5 +268,6 @@ ociImageLayout {
       dirs = layers; # Layers without node-installer, or we have a circular dependency!
       name = "runtime-hash-kata";
     };
+    gpu = kata.contrast-node-installer-image.override { withGPU = true; };
   };
 }
