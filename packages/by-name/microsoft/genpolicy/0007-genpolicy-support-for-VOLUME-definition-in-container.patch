@@ -21,7 +21,7 @@ Subject: [PATCH] genpolicy: support for VOLUME definition in container image
  14 files changed, 188 insertions(+), 98 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 15bf78d93e3b07370cec924c4459b89caaaeb3ce..611fde8068b5880865327dd7097466c1fcce57cf 100644
+index 73d9c1125bbfeefce4bce24109f552db87860bca..ce3e90579266bf463d815b8f3a10fea21a97b044 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -178,6 +178,18 @@
