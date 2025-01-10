@@ -78,7 +78,7 @@ index cae93c53257ec8b2195974b14589cb5571d10623..45111763af659f7c86640779be95280e
          yaml::get_process_fields(process, &self.spec.securityContext);
      }
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index b612bcc52ad59be4790accea5074418eb4d050a8..e749c5b1d56712a6bbed2e6b2df1ce0ff53df836 100644
+index ff06786ca8610a71059d469dac613750cc0c8623..b3c6557fd61be79e76110b99a6a7751dcc841602 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -10,6 +10,7 @@ use crate::agent;
@@ -89,7 +89,7 @@ index b612bcc52ad59be4790accea5074418eb4d050a8..e749c5b1d56712a6bbed2e6b2df1ce0f
  use crate::pod;
  use crate::policy;
  use crate::pvc;
-@@ -441,6 +442,17 @@ impl AgentPolicy {
+@@ -447,6 +448,17 @@ impl AgentPolicy {
                  let yaml_string = serde_yaml::to_string(&doc_mapping)?;
                  let silent = config.silent_unsupported_fields;
                  let (mut resource, kind) = yaml::new_k8s_resource(&yaml_string, silent)?;
