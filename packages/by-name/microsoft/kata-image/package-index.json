@@ -1,390 +1,546 @@
 [
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/a/audit-libs-3.0.6-8.cm2.x86_64.rpm",
-    "hash": "sha256-VgGfQp0tWzNLEgIm1cGDdKy9NH2GG7zjeAUukokpD2k="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/a/attr-2.5.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-phlHFiIU9sNbXlG9pSSanNlZrIpecwhu47xlmJO0OME="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/b/bash-5.1.8-4.cm2.x86_64.rpm",
-    "hash": "sha256-ThaBW0Ncj45PBFetz3YeQdcFV3qQkhLUPnjc0iERN0s="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/a/audit-libs-3.1.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-bfENhSTcOTxelBFQ7lx2lq/WxOn/siLxheMt6qjHfPo="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/b/bind-libs-9.16.50-1.cm2.x86_64.rpm",
-    "hash": "sha256-yPoDwzXXy5Q/5P/s5fnq/cuChH1hScP/8cbMrGiu12s="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bash-5.2.15-3.azl3.x86_64.rpm",
+    "hash": "sha256-IgdmH90yVbNCiRiDc/nIC+QWjRO0A5c4UkqxE1GUffE="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/b/bind-license-9.16.50-1.cm2.noarch.rpm",
-    "hash": "sha256-VcIZM1uRrKm/+vzY4YsCOl2B3T18Li7EUEKDIPQrx2E="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-9.20.0-1.azl3.x86_64.rpm",
+    "hash": "sha256-2K7PBIkn1q+rm4aNg/iVs44VCXWOmOKQ4QMFQLyZiF4="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/b/bind-utils-9.16.50-1.cm2.x86_64.rpm",
-    "hash": "sha256-5wPM7kasKSjl/PKeRtpwNiETjZtrlYXlNqjRQ7jssqE="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-utils-9.20.0-1.azl3.x86_64.rpm",
+    "hash": "sha256-gVZa1mBuZ/MbNr/rYJBFaznj2r8atT7OoPGC8SG0EFA="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/b/bzip2-libs-1.0.8-1.cm2.x86_64.rpm",
-    "hash": "sha256-xy3NTfx4doQNZyzw2flp7ObWz0HkpGXySQ54DAYV8H8="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bzip2-libs-1.0.8-1.azl3.x86_64.rpm",
+    "hash": "sha256-iZuifLx5GZsUKrUeffVUegIbibcF8XmZ8kkC1yjAlzE="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/ca-certificates-2.0.0-19.cm2.noarch.rpm",
-    "hash": "sha256-afD9PgC+7pQZacDmwsOzQTwfnsGhsO4bbqpEjZ5Jyao="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/ca-certificates-3.0.0-8.azl3.noarch.rpm",
+    "hash": "sha256-YgPvGn8cakLF3kskWhTIR3ST/SM9YiihpcPDRJyiZv0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/ca-certificates-shared-2.0.0-19.cm2.noarch.rpm",
-    "hash": "sha256-UtPFOpZcoX6KjKvW/IQITGHp58MwFN5grn9Ubo9VSdg="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/ca-certificates-shared-3.0.0-8.azl3.noarch.rpm",
+    "hash": "sha256-lVIfnq69KX8Hsxg9wK+8+M/WPVyHO2AC7AeWbB0ElwU="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/ca-certificates-tools-2.0.0-19.cm2.noarch.rpm",
-    "hash": "sha256-FQm5eNmrs3kFDKDqpVMBkQf1g8pIWwVlNLhIYxM0LUI="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/ca-certificates-tools-3.0.0-8.azl3.noarch.rpm",
+    "hash": "sha256-uABskE1GbS4UILEfhVIsYpLCJlGrQiEZyj8axeTYYfc="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/chkconfig-1.20-4.cm2.x86_64.rpm",
-    "hash": "sha256-3tHthHWZa5BYK8OoeQ2XNjew6t6yONdU6f5dVeP8v3Y="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/chkconfig-1.25-1.azl3.x86_64.rpm",
+    "hash": "sha256-8K5MEXmDvjAl3vTvgWMebyYBwUmu2DFpWBewBNuCScw="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/chrony-4.1-3.cm2.x86_64.rpm",
-    "hash": "sha256-WH8M2Arqc/gLJSfJFCo0grNwOcseqa348kNt7vvi9Rk="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/chrony-4.5-1.azl3.x86_64.rpm",
+    "hash": "sha256-ecM9VRwqEjyP20MvGfCguF6mmzEeETlGj/xW8hOpgxQ="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/cifs-utils-6.14-3.cm2.x86_64.rpm",
-    "hash": "sha256-yNBHMh9OphiW84qPuF8onE3dhAiz8mLffKlAwOWVBlo="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/cifs-utils-7.0-1.azl3.x86_64.rpm",
+    "hash": "sha256-qD5v3ZWqwwTbMoJqZokBDHo7riCesXGkBuHtsxNKXDc="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/coreutils-8.32-7.cm2.x86_64.rpm",
-    "hash": "sha256-CJjEDYi1s1FSX80g+zMZu7+PVpDdoJcR1DiTYMBOxfY="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/coreutils-9.4-6.azl3.x86_64.rpm",
+    "hash": "sha256-qop3MQXftWxUmG1Lz7ZLUevkOHCPzM6IK4JsSt6WBoo="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/cpio-2.13-5.cm2.x86_64.rpm",
-    "hash": "sha256-BowsmhHh2jZIAeXYgLHR6N23TDkREBpvZKT1biSoqpM="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/cpio-2.14-1.azl3.x86_64.rpm",
+    "hash": "sha256-Z71J/xJ+O0xLcrBs8tlFnj3SBC/HJFoIybJE4Wq72i4="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/cracklib-2.9.7-5.cm2.x86_64.rpm",
-    "hash": "sha256-O2orWkJmbN3fk9sph7i+H3X2KvqwR2Dk/TBpi/d8c1o="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/cracklib-2.9.11-1.azl3.x86_64.rpm",
+    "hash": "sha256-DBT5d0svz+6z72y04ojFXSiYIx2tPvN5XWxhrmNYZG0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/cracklib-dicts-2.9.7-5.cm2.x86_64.rpm",
-    "hash": "sha256-uZMuKcOR0D6SbM7VgYm+fcuBv5LILcvfZuxQHzGp0So="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/cracklib-dicts-2.9.11-1.azl3.x86_64.rpm",
+    "hash": "sha256-NXvuJPCMa+4f/tCzyePJbz3F64Q8jKC9DCgACQXmPW0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/cryptsetup-2.4.3-4.cm2.x86_64.rpm",
-    "hash": "sha256-FtWBVFh7I/tmGqkh6tqFtb3kmXUxOd6lcwaU884SMu8="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/cryptsetup-2.4.3-6.azl3.x86_64.rpm",
+    "hash": "sha256-wLec1RBNAVTBl+AgC8MTdwMvymUUHuBncsMxYNvEKng="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/cryptsetup-libs-2.4.3-4.cm2.x86_64.rpm",
-    "hash": "sha256-pco7TmLwLTuWKT87qTTAnin5IeoHAiXzbK3p6nJ0BKI="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/cryptsetup-libs-2.4.3-6.azl3.x86_64.rpm",
+    "hash": "sha256-RKpBP2Nn3Q30BC3muX4o36g/CXFXM+KRaQU60dmLx98="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-8.8.0-6.cm2.x86_64.rpm",
-    "hash": "sha256-v8hEmLUYgAeqsoG4TAOS64QnTSxt+oHzuIxATCdebtU="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/curl-8.8.0-3.azl3.x86_64.rpm",
+    "hash": "sha256-sc544adMFh9U/o1PfEwdTO57bM5BYlHuOGQ4oLNqSxE="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-libs-8.8.0-6.cm2.x86_64.rpm",
-    "hash": "sha256-rMNQmrjE8HTC1RO9Yz+teDT1iqvZI2lF5ZH0R8lJU/Y="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/curl-libs-8.8.0-3.azl3.x86_64.rpm",
+    "hash": "sha256-Wbq0e5IsTt9ECYO23Mqa5i3EjRpaPZP97/d0JsCYcTs="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/d/dbus-1.15.6-2.cm2.x86_64.rpm",
-    "hash": "sha256-/VAQMO98azroESmGARs6trdqdalJH69CZl5bUUxQGaE="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/c/cyrus-sasl-lib-2.1.28-8.azl3.x86_64.rpm",
+    "hash": "sha256-NorbjV+HZRmmSGMQRShaYOn0avGqsiH30YJODAWyxrs="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/d/device-mapper-2.03.15-3.cm2.x86_64.rpm",
-    "hash": "sha256-5Rg8i20MFovplvtH9hUBMkmiD/hLqVTOjUgdneDvuDI="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/d/dbus-1.15.8-3.azl3.x86_64.rpm",
+    "hash": "sha256-sFzleCgtsVX9SzDGVnFLkx1cbg46KchWnx1YrVbqvEU="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/d/device-mapper-event-2.03.15-3.cm2.x86_64.rpm",
-    "hash": "sha256-oPegONloxOxPMYmX4IbU4P4wSVdOC+FcSIWpPB7VQkw="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/d/device-mapper-2.03.23-1.azl3.x86_64.rpm",
+    "hash": "sha256-4WqCdCwdlVeloaRg4tn2FLGrRY5jShF5/RQZV9SSVKM="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/d/device-mapper-event-libs-2.03.15-3.cm2.x86_64.rpm",
-    "hash": "sha256-hgnvTrKRJcVksrHPHU2dIoSATnkLj+3PpRrwjwhk7RU="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/d/device-mapper-event-2.03.23-1.azl3.x86_64.rpm",
+    "hash": "sha256-oxRJAUXJRzD99NrgiFRjleq03O0vY6uU15GBIU895dc="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/d/device-mapper-libs-2.03.15-3.cm2.x86_64.rpm",
-    "hash": "sha256-Jyjy2IfuKM8ImBytElAN+vl79Uqdc79YTL2XZdIQA48="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/d/device-mapper-event-libs-2.03.23-1.azl3.x86_64.rpm",
+    "hash": "sha256-FDACJnJZbniNQesQkvvnrco/vAbOMqXtkV1/cMfjaWM="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/e/e2fsprogs-libs-1.46.5-3.cm2.x86_64.rpm",
-    "hash": "sha256-V4exraE0dMe3ddS8PVtzwsP4W3FsZBk//866Vcjv3As="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/d/device-mapper-libs-2.03.23-1.azl3.x86_64.rpm",
+    "hash": "sha256-TocbPTjggXxFNGdaA3uETuEtNkg5kvaMmOJ4LHsPNB4="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/e/elfutils-libelf-0.186-2.cm2.x86_64.rpm",
-    "hash": "sha256-pRI7/zb7FDLFSiKHWqkm+ijy4YBk928n6l7D7ydkpLw="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/d/diffutils-3.10-1.azl3.x86_64.rpm",
+    "hash": "sha256-SEQZ6/K49QeWQoCrDc9l2R/OEZVGORS+t8Ib9GbITk4="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/e/expat-2.6.4-1.cm2.x86_64.rpm",
-    "hash": "sha256-oEPlh7r/DpH/WH1vBDhmmW3owejcIvJDDXEegMTthx0="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/e/e2fsprogs-libs-1.47.0-2.azl3.x86_64.rpm",
+    "hash": "sha256-XovsFKoytznos0xThN35sFH10LFDvCDnRjF+v75dJSc="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/e/expat-libs-2.6.4-1.cm2.x86_64.rpm",
-    "hash": "sha256-dzV/cQRyBoQ25lJzfNxBh3/VhojlNNjf5GYbZaiU2xI="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/e/elfutils-0.189-3.azl3.x86_64.rpm",
+    "hash": "sha256-UIn/Hngyd2jGeQMZrfPrFIfyRQbiW+b+yIYfckDI+gc="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/f/file-libs-5.40-3.cm2.x86_64.rpm",
-    "hash": "sha256-idouNGIhX+xRckjzSMbUecyljUu5Ajw7YOyOyzf6aJE="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/e/elfutils-default-yama-scope-0.189-3.azl3.noarch.rpm",
+    "hash": "sha256-P/4myA6hq9/0u5uEENmjsOeAjNELQdoTrgs2pXt7D8g="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/f/filesystem-1.1-20.cm2.x86_64.rpm",
-    "hash": "sha256-n6iNUlfrX2WRcQGA+fglFeOt44fG+89y4oz+v/rgHuI="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/e/elfutils-libelf-0.189-3.azl3.x86_64.rpm",
+    "hash": "sha256-HUAp0qcNICx9ASH34S426U/I+DcB6fGAqzCbXh1Oij4="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/glib-2.71.0-4.cm2.x86_64.rpm",
-    "hash": "sha256-iuuEUuowAYsrMTtBPvWUJJSa9GJ8TChyOVFKKIE8KMo="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/e/expat-2.6.3-2.azl3.x86_64.rpm",
+    "hash": "sha256-IfXzYKowEl80pjacxZdoHrMQjHYRPaJOrsCRes753zc="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/glibc-2.35-7.cm2.x86_64.rpm",
-    "hash": "sha256-ihRSOw4jeE9n25nIXfpPZJHBkU9oQiDmokr0fo+ro0g="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/e/expat-libs-2.6.3-2.azl3.x86_64.rpm",
+    "hash": "sha256-1+wSPfykgaurToMn4O4DlgZ2UklcLHSRmxWvPyLzgnc="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/gmp-6.2.1-4.cm2.x86_64.rpm",
-    "hash": "sha256-bnJ3D11SQi5WfnpuiSQFnLw8ssQ22ErcefG4IwdkS3o="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/f/file-libs-5.45-1.azl3.x86_64.rpm",
+    "hash": "sha256-QxlhUDyjuzDLeFEACLoHOrUPNbLkJUMtsK0da8An2dQ="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/grep-3.7-2.cm2.x86_64.rpm",
-    "hash": "sha256-TwjKeKFBJYR4zhuMw1Ltk/n/uihu0mzNI8duayX6T5I="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/f/filesystem-1.1-21.azl3.x86_64.rpm",
+    "hash": "sha256-Hq64ABMlZURHx+IMnCVBtOXWZp1d2+w35woUv28fV08="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/g/gzip-1.12-2.cm2.x86_64.rpm",
-    "hash": "sha256-yAGT2o3W9f4E1GyHoV8utyIweETf6L3fivCJuBczOcU="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/g/glib-2.78.1-5.azl3.x86_64.rpm",
+    "hash": "sha256-eR4uACN937qo3mP3hQtXpn5CGBOlRpILmj2kkzJUGls="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/i/iana-etc-20211115-2.cm2.noarch.rpm",
-    "hash": "sha256-AGTXuDYJCG/kABzV2oUzc7kgIn6PcmBbAIGAsJARzN0="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/g/glibc-2.38-8.azl3.x86_64.rpm",
+    "hash": "sha256-hb5gLZP5Rkd502DI1vGAinGWX5h8IEj99pkzD8suZ+0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/i/iproute-5.15.0-3.cm2.x86_64.rpm",
-    "hash": "sha256-++U8bP0w46rRd6hw+Ggsu7kMrN+6AmsUy4ysaiIrqmM="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/g/gmp-6.3.0-1.azl3.x86_64.rpm",
+    "hash": "sha256-28/6Gx020sFlXqnkB9iRppwCbd4aHQdh54wnVy8GHBY="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/i/iptables-1.8.7-4.cm2.x86_64.rpm",
-    "hash": "sha256-2/DeCWzVM43YazbA5DbtfNjPstwVnFf/Irmp4ZZUp44="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/g/grep-3.11-2.azl3.x86_64.rpm",
+    "hash": "sha256-aoe9yBRaiSs0iz8YWzs0rj31eunhXcjqqg3cdUqqO6s="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/i/iputils-20211215-2.cm2.x86_64.rpm",
-    "hash": "sha256-DDNR+lKZhgFR8oDeSXkKWE52zyOH9YTPtYJMZkG+02Q="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/g/gzip-1.13-1.azl3.x86_64.rpm",
+    "hash": "sha256-BIZ5K9f4l4MtqoQVmmj/RiwJ3iGRcbXk4Q2iyFiz1/M="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/i/irqbalance-1.8.0-4.cm2.x86_64.rpm",
-    "hash": "sha256-4rZVtmCSQEntJDneWXIUM3p3AGnZDHhja+t6UN8Q/P4="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/i/iana-etc-20240125-1.azl3.noarch.rpm",
+    "hash": "sha256-NVIv4FX9LVSuOYIf78ZN/5jiNYDgd3PjVXMluFQW3sY="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/j/json-c-0.15-2.cm2.x86_64.rpm",
-    "hash": "sha256-dsOH9HRz8wMBsq2aDLHiYjI7dvvQYatobmEAN0WGId8="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/i/iproute-6.7.0-2.azl3.x86_64.rpm",
+    "hash": "sha256-xq/BpRjRnuRbKynOSwb2tsMkbYxCvSPfLUcgnS8ZJj4="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/k/kata-packages-uvm-1.0.0-4.cm2.x86_64.rpm",
-    "hash": "sha256-eNxQ4J00TYohfg5izZknLpQfxmb9uZ/71WjYd46RxpY="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/i/iptables-1.8.10-3.azl3.x86_64.rpm",
+    "hash": "sha256-5NDZUQ/glVJc0j8tRQsLHTWqe1Uu0QDYy3Gp+XWgWi8="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/k/kata-packages-uvm-coco-1.0.0-4.cm2.x86_64.rpm",
-    "hash": "sha256-mHJPnYEBVxiEeoBiJw/4bDNnVqp9g8WVwq7iL08RNQk="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/i/iputils-20240117-1.azl3.x86_64.rpm",
+    "hash": "sha256-u2T8MT9s9y06T2jAPkR2QYmfrFbn7RqSV2eT2+tEV9s="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/k/keyutils-1.6.3-1.cm2.x86_64.rpm",
-    "hash": "sha256-mEWiqQ+YdK3ZHhf7aRWBUYRgjs98GTI4Q1vZPapbzkA="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/i/irqbalance-1.9.3-2.azl3.x86_64.rpm",
+    "hash": "sha256-IZDB3uOQ1u1qFm0nNQG7T/zbexyn7gyYnKW9YkfrpfM="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/k/kmod-29-2.cm2.x86_64.rpm",
-    "hash": "sha256-2PFXCoxuz9v+SuQn5+opDbP3pNKuKZoH4wEA9Oy9Pxw="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/j/json-c-0.17-1.azl3.x86_64.rpm",
+    "hash": "sha256-xGONyfch9u+q4wdszM7ZmXbQzDvNABHcaDvFlR8Fhuo="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/k/krb5-1.19.4-3.cm2.x86_64.rpm",
-    "hash": "sha256-lRRwDgW2nPba1jYgOEfr2mUYlmA2etdSvECzrW9lyUc="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/k/kata-packages-uvm-1.0.0-7.azl3.x86_64.rpm",
+    "hash": "sha256-5YH5Bbb7PrebP6HwpGx8yZ7VQFZPL8OErv+rUg/xCJI="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libaio-0.3.112-4.cm2.x86_64.rpm",
-    "hash": "sha256-GubbB8lO6NJKURIn8hzJAWsshmR52aQniybY3alvO5k="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/k/kata-packages-uvm-coco-1.0.0-7.azl3.x86_64.rpm",
+    "hash": "sha256-MAM2FUWQRu5OEmje9tIadmzhd/GMjPZZPdF05ZchYB8="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libcap-2.60-4.cm2.x86_64.rpm",
-    "hash": "sha256-gF7reD8bbZiWksuLCIbFg1i8Nlk1vjEuAJfLnamRdHI="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/k/kbd-2.2.0-2.azl3.x86_64.rpm",
+    "hash": "sha256-v0ZslotKIL1harWxgLQ1AJdh84Pg2mgVkop2orp+/II="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libcap-ng-0.8.2-2.cm2.x86_64.rpm",
-    "hash": "sha256-hbj5/nlIlftez1UU/h4//DEgELfz7HbpQ5qiLLcFG8I="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/k/keyutils-1.6.3-1.azl3.x86_64.rpm",
+    "hash": "sha256-cs9wqRMt+Sn+QYjEI1v1BpElw+UZDYgnMhBRUTLrr8k="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libedit-3.1.20210910-1.cm2.x86_64.rpm",
-    "hash": "sha256-/lksTEQ9fSb/DFK5cEEfQ0EYq6gE6afKZ7akINiTZwE="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/k/kmod-30-1.azl3.x86_64.rpm",
+    "hash": "sha256-WrKk0rL70B9EL6BG76RoF028hTy8Rur26kYcP6lSWB0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libffi-3.4.2-3.cm2.x86_64.rpm",
-    "hash": "sha256-g0VUg7rGiuGmbqImqw8tQOJAzjhLHWLp1b9BcPWug5I="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/k/krb5-1.21.3-2.azl3.x86_64.rpm",
+    "hash": "sha256-MV0TEEDY6tnTrSe3qE/RDtLiAymc1osFG/wJvW3SrYY="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libgcc-11.2.0-8.cm2.x86_64.rpm",
-    "hash": "sha256-A1sdPjobGh94QTejGUgXTGIxGYxAu4ZYTYK5hS4B+/4="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libacl-2.3.1-2.azl3.x86_64.rpm",
+    "hash": "sha256-ei3TWr/k0lkQHO220TJ8V+vS3n0hTC8GagGRgUwutd0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libgcrypt-1.10.3-1.cm2.x86_64.rpm",
-    "hash": "sha256-RHHtKFEeb/KmSw5wkxQAXry3IuoKvzodhWqCoEC/sIw="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libaio-0.3.113-1.azl3.x86_64.rpm",
+    "hash": "sha256-xCB5gYMOFVGTjEc3UhsVuNCWcwIZer8bGluxX8w7CcQ="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libgpg-error-1.46-1.cm2.x86_64.rpm",
-    "hash": "sha256-JpDOmG/y3I4mTpVcESf+DOmePuSkTyfmpSC9mZE85KU="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libattr-2.5.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-Md+5HwEa67ze0nlMvpZHyJxBk75z5n97SyQm2gzwncc="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libmnl-1.0.4-6.cm2.x86_64.rpm",
-    "hash": "sha256-qdDvZd5IjjmRNqv1ORGbp7vxqC6weBtUX99kL+xERK0="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libbpf-1.2.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-RJ5SWhH1XgYF/jcBChcZ4Wmo7I3fFeM7Aw2nojg3d4E="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libpwquality-1.4.4-1.cm2.x86_64.rpm",
-    "hash": "sha256-hL5GcugM6Ea8efMo8ncLx8Ip7iRmHDh6OXoS/kpR2KU="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libcap-2.69-1.azl3.x86_64.rpm",
+    "hash": "sha256-xNtq4DuBISR4mFxtUC7TFXc1ARCb2cHA6rq+AG6edHE="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libseccomp-2.5.3-1.cm2.x86_64.rpm",
-    "hash": "sha256-WF0KXWdcPw64VxTjahj1VIas9mV8dy7+mfLUXaaDyq8="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libcap-ng-0.8.4-1.azl3.x86_64.rpm",
+    "hash": "sha256-hYGtwkhghFga6CnqebepKct4jAjF+zVVDrTkSXNCb+s="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libselinux-3.2-1.cm2.x86_64.rpm",
-    "hash": "sha256-MUZb/jB2sek6KcmRZwapCznY9H2E5XAUuPR5kYgtkyA="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libdb-5.3.28-8.azl3.x86_64.rpm",
+    "hash": "sha256-27s45TriWsnRDmR9MJlxr6G3eDoqj4mP6evgarVZSuo="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libsemanage-3.2-2.cm2.x86_64.rpm",
-    "hash": "sha256-UR+h2Y3N2FRMrV+8kfxx9Lubp37noGyewpI+hMgiDiM="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libedit-3.1.20230828-1.azl3.x86_64.rpm",
+    "hash": "sha256-5Q9tTHor5cVYNpbODxXbtD/tZG9ElnwCxbkJWYAHSA0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libsepol-3.2-2.cm2.x86_64.rpm",
-    "hash": "sha256-iweA41BQuSYGkwEE7vD9GvUDSFnk1Hb+C2VZc/XsiCw="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libffi-3.4.4-1.azl3.x86_64.rpm",
+    "hash": "sha256-ibg4qp7rRpas3vmJywb6rjHWyDXzBcfjUD3Fgr6yrxA="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libssh2-1.9.0-4.cm2.x86_64.rpm",
-    "hash": "sha256-FAwwrXlYYoFPO8CkYdCW3ioR0h0JYNSiSqnxei6taSU="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libgcc-13.2.0-7.azl3.x86_64.rpm",
+    "hash": "sha256-Tz8t3p/cJVqLRBqDuUd/XK/AnLEgIRw7rPdesIa2/2M="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libstdc++-11.2.0-8.cm2.x86_64.rpm",
-    "hash": "sha256-r6Fgv8hDePRrMdqvNItPEWtP7hb08IPaO35AHRTp+zM="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libgcrypt-1.10.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-qpJVfXo43SeXHRC6L93mO58j+28rogoYtwdos9GB9ZI="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libtasn1-4.19.0-2.cm2.x86_64.rpm",
-    "hash": "sha256-kYV+Za0IAuEk5BPjsji1S2NxKLYcNeWgUNhjRUUAny4="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libgpg-error-1.47-1.azl3.x86_64.rpm",
+    "hash": "sha256-H3skQqn22r247oB0npczVkSrvhMIm8k+SnyLPaGIRHc="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libuv-1.43.0-2.cm2.x86_64.rpm",
-    "hash": "sha256-f4FaPv5CDV6YOwbsrGMb7j8JviWeAf8kAeYAAWfy2hs="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libidn2-2.3.4-5.azl3.x86_64.rpm",
+    "hash": "sha256-rAQP43YzpscQNO5pfMwUS9ApbmXUV7tzI0Uzf65uZQg="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libxml2-2.10.4-6.cm2.x86_64.rpm",
-    "hash": "sha256-ppoNdToNKUjQovXYQfqE1PbGKJM77/dZkoc7vfmOUJs="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libmnl-1.0.5-1.azl3.x86_64.rpm",
+    "hash": "sha256-r5hdV8OUOEzacXJYZ6eiZ+MFOsbwOezQ4pJL0brR+qU="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/lmdb-libs-0.9.29-1.cm2.x86_64.rpm",
-    "hash": "sha256-PsSD81SHiCHWVrxXZ1kP4TnQaVQVbxt+ME/qkwch73c="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libnftnl-1.2.6-1.azl3.x86_64.rpm",
+    "hash": "sha256-C5xM77/QjM/MvW/0nMGtF1x6ycnYxAbl3xchfE1zU8M="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/lvm2-2.03.15-3.cm2.x86_64.rpm",
-    "hash": "sha256-Qro2ZHBptJFBtW6zUSmphkKJrbSVfUbnnAfKZAiVVjA="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libpcre2-16-0-10.42-3.azl3.x86_64.rpm",
+    "hash": "sha256-75jGDNqaGMjucAgixUjr8wY2p0fZvNuGQp0ARhbmud4="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/lz4-1.9.4-1.cm2.x86_64.rpm",
-    "hash": "sha256-B9pc1N0WbufYfjCBtX1uca+TczWWEmuuT3Frgq/etjo="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libpcre2-32-0-10.42-3.azl3.x86_64.rpm",
+    "hash": "sha256-NR35jYhqr7JLN2sfWUxCSI4tq4J+swSPj6CtsiZ+0vA="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/ncurses-6.4-3.cm2.x86_64.rpm",
-    "hash": "sha256-/jW1NoknOOLlqkL1+ZuPM7/eC6XiWO3rfzWW3Dmq9YM="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libpcre2-8-0-10.42-3.azl3.x86_64.rpm",
+    "hash": "sha256-2CWpLmfxhm4arFvrAOEX+lLj1qhrzN4XuVQbXHgvb38="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/ncurses-libs-6.4-3.cm2.x86_64.rpm",
-    "hash": "sha256-DZD0TQ6NQM8NBAzSN9QEDRjlvWAm7GMChsf4PM0+Ze4="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libpcre2-posix2-10.42-3.azl3.x86_64.rpm",
+    "hash": "sha256-bRtvB8SBlOGnvAaNugX2drcuwSvTpJy/OcOQOipfH0k="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/nettle-3.7.3-3.cm2.x86_64.rpm",
-    "hash": "sha256-qSVA+6HrMJbsF6LjSB92UNkFQzA4oaO3USNVXJJ0CvE="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libpkgconf-2.0.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-AI6sCaJgx8DUGXIevZWIvCxY6vy/aFJuFWjpb9JiUAA="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/newt-0.52.21-5.cm2.x86_64.rpm",
-    "hash": "sha256-JOpgdnPQXqDfSw3fNaC8TO1pZG4MtywQ1E3nGNIlXr4="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libpwquality-1.4.5-2.azl3.x86_64.rpm",
+    "hash": "sha256-4g9ilgCdMvlCpgAd8Ndjvg40g9BFkfG5HV2cSooQtQ0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/n/nghttp2-1.57.0-2.cm2.x86_64.rpm",
-    "hash": "sha256-XuF58f/+HmhZRp/gZyigIZ3n701luhOuncZUTFDW0l4="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libseccomp-2.5.5-1.azl3.x86_64.rpm",
+    "hash": "sha256-8OdkzTfU51wF3OhrZJqF1m0yaaafJ8hl/61DXGp1Psg="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/openssl-1.1.1k-36.cm2.x86_64.rpm",
-    "hash": "sha256-nYY1Pb+FHpEIYJNG+SxQ9aYhDjPB2R04h3lWJfiPPec="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libselinux-3.6-3.azl3.x86_64.rpm",
+    "hash": "sha256-AzpStOo+ZpBnManm7wHqR+N5jHmiOPBeQlS2Mgugvi8="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/o/openssl-libs-1.1.1k-36.cm2.x86_64.rpm",
-    "hash": "sha256-6AGVNPLXmMs0dAAlkvbeg50+RBFMEhX5Ej+ljZbwrGU="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libsemanage-3.6-1.azl3.x86_64.rpm",
+    "hash": "sha256-uw7FzCSw2M9Be0WEr0UZrL2D3cFf4Zt9SHmLIzxZogI="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/p11-kit-0.24.1-1.cm2.x86_64.rpm",
-    "hash": "sha256-SbffcLRyOKxaufw1Lyi5Z1amZj8WFDrLbDGMPtBmzBE="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libsepol-3.6-1.azl3.x86_64.rpm",
+    "hash": "sha256-GjGOtqAb4W1qD8z4ZCHcg7gKnLb8B37QyVAecC/p/LU="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/p11-kit-trust-0.24.1-1.cm2.x86_64.rpm",
-    "hash": "sha256-osFhYsJm2wy3cg5+Mc2r5iyFG3mdtQwZ9oQkb2ZyhU8="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libssh2-1.11.0-1.azl3.x86_64.rpm",
+    "hash": "sha256-P/xr0iqPnOjWMOE2JB11FWlXaVuf6uQbw+IoWN13sXY="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/pam-1.5.1-7.cm2.x86_64.rpm",
-    "hash": "sha256-kS7c7KBSa/yFoPFcAGPOr5tFTixiqh/raWPF4gNECjw="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libstdc++-13.2.0-7.azl3.x86_64.rpm",
+    "hash": "sha256-ldCfK16TiXKXyBfR2uhqvALC0pjxEdOZKBlJo6t+5x0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/pcre-8.45-2.cm2.x86_64.rpm",
-    "hash": "sha256-88hsYBw30B6Uc89H4qpawyHB9unDXDcvxgbltvpkcKA="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libtasn1-4.19.0-1.azl3.x86_64.rpm",
+    "hash": "sha256-p8ISNZknH0UOKVB7noczvIOz1IjhuPrr17bP+BouQd0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/pcre-libs-8.45-2.cm2.x86_64.rpm",
-    "hash": "sha256-a+5GUpTEWh6gZekstJyoZLUJvdiDtq+1j/XghKWzz3Q="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libunistring-1.1-1.azl3.x86_64.rpm",
+    "hash": "sha256-4Ps5Nful+/92E9nhV4L++VzhwudLUwnbgWqFTAAT/S0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/popt-1.18-1.cm2.x86_64.rpm",
-    "hash": "sha256-ldYUsNFpIo5fC/09SIB3HbXH9F4a3eoO/KuYD62elqg="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libuv-1.48.0-1.azl3.x86_64.rpm",
+    "hash": "sha256-H0s5/5dPZ7+hAo9WkWdVVyJHW1+Y68TbNEdKDonzULU="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/p/procps-ng-3.3.17-2.cm2.x86_64.rpm",
-    "hash": "sha256-oN9ewJlO+s7wQJ49gBu9SscJGONSaZ2QcGiysDmbrds="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libxcrypt-4.4.36-2.azl3.x86_64.rpm",
+    "hash": "sha256-V+B2tEydTBMW97mmAkQ6dkMiwu8dmOuoc+GzxzLKUuY="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/r/readline-8.1-1.cm2.x86_64.rpm",
-    "hash": "sha256-qfmf8QCo83/QXkKIJAfJrMx2Vv6ozco0RlqpI1b4CTI="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libxkbcommon-1.6.0-2.azl3.x86_64.rpm",
+    "hash": "sha256-BgCoG5pUCw0ufcV+miMRuLu/2DN21DkiigF7MVLEwZc="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/s/sed-4.8-3.cm2.x86_64.rpm",
-    "hash": "sha256-pFIMOh5ahIYgdWLPLoutirT6SVl0Dser/W9PDakfzW4="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libxml2-2.11.5-2.azl3.x86_64.rpm",
+    "hash": "sha256-mrLmWhow8s8kI9fY4A4X/g5BGWZddPeeXzTedgofXek="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/s/shadow-utils-4.9-13.cm2.x86_64.rpm",
-    "hash": "sha256-XJd4oqNearPQT7vvf/r+HzU//ppRBDXYi5IcDjgE3gI="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/lmdb-libs-0.9.31-2.azl3.x86_64.rpm",
+    "hash": "sha256-1hAmCt/SSD3hyJjG78kounc1bmR5AG/rulwmJeEH0A8="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/s/slang-2.3.2-4.cm2.x86_64.rpm",
-    "hash": "sha256-gTRB1RxZmn9AqvvLA1sB/8pdhEpz4tySH8nuS4TtoEA="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/lvm2-2.03.23-1.azl3.x86_64.rpm",
+    "hash": "sha256-C0PvrhnBtIE86bZ8JZbXX9vuO5QIUxLU6jkLSZIljxk="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/s/systemd-250.3-21.cm2.x86_64.rpm",
-    "hash": "sha256-YVg6D3xfaTDq4TtoPbNs3Ue+i4JhS0zPU0ftvjEuq1Y="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/lz4-1.9.4-1.azl3.x86_64.rpm",
+    "hash": "sha256-Vyv4VMMcFxureazjHZRiuQhcLm8idXGEbrm1UoxlgaU="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/s/systemd-rpm-macros-250.3-21.cm2.noarch.rpm",
-    "hash": "sha256-aCP9r25fzsZG2rbFP/P/Ox2IIQlhALUbh4xX7l+qEdM="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/m/mariadb-connector-c-3.3.8-2.azl3.x86_64.rpm",
+    "hash": "sha256-VVpJ5PKONT7zhaZJ3526kO3+9pr73ngsOhjY7UV7+Ow="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/t/tar-1.34-3.cm2.x86_64.rpm",
-    "hash": "sha256-yAfK4yvqbuXyyUivDPh8dt98M0ajqqgzmby2ajBO1FU="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/m/mariadb-connector-c-config-3.3.8-2.azl3.noarch.rpm",
+    "hash": "sha256-Ex+owrNTF0AGZl7FDsovfLz4ZQ6U3ruznwKQACKT2xA="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/t/tzdata-2025a-1.cm2.noarch.rpm",
-    "hash": "sha256-UIrzHl9uMwDBPxwx0KhOcYbn53vtzst727O3flOUKto="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/n/ncurses-6.4-2.azl3.x86_64.rpm",
+    "hash": "sha256-nD64gLd9mjVQ2IqqCSVyH+Zm2/cGNRE8eIOMHX0VWkI="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/u/util-linux-2.37.4-9.cm2.x86_64.rpm",
-    "hash": "sha256-zbod7ZpbpTw1fo7s4xDKYSyl8Q19XWFaulp8cpfbEPg="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/n/ncurses-compat-6.4-2.azl3.x86_64.rpm",
+    "hash": "sha256-WjlYj3PMVJMi/JMDwUwIkvHel4A86EH8tTGWqCsvCnU="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/u/util-linux-libs-2.37.4-9.cm2.x86_64.rpm",
-    "hash": "sha256-wxO+hrh6t8+k45/mBrcj3a6hpkSkG8sakShB4hF87m0="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/n/ncurses-libs-6.4-2.azl3.x86_64.rpm",
+    "hash": "sha256-Yv6HyZk8uI4qAubXNSqEv/KSNvwg6zQCnFAQXDLnra0="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/x/xz-5.2.5-1.cm2.x86_64.rpm",
-    "hash": "sha256-9kVKFBAfKarCzcPzKYWJm6Sq9C5mDt/iwSJQUoeOk60="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/n/nettle-3.9.1-1.azl3.x86_64.rpm",
+    "hash": "sha256-x24Hg30nfQCD6RUWaD6hnU4dnNgI9VwJTpzpY0dHlm4="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/x/xz-libs-5.2.5-1.cm2.x86_64.rpm",
-    "hash": "sha256-Ax53mnzhmGYsWyZtew38nuzpwMiIple2qbt3Md8AltA="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/n/newt-0.52.23-1.azl3.x86_64.rpm",
+    "hash": "sha256-VYvykAoHOExo5JGW+e+PgcruNM8rbz8H651iYpwaeZo="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/z/zlib-1.2.13-2.cm2.x86_64.rpm",
-    "hash": "sha256-hiC8ZIN5x76SkbvyDARol/Tl9jpYLXf9EWtPunlAOws="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/n/nghttp2-1.61.0-2.azl3.x86_64.rpm",
+    "hash": "sha256-WYiiwI4KZcKpl27QBWBDAuVrN5bEzNJxtmdJ32Acc78="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/z/zstd-libs-1.5.4-1.cm2.x86_64.rpm",
-    "hash": "sha256-sOSIRIp7lcnYTkzrrFXFEDZXJcIAChxii5sKq8xti64="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/o/openldap-2.6.7-2.azl3.x86_64.rpm",
+    "hash": "sha256-UzRfSfAaj4icopMGJwj16Oe8F7HqUFzR4kwjkvx+VrM="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/o/openssl-3.3.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-SAA6XSGDrwgufAtFSybpMYESPfElnFZ9wrtjcorCJzM="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/o/openssl-libs-3.3.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-JNeBJ3GnvPpjwnRhjEBlZIHpwbP0U8GoTqDfS8PADJ0="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/p11-kit-0.25.0-1.azl3.x86_64.rpm",
+    "hash": "sha256-N1UxtgYQP2jypuLV9PjhUBEkky6yenAZA+Ucwc1Ko/k="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/p11-kit-trust-0.25.0-1.azl3.x86_64.rpm",
+    "hash": "sha256-rDXcS/zxtm5uFgs/QudG0zvPqkMaugl+7696+FDz+GQ="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/pam-1.5.3-4.azl3.x86_64.rpm",
+    "hash": "sha256-82LNizR+egv9JhUfXH2Ohp4QqPceiqc85JJ/aftuiA8="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/pcre2-10.42-3.azl3.x86_64.rpm",
+    "hash": "sha256-iXeoJ7Noqgc2eEJCFG4eLMB2+66tkyWqxjvx8/iSkCg="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/pcre2-tools-10.42-3.azl3.x86_64.rpm",
+    "hash": "sha256-S7SDIMQgZVX4Ri9+RSURcsVF+fgEEJ23TlMviIgkOIA="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/pkgconf-2.0.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-o9wwC8ourFuovDKxESL4XF16W3DlggEedj+SFrEFFHk="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/pkgconf-m4-2.0.2-1.azl3.noarch.rpm",
+    "hash": "sha256-iu6n8FJm0Zrxcvj06CnzN931IS9Rmy+/5l3BTZSG6Xk="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/pkgconf-pkg-config-2.0.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-bI2tzaW6/wjvETxGDVJcCTk7H6rr0lwemCtgm2JhUTM="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/popt-1.19-1.azl3.x86_64.rpm",
+    "hash": "sha256-8C1IYPJzuiqXkK6raFfQqjgWfLpvClc1/mtQhIca3GA="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/procps-ng-4.0.4-1.azl3.x86_64.rpm",
+    "hash": "sha256-K2X36xDRszG6Xwv50fcNL7XtYmwM4GyLE1QGhw5pnFc="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/psmisc-23.6-1.azl3.x86_64.rpm",
+    "hash": "sha256-QZRgwhYh1GRXbwZH4b742oeqGuCda/2Ig7APbyJ16d8="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/r/readline-8.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-djfACd2H39LEWYyyhxPQKQ0QDzOfP1rXm9HGEs4CuPc="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/SymCrypt-103.6.0-1.azl3.x86_64.rpm",
+    "hash": "sha256-nfRaHqCZuThhIm3HbXaHhNkXubqB7iv4vxlVSN2XCpc="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/SymCrypt-OpenSSL-1.6.1-1.azl3.x86_64.rpm",
+    "hash": "sha256-mh64fDphObiHgp6Yb1hmKXvZWVT2Fpi3dBkwgEfzkrU="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/sed-4.9-1.azl3.x86_64.rpm",
+    "hash": "sha256-ZSQzx39b4nekhrWJ11pTGyfwmr6H+McE5YetI+dmvc8="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/shadow-utils-4.14.3-2.azl3.x86_64.rpm",
+    "hash": "sha256-HNcAClRO0Z3of4W6pFfbj2tgJrdDgZ5K3mqO5YZd/mA="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/shadow-utils-subid-4.14.3-2.azl3.x86_64.rpm",
+    "hash": "sha256-qiqR2N+PBc5BDQe/S8Rp+/UZWJq2X7SZmyUMGO4U8Us="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/slang-2.3.3-1.azl3.x86_64.rpm",
+    "hash": "sha256-Q+aH4FqYfb+Mr09IBGGLZFzKwTaL5ztUXnqyGqLmxLc="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/sqlite-libs-3.44.0-1.azl3.x86_64.rpm",
+    "hash": "sha256-U6npZayQxuBzWoBxDXJLeugrMAogeCytvJs/MH+fqMs="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/systemd-255-19.azl3.x86_64.rpm",
+    "hash": "sha256-q19CtRndg72aNc+z4QEU4dhgaT8ap+0Wcy8nRzQcZoU="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/systemd-libs-255-19.azl3.x86_64.rpm",
+    "hash": "sha256-kDk2aZ/uBHnDSXMqw3h9+/jYCmj/0powPO8xnlg1+NA="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/systemd-networkd-255-19.azl3.x86_64.rpm",
+    "hash": "sha256-+3xKyJUT5l071g6JE7Ziw3q6DglTS+WuJRMdOpg0ceE="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/systemd-pam-255-19.azl3.x86_64.rpm",
+    "hash": "sha256-NXwaYa9e86TdCt1PBjZkk7/AT6jMHF0Bx8TetKzRGY4="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/systemd-resolved-255-19.azl3.x86_64.rpm",
+    "hash": "sha256-Xw3tZ//wMjnvDYhQo++z4Bfc4ZLvyjhfOVAlRVsvbVs="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/systemd-rpm-macros-255-19.azl3.noarch.rpm",
+    "hash": "sha256-jSRJNuWEqpgdByV/8Oi2+pns47xUUGFJ4XBm3da61tc="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/systemd-udev-255-19.azl3.x86_64.rpm",
+    "hash": "sha256-wx37y4AYZRl6GnNyjU9AeL4WLsCEOHlaUNVNTohOuIM="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/t/tar-1.35-1.azl3.x86_64.rpm",
+    "hash": "sha256-bDC52j2Ybc5kMD1iONXk10GQsGQEtO/VMUx9wzYCLf0="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/t/tpm2-tss-4.0.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-FYFavDUY3pBWl4N5wog6Y93qw7t83aVUBqh2ywQMd5k="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/t/tzdata-2024a-1.azl3.noarch.rpm",
+    "hash": "sha256-/IS7hjV1QpNVZpAyp9LvYBdZBh8fpHRMdGzB+inPiT4="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/u/userspace-rcu-0.14.0-2.azl3.x86_64.rpm",
+    "hash": "sha256-FVA1BEawoG0DCMTQ6vgYwc3p+92ut9LpW0yUer8GfTU="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/u/util-linux-2.40.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-P54Hd7kWrDUMkUCr/HA+IbPPjJCUy5m5X1lMiR9TNkw="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/u/util-linux-libs-2.40.2-1.azl3.x86_64.rpm",
+    "hash": "sha256-3LKghBlT+jq2p4iIcfCNqqrWTrRMfgmqV/dr4OCl8Yw="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/x/xkeyboard-config-2.40-1.azl3.noarch.rpm",
+    "hash": "sha256-goaB0Er/rEL+kO5sC59P0koemHhTO6LiHwdzLvDFluc="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/x/xz-5.4.4-1.azl3.x86_64.rpm",
+    "hash": "sha256-cad+ppC9+OOWbcKcQPcg+kD+gvpOigp8zcOfdVHKaUM="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/x/xz-libs-5.4.4-1.azl3.x86_64.rpm",
+    "hash": "sha256-7eQnFo4PBsgpLoTXfaR5K64Q3+zlEXDcBdYONQimFbw="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/z/zlib-1.3.1-1.azl3.x86_64.rpm",
+    "hash": "sha256-fWdKdPtvBE+ppizCubnbSFMyXDbL8s62/S1ojDiWG6c="
+  },
+  {
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/z/zstd-libs-1.5.5-2.azl3.x86_64.rpm",
+    "hash": "sha256-o3cphWo5c25iq4u/Mg3N+Xnk4Xi0Refqsu2JBsOjg5U="
   }
 ]
