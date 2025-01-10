@@ -26,14 +26,14 @@ let
     tsflags=nodocs
     pluginpath=${dnf-plugins-core}/${python3.sitePackages}/dnf-plugins
   '';
-  reposdir = writeTextDir "yum.repos.d/cbl-mariner-2.repo" ''
-    [cbl-mariner-2.0-prod-base-x86_64-yum]
-    name=cbl-mariner-2.0-prod-base-x86_64-yum
-    baseurl=https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/
+  reposdir = writeTextDir "yum.repos.d/azurelinux-3.0.repo" ''
+    [azurelinux-3.0-prod-base-x86_64]
+    name=azurelinux-3.0-prod-base-x86_64
+    baseurl=https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/
     repo_gpgcheck=0
     gpgcheck=1
     enabled=1
-    gpgkey=https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/repodata/repomd.xml.key
+    gpgkey=https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/repodata/repomd.xml.key
   '';
   update_lockfile = writeShellApplication {
     name = "update_lockfile";
