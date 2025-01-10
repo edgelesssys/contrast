@@ -19,7 +19,16 @@ jobs:
           - name: K3s-QEMU-TDX
             runner: TDX
             self-hosted: true
+          - name: K3s-QEMU-SNP-GPU
+            runner: SNP
+            self-hosted: true
         test-name: [servicemesh, openssl, policy, workloadsecret, volumestatefulset]
+        include:
+          - platform:
+              name: K3s-QEMU-SNP-GPU
+              runner: SNP
+              self-hosted: true
+            test-name: [gpu]
       fail-fast: false
     name: "${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e.yml
