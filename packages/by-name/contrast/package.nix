@@ -32,6 +32,7 @@ let
     subPackages = [
       "e2e/genpolicy"
       "e2e/getdents"
+      "e2e/gpu"
       "e2e/openssl"
       "e2e/servicemesh"
       "e2e/release"
@@ -81,35 +82,43 @@ let
         ];
       };
 
-      snpRefVals = {
-        snp =
-          let
-            launch-digest =
-              if kata.contrast-node-installer-image.debugRuntime then
-                kata.snp-launch-digest.override { debug = true; }
-              else
-                kata.snp-launch-digest;
-          in
-          [
-            {
-              trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile "${launch-digest}/milan.hex");
-              productName = "Milan";
-            }
-            {
-              trustedMeasurement = lib.removeSuffix "\n" (builtins.readFile "${launch-digest}/genoa.hex");
-              productName = "Genoa";
-            }
-          ];
-      };
+      snpRefValsWith =
+        { gpu }:
+        {
+          snp =
+            let
+              os-image =
+                if gpu then
+                  kata.contrast-node-installer-image.gpu.os-image
+                else
+                  kata.contrast-node-installer-image.os-image;
+              launch-digest = kata.snp-launch-digest.override {
+                inherit os-image;
+                debug = kata.contrast-node-installer-image.debugRuntime;
+              };
+            in
+            [
+              {
+                trustedMeasurement = builtins.readFile "${launch-digest}/milan.hex";
+                productName = "Milan";
+              }
+              {
+                trustedMeasurement = builtins.readFile "${launch-digest}/genoa.hex";
+                productName = "Genoa";
+              }
+            ];
+        };
+
+      snpRefVals = snpRefValsWith { gpu = false; };
+      snpGpuRefVals = snpRefValsWith { gpu = true; };
+
       tdxRefVals = {
         tdx = [
           (
             let
-              launch-digests =
-                if kata.contrast-node-installer-image.debugRuntime then
-                  kata.tdx-launch-digests.override { debug = true; }
-                else
-                  kata.tdx-launch-digests;
+              launch-digests = kata.tdx-launch-digests.override {
+                debug = kata.contrast-node-installer-image.debugRuntime;
+              };
             in
             {
               mrTd = builtins.readFile "${launch-digests}/mrtd.hex";
@@ -135,9 +144,9 @@ let
         "${k3s-qemu-tdx-handler}" = tdxRefVals;
         "${rke2-qemu-tdx-handler}" = tdxRefVals;
         "${metal-qemu-snp-handler}" = snpRefVals;
-        "${metal-qemu-snp-gpu-handler}" = snpRefVals;
+        "${metal-qemu-snp-gpu-handler}" = snpGpuRefVals;
         "${k3s-qemu-snp-handler}" = snpRefVals;
-        "${k3s-qemu-snp-gpu-handler}" = snpRefVals;
+        "${k3s-qemu-snp-gpu-handler}" = snpGpuRefVals;
       }
     );
 

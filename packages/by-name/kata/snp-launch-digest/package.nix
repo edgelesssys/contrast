@@ -52,5 +52,10 @@ stdenvNoCC.mkDerivation {
       --initrd ${initrd} \
       --append "${cmdline}" \
       --output-format hex > $out/genoa.hex
+
+    # cut newlines
+    for file in $out/*.hex; do
+      truncate -s -1 "$file"
+    done
   '';
 }

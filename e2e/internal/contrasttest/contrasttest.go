@@ -61,6 +61,7 @@ type ContrastTest struct {
 	ImageReplacementsFile string
 	Platform              platforms.Platform
 	NamespaceFile         string
+	RuntimeClassName      string
 	Kubeclient            *kubeclient.Kubeclient
 
 	// outputs of contrast subcommands
@@ -70,8 +71,13 @@ type ContrastTest struct {
 
 // New creates a new contrasttest.T object bound to the given test.
 func New(t *testing.T) *ContrastTest {
+	require := require.New(t)
+
 	platform, err := platforms.FromString(Flags.PlatformStr)
-	require.NoError(t, err)
+	require.NoError(err)
+
+	runtimeClass, err := kuberesource.ContrastRuntimeClass(platform)
+	require.NoError(err)
 
 	return &ContrastTest{
 		Namespace:             MakeNamespace(t, Flags.NamespaceSuffix),
@@ -79,6 +85,7 @@ func New(t *testing.T) *ContrastTest {
 		ImageReplacementsFile: Flags.ImageReplacementsFile,
 		Platform:              platform,
 		NamespaceFile:         Flags.NamespaceFile,
+		RuntimeClassName:      *runtimeClass.Handler,
 		Kubeclient:            kubeclient.NewForTest(t),
 	}
 }
@@ -283,9 +290,15 @@ func patchReferenceValues(k *kubeclient.Kubeclient, platform platforms.Platform)
 // Apply the generated resources to the Kubernetes test environment.
 func (ct *ContrastTest) Apply(t *testing.T) {
 	require := require.New(t)
-
 	yaml, err := os.ReadFile(path.Join(ct.WorkDir, "resources.yml"))
 	require.NoError(err)
+	ct.ApplyFromYAML(t, yaml)
+}
+
+// ApplyFromYAML applies the given YAML to the Kubernetes test environment.
+func (ct *ContrastTest) ApplyFromYAML(t *testing.T, yaml []byte) {
+	require := require.New(t)
+
 	objects, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
 	require.NoError(err)
 
