@@ -9,7 +9,7 @@ Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index ac84a6f6ec39aba77427b588bd6037dce1f1ac76..3e03070e3743f9a2ecc29e5d7714a5a0335bd1ed 100644
+index a7fb7fba7ba1e4e486c2b43b8b626a32b9aa5164..229a69c2cfa4c99d9e66e9e60d70fd7fca7a9590 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -917,7 +917,7 @@ allow_storage_options(p_storage, i_storage, layer_ids, root_hashes) {
