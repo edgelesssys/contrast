@@ -200,7 +200,7 @@ buildGoModule rec {
     install -D ${kata.genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-kata.json
   '';
 
-  CGO_ENABLED = 0;
+  env.CGO_ENABLED = 0;
   ldflags = [
     "-s"
     "-X github.com/edgelesssys/contrast/internal/constants.Version=v${version}"
@@ -211,7 +211,7 @@ buildGoModule rec {
   tags = [ "contrast_unstable_api" ];
 
   preCheck = ''
-    export CGO_ENABLED=1
+    export env.CGO_ENABLED=1
   '';
 
   checkPhase = ''
