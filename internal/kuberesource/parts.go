@@ -153,6 +153,9 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		snapshotterVolumes = tardevSnapshotterVolumes
 	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
+		if platform == platforms.MetalQEMUSNPGPU {
+			nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest"
+		}
 		containers = append(containers, nydusSnapshotter, nydusPull)
 		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes,
 			Volume().
@@ -171,6 +174,9 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		snapshotterVolumes = nydusSnapshotterVolumes
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.RKE2QEMUTDX:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
+		if platform == platforms.K3sQEMUSNPGPU {
+			nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest"
+		}
 		containers = append(containers, nydusSnapshotter, nydusPull)
 		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes,
 			Volume().

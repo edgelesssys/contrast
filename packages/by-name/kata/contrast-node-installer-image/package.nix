@@ -18,9 +18,15 @@
   OVMF-TDX,
 
   debugRuntime ? false,
+  withGPU ? false,
 }:
 
 let
+  os-image = kata.kata-image.override {
+    inherit withGPU;
+    withDebug = debugRuntime;
+  };
+
   node-installer = ociLayerTar {
     files = [
       {
@@ -110,7 +116,7 @@ let
             }
           ];
           inherit debugRuntime;
-          qemuExtraKernelParams = kata.kata-image.cmdline;
+          qemuExtraKernelParams = os-image.cmdline;
         };
         destination = "/config/contrast-node-install.json";
       }
@@ -120,15 +126,15 @@ let
   kata-container-img = ociLayerTar {
     files = [
       {
-        source = "${kata.kata-image.image}/${kata.kata-image.imageFileName}";
+        source = "${os-image.image}/${os-image.imageFileName}";
         destination = "/opt/edgeless/share/kata-containers.img";
       }
       {
-        source = "${kata.kata-image.kernel}/bzImage";
+        source = "${os-image.kernel}/bzImage";
         destination = "/opt/edgeless/share/kata-kernel";
       }
       {
-        source = "${kata.kata-image.initialRamdisk}/initrd";
+        source = "${os-image.initialRamdisk}/initrd";
         destination = "/opt/edgeless/share/kata-initrd.zst";
       }
     ];
@@ -251,10 +257,14 @@ in
 ociImageLayout {
   manifests = [ manifest ];
   passthru = {
-    inherit debugRuntime;
+    inherit debugRuntime os-image;
     runtimeHash = hashDirs {
       dirs = layers; # Layers without node-installer, or we have a circular dependency!
       name = "runtime-hash-kata";
+    };
+    gpu = kata.contrast-node-installer-image.override {
+      inherit debugRuntime;
+      withGPU = true;
     };
   };
 }

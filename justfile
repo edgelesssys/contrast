@@ -47,10 +47,15 @@ node-installer platform=default_platform:
             just push "tardev-snapshotter"
             just push "node-installer-microsoft"
         ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             just push "nydus-snapshotter"
             just push "nydus-pull"
             just push "node-installer-kata"
+        ;;
+        "Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP-GPU")
+            just push "nydus-snapshotter"
+            just push "nydus-pull"
+            just push "node-installer-kata-gpu"
         ;;
         "AKS-PEER-SNP")
             nix run -L .#scripts.deploy-caa -- \
