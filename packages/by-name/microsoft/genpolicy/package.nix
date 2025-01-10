@@ -17,14 +17,14 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "genpolicy";
-  version = "3.2.0.azl1.genpolicy1";
+  version = "3.2.0.azl3.genpolicy0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "microsoft";
       repo = "kata-containers";
       rev = "refs/tags/${version}";
-      hash = "sha256-7qhwp23u3K8JEtpfhk7c1k1/n37LG7BGx8JJOEFjcXc=";
+      hash = "sha256-7baw4RG0aVMDZBYAicmgTUrD+1mmsYhBWkb0qKjT5xs=";
     };
 
     patches = [
@@ -82,7 +82,7 @@ rustPlatform.buildRustPackage rec {
 
   sourceRoot = "${src.name}/src/tools/genpolicy";
 
-  cargoHash = "sha256-VNh26gafJZdWmb791VdftoNiHQE60KKE+pOJC4tWLV8=";
+  cargoHash = "sha256-es5BouFI2xiUa1kMoMO64Pku9vgrE5LBx9LzWR6a67A=";
 
   OPENSSL_NO_VENDOR = 1;
 

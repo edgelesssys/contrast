@@ -15,12 +15,12 @@ Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
  7 files changed, 59 insertions(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
-index 5b18d96d9415a99556226b50bf67b1106b393d70..90ea48597605f056250424ff0d8758017d20220f 100644
+index 65c5db08beedb10dfe7c2f16c99b92a8a0a24e0c..b543b989095300ec3a8bc0e00137e1087d24f90c 100644
 --- a/src/tools/genpolicy/src/daemon_set.rs
 +++ b/src/tools/genpolicy/src/daemon_set.rs
-@@ -143,4 +143,13 @@ impl yaml::K8sResource for DaemonSet {
-         }
-         false
+@@ -147,4 +147,13 @@ impl yaml::K8sResource for DaemonSet {
+     fn get_process_fields(&self, process: &mut policy::KataProcess) {
+         yaml::get_process_fields(process, &self.spec.template.spec.securityContext);
      }
 +
 +    fn get_runtime_class_name(&self) -> Option<String> {
@@ -33,12 +33,12 @@ index 5b18d96d9415a99556226b50bf67b1106b393d70..90ea48597605f056250424ff0d875801
 +    }
  }
 diff --git a/src/tools/genpolicy/src/deployment.rs b/src/tools/genpolicy/src/deployment.rs
-index f1b8e8d80f497d275a571125374fd77fa5490f24..890579cdfbd67cd7f5949c817dbd9391043b1cf0 100644
+index be2ffd6474550f71b1680c83888ee7c9fbcd8b33..8cd9ff51a7fdbcf232141b255e008babc6a4b108 100644
 --- a/src/tools/genpolicy/src/deployment.rs
 +++ b/src/tools/genpolicy/src/deployment.rs
-@@ -141,4 +141,13 @@ impl yaml::K8sResource for Deployment {
-         }
-         false
+@@ -145,4 +145,13 @@ impl yaml::K8sResource for Deployment {
+     fn get_process_fields(&self, process: &mut policy::KataProcess) {
+         yaml::get_process_fields(process, &self.spec.template.spec.securityContext);
      }
 +
 +    fn get_runtime_class_name(&self) -> Option<String> {
@@ -51,7 +51,7 @@ index f1b8e8d80f497d275a571125374fd77fa5490f24..890579cdfbd67cd7f5949c817dbd9391
 +    }
  }
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index da2a47ee2d6affc43dc9246670675e3367d73bfe..4a40c957042e73ba584b66bc681469458a7f18f4 100644
+index cae93c53257ec8b2195974b14589cb5571d10623..45111763af659f7c86640779be95280eb8a4c23f 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
 @@ -47,7 +47,7 @@ pub struct PodSpec {
@@ -75,10 +75,10 @@ index da2a47ee2d6affc43dc9246670675e3367d73bfe..4a40c957042e73ba584b66bc68146945
 +    }
 +
      fn get_process_fields(&self, process: &mut policy::KataProcess) {
-         if let Some(context) = &self.spec.securityContext {
-             if let Some(uid) = context.runAsUser {
+         yaml::get_process_fields(process, &self.spec.securityContext);
+     }
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 7c1479d571dc163e4fe0bacef15cf60e8dd85920..a1affda77ef87fb7fd09d875ec8779324b47e3fb 100644
+index b612bcc52ad59be4790accea5074418eb4d050a8..e749c5b1d56712a6bbed2e6b2df1ce0ff53df836 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -10,6 +10,7 @@ use crate::agent;
@@ -89,7 +89,7 @@ index 7c1479d571dc163e4fe0bacef15cf60e8dd85920..a1affda77ef87fb7fd09d875ec877932
  use crate::pod;
  use crate::policy;
  use crate::pvc;
-@@ -434,6 +435,17 @@ impl AgentPolicy {
+@@ -441,6 +442,17 @@ impl AgentPolicy {
                  let yaml_string = serde_yaml::to_string(&doc_mapping)?;
                  let silent = config.silent_unsupported_fields;
                  let (mut resource, kind) = yaml::new_k8s_resource(&yaml_string, silent)?;
@@ -108,12 +108,12 @@ index 7c1479d571dc163e4fe0bacef15cf60e8dd85920..a1affda77ef87fb7fd09d875ec877932
  
                  // ConfigMap and Secret documents contain additional input for policy generation.
 diff --git a/src/tools/genpolicy/src/stateful_set.rs b/src/tools/genpolicy/src/stateful_set.rs
-index 4c55f59ec3e88b324c25c5065d5b4c898a0db804..d25398358f526116f5b766ffba6db2e287e0f8e9 100644
+index ec952af07c5ee134cc8cb6ae48246ced83fee0f5..a987e5e72292d36f5bbc3b27265002daf42c2819 100644
 --- a/src/tools/genpolicy/src/stateful_set.rs
 +++ b/src/tools/genpolicy/src/stateful_set.rs
-@@ -194,6 +194,15 @@ impl yaml::K8sResource for StatefulSet {
-         }
-         false
+@@ -197,6 +197,15 @@ impl yaml::K8sResource for StatefulSet {
+     fn get_process_fields(&self, process: &mut policy::KataProcess) {
+         yaml::get_process_fields(process, &self.spec.template.spec.securityContext);
      }
 +
 +    fn get_runtime_class_name(&self) -> Option<String> {
@@ -161,12 +161,12 @@ index e45b188d40a82a32547290ccdfd4a263e193e1c2..2402c2ed213e45b89c47b2b6a94d54f8
              rego_rules_path: args.rego_rules_path,
              json_settings_path: args.json_settings_path,
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 378374dbf249ea0722a93bf024de177c48639b8f..0f94371052675049c19e4e057ea72e68432ce5ec 100644
+index 105bd8628b86733788886202b6c21a2586aa0525..f3748f0e079766de08f26c38e9ff2c4ade0a7c7a 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -76,6 +76,10 @@ pub trait K8sResource {
-         // Just Pods can have a PodSecurityContext field, so the other
-         // resources can use this default get_process_fields implementation.
+         // No need to implement support for securityContext or similar fields
+         // for some of the K8s resource types.
      }
 +
 +    fn get_runtime_class_name(&self) -> Option<String> {
