@@ -71,6 +71,12 @@ rustPlatform.buildRustPackage rec {
       # This avoids printing the entire annotation on log level debug, which resulted in errors of the logtranslator.go
       # TODO(jmxnzo): remove when https://github.com/kata-containers/kata-containers/pull/10647 is picked up by microsoft/kata-containers fork
       ./0009-genpolicy-do-not-log-policy-annotation-in-debug.patch
+      # Patches the RootfsPropagation check in allow_create_container_input to allow setting up bidirectional volumes, which need to propagate their changes to a
+      # volume mounted on the root filesystem and possibly shared across multiple containers on the host.
+      # RootfsPropagation describes the mapping to mount propagations: https://kubernetes.io/docs/concepts/storage/volumes/#mount-propagation
+      # It reflects genpolicy-support-mount-propagation-and-ro-mounts.patch on upstream kata.genpolicy, but drops the patched propagation mode
+      # derivation, because it was already built in to the microsoft fork.
+      ./0010-genpolicy-support-mount-propagation-and-ro-mounts.patch
     ];
   };
 
