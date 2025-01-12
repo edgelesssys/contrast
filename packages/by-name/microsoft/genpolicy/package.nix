@@ -71,6 +71,10 @@ rustPlatform.buildRustPackage rec {
       # This avoids printing the entire annotation on log level debug, which resulted in errors of the logtranslator.go
       # TODO(jmxnzo): remove when https://github.com/kata-containers/kata-containers/pull/10647 is picked up by microsoft/kata-containers fork
       ./0009-genpolicy-do-not-log-policy-annotation-in-debug.patch
+
+      # This is a backport of packages/by-name/kata/kata-runtime/0012-genpolicy-support-mount-propagation-and-ro-mounts.patch
+      # to allow bidirectional mount propagation.
+      ./0010-genpolicy-support-mount-propagation.patch
     ];
   };
 

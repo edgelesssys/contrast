@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Sun, 12 Jan 2025 14:55:17 +0100
+Subject: [PATCH] genpolicy: support mount propagation
+
+---
+ src/tools/genpolicy/rules.rego | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index 3e03070e3743f9a2ecc29e5d7714a5a0335bd1ed..eeabe36db7adc727fb1502861dd7f2648253649a 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -105,7 +105,8 @@ allow_create_container_input {
+     count(i_linux.GIDMappings) == 0
+     count(i_linux.MountLabel) == 0
+     count(i_linux.Resources.Devices) == 0
+-    count(i_linux.RootfsPropagation) == 0
++    # TODO(burgerdev): is it harmful to always allow RootfsPropagation?
++    # count(i_linux.RootfsPropagation) == 0
+     count(i_linux.UIDMappings) == 0
+     is_null(i_linux.IntelRdt)
+     is_null(i_linux.Resources.BlockIO)
