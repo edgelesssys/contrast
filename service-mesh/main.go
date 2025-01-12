@@ -110,7 +110,7 @@ func run() error {
 					Certificates: []tls.Certificate{cert},
 					ClientCAs:    pool,
 					ClientAuth:   tls.RequireAndVerifyClientCert,
-				}).Close()
+				})
 			},
 		}
 		return listener.ListenAndServe(context.TODO(), "0.0.0.0:15007")

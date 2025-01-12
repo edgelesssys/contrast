@@ -88,7 +88,7 @@ func (l *Listener) handle(ctx context.Context, downstreamConn *net.TCPConn) erro
 }
 
 type shutdownConn interface {
-	io.ReadWriteCloser
+	net.Conn
 	CloseWrite() error
 }
 
