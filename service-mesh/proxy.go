@@ -2,104 +2,120 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
-	"sync"
 	"syscall"
 	"unsafe"
+
+	"golang.org/x/sync/errgroup"
 )
 
-func ListenAndServe(ctx context.Context, addr string, cfg *tls.Config) error {
-	listenConfig := &net.ListenConfig{
-		Control: func(network, address string, c syscall.RawConn) error {
+type Wrapper func(shutdownConn) shutdownConn
+
+type Director func(downstreamConn *net.TCPConn) (string, error)
+
+type Listener struct {
+	Transparent       bool
+	UpstreamWrapper   Wrapper
+	DownstreamWrapper Wrapper
+	Director          Director
+}
+
+func (l *Listener) ListenAndServe(ctx context.Context, addr string) error {
+	listenConfig := &net.ListenConfig{}
+	if l.Transparent {
+		listenConfig.Control = func(_, _ string, c syscall.RawConn) error {
 			var err error
-			c.Control(func(fd uintptr) {
-				err = syscall.SetsockoptInt(int(fd), syscall.SOL_IP, syscall.IP_TRANSPARENT, 1)
+			controlErr := c.Control(func(fd uintptr) {
+				err = syscall.SetsockoptInt(int(fd), SOL_IP, IP_TRANSPARENT, 1)
 			})
-			return err
-		},
+			return errors.Join(err, controlErr)
+		}
 	}
 
-	l, err := listenConfig.Listen(ctx, "tcp4", addr)
+	listener, err := listenConfig.Listen(ctx, "tcp4", addr)
 	if err != nil {
 		return fmt.Errorf("listening on %s: %w", addr, err)
 	}
-	defer l.Close()
+	defer listener.Close()
 
 	for {
-		netConn, err := l.Accept()
+		netConn, err := listener.Accept()
 		if err != nil {
-			return fmt.Errorf("accepting on %s: %w", l.Addr(), err)
+			return fmt.Errorf("accepting on %s: %w", listener.Addr(), err)
 		}
 		conn, ok := netConn.(*net.TCPConn)
 		if !ok {
-			log.Fatalf("Listener returned unexpected connection type: %T", netConn)
+			panic(fmt.Sprintf("Listener returned unexpected connection type: %T", netConn))
 		}
-		upstream, err := originalDst(conn)
-		// TODO: ignore own address properly
-		if upstream.Port == 15006 || upstream.Port == 15007 {
-			log.Printf("Cowardly refusing to forward to my own address (%s <-> %s).", conn.RemoteAddr(), upstream)
-			conn.Close()
-			continue
-		}
-		if err != nil {
-			log.Printf("Ingress handling error for peer %s: %v", conn.RemoteAddr(), err)
-			conn.Close()
-			continue
-		}
-		go handle(tls.Server(conn, cfg), upstream)
+
+		go func() {
+			if err := l.handle(ctx, conn); err != nil {
+				log.Printf("Error handling downstream %s: %v", conn.RemoteAddr(), err)
+			}
+		}()
 	}
 }
 
-func handle(downstreamConn shutdownConn, upstream *net.TCPAddr) {
-	defer downstreamConn.Close()
-	log.Printf("Connecting %v <-> %v", downstreamConn.RemoteAddr(), upstream)
-
-	upstreamConn, err := net.DialTCP("tcp4", nil, upstream)
+func (l *Listener) handle(ctx context.Context, downstreamConn *net.TCPConn) error {
+	upstream, err := l.Director(downstreamConn)
 	if err != nil {
-		log.Printf("Error connecting %s <-> %s: %v", downstreamConn.RemoteAddr(), upstream, err)
-		return
+		return fmt.Errorf("getting upstream address for downstream %s: %w", downstreamConn.RemoteAddr(), err)
 	}
-	defer upstreamConn.Close()
 
-	wg := &sync.WaitGroup{}
-	wg.Add(2)
+	d := &net.Dialer{}
+	upstreamConn, err := d.DialContext(ctx, "tcp4", upstream)
+	if err != nil {
+		downstreamConn.Close()
+		return fmt.Errorf("dialing %s: %w", upstream, err)
+	}
 
-	go func() {
-		splice(downstreamConn, upstreamConn)
-		wg.Done()
-	}()
+	var wrappedUpstream shutdownConn = upstreamConn.(*net.TCPConn)
+	var wrappedDownstream shutdownConn = downstreamConn
 
-	go func() {
-		splice(upstreamConn, downstreamConn)
-		wg.Done()
-	}()
+	if l.UpstreamWrapper != nil {
+		wrappedUpstream = l.UpstreamWrapper(wrappedUpstream)
+	}
 
-	wg.Wait()
-	log.Printf("Done %v <-> %v", downstreamConn.RemoteAddr(), upstream)
+	if l.DownstreamWrapper != nil {
+		wrappedDownstream = l.DownstreamWrapper(wrappedDownstream)
+	}
+
+	return splice(ctx, wrappedDownstream, wrappedUpstream)
 }
 
 type shutdownConn interface {
-	net.Conn
+	io.ReadWriteCloser
 	CloseWrite() error
 }
 
-func splice(to, from shutdownConn) {
-	if _, err := io.Copy(to, from); err != nil {
-		log.Printf("error copying data: %v", err)
-		to.Close()
-		from.Close()
-	}
-	_ = to.CloseWrite()
+func splice(ctx context.Context, a, b shutdownConn) error {
+	defer a.Close()
+	defer b.Close()
+	eg, ctx := errgroup.WithContext(ctx)
+
+	// TODO(burgerdev): make copy routines cancellable
+	eg.Go(func() error {
+		_, err := io.Copy(a, b)
+		return errors.Join(err, a.CloseWrite())
+	})
+
+	eg.Go(func() error {
+		_, err := io.Copy(b, a)
+		return errors.Join(err, b.CloseWrite())
+	})
+
+	// TODO(burgerdev): handle idle connections?
+	return eg.Wait()
 }
 
-func originalDst(conn *net.TCPConn) (*net.TCPAddr, error) {
+func originalDst(conn *net.TCPConn) (string, error) {
 	syscallConn, err := conn.SyscallConn()
 	if err != nil {
-		return nil, fmt.Errorf("getting SyscallConn: %w", err)
+		return "", fmt.Errorf("getting SyscallConn: %w", err)
 	}
 	var addr *net.TCPAddr
 	controlErr := syscallConn.Control(func(fd uintptr) {
@@ -108,8 +124,8 @@ func originalDst(conn *net.TCPConn) (*net.TCPAddr, error) {
 		_, _, errno := syscall.Syscall6(
 			syscall.SYS_GETSOCKOPT,
 			fd,
-			0,  // SOL_IP
-			80, // SO_ORIGINAL_DST
+			SOL_IP,
+			SO_ORIGINAL_DST,
 			uintptr(unsafe.Pointer(sa)),
 			uintptr(unsafe.Pointer(&optLen)),
 			0,
@@ -125,9 +141,9 @@ func originalDst(conn *net.TCPConn) (*net.TCPAddr, error) {
 		}
 	})
 	if controlErr != nil {
-		return nil, fmt.Errorf("getting original destination: %w", err)
+		return "", fmt.Errorf("getting original destination: %w", err)
 	}
-	return addr, err
+	return addr.String(), err
 }
 
 func ntohs(n uint16) int {

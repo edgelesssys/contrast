@@ -6,11 +6,14 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"log"
+	"net"
 	"os"
-	"os/exec"
-	"time"
+	"strconv"
+
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -29,7 +32,7 @@ func main() {
 	}
 }
 
-func run() (retErr error) {
+func run() error {
 	log.Printf("service-mesh version %s\n", version)
 
 	egressProxyConfig := os.Getenv(egressProxyConfigEnvVar)
@@ -46,61 +49,71 @@ func run() (retErr error) {
 		return err
 	}
 
-	envoyConfig, err := pconfig.ToEnvoyConfig()
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Using envoy configuration:\n%s\n", envoyConfig)
-
-	if err := os.WriteFile(envoyConfigFile, envoyConfig, 0o644); err != nil {
-		return err
-	}
-
 	if err := IngressIPTableRules(pconfig.ingress); err != nil {
 		return fmt.Errorf("failed to set up iptables rules: %w", err)
 	}
 
-	// execute the envoy binary
-	envoyBin, err := exec.LookPath("envoy")
-	if err != nil {
-		return err
-	}
-	_ = envoyBin
-
-	log.Printf("starting ingress proxy")
+	log.Printf("reading certificates")
 	cert, err := tls.LoadX509KeyPair("/contrast/tls-config/certChain.pem", "/contrast/tls-config/key.pem")
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("loading key pair: %w", err)
 	}
-	go func() {
-		cfg := &tls.Config{
-			Certificates: []tls.Certificate{cert},
-		}
-		if err := ListenAndServe(context.Background(), "0.0.0.0:15006", cfg); err != nil {
-			log.Fatal(err)
-		}
-	}()
-	go func() {
-		cfg := &tls.Config{
-			Certificates: []tls.Certificate{cert},
-		}
-		if err := ListenAndServe(context.Background(), "0.0.0.0:15007", cfg); err != nil {
-			log.Fatal(err)
-		}
-	}()
 
-	// TODO(burgerdev): proper wait group handling
-	time.Sleep(time.Hour)
-	log.Printf("ingress proxy done?")
+	pool := x509.NewCertPool()
+	caCert, err := os.ReadFile("/contrast/tls-config/mesh-ca.pem")
+	if err != nil {
+		return fmt.Errorf("loading CA certificate: %w", err)
+	}
+	pool.AppendCertsFromPEM(caCert)
 
-	// TODO(burgerdev): launch envoy
+	eg := &errgroup.Group{}
 
-	/*
-		log.Println("Starting envoy")
-		args := []string{"envoy", "-c", envoyConfigFile}
-		args = append(args, os.Args[1:]...)
-		return syscall.Exec(envoyBin, args, os.Environ())
-	*/
-	return nil
+	log.Printf("starting egress proxies")
+	for _, egress := range pconfig.egress {
+		eg.Go(func() error {
+			listener := &Listener{
+				Transparent: true,
+				Director: func(_ *net.TCPConn) (string, error) {
+					return net.JoinHostPort(egress.remoteDomain, strconv.Itoa(int(egress.remotePort))), nil
+				},
+				UpstreamWrapper: func(conn shutdownConn) shutdownConn {
+					return tls.Client(conn, &tls.Config{
+						Certificates: []tls.Certificate{cert},
+						RootCAs:      pool,
+					})
+				},
+			}
+			return listener.ListenAndServe(context.TODO(), net.JoinHostPort(egress.listenAddr.String(), strconv.Itoa(int(egress.listenPort))))
+		})
+	}
+
+	log.Printf("starting ingress proxies")
+	eg.Go(func() error {
+		listener := &Listener{
+			Transparent: true,
+			Director:    originalDst,
+			DownstreamWrapper: func(conn shutdownConn) shutdownConn {
+				return tls.Server(conn, &tls.Config{
+					Certificates: []tls.Certificate{cert},
+				})
+			},
+		}
+		return listener.ListenAndServe(context.TODO(), "0.0.0.0:15006")
+	})
+
+	eg.Go(func() error {
+		listener := &Listener{
+			Transparent: true,
+			Director:    originalDst,
+			DownstreamWrapper: func(conn shutdownConn) shutdownConn {
+				return tls.Server(conn, &tls.Config{
+					Certificates: []tls.Certificate{cert},
+					ClientCAs:    pool,
+					ClientAuth:   tls.RequireAndVerifyClientCert,
+				}).Close()
+			},
+		}
+		return listener.ListenAndServe(context.TODO(), "0.0.0.0:15007")
+	})
+	return eg.Wait()
 }
