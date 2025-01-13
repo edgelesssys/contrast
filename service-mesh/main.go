@@ -59,6 +59,11 @@ func run() (retErr error) {
 		return fmt.Errorf("failed to set up iptables rules: %w", err)
 	}
 
+	// Signal readiness for startup probe.
+	if err := os.WriteFile("/ready", nil, 0o644); err != nil {
+		return err
+	}
+
 	// execute the envoy binary
 	envoyBin, err := exec.LookPath("envoy")
 	if err != nil {
