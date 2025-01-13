@@ -336,6 +336,11 @@ func TCPSocketAction() *applycorev1.TCPSocketActionApplyConfiguration {
 	return applycorev1.TCPSocketAction()
 }
 
+// ExecAction creates a new ExecActionApplyConfiguration.
+func ExecAction() *applycorev1.ExecActionApplyConfiguration {
+	return applycorev1.ExecAction()
+}
+
 // RuntimeClassConfig wraps applypodsv1.RuntimeClassApplyConfiguration for a runtime class.
 type RuntimeClassConfig struct {
 	*applynodev1.RuntimeClassApplyConfiguration
