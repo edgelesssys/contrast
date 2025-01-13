@@ -108,13 +108,14 @@ let
       name = "service-mesh-proxy";
       tag = "v${pkgs.service-mesh.version}";
       copyToRoot = with pkgs; [
+        busybox
         envoy
         iptables-legacy
       ];
       config = {
         # Use Entrypoint so we can append arguments.
         Entrypoint = [ "${pkgs.service-mesh}/bin/service-mesh" ];
-        Env = [ "PATH=/bin" ]; # This is only here for policy generation.
+        Env = [ "PATH=/bin" ];
       };
     };
 
