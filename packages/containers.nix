@@ -62,7 +62,7 @@ let
           busybox
           cryptsetup
           e2fsprogs # mkfs.ext4
-          mount
+
           util-linux # blkid
           openssl
         ])
