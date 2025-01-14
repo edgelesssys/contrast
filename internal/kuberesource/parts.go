@@ -245,7 +245,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 				WithVerbs("watch"),
 		)
 
-	clusterRoleBinding := applyrbacv1.ClusterRoleBinding("nodeinstaller-clusterrole-binding").
+	clusterRoleBinding := applyrbacv1.ClusterRoleBinding(fmt.Sprintf("nodeinstaller-%s", runtimeHandler)).
 		WithSubjects(
 			applyrbacv1.Subject().
 				WithKind("ServiceAccount").
