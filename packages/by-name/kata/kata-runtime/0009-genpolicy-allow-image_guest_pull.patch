@@ -16,12 +16,12 @@ image reference without a digest cannot be meaningfully checked, so we
 don't even bother handling that case.
 ---
  src/tools/genpolicy/genpolicy-settings.json   |    2 +-
- src/tools/genpolicy/rules.rego                |  121 +-
+ src/tools/genpolicy/rules.rego                |  116 +-
  src/tools/genpolicy/src/policy.rs             |    4 +
  src/tools/genpolicy/tests/main.rs             |    7 +-
  .../createcontainer/guest_pull/pod.yaml       |   11 +
  .../createcontainer/guest_pull/testcases.json | 2027 +++++++++++++++++
- 6 files changed, 2151 insertions(+), 21 deletions(-)
+ 6 files changed, 2147 insertions(+), 20 deletions(-)
  create mode 100644 src/tools/genpolicy/tests/testdata/createcontainer/guest_pull/pod.yaml
  create mode 100644 src/tools/genpolicy/tests/testdata/createcontainer/guest_pull/testcases.json
 
@@ -39,7 +39,7 @@ index 0e75bac710f5ab04d5ab941a79a0484663f3ae70..1b6ab8380d16fbf71638f3965719bf3a
              "source": "local",
              "fstype": "local",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 63d5e30ac64cdd8bab94e982423646de1b8559e6..1d1808edff203b19f266bbb81f70b05ee56d76ea 100644
+index 63d5e30ac64cdd8bab94e982423646de1b8559e6..37d6cd9b3c0867900706a9e9e671d60aae559d91 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -94,7 +94,7 @@ CreateContainerRequest:= {"ops": ops, "allowed": true} {
@@ -51,7 +51,7 @@ index 63d5e30ac64cdd8bab94e982423646de1b8559e6..1d1808edff203b19f266bbb81f70b05e
  
      p_devices := p_container.devices
      allow_devices(p_devices, i_devices)
-@@ -228,38 +228,42 @@ allow_anno_key(i_key, p_oci) {
+@@ -228,38 +228,39 @@ allow_anno_key(i_key, p_oci) {
  
  # Get the value of the S_NAME_KEY annotation and
  # correlate it with other annotations and process fields.
@@ -91,19 +91,15 @@ index 63d5e30ac64cdd8bab94e982423646de1b8559e6..1d1808edff203b19f266bbb81f70b05e
      print("allow_by_sandbox_name: start")
  
 +    p_oci := p_container.OCI
-+    p_namespace := p_oci.Annotations[S_NAMESPACE_KEY]
      i_namespace := i_oci.Annotations[S_NAMESPACE_KEY]
-+    print("allow_by_sandbox_name: p_namespace =", p_namespace, "i_namespace =", i_namespace)
-+    p_namespace == i_namespace
  
--    allow_by_container_types(p_oci, i_oci, s_name, i_namespace)
+     allow_by_container_types(p_oci, i_oci, s_name, i_namespace)
 -    allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages)
-+    allow_by_container_types(p_oci, i_oci, s_name, p_namespace)
 +    allow_by_bundle_or_sandbox_id(p_container, i_oci, i_storages)
      allow_process(p_oci, i_oci, s_name)
  
      print("allow_by_sandbox_name: true")
-@@ -565,11 +569,12 @@ allow_linux_sysctl(p_linux, i_linux) {
+@@ -565,11 +566,12 @@ allow_linux_sysctl(p_linux, i_linux) {
  
  # Check the consistency of the input "io.katacontainers.pkg.oci.bundle_path"
  # and io.kubernetes.cri.sandbox-id" values with other fields.
@@ -117,7 +113,7 @@ index 63d5e30ac64cdd8bab94e982423646de1b8559e6..1d1808edff203b19f266bbb81f70b05e
      p_regex := p_oci.Annotations[key]
      sandbox_id := i_oci.Annotations[key]
  
-@@ -589,8 +594,7 @@ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) {
+@@ -589,8 +591,7 @@ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) {
          allow_mount(p_oci, i_mount, bundle_id, sandbox_id)
      }
  
@@ -127,7 +123,7 @@ index 63d5e30ac64cdd8bab94e982423646de1b8559e6..1d1808edff203b19f266bbb81f70b05e
  
      print("allow_by_bundle_or_sandbox_id: true")
  }
-@@ -888,30 +892,109 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
+@@ -888,30 +889,109 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
  ######################################################################
  # Create container Storages
  
