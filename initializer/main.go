@@ -27,6 +27,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	// workloadSecretPath is fixed path to the Contrast workload secret.
+	workloadSecretPath = "/contrast/secrets/workload-secret-seed"
+)
+
 func main() {
 	if err := execute(); err != nil {
 		os.Exit(1)
@@ -48,6 +53,9 @@ func newRootCmd() *cobra.Command {
 		Version:      constants.Version,
 	}
 	root.InitDefaultVersionFlag()
+	root.AddCommand(
+		NewCryptsetupCmd(),
+	)
 	return root
 }
 
@@ -150,7 +158,7 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	}
 
 	if len(resp.WorkloadSecret) > 0 {
-		err = os.WriteFile("/contrast/secrets/workload-secret-seed", []byte(hex.EncodeToString(resp.WorkloadSecret)), 0o400)
+		err = os.WriteFile(workloadSecretPath, []byte(hex.EncodeToString(resp.WorkloadSecret)), 0o400)
 		if err != nil {
 			return fmt.Errorf("writing workload-secret-seed: %w", err)
 		}

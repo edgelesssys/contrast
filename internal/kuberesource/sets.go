@@ -525,16 +525,13 @@ func VolumeStatefulSet() []any {
 							Container().
 								WithName("volume-tester-init").
 								WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
-								WithCommand("/bin/sh", "-c", CryptsetupInitCommand()).
+								WithArgs("cryptsetup", "--device-path", "/dev/csi0", "--mount-point", "/state").
 								WithVolumeDevices(
 									applycorev1.VolumeDevice().
 										WithName("state").
 										WithDevicePath("/dev/csi0"),
 								).
 								WithVolumeMounts(
-									VolumeMount().
-										WithName("run").
-										WithMountPath("/run"),
 									VolumeMount().
 										WithName("share").
 										WithMountPath("/state").
@@ -572,9 +569,6 @@ func VolumeStatefulSet() []any {
 								),
 						).
 						WithVolumes(
-							applycorev1.Volume().
-								WithName("run").
-								WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
 							applycorev1.Volume().
 								WithName("share").
 								WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
@@ -617,16 +611,13 @@ func MySQL() []any {
 							Container().
 								WithName("luks-setup").
 								WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
-								WithCommand("/bin/sh", "-c", CryptsetupInitCommand()).
+								WithArgs("cryptsetup", "--device-path", "/dev/csi0", "--mount-point", "/state").
 								WithVolumeDevices(
 									applycorev1.VolumeDevice().
 										WithName("state").
 										WithDevicePath("/dev/csi0"),
 								).
 								WithVolumeMounts(
-									VolumeMount().
-										WithName("run").
-										WithMountPath("/run"),
 									VolumeMount().
 										WithName("share").
 										WithMountPath("/state").
@@ -672,9 +663,6 @@ func MySQL() []any {
 								),
 						).
 						WithVolumes(
-							applycorev1.Volume().
-								WithName("run").
-								WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
 							applycorev1.Volume().
 								WithName("share").
 								WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
