@@ -31,7 +31,7 @@ func CoordinatorBundle() []any {
 
 // Runtime returns a set of resources for registering and installing the runtime.
 func Runtime(platform platforms.Platform) ([]any, error) {
-	ns := ""
+	ns := "kube-system"
 
 	runtimeClass, err := ContrastRuntimeClass(platform)
 	if err != nil {
