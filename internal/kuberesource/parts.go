@@ -553,32 +553,3 @@ func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 			"-l", "debug",
 		)
 }
-
-// CryptsetupInitCommand returns the init command for the cryptsetup
-// container to setup an encrypted LUKS mount.
-func CryptsetupInitCommand() string {
-	return `#!/bin/bash
-set -e
-# device is the path to the block device to be encrypted.
-device="/dev/csi0"
-# workload_secret_path is the path to the Contrast workload secret.
-workload_secret_path="/contrast/secrets/workload-secret-seed"
-
-if ! cryptsetup isLuks "${device}"; then
-	# cryptsetup derives the encryption key of the master key using PBKDF2 based on
-	# the workloadSecret as passphrase and a random 32 byte salt (stored in LUKS header)
-	# which ensures uniqueness of encryption key per disk.
-	cryptsetup luksFormat --pbkdf-memory=10240 $device "${workload_secret_path}" </dev/null
-	cryptsetup open "${device}" state -d "${workload_secret_path}"
-
-	# Create the ext4 filesystem on the mapper device.
-	mkfs.ext4 /dev/mapper/state
-else
-	cryptsetup open "${device}" state -d "${workload_secret_path}"
-fi
-
-mount /dev/mapper/state /state
-touch /done
-sleep inf
-`
-}
