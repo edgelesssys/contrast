@@ -99,7 +99,7 @@ jobs:
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: e2e_pod_logs-AKS-CLH-SNP-aks-runtime
-          path: workspace/logs/export/logs
+          path: workspace/logs/export-no-stream/logs
       - name: Notify teams channel of failure
         if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
         uses: ./.github/actions/post_to_teams
