@@ -118,11 +118,12 @@ populate target=default_deploy_target platform=default_platform:
 generate cli=default_cli platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
+    shopt -s nullglob
     nix run -L .#{{ cli }} -- generate \
         --workspace-dir ./{{ workspace_dir }} \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --reference-values {{ platform }}\
-        ./{{ workspace_dir }}/deployment/*.yml
+        ./{{ workspace_dir }}/deployment/*.{yml,yaml}
 
     # On baremetal SNP, we don't have default values for MinimumTCB, so we need to set some here.
     case {{ platform }} in
@@ -239,6 +240,7 @@ create platform=default_platform:
 set cli=default_cli:
     #!/usr/bin/env bash
     set -euo pipefail
+    shopt -s nullglob
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
     nix run -L .#scripts.kubectl-wait-ready -- $ns coordinator
     nix run -L .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
@@ -251,7 +253,7 @@ set cli=default_cli:
         --workspace-dir ./{{ workspace_dir }} \
         -c localhost:1313 \
         --coordinator-policy-hash "${policy}" \
-        ./{{ workspace_dir }}/deployment/*.yml
+        ./{{ workspace_dir }}/deployment/*.{yml,yaml}
 
 # Verify the Coordinator.
 verify cli=default_cli:
