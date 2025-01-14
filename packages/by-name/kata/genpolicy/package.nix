@@ -109,10 +109,7 @@ rustPlatform.buildRustPackage rec {
       '';
     };
 
-    rules-coordinator = applyPatches {
-      src = rules;
-      patches = [ ./genpolicy_rules_coordinator.patch ];
-    };
+    rules-coordinator = rules;
   };
 
   meta = {
