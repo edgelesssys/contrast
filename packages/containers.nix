@@ -57,16 +57,7 @@ let
     initializer = dockerTools.buildImage {
       name = "initializer";
       tag = "v${pkgs.contrast.version}";
-      copyToRoot =
-        (with pkgs; [
-          busybox
-          cryptsetup
-          e2fsprogs # mkfs.ext4
-          mount
-          util-linux # blkid
-          openssl
-        ])
-        ++ (with dockerTools; [ caCertificates ]);
+      copyToRoot = with dockerTools; [ caCertificates ];
       config = {
         Cmd = [ "${pkgs.contrast.initializer}/bin/initializer" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
@@ -80,6 +71,23 @@ let
         busybox
         openssl
         curlMinimal
+      ];
+      config = {
+        Cmd = [ "bash" ];
+        Env = [ "PATH=/bin" ]; # This is only here for policy generation.
+      };
+    };
+
+    cryptsetup = dockerTools.buildImage {
+      name = "cryptsetup";
+      tag = "v${pkgs.contrast.version}";
+      copyToRoot = with pkgs; [
+        busybox
+        cryptsetup
+        e2fsprogs # mkfs.ext4
+        mount
+        util-linux # blkid
+        openssl
       ];
       config = {
         Cmd = [ "bash" ];
