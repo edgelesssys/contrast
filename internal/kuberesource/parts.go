@@ -235,7 +235,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 			),
 		)
 
-	serviceAccount := applycorev1.ServiceAccount("nodeinstaller-serviceaccount", "")
+	serviceAccount := applycorev1.ServiceAccount("nodeinstaller-serviceaccount", namespace)
 
 	clusterRole := applyrbacv1.ClusterRole("nodeinstaller-clusterrole").
 		WithRules(

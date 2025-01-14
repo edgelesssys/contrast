@@ -314,7 +314,7 @@ jobs:
               'select(.kind == "StatefulSet") | .spec.template.metadata.annotations["io.katacontainers.config.agent.policy"]' |
               base64 -d | sha256sum | cut -d " " -f1 >> workspace/coordinator-policy.hash
             nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --platform $platform \
-              --namespace kube-system runtime > workspace/runtime-$platform.yml
+              runtime > workspace/runtime-$platform.yml
           done
           nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt \
             --add-load-balancers emojivoto-sm-ingress > workspace/emojivoto-demo.yml
