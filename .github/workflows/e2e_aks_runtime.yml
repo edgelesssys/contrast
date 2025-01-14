@@ -54,7 +54,7 @@ jobs:
           echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
       - name: Build and prepare deployments
         run: |
-          nix shell .#just --command just coordinator initializer port-forwarder openssl service-mesh-proxy node-installer
+          nix shell .#just --command just coordinator initializer port-forwarder openssl cryptsetup service-mesh-proxy node-installer
       # steps taken from https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-linux?pivots=apt#option-2-step-by-step-installation-instructions
       - name: Install `az` with extensions
         run: |
