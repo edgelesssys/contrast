@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform) (deploy target cli platform) set verify (wait-for-workload target)
+default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl cryptsetup port-forwarder service-mesh-proxy (node-installer platform) (deploy target cli platform) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -14,6 +14,9 @@ coordinator: (push "coordinator")
 
 # Build the openssl container and push it.
 openssl: (push "openssl")
+
+# Build the cryptsetup container and push it.
+cryptsetup: (push "cryptsetup")
 
 # Build the port-forwarder container and push it.
 port-forwarder: (push "port-forwarder")
@@ -63,7 +66,7 @@ node-installer platform=default_platform:
         ;;
     esac
 
-e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform)
+e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer cryptsetup openssl port-forwarder service-mesh-proxy (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ "{{ target }}" == "aks-runtime" ]]; then
