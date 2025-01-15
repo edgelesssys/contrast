@@ -79,9 +79,8 @@ let
                   exist =
                     if (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp") then
                       (builtins.compareVersions "v1.2.1" version) <= 0
-                    # TODO(msanft): Check back on this on v1.3.0 release
                     else if (platform == "metal-qemu-snp-gpu" || platform == "k3s-qemu-snp-gpu") then
-                      (builtins.compareVersions "v1.3.0" version) <= 0
+                      (builtins.compareVersions "v1.4.0" version) <= 0
                     else
                       (builtins.compareVersions "v1.1.0" version) <= 0;
                   coordinator = fetchurl {
