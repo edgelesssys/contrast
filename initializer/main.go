@@ -22,15 +22,36 @@ import (
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
+
+	"github.com/edgelesssys/contrast/internal/constants"
+	"github.com/spf13/cobra"
 )
 
 func main() {
-	if err := run(); err != nil {
+	if err := execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
-func run() (retErr error) {
+func execute() error {
+	cmd := newRootCmd()
+	ctx := context.Background()
+	return cmd.ExecuteContext(ctx)
+}
+
+func newRootCmd() *cobra.Command {
+	root := &cobra.Command{
+		Use:          "initializer",
+		Short:        "initializer",
+		RunE:         run,
+		SilenceUsage: true,
+		Version:      constants.Version,
+	}
+	root.InitDefaultVersionFlag()
+	return root
+}
+
+func run(cmd *cobra.Command, _ []string) (retErr error) {
 	log, err := logger.Default()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: creating logger: %v\n", err)
@@ -49,7 +70,7 @@ func run() (retErr error) {
 		return errors.New("COORDINATOR_HOST not set")
 	}
 
-	ctx := context.Background()
+	ctx := cmd.Context()
 
 	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
