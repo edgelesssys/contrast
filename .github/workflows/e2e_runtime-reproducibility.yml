@@ -43,17 +43,17 @@ jobs:
           rebuild_checksum="$(jq  -r '.manifests[0].digest' rebuild/index.json)"
           echo "$rebuild_checksum" > ${{ matrix.build-target }}-${{ matrix.os }}-rebuild_checksum.txt
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: ${{ matrix.build-target }}-${{ matrix.os }}
           path: result
       - name: Upload Build Artifacts (Rebuild)
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: ${{ matrix.build-target }}-${{ matrix.os }}-rebuild
           path: rebuild
       - name: Upload checksums
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: ${{ matrix.build-target }}-${{ matrix.os }}-checksums
           path: ${{ matrix.build-target }}-${{ matrix.os }}-*_checksum.txt
