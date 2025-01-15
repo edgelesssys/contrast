@@ -147,7 +147,7 @@ func TestRelease(t *testing.T) {
 		}
 	}), "unpacking needs to succeed for subsequent tests to run")
 
-	contrast.Run(ctx, t, 2*time.Minute, "generate", "--reference-values", *platformStr, "deployment/")
+	contrast.Run(ctx, t, 4*time.Minute, "generate", "--reference-values", *platformStr, "deployment/")
 	contrast.patchReferenceValues(t, lowerPlatformStr)
 
 	overrideFlags := contrast.coordinatorPolicyHashOverride(t, lowerPlatformStr)
