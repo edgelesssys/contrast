@@ -276,10 +276,7 @@ func PatchRuntimeHandlers(resources []any, runtimeHandler string) []any {
 
 // PatchNamespaces replaces namespaces in a set of resources.
 func PatchNamespaces(resources []any, namespace string) []any {
-	var nsPtr *string
-	if namespace != "" {
-		nsPtr = &namespace
-	}
+	nsPtr := &namespace
 	for _, resource := range resources {
 		switch r := resource.(type) {
 		case *applycorev1.PodApplyConfiguration:

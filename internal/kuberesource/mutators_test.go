@@ -18,6 +18,7 @@ func TestPatchNamespaces(t *testing.T) {
 	openssl := OpenSSL()
 	emojivoto := Emojivoto(ServiceMeshIngressEgress)
 	volumeStatefulSet := VolumeStatefulSet()
+	mysql := MySQL()
 
 	for _, tc := range []struct {
 		name string
@@ -39,6 +40,10 @@ func TestPatchNamespaces(t *testing.T) {
 			name: "volume-stateful-set",
 			set:  volumeStatefulSet,
 		},
+		{
+			name: "mysql",
+			set:  mysql,
+		},
 	} {
 		t.Run(tc.name, func(_ *testing.T) {
 			expectedNamespace := "right-namespace"
@@ -48,19 +53,6 @@ func TestPatchNamespaces(t *testing.T) {
 			require.NotEmpty(u)
 			for _, obj := range u {
 				require.Equal(expectedNamespace, obj.GetNamespace())
-			}
-		})
-		t.Run(tc.name+"-empty-namespace", func(_ *testing.T) {
-			set := PatchNamespaces(tc.set, "some-namespace")
-			set = PatchNamespaces(set, "")
-			u, err := ResourcesToUnstructured(set)
-			require.NoError(err)
-			require.NotEmpty(u)
-			for _, obj := range u {
-				meta, ok := obj.Object["metadata"].(map[string]any)
-				require.True(ok)
-				_, ok = meta["namespace"]
-				require.False(ok, "namespace should have been deleted")
 			}
 		})
 	}

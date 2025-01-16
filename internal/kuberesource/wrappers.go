@@ -313,7 +313,11 @@ type ServiceAccountConfig struct {
 
 // ServiceAccount creates a new ServiceAccountConfig.
 func ServiceAccount(name, namespace string) *ServiceAccountConfig {
-	return &ServiceAccountConfig{applycorev1.ServiceAccount(name, namespace)}
+	s := &ServiceAccountConfig{applycorev1.ServiceAccount(name, namespace)}
+	if namespace == "" && s.ObjectMetaApplyConfiguration != nil {
+		s.ObjectMetaApplyConfiguration.Namespace = nil
+	}
+	return s
 }
 
 // NamespaceConfig wraps applycorev1.NamespaceApplyConfiguration.
@@ -361,6 +365,20 @@ func Scheduling(nodeSelector map[string]string, tolerations ...*applycorev1.Tole
 	return applynodev1.Scheduling().
 		WithNodeSelector(nodeSelector).
 		WithTolerations(tolerations...)
+}
+
+// PersistentVolumeClaimConfig wraps applycorev1.PersistentVolumeClaimApplyConfiguration.
+type PersistentVolumeClaimConfig struct {
+	*applycorev1.PersistentVolumeClaimApplyConfiguration
+}
+
+// PersistentVolumeClaim constructs a new PersistentVolumeClaimConfig.
+func PersistentVolumeClaim(name, namespace string) *PersistentVolumeClaimConfig {
+	pvc := applycorev1.PersistentVolumeClaim(name, namespace)
+	if namespace == "" && pvc.ObjectMetaApplyConfiguration != nil {
+		pvc.ObjectMetaApplyConfiguration.Namespace = nil
+	}
+	return &PersistentVolumeClaimConfig{pvc}
 }
 
 func fromPtr[T any](v *T) T {
