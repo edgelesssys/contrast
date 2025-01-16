@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Thu, 23 Jan 2025 12:30:19 +0100
+Subject: [PATCH] genpolicy: support dynamic annotations
+
+This adds support for handling annotations with dynamic keys to
+genpolicy. This is necessary for use-cases like GPU containers, where
+in-cluster components (i.e. post policy-generation) instrument
+containers with annotations with varying keys, like `cdi.k8s.io/vfioXY`,
+where `XY` corresponds to a dynamic ID.
+---
+ src/tools/genpolicy/genpolicy-settings.json |  8 ++++++--
+ src/tools/genpolicy/rules.rego              | 18 +++++++++++++-----
+ src/tools/genpolicy/src/policy.rs           |  6 ++++++
+ 3 files changed, 25 insertions(+), 7 deletions(-)
+
+diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
+index 9b95f9f7462717d04f0b9ce685d97c0455f949da..7dac0e5e0585c25e324a39656d1a2dcfa12e7d96 100644
+--- a/src/tools/genpolicy/genpolicy-settings.json
++++ b/src/tools/genpolicy/genpolicy-settings.json
+@@ -309,7 +309,10 @@
+             "CAP_PERFMON",
+             "CAP_BPF",
+             "CAP_CHECKPOINT_RESTORE"
+-        ]
++        ],
++        "dynamic_annotations": {
++            "^cdi\\.k8s\\.io\\/vfio[0-9]{2}$": "^nvidia.com/gpu=[0-9]+$"
++        }
+     },
+     "kata_config": {
+         "confidential_guest": false,
+@@ -333,7 +336,8 @@
+                 "^AZURE_CLIENT_ID=[A-Fa-f0-9-]*$",
+                 "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
+                 "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
+-                "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$"
++                "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
++                "^PCI_RESOURCE_NVIDIA_COM.*=[a-fA-F0-9:.-]*$"
+             ]
+         },
+         "CopyFileRequest": [
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index 43cb19a56fe8ea5833708f0639c9e85ddd884cb3..f019589a2a62f9602858f816748158a784637928 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -199,18 +199,26 @@ allow_anno(p_oci, i_oci) {
+ }
+ allow_anno(p_oci, i_oci) {
+     print("allow_anno 2: p Annotations =", p_oci.Annotations)
++    print("allow_anno 2: p Dynamic Annotations =", policy_data.common.dynamic_annotations)
+     print("allow_anno 2: i Annotations =", i_oci.Annotations)
+ 
+-    i_keys := object.keys(i_oci.Annotations)
+-    print("allow_anno 2: i keys =", i_keys)
+-
+-    every i_key in i_keys {
+-        allow_anno_key(i_key, p_oci)
++    every i_key, i_val in i_oci.Annotations {
++        allow_anno_keyval(i_key, i_val, p_oci)
+     }
+ 
+     print("allow_anno 2: true")
+ }
+ 
++allow_anno_keyval(i_key, i_val, p_oci) {
++  allow_anno_key(i_key, p_oci)
++}
++
++allow_anno_keyval(i_key, i_val, p_oci) {
++  some p_key, p_val in policy_data.common.dynamic_annotations
++  regex.match(p_key, i_key)
++  regex.match(p_val, i_val)
++}
++
+ allow_anno_key(i_key, p_oci) {
+     print("allow_anno_key 1: i key =", i_key)
+ 
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index e2012bf6f2d80ffea678a38803d8e85f5369b9dc..80bb6a63b915fa021e60f2b1d60e4bb32b67ba19 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -392,6 +392,12 @@ pub struct CommonData {
+ 
+     /// Default capabilities for a privileged container.
+     pub privileged_caps: Vec<String>,
++
++    /// Dynamic annotations contains arbitrary metadata for the container.
++    /// It is different to `KataSpec.Annotations` in that it allows dynamic keys *and*
++    /// values, and that they are checked for *all* keys, whereas `Annotations`
++    /// only allows dynamic values, and only checks them for certain keys at all.
++    pub dynamic_annotations: BTreeMap<String, String>,
+ }
+ 
+ /// Configuration from "kubectl config".
