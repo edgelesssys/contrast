@@ -378,7 +378,12 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 
 	require.NoError(ct.Kubeclient.Apply(ctx, unstructuredResources...))
 
-	require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.DaemonSet{}, ct.Namespace, "contrast-node-installer"))
+	for _, r := range unstructuredResources {
+		if r.GetKind() != "DaemonSet" {
+			continue
+		}
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.DaemonSet{}, ct.Namespace, r.GetName()))
+	}
 }
 
 // runAgainstCoordinator forwards the coordinator port and executes the command against it.

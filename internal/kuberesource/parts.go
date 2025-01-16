@@ -47,12 +47,12 @@ type NodeInstallerConfig struct {
 
 // NodeInstaller constructs a node installer daemon set.
 func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstallerConfig, error) {
-	name := "contrast-node-installer"
-
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	if err != nil {
 		return nil, fmt.Errorf("getting default runtime handler: %w", err)
 	}
+
+	name := fmt.Sprintf("%s-nodeinstaller", runtimeHandler)
 
 	tardevSnapshotter := Container().
 		WithName("tardev-snapshotter").
@@ -204,7 +204,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 					"contrast.edgeless.systems/platform": platform.String(),
 				}).
 				WithSpec(PodSpec().
-					WithServiceAccountName("nodeinstaller-serviceaccount").
+					WithServiceAccountName(name).
 					WithHostPID(true).
 					WithInitContainers(Container().
 						WithName("installer").
@@ -235,9 +235,9 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 			),
 		)
 
-	serviceAccount := applycorev1.ServiceAccount("nodeinstaller-serviceaccount", namespace)
+	serviceAccount := applycorev1.ServiceAccount(name, namespace)
 
-	clusterRole := applyrbacv1.ClusterRole("nodeinstaller-clusterrole").
+	clusterRole := applyrbacv1.ClusterRole(name).
 		WithRules(
 			applyrbacv1.PolicyRule().
 				WithAPIGroups("").
@@ -245,17 +245,17 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 				WithVerbs("watch"),
 		)
 
-	clusterRoleBinding := applyrbacv1.ClusterRoleBinding("nodeinstaller-clusterrole-binding").
+	clusterRoleBinding := applyrbacv1.ClusterRoleBinding(name).
 		WithSubjects(
 			applyrbacv1.Subject().
 				WithKind("ServiceAccount").
-				WithName("nodeinstaller-serviceaccount").
+				WithName(name).
 				WithNamespace(namespace),
 		).
 		WithRoleRef(
 			applyrbacv1.RoleRef().
 				WithKind("ClusterRole").
-				WithName("nodeinstaller-clusterrole").
+				WithName(name).
 				WithAPIGroup("rbac.authorization.k8s.io"),
 		)
 
