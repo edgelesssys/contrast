@@ -23,7 +23,7 @@ jobs:
             documentation
             no changelog
   do-not-merge:
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'do not merge') }}
+    if: contains(github.event.pull_request.labels.*.name, 'do not merge')
     runs-on: ubuntu-22.04
     steps:
       - name: prevent merge
