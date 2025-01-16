@@ -124,6 +124,13 @@ buildGoModule rec {
       # TODO(msanft): Get native CDI working, which will allow us to drop this patch / undo the revert.
       # See https://dev.azure.com/Edgeless/Edgeless/_workitems/edit/5061
       ./0019-agent-remove-CDI-support.patch
+
+      # This adds support for annotations with dynamic keys *and* values to Genpolicy.
+      # This is required for e.g. GPU containers, which get annotated by an in-cluster
+      # component (i.e. after policy generation based on the Pod spec) with an annotation
+      # like `cdi.k8s.io/vfioXY`, where `XY` corresponds to a dynamic ID.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10745
+      ./0020-genpolicy-support-dynamic-annotations.patch
     ];
   };
 
