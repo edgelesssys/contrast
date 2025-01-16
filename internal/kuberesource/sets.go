@@ -745,3 +745,39 @@ done
 		client,
 	}
 }
+
+// GPU returns the resources for deploying a GPU test pod.
+func GPU() []any {
+	tester := Deployment("gpu-tester", "").
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "gpu-tester"}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": "gpu-tester"}).
+				WithAnnotations(map[string]string{
+					"io.katacontainers.config.hypervisor.default_memory": "15258",
+					"cdi.k8s.io/gpu": "nvidia.com/pgpu=0",
+				}).
+				WithSpec(PodSpec().
+					WithContainers(
+						Container().
+							WithName("gpu-tester").
+							WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04").
+							WithCommand("/bin/sh", "-c", "sleep inf").
+							WithEnv(EnvVar().
+								WithName("NVIDIA_VISIBLE_DEVICES").WithValue("all"),
+							).
+							WithResources(ResourceRequirements().
+								WithLimits(corev1.ResourceList{
+									corev1.ResourceName("nvidia.com/GH100_H100_PCIE"): resource.MustParse("1"),
+								}),
+							),
+					),
+				),
+			),
+		)
+
+	return []any{tester}
+}
