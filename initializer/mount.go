@@ -28,6 +28,7 @@ const (
 	encryptionPassphrasePrefix = "/dev/shm/disk-key"
 )
 
+// luksVolume struct holds the representative attributes related to a LUKS encrypted volume.
 type luksVolume struct {
 	devicePath           string
 	mappingName          string
@@ -41,13 +42,27 @@ func must(err error) {
 	}
 }
 
-// NewSetupEncryptedMountCmd creates a Cobra subcommand of the initializer to set up specified encrypted volumes.
+// NewSetupEncryptedMountCmd creates a Cobra subcommand of the initializer to set up the specified encrypted LUKS volume.
 func NewSetupEncryptedMountCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "setupEncryptedMount -d [device-path] -m [mount-point]",
-		Short: "",
-		Long:  "",
-		RunE:  setupEncryptedMount,
+		Short: "setupEncryptedMount on block device at [device-path] with decrypted mapper device at [mount-point]",
+		Long: `Set up an LUKS encrypted VolumeMount on the provided VolumeDevice
+		located at the specified [device-path] and mount the decrypted mapper
+		device to the provided [mount-point].
+
+		In certain deployments, we require a persistent volume claim configured
+		as block storage to be encrypted by the initializer binary.
+		Therefore we expose the defined PVC as a block VolumeDevice to our
+		initializer container. This allows the initializer to setup the
+		encryption on the block device located at [device-path] using cryptsetup,
+		the encryption passphrase is derived from the UUID of the LUKS formatted
+		block device and the current workload secret.
+
+		The mapped decrypted block device can then be shared with other containers
+		on the pod by setting up a shared VolumeMount on the specified [mount-point],
+		where the mapper device will be mounted to.`,
+		RunE: setupEncryptedMount,
 	}
 	cmd.Flags().StringP("device-path", "d", "/dev/csi0", "path to the volume device to be encrypted")
 	cmd.Flags().StringP("mount-point", "m", "/state", "mount point of decrypted mapper device")
@@ -90,7 +105,6 @@ func setupEncryptedMount(cmd *cobra.Command, _ []string) error {
 	}
 	ctx := cmd.Context()
 	if !isLuks(ctx, logger, luksVolume.devicePath) {
-		// TODO(jmxnzo) might just use stdin instead for the initial passphrase generation
 		if err := createInitPassphrase(tmpPassphrase); err != nil {
 			return err
 		}
@@ -228,7 +242,6 @@ func createEncryptionPassphrase(ctx context.Context, luksVolume *luksVolume, wor
 	if err != nil {
 		return fmt.Errorf("reading workload secret: %w", err)
 	}
-	print(string(workloadSecretBytes))
 	// Using UUID of the LUKS device ensures to not derive the same encryption key for multiple devices,
 	// still allowing reconstruction when UUID of device is known.
 	err = os.WriteFile(luksVolume.encryptionPassphrase, []byte(blk.UUID+string(workloadSecretBytes)), 0o644)
