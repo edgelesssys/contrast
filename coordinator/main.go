@@ -20,6 +20,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
+	"github.com/edgelesssys/contrast/internal/mount"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -56,7 +57,7 @@ func run() (retErr error) {
 
 	logger.Info("Coordinator started")
 
-	if err := setupMount(context.Background(), logger); err != nil {
+	if err := mount.SetupMount(context.Background(), logger, "/dev/csi0", "/mnt/state"); err != nil {
 		return fmt.Errorf("setting up mount: %w", err)
 	}
 
