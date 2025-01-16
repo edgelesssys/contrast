@@ -165,7 +165,7 @@ func TestOpenSSL(t *testing.T) {
 			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/sh", "-c", opensslConnectCmd("openssl-backend:443", meshCAFile)})
 			t.Log("openssl with wrong certificates:", stdout)
 			require.Error(err)
-			require.Contains(stderr, "self-signed certificate in certificate chain")
+			require.Contains(stderr, "self-signed certificate in certificate chain", "err: %s", err)
 
 			// Connect from backend to fronted, because the frontend does not require client certs.
 			// This should succeed because the root cert did not change.
