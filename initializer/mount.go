@@ -7,17 +7,15 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
 	"os/signal"
-	"strconv"
-	"strings"
 	"syscall"
 
 	"github.com/edgelesssys/contrast/internal/logger"
+	"github.com/edgelesssys/contrast/internal/mount"
 	"github.com/spf13/cobra"
 )
 
@@ -128,7 +126,7 @@ func setupEncryptedMount(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 	// The decrypted devices with <name> will always be mapped to /dev/mapper/<name> by default.
-	if err := setupMount(ctx, logger, "/dev/mapper/"+luksVolume.mappingName, luksVolume.volumeMountPoint); err != nil {
+	if err := mount.SetupMount(ctx, logger, "/dev/mapper/"+luksVolume.mappingName, luksVolume.volumeMountPoint); err != nil {
 		return err
 	}
 
@@ -141,77 +139,6 @@ func setupEncryptedMount(cmd *cobra.Command, _ []string) error {
 	<-signalChan
 
 	return nil
-}
-
-// setupMount mounts the csi device to the state disk mount point.
-func setupMount(ctx context.Context, logger *slog.Logger, devPath, mountPath string) error {
-	blk, err := blkid(ctx, devPath)
-	if errors.Is(err, errNotIdentified) {
-		logger.Info("csi device not identified, assuming first start, formatting", "device", devPath)
-		if err := mkfsExt4(ctx, devPath); err != nil {
-			return err
-		}
-	} else if err != nil {
-		return err
-	} else if blk.Type != "ext4" {
-		logger.Info("csi device is not ext4, assuming first start, formatting", "device", devPath)
-		if err := mkfsExt4(ctx, devPath); err != nil {
-			return err
-		}
-	}
-
-	if err := mount(ctx, devPath, mountPath); err != nil {
-		return err
-	}
-	logger.Info("csi device mounted to state disk mount point", "dev", devPath, "mountPoint", mountPath)
-
-	return nil
-}
-
-type blk struct {
-	DevName   string
-	UUID      string
-	BlockSize int
-	Type      string
-}
-
-var errNotIdentified = errors.New("blkid did not identify the device")
-
-func blkid(ctx context.Context, devName string) (*blk, error) {
-	cmd := exec.CommandContext(ctx, "blkid", "-o", "export", devName)
-	out, err := cmd.CombinedOutput()
-	var exitErr *exec.ExitError
-	if errors.As(err, &exitErr) && exitErr.ExitCode() == 2 {
-		// See man page, sec return code.
-		return nil, errNotIdentified
-	} else if err != nil {
-		return nil, fmt.Errorf("blkid: %w, output: %q", err, out)
-	}
-	lines := strings.Split(string(out), "\n")
-	b := &blk{}
-	for _, line := range lines {
-		if line == "" {
-			continue
-		}
-		key, value, ok := strings.Cut(line, "=")
-		if !ok {
-			return nil, fmt.Errorf("parsing blkid output line %q: %w", line, err)
-		}
-		switch key {
-		case "DEVNAME":
-			b.DevName = value
-		case "UUID":
-			b.UUID = value
-		case "TYPE":
-			b.Type = value
-		case "BLOCK_SIZE":
-			b.BlockSize, err = strconv.Atoi(value)
-			if err != nil {
-				return nil, fmt.Errorf("parsing BLOCK_SIZE of blkid output %q: %w", value, err)
-			}
-		}
-	}
-	return b, nil
 }
 
 func mkfsExt4(ctx context.Context, devName string) error {
@@ -234,7 +161,7 @@ func createInitPassphrase(pathToPassphrase string) (err error) {
 
 // createEncryptionPassphrase writes the UUID of the device and the current workload secret to the path of encryptionPassphrase in luksVolume.
 func createEncryptionPassphrase(ctx context.Context, luksVolume *luksVolume, workloadSecretPath string) error {
-	blk, err := blkid(ctx, luksVolume.devicePath)
+	blk, err := mount.Blkid(ctx, luksVolume.devicePath)
 	if err != nil {
 		return err
 	}
@@ -288,19 +215,6 @@ func luksChangeKey(ctx context.Context, devName, oldKeyPath, newKeyPath string) 
 	_, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("cryptsetup luksChangeKey %s failed: %w", devName, err)
-	}
-	return nil
-}
-
-func mount(ctx context.Context, devName, mountPoint string) error {
-	if err := os.MkdirAll(mountPoint, 0o755); err != nil {
-		return fmt.Errorf("mkdir: %w", err)
-	}
-	cmd := exec.CommandContext(ctx, "mount", devName, mountPoint)
-
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("mount: %w, output: %q", err, out)
 	}
 	return nil
 }
