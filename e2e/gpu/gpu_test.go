@@ -6,7 +6,6 @@
 package gpu
 
 import (
-	"bytes"
 	"context"
 	"flag"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
+	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -21,8 +21,8 @@ import (
 )
 
 const (
-	gpuPodName = "gpu-pod"
-	gpuName    = "NVIDIA H100 PCIe"
+	gpuDeploymentName = "gpu-tester"
+	gpuName           = "NVIDIA H100 PCIe"
 )
 
 // TestGPU runs e2e tests on an GPU-enabled Contrast.
@@ -34,7 +34,7 @@ func TestGPU(t *testing.T) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
-	resources := kuberesource.OpenSSL()
+	resources := kuberesource.GPU()
 	coordinator := kuberesource.CoordinatorBundle()
 
 	resources = append(resources, coordinator...)
@@ -52,31 +52,20 @@ func TestGPU(t *testing.T) {
 
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-	applyGPUPod := func(t *testing.T) {
-		yaml, err := os.ReadFile("./e2e/gpu/testdata/gpu-pod.yaml")
-		require.NoError(t, err)
-
-		yaml = bytes.ReplaceAll(
-			bytes.ReplaceAll(yaml, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace)),
-			[]byte("@@REPLACE_RUNTIME@@"), []byte(ct.RuntimeClassName),
-		)
-
-		ct.ApplyFromYAML(t, yaml)
-	}
-
-	require.True(t, t.Run("apply GPU pod", applyGPUPod), "GPU pod needs to deploy successfully for subsequent tests")
-
 	t.Run("check GPU availability", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(5*time.Minute))
 		defer cancel()
 
 		require := require.New(t)
 
-		err := ct.Kubeclient.WaitForPod(ctx, ct.Namespace, gpuPodName)
-		require.NoError(err, "GPU pod %s did not start", gpuPodName)
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, gpuDeploymentName))
+
+		pods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, gpuDeploymentName)
+		require.NoError(err)
+		require.Len(pods, 1, "pod not found: %s/%s", ct.Namespace, gpuDeploymentName)
 
 		argv := []string{"/bin/sh", "-c", "nvidia-smi"}
-		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, gpuPodName, argv)
+		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, pods[0].Name, argv)
 		require.NoError(err, "stderr: %q", stderr)
 
 		require.Contains(stdout, gpuName, "nvidia-smi output should contain %s", gpuName)
