@@ -1,18 +1,18 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index 4e9f6481d..64f16a760 100644
+index 50406e8ac..77f13c4d3 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -333,7 +333,8 @@
-                 "^AZURE_CLIENT_ID=[A-Fa-f0-9-]*$",
+@@ -337,7 +337,8 @@
                  "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
--                "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$"
-+                "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
+                 "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
+-                "^PCI_RESOURCE_NVIDIA_COM.*=[a-fA-F0-9:.-]*$"
++                "^PCI_RESOURCE_NVIDIA_COM.*=[a-fA-F0-9:.-]*$",
 +                "^CONTRAST_[A-Z0-9_]*=.*$"
              ]
          },
          "CopyFileRequest": [
-@@ -341,11 +342,13 @@
+@@ -345,11 +346,13 @@
          ],
          "ExecProcessRequest": {
              "allowed_commands": [],
