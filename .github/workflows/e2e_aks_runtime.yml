@@ -101,7 +101,7 @@ jobs:
           name: e2e_pod_logs-AKS-CLH-SNP-aks-runtime
           path: workspace/logs/export/logs
       - name: Notify teams channel of failure
-        if: ${{ failure() && github.event_name == 'schedule' && github.run_attempt == 1 }}
+        if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
         uses: ./.github/actions/post_to_teams
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
