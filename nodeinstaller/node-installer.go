@@ -21,6 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/config"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/constants"
 	"github.com/pelletier/go-toml/v2"
+	"github.com/pmezard/go-difflib/difflib"
 )
 
 func main() {
@@ -250,6 +251,16 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	}
 
 	fmt.Printf("Patching containerd config at %s\n", configPath)
+	diff := difflib.UnifiedDiff{
+		A:        difflib.SplitLines(string(existingRaw)),
+		B:        difflib.SplitLines(string(rawConfig)),
+		FromFile: configPath,
+		ToFile:   configPath,
+		Context:  3,
+	}
+	if diffText, err := difflib.GetUnifiedDiffString(diff); err == nil {
+		fmt.Println(diffText)
+	}
 	return os.WriteFile(configPath, rawConfig, 0o666)
 }
 
