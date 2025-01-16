@@ -523,7 +523,8 @@ func VolumeStatefulSet() []any {
 							Container().
 								WithName("volume-tester-init").
 								WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
-								WithCommand("/bin/sh", "-c", CryptsetupInitCommand()).
+								WithEnv(NewEnvVar("COORDINATOR_HOST", "coordinator")).
+								WithArgs("setupEncryptedMount", "--device-path", "/dev/csi0", "--mount-point", "/state").
 								WithVolumeDevices(
 									applycorev1.VolumeDevice().
 										WithName("state").

@@ -68,7 +68,7 @@ let
         ])
         ++ (with dockerTools; [ caCertificates ]);
       config = {
-        Cmd = [ "${pkgs.contrast.initializer}/bin/initializer" ];
+        Entrypoint = [ "${pkgs.contrast.initializer}/bin/initializer" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
       };
     };

@@ -1,13 +1,12 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// TODO drop this again adding subcommand
-//
-//nolint:unused
 package main
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -17,6 +16,9 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/edgelesssys/contrast/internal/logger"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -29,12 +31,64 @@ const (
 type luksVolume struct {
 	devicePath           string
 	mappingName          string
-	volumeMountPath      string
+	volumeMountPoint     string
 	encryptionPassphrase string
 }
 
-// TODO(jmxnzo) this should be a cobra command/ rework command
-func setupEncryptedMount(ctx context.Context, logger *slog.Logger, luksVolume *luksVolume) error {
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
+// NewSetupEncryptedMountCmd creates a Cobra subcommand of the initializer to set up specified encrypted volumes.
+func NewSetupEncryptedMountCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "setupEncryptedMount -d [device-path] -m [mount-point]",
+		Short: "",
+		Long:  "",
+		RunE:  setupEncryptedMount,
+	}
+	cmd.Flags().StringP("device-path", "d", "/dev/csi0", "path to the volume device to be encrypted")
+	cmd.Flags().StringP("mount-point", "m", "/state", "mount point of decrypted mapper device")
+	must(cmd.MarkFlagRequired("device-path"))
+	must(cmd.MarkFlagRequired("mount-point"))
+
+	return cmd
+}
+
+// parseSetupEncryptedMountFlags returns a luksVolume, representing the provided flags to the subcommand, which is then used to setup the encrypted volume mount.
+func parseSetupEncryptedMountFlags(cmd *cobra.Command) (*luksVolume, error) {
+	devicePath, err := cmd.Flags().GetString("device-path")
+	if err != nil {
+		return nil, err
+	}
+	mountPoint, err := cmd.Flags().GetString("mount-point")
+	if err != nil {
+		return nil, err
+	}
+	hash := md5.Sum([]byte(devicePath + mountPoint))
+	mappingName := hex.EncodeToString(hash[:8])
+	return &luksVolume{
+		devicePath:           devicePath,
+		mappingName:          mappingName,
+		volumeMountPoint:     mountPoint,
+		encryptionPassphrase: encryptionPassphrasePrefix + mappingName,
+	}, nil
+}
+
+// setupEncryptedMount sets up an encrypted LUKS volume mount using the device path and mount point, provided to the setupEncryptedMount subcommand.
+func setupEncryptedMount(cmd *cobra.Command, _ []string) error {
+	logger, err := logger.Default()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: creating logger: %v\n", err)
+		return err
+	}
+	luksVolume, err := parseSetupEncryptedMountFlags(cmd)
+	if err != nil {
+		return fmt.Errorf("parsing setupEncryptedMount flags: %w", err)
+	}
+	ctx := cmd.Context()
 	if !isLuks(ctx, logger, luksVolume.devicePath) {
 		// TODO(jmxnzo) might just use stdin instead for the initial passphrase generation
 		if err := createInitPassphrase(tmpPassphrase); err != nil {
@@ -60,7 +114,7 @@ func setupEncryptedMount(ctx context.Context, logger *slog.Logger, luksVolume *l
 		return err
 	}
 	// The decrypted devices with <name> will always be mapped to /dev/mapper/<name> by default.
-	if err := setupMount(ctx, logger, "/dev/mapper/"+luksVolume.mappingName, luksVolume.volumeMountPath); err != nil {
+	if err := setupMount(ctx, logger, "/dev/mapper/"+luksVolume.mappingName, luksVolume.volumeMountPoint); err != nil {
 		return err
 	}
 

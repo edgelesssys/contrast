@@ -53,6 +53,9 @@ func newRootCmd() *cobra.Command {
 		Version:      constants.Version,
 	}
 	root.InitDefaultVersionFlag()
+	root.AddCommand(
+		NewSetupEncryptedMountCmd(),
+	)
 	return root
 }
 
