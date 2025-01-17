@@ -141,15 +141,6 @@ func setupEncryptedMount(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-func mkfsExt4(ctx context.Context, devName string) error {
-	cmd := exec.CommandContext(ctx, "mkfs.ext4", devName)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("mkfs.ext4: %w, output: %q", err, out)
-	}
-	return nil
-}
-
 // createInitPassphrase creates a hardcoded string passphrase, to allow formatting the device to LUKS in order to get the UUID.
 func createInitPassphrase(pathToPassphrase string) (err error) {
 	err = os.WriteFile(pathToPassphrase, []byte("init_passphrase"), 0o644)
