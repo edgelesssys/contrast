@@ -10,13 +10,13 @@
 
 buildGoModule rec {
   pname = "kata-runtime";
-  version = "3.2.0.azl3";
+  version = "3.2.0.azl4";
 
   src = fetchFromGitHub {
     owner = "microsoft";
     repo = "kata-containers";
-    rev = version;
-    hash = "sha256-GWaFDwe1Nl0RzY24IndAh8P/U4ld0CBnUWYJKfhAwqQ=";
+    tag = version;
+    hash = "sha256-pr4QXGswkwy4lgVAqOtnfqi5CRFymhHKOMdWF/MZudI=";
   };
 
   sourceRoot = "${src.name}/src/runtime";
