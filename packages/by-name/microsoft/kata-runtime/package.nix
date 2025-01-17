@@ -11,14 +11,14 @@
 
 buildGoModule (finalAttrs: {
   pname = "kata-runtime";
-  version = "3.2.0.azl3";
+  version = "3.2.0.azl4";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "microsoft";
       repo = "kata-containers";
-      rev = finalAttrs.version;
-      hash = "sha256-GWaFDwe1Nl0RzY24IndAh8P/U4ld0CBnUWYJKfhAwqQ=";
+      tag = finalAttrs.version;
+      hash = "sha256-wgWLf61FLM3I98WvJww5HC0KJGRUnUloIKJZs8EnVA4=";
     };
 
     patches = [
