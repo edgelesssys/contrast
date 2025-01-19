@@ -24,16 +24,16 @@
     "hash": "sha256-xy3NTfx4doQNZyzw2flp7ObWz0HkpGXySQ54DAYV8H8="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/ca-certificates-2.0.0-18.cm2.noarch.rpm",
-    "hash": "sha256-3TvuEZmvV8e3zIRidySAmN+S9MGxMkkL4KXZIj4K9Cs="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/ca-certificates-2.0.0-19.cm2.noarch.rpm",
+    "hash": "sha256-afD9PgC+7pQZacDmwsOzQTwfnsGhsO4bbqpEjZ5Jyao="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/ca-certificates-shared-2.0.0-18.cm2.noarch.rpm",
-    "hash": "sha256-dsrWaCbMCuboHv6rFu67DtCdJXvYhZ4fsqurFelHZos="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/ca-certificates-shared-2.0.0-19.cm2.noarch.rpm",
+    "hash": "sha256-UtPFOpZcoX6KjKvW/IQITGHp58MwFN5grn9Ubo9VSdg="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/ca-certificates-tools-2.0.0-18.cm2.noarch.rpm",
-    "hash": "sha256-WaoZIgiht1Ml4sdox7HcN8ToPeGHEYhD2HzzAksRPmg="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/ca-certificates-tools-2.0.0-19.cm2.noarch.rpm",
+    "hash": "sha256-FQm5eNmrs3kFDKDqpVMBkQf1g8pIWwVlNLhIYxM0LUI="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/chkconfig-1.20-4.cm2.x86_64.rpm",
@@ -80,8 +80,8 @@
     "hash": "sha256-6J0kkncYa8YMXqdBHb7Ed6a15FL1fbmTaRAa9nBRrxE="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/d/dbus-1.15.6-1.cm2.x86_64.rpm",
-    "hash": "sha256-wckUbLIkZlarlQBtxI+vZoHPGAdG4dd0cHuDem+b+Q8="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/d/dbus-1.15.6-2.cm2.x86_64.rpm",
+    "hash": "sha256-/VAQMO98azroESmGARs6trdqdalJH69CZl5bUUxQGaE="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/d/device-mapper-2.03.15-3.cm2.x86_64.rpm",
@@ -360,8 +360,8 @@
     "hash": "sha256-yAfK4yvqbuXyyUivDPh8dt98M0ajqqgzmby2ajBO1FU="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/t/tzdata-2024a-1.cm2.noarch.rpm",
-    "hash": "sha256-OOfIUtDsDkrDSdJEC5FoM9TFA3FznvowI1ucaI+ToQg="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/t/tzdata-2024b-1.cm2.noarch.rpm",
+    "hash": "sha256-vjUqNchWde93MJHLmvXhvxeVYXM/vH5qcTqtL87LRh8="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/u/util-linux-2.37.4-9.cm2.x86_64.rpm",
