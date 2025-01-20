@@ -113,6 +113,7 @@ let
     gpgcheck=0
     enabled=1
   '';
+
   buildimage = writeShellApplication {
     name = "buildimage";
     runtimeInputs = [
@@ -123,8 +124,8 @@ let
     text = builtins.readFile ./buildimage.sh;
   };
 
-  rootfs-combined-tar = stdenv.mkDerivation rec {
-    pname = "kata-image";
+  rootfsTar = stdenv.mkDerivation rec {
+    pname = "kata-image-rootfs.tar";
     inherit (microsoft.genpolicy) src version;
 
     env = {
@@ -140,7 +141,6 @@ let
       bubblewrap
       util-linux
       tdnf
-      buildimage
     ];
 
     sourceRoot = "${src.name}/tools/osbuilder/rootfs-builder";
@@ -187,6 +187,13 @@ let
 
     dontPatchELF = true;
   };
+
+  rootfsCombinedTar = runCommand "rootfs-combined.tar" { nativeBuildInputs = [ gnutar ]; } ''
+    cp ${rootfsTar} $out
+    chmod +w $out
+    tar --concatenate --file=$out ${rootfsExtraTree}
+    tar --concatenate --file=$out ${closureTar}
+  '';
 in
 
 stdenv.mkDerivation rec {
@@ -219,10 +226,8 @@ stdenv.mkDerivation rec {
   buildPhase = ''
     runHook preBuild
 
-    cp ${rootfs-combined-tar} /build/rootfs.tar
+    cp ${rootfsCombinedTar} /build/rootfs.tar
     chmod +w /build/rootfs.tar
-    tar --concatenate --file=/build/rootfs.tar ${rootfsExtraTree}
-    tar --concatenate --file=/build/rootfs.tar ${closureTar}
 
     # convert tar to a squashfs image with dm-verity hash
     ${lib.getExe buildimage} /build/rootfs.tar .
