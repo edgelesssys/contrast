@@ -1,13 +1,13 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index fd998a41b..ba362a77d 100755
+index ce3e905792..b5ae14b575 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -319,7 +319,8 @@
-                 "^AZURE_CLIENT_ID=[A-Fa-f0-9-]*$",
+@@ -332,7 +332,8 @@
                  "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
--                "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$"
-+                "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
+                 "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
+-                "^TERM=xterm$"
++                "^TERM=xterm$",
 +                "^CONTRAST_[A-Z0-9_]*=.*$"
              ]
          },
