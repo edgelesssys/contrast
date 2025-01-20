@@ -118,6 +118,12 @@ buildGoModule rec {
       # See: https://github.com/kata-containers/kata-containers/pull/10719
       # TODO(msanft): Remove once upstream PR is released.
       ./0018-runtime-use-actual-booleans-for-QMP-device_add-boole.patch
+
+      # Revert CDI support in kata-agent, which breaks legacy mode GPU facilitation which
+      # we currently use.
+      # TODO(msanft): Get native CDI working, which will allow us to drop this patch / undo the revert.
+      # See https://dev.azure.com/Edgeless/Edgeless/_workitems/edit/5061
+      ./0019-agent-remove-CDI-support.patch
     ];
   };
 
