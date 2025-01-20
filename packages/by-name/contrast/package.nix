@@ -203,7 +203,8 @@ buildGoModule rec {
     install -D ${kata.genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-kata.json
   '';
 
-  CGO_ENABLED = 0;
+  env.CGO_ENABLED = 0;
+
   ldflags = [
     "-s"
     "-X github.com/edgelesssys/contrast/internal/constants.Version=v${version}"
