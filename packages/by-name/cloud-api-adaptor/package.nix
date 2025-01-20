@@ -70,7 +70,7 @@ buildGoModule rec {
     "cmd/process-user-data"
   ];
 
-  CGO_ENABLED = if withLibvirt then 1 else 0;
+  env.CGO_ENABLED = if withLibvirt then 1 else 0;
 
   tags = builtinCloudProviders;
 
