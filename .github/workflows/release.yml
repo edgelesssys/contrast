@@ -247,6 +247,7 @@ jobs:
           coordinatorImg=$(nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator")
           nodeInstallerMsftImg=$(nix run .#containers.push-node-installer-microsoft -- "$container_registry/contrast/node-installer-microsoft")
           nodeInstallerKataImg=$(nix run .#containers.push-node-installer-kata -- "$container_registry/contrast/node-installer-kata")
+          nodeInstallerKataGPUImg=$(nix run .#containers.push-node-installer-kata-gpu -- "$container_registry/contrast/node-installer-kata")
           initializerImg=$(nix run .#containers.push-initializer -- "$container_registry/contrast/initializer")
           serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy")
           tardevSnapshotterImg=$(nix run .#containers.push-tardev-snapshotter -- "$container_registry/contrast/tardev-snapshotter")
@@ -256,6 +257,7 @@ jobs:
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerKataImg=$nodeInstallerKataImg" | tee -a "$GITHUB_ENV"
+          echo "nodeInstallerKataGPUImg=$nodeInstallerKataGPUImg" | tee -a "$GITHUB_ENV"
           echo "initializerImg=$initializerImg" | tee -a "$GITHUB_ENV"
           echo "serviceMeshImg=$serviceMeshImg" | tee -a "$GITHUB_ENV"
           echo "tardevSnapshotterImg=$tardevSnapshotterImg" | tee -a "$GITHUB_ENV"
@@ -272,6 +274,7 @@ jobs:
           echo "coordinatorImgTagged=$(tag "$coordinatorImg")" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerMsftImgTagged=$(tag "$nodeInstallerMsftImg")" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerKataImgTagged=$(tag "$nodeInstallerKataImg")" | tee -a "$GITHUB_ENV"
+          echo "nodeInstallerKataGPUImgTagged=$(tag "$nodeInstallerKataGPUImg")" | tee -a "$GITHUB_ENV"
           echo "initializerImgTagged=$(tag "$initializerImg")" | tee -a "$GITHUB_ENV"
           echo "serviceMeshImgTagged=$(tag "$serviceMeshImg")" | tee -a "$GITHUB_ENV"
           echo "nydusPullImgTagged=$(tag "$nydusPullImg")" | tee -a "$GITHUB_ENV"
@@ -294,6 +297,7 @@ jobs:
             echo "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged"
             echo "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=$nodeInstallerMsftImgTagged"
             echo "ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged"
             echo "ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged"
             echo "ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest=$nydusSnapshotterImgTagged"
             echo "ghcr.io/edgelesssys/contrast/nydus-pull:latest=$nydusPullImgTagged"
