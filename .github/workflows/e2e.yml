@@ -70,7 +70,7 @@ jobs:
           echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
       - name: Build and prepare deployments
         run: |
-          just coordinator initializer port-forwarder openssl cryptsetup service-mesh-proxy node-installer ${{ inputs.platform }}
+          just coordinator initializer port-forwarder openssl service-mesh-proxy node-installer ${{ inputs.platform }}
       - name: E2E Test
         run: |
           nix build .#scripts.get-logs
