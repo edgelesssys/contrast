@@ -31,4 +31,19 @@ final: prev:
         --set SOURCE_DATE_EPOCH 0
     '';
   });
+
+  # Fixes a dangling symlink in the libnvidia-container package that confuses
+  # the nvidia-container-toolkit.
+  # TODO(msanft): Remove once https://github.com/NixOS/nixpkgs/pull/375291 is merged and
+  # pulled into Contrast.
+  libnvidia-container = prev.libnvidia-container.overrideAttrs (prev: {
+    postFixup = ''
+      # Recreate library symlinks which ldconfig would have created
+      for lib in libnvidia-container libnvidia-container-go; do
+        rm -f "$out/lib/$lib.so"
+        ln -s "$out/lib/$lib.so.${prev.version}" "$out/lib/$lib.so.1"
+        ln -s "$out/lib/$lib.so.1" "$out/lib/$lib.so"
+      done
+    '';
+  });
 }
