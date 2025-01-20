@@ -62,13 +62,13 @@ let
           busybox
           cryptsetup
           e2fsprogs # mkfs.ext4
-          mount
+
           util-linux # blkid
           openssl
         ])
         ++ (with dockerTools; [ caCertificates ]);
       config = {
-        Cmd = [ "${pkgs.contrast.initializer}/bin/initializer" ];
+        Entrypoint = [ "${pkgs.contrast.initializer}/bin/initializer" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
       };
     };
