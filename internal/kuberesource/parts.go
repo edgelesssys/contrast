@@ -553,36 +553,46 @@ func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 func CryptsetupInitCommand() string {
 	return `#!/bin/bash
 set -e
+
+# Regarding https://man7.org/linux/man-pages/man8/cryptsetup.8.html
+# passphrase <=> key in this document, not an actual cryptographic key
+
 # device is the path to the block device to be encrypted.
 device="/dev/csi0"
 # workload_secret_path is the path to the Contrast workload secret.
 workload_secret_path="/contrast/secrets/workload-secret-seed"
+
 # tmp_key_path is the path to a temporary key file.
 tmp_key_path="/dev/shm/key"
 # disk_encryption_key_path is the path to the disk encryption key.
 disk_encryption_key_path="/dev/shm/disk-key"
 
-# If the device is not already a LUKS device, format it.
+# (First initialization)
 if ! cryptsetup isLuks "${device}"; then
-	# Generate a random key for the first initialization.
-	dd if=/dev/urandom bs=1 count=32 2>/dev/null | base64 -w0 > "${tmp_key_path}"
+	# First init requires formatting to LUKS to allow getting the uuid of LUKS block device.
+	echo "init_passphrase" > "${tmp_key_path}"
 	cryptsetup luksFormat --pbkdf-memory=10240 $device "${tmp_key_path}" </dev/null
 
-	uuid=$(blkid "${device}" -s UUID -o value)
-	openssl kdf -keylen 32 -kdfopt digest:SHA2-256 -kdfopt hexkey:$(cat "${workload_secret_path}") \
-		-kdfopt info:${uuid} -binary HKDF | base64 -w0 > "${disk_encryption_key_path}" 2>/dev/null
+	# Generate passphrase based on workload secret and uuid of LUKS device.
+	cat "${workload_secret_path}" > "${disk_encryption_key_path}"
+	cryptsetup luksUUID "${device}" >> "${disk_encryption_key_path}"
+
+	# Change the encryption key to use derived passphrase.
 	cryptsetup luksChangeKey --pbkdf-memory=10240 "${device}" --key-file "${tmp_key_path}" "${disk_encryption_key_path}"
+
 	cryptsetup open "${device}" state -d "${disk_encryption_key_path}"
+
+	# Create the ext4 filesystem on the mapper device.
 	mkfs.ext4 /dev/mapper/state
-	cryptsetup close state
+else
+	# (Everytime)
+	# Generate passphrase based on workload secret and uuid of LUKS device.
+	cat "${workload_secret_path}" > "${disk_encryption_key_path}"
+	cryptsetup luksUUID "${device}" >> "${disk_encryption_key_path}"
+	cryptsetup open "${device}" state -d "${disk_encryption_key_path}"
 fi
 
-# No matter if this is the first initialization derive the key (again) and open the device.
-uuid=$(blkid "${device}" -s UUID -o value)
-openssl kdf -keylen 32 -kdfopt digest:SHA2-256 -kdfopt hexkey:$(cat "${workload_secret_path}") \
-	-kdfopt info:${uuid} -binary HKDF | base64 -w0 > "${disk_encryption_key_path}" 2>/dev/null
 cryptsetup luksUUID "${device}"
-cryptsetup open "${device}" state -d "${disk_encryption_key_path}"
 mount /dev/mapper/state /state
 touch /done
 sleep inf
