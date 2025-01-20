@@ -22,17 +22,26 @@
   cryptsetup,
   closureInfo,
   erofs-utils,
+  gnutar,
+  runCommand,
 }:
 
 let
-  # toplevelNixDeps are packages that get installed to the rootfs of the image
-  # they are used to determine the (nix) closure of the rootfs
-  toplevelNixDeps = [ microsoft.kata-agent ];
-  nixClosure = builtins.toString (
-    lib.strings.splitString "\n" (
-      builtins.readFile "${closureInfo { rootPaths = toplevelNixDeps; }}/store-paths"
-    )
-  );
+    nixClosure =
+    let
+      # toplevelNixDeps are packages that get installed to the rootfs of the image
+      # they are used to determine the (nix) closure of the rootfs
+      toplevelNixDeps = [ microsoft.kata-agent ];
+    in
+    builtins.toString (
+      lib.strings.splitString "\n" (
+        builtins.readFile "${closureInfo { rootPaths = toplevelNixDeps; }}/store-paths"
+      )
+    );
+  closureTar = runCommand "closure.tar" { nativeBuildInputs = [ gnutar ]; } ''
+    tar --hard-dereference --transform 's+^+./+' -cf $out --mtime="@$SOURCE_DATE_EPOCH" --sort=name ${nixClosure}
+  '';
+
   rootfsExtraTree = stdenvNoCC.mkDerivation {
     pname = "rootfs-extra-tree";
     inherit (microsoft.genpolicy) src version;
@@ -180,13 +189,10 @@ stdenv.mkDerivation rec {
 
     # add the extra tree to the rootfs
     tar --concatenate --file=/build/rootfs.tar ${rootfsExtraTree}
-    # add the closure to the rootfs
-    tar --hard-dereference --transform 's+^+./+' -cf /build/closure.tar --mtime="@$SOURCE_DATE_EPOCH" --sort=name ${nixClosure}
-    # combine the rootfs and the closure
-    tar --concatenate --file=/build/rootfs.tar /build/closure.tar
+    tar --concatenate --file=/build/rootfs.tar ${closureTar}
 
     # convert tar to a squashfs image with dm-verity hash
-    ${lib.getExe buildimage} /build/rootfs.tar $out
+    ${lib.getExe buildimage} /build/rootfs.tar .
 
     runHook postBuild
   '';
@@ -194,10 +200,17 @@ stdenv.mkDerivation rec {
   postInstall = ''
     # split outputs into raw image (out) and dm-verity data (verity)
     mkdir -p $verity
-    mv $out/{dm_verity.txt,roothash,salt,hash_type,data_blocks,data_block_size,hash_blocks,hash_block_size,hash_algorithm} $verity/
-    mv $out/raw.img /build/raw.img
-    rm -rf $out
-    mv /build/raw.img $out
+    mv dm_verity.txt \
+      roothash \
+      salt \
+      hash_type \
+      data_blocks \
+      data_block_size \
+      hash_blocks \
+      hash_block_size \
+      hash_algorithm \
+      $verity/
+    mv raw.img $out
   '';
   dontPatchELF = true;
 }
