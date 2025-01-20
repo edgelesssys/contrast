@@ -75,28 +75,16 @@ let
       (builtins.baseNameOf p.url)
     ]
   );
+  rpmMirror = runCommand "rpm-mirror" { nativeBuildInputs = [ createrepo_c ]; } ''
+    mkdir -p $out/packages
+    for source in ${builtins.concatStringsSep " " rpmSources}; do
+      path=$(echo $source | cut -d'#' -f1)
+      filename=$(echo $source | cut -d'#' -f2)
+      ln -s "$path" "$out/packages/$filename"
+    done
 
-  rpmMirror = stdenvNoCC.mkDerivation {
-    name = "mirror";
-    dontUnpack = true;
-    nativeBuildInputs = [ createrepo_c ];
-    buildPhase = ''
-      runHook preBuild
-
-      mkdir -p $out/packages
-      for source in ${builtins.concatStringsSep " " rpmSources}; do
-        path=$(echo $source | cut -d'#' -f1)
-        filename=$(echo $source | cut -d'#' -f2)
-        ln -s "$path" "$out/packages/$filename"
-      done
-
-      createrepo_c --revision 0 --set-timestamp-to-revision --basedir packages $out
-
-      runHook postBuild
-    '';
-    dontPatchELF = true;
-  };
-
+    createrepo_c --revision 0 --set-timestamp-to-revision --basedir packages $out
+  '';
   tdnfConf = writeText "tdnf.conf" ''
     [main]
     gpgcheck=1
