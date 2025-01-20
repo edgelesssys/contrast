@@ -27,7 +27,7 @@
 }:
 
 let
-    nixClosure =
+  nixClosure =
     let
       # toplevelNixDeps are packages that get installed to the rootfs of the image
       # they are used to determine the (nix) closure of the rootfs
@@ -66,6 +66,7 @@ let
     dontInstall = true;
     dontPatchELF = true;
   };
+
   packageIndex = builtins.fromJSON (builtins.readFile ./package-index.json);
   rpmSources = lib.forEach packageIndex (
     p:
@@ -75,7 +76,7 @@ let
     ]
   );
 
-  mirror = stdenvNoCC.mkDerivation {
+  rpmMirror = stdenvNoCC.mkDerivation {
     name = "mirror";
     dontUnpack = true;
     nativeBuildInputs = [ createrepo_c ];
@@ -107,7 +108,7 @@ let
   vendor-reposdir = writeTextDir "yum.repos.d/cbl-mariner-2-vendor.repo" ''
     [cbl-mariner-2.0-prod-base-x86_64-yum]
     name=cbl-mariner-2.0-prod-base-x86_64-yum
-    baseurl=file://${mirror}
+    baseurl=file://${rpmMirror}
     repo_gpgcheck=0
     gpgcheck=0
     enabled=1
@@ -120,6 +121,71 @@ let
       cryptsetup
     ];
     text = builtins.readFile ./buildimage.sh;
+  };
+
+  rootfs-combined-tar = stdenv.mkDerivation rec {
+    pname = "kata-image";
+    inherit (microsoft.genpolicy) src version;
+
+    env = {
+      AGENT_SOURCE_BIN = "${lib.getExe microsoft.kata-agent}";
+      CONF_GUEST = "yes";
+      RUST_VERSION = "not-needed";
+    };
+
+    nativeBuildInputs = [
+      yq-go
+      curl
+      fakeroot
+      bubblewrap
+      util-linux
+      tdnf
+      buildimage
+    ];
+
+    sourceRoot = "${src.name}/tools/osbuilder/rootfs-builder";
+
+    buildPhase = ''
+      runHook preBuild
+
+      # use a fakeroot environment to build the rootfs as a tar
+      # this is required to create files with the correct ownership and permissions
+      # including suid
+      # Upstream build invokation:
+      # https://github.com/microsoft/azurelinux/blob/59ce246f224f282b3e199d9a2dacaa8011b75a06/SPECS/kata-containers-cc/mariner-coco-build-uvm.sh#L18
+      mkdir -p /build/var/run
+      mkdir -p /build/var/tdnf
+      mkdir -p /build/var/lib/tdnf
+      mkdir -p /build/var/cache/tdnf
+      mkdir -p /build/root
+      unshare --map-root-user bwrap \
+        --bind /nix /nix \
+        --bind ${tdnfConf} /etc/tdnf/tdnf.conf \
+        --bind ${vendor-reposdir}/yum.repos.d /etc/yum.repos.d \
+        --bind /build /build \
+        --bind /build/var /var \
+        --dev-bind /dev/null /dev/null \
+        fakeroot bash -c "bash $(pwd)/rootfs.sh -r /build/root ${distro} && \
+          tar \
+            --exclude='./usr/lib/systemd/system/systemd-coredump@*' \
+            --exclude='./usr/lib/systemd/system/systemd-journald*' \
+            --exclude='./usr/lib/systemd/system/systemd-journald-dev-log*' \
+            --exclude='./usr/lib/systemd/system/systemd-journal-flush*' \
+            --exclude='./usr/lib/systemd/system/systemd-random-seed*' \
+            --exclude='./usr/lib/systemd/system/systemd-timesyncd*' \
+            --exclude='./usr/lib/systemd/system/systemd-tmpfiles-setup*' \
+            --exclude='./usr/lib/systemd/system/systemd-update-utmp*' \
+            --exclude='*systemd-bless-boot-generator*' \
+            --exclude='*systemd-fstab-generator*' \
+            --exclude='*systemd-getty-generator*' \
+            --exclude='*systemd-gpt-auto-generator*' \
+            --exclude='*systemd-tmpfiles-cleanup.timer*' \
+            --sort=name --mtime='UTC 1970-01-01' -C /build/root -c . -f $out"
+
+      runHook postBuild
+    '';
+
+    dontPatchELF = true;
   };
 in
 
@@ -153,41 +219,8 @@ stdenv.mkDerivation rec {
   buildPhase = ''
     runHook preBuild
 
-    # use a fakeroot environment to build the rootfs as a tar
-    # this is required to create files with the correct ownership and permissions
-    # including suid
-    # Upstream build invokation:
-    # https://github.com/microsoft/azurelinux/blob/59ce246f224f282b3e199d9a2dacaa8011b75a06/SPECS/kata-containers-cc/mariner-coco-build-uvm.sh#L18
-    mkdir -p /build/var/run
-    mkdir -p /build/var/tdnf
-    mkdir -p /build/var/lib/tdnf
-    mkdir -p /build/var/cache/tdnf
-    mkdir -p /build/root
-    unshare --map-root-user bwrap \
-      --bind /nix /nix \
-      --bind ${tdnfConf} /etc/tdnf/tdnf.conf \
-      --bind ${vendor-reposdir}/yum.repos.d /etc/yum.repos.d \
-      --bind /build /build \
-      --bind /build/var /var \
-      --dev-bind /dev/null /dev/null \
-      fakeroot bash -c "bash $(pwd)/rootfs.sh -r /build/root ${distro} && \
-        tar \
-          --exclude='./usr/lib/systemd/system/systemd-coredump@*' \
-          --exclude='./usr/lib/systemd/system/systemd-journald*' \
-          --exclude='./usr/lib/systemd/system/systemd-journald-dev-log*' \
-          --exclude='./usr/lib/systemd/system/systemd-journal-flush*' \
-          --exclude='./usr/lib/systemd/system/systemd-random-seed*' \
-          --exclude='./usr/lib/systemd/system/systemd-timesyncd*' \
-          --exclude='./usr/lib/systemd/system/systemd-tmpfiles-setup*' \
-          --exclude='./usr/lib/systemd/system/systemd-update-utmp*' \
-          --exclude='*systemd-bless-boot-generator*' \
-          --exclude='*systemd-fstab-generator*' \
-          --exclude='*systemd-getty-generator*' \
-          --exclude='*systemd-gpt-auto-generator*' \
-          --exclude='*systemd-tmpfiles-cleanup.timer*' \
-          --sort=name --mtime='UTC 1970-01-01' -C /build/root -c . -f /build/rootfs.tar"
-
-    # add the extra tree to the rootfs
+    cp ${rootfs-combined-tar} /build/rootfs.tar
+    chmod +w /build/rootfs.tar
     tar --concatenate --file=/build/rootfs.tar ${rootfsExtraTree}
     tar --concatenate --file=/build/rootfs.tar ${closureTar}
 
