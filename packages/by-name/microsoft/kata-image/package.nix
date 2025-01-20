@@ -196,41 +196,26 @@ let
   '';
 in
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   pname = "kata-image";
-  inherit (microsoft.genpolicy) src version;
+  inherit (microsoft.genpolicy) version;
+
+  dontUnpack = true;
 
   outputs = [
     "out"
     "verity"
   ];
 
-  env = {
-    AGENT_SOURCE_BIN = "${lib.getExe microsoft.kata-agent}";
-    CONF_GUEST = "yes";
-    RUST_VERSION = "not-needed";
-  };
-
   nativeBuildInputs = [
-    yq-go
-    curl
-    fakeroot
-    bubblewrap
-    util-linux
-    tdnf
     buildimage
+    util-linux
   ];
-
-  sourceRoot = "${src.name}/tools/osbuilder/rootfs-builder";
 
   buildPhase = ''
     runHook preBuild
 
-    cp ${rootfsCombinedTar} /build/rootfs.tar
-    chmod +w /build/rootfs.tar
-
-    # convert tar to a squashfs image with dm-verity hash
-    ${lib.getExe buildimage} /build/rootfs.tar .
+    ${lib.getExe buildimage} ${rootfsCombinedTar} .
 
     runHook postBuild
   '';
@@ -251,4 +236,13 @@ stdenv.mkDerivation rec {
     mv raw.img $out
   '';
   dontPatchELF = true;
+
+  passthru = {
+    inherit
+      rootfsTar
+      closureTar
+      rootfsExtraTree
+      rootfsCombinedTar
+      ;
+  };
 }
