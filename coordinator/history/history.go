@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"hash"
 	"os"
-	"sync/atomic"
 
 	"github.com/spf13/afero"
 )
@@ -29,7 +28,6 @@ const (
 type History struct {
 	store      Store
 	hashFun    func() hash.Hash
-	signingKey atomic.Pointer[ecdsa.PrivateKey]
 }
 
 // New creates a new History backed by the default filesystem store.
@@ -52,11 +50,6 @@ func NewWithStore(store Store) *History {
 		panic("mismatch between hashSize and hash function size")
 	}
 	return h
-}
-
-// ConfigureSigningKey sets the signing key for validation and signing of the protected history parts.
-func (h *History) ConfigureSigningKey(signingKey *ecdsa.PrivateKey) {
-	h.signingKey.Store(signingKey)
 }
 
 // GetManifest returns the manifest for the given hash.
@@ -97,12 +90,8 @@ func (h *History) SetTransition(transition *Transition) ([HashSize]byte, error) 
 	return h.setContentaddressed("transitions/%s", transition.marshalBinary())
 }
 
-// GetLatest returns the verified transition for the given hash.
-func (h *History) GetLatest() (*LatestTransition, error) {
-	signingKey := h.signingKey.Load()
-	if signingKey == nil {
-		return nil, errors.New("signing key not configured")
-	}
+// GetLatest verifies the latest transition with the given public key and returns it.
+func (h *History) GetLatest(pubKey *ecdsa.PublicKey) (*LatestTransition, error) {
 	transitionBytes, err := h.store.Get("transitions/latest")
 	if err != nil {
 		return nil, fmt.Errorf("getting latest transition: %w", err)
@@ -111,7 +100,7 @@ func (h *History) GetLatest() (*LatestTransition, error) {
 	if err := latestTransition.unmarshalBinary(transitionBytes); err != nil {
 		return nil, fmt.Errorf("unmarshaling latest transition: %w", err)
 	}
-	if err := latestTransition.verify(&signingKey.PublicKey); err != nil {
+	if err := latestTransition.verify(pubKey); err != nil {
 		return nil, fmt.Errorf("verifying latest transition: %w", err)
 	}
 	return &latestTransition, nil
@@ -130,11 +119,7 @@ func (h *History) HasLatest() (bool, error) {
 }
 
 // SetLatest signs and sets the latest transition if the current latest is equal to oldT.
-func (h *History) SetLatest(oldT, newT *LatestTransition) error {
-	signingKey := h.signingKey.Load()
-	if signingKey == nil {
-		return errors.New("signing key not configured")
-	}
+func (h *History) SetLatest(oldT, newT *LatestTransition, signingKey *ecdsa.PrivateKey) error {
 	if err := newT.sign(signingKey); err != nil {
 		return fmt.Errorf("signing latest transition: %w", err)
 	}

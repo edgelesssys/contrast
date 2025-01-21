@@ -123,7 +123,7 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 	}
 	nextLatest := &history.LatestTransition{TransitionHash: nextTransitionHash}
 
-	if err := a.hist.SetLatest(oldLatest, nextLatest); err != nil {
+	if err := a.hist.SetLatest(oldLatest, nextLatest, a.se.Load().TransactionSigningKey()); err != nil {
 		return nil, status.Errorf(codes.Internal, "setting latest: %v", err)
 	}
 
