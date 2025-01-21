@@ -48,7 +48,7 @@ func IngressIPTableRules(ingressEntries []ingressConfigEntry) error {
 
 	// RETURN all local traffic from the CONTRAST_INBOUND chain back to the PREROUTING chain.
 	if err := iptablesExec.AppendUnique("mangle", "CONTRAST_INBOUND", "-p", "tcp", "-i", "lo", "-j", "RETURN"); err != nil {
-		return fmt.Errorf("failed to append dport exception to CONTRAST_INBOUND chain: %w", err)
+		return fmt.Errorf("failed to append local traffic exception to CONTRAST_INBOUND chain: %w", err)
 	}
 	// RETURN all related and established traffic.
 	// Since the mangle table executes on every packet and not just before the
