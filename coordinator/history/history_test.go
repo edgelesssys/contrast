@@ -70,17 +70,6 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 			wantErr:       true,
 			wantHasLatest: true,
 		},
-		"signing key missing": {
-			fsContent: map[string]string{
-				"transitions/latest": fromHex(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"+"304502210081e237315253991b496bdef5516527533a2bf828bae70a068be38ed612d5b90802207067b76f0a98e72282b276379e3b4d2857a37beea012c1bb3be9902cfc2d510c"),
-			},
-			wantT: LatestTransition{
-				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
-				signature:      []byte(fromHex(rq, "304502210081e237315253991b496bdef5516527533a2bf828bae70a068be38ed612d5b90802207067b76f0a98e72282b276379e3b4d2857a37beea012c1bb3be9902cfc2d510c")),
-			},
-			wantErr:       true,
-			wantHasLatest: true,
-		},
 	}
 
 	t.Run("GetLatest", func(t *testing.T) {
@@ -98,9 +87,8 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 					store:   NewAferoStore(&fs),
 					hashFun: sha256.New,
 				}
-				h.signingKey.Store(tc.signingKey)
 
-				gotT, err := h.GetLatest()
+				gotT, err := h.GetLatest(&tc.signingKey.PublicKey)
 
 				if tc.wantErr {
 					require.Error(err)
@@ -127,7 +115,6 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 					store:   NewAferoStore(&fs),
 					hashFun: sha256.New,
 				}
-				h.signingKey.Store(tc.signingKey)
 
 				got, err := h.HasLatest()
 
@@ -212,19 +199,6 @@ func TestHistory_SetLatest(t *testing.T) {
 			fsRo:    true,
 			wantErr: true,
 		},
-		"signing key missing": {
-			fsContent: map[string]string{
-				"transitions/latest": fromHex(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824") + "+sig",
-			},
-			oldT: &LatestTransition{
-				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
-				signature:      []byte("+sig"),
-			},
-			newT: &LatestTransition{
-				TransitionHash: strToHash(rq, "486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7"),
-			},
-			wantErr: true,
-		},
 	}
 
 	for name, tc := range testCases {
@@ -243,9 +217,8 @@ func TestHistory_SetLatest(t *testing.T) {
 				store:   NewAferoStore(&fs),
 				hashFun: sha256.New,
 			}
-			h.signingKey.Store(tc.signingKey)
 
-			err := h.SetLatest(tc.oldT, tc.newT)
+			err := h.SetLatest(tc.oldT, tc.newT, tc.signingKey)
 
 			if tc.wantErr {
 				require.Error(err)

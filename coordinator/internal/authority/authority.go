@@ -68,7 +68,6 @@ func (m *Authority) initSeedEngine(seed, salt []byte) error {
 	if !m.se.CompareAndSwap(nil, seedEngine) {
 		return ErrAlreadyRecovered
 	}
-	m.hist.ConfigureSigningKey(m.se.Load().TransactionSigningKey())
 	return nil
 }
 
@@ -91,7 +90,7 @@ func (m *Authority) syncState() error {
 	}
 
 	oldState := m.state.Load()
-	latest, err := m.hist.GetLatest()
+	latest, err := m.hist.GetLatest(&se.TransactionSigningKey().PublicKey)
 	if err != nil {
 		return fmt.Errorf("getting latest transition: %w", err)
 	}
