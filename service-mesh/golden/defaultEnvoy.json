@@ -1,0 +1,223 @@
+{
+  "staticResources": {
+    "listeners": [
+      {
+        "name": "ingress",
+        "address": {
+          "socketAddress": {
+            "address": "0.0.0.0",
+            "portValue": 15006
+          }
+        },
+        "filterChains": [
+          {
+            "filters": [
+              {
+                "name": "ingress",
+                "typedConfig": {
+                  "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                  "statPrefix": "ingress",
+                  "cluster": "IngressCluster"
+                }
+              }
+            ],
+            "transportSocket": {
+              "name": "envoy.transport_sockets.tls",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+                "commonTlsContext": {
+                  "tlsCertificates": [
+                    {
+                      "certificateChain": {
+                        "filename": "/contrast/tls-config/certChain.pem"
+                      },
+                      "privateKey": {
+                        "filename": "/contrast/tls-config/key.pem"
+                      }
+                    }
+                  ],
+                  "validationContext": {
+                    "trustedCa": {
+                      "filename": "/contrast/tls-config/mesh-ca.pem"
+                    }
+                  }
+                },
+                "requireClientCertificate": true
+              }
+            },
+            "name": "ingress"
+          },
+          {
+            "filters": [
+              {
+                "name": "BlackHoleFilter",
+                "typedConfig": {
+                  "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                  "statPrefix": "BlackHoleCluster",
+                  "cluster": "BlackHoleCluster"
+                }
+              }
+            ],
+            "name": "BlackHoleFilter"
+          }
+        ],
+        "filterChainMatcher": {
+          "matcherTree": {
+            "input": {
+              "name": "port",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.matching.common_inputs.network.v3.DestinationPortInput"
+              }
+            },
+            "exactMatchMap": {
+              "map": {
+                "15006": {
+                  "action": {
+                    "name": "forwardToBlackHoleFilter",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/google.protobuf.StringValue",
+                      "value": "BlackHoleFilter"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "onNoMatch": {
+            "action": {
+              "name": "forwardToIngress",
+              "typedConfig": {
+                "@type": "type.googleapis.com/google.protobuf.StringValue",
+                "value": "ingress"
+              }
+            }
+          }
+        },
+        "listenerFilters": [
+          {
+            "name": "tcpListener",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst"
+            }
+          }
+        ],
+        "transparent": true
+      },
+      {
+        "name": "ingressWithoutClientAuth",
+        "address": {
+          "socketAddress": {
+            "address": "0.0.0.0",
+            "portValue": 15007
+          }
+        },
+        "filterChains": [
+          {
+            "filters": [
+              {
+                "name": "ingress",
+                "typedConfig": {
+                  "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                  "statPrefix": "ingressWithoutClientAuth",
+                  "cluster": "IngressCluster"
+                }
+              }
+            ],
+            "transportSocket": {
+              "name": "envoy.transport_sockets.tls",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+                "commonTlsContext": {
+                  "tlsCertificates": [
+                    {
+                      "certificateChain": {
+                        "filename": "/contrast/tls-config/certChain.pem"
+                      },
+                      "privateKey": {
+                        "filename": "/contrast/tls-config/key.pem"
+                      }
+                    }
+                  ],
+                  "validationContext": {
+                    "trustedCa": {
+                      "filename": "/contrast/tls-config/mesh-ca.pem"
+                    }
+                  }
+                },
+                "requireClientCertificate": false
+              }
+            },
+            "name": "ingressWithoutClientAuth"
+          },
+          {
+            "filters": [
+              {
+                "name": "BlackHoleFilter",
+                "typedConfig": {
+                  "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                  "statPrefix": "BlackHoleCluster",
+                  "cluster": "BlackHoleCluster"
+                }
+              }
+            ],
+            "name": "BlackHoleFilter"
+          }
+        ],
+        "filterChainMatcher": {
+          "matcherTree": {
+            "input": {
+              "name": "port",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.matching.common_inputs.network.v3.DestinationPortInput"
+              }
+            },
+            "exactMatchMap": {
+              "map": {
+                "15007": {
+                  "action": {
+                    "name": "forwardToBlackHoleFilter",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/google.protobuf.StringValue",
+                      "value": "BlackHoleFilter"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "onNoMatch": {
+            "action": {
+              "name": "forwardToIngress",
+              "typedConfig": {
+                "@type": "type.googleapis.com/google.protobuf.StringValue",
+                "value": "ingressWithoutClientAuth"
+              }
+            }
+          }
+        },
+        "listenerFilters": [
+          {
+            "name": "tcpListener",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.filters.listener.original_dst.v3.OriginalDst"
+            }
+          }
+        ],
+        "transparent": true
+      }
+    ],
+    "clusters": [
+      {
+        "name": "IngressCluster",
+        "type": "ORIGINAL_DST",
+        "lbPolicy": "CLUSTER_PROVIDED",
+        "dnsLookupFamily": "V4_ONLY"
+      },
+      {
+        "name": "BlackHoleCluster",
+        "type": "STATIC",
+        "connectTimeout": "10s"
+      }
+    ]
+  }
+}
