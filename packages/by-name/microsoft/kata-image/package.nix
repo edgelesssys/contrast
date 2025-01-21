@@ -163,6 +163,7 @@ let
             --exclude='./usr/lib/systemd/system/systemd-timesyncd*' \
             --exclude='./usr/lib/systemd/system/systemd-tmpfiles-setup*' \
             --exclude='./usr/lib/systemd/system/systemd-update-utmp*' \
+            --exclude='./nix/store' \
             --exclude='*systemd-bless-boot-generator*' \
             --exclude='*systemd-fstab-generator*' \
             --exclude='*systemd-getty-generator*' \
