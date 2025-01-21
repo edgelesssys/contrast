@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -65,11 +66,11 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 	if err := json.Unmarshal(manifestBytes, &m); err != nil {
 		return fmt.Errorf("failed to unmarshal manifest: %w", err)
 	}
-	workloadOwnerKey, err := loadWorkloadOwnerKey(flags.workloadOwnerKeyPath, nil, log)
+	seedShareOwnerKey, err := loadSeedShareOwnerKey(flags.seedShareOwnerKeyPath)
 	if err != nil {
-		return fmt.Errorf("loading workload owner key: %w", err)
+		return fmt.Errorf("loading seedshare owner key: %w", err)
 	}
-	seed, salt, err := decryptedSeedFromShares(flags.seedSharesFilename, flags.seedShareOwnerKeyPath)
+	seed, salt, err := decryptedSeedFromShares(seedShareOwnerKey, flags.seedSharesFilename)
 	if err != nil {
 		return fmt.Errorf("decrypting seed: %w", err)
 	}
@@ -85,7 +86,7 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("getting validators: %w", err)
 	}
 
-	dialer := dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, workloadOwnerKey)
+	dialer := dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, seedShareOwnerKey)
 
 	log.Debug("Dialing coordinator", "endpoint", flags.coordinator)
 	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
@@ -118,15 +119,19 @@ type recoverFlags struct {
 	workspaceDir          string
 }
 
-func decryptedSeedFromShares(seedSharesPath, seedShareOwnerKeyPath string) ([]byte, []byte, error) {
+func loadSeedShareOwnerKey(seedShareOwnerKeyPath string) (*rsa.PrivateKey, error) {
 	keyBytes, err := os.ReadFile(seedShareOwnerKeyPath)
 	if err != nil {
-		return nil, nil, fmt.Errorf("reading seedshare owner key: %w", err)
+		return nil, fmt.Errorf("reading seedshare owner key: %w", err)
 	}
 	key, err := manifest.ParseSeedshareOwnerPrivateKey(keyBytes)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
+	return key, nil
+}
+
+func decryptedSeedFromShares(key *rsa.PrivateKey, seedSharesPath string) ([]byte, []byte, error) {
 	pubHexStr := manifest.MarshalSeedShareOwnerKey(&key.PublicKey).String()
 	var seedShareDoc userapi.SeedShareDocument
 	seedShareBytes, err := os.ReadFile(seedSharesPath)
