@@ -33,6 +33,14 @@ az feature register \
     --name "KataCcIsolationPreview"
 ```
 
+Also enable the feature flag to disable SSH access to the AKS node (recommended, not required):
+
+```bash
+az feature register \
+  --namespace "Microsoft.ContainerService" \
+  --name "DisableSSHPreview"
+```
+
 The registration can take a few minutes. The status of the operation can be checked with the following
 command, which should show the registration state as `Registered`:
 
@@ -40,6 +48,10 @@ command, which should show the registration state as `Registered`:
 az feature show \
     --namespace "Microsoft.ContainerService" \
     --name "KataCcIsolationPreview" \
+    --output table
+az feature show \
+    --namespace "Microsoft.ContainerService" \
+    --name "DisableSSHPreview" \
     --output table
 ```
 
@@ -99,7 +111,7 @@ az aks create \
   --node-vm-size Standard_DC4as_cc_v5 \
   --workload-runtime KataCcIsolation \
   --node-count 1 \
-  --generate-ssh-keys
+  --ssh-access disabled
 ```
 
 Finally, update your kubeconfig with the credentials to access the cluster:
