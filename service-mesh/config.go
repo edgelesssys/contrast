@@ -7,9 +7,13 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"slices"
 	"strconv"
 	"strings"
+	"time"
 
+	envoyXDSCoreV3 "github.com/cncf/xds/go/xds/core/v3"
+	envoyXDSMatcherV3 "github.com/cncf/xds/go/xds/type/matcher/v3"
 	envoyConfigBootstrapV3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoyConfigClusterV3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoyCoreV3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -17,13 +21,20 @@ import (
 	envoyConfigListenerV3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoyOrigDstV3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_dst/v3"
 	envoyConfigTCPProxyV3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
+	envoyConfigNetworkV3 "github.com/envoyproxy/go-control-plane/envoy/extensions/matching/common_inputs/network/v3"
 	envoyTLSV3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var loopbackCIDR = netip.MustParsePrefix("127.0.0.1/8")
+
+const (
+	blackHoleClusterName = "BlackHoleCluster"
+	ingressClusterName   = "IngressCluster"
+)
 
 // ProxyConfig represents the configuration for the proxy.
 type ProxyConfig struct {
@@ -169,17 +180,17 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 	}
 
 	// Create listeners and clusters for ingress traffic.
-	ingrListenerClientAuth, err := ingressListener("ingress", 15006, true)
+	ingrListenerClientAuth, err := ingressListener("ingress", EnvoyIngressPort, true)
 	if err != nil {
 		return nil, err
 	}
-	ingrListenerNoClientAuth, err := ingressListener("ingressWithoutClientAuth", 15007, false)
+	ingrListenerNoClientAuth, err := ingressListener("ingressWithoutClientAuth", EnvoyIngressPortNoClientCert, false)
 	if err != nil {
 		return nil, err
 	}
 
 	ingressCluster := &envoyConfigClusterV3.Cluster{
-		Name:                 "ingress",
+		Name:                 ingressClusterName,
 		ClusterDiscoveryType: &envoyConfigClusterV3.Cluster_Type{Type: envoyConfigClusterV3.Cluster_ORIGINAL_DST},
 		DnsLookupFamily:      envoyConfigClusterV3.Cluster_V4_ONLY,
 		LbPolicy:             envoyConfigClusterV3.Cluster_CLUSTER_PROVIDED,
@@ -191,6 +202,10 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 
 	config.StaticResources.Listeners = listeners
 	config.StaticResources.Clusters = clusters
+
+	if err := addBlackHoleToConfig(config, []int{EnvoyIngressPort, EnvoyIngressPortNoClientCert}); err != nil {
+		return nil, err
+	}
 
 	if err := config.ValidateAll(); err != nil {
 		return nil, err
@@ -231,9 +246,10 @@ func listener(entry egressConfigEntry) (*envoyConfigListenerV3.Listener, error) 
 		},
 		FilterChains: []*envoyConfigListenerV3.FilterChain{
 			{
+				Name: entry.name,
 				Filters: []*envoyConfigListenerV3.Filter{
 					{
-						Name: "envoy.filters.network.tcp_proxy",
+						Name: "ingress",
 						ConfigType: &envoyConfigListenerV3.Filter_TypedConfig{
 							TypedConfig: proxyAny,
 						},
@@ -288,7 +304,7 @@ func cluster(entry egressConfigEntry) (*envoyConfigClusterV3.Cluster, error) {
 func ingressListener(name string, listenPort uint16, requireClientCertificate bool) (*envoyConfigListenerV3.Listener, error) {
 	ingressListener, err := listener(egressConfigEntry{
 		name:        name,
-		clusterName: "ingress",
+		clusterName: ingressClusterName,
 		listenAddr:  netip.MustParseAddr("0.0.0.0"),
 		listenPort:  listenPort,
 	})
@@ -303,7 +319,7 @@ func ingressListener(name string, listenPort uint16, requireClientCertificate bo
 	}
 	ingressListener.ListenerFilters = []*envoyConfigListenerV3.ListenerFilter{
 		{
-			Name:       "envoy.filters.listener.original_dst",
+			Name:       "tcpListener",
 			ConfigType: &envoyConfigListenerV3.ListenerFilter_TypedConfig{TypedConfig: originalDstAny},
 		},
 	}
@@ -394,6 +410,135 @@ func downstreamTLSTransportSocket(requireClientCertificate bool) (*envoyCoreV3.T
 		Name: "envoy.transport_sockets.tls",
 		ConfigType: &envoyCoreV3.TransportSocket_TypedConfig{
 			TypedConfig: tlsAny,
+		},
+	}, nil
+}
+
+func addBlackHoleToConfig(config *envoyConfigBootstrapV3.Bootstrap, listenerPorts []int) error {
+	// Add blackHoleCluster
+	config.StaticResources.Clusters = append(config.StaticResources.Clusters, blackHoleCluster())
+
+	// Add BlackHole matching to all listeners
+	for _, listener := range config.StaticResources.Listeners {
+		if listener.FilterChainMatcher != nil {
+			return fmt.Errorf("listener %s already has a filterChainMatcher", listener.Name)
+		}
+		listenPort := listener.Address.GetSocketAddress().GetPortValue()
+		if listenPort == 0 {
+			return fmt.Errorf("listener %s listens on port 0", listener.Name)
+		}
+		if !slices.Contains(listenerPorts, int(listenPort)) {
+			// listener is none of the ingress listeners
+			continue
+		}
+		if len(listener.FilterChains) != 1 {
+			return fmt.Errorf("listener %s doesn't have exactly one existing listener", listener.Name)
+		}
+		var err error
+		listener.FilterChainMatcher, err = filterChainMatcher(int(listenPort), listener.FilterChains[0].GetName())
+		if err != nil {
+			return fmt.Errorf("could not add filterChainMatcher to listener %s: %w", listener.Name, err)
+		}
+
+		bhFilter, err := blackHoleFilter()
+		if err != nil {
+			return err
+		}
+		listener.FilterChains = append(listener.FilterChains, bhFilter)
+	}
+	return nil
+}
+
+// Blackhole traffic that arrives on the original destination listerners,
+// which original port is the envoy itself, i.e. traffic that was not redirected
+// to the envoy via the TROXY iptables rule. Such traffic would lead to a
+// traffic storm since envoy would connect to the original destination
+// i.e. itself again. Instead of using the original destination envoy cluster
+// we forward this traffic to the blackhole cluster, which is
+// "STATIC" but has no static endpoints, therefore envoy drops this traffic.
+// see: https://istio.io/latest/blog/2019/monitoring-external-service-traffic/#what-are-blackhole-and-passthrough-clusters
+func blackHoleCluster() *envoyConfigClusterV3.Cluster {
+	return &envoyConfigClusterV3.Cluster{
+		Name: blackHoleClusterName,
+		ClusterDiscoveryType: &envoyConfigClusterV3.Cluster_Type{
+			Type: envoyConfigClusterV3.Cluster_STATIC,
+		},
+		ConnectTimeout: durationpb.New(10 * time.Second),
+	}
+}
+
+func blackHoleFilter() (*envoyConfigListenerV3.FilterChain, error) {
+	blackHole := &envoyConfigTCPProxyV3.TcpProxy{
+		StatPrefix: blackHoleClusterName,
+		ClusterSpecifier: &envoyConfigTCPProxyV3.TcpProxy_Cluster{
+			Cluster: blackHoleClusterName,
+		},
+	}
+
+	blackHoleAny, err := anypb.New(blackHole)
+	if err != nil {
+		return nil, err
+	}
+
+	return &envoyConfigListenerV3.FilterChain{
+		Name: "BlackHoleFilter",
+		Filters: []*envoyConfigListenerV3.Filter{
+			{
+				Name: "BlackHoleFilter",
+				ConfigType: &envoyConfigListenerV3.Filter_TypedConfig{
+					TypedConfig: blackHoleAny,
+				},
+			},
+		},
+	}, nil
+}
+
+func filterChainMatcher(port int, defaultFilter string) (*envoyXDSMatcherV3.Matcher, error) {
+	ingressStringValueAny, err := anypb.New(wrapperspb.String(defaultFilter))
+	if err != nil {
+		return nil, err
+	}
+
+	blackHoleStringValueAny, err := anypb.New(wrapperspb.String("BlackHoleFilter"))
+	if err != nil {
+		return nil, err
+	}
+
+	destPortStringValueAny, err := anypb.New(&envoyConfigNetworkV3.DestinationPortInput{})
+	if err != nil {
+		return nil, err
+	}
+
+	return &envoyXDSMatcherV3.Matcher{
+		MatcherType: &envoyXDSMatcherV3.Matcher_MatcherTree_{
+			MatcherTree: &envoyXDSMatcherV3.Matcher_MatcherTree{
+				Input: &envoyXDSCoreV3.TypedExtensionConfig{
+					Name:        "port",
+					TypedConfig: destPortStringValueAny,
+				},
+				TreeType: &envoyXDSMatcherV3.Matcher_MatcherTree_ExactMatchMap{
+					ExactMatchMap: &envoyXDSMatcherV3.Matcher_MatcherTree_MatchMap{
+						Map: map[string]*envoyXDSMatcherV3.Matcher_OnMatch{
+							strconv.Itoa(port): {
+								OnMatch: &envoyXDSMatcherV3.Matcher_OnMatch_Action{
+									Action: &envoyXDSCoreV3.TypedExtensionConfig{
+										Name:        "forwardToBlackHoleFilter",
+										TypedConfig: blackHoleStringValueAny,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		OnNoMatch: &envoyXDSMatcherV3.Matcher_OnMatch{
+			OnMatch: &envoyXDSMatcherV3.Matcher_OnMatch_Action{
+				Action: &envoyXDSCoreV3.TypedExtensionConfig{
+					Name:        "forwardToIngress",
+					TypedConfig: ingressStringValueAny,
+				},
+			},
 		},
 	}, nil
 }
