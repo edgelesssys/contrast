@@ -6,6 +6,8 @@ package authority
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/json"
@@ -45,7 +47,7 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 	oldState := a.state.Load()
 	if oldState != nil {
 		// Subsequent SetManifest call, check permissions of caller.
-		if err := a.validatePeer(ctx, oldState.Manifest); err != nil {
+		if err := a.validatePeer(ctx, oldState.Manifest.WorkloadOwnerKeyDigests); err != nil {
 			a.logger.Warn("SetManifest peer validation failed", "err", err)
 			return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
 		}
@@ -237,8 +239,8 @@ func (a *Authority) Recover(_ context.Context, req *userapi.RecoverRequest) (*us
 	return &userapi.RecoverResponse{}, nil
 }
 
-func (a *Authority) validatePeer(ctx context.Context, latest *manifest.Manifest) error {
-	if len(latest.WorkloadOwnerKeyDigests) == 0 {
+func (a *Authority) validatePeer(ctx context.Context, keyDigests []manifest.HexString) error {
+	if len(keyDigests) == 0 {
 		return errors.New("setting manifest is disabled")
 	}
 
@@ -247,7 +249,7 @@ func (a *Authority) validatePeer(ctx context.Context, latest *manifest.Manifest)
 		return err
 	}
 	peerPub256Sum := sha256.Sum256(peerPubKey)
-	for _, key := range latest.WorkloadOwnerKeyDigests {
+	for _, key := range keyDigests {
 		trustedWorkloadOwnerSHA256, err := key.Bytes()
 		if err != nil {
 			return fmt.Errorf("parsing key: %w", err)
@@ -256,7 +258,7 @@ func (a *Authority) validatePeer(ctx context.Context, latest *manifest.Manifest)
 			return nil
 		}
 	}
-	return errors.New("peer not authorized workload owner")
+	return errors.New("peer not authorized")
 }
 
 func getPeerPublicKey(ctx context.Context) ([]byte, error) {
@@ -271,10 +273,15 @@ func getPeerPublicKey(ctx context.Context) ([]byte, error) {
 	if len(tlsInfo.State.PeerCertificates) == 0 || tlsInfo.State.PeerCertificates[0] == nil {
 		return nil, errors.New("no peer certificates found")
 	}
-	if tlsInfo.State.PeerCertificates[0].PublicKeyAlgorithm != x509.ECDSA {
-		return nil, errors.New("peer public key is not of type ECDSA")
+
+	switch pubKey := tlsInfo.State.PeerCertificates[0].PublicKey.(type) {
+	case *rsa.PublicKey:
+		return x509.MarshalPKCS1PublicKey(pubKey), nil
+	case *ecdsa.PublicKey:
+		return x509.MarshalPKIXPublicKey(pubKey)
+	default:
+		return nil, fmt.Errorf("unsupported peer public key type %T", pubKey)
 	}
-	return x509.MarshalPKIXPublicKey(tlsInfo.State.PeerCertificates[0].PublicKey)
 }
 
 var (
