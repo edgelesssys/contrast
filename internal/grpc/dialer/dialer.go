@@ -6,7 +6,7 @@ package dialer
 
 import (
 	"context"
-	"crypto/ecdsa"
+	"crypto"
 	"net"
 	"time"
 
@@ -23,7 +23,7 @@ type Dialer struct {
 	validators          []atls.Validator
 	attestationFailures prometheus.Counter
 	netDialer           NetDialer
-	privKey             *ecdsa.PrivateKey
+	privKey             crypto.PrivateKey
 }
 
 // New creates a new Dialer.
@@ -37,7 +37,7 @@ func New(issuer atls.Issuer, validators []atls.Validator, attestationFailures pr
 }
 
 // NewWithKey creates a new Dialer with the given private key.
-func NewWithKey(issuer atls.Issuer, validators []atls.Validator, attestationFailures prometheus.Counter, netDialer NetDialer, privKey *ecdsa.PrivateKey) *Dialer {
+func NewWithKey(issuer atls.Issuer, validators []atls.Validator, attestationFailures prometheus.Counter, netDialer NetDialer, privKey crypto.PrivateKey) *Dialer {
 	return &Dialer{
 		issuer:              issuer,
 		validators:          validators,
