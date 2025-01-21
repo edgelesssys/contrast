@@ -53,7 +53,7 @@ az aks create \
   --node-vm-size Standard_DC4as_cc_v5 \
   --workload-runtime KataCcIsolation \
   --node-count 1 \
-  --generate-ssh-keys
+  --ssh-access disabled
 
 az aks get-credentials \
   --resource-group "${name}" \
