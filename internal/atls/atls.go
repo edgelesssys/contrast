@@ -7,6 +7,7 @@ package atls
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -23,7 +24,7 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/attestation"
-	"github.com/edgelesssys/contrast/internal/crypto"
+	contrastcrypto "github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -63,8 +64,8 @@ func CreateAttestationServerTLSConfig(issuer Issuer, validators []Validator, att
 //
 // If no validators are set, the server's attestation document will not be verified.
 // If issuer is nil, the client will be unable to perform mutual aTLS.
-func CreateAttestationClientTLSConfig(issuer Issuer, validators []Validator, privKey *ecdsa.PrivateKey) (*tls.Config, error) {
-	clientNonce, err := crypto.GenerateRandomBytes(crypto.RNGLengthDefault)
+func CreateAttestationClientTLSConfig(issuer Issuer, validators []Validator, privKey crypto.PrivateKey) (*tls.Config, error) {
+	clientNonce, err := contrastcrypto.GenerateRandomBytes(contrastcrypto.RNGLengthDefault)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +112,7 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []Validator, attestati
 	// this function will be called once for every client
 	return func(_ *tls.ClientHelloInfo) (*tls.Config, error) {
 		// generate nonce for this connection
-		serverNonce, err := crypto.GenerateRandomBytes(crypto.RNGLengthDefault)
+		serverNonce, err := contrastcrypto.GenerateRandomBytes(contrastcrypto.RNGLengthDefault)
 		if err != nil {
 			return nil, err
 		}
@@ -148,8 +149,8 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []Validator, attestati
 
 // getCertificate creates a client or server certificate for aTLS connections.
 // The certificate uses certificate extensions to embed an attestation document generated using nonce.
-func getCertificate(ctx context.Context, issuer Issuer, priv, pub any, nonce []byte) (*tls.Certificate, error) {
-	serialNumber, err := crypto.GenerateCertificateSerialNumber()
+func getCertificate(ctx context.Context, issuer Issuer, priv crypto.PrivateKey, pub any, nonce []byte) (*tls.Certificate, error) {
+	serialNumber, err := contrastcrypto.GenerateCertificateSerialNumber()
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +325,7 @@ type clientConnection struct {
 	issuer      Issuer
 	validators  []Validator
 	clientNonce []byte
-	privKey     *ecdsa.PrivateKey
+	privKey     crypto.PrivateKey
 }
 
 // verify the validity of an aTLS server certificate.
@@ -361,7 +362,21 @@ func (c *clientConnection) getCertificate(cri *tls.CertificateRequestInfo) (*tls
 		return nil, fmt.Errorf("decode nonce: %w", err)
 	}
 
-	return getCertificate(cri.Context(), c.issuer, priv, &priv.PublicKey, serverNonce)
+	return getCertificate(cri.Context(), c.issuer, priv, publicKey(priv), serverNonce)
+}
+
+func publicKey(key crypto.PrivateKey) crypto.PublicKey {
+	typedKey, ok := key.(interface {
+		Public() crypto.PublicKey
+	})
+	if !ok {
+		// All standard library implementations of private keys implement this interface - see
+		// https://pkg.go.dev/crypto#PrivateKey. Since we only ever expect keys from the standard
+		// library, trying to work around the incompatibility is not going to get us anywhere and
+		// panicking is justified.
+		panic(fmt.Sprintf("private key of type %T does not implement Public()", key))
+	}
+	return typedKey.Public()
 }
 
 // serverConnection holds state for server to client connections.
@@ -369,7 +384,7 @@ type serverConnection struct {
 	issuer              Issuer
 	validators          []Validator
 	attestationFailures prometheus.Counter
-	privKey             *ecdsa.PrivateKey
+	privKey             crypto.PrivateKey
 	serverNonce         []byte
 }
 
@@ -398,7 +413,7 @@ func (c *serverConnection) getCertificate(chi *tls.ClientHelloInfo) (*tls.Certif
 	}
 
 	// create aTLS certificate using the nonce as extracted from the client-hello message
-	return getCertificate(chi.Context(), c.issuer, c.privKey, &c.privKey.PublicKey, clientNonce)
+	return getCertificate(chi.Context(), c.issuer, c.privKey, publicKey(c.privKey), clientNonce)
 }
 
 // FakeIssuer fakes an issuer and can be used for tests.

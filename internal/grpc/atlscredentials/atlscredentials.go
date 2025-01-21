@@ -6,7 +6,7 @@ package atlscredentials
 
 import (
 	"context"
-	"crypto/ecdsa"
+	"crypto"
 	"errors"
 	"net"
 
@@ -20,7 +20,7 @@ type Credentials struct {
 	issuer              atls.Issuer
 	validators          []atls.Validator
 	attestationFailures prometheus.Counter
-	privKey             *ecdsa.PrivateKey
+	privKey             crypto.PrivateKey
 }
 
 // New creates new ATLS credentials.
@@ -33,7 +33,7 @@ func New(issuer atls.Issuer, validators []atls.Validator, attestationFailures pr
 }
 
 // NewWithKey creates new ATLS credentials for the given key.
-func NewWithKey(issuer atls.Issuer, validators []atls.Validator, attestationFailures prometheus.Counter, key *ecdsa.PrivateKey) *Credentials {
+func NewWithKey(issuer atls.Issuer, validators []atls.Validator, attestationFailures prometheus.Counter, key crypto.PrivateKey) *Credentials {
 	c := &Credentials{privKey: key}
 	c.issuer = issuer
 	c.validators = validators
