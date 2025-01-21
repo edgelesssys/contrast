@@ -19,12 +19,13 @@ buildGoModule rec {
       fileset = fileset.unions [
         (path.append root "go.mod")
         (path.append root "go.sum")
+        (path.append root "golden/defaultEnvoy.json")
         (fileset.fileFilter (file: hasSuffix ".go" file.name) root)
       ];
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-xCPPdZZGSnzJatJ0HaKL19hlsHFC/FGhze0i7D1cPOI=";
+  vendorHash = "sha256-6Sa4w3csRX5oXFhazK8Yd/Lw56dR/46dtxksiCoghcY=";
 
   subPackages = [ "." ];
 
