@@ -16,6 +16,7 @@ import (
 	"slices"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
+	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/crypto"
@@ -45,13 +46,15 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 	var resp userapi.SetManifestResponse
 
 	oldState := a.state.Load()
+	var se *seedengine.SeedEngine
 	if oldState != nil {
 		// Subsequent SetManifest call, check permissions of caller.
 		if err := a.validatePeer(ctx, oldState.Manifest.WorkloadOwnerKeyDigests); err != nil {
 			a.logger.Warn("SetManifest peer validation failed", "err", err)
 			return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
 		}
-	} else if a.se.Load() == nil {
+		se = oldState.SeedEngine
+	} else {
 		// First SetManifest call, initialize seed engine.
 		seed, err := crypto.GenerateRandomBytes(constants.SecretSeedSize)
 		if err != nil {
@@ -66,9 +69,8 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 		if err != nil {
 			return nil, status.Errorf(codes.InvalidArgument, "initializing seed engine: %v", err)
 		}
-		if err := a.initSeedEngine(seed, salt); errors.Is(err, ErrAlreadyRecovered) {
-			return nil, status.Error(codes.Unavailable, "concurrent initialization through SetManifest detected")
-		} else if err != nil {
+		se, err = seedengine.New(seed, salt)
+		if err != nil {
 			return nil, status.Errorf(codes.Internal, "setting seed: %v", err)
 		}
 		resp.SeedSharesDoc = &userapi.SeedShareDocument{
@@ -123,11 +125,10 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 	}
 	nextLatest := &history.LatestTransition{TransitionHash: nextTransitionHash}
 
-	if err := a.hist.SetLatest(oldLatest, nextLatest, a.se.Load().TransactionSigningKey()); err != nil {
+	if err := a.hist.SetLatest(oldLatest, nextLatest, se.TransactionSigningKey()); err != nil {
 		return nil, status.Errorf(codes.Internal, "setting latest: %v", err)
 	}
 
-	se := a.se.Load()
 	meshKey, err := se.GenerateMeshCAKey()
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "deriving mesh CA key: %v", err)
@@ -138,6 +139,7 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 	}
 
 	nextState := &State{
+		SeedEngine: se,
 		latest:     nextLatest,
 		Manifest:   m,
 		CA:         ca,
@@ -224,17 +226,31 @@ func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsReque
 func (a *Authority) Recover(_ context.Context, req *userapi.RecoverRequest) (*userapi.RecoverResponse, error) {
 	a.logger.Info("Recover called")
 
-	if err := a.initSeedEngine(req.Seed, req.Salt); errors.Is(err, ErrAlreadyRecovered) {
-		return nil, status.Error(codes.FailedPrecondition, err.Error())
-	} else if err != nil {
+	if a.state.Load() != nil {
+		return nil, status.Error(codes.FailedPrecondition, ErrAlreadyRecovered.Error())
+	}
+
+	hasLatest, err := a.hist.HasLatest()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "accessing history: %v", err)
+	}
+	if !hasLatest {
+		return nil, status.Errorf(codes.FailedPrecondition, "no persisted transaction to recover from")
+	}
+
+	se, err := seedengine.New(req.Seed, req.Salt)
+	if err != nil {
 		// Pretty sure this failed because the seed was bad.
 		return nil, status.Errorf(codes.InvalidArgument, "initializing seed engine: %v", err)
 	}
 
-	if err := a.syncState(); err != nil {
-		// This recovery attempt did not lead to a good state, let's roll it back.
-		a.se.Store(nil)
-		return nil, status.Errorf(codes.InvalidArgument, "recovery failed and was rolled back: %v", err)
+	state, err := a.fetchState(se)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "recovery failed: %v", err)
+	}
+
+	if !a.state.CompareAndSwap(nil, state) {
+		return nil, status.Errorf(codes.FailedPrecondition, "the coordinator was recovered concurrently")
 	}
 	return &userapi.RecoverResponse{}, nil
 }

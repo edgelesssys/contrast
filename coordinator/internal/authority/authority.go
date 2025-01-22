@@ -29,7 +29,6 @@ type Authority struct {
 	// requests or risking inconsistency between e.g. CA and Manifest.
 	// state must always be updated with a new instance, its fields must not be modified.
 	state   atomic.Pointer[State]
-	se      atomic.Pointer[seedengine.SeedEngine]
 	hist    *history.History
 	logger  *slog.Logger
 	metrics metrics
@@ -59,18 +58,6 @@ func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Aut
 	}
 }
 
-// initSeedEngine recovers the seed engine from a seed and salt.
-func (m *Authority) initSeedEngine(seed, salt []byte) error {
-	seedEngine, err := seedengine.New(seed, salt)
-	if err != nil {
-		return fmt.Errorf("creating seed engine: %w", err)
-	}
-	if !m.se.CompareAndSwap(nil, seedEngine) {
-		return ErrAlreadyRecovered
-	}
-	return nil
-}
-
 // syncState ensures that a.state is up-to-date.
 //
 // This function guarantees to include all state updates committed before it was called.
@@ -83,44 +70,61 @@ func (m *Authority) syncState() error {
 		// No history yet -> nothing to sync.
 		return nil
 	}
-	se := m.se.Load()
-	if se == nil {
-		// There are transitions in history, but we don't have a signing key -> recovery mode.
-		return ErrNeedsRecovery
-	}
 
 	oldState := m.state.Load()
+	if oldState == nil {
+		// There are transitions in history, but we don't have a local state -> recovery mode.
+		return ErrNeedsRecovery
+	}
+	nextState, err := m.fetchState(oldState.SeedEngine)
+	if err != nil {
+		return fmt.Errorf("fetching latest state: %w", err)
+	}
+
+	// Don't update the state if it did not change.
+	if nextState.latest.TransitionHash == oldState.latest.TransitionHash {
+		return nil
+	}
+
+	// We consider the sync successful even if the state was updated by someone else.
+	if m.state.CompareAndSwap(oldState, nextState) {
+		// Only set the gauge if our state modification was actually successful - otherwise, it
+		// won't match the active state.
+		m.metrics.manifestGeneration.Set(float64(nextState.generation))
+	}
+	return nil
+}
+
+// fetchState creates a fresh state from the history that's verified by the given SeedEngine.
+func (m *Authority) fetchState(se *seedengine.SeedEngine) (*State, error) {
 	latest, err := m.hist.GetLatest(&se.TransactionSigningKey().PublicKey)
 	if err != nil {
-		return fmt.Errorf("getting latest transition: %w", err)
-	}
-	if oldState != nil && latest.TransitionHash == oldState.latest.TransitionHash {
-		return nil
+		return nil, fmt.Errorf("getting latest transition: %w", err)
 	}
 
 	// The latest transition in the backend is newer than ours, so we need to update our state.
 
 	transition, err := m.hist.GetTransition(latest.TransitionHash)
 	if err != nil {
-		return fmt.Errorf("getting transition: %w", err)
+		return nil, fmt.Errorf("getting transition: %w", err)
 	}
 
 	manifestBytes, err := m.hist.GetManifest(transition.ManifestHash)
 	if err != nil {
-		return fmt.Errorf("getting manifest: %w", err)
+		return nil, fmt.Errorf("getting manifest: %w", err)
 	}
 	mnfst := &manifest.Manifest{}
 	if err := json.Unmarshal(manifestBytes, mnfst); err != nil {
-		return fmt.Errorf("parsing manifest: %w", err)
+		return nil, fmt.Errorf("parsing manifest: %w", err)
 	}
 
 	meshKey, err := se.GenerateMeshCAKey()
 	if err != nil {
-		return fmt.Errorf("deriving mesh CA key: %w", err)
+		return nil, fmt.Errorf("deriving mesh CA key: %w", err)
 	}
 	ca, err := ca.New(se.RootCAKey(), meshKey)
 	if err != nil {
-		return fmt.Errorf("creating CA: %w", err)
+		return nil, fmt.Errorf("creating CA: %w", err)
 	}
 	var generation int
 	err = m.walkTransitions(latest.TransitionHash, func(_ [history.HashSize]byte, _ *history.Transition) error {
@@ -128,21 +132,16 @@ func (m *Authority) syncState() error {
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("walking transitions: %w", err)
+		return nil, fmt.Errorf("walking transitions: %w", err)
 	}
 	nextState := &State{
+		SeedEngine: se,
 		latest:     latest,
 		CA:         ca,
 		Manifest:   mnfst,
 		generation: generation,
 	}
-	// We consider the sync successful even if the state was updated by someone else.
-	if m.state.CompareAndSwap(oldState, nextState) {
-		// Only set the gauge if our state modification was actually successful - otherwise, it
-		// won't match the active state.
-		m.metrics.manifestGeneration.Set(float64(generation))
-	}
-	return nil
+	return nextState, nil
 }
 
 // walkTransitions executes a function for all transitions in the history of transitionRef, starting from most recent.
@@ -160,19 +159,11 @@ func (m *Authority) walkTransitions(transitionRef [history.HashSize]byte, consum
 	return nil
 }
 
-// GetSeedEngine returns the seed engine.
-func (m *Authority) GetSeedEngine() (*seedengine.SeedEngine, error) {
-	se := m.se.Load()
-	if se == nil {
-		return nil, errors.New("seed engine not initialized")
-	}
-	return se, nil
-}
-
 // State is a snapshot of the Coordinator's manifest history.
 type State struct {
-	Manifest *manifest.Manifest
-	CA       *ca.CA
+	SeedEngine *seedengine.SeedEngine
+	Manifest   *manifest.Manifest
+	CA         *ca.CA
 
 	latest     *history.LatestTransition
 	generation int
