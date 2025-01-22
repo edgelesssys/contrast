@@ -5,6 +5,7 @@ package authority
 
 import (
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -14,6 +15,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"log/slog"
 	"sync"
 	"testing"
@@ -326,7 +328,7 @@ func TestRecovery(t *testing.T) {
 			if recoverReq.Salt == nil {
 				recoverReq.Salt = resp.SeedSharesDoc.Salt
 			}
-			_, err = a.Recover(context.Background(), recoverReq)
+			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
 
 			require.Equal(tc.wantCode, status.Code(err), "actual error: %v", err)
 		})
@@ -371,8 +373,10 @@ func TestRecoveryFlow(t *testing.T) {
 		Salt: seedSharesDoc.GetSalt(),
 	}
 
+	ctx := rpcContext(seedShareOwnerKey)
+
 	// Recovery on this Coordinator should fail now that a manifest is set.
-	_, err = a.Recover(context.Background(), recoverReq)
+	_, err = a.Recover(ctx, recoverReq)
 	require.ErrorContains(err, ErrAlreadyRecovered.Error())
 
 	// 3. A new Coordinator is created with the existing history.
@@ -386,7 +390,7 @@ func TestRecoveryFlow(t *testing.T) {
 	require.ErrorContains(err, ErrNeedsRecovery.Error())
 
 	// 4. Recovery is called.
-	_, err = a.Recover(context.Background(), recoverReq)
+	_, err = a.Recover(ctx, recoverReq)
 	require.NoError(err)
 
 	// 5. Coordinator should be operational and know about the latest manifest.
@@ -397,7 +401,7 @@ func TestRecoveryFlow(t *testing.T) {
 	require.Equal([][]byte{manifestBytes}, resp.Manifests)
 
 	// Recover on a recovered authority should fail.
-	_, err = a.Recover(context.Background(), recoverReq)
+	_, err = a.Recover(ctx, recoverReq)
 	require.Error(err)
 }
 
@@ -476,13 +480,19 @@ func newCoordinatorWithRegistry(reg *prometheus.Registry) *Authority {
 	return New(hist, reg, slog.Default())
 }
 
-func rpcContext(key *ecdsa.PrivateKey) context.Context {
+func rpcContext(cryptoKey crypto.PrivateKey) context.Context {
 	var peerCertificates []*x509.Certificate
-	if key != nil {
-		peerCertificates = []*x509.Certificate{{
-			PublicKey:          key.Public(),
-			PublicKeyAlgorithm: x509.ECDSA,
-		}}
+	switch key := cryptoKey.(type) {
+	case *rsa.PrivateKey:
+		if key != nil {
+			peerCertificates = append(peerCertificates, &x509.Certificate{PublicKey: key.Public(), PublicKeyAlgorithm: x509.RSA})
+		}
+	case *ecdsa.PrivateKey:
+		if key != nil {
+			peerCertificates = append(peerCertificates, &x509.Certificate{PublicKey: key.Public(), PublicKeyAlgorithm: x509.ECDSA})
+		}
+	default:
+		panic(fmt.Sprintf("unsupported key type for rpcContext: %T", cryptoKey))
 	}
 	return peer.NewContext(context.Background(), &peer.Peer{
 		AuthInfo: credentials.TLSInfo{State: tls.ConnectionState{
