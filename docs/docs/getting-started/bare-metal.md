@@ -15,7 +15,7 @@ Follow Canonical's instructions on [setting up Intel TDX in the host's BIOS](htt
 </TabItem>
 </Tabs>
 
-## Kernel Setup
+## Kernel setup
 
 <Tabs queryString="vendor">
 <TabItem value="amd" label="AMD SEV-SNP">
@@ -28,7 +28,80 @@ Follow Canonical's instructions on [setting up Intel TDX on Ubuntu 24.04](https:
 
 Increase the `user.max_inotify_instances` sysctl limit by adding `user.max_inotify_instances=8192` to `/etc/sysctl.d/99-sysctl.conf` and running `sysctl --system`.
 
-## K3s Setup
+## K3s setup
 
 1. Follow the [K3s setup instructions](https://docs.k3s.io/) to create a cluster.
 2. Install a block storage provider such as [Longhorn](https://docs.k3s.io/storage#setting-up-longhorn) and mark it as the default storage class.
+
+## Preparing a cluster for GPU usage
+
+<Tabs queryString="vendor">
+<TabItem value="amd" label="AMD SEV-SNP">
+To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled for *each cluster node* that should host GPU workloads:
+
+1. You must activate the IOMMU. You can check by running:
+
+   ```sh
+   ls /sys/kernel/iommu_groups
+   ```
+
+   If the output contains the group indices (`0`, `1`, ...), the IOMMU is supported on the host.
+   Otherwise, add `intel_iommu=on` to the kernel command line.
+2. Additionally, the host kernel needs to have the following kernel configuration options enabled:
+    - `CONFIG_VFIO`
+    - `CONFIG_VFIO_IOMMU_TYPE1`
+    - `CONFIG_VFIO_MDEV`
+    - `CONFIG_VFIO_MDEV_DEVICE`
+    - `CONFIG_VFIO_PCI`
+
+If the per-node requirements are fulfilled, deploy the [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest) to the cluster. It provisions pod-VMs with GPUs via VFIO.
+
+Initially, label all nodes that *should run GPU workloads*:
+
+```sh
+kubectl label node <node-name> nvidia.com/gpu.workload.config=vm-passthrough
+```
+
+For a GPU-enabled Contrast cluster, you can then deploy the operator with the following command:
+
+```sh
+helm install --wait --generate-name \
+   -n gpu-operator --create-namespace \
+   nvidia/gpu-operator \
+   --version=v24.9.1 \
+   --set sandboxWorkloads.enabled=true \
+   --set sandboxWorkloads.defaultWorkload='vm-passthrough' \
+   --set nfd.nodefeaturerules=true \
+   --set vfioManager.enabled=true \
+   --set kataManager.enabled=true \
+   --set ccManager.enabled=true
+```
+
+Refer to the [official installation instructions](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html) for details and further options.
+
+Once the operator is deployed, check the available GPUs in the cluster:
+
+```sh
+kubectl get nodes -l nvidia.com/gpu.present -o json | \
+  jq '.items[0].status.allocatable |
+    with_entries(select(.key | startswith("nvidia.com/"))) |
+    with_entries(select(.value != "0"))'
+```
+
+The above command should yield an output similar to the following, depending on what GPUs are available:
+
+```json
+{
+   "nvidia.com/GH100_H100_PCIE": "1"
+}
+```
+
+These identifiers are then used to [run GPU workloads on the cluster](../deployment.md).
+
+</TabItem>
+<TabItem value="intel" label="Intel TDX">
+:::warning
+Currently, Contrast only supports GPU workloads on SEV-SNP-based clusters.
+:::
+</TabItem>
+</Tabs>

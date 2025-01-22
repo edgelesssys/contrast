@@ -13,3 +13,5 @@ From an operational perspective, Contrast provides the following key features:
 * **Remote attestation**: Contrast generates a concise attestation statement that verifies the identity, authenticity, and integrity of your deployment both internally and to external parties. This architecture ensures that updates or scaling of the application don't compromise the attestation’s validity.
 
 * **Service mesh**: Contrast securely manages a Public Key Infrastructure (PKI) for your deployments, issues workload-specific certificates, and establishes transparent mutual TLS (mTLS) connections across pods. This is done by harnessing the [envoy proxy](https://www.envoyproxy.io/) to ensure secure communications within your Kubernetes cluster.
+
+* **GPU support**: Contrast supports GPU integration, enabling the execution of AI workloads.  

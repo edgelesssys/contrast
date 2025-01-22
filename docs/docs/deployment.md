@@ -10,6 +10,9 @@ A running CoCo-enabled cluster is required for these steps, see the [setup guide
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 A running CoCo-enabled cluster is required for these steps, see the [setup guide](./getting-started/bare-metal.md) on how to set up a bare-metal cluster.
 </TabItem>
+<TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+A running CoCo-enabled cluster is required for these steps, see the [setup guide](./getting-started/bare-metal.md) on how to set up a bare-metal cluster.
+</TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 A running CoCo-enabled cluster is required for these steps, see the [setup guide](./getting-started/bare-metal.md) on how to set up a bare-metal cluster.
 </TabItem>
@@ -34,6 +37,11 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp.yml
 ```
 </TabItem>
+<TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp-gpu.yml
+```
+</TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-tdx.yml
@@ -55,6 +63,11 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp.yml
+```
+</TabItem>
+<TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp-gpu.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
@@ -193,6 +206,53 @@ cfg := &tls.Config{
 </TabItem>
 </Tabs>
 
+### Using GPUs
+
+If the cluster is [configured for GPU usage](./getting-started/bare-metal.md#preparing-a-cluster-for-gpu-usage), Pods can use GPU devices if needed.
+
+To do so, a CDI annotation needs to be added, specifying to use the `pgpu` (passthrough GPU) mode. The `0` corresponds to the PCI device index.
+* For nodes with a single GPU, this value is always `0`.
+* For nodes with multiple GPUs, the value needs to correspond to the device's order as enumerated on the PCI bus. You can identify this order by inspecting the `/var/run/cdi/nvidia.com-pgpu.yaml` file on the specific node.
+
+This process ensures the correct GPU is allocated to the workload.
+
+As the footprint of a GPU-enabled pod-VM is larger than one of a non-GPU one, the memory of the pod-VM can be adjusted by using the `io.katacontainers.config.hypervisor.default_memory` annotation, which receives the memory the
+VM should receive in MiB. The example below sets it to 16 GB. A reasonable minimum for a GPU pod with a light workload is 8 GB.
+
+```yaml
+metadata:
+  # ...
+  annotations:
+    # ...
+    cdi.k8s.io/gpu: "nvidia.com/pgpu=0"
+    io.katacontainers.config.hypervisor.default_memory: "16384"
+```
+
+In addition, the container within the pod that requires GPU access must include a device request.
+This request specifies the number of GPUs the container should use.
+The identifiers for the GPUs, obtained during the [deployment of the NVIDIA GPU Operator](./getting-started/bare-metal.md#preparing-a-cluster-for-gpu-usage), must be included in the request.
+In the provided example, the container is allocated a single NVIDIA H100 GPU.
+
+Finally, the environment variable `NVIDIA_VISIBLE_DEVICES` must be set to `all` to grant the container access to GPU utilities provided by the pod-VM. This includes essential tools like CUDA libraries, which are required for running GPU workloads.
+
+```yaml
+spec:
+  # ...
+  containers:
+  - # ...
+    resources:
+      limits:
+        "nvidia.com/GH100_H100_PCIE": 1
+    env:
+    # ...
+    - name: NVIDIA_VISIBLE_DEVICES
+      value: all
+```
+
+:::note
+A pod configured to use GPU support may take a few minutes to come up, as the VM creation and boot procedure needs to do more work compared to a non-GPU pod.
+:::
+
 ## Generate policy annotations and manifest
 
 Run the `generate` command to add the necessary components to your deployment files.
@@ -210,6 +270,16 @@ contrast generate --reference-values aks-clh-snp resources/
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
 contrast generate --reference-values k3s-qemu-snp resources/
+```
+:::note[Missing TCB values]
+On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms.
+They will have to be filled in manually.
+If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":255,"SNPVersion":255,"MicrocodeVersion":255}` and observe the real values in the error messages in the following steps. This should only be done in a secure environment. Note that the values will differ between CPU models.
+:::
+</TabItem>
+<TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+```sh
+contrast generate --reference-values k3s-qemu-snp-gpu resources/
 ```
 :::note[Missing TCB values]
 On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms.
@@ -252,6 +322,11 @@ contrast generate --reference-values aks-clh-snp --skip-initializer resources/
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
 contrast generate --reference-values k3s-qemu-snp --skip-initializer resources/
+```
+</TabItem>
+<TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+```sh
+contrast generate --reference-values k3s-qemu-snp-gpu --skip-initializer resources/
 ```
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
