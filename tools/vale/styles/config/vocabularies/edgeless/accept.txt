@@ -81,9 +81,11 @@ namespace
 Nginx
 nixpkgs
 noogle
+nvTrust
 Nydus
 overlayfs
 paravisor
+passthrough
 PCR
 plaintext
 podman

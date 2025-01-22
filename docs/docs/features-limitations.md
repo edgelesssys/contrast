@@ -41,3 +41,15 @@ Kata Containers supports [overriding certain configuration values via Kubernetes
 
 It needs to be noted that setting these values is unsupported, and doing so may lead to unexpected
 behaviour, as Contrast isn't tested against all possible configuration combinations.
+
+## GPU attestation
+
+While Contrast supports integration with confidential computing-enabled GPUs, such as NVIDIA's H100 series, attesting the integrity of the GPU device currently must be handled at the workload layer.
+This means the workload needs to verify that the GPU is indeed an NVIDIA H100 running in confidential computing mode.
+
+To simplify this process, the NVIDIA CC-Manager, which is
+[deployed alongside the NVIDIA GPU operator](./getting-started/bare-metal.md#preparing-a-cluster-for-gpu-usage), enables the use of confidential computing GPUs (CC GPUs) within the workload. With the CC-Manager in place, the workload is responsible only for attesting the GPU's integrity.
+
+One way to perform this attestation is by using
+[nvTrust](https://github.com/NVIDIA/nvtrust), NVIDIA's reference implementation for GPU attestation.
+nvTrust provides tools and utilities to perform attestation within the workload.
