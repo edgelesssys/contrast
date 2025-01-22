@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync/atomic"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
@@ -84,6 +85,11 @@ func (m *Authority) syncState() error {
 	// Don't update the state if it did not change.
 	if nextState.latest.TransitionHash == oldState.latest.TransitionHash {
 		return nil
+	}
+
+	// Manifest changed, verify that the seedshare owners did not change.
+	if slices.Compare(oldState.Manifest.SeedshareOwnerPubKeys, nextState.Manifest.SeedshareOwnerPubKeys) != 0 {
+		return fmt.Errorf("can't update from the current manifest to the latest persisted manifest because the seedshare owners changed")
 	}
 
 	// We consider the sync successful even if the state was updated by someone else.

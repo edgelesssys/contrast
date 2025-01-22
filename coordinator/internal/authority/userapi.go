@@ -54,6 +54,10 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 			return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
 		}
 		se = oldState.SeedEngine
+		if slices.Compare(oldState.Manifest.SeedshareOwnerPubKeys, m.SeedshareOwnerPubKeys) != 0 {
+			a.logger.Warn("SetManifest detected attempted seedshare owners change", "from", oldState.Manifest.SeedshareOwnerPubKeys, "to", m.SeedshareOwnerPubKeys)
+			return nil, status.Errorf(codes.PermissionDenied, "changes to seedshare owners are not allowed")
+		}
 	} else {
 		// First SetManifest call, initialize seed engine.
 		seed, err := crypto.GenerateRandomBytes(constants.SecretSeedSize)
@@ -223,7 +227,7 @@ func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsReque
 }
 
 // Recover recovers the Coordinator from a seed and salt.
-func (a *Authority) Recover(_ context.Context, req *userapi.RecoverRequest) (*userapi.RecoverResponse, error) {
+func (a *Authority) Recover(ctx context.Context, req *userapi.RecoverRequest) (*userapi.RecoverResponse, error) {
 	a.logger.Info("Recover called")
 
 	if a.state.Load() != nil {
@@ -247,6 +251,19 @@ func (a *Authority) Recover(_ context.Context, req *userapi.RecoverRequest) (*us
 	state, err := a.fetchState(se)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "recovery failed: %v", err)
+	}
+
+	var digests []manifest.HexString
+	for _, pubKey := range state.Manifest.SeedshareOwnerPubKeys {
+		bytes, err := pubKey.Bytes()
+		if err != nil {
+			return nil, status.Errorf(codes.FailedPrecondition, "seedshare owner public key is not hex-encoded")
+		}
+		sum := sha256.Sum256(bytes)
+		digests = append(digests, manifest.NewHexString(sum[:]))
+	}
+	if err := a.validatePeer(ctx, digests); err != nil {
+		return nil, status.Errorf(codes.PermissionDenied, "peer not authorized to recover existing state: %v", err)
 	}
 
 	if !a.state.CompareAndSwap(nil, state) {
