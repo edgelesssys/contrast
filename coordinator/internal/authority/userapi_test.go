@@ -285,8 +285,6 @@ func TestRecovery(t *testing.T) {
 		},
 		{
 			name:     "normal values",
-			seed:     seed[:],
-			salt:     salt[:],
 			wantCode: codes.OK,
 		},
 	}
@@ -296,12 +294,41 @@ func TestRecovery(t *testing.T) {
 			require := require.New(t)
 
 			a := newCoordinator()
-			_, err := a.Recover(context.Background(), &userapi.RecoverRequest{
+
+			seedShareOwnerKey, err := rsa.GenerateKey(rand.Reader, 2048)
+			require.NoError(err)
+			seedShareOwnerKeyBytes := manifest.MarshalSeedShareOwnerKey(&seedShareOwnerKey.PublicKey)
+
+			mnfst, _, policies := newManifest(t)
+			mnfst.SeedshareOwnerPubKeys = []manifest.HexString{seedShareOwnerKeyBytes}
+			manifestBytes, err := json.Marshal(mnfst)
+			require.NoError(err)
+
+			req := &userapi.SetManifestRequest{
+				Manifest: manifestBytes,
+				Policies: policies,
+			}
+			resp, err := a.SetManifest(context.Background(), req)
+			require.NoError(err)
+			require.Len(resp.SeedSharesDoc.SeedShares, 1)
+			seed, err := manifest.DecryptSeedShare(seedShareOwnerKey, resp.SeedSharesDoc.SeedShares[0])
+			require.NoError(err)
+
+			a = New(a.hist, prometheus.NewRegistry(), slog.Default())
+
+			recoverReq := &userapi.RecoverRequest{
 				Seed: tc.seed,
 				Salt: tc.salt,
-			})
+			}
+			if recoverReq.Seed == nil {
+				recoverReq.Seed = seed
+			}
+			if recoverReq.Salt == nil {
+				recoverReq.Salt = resp.SeedSharesDoc.Salt
+			}
+			_, err = a.Recover(context.Background(), recoverReq)
 
-			require.Equal(tc.wantCode, status.Code(err))
+			require.Equal(tc.wantCode, status.Code(err), "actual error: %v", err)
 		})
 	}
 }

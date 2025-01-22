@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
-	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
@@ -26,16 +25,14 @@ import (
 )
 
 type meshAPIServer struct {
-	grpc             *grpc.Server
-	cleanup          func()
-	seedEngineGetter seedEngineGetter
-	logger           *slog.Logger
+	grpc    *grpc.Server
+	cleanup func()
+	logger  *slog.Logger
 
 	meshapi.UnimplementedMeshAPIServer
 }
 
-func newMeshAPIServer(meshAuth *authority.Authority, reg *prometheus.Registry, serverMetrics *grpcprometheus.ServerMetrics,
-	seedEngineGetter seedEngineGetter, log *slog.Logger,
+func newMeshAPIServer(meshAuth *authority.Authority, reg *prometheus.Registry, serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger,
 ) *meshAPIServer {
 	credentials, cancel := meshAuth.Credentials(reg, atls.NoIssuer)
 
@@ -50,10 +47,9 @@ func newMeshAPIServer(meshAuth *authority.Authority, reg *prometheus.Registry, s
 		),
 	)
 	s := &meshAPIServer{
-		grpc:             grpcServer,
-		cleanup:          cancel,
-		seedEngineGetter: seedEngineGetter,
-		logger:           log.WithGroup("meshapi"),
+		grpc:    grpcServer,
+		cleanup: cancel,
+		logger:  log.WithGroup("meshapi"),
 	}
 	meshapi.RegisterMeshAPIServer(s.grpc, s)
 	serverMetrics.InitializeMetrics(s.grpc)
@@ -91,11 +87,6 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 	state := authInfo.State
 	report := authInfo.Report
 	tlsInfo := authInfo.TLSInfo
-
-	seedEngine, err := i.seedEngineGetter.GetSeedEngine()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get seed engine: %w", err)
-	}
 
 	if len(tlsInfo.State.PeerCertificates) == 0 {
 		return nil, fmt.Errorf("no peer certificates found")
@@ -135,7 +126,7 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 	}
 
 	if entry.WorkloadSecretID != "" {
-		workloadSecret, err := seedEngine.DeriveWorkloadSecret(entry.WorkloadSecretID)
+		workloadSecret, err := state.SeedEngine.DeriveWorkloadSecret(entry.WorkloadSecretID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to derive workload secret: %w", err)
 		}
@@ -143,8 +134,4 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 	}
 
 	return resp, nil
-}
-
-type seedEngineGetter interface {
-	GetSeedEngine() (*seedengine.SeedEngine, error)
 }
