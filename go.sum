@@ -16,8 +16,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/edgelesssys/go-sev-guest v0.0.0-20240719074306-114f78ece7a7 h1:rT17BAHLt7qHt4u8i1dfNl9YB5GZudZ84HA11lTGUOY=
-github.com/edgelesssys/go-sev-guest v0.0.0-20240719074306-114f78ece7a7/go.mod h1:8+UOtSaqVIZjJJ9DDmgRko3J/kNc6jI5KLHxoeao7cA=
+github.com/edgelesssys/go-sev-guest v0.0.0-20250123132625-84dd662ed905 h1:2GWCffQhOVtr/ePrDQf/qKc+2iMnMp84i4suzdNfchc=
+github.com/edgelesssys/go-sev-guest v0.0.0-20250123132625-84dd662ed905/go.mod h1:SK9vW+uyfuzYdVN0m8BShL3OQCtXZe/JPF7ZkpD3760=
 github.com/emicklei/go-restful/v3 v3.11.0 h1:rAQeMHw1c7zTmncogyy8VvRZwtkmkZ4FxERmMY4rD+g=
 github.com/emicklei/go-restful/v3 v3.11.0/go.mod h1:6n3XBCmQQb25CM2LCACGz8ukIrRry+4bhvbpWn3mrbc=
 github.com/fxamacker/cbor/v2 v2.7.0 h1:iM5WgngdRBanHcxugY4JySA0nk1wZorNOpTgCMedv5E=
