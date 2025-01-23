@@ -539,9 +539,6 @@ func VolumeStatefulSet() []any {
 										WithName("share").
 										WithMountPath("/state").
 										WithMountPropagation(corev1.MountPropagationBidirectional),
-									VolumeMount().
-										WithName("contrast-secrets").
-										WithMountPath("/contrast"),
 								).
 								WithSecurityContext(
 									applycorev1.SecurityContext().
@@ -634,9 +631,6 @@ func MySQL() []any {
 										WithName("share").
 										WithMountPath("/state").
 										WithMountPropagation(corev1.MountPropagationBidirectional),
-									VolumeMount().
-										WithName("contrast-secrets").
-										WithMountPath("/contrast"),
 								).
 								WithSecurityContext(
 									applycorev1.SecurityContext().

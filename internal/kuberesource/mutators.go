@@ -59,20 +59,26 @@ func AddInitializer(
 			return nil, nil
 		}
 
-		// Remove already existing volume mounts on the worker containers with unique volume mount name.
 		for i := range spec.Containers {
-			spec.Containers[i].VolumeMounts = slices.DeleteFunc(spec.Containers[i].VolumeMounts, func(v applycorev1.VolumeMountApplyConfiguration) bool {
-				return v.Name != nil && *v.Name == *initializer.VolumeMounts[0].Name
-			})
+			addOrReplaceVolumeMount(&spec.Containers[i], initializer.VolumeMounts[0])
+		}
 
-			// Add the volume mount written by the initializer to the worker container.
-			spec.Containers[i].WithVolumeMounts(VolumeMount().
-				WithName(*initializer.VolumeMounts[0].Name).
-				WithMountPath(*initializer.VolumeMounts[0].MountPath))
+		for i := range spec.InitContainers {
+			addOrReplaceVolumeMount(&spec.InitContainers[i], initializer.VolumeMounts[0])
 		}
 		return meta, spec
 	})
 	return res, retErr
+}
+
+func addOrReplaceVolumeMount(container *applycorev1.ContainerApplyConfiguration, volumeMount applycorev1.VolumeMountApplyConfiguration) {
+	// Remove already existing volume mounts on the worker containers with unique volume mount name.
+	container.VolumeMounts = slices.DeleteFunc(container.VolumeMounts, func(v applycorev1.VolumeMountApplyConfiguration) bool {
+		return v.Name != nil && *v.Name == *volumeMount.Name
+	})
+
+	// Add the volume mount written by the initializer to the worker container.
+	container.WithVolumeMounts(&volumeMount)
 }
 
 type serviceMeshMode string
