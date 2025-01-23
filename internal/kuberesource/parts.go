@@ -411,7 +411,7 @@ func Coordinator(namespace string) *CoordinatorConfig {
 					),
 				),
 			).
-			WithVolumeClaimTemplates(applycorev1.PersistentVolumeClaim("state-device", namespace).
+			WithVolumeClaimTemplates(PersistentVolumeClaim("state-device", namespace).
 				WithSpec(applycorev1.PersistentVolumeClaimSpec().
 					WithVolumeMode(corev1.PersistentVolumeBlock).
 					WithAccessModes(corev1.ReadWriteOnce).

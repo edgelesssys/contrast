@@ -584,7 +584,7 @@ func VolumeStatefulSet() []any {
 						),
 				),
 			).
-			WithVolumeClaimTemplates(applycorev1.PersistentVolumeClaim("state", "").
+			WithVolumeClaimTemplates(PersistentVolumeClaim("state", "").
 				WithSpec(applycorev1.PersistentVolumeClaimSpec().
 					WithVolumeMode(corev1.PersistentVolumeBlock).
 					WithAccessModes(corev1.ReadWriteOnce).
