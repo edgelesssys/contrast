@@ -1,7 +1,7 @@
-From 56e5c0d828fd1503da5969ad12e681d8b66245f5 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 23 Sep 2024 09:26:32 +0200
-Subject: [PATCH 3/3] i386: omit some unneeded ACPI tables
+Subject: [PATCH] i386: omit some unneeded ACPI tables
 
 This makes the generated ACPI code more deterministic and less dependent on the
 guest configuration (e.g. the amount of assigned memory).
@@ -10,10 +10,10 @@ guest configuration (e.g. the amount of assigned memory).
  1 file changed, 6 insertions(+)
 
 diff --git a/hw/i386/acpi-build.c b/hw/i386/acpi-build.c
-index f401cb5c..e70e8f65 100644
+index 53f804ac16b80b75456643408dd4b3a11d9ef356..d3ac9aa00fc3b4f2c6fe08457b62349e8c5a4470 100644
 --- a/hw/i386/acpi-build.c
 +++ b/hw/i386/acpi-build.c
-@@ -1669,6 +1669,8 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
+@@ -1627,6 +1627,8 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
                           mcfg.base, mcfg.base + mcfg.size - 1);
      }
  
@@ -22,7 +22,7 @@ index f401cb5c..e70e8f65 100644
      scope = aml_scope("\\_SB.PCI0");
      /* build PCI0._CRS */
      crs = aml_resource_template();
-@@ -1733,6 +1735,8 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
+@@ -1691,6 +1693,8 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
  #endif
      aml_append(scope, aml_name_decl("_CRS", crs));
  
@@ -31,7 +31,7 @@ index f401cb5c..e70e8f65 100644
      /* reserve GPE0 block resources */
      dev = aml_device("GPE0");
      aml_append(dev, aml_name_decl("_HID", aml_string("PNP0A06")));
-@@ -2615,6 +2619,7 @@ void acpi_build(AcpiBuildTables *tables, MachineState *machine)
+@@ -2606,6 +2610,7 @@ void acpi_build(AcpiBuildTables *tables, MachineState *machine)
          }
      }
  #endif
@@ -39,7 +39,7 @@ index f401cb5c..e70e8f65 100644
      if (machine->numa_state->num_nodes) {
          acpi_add_table(table_offsets, tables_blob);
          build_srat(tables_blob, tables->linker, machine);
-@@ -2629,6 +2634,7 @@ void acpi_build(AcpiBuildTables *tables, MachineState *machine)
+@@ -2620,6 +2625,7 @@ void acpi_build(AcpiBuildTables *tables, MachineState *machine)
                         x86ms->oem_id, x86ms->oem_table_id);
          }
      }
@@ -47,6 +47,3 @@ index f401cb5c..e70e8f65 100644
      if (acpi_get_mcfg(&mcfg)) {
          acpi_add_table(table_offsets, tables_blob);
          build_mcfg(tables_blob, tables->linker, &mcfg, x86ms->oem_id,
--- 
-2.46.0
-

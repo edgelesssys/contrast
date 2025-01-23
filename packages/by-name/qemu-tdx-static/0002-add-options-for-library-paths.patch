@@ -1,7 +1,7 @@
-From 0a2595335f47457ed21bf16762d3f38473a5a5fa Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Fri, 20 Sep 2024 16:01:46 +0200
-Subject: [PATCH 2/3] add options for library paths
+Subject: [PATCH] add options for library paths
 
 For some reason meson fails to find these when building with pkgsStatic
 in Nix.
@@ -11,10 +11,10 @@ in Nix.
  2 files changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/meson.build b/meson.build
-index 89b42b21..a6cc8535 100644
+index 91a0aa64c64057a096ce371625ea02e0dfa309df..39be980d2f0abd4e0959e672b5767dd9bb727985 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -832,7 +832,8 @@ zlib = dependency('zlib', required: true)
+@@ -990,7 +990,8 @@ zlib = dependency('zlib', required: true)
  libaio = not_found
  if not get_option('linux_aio').auto() or have_block
    libaio = cc.find_library('aio', has_headers: ['libaio.h'],
@@ -24,7 +24,7 @@ index 89b42b21..a6cc8535 100644
  endif
  
  linux_io_uring_test = '''
-@@ -3116,7 +3117,8 @@ if fdt_required.length() > 0 or fdt_opt == 'enabled'
+@@ -3171,7 +3172,8 @@ if fdt_required.length() > 0 or fdt_opt == 'enabled'
      if get_option('wrap_mode') == 'nodownload'
        fdt_opt = 'system'
      endif
@@ -35,7 +35,7 @@ index 89b42b21..a6cc8535 100644
         #include <libfdt.h>
         #include <libfdt_env.h>
 diff --git a/meson_options.txt b/meson_options.txt
-index c9baeda6..74345605 100644
+index 0a99a059ec8c4c7a48f37d158de3822af5e57dbb..f6c4d462987812e224c6aa1b0b7ae3d227a9bafb 100644
 --- a/meson_options.txt
 +++ b/meson_options.txt
 @@ -188,6 +188,7 @@ option('linux_aio', type : 'feature', value : 'auto',
@@ -54,6 +54,3 @@ index c9baeda6..74345605 100644
  
  option('selinux', type: 'feature', value: 'auto',
         description: 'SELinux support in qemu-nbd')
--- 
-2.46.0
-

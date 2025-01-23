@@ -1,29 +1,25 @@
-From cab2d6fee07bf935ae161975f5b6a5b7ce5d1c41 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Fri, 20 Sep 2024 16:01:15 +0200
-Subject: [PATCH 1/3] avoid duplicate definitions
+Subject: [PATCH] avoid duplicate definitions
 
 Another library already defines crc32c and this causes linker errors.
 Rename the function in QEMU to avoid conflicts.
 > /nix/store/q7cd30gzrkq720riqfm1myrvygv9v516-x86_64-unknown-linux-musl-binutils-2.42/bin/x86_64-unknown-linux-musl-ld: /nix/store/bnkaijycj1svgfkglzzwbzr76my1b0xz-util-linux-minimal-static-x86_64-unknown-linux-musl-2.39.4-lib/lib/libblkid.a(libcommon_la-crc32c.o): in function `crc32c':
 > (.text+0x0): multiple definition of `crc32c'; libqemuutil.a.p/util_crc32c.c.o:/build/qemu-9.0.1/build/../util/crc32c.c:109: first defined here
 ---
- block/vhdx.c                       | 4 ++--
- hw/net/net_rx_pkt.c                | 2 +-
- include/qemu/crc32c.h              | 2 +-
- roms/u-boot/fs/btrfs/crypto/hash.c | 2 +-
- roms/u-boot/fs/btrfs/crypto/hash.h | 2 +-
- roms/u-boot/fs/btrfs/ctree.h       | 2 +-
- target/arm/helper.c                | 6 +++---
- target/arm/helper.h                | 2 +-
- target/arm/tcg/helper-a64.c        | 4 ++--
- target/loongarch/helper.h          | 2 +-
- target/loongarch/op_helper.c       | 2 +-
- util/crc32c.c                      | 4 ++--
- 12 files changed, 17 insertions(+), 17 deletions(-)
+ block/vhdx.c                | 4 ++--
+ hw/net/net_rx_pkt.c         | 2 +-
+ include/qemu/crc32c.h       | 2 +-
+ target/arm/helper.c         | 6 +++---
+ target/arm/helper.h         | 2 +-
+ target/arm/tcg/helper-a64.c | 4 ++--
+ target/loongarch/helper.h   | 2 +-
+ util/crc32c.c               | 4 ++--
+ 8 files changed, 13 insertions(+), 13 deletions(-)
 
 diff --git a/block/vhdx.c b/block/vhdx.c
-index 5aa1a135..52723d7c 100644
+index 5aa1a13506268c84f4a9a6cbf2dcdfae6a5d94b5..52723d7cc03af0e0283309a02f620073a4797216 100644
 --- a/block/vhdx.c
 +++ b/block/vhdx.c
 @@ -157,7 +157,7 @@ uint32_t vhdx_update_checksum(uint8_t *buf, size_t size, int crc_offset)
@@ -45,7 +41,7 @@ index 5aa1a135..52723d7c 100644
          memcpy(buf + crc_offset, &crc_orig, sizeof(crc_orig));
      }
 diff --git a/hw/net/net_rx_pkt.c b/hw/net/net_rx_pkt.c
-index 32e5f3f9..1cffe29d 100644
+index 32e5f3f9cf785c3f9daab340ac45a36c1a97d399..1cffe29d80ad5a0dea8f7b3a501878fc8ced5a6b 100644
 --- a/hw/net/net_rx_pkt.c
 +++ b/hw/net/net_rx_pkt.c
 @@ -579,7 +579,7 @@ _net_rx_pkt_validate_sctp_sum(struct NetRxPkt *pkt)
@@ -58,7 +54,7 @@ index 32e5f3f9..1cffe29d 100644
      calculated = iov_crc32c(calculated ^ 0xffffffff, vec + 1, vec_len - 1);
      valid = calculated == le32_to_cpu(original);
 diff --git a/include/qemu/crc32c.h b/include/qemu/crc32c.h
-index 88b4d2b3..52ba066c 100644
+index 88b4d2b3b3304803456f5b23ef42dbf530381ec5..52ba066c2e784b8ea3d88671f3d7944062a3660e 100644
 --- a/include/qemu/crc32c.h
 +++ b/include/qemu/crc32c.h
 @@ -29,7 +29,7 @@
@@ -70,50 +66,11 @@ index 88b4d2b3..52ba066c 100644
  uint32_t iov_crc32c(uint32_t crc, const struct iovec *iov, size_t iov_cnt);
  
  #endif
-diff --git a/roms/u-boot/fs/btrfs/crypto/hash.c b/roms/u-boot/fs/btrfs/crypto/hash.c
-index fb51f638..4fb00afa 100644
---- a/roms/u-boot/fs/btrfs/crypto/hash.c
-+++ b/roms/u-boot/fs/btrfs/crypto/hash.c
-@@ -49,7 +49,7 @@ int hash_crc32c(const u8 *buf, size_t length, u8 *out)
- 	return 0;
- }
- 
--u32 crc32c(u32 seed, const void * data, size_t len)
-+u32 __crc32c(u32 seed, const void * data, size_t len)
- {
- 	return crc32c_cal(seed, data, len, btrfs_crc32c_table);
- }
-diff --git a/roms/u-boot/fs/btrfs/crypto/hash.h b/roms/u-boot/fs/btrfs/crypto/hash.h
-index d1ba1fa3..223e1ee8 100644
---- a/roms/u-boot/fs/btrfs/crypto/hash.h
-+++ b/roms/u-boot/fs/btrfs/crypto/hash.h
-@@ -10,7 +10,7 @@ int hash_crc32c(const u8 *buf, size_t length, u8 *out);
- int hash_xxhash(const u8 *buf, size_t length, u8 *out);
- int hash_sha256(const u8 *buf, size_t length, u8 *out);
- 
--u32 crc32c(u32 seed, const void * data, size_t len);
-+u32 __crc32c(u32 seed, const void * data, size_t len);
- 
- /* Blake2B is not yet supported due to lack of library */
- 
-diff --git a/roms/u-boot/fs/btrfs/ctree.h b/roms/u-boot/fs/btrfs/ctree.h
-index 219c410b..5a7e30a1 100644
---- a/roms/u-boot/fs/btrfs/ctree.h
-+++ b/roms/u-boot/fs/btrfs/ctree.h
-@@ -1186,7 +1186,7 @@ static inline int __btrfs_fs_compat_ro(struct btrfs_fs_info *fs_info, u64 flag)
- 
- static inline u64 btrfs_name_hash(const char *name, int len)
- {
--	return (u64)crc32c((u32)~1, (u8 *)name, len);
-+	return (u64)__crc32c((u32)~1, (u8 *)name, len);
- }
- 
- /*
 diff --git a/target/arm/helper.c b/target/arm/helper.c
-index df1646de..39d79849 100644
+index a620481d7cf436a4eadd7b914b68f1a0e2006817..671e484205a3eaf1b9ef1c3cb3e43f0a23125ee4 100644
 --- a/target/arm/helper.c
 +++ b/target/arm/helper.c
-@@ -11932,14 +11932,14 @@ uint32_t HELPER(crc32)(uint32_t acc, uint32_t val, uint32_t bytes)
+@@ -12309,14 +12309,14 @@ uint32_t HELPER(crc32)(uint32_t acc, uint32_t val, uint32_t bytes)
      return crc32(acc ^ 0xffffffff, buf, bytes) ^ 0xffffffff;
  }
  
@@ -132,7 +89,7 @@ index df1646de..39d79849 100644
  
  /*
 diff --git a/target/arm/helper.h b/target/arm/helper.h
-index 2b027333..25bb12f6 100644
+index 2b0273330531afcd6472f2cd3b4d546002c80488..25bb12f60044e819c9d02d570e0da9bce7ddec30 100644
 --- a/target/arm/helper.h
 +++ b/target/arm/helper.h
 @@ -591,7 +591,7 @@ DEF_HELPER_FLAGS_4(crypto_sm4ekey, TCG_CALL_NO_RWG, void, ptr, ptr, ptr, i32)
@@ -145,7 +102,7 @@ index 2b027333..25bb12f6 100644
  DEF_HELPER_FLAGS_5(gvec_qrdmlah_s16, TCG_CALL_NO_RWG,
                     void, ptr, ptr, ptr, ptr, i32)
 diff --git a/target/arm/tcg/helper-a64.c b/target/arm/tcg/helper-a64.c
-index 8ad84623..b319ad45 100644
+index ebaa7f00df37961461da967d1a15e5cafaec9548..8c1ef515053032c7d3694344c68e4a9203220cc7 100644
 --- a/target/arm/tcg/helper-a64.c
 +++ b/target/arm/tcg/helper-a64.c
 @@ -501,8 +501,8 @@ uint64_t HELPER(crc32c_64)(uint64_t acc, uint64_t val, uint32_t bytes)
@@ -160,7 +117,7 @@ index 8ad84623..b319ad45 100644
  
  /*
 diff --git a/target/loongarch/helper.h b/target/loongarch/helper.h
-index b3b64a02..7416aa00 100644
+index b3b64a021536255a3f9decfc10ff61fe8380e2ae..7416aa00f869edcbff256e0f0404da7308e998d2 100644
 --- a/target/loongarch/helper.h
 +++ b/target/loongarch/helper.h
 @@ -13,7 +13,7 @@ DEF_HELPER_FLAGS_3(asrtle_d, TCG_CALL_NO_WG, void, env, tl, tl)
@@ -172,21 +129,8 @@ index b3b64a02..7416aa00 100644
  DEF_HELPER_FLAGS_2(cpucfg, TCG_CALL_NO_RWG_SE, tl, env, tl)
  
  /* Floating-point helper */
-diff --git a/target/loongarch/op_helper.c b/target/loongarch/op_helper.c
-index fe79c62f..41133336 100644
---- a/target/loongarch/op_helper.c
-+++ b/target/loongarch/op_helper.c
-@@ -77,7 +77,7 @@ target_ulong helper_crc32c(target_ulong val, target_ulong m, uint64_t sz)
-     target_ulong mask = ((sz * 8) == 64) ? -1ULL : ((1ULL << (sz * 8)) - 1);
-     m &= mask;
-     stq_le_p(buf, m);
--    return (int32_t) (crc32c(val, buf, sz) ^ 0xffffffff);
-+    return (int32_t) (__crc32c(val, buf, sz) ^ 0xffffffff);
- }
- 
- target_ulong helper_cpucfg(CPULoongArchState *env, target_ulong rj)
 diff --git a/util/crc32c.c b/util/crc32c.c
-index ea7f345d..d6b5fab1 100644
+index ea7f345de86073998250f54a5a19aef0a5bf164f..d6b5fab1379641d88f230448e71c24e8396020bb 100644
 --- a/util/crc32c.c
 +++ b/util/crc32c.c
 @@ -105,7 +105,7 @@ static const uint32_t crc32c_table[256] = {
@@ -207,6 +151,3 @@ index ea7f345d..d6b5fab1 100644
          iov++;
      }
      return crc ^ 0xffffffff;
--- 
-2.46.0
-

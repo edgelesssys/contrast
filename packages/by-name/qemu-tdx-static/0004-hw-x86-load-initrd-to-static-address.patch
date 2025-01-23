@@ -40,10 +40,10 @@ Signed-off-by: Moritz Sanft <58110325+msanft@users.noreply.github.com>
  1 file changed, 35 insertions(+)
 
 diff --git a/hw/i386/x86.c b/hw/i386/x86.c
-index 504575abfa98bc25e498e219a2d58d8d31e5feaa..0763462c16f4106d0aa6a46c2b9c360e36ae3e96 100644
+index ffbda48917fd2a264a5555fa7713c50b1618429c..02716e6e10a4bcb79b9a1267e5e1bae87cacd6aa 100644
 --- a/hw/i386/x86.c
 +++ b/hw/i386/x86.c
-@@ -953,6 +953,41 @@ void x86_load_linux(X86MachineState *x86ms,
+@@ -955,6 +955,41 @@ void x86_load_linux(X86MachineState *x86ms,
          initrd_max = x86ms->below_4g_mem_size - acpi_data_size - 1;
      }
  

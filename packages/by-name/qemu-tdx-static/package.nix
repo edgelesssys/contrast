@@ -11,8 +11,8 @@
 }:
 let
   tdxPatches = fetchzip {
-    url = "https://launchpadlibrarian.net/744102817/qemu_8.2.2+ds-0ubuntu2+tdx1.0.debian.tar.xz";
-    hash = "sha256-ByvNvdGeYJq5tBh8eONU8drQpg1yWolLTf8yoM2VTik=";
+    url = "https://code.launchpad.net/ubuntu/+archive/primary/+sourcefiles/qemu/1:9.0.2+ds-4ubuntu5.2/qemu_9.0.2+ds-4ubuntu5.2.debian.tar.xz";
+    hash = "sha256-1WU5DrgvVYONpXkvWDz/TuA5IcXvEF4Sw7UUQo+e66U=";
   };
 in
 (qemu.override (_previous: {
@@ -24,11 +24,11 @@ in
   hostCpuTargets = [ "x86_64-softmmu" ];
 })).overrideAttrs
   (previousAttrs: rec {
-    version = "8.2.2";
+    version = "9.0.2";
 
     src = fetchurl {
       url = "https://download.qemu.org/qemu-${version}.tar.xz";
-      hash = "sha256-hHNGwbgsGlSyw49u29hVSe3rF0MLfU09oSYg4pYrxPM=";
+      hash = "sha256-qMP1lq7Olto7AMr7dLqvoNFFFer7jtHuP39cLQ6/ArY=";
     };
 
     configureFlags = previousAttrs.configureFlags ++ [
