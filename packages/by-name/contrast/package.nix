@@ -20,7 +20,6 @@ let
       vendorHash
       prePatch
       postPatch
-      CGO_ENABLED
       ;
     pname = "${contrast.pname}-e2e";
 
@@ -28,6 +27,8 @@ let
       "e2e"
       "contrast_unstable_api"
     ];
+
+    env.CGO_ENABLED = 0;
 
     subPackages = [
       "e2e/genpolicy"
