@@ -10,7 +10,7 @@ buildGoModule rec {
   src = ../../../tools/nydus-pull;
 
   proxyVendor = true;
-  vendorHash = "sha256-7CMF/VELcqWhRwEIeC7qg/wUDXBmedL6BaQYZq9nD0w=";
+  vendorHash = "sha256-Zs9pBmQ9S4aZGbCWDxeIVxObEsVSh51jMzhYkREFJQ0=";
 
   subPackages = [ "." ];
 

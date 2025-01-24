@@ -5,7 +5,7 @@ go 1.23.0
 require (
 	github.com/coreos/go-iptables v0.8.0
 	github.com/envoyproxy/go-control-plane/envoy v1.32.2
-	google.golang.org/protobuf v1.36.1
+	google.golang.org/protobuf v1.36.3
 )
 
 require (
