@@ -209,7 +209,7 @@ func (c *Kubeclient) LogDebugInfo(ctx context.Context) {
 }
 
 func (c *Kubeclient) logContainerStatus(pod corev1.Pod) {
-	c.log.Debug("pod status", "name", pod.Name, "phase", pod.Status.Phase, "reason", pod.Status.Reason, "message", pod.Status.Message)
+	c.log.Debug("pod status", "name", pod.Name, "namespace", pod.Namespace, "phase", pod.Status.Phase, "reason", pod.Status.Reason, "message", pod.Status.Message)
 	for containerType, containers := range map[string][]corev1.ContainerStatus{
 		"init":      pod.Status.InitContainerStatuses,
 		"main":      pod.Status.ContainerStatuses,
