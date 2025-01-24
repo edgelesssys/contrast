@@ -256,7 +256,8 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 func parseExistingContainerdConfig(path string) ([]byte, config.ContainerdConfig, error) {
 	// Read the rendered config instead of the template, as we can't parse the template.
 	// We then write the rendered config to the template path later.
-	configData, err := os.ReadFile(strings.TrimSuffix(path, ".tmpl"))
+	renderedPath, isRendered := strings.CutSuffix(path, ".tmpl")
+	configData, err := os.ReadFile(renderedPath)
 	if err != nil {
 		return nil, config.ContainerdConfig{}, err
 	}
@@ -266,6 +267,17 @@ func parseExistingContainerdConfig(path string) ([]byte, config.ContainerdConfig
 		return nil, config.ContainerdConfig{}, err
 	}
 
+	if !isRendered {
+		return configData, cfg, nil
+	}
+
+	// We return the raw file content so that the caller can decide whether to overwrite. Since
+	// they are overwriting the template file and not the rendered file, we need to return the
+	// template file here.
+	configData, err = os.ReadFile(path)
+	if err != nil {
+		return nil, config.ContainerdConfig{}, fmt.Errorf("reading containerd config template %s: %w", path, err)
+	}
 	return configData, cfg, nil
 }
 
