@@ -269,6 +269,9 @@ func (c *Kubeclient) WaitFor(ctx context.Context, condition WaitCondition, resou
 	// watcher doesn't reconnect. To fix this we add another retry loop.
 	retryCounter := 30
 
+	qualifiedResourceName := fmt.Sprintf("%s %s/%s", resource.kind(), namespace, name)
+	logger := c.log.With("kind", resource.kind(), "namespace", namespace, "name", name)
+
 retryLoop:
 	for {
 		watcher, err := resource.watcher(ctx, c.Client, namespace, name)
@@ -283,24 +286,23 @@ retryLoop:
 				continue retryLoop
 			}
 
-			return err
+			return fmt.Errorf("maximum number of retries reached and watcher for %s still fails: %w", qualifiedResourceName, err)
 		}
 
 		for {
 			evt, ok := <-watcher.ResultChan()
 			if !ok {
-				origErr := ctx.Err()
-				if origErr == nil {
+				if ctx.Err() == nil {
 					retryCounter--
 					if retryCounter != 0 {
 						continue retryLoop
 					}
-					return fmt.Errorf("watcher for %s %s/%s unexpectedly closed", resource.kind(), namespace, name)
+					return fmt.Errorf("watcher for %s unexpectedly closed", qualifiedResourceName)
 				}
-				logger := c.log.With("namespace", namespace)
-				logger.Error("failed to wait for resource", "condition", condition, "kind", resource, "name", name, "contextErr", ctx.Err())
+				origErr := fmt.Errorf("watcher for %s stopped: %w", qualifiedResourceName, ctx.Err())
+				logger.Error("failed to wait for resource", "condition", condition, "contextErr", ctx.Err())
 				if ctx.Err() != context.DeadlineExceeded {
-					return ctx.Err()
+					return origErr
 				}
 				// Fetch and print debug information.
 				ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -321,7 +323,7 @@ retryLoop:
 			case Ready:
 				ready, err := c.checkIfReady(ctx, name, namespace, evt, resource)
 				if err != nil {
-					return err
+					return fmt.Errorf("checking readiness of %s: %w", qualifiedResourceName, err)
 				}
 				if ready {
 					return nil
@@ -329,7 +331,7 @@ retryLoop:
 			case InitContainersRunning:
 				running, err := c.checkIfRunning(ctx, name, namespace, resource)
 				if err != nil {
-					return err
+					return fmt.Errorf("checking init containers of %s: %w", qualifiedResourceName, err)
 				}
 				if running {
 					return nil
