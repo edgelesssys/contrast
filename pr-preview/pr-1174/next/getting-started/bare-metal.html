@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.7.0">
 <title data-rh="true">Prepare a bare-metal instance | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/pr-preview/pr-1174/next/getting-started/bare-metal"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Prepare a bare-metal instance | Contrast"><meta data-rh="true" name="description" content="Hardware and firmware setup"><meta data-rh="true" property="og:description" content="Hardware and firmware setup"><link data-rh="true" rel="icon" href="/contrast/pr-preview/pr-1174/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1174/next/getting-started/bare-metal"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1174/next/getting-started/bare-metal" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1174/next/getting-started/bare-metal" hreflang="x-default"><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-1174/assets/css/styles.92cb9a97.css">
-<script src="/contrast/pr-preview/pr-1174/assets/js/runtime~main.7d806a80.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-1174/assets/js/runtime~main.e87894bd.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-1174/assets/js/main.fef0e389.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -25,9 +25,14 @@
 </ol>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="preparing-a-cluster-for-gpu-usage">Preparing a cluster for GPU usage<a href="#preparing-a-cluster-for-gpu-usage" class="hash-link" aria-label="Direct link to Preparing a cluster for GPU usage" title="Direct link to Preparing a cluster for GPU usage">​</a></h2>
 <div class="tabs-container tabList__CuJ"><ul role="tablist" aria-orientation="horizontal" class="tabs"><li role="tab" tabindex="0" aria-selected="true" class="tabs__item tabItem_LNqP tabs__item--active">AMD SEV-SNP</li><li role="tab" tabindex="-1" aria-selected="false" class="tabs__item tabItem_LNqP">Intel TDX</li></ul><div class="margin-top--md"><div role="tabpanel" class="tabItem_Ymn6"><p>To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled for <em>each cluster node</em> that should host GPU workloads:</p><ol>
-<li>You must activate the IOMMU. You can check by running <code>ls /sys/kernel/iommu_groups</code>. If the output contains the group indices (<code>0</code>, <code>1</code>, ...), the IOMMU is supported on the host.
-Otherwise, add <code>intel_iommu=on</code> to the kernel command line.</li>
-<li>Additionally, the host kernel needs to have the following kernel configuration options enabled:<!-- -->
+<li>
+<p>You must activate the IOMMU. You can check by running:</p>
+<div class="language-sh codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#393A34;--prism-background-color:#f6f8fa"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-sh codeBlock_bY9V thin-scrollbar" style="color:#393A34;background-color:#f6f8fa"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#393A34"><span class="token function" style="color:#d73a49">ls</span><span class="token plain"> /sys/kernel/iommu_groups</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
+<p>If the output contains the group indices (<code>0</code>, <code>1</code>, ...), the IOMMU is supported on the host.
+Otherwise, add <code>intel_iommu=on</code> to the kernel command line.</p>
+</li>
+<li>
+<p>Additionally, the host kernel needs to have the following kernel configuration options enabled:</p>
 <ul>
 <li><code>CONFIG_VFIO</code></li>
 <li><code>CONFIG_VFIO_IOMMU_TYPE1</code></li>
