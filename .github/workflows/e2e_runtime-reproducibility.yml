@@ -18,7 +18,10 @@ jobs:
         # cache is present between the two machines)
         #
         # If adjusting the build-target, remember to also adjust the matrix for the collect-checksums job
-        build-target: ["microsoft.contrast-node-installer-image", "kata.contrast-node-installer-image"]
+        build-target:
+          - "microsoft.contrast-node-installer-image"
+          - "kata.contrast-node-installer-image"
+          - "kata.contrast-node-installer-image.gpu"
       fail-fast: false
     # Usually we would define the matrix outputs here, but as GitHub Actions don't seem to allow per-combination outputs,
     # we'll write the outputs without defining them here. See https://github.com/orgs/community/discussions/17245#discussioncomment-3814009.
@@ -73,7 +76,10 @@ jobs:
     needs: os-matrix
     strategy:
       matrix:
-        build-target: ["microsoft.contrast-node-installer-image", "kata.contrast-node-installer-image"]
+        build-target:
+          - "microsoft.contrast-node-installer-image"
+          - "kata.contrast-node-installer-image"
+          - "kata.contrast-node-installer-image.gpu"
     steps:
       - name: Download all checksum artifacts
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
