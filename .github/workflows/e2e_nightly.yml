@@ -28,7 +28,7 @@ jobs:
               name: K3s-QEMU-SNP-GPU
               runner: SNP
               self-hosted: true
-            test-name: [gpu]
+            test-name: gpu
       fail-fast: false
     name: "${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e.yml
