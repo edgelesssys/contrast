@@ -303,6 +303,13 @@ If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and 
 Please be aware that runtime policies currently have some blind spots. For example, they can't guarantee the starting order of containers. See the [current limitations](features-limitations.md#runtime-policies) for more details.
 :::
 
+Running `contrast generate` for the first time creates some additional files in the working directory:
+
+* `seedshare-owner.pem` is required for handling the secret seed and recovering the Coordinator (see [Secrets & recovery](architecture/secrets.md)).
+* `workload-owner.pem` is required for manifest updates after the initial `contrast set`.
+* `rules.rego` and `settings.json` are the basis for [runtime policies](components/policies.md).
+* `layers-cache.json` caches container image layer information for your deployments to speed up subsequent runs of `contrast generate`.
+
 If you don't want the Contrast Initializer to automatically be added to your
 workloads, there are two ways you can skip the Initializer injection step,
 depending on how you want to customize your deployment.
@@ -480,7 +487,7 @@ kubectl delete pod -l app.kubernetes.io/name=coordinator
 
 Kubernetes schedules a new pod, but that pod doesn't have access to the key material the previous pod held in memory and can't issue certificates for workloads yet.
 You can confirm this by running `verify` again, or you can restart a workload pod, which should stay in the initialization phase.
-However, the secret seed in your working directory is sufficient to recover the coordinator.
+However, you can recover the Coordinator using the secret seed and the seed share owner key in your working directory.
 
 ```sh
 contrast recover -c "${coordinator}:1313"
