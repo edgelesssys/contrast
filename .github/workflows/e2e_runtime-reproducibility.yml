@@ -58,7 +58,7 @@ jobs:
           name: ${{ matrix.build-target }}-${{ matrix.os }}-checksums
           path: ${{ matrix.build-target }}-${{ matrix.os }}-*_checksum.txt
       - name: Notify teams channel of failure
-        if: failure() && github.ref == 'main' && github.run_attempt == 1
+        if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
         uses: ./.github/actions/post_to_teams
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
@@ -99,7 +99,7 @@ jobs:
               exit(1)
           print("All checksums were equal")
       - name: Notify teams channel of failure
-        if: failure() && github.ref == 'main' && github.run_attempt == 1
+        if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
         uses: ./.github/actions/post_to_teams
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
