@@ -6,12 +6,11 @@ package history
 import (
 	"crypto/ecdsa"
 	"crypto/sha256"
-	"crypto/x509"
 	"encoding/hex"
-	"encoding/pem"
 	"os"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,7 +32,7 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 			fsContent: map[string]string{
 				"transitions/latest": fromHex(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"+"304502210081e237315253991b496bdef5516527533a2bf828bae70a068be38ed612d5b90802207067b76f0a98e72282b276379e3b4d2857a37beea012c1bb3be9902cfc2d510c"),
 			},
-			signingKey: testKey(rq),
+			signingKey: testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			wantT: LatestTransition{
 				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
 				signature:      []byte(fromHex(rq, "304502210081e237315253991b496bdef5516527533a2bf828bae70a068be38ed612d5b90802207067b76f0a98e72282b276379e3b4d2857a37beea012c1bb3be9902cfc2d510c")),
@@ -44,7 +43,7 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 			fsContent: map[string]string{
 				"transitions/latest": fromHex(rq, "3cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"+"304502210081e237315253991b496bdef5516527533a2bf828bae70a068be38ed612d5b90802207067b76f0a98e72282b276379e3b4d2857a37beea012c1bb3be9902cfc2d510c"),
 			},
-			signingKey:    testKey(rq),
+			signingKey:    testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			wantErr:       true,
 			wantHasLatest: true,
 		},
@@ -52,13 +51,13 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 			fsContent: map[string]string{
 				"transitions/latest": fromHex(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"+"404502210081e237315253991b496bdef5516527533a2bf828bae70a068be38ed612d5b90802207067b76f0a98e72282b276379e3b4d2857a37beea012c1bb3be9902cfc2d510c"),
 			},
-			signingKey:    testKey(rq),
+			signingKey:    testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			wantErr:       true,
 			wantHasLatest: true,
 		},
 		"no latest": {
 			fsContent:     map[string]string{},
-			signingKey:    testKey(rq),
+			signingKey:    testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			wantErr:       true,
 			wantHasLatest: false,
 		},
@@ -66,7 +65,7 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 			fsContent: map[string]string{
 				"transitions/latest": fromHex(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
 			},
-			signingKey:    testKey(rq),
+			signingKey:    testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			wantErr:       true,
 			wantHasLatest: true,
 		},
@@ -139,7 +138,7 @@ func TestHistory_SetLatest(t *testing.T) {
 			fsContent: map[string]string{
 				"transitions/latest": fromHex(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824") + "+sig",
 			},
-			signingKey: testKey(rq),
+			signingKey: testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			oldT: &LatestTransition{
 				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
 				signature:      []byte("+sig"),
@@ -150,7 +149,7 @@ func TestHistory_SetLatest(t *testing.T) {
 		},
 		"initial transition": {
 			fsContent:  map[string]string{},
-			signingKey: testKey(rq),
+			signingKey: testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			oldT:       nil,
 			newT: &LatestTransition{
 				TransitionHash: strToHash(rq, "486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65260e9cb8a7"),
@@ -160,7 +159,7 @@ func TestHistory_SetLatest(t *testing.T) {
 			fsContent: map[string]string{
 				"transitions/latest": fromHex(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824") + "+sig",
 			},
-			signingKey: testKey(rq),
+			signingKey: testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			oldT: &LatestTransition{
 				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
 				signature:      []byte("+sig"),
@@ -173,7 +172,7 @@ func TestHistory_SetLatest(t *testing.T) {
 		},
 		"latest not existing": {
 			fsContent:  map[string]string{},
-			signingKey: testKey(rq),
+			signingKey: testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			oldT: &LatestTransition{
 				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
 				signature:      []byte("+sig"),
@@ -188,7 +187,7 @@ func TestHistory_SetLatest(t *testing.T) {
 			fsContent: map[string]string{
 				"transitions/latest": fromHex(rq, "c3ab8ff13720e8ad9047dd39466b3c8974e592c2fa383d4a3960714caef0c4f2") + "+sig",
 			},
-			signingKey: testKey(rq),
+			signingKey: testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
 			oldT: &LatestTransition{
 				TransitionHash: strToHash(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
 				signature:      []byte("+sig"),
@@ -566,20 +565,6 @@ func TestHistory_SetGet(t *testing.T) {
 			})
 		}
 	}
-}
-
-func testKey(require *require.Assertions) *ecdsa.PrivateKey {
-	const testKey = `-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIAVovia1Gq3uYyMn2MUHN7iZzB063CsASbjmeR1M4yXxoAoGCCqGSM49
-AwEHoUQDQgAEodJSQKBrTfw5S/QMPRJtNbBSuifKdEbcEV7d4a1C/HypH8Wyu/Z3
-xuwYqSFfVxr6ECQWyrTkApzVkz8b6n5BeQ==
------END EC PRIVATE KEY-----`
-	// parse the test key from pem
-	p, rest := pem.Decode([]byte(testKey))
-	require.Empty(rest)
-	key, err := x509.ParseECPrivateKey(p.Bytes)
-	require.NoError(err)
-	return key
 }
 
 func strToHash(require *require.Assertions, s string) [HashSize]byte {

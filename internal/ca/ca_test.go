@@ -5,8 +5,6 @@ package ca
 
 import (
 	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
@@ -14,6 +12,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,8 +21,8 @@ func TestNewCA(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	rootCAKey := newKey(require)
-	meshCAKey := newKey(require)
+	rootCAKey := newKey(t, 0)
+	meshCAKey := newKey(t, 1)
 
 	ca, err := New(rootCAKey, meshCAKey)
 	require.NoError(err)
@@ -44,8 +43,6 @@ func TestNewCA(t *testing.T) {
 }
 
 func TestAttestedMeshCert(t *testing.T) {
-	req := require.New(t)
-
 	testCases := map[string]struct {
 		dnsNames   []string
 		extensions []pkix.Extension
@@ -56,12 +53,12 @@ func TestAttestedMeshCert(t *testing.T) {
 		"valid": {
 			dnsNames:   []string{"foo", "bar"},
 			extensions: []pkix.Extension{},
-			subjectPub: newKey(req).Public(),
+			subjectPub: newKey(t, 0).Public(),
 		},
 		"ips": {
 			dnsNames:   []string{"foo", "192.0.2.1"},
 			extensions: []pkix.Extension{},
-			subjectPub: newKey(req).Public(),
+			subjectPub: newKey(t, 0).Public(),
 			wantIPs:    1,
 		},
 	}
@@ -71,8 +68,8 @@ func TestAttestedMeshCert(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 
-			rootCAKey := newKey(require)
-			meshCAKey := newKey(require)
+			rootCAKey := newKey(t, 1)
+			meshCAKey := newKey(t, 2)
 			ca, err := New(rootCAKey, meshCAKey)
 			require.NoError(err)
 
@@ -91,8 +88,6 @@ func TestAttestedMeshCert(t *testing.T) {
 }
 
 func TestCreateCert(t *testing.T) {
-	req := require.New(t)
-
 	testCases := map[string]struct {
 		template *x509.Certificate
 		parent   *x509.Certificate
@@ -103,38 +98,38 @@ func TestCreateCert(t *testing.T) {
 		"parent signed": {
 			template: &x509.Certificate{},
 			parent:   &x509.Certificate{},
-			pub:      newKey(req).Public(),
-			priv:     newKey(req),
+			pub:      newKey(t, 0).Public(),
+			priv:     newKey(t, 1),
 		},
 		"template nil": {
 			parent:  &x509.Certificate{},
-			pub:     newKey(req).Public(),
-			priv:    newKey(req),
+			pub:     newKey(t, 0).Public(),
+			priv:    newKey(t, 1),
 			wantErr: true,
 		},
 		"parent nil": {
 			template: &x509.Certificate{},
-			pub:      newKey(req).Public(),
-			priv:     newKey(req),
+			pub:      newKey(t, 0).Public(),
+			priv:     newKey(t, 1),
 			wantErr:  true,
 		},
 		"pub nil": {
 			template: &x509.Certificate{},
 			parent:   &x509.Certificate{},
-			priv:     newKey(req),
+			priv:     newKey(t, 0),
 			wantErr:  true,
 		},
 		"priv nil": {
 			template: &x509.Certificate{},
 			parent:   &x509.Certificate{},
-			pub:      newKey(req).Public(),
+			pub:      newKey(t, 0).Public(),
 			wantErr:  true,
 		},
 		"serial number already set": {
 			template: &x509.Certificate{SerialNumber: big.NewInt(1)},
 			parent:   &x509.Certificate{},
-			pub:      newKey(req).Public(),
-			priv:     newKey(req),
+			pub:      newKey(t, 0).Public(),
+			priv:     newKey(t, 1),
 			wantErr:  true,
 		},
 	}
@@ -164,8 +159,8 @@ func TestCAConcurrent(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	rootCAKey := newKey(require)
-	meshCAKey := newKey(require)
+	rootCAKey := newKey(t, 0)
+	meshCAKey := newKey(t, 1)
 	ca, err := New(rootCAKey, meshCAKey)
 	require.NoError(err)
 
@@ -184,7 +179,7 @@ func TestCAConcurrent(t *testing.T) {
 	}
 	newMeshCert := func() {
 		defer wg.Done()
-		_, err := ca.NewAttestedMeshCert([]string{"foo", "bar"}, []pkix.Extension{}, newKey(require).Public())
+		_, err := ca.NewAttestedMeshCert([]string{"foo", "bar"}, []pkix.Extension{}, newKey(t, 2).Public())
 		assert.NoError(err)
 	}
 
@@ -218,9 +213,9 @@ func TestCAConcurrent(t *testing.T) {
 
 func TestCertValidity(t *testing.T) {
 	require := require.New(t)
-	rootCAKey := newKey(require)
-	meshCAKey := newKey(require)
-	key := newKey(require)
+	rootCAKey := newKey(t, 0)
+	meshCAKey := newKey(t, 1)
+	key := newKey(t, 2)
 
 	ca, err := New(rootCAKey, meshCAKey)
 	require.NoError(err)
@@ -247,8 +242,8 @@ func assertValidPEMCert(t *testing.T, pem []byte) {
 // TestCARecovery asserts that certificates issued by a CA verify correctly under a new CA using the same keys.
 func TestCARecovery(t *testing.T) {
 	require := require.New(t)
-	rootCAKey := newKey(require)
-	meshCAKey := newKey(require)
+	rootCAKey := newKey(t, 0)
+	meshCAKey := newKey(t, 1)
 
 	oldCA, err := New(rootCAKey, meshCAKey)
 	require.NoError(err)
@@ -256,7 +251,7 @@ func TestCARecovery(t *testing.T) {
 	newCA, err := New(rootCAKey, meshCAKey)
 	require.NoError(err)
 
-	key := newKey(require)
+	key := newKey(t, 2)
 	oldCert, err := oldCA.NewAttestedMeshCert([]string{"localhost"}, nil, key.Public())
 	require.NoError(err)
 	newCert, err := newCA.NewAttestedMeshCert([]string{"localhost"}, nil, key.Public())
@@ -299,10 +294,8 @@ func pool(t *testing.T, pem []byte) *x509.CertPool {
 	return pool
 }
 
-func newKey(require *require.Assertions) *ecdsa.PrivateKey {
-	key, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	require.NoError(err)
-	return key
+func newKey(t *testing.T, id int) *ecdsa.PrivateKey {
+	return testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[id])
 }
 
 func parsePEMCertificate(t *testing.T, data []byte) *x509.Certificate {

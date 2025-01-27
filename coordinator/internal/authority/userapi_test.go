@@ -7,8 +7,6 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/tls"
@@ -23,6 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/afero"
@@ -49,10 +48,8 @@ func TestManifestSet(t *testing.T) {
 		require.NoError(t, err)
 		return b
 	}
-	trustedKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	require.NoError(t, err)
-	untrustedKey, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	require.NoError(t, err)
+	trustedKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[0])
+	untrustedKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
 	manifestWithTrustedKey, err := manifestWithWorkloadOwnerKey(trustedKey)
 	require.NoError(t, err)
 	manifestWithoutTrustedKey, err := manifestWithWorkloadOwnerKey(nil)
@@ -297,8 +294,7 @@ func TestRecovery(t *testing.T) {
 
 			a := newCoordinator()
 
-			seedShareOwnerKey, err := rsa.GenerateKey(rand.Reader, 2048)
-			require.NoError(err)
+			seedShareOwnerKey := testkeys.RSA(t)
 			seedShareOwnerKeyBytes := manifest.MarshalSeedShareOwnerKey(&seedShareOwnerKey.PublicKey)
 
 			mnfst, _, policies := newManifest(t)
@@ -344,8 +340,7 @@ func TestRecoveryFlow(t *testing.T) {
 	a := newCoordinator()
 
 	// 2. A manifest is set and the returned seed is recorded.
-	seedShareOwnerKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(err)
+	seedShareOwnerKey := testkeys.RSA(t)
 	seedShareOwnerKeyBytes := manifest.MarshalSeedShareOwnerKey(&seedShareOwnerKey.PublicKey)
 
 	mnfst, _, policies := newManifest(t)
