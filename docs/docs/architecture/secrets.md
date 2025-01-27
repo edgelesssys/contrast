@@ -40,7 +40,13 @@ If the data owner and the workload owner is the same entity, then they can safel
 ### Secure persistence
 
 Remember that persistent volumes from the cloud provider are untrusted.
-Using the workload secret, applications can set up trusted storage on top of untrusted block devices.
+Using the built-in `cryptsetup` subcommand of the initializer, applications can set up trusted storage on top of untrusted block devices based on the workload secret.
+Functionally the initializer will act as a sidecar container which serves to set up a secure mount inside an `emptyDir` mount shared with the main container.
+
+#### Usage `cryptsetup` subcommand
+
+The `cryptsetup` subcommand takes two arguments `cryptsetup -d [device-path] -m [mount-point]`, to set up a LUKS-encrypted volume at `device-path` and mount that volume at `mount-point`.
+
 The following, slightly abbreviated resource outlines how this could be realized:
 
 :::warning
@@ -59,48 +65,55 @@ spec:
   template:
     spec:
       containers:
-      - name: main
-        image: my.registry/my-image@sha256:0123...
-        command:
-        - /bin/sh
-        - -ec
-        - | # <-- Custom script that mounts the encrypted disk and then calls the original application.
-          device=/dev/csi0
-          if ! cryptsetup isLuks $device; then
-            cryptsetup luksFormat $device /contrast/secrets/workload-secret-seed
-            cryptsetup open $device state -d /contrast/secrets/workload-secret-seed
-            mkfs.ext4 /dev/mapper/state
-            cryptsetup close state
-          fi
-          cryptsetup open $device state -d /contrast/secrets/workload-secret-seed
-          /path/to/original/app
-        name: volume-tester
-        volumeDevices:
-        - name: state
-          devicePath: /dev/csi0
-        securityContext:
-          privileged: true # <-- This is necessary for mounting devices.
+        - name: main
+          image: my.registry/my-image@sha256:0123... # <-- Original application requiring encrypted disk.
+          volumeMounts:
+            - mountPath: /state
+              mountPropagation: HostToContainer
+              name: share
+      initContainers:
+        - args:
+            - cryptsetup # <-- cryptsetup subcommand provided as args to the initializer binary.
+            - "--device-path"
+            - /dev/csi0
+            - "--mount-point"
+            - /state
+          image: "ghcr.io/edgelesssys/contrast/initializer:latest"
+          name: encrypted-volume-initializer
+          resources:
+            limits:
+              memory: 100Mi
+            requests:
+              memory: 100Mi
+          restartPolicy: Always
+          securityContext:
+            privileged: true # <-- This is necessary for mounting devices.
+          startupProbe:
+            exec:
+              command:
+                - /bin/test
+                - "-f"
+                - /done
+            failureThreshold: 20
+            periodSeconds: 5
+          volumeDevices:
+            - devicePath: /dev/csi0
+              name: state
+          volumeMounts:
+            - mountPath: /state
+              mountPropagation: Bidirectional
+              name: share
       runtimeClassName: contrast-cc
   volumeClaimTemplates:
-  - apiVersion: v1
-    kind: PersistentVolumeClaim
-    metadata:
-      name: state
-    spec:
-      accessModes:
-      - ReadWriteOnce
-      resources:
-        requests:
-          storage: 1Gi
-      volumeMode: Block # <-- The requested volume needs to be a raw block device.
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: state
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+        volumeMode: Block # <-- The requested volume needs to be a raw block device.
 ```
-
-:::note
-
-This example assumes that you can modify the container image to include a shell and the `cryptsetup` utility.
-Alternatively, you can set up a secure mount from a sidecar container inside an `emptyDir` mount shared with the main container.
-The Contrast end-to-end tests include [an example] of this type of mount.
-
-[an example]: https://github.com/edgelesssys/contrast/blob/0662a2e/internal/kuberesource/sets.go#L504
-
-:::
