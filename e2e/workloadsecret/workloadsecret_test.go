@@ -21,6 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -79,6 +80,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	var webWorkloadSecretBytes []byte
 	var webPods []corev1.Pod
 	t.Run("workload secret seed exists", func(t *testing.T) {
+		assert := assert.New(t)
 		require := require.New(t)
 
 		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(30*time.Second))
@@ -89,7 +91,8 @@ func TestWorkloadSecrets(t *testing.T) {
 		require.Len(webPods, 2, "pod not found: %s/%s", ct.Namespace, "web")
 
 		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, webPods[0].Name, []string{"/bin/sh", "-c", "cat /contrast/secrets/workload-secret-seed"})
-		require.NoError(err, "stderr: %q", stderr)
+		assert.Empty(stderr)
+		require.NoError(err)
 		require.NotEmpty(stdout)
 		webWorkloadSecretBytes, err = hex.DecodeString(stdout)
 		require.NoError(err)
@@ -97,13 +100,15 @@ func TestWorkloadSecrets(t *testing.T) {
 	})
 
 	t.Run("workload secret seed is the same between pods in the same deployment", func(t *testing.T) {
+		assert := assert.New(t)
 		require := require.New(t)
 
 		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(30*time.Second))
 		defer cancel()
 
 		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, webPods[1].Name, []string{"/bin/sh", "-c", "cat /contrast/secrets/workload-secret-seed"})
-		require.NoError(err, "stderr: %q", stderr)
+		assert.Empty(stderr)
+		require.NoError(err)
 		require.NotEmpty(stdout)
 		otherWebWorkloadSecretBytes, err := hex.DecodeString(stdout)
 		require.NoError(err)
@@ -112,6 +117,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	})
 
 	t.Run("workload secret seeds differ between deployments by default", func(t *testing.T) {
+		assert := assert.New(t)
 		require := require.New(t)
 
 		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(30*time.Second))
@@ -122,7 +128,8 @@ func TestWorkloadSecrets(t *testing.T) {
 		require.Len(emojiPods, 1, "pod not found: %s/%s", ct.Namespace, "emoji")
 
 		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, emojiPods[0].Name, []string{"/bin/sh", "-c", "cat /contrast/secrets/workload-secret-seed"})
-		require.NoError(err, "stderr: %q", stderr)
+		assert.Empty(stderr)
+		require.NoError(err)
 		require.NotEmpty(stdout)
 		emojiWorkloadSecretBytes, err := hex.DecodeString(stdout)
 		require.NoError(err)
@@ -131,6 +138,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	})
 
 	t.Run("workload secrets seeds can be set to be equal for different deployments", func(t *testing.T) {
+		assert := assert.New(t)
 		require := require.New(t)
 		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(60*time.Second))
 		defer cancel()
@@ -155,7 +163,8 @@ func TestWorkloadSecrets(t *testing.T) {
 			require.GreaterOrEqual(len(pods), 1, "pod not found: %s/%s", ct.Namespace, deploy)
 
 			stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, pods[0].Name, []string{"/bin/sh", "-c", "cat /contrast/secrets/workload-secret-seed"})
-			require.NoError(err, "stderr: %q", stderr)
+			assert.Empty(stderr)
+			require.NoError(err)
 			require.NotEmpty(stdout)
 			secretBytes, err := hex.DecodeString(stdout)
 			require.NoError(err)
@@ -166,6 +175,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	})
 
 	t.Run("workload secrets are not created if not configured in the manifest", func(t *testing.T) {
+		assert := assert.New(t)
 		require := require.New(t)
 		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(60*time.Second))
 		defer cancel()
@@ -187,8 +197,9 @@ func TestWorkloadSecrets(t *testing.T) {
 		require.Len(webPods, 2, "pod not found: %s/%s", ct.Namespace, "web")
 
 		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, webPods[0].Name, []string{"/bin/sh", "-c", "test ! -f /contrast/secrets/workload-secret-seed"})
-		require.NoError(err, "stderr: %q", stderr)
-		require.Empty(stdout)
+		assert.Empty(stdout)
+		assert.Empty(stderr)
+		require.NoError(err)
 	})
 }
 
