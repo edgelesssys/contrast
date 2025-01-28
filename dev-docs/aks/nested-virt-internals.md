@@ -206,7 +206,7 @@ api sockets.
 <summary>List some facts about all CH VMs</summary>
 
 ```sh
-find /run/vc/vm -name clh-api.sock -exec ch-remote --api-socket "{}" info ";" |
+find /run/vc/vm -name clh-api.sock -exec curl -sS --unix-socket "{}" http://./api/v1/vm.info ";" |
   jq -s 'map( {
     "sock": .config.vsock.socket,
     "policy": .config.payload.host_data,
@@ -233,3 +233,5 @@ find /run/vc/vm -name clh-api.sock -exec ch-remote --api-socket "{}" info ";" |
 ]
 ```
 </details>
+
+The API is documented [here](https://github.com/cloud-hypervisor/cloud-hypervisor/blob/v43.0/docs/api.md).
