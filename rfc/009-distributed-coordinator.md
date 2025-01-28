@@ -53,8 +53,9 @@ type Store interface {
 There are no special requirements for `Get` and `Set`, other than basic consistency guarantees (i.e., `Get` should return what was `Set` at some point in the past).
 We can use Kubernetes resources and their `GET` / `PUT` semantics to implement them.
 `CompareAndSwap` needs to do an atomic update, which is supported by the `ObjectMeta.resourceVersion`[^1] field.
-We also add a new `Watch` method that facilitates reacting on manifest updates.
+We also add a new `Watch` method that facilitates reacting to manifest updates.
 This can be implemented as a no-op or via `inotify(7)` on the existing file-backed store, and with the native watch mechanisms for Kubernetes objects.
+While the `Watch` method is not strictly required, it prevents entering recovery mode in the hot path of user API and mesh API calls.
 
 [RFC 004](004-recovery.md#kubernetes-objects) contains an implementation sketch that uses custom resource definitions.
 However, in order to keep the implementation simple, we implement the KV store in content-addressed `ConfigMaps`.
@@ -67,7 +68,9 @@ A few considerations on using Kubernetes objects for storage:
    Should a use-case arise, we could make that name configurable.
 3. Etcd has a limit of 1.5MiB per value.
    This is more than enough for policies, which are the largest objects we store right now at around 100KiB.
-   However, we should make sure that the collision probability is low enough that not to many policies end up in the same config.
+   However, we should make sure that the collision probability is low enough that not too many policies end up in the same config.
+4. The store content is unlikely to be useful after deletion of the Coordinator, and leaving it in the cluster prevents new Coordinators from being deployed.
+   Thus, the Coordinator should set the `ownerReference`[^2] of the `ConfigMap`s to its `StatefulSet`.
 
 ```yaml
 apiVersion: v1
@@ -81,23 +84,26 @@ data:
 ```
 
 [^1]: <https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency>
+[^2]: <https://kubernetes.io/docs/concepts/overview/working-with-objects/owners-dependents/#owner-references-in-object-specifications>
 
 ### Recovery mode
 
-The Coordinator is said to be in *recovery mode* if its state object (containing manifest and seed engine) is unset.
+The Coordinator is said to be in *recovery mode* if its state object (containing manifest and seed engine) does not correspond to the latest state in persistence.
 Recovery mode can be entered as follows:
 
-* The Coordinator starts up in recovery mode.
+* The Coordinator starts up and the history has a latest transition.
 * Receiving a watch event for the latest manifest, and the latest manifest is not the current one.
 * Syncing the latest manifest during API calls and discovering a new manifest.
 
-Recovery mode exits after the state has been set by:
+Recovery mode exits after the state has been updated by:
 
 * A successful [Peer recovery](#peer-recovery).
 * A successful recovery through the `userapi.Recover` RPC.
 * A successful initial `userapi.SetManifest` RPC.
 
-### Service changes
+### Kubernetes changes
+
+#### Coordinator service
 
 Coordinators are going to recover themselves from peers that are already recovered (or set).
 This means that we need to be able to distinguish Coordinators that have secrets from Coordinators that have none.
@@ -107,7 +113,7 @@ We add a few new paths to the existing HTTP server for metrics, supporting the f
 
 * `/probe/startup`: returns 200 when all ports are serving and [peer recovery](#peer-recovery) was attempted once.
 * `/probe/liveness`: returns 200 unless the Coordinator is recovered but can't read the transaction store.
-* `/probe/readiness`: returns 200 if the Coordinator is not in recovery mode.
+* `/probe/readiness`: returns 200 if the Coordinator has an active manifest and is not in recovery mode.
 
 Using these probes, we expose the Coordinators in different ways, depending on audience:
 
@@ -116,6 +122,12 @@ Using these probes, we expose the Coordinators in different ways, depending on a
   Using a headless service allows getting the individual IPs of ready Coordinators, as opposed to a `ClusterIP` service that just drops requests when there are no backends.
 * The `coordinator` service now accepts unready endpoints (`publishNotReadyAddresses=true`) and should be used for `set`.
   The idea here is backwards compatibility with documented workflows, see [Alternatives considered](#alternatives-considered).
+
+#### Coordinator pods
+
+The Coordinator pods should have a soft anti-affinity[^3] to themselves.
+
+[^3]: <https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#inter-pod-affinity-and-anti-affinity>
 
 ### Manifest changes
 
@@ -196,7 +208,9 @@ Otherwise, it continues with the next available peer, or fails the process if no
 ## Open issues
 
 * TODO(burgerdev): inconsistent state if `userapi.Recover` is called while a recovered coordinator exists. Fix candidates:
-  * Store the mesh cert alongside the manifest
+  * Treat user recovery like a manifest update (i.e., write a new transition).
+    This should force other Coordinators into recovery mode.
+  * Store a mesh CA key hash in the latest transition.
   * Sign the latest transition with the mesh key (and resign on `userapi.Recover`).
 
 ## Alternatives considered
