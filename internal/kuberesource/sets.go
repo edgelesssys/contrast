@@ -739,7 +739,6 @@ func GPU() []any {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "gpu-tester"}).
 				WithAnnotations(map[string]string{
-					"io.katacontainers.config.hypervisor.default_memory": "15258",
 					"cdi.k8s.io/gpu": "nvidia.com/pgpu=0",
 				}).
 				WithSpec(PodSpec().
@@ -752,6 +751,7 @@ func GPU() []any {
 								WithName("NVIDIA_VISIBLE_DEVICES").WithValue("all"),
 							).
 							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(500). // This accounts for nvidia-smi and the guest pull overhead.
 								WithLimits(corev1.ResourceList{
 									corev1.ResourceName("nvidia.com/GH100_H100_PCIE"): resource.MustParse("1"),
 								}),

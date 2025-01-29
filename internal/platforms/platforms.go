@@ -95,3 +95,19 @@ func FromString(s string) (Platform, error) {
 		return Unknown, fmt.Errorf("unknown platform: %s", s)
 	}
 }
+
+// DefaultMemoryInMegaBytes returns the desired VM overhead for the given platform.
+func DefaultMemoryInMegaBytes(p Platform) int {
+	switch p {
+	case AKSCloudHypervisorSNP:
+		return 256
+	case K3sQEMUSNPGPU, MetalQEMUSNPGPU:
+		// Guest components contribute around 600MiB with GPU enabled.
+		return 1024
+	default:
+		// There are no additional guest components compared to AKS, but since the images are being
+		// pulled in the guest we leave a little bit of extra room to accommodate for our init
+		// containers.
+		return 512
+	}
+}
