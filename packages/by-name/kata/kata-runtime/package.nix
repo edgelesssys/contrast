@@ -131,6 +131,13 @@ buildGoModule rec {
       # like `cdi.k8s.io/vfioXY`, where `XY` corresponds to a dynamic ID.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10745
       ./0020-genpolicy-support-dynamic-annotations.patch
+
+      # This allows denying ReadStream requests without blocking the container on its
+      # stdout/stderr, by redacting the streams instead of blocking them.
+      # Upstream:
+      # * https://github.com/kata-containers/kata-containers/issues/10680
+      # * https://github.com/kata-containers/kata-containers/pull/10818
+      ./0021-agent-clear-log-pipes-if-denied-by-policy.patch
     ];
   };
 
