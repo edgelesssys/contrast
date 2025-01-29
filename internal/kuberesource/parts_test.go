@@ -13,8 +13,8 @@ func TestNewPortForwarder(t *testing.T) {
 	require := require.New(t)
 
 	config := PortForwarder("coordinator", "default").
-		WithListenPort(1313).
-		WithForwardTarget("coordinator", 1313)
+		WithListenPorts([]int32{1313, 7777}).
+		WithForwardTarget("coordinator")
 
 	b, err := EncodeResources(config)
 	require.NoError(err)
