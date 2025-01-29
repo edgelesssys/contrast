@@ -92,7 +92,11 @@ type PodConfig struct {
 
 // Pod creates a new PodConfig.
 func Pod(name, namespace string) *PodConfig {
-	return &PodConfig{applycorev1.Pod(name, namespace)}
+	p := applycorev1.Pod(name, namespace)
+	if namespace == "" && p.ObjectMetaApplyConfiguration != nil {
+		p.ObjectMetaApplyConfiguration.Namespace = nil
+	}
+	return &PodConfig{p}
 }
 
 // LabelSelectorConfig wraps applymetav1.LabelSelectorApplyConfiguration.
