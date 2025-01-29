@@ -449,8 +449,8 @@ func ServiceForStatefulSet(s *applyappsv1.StatefulSetApplyConfiguration) *applyc
 
 // PortForwarderForService creates a Pod that forwards network traffic to the given service.
 //
-// Port forwarders are named "port-forwarder-SVCNAME" and forward all ports in the ServiceSpec.
-func PortForwarderForService(svc *applycorev1.ServiceApplyConfiguration) *applycorev1.PodApplyConfiguration {
+// Port forwarders are named "port-forwarder-SVCNAME" and forward all TCP ports in the ServiceSpec.
+func PortForwarderForService(svc *applycorev1.ServiceApplyConfiguration) (*applycorev1.PodApplyConfiguration, error) {
 	namespace := ""
 	if svc.Namespace != nil {
 		namespace = *svc.Namespace
@@ -458,14 +458,19 @@ func PortForwarderForService(svc *applycorev1.ServiceApplyConfiguration) *applyc
 
 	var ports []int32
 	for _, port := range svc.Spec.Ports {
-		ports = append(ports, *port.Port)
+		if port.Protocol == nil || *port.Protocol == corev1.ProtocolTCP {
+			ports = append(ports, *port.Port)
+		}
+	}
+	if len(ports) == 0 {
+		return nil, fmt.Errorf("no TCP ports in service spec")
 	}
 
 	forwarder := PortForwarder(*svc.Name, namespace).
 		WithListenPorts(ports).
 		WithForwardTarget(*svc.Name)
 
-	return forwarder.PodApplyConfiguration
+	return forwarder.PodApplyConfiguration, nil
 }
 
 // Initializer creates a new InitializerConfig.

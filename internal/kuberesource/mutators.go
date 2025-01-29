@@ -5,6 +5,7 @@ package kuberesource
 
 import (
 	"fmt"
+	"log"
 	"slices"
 	"strconv"
 	"strings"
@@ -176,7 +177,11 @@ func AddPortForwarders(resources []any) []any {
 	for _, resource := range resources {
 		switch obj := resource.(type) {
 		case *applycorev1.ServiceApplyConfiguration:
-			out = append(out, PortForwarderForService(obj))
+			forwarder, err := PortForwarderForService(obj)
+			if err != nil {
+				log.Printf("WARNING: no port forwarder added for service %q: %v", *obj.Name, err)
+			}
+			out = append(out, forwarder)
 		}
 		out = append(out, resource)
 	}
