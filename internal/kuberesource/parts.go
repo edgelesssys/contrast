@@ -25,10 +25,13 @@ func ContrastRuntimeClass(platform platforms.Platform) (*RuntimeClassConfig, err
 		return nil, fmt.Errorf("getting default runtime handler: %w", err)
 	}
 
+	// Consists of the default VM memory, 70MiB for the Kata shim and 100MiB for qemu overhead.
+	memoryOverhead := platforms.DefaultMemoryInMegaBytes(platform) + 170
+
 	r := RuntimeClass(runtimeHandler).
 		WithHandler(runtimeHandler).
 		WithLabels(map[string]string{"addonmanager.kubernetes.io/mode": "Reconcile"}).
-		WithOverhead(Overhead(corev1.ResourceList{"memory": resource.MustParse("1152Mi")}))
+		WithOverhead(Overhead(corev1.ResourceList{"memory": *resource.NewQuantity(int64(memoryOverhead)*1024*1024, resource.BinarySI)}))
 
 	if platform == platforms.AKSCloudHypervisorSNP {
 		r.WithScheduling(Scheduling(map[string]string{"kubernetes.azure.com/kata-cc-isolation": "true"}))
@@ -381,7 +384,7 @@ func Coordinator(namespace string) *CoordinatorConfig {
 									WithPort(intstr.FromInt(1313))),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(100),
+								WithMemoryLimitAndRequest(200),
 							),
 					),
 				),

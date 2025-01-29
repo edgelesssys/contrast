@@ -55,6 +55,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		config.Hypervisor["clh"]["path"] = filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")
 		config.Hypervisor["clh"]["igvm"] = filepath.Join(baseDir, "share", "kata-containers-igvm.img")
 		config.Hypervisor["clh"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
+		config.Hypervisor["clh"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
 		config.Hypervisor["clh"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")}
 		config.Hypervisor["clh"]["enable_debug"] = debug
 	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
@@ -64,6 +65,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		config.Hypervisor["qemu"]["path"] = filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "tdx", "share", "OVMF.fd")
 		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
+		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")}
 		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
 		config.Hypervisor["qemu"]["shared_fs"] = "none"
@@ -83,6 +85,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		config.Hypervisor["qemu"]["path"] = filepath.Join(baseDir, "snp", "bin", "qemu-system-x86_64")
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "snp", "share", "OVMF.fd")
 		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
+		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
 		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
 		config.Hypervisor["qemu"]["shared_fs"] = "none"
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "snp", "bin", "qemu-system-x86_64")}

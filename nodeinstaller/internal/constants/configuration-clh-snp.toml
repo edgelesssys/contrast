@@ -14,7 +14,6 @@ valid_hypervisor_paths = ["/opt/edgeless/bin/cloud-hypervisor-snp"]
 kernel_params = ""
 default_vcpus = 1
 default_maxvcpus = 0
-default_memory = 256
 default_maxmemory = 0
 shared_fs = "none"
 virtio_fs_daemon = "/opt/confidential-containers/libexec/virtiofsd"
@@ -31,7 +30,7 @@ dial_timeout = 90
 [runtime]
 internetworking_model="tcfilter"
 disable_guest_seccomp=true
-sandbox_cgroup_only=false
+sandbox_cgroup_only=true
 static_sandbox_resource_mgmt=true
 static_sandbox_default_workload_mem=1792
 sandbox_bind_mounts=[]
