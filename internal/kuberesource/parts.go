@@ -284,6 +284,19 @@ func (p *PortForwarderConfig) WithForwardTarget(host string) *PortForwarderConfi
 	return p
 }
 
+const portForwarderScript = `echo Starting port-forward with socat >&2
+handler() {
+  echo "Received SIGTERM, forwarding to children" >&2
+  kill -TERM -1
+}
+trap handler TERM
+set -x
+for port in ${LISTEN_PORTS}; do
+  socat -d -d TCP-LISTEN:$port,fork TCP:${FORWARD_HOST}:$port &
+done
+wait
+`
+
 // PortForwarder constructs a port forwarder pod for multiple ports.
 func PortForwarder(name, namespace string) *PortForwarderConfig {
 	name = "port-forwarder-" + name
@@ -295,7 +308,7 @@ func PortForwarder(name, namespace string) *PortForwarderConfig {
 				Container().
 					WithName("port-forwarder").
 					WithImage("ghcr.io/edgelesssys/contrast/port-forwarder:latest").
-					WithCommand("/bin/bash", "-c", "echo Starting port-forward with socat; for port in ${LISTEN_PORTS}; do socat -d -d TCP-LISTEN:$port,fork TCP:${FORWARD_HOST}:$port & done; wait").
+					WithCommand("/bin/bash", "-c", portForwarderScript).
 					WithResources(ResourceRequirements().
 						WithMemoryLimitAndRequest(50),
 					),
