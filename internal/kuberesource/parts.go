@@ -278,58 +278,14 @@ type PortForwarderConfig struct {
 	*applycorev1.PodApplyConfiguration
 }
 
-// PortForwarder constructs a port forwarder pod.
+// WithForwardTarget sets the target host to forward to.
+func (p *PortForwarderConfig) WithForwardTarget(host string) *PortForwarderConfig {
+	p.Spec.Containers[0].WithEnv(NewEnvVar("FORWARD_HOST", host))
+	return p
+}
+
+// PortForwarder constructs a port forwarder pod for multiple ports.
 func PortForwarder(name, namespace string) *PortForwarderConfig {
-	name = "port-forwarder-" + name
-
-	p := Pod(name, namespace).
-		WithLabels(map[string]string{"app.kubernetes.io/name": name}).
-		WithSpec(PodSpec().
-			WithContainers(
-				Container().
-					WithName("port-forwarder").
-					WithImage("ghcr.io/edgelesssys/contrast/port-forwarder:latest").
-					WithCommand("/bin/bash", "-c", "echo Starting port-forward with socat; exec socat -d -d TCP-LISTEN:${LISTEN_PORT},fork TCP:${FORWARD_HOST}:${FORWARD_PORT}").
-					WithResources(ResourceRequirements().
-						WithMemoryLimitAndRequest(50),
-					),
-			),
-		)
-
-	return &PortForwarderConfig{p}
-}
-
-// WithListenPort sets the port to listen on.
-func (p *PortForwarderConfig) WithListenPort(port int32) *PortForwarderConfig {
-	p.Spec.Containers[0].
-		WithPorts(
-			ContainerPort().
-				WithContainerPort(port),
-		).
-		WithEnv(
-			NewEnvVar("LISTEN_PORT", strconv.Itoa(int(port))),
-		).
-		WithStartupProbe(Probe().
-			WithInitialDelaySeconds(1).
-			WithPeriodSeconds(1).
-			WithTCPSocket(TCPSocketAction().
-				WithPort(intstr.FromInt32(port))),
-		)
-	return p
-}
-
-// WithForwardTarget sets the target host and port to forward to.
-func (p *PortForwarderConfig) WithForwardTarget(host string, port int32) *PortForwarderConfig {
-	p.Spec.Containers[0].
-		WithEnv(
-			NewEnvVar("FORWARD_HOST", host),
-			NewEnvVar("FORWARD_PORT", strconv.Itoa(int(port))),
-		)
-	return p
-}
-
-// PortForwarderMultiplePorts constructs a port forwarder pod for multiple ports.
-func PortForwarderMultiplePorts(name, namespace string) *PortForwarderConfig {
 	name = "port-forwarder-" + name
 
 	p := Pod(name, namespace).
@@ -349,7 +305,7 @@ func PortForwarderMultiplePorts(name, namespace string) *PortForwarderConfig {
 	return &PortForwarderConfig{p}
 }
 
-// WithListenPorts sets multiple ports to listen on. Should only be used if PortForwarderMultiplePorts was used initially.
+// WithListenPorts sets multiple ports to listen on.
 func (p *PortForwarderConfig) WithListenPorts(ports []int32) *PortForwarderConfig {
 	var containerPorts []*applycorev1.ContainerPortApplyConfiguration
 	var envVar string
@@ -493,7 +449,7 @@ func ServiceForStatefulSet(s *applyappsv1.StatefulSetApplyConfiguration) *applyc
 
 // PortForwarderForService creates a Pod that forwards network traffic to the given service.
 //
-// Port forwarders are named "port-forwarder-SVCNAME" and forward the first port in the ServiceSpec.
+// Port forwarders are named "port-forwarder-SVCNAME" and forward all ports in the ServiceSpec.
 func PortForwarderForService(svc *applycorev1.ServiceApplyConfiguration) *applycorev1.PodApplyConfiguration {
 	namespace := ""
 	if svc.Namespace != nil {
@@ -505,9 +461,9 @@ func PortForwarderForService(svc *applycorev1.ServiceApplyConfiguration) *applyc
 		ports = append(ports, *port.Port)
 	}
 
-	forwarder := PortForwarderMultiplePorts(*svc.Name, namespace).
+	forwarder := PortForwarder(*svc.Name, namespace).
 		WithListenPorts(ports).
-		WithForwardTarget(*svc.Name, -1) // port can be -1 since MultiplePortsForwarder ignores FORWARD_PORT env
+		WithForwardTarget(*svc.Name)
 
 	return forwarder.PodApplyConfiguration
 }
