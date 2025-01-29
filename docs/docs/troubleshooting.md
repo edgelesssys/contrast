@@ -164,3 +164,16 @@ contrast version v0.X.0
     image versions:       ghcr.io/edgelesssys/contrast/coordinator@sha256:...
                           ghcr.io/edgelesssys/contrast/initializer@sha256:...
 ```
+
+## VM runs out of memory
+
+Since pod VMs are statically sized, it's easier to run out of memory due to misconfigurations.
+Setting the right memory limits is even more important on bare metal, where the image layers need to be stored in the guest memory, too.
+If you see an error message like this, the VM doesn't have enough space to pull images:
+
+```
+LAST SEEN   TYPE      REASON      OBJECT                            MESSAGE
+2m31s       Warning   Failed      Pod/my-pod-76dc84fc75-6xn7s   Error: failed to create containerd task: failed to create shim task: failed to handle layer: hasher sha256: failed to unpack [...] No space left on device (os error 28)
+```
+
+This error can be resolved by increasing the memory limit of the containers, see the [Workload deployment](deployment.md#pod-resources) guide.
