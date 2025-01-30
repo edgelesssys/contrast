@@ -57,10 +57,28 @@ Ideally, a volume is mounted as a raw block device and authenticated encryption 
 
 ### Logs
 
-By default, container logs are visible to the host.
-Sensitive information shouldn't be logged.
+By default, container logs are visible to the host to enable normal Kubernetes operations, for example debugging using `kubectl logs`.
+The application needs to ensure that sensitive information isn't logged.
 
-As of right now, hiding logs isn't natively supported.
-If `ReadStreamRequest` is denied in the policy, the Kata Agent stops reading the logs.
-This causes the pipes used for standard out and standard error to fill up and potentially deadlock the container.
-If absolutely required, standard out and standard error should be manually redirected to `/dev/null` inside the container.
+If logs access isn't required, it can be denied with a manual change to the policy settings.
+After the initial run of `contrast generate`, there will be a `settings.json` file in the working directory.
+Modify the default for `ReadStreamRequest` like shown in the diff below and run `contrast generate` again.
+
+<!-- TODO(burgerdev): this should reference a man page for advanced config -->
+
+```diff
+diff --git a/settings.json b/settings-no-logs.json
+index fd998a4..6760000 100644
+--- a/settings.json
++++ b/settings-no-logs.json
+@@ -330,7 +330,7 @@
+             "regex": []
+         },
+         "CloseStdinRequest": false,
+-        "ReadStreamRequest": true,
++        "ReadStreamRequest": false,
+         "UpdateEphemeralMountsRequest": false,
+         "WriteStreamRequest": false
+     }
+
+```
