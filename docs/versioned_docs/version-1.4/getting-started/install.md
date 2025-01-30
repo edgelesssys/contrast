@@ -3,7 +3,7 @@
 Download the Contrast CLI from the latest release:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/latest/download/contrast
+curl --proto '=https' --tlsv1.2 -fLo contrast https://github.com/edgelesssys/contrast/releases/download/v1.4.0/contrast
 ```
 
 After that, install the Contrast CLI in your PATH, e.g.:
