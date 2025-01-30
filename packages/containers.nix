@@ -43,9 +43,9 @@ let
       tag = "v${pkgs.contrast.version}";
       copyToRoot =
         (with pkgs; [
-          util-linux
-          e2fsprogs
-          coreutils
+          busybox
+          e2fsprogs # mkfs.ext4
+          libuuid # blkid
         ])
         ++ (with dockerTools; [ caCertificates ]);
       config = {
