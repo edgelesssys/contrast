@@ -62,8 +62,7 @@ let
           busybox
           cryptsetup
           e2fsprogs # mkfs.ext4
-          util-linux # blkid
-          openssl
+          libuuid # blkid
         ])
         ++ (with dockerTools; [ caCertificates ]);
       config = {
