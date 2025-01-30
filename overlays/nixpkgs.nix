@@ -46,4 +46,24 @@ final: prev:
       done
     '';
   });
+
+  # A change in vale popped up several hundred new findings, likely the bug
+  # described in https://github.com/errata-ai/vale/issues/955.
+  # Wait for the v3.9.5 release.
+  vale = prev.vale.overrideAttrs (
+    finalAttrs: _prevAttrs: {
+      version = "3.9.3";
+      src = final.fetchFromGitHub {
+        owner = "errata-ai";
+        repo = "vale";
+        rev = "v${finalAttrs.version}";
+        hash = "sha256-2IvVF/x8n1zvVXHAJLAFuDrw0Oi/RuQDa851SBlyRIk=";
+      };
+      vendorHash = "sha256-EWAgzb3ruxYqaP+owcyGDzNnkPDYp0ttHwCgNXuuTbk=";
+      ldflags = [
+        "-s"
+        "-X main.version=${finalAttrs.version}"
+      ];
+    }
+  );
 }
