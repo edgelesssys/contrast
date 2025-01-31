@@ -4,15 +4,19 @@
 package snp
 
 import (
+	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/reportdata"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/oid"
+	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
 	"github.com/google/go-sev-guest/verify"
@@ -80,8 +84,12 @@ func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byt
 	}
 	v.logger.Info("Report decoded", "report", protojson.MarshalOptions{Multiline: false}.Format(attestationData.Report))
 
-	// Report signature verification.
+	// CRL validity and expiration is checked as part of verify.SnpAttestation.
+	if err := addCRLtoVerifyOptions(attestationData, v.verifyOpts); err != nil {
+		v.logger.Info("could not use cached CRL from Coordinator", slog.String("error", err.Error()))
+	}
 
+	// Report signature verification.
 	if err := verify.SnpAttestation(attestationData, v.verifyOpts); err != nil {
 		return fmt.Errorf("verifying report: %w", err)
 	}
@@ -117,4 +125,39 @@ func (s snpReport) HostData() []byte {
 
 func (s snpReport) ClaimsToCertExtension() ([]pkix.Extension, error) {
 	return claimsToCertExtension(s.report)
+}
+
+// addCRLtoVerifyOptions adds the CRL from the attestation data to the verify options.
+// The peer stores the CRL in the certificate chain extras so we don't need to request it from the KDS.
+func addCRLtoVerifyOptions(attestationData *sevsnp.Attestation, verifyOpts *verify.Options) error {
+	if verifyOpts.TrustedRoots == nil {
+		return errors.New("no trusted roots found in verify options")
+	}
+	if attestationData.CertificateChain == nil {
+		return errors.New("no certificate chain found in attestation data")
+	}
+	if attestationData.CertificateChain.Extras == nil {
+		return errors.New("no extras found in certificate chain of attestation data")
+	}
+
+	crlRaw, ok := attestationData.CertificateChain.Extras[constants.SNPCertChainExtrasCRLKey]
+	if !ok {
+		return errors.New("no CRL found in attestation data")
+	}
+	crl, err := x509.ParseRevocationList(crlRaw)
+	if err != nil {
+		return errors.New("could not parse CRL from attestation data")
+	}
+
+	fms := attestationData.GetReport().GetCpuid1EaxFms()
+	if fms == 0 {
+		return errors.New("could not retrieve cpuid info from attestation data")
+	}
+	productLine := kds.ProductLineFromFms(fms)
+
+	for _, tr := range verifyOpts.TrustedRoots[productLine] {
+		tr.CRL = crl
+	}
+
+	return nil
 }
