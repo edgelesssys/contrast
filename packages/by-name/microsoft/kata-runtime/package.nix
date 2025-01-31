@@ -6,17 +6,29 @@
   fetchFromGitHub,
   yq-go,
   git,
+  applyPatches,
 }:
 
 buildGoModule rec {
   pname = "kata-runtime";
   version = "3.2.0.azl2";
 
-  src = fetchFromGitHub {
-    owner = "microsoft";
-    repo = "kata-containers";
-    rev = version;
-    hash = "sha256-5dLWoVy2+RVq3ssGW7bYYAr3mQdO/ehJphpdJ435pC0=";
+  src = applyPatches {
+    src = fetchFromGitHub {
+      owner = "microsoft";
+      repo = "kata-containers";
+      rev = version;
+      hash = "sha256-5dLWoVy2+RVq3ssGW7bYYAr3mQdO/ehJphpdJ435pC0=";
+    };
+
+    patches = [
+      # This allows denying ReadStream requests without blocking the container on its
+      # stdout/stderr, by redacting the streams instead of blocking them.
+      # Upstream:
+      # * https://github.com/kata-containers/kata-containers/issues/10680
+      # * https://github.com/kata-containers/kata-containers/pull/10818
+      ./0001-agent-clear-log-pipes-if-denied-by-policy.patch
+    ];
   };
 
   sourceRoot = "${src.name}/src/runtime";

@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Fri, 20 Dec 2024 08:42:38 +0100
+Subject: [PATCH] agent: clear log pipes if denied by policy
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Container logs are forwarded to the agent through a unix pipe. These
+pipes have limited capacity and block the writer when full. If reading
+logs is blocked by policy, a common setup for confidential containers,
+the pipes fill up and eventually block the container.
+
+This commit changes the implementation of ReadStream such that it
+returns empty log messages instead of a policy failure (in case reading
+log messages is forbidden by policy). As long as the runtime does not
+encounter a failure, it keeps pulling logs periodically. In turn, this
+triggers the agent to flush the pipes.
+
+Fixes: #10680
+
+Co-Authored-By: Aurélien Bombo <abombo@microsoft.com>
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/agent/src/rpc.rs | 22 +++++++++++++++-------
+ 1 file changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
+index e19933882488c354623cde205c6933ac5c0b9005..cebb582c646aeb266529f0d4d69dbe86230eb16a 100644
+--- a/src/agent/src/rpc.rs
++++ b/src/agent/src/rpc.rs
+@@ -583,11 +583,11 @@ impl AgentService {
+ 
+     async fn do_read_stream(
+         &self,
+-        req: protocols::agent::ReadStreamRequest,
++        req: &protocols::agent::ReadStreamRequest,
+         stdout: bool,
+     ) -> Result<protocols::agent::ReadStreamResponse> {
+-        let cid = req.container_id;
+-        let eid = req.exec_id;
++        let cid = &req.container_id;
++        let eid = &req.exec_id;
+ 
+         let term_exit_notifier;
+         let reader = {
+@@ -802,8 +802,12 @@ impl agent_ttrpc::AgentService for AgentService {
+         _ctx: &TtrpcContext,
+         req: protocols::agent::ReadStreamRequest,
+     ) -> ttrpc::Result<ReadStreamResponse> {
+-        is_allowed(&req).await?;
+-        self.do_read_stream(req, true).await.map_ttrpc_err(same)
++        let mut response = self.do_read_stream(&req, true).await.map_ttrpc_err(same)?;
++        if !is_allowed(&req).await.is_ok() {
++            // Policy does not allow reading logs, so we redact the log messages.
++            response.clear_data();
++        }
++        Ok(response)
+     }
+ 
+     async fn read_stderr(
+@@ -811,8 +815,12 @@ impl agent_ttrpc::AgentService for AgentService {
+         _ctx: &TtrpcContext,
+         req: protocols::agent::ReadStreamRequest,
+     ) -> ttrpc::Result<ReadStreamResponse> {
+-        is_allowed(&req).await?;
+-        self.do_read_stream(req, false).await.map_ttrpc_err(same)
++        let mut response = self.do_read_stream(&req, false).await.map_ttrpc_err(same)?;
++        if !is_allowed(&req).await.is_ok() {
++            // Policy does not allow reading logs, so we redact the log messages.
++            response.clear_data();
++        }
++        Ok(response)
+     }
+ 
+     async fn close_stdin(
