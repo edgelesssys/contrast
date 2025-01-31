@@ -22,6 +22,7 @@ import (
 // ValidatorsFromManifest returns a list of validators corresponding to the reference values in the given manifest.
 // Originally an unexported function in the contrast CLI.
 // Can be made unexported again, if we decide to move all userapi calls from the CLI to the SDK.
+// Validators MUST NOT be used concurrently.
 func ValidatorsFromManifest(kdsDir string, m *manifest.Manifest, log *slog.Logger, coordinatorPolicyChecksum []byte) ([]atls.Validator, error) {
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
 	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter"))
