@@ -200,7 +200,7 @@ index 400b6f1386e1b4a1a4cda1e3e3da2f66640165c7..53e77d82c88912488ead9052f44e3973
 -    }
  }
 diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
-index 0a1c6d34adfffcbc3aef1b55a77556b8b82e85c0..b3888633744a718586069314a192c9c0fd92459e 100644
+index 5f2a3eb955ea427478c842ba80ad2a17299b182f..fd824e9ec26728bf8088939aac7a1edb6d886aac 100644
 --- a/src/agent/src/rpc.rs
 +++ b/src/agent/src/rpc.rs
 @@ -58,7 +58,7 @@ use rustjail::process::ProcessOperations;
@@ -221,7 +221,7 @@ index 0a1c6d34adfffcbc3aef1b55a77556b8b82e85c0..b3888633744a718586069314a192c9c0
  // Convenience function to obtain the scope logger.
  fn sl() -> slog::Logger {
      slog_scope::logger()
-@@ -226,15 +224,6 @@ impl AgentService {
+@@ -227,15 +225,6 @@ impl AgentService {
          // cannot predict everything from the caller.
          add_devices(&sl(), &req.devices, &mut oci, &self.sandbox).await?;
  

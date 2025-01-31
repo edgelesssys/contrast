@@ -11,14 +11,14 @@
 
 buildGoModule rec {
   pname = "kata-runtime";
-  version = "3.12.0";
+  version = "3.13.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = version;
-      hash = "sha256-0pJx8ASUeJjLubu/QV72avntkaU3b5PC5V1H54SrPIs=";
+      hash = "sha256-xBEK+Tczc4MVnETx5sV9sb5/myxLeP7YDDigTroN4Lg=";
     };
 
     patches = [
@@ -114,30 +114,25 @@ buildGoModule rec {
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10633
       ./0017-genpolicy-support-guest-hooks.patch
 
-      # Correctly type QEMU QMP command options for the `device_add` command.
-      # See: https://github.com/kata-containers/kata-containers/pull/10719
-      # TODO(msanft): Remove once upstream PR is released.
-      ./0018-runtime-use-actual-booleans-for-QMP-device_add-boole.patch
-
       # Revert CDI support in kata-agent, which breaks legacy mode GPU facilitation which
       # we currently use.
       # TODO(msanft): Get native CDI working, which will allow us to drop this patch / undo the revert.
       # See https://dev.azure.com/Edgeless/Edgeless/_workitems/edit/5061
-      ./0019-agent-remove-CDI-support.patch
+      ./0018-agent-remove-CDI-support.patch
 
       # This adds support for annotations with dynamic keys *and* values to Genpolicy.
       # This is required for e.g. GPU containers, which get annotated by an in-cluster
       # component (i.e. after policy generation based on the Pod spec) with an annotation
       # like `cdi.k8s.io/vfioXY`, where `XY` corresponds to a dynamic ID.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10745
-      ./0020-genpolicy-support-dynamic-annotations.patch
+      ./0019-genpolicy-support-dynamic-annotations.patch
 
       # This allows denying ReadStream requests without blocking the container on its
       # stdout/stderr, by redacting the streams instead of blocking them.
       # Upstream:
       # * https://github.com/kata-containers/kata-containers/issues/10680
       # * https://github.com/kata-containers/kata-containers/pull/10818
-      ./0021-agent-clear-log-pipes-if-denied-by-policy.patch
+      ./0020-agent-clear-log-pipes-if-denied-by-policy.patch
     ];
   };
 
