@@ -42,7 +42,7 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  create mode 100644 src/agent/src/tdx.rs
 
 diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
-index 67b1830278ca52904a73c6281693049cb5d85283..d53facd717f2428f7790d5b65bdf4bde70ac7d64 100644
+index f94f936f6b0695164daaf09bce98c37894f3e1cb..06cd71212acbbe2093c195c0c40a8817e2d88deb 100644
 --- a/src/agent/Cargo.lock
 +++ b/src/agent/Cargo.lock
 @@ -605,6 +605,12 @@ version = "0.6.3"
@@ -126,7 +126,7 @@ index 67b1830278ca52904a73c6281693049cb5d85283..d53facd717f2428f7790d5b65bdf4bde
  [[package]]
  name = "iovec"
  version = "0.1.4"
-@@ -3047,6 +3086,8 @@ dependencies = [
+@@ -3048,6 +3087,8 @@ dependencies = [
   "serde",
   "serde_json",
   "serial_test",
@@ -135,7 +135,7 @@ index 67b1830278ca52904a73c6281693049cb5d85283..d53facd717f2428f7790d5b65bdf4bde
   "slog",
   "slog-scope",
   "slog-stdlog",
-@@ -3064,6 +3105,7 @@ dependencies = [
+@@ -3065,6 +3106,7 @@ dependencies = [
   "tracing-subscriber",
   "ttrpc",
   "url",
@@ -143,7 +143,7 @@ index 67b1830278ca52904a73c6281693049cb5d85283..d53facd717f2428f7790d5b65bdf4bde
   "vsock-exporter",
   "which",
  ]
-@@ -4054,6 +4096,12 @@ dependencies = [
+@@ -4070,6 +4112,12 @@ dependencies = [
   "tokio-stream",
  ]
  
@@ -156,7 +156,7 @@ index 67b1830278ca52904a73c6281693049cb5d85283..d53facd717f2428f7790d5b65bdf4bde
  [[package]]
  name = "ordered-stream"
  version = "0.2.0"
-@@ -5500,6 +5548,15 @@ dependencies = [
+@@ -5526,6 +5574,15 @@ dependencies = [
   "syn 1.0.109",
  ]
  
@@ -172,7 +172,7 @@ index 67b1830278ca52904a73c6281693049cb5d85283..d53facd717f2428f7790d5b65bdf4bde
  [[package]]
  name = "serde-enum-str"
  version = "0.4.0"
-@@ -5519,6 +5576,15 @@ version = "0.2.2"
+@@ -5545,6 +5602,15 @@ version = "0.2.2"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "794e44574226fc701e3be5c651feb7939038fc67fb73f6f4dd5c4ba90fd3be70"
  
@@ -188,7 +188,7 @@ index 67b1830278ca52904a73c6281693049cb5d85283..d53facd717f2428f7790d5b65bdf4bde
  [[package]]
  name = "serde_derive"
  version = "1.0.204"
-@@ -5622,6 +5688,28 @@ dependencies = [
+@@ -5648,6 +5714,28 @@ dependencies = [
   "syn 1.0.109",
  ]
  
@@ -217,7 +217,7 @@ index 67b1830278ca52904a73c6281693049cb5d85283..d53facd717f2428f7790d5b65bdf4bde
  [[package]]
  name = "sha1"
  version = "0.10.6"
-@@ -6656,6 +6744,9 @@ name = "uuid"
+@@ -6682,6 +6770,9 @@ name = "uuid"
  version = "1.10.0"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "81dfa00651efa65069b0b6b651f4aaa31ba9e3c3ce0137aaad053604ee7e0314"
@@ -227,7 +227,7 @@ index 67b1830278ca52904a73c6281693049cb5d85283..d53facd717f2428f7790d5b65bdf4bde
  
  [[package]]
  name = "valuable"
-@@ -6675,6 +6766,16 @@ version = "0.9.4"
+@@ -6701,6 +6792,16 @@ version = "0.9.4"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
  
@@ -245,10 +245,10 @@ index 67b1830278ca52904a73c6281693049cb5d85283..d53facd717f2428f7790d5b65bdf4bde
  name = "vsock"
  version = "0.2.6"
 diff --git a/src/agent/Cargo.toml b/src/agent/Cargo.toml
-index 5dd9c1e2616b8cd47a60a5644ec9d88705fe3fbd..b8b216c6b24829a457ae55209c63d09187c02d24 100644
+index 6b0ab344c18b06fc09d7e09f68b51e8498a71587..8efa57bd87686bed26a143a1febda1979c52469e 100644
 --- a/src/agent/Cargo.toml
 +++ b/src/agent/Cargo.toml
-@@ -88,6 +88,11 @@ regorus = { version = "0.2.6", default-features = false, features = [
+@@ -89,6 +89,11 @@ regorus = { version = "0.2.6", default-features = false, features = [
  cdi = { git = "https://github.com/cncf-tags/container-device-interface-rs", rev = "fba5677a8e7cc962fc6e495fcec98d7d765e332a" }
  json-patch = "2.0.0"
  
@@ -260,7 +260,7 @@ index 5dd9c1e2616b8cd47a60a5644ec9d88705fe3fbd..b8b216c6b24829a457ae55209c63d091
  [dev-dependencies]
  tempfile = "3.1.0"
  test-utils = { path = "../libs/test-utils" }
-@@ -106,7 +111,7 @@ lto = true
+@@ -107,7 +112,7 @@ lto = true
  default-pull = ["guest-pull"]
  seccomp = ["rustjail/seccomp"]
  standard-oci-runtime = ["rustjail/standard-oci-runtime"]
@@ -270,7 +270,7 @@ index 5dd9c1e2616b8cd47a60a5644ec9d88705fe3fbd..b8b216c6b24829a457ae55209c63d091
  
  [[bin]]
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
-index 17d1d34a147d58fe6cab10d21b54af4fffc4be63..033aac8530390129638d6feff64818d3ebbce20d 100644
+index c4df5f4aeccfd812669bac7c8069f11b6d943924..e3cd549673847328169e97968a37881d3334b67e 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
 @@ -85,6 +85,10 @@ mod tracer;
@@ -1293,7 +1293,7 @@ index 24a67bdd9e591ead96fbaea473cb662526dedbf3..3f5f84afffeec6fed0ba624408158425
 +	assert.Equal(expectedOut, devices)
  }
 diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
-index 33244bc5358c7b50fdc9dcced29c13e24d2e0e39..8cfb80dcde865aa679c12f68173ae168d38c4b20 100644
+index 3711da7f5eace937aa96c10208406b6f1752adcf..4192cb93845e789ed449e017843ad3cca92a3b31 100644
 --- a/src/runtime/virtcontainers/sandbox.go
 +++ b/src/runtime/virtcontainers/sandbox.go
 @@ -613,6 +613,7 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
