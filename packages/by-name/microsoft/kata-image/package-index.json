@@ -260,8 +260,8 @@
     "hash": "sha256-f4FaPv5CDV6YOwbsrGMb7j8JviWeAf8kAeYAAWfy2hs="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libxml2-2.10.4-4.cm2.x86_64.rpm",
-    "hash": "sha256-FRx1WGoG0/xHt3BTcSawbCyHN44d4PHn6Vq/FuJjDdU="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/libxml2-2.10.4-5.cm2.x86_64.rpm",
+    "hash": "sha256-dRQmwE3+oLPJ4lDXJUMKoXRmLJZgRo3N0uuKUiD0JHk="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/l/lmdb-libs-0.9.29-1.cm2.x86_64.rpm",
