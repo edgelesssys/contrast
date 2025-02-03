@@ -66,13 +66,13 @@ let
           openssl
         ])
         ++ (with dockerTools; [ caCertificates ]);
-      runAsRoot = ''
-        mkdir -p /run
-      '';
       config = {
         # Use Entrypoint so we can append arguments.
         Entrypoint = [ "${pkgs.contrast.initializer}/bin/initializer" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
+        Volumes = {
+          "/run" = { };
+        };
       };
     };
 
