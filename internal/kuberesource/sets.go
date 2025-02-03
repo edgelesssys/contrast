@@ -513,6 +513,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 // mounting of encrypted luks volumes using the workload-secret.
 func VolumeStatefulSet() []any {
 	vss := StatefulSet("volume-tester", "").
+		WithAnnotations(map[string]string{securePVAnnotationKey: "state:share"}).
 		WithSpec(StatefulSetSpec().
 			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
 				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
@@ -526,41 +527,6 @@ func VolumeStatefulSet() []any {
 				WithLabels(map[string]string{"app.kubernetes.io/name": "volume-tester"}).
 				WithSpec(
 					PodSpec().
-						WithInitContainers(
-							Container().
-								WithName("volume-tester-init").
-								WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
-								WithArgs("cryptsetup", "--device-path", "/dev/csi0", "--mount-point", "/state").
-								WithVolumeDevices(
-									applycorev1.VolumeDevice().
-										WithName("state").
-										WithDevicePath("/dev/csi0"),
-								).
-								WithVolumeMounts(
-									VolumeMount().
-										WithName("share").
-										WithMountPath("/state").
-										WithMountPropagation(corev1.MountPropagationBidirectional),
-								).
-								WithSecurityContext(
-									applycorev1.SecurityContext().
-										WithPrivileged(true),
-								).
-								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(100),
-								).
-								WithStartupProbe(
-									Probe().
-										WithFailureThreshold(20).
-										WithPeriodSeconds(5).
-										WithExec(applycorev1.ExecAction().
-											WithCommand("/bin/test", "-f", "/done"),
-										),
-								).
-								WithRestartPolicy(
-									corev1.ContainerRestartPolicyAlways,
-								),
-						).
 						WithContainers(
 							Container().
 								WithName("volume-tester").
@@ -572,11 +538,6 @@ func VolumeStatefulSet() []any {
 										WithMountPath("/state").
 										WithMountPropagation(corev1.MountPropagationHostToContainer),
 								),
-						).
-						WithVolumes(
-							applycorev1.Volume().
-								WithName("share").
-								WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
 						),
 				),
 			).
@@ -598,7 +559,10 @@ func VolumeStatefulSet() []any {
 // with an encrypted luks volume using the workload-secret.
 func MySQL() []any {
 	backend := StatefulSet("mysql-backend", "").
-		WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
+		WithAnnotations(map[string]string{
+			smIngressConfigAnnotationKey: "",
+			securePVAnnotationKey:        "state:share",
+		}).
 		WithSpec(StatefulSetSpec().
 			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
 				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
@@ -612,41 +576,6 @@ func MySQL() []any {
 				WithLabels(map[string]string{"app.kubernetes.io/name": "mysql-backend"}).
 				WithSpec(
 					PodSpec().
-						WithInitContainers(
-							Container().
-								WithName("luks-setup").
-								WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
-								WithArgs("cryptsetup", "--device-path", "/dev/csi0", "--mount-point", "/state").
-								WithVolumeDevices(
-									applycorev1.VolumeDevice().
-										WithName("state").
-										WithDevicePath("/dev/csi0"),
-								).
-								WithVolumeMounts(
-									VolumeMount().
-										WithName("share").
-										WithMountPath("/state").
-										WithMountPropagation(corev1.MountPropagationBidirectional),
-								).
-								WithSecurityContext(
-									applycorev1.SecurityContext().
-										WithPrivileged(true),
-								).
-								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(100),
-								).
-								WithStartupProbe(
-									Probe().
-										WithFailureThreshold(20).
-										WithPeriodSeconds(5).
-										WithExec(applycorev1.ExecAction().
-											WithCommand("/bin/test", "-f", "/done"),
-										),
-								).
-								WithRestartPolicy(
-									corev1.ContainerRestartPolicyAlways,
-								),
-						).
 						WithContainers(
 							Container().
 								WithName("mysql-backend").

@@ -15,6 +15,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
@@ -164,6 +166,21 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 		}
 	}
 
-	log.Info("Initializer done")
-	return nil
+	cryptsetupDevicePath := os.Getenv("CRYPTSETUP_DEVICE")
+	if cryptsetupDevicePath == "" {
+		log.Info("Initializer done")
+		return nil
+	}
+
+	log.Info("Setting up encrypted mount")
+
+	flags := &cryptsetupFlags{
+		devicePath:       cryptsetupDevicePath,
+		volumeMountPoint: "/state",
+	}
+
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
+
+	return setupEncryptedMount(ctx, log, flags)
 }

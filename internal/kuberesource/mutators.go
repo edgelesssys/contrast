@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applybatchv1 "k8s.io/client-go/applyconfigurations/batch/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -24,6 +25,7 @@ const (
 	smIngressConfigAnnotationKey  = "contrast.edgeless.systems/servicemesh-ingress"
 	smEgressConfigAnnotationKey   = "contrast.edgeless.systems/servicemesh-egress"
 	smAdminInterfaceAnnotationKey = "contrast.edgeless.systems/servicemesh-admin-interface-port"
+	securePVAnnotationKey         = "contrast.edgeless.systems/secure-pv"
 )
 
 // AddInitializer adds an initializer and its shared volume to the resource.
@@ -41,13 +43,25 @@ func AddInitializer(
 		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
 			return meta, spec
 		}
+		if meta.Annotations[securePVAnnotationKey] != "" {
+			securePVValues := strings.Split(meta.Annotations[securePVAnnotationKey], ":")
+			if len(securePVValues) != 2 {
+				retErr = fmt.Errorf("secure PV annotation has to be in the format 'device-name:mount-name'")
+				return nil, nil
+			}
+			devName := securePVValues[0]
+			mountName := securePVValues[1]
+			retErr = checkIfDeviceExists(resource, spec, devName)
+			if retErr != nil {
+				return nil, nil
+			}
+			retErr = ensureVolumeExists(spec, mountName)
+			if retErr != nil {
+				return nil, nil
+			}
+			initializer = addCryptsetupConfig(initializer, devName, mountName)
+		}
 
-		// Remove already existing init containers with unique initializer name.
-		spec.InitContainers = slices.DeleteFunc(spec.InitContainers, func(c applycorev1.ContainerApplyConfiguration) bool {
-			return c.Name != nil && *c.Name == *initializer.Name
-		})
-		// Add the initializer as first init container.
-		spec.InitContainers = append([]applycorev1.ContainerApplyConfiguration{*initializer}, spec.InitContainers...)
 		// Initializer has to have a volume mount.
 		// This should never error because the Initializer is configured to have a volume mount.
 		if len(initializer.VolumeMounts) < 1 {
@@ -55,6 +69,12 @@ func AddInitializer(
 			return nil, nil
 		}
 
+		// Remove already existing init containers with unique initializer name.
+		spec.InitContainers = slices.DeleteFunc(spec.InitContainers, func(c applycorev1.ContainerApplyConfiguration) bool {
+			return c.Name != nil && *c.Name == *initializer.Name
+		})
+
+		// The first volume mount is the contrast-secrets volume.
 		retErr = ensureVolumeExists(spec, *initializer.VolumeMounts[0].Name)
 		if retErr != nil {
 			return nil, nil
@@ -67,9 +87,47 @@ func AddInitializer(
 		for i := range spec.InitContainers {
 			addOrReplaceVolumeMount(&spec.InitContainers[i], initializer.VolumeMounts[0])
 		}
+
+		// Add the initializer as first init container.
+		spec.InitContainers = append([]applycorev1.ContainerApplyConfiguration{*initializer}, spec.InitContainers...)
 		return meta, spec
 	})
 	return res, retErr
+}
+
+func addCryptsetupConfig(initializer *applycorev1.ContainerApplyConfiguration, devName, mountName string) *applycorev1.ContainerApplyConfiguration {
+	return initializer.
+		WithEnv(NewEnvVar("CRYPTSETUP_DEVICE", "/dev/csi0")).
+		WithVolumeDevices(
+			applycorev1.VolumeDevice().
+				WithName(devName).
+				WithDevicePath("/dev/csi0"),
+		).
+		WithVolumeMounts(
+			VolumeMount().
+				WithName(mountName).
+				WithMountPath("/state").
+				WithMountPropagation("Bidirectional"),
+		).
+		WithSecurityContext(
+			SecurityContext().
+				WithPrivileged(true).
+				SecurityContextApplyConfiguration,
+		).
+		WithResources(ResourceRequirements().
+			WithMemoryLimitAndRequest(100),
+		).
+		WithStartupProbe(
+			Probe().
+				WithFailureThreshold(20).
+				WithPeriodSeconds(5).
+				WithExec(applycorev1.ExecAction().
+					WithCommand("/bin/test", "-f", "/done"),
+				),
+		).
+		WithRestartPolicy(
+			corev1.ContainerRestartPolicyAlways,
+		)
 }
 
 func addOrReplaceVolumeMount(container *applycorev1.ContainerApplyConfiguration, volumeMount applycorev1.VolumeMountApplyConfiguration) {
@@ -150,6 +208,30 @@ func AddServiceMesh(
 		return meta, spec.WithInitContainers(serviceMeshProxy)
 	})
 	return res, retErr
+}
+
+func checkIfDeviceExists(resource any, spec *applycorev1.PodSpecApplyConfiguration, volumeName string) error {
+	// Check for existing volume with unique name.
+	for _, volume := range spec.Volumes {
+		if volume.Name != nil && *volume.Name == volumeName {
+			if volume.PersistentVolumeClaim == nil && volume.ISCSI == nil {
+				return fmt.Errorf("volume %q must reference a PVC or iSCSI device", volumeName)
+			}
+			return nil
+		}
+	}
+	// Check for existing VolumeClaimTemplate with unique name.
+	switch r := resource.(type) {
+	case *applyappsv1.StatefulSetApplyConfiguration:
+		if r.Spec != nil && r.Spec.VolumeClaimTemplates != nil {
+			for _, volumeClaim := range r.Spec.VolumeClaimTemplates {
+				if volumeClaim.Name != nil && *volumeClaim.Name == volumeName {
+					return nil
+				}
+			}
+		}
+	}
+	return fmt.Errorf("device %q not found", volumeName)
 }
 
 func ensureVolumeExists(spec *applycorev1.PodSpecApplyConfiguration, volumeName string) error {
