@@ -7,8 +7,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -275,7 +277,10 @@ func parseExistingContainerdConfig(path string) ([]byte, config.ContainerdConfig
 	// they are overwriting the template file and not the rendered file, we need to return the
 	// template file here.
 	configData, err = os.ReadFile(path)
-	if err != nil {
+	if errors.Is(err, fs.ErrNotExist) {
+		// The template file will be created by us, pretend that it's empty right now.
+		return []byte{}, cfg, nil
+	} else if err != nil {
 		return nil, config.ContainerdConfig{}, fmt.Errorf("reading containerd config template %s: %w", path, err)
 	}
 	return configData, cfg, nil
