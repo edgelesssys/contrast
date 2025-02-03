@@ -4,6 +4,7 @@
 package kuberesource
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -168,6 +169,65 @@ func TestAddInitializer(t *testing.T) {
 						))),
 			wantError: false,
 		},
+		{
+			name: "cryptsetup default",
+			d: applyappsv1.Deployment("test", "default").
+				WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithRuntimeClassName("contrast-cc").
+							WithVolumes(
+								Volume().
+									WithName("device").
+									WithPersistentVolumeClaim(applycorev1.PersistentVolumeClaimVolumeSource()),
+							),
+						))),
+			wantError: false,
+		},
+		{
+			name: "cryptsetup bad annotation",
+			d: applyappsv1.Deployment("test", "default").
+				WithAnnotations(map[string]string{securePVAnnotationKey: "test"}).
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithRuntimeClassName("contrast-cc"),
+						))),
+			wantError: true,
+		},
+		{
+			name: "cryptsetup no device",
+			d: applyappsv1.Deployment("test", "default").
+				WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithRuntimeClassName("contrast-cc"),
+						))),
+			wantError: true,
+		},
+		{
+			name: "cryptsetup volume is not an block device",
+			d: applyappsv1.Deployment("test", "default").
+				WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
+				WithSpec(applyappsv1.DeploymentSpec().
+					WithTemplate(applycorev1.PodTemplateSpec().
+						WithSpec(applycorev1.PodSpec().
+							WithContainers(applycorev1.Container()).
+							WithRuntimeClassName("contrast-cc").
+							WithVolumes(
+								Volume().WithName("device"),
+								Volume().
+									WithName("mount").
+									WithEmptyDir(EmptyDirVolumeSource().Inner()),
+							),
+						))),
+			wantError: true,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			require := require.New(t)
@@ -183,6 +243,19 @@ func TestAddInitializer(t *testing.T) {
 			require.Equal(expectedInitializerContainerName, *tc.d.Spec.Template.Spec.InitContainers[0].Name)
 			require.NotEmpty(tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts)
 			require.Equal(expectedInitializerVolumeMountName, *tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts[0].Name)
+
+			if tc.d.Annotations[securePVAnnotationKey] != "" {
+				securePVValue := strings.Split(tc.d.Annotations[securePVAnnotationKey], ":")
+				_, mountName := securePVValue[0], securePVValue[1]
+				sharedVolumeMountCount := 0
+				for _, v := range tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts {
+					if *v.Name == mountName {
+						sharedVolumeMountCount++
+					}
+				}
+				require.Equal(1, sharedVolumeMountCount)
+				require.Equal(mountName, *tc.d.Spec.Template.Spec.InitContainers[0].VolumeMounts[1].Name)
+			}
 
 			initializerCount := 0
 			for _, c := range tc.d.Spec.Template.Spec.InitContainers {

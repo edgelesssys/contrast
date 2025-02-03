@@ -19,10 +19,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// parsedCryptsetupFlags holds configuration for mounting a LUKS encrypted device.
-type parsedCryptsetupFlags struct {
+// cryptsetupFlags holds configuration for mounting a LUKS encrypted device.
+type cryptsetupFlags struct {
 	devicePath       string
-	mappingName      string
 	volumeMountPoint string
 }
 
@@ -45,7 +44,7 @@ func NewCryptsetupCmd() *cobra.Command {
 		The mapped decrypted block device can then be shared with other containers
 		on the pod by setting up a shared VolumeMount on the specified [mount-point],
 		where the mapper device will be mounted to.`,
-		RunE: setupEncryptedMount,
+		RunE: runCryptsetup,
 	}
 	cmd.Flags().StringP("device-path", "d", "", "path to the volume device to be encrypted")
 	cmd.Flags().StringP("mount-point", "m", "", "mount point of decrypted mapper device")
@@ -55,8 +54,8 @@ func NewCryptsetupCmd() *cobra.Command {
 	return cmd
 }
 
-// parseCryptsetupFlags returns struct of type parsedCryptsetupFlags, representing the provided flags to the subcommand, which is then used to setup the encrypted volume mount.
-func parseCryptsetupFlags(cmd *cobra.Command) (*parsedCryptsetupFlags, error) {
+// parseCryptsetupFlags returns struct of type cryptsetupFlags, representing the provided flags to the subcommand, which is then used to setup the encrypted volume mount.
+func parseCryptsetupFlags(cmd *cobra.Command) (*cryptsetupFlags, error) {
 	devicePath, err := cmd.Flags().GetString("device-path")
 	if err != nil {
 		return nil, err
@@ -65,49 +64,53 @@ func parseCryptsetupFlags(cmd *cobra.Command) (*parsedCryptsetupFlags, error) {
 	if err != nil {
 		return nil, err
 	}
-	mapperHash := sha256.Sum256([]byte(devicePath + mountPoint))
-	mappingName := hex.EncodeToString(mapperHash[:8])
-	return &parsedCryptsetupFlags{
+	return &cryptsetupFlags{
 		devicePath:       devicePath,
-		mappingName:      mappingName,
 		volumeMountPoint: mountPoint,
 	}, nil
 }
 
-// setupEncryptedMount sets up an encrypted LUKS volume mount using the device path and mount point, provided to the setupEncryptedMount subcommand.
-func setupEncryptedMount(cmd *cobra.Command, _ []string) error {
-	// Register channel waiting for SIGTERM signal
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT)
-	logger, err := logger.Default()
+func runCryptsetup(cmd *cobra.Command, _ []string) error {
+	flags, err := parseCryptsetupFlags(cmd)
+	if err != nil {
+		return fmt.Errorf("parsing cryptsetup flags: %w", err)
+	}
+	log, err := logger.Default()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: creating logger: %v\n", err)
 		return err
 	}
-	parsedCryptsetupFlags, err := parseCryptsetupFlags(cmd)
-	if err != nil {
-		return fmt.Errorf("parsing setupEncryptedMount flags: %w", err)
-	}
-	ctx := cmd.Context()
-	if !isLuks(ctx, logger, parsedCryptsetupFlags.devicePath) {
+
+	ctx, cancel := signal.NotifyContext(cmd.Context(), syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
+
+	return setupEncryptedMount(ctx, log, flags)
+}
+
+// setupEncryptedMount sets up an encrypted LUKS volume mount using the device path and mount point, provided to the setupEncryptedMount subcommand.
+func setupEncryptedMount(ctx context.Context, log *slog.Logger, flags *cryptsetupFlags) error {
+	if !isLuks(ctx, log, flags.devicePath) {
 		// TODO(jmxnzo) check what happens if container is terminated in between formatting
-		if err := luksFormat(ctx, parsedCryptsetupFlags.devicePath, workloadSecretPath); err != nil {
+		if err := luksFormat(ctx, flags.devicePath, workloadSecretPath); err != nil {
 			return err
 		}
 	}
-	if err := openEncryptedDevice(ctx, parsedCryptsetupFlags, workloadSecretPath); err != nil {
+	mapperHash := sha256.Sum256([]byte(flags.devicePath + flags.volumeMountPoint))
+	mappingName := hex.EncodeToString(mapperHash[:8])
+	if err := openEncryptedDevice(ctx, flags, mappingName, workloadSecretPath); err != nil {
 		return err
 	}
 	// The decrypted devices with <name> will always be mapped to /dev/mapper/<name> by default.
-	if err := mount.SetupMount(ctx, logger, "/dev/mapper/"+parsedCryptsetupFlags.mappingName, parsedCryptsetupFlags.volumeMountPoint); err != nil {
+	if err := mount.SetupMount(ctx, log, "/dev/mapper/"+mappingName, flags.volumeMountPoint); err != nil {
 		return err
 	}
 
 	if err := os.WriteFile("/done", []byte(""), 0o644); err != nil {
 		return fmt.Errorf("Creating startup probe done directory:%w", err)
 	}
+
 	// Wait for SIGTERM signal
-	<-signalChan
+	<-ctx.Done()
 
 	return nil
 }
@@ -115,7 +118,7 @@ func setupEncryptedMount(cmd *cobra.Command, _ []string) error {
 // isLuks wraps the cryptsetup isLuks command and returns a bool reflecting if the device is formatted as LUKS.
 func isLuks(ctx context.Context, logger *slog.Logger, devName string) bool {
 	if _, err := exec.CommandContext(ctx, "cryptsetup", "isLuks", "--debug", devName).CombinedOutput(); err != nil {
-		logger.Info("device", devName, "is not a LUKS device or cannot be accessed", "err", err)
+		logger.Info("device is not a LUKS device or cannot be accessed", "device", devName, "err", err)
 		return false
 	}
 	return true
@@ -130,9 +133,9 @@ func luksFormat(ctx context.Context, devName, pathToKey string) error {
 }
 
 // openEncryptedDevice wraps the cryptsetup open command.
-func openEncryptedDevice(ctx context.Context, parsedCryptsetupFlags *parsedCryptsetupFlags, pathToKey string) error {
-	if _, err := exec.CommandContext(ctx, "cryptsetup", "open", parsedCryptsetupFlags.devicePath, parsedCryptsetupFlags.mappingName, "-d", pathToKey).CombinedOutput(); err != nil {
-		return fmt.Errorf("cryptsetup open %s failed: %w", parsedCryptsetupFlags.devicePath, err)
+func openEncryptedDevice(ctx context.Context, flags *cryptsetupFlags, mappingName, pathToKey string) error {
+	if _, err := exec.CommandContext(ctx, "cryptsetup", "open", flags.devicePath, mappingName, "-d", pathToKey).CombinedOutput(); err != nil {
+		return fmt.Errorf("cryptsetup open %s failed: %w", flags.devicePath, err)
 	}
 	return nil
 }
