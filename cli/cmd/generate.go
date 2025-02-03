@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -72,6 +73,7 @@ subcommands.`,
 	cmd.Flags().String("image-replacements", "", "path to image replacements file")
 	cmd.Flags().Bool("skip-initializer", false, "skip injection of Contrast Initializer")
 	cmd.Flags().Bool("skip-service-mesh", false, "skip injection of Contrast service mesh sidecar")
+	cmd.Flags().StringP("output", "o", "", "output file for generated YAML")
 	must(cmd.Flags().MarkHidden("image-replacements"))
 	must(cmd.MarkFlagFilename("policy", "rego"))
 	must(cmd.MarkFlagFilename("settings", "json"))
@@ -94,6 +96,14 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	paths, err := findGenerateTargets(args, log)
 	if err != nil {
 		return err
+	}
+	if flags.outputFile != "" {
+		tmpDir, newPaths, err := getTmpPaths(paths)
+		if err != nil {
+			return fmt.Errorf("get temporary paths: %w", err)
+		}
+		defer os.RemoveAll(tmpDir)
+		paths = newPaths
 	}
 
 	// generate a manifest by checking if a manifest exists and using that,
@@ -129,6 +139,17 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	if err := generatePolicies(cmd.Context(), flags, paths, log); err != nil {
 		return fmt.Errorf("generate policies: %w", err)
 	}
+
+	if flags.outputFile != "" {
+		combinedYAML, err := getCombinedYAML(paths)
+		if err != nil {
+			return fmt.Errorf("get combined YAML: %w", err)
+		}
+		if err := os.WriteFile(flags.outputFile, combinedYAML, 0o644); err != nil {
+			return fmt.Errorf("write output file: %w", err)
+		}
+	}
+
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Generated workload policy annotations")
 
 	policies, err := policiesFromKubeResources(paths)
@@ -374,6 +395,70 @@ func runtimeClassNamePatcher(handler string) func(*applycorev1.PodSpecApplyConfi
 	}
 }
 
+func validateOutputFile(outputFile string) error {
+	if outputFile == "" {
+		return nil
+	}
+	dir := filepath.Dir(outputFile)
+	if stat, err := os.Stat(dir); err != nil {
+		return err
+	} else if !stat.IsDir() {
+		return fmt.Errorf("not a directory: %s", dir)
+	}
+	if fi, err := os.Stat(outputFile); err == nil && fi.IsDir() {
+		return fmt.Errorf("output file %s is a directory", outputFile)
+	}
+	return nil
+}
+
+func getTmpPaths(paths []string) (string, []string, error) {
+	tmpDir, err := os.MkdirTemp("", "contrast-generate")
+	if err != nil {
+		return "", nil, fmt.Errorf("create temporary directory: %w", err)
+	}
+	var newPaths []string
+	for _, path := range paths {
+		if err := copyFile(path, filepath.Join(tmpDir, filepath.Base(path))); err != nil {
+			return tmpDir, nil, fmt.Errorf("copy %s: %w", path, err)
+		}
+		newPaths = append(newPaths, filepath.Join(tmpDir, filepath.Base(path)))
+	}
+	return tmpDir, newPaths, nil
+}
+
+func copyFile(inPath, outPath string) error {
+	inFile, err := os.Open(inPath)
+	if err != nil {
+		return fmt.Errorf("open %s: %w", inPath, err)
+	}
+	defer inFile.Close()
+
+	outFile, err := os.Create(outPath)
+	if err != nil {
+		return fmt.Errorf("create %s: %w", outPath, err)
+	}
+	defer outFile.Close()
+
+	if _, err := io.Copy(outFile, inFile); err != nil {
+		return fmt.Errorf("copy %s: %w", inPath, err)
+	}
+	return nil
+}
+
+func getCombinedYAML(paths []string) ([]byte, error) {
+	var combinedYAML []byte
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("read %s: %w", path, err)
+		}
+		// This expects a "---" separator at the beginning of each YAML file,
+		// as is the case after running "genpolicy".
+		combinedYAML = append(combinedYAML, data...)
+	}
+	return combinedYAML, nil
+}
+
 func addWorkloadOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) error {
 	keyData, err := os.ReadFile(keyPath)
 	if err != nil {
@@ -453,6 +538,7 @@ type generateFlags struct {
 	imageReplacementsFile   string
 	skipInitializer         bool
 	skipServiceMesh         bool
+	outputFile              string
 }
 
 func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
@@ -529,6 +615,13 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	outputFile, err := cmd.Flags().GetString("output")
+	if err != nil {
+		return nil, err
+	}
+	if err := validateOutputFile(outputFile); err != nil {
+		return nil, err
+	}
 
 	return &generateFlags{
 		policyPath:              policyPath,
@@ -543,6 +636,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		imageReplacementsFile:   imageReplacementsFile,
 		skipInitializer:         skipInitializer,
 		skipServiceMesh:         skipServiceMesh,
+		outputFile:              outputFile,
 	}, nil
 }
 
