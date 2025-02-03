@@ -26,7 +26,6 @@ rustPlatform.buildRustPackage rec {
     lockFile = "${src}/src/agent/Cargo.lock";
     outputHashes = {
       "sev-1.2.1" = "sha256-5UkHDDJMVUG18AN/c6BSMTkEgSG8MBB33DZE355gXdE=";
-      "regorus-0.1.4" = "sha256-hKhuPEgtVOW1/83fVyQB61ZPRYzNqPdDhS0lNyJpekc=";
     };
   };
 
