@@ -237,11 +237,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Bump flake version temporarily to release version
+      - name: Bump flake version to release version
         uses: ./.github/actions/bump_version
         with:
           version: ${{ needs.process-inputs.outputs.WITHOUT_V }}
-          commit: false
+          commit: true
       - name: Push containers with release tag
         run: |
           coordinatorImg=$(nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator")
