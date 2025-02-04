@@ -8,10 +8,10 @@ Subject: [PATCH] genpolicy: support HostToContainer mount propagation
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 327dd6990f8e7a275cf7561e20d2ce5cc0eeab2e..09bc89fdf7e6eb239428adbb093c9cb5962da8a7 100644
+index 82304ba640cbe2ca056309b0c9b8c792e1523675..1f19d1daaf84a3b8800b0a55188205fd0ba9b2d8 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -108,8 +108,9 @@ pub fn get_mount_and_storage(
+@@ -142,8 +142,9 @@ pub fn get_mount_and_storage(
      yaml_volume: &volume::Volume,
      yaml_mount: &pod::VolumeMount,
  ) {

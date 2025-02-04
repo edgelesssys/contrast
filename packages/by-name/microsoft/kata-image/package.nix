@@ -93,9 +93,9 @@ let
     repodir=/etc/yum.repos.d
     cachedir=/build/var/cache/tdnf
   '';
-  vendor-reposdir = writeTextDir "yum.repos.d/cbl-mariner-2-vendor.repo" ''
-    [cbl-mariner-2.0-prod-base-x86_64-yum]
-    name=cbl-mariner-2.0-prod-base-x86_64-yum
+  vendor-reposdir = writeTextDir "yum.repos.d/azurelinux-3.0-vendor.repo" ''
+    [azurelinux-3.0-prod-base-x86_64]
+    name=azurelinux-3.0-prod-base-x86_64
     baseurl=file://${rpmMirror}
     repo_gpgcheck=0
     gpgcheck=0
@@ -139,7 +139,7 @@ let
       # use a fakeroot environment to build the rootfs as a tar
       # this is required to create files with the correct ownership and permissions
       # including suid
-      # Upstream build invokation:
+      # Upstream build invocation:
       # https://github.com/microsoft/azurelinux/blob/59ce246f224f282b3e199d9a2dacaa8011b75a06/SPECS/kata-containers-cc/mariner-coco-build-uvm.sh#L18
       mkdir -p /build/var/run
       mkdir -p /build/var/tdnf
