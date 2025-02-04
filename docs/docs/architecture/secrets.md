@@ -42,7 +42,7 @@ Like the workload certificates, it's written to the `secrets/workload-secret-see
 :::warning
 
 The seed share owner can decrypt data encrypted with secrets derived from the workload secret, because they can themselves derive the workload secret.
-If the data owner fully trusts the seed share owner (when they are the same entity, for example), they can securely use the workload secrets.
+If the data owner fully trusts the seed share owner (when they're the same entity, for example), they can securely use the workload secrets.
 
 :::
 
