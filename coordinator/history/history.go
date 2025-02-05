@@ -26,8 +26,8 @@ const (
 
 // History is the history of the Coordinator.
 type History struct {
-	store      Store
-	hashFun    func() hash.Hash
+	store   Store
+	hashFun func() hash.Hash
 }
 
 // New creates a new History backed by the default filesystem store.
