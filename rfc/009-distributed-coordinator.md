@@ -8,8 +8,8 @@ This leads to predictable outages on AKS, where the nodes are replaced periodica
 
 ## Requirements
 
-* High-availability: node failure, pod migration, etc. must not impact the availability of the `set` or `verify` flow.
-* Auto-recovery: node failure, pod migration, etc. must not require a manual recovery step.
+* High availability: node failure, pod migration, etc. must not impact the availability of the `set` or `verify` flow.
+* Automatic recovery: node failure, pod migration, etc. must not require a manual recovery step.
   * A newly started Coordinator that has recovered peers must eventually recover automatically.
 * Consistency: the Coordinator state must be strongly consistent.
 * Data-owner security: the mesh CA key must only ever be exposed to Coordinator instances.
@@ -31,7 +31,7 @@ In order to allow reasoning about the chain of trust, we adhere to the following
 
 Taken together, these invariants ensure
 
-* data owner security: a mesh CA key is only ever used with a single manifest and is not known to non-Coordinators.
+* data owner security: a mesh CA key is only ever used with a single manifest and isn't known to non-Coordinators.
 * seed share owner security: the seed configured for an active manifest can be traced back to the seed share owners in that manifest.
 
 See the [section on manifest changes](#manifest-changes) below regarding authentication of Coordinators.
@@ -50,12 +50,12 @@ type Store interface {
 }
 ```
 
-There are no special requirements for `Get` and `Set`, other than basic consistency guarantees (i.e., `Get` should return what was `Set` at some point in the past).
+There are no special requirements for `Get` and `Set`, other than basic consistency guarantees (`Get` should return what was `Set` at some point in the past).
 We can use Kubernetes resources and their `GET` / `PUT` semantics to implement them.
 `CompareAndSwap` needs to do an atomic update, which is supported by the `ObjectMeta.resourceVersion`[^1] field.
 We also add a new `Watch` method that facilitates reacting to manifest updates.
 This can be implemented as a no-op or via `inotify(7)` on the existing file-backed store, and with the native watch mechanisms for Kubernetes objects.
-While the `Watch` method is not strictly required, it prevents entering recovery mode in the hot path of user API and mesh API calls.
+While the `Watch` method isn't strictly required, it prevents entering recovery mode in the hot path of user API and mesh API calls.
 
 [RFC 004](004-recovery.md#kubernetes-objects) contains an implementation sketch that uses custom resource definitions.
 However, in order to keep the implementation simple, we implement the KV store in content-addressed `ConfigMaps`.
@@ -63,7 +63,7 @@ A few considerations on using Kubernetes objects for storage:
 
 1. Kubernetes object names need to be valid DNS labels, limiting the length to 63 characters.
    We work around that by truncating the name and storing a map of full hashes to content.
-2. The `latest` transition is not content-addressable.
+2. The `latest` transition isn't content-addressable.
    We store it under a fixed name for now (`transitions/latest`), which limits us to one Coordinator deployment per namespace.
    Should a use-case arise, we could make that name configurable.
 3. Etcd has a limit of 1.5MiB per value.
@@ -88,11 +88,11 @@ data:
 
 ### Recovery mode
 
-The Coordinator is said to be in *recovery mode* if its state object (containing manifest and seed engine) does not correspond to the latest state in persistence.
+The Coordinator is said to be in *recovery mode* if its state object (containing manifest and seed engine) doesn't correspond to the latest state in persistence.
 Recovery mode can be entered as follows:
 
 * The Coordinator starts up and the history has a latest transition.
-* Receiving a watch event for the latest manifest, and the latest manifest is not the current one.
+* Receiving a watch event for the latest manifest, and the latest manifest isn't the current one.
 * Syncing the latest manifest during API calls and discovering a new manifest.
 
 Recovery mode exits after the state has been updated by:
@@ -113,7 +113,7 @@ We add a few new paths to the existing HTTP server for metrics, supporting the f
 
 * `/probe/startup`: returns 200 when all ports are serving and [peer recovery](#peer-recovery) was attempted once.
 * `/probe/liveness`: returns 200 unless the Coordinator is recovered but can't read the transaction store.
-* `/probe/readiness`: returns 200 if the Coordinator has an active manifest and is not in recovery mode.
+* `/probe/readiness`: returns 200 if the Coordinator has an active manifest and isn't in recovery mode.
 
 Using these probes, we expose the Coordinators in different ways, depending on audience:
 
@@ -183,7 +183,7 @@ message RecoverResponse {
 
 When this method is called, the serving Coordinator:
 
-1. Provides an attestation statement to the client (this is not the case for the mesh API right now).
+1. Provides an attestation statement to the client (this isn't the case for the mesh API right now).
 2. Queries the current state and attaches it to the context (this already happens automatically for all `meshapi` calls).
 3. Verifies that the client identity is allowed to recover by the state's manifest (has the `coordinator` role).
 4. Fills the response with values from the current state.
@@ -200,7 +200,7 @@ The complete flow from the recovering Coordinator's perspective:
 5. Set up a temporary `SeedEngine` with the received parameters.
 6. Load the manifest history from persistence, verifying the signature with the temporary seed engine.
 7. Compare the loaded manifest with the received manifest.
-   If they match, update the state with the temporary seedengine and the fetched history.
+   If they match, update the state with the temporary seed engine and the fetched history.
 
 If the recovery was successful, the client Coordinator leaves the peer recovery process.
 Otherwise, it continues with the next available peer, or fails the process if none are left.
@@ -208,7 +208,7 @@ Otherwise, it continues with the next available peer, or fails the process if no
 ## Open issues
 
 * TODO(burgerdev): inconsistent state if `userapi.Recover` is called while a recovered coordinator exists. Fix candidates:
-  * Treat user recovery like a manifest update (i.e., write a new transition).
+  * Treat user recovery like a manifest update (that is, write a new transition on recovery).
     This should force other Coordinators into recovery mode.
   * Store a mesh CA key hash in the latest transition.
   * Sign the latest transition with the mesh key (and resign on `userapi.Recover`).
