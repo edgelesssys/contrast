@@ -3,12 +3,12 @@ module github.com/edgelesssys/contrast/service-mesh
 go 1.23.0
 
 require (
-	github.com/cncf/xds/go v0.0.0-20240723142845-024c85f92f20
+	github.com/cncf/xds/go v0.0.0-20250121191232-2f005788dc42
 	github.com/coreos/go-iptables v0.8.0
 	github.com/envoyproxy/go-control-plane/envoy v1.32.2
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.10.0
 	go.uber.org/goleak v1.3.0
-	google.golang.org/protobuf v1.36.3
+	google.golang.org/protobuf v1.36.4
 )
 
 require (
