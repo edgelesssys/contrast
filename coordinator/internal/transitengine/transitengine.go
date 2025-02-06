@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
@@ -29,26 +30,27 @@ type (
 	}
 )
 
+var (
+	encryptRegex = regexp.MustCompile(`^/v\d+/transit/encrypt/([a-zA-Z0-9_-]+)$`)
+	decryptRegex = regexp.MustCompile(`^/v\d+/transit/decrypt/([a-zA-Z0-9_-]+)$`)
+)
+
 // NewTransitEngineAPI sets up the transit engine API with a provided seedEngineAuthority.
 func NewTransitEngineAPI(authority seedEngineAuthority, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 	// avoid explicit routing
 	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-		if len(pathParts) < 4 || pathParts[1] != "transit" {
-			http.NotFound(w, r)
+		if matches := encryptRegex.FindStringSubmatch(r.URL.Path); matches != nil {
+			getEncryptHandler(authority, logger).ServeHTTP(w, r)
 			return
 		}
-		action := pathParts[2]
 
-		switch action {
-		case "encrypt":
-			getEncryptHandler(authority, logger).ServeHTTP(w, r)
-		case "decrypt":
+		if matches := decryptRegex.FindStringSubmatch(r.URL.Path); matches != nil {
 			getDecryptHandler(authority, logger).ServeHTTP(w, r)
-		default:
-			http.NotFound(w, r)
+			return
 		}
+
+		http.NotFound(w, r)
 	}))
 	return mux
 }
@@ -56,7 +58,7 @@ func NewTransitEngineAPI(authority seedEngineAuthority, logger *slog.Logger) *ht
 func getEncryptHandler(authority seedEngineAuthority, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		urlParts := strings.Split(r.URL.Path, "/")
-		version, workloadSecret := urlParts[0], urlParts[4]
+		version, workloadSecret := urlParts[1], urlParts[4]
 		key, err := deriveEncryptionKey(authority, workloadSecret+version)
 		if err != nil {
 			http.Error(w, fmt.Sprint("key derivation: %w", err), http.StatusInternalServerError)
@@ -87,7 +89,7 @@ func getEncryptHandler(authority seedEngineAuthority, logger *slog.Logger) http.
 func getDecryptHandler(authority seedEngineAuthority, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		urlParts := strings.Split(r.URL.Path, "/")
-		version, workloadSecret := urlParts[0], urlParts[4]
+		version, workloadSecret := urlParts[1], urlParts[4]
 		key, err := deriveEncryptionKey(authority, workloadSecret+version)
 		if err != nil {
 			http.Error(w, fmt.Sprint("key derivation: %w", err), http.StatusInternalServerError)
