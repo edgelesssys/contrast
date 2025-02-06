@@ -215,7 +215,22 @@ Otherwise, it continues with the next available peer, or fails the process if no
 
 ## Alternatives considered
 
-* TODO(burgerdev): different service structure
-* TODO(burgerdev): push vs pull
-* TODO(burgerdev): active mesh CA key distribution
-* TODO(burgerdev): nested CAs, reuse `NewMeshCert`
+### Recovery initiated by the serving Coordinator
+
+We could make each ready Coordinator try to discover unready peers and start recovering them.
+Superficially this approach would be closer to the existing recovery flow, but we'd still need to modify:
+
+* authorization of the initiating party (seed share owner vs. attested Coordinator)
+* generating a new mesh cert vs. accepting the cert from the initiator
+
+One upside would be that we would not need to watch manifest changes and avoid recovering in the hot path of `GetManifest` or `NewMeshCert`.
+
+### Services
+
+1. `coordinator-peers` is used for peer discovery only.
+   Since we're already adding a Kubernetes client for the history, we could also add a pod watcher and use that instead.
+   The only complication is that we'd need to define the filter, but that could be achieved by mounting the labels with the downward api, for example.
+   This would also help deal with DNS record TTL, which might delay discovery.
+2. The idea behind `coordinator-ready` is to provide clients that only ever need to talk to a ready coordinator with an endpoint that's guaranteed to be ready.
+   However, if there is at least one ready coordinator, this proposal should ensure that the other coordinators become ready, too, after a short time.
+   This assumption would require adding recovery to the `GetManifest` and `NewMeshCert` handlers, though.
