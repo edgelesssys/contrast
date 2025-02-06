@@ -48,7 +48,7 @@ func (a *Authority) Credentials(reg *prometheus.Registry, issuer atls.Issuer) (*
 
 	return &Credentials{
 		issuer:                     issuer,
-		getState:                   a.getState,
+		getState:                   a.GetState,
 		logger:                     a.logger,
 		attestationFailuresCounter: attestationFailuresCounter,
 		kdsGetter:                  kdsGetter,

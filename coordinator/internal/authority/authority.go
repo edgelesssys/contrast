@@ -165,8 +165,8 @@ func (m *Authority) walkTransitions(transitionRef [history.HashSize]byte, consum
 	return nil
 }
 
-// getState syncs the current state and returns the loaded current state.
-func (m *Authority) getState() (state *State, err error) {
+// GetState syncs the current state and returns the loaded current state.
+func (m *Authority) GetState() (state *State, err error) {
 	if err = m.syncState(); err != nil {
 		return nil, fmt.Errorf("syncing state: %w", err)
 	}
@@ -175,15 +175,6 @@ func (m *Authority) getState() (state *State, err error) {
 		return nil, errors.New("coordinator is not initialized")
 	}
 	return state, nil
-}
-
-// GetSeedEngine returns the seedengine of the current state.
-func (m *Authority) GetSeedEngine() (*seedengine.SeedEngine, error) {
-	state, err := m.getState()
-	if err != nil {
-		return nil, fmt.Errorf("getting state: %w", err)
-	}
-	return state.SeedEngine, nil
 }
 
 // State is a snapshot of the Coordinator's manifest history.

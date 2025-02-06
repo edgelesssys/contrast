@@ -12,6 +12,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
 	"github.com/stretchr/testify/require"
 )
@@ -28,8 +29,10 @@ func TestCryptoAPICyclic(t *testing.T) {
 		{"Plaintext": "6HQ035OxE30=", "Ciphertext": "vault:v1:ZUuU9vMiCa3CE7PvmYlJYhHQOJm2/Rk6xuUA7DSJu4ExttPl"},
 		{"Plaintext": "yqUBQzznRjbXMxhQkwo5q2Az3/6nvgRQ86uffx8ZqT7rufplfhJz+xDfvi4EOw==", "Ciphertext": "vault:v1:fpjOfUK8hZEk6DmcH715zdyTMAqyW9ymAMxQFgoMR2Q5639NYCA3rbrR4OKfGwCqO7UrBg3LeFksYBPhiO4pbX6dHXGYIfjDdgo="},
 	}
+
 	t.Run("encrypt-decrypt handler", func(t *testing.T) {
-		mux := NewTransitEngineAPI(&fakeSeedEngineAuthority{}, slog.Default())
+		fakeStateAuthority, _ := NewFakeSeedEngineAuthority()
+		mux := NewTransitEngineAPI(fakeStateAuthority, slog.Default())
 		for _, entry := range data {
 			t.Run("cyclic handler function testing", func(t *testing.T) {
 				var ciphertext, receivedPlaintext string
@@ -88,14 +91,27 @@ func createReqBodyJSON(bodyParameter, value string) ([]byte, error) {
 	return jsonBody, nil
 }
 
-type fakeSeedEngineAuthority struct{}
+type FakeStateAuthority struct {
+	state authority.State
+}
 
-func (f *fakeSeedEngineAuthority) GetSeedEngine() (seedEngine *seedengine.SeedEngine, err error) {
+func NewFakeSeedEngineAuthority() (*FakeStateAuthority, error) {
 	salt := make([]byte, 32)       // 32-byte salt initialized with zeros
 	secretSeed := make([]byte, 32) // 32-byte secret seed initialized with zeros
-	seedEngine, err = seedengine.New(secretSeed, salt)
+	seedEngine, err := seedengine.New(secretSeed, salt)
 	if err != nil {
 		return nil, err
 	}
-	return seedEngine, nil
+	fakeState := &authority.State{
+		SeedEngine: seedEngine,
+	}
+
+	authority := &FakeStateAuthority{
+		state: *fakeState,
+	}
+	return authority, nil
+}
+
+func (f *FakeStateAuthority) GetState() (*authority.State, error) {
+	return &f.state, nil
 }

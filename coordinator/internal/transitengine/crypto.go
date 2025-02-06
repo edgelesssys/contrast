@@ -19,16 +19,14 @@ const (
 
 // symOpts holds parameters related to the performed symmetric encryption, specifyable as http request parameters.
 type symOpts struct {
-	// Convergent TODO(jmxzo): add parameter support
-	convergent bool
 	// Nonce
 	nonce []byte
 	// AdditionalData
-	additionalData []byte //nolint
+	associatedData []byte
 }
 
 // symmetricEncryptRaw returns the encrypted plaintext based on the symmetric options and encryption key handed in.
-func symmetricEncryptRaw(encKey, plaintext []byte, _ symOpts) ([]byte, error) {
+func symmetricEncryptRaw(encKey, plaintext []byte, opts symOpts) ([]byte, error) {
 	aesCipher, err := aes.NewCipher(encKey)
 	if err != nil {
 		return nil, err
@@ -37,12 +35,15 @@ func symmetricEncryptRaw(encKey, plaintext []byte, _ symOpts) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	nonce, err := crypto.GenerateRandomBytes(12)
-	if err != nil {
-		return nil, err
+	if opts.nonce == nil {
+		randomNonce, err := crypto.GenerateRandomBytes(gcm.NonceSize())
+		if err != nil {
+			return nil, err
+		}
+		opts.nonce = randomNonce
 	}
-	ciphertext := gcm.Seal(nil, nonce, plaintext, nil)
-	return append(nonce, ciphertext...), nil
+	ciphertext := gcm.Seal(nil, opts.nonce, plaintext, opts.associatedData)
+	return append(opts.nonce, ciphertext...), nil
 }
 
 // symmetricDecryptRaw returns the decrypted ciphertext based on the symmetric options and encryption keys handed in.
@@ -55,7 +56,10 @@ func symmetricDecryptRaw(decKey, ciphertext []byte, opts symOpts) ([]byte, error
 	if err != nil {
 		return nil, err
 	}
-	plaintext, err := gcm.Open(nil, opts.nonce, ciphertext, nil)
+	opts.nonce = ciphertext[:gcm.NonceSize()]
+	ciphertext = ciphertext[gcm.NonceSize():]
+
+	plaintext, err := gcm.Open(nil, opts.nonce, ciphertext, opts.associatedData)
 	if err != nil {
 		return nil, err
 	}
