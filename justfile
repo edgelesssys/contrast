@@ -338,7 +338,7 @@ get-credentials platform=default_platform:
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/5"
         ;;
         "K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU")
-            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/2"
+            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/6"
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
