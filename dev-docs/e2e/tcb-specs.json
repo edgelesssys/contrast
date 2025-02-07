@@ -1,0 +1,21 @@
+{
+    "snp": [
+        {
+            "MinimumTCB": {
+                "BootloaderVersion": 7,
+                "TEEVersion": 0,
+                "SNPVersion": 15,
+                "MicrocodeVersion": 72
+            },
+            "ProductName": "Genoa",
+            "TrustedMeasurement": ""
+        }
+    ],
+    "tdx": [
+        {
+            "MinimumTeeTcbSvn": "04010200000000000000000000000000",
+            "MrSeam": "1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04"
+        }
+    ]
+}
+

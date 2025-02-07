@@ -106,6 +106,7 @@ SBOM
 serializable
 sigstore
 snapshotter
+SNP
 SSD
 subcommand
 Subresource
@@ -116,6 +117,7 @@ sysctl
 systemd
 tardev
 tarfs
+TDX
 Terraform
 Tink
 tmpfs
