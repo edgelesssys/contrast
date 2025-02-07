@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Fri, 7 Feb 2025 13:12:28 +0100
+Subject: [PATCH] runtime: remove CDI annotations
+
+We want to remove CDI annotations before they get to the agent, as they should only influence VM creation. Passing them to the agent is likely to create problems in policy checking, as they are often dynamically injected.
+---
+ src/runtime/virtcontainers/kata_agent.go | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
+index 9a794392b927fc8fa231a72ce35bc3fcb2773d85..8e6385e274b16f5ab5be0a90a2229b9cf9f1f83e 100644
+--- a/src/runtime/virtcontainers/kata_agent.go
++++ b/src/runtime/virtcontainers/kata_agent.go
+@@ -14,6 +14,7 @@ import (
+ 	"os"
+ 	"path"
+ 	"path/filepath"
++	"regexp"
+ 	"strconv"
+ 	"strings"
+ 	"sync"
+@@ -1080,6 +1081,17 @@ func (k *kataAgent) constrainGRPCSpec(grpcSpec *grpc.Spec, passSeccomp bool, dis
+ 		grpcSpec.Linux.Devices = linuxDevices
+ 	}
+ 
++	cdiRegexp, err := regexp.Compile(`^cdi\.k8s\.io\/.*$`)
++	if err != nil {
++		k.Logger().WithError(err).Error("compile CDI annotation regexp")
++	}
++
++	for key := range grpcSpec.Annotations {
++		if cdiRegexp.MatchString(key) {
++			delete(grpcSpec.Annotations, key)
++		}
++	}
++
+ 	return nil
+ }
+ 
