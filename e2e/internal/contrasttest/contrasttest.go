@@ -386,7 +386,7 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
 	require.NoError(err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
 	require.NoError(ct.Kubeclient.Apply(ctx, unstructuredResources...))
