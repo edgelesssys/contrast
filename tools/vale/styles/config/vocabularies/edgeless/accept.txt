@@ -16,6 +16,7 @@ backport
 Bazel
 bootloader
 Bootstrapper
+CA
 cachable
 cachix
 Canonical
@@ -49,6 +50,7 @@ Fulcio
 Gbps
 GCP
 genpolicy
+goroutine
 GPU
 gRPC
 Grype
@@ -61,6 +63,7 @@ initramfs
 initrd
 Inkscape
 iodepth
+IP
 IPSec
 iptable
 Istio
