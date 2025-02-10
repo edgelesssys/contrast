@@ -10,44 +10,30 @@ import (
 	"github.com/edgelesssys/contrast/internal/crypto"
 )
 
-const (
-	// aesGCMNonceSize specifies the default nonce size in bytes used in AES GCM.
-	aesGCMNonceSize = 12
-	// aesGCMKeySize specifies the default key size in bytes AES GCM.
-	aesGCMKeySize = 16
-)
-
-// symOpts holds parameters related to the performed symmetric encryption, specifyable as http request parameters.
-type symOpts struct {
-	// Nonce
-	nonce []byte
-	// AdditionalData
-	associatedData []byte
-}
-
-// symmetricEncryptRaw returns the encrypted plaintext based on the symmetric options and encryption key handed in.
-func symmetricEncryptRaw(encKey, plaintext []byte, opts symOpts) ([]byte, error) {
+// symmetricEncryptRaw returns a ciphertextContainer, based on the encryption key and associatedData handed in.
+func symmetricEncryptRaw(encKey, plaintext b64Plaintext, associatedData []byte) (ciphertextContainer, error) {
 	aesCipher, err := aes.NewCipher(encKey)
 	if err != nil {
-		return nil, err
+		return ciphertextContainer{}, err
 	}
 	gcm, err := cipher.NewGCM(aesCipher)
 	if err != nil {
-		return nil, err
+		return ciphertextContainer{}, err
 	}
-	if opts.nonce == nil {
-		randomNonce, err := crypto.GenerateRandomBytes(gcm.NonceSize())
-		if err != nil {
-			return nil, err
-		}
-		opts.nonce = randomNonce
+	nonce, err := crypto.GenerateRandomBytes(gcm.NonceSize())
+	if err != nil {
+		return ciphertextContainer{}, err
 	}
-	ciphertext := gcm.Seal(nil, opts.nonce, plaintext, opts.associatedData)
-	return append(opts.nonce, ciphertext...), nil
+	ciphertext := gcm.Seal(nil, nonce, plaintext, associatedData)
+	return ciphertextContainer{
+		nonce:      nonce,
+		ciphertext: ciphertext,
+	}, nil
 }
 
-// symmetricDecryptRaw returns the decrypted ciphertext based on the symmetric options and encryption keys handed in.
-func symmetricDecryptRaw(decKey, ciphertext []byte, opts symOpts) ([]byte, error) {
+// symmetricDecryptRaw extracts the nonce and returns the decrypted ciphertext based on encryption keys handed in,
+// if the associatedData is valid.
+func symmetricDecryptRaw(decKey []byte, ciphertextContainer ciphertextContainer, associatedData []byte) (b64Plaintext, error) {
 	aesCipher, err := aes.NewCipher(decKey)
 	if err != nil {
 		return nil, err
@@ -56,10 +42,8 @@ func symmetricDecryptRaw(decKey, ciphertext []byte, opts symOpts) ([]byte, error
 	if err != nil {
 		return nil, err
 	}
-	opts.nonce = ciphertext[:gcm.NonceSize()]
-	ciphertext = ciphertext[gcm.NonceSize():]
 
-	plaintext, err := gcm.Open(nil, opts.nonce, ciphertext, opts.associatedData)
+	plaintext, err := gcm.Open(nil, ciphertextContainer.nonce, ciphertextContainer.ciphertext, associatedData)
 	if err != nil {
 		return nil, err
 	}
