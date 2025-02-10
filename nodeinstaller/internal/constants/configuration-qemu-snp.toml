@@ -19,7 +19,6 @@ cpu_features="pmu=off"
 default_vcpus = 1
 default_maxvcpus = 0
 default_bridges = 1
-default_memory = 2048
 default_maxmemory = 0
 disable_block_device_use = false
 shared_fs = "none"
@@ -51,7 +50,7 @@ dial_timeout = 90
 [runtime]
 internetworking_model="tcfilter"
 disable_guest_seccomp=true
-sandbox_cgroup_only=false
+sandbox_cgroup_only=true
 static_sandbox_resource_mgmt=true
 sandbox_bind_mounts=[]
 vfio_mode="guest-kernel"
