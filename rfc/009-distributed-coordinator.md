@@ -208,11 +208,19 @@ If the entire process in this section fails, it should be restarted from the beg
 
 ## Open issues
 
-* TODO(burgerdev): inconsistent state if `userapi.Recover` is called while a recovered coordinator exists. Fix candidates:
-  * Treat user recovery like a manifest update (that is, write a new transition on recovery).
-    This should force other Coordinators into recovery mode.
-  * Store a mesh CA key hash in the latest transition.
-  * Sign the latest transition with the mesh key (and resign on `userapi.Recover`).
+### Inconsistent state
+
+After a `userapi.Recover` operation, the Coordinator needs to generate a new mesh key because it can't accept one from the recovering seed share owner.
+If another Coordinator is still serving, they will both have the same active manifest and history, but different mesh keys.
+Options for dealing with this situation:
+
+* Treat user recovery like a manifest update (that is, write a new transition on recovery).
+  This should force other Coordinators into recovery mode.
+* Don't deal with this situation at all.
+  Coordinators are expected to recover from peers on the order of seconds, whereas recovery by seed share owners is not a frequent operation.
+  To be sure, we could
+  * try to verify that all Coordinators are in recovery mode or
+  * try peer recovery in the hot path of user recovery.
 
 ## Alternatives considered
 
