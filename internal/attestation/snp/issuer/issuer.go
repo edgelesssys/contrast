@@ -93,11 +93,12 @@ func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (
 	var att *spb.Attestation
 	thimRaw, err := i.thimGetter.GetCertification(ctx)
 	if err != nil {
-		i.logger.Info("Could not retrieve THIM certification", "error", err)
+		i.logger.Info("Could not retrieve THIM certification", "err", err)
 		// Get cert chain including ARK, ASK and VCEK (part of spb.Attestation).
 		att, err = verify.GetAttestationFromReport(report, &verify.Options{Getter: i.kdsGetter, Product: product})
 		if err != nil {
-			return nil, fmt.Errorf("could not get attestation from report: %w", err)
+			// Continue without VCEK, the client can still try to request it from KDS on their side.
+			i.logger.Error("could not get attestation from report", "err", err)
 		}
 	} else {
 		i.logger.Info("Retrieved THIM certification", "thim", thimRaw)
@@ -124,16 +125,16 @@ func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (
 		return nil, err
 	}
 	crl, err := verify.GetCrlAndCheckRoot(root, &verify.Options{Getter: i.kdsGetter})
-	if err != nil {
-		// TODO(3u13r): don't fail here. VLEK/ASVK doesn't offer CRLs
-		return nil, err
+	if err == nil {
+		// Add CRL as CertificateChain.Extras to the attestation, so it can be used by a validator.
+		if att.CertificateChain.Extras == nil {
+			att.CertificateChain.Extras = make(map[string][]byte)
+		}
+		att.CertificateChain.Extras[constants.SNPCertChainExtrasCRLKey] = crl.Raw
+	} else {
+		// Continue, as the client can still try to request the CRL from KDS on their side.
+		i.logger.Error("could not get CRL", "err", err)
 	}
-
-	// Add CRL as CertificateChain.Extras to the attestation, so it can be used by a validator.
-	if att.CertificateChain.Extras == nil {
-		att.CertificateChain.Extras = make(map[string][]byte)
-	}
-	att.CertificateChain.Extras[constants.SNPCertChainExtrasCRLKey] = crl.Raw
 
 	attRaw, err := proto.Marshal(att)
 	if err != nil {
