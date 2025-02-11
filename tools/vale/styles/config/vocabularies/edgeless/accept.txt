@@ -73,6 +73,7 @@ Kata
 KEK
 KMS
 kubeadm
+kubebuilder
 kubectl
 kubelet
 Kustomization
