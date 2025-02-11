@@ -1,4 +1,4 @@
-# RFC 009: Distributed coordinator
+# RFC 010: Distributed coordinator
 
 ## Background
 
