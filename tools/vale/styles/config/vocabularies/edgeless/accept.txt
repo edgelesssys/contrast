@@ -127,6 +127,7 @@ Terraform
 Tink
 tmpfs
 TPM
+TTL
 underspecified
 unencrypted
 unrepresentable
