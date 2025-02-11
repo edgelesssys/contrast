@@ -203,7 +203,7 @@ The complete flow from the recovering Coordinator's perspective:
 If the recovery was successful, the client Coordinator leaves the peer recovery process.
 Otherwise, it continues with the next available peer, or fails the process if none are left.
 
-It is expected that recovery can fail transiently, for example due to concurrent `SetManifest` calls.
+It's expected that recovery can fail transiently, for example due to concurrent `SetManifest` calls.
 If the entire process in this section fails, it should be restarted from the beginning with an appropriate backoff.
 
 ## Open issues
@@ -217,7 +217,7 @@ Options for dealing with this situation:
 * Treat user recovery like a manifest update (that is, write a new transition on recovery).
   This should force other Coordinators into recovery mode.
 * Don't deal with this situation at all.
-  Coordinators are expected to recover from peers on the order of seconds, whereas recovery by seed share owners is not a frequent operation.
+  Coordinators are expected to recover from peers on the order of seconds, whereas recovery by seed share owners is at least on the order of minutes.
   To be sure, we could
   * try to verify that all Coordinators are in recovery mode or
   * try peer recovery in the hot path of user recovery.
