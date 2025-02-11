@@ -93,7 +93,7 @@ Recovery mode can be entered as follows:
 
 * The Coordinator starts up and the history has a latest transition.
 * Receiving a watch event for the latest manifest, and the latest manifest isn't the current one.
-* Syncing the latest manifest during API calls and discovering a new manifest.
+* Syncing with the state persistence during API calls and discovering a new manifest (updated by another Coordinator but not yet propagated to this Coordinator).
 
 Recovery mode exits after the state has been updated by:
 
