@@ -8,6 +8,7 @@ package issuer
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/asn1"
 	"encoding/hex"
 	"fmt"
@@ -82,50 +83,11 @@ func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (
 	}
 	i.logger.Info("Retrieved report", "reportRaw", hex.EncodeToString(reportRaw))
 
-	// Get SNP product info from cpuid
-	product := abi.SevProduct()
-	i.logger.Info("cpuid product info", "name", product.GetName(), "machineStepping", product.GetMachineStepping().Value)
-	// Host cpuid can result in incorrect stepping: https://github.com/google/go-sev-guest/issues/115
-	product.MachineStepping = &wrapperspb.UInt32Value{Value: 0}
-	i.logger.Info("patched product info", "name", product.GetName(), "machineStepping", product.GetMachineStepping().Value)
-
 	// Get cert chain from THIM
-	var att *spb.Attestation
-	thimRaw, err := i.thimGetter.GetCertification(ctx)
-	if err != nil {
-		i.logger.Info("Could not retrieve THIM certification", "err", err)
-		// Get cert chain including ARK, ASK and VCEK (part of spb.Attestation).
-		att, err = verify.GetAttestationFromReport(report, &verify.Options{Getter: i.kdsGetter, Product: product})
-		if err != nil {
-			// Continue without VCEK, the client can still try to request it from KDS on their side.
-			i.logger.Error("could not get attestation from report", "err", err)
-		}
-	} else {
-		i.logger.Info("Retrieved THIM certification", "thim", thimRaw)
-		certChain, err := thimRaw.Proto()
-		if err != nil {
-			return nil, fmt.Errorf("issuer: converting THIM cert chain: %w", err)
-		}
-		att = &spb.Attestation{
-			Report:           report,
-			CertificateChain: certChain,
-			Product:          product,
-		}
-	}
+	att := i.getAttestation(ctx, report)
 
 	// Get the CRL.
-	var productLine string
-	if fms := att.GetReport().GetCpuid1EaxFms(); fms != 0 {
-		productLine = kds.ProductLineFromFms(fms)
-	}
-	root := trust.AMDRootCertsProduct(productLine) // Create AMDRootCerts for product line.
-	chain := att.GetCertificateChain()             // Get ARK, ASK and VCEK from attestation.
-	// Decode ASK/ARK into root.
-	if err := root.Decode(chain.GetAskCert(), chain.GetArkCert()); err != nil {
-		return nil, err
-	}
-	crl, err := verify.GetCrlAndCheckRoot(root, &verify.Options{Getter: i.kdsGetter})
-	if err == nil {
+	if crl, err := getCRLforAttestation(att, i.kdsGetter); err == nil {
 		// Add CRL as CertificateChain.Extras to the attestation, so it can be used by a validator.
 		if att.CertificateChain.Extras == nil {
 			att.CertificateChain.Extras = make(map[string][]byte)
@@ -133,7 +95,7 @@ func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (
 		att.CertificateChain.Extras[constants.SNPCertChainExtrasCRLKey] = crl.Raw
 	} else {
 		// Continue, as the client can still try to request the CRL from KDS on their side.
-		i.logger.Error("could not get CRL", "err", err)
+		i.logger.Warn("could not get CRL", "err", err)
 	}
 
 	attRaw, err := proto.Marshal(att)
@@ -143,6 +105,92 @@ func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (
 
 	i.logger.Info("Successfully issued attestation statement")
 	return attRaw, nil
+}
+
+func (i *Issuer) getAttestation(ctx context.Context, report *spb.Report) *spb.Attestation {
+	var att *spb.Attestation
+	var err error
+
+	// THIM isn't rate-limited (IMDS API), so we try it first. It's only available on Microsoft Azure.
+	if att, err = i.getAttestationFromTHIM(ctx, report); err == nil {
+		return att
+	}
+	i.logger.Warn("Failed to get attestation from THIM", "err", err)
+
+	// go-sev-guest will use VCEK from the report if it is an extended report.
+	// Otherwise, it will try to get the VCEK from KDS.
+	if att, err = i.getAttestationFromKdsOrExtendedReport(report); err == nil {
+		return att
+	}
+	i.logger.Warn("Failed to get attestation from KDS or extended report", "err", err)
+
+	// Fallback to attestation without cert chain. The client can still try to request it on their end.
+	return i.getAttestationWithoutCertChain(report)
+}
+
+func (i *Issuer) getAttestationFromTHIM(ctx context.Context, report *spb.Report) (*spb.Attestation, error) {
+	thimRaw, err := i.thimGetter.GetCertification(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("requesting THIM certification: %w", err)
+	}
+
+	certChain, err := thimRaw.Proto()
+	if err != nil {
+		return nil, fmt.Errorf("parsing THIM certification: %w", err)
+	}
+	return &spb.Attestation{
+		Report:           report,
+		CertificateChain: certChain,
+		Product:          i.getProduct(),
+	}, nil
+}
+
+func (i *Issuer) getAttestationFromKdsOrExtendedReport(report *spb.Report) (*spb.Attestation, error) {
+	att, err := verify.GetAttestationFromReport(report, &verify.Options{
+		Getter: i.kdsGetter,
+		// Add product since it is the only way to know which vcek endpoint to use
+		// when report v2 is used. Report v3 already contains the product
+		// information.
+		Product: i.getProduct(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("getting attestation from report: %w", err)
+	}
+	return att, nil
+}
+
+func (i *Issuer) getAttestationWithoutCertChain(report *spb.Report) *spb.Attestation {
+	return &spb.Attestation{
+		Report:  report,
+		Product: i.getProduct(),
+	}
+}
+
+func (i *Issuer) getProduct() *spb.SevProduct {
+	product := abi.SevProduct()
+	i.logger.Info("cpuid product info", "name", product.GetName(), "machineStepping", product.GetMachineStepping().Value)
+	// Host cpuid can result in incorrect stepping: https://github.com/google/go-sev-guest/issues/115
+	product.MachineStepping = &wrapperspb.UInt32Value{Value: 0}
+	i.logger.Info("patched product info", "name", product.GetName(), "machineStepping", product.GetMachineStepping().Value)
+	return product
+}
+
+func getCRLforAttestation(att *spb.Attestation, kdsGetter trust.HTTPSGetter) (*x509.RevocationList, error) {
+	// Create AMDRootCerts for product line.
+	root := trust.AMDRootCertsProduct(kds.ProductLine(att.GetProduct()))
+
+	// Try to get ARK, ASK and VCEK from attestation.
+	chain := att.GetCertificateChain()
+	if chain == nil {
+		return nil, fmt.Errorf("no certificate chain found in attestation")
+	}
+
+	// Decode ASK/ARK into root.
+	if err := root.Decode(chain.GetAskCert(), chain.GetArkCert()); err != nil {
+		return nil, fmt.Errorf("decoding ARK/ASK into root: %w", err)
+	}
+
+	return verify.GetCrlAndCheckRoot(root, &verify.Options{Getter: kdsGetter})
 }
 
 // getQuoteProvider returns the first supported quote provider.
