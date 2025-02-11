@@ -117,10 +117,16 @@ We add a few new paths to the existing HTTP server for metrics, supporting the f
 Using these probes, we expose the Coordinators in different ways, depending on audience:
 
 * A `cooordinator-ready` service backed by ready Coordinators should be used by initializers and verifying clients.
-* A `coordinator-peers` headless service backed by ready Coordinators should be used by Coordinators to discover peers to recover from.
-  Using a headless service allows getting the individual IPs of ready Coordinators, as opposed to a `ClusterIP` service that just drops requests when there are no backends.
 * The `coordinator` service now accepts unready endpoints (`publishNotReadyAddresses=true`) and should be used for `set`.
   The idea here is backwards compatibility with documented workflows, see [Alternatives considered](#alternatives-considered).
+
+#### Peer discovery
+
+A recovering Coordinator needs to know potential peers to recover from.
+We add a background watcher for k8s pods that monitors existing coordinator pods, filters for those that are ready and populates a local lookup table.
+Such functionality is core to projects like operator-sdk and kubebuilder.
+However, those are very opinionated and rather monolithic, so it may be better to implement this using the watch primitives in `client-go`.
+The implementation could probably share some code with `KubeClient.WaitFor`.
 
 #### Coordinator pods
 
@@ -236,10 +242,8 @@ One upside would be that we would not need to watch manifest changes and avoid r
 
 ### Services
 
-1. `coordinator-peers` is used for peer discovery only.
-   Since we're already adding a Kubernetes client for the history, we could also add a pod watcher and use that instead.
-   The only complication is that we'd need to define the filter, but that could be achieved by mounting the labels with the downward api, for example.
-   This would also help deal with DNS record TTL, which might delay discovery.
+1. We could define a headless service `coordinator-peers` for peer discovery.
+   This would have the upside of not requiring permissions for the k8s api, but all the downsides of relying on DNS for discovery (freshness and TTLs, mostly).
 2. The idea behind `coordinator-ready` is to provide clients that only ever need to talk to a ready coordinator with an endpoint that's guaranteed to be ready.
    However, if there is at least one ready coordinator, this proposal should ensure that the other coordinators become ready, too, after a short time.
    This assumption would require adding recovery to the `GetManifest` and `NewMeshCert` handlers, though.
