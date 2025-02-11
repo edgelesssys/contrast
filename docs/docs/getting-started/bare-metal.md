@@ -39,7 +39,26 @@ Increase the `user.max_inotify_instances` sysctl limit by adding `user.max_inoti
 <TabItem value="amd" label="AMD SEV-SNP">
 To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled for *each cluster node* that should host GPU workloads:
 
-1. You must activate the IOMMU. You can check by running:
+1. Ensure that CC-capable GPUs are available on the machine.
+
+   ```sh
+   lspci -nnk | grep '3D controller' -A3
+   ``
+
+   which should show a [CC-capable](https://www.nvidia.com/en-us/data-center/solutions/confidential-computing/) GPU like the NVIDIA H100:
+
+   ```console-out
+   41:00.0 3D controller [0302]: NVIDIA Corporation GH100 [H100 PCIe] [10de:2331] (rev a1)
+      Subsystem: NVIDIA Corporation GH100 [H100 PCIe] [10de:1626]
+      Kernel driver in use: vfio-pci
+      Kernel modules: nvidiafb, nouveau
+   ```
+
+   :::warning
+   Non-CC GPUs aren't supported in Contrast.
+   :::
+
+2. You must activate the IOMMU. You can check by running:
 
    ```sh
    ls /sys/kernel/iommu_groups
@@ -47,13 +66,13 @@ To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled 
 
    If the output contains the group indices (`0`, `1`, ...), the IOMMU is supported on the host.
    Otherwise, add `intel_iommu=on` to the kernel command line.
-2. Additionally, the host kernel needs to have the following kernel configuration options enabled:
+3. Additionally, the host kernel needs to have the following kernel configuration options enabled:
     - `CONFIG_VFIO`
     - `CONFIG_VFIO_IOMMU_TYPE1`
     - `CONFIG_VFIO_MDEV`
     - `CONFIG_VFIO_MDEV_DEVICE`
     - `CONFIG_VFIO_PCI`
-3. A CDI configuration needs to be present on the node. To generate it, you can use the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+4. A CDI configuration needs to be present on the node. To generate it, you can use the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
    Refer to the official instructions on [how to generate a CDI configuration with it](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html).
 
 
