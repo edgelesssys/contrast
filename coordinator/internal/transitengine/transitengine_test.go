@@ -71,9 +71,9 @@ func receiveResponseBody(t *testing.T, mux *http.ServeMux, req *http.Request) ma
 	mux.ServeHTTP(rec, req)
 	res := rec.Result()
 	defer res.Body.Close()
-	require.Equal(http.StatusOK, res.StatusCode)
 	respBody, err := io.ReadAll(res.Body)
 	require.NoError(err)
+	require.Equal(http.StatusOK, res.StatusCode, string(respBody))
 	var respData map[string]any
 	err = json.Unmarshal(respBody, &respData)
 	require.NoError(err)

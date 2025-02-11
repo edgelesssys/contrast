@@ -13,6 +13,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
@@ -28,11 +30,11 @@ const (
 type (
 	// b64Plaintext describes a base64-encoded plaintext.
 	b64Plaintext []byte
-	// ciphertextContainer describes a base64-encoded ciphertext prepended with the nonce and version prefix 'vault:vX:'.
+	// ciphertextContainer describes a base64-encoded ciphertext prepended with the nonce and specified key version.
 	ciphertextContainer struct {
 		nonce      []byte
 		ciphertext []byte
-		prefix     string
+		version    int
 	}
 	// encryptionRequest holds the request-specific b64Plaintext and currently supported, optional query parameters: associatedData.
 	encryptionRequest struct {
@@ -51,24 +53,29 @@ type stateAuthority interface {
 }
 
 // NewTransitEngineAPI sets up the transit engine API with a provided seedEngineAuthority.
-func NewTransitEngineAPI(authority stateAuthority, logger *slog.Logger) *http.ServeMux {
+func NewTransitEngineAPI(authority stateAuthority, _ *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
-	mux.Handle("/{version}/transit/encrypt/{name}", getEncryptHandler(authority, logger))
-	mux.Handle("/{version}/transit/decrypt/{name}", getDecryptHandler(authority, logger))
+	mux.Handle("/{version}/transit/encrypt/{name}", getEncryptHandler(authority))
+	mux.Handle("/{version}/transit/decrypt/{name}", getDecryptHandler(authority))
 
 	return mux
 }
 
-func getEncryptHandler(authority stateAuthority, logger *slog.Logger) http.HandlerFunc {
+func getEncryptHandler(authority stateAuthority) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		version := r.PathValue("version")
+		strVersion := r.PathValue("version")
 		workloadSecretID := r.PathValue("name")
-		if version == "" || workloadSecretID == "" {
+		if strVersion == "" || workloadSecretID == "" {
 			http.Error(w, "Invalid URL format", http.StatusBadRequest)
 			return
 		}
-		key, err := deriveEncryptionKey(authority, workloadSecretID+version)
+		version, err := extractVersion(strVersion)
+		if err != nil {
+			http.Error(w, fmt.Sprint("URL version: %w", err), http.StatusBadRequest)
+			return
+		}
+		key, err := deriveEncryptionKey(authority, workloadSecretID+strVersion)
 		if err != nil {
 			http.Error(w, fmt.Sprint("key derivation: %w", err), http.StatusInternalServerError)
 			return
@@ -83,29 +90,33 @@ func getEncryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 			http.Error(w, fmt.Sprint("encrypting: %w", err), http.StatusInternalServerError)
 			return
 		}
-		ciphertextContainer.prefix = version
+		ciphertextContainer.version = version
 		if err = writeJSONResponse(w, ciphertextContainer); err != nil {
 			http.Error(w, fmt.Sprint("writing response: %w", err), http.StatusInternalServerError)
 			return
 		}
-		logger.Debug("Request successful", "addr", r.RemoteAddr, "method", r.Method, "url", r.URL)
 	}
 }
 
-func getDecryptHandler(authority stateAuthority, logger *slog.Logger) http.HandlerFunc {
+func getDecryptHandler(authority stateAuthority) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		version := r.PathValue("version")
+		strVersion := r.PathValue("version")
 		workloadSecretID := r.PathValue("name")
-		if version == "" || workloadSecretID == "" {
+		if strVersion == "" || workloadSecretID == "" {
 			http.Error(w, "Invalid URL format", http.StatusBadRequest)
 			return
 		}
-		key, err := deriveEncryptionKey(authority, workloadSecretID+version)
+		version, err := extractVersion(strVersion)
+		if err != nil {
+			http.Error(w, fmt.Sprint("URL version: %w", err), http.StatusBadRequest)
+			return
+		}
+		key, err := deriveEncryptionKey(authority, workloadSecretID+strVersion)
 		if err != nil {
 			http.Error(w, fmt.Sprint("key derivation: %w", err), http.StatusInternalServerError)
 			return
 		}
-		decReq, err := parseDecryptionRequest(r)
+		decReq, err := parseDecryptionRequest(r, version)
 		if err != nil {
 			http.Error(w, fmt.Sprint("parsing decryption request: %w", err), http.StatusBadRequest)
 			return
@@ -119,7 +130,6 @@ func getDecryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 			http.Error(w, fmt.Sprint("writing response: %w", err), http.StatusInternalServerError)
 			return
 		}
-		logger.Debug("Request successful", "addr", r.RemoteAddr, "method", r.Method, "url", r.URL)
 	}
 }
 
@@ -163,7 +173,8 @@ func parseEncryptionRequest(r *http.Request) (encryptionRequest, error) {
 
 // parseDecryptionRequest returns the given HTTP request body as decryptionRequest holding
 // the ciphertextContainer and the optional query parameter associatedData.
-func parseDecryptionRequest(r *http.Request) (decryptionRequest, error) {
+// Checks that the URL version matches the received ciphertext request version.
+func parseDecryptionRequest(r *http.Request, version int) (decryptionRequest, error) {
 	defer r.Body.Close()
 	if err := validateContentType(r); err != nil {
 		return decryptionRequest{}, err
@@ -171,6 +182,9 @@ func parseDecryptionRequest(r *http.Request) (decryptionRequest, error) {
 	var decReq decryptionRequest
 	if err := json.NewDecoder(r.Body).Decode(&decReq); err != nil {
 		return decryptionRequest{}, err
+	}
+	if version != decReq.ciphertextContainer.version {
+		return decryptionRequest{}, errors.New("Mismatch URL and ciphertext key version")
 	}
 	return decReq, nil
 }
@@ -192,12 +206,17 @@ func newCiphertextContainer(encoded string) (ciphertextContainer, error) {
 	if len(parts) < 3 {
 		return ciphertextContainer{}, fmt.Errorf("invalid ciphertext format")
 	}
+	version, err := extractVersion(parts[1])
+	if err != nil {
+		return ciphertextContainer{}, fmt.Errorf("ciphertext version: %w", err)
+	}
 	fullCiphertext, err := decodeBase64(parts[2])
 	if err != nil {
 		return ciphertextContainer{}, fmt.Errorf("decoding ciphertext: %w", err)
 	}
+
 	return ciphertextContainer{
-		prefix:     parts[1],
+		version:    version,
 		nonce:      fullCiphertext[:aesGCMNonceSize],
 		ciphertext: fullCiphertext[aesGCMNonceSize:],
 	}, nil
@@ -214,12 +233,8 @@ func (p b64Plaintext) MarshalJSON() ([]byte, error) {
 func (c ciphertextContainer) MarshalJSON() ([]byte, error) {
 	encodedNonce := b64.StdEncoding.EncodeToString(c.nonce)
 	encodedCiphertext := b64.StdEncoding.EncodeToString(c.ciphertext)
-	version := c.prefix
-	if version == "" {
-		version = "v1"
-	}
 	// Convert to "vault:vX:base64" format
-	versioned := fmt.Sprintf("vault:%s:%s%s", version, encodedNonce, encodedCiphertext)
+	versioned := fmt.Sprintf("vault:v%d:%s%s", c.version, encodedNonce, encodedCiphertext)
 
 	return json.Marshal(map[string]string{
 		"ciphertext": versioned,
@@ -285,4 +300,15 @@ func decodeBase64(encoded string) ([]byte, error) {
 		return nil, err
 	}
 	return decoded, nil
+}
+
+// extractVersion is a helper function checking the version string format 'vX' and extracting the corresponding version as int.
+func extractVersion(versionStr string) (int, error) {
+	re := regexp.MustCompile(`^v(\d+)$`)
+	matches := re.FindStringSubmatch(versionStr)
+
+	if len(matches) < 2 {
+		return 0, fmt.Errorf("invalid format: %s", versionStr)
+	}
+	return strconv.Atoi(matches[1])
 }
