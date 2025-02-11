@@ -123,8 +123,10 @@ in
     # instead.
 
     # Configure the persistenced for use with CC GPUs (e.g. H100).
-    # TODO(msanft): This needs to be adjusted for non-CC-GPUs.
     # See: https://docs.nvidia.com/cc-deployment-guide-snp.pdf (Page 23 & 24)
+    # Note that the current setup does not support all use cases with non-CC-GPUs.
+    # See: https://github.com/NVIDIA/open-gpu-kernel-modules/issues/531#issuecomment-1711195538
+    # and https://github.com/AMDESE/AMDSEV/issues/174#issuecomment-1660103561
     systemd.services."nvidia-persistenced" = {
       wantedBy = [ "kata-containers.target" ];
       serviceConfig.ExecStart = lib.mkForce "${lib.getExe config.hardware.nvidia.package.persistenced} --uvm-persistence-mode --verbose";

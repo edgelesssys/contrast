@@ -39,23 +39,23 @@ Increase the `user.max_inotify_instances` sysctl limit by adding `user.max_inoti
 <TabItem value="amd" label="AMD SEV-SNP">
 To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled for *each cluster node* that should host GPU workloads:
 
-1. Ensure that CC-capable GPUs are available on the machine.
+1. Ensure that GPUs supporting confidential computing (CC) are available on the machine.
 
    ```sh
    lspci -nnk | grep '3D controller' -A3
-   ``
+   ```
 
-   which should show a [CC-capable](https://www.nvidia.com/en-us/data-center/solutions/confidential-computing/) GPU like the NVIDIA H100:
+   This should show a [CC-capable](https://www.nvidia.com/en-us/data-center/solutions/confidential-computing/) GPU like the NVIDIA H100:
 
-   ```console-out
+   ```shell-session
    41:00.0 3D controller [0302]: NVIDIA Corporation GH100 [H100 PCIe] [10de:2331] (rev a1)
       Subsystem: NVIDIA Corporation GH100 [H100 PCIe] [10de:1626]
       Kernel driver in use: vfio-pci
       Kernel modules: nvidiafb, nouveau
    ```
 
-   :::warning
-   Non-CC GPUs aren't supported in Contrast.
+   :::info
+   Contrast doesn't support non-CC GPUs.
    :::
 
 2. You must activate the IOMMU. You can check by running:
