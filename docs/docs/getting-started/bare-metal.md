@@ -53,6 +53,9 @@ To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled 
     - `CONFIG_VFIO_MDEV`
     - `CONFIG_VFIO_MDEV_DEVICE`
     - `CONFIG_VFIO_PCI`
+3. A CDI configuration needs to be present on the node. To generate it, you can use the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+   Refer to the official instructions on [how to generate a CDI configuration with it](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html).
+
 
 If the per-node requirements are fulfilled, deploy the [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest) to the cluster. It provisions pod-VMs with GPUs via VFIO.
 
@@ -73,7 +76,6 @@ helm install --wait --generate-name \
    --set sandboxWorkloads.defaultWorkload='vm-passthrough' \
    --set nfd.nodefeaturerules=true \
    --set vfioManager.enabled=true \
-   --set kataManager.enabled=true \
    --set ccManager.enabled=true
 ```
 
