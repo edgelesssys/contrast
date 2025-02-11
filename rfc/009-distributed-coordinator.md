@@ -203,6 +203,9 @@ The complete flow from the recovering Coordinator's perspective:
 If the recovery was successful, the client Coordinator leaves the peer recovery process.
 Otherwise, it continues with the next available peer, or fails the process if none are left.
 
+It is expected that recovery can fail transiently, for example due to concurrent `SetManifest` calls.
+If the entire process in this section fails, it should be restarted from the beginning with an appropriate backoff.
+
 ## Open issues
 
 * TODO(burgerdev): inconsistent state if `userapi.Recover` is called while a recovered coordinator exists. Fix candidates:
