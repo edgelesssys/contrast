@@ -86,7 +86,8 @@ func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byt
 
 	// CRL validity and expiration is checked as part of verify.SnpAttestation.
 	if err := addCRLtoVerifyOptions(attestationData, v.verifyOpts); err != nil {
-		v.logger.Info("could not use cached CRL from Coordinator", slog.String("error", err.Error()))
+		// Log error but continue, the client can still request the CRL/VCEK from the KDS.
+		v.logger.Info("could not use cached CRL from Coordinator aTLS handshake", slog.String("error", err.Error()))
 	}
 
 	// Report signature verification.
