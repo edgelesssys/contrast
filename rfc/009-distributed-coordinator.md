@@ -99,7 +99,6 @@ Recovery mode exits after the state has been updated by:
 
 * A successful [Peer recovery](#peer-recovery).
 * A successful recovery through the `userapi.Recover` RPC.
-* A successful initial `userapi.SetManifest` RPC.
 
 ### Kubernetes changes
 
@@ -155,9 +154,8 @@ If there is no coordinator among the resources, we add a policy entry for the em
 
 The peer recovery process is attempted by Coordinators that are in [Recovery mode](#recovery-mode):
 
-1. Once after startup, to speed up initialization.
-2. Once as callback to the `Watch` event, .
-3. Periodically from a goroutine, to reconcile missed watch events.
+1. Once after entering recovery mode.
+2. Periodically from a goroutine, to reconcile missed watch events.
 
 The process starts with a DNS request for the `coordinator-peers` name to discover ready Coordinators.
 For each of the ready Coordinators, the recovering Coordinator calls a new `meshapi.Recover` method.
