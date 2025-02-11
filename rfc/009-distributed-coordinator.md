@@ -46,7 +46,7 @@ type Store interface {
   Get(key string) ([]byte, error)
   Set(key string, value []byte) error
   CompareAndSwap(key string, oldVal, newVal []byte) error
-  Watch(key string, callback func(newVal []byte)) error // <-- New in RFC009.
+  Watch(key string, chan<- []byte)) error // <-- New in RFC009.
 }
 ```
 
