@@ -24,6 +24,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/prometheus/common/expfmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -161,10 +162,13 @@ func TestPolicy(t *testing.T) {
 
 		// wait for the init container of the openssl-frontend pod to enter the running state
 		require.NoError(c.WaitFor(ctx, kubeclient.InitContainersRunning, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
-		newFailures := getFailures(ctx, t, ct)
-		t.Log("New failures:", newFailures)
-		// errors should happen
-		require.Greater(newFailures, initialFailures)
+
+		// The container may be running, but it's hard to tell whether it already had a chance to
+		// connect to the Coordinator. Thus, retry for some time until an attestation failure happens.
+		require.EventuallyWithT(func(t *assert.CollectT) {
+			newFailures := getFailures(ctx, t, ct)
+			require.Greater(newFailures, initialFailures, "pod not covered by manifest should cause attestation failure")
+		}, 1*time.Minute, time.Second)
 	})
 
 	t.Run("cli does not verify coordinator with unexpected policy hash", func(t *testing.T) {
@@ -198,7 +202,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func getFailures(ctx context.Context, t *testing.T, ct *contrasttest.ContrastTest) int {
+func getFailures(ctx context.Context, t require.TestingT, ct *contrasttest.ContrastTest) int {
 	require := require.New(t)
 
 	coordPods, err := ct.Kubeclient.PodsFromOwner(ctx, ct.Namespace, "StatefulSet", coordinator)
