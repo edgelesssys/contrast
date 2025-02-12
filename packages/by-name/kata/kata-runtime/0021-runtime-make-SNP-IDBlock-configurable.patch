@@ -1,0 +1,169 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Leonard Cohnen <lc@edgeless.systems>
+Date: Wed, 12 Feb 2025 14:47:56 +0100
+Subject: [PATCH] runtime: make SNP IDBlock configurable
+
+Co-authored-by: Paul Meyer <katexochen0@gmail.com>
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+Signed-off-by: Leonard Cohnen <lc@edgeless.systems>
+---
+ .../config/configuration-qemu-snp.toml.in     | 10 ++++++
+ src/runtime/pkg/govmm/qemu/qemu.go            | 14 ++++++++
+ src/runtime/pkg/katautils/config.go           |  4 +++
+ src/runtime/virtcontainers/hypervisor.go      |  8 +++++
+ src/runtime/virtcontainers/qemu_amd64.go      | 34 +++++++++++++------
+ 5 files changed, 59 insertions(+), 11 deletions(-)
+
+diff --git a/src/runtime/config/configuration-qemu-snp.toml.in b/src/runtime/config/configuration-qemu-snp.toml.in
+index a58406de8ed93458d29a68a92f6876b1aed14f33..61a6c9ada4d8b241175a98e29401790177c56128 100644
+--- a/src/runtime/config/configuration-qemu-snp.toml.in
++++ b/src/runtime/config/configuration-qemu-snp.toml.in
+@@ -65,6 +65,16 @@ enable_annotations = @DEFENABLEANNOTATIONS@
+ # Your distribution recommends: @QEMUVALIDHYPERVISORPATHS@
+ valid_hypervisor_paths = @QEMUSNPVALIDHYPERVISORPATHS@
+ 
++# SNP 'ID Block' and 'ID Authentication Information Structure'.
++#
++# 96-byte, base64-encoded blob to provide the ‘ID Block’ structure for the
++# SNP_LAUNCH_FINISH command defined in the SEV-SNP firmware ABI (QEMU default: all-zero)
++#snp_id_block = ""
++# 4096-byte, base64-encoded blob to provide the ‘ID Authentication Information Structure’
++# for the SNP_LAUNCH_FINISH command defined in the SEV-SNP firmware ABI (QEMU default: all-zero)
++#snp_id_auth = ""
++
++
+ # Optional space-separated list of options to pass to the guest kernel.
+ # For example, use `kernel_params = "vsyscall=emulate"` if you are having
+ # trouble running pre-2.15 glibc.
+diff --git a/src/runtime/pkg/govmm/qemu/qemu.go b/src/runtime/pkg/govmm/qemu/qemu.go
+index 5070ecd1e78ca04383637e662b3c8e4f8ec0ae5e..acdbbef7c406577174f2dba911dad2207898aeb0 100644
+--- a/src/runtime/pkg/govmm/qemu/qemu.go
++++ b/src/runtime/pkg/govmm/qemu/qemu.go
+@@ -325,6 +325,14 @@ type Object struct {
+ 	// for Guest attestation. This is only relevant for sev-snp-guest and tdx-guest
+ 	// objects and is encoded in the format expected by QEMU for each TEE type.
+ 	TEEConfigData string
++
++	// SnpIdBlock is the 96-byte, base64-encoded blob to provide the ‘ID Block’ structure
++	// for the SNP_LAUNCH_FINISH command defined in the SEV-SNP firmware ABI (default: all-zero)
++	SnpIdBlock string
++
++	// SnpIdAuth is the 4096-byte, base64-encoded blob to provide the ‘ID Authentication Information Structure’
++	// for the SNP_LAUNCH_FINISH command defined in the SEV-SNP firmware ABI (default: all-zero)
++	SnpIdAuth string
+ }
+ 
+ // Valid returns true if the Object structure is valid and complete.
+@@ -403,6 +411,12 @@ func (object Object) QemuParams(config *Config) []string {
+ 		if len(object.TEEConfigData) > 0 {
+ 			objectParams = append(objectParams, fmt.Sprintf("host-data=%s", object.TEEConfigData))
+ 		}
++		if object.SnpIdBlock != "" {
++			objectParams = append(objectParams, fmt.Sprintf("id-block=%s", object.SnpIdBlock))
++		}
++		if object.SnpIdAuth != "" {
++			objectParams = append(objectParams, fmt.Sprintf("id-auth=%s", object.SnpIdAuth))
++		}
+ 		config.Bios = object.File
+ 	case SecExecGuest:
+ 		objectParams = append(objectParams, string(object.Type))
+diff --git a/src/runtime/pkg/katautils/config.go b/src/runtime/pkg/katautils/config.go
+index addd426013ad26a1c5a118819a91bb2673ad57dd..1b8fc1369000530bdbda133452571d368b389aa0 100644
+--- a/src/runtime/pkg/katautils/config.go
++++ b/src/runtime/pkg/katautils/config.go
+@@ -105,6 +105,8 @@ type hypervisor struct {
+ 	BlockDeviceAIO                 string                    `toml:"block_device_aio"`
+ 	RemoteHypervisorSocket         string                    `toml:"remote_hypervisor_socket"`
+ 	SnpCertsPath                   string                    `toml:"snp_certs_path"`
++	SnpIdBlock                     string                    `toml:"snp_id_block"`
++	SnpIdAuth                      string                    `toml:"snp_id_auth"`
+ 	HypervisorPathList             []string                  `toml:"valid_hypervisor_paths"`
+ 	JailerPathList                 []string                  `toml:"valid_jailer_paths"`
+ 	VirtioFSDaemonList             []string                  `toml:"valid_virtio_fs_daemon_paths"`
+@@ -942,6 +944,8 @@ func newQemuHypervisorConfig(h hypervisor) (vc.HypervisorConfig, error) {
+ 		FirmwarePath:             firmware,
+ 		FirmwareVolumePath:       firmwareVolume,
+ 		SnpCertsPath:             snpCertsPath,
++		SnpIdBlock:               h.SnpIdBlock,
++		SnpIdAuth:                h.SnpIdAuth,
+ 		PFlash:                   pflashes,
+ 		MachineAccelerators:      machineAccelerators,
+ 		CPUFeatures:              cpuFeatures,
+diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
+index 646720f3261e361ee0893dd511d6c11b2a7706c6..53860ed6c094403c29d2288e1f5df8256660849f 100644
+--- a/src/runtime/virtcontainers/hypervisor.go
++++ b/src/runtime/virtcontainers/hypervisor.go
+@@ -465,6 +465,14 @@ type HypervisorConfig struct {
+ 	// (including VCEK/VLEK certificates).
+ 	SnpCertsPath string
+ 
++	// SnpIdBlock is the 96-byte, base64-encoded blob to provide the ‘ID Block’ structure
++	// for the SNP_LAUNCH_FINISH command defined in the SEV-SNP firmware ABI (default: all-zero)
++	SnpIdBlock string
++
++	// SnpIdAuth is the 4096-byte, base64-encoded blob to provide the ‘ID Authentication Information Structure’
++	// for the SNP_LAUNCH_FINISH command defined in the SEV-SNP firmware ABI (default: all-zero)
++	SnpIdAuth string
++
+ 	// KernelParams are additional guest kernel parameters.
+ 	KernelParams []Param
+ 
+diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
+index 0a0451cba1565358225875cf6506381f5d221aec..e392352697c4d53401bed257467e485163dfb2d1 100644
+--- a/src/runtime/virtcontainers/qemu_amd64.go
++++ b/src/runtime/virtcontainers/qemu_amd64.go
+@@ -37,6 +37,10 @@ type qemuAmd64 struct {
+ 	qgsPort uint32
+ 
+ 	snpCertsPath string
++
++	snpIdBlock string
++
++	snpIdAuth string
+ }
+ 
+ const (
+@@ -133,6 +137,8 @@ func newQemuArch(config HypervisorConfig) (qemuArch, error) {
+ 		snpGuest:     config.SevSnpGuest,
+ 		qgsPort:      config.QgsPort,
+ 		snpCertsPath: config.SnpCertsPath,
++		snpIdBlock:   config.SnpIdBlock,
++		snpIdAuth:    config.SnpIdAuth,
+ 	}
+ 
+ 	if config.ConfidentialGuest {
+@@ -320,17 +326,23 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+ 				ReducedPhysBits: 1,
+ 			}), "", nil
+ 	case snpProtection:
+-		return append(devices,
+-			govmmQemu.Object{
+-				Type:            govmmQemu.SNPGuest,
+-				ID:              "snp",
+-				Debug:           false,
+-				File:            firmware,
+-				CBitPos:         cpuid.AMDMemEncrypt.CBitPosition,
+-				ReducedPhysBits: 1,
+-				SnpCertsPath:    q.snpCertsPath,
+-				TEEConfigData:   snpHostData(agentPolicy),
+-			}), "", nil
++		obj := govmmQemu.Object{
++			Type:            govmmQemu.SNPGuest,
++			ID:              "snp",
++			Debug:           false,
++			File:            firmware,
++			CBitPos:         cpuid.AMDMemEncrypt.CBitPosition,
++			ReducedPhysBits: 1,
++			SnpCertsPath:    q.snpCertsPath,
++			TEEConfigData:   snpHostData(agentPolicy),
++		}
++		if q.snpIdBlock != "" {
++			obj.SnpIdBlock = q.snpIdBlock
++		}
++		if q.snpIdAuth != "" {
++			obj.SnpIdAuth = q.snpIdAuth
++		}
++		return append(devices, obj), "", nil
+ 	case noneProtection:
+ 
+ 		return devices, firmware, nil
