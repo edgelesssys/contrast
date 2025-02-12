@@ -14,6 +14,11 @@ on:
       - "!tools/asciinema/**"
       - "!tools/vale/**"
 
+# Cancel old runs of this workflow for this pull request if new commits are pushed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test_matrix:
     strategy:
