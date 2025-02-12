@@ -22,6 +22,11 @@ spec:
             - name: html
               mountPath: /usr/share/nginx/html
               readOnly: true
+          resources:
+            requests:
+              memory: 400Mi
+            limits:
+              memory: 400Mi
       volumes:
         - name: html
           configMap:

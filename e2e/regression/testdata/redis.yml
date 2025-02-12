@@ -18,4 +18,9 @@ spec:
           image: ghcr.io/edgelesssys/redis@sha256:ecb0a964c259a166a1eb62f0eb19621d42bd1cce0bc9bb0c71c828911d4ba93d
           ports:
             - containerPort: 6379
+          resources:
+            limits:
+              memory: 100Mi
+            requests:
+              memory: 100Mi
       runtimeClassName: contrast-cc
