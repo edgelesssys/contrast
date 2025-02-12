@@ -7,7 +7,7 @@ on:
       - "!.github/**"
       - ".github/actions/setup_nix.yml"
       - ".github/workflows/e2e.yml"
-      - ".github/workflows/e2e_openssl.yml"
+      - ".github/workflows/e2e_on_pull_request.yml"
       - "!dev-docs/**"
       - "!docs/**"
       - "!rfc/**"
