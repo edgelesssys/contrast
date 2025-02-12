@@ -131,6 +131,7 @@ updatable
 upsert
 userland
 UUID
+validator
 vCPU
 vendored
 virsh
