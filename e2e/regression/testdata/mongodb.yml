@@ -23,7 +23,7 @@ spec:
           # The memory limit is chosen to allow guest pull of the image (1.2G).
           resources:
             limits:
-              memory: 1500Mi
+              memory: 3000Mi
             requests:
-              memory: 1500Mi
+              memory: 3000Mi
       runtimeClassName: contrast-cc

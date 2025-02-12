@@ -21,4 +21,9 @@ spec:
               value: admin
           ports:
             - containerPort: 3306
+          resources:
+            requests:
+              memory: 1Gi
+            limits:
+              memory: 1Gi
       runtimeClassName: contrast-cc
