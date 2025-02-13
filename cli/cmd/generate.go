@@ -355,7 +355,7 @@ func injectInitializer(resources []any) error {
 	for _, resource := range resources {
 		switch r := resource.(type) {
 		case *applyappsv1.StatefulSetApplyConfiguration:
-			if r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.Annotations != nil &&
+			if r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.ObjectMetaApplyConfiguration != nil && r.Spec.Template.Annotations != nil &&
 				r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
 				continue
 			}
@@ -371,7 +371,7 @@ func injectInitializer(resources []any) error {
 func injectServiceMesh(resources []any) error {
 	for _, resource := range resources {
 		r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
-		if ok && r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.Annotations != nil &&
+		if ok && r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.ObjectMetaApplyConfiguration != nil && r.Spec.Template.Annotations != nil &&
 			r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
 			continue
 		}
