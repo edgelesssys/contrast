@@ -355,7 +355,7 @@ func injectInitializer(resources []any) error {
 	for _, resource := range resources {
 		switch r := resource.(type) {
 		case *applyappsv1.StatefulSetApplyConfiguration:
-			if r.Spec != nil && r.Spec.Template != nil &&
+			if r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.Annotations != nil &&
 				r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
 				continue
 			}
@@ -370,8 +370,9 @@ func injectInitializer(resources []any) error {
 
 func injectServiceMesh(resources []any) error {
 	for _, resource := range resources {
-		deploy, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
-		if ok && deploy.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
+		r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
+		if ok && r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.Annotations != nil &&
+			r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
 			continue
 		}
 		_, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy())
