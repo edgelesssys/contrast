@@ -8,6 +8,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/constants"
+	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +21,7 @@ func TestKataConfig(t *testing.T) {
 		t.Run(platform.String(), func(t *testing.T) {
 			require := require.New(t)
 			assert := assert.New(t)
-			cfg, err := constants.KataRuntimeConfig("/", platform, "", false)
+			cfg, err := constants.KataRuntimeConfig("/", platform, "", sevsnp.SevProduct_SEV_PRODUCT_MILAN, false)
 			require.NoError(err)
 			configBytes, err := cfg.Marshal()
 			require.NoError(err)

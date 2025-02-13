@@ -10,6 +10,8 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/config"
+	"github.com/google/go-sev-guest/abi"
+	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -37,6 +39,18 @@ var (
 	//go:embed containerd-config.toml
 	containerdBaseConfig string
 
+	//go:embed id-block-milan.base64
+	idBlockMilan string
+
+	//go:embed id-auth-milan.base64
+	idAuthMilan string
+
+	//go:embed id-block-genoa.base64
+	idBlockGenoa string
+
+	//go:embed id-auth-genoa.base64
+	idAuthGenoa string
+
 	// RuntimeNamePlaceholder is the placeholder for the per-runtime path (i.e. /opt/edgeless/contrast-cc...) in the target file paths.
 	RuntimeNamePlaceholder = "@@runtimeName@@"
 )
@@ -45,7 +59,9 @@ var (
 const CRIFQDN = "io.containerd.grpc.v1.cri"
 
 // KataRuntimeConfig returns the Kata runtime configuration.
-func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKernelParams string, debug bool) (*config.KataRuntimeConfig, error) {
+func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKernelParams string,
+	sevProductName sevsnp.SevProduct_SevProductName, debug bool,
+) (*config.KataRuntimeConfig, error) {
 	var config config.KataRuntimeConfig
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
@@ -95,6 +111,18 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		// Replace the kernel params entirely (and don't append) since that's
 		// also what we do when calculating the launch measurement.
 		config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
+
+		switch sevProductName {
+		case sevsnp.SevProduct_SEV_PRODUCT_MILAN:
+			config.Hypervisor["qemu"]["snp_id_block"] = idBlockMilan
+			config.Hypervisor["qemu"]["snp_id_auth"] = idAuthMilan
+		case sevsnp.SevProduct_SEV_PRODUCT_GENOA:
+			config.Hypervisor["qemu"]["snp_id_block"] = idBlockGenoa
+			config.Hypervisor["qemu"]["snp_id_auth"] = idAuthGenoa
+		default:
+			return nil, fmt.Errorf("identified unsupported SEV product via cpuid: %s", abi.SevProduct().Name)
+		}
+
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
 		}
