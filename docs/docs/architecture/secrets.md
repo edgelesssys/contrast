@@ -112,6 +112,9 @@ spec:
             - mountPath: /state
               mountPropagation: Bidirectional
               name: share
+      volumes:
+        - name: share
+          emptyDir: {}
       runtimeClassName: contrast-cc
   volumeClaimTemplates:
     - apiVersion: v1
