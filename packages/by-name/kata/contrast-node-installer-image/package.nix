@@ -222,6 +222,15 @@ let
     ];
   };
 
+  version = ociLayerTar {
+    files = [
+      {
+        source = ../../../../version.txt;
+        destination = "/usr/share/misc/contrast/version.txt";
+      }
+    ];
+  };
+
   layers = [
     installer-config
     kata-container-img
@@ -231,6 +240,7 @@ let
     qemu-tdx
     kata-runtime
     nydus
+    version
   ];
 
   manifest = ociImageManifest {

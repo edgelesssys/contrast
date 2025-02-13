@@ -93,11 +93,21 @@ let
     ];
   };
 
+  version = ociLayerTar {
+    files = [
+      {
+        source = ../../../../version.txt;
+        destination = "/usr/share/misc/contrast/version.txt";
+      }
+    ];
+  };
+
   layers = [
     installer-config
     kata-container-img
     cloud-hypervisor
     containerd-shim
+    version
   ];
 
   manifest = ociImageManifest {
