@@ -164,6 +164,16 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 		}
 	}
 
-	log.Info("Initializer done")
-	return nil
+	cryptsetupDevicePath := os.Getenv("CRYPTSETUP_DEVICE")
+	if cryptsetupDevicePath == "" {
+		log.Info("Initializer done")
+		return nil
+	}
+
+	log.Info("Setting up encrypted mount")
+	flags := &cryptsetupFlags{
+		devicePath:       cryptsetupDevicePath,
+		volumeMountPoint: "/state",
+	}
+	return setupEncryptedMount(ctx, log, flags)
 }

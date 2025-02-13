@@ -49,11 +49,38 @@ If the data owner fully trusts the seed share owner (when they're the same entit
 ### Secure persistence
 
 Remember that persistent volumes from the cloud provider are untrusted.
-Using the built-in `cryptsetup` subcommand of the initializer, applications can set up trusted storage on top of untrusted block devices based on the workload secret.
-Functionally the initializer will act as a sidecar container which serves to set up a secure mount inside an `emptyDir` mount shared with the main container.
+Applications can set up trusted storage on top of an untrusted block device based on the workload secret using the `contrast.edgeless.systems/secure-pv` annotation.
+This annotation enables `contrast generate` to configure the Initializer to set up a LUKS-encrypted volume at the specified device and mount it to a specified volume.
+Configure any resource with the following annotation:
+
+```yaml
+metadata:
+  annotations:
+    contrast.edgeless.systems/secure-pv: "device-name:mount-name"
+```
+
+This requires an existing block device named `device-name` which is configured as a volume on the resource.
+The volume `mount-name` has to be of type `EmptyDir` and will be created if not present.
+The resulting Initializer will mount both the device and configured volume and set up the encrypted storage.
+Workload containers can then use the volume as a secure storage location:
+
+```yaml
+spec: # v1.PodSpec
+  containers:
+    - name: my-container
+      image: "my-image@sha256:..."
+      volumeMounts:
+        - mountPath: /secure
+          mountPropagation: HostToContainer
+          name: secure
+  volumes:
+    - name: secure
+      emptyDir: {}
+```
 
 #### Usage `cryptsetup` subcommand
 
+Alternatively, the `cryptsetup` subcommand of the Initializer can be used to manually set up encrypted storage.
 The `cryptsetup` subcommand takes two arguments `cryptsetup -d [device-path] -m [mount-point]`, to set up a LUKS-encrypted volume at `device-path` and mount that volume at `mount-point`.
 
 The following, slightly abbreviated resource outlines how this could be realized:
