@@ -22,6 +22,7 @@ import (
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/asset"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/config"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/constants"
+	"github.com/google/go-sev-guest/abi"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -181,7 +182,7 @@ func envWithDefault(key, dflt string) string {
 }
 
 func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams string, debugRuntime bool) error {
-	kataRuntimeConfig, err := constants.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, debugRuntime)
+	kataRuntimeConfig, err := constants.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, abi.SevProduct().Name, debugRuntime)
 	if err != nil {
 		return fmt.Errorf("generating kata runtime config: %w", err)
 	}
