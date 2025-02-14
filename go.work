@@ -3,6 +3,7 @@ go 1.23.0
 use (
 	.
 	./service-mesh
-	./tools/tdx-measure
 	./tools/nydus-pull
+	./tools/tdx-measure
+	./tools/snp-id-block-generator
 )

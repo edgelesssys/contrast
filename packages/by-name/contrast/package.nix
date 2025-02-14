@@ -205,6 +205,7 @@ buildGoModule rec {
     install -D ${microsoft.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-microsoft.rego
     install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
     install -D ${embeddedReferenceValues} internal/manifest/assets/reference-values.json
+    install -D ${kata.snp-id-block}/* nodeinstaller/internal/constants/
   '';
 
   # postPatch will be overwritten by the release-cli derivation, prePatch

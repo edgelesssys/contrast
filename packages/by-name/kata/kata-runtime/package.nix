@@ -133,6 +133,8 @@ buildGoModule rec {
       # TODO(msanft): Get native CDI working, which will allow us to drop this patch / undo the revert.
       # See https://dev.azure.com/Edgeless/Edgeless/_workitems/edit/5061
       ./0020-runtime-remove-CDI-annotations.patch
+
+      ./0021-runtime-make-SNP-IDBlock-configurable.patch
     ];
   };
 
