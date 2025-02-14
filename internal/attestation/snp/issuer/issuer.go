@@ -83,6 +83,10 @@ func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (
 	}
 	i.logger.Info("Retrieved report", "reportRaw", hex.EncodeToString(reportRaw))
 
+	//
+	//	Checkout dev-docs/kds.md for overview over VCEK/CRL retrieval/caching.
+	//
+
 	// Get cert chain from THIM
 	att := i.getAttestation(ctx, report)
 

@@ -61,7 +61,7 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 	return oid.RawSNPReport
 }
 
-// Validate a TPM based attestation.
+// Validate a SNP based attestation.
 func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
 	v.logger.Info("Validate called", "name", v.name, "nonce", hex.EncodeToString(nonce))
 	defer func() {
@@ -83,6 +83,10 @@ func (v *Validator) Validate(attDocRaw []byte, nonce []byte, peerPublicKey []byt
 		return fmt.Errorf("attestation missing report")
 	}
 	v.logger.Info("Report decoded", "report", protojson.MarshalOptions{Multiline: false}.Format(attestationData.Report))
+
+	//
+	//	Checkout dev-docs/kds.md for overview over VCEK/CRL retrieval/caching.
+	//
 
 	// CRL validity and expiration is checked as part of verify.SnpAttestation.
 	if err := addCRLtoVerifyOptions(attestationData, v.verifyOpts); err != nil {
