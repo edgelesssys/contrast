@@ -7,44 +7,34 @@ package retry
 import (
 	"errors"
 	"strings"
+	"syscall"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-const (
-	authHandshakeErr                 = `connection error: desc = "transport: authentication handshake failed`
-	authHandshakeDeadlineExceededErr = `connection error: desc = "transport: authentication handshake failed: context deadline exceeded`
-)
-
-// grpcErr is the error type that is returned by the grpc client.
-// taken from google.golang.org/grpc/status.FromError.
-type grpcErr interface {
-	GRPCStatus() *status.Status
-	Error() string
-}
-
-// ServiceIsUnavailable checks if the error is a grpc status with code Unavailable.
-// In the special case of an authentication handshake failure, false is returned to prevent further retries.
-func ServiceIsUnavailable(err error) (ret bool) {
-	var targetErr grpcErr
-	if !errors.As(err, &targetErr) {
+// Retriable checks whether it makes sense to retry this gRPC call to the Coordinator.
+func Retriable(err error) bool {
+	if errors.Is(err, syscall.ECONNREFUSED) {
+		return true
+	}
+	statusErr, isStatusErr := status.FromError(err)
+	if !isStatusErr {
 		return false
 	}
-
-	statusErr, ok := status.FromError(targetErr)
-	if !ok {
-		return false
+	if statusErr.Code() == codes.Internal {
+		return true
 	}
-
 	if statusErr.Code() != codes.Unavailable {
 		return false
 	}
-
-	// retry if the handshake deadline was exceeded
-	if strings.HasPrefix(statusErr.Message(), authHandshakeDeadlineExceededErr) {
+	// TLS handshake errors cause this status code. We don't want to retry attestation failures,
+	// so we check the wrapped message.
+	msg := err.Error()
+	if !strings.Contains(msg, "authentication handshake failed") {
 		return true
 	}
 
-	return !strings.HasPrefix(statusErr.Message(), authHandshakeErr)
+	// The only handshake failure worth retrying is an unexpectedly closed connection - EOF.
+	return strings.Contains(msg, "EOF")
 }

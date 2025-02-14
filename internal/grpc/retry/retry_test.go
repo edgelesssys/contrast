@@ -4,8 +4,9 @@
 package retry
 
 import (
-	"errors"
 	"fmt"
+	"net"
+	"syscall"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,42 +14,104 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestServiceIsUnavailable(t *testing.T) {
-	testCases := map[string]struct {
-		err             error
-		wantUnavailable bool
+func TestRetriable(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want bool
 	}{
-		"nil": {},
-		"not status error": {
-			err: errors.New("error"),
+		{
+			name: "no error",
+			err:  nil,
+			want: false,
 		},
-		"not unavailable": {
-			err: status.Error(codes.Internal, "error"),
+		{
+			name: "connection refused",
+			err:  fmt.Errorf("dial tcp [::1]:2: connect: %w", syscall.ECONNREFUSED),
+			want: true, // Maybe the service is just not yet up?
 		},
-		"unavailable error with authentication handshake failure": {
-			err: status.Error(codes.Unavailable, `connection error: desc = "transport: authentication handshake failed: bad certificate"`),
+		{
+			name: "no route to host",
+			err:  fmt.Errorf("dial tcp 192.0.2.1:80: connect: %w", syscall.EHOSTUNREACH),
+			want: false, // This is an issue on the client side.
 		},
-		"normal unavailable error": {
-			err:             status.Error(codes.Unavailable, "error"),
-			wantUnavailable: true,
+		{
+			name: "no such host",
+			err:  fmt.Errorf("dial tcp: %w", &net.DNSError{Err: "no such host", Name: "domain.invalid", IsNotFound: true}),
+			want: false, // DNS is unlikely to be the source of a transient issue.
 		},
-		"handshake deadline exceeded error": {
-			err:             status.Error(codes.Unavailable, `connection error: desc = "transport: authentication handshake failed: context deadline exceeded"`),
-			wantUnavailable: true,
+		{
+			name: "grpc handshake failure bad certificate",
+			err:  status.Error(codes.Unavailable, `connection error: desc = "transport: authentication handshake failed: bad certificate"`),
+			want: false, // This is an error on the application level (bad atls), retrying is unlikely to help.
 		},
-		"wrapped error": {
-			err:             fmt.Errorf("some wrapping: %w", status.Error(codes.Unavailable, "error")),
-			wantUnavailable: true,
+		{
+			name: "grpc handshake failure eof",
+			err:  status.Error(codes.Unavailable, `connection error: desc = "transport: authentication handshake failed: EOF"`),
+			want: true, // Most likely a connection reset, try to connect again.
 		},
-		"code unknown": {
-			err: status.Error(codes.Unknown, "unknown"),
+		{
+			name: "grpc handshake failure context deadline exceeded",
+			err:  status.Error(codes.Unavailable, `connection error: desc = "transport: authentication handshake failed: context deadline exceeded"`),
+			want: false, // If the context expired it does not make sense to retry.
 		},
 	}
 
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			assert := assert.New(t)
-			assert.Equal(tc.wantUnavailable, ServiceIsUnavailable(tc.err))
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, Retriable(tc.err))
+		})
+	}
+
+	grpcCases := []struct {
+		code codes.Code
+		want bool
+	}{
+		{
+			code: codes.PermissionDenied,
+			want: false,
+		},
+		{
+			code: codes.Unauthenticated,
+			want: false,
+		},
+		{
+			code: codes.InvalidArgument,
+			want: false,
+		},
+		{
+			code: codes.FailedPrecondition,
+			want: false,
+		},
+		{
+			code: codes.Aborted,
+			want: false,
+		},
+		{
+			code: codes.Unavailable,
+			want: true, // Unavailable usually indicates a temprorary error.
+		},
+		{
+			code: codes.Aborted,
+			want: false,
+		},
+		{
+			code: codes.Internal,
+			want: true, // Internal may point to a transient problem in the Coordinator.
+		},
+		{
+			code: codes.DeadlineExceeded,
+			want: false, // This is triggered by client-side context expiration.
+		},
+		{
+			code: codes.Canceled,
+			want: false, // This is triggered by client-side cancellation.
+		},
+	}
+
+	for _, tc := range grpcCases {
+		t.Run("grpc "+tc.code.String(), func(t *testing.T) {
+			assert.Equal(t, tc.want, Retriable(status.Error(tc.code, "generic message")))
 		})
 	}
 }

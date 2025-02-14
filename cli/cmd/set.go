@@ -294,7 +294,7 @@ func setLoop(
 	ctx, cancel := context.WithTimeout(ctx, 180*time.Second)
 	defer cancel()
 
-	retrier := retry.NewIntervalRetrier(doer, time.Second, grpcRetry.ServiceIsUnavailable)
+	retrier := retry.NewIntervalRetrier(doer, time.Second, grpcRetry.Retriable)
 	if err := retrier.Do(ctx); err != nil {
 		return nil, err
 	}
