@@ -1,7 +1,7 @@
-From 56e5c0d828fd1503da5969ad12e681d8b66245f5 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Mon, 23 Sep 2024 09:26:32 +0200
-Subject: [PATCH 3/3] i386: omit some unneeded ACPI tables
+Subject: [PATCH] i386: omit some unneeded ACPI tables
 
 This makes the generated ACPI code more deterministic and less dependent on the
 guest configuration (e.g. the amount of assigned memory).
@@ -10,7 +10,7 @@ guest configuration (e.g. the amount of assigned memory).
  1 file changed, 6 insertions(+)
 
 diff --git a/hw/i386/acpi-build.c b/hw/i386/acpi-build.c
-index f401cb5c..e70e8f65 100644
+index f401cb5c277c2e064989700b8351ac300c5a9779..e70e8f65a6f759e76be9973abade81bcf3fcb98e 100644
 --- a/hw/i386/acpi-build.c
 +++ b/hw/i386/acpi-build.c
 @@ -1669,6 +1669,8 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
@@ -47,6 +47,3 @@ index f401cb5c..e70e8f65 100644
      if (acpi_get_mcfg(&mcfg)) {
          acpi_add_table(table_offsets, tables_blob);
          build_mcfg(tables_blob, tables->linker, &mcfg, x86ms->oem_id,
--- 
-2.46.0
-
