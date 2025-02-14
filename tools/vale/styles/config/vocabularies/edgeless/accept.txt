@@ -12,10 +12,12 @@ autoscaler
 autoscaling
 AWS
 backend
+backoff
 backport
 Bazel
 bootloader
 Bootstrapper
+CA
 cachable
 cachix
 Canonical
@@ -49,6 +51,7 @@ Fulcio
 Gbps
 GCP
 genpolicy
+goroutine
 GPU
 gRPC
 Grype
@@ -61,6 +64,7 @@ initramfs
 initrd
 Inkscape
 iodepth
+IP
 IPSec
 iptable
 Istio
@@ -69,6 +73,7 @@ Kata
 KEK
 KMS
 kubeadm
+kubebuilder
 kubectl
 kubelet
 Kustomization
@@ -122,6 +127,7 @@ Terraform
 Tink
 tmpfs
 TPM
+TTL
 underspecified
 unencrypted
 unrepresentable
