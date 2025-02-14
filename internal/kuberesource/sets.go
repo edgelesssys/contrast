@@ -197,6 +197,7 @@ func GenpolicyRegressionTests() map[string]*applyappsv1.DeploymentApplyConfigura
 func Emojivoto(smMode serviceMeshMode) []any {
 	ns := ""
 	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost string
+	var memoryLimitMiB int64
 	switch smMode {
 	case ServiceMeshDisabled:
 		// Source: https://github.com/3u13r/emojivoto/tree/8ba877681c297721cde63eb7be95c98c4c1186ee
@@ -206,6 +207,8 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiWebVoteBotImage = emojiWebImage
 		emojiSvcHost = "emoji-svc:8080"
 		votingSvcHost = "voting-svc:8080"
+		// Our modified images are around 100MiB compressed.
+		memoryLimitMiB = 500
 	case ServiceMeshIngressEgress:
 		emojiSvcImage = "docker.io/buoyantio/emojivoto-emoji-svc:v11@sha256:957949355653776b65fafc2ee22f737cd21e090d4ace63f3b99f6e16976f0458"
 		emojiVotingSvcImage = "docker.io/buoyantio/emojivoto-voting-svc:v11@sha256:a57ac67af7a5b05988a38b49568eca6a078ef27a71c148c44c9db4efb1dac58b"
@@ -214,6 +217,8 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiWebVoteBotImage = "ghcr.io/edgelesssys/contrast/emojivoto-web:coco-1@sha256:0fd9bf6f7dcb99bdb076144546b663ba6c3eb457cbb48c1d3fceb591d207289c"
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
+		// Upstream images are at most 75MiB
+		memoryLimitMiB = 300
 	default:
 		panic(fmt.Sprintf("unknown service mesh mode: %s", smMode))
 	}
@@ -254,7 +259,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 							WithEnv(EnvVar().WithName("GRPC_PORT").WithValue("8080")).
 							WithEnv(EnvVar().WithName("PROM_PORT").WithValue("8801")).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(50),
+								WithMemoryLimitAndRequest(memoryLimitMiB),
 							).
 							WithReadinessProbe(Probe().
 								WithInitialDelaySeconds(1).
@@ -316,7 +321,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 							WithCommand("emojivoto-vote-bot").
 							WithEnv(EnvVar().WithName("WEB_HOST").WithValue("web-svc:443")).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(25),
+								WithMemoryLimitAndRequest(memoryLimitMiB),
 							),
 					),
 				),
@@ -359,7 +364,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 							WithEnv(EnvVar().WithName("GRPC_PORT").WithValue("8080")).
 							WithEnv(EnvVar().WithName("PROM_PORT").WithValue("8801")).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(50),
+								WithMemoryLimitAndRequest(memoryLimitMiB),
 							).
 							WithReadinessProbe(Probe().
 								WithInitialDelaySeconds(1).
@@ -429,7 +434,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 							WithEnv(EnvVar().WithName("VOTINGSVC_HOST").WithValue(votingSvcHost)).
 							WithEnv(EnvVar().WithName("INDEX_BUNDLE").WithValue("dist/index_bundle.js")).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(50),
+								WithMemoryLimitAndRequest(memoryLimitMiB),
 							).
 							WithReadinessProbe(applycorev1.Probe().
 								WithHTTPGet(applycorev1.HTTPGetAction().
