@@ -111,18 +111,18 @@ func runSet(cmd *cobra.Command, args []string) error {
 	}
 	dialer := dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, workloadOwnerKey)
 
-	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
-	if err != nil {
-		return fmt.Errorf("failed to dial coordinator: %w", err)
-	}
-	defer conn.Close()
-
-	client := userapi.NewUserAPIClient(conn)
 	req := &userapi.SetManifestRequest{
 		Manifest: manifestBytes,
 		Policies: policyMapToBytesList(policies),
 	}
-	resp, err := setLoop(cmd.Context(), client, cmd.OutOrStdout(), req)
+	var resp *userapi.SetManifestResponse
+	err = callCoordinator(cmd.Context(), cmd.OutOrStdout(), dialer, flags.coordinator, func(ctx context.Context, client userapi.UserAPIClient) error {
+		innerResp, err := client.SetManifest(ctx, req)
+		if err == nil {
+			resp = innerResp
+		}
+		return err
+	})
 	if err != nil {
 		grpcSt, ok := status.FromError(err)
 		if ok {
@@ -257,25 +257,7 @@ func loadWorkloadOwnerKey(path string, manifst *manifest.Manifest, log *slog.Log
 	return workloadOwnerKey, nil
 }
 
-type setDoer struct {
-	client userapi.UserAPIClient
-	req    *userapi.SetManifestRequest
-
-	resp *userapi.SetManifestResponse
-}
-
-func (d *setDoer) Do(ctx context.Context) error {
-	resp, err := d.client.SetManifest(ctx, d.req)
-	if err == nil {
-		d.resp = resp
-		return nil
-	}
-	return err
-}
-
-func setLoop(
-	ctx context.Context, client userapi.UserAPIClient, out io.Writer, req *userapi.SetManifestRequest,
-) (resp *userapi.SetManifestResponse, retErr error) {
+func callCoordinator(ctx context.Context, out io.Writer, dialer *dialer.Dialer, addr string, call func(context.Context, userapi.UserAPIClient) error) (retErr error) {
 	spinner := spinner.New("  Waiting for coordinator ", 500*time.Millisecond, out)
 	spinner.Start()
 	defer func() {
@@ -286,18 +268,16 @@ func setLoop(
 		}
 	}()
 
-	doer := &setDoer{
-		client: client,
-		req:    req,
+	do := func(ctx context.Context) error {
+		conn, err := dialer.Dial(ctx, addr)
+		if err != nil {
+			return fmt.Errorf("dialing coordinator: %w", err)
+		}
+		defer conn.Close()
+
+		client := userapi.NewUserAPIClient(conn)
+		return call(ctx, client)
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, 180*time.Second)
-	defer cancel()
-
-	retrier := retry.NewIntervalRetrier(doer, time.Second, grpcRetry.Retriable)
-	if err := retrier.Do(ctx); err != nil {
-		return nil, err
-	}
-
-	return doer.resp, nil
+	return retry.NewIntervalRetrier(retry.DoerFunc(do), time.Second, grpcRetry.Retriable).Do(ctx)
 }

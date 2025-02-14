@@ -64,3 +64,11 @@ type Doer interface {
 	// It should return an error that can be checked for retriability.
 	Do(ctx context.Context) error
 }
+
+// DoerFunc implements Doer for a function with the signature for Do.
+type DoerFunc func(context.Context) error
+
+// Do implements Doer for DoerFunc.
+func (f DoerFunc) Do(ctx context.Context) error {
+	return f(ctx)
+}
