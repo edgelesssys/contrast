@@ -62,6 +62,17 @@ in
       # fixed hash for attestation.
       ./0003-i386-omit-some-unneeded-ACPI-tables.patch
       # Load the initrd to a static address to make RTMRs predictable.
+      # Both qemu and OVMF patch the linux kernel header with an initrd
+      # address that depends on VM size. The patch by qemu is redundant, but
+      # ends up being measured into the RTMR by OVMF. Therefore, we replace it
+      # with a static value and apply the same value when calculating the
+      # RTMRs.
+      #
+      # References:
+      # - https://github.com/tianocore/edk2/blob/523dbb6d597b63181bba85a337d1f53e511f4822/OvmfPkg/Library/LoadLinuxLib/Linux.c#L414
+      #   is where OVMF overwrites the initrd address.
+      # - https://www.qemu.org/docs/master/specs/fw_cfg.html is how OVMF learns
+      #   about the initrd address.
       ./0004-hw-x86-load-initrd-to-static-address.patch
     ];
   })
