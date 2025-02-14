@@ -316,13 +316,12 @@ func patchKernel(kernelFile, initrdFile []byte) {
 	kernelFile[0x22B] = 0x00
 
 	// https://github.com/qemu/qemu/blob/f48c205fb42be48e2e47b7e1cd9a2802e5ca17b0/hw/i386/x86.c#L1036
-	// Maximum size of the initrd as calculated by QEMU. Normally, this would be dependent on the VM
-	// memory size, but we have a QEMU patch that removes that fixes this to make RTMR1 reproducible.
-	// Our QEMU patch has a commented-out line to print this value upon start, so it's easy to find
-	// when updating QEMU, as the value might change on QEMU updates.
-	initrdMax := 0x7ffd7fff
+	// Qemu patches the initrd address into the kernel header. This is unnecessary because OVMF
+	// will take the initrd address from fw_cfg and patch it again after measuring the kernel. In
+	// order to have predictable kernel measurements, we patch qemu to set this placeholder instead
+	// of a real address.
+	initrdAddr := 0x80000000
 	initrdSize := len(initrdFile)
-	initrdAddr := (initrdMax - initrdSize) & ^4095
 
 	// https://github.com/qemu/qemu/blob/f48c205fb42be48e2e47b7e1cd9a2802e5ca17b0/hw/i386/x86.c#L1044
 	binary.LittleEndian.PutUint32(kernelFile[0x218:][:4], uint32(initrdAddr))

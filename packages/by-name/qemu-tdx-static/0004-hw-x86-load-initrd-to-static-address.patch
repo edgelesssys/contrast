@@ -12,76 +12,24 @@ which depend not only on the size of the initrd, but also on the memory space
 of the guest, this is not viable for Contrast's reference-value-based attestation
 approach.
 
-As we control the minimum VM memory size in Contrast, we just load the initrd
-to the address it gets loaded to for Contrast's minimum VM memory (2Gi), regardless
-of if the VM has more memory.
-
-QEMU, by default, does a similar thing.
-Consider the below line (cited from above):
-
-   `initrd_max = x86ms->below_4g_mem_size - acpi_data_size - 1;`
-
-This adds an artifical upper bound of where the initrd can be loaded to, as
-the calculation is based on the VM memory (below_4g_mem_size), but capped at 4Gi.
-This means, the initrd, regardless of guest memory size, will always be loaded
-at address 0x100000000 (4Gi) max (minus ACPI data size).
-
-Essentially, overwriting this to 0x80000000 (2Gi), we create an artificial lower *and*
-upper bound (set to Contrast minimum TDX VM memory size).
-This means that the initrd will *always* be loaded at 0x80000000 (2Gi), minus ACPI
-data size. The difference to QEMU's setting is, that we *fix* the address, rather than
-setting *only* an upper bound.
-
-This way, we get the initrd to *always* be loaded at a static address.
+The actual value of the static address does not matter, since OVMF fills the
+corresponding Linux header field with the correct address after measuring the
+kernel.
 
 Signed-off-by: Moritz Sanft <58110325+msanft@users.noreply.github.com>
 ---
- hw/i386/x86.c | 35 +++++++++++++++++++++++++++++++++++
- 1 file changed, 35 insertions(+)
+ hw/i386/x86.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/hw/i386/x86.c b/hw/i386/x86.c
-index 504575abfa98bc25e498e219a2d58d8d31e5feaa..0763462c16f4106d0aa6a46c2b9c360e36ae3e96 100644
+index 504575abfa98bc25e498e219a2d58d8d31e5feaa..ec109d0d24256b11ea0f5ad2e4ea57d69aebc915 100644
 --- a/hw/i386/x86.c
 +++ b/hw/i386/x86.c
-@@ -953,6 +953,41 @@ void x86_load_linux(X86MachineState *x86ms,
-         initrd_max = x86ms->below_4g_mem_size - acpi_data_size - 1;
+@@ -1042,7 +1042,7 @@ void x86_load_linux(X86MachineState *x86ms,
+         sev_load_ctx.initrd_data = initrd_data;
+         sev_load_ctx.initrd_size = initrd_size;
+
+-        stl_p(header + 0x218, initrd_addr);
++        stl_p(header + 0x218, 0x80000000); // Placeholder, will be overwritten by OVMF.
+         stl_p(header + 0x21c, initrd_size);
      }
- 
-+    /*
-+     * For TDX RTMRs to be predictable regardless of VM memory size, we need to
-+     * load the initrd to a static address, so no dynamic value ends up in the
-+     * mapped kernel image.
-+     *
-+     * Without setting this to a static address, the address the initrd is mapped to
-+     * which depend not only on the size of the initrd, but also on the memory space
-+     * of the guest, this is not viable for Contrast's reference-value-based attestation
-+     * approach.
-+     *
-+     * As we control the minimum VM memory size in Contrast, we just load the initrd
-+     * to the address it gets loaded to for Contrast's minimum VM memory (2Gi), regardless
-+     * of if the VM has more memory.
-+     *
-+     * QEMU, by default, does a similar thing.
-+     * Consider the below line (cited from above):
-+     *
-+     *    initrd_max = x86ms->below_4g_mem_size - acpi_data_size - 1;
-+     *
-+     * This adds an artifical upper bound of where the initrd can be loaded to, as
-+     * the calculation is based on the VM memory (below_4g_mem_size), but capped at 4Gi.
-+     * This means, the initrd, regardless of guest memory size, will always be loaded
-+     * at address 0x100000000 (4Gi) max (minus ACPI data size).
-+     *
-+     * Essentially, overwriting this to 0x80000000 (2Gi), we create an artificial lower *and*
-+     * upper bound (set to Contrast minimum TDX VM memory size).
-+     * This means that the initrd will *always* be loaded at 0x80000000 (2Gi), minus ACPI
-+     * data size. The difference to QEMU's setting is, that we *fix* the address, rather than
-+     * setting *only* an upper bound.
-+     *
-+     * This way, we get the initrd to *always* be loaded at a static address.
-+     */
-+    uint32_t contrast_min_memory = 0x80000000; // 2Gi
-+    initrd_max = contrast_min_memory - acpi_data_size - 1;
-+
-     fw_cfg_add_i32(fw_cfg, FW_CFG_CMDLINE_ADDR, cmdline_addr);
-     fw_cfg_add_i32(fw_cfg, FW_CFG_CMDLINE_SIZE, strlen(kernel_cmdline) + 1);
-     fw_cfg_add_string(fw_cfg, FW_CFG_CMDLINE_DATA, kernel_cmdline);
