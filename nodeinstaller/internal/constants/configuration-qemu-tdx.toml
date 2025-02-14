@@ -18,10 +18,6 @@ cpu_features="-vmx-rdseed-exit,pmu=off"
 default_vcpus = 1
 default_maxvcpus = 0
 default_bridges = 1
-# On TDX, when lowering this, the patch:
-# packages/by-name/qemu-tdx-static/0004-hw-x86-load-initrd-to-static-address.patch
-# needs to be updated accordingly.
-default_memory = 2048
 default_maxmemory = 0
 disable_block_device_use = false
 shared_fs = "virtio-9p"
@@ -55,7 +51,7 @@ dial_timeout = 60
 enable_debug = false
 internetworking_model="tcfilter"
 disable_guest_seccomp=true
-sandbox_cgroup_only=false
+sandbox_cgroup_only=true
 static_sandbox_resource_mgmt=true
 sandbox_bind_mounts=[]
 vfio_mode="guest-kernel"

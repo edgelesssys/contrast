@@ -20,4 +20,9 @@ spec:
             - containerPort: 9090
           securityContext:
             runAsUser: 65534
+          resources:
+            limits:
+              memory: 600Mi
+            requests:
+              memory: 600Mi
       runtimeClassName: contrast-cc
