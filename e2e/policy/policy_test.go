@@ -167,7 +167,7 @@ func TestPolicy(t *testing.T) {
 		// connect to the Coordinator. Thus, retry for some time until an attestation failure happens.
 		require.EventuallyWithT(func(t *assert.CollectT) {
 			newFailures := getFailures(ctx, t, ct)
-			require.Greater(newFailures, initialFailures, "pod not covered by manifest should cause attestation failure")
+			assert.Greater(t, newFailures, initialFailures, "pod not covered by manifest should cause attestation failure")
 		}, 1*time.Minute, time.Second)
 	})
 
