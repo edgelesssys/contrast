@@ -72,12 +72,12 @@
     "hash": "sha256-pco7TmLwLTuWKT87qTTAnin5IeoHAiXzbK3p6nJ0BKI="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-8.8.0-3.cm2.x86_64.rpm",
-    "hash": "sha256-oLZxugZQP3waugcYuYOpXN1wZj+MV79Xppq/VDVKobI="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-8.8.0-4.cm2.x86_64.rpm",
+    "hash": "sha256-KsNCMJW3kwVhP3kzBwyC6AZmub9cUazyVQJ0ZZf/egw="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-libs-8.8.0-3.cm2.x86_64.rpm",
-    "hash": "sha256-6J0kkncYa8YMXqdBHb7Ed6a15FL1fbmTaRAa9nBRrxE="
+    "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/c/curl-libs-8.8.0-4.cm2.x86_64.rpm",
+    "hash": "sha256-wKNxetJcJB+ginKrPVAagBNa7yeEb6LaVa1euD3iOwM="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/cbl-mariner-2.0-prod-base-x86_64/Packages/d/dbus-1.15.6-2.cm2.x86_64.rpm",
