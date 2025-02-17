@@ -448,7 +448,7 @@ func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Durati
 		platforms.MetalQEMUSNPGPU:
 		return 2 * timeout
 	default:
-		return timeout
+		panic(fmt.Sprintf("FactorPlatformTimeout not configured for platform %q", ct.Platform))
 	}
 }
 
