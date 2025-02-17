@@ -159,3 +159,4 @@ func claimsToCertExtension(report *sevsnp.Report) ([]pkix.Extension, error) {
 
 	return extension.ConvertExtensions(extensions)
 }
+
