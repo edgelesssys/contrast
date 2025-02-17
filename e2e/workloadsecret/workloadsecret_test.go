@@ -153,9 +153,14 @@ func TestWorkloadSecrets(t *testing.T) {
 
 		t.Run("set", ct.Set)
 
-		var secrets [][]byte
-		for _, deploy := range []string{"web", "emoji"} {
+		deployments := []string{"web", "emoji"}
+		// Delete both pods first so that we don't serialize the waiting time.
+		for _, deploy := range deployments {
 			require.NoError(ct.Kubeclient.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, deploy))
+		}
+
+		var secrets [][]byte
+		for _, deploy := range deployments {
 			require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, deploy))
 
 			pods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, deploy)
