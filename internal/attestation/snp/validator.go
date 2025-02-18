@@ -150,11 +150,7 @@ func addCRLtoVerifyOptions(attestationData *sevsnp.Attestation, verifyOpts *veri
 		return errors.New("could not parse CRL from attestation data")
 	}
 
-	fms := attestationData.GetReport().GetCpuid1EaxFms()
-	if fms == 0 {
-		return errors.New("could not retrieve cpuid info from attestation data")
-	}
-	productLine := kds.ProductLineFromFms(fms)
+	productLine := kds.ProductLine(attestationData.GetProduct())
 
 	for _, tr := range verifyOpts.TrustedRoots[productLine] {
 		tr.CRL = crl
