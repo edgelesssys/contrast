@@ -31,10 +31,10 @@ index 1e43545320d474ce5994514165176cd8c48db425..9b95f9f7462717d04f0b9ce685d97c04
      "common": {
          "cpath": "/run/kata-containers",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 9ad9d7119be6b5724b2343ca04e8d5df0d1bff9b..43cb19a56fe8ea5833708f0639c9e85ddd884cb3 100644
+index 0bd432907f0b800c56829cdb426c2092d1470c0c..42c4fb7e616ad24d709c274f935c81f8bfafe367 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1279,7 +1279,7 @@ CopyFileRequest {
+@@ -1337,7 +1337,7 @@ CopyFileRequest {
  
  CreateSandboxRequest {
      print("CreateSandboxRequest: input.guest_hook_path =", input.guest_hook_path)
@@ -43,7 +43,7 @@ index 9ad9d7119be6b5724b2343ca04e8d5df0d1bff9b..43cb19a56fe8ea5833708f0639c9e85d
  
      print("CreateSandboxRequest: input.kernel_modules =", input.kernel_modules)
      count(input.kernel_modules) == 0
-@@ -1290,6 +1290,21 @@ CreateSandboxRequest {
+@@ -1348,6 +1348,21 @@ CreateSandboxRequest {
      allow_sandbox_storages(input.storages)
  }
  
@@ -66,7 +66,7 @@ index 9ad9d7119be6b5724b2343ca04e8d5df0d1bff9b..43cb19a56fe8ea5833708f0639c9e85d
      print("ExecProcessRequest 1: input =", input)
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 4601b85893e1c63eaf4b68403713894001dc9ffd..e2012bf6f2d80ffea678a38803d8e85f5369b9dc 100644
+index 990e0756a83fa2843db612bdf9af66c3d7ea9c6f..326e2e8687c6229554e5b7ed278ee5d291a4cd19 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -406,6 +406,8 @@ pub struct ClusterConfig {

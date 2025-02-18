@@ -44,10 +44,10 @@ index 5bbb306e3f4a2c01f482da11b2b27da502635c1d..c84550181b98913ece32eff3e2a7a016
      },
      "volumes": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 6caba4435722f22712f42502e881957f2206b8f2..b2fdb5813a1ff17ceab60cae61b31868316b1f85 100644
+index 1acfca19c87ae30925e2682555f8000262bc1ec2..73442686f1f8a6d48a801199ea248b38029ac25a 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -129,7 +129,6 @@ allow_create_container_input {
+@@ -132,7 +132,6 @@ allow_create_container_input {
      is_null(i_linux.Resources.Network)
      is_null(i_linux.Resources.Pids)
      is_null(i_linux.Seccomp)
@@ -55,15 +55,15 @@ index 6caba4435722f22712f42502e881957f2206b8f2..b2fdb5813a1ff17ceab60cae61b31868
  
      i_process := i_oci.Process
      count(i_process.SelinuxLabel) == 0
-@@ -451,6 +450,7 @@ allow_linux(p_oci, i_oci) {
+@@ -461,6 +460,7 @@ allow_linux(state_ops, p_oci, i_oci) := {"ops": ops, "allowed": true} {
      allow_masked_paths(p_oci, i_oci)
      allow_readonly_paths(p_oci, i_oci)
      allow_linux_devices(p_oci.Linux.Devices, i_oci.Linux.Devices)
 +    allow_linux_sysctl(p_oci.Linux, i_oci.Linux)
+     ret := allow_network_namespace_start(state_ops, p_oci, i_oci)
+     ret.allowed
  
-     print("allow_linux: true")
- }
-@@ -549,6 +549,23 @@ allow_linux_devices(p_devices, i_devices) {
+@@ -607,6 +607,23 @@ allow_linux_devices(p_devices, i_devices) {
      print("allow_linux_devices: true")
  }
  
@@ -176,7 +176,7 @@ index 19f8822395ca225961bcf77bc3e5ae25e3c31119..1769ca02e1e159e977d22e216b540e29
          ..Default::default()
      };
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 656e410668eb4c5fbcddcb732f36325bcfc0e372..6ce6805b299d0ea1d233fb11992b7a7065130cdb 100644
+index 4879260b29b1c109fd52e253bf261063637ede9b..ce819a7743b7d57153d4b5344b0b8a13d956da26 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -180,14 +180,20 @@ pub struct KataLinux {

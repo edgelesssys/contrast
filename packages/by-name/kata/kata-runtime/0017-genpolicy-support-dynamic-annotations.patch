@@ -41,10 +41,10 @@ index 9b95f9f7462717d04f0b9ce685d97c0455f949da..7dac0e5e0585c25e324a39656d1a2dcf
          },
          "CopyFileRequest": [
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 43cb19a56fe8ea5833708f0639c9e85ddd884cb3..f019589a2a62f9602858f816748158a784637928 100644
+index 42c4fb7e616ad24d709c274f935c81f8bfafe367..5e24b4513976885b1f3f9d26e83b23c36755fee7 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -199,18 +199,26 @@ allow_anno(p_oci, i_oci) {
+@@ -205,18 +205,26 @@ allow_anno(p_oci, i_oci) {
  }
  allow_anno(p_oci, i_oci) {
      print("allow_anno 2: p Annotations =", p_oci.Annotations)
@@ -77,7 +77,7 @@ index 43cb19a56fe8ea5833708f0639c9e85ddd884cb3..f019589a2a62f9602858f816748158a7
      print("allow_anno_key 1: i key =", i_key)
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index e2012bf6f2d80ffea678a38803d8e85f5369b9dc..80bb6a63b915fa021e60f2b1d60e4bb32b67ba19 100644
+index 326e2e8687c6229554e5b7ed278ee5d291a4cd19..2c1f050be2c0b1631fcb7d9e3f707edb94459164 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -392,6 +392,12 @@ pub struct CommonData {

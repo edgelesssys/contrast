@@ -19,7 +19,7 @@ let
 
     src = fetchzip {
       url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
-      hash = "sha256-fp86V1ioD8Ga1FM/4a7fN8o67woW4Kz8D6Tgix2VuTI=";
+      hash = "sha256-QCh+jkPVhIGbH3blddgP3dqTsve0tFuJq4JmxamFOGc=";
       stripRoot = false;
     };
 
@@ -59,7 +59,6 @@ let
           --replace-fail 'CONFIG_MODULE_SIG=y' 'CONFIG_MODULE_SIG=n' \
           --replace-fail '# CONFIG_DMIID is not set' 'CONFIG_DMIID=y' \
           --replace-fail '# CONFIG_TMPFS_POSIX_ACL is not set' 'CONFIG_TMPFS_POSIX_ACL=y' \
-          --replace-fail '# CONFIG_TMPFS_XATTR is not set' 'CONFIG_TMPFS_XATTR=y' \
           --replace-fail '# CONFIG_EFIVAR_FS is not set' 'CONFIG_EFIVAR_FS=y' \
           --replace-fail '# CONFIG_RD_ZSTD is not set' 'CONFIG_RD_ZSTD=y' \
           --replace-fail '# CONFIG_VFAT_FS is not se' 'CONFIG_VFAT_FS=y' \
