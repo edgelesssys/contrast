@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"internal/itoa"
 	"net"
 	"net/http"
 	"os"
@@ -38,7 +39,8 @@ import (
 )
 
 const (
-	metricsPortEnvVar = "CONTRAST_METRICS_PORT"
+	metricsEnvVar       = "CONTRAST_METRICS"
+	probeAndMetricsPort = 9102
 )
 
 func main() {
@@ -68,7 +70,6 @@ func run() (retErr error) {
 		return fmt.Errorf("setting up mount: %w", err)
 	}
 
-	metricsPort := os.Getenv(metricsPortEnvVar)
 	promRegistry := prometheus.NewRegistry()
 	serverMetrics := newServerMetrics(promRegistry)
 
@@ -99,30 +100,28 @@ func run() (retErr error) {
 	meshapi.RegisterMeshAPIServer(meshAPIServer, meshapiserver.New(logger))
 	serverMetrics.InitializeMetrics(meshAPIServer)
 
-	metricsServer := &http.Server{}
+	httpServer := &http.Server{}
 
 	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
-		if metricsPort == "" {
-			return nil
-		}
-		if metricsPort == userapi.Port || metricsPort == meshapi.Port {
-			return fmt.Errorf("invalid port for metrics endpoint: %s", metricsPort)
-		}
-		logger.Info("Starting prometheus /metrics endpoint on port " + metricsPort)
+		_, enableMetrics := os.LookupEnv(metricsEnvVar)
+		// TODO(miampf): add /probe/{startup,liveness,readiness} endpoints
 		mux := http.NewServeMux()
-		mux.Handle("/metrics", promhttp.InstrumentMetricHandler(
-			promRegistry, promhttp.HandlerFor(
-				promRegistry,
-				promhttp.HandlerOpts{Registry: promRegistry},
-			),
-		))
-		metricsServer.Addr = ":" + metricsPort
-		metricsServer.Handler = mux
-		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("Serving Prometheus /metrics endpoint", "err", err)
-			return fmt.Errorf("serving Prometheus endpoint: %w", err)
+		if enableMetrics {
+			logger.Info("Starting prometheus /metrics endpoint on port " + itoa.Itoa(probeAndMetricsPort))
+			mux.Handle("/metrics", promhttp.InstrumentMetricHandler(
+				promRegistry, promhttp.HandlerFor(
+					promRegistry,
+					promhttp.HandlerOpts{Registry: promRegistry},
+				),
+			))
+		}
+		httpServer.Addr = ":" + itoa.Itoa(probeAndMetricsPort)
+		httpServer.Handler = mux
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Starting http server", "err", err)
+			return fmt.Errorf("starting http server: %w", err)
 		}
 		return nil
 	})
@@ -171,7 +170,7 @@ func run() (retErr error) {
 		gracefulStopGRPC(ctx, wg, userAPIServer) //nolint:contextcheck
 		gracefulStopGRPC(ctx, wg, meshAPIServer) //nolint:contextcheck
 		wg.Wait()
-		return metricsServer.Shutdown(ctx) //nolint:contextcheck
+		return httpServer.Shutdown(ctx) //nolint:contextcheck
 	})
 
 	return eg.Wait()
