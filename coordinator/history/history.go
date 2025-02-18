@@ -251,4 +251,9 @@ type Store interface {
 	// If the current value is not equal to oldVal, an error must be returned. The comparison must
 	// treat a nil slice the same as an empty slice.
 	CompareAndSwap(key string, oldVal, newVal []byte) error
+
+	// Watch watches for changes to the value of key.
+	//
+	// If the value of key changes, the new value is sent on the channel.
+	Watch(key string) (ch <-chan []byte, cancel func(), err error)
 }
