@@ -59,3 +59,10 @@ func (s *AferoStore) CompareAndSwap(key string, oldVal, newVal []byte) error {
 	}
 	return s.fs.WriteFile(key, newVal, 0o644)
 }
+
+// Watch watches for changes to the value of key.
+//
+// Not implemented for AferoStore.
+func (s *AferoStore) Watch(_ string) (<-chan []byte, func(), error) {
+	return nil, func() {}, nil
+}
