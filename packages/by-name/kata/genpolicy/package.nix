@@ -56,8 +56,8 @@ rustPlatform.buildRustPackage rec {
     # these want internet access, disable them
     "--skip=test_copyfile"
     "--skip=test_create_sandbox"
-    "--skip=test_create_container_guest_pull"
     "--skip=test_create_container_process"
+    "--skip=test_create_container_network_namespace"
   ];
 
   passthru = rec {

@@ -20,10 +20,10 @@ Fixes: #10680
  1 file changed, 15 insertions(+), 7 deletions(-)
 
 diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
-index 5f2a3eb955ea427478c842ba80ad2a17299b182f..06fbcca57e8f5d8e729a379809950ce4f87359e4 100644
+index d032c08183e581c37ac48f97eef1363ee12b1aa3..7fbff872f5362feadab09ac33a3f41d9aa51ebb5 100644
 --- a/src/agent/src/rpc.rs
 +++ b/src/agent/src/rpc.rs
-@@ -649,11 +649,11 @@ impl AgentService {
+@@ -647,11 +647,11 @@ impl AgentService {
  
      async fn do_read_stream(
          &self,
@@ -38,7 +38,7 @@ index 5f2a3eb955ea427478c842ba80ad2a17299b182f..06fbcca57e8f5d8e729a379809950ce4
  
          let term_exit_notifier;
          let reader = {
-@@ -900,8 +900,12 @@ impl agent_ttrpc::AgentService for AgentService {
+@@ -898,8 +898,12 @@ impl agent_ttrpc::AgentService for AgentService {
          _ctx: &TtrpcContext,
          req: protocols::agent::ReadStreamRequest,
      ) -> ttrpc::Result<ReadStreamResponse> {
@@ -53,7 +53,7 @@ index 5f2a3eb955ea427478c842ba80ad2a17299b182f..06fbcca57e8f5d8e729a379809950ce4
      }
  
      async fn read_stderr(
-@@ -909,8 +913,12 @@ impl agent_ttrpc::AgentService for AgentService {
+@@ -907,8 +911,12 @@ impl agent_ttrpc::AgentService for AgentService {
          _ctx: &TtrpcContext,
          req: protocols::agent::ReadStreamRequest,
      ) -> ttrpc::Result<ReadStreamResponse> {

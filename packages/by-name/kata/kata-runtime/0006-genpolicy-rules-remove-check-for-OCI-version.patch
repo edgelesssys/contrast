@@ -9,12 +9,12 @@ Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
  1 file changed, 3 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index e6514cc2ced38b73ce925698edadee52b11ff9a7..63d5e30ac64cdd8bab94e982423646de1b8559e6 100644
+index 1e6a6774252300d43d3f2030dd6f0db5d68f2b0a..6108619249b5eb0e910602997a49b32c205ea970 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -88,9 +88,6 @@ CreateContainerRequest:= {"ops": ops, "allowed": true} {
      add_namespace_to_state := allow_namespace(p_namespace, i_namespace)
-     ops := concat_op_if_not_null(ops_builder1, add_namespace_to_state)
+     ops_builder2 := concat_op_if_not_null(ops_builder1, add_namespace_to_state)
  
 -    print("CreateContainerRequest: p Version =", p_oci.Version, "i Version =", i_oci.Version)
 -    p_oci.Version == i_oci.Version
