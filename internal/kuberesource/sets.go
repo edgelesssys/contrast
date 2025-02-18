@@ -217,8 +217,8 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiWebVoteBotImage = "ghcr.io/edgelesssys/contrast/emojivoto-web:coco-1@sha256:0fd9bf6f7dcb99bdb076144546b663ba6c3eb457cbb48c1d3fceb591d207289c"
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
-		// Upstream images are at most 75MiB
-		memoryLimitMiB = 300
+		// Upstream images are at most 75MiB compressed, but we're adding the service mesh image with 50MiB.
+		memoryLimitMiB = 700
 	default:
 		panic(fmt.Sprintf("unknown service mesh mode: %s", smMode))
 	}
