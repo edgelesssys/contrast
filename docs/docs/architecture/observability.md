@@ -8,10 +8,9 @@ called labels.
 
 ## Exposed metrics
 
-The metrics can be accessed at the Coordinator pod at the port specified in the
-`CONTRAST_METRICS_PORT` environment variable under the `/metrics` endpoint. By
-default, this environment variable isn't specified, hence no metrics will be
-exposed.
+The metrics can be accessed at the Coordinator pod on port 9102 using the `/metrics` endpoint.
+By default, metrics are disabled. You can enable them by setting the `CONTRAST_METRICS`
+environment variable.
 
 The Coordinator exports gRPC metrics under the prefix `contrast_grpc_server_`.
 These metrics are labeled with the gRPC service name and method name.
