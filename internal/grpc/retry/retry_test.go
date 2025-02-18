@@ -36,6 +36,10 @@ func TestServiceIsUnavailable(t *testing.T) {
 			err:             status.Error(codes.Unavailable, `connection error: desc = "transport: authentication handshake failed: context deadline exceeded"`),
 			wantUnavailable: true,
 		},
+		"handshake EOF error": {
+			err:             status.Error(codes.Unavailable, `connection error: desc = "transport: authentication handshake failed: EOF"`),
+			wantUnavailable: true,
+		},
 		"wrapped error": {
 			err:             fmt.Errorf("some wrapping: %w", status.Error(codes.Unavailable, "error")),
 			wantUnavailable: true,

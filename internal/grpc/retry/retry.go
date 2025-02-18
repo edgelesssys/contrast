@@ -5,34 +5,22 @@
 package retry
 
 import (
-	"errors"
-	"strings"
+	"regexp"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-const (
-	authHandshakeErr                 = `connection error: desc = "transport: authentication handshake failed`
-	authHandshakeDeadlineExceededErr = `connection error: desc = "transport: authentication handshake failed: context deadline exceeded`
+var (
+	authenticationHandshakeRE = regexp.MustCompile(`transport: authentication handshake failed: ((?:\s|\w)+)`)
+	retriableCauses           = map[string]struct{}{"EOF": {}, "context deadline exceeded": {}}
 )
 
-// grpcErr is the error type that is returned by the grpc client.
-// taken from google.golang.org/grpc/status.FromError.
-type grpcErr interface {
-	GRPCStatus() *status.Status
-	Error() string
-}
-
 // ServiceIsUnavailable checks if the error is a grpc status with code Unavailable.
-// In the special case of an authentication handshake failure, false is returned to prevent further retries.
+// In the special case of an authentication handshake failure, false is returned to prevent further retries,
+// unless the cause of the handshake failure points to a transient condition.
 func ServiceIsUnavailable(err error) (ret bool) {
-	var targetErr grpcErr
-	if !errors.As(err, &targetErr) {
-		return false
-	}
-
-	statusErr, ok := status.FromError(targetErr)
+	statusErr, ok := status.FromError(err)
 	if !ok {
 		return false
 	}
@@ -41,10 +29,11 @@ func ServiceIsUnavailable(err error) (ret bool) {
 		return false
 	}
 
-	// retry if the handshake deadline was exceeded
-	if strings.HasPrefix(statusErr.Message(), authHandshakeDeadlineExceededErr) {
+	matches := authenticationHandshakeRE.FindStringSubmatch(err.Error())
+	if len(matches) < 2 {
 		return true
 	}
 
-	return !strings.HasPrefix(statusErr.Message(), authHandshakeErr)
+	_, isRetriable := retriableCauses[matches[1]]
+	return isRetriable
 }
