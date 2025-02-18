@@ -63,7 +63,7 @@ func run() (retErr error) {
 		return fmt.Errorf("setting up mount: %w", err)
 	}
 
-	metricsPort := os.Getenv(metricsPortEnvVar)
+	httpServerPort := os.Getenv(metricsPortEnvVar)
 	promRegistry := prometheus.NewRegistry()
 	serverMetrics := newServerMetrics(promRegistry)
 
@@ -84,30 +84,32 @@ func run() (retErr error) {
 	if err != nil {
 		return fmt.Errorf("creating mesh API server: %w", err)
 	}
-	metricsServer := &http.Server{}
+	httpServer := &http.Server{}
 
 	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
-		if metricsPort == "" {
-			return nil
+		// TODO(miampf): add an extra environment variable to enable/disable metrics
+		disableMetrics := httpServerPort == ""
+		if httpServerPort == userapi.Port || httpServerPort == meshapi.Port {
+			return fmt.Errorf("invalid port for http endpoint: %s", httpServerPort)
 		}
-		if metricsPort == userapi.Port || metricsPort == meshapi.Port {
-			return fmt.Errorf("invalid port for metrics endpoint: %s", metricsPort)
-		}
-		logger.Info("Starting prometheus /metrics endpoint on port " + metricsPort)
+		// TODO(miampf): add /probe/{startup,liveness,readiness} endpoints
 		mux := http.NewServeMux()
-		mux.Handle("/metrics", promhttp.InstrumentMetricHandler(
-			promRegistry, promhttp.HandlerFor(
-				promRegistry,
-				promhttp.HandlerOpts{Registry: promRegistry},
-			),
-		))
-		metricsServer.Addr = ":" + metricsPort
-		metricsServer.Handler = mux
-		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("Serving Prometheus /metrics endpoint", "err", err)
-			return fmt.Errorf("serving Prometheus endpoint: %w", err)
+		if !disableMetrics {
+			logger.Info("Starting prometheus /metrics endpoint on port " + httpServerPort)
+			mux.Handle("/metrics", promhttp.InstrumentMetricHandler(
+				promRegistry, promhttp.HandlerFor(
+					promRegistry,
+					promhttp.HandlerOpts{Registry: promRegistry},
+				),
+			))
+		}
+		httpServer.Addr = ":" + httpServerPort
+		httpServer.Handler = mux
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Starting http server", "err", err)
+			return fmt.Errorf("starting http server: %w", err)
 		}
 		return nil
 	})
@@ -140,7 +142,7 @@ func run() (retErr error) {
 		grpcServer.GracefulStop()
 		meshAPI.grpc.GracefulStop()
 		//nolint:contextcheck // fresh context for cleanup
-		return metricsServer.Shutdown(context.Background())
+		return httpServer.Shutdown(context.Background())
 	})
 
 	return eg.Wait()
