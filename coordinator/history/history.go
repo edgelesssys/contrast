@@ -13,15 +13,11 @@ import (
 	"fmt"
 	"hash"
 	"os"
-
-	"github.com/spf13/afero"
 )
 
 const (
 	// HashSize is the number of octets in hashes used by this package.
 	HashSize = sha256.Size
-
-	histPath = "/mnt/state/history"
 )
 
 // History is the history of the Coordinator.
@@ -30,13 +26,12 @@ type History struct {
 	hashFun func() hash.Hash
 }
 
-// New creates a new History backed by the default filesystem store.
+// New creates a new History backed by the configured store.
 func New() (*History, error) {
-	osFS := afero.NewOsFs()
-	if err := osFS.MkdirAll(histPath, 0o755); err != nil {
-		return nil, fmt.Errorf("creating history directory: %w", err)
+	store, err := NewStore()
+	if err != nil {
+		return nil, fmt.Errorf("creating history store: %w", err)
 	}
-	store := NewAferoStore(&afero.Afero{Fs: afero.NewBasePathFs(osFS, histPath)})
 	return NewWithStore(store), nil
 }
 
