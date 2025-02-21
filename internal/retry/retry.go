@@ -6,6 +6,7 @@ package retry
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"k8s.io/utils/clock"
@@ -39,6 +40,8 @@ func (r *IntervalRetrier) Do(ctx context.Context) error {
 	ticker := r.clock.NewTicker(r.interval)
 	defer ticker.Stop()
 
+	// lastErr saves the last interesting error that occurred before the context expired.
+	var lastErr error
 	for {
 		err := r.doer.Do(ctx)
 		if err == nil {
@@ -49,9 +52,21 @@ func (r *IntervalRetrier) Do(ctx context.Context) error {
 			return err
 		}
 
+		// Check for context expiration.
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			if lastErr == nil {
+				// The context already expired after the first attempt, so we just return the error we have.
+				lastErr = err
+			}
+			return fmt.Errorf("retries failed before %w: last err: %w", ctx.Err(), lastErr)
+		default:
+			lastErr = err
+		}
+		// Wait for context expiration or next turn.
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("retries failed before %w: last err: %w", ctx.Err(), lastErr)
 		case <-ticker.C():
 		}
 	}
