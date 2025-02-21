@@ -31,80 +31,77 @@ func TestDo(t *testing.T) {
 		},
 		"permanent error": {
 			errors: []error{
-				errors.New("error"),
+				errPermanent,
 			},
-			wantErr: errors.New("error"),
+			wantErr: errPermanent,
 		},
 		"service unavailable then success": {
 			errors: []error{
-				errors.New("retry me"),
+				errRetriable,
 				nil,
 			},
 		},
 		"service unavailable then permanent error": {
 			errors: []error{
-				errors.New("retry me"),
-				errors.New("error"),
+				errRetriable,
+				errPermanent,
 			},
-			wantErr: errors.New("error"),
+			wantErr: errPermanent,
 		},
-		"cancellation works": {
+		"cancellation results in last error": {
 			cancel: true,
 			errors: []error{
-				errors.New("retry me"),
+				errRetriable,
+				nil,
 			},
-			wantErr: context.Canceled,
+			wantErr: errRetriable,
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
-			doer := newStubDoer()
-			clock := testclock.NewFakeClock(time.Now())
-			retrier := IntervalRetrier{
-				doer:      doer,
-				clock:     clock,
-				retriable: isRetriable,
-			}
-			retrierResult := make(chan error, 1)
+			doer := newStubDoer(tc.errors)
+			retrier := NewIntervalRetrier(doer, doer.interval, isRetriable, doer.clock)
 			ctx, cancel := context.WithCancel(context.Background())
-			defer cancel()
-
-			go func() { retrierResult <- retrier.Do(ctx) }()
-			for _, err := range tc.errors {
-				doer.errC <- err
-				clock.Step(retrier.interval)
-			}
-
 			if tc.cancel {
 				cancel()
+			} else {
+				defer cancel()
 			}
 
-			assert.Equal(tc.wantErr, <-retrierResult)
+			assert.ErrorIs(retrier.Do(ctx), tc.wantErr)
 		})
 	}
 }
 
 type stubDoer struct {
-	errC chan error
+	errs     []error
+	clock    *testclock.FakeClock
+	interval time.Duration
+
+	count int
 }
 
-func newStubDoer() *stubDoer {
+func newStubDoer(errs []error) *stubDoer {
 	return &stubDoer{
-		errC: make(chan error),
+		errs:     errs,
+		clock:    testclock.NewFakeClock(time.Now().Add(-12 * time.Hour)),
+		interval: time.Second,
 	}
 }
 
-func (d *stubDoer) Do(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-d.errC:
-		return err
-	}
+func (d *stubDoer) Do(_ context.Context) error {
+	d.count++
+	d.clock.Step(d.interval)
+	return d.errs[d.count-1]
 }
+
+var (
+	errRetriable = errors.New("retry me")
+	errPermanent = errors.New("error")
+)
 
 func isRetriable(err error) bool {
-	return err.Error() == "retry me"
+	return errors.Is(err, errRetriable)
 }
