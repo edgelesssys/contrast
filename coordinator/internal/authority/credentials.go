@@ -5,6 +5,7 @@ package authority
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -17,6 +18,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/prometheus/client_golang/prometheus"
@@ -112,16 +114,19 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		return nil, nil, err
 	}
 
-	conn, info, err := credentials.NewTLS(serverCfg).ServerHandshake(rawConn)
-	if err != nil {
-		log.Error("ServerHandshake failed", "error", err)
-		return nil, nil, err
+	ctx, cancel := context.WithTimeout(context.Background(), constants.ATLSServerTimeout)
+	defer cancel()
+
+	conn := tls.Server(rawConn, serverCfg)
+	if err := conn.HandshakeContext(ctx); err != nil {
+		return nil, nil, fmt.Errorf("handshake error: %w", err)
 	}
-	tlsInfo, ok := info.(credentials.TLSInfo)
-	if ok {
-		authInfo.TLSInfo = tlsInfo
-	} else {
-		log.Error("credentials.NewTLS returned unexpected AuthInfo", "obj", info)
+
+	authInfo.TLSInfo = credentials.TLSInfo{
+		State: conn.ConnectionState(),
+		CommonAuthInfo: credentials.CommonAuthInfo{
+			SecurityLevel: credentials.PrivacyAndIntegrity,
+		},
 	}
 
 	return conn, authInfo, nil

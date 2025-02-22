@@ -8,9 +8,9 @@ import (
 	"context"
 	"crypto"
 	"net"
-	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
@@ -57,7 +57,7 @@ func (d *Dialer) Dial(_ context.Context, target string) (*grpc.ClientConn, error
 		grpc.WithConnectParams(grpc.ConnectParams{
 			// We need a high initial timeout, because otherwise the client will get stuck in a reconnect loop
 			// where the timeout is too low to get a full handshake done.
-			MinConnectTimeout: 30 * time.Second,
+			MinConnectTimeout: constants.ATLSClientTimeout,
 		}),
 	)
 }
