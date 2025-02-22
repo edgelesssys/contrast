@@ -3,7 +3,11 @@
 
 package constants
 
-import "github.com/google/go-sev-guest/abi"
+import (
+	"time"
+
+	"github.com/google/go-sev-guest/abi"
+)
 
 // Version value is injected at build time.
 var (
@@ -26,3 +30,14 @@ var SNPPolicy = abi.SnpPolicy{
 	SMT:   true,
 	Debug: false,
 }
+
+const (
+	// ATLSClientTimeout is the maximal amount of time spent by Coordinator clients for issuing
+	// and validation of attestation docs.
+	ATLSClientTimeout = 30 * time.Second
+
+	// ATLSServerTimeout is the maximal amount of time that the Coordinator can spend for issuing
+	// attestation docs. It's deliberately smaller than ATLSClientTimeout to allow proper error
+	// propagation.
+	ATLSServerTimeout = ATLSClientTimeout - 5*time.Second
+)

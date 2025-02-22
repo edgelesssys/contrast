@@ -7,10 +7,13 @@ package atlscredentials
 import (
 	"context"
 	"crypto"
+	"crypto/tls"
 	"errors"
+	"fmt"
 	"net"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc/credentials"
 )
@@ -58,7 +61,22 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		return nil, nil, err
 	}
 
-	return credentials.NewTLS(serverCfg).ServerHandshake(rawConn)
+	ctx, cancel := context.WithTimeout(context.Background(), constants.ATLSServerTimeout)
+	defer cancel()
+
+	conn := tls.Server(rawConn, serverCfg)
+	if err := conn.HandshakeContext(ctx); err != nil {
+		return nil, nil, fmt.Errorf("handshake error: %w", err)
+	}
+
+	info := credentials.TLSInfo{
+		State: conn.ConnectionState(),
+		CommonAuthInfo: credentials.CommonAuthInfo{
+			SecurityLevel: credentials.PrivacyAndIntegrity,
+		},
+	}
+
+	return conn, info, nil
 }
 
 // Info provides information about the protocol.
