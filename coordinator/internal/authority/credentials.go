@@ -47,17 +47,8 @@ func (a *Authority) Credentials(reg *prometheus.Registry, issuer atls.Issuer) (*
 	})
 
 	return &Credentials{
-		issuer: issuer,
-		getState: func() (*State, error) {
-			if err := a.syncState(); err != nil {
-				return nil, fmt.Errorf("syncing state: %w", err)
-			}
-			state := a.state.Load()
-			if state == nil {
-				return nil, errors.New("coordinator is not initialized")
-			}
-			return state, nil
-		},
+		issuer:                     issuer,
+		getState:                   a.GetState,
 		logger:                     a.logger,
 		attestationFailuresCounter: attestationFailuresCounter,
 		kdsGetter:                  kdsGetter,
