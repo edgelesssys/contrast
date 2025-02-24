@@ -55,6 +55,11 @@ rustPlatform.buildRustPackage rec {
       --replace-fail @API_VERSION@ 0.0.1 \
       --replace-fail @VERSION_COMMIT@ ${version} \
       --replace-fail @COMMIT@ ""
+
+    # Disable LTO (Link Time Optimization) to reduce build time. The agent
+    # binary shouldn't be that performance critical.
+    substituteInPlace Cargo.toml \
+      --replace-fail 'lto = true' 'lto = false'
   '';
 
   # Build.rs writes to src
