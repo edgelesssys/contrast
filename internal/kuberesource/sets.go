@@ -76,7 +76,7 @@ func OpenSSL() []any {
 									WithContainerPort(443),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(50),
+								WithMemoryLimitAndRequest(250),
 							).
 							WithReadinessProbe(Probe().
 								WithInitialDelaySeconds(1).
@@ -117,7 +117,7 @@ func OpenSSL() []any {
 									WithPort(intstr.FromInt(443))),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(50),
+								WithMemoryLimitAndRequest(250),
 							),
 					),
 				),
