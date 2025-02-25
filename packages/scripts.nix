@@ -120,6 +120,8 @@
       nix-update --version=skip --flake legacyPackages.x86_64-linux.tdx-measure
       echo "Updating vendorHash of service-mesh package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.service-mesh
+      echo "Updating vendorHash of snp-id-block-generator package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.snp-id-block-generator
       echo "Updating vendorHash of contrast.cli package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast
       echo "Updating vendorHash of nydus-pull package" >&2
