@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"internal/itoa"
 	"log/slog"
 	"net"
 	"net/http"
@@ -33,7 +34,8 @@ import (
 )
 
 const (
-	metricsPortEnvVar = "CONTRAST_METRICS_PORT"
+	metricsEnvVar       = "CONTRAST_METRICS"
+	probeAndMetricsPort = 9102
 )
 
 func main() {
@@ -63,7 +65,6 @@ func run() (retErr error) {
 		return fmt.Errorf("setting up mount: %w", err)
 	}
 
-	httpServerPort := os.Getenv(metricsPortEnvVar)
 	promRegistry := prometheus.NewRegistry()
 	serverMetrics := newServerMetrics(promRegistry)
 
@@ -89,15 +90,11 @@ func run() (retErr error) {
 	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
-		// TODO(miampf): add an extra environment variable to enable/disable metrics
-		disableMetrics := httpServerPort == ""
-		if httpServerPort == userapi.Port || httpServerPort == meshapi.Port {
-			return fmt.Errorf("invalid port for http endpoint: %s", httpServerPort)
-		}
+		_, disableMetrics := os.LookupEnv(metricsEnvVar)
 		// TODO(miampf): add /probe/{startup,liveness,readiness} endpoints
 		mux := http.NewServeMux()
 		if !disableMetrics {
-			logger.Info("Starting prometheus /metrics endpoint on port " + httpServerPort)
+			logger.Info("Starting prometheus /metrics endpoint on port " + itoa.Itoa(probeAndMetricsPort))
 			mux.Handle("/metrics", promhttp.InstrumentMetricHandler(
 				promRegistry, promhttp.HandlerFor(
 					promRegistry,
@@ -105,7 +102,7 @@ func run() (retErr error) {
 				),
 			))
 		}
-		httpServer.Addr = ":" + httpServerPort
+		httpServer.Addr = ":" + itoa.Itoa(probeAndMetricsPort)
 		httpServer.Handler = mux
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("Starting http server", "err", err)
