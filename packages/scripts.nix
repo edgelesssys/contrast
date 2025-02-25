@@ -108,9 +108,9 @@
 
       while IFS= read -r dir; do
         echo "Running go mod tidy on $dir" >&2
-        go mod tidy
+        go mod -C "$dir" tidy
         echo "Running go generate on $dir" >&2
-        go generate ./...
+        go generate -C "$dir" ./...
       done < <(go list -f '{{.Dir}}' -m)
 
       protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ./internal/userapi/userapi.proto
