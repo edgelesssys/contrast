@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Mon, 24 Feb 2025 09:27:40 +0100
+Subject: [PATCH] genpolicy: fail when layer can't be processed
+
+Currently, if a layer can't be processed, we log this a warning and
+continue execution, finally exit with a zero exit code. This can lead
+to the generation of invalid policies. One reason a layer might not be
+processed is that the pull of that layer fails.
+
+We need all layers to be processed successfully to generate a valid
+policy, as otherwise we will miss the verity hash for that layer or
+we might miss the USER information from a passwd stored in that layer.
+This will cause our VM to not get through the agent's policy validation.
+
+Returning an error instead of printing a warning will cause genpolicy
+to fail in such cases.
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ src/tools/genpolicy/src/registry.rs            | 4 ++--
+ src/tools/genpolicy/src/registry_containerd.rs | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index cc7f58dab031eff0cfa47ac35e9c6ac8c1e2e4de..e36350bb5982d6295253a2bd09e2a445ad9bd403 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -11,7 +11,7 @@ use crate::policy;
+ use crate::utils::Config;
+ use crate::verity;
+ 
+-use anyhow::{anyhow, Result};
++use anyhow::{anyhow, bail, Result};
+ use docker_credential::{CredentialRetrievalError, DockerCredential};
+ use fs2::FileExt;
+ use log::{debug, info, warn, LevelFilter};
+@@ -441,7 +441,7 @@ async fn get_verity_and_users(
+         if let Some(path) = layers_cache_file_path.as_ref() {
+             std::fs::remove_file(path)?;
+         }
+-        warn!("{error_message}");
++        bail!(error_message);
+     }
+     Ok((verity_hash, passwd))
+ }
+diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
+index 6541cfbda5379a4caea0361a5993db8f15adf6a2..b004065e7b6ffa523009910153569ddb52453d0a 100644
+--- a/src/tools/genpolicy/src/registry_containerd.rs
++++ b/src/tools/genpolicy/src/registry_containerd.rs
+@@ -10,7 +10,7 @@ use crate::registry::{
+     Container, DockerConfigLayer, ImageLayer,
+ };
+ 
+-use anyhow::{anyhow, Result};
++use anyhow::{anyhow, bail, Result};
+ use containerd_client::{services::v1::GetImageRequest, with_namespace};
+ use docker_credential::{CredentialRetrievalError, DockerCredential};
+ use k8s_cri::v1::{image_service_client::ImageServiceClient, AuthConfig};
+@@ -354,7 +354,7 @@ async fn get_verity_and_users(
+         if let Some(path) = layers_cache_file_path.as_ref() {
+             std::fs::remove_file(path)?;
+         }
+-        warn!("{error_message}");
++       bail!(error_message);
+     }
+     Ok((verity_hash, passwd))
+ }

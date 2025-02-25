@@ -136,6 +136,11 @@ buildGoModule rec {
       # This allows to pass the id-block and id-auth block to QEMU through Kata
       # Upstream: https://github.com/kata-containers/kata-containers/pull/10889
       ./0020-runtime-make-SNP-IDBlock-configurable.patch
+
+      # This patch makes genpolicy fail when a layer can't be processed, preventing
+      # creation of invlid/incomplete policies.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/10925
+      ./0021-genpolicy-fail-when-layer-can-t-be-processed.patch
     ];
   };
 
