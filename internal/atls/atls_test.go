@@ -4,6 +4,7 @@
 package atls
 
 import (
+	"context"
 	"crypto"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -107,7 +108,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
-			err := verifyEmbeddedReport(tc.validators, tc.cert, nil, nil)
+			err := verifyEmbeddedReport(context.Background(), tc.validators, tc.cert, nil, nil)
 			if tc.wantErr {
 				require.Error(err)
 				if tc.targetErr != nil {
@@ -145,4 +146,47 @@ func TestPublicKey(t *testing.T) {
 			})
 		})
 	}
+}
+
+// contextValidator fakes a validator that takes a long time to validate.
+// If the inputC channel is not fed with a result, it will wait for the context to expire.
+type contextValidator struct {
+	inputC <-chan error
+}
+
+func (contextValidator) OID() asn1.ObjectIdentifier {
+	return oid.RawSNPReport
+}
+
+func (contextValidator) String() string {
+	return "contextValidator"
+}
+
+func (c *contextValidator) Validate(ctx context.Context, _, _, _ []byte) error {
+	select {
+	case err := <-c.inputC:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// TestContextPassdown ensures that the context argument of verifyEmbeddedReport is properly passed down to the validators.
+func TestContextPassdown(t *testing.T) {
+	validator := &contextValidator{make(chan error)}
+	cert := &x509.Certificate{
+		Extensions: []pkix.Extension{
+			{
+				Id: validator.OID(),
+			},
+		},
+	}
+	validators := []Validator{validator}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	// If the context is not passed down, the select statement in ValidateContext will not return at all.
+	// We expect this function to return because the context was already cancelled.
+	err := verifyEmbeddedReport(ctx, validators, cert, nil, nil)
+	// The contextValidator forwards the context error, so this should be canceled.
+	require.ErrorIs(t, err, context.Canceled)
 }
