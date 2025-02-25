@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	_ "embed"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -21,7 +22,7 @@ import (
 
 // Manifest is the Coordinator manifest and contains the reference values of the deployment.
 type Manifest struct {
-	// policyHash/HOSTDATA -> commonName
+	// Policies is a map from policy hash (HOSTDATA) to policy entry.
 	Policies map[HexString]PolicyEntry
 	// ReferenceValues specifies the allowed TEE configurations in the deployment. If ANY
 	// of the reference values validates the attestation report of the workload,
@@ -35,6 +36,18 @@ type Manifest struct {
 type PolicyEntry struct {
 	SANs             []string
 	WorkloadSecretID string `json:",omitempty"`
+}
+
+// Validate checks the validity of a policy entry given its policy hash.
+func (PolicyEntry) Validate(policyHash HexString) error {
+	if _, err := policyHash.Bytes(); err != nil {
+		return fmt.Errorf("decoding policy hash %q: %w", policyHash, err)
+	}
+	if len(policyHash) != hex.EncodedLen(sha256.Size) {
+		return fmt.Errorf("policy hash %s has invalid length: %d (expected %d)", policyHash, len(policyHash), hex.EncodedLen(sha256.Size))
+	}
+
+	return nil
 }
 
 // HexStrings is a slice of HexString.
@@ -159,11 +172,9 @@ func (r TDXReferenceValues) Validate() error {
 
 // Validate checks the validity of all fields in the manifest.
 func (m *Manifest) Validate() error {
-	for policyHash := range m.Policies {
-		if _, err := policyHash.Bytes(); err != nil {
-			return fmt.Errorf("decoding policy hash %s: %w", policyHash, err)
-		} else if len(policyHash) != sha256.Size*2 {
-			return fmt.Errorf("policy hash %s has invalid length: %d (expected %d)", policyHash, len(policyHash), sha256.Size*2)
+	for policyHash, policy := range m.Policies {
+		if err := policy.Validate(policyHash); err != nil {
+			return fmt.Errorf("validating policy %s: %w", policyHash, err)
 		}
 	}
 
@@ -174,8 +185,8 @@ func (m *Manifest) Validate() error {
 	for _, keyDigest := range m.WorkloadOwnerKeyDigests {
 		if _, err := keyDigest.Bytes(); err != nil {
 			return fmt.Errorf("decoding key digest %s: %w", keyDigest, err)
-		} else if len(keyDigest) != sha256.Size*2 {
-			return fmt.Errorf("workload owner key digest %s has invalid length: %d (expected %d)", keyDigest, len(keyDigest), sha256.Size*2)
+		} else if len(keyDigest) != hex.EncodedLen(sha256.Size) {
+			return fmt.Errorf("workload owner key digest %s has invalid length: %d (expected %d)", keyDigest, len(keyDigest), hex.EncodedLen(sha256.Size))
 		}
 	}
 
