@@ -58,13 +58,12 @@ func CreateAttestationServerTLSConfig(issuer Issuer, validators []Validator, att
 
 // CreateAttestationClientTLSConfig creates a tls.Config object that verifies a certificate with an embedded attestation document.
 //
-// ATTENTION: The tls.Config ensures freshness of the server's attestation only for the first connection it is used for.
-// If freshness is required, you must create a new tls.Config for each connection or ensure freshness on the protocol level.
-// If freshness is not required, you can reuse this tls.Config.
+// ATTENTION: The returned config is configured with a nonce and uses the input context. It must
+// only be used for a single connection.
 //
 // If no validators are set, the server's attestation document will not be verified.
 // If issuer is nil, the client will be unable to perform mutual aTLS.
-func CreateAttestationClientTLSConfig(issuer Issuer, validators []Validator, privKey crypto.PrivateKey) (*tls.Config, error) {
+func CreateAttestationClientTLSConfig(ctx context.Context, issuer Issuer, validators []Validator, privKey crypto.PrivateKey) (*tls.Config, error) {
 	clientNonce, err := contrastcrypto.GenerateRandomBytes(contrastcrypto.RNGLengthDefault)
 	if err != nil {
 		return nil, err
@@ -77,12 +76,14 @@ func CreateAttestationClientTLSConfig(issuer Issuer, validators []Validator, pri
 	}
 
 	return &tls.Config{
-		VerifyPeerCertificate: clientConn.verify,
-		GetClientCertificate:  clientConn.getCertificate,                      // use custom certificate for mutual aTLS connections
-		InsecureSkipVerify:    true,                                           // disable default verification because we use our own verify func
-		ServerName:            base64.StdEncoding.EncodeToString(clientNonce), // abuse ServerName as a channel to transmit the nonce
-		MinVersion:            tls.VersionTLS12,
-		NextProtos:            []string{"h2"}, // grpc-go requires us to advertise HTTP/2 (h2) over ALPN
+		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+			return clientConn.verify(ctx, rawCerts, verifiedChains)
+		},
+		GetClientCertificate: clientConn.getCertificate,                      // use custom certificate for mutual aTLS connections
+		InsecureSkipVerify:   true,                                           // disable default verification because we use our own verify func
+		ServerName:           base64.StdEncoding.EncodeToString(clientNonce), // abuse ServerName as a channel to transmit the nonce
+		MinVersion:           tls.VersionTLS12,
+		NextProtos:           []string{"h2"}, // grpc-go requires us to advertise HTTP/2 (h2) over ALPN
 	}, nil
 }
 
@@ -95,7 +96,7 @@ type Issuer interface {
 // Validator is able to validate an attestation document.
 type Validator interface {
 	Getter
-	Validate(attDoc []byte, nonce []byte, peerPublicKey []byte) error
+	Validate(ctx context.Context, attDoc []byte, nonce []byte, peerPublicKey []byte) error
 	fmt.Stringer
 }
 
@@ -110,7 +111,7 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []Validator, attestati
 	}
 
 	// this function will be called once for every client
-	return func(_ *tls.ClientHelloInfo) (*tls.Config, error) {
+	return func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
 		// generate nonce for this connection
 		serverNonce, err := contrastcrypto.GenerateRandomBytes(contrastcrypto.RNGLengthDefault)
 		if err != nil {
@@ -140,7 +141,9 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []Validator, attestati
 		// enable mutual aTLS if any validators are set
 		if len(validators) > 0 {
 			cfg.ClientAuth = tls.RequireAnyClientCert // validity of certificate will be checked by our custom verify function
-			cfg.VerifyPeerCertificate = serverConn.verify
+			cfg.VerifyPeerCertificate = func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+				return serverConn.verify(chi.Context(), rawCerts, verifiedChains)
+			}
 		}
 
 		return cfg, nil
@@ -220,7 +223,7 @@ func processCertificate(rawCerts [][]byte, _ [][]*x509.Certificate) (*x509.Certi
 // verifyEmbeddedReport verifies an aTLS certificate by validating the attestation document embedded in the TLS certificate.
 //
 // It will check against all applicable validator for the type of attestation document, and return success on the first match.
-func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, peerPublicKey, nonce []byte) (retErr error) {
+func verifyEmbeddedReport(ctx context.Context, validators []Validator, cert *x509.Certificate, peerPublicKey, nonce []byte) (retErr error) {
 	// For better error reporting, let's keep track of whether we've found a valid extension at all..
 	var foundExtension bool
 	// .. and whether we've found a matching validator.
@@ -245,7 +248,7 @@ func verifyEmbeddedReport(validators []Validator, cert *x509.Certificate, peerPu
 			// We've found a matching validator. Let's validate the document.
 			foundMatchingValidator = true
 
-			validationErr := validator.Validate(ex.Value, nonce, peerPublicKey)
+			validationErr := validator.Validate(ctx, ex.Value, nonce, peerPublicKey)
 			if validationErr == nil {
 				// The validator has successfully verified the document. We can exit.
 				return nil
@@ -329,7 +332,7 @@ type clientConnection struct {
 }
 
 // verify the validity of an aTLS server certificate.
-func (c *clientConnection) verify(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+func (c *clientConnection) verify(ctx context.Context, rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	cert, pubBytes, err := processCertificate(rawCerts, verifiedChains)
 	if err != nil {
 		return err
@@ -340,7 +343,7 @@ func (c *clientConnection) verify(rawCerts [][]byte, verifiedChains [][]*x509.Ce
 		return nil
 	}
 
-	return verifyEmbeddedReport(c.validators, cert, pubBytes, c.clientNonce)
+	return verifyEmbeddedReport(ctx, c.validators, cert, pubBytes, c.clientNonce)
 }
 
 // getCertificate generates a client certificate for mutual aTLS connections.
@@ -390,13 +393,13 @@ type serverConnection struct {
 
 // verify the validity of a clients aTLS certificate.
 // Only needed for mutual aTLS.
-func (c *serverConnection) verify(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+func (c *serverConnection) verify(ctx context.Context, rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	cert, pubBytes, err := processCertificate(rawCerts, verifiedChains)
 	if err != nil {
 		return err
 	}
 
-	err = verifyEmbeddedReport(c.validators, cert, pubBytes, c.serverNonce)
+	err = verifyEmbeddedReport(ctx, c.validators, cert, pubBytes, c.serverNonce)
 	if err != nil && c.attestationFailures != nil {
 		c.attestationFailures.Inc()
 	}
@@ -448,7 +451,7 @@ func NewFakeValidators(oid Getter) []Validator {
 }
 
 // Validate unmarshals the attestation document and verifies the nonce.
-func (v FakeValidator) Validate(attDoc []byte, nonce []byte, _ []byte) error {
+func (v FakeValidator) Validate(_ context.Context, attDoc []byte, nonce []byte, _ []byte) error {
 	var doc FakeAttestationDoc
 	if err := json.Unmarshal(attDoc, &doc); err != nil {
 		return err
