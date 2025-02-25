@@ -5,6 +5,7 @@ package rtmr
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/sha512"
 	"encoding/binary"
 	"encoding/hex"
@@ -244,11 +245,14 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 func CalcRtmr1(kernelFile, initrdFile []byte) ([48]byte, error) {
 	var rtmr Rtmr
 
-	kernelHashContent, err := hashKernel(kernelFile, initrdFile)
+	kernelHash, err := hashKernel(kernelFile, initrdFile)
 	if err != nil {
 		return [48]byte{}, fmt.Errorf("can't hash kernel: %w", err)
 	}
-	rtmr.hashAndExtend(kernelHashContent)
+	if len(kernelHash) != 48 {
+		return [48]byte{}, fmt.Errorf("kernel hash has unexpected length: %d", len(kernelHash))
+	}
+	rtmr.Extend([48]byte(kernelHash))
 
 	// https://github.com/tianocore/edk2/blob/0f3867fa6ef0553e26c42f7d71ff6bdb98429742/OvmfPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.c#L2155
 	rtmr.hashAndExtend([]byte("Calling EFI Application from Boot Option"))
@@ -293,7 +297,7 @@ func hashKernel(kernelFile, initrdFile []byte) ([]byte, error) {
 		return nil, fmt.Errorf("can't parse kernel: %w", err)
 	}
 
-	return kernel.HashContent.Bytes(), nil
+	return kernel.Hash(crypto.SHA384), nil
 }
 
 func patchKernel(kernelFile, initrdFile []byte) {
