@@ -338,6 +338,9 @@ func (p *PortForwarderConfig) WithListenPorts(ports []int32) *PortForwarderConfi
 // CoordinatorConfig wraps applyappsv1.DeploymentApplyConfiguration for a coordinator.
 type CoordinatorConfig struct {
 	*applyappsv1.StatefulSetApplyConfiguration
+	*applycorev1.ServiceAccountApplyConfiguration
+	*applyrbacv1.RoleApplyConfiguration
+	*applyrbacv1.RoleBindingApplyConfiguration
 }
 
 // Coordinator constructs a new CoordinatorConfig.
@@ -356,6 +359,7 @@ func Coordinator(namespace string) *CoordinatorConfig {
 				WithLabels(map[string]string{"app.kubernetes.io/name": "coordinator"}).
 				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
 				WithSpec(PodSpec().
+					WithServiceAccountName("coordinator").
 					WithContainers(
 						Container().
 							WithName("coordinator").
@@ -400,7 +404,40 @@ func Coordinator(namespace string) *CoordinatorConfig {
 			),
 		)
 
-	return &CoordinatorConfig{c}
+	sa := ServiceAccount("coordinator", namespace).ServiceAccountApplyConfiguration
+
+	role := Role("coordinator", namespace).
+		WithRules(
+			applyrbacv1.PolicyRule().
+				WithAPIGroups("").
+				WithResources("configmaps").
+				WithVerbs("get", "create", "update", "watch"),
+			applyrbacv1.PolicyRule().
+				WithAPIGroups("").
+				WithResources("pods").
+				WithVerbs("get"),
+		)
+
+	roleBinding := RoleBinding("coordinator", namespace).
+		WithSubjects(
+			applyrbacv1.Subject().
+				WithKind("ServiceAccount").
+				WithName("coordinator").
+				WithNamespace(namespace),
+		).
+		WithRoleRef(
+			applyrbacv1.RoleRef().
+				WithKind("Role").
+				WithName("coordinator").
+				WithAPIGroup("rbac.authorization.k8s.io"),
+		)
+
+	return &CoordinatorConfig{
+		StatefulSetApplyConfiguration:    c,
+		ServiceAccountApplyConfiguration: sa,
+		RoleApplyConfiguration:           role,
+		RoleBindingApplyConfiguration:    roleBinding,
+	}
 }
 
 // WithImage sets the image of the coordinator.

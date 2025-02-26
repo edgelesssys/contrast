@@ -384,6 +384,13 @@ func PatchNamespaces(resources []any, namespace string) []any {
 			r.Namespace = nsPtr
 		case *applycorev1.ServiceAccountApplyConfiguration:
 			r.Namespace = nsPtr
+		case *applyrbacv1.RoleApplyConfiguration:
+			r.Namespace = nsPtr
+		case *applyrbacv1.RoleBindingApplyConfiguration:
+			r.Namespace = nsPtr
+			for i := range len(r.Subjects) {
+				r.Subjects[i].Namespace = nsPtr
+			}
 		case *applyrbacv1.ClusterRoleBindingApplyConfiguration:
 			if namespace != "" {
 				*r.Name = fmt.Sprintf("%s-%s", *r.Name, *nsPtr)

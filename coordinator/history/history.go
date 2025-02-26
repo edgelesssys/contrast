@@ -12,7 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
-	"os"
+	"log/slog"
 )
 
 const (
@@ -27,8 +27,8 @@ type History struct {
 }
 
 // New creates a new History backed by the configured store.
-func New() (*History, error) {
-	store, err := NewStore()
+func New(log *slog.Logger) (*History, error) {
+	store, err := NewStore(log.WithGroup("history-store"))
 	if err != nil {
 		return nil, fmt.Errorf("creating history store: %w", err)
 	}
@@ -104,13 +104,7 @@ func (h *History) GetLatest(pubKey *ecdsa.PublicKey) (*LatestTransition, error) 
 // HasLatest returns true if there exist a latest transaction. It does not
 // verify the transaction signature or return the transaction.
 func (h *History) HasLatest() (bool, error) {
-	if _, err := h.store.Get("transitions/latest"); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return false, nil
-		}
-		return false, err
-	}
-	return true, nil
+	return h.store.Has("transitions/latest")
 }
 
 // SetLatest signs and sets the latest transition if the current latest is equal to oldT.
@@ -231,7 +225,8 @@ func (e HashMismatchError) Error() string {
 // Store defines the Key-Value store interface used by History.
 //
 // In addition to the documented behavior below, History expects all functions to be thread-safe
-// and the Store to be globally consistent.
+// and the Store to be globally consistent. Keys must consist of two alphanumeric identifiers
+// separated by a forward slash.
 type Store interface {
 	// Get the value for key.
 	//
@@ -240,6 +235,9 @@ type Store interface {
 
 	// Set the value for key.
 	Set(key string, value []byte) error
+
+	// Has returns true if the key exists.
+	Has(key string) (bool, error)
 
 	// CompareAndSwap sets key to newVal if, and only if, key is currently oldVal.
 	//
