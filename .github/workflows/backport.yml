@@ -30,6 +30,7 @@ jobs:
         with:
           copy_milestone: true
           copy_labels_pattern: '.*'
+          add_author_as_assignee: true
           pull_title: '[${target_branch}] ${pull_title}'
           github_token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
           pull_description: |
