@@ -86,7 +86,7 @@ jobs:
           nix run .#scripts.get-logs download workspace/e2e.namespace
       - name: Upload logs
         if: always()
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
         with:
           name: e2e_pod_logs-${{ inputs.platform }}-${{ inputs.test-name }}
           path: workspace/logs/export-no-stream/logs
