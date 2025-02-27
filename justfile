@@ -335,10 +335,10 @@ get-credentials platform=default_platform:
             nix run -L .#scripts.merge-kube-config -- ./infra/azure-peerpods/kube.conf
             ;;
         "K3s-QEMU-TDX")
-            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/5"
+            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/latest"
         ;;
         "K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU")
-            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/6"
+            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/latest"
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
