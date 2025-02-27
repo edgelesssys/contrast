@@ -141,6 +141,13 @@ buildGoModule rec {
       # creation of invlid/incomplete policies.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/10925
       ./0021-genpolicy-fail-when-layer-can-t-be-processed.patch
+
+      # Allow running generate with ephemeral volumes.
+      #
+      # This may be merged upstream through either of:
+      # - https://github.com/kata-containers/kata-containers/pull/10947 (this patch)
+      # - https://github.com/kata-containers/kata-containers/pull/10559 (superset including the patch)
+      ./0022-genpolicy-support-ephemeral-volume-source.patch
     ];
   };
 

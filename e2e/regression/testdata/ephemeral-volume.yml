@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ephemeral-volume
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ephemeral-volume
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ephemeral-volume
+    spec:
+      containers:
+        - name: ephemeral-volume
+          image: quay.io/quay/busybox@sha256:92f3298bf80a1ba949140d77987f5de081f010337880cd771f7e7fc928f8c74d
+          command:
+            - /bin/sh
+            - -ec
+            - |
+              mkfs.ext2 /dev/foo
+              mount /dev/foo /tmp
+              tail -f /dev/null
+          securityContext:
+            privileged: true
+          volumeDevices:
+            - name: ephemeral
+              devicePath: /dev/foo
+          resources:
+            requests:
+              memory: 400Mi
+            limits:
+              memory: 400Mi
+      volumes:
+        - name: ephemeral
+          ephemeral:
+            volumeClaimTemplate:
+              metadata:
+                labels:
+                  foo: bar
+              spec:
+                accessModes:
+                  - ReadWriteOnce
+                resources:
+                  requests:
+                    storage: 1Mi
+                volumeMode: Block
+
+      runtimeClassName: contrast-cc

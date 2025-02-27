@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Wed, 26 Feb 2025 12:53:11 +0100
+Subject: [PATCH] genpolicy: support ephemeral volume source
+
+The Ephemeral volume type is more or less a managed version of the
+PersitentVolumeClaim volume type. Therefore, it can be supported with
+the rules for PVCs, and only needs deserialization support.
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/tools/genpolicy/src/mount_and_storage.rs |  2 +-
+ src/tools/genpolicy/src/volume.rs            | 12 +++++++++++-
+ 2 files changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
+index 8dbe524ae2c42172ed08a03bd5e570e8a1accd3d..3e9376e77562f9e18d7160859377175e12ca783d 100644
+--- a/src/tools/genpolicy/src/mount_and_storage.rs
++++ b/src/tools/genpolicy/src/mount_and_storage.rs
+@@ -130,7 +130,7 @@ pub fn get_mount_and_storage(
+         }
+ 
+         get_empty_dir_mount_and_storage(settings, p_mounts, storages, yaml_mount, volume.unwrap());
+-    } else if yaml_volume.persistentVolumeClaim.is_some() || yaml_volume.azureFile.is_some() {
++    } else if yaml_volume.persistentVolumeClaim.is_some() || yaml_volume.azureFile.is_some() || yaml_volume.ephemeral.is_some() {
+         get_shared_bind_mount(yaml_mount, p_mounts, "rprivate", "rw");
+     } else if yaml_volume.hostPath.is_some() {
+         get_host_path_mount(yaml_mount, yaml_volume, p_mounts);
+diff --git a/src/tools/genpolicy/src/volume.rs b/src/tools/genpolicy/src/volume.rs
+index 0bb908a81c2fd7ffcd7dd59587db316f609d0c13..8592b1f9e69ac054b3e06c3778ad0879c6df742b 100644
+--- a/src/tools/genpolicy/src/volume.rs
++++ b/src/tools/genpolicy/src/volume.rs
+@@ -6,7 +6,7 @@
+ // Allow K8s YAML field names.
+ #![allow(non_snake_case)]
+ 
+-use crate::pod;
++use crate::{persistent_volume_claim, pod};
+ 
+ use serde::{Deserialize, Serialize};
+ 
+@@ -24,6 +24,9 @@ pub struct Volume {
+     #[serde(skip_serializing_if = "Option::is_none")]
+     pub persistentVolumeClaim: Option<PersistentVolumeClaimVolumeSource>,
+ 
++    #[serde(skip_serializing_if = "Option::is_none")]
++    pub ephemeral: Option<EphemeralVolumeSource>,
++
+     #[serde(skip_serializing_if = "Option::is_none")]
+     pub configMap: Option<ConfigMapVolumeSource>,
+ 
+@@ -66,6 +69,13 @@ pub struct PersistentVolumeClaimVolumeSource {
+     // TODO: additional fields.
+ }
+ 
++/// See Reference / Kubernetes API / Config and Storage Resources / Volume.
++#[derive(Clone, Debug, Serialize, Deserialize)]
++pub struct EphemeralVolumeSource {
++    #[serde(skip_serializing_if = "Option::is_none")]
++    pub volumeClaimTemplate: Option<persistent_volume_claim::PersistentVolumeClaim>,
++}
++
+ /// See Reference / Kubernetes API / Config and Storage Resources / Volume.
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+ pub struct ConfigMapVolumeSource {
