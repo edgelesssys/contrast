@@ -337,7 +337,10 @@ get-credentials platform=default_platform:
         "K3s-QEMU-TDX")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/latest"
         ;;
-        "K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU")
+        "K3s-QEMU-SNP")
+            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/hetzner-ax162-snp-kubeconfig/versions/latest"
+        ;;
+        "K3s-QEMU-SNP-GPU")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/latest"
         ;;
         *)
