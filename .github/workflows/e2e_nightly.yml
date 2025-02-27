@@ -20,13 +20,13 @@ jobs:
             runner: TDX
             self-hosted: true
           - name: K3s-QEMU-SNP-GPU
-            runner: SNP
+            runner: SNP-GPU
             self-hosted: true
         test-name: [servicemesh, openssl, policy, workloadsecret, volumestatefulset]
         include:
           - platform:
               name: K3s-QEMU-SNP-GPU
-              runner: SNP
+              runner: SNP-GPU
               self-hosted: true
             test-name: gpu
       fail-fast: false
