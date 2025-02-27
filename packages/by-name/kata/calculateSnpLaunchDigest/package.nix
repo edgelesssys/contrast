@@ -7,9 +7,11 @@
   kata,
   OVMF-SNP,
   python3Packages,
+}:
 
-  debug ? false,
-  os-image ? kata.kata-image,
+{
+  os-image,
+  debug,
 }:
 
 let
@@ -24,10 +26,11 @@ let
     baseCmdline
     os-image.cmdline
   ];
+
 in
 
 stdenvNoCC.mkDerivation {
-  name = "snp-launch-digest${lib.optionalString debug "-debug"}";
+  name = "snp-launch-digest";
   inherit (os-image) version;
 
   dontUnpack = true;

@@ -83,41 +83,35 @@ let
         ];
       };
 
-      snpRefValsWith =
-        { gpu }:
-        {
-          snp =
-            let
-              os-image =
-                if gpu then
-                  kata.contrast-node-installer-image.gpu.os-image
-                else
-                  kata.contrast-node-installer-image.os-image;
-              launch-digest = kata.snp-launch-digest.override {
-                inherit os-image;
-                debug = kata.contrast-node-installer-image.debugRuntime;
-              };
-            in
-            [
-              {
-                trustedMeasurement = builtins.readFile "${launch-digest}/milan.hex";
-                productName = "Milan";
-              }
-              {
-                trustedMeasurement = builtins.readFile "${launch-digest}/genoa.hex";
-                productName = "Genoa";
-              }
-            ];
-        };
+      snpRefValsWith = os-image: {
+        snp =
+          let
+            launch-digest = kata.calculateSnpLaunchDigest {
+              inherit os-image;
+              debug = kata.contrast-node-installer-image.debugRuntime;
+            };
+          in
+          [
+            {
+              trustedMeasurement = builtins.readFile "${launch-digest}/milan.hex";
+              productName = "Milan";
+            }
+            {
+              trustedMeasurement = builtins.readFile "${launch-digest}/genoa.hex";
+              productName = "Genoa";
+            }
+          ];
+      };
 
-      snpRefVals = snpRefValsWith { gpu = false; };
-      snpGpuRefVals = snpRefValsWith { gpu = true; };
+      snpRefVals = snpRefValsWith kata.contrast-node-installer-image.os-image;
+      snpGpuRefVals = snpRefValsWith kata.contrast-node-installer-image.gpu.os-image;
 
       tdxRefVals = {
         tdx = [
           (
             let
-              launch-digests = kata.tdx-launch-digests.override {
+              launch-digests = kata.calculateTdxLaunchDigests {
+                inherit (kata.contrast-node-installer-image) os-image;
                 debug = kata.contrast-node-installer-image.debugRuntime;
               };
             in
@@ -205,7 +199,14 @@ buildGoModule rec {
     install -D ${microsoft.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-microsoft.rego
     install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
     install -D ${embeddedReferenceValues} internal/manifest/assets/reference-values.json
-    install -D ${kata.snp-id-block}/* nodeinstaller/internal/constants/
+    install -D ${
+      kata.calculateSnpIDBlock {
+        snp-launch-digest = kata.calculateSnpLaunchDigest {
+          inherit (kata.contrast-node-installer-image) os-image;
+          debug = kata.contrast-node-installer-image.debugRuntime;
+        };
+      }
+    }/* nodeinstaller/internal/constants/
   '';
 
   # postPatch will be overwritten by the release-cli derivation, prePatch

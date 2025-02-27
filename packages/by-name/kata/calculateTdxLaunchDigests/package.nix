@@ -7,25 +7,29 @@
   kata,
   OVMF-TDX,
   tdx-measure,
-
-  debug ? false,
 }:
+
+{
+  os-image,
+  debug,
+}:
+
 let
   ovmf-tdx = "${OVMF-TDX}/FV/OVMF.fd";
-  kernel = "${kata.kata-image}/bzImage";
-  initrd = "${kata.kata-image}/initrd";
-
+  kernel = "${os-image}/bzImage";
+  initrd = "${os-image}/initrd";
   # Kata uses a base command line and then appends the command line from the kata config (i.e. also our node-installer config).
   # Thus, we need to perform the same steps when calculating the digest.
   baseCmdline = if debug then kata.kata-runtime.cmdline.debug else kata.kata-runtime.cmdline.default;
   cmdline = lib.strings.concatStringsSep " " [
     baseCmdline
-    kata.kata-image.cmdline
+    os-image.cmdline
   ];
 in
+
 stdenvNoCC.mkDerivation {
   name = "tdx-launch-digests";
-  inherit (kata.kata-image) version;
+  inherit (os-image) version;
 
   dontUnpack = true;
 
