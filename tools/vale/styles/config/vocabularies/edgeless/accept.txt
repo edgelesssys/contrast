@@ -18,6 +18,8 @@ backport(ed|s|ing)?
 Bazel
 bootloader
 Bootstrapper
+btrfs
+CA
 cachable
 cachix
 Canonical
@@ -40,6 +42,7 @@ Datadog
 deallocate
 deduplicate
 DEK
+devs
 Dockerfile
 Dynatrace
 Emojivoto
@@ -128,6 +131,7 @@ superset
 Syft
 sysctl
 systemd
+Tailscale
 tardev
 tarfs
 TDX
