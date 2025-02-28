@@ -145,6 +145,34 @@ let
       }
     );
 
+  snpIdBlocksFor =
+    os-image:
+    let
+      launch-digest = kata.calculateSnpLaunchDigest {
+        inherit os-image;
+        debug = kata.contrast-node-installer-image.debugRuntime;
+      };
+      idBlocks = kata.calculateSnpIDBlock { snp-launch-digest = launch-digest; };
+    in
+    {
+      Milan = {
+        idBlock = builtins.readFile "${idBlocks}/id-block-milan.base64";
+        idAuth = builtins.readFile "${idBlocks}/id-auth-milan.base64";
+      };
+      Genoa = {
+        idBlock = builtins.readFile "${idBlocks}/id-block-genoa.base64";
+        idAuth = builtins.readFile "${idBlocks}/id-auth-genoa.base64";
+      };
+    };
+  snpIdBlocks = builtins.toFile "snp-id-blocks.json" (
+    builtins.toJSON {
+      metal-qemu-snp = snpIdBlocksFor kata.contrast-node-installer-image.os-image;
+      metal-qemu-snp-gpu = snpIdBlocksFor kata.contrast-node-installer-image.gpu.os-image;
+      k3s-qemu-snp = snpIdBlocksFor kata.contrast-node-installer-image.os-image;
+      k3s-qemu-snp-gpu = snpIdBlocksFor kata.contrast-node-installer-image.gpu.os-image;
+    }
+  );
+
   packageOutputs = [
     "coordinator"
     "initializer"
@@ -199,14 +227,7 @@ buildGoModule rec {
     install -D ${microsoft.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-microsoft.rego
     install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
     install -D ${embeddedReferenceValues} internal/manifest/assets/reference-values.json
-    install -D ${
-      kata.calculateSnpIDBlock {
-        snp-launch-digest = kata.calculateSnpLaunchDigest {
-          inherit (kata.contrast-node-installer-image) os-image;
-          debug = kata.contrast-node-installer-image.debugRuntime;
-        };
-      }
-    }/* nodeinstaller/internal/constants/
+    install -D ${snpIdBlocks} nodeinstaller/internal/constants/snp-id-blocks.json
   '';
 
   # postPatch will be overwritten by the release-cli derivation, prePatch
