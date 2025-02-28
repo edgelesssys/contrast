@@ -40,4 +40,7 @@ const (
 	// attestation docs. It's deliberately smaller than ATLSClientTimeout to allow proper error
 	// propagation.
 	ATLSServerTimeout = ATLSClientTimeout - 5*time.Second
+
+	// KDSRetryInterval specifies the amount of time to wait before retrying a KDS query.
+	KDSRetryInterval = 2 * time.Second
 )

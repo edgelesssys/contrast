@@ -17,10 +17,12 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/reportdata"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/oid"
+	"github.com/edgelesssys/contrast/internal/retry"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/google/go-sev-guest/validate"
 	"github.com/google/go-sev-guest/verify"
+	"github.com/google/go-sev-guest/verify/trust"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
@@ -63,7 +65,7 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 }
 
 // Validate a SNP based attestation.
-func (v *Validator) Validate(_ context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
+func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
 	v.logger.Info("Validate called", "name", v.name, "nonce", hex.EncodeToString(nonce))
 	defer func() {
 		if err != nil {
@@ -96,8 +98,9 @@ func (v *Validator) Validate(_ context.Context, attDocRaw []byte, nonce []byte, 
 	}
 
 	// Report signature verification.
-	// TODO(burgerdev): equip HTTPSGetter with context.
-	if err := verify.SnpAttestation(attestationData, v.verifyOpts); err != nil {
+	verifyOpts := *v.verifyOpts
+	verifyOpts.Getter = wrapWithRetrier(ctx, verifyOpts.Getter)
+	if err := verify.SnpAttestation(attestationData, &verifyOpts); err != nil {
 		return fmt.Errorf("verifying report: %w", err)
 	}
 	v.logger.Info("Successfully verified report signature")
@@ -163,4 +166,28 @@ func addCRLtoVerifyOptions(attestationData *sevsnp.Attestation, verifyOpts *veri
 	}
 
 	return nil
+}
+
+type httpsGetterFunc func(url string) ([]byte, error)
+
+func (f httpsGetterFunc) Get(url string) ([]byte, error) {
+	return f(url)
+}
+
+func wrapWithRetrier(ctx context.Context, getter trust.HTTPSGetter) trust.HTTPSGetter {
+	return httpsGetterFunc(func(url string) ([]byte, error) {
+		var body []byte
+		doer := retry.DoerFunc(func(_ context.Context) error {
+			b, err := getter.Get(url)
+			if err != nil {
+				return err
+			}
+			body = b
+			return nil
+		})
+		if err := retry.NewIntervalRetrier(doer, constants.KDSRetryInterval, retry.Always).Do(ctx); err != nil {
+			return nil, err
+		}
+		return body, nil
+	})
 }
