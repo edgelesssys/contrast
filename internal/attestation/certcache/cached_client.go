@@ -27,7 +27,7 @@ type CachedHTTPSGetter struct {
 // NewCachedHTTPSGetter returns a new CachedHTTPSGetter.
 func NewCachedHTTPSGetter(s store, ticker clock.Ticker, log *slog.Logger) *CachedHTTPSGetter {
 	c := &CachedHTTPSGetter{
-		HTTPSGetter: trust.DefaultHTTPSGetter(),
+		HTTPSGetter: &trust.SimpleHTTPSGetter{},
 		logger:      log,
 		cache:       s,
 		gcTicker:    ticker,
