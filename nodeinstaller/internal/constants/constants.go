@@ -5,12 +5,14 @@ package constants
 
 import (
 	_ "embed"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/config"
-	"github.com/google/go-sev-guest/abi"
+	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/pelletier/go-toml/v2"
 )
@@ -39,17 +41,8 @@ var (
 	//go:embed containerd-config.toml
 	containerdBaseConfig string
 
-	//go:embed id-block-milan.base64
-	idBlockMilan string
-
-	//go:embed id-auth-milan.base64
-	idAuthMilan string
-
-	//go:embed id-block-genoa.base64
-	idBlockGenoa string
-
-	//go:embed id-auth-genoa.base64
-	idAuthGenoa string
+	//go:embed snp-id-blocks.json
+	snpIDBlocks string
 
 	// RuntimeNamePlaceholder is the placeholder for the per-runtime path (i.e. /opt/edgeless/contrast-cc...) in the target file paths.
 	RuntimeNamePlaceholder = "@@runtimeName@@"
@@ -112,16 +105,12 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		// also what we do when calculating the launch measurement.
 		config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
 
-		switch sevProductName {
-		case sevsnp.SevProduct_SEV_PRODUCT_MILAN:
-			config.Hypervisor["qemu"]["snp_id_block"] = idBlockMilan
-			config.Hypervisor["qemu"]["snp_id_auth"] = idAuthMilan
-		case sevsnp.SevProduct_SEV_PRODUCT_GENOA:
-			config.Hypervisor["qemu"]["snp_id_block"] = idBlockGenoa
-			config.Hypervisor["qemu"]["snp_id_auth"] = idAuthGenoa
-		default:
-			return nil, fmt.Errorf("identified unsupported SEV product via cpuid: %s", abi.SevProduct().Name)
+		idBlock, idAuth, err := snpIDBlock(platform, sevProductName)
+		if err != nil {
+			return nil, err
 		}
+		config.Hypervisor["qemu"]["snp_id_block"] = idBlock
+		config.Hypervisor["qemu"]["snp_id_auth"] = idAuth
 
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
@@ -188,4 +177,28 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 	}
 
 	return &cfg, nil
+}
+
+// platform -> product -> struct.
+type snpIDBlockMap map[string]map[string]struct {
+	IDBlock string `json:"idBlock"`
+	IDAuth  string `json:"idAuth"`
+}
+
+// snpIDBlock returns the embedded SNP ID block and ID auth for the given platform and product.
+func snpIDBlock(platform platforms.Platform, productName sevsnp.SevProduct_SevProductName) (idblock, idauth string, retErr error) {
+	blocks := make(snpIDBlockMap)
+	if err := json.Unmarshal([]byte(snpIDBlocks), &blocks); err != nil {
+		return "", "", fmt.Errorf("unmarshaling embedded SNP ID blocks: %w", err)
+	}
+	blockForPlatform, ok := blocks[strings.ToLower(platform.String())]
+	if !ok {
+		return "", "", fmt.Errorf("no SNP ID block found for platform %s", platform)
+	}
+	productLine := kds.ProductLine(&sevsnp.SevProduct{Name: productName})
+	block, ok := blockForPlatform[productLine]
+	if !ok {
+		return "", "", fmt.Errorf("no SNP ID block found for product %s", productLine)
+	}
+	return block.IDBlock, block.IDAuth, nil
 }
