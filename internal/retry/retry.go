@@ -79,3 +79,16 @@ type Doer interface {
 	// It should return an error that can be checked for retriability.
 	Do(ctx context.Context) error
 }
+
+// DoerFunc creates a Doer from a function.
+type DoerFunc func(ctx context.Context) error
+
+// Do implements Doer for DoerFunc.
+func (f DoerFunc) Do(ctx context.Context) error {
+	return f(ctx)
+}
+
+// Always can be used as an argument for NewIntervalRetrier to retry unconditionally.
+func Always(_ error) bool {
+	return true
+}

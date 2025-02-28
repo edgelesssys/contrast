@@ -75,6 +75,9 @@ func TestDo(t *testing.T) {
 	}
 }
 
+// Ensure that DoerFunc implements Doer.
+var _ = Doer(DoerFunc(func(_ context.Context) error { return nil }))
+
 type stubDoer struct {
 	errs     []error
 	clock    *testclock.FakeClock
