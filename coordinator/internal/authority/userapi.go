@@ -301,7 +301,7 @@ func getPeerPublicKey(ctx context.Context) ([]byte, error) {
 	}
 	tlsInfo, ok := peer.AuthInfo.(credentials.TLSInfo)
 	if !ok {
-		return nil, errors.New("peer auth info is not of type TLSInfo")
+		return nil, fmt.Errorf("peer auth info is not of type TLSInfo: got %T", peer.AuthInfo)
 	}
 	if len(tlsInfo.State.PeerCertificates) == 0 || tlsInfo.State.PeerCertificates[0] == nil {
 		return nil, errors.New("no peer certificates found")
