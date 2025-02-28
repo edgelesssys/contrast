@@ -31,7 +31,7 @@ Increase the `user.max_inotify_instances` sysctl limit by adding `user.max_inoti
 ## K3s setup
 
 1. Follow the [K3s setup instructions](https://docs.k3s.io/) to create a cluster.
-2. Install a block storage provider such as [Longhorn](https://docs.k3s.io/storage#setting-up-longhorn) and mark it as the default storage class.
+2. Install a block storage provider such as [Longhorn](https://longhorn.io/docs/1.8.0/deploy/install/install-with-kubectl/) and mark it as the default storage class.
 
 ## Preparing a cluster for GPU usage
 
