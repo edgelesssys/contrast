@@ -57,7 +57,6 @@ metadata:
   name: another-pod
   annotations:
     io.katacontainers.config.agent.policy: '` + encodedValidPolicy + `'
-    contrast.edgeless.systems/pod-role: worker
 `
 
 func TestPoliciesFromKubeResources(t *testing.T) {
@@ -104,13 +103,13 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 				{
 					name:             "test",
 					policy:           manifest.Policy([]byte(`valid-agent-policy`)),
-					role:             "coordinator",
+					role:             manifest.RoleCoordinator,
 					workloadSecretID: "apps/v1/Deployment/default/test",
 				},
 				{
 					name:             "another-pod",
 					policy:           manifest.Policy([]byte(`valid-agent-policy`)),
-					role:             "worker",
+					role:             manifest.RoleNone,
 					workloadSecretID: "core/v1/Pod/default/another-pod",
 				},
 			},
