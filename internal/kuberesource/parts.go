@@ -386,6 +386,24 @@ func Coordinator(namespace string) *CoordinatorConfig {
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(200),
 							),
+					).
+					WithAffinity(
+						applycorev1.Affinity().
+							WithPodAntiAffinity(
+								applycorev1.PodAntiAffinity().
+									WithPreferredDuringSchedulingIgnoredDuringExecution(
+										applycorev1.WeightedPodAffinityTerm().
+											WithWeight(100).
+											WithPodAffinityTerm(
+												applycorev1.PodAffinityTerm().
+													WithLabelSelector(
+														LabelSelector().
+															WithMatchLabels(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}),
+													).
+													WithTopologyKey("kubernetes.io/hostname"),
+											),
+									),
+							),
 					),
 				),
 			).
