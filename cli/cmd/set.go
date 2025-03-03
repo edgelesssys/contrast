@@ -8,6 +8,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -82,7 +83,9 @@ func runSet(cmd *cobra.Command, args []string) error {
 	}
 
 	workloadOwnerKey, err := loadWorkloadOwnerKey(flags.workloadOwnerKeyPath, &m, log)
-	if err != nil {
+	if errors.Is(err, os.ErrNotExist) {
+		workloadOwnerKey = nil
+	} else if err != nil {
 		return fmt.Errorf("loading workload owner key: %w", err)
 	}
 
@@ -109,9 +112,15 @@ func runSet(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("getting validators: %w", err)
 	}
-	dialer := dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, workloadOwnerKey)
 
-	conn, err := dialer.Dial(cmd.Context(), flags.coordinator)
+	var dialr *dialer.Dialer
+	if workloadOwnerKey == nil {
+		dialr = dialer.New(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{})
+	} else {
+		dialr = dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, workloadOwnerKey)
+	}
+
+	conn, err := dialr.Dial(cmd.Context(), flags.coordinator)
 	if err != nil {
 		return fmt.Errorf("failed to dial coordinator: %w", err)
 	}
@@ -233,8 +242,8 @@ func policyMapToBytesList(m []deployment) [][]byte {
 
 func loadWorkloadOwnerKey(path string, manifst *manifest.Manifest, log *slog.Logger) (*ecdsa.PrivateKey, error) {
 	key, err := os.ReadFile(path)
-	if os.IsNotExist(err) {
-		return nil, nil
+	if err != nil {
+		return nil, fmt.Errorf("reading workload owner key: %w", err)
 	}
 	workloadOwnerKey, err := manifest.ParseWorkloadOwnerPrivateKey(key)
 	if err != nil {
