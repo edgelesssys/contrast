@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
-	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
@@ -33,8 +33,12 @@ type meshAPIServer struct {
 }
 
 func newMeshAPIServer(meshAuth *authority.Authority, reg *prometheus.Registry, serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger,
-) *meshAPIServer {
-	credentials, cancel := meshAuth.Credentials(reg, atls.NoIssuer)
+) (*meshAPIServer, error) {
+	issuer, err := issuer.New(log)
+	if err != nil {
+		return nil, fmt.Errorf("creating issuer: %w", err)
+	}
+	credentials, cancel := meshAuth.Credentials(reg, issuer)
 
 	grpcServer := grpc.NewServer(
 		grpc.Creds(credentials),
@@ -54,7 +58,7 @@ func newMeshAPIServer(meshAuth *authority.Authority, reg *prometheus.Registry, s
 	meshapi.RegisterMeshAPIServer(s.grpc, s)
 	serverMetrics.InitializeMetrics(s.grpc)
 
-	return s
+	return s, nil
 }
 
 func (i *meshAPIServer) Serve(endpoint string) error {
