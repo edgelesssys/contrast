@@ -34,15 +34,20 @@ type Manifest struct {
 type PolicyEntry struct {
 	SANs             []string
 	WorkloadSecretID string `json:",omitempty"`
+	Role             Role   `json:",omitempty"`
 }
 
 // Validate checks the validity of a policy entry given its policy hash.
-func (PolicyEntry) Validate(policyHash HexString) error {
+func (e PolicyEntry) Validate(policyHash HexString) error {
 	if _, err := policyHash.Bytes(); err != nil {
 		return fmt.Errorf("decoding policy hash %s: %w", policyHash, err)
 	}
 	if len(policyHash) != sha256.Size*2 {
 		return fmt.Errorf("policy hash %s has invalid length: %d (expected %d)", policyHash, len(policyHash), sha256.Size*2)
+	}
+
+	if err := e.Role.Validate(); err != nil {
+		return fmt.Errorf("validating role %s: %w", e.Role, err)
 	}
 
 	return nil
@@ -81,6 +86,26 @@ func (p Policy) Bytes() []byte {
 func (p Policy) Hash() HexString {
 	hashBytes := sha256.Sum256(p)
 	return NewHexString(hashBytes[:])
+}
+
+// Role is the role of the workload identified by the policy hash.
+type Role string
+
+const (
+	// NoRole means the workload has no specific role.
+	NoRole Role = ""
+	// RoleCoordinator is the coordinator role.
+	RoleCoordinator Role = "coordinator"
+)
+
+// Validate checks the validity of the role.
+func (r Role) Validate() error {
+	switch r {
+	case NoRole, RoleCoordinator:
+		return nil
+	default:
+		return fmt.Errorf("unknown role: %s", r)
+	}
 }
 
 // Validate checks the validity of all fields in the reference values.
