@@ -21,7 +21,7 @@ import (
 
 // Manifest is the Coordinator manifest and contains the reference values of the deployment.
 type Manifest struct {
-	// policyHash/HOSTDATA -> commonName
+	// Policies is a map from policy hash (HOSTDATA) to policy entry.
 	Policies map[HexString]PolicyEntry
 	// ReferenceValues specifies the allowed TEE configurations in the deployment. If ANY
 	// of the reference values validates the attestation report of the workload,
@@ -35,6 +35,23 @@ type Manifest struct {
 type PolicyEntry struct {
 	SANs             []string
 	WorkloadSecretID string `json:",omitempty"`
+	Role             Role   `json:",omitempty"`
+}
+
+// Validate checks the validity of a policy entry given its policy hash.
+func (e PolicyEntry) Validate(policyHash HexString) error {
+	if _, err := policyHash.Bytes(); err != nil {
+		return fmt.Errorf("decoding policy hash %s: %w", policyHash, err)
+	}
+	if len(policyHash) != sha256.Size*2 {
+		return fmt.Errorf("policy hash %s has invalid length: %d (expected %d)", policyHash, len(policyHash), sha256.Size*2)
+	}
+
+	if err := e.Role.Validate(); err != nil {
+		return fmt.Errorf("validating role %s: %w", e.Role, err)
+	}
+
+	return nil
 }
 
 // HexStrings is a slice of HexString.
@@ -70,6 +87,26 @@ func (p Policy) Bytes() []byte {
 func (p Policy) Hash() HexString {
 	hashBytes := sha256.Sum256(p)
 	return NewHexString(hashBytes[:])
+}
+
+// Role is the role of the workload identified by the policy hash.
+type Role string
+
+const (
+	// NoRole means the workload has no specific role.
+	NoRole Role = ""
+	// RoleCoordinator is the coordinator role.
+	RoleCoordinator Role = "coordinator"
+)
+
+// Validate checks the validity of the role.
+func (r Role) Validate() error {
+	switch r {
+	case NoRole, RoleCoordinator:
+		return nil
+	default:
+		return fmt.Errorf("unknown role: %s", r)
+	}
 }
 
 // Validate checks the validity of all fields in the reference values.
@@ -159,11 +196,9 @@ func (r TDXReferenceValues) Validate() error {
 
 // Validate checks the validity of all fields in the manifest.
 func (m *Manifest) Validate() error {
-	for policyHash := range m.Policies {
-		if _, err := policyHash.Bytes(); err != nil {
-			return fmt.Errorf("decoding policy hash %s: %w", policyHash, err)
-		} else if len(policyHash) != sha256.Size*2 {
-			return fmt.Errorf("policy hash %s has invalid length: %d (expected %d)", policyHash, len(policyHash), sha256.Size*2)
+	for policyHash, policy := range m.Policies {
+		if err := policy.Validate(policyHash); err != nil {
+			return fmt.Errorf("validating policy %s: %w", policyHash, err)
 		}
 	}
 
