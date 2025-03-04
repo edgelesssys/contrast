@@ -102,6 +102,9 @@ func run() (retErr error) {
 				),
 			))
 		}
+		mux.HandleFunc("/probe/startup", startupProbeHandler)
+		mux.HandleFunc("/probe/liveness", livenessProbeHandler)
+		mux.HandleFunc("/probe/readiness", readinessProbeHandler)
 		httpServer.Addr = ":" + itoa.Itoa(probeAndMetricsPort)
 		httpServer.Handler = mux
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -178,4 +181,16 @@ func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger
 		),
 	)
 	return grpcServer, nil
+}
+
+func startupProbeHandler(w http.ResponseWriter, _ *http.Request) {
+
+}
+
+func livenessProbeHandler(w http.ResponseWriter, _ *http.Request) {
+
+}
+
+func readinessProbeHandler(w http.ResponseWriter, _ *http.Request) {
+
 }
