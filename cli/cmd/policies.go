@@ -47,30 +47,31 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 		gvk := meta.GetObjectKind().GroupVersionKind()
 		workloadSecretID := strings.Join([]string{orDefault(gvk.Group, "core"), gvk.Version, gvk.Kind, namespace, name}, "/")
 
-		var annotation, role string
+		var annotation string
+		var role manifest.Role
 		switch obj := objAny.(type) {
 		case *kubeapi.Pod:
 			annotation = obj.Annotations[kataPolicyAnnotationKey]
-			role = obj.Annotations[contrastRoleAnnotationKey]
+			role = manifest.Role(obj.Annotations[contrastRoleAnnotationKey])
 		case *kubeapi.Deployment:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
+			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 		case *kubeapi.ReplicaSet:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
+			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 		case *kubeapi.StatefulSet:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
+			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 		case *kubeapi.DaemonSet:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
+			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 		case *kubeapi.Job:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
-			role = obj.Spec.Template.Annotations[contrastRoleAnnotationKey]
+			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 		case kubeapi.CronJob:
 			name = obj.Name
 			annotation = obj.Spec.JobTemplate.Spec.Template.Annotations[kataPolicyAnnotationKey]
-			role = obj.Spec.JobTemplate.Spec.Template.Annotations[contrastRoleAnnotationKey]
+			role = manifest.Role(obj.Spec.JobTemplate.Spec.Template.Annotations[contrastRoleAnnotationKey])
 		}
 		if annotation == "" {
 			continue
@@ -81,6 +82,9 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 		policy, err := manifest.NewPolicyFromAnnotation([]byte(annotation))
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse policy %s: %w", name, err)
+		}
+		if err := role.Validate(); err != nil {
+			return nil, fmt.Errorf("invalid role %s for %s: %w", role, name, err)
 		}
 		deployments = append(deployments, deployment{
 			name:             name,
@@ -103,7 +107,11 @@ func manifestPolicyMapFromPolicies(policies []deployment) (map[manifest.HexStrin
 			}
 			continue
 		}
-		entry := manifest.PolicyEntry{SANs: depl.DNSNames(), WorkloadSecretID: depl.workloadSecretID}
+		entry := manifest.PolicyEntry{
+			SANs:             depl.DNSNames(),
+			WorkloadSecretID: depl.workloadSecretID,
+			Role:             depl.role,
+		}
 		policyHashes[depl.policy.Hash()] = entry
 	}
 	return policyHashes, nil
@@ -147,7 +155,7 @@ func getCoordinatorPolicyHash(policies []deployment, log *slog.Logger) string {
 type deployment struct {
 	name             string
 	policy           manifest.Policy
-	role             string
+	role             manifest.Role
 	workloadSecretID string
 }
 
