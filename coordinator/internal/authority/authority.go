@@ -15,6 +15,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -35,6 +36,7 @@ type Authority struct {
 	metrics metrics
 
 	userapi.UnimplementedUserAPIServer
+	meshapi.UnimplementedMeshAPIServer
 }
 
 type metrics struct {

@@ -1,90 +1,34 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package main
+package authority
 
 import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"log/slog"
-	"net"
-	"time"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/authority"
-	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
-	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
-	"github.com/prometheus/client_golang/prometheus"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
-
-type meshAPIServer struct {
-	grpc    *grpc.Server
-	cleanup func()
-	logger  *slog.Logger
-
-	meshapi.UnimplementedMeshAPIServer
-}
-
-func newMeshAPIServer(meshAuth *authority.Authority, reg *prometheus.Registry, serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger,
-) (*meshAPIServer, error) {
-	issuer, err := issuer.New(log)
-	if err != nil {
-		return nil, fmt.Errorf("creating issuer: %w", err)
-	}
-	credentials, cancel := meshAuth.Credentials(reg, issuer)
-
-	grpcServer := grpc.NewServer(
-		grpc.Creds(credentials),
-		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
-		grpc.ChainStreamInterceptor(
-			serverMetrics.StreamServerInterceptor(),
-		),
-		grpc.ChainUnaryInterceptor(
-			serverMetrics.UnaryServerInterceptor(),
-		),
-	)
-	s := &meshAPIServer{
-		grpc:    grpcServer,
-		cleanup: cancel,
-		logger:  log.WithGroup("meshapi"),
-	}
-	meshapi.RegisterMeshAPIServer(s.grpc, s)
-	serverMetrics.InitializeMetrics(s.grpc)
-
-	return s, nil
-}
-
-func (i *meshAPIServer) Serve(endpoint string) error {
-	lis, err := net.Listen("tcp", endpoint)
-	if err != nil {
-		return fmt.Errorf("failed to listen: %w", err)
-	}
-
-	defer i.cleanup()
-	return i.grpc.Serve(lis)
-}
 
 // NewMeshCert creates a mesh certificate for the connected peer.
 //
 // When this handler is called, the transport credentials already ensured that
 // the peer is authorized according to the manifest, so it can start issuing
 // right away.
-func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertRequest) (*meshapi.NewMeshCertResponse, error) {
-	i.logger.Info("NewMeshCert called")
+func (a *Authority) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertRequest) (*meshapi.NewMeshCertResponse, error) {
+	a.logger.Info("NewMeshCert called")
 
 	p, ok := peer.FromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("failed to get peer from context")
 	}
 
-	authInfo, ok := p.AuthInfo.(authority.AuthInfo)
+	authInfo, ok := p.AuthInfo.(AuthInfo)
 	if !ok {
 		return nil, fmt.Errorf("unexpected AuthInfo type: %T", p.AuthInfo)
 	}
