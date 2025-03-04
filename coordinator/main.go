@@ -7,18 +7,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"internal/itoa"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	"github.com/edgelesssys/contrast/coordinator/internal/probes"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
@@ -87,15 +88,20 @@ func run() (retErr error) {
 		return fmt.Errorf("creating mesh API server: %w", err)
 	}
 	httpServer := &http.Server{}
+	userapiStarted := false
+	meshapiStarted := false
+
+	startupHandler := probes.StartupHandler{UserapiStarted: &userapiStarted, MeshapiStarted: &meshapiStarted}
+	livenessHandler := probes.LivenessHandler{Hist: hist}
+	readinessHandler := probes.ReadinessHandler{Authority: meshAuth}
 
 	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
 		_, enableMetrics := os.LookupEnv(metricsEnvVar)
-		// TODO(miampf): add /probe/{startup,liveness,readiness} endpoints
 		mux := http.NewServeMux()
 		if enableMetrics {
-			logger.Info("Starting prometheus /metrics endpoint on port " + itoa.Itoa(probeAndMetricsPort))
+			logger.Info("Starting prometheus /metrics endpoint on port " + strconv.Itoa(probeAndMetricsPort))
 			mux.Handle("/metrics", promhttp.InstrumentMetricHandler(
 				promRegistry, promhttp.HandlerFor(
 					promRegistry,
@@ -103,7 +109,10 @@ func run() (retErr error) {
 				),
 			))
 		}
-		httpServer.Addr = ":" + itoa.Itoa(probeAndMetricsPort)
+		mux.Handle("/probe/startup", startupHandler)
+		mux.Handle("/probe/liveness", livenessHandler)
+		mux.Handle("/probe/readiness", readinessHandler)
+		httpServer.Addr = ":" + strconv.Itoa(probeAndMetricsPort)
 		httpServer.Handler = mux
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("Starting http server", "err", err)
@@ -122,6 +131,7 @@ func run() (retErr error) {
 			logger.Error("Serving Coordinator API", "err", err)
 			return fmt.Errorf("serving Coordinator API: %w", err)
 		}
+		userapiStarted = true
 		return nil
 	})
 
@@ -131,6 +141,7 @@ func run() (retErr error) {
 			logger.Error("Serving mesh API", "err", err)
 			return fmt.Errorf("serving mesh API: %w", err)
 		}
+		meshapiStarted = true
 		return nil
 	})
 
