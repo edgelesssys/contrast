@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"log/slog"
 )
 
 const (
@@ -26,8 +27,8 @@ type History struct {
 }
 
 // New creates a new History backed by the configured store.
-func New() (*History, error) {
-	store, err := NewStore()
+func New(log *slog.Logger) (*History, error) {
+	store, err := NewStore(log.WithGroup("history-store"))
 	if err != nil {
 		return nil, fmt.Errorf("creating history store: %w", err)
 	}
