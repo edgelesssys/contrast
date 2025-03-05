@@ -167,6 +167,7 @@
       while IFS= read -r dir; do
         echo "Running golangci-lint on $dir" >&2
         golangci-lint run "$dir/..." || exitcode=$?
+        golangci-lint run --build-tags enterprise "$dir/..." || exitcode=$?
       done < <(go list -f '{{.Dir}}' -m)
 
       echo "Verifying golangci-lint config" >&2
