@@ -67,7 +67,7 @@ func run() (retErr error) {
 	promRegistry := prometheus.NewRegistry()
 	serverMetrics := newServerMetrics(promRegistry)
 
-	hist, err := history.New()
+	hist, err := history.New(logger)
 	if err != nil {
 		return fmt.Errorf("creating history: %w", err)
 	}
