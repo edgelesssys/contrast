@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
 )
@@ -34,7 +35,9 @@ all policies, and the certificates of the Coordinator certificate authority.`,
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
-	cmd.Flags().String("coordinator-policy-hash", DefaultCoordinatorPolicyHash, "override the expected policy hash of the coordinator")
+	defaultCoordHash, err := defaultCoordinatorPolicyHash(platforms.AKSCloudHypervisorSNP)
+	must(err)
+	cmd.Flags().String("coordinator-policy-hash", defaultCoordHash.String(), "override the expected policy hash of the coordinator")
 
 	return cmd
 }
