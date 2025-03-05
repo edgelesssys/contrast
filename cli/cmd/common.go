@@ -6,12 +6,14 @@ package cmd
 import (
 	"context"
 	_ "embed"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/edgelesssys/contrast/cli/telemetry"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 const (
@@ -38,6 +40,13 @@ var (
 	// It is intentionally left empty for dev builds.
 	DefaultCoordinatorPolicyHash = ""
 )
+
+func commandOut() io.Writer {
+	if term.IsTerminal(int(os.Stdout.Fd())) {
+		return nil // use out writer of parent
+	}
+	return io.Discard
+}
 
 func cachedir(subdir string) (string, error) {
 	dir := os.Getenv(cacheDirEnv)
