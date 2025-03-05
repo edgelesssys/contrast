@@ -9,10 +9,13 @@ import (
 	"fmt"
 	"io/fs"
 	"path/filepath"
+	"regexp"
 	"sync"
 
 	"github.com/spf13/afero"
 )
+
+var keyRe = regexp.MustCompile(`^[a-zA-Z0-9-]+/[a-zA-Z0-9-]+$`)
 
 // AferoStore is a Store implementation backed by an Afero filesystem.
 type AferoStore struct {
@@ -27,6 +30,9 @@ func NewAferoStore(fs *afero.Afero) *AferoStore {
 
 // Get the value for key.
 func (s *AferoStore) Get(key string) ([]byte, error) {
+	if !keyRe.MatchString(key) {
+		return nil, fmt.Errorf("invalid key %q", key)
+	}
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 	return s.fs.ReadFile(key)
@@ -34,6 +40,9 @@ func (s *AferoStore) Get(key string) ([]byte, error) {
 
 // Set the value for key.
 func (s *AferoStore) Set(key string, value []byte) error {
+	if !keyRe.MatchString(key) {
+		return fmt.Errorf("invalid key %q", key)
+	}
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	if err := s.fs.MkdirAll(filepath.Dir(key), 0o755); err != nil {
@@ -44,6 +53,9 @@ func (s *AferoStore) Set(key string, value []byte) error {
 
 // CompareAndSwap updates the key to newVal if its current value is oldVal.
 func (s *AferoStore) CompareAndSwap(key string, oldVal, newVal []byte) error {
+	if !keyRe.MatchString(key) {
+		return fmt.Errorf("invalid key %q", key)
+	}
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	current, err := s.fs.ReadFile(key)
@@ -63,6 +75,9 @@ func (s *AferoStore) CompareAndSwap(key string, oldVal, newVal []byte) error {
 // Watch watches for changes to the value of key.
 //
 // Not implemented for AferoStore.
-func (s *AferoStore) Watch(_ string) (<-chan []byte, func(), error) {
+func (s *AferoStore) Watch(key string) (<-chan []byte, func(), error) {
+	if !keyRe.MatchString(key) {
+		return nil, nil, fmt.Errorf("invalid key %q", key)
+	}
 	return nil, func() {}, nil
 }
