@@ -7,6 +7,7 @@ package history
 
 import (
 	"fmt"
+	"log/slog"
 
 	"github.com/spf13/afero"
 )
@@ -16,7 +17,7 @@ const (
 )
 
 // NewStore creates a new AferoStore backed by the default filesystem store.
-func NewStore() (*AferoStore, error) {
+func NewStore(_ *slog.Logger) (*AferoStore, error) {
 	osFS := afero.NewOsFs()
 	if err := osFS.MkdirAll(histPath, 0o755); err != nil {
 		return nil, fmt.Errorf("creating history directory: %w", err)
