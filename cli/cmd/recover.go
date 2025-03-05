@@ -14,6 +14,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
@@ -37,7 +38,9 @@ The recover command is used to provide the seed to the Coordinator.`,
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
-	cmd.Flags().String("coordinator-policy-hash", DefaultCoordinatorPolicyHash, "override the expected policy hash of the coordinator")
+	defaultCoordHash, err := defaultCoordinatorPolicyHash(platforms.AKSCloudHypervisorSNP)
+	must(err)
+	cmd.Flags().String("coordinator-policy-hash", defaultCoordHash.String(), "override the expected policy hash of the coordinator")
 	cmd.Flags().String("workload-owner-key", workloadOwnerPEM,
 		"path to workload owner key (.pem) file (can be passed more than once)")
 	cmd.Flags().String("seedshare-owner-key", seedshareOwnerPEM, "private key file to decrypt the seed share")

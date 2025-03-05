@@ -6,11 +6,15 @@ package cmd
 import (
 	"context"
 	_ "embed"
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/edgelesssys/contrast/cli/telemetry"
+	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/spf13/cobra"
 )
 
@@ -33,11 +37,27 @@ var (
 	// ReleaseImageReplacements contains the image replacements used by contrast.
 	//go:embed assets/image-replacements.txt
 	ReleaseImageReplacements []byte
-	// DefaultCoordinatorPolicyHash is derived from the coordinator release candidate and injected at release build time.
+	// CoordinatorPolicyHashesFallback are derived from the coordinator release candidate and injected at release build time.
 	//
 	// It is intentionally left empty for dev builds.
-	DefaultCoordinatorPolicyHash = ""
+	//go:embed assets/coordinator-policy-hashes-fallback.json
+	CoordinatorPolicyHashesFallback []byte
 )
+
+type coordinatorPolicyHashes map[platforms.Platform]manifest.HexString
+
+// defaultCoordinatorPolicyHash returns the default coordinator policy hash for the given platform.
+func defaultCoordinatorPolicyHash(p platforms.Platform) (manifest.HexString, error) {
+	defaults := make(coordinatorPolicyHashes)
+	if err := json.Unmarshal(CoordinatorPolicyHashesFallback, &defaults); err != nil {
+		return "", fmt.Errorf("unmarshaling coordinator policy hashes fallback: %w", err)
+	}
+	defaultHash, ok := defaults[p]
+	if !ok {
+		return "", fmt.Errorf("no default coordinator policy hash for %s", p)
+	}
+	return defaultHash, nil
+}
 
 func cachedir(subdir string) (string, error) {
 	dir := os.Getenv(cacheDirEnv)

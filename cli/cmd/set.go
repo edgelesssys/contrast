@@ -21,6 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	grpcRetry "github.com/edgelesssys/contrast/internal/grpc/retry"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/retry"
 	"github.com/edgelesssys/contrast/internal/spinner"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -52,7 +53,9 @@ issuer certificates.`,
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
-	cmd.Flags().String("coordinator-policy-hash", DefaultCoordinatorPolicyHash, "override the expected policy hash of the coordinator")
+	defaultCoordHash, err := defaultCoordinatorPolicyHash(platforms.AKSCloudHypervisorSNP)
+	must(err)
+	cmd.Flags().String("coordinator-policy-hash", defaultCoordHash.String(), "override the expected policy hash of the coordinator")
 	cmd.Flags().String("workload-owner-key", workloadOwnerPEM, "path to workload owner key (.pem) file")
 
 	return cmd

@@ -72,6 +72,38 @@ func (p Platform) String() string {
 	}
 }
 
+// MarshalJSON marshals a Platform type to a JSON string.
+func (p Platform) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, p.String())), nil
+}
+
+// UnmarshalJSON unmarshals a JSON string to a Platform type.
+func (p *Platform) UnmarshalJSON(data []byte) error {
+	s := strings.Trim(string(data), `"`)
+	parsed, err := FromString(s)
+	if err != nil {
+		return err
+	}
+	*p = parsed
+	return nil
+}
+
+// MarshalText marshals a Platform type to a text string.
+func (p Platform) MarshalText() ([]byte, error) {
+	return []byte(p.String()), nil
+}
+
+// UnmarshalText unmarshals a text string to a Platform type.
+func (p *Platform) UnmarshalText(data []byte) error {
+	s := string(data)
+	parsed, err := FromString(s)
+	if err != nil {
+		return err
+	}
+	*p = parsed
+	return nil
+}
+
 // FromString returns the Platform type corresponding to the given string.
 func FromString(s string) (Platform, error) {
 	switch strings.ToLower(s) {
