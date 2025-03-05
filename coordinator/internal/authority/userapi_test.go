@@ -50,10 +50,8 @@ func TestManifestSet(t *testing.T) {
 	}
 	trustedKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[0])
 	untrustedKey := testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP384Keys[1])
-	manifestWithTrustedKey, err := manifestWithWorkloadOwnerKey(trustedKey)
-	require.NoError(t, err)
-	manifestWithoutTrustedKey, err := manifestWithWorkloadOwnerKey(nil)
-	require.NoError(t, err)
+	manifestWithTrustedKey := manifestWithWorkloadOwnerKey(t, trustedKey)
+	manifestWithoutTrustedKey := manifestWithWorkloadOwnerKey(t, nil)
 
 	testCases := map[string]struct {
 		req              *userapi.SetManifestRequest
@@ -206,7 +204,7 @@ func TestManifestSet(t *testing.T) {
 
 		coordinator := newCoordinator()
 		req := &userapi.SetManifestRequest{Manifest: []byte(`{ "policies": 1 }`)}
-		_, err = coordinator.SetManifest(context.Background(), req)
+		_, err := coordinator.SetManifest(context.Background(), req)
 		require.Error(err)
 		require.Equal(codes.InvalidArgument, status.Code(err))
 	})
@@ -496,22 +494,20 @@ func rpcContext(cryptoKey crypto.PrivateKey) context.Context {
 	})
 }
 
-func manifestWithWorkloadOwnerKey(key *ecdsa.PrivateKey) (*manifest.Manifest, error) {
+func manifestWithWorkloadOwnerKey(t *testing.T, key *ecdsa.PrivateKey) *manifest.Manifest {
+	t.Helper()
+	require := require.New(t)
 	m, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
-	if err != nil {
-		return nil, err
-	}
+	require.NoError(err)
 	if key == nil {
-		return m, nil
+		return m
 	}
 	pubKey, err := x509.MarshalPKIXPublicKey(&key.PublicKey)
-	if err != nil {
-		return nil, err
-	}
+	require.NoError(err)
 	ownerKeyHash := sha256.Sum256(pubKey)
 	ownerKeyHex := manifest.NewHexString(ownerKeyHash[:])
 	m.WorkloadOwnerKeyDigests = []manifest.HexString{ownerKeyHex}
-	return m, nil
+	return m
 }
 
 func parsePEMCertificate(t *testing.T, pemCert []byte) *x509.Certificate {
