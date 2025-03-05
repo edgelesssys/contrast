@@ -56,6 +56,20 @@ func suite(t *testing.T, storeFactory func(t *testing.T) Store) {
 		require.Equal(val2, z)
 	})
 
+	t.Run("Has", func(t *testing.T) {
+		require := require.New(t)
+		s := storeFactory(t)
+
+		key := "foo/bar"
+		val := []byte("val")
+
+		require.False(s.Has(key))
+
+		require.NoError(s.Set(key, val))
+
+		require.True(s.Has(key))
+	})
+
 	t.Run("CompareAndSwap", func(t *testing.T) {
 		require := require.New(t)
 		s := storeFactory(t)

@@ -51,6 +51,20 @@ func (s *AferoStore) Set(key string, value []byte) error {
 	return s.fs.WriteFile(key, value, 0o644)
 }
 
+// Has returns true if the key exists.
+func (s *AferoStore) Has(key string) (bool, error) {
+	if !keyRe.MatchString(key) {
+		return false, fmt.Errorf("invalid key %q", key)
+	}
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	_, err := s.fs.Stat(key)
+	if err != nil && errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	}
+	return err == nil, err
+}
+
 // CompareAndSwap updates the key to newVal if its current value is oldVal.
 func (s *AferoStore) CompareAndSwap(key string, oldVal, newVal []byte) error {
 	if !keyRe.MatchString(key) {
