@@ -17,6 +17,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	"github.com/edgelesssys/contrast/coordinator/internal/peerdiscovery"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
@@ -83,6 +84,11 @@ func run() (retErr error) {
 	meshAPI := newMeshAPIServer(meshAuth, promRegistry, serverMetrics, logger)
 	metricsServer := &http.Server{}
 
+	peerStore, err := peerdiscovery.New(logger)
+	if err != nil {
+		return fmt.Errorf("creating peer store: %w", err)
+	}
+
 	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
@@ -132,10 +138,18 @@ func run() (retErr error) {
 	})
 
 	eg.Go(func() error {
+		if err := peerStore.Run(ctx); err != nil {
+			return fmt.Errorf("Peer discovery: %w", err)
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
 		<-ctx.Done()
 		logger.Info("Error detected, shutting down")
 		grpcServer.GracefulStop()
 		meshAPI.grpc.GracefulStop()
+		peerStore.Stop()
 		//nolint:contextcheck // fresh context for cleanup
 		return metricsServer.Shutdown(context.Background())
 	})
