@@ -30,9 +30,12 @@ func suite(t *testing.T, storeFactory func(t *testing.T) Store) {
 		require := require.New(t)
 		s := storeFactory(t)
 
-		key := "/foo/bar"
+		key := "foo/bar"
 		val1 := []byte("val1")
 		val2 := []byte("val2")
+
+		_, err := s.Get("invalid-key")
+		require.ErrorContains(err, "invalid key")
 
 		x, err := s.Get(key)
 		require.ErrorIs(err, os.ErrNotExist)
@@ -43,6 +46,8 @@ func suite(t *testing.T, storeFactory func(t *testing.T) Store) {
 		y, err := s.Get(key)
 		require.NoError(err)
 		require.Equal(val1, y)
+
+		require.ErrorContains(s.Set("invalid-key", nil), "invalid key")
 
 		require.NoError(s.Set(key, val2))
 
@@ -55,7 +60,7 @@ func suite(t *testing.T, storeFactory func(t *testing.T) Store) {
 		require := require.New(t)
 		s := storeFactory(t)
 
-		key := "/foo/bar"
+		key := "foo/bar"
 		val1 := []byte("val1")
 		val2 := []byte("val2")
 
@@ -63,6 +68,7 @@ func suite(t *testing.T, storeFactory func(t *testing.T) Store) {
 		require.ErrorIs(err, os.ErrNotExist)
 		require.Empty(x)
 
+		require.ErrorContains(s.CompareAndSwap("invalid-key", nil, nil), "invalid key")
 		require.Error(s.CompareAndSwap(key, val1, val2))
 
 		require.NoError(s.CompareAndSwap(key, nil, val1))

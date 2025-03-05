@@ -231,7 +231,8 @@ func (e HashMismatchError) Error() string {
 // Store defines the Key-Value store interface used by History.
 //
 // In addition to the documented behavior below, History expects all functions to be thread-safe
-// and the Store to be globally consistent.
+// and the Store to be globally consistent. Keys must consist of two alphanumeric identifiers
+// separated by a forward slash.
 type Store interface {
 	// Get the value for key.
 	//
