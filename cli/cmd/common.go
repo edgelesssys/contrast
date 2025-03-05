@@ -8,6 +8,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 const (
@@ -57,6 +59,13 @@ func defaultCoordinatorPolicyHash(p platforms.Platform) (manifest.HexString, err
 		return "", fmt.Errorf("no default coordinator policy hash for %s", p)
 	}
 	return defaultHash, nil
+}
+
+func commandOut() io.Writer {
+	if term.IsTerminal(int(os.Stdout.Fd())) {
+		return nil // use out writer of parent
+	}
+	return io.Discard
 }
 
 func cachedir(subdir string) (string, error) {
