@@ -34,6 +34,7 @@ key and verify the state integrity.
 The recover command is used to provide the seed to the Coordinator.`,
 		RunE: withTelemetry(runRecover),
 	}
+	cmd.SetOut(commandOut())
 
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")

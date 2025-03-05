@@ -31,6 +31,7 @@ After the connection is established, the CLI will request the manifest history,
 all policies, and the certificates of the Coordinator certificate authority.`,
 		RunE: withTelemetry(runVerify),
 	}
+	cmd.SetOut(commandOut())
 
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")

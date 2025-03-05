@@ -49,6 +49,7 @@ will re-generate the mesh CA certificate and accept new workloads to
 issuer certificates.`,
 		RunE: withTelemetry(runSet),
 	}
+	cmd.SetOut(commandOut())
 
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
