@@ -51,13 +51,16 @@ func New(rulesPath, settingsPath, cachePath string, bin []byte) (*Runner, error)
 // Run runs the tool on the given yaml.
 //
 // Run can be called more than once.
-func (r *Runner) Run(ctx context.Context, yamlPath string, logger *slog.Logger) error {
+func (r *Runner) Run(ctx context.Context, yamlPath string, cmPath []string, logger *slog.Logger) error {
 	args := []string{
 		"--runtime-class-names=contrast-cc",
 		"--rego-rules-path=" + r.rulesPath,
 		"--json-settings-path=" + r.settingsPath,
 		"--layers-cache-file-path=" + r.cachePath,
 		"--yaml-file=" + yamlPath,
+	}
+	for _, cm := range cmPath {
+		args = append(args, "--config-file", cm)
 	}
 	genpolicy := exec.CommandContext(ctx, r.genpolicy.Path(), args...)
 	genpolicy.Env = os.Environ()
