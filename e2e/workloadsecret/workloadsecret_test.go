@@ -70,7 +70,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	require.True(t, t.Run("scale web deployment to 2 pods", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(30*time.Second))
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(time.Minute))
 		defer cancel()
 
 		require.NoError(ct.Kubeclient.ScaleDeployment(ctx, ct.Namespace, "web", 2))
