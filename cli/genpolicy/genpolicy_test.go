@@ -29,6 +29,10 @@ while [ $# -gt 0 ]; do
     --yaml-file=*)
 	  printf "%%s" "${1#--yaml-file=}" >yaml_path
 	;;
+    --config-file)
+	  shift
+	  printf "%%s\n" "$1" >>config_files
+	;;
     --runtime-class-names*|--layers-cache-file-path*)
 	;;
 	*)
@@ -63,12 +67,14 @@ func TestRunner(t *testing.T) {
 	cachePath := filepath.Join(d, "cache", "cache.json")
 	expectedYAMLPath := filepath.Join(d, "test.yml")
 	yamlPathFile := filepath.Join(d, "yaml_path")
+	expectedConfigFiles := "cm.yaml\nsecret.yaml\n"
+	configFilesFile := filepath.Join(d, "config_files")
 	envFile := filepath.Join(d, "env_path")
 
 	r, err := New(expectedRulesPath, expectedSettingsPath, cachePath, genpolicyBin)
 	require.NoError(err)
 
-	require.NoError(r.Run(ctx, expectedYAMLPath, logger))
+	require.NoError(r.Run(ctx, expectedYAMLPath, []string{"cm.yaml", "secret.yaml"}, logger))
 
 	rulesPath, err := os.ReadFile(rulesPathFile)
 	require.NoError(err)
@@ -81,6 +87,10 @@ func TestRunner(t *testing.T) {
 	yamlPath, err := os.ReadFile(yamlPathFile)
 	require.NoError(err)
 	assert.YAMLEq(expectedYAMLPath, string(yamlPath))
+
+	configFiles, err := os.ReadFile(configFilesFile)
+	require.NoError(err)
+	assert.Equal(expectedConfigFiles, string(configFiles))
 
 	env, err := os.ReadFile(envFile)
 	require.NoError(err)
