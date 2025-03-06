@@ -54,6 +54,7 @@ warning message on stderr. This hash needs to be passed to the set and verify
 subcommands.`,
 		RunE: withTelemetry(runGenerate),
 	}
+	cmd.SetOut(commandOut())
 
 	cmd.Flags().StringP("policy", "p", rulesFilename, "path to policy (.rego) file")
 	cmd.Flags().StringP("settings", "s", settingsFilename, "path to settings (.json) file")
