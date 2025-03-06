@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -29,6 +28,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 )
 
@@ -73,17 +73,23 @@ func run() (retErr error) {
 	}
 
 	meshAuth := authority.New(hist, promRegistry, logger)
-	grpcServer, err := newGRPCServer(serverMetrics, logger)
+
+	issuer, err := issuer.New(logger)
 	if err != nil {
-		return fmt.Errorf("creating gRPC server: %w", err)
+		return fmt.Errorf("creating issuer: %w", err)
 	}
 
+	userAPICredentials := atlscredentials.New(issuer, atls.NoValidators, atls.NoMetrics)
+	grpcServer := newGRPCServer(userAPICredentials, serverMetrics)
 	userapi.RegisterUserAPIServer(grpcServer, meshAuth)
 	serverMetrics.InitializeMetrics(grpcServer)
-	meshAPI, err := newMeshAPIServer(meshAuth, promRegistry, serverMetrics, logger)
-	if err != nil {
-		return fmt.Errorf("creating mesh API server: %w", err)
-	}
+
+	meshAPIcredentials, cancel := meshAuth.Credentials(promRegistry, issuer)
+	defer cancel()
+	meshAPI := newGRPCServer(meshAPIcredentials, serverMetrics)
+	meshapi.RegisterMeshAPIServer(meshAPI, meshAuth)
+	serverMetrics.InitializeMetrics(meshAPI)
+
 	metricsServer := &http.Server{}
 
 	eg, ctx := errgroup.WithContext(ctx)
@@ -127,9 +133,13 @@ func run() (retErr error) {
 
 	eg.Go(func() error {
 		logger.Info("Coordinator mesh API listening")
-		if err := meshAPI.Serve(net.JoinHostPort("0.0.0.0", meshapi.Port)); err != nil {
-			logger.Error("Serving mesh API", "err", err)
-			return fmt.Errorf("serving mesh API: %w", err)
+		lis, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", meshapi.Port))
+		if err != nil {
+			return fmt.Errorf("failed to listen: %w", err)
+		}
+		if err := meshAPI.Serve(lis); err != nil {
+			logger.Error("Serving Coordinator API", "err", err)
+			return fmt.Errorf("serving Coordinator API: %w", err)
 		}
 		return nil
 	})
@@ -138,7 +148,7 @@ func run() (retErr error) {
 		<-ctx.Done()
 		logger.Info("Error detected, shutting down")
 		grpcServer.GracefulStop()
-		meshAPI.grpc.GracefulStop()
+		meshAPI.GracefulStop()
 		//nolint:contextcheck // fresh context for cleanup
 		return metricsServer.Shutdown(context.Background())
 	})
@@ -160,15 +170,8 @@ func newServerMetrics(reg *prometheus.Registry) *grpcprometheus.ServerMetrics {
 	return serverMetrics
 }
 
-func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger) (*grpc.Server, error) {
-	issuer, err := issuer.New(log)
-	if err != nil {
-		return nil, fmt.Errorf("creating issuer: %w", err)
-	}
-
-	credentials := atlscredentials.New(issuer, atls.NoValidators, atls.NoMetrics)
-
-	grpcServer := grpc.NewServer(
+func newGRPCServer(credentials credentials.TransportCredentials, serverMetrics *grpcprometheus.ServerMetrics) *grpc.Server {
+	return grpc.NewServer(
 		grpc.Creds(credentials),
 		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
 		grpc.ChainStreamInterceptor(
@@ -178,5 +181,4 @@ func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger
 			serverMetrics.UnaryServerInterceptor(),
 		),
 	)
-	return grpcServer, nil
 }
