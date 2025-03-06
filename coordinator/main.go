@@ -86,6 +86,8 @@ func run() (retErr error) {
 		return fmt.Errorf("creating mesh API server: %w", err)
 	}
 	httpServer := &http.Server{}
+	coordinatorUserStarted := false
+	coordinatorMeshStarted := false
 
 	eg, ctx := errgroup.WithContext(ctx)
 
@@ -102,9 +104,9 @@ func run() (retErr error) {
 				),
 			))
 		}
-		mux.HandleFunc("/probe/startup", startupProbeHandler)
+		mux.HandleFunc("/probe/startup", makeStartupProbeHandler(&coordinatorUserStarted, &coordinatorMeshStarted))
 		mux.HandleFunc("/probe/liveness", makeLivenessProbeHandler(hist))
-		mux.HandleFunc("/probe/readiness", readinessProbeHandler)
+		mux.HandleFunc("/probe/readiness", makeReadinessProbeHandler(meshAuth))
 		httpServer.Addr = ":" + strconv.Itoa(probeAndMetricsPort)
 		httpServer.Handler = mux
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -124,6 +126,7 @@ func run() (retErr error) {
 			logger.Error("Serving Coordinator API", "err", err)
 			return fmt.Errorf("serving Coordinator API: %w", err)
 		}
+		coordinatorUserStarted = true
 		return nil
 	})
 
@@ -133,6 +136,7 @@ func run() (retErr error) {
 			logger.Error("Serving mesh API", "err", err)
 			return fmt.Errorf("serving mesh API: %w", err)
 		}
+		coordinatorMeshStarted = true
 		return nil
 	})
 
@@ -183,11 +187,15 @@ func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger
 	return grpcServer, nil
 }
 
-func startupProbeHandler(w http.ResponseWriter, _ *http.Request) {
-	// TODO:
-	// 1. Check if all ports are serving
-	// 2. Check if peer recovery was attempted once (ignore for now, not implemented yet)
-	// 3. Return 200 if 1 and 2 are true
+func makeStartupProbeHandler(userapiStarted *bool, meshapiStarted *bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !*userapiStarted || !*meshapiStarted {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		// TODO: Check if peer recovery was attempted once (ignore for now, not implemented yet)
+		w.WriteHeader(http.StatusOK)
+	}
 }
 
 func makeLivenessProbeHandler(hist *history.History) http.HandlerFunc {
@@ -201,9 +209,13 @@ func makeLivenessProbeHandler(hist *history.History) http.HandlerFunc {
 	}
 }
 
-func readinessProbeHandler(w http.ResponseWriter, _ *http.Request) {
-	// TODO:
-	// 1. Check if coordinator has active manifest
-	// 2. Check that coordinator **isn't** in recovery mode
-	// 3. Return 200 if 1 and 2 are true
+func makeReadinessProbeHandler(authority *authority.Authority) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, err := authority.GetState(); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		// TODO: Check that coordinator **isn't** in recovery mode
+		w.WriteHeader(http.StatusOK)
+	}
 }
