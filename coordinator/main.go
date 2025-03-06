@@ -7,12 +7,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"internal/itoa"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -94,7 +94,7 @@ func run() (retErr error) {
 		// TODO(miampf): add /probe/{startup,liveness,readiness} endpoints
 		mux := http.NewServeMux()
 		if !disableMetrics {
-			logger.Info("Starting prometheus /metrics endpoint on port " + itoa.Itoa(probeAndMetricsPort))
+			logger.Info("Starting prometheus /metrics endpoint on port " + strconv.Itoa(probeAndMetricsPort))
 			mux.Handle("/metrics", promhttp.InstrumentMetricHandler(
 				promRegistry, promhttp.HandlerFor(
 					promRegistry,
@@ -103,9 +103,9 @@ func run() (retErr error) {
 			))
 		}
 		mux.HandleFunc("/probe/startup", startupProbeHandler)
-		mux.HandleFunc("/probe/liveness", livenessProbeHandler)
+		mux.HandleFunc("/probe/liveness", makeLivenessProbeHandler(hist))
 		mux.HandleFunc("/probe/readiness", readinessProbeHandler)
-		httpServer.Addr = ":" + itoa.Itoa(probeAndMetricsPort)
+		httpServer.Addr = ":" + strconv.Itoa(probeAndMetricsPort)
 		httpServer.Handler = mux
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("Starting http server", "err", err)
@@ -184,13 +184,26 @@ func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger
 }
 
 func startupProbeHandler(w http.ResponseWriter, _ *http.Request) {
-
+	// TODO:
+	// 1. Check if all ports are serving
+	// 2. Check if peer recovery was attempted once (ignore for now, not implemented yet)
+	// 3. Return 200 if 1 and 2 are true
 }
 
-func livenessProbeHandler(w http.ResponseWriter, _ *http.Request) {
-
+func makeLivenessProbeHandler(hist *history.History) http.HandlerFunc {
+	return func(w http.ResponseWriter, _ *http.Request) {
+		read, err := hist.HasLatest()
+		if err != nil || !read {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}
 }
 
 func readinessProbeHandler(w http.ResponseWriter, _ *http.Request) {
-
+	// TODO:
+	// 1. Check if coordinator has active manifest
+	// 2. Check that coordinator **isn't** in recovery mode
+	// 3. Return 200 if 1 and 2 are true
 }
