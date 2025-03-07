@@ -307,30 +307,32 @@ jobs:
       - name: Create coordinator resource definitions
         run: |
           mkdir -p workspace
+
+          echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged" > "workspace/image-replacements.txt"
+          nix shell .#contrast --command resourcegen \
+            --image-replacements "workspace/image-replacements.txt" \
+            --add-load-balancers \
+            coordinator > "workspace/coordinator.yml"
+
           for platform in aks-clh-snp metal-qemu-tdx k3s-qemu-tdx metal-qemu-snp k3s-qemu-snp k3s-qemu-snp-gpu rke2-qemu-tdx metal-qemu-snp-gpu; do
-            nix run .#scripts.write-coordinator-yaml -- "${coordinatorImgTagged}" "${platform}" > workspace/coordinator-$platform.yml
-            echo -n "${platform} " >> workspace/coordinator-policy.hash
-            yq < workspace/coordinator-$platform.yml \
-              'select(.kind == "StatefulSet") | .spec.template.metadata.annotations["io.katacontainers.config.agent.policy"]' |
-              base64 -d | sha256sum | cut -d " " -f1 >> workspace/coordinator-policy.hash
-            nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt --platform $platform \
+            nix shell .#contrast --command resourcegen \
+              --image-replacements ./image-replacements.txt \
+              --platform $platform \
               runtime > workspace/runtime-$platform.yml
           done
-          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt \
-            --add-load-balancers emojivoto-sm-ingress > workspace/emojivoto-demo.yml
-          nix shell .#contrast --command resourcegen --image-replacements ./image-replacements.txt \
-            --add-load-balancers mysql > workspace/mysql-demo.yml
-      - name: Update coordinator policy hash
-        run: |
-          yq < workspace/coordinator-aks-clh-snp.yml \
-            'select(.kind == "StatefulSet") | .spec.template.metadata.annotations["io.katacontainers.config.agent.policy"]' |
-            base64 -d | sha256sum | cut -d " " -f1 > cli/cmd/assets/coordinator-policy-hash
 
+          nix shell .#contrast --command resourcegen \
+            --image-replacements ./image-replacements.txt \
+            --add-load-balancers emojivoto-sm-ingress > workspace/emojivoto-demo.yml
+          nix shell .#contrast --command resourcegen \
+            --image-replacements ./image-replacements.txt \
+            --add-load-balancers mysql > workspace/mysql-demo.yml
+      - name: Update cli assets
+        run: |
           cp image-replacements.txt cli/cmd/assets/image-replacements.txt
 
           git config --global user.name "edgelessci"
           git config --global user.email "edgelessci@users.noreply.github.com"
-          git add cli/cmd/assets/coordinator-policy-hash
           git add cli/cmd/assets/image-replacements.txt
           git diff --staged --quiet || git commit -m "release: update cli assets"
       - name: Build CLI
@@ -342,7 +344,7 @@ jobs:
           name: contrast-release-artifacts
           path: |
             result-cli/bin/contrast
-            workspace/coordinator-*.yml
+            workspace/coordinator.yml
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
             workspace/mysql-demo.yml
@@ -356,8 +358,7 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             result-cli/bin/contrast
-            workspace/coordinator-*.yml
-            workspace/coordinator-policy.hash
+            workspace/coordinator.yml
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
             workspace/mysql-demo.yml
