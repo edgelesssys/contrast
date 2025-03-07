@@ -49,33 +49,14 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 </TabItem>
 </Tabs>
 
-## Deploy the Contrast Coordinator
+### Download the Contrast Coordinator resource
 
-Install the latest Contrast Coordinator release, comprising a single replica deployment and a
-LoadBalancer service, into your cluster.
+Download the Kubernetes resource of the Contrast Coordinator, comprising a single replica deployment and a
+LoadBalancer service. Put it next to your resources:
 
-<Tabs queryString="platform">
-<TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-aks-clh-snp.yml
+curl -flo https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir deployment
 ```
-</TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp.yml
-```
-</TabItem>
-<TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp-gpu.yml
-```
-</TabItem>
-<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-tdx.yml
-```
-</TabItem>
-</Tabs>
 
 ## Prepare your Kubernetes resources
 
@@ -488,10 +469,6 @@ This will use the reference values from the manifest file to attest the Coordina
 After this step, the Coordinator will start issuing TLS certificates to the workloads. The init container
 will fetch a certificate for the workload and the workload is started.
 
-:::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
-:::
-
 ## Verify the Coordinator
 
 An end user (data owner) can verify the Contrast deployment using the `verify` command.
@@ -504,10 +481,6 @@ The CLI will attest the Coordinator using the reference values from the given ma
 service mesh root certificate and the history of manifests into the `verify/` directory. In addition, the policies
 referenced in the active manifest are also written to the directory. The verification will fail if the active
 manifest at the Coordinator doesn't match the manifest passed to the CLI.
-
-:::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
-:::
 
 ## Communicate with workloads
 
@@ -567,8 +540,4 @@ The recovery process invalidates the mesh CA certificate:
 existing workloads won't be able to communicate with workloads newly spawned.
 All workloads should be restarted after the recovery succeeded.
 
-:::
-
-:::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
 :::

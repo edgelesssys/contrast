@@ -61,28 +61,15 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 </TabItem>
 </Tabs>
 
-### Deploy the Contrast Coordinator
+### Download the Contrast Coordinator resource
 
-Deploy the Contrast Coordinator, comprising a single replica deployment and a
-`LoadBalancer` service, into your cluster:
+Download the Kubernetes resource of the Contrast Coordinator, comprising a single replica deployment and a
+LoadBalancer service. Put it next to your resources:
 
-<Tabs queryString="platform">
-<TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-aks-clh-snp.yml
+curl -flo https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir deployment
 ```
-</TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp.yml
-```
-</TabItem>
-<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-tdx.yml
-```
-</TabItem>
-</Tabs>
+
 
 ### Generate policy annotations and manifest
 
@@ -131,9 +118,17 @@ The configured service mesh proxy provides transparent protection for the commun
 the MySQL server and client.
 :::
 
+### Deploy the Coordinator
+
+Deploy the Coordinator resource first by applying its resource definition:
+
+```sh
+kubectl apply -f deployment/coordinator.yml
+```
+
 ### Set the manifest
 
-Configure the coordinator with a manifest. It might take up to a few minutes
+Configure the Coordinator with a manifest. It might take up to a few minutes
 for the load balancer to be created and the Coordinator being available.
 
 ```sh
@@ -146,13 +141,9 @@ The CLI will use the reference values from the manifest to attest the Coordinato
 during the TLS handshake. If the connection succeeds, it's ensured that the Coordinator
 deployment hasn't been tampered with.
 
-:::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
-:::
-
 ### Deploy MySQL
 
-Now that the coordinator has a manifest set, which defines the MySQL deployment as an allowed workload,
+Now that the Coordinator has a manifest set, which defines the MySQL deployment as an allowed workload,
 we can deploy the application:
 
 ```sh
@@ -202,10 +193,6 @@ Computing environment with the expected code version. The Coordinator will then 
 configuration over the established TLS channel. The CLI will store this information, namely the root
 certificate of the mesh (`mesh-ca.pem`) and the history of manifests, into the `verify/` directory.
 In addition, the policies referenced in the manifest history are also written into the same directory.
-
-:::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
-:::
 
 ### Auditing the manifest history and artifacts
 
