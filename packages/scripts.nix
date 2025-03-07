@@ -238,47 +238,6 @@
     '';
   };
 
-  # write-coordinator-yaml prints a Contrast Coordinator deployment including the default policy.
-  # It's intended for two purposes: (1) releasing a portable coordinator.yml and (2) updating the embedded policy hash.
-  write-coordinator-yaml = writeShellApplication {
-    name = "write-coordinator-policy";
-    runtimeInputs = with pkgs; [
-      yq-go
-      contrast
-    ];
-    text = ''
-      imageRef=$1
-      platform=$2
-
-      tmpdir=$(mktemp -d)
-      trap 'rm -rf $tmpdir' EXIT
-
-      echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$imageRef" > "$tmpdir/image-replacements.txt"
-      resourcegen --platform "$platform" --image-replacements "$tmpdir/image-replacements.txt" --add-load-balancers coordinator > "$tmpdir/coordinator_base.yml"
-
-      pushd "$tmpdir" >/dev/null
-
-      case "$platform" in
-        "aks-clh-snp")
-          cp ${pkgs.microsoft.genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego
-          cp ${pkgs.microsoft.genpolicy.settings-coordinator}/genpolicy-settings.json .
-          ${pkgs.microsoft.genpolicy}/bin/genpolicy < "$tmpdir/coordinator_base.yml"
-        ;;
-        "metal-qemu-snp"|"metal-qemu-snp-gpu"|"k3s-qemu-snp"|"k3s-qemu-snp-gpu"|"metal-qemu-tdx"|"k3s-qemu-tdx"|"rke2-qemu-tdx")
-          cp ${pkgs.kata.genpolicy.rules-coordinator}/genpolicy-rules.rego rules.rego
-          cp ${pkgs.kata.genpolicy.settings-coordinator}/genpolicy-settings.json .
-          ${pkgs.kata.genpolicy}/bin/genpolicy < "$tmpdir/coordinator_base.yml"
-        ;;
-        *)
-          echo "Unsupported platform: $platform" >&2
-          exit 1
-        ;;
-      esac
-
-      popd >/dev/null
-    '';
-  };
-
   get-azure-sku-locations = writeShellApplication {
     name = "get-azure-sku-locations";
     runtimeInputs = with pkgs; [
