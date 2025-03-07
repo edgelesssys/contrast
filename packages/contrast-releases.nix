@@ -16,6 +16,9 @@ let
     field: version:
     lib.lists.findFirst (obj: obj.version == version) { hash = "unknown"; } (listOrEmpty json field);
 
+  versionLessThan = version: other: (builtins.compareVersions version other) < 0;
+  versionGreaterEqual = version: other: (builtins.compareVersions version other) >= 0;
+
   buildContrastRelease =
     { version, hash }:
     {
@@ -31,17 +34,20 @@ let
             inherit version;
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator.yml";
             inherit (findVersion "coordinator.yml" version) hash;
-            passthru.exists = (builtins.compareVersions version "v0.10.0") < 0;
+            passthru.exists =
+              # coordinator.yml was replaced with a platform-specific version in release v0.10.0
+              versionLessThan version "v0.10.0";
           };
 
           runtime = fetchurl {
             inherit version;
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/runtime.yml";
             inherit (findVersion "runtime.yml" version) hash;
-            # runtime.yml was introduced in release v0.6.0
             passthru.exists =
-              (builtins.compareVersions "v0.6.0" version) <= 0
-              && (builtins.compareVersions version "v0.10.0") < 0;
+              # runtime.yml was introduced in release v0.6.0
+              (versionGreaterEqual version "v0.6.0")
+              # runtime.yml was replaced with a platform-specific version in release v1.1.0
+              && (versionLessThan version "v0.10.0");
           };
 
           emojivoto-zip = fetchurl {
@@ -49,9 +55,11 @@ let
             inherit version;
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/emojivoto-demo.zip";
             inherit (findVersion "emojivoto-demo.zip" version) hash;
-            # emojivoto-demo.zip was introduced in version v0.5.0
             passthru.exists =
-              (builtins.compareVersions "v0.5.0" version) <= 0 && (builtins.compareVersions version "v0.8.0") < 0;
+              # emojivoto-demo.zip was introduced in version v0.5.0
+              (versionGreaterEqual version "v0.5.0")
+              # emojivoto-demo.zip was replaced with the unzipped version in version v0.8.0
+              && (versionLessThan version "v0.8.0");
           };
 
           emojivoto = fetchurl {
@@ -59,7 +67,7 @@ let
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/emojivoto-demo.yml";
             inherit (findVersion "emojivoto-demo.yml" version) hash;
             # emojivoto-demo.yml was changed from zip to yml in version v0.8.0
-            passthru.exists = (builtins.compareVersions "v0.8.0" version) <= 0;
+            passthru.exists = versionGreaterEqual version "v0.8.0";
           };
 
           mysql-demo = fetchurl {
@@ -67,10 +75,10 @@ let
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/mysql-demo.yml";
             inherit (findVersion "mysql-demo.yml" version) hash;
             # mysql-demo.yml was introduced in version v1.2.0
-            passthru.exists = (builtins.compareVersions "v1.2.0" version) <= 0;
+            passthru.exists = versionGreaterEqual version "v1.2.0";
           };
 
-          # starting with version v1.1.0 all files have a platform-specific suffix.
+          # starting with version v1.1.0 files have a platform-specific suffix.
           platformSpecificFiles = builtins.listToAttrs (
             lib.lists.map
               (
@@ -78,11 +86,11 @@ let
                 lib.attrsets.nameValuePair platform {
                   exist =
                     if (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp") then
-                      (builtins.compareVersions "v1.2.1" version) <= 0
+                      (versionGreaterEqual version "v1.2.1")
                     else if (platform == "metal-qemu-snp-gpu" || platform == "k3s-qemu-snp-gpu") then
-                      (builtins.compareVersions "v1.4.0" version) <= 0
+                      (versionGreaterEqual version "v1.4.0")
                     else
-                      (builtins.compareVersions "v1.1.0" version) <= 0;
+                      (versionGreaterEqual version "v1.1.0");
                   coordinator = fetchurl {
                     inherit version;
                     url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator-${platform}.yml";
