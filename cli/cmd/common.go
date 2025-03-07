@@ -21,7 +21,6 @@ import (
 )
 
 const (
-	coordHashFilename    = "coordinator-policy.sha256"
 	coordRootPEMFilename = "coordinator-root-ca.pem"
 	meshCAPEMFilename    = "mesh-ca.pem"
 	workloadOwnerPEM     = "workload-owner.pem"

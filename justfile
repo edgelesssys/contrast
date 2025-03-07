@@ -248,11 +248,9 @@ set cli=default_cli:
     PID=$!
     trap "kill $PID" EXIT
     nix run -L .#scripts.wait-for-port-listen -- 1313
-    policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
     nix run -L .#{{ cli }} -- set \
         --workspace-dir ./{{ workspace_dir }} \
         -c localhost:1313 \
-        --coordinator-policy-hash "${policy}" \
         ./{{ workspace_dir }}/deployment/*.yml
 
 # Verify the Coordinator.
@@ -266,10 +264,8 @@ verify cli=default_cli:
     PID=$!
     trap "kill $PID" EXIT
     nix run -L .#scripts.wait-for-port-listen -- 1314
-    policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
     nix run -L .#{{ cli }} -- verify \
         --workspace-dir ./{{ workspace_dir }} \
-        --coordinator-policy-hash "${policy}" \
         -c localhost:1314
 
 # Recover the Coordinator.
@@ -283,10 +279,8 @@ recover cli=default_cli:
     PID=$!
     trap "kill $PID" EXIT
     nix run -L .#scripts.wait-for-port-listen -- 1313
-    policy=$(< ./{{ workspace_dir }}/coordinator-policy.sha256)
     nix run -L .#{{ cli }} -- recover \
         --workspace-dir ./{{ workspace_dir }} \
-        --coordinator-policy-hash "$policy" \
         -c localhost:1313
 
 # Wait for workloads to become ready.

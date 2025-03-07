@@ -202,18 +202,6 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Updated manifest %s\n", flags.manifestPath)
-
-	hash, err := getCoordinatorPolicyHash(policies, flags.referenceValuesPlatform, log)
-	if err != nil {
-		return err
-	}
-	if hash != "" {
-		coordHashPath := filepath.Join(flags.workspaceDir, coordHashFilename)
-		if err := os.WriteFile(coordHashPath, []byte(hash), 0o644); err != nil {
-			return fmt.Errorf("write coordinator policy hash: %w", err)
-		}
-	}
-
 	return nil
 }
 

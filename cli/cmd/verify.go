@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
 )
@@ -36,9 +35,6 @@ all policies, and the certificates of the Coordinator certificate authority.`,
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
-	defaultCoordHash, err := defaultCoordinatorPolicyHash(platforms.AKSCloudHypervisorSNP)
-	must(err)
-	cmd.Flags().String("coordinator-policy-hash", defaultCoordHash.String(), "override the expected policy hash of the coordinator")
 
 	return cmd
 }
@@ -67,7 +63,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
 	sdkClient := sdk.NewWithSlog(log)
-	resp, err := sdkClient.GetCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator, flags.policy)
+	resp, err := sdkClient.GetCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator)
 	if err != nil {
 		return fmt.Errorf("getting manifests: %w", err)
 	}
@@ -108,7 +104,6 @@ type verifyFlags struct {
 	manifestPath string
 	coordinator  string
 	workspaceDir string
-	policy       []byte
 }
 
 func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
@@ -124,10 +119,6 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 	if err != nil {
 		return nil, err
 	}
-	policy, err := decodeCoordinatorPolicyHash(cmd.Flags())
-	if err != nil {
-		return nil, err
-	}
 
 	if workspaceDir != "" {
 		// Prepend default path with workspaceDir
@@ -140,7 +131,6 @@ func parseVerifyFlags(cmd *cobra.Command) (*verifyFlags, error) {
 		manifestPath: manifestPath,
 		coordinator:  coordinator,
 		workspaceDir: workspaceDir,
-		policy:       policy,
 	}, nil
 }
 

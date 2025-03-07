@@ -387,3 +387,13 @@ func (m *Manifest) TDXValidateOpts() ([]*tdxvalidate.Options, error) {
 
 	return out, nil
 }
+
+// CoordinatorPolicyHash returns the hash of the coordinator policy.
+func (m *Manifest) CoordinatorPolicyHash() (HexString, error) {
+	for policyHash, policy := range m.Policies {
+		if policy.Role == RoleCoordinator {
+			return policyHash, nil
+		}
+	}
+	return "", errors.New("no coordinator found in manifest")
+}

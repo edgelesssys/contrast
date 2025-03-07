@@ -6,7 +6,6 @@ package cmd
 import (
 	"context"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,13 +20,11 @@ import (
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	grpcRetry "github.com/edgelesssys/contrast/internal/grpc/retry"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/retry"
 	"github.com/edgelesssys/contrast/internal/spinner"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -54,9 +51,6 @@ issuer certificates.`,
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
-	defaultCoordHash, err := defaultCoordinatorPolicyHash(platforms.AKSCloudHypervisorSNP)
-	must(err)
-	cmd.Flags().String("coordinator-policy-hash", defaultCoordHash.String(), "override the expected policy hash of the coordinator")
 	cmd.Flags().String("workload-owner-key", workloadOwnerPEM, "path to workload owner key (.pem) file")
 
 	return cmd
@@ -109,7 +103,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	validators, err := sdk.ValidatorsFromManifest(kdsDir, &m, log, flags.policy)
+	validators, err := sdk.ValidatorsFromManifest(kdsDir, &m, log)
 	if err != nil {
 		return fmt.Errorf("getting validators: %w", err)
 	}
@@ -169,24 +163,8 @@ func runSet(cmd *cobra.Command, args []string) error {
 type setFlags struct {
 	manifestPath         string
 	coordinator          string
-	policy               []byte
 	workloadOwnerKeyPath string
 	workspaceDir         string
-}
-
-func decodeCoordinatorPolicyHash(flags *pflag.FlagSet) ([]byte, error) {
-	hexEncoded, err := flags.GetString("coordinator-policy-hash")
-	if err != nil {
-		return nil, fmt.Errorf("getting coordinator-policy-hash flag: %w", err)
-	}
-	hash, err := hex.DecodeString(hexEncoded)
-	if err != nil {
-		return nil, fmt.Errorf("hex-decoding coordinator-policy-hash flag: %w", err)
-	}
-	if len(hash) != 32 {
-		return nil, fmt.Errorf("coordinator-policy-hash must be exactly 32 hex-encoded bytes, got %d", len(hash))
-	}
-	return hash, nil
 }
 
 func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
@@ -200,10 +178,6 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	flags.coordinator, err = cmd.Flags().GetString("coordinator")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get coordinator flag: %w", err)
-	}
-	flags.policy, err = decodeCoordinatorPolicyHash(cmd.Flags())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get coordinator-policy-hash flag: %w", err)
 	}
 	flags.workloadOwnerKeyPath, err = cmd.Flags().GetString("workload-owner-key")
 	if err != nil {
