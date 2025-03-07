@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
-	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 )
 
@@ -36,18 +35,7 @@ func main() {
 		var err error
 		switch set {
 		case "coordinator":
-			if *rawPlatform == "" {
-				log.Fatalf("--platform must be set to one of %v", platforms.AllStrings())
-			}
-			platform, err := platforms.FromString(*rawPlatform)
-			if err != nil {
-				log.Fatalf("Error parsing platform: %v", err)
-			}
-			runtimeHandler, err := manifest.RuntimeHandler(platform)
-			if err != nil {
-				log.Fatalf("Error getting default runtime handler: %v", err)
-			}
-			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.CoordinatorBundle(), runtimeHandler)
+			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.CoordinatorBundle(), "contrast-cc")
 		case "runtime":
 			if *rawPlatform == "" {
 				log.Fatalf("--platform must be set to one of %v", platforms.AllStrings())

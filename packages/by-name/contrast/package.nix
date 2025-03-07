@@ -173,19 +173,6 @@ let
     }
   );
 
-  coordinatorPolicyHashesFallback = builtins.toFile "coordinator-policy-hashes-fallback.json" (
-    builtins.toJSON {
-      AKS-CLH-SNP = "";
-      K3s-QEMU-TDX = "";
-      K3s-QEMU-SNP = "";
-      K3s-QEMU-SNP-GPU = "";
-      RKE2-QEMU-TDX = "";
-      Metal-QEMU-SNP = "";
-      Metal-QEMU-SNP-GPU = "";
-      Metal-QEMU-TDX = "";
-    }
-  );
-
   packageOutputs = [
     "coordinator"
     "initializer"
@@ -247,7 +234,6 @@ buildGoModule rec {
   postPatch = ''
     install -D ${microsoft.genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-microsoft.json
     install -D ${kata.genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-kata.json
-    install -D ${coordinatorPolicyHashesFallback} cli/cmd/assets/coordinator-policy-hashes-fallback.json
   '';
 
   env.CGO_ENABLED = 0;

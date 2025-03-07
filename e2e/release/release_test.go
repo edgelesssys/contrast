@@ -120,7 +120,7 @@ func TestRelease(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 
-		yaml, err := os.ReadFile(path.Join(dir, fmt.Sprintf("coordinator-%s.yml", lowerPlatformStr)))
+		yaml, err := os.ReadFile(path.Join(dir, "coordinator.yml"))
 		require.NoError(err)
 		resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
 		require.NoError(err)
