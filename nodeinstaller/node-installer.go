@@ -223,7 +223,7 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 		socketName = fmt.Sprintf("/run/containerd/containerd-nydus-grpc-%s.sock", runtimeHandler)
 
 		// Configure the containerd plugin
-		containerdPlugin := ensureMapPath(&existing.Plugins, constants.CRIFQDN, "containerd")
+		containerdPlugin := ensureMapPath(&existing.Plugins, constants.ImagesFQDN(existing.Version), "containerd")
 		containerdPlugin["discard_unpacked_layers"] = false
 		containerdPlugin["disable_snapshot_annotations"] = false
 	}
@@ -235,7 +235,7 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	}
 
 	// Add contrast-cc runtime
-	runtimes := ensureMapPath(&existing.Plugins, constants.CRIFQDN, "containerd", "runtimes")
+	runtimes := ensureMapPath(&existing.Plugins, constants.CRIFQDN(existing.Version), "containerd", "runtimes")
 	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, snapshotterName, platform)
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime config: %w", err)
