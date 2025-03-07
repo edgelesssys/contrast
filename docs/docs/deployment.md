@@ -488,10 +488,6 @@ This will use the reference values from the manifest file to attest the Coordina
 After this step, the Coordinator will start issuing TLS certificates to the workloads. The init container
 will fetch a certificate for the workload and the workload is started.
 
-:::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
-:::
-
 ## Verify the Coordinator
 
 An end user (data owner) can verify the Contrast deployment using the `verify` command.
@@ -504,10 +500,6 @@ The CLI will attest the Coordinator using the reference values from the given ma
 service mesh root certificate and the history of manifests into the `verify/` directory. In addition, the policies
 referenced in the active manifest are also written to the directory. The verification will fail if the active
 manifest at the Coordinator doesn't match the manifest passed to the CLI.
-
-:::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
-:::
 
 ## Communicate with workloads
 
@@ -567,8 +559,4 @@ The recovery process invalidates the mesh CA certificate:
 existing workloads won't be able to communicate with workloads newly spawned.
 All workloads should be restarted after the recovery succeeded.
 
-:::
-
-:::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
 :::

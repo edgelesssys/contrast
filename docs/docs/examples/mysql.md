@@ -146,10 +146,6 @@ The CLI will use the reference values from the manifest to attest the Coordinato
 during the TLS handshake. If the connection succeeds, it's ensured that the Coordinator
 deployment hasn't been tampered with.
 
-:::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
-:::
-
 ### Deploy MySQL
 
 Now that the coordinator has a manifest set, which defines the MySQL deployment as an allowed workload,
@@ -202,10 +198,6 @@ Computing environment with the expected code version. The Coordinator will then 
 configuration over the established TLS channel. The CLI will store this information, namely the root
 certificate of the mesh (`mesh-ca.pem`) and the history of manifests, into the `verify/` directory.
 In addition, the policies referenced in the manifest history are also written into the same directory.
-
-:::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
-:::
 
 ### Auditing the manifest history and artifacts
 
