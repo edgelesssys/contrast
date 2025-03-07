@@ -5,14 +5,12 @@ package cmd
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"slices"
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/platforms"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -130,32 +128,6 @@ func checkPoliciesMatchManifest(policies []deployment, policyHashes map[manifest
 		}
 	}
 	return nil
-}
-
-// getCoordinatorPolicyHash returns the policy hash for the Contrast coordinator among the given deployments.
-//
-// If the deployments contain a coordinator, that coordinator's policy hash is returned, otherwise
-// an empty string is returned.
-//
-// If there is more than one coordinator, it's unspecified which one will be used.
-func getCoordinatorPolicyHash(policies []deployment, platform platforms.Platform, log *slog.Logger) (string, error) {
-	var hash string
-	defaultCoordHash, err := defaultCoordinatorPolicyHash(platform)
-	if err != nil {
-		return "", fmt.Errorf("getting default coordinator policy hash for platform %s: %w", platform, err)
-	}
-
-	for _, deployment := range policies {
-		if deployment.role != "coordinator" {
-			continue
-		}
-		if deployment.policy.Hash().String() != defaultCoordHash.String() {
-			log.Warn("Found unexpected coordinator policy", "name", deployment.name, "hash", deployment.policy.Hash())
-		}
-		hash = deployment.policy.Hash().String()
-		// Keep going, in case we need to warn about another coordinator.
-	}
-	return hash, nil
 }
 
 type deployment struct {
