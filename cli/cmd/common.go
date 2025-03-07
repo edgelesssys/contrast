@@ -6,16 +6,12 @@ package cmd
 import (
 	"context"
 	_ "embed"
-	"encoding/json"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/edgelesssys/contrast/cli/telemetry"
-	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -34,31 +30,10 @@ const (
 	cacheDirEnv          = "CONTRAST_CACHE_DIR"
 )
 
-var (
-	// ReleaseImageReplacements contains the image replacements used by contrast.
-	//go:embed assets/image-replacements.txt
-	ReleaseImageReplacements []byte
-	// CoordinatorPolicyHashesFallback are derived from the coordinator release candidate and injected at release build time.
-	//
-	// It is intentionally left empty for dev builds.
-	//go:embed assets/coordinator-policy-hashes-fallback.json
-	CoordinatorPolicyHashesFallback []byte
-)
-
-type coordinatorPolicyHashes map[platforms.Platform]manifest.HexString
-
-// defaultCoordinatorPolicyHash returns the default coordinator policy hash for the given platform.
-func defaultCoordinatorPolicyHash(p platforms.Platform) (manifest.HexString, error) {
-	defaults := make(coordinatorPolicyHashes)
-	if err := json.Unmarshal(CoordinatorPolicyHashesFallback, &defaults); err != nil {
-		return "", fmt.Errorf("unmarshaling coordinator policy hashes fallback: %w", err)
-	}
-	defaultHash, ok := defaults[p]
-	if !ok {
-		return "", fmt.Errorf("no default coordinator policy hash for %s", p)
-	}
-	return defaultHash, nil
-}
+// ReleaseImageReplacements contains the image replacements used by contrast.
+//
+//go:embed assets/image-replacements.txt
+var ReleaseImageReplacements []byte
 
 func commandOut() io.Writer {
 	if term.IsTerminal(int(os.Stdout.Fd())) {
