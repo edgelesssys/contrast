@@ -41,8 +41,25 @@ var (
 	RuntimeNamePlaceholder = "@@runtimeName@@"
 )
 
-// CRIFQDN is the fully qualified domain name of the CRI service.
-const CRIFQDN = "io.containerd.grpc.v1.cri"
+// CRIFQDN is the fully qualified domain name of the CRI service, which depends on the containerd config version.
+func CRIFQDN(v int) string {
+	switch v {
+	case 3:
+		return "io.containerd.cri.v1.runtime"
+	default:
+		return "io.containerd.grpc.v1.cri"
+	}
+}
+
+// ImagesFQDN is the fully qualified domain name of the images plugin, which was factored out of the CRI plugin in containerd v2.
+func ImagesFQDN(v int) string {
+	switch v {
+	case 3:
+		return "io.containerd.cri.v1.images"
+	default:
+		return "io.containerd.grpc.v1.cri"
+	}
+}
 
 // KataRuntimeConfig returns the Kata runtime configuration.
 func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKernelParams string, debug bool) (*config.KataRuntimeConfig, error) {
