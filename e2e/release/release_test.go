@@ -156,14 +156,10 @@ func TestRelease(t *testing.T) {
 	contrast.Run(ctx, t, 4*time.Minute, "generate", "--reference-values", *platformStr, "deployment/")
 	contrast.patchReferenceValues(t, lowerPlatformStr)
 
-	overrideFlags := contrast.coordinatorPolicyHashOverride(t, lowerPlatformStr)
-
 	setFlags := []string{"set", "-c", coordinatorIP + ":1313", "deployment/"}
-	setFlags = append(setFlags, overrideFlags...)
 	contrast.Run(ctx, t, 1*time.Minute, setFlags...)
 
 	verifyFlags := []string{"verify", "-c", coordinatorIP + ":1313"}
-	verifyFlags = append(verifyFlags, overrideFlags...)
 	contrast.Run(ctx, t, 1*time.Minute, verifyFlags...)
 
 	require.True(t, t.Run("apply-demo", func(t *testing.T) {
@@ -278,32 +274,6 @@ func fetchRelease(ctx context.Context, t *testing.T) string {
 	}
 
 	return dir
-}
-
-func (c *contrast) coordinatorPolicyHashOverride(t *testing.T, lowerPlatformStr string) []string {
-	// Don't override the coordinator policy hash on AKS-CLH-SNP our
-	// "default" platform. On this platform the default value for the
-	// `coordinator-policy-hash` flag should contain the correct value and we
-	// shouldn't need to override it.
-	if lowerPlatformStr == "aks-clh-snp" {
-		return []string{}
-	}
-
-	// On all other platforms, override the coordinator policy hash with the
-	// value in the hash file.
-	hashesBytes, err := os.ReadFile(c.dir + "/coordinator-policy.hash")
-	require.NoError(t, err)
-	hashes := string(hashesBytes)
-	prefix := lowerPlatformStr + " "
-	for _, line := range strings.Split(hashes, "\n") {
-		if strings.HasPrefix(line, prefix) {
-			hash := strings.TrimPrefix(line, prefix)
-			return []string{"--coordinator-policy-hash", hash}
-		}
-	}
-
-	require.Fail(t, "Couldn't find coordinator policy has for "+lowerPlatformStr)
-	return []string{}
 }
 
 // patchReferenceValues modifies the manifest to contain multiple reference values for testing

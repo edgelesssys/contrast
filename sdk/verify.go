@@ -40,7 +40,7 @@ func NewWithSlog(log *slog.Logger) Client {
 }
 
 // GetCoordinatorState calls GetManifests on the coordinator's userapi via aTLS.
-func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint string, policyHash []byte) (CoordinatorState, error) {
+func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint string) (CoordinatorState, error) {
 	var m manifest.Manifest
 	if err := json.Unmarshal(manifestBytes, &m); err != nil {
 		return CoordinatorState{}, fmt.Errorf("unmarshalling manifest: %w", err)
@@ -49,7 +49,7 @@ func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifest
 		return CoordinatorState{}, fmt.Errorf("validating manifest: %w", err)
 	}
 
-	validators, err := ValidatorsFromManifest(kdsDir, &m, c.log, policyHash)
+	validators, err := ValidatorsFromManifest(kdsDir, &m, c.log)
 	if err != nil {
 		return CoordinatorState{}, fmt.Errorf("getting validators: %w", err)
 	}

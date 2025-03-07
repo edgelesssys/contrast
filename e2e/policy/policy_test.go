@@ -7,7 +7,6 @@ package policy
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"os"
@@ -174,24 +173,39 @@ func TestPolicy(t *testing.T) {
 	t.Run("cli does not verify coordinator with unexpected policy hash", func(t *testing.T) {
 		require := require.New(t)
 
-		// read expected coordinator policy hash
-		policyHashBytes, err := os.ReadFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"))
+		// Read the manifest.
+		manifestBytes, err := os.ReadFile(path.Join(ct.WorkDir, "manifest.json"))
 		require.NoError(err)
-		require.NotEmpty(policyHashBytes)
-		policyHash := make([]byte, len(policyHashBytes)/2)
-		_, err = hex.Decode(policyHash, policyHashBytes)
+		var m manifest.Manifest
+		require.NoError(json.Unmarshal(manifestBytes, &m))
+
+		// Change expected coordinator policy hash.
+		policyHash, err := m.CoordinatorPolicyHash()
 		require.NoError(err)
+		policy := m.Policies[policyHash]
+		delete(m.Policies, policyHash)
+		policyHashBytes, err := policyHash.Bytes()
+		require.NoError(err)
+		policyHashBytes[0] ^= 1
+		policyHashAlt := manifest.NewHexString(policyHashBytes)
+		m.Policies[policyHashAlt] = policy
 
-		// change expected coordinator policy hash
-		policyHash[0] ^= 1
-		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"), []byte(hex.EncodeToString(policyHash)), 0o644))
+		// Write the new manifest.
+		manifestBytes, err = json.Marshal(m)
+		require.NoError(err)
+		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "manifest.json"), manifestBytes, 0o644))
 
-		// verification should fail
+		// Verification should fail.
 		require.ErrorContains(ct.RunVerify(), "validating report")
 
-		// restore correct coordinator policy hash
-		policyHash[0] ^= 1
-		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"), []byte(hex.EncodeToString(policyHash)), 0o644))
+		// Restore correct coordinator policy hash.
+		delete(m.Policies, policyHashAlt)
+		m.Policies[policyHash] = policy
+
+		// Write the restored manifest.
+		manifestBytes, err = json.Marshal(m)
+		require.NoError(err)
+		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "manifest.json"), manifestBytes, 0o644))
 	})
 }
 
