@@ -48,7 +48,7 @@ var (
 func CreateAttestationServerTLSConfig(issuer Issuer, validators []Validator, attestationFailures prometheus.Counter) (*tls.Config, error) {
 	getConfigForClient, err := getATLSConfigForClientFunc(issuer, validators, attestationFailures)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get aTLS config for client: %w", err)
 	}
 
 	return &tls.Config{
@@ -107,7 +107,7 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []Validator, attestati
 	// generate key for the server
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("generate key: %w", err)
 	}
 
 	// this function will be called once for every client
@@ -115,7 +115,7 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []Validator, attestati
 		// generate nonce for this connection
 		serverNonce, err := contrastcrypto.GenerateRandomBytes(contrastcrypto.RNGLengthDefault)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("generate nonce: %w", err)
 		}
 
 		serverConn := &serverConnection{
@@ -202,7 +202,7 @@ func processCertificate(rawCerts [][]byte, _ [][]*x509.Certificate) (*x509.Certi
 	}
 	cert, err := x509.ParseCertificate(rawCerts[0])
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("parse certificate: %w", err)
 	}
 
 	// verify self-signed certificate
@@ -210,14 +210,14 @@ func processCertificate(rawCerts [][]byte, _ [][]*x509.Certificate) (*x509.Certi
 	roots.AddCert(cert)
 	_, err = cert.Verify(x509.VerifyOptions{Roots: roots})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("verify certificate: %w", err)
 	}
 
 	pubBytes, err := x509.MarshalPKIXPublicKey(cert.PublicKey)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("marshal public key: %w", err)
 	}
-	return cert, pubBytes, err
+	return cert, pubBytes, nil
 }
 
 // verifyEmbeddedReport verifies an aTLS certificate by validating the attestation document embedded in the TLS certificate.
@@ -302,7 +302,7 @@ func decodeNonceFromAcceptableCAs(acceptableCAs [][]byte) ([]byte, error) {
 	}
 	var rdnSeq pkix.RDNSequence
 	if _, err := asn1.Unmarshal(acceptableCAs[0], &rdnSeq); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal acceptableCAs: %w", err)
 	}
 
 	// https://github.com/golang/go/blob/19309779ac5e2f5a2fd3cbb34421dafb2855ac21/src/crypto/x509/pkix/pkix.go#L188
@@ -315,7 +315,11 @@ func decodeNonceFromAcceptableCAs(acceptableCAs [][]byte) ([]byte, error) {
 				if !ok {
 					return nil, errors.New("unexpected RDN type")
 				}
-				return base64.StdEncoding.DecodeString(nonce)
+				nonceDecoded, err := base64.StdEncoding.DecodeString(nonce)
+				if err != nil {
+					return nil, fmt.Errorf("decode nonce: %w", err)
+				}
+				return nonceDecoded, nil
 			}
 		}
 	}
@@ -335,7 +339,7 @@ type clientConnection struct {
 func (c *clientConnection) verify(ctx context.Context, rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	cert, pubBytes, err := processCertificate(rawCerts, verifiedChains)
 	if err != nil {
-		return err
+		return fmt.Errorf("process certificate: %w", err)
 	}
 
 	// don't perform verification of attestation document if no validators are set
@@ -396,7 +400,7 @@ type serverConnection struct {
 func (c *serverConnection) verify(ctx context.Context, rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	cert, pubBytes, err := processCertificate(rawCerts, verifiedChains)
 	if err != nil {
-		return err
+		return fmt.Errorf("process certificate: %w", err)
 	}
 
 	err = verifyEmbeddedReport(ctx, c.validators, cert, pubBytes, c.serverNonce)
@@ -412,7 +416,7 @@ func (c *serverConnection) getCertificate(chi *tls.ClientHelloInfo) (*tls.Certif
 	// abuse ServerName as a channel to receive the nonce
 	clientNonce, err := base64.StdEncoding.DecodeString(chi.ServerName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode nonce: %w", err)
 	}
 
 	// create aTLS certificate using the nonce as extracted from the client-hello message
