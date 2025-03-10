@@ -7,7 +7,10 @@
 package transitengine
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -49,6 +52,51 @@ type (
 
 type stateAuthority interface {
 	GetState() (*authority.State, error)
+}
+
+// NewTransitEngineAPI sets up the transit engine API with a provided seedEngineAuthority.
+func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger) *http.Server {
+	return &http.Server{
+		Addr: fmt.Sprintf(":%d", port),
+		TLSConfig: &tls.Config{
+			ClientAuth: tls.RequireAndVerifyClientCert,
+			GetConfigForClient: func(_ *tls.ClientHelloInfo) (*tls.Config, error) {
+				logger.Info("executing getconfigforclient")
+				state, err := authority.GetState()
+				if err != nil {
+					return nil, fmt.Errorf("getting state: %w", err)
+				}
+				if len(state.CA.GetMeshCACert()) == 0 {
+					return nil, fmt.Errorf("mesh ca cert not initialized")
+				}
+				meshCAPool := x509.NewCertPool()
+				if !meshCAPool.AppendCertsFromPEM(state.CA.GetMeshCACert()) {
+					logger.Error("failed parsing mesh CA")
+					return nil, fmt.Errorf("failed to parse mesh CA cert")
+				}
+				logger.Info("loaded mesh CA cert")
+				rootKeyBytes, err := x509.MarshalECPrivateKey(state.SeedEngine.RootCAKey())
+				if err != nil {
+					return nil, fmt.Errorf("Error marshalling ECDSA private key: %w", err)
+				}
+				serverCert, err := tls.X509KeyPair(state.CA.GetRootCACert(), pem.EncodeToMemory(&pem.Block{
+					Type:  "EC PRIVATE KEY",
+					Bytes: rootKeyBytes,
+				}))
+				if err != nil {
+					return nil, fmt.Errorf("failed to load server certificate: %w", err)
+				}
+
+				return &tls.Config{
+					ClientCAs:    meshCAPool,
+					ClientAuth:   tls.RequireAndVerifyClientCert,
+					Certificates: []tls.Certificate{serverCert},
+					MinVersion:   tls.VersionTLS12,
+				}, nil
+			},
+		},
+		Handler: newTransitEngineMux(authority, logger),
+	}
 }
 
 func newTransitEngineMux(authority stateAuthority, logger *slog.Logger) *http.ServeMux {
