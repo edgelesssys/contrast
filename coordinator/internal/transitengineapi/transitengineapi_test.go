@@ -5,10 +5,12 @@ package transitengine
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
@@ -92,7 +94,7 @@ func TestTransitAPICyclic(t *testing.T) {
 	t.Run("encrypt-decrypt handler", func(t *testing.T) {
 		fakeStateAuthority, err := newFakeSeedEngineAuthority()
 		require.NoError(t, err)
-		mux := NewTransitEngineAPI(fakeStateAuthority, slog.Default())
+		mux := newTransitEngineMux(fakeStateAuthority, slog.New(discardHandler{}))
 
 		for name, tc := range testCases {
 			t.Run(name, func(t *testing.T) {
@@ -110,6 +112,7 @@ func TestTransitAPICyclic(t *testing.T) {
 					res := rec.Result()
 					require.Equal(tc.expStatus, res.StatusCode)
 					if tc.expStatus != http.StatusOK {
+						ciphertext = "vault:v" + strconv.Itoa(tc.encryptionInput.Version) + tc.encryptionInput.Plaintext
 						return
 					}
 
@@ -181,4 +184,24 @@ func newFakeSeedEngineAuthority() (*fakeStateAuthority, error) {
 
 func (f *fakeStateAuthority) GetState() (*authority.State, error) {
 	return &f.state, nil
+}
+
+type discardHandler struct {
+	slog.Handler
+}
+
+func (h discardHandler) Enabled(context.Context, slog.Level) bool {
+	return false
+}
+
+func (h discardHandler) Handle(context.Context, slog.Record) error {
+	return nil
+}
+
+func (h discardHandler) WithAttrs([]slog.Attr) slog.Handler {
+	return h
+}
+
+func (h discardHandler) WithGroup(string) slog.Handler {
+	return h
 }
