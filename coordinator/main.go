@@ -18,6 +18,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	meshapiserver "github.com/edgelesssys/contrast/coordinator/internal/meshapi"
+	transitengine "github.com/edgelesssys/contrast/coordinator/internal/transitengineapi"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
@@ -142,6 +143,17 @@ func run() (retErr error) {
 		if err := meshAPIServer.Serve(lis); err != nil {
 			logger.Error("Serving Coordinator API", "err", err)
 			return fmt.Errorf("serving Coordinator API: %w", err)
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		transitAPI := transitengine.NewTransitEngineAPI(meshAuth, 8200, logger)
+		logger.Info("Transit Engine API initialized")
+		logger.Info("Serving transit engine API", "err", err)
+		if err := transitAPI.ListenAndServeTLS("", ""); err != nil {
+			logger.Error("Failed serving transit engine API", "err", err)
+			return fmt.Errorf("Serving transit engine API: %w", err)
 		}
 		return nil
 	})
