@@ -49,33 +49,14 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 </TabItem>
 </Tabs>
 
-## Deploy the Contrast Coordinator
+### Download the Contrast Coordinator resource
 
-Install the latest Contrast Coordinator release, comprising a single replica deployment and a
-LoadBalancer service, into your cluster.
+Download the Kubernetes resource of the Contrast Coordinator, comprising a single replica deployment and a
+LoadBalancer service. Put it next to your resources:
 
-<Tabs queryString="platform">
-<TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-aks-clh-snp.yml
+curl -flo https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir deployment
 ```
-</TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp.yml
-```
-</TabItem>
-<TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-snp-gpu.yml
-```
-</TabItem>
-<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/coordinator-k3s-qemu-tdx.yml
-```
-</TabItem>
-</Tabs>
 
 ## Prepare your Kubernetes resources
 
