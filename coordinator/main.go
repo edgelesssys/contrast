@@ -17,6 +17,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	transitengine "github.com/edgelesssys/contrast/coordinator/internal/transitengineapi"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
@@ -130,6 +131,17 @@ func run() (retErr error) {
 		if err := meshAPI.Serve(net.JoinHostPort("0.0.0.0", meshapi.Port)); err != nil {
 			logger.Error("Serving mesh API", "err", err)
 			return fmt.Errorf("serving mesh API: %w", err)
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		transitAPI := transitengine.NewTransitEngineAPI(meshAuth, 8200, logger)
+		logger.Info("Transit Engine API initialized")
+
+		fmt.Printf("Serving transit engine API on port %d\n", 8200)
+		if err := transitAPI.ListenAndServeTLS("", ""); err != nil {
+			logger.Error("Failed to start transit engine API", "err", err)
 		}
 		return nil
 	})

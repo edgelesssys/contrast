@@ -697,3 +697,91 @@ func GPU() []any {
 
 	return []any{tester}
 }
+
+// Vault returns the resources for deploying a user managed vault.
+func Vault(namespace string) []any {
+	tester := StatefulSet("vault", "").
+		WithSpec(StatefulSetSpec().
+			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
+				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
+				WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "user-vault"}),
+			).
+			WithServiceName("user-vault").
+			WithTemplate(
+				PodTemplateSpec().
+					WithLabels(map[string]string{"app.kubernetes.io/name": "user-vault"}).
+					WithSpec(PodSpec().
+						WithContainers(
+							Container().
+								WithName("openbao").
+								WithImage("docker.io/openbao/openbao:latest").
+								WithCommand("/bin/sh", "-c", "sleep infinity").
+								WithResources(ResourceRequirements().
+									WithMemoryLimitAndRequest(50),
+								).WithVolumeMounts(
+								VolumeMount().
+									WithName("config").WithMountPath("/vault/config"),
+								VolumeMount().
+									WithName("data").WithMountPath("/vault/data"),
+							).WithPorts(
+								ContainerPort().
+									WithName("vault-listener").
+									WithContainerPort(8200),
+							).WithSecurityContext(
+								applycorev1.SecurityContext().WithPrivileged(true).WithCapabilities(
+									applycorev1.Capabilities().WithAdd(corev1.Capability("CHOWN")),
+								)),
+						).WithVolumes(
+						Volume().WithName("config").WithConfigMap(
+							applycorev1.ConfigMapVolumeSource().WithName("vault-config"),
+						),
+					),
+					),
+			).
+			WithVolumeClaimTemplates(PersistentVolumeClaim("data", "").
+				WithSpec(applycorev1.PersistentVolumeClaimSpec().
+					WithAccessModes(corev1.ReadWriteOnce).
+					WithResources(applycorev1.VolumeResourceRequirements().
+						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
+					),
+				),
+			),
+		)
+
+	configMap := applycorev1.ConfigMap("vault-config", namespace).WithData(
+		map[string]string{
+			"config.hcl": `ui = true
+api_addr     = "http://127.0.0.1:8200"
+
+storage "file" {
+        path = "/vault/data"
+}
+
+listener "tcp" {
+  address            = "0.0.0.0:8200"
+  tls_cert_file      = "/contrast/tls-config/certChain.pem"
+  tls_key_file       = "/contrast/tls-config/key.pem"
+  tls_client_ca_file = "/contrast/tls-config/coordinator-root-ca.pem"
+  tls_disable        = "true"
+}
+
+seal "transit" {
+  address         = "https://coordinator:8200"
+  disable_renewal = "true"
+  key_name        = "transit_key_name"
+  mount_path      = "transit/"
+  tls_client_cert    = "/contrast/tls-config/certChain.pem"
+  tls_client_key     = "/contrast/tls-config/key.pem"
+
+  tls_ca_cert        = "/contrast/tls-config/coordinator-root-ca.pem"
+  tls_skip_verify    = "true"
+}
+`,
+		},
+	)
+
+	return []any{tester, configMap}
+}
