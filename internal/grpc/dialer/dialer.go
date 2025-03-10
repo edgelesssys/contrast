@@ -7,11 +7,13 @@ package dialer
 import (
 	"context"
 	"crypto"
+	"log/slog"
 	"net"
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
+	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -24,32 +26,35 @@ type Dialer struct {
 	attestationFailures prometheus.Counter
 	netDialer           NetDialer
 	privKey             crypto.PrivateKey
+	logger              *slog.Logger
 }
 
 // New creates a new Dialer.
-func New(issuer atls.Issuer, validators []atls.Validator, attestationFailures prometheus.Counter, netDialer NetDialer) *Dialer {
+func New(issuer atls.Issuer, validators []atls.Validator, attestationFailures prometheus.Counter, netDialer NetDialer, log *slog.Logger) *Dialer {
 	return &Dialer{
 		issuer:              issuer,
 		validators:          validators,
 		attestationFailures: attestationFailures,
 		netDialer:           netDialer,
+		logger:              log,
 	}
 }
 
 // NewWithKey creates a new Dialer with the given private key.
-func NewWithKey(issuer atls.Issuer, validators []atls.Validator, attestationFailures prometheus.Counter, netDialer NetDialer, privKey crypto.PrivateKey) *Dialer {
+func NewWithKey(issuer atls.Issuer, validators []atls.Validator, attestationFailures prometheus.Counter, netDialer NetDialer, privKey crypto.PrivateKey, log *slog.Logger) *Dialer {
 	return &Dialer{
 		issuer:              issuer,
 		validators:          validators,
 		attestationFailures: attestationFailures,
 		netDialer:           netDialer,
 		privKey:             privKey,
+		logger:              log,
 	}
 }
 
 // Dial creates a new grpc client connection to the given target using the atls validator.
 func (d *Dialer) Dial(_ context.Context, target string) (*grpc.ClientConn, error) {
-	credentials := atlscredentials.NewWithKey(d.issuer, d.validators, d.attestationFailures, d.privKey)
+	credentials := atlscredentials.NewWithKey(d.issuer, d.validators, d.attestationFailures, d.privKey, logger.NewNamed(d.logger, "atlscredentials"))
 
 	return grpc.NewClient(target,
 		d.grpcWithDialer(),
@@ -73,7 +78,7 @@ func (d *Dialer) DialInsecure(_ context.Context, target string) (*grpc.ClientCon
 
 // DialNoVerify creates a new grpc client connection to the given target without verifying the server's attestation.
 func (d *Dialer) DialNoVerify(_ context.Context, target string) (*grpc.ClientConn, error) {
-	credentials := atlscredentials.New(atls.NoIssuer, atls.NoValidators, atls.NoMetrics)
+	credentials := atlscredentials.New(atls.NoIssuer, atls.NoValidators, atls.NoMetrics, logger.NewNamed(d.logger, "atlscredentials"))
 
 	return grpc.NewClient(target,
 		d.grpcWithDialer(),

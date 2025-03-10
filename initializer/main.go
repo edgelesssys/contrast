@@ -95,7 +95,7 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	requestCert := func() (*meshapi.NewMeshCertResponse, error) {
 		// Supply an empty list of validators, as the coordinator does not need to be
 		// validated by the initializer.
-		dial := dialer.NewWithKey(issuer, atls.NoValidators, atls.NoMetrics, &net.Dialer{}, privKey)
+		dial := dialer.NewWithKey(issuer, atls.NoValidators, atls.NoMetrics, &net.Dialer{}, privKey, log)
 		conn, err := dial.Dial(ctx, net.JoinHostPort(coordinatorHostname, meshapi.Port))
 		if err != nil {
 			return nil, fmt.Errorf("dialing: %w", err)
