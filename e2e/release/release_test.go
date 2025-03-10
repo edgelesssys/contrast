@@ -114,28 +114,12 @@ func TestRelease(t *testing.T) {
 		}
 	}), "the runtime is required for subsequent tests to run")
 
-	var coordinatorIP string
-	require.True(t, t.Run("apply-coordinator", func(t *testing.T) {
-		require := require.New(t)
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-		defer cancel()
-
-		yaml, err := os.ReadFile(path.Join(dir, "coordinator.yml"))
-		require.NoError(err)
-		resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
-		require.NoError(err)
-
-		require.NoError(k.Apply(ctx, resources...))
-		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, "default", "coordinator"))
-		coordinatorIP, err = k.WaitForService(ctx, "default", "coordinator", hasLoadBalancer)
-		require.NoError(err)
-	}), "the coordinator is required for subsequent tests to run")
-
-	require.True(t, t.Run("unpack-deployment", func(t *testing.T) {
+	require.True(t, t.Run("process-deployment", func(t *testing.T) {
 		require := require.New(t)
 
 		require.NoError(os.Mkdir(path.Join(dir, "deployment"), 0o777))
 		require.NoError(os.Rename(path.Join(dir, "emojivoto-demo.yml"), path.Join(dir, "deployment", "emojivoto-demo.yml")))
+		require.NoError(os.Rename(path.Join(dir, "coordinator.yml"), path.Join(dir, "deployment", "coordinator.yml")))
 
 		infos, err := os.ReadDir(path.Join(dir, "deployment"))
 		require.NoError(err)
@@ -151,20 +135,14 @@ func TestRelease(t *testing.T) {
 			require.NoError(os.WriteFile(name, newYAML, 0o644))
 
 		}
-	}), "unpacking needs to succeed for subsequent tests to run")
+	}), "deployment processing needs to succeed for subsequent tests to run")
 
 	contrast.Run(ctx, t, 4*time.Minute, "generate", "--reference-values", *platformStr, "deployment/")
 	contrast.patchReferenceValues(t, lowerPlatformStr)
 
-	setFlags := []string{"set", "-c", coordinatorIP + ":1313", "deployment/"}
-	contrast.Run(ctx, t, 1*time.Minute, setFlags...)
-
-	verifyFlags := []string{"verify", "-c", coordinatorIP + ":1313"}
-	contrast.Run(ctx, t, 1*time.Minute, verifyFlags...)
-
 	require.True(t, t.Run("apply-demo", func(t *testing.T) {
 		require := require.New(t)
-		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 		defer cancel()
 
 		files, err := filepath.Glob(path.Join(dir, "deployment", "*.yml"))
@@ -176,12 +154,36 @@ func TestRelease(t *testing.T) {
 			require.NoError(err)
 			require.NoError(k.Apply(ctx, resources...))
 		}
+	}), "applying the demo is required for subsequent tests to run")
+
+	var coordinatorIP string
+	require.True(t, t.Run("wait-for-coordinator-ip", func(t *testing.T) {
+		require := require.New(t)
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		defer cancel()
+
+		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, "default", "coordinator"))
+		var err error
+		coordinatorIP, err = k.WaitForService(ctx, "default", "coordinator", hasLoadBalancer)
+		require.NoError(err)
+	}), "the coordinator is required for subsequent tests to run")
+
+	setFlags := []string{"set", "-c", coordinatorIP + ":1313", "deployment/"}
+	contrast.Run(ctx, t, 1*time.Minute, setFlags...)
+
+	require.True(t, t.Run("wait-for-deployment-readiness", func(t *testing.T) {
+		require := require.New(t)
+		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		defer cancel()
 
 		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, "default", "vote-bot"))
 		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, "default", "voting"))
 		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, "default", "emoji"))
 		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, "default", "web"))
-	}), "applying the demo is required for subsequent tests to run")
+	}), "the deployment must get ready for subsequent tests to run")
+
+	verifyFlags := []string{"verify", "-c", coordinatorIP + ":1313"}
+	contrast.Run(ctx, t, 1*time.Minute, verifyFlags...)
 
 	t.Run("test-demo", func(t *testing.T) {
 		require := require.New(t)
