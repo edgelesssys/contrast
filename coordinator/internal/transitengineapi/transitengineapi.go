@@ -51,15 +51,14 @@ type stateAuthority interface {
 	GetState() (*authority.State, error)
 }
 
-// NewTransitEngineAPI sets up the transit engine API with a provided seedEngineAuthority.
-func NewTransitEngineAPI(authority stateAuthority, _ *slog.Logger) *http.ServeMux {
+func newTransitEngineMux(authority stateAuthority, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// 'name' wildcard is kept to reflect existing transit engine API specifications:
 	// https://openbao.org/api-docs/secret/transit/#encrypt-data
 	// name <=> workloadSecretID, which should be used for the key derivation.
-	mux.Handle("/v1/transit/encrypt/{name}", getEncryptHandler(authority))
-	mux.Handle("/v1/transit/decrypt/{name}", getDecryptHandler(authority))
+	mux.Handle("/v1/transit/encrypt/{name}", loggingMiddleware(getEncryptHandler(authority), logger))
+	mux.Handle("/v1/transit/decrypt/{name}", loggingMiddleware(getDecryptHandler(authority), logger))
 
 	return mux
 }
@@ -191,4 +190,42 @@ func extractVersion(versionStr string) (uint32, error) {
 	}
 
 	return uint32(version), nil
+}
+
+type responseLogger struct {
+	http.ResponseWriter
+	statusCode   int
+	bodyCaptured bool
+	body         []byte
+}
+
+func (rl *responseLogger) WriteHeader(code int) {
+	rl.statusCode = code
+	rl.ResponseWriter.WriteHeader(code)
+}
+
+func (rl *responseLogger) Write(b []byte) (int, error) {
+	// Capture the response body only if status code is an error (≥400)
+	if rl.statusCode >= 400 && !rl.bodyCaptured {
+		rl.body = append([]byte{}, b...)
+		rl.bodyCaptured = true
+	}
+	return rl.ResponseWriter.Write(b)
+}
+
+func loggingMiddleware(next http.HandlerFunc, logger *slog.Logger) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rl := &responseLogger{ResponseWriter: w, statusCode: 0}
+
+		next.ServeHTTP(rl, r)
+
+		logMsg := fmt.Sprintf("[%s] %s from %s -> %d",
+			r.Method, r.RequestURI, r.RemoteAddr, rl.statusCode)
+
+		if rl.statusCode >= 400 && rl.bodyCaptured {
+			logger.Error(logMsg, "error", string(rl.body))
+		} else {
+			logger.Debug(logMsg)
+		}
+	})
 }
