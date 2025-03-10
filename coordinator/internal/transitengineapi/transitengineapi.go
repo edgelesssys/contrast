@@ -7,6 +7,7 @@
 package transitengine
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -58,6 +59,29 @@ type httpError struct {
 
 type stateAuthority interface {
 	GetState() (*authority.State, error)
+}
+
+// NewTransitEngineAPI sets up the transit engine API with a provided seedEngineAuthority.
+func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger) *http.Server {
+	return &http.Server{
+		Addr: fmt.Sprintf(":%d", port),
+		TLSConfig: &tls.Config{
+			ClientAuth: tls.RequireAndVerifyClientCert,
+			GetConfigForClient: func(_ *tls.ClientHelloInfo) (*tls.Config, error) {
+				logger.Debug("call getConfigForClient")
+				state, err := authority.GetState()
+				if err != nil {
+					return nil, fmt.Errorf("getting state: %w", err)
+				}
+				return &tls.Config{
+					ClientCAs:  state.CA().GetMeshCACertPool(),
+					ClientAuth: tls.RequireAndVerifyClientCert,
+					MinVersion: tls.VersionTLS12,
+				}, nil
+			},
+		},
+		Handler: newTransitEngineMux(authority, logger),
+	}
 }
 
 func newTransitEngineMux(authority stateAuthority, logger *slog.Logger) *http.ServeMux {
