@@ -33,7 +33,7 @@ Second, it can be configured to also prevent data access even from the administr
 The emojivoto deployment files are part of the Contrast release. You can download them by running:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.5.1/emojivoto-demo.yml --create-dirs --output-dir deployment
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.5.2/emojivoto-demo.yml --create-dirs --output-dir deployment
 ```
 
 ### Deploy the Contrast runtime
@@ -47,17 +47,17 @@ It can be shared between Contrast deployments.
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.5.1/runtime-aks-clh-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.5.2/runtime-aks-clh-snp.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.5.1/runtime-k3s-qemu-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.5.2/runtime-k3s-qemu-snp.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.5.1/runtime-k3s-qemu-tdx.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.5.2/runtime-k3s-qemu-tdx.yml
 ```
 </TabItem>
 </Tabs>
@@ -70,17 +70,17 @@ LoadBalancer service, into your cluster:
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.5.1/coordinator-aks-clh-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.5.2/coordinator-aks-clh-snp.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.5.1/coordinator-k3s-qemu-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.5.2/coordinator-k3s-qemu-snp.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.5.1/coordinator-k3s-qemu-tdx.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.5.2/coordinator-k3s-qemu-tdx.yml
 ```
 </TabItem>
 </Tabs>
