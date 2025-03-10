@@ -119,9 +119,9 @@ func runSet(cmd *cobra.Command, args []string) error {
 
 	var dialr *dialer.Dialer
 	if workloadOwnerKey == nil {
-		dialr = dialer.New(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{})
+		dialr = dialer.New(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, log)
 	} else {
-		dialr = dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, workloadOwnerKey)
+		dialr = dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, workloadOwnerKey, log)
 	}
 
 	conn, err := dialr.Dial(cmd.Context(), flags.coordinator)

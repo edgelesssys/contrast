@@ -53,7 +53,7 @@ func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifest
 	if err != nil {
 		return CoordinatorState{}, fmt.Errorf("getting validators: %w", err)
 	}
-	dialer := dialer.New(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{})
+	dialer := dialer.New(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, c.log)
 
 	c.log.Debug("Dialing coordinator", "endpoint", endpoint)
 
