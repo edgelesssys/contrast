@@ -36,6 +36,8 @@ type CA struct {
 
 	meshCACert *x509.Certificate
 	meshCAPEM  []byte
+
+	meshCACertPool *x509.CertPool
 }
 
 // New creates a new CA.
@@ -83,14 +85,18 @@ func New(rootPrivKey, intermPrivKey *ecdsa.PrivateKey) (*CA, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating mesh certificate: %w", err)
 	}
-
+	meshCACertPool := x509.NewCertPool()
+	if !meshCACertPool.AppendCertsFromPEM(meshCAPEM) {
+		return nil, fmt.Errorf("creating mesh CA cert pool")
+	}
 	ca := CA{
-		rootCAPrivKey: rootPrivKey,
-		rootCAPEM:     rootPEM,
-		intermPrivKey: intermPrivKey,
-		intermCAPEM:   intermCAPEM,
-		meshCACert:    meshCACert,
-		meshCAPEM:     meshCAPEM,
+		rootCAPrivKey:  rootPrivKey,
+		rootCAPEM:      rootPEM,
+		intermPrivKey:  intermPrivKey,
+		intermCAPEM:    intermCAPEM,
+		meshCACert:     meshCACert,
+		meshCAPEM:      meshCAPEM,
+		meshCACertPool: meshCACertPool,
 	}
 
 	return &ca, nil
@@ -149,6 +155,11 @@ func (c *CA) GetIntermCACert() []byte {
 // GetMeshCACert returns the mesh CA certificate of the CA in PEM format.
 func (c *CA) GetMeshCACert() []byte {
 	return c.meshCAPEM
+}
+
+// GetMeshCACertPool returns a certificate pool, containing the current mesh CA certificate.
+func (c *CA) GetMeshCACertPool() *x509.CertPool {
+	return c.meshCACertPool
 }
 
 // createCert issues a new certificate for pub, based on template, signed by parent with priv.
