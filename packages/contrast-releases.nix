@@ -19,6 +19,23 @@ let
   versionLessThan = version: other: (builtins.compareVersions version other) < 0;
   versionGreaterEqual = version: other: (builtins.compareVersions version other) >= 0;
 
+  allPlatforms = [
+    "aks-clh-snp"
+    "metal-qemu-snp"
+    "metal-qemu-snp-gpu"
+    "metal-qemu-tdx"
+    "k3s-qemu-tdx"
+    "k3s-qemu-snp"
+    "k3s-qemu-snp-gpu"
+    "rke2-qemu-tdx"
+  ];
+
+  forPlatforms =
+    platforms: f:
+    builtins.listToAttrs (
+      lib.lists.map (platform: lib.attrsets.nameValuePair platform (f platform)) platforms
+    );
+
   buildContrastRelease =
     { version, hash }:
     {
@@ -78,42 +95,38 @@ let
             passthru.exists = versionGreaterEqual version "v1.2.0";
           };
 
-          # starting with version v1.1.0 files have a platform-specific suffix.
-          platformSpecificFiles = builtins.listToAttrs (
-            lib.lists.map
-              (
-                platform:
-                lib.attrsets.nameValuePair platform {
-                  exist =
-                    if (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp") then
-                      (versionGreaterEqual version "v1.2.1")
-                    else if (platform == "metal-qemu-snp-gpu" || platform == "k3s-qemu-snp-gpu") then
-                      (versionGreaterEqual version "v1.4.0")
-                    else
-                      (versionGreaterEqual version "v1.1.0");
-                  coordinator = fetchurl {
-                    inherit version;
-                    url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator-${platform}.yml";
-                    inherit (findVersion "coordinator-${platform}.yml" version) hash;
-                  };
-                  runtime = fetchurl {
-                    inherit version;
-                    url = "https://github.com/edgelesssys/contrast/releases/download/${version}/runtime-${platform}.yml";
-                    inherit (findVersion "runtime-${platform}.yml" version) hash;
-                  };
-                }
-              )
-              [
-                "aks-clh-snp"
-                "metal-qemu-snp"
-                "metal-qemu-snp-gpu"
-                "metal-qemu-tdx"
-                "k3s-qemu-tdx"
-                "k3s-qemu-snp"
-                "k3s-qemu-snp-gpu"
-                "rke2-qemu-tdx"
-              ]
+          coordinator-per-platform = forPlatforms allPlatforms (
+            platform:
+            fetchurl {
+              inherit version;
+              url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator-${platform}.yml";
+              inherit (findVersion "coordinator-${platform}.yml" version) hash;
+              passthru.exists =
+                if (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp") then
+                  (versionGreaterEqual version "v1.2.1")
+                else if (platform == "metal-qemu-snp-gpu" || platform == "k3s-qemu-snp-gpu") then
+                  (versionGreaterEqual version "v1.4.0")
+                else
+                  (versionGreaterEqual version "v1.1.0");
+            }
           );
+
+          runtime-per-platform = forPlatforms allPlatforms (
+            platform:
+            fetchurl {
+              inherit version;
+              url = "https://github.com/edgelesssys/contrast/releases/download/${version}/runtime-${platform}.yml";
+              inherit (findVersion "runtime-${platform}.yml" version) hash;
+              passthru.exists =
+                if (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp") then
+                  (versionGreaterEqual version "v1.2.1")
+                else if (platform == "metal-qemu-snp-gpu" || platform == "k3s-qemu-snp-gpu") then
+                  (versionGreaterEqual version "v1.4.0")
+                else
+                  (versionGreaterEqual version "v1.1.0");
+            }
+          );
+
         in
         runCommand version
           {
@@ -150,12 +163,19 @@ let
             ''
             + lib.concatStrings (
               lib.attrsets.mapAttrsToList (
-                platform: files:
-                lib.optionalString files.exist ''
-                  install -m 644 ${files.coordinator} $out/coordinator-${platform}.yml
-                  install -m 644 ${files.runtime} $out/runtime-${platform}.yml
+                platform: file:
+                lib.optionalString file.exists ''
+                  install -m 644 ${file} $out/coordinator-${platform}.yml
                 ''
-              ) platformSpecificFiles
+              ) coordinator-per-platform
+            )
+            + lib.concatStrings (
+              lib.attrsets.mapAttrsToList (
+                platform: file:
+                lib.optionalString file.exists ''
+                  install -m 644 ${file} $out/runtime-${platform}.yml
+                ''
+              ) runtime-per-platform
             )
           );
     };
