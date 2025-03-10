@@ -14,7 +14,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
@@ -39,9 +38,6 @@ The recover command is used to provide the seed to the Coordinator.`,
 	cmd.Flags().StringP("manifest", "m", manifestFilename, "path to manifest (.json) file")
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
-	defaultCoordHash, err := defaultCoordinatorPolicyHash(platforms.AKSCloudHypervisorSNP)
-	must(err)
-	cmd.Flags().String("coordinator-policy-hash", defaultCoordHash.String(), "override the expected policy hash of the coordinator")
 	cmd.Flags().String("workload-owner-key", workloadOwnerPEM,
 		"path to workload owner key (.pem) file (can be passed more than once)")
 	cmd.Flags().String("seedshare-owner-key", seedshareOwnerPEM, "private key file to decrypt the seed share")
@@ -85,7 +81,7 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	validators, err := sdk.ValidatorsFromManifest(kdsDir, &m, log, flags.policy)
+	validators, err := sdk.ValidatorsFromManifest(kdsDir, &m, log)
 	if err != nil {
 		return fmt.Errorf("getting validators: %w", err)
 	}
@@ -115,7 +111,6 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 
 type recoverFlags struct {
 	coordinator           string
-	policy                []byte
 	seedSharesFilename    string
 	seedShareOwnerKeyPath string
 	workloadOwnerKeyPath  string
@@ -163,10 +158,6 @@ func parseRecoverFlags(cmd *cobra.Command) (*recoverFlags, error) {
 	if err != nil {
 		return nil, err
 	}
-	policy, err := decodeCoordinatorPolicyHash(cmd.Flags())
-	if err != nil {
-		return nil, err
-	}
 	seed, err := cmd.Flags().GetString("seed")
 	if err != nil {
 		return nil, err
@@ -206,7 +197,6 @@ func parseRecoverFlags(cmd *cobra.Command) (*recoverFlags, error) {
 
 	return &recoverFlags{
 		coordinator:           coordinator,
-		policy:                policy,
 		seedSharesFilename:    seed,
 		seedShareOwnerKeyPath: seedShareOwnerKeyPath,
 		workloadOwnerKeyPath:  workloadOwnerKeyPath,

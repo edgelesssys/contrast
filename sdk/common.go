@@ -23,18 +23,26 @@ import (
 // Originally an unexported function in the contrast CLI.
 // Can be made unexported again, if we decide to move all userapi calls from the CLI to the SDK.
 // Validators MUST NOT be used concurrently.
-func ValidatorsFromManifest(kdsDir string, m *manifest.Manifest, log *slog.Logger, coordinatorPolicyChecksum []byte) ([]atls.Validator, error) {
+func ValidatorsFromManifest(kdsDir string, m *manifest.Manifest, log *slog.Logger) ([]atls.Validator, error) {
 	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
 	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter"))
 
 	var validators []atls.Validator
 
+	coordPolicyHash, err := m.CoordinatorPolicyHash()
+	if err != nil {
+		return nil, fmt.Errorf("getting coordinator policy hash: %w", err)
+	}
+	coordPolicyHashBytes, err := coordPolicyHash.Bytes()
+	if err != nil {
+		return nil, fmt.Errorf("converting coordinator policy hash to bytes: %w", err)
+	}
 	opts, err := m.SNPValidateOpts(kdsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("getting SNP validate options: %w", err)
 	}
 	for i, opt := range opts {
-		opt.ValidateOpts.HostData = coordinatorPolicyChecksum
+		opt.ValidateOpts.HostData = coordPolicyHashBytes
 		name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
 		validators = append(validators, snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts,
 			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name,
@@ -46,7 +54,7 @@ func ValidatorsFromManifest(kdsDir string, m *manifest.Manifest, log *slog.Logge
 		return nil, fmt.Errorf("generating TDX validation options: %w", err)
 	}
 	var mrConfigID [48]byte
-	copy(mrConfigID[:], coordinatorPolicyChecksum)
+	copy(mrConfigID[:], coordPolicyHashBytes)
 	for i, opt := range tdxOpts {
 		name := fmt.Sprintf("tdx-%d", i)
 		opt.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]

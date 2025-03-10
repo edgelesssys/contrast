@@ -79,10 +79,4 @@ After the last step, we know that the policy hasn't been tampered with and, thus
 
 Contrast uses different rules and data sections for different platforms.
 This results in different policy hashes for different platforms.
-
 The `generate` command automatically derives the correct set of rules and data sections from the `reference-values` flag.
-
-The `verify`, `set`, and `recover` commands need to know the coordinator's expected policy hash to verify its identity.
-By default these commands assume that the coordinator is using the policy for the `AKS-CLH-SNP` platform.
-If the coordinator is running on a different platform, the correct policy hash can be looked up in the `coordinator-policy.hash` file bundled with the [Contrast release](https://github.com/edgelesssys/contrast/releases).
-The coordinator policy hash can be overwritten using the `--coordinator-policy-hash` flag.

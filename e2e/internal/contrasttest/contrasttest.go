@@ -183,9 +183,6 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 	generate.SetErr(errBuf)
 
 	require.NoError(generate.Execute(), "could not generate manifest: %s", errBuf)
-	hash, err := os.ReadFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"))
-	require.NoError(err)
-	require.NotEmpty(hash, "expected apply to fill coordinator policy hash")
 	patchManifestFunc, err := patchReferenceValues(ct.Kubeclient, ct.Platform)
 	require.NoError(err)
 	ct.PatchManifest(t, patchManifestFunc)
@@ -401,14 +398,6 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 
 // runAgainstCoordinator forwards the coordinator port and executes the command against it.
 func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Command, args ...string) error {
-	policyHash, err := os.ReadFile(path.Join(ct.WorkDir, "coordinator-policy.sha256"))
-	if err != nil {
-		return fmt.Errorf("reading coordinator policy hash: %w", err)
-	}
-	if len(policyHash) == 0 {
-		return fmt.Errorf("coordinator policy hash cannot be empty")
-	}
-
 	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"); err != nil {
 		return fmt.Errorf("waiting for coordinator: %w", err)
 	}
@@ -422,9 +411,7 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 	cmd.Flags().String("log-level", "debug", "")
 
 	return ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", "1313", func(addr string) error {
-		commonArgs := append(ct.commonArgs(),
-			"--coordinator-policy-hash", string(policyHash),
-			"--coordinator", addr)
+		commonArgs := append(ct.commonArgs(), "--coordinator", addr)
 		cmd.SetArgs(append(commonArgs, args...))
 		cmd.SetOut(io.Discard)
 		errBuf := &bytes.Buffer{}

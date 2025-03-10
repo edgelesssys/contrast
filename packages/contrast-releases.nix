@@ -16,6 +16,26 @@ let
     field: version:
     lib.lists.findFirst (obj: obj.version == version) { hash = "unknown"; } (listOrEmpty json field);
 
+  versionLessThan = version: other: (builtins.compareVersions version other) < 0;
+  versionGreaterEqual = version: other: (builtins.compareVersions version other) >= 0;
+
+  allPlatforms = [
+    "aks-clh-snp"
+    "metal-qemu-snp"
+    "metal-qemu-snp-gpu"
+    "metal-qemu-tdx"
+    "k3s-qemu-tdx"
+    "k3s-qemu-snp"
+    "k3s-qemu-snp-gpu"
+    "rke2-qemu-tdx"
+  ];
+
+  forPlatforms =
+    platforms: f:
+    builtins.listToAttrs (
+      lib.lists.map (platform: lib.attrsets.nameValuePair platform (f platform)) platforms
+    );
+
   buildContrastRelease =
     { version, hash }:
     {
@@ -31,17 +51,22 @@ let
             inherit version;
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator.yml";
             inherit (findVersion "coordinator.yml" version) hash;
-            passthru.exists = (builtins.compareVersions version "v0.10.0") < 0;
+            passthru.exists =
+              # coordinator.yml was replaced with a platform-specific version in release v0.10.0
+              (versionLessThan version "v0.10.0")
+              # coordinator.yml was re-introduced in release v1.6.0, ending the use of platform-specific Coordinator files
+              && (versionGreaterEqual version "v1.6.0");
           };
 
           runtime = fetchurl {
             inherit version;
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/runtime.yml";
             inherit (findVersion "runtime.yml" version) hash;
-            # runtime.yml was introduced in release v0.6.0
             passthru.exists =
-              (builtins.compareVersions "v0.6.0" version) <= 0
-              && (builtins.compareVersions version "v0.10.0") < 0;
+              # runtime.yml was introduced in release v0.6.0
+              (versionGreaterEqual version "v0.6.0")
+              # runtime.yml was replaced with a platform-specific version in release v1.1.0
+              && (versionLessThan version "v0.10.0");
           };
 
           emojivoto-zip = fetchurl {
@@ -49,9 +74,11 @@ let
             inherit version;
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/emojivoto-demo.zip";
             inherit (findVersion "emojivoto-demo.zip" version) hash;
-            # emojivoto-demo.zip was introduced in version v0.5.0
             passthru.exists =
-              (builtins.compareVersions "v0.5.0" version) <= 0 && (builtins.compareVersions version "v0.8.0") < 0;
+              # emojivoto-demo.zip was introduced in version v0.5.0
+              (versionGreaterEqual version "v0.5.0")
+              # emojivoto-demo.zip was replaced with the unzipped version in version v0.8.0
+              && (versionLessThan version "v0.8.0");
           };
 
           emojivoto = fetchurl {
@@ -59,7 +86,7 @@ let
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/emojivoto-demo.yml";
             inherit (findVersion "emojivoto-demo.yml" version) hash;
             # emojivoto-demo.yml was changed from zip to yml in version v0.8.0
-            passthru.exists = (builtins.compareVersions "v0.8.0" version) <= 0;
+            passthru.exists = versionGreaterEqual version "v0.8.0";
           };
 
           mysql-demo = fetchurl {
@@ -67,45 +94,46 @@ let
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/mysql-demo.yml";
             inherit (findVersion "mysql-demo.yml" version) hash;
             # mysql-demo.yml was introduced in version v1.2.0
-            passthru.exists = (builtins.compareVersions "v1.2.0" version) <= 0;
+            passthru.exists = versionGreaterEqual version "v1.2.0";
           };
 
-          # starting with version v1.1.0 all files have a platform-specific suffix.
-          platformSpecificFiles = builtins.listToAttrs (
-            lib.lists.map
-              (
-                platform:
-                lib.attrsets.nameValuePair platform {
-                  exist =
-                    if (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp") then
-                      (builtins.compareVersions "v1.2.1" version) <= 0
-                    else if (platform == "metal-qemu-snp-gpu" || platform == "k3s-qemu-snp-gpu") then
-                      (builtins.compareVersions "v1.4.0" version) <= 0
-                    else
-                      (builtins.compareVersions "v1.1.0" version) <= 0;
-                  coordinator = fetchurl {
-                    inherit version;
-                    url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator-${platform}.yml";
-                    inherit (findVersion "coordinator-${platform}.yml" version) hash;
-                  };
-                  runtime = fetchurl {
-                    inherit version;
-                    url = "https://github.com/edgelesssys/contrast/releases/download/${version}/runtime-${platform}.yml";
-                    inherit (findVersion "runtime-${platform}.yml" version) hash;
-                  };
-                }
-              )
-              [
-                "aks-clh-snp"
-                "metal-qemu-snp"
-                "metal-qemu-snp-gpu"
-                "metal-qemu-tdx"
-                "k3s-qemu-tdx"
-                "k3s-qemu-snp"
-                "k3s-qemu-snp-gpu"
-                "rke2-qemu-tdx"
-              ]
+          coordinator-per-platform = forPlatforms allPlatforms (
+            platform:
+            fetchurl {
+              inherit version;
+              url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator-${platform}.yml";
+              inherit (findVersion "coordinator-${platform}.yml" version) hash;
+              passthru.exists =
+                # the start date for this resource depends on the the version the platform was introduced
+                (
+                  if (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp") then
+                    (versionGreaterEqual version "v1.2.1")
+                  else if (platform == "metal-qemu-snp-gpu" || platform == "k3s-qemu-snp-gpu") then
+                    (versionGreaterEqual version "v1.4.0")
+                  else
+                    (versionGreaterEqual version "v1.1.0")
+                )
+                # platform-specific Coordinator files were removed in release v1.6.0
+                && (versionLessThan version "v1.6.0");
+            }
           );
+
+          runtime-per-platform = forPlatforms allPlatforms (
+            platform:
+            fetchurl {
+              inherit version;
+              url = "https://github.com/edgelesssys/contrast/releases/download/${version}/runtime-${platform}.yml";
+              inherit (findVersion "runtime-${platform}.yml" version) hash;
+              passthru.exists =
+                if (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp") then
+                  (versionGreaterEqual version "v1.2.1")
+                else if (platform == "metal-qemu-snp-gpu" || platform == "k3s-qemu-snp-gpu") then
+                  (versionGreaterEqual version "v1.4.0")
+                else
+                  (versionGreaterEqual version "v1.1.0");
+            }
+          );
+
         in
         runCommand version
           {
@@ -142,12 +170,19 @@ let
             ''
             + lib.concatStrings (
               lib.attrsets.mapAttrsToList (
-                platform: files:
-                lib.optionalString files.exist ''
-                  install -m 644 ${files.coordinator} $out/coordinator-${platform}.yml
-                  install -m 644 ${files.runtime} $out/runtime-${platform}.yml
+                platform: file:
+                lib.optionalString file.exists ''
+                  install -m 644 ${file} $out/coordinator-${platform}.yml
                 ''
-              ) platformSpecificFiles
+              ) coordinator-per-platform
+            )
+            + lib.concatStrings (
+              lib.attrsets.mapAttrsToList (
+                platform: file:
+                lib.optionalString file.exists ''
+                  install -m 644 ${file} $out/runtime-${platform}.yml
+                ''
+              ) runtime-per-platform
             )
           );
     };
