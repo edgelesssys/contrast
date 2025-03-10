@@ -11,6 +11,7 @@ import (
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 	applynodev1 "k8s.io/client-go/applyconfigurations/node/v1"
+	applyrbacv1 "k8s.io/client-go/applyconfigurations/rbac/v1"
 )
 
 // DeploymentConfig wraps applyappsv1.DeploymentApplyConfiguration.
@@ -322,6 +323,34 @@ func ServiceAccount(name, namespace string) *ServiceAccountConfig {
 		s.ObjectMetaApplyConfiguration.Namespace = nil
 	}
 	return s
+}
+
+// RoleConfig wraps applyrbacv1.RoleApplyConfiguration.
+type RoleConfig struct {
+	*applyrbacv1.RoleApplyConfiguration
+}
+
+// Role creates a new RoleConfig.
+func Role(name, namespace string) *RoleConfig {
+	r := &RoleConfig{applyrbacv1.Role(name, namespace)}
+	if namespace == "" && r.ObjectMetaApplyConfiguration != nil {
+		r.ObjectMetaApplyConfiguration.Namespace = nil
+	}
+	return r
+}
+
+// RoleBindingConfig wraps applyrbacv1.RoleBindingApplyConfiguration.
+type RoleBindingConfig struct {
+	*applyrbacv1.RoleBindingApplyConfiguration
+}
+
+// RoleBinding creates a new RoleBindingConfig.
+func RoleBinding(name, namespace string) *RoleBindingConfig {
+	r := &RoleBindingConfig{applyrbacv1.RoleBinding(name, namespace)}
+	if namespace == "" && r.ObjectMetaApplyConfiguration != nil {
+		r.ObjectMetaApplyConfiguration.Namespace = nil
+	}
+	return r
 }
 
 // NamespaceConfig wraps applycorev1.NamespaceApplyConfiguration.

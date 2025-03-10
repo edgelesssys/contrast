@@ -17,16 +17,17 @@ import (
 
 // CoordinatorBundle returns the Coordinator and a matching Service.
 func CoordinatorBundle() []any {
-	coordinatorSfSets := Coordinator("").StatefulSetApplyConfiguration
-	coordinatorService := ServiceForStatefulSet(coordinatorSfSets).
+	coordinator := Coordinator("")
+	coordinatorService := ServiceForStatefulSet(coordinator.StatefulSetApplyConfiguration).
 		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
 
-	resources := []any{
-		coordinatorSfSets,
+	return []any{
+		coordinator.StatefulSetApplyConfiguration,
+		coordinator.ServiceAccountApplyConfiguration,
+		coordinator.RoleApplyConfiguration,
+		coordinator.RoleBindingApplyConfiguration,
 		coordinatorService,
 	}
-
-	return resources
 }
 
 // Runtime returns a set of resources for registering and installing the runtime.
