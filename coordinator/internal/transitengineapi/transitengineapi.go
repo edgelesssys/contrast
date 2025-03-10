@@ -7,6 +7,8 @@
 package transitengine
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -49,6 +51,39 @@ type (
 
 type stateAuthority interface {
 	GetState() (*authority.State, error)
+}
+
+// NewTransitEngineAPI sets up the transit engine API with a provided seedEngineAuthority.
+func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger) *http.Server {
+	return &http.Server{
+		Addr: fmt.Sprintf(":%d", port),
+		TLSConfig: &tls.Config{
+			ClientAuth: tls.RequireAndVerifyClientCert,
+			GetConfigForClient: func(_ *tls.ClientHelloInfo) (*tls.Config, error) {
+				logger.Debug("call getConfigForClient")
+				state, err := authority.GetState()
+				if err != nil {
+					return nil, fmt.Errorf("getting state: %w", err)
+				}
+				if len(state.CA.GetMeshCACert()) == 0 {
+					return nil, fmt.Errorf("mesh ca cert not initialized")
+				}
+				meshCAPool := x509.NewCertPool()
+				if !meshCAPool.AppendCertsFromPEM(state.CA.GetMeshCACert()) {
+					logger.Debug("failed parsing mesh CA")
+					return nil, fmt.Errorf("failed to parse mesh CA cert")
+				}
+				logger.Debug("loaded mesh CA cert into pool")
+
+				return &tls.Config{
+					ClientCAs:  meshCAPool,
+					ClientAuth: tls.RequireAndVerifyClientCert,
+					MinVersion: tls.VersionTLS12,
+				}, nil
+			},
+		},
+		Handler: newTransitEngineMux(authority, logger),
+	}
 }
 
 func newTransitEngineMux(authority stateAuthority, logger *slog.Logger) *http.ServeMux {
