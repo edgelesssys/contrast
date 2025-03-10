@@ -112,22 +112,23 @@ func (r Role) Validate() error {
 
 // Validate checks the validity of all fields in the reference values.
 func (r ReferenceValues) Validate() error {
+	var errs error
 	for _, v := range r.SNP {
 		if err := v.Validate(); err != nil {
-			return fmt.Errorf("validating SNP reference values: %w", err)
+			errs = errors.Join(errs, fmt.Errorf("validating SNP reference values: %w", err))
 		}
 	}
 	for _, v := range r.TDX {
 		if err := v.Validate(); err != nil {
-			return fmt.Errorf("validating TDX reference values: %w", err)
+			errs = errors.Join(errs, fmt.Errorf("validating TDX reference values: %w", err))
 		}
 	}
 
 	if len(r.SNP)+len(r.TDX) == 0 {
-		return fmt.Errorf("reference values in manifest cannot be empty. Is the chosen platform supported?")
+		errs = errors.Join(errs, fmt.Errorf("reference values in manifest cannot be empty. Is the chosen platform supported?"))
 	}
 
-	return nil
+	return errs
 }
 
 func validateHexString(value HexString, expectedNumBytes int) error {
@@ -140,87 +141,93 @@ func validateHexString(value HexString, expectedNumBytes int) error {
 
 // Validate checks the validity of all fields in the AKS reference values.
 func (r SNPReferenceValues) Validate() error {
+	var errs error
 	if r.MinimumTCB.BootloaderVersion == nil {
-		return fmt.Errorf("field BootloaderVersion in manifest cannot be empty")
-	} else if r.MinimumTCB.TEEVersion == nil {
-		return fmt.Errorf("field TEEVersion in manifest cannot be empty")
-	} else if r.MinimumTCB.SNPVersion == nil {
-		return fmt.Errorf("field SNPVersion in manifest cannot be empty")
-	} else if r.MinimumTCB.MicrocodeVersion == nil {
-		return fmt.Errorf("field MicrocodeVersion in manifest cannot be empty")
+		errs = errors.Join(errs, fmt.Errorf("field BootloaderVersion in manifest cannot be empty"))
+	}
+	if r.MinimumTCB.TEEVersion == nil {
+		errs = errors.Join(errs, fmt.Errorf("field TEEVersion in manifest cannot be empty"))
+	}
+	if r.MinimumTCB.SNPVersion == nil {
+		errs = errors.Join(errs, fmt.Errorf("field SNPVersion in manifest cannot be empty"))
+	}
+	if r.MinimumTCB.MicrocodeVersion == nil {
+		errs = errors.Join(errs, fmt.Errorf("field MicrocodeVersion in manifest cannot be empty"))
 	}
 
 	switch r.ProductName {
 	case Milan, Genoa:
 		// These are valid. We don't need to report an error.
 	default:
-		return fmt.Errorf("unknown product name: %s", r.ProductName)
+		errs = errors.Join(errs, fmt.Errorf("unknown product name: %s", r.ProductName))
 	}
 
 	if err := validateHexString(r.TrustedMeasurement, abi.MeasurementSize); err != nil {
-		return fmt.Errorf("trusted measurement is invalid: %w", err)
+		errs = errors.Join(errs, fmt.Errorf("trusted measurement is invalid: %w", err))
 	}
 
-	return nil
+	return errs
 }
 
 // Validate checks the validity of all fields in the bare metal TDX reference values.
 func (r TDXReferenceValues) Validate() error {
+	var errs error
 	if err := validateHexString(r.MrTd, 48); err != nil {
-		return fmt.Errorf("MrTd is invalid: %w", err)
+		errs = errors.Join(errs, fmt.Errorf("MrTd is invalid: %w", err))
 	}
 	if r.MinimumQeSvn == nil {
-		return fmt.Errorf("MinimumQeSvn is not set")
+		errs = errors.Join(errs, fmt.Errorf("MinimumQeSvn is not set"))
 	}
 	if r.MinimumPceSvn == nil {
-		return fmt.Errorf("MinimumPceSvn is not set")
+		errs = errors.Join(errs, fmt.Errorf("MinimumPceSvn is not set"))
 	}
 	if err := validateHexString(r.MinimumTeeTcbSvn, 16); err != nil {
-		return fmt.Errorf("MinimumTeeTcbSvn is invalid: %w", err)
+		errs = errors.Join(errs, fmt.Errorf("MinimumTeeTcbSvn is invalid: %w", err))
 	}
 	if err := validateHexString(r.MrSeam, 48); err != nil {
-		return fmt.Errorf("MrSeam is invalid: %w", err)
+		errs = errors.Join(errs, fmt.Errorf("MrSeam is invalid: %w", err))
 	}
 	if err := validateHexString(r.TdAttributes, 8); err != nil {
-		return fmt.Errorf("TdAttributes is invalid: %w", err)
+		errs = errors.Join(errs, fmt.Errorf("TdAttributes is invalid: %w", err))
 	}
 	if err := validateHexString(r.Xfam, 8); err != nil {
-		return fmt.Errorf("Xfam is invalid: %w", err)
+		errs = errors.Join(errs, fmt.Errorf("Xfam is invalid: %w", err))
 	}
 	for i, rtmr := range r.Rtrms {
 		if err := validateHexString(rtmr, 48); err != nil {
-			return fmt.Errorf("Rtmr[%d] is invalid: %w", i, err)
+			errs = errors.Join(errs, fmt.Errorf("Rtmr[%d] is invalid: %w", i, err))
 		}
 	}
-	return nil
+	return errs
 }
 
 // Validate checks the validity of all fields in the manifest.
 func (m *Manifest) Validate() error {
+	var errs error
 	for policyHash, policy := range m.Policies {
 		if err := policy.Validate(policyHash); err != nil {
-			return fmt.Errorf("validating policy %s: %w", policyHash, err)
+			errs = errors.Join(errs, fmt.Errorf("validating policy %s: %w", policyHash, err))
 		}
 	}
 
 	if err := m.ReferenceValues.Validate(); err != nil {
-		return fmt.Errorf("validating reference values: %w", err)
+		errs = errors.Join(errs, fmt.Errorf("validating reference values: %w", err))
 	}
 
 	for _, keyDigest := range m.WorkloadOwnerKeyDigests {
 		if _, err := keyDigest.Bytes(); err != nil {
-			return fmt.Errorf("decoding key digest %s: %w", keyDigest, err)
+			errs = errors.Join(errs, fmt.Errorf("decoding key digest %s: %w", keyDigest, err))
 		} else if len(keyDigest) != hex.EncodedLen(sha256.Size) {
-			return fmt.Errorf("workload owner key digest %s has invalid length: %d (expected %d)", keyDigest, len(keyDigest), hex.EncodedLen(sha256.Size))
+			errs = errors.Join(errs, fmt.Errorf("workload owner key digest %s has invalid length: %d (expected %d)", keyDigest, len(keyDigest), hex.EncodedLen(sha256.Size)))
 		}
 	}
 
 	for _, key := range m.SeedshareOwnerPubKeys {
 		if _, err := ParseSeedShareOwnerKey(key); err != nil {
-			return fmt.Errorf("invalid seed share owner public key %s: %w", key, err)
+			errs = errors.Join(errs, fmt.Errorf("invalid seed share owner public key %s: %w", key, err))
 		}
 	}
-	return nil
+	return errs
 }
 
 // TODO(msanft): add generic validation interface for other attestation types.
