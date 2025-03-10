@@ -53,7 +53,9 @@ let
             inherit (findVersion "coordinator.yml" version) hash;
             passthru.exists =
               # coordinator.yml was replaced with a platform-specific version in release v0.10.0
-              versionLessThan version "v0.10.0";
+              (versionLessThan version "v0.10.0")
+              # coordinator.yml was re-introduced in release v1.6.0, ending the use of platform-specific Coordinator files
+              && (versionGreaterEqual version "v1.6.0");
           };
 
           runtime = fetchurl {
@@ -102,12 +104,17 @@ let
               url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator-${platform}.yml";
               inherit (findVersion "coordinator-${platform}.yml" version) hash;
               passthru.exists =
-                if (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp") then
-                  (versionGreaterEqual version "v1.2.1")
-                else if (platform == "metal-qemu-snp-gpu" || platform == "k3s-qemu-snp-gpu") then
-                  (versionGreaterEqual version "v1.4.0")
-                else
-                  (versionGreaterEqual version "v1.1.0");
+                # the start date for this resource depends on the the version the platform was introduced
+                (
+                  if (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp") then
+                    (versionGreaterEqual version "v1.2.1")
+                  else if (platform == "metal-qemu-snp-gpu" || platform == "k3s-qemu-snp-gpu") then
+                    (versionGreaterEqual version "v1.4.0")
+                  else
+                    (versionGreaterEqual version "v1.1.0")
+                )
+                # platform-specific Coordinator files were removed in release v1.6.0
+                && (versionLessThan version "v1.6.0");
             }
           );
 
