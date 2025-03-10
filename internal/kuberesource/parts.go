@@ -380,6 +380,9 @@ func Coordinator(namespace string) *CoordinatorConfig {
 								ContainerPort().
 									WithName("meshapi").
 									WithContainerPort(7777),
+								ContainerPort().
+									WithName("transitapi").
+									WithContainerPort(8200),
 							).
 							WithReadinessProbe(Probe().
 								WithInitialDelaySeconds(1).

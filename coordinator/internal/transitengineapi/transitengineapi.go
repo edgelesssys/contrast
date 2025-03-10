@@ -79,6 +79,9 @@ func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger
 					ClientCAs:  meshCAPool,
 					ClientAuth: tls.RequireAndVerifyClientCert,
 					MinVersion: tls.VersionTLS12,
+					GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+						return nil, nil
+					},
 				}, nil
 			},
 		},
