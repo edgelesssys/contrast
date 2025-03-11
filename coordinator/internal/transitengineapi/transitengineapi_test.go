@@ -94,7 +94,7 @@ func TestTransitAPICyclic(t *testing.T) {
 	t.Run("encrypt-decrypt handler", func(t *testing.T) {
 		fakeStateAuthority, err := newFakeSeedEngineAuthority()
 		require.NoError(t, err)
-		mux := newTransitEngineMux(fakeStateAuthority, slog.New(slog.NewTextHandler(io.Discard, nil)))
+		mux := newMockTransitEngineMux(fakeStateAuthority)
 
 		for name, tc := range testCases {
 			t.Run(name, func(t *testing.T) {
@@ -182,4 +182,13 @@ func newFakeSeedEngineAuthority() (*fakeStateAuthority, error) {
 
 func (f *fakeStateAuthority) GetState() (*authority.State, error) {
 	return f.state, nil
+}
+
+
+func newMockTransitEngineMux(authority stateAuthority) *http.ServeMux {
+	mux := http.NewServeMux()
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	mux.Handle("/v1/transit/encrypt/{name}", getEncryptHandler(authority,logger))
+	mux.Handle("/v1/transit/decrypt/{name}", getDecryptHandler(authority,logger))
+	return mux
 }
