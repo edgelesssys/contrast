@@ -64,7 +64,7 @@ let
               # runtime.yml was introduced in release v0.6.0
               (versionGreaterEqual version "v0.6.0")
               # runtime.yml was replaced with a platform-specific version in release v1.1.0
-              && (versionLessThan version "v0.10.0");
+              && (versionLessThan version "v1.0.0");
           };
 
           emojivoto-zip = fetchurl {
