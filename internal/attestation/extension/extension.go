@@ -85,3 +85,8 @@ func ConvertExtensions(extensions []Extension) ([]pkix.Extension, error) {
 	}
 	return exts, nil
 }
+
+// ConvertExtension converts a single extension into a pkix extension.
+func ConvertExtension(extension Extension) (pkix.Extension, error) {
+	return extension.toExtension()
+}

@@ -22,6 +22,9 @@ import (
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+
+	"github.com/edgelesssys/contrast/internal/attestation/extension"
+	"github.com/edgelesssys/contrast/internal/oid"
 )
 
 type meshAPIServer struct {
@@ -117,6 +120,14 @@ func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertR
 	extensions, err := report.ClaimsToCertExtension()
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct extensions: %w", err)
+	}
+	if entry.WorkloadSecretID != "" {
+		workloadSecretExtension, err := extension.ConvertExtension(extension.NewBytesExtension(oid.WorkloadSecretOID,
+			[]byte(entry.WorkloadSecretID)))
+		if err != nil {
+			return nil, fmt.Errorf("failed to construct workload secret extension: %w", err)
+		}
+		extensions = append(extensions, workloadSecretExtension)
 	}
 	cert, err := state.CA.NewAttestedMeshCert(dnsNames, extensions, peerPubKey)
 	if err != nil {
