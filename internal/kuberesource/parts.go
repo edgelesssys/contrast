@@ -433,7 +433,7 @@ func Coordinator(namespace string) *CoordinatorConfig {
 			applyrbacv1.PolicyRule().
 				WithAPIGroups("").
 				WithResources("pods").
-				WithVerbs("get"),
+				WithVerbs("get", "list"),
 		)
 
 	roleBinding := RoleBinding("coordinator", namespace).
