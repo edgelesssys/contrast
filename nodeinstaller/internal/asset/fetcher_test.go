@@ -23,8 +23,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestFetch(t *testing.T) {
-	sourceDir, err := os.MkdirTemp("", "fileop-test-empty")
-	require.NoError(t, err)
+	sourceDir := t.TempDir()
 	fooSource := filepath.Join(sourceDir, "foo")
 	require.NoError(t, os.WriteFile(fooSource, []byte("foo"), 0o644))
 	defer os.RemoveAll(sourceDir)
@@ -74,8 +73,7 @@ func TestFetch(t *testing.T) {
 				assert := assert.New(t)
 				require := require.New(t)
 
-				emptyDir, err := os.MkdirTemp("", "fileop-test-empty")
-				require.NoError(err)
+				emptyDir := t.TempDir()
 				defer os.RemoveAll(emptyDir)
 				dst := filepath.Join(emptyDir, "dst")
 				if tc.dstContent != nil {

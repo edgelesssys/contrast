@@ -49,8 +49,7 @@ func TestOp(t *testing.T) {
 				assert := assert.New(t)
 				require := require.New(t)
 
-				emptyDir, err := os.MkdirTemp("", "fileop-test-empty")
-				require.NoError(err)
+				emptyDir := t.TempDir()
 				defer os.RemoveAll(emptyDir)
 				src := filepath.Join(emptyDir, "src")
 				dst := filepath.Join(emptyDir, "dst")
@@ -83,8 +82,7 @@ func TestOp(t *testing.T) {
 				assert := assert.New(t)
 				require := require.New(t)
 
-				emptyDir, err := os.MkdirTemp("", "fileop-test-empty")
-				require.NoError(err)
+				emptyDir := t.TempDir()
 				defer os.RemoveAll(emptyDir)
 				src := filepath.Join(emptyDir, "src")
 				dst := filepath.Join(emptyDir, "dst")
@@ -97,7 +95,7 @@ func TestOp(t *testing.T) {
 					defer os.Remove(dst)
 				}
 				osOP := NewDefault()
-				err = osOP.Copy(src, dst)
+				err := osOP.Copy(src, dst)
 				if tc.wantErr {
 					require.Error(err)
 					return
@@ -116,8 +114,7 @@ func TestOp(t *testing.T) {
 				assert := assert.New(t)
 				require := require.New(t)
 
-				emptyDir, err := os.MkdirTemp("", "fileop-test-empty")
-				require.NoError(err)
+				emptyDir := t.TempDir()
 				defer os.RemoveAll(emptyDir)
 				src := filepath.Join(emptyDir, "src")
 				dst := filepath.Join(emptyDir, "dst")
@@ -130,7 +127,7 @@ func TestOp(t *testing.T) {
 					defer os.Remove(dst)
 				}
 				osOP := NewDefault()
-				err = osOP.Move(src, dst)
+				err := osOP.Move(src, dst)
 				if tc.wantErr {
 					require.Error(err)
 					return
