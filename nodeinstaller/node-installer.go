@@ -156,18 +156,15 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 			return restartHostContainerd(containerdConfigPath, "k3s")
 		} else if hostServiceExists("k3s-agent") {
 			return restartHostContainerd(containerdConfigPath, "k3s-agent")
-		} else {
-			return fmt.Errorf("neither k3s nor k3s-agent service found")
 		}
+		return fmt.Errorf("neither k3s nor k3s-agent service found")
 	case platforms.RKE2QEMUTDX:
 		if hostServiceExists("rke2-server") {
 			return restartHostContainerd(containerdConfigPath, "rke2-server")
 		} else if hostServiceExists("rke2-agent") {
 			return restartHostContainerd(containerdConfigPath, "rke2-agent")
-		} else {
-			return fmt.Errorf("neither rke2-server nor rke2-agent service found")
 		}
-
+		return fmt.Errorf("neither rke2-server nor rke2-agent service found")
 	default:
 		return fmt.Errorf("unsupported platform %q", platform)
 	}
