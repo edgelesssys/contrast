@@ -9,6 +9,7 @@ package transitengine
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/asn1"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -18,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	"github.com/edgelesssys/contrast/internal/oid"
 )
 
 const (
@@ -63,6 +65,7 @@ func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger
 				logger.Debug("call getConfigForClient")
 				state, err := authority.GetState()
 				if err != nil {
+					logger.Debug("failed getting state")
 					return nil, fmt.Errorf("getting state: %w", err)
 				}
 				if len(state.CA.GetMeshCACert()) == 0 {
@@ -70,18 +73,13 @@ func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger
 				}
 				meshCAPool := x509.NewCertPool()
 				if !meshCAPool.AppendCertsFromPEM(state.CA.GetMeshCACert()) {
-					logger.Debug("failed parsing mesh CA")
 					return nil, fmt.Errorf("failed to parse mesh CA cert")
 				}
 				logger.Debug("loaded mesh CA cert into pool")
-
 				return &tls.Config{
 					ClientCAs:  meshCAPool,
 					ClientAuth: tls.RequireAndVerifyClientCert,
 					MinVersion: tls.VersionTLS12,
-					GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-						return nil, nil
-					},
 				}, nil
 			},
 		},
@@ -95,8 +93,8 @@ func newTransitEngineMux(authority stateAuthority, logger *slog.Logger) *http.Se
 	// 'name' wildcard is kept to reflect existing transit engine API specifications:
 	// https://openbao.org/api-docs/secret/transit/#encrypt-data
 	// name <=> workloadSecretID, which should be used for the key derivation.
-	mux.Handle("/v1/transit/encrypt/{name}", loggingMiddleware(getEncryptHandler(authority), logger))
-	mux.Handle("/v1/transit/decrypt/{name}", loggingMiddleware(getDecryptHandler(authority), logger))
+	mux.Handle("/v1/transit/encrypt/{name}", loggingMiddleware(authorizationMiddleware(getEncryptHandler(authority)), logger))
+	mux.Handle("/v1/transit/decrypt/{name}", loggingMiddleware(authorizationMiddleware(getDecryptHandler(authority)), logger))
 
 	return mux
 }
@@ -105,10 +103,6 @@ func getEncryptHandler(authority stateAuthority) http.HandlerFunc {
 	// TODO(jmxnzo): Implement Vault json error bodies
 	return func(w http.ResponseWriter, r *http.Request) {
 		workloadSecretID := r.PathValue("name")
-		if workloadSecretID == "" {
-			http.Error(w, "Invalid URL format", http.StatusBadRequest)
-			return
-		}
 		var encReq encryptionRequest
 		if err := parseRequest(r, &encReq); err != nil {
 			http.Error(w, fmt.Sprintf("parsing encryption request: %v", err), http.StatusBadRequest)
@@ -137,10 +131,6 @@ func getEncryptHandler(authority stateAuthority) http.HandlerFunc {
 func getDecryptHandler(authority stateAuthority) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		workloadSecretID := r.PathValue("name")
-		if workloadSecretID == "" {
-			http.Error(w, "Invalid URL format", http.StatusBadRequest)
-			return
-		}
 		var decReq decryptionRequest
 		if err := parseRequest(r, &decReq); err != nil {
 			http.Error(w, fmt.Sprintf("parsing decryption request: %v", err), http.StatusBadRequest)
@@ -165,13 +155,26 @@ func getDecryptHandler(authority stateAuthority) http.HandlerFunc {
 	}
 }
 
+func authorizeWorkloadSecret(workloadSecretID string, r *http.Request) error {
+	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 {
+		return fmt.Errorf("No client certs provided")
+	}
+	extensionWSID, err := extractCertExtension(r.TLS.PeerCertificates[0], oid.WorkloadSecretOID)
+	if err != nil {
+		return fmt.Errorf("missing required workloadSecretID cert extension:%w", err)
+	}
+	if workloadSecretID == extensionWSID {
+		return nil
+	}
+	return fmt.Errorf("mismatching workloadSecretIDs: name:%s, extension:%s", workloadSecretID, extensionWSID)
+}
+
 // deriveEncryptionKey derives the workload secret used as the encryption key by receiving the seedengine of the current state.
 func deriveEncryptionKey(authority stateAuthority, workloadSecretID string) ([]byte, error) {
 	state, err := authority.GetState()
 	if err != nil {
 		return nil, err
 	}
-	// TODO(jmxnzo): authentication of client certs <-> parsed workloadSecretID.
 	derivedWorkloadSecret, err := state.SeedEngine.DeriveWorkloadSecret(workloadSecretID)
 	if err != nil {
 		return nil, err
@@ -230,6 +233,20 @@ func extractVersion(versionStr string) (uint32, error) {
 	return uint32(version), nil
 }
 
+func extractCertExtension(cert *x509.Certificate, oid asn1.ObjectIdentifier) (string, error) {
+	for _, ext := range cert.Extensions {
+		if ext.Id.Equal(oid) {
+			var value []byte
+			_, err := asn1.Unmarshal(ext.Value, &value)
+			if err != nil {
+				return "", fmt.Errorf("failed to parse extension: %w", err)
+			}
+			return string(value), nil
+		}
+	}
+	return "", fmt.Errorf("extension not found")
+}
+
 type responseLogger struct {
 	http.ResponseWriter
 	statusCode   int
@@ -265,5 +282,16 @@ func loggingMiddleware(next http.HandlerFunc, logger *slog.Logger) http.HandlerF
 		} else {
 			logger.Debug(logMsg)
 		}
+	})
+}
+
+func authorizationMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		workloadSecretID := r.PathValue("name")
+		if err := authorizeWorkloadSecret(workloadSecretID, r); err != nil {
+			http.Error(w, fmt.Sprintf("Unauthorized: %v", err), http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
 	})
 }

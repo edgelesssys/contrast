@@ -5,9 +5,7 @@ package transitengine
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -94,7 +92,7 @@ func TestTransitAPICyclic(t *testing.T) {
 	t.Run("encrypt-decrypt handler", func(t *testing.T) {
 		fakeStateAuthority, err := newFakeSeedEngineAuthority()
 		require.NoError(t, err)
-		mux := newTransitEngineMux(fakeStateAuthority, slog.New(discardHandler{}))
+		mux := newMockTransitEngineMux(fakeStateAuthority)
 
 		for name, tc := range testCases {
 			t.Run(name, func(t *testing.T) {
@@ -186,22 +184,10 @@ func (f *fakeStateAuthority) GetState() (*authority.State, error) {
 	return &f.state, nil
 }
 
-type discardHandler struct {
-	slog.Handler
-}
+func newMockTransitEngineMux(authority stateAuthority) *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.Handle("/v1/transit/encrypt/{name}", getEncryptHandler(authority))
+	mux.Handle("/v1/transit/decrypt/{name}", getDecryptHandler(authority))
 
-func (h discardHandler) Enabled(context.Context, slog.Level) bool {
-	return false
-}
-
-func (h discardHandler) Handle(context.Context, slog.Record) error {
-	return nil
-}
-
-func (h discardHandler) WithAttrs([]slog.Attr) slog.Handler {
-	return h
-}
-
-func (h discardHandler) WithGroup(string) slog.Handler {
-	return h
+	return mux
 }
