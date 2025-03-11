@@ -49,11 +49,11 @@ linters:
     - reassign
     - revive
     - sloglint
-    - tenv
     - testifylint
     - unconvert
     - unparam
     - usestdlibvars
+    - usetesting
     - wastedassign
     # keep-sorted end
 

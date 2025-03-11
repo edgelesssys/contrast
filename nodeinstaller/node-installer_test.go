@@ -59,15 +59,14 @@ func TestPatchContainerdConfig(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 
-			tmpDir, err := os.MkdirTemp("", "patch-containerd-config-test")
-			require.NoError(err)
+			tmpDir := t.TempDir()
 			t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
 
 			configPath := filepath.Join(tmpDir, "config.toml")
 
 			runtimeHandler := "my-runtime"
 
-			err = patchContainerdConfig(runtimeHandler,
+			err := patchContainerdConfig(runtimeHandler,
 				filepath.Join("/opt/edgeless", runtimeHandler), configPath, tc.platform, true)
 			if tc.wantErr {
 				require.Error(err)
