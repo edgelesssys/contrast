@@ -8,67 +8,25 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log/slog"
-	"net"
-	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
-	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
-	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
-	"github.com/prometheus/client_golang/prometheus"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
 type meshAPIServer struct {
-	grpc    *grpc.Server
-	cleanup func()
-	logger  *slog.Logger
+	logger *slog.Logger
 
 	meshapi.UnimplementedMeshAPIServer
 }
 
-func newMeshAPIServer(meshAuth *authority.Authority, reg *prometheus.Registry, serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger,
-) (*meshAPIServer, error) {
-	issuer, err := issuer.New(log)
-	if err != nil {
-		return nil, fmt.Errorf("creating issuer: %w", err)
+func newMeshAPIServer(log *slog.Logger) *meshAPIServer {
+	return &meshAPIServer{
+		logger: log.WithGroup("meshapi"),
 	}
-	credentials, cancel := meshAuth.Credentials(reg, issuer)
-
-	grpcServer := grpc.NewServer(
-		grpc.Creds(credentials),
-		grpc.KeepaliveParams(keepalive.ServerParameters{Time: 15 * time.Second}),
-		grpc.ChainStreamInterceptor(
-			serverMetrics.StreamServerInterceptor(),
-		),
-		grpc.ChainUnaryInterceptor(
-			serverMetrics.UnaryServerInterceptor(),
-		),
-	)
-	s := &meshAPIServer{
-		grpc:    grpcServer,
-		cleanup: cancel,
-		logger:  log.WithGroup("meshapi"),
-	}
-	meshapi.RegisterMeshAPIServer(s.grpc, s)
-	serverMetrics.InitializeMetrics(s.grpc)
-
-	return s, nil
-}
-
-func (i *meshAPIServer) Serve(endpoint string) error {
-	lis, err := net.Listen("tcp", endpoint)
-	if err != nil {
-		return fmt.Errorf("failed to listen: %w", err)
-	}
-
-	defer i.cleanup()
-	return i.grpc.Serve(lis)
 }
 
 // NewMeshCert creates a mesh certificate for the connected peer.
