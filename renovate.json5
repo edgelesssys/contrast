@@ -94,10 +94,7 @@
     },
     {
       // Disable updating of locally-replaced dependencies.
-      matchPackageNames: [
-        "github.com/edgelesssys/contrast/node-installer",
-        "github.com/edgelesssys/contrast/snp-id-block-generator",
-      ],
+      matchPackageNames: [ "github.com/edgelesssys/contrast" ],
       enabled: false,
     },
   ],
