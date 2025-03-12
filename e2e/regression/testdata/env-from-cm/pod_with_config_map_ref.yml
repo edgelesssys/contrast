@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nginx
+    spec:
+      runtimeClassName: contrast-cc
+      containers:
+        - name: busybox
+          restartPolicy: Never
+          image: "quay.io/prometheus/busybox:latest"
+          stdin: true
+          env:
+            - name: ENV_FROM_CONFIGMAP
+              valueFrom:
+                configMapKeyRef:
+                  key: key
+                  name: configmap-sample
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.serviceAccountName
+            - name: PROXY_CONFIG
+              value: "{}\n"
+            - name: ISTIO_META_POD_PORTS
+              value: "[\n]"
+            - name: ISTIO_META_APP_CONTAINERS
+              value: serviceaclient
+            - name: ISTIO_META_CLUSTER_ID
+              value: Kubernetes
+            - name: ISTIO_META_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          securityContext:
+            privileged: true
+          command:
+            - /bin/sh
+          args:
+            - "-c"
+            - while true; do echo $(POD_NAME); sleep 10; done
