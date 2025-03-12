@@ -51,7 +51,7 @@ func New(rulesPath, settingsPath, cachePath string, bin []byte) (*Runner, error)
 // Run runs the tool on the given yaml.
 //
 // Run can be called more than once.
-func (r *Runner) Run(ctx context.Context, yamlPath string, logger *slog.Logger) error {
+func (r *Runner) Run(ctx context.Context, yamlPath string, cmPath []string, logger *slog.Logger) error {
 	args := []string{
 		"--runtime-class-names=contrast-cc",
 		"--rego-rules-path=" + r.rulesPath,
@@ -59,6 +59,14 @@ func (r *Runner) Run(ctx context.Context, yamlPath string, logger *slog.Logger) 
 		"--layers-cache-file-path=" + r.cachePath,
 		"--yaml-file=" + yamlPath,
 	}
+
+	if len(cmPath) > 0 {
+		// "-c" is shared between the kata and microsoft genpolicy for different long flags
+		args = append(args, "-c="+cmPath[0])
+	} else if len(cmPath) > 1 {
+		return fmt.Errorf("multiple files with ConfigMaps found, only one is allowed")
+	}
+
 	genpolicy := exec.CommandContext(ctx, r.genpolicy.Path(), args...)
 	genpolicy.Env = os.Environ()
 	if _, hasRustLog := os.LookupEnv("RUST_LOG"); !hasRustLog {

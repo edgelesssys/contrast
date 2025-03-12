@@ -69,7 +69,7 @@ func TestRunner(t *testing.T) {
 	r, err := New(expectedRulesPath, expectedSettingsPath, cachePath, genpolicyBin)
 	require.NoError(err)
 
-	require.NoError(r.Run(ctx, expectedYAMLPath, logger))
+	require.NoError(r.Run(ctx, expectedYAMLPath, nil, logger))
 
 	rulesPath, err := os.ReadFile(rulesPathFile)
 	require.NoError(err)

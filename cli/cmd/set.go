@@ -93,7 +93,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("loading workload owner key: %w", err)
 	}
 
-	paths, err := findGenerateTargets(args, log)
+	paths, _, err := findGenerateTargets(args, log)
 	if err != nil {
 		return fmt.Errorf("finding yaml files: %w", err)
 	}
