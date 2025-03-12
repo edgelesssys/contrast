@@ -19,7 +19,7 @@ Follow Canonical's instructions on [setting up Intel TDX in the host's BIOS](htt
 
 <Tabs queryString="vendor">
 <TabItem value="amd" label="AMD SEV-SNP">
-Install a kernel with version 6.11 or greater. If you're following this guide before 6.11 has been released, use 6.11-rc3. Don't use 6.11-rc4 - 6.11-rc6 as they contain a regression. 6.11-rc7+ might work.
+Install Linux kernel 6.11 or greater.
 </TabItem>
 <TabItem value="intel" label="Intel TDX">
 Follow Canonical's instructions on [setting up Intel TDX on Ubuntu 24.04](https://github.com/canonical/tdx?tab=readme-ov-file#41-install-ubuntu-2404-server-image). Note that Contrast currently only supports Intel TDX with Ubuntu 24.04.
