@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package main
+package meshapi
 
 import (
 	"context"
@@ -17,14 +17,16 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type meshAPIServer struct {
+// Server implements the meshapi service.
+type Server struct {
 	logger *slog.Logger
 
 	meshapi.UnimplementedMeshAPIServer
 }
 
-func newMeshAPIServer(log *slog.Logger) *meshAPIServer {
-	return &meshAPIServer{
+// New returns a meshapi server using a sub-logger of log.
+func New(log *slog.Logger) *Server {
+	return &Server{
 		logger: log.WithGroup("meshapi"),
 	}
 }
@@ -34,7 +36,7 @@ func newMeshAPIServer(log *slog.Logger) *meshAPIServer {
 // When this handler is called, the transport credentials already ensured that
 // the peer is authorized according to the manifest, so it can start issuing
 // right away.
-func (i *meshAPIServer) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertRequest) (*meshapi.NewMeshCertResponse, error) {
+func (i *Server) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertRequest) (*meshapi.NewMeshCertResponse, error) {
 	i.logger.Info("NewMeshCert called")
 
 	p, ok := peer.FromContext(ctx)

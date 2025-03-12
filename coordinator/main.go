@@ -17,6 +17,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	meshapiserver "github.com/edgelesssys/contrast/coordinator/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
@@ -88,7 +89,7 @@ func run() (retErr error) {
 	meshAPIcredentials, cancel := meshAuth.Credentials(promRegistry, issuer)
 	defer cancel()
 	meshAPIServer := newGRPCServer(meshAPIcredentials, serverMetrics)
-	meshapi.RegisterMeshAPIServer(meshAPIServer, newMeshAPIServer(logger))
+	meshapi.RegisterMeshAPIServer(meshAPIServer, meshapiserver.New(logger))
 	serverMetrics.InitializeMetrics(meshAPIServer)
 
 	metricsServer := &http.Server{}
