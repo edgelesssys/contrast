@@ -171,8 +171,14 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 		ct.commonArgs(),
 		"--image-replacements", ct.ImageReplacementsFile,
 		"--reference-values", ct.Platform.String(),
-		path.Join(ct.WorkDir, "resources.yml"),
 	)
+
+	// add all files from tempdir as arguments
+	files, err := ct.getAllYMLFilesInWorkDir()
+	require.NoError(err)
+	for _, file := range files {
+		args = append(args, path.Join(ct.WorkDir, file))
+	}
 
 	generate := cmd.NewGenerateCmd()
 	generate.Flags().String("workspace-dir", "", "") // Make generate aware of root flags
@@ -290,9 +296,15 @@ func patchReferenceValues(k *kubeclient.Kubeclient, platform platforms.Platform)
 // Apply the generated resources to the Kubernetes test environment.
 func (ct *ContrastTest) Apply(t *testing.T) {
 	require := require.New(t)
-	yaml, err := os.ReadFile(path.Join(ct.WorkDir, "resources.yml"))
+
+	files, err := ct.getAllYMLFilesInWorkDir()
 	require.NoError(err)
-	ct.ApplyFromYAML(t, yaml)
+
+	for _, file := range files {
+		yaml, err := os.ReadFile(path.Join(ct.WorkDir, file))
+		require.NoError(err)
+		ct.ApplyFromYAML(t, yaml)
+	}
 }
 
 // ApplyFromYAML applies the given YAML to the Kubernetes test environment.
@@ -315,7 +327,15 @@ func (ct *ContrastTest) Set(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
-	require.NoError(ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), path.Join(ct.WorkDir, "resources.yml")))
+	files, err := ct.getAllYMLFilesInWorkDir()
+	require.NoError(err)
+
+	additionalArgs := make([]string, 0, len(files))
+	for _, file := range files {
+		additionalArgs = append(additionalArgs, path.Join(ct.WorkDir, file))
+	}
+
+	require.NoError(ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), additionalArgs...))
 }
 
 // RunVerify runs the contrast verify subcommand.
@@ -435,6 +455,24 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 		}
 		return nil
 	})
+}
+
+func (ct *ContrastTest) getAllYMLFilesInWorkDir() ([]string, error) {
+	files, err := os.ReadDir(ct.WorkDir)
+	if err != nil {
+		return nil, fmt.Errorf("reading workdir: %w", err)
+	}
+
+	var ymlFiles []string
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		if strings.HasSuffix(file.Name(), ".yml") {
+			ymlFiles = append(ymlFiles, file.Name())
+		}
+	}
+	return ymlFiles, nil
 }
 
 // FactorPlatformTimeout returns a timeout that is adjusted for the platform.
