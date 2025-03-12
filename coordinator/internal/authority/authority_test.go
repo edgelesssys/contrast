@@ -68,7 +68,13 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 
 	mnfst, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
 	require.NoError(t, err)
-	mnfst.Policies = map[manifest.HexString]manifest.PolicyEntry{policyHashHex: {SANs: []string{"test"}, WorkloadSecretID: "test2"}}
+	mnfst.Policies = map[manifest.HexString]manifest.PolicyEntry{
+		policyHashHex: {
+			SANs:             []string{"test"},
+			WorkloadSecretID: "test2",
+			Role:             manifest.RoleCoordinator,
+		},
+	}
 	mnfst.WorkloadOwnerKeyDigests = []manifest.HexString{keyDigest}
 	mnfstBytes, err := json.Marshal(mnfst)
 	require.NoError(t, err)

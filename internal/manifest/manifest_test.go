@@ -283,6 +283,26 @@ func TestValidate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		"no coordinator policy": {
+			m: newTestManifestSNP(),
+			mutate: func(m *Manifest) {
+				for k := range m.Policies {
+					p := m.Policies[k]
+					p.Role = RoleNone
+					m.Policies[k] = p
+				}
+			},
+			wantErr: true,
+		},
+		"two coordinator policies": {
+			m: newTestManifestSNP(),
+			mutate: func(m *Manifest) {
+				m.Policies[HexString("2bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")] = PolicyEntry{
+					Role: "coordinator",
+				}
+			},
+			wantErr: true,
+		},
 	}
 
 	for name, tc := range testCases {
@@ -310,6 +330,12 @@ func TestAKSValidateOpts(t *testing.T) {
 
 	m, err := Default(platforms.AKSCloudHypervisorSNP)
 	require.NoError(err)
+
+	m.Policies = map[HexString]PolicyEntry{
+		HexString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"): {
+			Role: RoleCoordinator,
+		},
+	}
 
 	opts, err := m.SNPValidateOpts(nil)
 	require.NoError(err)
