@@ -380,6 +380,9 @@ jobs:
           - name: K3s-QEMU-SNP
             runner: SNP
             self-hosted: true
+          - name: K3s-QEMU-SNP-GPU
+            runner: SNP-GPU
+            self-hosted: true
           - name: K3s-QEMU-TDX
             runner: TDX
             self-hosted: true
