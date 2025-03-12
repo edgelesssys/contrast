@@ -38,7 +38,6 @@ const (
 
 func main() {
 	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: running coordinator: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -137,7 +136,7 @@ func run() (retErr error) {
 
 	eg.Go(func() error {
 		<-ctx.Done()
-		logger.Error("Error detected, shutting down")
+		logger.Info("Error detected, shutting down")
 		grpcServer.GracefulStop()
 		meshAPI.grpc.GracefulStop()
 		//nolint:contextcheck // fresh context for cleanup
