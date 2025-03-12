@@ -203,6 +203,16 @@ func (m *Manifest) Validate() error {
 		}
 	}
 
+	var coordinatorCount int
+	for _, policy := range m.Policies {
+		if policy.Role == RoleCoordinator {
+			coordinatorCount++
+		}
+	}
+	if coordinatorCount != 1 {
+		return fmt.Errorf("expected exactly 1 policy with role 'coordinator', got %d", coordinatorCount)
+	}
+
 	if err := m.ReferenceValues.Validate(); err != nil {
 		return fmt.Errorf("validating reference values: %w", err)
 	}
