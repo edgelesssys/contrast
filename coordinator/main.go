@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -59,7 +60,7 @@ func run() (retErr error) {
 
 	logger.Info("Coordinator started")
 
-	if err := mount.SetupMount(context.Background(), logger, "/dev/csi0", "/mnt/state"); err != nil {
+	if err := mount.SetupMount(ctx, logger, "/dev/csi0", "/mnt/state"); err != nil {
 		return fmt.Errorf("setting up mount: %w", err)
 	}
 
@@ -136,11 +137,15 @@ func run() (retErr error) {
 
 	eg.Go(func() error {
 		<-ctx.Done()
-		logger.Info("Error detected, shutting down")
-		grpcServer.GracefulStop()
-		meshAPI.grpc.GracefulStop()
-		//nolint:contextcheck // fresh context for cleanup
-		return metricsServer.Shutdown(context.Background())
+		logger.Info("Context done, shutting down", "err", ctx.Err())
+		// New context for cleanup, Kubernetes grace period is 30 seconds.
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		wg := &sync.WaitGroup{}
+		gracefulStopGRPC(ctx, wg, grpcServer)   //nolint:contextcheck
+		gracefulStopGRPC(ctx, wg, meshAPI.grpc) //nolint:contextcheck
+		wg.Wait()
+		return metricsServer.Shutdown(ctx) //nolint:contextcheck
 	})
 
 	return eg.Wait()
@@ -179,4 +184,21 @@ func newGRPCServer(serverMetrics *grpcprometheus.ServerMetrics, log *slog.Logger
 		),
 	)
 	return grpcServer, nil
+}
+
+func gracefulStopGRPC(ctx context.Context, wg *sync.WaitGroup, server *grpc.Server) {
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		cleanupDone := make(chan struct{})
+		go func() {
+			server.GracefulStop()
+			close(cleanupDone)
+		}()
+		select {
+		case <-ctx.Done():
+			server.Stop()
+		case <-cleanupDone:
+		}
+	}()
 }
