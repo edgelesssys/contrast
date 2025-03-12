@@ -12,7 +12,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
+    - uses: cachix/install-nix-action@91a071959513ca103b54280ac0bef5b825791d4d # v31
       with:
         github_access_token: ${{ inputs.githubToken }}
     - uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15
