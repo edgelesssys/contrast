@@ -11,12 +11,12 @@ import (
 	"flag"
 	"os"
 	"path"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
+	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -26,7 +26,7 @@ import (
 
 func TestRegression(t *testing.T) {
 	yamlDir := "./e2e/regression/testdata/"
-	files, err := os.ReadDir(yamlDir)
+	testEntries, err := os.ReadDir(yamlDir)
 	require.NoError(t, err)
 
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
@@ -50,33 +50,55 @@ func TestRegression(t *testing.T) {
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 	require.True(t, t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-	for _, file := range files {
-		t.Run(file.Name(), func(t *testing.T) {
+	for _, entry := range testEntries {
+		t.Run(entry.Name(), func(t *testing.T) {
 			require := require.New(t)
 
 			c := kubeclient.NewForTest(t)
 
-			yaml, err := os.ReadFile(yamlDir + file.Name())
-			require.NoError(err)
-			yaml = bytes.ReplaceAll(yaml, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
+			var resourcesFiles []os.DirEntry
+			if entry.IsDir() {
+				resourcesFiles, err = os.ReadDir(path.Join(yamlDir, entry.Name()))
+				require.NoError(err)
+			} else {
+				resourcesFiles = append(resourcesFiles, entry)
+			}
 
-			newResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
-			require.NoError(err)
+			var deploymentNames []string
+			for _, resourceFile := range resourcesFiles {
+				prefixPath := yamlDir
+				if entry.IsDir() {
+					prefixPath = path.Join(prefixPath, entry.Name())
+				}
+				yaml, err := os.ReadFile(path.Join(prefixPath, resourceFile.Name()))
+				require.NoError(err)
+				yaml = bytes.ReplaceAll(yaml, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
 
-			newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
-			newResources = kuberesource.AddPortForwarders(newResources)
+				newResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
+				require.NoError(err)
 
-			// write the new resources.yml
-			resourceBytes, err := kuberesource.EncodeResources(newResources...)
-			require.NoError(err)
-			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
+				// write each resource file to the workdir under its original name
+				resourceBytes, err := kuberesource.EncodeResources(newResources...)
+				require.NoError(err)
+				require.NoError(os.WriteFile(path.Join(ct.WorkDir, resourceFile.Name()), resourceBytes, 0o644))
+				t.Cleanup(func() {
+					require.NoError(os.Remove(path.Join(ct.WorkDir, resourceFile.Name())))
+				})
 
-			deploymentName, _ := strings.CutSuffix(file.Name(), ".yml")
-
-			t.Cleanup(func() {
-				// delete the deployment
-				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), deploymentName, metav1.DeleteOptions{}))
-			})
+				// Get deployment name if kind is deployment
+				k8sResources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
+				require.NoError(err)
+				for _, k8sResource := range k8sResources {
+					if k8sResource.GetKind() == "Deployment" {
+						deploymentName := k8sResource.GetName()
+						deploymentNames = append(deploymentNames, deploymentName)
+						t.Cleanup(func() {
+							t.Log("deleting deployment", deploymentName)
+							require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), deploymentName, metav1.DeleteOptions{}))
+						})
+					}
+				}
+			}
 
 			// generate, set, deploy and verify the new policy
 			require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
@@ -86,7 +108,10 @@ func TestRegression(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(3*time.Minute))
 			defer cancel()
-			require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, deploymentName))
+
+			for _, deploymentName := range deploymentNames {
+				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, deploymentName))
+			}
 		})
 	}
 }
