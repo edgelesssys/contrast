@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"io"
+	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/edgelesssys/contrast/tools/igvm"
@@ -26,43 +26,103 @@ func newRootCmd() *cobra.Command {
 		Use:   "igvm",
 		Short: "igvm",
 	}
-
+	cmd.AddCommand(newModfiyCmd())
 	return cmd
 }
 
-func run() {
-	f, err := os.ReadFile(os.Args[1])
+func newModfiyCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "modify <path to igvm>",
+		Short: "modify",
+		RunE:  runModify,
+	}
+	cmd.Flags().StringP("output", "o", "", "output file path")
+	cmd.MarkFlagFilename("output")
+	cmd.Flags().String("snp-id-block", "", "overwrite SNP IDBlock (path to JSON file)")
+	cmd.MarkFlagFilename("snp-id-block")
+	return cmd
+}
+
+func runModify(cmd *cobra.Command, args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("expected 1 argument, got %d", len(args))
+	}
+
+	flags, err := parseModifyFlags(cmd)
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("parsing flags: %w", err)
 	}
 
-	if len(f) < 0x16 {
-		panic("file too small")
+	igvmFile, err := readIGVM(args[0])
+	if err != nil {
+		return fmt.Errorf("reading igvm file: %w", err)
 	}
 
-	var igvmFile igvm.IGVM
-	if err := igvmFile.BinaryUnmarshal(f); err != nil {
-		panic(err)
-	}
-
-	var idblock igvm.VhsSnpIDBlock
-	for i, vhs := range igvmFile.VariableHeaders {
-		if vhs.Type == igvm.VhtSnpIdBlock {
-			if err := idblock.BinaryUnmarshal(vhs.Content); err != nil {
-				panic(err)
+	if flags.snpIDBlockPath != "" {
+		var idBlockUpdate igvm.VhsSnpIDBlock
+		f, err := os.ReadFile(flags.snpIDBlockPath)
+		if err != nil {
+			return fmt.Errorf("reading file from %q: %w", flags.snpIDBlockPath, err)
+		}
+		if err := json.Unmarshal(f, &idBlockUpdate); err != nil {
+			return fmt.Errorf("unmarshaling snp id block from json: %w", err)
+		}
+		for i, vhs := range igvmFile.VariableHeaders {
+			if vhs.Type == igvm.VhtSnpIdBlock {
+				idBlockUpdateBytes, err := idBlockUpdate.BinaryMarshal()
+				if err != nil {
+					return fmt.Errorf("marshaling snp id block to binary: %w", err)
+				}
+				igvmFile.VariableHeaders[i].Content = idBlockUpdateBytes
+				break
 			}
-			idblockBytes, err := idblock.BinaryMarshal()
-			if err != nil {
-				panic(err)
-			}
-			igvmFile.VariableHeaders[i].Content = idblockBytes
-			break
 		}
 	}
 
 	igvmData, err := igvmFile.BinaryMarshal()
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("marshaling igvm: %w", err)
 	}
-	io.Copy(os.Stdout, bytes.NewBuffer(igvmData))
+
+	if flags.outputPath == "" {
+		flags.outputPath = args[0]
+	}
+
+	if err := os.WriteFile(flags.outputPath, igvmData, 0o644); err != nil {
+		return fmt.Errorf("writing igvm to %q: %w", flags.outputPath, err)
+	}
+
+	return nil
+}
+
+type modifyFlags struct {
+	outputPath     string
+	snpIDBlockPath string
+}
+
+func parseModifyFlags(cmd *cobra.Command) (modifyFlags, error) {
+	var flags modifyFlags
+	var err error
+	flags.outputPath, err = cmd.Flags().GetString("output")
+	if err != nil {
+		return flags, fmt.Errorf("failed to get output path: %w", err)
+	}
+	flags.snpIDBlockPath, err = cmd.Flags().GetString("snp-id-block")
+	if err != nil {
+		return flags, fmt.Errorf("failed to get SNP IDBlock path: %w", err)
+	}
+	return flags, nil
+}
+
+func readIGVM(path string) (*igvm.IGVM, error) {
+	f, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading file from %q: %w", path, err)
+	}
+
+	var igvmFile igvm.IGVM
+	if err := igvmFile.BinaryUnmarshal(f); err != nil {
+		return nil, fmt.Errorf("unmarshaling igvm file: %w", err)
+	}
+	return &igvmFile, nil
 }
