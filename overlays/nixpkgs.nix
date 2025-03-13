@@ -45,4 +45,20 @@ final: prev:
       })
     ];
   });
+
+  # Pad with zero bytes instead of zero ascii characters.
+  # https://github.com/microsoft/igvm-tooling/pull/59
+  igvm-tooling = prev.igvm-tooling.overrideAttrs (
+    _finalAttrs: prevAttrs: {
+      patches = prevAttrs.patches ++ [
+        (final.fetchpatch {
+          name = "0002-pad-with-zero.patch";
+          url = "https://github.com/microsoft/igvm-tooling/commit/f46b3b297d87ae8f11935f08cc63bcb280c4b132.patch";
+          hash = "sha256-v1VBUSfQWOgqQKFoUMCl72IclirNEP8mRWVhLgKpBXY=";
+          stripLen = 1;
+        })
+      ];
+    }
+  );
+
 }
