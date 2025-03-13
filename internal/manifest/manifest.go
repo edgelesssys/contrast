@@ -27,9 +27,11 @@ type Manifest struct {
 	// ReferenceValues specifies the allowed TEE configurations in the deployment. If ANY
 	// of the reference values validates the attestation report of the workload,
 	// the workload is considered valid.
-	ReferenceValues         ReferenceValues
+	ReferenceValues ReferenceValues
+	// WorkloadOwnerKeyDigests is a list of ECDSA public keys in PKIX DER format, hashed with SHA256 and hex-encoded.
 	WorkloadOwnerKeyDigests []HexString
-	SeedshareOwnerPubKeys   []HexString
+	// SeedshareOwnerPubKeys is a list of RSA public keys in PKCS1 DER format, hex-encoded.
+	SeedshareOwnerPubKeys []HexString
 }
 
 // PolicyEntry is a policy entry in the manifest. It contains further information the user wants to associate with the policy.
