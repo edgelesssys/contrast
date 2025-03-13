@@ -21,8 +21,11 @@ buildGoModule rec {
         (path.append root "go.sum")
         (path.append root "tools/snp-id-block-generator/go.mod")
         (path.append root "tools/snp-id-block-generator/go.sum")
+        (path.append root "tools/igvm/go.mod")
+        (path.append root "tools/igvm/go.sum")
         (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/idblock"))
         (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/constants"))
+        (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "tools/igvm"))
         (fileset.fileFilter (file: hasSuffix ".go" file.name) (
           path.append root "tools/snp-id-block-generator"
         ))

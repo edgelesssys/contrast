@@ -1,3 +1,6 @@
+// Copyright 2025 Edgeless Systems GmbH
+// SPDX-License-Identifier: AGPL-3.0-only
+
 package igvm
 
 type IGVM struct {
