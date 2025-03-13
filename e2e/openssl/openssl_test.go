@@ -62,8 +62,8 @@ func TestOpenSSL(t *testing.T) {
 
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-	t.Run("check coordinator metrics endpoint", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
+	t.Run("check coordinator metrics and probe endpoints", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(3*time.Minute))
 		defer cancel()
 
 		require := require.New(t)
@@ -81,6 +81,16 @@ func TestOpenSSL(t *testing.T) {
 		argv := []string{"/bin/sh", "-c", "curl --fail " + net.JoinHostPort(coordinatorPods[0].Status.PodIP, "9102") + "/metrics"}
 		_, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
 		require.NoError(err, "stderr: %q", stderr)
+
+		for _, endpoint := range []string{"/probe/startup", "/probe/liveness", "/probe/readiness"} {
+			argv := []string{"/bin/sh", "-c", "curl --silent --output /dev/null -w \"%{http_code}\" " + net.JoinHostPort(coordinatorPods[0].Status.PodIP, "9102") + endpoint}
+			stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
+			require.NoError(err, "stderr: %q", stderr)
+			if stdout != "200" && stdout != "503" {
+				t.Logf("unexpected status code from probe: %s", stdout)
+				t.Fail()
+			}
+		}
 	})
 
 	for cert, pool := range map[string]*x509.CertPool{
