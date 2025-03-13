@@ -16,6 +16,7 @@ spec:
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak@sha256:b55f55ff60e905db4809ac133c6b963b87963ec1b49aae6d218fdd53646cb09e
+          args: ["start-dev"]
           ports:
             - containerPort: 9000
             - containerPort: 8443
