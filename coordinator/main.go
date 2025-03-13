@@ -12,12 +12,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	"github.com/edgelesssys/contrast/coordinator/internal/probes"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
@@ -34,7 +36,8 @@ import (
 )
 
 const (
-	metricsPortEnvVar = "CONTRAST_METRICS_PORT"
+	metricsEnvVar       = "CONTRAST_METRICS"
+	probeAndMetricsPort = 9102
 )
 
 func main() {
@@ -64,7 +67,6 @@ func run() (retErr error) {
 		return fmt.Errorf("setting up mount: %w", err)
 	}
 
-	metricsPort := os.Getenv(metricsPortEnvVar)
 	promRegistry := prometheus.NewRegistry()
 	serverMetrics := newServerMetrics(promRegistry)
 
@@ -85,30 +87,36 @@ func run() (retErr error) {
 	if err != nil {
 		return fmt.Errorf("creating mesh API server: %w", err)
 	}
-	metricsServer := &http.Server{}
+	httpServer := &http.Server{}
+	userapiStarted := false
+	meshapiStarted := false
+
+	startupHandler := probes.StartupHandler{UserapiStarted: &userapiStarted, MeshapiStarted: &meshapiStarted}
+	livenessHandler := probes.LivenessHandler{Hist: hist}
+	readinessHandler := probes.ReadinessHandler{Authority: meshAuth}
 
 	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
-		if metricsPort == "" {
-			return nil
-		}
-		if metricsPort == userapi.Port || metricsPort == meshapi.Port {
-			return fmt.Errorf("invalid port for metrics endpoint: %s", metricsPort)
-		}
-		logger.Info("Starting prometheus /metrics endpoint on port " + metricsPort)
+		_, enableMetrics := os.LookupEnv(metricsEnvVar)
 		mux := http.NewServeMux()
-		mux.Handle("/metrics", promhttp.InstrumentMetricHandler(
-			promRegistry, promhttp.HandlerFor(
-				promRegistry,
-				promhttp.HandlerOpts{Registry: promRegistry},
-			),
-		))
-		metricsServer.Addr = ":" + metricsPort
-		metricsServer.Handler = mux
-		if err := metricsServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("Serving Prometheus /metrics endpoint", "err", err)
-			return fmt.Errorf("serving Prometheus endpoint: %w", err)
+		if enableMetrics {
+			logger.Info("Starting prometheus /metrics endpoint on port " + strconv.Itoa(probeAndMetricsPort))
+			mux.Handle("/metrics", promhttp.InstrumentMetricHandler(
+				promRegistry, promhttp.HandlerFor(
+					promRegistry,
+					promhttp.HandlerOpts{Registry: promRegistry},
+				),
+			))
+		}
+		mux.Handle("/probe/startup", startupHandler)
+		mux.Handle("/probe/liveness", livenessHandler)
+		mux.Handle("/probe/readiness", readinessHandler)
+		httpServer.Addr = ":" + strconv.Itoa(probeAndMetricsPort)
+		httpServer.Handler = mux
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Starting http server", "err", err)
+			return fmt.Errorf("starting http server: %w", err)
 		}
 		return nil
 	})
@@ -123,6 +131,7 @@ func run() (retErr error) {
 			logger.Error("Serving Coordinator API", "err", err)
 			return fmt.Errorf("serving Coordinator API: %w", err)
 		}
+		userapiStarted = true
 		return nil
 	})
 
@@ -132,6 +141,7 @@ func run() (retErr error) {
 			logger.Error("Serving mesh API", "err", err)
 			return fmt.Errorf("serving mesh API: %w", err)
 		}
+		meshapiStarted = true
 		return nil
 	})
 
@@ -145,7 +155,7 @@ func run() (retErr error) {
 		gracefulStopGRPC(ctx, wg, grpcServer)   //nolint:contextcheck
 		gracefulStopGRPC(ctx, wg, meshAPI.grpc) //nolint:contextcheck
 		wg.Wait()
-		return metricsServer.Shutdown(ctx) //nolint:contextcheck
+		return httpServer.Shutdown(ctx) //nolint:contextcheck
 	})
 
 	return eg.Wait()
