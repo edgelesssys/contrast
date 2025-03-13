@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	contrastcrypto "github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/stretchr/testify/assert"
@@ -189,4 +190,62 @@ func TestContextPassdown(t *testing.T) {
 	err := verifyEmbeddedReport(ctx, validators, cert, nil, nil)
 	// The contextValidator forwards the context error, so this should be canceled.
 	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestNonceInALPN(t *testing.T) {
+	var nonce [contrastcrypto.RNGLengthDefault]byte
+
+	nextProto := encodeNonceToNextProtos(nonce[:])
+
+	for _, tc := range []struct {
+		name            string
+		supportedProtos []string
+		shouldFail      bool
+		wantErr         error
+	}{
+		{
+			name:       "no protocols",
+			shouldFail: true,
+			wantErr:    errNoNonce,
+		},
+		{
+			name:            "unrelated protocols",
+			supportedProtos: []string{"h2"},
+			shouldFail:      true,
+			wantErr:         errNoNonce,
+		},
+		{
+			name:            "first",
+			supportedProtos: []string{nextProto, "h2"},
+		},
+		{
+			name:            "last",
+			supportedProtos: []string{"h2", nextProto},
+		},
+		{
+			name:            "bad nonce",
+			supportedProtos: []string{"atls:v1:nonce:bad nonce value"},
+			shouldFail:      true,
+		},
+		{
+			name:            "wrong version",
+			supportedProtos: []string{"atls:v2:nonce:02f2f9a189459c46c3eb8a40683ca4a07bbe05fc82a18cf023025481de178ab5"},
+			shouldFail:      true,
+			wantErr:         errNoNonce,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require := require.New(t)
+			gotNonce, err := decodeNonceFromSupportedProtos(tc.supportedProtos)
+			if !tc.shouldFail {
+				require.NoError(err)
+				require.Equal(nonce[:], gotNonce)
+				return
+			}
+			require.Error(err)
+			if tc.wantErr != nil {
+				require.ErrorIs(err, tc.wantErr)
+			}
+		})
+	}
 }
