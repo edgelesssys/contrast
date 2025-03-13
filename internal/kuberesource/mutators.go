@@ -421,19 +421,19 @@ func PatchServiceMeshAdminInterface(resources []any, port int32) []any {
 	return out
 }
 
-// PatchCoordinatorMetrics enables Coordinator metrics on the specified port.
-func PatchCoordinatorMetrics(resources []any, port int32) []any {
+// PatchCoordinatorMetrics enables Coordinator metrics on port 9102.
+func PatchCoordinatorMetrics(resources []any) []any {
 	for _, resource := range resources {
 		switch r := resource.(type) {
 		case *applyappsv1.StatefulSetApplyConfiguration:
 			if r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.Spec != nil &&
 				len(r.Spec.Template.Spec.Containers) > 0 &&
 				r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
-				r.Spec.Template.Spec.Containers[0].WithEnv(NewEnvVar("CONTRAST_METRICS_PORT", fmt.Sprint(port)))
+				r.Spec.Template.Spec.Containers[0].WithEnv(NewEnvVar("CONTRAST_METRICS", "1"))
 				r.Spec.Template.Spec.Containers[0].WithPorts(
 					ContainerPort().
 						WithName("prometheus").
-						WithContainerPort(port),
+						WithContainerPort(9102),
 				)
 			}
 		}
