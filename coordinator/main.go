@@ -137,7 +137,11 @@ func run() (retErr error) {
 	})
 
 	eg.Go(func() error {
-		transitAPI := transitengine.NewTransitEngineAPI(meshAuth, 8200, logger)
+		transitAPI, err := transitengine.NewTransitEngineAPI(meshAuth, 8200, logger)
+		if err != nil {
+			logger.Error("Initialize transit engine API", "err", err)
+			return fmt.Errorf("Initialize transit engine API: %w", err)
+		}
 		logger.Info("Transit Engine API initialized")
 		logger.Info("Serving transit engine API", "err", err)
 		if err := transitAPI.ListenAndServeTLS("", ""); err != nil {

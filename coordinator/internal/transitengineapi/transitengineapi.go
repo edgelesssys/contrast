@@ -7,10 +7,14 @@
 package transitengine
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -56,7 +60,11 @@ type stateAuthority interface {
 }
 
 // NewTransitEngineAPI sets up the transit engine API with a provided seedEngineAuthority.
-func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger) *http.Server {
+func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger) (*http.Server, error) {
+	privKeyAPI, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed creating transit engine API private key")
+	}
 	return &http.Server{
 		Addr: fmt.Sprintf(":%d", port),
 		TLSConfig: &tls.Config{
@@ -80,11 +88,14 @@ func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger
 					ClientCAs:  meshCAPool,
 					ClientAuth: tls.RequireAndVerifyClientCert,
 					MinVersion: tls.VersionTLS12,
+					GetCertificate: func(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
+						return getCertificate(privKeyAPI, authority)
+					},
 				}, nil
 			},
 		},
 		Handler: newTransitEngineMux(authority, logger),
-	}
+	}, nil
 }
 
 func newTransitEngineMux(authority stateAuthority, logger *slog.Logger) *http.ServeMux {
@@ -294,4 +305,30 @@ func authorizationMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func getCertificate(privKeyAPI *ecdsa.PrivateKey, authority stateAuthority) (*tls.Certificate, error) {
+	state, err := authority.GetState()
+	if err != nil {
+		return nil, fmt.Errorf("getting state: %w", err)
+	}
+	dnsNames := []string{"coordinator"}
+
+	meshCertPEM, err := state.CA.NewAttestedMeshCert(dnsNames, nil, &privKeyAPI.PublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create mesh cert: %w", err)
+	}
+	meshCertDER, _ := pem.Decode(meshCertPEM)
+	if meshCertDER == nil {
+		return nil, fmt.Errorf("failed to decode mesh cert: %w", err)
+	}
+	intermCertDER, _ := pem.Decode(state.CA.GetIntermCACert())
+	if intermCertDER == nil {
+		return nil, fmt.Errorf("failed to decode intermediate cert: %w", err)
+	}
+	certChain := tls.Certificate{
+		Certificate: [][]byte{meshCertDER.Bytes, intermCertDER.Bytes},
+		PrivateKey:  privKeyAPI,
+	}
+	return &certChain, nil
 }
