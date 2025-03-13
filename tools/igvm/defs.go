@@ -1,16 +1,16 @@
-package defs
+package igvm
 
 import (
 	"encoding/binary"
 	"fmt"
 )
 
-// IGVMMagicValue is the required magic number in IGVM_FIXED_HEADER.
+// MagicValue is the required magic number in IGVM_FIXED_HEADER.
 // This is ASCII "IGVM" in little-endian format.
-const IGVMMagicValue uint32 = 0x4D564749
+const MagicValue uint32 = 0x4D564749
 
-// IGVMFixedHeader represents the version 1 fixed header at the start of every IGVM file.
-type IGVMFixedHeader struct {
+// FixedHeader represents the version 1 fixed header at the start of every IGVM file.
+type FixedHeader struct {
 	Magic                uint32
 	FormatVersion        uint32
 	VariableHeaderOffset uint32
@@ -20,7 +20,7 @@ type IGVMFixedHeader struct {
 }
 
 // BinaryMarshal marshals the fixed header to a byte slice.
-func (h *IGVMFixedHeader) BinaryMarshal() ([]byte, error) {
+func (h *FixedHeader) BinaryMarshal() ([]byte, error) {
 	data := make([]byte, 24)
 	binary.LittleEndian.PutUint32(data[0:4], h.Magic)
 	binary.LittleEndian.PutUint32(data[4:8], h.FormatVersion)
@@ -32,7 +32,7 @@ func (h *IGVMFixedHeader) BinaryMarshal() ([]byte, error) {
 }
 
 // BinaryUnmarshal unmarshals the fixed header from a byte slice.
-func (h *IGVMFixedHeader) BinaryUnmarshal(data []byte) error {
+func (h *FixedHeader) BinaryUnmarshal(data []byte) error {
 	if len(data) != 24 {
 		return fmt.Errorf("expected 24 bytes, but got %d", len(data))
 	}
@@ -45,109 +45,109 @@ func (h *IGVMFixedHeader) BinaryUnmarshal(data []byte) error {
 	return nil
 }
 
-// IgvmVariableHeaderType represents the type of each structure in the variable header section.
-type IgvmVariableHeaderType uint32
+// VariableHeaderType represents the type of each structure in the variable header section.
+type VariableHeaderType uint32
 
 const (
 	// Invalid type
-	Invalid IgvmVariableHeaderType = 0x0
+	Invalid VariableHeaderType = 0x0
 
 	// IGVM_VHT_RANGE_PLATFORM structures
-	IgvmVhtSupportedPlatform IgvmVariableHeaderType = 0x1
+	VhtSupportedPlatform VariableHeaderType = 0x1
 
 	// IGVM_VHT_RANGE_INIT structures
-	IgvmVhtGuestPolicy               IgvmVariableHeaderType = 0x101
-	IgvmVhtRelocatableRegion         IgvmVariableHeaderType = 0x102
-	IgvmVhtPageTableRelocationRegion IgvmVariableHeaderType = 0x103
+	VhtGuestPolicy               VariableHeaderType = 0x101
+	VhtRelocatableRegion         VariableHeaderType = 0x102
+	VhtPageTableRelocationRegion VariableHeaderType = 0x103
 
 	// IGVM_VHT_RANGE_DIRECTIVE structures
-	IgvmVhtParameterArea            IgvmVariableHeaderType = 0x301
-	IgvmVhtPageData                 IgvmVariableHeaderType = 0x302
-	IgvmVhtParameterInsert          IgvmVariableHeaderType = 0x303
-	IgvmVhtVpContext                IgvmVariableHeaderType = 0x304
-	IgvmVhtRequiredMemory           IgvmVariableHeaderType = 0x305
-	ReservedDoNotUse                IgvmVariableHeaderType = 0x306
-	IgvmVhtVpCountParameter         IgvmVariableHeaderType = 0x307
-	IgvmVhtSrat                     IgvmVariableHeaderType = 0x308
-	IgvmVhtMadt                     IgvmVariableHeaderType = 0x309
-	IgvmVhtMmioRanges               IgvmVariableHeaderType = 0x30A
-	IgvmVhtSnpIdBlock               IgvmVariableHeaderType = 0x30B
-	IgvmVhtMemoryMap                IgvmVariableHeaderType = 0x30C
-	IgvmVhtErrorRange               IgvmVariableHeaderType = 0x30D
-	IgvmVhtCommandLine              IgvmVariableHeaderType = 0x30E
-	IgvmVhtSlit                     IgvmVariableHeaderType = 0x30F
-	IgvmVhtPptt                     IgvmVariableHeaderType = 0x310
-	IgvmVhtVbsMeasurement           IgvmVariableHeaderType = 0x311
-	IgvmVhtDeviceTree               IgvmVariableHeaderType = 0x312
-	IgvmVhtEnvironmentInfoParameter IgvmVariableHeaderType = 0x313
+	VhtParameterArea            VariableHeaderType = 0x301
+	VhtPageData                 VariableHeaderType = 0x302
+	VhtParameterInsert          VariableHeaderType = 0x303
+	VhtVpContext                VariableHeaderType = 0x304
+	VhtRequiredMemory           VariableHeaderType = 0x305
+	ReservedDoNotUse            VariableHeaderType = 0x306
+	VhtVpCountParameter         VariableHeaderType = 0x307
+	VhtSrat                     VariableHeaderType = 0x308
+	VhtMadt                     VariableHeaderType = 0x309
+	VhtMmioRanges               VariableHeaderType = 0x30A
+	VhtSnpIdBlock               VariableHeaderType = 0x30B
+	VhtMemoryMap                VariableHeaderType = 0x30C
+	VhtErrorRange               VariableHeaderType = 0x30D
+	VhtCommandLine              VariableHeaderType = 0x30E
+	VhtSlit                     VariableHeaderType = 0x30F
+	VhtPptt                     VariableHeaderType = 0x310
+	VhtVbsMeasurement           VariableHeaderType = 0x311
+	VhtDeviceTree               VariableHeaderType = 0x312
+	VhtEnvironmentInfoParameter VariableHeaderType = 0x313
 )
 
 // String method for human-readable output
-func (t IgvmVariableHeaderType) String() string {
+func (t VariableHeaderType) String() string {
 	switch t {
 	case Invalid:
 		return "Invalid"
-	case IgvmVhtSupportedPlatform:
-		return "IgvmVhtSupportedPlatform"
-	case IgvmVhtGuestPolicy:
-		return "IgvmVhtGuestPolicy"
-	case IgvmVhtRelocatableRegion:
-		return "IgvmVhtRelocatableRegion"
-	case IgvmVhtPageTableRelocationRegion:
-		return "IgvmVhtPageTableRelocationRegion"
-	case IgvmVhtParameterArea:
-		return "IgvmVhtParameterArea"
-	case IgvmVhtPageData:
-		return "IgvmVhtPageData"
-	case IgvmVhtParameterInsert:
-		return "IgvmVhtParameterInsert"
-	case IgvmVhtVpContext:
-		return "IgvmVhtVpContext"
-	case IgvmVhtRequiredMemory:
-		return "IgvmVhtRequiredMemory"
+	case VhtSupportedPlatform:
+		return "VhtSupportedPlatform"
+	case VhtGuestPolicy:
+		return "VhtGuestPolicy"
+	case VhtRelocatableRegion:
+		return "VhtRelocatableRegion"
+	case VhtPageTableRelocationRegion:
+		return "VhtPageTableRelocationRegion"
+	case VhtParameterArea:
+		return "VhtParameterArea"
+	case VhtPageData:
+		return "VhtPageData"
+	case VhtParameterInsert:
+		return "VhtParameterInsert"
+	case VhtVpContext:
+		return "VhtVpContext"
+	case VhtRequiredMemory:
+		return "VhtRequiredMemory"
 	case ReservedDoNotUse:
 		return "ReservedDoNotUse"
-	case IgvmVhtVpCountParameter:
-		return "IgvmVhtVpCountParameter"
-	case IgvmVhtSrat:
-		return "IgvmVhtSrat"
-	case IgvmVhtMadt:
-		return "IgvmVhtMadt"
-	case IgvmVhtMmioRanges:
-		return "IgvmVhtMmioRanges"
-	case IgvmVhtSnpIdBlock:
-		return "IgvmVhtSnpIdBlock"
-	case IgvmVhtMemoryMap:
-		return "IgvmVhtMemoryMap"
-	case IgvmVhtErrorRange:
-		return "IgvmVhtErrorRange"
-	case IgvmVhtCommandLine:
-		return "IgvmVhtCommandLine"
-	case IgvmVhtSlit:
-		return "IgvmVhtSlit"
-	case IgvmVhtPptt:
-		return "IgvmVhtPptt"
-	case IgvmVhtVbsMeasurement:
-		return "IgvmVhtVbsMeasurement"
-	case IgvmVhtDeviceTree:
-		return "IgvmVhtDeviceTree"
-	case IgvmVhtEnvironmentInfoParameter:
-		return "IgvmVhtEnvironmentInfoParameter"
+	case VhtVpCountParameter:
+		return "VhtVpCountParameter"
+	case VhtSrat:
+		return "VhtSrat"
+	case VhtMadt:
+		return "VhtMadt"
+	case VhtMmioRanges:
+		return "VhtMmioRanges"
+	case VhtSnpIdBlock:
+		return "VhtSnpIdBlock"
+	case VhtMemoryMap:
+		return "VhtMemoryMap"
+	case VhtErrorRange:
+		return "VhtErrorRange"
+	case VhtCommandLine:
+		return "VhtCommandLine"
+	case VhtSlit:
+		return "VhtSlit"
+	case VhtPptt:
+		return "VhtPptt"
+	case VhtVbsMeasurement:
+		return "VhtVbsMeasurement"
+	case VhtDeviceTree:
+		return "VhtDeviceTree"
+	case VhtEnvironmentInfoParameter:
+		return "VhtEnvironmentInfoParameter"
 	default:
 		return fmt.Sprintf("UnknownType(0x%X)", uint32(t))
 	}
 }
 
-// IGVMVHSVariableHeader represents a variable header in IGVM.
-type IGVMVHSVariableHeader struct {
-	Type    IgvmVariableHeaderType
+// VariableHeader represents a variable header in IGVM.
+type VariableHeader struct {
+	Type    VariableHeaderType
 	Length  uint32
 	Content []byte
 	Padding []byte // Unmarshal only.
 }
 
 // BinaryMarshal marshals the variable header to a byte slice.
-func (h *IGVMVHSVariableHeader) BinaryMarshal() ([]byte, error) {
+func (h *VariableHeader) BinaryMarshal() ([]byte, error) {
 	var paddingLen int
 	if h.Length%8 != 0 {
 		paddingLen = 8 - int(h.Length)%8 // Round to 8 byte alignment
@@ -163,8 +163,8 @@ func (h *IGVMVHSVariableHeader) BinaryMarshal() ([]byte, error) {
 }
 
 // BinaryUnmarshal unmarshals the variable header from a byte slice.
-func (h *IGVMVHSVariableHeader) BinaryUnmarshal(data []byte) error {
-	h.Type = IgvmVariableHeaderType(binary.LittleEndian.Uint32(data[0:4]))
+func (h *VariableHeader) BinaryUnmarshal(data []byte) error {
+	h.Type = VariableHeaderType(binary.LittleEndian.Uint32(data[0:4]))
 	h.Length = binary.LittleEndian.Uint32(data[4:8])
 	if h.Length == 0 {
 		return nil
@@ -177,7 +177,7 @@ func (h *IGVMVHSVariableHeader) BinaryUnmarshal(data []byte) error {
 	return nil
 }
 
-// // IgvmVhsRequiredMemory describes memory the IGVM file expects to be present in the
+// // VhsRequiredMemory describes memory the IGVM file expects to be present in the
 // // guest. This is a hint to the loader that the guest will not function without
 // // memory present at the specified range, and should terminate the load process
 // // if memory is not present.
@@ -187,7 +187,7 @@ func (h *IGVMVHSVariableHeader) BinaryUnmarshal(data []byte) error {
 // //
 // // Note that the guest cannot rely on memory being present at this location at
 // // runtime, as a malicious host may choose to ignore this header.
-// type IgvmVhsRequiredMemory struct {
+// type VhsRequiredMemory struct {
 // 	GPA               uint64
 // 	CompatibilityMask uint32
 // 	NumberOfBytes     uint32
@@ -195,37 +195,37 @@ func (h *IGVMVHSVariableHeader) BinaryUnmarshal(data []byte) error {
 // 	Reserved          uint32
 // }
 
-// // RequiredMemoryFlags represents flags for IgvmVhsRequiredMemory.
+// // RequiredMemoryFlags represents flags for VhsRequiredMemory.
 // type RequiredMemoryFlags struct {
 // 	Vtl2Protectable bool
 // 	Reserved        uint32 // 31 bits reserved
 // }
 
-// // IgvmVhsMemoryRange describes memory via a range of pages.
-// type IgvmVhsMemoryRange struct {
+// // VhsMemoryRange describes memory via a range of pages.
+// type VhsMemoryRange struct {
 // 	StartingGPAPageNumber uint64
 // 	NumberOfPages         uint64
 // }
 
-// // IgvmVhsMmioRanges describes the MMIO ranges for the guest for a
+// // VhsMmioRanges describes the MMIO ranges for the guest for a
 // // [`IgvmVariableHeaderType::IGVM_VHT_MMIO_RANGES`] parameter.
 // //
 // // Note that this structure can only define two mmio ranges, for a full
 // // reporting of the guest's mmio ranges, the
 // // [`IgvmVariableHeaderType::IGVM_VHT_DEVICE_TREE`] parameter should be used
 // // instead.
-// type IgvmVhsMmioRanges struct {
-// 	MMIORanges [2]IgvmVhsMemoryRange
+// type VhsMmioRanges struct {
+// 	MMIORanges [2]VhsMemoryRange
 // }
 
-// IgvmVhsSnpIDBlockSignature represents the signature for the SNP ID block. See the corresponding PSP definitions.
-type IgvmVhsSnpIDBlockSignature struct {
+// VhsSnpIDBlockSignature represents the signature for the SNP ID block. See the corresponding PSP definitions.
+type VhsSnpIDBlockSignature struct {
 	RComp [72]uint8
 	SComp [72]uint8
 }
 
 // BinaryMarshal marshals the SNP ID block signature to a byte slice.
-func (b *IgvmVhsSnpIDBlockSignature) BinaryMarshal() ([]byte, error) {
+func (b *VhsSnpIDBlockSignature) BinaryMarshal() ([]byte, error) {
 	data := make([]byte, 144)
 	copy(data[0:72], b.RComp[:])
 	copy(data[72:144], b.SComp[:])
@@ -233,7 +233,7 @@ func (b *IgvmVhsSnpIDBlockSignature) BinaryMarshal() ([]byte, error) {
 }
 
 // BinaryUnmarshal unmarshals the SNP ID block signature from a byte slice.
-func (b *IgvmVhsSnpIDBlockSignature) BinaryUnmarshal(data []byte) error {
+func (b *VhsSnpIDBlockSignature) BinaryUnmarshal(data []byte) error {
 	if len(data) != 144 {
 		return fmt.Errorf("expected 144 bytes, but got %d", len(data))
 	}
@@ -242,8 +242,8 @@ func (b *IgvmVhsSnpIDBlockSignature) BinaryUnmarshal(data []byte) error {
 	return nil
 }
 
-// IgvmVhsSnpIDBlockPublicKey represents the public key for the SNP ID block. See the corresponding PSP definitions.
-type IgvmVhsSnpIDBlockPublicKey struct {
+// VhsSnpIDBlockPublicKey represents the public key for the SNP ID block. See the corresponding PSP definitions.
+type VhsSnpIDBlockPublicKey struct {
 	Curve    uint32
 	Reserved uint32
 	QX       [72]uint8
@@ -251,7 +251,7 @@ type IgvmVhsSnpIDBlockPublicKey struct {
 }
 
 // BinaryMarshal marshals the SNP ID block public key to a byte slice.
-func (b *IgvmVhsSnpIDBlockPublicKey) BinaryMarshal() ([]byte, error) {
+func (b *VhsSnpIDBlockPublicKey) BinaryMarshal() ([]byte, error) {
 	data := make([]byte, 152)
 	binary.LittleEndian.PutUint32(data[0:4], b.Curve)
 	binary.LittleEndian.PutUint32(data[4:8], b.Reserved)
@@ -261,7 +261,7 @@ func (b *IgvmVhsSnpIDBlockPublicKey) BinaryMarshal() ([]byte, error) {
 }
 
 // BinaryUnmarshal unmarshals the SNP ID block public key from a byte slice.
-func (b *IgvmVhsSnpIDBlockPublicKey) BinaryUnmarshal(data []byte) error {
+func (b *VhsSnpIDBlockPublicKey) BinaryUnmarshal(data []byte) error {
 	if len(data) != 152 {
 		return fmt.Errorf("expected 144 bytes, but got %d", len(data))
 	}
@@ -272,7 +272,7 @@ func (b *IgvmVhsSnpIDBlockPublicKey) BinaryUnmarshal(data []byte) error {
 	return nil
 }
 
-// IgvmVhsSnpIDBlock describes the AMD SEV-SNP ID block.
+// VhsSnpIDBlock describes the AMD SEV-SNP ID block.
 //
 // AuthorKeyEnabled is set to 0x1 if an author key is to be used, with the
 // following corresponding author keys populated. Otherwise, the author key
@@ -281,7 +281,7 @@ func (b *IgvmVhsSnpIDBlockPublicKey) BinaryUnmarshal(data []byte) error {
 // Other fields share the same meaning as defined in the SNP API specification.
 //
 // TODO: doc links for fields to SNP spec.
-type IgvmVhsSnpIDBlock struct {
+type VhsSnpIDBlock struct {
 	CompatibilityMask  uint32
 	AuthorKeyEnabled   uint8
 	Reserved           [3]uint8
@@ -292,14 +292,14 @@ type IgvmVhsSnpIDBlock struct {
 	GuestSVN           uint32
 	IDKeyAlgorithm     uint32
 	AuthorKeyAlgorithm uint32
-	IDKeySignature     IgvmVhsSnpIDBlockSignature
-	IDPublicKey        IgvmVhsSnpIDBlockPublicKey
-	AuthorKeySignature IgvmVhsSnpIDBlockSignature
-	AuthorPublicKey    IgvmVhsSnpIDBlockPublicKey
+	IDKeySignature     VhsSnpIDBlockSignature
+	IDPublicKey        VhsSnpIDBlockPublicKey
+	AuthorKeySignature VhsSnpIDBlockSignature
+	AuthorPublicKey    VhsSnpIDBlockPublicKey
 }
 
 // BinaryMarshal marshals the SNP ID block to a byte slice.
-func (b *IgvmVhsSnpIDBlock) BinaryMarshal() ([]byte, error) {
+func (b *VhsSnpIDBlock) BinaryMarshal() ([]byte, error) {
 	data := make([]byte, 696)
 	binary.LittleEndian.PutUint32(data[0:4], b.CompatibilityMask)
 	data[4] = b.AuthorKeyEnabled
@@ -335,7 +335,7 @@ func (b *IgvmVhsSnpIDBlock) BinaryMarshal() ([]byte, error) {
 }
 
 // BinaryUnmarshal unmarshals the SNP ID block from a byte slice.
-func (b *IgvmVhsSnpIDBlock) BinaryUnmarshal(data []byte) error {
+func (b *VhsSnpIDBlock) BinaryUnmarshal(data []byte) error {
 	if len(data) != 696 {
 		return fmt.Errorf("expected 696 bytes, but got %d", len(data))
 	}
@@ -364,11 +364,11 @@ func (b *IgvmVhsSnpIDBlock) BinaryUnmarshal(data []byte) error {
 	return nil
 }
 
-// // IgvmVhsVbsMeasurement describes a VBS measurement to be used with Hyper-V's VBS
+// // VhsVbsMeasurement describes a VBS measurement to be used with Hyper-V's VBS
 // // isolation architecture.
 // //
 // // TODO: doc fields.
-// type IgvmVhsVbsMeasurement struct {
+// type VhsVbsMeasurement struct {
 // 	CompatibilityMask     uint32
 // 	Version               uint32
 // 	ProductID             uint32
@@ -425,13 +425,13 @@ func (b *IgvmVhsSnpIDBlock) BinaryUnmarshal(data []byte) error {
 // 	}
 // }
 
-// // IgvmVhsMemoryMapEntry is deposited by the loader for memory map entries for
+// // VhsMemoryMapEntry is deposited by the loader for memory map entries for
 // // [`IgvmVariableHeaderType::IGVM_VHT_MEMORY_MAP`] that describe memory
 // // available to the guest.
 // //
 // // A well-behaved loader will report these in sorted order, with a final entry
 // // with `number_of_pages` with zero signifying the last entry.
-// type IgvmVhsMemoryMapEntry struct {
+// type VhsMemoryMapEntry struct {
 // 	// StartingGPAPageNumber is the starting gpa page number for this range of memory.
 // 	StartingGPAPageNumber uint64
 // 	// NumberOfPages is the number of pages in this range of memory.
