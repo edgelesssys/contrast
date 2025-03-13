@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/attestation"
@@ -79,11 +80,13 @@ func CreateAttestationClientTLSConfig(ctx context.Context, issuer Issuer, valida
 		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 			return clientConn.verify(ctx, rawCerts, verifiedChains)
 		},
-		GetClientCertificate: clientConn.getCertificate,                      // use custom certificate for mutual aTLS connections
-		InsecureSkipVerify:   true,                                           // disable default verification because we use our own verify func
-		ServerName:           base64.StdEncoding.EncodeToString(clientNonce), // abuse ServerName as a channel to transmit the nonce
+		GetClientCertificate: clientConn.getCertificate, // use custom certificate for mutual aTLS connections
+		InsecureSkipVerify:   true,                      // disable default verification because we use our own verify func
 		MinVersion:           tls.VersionTLS12,
-		NextProtos:           []string{"h2"}, // grpc-go requires us to advertise HTTP/2 (h2) over ALPN
+		NextProtos: []string{
+			encodeNonceToNextProtos(clientNonce),
+			"h2", // grpc-go requires us to advertise HTTP/2 (h2) over ALPN
+		},
 	}, nil
 }
 
@@ -327,6 +330,29 @@ func decodeNonceFromAcceptableCAs(acceptableCAs [][]byte) ([]byte, error) {
 	return nil, errors.New("CN not found")
 }
 
+var errNoNonce = errors.New("no nonce in supported protocols or SNI")
+
+const noncePrefix = "atls:v1:nonce:"
+
+func encodeNonceToNextProtos(nonce []byte) string {
+	return fmt.Sprintf("%s%x", noncePrefix, nonce)
+}
+
+func decodeNonceFromSupportedProtos(protos []string) ([]byte, error) {
+	for _, proto := range protos {
+		nonceHex, ok := strings.CutPrefix(proto, noncePrefix)
+		if !ok {
+			continue
+		}
+		nonce, err := hex.DecodeString(nonceHex)
+		if err != nil {
+			return nil, fmt.Errorf("decoding nonce: %w", err)
+		}
+		return nonce, nil
+	}
+	return nil, errNoNonce
+}
+
 // clientConnection holds state for client to server connections.
 type clientConnection struct {
 	issuer      Issuer
@@ -413,14 +439,33 @@ func (c *serverConnection) verify(ctx context.Context, rawCerts [][]byte, verifi
 // getCertificate generates a client certificate for aTLS connections.
 // Can be used for mutual as well as basic aTLS.
 func (c *serverConnection) getCertificate(chi *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	// abuse ServerName as a channel to receive the nonce
-	clientNonce, err := base64.StdEncoding.DecodeString(chi.ServerName)
+	clientNonce, err := getNonce(chi)
 	if err != nil {
-		return nil, fmt.Errorf("decode nonce: %w", err)
+		return nil, err
 	}
-
 	// create aTLS certificate using the nonce as extracted from the client-hello message
 	return getCertificate(chi.Context(), c.issuer, c.privKey, publicKey(c.privKey), clientNonce)
+}
+
+func getNonce(chi *tls.ClientHelloInfo) ([]byte, error) {
+	// Try to get the nonce from ALPN first.
+	clientNonce, err := decodeNonceFromSupportedProtos(chi.SupportedProtos)
+	if err == nil {
+		return clientNonce, nil
+	}
+	if !errors.Is(err, errNoNonce) {
+		return nil, fmt.Errorf("decoding nonce from SupportedProtos: %w", err)
+	}
+
+	// Fall back to base64-encoded nonce in SNI.
+	if chi.ServerName == "" {
+		return nil, errNoNonce
+	}
+	clientNonce, err = base64.StdEncoding.DecodeString(chi.ServerName)
+	if err != nil {
+		return nil, fmt.Errorf("decoding nonce from SNI: %w", err)
+	}
+	return clientNonce, nil
 }
 
 // FakeIssuer fakes an issuer and can be used for tests.

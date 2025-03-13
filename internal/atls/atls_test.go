@@ -6,12 +6,15 @@ package atls
 import (
 	"context"
 	"crypto"
+	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
+	"encoding/base64"
 	"encoding/json"
 	"testing"
 
+	contrastcrypto "github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/stretchr/testify/assert"
@@ -189,4 +192,91 @@ func TestContextPassdown(t *testing.T) {
 	err := verifyEmbeddedReport(ctx, validators, cert, nil, nil)
 	// The contextValidator forwards the context error, so this should be canceled.
 	require.ErrorIs(t, err, context.Canceled)
+}
+
+func TestNonceInALPN(t *testing.T) {
+	var nonce [contrastcrypto.RNGLengthDefault]byte
+
+	nextProto := encodeNonceToNextProtos(nonce[:])
+
+	for name, tc := range map[string]struct {
+		supportedProtos []string
+		shouldFail      bool
+		wantErr         error
+	}{
+		"no protocols": {
+			shouldFail: true,
+			wantErr:    errNoNonce,
+		},
+		"unrelated protocols": {
+			supportedProtos: []string{"h2"},
+			shouldFail:      true,
+			wantErr:         errNoNonce,
+		},
+		"first": {
+			supportedProtos: []string{nextProto, "h2"},
+		},
+		"last": {
+			supportedProtos: []string{"h2", nextProto},
+		},
+		"bad nonce": {
+			supportedProtos: []string{"atls:v1:nonce:bad nonce value"},
+			shouldFail:      true,
+		},
+		"wrong version": {
+			supportedProtos: []string{"atls:v2:nonce:02f2f9a189459c46c3eb8a40683ca4a07bbe05fc82a18cf023025481de178ab5"},
+			shouldFail:      true,
+			wantErr:         errNoNonce,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+			gotNonce, err := decodeNonceFromSupportedProtos(tc.supportedProtos)
+			if !tc.shouldFail {
+				require.NoError(err)
+				require.Equal(nonce[:], gotNonce)
+				return
+			}
+			require.Error(err)
+			if tc.wantErr != nil {
+				require.ErrorIs(err, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestGetNonce(t *testing.T) {
+	wantNonce := [contrastcrypto.RNGLengthDefault]byte{42}
+
+	for name, tc := range map[string]struct {
+		clientHello *tls.ClientHelloInfo
+		wantErr     error
+	}{
+		"ALPN": {
+			clientHello: &tls.ClientHelloInfo{
+				SupportedProtos: []string{encodeNonceToNextProtos(wantNonce[:])},
+			},
+		},
+		"SNI": {
+			clientHello: &tls.ClientHelloInfo{
+				ServerName: base64.StdEncoding.EncodeToString(wantNonce[:]),
+			},
+		},
+		"no nonce": {
+			clientHello: &tls.ClientHelloInfo{},
+			wantErr:     errNoNonce,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			nonce, err := getNonce(tc.clientHello)
+			if tc.wantErr != nil {
+				assert.Nil(nonce)
+				assert.ErrorIs(err, tc.wantErr)
+				return
+			}
+			assert.Equal(wantNonce[:], nonce)
+			assert.NoError(err)
+		})
+	}
 }
