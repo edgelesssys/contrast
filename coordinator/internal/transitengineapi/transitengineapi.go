@@ -99,6 +99,8 @@ func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger
 	}, nil
 }
 
+// newTransitEngineMux creates the http multiplexer for the required transit engine API path,
+// adding the corresponding middlewares for logging and authorization.
 func newTransitEngineMux(authority stateAuthority, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
@@ -234,6 +236,8 @@ func getDecryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 	}
 }
 
+// auhorizeWorkloadSecret authorizes the client request by extracting the workloadSecretID
+// sent as the mesh cert extension and ensures equality to the workloadSecretID handed in.
 func authorizeWorkloadSecret(workloadSecretID string, r *http.Request) error {
 	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 {
 		return fmt.Errorf("no client certs provided")
@@ -321,6 +325,8 @@ func extractVersion(versionStr string) (uint32, error) {
 	return uint32(version), nil
 }
 
+// extractWorkloadSecretExtension is a helper function which checks if the extension OID exists in the certificate and returns the string representation
+// of the contained bytes.
 func extractWorkloadSecretExtension(cert *x509.Certificate) (string, error) {
 	for _, ext := range cert.Extensions {
 		if ext.Id.Equal(oid.WorkloadSecretOID) {
@@ -335,6 +341,8 @@ func extractWorkloadSecretExtension(cert *x509.Certificate) (string, error) {
 	return "", fmt.Errorf("extension not found")
 }
 
+// authorizationMiddleware reads out the workloadSecretID stored in name URL parameter and ensures
+// the client request to be authorized.
 func authorizationMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		workloadSecretID := r.PathValue("name")
@@ -346,6 +354,9 @@ func authorizationMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
+// getCertificate calls the CA of the current state to issue a new mesh cert for the private key handed in.
+// It returns a tls.Certificate, which holds the certChain consisting of the new mesh cert and the intermediate
+// CA cert.
 func getCertificate(privKeyAPI *ecdsa.PrivateKey, authority stateAuthority) (*tls.Certificate, error) {
 	state, err := authority.GetState()
 	if err != nil {
