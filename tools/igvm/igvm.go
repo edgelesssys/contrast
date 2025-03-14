@@ -3,14 +3,34 @@
 
 package igvm
 
+import (
+	"fmt"
+	"hash/crc32"
+)
+
 type IGVM struct {
 	Header          FixedHeader
 	VariableHeaders []VariableHeader
 	FileData        []byte
 }
 
+// UpdateChecksum updates the checksum of the IGVM struct.
+func (i *IGVM) UpdateChecksum() error {
+	i.Header.Checksum = 0
+	data, err := i.binaryMarshal(false)
+	if err != nil {
+		return fmt.Errorf("marshaling to binary: %w", err)
+	}
+	i.Header.Checksum = crc32.ChecksumIEEE(data)
+	return nil
+}
+
 // BinaryMarshal marshals the IGVM struct into a byte slice.
 func (i *IGVM) BinaryMarshal() ([]byte, error) {
+	return i.binaryMarshal(true)
+}
+
+func (i *IGVM) binaryMarshal(withData bool) ([]byte, error) {
 	data, err := i.Header.BinaryMarshal()
 	if err != nil {
 		return nil, err
@@ -22,7 +42,10 @@ func (i *IGVM) BinaryMarshal() ([]byte, error) {
 		}
 		data = append(data, vhsData...)
 	}
-	data = append(data, i.FileData...)
+	if withData {
+		// File data is not included in the checksum calculation.
+		data = append(data, i.FileData...)
+	}
 	return data, nil
 }
 

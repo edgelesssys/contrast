@@ -40,9 +40,9 @@ func newModfiyCmd() *cobra.Command {
 		RunE:  runModify,
 	}
 	cmd.Flags().StringP("output", "o", "", "output file path")
-	cmd.MarkFlagFilename("output")
+	must(cmd.MarkFlagFilename("output"))
 	cmd.Flags().String("snp-id-block", "", "overwrite SNP IDBlock (path to JSON file)")
-	cmd.MarkFlagFilename("snp-id-block")
+	must(cmd.MarkFlagFilename("snp-id-block"))
 	return cmd
 }
 
@@ -82,6 +82,10 @@ func runModify(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if err := igvmFile.UpdateChecksum(); err != nil {
+		return fmt.Errorf("updating checksum: %w", err)
+	}
+
 	igvmData, err := igvmFile.BinaryMarshal()
 	if err != nil {
 		return fmt.Errorf("marshaling igvm: %w", err)
@@ -89,6 +93,13 @@ func runModify(cmd *cobra.Command, args []string) error {
 
 	if flags.outputPath == "" {
 		flags.outputPath = args[0]
+	}
+
+	if flags.outputPath == "-" {
+		if _, err := os.Stdout.Write(igvmData); err != nil {
+			return fmt.Errorf("writing igvm to stdout: %w", err)
+		}
+		return nil
 	}
 
 	if err := os.WriteFile(flags.outputPath, igvmData, 0o644); err != nil {
@@ -128,4 +139,10 @@ func readIGVM(path string) (*igvm.IGVM, error) {
 		return nil, fmt.Errorf("unmarshaling igvm file: %w", err)
 	}
 	return &igvmFile, nil
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
