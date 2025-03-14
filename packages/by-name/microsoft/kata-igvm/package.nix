@@ -94,7 +94,7 @@ let
         --snp-id-block ${snpIDBlock}/id-block-igvm-milan.json \
         --output $out
       mkdir -p $debug
-      mv present.json $debug/present.json
+      # mv present.json $debug/present.json
     '';
 
     passthru = {

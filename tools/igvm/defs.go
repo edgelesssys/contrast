@@ -5,6 +5,7 @@ package igvm
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 )
 
@@ -85,7 +86,29 @@ const (
 	VhtEnvironmentInfoParameter VariableHeaderType = 0x313
 )
 
-// String method for human-readable output
+// MarshalJSON marshals the variable header type to JSON.
+func (t VariableHeaderType) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, t.String())), nil
+}
+
+// UnmarshalJSON unmarshals the variable header type from JSON.
+func (t *VariableHeaderType) UnmarshalJSON(data []byte) error {
+	s := string(data)
+	if len(s) < 2 {
+		return fmt.Errorf("invalid variable header type %q", s)
+	}
+	if s[0] != '"' || s[len(s)-1] != '"' {
+		return fmt.Errorf("invalid variable header type %q", s)
+	}
+	v, err := VariableHeaderTypeFromString(s[1 : len(s)-1])
+	if err != nil {
+		return fmt.Errorf("unmarshaling variable header type: %w", err)
+	}
+	*t = v
+	return nil
+}
+
+// String method for human-readable output.
 func (t VariableHeaderType) String() string {
 	switch t {
 	case Invalid:
@@ -141,6 +164,60 @@ func (t VariableHeaderType) String() string {
 	}
 }
 
+// VariableHeaderTypeFromString converts a string to a VariableHeaderType.
+func VariableHeaderTypeFromString(s string) (VariableHeaderType, error) {
+	switch s {
+	case "VhtSupportedPlatform":
+		return VhtSupportedPlatform, nil
+	case "VhtGuestPolicy":
+		return VhtGuestPolicy, nil
+	case "VhtRelocatableRegion":
+		return VhtRelocatableRegion, nil
+	case "VhtPageTableRelocationRegion":
+		return VhtPageTableRelocationRegion, nil
+	case "VhtParameterArea":
+		return VhtParameterArea, nil
+	case "VhtPageData":
+		return VhtPageData, nil
+	case "VhtParameterInsert":
+		return VhtParameterInsert, nil
+	case "VhtVpContext":
+		return VhtVpContext, nil
+	case "VhtRequiredMemory":
+		return VhtRequiredMemory, nil
+	case "ReservedDoNotUse":
+		return ReservedDoNotUse, nil
+	case "VhtVpCountParameter":
+		return VhtVpCountParameter, nil
+	case "VhtSrat":
+		return VhtSrat, nil
+	case "VhtMadt":
+		return VhtMadt, nil
+	case "VhtMmioRanges":
+		return VhtMmioRanges, nil
+	case "VhtSnpIdBlock":
+		return VhtSnpIdBlock, nil
+	case "VhtMemoryMap":
+		return VhtMemoryMap, nil
+	case "VhtErrorRange":
+		return VhtErrorRange, nil
+	case "VhtCommandLine":
+		return VhtCommandLine, nil
+	case "VhtSlit":
+		return VhtSlit, nil
+	case "VhtPptt":
+		return VhtPptt, nil
+	case "VhtVbsMeasurement":
+		return VhtVbsMeasurement, nil
+	case "VhtDeviceTree":
+		return VhtDeviceTree, nil
+	case "VhtEnvironmentInfoParameter":
+		return VhtEnvironmentInfoParameter, nil
+	default:
+		return Invalid, fmt.Errorf("unknown variable header type %q", s)
+	}
+}
+
 // VariableHeader represents a variable header in IGVM.
 type VariableHeader struct {
 	Type    VariableHeaderType
@@ -178,6 +255,49 @@ func (h *VariableHeader) BinaryUnmarshal(data []byte) error {
 		h.Padding = data[8+h.Length : 8+h.Length+paddingLen]
 	}
 	return nil
+}
+
+func (h *VariableHeader) TypedContent() (any, error) {
+	switch h.Type {
+	case VhtSnpIdBlock:
+		var content VhsSnpIDBlock
+		if err := content.BinaryUnmarshal(h.Content); err != nil {
+			return nil, fmt.Errorf("unmarshaling SupportedPlatform: %w", err)
+		}
+		return content, nil
+	default:
+		return nil, fmt.Errorf("unknown variable header type %q", h.Type)
+	}
+}
+
+// MarshalJSON marshals the variable header to JSON.
+func (h *VariableHeader) MarshalJSON() ([]byte, error) {
+	switch h.Type {
+	case VhtSnpIdBlock:
+		typedContent, err := h.TypedContent()
+		if err != nil {
+			return nil, fmt.Errorf("marshaling typed content: %w", err)
+		}
+		return json.Marshal(struct {
+			Type    VariableHeaderType `json:"Type"`
+			Length  uint32             `json:"Length"`
+			Content VhsSnpIDBlock      `json:"Content"`
+		}{
+			Type:    h.Type,
+			Length:  h.Length,
+			Content: typedContent.(VhsSnpIDBlock),
+		})
+	}
+
+	return json.Marshal(struct {
+		Type    VariableHeaderType `json:"Type"`
+		Length  uint32             `json:"Length"`
+		Content []byte             `json:"Content"`
+	}{
+		Type:    h.Type,
+		Length:  h.Length,
+		Content: h.Content,
+	})
 }
 
 // // VhsRequiredMemory describes memory the IGVM file expects to be present in the
@@ -466,3 +586,10 @@ func (b *VhsSnpIDBlock) BinaryUnmarshal(data []byte) error {
 // 	// VbsSigningAlgorithmEcdsaP384 is the ECDSA signature algorithm with P-384 curve.
 // 	VbsSigningAlgorithmEcdsaP384 VbsSigningAlgorithm = 0x1
 // )
+
+func alignment(size uint32) uint32 {
+	if size%8 == 0 {
+		return size
+	}
+	return size + 8 - size%8
+}
