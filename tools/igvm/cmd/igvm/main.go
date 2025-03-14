@@ -72,6 +72,20 @@ func runModify(cmd *cobra.Command, args []string) error {
 		}
 		for i, vhs := range igvmFile.VariableHeaders {
 			if vhs.Type == igvm.VhtSnpIdBlock {
+				// Debug
+				var idBlockPresent igvm.VhsSnpIDBlock
+				if err := idBlockPresent.BinaryUnmarshal(vhs.Content); err != nil {
+					return fmt.Errorf("unmarshaling snp id block from binary: %w", err)
+				}
+				presentJson, err := json.MarshalIndent(idBlockPresent, "", "  ")
+				if err != nil {
+					return fmt.Errorf("marshaling snp id block to json: %w", err)
+				}
+				if err := os.WriteFile("present.json", presentJson, 0o644); err != nil {
+					return fmt.Errorf("writing present snp id block to present.json: %w", err)
+				}
+				// End Debug
+
 				idBlockUpdateBytes, err := idBlockUpdate.BinaryMarshal()
 				if err != nil {
 					return fmt.Errorf("marshaling snp id block to binary: %w", err)
