@@ -67,7 +67,7 @@ func TestRegression(t *testing.T) {
 			newResources = kuberesource.AddPortForwarders(newResources)
 
 			// write the new resources.yml
-			resourceBytes, err := kuberesource.EncodeResources(newResources...)
+			resourceBytes, err := kuberesource.EncodeResources(append(resources, newResources...)...)
 			require.NoError(err)
 			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
 
