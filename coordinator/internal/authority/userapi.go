@@ -48,14 +48,15 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 	oldState := a.state.Load()
 	var se *seedengine.SeedEngine
 	if oldState != nil {
+		oldManifest := oldState.Manifest()
 		// Subsequent SetManifest call, check permissions of caller.
-		if err := a.validatePeer(ctx, oldState.Manifest.WorkloadOwnerKeyDigests); err != nil {
+		if err := a.validatePeer(ctx, oldManifest.WorkloadOwnerKeyDigests); err != nil {
 			a.logger.Warn("SetManifest peer validation failed", "err", err)
 			return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
 		}
-		se = oldState.SeedEngine
-		if slices.Compare(oldState.Manifest.SeedshareOwnerPubKeys, m.SeedshareOwnerPubKeys) != 0 {
-			a.logger.Warn("SetManifest detected attempted seedshare owners change", "from", oldState.Manifest.SeedshareOwnerPubKeys, "to", m.SeedshareOwnerPubKeys)
+		se = oldState.SeedEngine()
+		if slices.Compare(oldManifest.SeedshareOwnerPubKeys, m.SeedshareOwnerPubKeys) != 0 {
+			a.logger.Warn("SetManifest detected attempted seedshare owners change", "from", oldManifest.SeedshareOwnerPubKeys, "to", m.SeedshareOwnerPubKeys)
 			return nil, status.Errorf(codes.PermissionDenied, "changes to seedshare owners are not allowed")
 		}
 	} else {
@@ -143,10 +144,10 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 	}
 
 	nextState := &State{
-		SeedEngine: se,
+		seedEngine: se,
 		latest:     nextLatest,
-		Manifest:   m,
-		CA:         ca,
+		manifest:   m,
+		ca:         ca,
 		generation: oldGeneration + 1,
 	}
 
@@ -213,10 +214,11 @@ func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsReque
 	// Traversing the history yields manifests in the wrong order, so reverse the slice.
 	slices.Reverse(manifests)
 
+	ca := state.CA()
 	resp := &userapi.GetManifestsResponse{
 		Manifests: manifests,
-		RootCA:    state.CA.GetRootCACert(),
-		MeshCA:    state.CA.GetMeshCACert(),
+		RootCA:    ca.GetRootCACert(),
+		MeshCA:    ca.GetMeshCACert(),
 	}
 	for _, policy := range policies {
 		resp.Policies = append(resp.Policies, policy)
@@ -254,7 +256,7 @@ func (a *Authority) Recover(ctx context.Context, req *userapi.RecoverRequest) (*
 	}
 
 	var digests []manifest.HexString
-	for _, pubKey := range state.Manifest.SeedshareOwnerPubKeys {
+	for _, pubKey := range state.Manifest().SeedshareOwnerPubKeys {
 		bytes, err := pubKey.Bytes()
 		if err != nil {
 			return nil, status.Errorf(codes.FailedPrecondition, "seedshare owner public key is not hex-encoded")

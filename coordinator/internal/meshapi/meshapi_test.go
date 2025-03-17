@@ -58,11 +58,7 @@ func TestNewMeshCert(t *testing.T) {
 		Report: &fakeReport{
 			hostData: policyHash[:],
 		},
-		State: &authority.State{
-			Manifest:   m,
-			SeedEngine: se,
-			CA:         ca,
-		},
+		State: authority.NewState(se, m, ca),
 	}
 	ctx := peer.NewContext(context.Background(), &peer.Peer{
 		AuthInfo: info,

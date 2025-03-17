@@ -63,7 +63,7 @@ func (i *Server) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertRequest)
 	}
 
 	hostData := manifest.NewHexString(report.HostData())
-	entry, ok := state.Manifest.Policies[hostData]
+	entry, ok := state.Manifest().Policies[hostData]
 	if !ok {
 		return nil, status.Errorf(codes.PermissionDenied, "policy hash %s not found in manifest", hostData)
 	}
@@ -78,19 +78,20 @@ func (i *Server) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertRequest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct extensions: %w", err)
 	}
-	cert, err := state.CA.NewAttestedMeshCert(dnsNames, extensions, peerPubKey)
+	ca := state.CA()
+	cert, err := ca.NewAttestedMeshCert(dnsNames, extensions, peerPubKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to issue new attested mesh cert: %w", err)
 	}
 
 	resp := &meshapi.NewMeshCertResponse{
-		MeshCACert: state.CA.GetMeshCACert(),
-		CertChain:  append(cert, state.CA.GetIntermCACert()...),
-		RootCACert: state.CA.GetRootCACert(),
+		MeshCACert: ca.GetMeshCACert(),
+		CertChain:  append(cert, ca.GetIntermCACert()...),
+		RootCACert: ca.GetRootCACert(),
 	}
 
 	if entry.WorkloadSecretID != "" {
-		workloadSecret, err := state.SeedEngine.DeriveWorkloadSecret(entry.WorkloadSecretID)
+		workloadSecret, err := state.SeedEngine().DeriveWorkloadSecret(entry.WorkloadSecretID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to derive workload secret: %w", err)
 		}
