@@ -74,7 +74,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	var validators []atls.Validator
 
-	opts, err := state.Manifest.SNPValidateOpts(c.kdsGetter)
+	opts, err := state.Manifest().SNPValidateOpts(c.kdsGetter)
 	if err != nil {
 		log.Error("Could not generate SNP validation options", "error", err)
 		return nil, nil, fmt.Errorf("generating SNP validation options: %w", err)
@@ -88,7 +88,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		validators = append(validators, validator)
 	}
 
-	tdxOpts, err := state.Manifest.TDXValidateOpts()
+	tdxOpts, err := state.Manifest().TDXValidateOpts()
 	if err != nil {
 		log.Error("Could not generate TDX validation options", "error", err)
 		return nil, nil, fmt.Errorf("generating TDX validation options: %w", err)

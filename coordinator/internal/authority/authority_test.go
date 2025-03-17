@@ -44,7 +44,7 @@ func TestSNPValidateOpts(t *testing.T) {
 	_, err := a.SetManifest(context.Background(), req)
 	require.NoError(err)
 
-	gens, err := a.state.Load().Manifest.SNPValidateOpts(nil)
+	gens, err := a.state.Load().Manifest().SNPValidateOpts(nil)
 	require.NoError(err)
 	require.NotNil(gens)
 }

@@ -77,7 +77,7 @@ func (m *Authority) syncState() error {
 		// There are transitions in history, but we don't have a local state -> recovery mode.
 		return ErrNeedsRecovery
 	}
-	nextState, err := m.fetchState(oldState.SeedEngine)
+	nextState, err := m.fetchState(oldState.seedEngine)
 	if err != nil {
 		return fmt.Errorf("fetching latest state: %w", err)
 	}
@@ -88,7 +88,7 @@ func (m *Authority) syncState() error {
 	}
 
 	// Manifest changed, verify that the seedshare owners did not change.
-	if slices.Compare(oldState.Manifest.SeedshareOwnerPubKeys, nextState.Manifest.SeedshareOwnerPubKeys) != 0 {
+	if slices.Compare(oldState.manifest.SeedshareOwnerPubKeys, nextState.manifest.SeedshareOwnerPubKeys) != 0 {
 		return fmt.Errorf("can't update from the current manifest to the latest persisted manifest because the seedshare owners changed")
 	}
 
@@ -141,10 +141,10 @@ func (m *Authority) fetchState(se *seedengine.SeedEngine) (*State, error) {
 		return nil, fmt.Errorf("walking transitions: %w", err)
 	}
 	nextState := &State{
-		SeedEngine: se,
+		seedEngine: se,
 		latest:     latest,
-		CA:         ca,
-		Manifest:   mnfst,
+		ca:         ca,
+		manifest:   mnfst,
 		generation: generation,
 	}
 	return nextState, nil
@@ -179,10 +179,38 @@ func (m *Authority) GetState() (*State, error) {
 
 // State is a snapshot of the Coordinator's manifest history.
 type State struct {
-	SeedEngine *seedengine.SeedEngine
-	Manifest   *manifest.Manifest
-	CA         *ca.CA
+	seedEngine *seedengine.SeedEngine
+	manifest   *manifest.Manifest
+	ca         *ca.CA
 
 	latest     *history.LatestTransition
 	generation int
+}
+
+// NewState constructs a new State object.
+//
+// This function is intended for other packages that work on State objects. It does not produce a
+// State that is valid for this package.
+func NewState(seedEngine *seedengine.SeedEngine, manifest *manifest.Manifest, ca *ca.CA) *State {
+	return &State{
+		seedEngine: seedEngine,
+		manifest:   manifest,
+		ca:         ca,
+	}
+}
+
+// SeedEngine returns the SeedEngine for this state.
+func (s *State) SeedEngine() *seedengine.SeedEngine {
+	return s.seedEngine
+}
+
+// Manifest returns the Manifest for this state. It must not be modified.
+func (s *State) Manifest() *manifest.Manifest {
+	// TODO(burgerdev): consider deep-copying for safety
+	return s.manifest
+}
+
+// CA returns the CA for this state.
+func (s *State) CA() *ca.CA {
+	return s.ca
 }

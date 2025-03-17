@@ -135,7 +135,7 @@ func deriveEncryptionKey(authority stateAuthority, workloadSecretID string) ([]b
 		return nil, err
 	}
 	// TODO(jmxnzo): authentication of client certs <-> parsed workloadSecretID.
-	derivedWorkloadSecret, err := state.SeedEngine.DeriveWorkloadSecret(workloadSecretID)
+	derivedWorkloadSecret, err := state.SeedEngine().DeriveWorkloadSecret(workloadSecretID)
 	if err != nil {
 		return nil, err
 	}
