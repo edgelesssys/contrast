@@ -3,7 +3,7 @@ module github.com/edgelesssys/contrast/nydus-pull
 go 1.23.0
 
 require (
-	github.com/containerd/containerd v1.7.26
+	github.com/containerd/containerd v1.7.27
 	k8s.io/api v0.32.3
 	k8s.io/apimachinery v0.32.3
 	k8s.io/client-go v0.32.3
