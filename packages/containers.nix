@@ -4,26 +4,27 @@
 {
   lib,
   pkgs,
+  stdenvNoCC,
   writeShellApplication,
   dockerTools,
 }:
 
 let
-  pushContainer =
-    container:
-    writeShellApplication {
-      name = "push-${container.name}";
-      runtimeInputs = with pkgs; [
-        crane
-        gzip
-      ];
-      text = ''
-        imageName="$1"
-        tmpdir=$(mktemp -d)
-        trap 'rm -rf $tmpdir' EXIT
-        gunzip < "${container}" > "$tmpdir/image.tar"
-        crane push "$tmpdir/image.tar" "$imageName:${container.imageTag}"
+  toOciImage =
+    docker-tarball:
+    stdenvNoCC.mkDerivation {
+      name = "${lib.strings.removeSuffix ".tar.gz" docker-tarball.name}";
+      src = docker-tarball;
+      dontUnpack = true;
+      nativeBuildInputs = with pkgs; [ skopeo ];
+      buildPhase = ''
+        runHook preBuild
+        skopeo copy docker-archive:$src oci:$out --insecure-policy --tmpdir .
+        runHook postBuild
       '';
+      meta = {
+        tag = docker-tarball.imageTag;
+      };
     };
 
   pushOCIDir =
@@ -37,7 +38,7 @@ let
       '';
     };
 
-  containers = {
+  containers = lib.mapAttrs (_name: toOciImage) {
     coordinator = dockerTools.buildImage {
       name = "coordinator";
       tag = "v${pkgs.contrast.version}";
@@ -196,4 +197,6 @@ containers
     pushOCIDir "push-node-installer-kata-gpu" pkgs.kata.contrast-node-installer-image.gpu
       "v${pkgs.contrast.version}";
 }
-// (lib.concatMapAttrs (name: container: { "push-${name}" = pushContainer container; }) containers)
+// (lib.concatMapAttrs (name: container: {
+  "push-${name}" = pushOCIDir name container.outPath container.meta.tag;
+}) containers)
