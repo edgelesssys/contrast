@@ -5,6 +5,7 @@ package history
 
 import (
 	"bytes"
+	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
 	"crypto/sha256"
@@ -27,7 +28,7 @@ type History struct {
 	log     *slog.Logger
 }
 
-// New creates a new History backed by the configured store.
+// New creates a new History that uses the default storage backend.
 func New(log *slog.Logger) (*History, error) {
 	store, err := NewStore(log.WithGroup("history-store"))
 	if err != nil {
@@ -118,6 +119,46 @@ func (h *History) SetLatest(oldT, newT *LatestTransition, signingKey *ecdsa.Priv
 		return fmt.Errorf("setting latest transition: %w", err)
 	}
 	return nil
+}
+
+// WatchLatestTransitions starts a goroutine that sends LatestTransition structs to the returned
+// channel whenever the latest transition changes in the underlying store.
+//
+// The goroutine continues to run until either the context expires or the underlying store watcher
+// stops. In both cases, the channel will be closed.
+func (h *History) WatchLatestTransitions(ctx context.Context) (<-chan LatestTransition, error) {
+	ch, cancelWatch, err := h.store.Watch("transitions/latest")
+	if err != nil {
+		return nil, fmt.Errorf("watching latest transitions: %w", err)
+	}
+
+	transitionCh := make(chan LatestTransition)
+	go func() {
+		defer close(transitionCh)
+		defer cancelWatch()
+		for {
+			select {
+			case buf, ok := <-ch:
+				if !ok {
+					h.log.Warn("store watcher closed unexpectedly")
+					return
+				}
+				var t LatestTransition
+				if err := t.unmarshalBinary(buf); err != nil {
+					h.log.Error("store watcher sent something that's not a LatestTransition", "error", err)
+					continue
+				}
+				select {
+				case transitionCh <- t:
+				case <-ctx.Done():
+					return
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return transitionCh, nil
 }
 
 func (h *History) getContentaddressed(pathFmt string, hash [HashSize]byte) ([]byte, error) {

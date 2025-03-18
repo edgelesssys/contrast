@@ -4,11 +4,14 @@
 package history
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/hex"
+	"log/slog"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/spf13/afero"
@@ -565,6 +568,58 @@ func TestHistory_SetGet(t *testing.T) {
 			})
 		}
 	}
+}
+
+func TestHistory_WatchLatestTransitions(t *testing.T) {
+	require := require.New(t)
+	store := &fakeStore{
+		latestTransitions: make(chan []byte, 1),
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	h := NewWithStore(slog.Default(), store)
+	ch, err := h.WatchLatestTransitions(ctx)
+	require.NoError(err)
+
+	expectedTransition := &LatestTransition{
+		TransitionHash: [32]byte{42},
+		signature:      []byte("fake signature"),
+	}
+
+	store.latestTransitions <- expectedTransition.marshalBinary()
+
+	require.EventuallyWithT(func(t *assert.CollectT) {
+		assert := assert.New(t)
+		select {
+		case lt, ok := <-ch:
+			assert.True(ok)
+			assert.Equal(expectedTransition.TransitionHash, lt.TransitionHash)
+		default:
+			assert.Fail("no transition sent")
+		}
+	}, 10*time.Millisecond, time.Millisecond)
+
+	close(store.latestTransitions)
+
+	require.EventuallyWithT(func(t *assert.CollectT) {
+		assert := assert.New(t)
+		select {
+		case _, ok := <-ch:
+			assert.False(ok)
+		default:
+			assert.Fail("channel not closed")
+		}
+	}, 10*time.Millisecond, time.Millisecond)
+}
+
+type fakeStore struct {
+	Store
+	latestTransitions chan []byte
+}
+
+func (fs *fakeStore) Watch(_ string) (<-chan []byte, func(), error) {
+	return fs.latestTransitions, func() {}, nil
 }
 
 func strToHash(require *require.Assertions, s string) [HashSize]byte {
