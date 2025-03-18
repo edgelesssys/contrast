@@ -308,8 +308,6 @@ func TestRecovery(t *testing.T) {
 			seed, err := manifest.DecryptSeedShare(seedShareOwnerKey, resp.SeedSharesDoc.SeedShares[0])
 			require.NoError(err)
 
-			a = New(a.hist, prometheus.NewRegistry(), slog.Default())
-
 			recoverReq := &userapi.RecoverRequest{
 				Seed: tc.seed,
 				Salt: tc.salt,
@@ -320,8 +318,19 @@ func TestRecovery(t *testing.T) {
 			if recoverReq.Salt == nil {
 				recoverReq.Salt = resp.SeedSharesDoc.Salt
 			}
-			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
 
+			// Simulate an updated persistence.
+			a.state.Load().stale.Store(true)
+			_, err = a.GetManifests(context.Background(), nil)
+			require.ErrorContains(err, ErrNeedsRecovery.Error())
+			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
+			require.Equal(tc.wantCode, status.Code(err), "actual error: %v", err)
+
+			// Simulate a restarted Coordinator.
+			a = New(a.hist, prometheus.NewRegistry(), slog.Default())
+			_, err = a.GetManifests(context.Background(), nil)
+			require.ErrorContains(err, ErrNeedsRecovery.Error())
+			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
 			require.Equal(tc.wantCode, status.Code(err), "actual error: %v", err)
 		})
 	}
