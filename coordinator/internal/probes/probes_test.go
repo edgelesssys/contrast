@@ -1,4 +1,4 @@
-// Copyright 2024 Edgeless Systems GmbH
+// Copyright 2025 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
 package probes
