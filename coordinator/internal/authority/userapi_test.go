@@ -20,7 +20,6 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/prometheus/client_golang/prometheus"
@@ -35,9 +34,7 @@ import (
 
 func TestManifestSet(t *testing.T) {
 	newBaseManifest := func() *manifest.Manifest {
-		mnf, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
-		require.NoError(t, err)
-		return mnf
+		return &manifest.Manifest{}
 	}
 	newManifestBytes := func(f func(*manifest.Manifest)) []byte {
 		m := newBaseManifest()
@@ -223,8 +220,7 @@ func TestGetManifests(t *testing.T) {
 	require.Equal(codes.FailedPrecondition, status.Code(err))
 	assert.Nil(resp)
 
-	m, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
-	require.NoError(err)
+	m := &manifest.Manifest{}
 	m.Policies = map[manifest.HexString]manifest.PolicyEntry{
 		manifest.HexString("ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"): {SANs: []string{"a1", "a2"}, WorkloadSecretID: "a3"},
 		manifest.HexString("3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"): {SANs: []string{"b1", "b2"}, WorkloadSecretID: "b3"},
@@ -404,9 +400,7 @@ func TestRecoveryFlow(t *testing.T) {
 // gRPCs of the server.
 func TestUserAPIConcurrent(t *testing.T) {
 	newBaseManifest := func() *manifest.Manifest {
-		mnf, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
-		require.NoError(t, err)
-		return mnf
+		return &manifest.Manifest{}
 	}
 	newManifestBytes := func(f func(*manifest.Manifest)) []byte {
 		m := newBaseManifest()
@@ -497,10 +491,7 @@ func rpcContext(cryptoKey crypto.PrivateKey) context.Context {
 }
 
 func manifestWithWorkloadOwnerKey(key *ecdsa.PrivateKey) (*manifest.Manifest, error) {
-	m, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
-	if err != nil {
-		return nil, err
-	}
+	m := &manifest.Manifest{}
 	if key == nil {
 		return m, nil
 	}
