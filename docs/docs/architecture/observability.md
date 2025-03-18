@@ -8,7 +8,7 @@ called labels.
 
 ## Exposed metrics
 
-The metrics can be accessed at the Coordinator pod at port 9102 `/metrics` endpoint.
+The metrics can be accessed at the Coordinator pod on port 9102 using the `/metrics` endpoint.
 By default, metrics are disabled. You can enable them by setting the `CONTRAST_METRICS`
 environment variable.
 
