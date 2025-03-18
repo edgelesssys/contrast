@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -20,6 +22,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
+	testingclock "k8s.io/utils/clock/testing"
 )
 
 const (
@@ -50,6 +53,64 @@ func TestSNPValidateOpts(t *testing.T) {
 }
 
 // TODO(burgerdev): test ValidateCallback and GetCertBundle
+
+// TestBadStoreWatcherIsRestarted tests that a new history watcher is started on failure.
+func TestBadStoreWatcherIsRestarted(t *testing.T) {
+	require := require.New(t)
+	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
+	store := &badStore{
+		Store:      history.NewAferoStore(&afero.Afero{Fs: fs}),
+		watchCalls: make(chan string, 10),
+	}
+	ch := make(chan []byte)
+	store.storeUpdates.Store(&ch)
+	hist := history.NewWithStore(slog.Default(), store)
+	reg := prometheus.NewRegistry()
+	a := New(hist, reg, slog.Default())
+	clock := testingclock.NewFakeClock(time.Now())
+	a.clock = clock
+
+	ctx, cancel := context.WithCancel(context.Background())
+	doneCh := make(chan struct{})
+	go func() {
+		_ = a.WatchHistory(ctx)
+		close(doneCh)
+	}()
+
+	t.Cleanup(func() {
+		cancel()
+		<-doneCh
+	})
+
+	// We eventually expect a call to Watch from the goroutine.
+	<-store.watchCalls
+
+	// Simulate a watcher failure. A new watcher should only be created after the clock stepped.
+	newCh := make(chan []byte)
+	store.storeUpdates.Store(&newCh)
+	close(ch)
+	select {
+	case <-time.After(10 * time.Millisecond):
+		// This is good, no new Watch call.
+	case <-store.watchCalls:
+		require.Fail("caught unexpected watch call")
+	}
+
+	clock.Step(time.Minute)
+	// Advancing the clock should trigger a new watch.
+	<-store.watchCalls
+}
+
+type badStore struct {
+	history.Store
+	storeUpdates atomic.Pointer[chan []byte]
+	watchCalls   chan string
+}
+
+func (bs *badStore) Watch(s string) (<-chan []byte, func(), error) {
+	bs.watchCalls <- s
+	return *bs.storeUpdates.Load(), func() {}, nil
+}
 
 func newAuthority(t *testing.T) (*Authority, *prometheus.Registry) {
 	t.Helper()

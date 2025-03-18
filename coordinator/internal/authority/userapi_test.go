@@ -17,6 +17,7 @@ import (
 	"log/slog"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -26,6 +27,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/goleak"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
@@ -467,6 +469,264 @@ func TestUserAPIConcurrent(t *testing.T) {
 	wg.Wait()
 }
 
+func TestOutOfBandUpdates(t *testing.T) {
+	require := require.New(t)
+	store := newWatchableStore()
+	hist := history.NewWithStore(slog.Default(), store)
+	a := newCoordinatorWithWatcher(t, hist)
+
+	// Set an initial manifest.
+	seedShareOwnerKey := testkeys.RSA(t)
+	seedShareOwnerKeyBytes := manifest.MarshalSeedShareOwnerKey(&seedShareOwnerKey.PublicKey)
+
+	mnfst, _, policies := newManifest(t)
+	mnfst.SeedshareOwnerPubKeys = []manifest.HexString{seedShareOwnerKeyBytes}
+	manifestBytes, err := json.Marshal(mnfst)
+	require.NoError(err)
+
+	req := &userapi.SetManifestRequest{
+		Manifest: manifestBytes,
+		Policies: policies,
+	}
+	setManifestResp, err := a.SetManifest(context.Background(), req)
+	require.NoError(err)
+
+	// GetManifest should show that the watcher did not mark the state stale.
+	getManifestResp, err := a.GetManifests(context.Background(), nil)
+	require.NoError(err)
+	require.Len(getManifestResp.Manifests, 1)
+	require.Equal(manifestBytes, getManifestResp.Manifests[0])
+
+	// Manipulate history directly
+	key := a.state.Load().seedEngine.TransactionSigningKey()
+	oldLatest, err := hist.GetLatest(&key.PublicKey)
+	require.NoError(err)
+	transition := &history.Transition{
+		ManifestHash:           sha256.Sum256(manifestBytes),
+		PreviousTransitionHash: oldLatest.TransitionHash,
+	}
+	transitionHash, err := hist.SetTransition(transition)
+	require.NoError(err)
+	nextLatest := &history.LatestTransition{
+		TransitionHash: transitionHash,
+	}
+	require.NoError(hist.SetLatest(oldLatest, nextLatest, key))
+
+	// Wait for the staleness to propagate.
+	require.Eventually(func() bool {
+		return a.state.Load().stale.Load()
+	}, time.Second, 10*time.Millisecond)
+	_, err = a.GetManifests(context.Background(), nil)
+	require.ErrorContains(err, ErrNeedsRecovery.Error())
+
+	// Recovery should succeed.
+	seed, err := manifest.DecryptSeedShare(seedShareOwnerKey, setManifestResp.GetSeedSharesDoc().GetSeedShares()[0])
+	require.NoError(err)
+
+	recoverReq := &userapi.RecoverRequest{
+		Seed: seed,
+		Salt: setManifestResp.GetSeedSharesDoc().GetSalt(),
+	}
+	_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
+	require.NoError(err)
+}
+
+func TestStoreRaces(t *testing.T) {
+	require := require.New(t)
+	ctx := context.Background()
+	log := slog.Default()
+
+	store := newWatchableStore()
+	hist := history.NewWithStore(log, store)
+	coordinators := make([]*Authority, 10)
+	for i := range coordinators {
+		coordinator := newCoordinatorWithWatcher(t, hist)
+		coordinators[i] = coordinator
+	}
+
+	for i, coordinator := range coordinators {
+		_, err := coordinator.GetManifests(ctx, nil)
+		assert.ErrorContains(t, err, ErrNoManifest.Error(), "coordinator-%d", i)
+	}
+
+	passiveCoordinator := newCoordinatorWithWatcher(t, hist)
+	_, err := passiveCoordinator.GetManifests(ctx, nil)
+	assert.ErrorContains(t, err, ErrNoManifest.Error())
+
+	seedshareOwnerKey := testkeys.RSA(t)
+	workloadOwnerKey := testkeys.ECDSA(t)
+
+	manifestBytes, err := json.Marshal(&manifest.Manifest{
+		WorkloadOwnerKeyDigests: []manifest.HexString{manifest.HashWorkloadOwnerKey(&workloadOwnerKey.PublicKey)},
+		SeedshareOwnerPubKeys:   []manifest.HexString{manifest.MarshalSeedShareOwnerKey(&seedshareOwnerKey.PublicKey)},
+	})
+	require.NoError(err)
+	req := &userapi.SetManifestRequest{
+		Manifest: manifestBytes,
+	}
+
+	var seed, salt []byte
+	t.Run("parallel initial SetManifest calls", func(t *testing.T) {
+		assert := assert.New(t)
+
+		wg := sync.WaitGroup{}
+		wg.Add(len(coordinators))
+
+		errs := make(chan error, len(coordinators))
+		var seedSharesDoc *userapi.SeedShareDocument
+		for _, coordinator := range coordinators {
+			go func() {
+				resp, err := coordinator.SetManifest(ctx, req)
+				errs <- err
+				if err == nil {
+					seedSharesDoc = resp.GetSeedSharesDoc()
+				}
+				wg.Done()
+			}()
+		}
+		wg.Wait()
+		close(errs)
+
+		nonNil := 0
+		for err := range errs {
+			if err != nil {
+				nonNil++
+				// The exact error returned may be different, depending on where in the SetManifest
+				// path we detected the concurrent modification (concurrent access to store or
+				// staleness update by watcher. Accept that any error is returned for now.
+			}
+		}
+		assert.Equal(len(coordinators)-1, nonNil, "exactly one call should have succeeded")
+		assert.NotNil(seedSharesDoc)
+		salt = seedSharesDoc.Salt
+		assert.Len(seedSharesDoc.SeedShares, 1)
+		seed, err = manifest.DecryptSeedShare(seedshareOwnerKey, seedSharesDoc.SeedShares[0])
+		assert.NoError(err)
+	})
+
+	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+		assert := assert.New(t)
+		nonNil := 0
+		for i, coordinator := range append(coordinators, passiveCoordinator) {
+			_, err := coordinator.GetManifests(ctx, nil)
+			if err == nil {
+				continue
+			}
+			assert.ErrorContains(err, ErrNeedsRecovery.Error(), "coordinator-%d", i)
+			nonNil++
+		}
+		assert.Equal(len(coordinators), nonNil)
+	}, time.Second, 10*time.Millisecond, "coordinators without state must enter recovery mode")
+
+	t.Run("recover coordinators", func(t *testing.T) {
+		ctx := rpcContext(seedshareOwnerKey)
+		req := &userapi.RecoverRequest{
+			Seed: seed,
+			Salt: salt,
+		}
+		for i, coordinator := range append(coordinators, passiveCoordinator) {
+			_, err := coordinator.Recover(ctx, req)
+			if err != nil {
+				assert.ErrorContains(t, err, ErrAlreadyRecovered.Error(), "coordinator-%d", i)
+			}
+		}
+	})
+
+	t.Run("parallel SetManifest calls on initialized coordinators", func(t *testing.T) {
+		ctx := rpcContext(workloadOwnerKey)
+		assert := assert.New(t)
+
+		wg := sync.WaitGroup{}
+		wg.Add(len(coordinators))
+
+		errs := make(chan error, len(coordinators))
+		for _, coordinator := range coordinators {
+			go func() {
+				_, err := coordinator.SetManifest(ctx, req)
+				errs <- err
+				wg.Done()
+			}()
+		}
+		wg.Wait()
+		close(errs)
+
+		nonNil := 0
+		for err := range errs {
+			if err != nil {
+				nonNil++
+			}
+		}
+		assert.Equal(len(coordinators)-1, nonNil, "exactly one call should have succeeded")
+	})
+
+	assert.EventuallyWithT(t, func(t *assert.CollectT) {
+		assert := assert.New(t)
+		nonNil := 0
+		for i, coordinator := range append(coordinators, passiveCoordinator) {
+			_, err := coordinator.GetManifests(ctx, nil)
+			if err == nil {
+				continue
+			}
+			assert.ErrorContains(err, ErrNeedsRecovery.Error(), "coordinator-%d", i)
+			nonNil++
+		}
+		assert.Equal(len(coordinators), nonNil)
+	}, time.Second, 300*time.Millisecond, "coordinators with stale state must enter recovery mode")
+}
+
+func TestNotificationRaces(t *testing.T) {
+	require := require.New(t)
+
+	store := newWatchableStore()
+	hist := history.NewWithStore(slog.Default(), store)
+
+	a := newCoordinatorWithWatcher(t, hist)
+
+	// Wait for the first watch call, then swap out the channel so that we control the notifications.
+	require.Eventually(func() bool {
+		store.mu.Lock()
+		defer store.mu.Unlock()
+		return len(store.watchers) == 1
+	}, 10*time.Millisecond, time.Millisecond)
+	store.mu.Lock()
+	watchedChs, ok := store.watchers["transitions/latest"]
+	require.True(ok)
+	require.Len(watchedChs, 1)
+	watchedCh := watchedChs[0]
+	notifiedCh := make(chan []byte, 1)
+	watchedChs[0] = notifiedCh
+	store.mu.Unlock()
+
+	// Set two manifests, but don't send notifications yet.
+	seedshareOwnerKey := testkeys.RSA(t)
+	workloadOwnerKey := testkeys.ECDSA(t)
+
+	manifestBytes, err := json.Marshal(&manifest.Manifest{
+		WorkloadOwnerKeyDigests: []manifest.HexString{manifest.HashWorkloadOwnerKey(&workloadOwnerKey.PublicKey)},
+		SeedshareOwnerPubKeys:   []manifest.HexString{manifest.MarshalSeedShareOwnerKey(&seedshareOwnerKey.PublicKey)},
+	})
+	require.NoError(err)
+	req := &userapi.SetManifestRequest{
+		Manifest: manifestBytes,
+	}
+	var transitions [][]byte
+	for i := range 2 {
+		_, err := a.SetManifest(rpcContext(workloadOwnerKey), req)
+		require.NoErrorf(err, "SetManifest call %d", i)
+		transitions = append(transitions, <-notifiedCh)
+	}
+	state := a.state.Load()
+	require.NotNil(state)
+	require.False(state.stale.Load())
+
+	// The manifest is now two steps ahead of the watcher. Verify that it's not marked stale by
+	// the notifications arriving late.
+	for i, transition := range transitions {
+		watchedCh <- transition
+		require.Neverf(state.stale.Load, 10*time.Millisecond, time.Millisecond, "notification %d", i)
+	}
+}
+
 func newCoordinator() *Authority {
 	return newCoordinatorWithRegistry(prometheus.NewRegistry())
 }
@@ -476,6 +736,24 @@ func newCoordinatorWithRegistry(reg *prometheus.Registry) *Authority {
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
 	return New(hist, reg, slog.Default())
+}
+
+func newCoordinatorWithWatcher(t *testing.T, hist *history.History) *Authority {
+	t.Helper()
+	coordinator := New(hist, prometheus.NewRegistry(), slog.Default())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	doneCh := make(chan struct{})
+	go func() {
+		_ = coordinator.WatchHistory(ctx)
+		close(doneCh)
+	}()
+	t.Cleanup(func() {
+		cancel()
+		<-doneCh
+	})
+
+	return coordinator
 }
 
 func rpcContext(cryptoKey crypto.PrivateKey) context.Context {
@@ -524,4 +802,47 @@ func parsePEMCertificate(t *testing.T, pemCert []byte) *x509.Certificate {
 	cert, err := x509.ParseCertificate(block.Bytes)
 	require.NoError(t, err)
 	return cert
+}
+
+// watchableStore wraps a Store and adds a simple Watch implementation.
+type watchableStore struct {
+	history.Store
+	watchers map[string][]chan []byte
+	// mu protects the watchers map to please the race detector.
+	mu sync.Mutex
+}
+
+func newWatchableStore() *watchableStore {
+	fs := afero.NewMemMapFs()
+	return &watchableStore{
+		Store:    history.NewAferoStore(&afero.Afero{Fs: fs}),
+		watchers: make(map[string][]chan []byte),
+	}
+}
+
+func (fs *watchableStore) Watch(key string) (<-chan []byte, func(), error) {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	ch := make(chan []byte, 10)
+	fs.watchers[key] = append(fs.watchers[key], ch)
+	return ch, func() {}, nil
+}
+
+func (fs *watchableStore) CompareAndSwap(key string, oldVal, newVal []byte) error {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	err := fs.Store.CompareAndSwap(key, oldVal, newVal)
+	if err != nil {
+		return err
+	}
+	if watchers, ok := fs.watchers[key]; ok {
+		for _, watcher := range watchers {
+			watcher <- newVal
+		}
+	}
+	return nil
+}
+
+func TestMain(m *testing.M) {
+	goleak.VerifyTestMain(m)
 }
