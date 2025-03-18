@@ -147,6 +147,14 @@ func run() (retErr error) {
 	})
 
 	eg.Go(func() error {
+		logger.Info("Watching manifest store")
+		if err := meshAuth.WatchHistory(ctx); err != nil {
+			logger.Error("Watching manifest store", "err", err)
+		}
+		return err
+	})
+
+	eg.Go(func() error {
 		<-ctx.Done()
 		logger.Info("Context done, shutting down", "err", ctx.Err())
 		// New context for cleanup, Kubernetes grace period is 30 seconds.

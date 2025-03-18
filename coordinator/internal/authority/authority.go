@@ -4,11 +4,13 @@
 package authority
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"sync/atomic"
+	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/ca"
@@ -17,6 +19,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"k8s.io/utils/clock"
 )
 
 // ErrNoManifest is returned when a manifest is needed but not present.
@@ -32,6 +35,8 @@ type Authority struct {
 	hist    *history.History
 	logger  *slog.Logger
 	metrics metrics
+
+	clock clock.Clock
 
 	userapi.UnimplementedUserAPIServer
 }
@@ -55,6 +60,72 @@ func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Aut
 		metrics: metrics{
 			manifestGeneration: manifestGeneration,
 		},
+		clock: clock.RealClock{},
+	}
+}
+
+// WatchHistory monitors the history for manifest updates and sets the state stale if necessary.
+//
+// This function blocks and keeps watching until the context expires.
+func (m *Authority) WatchHistory(ctx context.Context) error {
+	for {
+		transitionUpdates, err := m.hist.WatchLatestTransitions(ctx)
+	loop:
+		for err == nil {
+			select {
+			case t, ok := <-transitionUpdates:
+				if !ok {
+					err = fmt.Errorf("channel closed unexpectedly")
+					break loop
+				}
+				// We received a new latest transition, so check whether the update is already
+				// reflected in the state. If this Coordinator instance did the update, there is a
+				// race condition between the watcher notification and the state being replaced by
+				// SetManifest. This is not a problem:
+				//   - If we get the old state, we mark it stale but it's going to be replaced
+				//     anyway.
+				//   - If we get the new state, we see the matching transition hashes and don't
+				//     mark the state stale.
+				// There's a theoretically problematic race when the manifest is updated twice in
+				// quick succession on this Coordinator, and the watcher notifications arrive late.
+				// In that situation, we would be marking a state as stale that is actually fresh.
+				// Since we were the Coordinator doing the state update, we're likely the only one
+				// that has the new mesh certificate, and thus going stale would mean losing the
+				// ability to recover the cluster automatically. Thus, we check whether the state
+				// we were notified about is an ancestor of the current state.
+				state := m.state.Load()
+				if state == nil {
+					continue
+				}
+				stateInAncestors := false
+				walkErr := m.walkTransitions(state.latest.TransitionHash, func(h [32]byte, _ *history.Transition) error {
+					if h == t.TransitionHash {
+						stateInAncestors = true
+					}
+					return nil
+				})
+				if walkErr != nil {
+					m.logger.Warn("received problematic transition update", "error", err)
+					continue
+				}
+				if stateInAncestors {
+					continue
+				}
+				m.logger.Info("History changed, marking state as stale",
+					"from-transition", manifest.NewHexString(state.latest.TransitionHash[:]),
+					"to-transition", manifest.NewHexString(t.TransitionHash[:]))
+				state.stale.Store(true)
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+		m.logger.Error("WatchLatestTransitions failed, starting a new watcher", "error", err)
+		select {
+		case <-m.clock.After(5 * time.Second):
+			continue
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 }
 
