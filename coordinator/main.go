@@ -32,6 +32,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+	"k8s.io/utils/clock"
 )
 
 const (
@@ -144,6 +145,10 @@ func run() (retErr error) {
 			return fmt.Errorf("serving Coordinator API: %w", err)
 		}
 		return nil
+	})
+
+	eg.Go(func() error {
+		return meshAuth.WatchHistory(ctx, clock.RealClock{})
 	})
 
 	eg.Go(func() error {
