@@ -32,10 +32,10 @@ import (
 func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, error) {
 	a.logger.Info("SetManifest called")
 
-	if err := a.syncState(); errors.Is(err, ErrNeedsRecovery) {
+	oldState := a.state.Load()
+	if oldState != nil && oldState.stale.Load() {
+		// TODO(burgerdev): we could attempt peer recovery here.
 		return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
-	} else if err != nil {
-		return nil, status.Errorf(codes.Internal, "syncing internal state: %v", err)
 	}
 
 	var m *manifest.Manifest
@@ -45,7 +45,6 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 
 	var resp userapi.SetManifestResponse
 
-	oldState := a.state.Load()
 	var se *seedengine.SeedEngine
 	if oldState != nil {
 		oldManifest := oldState.Manifest()
@@ -60,6 +59,12 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 			return nil, status.Errorf(codes.PermissionDenied, "changes to seedshare owners are not allowed")
 		}
 	} else {
+		if hasLatest, err := a.hist.HasLatest(); err != nil {
+			return nil, status.Errorf(codes.Internal, "checking transition store: %v", err)
+		} else if hasLatest {
+			// TODO(burgerdev): we could attempt peer recovery here.
+			return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
+		}
 		// First SetManifest call, initialize seed engine.
 		seed, err := crypto.GenerateRandomBytes(constants.SecretSeedSize)
 		if err != nil {
@@ -172,12 +177,17 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
 ) (*userapi.GetManifestsResponse, error) {
 	a.logger.Info("GetManifest called")
-	if err := a.syncState(); err != nil {
-		return nil, status.Errorf(codes.Internal, "syncing internal state: %v", err)
-	}
 	state := a.state.Load()
 	if state == nil {
+		if hasLatest, err := a.hist.HasLatest(); err != nil {
+			return nil, status.Errorf(codes.Internal, "Could not read transition store: %v", err)
+		} else if hasLatest {
+			return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
+		}
 		return nil, status.Error(codes.FailedPrecondition, ErrNoManifest.Error())
+	} else if state.stale.Load() {
+		// TODO(burgerdev): we could attempt peer recovery here.
+		return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
 	}
 
 	var manifests [][]byte
@@ -233,7 +243,8 @@ func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsReque
 func (a *Authority) Recover(ctx context.Context, req *userapi.RecoverRequest) (*userapi.RecoverResponse, error) {
 	a.logger.Info("Recover called")
 
-	if a.state.Load() != nil {
+	oldState := a.state.Load()
+	if oldState != nil && !oldState.stale.Load() {
 		return nil, status.Error(codes.FailedPrecondition, ErrAlreadyRecovered.Error())
 	}
 
@@ -269,7 +280,7 @@ func (a *Authority) Recover(ctx context.Context, req *userapi.RecoverRequest) (*
 		return nil, status.Errorf(codes.PermissionDenied, "peer not authorized to recover existing state: %v", err)
 	}
 
-	if !a.state.CompareAndSwap(nil, state) {
+	if !a.state.CompareAndSwap(oldState, state) {
 		return nil, status.Errorf(codes.FailedPrecondition, "the coordinator was recovered concurrently")
 	}
 	return &userapi.RecoverResponse{}, nil

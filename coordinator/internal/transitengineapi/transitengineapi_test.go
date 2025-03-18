@@ -159,7 +159,7 @@ func TestTransitAPICyclic(t *testing.T) {
 }
 
 type fakeStateAuthority struct {
-	state authority.State
+	state *authority.State
 }
 
 func newFakeSeedEngineAuthority() (*fakeStateAuthority, error) {
@@ -172,11 +172,11 @@ func newFakeSeedEngineAuthority() (*fakeStateAuthority, error) {
 	fakeState := authority.NewState(seedEngine, nil, nil, nil)
 
 	authority := &fakeStateAuthority{
-		state: *fakeState,
+		state: fakeState,
 	}
 	return authority, nil
 }
 
 func (f *fakeStateAuthority) GetState() (*authority.State, error) {
-	return &f.state, nil
+	return f.state, nil
 }
