@@ -12,12 +12,12 @@ import (
 
 // StartupHandler is the http handler for `/probes/startup`.
 type StartupHandler struct {
-	UserapiStarted *bool
-	MeshapiStarted *bool
+	UserapiStarted bool
+	MeshapiStarted bool
 }
 
 func (h StartupHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
-	if !*h.UserapiStarted || !*h.MeshapiStarted {
+	if !h.UserapiStarted || !h.MeshapiStarted {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
