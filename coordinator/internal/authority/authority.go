@@ -4,11 +4,13 @@
 package authority
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"sync/atomic"
+	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
@@ -41,7 +43,7 @@ type metrics struct {
 }
 
 // New creates a new Authority instance.
-func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Authority {
+func New(ctx context.Context, hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Authority {
 	manifestGeneration := promauto.With(reg).NewGauge(prometheus.GaugeOpts{
 		Subsystem: "contrast_coordinator",
 		Name:      "manifest_generation",
@@ -49,13 +51,51 @@ func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Aut
 	})
 	manifestGeneration.Set(0)
 
-	return &Authority{
+	a := &Authority{
 		hist:   hist,
 		logger: log.WithGroup("mesh-authority"),
 		metrics: metrics{
 			manifestGeneration: manifestGeneration,
 		},
 	}
+
+	// Set up a watcher that marks the current State stale if it does not correspond to the latest
+	// transition in store.
+
+	go func() {
+		for {
+			ch, err := a.hist.WatchLatestTransitions(ctx)
+			if err != nil {
+				a.logger.Error("WatchLatestTransitions failed", "error", err)
+				select {
+				case <-time.After(5 * time.Second):
+					continue
+				case <-ctx.Done():
+					return
+				}
+			}
+			for {
+				select {
+				case t, ok := <-ch:
+					if !ok {
+						a.logger.Error("WatchLatestTransitions channel closed unexpectedly")
+						break
+					}
+					state := a.state.Load()
+					if state != nil && state.latest.TransitionHash != t.TransitionHash {
+						a.logger.Info("History changed, marking state as stale",
+							"from-transition", manifest.NewHexString(state.latest.TransitionHash[:]),
+							"to-transition", manifest.NewHexString(t.TransitionHash[:]))
+						state.stale.Store(true)
+					}
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	return a
 }
 
 // fetchState creates a fresh state from the history that's verified by the given SeedEngine.
