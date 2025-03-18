@@ -14,7 +14,6 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -66,8 +65,7 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 	policyHash := sha256.Sum256(policy)
 	policyHashHex := manifest.NewHexString(policyHash[:])
 
-	mnfst, err := manifest.Default(platforms.AKSCloudHypervisorSNP)
-	require.NoError(t, err)
+	mnfst := &manifest.Manifest{}
 	mnfst.Policies = map[manifest.HexString]manifest.PolicyEntry{
 		policyHashHex: {
 			SANs:             []string{"test"},
@@ -75,6 +73,18 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 			Role:             manifest.RoleCoordinator,
 		},
 	}
+	svn0 := manifest.SVN(0)
+	measurement := [48]byte{}
+	mnfst.ReferenceValues.SNP = []manifest.SNPReferenceValues{{
+		ProductName: "Milan",
+		MinimumTCB: manifest.SNPTCB{
+			BootloaderVersion: &svn0,
+			TEEVersion:        &svn0,
+			SNPVersion:        &svn0,
+			MicrocodeVersion:  &svn0,
+		},
+		TrustedMeasurement: manifest.NewHexString(measurement[:]),
+	}}
 	mnfst.WorkloadOwnerKeyDigests = []manifest.HexString{keyDigest}
 	mnfstBytes, err := json.Marshal(mnfst)
 	require.NoError(t, err)
