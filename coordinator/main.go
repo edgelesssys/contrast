@@ -95,12 +95,13 @@ func run() (retErr error) {
 	serverMetrics.InitializeMetrics(meshAPIServer)
 
 	httpServer := &http.Server{}
-	userapiStarted := false
-	meshapiStarted := false
 
-	startupHandler := probes.StartupHandler{UserapiStarted: &userapiStarted, MeshapiStarted: &meshapiStarted}
+	startupHandler := probes.StartupHandler{UserapiStarted: false, MeshapiStarted: false}
 	livenessHandler := probes.LivenessHandler{Hist: hist}
 	readinessHandler := probes.ReadinessHandler{Authority: meshAuth}
+
+	userapiStarted := &startupHandler.UserapiStarted
+	meshapiStarted := &startupHandler.MeshapiStarted
 
 	eg, ctx := errgroup.WithContext(ctx)
 
@@ -116,9 +117,9 @@ func run() (retErr error) {
 				),
 			))
 		}
-		mux.Handle("/probe/startup", startupHandler)
-		mux.Handle("/probe/liveness", livenessHandler)
-		mux.Handle("/probe/readiness", readinessHandler)
+		mux.Handle("/probe/startup", &startupHandler)
+		mux.Handle("/probe/liveness", &livenessHandler)
+		mux.Handle("/probe/readiness", &readinessHandler)
 		httpServer.Addr = ":" + strconv.Itoa(probeAndMetricsPort)
 		httpServer.Handler = mux
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -138,7 +139,7 @@ func run() (retErr error) {
 			logger.Error("Serving Coordinator API", "err", err)
 			return fmt.Errorf("serving Coordinator API: %w", err)
 		}
-		userapiStarted = true
+		*userapiStarted = true
 		return nil
 	})
 
@@ -152,7 +153,7 @@ func run() (retErr error) {
 			logger.Error("Serving Coordinator API", "err", err)
 			return fmt.Errorf("serving Coordinator API: %w", err)
 		}
-		meshapiStarted = true
+		*meshapiStarted = true
 		return nil
 	})
 

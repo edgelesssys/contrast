@@ -84,12 +84,12 @@ func TestStartupProbe(t *testing.T) {
 
 			mux := http.NewServeMux()
 
-			userapiStarted := tc.userapiStartedFirst
-			meshapiStarted := tc.meshapiStartedFirst
+			handler := StartupHandler{MeshapiStarted: tc.meshapiStartedFirst, UserapiStarted: tc.userapiStartedFirst}
 
-			handler := StartupHandler{MeshapiStarted: &userapiStarted, UserapiStarted: &meshapiStarted}
+			userapiStarted := &handler.UserapiStarted
+			meshapiStarted := &handler.MeshapiStarted
 
-			mux.Handle("/probes/startup", handler)
+			mux.Handle("/probes/startup", &handler)
 
 			mux.ServeHTTP(resp, req)
 
@@ -100,8 +100,8 @@ func TestStartupProbe(t *testing.T) {
 			}
 
 			resp = httptest.NewRecorder()
-			userapiStarted = tc.userapiStartedSecond
-			meshapiStarted = tc.meshapiStartedSecond
+			*userapiStarted = tc.userapiStartedSecond
+			*meshapiStarted = tc.meshapiStartedSecond
 
 			mux.ServeHTTP(resp, req)
 
