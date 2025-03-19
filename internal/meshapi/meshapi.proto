@@ -6,6 +6,7 @@ option go_package = "github.com/edgelesssys/contrast/internal/meshapi";
 
 service MeshAPI {
   rpc NewMeshCert(NewMeshCertRequest) returns (NewMeshCertResponse);
+  rpc Recover(RecoverRequest) returns (RecoverResponse);
 }
 
 message NewMeshCertRequest {
@@ -22,4 +23,16 @@ message NewMeshCertResponse {
   bytes RootCACert = 3;
   // Raw byte slice which can be used to derive more secrets
   bytes WorkloadSecret = 4;
+}
+
+message RecoverRequest {}
+
+message RecoverResponse {
+  bytes Seed = 1;
+  bytes Salt = 2;
+  bytes RootCAKey = 3;
+  bytes RootCACert = 4;
+  bytes MeshCAKey = 5;
+  bytes MeshCACert = 6;
+  bytes LatestManifest = 7;
 }

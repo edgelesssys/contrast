@@ -144,11 +144,12 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 	}
 
 	nextState := &State{
-		seedEngine: se,
-		latest:     nextLatest,
-		manifest:   m,
-		ca:         ca,
-		generation: oldGeneration + 1,
+		seedEngine:    se,
+		latest:        nextLatest,
+		manifest:      m,
+		manifestBytes: req.GetManifest(),
+		ca:            ca,
+		generation:    oldGeneration + 1,
 	}
 
 	if a.state.CompareAndSwap(oldState, nextState) {
