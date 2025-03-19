@@ -304,7 +304,7 @@ A pod configured to use GPU support may take a few minutes to come up, as the VM
 Run the `generate` command to add the necessary components to your deployment files.
 This will add the Contrast Initializer to every workload with the specified `contrast-cc` runtime class
 and the Contrast Service Mesh to all workloads that have a specified configuration.
-After that, it will generate the execution policies and add them as annotations to your deployment files.
+After that, it will generate the [execution policies](components/policies.md) and add them as annotations to your deployment files.
 A `manifest.json` with the reference values of your deployment will be created.
 
 <Tabs queryString="platform">
@@ -344,6 +344,11 @@ If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and 
 :::
 </TabItem>
 </Tabs>
+
+The `generate` command needs to pull the container images to derive policies.
+Running `generate` for the first time can take a while, especially if the images are large.
+If your container registry requires authentication, you can create the necessary credentials with `docker login` or `podman login`.
+Be aware of the [registry authentication limitation](features-limitations.md#kubernetes-features) on bare metal.
 
 :::warning
 Please be aware that runtime policies currently have some blind spots. For example, they can't guarantee the starting order of containers. See the [current limitations](features-limitations.md#runtime-policies) for more details.
