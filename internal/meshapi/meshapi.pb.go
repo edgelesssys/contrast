@@ -129,6 +129,110 @@ func (x *NewMeshCertResponse) GetWorkloadSecret() []byte {
 	return nil
 }
 
+type RecoverRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RecoverRequest) Reset() {
+	*x = RecoverRequest{}
+	mi := &file_meshapi_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecoverRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecoverRequest) ProtoMessage() {}
+
+func (x *RecoverRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_meshapi_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecoverRequest.ProtoReflect.Descriptor instead.
+func (*RecoverRequest) Descriptor() ([]byte, []int) {
+	return file_meshapi_proto_rawDescGZIP(), []int{2}
+}
+
+type RecoverResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Seed           []byte                 `protobuf:"bytes,1,opt,name=Seed,proto3" json:"Seed,omitempty"`
+	Salt           []byte                 `protobuf:"bytes,2,opt,name=Salt,proto3" json:"Salt,omitempty"`
+	MeshCAKey      []byte                 `protobuf:"bytes,3,opt,name=MeshCAKey,proto3" json:"MeshCAKey,omitempty"`
+	LatestManifest []byte                 `protobuf:"bytes,4,opt,name=LatestManifest,proto3" json:"LatestManifest,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RecoverResponse) Reset() {
+	*x = RecoverResponse{}
+	mi := &file_meshapi_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RecoverResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RecoverResponse) ProtoMessage() {}
+
+func (x *RecoverResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_meshapi_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RecoverResponse.ProtoReflect.Descriptor instead.
+func (*RecoverResponse) Descriptor() ([]byte, []int) {
+	return file_meshapi_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RecoverResponse) GetSeed() []byte {
+	if x != nil {
+		return x.Seed
+	}
+	return nil
+}
+
+func (x *RecoverResponse) GetSalt() []byte {
+	if x != nil {
+		return x.Salt
+	}
+	return nil
+}
+
+func (x *RecoverResponse) GetMeshCAKey() []byte {
+	if x != nil {
+		return x.MeshCAKey
+	}
+	return nil
+}
+
+func (x *RecoverResponse) GetLatestManifest() []byte {
+	if x != nil {
+		return x.LatestManifest
+	}
+	return nil
+}
+
 var File_meshapi_proto protoreflect.FileDescriptor
 
 const file_meshapi_proto_rawDesc = "" +
@@ -143,9 +247,16 @@ const file_meshapi_proto_rawDesc = "" +
 	"\n" +
 	"RootCACert\x18\x03 \x01(\fR\n" +
 	"RootCACert\x12&\n" +
-	"\x0eWorkloadSecret\x18\x04 \x01(\fR\x0eWorkloadSecret2S\n" +
+	"\x0eWorkloadSecret\x18\x04 \x01(\fR\x0eWorkloadSecret\"\x10\n" +
+	"\x0eRecoverRequest\"\x7f\n" +
+	"\x0fRecoverResponse\x12\x12\n" +
+	"\x04Seed\x18\x01 \x01(\fR\x04Seed\x12\x12\n" +
+	"\x04Salt\x18\x02 \x01(\fR\x04Salt\x12\x1c\n" +
+	"\tMeshCAKey\x18\x03 \x01(\fR\tMeshCAKey\x12&\n" +
+	"\x0eLatestManifest\x18\x04 \x01(\fR\x0eLatestManifest2\x91\x01\n" +
 	"\aMeshAPI\x12H\n" +
-	"\vNewMeshCert\x12\x1b.meshapi.NewMeshCertRequest\x1a\x1c.meshapi.NewMeshCertResponseB2Z0github.com/edgelesssys/contrast/internal/meshapib\x06proto3"
+	"\vNewMeshCert\x12\x1b.meshapi.NewMeshCertRequest\x1a\x1c.meshapi.NewMeshCertResponse\x12<\n" +
+	"\aRecover\x12\x17.meshapi.RecoverRequest\x1a\x18.meshapi.RecoverResponseB2Z0github.com/edgelesssys/contrast/internal/meshapib\x06proto3"
 
 var (
 	file_meshapi_proto_rawDescOnce sync.Once
@@ -159,16 +270,20 @@ func file_meshapi_proto_rawDescGZIP() []byte {
 	return file_meshapi_proto_rawDescData
 }
 
-var file_meshapi_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_meshapi_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_meshapi_proto_goTypes = []any{
 	(*NewMeshCertRequest)(nil),  // 0: meshapi.NewMeshCertRequest
 	(*NewMeshCertResponse)(nil), // 1: meshapi.NewMeshCertResponse
+	(*RecoverRequest)(nil),      // 2: meshapi.RecoverRequest
+	(*RecoverResponse)(nil),     // 3: meshapi.RecoverResponse
 }
 var file_meshapi_proto_depIdxs = []int32{
 	0, // 0: meshapi.MeshAPI.NewMeshCert:input_type -> meshapi.NewMeshCertRequest
-	1, // 1: meshapi.MeshAPI.NewMeshCert:output_type -> meshapi.NewMeshCertResponse
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
+	2, // 1: meshapi.MeshAPI.Recover:input_type -> meshapi.RecoverRequest
+	1, // 2: meshapi.MeshAPI.NewMeshCert:output_type -> meshapi.NewMeshCertResponse
+	3, // 3: meshapi.MeshAPI.Recover:output_type -> meshapi.RecoverResponse
+	2, // [2:4] is the sub-list for method output_type
+	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -185,7 +300,7 @@ func file_meshapi_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_meshapi_proto_rawDesc), len(file_meshapi_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

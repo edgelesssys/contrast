@@ -141,11 +141,12 @@ func (m *Authority) fetchState(se *seedengine.SeedEngine) (*State, error) {
 		return nil, fmt.Errorf("walking transitions: %w", err)
 	}
 	nextState := &State{
-		seedEngine: se,
-		latest:     latest,
-		ca:         ca,
-		manifest:   mnfst,
-		generation: generation,
+		seedEngine:    se,
+		latest:        latest,
+		ca:            ca,
+		manifest:      mnfst,
+		manifestBytes: manifestBytes,
+		generation:    generation,
 	}
 	return nextState, nil
 }
@@ -179,9 +180,10 @@ func (m *Authority) GetState() (*State, error) {
 
 // State is a snapshot of the Coordinator's manifest history.
 type State struct {
-	seedEngine *seedengine.SeedEngine
-	manifest   *manifest.Manifest
-	ca         *ca.CA
+	seedEngine    *seedengine.SeedEngine
+	manifest      *manifest.Manifest
+	manifestBytes []byte
+	ca            *ca.CA
 
 	latest     *history.LatestTransition
 	generation int
@@ -191,11 +193,12 @@ type State struct {
 //
 // This function is intended for other packages that work on State objects. It does not produce a
 // State that is valid for this package.
-func NewState(seedEngine *seedengine.SeedEngine, manifest *manifest.Manifest, ca *ca.CA) *State {
+func NewState(seedEngine *seedengine.SeedEngine, manifest *manifest.Manifest, manifestBytes []byte, ca *ca.CA) *State {
 	return &State{
-		seedEngine: seedEngine,
-		manifest:   manifest,
-		ca:         ca,
+		seedEngine:    seedEngine,
+		manifest:      manifest,
+		manifestBytes: manifestBytes,
+		ca:            ca,
 	}
 }
 
@@ -208,6 +211,11 @@ func (s *State) SeedEngine() *seedengine.SeedEngine {
 func (s *State) Manifest() *manifest.Manifest {
 	// TODO(burgerdev): consider deep-copying for safety
 	return s.manifest
+}
+
+// ManifestBytes returns the raw bytes of the manifest for this state.
+func (s *State) ManifestBytes() []byte {
+	return s.manifestBytes
 }
 
 // CA returns the CA for this state.
