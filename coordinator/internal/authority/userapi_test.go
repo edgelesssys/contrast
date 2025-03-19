@@ -414,7 +414,7 @@ func TestUserAPIConcurrent(t *testing.T) {
 
 	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
-	hist := history.NewWithStore(store)
+	hist := history.NewWithStore(slog.Default(), store)
 	coordinator := New(hist, prometheus.NewRegistry(), slog.Default())
 
 	setReq := &userapi.SetManifestRequest{
@@ -465,7 +465,7 @@ func newCoordinator() *Authority {
 func newCoordinatorWithRegistry(reg *prometheus.Registry) *Authority {
 	fs := afero.NewMemMapFs()
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
-	hist := history.NewWithStore(store)
+	hist := history.NewWithStore(slog.Default(), store)
 	return New(hist, reg, slog.Default())
 }
 
