@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/edgelesssys/contrast/internal/retry"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -267,58 +268,16 @@ func (c *Kubeclient) WaitFor(ctx context.Context, condition WaitCondition, resou
 	// a retry loop internally, but it only retries starting the request, once
 	// it has established a request and that request dies spuriously, the
 	// watcher doesn't reconnect. To fix this we add another retry loop.
-	retryCounter := 30
-
 	qualifiedResourceName := fmt.Sprintf("%s %s/%s", resource.kind(), namespace, name)
 	logger := c.log.With("kind", resource.kind(), "namespace", namespace, "name", name)
 
-retryLoop:
-	for {
+	doer := retry.DoerFunc(func(ctx context.Context) error {
 		watcher, err := resource.watcher(ctx, c.Client, namespace, name)
 		if err != nil {
-			// If the server is down (because K3s was restarted), wait for a
-			// second and try again.
-			retryCounter--
-			if retryCounter != 0 {
-				sleep, cancel := context.WithTimeout(ctx, time.Second*1)
-				defer cancel()
-				<-sleep.Done()
-				continue retryLoop
-			}
-
-			return fmt.Errorf("maximum number of retries reached and watcher for %s still fails: %w", qualifiedResourceName, err)
+			return fmt.Errorf("creating watcher for %s", qualifiedResourceName)
 		}
 
-		for {
-			evt, ok := <-watcher.ResultChan()
-			if !ok {
-				if ctx.Err() == nil {
-					retryCounter--
-					if retryCounter != 0 {
-						continue retryLoop
-					}
-					return fmt.Errorf("watcher for %s unexpectedly closed", qualifiedResourceName)
-				}
-				origErr := fmt.Errorf("watcher for %s stopped: %w", qualifiedResourceName, ctx.Err())
-				logger.Error("failed to wait for resource", "condition", condition, "contextErr", ctx.Err())
-				if ctx.Err() != context.DeadlineExceeded {
-					return origErr
-				}
-				// Fetch and print debug information.
-				ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-				defer cancel()
-				pods, err := resource.getPods(ctx, c, namespace, name) //nolint:contextcheck // The parent context expired.
-				if err != nil {
-					logger.Error("could not fetch pods for resource", "kind", resource.kind(), "name", name, "error", err)
-					return origErr
-				}
-				for _, pod := range pods {
-					if !isPodReady(&pod) {
-						logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
-					}
-				}
-				return origErr
-			}
+		for evt := range watcher.ResultChan() {
 			switch condition {
 			case Ready:
 				ready, err := c.checkIfReady(ctx, name, namespace, evt, resource)
@@ -338,7 +297,27 @@ retryLoop:
 				}
 			}
 		}
+		return fmt.Errorf("watcher for %s closed unexpectedly", qualifiedResourceName)
+	})
+
+	err := retry.NewIntervalRetrier(doer, time.Second, retry.Always).Do(ctx)
+	if err != nil {
+		logger.Error("failed to wait for resource", "condition", condition, "err", err, "contextErr", ctx.Err())
+		// Fetch and print debug information.
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		pods, getPodsErr := resource.getPods(ctx, c, namespace, name) //nolint:contextcheck // The parent context expired.
+		if err != nil {
+			logger.Error("could not fetch pods for resource", "kind", resource.kind(), "name", name, "error", getPodsErr)
+			return err
+		}
+		for _, pod := range pods {
+			if !isPodReady(&pod) {
+				logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
+			}
+		}
 	}
+	return err
 }
 
 // WaitForService waits until the given service is configured with an external IP and returns it.
