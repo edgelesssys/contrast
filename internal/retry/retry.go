@@ -90,3 +90,8 @@ func (f DoerFunc) Do(ctx context.Context) error {
 
 // Ensure DoerFunc implements Doer.
 var _ = Doer(DoerFunc(func(context.Context) error { return nil }))
+
+// Always can be used as an argument to NewIntervalRetrier to always retry.
+func Always(error) bool {
+	return true
+}
