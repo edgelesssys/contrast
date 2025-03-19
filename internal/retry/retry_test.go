@@ -20,9 +20,10 @@ func TestMain(m *testing.M) {
 
 func TestDo(t *testing.T) {
 	testCases := map[string]struct {
-		cancel  bool
-		errors  []error
-		wantErr error
+		cancel    bool
+		errors    []error
+		retriable func(error) bool
+		wantErr   error
 	}{
 		"no error": {
 			errors: []error{
@@ -56,13 +57,24 @@ func TestDo(t *testing.T) {
 			},
 			wantErr: errRetriable,
 		},
+		"predicate Always": {
+			errors: []error{
+				errPermanent,
+				nil,
+			},
+			retriable: Always,
+		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
+			predicate := isRetriable
+			if tc.retriable != nil {
+				predicate = tc.retriable
+			}
 			assert := assert.New(t)
 			doer := newStubDoer(tc.errors)
-			retrier := NewIntervalRetrier(doer, doer.interval, isRetriable, doer.clock)
+			retrier := NewIntervalRetrier(doer, doer.interval, predicate, doer.clock)
 			ctx, cancel := context.WithCancel(context.Background())
 			if tc.cancel {
 				cancel()
