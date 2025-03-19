@@ -79,3 +79,14 @@ type Doer interface {
 	// It should return an error that can be checked for retriability.
 	Do(ctx context.Context) error
 }
+
+// DoerFunc is a convenience implementation of Doer for a closure.
+type DoerFunc func(context.Context) error
+
+// Do implements Doer.
+func (f DoerFunc) Do(ctx context.Context) error {
+	return f(ctx)
+}
+
+// Ensure DoerFunc implements Doer.
+var _ = Doer(DoerFunc(func(context.Context) error { return nil }))
