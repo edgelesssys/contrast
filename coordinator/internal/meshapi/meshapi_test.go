@@ -4,12 +4,14 @@
 package meshapi
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"log/slog"
 	"testing"
@@ -58,7 +60,7 @@ func TestNewMeshCert(t *testing.T) {
 		Report: &fakeReport{
 			hostData: policyHash[:],
 		},
-		State: authority.NewState(se, m, ca),
+		State: authority.NewState(se, m, nil, ca),
 	}
 	ctx := peer.NewContext(context.Background(), &peer.Peer{
 		AuthInfo: info,
@@ -89,6 +91,92 @@ func TestNewMeshCert(t *testing.T) {
 	assert.True(rootCerts[0].IsCA)
 	assert.Empty(rootCerts[0].AuthorityKeyId)
 	assert.Equal(intermediateCert.AuthorityKeyId, rootCerts[0].SubjectKeyId)
+}
+
+func TestRecover(t *testing.T) {
+	testCases := map[string]struct {
+		mnfst   *manifest.Manifest
+		report  *fakeReport
+		wantErr bool
+	}{
+		"default": {
+			mnfst: &manifest.Manifest{
+				Policies: map[manifest.HexString]manifest.PolicyEntry{
+					"0000000000000000000000000000000000000000000000000000000000000000": {
+						Role: manifest.RoleCoordinator,
+					},
+				},
+			},
+			report: &fakeReport{
+				hostData: bytes.Repeat([]byte{0}, 32),
+			},
+		},
+		"unknown policy hash": {
+			mnfst: &manifest.Manifest{},
+			report: &fakeReport{
+				hostData: bytes.Repeat([]byte{0}, 32),
+			},
+			wantErr: true,
+		},
+		"role not coordinator": {
+			mnfst: &manifest.Manifest{
+				Policies: map[manifest.HexString]manifest.PolicyEntry{
+					"0000000000000000000000000000000000000000000000000000000000000000": {},
+				},
+			},
+			report: &fakeReport{
+				hostData: bytes.Repeat([]byte{0}, 32),
+			},
+			wantErr: true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+			assert := assert.New(t)
+
+			mJSON, err := json.Marshal(tc.mnfst)
+			require.NoError(err)
+
+			seed := [32]byte{}
+			salt := [32]byte{}
+			se, err := seedengine.New(seed[:], salt[:])
+			require.NoError(err)
+
+			meshKey := testkeys.ECDSA(t)
+			meshKeyDER, err := x509.MarshalECPrivateKey(meshKey)
+			require.NoError(err)
+			meshKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: meshKeyDER})
+
+			ca, err := ca.New(se.RootCAKey(), meshKey)
+			require.NoError(err)
+
+			info := authority.AuthInfo{
+				Report: &fakeReport{
+					hostData: tc.report.hostData,
+				},
+				State: authority.NewState(se, tc.mnfst, mJSON, ca),
+			}
+			ctx := peer.NewContext(context.Background(), &peer.Peer{
+				AuthInfo: info,
+			})
+
+			meshapi := New(slog.Default())
+
+			resp, err := meshapi.Recover(ctx, nil)
+			if tc.wantErr {
+				require.Error(err)
+				return
+			}
+			require.NoError(err)
+
+			assert.Equal(seed[:], resp.Seed)
+			assert.Equal(salt[:], resp.Salt)
+			assert.Equal(meshKeyPEM, resp.MeshCAKey)
+			assert.JSONEq(string(mJSON), string(resp.LatestManifest))
+		})
+	}
 }
 
 type fakeReport struct {

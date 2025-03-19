@@ -24,6 +24,7 @@ import (
 type SeedEngine struct {
 	curve   func() elliptic.Curve
 	hashFun func() hash.Hash
+	seed    []byte
 	salt    []byte
 
 	podStateSeed []byte
@@ -38,6 +39,7 @@ func New(secretSeed []byte, salt []byte) (*SeedEngine, error) {
 	se := &SeedEngine{
 		curve:   elliptic.P384,
 		hashFun: sha256.New,
+		seed:    secretSeed,
 		salt:    salt,
 	}
 
@@ -100,6 +102,16 @@ func (s *SeedEngine) RootCAKey() *ecdsa.PrivateKey {
 // TransactionSigningKey returns the transaction signing key which is derived from the secret seed.
 func (s *SeedEngine) TransactionSigningKey() *ecdsa.PrivateKey {
 	return s.transactionSigningKey
+}
+
+// Seed returns the secret seed.
+func (s *SeedEngine) Seed() []byte {
+	return s.seed
+}
+
+// Salt returns the salt.
+func (s *SeedEngine) Salt() []byte {
+	return s.salt
 }
 
 func (s *SeedEngine) hkdfDerive(secret []byte, info string) ([]byte, error) {

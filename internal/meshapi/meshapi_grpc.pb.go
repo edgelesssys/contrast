@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	MeshAPI_NewMeshCert_FullMethodName = "/meshapi.MeshAPI/NewMeshCert"
+	MeshAPI_Recover_FullMethodName     = "/meshapi.MeshAPI/Recover"
 )
 
 // MeshAPIClient is the client API for MeshAPI service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MeshAPIClient interface {
 	NewMeshCert(ctx context.Context, in *NewMeshCertRequest, opts ...grpc.CallOption) (*NewMeshCertResponse, error)
+	Recover(ctx context.Context, in *RecoverRequest, opts ...grpc.CallOption) (*RecoverResponse, error)
 }
 
 type meshAPIClient struct {
@@ -47,11 +49,22 @@ func (c *meshAPIClient) NewMeshCert(ctx context.Context, in *NewMeshCertRequest,
 	return out, nil
 }
 
+func (c *meshAPIClient) Recover(ctx context.Context, in *RecoverRequest, opts ...grpc.CallOption) (*RecoverResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RecoverResponse)
+	err := c.cc.Invoke(ctx, MeshAPI_Recover_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MeshAPIServer is the server API for MeshAPI service.
 // All implementations must embed UnimplementedMeshAPIServer
 // for forward compatibility.
 type MeshAPIServer interface {
 	NewMeshCert(context.Context, *NewMeshCertRequest) (*NewMeshCertResponse, error)
+	Recover(context.Context, *RecoverRequest) (*RecoverResponse, error)
 	mustEmbedUnimplementedMeshAPIServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedMeshAPIServer struct{}
 
 func (UnimplementedMeshAPIServer) NewMeshCert(context.Context, *NewMeshCertRequest) (*NewMeshCertResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NewMeshCert not implemented")
+}
+func (UnimplementedMeshAPIServer) Recover(context.Context, *RecoverRequest) (*RecoverResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Recover not implemented")
 }
 func (UnimplementedMeshAPIServer) mustEmbedUnimplementedMeshAPIServer() {}
 func (UnimplementedMeshAPIServer) testEmbeddedByValue()                 {}
@@ -104,6 +120,24 @@ func _MeshAPI_NewMeshCert_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MeshAPI_Recover_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RecoverRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MeshAPIServer).Recover(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MeshAPI_Recover_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MeshAPIServer).Recover(ctx, req.(*RecoverRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MeshAPI_ServiceDesc is the grpc.ServiceDesc for MeshAPI service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +148,10 @@ var MeshAPI_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "NewMeshCert",
 			Handler:    _MeshAPI_NewMeshCert_Handler,
+		},
+		{
+			MethodName: "Recover",
+			Handler:    _MeshAPI_Recover_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
