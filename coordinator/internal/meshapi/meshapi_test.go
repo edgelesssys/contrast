@@ -10,6 +10,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"log/slog"
 	"testing"
@@ -89,6 +90,63 @@ func TestNewMeshCert(t *testing.T) {
 	assert.True(rootCerts[0].IsCA)
 	assert.Empty(rootCerts[0].AuthorityKeyId)
 	assert.Equal(intermediateCert.AuthorityKeyId, rootCerts[0].SubjectKeyId)
+}
+
+func TestRecover(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	m := &manifest.Manifest{}
+	policyHash := sha256.Sum256(nil)
+	policyHashHex := manifest.NewHexString(policyHash[:])
+	m.Policies = map[manifest.HexString]manifest.PolicyEntry{
+		policyHashHex: {
+			Role: manifest.RoleCoordinator,
+		},
+	}
+	mJSON, err := json.Marshal(m)
+	require.NoError(err)
+
+	seed := [32]byte{}
+	salt := [32]byte{}
+	se, err := seedengine.New(seed[:], salt[:])
+	require.NoError(err)
+
+	rootKeyDER, err := x509.MarshalECPrivateKey(se.RootCAKey())
+	require.NoError(err)
+	rootKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: rootKeyDER})
+	require.NoError(err)
+
+	meshKey := testkeys.ECDSA(t)
+	meshKeyDER, err := x509.MarshalECPrivateKey(meshKey)
+	require.NoError(err)
+	meshKeyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: meshKeyDER})
+
+	ca, err := ca.New(se.RootCAKey(), meshKey)
+	require.NoError(err)
+
+	info := authority.AuthInfo{
+		Report: &fakeReport{
+			hostData: policyHash[:],
+		},
+		State: authority.NewState(se, m, ca),
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{
+		AuthInfo: info,
+	})
+
+	meshapi := New(slog.Default())
+
+	resp, err := meshapi.Recover(ctx, nil)
+	require.NoError(err)
+
+	assert.Equal(seed[:], resp.Seed)
+	assert.Equal(salt[:], resp.Salt)
+	assert.Equal(rootKeyPEM, resp.RootCAKey)
+	assert.Equal(ca.GetRootCACert(), resp.RootCACert)
+	assert.Equal(meshKeyPEM, resp.MeshCAKey)
+	assert.Equal(ca.GetMeshCACert(), resp.MeshCACert)
+	assert.JSONEq(string(mJSON), string(resp.LatestManifest))
 }
 
 type fakeReport struct {

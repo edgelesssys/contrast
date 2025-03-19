@@ -136,6 +136,11 @@ func (c *CA) GetRootCACert() []byte {
 	return c.rootCAPEM
 }
 
+// GetIntermCAPrivKey returns the intermediate private key of the CA.
+func (c *CA) GetIntermCAPrivKey() *ecdsa.PrivateKey {
+	return c.intermPrivKey
+}
+
 // GetIntermCACert returns the intermediate CA certificate in PEM format.
 func (c *CA) GetIntermCACert() []byte {
 	return c.intermCAPEM
