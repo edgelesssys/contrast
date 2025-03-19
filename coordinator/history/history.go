@@ -24,6 +24,7 @@ const (
 type History struct {
 	store   Store
 	hashFun func() hash.Hash
+	log     *slog.Logger
 }
 
 // New creates a new History backed by the configured store.
@@ -32,14 +33,15 @@ func New(log *slog.Logger) (*History, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating history store: %w", err)
 	}
-	return NewWithStore(store), nil
+	return NewWithStore(log, store), nil
 }
 
 // NewWithStore creates a new History with the given storage backend.
-func NewWithStore(store Store) *History {
+func NewWithStore(log *slog.Logger, store Store) *History {
 	h := &History{
 		store:   store,
 		hashFun: sha256.New,
+		log:     log,
 	}
 	if HashSize != h.hashFun().Size() {
 		panic("mismatch between hashSize and hash function size")

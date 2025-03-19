@@ -54,7 +54,7 @@ func newAuthority(t *testing.T) (*Authority, *prometheus.Registry) {
 	t.Helper()
 	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
-	hist := history.NewWithStore(store)
+	hist := history.NewWithStore(slog.Default(), store)
 	reg := prometheus.NewRegistry()
 	return New(hist, reg, slog.Default()), reg
 }
