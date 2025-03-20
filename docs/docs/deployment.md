@@ -304,7 +304,7 @@ A pod configured to use GPU support may take a few minutes to come up, as the VM
 Run the `generate` command to add the necessary components to your deployment files.
 This will add the Contrast Initializer to every workload with the specified `contrast-cc` runtime class
 and the Contrast Service Mesh to all workloads that have a specified configuration.
-After that, it will generate the execution policies and add them as annotations to your deployment files.
+After that, it will generate the [execution policies](components/policies.md) and add them as annotations to your deployment files.
 A `manifest.json` with the reference values of your deployment will be created.
 
 <Tabs queryString="platform">
@@ -344,6 +344,11 @@ If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and 
 :::
 </TabItem>
 </Tabs>
+
+The `generate` command needs to pull the container images to derive policies.
+Running `generate` for the first time can take a while, especially if the images are large.
+If your container registry requires authentication, you can create the necessary credentials with `docker login` or `podman login`.
+Be aware of the [registry authentication limitation](features-limitations.md#kubernetes-features) on bare metal.
 
 :::warning
 Please be aware that runtime policies currently have some blind spots. For example, they can't guarantee the starting order of containers. See the [current limitations](features-limitations.md#runtime-policies) for more details.
@@ -448,12 +453,29 @@ coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ing
 :::info[Port-forwarding of Confidential Containers]
 
 `kubectl port-forward` uses a Container Runtime Interface (CRI) method that isn't supported by the Kata shim.
-If you can't use a public load balancer, you can deploy a [port-forwarder](https://github.com/edgelesssys/contrast/blob/ddc371b/deployments/emojivoto/portforwarder.yml).
-The port-forwarder relays traffic from a CoCo pod and can be accessed via `kubectl port-forward`.
+If you can't use a public load balancer, you can deploy a port-forwarding pod to relay traffic to a Contrast pod:
 
-<!-- TODO(burgerdev): inline port-forwarder definition, it has been removed from main. -->
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: port-forwarder-coordinator
+spec:
+  containers:
+    - name: port-forwarder
+      image: alpine/socat
+      args:
+        - -d
+        - TCP-LISTEN:1313,fork
+        - TCP:coordinator:1313
+      resources:
+        requests:
+          memory: 50Mi
+        limits:
+          memory: 50Mi
+```
 
-Upstream tracking issue: https://github.com/kata-containers/kata-containers/issues/1693.
+Upstream tracking issue: <https://github.com/kata-containers/kata-containers/issues/1693>.
 
 :::
 
