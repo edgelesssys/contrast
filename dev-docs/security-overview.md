@@ -342,7 +342,7 @@ The data owner or workload operator verifies the integrity and confidentiality o
 #### 2. The CLI establishes an attested TLS (aTLS) connection to the Contrast coordinator
 
 - By initiating the manifest upload through the `set` command, The CLI initiates an aTLS connection to the Contrast coordinator.
-- The TLS protocol is [extended](https://www.ietf.org/archive/id/draft-fossati-tls-attestation-04.html) to verify the coordinator's attestation report against the reference hashes embedded in the CLI.
+- The TLS protocol is extended to verify the coordinator's attestation report against the reference hashes embedded in the CLI.
 - If attestation succeeds, the CLI establishes a trusted, authenticated aTLS session.
 
 #### 4. The CLI uploads the manifest to the coordinator
