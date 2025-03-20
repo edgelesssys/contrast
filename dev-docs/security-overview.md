@@ -237,8 +237,6 @@ Once scheduled, the `DaemonSet` node-installer installs and configures the neces
 
 #### 2. QEMU initializes memory
 
-#### 2. QEMU initializes memory
-
 - `QEMU` loads the kernel, kernel command line, and `initramfs` into the CVM’s initial memory.
 - Unlike traditional QEMU boots that use Open Virtual Machine Firmware (OVMF) for UEFI initialization, Direct Linux Boot loads the kernel directly, skipping the need for firmware.
 
