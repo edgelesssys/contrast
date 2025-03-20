@@ -34,7 +34,7 @@ Since the architecture is largely consistent across platforms, this overview foc
 
 - **Manifest**: A configuration (.json) within the Contrast coordinator that defines the trusted reference state of your cluster. It specifies cryptographic hashes for all application workloads The Contrast coordinator ensures that CVM attestations are always verified against this manifest before initialized as trusted.
 
-- **Contrast CLI**: A command-line tool to verify the integrity and authenticity of the coordinator and the entire deployment via remote attestation. It can also be used by data owners to verify a deployment. As it serves as a root of trust for the deployment, ensuring its integrity and authenticity is crucial for both the workload operator and data owner. It is also used for automatically pre-processing deployment files, adjusting them for a secure Contrast integration.
+- **Contrast CLI**: A command-line tool to verify the integrity and authenticity of the coordinator and the entire deployment via remote attestation. It can also be used by data owners to verify a deployment. As it serves as a root of trust for the deployment, ensuring its integrity and authenticity is crucial for both the workload operator and data owner. It's also used for automatically pre-processing deployment files, adjusting them for a secure Contrast integration.
 
 ```mermaid
 
@@ -233,7 +233,7 @@ Once scheduled, the `DaemonSet` node-installer installs and configures the neces
 - The installed runtime plugin (`containerd-shim-contrast-cc-v2`, referenced by the runtime handler) initializes the Confidential Virtual Machine (CVM) using `QEMU`.
 - `QEMU` initializes the CVM’s virtualized environment.
 - AMD SEV-SNP enforces memory encryption: Guest memory is encrypted using a per-VM encryption key, ensuring host isolation.
-- `QEMU` calls AMD SEV-SNP `LAUNCH_MEASURE` which measures the kernel, the kernel command line, and `initramfs`. The measurement is stored in procteted registers.
+- `QEMU` calls AMD SEV-SNP `LAUNCH_MEASURE` which measures the kernel, the kernel command line, and `initramfs`. The measurement is stored in protected registers.
 
 #### 2. QEMU initializes memory
 
