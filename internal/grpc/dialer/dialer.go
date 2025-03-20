@@ -57,7 +57,6 @@ func (d *Dialer) Dial(_ context.Context, target string) (*grpc.ClientConn, error
 	credentials := atlscredentials.NewWithKey(d.issuer, d.validators, d.attestationFailures, d.privKey, logger.NewNamed(d.logger, "atlscredentials"))
 
 	return grpc.NewClient(target,
-		d.grpcWithDialer(),
 		grpc.WithTransportCredentials(credentials),
 		grpc.WithConnectParams(grpc.ConnectParams{
 			// We need a high initial timeout, because otherwise the client will get stuck in a reconnect loop
