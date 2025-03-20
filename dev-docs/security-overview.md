@@ -28,13 +28,13 @@ Since the architecture is largely consistent across platforms, this overview foc
 
 ## Key components
 
-- **Contrast Kubernetes runtime**: Contrast comes with a custom Kubernetes `RuntimeClass` that specifies the runtime handler used by `containerd` to manage container execution. A custom runtime handler is used to run containers inside Confidential Virtual Machines (CVMs). Contrast’s runtime is based on the [Kata Container runtime](https://katacontainers.io/) and the [Confidential Computing (CoCo)](https://confidentialcontainers.org/) project.
+- **Contrast Kubernetes runtime**: Contrast comes with a custom Kubernetes `RuntimeClass` that specifies the runtime handler used by `containerd` to manage container execution. A custom runtime handler is used to run containers inside Confidential Virtual Machines (CVMs). Contrast’s runtime is based on the [Kata Container runtime](https://katacontainers.io/) and the [Confidential Containers (CoCo)](https://confidentialcontainers.org/) project.
 
 - **Contrast coordinator**: An additional workload deployed to the cluster that itself runs within a CVM using the Contrast custom runtime. It serves as the central attestation service, ensuring that only attested workloads are admitted into the trusted service mesh.
 
 - **Manifest**: A configuration (.json) within the Contrast coordinator that defines the trusted reference state of your cluster. It specifies cryptographic hashes for all application workloads The Contrast coordinator ensures that CVM attestations are always verified against this manifest before initialized as trusted.
 
-- **Contrast CLI**: A command-line tool used by workload operators to manage Contrast deployments. It provides tools to verify the integrity and authenticity of the coordinator and the entire deployment via remote attestation. It can also be used by data owners to verify a deployment. As it serves as a root of trust for the deployment, ensuring its integrity and authenticity is crucial for both the workload operator and data owner.
+- **Contrast CLI**: A command-line tool to verify the integrity and authenticity of the coordinator and the entire deployment via remote attestation. It can also be used by data owners to verify a deployment. As it serves as a root of trust for the deployment, ensuring its integrity and authenticity is crucial for both the workload operator and data owner. It is also used for automatically pre-processing deployment files, adjusting them for a secure Contrast integration.
 
 ```mermaid
 
@@ -50,7 +50,7 @@ Since the architecture is largely consistent across platforms, this overview foc
 
 ## Runtime Policy
 
-A key element of a CVM in Contrast is its runtime policy, a fundamental component of Kata Containers. The runtime policy is attached to the CVM and enforced by the `kata-agent`, which runs in user mode within the CVM. It strictly regulates and verifies host-to-CVM communication, ensuring that:
+A key element of a CVM in Contrast is its runtime policy, a fundamental component of Kata Containers. The runtime policy is attached to the CVM and enforced by the `kata-agent`, which runs within the CVM. It strictly regulates and verifies host-to-CVM communication, ensuring that:
 
 - ✅ Only approved workload images can be started inside the CVM.
 - ✅ Execution of additional unauthorized processes is prohibited.
@@ -85,7 +85,7 @@ The report includes the following information:
 The manifest, enforced by the Contrast coordinator, contains reference values used to verify all workloads. It can be seen as the trusted reference state of the deployment. The manifest includes:
 
 - **Policies**: One Cryptographic hashes of the enforced runtime policy per pod.
-- **ReferenceValues**: The launch digests of the CVMs, based on AMD SEV-SNP. This doesn't include any application code but tracks the setup of the CVM. Two pods can have (and typically have) the same CVM setup.
+- **ReferenceValues**: The launch digests of the CVMs, based on AMD SEV-SNP. This doesn't include any application code but tracks the setup of the CVM. Confidential Pods on the same CPU have the same reference values.
 - **WorkloadOwnerKeyDigests**: A public key digest used to authenticate subsequent manifest updates.
 - **SeedshareOwnerPubKeys**: Used for coordinator recovery. For details, see [later sections](#secret-recovery).
 
@@ -216,10 +216,10 @@ Once scheduled, the `DaemonSet` node-installer installs and configures the neces
 
 1. Installs the Contrast-specific `containerd` shim (`containerd-shim-contrast-cc-v2`).
 2. Installs `QEMU` as the hypervisor.
-3. Deploys the (Initial Guest Virtual Machine) IGVM file. The file includes:
-   - Kernel image: Minimal guest OS kernel that will run inside the CVM
-   - Initramfs: Minimal filesystem used during early boot
-   - Kernel command line: Boot parameters
+3. Deploys the required files for **direct Linux boot** of the CVM:
+   - **Kernel image**: The minimal guest OS kernel that runs inside the CVM.
+   - **Initramfs**: A minimal filesystem used during early boot.
+   - **Kernel command line**: Boot parameters, including security settings such as `dm-verity` root hash.
 4. Installs a read-only root filesystem image for pod-CVMs of this class.
 5. Updates `containerd` configuration by adding a runtime plugin corresponding to the specified `handler` (`containerd-shim-contrast-cc-v2`) defined in the Kubernetes `RuntimeClass`.
 6. Restarts `containerd` to apply the new runtime configuration.
@@ -231,11 +231,16 @@ Once scheduled, the `DaemonSet` node-installer installs and configures the neces
 #### 1. The kata runtime plugin initializes the CVM
 
 - The installed runtime plugin (`containerd-shim-contrast-cc-v2`, referenced by the runtime handler) initializes the Confidential Virtual Machine (CVM) using `QEMU`.
-- It generates the `QEMU` command line, including parameters required for injecting `HOSTDATA` into the CVM.
+- `QEMU` initializes the CVM’s virtualized environment.
+- AMD SEV-SNP enforces memory encryption: Guest memory is encrypted using a per-VM encryption key, ensuring host isolation.
+- `QEMU` calls AMD SEV-SNP `LAUNCH_MEASURE` which measures the kernel, the kernel command line, and `initramfs`. The measurement is stored in procteted registers.
 
-#### 2. QEMU boots the CVM
+#### 2. QEMU initializes memory
 
-- The runtime plugin instructs `QEMU` to boot the CVM with the IGVM file as the initial memory content.
+#### 2. QEMU initializes memory
+
+- `QEMU` loads the kernel, kernel command line, and `initramfs` into the CVM’s initial memory.
+- Unlike traditional QEMU boots that use Open Virtual Machine Firmware (OVMF) for UEFI initialization, Direct Linux Boot loads the kernel directly, skipping the need for firmware.
 
 #### 3. Kernel and initramfs initialization
 
@@ -243,7 +248,7 @@ Once scheduled, the `DaemonSet` node-installer installs and configures the neces
 - The `initramfs` initialization procedure parses parameters provided via the kernel command line. The command line includes:
   - Explicit instructions for the boot sequence, system initialization, and filesystem mounts.
   - The `dm-verity` hash, used to verify the integrity of the root filesystem.
-- `QEMU` injects `HOSTDATA` into the CVM through the `SEV-SNP LAUNCH_SECRET` mechanism, securely storing it within AMD’s hardware-protected memory region.
+- `QEMU` adds `HOSTDATA` to the CVM by passing it through the `SEV-SNP LAUNCH_SECRET` mechanism, securely storing it within AMD’s hardware-protected registers.
   - `HOSTDATA` contains a hardware-enforced SHA-256 hash of the runtime policy.
   - Although `HOSTDATA` isn't included in the initial memory image, it's always embedded and cryptographically signed as part of the attestation report.
 
@@ -308,7 +313,7 @@ Each CVM pod includes two additional containers that start before the primary ap
 
 #### 3. The Contrast coordinator (acting as a client) establishes an attested TLS (aTLS) connection with the Init container of the CVM pod (server) on the worker node:
 
-- The TLS protocol is [extended](https://www.ietf.org/archive/id/draft-fossati-tls-attestation-04.html) to include attestation verification of the server.
+- The TLS protocol is extended to include attestation verification of the server.
 - The worker node must successfully pass attestation against the defined manifest before the TLS connection is fully established.
 - Only after successful attestation does the coordinator issue a valid service mesh certificate.
 
@@ -363,7 +368,7 @@ This section provides a concise overview of key components whose integrity is ve
 
 ### Launch measurement
 
-The CPU generates a hardware-enforced cryptographic hash of the IGVM file loaded into memory, known as the launch measurement. This measurement guarantees the integrity of the following components:
+The CPU generates a hardware-enforced cryptographic hash of the files initially loaded into memory, known as the launch measurement. This measurement guarantees the integrity of the following components:
 
 - **Kernel and kernel command line**
 - **Minimal init filesystem (`initramfs`)**
