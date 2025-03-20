@@ -5,6 +5,7 @@ package probes
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -147,7 +148,7 @@ func TestLivenessProbe(t *testing.T) {
 				require.NoError(fs.WriteFile("transitions/latest", []byte(someTransition), 0o644))
 			}
 
-			hist := history.NewWithStore(history.NewAferoStore(&fs))
+			hist := history.NewWithStore(&slog.Logger{}, history.NewAferoStore(&fs))
 
 			handler := LivenessHandler{Hist: hist}
 			mux.Handle("/probes/liveness", handler)
