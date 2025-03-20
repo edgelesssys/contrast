@@ -153,7 +153,7 @@ func addCRLtoVerifyOptions(attestationData *sevsnp.Attestation, verifyOpts *veri
 	}
 	crl, err := x509.ParseRevocationList(crlRaw)
 	if err != nil {
-		return errors.New("could not parse CRL from attestation data")
+		return fmt.Errorf("could not parse CRL from attestation data: %w", err)
 	}
 
 	productLine := kds.ProductLine(attestationData.GetProduct())
