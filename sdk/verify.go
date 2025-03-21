@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
@@ -53,7 +52,7 @@ func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifest
 	if err != nil {
 		return CoordinatorState{}, fmt.Errorf("getting validators: %w", err)
 	}
-	dialer := dialer.New(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, c.log)
+	dialer := dialer.New(atls.NoIssuer, validators, atls.NoMetrics, nil, c.log)
 
 	c.log.Debug("Dialing coordinator", "endpoint", endpoint)
 
