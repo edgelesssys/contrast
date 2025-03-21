@@ -6,6 +6,8 @@ package meshapi
 import (
 	"context"
 	"crypto/x509"
+	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"log/slog"
 
@@ -96,6 +98,70 @@ func (i *Server) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertRequest)
 			return nil, fmt.Errorf("failed to derive workload secret: %w", err)
 		}
 		resp.WorkloadSecret = workloadSecret
+	}
+
+	return resp, nil
+}
+
+// Recover verifies the peers policy and role and recovers the calling Coordinator.
+func (i *Server) Recover(ctx context.Context, _ *meshapi.RecoverRequest) (*meshapi.RecoverResponse, error) {
+	i.logger.Info("Recover called")
+
+	p, ok := peer.FromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to get peer from context")
+	}
+
+	authInfo, ok := p.AuthInfo.(authority.AuthInfo)
+	if !ok {
+		return nil, fmt.Errorf("unexpected AuthInfo type: %T", p.AuthInfo)
+	}
+	state := authInfo.State
+	report := authInfo.Report
+
+	hostData := manifest.NewHexString(report.HostData())
+	entry, ok := state.Manifest().Policies[hostData]
+	if !ok {
+		return nil, status.Errorf(codes.PermissionDenied, "policy hash %s not found in manifest", hostData)
+	}
+	if entry.Role != manifest.RoleCoordinator {
+		return nil, status.Errorf(codes.PermissionDenied, "role %s not allowed to recover", entry.Role)
+	}
+
+	ca := state.CA()
+	se := state.SeedEngine()
+
+	rootCAPrivKeyDER, err := x509.MarshalECPrivateKey(se.RootCAKey())
+	if err != nil {
+		return nil, fmt.Errorf("marshaling root CA private key: %w", err)
+	}
+	rootCAPrivKeyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "EC PRIVATE KEY",
+		Bytes: rootCAPrivKeyDER,
+	})
+
+	meshCAPrivKeyDER, err := x509.MarshalECPrivateKey(ca.GetIntermCAPrivKey())
+	if err != nil {
+		return nil, fmt.Errorf("marshaling mesh CA private key: %w", err)
+	}
+	meshCAPrivKeyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "EC PRIVATE KEY",
+		Bytes: meshCAPrivKeyDER,
+	})
+
+	mnfst, err := json.Marshal(state.Manifest())
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal manifest: %w", err)
+	}
+
+	resp := &meshapi.RecoverResponse{
+		Seed:           se.Seed(),
+		Salt:           se.Salt(),
+		RootCAKey:      rootCAPrivKeyPEM,
+		RootCACert:     ca.GetRootCACert(),
+		MeshCAKey:      meshCAPrivKeyPEM,
+		MeshCACert:     ca.GetMeshCACert(),
+		LatestManifest: mnfst,
 	}
 
 	return resp, nil
