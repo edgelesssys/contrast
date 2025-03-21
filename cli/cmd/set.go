@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"os"
 	"path"
 	"slices"
@@ -113,9 +112,9 @@ func runSet(cmd *cobra.Command, args []string) error {
 
 	var dialr *dialer.Dialer
 	if workloadOwnerKey == nil {
-		dialr = dialer.New(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, log)
+		dialr = dialer.New(atls.NoIssuer, validators, atls.NoMetrics, nil, log)
 	} else {
-		dialr = dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, &net.Dialer{}, workloadOwnerKey, log)
+		dialr = dialer.NewWithKey(atls.NoIssuer, validators, atls.NoMetrics, nil, workloadOwnerKey, log)
 	}
 
 	conn, err := dialr.Dial(cmd.Context(), flags.coordinator)
