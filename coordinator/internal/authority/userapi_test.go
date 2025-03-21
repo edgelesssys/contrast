@@ -17,6 +17,7 @@ import (
 	"log/slog"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -118,7 +119,7 @@ func TestManifestSet(t *testing.T) {
 			require := require.New(t)
 
 			reg := prometheus.NewRegistry()
-			coordinator := newCoordinatorWithRegistry(reg)
+			coordinator := newCoordinatorWithRegistry(t, reg)
 			ctx := rpcContext(tc.workloadOwnerKey)
 			resp, err := coordinator.SetManifest(ctx, tc.req)
 
@@ -154,7 +155,7 @@ func TestManifestSet(t *testing.T) {
 			require := require.New(t)
 
 			reg := prometheus.NewRegistry()
-			coordinator := newCoordinatorWithRegistry(reg)
+			coordinator := newCoordinatorWithRegistry(t, reg)
 			ctx := rpcContext(tc.workloadOwnerKey)
 			m, err := json.Marshal(manifestWithTrustedKey)
 			require.NoError(err)
@@ -186,7 +187,7 @@ func TestManifestSet(t *testing.T) {
 	t.Run("no workload owner key in manifest", func(t *testing.T) {
 		require := require.New(t)
 
-		coordinator := newCoordinator()
+		coordinator := newCoordinator(t)
 		ctx := rpcContext(trustedKey)
 		m, err := json.Marshal(manifestWithoutTrustedKey)
 		require.NoError(err)
@@ -201,7 +202,7 @@ func TestManifestSet(t *testing.T) {
 	t.Run("broken manifest", func(t *testing.T) {
 		require := require.New(t)
 
-		coordinator := newCoordinator()
+		coordinator := newCoordinator(t)
 		req := &userapi.SetManifestRequest{Manifest: []byte(`{ "policies": 1 }`)}
 		_, err = coordinator.SetManifest(context.Background(), req)
 		require.Error(err)
@@ -213,7 +214,7 @@ func TestGetManifests(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	coordinator := newCoordinator()
+	coordinator := newCoordinator(t)
 
 	ctx := context.Background()
 	resp, err := coordinator.GetManifests(ctx, &userapi.GetManifestsRequest{})
@@ -288,7 +289,7 @@ func TestRecovery(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			require := require.New(t)
 
-			a := newCoordinator()
+			a := newCoordinator(t)
 
 			seedShareOwnerKey := testkeys.RSA(t)
 			seedShareOwnerKeyBytes := manifest.MarshalSeedShareOwnerKey(&seedShareOwnerKey.PublicKey)
@@ -308,8 +309,6 @@ func TestRecovery(t *testing.T) {
 			seed, err := manifest.DecryptSeedShare(seedShareOwnerKey, resp.SeedSharesDoc.SeedShares[0])
 			require.NoError(err)
 
-			a = New(a.hist, prometheus.NewRegistry(), slog.Default())
-
 			recoverReq := &userapi.RecoverRequest{
 				Seed: tc.seed,
 				Salt: tc.salt,
@@ -320,8 +319,21 @@ func TestRecovery(t *testing.T) {
 			if recoverReq.Salt == nil {
 				recoverReq.Salt = resp.SeedSharesDoc.Salt
 			}
-			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
 
+			// Simulate an updated persistence.
+			a.state.Load().stale.Store(true)
+			_, err = a.GetManifests(context.Background(), nil)
+			require.ErrorContains(err, ErrNeedsRecovery.Error())
+			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
+			require.Equal(tc.wantCode, status.Code(err), "actual error: %v", err)
+
+			// Simulate a restarted Coordinator.
+			ctx, cancel := context.WithCancel(context.Background())
+			t.Cleanup(cancel)
+			a = New(ctx, a.hist, prometheus.NewRegistry(), slog.Default())
+			_, err = a.GetManifests(context.Background(), nil)
+			require.ErrorContains(err, ErrNeedsRecovery.Error())
+			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
 			require.Equal(tc.wantCode, status.Code(err), "actual error: %v", err)
 		})
 	}
@@ -333,7 +345,7 @@ func TestRecoveryFlow(t *testing.T) {
 
 	// 1. A Coordinator is created from empty state.
 
-	a := newCoordinator()
+	a := newCoordinator(t)
 
 	// 2. A manifest is set and the returned seed is recorded.
 	seedShareOwnerKey := testkeys.RSA(t)
@@ -364,7 +376,8 @@ func TestRecoveryFlow(t *testing.T) {
 		Salt: seedSharesDoc.GetSalt(),
 	}
 
-	ctx := rpcContext(seedShareOwnerKey)
+	ctx, cancel := context.WithCancel(rpcContext(seedShareOwnerKey))
+	t.Cleanup(cancel)
 
 	// Recovery on this Coordinator should fail now that a manifest is set.
 	_, err = a.Recover(ctx, recoverReq)
@@ -373,7 +386,7 @@ func TestRecoveryFlow(t *testing.T) {
 	// 3. A new Coordinator is created with the existing history.
 	// GetManifests and SetManifest are expected to fail.
 
-	a = New(a.hist, prometheus.NewRegistry(), slog.Default())
+	a = New(ctx, a.hist, prometheus.NewRegistry(), slog.Default())
 	_, err = a.SetManifest(context.Background(), req)
 	require.ErrorContains(err, ErrNeedsRecovery.Error())
 
@@ -415,7 +428,9 @@ func TestUserAPIConcurrent(t *testing.T) {
 	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
-	coordinator := New(hist, prometheus.NewRegistry(), slog.Default())
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	coordinator := New(ctx, hist, prometheus.NewRegistry(), slog.Default())
 
 	setReq := &userapi.SetManifestRequest{
 		Manifest: newManifestBytes(func(m *manifest.Manifest) {
@@ -430,7 +445,6 @@ func TestUserAPIConcurrent(t *testing.T) {
 		},
 	}
 
-	ctx := context.Background()
 	wg := sync.WaitGroup{}
 
 	set := func() {
@@ -458,15 +472,83 @@ func TestUserAPIConcurrent(t *testing.T) {
 	wg.Wait()
 }
 
-func newCoordinator() *Authority {
-	return newCoordinatorWithRegistry(prometheus.NewRegistry())
+func TestOutOfBandUpdates(t *testing.T) {
+	require := require.New(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	store := newWatchableStore()
+	hist := history.NewWithStore(slog.Default(), store)
+	a := New(ctx, hist, prometheus.NewRegistry(), slog.Default())
+
+	// Set an initial manifest.
+	seedShareOwnerKey := testkeys.RSA(t)
+	seedShareOwnerKeyBytes := manifest.MarshalSeedShareOwnerKey(&seedShareOwnerKey.PublicKey)
+
+	mnfst, _, policies := newManifest(t)
+	mnfst.SeedshareOwnerPubKeys = []manifest.HexString{seedShareOwnerKeyBytes}
+	manifestBytes, err := json.Marshal(mnfst)
+	require.NoError(err)
+
+	req := &userapi.SetManifestRequest{
+		Manifest: manifestBytes,
+		Policies: policies,
+	}
+	setManifestResp, err := a.SetManifest(context.Background(), req)
+	require.NoError(err)
+
+	// GetManifest should show that the watcher did not mark the state stale.
+	getManifestResp, err := a.GetManifests(ctx, nil)
+	require.NoError(err)
+	require.Len(getManifestResp.Manifests, 1)
+	require.Equal(manifestBytes, getManifestResp.Manifests[0])
+
+	// Manipulate history directly
+	key := a.state.Load().seedEngine.TransactionSigningKey()
+	oldLatest, err := hist.GetLatest(&key.PublicKey)
+	require.NoError(err)
+	transition := &history.Transition{
+		ManifestHash:           sha256.Sum256(manifestBytes),
+		PreviousTransitionHash: oldLatest.TransitionHash,
+	}
+	transitionHash, err := hist.SetTransition(transition)
+	require.NoError(err)
+	nextLatest := &history.LatestTransition{
+		TransitionHash: transitionHash,
+	}
+	require.NoError(hist.SetLatest(oldLatest, nextLatest, key))
+
+	// Wait for the staleness to propagate.
+	require.Eventually(func() bool {
+		return a.state.Load().stale.Load()
+	}, time.Second, 10*time.Millisecond)
+	_, err = a.GetManifests(ctx, nil)
+	require.ErrorContains(err, ErrNeedsRecovery.Error())
+
+	// Recovery should succeed.
+	seed, err := manifest.DecryptSeedShare(seedShareOwnerKey, setManifestResp.GetSeedSharesDoc().GetSeedShares()[0])
+	require.NoError(err)
+
+	recoverReq := &userapi.RecoverRequest{
+		Seed: seed,
+		Salt: setManifestResp.GetSeedSharesDoc().GetSalt(),
+	}
+	_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
+	require.NoError(err)
 }
 
-func newCoordinatorWithRegistry(reg *prometheus.Registry) *Authority {
+func newCoordinator(t *testing.T) *Authority {
+	t.Helper()
+	return newCoordinatorWithRegistry(t, prometheus.NewRegistry())
+}
+
+func newCoordinatorWithRegistry(t *testing.T, reg *prometheus.Registry) *Authority {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
 	fs := afero.NewMemMapFs()
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
-	return New(hist, reg, slog.Default())
+	return New(ctx, hist, reg, slog.Default())
 }
 
 func rpcContext(cryptoKey crypto.PrivateKey) context.Context {
@@ -515,4 +597,39 @@ func parsePEMCertificate(t *testing.T, pemCert []byte) *x509.Certificate {
 	cert, err := x509.ParseCertificate(block.Bytes)
 	require.NoError(t, err)
 	return cert
+}
+
+// watchableStore wraps a Store and adds a simple Watch implementation.
+type watchableStore struct {
+	history.Store
+	watchers map[string]chan []byte
+	// mu protects the watchers map to please the race detector.
+	mu sync.Mutex
+}
+
+func newWatchableStore() *watchableStore {
+	fs := afero.NewMemMapFs()
+	return &watchableStore{
+		Store:    history.NewAferoStore(&afero.Afero{Fs: fs}),
+		watchers: make(map[string]chan []byte),
+	}
+}
+
+func (fs *watchableStore) Watch(key string) (<-chan []byte, func(), error) {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	if _, ok := fs.watchers[key]; !ok {
+		fs.watchers[key] = make(chan []byte, 10)
+	}
+	return fs.watchers[key], func() {}, nil
+}
+
+func (fs *watchableStore) CompareAndSwap(key string, oldVal, newVal []byte) error {
+	fs.mu.Lock()
+	defer fs.mu.Unlock()
+	err := fs.Store.CompareAndSwap(key, oldVal, newVal)
+	if watcher, ok := fs.watchers[key]; err == nil && ok {
+		watcher <- newVal
+	}
+	return err
 }
