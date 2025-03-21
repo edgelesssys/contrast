@@ -89,6 +89,9 @@ func (d *Dialer) DialNoVerify(_ context.Context, target string) (*grpc.ClientCon
 }
 
 func (d *Dialer) grpcWithDialer() grpc.DialOption {
+	if d.netDialer == nil {
+		return grpc.EmptyDialOption{}
+	}
 	return grpc.WithContextDialer(func(ctx context.Context, addr string) (net.Conn, error) {
 		return d.netDialer.DialContext(ctx, "tcp", addr)
 	})
