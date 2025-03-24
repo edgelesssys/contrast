@@ -74,7 +74,9 @@ func run() (retErr error) {
 		return fmt.Errorf("creating history: %w", err)
 	}
 
-	meshAuth := authority.New(hist, promRegistry, logger)
+	eg, ctx := errgroup.WithContext(ctx)
+
+	meshAuth := authority.New(ctx, hist, promRegistry, logger)
 
 	issuer, err := issuer.New(logger)
 	if err != nil {
@@ -93,8 +95,6 @@ func run() (retErr error) {
 	serverMetrics.InitializeMetrics(meshAPIServer)
 
 	metricsServer := &http.Server{}
-
-	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
 		if metricsPort == "" {

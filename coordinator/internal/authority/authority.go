@@ -4,12 +4,13 @@
 package authority
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
-	"slices"
 	"sync/atomic"
+	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
@@ -42,7 +43,7 @@ type metrics struct {
 }
 
 // New creates a new Authority instance.
-func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Authority {
+func New(ctx context.Context, hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Authority {
 	manifestGeneration := promauto.With(reg).NewGauge(prometheus.GaugeOpts{
 		Subsystem: "contrast_coordinator",
 		Name:      "manifest_generation",
@@ -50,55 +51,51 @@ func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Aut
 	})
 	manifestGeneration.Set(0)
 
-	return &Authority{
+	a := &Authority{
 		hist:   hist,
 		logger: log.WithGroup("mesh-authority"),
 		metrics: metrics{
 			manifestGeneration: manifestGeneration,
 		},
 	}
-}
 
-// syncState ensures that a.state is up-to-date.
-//
-// This function guarantees to include all state updates committed before it was called.
-func (m *Authority) syncState() error {
-	hasLatest, err := m.hist.HasLatest()
-	if err != nil {
-		return fmt.Errorf("probing latest transition: %w", err)
-	}
-	if !hasLatest {
-		// No history yet -> nothing to sync.
-		return nil
-	}
+	// Set up a watcher that marks the current State stale if it does not correspond to the latest
+	// transition in store.
 
-	oldState := m.state.Load()
-	if oldState == nil {
-		// There are transitions in history, but we don't have a local state -> recovery mode.
-		return ErrNeedsRecovery
-	}
-	nextState, err := m.fetchState(oldState.seedEngine)
-	if err != nil {
-		return fmt.Errorf("fetching latest state: %w", err)
-	}
+	go func() {
+		for {
+			ch, err := a.hist.WatchLatestTransitions(ctx)
+			if err != nil {
+				a.logger.Error("WatchLatestTransitions failed", "error", err)
+				select {
+				case <-time.After(5 * time.Second):
+					continue
+				case <-ctx.Done():
+					return
+				}
+			}
+			for {
+				select {
+				case t, ok := <-ch:
+					if !ok {
+						a.logger.Error("WatchLatestTransitions channel closed unexpectedly")
+						break
+					}
+					state := a.state.Load()
+					if state != nil && state.latest.TransitionHash != t.TransitionHash {
+						a.logger.Info("History changed, marking state as stale",
+							"from-transition", manifest.NewHexString(state.latest.TransitionHash[:]),
+							"to-transition", manifest.NewHexString(t.TransitionHash[:]))
+						state.stale.Store(true)
+					}
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
 
-	// Don't update the state if it did not change.
-	if nextState.latest.TransitionHash == oldState.latest.TransitionHash {
-		return nil
-	}
-
-	// Manifest changed, verify that the seedshare owners did not change.
-	if slices.Compare(oldState.manifest.SeedshareOwnerPubKeys, nextState.manifest.SeedshareOwnerPubKeys) != 0 {
-		return fmt.Errorf("can't update from the current manifest to the latest persisted manifest because the seedshare owners changed")
-	}
-
-	// We consider the sync successful even if the state was updated by someone else.
-	if m.state.CompareAndSwap(oldState, nextState) {
-		// Only set the gauge if our state modification was actually successful - otherwise, it
-		// won't match the active state.
-		m.metrics.manifestGeneration.Set(float64(nextState.generation))
-	}
-	return nil
+	return a
 }
 
 // fetchState creates a fresh state from the history that's verified by the given SeedEngine.
@@ -167,12 +164,12 @@ func (m *Authority) walkTransitions(transitionRef [history.HashSize]byte, consum
 
 // GetState syncs the current state and returns the loaded current state.
 func (m *Authority) GetState() (*State, error) {
-	if err := m.syncState(); err != nil {
-		return nil, fmt.Errorf("syncing state: %w", err)
-	}
 	state := m.state.Load()
 	if state == nil {
 		return nil, errors.New("coordinator is not initialized")
+	} else if state.stale.Load() {
+		// TODO(burgerdev): we could attempt peer recovery here.
+		return nil, ErrNeedsRecovery
 	}
 	return state, nil
 }
@@ -185,6 +182,10 @@ type State struct {
 
 	latest     *history.LatestTransition
 	generation int
+
+	// stale is set to true when we discover that this State is not current anymore.
+	// This field is only ever flipped from false to true!
+	stale atomic.Bool
 }
 
 // NewState constructs a new State object.

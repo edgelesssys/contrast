@@ -52,11 +52,13 @@ func TestSNPValidateOpts(t *testing.T) {
 
 func newAuthority(t *testing.T) (*Authority, *prometheus.Registry) {
 	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
 	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
 	reg := prometheus.NewRegistry()
-	return New(hist, reg, slog.Default()), reg
+	return New(ctx, hist, reg, slog.Default()), reg
 }
 
 func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
