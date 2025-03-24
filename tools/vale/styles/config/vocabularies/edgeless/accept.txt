@@ -17,6 +17,7 @@ backport
 Bazel
 bootloader
 Bootstrapper
+btrfs
 CA
 cachable
 cachix
@@ -37,6 +38,7 @@ Datadog
 deallocate
 deduplicate
 DEK
+devs
 Dockerfile
 Dynatrace
 Emojivoto
