@@ -94,7 +94,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	paths, err := findGenerateTargets(args, log)
+	paths, cmPaths, err := findGenerateTargets(args, log)
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
 
-	if err := generatePolicies(cmd.Context(), flags, paths, log); err != nil {
+	if err := generatePolicies(cmd.Context(), flags, paths, cmPaths, log); err != nil {
 		return fmt.Errorf("generate policies: %w", err)
 	}
 
@@ -205,7 +205,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func findGenerateTargets(args []string, logger *slog.Logger) ([]string, error) {
+func findGenerateTargets(args []string, logger *slog.Logger) ([]string, []string, error) {
 	var paths []string
 	for _, path := range args {
 		err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
@@ -224,19 +224,38 @@ func findGenerateTargets(args []string, logger *slog.Logger) ([]string, error) {
 			return nil
 		})
 		if err != nil {
-			return nil, fmt.Errorf("walk %s: %w", path, err)
+			return nil, nil, fmt.Errorf("walk %s: %w", path, err)
 		}
 	}
 	if len(paths) == 0 {
-		return nil, fmt.Errorf("no .yml/.yaml files found")
+		return nil, nil, fmt.Errorf("no .yml/.yaml files found")
 	}
+
+	cmPaths := filterForConfigMaps(paths, logger)
 
 	paths = filterNonCoCoRuntime("contrast-cc", paths, logger)
 	if len(paths) == 0 {
-		return nil, fmt.Errorf("no .yml/.yaml files with 'contrast-cc' runtime found")
+		return nil, nil, fmt.Errorf("no .yml/.yaml files with 'contrast-cc' runtime found")
 	}
 
-	return paths, nil
+	return paths, cmPaths, nil
+}
+
+func filterForConfigMaps(paths []string, logger *slog.Logger) []string {
+	var filtered []string
+	for _, path := range paths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			logger.Warn("read file", "path", path, "err", err)
+			continue
+		}
+		if !bytes.Contains(data, []byte("ConfigMap")) {
+			logger.Info("Ignoring non-ConfigMap", "path", path)
+			continue
+		}
+		filtered = append(filtered, path)
+	}
+	return filtered
 }
 
 func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger *slog.Logger) []string {
@@ -256,7 +275,7 @@ func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger 
 	return filtered
 }
 
-func generatePolicies(ctx context.Context, flags *generateFlags, yamlPaths []string, logger *slog.Logger) error {
+func generatePolicies(ctx context.Context, flags *generateFlags, yamlPaths, cmPaths []string, logger *slog.Logger) error {
 	cfg := genpolicy.NewConfig(flags.referenceValuesPlatform)
 	if err := createFileWithDefault(flags.settingsPath, 0o644, func() ([]byte, error) { return cfg.Settings, nil }); err != nil {
 		return fmt.Errorf("creating default policy file: %w", err)
@@ -276,8 +295,10 @@ func generatePolicies(ctx context.Context, flags *generateFlags, yamlPaths []str
 		}
 	}()
 
+	fmt.Printf("Running genpolicy with args: %v\n", yamlPaths)
+	fmt.Printf("Running genpolicy with args: %v\n", cmPaths)
 	for _, yamlPath := range yamlPaths {
-		if err := runner.Run(ctx, yamlPath, logger); err != nil {
+		if err := runner.Run(ctx, yamlPath, cmPaths, logger); err != nil {
 			return fmt.Errorf("failed to generate policy for %s: %w", yamlPath, err)
 		}
 	}
