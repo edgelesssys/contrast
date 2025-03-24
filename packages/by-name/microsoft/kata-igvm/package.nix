@@ -71,7 +71,8 @@ let
     '';
   };
 
-  snpIDBlock = calculateSnpIDBlock { inherit snp-launch-digest; };
+  snp-guest-policy = ./snpGuestPolicyCLH.json;
+  snpIDBlock = calculateSnpIDBlock { inherit snp-launch-digest snp-guest-policy; };
 
   igvm = stdenv.mkDerivation {
     inherit (igvm-snakeoil)
@@ -91,8 +92,12 @@ let
     '';
 
     passthru = {
-      inherit snp-launch-digest snpIDBlock igvm-snakeoil;
-
+      inherit
+        snp-launch-digest
+        snpIDBlock
+        igvm-snakeoil
+        snp-guest-policy
+        ;
     };
 
     meta = {

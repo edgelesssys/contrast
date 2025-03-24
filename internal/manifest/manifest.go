@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	snpvalidate "github.com/google/go-sev-guest/validate"
@@ -349,7 +348,7 @@ func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOpti
 
 		validateOpts := snpvalidate.Options{
 			Measurement: trustedMeasurement,
-			GuestPolicy: constants.SNPPolicy,
+			GuestPolicy: refVal.GuestPolicy,
 			VMPL:        new(int), // VMPL0
 			MinimumTCB: kds.TCBParts{
 				BlSpl:    refVal.MinimumTCB.BootloaderVersion.UInt8(),

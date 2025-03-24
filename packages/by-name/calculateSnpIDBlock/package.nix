@@ -9,6 +9,7 @@
 
 {
   snp-launch-digest,
+  snp-guest-policy,
 }:
 
 stdenvNoCC.mkDerivation {
@@ -22,6 +23,7 @@ stdenvNoCC.mkDerivation {
     if [[ -f ${snp-launch-digest}/milan.hex ]]; then
       ${lib.getExe snp-id-block-generator} \
         --launch-digest ${snp-launch-digest}/milan.hex \
+        --guest-policy ${snp-guest-policy} \
         --id-block-out $out/id-block-milan.base64 \
         --id-auth-out $out/id-auth-milan.base64 \
         --id-block-igvm-out $out/id-block-igvm-milan.json
@@ -30,6 +32,7 @@ stdenvNoCC.mkDerivation {
     if [[ -f ${snp-launch-digest}/genoa.hex ]]; then
       ${lib.getExe snp-id-block-generator} \
         --launch-digest ${snp-launch-digest}/genoa.hex \
+        --guest-policy ${snp-guest-policy} \
         --id-block-out $out/id-block-genoa.base64 \
         --id-auth-out $out/id-auth-genoa.base64 \
         --id-block-igvm-out $out/id-block-igvm-genoa.json
