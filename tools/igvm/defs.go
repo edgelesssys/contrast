@@ -35,9 +35,9 @@ func (h *FixedHeader) MarshalBinary() ([]byte, error) {
 	return data, nil
 }
 
-// BinaryUnmarshal unmarshals the fixed header from a byte slice.
-func (h *FixedHeader) BinaryUnmarshal(data []byte) error {
-	if len(data) != 24 {
+// UnmarshalBinary unmarshals the fixed header from a byte slice.
+func (h *FixedHeader) UnmarshalBinary(data []byte) error {
+	if len(data) < 24 {
 		return fmt.Errorf("expected 24 bytes, but got %d", len(data))
 	}
 	h.Magic = binary.LittleEndian.Uint32(data[0:4])
@@ -53,8 +53,8 @@ func (h *FixedHeader) BinaryUnmarshal(data []byte) error {
 type VariableHeaderType uint32
 
 const (
-	// Invalid type
-	Invalid VariableHeaderType = 0x0
+	// VhtInvalid type.
+	VhtInvalid VariableHeaderType = 0x0
 
 	// VhtSupportedPlatform indicates a header of type [VhsSupportedPlatform].
 	VhtSupportedPlatform VariableHeaderType = 0x1
@@ -140,7 +140,7 @@ func (t *VariableHeaderType) UnmarshalJSON(data []byte) error {
 // String method for human-readable output.
 func (t VariableHeaderType) String() string {
 	switch t {
-	case Invalid:
+	case VhtInvalid:
 		return "Invalid"
 	case VhtSupportedPlatform:
 		return "VhtSupportedPlatform"
@@ -243,7 +243,7 @@ func VariableHeaderTypeFromString(s string) (VariableHeaderType, error) {
 	case "VhtEnvironmentInfoParameter":
 		return VhtEnvironmentInfoParameter, nil
 	default:
-		return Invalid, fmt.Errorf("unknown variable header type %q", s)
+		return VhtInvalid, fmt.Errorf("unknown variable header type %q", s)
 	}
 }
 
@@ -289,8 +289,14 @@ func (h *VariableHeader) TypedContent() (any, error) {
 	switch h.Type {
 	case VhtSnpIDBlock:
 		var content VhsSnpIDBlock
-		if err := content.BinaryUnmarshal(h.Content); err != nil {
-			return nil, fmt.Errorf("unmarshaling SupportedPlatform: %w", err)
+		if err := content.UnmarshalBinary(h.Content); err != nil {
+			return nil, fmt.Errorf("unmarshaling SnpIDBlock: %w", err)
+		}
+		return content, nil
+	case VhtSupportedPlatform:
+		var content VhsSupportedPlatform
+		if err := content.UnmarshalBinary(h.Content); err != nil {
+			return nil, fmt.Errorf("unmarshaling SupportedPlatfrom: %w", err)
 		}
 		return content, nil
 	default:
@@ -300,32 +306,141 @@ func (h *VariableHeader) TypedContent() (any, error) {
 
 // MarshalJSON marshals the variable header to JSON.
 func (h *VariableHeader) MarshalJSON() ([]byte, error) {
-	switch h.Type {
-	case VhtSnpIDBlock:
-		typedContent, err := h.TypedContent()
-		if err != nil {
-			return nil, fmt.Errorf("marshaling typed content: %w", err)
-		}
+	typedContent, err := h.TypedContent()
+	if err != nil {
 		return json.Marshal(struct {
 			Type    VariableHeaderType `json:"Type"`
 			Length  uint32             `json:"Length"`
-			Content VhsSnpIDBlock      `json:"Content"`
+			Content []byte             `json:"Content"`
 		}{
 			Type:    h.Type,
 			Length:  h.Length,
-			Content: typedContent.(VhsSnpIDBlock),
+			Content: h.Content,
 		})
 	}
-
 	return json.Marshal(struct {
 		Type    VariableHeaderType `json:"Type"`
 		Length  uint32             `json:"Length"`
-		Content []byte             `json:"Content"`
+		Content any                `json:"Content"`
 	}{
 		Type:    h.Type,
 		Length:  h.Length,
-		Content: h.Content,
+		Content: typedContent,
 	})
+}
+
+// PlatformType identifies an isolation platform.
+type PlatformType uint8
+
+const (
+	// PlatformTypeNative is a native platform without any isolation.
+	PlatformTypeNative PlatformType = 0x00
+	// PlatformTypeVMSIsolation is a platform that supports Hyper-V's VMS isolation.
+	PlatformTypeVMSIsolation PlatformType = 0x01
+	// PlatformTypeSEVSNP is a platform that supports AMD SEV-SNP.
+	PlatformTypeSEVSNP PlatformType = 0x02
+	// PlatformTypeTDX is a platform that supports Intel TDX.
+	PlatformTypeTDX PlatformType = 0x03
+	// PlatformTypeSEV is a platform that supports AMD SEV. This is unstable.
+	PlatformTypeSEV PlatformType = 0x04 // unstable
+	// PlatformTypeSEVES is a platform that supports AMD SEV-S. This is unstable.
+	PlatformTypeSEVES PlatformType = 0x05 // unstable
+)
+
+// PlatformVersion is the version of each PlatformType that is supported.
+type PlatformVersion uint16
+
+const (
+	// PlatformVersionNative is the version of PlatformTypeNative.
+	PlatformVersionNative uint16 = 0x1
+	// PlatformVersionVMSIsolation is the version of PlatformTypeVMSIsolation.
+	PlatformVersionVMSIsolation uint16 = 0x1
+	// PlatformVersionSEVSNP is the version of PlatformTypeSEVSNP.
+	PlatformVersionSEVSNP uint16 = 0x1
+	// PlatformVersionTDX is the version of PlatformTypeTDX.
+	PlatformVersionTDX uint16 = 0x1
+	// PlatformVersionSEV is the version of PlatformTypeSEV. This is unstable.
+	PlatformVersionSEV uint16 = 0x1 // unstable
+	// PlatformVersionSEVES is the version of PlatformTypeSEVES. This is unstable.
+	PlatformVersionSEVES uint16 = 0x1 // unstable
+
+)
+
+// VhsSupportedPlatform describes which isolation platforms are compatible with this guest image.
+// A separate header is required for each supported platform.
+//
+// The header must appear prior to any other structures that refer to the compatibility mask this
+// header defines.
+type VhsSupportedPlatform struct {
+	// CompatibilityMask is a bitmask that is used in following variable header structures that
+	// correspond with this platform. Headers that have this corresponding bit
+	// set indicates that it should be loaded if loading this specified
+	// platform.
+	//
+	// This must have only one bit set.
+	CompatibilityMask uint32
+	// HighestVTL is the VTL that will be the highest VTL activated for the guest. On platforms
+	// that do not support multiple VTLs, this value must be zero.
+	HighestVTL uint8
+	// PlatformType is the platform that is supported.
+	PlatformType PlatformType
+	// PlatformVersion is the version that is supported.
+	PlatformVersion PlatformVersion
+	// SharedGPABoundary describes the GPA at which memory above the boundary will be
+	// host visible. A value of 0 indicates that this field is ignored, and the
+	// platform described will manage shared memory in an enlightened manner.
+	SharedGPABoundary uint64
+}
+
+// MarshalBinary marshals the supported platform to a byte slice.
+func (p *VhsSupportedPlatform) MarshalBinary() ([]byte, error) {
+	data := make([]byte, 16)
+	binary.LittleEndian.PutUint32(data[0:4], p.CompatibilityMask)
+	data[5] = p.HighestVTL
+	data[6] = uint8(p.PlatformType)
+	binary.LittleEndian.PutUint16(data[6:8], uint16(p.PlatformVersion))
+	binary.LittleEndian.PutUint64(data[8:16], p.SharedGPABoundary)
+	return data, nil
+}
+
+// UnmarshalBinary unmarshals the supported platform from a byte slice.
+func (p *VhsSupportedPlatform) UnmarshalBinary(data []byte) error {
+	if len(data) < 16 {
+		return fmt.Errorf("expected 16 byte but got %d", len(data))
+	}
+	p.CompatibilityMask = binary.LittleEndian.Uint32(data[0:4])
+	p.HighestVTL = data[5]
+	p.PlatformType = PlatformType(data[6])
+	p.PlatformVersion = PlatformVersion(binary.LittleEndian.Uint16(data[6:8]))
+	p.SharedGPABoundary = binary.BigEndian.Uint64(data[8:16])
+	return nil
+}
+
+// VhsGuestPolicy describes the isolation architecture dependent guest policy.
+type VhsGuestPolicy struct {
+	// Policy is the isolation architecture dependent policy.
+	Policy uint64
+	// CompatibilityMask. See CompatibilityMask on [VhsSupportedPlatform].
+	CompatibilityMask uint32
+	// Reserved, must be zero.
+	Reserved uint32
+}
+
+// VhsSnpPolicy describes the AMD SEV-SNP policy guest policy,
+// as described in Section 4.3 Guest Policy of the AMD SEV-SNP ABI specification.
+type VhsSnpPolicy struct {
+	// ABIMajor is the minimum SEV SNP ABI version needed to run the guest's minor version number.
+	ABIMinor uint8
+	// ABIMajor is the minimum SEV SNP ABI version needed to run the guest's major version number.
+	ABIMajor uint8
+	// SMT is true if symmetric multithreading is allowed.
+	SMT bool
+	// MigrateMA is true if the guest is allowed to have a migration agent.
+	MigrateMA bool
+	// Debug is true if the VM can be decrypted by the host for debugging purposes.
+	Debug bool
+	// SingleSocket is true if the guest may only be active on a single socket.
+	SingleSocket bool
 }
 
 // VhsSnpIDBlockSignature represents the signature for the SNP ID block. See the corresponding PSP definitions.
