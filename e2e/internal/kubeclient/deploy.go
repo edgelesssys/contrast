@@ -201,6 +201,7 @@ func (c *Kubeclient) checkIfReady(ctx context.Context, name string, namespace st
 		if err != nil {
 			return false, err
 		}
+		c.log.Debug("readiness check complete", "kind", resource.kind(), "name", name, "namespace", namespace, "desired", desiredPods, "ready", numPodsReady)
 		if desiredPods <= numPodsReady {
 			// Wait for 5 more seconds just to be *really* sure that
 			// the pods are actually up.
