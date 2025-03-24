@@ -13,6 +13,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/idblock"
 	"github.com/edgelesssys/contrast/tools/igvm"
+	"github.com/google/go-sev-guest/abi"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -30,19 +31,23 @@ func execute() error {
 
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "snp-qemu-id-block [path to launch digest]",
-		Short: "Generate ID block and ID auth block from a launch digest",
-		Long:  `Generate ID block and ID auth block from a launch digest.`,
+		Use:   "snp-id-block-generator",
+		Short: "Generate ID block and ID auth block from a launch digest and guest policy",
+		Long:  `Generate ID block and ID auth block from a launch digest and guest policy.`,
 		RunE:  runGenerate,
 	}
 
 	cmd.Flags().String("launch-digest", "", "Path to launch digest")
+	cmd.Flags().String("guest-policy", "", "Path to SNP Guest Policy. Must be JSON file")
 	cmd.Flags().String("id-block-out", "", "Output file for ID block")
 	cmd.Flags().String("id-auth-out", "", "Output file for ID auth block")
 	cmd.Flags().String("id-block-igvm-out", "", "Output file for ID auth block for IGVM")
 
 	must(cmd.MarkFlagRequired("launch-digest"))
 	must(cmd.MarkFlagFilename("launch-digest"))
+
+	must(cmd.MarkFlagRequired("guest-policy"))
+	must(cmd.MarkFlagFilename("guest-policy"))
 
 	must(cmd.MarkFlagRequired("id-block-out"))
 	must(cmd.MarkFlagFilename("id-block-out"))
@@ -63,6 +68,11 @@ func runGenerate(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to get launch digest path: %w", err)
 	}
 
+	guestPolicyPath, err := cmd.Flags().GetString("guest-policy")
+	if err != nil {
+		return fmt.Errorf("failed to get guest policy path: %w", err)
+	}
+
 	idBlockOutPath, err := cmd.Flags().GetString("id-block-out")
 	if err != nil {
 		return fmt.Errorf("failed to get id block out path: %w", err)
@@ -78,10 +88,10 @@ func runGenerate(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to get id block igvm out path: %w", err)
 	}
 
-	return generate(afero.NewOsFs(), launchDigestPath, idBlockOutPath, idAuthOutPath, idBlockIGVMOutPath)
+	return generate(afero.NewOsFs(), launchDigestPath, guestPolicyPath, idBlockOutPath, idAuthOutPath, idBlockIGVMOutPath)
 }
 
-func generate(fs afero.Fs, launchDigestPath, idBlockOutPath, idAuthOutPath, idBlockIGVMOutPath string) error {
+func generate(fs afero.Fs, launchDigestPath, guestPolicyPath, idBlockOutPath, idAuthOutPath, idBlockIGVMOutPath string) error {
 	launchDigest, err := afero.ReadFile(fs, launchDigestPath)
 	if err != nil {
 		return fmt.Errorf("failed to read launch digest: %w", err)
@@ -95,7 +105,17 @@ func generate(fs afero.Fs, launchDigestPath, idBlockOutPath, idAuthOutPath, idBl
 		return fmt.Errorf("launch digest must be 48 bytes, got %d", len(launchDigestBytes))
 	}
 
-	idBlk, authBlock, err := idblock.IDBlocksFromLaunchDigest([48]byte(launchDigestBytes))
+	guestPolicyJSONBytes, err := afero.ReadFile(fs, guestPolicyPath)
+	if err != nil {
+		return fmt.Errorf("failed to read launch digest: %w", err)
+	}
+
+	var guestPolicy abi.SnpPolicy
+	if err := json.Unmarshal(guestPolicyJSONBytes, &guestPolicy); err != nil {
+		return fmt.Errorf("failed to unmarshal guest policy: %w", err)
+	}
+
+	idBlk, authBlock, err := idblock.IDBlocksFromLaunchDigest([48]byte(launchDigestBytes), guestPolicy)
 	if err != nil {
 		return fmt.Errorf("failed to generate ID blocks: %w", err)
 	}

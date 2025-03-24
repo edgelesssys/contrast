@@ -12,7 +12,6 @@ import (
 	"math/big"
 	"slices"
 
-	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/google/go-sev-guest/abi"
 )
 
@@ -309,14 +308,14 @@ func recoverPublicKey(curve elliptic.Curve, r, s, z *big.Int) ([]ecdsa.PublicKey
 // IDBlocksFromLaunchDigest generates the ID block and ID authentication block from a given launch digest.
 // The ID auth block contains a constant signature (2,1) which signs the ID block.
 // The public key in the ID block is recovered from the signature.
-func IDBlocksFromLaunchDigest(launchDigest [48]byte) (*IDBlock, *IDAuthentication, error) {
+func IDBlocksFromLaunchDigest(launchDigest [48]byte, guestPolicy abi.SnpPolicy) (*IDBlock, *IDAuthentication, error) {
 	idBlk := &IDBlock{
 		LD:       launchDigest,
 		Version:  0x1,
 		GuestSVN: 0x2,
 		FamilyID: [0x10]byte{0x1},
 		ImageID:  [0x10]byte{0x2},
-		Policy:   abi.SnpPolicyToBytes(constants.SNPPolicy),
+		Policy:   abi.SnpPolicyToBytes(guestPolicy),
 	}
 
 	idBlockBytes, err := idBlk.MarshalBinary()
