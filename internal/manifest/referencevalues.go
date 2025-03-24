@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/google/go-sev-guest/abi"
 )
 
 // EmbeddedReferenceValuesJSON contains the embedded reference values in JSON format.
@@ -36,6 +37,7 @@ type SNPReferenceValues struct {
 	MinimumTCB         SNPTCB
 	ProductName        ProductName
 	TrustedMeasurement HexString
+	GuestPolicy        abi.SnpPolicy
 }
 
 // TDXReferenceValues contains reference values for TDX.
