@@ -305,14 +305,16 @@ func (ct *ContrastTest) ApplyFromYAML(t *testing.T, yaml []byte) {
 	require.NoError(ct.Kubeclient.Apply(ctx, objects...))
 }
 
-// Set runs the contrast set subcommand.
-func (ct *ContrastTest) Set(t *testing.T) {
-	require := require.New(t)
-
+// RunSet runs the contrast set subcommand.
+func (ct *ContrastTest) RunSet() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
+	return ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), path.Join(ct.WorkDir, "resources.yml"))
+}
 
-	require.NoError(ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), path.Join(ct.WorkDir, "resources.yml")))
+// Set runs the contrast set subcommand and fails the test if it is not successful.
+func (ct *ContrastTest) Set(t *testing.T) {
+	require.NoError(t, ct.RunSet())
 }
 
 // RunVerify runs the contrast verify subcommand.
@@ -411,6 +413,10 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 	cmd.Flags().String("log-level", "debug", "")
 
 	return ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", "1313", func(addr string) error {
+		// Go never uses a proxy for connections to localhost. To enable proxy tests, we
+		// replace localhost with 0.0.0.0, which can be used as localhost on Linux and BSD.
+		addr = strings.Replace(addr, "localhost", "0.0.0.0", 1)
+
 		commonArgs := append(ct.commonArgs(), "--coordinator", addr)
 		cmd.SetArgs(append(commonArgs, args...))
 		cmd.SetOut(io.Discard)
