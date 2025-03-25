@@ -9,12 +9,14 @@
   igvm-tooling,
   igvm-signing-keygen,
   igvmmeasure,
+  igvm-go,
+  calculateSnpIDBlock,
 
   debug ? false,
 }:
 
 let
-  igvm = stdenv.mkDerivation rec {
+  igvm-snakeoil = stdenv.mkDerivation rec {
     pname = "kata-igvm${lib.optionalString debug "-debug"}";
     inherit (microsoft.genpolicy) src version;
 
@@ -50,16 +52,48 @@ let
       runHook postBuild
     '';
 
-    passthru.launch-digest = stdenvNoCC.mkDerivation {
-      name = "launch-digest";
-      dontUnpack = true;
-      buildInputs = [ igvmmeasure ];
-      buildPhase = ''
-        igvmmeasure ${igvm} measure -b | dd conv=lcase > $out
-      '';
-    };
-
     dontPatchELF = true;
+
+    passthru = {
+      inherit snp-launch-digest snpIDBlock;
+    };
+  };
+
+  snp-launch-digest = stdenvNoCC.mkDerivation {
+    name = "launch-digest";
+    dontUnpack = true;
+    buildInputs = [ igvmmeasure ];
+    buildPhase = ''
+      mkdir $out
+      igvmmeasure ${igvm-snakeoil} measure -b | dd conv=lcase > $out/milan.hex
+      # Remove the trailing newline
+      truncate -s -1 $out/milan.hex
+    '';
+  };
+
+  snpIDBlock = calculateSnpIDBlock { inherit snp-launch-digest; };
+
+  igvm = stdenv.mkDerivation {
+    inherit (igvm-snakeoil)
+      pname
+      version
+      src
+      sourceRoot
+      dontPatchELF
+      ;
+
+    nativeBuildInputs = [ igvm-go ];
+
+    buildPhase = ''
+      igvm modify ${igvm-snakeoil} \
+        --snp-id-block ${snpIDBlock}/id-block-igvm-milan.json \
+        --output $out
+    '';
+
+    passthru = {
+      inherit snp-launch-digest snpIDBlock igvm-snakeoil;
+
+    };
 
     meta = {
       description = "The Contrast runtime IGVM file defines the initial state of a pod-VM.";
