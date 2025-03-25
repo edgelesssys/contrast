@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"testing"
 
@@ -68,12 +69,24 @@ func NewFromConfigFile(configPath string, log *slog.Logger) (*Kubeclient, error)
 		return nil, fmt.Errorf("creating config from file: %w", err)
 	}
 
+	// never use a proxy because otherwise it breaks when we test with an invalid proxy
+	config.Proxy = func(*http.Request) (*url.URL, error) { return nil, nil }
+
 	return New(config, log)
 }
 
 // NewForTest creates a Kubeclient with parameters suitable for e2e testing.
 func NewForTest(t *testing.T) *Kubeclient {
 	t.Helper()
+	c, err := NewForTestWithoutT()
+	if err != nil {
+		t.Fatalf("Could not create Kubeclient: %v", err)
+	}
+	return c
+}
+
+// NewForTestWithoutT creates a Kubeclient with parameters suitable for e2e testing.
+func NewForTestWithoutT() (*Kubeclient, error) {
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
 	configFile := os.Getenv("KUBECONFIG")
 	if configFile == "" {
@@ -81,9 +94,9 @@ func NewForTest(t *testing.T) *Kubeclient {
 	}
 	c, err := NewFromConfigFile(configFile, log)
 	if err != nil {
-		t.Fatalf("Could not create Kubeclient: %v", err)
+		return nil, err
 	}
-	return c
+	return c, nil
 }
 
 // PodsFromDeployment returns the pods from a deployment in a namespace.
