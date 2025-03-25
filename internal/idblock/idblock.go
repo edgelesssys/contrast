@@ -314,6 +314,8 @@ func IDBlocksFromLaunchDigest(launchDigest [48]byte) (*IDBlock, *IDAuthenticatio
 		LD:       launchDigest,
 		Version:  0x1,
 		GuestSVN: 0x2,
+		FamilyID: [0x10]byte{0x1},
+		ImageID:  [0x10]byte{0x2},
 		Policy:   abi.SnpPolicyToBytes(constants.SNPPolicy),
 	}
 
@@ -360,7 +362,7 @@ func IDBlocksFromLaunchDigest(launchDigest [48]byte) (*IDBlock, *IDAuthenticatio
 
 	idAuth := &IDAuthentication{
 		IDKeyAlgo:   0x1,
-		AuthKeyAlgo: 0x1,
+		AuthKeyAlgo: 0x0,
 		IDBlockSig: Ecdsa384Sha384Signature{
 			R: validR,
 			S: validS,
