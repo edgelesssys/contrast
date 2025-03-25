@@ -103,11 +103,15 @@ func TestOpenSSL(t *testing.T) {
 
 		for _, endpoint := range []string{"/probe/startup", "/probe/liveness", "/probe/readiness"} {
 			require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator-metrics", "9102", func(addr string) error {
-				resp, err := http.Get("http://" + addr + endpoint)
-				defer resp.Body.Close()
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+addr+endpoint, nil)
 				if err != nil {
 					return err
 				}
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					return err
+				}
+				defer resp.Body.Close()
 				if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusServiceUnavailable {
 					return fmt.Errorf("unexpected status code from probe %q: %d", endpoint, resp.StatusCode)
 				}
