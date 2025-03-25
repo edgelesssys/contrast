@@ -29,7 +29,10 @@ func newRootCmd() *cobra.Command {
 		Use:   "igvm",
 		Short: "igvm",
 	}
-	cmd.AddCommand(newModfiyCmd())
+	cmd.AddCommand(
+		newModfiyCmd(),
+		newDumpCmd(),
+	)
 	return cmd
 }
 
@@ -43,6 +46,15 @@ func newModfiyCmd() *cobra.Command {
 	must(cmd.MarkFlagFilename("output"))
 	cmd.Flags().String("snp-id-block", "", "overwrite SNP IDBlock (path to JSON file)")
 	must(cmd.MarkFlagFilename("snp-id-block"))
+	return cmd
+}
+
+func newDumpCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "dump <path to igvm>",
+		Short: "dump an IGVM image in JSON format",
+		RunE:  runDump,
+	}
 	return cmd
 }
 
@@ -126,6 +138,27 @@ func parseModifyFlags(cmd *cobra.Command) (modifyFlags, error) {
 		return flags, fmt.Errorf("failed to get SNP IDBlock path: %w", err)
 	}
 	return flags, nil
+}
+
+func runDump(_ *cobra.Command, args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("expected 1 argument, got %d", len(args))
+	}
+
+	igvmFile, err := readIGVM(args[0])
+	if err != nil {
+		return fmt.Errorf("reading igvm file: %w", err)
+	}
+
+	igvmJSON, err := json.MarshalIndent(igvmFile, "", "  ")
+	if err != nil {
+		return fmt.Errorf("marshaling igvm to json: %w", err)
+	}
+
+	if _, err := os.Stdout.Write(igvmJSON); err != nil {
+		return fmt.Errorf("writing igvm json to stdout: %w", err)
+	}
+	return nil
 }
 
 func readIGVM(path string) (*igvm.IGVM, error) {
