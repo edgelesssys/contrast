@@ -7,10 +7,12 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/edgelesssys/contrast/internal/idblock"
+	"github.com/edgelesssys/contrast/tools/igvm"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
@@ -37,6 +39,7 @@ func newRootCmd() *cobra.Command {
 	cmd.Flags().String("launch-digest", "", "Path to launch digest")
 	cmd.Flags().String("id-block-out", "", "Output file for ID block")
 	cmd.Flags().String("id-auth-out", "", "Output file for ID auth block")
+	cmd.Flags().String("id-block-igvm-out", "", "Output file for ID auth block for IGVM")
 
 	must(cmd.MarkFlagRequired("launch-digest"))
 	must(cmd.MarkFlagFilename("launch-digest"))
@@ -46,6 +49,9 @@ func newRootCmd() *cobra.Command {
 
 	must(cmd.MarkFlagRequired("id-auth-out"))
 	must(cmd.MarkFlagFilename("id-auth-out"))
+
+	must(cmd.MarkFlagRequired("id-block-igvm-out"))
+	must(cmd.MarkFlagFilename("id-block-igvm-out"))
 
 	return cmd
 }
@@ -67,10 +73,15 @@ func runGenerate(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("failed to get id auth out path: %w", err)
 	}
 
-	return generate(afero.NewOsFs(), launchDigestPath, idBlockOutPath, idAuthOutPath)
+	idBlockIGVMOutPath, err := cmd.Flags().GetString("id-block-igvm-out")
+	if err != nil {
+		return fmt.Errorf("failed to get id block igvm out path: %w", err)
+	}
+
+	return generate(afero.NewOsFs(), launchDigestPath, idBlockOutPath, idAuthOutPath, idBlockIGVMOutPath)
 }
 
-func generate(fs afero.Fs, launchDigestPath, idBlockOutPath, idAuthOutPath string) error {
+func generate(fs afero.Fs, launchDigestPath, idBlockOutPath, idAuthOutPath, idBlockIGVMOutPath string) error {
 	launchDigest, err := afero.ReadFile(fs, launchDigestPath)
 	if err != nil {
 		return fmt.Errorf("failed to read launch digest: %w", err)
@@ -98,6 +109,12 @@ func generate(fs afero.Fs, launchDigestPath, idBlockOutPath, idAuthOutPath strin
 		return fmt.Errorf("failed to marshal id block: %w", err)
 	}
 
+	igvmID := makeIGVMIDBlock(idBlk, authBlock)
+	igvmIDJsonBytes, err := json.Marshal(igvmID)
+	if err != nil {
+		return fmt.Errorf("failed to marshal igvm id block: %w", err)
+	}
+
 	idBlockFile, err := fs.Create(idBlockOutPath)
 	if err != nil {
 		return fmt.Errorf("failed to create idBlock file: %w", err)
@@ -116,7 +133,48 @@ func generate(fs afero.Fs, launchDigestPath, idBlockOutPath, idAuthOutPath strin
 		return fmt.Errorf("failed to write authBlock to file: %w", err)
 	}
 
+	igvmIDFile, err := fs.Create(idBlockIGVMOutPath)
+	if err != nil {
+		return fmt.Errorf("failed to create igvmID file: %w", err)
+	}
+	defer igvmIDFile.Close()
+	if _, err := igvmIDFile.Write(igvmIDJsonBytes); err != nil {
+		return fmt.Errorf("failed to write igvmID to file: %w", err)
+	}
+
 	return nil
+}
+
+func makeIGVMIDBlock(idBlk *idblock.IDBlock, authBlock *idblock.IDAuthentication) *igvm.VhsSnpIDBlock {
+	return &igvm.VhsSnpIDBlock{
+		CompatibilityMask:  0x1,
+		AuthorKeyEnabled:   0x0,
+		LD:                 idBlk.LD,
+		FamilyID:           idBlk.FamilyID,
+		ImageID:            idBlk.ImageID,
+		Version:            idBlk.Version,
+		GuestSVN:           idBlk.GuestSVN,
+		IDKeyAlgorithm:     authBlock.IDKeyAlgo,
+		AuthorKeyAlgorithm: authBlock.AuthKeyAlgo,
+		IDKeySignature: igvm.VhsSnpIDBlockSignature{
+			RComp: authBlock.IDBlockSig.R,
+			SComp: authBlock.IDBlockSig.S,
+		},
+		IDPublicKey: igvm.VhsSnpIDBlockPublicKey{
+			Curve: authBlock.IDKey.CurveID,
+			QX:    authBlock.IDKey.Qx,
+			QY:    authBlock.IDKey.Qy,
+		},
+		AuthorKeySignature: igvm.VhsSnpIDBlockSignature{
+			RComp: authBlock.IDKeySig.R,
+			SComp: authBlock.IDKeySig.S,
+		},
+		AuthorPublicKey: igvm.VhsSnpIDBlockPublicKey{
+			Curve: authBlock.AuthKey.CurveID,
+			QX:    authBlock.AuthKey.Qx,
+			QY:    authBlock.AuthKey.Qy,
+		},
+	}
 }
 
 func must(err error) {

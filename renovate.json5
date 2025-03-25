@@ -94,7 +94,10 @@
     },
     {
       // Disable updating of locally-replaced dependencies.
-      matchPackageNames: [ "github.com/edgelesssys/contrast" ],
+      matchPackageNames: [
+        "github.com/edgelesssys/contrast",
+        "github.com/edgelesssys/contrast/tools/igvm",
+      ],
       enabled: false,
     },
   ],
