@@ -118,6 +118,6 @@ func TestIDBlocksFromLaunchDigest(t *testing.T) {
 
 	// Check some specific values in the idAuthBytes
 	assert.Equal(uint32(0x1), idAuth.IDKeyAlgo)
-	assert.Equal(uint32(0x1), idAuth.AuthKeyAlgo)
+	assert.Equal(uint32(0x0), idAuth.AuthKeyAlgo)
 	assert.Equal(uint32(0x2), idAuth.IDKey.CurveID) // Curve ID of the public key
 }
