@@ -9,6 +9,7 @@
   kata,
   contrast,
   installShellFiles,
+  calculateSnpIDBlock,
 }:
 
 let
@@ -70,13 +71,11 @@ let
               snpVersion = 8;
               microcodeVersion = 115;
             };
-            trustedMeasurement = lib.removeSuffix "\n" (
-              builtins.readFile (
-                if microsoft.contrast-node-installer-image.debugRuntime then
-                  (microsoft.kata-igvm.override { debug = true; }).launch-digest
-                else
-                  microsoft.kata-igvm.launch-digest
-              )
+            trustedMeasurement = builtins.readFile (
+              if microsoft.contrast-node-installer-image.debugRuntime then
+                "${(microsoft.kata-igvm.override { debug = true; }).snp-launch-digest}/milan.hex"
+              else
+                "${microsoft.kata-igvm.snp-launch-digest}/milan.hex"
             );
             productName = "Milan";
           }
@@ -152,7 +151,7 @@ let
         inherit os-image;
         debug = kata.contrast-node-installer-image.debugRuntime;
       };
-      idBlocks = kata.calculateSnpIDBlock { snp-launch-digest = launch-digest; };
+      idBlocks = calculateSnpIDBlock { snp-launch-digest = launch-digest; };
     in
     {
       Milan = {
