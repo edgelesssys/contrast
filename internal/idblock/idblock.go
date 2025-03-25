@@ -16,44 +16,206 @@ import (
 	"github.com/google/go-sev-guest/abi"
 )
 
+// IDBlock is the ID block.
 // https://github.com/microsoft/igvm-tooling/blob/main/src/igvm/structure/igvmfileformat.py#L453
-// https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/specifications/56860.pdf
+// https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/specifications/56860.pdf (revision 1.57)
 // All number fields are little-endian encoded.
-type idBlock struct {
+type IDBlock struct {
 	// The expected launch digest of the guest.
-	ld [0x30]byte
+	LD [0x30]byte
 	// FAMILY_ID. Family ID of the guest, provided by the guest owner and uninterpreted by the firmware. Not checked by us
-	familyID [0x10]byte
+	FamilyID [0x10]byte
 	// IMAGE_ID. Image ID of the guest, provided by the guest owner and uninterpreted by the firmware. Not checked by us
-	imageID [0x10]byte
+	ImageID [0x10]byte
 	// VERSION. Version of the ID block format. Must be 1h for this version of the ABI.
-	version uint32
+	Version uint32
 	// GUEST_SVN. Default 2 in https://github.com/microsoft/igvm-tooling/blob/main/src/igvm/igvmfile.py#L178C18-L178C27
-	guestSVN uint32
+	GuestSVN uint32
 	// POLICY. The policy of the guest.
-	policy uint64
+	Policy uint64
 }
 
-type idAuthentication struct {
+// MarshalBinary marshals the ID block to binary.
+func (idBlock *IDBlock) MarshalBinary() ([]byte, error) {
+	data := make([]byte, 0x60)
+	copy(data[0x00:0x30], idBlock.LD[:])
+	copy(data[0x30:0x40], idBlock.FamilyID[:])
+	copy(data[0x40:0x50], idBlock.ImageID[:])
+	binary.LittleEndian.PutUint32(data[0x50:0x54], idBlock.Version)
+	binary.LittleEndian.PutUint32(data[0x54:0x58], idBlock.GuestSVN)
+	binary.LittleEndian.PutUint64(data[0x58:0x60], idBlock.Policy)
+	return data, nil
+}
+
+// UnmarshalBinary unmarshals the ID block from binary.
+func (idBlock *IDBlock) UnmarshalBinary(data []byte) error {
+	if len(data) != 0x60 {
+		return fmt.Errorf("invalid ID block size: %d", len(data))
+	}
+	copy(idBlock.LD[:], data[0x00:0x30])
+	copy(idBlock.FamilyID[:], data[0x30:0x40])
+	copy(idBlock.ImageID[:], data[0x40:0x50])
+	idBlock.Version = binary.LittleEndian.Uint32(data[0x50:0x54])
+	idBlock.GuestSVN = binary.LittleEndian.Uint32(data[0x54:0x58])
+	idBlock.Policy = binary.LittleEndian.Uint64(data[0x58:0x60])
+	return nil
+}
+
+// IDAuthentication is the ID authentication block.
+// https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/specifications/56860.pdf (revision 1.57)
+type IDAuthentication struct {
 	// ID_KEY_ALGO. The algorithm of the ID Key. 0x1 for ECDSA P-384 with SHA-384.
-	idKeyAlgo uint32
+	IDKeyAlgo uint32
 	// AUTH_KEY_ALGO. The algorithm of the Author Key. 0x1 for ECDSA P-384 with SHA-384.
-	authKeyAlgo uint32
+	AuthKeyAlgo uint32
 	// RESERVED. Must be 0.
-	reserved0 [0x38]byte
+	Reserved0 [0x38]byte
 	// ID_BLOCK_SIG. The signature of all bytes of the ID block. Consists of r,s.
-	idBlockSig [0x200]byte
+	IDBlockSig Ecdsa384Sha384Signature
 	// ID_KEY. The public component of the ID key. Consists of Curve, Reserved, Qx, Qy.
-	idKey [0x404]byte
+	IDKey Ecdsa384PublicKey
 	// RESERVED. Must be 0.
-	reserved1 [0x3c]byte
+	Reserved1 [0x3c]byte
 	// ID_KEY_SIG. The signature of the ID_KEY. Consists of r,s.
-	idKeySig [0x200]byte
+	IDKeySig Ecdsa384Sha384Signature
 	// AUTH_KEY. The public component of the Author key. Consists of Curve, Reserved, Qx, Qy.
 	// Ignored if AUTHOR_KEY_EN is 0.
-	authKey [0x404]byte
+	AuthKey Ecdsa384PublicKey
 	// RESERVED. Must be 0.
-	reserved2 [0x37c]byte // 0
+	Reserved2 [0x37c]byte // 0
+}
+
+// MarshalBinary marshals the ID authentication block to binary.
+func (idAuth *IDAuthentication) MarshalBinary() ([]byte, error) {
+	data := make([]byte, 0x1000)
+	binary.LittleEndian.PutUint32(data[0x00:0x04], idAuth.IDKeyAlgo)
+	binary.LittleEndian.PutUint32(data[0x04:0x08], idAuth.AuthKeyAlgo)
+	copy(data[0x08:0x40], idAuth.Reserved0[:])
+
+	idBlockBytes, err := idAuth.IDBlockSig.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal ID block signature: %w", err)
+	}
+	copy(data[0x40:0x240], idBlockBytes)
+
+	idKeyBytes, err := idAuth.IDKey.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal ID key: %w", err)
+	}
+	copy(data[0x240:0x644], idKeyBytes)
+
+	copy(data[0x644:0x680], idAuth.Reserved1[:])
+
+	idKeySigBytes, err := idAuth.IDKeySig.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal ID key signature: %w", err)
+	}
+	copy(data[0x680:0x880], idKeySigBytes)
+
+	authKeyBytes, err := idAuth.AuthKey.MarshalBinary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal author key: %w", err)
+	}
+	copy(data[0x880:0xC84], authKeyBytes)
+
+	copy(data[0xC84:0x1000], idAuth.Reserved2[:])
+	return data, nil
+}
+
+// UnmarshalBinary unmarshals the ID authentication block from binary.
+func (idAuth *IDAuthentication) UnmarshalBinary(data []byte) error {
+	if len(data) != 0x1000 {
+		return fmt.Errorf("invalid ID authentication block size: %d", len(data))
+	}
+	idAuth.IDKeyAlgo = binary.LittleEndian.Uint32(data[0x00:0x04])
+	idAuth.AuthKeyAlgo = binary.LittleEndian.Uint32(data[0x04:0x08])
+	copy(idAuth.Reserved0[:], data[0x08:0x40])
+
+	if err := idAuth.IDBlockSig.UnmarshalBinary(data[0x40:0x240]); err != nil {
+		return fmt.Errorf("failed to unmarshal ID block signature: %w", err)
+	}
+
+	if err := idAuth.IDKey.UnmarshalBinary(data[0x240:0x644]); err != nil {
+		return fmt.Errorf("failed to unmarshal ID key: %w", err)
+	}
+
+	copy(idAuth.Reserved1[:], data[0x644:0x680])
+
+	if err := idAuth.IDKeySig.UnmarshalBinary(data[0x680:0x880]); err != nil {
+		return fmt.Errorf("failed to unmarshal ID key signature: %w", err)
+	}
+
+	if err := idAuth.AuthKey.UnmarshalBinary(data[0x880:0xC84]); err != nil {
+		return fmt.Errorf("failed to unmarshal author key: %w", err)
+	}
+
+	copy(idAuth.Reserved2[:], data[0xC84:0x1000])
+	return nil
+}
+
+// Ecdsa384Sha384Signature is the signature of an ECDSA P-384 with SHA-384 signature.
+// https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/specifications/56860.pdf (revision 1.57)
+type Ecdsa384Sha384Signature struct {
+	R         [0x48]byte
+	S         [0x48]byte
+	Reserved1 [0x170]byte
+}
+
+// MarshalBinary marshals the ECDSA P-384 with SHA-384 signature to binary.
+func (sig *Ecdsa384Sha384Signature) MarshalBinary() ([]byte, error) {
+	data := make([]byte, 0x200)
+	if sig == nil {
+		return data, nil
+	}
+	copy(data[0x00:0x48], sig.R[:])
+	copy(data[0x48:0x90], sig.S[:])
+	copy(data[0x90:0x200], sig.Reserved1[:])
+	return data, nil
+}
+
+// UnmarshalBinary unmarshals the ECDSA P-384 with SHA-384 signature from binary.
+func (sig *Ecdsa384Sha384Signature) UnmarshalBinary(data []byte) error {
+	if len(data) != 0x200 {
+		return fmt.Errorf("invalid ECDSA P-384 with SHA-384 signature size: %d", len(data))
+	}
+	copy(sig.R[:], data[0x00:0x48])
+	copy(sig.S[:], data[0x48:0x90])
+	copy(sig.Reserved1[:], data[0x90:0x200])
+	return nil
+}
+
+// Ecdsa384PublicKey is the public key of an ECDSA P-384 key.
+// https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/specifications/56860.pdf (revision 1.57)
+type Ecdsa384PublicKey struct {
+	CurveID   uint32
+	Qx        [0x48]byte
+	Qy        [0x48]byte
+	Reserved1 [0x370]byte
+}
+
+// MarshalBinary marshals the ECDSA P-384 public key to binary.
+func (pubKey *Ecdsa384PublicKey) MarshalBinary() ([]byte, error) {
+	data := make([]byte, 0x404)
+	if pubKey == nil {
+		return data, nil
+	}
+	binary.LittleEndian.PutUint32(data[0x00:0x04], pubKey.CurveID)
+	copy(data[0x04:0x4C], pubKey.Qx[:])
+	copy(data[0x4C:0x94], pubKey.Qy[:])
+	copy(data[0x94:0x404], pubKey.Reserved1[:])
+	return data, nil
+}
+
+// UnmarshalBinary unmarshals the ECDSA P-384 public key from binary.
+func (pubKey *Ecdsa384PublicKey) UnmarshalBinary(data []byte) error {
+	if len(data) != 0x404 {
+		return fmt.Errorf("invalid ECDSA P-384 public key size: %d", len(data))
+	}
+	pubKey.CurveID = binary.LittleEndian.Uint32(data[0x00:0x04])
+	copy(pubKey.Qx[:], data[0x04:0x4C])
+	copy(pubKey.Qy[:], data[0x4C:0x94])
+	copy(pubKey.Reserved1[:], data[0x94:0x404])
+	return nil
 }
 
 // recoverPublicKey attempts to recover the public key from a given ECDSA signature
@@ -147,18 +309,21 @@ func recoverPublicKey(curve elliptic.Curve, r, s, z *big.Int) ([]ecdsa.PublicKey
 // IDBlocksFromLaunchDigest generates the ID block and ID authentication block from a given launch digest.
 // The ID auth block contains a constant signature (2,1) which signs the ID block.
 // The public key in the ID block is recovered from the signature.
-func IDBlocksFromLaunchDigest(launchDigest [48]byte) ([0x60]byte, [0x1000]byte, error) {
-	idBlock := idBlock{
-		ld:       launchDigest,
-		version:  0x1,
-		guestSVN: 0x2,
-		policy:   abi.SnpPolicyToBytes(constants.SNPPolicy),
+func IDBlocksFromLaunchDigest(launchDigest [48]byte) (*IDBlock, *IDAuthentication, error) {
+	idBlk := &IDBlock{
+		LD:       launchDigest,
+		Version:  0x1,
+		GuestSVN: 0x2,
+		Policy:   abi.SnpPolicyToBytes(constants.SNPPolicy),
 	}
 
-	idBlockBytes := encodeIDBlock(idBlock)
+	idBlockBytes, err := idBlk.MarshalBinary()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal ID block: %w", err)
+	}
 	hash := sha512.Sum384(idBlockBytes[:])
 
-	// https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/specifications/56860.pdf
+	// https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/specifications/56860.pdf (revision 1.57)
 	// Chapter 10 page 145 Table 136
 	// both R and S are little-endian encoded
 	// A valid R must be an x-coordinate on the curve
@@ -181,101 +346,35 @@ func IDBlocksFromLaunchDigest(launchDigest [48]byte) ([0x60]byte, [0x1000]byte, 
 
 	pubKeys, err := recoverPublicKey(elliptic.P384(), r, s, z)
 	if err != nil {
-		return [0x60]byte{}, [0x1000]byte{}, fmt.Errorf("failed to recover public key: %w", err)
+		return nil, nil, fmt.Errorf("failed to recover public key: %w", err)
 	}
 
 	// Always choose the same recovered public key
 	pubKey := pubKeys[0]
-	pubKeyBytes := encodeP384PublicKey(pubKey)
-
-	idAuth := idAuthentication{
-		idKeyAlgo:   0x1,
-		authKeyAlgo: 0x1,
-		idBlockSig:  signatureBytes,
-		idKey:       pubKeyBytes,
-	}
-
-	idAuthBytes := encodeIDAuthentication(idAuth)
-
-	return idBlockBytes, idAuthBytes, nil
-}
-
-func encodeP384PublicKey(pubKey ecdsa.PublicKey) [0x404]byte {
-	buffer := make([]byte, 0x404)
-	offset := 0
-
-	// Curve
-	// 2h indicates P-384.
-	binary.LittleEndian.PutUint32(buffer[offset:offset+4], 2)
-	offset += 4
 
 	xLittleEndian := pubKey.X.Bytes()
 	slices.Reverse(xLittleEndian)
-	copy(buffer[offset:offset+0x48], xLittleEndian)
-	offset += 0x48
 
 	yLittleEndian := pubKey.Y.Bytes()
 	slices.Reverse(yLittleEndian)
-	copy(buffer[offset:offset+0x48], yLittleEndian)
 
-	return [0x404]byte(buffer)
-}
+	idAuth := &IDAuthentication{
+		IDKeyAlgo:   0x1,
+		AuthKeyAlgo: 0x1,
+		IDBlockSig: Ecdsa384Sha384Signature{
+			R: validR,
+			S: validS,
+		},
+		IDKey: Ecdsa384PublicKey{
+			// Curve
+			// 2h indicates P-384.
+			CurveID: 2,
+		},
+	}
+	// The {x,y}LittleEndian values are only 0x30 bytes ling, so according to the spec
+	// it needs to be padded on the right with 0x00 bytes.
+	copy(idAuth.IDKey.Qx[:], xLittleEndian)
+	copy(idAuth.IDKey.Qy[:], yLittleEndian)
 
-func encodeIDBlock(idBlock idBlock) [0x60]byte {
-	// Create a buffer to hold all bytes (total size = 48 + 16 + 16 + 4 + 4 + 8 = 96)
-	buffer := make([]byte, 0x60)
-	offset := 0
-
-	copy(buffer[offset:offset+0x30], idBlock.ld[:])
-	offset += 0x30
-
-	copy(buffer[offset:offset+0x10], idBlock.familyID[:])
-	offset += 0x10
-
-	copy(buffer[offset:offset+0x10], idBlock.imageID[:])
-	offset += 0x10
-
-	binary.LittleEndian.PutUint32(buffer[offset:offset+4], idBlock.version)
-	offset += 4
-
-	binary.LittleEndian.PutUint32(buffer[offset:offset+4], idBlock.guestSVN)
-	offset += 4
-
-	binary.LittleEndian.PutUint64(buffer[offset:offset+8], idBlock.policy)
-
-	return [0x60]byte(buffer)
-}
-
-func encodeIDAuthentication(idAuth idAuthentication) [0x1000]byte {
-	// Create a buffer to hold all bytes (total size = 0x1000)
-	buffer := make([]byte, 0x1000)
-	offset := 0
-
-	binary.LittleEndian.PutUint32(buffer[offset:offset+4], idAuth.idKeyAlgo)
-	offset += 4
-
-	binary.LittleEndian.PutUint32(buffer[offset:offset+4], idAuth.authKeyAlgo)
-	offset += 4
-
-	copy(buffer[offset:offset+0x38], idAuth.reserved0[:])
-	offset += 0x38
-
-	copy(buffer[offset:offset+0x200], idAuth.idBlockSig[:])
-	offset += 0x200
-
-	copy(buffer[offset:offset+0x404], idAuth.idKey[:])
-	offset += 0x404
-
-	copy(buffer[offset:offset+0x3c], idAuth.reserved1[:])
-	offset += 0x3c
-
-	copy(buffer[offset:offset+0x200], idAuth.idKeySig[:])
-	offset += 0x200
-
-	copy(buffer[offset:offset+0x404], idAuth.authKey[:])
-	offset += 0x404
-
-	copy(buffer[offset:offset+0x37c], idAuth.reserved2[:])
-
-	return [0x1000]byte(buffer)
+	return idBlk, idAuth, nil
 }

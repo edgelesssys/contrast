@@ -8,7 +8,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/binary"
 	"math/big"
 	"slices"
 	"testing"
@@ -110,19 +109,15 @@ func TestIDBlocksFromLaunchDigest(t *testing.T) {
 		0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, 0x30,
 	}
 
-	idBlockBytes, idAuthBytes, err := IDBlocksFromLaunchDigest(launchDigest)
+	idblk, idAuth, err := IDBlocksFromLaunchDigest(launchDigest)
 	require.NoError(err)
 
-	// Check the length of the returned byte arrays
-	assert.Len(idBlockBytes, 0x60)
-	assert.Len(idAuthBytes, 0x1000)
-
 	// Check some specific values in the idBlockBytes
-	assert.Equal(launchDigest[:], idBlockBytes[:0x30])
-	assert.Equal(uint32(0x1), binary.LittleEndian.Uint32(idBlockBytes[0x50:0x54]))
+	assert.Equal(launchDigest, idblk.LD)
+	assert.Equal(uint32(0x1), idblk.Version)
 
 	// Check some specific values in the idAuthBytes
-	assert.Equal(uint32(0x1), binary.LittleEndian.Uint32(idAuthBytes[:4]))
-	assert.Equal(uint32(0x1), binary.LittleEndian.Uint32(idAuthBytes[4:8]))
-	assert.Equal(byte(0x2), idAuthBytes[0x240]) // Curve ID of the public key
+	assert.Equal(uint32(0x1), idAuth.IDKeyAlgo)
+	assert.Equal(uint32(0x1), idAuth.AuthKeyAlgo)
+	assert.Equal(uint32(0x2), idAuth.IDKey.CurveID) // Curve ID of the public key
 }
