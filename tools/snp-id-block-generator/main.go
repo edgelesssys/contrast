@@ -84,9 +84,18 @@ func generate(fs afero.Fs, launchDigestPath, idBlockOutPath, idAuthOutPath strin
 		return fmt.Errorf("launch digest must be 48 bytes, got %d", len(launchDigestBytes))
 	}
 
-	idBlock, authBlock, err := idblock.IDBlocksFromLaunchDigest([48]byte(launchDigestBytes))
+	idBlk, authBlock, err := idblock.IDBlocksFromLaunchDigest([48]byte(launchDigestBytes))
 	if err != nil {
 		return fmt.Errorf("failed to generate ID blocks: %w", err)
+	}
+
+	idAuthBytes, err := authBlock.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("failed to marshal idAuth block: %w", err)
+	}
+	idBlkBytes, err := idBlk.MarshalBinary()
+	if err != nil {
+		return fmt.Errorf("failed to marshal id block: %w", err)
 	}
 
 	idBlockFile, err := fs.Create(idBlockOutPath)
@@ -94,7 +103,7 @@ func generate(fs afero.Fs, launchDigestPath, idBlockOutPath, idAuthOutPath strin
 		return fmt.Errorf("failed to create idBlock file: %w", err)
 	}
 	defer idBlockFile.Close()
-	if _, err := idBlockFile.Write([]byte(base64.StdEncoding.EncodeToString(idBlock[:]))); err != nil {
+	if _, err := idBlockFile.Write([]byte(base64.StdEncoding.EncodeToString(idBlkBytes))); err != nil {
 		return fmt.Errorf("failed to write idBlock to file: %w", err)
 	}
 
@@ -103,7 +112,7 @@ func generate(fs afero.Fs, launchDigestPath, idBlockOutPath, idAuthOutPath strin
 		return fmt.Errorf("failed to create authBlock file: %w", err)
 	}
 	defer authBlockFile.Close()
-	if _, err := authBlockFile.Write([]byte(base64.StdEncoding.EncodeToString(authBlock[:]))); err != nil {
+	if _, err := authBlockFile.Write([]byte(base64.StdEncoding.EncodeToString(idAuthBytes))); err != nil {
 		return fmt.Errorf("failed to write authBlock to file: %w", err)
 	}
 
