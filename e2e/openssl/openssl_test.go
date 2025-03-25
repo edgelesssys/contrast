@@ -112,13 +112,6 @@ func TestOpenSSL(t *testing.T) {
 				}
 				return nil
 			}))
-			// argv := []string{"/bin/sh", "-c", "curl --silent --output /dev/null -w \"%{http_code}\" " + net.JoinHostPort(coordinatorPods[0].Status.PodIP, "9102") + endpoint}
-			// stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
-			// require.NoError(err, "stderr: %q", stderr)
-			// if stdout != "200" && stdout != "503" {
-			// 	t.Logf("unexpected status code from probe: %s", stdout)
-			// 	t.Fail()
-			// }
 		}
 	})
 
