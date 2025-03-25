@@ -22,10 +22,12 @@ stdenvNoCC.mkDerivation {
     ${lib.getExe snp-id-block-generator} \
       --launch-digest ${snp-launch-digest}/milan.hex \
       --id-block-out $out/id-block-milan.base64 \
-      --id-auth-out $out/id-auth-milan.base64
+      --id-auth-out $out/id-auth-milan.base64 \
+      --id-block-igvm-out $out/id-block-igvm-milan.json
     ${lib.getExe snp-id-block-generator} \
       --launch-digest ${snp-launch-digest}/genoa.hex \
       --id-block-out $out/id-block-genoa.base64 \
-      --id-auth-out $out/id-auth-genoa.base64
+      --id-auth-out $out/id-auth-genoa.base64 \
+      --id-block-igvm-out $out/id-block-igvm-genoa.json
   '';
 }
