@@ -67,9 +67,8 @@ Download the Kubernetes resource of the Contrast Coordinator, comprising a singl
 LoadBalancer service. Put it next to your resources:
 
 ```sh
-curl -flo https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir deployment
+curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir deployment
 ```
-
 
 ### Generate policy annotations and manifest
 
