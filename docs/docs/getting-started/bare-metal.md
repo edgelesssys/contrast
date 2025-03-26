@@ -26,7 +26,14 @@ Follow Canonical's instructions on [setting up Intel TDX on Ubuntu 24.04](https:
 </TabItem>
 </Tabs>
 
-Increase the `user.max_inotify_instances` sysctl limit by adding `user.max_inotify_instances=8192` to `/etc/sysctl.d/99-sysctl.conf` and running `sysctl --system`.
+Containerd uses a significant amount of `inotify` instances, so we recommend to allow at least 8192.
+If necessary, the default can be increased by creating a config override file (for example in `/etc/sysctl.d/98-containerd.conf`) with the following content:
+
+```ini
+fs.inotify.max_user_instances = 8192
+```
+
+Apply this change by running `systemctl restart systemd-sysctl` and verify it using `sysctl fs.inotify.max_user_instances`.
 
 ## K3s setup
 
