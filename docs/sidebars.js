@@ -147,6 +147,17 @@ const sidebars = {
       ]
     },
     {
+      type: 'category',
+      label: 'How-To',
+      items: [
+        {
+          type: 'doc',
+          label: 'Registry authentication',
+          id: 'howto/registry-authentication',
+        },
+      ]
+    },
+    {
       type: 'doc',
       label: 'Planned features and limitations',
       id: 'features-limitations',
