@@ -14,13 +14,14 @@ let
   nvidiaPackage =
     (
       (config.boot.kernelPackages.nvidiaPackages.mkDriver {
-        # TODO(msanft): Investigate why the latest version breaks GPU containers.
-        version = "550.90.07";
-        sha256_64bit = "sha256-Uaz1edWpiE9XOh0/Ui5/r6XnhB4iqc7AtLvq4xsLlzM=";
-        sha256_aarch64 = "sha256-uJa3auRlMHr8WyacQL2MyyeebqfT7K6VU0qR7LGXFXI=";
-        openSha256 = "sha256-VLmh7eH0xhEu/AK+Osb9vtqAFni+lx84P/bo4ZgCqj8=";
-        settingsSha256 = "sha256-sX9dHEp9zH9t3RWp727lLCeJLo8QRAGhVb8iN6eX49g=";
-        persistencedSha256 = "sha256-qe8e1Nxla7F0U88AbnOZm6cHxo57pnLCqtjdvOvq9jk=";
+        version = "550.144.03";
+        sha256_64bit = "sha256-akg44s2ybkwOBzZ6wNO895nVa1KG9o+iAb49PduIqsQ=";
+        openSha256 = "sha256-ygH9/UOWsdG53eqMbfUcyLAzAN39LJNo+uT4Wue0/7g=";
+        persistencedSha256 = "sha256-pwbVQ0De8Q4L4XqV11uQIsLUUPFjL9+sABRgGGyr+wc=";
+        # settingsSha256 and sha256_aarch64 are not used, but must be non-null to satisfy assertions
+        # in the upstream `mkDriver` implementation.
+        settingsSha256 = "";
+        sha256_aarch64 = "";
       }).override
       {
         disable32Bit = true;

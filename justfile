@@ -34,7 +34,7 @@ nydus-snapshotter: (push "nydus-snapshotter")
 nydus-pull: (push "nydus-pull")
 
 default_cli := "contrast.cli"
-default_deploy_target := "openssl"
+default_deploy_target := "custom"
 default_platform := "${default_platform}"
 workspace_dir := "workspace"
 
