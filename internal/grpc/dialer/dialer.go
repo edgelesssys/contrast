@@ -16,6 +16,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/prometheus/client_golang/prometheus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -60,6 +61,7 @@ func (d *Dialer) Dial(_ context.Context, target string) (*grpc.ClientConn, error
 		d.grpcWithDialer(),
 		grpc.WithTransportCredentials(credentials),
 		grpc.WithConnectParams(grpc.ConnectParams{
+			Backoff: backoff.DefaultConfig,
 			// We need a high initial timeout, because otherwise the client will get stuck in a reconnect loop
 			// where the timeout is too low to get a full handshake done.
 			MinConnectTimeout: constants.ATLSClientTimeout,
