@@ -13,7 +13,9 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
+	"path"
 	"testing"
 	"time"
 
@@ -24,6 +26,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // namespace the tests are executed in.
@@ -62,8 +65,8 @@ func TestOpenSSL(t *testing.T) {
 
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-	t.Run("check coordinator metrics endpoint", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
+	t.Run("check coordinator metrics and probe endpoints", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(10*time.Minute))
 		defer cancel()
 
 		require := require.New(t)
@@ -78,9 +81,49 @@ func TestOpenSSL(t *testing.T) {
 		require.NoError(err)
 		require.NotEmpty(coordinatorPods, "pod not found: %s/%s", ct.Namespace, "coordinator")
 
+		// deploy an additional port forwarder for metrics and probes
+		// FIXME: "TestOpenSSL/go_dial_frontend_with_mesh_CA_cert" fails because of the deployment
+		stableNetworkID := fmt.Sprintf("%s.coordinator.%s.svc.cluster.local", coordinatorPods[0].Name, ct.Namespace)
+		t.Logf("Constructed stable network ID %q", stableNetworkID)
+		additionalForwarder := kuberesource.
+			PortForwarder("coordinator-metrics", ct.Namespace).
+			WithListenPorts([]int32{9102}).
+			WithForwardTarget(stableNetworkID)
+
+		resourceBytes, err := kuberesource.EncodeResources(append(resources, additionalForwarder.PodApplyConfiguration)...)
+		require.NoError(err)
+		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
+
+		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+		require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
+		require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+
+		t.Cleanup(func() {
+			require.NoError(ct.Kubeclient.Client.CoreV1().Pods(ct.Namespace).Delete(context.Background(), "port-forwarder-coordinator-metrics", metav1.DeleteOptions{}))
+		})
+
 		argv := []string{"/bin/sh", "-c", "curl --fail " + net.JoinHostPort(coordinatorPods[0].Status.PodIP, "9102") + "/metrics"}
 		_, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
 		require.NoError(err, "stderr: %q", stderr)
+
+		for _, endpoint := range []string{"/probe/startup", "/probe/liveness", "/probe/readiness"} {
+			require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator-metrics", "9102", func(addr string) error {
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+addr+endpoint, nil)
+				if err != nil {
+					return err
+				}
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					return err
+				}
+				defer resp.Body.Close()
+				if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusServiceUnavailable {
+					return fmt.Errorf("unexpected status code from probe %q: %d", endpoint, resp.StatusCode)
+				}
+				return nil
+			}))
+		}
 	})
 
 	for cert, pool := range map[string]*x509.CertPool{
