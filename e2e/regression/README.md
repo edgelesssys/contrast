@@ -17,3 +17,41 @@
 - [Cent OS](./test-data/mysql-centos.yml)
 - [Fedora](./test-data/apache-httpd-fedora.yml)
 - [RedHat (ubi9)](./test-data/keycloak.yml)
+
+# Kubernetes types tested (namespace-able)
+
+- [ ] Binding
+- [ ] ConfigMap
+- [ ] Endpoints
+- [ ] Event
+- [ ] LimitRange
+- [ ] PersistentVolumeClaim
+- [x] Pod
+- [ ] PodTemplate
+- [ ] ReplicationController
+- [ ] ResourceQuota
+- [ ] Secret
+- [ ] ServiceAccount
+- [ ] Service
+- [ ] NodeNetworkConfig
+- [ ] OverlayExtensionConfig
+- [ ] ControllerRevision
+- [ ] DaemonSet
+- [x] Deployment
+- [ ] ReplicaSet
+- [ ] StatefulSet
+- [ ] LocalSubjectAccessReview
+- [ ] HorizontalPodAutoscaler
+- [ ] CronJob
+- [ ] Job
+- [ ] Lease
+- [ ] EndpointSlice
+- [ ] Event
+- [ ] PodMetrics
+- [ ] Ingress
+- [ ] NetworkPolicy
+- [ ] PodDisruptionBudget
+- [ ] RoleBinding
+- [ ] Role
+- [ ] VolumeSnapshot
+- [ ] CSIStorageCapacity
