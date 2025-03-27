@@ -29,6 +29,7 @@ import (
 	"github.com/elazarl/goproxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	yaml "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -64,11 +65,15 @@ func TestRegression(t *testing.T) {
 
 			c := kubeclient.NewForTest(t)
 
-			yaml, err := os.ReadFile(yamlDir + file.Name())
+			readYaml, err := os.ReadFile(yamlDir + file.Name())
 			require.NoError(err)
-			yaml = bytes.ReplaceAll(yaml, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
+			readYaml = bytes.ReplaceAll(readYaml, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
 
-			newResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
+			unmarshalledResources := make(map[string]interface{})
+			require.NoError(yaml.Unmarshal(readYaml, &unmarshalledResources))
+			resourceType := unmarshalledResources["kind"].(string)
+
+			newResources, err := kuberesource.UnmarshalApplyConfigurations(readYaml)
 			require.NoError(err)
 
 			newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
@@ -79,11 +84,16 @@ func TestRegression(t *testing.T) {
 			require.NoError(err)
 			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
 
-			deploymentName, _ := strings.CutSuffix(file.Name(), ".yml")
+			resourceName, _ := strings.CutSuffix(file.Name(), ".yml")
 
 			t.Cleanup(func() {
 				// delete the deployment
-				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), deploymentName, metav1.DeleteOptions{}))
+				switch resourceType {
+				case "Deployment":
+					require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "Pod":
+					require.NoError(ct.Kubeclient.Client.CoreV1().Pods(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				}
 			})
 
 			// generate, set, deploy and verify the new policy
@@ -94,7 +104,12 @@ func TestRegression(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(3*time.Minute))
 			defer cancel()
-			require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, deploymentName))
+			switch resourceType {
+			case "Deployment":
+				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, resourceName))
+			case "Pod":
+				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Pod{}, ct.Namespace, resourceName))
+			}
 		})
 	}
 
