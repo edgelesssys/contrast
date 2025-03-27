@@ -20,38 +20,19 @@
 
 # Kubernetes types tested (namespace-able)
 
-- [ ] Binding
-- [ ] ConfigMap
-- [ ] Endpoints
-- [ ] Event
-- [ ] LimitRange
-- [ ] PersistentVolumeClaim
-- [x] Pod
-- [ ] PodTemplate
-- [ ] ReplicationController
-- [ ] ResourceQuota
-- [ ] Secret
-- [ ] ServiceAccount
-- [ ] Service
-- [ ] NodeNetworkConfig
-- [ ] OverlayExtensionConfig
-- [ ] ControllerRevision
-- [ ] DaemonSet
+- [x] ConfigMap
+- [x] CronJob
+- [x] DaemonSet
 - [x] Deployment
-- [ ] ReplicaSet
-- [ ] StatefulSet
-- [ ] LocalSubjectAccessReview
-- [ ] HorizontalPodAutoscaler
-- [ ] CronJob
-- [ ] Job
-- [ ] Lease
-- [ ] EndpointSlice
-- [ ] Event
-- [ ] PodMetrics
-- [ ] Ingress
-- [ ] NetworkPolicy
-- [ ] PodDisruptionBudget
-- [ ] RoleBinding
-- [ ] Role
-- [ ] VolumeSnapshot
-- [ ] CSIStorageCapacity
+- [x] Job
+- [x] LimitRange
+- [x] Pod
+- [x] PodDisruptionBudget
+- [x] ReplicaSet
+- [x] ReplicationController
+- [x] Role
+- [x] RoleBinding
+- [x] Secret
+- [x] Service
+- [x] ServiceAccount
+- [x] StatefulSet
