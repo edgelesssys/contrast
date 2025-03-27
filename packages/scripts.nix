@@ -418,13 +418,23 @@
         kubectl apply -f ./workspace/log-collector.yaml 1>/dev/null 2>/dev/null
         ;;
       download)
+        echo '!a'
         namespace="$(head -n1 "$2")"
+        echo '!b'
+        kubectl get pods -o name -n "$namespace"
+        echo '!ba'
         pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
+        echo '!c'
         mkdir -p ./workspace/logs
+        echo '!d'
         kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod"
+        echo '!e'
         kubectl exec -n "$namespace" "$pod" -- /bin/bash -c "rm -f /exported-logs.tar.gz; cp -r /export /export-no-stream; tar zcvf /exported-logs.tar.gz /export-no-stream; rm -rf /export-no-stream"
+        echo '!f'
         kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz
+        echo '!g'
         tar xzvf ./workspace/logs/exported-logs.tar.gz --directory ./workspace/logs
+        echo '!h'
         ;;
       *)
         echo "Unknown option $1"
