@@ -8,10 +8,16 @@ package regression
 import (
 	"bytes"
 	"context"
+	"errors"
 	"flag"
+	"fmt"
+	"net"
+	"net/http"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -20,6 +26,8 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/elazarl/goproxy"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -91,9 +99,143 @@ func TestRegression(t *testing.T) {
 	}
 }
 
+func TestHTTPProxy(t *testing.T) {
+	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
+	require.NoError(t, err)
+
+	runtimeHandler, err := manifest.RuntimeHandler(platform)
+	require.NoError(t, err)
+
+	ct := contrasttest.New(t)
+
+	resources := kuberesource.CoordinatorBundle()
+	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
+	resources = kuberesource.AddPortForwarders(resources)
+
+	// Start a proxy server
+
+	proxy := goproxy.NewProxyHttpServer()
+	server := http.Server{Handler: proxy}
+	errCh := make(chan error)
+
+	// proxied will be set to true if the proxy performs an HTTP CONNECT
+	var proxied atomic.Bool
+	proxy.ConnectDial = func(network string, addr string) (net.Conn, error) {
+		if strings.HasPrefix(addr, "0.0.0.0:") {
+			proxied.Store(true)
+		}
+		return net.Dial(network, addr)
+	}
+
+	proxyListener, err := net.Listen("tcp", "127.0.0.1:")
+	require.NoError(t, err)
+	proxyAddr := proxyListener.Addr().String()
+	const invalidAddr = "127.0.0.1:0"
+
+	t.Cleanup(func() {
+		require.NoError(t, server.Close())
+		err := <-errCh
+		require.ErrorIs(t, err, http.ErrServerClosed)
+	})
+
+	go func() {
+		errCh <- server.Serve(proxyListener)
+	}()
+
+	// Deploy the coordinator bundle
+
+	ct.Init(t, resources)
+
+	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+
+	testCases := map[string]struct {
+		env         map[string]string
+		wantProxied bool
+		wantErrMsg  string
+	}{
+		"proxy env not set": {
+			wantProxied: false,
+		},
+		"https_proxy valid": {
+			env:         map[string]string{"https_proxy": proxyAddr},
+			wantProxied: true,
+		},
+		"https_proxy invalid": {
+			env:        map[string]string{"https_proxy": invalidAddr},
+			wantErrMsg: "transport: Error while dialing: dial tcp " + invalidAddr + ": connect: connection refused",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			require := require.New(t)
+
+			for k, v := range tc.env {
+				t.Setenv(k, v)
+			}
+
+			if tc.wantErrMsg != "" {
+				// only try verify because set uses a retry loop
+				assert.ErrorContains(runCommand(ct, "verify"), tc.wantErrMsg)
+				return
+			}
+
+			require.NoError(runCommand(ct, "set"))
+			assert.Equal(tc.wantProxied, proxied.Swap(false))
+
+			require.NoError(runCommand(ct, "verify"))
+			assert.Equal(tc.wantProxied, proxied.Swap(false))
+		})
+	}
+}
+
 func TestMain(m *testing.M) {
 	contrasttest.RegisterFlags()
+	runCommandStr := flag.String("run-command", "", "")
+	runNamespace := flag.String("run-namespace", "", "")
+	runWorkdir := flag.String("run-workdir", "", "")
 	flag.Parse()
 
+	if *runCommandStr != "" {
+		if err := runCommandImpl(*runCommandStr, *runNamespace, *runWorkdir); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
 	os.Exit(m.Run())
+}
+
+// runCommand runs a CLI command in a new process so that the proxy env vars are re-read.
+// Go caches the env vars, so we can't run the commands in the same process as usual.
+func runCommand(ct *contrasttest.ContrastTest, cmd string) error {
+	out, err := exec.Command(os.Args[0], "-run-command="+cmd, "-run-namespace="+ct.Namespace, "-run-workdir="+ct.WorkDir).CombinedOutput()
+	if err != nil {
+		return errors.New(string(out))
+	}
+	return nil
+}
+
+func runCommandImpl(cmd, namespace, workDir string) error {
+	kclient, err := kubeclient.NewForTestWithoutT()
+	if err != nil {
+		return err
+	}
+	ct := &contrasttest.ContrastTest{
+		Namespace:  namespace,
+		WorkDir:    workDir,
+		Kubeclient: kclient,
+	}
+
+	switch cmd {
+	case "set":
+		return ct.RunSet()
+	case "verify":
+		return ct.RunVerify()
+	}
+
+	return errors.New("unknown command: " + cmd)
 }
