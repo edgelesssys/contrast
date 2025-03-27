@@ -29,6 +29,7 @@ import (
 	"github.com/elazarl/goproxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	yaml "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -64,11 +65,22 @@ func TestRegression(t *testing.T) {
 
 			c := kubeclient.NewForTest(t)
 
-			yaml, err := os.ReadFile(yamlDir + file.Name())
+			readYaml, err := os.ReadFile(yamlDir + file.Name())
 			require.NoError(err)
-			yaml = bytes.ReplaceAll(yaml, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
+			readYaml = bytes.ReplaceAll(readYaml, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
 
-			newResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
+			unmarshalledResources := make(map[string]interface{})
+			require.NoError(yaml.Unmarshal(readYaml, &unmarshalledResources))
+			resourceKind := unmarshalledResources["kind"]
+			resourceType := ""
+			switch resourceKind := resourceKind.(type) {
+			case string:
+				resourceType = resourceKind
+			default:
+				assert.Fail(t, "resource kind was not string")
+			}
+
+			newResources, err := kuberesource.UnmarshalApplyConfigurations(readYaml)
 			require.NoError(err)
 
 			newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
@@ -79,11 +91,47 @@ func TestRegression(t *testing.T) {
 			require.NoError(err)
 			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
 
-			deploymentName, _ := strings.CutSuffix(file.Name(), ".yml")
+			resourceName, _ := strings.CutSuffix(file.Name(), ".yml")
 
 			t.Cleanup(func() {
 				// delete the deployment
-				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})) //nolint:usetesting // see https://github.com/ldez/usetesting/issues/4
+				switch resourceType {
+				case "Deployment":
+					require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "Pod":
+					require.NoError(ct.Kubeclient.Client.CoreV1().Pods(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "ConfigMap":
+					require.NoError(ct.Kubeclient.Client.CoreV1().ConfigMaps(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "Job":
+					bgDeletion := metav1.DeletePropagationBackground
+					require.NoError(ct.Kubeclient.Client.BatchV1().Jobs(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{
+						PropagationPolicy: &bgDeletion,
+					}))
+				case "CronJob":
+					require.NoError(ct.Kubeclient.Client.BatchV1().CronJobs(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "Secret":
+					require.NoError(ct.Kubeclient.Client.CoreV1().Secrets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "DaemonSet":
+					require.NoError(ct.Kubeclient.Client.AppsV1().DaemonSets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "ReplicaSet":
+					require.NoError(ct.Kubeclient.Client.AppsV1().ReplicaSets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "ServiceAccount":
+					require.NoError(ct.Kubeclient.Client.CoreV1().ServiceAccounts(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "Service":
+					require.NoError(ct.Kubeclient.Client.CoreV1().Services(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "ReplicationController":
+					require.NoError(ct.Kubeclient.Client.CoreV1().ReplicationControllers(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "LimitRange":
+					require.NoError(ct.Kubeclient.Client.CoreV1().LimitRanges(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "StatefulSet":
+					require.NoError(ct.Kubeclient.Client.AppsV1().StatefulSets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "PodDisruptionBudget":
+					require.NoError(ct.Kubeclient.Client.PolicyV1().PodDisruptionBudgets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "Role":
+					require.NoError(ct.Kubeclient.Client.RbacV1().Roles(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "RoleBinding":
+					require.NoError(ct.Kubeclient.Client.RbacV1().RoleBindings(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				}
 			})
 
 			// generate, set, deploy and verify the new policy
@@ -94,7 +142,14 @@ func TestRegression(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
 			defer cancel()
-			require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, deploymentName))
+			switch resourceType {
+			case "Deployment":
+				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, resourceName))
+			case "Pod":
+				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Pod{}, ct.Namespace, resourceName))
+			case "DaemonSet":
+				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.DaemonSet{}, ct.Namespace, resourceName))
+			}
 		})
 	}
 
