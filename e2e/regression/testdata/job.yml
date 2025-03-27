@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  template:
+    spec:
+      containers:
+        - name: test
+          # TODO: replace with ghcr.io or quay.io
+          image: docker.io/library/bash@sha256:64defcbc5126c2d81122b4fb78a629a6d27068f0842c4a8302b8273415b12e30
+          command: ["echo", "Hello World!"]
+      restartPolicy: Never
+  backoffLimit: 4
