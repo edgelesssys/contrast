@@ -21,16 +21,15 @@
 # Kubernetes types tested (namespace-able)
 
 - [ ] Binding
-- [ ] ConfigMap
+- [x] ConfigMap
 - [ ] Endpoints
 - [ ] Event
 - [ ] LimitRange
 - [ ] PersistentVolumeClaim
 - [x] Pod
-- [ ] PodTemplate
 - [ ] ReplicationController
 - [ ] ResourceQuota
-- [ ] Secret
+- [x] Secret
 - [ ] ServiceAccount
 - [ ] Service
 - [ ] NodeNetworkConfig

@@ -85,6 +85,12 @@ func TestRegression(t *testing.T) {
 					require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
 				case "Pod":
 					require.NoError(ct.Kubeclient.Client.CoreV1().Pods(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "ConfigMap":
+					require.NoError(ct.Kubeclient.Client.CoreV1().ConfigMaps(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "Job":
+					require.NoError(ct.Kubeclient.Client.BatchV1().Jobs(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "Secret":
+					require.NoError(ct.Kubeclient.Client.CoreV1().Secrets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
 				}
 			})
 
