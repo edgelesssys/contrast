@@ -4,8 +4,12 @@ go 1.23.0
 
 replace github.com/edgelesssys/contrast => ../..
 
+replace github.com/edgelesssys/contrast/tools/igvm => ../igvm
+
 require (
 	github.com/edgelesssys/contrast v0.0.0
+	github.com/edgelesssys/contrast/tools/igvm v0.0.0
+	github.com/google/go-sev-guest v0.13.0
 	github.com/spf13/afero v1.12.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
@@ -13,7 +17,6 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/google/go-sev-guest v0.13.0 // indirect
 	github.com/google/logger v1.1.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

@@ -5,8 +5,6 @@ package constants
 
 import (
 	"time"
-
-	"github.com/google/go-sev-guest/abi"
 )
 
 // Version value is injected at build time.
@@ -24,12 +22,6 @@ const (
 	// SNPCertChainExtrasCRLKey is the UUID of the cert chain extra that contains the CRL.
 	SNPCertChainExtrasCRLKey = "00569ee4-e480-4fba-bbf4-45b629901180"
 )
-
-// SNPPolicy is the default policy for the SEV-SNP platform.
-var SNPPolicy = abi.SnpPolicy{
-	SMT:   true,
-	Debug: false,
-}
 
 const (
 	// ATLSClientTimeout is the maximal amount of time spent by Coordinator clients for issuing

@@ -5,13 +5,14 @@ package manifest
 
 import (
 	"crypto/sha256"
+	"crypto/sha512"
 	_ "embed"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
 
-	"github.com/edgelesssys/contrast/internal/constants"
+	"github.com/edgelesssys/contrast/internal/idblock"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	snpvalidate "github.com/google/go-sev-guest/validate"
@@ -275,9 +276,20 @@ func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOpti
 		verifyOpts.CheckRevocations = true
 		verifyOpts.Getter = kdsGetter
 
+		// Generate static public IDKey based on the launch digest and guest policy.
+		_, authBlk, err := idblock.IDBlocksFromLaunchDigest([48]byte(trustedMeasurement), refVal.GuestPolicy)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate ID blocks: %w", err)
+		}
+		idKeyBytes, err := authBlk.IDKey.BinaryMarshal()
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal IDKey: %w", err)
+		}
+		idKeyHash := sha512.Sum384(idKeyBytes)
+
 		validateOpts := snpvalidate.Options{
 			Measurement: trustedMeasurement,
-			GuestPolicy: constants.SNPPolicy,
+			GuestPolicy: refVal.GuestPolicy,
 			VMPL:        new(int), // VMPL0
 			MinimumTCB: kds.TCBParts{
 				BlSpl:    refVal.MinimumTCB.BootloaderVersion.UInt8(),
@@ -292,6 +304,8 @@ func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOpti
 				UcodeSpl: refVal.MinimumTCB.MicrocodeVersion.UInt8(),
 			},
 			PermitProvisionalFirmware: true,
+			RequireIDBlock:            true,
+			TrustedIDKeyHashes:        [][]byte{idKeyHash[:]},
 		}
 
 		out = append(out, ValidatorOptions{VerifyOpts: verifyOpts, ValidateOpts: &validateOpts})

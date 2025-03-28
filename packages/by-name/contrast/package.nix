@@ -9,6 +9,7 @@
   kata,
   contrast,
   installShellFiles,
+  calculateSnpIDBlock,
 }:
 
 let
@@ -64,19 +65,18 @@ let
       aksRefVals = {
         snp = [
           {
+            guestPolicy = builtins.fromJSON (builtins.readFile microsoft.kata-igvm.snp-guest-policy);
             minimumTCB = {
               bootloaderVersion = 3;
               teeVersion = 0;
               snpVersion = 8;
               microcodeVersion = 115;
             };
-            trustedMeasurement = lib.removeSuffix "\n" (
-              builtins.readFile (
-                if microsoft.contrast-node-installer-image.debugRuntime then
-                  (microsoft.kata-igvm.override { debug = true; }).launch-digest
-                else
-                  microsoft.kata-igvm.launch-digest
-              )
+            trustedMeasurement = builtins.readFile (
+              if microsoft.contrast-node-installer-image.debugRuntime then
+                "${(microsoft.kata-igvm.override { debug = true; }).snp-launch-digest}/milan.hex"
+              else
+                "${microsoft.kata-igvm.snp-launch-digest}/milan.hex"
             );
             productName = "Milan";
           }
@@ -86,6 +86,7 @@ let
       snpRefValsWith = os-image: {
         snp =
           let
+            guestPolicy = builtins.fromJSON (builtins.readFile ./snpGuestPolicyQEMU.json);
             launch-digest = kata.calculateSnpLaunchDigest {
               inherit os-image;
               debug = kata.contrast-node-installer-image.debugRuntime;
@@ -93,10 +94,12 @@ let
           in
           [
             {
+              inherit guestPolicy;
               trustedMeasurement = builtins.readFile "${launch-digest}/milan.hex";
               productName = "Milan";
             }
             {
+              inherit guestPolicy;
               trustedMeasurement = builtins.readFile "${launch-digest}/genoa.hex";
               productName = "Genoa";
             }
@@ -152,7 +155,10 @@ let
         inherit os-image;
         debug = kata.contrast-node-installer-image.debugRuntime;
       };
-      idBlocks = kata.calculateSnpIDBlock { snp-launch-digest = launch-digest; };
+      idBlocks = calculateSnpIDBlock {
+        snp-launch-digest = launch-digest;
+        snp-guest-policy = ./snpGuestPolicyQEMU.json;
+      };
     in
     {
       Milan = {
@@ -170,6 +176,22 @@ let
       metal-qemu-snp-gpu = snpIdBlocksFor kata.contrast-node-installer-image.gpu.os-image;
       k3s-qemu-snp = snpIdBlocksFor kata.contrast-node-installer-image.os-image;
       k3s-qemu-snp-gpu = snpIdBlocksFor kata.contrast-node-installer-image.gpu.os-image;
+      aks-clh-snp.Milan =
+        let
+          launch-digest =
+            if microsoft.contrast-node-installer-image.debugRuntime then
+              (microsoft.kata-igvm.override { debug = true; }).snp-launch-digest
+            else
+              microsoft.kata-igvm.snp-launch-digest;
+          idBlocks = calculateSnpIDBlock {
+            snp-launch-digest = launch-digest;
+            inherit (microsoft.kata-igvm) snp-guest-policy;
+          };
+        in
+        {
+          idBlock = builtins.readFile "${idBlocks}/id-block-milan.base64";
+          idAuth = builtins.readFile "${idBlocks}/id-auth-milan.base64";
+        };
     }
   );
 
