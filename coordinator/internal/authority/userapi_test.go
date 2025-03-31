@@ -118,7 +118,7 @@ func TestManifestSet(t *testing.T) {
 			require := require.New(t)
 
 			reg := prometheus.NewRegistry()
-			coordinator := newCoordinatorWithRegistry(reg)
+			coordinator := newCoordinatorWithRegistry(t, reg)
 			ctx := rpcContext(tc.workloadOwnerKey)
 			resp, err := coordinator.SetManifest(ctx, tc.req)
 
@@ -154,7 +154,7 @@ func TestManifestSet(t *testing.T) {
 			require := require.New(t)
 
 			reg := prometheus.NewRegistry()
-			coordinator := newCoordinatorWithRegistry(reg)
+			coordinator := newCoordinatorWithRegistry(t, reg)
 			ctx := rpcContext(tc.workloadOwnerKey)
 			m, err := json.Marshal(manifestWithTrustedKey)
 			require.NoError(err)
@@ -186,7 +186,7 @@ func TestManifestSet(t *testing.T) {
 	t.Run("no workload owner key in manifest", func(t *testing.T) {
 		require := require.New(t)
 
-		coordinator := newCoordinator()
+		coordinator := newCoordinator(t)
 		ctx := rpcContext(trustedKey)
 		m, err := json.Marshal(manifestWithoutTrustedKey)
 		require.NoError(err)
@@ -201,7 +201,7 @@ func TestManifestSet(t *testing.T) {
 	t.Run("broken manifest", func(t *testing.T) {
 		require := require.New(t)
 
-		coordinator := newCoordinator()
+		coordinator := newCoordinator(t)
 		req := &userapi.SetManifestRequest{Manifest: []byte(`{ "policies": 1 }`)}
 		_, err = coordinator.SetManifest(context.Background(), req)
 		require.Error(err)
@@ -213,7 +213,7 @@ func TestGetManifests(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	coordinator := newCoordinator()
+	coordinator := newCoordinator(t)
 
 	ctx := context.Background()
 	resp, err := coordinator.GetManifests(ctx, &userapi.GetManifestsRequest{})
@@ -288,7 +288,7 @@ func TestRecovery(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			require := require.New(t)
 
-			a := newCoordinator()
+			a := newCoordinator(t)
 
 			seedShareOwnerKey := testkeys.RSA(t)
 			seedShareOwnerKeyBytes := manifest.MarshalSeedShareOwnerKey(&seedShareOwnerKey.PublicKey)
@@ -308,7 +308,8 @@ func TestRecovery(t *testing.T) {
 			seed, err := manifest.DecryptSeedShare(seedShareOwnerKey, resp.SeedSharesDoc.SeedShares[0])
 			require.NoError(err)
 
-			a = New(a.hist, prometheus.NewRegistry(), slog.Default())
+			a, cancel := New(a.hist, nil, prometheus.NewRegistry(), slog.Default())
+			t.Cleanup(cancel)
 
 			recoverReq := &userapi.RecoverRequest{
 				Seed: tc.seed,
@@ -333,7 +334,7 @@ func TestRecoveryFlow(t *testing.T) {
 
 	// 1. A Coordinator is created from empty state.
 
-	a := newCoordinator()
+	a := newCoordinator(t)
 
 	// 2. A manifest is set and the returned seed is recorded.
 	seedShareOwnerKey := testkeys.RSA(t)
@@ -373,7 +374,8 @@ func TestRecoveryFlow(t *testing.T) {
 	// 3. A new Coordinator is created with the existing history.
 	// GetManifests and SetManifest are expected to fail.
 
-	a = New(a.hist, prometheus.NewRegistry(), slog.Default())
+	a, cancel := New(a.hist, nil, prometheus.NewRegistry(), slog.Default())
+	t.Cleanup(cancel)
 	_, err = a.SetManifest(context.Background(), req)
 	require.ErrorContains(err, ErrNeedsRecovery.Error())
 
@@ -415,7 +417,8 @@ func TestUserAPIConcurrent(t *testing.T) {
 	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(store)
-	coordinator := New(hist, prometheus.NewRegistry(), slog.Default())
+	coordinator, cancel := New(hist, nil, prometheus.NewRegistry(), slog.Default())
+	t.Cleanup(cancel)
 
 	setReq := &userapi.SetManifestRequest{
 		Manifest: newManifestBytes(func(m *manifest.Manifest) {
@@ -458,15 +461,17 @@ func TestUserAPIConcurrent(t *testing.T) {
 	wg.Wait()
 }
 
-func newCoordinator() *Authority {
-	return newCoordinatorWithRegistry(prometheus.NewRegistry())
+func newCoordinator(t *testing.T) *Authority {
+	return newCoordinatorWithRegistry(t, prometheus.NewRegistry())
 }
 
-func newCoordinatorWithRegistry(reg *prometheus.Registry) *Authority {
+func newCoordinatorWithRegistry(t *testing.T, reg *prometheus.Registry) *Authority {
 	fs := afero.NewMemMapFs()
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(store)
-	return New(hist, reg, slog.Default())
+	a, cancel := New(hist, nil, reg, slog.Default())
+	t.Cleanup(cancel)
+	return a
 }
 
 func rpcContext(cryptoKey crypto.PrivateKey) context.Context {

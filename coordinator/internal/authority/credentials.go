@@ -11,7 +11,6 @@ import (
 	"log/slog"
 	"net"
 	"strings"
-	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation"
@@ -20,11 +19,9 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/logger"
-	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/credentials"
-	"k8s.io/utils/clock"
 )
 
 // Credentials are gRPC transport credentials that dynamically update with the Coordinator state.
@@ -38,10 +35,7 @@ type Credentials struct {
 }
 
 // Credentials creates new transport credentials that validate peers according to the latest manifest.
-func (a *Authority) Credentials(reg *prometheus.Registry, issuer atls.Issuer) (*Credentials, func()) {
-	month := 30 * 24 * time.Hour
-	ticker := clock.RealClock{}.NewTicker(9 * month)
-	kdsGetter := certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(a.logger, "kds-getter-validator"))
+func (a *Authority) Credentials(reg *prometheus.Registry) *Credentials {
 	attestationFailuresCounter := promauto.With(reg).NewCounter(prometheus.CounterOpts{
 		Subsystem: "contrast_meshapi",
 		Name:      "attestation_failures_total",
@@ -49,12 +43,12 @@ func (a *Authority) Credentials(reg *prometheus.Registry, issuer atls.Issuer) (*
 	})
 
 	return &Credentials{
-		issuer:                     issuer,
+		issuer:                     a.issuer,
 		getState:                   a.GetState,
 		logger:                     a.logger,
 		attestationFailuresCounter: attestationFailuresCounter,
-		kdsGetter:                  kdsGetter,
-	}, ticker.Stop
+		kdsGetter:                  a.kdsGetter,
+	}
 }
 
 // ServerHandshake implements an aTLS handshake for the latest state.
