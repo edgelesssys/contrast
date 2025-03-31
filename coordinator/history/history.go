@@ -90,6 +90,18 @@ func (h *History) SetTransition(transition *Transition) ([HashSize]byte, error) 
 
 // GetLatest verifies the latest transition with the given public key and returns it.
 func (h *History) GetLatest(pubKey *ecdsa.PublicKey) (*LatestTransition, error) {
+	latestTransition, err := h.GetLatestInsecure()
+	if err != nil {
+		return nil, err
+	}
+	if err := latestTransition.verify(pubKey); err != nil {
+		return nil, fmt.Errorf("verifying latest transition: %w", err)
+	}
+	return latestTransition, nil
+}
+
+// GetLatestInsecure returns the latest transition without verifying it.
+func (h *History) GetLatestInsecure() (*LatestTransition, error) {
 	transitionBytes, err := h.store.Get("transitions/latest")
 	if err != nil {
 		return nil, fmt.Errorf("getting latest transition: %w", err)
@@ -97,9 +109,6 @@ func (h *History) GetLatest(pubKey *ecdsa.PublicKey) (*LatestTransition, error) 
 	var latestTransition LatestTransition
 	if err := latestTransition.unmarshalBinary(transitionBytes); err != nil {
 		return nil, fmt.Errorf("unmarshaling latest transition: %w", err)
-	}
-	if err := latestTransition.verify(pubKey); err != nil {
-		return nil, fmt.Errorf("verifying latest transition: %w", err)
 	}
 	return &latestTransition, nil
 }

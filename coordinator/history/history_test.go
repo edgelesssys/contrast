@@ -30,6 +30,8 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 		wantErr bool
 		// wants for HasLatest
 		wantHasLatest bool
+		// wants for GetLatestInsecure
+		wantInsecureErr bool
 	}{
 		"success": {
 			fsContent: map[string]string{
@@ -59,18 +61,20 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 			wantHasLatest: true,
 		},
 		"no latest": {
-			fsContent:     map[string]string{},
-			signingKey:    testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
-			wantErr:       true,
-			wantHasLatest: false,
+			fsContent:       map[string]string{},
+			signingKey:      testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
+			wantErr:         true,
+			wantHasLatest:   false,
+			wantInsecureErr: true,
 		},
 		"no signature": {
 			fsContent: map[string]string{
 				"transitions/latest": fromHex(rq, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"),
 			},
-			signingKey:    testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
-			wantErr:       true,
-			wantHasLatest: true,
+			signingKey:      testkeys.New[ecdsa.PrivateKey](t, testkeys.ECDSAP256Keys[0]),
+			wantErr:         true,
+			wantHasLatest:   true,
+			wantInsecureErr: true,
 		},
 	}
 
@@ -122,6 +126,33 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 
 				require.NoError(err)
 				require.Equal(tc.wantHasLatest, got)
+			})
+		}
+	})
+
+	t.Run("GetLatestInsecure", func(t *testing.T) {
+		for name, tc := range testCases {
+			t.Run(name, func(t *testing.T) {
+				require := require.New(t)
+
+				fs := afero.Afero{Fs: afero.NewMemMapFs()}
+				for path, content := range tc.fsContent {
+					require.NoError(fs.WriteFile(path, []byte(content), 0o644))
+				}
+
+				h := &History{
+					store:   NewAferoStore(&fs),
+					hashFun: sha256.New,
+				}
+
+				gotT, err := h.GetLatestInsecure()
+
+				if tc.wantInsecureErr {
+					require.Error(err)
+					return
+				}
+				require.NoError(err)
+				require.NotNil(gotT)
 			})
 		}
 	})
