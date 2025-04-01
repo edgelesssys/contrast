@@ -30,8 +30,8 @@
 - [ ] ReplicationController
 - [ ] ResourceQuota
 - [x] Secret
-- [ ] ServiceAccount
-- [ ] Service
+- [x] ServiceAccount
+- [x] Service
 - [ ] NodeNetworkConfig
 - [ ] OverlayExtensionConfig
 - [ ] ControllerRevision
@@ -47,7 +47,6 @@
 - [ ] EndpointSlice
 - [ ] Event
 - [ ] PodMetrics
-- [ ] Ingress
 - [ ] NetworkPolicy
 - [ ] PodDisruptionBudget
 - [ ] RoleBinding
