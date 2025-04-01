@@ -233,22 +233,22 @@ type mockStore struct {
 	hasLatestError error
 }
 
-func (s mockStore) Get(key string) ([]byte, error) {
+func (s mockStore) Get(_ string) ([]byte, error) {
 	return nil, nil
 }
 
-func (s mockStore) Set(key string, value []byte) error {
+func (s mockStore) Set(_ string, _ []byte) error {
 	return nil
 }
 
-func (s mockStore) Has(key string) (bool, error) {
+func (s mockStore) Has(_ string) (bool, error) {
 	return s.hasLatest, s.hasLatestError
 }
 
-func (s mockStore) CompareAndSwap(key string, oldVal, newVal []byte) error {
+func (s mockStore) CompareAndSwap(_ string, _, _ []byte) error {
 	return nil
 }
 
-func (s mockStore) Watch(key string) (ch <-chan []byte, cancel func(), err error) {
+func (s mockStore) Watch(_ string) (_ <-chan []byte, _ func(), _ error) {
 	return nil, nil, nil
 }
