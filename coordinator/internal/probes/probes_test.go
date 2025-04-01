@@ -12,9 +12,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
-	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStartupProbe(t *testing.T) {
@@ -116,39 +114,41 @@ func TestStartupProbe(t *testing.T) {
 }
 
 func TestLivenessProbe(t *testing.T) {
-	someTransition := "asdf"
+	someError := errors.New("someError")
 
 	testCases := map[string]struct {
-		hasTransition bool
-		want503       bool
+		hasLatest bool
+		err       error
+		want503   bool
 	}{
-		"transition exists": {
-			hasTransition: true,
-			want503:       false,
+		"store accessible but empty": {
+			want503: false,
 		},
-		"transition doesn't exist": {
-			hasTransition: false,
-			want503:       true,
+		"store inaccessible": {
+			err:     someError,
+			want503: true,
+		},
+		"transition exists": {
+			hasLatest: true,
+			want503:   false,
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
-			require := require.New(t)
-
-			fs := afero.Afero{Fs: afero.NewMemMapFs()}
 
 			req := httptest.NewRequest(http.MethodGet, "/probes/liveness", nil)
 			resp := httptest.NewRecorder()
 
 			mux := http.NewServeMux()
 
-			if tc.hasTransition {
-				require.NoError(fs.WriteFile("transitions/latest", []byte(someTransition), 0o644))
+			store := mockStore{
+				hasLatest:      tc.hasLatest,
+				hasLatestError: tc.err,
 			}
 
-			hist := history.NewWithStore(&slog.Logger{}, history.NewAferoStore(&fs))
+			hist := history.NewWithStore(&slog.Logger{}, store)
 
 			handler := LivenessHandler{Hist: hist}
 			mux.Handle("/probes/liveness", handler)
@@ -226,4 +226,29 @@ func (a mockAuth) GetState() (*authority.State, error) {
 		return nil, nil
 	}
 	return &authority.State{}, nil
+}
+
+type mockStore struct {
+	hasLatest      bool
+	hasLatestError error
+}
+
+func (s mockStore) Get(key string) ([]byte, error) {
+	return nil, nil
+}
+
+func (s mockStore) Set(key string, value []byte) error {
+	return nil
+}
+
+func (s mockStore) Has(key string) (bool, error) {
+	return s.hasLatest, s.hasLatestError
+}
+
+func (s mockStore) CompareAndSwap(key string, oldVal, newVal []byte) error {
+	return nil
+}
+
+func (s mockStore) Watch(key string) (ch <-chan []byte, cancel func(), err error) {
+	return nil, nil, nil
 }

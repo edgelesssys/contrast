@@ -31,8 +31,8 @@ type LivenessHandler struct {
 }
 
 func (h LivenessHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
-	read, err := h.Hist.HasLatest()
-	if err != nil || !read {
+	_, err := h.Hist.HasLatest()
+	if err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
