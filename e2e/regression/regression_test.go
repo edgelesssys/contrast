@@ -96,9 +96,16 @@ func TestRegression(t *testing.T) {
 				case "ConfigMap":
 					require.NoError(ct.Kubeclient.Client.CoreV1().ConfigMaps(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
 				case "Job":
+					// TODO: job pod isn't deleted, fix that
 					require.NoError(ct.Kubeclient.Client.BatchV1().Jobs(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "CronJob":
+					require.NoError(ct.Kubeclient.Client.BatchV1().CronJobs(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
 				case "Secret":
 					require.NoError(ct.Kubeclient.Client.CoreV1().Secrets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "DaemonSet":
+					require.NoError(ct.Kubeclient.Client.AppsV1().DaemonSets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "ReplicaSet":
+					require.NoError(ct.Kubeclient.Client.AppsV1().ReplicaSets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
 				}
 			})
 
@@ -115,6 +122,8 @@ func TestRegression(t *testing.T) {
 				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, resourceName))
 			case "Pod":
 				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Pod{}, ct.Namespace, resourceName))
+			case "DaemonSet":
+				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.DaemonSet{}, ct.Namespace, resourceName))
 			}
 		})
 	}

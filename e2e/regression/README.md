@@ -35,14 +35,14 @@
 - [ ] NodeNetworkConfig
 - [ ] OverlayExtensionConfig
 - [ ] ControllerRevision
-- [ ] DaemonSet
+- [x] DaemonSet
 - [x] Deployment
-- [ ] ReplicaSet
+- [x] ReplicaSet
 - [ ] StatefulSet
 - [ ] LocalSubjectAccessReview
 - [ ] HorizontalPodAutoscaler
-- [ ] CronJob
-- [ ] Job
+- [x] CronJob
+- [x] Job
 - [ ] Lease
 - [ ] EndpointSlice
 - [ ] Event
