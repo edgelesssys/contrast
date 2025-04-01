@@ -82,7 +82,8 @@ rustPlatform.buildRustPackage rec {
 
   sourceRoot = "${src.name}/src/tools/genpolicy";
 
-  cargoHash = "sha256-VNh26gafJZdWmb791VdftoNiHQE60KKE+pOJC4tWLV8=";
+  useFetchCargoVendor = true;
+  cargoHash = "sha256-1qx7MfQxFaajxcG/A1Zd3L74s90AbI0tQkR6esM18xs=";
 
   OPENSSL_NO_VENDOR = 1;
 
