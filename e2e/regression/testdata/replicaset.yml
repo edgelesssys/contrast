@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: replicaset
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: replicaset
+  template:
+    metadata:
+      labels:
+        name: replicaset
+    spec:
+      containers:
+        - name: httpd
+          image: quay.io/fedora/httpd-24-micro@sha256:f8f7d90feb8beace46a9f235e1a215042c7a5d04e1567e11173f7b73ab621a1d
+          ports:
+            - containerPort: 8443
+            - containerPort: 8080
