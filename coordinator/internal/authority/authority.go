@@ -10,14 +10,20 @@ import (
 	"log/slog"
 	"slices"
 	"sync/atomic"
+	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
+	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/ca"
+	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"k8s.io/utils/clock"
 )
 
 // ErrNoManifest is returned when a manifest is needed but not present.
@@ -29,10 +35,12 @@ type Authority struct {
 	// We bundle it in its own struct type so we can atomically update it while not blocking other
 	// requests or risking inconsistency between e.g. CA and Manifest.
 	// state must always be updated with a new instance, its fields must not be modified.
-	state   atomic.Pointer[State]
-	hist    *history.History
-	logger  *slog.Logger
-	metrics metrics
+	state     atomic.Pointer[State]
+	hist      *history.History
+	issuer    atls.Issuer
+	kdsGetter *certcache.CachedHTTPSGetter
+	logger    *slog.Logger
+	metrics   metrics
 
 	userapi.UnimplementedUserAPIServer
 }
@@ -42,7 +50,10 @@ type metrics struct {
 }
 
 // New creates a new Authority instance.
-func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Authority {
+func New(hist *history.History, issuer atls.Issuer, reg *prometheus.Registry, log *slog.Logger) (*Authority, func()) {
+	month := 30 * 24 * time.Hour
+	ticker := clock.RealClock{}.NewTicker(9 * month)
+	kdsGetter := certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter-validator"))
 	manifestGeneration := promauto.With(reg).NewGauge(prometheus.GaugeOpts{
 		Subsystem: "contrast_coordinator",
 		Name:      "manifest_generation",
@@ -51,12 +62,14 @@ func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Aut
 	manifestGeneration.Set(0)
 
 	return &Authority{
-		hist:   hist,
-		logger: log.WithGroup("mesh-authority"),
+		hist:      hist,
+		issuer:    issuer,
+		kdsGetter: kdsGetter,
+		logger:    log.WithGroup("mesh-authority"),
 		metrics: metrics{
 			manifestGeneration: manifestGeneration,
 		},
-	}
+	}, ticker.Stop
 }
 
 // syncState ensures that a.state is up-to-date.

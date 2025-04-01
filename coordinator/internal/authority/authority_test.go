@@ -56,7 +56,9 @@ func newAuthority(t *testing.T) (*Authority, *prometheus.Registry) {
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(store)
 	reg := prometheus.NewRegistry()
-	return New(hist, reg, slog.Default()), reg
+	a, cancel := New(hist, nil, reg, slog.Default())
+	t.Cleanup(cancel)
+	return a, reg
 }
 
 func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {

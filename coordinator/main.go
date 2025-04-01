@@ -74,20 +74,20 @@ func run() (retErr error) {
 		return fmt.Errorf("creating history: %w", err)
 	}
 
-	meshAuth := authority.New(hist, promRegistry, logger)
-
 	issuer, err := issuer.New(logger)
 	if err != nil {
 		return fmt.Errorf("creating issuer: %w", err)
 	}
+
+	meshAuth, cancel := authority.New(hist, issuer, promRegistry, logger)
+	defer cancel()
 
 	userAPICredentials := atlscredentials.New(issuer, atls.NoValidators, atls.NoMetrics, loggerpkg.NewNamed(logger, "atlscredentials"))
 	userAPIServer := newGRPCServer(userAPICredentials, serverMetrics)
 	userapi.RegisterUserAPIServer(userAPIServer, meshAuth)
 	serverMetrics.InitializeMetrics(userAPIServer)
 
-	meshAPIcredentials, cancel := meshAuth.Credentials(promRegistry, issuer)
-	defer cancel()
+	meshAPIcredentials := meshAuth.Credentials(promRegistry)
 	meshAPIServer := newGRPCServer(meshAPIcredentials, serverMetrics)
 	meshapi.RegisterMeshAPIServer(meshAPIServer, meshapiserver.New(logger))
 	serverMetrics.InitializeMetrics(meshAPIServer)
