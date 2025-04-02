@@ -15,35 +15,30 @@ import (
 	"github.com/google/go-sev-guest/verify/trust"
 )
 
-// EmbeddedReferenceValuesJSON contains the embedded reference values in JSON format.
+// embeddedReferenceValuesJSON contains the embedded reference values in JSON format.
 //
 //go:embed assets/reference-values.json
-var EmbeddedReferenceValuesJSON []byte
+var embeddedReferenceValuesJSON []byte
 
 // EmbeddedReferenceValues is a map of runtime handler names to a list of reference values
 // for the runtime handler, as embedded in the binary.
 type EmbeddedReferenceValues map[string]ReferenceValues
 
 // GetEmbeddedReferenceValues returns the reference values embedded in the binary.
-func GetEmbeddedReferenceValues() EmbeddedReferenceValues {
-	var embeddedReferenceValues EmbeddedReferenceValues
-
-	if err := json.Unmarshal(EmbeddedReferenceValuesJSON, &embeddedReferenceValues); err != nil {
-		// As this relies on a constant, predictable value (i.e. the embedded JSON), which -- in a correctly built binary -- should
-		// unmarshal safely into the [ReferenceValues], it's acceptable to panic here.
-		panic(fmt.Errorf("failed to unmarshal embedded reference values: %w", err))
+func GetEmbeddedReferenceValues() (EmbeddedReferenceValues, error) {
+	var mapping EmbeddedReferenceValues
+	if err := json.Unmarshal(embeddedReferenceValuesJSON, &mapping); err != nil {
+		return nil, fmt.Errorf("unmarshal embedded reference values mapping: %w", err)
 	}
-
-	return embeddedReferenceValues
+	return mapping, nil
 }
 
 // ForPlatform returns the reference values for the given platform.
 func (e *EmbeddedReferenceValues) ForPlatform(platform platforms.Platform) (*ReferenceValues, error) {
-	var mapping EmbeddedReferenceValues
-	if err := json.Unmarshal(EmbeddedReferenceValuesJSON, &mapping); err != nil {
-		return nil, fmt.Errorf("unmarshal embedded reference values mapping: %w", err)
+	mapping, err := GetEmbeddedReferenceValues()
+	if err != nil {
+		return nil, err
 	}
-
 	for handler, referenceValues := range mapping {
 		p, err := platformFromHandler(handler)
 		if err != nil {

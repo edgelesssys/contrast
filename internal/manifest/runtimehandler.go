@@ -4,7 +4,6 @@
 package manifest
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -13,11 +12,10 @@ import (
 
 // RuntimeHandler returns the name of the runtime handler for the given platform.
 func RuntimeHandler(platform platforms.Platform) (string, error) {
-	var mapping EmbeddedReferenceValues
-	if err := json.Unmarshal(EmbeddedReferenceValuesJSON, &mapping); err != nil {
-		return "", fmt.Errorf("unmarshal embedded reference values mapping: %w", err)
+	mapping, err := GetEmbeddedReferenceValues()
+	if err != nil {
+		return "", err
 	}
-
 	for runtimeHandler := range mapping {
 		p, err := platformFromHandler(runtimeHandler)
 		if err != nil {
