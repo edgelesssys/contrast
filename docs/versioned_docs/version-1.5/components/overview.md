@@ -56,5 +56,5 @@ It provides the workload container and the [service mesh sidecar](service-mesh.m
 
 Contrast depends on a Kubernetes [runtime class](https://kubernetes.io/docs/concepts/containers/runtime-class/), which is installed
 by the `node-installer` DaemonSet.
-This runtime consists of a containerd runtime plugin, a virtual machine manager (cloud-hypervisor), and a podvm image (IGVM and rootFS).
+This runtime consists of a containerd runtime plugin, a virtual machine manager (cloud-hypervisor), and a pod VM image (IGVM and rootFS).
 The installer takes care of provisioning every node in the cluster so it provides this runtime class.

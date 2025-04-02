@@ -1,7 +1,7 @@
 # Contrast Runtime
 
 The Contrast runtime is responsible for starting pods as confidential virtual machines.
-This works by specifying the runtime class to be used in a pod spec and by registering the runtime class with the apiserver.
+This works by specifying the runtime class to be used in a pod spec and by registering the runtime class with the API server.
 The `RuntimeClass` resource defines a name for referencing the class and
 a handler used by the container runtime (`containerd`) to identify the class.
 

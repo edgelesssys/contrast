@@ -1,4 +1,4 @@
-# Obtain a serial console inside the podvm
+# Obtain a serial console inside the pod VM
 
 Set `debugRuntime ? true` in `packages/{kata,microsoft}/contrast-node-installer-image/package.nix` and `debug ? true` in `packages/kata/kata-image/package.nix`, if on bare-metal.
 
