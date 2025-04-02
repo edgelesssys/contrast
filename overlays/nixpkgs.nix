@@ -32,6 +32,20 @@ final: prev:
     '';
   });
 
+  # Tests of composefs will detect hardware capabilities to select executed tests,
+  # that's why they fail on our CI runners (Ubuntu kernel has fs-verity enabled),
+  # but succeed on NixOS/Hydra.
+  # See: https://github.com/composefs/composefs/pull/415
+  # We need to rebuild composefs anyway as it depends on the overridden erofs-utils.
+  composefs = prev.composefs.overrideAttrs (prev: {
+    patches = prev.patches or [ ] ++ [
+      (final.fetchpatch {
+        url = "https://patch-diff.githubusercontent.com/raw/composefs/composefs/pull/415.patch";
+        hash = "sha256-nzUENLM24G6NezhPywVsRzRgWmL1VZdMfZTsXNorJl8=";
+      })
+    ];
+  });
+
   # A change in vale popped up several hundred new findings, likely the bug
   # described in https://github.com/errata-ai/vale/issues/955.
   # Wait for the v3.9.5 release.
