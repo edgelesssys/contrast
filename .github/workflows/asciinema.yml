@@ -27,7 +27,7 @@ jobs:
           git config --global user.name "edgelessci"
           git config --global user.email "edgelessci@users.noreply.github.com"
       - name: Login to Azure
-        uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
