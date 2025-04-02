@@ -243,7 +243,7 @@ One upside would be that we would not need to watch manifest changes and avoid r
 ### Services
 
 1. We could define a headless service `coordinator-peers` for peer discovery.
-   This would have the upside of not requiring permissions for the k8s api, but all the downsides of relying on DNS for discovery (freshness and TTLs, mostly).
+   This would have the upside of not requiring permissions for the k8s api, but all the downsides of relying on DNS for discovery (freshness and TTL, mostly).
 2. The idea behind `coordinator-ready` is to provide clients that only ever need to talk to a ready coordinator with an endpoint that's guaranteed to be ready.
    However, if there is at least one ready coordinator, this proposal should ensure that the other coordinators become ready, too, after a short time.
    This assumption would require adding recovery to the `GetManifest` and `NewMeshCert` handlers, though.
