@@ -49,7 +49,10 @@ func buildVersionString() (string, error) {
 		}
 	}
 
-	embeddedReferenceValues := manifest.GetEmbeddedReferenceValues()
+	embeddedReferenceValues, err := manifest.GetEmbeddedReferenceValues()
+	if err != nil {
+		return "", fmt.Errorf("getting embedded reference values: %w", err)
+	}
 	for _, platform := range platforms.All() {
 		fmt.Fprintf(versionsWriter, "\nreference values for %s platform:\n", platform.String())
 

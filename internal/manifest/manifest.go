@@ -37,7 +37,10 @@ type Manifest struct {
 
 // Default returns a default manifest with reference values for the given platform.
 func Default(platform platforms.Platform) (*Manifest, error) {
-	embeddedRefValues := GetEmbeddedReferenceValues()
+	embeddedRefValues, err := GetEmbeddedReferenceValues()
+	if err != nil {
+		return nil, fmt.Errorf("get embedded reference values: %w", err)
+	}
 
 	refValues, err := embeddedRefValues.ForPlatform(platform)
 	if err != nil {
