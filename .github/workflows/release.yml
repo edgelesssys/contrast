@@ -156,7 +156,7 @@ jobs:
           # Clean up auxiliary files, so next steps run on a clean tree
           git clean -fx :/
       - name: Download image replacements file (from release branch)
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           name: image-replacements.txt
       - name: Update release urls in docs with tags
@@ -172,7 +172,7 @@ jobs:
           git commit -m "docs: update release download urls"
           git clean -fx :/
       - name: Download release artifacts (from release branch)
-        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
         with:
           name: contrast-release-artifacts
           path: ./contrast-main
@@ -232,7 +232,7 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Log in to ghcr.io Container registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -300,7 +300,7 @@ jobs:
             echo "ghcr.io/edgelesssys/contrast/nydus-pull:latest=$nydusPullImgTagged"
           } > image-replacements.txt
       - name: Upload image replacements file (for main branch PR)
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: image-replacements.txt
           path: ./image-replacements.txt
@@ -339,7 +339,7 @@ jobs:
         run: |
           nix build -L .#cli-release
       - name: Upload release artifacts (for main branch PR)
-        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: contrast-release-artifacts
           path: |
@@ -403,14 +403,14 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Log in to ghcr.io Container registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Login to Azure
         if: (!matrix.platform.self-hosted)
-        uses: azure/login@a65d910e8af852a8061c627c456678983e180302 # v2.2.0
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       - if: (!matrix.platform.self-hosted)
