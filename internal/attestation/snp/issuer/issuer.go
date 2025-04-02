@@ -91,7 +91,7 @@ func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (
 	att := i.getAttestation(ctx, report)
 
 	// Get the CRL.
-	if crl, err := getCRLforAttestation(att, i.kdsGetter); err == nil {
+	if crl, err := getCRLforAttestation(ctx, att, i.kdsGetter); err == nil {
 		// Add CRL as CertificateChain.Extras to the attestation, so it can be used by a validator.
 		if att.CertificateChain.Extras == nil {
 			att.CertificateChain.Extras = make(map[string][]byte)
@@ -123,7 +123,7 @@ func (i *Issuer) getAttestation(ctx context.Context, report *spb.Report) *spb.At
 
 	// go-sev-guest will use VCEK from the report if it is an extended report.
 	// Otherwise, it will try to get the VCEK from KDS.
-	if att, err = i.getAttestationFromKdsOrExtendedReport(report); err == nil {
+	if att, err = i.getAttestationFromKdsOrExtendedReport(ctx, report); err == nil {
 		return att
 	}
 	i.logger.Warn("Failed to get attestation from KDS or extended report", "err", err)
@@ -149,8 +149,8 @@ func (i *Issuer) getAttestationFromTHIM(ctx context.Context, report *spb.Report)
 	}, nil
 }
 
-func (i *Issuer) getAttestationFromKdsOrExtendedReport(report *spb.Report) (*spb.Attestation, error) {
-	att, err := verify.GetAttestationFromReport(report, &verify.Options{
+func (i *Issuer) getAttestationFromKdsOrExtendedReport(ctx context.Context, report *spb.Report) (*spb.Attestation, error) {
+	att, err := verify.GetAttestationFromReportContext(ctx, report, &verify.Options{
 		Getter: i.kdsGetter,
 		// Add product since it is the only way to know which vcek endpoint to use
 		// when report v2 is used. Report v3 already contains the product
@@ -179,7 +179,7 @@ func (i *Issuer) getProduct() *spb.SevProduct {
 	return product
 }
 
-func getCRLforAttestation(att *spb.Attestation, kdsGetter trust.HTTPSGetter) (*x509.RevocationList, error) {
+func getCRLforAttestation(ctx context.Context, att *spb.Attestation, kdsGetter trust.HTTPSGetter) (*x509.RevocationList, error) {
 	// Create AMDRootCerts for product line.
 	root := trust.AMDRootCertsProduct(kds.ProductLine(att.GetProduct()))
 
@@ -194,7 +194,7 @@ func getCRLforAttestation(att *spb.Attestation, kdsGetter trust.HTTPSGetter) (*x
 		return nil, fmt.Errorf("decoding ARK/ASK into root: %w", err)
 	}
 
-	return verify.GetCrlAndCheckRoot(root, &verify.Options{Getter: kdsGetter})
+	return verify.GetCrlAndCheckRootContext(ctx, root, &verify.Options{Getter: kdsGetter})
 }
 
 // getQuoteProvider returns the first supported quote provider.

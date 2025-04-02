@@ -63,7 +63,7 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 }
 
 // Validate a SNP based attestation.
-func (v *Validator) Validate(_ context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
+func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
 	v.logger.Info("Validate called", "name", v.name, "nonce", hex.EncodeToString(nonce))
 	defer func() {
 		if err != nil {
@@ -97,7 +97,7 @@ func (v *Validator) Validate(_ context.Context, attDocRaw []byte, nonce []byte, 
 
 	// Report signature verification.
 	// TODO(burgerdev): equip HTTPSGetter with context.
-	if err := verify.SnpAttestation(attestationData, v.verifyOpts); err != nil {
+	if err := verify.SnpAttestationContext(ctx, attestationData, v.verifyOpts); err != nil {
 		return fmt.Errorf("verifying report: %w", err)
 	}
 	v.logger.Info("Successfully verified report signature")
