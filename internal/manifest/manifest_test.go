@@ -5,6 +5,8 @@ package manifest
 
 import (
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -13,63 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestHexStrings(t *testing.T) {
-	testCases := []struct {
-		hs      HexStrings
-		bs      [][]byte
-		wantErr bool
-	}{
-		{
-			hs: HexStrings{"00", "01"},
-			bs: [][]byte{{0x00}, {0x01}},
-		},
-		{
-			hs: HexStrings{"00", "01", "0f", "10", "11", "ff"},
-			bs: [][]byte{{0x00}, {0x01}, {0x0f}, {0x10}, {0x11}, {0xff}},
-		},
-		{
-			hs:      HexStrings{"00", "01", "0f", "10", "11", "ff", "invalid"},
-			wantErr: true,
-		},
-	}
-
-	for i, tc := range testCases {
-		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			assert := assert.New(t)
-			bs, err := tc.hs.ByteSlices()
-			if tc.wantErr {
-				assert.Error(err)
-				return
-			}
-			assert.Equal(tc.bs, bs)
-		})
-	}
-}
-
-func TestPolicy(t *testing.T) {
-	t.Run("valid", func(t *testing.T) {
-		assert := assert.New(t)
-
-		policy := []byte("test-policy")
-		expectedHash := HexString("48a7cea3db9b9bf087e58bdff6e7a4260a0227b90ba0fceb97060a3c76e004e1")
-
-		annotation := base64.StdEncoding.EncodeToString(policy)
-		p, err := NewPolicyFromAnnotation([]byte(annotation))
-
-		assert.NoError(err)
-		assert.Equal(policy, p.Bytes())
-		assert.Equal(expectedHash, p.Hash())
-	})
-	t.Run("invalid", func(t *testing.T) {
-		assert := assert.New(t)
-
-		annotation := "invalid"
-		_, err := NewPolicyFromAnnotation([]byte(annotation))
-
-		assert.Error(err)
-	})
-}
 
 func TestValidate(t *testing.T) {
 	newTestManifestSNP := func() *Manifest {
@@ -324,7 +269,31 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func TestAKSValidateOpts(t *testing.T) {
+func TestPolicy(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
+		assert := assert.New(t)
+
+		policy := []byte("test-policy")
+		expectedHash := HexString("48a7cea3db9b9bf087e58bdff6e7a4260a0227b90ba0fceb97060a3c76e004e1")
+
+		annotation := base64.StdEncoding.EncodeToString(policy)
+		p, err := NewPolicyFromAnnotation([]byte(annotation))
+
+		assert.NoError(err)
+		assert.Equal(policy, p.Bytes())
+		assert.Equal(expectedHash, p.Hash())
+	})
+	t.Run("invalid", func(t *testing.T) {
+		assert := assert.New(t)
+
+		annotation := "invalid"
+		_, err := NewPolicyFromAnnotation([]byte(annotation))
+
+		assert.Error(err)
+	})
+}
+
+func TestSNPValidateOpts(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
@@ -362,16 +331,96 @@ func TestAKSValidateOpts(t *testing.T) {
 	assert.Equal(tcbParts, opts[0].ValidateOpts.MinimumLaunchTCB)
 }
 
-func TestTrustedRoots(t *testing.T) {
-	roots, err := trustedRoots(Milan)
-	assert.NoError(t, err)
-	assert.Contains(t, roots, "Milan")
-	assert.NotContains(t, roots, "Genoa")
+func TestHexString(t *testing.T) {
+	testCases := []struct {
+		b []byte
+		s string
+	}{
+		{b: []byte{0x00}, s: "00"},
+		{b: []byte{0x01}, s: "01"},
+		{b: []byte{0x0f}, s: "0f"},
+		{b: []byte{0x10}, s: "10"},
+		{b: []byte{0x11}, s: "11"},
+		{b: []byte{0xff}, s: "ff"},
+		{b: []byte{0x00, 0x01}, s: "0001"},
+	}
 
-	roots, err = trustedRoots(Genoa)
-	assert.NoError(t, err)
-	assert.NotContains(t, roots, "Milan")
-	assert.Contains(t, roots, "Genoa")
+	t.Run("Bytes", func(t *testing.T) {
+		for _, tc := range testCases {
+			t.Run(tc.s, func(t *testing.T) {
+				assert := assert.New(t)
+				hexString := NewHexString(tc.b)
+				assert.Equal(tc.s, hexString.String())
+				b, err := hexString.Bytes()
+				assert.NoError(err)
+				assert.Equal(tc.b, b)
+			})
+		}
+	})
+
+	t.Run("MarshalJSON", func(t *testing.T) {
+		for _, tc := range testCases {
+			t.Run(tc.s, func(t *testing.T) {
+				assert := assert.New(t)
+				hexString := NewHexString(tc.b)
+				enc, err := json.Marshal(hexString)
+				assert.NoError(err)
+				assert.Equal(fmt.Sprintf("\"%s\"", tc.s), string(enc))
+			})
+		}
+	})
+
+	t.Run("UnmarshalJSON", func(t *testing.T) {
+		for _, tc := range testCases {
+			t.Run(tc.s, func(t *testing.T) {
+				assert := assert.New(t)
+				var hexString HexString
+				err := json.Unmarshal([]byte(fmt.Sprintf("\"%s\"", tc.s)), &hexString)
+				assert.NoError(err)
+				assert.Equal(tc.s, hexString.String())
+			})
+		}
+	})
+
+	t.Run("invalid hexstring", func(t *testing.T) {
+		assert := assert.New(t)
+		hexString := HexString("invalid")
+		_, err := hexString.Bytes()
+		assert.Error(err)
+	})
+}
+
+func TestHexStrings(t *testing.T) {
+	testCases := []struct {
+		hs      HexStrings
+		bs      [][]byte
+		wantErr bool
+	}{
+		{
+			hs: HexStrings{"00", "01"},
+			bs: [][]byte{{0x00}, {0x01}},
+		},
+		{
+			hs: HexStrings{"00", "01", "0f", "10", "11", "ff"},
+			bs: [][]byte{{0x00}, {0x01}, {0x0f}, {0x10}, {0x11}, {0xff}},
+		},
+		{
+			hs:      HexStrings{"00", "01", "0f", "10", "11", "ff", "invalid"},
+			wantErr: true,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			assert := assert.New(t)
+			bs, err := tc.hs.ByteSlices()
+			if tc.wantErr {
+				assert.Error(err)
+				return
+			}
+			assert.Equal(tc.bs, bs)
+		})
+	}
 }
 
 func toPtr[T any](v T) *T {

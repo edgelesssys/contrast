@@ -6,7 +6,6 @@ package manifest
 import (
 	"crypto/sha256"
 	"crypto/sha512"
-	_ "embed"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
@@ -14,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/idblock"
-	"github.com/google/go-sev-guest/abi"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/google/go-sev-guest/kds"
 	snpvalidate "github.com/google/go-sev-guest/validate"
 	"github.com/google/go-sev-guest/verify"
@@ -36,175 +35,16 @@ type Manifest struct {
 	SeedshareOwnerPubKeys []HexString
 }
 
-// PolicyEntry is a policy entry in the manifest. It contains further information the user wants to associate with the policy.
-type PolicyEntry struct {
-	SANs             []string
-	WorkloadSecretID string `json:",omitempty"`
-	Role             Role   `json:",omitempty"`
-}
+// Default returns a default manifest with reference values for the given platform.
+func Default(platform platforms.Platform) (*Manifest, error) {
+	embeddedRefValues := GetEmbeddedReferenceValues()
 
-// Validate checks the validity of a policy entry given its policy hash.
-func (e PolicyEntry) Validate(policyHash HexString) error {
-	var errs []error
-	if _, err := policyHash.Bytes(); err != nil {
-		errs = append(errs, fmt.Errorf("decoding policy hash %q: %w", policyHash, err))
-	} else if len(policyHash) != hex.EncodedLen(sha256.Size) {
-		errs = append(errs, fmt.Errorf("invalid policy hash length: %d (expected %d)", len(policyHash), hex.EncodedLen(sha256.Size)))
+	refValues, err := embeddedRefValues.ForPlatform(platform)
+	if err != nil {
+		return nil, fmt.Errorf("get reference values for platform %s: %w", platform, err)
 	}
 
-	if err := e.Role.Validate(); err != nil {
-		errs = append(errs, newValidationError("Role", err))
-	}
-
-	return errors.Join(errs...)
-}
-
-// HexStrings is a slice of HexString.
-type HexStrings []HexString
-
-// ByteSlices returns the byte slice representation of the HexStrings.
-func (l *HexStrings) ByteSlices() ([][]byte, error) {
-	var res [][]byte
-	for _, s := range *l {
-		b, err := s.Bytes()
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, b)
-	}
-	return res, nil
-}
-
-// Policy is a CocCo execution policy.
-type Policy []byte
-
-// NewPolicyFromAnnotation parses a base64 encoded policy from an annotation.
-func NewPolicyFromAnnotation(annotation []byte) (Policy, error) {
-	return base64.StdEncoding.DecodeString(string(annotation))
-}
-
-// Bytes returns the policy as byte slice.
-func (p Policy) Bytes() []byte {
-	return []byte(p)
-}
-
-// Hash returns the hash of the policy.
-func (p Policy) Hash() HexString {
-	hashBytes := sha256.Sum256(p)
-	return NewHexString(hashBytes[:])
-}
-
-// Role is the role of the workload identified by the policy hash.
-type Role string
-
-const (
-	// RoleNone means the workload has no specific role.
-	RoleNone Role = ""
-	// RoleCoordinator is the coordinator role.
-	RoleCoordinator Role = "coordinator"
-)
-
-// Validate checks the validity of the role.
-func (r Role) Validate() error {
-	switch r {
-	case RoleNone, RoleCoordinator:
-		return nil
-	default:
-		return fmt.Errorf("unknown role: %s", r)
-	}
-}
-
-// Validate checks the validity of all fields in the reference values.
-func (r ReferenceValues) Validate() error {
-	var errs []error
-	for i, v := range r.SNP {
-		if err := v.Validate(); err != nil {
-			errs = append(errs, newValidationError(fmt.Sprintf("snp[%d]", i), err))
-		}
-	}
-	for i, v := range r.TDX {
-		if err := v.Validate(); err != nil {
-			errs = append(errs, newValidationError(fmt.Sprintf("tdx[%d]", i), err))
-		}
-	}
-
-	if len(r.SNP)+len(r.TDX) == 0 {
-		errs = append(errs, fmt.Errorf("reference values in manifest cannot be empty. Is the chosen platform supported?"))
-	}
-
-	return errors.Join(errs...)
-}
-
-func validateHexString(value HexString, expectedNumBytes int) error {
-	if len(value) != expectedNumBytes*2 {
-		return fmt.Errorf("invalid length: %d (expected %d)", len(value), expectedNumBytes*2)
-	}
-	_, err := value.Bytes()
-	return err
-}
-
-// Validate checks the validity of all fields in the AKS reference values.
-func (r SNPReferenceValues) Validate() error {
-	var minTCBErrs []error
-	if r.MinimumTCB.BootloaderVersion == nil {
-		minTCBErrs = append(minTCBErrs, newValidationError("BootloaderVersion", fmt.Errorf("field cannot be empty")))
-	}
-	if r.MinimumTCB.TEEVersion == nil {
-		minTCBErrs = append(minTCBErrs, newValidationError("TEEVersion", fmt.Errorf("field cannot be empty")))
-	}
-	if r.MinimumTCB.SNPVersion == nil {
-		minTCBErrs = append(minTCBErrs, newValidationError("SNPVersion", fmt.Errorf("field cannot be empty")))
-	}
-	if r.MinimumTCB.MicrocodeVersion == nil {
-		minTCBErrs = append(minTCBErrs, newValidationError("MicrocodeVersion", fmt.Errorf("field cannot be empty")))
-	}
-
-	errs := []error{newValidationError("MinimumTCB", minTCBErrs...)}
-
-	switch r.ProductName {
-	case Milan, Genoa:
-		// These are valid. We don't need to report an error.
-	default:
-		errs = append(errs, newValidationError("ProductName", fmt.Errorf("unknown product name: %s", r.ProductName)))
-	}
-
-	if err := validateHexString(r.TrustedMeasurement, abi.MeasurementSize); err != nil {
-		errs = append(errs, newValidationError("TrustedMeasurement", err))
-	}
-
-	return errors.Join(errs...)
-}
-
-// Validate checks the validity of all fields in the bare metal TDX reference values.
-func (r TDXReferenceValues) Validate() error {
-	var errs []error
-	if err := validateHexString(r.MrTd, 48); err != nil {
-		errs = append(errs, newValidationError("MrTd", err))
-	}
-	if r.MinimumQeSvn == nil {
-		errs = append(errs, newValidationError("MinimumQeSvn", fmt.Errorf("field cannot be empty")))
-	}
-	if r.MinimumPceSvn == nil {
-		errs = append(errs, newValidationError("MinimumPceSvn", fmt.Errorf("field cannot be empty")))
-	}
-	if err := validateHexString(r.MinimumTeeTcbSvn, 16); err != nil {
-		errs = append(errs, newValidationError("MinimumTeeTcbSvn", err))
-	}
-	if err := validateHexString(r.MrSeam, 48); err != nil {
-		errs = append(errs, newValidationError("MrSeam", err))
-	}
-	if err := validateHexString(r.TdAttributes, 8); err != nil {
-		errs = append(errs, newValidationError("TdAttributes", err))
-	}
-	if err := validateHexString(r.Xfam, 8); err != nil {
-		errs = append(errs, newValidationError("Xfam", err))
-	}
-	for i, rtmr := range r.Rtrms {
-		if err := validateHexString(rtmr, 48); err != nil {
-			errs = append(errs, newValidationError(fmt.Sprintf("Rtrms[%d]", i), err))
-		}
-	}
-	return errors.Join(errs...)
+	return &Manifest{ReferenceValues: *refValues}, nil
 }
 
 // Validate checks the validity of all fields in the manifest.
@@ -246,75 +86,14 @@ func (m *Manifest) Validate() error {
 	return errors.Join(errs...)
 }
 
-// validationError contains a JSON path and a list of errors.
-// Nested validation errors are printed on newlines with the full path.
-type validationError struct {
-	path string
-	errs []error
-}
-
-func newValidationError(path string, errs ...error) error {
-	e := &validationError{
-		path: path,
-		errs: make([]error, 0, len(errs)),
-	}
-	for _, err := range errs {
-		if err != nil {
-			e.errs = append(e.errs, flatten(err)...)
+// CoordinatorPolicyHash returns the hash of the coordinator policy.
+func (m *Manifest) CoordinatorPolicyHash() (HexString, error) {
+	for policyHash, policy := range m.Policies {
+		if policy.Role == RoleCoordinator {
+			return policyHash, nil
 		}
 	}
-	if len(e.errs) == 0 {
-		return nil
-	}
-	return e
-}
-
-func (e *validationError) Error() string {
-	return e.formatError(e.path)
-}
-
-func (e *validationError) Unwrap() []error {
-	return e.errs
-}
-
-func (e *validationError) formatError(path string) string {
-	var sb strings.Builder
-	for i, err := range e.errs {
-		var ve *validationError
-		if errors.As(err, &ve) {
-			sb.WriteString(ve.formatError(path + "." + ve.path))
-		} else {
-			sb.WriteString(path)
-			sb.WriteString(": ")
-			sb.WriteString(err.Error())
-		}
-		if i < len(e.errs)-1 {
-			sb.WriteString("\n")
-		}
-	}
-	return sb.String()
-}
-
-func flatten(err error) (errs []error) {
-	if ve, ok := err.(*validationError); ok { //nolint:errorlint // check for exact type
-		return []error{ve}
-	}
-	if wrapped, ok := err.(interface{ Unwrap() []error }); ok {
-		for _, err := range wrapped.Unwrap() {
-			errs = append(errs, flatten(err)...)
-		}
-		return errs
-	}
-	return []error{err}
-}
-
-// TODO(msanft): add generic validation interface for other attestation types.
-
-// ValidatorOptions contains the verification and validation options to be used
-// by a Validator.
-type ValidatorOptions struct {
-	VerifyOpts   *verify.Options
-	ValidateOpts *snpvalidate.Options
+	return "", errors.New("no coordinator found in manifest")
 }
 
 // SNPValidateOpts returns validate options generators populated with the manifest's
@@ -341,7 +120,7 @@ func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOpti
 		if err != nil {
 			return nil, fmt.Errorf("SNP reference values: %w", err)
 		}
-		verifyOpts.TrustedRoots, err = trustedRoots(refVal.ProductName)
+		verifyOpts.TrustedRoots, err = amdTrustedRootCerts(refVal.ProductName)
 		if err != nil {
 			return nil, fmt.Errorf("determine trusted roots: %w", err)
 		}
@@ -385,41 +164,6 @@ func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOpti
 
 	return out, nil
 }
-
-var (
-	// source: https://kdsintf.amd.com/vcek/v1/Milan/cert_chain
-	//go:embed Milan.pem
-	askArkMilanVcekBytes []byte
-	// source: https://kdsintf.amd.com/vcek/v1/Genoa/cert_chain
-	//go:embed Genoa.pem
-	askArkGenoaVcekBytes []byte
-)
-
-func trustedRoots(productName ProductName) (map[string][]*trust.AMDRootCerts, error) {
-	trustedRoots := make(map[string][]*trust.AMDRootCerts)
-
-	switch productName {
-	case Milan:
-		milanCerts := trust.AMDRootCertsProduct("Milan")
-		if err := milanCerts.FromKDSCertBytes(askArkMilanVcekBytes); err != nil {
-			panic(fmt.Errorf("failed to parse cert: %w", err))
-		}
-		trustedRoots["Milan"] = []*trust.AMDRootCerts{milanCerts}
-	case Genoa:
-		genoaCerts := trust.AMDRootCertsProduct("Genoa")
-		if err := genoaCerts.FromKDSCertBytes(askArkGenoaVcekBytes); err != nil {
-			panic(fmt.Errorf("failed to parse cert: %w", err))
-		}
-		trustedRoots["Genoa"] = []*trust.AMDRootCerts{genoaCerts}
-	default:
-		return nil, fmt.Errorf("unknown product name: %s", productName)
-	}
-
-	return trustedRoots, nil
-}
-
-// The QE Vendor ID used by Intel.
-var intelQeVendorID = []byte{0x93, 0x9a, 0x72, 0x33, 0xf7, 0x9c, 0x4c, 0xa9, 0x94, 0x0a, 0x0d, 0xb3, 0x95, 0x7f, 0x06, 0x07}
 
 // TDXValidateOpts returns validate options generators populated with the manifest's
 // TDX reference values and trusted measurement for the given runtime.
@@ -486,12 +230,177 @@ func (m *Manifest) TDXValidateOpts() ([]*tdxvalidate.Options, error) {
 	return out, nil
 }
 
-// CoordinatorPolicyHash returns the hash of the coordinator policy.
-func (m *Manifest) CoordinatorPolicyHash() (HexString, error) {
-	for policyHash, policy := range m.Policies {
-		if policy.Role == RoleCoordinator {
-			return policyHash, nil
+// ValidatorOptions contains the verification and validation options to be used
+// by a Validator.
+//
+// TODO(msanft): add generic validation interface for other attestation types.
+type ValidatorOptions struct {
+	VerifyOpts   *verify.Options
+	ValidateOpts *snpvalidate.Options
+}
+
+// PolicyEntry is a policy entry in the manifest. It contains further information the user wants to associate with the policy.
+type PolicyEntry struct {
+	SANs             []string
+	WorkloadSecretID string `json:",omitempty"`
+	Role             Role   `json:",omitempty"`
+}
+
+// Validate checks the validity of a policy entry given its policy hash.
+func (e PolicyEntry) Validate(policyHash HexString) error {
+	var errs []error
+	if _, err := policyHash.Bytes(); err != nil {
+		errs = append(errs, fmt.Errorf("decoding policy hash %q: %w", policyHash, err))
+	} else if len(policyHash) != hex.EncodedLen(sha256.Size) {
+		errs = append(errs, fmt.Errorf("invalid policy hash length: %d (expected %d)", len(policyHash), hex.EncodedLen(sha256.Size)))
+	}
+
+	if err := e.Role.Validate(); err != nil {
+		errs = append(errs, newValidationError("Role", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+// Policy is a CocCo execution policy.
+type Policy []byte
+
+// NewPolicyFromAnnotation parses a base64 encoded policy from an annotation.
+func NewPolicyFromAnnotation(annotation []byte) (Policy, error) {
+	return base64.StdEncoding.DecodeString(string(annotation))
+}
+
+// Bytes returns the policy as byte slice.
+func (p Policy) Bytes() []byte {
+	return []byte(p)
+}
+
+// Hash returns the hash of the policy.
+func (p Policy) Hash() HexString {
+	hashBytes := sha256.Sum256(p)
+	return NewHexString(hashBytes[:])
+}
+
+// Role is the role of the workload identified by the policy hash.
+type Role string
+
+const (
+	// RoleNone means the workload has no specific role.
+	RoleNone Role = ""
+	// RoleCoordinator is the coordinator role.
+	RoleCoordinator Role = "coordinator"
+)
+
+// Validate checks the validity of the role.
+func (r Role) Validate() error {
+	switch r {
+	case RoleNone, RoleCoordinator:
+		return nil
+	default:
+		return fmt.Errorf("unknown role: %s", r)
+	}
+}
+
+// HexString is a hex encoded string.
+type HexString string
+
+// NewHexString creates a new HexString from a byte slice.
+func NewHexString(b []byte) HexString {
+	return HexString(hex.EncodeToString(b))
+}
+
+// String returns the string representation of the HexString.
+func (h HexString) String() string {
+	return string(h)
+}
+
+// Bytes returns the byte slice representation of the HexString.
+func (h HexString) Bytes() ([]byte, error) {
+	return hex.DecodeString(string(h))
+}
+
+// HexStrings is a slice of HexString.
+type HexStrings []HexString
+
+// ByteSlices returns the byte slice representation of the HexStrings.
+func (l *HexStrings) ByteSlices() ([][]byte, error) {
+	var res [][]byte
+	for _, s := range *l {
+		b, err := s.Bytes()
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, b)
+	}
+	return res, nil
+}
+
+func validateHexString(value HexString, expectedNumBytes int) error {
+	if len(value) != expectedNumBytes*2 {
+		return fmt.Errorf("invalid length: %d (expected %d)", len(value), expectedNumBytes*2)
+	}
+	_, err := value.Bytes()
+	return err
+}
+
+// validationError contains a JSON path and a list of errors.
+// Nested validation errors are printed on newlines with the full path.
+type validationError struct {
+	path string
+	errs []error
+}
+
+func newValidationError(path string, errs ...error) error {
+	e := &validationError{
+		path: path,
+		errs: make([]error, 0, len(errs)),
+	}
+	for _, err := range errs {
+		if err != nil {
+			e.errs = append(e.errs, flattenValidationError(err)...)
 		}
 	}
-	return "", errors.New("no coordinator found in manifest")
+	if len(e.errs) == 0 {
+		return nil
+	}
+	return e
+}
+
+func (e *validationError) Error() string {
+	return e.formatError(e.path)
+}
+
+func (e *validationError) Unwrap() []error {
+	return e.errs
+}
+
+func (e *validationError) formatError(path string) string {
+	var sb strings.Builder
+	for i, err := range e.errs {
+		var ve *validationError
+		if errors.As(err, &ve) {
+			sb.WriteString(ve.formatError(path + "." + ve.path))
+		} else {
+			sb.WriteString(path)
+			sb.WriteString(": ")
+			sb.WriteString(err.Error())
+		}
+		if i < len(e.errs)-1 {
+			sb.WriteString("\n")
+		}
+	}
+	return sb.String()
+}
+
+func flattenValidationError(err error) (errs []error) {
+	if ve, ok := err.(*validationError); ok { //nolint:errorlint // check for exact type
+		return []error{ve}
+	}
+	if wrapped, ok := err.(interface{ Unwrap() []error }); ok {
+		for _, err := range wrapped.Unwrap() {
+			errs = append(errs, flattenValidationError(err)...)
+		}
+		return errs
+	}
+	return []error{err}
 }

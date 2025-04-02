@@ -5,20 +5,58 @@ package manifest
 
 import (
 	_ "embed"
-	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/google/go-sev-guest/abi"
+	"github.com/google/go-sev-guest/verify/trust"
 )
 
 // EmbeddedReferenceValuesJSON contains the embedded reference values in JSON format.
 //
 //go:embed assets/reference-values.json
 var EmbeddedReferenceValuesJSON []byte
+
+// EmbeddedReferenceValues is a map of runtime handler names to a list of reference values
+// for the runtime handler, as embedded in the binary.
+type EmbeddedReferenceValues map[string]ReferenceValues
+
+// GetEmbeddedReferenceValues returns the reference values embedded in the binary.
+func GetEmbeddedReferenceValues() EmbeddedReferenceValues {
+	var embeddedReferenceValues EmbeddedReferenceValues
+
+	if err := json.Unmarshal(EmbeddedReferenceValuesJSON, &embeddedReferenceValues); err != nil {
+		// As this relies on a constant, predictable value (i.e. the embedded JSON), which -- in a correctly built binary -- should
+		// unmarshal safely into the [ReferenceValues], it's acceptable to panic here.
+		panic(fmt.Errorf("failed to unmarshal embedded reference values: %w", err))
+	}
+
+	return embeddedReferenceValues
+}
+
+// ForPlatform returns the reference values for the given platform.
+func (e *EmbeddedReferenceValues) ForPlatform(platform platforms.Platform) (*ReferenceValues, error) {
+	var mapping EmbeddedReferenceValues
+	if err := json.Unmarshal(EmbeddedReferenceValuesJSON, &mapping); err != nil {
+		return nil, fmt.Errorf("unmarshal embedded reference values mapping: %w", err)
+	}
+
+	for handler, referenceValues := range mapping {
+		p, err := platformFromHandler(handler)
+		if err != nil {
+			return nil, fmt.Errorf("invalid handler name: %w", err)
+		}
+
+		if p == platform {
+			return &referenceValues, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no embedded reference values found for platform: %s", platform)
+}
 
 // ReferenceValues contains the workload-independent reference values for each TEE type.
 type ReferenceValues struct {
@@ -28,9 +66,26 @@ type ReferenceValues struct {
 	TDX []TDXReferenceValues `json:"tdx,omitempty"`
 }
 
-// EmbeddedReferenceValues is a map of runtime handler names to a list of reference values
-// for the runtime handler, as embedded in the binary.
-type EmbeddedReferenceValues map[string]ReferenceValues
+// Validate checks the validity of all fields in the reference values.
+func (r ReferenceValues) Validate() error {
+	var errs []error
+	for i, v := range r.SNP {
+		if err := v.Validate(); err != nil {
+			errs = append(errs, newValidationError(fmt.Sprintf("snp[%d]", i), err))
+		}
+	}
+	for i, v := range r.TDX {
+		if err := v.Validate(); err != nil {
+			errs = append(errs, newValidationError(fmt.Sprintf("tdx[%d]", i), err))
+		}
+	}
+
+	if len(r.SNP)+len(r.TDX) == 0 {
+		errs = append(errs, fmt.Errorf("reference values in manifest cannot be empty. Is the chosen platform supported?"))
+	}
+
+	return errors.Join(errs...)
+}
 
 // SNPReferenceValues contains reference values for SEV-SNP.
 type SNPReferenceValues struct {
@@ -38,6 +93,88 @@ type SNPReferenceValues struct {
 	ProductName        ProductName
 	TrustedMeasurement HexString
 	GuestPolicy        abi.SnpPolicy
+}
+
+// Validate checks the validity of all fields in the AKS reference values.
+func (r SNPReferenceValues) Validate() error {
+	var minTCBErrs []error
+	if r.MinimumTCB.BootloaderVersion == nil {
+		minTCBErrs = append(minTCBErrs, newValidationError("BootloaderVersion", fmt.Errorf("field cannot be empty")))
+	}
+	if r.MinimumTCB.TEEVersion == nil {
+		minTCBErrs = append(minTCBErrs, newValidationError("TEEVersion", fmt.Errorf("field cannot be empty")))
+	}
+	if r.MinimumTCB.SNPVersion == nil {
+		minTCBErrs = append(minTCBErrs, newValidationError("SNPVersion", fmt.Errorf("field cannot be empty")))
+	}
+	if r.MinimumTCB.MicrocodeVersion == nil {
+		minTCBErrs = append(minTCBErrs, newValidationError("MicrocodeVersion", fmt.Errorf("field cannot be empty")))
+	}
+
+	errs := []error{newValidationError("MinimumTCB", minTCBErrs...)}
+
+	switch r.ProductName {
+	case Milan, Genoa:
+		// These are valid. We don't need to report an error.
+	default:
+		errs = append(errs, newValidationError("ProductName", fmt.Errorf("unknown product name: %s", r.ProductName)))
+	}
+
+	if err := validateHexString(r.TrustedMeasurement, abi.MeasurementSize); err != nil {
+		errs = append(errs, newValidationError("TrustedMeasurement", err))
+	}
+
+	return errors.Join(errs...)
+}
+
+// SNPTCB represents a set of SEV-SNP TCB values.
+type SNPTCB struct {
+	BootloaderVersion *SVN
+	TEEVersion        *SVN
+	SNPVersion        *SVN
+	MicrocodeVersion  *SVN
+}
+
+// ProductName is the name mentioned in the VCEK/ASK/ARK.
+type ProductName string
+
+const (
+	// Milan is the product name for 3rd generation EPYC CPUs.
+	Milan ProductName = "Milan"
+	// Genoa is the product name for 4th generation EPYC CPUs.
+	Genoa ProductName = "Genoa"
+)
+
+var (
+	// source: https://kdsintf.amd.com/vcek/v1/Milan/cert_chain
+	//go:embed Milan.pem
+	askArkMilanVcekBytes []byte
+	// source: https://kdsintf.amd.com/vcek/v1/Genoa/cert_chain
+	//go:embed Genoa.pem
+	askArkGenoaVcekBytes []byte
+)
+
+func amdTrustedRootCerts(productName ProductName) (map[string][]*trust.AMDRootCerts, error) {
+	trustedRoots := make(map[string][]*trust.AMDRootCerts)
+
+	switch productName {
+	case Milan:
+		milanCerts := trust.AMDRootCertsProduct("Milan")
+		if err := milanCerts.FromKDSCertBytes(askArkMilanVcekBytes); err != nil {
+			panic(fmt.Errorf("failed to parse cert: %w", err))
+		}
+		trustedRoots["Milan"] = []*trust.AMDRootCerts{milanCerts}
+	case Genoa:
+		genoaCerts := trust.AMDRootCertsProduct("Genoa")
+		if err := genoaCerts.FromKDSCertBytes(askArkGenoaVcekBytes); err != nil {
+			panic(fmt.Errorf("failed to parse cert: %w", err))
+		}
+		trustedRoots["Genoa"] = []*trust.AMDRootCerts{genoaCerts}
+	default:
+		return nil, fmt.Errorf("unknown product name: %s", productName)
+	}
+
+	return trustedRoots, nil
 }
 
 // TDXReferenceValues contains reference values for TDX.
@@ -52,13 +189,40 @@ type TDXReferenceValues struct {
 	Xfam             HexString
 }
 
-// SNPTCB represents a set of SEV-SNP TCB values.
-type SNPTCB struct {
-	BootloaderVersion *SVN
-	TEEVersion        *SVN
-	SNPVersion        *SVN
-	MicrocodeVersion  *SVN
+// Validate checks the validity of all fields in the bare metal TDX reference values.
+func (r TDXReferenceValues) Validate() error {
+	var errs []error
+	if err := validateHexString(r.MrTd, 48); err != nil {
+		errs = append(errs, newValidationError("MrTd", err))
+	}
+	if r.MinimumQeSvn == nil {
+		errs = append(errs, newValidationError("MinimumQeSvn", fmt.Errorf("field cannot be empty")))
+	}
+	if r.MinimumPceSvn == nil {
+		errs = append(errs, newValidationError("MinimumPceSvn", fmt.Errorf("field cannot be empty")))
+	}
+	if err := validateHexString(r.MinimumTeeTcbSvn, 16); err != nil {
+		errs = append(errs, newValidationError("MinimumTeeTcbSvn", err))
+	}
+	if err := validateHexString(r.MrSeam, 48); err != nil {
+		errs = append(errs, newValidationError("MrSeam", err))
+	}
+	if err := validateHexString(r.TdAttributes, 8); err != nil {
+		errs = append(errs, newValidationError("TdAttributes", err))
+	}
+	if err := validateHexString(r.Xfam, 8); err != nil {
+		errs = append(errs, newValidationError("Xfam", err))
+	}
+	for i, rtmr := range r.Rtrms {
+		if err := validateHexString(rtmr, 48); err != nil {
+			errs = append(errs, newValidationError(fmt.Sprintf("Rtrms[%d]", i), err))
+		}
+	}
+	return errors.Join(errs...)
 }
+
+// The QE Vendor ID used by Intel.
+var intelQeVendorID = []byte{0x93, 0x9a, 0x72, 0x33, 0xf7, 0x9c, 0x4c, 0xa9, 0x94, 0x0a, 0x0d, 0xb3, 0x95, 0x7f, 0x06, 0x07}
 
 // SVN is a SNP secure version number.
 type SVN uint8
@@ -86,75 +250,4 @@ func (s *SVN) UnmarshalJSON(data []byte) error {
 
 	*s = SVN(value)
 	return nil
-}
-
-// ProductName is the name mentioned in the VCEK/ASK/ARK.
-type ProductName string
-
-const (
-	// Milan is the product name for 3rd generation EPYC CPUs.
-	Milan ProductName = "Milan"
-	// Genoa is the product name for 4th generation EPYC CPUs.
-	Genoa ProductName = "Genoa"
-)
-
-// HexString is a hex encoded string.
-type HexString string
-
-// NewHexString creates a new HexString from a byte slice.
-func NewHexString(b []byte) HexString {
-	return HexString(hex.EncodeToString(b))
-}
-
-// String returns the string representation of the HexString.
-func (h HexString) String() string {
-	return string(h)
-}
-
-// Bytes returns the byte slice representation of the HexString.
-func (h HexString) Bytes() ([]byte, error) {
-	return hex.DecodeString(string(h))
-}
-
-// ForPlatform returns the reference values for the given platform.
-func (e *EmbeddedReferenceValues) ForPlatform(platform platforms.Platform) (*ReferenceValues, error) {
-	var mapping EmbeddedReferenceValues
-	if err := json.Unmarshal(EmbeddedReferenceValuesJSON, &mapping); err != nil {
-		return nil, fmt.Errorf("unmarshal embedded reference values mapping: %w", err)
-	}
-
-	for handler, referenceValues := range mapping {
-		p, err := platformFromHandler(handler)
-		if err != nil {
-			return nil, fmt.Errorf("invalid handler name: %w", err)
-		}
-
-		if p == platform {
-			return &referenceValues, nil
-		}
-	}
-
-	return nil, fmt.Errorf("no embedded reference values found for platform: %s", platform)
-}
-
-// platformFromHandler extracts the platform from the runtime handler name.
-func platformFromHandler(handler string) (platforms.Platform, error) {
-	rest, found := strings.CutPrefix(handler, "contrast-cc-")
-	if !found {
-		return platforms.Unknown, fmt.Errorf("invalid handler name: %s", handler)
-	}
-
-	parts := strings.Split(rest, "-")
-	if len(parts) != 4 && len(parts) != 5 {
-		return platforms.Unknown, fmt.Errorf("invalid handler name: %s", handler)
-	}
-
-	rawPlatform := strings.Join(parts[:len(parts)-1], "-")
-
-	platform, err := platforms.FromString(rawPlatform)
-	if err != nil {
-		return platforms.Unknown, fmt.Errorf("invalid platform in handler name: %w", err)
-	}
-
-	return platform, nil
 }
