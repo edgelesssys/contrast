@@ -144,6 +144,11 @@ const sidebars = {
           label: 'Observability',
           id: 'architecture/observability',
         },
+        {
+          type: 'doc',
+          label: 'SNP Attestation',
+          id: 'architecture/snp',
+        },
       ]
     },
     {
