@@ -55,9 +55,13 @@ rustPlatform.buildRustPackage rec {
   checkFlags = [
     # these want internet access, disable them
     "--skip=test_copyfile"
-    "--skip=test_create_sandbox"
-    "--skip=test_create_container_process"
+    "--skip=test_create_container_generate_name"
     "--skip=test_create_container_network_namespace"
+    "--skip=test_create_container_process"
+    "--skip=test_create_container_sysctls"
+    "--skip=test_create_sandbox"
+    "--skip=test_update_interface"
+    "--skip=test_update_routes"
   ];
 
   passthru = rec {

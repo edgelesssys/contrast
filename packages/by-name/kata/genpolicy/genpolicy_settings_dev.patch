@@ -1,5 +1,5 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index 50406e8ac..77f13c4d3 100644
+index bc1d3fc52..f65e7d587 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
 @@ -337,7 +337,8 @@
@@ -11,8 +11,8 @@ index 50406e8ac..77f13c4d3 100644
 +                "^CONTRAST_[A-Z0-9_]*=.*$"
              ]
          },
-         "CopyFileRequest": [
-@@ -345,11 +346,13 @@
+         "UpdateInterfaceRequest": {
+@@ -354,7 +355,9 @@
          ],
          "ExecProcessRequest": {
              "allowed_commands": [],
@@ -20,6 +20,11 @@ index 50406e8ac..77f13c4d3 100644
 +            "regex": [
 +                ".*"
 +            ]
+         },
+         "UpdateRoutesRequest": {
+             "forbidden_device_names": [
+@@ -366,8 +369,8 @@
+             ]
          },
          "CloseStdinRequest": false,
 -        "ReadStreamRequest": false,
