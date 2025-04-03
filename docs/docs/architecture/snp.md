@@ -24,7 +24,7 @@ The complete structure can be found in the SEV Secure Nested Paging Firmware ABI
 
 | Field    | Description    | Contrast usage |
 | -------- | -------        | ------- |
-| LD |   The expected launch digest of the guest.      | Expected launch digest of the CVM. |
+| LD |   The expected launch digest of the guest.      | Expected launch digest over kernel, initrd, and cmdline of the CVM. |
 | POLICY |   The policy of the guest.      |  |
 
 The SP checks during startup if the measurement it calculated matches the `LD` in the ID Block.
@@ -32,6 +32,16 @@ If they don't match, the SP aborts the boot process.
 Similarly, if the policy doesn't match the configuration of the CVM, the SP aborts also.
 
 ### ID Auth Structure
+The ID auth structure exists to be able to verify the ID block structure.
+A CVM image can be started with for example various different policies.
+Moreover, the ID block itself can't be verified at a later date, since
+it's not part of the attestation report.
+The intended use is that a trusted party creates an ECDSA-384 ID key pair
+and signs the ID block structure. Both the signature and the public part of the
+ID key are then passed via the hypervisor to the SP which verifies the signature and
+keeps a SHA-384 digest of the public key. The SP adds this digest in every attestation
+report requested by the CVM.
+
 The complete structure can be found in the SEV Secure Nested Paging Firmware ABI Specification in table 76.
 
 | Field    | Description    | Contrast usage |
@@ -89,7 +99,7 @@ The complete structure can be found in the SEV Secure Nested Paging Firmware ABI
 | REPORT_DATA    | If REQUEST_SOURCE is guest provided, then contains Guest-provided data, else host request and zero (0) filled by firmware.           | Digest of nonce provided by the relying party and TLS public key of the CVM. |
 | MEASUREMENT    | The measurement calculated at launch.           | Digest over kernel, initrd, and cmdline. |
 | HOST_DATA    | Data provided by the hypervisor at launch.           | Digest of the kata policy.
-| ID_KEY_DIGEST    | SHA-384 digest of the ID public key that signed the ID block provided in SNP_LAUNCH_FINISH.           | Deterministic function of the SNP policy and launch digest in the ID_BLOCK.
+| ID_KEY_DIGEST    | SHA-384 digest of the ID public key that signed the ID block provided in SNP_LAUNCH_FINISH.           | Deterministic function of the SNP policy and launch digest in the ID_BLOCK. (see [Anonymous ID Block Signing](#anonymous-id-block-signing))
 | CPUID_FAM_ID    | Family ID (Combined Extended Family ID and Family ID)           |
 | CPUID_MOD_ID    | Model (combined Extended Model and Model fields)           |
 | CPUID_STEP    | Stepping.           |
@@ -112,15 +122,23 @@ The complete structure can be found in the SEV Secure Nested Paging Firmware ABI
 
 
 ## Anonymous ID Block Signing
+As described in [startup](#startup), the SP checks the signature of the ID block
+with the public key provided in the ID auth block. The common usage of such signatures
+is to know that a trusted party holding the private key has signed the ID block.
+Since the ID block is part of for example the [IGVM](https://github.com/microsoft/igvm) headers of
+the VM image, they're bound to the `runtimeClass` Contrast sets-up
+during [installation](../getting-started/install.md).
+Therefore, the ID auth block and the signature and public key has to be provided by
+Contrast, but the authors of contrast shouldn't be part of the TCB.
 
 To both have the ability to sign ID Blocks and not be part of the TCB, we must ensure
 that there exists no private key for the `ID_KEY` in the ID Auth structure.
 For this, we implement ECDSA public key recovery. The algorithm is defined in [SEC 1: Elliptic Curve Cryptography](https://www.secg.org/sec1-v2.pdf).
-It allows to calculate an ECDSA public key given a signature and the message
-that was signed. We keep the signature constant as `(r,s) = (2,1)` for all versions and
+The algorithm calculates an ECDSA public key given a message and its signature.
+We keep the signature constant as `(r,s) = (2,1)` for all versions and
 use the given ID Block containing the policy and launch digest as an input.
 The recovery algorithm returns two valid public keys from which we choose the smaller one, meaning
-the one with the smaller x value and if equal, the one with the smaller y value.
+the one with the smaller x value and, if equal, the one with the smaller y value.
 
 Since we don't generate any private key material during recovery and calculating the private
 key from only the message, signature, and public key is cryptographically hard, no one
