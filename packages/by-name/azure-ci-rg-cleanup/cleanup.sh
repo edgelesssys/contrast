@@ -36,7 +36,16 @@ done < <(
 # Sort resource IDs for better readability
 mapfile -t resources < <(printf '%s\n' "${resources[@]}" | sort)
 
+# If the only element is the empty string, remove it
+if [[ ${#resources[@]} -eq 1 && -z ${resources[0]} ]]; then
+  resources=()
+fi
+
 echo Found ${#resources[@]} resources to delete
+
+if [[ ${#resources[@]} -eq 0 ]]; then
+  exit 0
+fi
 
 exitcode=0
 for resource in "${resources[@]}"; do
