@@ -22,19 +22,15 @@
 
 - [ ] Binding
 - [x] ConfigMap
-- [ ] Endpoints
 - [ ] Event
 - [ ] LimitRange
-- [ ] PersistentVolumeClaim
 - [x] Pod
-- [ ] ReplicationController
-- [ ] ResourceQuota
+- [x] ReplicationController
 - [x] Secret
 - [x] ServiceAccount
 - [x] Service
 - [ ] NodeNetworkConfig
 - [ ] OverlayExtensionConfig
-- [ ] ControllerRevision
 - [x] DaemonSet
 - [x] Deployment
 - [x] ReplicaSet
@@ -52,4 +48,3 @@
 - [ ] RoleBinding
 - [ ] Role
 - [ ] VolumeSnapshot
-- [ ] CSIStorageCapacity

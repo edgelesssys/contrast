@@ -110,6 +110,8 @@ func TestRegression(t *testing.T) {
 					require.NoError(ct.Kubeclient.Client.CoreV1().ServiceAccounts(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
 				case "Service":
 					require.NoError(ct.Kubeclient.Client.CoreV1().Services(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "ReplicationController":
+					require.NoError(ct.Kubeclient.Client.CoreV1().ReplicationControllers(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
 				}
 			})
 
