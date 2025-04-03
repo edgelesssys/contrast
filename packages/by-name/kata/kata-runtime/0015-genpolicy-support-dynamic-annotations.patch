@@ -15,7 +15,7 @@ where `XY` corresponds to a dynamic ID.
  3 files changed, 25 insertions(+), 7 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 9b95f9f7462717d04f0b9ce685d97c0455f949da..7dac0e5e0585c25e324a39656d1a2dcfa12e7d96 100644
+index 10472825a5ea0f2d3031d061bf45dc33cfce52b4..bc1d3fc5289fbf4f258e3b181f9af2bb0feb9ada 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -309,7 +309,10 @@
@@ -39,9 +39,9 @@ index 9b95f9f7462717d04f0b9ce685d97c0455f949da..7dac0e5e0585c25e324a39656d1a2dcf
 +                "^PCI_RESOURCE_NVIDIA_COM.*=[a-fA-F0-9:.-]*$"
              ]
          },
-         "CopyFileRequest": [
+         "UpdateInterfaceRequest": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 42c4fb7e616ad24d709c274f935c81f8bfafe367..5e24b4513976885b1f3f9d26e83b23c36755fee7 100644
+index b7c9790caf37e7aff81daa53bda858b117e62cab..cc94c49d080632e6e86e9291ad598394496ef4c5 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -205,18 +205,26 @@ allow_anno(p_oci, i_oci) {
@@ -77,10 +77,10 @@ index 42c4fb7e616ad24d709c274f935c81f8bfafe367..5e24b4513976885b1f3f9d26e83b23c3
      print("allow_anno_key 1: i key =", i_key)
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 326e2e8687c6229554e5b7ed278ee5d291a4cd19..2c1f050be2c0b1631fcb7d9e3f707edb94459164 100644
+index 8a1f83b5001e76b4a35eadf252d71e9b5e6f23d0..a120103f32cf3c1eaa2281454bce6d23c520a6c6 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -392,6 +392,12 @@ pub struct CommonData {
+@@ -421,6 +421,12 @@ pub struct CommonData {
  
      /// Default capabilities for a privileged container.
      pub privileged_caps: Vec<String>,

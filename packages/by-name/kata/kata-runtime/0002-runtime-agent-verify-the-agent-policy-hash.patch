@@ -18,7 +18,7 @@ the Agent has the expected contents.
 Signed-off-by: Dan Mihai <dmihai@microsoft.com>
 Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
 ---
- src/agent/Cargo.lock                          | 108 +++++++++-
+ src/agent/Cargo.lock                          | 104 +++++++++-
  src/agent/policy/Cargo.toml                   |   5 +
  src/agent/policy/src/lib.rs                   |   3 +
  src/agent/policy/src/policy.rs                |  47 ++++-
@@ -38,12 +38,12 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/runtime/virtcontainers/qemu_s390x_test.go |  51 ++++-
  src/runtime/virtcontainers/sandbox.go         |   1 +
  src/tools/genpolicy/Cargo.lock                | 143 ++++++++++++-
- 20 files changed, 819 insertions(+), 40 deletions(-)
+ 20 files changed, 817 insertions(+), 38 deletions(-)
  create mode 100644 src/agent/policy/src/sev.rs
  create mode 100644 src/agent/policy/src/tdx.rs
 
 diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
-index 861b4343b56f58fa6fdab084a217d10d6789866c..16f5081d0dafa2dea3ebbce95cbb6f9bd99dc140 100644
+index c81667cf3c9fcca246633042315d73109a069fa7..673419f6bc801d9ef17753c3672fe8791651ebf5 100644
 --- a/src/agent/Cargo.lock
 +++ b/src/agent/Cargo.lock
 @@ -1,6 +1,6 @@
@@ -54,7 +54,7 @@ index 861b4343b56f58fa6fdab084a217d10d6789866c..16f5081d0dafa2dea3ebbce95cbb6f9b
  
  [[package]]
  name = "addr2line"
-@@ -605,6 +605,12 @@ version = "0.6.3"
+@@ -631,6 +631,12 @@ version = "0.6.3"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "349f9b6a179ed607305526ca489b34ad0a41aed5f7980fa90eb03160b69598fb"
  
@@ -67,7 +67,7 @@ index 861b4343b56f58fa6fdab084a217d10d6789866c..16f5081d0dafa2dea3ebbce95cbb6f9b
  [[package]]
  name = "bitflags"
  version = "1.3.2"
-@@ -1100,11 +1106,17 @@ dependencies = [
+@@ -1114,6 +1120,12 @@ dependencies = [
   "wasm-bindgen",
  ]
  
@@ -79,15 +79,8 @@ index 861b4343b56f58fa6fdab084a217d10d6789866c..16f5081d0dafa2dea3ebbce95cbb6f9b
 +
  [[package]]
  name = "colorchoice"
--version = "1.0.2"
-+version = "1.0.3"
- source = "registry+https://github.com/rust-lang/crates.io-index"
--checksum = "d3fd119d74b830634cea2a0f58bbd0d54540518a14397557951e79340abc28c0"
-+checksum = "5b63caa9aa9397e2d9480a9b13673856c78d8ac123288526c37d7839f2a86990"
- 
- [[package]]
- name = "combine"
-@@ -1613,6 +1625,15 @@ dependencies = [
+ version = "1.0.3"
+@@ -1640,6 +1652,15 @@ dependencies = [
   "subtle",
  ]
  
@@ -103,7 +96,7 @@ index 861b4343b56f58fa6fdab084a217d10d6789866c..16f5081d0dafa2dea3ebbce95cbb6f9b
  [[package]]
  name = "dirs-next"
  version = "2.0.0"
-@@ -1623,6 +1644,18 @@ dependencies = [
+@@ -1650,6 +1671,18 @@ dependencies = [
   "dirs-sys-next",
  ]
  
@@ -122,7 +115,7 @@ index 861b4343b56f58fa6fdab084a217d10d6789866c..16f5081d0dafa2dea3ebbce95cbb6f9b
  [[package]]
  name = "dirs-sys-next"
  version = "0.1.2"
-@@ -2745,6 +2778,12 @@ dependencies = [
+@@ -2782,6 +2815,12 @@ dependencies = [
   "windows-sys 0.48.0",
  ]
  
@@ -135,7 +128,7 @@ index 861b4343b56f58fa6fdab084a217d10d6789866c..16f5081d0dafa2dea3ebbce95cbb6f9b
  [[package]]
  name = "iovec"
  version = "0.1.4"
-@@ -3074,14 +3113,18 @@ dependencies = [
+@@ -3111,14 +3150,18 @@ dependencies = [
   "anyhow",
   "json-patch",
   "logging",
@@ -154,7 +147,7 @@ index 861b4343b56f58fa6fdab084a217d10d6789866c..16f5081d0dafa2dea3ebbce95cbb6f9b
  ]
  
  [[package]]
-@@ -4108,6 +4151,12 @@ dependencies = [
+@@ -4126,6 +4169,12 @@ dependencies = [
   "tokio-stream",
  ]
  
@@ -167,7 +160,7 @@ index 861b4343b56f58fa6fdab084a217d10d6789866c..16f5081d0dafa2dea3ebbce95cbb6f9b
  [[package]]
  name = "ordered-stream"
  version = "0.2.0"
-@@ -5577,6 +5626,15 @@ dependencies = [
+@@ -5693,6 +5742,15 @@ dependencies = [
   "syn 1.0.109",
  ]
  
@@ -183,23 +176,23 @@ index 861b4343b56f58fa6fdab084a217d10d6789866c..16f5081d0dafa2dea3ebbce95cbb6f9b
  [[package]]
  name = "serde-enum-str"
  version = "0.4.0"
-@@ -5596,6 +5654,15 @@ version = "0.2.2"
+@@ -5712,6 +5770,15 @@ version = "0.2.2"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "794e44574226fc701e3be5c651feb7939038fc67fb73f6f4dd5c4ba90fd3be70"
  
 +[[package]]
 +name = "serde_bytes"
-+version = "0.11.10"
++version = "0.11.17"
 +source = "registry+https://github.com/rust-lang/crates.io-index"
-+checksum = "f3c5113243e4a3a1c96587342d067f3e6b0f50790b6cf40d2868eb647a3eef0e"
++checksum = "8437fd221bde2d4ca316d61b90e337e9e702b3820b87d63caa9ba6c02bd06d96"
 +dependencies = [
 + "serde",
 +]
 +
  [[package]]
  name = "serde_derive"
- version = "1.0.204"
-@@ -5699,6 +5766,28 @@ dependencies = [
+ version = "1.0.219"
+@@ -5816,6 +5883,28 @@ dependencies = [
   "syn 1.0.109",
  ]
  
@@ -228,19 +221,19 @@ index 861b4343b56f58fa6fdab084a217d10d6789866c..16f5081d0dafa2dea3ebbce95cbb6f9b
  [[package]]
  name = "sha1"
  version = "0.10.6"
-@@ -6752,6 +6841,9 @@ name = "uuid"
- version = "1.10.0"
+@@ -6882,6 +6971,9 @@ name = "uuid"
+ version = "1.15.1"
  source = "registry+https://github.com/rust-lang/crates.io-index"
- checksum = "81dfa00651efa65069b0b6b651f4aaa31ba9e3c3ce0137aaad053604ee7e0314"
+ checksum = "e0f540e3240398cce6128b64ba83fdbdd86129c16a3aa1a3a252efd66eb3d587"
 +dependencies = [
 + "serde",
 +]
  
  [[package]]
  name = "valuable"
-@@ -6771,6 +6863,16 @@ version = "0.9.4"
+@@ -6901,6 +6993,16 @@ version = "0.9.5"
  source = "registry+https://github.com/rust-lang/crates.io-index"
- checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
  
 +[[package]]
 +name = "vmm-sys-util"
@@ -577,13 +570,13 @@ index 0000000000000000000000000000000000000000..1531e72a8b8db6e357d02ecdd431a9b8
 +    Ok(mrconfigid)
 +}
 diff --git a/src/runtime/pkg/govmm/qemu/qemu.go b/src/runtime/pkg/govmm/qemu/qemu.go
-index aefa1ffdf76067a7a7f79f3e9f3d400ab88e0757..8914ad1995165e7f1b1c3717678eea55427382a3 100644
+index 4ff4333f8c2cb3cc433602add779245fe4126b76..4b851137a8537520ccb53d2d2d0ba21face71f08 100644
 --- a/src/runtime/pkg/govmm/qemu/qemu.go
 +++ b/src/runtime/pkg/govmm/qemu/qemu.go
-@@ -316,6 +316,11 @@ type Object struct {
- 
- 	// QgsPort defines Intel Quote Generation Service port exposed from the host
- 	QgsPort uint32
+@@ -326,6 +326,11 @@ type Object struct {
+ 	// SnpIdAuth is the 4096-byte, base64-encoded blob to provide the ‘ID Authentication Information Structure’
+ 	// for the SNP_LAUNCH_FINISH command defined in the SEV-SNP firmware ABI (default: all-zero)
+ 	SnpIdAuth string
 +
 +	// TEEConfigData represents opaque binary data attached to a TEE and typically used
 +	// for Guest attestation. This is only relevant for sev-snp-guest and tdx-guest
@@ -592,17 +585,17 @@ index aefa1ffdf76067a7a7f79f3e9f3d400ab88e0757..8914ad1995165e7f1b1c3717678eea55
  }
  
  // Valid returns true if the Object structure is valid and complete.
-@@ -387,6 +392,9 @@ func (object Object) QemuParams(config *Config) []string {
- 		objectParams = append(objectParams, fmt.Sprintf("cbitpos=%d", object.CBitPos))
- 		objectParams = append(objectParams, fmt.Sprintf("reduced-phys-bits=%d", object.ReducedPhysBits))
- 		objectParams = append(objectParams, "kernel-hashes=on")
+@@ -403,6 +408,9 @@ func (object Object) QemuParams(config *Config) []string {
+ 		if object.SnpIdAuth != "" {
+ 			objectParams = append(objectParams, fmt.Sprintf("id-auth=%s", object.SnpIdAuth))
+ 		}
 +		if len(object.TEEConfigData) > 0 {
 +			objectParams = append(objectParams, fmt.Sprintf("host-data=%s", object.TEEConfigData))
 +		}
  		config.Bios = object.File
  	case SecExecGuest:
  		objectParams = append(objectParams, string(object.Type))
-@@ -427,6 +435,7 @@ type SocketAddress struct {
+@@ -443,6 +451,7 @@ type SocketAddress struct {
  type TdxQomObject struct {
  	QomType               string        `json:"qom-type"`
  	Id                    string        `json:"id"`
@@ -610,7 +603,7 @@ index aefa1ffdf76067a7a7f79f3e9f3d400ab88e0757..8914ad1995165e7f1b1c3717678eea55
  	MrConfigId            string        `json:"mrconfigid,omitempty"`
  	MrOwner               string        `json:"mrowner,omitempty"`
  	MrOwnerConfig         string        `json:"mrownerconfig,omitempty"`
-@@ -461,6 +470,7 @@ func prepareTDXObject(object Object) string {
+@@ -477,6 +486,7 @@ func prepareTDXObject(object Object) string {
  	tdxObject := TdxQomObject{
  		string(object.Type), // qom-type
  		object.ID,           // id
@@ -618,7 +611,7 @@ index aefa1ffdf76067a7a7f79f3e9f3d400ab88e0757..8914ad1995165e7f1b1c3717678eea55
  		"",                  // mrconfigid
  		"",                  // mrowner
  		"",                  // mrownerconfig
-@@ -468,7 +478,12 @@ func prepareTDXObject(object Object) string {
+@@ -484,7 +494,12 @@ func prepareTDXObject(object Object) string {
  		nil}
  
  	if object.Debug {
@@ -633,10 +626,10 @@ index aefa1ffdf76067a7a7f79f3e9f3d400ab88e0757..8914ad1995165e7f1b1c3717678eea55
  
  	return tdxObject.String()
 diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
-index 829730164560f3a1150a77538c9332d0e941b367..e154d013c0fc6bc3d3c9c2c16a3dbdef2ee3fbcf 100644
+index b6b75d54998e011d7b263ddd1a2e6821a1df1e68..df297c9d2d4adc7b21ec989cfa46412ff59d9c30 100644
 --- a/src/runtime/virtcontainers/hypervisor.go
 +++ b/src/runtime/virtcontainers/hypervisor.go
-@@ -679,6 +679,10 @@ type HypervisorConfig struct {
+@@ -687,6 +687,10 @@ type HypervisorConfig struct {
  	DefaultGPUs uint32
  	// DefaultGPUModel specifies GPU model like tesla, h100, readeon etc.
  	DefaultGPUModel string
@@ -648,7 +641,7 @@ index 829730164560f3a1150a77538c9332d0e941b367..e154d013c0fc6bc3d3c9c2c16a3dbdef
  
  // vcpu mapping from vcpu number to thread number
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index ba86c3d63a6c5158b3d0f7e6ae6af865dddb9d8d..2c6311c067935a2c5da0a1018420bab684b670e8 100644
+index 90721700086abc836fabc041da2dd17f0ae1c249..bfaa9bb6c9e6908352a51abf40068a69d33fc1b6 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -681,7 +681,7 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi
@@ -661,7 +654,7 @@ index ba86c3d63a6c5158b3d0f7e6ae6af865dddb9d8d..2c6311c067935a2c5da0a1018420bab6
  		return err
  	}
 diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
-index ca8f9998c3e5c000feed654d6a8dc77d30eebcfa..af7cc4b2cb0088a8b0a1e8450c20b498dff63d88 100644
+index 06d336edd52aae610406da14356058d7a552e33f..dccae8e02b196cf410d22dca4f8939cfb03467b2 100644
 --- a/src/runtime/virtcontainers/qemu_amd64.go
 +++ b/src/runtime/virtcontainers/qemu_amd64.go
 @@ -9,6 +9,8 @@ package virtcontainers
@@ -673,7 +666,7 @@ index ca8f9998c3e5c000feed654d6a8dc77d30eebcfa..af7cc4b2cb0088a8b0a1e8450c20b498
  	"fmt"
  	"time"
  
-@@ -277,7 +279,7 @@ func (q *qemuAmd64) enableProtection() error {
+@@ -285,7 +287,7 @@ func (q *qemuAmd64) enableProtection() error {
  }
  
  // append protection device
@@ -682,7 +675,7 @@ index ca8f9998c3e5c000feed654d6a8dc77d30eebcfa..af7cc4b2cb0088a8b0a1e8450c20b498
  	if q.sgxEPCSize != 0 {
  		devices = append(devices,
  			govmmQemu.Object{
-@@ -302,6 +304,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -310,6 +312,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  				Debug:          false,
  				File:           firmware,
  				FirmwareVolume: firmwareVolume,
@@ -690,15 +683,15 @@ index ca8f9998c3e5c000feed654d6a8dc77d30eebcfa..af7cc4b2cb0088a8b0a1e8450c20b498
  			}), "", nil
  	case sevProtection:
  		return append(devices,
-@@ -322,6 +325,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
- 				File:            firmware,
- 				CBitPos:         cpuid.AMDMemEncrypt.CBitPosition,
- 				ReducedPhysBits: 1,
-+				TEEConfigData:   snpHostData(agentPolicy),
- 			}), "", nil
- 	case noneProtection:
- 
-@@ -331,3 +335,36 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -329,6 +332,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+ 			File:            firmware,
+ 			CBitPos:         cpuid.AMDMemEncrypt.CBitPosition,
+ 			ReducedPhysBits: 1,
++			TEEConfigData:   snpHostData(agentPolicy),
+ 		}
+ 		if q.snpIdBlock != "" && q.snpIdAuth != "" {
+ 			obj.SnpIdBlock = q.snpIdBlock
+@@ -347,3 +351,36 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  		return devices, "", fmt.Errorf("Unsupported guest protection technology: %v", q.protection)
  	}
  }
@@ -925,10 +918,10 @@ index 1425cb38cfd79ab06b04f1dafbab9b7440901688..f0a9c691a6ffc6356f8f9a335e72b812
 +	assert.Equal(expectedOut, devices)
  }
 diff --git a/src/runtime/virtcontainers/qemu_arch_base.go b/src/runtime/virtcontainers/qemu_arch_base.go
-index fd92be772446f30058d4424f7a330a0bc23ff433..662466f5846c22b4c7fa6b62b1a272258e2e4143 100644
+index fe330d01a808a3a418a8eed2b54a448e22a1b86e..c99b7dfb2cedd3f8b458dfb26fb83f422a313016 100644
 --- a/src/runtime/virtcontainers/qemu_arch_base.go
 +++ b/src/runtime/virtcontainers/qemu_arch_base.go
-@@ -162,7 +162,7 @@ type qemuArch interface {
+@@ -165,7 +165,7 @@ type qemuArch interface {
  	// This implementation is architecture specific, some archs may need
  	// a firmware, returns a string containing the path to the firmware that should
  	// be used with the -bios option, ommit -bios option if the path is empty.
@@ -937,7 +930,7 @@ index fd92be772446f30058d4424f7a330a0bc23ff433..662466f5846c22b4c7fa6b62b1a27225
  
  	// scans the PCIe space and returns the biggest BAR sizes for 32-bit
  	// and 64-bit addressable memory
-@@ -897,7 +897,7 @@ func (q *qemuArchBase) setPFlash(p []string) {
+@@ -920,7 +920,7 @@ func (q *qemuArchBase) setPFlash(p []string) {
  }
  
  // append protection device
@@ -1156,10 +1149,10 @@ index 85e1dfe8050e3c64545e2031420058aad004f2ab..0c2f4b923d5550b67ad8c767124d8414
 +	assert.Equal(expectedOut, devices)
  }
 diff --git a/src/runtime/virtcontainers/qemu_s390x.go b/src/runtime/virtcontainers/qemu_s390x.go
-index 29eaafe5b3fe0ecf9f10bc49ede3465d2cf8ec3e..787a0e589a71dabb5acaedd66e36bb5f7d9662d0 100644
+index a333c3bb93db5849dbcd096d2a593bfaa45d2c5d..98c34689fc058e468ef284a9fdd5d4e66940aa89 100644
 --- a/src/runtime/virtcontainers/qemu_s390x.go
 +++ b/src/runtime/virtcontainers/qemu_s390x.go
-@@ -337,7 +337,7 @@ func (q *qemuS390x) enableProtection() error {
+@@ -344,7 +344,7 @@ func (q *qemuS390x) enableProtection() error {
  
  // appendProtectionDevice appends a QEMU object for Secure Execution.
  // Takes devices and returns updated version. Takes BIOS and returns it (no modification on s390x).
@@ -1263,7 +1256,7 @@ index 24a67bdd9e591ead96fbaea473cb662526dedbf3..3f5f84afffeec6fed0ba624408158425
 +	assert.Equal(expectedOut, devices)
  }
 diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
-index 3711da7f5eace937aa96c10208406b6f1752adcf..4192cb93845e789ed449e017843ad3cca92a3b31 100644
+index b8b2fb54043b09f092e7d1dbe39cca981a4a27f2..ca872dc706a83d6541d31ce02d91058ea56d166b 100644
 --- a/src/runtime/virtcontainers/sandbox.go
 +++ b/src/runtime/virtcontainers/sandbox.go
 @@ -613,6 +613,7 @@ func newSandbox(ctx context.Context, sandboxConfig SandboxConfig, factory Factor
@@ -1275,7 +1268,7 @@ index 3711da7f5eace937aa96c10208406b6f1752adcf..4192cb93845e789ed449e017843ad3cc
  	spec := s.GetPatchedOCISpec()
  	if spec != nil && spec.Process.SelinuxLabel != "" {
 diff --git a/src/tools/genpolicy/Cargo.lock b/src/tools/genpolicy/Cargo.lock
-index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e32f3644a0 100644
+index 6c948b5c10253434e2d90a5b15a1d0b5c6f51bdd..e6dfc557e955d6451f2a0ce66e75e3c280354e04 100644
 --- a/src/tools/genpolicy/Cargo.lock
 +++ b/src/tools/genpolicy/Cargo.lock
 @@ -1,6 +1,6 @@
@@ -1286,9 +1279,9 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  
  [[package]]
  name = "addr2line"
-@@ -142,6 +142,21 @@ version = "0.21.7"
+@@ -148,6 +148,21 @@ version = "0.22.1"
  source = "registry+https://github.com/rust-lang/crates.io-index"
- checksum = "9d297deb1925b89f2ccc13d7635fa0714f12c87adce1c75356b39ca9b7178567"
+ checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
  
 +[[package]]
 +name = "bincode"
@@ -1308,7 +1301,7 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "bitflags"
  version = "1.3.2"
-@@ -264,6 +279,12 @@ dependencies = [
+@@ -270,6 +285,12 @@ dependencies = [
   "cc",
  ]
  
@@ -1321,7 +1314,7 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "containerd-client"
  version = "0.4.0"
-@@ -475,6 +496,15 @@ dependencies = [
+@@ -481,6 +502,15 @@ dependencies = [
   "subtle",
  ]
  
@@ -1337,7 +1330,7 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "dirs-next"
  version = "2.0.0"
-@@ -485,6 +515,18 @@ dependencies = [
+@@ -491,6 +521,18 @@ dependencies = [
   "dirs-sys-next",
  ]
  
@@ -1356,7 +1349,7 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "dirs-sys-next"
  version = "0.1.2"
-@@ -891,6 +933,12 @@ version = "0.3.1"
+@@ -889,6 +931,12 @@ version = "0.3.1"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "fed44880c466736ef9a5c5b5facefb5ed0785676d0c02d612db14e54f0d84286"
  
@@ -1369,7 +1362,7 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "hmac"
  version = "0.12.1"
-@@ -1086,6 +1134,12 @@ dependencies = [
+@@ -1159,6 +1207,12 @@ dependencies = [
   "windows-sys 0.45.0",
  ]
  
@@ -1382,7 +1375,7 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "iovec"
  version = "0.1.4"
-@@ -1194,14 +1248,18 @@ dependencies = [
+@@ -1268,14 +1322,18 @@ dependencies = [
   "anyhow",
   "json-patch",
   "logging",
@@ -1401,7 +1394,7 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  ]
  
  [[package]]
-@@ -1389,6 +1447,18 @@ dependencies = [
+@@ -1463,6 +1521,18 @@ dependencies = [
   "memoffset 0.6.5",
  ]
  
@@ -1420,7 +1413,7 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "nix"
  version = "0.26.4"
-@@ -1539,6 +1609,12 @@ dependencies = [
+@@ -1613,6 +1683,12 @@ dependencies = [
   "vcpkg",
  ]
  
@@ -1433,7 +1426,7 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "os_str_bytes"
  version = "6.4.1"
-@@ -2156,6 +2232,15 @@ dependencies = [
+@@ -2247,6 +2323,15 @@ dependencies = [
   "serde_derive",
  ]
  
@@ -1449,15 +1442,15 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "serde-transcode"
  version = "1.1.1"
-@@ -2165,6 +2250,15 @@ dependencies = [
+@@ -2256,6 +2341,15 @@ dependencies = [
   "serde",
  ]
  
 +[[package]]
 +name = "serde_bytes"
-+version = "0.11.15"
++version = "0.11.17"
 +source = "registry+https://github.com/rust-lang/crates.io-index"
-+checksum = "387cc504cb06bb40a96c8e04e951fe01854cf6bc921053c954e4a606d9675c6a"
++checksum = "8437fd221bde2d4ca316d61b90e337e9e702b3820b87d63caa9ba6c02bd06d96"
 +dependencies = [
 + "serde",
 +]
@@ -1465,7 +1458,7 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "serde_derive"
  version = "1.0.210"
-@@ -2221,6 +2315,28 @@ dependencies = [
+@@ -2312,6 +2406,28 @@ dependencies = [
   "yaml-rust",
  ]
  
@@ -1494,7 +1487,7 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "sha2"
  version = "0.10.6"
-@@ -2330,6 +2446,12 @@ dependencies = [
+@@ -2421,6 +2537,12 @@ dependencies = [
   "windows-sys 0.48.0",
  ]
  
@@ -1507,15 +1500,15 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "strsim"
  version = "0.10.0"
-@@ -2849,6 +2971,15 @@ dependencies = [
+@@ -2940,6 +3062,15 @@ dependencies = [
   "percent-encoding",
  ]
  
 +[[package]]
 +name = "uuid"
-+version = "1.13.2"
++version = "1.16.0"
 +source = "registry+https://github.com/rust-lang/crates.io-index"
-+checksum = "8c1f41ffb7cf259f1ecc2876861a17e7142e63ead296f671f81f6ae85903e0d6"
++checksum = "458f7a779bf54acc9f347480ac654f68407d3aab21269a6e3c9f922acd9e2da9"
 +dependencies = [
 + "serde",
 +]
@@ -1523,7 +1516,7 @@ index b5973efd91114132f193bbed0af5b3bc0bbb935d..cf47a54aff8608ecb5f90f5897cc64e3
  [[package]]
  name = "vcpkg"
  version = "0.2.15"
-@@ -2861,6 +2992,16 @@ version = "0.9.4"
+@@ -2952,6 +3083,16 @@ version = "0.9.4"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
  
