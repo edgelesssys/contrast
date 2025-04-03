@@ -15,7 +15,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
 	"testing"
 	"time"
 
@@ -66,7 +65,7 @@ func TestOpenSSL(t *testing.T) {
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
 	t.Run("check coordinator metrics and probe endpoints", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(10*time.Minute))
+		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
 		require := require.New(t)
@@ -82,7 +81,6 @@ func TestOpenSSL(t *testing.T) {
 		require.NotEmpty(coordinatorPods, "pod not found: %s/%s", ct.Namespace, "coordinator")
 
 		// deploy an additional port forwarder for metrics and probes
-		// FIXME: "TestOpenSSL/go_dial_frontend_with_mesh_CA_cert" fails because of the deployment
 		stableNetworkID := fmt.Sprintf("%s.coordinator.%s.svc.cluster.local", coordinatorPods[0].Name, ct.Namespace)
 		t.Logf("Constructed stable network ID %q", stableNetworkID)
 		additionalForwarder := kuberesource.
@@ -90,17 +88,12 @@ func TestOpenSSL(t *testing.T) {
 			WithListenPorts([]int32{9102}).
 			WithForwardTarget(stableNetworkID)
 
-		resourceBytes, err := kuberesource.EncodeResources(append(resources, additionalForwarder.PodApplyConfiguration)...)
+		patchedForwarder, err := kuberesource.ResourcesToUnstructured(kuberesource.PatchImages([]any{additionalForwarder.PodApplyConfiguration}, ct.ImageReplacements))
 		require.NoError(err)
-		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
-
-		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
-		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
-		require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
-		require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+		require.NoError(ct.Kubeclient.Apply(ctx, patchedForwarder...))
 
 		t.Cleanup(func() {
-			require.NoError(ct.Kubeclient.Client.CoreV1().Pods(ct.Namespace).Delete(context.Background(), "port-forwarder-coordinator-metrics", metav1.DeleteOptions{}))
+			_ = ct.Kubeclient.Client.CoreV1().Pods(ct.Namespace).Delete(context.Background(), "port-forwarder-coordinator-metrics", metav1.DeleteOptions{})
 		})
 
 		argv := []string{"/bin/sh", "-c", "curl --fail " + net.JoinHostPort(coordinatorPods[0].Status.PodIP, "9102") + "/metrics"}
