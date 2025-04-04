@@ -32,7 +32,8 @@ Figure 2: Attestation flow of a confidential pod. Based on the layered attester 
 
 Pods run in Contrast's [runtime environment](../components/runtime.md) (B), effectively within a confidential VM.
 During launch, the CPU (A) measures the initial memory content of the confidential VM that contains Contrast's pod-VM image and generates the corresponding attestation evidence.
-The image is in [IGVM format](https://github.com/microsoft/igvm), encapsulating all information required to launch a virtual machine, including the kernel, the initramfs, and kernel cmdline.
+On AKS the image is in [IGVM format](https://github.com/microsoft/igvm), encapsulating all information required to launch a virtual machine, including the kernel, the initramfs, and kernel cmdline.
+On bare-metal QEMU boots the image via [direct Linux boot](https://qemu-project.gitlab.io/qemu/system/linuxboot.html) and `kernel-hashes=on`, which signals QEMU to measure the kernel, initrd, and cmdline passed via the flags.
 The kernel cmdline contains the root hash for [dm-verity](https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/verity.html) that ensures the integrity of the root filesystem.
 The root filesystem contains all  components of the container's runtime environment including the [guest agent](../basics/confidential-containers.md#kata-containers) (C).
 
