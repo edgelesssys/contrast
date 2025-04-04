@@ -10,7 +10,9 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -19,6 +21,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/require"
+	testingclock "k8s.io/utils/clock/testing"
 )
 
 const (
@@ -49,6 +52,54 @@ func TestSNPValidateOpts(t *testing.T) {
 }
 
 // TODO(burgerdev): test ValidateCallback and GetCertBundle
+
+func TestBadStoreWatcherIsRestarted(t *testing.T) {
+	require := require.New(t)
+	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
+	store := &badStore{
+		Store: history.NewAferoStore(&afero.Afero{Fs: fs}),
+	}
+	ch := make(chan []byte)
+	store.ch.Store(&ch)
+	hist := history.NewWithStore(slog.Default(), store)
+	reg := prometheus.NewRegistry()
+	clock := testingclock.NewFakeClock(time.Now())
+	a := New(hist, reg, slog.Default())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	doneCh := make(chan struct{})
+	go func() {
+		_ = a.WatchHistory(ctx, clock)
+		close(doneCh)
+	}()
+
+	t.Cleanup(func() {
+		cancel()
+		<-doneCh
+	})
+
+	require.Eventually(func() bool { return store.watchCallCounter.Load() == 1 }, time.Second, 10*time.Millisecond, "Authority should call store.Watch after init")
+
+	newCh := make(chan []byte)
+	store.ch.Store(&newCh)
+	close(ch)
+	time.Sleep(10 * time.Millisecond)
+	require.Equal(int32(1), store.watchCallCounter.Load())
+	clock.Step(time.Minute)
+
+	require.Eventually(func() bool { return store.watchCallCounter.Load() == 2 }, time.Second, 10*time.Millisecond, "Authority should call store.Watch after watch stopped")
+}
+
+type badStore struct {
+	history.Store
+	ch               atomic.Pointer[chan []byte]
+	watchCallCounter atomic.Int32
+}
+
+func (bs *badStore) Watch(_ string) (<-chan []byte, func(), error) {
+	bs.watchCallCounter.Add(1)
+	return *bs.ch.Load(), func() {}, nil
+}
 
 func newAuthority(t *testing.T) (*Authority, *prometheus.Registry) {
 	t.Helper()

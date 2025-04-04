@@ -4,12 +4,13 @@
 package authority
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
-	"slices"
 	"sync/atomic"
+	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
@@ -18,6 +19,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"k8s.io/utils/clock"
 )
 
 // ErrNoManifest is returned when a manifest is needed but not present.
@@ -59,46 +61,53 @@ func New(hist *history.History, reg *prometheus.Registry, log *slog.Logger) *Aut
 	}
 }
 
-// syncState ensures that a.state is up-to-date.
+// WatchHistory monitors the history for manifest updates and sets the state stale if necessary.
 //
-// This function guarantees to include all state updates committed before it was called.
-func (m *Authority) syncState() error {
-	hasLatest, err := m.hist.HasLatest()
-	if err != nil {
-		return fmt.Errorf("probing latest transition: %w", err)
+// This function blocks and keeps watching until the context expires.
+func (m *Authority) WatchHistory(ctx context.Context, clock clock.Clock) error {
+	for {
+		ch, err := m.hist.WatchLatestTransitions(ctx)
+	loop:
+		for err == nil {
+			select {
+			case t, ok := <-ch:
+				if !ok {
+					err = fmt.Errorf("channel closed unexpectedly")
+					break loop
+				}
+				// We received a new latest transition, so check whether the update is already
+				// reflected in the state. If this Coordinator instance did the update, there is a
+				// race condition between the watcher notification and the state being replaced by
+				// SetManifest. This is not a problem:
+				//   - If we get the old state, we mark it stale but it's going to be replaced
+				//     anyway.
+				//   - If we get the new state, we see the matching transition hashes and don't
+				//     mark the state stale.
+				// There's a theoretically problematic race when the manifest is updated twice in
+				// quick succession on this Coordinator, and the watcher notifications arrive late.
+				// We accept that risk for now, as SetManifest calls take significantly more time
+				// than watcher notifications due to the attestation.
+				// TODO(burgerdev): check that the transition in the notification is in the
+				// //               ancestors of the current state's latest transition.
+				state := m.state.Load()
+				if state != nil && state.latest.TransitionHash != t.TransitionHash {
+					m.logger.Info("History changed, marking state as stale",
+						"from-transition", manifest.NewHexString(state.latest.TransitionHash[:]),
+						"to-transition", manifest.NewHexString(t.TransitionHash[:]))
+					state.stale.Store(true)
+				}
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+		m.logger.Error("WatchLatestTransitions failed, starting a new watcher", "error", err)
+		select {
+		case <-clock.After(5 * time.Second):
+			continue
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
-	if !hasLatest {
-		// No history yet -> nothing to sync.
-		return nil
-	}
-
-	oldState := m.state.Load()
-	if oldState == nil {
-		// There are transitions in history, but we don't have a local state -> recovery mode.
-		return ErrNeedsRecovery
-	}
-	nextState, err := m.fetchState(oldState.seedEngine)
-	if err != nil {
-		return fmt.Errorf("fetching latest state: %w", err)
-	}
-
-	// Don't update the state if it did not change.
-	if nextState.latest.TransitionHash == oldState.latest.TransitionHash {
-		return nil
-	}
-
-	// Manifest changed, verify that the seedshare owners did not change.
-	if slices.Compare(oldState.manifest.SeedshareOwnerPubKeys, nextState.manifest.SeedshareOwnerPubKeys) != 0 {
-		return fmt.Errorf("can't update from the current manifest to the latest persisted manifest because the seedshare owners changed")
-	}
-
-	// We consider the sync successful even if the state was updated by someone else.
-	if m.state.CompareAndSwap(oldState, nextState) {
-		// Only set the gauge if our state modification was actually successful - otherwise, it
-		// won't match the active state.
-		m.metrics.manifestGeneration.Set(float64(nextState.generation))
-	}
-	return nil
 }
 
 // fetchState creates a fresh state from the history that's verified by the given SeedEngine.
@@ -167,12 +176,12 @@ func (m *Authority) walkTransitions(transitionRef [history.HashSize]byte, consum
 
 // GetState syncs the current state and returns the loaded current state.
 func (m *Authority) GetState() (*State, error) {
-	if err := m.syncState(); err != nil {
-		return nil, fmt.Errorf("syncing state: %w", err)
-	}
 	state := m.state.Load()
 	if state == nil {
 		return nil, errors.New("coordinator is not initialized")
+	} else if state.stale.Load() {
+		// TODO(burgerdev): we could attempt peer recovery here.
+		return nil, ErrNeedsRecovery
 	}
 	return state, nil
 }
@@ -185,6 +194,10 @@ type State struct {
 
 	latest     *history.LatestTransition
 	generation int
+
+	// stale is set to true when we discover that this State is not current anymore.
+	// This field is only ever flipped from false to true!
+	stale atomic.Bool
 }
 
 // NewState constructs a new State object.
