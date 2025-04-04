@@ -4,6 +4,7 @@
 package certcache
 
 import (
+	"context"
 	"log/slog"
 	"regexp"
 	"time"
@@ -17,7 +18,7 @@ var crlURL = regexp.MustCompile(`^https://kdsintf\.amd\.com/vcek/v1/[A-Za-z]*/cr
 
 // CachedHTTPSGetter is a HTTPS client that caches responses in memory.
 type CachedHTTPSGetter struct {
-	trust.HTTPSGetter
+	trust.ContextHTTPSGetter
 	logger *slog.Logger
 
 	gcTicker clock.Ticker
@@ -27,16 +28,26 @@ type CachedHTTPSGetter struct {
 // NewCachedHTTPSGetter returns a new CachedHTTPSGetter.
 func NewCachedHTTPSGetter(s store, ticker clock.Ticker, log *slog.Logger) *CachedHTTPSGetter {
 	c := &CachedHTTPSGetter{
-		HTTPSGetter: trust.DefaultHTTPSGetter(),
-		logger:      log,
-		cache:       s,
-		gcTicker:    ticker,
+		ContextHTTPSGetter: &trust.RetryHTTPSGetter{
+			// Default values taken from trust.DefaultHTTPSGetter.
+			Timeout:       2 * time.Minute,
+			MaxRetryDelay: 30 * time.Second,
+			Getter:        &trust.SimpleHTTPSGetter{},
+		},
+		logger:   log,
+		cache:    s,
+		gcTicker: ticker,
 	}
 	return c
 }
 
 // Get makes a GET request to the given URL.
 func (c *CachedHTTPSGetter) Get(url string) ([]byte, error) {
+	return c.GetContext(context.Background(), url)
+}
+
+// GetContext makes a GET request to the given URL using the given context.
+func (c *CachedHTTPSGetter) GetContext(ctx context.Context, url string) ([]byte, error) {
 	select {
 	case <-c.gcTicker.C():
 		c.logger.Debug("Garbage collecting")
@@ -47,7 +58,7 @@ func (c *CachedHTTPSGetter) Get(url string) ([]byte, error) {
 	if crlURL.MatchString(url) {
 		// For CRLs always query. When request failure, fallback to cache.
 		c.logger.Debug("Request CRL", "url", url)
-		res, err := c.HTTPSGetter.Get(url)
+		res, err := c.ContextHTTPSGetter.GetContext(ctx, url)
 		if err == nil {
 			c.cache.Set(url, res)
 			return res, nil
@@ -66,7 +77,7 @@ func (c *CachedHTTPSGetter) Get(url string) ([]byte, error) {
 		return cached, nil
 	}
 	c.logger.Debug("Cache miss, requesting", "url", url)
-	res, err := c.HTTPSGetter.Get(url)
+	res, err := c.ContextHTTPSGetter.GetContext(ctx, url)
 	if err != nil {
 		return nil, err
 	}

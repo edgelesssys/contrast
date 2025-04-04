@@ -4,6 +4,7 @@
 package certcache
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"sync"
@@ -11,7 +12,9 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/memstore"
+	"github.com/google/go-sev-guest/verify/trust"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 	"k8s.io/utils/clock"
 	testingclock "k8s.io/utils/clock/testing"
@@ -129,6 +132,36 @@ func TestMemcachedHTTPSGetter(t *testing.T) {
 	})
 }
 
+func TestContextCancellation(t *testing.T) {
+	stepTime := 5 * time.Minute
+	testClock := testingclock.NewFakeClock(time.Now())
+	ticker := testClock.NewTicker(stepTime)
+
+	fakeGetter := &fakeHTTPSGetter{
+		content: map[string][]byte{},
+		hits:    map[string]int{},
+	}
+
+	getter := &CachedHTTPSGetter{
+		ContextHTTPSGetter: fakeGetter,
+		gcTicker:           ticker,
+		cache:              memstore.New[string, []byte](),
+		logger:             slog.Default(),
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := getter.GetContext(ctx, crlURLMatch)
+	require.ErrorIs(t, err, context.Canceled)
+}
+
+// Ensure CachedHTTPSGetter implements the expected interfaces.
+var (
+	_ = trust.HTTPSGetter(&CachedHTTPSGetter{})
+	_ = trust.ContextHTTPSGetter(&CachedHTTPSGetter{})
+)
+
 type fakeHTTPSGetter struct {
 	content map[string][]byte
 	getErr  error
@@ -148,14 +181,19 @@ func getFakeHTTPSGetters(ticker clock.Ticker) (*fakeHTTPSGetter, *CachedHTTPSGet
 	}
 
 	return fakeGetter, &CachedHTTPSGetter{
-		HTTPSGetter: fakeGetter,
-		gcTicker:    ticker,
-		cache:       memstore.New[string, []byte](),
-		logger:      slog.Default(),
+		ContextHTTPSGetter: fakeGetter,
+		gcTicker:           ticker,
+		cache:              memstore.New[string, []byte](),
+		logger:             slog.Default(),
 	}
 }
 
-func (f *fakeHTTPSGetter) Get(url string) ([]byte, error) {
+func (f *fakeHTTPSGetter) GetContext(ctx context.Context, url string) ([]byte, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 	f.hitsMux.Lock()
 	defer f.hitsMux.Unlock()
 	f.hits[url]++
