@@ -192,7 +192,7 @@ func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsReque
 
 	var manifests [][]byte
 	policies := make(map[manifest.HexString][]byte)
-	err := a.walkTransitions(state.latest.TransitionHash, func(_ [history.HashSize]byte, t *history.Transition) error {
+	err := a.hist.WalkTransitions(state.latest.TransitionHash, func(_ [history.HashSize]byte, t *history.Transition) error {
 		manifestBytes, err := a.hist.GetManifest(t.ManifestHash)
 		if err != nil {
 			return err
