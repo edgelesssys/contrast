@@ -161,6 +161,23 @@ func (h *History) WatchLatestTransitions(ctx context.Context) (<-chan LatestTran
 	return transitionCh, nil
 }
 
+// WalkTransitions executes a function for the referenced transition and all its ancestors.
+//
+// The all-zero transition is the root node of all transition trees and is not passed to the closure.
+func (h *History) WalkTransitions(transitionRef [HashSize]byte, consume func([HashSize]byte, *Transition) error) error {
+	for transitionRef != [HashSize]byte{} {
+		transition, err := h.GetTransition(transitionRef)
+		if err != nil {
+			return fmt.Errorf("getting transition: %w", err)
+		}
+		if err := consume(transitionRef, transition); err != nil {
+			return err
+		}
+		transitionRef = transition.PreviousTransitionHash
+	}
+	return nil
+}
+
 func (h *History) getContentaddressed(pathFmt string, hash [HashSize]byte) ([]byte, error) {
 	hashStr := hex.EncodeToString(hash[:])
 	data, err := h.store.Get(fmt.Sprintf(pathFmt, hashStr))

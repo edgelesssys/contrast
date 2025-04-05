@@ -613,6 +613,61 @@ func TestHistory_WatchLatestTransitions(t *testing.T) {
 	}, 10*time.Millisecond, time.Millisecond)
 }
 
+func TestHistory_WalkTransitions(t *testing.T) {
+	h := &History{
+		store:   &AferoStore{fs: &afero.Afero{Fs: afero.NewMemMapFs()}},
+		hashFun: sha256.New,
+	}
+
+	t.Run("empty history", func(t *testing.T) {
+		require := require.New(t)
+		doNotCall := func(_ [32]byte, _ *Transition) error {
+			require.Fail("closure should not be called without any transitions")
+			return nil
+		}
+		require.NoError(h.WalkTransitions([HashSize]byte{0}, doNotCall), "all-zero transition should not fail")
+		require.Error(h.WalkTransitions([HashSize]byte{123}, doNotCall), "unknown transition should fail")
+	})
+
+	expectedTransitionChainSize := 42
+	var latestTransition [HashSize]byte
+	t.Run("populate history", func(t *testing.T) {
+		require := require.New(t)
+		// Populate store with a transition chain.
+		for i := range expectedTransitionChainSize {
+			transition := &Transition{
+				ManifestHash:           [HashSize]byte{byte(i)},
+				PreviousTransitionHash: latestTransition,
+			}
+			nextPrev, err := h.SetTransition(transition)
+			require.NoError(err)
+			latestTransition = nextPrev
+		}
+
+		// Add more transitions with different lineage.
+		var latestUnrelatedTransition [HashSize]byte
+		for i := range 17 {
+			transition := &Transition{
+				ManifestHash:           [HashSize]byte{byte(expectedTransitionChainSize + i)},
+				PreviousTransitionHash: latestUnrelatedTransition,
+			}
+			nextPrev, err := h.SetTransition(transition)
+			require.NoError(err)
+			latestUnrelatedTransition = nextPrev
+		}
+	})
+
+	t.Run("walk transitions", func(t *testing.T) {
+		require := require.New(t)
+		closureCallCount := 0
+		require.NoError(h.WalkTransitions(latestTransition, func(_ [32]byte, _ *Transition) error {
+			closureCallCount++
+			return nil
+		}))
+		require.Equal(expectedTransitionChainSize, closureCallCount)
+	})
+}
+
 type fakeStore struct {
 	Store
 	latestTransitions chan []byte
