@@ -98,7 +98,7 @@ func (m *Authority) WatchHistory(ctx context.Context) error {
 					continue
 				}
 				stateInAncestors := false
-				walkErr := m.walkTransitions(state.latest.TransitionHash, func(h [32]byte, _ *history.Transition) error {
+				walkErr := m.hist.WalkTransitions(state.latest.TransitionHash, func(h [32]byte, _ *history.Transition) error {
 					if h == t.TransitionHash {
 						stateInAncestors = true
 					}
@@ -162,7 +162,7 @@ func (m *Authority) fetchState(se *seedengine.SeedEngine) (*State, error) {
 		return nil, fmt.Errorf("creating CA: %w", err)
 	}
 	var generation int
-	err = m.walkTransitions(latest.TransitionHash, func(_ [history.HashSize]byte, _ *history.Transition) error {
+	err = m.hist.WalkTransitions(latest.TransitionHash, func(_ [history.HashSize]byte, _ *history.Transition) error {
 		generation++
 		return nil
 	})
@@ -178,21 +178,6 @@ func (m *Authority) fetchState(se *seedengine.SeedEngine) (*State, error) {
 		generation:    generation,
 	}
 	return nextState, nil
-}
-
-// walkTransitions executes a function for all transitions in the history of transitionRef, starting from most recent.
-func (m *Authority) walkTransitions(transitionRef [history.HashSize]byte, consume func([history.HashSize]byte, *history.Transition) error) error {
-	for transitionRef != [history.HashSize]byte{} {
-		transition, err := m.hist.GetTransition(transitionRef)
-		if err != nil {
-			return fmt.Errorf("getting transition: %w", err)
-		}
-		if err := consume(transitionRef, transition); err != nil {
-			return err
-		}
-		transitionRef = transition.PreviousTransitionHash
-	}
-	return nil
 }
 
 // GetState syncs the current state and returns the loaded current state.
