@@ -94,18 +94,17 @@ type SNPReferenceValues struct {
 func (r SNPReferenceValues) Validate() error {
 	var minTCBErrs []error
 	if r.MinimumTCB.BootloaderVersion == nil {
-		minTCBErrs = append(minTCBErrs, newValidationError("BootloaderVersion", fmt.Errorf("field cannot be empty")))
+		minTCBErrs = append(minTCBErrs, newValidationError("BootloaderVersion", errors.New("field cannot be empty")))
 	}
 	if r.MinimumTCB.TEEVersion == nil {
-		minTCBErrs = append(minTCBErrs, newValidationError("TEEVersion", fmt.Errorf("field cannot be empty")))
+		minTCBErrs = append(minTCBErrs, newValidationError("TEEVersion", errors.New("field cannot be empty")))
 	}
 	if r.MinimumTCB.SNPVersion == nil {
-		minTCBErrs = append(minTCBErrs, newValidationError("SNPVersion", fmt.Errorf("field cannot be empty")))
+		minTCBErrs = append(minTCBErrs, newValidationError("SNPVersion", errors.New("field cannot be empty")))
 	}
 	if r.MinimumTCB.MicrocodeVersion == nil {
-		minTCBErrs = append(minTCBErrs, newValidationError("MicrocodeVersion", fmt.Errorf("field cannot be empty")))
+		minTCBErrs = append(minTCBErrs, newValidationError("MicrocodeVersion", errors.New("field cannot be empty")))
 	}
-
 	errs := []error{newValidationError("MinimumTCB", minTCBErrs...)}
 
 	switch r.ProductName {
@@ -118,6 +117,41 @@ func (r SNPReferenceValues) Validate() error {
 	if err := validateHexString(r.TrustedMeasurement, abi.MeasurementSize); err != nil {
 		errs = append(errs, newValidationError("TrustedMeasurement", err))
 	}
+
+	noModificationPermittedErr := errors.New("modifying this field is not permitted")
+	var guestPolicyErrs []error
+	if r.GuestPolicy.ABIMajor != 0 {
+		guestPolicyErrs = append(guestPolicyErrs, newValidationError("ABIMajor", noModificationPermittedErr))
+	}
+	// AbiMinor is 0 on bare metal and 31 on AKS.
+	if r.GuestPolicy.ABIMinor != 0 && r.GuestPolicy.ABIMinor != 31 {
+		guestPolicyErrs = append(guestPolicyErrs, newValidationError("ABIMinor", noModificationPermittedErr))
+	}
+	if !r.GuestPolicy.SMT {
+		guestPolicyErrs = append(guestPolicyErrs, newValidationError("SMT", noModificationPermittedErr))
+	}
+	if r.GuestPolicy.MigrateMA {
+		guestPolicyErrs = append(guestPolicyErrs, newValidationError("MigrateMA", noModificationPermittedErr))
+	}
+	if r.GuestPolicy.Debug {
+		guestPolicyErrs = append(guestPolicyErrs, newValidationError("Debug", noModificationPermittedErr))
+	}
+	if r.GuestPolicy.SingleSocket {
+		guestPolicyErrs = append(guestPolicyErrs, newValidationError("SingleSocket", noModificationPermittedErr))
+	}
+	if r.GuestPolicy.CXLAllowed {
+		guestPolicyErrs = append(guestPolicyErrs, newValidationError("CXLAllowed", noModificationPermittedErr))
+	}
+	if r.GuestPolicy.MemAES256XTS {
+		guestPolicyErrs = append(guestPolicyErrs, newValidationError("MemAES256XTS", noModificationPermittedErr))
+	}
+	if r.GuestPolicy.RAPLDis {
+		guestPolicyErrs = append(guestPolicyErrs, newValidationError("RAPLDis", noModificationPermittedErr))
+	}
+	if r.GuestPolicy.CipherTextHidingDRAM {
+		guestPolicyErrs = append(guestPolicyErrs, newValidationError("CipherTextHidingDRAM", noModificationPermittedErr))
+	}
+	errs = append(errs, newValidationError("GuestPolicy", guestPolicyErrs...))
 
 	return errors.Join(errs...)
 }

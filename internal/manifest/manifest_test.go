@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,6 +38,9 @@ func TestValidate(t *testing.T) {
 						},
 						ProductName:        "Milan",
 						TrustedMeasurement: HexString("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+						GuestPolicy: abi.SnpPolicy{
+							SMT: true,
+						},
 					},
 				},
 			},
@@ -162,6 +166,13 @@ func TestValidate(t *testing.T) {
 			m: newTestManifestSNP(),
 			mutate: func(m *Manifest) {
 				m.ReferenceValues.SNP[0].ProductName = "unknown"
+			},
+			wantErr: true,
+		},
+		"snp guest policy smt not set": {
+			m: newTestManifestSNP(),
+			mutate: func(m *Manifest) {
+				m.ReferenceValues.SNP[0].GuestPolicy.SMT = false
 			},
 			wantErr: true,
 		},

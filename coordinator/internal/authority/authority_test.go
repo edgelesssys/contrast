@@ -15,6 +15,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/google/go-sev-guest/abi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/spf13/afero"
@@ -84,6 +85,9 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 			MicrocodeVersion:  &svn0,
 		},
 		TrustedMeasurement: manifest.NewHexString(measurement[:]),
+		GuestPolicy: abi.SnpPolicy{
+			SMT: true,
+		},
 	}}
 	mnfst.WorkloadOwnerKeyDigests = []manifest.HexString{keyDigest}
 	mnfstBytes, err := json.Marshal(mnfst)
