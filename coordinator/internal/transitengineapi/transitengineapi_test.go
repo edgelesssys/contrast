@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
-	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/constants"
+	"github.com/edgelesssys/contrast/internal/seedengine"
 	"github.com/stretchr/testify/require"
 )
 

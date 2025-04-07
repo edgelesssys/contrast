@@ -16,11 +16,11 @@ import (
 	"slices"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
-	"github.com/edgelesssys/contrast/coordinator/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
