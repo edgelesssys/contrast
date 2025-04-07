@@ -6,6 +6,7 @@ package kubeclient
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"sort"
@@ -423,7 +424,7 @@ retryLoop:
 				}
 				logger := c.log.With("namespace", namespace)
 				logger.Error("failed to wait for event", "condition", condition, "kind", resource, "name", name, "contextErr", ctx.Err())
-				if ctx.Err() != context.DeadlineExceeded {
+				if !errors.Is(ctx.Err(), context.DeadlineExceeded) {
 					return ctx.Err()
 				}
 				// Fetch and print debug information.
