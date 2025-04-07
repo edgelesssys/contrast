@@ -87,5 +87,7 @@ After deploying the installer, it performs the following steps on each node:
 - Install `cloud-hypervisor` or `QEMU` as the virtual machine manager (VMM)
 - Install an IGVM file or separate firmware and kernel files for pod-VMs of this class
 - Install a read only root filesystem disk image for the pod-VMs of this class
+- Backup any existing `containerd` configuration in the format
+`<containerd-path>/<config-name>.<time>.bak`
 - Reconfigure `containerd` by adding a runtime plugin that corresponds to the `handler` field of the Kubernetes `RuntimeClass`
 - Restart `containerd` to make it aware of the new plugin
