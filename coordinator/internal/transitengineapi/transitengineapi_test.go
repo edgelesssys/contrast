@@ -184,11 +184,10 @@ func (f *fakeStateAuthority) GetState() (*authority.State, error) {
 	return f.state, nil
 }
 
-
 func newMockTransitEngineMux(authority stateAuthority) *http.ServeMux {
 	mux := http.NewServeMux()
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	mux.Handle("/v1/transit/encrypt/{name}", getEncryptHandler(authority,logger))
-	mux.Handle("/v1/transit/decrypt/{name}", getDecryptHandler(authority,logger))
+	mux.Handle("/v1/transit/encrypt/{name}", getEncryptHandler(authority, logger))
+	mux.Handle("/v1/transit/decrypt/{name}", getDecryptHandler(authority, logger))
 	return mux
 }
