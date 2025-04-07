@@ -5,6 +5,7 @@ package authority
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -129,15 +130,31 @@ func (m *Authority) WatchHistory(ctx context.Context) error {
 	}
 }
 
-// fetchState creates a fresh state from the history that's verified by the given SeedEngine.
-func (m *Authority) fetchState(se *seedengine.SeedEngine) (*State, error) {
-	latest, err := m.hist.GetLatest(&se.TransactionSigningKey().PublicKey)
-	if err != nil {
-		return nil, fmt.Errorf("getting latest transition: %w", err)
+// RecoverWith recovers the Coordinator to the given transition.
+//
+// The legitimacy of the transition must be checked by the caller. This call fails if the
+// Coordinator does not require recovery.
+func (m *Authority) RecoverWith(se *seedengine.SeedEngine, latest *history.LatestTransition, meshKey *ecdsa.PrivateKey) error {
+	oldState := m.state.Load()
+	if oldState != nil && !oldState.stale.Load() {
+		return ErrAlreadyRecovered
 	}
 
-	// The latest transition in the backend is newer than ours, so we need to update our state.
+	state, err := m.fetchState(se, latest, meshKey)
+	if err != nil {
+		return fmt.Errorf("fetching state: %w", err)
+	}
 
+	if !m.state.CompareAndSwap(oldState, state) {
+		return ErrConcurrentRecovery
+	}
+	return nil
+}
+
+// fetchState creates a fresh state from the given transition.
+//
+// fetchState does not do any verification of the transition.
+func (m *Authority) fetchState(se *seedengine.SeedEngine, latest *history.LatestTransition, meshKey *ecdsa.PrivateKey) (*State, error) {
 	transition, err := m.hist.GetTransition(latest.TransitionHash)
 	if err != nil {
 		return nil, fmt.Errorf("getting transition: %w", err)
@@ -152,10 +169,6 @@ func (m *Authority) fetchState(se *seedengine.SeedEngine) (*State, error) {
 		return nil, fmt.Errorf("parsing manifest: %w", err)
 	}
 
-	meshKey, err := se.GenerateMeshCAKey()
-	if err != nil {
-		return nil, fmt.Errorf("deriving mesh CA key: %w", err)
-	}
 	ca, err := ca.New(se.RootCAKey(), meshKey)
 	if err != nil {
 		return nil, fmt.Errorf("creating CA: %w", err)
