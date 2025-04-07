@@ -61,4 +61,14 @@ final: prev:
     }
   );
 
+  # treefmt started to format/lint unstaged files, but missed to ignore based on .gitignore.
+  # Fixed >v2.2.0
+  treefmt = prev.treefmt.overrideAttrs (prevAttrs: {
+    patches = prevAttrs.patches or [ ] ++ [
+      (final.fetchpatch {
+        url = "https://github.com/numtide/treefmt/commit/3cd58e4e5ee830b6156c7f82d059fd86562f0eaa.patch";
+        hash = "sha256-eqcjoyC+yYbVIkRF90ey8Mq/YYr/NzuiTI+r9wv1iE8=";
+      })
+    ];
+  });
 }
