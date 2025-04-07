@@ -121,9 +121,12 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		// Manifest exists but could not be read, return error
 		return fmt.Errorf("read existing manifest: %w", err)
 	} else {
-		// Manifest exists and was read successfully, unmarshal it
+		// Manifest exists and was read successfully, unmarshal and validate it
 		if err := json.Unmarshal(existingManifest, &mnf); err != nil {
 			return fmt.Errorf("unmarshal existing manifest: %w", err)
+		}
+		if err := mnf.Validate(); err != nil {
+			return fmt.Errorf("validate existing manifest: %w", err)
 		}
 	}
 
@@ -170,7 +173,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	mnf.Policies = policyMap
-	// Only tell to user to fill in reference values if the manifest is not already valid.
+	// Existing manifests are already validated above, but newly generated manifests may be missing the reference values.
 	if err := mnf.Validate(); err != nil {
 		fmt.Fprintf(cmd.OutOrStdout(), "  Please fill in the reference values for %s\n", flags.referenceValuesPlatform.String())
 	}
