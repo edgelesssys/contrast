@@ -21,6 +21,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/prometheus/client_golang/prometheus"
@@ -405,6 +406,21 @@ func TestRecoveryFlow(t *testing.T) {
 	// Recover on a recovered authority should fail.
 	_, err = a.Recover(ctx, recoverReq)
 	require.Error(err)
+
+	// Test RecoverWith
+	a = New(a.hist, prometheus.NewRegistry(), slog.Default())
+	se, err := seedengine.New(seed, seedSharesDoc.GetSalt())
+	require.NoError(err)
+	latest, err := a.hist.GetLatest(&se.TransactionSigningKey().PublicKey)
+	require.NoError(err)
+	meshKey := testkeys.ECDSA(t)
+	require.NoError(a.RecoverWith(se, latest, meshKey))
+	state := a.state.Load()
+	require.NotNil(state)
+	require.NotNil(state.ca)
+	require.Equal(meshKey, state.ca.GetIntermCAPrivKey())
+
+	require.ErrorIs(a.RecoverWith(se, latest, meshKey), ErrAlreadyRecovered)
 }
 
 // TestUserAPIConcurrent tests potential synchronization problems between the different
