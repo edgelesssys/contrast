@@ -23,10 +23,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/google/go-github/v66/github"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -138,7 +140,26 @@ func TestRelease(t *testing.T) {
 	}), "deployment processing needs to succeed for subsequent tests to run")
 
 	contrast.Run(ctx, t, 4*time.Minute, "generate", "--reference-values", *platformStr, "deployment/")
-	contrast.patchReferenceValues(t, lowerPlatformStr)
+
+	require.True(t, t.Run("patch reference values", func(t *testing.T) {
+		require := require.New(t)
+
+		platf, err := platforms.FromString(lowerPlatformStr)
+		require.NoError(err)
+
+		manifestBytes, err := os.ReadFile(contrast.dir + "/manifest.json")
+		require.NoError(err)
+		var m manifest.Manifest
+		require.NoError(json.Unmarshal(manifestBytes, &m))
+
+		patchManifest, err := contrasttest.PatchReferenceValues(k, platf)
+		require.NoError(err)
+		m = patchManifest(m)
+
+		manifestBytes, err = json.Marshal(m)
+		require.NoError(err)
+		require.NoError(os.WriteFile(contrast.dir+"/manifest.json", manifestBytes, 0o644))
+	}), "patching reference values needs to succeed for subsequent tests to run")
 
 	require.True(t, t.Run("apply-demo", func(t *testing.T) {
 		require := require.New(t)
@@ -224,7 +245,7 @@ func (c *contrast) Run(ctx context.Context, t *testing.T, timeout time.Duration,
 		ctx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 
-		args = append([]string{"--log-level", "debug"}, args...)
+		args := append([]string{"--log-level", "debug"}, args...)
 		cmd := exec.CommandContext(ctx, "./contrast", args...)
 		cmd.Dir = c.dir
 		out, err := cmd.CombinedOutput()
@@ -276,44 +297,6 @@ func fetchRelease(ctx context.Context, t *testing.T) string {
 	}
 
 	return dir
-}
-
-// patchReferenceValues modifies the manifest to contain multiple reference values for testing
-// cases with multiple validators, as well as filling in bare-metal SNP-specific values.
-func (c *contrast) patchReferenceValues(t *testing.T, lowerPlatformStr string) {
-	manifestBytes, err := os.ReadFile(c.dir + "/manifest.json")
-	require.NoError(t, err)
-	var m manifest.Manifest
-	require.NoError(t, json.Unmarshal(manifestBytes, &m))
-
-	switch lowerPlatformStr {
-	case "k3s-qemu-snp":
-		// The generate command doesn't fill in all required fields when
-		// generating a manifest for baremetal SNP. Do that now.
-		for i, snp := range m.ReferenceValues.SNP {
-			snp.MinimumTCB.BootloaderVersion = toPtr(manifest.SVN(0))
-			snp.MinimumTCB.TEEVersion = toPtr(manifest.SVN(0))
-			snp.MinimumTCB.SNPVersion = toPtr(manifest.SVN(0))
-			snp.MinimumTCB.MicrocodeVersion = toPtr(manifest.SVN(0))
-			m.ReferenceValues.SNP[i] = snp
-		}
-	case "k3s-qemu-tdx", "rke2-qemu-tdx":
-		// The generate command doesn't fill in all required fields when
-		// generating a manifest for baremetal TDX. Do that now.
-		for i, tdx := range m.ReferenceValues.TDX {
-			tdx.MinimumTeeTcbSvn = manifest.HexString("04010200000000000000000000000000")
-			tdx.MrSeam = manifest.HexString("1cc6a17ab799e9a693fac7536be61c12ee1e0fabada82d0c999e08ccee2aa86de77b0870f558c570e7ffe55d6d47fa04")
-			m.ReferenceValues.TDX[i] = tdx
-		}
-	}
-
-	manifestBytes, err = json.Marshal(m)
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(c.dir+"/manifest.json", manifestBytes, 0o644))
-}
-
-func toPtr[T any](t T) *T {
-	return &t
 }
 
 func TestMain(m *testing.M) {

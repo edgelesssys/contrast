@@ -183,7 +183,7 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 	generate.SetErr(errBuf)
 
 	require.NoError(generate.Execute(), "could not generate manifest: %s", errBuf)
-	patchManifestFunc, err := patchReferenceValues(ct.Kubeclient, ct.Platform)
+	patchManifestFunc, err := PatchReferenceValues(ct.Kubeclient, ct.Platform)
 	require.NoError(err)
 	ct.PatchManifest(t, patchManifestFunc)
 	ct.PatchManifest(t, addInvalidReferenceValues(ct.Platform))
@@ -231,9 +231,9 @@ func addInvalidReferenceValues(platform platforms.Platform) PatchManifestFunc {
 	}
 }
 
-// patchReferenceValues returns a PatchManifestFunc which modifies the reference values in a manifest
+// PatchReferenceValues returns a PatchManifestFunc which modifies the reference values in a manifest
 // based on the 'bm-tcb-specs' ConfigMap persistently stored in the 'default' namespace.
-func patchReferenceValues(k *kubeclient.Kubeclient, platform platforms.Platform) (PatchManifestFunc, error) {
+func PatchReferenceValues(k *kubeclient.Kubeclient, platform platforms.Platform) (PatchManifestFunc, error) {
 	var baremetalRefVal manifest.ReferenceValues
 	// ConfigMap bm-tcb-specs will only exist on baremetal instances.
 	if platform != platforms.AKSCloudHypervisorSNP {
