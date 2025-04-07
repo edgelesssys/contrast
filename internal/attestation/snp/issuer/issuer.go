@@ -3,7 +3,7 @@
 
 //go:build linux
 
-// package issuer provides functions to create an aTLS issuer.
+// Package issuer provides functions to create an aTLS issuer.
 package issuer
 
 import (
@@ -22,7 +22,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/oid"
-	"github.com/google/go-sev-guest/abi"
 	snpabi "github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/client"
 	"github.com/google/go-sev-guest/kds"
@@ -171,7 +170,7 @@ func (i *Issuer) getAttestationWithoutCertChain(report *spb.Report) *spb.Attesta
 }
 
 func (i *Issuer) getProduct() *spb.SevProduct {
-	product := abi.SevProduct()
+	product := snpabi.SevProduct()
 	i.logger.Info("cpuid product info", "name", product.GetName(), "machineStepping", product.GetMachineStepping().Value)
 	// Host cpuid can result in incorrect stepping: https://github.com/google/go-sev-guest/issues/115
 	product.MachineStepping = &wrapperspb.UInt32Value{Value: 0}

@@ -131,7 +131,7 @@ func (s *ConfigMapStore) CompareAndSwap(key string, oldVal, newVal []byte) error
 	defer cancel()
 
 	cm, err := s.client.CoreV1().ConfigMaps(s.namespace).Get(ctx, cmName, metav1.GetOptions{})
-	if err != nil && !(errors.IsNotFound(err) && len(oldVal) == 0) {
+	if err != nil && (!errors.IsNotFound(err) || len(oldVal) != 0) {
 		return err
 	}
 	// Treat non-existing config map as empty to allow initial set.

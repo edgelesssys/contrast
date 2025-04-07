@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// The platforms package provides a constant interface to the different deployment platforms
+// Package platforms provides a constant interface to the different deployment platforms
 // of Contrast.
 package platforms
 

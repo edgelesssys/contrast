@@ -106,7 +106,7 @@ func setupEncryptedMount(ctx context.Context, log *slog.Logger, flags *cryptsetu
 	}
 
 	if err := os.WriteFile("/done", []byte(""), 0o644); err != nil {
-		return fmt.Errorf("Creating startup probe done directory:%w", err)
+		return fmt.Errorf("creating startup probe done directory:%w", err)
 	}
 
 	// Wait for SIGTERM signal

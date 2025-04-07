@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 /*
-The kubeclient package provides a simple wrapper around Kubernetes interactions
+Package kubeclient provides a simple wrapper around Kubernetes interactions
 commonly used in the e2e tests.
 */
 package kubeclient

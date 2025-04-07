@@ -96,10 +96,10 @@ func (o *OS) Move(src, dst string) error {
 	switch err := os.Rename(src, dst); {
 	case err == nil:
 		return nil
-	default:
-		return fmt.Errorf("moving file: %w", err)
 	case errors.Is(err, syscall.EXDEV):
 		// rename across devices is not supported, so we need to copy and remove
+	default:
+		return fmt.Errorf("moving file: %w", err)
 	}
 
 	srcFile, err := os.Open(src)

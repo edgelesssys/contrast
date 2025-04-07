@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// transitengine provides all functionality related to the transit engine API endpoints: decrypt and encrypt.
+// Package transitengine provides all functionality related to the transit engine API endpoints: decrypt and encrypt.
 // It is organized in a layered approach, keeping http request processing separated from the underlying crypto
 // business logic(crypto.go).
 package transitengine

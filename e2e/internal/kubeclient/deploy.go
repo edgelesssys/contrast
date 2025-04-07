@@ -240,7 +240,7 @@ func (c *Kubeclient) checkIfRunning(ctx context.Context, name string, namespace 
 func (c *Kubeclient) IsStartingBlocked(name string, namespace string, resource ResourceWaiter, evt watch.Event, startingPoint time.Time) (bool, error) {
 	switch evt.Type {
 	case watch.Error:
-		return false, fmt.Errorf("Watcher of %s %s/%s received an error event", resource.kind(), namespace, name)
+		return false, fmt.Errorf("watcher of %s %s/%s received an error event", resource.kind(), namespace, name)
 	case watch.Added:
 		fallthrough
 	case watch.Modified:

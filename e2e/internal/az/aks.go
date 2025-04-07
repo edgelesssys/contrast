@@ -27,7 +27,7 @@ func NodeImageVersion(clusterName string, rg string) (string, error) {
 		return "", err
 	}
 	if len(outMap) == 0 {
-		return "", errors.New("No nodepools could be listed")
+		return "", errors.New("no nodepools could be listed")
 	}
 
 	return strings.TrimSpace(fmt.Sprintf("%s", outMap[0]["nodeImageVersion"])), nil
