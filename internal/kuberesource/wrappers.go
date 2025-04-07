@@ -23,7 +23,7 @@ type DeploymentConfig struct {
 func Deployment(name, namespace string) *DeploymentConfig {
 	d := applyappsv1.Deployment(name, namespace)
 	if namespace == "" && d.ObjectMetaApplyConfiguration != nil {
-		d.ObjectMetaApplyConfiguration.Namespace = nil
+		d.Namespace = nil
 	}
 	return &DeploymentConfig{d}
 }
@@ -47,7 +47,7 @@ type DaemonSetConfig struct {
 func DaemonSet(name, namespace string) *DaemonSetConfig {
 	d := applyappsv1.DaemonSet(name, namespace)
 	if namespace == "" && d.ObjectMetaApplyConfiguration != nil {
-		d.ObjectMetaApplyConfiguration.Namespace = nil
+		d.Namespace = nil
 	}
 	return &DaemonSetConfig{d}
 }
@@ -71,7 +71,7 @@ type StatefulSetConfig struct {
 func StatefulSet(name, namespace string) *StatefulSetConfig {
 	s := applyappsv1.StatefulSet(name, namespace)
 	if namespace == "" && s.ObjectMetaApplyConfiguration != nil {
-		s.ObjectMetaApplyConfiguration.Namespace = nil
+		s.Namespace = nil
 	}
 	return &StatefulSetConfig{s}
 }
@@ -95,7 +95,7 @@ type PodConfig struct {
 func Pod(name, namespace string) *PodConfig {
 	p := applycorev1.Pod(name, namespace)
 	if namespace == "" && p.ObjectMetaApplyConfiguration != nil {
-		p.ObjectMetaApplyConfiguration.Namespace = nil
+		p.Namespace = nil
 	}
 	return &PodConfig{p}
 }
@@ -286,7 +286,7 @@ type ServiceConfig struct {
 func Service(name, namespace string) *ServiceConfig {
 	s := applycorev1.Service(name, namespace)
 	if namespace == "" && s.ObjectMetaApplyConfiguration != nil {
-		s.ObjectMetaApplyConfiguration.Namespace = nil
+		s.Namespace = nil
 	}
 	return &ServiceConfig{s}
 }
@@ -320,7 +320,7 @@ type ServiceAccountConfig struct {
 func ServiceAccount(name, namespace string) *ServiceAccountConfig {
 	s := &ServiceAccountConfig{applycorev1.ServiceAccount(name, namespace)}
 	if namespace == "" && s.ObjectMetaApplyConfiguration != nil {
-		s.ObjectMetaApplyConfiguration.Namespace = nil
+		s.Namespace = nil
 	}
 	return s
 }
@@ -334,7 +334,7 @@ type RoleConfig struct {
 func Role(name, namespace string) *RoleConfig {
 	r := &RoleConfig{applyrbacv1.Role(name, namespace)}
 	if namespace == "" && r.ObjectMetaApplyConfiguration != nil {
-		r.ObjectMetaApplyConfiguration.Namespace = nil
+		r.Namespace = nil
 	}
 	return r
 }
@@ -348,7 +348,7 @@ type RoleBindingConfig struct {
 func RoleBinding(name, namespace string) *RoleBindingConfig {
 	r := &RoleBindingConfig{applyrbacv1.RoleBinding(name, namespace)}
 	if namespace == "" && r.ObjectMetaApplyConfiguration != nil {
-		r.ObjectMetaApplyConfiguration.Namespace = nil
+		r.Namespace = nil
 	}
 	return r
 }
@@ -409,7 +409,7 @@ type PersistentVolumeClaimConfig struct {
 func PersistentVolumeClaim(name, namespace string) *PersistentVolumeClaimConfig {
 	pvc := applycorev1.PersistentVolumeClaim(name, namespace)
 	if namespace == "" && pvc.ObjectMetaApplyConfiguration != nil {
-		pvc.ObjectMetaApplyConfiguration.Namespace = nil
+		pvc.Namespace = nil
 	}
 	return &PersistentVolumeClaimConfig{pvc}
 }

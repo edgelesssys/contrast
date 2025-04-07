@@ -74,7 +74,7 @@ func (s *AferoStore) CompareAndSwap(key string, oldVal, newVal []byte) error {
 	defer s.mux.Unlock()
 	current, err := s.fs.ReadFile(key)
 	// Treat non-existing file as empty to allow initial set.
-	if err != nil && !(errors.Is(err, fs.ErrNotExist) && len(oldVal) == 0) {
+	if err != nil && (!errors.Is(err, fs.ErrNotExist) || len(oldVal) != 0) {
 		return err
 	}
 	if !bytes.Equal(current, oldVal) {

@@ -46,7 +46,7 @@ func TestAppendable(t *testing.T) {
 
 		v, err := a.Latest()
 		assert.NoError(err)
-		assert.EqualValues("bar", v)
+		assert.Equal("bar", v)
 	})
 
 	t.Run("latest empty", func(t *testing.T) {

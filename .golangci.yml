@@ -1,31 +1,15 @@
+version: "2"
 run:
-  timeout: 5m
-  modules-download-mode: readonly
   build-tags:
     - e2e
     - contrast_unstable_api
-
+  modules-download-mode: readonly
 output:
   formats:
-    - format: colored-tab
+    tab:
       path: stderr
-  sort-results: true
-
-linters-settings:
-  testifylint:
-    disable:
-      - require-error
-
 linters:
   enable:
-    # Default linters
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-    # Additional linters
     # keep-sorted start
     - bodyclose
     - contextcheck
@@ -37,7 +21,6 @@ linters:
     - gocheckcompilerdirectives
     - gochecknoinits
     - godot
-    - gofumpt
     - intrange
     - misspell
     - nilerr
@@ -56,10 +39,33 @@ linters:
     - usetesting
     - wastedassign
     # keep-sorted end
-
+  settings:
+    testifylint:
+      disable:
+        - require-error
+    revive:
+      rules:
+        - name: "package-comments"
+          disabled: true
+  exclusions:
+    generated: lax
+    presets:
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 issues:
   max-issues-per-linter: 0
   max-same-issues: 20
-  include:
-    - EXC0012
-    - EXC0014
+formatters:
+  enable:
+    - gofumpt
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
