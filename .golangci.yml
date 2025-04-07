@@ -17,6 +17,7 @@ linters:
     - errchkjson
     - errname
     - errorlint
+    - exptostd
     - forcetypeassert
     - gocheckcompilerdirectives
     - gochecknoinits
@@ -48,24 +49,16 @@ linters:
         - name: "package-comments"
           disabled: true
   exclusions:
-    generated: lax
+    generated: strict
+    warn-unused: true
     presets:
-      - common-false-positives
-      - legacy
       - std-error-handling
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
 issues:
   max-issues-per-linter: 0
   max-same-issues: 20
 formatters:
   enable:
     - gofumpt
+    - goimports
   exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+    generated: strict
