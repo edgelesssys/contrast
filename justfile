@@ -306,6 +306,9 @@ wait-for-workload target=default_deploy_target:
             nix run .#scripts.kubectl-wait-ready -- $ns mysql-backend
             nix run .#scripts.kubectl-wait-ready -- $ns mysql-client
         ;;
+        "vault")
+            nix run .#scripts.kubectl-wait-ready -- $ns vault
+        ;;
         "custom")
             :
         ;;
