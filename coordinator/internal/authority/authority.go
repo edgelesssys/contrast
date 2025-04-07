@@ -5,6 +5,7 @@ package authority
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -127,6 +128,24 @@ func (m *Authority) WatchHistory(ctx context.Context) error {
 			return ctx.Err()
 		}
 	}
+}
+
+// RecoverWith needs documentation.
+func (m *Authority) RecoverWith(se *seedengine.SeedEngine, latest *history.LatestTransition, meshKey *ecdsa.PrivateKey) error {
+	oldState := m.state.Load()
+	if oldState != nil && !oldState.stale.Load() {
+		return ErrAlreadyRecovered
+	}
+
+	state, err := m.fetchState(se, latest, meshKey)
+	if err != nil {
+		return fmt.Errorf("fetching state: %w", err)
+	}
+
+	if !m.state.CompareAndSwap(oldState, state) {
+		return ErrConcurrentRecovery
+	}
+	return nil
 }
 
 // fetchState creates a fresh state from the history that's verified by the given SeedEngine.
