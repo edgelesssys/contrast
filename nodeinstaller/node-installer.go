@@ -249,8 +249,27 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 		return nil
 	}
 
+	// Backup the existing config.
+	if len(existingRaw) != 0 {
+		if err := os.WriteFile(fmt.Sprintf("%s.%d.bak", configPath, time.Now().Unix()), existingRaw, 0o666); err != nil {
+			return fmt.Errorf("backing up existing config: %w", err)
+		}
+	}
+
 	fmt.Printf("Patching containerd config at %s\n", configPath)
-	return os.WriteFile(configPath, rawConfig, 0o666)
+	tmpFile, err := os.CreateTemp(filepath.Dir(configPath), "containerd-config-*.toml")
+	if err != nil {
+		return fmt.Errorf("creating temporary file: %w", err)
+	}
+	defer tmpFile.Close()
+	defer os.Remove(tmpFile.Name())
+	if _, err = tmpFile.Write(rawConfig); err != nil {
+		return fmt.Errorf("writing to temporary file: %w", err)
+	}
+	if err := os.Chmod(tmpFile.Name(), 0o666); err != nil {
+		return fmt.Errorf("chmod %q: %w", tmpFile.Name(), err)
+	}
+	return os.Rename(tmpFile.Name(), configPath)
 }
 
 func parseExistingContainerdConfig(path string) ([]byte, config.ContainerdConfig, error) {
