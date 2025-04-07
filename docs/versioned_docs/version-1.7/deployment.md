@@ -29,22 +29,22 @@ It can be shared between Contrast deployments.
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-aks-clh-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.7.0/runtime-aks-clh-snp.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.7.0/runtime-k3s-qemu-snp.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp-gpu.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.7.0/runtime-k3s-qemu-snp-gpu.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-tdx.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.7.0/runtime-k3s-qemu-tdx.yml
 ```
 </TabItem>
 </Tabs>
@@ -55,7 +55,7 @@ Download the Kubernetes resource of the Contrast Coordinator, comprising a singl
 LoadBalancer service. Put it next to your resources:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir deployment
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.7.0/coordinator.yml --output-dir deployment
 ```
 
 ## Prepare your Kubernetes resources
@@ -422,7 +422,7 @@ spec:
     - env:
         - name: COORDINATOR_HOST
           value: coordinator
-      image: "ghcr.io/edgelesssys/contrast/initializer:latest"
+      image: "ghcr.io/edgelesssys/contrast/initializer:v1.7.0@sha256:fdd44b4e2cf243473bd35ea950ade5bd130c29c7fd6eb4ebfa91e6efdd7cf339"
       name: contrast-initializer
       volumeMounts:
         - mountPath: /contrast
