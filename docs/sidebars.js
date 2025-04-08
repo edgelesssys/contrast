@@ -146,7 +146,7 @@ const sidebars = {
         },
         {
           type: 'doc',
-          label: 'SNP Attestation',
+          label: 'AMD SEV-SNP attestation',
           id: 'architecture/snp',
         },
       ]
