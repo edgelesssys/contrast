@@ -1,13 +1,17 @@
-# SNP Attestation
+# AMD SEV-SNP attestation
 
-The key component for attesting AMD SEV-SNP is the Security Processor (SP),
-which measures the CVM and metadata and returns an attestation report reflecting those
+This page explains details of the AMD SEV-SNP attestation that are especially relevant for the implementation in Contrast.
+You should be familiar with [attestation basics](attestation.md).
+For more details on SEV-SNP, see the [whitepapers and specifications from AMD](https://www.amd.com/en/developer/sev.html).
+
+The key component for attesting AMD SEV-SNP is the Secure Processor (SP).
+It measures the confidential VM (CVM) and metadata and returns an attestation report reflecting those
 measurements.
-
 
 ## Startup
 
-The SP extends the launch digest every time the hypervisor donates a page to the CVM during startup via `SNP_LAUNCH_UPDATE`. On an abstract level, the launch digest is extended as follows:
+The SP extends the launch digest each time the hypervisor donates a page to the CVM during startup via `SNP_LAUNCH_UPDATE`. On an abstract level, the launch digest is extended as follows:
+
 ```
 LD := Hash(LD || Page || Page Metadata)
 ```
@@ -15,11 +19,14 @@ LD := Hash(LD || Page || Page Metadata)
 When the Hypervisor calls `SNP_LAUNCH_FINISH`, it provides the SP with the `HOST_DATA`,
 the `ID_BLOCK`, and `ID_AUTH` block.
 
-The `HOSTDATA` is opaque for the SP. Kata writes the hash of the kata policy in
-this field to bind the policy to the CVM. `HOSTDATA` is later reflected in the
+The `HOST_DATA` is opaque to the SP. Kata writes the hash of the kata policy in
+this field to bind the policy to the CVM. `HOST_DATA` is later reflected in the
 attestation report.
 
-### ID Block Structure
+### ID block structure
+
+The ID block contains fields that identify the VM.
+The following table shows the fields that are relevant for Contrast.
 The complete structure can be found in the SEV Secure Nested Paging Firmware ABI Specification in table 75.
 
 | Field    | Description    | Contrast usage |
@@ -27,18 +34,19 @@ The complete structure can be found in the SEV Secure Nested Paging Firmware ABI
 | LD |   The expected launch digest of the guest.      | Expected launch digest over kernel, initrd, and cmdline of the CVM. |
 | POLICY |   The policy of the guest.      |  |
 
-The SP checks during startup if the measurement it calculated matches the `LD` in the ID Block.
+During startup, the SP compares the measurement it calculated to the `LD` in the ID block.
 If they don't match, the SP aborts the boot process.
 Similarly, if the policy doesn't match the configuration of the CVM, the SP aborts also.
 
-### ID Auth Structure
+### ID auth structure
+
 The ID auth structure exists to be able to verify the ID block structure.
 A CVM image can be started with for example various different policies.
-Moreover, the ID block itself can't be verified at a later date, since
+Moreover, the ID block itself can't be verified later, since
 it's not part of the attestation report.
 The intended use is that a trusted party creates an ECDSA-384 ID key pair
 and signs the ID block structure. Both the signature and the public part of the
-ID key are then passed via the hypervisor to the SP which verifies the signature and
+ID key are then passed via the hypervisor to the SP. The SP verifies the signature and
 keeps a SHA-384 digest of the public key. The SP adds this digest in every attestation
 report requested by the CVM.
 
@@ -47,10 +55,11 @@ The complete structure can be found in the SEV Secure Nested Paging Firmware ABI
 | Field    | Description    | Contrast usage |
 | -------- | -------        | ------- |
 | ID_BLOCK_SIG |   The signature of all bytes of the ID block.      | Constant value of (r,s) = (2,1) |
-| ID_KEY |   The public component of the ID key.      | Deterministically derived from the ID Block and ID_BLOCK_SIG (see [Anonymous ID Block Signing](#anonymous-id-block-signing)) |
+| ID_KEY |   The public component of the ID key.      | Deterministically derived from the ID block and ID_BLOCK_SIG (see [Anonymous ID block signing](#anonymous-id-block-signing)) |
 
-### Guest Policy Structure
-The gest policy structure is embedded in the ID block in the `POLICY` field.
+### Guest policy structure
+
+The guest policy structure is embedded in the ID block in the `POLICY` field.
 The complete structure can be found in the SEV Secure Nested Paging Firmware ABI Specification in table 10.
 
 | Field    | Description    | Value on cloud-hypervisor  | Value on QEMU |
@@ -66,48 +75,46 @@ The complete structure can be found in the SEV Secure Nested Paging Firmware ABI
 | ABI_MAJOR |  The minimum ABI major version required for this guest to run.  | 0 | 0 |
 | ABI_MINOR |  The minimum ABI minor version required for this guest to run.  | 0 | 31 |
 
-
-
-## Attestation Report
+## Attestation report
 
 The attestation report is signed by the Versioned Chip Endorsement Key (VCEK).
 The SP derives this key from the chip unique secret and the following REPORTED_TCB
 information:
-1. SP Bootloader SVN
+
+1. SP bootloader SVN
 1. SP OS SVN
 1. SNP firmware SVN
 1. Microcode patch level
 
-With those parameters one can also retrieve a certificate signing the VCEK from the
+With those parameters, one can retrieve a certificate signing the VCEK from the
 AMD Key Distribution Service (KDS) by querying `https://kdsintf.amd.com/vcek/v1/{product_name}/{hwid}?{params}`
 
 This VCEK certificate is signed by the AMD SEV CA certificate, which is signed by the AMD Root CA.
+
 ```
 AMD Root CA --> AMD SEV CA --> VCEK -- signs --> Report
 ```
 
-The Contrast CLI embeds the AMD Root CA and AMD SEV CA certificate
+The Contrast CLI embeds the AMD Root CA and AMD SEV CA certificate.
 
-### Attestation Report Structure
+### Attestation report structure
+
+The following table shows the most important fields of the attestation report and how they're used by Contrast.
 The complete structure can be found in the SEV Secure Nested Paging Firmware ABI Specification in table 23.
 
 | Field    | Description    | Contrast usage |
 | -------- | -------        | ------- |
 | VERSION  | Version number of this attestation report. Set to `3h` for this specification.           |
-| VMPL    | The firmware sets this value depending on whether a guest (MSG_REPORT_REQ) or host (SNP_HV_REPORT_REQ) requested the guest attestation report. For a Guest requested attestation report this field will contain the value (0-3). A Host requested attestation report will have a value of 0xffffffff.           |
 | PLATFORM_INFO    | Information about the platform. See Table below         |
 | REPORT_DATA    | If REQUEST_SOURCE is guest provided, then contains Guest-provided data, else host request and zero (0) filled by firmware.           | Digest of nonce provided by the relying party and TLS public key of the CVM. |
 | MEASUREMENT    | The measurement calculated at launch.           | Digest over kernel, initrd, and cmdline. |
 | HOST_DATA    | Data provided by the hypervisor at launch.           | Digest of the kata policy.
-| ID_KEY_DIGEST    | SHA-384 digest of the ID public key that signed the ID block provided in SNP_LAUNCH_FINISH.           | Deterministic function of the SNP policy and launch digest in the ID_BLOCK. (see [Anonymous ID Block Signing](#anonymous-id-block-signing))
-| CPUID_FAM_ID    | Family ID (Combined Extended Family ID and Family ID)           |
-| CPUID_MOD_ID    | Model (combined Extended Model and Model fields)           |
-| CPUID_STEP    | Stepping.           |
+| ID_KEY_DIGEST    | SHA-384 digest of the ID public key that signed the ID block provided in SNP_LAUNCH_FINISH.           | Deterministic function of the SNP policy and launch digest in the ID_BLOCK. (see [Anonymous ID block signing](#anonymous-id-block-signing))
 | LAUNCH_TCB    | The CurrentTcb at the time the guest was launched or imported.      | Lowest TCB the guest ever executed with. |
 | SIGNATURE    | Signature of bytes `0h` to `29Fh` inclusive of this report.            | Used to verify the integrity and authenticity of the report.
 
+### Platform info structure
 
-### Platform Info Structure
 The platform info structure is embedded in the attestation report in the `PLATFORM_INFO` field.
 The complete structure can be found in the SEV Secure Nested Paging Firmware ABI Specification in table 24.
 
@@ -120,26 +127,26 @@ The complete structure can be found in the SEV Secure Nested Paging Firmware ABI
 | TSME_EN | Indicates that TSME is enabled in the system.        |  |
 | SMT_EN | Indicates that SMT is enabled in the system.        |  |
 
+## Anonymous ID block signing
 
-## Anonymous ID Block Signing
 As described in [startup](#startup), the SP checks the signature of the ID block
 with the public key provided in the ID auth block. The common usage of such signatures
 is to know that a trusted party holding the private key has signed the ID block.
 Since the ID block is part of for example the [IGVM](https://github.com/microsoft/igvm) headers of
-the VM image, they're bound to the `runtimeClass` Contrast sets-up
+the VM image, they're bound to the `runtimeClass` Contrast sets up
 during [installation](../getting-started/install.md).
 Therefore, the ID auth block and the signature and public key has to be provided by
-Contrast, but the authors of contrast shouldn't be part of the TCB.
+Contrast, but the authors of Contrast shouldn't be part of the TCB.
 
-To both have the ability to sign ID Blocks and not be part of the TCB, we must ensure
-that there exists no private key for the `ID_KEY` in the ID Auth structure.
+To have both the ability to sign ID blocks and not be part of the TCB, we must ensure
+that there exists no private key for the `ID_KEY` in the ID auth structure.
 For this, we implement ECDSA public key recovery. The algorithm is defined in [SEC 1: Elliptic Curve Cryptography](https://www.secg.org/sec1-v2.pdf).
 The algorithm calculates an ECDSA public key given a message and its signature.
 We keep the signature constant as `(r,s) = (2,1)` for all versions and
-use the given ID Block containing the policy and launch digest as an input.
-The recovery algorithm returns two valid public keys from which we choose the smaller one, meaning
+use the given ID block containing the guest policy and launch digest as an input.
+The recovery algorithm returns two valid public keys. We choose the smaller one, meaning
 the one with the smaller x value and, if equal, the one with the smaller y value.
 
 Since we don't generate any private key material during recovery and calculating the private
 key from only the message, signature, and public key is cryptographically hard, no one
-can forge (ID Block, signature) combinations under the same public key.
+can forge (ID block, signature) combinations under the same public key.

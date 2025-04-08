@@ -157,7 +157,7 @@ virsh
 VMs?
 VSCode
 walkthrough
-whitepaper
+whitepapers?
 WireGuard
 Xeon
 xsltproc
