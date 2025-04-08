@@ -14,9 +14,22 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+type Discovery struct {
+	client    kubernetes.Interface
+	namespace string
+}
+
+func New(client kubernetes.Interface, namespace string) *Discovery {
+	return &Discovery{
+		client:    client,
+		namespace: namespace,
+	}
+}
+
 // GetPeers returns a list of Coordinator IPs that are ready to be used for peer recovery.
-func GetPeers(ctx context.Context, client kubernetes.Interface, namespace string) ([]string, error) {
-	pods, err := client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+func (d *Discovery) GetPeers(ctx context.Context) ([]string, error) {
+	// TODO(burgerdev): this should be an informer with cache.
+	pods, err := d.client.CoreV1().Pods(d.namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: labels.Set{"app.kubernetes.io/name": "coordinator"}.String(),
 	})
 	if err != nil {

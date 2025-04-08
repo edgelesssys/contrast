@@ -70,7 +70,7 @@ func TestGetPeers(t *testing.T) {
 			t.Setenv("HOSTNAME", host)
 
 			client := fake.NewSimpleClientset(tc.pods...)
-			peers, err := GetPeers(context.Background(), client, namespace)
+			peers, err := New(client, namespace).GetPeers(context.Background())
 			require.NoError(err)
 			slices.Sort(tc.expected)
 			slices.Sort(peers)
