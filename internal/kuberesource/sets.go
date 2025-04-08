@@ -594,7 +594,7 @@ func MySQL() []any {
 										WithMountPropagation(corev1.MountPropagationHostToContainer),
 								).
 								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(1000),
+									WithMemoryLimitAndRequest(2000),
 								),
 						).
 						WithVolumes(
@@ -649,7 +649,7 @@ done
 								WithEnv(NewEnvVar("MYSQL_ALLOW_EMPTY_PASSWORD", "1")).
 								WithCommand("/bin/sh", "-c", clientCmd).
 								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(1000),
+									WithMemoryLimitAndRequest(2000),
 								),
 						),
 				),
