@@ -219,6 +219,21 @@ func (m *Authority) GetState() (*State, error) {
 	return state, nil
 }
 
+// NeedsRecovery decides whether the Coordinator at hand needs recovery.
+func (m *Authority) NeedsRecovery() bool {
+	state := m.state.Load()
+	if state != nil {
+		return state.stale.Load()
+	}
+	hasLatest, err := m.hist.HasLatest()
+	if err != nil {
+		m.logger.Warn("Could not access history", "error", err)
+		// If we can't access history, a recovery attemtpt is unlikely to help.
+		return false
+	}
+	return hasLatest
+}
+
 // State is a snapshot of the Coordinator's manifest history.
 type State struct {
 	seedEngine    *seedengine.SeedEngine
