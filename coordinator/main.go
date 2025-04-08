@@ -20,8 +20,10 @@ import (
 	meshapiserver "github.com/edgelesssys/contrast/coordinator/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	loggerpkg "github.com/edgelesssys/contrast/internal/logger"
+	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/mount"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -32,6 +34,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+	"k8s.io/utils/clock"
 )
 
 const (
@@ -86,8 +89,12 @@ func run() (retErr error) {
 	userapi.RegisterUserAPIServer(userAPIServer, meshAuth)
 	serverMetrics.InitializeMetrics(userAPIServer)
 
-	meshAPIcredentials, cancel := meshAuth.Credentials(promRegistry, issuer)
-	defer cancel()
+	month := 30 * 24 * time.Hour
+	ticker := clock.RealClock{}.NewTicker(9 * month)
+	defer ticker.Stop()
+	kdsGetter := certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, loggerpkg.NewNamed(logger, "kds-getter-validator"))
+
+	meshAPIcredentials := meshAuth.Credentials(promRegistry, issuer, kdsGetter)
 	meshAPIServer := newGRPCServer(meshAPIcredentials, serverMetrics)
 	meshapi.RegisterMeshAPIServer(meshAPIServer, meshapiserver.New(logger))
 	serverMetrics.InitializeMetrics(meshAPIServer)
