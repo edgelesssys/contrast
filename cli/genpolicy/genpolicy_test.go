@@ -55,7 +55,7 @@ func TestRunner(t *testing.T) {
 	t.Setenv("REGISTRY_AUTH_FILE", "/invalid/registry")
 
 	d := t.TempDir()
-	genpolicyBin := []byte(fmt.Sprintf(scriptTemplate, d))
+	genpolicyBin := fmt.Appendf(nil, scriptTemplate, d)
 
 	expectedRulesPath := "/rules.rego"
 	rulesPathFile := filepath.Join(d, "rules_path")

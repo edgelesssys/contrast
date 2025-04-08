@@ -69,7 +69,7 @@ type Runtime struct {
 	// Currently, only device plugins populate the annotations.
 	ContainerAnnotations []string `toml:"container_annotations,omitempty" json:"ContainerAnnotations,omitempty"`
 	// Options are config options for the runtime.
-	Options map[string]interface{} `toml:"options,omitempty" json:"options,omitempty"`
+	Options map[string]any `toml:"options,omitempty" json:"options,omitempty"`
 	// PrivilegedWithoutHostDevices overloads the default behaviour for adding host devices to the
 	// runtime spec when the container is privileged. Defaults to false.
 	PrivilegedWithoutHostDevices bool `toml:"privileged_without_host_devices,omitempty" json:"privileged_without_host_devices,omitempty"`
