@@ -117,7 +117,7 @@ const (
 
 // MarshalJSON marshals the variable header type to JSON.
 func (t VariableHeaderType) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, t.String())), nil
+	return fmt.Appendf(nil, `"%s"`, t.String()), nil
 }
 
 // UnmarshalJSON unmarshals the variable header type from JSON.

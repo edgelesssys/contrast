@@ -375,7 +375,7 @@ func TestHexString(t *testing.T) {
 			t.Run(tc.s, func(t *testing.T) {
 				assert := assert.New(t)
 				var hexString HexString
-				err := json.Unmarshal([]byte(fmt.Sprintf("\"%s\"", tc.s)), &hexString)
+				err := json.Unmarshal(fmt.Appendf(nil, "\"%s\"", tc.s), &hexString)
 				assert.NoError(err)
 				assert.Equal(tc.s, hexString.String())
 			})

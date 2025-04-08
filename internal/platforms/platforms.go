@@ -74,7 +74,7 @@ func (p Platform) String() string {
 
 // MarshalJSON marshals a Platform type to a JSON string.
 func (p Platform) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, p.String())), nil
+	return fmt.Appendf(nil, `"%s"`, p.String()), nil
 }
 
 // UnmarshalJSON unmarshals a JSON string to a Platform type.

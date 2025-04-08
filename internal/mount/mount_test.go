@@ -39,8 +39,8 @@ func TestParseBlkidCommand(t *testing.T) {
 	for name, block := range blocks {
 		t.Run(name, func(t *testing.T) {
 			parsedBlock, err := parseBlkidCommand(func(formatString string) []byte {
-				return []byte(fmt.Sprintf(formatString,
-					blk.DevName, blk.UUID, blk.BlockSize, blk.Type))
+				return fmt.Appendf(nil, formatString,
+					blk.DevName, blk.UUID, blk.BlockSize, blk.Type)
 			}(block.outFormatString))
 
 			if block.expError {

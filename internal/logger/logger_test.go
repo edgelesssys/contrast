@@ -66,9 +66,9 @@ func TestLogOutput(t *testing.T) {
 					continue
 				}
 				if tc.logFormat == "json" {
-					assert.NoError(json.Unmarshal([]byte(line), &map[string]interface{}{}))
+					assert.NoError(json.Unmarshal([]byte(line), &map[string]any{}))
 				} else {
-					assert.Error(json.Unmarshal([]byte(line), &map[string]interface{}{}))
+					assert.Error(json.Unmarshal([]byte(line), &map[string]any{}))
 				}
 			}
 		})
