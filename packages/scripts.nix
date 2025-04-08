@@ -157,6 +157,27 @@
     '';
   };
 
+  gofix = writeShellApplication {
+    name = "gofix";
+    runtimeInputs = with pkgs; [
+      go
+      gopls
+    ];
+    text = ''
+      exitcode=0
+
+      while IFS= read -r dir; do
+        echo "Running go fix on $dir"
+        go fix -C "$dir" ./... || exitcode=$?
+
+        echo "Running modernize on $dir"
+        (cd "$dir" && modernize -fix ./...) || exitcode=$?
+      done < <(go list -f '{{.Dir}}' -m)
+
+      exit $exitcode
+    '';
+  };
+
   golangci-lint = writeShellApplication {
     name = "golangci-lint";
     runtimeInputs = with pkgs; [
