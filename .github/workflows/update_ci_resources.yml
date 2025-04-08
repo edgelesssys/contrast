@@ -1,0 +1,26 @@
+name: update ci resources
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * *' # 1 AM every day
+
+jobs:
+  test_matrix:
+    strategy:
+      matrix:
+        platform:
+          - name: K3s-QEMU-SNP
+            runner: SNP
+          - name: K3s-QEMU-TDX
+            runner: TDX
+          - name: K3s-QEMU-SNP-GPU
+            runner: SNP-GPU
+    name: "${{ matrix.platform.name }}"
+    runs-on: ${{ matrix.platform.runner }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Update kubernetes resources
+        run: |
+          kubectl apply -f ./tools/bm-maintenance/deployment_tdx_snp.yml
+          kubectl create configmap bm-tcb-specs --from-file=./dev-docs/e2e/tcb-specs.json -n default --dry-run=client -o yaml | kubectl apply -f -
