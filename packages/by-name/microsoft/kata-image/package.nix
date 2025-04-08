@@ -57,6 +57,8 @@ let
       sed -i 's/@BINDIR@\/@AGENT_NAME@/\/usr\/bin\/kata-agent/g'  /build/rootfs/usr/lib/systemd/system/kata-agent.service
       touch /build/rootfs/etc/machine-id
 
+      # TODO: add systemd unit here
+
       tar --sort=name --mtime="@$SOURCE_DATE_EPOCH" -cvf /build/rootfs-extra-tree.tar -C /build/rootfs .
 
       mv /build/rootfs-extra-tree.tar $out

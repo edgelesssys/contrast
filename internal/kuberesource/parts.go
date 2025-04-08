@@ -564,6 +564,9 @@ func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 	return applycorev1.Container().
 		WithName("contrast-service-mesh").
 		WithImage("ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest").
+		WithResources(ResourceRequirements().
+			WithMemoryRequest(100),
+		).
 		WithRestartPolicy(corev1.ContainerRestartPolicyAlways).
 		WithVolumeMounts(VolumeMount().
 			WithName("contrast-secrets").

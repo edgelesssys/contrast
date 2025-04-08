@@ -33,6 +33,12 @@ lib.makeOverridable (
         "${modulesPath}/system/boot/uki.nix"
       ] ++ readModulesDir ../../nixos;
 
+      # systemd.services.deny-incomming-traffic = {
+      #   description = "Deny all incoming traffic";
+      #   wantedBy = [ "multi-user.target" ];
+      #   serviceConfig.ExecStart = "${pkgs.iptables}/bin/iptables -P INPUT DROP";
+      # };
+
       # TODO(katexochen): imporve, see comment above.
       nixpkgs.overlays = [
         (_self: _super: {
