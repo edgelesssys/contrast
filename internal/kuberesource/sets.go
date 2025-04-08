@@ -209,7 +209,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiSvcHost = "emoji-svc:8080"
 		votingSvcHost = "voting-svc:8080"
 		// Our modified images are around 100MiB compressed.
-		memoryLimitMiB = 500
+		memoryLimitMiB = 600
 	case ServiceMeshIngressEgress:
 		emojiSvcImage = "docker.io/buoyantio/emojivoto-emoji-svc:v11@sha256:957949355653776b65fafc2ee22f737cd21e090d4ace63f3b99f6e16976f0458"
 		emojiVotingSvcImage = "docker.io/buoyantio/emojivoto-voting-svc:v11@sha256:a57ac67af7a5b05988a38b49568eca6a078ef27a71c148c44c9db4efb1dac58b"
@@ -219,7 +219,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
 		// Upstream images are at most 75MiB compressed, but we're adding the service mesh image with 50MiB.
-		memoryLimitMiB = 700
+		memoryLimitMiB = 800
 	default:
 		panic(fmt.Sprintf("unknown service mesh mode: %s", smMode))
 	}
