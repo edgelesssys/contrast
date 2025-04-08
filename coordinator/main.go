@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -29,6 +30,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/mount"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/google/go-sev-guest/verify/trust"
 	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -164,12 +166,12 @@ func run() (retErr error) {
 		return nil
 	})
 
-	eg.Go(func() error {
-		logger.Info("Watching manifest store")
-		if err := meshAuth.WatchHistory(ctx); err != nil {
-			logger.Error("Watching manifest store", "err", err)
-		}
-		return err
+	registerEnterpriseServices(ctx, eg, &components{
+		auth:        meshAuth,
+		hist:        hist,
+		logger:      logger,
+		httpsGetter: kdsGetter,
+		issuer:      issuer,
 	})
 
 	eg.Go(func() error {
@@ -186,6 +188,14 @@ func run() (retErr error) {
 	})
 
 	return eg.Wait()
+}
+
+type components struct {
+	logger      *slog.Logger
+	auth        *authority.Authority
+	hist        *history.History
+	issuer      atls.Issuer
+	httpsGetter trust.HTTPSGetter
 }
 
 func newServerMetrics(reg *prometheus.Registry) *grpcprometheus.ServerMetrics {
