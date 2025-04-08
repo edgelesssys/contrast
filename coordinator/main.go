@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -183,12 +184,11 @@ func run() (retErr error) {
 		return nil
 	})
 
-	eg.Go(func() error {
-		logger.Info("Watching manifest store")
-		if err := meshAuth.WatchHistory(ctx); err != nil {
-			logger.Error("Watching manifest store", "err", err)
-		}
-		return err
+	registerEnterpriseServices(ctx, eg, &components{
+		guard:       meshAuth,
+		logger:      logger,
+		httpsGetter: kdsGetter,
+		issuer:      issuer,
 	})
 
 	eg.Go(func() error {
@@ -219,6 +219,13 @@ func run() (retErr error) {
 	})
 
 	return eg.Wait()
+}
+
+type components struct {
+	logger      *slog.Logger
+	guard       *stateguard.Guard
+	issuer      atls.Issuer
+	httpsGetter *certcache.CachedHTTPSGetter
 }
 
 func newServerMetrics(reg *prometheus.Registry) *grpcprometheus.ServerMetrics {
