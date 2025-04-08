@@ -580,7 +580,7 @@ func MySQL() []any {
 						WithContainers(
 							Container().
 								WithName("mysql-backend").
-								WithImage("docker.io/library/mysql:latest").
+								WithImage("docker.io/library/mysql:9.1.0@sha256:0255b469f0135a0236d672d60e3154ae2f4538b146744966d96440318cc822c6").
 								WithEnv(NewEnvVar("MYSQL_ALLOW_EMPTY_PASSWORD", "1")).
 								WithPorts(
 									ContainerPort().
