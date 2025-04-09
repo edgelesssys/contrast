@@ -7,8 +7,14 @@
 package transitengine
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
+	"encoding/asn1"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -17,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	"github.com/edgelesssys/contrast/internal/oid"
 )
 
 const (
@@ -53,7 +60,11 @@ type stateAuthority interface {
 }
 
 // NewTransitEngineAPI sets up the transit engine API with a provided seedEngineAuthority.
-func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger) *http.Server {
+func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger) (*http.Server, error) {
+	privKeyAPI, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed creating transit engine API private key")
+	}
 	return &http.Server{
 		Addr: fmt.Sprintf(":%d", port),
 		TLSConfig: &tls.Config{
@@ -68,21 +79,24 @@ func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger
 					ClientCAs:  state.CA().GetMeshCACertPool(),
 					ClientAuth: tls.RequireAndVerifyClientCert,
 					MinVersion: tls.VersionTLS12,
+					GetCertificate: func(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
+						return getCertificate(privKeyAPI, authority)
+					},
 				}, nil
 			},
 		},
 		Handler: newTransitEngineMux(authority, logger),
-	}
+	}, nil
 }
 
-func newTransitEngineMux(authority stateAuthority, logger *slog.Logger) *http.ServeMux {
+func newTransitEngineMux(authority stateAuthority, _ *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// 'name' wildcard is kept to reflect existing transit engine API specifications:
 	// https://openbao.org/api-docs/secret/transit/#encrypt-data
 	// name <=> workloadSecretID, which should be used for the key derivation.
-	mux.Handle("/v1/transit/encrypt/{name}", getEncryptHandler(authority))
-	mux.Handle("/v1/transit/decrypt/{name}", getDecryptHandler(authority))
+	mux.Handle("/v1/transit/encrypt/{name}", authorizationMiddleware(getEncryptHandler(authority)))
+	mux.Handle("/v1/transit/decrypt/{name}", authorizationMiddleware(getDecryptHandler(authority)))
 
 	return mux
 }
@@ -91,10 +105,6 @@ func getEncryptHandler(authority stateAuthority) http.HandlerFunc {
 	// TODO(jmxnzo): Implement Vault json error bodies
 	return func(w http.ResponseWriter, r *http.Request) {
 		workloadSecretID := r.PathValue("name")
-		if workloadSecretID == "" {
-			http.Error(w, "Invalid URL format", http.StatusBadRequest)
-			return
-		}
 		var encReq encryptionRequest
 		if err := parseRequest(r, &encReq); err != nil {
 			http.Error(w, fmt.Sprintf("parsing encryption request: %v", err), http.StatusBadRequest)
@@ -123,10 +133,6 @@ func getEncryptHandler(authority stateAuthority) http.HandlerFunc {
 func getDecryptHandler(authority stateAuthority) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		workloadSecretID := r.PathValue("name")
-		if workloadSecretID == "" {
-			http.Error(w, "Invalid URL format", http.StatusBadRequest)
-			return
-		}
 		var decReq decryptionRequest
 		if err := parseRequest(r, &decReq); err != nil {
 			http.Error(w, fmt.Sprintf("parsing decryption request: %v", err), http.StatusBadRequest)
@@ -149,6 +155,20 @@ func getDecryptHandler(authority stateAuthority) http.HandlerFunc {
 			return
 		}
 	}
+}
+
+func authorizeWorkloadSecret(workloadSecretID string, r *http.Request) error {
+	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 {
+		return fmt.Errorf("No client certs provided")
+	}
+	extensionWSID, err := extractCertExtension(r.TLS.PeerCertificates[0], oid.WorkloadSecretOID)
+	if err != nil {
+		return fmt.Errorf("missing required workloadSecretID cert extension:%w", err)
+	}
+	if workloadSecretID == extensionWSID {
+		return nil
+	}
+	return fmt.Errorf("mismatching workloadSecretIDs: name:%s, extension:%s", workloadSecretID, extensionWSID)
 }
 
 // deriveEncryptionKey derives the workload secret used as the encryption key by receiving the seedengine of the current state.
@@ -214,4 +234,55 @@ func extractVersion(versionStr string) (uint32, error) {
 	}
 
 	return uint32(version), nil
+}
+
+func extractCertExtension(cert *x509.Certificate, oid asn1.ObjectIdentifier) (string, error) {
+	for _, ext := range cert.Extensions {
+		if ext.Id.Equal(oid) {
+			var value []byte
+			_, err := asn1.Unmarshal(ext.Value, &value)
+			if err != nil {
+				return "", fmt.Errorf("failed to parse extension: %w", err)
+			}
+			return string(value), nil
+		}
+	}
+	return "", fmt.Errorf("extension not found")
+}
+
+func authorizationMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		workloadSecretID := r.PathValue("name")
+		if err := authorizeWorkloadSecret(workloadSecretID, r); err != nil {
+			http.Error(w, fmt.Sprintf("Unauthorized: %v", err), http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func getCertificate(privKeyAPI *ecdsa.PrivateKey, authority stateAuthority) (*tls.Certificate, error) {
+	state, err := authority.GetState()
+	if err != nil {
+		return nil, fmt.Errorf("getting state: %w", err)
+	}
+	dnsNames := []string{"coordinator"}
+
+	meshCertPEM, err := state.CA().NewAttestedMeshCert(dnsNames, nil, &privKeyAPI.PublicKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create mesh cert: %w", err)
+	}
+	meshCertDER, _ := pem.Decode(meshCertPEM)
+	if meshCertDER == nil {
+		return nil, fmt.Errorf("failed to decode mesh cert: %w", err)
+	}
+	intermCertDER, _ := pem.Decode(state.CA().GetIntermCACert())
+	if intermCertDER == nil {
+		return nil, fmt.Errorf("failed to decode intermediate cert: %w", err)
+	}
+	certChain := tls.Certificate{
+		Certificate: [][]byte{meshCertDER.Bytes, intermCertDER.Bytes},
+		PrivateKey:  privKeyAPI,
+	}
+	return &certChain, nil
 }
