@@ -13,6 +13,16 @@ final: prev:
   #   };
   # });
 
+  go_1_24 = prev.go_1_24.overrideAttrs (
+    finalAttrs: _prevAttrs: {
+      version = "1.24.2";
+      src = final.fetchurl {
+        url = "https://go.dev/dl/go${finalAttrs.version}.src.tar.gz";
+        hash = "sha256-ncd/+twW2DehvzLZnGJMtN8GR87nsRnt2eexvMBfLgA=";
+      };
+    }
+  );
+
   # Add the required extensions to the Azure CLI.
   azure-cli = prev.azure-cli.override {
     withExtensions = with final.azure-cli.extensions; [ aks-preview ];
