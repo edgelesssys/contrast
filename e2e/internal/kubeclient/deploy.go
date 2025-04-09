@@ -377,6 +377,15 @@ func (c *Kubeclient) ScaleDeployment(ctx context.Context, namespace, name string
 	return err
 }
 
+// ScaleStatefulSet scales a StatefulSet to the given number of replicas.
+func (c *Kubeclient) ScaleStatefulSet(ctx context.Context, namespace, name string, replicas int32) error {
+	_, err := c.Client.AppsV1().StatefulSets(namespace).UpdateScale(ctx, name, &autoscalingv1.Scale{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+		Spec:       autoscalingv1.ScaleSpec{Replicas: replicas},
+	}, metav1.UpdateOptions{})
+	return err
+}
+
 func toPtr[T any](t T) *T {
 	return &t
 }
