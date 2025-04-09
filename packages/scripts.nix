@@ -150,7 +150,7 @@
 
       while IFS= read -r dir; do
         echo "Running govulncheck on $dir"
-        govulncheck -C "$dir" || exitcode=$?
+        govulncheck -C "$dir" -tags contrast_unstable_api ./... || exitcode=$?
       done < <(go list -f '{{.Dir}}' -m)
 
       exit $exitcode
