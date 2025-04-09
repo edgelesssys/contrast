@@ -54,7 +54,7 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Run govulncheck
         run: |
-          nix run .#scripts.govulncheck -- ./...
+          nix run .#scripts.govulncheck
 
   golangci-lint:
     runs-on: ubuntu-22.04
