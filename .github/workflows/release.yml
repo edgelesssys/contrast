@@ -337,7 +337,7 @@ jobs:
           git diff --staged --quiet || git commit -m "release: update cli assets"
       - name: Build CLI
         run: |
-          nix build -L .#cli-release
+          nix build -L .#contrast-cli-release
       - name: Upload release artifacts (for main branch PR)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
