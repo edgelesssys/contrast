@@ -55,14 +55,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Temporarily not use a latest kernel.
-    # This is because of this change in the Linux kernel:
-    # https://github.com/containerd/ttrpc-rust/blob/0610015a92c340c6d88f81c0d6f9f449dfd0ecba/src/common.rs#L175
-    # which breaks the ttRPC socket that the Kata agent creates.
-    # Upstream fix: https://github.com/containerd/ttrpc-rust/pull/280
-    # TODO(msanft): Go back to a latest kernel once ttrpc-rust / kata adopt the fix.
     # TODO(burgerdev): find a recent kernel tailored for Azure.
-    boot.kernelPackages = pkgs.linuxPackages_6_11;
 
     boot.initrd = {
       kernelModules = [
