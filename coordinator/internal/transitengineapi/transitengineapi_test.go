@@ -6,9 +6,11 @@ package transitengine
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
@@ -92,7 +94,7 @@ func TestTransitAPICyclic(t *testing.T) {
 	t.Run("encrypt-decrypt handler", func(t *testing.T) {
 		fakeStateAuthority, err := newFakeSeedEngineAuthority()
 		require.NoError(t, err)
-		mux := NewTransitEngineAPI(fakeStateAuthority, slog.Default())
+		mux := newTransitEngineMux(fakeStateAuthority, slog.New(slog.NewTextHandler(io.Discard, nil)))
 
 		for name, tc := range testCases {
 			t.Run(name, func(t *testing.T) {
@@ -110,6 +112,7 @@ func TestTransitAPICyclic(t *testing.T) {
 					res := rec.Result()
 					require.Equal(tc.expStatus, res.StatusCode)
 					if tc.expStatus != http.StatusOK {
+						ciphertext = "vault:v" + strconv.Itoa(tc.encryptionInput.Version) + tc.encryptionInput.Plaintext
 						return
 					}
 
