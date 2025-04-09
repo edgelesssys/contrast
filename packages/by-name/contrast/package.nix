@@ -29,18 +29,21 @@ let
     env.CGO_ENABLED = 0;
 
     subPackages = [
+      # keep-sorted start
+      "e2e/aks-runtime"
+      "e2e/atls"
       "e2e/genpolicy"
       "e2e/getdents"
       "e2e/gpu"
       "e2e/openssl"
-      "e2e/servicemesh"
-      "e2e/release"
+      "e2e/peerrecovery"
       "e2e/policy"
-      "e2e/workloadsecret"
-      "e2e/volumestatefulset"
       "e2e/regression"
-      "e2e/aks-runtime"
-      "e2e/atls"
+      "e2e/release"
+      "e2e/servicemesh"
+      "e2e/volumestatefulset"
+      "e2e/workloadsecret"
+      # keep-sorted end
     ];
   };
 

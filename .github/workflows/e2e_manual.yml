@@ -8,16 +8,19 @@ on:
         required: true
         type: choice
         options:
+          # keep-sorted start
+          - atls
           - genpolicy
           - getdents
           - gpu
           - openssl
+          - peerrecovery
           - policy
           - regression
           - servicemesh
           - volumestatefulset
           - workloadsecret
-          - atls
+          # keep-sorted end
         default: "openssl"
       platform:
         description: "Platform"
