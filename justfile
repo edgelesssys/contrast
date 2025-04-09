@@ -10,7 +10,21 @@ push target:
     printf "ghcr.io/edgelesssys/contrast/%s:latest=%s\n" "{{ target }}" "$pushedImg" >> {{ workspace_dir }}/just.containerlookup
 
 # Build the coordinator, containerize and push it.
-coordinator: (push "coordinator")
+coordinator:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p {{ workspace_dir }}
+
+    # We push the coordinator for enterprise/community edition under the same container name for now,
+    # as it is convenient regarding the image replacement mechanism.
+    # We still have to select the correct nix target, so we cannot use the push target directly.
+    if [[ ${enterprise:-} == "true" ]]; then
+        nixTarget="containers.push-coordinator-enterprise"
+    else
+        nixTarget="containers.push-coordinator"
+    fi
+    pushedImg=$(nix run -L .#${nixTarget} -- "$container_registry/contrast/coordinator")
+    printf "ghcr.io/edgelesssys/contrast/%s:latest=%s\n" "coordinator" "$pushedImg" >> {{ workspace_dir }}/just.containerlookup
 
 # Build the openssl container and push it.
 openssl: (push "openssl")
@@ -435,6 +449,10 @@ container_registry=""
 azure_resource_group=""
 # Platform to deploy on
 default_platform="AKS-CLH-SNP"
+# Namespace suffix. Will be used when patching namespaces, chose something that identifies you.
+namespace_suffix=""
+# Whether to use enterprise or community edition.
+enterprise="false"
 
 #
 # No need to change anything below this line.
@@ -444,8 +462,6 @@ default_platform="AKS-CLH-SNP"
 azure_location="westeurope"
 # Azure subscription id.
 azure_subscription_id="0d202bbb-4fa7-4af8-8125-58c269a05435"
-# Namespace suffix, can be empty. Will be used when patching namespaces.
-namespace_suffix=""
 # Cache directory for the CLI.
 CONTRAST_CACHE_DIR="./workspace.cache"
 # Log level for the CLI.
