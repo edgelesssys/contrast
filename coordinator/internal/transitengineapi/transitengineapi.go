@@ -47,13 +47,13 @@ type (
 	}
 )
 
-// HTTPError is a json struct holding http error related fields, used for sending json error response bodies.
-type HTTPError struct {
-	Code          int    `json:"code,omitempty"`
-	Message       string `json:"message,omitempty"`
-	ReqMethod     string `json:"req_method,omitempty"`
-	ReqURI        string `json:"req_uri,omitempty"`
-	ReqRemoteAddr string `json:"req_remote_addr,omitempty"`
+// httpError is a json struct holding http error related fields, used for sending json error response bodies.
+type httpError struct {
+	code          int
+	Errors        []string `json:"errors,omitempty"`
+	reqMethod     string
+	reqURI        string
+	reqRemoteAddr string
 }
 
 type stateAuthority interface {
@@ -74,49 +74,48 @@ func newTransitEngineMux(authority stateAuthority, logger *slog.Logger) *http.Se
 }
 
 func getEncryptHandler(authority stateAuthority, logger *slog.Logger) http.HandlerFunc {
-	// TODO(jmxnzo): Implement Vault json error bodies
 	return func(w http.ResponseWriter, r *http.Request) {
 		workloadSecretID := r.PathValue("name")
 		if workloadSecretID == "" {
-			writeHTTPError(w, HTTPError{
-				Code:          http.StatusBadRequest,
-				Message:       "Invalid URL format",
-				ReqMethod:     r.Method,
-				ReqURI:        r.RequestURI,
-				ReqRemoteAddr: r.RemoteAddr,
+			writehttpError(w, httpError{
+				code:          http.StatusBadRequest,
+				Errors:        []string{"Invalid URL format"},
+				reqMethod:     r.Method,
+				reqURI:        r.RequestURI,
+				reqRemoteAddr: r.RemoteAddr,
 			}, logger)
 			return
 		}
 		var encReq encryptionRequest
 		if err := parseRequest(r, &encReq); err != nil {
-			writeHTTPError(w, HTTPError{
-				Code:          http.StatusBadRequest,
-				Message:       fmt.Sprintf("parsing encryption request: %v", err),
-				ReqMethod:     r.Method,
-				ReqURI:        r.RequestURI,
-				ReqRemoteAddr: r.RemoteAddr,
+			writehttpError(w, httpError{
+				code:          http.StatusBadRequest,
+				Errors:        []string{fmt.Sprintf("parsing encryption request: %v", err)},
+				reqMethod:     r.Method,
+				reqURI:        r.RequestURI,
+				reqRemoteAddr: r.RemoteAddr,
 			}, logger)
 			return
 		}
 		key, err := deriveEncryptionKey(authority, fmt.Sprintf("%d_%s", encReq.KeyVersion, workloadSecretID))
 		if err != nil {
-			writeHTTPError(w, HTTPError{
-				Code:          http.StatusInternalServerError,
-				Message:       fmt.Sprintf("key derivation: %v", err),
-				ReqMethod:     r.Method,
-				ReqURI:        r.RequestURI,
-				ReqRemoteAddr: r.RemoteAddr,
+			writehttpError(w, httpError{
+				code:          http.StatusInternalServerError,
+				Errors:        []string{fmt.Sprintf("key derivation: %v", err)},
+				reqMethod:     r.Method,
+				reqURI:        r.RequestURI,
+				reqRemoteAddr: r.RemoteAddr,
 			}, logger)
 			return
 		}
 		ciphertextContainer, err := symmetricEncryptRaw(key, encReq.Plaintext, encReq.AssociatedData)
 		if err != nil {
-			writeHTTPError(w, HTTPError{
-				Code:          http.StatusInternalServerError,
-				Message:       fmt.Sprintf("encrypting: %v", err),
-				ReqMethod:     r.Method,
-				ReqURI:        r.RequestURI,
-				ReqRemoteAddr: r.RemoteAddr,
+			writehttpError(w, httpError{
+				code:          http.StatusInternalServerError,
+				Errors:        []string{fmt.Sprintf("encrypting: %v", err)},
+				reqMethod:     r.Method,
+				reqURI:        r.RequestURI,
+				reqRemoteAddr: r.RemoteAddr,
 			}, logger)
 			return
 		}
@@ -124,12 +123,12 @@ func getEncryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 		var encResp encryptionResponse
 		encResp.Ciphertext = ciphertextContainer
 		if err = writeJSONResponse(w, encResp); err != nil {
-			writeHTTPError(w, HTTPError{
-				Code:          http.StatusInternalServerError,
-				Message:       fmt.Sprintf("writing response: %v", err),
-				ReqMethod:     r.Method,
-				ReqURI:        r.RequestURI,
-				ReqRemoteAddr: r.RemoteAddr,
+			writehttpError(w, httpError{
+				code:          http.StatusInternalServerError,
+				Errors:        []string{fmt.Sprintf("writing response: %v", err)},
+				reqMethod:     r.Method,
+				reqURI:        r.RequestURI,
+				reqRemoteAddr: r.RemoteAddr,
 			}, logger)
 			return
 		}
@@ -140,57 +139,57 @@ func getDecryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 	return func(w http.ResponseWriter, r *http.Request) {
 		workloadSecretID := r.PathValue("name")
 		if workloadSecretID == "" {
-			writeHTTPError(w, HTTPError{
-				Code:          http.StatusBadRequest,
-				Message:       "Invalid URL format",
-				ReqMethod:     r.Method,
-				ReqURI:        r.RequestURI,
-				ReqRemoteAddr: r.RemoteAddr,
+			writehttpError(w, httpError{
+				code:          http.StatusBadRequest,
+				Errors:        []string{"Invalid URL format"},
+				reqMethod:     r.Method,
+				reqURI:        r.RequestURI,
+				reqRemoteAddr: r.RemoteAddr,
 			}, logger)
 			return
 		}
 		var decReq decryptionRequest
 		if err := parseRequest(r, &decReq); err != nil {
-			writeHTTPError(w, HTTPError{
-				Code:          http.StatusBadRequest,
-				Message:       fmt.Sprintf("parsing decryption request: %v", err),
-				ReqMethod:     r.Method,
-				ReqURI:        r.RequestURI,
-				ReqRemoteAddr: r.RemoteAddr,
+			writehttpError(w, httpError{
+				code:          http.StatusBadRequest,
+				Errors:        []string{fmt.Sprintf("parsing decryption request: %v", err)},
+				reqMethod:     r.Method,
+				reqURI:        r.RequestURI,
+				reqRemoteAddr: r.RemoteAddr,
 			}, logger)
 			return
 		}
 		key, err := deriveEncryptionKey(authority, fmt.Sprintf("%d_%s", decReq.CiphertextContainer.keyVersion, workloadSecretID))
 		if err != nil {
-			writeHTTPError(w, HTTPError{
-				Code:          http.StatusInternalServerError,
-				Message:       fmt.Sprintf("key derivation: %v", err),
-				ReqMethod:     r.Method,
-				ReqURI:        r.RequestURI,
-				ReqRemoteAddr: r.RemoteAddr,
+			writehttpError(w, httpError{
+				code:          http.StatusInternalServerError,
+				Errors:        []string{fmt.Sprintf("key derivation: %v", err)},
+				reqMethod:     r.Method,
+				reqURI:        r.RequestURI,
+				reqRemoteAddr: r.RemoteAddr,
 			}, logger)
 			return
 		}
 		plaintext, err := symmetricDecryptRaw(key, decReq.CiphertextContainer, decReq.AssociatedData)
 		if err != nil {
-			writeHTTPError(w, HTTPError{
-				Code:          http.StatusInternalServerError,
-				Message:       fmt.Sprintf("decrypting: %v", err),
-				ReqMethod:     r.Method,
-				ReqURI:        r.RequestURI,
-				ReqRemoteAddr: r.RemoteAddr,
+			writehttpError(w, httpError{
+				code:          http.StatusInternalServerError,
+				Errors:        []string{fmt.Sprintf("decrypting: %v", err)},
+				reqMethod:     r.Method,
+				reqURI:        r.RequestURI,
+				reqRemoteAddr: r.RemoteAddr,
 			}, logger)
 			return
 		}
 		var decResp decryptionResponse
 		decResp.Plaintext = plaintext
 		if err = writeJSONResponse(w, decResp); err != nil {
-			writeHTTPError(w, HTTPError{
-				Code:          http.StatusInternalServerError,
-				Message:       fmt.Sprintf("writing response: %v", err),
-				ReqMethod:     r.Method,
-				ReqURI:        r.RequestURI,
-				ReqRemoteAddr: r.RemoteAddr,
+			writehttpError(w, httpError{
+				code:          http.StatusInternalServerError,
+				Errors:        []string{fmt.Sprintf("writing response: %v", err)},
+				reqMethod:     r.Method,
+				reqURI:        r.RequestURI,
+				reqRemoteAddr: r.RemoteAddr,
 			}, logger)
 			return
 		}
@@ -224,16 +223,13 @@ func writeJSONResponse(w http.ResponseWriter, payload any) error {
 	return json.NewEncoder(w).Encode(response)
 }
 
-// writeHTTPError sends the HTTPError handed in as json body error response and logs prior.
-func writeHTTPError(w http.ResponseWriter, httpErr HTTPError, logger *slog.Logger) {
+// writehttpError sends the httpError handed in as json body error response and logs prior.
+func writehttpError(w http.ResponseWriter, httpErr httpError, logger *slog.Logger) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(httpErr.Code)
+	w.WriteHeader(httpErr.code)
 	logger.Error("HTTP error", slog.Any("error", httpErr))
-	if err := json.NewEncoder(w).Encode(struct {
-		Error HTTPError `json:"error"`
-	}{httpErr}); err != nil {
-		http.Error(w, httpErr.Message, httpErr.Code)
-	}
+
+	_ = json.NewEncoder(w).Encode(httpErr) //nolint:errchkjson
 }
 
 // parseRequest parses the given HTTP request body into the struct.
