@@ -275,8 +275,7 @@ buildGoModule rec {
 
   checkPhase = ''
     runHook preCheck
-    go test -tags=contrast_unstable_api -race ./...
-    go test -tags=contrast_unstable_api,enterprise -race ./...
+    go test -tags=${lib.concatStringsSep "," tags} -race ./...
     runHook postCheck
   '';
 
