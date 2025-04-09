@@ -55,6 +55,22 @@ let
       };
     };
 
+    coordinator-enterprise = dockerTools.buildImage {
+      name = "coordinator-enterprise";
+      tag = "v${pkgs.contrast.version}";
+      copyToRoot =
+        (with pkgs; [
+          busybox
+          e2fsprogs # mkfs.ext4
+          libuuid # blkid
+        ])
+        ++ (with dockerTools; [ caCertificates ]);
+      config = {
+        Cmd = [ "${pkgs.contrast-enterprise.coordinator}/bin/coordinator" ];
+        Env = [ "PATH=/bin" ]; # This is only here for policy generation.
+      };
+    };
+
     initializer = dockerTools.buildImage {
       name = "initializer";
       tag = "v${pkgs.contrast.version}";
