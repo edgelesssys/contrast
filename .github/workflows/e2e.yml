@@ -92,7 +92,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: e2e_pod_logs-${{ inputs.platform }}-${{ inputs.test-name }}
+          name: e2e_pod_logs-${{ inputs.enterprise && 'enterprise-' || '' }}${{ inputs.platform }}-${{ inputs.test-name }}
           path: workspace/logs/export-no-stream/logs
       - name: Notify teams channel of failure
         if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
@@ -101,7 +101,7 @@ jobs:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
           title: "${{ inputs.test-name }} failed"
           message: "e2e test ${{ inputs.test-name }} failed"
-          additionalFields: '[{"title": "Platform", "value": "${{ inputs.platform }}"}]'
+          additionalFields: '[{"title": "Platform", "value": "${{ inputs.platform }}"},{"title": "Enterprise", "value": "${{ inputs.enterprise }}"}}]'
       - name: Cleanup
         if: always() && !inputs.skip-undeploy
         run: |
