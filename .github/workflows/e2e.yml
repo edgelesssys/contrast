@@ -9,6 +9,9 @@ on:
       test-name:
         description: "Test Name"
         type: string
+      enterprise:
+        description: "Enterprise"
+        type: boolean
       platform:
         description: "Platform"
         type: string
@@ -56,6 +59,7 @@ jobs:
           container_registry=${{ env.container_registry }}
           azure_resource_group=${{ env.azure_resource_group }}
           default_platform=${{ inputs.platform }}
+          enterprise=${{ inputs.enterprise }}
           EOF
       - if: (!inputs.self-hosted)
         name: Get credentials for CI cluster
