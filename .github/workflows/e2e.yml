@@ -36,8 +36,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - if: (!inputs.self-hosted)
-        uses: ./.github/actions/setup_nix
+      - uses: ./.github/actions/setup_nix
+        if: (!inputs.self-hosted)
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -47,8 +47,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - if: (!inputs.self-hosted)
-        name: Login to Azure
+      - name: Login to Azure
+        if: (!inputs.self-hosted)
         uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
@@ -61,12 +61,12 @@ jobs:
           default_platform=${{ inputs.platform }}
           enterprise=${{ inputs.enterprise }}
           EOF
-      - if: (!inputs.self-hosted)
-        name: Get credentials for CI cluster
+      - name: Get credentials for CI cluster
+        if: (!inputs.self-hosted)
         run: |
           just get-credentials
-      - if: (!inputs.self-hosted)
-        name: Set sync environment
+      - name: Set sync environment
+        if: (!inputs.self-hosted)
         run: |
           sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"

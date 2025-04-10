@@ -397,8 +397,8 @@ jobs:
     needs: release
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - if: (!matrix.platform.self-hosted)
-        uses: ./.github/actions/setup_nix
+      - uses: ./.github/actions/setup_nix
+        if: (!matrix.platform.self-hosted)
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -413,8 +413,8 @@ jobs:
         uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
-      - if: (!matrix.platform.self-hosted)
-        uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+        if: (!matrix.platform.self-hosted)
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env
