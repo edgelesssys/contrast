@@ -13,6 +13,7 @@ on:
       - "!rfc/**"
       - "!tools/asciinema/**"
       - "!tools/vale/**"
+  workflow_dispatch:
 
 # Cancel old runs of this workflow for this pull request if new commits are pushed.
 concurrency:
@@ -28,23 +29,49 @@ jobs:
             runner: ubuntu-22.04
             self-hosted: false
             test: openssl
+            enterprise: false
           - platform: K3s-QEMU-SNP
             runner: SNP
             self-hosted: true
             test: openssl
+            enterprise: false
           - platform: K3s-QEMU-SNP-GPU
             runner: SNP-GPU
             self-hosted: true
             test: gpu
+            enterprise: false
           - platform: K3s-QEMU-TDX
             runner: TDX
             self-hosted: true
             test: openssl
+            enterprise: false
+
+          - platform: AKS-CLH-SNP
+            runner: ubuntu-22.04
+            self-hosted: false
+            test: openssl
+            enterprise: true
+          - platform: K3s-QEMU-SNP
+            runner: SNP
+            self-hosted: true
+            test: openssl
+            enterprise: true
+          - platform: K3s-QEMU-SNP-GPU
+            runner: SNP-GPU
+            self-hosted: true
+            test: gpu
+            enterprise: true
+          - platform: K3s-QEMU-TDX
+            runner: TDX
+            self-hosted: true
+            test: openssl
+            enterprise: true
       fail-fast: false
-    name: "${{ matrix.test }} on ${{ matrix.platform }}"
+    name: "${{ matrix.enterprise && 'enterprise ' || '' }}${{ matrix.platform }}"
     uses: ./.github/workflows/e2e.yml
     with:
       skip-undeploy: false
+      enterprise: ${{ matrix.enterprise }}
       test-name: ${{ matrix.test }}
       platform: ${{ matrix.platform }}
       runner: ${{ matrix.runner }}
