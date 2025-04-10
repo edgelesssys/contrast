@@ -293,24 +293,28 @@ func restartHostContainerd(containerdConfigPath, service string) error {
 	configMtime := info.ModTime()
 
 	// get containerd start time
-	// Note that "--timestamp=unix" is not supported in the installed version of systemd (v250) at the time of writing.
 	serviceStartTime, err := exec.Command(
 		"nsenter", "--target", "1", "--mount", "--",
-		"systemctl", "show", "--timestamp=utc", "--property=ActiveEnterTimestamp", service,
+		"systemctl", "show", "--timestamp=us+utc", "--property=ActiveEnterTimestamp", service,
 	).CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("getting service (%s) start time: %w %q", service, err, serviceStartTime)
 	}
 
-	// format: ActiveEnterTimestamp=Day YYYY-MM-DD HH:MM:SS UTC
+	// format: ActiveEnterTimestamp=Day YYYY-MM-DD HH:MM:SS.000000 UTC
+	// '--timestamp=us+utc' was added in systemd v248
+	// systemd v250 on azurelinux behaves weird and doesn't return micros using the flag,
+	// so don't enforce its existence in the time.Parse string. Accordingly, restart detection
+	// might be imprecise on AKS.
+	// TODO(katexochen): revisit this after some azurelinux updates.
 	dayUTC := strings.TrimPrefix(strings.TrimSpace(string(serviceStartTime)), "ActiveEnterTimestamp=")
 	startTime, err := time.Parse("Mon 2006-01-02 15:04:05 MST", dayUTC)
 	if err != nil {
 		return fmt.Errorf("parsing service (%s) start time: %w", service, err)
 	}
 
-	fmt.Printf("service (%s) start time: %s\n", service, startTime.Format(time.RFC3339))
-	fmt.Printf("config mtime:          %s\n", configMtime.Format(time.RFC3339))
+	fmt.Printf("service (%s) start time: %s\n", service, startTime.Format(time.RFC3339Nano))
+	fmt.Printf("config mtime:          %s\n", configMtime.Format(time.RFC3339Nano))
 	if startTime.After(configMtime) {
 		fmt.Printf("service (%s) already running with the newest config\n", service)
 		return nil
