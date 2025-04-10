@@ -11,6 +11,7 @@ replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0
 
 require (
 	filippo.io/keygen v0.0.0-20240718133620-7f162efbbd87
+	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/elazarl/goproxy v1.7.2
 	github.com/google/go-github/v66 v66.0.0
 	github.com/google/go-sev-guest v0.13.0
@@ -51,6 +52,7 @@ require (
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
+	github.com/godbus/dbus/v5 v5.0.4 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect

@@ -222,9 +222,14 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 							WithMemoryRequest(700),
 						).
 						WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
-						WithVolumeMounts(VolumeMount().
-							WithName("host-mount").
-							WithMountPath("/host")).
+						WithVolumeMounts(
+							VolumeMount().
+								WithName("host-mount").
+								WithMountPath("/host"),
+							VolumeMount().
+								WithName("var-run-dbus-socket").
+								WithMountPath("/var/run/dbus/system_bus_socket"),
+						).
 						WithCommand("/bin/node-installer", platform.String()),
 					).
 					WithContainers(
@@ -237,6 +242,12 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 							WithHostPath(HostPathVolumeSource().
 								WithPath("/").
 								WithType(corev1.HostPathDirectory),
+							),
+						Volume().
+							WithName("var-run-dbus-socket").
+							WithHostPath(HostPathVolumeSource().
+								WithPath("/var/run/dbus/system_bus_socket").
+								WithType(corev1.HostPathSocket),
 							),
 					)...,
 					),
