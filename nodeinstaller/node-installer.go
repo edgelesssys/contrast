@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/asset"
@@ -150,19 +151,19 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP, platforms.MetalQEMUSNP, platforms.MetalQEMUTDX,
 		platforms.MetalQEMUSNPGPU:
-		return restartHostContainerd(containerdConfigPath, "containerd")
+		return restartHostContainerd(ctx, containerdConfigPath, "containerd.service")
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
 		if hostServiceExists("k3s") {
-			return restartHostContainerd(containerdConfigPath, "k3s")
+			return restartHostContainerd(ctx, containerdConfigPath, "k3s.service")
 		} else if hostServiceExists("k3s-agent") {
-			return restartHostContainerd(containerdConfigPath, "k3s-agent")
+			return restartHostContainerd(ctx, containerdConfigPath, "k3s-agent.service")
 		}
 		return fmt.Errorf("neither k3s nor k3s-agent service found")
 	case platforms.RKE2QEMUTDX:
 		if hostServiceExists("rke2-server") {
-			return restartHostContainerd(containerdConfigPath, "rke2-server")
+			return restartHostContainerd(ctx, containerdConfigPath, "rke2-server.service")
 		} else if hostServiceExists("rke2-agent") {
-			return restartHostContainerd(containerdConfigPath, "rke2-agent")
+			return restartHostContainerd(ctx, containerdConfigPath, "rke2-agent.service")
 		}
 		return fmt.Errorf("neither rke2-server nor rke2-agent service found")
 	default:
@@ -284,7 +285,7 @@ func parseExistingContainerdConfig(path string) ([]byte, config.ContainerdConfig
 	return configData, cfg, nil
 }
 
-func restartHostContainerd(containerdConfigPath, service string) error {
+func restartHostContainerd(ctx context.Context, containerdConfigPath, service string) error {
 	// get mtime of the config file
 	info, err := os.Stat(containerdConfigPath)
 	if err != nil {
@@ -292,25 +293,9 @@ func restartHostContainerd(containerdConfigPath, service string) error {
 	}
 	configMtime := info.ModTime()
 
-	// get containerd start time
-	serviceStartTime, err := exec.Command(
-		"nsenter", "--target", "1", "--mount", "--",
-		"systemctl", "show", "--timestamp=us+utc", "--property=ActiveEnterTimestamp", service,
-	).CombinedOutput()
+	startTime, err := getSystemdServiceRestartTime(ctx, service)
 	if err != nil {
-		return fmt.Errorf("getting service (%s) start time: %w %q", service, err, serviceStartTime)
-	}
-
-	// format: ActiveEnterTimestamp=Day YYYY-MM-DD HH:MM:SS.000000 UTC
-	// '--timestamp=us+utc' was added in systemd v248
-	// systemd v250 on azurelinux behaves weird and doesn't return micros using the flag,
-	// so don't enforce its existence in the time.Parse string. Accordingly, restart detection
-	// might be imprecise on AKS.
-	// TODO(katexochen): revisit this after some azurelinux updates.
-	dayUTC := strings.TrimPrefix(strings.TrimSpace(string(serviceStartTime)), "ActiveEnterTimestamp=")
-	startTime, err := time.Parse("Mon 2006-01-02 15:04:05 MST", dayUTC)
-	if err != nil {
-		return fmt.Errorf("parsing service (%s) start time: %w", service, err)
+		return fmt.Errorf("retrieving service (%s) start time: %w", service, err)
 	}
 
 	fmt.Printf("service (%s) start time: %s\n", service, startTime.Format(time.RFC3339Nano))
@@ -330,6 +315,25 @@ func restartHostContainerd(containerdConfigPath, service string) error {
 	}
 	fmt.Printf("service (%s) restarted: %s\n", service, out)
 	return nil
+}
+
+func getSystemdServiceRestartTime(ctx context.Context, service string) (time.Time, error) {
+	conn, err := dbus.NewSystemConnectionContext(ctx)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("connecting to system bus: %w", err)
+	}
+	defer conn.Close()
+
+	property, err := conn.GetUnitPropertyContext(ctx, service, "ActiveEnterTimestamp")
+	if err != nil {
+		return time.Time{}, fmt.Errorf("getting property ActiveEnterTimestamp: %w", err)
+	}
+
+	timestamp, ok := property.Value.Value().(uint64)
+	if !ok {
+		return time.Time{}, fmt.Errorf("wrong type: %T", property.Value.Value())
+	}
+	return time.Unix(0, int64(timestamp)*1000), nil
 }
 
 func hostServiceExists(service string) bool {
