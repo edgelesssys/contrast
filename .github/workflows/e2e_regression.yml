@@ -14,6 +14,7 @@ jobs:
   regression-test:
     strategy:
       matrix:
+        enterprise: [false, true]
         platform:
           - name: AKS-CLH-SNP
             runner: ubuntu-22.04
@@ -35,11 +36,12 @@ jobs:
               self-hosted: true
             test-name: genpolicy
       fail-fast: false
-    name: "${{ matrix.platform.name }}"
+    name: "${{ matrix.enterprise && 'enterprise ' || '' }}${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e.yml
     with:
       skip-undeploy: false
       test-name: ${{ matrix.test-name }}
+      enterprise: ${{ matrix.enterprise }}
       platform: ${{ matrix.platform.name }}
       runner: ${{ matrix.platform.runner }}
       self-hosted: ${{ matrix.platform.self-hosted }}
