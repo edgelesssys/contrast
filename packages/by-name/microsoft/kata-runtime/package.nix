@@ -9,7 +9,7 @@
   applyPatches,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "kata-runtime";
   version = "3.2.0.azl2";
 
@@ -17,7 +17,7 @@ buildGoModule rec {
     src = fetchFromGitHub {
       owner = "microsoft";
       repo = "kata-containers";
-      rev = version;
+      rev = finalAttrs.version;
       hash = "sha256-5dLWoVy2+RVq3ssGW7bYYAr3mQdO/ehJphpdJ435pC0=";
     };
 
@@ -31,7 +31,7 @@ buildGoModule rec {
     ];
   };
 
-  sourceRoot = "${src.name}/src/runtime";
+  sourceRoot = "${finalAttrs.src.name}/src/runtime";
 
   vendorHash = null;
 
@@ -78,4 +78,4 @@ buildGoModule rec {
     [ "-skip=^${builtins.concatStringsSep "$|^" skippedTests}$" ];
 
   meta.mainProgram = "containerd-shim-kata-v2";
-}
+})

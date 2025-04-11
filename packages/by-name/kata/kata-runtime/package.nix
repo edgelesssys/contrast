@@ -9,7 +9,7 @@
   applyPatches,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "kata-runtime";
   version = "3.15.0";
 
@@ -17,7 +17,7 @@ buildGoModule rec {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
-      rev = version;
+      rev = finalAttrs.version;
       hash = "sha256-u9Q8lSw3KcSdEJpy8DHUnB9BriwrNaOn0S7tj0jpiPg=";
     };
 
@@ -129,7 +129,7 @@ buildGoModule rec {
     ];
   };
 
-  sourceRoot = "${src.name}/src/runtime";
+  sourceRoot = "${finalAttrs.src.name}/src/runtime";
 
   vendorHash = null;
 
@@ -188,4 +188,4 @@ buildGoModule rec {
   };
 
   meta.mainProgram = "containerd-shim-kata-v2";
-}
+})
