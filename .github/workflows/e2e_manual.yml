@@ -8,15 +8,18 @@ on:
         required: true
         type: choice
         options:
+          # keep-sorted start
           - genpolicy
           - getdents
           - gpu
           - openssl
+          - peerrecovery
           - policy
           - regression
           - servicemesh
           - volumestatefulset
           - workloadsecret
+          # keep-sorted end
         default: "openssl"
       platform:
         description: "Platform"
