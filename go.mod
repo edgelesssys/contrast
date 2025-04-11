@@ -7,7 +7,9 @@ toolchain go1.23.4
 // The upstream package has some stepping issues with Genoa:
 // https://github.com/google/go-sev-guest/issues/115
 // https://github.com/google/go-sev-guest/issues/103
-replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20250402104424-deaf0dfccf3c
+// Includes cherry-pick of unmerged PR to fix platform info validation:
+// https://github.com/google/go-sev-guest/pull/161
+replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20250411143710-1bf02cf1129f
 
 require (
 	filippo.io/keygen v0.0.0-20240718133620-7f162efbbd87
