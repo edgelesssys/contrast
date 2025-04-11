@@ -88,6 +88,7 @@ type SNPReferenceValues struct {
 	ProductName        ProductName
 	TrustedMeasurement HexString
 	GuestPolicy        abi.SnpPolicy
+	PlatformInfo       abi.SnpPlatformInfo
 }
 
 // Validate checks the validity of all fields in the AKS reference values.
