@@ -6,7 +6,9 @@ Since the architecture is largely consistent across platforms, this overview foc
 
 ## Architectural goals
 
-- **Isolation:** Workloads and processed data remain inaccessible to the infrastructure provider. This is achieved by executing pods within Confidential Virtual Machines (CVMs), leveraging runtime memory encryption, and enforcing end-to-end confidentiality and authenticity for all cluster communication.
+The Contrast architecture is designed to deliver four key properties:
+
+- **Isolation:** Workloads and processed data remain inaccessible to the infrastructure provider by running pods—a group of containers—inside Confidential Virtual Machines (CVMs). This setup leverages runtime memory encryption and enforces end-to-end confidentiality and authenticity across all cluster communication.
 
 - **Attestation:** Workload integrity is verified using hardware-based, provider-independent attestation mechanisms, ensuring that only verified and trusted workloads are executed.
 
@@ -14,25 +16,29 @@ Since the architecture is largely consistent across platforms, this overview foc
 
 - **Full transparency:** All reference values defining the trusted state are fully transparent, available through open-source code and reproducible builds.
 
-🔗 For details, visit the [Contrast documentation](https://docs.edgeless.systems/contrast/basics/security-benefits).
+For details, visit the [Contrast documentation](https://docs.edgeless.systems/contrast/basics/security-benefits).
 
 ## Contrast roles
 
-- **Container image provider**: Creates container images that package the application and its dependencies, allowing it to access protected data securely.
+In the context of Contrast there are three key roles:
+
+- **Container image provider**: Creates container images that package the application and its dependencies.
 
 - **Workload operator**: Deploys and manages workloads in a Kubernetes cluster. The operator typically has full administrative privileges over the deployment and can manage cluster resources such as nodes, volumes, and networking rules. The operator can also interact with Kubernetes APIs and the underlying cloud infrastructure.
 
 - **Data owner**: Owns the protected data and is responsible for verifying the deployment using the coordinator attestation service. This verification ensures the identity, integrity, and confidentiality of workloads, the runtime environment, and access permissions. A data owner can, for example, be a user of a deployed SaaS application.
 
-🔗 For details, visit the [Contrast documentation](https://docs.edgeless.systems/contrast/basics/security-benefits#personas-in-a-contrast-deployment).
+For details, visit the [Contrast documentation](https://docs.edgeless.systems/contrast/basics/security-benefits#personas-in-a-contrast-deployment).
 
 ## Key components
 
+Contrast is built on four key components:
+
 - **Contrast Kubernetes runtime**: Contrast comes with a custom Kubernetes `RuntimeClass` that specifies the runtime handler used by `containerd` to manage container execution. A custom runtime handler is used to run containers inside Confidential Virtual Machines (CVMs). Contrast’s runtime is based on the [Kata Container runtime](https://katacontainers.io/) and the [Confidential Containers (CoCo)](https://confidentialcontainers.org/) project.
 
-- **Contrast coordinator**: An additional workload deployed to the cluster that itself runs within a CVM using the Contrast custom runtime. It serves as the central attestation service, ensuring that only attested workloads are admitted into the trusted service mesh.
+- **Contrast coordinator**: An additional service that is deployed to the cluster and itself runs within a CVM using the Contrast custom runtime. It serves as the central attestation service, ensuring that only verified workloads are admitted into the trusted service mesh. It is configured with the **manifest**, a configuration file (.json) that secifies the trusted reference state of your cluster. It specifies cryptographic hashes for all application workloads The Contrast coordinator ensures that CVM attestations are always verified against this manifest before initialized as trusted
 
-- **Manifest**: A configuration (.json) within the Contrast coordinator that defines the trusted reference state of your cluster. It specifies cryptographic hashes for all application workloads The Contrast coordinator ensures that CVM attestations are always verified against this manifest before initialized as trusted.
+- **Service Mesh:** The Contrast coordinator functions as a Certificate Authority (CA), issuing certificates exclusively to successfully attested workloads, thereby establishing a trusted service mesh.
 
 - **Contrast CLI**: A command-line tool to verify the integrity and authenticity of the coordinator and the entire deployment via remote attestation. It can also be used by data owners to verify a deployment. As it serves as a root of trust for the deployment, ensuring its integrity and authenticity is crucial for both the workload operator and data owner. It's also used for automatically pre-processing deployment files, adjusting them for a secure Contrast integration.
 
@@ -46,27 +52,27 @@ Since the architecture is largely consistent across platforms, this overview foc
 
 ```
 
-🔗 For details, visit the [Contrast documentation](https://docs.edgeless.systems/contrast/components/overview).
+For details, visit the [Contrast documentation](https://docs.edgeless.systems/contrast/components/overview).
 
 ## Runtime Policy
 
 A key element of a CVM in Contrast is its runtime policy, a fundamental component of Kata Containers. The runtime policy is attached to the CVM and enforced by the `kata-agent`, which runs within the CVM. It strictly regulates and verifies host-to-CVM communication, ensuring that:
 
-- ✅ Only approved workload images can be started inside the CVM.
-- ✅ Execution of additional unauthorized processes is prohibited.
-- ✅ Unexpected environment variables can't be injected.
+- Only approved workload images can be started inside the CVM.
+- Execution of additional unauthorized processes is prohibited.
+- Unexpected environment variables can't be injected.
 
 A CVM's runtime policy is automatically generated by the Contrast CLI based on the initial pod definition in the deployment YAML.
 
 Runtime policies are written in [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) and are automatically added to the pod definition as Base64-encoded annotations in the deployment YAML.
 
-🔗 For details, visit the [Contrast documentation](https://docs.edgeless.systems/contrast/components/policies).
+For details, visit the [Contrast documentation](https://docs.edgeless.systems/contrast/components/policies).
 
 ## Attestation
 
 Attestation is a key mechanism of confidential computing that enables hardware-enforced, provider-independent verification of CVMs.
 
-The integrity and authenticity of CVMs are verified through attestation. Each creation of a CVM generates a hardware-enforced attestation report, which is signed using a secret key. This secret key is derived from a vendor-introduced secret embedded in the chip during production. As a result, the attestation report serves as independent evidence of the CVM's state. It's signed by:
+The integrity and authenticity of CVMs are verified through attestation. Each creation of a CVM generates a hardware-enforced attestation report, which is signed using a private key. This private key is derived from a vendor-introduced secret embedded in the chip during production. As a result, the attestation report serves as independent evidence of the CVM's state. It's signed by:
 
 - **The Versioned Chip Endorsement Key (VCEK)**: A unique key derived from the chip's embedded secret and its security version number.
 
@@ -82,9 +88,9 @@ The report includes the following information:
 
 ### Manifest
 
-The manifest, enforced by the Contrast coordinator, contains reference values used to verify all workloads. It can be seen as the trusted reference state of the deployment. The manifest includes:
+The manifest, enforced by the Contrast coordinator, contains reference values used to verify all application pods. It can be seen as the trusted reference state of the deployment. The manifest includes:
 
-- **Policies**: One Cryptographic hashes of the enforced runtime policy per pod.
+- **Policies:** One cryptographic hash per pod, representing its enforced runtime policy.
 - **ReferenceValues**: The launch digests of the CVMs, based on AMD SEV-SNP. This doesn't include any application code but tracks the setup of the CVM. Confidential Pods on the same CPU have the same reference values.
 - **WorkloadOwnerKeyDigests**: A public key digest used to authenticate subsequent manifest updates.
 - **SeedshareOwnerPubKeys**: Used for coordinator recovery. For details, see [later sections](#secret-recovery).
@@ -134,7 +140,7 @@ Here is an example manifest:
 
 ```
 
-🔗 For details, see the [Contrast documentation](https://docs.edgeless.systems/contrast/architecture/attestation).
+For details, see the [Contrast documentation](https://docs.edgeless.systems/contrast/architecture/attestation).
 
 ## Trusted service mesh
 
@@ -154,27 +160,27 @@ Two certificates are relevant when verifying workloads and workload communicatio
 
 Both the Root CA certificate and the Mesh CA certificate are provided to the workload operator or data owner when they first verify the deployment via the CLI against a trusted reference manifest.
 
-🔗 For details, see the [Contrast documentation](https://docs.edgeless.systems/contrast/architecture/certificates).
+For details, see the [Contrast documentation](https://docs.edgeless.systems/contrast/architecture/certificates).
 
 ### Configuration
 
 Whether mTLS connections based on service-mesh certificates should be used for incoming and outgoing traffic of pods can be configured by using annotations in the deployment YAML.
 
-🔗 For details, see the [Contrast documentation](https://docs.edgeless.systems/contrast/components/service-mesh#configuring-the-proxy).
+For details, see the [Contrast documentation](https://docs.edgeless.systems/contrast/components/service-mesh#configuring-the-proxy).
 
 ## Contrast integration flow
 
-This section provides a high-level overview of how Confidential Virtual Machines (CVMs) are created and managed on worker nodes. It shows how pods are run within CVMS, starting from blank Kubernetes nodes. It outlines the following steps:
+This section provides a high-level overview of how Confidential Virtual Machines (CVMs) are created and managed on worker nodes. It shows how pods are run within CVMs, starting from blank Kubernetes nodes. It outlines the following steps:
 
 1. **Preparing a Kubernetes cluster**
 2. **Setting up worker node hosts**
 3. **Setting up a CVM**
 4. **Running workloads within the CVM**
-5. **Contrast-specific containers on worker nodes**
-6. **Workload entry into the contrast service mesh**
+5. **Setting up Contrast-specific containers on worker nodes**
+6. **Including workloads in the Contrast service mesh**
 7. **Verifying integrity**
 
-### 1️⃣ Preparing a Kubernetes cluster
+### 1️. Preparing a Kubernetes cluster
 
 You can set up a new cluster using a lightweight distribution like K3s, or integrate Contrast directly into your existing Kubernetes cluster.
 
@@ -184,7 +190,7 @@ Managed Kubernetes like AKS offers some CoCo-enabled node pools with nested virt
 
 Additionally, some [initial adjustments](https://docs.edgeless.systems/contrast/getting-started/bare-metal?vendor=amd) need to be made to the worker nodes.
 
-### 2️⃣ Setting up worker node hosts
+### 2️. Setting up worker node hosts
 
 Each worker node prepares a **host environment** to run pods inside **Confidential Virtual Machines (CVMs).**
 
@@ -206,7 +212,7 @@ The workload operator deploys a custom runtime handler and node installer (`Daem
 
 #### 3. Kubelet initializes the `DaemonSet` on worker nodes
 
-1. Kubelet continuously listens for newly scheduled workloads.
+1. Kubelet continuously listens for newly scheduled pods.
 2. Kubelet retrieves the `DaemonSet` pod configuration from the Kubernetes API server.
 3. Kubelet instructs `containerd` to pull the required container images and start the `DaemonSet` pod.
 
@@ -224,9 +230,9 @@ Once scheduled, the `DaemonSet` node-installer installs and configures the neces
 5. Updates `containerd` configuration by adding a runtime plugin corresponding to the specified `handler` (`containerd-shim-contrast-cc-v2`) defined in the Kubernetes `RuntimeClass`.
 6. Restarts `containerd` to apply the new runtime configuration.
 
-✅ After these steps, the worker node is fully configured and ready to run Confidential Virtual Machines (CVMs), where workload pods will execute.
+After these steps, the worker node is fully configured and ready to run Confidential Virtual Machines (CVMs), where workload pods will execute.
 
-### 3️⃣ Setting up a CVM
+### 3️. Setting up a CVM
 
 #### 1. The kata runtime plugin initializes the CVM
 
@@ -266,19 +272,21 @@ Once scheduled, the `DaemonSet` node-installer installs and configures the neces
   - If the hashes don't match, the CVM immediately aborts execution to prevent policy violations.
 - The `kata-agent` securely exposes the `AgentService` RPC interface over `virtio-vsock`, ensuring all host-to-CVM communications conform to the verified policy.
 
-✅ After completing these steps, the CVM is fully initialized and ready to execute workloads securely.
+After completing these steps, the CVM is fully initialized and ready to execute workloads securely.
 
-### 4️⃣ Running workloads within the CVM
+### 4. Running workloads within the CVM
 
 The `kata-agent` inside the CVM is responsible for launching, verifying, and managing workloads within the guest environment.
 
 1. The `nydus-snapshotter` plugin in `containerd` fetches container metadata and forwards it to the `kata-agent` inside the CVM.
-2. `image-rs`, running alongside the `kata-agent`, pulls the container images and computes their hashes. The `kata-agent` then verifies these computed hashes against those specified in the security policy.
-3. If the hashes match, the `kata-agent` starts the container workload inside the CVM.
+2. The `kata-runtime` on the host generates an OCI runtime specification that describes how the container should be executed. This spec is passed to the `kata-agent` and checked against the security policy.
+3. The `kata-agent` then pulls the container images (via the `image-rs` library) and computes their hashes.
+4. The computed hashes are verified against those defined in the security policy.
+5. If both the runtime spec and the image hashes match the policy, the `kata-agent` starts the container workload inside the CVM.
 
-✅ After completing these steps, the workload runs securely within a confidential environment.
+After completing these steps, the workload runs securely within a confidential environment.
 
-### 5️⃣ Contrast-specific containers on worker nodes
+### 5️. Setting up Contrast-specific containers on worker nodes
 
 Each CVM pod includes two additional containers that start before the primary application container:
 
@@ -290,43 +298,43 @@ Each CVM pod includes two additional containers that start before the primary ap
 
 #### **Sidecar container**
 
-- Runs continuously alongside the application container, functioning as a network proxy.
-- Encrypts all pod network traffic using mutual TLS (mTLS) based on certificates provided by the service mesh.
-- Activated via annotations in the deployment YAML.
-- Ensures all traffic passes through the proxy by configuring `iptables` rules.
-- Uses [**Envoy**](https://www.envoyproxy.io/) to manage mTLS encryption for both incoming (ingress) and outgoing (egress) traffic.
-  - Employs [TPROXY](https://docs.kernel.org/networking/tproxy.html) for handling ingress traffic.
-- Its integrity is similarly enforced through the security policy.
-- For more details, see [the service mesh documentation](https://docs.edgeless.systems/contrast/components/service-mesh#ingress).
+- Runs as a sidecar container alongside the application, providing a network proxy.
+- Activated via annotations in the deployment YAML, enabling per-workload configuration of ingress and egress behavior.
+- Handles ingress traffic by default, redirecting it through the proxy using `iptables` and intercepting it via [TPROXY](https://docs.kernel.org/networking/tproxy.html).
+  - Ingress can be disabled entirely or configured to skip client authentication.
+- Egress traffic is not redirected by default but can be explicitly routed through the proxy if required.
+- Based on [**Envoy**](https://www.envoyproxy.io/), managing mutual TLS (mTLS) encryption for ingress and egress traffic.
+- The proxy’s integrity is enforced through the same security policy as the application container.
+- For more details, see the [service mesh documentation](https://docs.edgeless.systems/contrast/next/components/service-mesh).
 
-✅ This setup ensures that the CVM can be reliably attested and that all communications remain end-to-end encrypted.
+This setup ensures that the CVM can be reliably attested and communications is sufficiently protected.
 
-### 6️⃣ Workload entry into the Contrast service mesh
+### 6️. Including workloads in the Contrast service mesh
 
 #### 1. The Init container inside the CVM pod generates a cryptographic key pair (private and public).
 
 - The private key remains securely inside the CVM and is never exposed externally.
 
-#### 2. The Init container requests a service mesh certificate from the Contrast coordinator via rRPC, providing its public key.
-
-#### 3. The Contrast coordinator (acting as a client) establishes an attested TLS (aTLS) connection with the Init container of the CVM pod (server) on the worker node:
+#### 2. The Contrast coordinator (acting as a client) establishes an attested TLS (aTLS) connection with the Init container of the CVM pod (server) on the worker node:
 
 - The TLS protocol is extended to include attestation verification of the server.
 - The worker node must successfully pass attestation against the defined manifest before the TLS connection is fully established.
 - Only after successful attestation does the coordinator issue a valid service mesh certificate.
 
+#### 3. The Init container requests a service mesh certificate from the Contrast coordinator via rRPC, providing its public key.
+
 #### 4. The coordinator securely delivers the service mesh certificate (signed by the Intermediate CA) to the Init container.
 
-- Additionally, it provides a secret seed used for key recovery purposes.
+- Additionally, it provides a workload seed.
 
 #### 5. The Init container encrypts the service mesh private key for persistent storage:
 
-- Derives a key encryption key from the provided secret seed.
-- Applies [LUKS encryption](https://access.redhat.com/solutions/100463) to securely store the encrypted key on an untrusted persistent volume.
+- Derives a key from the provided workload seed.
+- Applies [LUKS encryption](https://access.redhat.com/solutions/100463) to securely store the encrypted service-mesh private key and certificate chain on an untrusted persistent volume.
 
-✅ These steps ensure that only attested workloads can join the trusted service mesh. By relying exclusively on this service mesh for communication, workloads and data owners have assurance that they're interacting solely with trusted services defined by the configured manifest.
+These steps ensure that only attested workloads can join the trusted service mesh. By relying exclusively on this service mesh for communication, workloads and data owners have assurance that they're interacting solely with trusted services defined by the configured manifest.
 
-### 7️⃣ **Verifying cluster integrity**
+### 7️. **Verifying cluster integrity**
 
 The data owner or workload operator verifies the integrity and confidentiality of the Kubernetes cluster using the Contrast CLI.
 
@@ -355,7 +363,7 @@ The data owner or workload operator verifies the integrity and confidentiality o
 - After deployment, the CLI verifies the currently enforced manifest using the `verify` command.
 - The Root CA certificate and the Mesh CA certificate for the service mesh are returned to confirm the trusted cluster configuration.
 
-✅ **Verification ensures:**
+**Verification ensures:**
 
 - The actual deployed state matches the expected trusted state.
 - Root CA and Mesh CA certificates of the service mesh are provided securely to workload operators and data owners.
@@ -380,20 +388,28 @@ In addition, the CPU integrates the `HOSTDATA` field into the attestation report
 - `HOSTDATA` is a hardware-enforced field always included in attestation reports.
 - It holds the cryptographic hash of the runtime policy enforced by the `kata-agent`.
 
+### `REPORTDATA`
+
+`REPORTDATA` is supplied by the CVM and contains a hash of a nonce combined with the CVM's TLS public key. The nonce is provided by the relying party—that is, the entity requesting the attestation report. This securely binds the TLS key to the specific CVM instance and ensures the freshness of the attestation, preventing replay attacks.
+
 ## Secret recovery
 
-When initially setting the manifest for the coordinator via the Contrast CLI, the coordinator returns a randomly generated recovery seed.
-The CLI encrypts this seed client-side using the private key of the seed-share owner.
+A seed generated by the Coordinator is used to re-establish the trusted state of a deployment.
+
+Using the `generate` command, the CLI creates a public/private key pair known as the seed owner key pair. The public key is then provided to the Coordinator when setting the manifest. The public key is used by the Coordinator to persistently encrypt the secret seed, which is required for future recovery.
+
+Once the manifest is set, the Coordinator returns the seed—encrypted with the seed owner public key using RSA-OAEP. This ensures that only the holder of the seed owner private key can decrypt the seed and later send it back to a recovered Coordinator after verifying its integrity.
 
 ### What's derived from the recovery seed?
 
 - **Manifest Signing Key**: Used to ensure integrity and authenticity of the manifest stored on untrusted persistent volumes.
 - **Workload Secret Seeds**: Distributed securely to attested workloads, enabling them to derive encryption keys for securely storing sensitive data (for example secret keys) on untrusted persistent volumes.
+- **Root CA Key**: Signing key of the Root CA.
 
 ### Why is the recovery seed important?
 
-- ✅ It enables the secure restoration of sensitive data stored in persistent volumes.
-- ✅ Since the seed provides access to encrypted secrets, it must remain strictly confidential.
+- It enables the secure restoration of sensitive data stored in persistent volumes.
+- Since the seed provides access to encrypted secrets, it must remain strictly confidential.
 
 ## Example practical workflow
 
@@ -409,9 +425,9 @@ The architecture and considerations outlined in this document remain valid for I
 
 ### Azure Kubernetes Service (AKS)
 
-Contrast can also be deployed on managed Kubernetes services, such as AKS. In this scenario, Kubernetes nodes run as virtual machines instead of bare-metal servers, necessitating nested virtualization. Therefore, Confidential Virtual Machines (CVMs) are launched within these node VMs.
+Contrast can also be deployed on Azure Kubernetes Service (AKS). In this scenario, Kubernetes nodes run as virtual machines instead of bare-metal servers, necessitating nested virtualization. Therefore, Confidential Virtual Machines (CVMs) are launched within these node VMs.
 
 AKS provides CoCo-enabled node pools as a preview feature. These node pools use Azure VM instances capable of nested virtualization (CVM-in-VM), with the CoCo stack pre-installed. Contrast can directly integrate into these CoCo-enabled AKS clusters. Key differences from bare-metal deployments include:
 
 - On AKS, the node-installer (`DaemonSet`) installs `cloud-hypervisor` instead of `QEMU`.
-- AKS uses the `tardev` snapshotter to present container images as block devices directly to pod-VMs. In contrast to bare-metal setups, container images are therefore pulled by the host node, not by the pod VM itself.
+- AKS uses the `tardev` snapshotter to present container images as block devices directly to pod-VMs. In contrast to bare-metal setups, container images are therefore pulled by the host node, not by the pod VM itself. The integrity of these blocks is ensured through `dm-verity`by the VCM and can hence not be compromised by the host.
