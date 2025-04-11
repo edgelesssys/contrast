@@ -165,6 +165,21 @@ contrast version v0.X.0
                           ghcr.io/edgelesssys/contrast/initializer@sha256:...
 ```
 
+### Contrast attempts to pull the wrong image reference
+
+Containerd versions before `v2.0.0` have a bug that can lead to pulling image references that differ from the PodSpec.
+The policy failure contains a line starting with `allow_create_container_input` at the very top.
+This is the request received from the runtime and subject to policy enforcement.
+The JSON contains a list of annotations nested under `.OCI.Annotations`.
+Verify that the value for annotation key `io.kubernetes.cri.image-name` corresponds to an image in your PodSpec.
+If it doesn't, you need to remove that image entirely from the affected node, for example with `crictl`.
+
+```sh
+crictl rmi $IMAGE
+```
+
+Upstream backport that's fixing the bug is pending: https://github.com/containerd/containerd/pull/11644.
+
 ## VM runs out of memory
 
 Since pod VMs are statically sized, it's easier to run out of memory due to misconfigurations.
