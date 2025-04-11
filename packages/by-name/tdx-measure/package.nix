@@ -3,7 +3,7 @@
 
 { buildGoModule }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "tdx-measure";
   version = "0.1.0";
 
@@ -18,7 +18,7 @@ buildGoModule rec {
 
   ldflags = [
     "-s"
-    "-X main.version=v${version}"
+    "-X main.version=v${finalAttrs.version}"
   ];
 
   preCheck = ''
@@ -32,4 +32,4 @@ buildGoModule rec {
   '';
 
   meta.mainProgram = "tdx-measure";
-}
+})

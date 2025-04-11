@@ -3,7 +3,7 @@
 
 { lib, buildGoModule }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "snp-id-block-generator";
   version = "0.1.0";
 
@@ -35,14 +35,14 @@ buildGoModule rec {
   proxyVendor = true;
   vendorHash = "sha256-p9OK5chtP5CyAChc0g9Qwm8ZuhuLNpgOjXCaI+0JYys=";
 
-  sourceRoot = "${src.name}/tools/snp-id-block-generator";
+  sourceRoot = "${finalAttrs.src.name}/tools/snp-id-block-generator";
   subPackages = [ "." ];
 
   env.CGO_ENABLED = 0;
 
   ldflags = [
     "-s"
-    "-X main.version=v${version}"
+    "-X main.version=v${finalAttrs.version}"
   ];
 
   preCheck = ''
@@ -56,4 +56,4 @@ buildGoModule rec {
   '';
 
   meta.mainProgram = "snp-id-block-generator";
-}
+})

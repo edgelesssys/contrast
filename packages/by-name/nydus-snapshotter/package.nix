@@ -9,14 +9,14 @@
   fetchFromGitHub,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "nydus-snapshotter";
   version = "0.13.14";
 
   src = fetchFromGitHub {
     owner = "containerd";
     repo = "nydus-snapshotter";
-    rev = "v${version}";
+    rev = "v${finalAttrs.version}";
     hash = "sha256-DlBYZtgYl200ZEO2tbSte5bGFIJw6UWeRbMzpe2gp2U=";
   };
 
@@ -37,7 +37,7 @@ buildGoModule rec {
 
   ldflags = [
     "-s"
-    "-X github.com/containerd/nydus-snapshotter/version.Version=${version}"
+    "-X github.com/containerd/nydus-snapshotter/version.Version=${finalAttrs.version}"
   ];
 
   passthru = {
@@ -62,4 +62,4 @@ buildGoModule rec {
     license = licenses.asl20;
     mainProgram = "nydus-snapshotter";
   };
-}
+})

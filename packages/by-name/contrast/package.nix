@@ -203,7 +203,7 @@ let
   ];
 in
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "contrast";
   version = builtins.readFile ../../../version.txt;
 
@@ -262,7 +262,7 @@ buildGoModule rec {
 
   ldflags = [
     "-s"
-    "-X github.com/edgelesssys/contrast/internal/constants.Version=v${version}"
+    "-X github.com/edgelesssys/contrast/internal/constants.Version=v${finalAttrs.version}"
     "-X github.com/edgelesssys/contrast/internal/constants.MicrosoftGenpolicyVersion=${microsoft.genpolicy.version}"
     "-X github.com/edgelesssys/contrast/internal/constants.KataGenpolicyVersion=${kata.genpolicy.version}"
   ];
@@ -275,7 +275,7 @@ buildGoModule rec {
 
   checkPhase = ''
     runHook preCheck
-    go test -tags=${lib.concatStringsSep "," tags} -race ./...
+    go test -tags=${lib.concatStringsSep "," finalAttrs.tags} -race ./...
     runHook postCheck
   '';
 
@@ -309,4 +309,4 @@ buildGoModule rec {
   };
 
   meta.mainProgram = "contrast";
-}
+})

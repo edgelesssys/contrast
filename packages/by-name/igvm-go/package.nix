@@ -3,7 +3,7 @@
 
 { lib, buildGoModule }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "igvm-go";
   version = "0.1.0";
 
@@ -26,15 +26,15 @@ buildGoModule rec {
   proxyVendor = true;
   vendorHash = "sha256-QlOOmsYB4qK3Bgf+PB+QXs65XnwKz2ds3GJuvwCSc+k=";
 
-  sourceRoot = "${src.name}/tools/igvm";
+  sourceRoot = "${finalAttrs.src.name}/tools/igvm";
   subPackages = [ "cmd/igvm" ];
 
   env.CGO_ENABLED = 0;
 
   ldflags = [
     "-s"
-    "-X main.version=v${version}"
+    "-X main.version=v${finalAttrs.version}"
   ];
 
   meta.mainProgram = "igvm";
-}
+})

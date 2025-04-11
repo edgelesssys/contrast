@@ -35,7 +35,7 @@ let
   withLibvirt = lib.strings.elem "libvirt" builtinCloudProviders;
 in
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "cloud-api-adaptor";
   version = "0.10.0";
 
@@ -43,7 +43,7 @@ buildGoModule rec {
     src = fetchFromGitHub {
       owner = "confidential-containers";
       repo = "cloud-api-adaptor";
-      rev = "v${version}";
+      rev = "v${finalAttrs.version}";
       hash = "sha256-OaSIO26nlkeI2olSx0o8xdwhLMZ8eH753pUbyHypI+E=";
     };
 
@@ -55,7 +55,7 @@ buildGoModule rec {
     ];
   };
 
-  sourceRoot = "${src.name}/src/cloud-api-adaptor";
+  sourceRoot = "${finalAttrs.src.name}/src/cloud-api-adaptor";
 
   proxyVendor = true;
   vendorHash = "sha256-FsckYZAiBfTEp25+dDNqPpB/550NqeEsutWC34s+GmE=";
@@ -75,7 +75,7 @@ buildGoModule rec {
   tags = builtinCloudProviders;
 
   ldflags = [
-    "-X 'github.com/confidential-containers/cloud-api-adaptor/src/cloud-api-adaptor/cmd.VERSION=${version}'"
+    "-X 'github.com/confidential-containers/cloud-api-adaptor/src/cloud-api-adaptor/cmd.VERSION=${finalAttrs.version}'"
   ];
 
   postInstall = ''
@@ -129,4 +129,4 @@ buildGoModule rec {
     license = lib.licenses.asl20;
     mainProgram = "cloud-api-adaptor";
   };
-}
+})
