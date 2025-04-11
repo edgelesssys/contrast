@@ -23,10 +23,10 @@ jobs:
             documentation
             no changelog
   do-not-merge:
-    if: contains(github.event.pull_request.labels.*.name, 'do not merge')
     runs-on: ubuntu-22.04
     steps:
       - name: prevent merge
+        if: contains(github.event.pull_request.labels.*.name, 'do not merge')
         run: |
           echo '::error::This PR is labeled as "do not merge", remove the label to make this check pass.'
           exit 1
