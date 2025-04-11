@@ -63,6 +63,9 @@ let
         snp = [
           {
             guestPolicy = builtins.fromJSON (builtins.readFile microsoft.kata-igvm.snp-guest-policy);
+            platformInfo = {
+              SMTEnabled = true;
+            };
             minimumTCB = {
               bootloaderVersion = 3;
               teeVersion = 0;
@@ -84,6 +87,9 @@ let
         snp =
           let
             guestPolicy = builtins.fromJSON (builtins.readFile ./snpGuestPolicyQEMU.json);
+            platformInfo = {
+              SMTEnabled = true;
+            };
             launch-digest = kata.calculateSnpLaunchDigest {
               inherit os-image;
               debug = kata.contrast-node-installer-image.debugRuntime;
@@ -91,12 +97,12 @@ let
           in
           [
             {
-              inherit guestPolicy;
+              inherit guestPolicy platformInfo;
               trustedMeasurement = builtins.readFile "${launch-digest}/milan.hex";
               productName = "Milan";
             }
             {
-              inherit guestPolicy;
+              inherit guestPolicy platformInfo;
               trustedMeasurement = builtins.readFile "${launch-digest}/genoa.hex";
               productName = "Genoa";
             }
@@ -234,7 +240,7 @@ buildGoModule (finalAttrs: {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-pRSgIOTmpTTx8yVFUaNryNvfRPDufz9IExXnOb4zQB0=";
+  vendorHash = "sha256-CcVjfs0+WfJ8tWyaXyrKVb4fp+MqyvroSvm7QS2wklo=";
 
   nativeBuildInputs = [ installShellFiles ];
 
