@@ -32,7 +32,6 @@
 - [ ] PodMetrics
 - [ ] Role
 - [ ] RoleBinding
-- [ ] StatefulSet
 - [x] ConfigMap
 - [x] CronJob
 - [x] DaemonSet
@@ -45,3 +44,4 @@
 - [x] Secret
 - [x] Service
 - [x] ServiceAccount
+- [x] StatefulSet

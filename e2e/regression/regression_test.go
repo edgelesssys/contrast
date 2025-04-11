@@ -114,6 +114,8 @@ func TestRegression(t *testing.T) {
 					require.NoError(ct.Kubeclient.Client.CoreV1().ReplicationControllers(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
 				case "LimitRange":
 					require.NoError(ct.Kubeclient.Client.CoreV1().LimitRanges(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+				case "StatefulSet":
+					require.NoError(ct.Kubeclient.Client.AppsV1().StatefulSets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
 				}
 			})
 
