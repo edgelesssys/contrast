@@ -1,7 +1,11 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: AGPL-3.0-only
 
-{ pkgs, writeShellApplication }:
+{
+  lib,
+  pkgs,
+  writeShellApplication,
+}:
 
 {
   create-coco-aks = writeShellApplication {
@@ -113,8 +117,6 @@
         go generate -C "$dir" ./...
       done < <(go list -f '{{.Dir}}' -m)
 
-      protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ./internal/userapi/userapi.proto
-
       # Notice: Order matters! Packages must be updated before their dependents.
       echo "Updating vendorHash of tdx-measure package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.tdx-measure
@@ -148,10 +150,16 @@
     text = ''
       exitcode=0
 
-      while IFS= read -r dir; do
-        echo "Running govulncheck on $dir"
-        govulncheck -C "$dir" -tags contrast_unstable_api ./... || exitcode=$?
-      done < <(go list -f '{{.Dir}}' -m)
+      tagList=(
+        "${lib.concatStringsSep "," pkgs.contrast.tags}"
+        "${lib.concatStringsSep "," pkgs.contrast-enterprise.tags}"
+      )
+      for tags in "''${tagList[@]}"; do
+        while IFS= read -r dir; do
+          echo "Running govulncheck -tags $tags on $dir"
+          govulncheck -C "$dir" -tags "$tags" ./... || exitcode=$?
+        done < <(go list -f '{{.Dir}}' -m)
+      done
 
       exit $exitcode
     '';
@@ -166,10 +174,19 @@
     text = ''
       exitcode=0
 
-      while IFS= read -r dir; do
-        echo "Running go fix on $dir"
-        go fix -C "$dir" ./... || exitcode=$?
+      tagList=(
+        "${lib.concatStringsSep "," pkgs.contrast.tags}"
+        "${lib.concatStringsSep "," pkgs.contrast-enterprise.tags}"
+      )
+      for tags in "''${tagList[@]}"; do
+        while IFS= read -r dir; do
+          echo "Running go fix -tags $tags on $dir"
+          go fix -C "$dir" -tags "$tags" ./... || exitcode=$?
+        done < <(go list -f '{{.Dir}}' -m)
+      done
 
+      # TODO(katexochen): modernize does not support tags?
+      while IFS= read -r dir; do
         echo "Running modernize on $dir"
         (cd "$dir" && modernize -fix ./...) || exitcode=$?
       done < <(go list -f '{{.Dir}}' -m)
@@ -187,11 +204,16 @@
     text = ''
       exitcode=0
 
-      while IFS= read -r dir; do
-        echo "Running golangci-lint on $dir" >&2
-        golangci-lint run "$dir/..." || exitcode=$?
-        golangci-lint run --build-tags enterprise "$dir/..." || exitcode=$?
-      done < <(go list -f '{{.Dir}}' -m)
+      tagList=(
+        "${lib.concatStringsSep "," pkgs.contrast.tags}"
+        "${lib.concatStringsSep "," pkgs.contrast-enterprise.tags}"
+      )
+      for tags in "''${tagList[@]}"; do
+        while IFS= read -r dir; do
+          echo "Running golangci-lint with tags $tags on $dir" >&2
+          golangci-lint run --build-tags "$tags" "$dir/..." || exitcode=$?
+        done < <(go list -f '{{.Dir}}' -m)
+      done
 
       echo "Verifying golangci-lint config" >&2
       golangci-lint config verify || exitcode=$?

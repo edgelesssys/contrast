@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v5.29.3
-// source: internal/userapi/userapi.proto
+// source: userapi.proto
 
 package userapi
 
@@ -193,5 +193,5 @@ var UserAPI_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/userapi/userapi.proto",
+	Metadata: "userapi.proto",
 }
