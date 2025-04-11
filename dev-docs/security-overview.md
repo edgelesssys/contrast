@@ -311,23 +311,23 @@ This setup ensures that the CVM can be reliably attested and communications is s
 
 ### 6️. Including workloads in the Contrast service mesh
 
-#### 1. The Init container inside the CVM pod generates a cryptographic key pair (private and public).
+#### 1. The init container inside the CVM pod generates a cryptographic key pair (private and public).
 
 - The private key remains securely inside the CVM and is never exposed externally.
 
-#### 2. The Contrast coordinator (acting as a client) establishes an attested TLS (aTLS) connection with the Init container of the CVM pod (server) on the worker node:
+#### 2. The init container of the CVM pod on the worker node establishes an attested TLS (aTLS) connection with the Contrast coordinator:
 
 - The TLS protocol is extended to include attestation verification of the server.
 - The worker node must successfully pass attestation against the defined manifest before the TLS connection is fully established.
 - Only after successful attestation does the coordinator issue a valid service mesh certificate.
 
-#### 3. The Init container requests a service mesh certificate from the Contrast coordinator via rRPC, providing its public key.
+#### 3. The init container requests a service mesh certificate from the Contrast coordinator via rRPC, providing its public key.
 
 #### 4. The coordinator securely delivers the service mesh certificate (signed by the Intermediate CA) to the Init container.
 
 - Additionally, it provides a workload seed.
 
-#### 5. The Init container encrypts the service mesh private key for persistent storage:
+#### 5. The init container encrypts the service mesh private key for persistent storage:
 
 - Derives a key from the provided workload seed.
 - Applies [LUKS encryption](https://access.redhat.com/solutions/100463) to securely store the encrypted service-mesh private key and certificate chain on an untrusted persistent volume.
