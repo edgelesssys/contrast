@@ -122,6 +122,7 @@ func (m *Authority) WatchHistory(ctx context.Context) error {
 		m.logger.Error("WatchLatestTransitions failed, starting a new watcher", "error", err)
 		select {
 		case <-m.clock.After(5 * time.Second):
+			m.logger.Info("time for a new watcher")
 			continue
 		case <-ctx.Done():
 			return ctx.Err()
