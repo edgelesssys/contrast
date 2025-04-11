@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v5.29.3
-// source: internal/userapi/userapi.proto
+// source: userapi.proto
 
 package userapi
 
@@ -31,7 +31,7 @@ type SetManifestRequest struct {
 
 func (x *SetManifestRequest) Reset() {
 	*x = SetManifestRequest{}
-	mi := &file_internal_userapi_userapi_proto_msgTypes[0]
+	mi := &file_userapi_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *SetManifestRequest) String() string {
 func (*SetManifestRequest) ProtoMessage() {}
 
 func (x *SetManifestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_userapi_userapi_proto_msgTypes[0]
+	mi := &file_userapi_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *SetManifestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetManifestRequest.ProtoReflect.Descriptor instead.
 func (*SetManifestRequest) Descriptor() ([]byte, []int) {
-	return file_internal_userapi_userapi_proto_rawDescGZIP(), []int{0}
+	return file_userapi_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SetManifestRequest) GetManifest() []byte {
@@ -87,7 +87,7 @@ type SetManifestResponse struct {
 
 func (x *SetManifestResponse) Reset() {
 	*x = SetManifestResponse{}
-	mi := &file_internal_userapi_userapi_proto_msgTypes[1]
+	mi := &file_userapi_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -99,7 +99,7 @@ func (x *SetManifestResponse) String() string {
 func (*SetManifestResponse) ProtoMessage() {}
 
 func (x *SetManifestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_userapi_userapi_proto_msgTypes[1]
+	mi := &file_userapi_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -112,7 +112,7 @@ func (x *SetManifestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetManifestResponse.ProtoReflect.Descriptor instead.
 func (*SetManifestResponse) Descriptor() ([]byte, []int) {
-	return file_internal_userapi_userapi_proto_rawDescGZIP(), []int{1}
+	return file_userapi_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SetManifestResponse) GetRootCA() []byte {
@@ -146,7 +146,7 @@ type SeedShareDocument struct {
 
 func (x *SeedShareDocument) Reset() {
 	*x = SeedShareDocument{}
-	mi := &file_internal_userapi_userapi_proto_msgTypes[2]
+	mi := &file_userapi_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -158,7 +158,7 @@ func (x *SeedShareDocument) String() string {
 func (*SeedShareDocument) ProtoMessage() {}
 
 func (x *SeedShareDocument) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_userapi_userapi_proto_msgTypes[2]
+	mi := &file_userapi_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -171,7 +171,7 @@ func (x *SeedShareDocument) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SeedShareDocument.ProtoReflect.Descriptor instead.
 func (*SeedShareDocument) Descriptor() ([]byte, []int) {
-	return file_internal_userapi_userapi_proto_rawDescGZIP(), []int{2}
+	return file_userapi_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *SeedShareDocument) GetSeedShares() []*SeedShare {
@@ -198,7 +198,7 @@ type SeedShare struct {
 
 func (x *SeedShare) Reset() {
 	*x = SeedShare{}
-	mi := &file_internal_userapi_userapi_proto_msgTypes[3]
+	mi := &file_userapi_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -210,7 +210,7 @@ func (x *SeedShare) String() string {
 func (*SeedShare) ProtoMessage() {}
 
 func (x *SeedShare) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_userapi_userapi_proto_msgTypes[3]
+	mi := &file_userapi_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -223,7 +223,7 @@ func (x *SeedShare) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SeedShare.ProtoReflect.Descriptor instead.
 func (*SeedShare) Descriptor() ([]byte, []int) {
-	return file_internal_userapi_userapi_proto_rawDescGZIP(), []int{3}
+	return file_userapi_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *SeedShare) GetPublicKey() string {
@@ -248,7 +248,7 @@ type GetManifestsRequest struct {
 
 func (x *GetManifestsRequest) Reset() {
 	*x = GetManifestsRequest{}
-	mi := &file_internal_userapi_userapi_proto_msgTypes[4]
+	mi := &file_userapi_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -260,7 +260,7 @@ func (x *GetManifestsRequest) String() string {
 func (*GetManifestsRequest) ProtoMessage() {}
 
 func (x *GetManifestsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_userapi_userapi_proto_msgTypes[4]
+	mi := &file_userapi_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -273,7 +273,7 @@ func (x *GetManifestsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetManifestsRequest.ProtoReflect.Descriptor instead.
 func (*GetManifestsRequest) Descriptor() ([]byte, []int) {
-	return file_internal_userapi_userapi_proto_rawDescGZIP(), []int{4}
+	return file_userapi_proto_rawDescGZIP(), []int{4}
 }
 
 type GetManifestsResponse struct {
@@ -290,7 +290,7 @@ type GetManifestsResponse struct {
 
 func (x *GetManifestsResponse) Reset() {
 	*x = GetManifestsResponse{}
-	mi := &file_internal_userapi_userapi_proto_msgTypes[5]
+	mi := &file_userapi_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -302,7 +302,7 @@ func (x *GetManifestsResponse) String() string {
 func (*GetManifestsResponse) ProtoMessage() {}
 
 func (x *GetManifestsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_userapi_userapi_proto_msgTypes[5]
+	mi := &file_userapi_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -315,7 +315,7 @@ func (x *GetManifestsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetManifestsResponse.ProtoReflect.Descriptor instead.
 func (*GetManifestsResponse) Descriptor() ([]byte, []int) {
-	return file_internal_userapi_userapi_proto_rawDescGZIP(), []int{5}
+	return file_userapi_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetManifestsResponse) GetManifests() [][]byte {
@@ -356,7 +356,7 @@ type RecoverRequest struct {
 
 func (x *RecoverRequest) Reset() {
 	*x = RecoverRequest{}
-	mi := &file_internal_userapi_userapi_proto_msgTypes[6]
+	mi := &file_userapi_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -368,7 +368,7 @@ func (x *RecoverRequest) String() string {
 func (*RecoverRequest) ProtoMessage() {}
 
 func (x *RecoverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_userapi_userapi_proto_msgTypes[6]
+	mi := &file_userapi_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -381,7 +381,7 @@ func (x *RecoverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecoverRequest.ProtoReflect.Descriptor instead.
 func (*RecoverRequest) Descriptor() ([]byte, []int) {
-	return file_internal_userapi_userapi_proto_rawDescGZIP(), []int{6}
+	return file_userapi_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *RecoverRequest) GetSeed() []byte {
@@ -406,7 +406,7 @@ type RecoverResponse struct {
 
 func (x *RecoverResponse) Reset() {
 	*x = RecoverResponse{}
-	mi := &file_internal_userapi_userapi_proto_msgTypes[7]
+	mi := &file_userapi_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -418,7 +418,7 @@ func (x *RecoverResponse) String() string {
 func (*RecoverResponse) ProtoMessage() {}
 
 func (x *RecoverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_userapi_userapi_proto_msgTypes[7]
+	mi := &file_userapi_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -431,14 +431,14 @@ func (x *RecoverResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecoverResponse.ProtoReflect.Descriptor instead.
 func (*RecoverResponse) Descriptor() ([]byte, []int) {
-	return file_internal_userapi_userapi_proto_rawDescGZIP(), []int{7}
+	return file_userapi_proto_rawDescGZIP(), []int{7}
 }
 
-var File_internal_userapi_userapi_proto protoreflect.FileDescriptor
+var File_userapi_proto protoreflect.FileDescriptor
 
-const file_internal_userapi_userapi_proto_rawDesc = "" +
+const file_userapi_proto_rawDesc = "" +
 	"\n" +
-	"\x1einternal/userapi/userapi.proto\x12\x1cedgelesssys.contrast.userapi\"L\n" +
+	"\ruserapi.proto\x12\x1cedgelesssys.contrast.userapi\"L\n" +
 	"\x12SetManifestRequest\x12\x1a\n" +
 	"\bManifest\x18\x01 \x01(\fR\bManifest\x12\x1a\n" +
 	"\bPolicies\x18\x02 \x03(\fR\bPolicies\"\x9c\x01\n" +
@@ -470,19 +470,19 @@ const file_internal_userapi_userapi_proto_rawDesc = "" +
 	"\aRecover\x12,.edgelesssys.contrast.userapi.RecoverRequest\x1a-.edgelesssys.contrast.userapi.RecoverResponseB2Z0github.com/edgelesssys/contrast/internal/userapib\x06proto3"
 
 var (
-	file_internal_userapi_userapi_proto_rawDescOnce sync.Once
-	file_internal_userapi_userapi_proto_rawDescData []byte
+	file_userapi_proto_rawDescOnce sync.Once
+	file_userapi_proto_rawDescData []byte
 )
 
-func file_internal_userapi_userapi_proto_rawDescGZIP() []byte {
-	file_internal_userapi_userapi_proto_rawDescOnce.Do(func() {
-		file_internal_userapi_userapi_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_userapi_userapi_proto_rawDesc), len(file_internal_userapi_userapi_proto_rawDesc)))
+func file_userapi_proto_rawDescGZIP() []byte {
+	file_userapi_proto_rawDescOnce.Do(func() {
+		file_userapi_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_userapi_proto_rawDesc), len(file_userapi_proto_rawDesc)))
 	})
-	return file_internal_userapi_userapi_proto_rawDescData
+	return file_userapi_proto_rawDescData
 }
 
-var file_internal_userapi_userapi_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
-var file_internal_userapi_userapi_proto_goTypes = []any{
+var file_userapi_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_userapi_proto_goTypes = []any{
 	(*SetManifestRequest)(nil),   // 0: edgelesssys.contrast.userapi.SetManifestRequest
 	(*SetManifestResponse)(nil),  // 1: edgelesssys.contrast.userapi.SetManifestResponse
 	(*SeedShareDocument)(nil),    // 2: edgelesssys.contrast.userapi.SeedShareDocument
@@ -492,7 +492,7 @@ var file_internal_userapi_userapi_proto_goTypes = []any{
 	(*RecoverRequest)(nil),       // 6: edgelesssys.contrast.userapi.RecoverRequest
 	(*RecoverResponse)(nil),      // 7: edgelesssys.contrast.userapi.RecoverResponse
 }
-var file_internal_userapi_userapi_proto_depIdxs = []int32{
+var file_userapi_proto_depIdxs = []int32{
 	2, // 0: edgelesssys.contrast.userapi.SetManifestResponse.SeedSharesDoc:type_name -> edgelesssys.contrast.userapi.SeedShareDocument
 	3, // 1: edgelesssys.contrast.userapi.SeedShareDocument.SeedShares:type_name -> edgelesssys.contrast.userapi.SeedShare
 	0, // 2: edgelesssys.contrast.userapi.UserAPI.SetManifest:input_type -> edgelesssys.contrast.userapi.SetManifestRequest
@@ -508,26 +508,26 @@ var file_internal_userapi_userapi_proto_depIdxs = []int32{
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_internal_userapi_userapi_proto_init() }
-func file_internal_userapi_userapi_proto_init() {
-	if File_internal_userapi_userapi_proto != nil {
+func init() { file_userapi_proto_init() }
+func file_userapi_proto_init() {
+	if File_userapi_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_userapi_userapi_proto_rawDesc), len(file_internal_userapi_userapi_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_userapi_proto_rawDesc), len(file_userapi_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_internal_userapi_userapi_proto_goTypes,
-		DependencyIndexes: file_internal_userapi_userapi_proto_depIdxs,
-		MessageInfos:      file_internal_userapi_userapi_proto_msgTypes,
+		GoTypes:           file_userapi_proto_goTypes,
+		DependencyIndexes: file_userapi_proto_depIdxs,
+		MessageInfos:      file_userapi_proto_msgTypes,
 	}.Build()
-	File_internal_userapi_userapi_proto = out.File
-	file_internal_userapi_userapi_proto_goTypes = nil
-	file_internal_userapi_userapi_proto_depIdxs = nil
+	File_userapi_proto = out.File
+	file_userapi_proto_goTypes = nil
+	file_userapi_proto_depIdxs = nil
 }
