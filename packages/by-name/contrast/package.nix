@@ -24,10 +24,7 @@ let
       ;
     pname = "${contrast.pname}-e2e";
 
-    tags = [
-      "e2e"
-      "contrast_unstable_api"
-    ];
+    tags = contrast.tags ++ [ "e2e" ];
 
     env.CGO_ENABLED = 0;
 
