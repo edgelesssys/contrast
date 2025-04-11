@@ -56,7 +56,6 @@ func TestSNPValidateOpts(t *testing.T) {
 
 // TestBadStoreWatcherIsRestarted tests that a new history watcher is started on failure.
 func TestBadStoreWatcherIsRestarted(t *testing.T) {
-	require := require.New(t)
 	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
 	store := &badStore{
 		Store:      history.NewAferoStore(&afero.Afero{Fs: fs}),
@@ -67,7 +66,10 @@ func TestBadStoreWatcherIsRestarted(t *testing.T) {
 	hist := history.NewWithStore(slog.Default(), store)
 	reg := prometheus.NewRegistry()
 	a := New(hist, reg, slog.Default())
-	clock := testingclock.NewFakeClock(time.Now())
+	clock := &waitingClock{
+		FakeClock:  testingclock.NewFakeClock(time.Now()),
+		afterCalls: make(chan struct{}, 1),
+	}
 	a.clock = clock
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -83,22 +85,17 @@ func TestBadStoreWatcherIsRestarted(t *testing.T) {
 	})
 
 	// We eventually expect a call to Watch from the goroutine.
-	<-store.watchCalls
+	store.WaitForWatchCall(t, time.Second)
 
 	// Simulate a watcher failure. A new watcher should only be created after the clock stepped.
-	newCh := make(chan []byte)
-	store.storeUpdates.Store(&newCh)
-	close(ch)
-	select {
-	case <-time.After(10 * time.Millisecond):
-		// This is good, no new Watch call.
-	case <-store.watchCalls:
-		require.Fail("caught unexpected watch call")
-	}
+	store.AbortWatch()
+	store.EnsureNoWatchCalls(t, 10*time.Millisecond)
 
+	// Wait for the goroutine to request a timer.
+	clock.WaitForAfterCall(t, time.Second)
 	clock.Step(time.Minute)
 	// Advancing the clock should trigger a new watch.
-	<-store.watchCalls
+	store.WaitForWatchCall(t, time.Second)
 }
 
 type badStore struct {
@@ -108,8 +105,52 @@ type badStore struct {
 }
 
 func (bs *badStore) Watch(s string) (<-chan []byte, func(), error) {
+	ch := *bs.storeUpdates.Load()
 	bs.watchCalls <- s
-	return *bs.storeUpdates.Load(), func() {}, nil
+	return ch, func() {}, nil
+}
+
+func (bs *badStore) WaitForWatchCall(t *testing.T, d time.Duration) {
+	select {
+	case <-time.After(d):
+		require.Fail(t, "no call to Watch")
+	case <-bs.watchCalls:
+	}
+}
+
+func (bs *badStore) EnsureNoWatchCalls(t *testing.T, d time.Duration) {
+	select {
+	case <-time.After(d):
+	case <-bs.watchCalls:
+		require.Fail(t, "caught unexpected watch call")
+	}
+}
+
+func (bs *badStore) AbortWatch() {
+	newCh := make(chan []byte)
+	ch := bs.storeUpdates.Swap(&newCh)
+	close(*ch)
+}
+
+type waitingClock struct {
+	*testingclock.FakeClock
+	afterCalls chan struct{}
+}
+
+// After is overridden so that we know when a timer was created. Otherwise, we might be stepping
+// the clock before something is waiting on it.
+func (c *waitingClock) After(d time.Duration) <-chan time.Time {
+	ch := c.FakeClock.After(d)
+	c.afterCalls <- struct{}{}
+	return ch
+}
+
+func (c *waitingClock) WaitForAfterCall(t *testing.T, d time.Duration) {
+	select {
+	case <-time.After(d):
+		require.Fail(t, "no call to After")
+	case <-c.afterCalls:
+	}
 }
 
 func newAuthority(t *testing.T) (*Authority, *prometheus.Registry) {
