@@ -142,9 +142,10 @@ func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOpti
 		idKeyHash := sha512.Sum384(idKeyBytes)
 
 		validateOpts := snpvalidate.Options{
-			Measurement: trustedMeasurement,
-			GuestPolicy: refVal.GuestPolicy,
-			VMPL:        new(int), // VMPL0
+			Measurement:  trustedMeasurement,
+			PlatformInfo: &refVal.PlatformInfo,
+			GuestPolicy:  refVal.GuestPolicy,
+			VMPL:         new(int), // VMPL0
 			MinimumTCB: kds.TCBParts{
 				BlSpl:    refVal.MinimumTCB.BootloaderVersion.UInt8(),
 				TeeSpl:   refVal.MinimumTCB.TEEVersion.UInt8(),
