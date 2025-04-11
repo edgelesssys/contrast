@@ -113,8 +113,6 @@
         go generate -C "$dir" ./...
       done < <(go list -f '{{.Dir}}' -m)
 
-      protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative ./internal/userapi/userapi.proto
-
       # Notice: Order matters! Packages must be updated before their dependents.
       echo "Updating vendorHash of tdx-measure package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.tdx-measure
