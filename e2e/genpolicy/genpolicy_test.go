@@ -30,6 +30,10 @@ func TestGenpolicy(t *testing.T) {
 
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
+	if platform != platforms.AKSCloudHypervisorSNP {
+		t.Skipf("Skipping test for platform %s, only %s is supported. genpolicy is (currently) a regression test for tardev-snapshotter.", platform, platforms.AKSCloudHypervisorSNP)
+	}
+
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
@@ -43,7 +47,7 @@ func TestGenpolicy(t *testing.T) {
 				require := require.New(t)
 				args := []string{
 					"--workspace-dir", ct.WorkDir,
-					"--reference-values", "aks-clh-snp",
+					"--reference-values", ct.Platform.String(),
 					"--skip-initializer",
 					path.Join(ct.WorkDir, "resources.yml"),
 				}
