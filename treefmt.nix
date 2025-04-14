@@ -41,6 +41,18 @@
         "*.sh"
       ];
     };
+    # Build must not be used in the enterprise directory.
+    # They are only needed in non-enterprise code to switch between
+    # enterprise and non-enterprise implementation.
+    # e2e test shouldn't use enterprise code at all.
+    lint-buildtags = {
+      command = "${lib.getExe pkgs.scripts.lint-buildtags}";
+      options = [ "enterprise" ];
+      includes = [
+        "enterprise/**/*.go"
+        "e2e/**/*.go"
+      ];
+    };
     vale = {
       command = "${
         pkgs.vale.withStyles (
