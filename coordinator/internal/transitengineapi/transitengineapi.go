@@ -56,7 +56,7 @@ type (
 	}
 )
 
-// httpError is a json struct holding http error related fields, used for sending json error response bodies.
+// httpError is a json struct holding http error related fields, used for sending json error response bodies and logging.
 type httpError struct {
 	code          int
 	Errors        []string `json:"errors,omitempty"`
@@ -115,7 +115,7 @@ func getEncryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 	return func(w http.ResponseWriter, r *http.Request) {
 		workloadSecretID := r.PathValue("name")
 		if workloadSecretID == "" {
-			writehttpError(w, httpError{
+			writeHTTPError(w, httpError{
 				code:          http.StatusBadRequest,
 				Errors:        []string{"Invalid URL format"},
 				reqMethod:     r.Method,
@@ -126,7 +126,7 @@ func getEncryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 		}
 		var encReq encryptionRequest
 		if err := parseRequest(r, &encReq); err != nil {
-			writehttpError(w, httpError{
+			writeHTTPError(w, httpError{
 				code:          http.StatusBadRequest,
 				Errors:        []string{fmt.Sprintf("parsing encryption request: %v", err)},
 				reqMethod:     r.Method,
@@ -137,7 +137,7 @@ func getEncryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 		}
 		key, err := deriveEncryptionKey(authority, fmt.Sprintf("%d_%s", encReq.KeyVersion, workloadSecretID))
 		if err != nil {
-			writehttpError(w, httpError{
+			writeHTTPError(w, httpError{
 				code:          http.StatusInternalServerError,
 				Errors:        []string{fmt.Sprintf("key derivation: %v", err)},
 				reqMethod:     r.Method,
@@ -148,7 +148,7 @@ func getEncryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 		}
 		ciphertextContainer, err := symmetricEncryptRaw(key, encReq.Plaintext, encReq.AssociatedData)
 		if err != nil {
-			writehttpError(w, httpError{
+			writeHTTPError(w, httpError{
 				code:          http.StatusInternalServerError,
 				Errors:        []string{fmt.Sprintf("encrypting: %v", err)},
 				reqMethod:     r.Method,
@@ -161,7 +161,7 @@ func getEncryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 		var encResp encryptionResponse
 		encResp.Ciphertext = ciphertextContainer
 		if err = writeJSONResponse(w, encResp); err != nil {
-			writehttpError(w, httpError{
+			writeHTTPError(w, httpError{
 				code:          http.StatusInternalServerError,
 				Errors:        []string{fmt.Sprintf("writing response: %v", err)},
 				reqMethod:     r.Method,
@@ -177,7 +177,7 @@ func getDecryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 	return func(w http.ResponseWriter, r *http.Request) {
 		workloadSecretID := r.PathValue("name")
 		if workloadSecretID == "" {
-			writehttpError(w, httpError{
+			writeHTTPError(w, httpError{
 				code:          http.StatusBadRequest,
 				Errors:        []string{"Invalid URL format"},
 				reqMethod:     r.Method,
@@ -188,7 +188,7 @@ func getDecryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 		}
 		var decReq decryptionRequest
 		if err := parseRequest(r, &decReq); err != nil {
-			writehttpError(w, httpError{
+			writeHTTPError(w, httpError{
 				code:          http.StatusBadRequest,
 				Errors:        []string{fmt.Sprintf("parsing decryption request: %v", err)},
 				reqMethod:     r.Method,
@@ -199,7 +199,7 @@ func getDecryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 		}
 		key, err := deriveEncryptionKey(authority, fmt.Sprintf("%d_%s", decReq.CiphertextContainer.keyVersion, workloadSecretID))
 		if err != nil {
-			writehttpError(w, httpError{
+			writeHTTPError(w, httpError{
 				code:          http.StatusInternalServerError,
 				Errors:        []string{fmt.Sprintf("key derivation: %v", err)},
 				reqMethod:     r.Method,
@@ -210,7 +210,7 @@ func getDecryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 		}
 		plaintext, err := symmetricDecryptRaw(key, decReq.CiphertextContainer, decReq.AssociatedData)
 		if err != nil {
-			writehttpError(w, httpError{
+			writeHTTPError(w, httpError{
 				code:          http.StatusInternalServerError,
 				Errors:        []string{fmt.Sprintf("decrypting: %v", err)},
 				reqMethod:     r.Method,
@@ -222,7 +222,7 @@ func getDecryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 		var decResp decryptionResponse
 		decResp.Plaintext = plaintext
 		if err = writeJSONResponse(w, decResp); err != nil {
-			writehttpError(w, httpError{
+			writeHTTPError(w, httpError{
 				code:          http.StatusInternalServerError,
 				Errors:        []string{fmt.Sprintf("writing response: %v", err)},
 				reqMethod:     r.Method,
@@ -254,7 +254,6 @@ func deriveEncryptionKey(authority stateAuthority, workloadSecretID string) ([]b
 	if err != nil {
 		return nil, err
 	}
-	// TODO(jmxnzo): authentication of client certs <-> parsed workloadSecretID.
 	derivedWorkloadSecret, err := state.SeedEngine().DeriveWorkloadSecret(workloadSecretID)
 	if err != nil {
 		return nil, err
@@ -275,8 +274,8 @@ func writeJSONResponse(w http.ResponseWriter, payload any) error {
 	return json.NewEncoder(w).Encode(response)
 }
 
-// writehttpError sends the httpError handed in as json body error response and logs prior.
-func writehttpError(w http.ResponseWriter, httpErr httpError, logger *slog.Logger) {
+// writeHTTPError sends the httpError handed in as json body error response and logs prior.
+func writeHTTPError(w http.ResponseWriter, httpErr httpError, logger *slog.Logger) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpErr.code)
 	logger.Error("HTTP error", "error", httpErr)
