@@ -70,13 +70,12 @@ type stateAuthority interface {
 }
 
 // NewTransitEngineAPI sets up the transit engine API with a provided seedEngineAuthority.
-func NewTransitEngineAPI(authority stateAuthority, port int, logger *slog.Logger) (*http.Server, error) {
+func NewTransitEngineAPI(authority stateAuthority, logger *slog.Logger) (*http.Server, error) {
 	privKeyAPI, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating transit engine API private key")
 	}
 	return &http.Server{
-		Addr: fmt.Sprintf(":%d", port),
 		TLSConfig: &tls.Config{
 			ClientAuth: tls.RequireAndVerifyClientCert,
 			GetConfigForClient: func(_ *tls.ClientHelloInfo) (*tls.Config, error) {

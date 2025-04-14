@@ -20,6 +20,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	meshapiserver "github.com/edgelesssys/contrast/coordinator/internal/meshapi"
 	"github.com/edgelesssys/contrast/coordinator/internal/probes"
+	transitengine "github.com/edgelesssys/contrast/coordinator/internal/transitengineapi"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
@@ -42,6 +43,8 @@ import (
 const (
 	metricsEnvVar       = "CONTRAST_METRICS"
 	probeAndMetricsPort = 9102
+	// transitEngineAPIPort specifies the default port to expose the transit engine API.
+	transitEngineAPIPort = "8200"
 )
 
 func main() {
@@ -110,6 +113,8 @@ func run() (retErr error) {
 	userapiStarted := &startupHandler.UserapiStarted
 	meshapiStarted := &startupHandler.MeshapiStarted
 
+	transitAPIServer, err := transitengine.NewTransitEngineAPI(meshAuth, logger)
+
 	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
@@ -173,6 +178,19 @@ func run() (retErr error) {
 	})
 
 	eg.Go(func() error {
+		logger.Info("Coordinator transit engine API listening")
+		lis, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", transitEngineAPIPort))
+		if err != nil {
+			return fmt.Errorf("failed to listen: %w", err)
+		}
+		if err := transitAPIServer.ServeTLS(lis, "", ""); err != nil {
+			logger.Error("Serving transit engine API", "err", err)
+			return fmt.Errorf("serving transit engine API: %w", err)
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
 		<-ctx.Done()
 		logger.Info("Context done, shutting down", "err", ctx.Err())
 		// New context for cleanup, Kubernetes grace period is 30 seconds.
@@ -182,7 +200,8 @@ func run() (retErr error) {
 		gracefulStopGRPC(ctx, wg, userAPIServer) //nolint:contextcheck
 		gracefulStopGRPC(ctx, wg, meshAPIServer) //nolint:contextcheck
 		wg.Wait()
-		return httpServer.Shutdown(ctx) //nolint:contextcheck
+		_ = transitAPIServer.Shutdown(ctx) //nolint:contextcheck
+		return httpServer.Shutdown(ctx)    //nolint:contextcheck
 	})
 
 	return eg.Wait()
