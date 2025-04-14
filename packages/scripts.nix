@@ -572,4 +572,23 @@
       done <<< "$modFiles"
     '';
   };
+
+  lint-buildtags = writeShellApplication {
+    name = "lint-enterprise-buildtags";
+    runtimeInputs = with pkgs; [ gnugrep ];
+    text = ''
+      IFS=',' read -r -a tags <<< "$1"
+      shift
+      exitcode=0
+      for tag in "''${tags[@]}"; do
+        for file in "$@"; do
+          if grep -q -E "//go:build.*$tag" "$file"; then
+            echo "Build tag $tag not permitted in $file" >&2
+            exitcode=1
+          fi
+        done
+      done
+      exit $exitcode
+    '';
+  };
 }

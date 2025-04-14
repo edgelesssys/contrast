@@ -37,7 +37,7 @@
           config.nvidia.acceptLicense = true;
         };
         inherit (pkgs) lib;
-        treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
+        treefmtEval = treefmt-nix.lib.evalModule (pkgs // ourPkgs) ./treefmt.nix;
         ourPkgs = import ./packages { inherit pkgs lib; };
       in
       {
