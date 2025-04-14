@@ -75,6 +75,13 @@ Install K3s
 ```bash
 curl -sfL https://get.k3s.io | sh -
 ```
+The K3s docs state:
+> A kubeconfig file will be written to /etc/rancher/k3s/k3s.yaml and the kubectl installed by K3s will automatically use it.
+
+Export the Kubeconfig for the current user for the following steps:
+```bash
+export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+```
 
 Install Longhorn into K3s
 ```bash
