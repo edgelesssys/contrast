@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Mon, 14 Apr 2025 16:25:18 +0200
+Subject: [PATCH] genpolicy: allow RO and RW for sysfs with privileged
+ container
+
+---
+ src/tools/genpolicy/rules.rego    | 14 ++++++++++++++
+ src/tools/genpolicy/src/policy.rs |  5 ++++-
+ 2 files changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index cc94c49d080632e6e86e9291ad598394496ef4c5..984a5e2d444977dcc5b420a30c85927275571fdf 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -920,6 +920,20 @@ check_mount(p_mount, i_mount, bundle_id, sandbox_id) {
+ 
+     print("check_mount 2: true")
+ }
++check_mount(p_mount, i_mount, bundle_id, sandbox_id) {
++    # This check passes if the policy container has RW, the input container has
++    # RO and the volume type is sysfs, working around different handling of
++    # privileged containers after containerd 2.0.4.
++    i_mount.type_ == "sysfs"
++    p_mount.type_ == i_mount.type_
++    p_mount.destination == i_mount.destination
++    p_mount.source == i_mount.source
++
++    i_options := {x | x = i_mount.options[_]} | {"rw"}
++    p_options := {x | x = p_mount.options[_]} | {"ro"}
++    p_options == i_options
++    print("check_mount 3: true")
++}
+ 
+ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
+     regex1 := p_mount.source
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index a120103f32cf3c1eaa2281454bce6d23c520a6c6..010e73635d70777c8a3724185c6af757c4b22acd 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -589,6 +589,9 @@ impl AgentPolicy {
+         );
+ 
+         let is_privileged = yaml_container.is_privileged();
++        let needs_privileged_mounts = is_privileged
++            || (is_pause_container && resource.get_containers().iter().any(|c| c.is_privileged()));
++
+         let process = self.get_container_process(
+             resource,
+             yaml_container,
+@@ -598,7 +601,7 @@ impl AgentPolicy {
+             is_privileged,
+         );
+ 
+-        let mut mounts = containerd::get_mounts(is_pause_container, is_privileged);
++        let mut mounts = containerd::get_mounts(is_pause_container, needs_privileged_mounts);
+         mount_and_storage::get_policy_mounts(
+             &self.config.settings,
+             &mut mounts,

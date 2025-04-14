@@ -126,6 +126,19 @@ buildGoModule (finalAttrs: {
       # - https://github.com/kata-containers/kata-containers/pull/10947 (this patch)
       # - https://github.com/kata-containers/kata-containers/pull/10559 (superset including the patch)
       ./0017-genpolicy-support-ephemeral-volume-source.patch
+
+      # Containerd versions since 2.0.4 set the sysfs of the pause container to RW if one of the
+      # main containers is privileged, whereas prior versions did not. The expected mounts are
+      # hard-coded in containerd.rs, making it tricky to support differences across containerd
+      # versions. We deal with this by always configuring the pause container's sysfs as RW, and
+      # then allowing a mount that is expected to be RW to be mounted as RO. The worst thing that
+      # could happen here is a container failure during sysfs writes.
+      #
+      # This workaround would not be necessary if we had better support for diverse containerd
+      # versions upstream. However, there is no consensus on how this would look like, or whether
+      # it makes sense at all, so we're fixing this downstream only.
+      # https://github.com/kata-containers/kata-containers/pull/11077#issuecomment-2750400613
+      ./0018-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
     ];
   };
 
