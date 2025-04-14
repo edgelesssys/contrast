@@ -156,7 +156,14 @@ func addCRLtoVerifyOptions(attestationData *sevsnp.Attestation, verifyOpts *veri
 		return fmt.Errorf("could not parse CRL from attestation data: %w", err)
 	}
 
-	productLine := kds.ProductLine(attestationData.GetProduct())
+	// Attestation with v3 report: FMS is set in the report; Product is nil
+	// Attestation with v2 report: FMS is 0; Product is set
+	var productLine string
+	if fms := attestationData.GetReport().GetCpuid1EaxFms(); fms != 0 {
+		productLine = kds.ProductLineFromFms(fms)
+	} else {
+		productLine = kds.ProductLine(attestationData.GetProduct())
+	}
 
 	for _, tr := range verifyOpts.TrustedRoots[productLine] {
 		tr.CRL = crl
