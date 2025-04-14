@@ -174,6 +174,7 @@ let
       tag = "latest";
       copyToRoot = with pkgs; [
         cacert
+        busybox
       ];
       config = {
         Cmd = [ "${lib.getExe pkgs.scripts.cleanup-bare-metal}" ];
