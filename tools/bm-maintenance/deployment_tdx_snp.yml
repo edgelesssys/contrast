@@ -83,3 +83,26 @@ spec:
                 path: /run/k3s/containerd/
                 type: Directory
           restartPolicy: OnFailure
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nix-garbage-collection
+spec:
+  schedule: "0 0 */7 * *" # 0:00 every 7 days
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          hostPID: true
+          containers:
+            - name: nix-gc
+              image: ghcr.io/edgelesssys/contrast/cleanup-bare-metal
+              imagePullPolicy: Always
+              securityContext:
+                privileged: true
+              command:
+                - /bin/sh
+                - -c
+                - nsenter --target 1 --mount -- /root/.nix-profile/bin/nix store gc
+          restartPolicy: OnFailure
