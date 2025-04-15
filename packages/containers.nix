@@ -127,6 +127,10 @@ let
         # Use Entrypoint so we can append arguments.
         Entrypoint = [ "${pkgs.service-mesh}/bin/service-mesh" ];
         Env = [ "PATH=/bin" ];
+        Volumes = {
+          # Add /run folder so that iptables can create /run/xtables.lock
+          "/run" = { };
+        };
       };
     };
 
