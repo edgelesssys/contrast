@@ -14,6 +14,8 @@ import (
 	"log/slog"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
+	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -48,7 +50,9 @@ func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifest
 		return CoordinatorState{}, fmt.Errorf("validating manifest: %w", err)
 	}
 
-	validators, err := ValidatorsFromManifest(kdsDir, &m, c.log)
+	kdsCache := fsstore.New(kdsDir, c.log.WithGroup("kds-cache"))
+	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, c.log.WithGroup("kds-getter"))
+	validators, err := ValidatorsFromManifest(kdsGetter, &m, c.log)
 	if err != nil {
 		return CoordinatorState{}, fmt.Errorf("getting validators: %w", err)
 	}

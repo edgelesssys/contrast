@@ -11,22 +11,18 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
-	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/google/go-sev-guest/verify/trust"
 )
 
 // ValidatorsFromManifest returns a list of validators corresponding to the reference values in the given manifest.
 // Originally an unexported function in the contrast CLI.
 // Can be made unexported again, if we decide to move all userapi calls from the CLI to the SDK.
 // Validators MUST NOT be used concurrently.
-func ValidatorsFromManifest(kdsDir string, m *manifest.Manifest, log *slog.Logger) ([]atls.Validator, error) {
-	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
-	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter"))
-
+func ValidatorsFromManifest(kdsGetter trust.HTTPSGetter, m *manifest.Manifest, log *slog.Logger) ([]atls.Validator, error) {
 	var validators []atls.Validator
 
 	coordPolicyHash, err := m.CoordinatorPolicyHash()
