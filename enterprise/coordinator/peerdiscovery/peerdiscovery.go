@@ -14,11 +14,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// Discovery knows how to find Coordinator peers.
 type Discovery struct {
 	client    kubernetes.Interface
 	namespace string
 }
 
+// New constructs a new Discovery instance.
 func New(client kubernetes.Interface, namespace string) *Discovery {
 	return &Discovery{
 		client:    client,
