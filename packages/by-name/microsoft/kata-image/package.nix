@@ -57,6 +57,31 @@ let
       sed -i 's/@BINDIR@\/@AGENT_NAME@/\/usr\/bin\/kata-agent/g'  /build/rootfs/usr/lib/systemd/system/kata-agent.service
       touch /build/rootfs/etc/machine-id
 
+      # For more information about this unit see packages/by-name/mkNixosConfig/package.nix
+      cat > /build/rootfs/usr/lib/systemd/system/deny-incoming-traffic.service<< EOF
+      [Unit]
+      Description="Deny all incoming connections"
+
+      Wants=network.target
+      After=network.target
+      Before=kata-agent.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=iptables-legacy -I INPUT -m conntrack ! --ctstate ESTABLISHED,RELATED -j DROP
+      EOF
+
+      # create a "RequiredBy" dependency where the kata-agent.service requires
+      # the deny-incoming-traffic.service to be started and successfully exited
+      # before the kata-agent.service can be started
+      # Usually this is done via the "RequiredBy" directive under the [Install]
+      # section of the systemd unit file, but the filesystem is read only
+      # and systemd wants the create the following symlink.
+      mkdir -p /build/rootfs/etc/systemd/system/kata-agent.service.requires/
+      ln -s ../../../../../usr/lib/systemd/system/deny-incoming-traffic.service /build/rootfs/etc/systemd/system/kata-agent.service.requires/deny-incoming-traffic.service
+
+
       tar --sort=name --mtime="@$SOURCE_DATE_EPOCH" -cvf /build/rootfs-extra-tree.tar -C /build/rootfs .
 
       mv /build/rootfs-extra-tree.tar $out
