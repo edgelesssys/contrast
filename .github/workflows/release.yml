@@ -242,9 +242,10 @@ jobs:
         with:
           version: ${{ needs.process-inputs.outputs.WITHOUT_V }}
           commit: true
-      - name: Push containers with release tag
+      - name: Push containers
         run: |
           coordinatorImg=$(nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator")
+          coordinatorEnterpriseImg=$(nix run .#containers.push-coordinator-enterprise -- "$container_registry/contrast/coordinator")
           nodeInstallerMsftImg=$(nix run .#containers.push-node-installer-microsoft -- "$container_registry/contrast/node-installer-microsoft")
           nodeInstallerKataImg=$(nix run .#containers.push-node-installer-kata -- "$container_registry/contrast/node-installer-kata")
           nodeInstallerKataGPUImg=$(nix run .#containers.push-node-installer-kata-gpu -- "$container_registry/contrast/node-installer-kata")
@@ -254,6 +255,7 @@ jobs:
           nydusSnapshotterImg=$(nix run .#containers.push-nydus-snapshotter -- "$container_registry/contrast/nydus-snapshotter")
           nydusPullImg=$(nix run .#containers.push-nydus-pull -- "$container_registry/contrast/nydus-pull")
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
+          echo "coordinatorEnterpriseImg=$coordinatorEnterpriseImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerKataImg=$nodeInstallerKataImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerKataGPUImg=$nodeInstallerKataGPUImg" | tee -a "$GITHUB_ENV"
@@ -262,30 +264,37 @@ jobs:
           echo "tardevSnapshotterImg=$tardevSnapshotterImg" | tee -a "$GITHUB_ENV"
           echo "nydusSnapshotterImg=$nydusSnapshotterImg" | tee -a "$GITHUB_ENV"
           echo "nydusPullImg=$nydusPullImg" | tee -a "$GITHUB_ENV"
-      - name: Add tag to Coordinator image
+      - name: Add tags to container images
         run: |
+          # Insert a tag into a container image name.
           tag() {
-            front=${1%@*}
-            back=${1#*@}
-            printf "%s:%s@%s" "$front" "${{ inputs.version }}" "$back"
+            tag="$1"
+            front="${2%@*}"
+            back="${2#*@}"
+            printf "%s:%s@%s" "$front" "$tag" "$back"
           }
-          echo "coordinatorImgTagged=$(tag "$coordinatorImg")" | tee -a "$GITHUB_ENV"
-          echo "nodeInstallerMsftImgTagged=$(tag "$nodeInstallerMsftImg")" | tee -a "$GITHUB_ENV"
-          echo "nodeInstallerKataImgTagged=$(tag "$nodeInstallerKataImg")" | tee -a "$GITHUB_ENV"
-          echo "nodeInstallerKataGPUImgTagged=$(tag "$nodeInstallerKataGPUImg")" | tee -a "$GITHUB_ENV"
-          echo "initializerImgTagged=$(tag "$initializerImg")" | tee -a "$GITHUB_ENV"
-          echo "serviceMeshImgTagged=$(tag "$serviceMeshImg")" | tee -a "$GITHUB_ENV"
-          echo "nydusPullImgTagged=$(tag "$nydusPullImg")" | tee -a "$GITHUB_ENV"
+
+          # Insert the Contrast version as tag into a container image name.
+          tagContrast() {
+            tag ${{ inputs.version }} "$@"
+          }
+
+          echo "coordinatorImgTagged=$(tagContrast "$coordinatorImg")" | tee -a "$GITHUB_ENV"
+          echo "nodeInstallerMsftImgTagged=$(tagContrast "$nodeInstallerMsftImg")" | tee -a "$GITHUB_ENV"
+          echo "nodeInstallerKataImgTagged=$(tagContrast "$nodeInstallerKataImg")" | tee -a "$GITHUB_ENV"
+          echo "nodeInstallerKataGPUImgTagged=$(tagContrast "$nodeInstallerKataGPUImg")" | tee -a "$GITHUB_ENV"
+          echo "initializerImgTagged=$(tagContrast "$initializerImg")" | tee -a "$GITHUB_ENV"
+          echo "serviceMeshImgTagged=$(tagContrast "$serviceMeshImg")" | tee -a "$GITHUB_ENV"
+          echo "nydusPullImgTagged=$(tagContrast "$nydusPullImg")" | tee -a "$GITHUB_ENV"
+
+          enterpriseVer="${{ inputs.version }}-enterprise"
+          echo "coordinatorEnterpriseImgTagged=$(tag "$enterpriseVer" "$coordinatorEnterpriseImg")" | tee -a "$GITHUB_ENV"
 
           tardevVer=$(nix eval --impure --raw --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.microsoft.tardev-snapshotter.version")
-          front=${tardevSnapshotterImg%@*}
-          back=${tardevSnapshotterImg#*@}
-          echo "tardevSnapshotterImgTagged=$(printf "%s:%s@%s" "$front" "$tardevVer" "$back")" | tee -a "$GITHUB_ENV"
+          echo "tardevSnapshotterImgTagged=$(tag "$tardevVer" "$tardevSnapshotterImg")" | tee -a "$GITHUB_ENV"
 
           nydusVer=$(nix eval --impure --raw --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.nydus-snapshotter.version")
-          front=${nydusSnapshotterImg%@*}
-          back=${nydusSnapshotterImg#*@}
-          echo "nydusSnapshotterImgTagged=$(printf "%s:%s@%s" "$front" "$nydusVer" "$back")" | tee -a "$GITHUB_ENV"
+          echo "nydusSnapshotterImgTagged=$(tag "$nydusVer" "$nydusSnapshotterImg")" | tee -a "$GITHUB_ENV"
       - name: Create file with image replacements
         run: |
           {
@@ -299,28 +308,56 @@ jobs:
             echo "ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest=$nydusSnapshotterImgTagged"
             echo "ghcr.io/edgelesssys/contrast/nydus-pull:latest=$nydusPullImgTagged"
           } > image-replacements.txt
-      - name: Upload image replacements file (for main branch PR)
+      - name: Create file with enterprise image replacements
+        run: |
+          {
+            echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorEnterpriseImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=$nodeInstallerMsftImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest=$nydusSnapshotterImgTagged"
+            echo "ghcr.io/edgelesssys/contrast/nydus-pull:latest=$nydusPullImgTagged"
+          } > image-replacements-enterprise.txt
+      - name: Upload image replacement files (for main branch PR)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: image-replacements.txt
-          path: ./image-replacements.txt
-      - name: Create coordinator resource definitions
+          name: image-replacements
+          path: |
+            image-replacements.txt
+            image-replacements-enterprise.txt
+      - name: Create coordinator & coordinator enterprise resource definitions
         run: |
           mkdir -p workspace
 
-          echo "ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged" > "workspace/image-replacements.txt"
-          nix shell .#contrast --command resourcegen \
-            --image-replacements "workspace/image-replacements.txt" \
-            --add-load-balancers \
-            coordinator > "workspace/coordinator.yml"
-
-          for platform in aks-clh-snp metal-qemu-tdx k3s-qemu-tdx metal-qemu-snp k3s-qemu-snp k3s-qemu-snp-gpu rke2-qemu-tdx metal-qemu-snp-gpu; do
+          for edition in "" "-enterprise"; do
+            nix shell .#contrast --command resourcegen \
+              --image-replacements "./image-replacements${edition}.txt" \
+              --add-load-balancers \
+              coordinator > "workspace/coordinator${edition}.yml"
+          done
+      - name: Create runtime resource definitions
+        run: |
+          platforms=(
+            "aks-clh-snp"
+            "k3s-qemu-snp-gpu"
+            "k3s-qemu-snp"
+            "k3s-qemu-tdx"
+            "metal-qemu-snp-gpu"
+            "metal-qemu-snp"
+            "metal-qemu-tdx"
+            "rke2-qemu-tdx"
+          )
+          for platform in "${platforms[@]}"; do
             nix shell .#contrast --command resourcegen \
               --image-replacements ./image-replacements.txt \
               --platform $platform \
               runtime > workspace/runtime-$platform.yml
           done
-
+      - name: Create demo resource definitions
+        run: |
           nix shell .#contrast --command resourcegen \
             --image-replacements ./image-replacements.txt \
             --add-load-balancers emojivoto-sm-ingress > workspace/emojivoto-demo.yml
@@ -330,20 +367,30 @@ jobs:
       - name: Update cli assets
         run: |
           cp image-replacements.txt cli/cmd/assets/image-replacements.txt
-
           git config --global user.name "edgelessci"
           git config --global user.email "edgelessci@users.noreply.github.com"
           git add cli/cmd/assets/image-replacements.txt
           git diff --staged --quiet || git commit -m "release: update cli assets"
       - name: Build CLI
         run: |
-          nix build -L .#contrast-cli-release
+          nix build -L .#contrast-cli-release --out-link workspace/contrast
+      - name: Update cli assets (enterprise)
+        run: |
+          cp image-replacements-enterprise.txt cli/cmd/assets/image-replacements.txt
+          git config --global user.name "edgelessci"
+          git config --global user.email "edgelessci@users.noreply.github.com"
+          git add cli/cmd/assets/image-replacements.txt
+          git diff --staged --quiet || git commit -m "release: update cli assets (enterprise)"
+      - name: Build CLI
+        run: |
+          nix build -L .#contrast-enterprise-cli-release --out-link workspace/contrast-enterprise
       - name: Upload release artifacts (for main branch PR)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: contrast-release-artifacts
           path: |
-            result-cli/bin/contrast
+            workspace/contrast/bin/contrast
+            workspace/contrast-enterprise/bin/contrast-enterprise
             workspace/coordinator.yml
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
@@ -357,7 +404,8 @@ jobs:
           target_commitish: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           fail_on_unmatched_files: true
           files: |
-            result-cli/bin/contrast
+            workspace/contrast/bin/contrast
+            workspace/contrast-enterprise/bin/contrast-enterprise
             workspace/coordinator.yml
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
