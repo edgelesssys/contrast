@@ -21,6 +21,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
+	"github.com/edgelesssys/contrast/internal/defaultdeny"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
@@ -75,6 +76,16 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	}()
 
 	log.Info("Initializer started")
+
+	// If the service mesh is disabled, we don't have a service mesh sidecar
+	// container that installs its iptables rules. Therefore, we remove the
+	// rule here.
+	if os.Getenv(constants.DisableServiceMeshEnvVar) != "" {
+		log.Info(fmt.Sprintf("%s set, removing default deny rule", constants.DisableServiceMeshEnvVar))
+		if err := defaultdeny.RemoveDefaultDenyRule(log); err != nil {
+			return fmt.Errorf("removing default deny rule: %w", err)
+		}
+	}
 
 	coordinatorHostname := os.Getenv("COORDINATOR_HOST")
 	if coordinatorHostname == "" {

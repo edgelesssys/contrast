@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"syscall"
 
+	"github.com/edgelesssys/contrast/internal/defaultdeny"
 	"github.com/edgelesssys/contrast/internal/logger"
 )
 
@@ -72,6 +73,13 @@ func run() (retErr error) {
 
 	if err := IngressIPTableRules(pconfig.ingress); err != nil {
 		return fmt.Errorf("failed to set up iptables rules: %w", err)
+	}
+
+	// Remove the default deny rule AFTER we set up the configured iptables rules.
+	// This way we make sure that all incoming traffic is either blocked by the default deny
+	// rule or routed through Envoy as configured by the user.
+	if err := defaultdeny.RemoveDefaultDenyRule(log); err != nil {
+		return fmt.Errorf("removing default deny rule: %w", err)
 	}
 
 	// Signal readiness for startup probe.
