@@ -5,7 +5,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/coreos/go-iptables/iptables"
 )
@@ -19,18 +18,6 @@ const EnvoyIngressPortNoClientCert = 15007
 
 // IngressIPTableRules sets up the iptables rules for the ingress proxy.
 func IngressIPTableRules(ingressEntries []ingressConfigEntry) error {
-	// Create missing `/run/xtables.lock` file.
-	if err := os.Mkdir("/run", 0o755); err != nil {
-		if !os.IsExist(err) {
-			return fmt.Errorf("failed to create /run directory: %w", err)
-		}
-	}
-	file, err := os.Create("/run/xtables.lock")
-	if err != nil {
-		return fmt.Errorf("failed to create /run/xtables.lock: %w", err)
-	}
-	_ = file.Close()
-
 	iptablesExec, err := iptables.New()
 	if err != nil {
 		return fmt.Errorf("failed to create iptables client: %w", err)
