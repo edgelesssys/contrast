@@ -6,4 +6,12 @@
 contrast.overrideAttrs (prevAttrs: {
   version = prevAttrs.version + "+enterprise";
   tags = prevAttrs.tags ++ [ "enterprise" ];
+  postInstall =
+    prevAttrs.postInstall
+    + ''
+      mv $cli/bin/contrast $cli/bin/contrast-enterprise
+    '';
+  meta = prevAttrs.meta // {
+    mainProgram = "contrast-enterprise";
+  };
 })
