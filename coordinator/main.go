@@ -23,6 +23,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
+	"github.com/edgelesssys/contrast/internal/defaultdeny"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	loggerpkg "github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/memstore"
@@ -66,6 +67,13 @@ func run() (retErr error) {
 	}()
 
 	logger.Info("Coordinator started")
+
+	// If we don't have a config then we are running as an init container and not
+	// as a sidecar container remove the default deny rule and return early.
+	logger.Info("removing default deny rule")
+	if err := defaultdeny.RemoveDefaultDenyRule(logger); err != nil {
+		return fmt.Errorf("failed to remove default deny rule: %w", err)
+	}
 
 	if err := mount.SetupMount(ctx, logger, "/dev/csi0", "/mnt/state"); err != nil {
 		return fmt.Errorf("setting up mount: %w", err)

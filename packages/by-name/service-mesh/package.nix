@@ -22,6 +22,7 @@ buildGoModule (finalAttrs: {
         (path.append root "service-mesh/go.mod")
         (path.append root "service-mesh/go.sum")
         (path.append root "service-mesh/golden/defaultEnvoy.json")
+        (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/defaultdeny"))
         (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/logger"))
         (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "service-mesh"))
       ];

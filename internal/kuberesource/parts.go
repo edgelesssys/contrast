@@ -381,7 +381,10 @@ func Coordinator(namespace string) *CoordinatorConfig {
 							).
 							WithSecurityContext(SecurityContext().
 								WithCapabilities(applycorev1.Capabilities().
-									WithAdd("SYS_ADMIN"),
+									WithAdd(
+										"SYS_ADMIN",
+										"NET_ADMIN", // Needed for removing the default deny iptales rule.
+									),
 								),
 							).
 							WithPorts(
@@ -567,6 +570,15 @@ func Initializer() *applycorev1.ContainerApplyConfiguration {
 		WithVolumeMounts(VolumeMount().
 			WithName("contrast-secrets").
 			WithMountPath("/contrast"),
+		).
+		WithSecurityContext(
+			SecurityContext().
+				WithCapabilities(
+					applycorev1.Capabilities().
+						WithAdd(
+							"NET_ADMIN", // Needed for removing the default deny iptables rule.
+						),
+				),
 		)
 }
 

@@ -21,6 +21,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
+	"github.com/edgelesssys/contrast/internal/defaultdeny"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/meshapi"
@@ -74,6 +75,15 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	}()
 
 	log.Info("Initializer started")
+
+	// If we don't have a config then we are running as an init container and not
+	// as a sidecar container remove the default deny rule and return early.
+	if os.Getenv(constants.DisableServiceMeshEnvVar) != "" {
+		log.Info(fmt.Sprintf("%s set, removing default deny rule", constants.DisableServiceMeshEnvVar))
+		if err := defaultdeny.RemoveDefaultDenyRule(log); err != nil {
+			return fmt.Errorf("failed to remove default deny rule: %w", err)
+		}
+	}
 
 	coordinatorHostname := os.Getenv("COORDINATOR_HOST")
 	if coordinatorHostname == "" {
