@@ -244,7 +244,7 @@ After these steps, the worker node is fully configured and ready to run Confiden
 #### 2. QEMU initializes memory
 
 - `QEMU` loads the kernel, kernel command line, and `initramfs` into the CVM’s initial memory.
-- Unlike traditional QEMU boots that use Open Virtual Machine Firmware (OVMF) for UEFI initialization, Direct Linux Boot loads the kernel directly, skipping the need for firmware.
+- Direct Linux Boot loads the kernel directly, skipping the need for firmware.
 
 #### 3. Kernel and initramfs initialization
 
