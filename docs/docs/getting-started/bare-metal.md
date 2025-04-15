@@ -83,7 +83,6 @@ To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled 
 4. A CDI configuration needs to be present on the node. To generate it, you can use the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
    Refer to the official instructions on [how to generate a CDI configuration with it](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html).
 
-
 If the per-node requirements are fulfilled, deploy the [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest) to the cluster. It provisions pod-VMs with GPUs via VFIO.
 
 Initially, label all nodes that *should run GPU workloads*:
@@ -92,13 +91,17 @@ Initially, label all nodes that *should run GPU workloads*:
 kubectl label node <node-name> nvidia.com/gpu.workload.config=vm-passthrough
 ```
 
-For a GPU-enabled Contrast cluster, you can then deploy the operator with the following command:
+For a GPU-enabled Contrast cluster, you can then deploy the operator with the following commands:
 
 ```sh
+# Add the NVIDIA Helm repository
+helm repo add nvidia https://helm.ngc.nvidia.com/nvidia && helm repo update
+
+# Install the GPU Operator
 helm install --wait --generate-name \
    -n gpu-operator --create-namespace \
    nvidia/gpu-operator \
-   --version=v24.9.1 \
+   --version=v25.3.0 \
    --set sandboxWorkloads.enabled=true \
    --set sandboxWorkloads.defaultWorkload='vm-passthrough' \
    --set nfd.nodefeaturerules=true \
