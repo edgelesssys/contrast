@@ -74,13 +74,11 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("decrypting seed: %w", err)
 	}
 
-	kdsDir, err := cachedir("kds")
+	kdsGetter, err := cachedHTTPSGetter(log)
 	if err != nil {
-		return fmt.Errorf("getting cache dir: %w", err)
+		return fmt.Errorf("configuring KDS cache: %w", err)
 	}
-	log.Debug("Using KDS cache dir", "dir", kdsDir)
-
-	validators, err := sdk.ValidatorsFromManifest(kdsDir, &m, log)
+	validators, err := sdk.ValidatorsFromManifest(kdsGetter, &m, log)
 	if err != nil {
 		return fmt.Errorf("getting validators: %w", err)
 	}
