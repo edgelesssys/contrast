@@ -26,6 +26,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/constants"
+	"github.com/edgelesssys/contrast/internal/defaultdeny"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
 	loggerpkg "github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/memstore"
@@ -74,6 +75,14 @@ func run() (retErr error) {
 	}()
 
 	logger.Info("Coordinator started")
+
+	// The coordinator doesn't have an initcontainer to remove the default deny rule.
+	// Since we control the code of the coordinator, we never need the service-mesh sidecar
+	// and therefore can just remove the default deny rule.
+	logger.Info("removing default deny rule")
+	if err := defaultdeny.RemoveDefaultDenyRule(logger); err != nil {
+		return fmt.Errorf("removing default deny rule: %w", err)
+	}
 
 	if err := mount.SetupMount(ctx, logger, "/dev/csi0", "/mnt/state"); err != nil {
 		return fmt.Errorf("setting up mount: %w", err)
