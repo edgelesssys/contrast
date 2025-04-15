@@ -48,6 +48,7 @@ spec:
           containers:
             - name: cleanup
               image: ghcr.io/edgelesssys/contrast/cleanup-bare-metal
+              imagePullPolicy: Always
               env:
                 - name: OPTEDGELESS
                   value: /opt/edgeless
