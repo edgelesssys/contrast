@@ -35,3 +35,8 @@ const (
 	// propagation.
 	ATLSServerTimeout = ATLSClientTimeout - 5*time.Second
 )
+
+// DisableServiceMeshEnvVar is the environment variable that signals to the initializer
+// that the service mesh is disabled and that the initializer should remove
+// the default deny iptables rule.
+const DisableServiceMeshEnvVar = "CONTRAST_SERVICE_MESH_DISABLED"

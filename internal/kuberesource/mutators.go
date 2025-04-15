@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/edgelesssys/contrast/internal/constants"
 	corev1 "k8s.io/api/core/v1"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applybatchv1 "k8s.io/client-go/applyconfigurations/batch/v1"
@@ -60,6 +61,10 @@ func AddInitializer(
 				return nil, nil
 			}
 			initializer = addCryptsetupConfig(initializer, devName, mountName)
+		}
+
+		if !needsServiceMesh(meta) {
+			initializer.Env = append(initializer.Env, *NewEnvVar(constants.DisableServiceMeshEnvVar, "true"))
 		}
 
 		// Initializer has to have a volume mount.
@@ -163,14 +168,14 @@ func AddServiceMesh(
 			return meta, spec
 		}
 
-		ingressConfig, ingressOk := meta.Annotations[smIngressConfigAnnotationKey]
-		egressConfig, egressOk := meta.Annotations[smEgressConfigAnnotationKey]
-		portAnnotation, portOk := meta.Annotations[smAdminInterfaceAnnotationKey]
-
 		// Don't change anything if automatic service mesh injection isn't enabled.
-		if !ingressOk && !egressOk && !portOk {
+		if !needsServiceMesh(meta) {
 			return meta, spec
 		}
+
+		ingressConfig := meta.Annotations[smIngressConfigAnnotationKey]
+		egressConfig := meta.Annotations[smEgressConfigAnnotationKey]
+		portAnnotation := meta.Annotations[smAdminInterfaceAnnotationKey]
 
 		// Remove already existing init containers with unique service mesh name.
 		spec.InitContainers = slices.DeleteFunc(spec.InitContainers, func(c applycorev1.ContainerApplyConfiguration) bool {
@@ -523,4 +528,12 @@ func MapPodSpec(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration
 		) {
 			return meta, f(spec)
 		})
+}
+
+func needsServiceMesh(meta *applymetav1.ObjectMetaApplyConfiguration) bool {
+	_, ingressOk := meta.Annotations[smIngressConfigAnnotationKey]
+	_, egressOk := meta.Annotations[smEgressConfigAnnotationKey]
+	_, portOk := meta.Annotations[smAdminInterfaceAnnotationKey]
+
+	return ingressOk || egressOk || portOk
 }
