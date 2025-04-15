@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.7.0">
 <title data-rh="true">Service mesh | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/pr-preview/pr-1374/next/components/service-mesh"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Service mesh | Contrast"><meta data-rh="true" name="description" content="The Contrast service mesh secures the communication of the workload by automatically"><meta data-rh="true" property="og:description" content="The Contrast service mesh secures the communication of the workload by automatically"><link data-rh="true" rel="icon" href="/contrast/pr-preview/pr-1374/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1374/next/components/service-mesh"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1374/next/components/service-mesh" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1374/next/components/service-mesh" hreflang="x-default"><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-1374/assets/css/styles.92cb9a97.css">
-<script src="/contrast/pr-preview/pr-1374/assets/js/runtime~main.3e1dd81c.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-1374/assets/js/runtime~main.0e2c8474.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-1374/assets/js/main.4bd924ef.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -24,15 +24,12 @@ sets up <code>iptables</code> rules based on its configuration and then starts
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="service-mesh-startup-enforcement">Service mesh startup enforcement<a href="#service-mesh-startup-enforcement" class="hash-link" aria-label="Direct link to Service mesh startup enforcement" title="Direct link to Service mesh startup enforcement">​</a></h2>
 <p>Since Contrast doesn&#x27;t yet enforce the order in which the containers are started
 (see <a href="/contrast/pr-preview/pr-1374/next/features-limitations">Limitations</a>), we deny all incoming connections
-until the service mesh resolves this deny rule.
+until the service mesh is fully configured.
 A systemd unit inside the podVM creates this deny rule.
 The kata-agent systemd unit requires that this unit successfully runs and exists.
-Therefore, the deny rule is in place, before any containers can be started.</p>
-<p>Contrast ensures that this deny rule doesn&#x27;t drop traffic in scenarios that don&#x27;t
-require a service mesh by injecting the service mesh container not as a sidecar
-but as an init container. During generation, the CLI also sets <code>CONTRAST_SERVICE_MESH_DISABLE</code>
-as an environment on the container to disable any further service mesh setup.
-The container just removes the deny rule and exits.</p>
+Therefore, the deny rule is in place before any containers can be started.</p>
+<p>If the user specifies no service mesh annotations, the Initializer takes care
+of removing the deny rule.</p>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="configuring-the-proxy">Configuring the proxy<a href="#configuring-the-proxy" class="hash-link" aria-label="Direct link to Configuring the proxy" title="Direct link to Configuring the proxy">​</a></h2>
 <p>The service mesh container can be configured using the following object annotations:</p>
 <ul>
