@@ -22,6 +22,7 @@ jobs:
             feature
             documentation
             no changelog
+            enterprise feature
   do-not-merge:
     runs-on: ubuntu-22.04
     steps:
