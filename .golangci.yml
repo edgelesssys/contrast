@@ -46,8 +46,33 @@ linters:
         - require-error
     revive:
       rules:
-        - name: "package-comments"
-          disabled: true
+        # These are the recommended rules from
+        # https://github.com/mgechev/revive/blob/v1.9.0/README.md?plain=1#L419-L441
+        # without 'package-comments'.
+        # keep-sorted start
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: empty-block
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: errorf
+        - name: exported
+        - name: increment-decrement
+        - name: indent-error-flow
+        - name: range
+        - name: receiver-naming
+        - name: redefines-builtin-id
+        - name: superfluous-else
+        - name: time-naming
+        - name: unexported-return
+        - name: unreachable-code
+        - name: unused-parameter
+        - name: var-declaration
+        - name: var-naming
+          # keep-sorted end
   exclusions:
     generated: strict
     warn-unused: true
