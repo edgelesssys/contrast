@@ -15,168 +15,339 @@
 const sidebars = {
   docs: [
     {
-      type: 'doc',
-      label: 'What is Contrast?',
-      id: 'intro',
+      type: "category",
+      label: "Old docs",
+      collapsed: true,
+      items: [
+        {
+          type: "doc",
+          label: "What is Contrast?",
+          id: "old/intro",
+        },
+        {
+          type: "category",
+          label: "Basics",
+          collapsed: false,
+          items: [
+            {
+              type: "doc",
+              label: "Confidential Containers",
+              id: "old/basics/confidential-containers",
+            },
+            {
+              type: "doc",
+              label: "Security benefits",
+              id: "old/basics/security-benefits",
+            },
+            {
+              type: "doc",
+              label: "Features",
+              id: "old/basics/features",
+            },
+          ],
+        },
+        {
+          type: "category",
+          label: "Getting started",
+          collapsed: false,
+          items: [
+            {
+              type: "doc",
+              label: "Install",
+              id: "old/getting-started/install",
+            },
+            {
+              type: "doc",
+              label: "Cluster setup",
+              id: "old/getting-started/cluster-setup",
+            },
+            {
+              type: "doc",
+              label: "Bare metal setup",
+              id: "old/getting-started/bare-metal",
+            },
+          ],
+        },
+        {
+          type: "category",
+          label: "Examples",
+          items: [
+            {
+              type: "doc",
+              label: "Confidential emoji voting",
+              id: "old/examples/emojivoto",
+            },
+            {
+              type: "doc",
+              label: "Encrypted volume mount",
+              id: "old/examples/mysql",
+            },
+          ],
+        },
+        {
+          type: "doc",
+          label: "Workload deployment",
+          id: "old/deployment",
+        },
+        {
+          type: "doc",
+          label: "Troubleshooting",
+          id: "old/troubleshooting",
+        },
+        {
+          type: "category",
+          label: "Components",
+          items: [
+            {
+              type: "doc",
+              label: "Overview",
+              id: "old/components/overview",
+            },
+            {
+              type: "doc",
+              label: "Runtime",
+              id: "old/components/runtime",
+            },
+            {
+              type: "doc",
+              label: "Policies",
+              id: "old/components/policies",
+            },
+            {
+              type: "doc",
+              label: "Service mesh",
+              id: "old/components/service-mesh",
+            },
+          ],
+        },
+        {
+          type: "category",
+          label: "Architecture",
+          items: [
+            {
+              type: "doc",
+              label: "Attestation",
+              id: "old/architecture/attestation",
+            },
+            {
+              type: "doc",
+              label: "Secrets & recovery",
+              id: "old/architecture/secrets",
+            },
+            {
+              type: "doc",
+              label: "Certificate authority",
+              id: "old/architecture/certificates",
+            },
+            {
+              type: "doc",
+              label: "Security considerations",
+              id: "old/architecture/security-considerations",
+            },
+            {
+              type: "doc",
+              label: "Observability",
+              id: "old/architecture/observability",
+            },
+            {
+              type: "doc",
+              label: "AMD SEV-SNP attestation",
+              id: "old/architecture/snp",
+            },
+          ],
+        },
+        {
+          type: "category",
+          label: "How-To",
+          items: [
+            {
+              type: "doc",
+              label: "Registry authentication",
+              id: "old/howto/registry-authentication",
+            },
+          ],
+        },
+        {
+          type: "doc",
+          label: "Planned features and limitations",
+          id: "old/features-limitations",
+        },
+        {
+          type: "category",
+          label: "About",
+          items: [
+            {
+              type: "doc",
+              label: "Telemetry",
+              id: "old/about/telemetry",
+            },
+          ],
+        },
+      ],
     },
     {
-      type: 'category',
-      label: 'Basics',
+      type: "doc",
+      label: "What is Contrast?",
+      id: "intro",
+    },
+    {
+      type: "category",
+      label: "Basics",
       collapsed: false,
       items: [
         {
-          type: 'doc',
-          label: 'Confidential Containers',
-          id: 'basics/confidential-containers',
+          type: "doc",
+          label: "Confidential Containers",
+          id: "basics/confidential-containers",
         },
         {
-          type: 'doc',
-          label: 'Security benefits',
-          id: 'basics/security-benefits',
+          type: "doc",
+          label: "Security benefits",
+          id: "basics/security-benefits",
         },
         {
-          type: 'doc',
-          label: 'Features',
-          id: 'basics/features',
+          type: "doc",
+          label: "Features",
+          id: "basics/features",
         },
-      ]
+      ],
     },
     {
-      type: 'category',
-      label: 'Getting started',
+      type: "category",
+      label: "Getting started",
       collapsed: false,
       items: [
         {
-          type: 'doc',
-          label: 'Install',
-          id: 'getting-started/install',
+          type: "doc",
+          label: "Install",
+          id: "getting-started/install",
         },
         {
-          type: 'doc',
-          label: 'Cluster setup',
-          id: 'getting-started/cluster-setup',
+          type: "doc",
+          label: "Cluster setup",
+          id: "getting-started/cluster-setup",
         },
         {
-          type: 'doc',
-          label: 'Bare metal setup',
-          id: 'getting-started/bare-metal',
+          type: "doc",
+          label: "Bare metal setup",
+          id: "getting-started/bare-metal",
         },
-      ]
+      ],
     },
     {
-      type: 'category',
-      label: 'Examples',
+      type: "category",
+      label: "Examples",
       items: [
         {
-          type: 'doc',
-          label: 'Confidential emoji voting',
-          id: 'examples/emojivoto'
+          type: "doc",
+          label: "Confidential emoji voting",
+          id: "examples/emojivoto",
         },
         {
-          type: 'doc',
-          label: 'Encrypted volume mount',
-          id: 'examples/mysql'
+          type: "doc",
+          label: "Encrypted volume mount",
+          id: "examples/mysql",
         },
-      ]
+      ],
     },
     {
-      type: 'doc',
-      label: 'Workload deployment',
-      id: 'deployment',
+      type: "doc",
+      label: "Workload deployment",
+      id: "deployment",
     },
     {
-      type: 'doc',
-      label: 'Troubleshooting',
-      id: 'troubleshooting',
+      type: "doc",
+      label: "Troubleshooting",
+      id: "troubleshooting",
     },
     {
-      type: 'category',
-      label: 'Components',
+      type: "category",
+      label: "Components",
       items: [
         {
-          type: 'doc',
-          label: 'Overview',
-          id: 'components/overview',
+          type: "doc",
+          label: "Overview",
+          id: "components/overview",
         },
         {
-          type: 'doc',
-          label: 'Runtime',
-          id: 'components/runtime',
+          type: "doc",
+          label: "Runtime",
+          id: "components/runtime",
         },
         {
-          type: 'doc',
-          label: 'Policies',
-          id: 'components/policies',
+          type: "doc",
+          label: "Policies",
+          id: "components/policies",
         },
         {
-          type: 'doc',
-          label: 'Service mesh',
-          id: 'components/service-mesh',
+          type: "doc",
+          label: "Service mesh",
+          id: "components/service-mesh",
         },
-      ]
+      ],
     },
     {
-      type: 'category',
-      label: 'Architecture',
+      type: "category",
+      label: "Architecture",
       items: [
         {
-          type: 'doc',
-          label: 'Attestation',
-          id: 'architecture/attestation',
+          type: "doc",
+          label: "Attestation",
+          id: "architecture/attestation",
         },
         {
-          type: 'doc',
-          label: 'Secrets & recovery',
-          id: 'architecture/secrets',
+          type: "doc",
+          label: "Secrets & recovery",
+          id: "architecture/secrets",
         },
         {
-          type: 'doc',
-          label: 'Certificate authority',
-          id: 'architecture/certificates',
+          type: "doc",
+          label: "Certificate authority",
+          id: "architecture/certificates",
         },
         {
-          type: 'doc',
-          label: 'Security considerations',
-          id: 'architecture/security-considerations',
+          type: "doc",
+          label: "Security considerations",
+          id: "architecture/security-considerations",
         },
         {
-          type: 'doc',
-          label: 'Observability',
-          id: 'architecture/observability',
+          type: "doc",
+          label: "Observability",
+          id: "architecture/observability",
         },
         {
-          type: 'doc',
-          label: 'AMD SEV-SNP attestation',
-          id: 'architecture/snp',
+          type: "doc",
+          label: "AMD SEV-SNP attestation",
+          id: "architecture/snp",
         },
-      ]
+      ],
     },
     {
-      type: 'category',
-      label: 'How-To',
+      type: "category",
+      label: "How-To",
       items: [
         {
-          type: 'doc',
-          label: 'Registry authentication',
-          id: 'howto/registry-authentication',
+          type: "doc",
+          label: "Registry authentication",
+          id: "howto/registry-authentication",
         },
-      ]
+      ],
     },
     {
-      type: 'doc',
-      label: 'Planned features and limitations',
-      id: 'features-limitations',
+      type: "doc",
+      label: "Planned features and limitations",
+      id: "features-limitations",
     },
     {
-      type: 'category',
-      label: 'About',
+      type: "category",
+      label: "About",
       items: [
         {
-          type: 'doc',
-          label: 'Telemetry',
-          id: 'about/telemetry',
+          type: "doc",
+          label: "Telemetry",
+          id: "about/telemetry",
         },
-      ]
+      ],
     },
   ],
 };
