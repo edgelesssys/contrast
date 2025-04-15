@@ -28,6 +28,9 @@
     # keep-sorted end
   };
   settings.formatter = {
+    # Notice! addlicense won't enforce the correct license header
+    # but only check if there is something like a license header at all.
+    # It will neither fail on nor update incorrect license headers.
     addlicense = {
       command = "${lib.getExe pkgs.addlicense}";
       options = [
@@ -39,6 +42,20 @@
         "*.go"
         "*.nix"
         "*.sh"
+      ];
+      excludes = [ "enterprise/**" ];
+    };
+    addlicense-enterprise = {
+      command = "${lib.getExe pkgs.addlicense}";
+      options = [
+        "-c=Edgeless Systems GmbH"
+        "-s=only"
+        "-l=BUSL-1.1"
+      ];
+      includes = [
+        "enterprise/**/*.go"
+        "enterprise/**/*.nix"
+        "enterprise/**/*.sh"
       ];
     };
     # Build must not be used in the enterprise directory.
