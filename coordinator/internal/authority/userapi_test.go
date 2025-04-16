@@ -21,6 +21,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/prometheus/client_golang/prometheus"
@@ -323,6 +324,7 @@ func TestRecovery(t *testing.T) {
 
 			// Simulate an updated persistence.
 			a.state.Load().stale.Store(true)
+			require.True(a.NeedsRecovery())
 			_, err = a.GetManifests(context.Background(), nil)
 			require.ErrorContains(err, ErrNeedsRecovery.Error())
 			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
@@ -330,6 +332,7 @@ func TestRecovery(t *testing.T) {
 
 			// Simulate a restarted Coordinator.
 			a = New(a.hist, prometheus.NewRegistry(), slog.Default())
+			require.True(a.NeedsRecovery())
 			_, err = a.GetManifests(context.Background(), nil)
 			require.ErrorContains(err, ErrNeedsRecovery.Error())
 			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
@@ -380,6 +383,7 @@ func TestRecoveryFlow(t *testing.T) {
 	// Recovery on this Coordinator should fail now that a manifest is set.
 	_, err = a.Recover(ctx, recoverReq)
 	require.ErrorContains(err, ErrAlreadyRecovered.Error())
+	require.False(a.NeedsRecovery())
 
 	// 3. A new Coordinator is created with the existing history.
 	// GetManifests and SetManifest are expected to fail.
@@ -387,6 +391,7 @@ func TestRecoveryFlow(t *testing.T) {
 	a = New(a.hist, prometheus.NewRegistry(), slog.Default())
 	_, err = a.SetManifest(context.Background(), req)
 	require.ErrorContains(err, ErrNeedsRecovery.Error())
+	require.True(a.NeedsRecovery())
 
 	_, err = a.GetManifests(context.Background(), &userapi.GetManifestsRequest{})
 	require.ErrorContains(err, ErrNeedsRecovery.Error())
@@ -396,6 +401,7 @@ func TestRecoveryFlow(t *testing.T) {
 	require.NoError(err)
 
 	// 5. Coordinator should be operational and know about the latest manifest.
+	require.False(a.NeedsRecovery())
 	resp, err := a.GetManifests(context.Background(), &userapi.GetManifestsRequest{})
 	require.NoError(err)
 	require.NotNil(resp)
@@ -405,6 +411,21 @@ func TestRecoveryFlow(t *testing.T) {
 	// Recover on a recovered authority should fail.
 	_, err = a.Recover(ctx, recoverReq)
 	require.Error(err)
+
+	// Test RecoverWith
+	a = New(a.hist, prometheus.NewRegistry(), slog.Default())
+	se, err := seedengine.New(seed, seedSharesDoc.GetSalt())
+	require.NoError(err)
+	latest, err := a.hist.GetLatest(&se.TransactionSigningKey().PublicKey)
+	require.NoError(err)
+	meshKey := testkeys.ECDSA(t)
+	require.NoError(a.RecoverWith(se, latest, meshKey))
+	state := a.state.Load()
+	require.NotNil(state)
+	require.NotNil(state.ca)
+	require.Equal(meshKey, state.ca.GetIntermCAPrivKey())
+
+	require.ErrorIs(a.RecoverWith(se, latest, meshKey), ErrAlreadyRecovered)
 }
 
 // TestUserAPIConcurrent tests potential synchronization problems between the different

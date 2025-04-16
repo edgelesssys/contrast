@@ -262,7 +262,17 @@ func (a *Authority) Recover(ctx context.Context, req *userapi.RecoverRequest) (*
 		return nil, status.Errorf(codes.InvalidArgument, "initializing seed engine: %v", err)
 	}
 
-	state, err := a.fetchState(se)
+	latest, err := a.hist.GetLatest(&se.TransactionSigningKey().PublicKey)
+	if err != nil {
+		// Pretty sure this failed because the signature could not be verified.
+		return nil, status.Errorf(codes.InvalidArgument, "getting latest transition: %v", err)
+	}
+	meshKey, err := se.GenerateMeshCAKey()
+	if err != nil {
+		return nil, fmt.Errorf("deriving mesh CA key: %w", err)
+	}
+
+	state, err := a.fetchState(se, latest, meshKey)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "recovery failed: %v", err)
 	}
@@ -281,7 +291,7 @@ func (a *Authority) Recover(ctx context.Context, req *userapi.RecoverRequest) (*
 	}
 
 	if !a.state.CompareAndSwap(oldState, state) {
-		return nil, status.Errorf(codes.FailedPrecondition, "the coordinator was recovered concurrently")
+		return nil, status.Errorf(codes.FailedPrecondition, ErrConcurrentRecovery.Error())
 	}
 	return &userapi.RecoverResponse{}, nil
 }
@@ -336,4 +346,6 @@ var (
 	ErrAlreadyRecovered = errors.New("coordinator is already recovered")
 	// ErrNeedsRecovery is returned if state exists, but no secrets are available, e.g. after restart.
 	ErrNeedsRecovery = errors.New("coordinator is in recovery mode")
+	// ErrConcurrentRecovery is returned when a recovery request fails due to another concurrent request succeeding.
+	ErrConcurrentRecovery = errors.New("the coordinator was recovered concurrently")
 )
