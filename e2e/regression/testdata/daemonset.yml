@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: daemonset
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  selector:
+    matchLabels:
+      name: daemonset-pod
+  template:
+    metadata:
+      labels:
+        name: daemonset-pod
+    spec:
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: daemonset-pod
+          image: quay.io/fedora/httpd-24-micro@sha256:f8f7d90feb8beace46a9f235e1a215042c7a5d04e1567e11173f7b73ab621a1d
+          ports:
+            - containerPort: 8443
+            - containerPort: 8080

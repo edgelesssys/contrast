@@ -17,3 +17,22 @@
 - [Cent OS](./test-data/mysql-centos.yml)
 - [Fedora](./test-data/apache-httpd-fedora.yml)
 - [RedHat (ubi9)](./test-data/keycloak.yml)
+
+# Kubernetes types tested
+
+- ConfigMap
+- CronJob
+- DaemonSet
+- Deployment
+- Job
+- LimitRange
+- Pod
+- PodDisruptionBudget
+- ReplicaSet
+- ReplicationController
+- Role
+- RoleBinding
+- Secret
+- Service
+- ServiceAccount
+- StatefulSet
