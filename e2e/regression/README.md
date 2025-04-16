@@ -20,6 +20,16 @@
 
 # Kubernetes types tested (namespace-able)
 
+- [ ] Binding
+- [ ] EndpointSlice
+- [ ] Event
+- [ ] HorizontalPodAutoscaler
+- [ ] Lease
+- [ ] NodeNetworkConfig
+- [ ] OverlayExtensionConfig
+- [ ] PodDisruptionBudget
+- [ ] Role
+- [ ] RoleBinding
 - [x] ConfigMap
 - [x] CronJob
 - [x] DaemonSet
