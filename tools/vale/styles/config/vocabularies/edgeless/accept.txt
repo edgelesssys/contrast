@@ -154,6 +154,8 @@ validator
 vCPU
 vendored
 virsh
+virtualized
+VM
 VMs?
 VSCode
 walkthrough
