@@ -96,8 +96,10 @@ func TestRegression(t *testing.T) {
 				case "ConfigMap":
 					require.NoError(ct.Kubeclient.Client.CoreV1().ConfigMaps(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
 				case "Job":
-					// TODO: job pod isn't deleted, fix that
-					require.NoError(ct.Kubeclient.Client.BatchV1().Jobs(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+					bgDeletion := metav1.DeletePropagationBackground
+					require.NoError(ct.Kubeclient.Client.BatchV1().Jobs(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{
+						PropagationPolicy: &bgDeletion,
+					}))
 				case "CronJob":
 					require.NoError(ct.Kubeclient.Client.BatchV1().CronJobs(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
 				case "Secret":
