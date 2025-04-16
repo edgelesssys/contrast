@@ -36,7 +36,7 @@ Contrast is built on four key components:
 
 - **Contrast Kubernetes runtime**: Contrast comes with a custom Kubernetes `RuntimeClass` that specifies the runtime handler used by `containerd` to manage container execution. A custom runtime handler is used to run containers inside Confidential Virtual Machines (CVMs). Contrast’s runtime is based on the [Kata Container runtime](https://katacontainers.io/) and the [Confidential Containers (CoCo)](https://confidentialcontainers.org/) project.
 
-- **Contrast coordinator**: An additional service that is deployed to the cluster and itself runs within a CVM using the Contrast custom runtime. It serves as the central attestation service, ensuring that only verified workloads are admitted into the trusted service mesh. It is configured with the **manifest**, a configuration file (.json) that secifies the trusted reference state of your cluster. It specifies cryptographic hashes for all application workloads The Contrast coordinator ensures that CVM attestations are always verified against this manifest before initialized as trusted
+- **Contrast coordinator**: An additional service that's deployed to the cluster and itself runs within a CVM using the Contrast custom runtime. It serves as the central attestation service, ensuring that only verified workloads are admitted into the trusted service mesh. It's configured with the **manifest**, a configuration file (.json) that defines the trusted reference state of your cluster. It specifies cryptographic hashes for all application workloads The Contrast coordinator ensures that CVM attestations are always verified against this manifest before initialized as trusted
 
 - **Service Mesh:** The Contrast coordinator functions as a Certificate Authority (CA), issuing certificates exclusively to successfully attested workloads, thereby establishing a trusted service mesh.
 
@@ -239,7 +239,7 @@ After these steps, the worker node is fully configured and ready to run Confiden
 - The installed runtime plugin (`containerd-shim-contrast-cc-v2`, referenced by the runtime handler) initializes the Confidential Virtual Machine (CVM) using `QEMU`.
 - `QEMU` initializes the CVM’s virtualized environment.
 - AMD SEV-SNP enforces memory encryption: Guest memory is encrypted using a per-VM encryption key, ensuring host isolation.
-- During CVM launch, `QEMU` uses the KVM interface to register guest memory — such as the kernel, kernel command line, and initramfs—with the AMD SEV-SNP firmware for measurement and protection.
+- During CVM launch, `QEMU` uses the KVM interface to register guest memory—such as the kernel, kernel command line, and initramfs—with the AMD SEV-SNP firmware for measurement and protection.
 - SEV-SNP firmware measures the contents of the guest memory, computing a launch digest that reflects the initial memory state of the CVM.
 - Before finalizing the CVM launch,`QEMU` provides `HOSTDATA` to the CVM during the `SNP_LAUNCH_FINISH` operation. This data is sealed by the SEV-SNP firmware.
   - `HOSTDATA` contains a hardware-enforced SHA-256 hash of the runtime policy.
@@ -249,7 +249,7 @@ For details, visit the [Contrast documentation](https://docs.edgeless.systems/co
 
 #### 2. Kernel and initramfs initialization
 
-- `QEMU` boots the kernel via [`OMVF`](https://github.com/tianocore/tianocore.github.io/wiki/OVMF) which executes the inititalization process of `initramfs`, a minimal filesystem used during the initial boot phase.
+- `QEMU` boots the kernel via [`OMVF`](https://github.com/tianocore/tianocore.github.io/wiki/OVMF) which executes the initialization process of `initramfs`, a minimal filesystem used during the initial boot phase.
 - The `initramfs` initialization procedure parses parameters provided via the kernel command line. The command line includes:
   - Explicit instructions for the boot sequence, system initialization, and filesystem mounts.
   - The `dm-verity` hash, used to verify the integrity of the root filesystem.
@@ -300,7 +300,7 @@ Each CVM pod includes two additional containers that start before the primary ap
 - Activated via annotations in the deployment YAML, enabling per-workload configuration of ingress and egress behavior.
 - Handles ingress traffic by default, redirecting it through the proxy using `iptables` and intercepting it via [TPROXY](https://docs.kernel.org/networking/tproxy.html).
   - Ingress can be disabled entirely or configured to skip client authentication.
-- Egress traffic is not redirected by default but can be explicitly routed through the proxy if required.
+- Egress traffic isn't redirected by default but can be explicitly routed through the proxy if required.
 - Based on [**Envoy**](https://www.envoyproxy.io/), managing mutual TLS (mTLS) encryption for ingress and egress traffic.
 - The proxy’s integrity is enforced through the same security policy as the application container.
 - For more details, see the [service mesh documentation](https://docs.edgeless.systems/contrast/next/components/service-mesh).
