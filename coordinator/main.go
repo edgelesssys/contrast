@@ -95,7 +95,7 @@ func run() (retErr error) {
 
 	userAPICredentials := atlscredentials.New(issuer, atls.NoValidators, atls.NoMetrics, loggerpkg.NewNamed(logger, "atlscredentials"))
 	userAPIServer := newGRPCServer(userAPICredentials, serverMetrics)
-	userapi.RegisterUserAPIServer(userAPIServer, meshAuth)
+	userapi.RegisterUserAPIServer(userAPIServer, authority.NewUserAPI(logger, meshAuth))
 	serverMetrics.InitializeMetrics(userAPIServer)
 
 	month := 30 * 24 * time.Hour

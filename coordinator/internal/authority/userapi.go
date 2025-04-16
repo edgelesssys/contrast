@@ -13,10 +13,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"slices"
 
-	"github.com/edgelesssys/contrast/coordinator/history"
-	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -28,14 +27,34 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// SetManifest registers a new manifest at the Coordinator.
-func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, error) {
-	a.logger.Info("SetManifest called")
+// Server serves the userapi.UserAPI. Servers need to be constructed with NewUserAPI.
+type Server struct {
+	logger *slog.Logger
+	auth   *Authority
 
-	oldState := a.state.Load()
-	if oldState != nil && oldState.stale.Load() {
-		// TODO(burgerdev): we could attempt peer recovery here.
+	userapi.UnimplementedUserAPIServer
+}
+
+// NewUserAPI constructs a new Server instance.
+func NewUserAPI(logger *slog.Logger, auth *Authority) *Server {
+	return &Server{
+		logger: logger,
+		auth:   auth,
+	}
+}
+
+// SetManifest registers a new manifest at the Coordinator.
+func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, error) {
+	s.logger.Info("SetManifest called")
+
+	oldState, err := s.auth.GetState()
+	switch {
+	case errors.Is(err, ErrStaleState):
 		return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
+	case errors.Is(err, ErrNoState):
+		// This is fine, we are going to set the initial manifest.
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
 	}
 
 	var m *manifest.Manifest
@@ -49,22 +68,16 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 	if oldState != nil {
 		oldManifest := oldState.Manifest()
 		// Subsequent SetManifest call, check permissions of caller.
-		if err := a.validatePeer(ctx, oldManifest.WorkloadOwnerKeyDigests); err != nil {
-			a.logger.Warn("SetManifest peer validation failed", "err", err)
+		if err := validatePeer(ctx, oldManifest.WorkloadOwnerKeyDigests); err != nil {
+			s.logger.Warn("SetManifest peer validation failed", "err", err)
 			return nil, status.Errorf(codes.PermissionDenied, "validating peer: %v", err)
 		}
 		se = oldState.SeedEngine()
 		if slices.Compare(oldManifest.SeedshareOwnerPubKeys, m.SeedshareOwnerPubKeys) != 0 {
-			a.logger.Warn("SetManifest detected attempted seedshare owners change", "from", oldManifest.SeedshareOwnerPubKeys, "to", m.SeedshareOwnerPubKeys)
+			s.logger.Warn("SetManifest detected attempted seedshare owners change", "from", oldManifest.SeedshareOwnerPubKeys, "to", m.SeedshareOwnerPubKeys)
 			return nil, status.Errorf(codes.PermissionDenied, "changes to seedshare owners are not allowed")
 		}
 	} else {
-		if hasLatest, err := a.hist.HasLatest(); err != nil {
-			return nil, status.Errorf(codes.Internal, "checking transition store: %v", err)
-		} else if hasLatest {
-			// TODO(burgerdev): we could attempt peer recovery here.
-			return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
-		}
 		// First SetManifest call, initialize seed engine.
 		seed, err := crypto.GenerateRandomBytes(constants.SecretSeedSize)
 		if err != nil {
@@ -89,141 +102,39 @@ func (a *Authority) SetManifest(ctx context.Context, req *userapi.SetManifestReq
 		}
 	}
 
-	// Store resources in History.
-
-	policyMap := make(map[[history.HashSize]byte][]byte)
-	for _, policy := range req.GetPolicies() {
-		policyHash, err := a.hist.SetPolicy(policy)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "setting policy: %v", err)
+	state, err := s.auth.UpdateState(oldState, se, req.GetManifest(), req.GetPolicies())
+	if err != nil {
+		code := codes.Internal
+		if errors.Is(err, ErrConcurrentUpdate) {
+			code = codes.FailedPrecondition
 		}
-		policyMap[policyHash] = policy
+		return nil, status.Errorf(code, "updating Coordinator state: %v", err)
 	}
+	resp.MeshCA = state.CA().GetMeshCACert()
+	resp.RootCA = state.CA().GetRootCACert()
 
-	for hexRef := range m.Policies {
-		var ref [history.HashSize]byte
-		refSlice, err := hexRef.Bytes()
-		if err != nil {
-			return nil, status.Errorf(codes.InvalidArgument, "invalid policy hash: %v", err)
-		}
-		copy(ref[:], refSlice)
-		if _, ok := policyMap[ref]; !ok {
-			return nil, status.Errorf(codes.InvalidArgument, "no policy provided for hash %q", hexRef)
-		}
-	}
-
-	manifestHash, err := a.hist.SetManifest(req.GetManifest())
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "setting manifest: %v", err)
-	}
-
-	// Advance state.
-
-	nextTransition := &history.Transition{
-		ManifestHash: manifestHash,
-	}
-	var oldLatest *history.LatestTransition
-	var oldGeneration int
-	if oldState != nil {
-		nextTransition.PreviousTransitionHash = oldState.latest.TransitionHash
-		oldLatest = oldState.latest
-		oldGeneration = oldState.generation
-	}
-	nextTransitionHash, err := a.hist.SetTransition(nextTransition)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "setting transition: %v", err)
-	}
-	nextLatest := &history.LatestTransition{TransitionHash: nextTransitionHash}
-
-	if err := a.hist.SetLatest(oldLatest, nextLatest, se.TransactionSigningKey()); err != nil {
-		return nil, status.Errorf(codes.Internal, "setting latest: %v", err)
-	}
-
-	meshKey, err := se.GenerateMeshCAKey()
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "deriving mesh CA key: %v", err)
-	}
-	ca, err := ca.New(se.RootCAKey(), meshKey)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "creating CA: %v", err)
-	}
-
-	nextState := &State{
-		seedEngine:    se,
-		latest:        nextLatest,
-		manifest:      m,
-		manifestBytes: req.GetManifest(),
-		ca:            ca,
-		generation:    oldGeneration + 1,
-	}
-
-	if a.state.CompareAndSwap(oldState, nextState) {
-		a.metrics.manifestGeneration.Set(float64(nextState.generation))
-	}
-	// If the CompareAndSwap did not go through, this means that another SetManifest happened in
-	// the meantime. This is fine: we know that m.state must be a transition after ours because
-	// the SetLatest call succeeded. That other SetManifest call must have been operating on our
-	// nextState already, because it had to refer to our transition. Thus, we can forget about
-	// the state, except that we need to return the right CA for the manifest _our_ user set.
-
-	resp.RootCA = ca.GetRootCACert()
-	resp.MeshCA = ca.GetMeshCACert()
-
-	a.logger.Info("SetManifest succeeded")
+	s.logger.Info("SetManifest succeeded")
 	return &resp, nil
 }
 
 // GetManifests retrieves the current CA certificates, the manifest history and all policies.
-func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
+func (s *Server) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
 ) (*userapi.GetManifestsResponse, error) {
-	a.logger.Info("GetManifest called")
-	state := a.state.Load()
-	if state == nil {
-		if hasLatest, err := a.hist.HasLatest(); err != nil {
-			return nil, status.Errorf(codes.Internal, "Could not read transition store: %v", err)
-		} else if hasLatest {
-			return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
-		}
+	s.logger.Info("GetManifest called")
+	state, err := s.auth.GetState()
+	switch {
+	case errors.Is(err, ErrNoState):
 		return nil, status.Error(codes.FailedPrecondition, ErrNoManifest.Error())
-	} else if state.stale.Load() {
-		// TODO(burgerdev): we could attempt peer recovery here.
+	case errors.Is(err, ErrStaleState):
 		return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
 	}
 
-	var manifests [][]byte
-	policies := make(map[manifest.HexString][]byte)
-	err := a.hist.WalkTransitions(state.latest.TransitionHash, func(_ [history.HashSize]byte, t *history.Transition) error {
-		manifestBytes, err := a.hist.GetManifest(t.ManifestHash)
-		if err != nil {
-			return err
-		}
-		manifests = append(manifests, manifestBytes)
-
-		var mnfst manifest.Manifest
-		if err := json.Unmarshal(manifestBytes, &mnfst); err != nil {
-			return err
-		}
-
-		for policyHashHex := range mnfst.Policies {
-			policyHash, err := policyHashHex.Bytes()
-			if err != nil {
-				return fmt.Errorf("converting hex to bytes: %w", err)
-			}
-			var policyHashFixed [history.HashSize]byte
-			copy(policyHashFixed[:], policyHash)
-			policyBytes, err := a.hist.GetPolicy(policyHashFixed)
-			if err != nil {
-				return fmt.Errorf("getting policy: %w", err)
-			}
-			policies[policyHashHex] = policyBytes
-		}
-		return nil
-	})
+	manifests, policies, err := s.auth.GetHistory()
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "fetching manifests from history: %v", err)
+		return nil, status.Errorf(codes.Internal, "getting history: %v", err)
 	}
-	// Traversing the history yields manifests in the wrong order, so reverse the slice.
-	slices.Reverse(manifests)
 
 	ca := state.CA()
 	resp := &userapi.GetManifestsResponse{
@@ -235,58 +146,66 @@ func (a *Authority) GetManifests(_ context.Context, _ *userapi.GetManifestsReque
 		resp.Policies = append(resp.Policies, policy)
 	}
 
-	a.logger.Info("GetManifest succeeded")
+	s.logger.Info("GetManifest succeeded")
 	return resp, nil
 }
 
 // Recover recovers the Coordinator from a seed and salt.
-func (a *Authority) Recover(ctx context.Context, req *userapi.RecoverRequest) (*userapi.RecoverResponse, error) {
-	a.logger.Info("Recover called")
+func (s *Server) Recover(ctx context.Context, req *userapi.RecoverRequest) (*userapi.RecoverResponse, error) {
+	s.logger.Info("Recover called")
 
-	oldState := a.state.Load()
-	if oldState != nil && !oldState.stale.Load() {
+	oldState, err := s.auth.GetState()
+	switch {
+	case errors.Is(err, ErrStaleState):
+		// This is fine, we want to recover anyway.
+	case errors.Is(err, ErrNoState):
+		return nil, status.Error(codes.FailedPrecondition, "no state to recover from")
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
+	default:
 		return nil, status.Error(codes.FailedPrecondition, ErrAlreadyRecovered.Error())
 	}
 
-	hasLatest, err := a.hist.HasLatest()
+	_, err = s.auth.ResetState(oldState, &seedAuthorizer{ctx: ctx, req: req})
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "accessing history: %v", err)
-	}
-	if !hasLatest {
-		return nil, status.Errorf(codes.FailedPrecondition, "no persisted transaction to recover from")
-	}
-
-	se, err := seedengine.New(req.Seed, req.Salt)
-	if err != nil {
-		// Pretty sure this failed because the seed was bad.
-		return nil, status.Errorf(codes.InvalidArgument, "initializing seed engine: %v", err)
-	}
-
-	state, err := a.fetchState(se)
-	if err != nil {
-		return nil, status.Errorf(codes.InvalidArgument, "recovery failed: %v", err)
-	}
-
-	var digests []manifest.HexString
-	for _, pubKey := range state.Manifest().SeedshareOwnerPubKeys {
-		bytes, err := pubKey.Bytes()
-		if err != nil {
-			return nil, status.Errorf(codes.FailedPrecondition, "seedshare owner public key is not hex-encoded")
-		}
-		sum := sha256.Sum256(bytes)
-		digests = append(digests, manifest.NewHexString(sum[:]))
-	}
-	if err := a.validatePeer(ctx, digests); err != nil {
-		return nil, status.Errorf(codes.PermissionDenied, "peer not authorized to recover existing state: %v", err)
-	}
-
-	if !a.state.CompareAndSwap(oldState, state) {
-		return nil, status.Errorf(codes.FailedPrecondition, "the coordinator was recovered concurrently")
+		return nil, fmt.Errorf("resetting state: %w", err)
 	}
 	return &userapi.RecoverResponse{}, nil
 }
 
-func (a *Authority) validatePeer(ctx context.Context, keyDigests []manifest.HexString) error {
+type seedAuthorizer struct {
+	ctx context.Context
+	req *userapi.RecoverRequest
+}
+
+func (a *seedAuthorizer) AuthorizeByManifest(mnfst *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
+	var digests []manifest.HexString
+	for _, pubKey := range mnfst.SeedshareOwnerPubKeys {
+		bytes, err := pubKey.Bytes()
+		if err != nil {
+			return nil, nil, status.Errorf(codes.FailedPrecondition, "seedshare owner public key is not hex-encoded")
+		}
+		sum := sha256.Sum256(bytes)
+		digests = append(digests, manifest.NewHexString(sum[:]))
+	}
+	if err := validatePeer(a.ctx, digests); err != nil {
+		return nil, nil, status.Errorf(codes.PermissionDenied, "peer not authorized to recover existing state: %v", err)
+	}
+
+	se, err := seedengine.New(a.req.Seed, a.req.Salt)
+	if err != nil {
+		// Pretty sure this failed because the seed was bad.
+		return nil, nil, status.Errorf(codes.InvalidArgument, "initializing seed engine: %v", err)
+	}
+
+	meshKey, err := se.GenerateMeshCAKey()
+	if err != nil {
+		return nil, nil, status.Errorf(codes.Internal, "deriving mesh CA key: %v", err)
+	}
+	return se, meshKey, nil
+}
+
+func validatePeer(ctx context.Context, keyDigests []manifest.HexString) error {
 	if len(keyDigests) == 0 {
 		return errors.New("setting manifest is disabled")
 	}
@@ -332,6 +251,8 @@ func getPeerPublicKey(ctx context.Context) ([]byte, error) {
 }
 
 var (
+	// ErrNoManifest is returned when a manifest is needed but not present.
+	ErrNoManifest = errors.New("no manifest configured")
 	// ErrAlreadyRecovered is returned if seedEngine initialization was requested but a seed is already set.
 	ErrAlreadyRecovered = errors.New("coordinator is already recovered")
 	// ErrNeedsRecovery is returned if state exists, but no secrets are available, e.g. after restart.

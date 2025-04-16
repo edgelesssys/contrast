@@ -5,6 +5,7 @@ package authority
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -16,7 +17,8 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/internal/seedengine"
+	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -33,26 +35,48 @@ contrast_coordinator_manifest_generation %d
 `
 )
 
-var keyDigest = manifest.HexString("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
-
-func TestSNPValidateOpts(t *testing.T) {
+func TestMetrics(t *testing.T) {
 	require := require.New(t)
-	a, _ := newAuthority(t)
-	_, mnfstBytes, policies := newManifest(t)
+	a, reg := newAuthority(t)
 
-	req := &userapi.SetManifestRequest{
-		Manifest: mnfstBytes,
-		Policies: policies,
+	var seed, salt [32]byte
+	se, err := seedengine.New(seed[:], salt[:])
+	require.NoError(err)
+
+	_, manifestBytes, policies := newManifest(t)
+
+	numGenerations := 12
+
+	s, err := a.GetState()
+	require.ErrorIs(err, ErrNoState)
+	for i := range numGenerations {
+		requireGauge(t, reg, i, "iteration %d", i)
+		s, err = a.UpdateState(s, se, manifestBytes, policies)
+		require.NoError(err, "iteration %d", i)
 	}
-	_, err := a.SetManifest(t.Context(), req)
-	require.NoError(err)
+	requireGauge(t, reg, numGenerations)
 
-	gens, err := a.state.Load().Manifest().SNPValidateOpts(nil)
+	// Simulate a restarted authority.
+	b, reg := newAuthority(t)
+	b.hist = a.hist
+	requireGauge(t, reg, 0)
+
+	_, err = b.ResetState(nil, &fakeAuthorizer{
+		se: se,
+		pk: testkeys.ECDSA(t),
+	})
 	require.NoError(err)
-	require.NotNil(gens)
+	requireGauge(t, reg, numGenerations)
 }
 
-// TODO(burgerdev): test ValidateCallback and GetCertBundle
+type fakeAuthorizer struct {
+	se *seedengine.SeedEngine
+	pk *ecdsa.PrivateKey
+}
+
+func (fa *fakeAuthorizer) AuthorizeByManifest(*manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
+	return fa.se, fa.pk, nil
+}
 
 // TestBadStoreWatcherIsRestarted tests that a new history watcher is started on failure.
 func TestBadStoreWatcherIsRestarted(t *testing.T) {
@@ -168,6 +192,9 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 	policyHash := sha256.Sum256(policy)
 	policyHashHex := manifest.NewHexString(policyHash[:])
 
+	workloadOwnerKey := testkeys.ECDSA(t)
+	keyDigest := manifest.HashWorkloadOwnerKey(&workloadOwnerKey.PublicKey)
+
 	mnfst := &manifest.Manifest{}
 	mnfst.Policies = map[manifest.HexString]manifest.PolicyEntry{
 		policyHashHex: {
@@ -197,9 +224,9 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 	return mnfst, mnfstBytes, [][]byte{policy}
 }
 
-func requireGauge(t *testing.T, reg *prometheus.Registry, val int) {
+func requireGauge(t *testing.T, reg *prometheus.Registry, val int, fmtArgs ...any) {
 	t.Helper()
 
 	expected := fmt.Sprintf(manifestGenerationExpected, val)
-	require.NoError(t, testutil.GatherAndCompare(reg, strings.NewReader(expected), "contrast_coordinator_manifest_generation"))
+	require.NoError(t, testutil.GatherAndCompare(reg, strings.NewReader(expected), "contrast_coordinator_manifest_generation"), fmtArgs...)
 }
