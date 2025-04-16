@@ -8,8 +8,7 @@ spec:
     spec:
       containers:
         - name: test
-          # TODO: replace with ghcr.io or quay.io
-          image: docker.io/library/bash@sha256:64defcbc5126c2d81122b4fb78a629a6d27068f0842c4a8302b8273415b12e30
+          image: ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b
           command: ["echo", "Hello World!"]
       restartPolicy: Never
   backoffLimit: 4
