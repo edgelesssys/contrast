@@ -22,7 +22,7 @@ const sidebars = {
     {
       type: "category",
       label: "Getting started",
-      collapsed: false,
+      collapsed: true,
       items: [
         {
           type: "doc",
@@ -43,24 +43,66 @@ const sidebars = {
     },
     {
       type: "category",
-      label: "Examples",
+      label: "How-to",
       items: [
         {
-          type: "doc",
-          label: "Confidential emoji voting",
-          id: "examples/emojivoto",
+          type: "category",
+          label: "Workload deployment",
+          collapsed: true,
+          items: [
+            {
+              type: "doc",
+              label: "Deploy runtime",
+              id: "howto/workload-deployment/runtime-deployment",
+            },
+            {
+              type: "doc",
+              label: "Prepare deployment files",
+              id: "howto/workload-deployment/deployment-file-preparation",
+            },
+            {
+              type: "doc",
+              label: "Generate annotations",
+              id: "howto/workload-deployment/generate-annotations",
+            },
+            {
+              type: "doc",
+              label: "Verify deployment",
+              id: "howto/workload-deployment/deployment-verification",
+            },
+          ],
         },
         {
           type: "doc",
-          label: "Encrypted volume mount",
-          id: "examples/mysql",
+          label: "Setup encrypted volumes",
+          id: "howto/encrypted-storage",
+        },
+        {
+          type: "doc",
+          label: "Hardening",
+          id: "howto/hardening",
+        },
+        {
+          type: "doc",
+          label: "Logging",
+          id: "howto/logging",
+        },
+        {
+          type: "doc",
+          label: "Observability",
+          id: "howto/observability",
+        },
+        {
+          type: "doc",
+          label: "Recovery",
+          id: "howto/recovery",
+        },
+        {
+          type: "doc",
+          label: "Manifest update",
+          id: "howto/manifest-update",
         },
       ],
-    },
-    {
-      type: "doc",
-      label: "Workload deployment",
-      id: "deployment",
     },
     {
       type: "doc",
@@ -68,30 +110,9 @@ const sidebars = {
       id: "troubleshooting",
     },
     {
-      type: "category",
-      label: "Components",
-      items: [
-        {
-          type: "doc",
-          label: "Overview",
-          id: "components/overview",
-        },
-        {
-          type: "doc",
-          label: "Runtime",
-          id: "components/runtime",
-        },
-        {
-          type: "doc",
-          label: "Policies",
-          id: "components/policies",
-        },
-        {
-          type: "doc",
-          label: "Service mesh",
-          id: "components/service-mesh",
-        },
-      ],
+      type: "doc",
+      label: "Security",
+      id: "security",
     },
     {
       type: "category",
@@ -99,60 +120,18 @@ const sidebars = {
       items: [
         {
           type: "doc",
+          label: "Overview",
+          id: "architecture/overview",
+        },
+        {
+          type: "doc",
+          label: "Components",
+          id: "architecture/components",
+        },
+        {
+          type: "doc",
           label: "Attestation",
           id: "architecture/attestation",
-        },
-        {
-          type: "doc",
-          label: "Secrets & recovery",
-          id: "architecture/secrets",
-        },
-        {
-          type: "doc",
-          label: "Certificate authority",
-          id: "architecture/certificates",
-        },
-        {
-          type: "doc",
-          label: "Security considerations",
-          id: "architecture/security-considerations",
-        },
-        {
-          type: "doc",
-          label: "Observability",
-          id: "architecture/observability",
-        },
-        {
-          type: "doc",
-          label: "AMD SEV-SNP attestation",
-          id: "architecture/snp",
-        },
-      ],
-    },
-    {
-      type: "category",
-      label: "How-To",
-      items: [
-        {
-          type: "doc",
-          label: "Registry authentication",
-          id: "howto/registry-authentication",
-        },
-      ],
-    },
-    {
-      type: "doc",
-      label: "Planned features and limitations",
-      id: "features-limitations",
-    },
-    {
-      type: "category",
-      label: "About",
-      items: [
-        {
-          type: "doc",
-          label: "Telemetry",
-          id: "about/telemetry",
         },
       ],
     },
