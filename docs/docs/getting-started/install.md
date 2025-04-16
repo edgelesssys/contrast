@@ -1,4 +1,4 @@
-# Installation
+# Installation & setup
 
 Download the Contrast CLI from the latest release:
 

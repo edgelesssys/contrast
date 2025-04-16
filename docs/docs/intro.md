@@ -25,17 +25,19 @@ Contrast is designed to keep all data always encrypted and to prevent access fro
 
 Contrast integrates fluently with the existing Kubernetes workflows. It's compatible with managed Kubernetes, can be installed as a day-2 operation and imposes only minimal changes to your deployment flow.
 
-## Use Cases
+## Use cases
 
 Contrast provides unique security [features](basics/features.md) and [benefits](basics/security-benefits.md). The core use cases are:
 
-* Increasing the security of your containers
-* Moving sensitive workloads from on-prem to the cloud with Confidential Computing
-* Shielding the code and data even from the own cluster administrators
-* Increasing the trustworthiness of your SaaS offerings
-* Simplifying regulatory compliance
-* Multi-party computation for data collaboration
+- Increasing the security of your containers
+- Moving sensitive workloads from on-prem to the cloud with Confidential Computing
+- Shielding the code and data even from the own cluster administrators
+- Increasing the trustworthiness of your SaaS offerings
+- Simplifying regulatory compliance
+- Multi-party computation for data collaboration
 
-## Next steps
+## Getting started
 
-You can learn more about the concept of [Confidential Containers](basics/confidential-containers.md), [features](basics/features.md), and [security benefits](basics/security-benefits.md) of Contrast in this section. To jump right into the action head to [*Getting started*](getting-started/install.md).
+Here are some good starting points to explore this documentation and learn about Contrast:
+
+- **Hands-on example**: The [Getting Started](./getting-started/overview.md) section walks you through making a deployment confidential using Contrast. It covers all steps from start to finish, making it ideal for understanding the full process through a small practical example.
