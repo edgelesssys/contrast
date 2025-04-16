@@ -341,7 +341,7 @@
       sha="@sha256:[a-fA-F0-9]\{64\}"
 
       # Container images with tag (key) are replaced with images from file (value).
-      tagsToFile=(
+      declare -A tagsToFile=(
         ["enterprise"]="../image-replacements-enterprise.txt"
         ["latest"]="../image-replacements.txt"
       )
