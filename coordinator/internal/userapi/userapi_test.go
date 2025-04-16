@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package authority
+package userapi
 
 import (
 	"context"
@@ -20,9 +20,11 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
+	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/google/go-sev-guest/abi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +36,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestManifestSet(t *testing.T) {
+func TestSetManifest(t *testing.T) {
 	newBaseManifest := func() *manifest.Manifest {
 		return &manifest.Manifest{}
 	}
@@ -126,13 +128,11 @@ func TestManifestSet(t *testing.T) {
 
 			if tc.wantErr {
 				assert.Error(err)
-				requireGauge(t, reg, 0)
 				return
 			}
 			require.NoError(err)
 			assert.Equal("system:coordinator:root", parsePEMCertificate(t, resp.RootCA).Subject.CommonName)
 			assert.Equal("system:coordinator:intermediate", parsePEMCertificate(t, resp.MeshCA).Subject.CommonName)
-			requireGauge(t, reg, 1)
 		})
 	}
 
@@ -177,11 +177,6 @@ func TestManifestSet(t *testing.T) {
 			}
 			_, err = coordinator.SetManifest(ctx, req)
 			require.Equal(tc.wantCode, status.Code(err))
-			if tc.wantCode == codes.OK {
-				requireGauge(t, reg, 2)
-			} else {
-				requireGauge(t, reg, 1)
-			}
 		})
 	}
 
@@ -326,19 +321,13 @@ func TestRecovery(t *testing.T) {
 			}
 
 			// Simulate an updated persistence.
-			a.state.Load().stale.Store(true)
-			_, err = a.GetManifests(context.Background(), nil)
-			require.ErrorContains(err, ErrNeedsRecovery.Error())
-			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
-			require.Equal(tc.wantCode, status.Code(err), "actual error: %v", err)
-			if tc.wantMessage != "" {
-				require.ErrorContains(err, tc.wantMessage)
-			}
+			// TODO(burgerdev): here was a test that flipped the state.stale bool
 
 			// Simulate a restarted Coordinator.
-			a = New(a.hist, prometheus.NewRegistry(), slog.Default())
+			a.auth = authority.New(a.hist, prometheus.NewRegistry(), slog.Default())
 			_, err = a.GetManifests(context.Background(), nil)
-			require.ErrorContains(err, ErrNeedsRecovery.Error())
+			// TODO(burgerdev): error should be in userapi package
+			require.ErrorContains(err, authority.ErrNeedsRecovery.Error())
 			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
 			require.Equal(tc.wantCode, status.Code(err), "actual error: %v", err)
 			if tc.wantMessage != "" {
@@ -394,12 +383,12 @@ func TestRecoveryFlow(t *testing.T) {
 	// 3. A new Coordinator is created with the existing history.
 	// GetManifests and SetManifest are expected to fail.
 
-	a = New(a.hist, prometheus.NewRegistry(), slog.Default())
+	a.auth = authority.New(a.hist, prometheus.NewRegistry(), slog.Default())
 	_, err = a.SetManifest(context.Background(), req)
-	require.ErrorContains(err, ErrNeedsRecovery.Error())
+	require.ErrorContains(err, authority.ErrNeedsRecovery.Error())
 
 	_, err = a.GetManifests(context.Background(), &userapi.GetManifestsRequest{})
-	require.ErrorContains(err, ErrNeedsRecovery.Error())
+	require.ErrorContains(err, authority.ErrNeedsRecovery.Error())
 
 	// 4. Recovery is called.
 	_, err = a.Recover(ctx, recoverReq)
@@ -433,10 +422,12 @@ func TestUserAPIConcurrent(t *testing.T) {
 		return b
 	}
 
+	logger := slog.Default()
 	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
-	coordinator := New(hist, prometheus.NewRegistry(), slog.Default())
+	auth := authority.New(hist, prometheus.NewRegistry(), logger)
+	coordinator := New(logger, hist, auth)
 
 	setReq := &userapi.SetManifestRequest{
 		Manifest: newManifestBytes(func(m *manifest.Manifest) {
@@ -508,7 +499,9 @@ func TestOutOfBandUpdates(t *testing.T) {
 	require.Equal(manifestBytes, getManifestResp.Manifests[0])
 
 	// Manipulate history directly
-	key := a.state.Load().seedEngine.TransactionSigningKey()
+	state, err := a.auth.GetState()
+	require.NoError(err)
+	key := state.SeedEngine().TransactionSigningKey()
 	oldLatest, err := hist.GetLatest(&key.PublicKey)
 	require.NoError(err)
 	transition := &history.Transition{
@@ -523,11 +516,9 @@ func TestOutOfBandUpdates(t *testing.T) {
 	require.NoError(hist.SetLatest(oldLatest, nextLatest, key))
 
 	// Wait for the staleness to propagate.
-	require.Eventually(func() bool {
-		return a.state.Load().stale.Load()
-	}, time.Second, 10*time.Millisecond)
+	require.Eventually(state.IsStale, time.Second, 10*time.Millisecond)
 	_, err = a.GetManifests(context.Background(), nil)
-	require.ErrorContains(err, ErrNeedsRecovery.Error())
+	require.ErrorContains(err, authority.ErrNeedsRecovery.Error())
 
 	// Recovery should succeed.
 	seed, err := manifest.DecryptSeedShare(seedShareOwnerKey, setManifestResp.GetSeedSharesDoc().GetSeedShares()[0])
@@ -548,7 +539,7 @@ func TestStoreRaces(t *testing.T) {
 
 	store := newWatchableStore()
 	hist := history.NewWithStore(log, store)
-	coordinators := make([]*Authority, 10)
+	coordinators := make([]*Server, 10)
 	for i := range coordinators {
 		coordinator := newCoordinatorWithWatcher(t, hist)
 		coordinators[i] = coordinator
@@ -556,12 +547,12 @@ func TestStoreRaces(t *testing.T) {
 
 	for i, coordinator := range coordinators {
 		_, err := coordinator.GetManifests(ctx, nil)
-		assert.ErrorContains(t, err, ErrNoManifest.Error(), "coordinator-%d", i)
+		assert.ErrorContains(t, err, authority.ErrNoManifest.Error(), "coordinator-%d", i)
 	}
 
 	passiveCoordinator := newCoordinatorWithWatcher(t, hist)
 	_, err := passiveCoordinator.GetManifests(ctx, nil)
-	assert.ErrorContains(t, err, ErrNoManifest.Error())
+	assert.ErrorContains(t, err, authority.ErrNoManifest.Error())
 
 	seedshareOwnerKey := testkeys.RSA(t)
 	workloadOwnerKey := testkeys.ECDSA(t)
@@ -622,7 +613,7 @@ func TestStoreRaces(t *testing.T) {
 			if err == nil {
 				continue
 			}
-			assert.ErrorContains(err, ErrNeedsRecovery.Error(), "coordinator-%d", i)
+			assert.ErrorContains(err, authority.ErrNeedsRecovery.Error(), "coordinator-%d", i)
 			nonNil++
 		}
 		assert.Equal(len(coordinators), nonNil)
@@ -677,7 +668,7 @@ func TestStoreRaces(t *testing.T) {
 			if err == nil {
 				continue
 			}
-			assert.ErrorContains(err, ErrNeedsRecovery.Error(), "coordinator-%d", i)
+			assert.ErrorContains(err, authority.ErrNeedsRecovery.Error(), "coordinator-%d", i)
 			nonNil++
 		}
 		assert.Equal(len(coordinators), nonNil)
@@ -725,37 +716,42 @@ func TestNotificationRaces(t *testing.T) {
 		require.NoErrorf(err, "SetManifest call %d", i)
 		transitions = append(transitions, <-notifiedCh)
 	}
-	state := a.state.Load()
+	state, err := a.auth.GetState()
+	require.NoError(err)
 	require.NotNil(state)
-	require.False(state.stale.Load())
+	require.False(state.IsStale())
 
 	// The manifest is now two steps ahead of the watcher. Verify that it's not marked stale by
 	// the notifications arriving late.
 	for i, transition := range transitions {
 		watchedCh <- transition
-		require.Neverf(state.stale.Load, 10*time.Millisecond, time.Millisecond, "notification %d", i)
+		require.Neverf(state.IsStale, 10*time.Millisecond, time.Millisecond, "notification %d", i)
 	}
 }
 
-func newCoordinator() *Authority {
+func newCoordinator() *Server {
 	return newCoordinatorWithRegistry(prometheus.NewRegistry())
 }
 
-func newCoordinatorWithRegistry(reg *prometheus.Registry) *Authority {
+func newCoordinatorWithRegistry(reg *prometheus.Registry) *Server {
+	logger := slog.Default()
 	fs := afero.NewMemMapFs()
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
-	return New(hist, reg, slog.Default())
+	auth := authority.New(hist, reg, logger)
+	return New(logger, hist, auth)
 }
 
-func newCoordinatorWithWatcher(t *testing.T, hist *history.History) *Authority {
+func newCoordinatorWithWatcher(t *testing.T, hist *history.History) *Server {
 	t.Helper()
-	coordinator := New(hist, prometheus.NewRegistry(), slog.Default())
+	logger := slog.Default()
+	auth := authority.New(hist, prometheus.NewRegistry(), logger)
+	coordinator := New(logger, hist, auth)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	doneCh := make(chan struct{})
 	go func() {
-		_ = coordinator.WatchHistory(ctx)
+		_ = auth.WatchHistory(ctx)
 		close(doneCh)
 	}()
 	t.Cleanup(func() {
@@ -764,6 +760,43 @@ func newCoordinatorWithWatcher(t *testing.T, hist *history.History) *Authority {
 	})
 
 	return coordinator
+}
+
+func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
+	t.Helper()
+	policy := []byte("=== SOME REGO HERE ===")
+	policyHash := sha256.Sum256(policy)
+	policyHashHex := manifest.NewHexString(policyHash[:])
+
+	mnfst := &manifest.Manifest{}
+	mnfst.Policies = map[manifest.HexString]manifest.PolicyEntry{
+		policyHashHex: {
+			SANs:             []string{"test"},
+			WorkloadSecretID: "test2",
+			Role:             manifest.RoleCoordinator,
+		},
+	}
+	svn0 := manifest.SVN(0)
+	measurement := [48]byte{}
+	mnfst.ReferenceValues.SNP = []manifest.SNPReferenceValues{{
+		ProductName: "Milan",
+		MinimumTCB: manifest.SNPTCB{
+			BootloaderVersion: &svn0,
+			TEEVersion:        &svn0,
+			SNPVersion:        &svn0,
+			MicrocodeVersion:  &svn0,
+		},
+		TrustedMeasurement: manifest.NewHexString(measurement[:]),
+		GuestPolicy: abi.SnpPolicy{
+			SMT: true,
+		},
+	}}
+	workloadOwnerKey := testkeys.ECDSA(t)
+	workloadOwnerKeyDigest := manifest.HashWorkloadOwnerKey(&workloadOwnerKey.PublicKey)
+	mnfst.WorkloadOwnerKeyDigests = []manifest.HexString{workloadOwnerKeyDigest}
+	mnfstBytes, err := json.Marshal(mnfst)
+	require.NoError(t, err)
+	return mnfst, mnfstBytes, [][]byte{policy}
 }
 
 func rpcContext(cryptoKey crypto.PrivateKey) context.Context {
