@@ -222,7 +222,7 @@ Once scheduled, the `DaemonSet` node-installer installs and configures the neces
 
 1. Installs the Contrast-specific `containerd` shim (`containerd-shim-contrast-cc-v2`).
 2. Installs `QEMU` as the hypervisor.
-3. Deploys the required files for **direct Linux boot** of the CVM:
+3. Deploys the required files for booting the CVM:
    - **Kernel image**: The minimal guest OS kernel that runs inside the CVM.
    - **Initramfs**: A minimal filesystem used during early boot.
    - **Kernel command line**: Boot parameters, including security settings such as `dm-verity` root hash.
@@ -239,29 +239,27 @@ After these steps, the worker node is fully configured and ready to run Confiden
 - The installed runtime plugin (`containerd-shim-contrast-cc-v2`, referenced by the runtime handler) initializes the Confidential Virtual Machine (CVM) using `QEMU`.
 - `QEMU` initializes the CVM’s virtualized environment.
 - AMD SEV-SNP enforces memory encryption: Guest memory is encrypted using a per-VM encryption key, ensuring host isolation.
-- `QEMU` calls AMD SEV-SNP `LAUNCH_MEASURE` which measures the kernel, the kernel command line, and `initramfs`. The measurement is stored in protected registers.
-
-#### 2. QEMU initializes memory
-
-- `QEMU` loads the kernel, kernel command line, and `initramfs` into the CVM’s initial memory.
-- Direct Linux Boot loads the kernel directly, skipping the need for firmware.
-
-#### 3. Kernel and initramfs initialization
-
-- `QEMU` boots the kernel and loads the `initramfs`, a minimal filesystem used during the initial boot phase.
-- The `initramfs` initialization procedure parses parameters provided via the kernel command line. The command line includes:
-  - Explicit instructions for the boot sequence, system initialization, and filesystem mounts.
-  - The `dm-verity` hash, used to verify the integrity of the root filesystem.
-- `QEMU` adds `HOSTDATA` to the CVM by passing it through the `SEV-SNP LAUNCH_SECRET` mechanism, securely storing it within AMD’s hardware-protected registers.
+- During CVM launch, `QEMU` uses the KVM interface to register guest memory — such as the kernel, kernel command line, and initramfs—with the AMD SEV-SNP firmware for measurement and protection.
+- SEV-SNP firmware measures the contents of the guest memory, computing a launch digest that reflects the initial memory state of the CVM.
+- Before finalizing the CVM launch,`QEMU` provides `HOSTDATA` to the CVM during the `SNP_LAUNCH_FINISH` operation. This data is sealed by the SEV-SNP firmware.
   - `HOSTDATA` contains a hardware-enforced SHA-256 hash of the runtime policy.
   - Although `HOSTDATA` isn't included in the initial memory image, it's always embedded and cryptographically signed as part of the attestation report.
 
-#### 4. `initramfs` prepares the root filesystem
+For details, visit the [Contrast documentation](https://docs.edgeless.systems/contrast/architecture/snp).
+
+#### 2. Kernel and initramfs initialization
+
+- `QEMU` boots the kernel via [`OMVF`](https://github.com/tianocore/tianocore.github.io/wiki/OVMF) which executes the inititalization process of `initramfs`, a minimal filesystem used during the initial boot phase.
+- The `initramfs` initialization procedure parses parameters provided via the kernel command line. The command line includes:
+  - Explicit instructions for the boot sequence, system initialization, and filesystem mounts.
+  - The `dm-verity` hash, used to verify the integrity of the root filesystem.
+
+#### 3. `initramfs` prepares the root filesystem
 
 - The `initramfs` executes an initialization (`init`) process, running scripts that mount the root filesystem using the kernel's built-in `dm-verity` driver.
 - After successfully mounting and verifying the root filesystem, the `initramfs` transfers control to the `systemd` process located within the root filesystem.
 
-#### 5. `kata-agent` starts and verifies policy integrity
+#### 4. `kata-agent` starts and verifies policy integrity
 
 - The `kata-agent` starts in user mode inside the CVM.
 - All communication between the host and CVM is handled via the `kata-agent`.
@@ -274,7 +272,7 @@ After these steps, the worker node is fully configured and ready to run Confiden
 
 After completing these steps, the CVM is fully initialized and ready to execute workloads securely.
 
-### 4. Running workloads within the CVM
+### 5. Running workloads within the CVM
 
 The `kata-agent` inside the CVM is responsible for launching, verifying, and managing workloads within the guest environment.
 
@@ -286,7 +284,7 @@ The `kata-agent` inside the CVM is responsible for launching, verifying, and man
 
 After completing these steps, the workload runs securely within a confidential environment.
 
-### 5️. Setting up Contrast-specific containers on worker nodes
+### 6. Setting up Contrast-specific containers on worker nodes
 
 Each CVM pod includes two additional containers that start before the primary application container:
 
