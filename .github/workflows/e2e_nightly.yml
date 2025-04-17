@@ -23,7 +23,7 @@ jobs:
           - name: K3s-QEMU-SNP-GPU
             runner: SNP-GPU
             self-hosted: true
-        test-name: [servicemesh, openssl, policy, workloadsecret, volumestatefulset]
+        test-name: [servicemesh, openssl, policy, workloadsecret, volumestatefulset, atls]
         include:
           - platform:
               name: K3s-QEMU-SNP-GPU
