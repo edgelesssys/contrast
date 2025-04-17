@@ -253,32 +253,35 @@ func TestRecovery(t *testing.T) {
 	var seed [32]byte
 	var salt [32]byte
 	testCases := []struct {
-		name     string
-		seed     []byte
-		salt     []byte
-		wantCode codes.Code
+		name        string
+		seed        *[]byte
+		salt        *[]byte
+		wantCode    codes.Code
+		wantMessage string
 	}{
 		{
-			name:     "empty seed",
-			salt:     salt[:],
-			wantCode: codes.InvalidArgument,
+			name:        "empty seed",
+			seed:        toPtr[[]byte](nil),
+			wantCode:    codes.InvalidArgument,
+			wantMessage: "seed must be",
 		},
 		{
-			name:     "empty salt",
-			seed:     seed[:],
-			wantCode: codes.InvalidArgument,
+			name:        "empty salt",
+			salt:        toPtr[[]byte](nil),
+			wantCode:    codes.InvalidArgument,
+			wantMessage: "salt must be",
 		},
 		{
-			name:     "short seed",
-			seed:     seed[:16],
-			salt:     salt[:],
-			wantCode: codes.InvalidArgument,
+			name:        "short seed",
+			seed:        toPtr(seed[:16]),
+			wantCode:    codes.InvalidArgument,
+			wantMessage: "seed must be",
 		},
 		{
-			name:     "short salt",
-			seed:     seed[:],
-			salt:     salt[:16],
-			wantCode: codes.InvalidArgument,
+			name:        "short salt",
+			salt:        toPtr(salt[:16]),
+			wantCode:    codes.InvalidArgument,
+			wantMessage: "salt must be",
 		},
 		{
 			name:     "normal values",
@@ -311,14 +314,15 @@ func TestRecovery(t *testing.T) {
 			require.NoError(err)
 
 			recoverReq := &userapi.RecoverRequest{
-				Seed: tc.seed,
-				Salt: tc.salt,
+				Seed: seed,
+				Salt: resp.SeedSharesDoc.Salt,
 			}
-			if recoverReq.Seed == nil {
-				recoverReq.Seed = seed
+			// Override with test case data, if present.
+			if tc.seed != nil {
+				recoverReq.Seed = *tc.seed
 			}
-			if recoverReq.Salt == nil {
-				recoverReq.Salt = resp.SeedSharesDoc.Salt
+			if tc.salt != nil {
+				recoverReq.Salt = *tc.salt
 			}
 
 			// Simulate an updated persistence.
@@ -327,6 +331,9 @@ func TestRecovery(t *testing.T) {
 			require.ErrorContains(err, ErrNeedsRecovery.Error())
 			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
 			require.Equal(tc.wantCode, status.Code(err), "actual error: %v", err)
+			if tc.wantMessage != "" {
+				require.ErrorContains(err, tc.wantMessage)
+			}
 
 			// Simulate a restarted Coordinator.
 			a = New(a.hist, prometheus.NewRegistry(), slog.Default())
@@ -334,6 +341,9 @@ func TestRecovery(t *testing.T) {
 			require.ErrorContains(err, ErrNeedsRecovery.Error())
 			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
 			require.Equal(tc.wantCode, status.Code(err), "actual error: %v", err)
+			if tc.wantMessage != "" {
+				require.ErrorContains(err, tc.wantMessage)
+			}
 		})
 	}
 }
@@ -841,6 +851,10 @@ func (fs *watchableStore) CompareAndSwap(key string, oldVal, newVal []byte) erro
 		}
 	}
 	return nil
+}
+
+func toPtr[A any](a A) *A {
+	return &a
 }
 
 func TestMain(m *testing.M) {
