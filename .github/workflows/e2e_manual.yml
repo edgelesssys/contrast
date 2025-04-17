@@ -17,6 +17,7 @@ on:
           - servicemesh
           - volumestatefulset
           - workloadsecret
+          - atls
         default: "openssl"
       platform:
         description: "Platform"
