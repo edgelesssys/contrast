@@ -12,16 +12,29 @@ if [[ -z ${VERSION:-} ]]; then
   exit 1
 fi
 
+platforms=(
+  "aks-clh-snp"
+  "k3s-qemu-snp-gpu"
+  "k3s-qemu-snp"
+  "k3s-qemu-tdx"
+  "metal-qemu-snp-gpu"
+  "metal-qemu-snp"
+  "metal-qemu-tdx"
+  "rke2-qemu-tdx"
+)
+
 # declare an associative array that pairs the field name
 # in ./packages/versions.json with the path to the file
 declare -A fields
-fields["contrast"]="./result-cli/bin/contrast"
+fields["contrast"]="./workspace/contrast-cli/bin/contrast"
+fields["contrast-enterprise"]="./workspace/contrast-enterprise-cli/bin/contrast-enterprise"
 fields["coordinator.yml"]="./workspace/coordinator.yml"
+fields["coordinator-enterprise.yml"]="./workspace/coordinator-enterprise.yml"
 fields["runtime.yml"]="./workspace/runtime.yml"
 fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
 fields["emojivoto-demo.yml"]="./workspace/emojivoto-demo.yml"
 fields["mysql-demo.yml"]="./workspace/mysql-demo.yml"
-for platform in aks-clh-snp metal-qemu-tdx k3s-qemu-tdx metal-qemu-snp metal-qemu-snp-gpu k3s-qemu-snp k3s-qemu-snp-gpu rke2-qemu-tdx; do
+for platform in "${platforms[@]}"; do
   fields["coordinator-${platform}.yml"]="./workspace/coordinator-${platform}.yml"
   fields["runtime-${platform}.yml"]="./workspace/runtime-${platform}.yml"
 done

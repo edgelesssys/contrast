@@ -47,6 +47,15 @@ let
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/contrast";
           };
 
+          cli-enterprise = fetchurl {
+            inherit version;
+            url = "https://github.com/edgelesssys/contrast/releases/download/${version}/contrast-enterprise";
+            inherit (findVersion "contrast-enterprise" version) hash;
+            passthru.exists =
+              # contrast-enterprise was introduced in release v1.8.0
+              versionGreaterEqual version "v1.8.0";
+          };
+
           coordinator = fetchurl {
             inherit version;
             url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator.yml";
@@ -56,6 +65,15 @@ let
               (versionLessThan version "v0.10.0")
               # coordinator.yml was re-introduced in release v1.6.0, ending the use of platform-specific Coordinator files
               && (versionGreaterEqual version "v1.6.0");
+          };
+
+          coordinator-enterprise = fetchurl {
+            inherit version;
+            url = "https://github.com/edgelesssys/contrast/releases/download/${version}/coordinator-enterprise.yml";
+            inherit (findVersion "coordinator-enterprise.yml" version) hash;
+            passthru.exists =
+              # coordinator-enterprise.yml was introduced in release v1.8.0
+              versionGreaterEqual version "v1.8.0";
           };
 
           runtime = fetchurl {
@@ -151,8 +169,18 @@ let
                 --fish <($out/bin/contrast completion fish) \
                 --zsh <($out/bin/contrast completion zsh)
             ''
+            + lib.optionalString cli-enterprise.exists ''
+              install -m 777 ${cli-enterprise} $out/bin/contrast-enterprise
+              installShellCompletion --cmd contrast-enterprise \
+                --bash <($out/bin/contrast-enterprise completion bash) \
+                --fish <($out/bin/contrast-enterprise completion fish) \
+                --zsh <($out/bin/contrast-enterprise completion zsh)
+            ''
             + lib.optionalString coordinator.exists ''
               install -m 644 ${coordinator} $out/coordinator.yml
+            ''
+            + lib.optionalString coordinator-enterprise.exists ''
+              install -m 644 ${coordinator-enterprise} $out/coordinator-enterprise.yml
             ''
             + lib.optionalString runtime.exists ''
               install -m 644 ${runtime} $out/runtime.yml
