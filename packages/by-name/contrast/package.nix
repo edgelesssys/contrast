@@ -40,6 +40,7 @@ let
       "e2e/volumestatefulset"
       "e2e/regression"
       "e2e/aks-runtime"
+      "e2e/atls"
     ];
   };
 
