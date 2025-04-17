@@ -17,6 +17,7 @@ on:
           - servicemesh
           - volumestatefulset
           - workloadsecret
+          - snp
         default: "openssl"
       platform:
         description: "Platform"
