@@ -5,10 +5,12 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"syscall"
+
+	"github.com/edgelesssys/contrast/internal/defaultdeny"
+	"github.com/edgelesssys/contrast/internal/logger"
 )
 
 const (
@@ -28,16 +30,27 @@ func main() {
 }
 
 func run() (retErr error) {
-	log.Printf("service-mesh version %s\n", version)
+	log, err := logger.Default()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: creating logger: %v\n", err)
+		return err
+	}
+	defer func() {
+		if retErr != nil {
+			log.Error(retErr.Error())
+		}
+	}()
+
+	log.Info("service-mesh started", "version", version)
 
 	egressProxyConfig := os.Getenv(egressProxyConfigEnvVar)
-	log.Println("Ingress Proxy configuration:", egressProxyConfig)
+	log.Info("Ingress Proxy configuration", "egressProxyConfig", egressProxyConfig)
 
 	ingressProxyConfig := os.Getenv(ingressProxyConfigEnvVar)
-	log.Println("Egress Proxy configuration:", ingressProxyConfig)
+	log.Info("Egress Proxy configuration", "ingressProxyConfig", ingressProxyConfig)
 
 	adminPort := os.Getenv(adminPortEnvVar)
-	log.Println("Port for Envoy admin interface:", adminPort)
+	log.Info("Port for Envoy admin interface", "adminPort", adminPort)
 
 	pconfig, err := ParseProxyConfig(ingressProxyConfig, egressProxyConfig, adminPort)
 	if err != nil {
@@ -49,7 +62,7 @@ func run() (retErr error) {
 		return err
 	}
 
-	log.Printf("Using envoy configuration:\n%s\n", envoyConfig)
+	log.Info("Using envoy configuration:", "envoyConfig", envoyConfig)
 
 	if err := os.WriteFile(envoyConfigFile, envoyConfig, 0o644); err != nil {
 		return err
@@ -57,6 +70,13 @@ func run() (retErr error) {
 
 	if err := IngressIPTableRules(pconfig.ingress); err != nil {
 		return fmt.Errorf("failed to set up iptables rules: %w", err)
+	}
+
+	// Remove the default deny rule AFTER we set up the configured iptables rules.
+	// This way we make sure that all incoming traffic is either blocked by the default deny
+	// rule or routed through Envoy as configured by the user.
+	if err := defaultdeny.RemoveDefaultDenyRule(log); err != nil {
+		return fmt.Errorf("failed to remove default deny rule: %w", err)
 	}
 
 	// Signal readiness for startup probe.
@@ -70,7 +90,7 @@ func run() (retErr error) {
 		return err
 	}
 
-	log.Println("Starting envoy")
+	log.Info("Starting envoy")
 	args := []string{"envoy", "-c", envoyConfigFile}
 	args = append(args, os.Args[1:]...)
 	return syscall.Exec(envoyBin, args, os.Environ())

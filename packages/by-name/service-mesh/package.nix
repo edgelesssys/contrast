@@ -12,21 +12,26 @@ buildGoModule (finalAttrs: {
   src =
     let
       inherit (lib) fileset path hasSuffix;
-      root = ../../../service-mesh;
+      root = ../../../.;
     in
     fileset.toSource {
       inherit root;
       fileset = fileset.unions [
         (path.append root "go.mod")
         (path.append root "go.sum")
-        (path.append root "golden/defaultEnvoy.json")
-        (fileset.fileFilter (file: hasSuffix ".go" file.name) root)
+        (path.append root "service-mesh/go.mod")
+        (path.append root "service-mesh/go.sum")
+        (path.append root "service-mesh/golden/defaultEnvoy.json")
+        (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/defaultdeny"))
+        (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/logger"))
+        (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "service-mesh"))
       ];
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-f/n8jMfHyfukxqv+i9K8Arko+ztzIYDBlBSTSxtRd0w=";
+  vendorHash = "sha256-0W2SSZUZLm/k3+kVxksNRzbEp1R3HxB7gCMP7S/9ifo=";
 
+  sourceRoot = "${finalAttrs.src.name}/service-mesh";
   subPackages = [ "." ];
 
   env.CGO_ENABLED = 0;

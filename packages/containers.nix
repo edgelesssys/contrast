@@ -47,11 +47,16 @@ let
           busybox
           e2fsprogs # mkfs.ext4
           libuuid # blkid
+          iptables-legacy
         ])
         ++ (with dockerTools; [ caCertificates ]);
       config = {
         Cmd = [ "${pkgs.contrast.coordinator}/bin/coordinator" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
+        Volumes = {
+          # Add /run folder so that iptables can create /run/xtables.lock
+          "/run" = { };
+        };
       };
     };
 
@@ -63,11 +68,16 @@ let
           busybox
           e2fsprogs # mkfs.ext4
           libuuid # blkid
+          iptables-legacy
         ])
         ++ (with dockerTools; [ caCertificates ]);
       config = {
         Cmd = [ "${pkgs.contrast-enterprise.coordinator}/bin/coordinator" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
+        Volumes = {
+          # Add /run folder so that iptables can create /run/xtables.lock
+          "/run" = { };
+        };
       };
     };
 
@@ -80,6 +90,7 @@ let
           cryptsetup
           e2fsprogs # mkfs.ext4
           libuuid # blkid
+          iptables-legacy
         ])
         ++ (with dockerTools; [ caCertificates ]);
       config = {
@@ -87,6 +98,7 @@ let
         Entrypoint = [ "${pkgs.contrast.initializer}/bin/initializer" ];
         Env = [ "PATH=/bin" ]; # This is only here for policy generation.
         Volumes = {
+          # Add /run folder so that iptables can create /run/xtables.lock
           "/run" = { };
         };
       };
@@ -127,6 +139,10 @@ let
         # Use Entrypoint so we can append arguments.
         Entrypoint = [ "${pkgs.service-mesh}/bin/service-mesh" ];
         Env = [ "PATH=/bin" ];
+        Volumes = {
+          # Add /run folder so that iptables can create /run/xtables.lock
+          "/run" = { };
+        };
       };
     };
 
