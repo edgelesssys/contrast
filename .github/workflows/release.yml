@@ -425,6 +425,7 @@ jobs:
   test:
     strategy:
       matrix:
+        enterprise: [false, true]
         platform:
           - name: AKS-CLH-SNP
             runner: ubuntu-22.04
@@ -439,7 +440,7 @@ jobs:
             runner: TDX
             self-hosted: true
       fail-fast: false
-    name: "Test on ${{ matrix.platform.name }}"
+    name: "Test ${{ matrix.enterprise && 'enterprise ' || '' }}on ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
     permissions:
       # Job needs content:write to see draft releases.
@@ -477,11 +478,22 @@ jobs:
         if: (!matrix.platform.self-hosted)
         run: |
           just get-credentials
+      - name: Set sync environment
+        if: (!matrix.platform.self-hosted)
+        run: |
+          sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"
+          sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
+          echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
       - name: E2E Test
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          nix shell -L .#contrast.e2e --command release.test -test.v --tag ${{ inputs.version }} --platform ${{ matrix.platform.name }}
+          nix shell -L .#contrast.e2e --command release.test \
+            -test.v \
+            --tag ${{ inputs.version }} \
+            --platform ${{ matrix.platform.name }} \
+            ${{ matrix.enterprise && '--enterprise' || '' }}
 
   create-github-stuff:
     name: Create backport label and milestone

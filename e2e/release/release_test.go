@@ -30,6 +30,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/google/go-github/v66/github"
+	ksync "github.com/katexochen/sync/api/client"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -44,6 +45,7 @@ var (
 	tag         = flag.String("tag", "", "tag name of the release to download")
 	keep        = flag.Bool("keep", false, "don't delete test resources and deployment")
 	platformStr = flag.String("platform", "", "Deployment platform")
+	enterprise  = flag.Bool("enterprise", false, "Use enterprise artifacts")
 )
 
 // TestRelease downloads a release from Github, sets up the coordinator, installs the demo
@@ -58,13 +60,46 @@ func TestRelease(t *testing.T) {
 
 	dir := fetchRelease(ctx, t)
 
-	contrast := &contrast{dir}
+	contrast := &contrast{dir: dir}
+
+	filenameCooordinator := "coordinator.yml"
+	if *enterprise {
+		filenameCooordinator = "coordinator-enterprise.yml"
+		contrast.binName = "contrast-enterprise"
+	}
+
+	// If available, acquire a fifo ticket to synchronize cluster access with
+	// other running e2e tests. We request a ticket and wait for our turn.
+	// Ticket is released in the cleanup function. The sync server will ensure
+	// that only one test is using the cluster at a time.
+	var fifo *ksync.Fifo
+	if fifoUUID, ok := os.LookupEnv("SYNC_FIFO_UUID"); ok {
+		syncEndpoint, ok := os.LookupEnv("SYNC_ENDPOINT")
+		require.True(t, ok, "SYNC_ENDPOINT must be set when SYNC_FIFO_UUID is set")
+		t.Logf("Syncing with fifo %s of endpoint %s", fifoUUID, syncEndpoint)
+		fifo = ksync.FifoFromUUID(syncEndpoint, fifoUUID)
+		err := fifo.TicketAndWait(ctx)
+		if err != nil {
+			t.Log("If this throws a 404, likely the sync server was restarted.")
+			t.Log("Run 'nix run .#scripts.renew-sync-fifo' against the CI cluster to fix it.")
+			require.NoError(t, err)
+		}
+		t.Logf("Acquired lock on fifo %s", fifoUUID)
+	}
 
 	for _, sub := range []string{"help"} {
 		contrast.Run(ctx, t, 2*time.Second, sub)
 	}
 
 	t.Cleanup(func() {
+		defer func() {
+			if fifo != nil {
+				if err := fifo.Done(ctx); err != nil {
+					t.Logf("Could not mark fifo ticket as done: %v", err)
+				}
+			}
+		}()
+
 		if *keep {
 			return
 		}
@@ -121,7 +156,7 @@ func TestRelease(t *testing.T) {
 
 		require.NoError(os.Mkdir(path.Join(dir, "deployment"), 0o777))
 		require.NoError(os.Rename(path.Join(dir, "emojivoto-demo.yml"), path.Join(dir, "deployment", "emojivoto-demo.yml")))
-		require.NoError(os.Rename(path.Join(dir, "coordinator.yml"), path.Join(dir, "deployment", "coordinator.yml")))
+		require.NoError(os.Rename(path.Join(dir, filenameCooordinator), path.Join(dir, "deployment", "coordinator.yml")))
 
 		infos, err := os.ReadDir(path.Join(dir, "deployment"))
 		require.NoError(err)
@@ -237,7 +272,8 @@ func TestRelease(t *testing.T) {
 }
 
 type contrast struct {
-	dir string
+	dir     string
+	binName string
 }
 
 func (c *contrast) Run(ctx context.Context, t *testing.T, timeout time.Duration, args ...string) {
@@ -245,8 +281,11 @@ func (c *contrast) Run(ctx context.Context, t *testing.T, timeout time.Duration,
 		ctx, cancel := context.WithTimeout(ctx, timeout)
 		defer cancel()
 
+		if c.binName == "" {
+			c.binName = "contrast"
+		}
 		args := append([]string{"--log-level", "debug"}, args...)
-		cmd := exec.CommandContext(ctx, "./contrast", args...)
+		cmd := exec.CommandContext(ctx, fmt.Sprintf("./%s", c.binName), args...)
 		cmd.Dir = c.dir
 		out, err := cmd.CombinedOutput()
 		require.NoError(t, err, "output:\n%s", string(out))
