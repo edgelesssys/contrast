@@ -6,12 +6,16 @@ package cmd
 import (
 	"context"
 	_ "embed"
+	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/edgelesssys/contrast/cli/telemetry"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
+	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -52,6 +56,17 @@ func cachedir(subdir string) (string, error) {
 		dir = filepath.Join(cachedir, "contrast")
 	}
 	return filepath.Join(dir, subdir), nil
+}
+
+func cachedHTTPSGetter(log *slog.Logger) (*certcache.CachedHTTPSGetter, error) {
+	kdsDir, err := cachedir("kds")
+	if err != nil {
+		return nil, fmt.Errorf("getting cache dir: %w", err)
+	}
+	log.Debug("Using KDS cache dir", "dir", kdsDir)
+
+	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
+	return certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter")), nil
 }
 
 func must(err error) {
