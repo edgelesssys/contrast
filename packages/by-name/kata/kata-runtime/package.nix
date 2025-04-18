@@ -139,6 +139,9 @@ buildGoModule (finalAttrs: {
       # it makes sense at all, so we're fixing this downstream only.
       # https://github.com/kata-containers/kata-containers/pull/11077#issuecomment-2750400613
       ./0018-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
+
+      # Experimental: unconditionally force guest pull without snapshotter.
+      ./0019-runtime-force-guest-pull.patch
     ];
   };
 

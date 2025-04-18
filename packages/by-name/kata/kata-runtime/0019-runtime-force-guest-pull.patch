@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Fri, 18 Apr 2025 11:43:43 +0200
+Subject: [PATCH] runtime: force guest pull
+
+---
+ src/runtime/virtcontainers/fs_share_linux.go | 22 ++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/src/runtime/virtcontainers/fs_share_linux.go b/src/runtime/virtcontainers/fs_share_linux.go
+index 0dc11cbed55145c958541cabd52cacaa4e2623f3..da2798ef01f33f7dcf5db82c35a28c5cefbf4f91 100644
+--- a/src/runtime/virtcontainers/fs_share_linux.go
++++ b/src/runtime/virtcontainers/fs_share_linux.go
+@@ -542,9 +542,31 @@ func (f *FilesystemShare) shareRootFilesystemWithVirtualVolume(ctx context.Conte
+ 	}, nil
+ }
+ 
++func forceGuestPull(c *Container) (*SharedFile, error) {
++	sf := &SharedFile{
++		guestPath: filepath.Join("/run/kata-containers/", c.id, c.rootfsSuffix),
++	}
++	guestPullVolume := &types.KataVirtualVolume{
++		VolumeType: types.KataVirtualVolumeImageGuestPullType,
++		ImagePull: &types.ImagePullVolume{
++			Metadata: map[string]string{},
++		},
++	}
++	vol, err := handleVirtualVolumeStorageObject(c, "", guestPullVolume)
++	if err != nil {
++		return nil, fmt.Errorf("forcing guest pull virtual volume: %w", err)
++	}
++	sf.containerStorages = append(sf.containerStorages, vol)
++	return sf, nil
++}
++
+ // func (c *Container) shareRootfs(ctx context.Context) (*grpc.Storage, string, error) {
+ func (f *FilesystemShare) ShareRootFilesystem(ctx context.Context, c *Container) (*SharedFile, error) {
+ 
++	if 1 > 0 { // TODO(burgerdev): should be forced by option
++		return forceGuestPull(c)
++	}
++
+ 	if HasOptionPrefix(c.rootFs.Options, VirtualVolumePrefix) {
+ 		return f.shareRootFilesystemWithVirtualVolume(ctx, c)
+ 	}

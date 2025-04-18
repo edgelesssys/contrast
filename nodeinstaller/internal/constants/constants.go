@@ -168,7 +168,6 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 		Path:                         filepath.Join(baseDir, "bin", "containerd-shim-contrast-cc-v2"),
 		PodAnnotations:               []string{"io.katacontainers.*"},
 		PrivilegedWithoutHostDevices: true,
-		Snapshotter:                  snapshotter,
 	}
 
 	switch platform {
@@ -176,6 +175,7 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
 		}
+		cfg.Snapshotter = snapshotter
 	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
