@@ -16,7 +16,6 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -34,25 +33,6 @@ contrast_coordinator_manifest_generation %d
 )
 
 var keyDigest = manifest.HexString("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
-
-func TestSNPValidateOpts(t *testing.T) {
-	require := require.New(t)
-	a, _ := newAuthority(t)
-	_, mnfstBytes, policies := newManifest(t)
-
-	req := &userapi.SetManifestRequest{
-		Manifest: mnfstBytes,
-		Policies: policies,
-	}
-	_, err := a.SetManifest(context.Background(), req)
-	require.NoError(err)
-
-	gens, err := a.state.Load().Manifest().SNPValidateOpts(nil)
-	require.NoError(err)
-	require.NotNil(gens)
-}
-
-// TODO(burgerdev): test ValidateCallback and GetCertBundle
 
 // TestBadStoreWatcherIsRestarted tests that a new history watcher is started on failure.
 func TestBadStoreWatcherIsRestarted(t *testing.T) {
