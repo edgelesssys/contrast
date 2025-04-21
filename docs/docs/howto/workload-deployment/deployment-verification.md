@@ -1,1 +1,64 @@
 # Deployment verification
+
+This step verifies the deployment.
+
+## Applicability
+
+An application user / data owner can verify the deployment before any interaction.
+
+## Prerequesite
+
+1. A running Contrast deployment.
+
+## How-to
+
+### Connect to the coordinator
+
+For the next steps, we will need to connect to the coordinator. The released coordinator resource
+includes a LoadBalancer definition we can use.
+
+```sh
+coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+```
+
+:::info[Port-forwarding of Confidential Containers]
+
+`kubectl port-forward` uses a Container Runtime Interface (CRI) method that isn't supported by the Kata shim.
+If you can't use a public load balancer, you can deploy a port-forwarding pod to relay traffic to a Contrast pod:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: port-forwarder-coordinator
+spec:
+  containers:
+    - name: port-forwarder
+      image: alpine/socat
+      args:
+        - -d
+        - TCP-LISTEN:1313,fork
+        - TCP:coordinator:1313
+      resources:
+        requests:
+          memory: 50Mi
+        limits:
+          memory: 50Mi
+```
+
+Upstream tracking issue: https://github.com/kata-containers/kata-containers/issues/1693.
+
+:::
+
+### Verify deployment
+
+An end user (data owner) can verify the Contrast deployment using the `verify` command.
+
+```sh
+contrast verify -c "${coordinator}:1313"
+```
+
+The CLI will attest the Coordinator using the reference values from the given manifest file. It will then write the
+service mesh root certificate and the history of manifests into the `verify/` directory. In addition, the policies
+referenced in the active manifest are also written to the directory. The verification will fail if the active
+manifest at the Coordinator doesn't match the manifest passed to the CLI.

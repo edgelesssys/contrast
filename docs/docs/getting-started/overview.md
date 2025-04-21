@@ -26,7 +26,7 @@ To make your app confidential with Contrast, you need to follow these steps:
 4. [Securely connect to the app](.):
    Connect through a secure channel backed by confidential computing hardware. This removes the need for users to trust you as a service provider.
 
-## Emojivoto App
+## Emojivoto app
 
 ![Screenshot of the Emojivoto UI](../_media/emoijvoto.png)
 

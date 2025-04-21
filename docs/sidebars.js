@@ -22,7 +22,6 @@ const sidebars = {
     {
       type: "category",
       label: "Getting started",
-      collapsed: true,
       items: [
         {
           type: "doc",
@@ -47,8 +46,23 @@ const sidebars = {
       items: [
         {
           type: "category",
+          label: "Cluster setup",
+          items: [
+            {
+              type: "doc",
+              label: "AKS",
+              id: "howto/cluster-setup/aks",
+            },
+            {
+              type: "doc",
+              label: "Bare metal",
+              id: "howto/cluster-setup/bare-metal",
+            },
+          ],
+        },
+        {
+          type: "category",
           label: "Workload deployment",
-          collapsed: true,
           items: [
             {
               type: "doc",
@@ -62,13 +76,43 @@ const sidebars = {
             },
             {
               type: "doc",
-              label: "Generate annotations",
+              label: "Configure TLS",
+              id: "howto/workload-deployment/TLS-configuration",
+            },
+            {
+              type: "doc",
+              label: "Enable GPU support",
+              id: "howto/workload-deployment/GPU-configuration",
+            },
+            {
+              type: "doc",
+              label: "Generate annotations & manifest",
               id: "howto/workload-deployment/generate-annotations",
+            },
+            {
+              type: "doc",
+              label: "Deploy application",
+              id: "howto/workload-deployment/deploy-application",
+            },
+            {
+              type: "doc",
+              label: "Deploy Conrast coordinator",
+              id: "howto/workload-deployment/deploy-coordinator",
             },
             {
               type: "doc",
               label: "Verify deployment",
               id: "howto/workload-deployment/deployment-verification",
+            },
+            {
+              type: "doc",
+              label: "Communicate with workloads",
+              id: "howto/workload-deployment/workload-communication",
+            },
+            {
+              type: "doc",
+              label: "Recover Contrast coordinator",
+              id: "howto/workload-deployment/recover-coordinator",
             },
           ],
         },
@@ -138,7 +182,6 @@ const sidebars = {
     {
       type: "category",
       label: "Old docs",
-      collapsed: true,
       items: [
         {
           type: "doc",
@@ -148,7 +191,6 @@ const sidebars = {
         {
           type: "category",
           label: "Basics",
-          collapsed: false,
           items: [
             {
               type: "doc",
@@ -170,7 +212,6 @@ const sidebars = {
         {
           type: "category",
           label: "Getting started",
-          collapsed: false,
           items: [
             {
               type: "doc",

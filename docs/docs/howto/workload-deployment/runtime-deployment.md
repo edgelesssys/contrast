@@ -1,10 +1,14 @@
-# Runtime deployment
+# Deploy runtime
 
-This page explains how the Contrast runtime is deployed to your Kubernetes cluster.
+This step sets up your host environment on Kubernetes worker nodes.
 
-## Pre-requisites
+## Applicability
 
-1. [Setup confidential-ready cluster](.)
+This step is mandatory for all Contrast deployments.
+
+## Prerequisite
+
+1. [Set up cluster](.)
 
 ## How-to
 
