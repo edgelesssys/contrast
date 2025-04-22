@@ -6,6 +6,10 @@ This section presents some tips for writing secure applications and outlines the
 
 This section should be considered for every Contrast deployment.
 
+## Prerequesites
+
+A running Contrast deployment.
+
 ## How-to
 
 Contrast ensures application integrity and provides secure means of communication and bootstrapping (see [security benefits](../basics/security-benefits.md)).

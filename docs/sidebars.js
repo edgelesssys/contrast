@@ -138,11 +138,6 @@ const sidebars = {
         },
         {
           type: "doc",
-          label: "Recovery",
-          id: "howto/recovery",
-        },
-        {
-          type: "doc",
           label: "Manifest update",
           id: "howto/manifest-update",
         },
@@ -168,14 +163,51 @@ const sidebars = {
           id: "architecture/overview",
         },
         {
-          type: "doc",
+          type: "category",
           label: "Components",
-          id: "architecture/components",
+          items: [
+            {
+              type: "doc",
+              label: "Runtime",
+              id: "architecture/components/runtime",
+            },
+            {
+              type: "doc",
+              label: "Policies",
+              id: "architecture/components/policies",
+            },
+            {
+              type: "doc",
+              label: "Initializer",
+              id: "architecture/components/initializer",
+            },
+            {
+              type: "doc",
+              label: "Coordinator",
+              id: "architecture/components/coordinator",
+            },
+            {
+              type: "doc",
+              label: "Service mesh",
+              id: "architecture/components/service-mesh",
+            },
+          ],
         },
         {
-          type: "doc",
+          type: "category",
           label: "Attestation",
-          id: "architecture/attestation",
+          items: [
+            {
+              type: "doc",
+              label: "Overview",
+              id: "architecture/attestation/overview",
+            },
+            {
+              type: "doc",
+              label: "AMD SEV-SNP",
+              id: "architecture/attestation/amd-details",
+            },
+          ],
         },
       ],
     },

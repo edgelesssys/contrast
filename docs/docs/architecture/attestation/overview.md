@@ -1,20 +1,22 @@
 # Attestation in Contrast
 
+<!-- TODO: Needs to be revised to be more contrast specific and less conceptual. -->
+
 This document describes the attestation architecture of Contrast, adhering to the definitions of Remote ATtestation procedureS (RATS) in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html).
 The following gives a detailed description of Contrast's attestation architecture.
 At the end of this document, we included an [FAQ](#frequently-asked-questions-about-attestation-in-contrast) that answers the most common questions regarding attestation in hindsight of the [security benefits](../basics/security-benefits.md).
 
 ## Attestation architecture
 
-Contrast integrates with the RATS architecture, leveraging their definition of roles and processes including *Attesters*, *Verifiers*, and *Relying Parties*.
+Contrast integrates with the RATS architecture, leveraging their definition of roles and processes including _Attesters_, _Verifiers_, and _Relying Parties_.
 
 ![Conceptual attestation architecture](../_media/attestation-rats-architecture.svg)
 
 Figure 1: Conceptual attestation architecture. Taken from [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html#figure-1).
 
-- **Attester**: Assigned to entities that are responsible for creating *Evidence* which is then sent to a *Verifier*.
-- **Verifier**: These entities utilize the *Evidence*, *Reference Values*, and *Endorsements*. They assess the trustworthiness of the *Attester* by applying an *Appraisal Policy* for *Evidence*. Following this assessment, *Verifiers* generate *Attestation Results* for use by *Relying Parties*. The *Appraisal Policy* for *Evidence* may be provided by the *Verifier Owner*, programmed into the *Verifier*, or acquired through other means.
-- **Relying Party**: Assigned to entities that utilize *Attestation Results*, applying their own appraisal policies to make specific decisions, such as authorization decisions. This process is referred to as the "appraisal of Attestation Results." The *Appraisal Policy* for *Attestation Results* might be sourced from the *Relying Party Owner*, configured by the owner, embedded in the *Relying Party*, or obtained through other protocols or mechanisms.
+- **Attester**: Assigned to entities that are responsible for creating _Evidence_ which is then sent to a _Verifier_.
+- **Verifier**: These entities utilize the _Evidence_, _Reference Values_, and _Endorsements_. They assess the trustworthiness of the _Attester_ by applying an _Appraisal Policy_ for _Evidence_. Following this assessment, _Verifiers_ generate _Attestation Results_ for use by _Relying Parties_. The _Appraisal Policy_ for _Evidence_ may be provided by the _Verifier Owner_, programmed into the _Verifier_, or acquired through other means.
+- **Relying Party**: Assigned to entities that utilize _Attestation Results_, applying their own appraisal policies to make specific decisions, such as authorization decisions. This process is referred to as the "appraisal of Attestation Results." The _Appraisal Policy_ for _Attestation Results_ might be sourced from the _Relying Party Owner_, configured by the owner, embedded in the _Relying Party_, or obtained through other protocols or mechanisms.
 
 ## Components of Contrast's attestation
 
@@ -35,7 +37,7 @@ During launch, the CPU (A) measures the initial memory content of the confidenti
 On AKS the image is in [IGVM format](https://github.com/microsoft/igvm), encapsulating all information required to launch a virtual machine, including the kernel, the initramfs, and kernel cmdline.
 On bare-metal QEMU boots the image via [direct Linux boot](https://qemu-project.gitlab.io/qemu/system/linuxboot.html) and `kernel-hashes=on`, which signals QEMU to measure the kernel, initrd, and cmdline passed via the flags.
 The kernel cmdline contains the root hash for [dm-verity](https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/verity.html) that ensures the integrity of the root filesystem.
-The root filesystem contains all  components of the container's runtime environment including the [guest agent](../basics/confidential-containers.md#kata-containers) (C).
+The root filesystem contains all components of the container's runtime environment including the [guest agent](../basics/confidential-containers.md#kata-containers) (C).
 
 In the userland, the guest agent takes care of enforcing the [runtime policy](../components/overview.md#runtime-policies) of the pod.
 While the policy is passed in during the initialization procedure via the host, the evidence for the runtime policy is part of the CPU measurements.

@@ -9,7 +9,7 @@ identify problems in the gRPC layer or attestation errors.
 
 ## Prerequesites
 
-1. A running Contrast deployment.
+A running Contrast deployment.
 
 ## How-to
 
