@@ -53,8 +53,12 @@ for runtimeClass in "${unusedRuntimeClasses[@]}"; do
 
   # Remove references from containerd config
   echo "Removing ${runtimeClass} from ${CONFIG} ..."
-  dasel delete --file "${CONFIG}" --indent 0 --read toml --write toml "plugins.io\.containerd\.grpc\.v1\.cri.containerd.runtimes.${runtimeClass}" 2>/dev/null
-  dasel delete --file "${CONFIG}" --indent 0 --read toml --write toml "proxy_plugins.${SNAPSHOTTER}-${runtimeClass}" 2>/dev/null
+  # First try config v3 path. If this fails, try config v2 path.
+  dasel delete --file "${CONFIG}" --indent 0 --read toml --write toml "plugins.io\.containerd\.cri\.v1\.runtime.containerd.runtimes.${runtimeClass}" ||
+    dasel delete --file "${CONFIG}" --indent 0 --read toml --write toml "plugins.io\.containerd\.grpc\.v1\.cri.containerd.runtimes.${runtimeClass}" ||
+    true
+
+  dasel delete --file "${CONFIG}" --indent 0 --read toml --write toml "proxy_plugins.${SNAPSHOTTER}-${runtimeClass}" 2>/dev/null || true
 done
 
 # Fix the state for removed snapshotters.
