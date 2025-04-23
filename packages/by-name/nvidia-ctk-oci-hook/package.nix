@@ -11,7 +11,7 @@ writeShellApplication {
 
   text = ''
     # Log the o/p of the hook to a file
-    ${lib.getExe' nvidia-ctk-with-config "nvidia-container-runtime-hook"} \
+    ${lib.getExe' nvidia-ctk-with-config.tools "nvidia-container-runtime-hook"} \
       -config ${nvidia-ctk-with-config}/etc/nvidia-container-runtime/config.toml \
       -debug "$@" > /var/log/nvidia-hook.log 2>&1
   '';
