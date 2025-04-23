@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-systemd/v22/dbus"
+	globalconstants "github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/asset"
@@ -28,6 +29,9 @@ import (
 )
 
 func main() {
+	fmt.Fprintf(os.Stderr, "Contrast node-installer %s\n", globalconstants.Version)
+	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
+
 	shouldRestartContainerd := flag.Bool("restart", true, "Restart containerd after the runtime installation to make the changes effective.")
 	flag.Parse()
 
