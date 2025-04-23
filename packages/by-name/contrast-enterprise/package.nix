@@ -4,6 +4,6 @@
 { contrast }:
 
 contrast.overrideAttrs (prevAttrs: {
-  pname = prevAttrs.pname + "-enterprise";
+  version = prevAttrs.version + "+enterprise";
   tags = prevAttrs.tags ++ [ "enterprise" ];
 })
