@@ -28,7 +28,8 @@ func main() {
 }
 
 func run() (retErr error) {
-	log.Printf("service-mesh version %s\n", version)
+	fmt.Fprintf(os.Stderr, "Contrast service-mesh %s\n", version)
+	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
 
 	egressProxyConfig := os.Getenv(egressProxyConfigEnvVar)
 	log.Println("Ingress Proxy configuration:", egressProxyConfig)

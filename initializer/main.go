@@ -48,11 +48,12 @@ func execute() error {
 
 func newRootCmd() *cobra.Command {
 	root := &cobra.Command{
-		Use:          "initializer",
-		Short:        "initializer",
-		RunE:         run,
-		SilenceUsage: true,
-		Version:      constants.Version,
+		Use:              "initializer",
+		Short:            "initializer",
+		PersistentPreRun: printPreface,
+		RunE:             run,
+		SilenceUsage:     true,
+		Version:          constants.Version,
 	}
 	root.InitDefaultVersionFlag()
 	root.AddCommand(
@@ -183,4 +184,9 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	defer cancel()
 
 	return setupEncryptedMount(ctx, log, flags)
+}
+
+func printPreface(cmd *cobra.Command, _ []string) {
+	fmt.Fprintf(cmd.ErrOrStderr(), "Contrast initializer %s\n", constants.Version)
+	fmt.Fprintln(cmd.ErrOrStderr(), "Report issues at https://github.com/edgelesssys/contrast/issues")
 }
