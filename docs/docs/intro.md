@@ -27,7 +27,7 @@ Contrast integrates fluently with the existing Kubernetes workflows. It's compat
 
 ## Use cases
 
-Contrast provides unique security [features](basics/features.md) and [benefits](basics/security-benefits.md). The core use cases are:
+Contrast provides unique security [features](./old/basics/features.md) and [benefits](./old/basics/security-benefits.md). The core use cases are:
 
 - Increasing the security of your containers
 - Moving sensitive workloads from on-prem to the cloud with Confidential Computing
