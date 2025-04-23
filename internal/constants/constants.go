@@ -7,11 +7,13 @@ import (
 	"time"
 )
 
-// Version value is injected at build time.
 var (
-	Version                   = "0.0.0-dev"
+	// Version is the version of Contrast.
+	Version = "0.0.0-dev"
+	// MicrosoftGenpolicyVersion is the version of Microsoft's genpolicy tool.
 	MicrosoftGenpolicyVersion = "0.0.0-dev"
-	KataGenpolicyVersion      = "0.0.0-dev"
+	// KataGenpolicyVersion is the version of Kata's genpolicy tool.
+	KataGenpolicyVersion = "0.0.0-dev"
 )
 
 const (
