@@ -58,4 +58,26 @@ final: prev:
       })
     ];
   });
+
+  # nvidia-container-toolkit was updated to 1.17.5 and now passes a flag to
+  # nvidia-container-cli (from libnvidia-container package, v1.17.2)
+  # that it not available in this version of libnvidia-container.
+  # Error: 'nvidia-container-cli configure: unrecognized option '--no-cntlibs''.
+  # See https://github.com/NVIDIA/libnvidia-container/releases/tag/v1.17.4.
+  # See https://github.com/NixOS/nixpkgs/pull/402488.
+  libnvidia-container =
+    (prev.libnvidia-container.override {
+      go_1_23 = final.go_1_24;
+    }).overrideAttrs
+      (
+        finalAttrs: _prevAttrs: {
+          version = "1.17.6";
+          src = final.fetchFromGitHub {
+            owner = "NVIDIA";
+            repo = "libnvidia-container";
+            rev = "v${finalAttrs.version}";
+            hash = "sha256-kveP0Px9Fds7pS39aW+cqg2jtiQCMN2zG4GTGRqRrc0=";
+          };
+        }
+      );
 }

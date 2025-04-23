@@ -150,7 +150,10 @@ in
       "/usr/share/oci/hooks/prestart/nix-store-mount-hook.sh".source = lib.getExe nix-store-mount-hook;
     };
 
-    environment.systemPackages = [ pkgs.nvidia-ctk-with-config ];
+    environment.systemPackages = [
+      pkgs.nvidia-ctk-with-config
+      pkgs.nvidia-ctk-with-config.tools
+    ];
 
     boot.initrd.kernelModules = [
       # Extra kernel modules required to talk to the GPU in CC-Mode.

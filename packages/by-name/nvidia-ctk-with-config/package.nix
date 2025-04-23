@@ -15,7 +15,7 @@ nvidia-container-toolkit.override {
   configTemplatePath = replaceVars ./config.toml {
     "nvidia-container-cli" = "${lib.getExe' libnvidia-container "nvidia-container-cli"}";
     "nvidia-container-runtime-hook" =
-      "${lib.getExe' nvidia-container-toolkit "nvidia-container-runtime-hook"}";
+      "${lib.getExe' nvidia-container-toolkit.tools "nvidia-container-runtime-hook"}";
     "nvidia-ctk" = "${lib.getExe' nvidia-container-toolkit "nvidia-ctk"}";
     "glibcbin" = "${lib.getBin glibc}";
   };
