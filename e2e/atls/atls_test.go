@@ -34,8 +34,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestATLSSNP runs e2e tests for the atls layer.
-func SNPValidatorsTest(t *testing.T) {
+// TestSNPValidators runs e2e tests for the atls layer.
+func TestSNPValidators(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
 
