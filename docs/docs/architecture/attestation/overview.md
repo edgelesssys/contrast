@@ -8,7 +8,7 @@ This process builds on Remote Attestation Procedures (RATS) as described in [RFC
 
 Contrast separates responsibilities across three attestation roles:
 
-### Attester: confidential pods
+### Attester: Confidential pods
 
 Each pod is launched inside a CVM using a secure runtime based on Kata Containers. During launch:
 
@@ -33,7 +33,7 @@ The runtime policy specifies:
 
 This guarantees that the CVM launches in a well-defined state and enforces only the explicitly declared configuration.
 
-### Verifier: Contrast coordinator
+### Verifier: Contrast coordinator & CLI
 
 The coordinator runs inside a CVM and verifies attestation reports from other pods. It:
 
@@ -50,7 +50,9 @@ The **manifest** is a JSON configuration that defines the trusted state of the d
 
 Only pods whose attestation evidence matches the manifest are accepted into the trusted service mesh.
 
-### Relying party: CLI and data owner
+The Contrast coordinator itself also runs as a confidential pod and is attested using the Contrast CLI. The CLI includes embedded reference values for the coordinator, allowing it to verify the coordinator's identity and integrity during attestation. Because these reference values are part of the CLI build, the CLI effectively serves as the root of trust for the deployment. Verifying the CLI’s integrity and authenticity is therefore essential.
+
+### Relying party: Operator and data owner
 
 The Contrast CLI is used by operators or data owners to verify the deployment and establish trust. It:
 
@@ -80,25 +82,37 @@ Each attestation report contains:
 
 The CLI verifies the Coordinator in the same way, using reference values embedded during the Contrast build process.
 
-## Certificates and trusted communication
-
-Once attested, a pod receives:
-
-- A **Mesh CA certificate** for authenticated, encrypted communication within the service mesh
-- A **Root CA certificate** that anchors long-term trust
-
-The pod's private key is sealed using a derived secret and stored encrypted via LUKS on persistent storage. This ensures that certificates cannot be reused or exfiltrated, even if disk volumes are compromised.
-
-## Security guarantees
-
-Contrast attestation provides:
-
-- **Isolation**: Workloads run in CVMs with encrypted memory and protected execution environments
-- **Authenticity**: Workloads must match signed launch measurements and runtime policies
-- **Integrity**: No modifications to container images, startup configuration, or policy go undetected
-
-Only workloads that successfully pass attestation are issued service mesh certificates, ensuring that communication is strictly limited to verified and approved participants.
-
 ## Summary
 
 Contrast enforces trust across a Kubernetes deployment using hardware-based attestation. Each pod’s launch state and configuration are verified before it can access secrets or participate in the mesh. The Coordinator acts as a centralized verifier, using a declarative manifest to define the trusted state. The CLI provides an interface for verification and certificate retrieval, completing a robust and transparent attestation workflow.
+
+## FAQ
+
+### What's the purpose of remote attestation in Contrast?
+
+Remote attestation in Contrast ensures that software runs within a secure, isolated confidential computing environment.
+This process certifies that the memory is encrypted and confirms the integrity and authenticity of the software running within the deployment.
+By validating the runtime environment and the policies enforced on it, Contrast ensures that the system operates in a trustworthy state and hasn't been tampered with.
+
+### How does Contrast ensure the security of the attestation process?
+
+Contrast leverages hardware-rooted security features such as AMD SEV-SNP or Intel TDX to generate cryptographic evidence of a pod’s current state and configuration.
+This evidence is checked against pre-defined appraisal policies to guarantee that only verified and authorized pods are part of a Contrast deployment.
+
+### What security benefits does attestation provide?
+
+Attestation confirms the integrity of the runtime environment and the identity of the workloads.
+It plays a critical role in preventing unauthorized changes and detecting potential modifications at runtime.
+The attestation provides integrity and authenticity guarantees, enabling relying parties—such as workload operators or data owners—to confirm the effective protection against potential threats, including malicious cloud insiders, co-tenants, or compromised workload operators.
+More details on the specific security benefits can be found [here](../../old/basics/security-benefits.md).
+
+### How can you verify the authenticity of attestation results?
+
+Attestation results in Contrast are tied to cryptographic proofs generated and signed by the hardware itself.
+These proofs are then verified using public keys from trusted hardware vendors, ensuring that the results aren't only accurate but also resistant to tampering.
+For further authenticity verification, all of Contrast's code is reproducibly built, and the attestation evidence can be verified locally from the source code.
+
+### How are attestation results used by relying parties?
+
+Relying parties use attestation results to make informed security decisions, such as allowing access to sensitive data or resources only if the attestation verifies the system's integrity.
+Thereafter, the use of Contrast's [CA certificates in TLS connections](../../old/architecture/certificates.md) provides a practical approach to communicate securely with the application.

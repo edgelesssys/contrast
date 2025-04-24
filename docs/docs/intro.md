@@ -38,6 +38,14 @@ Contrast provides unique security [features](./old/basics/features.md) and [bene
 
 ## Getting started
 
-Here are some good starting points to explore this documentation and learn about Contrast:
+Here are some useful entry points to help you explore this documentation and get started with Contrast:
 
-- **Hands-on example**: The [Getting Started](./getting-started/overview.md) section walks you through making a deployment confidential using Contrast. It covers all steps from start to finish, making it ideal for understanding the full process through a small practical example.
+- **Hands-on example**: The [Getting Started](./getting-started/overview.md) section guides you through making a deployment confidential using Contrast. It covers the entire process step by step, making it ideal for learning through a small, practical example.
+
+- **Guides**: The [How-to](./howto/cluster-setup/aks.md) section provides reference guides for common workflows in Contrast. Once you're familiar with the basics, these guides offer concise instructions for key tasks.
+
+- **Troubleshooting**: Running into issues? Our [Troubleshooting](./troubleshooting.md) section lists solutions to known problems and common pitfalls.
+
+- **Security**: The [Security](./security.md) section gives an overview of Contrast's security properties and threat model.
+
+- **Architecture**: To understand how Contrast achieves its security guarantees, visit the [Architecture](./architecture/overview.md) section for a detailed look under the hood.

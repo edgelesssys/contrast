@@ -209,8 +209,14 @@ const sidebars = {
             },
           ],
         },
+        {
+          type: "doc",
+          label: "Secrets & recovery",
+          id: "architecture/secrets",
+        },
       ],
     },
+
     {
       type: "category",
       label: "Old docs",
