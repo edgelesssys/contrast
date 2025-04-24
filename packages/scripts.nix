@@ -457,6 +457,12 @@
         while ! [[ -s "$2" ]]; do
           sleep 1
         done
+        # Check if namespace file exists
+        # Since no file exists if no test is run, exit gracefully
+        if [[ ! -f "$2" ]]; then
+          echo "Namespace file $2 does not exist" >&2
+          exit 0
+        fi
         namespace="$(head -n1 "$2")"
         cp ./packages/log-collector.yaml ./workspace/log-collector.yaml
         sed -i "s/@@NAMESPACE@@/''${namespace}/g" ./workspace/log-collector.yaml
