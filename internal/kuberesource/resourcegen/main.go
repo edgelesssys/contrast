@@ -58,6 +58,8 @@ func main() {
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.VolumeStatefulSet(), "contrast-cc")
 		case "mysql":
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.MySQL(), "contrast-cc")
+		case "vault":
+			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.Vault(*namespace), "contrast-cc")
 		default:
 			log.Fatalf("Error: unknown set: %s\n", set)
 		}
