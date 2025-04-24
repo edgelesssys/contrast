@@ -105,4 +105,10 @@ jobs:
       - name: Cleanup
         if: always() && !inputs.skip-undeploy
         run: |
+          # Check if namespace file exists and is not empty
+          if [[ ! -f workspace/e2e.namespace ]]; then
+            echo "No namespace file found, skipping cleanup." >&2
+            exit 0
+          fi
+
           kubectl delete ns "$(cat workspace/e2e.namespace)" --timeout 10m
