@@ -71,9 +71,22 @@ Install helm
 curl -fsL https://get.helm.sh/helm-v3.17.1-linux-amd64.tar.gz | tar -C /tmp -xz linux-amd64/helm && mv /tmp/linux-amd64/helm /usr/local/bin
 ```
 
+Add K3s configuration override
+```bash
+mkdir -p /etc/rancher/k3s
+cat > /etc/rancher/k3s/config.yaml <<EOF
+write-kubeconfig-mode: "0640"
+write-kubeconfig-group: sudo
+disable:
+  - local-storage
+kubelet-arg:
+  - "runtime-request-timeout=5m"
+EOF
+```
+
 Install K3s
 ```bash
-curl -sfL https://get.k3s.io | sh -
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.31.5+k3s1 sh -
 ```
 The K3s docs state:
 > A kubeconfig file will be written to /etc/rancher/k3s/k3s.yaml and the kubectl installed by K3s will automatically use it.
@@ -87,7 +100,9 @@ Install Longhorn into K3s
 ```bash
 helm repo add longhorn https://charts.longhorn.io
 helm repo update
-helm install longhorn longhorn/longhorn --namespace longhorn-system --create-namespace
+helm install longhorn longhorn/longhorn --namespace longhorn-system --create-namespace \
+  --set defaultSettings.storageReservedPercentageForDefaultDisk=5 \
+  --set persistence.defaultClassReplicaCount=1
 ```
 
 ## Networking
@@ -129,15 +144,28 @@ useradd -s /bin/bash -m -G sudo,docker github
 Put the K3s kubeconfig into the default dir for the user:
 ```bash
 mkdir -p /home/github/.kube
-chmod +r /etc/rancher/k3s/k3s.yaml
 ln -s /etc/rancher/k3s/k3s.yaml /home/github/.kube/config
-sudo chown -c github /home/github/.kube/config
 ```
 
-The CI jobs build things with nix, therefore install it with the
-Determinate Nix Installer:
-https://github.com/DeterminateSystems/nix-installer?tab=readme-ov-file#determinate-nix-installer
+The CI jobs build things with nix, therefore install it following the official instructions:
+https://nixos.org/download/#nix-install-linux.
 
+Customize the Nix configuration for flakes, the GitHub runner and Cachix:
+```bash
+cat > /etc/nix/nix.conf <<EOF
+extra-experimental-features = nix-command flakes
+auto-optimise-store = true
+build-users-group = nixbld
+bash-prompt-prefix = (nix:$name)\040
+max-jobs = auto
+
+# Trust the Github runner and all admins.
+trusted-users = [ github @sudo ]
+# Allow overriding the trusted substituters from flake config to enable Cachix.
+accept-flake-config = true
+EOF
+systemctl restart nix-daemon
+```
 
 Check what filesystem the server has:
 ```bash
@@ -201,9 +229,9 @@ a kubeconfig which points to the DNS name of the server inside
 the Tailscale:
 ```bash
 CONFIG=$(cat /etc/rancher/k3s/k3s.yaml)
-CONFIG="${CONFIG//default/hetzner-ax162-snp}"
-CONFIG="${CONFIG//127.0.0.1/hetzner-ax162-snp}"
-echo "${CONFIG}" > hetzner-ax162-snp-kubeconfig
+CONFIG="${CONFIG//default/$(hostname)$}"
+CONFIG="${CONFIG//127.0.0.1/$(hostname)}"
+echo "${CONFIG}" > $(hostname)-kubeconfig
 ```
 
 Copy `hetzner-ax162-snp-kubeconfig` over to somewhere you are already
