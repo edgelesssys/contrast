@@ -104,26 +104,68 @@ Contrast workloads are deployed as one CVM per pod. Contrast workloads require s
 
 ### Add service-mesh annotations
 
-Contrast comes with its own PKI infrastructure rooted in attestation.
-The Contrast coordinator, an additional service deployed to your cluster, acts as the central attestation service and certificate authority.
-It issues certificates to pods that are successfully verified through remote attestation. It can be configured to automatically span a service mesh for pod communication and application authenticity.
-The configuration is done via adding special annotations per pod in the deployment files.
+Contrast comes with its own PKI infrastructure, rooted in attestation.
 
-In our example we have the following communiction between services:
+The **Contrast Coordinator**, an additional service deployed to your cluster, acts as both the **central attestation service** and a **certificate authority**. It issues certificates only to pods that have been successfully verified through remote attestation. It can also be configured to automatically establish a service mesh that ensures authenticated and encrypted pod-to-pod communication.
 
-1. `web` to `emoji` and `voting`: grpc calls should be tunneled via mutual TLS (mTLS) based on mesh certificates.
-2. Requests from the outside to `web`: clients use HTTPS to send requests to the frontend but are not required to present a service-mesh certificate themselves. The client will receive the service-mesh certificate of `web` for verification.
-3. The `vote-bot` acts as a client simulator and handles HTTPS connections on application level.
+This configuration is done by adding specific annotations to each pod in the deployment files.
 
-For achieving 1., we add a `contrast.edgeless.systems/servicemesh-egress` annotation of the format `<name>#<chosen IP>:<chosen port>#<original-hostname-or-ip>:<original-port>` to the pod definition of `web`, and separate multiple entries with ##. Contrast will configure iptables to automatically route any traffic with destination `<original-hostname-or-ip>:<original-port>` through an Envoy proxy running on locally on `<chosen IP>:<chosen port>`. The proxy will establish an mTLS connection with the destination based on the service-mesh certificates.
+In our setup, the communication between services works as follows:
 
-In our example we set this annotation to `contrast.edgeless.systems/servicemesh-egress: emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080`
+1. **`web` to `emoji` and `voting`**:
+   gRPC calls are tunneled via mutual TLS (mTLS), using service mesh certificates.
 
-For achieving 2., we add `contrast.edgeless.systems/servicemesh-ingress`as an annoation of format `<name>#<port>#false`. This disables requiring client certificates for the service of pod `name` runnnig on `port`. The service-mesh certificate of the `pod` name is still sent to the client as a TLS server certificate for verification.
+2. **External requests to `web`**:
+   Clients use HTTPS to send requests to the frontend. They are not required to present a service mesh certificate. During the TLS handshake, the client receives the service mesh certificate of `web` for verification.
 
-In our example, we set this to `web#8080#false` to allow HTTPS connections to the frontend.
+3. **`vote-bot` as a client simulator**:
+   This component acts as a simulated client and initiates HTTPS connections at the application level.
 
-We further set `contrast.edgeless.systems/expose-service: "true"` to tell Contrast this service is exposed to outside the cluster.
+#### Enabling mTLS Egress for `web`
+
+To enable secure, authenticated egress from `web` to `emoji` and `voting`, we add the following annotation:
+
+```yaml
+contrast.edgeless.systems/servicemesh-egress: emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080
+```
+
+The format is:
+
+```
+<name>#<chosen IP>:<chosen port>#<original-hostname-or-ip>:<original-port>
+```
+
+- `<name>` is an internal label for the target service.
+- `<chosen IP>:<chosen port>` is a local loopback address the application will use.
+- `<original-hostname-or-ip>:<original-port>` is the real destination that traffic should reach.
+
+Multiple entries are separated by `##`.
+
+Contrast configures `iptables` rules so that any traffic targeting `<original-hostname-or-ip>:<original-port>` is transparently redirected to the Envoy proxy running on `<chosen IP>:<chosen port>` inside the same pod. The proxy then establishes a mutual TLS connection with the actual destination, using the pod's service mesh certificate for authentication.
+
+#### Configuring Ingress for `web`
+
+To allow external HTTPS connections without requiring client certificates, we add the following annotation:
+
+```yaml
+contrast.edgeless.systems/servicemesh-ingress: web#8080#false
+```
+
+This configures the `web` pod to:
+
+- Accept HTTPS traffic on port `8080`,
+- Not require clients to present a certificate (`false`),
+- Still present its own service mesh certificate as the server certificate, allowing clients to verify the pod's identity.
+
+#### Exposing the Service to the Outside
+
+Finally, we add the annotation:
+
+```yaml
+contrast.edgeless.systems/expose-service: "true"
+```
+
+This tells Contrast that the service is exposed externally (e.g., via a `LoadBalancer`) and enables Contrast to handle TLS termination for inbound connections.
 
 ```diff title="deployment/emojivoto-demo.yaml"
 @@ -1,6 +1,8 @@
@@ -167,12 +209,138 @@ We further set `contrast.edgeless.systems/expose-service: "true"` to tell Contra
 
 ## 2. Setup Contrast runtime
 
+After adjusting the deployment files, we add the Contrast runtime to the deployment. The runtime takes care of setting up CVMs on nodes.
+
+This step is only required once for each version of the runtime.
+It can be shared between Contrast deployments.
+
+<Tabs queryString="platform">
+<TabItem value="aks-clh-snp" label="AKS" default>
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-aks-clh-snp.yml
+```
+</TabItem>
+<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp.yml
+```
+</TabItem>
+<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-tdx.yml
+```
+</TabItem>
+</Tabs>
+
 ## 3. Add Contrast coordinator to deployment
+
+Download the Kubernetes resource of the Contrast Coordinator, comprising a single replica deployment and a
+LoadBalancer service. Put it next to your resources:
+
+```sh
+curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir deployment
+```
 
 ## 4. Generate policy annotations and manifest
 
+Run the `generate` command to generate the execution policies and add them as
+annotations to your deployment files. A `manifest.json` file with the reference values
+of your deployment will be created:
+
+<Tabs queryString="platform">
+<TabItem value="aks-clh-snp" label="AKS" default>
+```sh
+contrast generate --reference-values aks-clh-snp deployment/
+```
+</TabItem>
+<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
+```sh
+contrast generate --reference-values k3s-qemu-snp deployment/
+```
+:::note[Missing TCB values]
+On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms.
+They will have to be filled in manually.
+If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":255,"SNPVersion":255,"MicrocodeVersion":255}` and observe the real values in the error messages in the following steps. This should only be done in a secure environment. Note that the values will differ between CPU models.
+:::
+</TabItem>
+<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
+```sh
+contrast generate --reference-values k3s-qemu-tdx deployment/
+```
+:::note[Missing TCB values]
+On bare-metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values as they can vary between platforms.
+They will have to be filled in manually.
+If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and `000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000` respectively and observe the real values in the error messages in the following steps. This should only be done in a secure environment.
+:::
+</TabItem>
+</Tabs>
+
 ## 5. Deploy application
+
+```sh
+kubectl apply -f deployment/
+```
+
+## 6. Connect to Coordinator and set manifest
+
+Configure the Coordinator with a manifest. It might take up to a few minutes
+for the load balancer to be created and the Coordinator being available.
+
+```sh
+coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo "The user API of your Contrast Coordinator is available at $coordinator:1313"
+contrast set -c "${coordinator}:1313" deployment/
+```
+
+The CLI will use the reference values from the manifest to attest the Coordinator deployment
+during the TLS handshake. If the connection succeeds, it's ensured that the Coordinator
+deployment hasn't been tampered with.
 
 ## 6. Verify deployment
 
+n different scenarios, users of an app may want to verify its security and identity before sharing data, for example, before casting a vote.
+With Contrast, a user only needs a single remote-attestation step to verify the deployment - regardless of the size or scale of the deployment.
+Contrast is designed such that, by verifying the Coordinator, the user transitively verifies those systems the Coordinator has already verified or will verify in the future.
+Successful verification of the Coordinator means that the user can be sure that the given manifest will be enforced.
+
+### Verifying the Coordinator
+
+A user can verify the Contrast deployment using the verify
+command:
+
+```sh
+contrast verify -c "${coordinator}:1313" -m manifest.json
+```
+
+The CLI will verify the Coordinator via remote attestation using the reference values from a given manifest. This manifest needs
+to be communicated out of band to everyone wanting to verify the deployment, as the `verify` command checks
+if the currently active manifest at the Coordinator matches the manifest given to the CLI. If the command succeeds,
+the Coordinator deployment was successfully verified to be running in the expected Confidential
+Computing environment with the expected code version. The Coordinator will then return its
+configuration over the established TLS channel. The CLI will store this information, namely the root
+certificate of the mesh (`mesh-ca.pem`) and the history of manifests, into the `verify/` directory.
+In addition, the policies referenced in the manifest history are also written into the same directory.
+
+### Auditing the manifest history and artifacts
+
+In the next step, the Coordinator configuration that was written by the `verify` command needs to be audited.
+A potential voter should inspect the manifest and the referenced policies. They could delegate
+this task to an entity they trust.
+
 ## 7. Connect securely to the frontend
+
+After ensuring the configuration of the Coordinator fits the expectation, the user can securely connect
+to the application using the Coordinator's `mesh-ca.pem` as a trusted CA certificate.
+
+To access the web frontend, expose the service on a public IP address via a LoadBalancer service:
+
+```sh
+frontendIP=$(kubectl get svc web-svc -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo "Frontend is available at  https://$frontendIP, you can visit it in your browser."
+```
+
+Using `openssl`, the certificate of the service can be validated with the `mesh-ca.pem`:
+
+```sh
+openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
+```
