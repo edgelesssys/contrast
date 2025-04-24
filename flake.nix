@@ -29,6 +29,7 @@
     }:
     flake-utils.lib.eachDefaultSystem (
       system:
+
       let
         pkgs = import nixpkgs {
           inherit system;
@@ -40,61 +41,13 @@
         treefmtEval = treefmt-nix.lib.evalModule (pkgs // ourPkgs) ./treefmt.nix;
         ourPkgs = import ./packages { inherit pkgs lib; };
       in
+
       {
-        devShells =
-          {
-            default = pkgs.mkShell {
-              packages = with pkgs; [
-                azure-cli
-                crane
-                delve
-                go
-                golangci-lint
-                gopls
-                gotools
-                just
-                kubectl
-                yq-go
-              ];
-              shellHook = ''
-                alias make=just
-                export DO_NOT_TRACK=1
-              '';
-            };
-            docs = pkgs.mkShell {
-              packages = with pkgs; [ yarn ];
-              shellHook = ''
-                yarn install
-              '';
-            };
-          }
-          // (
-            let
-              toDemoShell =
-                version: contrast-release:
-                lib.nameValuePair "demo-${version}" (
-                  pkgs.mkShellNoCC {
-                    packages = [ contrast-release ];
-                    shellHook = ''
-                      cd "$(mktemp -d)"
-                      [[ -e ${contrast-release}/runtime.yml ]] && install -m644 ${contrast-release}/runtime.yml .
-                      compgen -G "${contrast-release}/runtime-*.yml" > /dev/null && install -m644 ${contrast-release}/runtime-*.yml .
-                      [[ -e ${contrast-release}/coordinator.yml ]] && install -m644 ${contrast-release}/coordinator.yml .
-                      compgen -G "${contrast-release}/coordinator-*.yml" > /dev/null && install -m644 ${contrast-release}/coordinator-*.yml .
-                      [[ -d ${contrast-release}/deployment ]] && install -m644 -Dt ./deployment ${contrast-release}/deployment/*
-                      export DO_NOT_TRACK=1
-                    '';
-                  }
-                );
-            in
-            lib.mapAttrs' toDemoShell ourPkgs.contrast-releases
-          );
+        devShells = pkgs.callPackages ./dev-shells { inherit (ourPkgs) contrast-releases; };
 
         formatter = treefmtEval.config.build.wrapper;
 
-        checks = {
-          formatting = treefmtEval.config.build.check self;
-        };
+        checks.formatting = treefmtEval.config.build.check self;
 
         legacyPackages = pkgs // ourPkgs;
       }
