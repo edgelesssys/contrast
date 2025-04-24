@@ -103,7 +103,8 @@ helm install --wait --generate-name \
    --set sandboxWorkloads.defaultWorkload='vm-passthrough' \
    --set nfd.nodefeaturerules=true \
    --set vfioManager.enabled=true \
-   --set ccManager.enabled=true
+   --set ccManager.enabled=true \
+   --set ccManager.defaultMode=on
 ```
 
 Refer to the [official installation instructions](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html) for details and further options.
