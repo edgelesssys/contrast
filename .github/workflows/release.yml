@@ -478,6 +478,13 @@ jobs:
         if: (!matrix.platform.self-hosted)
         run: |
           just get-credentials
+      - name: Set sync environment
+        if: (!matrix.platform.self-hosted)
+        run: |
+          sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"
+          sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
+          echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
       - name: E2E Test
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
