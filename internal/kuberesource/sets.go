@@ -704,3 +704,138 @@ func GPU() []any {
 
 	return []any{tester}
 }
+
+// Vault returns the resources for deploying a user managed vault.
+func Vault(namespace string) []any {
+	// The bao operator init command should not be scripted like this in a real production environment,
+	// because it will leak the recovery keys to anyone with kubernetes log access.
+	// Normally this should be executed by an admin setting up the Vault once and the
+	// recovery keys should be stored securely.
+	baoInitCmd := `echo "Waiting for Vault to become available..."
+# Wait until Vault server instance is ready
+until wget --server-response --no-check-certificate --spider -q -O- https://vault:8200 2>&1 | grep -q "HTTP/1.1 200"; do
+    sleep 2
+done
+
+
+# Get init status using wget
+echo "Vault is responding. Checking initialization status..."
+init_check=$(wget --no-check-certificate -q -O - https://vault:8200/v1/sys/init)
+
+# Check if Vault is uninitialized
+if echo "$init_check" | grep -q '"initialized"[ ]*:[ ]*false'; then
+  echo "Vault is NOT initialized. Running bao operator init..."
+  bao operator init
+else
+  echo "Vault is already initialized. Skipping init."
+fi
+sleep infinity`
+
+	vaultSfSets := StatefulSet("vault", "").WithAnnotations(map[string]string{
+		securePVAnnotationKey: "state:share",
+	}).
+		WithSpec(StatefulSetSpec().
+			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
+				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
+				WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "vault"}),
+			).
+			WithServiceName("vault").
+			WithTemplate(
+				PodTemplateSpec().
+					WithLabels(map[string]string{"app.kubernetes.io/name": "vault"}).
+					WithSpec(PodSpec().
+						WithContainers(
+							Container().
+								WithName("openbao-server").
+								WithImage("quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa").
+								WithCommand("bao", "server", "-config=/vault/config/config.hcl").
+								/*These environmental variables are required for the Vault server instance:
+								- VAULT_CA_CERT accept the transit engine API to be set-up for auto-unsealing
+								- VAULT_CLIENT_CERT to be accepted by the transit engine API as a valid communication peer
+								- VAULT_CLIENT_KEY is the corresponding private key
+								*/
+								WithEnv(EnvVar().WithName("VAULT_CACERT").WithValue("/contrast/tls-config/mesh-ca.pem")).
+								WithEnv(EnvVar().WithName("VAULT_CLIENT_CERT").WithValue("/contrast/tls-config/certChain.pem")).
+								WithEnv(EnvVar().WithName("VAULT_CLIENT_KEY").WithValue("/contrast/tls-config/key.pem")).
+								WithResources(ResourceRequirements().
+									WithMemoryLimitAndRequest(500),
+								).WithVolumeMounts(
+								VolumeMount().
+									WithName("config").WithMountPath("/vault/config"),
+								VolumeMount().
+									WithName("share").WithMountPath("/vault/data").WithMountPropagation(corev1.MountPropagationHostToContainer),
+							).WithPorts(
+								ContainerPort().
+									WithName("vault-listener").
+									WithContainerPort(8200),
+							),
+							Container().
+								WithName("openbao-client").
+								WithImage("quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa").
+								WithCommand("/bin/sh", "-ec", baoInitCmd).
+								/*These environmental variables are required for the Vault client instance:
+								- VAULT_ADDR expressing the OpenBao Vault server as URL and port
+								- VAULT_CA_CERT to accept the Vault server mesh certificate
+								- VAULT_CLIENT_CERT to be accepted by the Vault server tcp listener as a valid communication peer
+								- VAULT_CLIENT_KEY is the corresponding private key
+								*/
+								WithEnv(EnvVar().WithName("VAULT_ADDR").WithValue("https://vault:8200")).
+								WithEnv(EnvVar().WithName("VAULT_CACERT").WithValue("/contrast/tls-config/mesh-ca.pem")).
+								WithEnv(EnvVar().WithName("VAULT_CLIENT_CERT").WithValue("/contrast/tls-config/certChain.pem")).
+								WithEnv(EnvVar().WithName("VAULT_CLIENT_KEY").WithValue("/contrast/tls-config/key.pem")).
+								WithResources(ResourceRequirements().
+									WithMemoryLimitAndRequest(500),
+								),
+						).WithVolumes(
+						Volume().WithName("config").WithConfigMap(
+							applycorev1.ConfigMapVolumeSource().WithName("vault-config"),
+						),
+						applycorev1.Volume().
+							WithName("share").
+							WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
+					),
+					),
+			).
+			WithVolumeClaimTemplates(PersistentVolumeClaim("state", "").
+				WithSpec(applycorev1.PersistentVolumeClaimSpec().
+					WithVolumeMode(corev1.PersistentVolumeBlock).
+					WithAccessModes(corev1.ReadWriteOnce).
+					WithResources(applycorev1.VolumeResourceRequirements().
+						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
+					),
+				),
+			),
+		)
+	vaultService := ServiceForStatefulSet(vaultSfSets).
+		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
+
+	configMap := applycorev1.ConfigMap("vault-config", namespace).WithData(
+		map[string]string{
+			"config.hcl": `ui = true
+
+storage "file" {
+        path = "/vault/data"
+}
+
+listener "tcp" {
+  address            = "0.0.0.0:8200"
+  tls_cert_file      = "/contrast/tls-config/certChain.pem"
+  tls_key_file       = "/contrast/tls-config/key.pem"
+  tls_client_ca_file = "/contrast/tls-config/mesh-ca.pem"
+}
+
+seal "transit" {
+  address         = "https://coordinator:8200"
+  disable_renewal = "true"
+  key_name        = "vault_unsealing"
+  mount_path      = "transit/"
+}
+`,
+		},
+	)
+
+	return []any{vaultSfSets, vaultService, configMap}
+}
