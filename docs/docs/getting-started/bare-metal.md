@@ -38,6 +38,7 @@ Apply this change by running `systemctl restart systemd-sysctl` and verify it us
 ## K3s setup
 
 1. Follow the [K3s setup instructions](https://docs.k3s.io/) to create a cluster.
+   Contrast is currently tested with K3s version `v1.31.5+k3s1`.
 2. Install a block storage provider such as [Longhorn](https://longhorn.io/docs/latest/deploy/install/install-with-kubectl/) and mark it as the default storage class.
 3. Ensure that a load balancer controller is installed. For development and testing purposes, the built-in [ServiceLB](https://docs.k3s.io/networking/networking-services#service-load-balancer) should suffice.
 
