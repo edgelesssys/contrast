@@ -66,7 +66,7 @@ func TestGPU(t *testing.T) {
 
 		argv := []string{"/bin/sh", "-c", "nvidia-smi"}
 		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, pods[0].Name, argv)
-		require.NoError(err, "stderr: %q", stderr)
+		require.NoError(err, "stdout:\n%s\nstderr:\n%s", stdout, stderr)
 
 		require.Contains(stdout, gpuName, "nvidia-smi output should contain %s", gpuName)
 	})
