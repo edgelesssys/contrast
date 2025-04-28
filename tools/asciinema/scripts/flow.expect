@@ -26,12 +26,12 @@ expect_prompt
 
 run_command "# Deploy the Contrast runtime"
 expect_prompt
-run_command "kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.8.0/runtime.yml"
+run_command "kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.7.0/runtime-aks-clh-snp.yml"
 expect_prompt
 
-run_command "# Deploy the Contrast Coordinator"
+run_command "# Download the Contrast Coordinator resource definition"
 expect_prompt
-run_command "kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v0.8.0/coordinator.yml"
+run_command "curl -fsLo deployment/coordinator.yml https://github.com/edgelesssys/contrast/releases/download/v1.7.0/coordinator.yml"
 expect_prompt
 
 run_command "# Generate workload policies and manifest"
@@ -41,16 +41,18 @@ expect_prompt
 run_command "cat manifest.json | jq"
 expect_prompt
 
+run_command "# Apply the deployment"
+expect_prompt
+run_command "kubectl apply -f deployment/"
+expect_prompt
+
 run_command "# Set the manifest at the coordinator"
+expect_prompt
+run_command "kubectl wait --for=jsonpath='{.status.loadBalancer.ingress}' service/coordinator"
 expect_prompt
 run_command "coordinator=`kubectl get svc coordinator -o=jsonpath='\{.status.loadBalancer.ingress\[0\].ip\}'`"
 expect_prompt
 run_command "contrast set -c \$coordinator:1313 deployment/"
-expect_prompt
-
-run_command "# Apply the deployment"
-expect_prompt
-run_command "kubectl apply -f deployment/"
 expect_prompt
 
 run_command "# End-users can verify the Contrast Coordinator"
@@ -64,7 +66,7 @@ run_command "# Update the manifest"
 expect_prompt
 run_command "frontendIP=`kubectl get svc web-svc -o=jsonpath='\{.status.loadBalancer.ingress\[0\].ip\}'`"
 expect_prompt
-run_command "jq --arg frontendIP \"\$frontendIP\" '.Policies |= with_entries(select(.value\[0\]==\"web\") .value += \[\$frontendIP\] )' manifest.json | sponge manifest.json"
+run_command "jq --arg frontendIP \"\$frontendIP\" '.Policies |= with_entries(select(.value.SANs\[0\]==\"web\") .value.SANs += \[\$frontendIP\] )' manifest.json | sponge manifest.json"
 expect_prompt
 run_command "cat manifest.json | jq"
 expect_prompt

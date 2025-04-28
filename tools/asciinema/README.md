@@ -17,4 +17,4 @@ This will:
 + run the expect based scripts
 + copy recordings into the recordings directory
 
-To replay the output you can use `asciinema play recordings/verify-cli.cast`.
+To replay the output you can use `asciinema play recordings/flow.cast`.
