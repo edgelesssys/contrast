@@ -5,7 +5,7 @@
   buildVerityUKI,
   mkNixosConfig,
 
-  withDebug ? true,
+  withDebug ? false,
   withGPU ? false,
   withCSP ? "azure",
 }:
