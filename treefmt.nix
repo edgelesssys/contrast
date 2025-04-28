@@ -70,6 +70,11 @@
         "e2e/**/*.go"
       ];
     };
+    # Catch debug arguments in nix code that were accidentally left on true.
+    lint-no-debug = {
+      command = "${lib.getExe pkgs.scripts.lint-no-debug}";
+      includes = [ "*.nix" ];
+    };
     vale = {
       command = "${
         pkgs.vale.withStyles (

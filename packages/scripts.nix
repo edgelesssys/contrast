@@ -612,4 +612,19 @@
       exit $exitcode
     '';
   };
+
+  lint-no-debug = writeShellApplication {
+    name = "lint-no-debug";
+    runtimeInputs = with pkgs; [ gnugrep ];
+    text = ''
+      exitcode=0
+      for file in "$@"; do
+        if grep -i -q -E 'debug.* \? true,' "$file"; then
+          echo "Found enabled debug option in $file" >&2
+          exitcode=1
+        fi
+      done
+      exit $exitcode
+    '';
+  };
 }
