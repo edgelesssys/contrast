@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y software-properties-common &&\
     apt-get install -y curl jq expect asciinema sudo unzip moreutils &&\
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSLO https://dl.k8s.io/release/v1.26.0/bin/linux/amd64/kubectl &&\
+RUN curl -fsSLO https://dl.k8s.io/release/v1.31.7/bin/linux/amd64/kubectl &&\
     sudo install kubectl /usr/local/bin/kubectl && rm kubectl
 
 # As mount point for $HOME/.kube/config
