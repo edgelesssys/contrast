@@ -484,6 +484,10 @@
         kubectl apply -f ./workspace/log-collector.yaml 1>/dev/null 2>/dev/null
         ;;
       download)
+        if [[ ! -f "$2" ]]; then
+          echo "Namespace file $2 does not exist" >&2
+          exit 0
+        fi
         namespace="$(head -n1 "$2")"
         pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
         mkdir -p ./workspace/logs
