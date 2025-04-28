@@ -39,7 +39,7 @@ func TestAKSRuntime(t *testing.T) {
 	kataPolicyGenV, err := az.KataPolicyGenVersion()
 	require.NoError(err)
 	rg := os.Getenv("azure_resource_group")
-	nodeImageV, err := az.NodeImageVersion(rg, rg)
+	nodeImageV, err := az.NodeImageVersion(context.Background(), rg, rg)
 	require.NoError(err)
 	t.Log("katapolicygen version: ", kataPolicyGenV)
 	t.Log("node image version: ", nodeImageV)
