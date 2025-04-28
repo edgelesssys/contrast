@@ -10,10 +10,10 @@ Subject: [PATCH] genpolicy: allow RO and RW for sysfs with privileged
  2 files changed, 18 insertions(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index cc94c49d080632e6e86e9291ad598394496ef4c5..984a5e2d444977dcc5b420a30c85927275571fdf 100644
+index 43ce5cb76286844bf149098131702427da691a40..edb815832eac3a052a1a4435e22cf7cbab44942f 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -920,6 +920,20 @@ check_mount(p_mount, i_mount, bundle_id, sandbox_id) {
+@@ -943,6 +943,20 @@ check_mount(p_mount, i_mount, bundle_id, sandbox_id) {
  
      print("check_mount 2: true")
  }

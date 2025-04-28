@@ -38,7 +38,7 @@ index 38531d80c8ff0ceb2f6fbafc0f65de32ee3dc6cd..b5569136dd494ba84ddd802a286f2bd1
              "source": "local",
              "fstype": "local",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 727dc3c73e00fc4bc4442757736ae43c49c1624d..ab6717702b111cb55a2f1a68873f63cdf4403cd6 100644
+index 70166e087f5f2edf3e6607bd96254b57b215fade..3efdfae5b8654b7e0bec4bb2219904ca8fcb6af6 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -94,7 +94,7 @@ CreateContainerRequest:= {"ops": ops, "allowed": true} {
@@ -50,7 +50,7 @@ index 727dc3c73e00fc4bc4442757736ae43c49c1624d..ab6717702b111cb55a2f1a68873f63cd
  
      p_devices := p_container.devices
      allow_devices(p_devices, i_devices)
-@@ -234,38 +234,39 @@ allow_anno_key(i_key, p_oci) {
+@@ -257,38 +257,39 @@ allow_anno_key(i_key, p_oci) {
  
  # Get the value of the S_NAME_KEY annotation and
  # correlate it with other annotations and process fields.
@@ -98,7 +98,7 @@ index 727dc3c73e00fc4bc4442757736ae43c49c1624d..ab6717702b111cb55a2f1a68873f63cd
      allow_process(p_oci, i_oci, s_name)
  
      print("allow_by_sandbox_name: true")
-@@ -614,11 +615,12 @@ allow_linux_sysctl(p_linux, i_linux) {
+@@ -637,11 +638,12 @@ allow_linux_sysctl(p_linux, i_linux) {
  
  # Check the consistency of the input "io.katacontainers.pkg.oci.bundle_path"
  # and io.kubernetes.cri.sandbox-id" values with other fields.
@@ -112,7 +112,7 @@ index 727dc3c73e00fc4bc4442757736ae43c49c1624d..ab6717702b111cb55a2f1a68873f63cd
      p_regex := p_oci.Annotations[key]
      sandbox_id := i_oci.Annotations[key]
  
-@@ -638,8 +640,7 @@ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) {
+@@ -661,8 +663,7 @@ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) {
          allow_mount(p_oci, i_mount, bundle_id, sandbox_id)
      }
  
@@ -122,7 +122,7 @@ index 727dc3c73e00fc4bc4442757736ae43c49c1624d..ab6717702b111cb55a2f1a68873f63cd
  
      print("allow_by_bundle_or_sandbox_id: true")
  }
-@@ -937,30 +938,109 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
+@@ -960,30 +961,109 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
  ######################################################################
  # Create container Storages
  

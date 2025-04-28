@@ -12,7 +12,7 @@ attestation.
  1 file changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
-index dd0a929df0c0d1f4229338af5029d650dd037b26..06d336edd52aae610406da14356058d7a552e33f 100644
+index b0c5aa7950396f7d72e89745909c7e39a3c4fd8b..b075b270e78af9d28333506a37842c6ecef00a04 100644
 --- a/src/runtime/virtcontainers/qemu_amd64.go
 +++ b/src/runtime/virtcontainers/qemu_amd64.go
 @@ -195,7 +195,18 @@ func (q *qemuAmd64) cpuModel() string {

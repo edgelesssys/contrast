@@ -8,10 +8,10 @@ Subject: [PATCH] tools: don't clean build root when generating rootfs
  1 file changed, 6 deletions(-)
 
 diff --git a/tools/osbuilder/rootfs-builder/rootfs.sh b/tools/osbuilder/rootfs-builder/rootfs.sh
-index fabbba4ee67ef4eebde3920a5a894c613ea6e3db..41490838b26cd909432dd20e52a067f2ad6a3191 100755
+index 4ec5429e9fe363ffd38af4448f460e3c19c100f4..980739b686d787b9daf567964539880dde3b75ed 100755
 --- a/tools/osbuilder/rootfs-builder/rootfs.sh
 +++ b/tools/osbuilder/rootfs-builder/rootfs.sh
-@@ -443,12 +443,6 @@ build_rootfs_distro()
+@@ -447,12 +447,6 @@ build_rootfs_distro()
  		trap error_handler ERR
  	fi
  

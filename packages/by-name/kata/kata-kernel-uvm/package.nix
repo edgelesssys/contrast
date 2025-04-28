@@ -20,7 +20,7 @@ let
 
     src = fetchzip {
       url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
-      hash = "sha256-7r1x5fR1fKpLX9o491ave6omql5rzzwjo1HklrJvvHI=";
+      hash = "sha256-1sGpBgIfIFHREpB+PM27IVZCMg3ER9mCXf0TJoJbf5s=";
       stripRoot = false;
     };
 

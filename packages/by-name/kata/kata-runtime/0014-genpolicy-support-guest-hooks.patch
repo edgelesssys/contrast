@@ -31,10 +31,10 @@ index e9c853780b9c6972b51249345ea923e98e1990cc..10472825a5ea0f2d3031d061bf45dc33
      "common": {
          "cpath": "/run/kata-containers",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index fff784f62a2659c97d63a14a05bcd440b96ca48a..b7c9790caf37e7aff81daa53bda858b117e62cab 100644
+index 91bc3bdf115f8dddc6f40a53c4b47e789f862119..dde23bdf8063a302db41cc91d75e9c4662faf7ad 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1328,7 +1328,7 @@ CopyFileRequest {
+@@ -1351,7 +1351,7 @@ CopyFileRequest {
  
  CreateSandboxRequest {
      print("CreateSandboxRequest: input.guest_hook_path =", input.guest_hook_path)
@@ -43,7 +43,7 @@ index fff784f62a2659c97d63a14a05bcd440b96ca48a..b7c9790caf37e7aff81daa53bda858b1
  
      print("CreateSandboxRequest: input.kernel_modules =", input.kernel_modules)
      count(input.kernel_modules) == 0
-@@ -1339,6 +1339,21 @@ CreateSandboxRequest {
+@@ -1362,6 +1362,21 @@ CreateSandboxRequest {
      allow_sandbox_storages(input.storages)
  }
  
@@ -64,7 +64,7 @@ index fff784f62a2659c97d63a14a05bcd440b96ca48a..b7c9790caf37e7aff81daa53bda858b1
 +
  ExecProcessRequest {
      print("ExecProcessRequest 1: input =", input)
- 
+     allow_exec_process_input
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
 index 337cdee5e8dbdbe1bb756034b10c3a0ada0b6fd1..8a1f83b5001e76b4a35eadf252d71e9b5e6f23d0 100644
 --- a/src/tools/genpolicy/src/policy.rs
