@@ -1,7 +1,13 @@
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: maintenance-cleanup
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cleanup-sa
+  namespace: maintenance-cleanup
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -28,7 +34,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: cleanup-sa
-    namespace: default
+    namespace: maintenance-cleanup
 roleRef:
   kind: ClusterRole
   name: cleanup-role
@@ -38,6 +44,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cleanup-maintenance
+  namespace: maintenance-cleanup
 spec:
   schedule: "0 2 * * *" # 2 AM every day
   jobTemplate:
@@ -82,27 +89,4 @@ spec:
               hostPath:
                 path: /run/k3s/containerd/
                 type: Directory
-          restartPolicy: OnFailure
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: nix-garbage-collection
-spec:
-  schedule: "0 0 */7 * *" # 0:00 every 7 days
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          hostPID: true
-          containers:
-            - name: nix-gc
-              image: ghcr.io/edgelesssys/contrast/cleanup-bare-metal
-              imagePullPolicy: Always
-              securityContext:
-                privileged: true
-              command:
-                - /bin/sh
-                - -c
-                - nsenter --target 1 --mount -- /root/.nix-profile/bin/nix store gc
           restartPolicy: OnFailure
