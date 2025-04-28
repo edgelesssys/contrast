@@ -31,7 +31,7 @@ cloud
 cmdline
 config
 configmap
-Containerd
+containerd
 CPUs?
 CRDs?
 CRIs?
@@ -63,6 +63,7 @@ GPUs?
 gRPC
 Grype
 Hashicorp
+Hetzner
 hostname
 hyperv
 IAM
@@ -125,6 +126,7 @@ sigstore
 snapshotters?
 SNP
 SSD
+strongSwan
 subcommand
 Subresource
 substituters
@@ -154,6 +156,7 @@ validator
 vCPU
 vendored
 virsh
+virtualized
 VMs?
 VSCode
 walkthrough
