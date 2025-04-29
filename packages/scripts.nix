@@ -113,6 +113,11 @@
       while IFS= read -r dir; do
         echo "Running go mod tidy on $dir" >&2
         go mod -C "$dir" tidy
+
+        # go mod tidy bumps the go version if a dependency requires a newer one.
+        # We need to run go-directive-sync again to sync the go version.
+        go-directive-sync
+
         echo "Running go generate on $dir" >&2
         go generate -C "$dir" ./...
       done < <(go list -f '{{.Dir}}' -m)
