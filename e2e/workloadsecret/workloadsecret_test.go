@@ -79,7 +79,7 @@ func TestWorkloadSecrets(t *testing.T) {
 
 	var webWorkloadSecretBytes []byte
 	var webPods []corev1.Pod
-	t.Run("workload secret seed exists", func(t *testing.T) {
+	require.True(t, t.Run("workload secret seed exists", func(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 
@@ -97,7 +97,7 @@ func TestWorkloadSecrets(t *testing.T) {
 		webWorkloadSecretBytes, err = hex.DecodeString(stdout)
 		require.NoError(err)
 		require.Len(webWorkloadSecretBytes, constants.SecretSeedSize)
-	})
+	}), "workload secret seed needs to be present in the pod for subsequent tests")
 
 	t.Run("workload secret seed is the same between pods in the same deployment", func(t *testing.T) {
 		assert := assert.New(t)
