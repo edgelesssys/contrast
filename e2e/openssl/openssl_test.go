@@ -93,7 +93,7 @@ func TestOpenSSL(t *testing.T) {
 		require.NoError(ct.Kubeclient.Apply(ctx, patchedForwarder...))
 
 		t.Cleanup(func() {
-			_ = ct.Kubeclient.Client.CoreV1().Pods(ct.Namespace).Delete(context.Background(), "port-forwarder-coordinator-metrics", metav1.DeleteOptions{}) //nolint:usetesting, see https://github.com/ldez/usetesting/issues/4
+			_ = ct.Kubeclient.Client.CoreV1().Pods(ct.Namespace).Delete(context.Background(), "port-forwarder-coordinator-metrics", metav1.DeleteOptions{}) //nolint:usetesting // see https://github.com/ldez/usetesting/issues/4
 		})
 
 		argv := []string{"/bin/sh", "-c", "curl --fail " + net.JoinHostPort(coordinatorPods[0].Status.PodIP, "9102") + "/metrics"}

@@ -92,7 +92,7 @@ func TestRelease(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
-		ctx := context.Background() //nolint:usetesting, see https://github.com/ldez/usetesting/issues/4
+		ctx := context.Background() //nolint:usetesting // see https://github.com/ldez/usetesting/issues/4
 		defer func() {
 			if fifo != nil {
 				if err := fifo.Done(ctx); err != nil {

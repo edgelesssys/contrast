@@ -75,12 +75,20 @@ func must(err error) {
 	}
 }
 
+// golangci-lint complains complains that ctx is not passed through the NewVerifyCmd to the withTelemetry function.
+// This is a false positive, since withTelemetry only returns a function. The function is passed a cobra.Command
+// and the cmd.Context from that is used when the actual function executes.
+// Moreover, contextcheck only throws an error if the it checks the module with the e2e build tag, therefore
+// we need to disable the nolintlint linter also.
+//
+//nolint:contextcheck // similar to https://github.com/kkHAIKE/contextcheck/issues/24
+//nolint:nolintlint
 func withTelemetry(runFunc func(*cobra.Command, []string) error) func(*cobra.Command, []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		cmdErr := runFunc(cmd, args)
 
 		if os.Getenv("DO_NOT_TRACK") != "1" {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			ctx, cancel := context.WithTimeout(cmd.Context(), time.Second*5)
 			defer cancel()
 
 			cl := telemetry.NewClient()
