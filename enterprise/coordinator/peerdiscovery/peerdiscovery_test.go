@@ -4,7 +4,6 @@
 package peerdiscovery
 
 import (
-	"context"
 	"slices"
 	"testing"
 
@@ -70,7 +69,7 @@ func TestGetPeers(t *testing.T) {
 			t.Setenv("HOSTNAME", host)
 
 			client := fake.NewSimpleClientset(tc.pods...)
-			peers, err := New(client, namespace).GetPeers(context.Background())
+			peers, err := New(client, namespace).GetPeers(t.Context())
 			require.NoError(err)
 			slices.Sort(tc.expected)
 			slices.Sort(peers)

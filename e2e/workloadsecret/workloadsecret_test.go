@@ -57,7 +57,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	require.True(t, t.Run("deployments become available", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
 		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, "vote-bot"))
@@ -70,7 +70,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	require.True(t, t.Run("scale web deployment to 2 pods", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(time.Minute))
 		defer cancel()
 
 		require.NoError(ct.Kubeclient.ScaleDeployment(ctx, ct.Namespace, "web", 2))
@@ -83,7 +83,7 @@ func TestWorkloadSecrets(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(30*time.Second))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(30*time.Second))
 		defer cancel()
 
 		webPods, err = ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, "web")
@@ -103,7 +103,7 @@ func TestWorkloadSecrets(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(30*time.Second))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(30*time.Second))
 		defer cancel()
 
 		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, webPods[1].Name, []string{"/bin/sh", "-c", "cat /contrast/secrets/workload-secret-seed"})
@@ -120,7 +120,7 @@ func TestWorkloadSecrets(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(30*time.Second))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(30*time.Second))
 		defer cancel()
 
 		emojiPods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, "emoji")
@@ -151,7 +151,7 @@ func TestWorkloadSecrets(t *testing.T) {
 
 		t.Run("set", ct.Set)
 
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(60*time.Second))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(60*time.Second))
 		defer cancel()
 
 		deployments := []string{"web", "emoji"}
@@ -183,7 +183,7 @@ func TestWorkloadSecrets(t *testing.T) {
 	t.Run("workload secrets are not created if not configured in the manifest", func(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(60*time.Second))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(60*time.Second))
 		defer cancel()
 
 		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {

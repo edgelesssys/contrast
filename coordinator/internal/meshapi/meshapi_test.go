@@ -5,7 +5,6 @@ package meshapi
 
 import (
 	"bytes"
-	"context"
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"crypto/tls"
@@ -62,7 +61,7 @@ func TestNewMeshCert(t *testing.T) {
 		},
 		State: authority.NewState(se, m, nil, ca),
 	}
-	ctx := peer.NewContext(context.Background(), &peer.Peer{
+	ctx := peer.NewContext(t.Context(), &peer.Peer{
 		AuthInfo: info,
 	})
 
@@ -158,7 +157,7 @@ func TestRecover(t *testing.T) {
 				},
 				State: authority.NewState(se, tc.mnfst, mJSON, ca),
 			}
-			ctx := peer.NewContext(context.Background(), &peer.Peer{
+			ctx := peer.NewContext(t.Context(), &peer.Peer{
 				AuthInfo: info,
 			})
 

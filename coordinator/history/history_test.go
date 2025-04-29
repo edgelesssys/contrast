@@ -607,7 +607,7 @@ func TestHistory_WatchLatestTransitions(t *testing.T) {
 		latestTransitions: make(chan []byte, 1),
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	t.Cleanup(cancel)
 	h := NewWithStore(slog.Default(), store)
 	ch, err := h.WatchLatestTransitions(ctx)

@@ -51,7 +51,7 @@ var (
 // TestRelease downloads a release from Github, sets up the coordinator, installs the demo
 // deployment and runs some simple smoke tests.
 func TestRelease(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	k := kubeclient.NewForTest(t)
 
 	lowerPlatformStr := strings.ToLower(*platformStr)
@@ -92,6 +92,7 @@ func TestRelease(t *testing.T) {
 	}
 
 	t.Cleanup(func() {
+		ctx := context.Background() //nolint:usetesting, see https://github.com/ldez/usetesting/issues/4
 		defer func() {
 			if fifo != nil {
 				if err := fifo.Done(ctx); err != nil {
@@ -187,7 +188,7 @@ func TestRelease(t *testing.T) {
 		var m manifest.Manifest
 		require.NoError(json.Unmarshal(manifestBytes, &m))
 
-		patchManifest, err := contrasttest.PatchReferenceValues(k, platf)
+		patchManifest, err := contrasttest.PatchReferenceValues(t.Context(), k, platf)
 		require.NoError(err)
 		m = patchManifest(m)
 

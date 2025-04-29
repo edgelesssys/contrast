@@ -60,7 +60,7 @@ func TestPolicy(t *testing.T) {
 
 	t.Run("check containers without policy annotation do not start", func(t *testing.T) {
 		require := require.New(t)
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(2*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		defer cancel()
 
 		c := kubeclient.NewForTest(t)
@@ -81,7 +81,7 @@ func TestPolicy(t *testing.T) {
 
 	// initial deployment with pod allowed
 
-	ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
+	ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
 	defer cancel()
 
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
@@ -97,7 +97,7 @@ func TestPolicy(t *testing.T) {
 	t.Run("pod cannot join after it was removed from the manifest", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(2*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		t.Cleanup(cancel)
 
 		c := kubeclient.NewForTest(t)
@@ -196,7 +196,7 @@ func TestPolicy(t *testing.T) {
 		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "manifest.json"), manifestBytes, 0o644))
 
 		// Verification should fail.
-		require.ErrorContains(ct.RunVerify(), "validating report")
+		require.ErrorContains(ct.RunVerify(t.Context()), "validating report")
 
 		// Restore correct coordinator policy hash.
 		delete(m.Policies, policyHashAlt)

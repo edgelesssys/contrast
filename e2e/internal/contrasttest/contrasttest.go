@@ -109,7 +109,7 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 		require.True(ok, "SYNC_ENDPOINT must be set when SYNC_FIFO_UUID is set")
 		t.Logf("Syncing with fifo %s of endpoint %s", fifoUUID, syncEndpoint)
 		fifo = ksync.FifoFromUUID(syncEndpoint, fifoUUID)
-		err := fifo.TicketAndWait(context.Background())
+		err := fifo.TicketAndWait(t.Context())
 		if err != nil {
 			t.Log("If this throws a 404, likely the sync server was restarted.")
 			t.Log("Run 'nix run .#scripts.renew-sync-fifo' against the CI cluster to fix it.")
@@ -125,14 +125,14 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 		require.NoError(os.WriteFile(ct.NamespaceFile, []byte(ct.Namespace), 0o644))
 	}
 	// Creating a namespace should not take too long.
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	err = ct.Kubeclient.Apply(ctx, namespace...)
 	cancel()
 	require.NoError(err)
 
 	t.Cleanup(func() {
 		// Deleting the namespace may take some time due to pod cleanup, but we don't want to wait until the test times out.
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute) //nolint:usetesting
 		defer cancel()
 
 		if t.Failed() {
@@ -183,7 +183,7 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 	generate.SetErr(errBuf)
 
 	require.NoError(generate.Execute(), "could not generate manifest: %s", errBuf)
-	patchManifestFunc, err := PatchReferenceValues(ct.Kubeclient, ct.Platform)
+	patchManifestFunc, err := PatchReferenceValues(t.Context(), ct.Kubeclient, ct.Platform)
 	require.NoError(err)
 	ct.PatchManifest(t, patchManifestFunc)
 	ct.PatchManifest(t, addInvalidReferenceValues(ct.Platform))
@@ -233,11 +233,11 @@ func addInvalidReferenceValues(platform platforms.Platform) PatchManifestFunc {
 
 // PatchReferenceValues returns a PatchManifestFunc which modifies the reference values in a manifest
 // based on the 'bm-tcb-specs' ConfigMap persistently stored in the 'default' namespace.
-func PatchReferenceValues(k *kubeclient.Kubeclient, platform platforms.Platform) (PatchManifestFunc, error) {
+func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platform platforms.Platform) (PatchManifestFunc, error) {
 	var baremetalRefVal manifest.ReferenceValues
 	// ConfigMap bm-tcb-specs will only exist on baremetal instances.
 	if platform != platforms.AKSCloudHypervisorSNP {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 		defer cancel()
 		configMap, err := k.Client.CoreV1().ConfigMaps("default").Get(ctx, "bm-tcb-specs", metav1.GetOptions{})
 		if err != nil {
@@ -299,27 +299,27 @@ func (ct *ContrastTest) ApplyFromYAML(t *testing.T, yaml []byte) {
 	objects, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
 	require.NoError(err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 1*time.Minute)
 	defer cancel()
 
 	require.NoError(ct.Kubeclient.Apply(ctx, objects...))
 }
 
 // RunSet runs the contrast set subcommand.
-func (ct *ContrastTest) RunSet() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+func (ct *ContrastTest) RunSet(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 	return ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), path.Join(ct.WorkDir, "resources.yml"))
 }
 
 // Set runs the contrast set subcommand and fails the test if it is not successful.
 func (ct *ContrastTest) Set(t *testing.T) {
-	require.NoError(t, ct.RunSet())
+	require.NoError(t, ct.RunSet(t.Context()))
 }
 
 // RunVerify runs the contrast verify subcommand.
-func (ct *ContrastTest) RunVerify() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+func (ct *ContrastTest) RunVerify(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 
 	if err := ct.runAgainstCoordinator(ctx, cmd.NewVerifyCmd()); err != nil {
@@ -340,14 +340,14 @@ func (ct *ContrastTest) RunVerify() error {
 
 // Verify runs the contrast verify subcommand and fails the test if it is not successful.
 func (ct *ContrastTest) Verify(t *testing.T) {
-	require.NoError(t, ct.RunVerify())
+	require.NoError(t, ct.RunVerify(t.Context()))
 }
 
 // Recover runs the contrast recover subcommand.
 func (ct *ContrastTest) Recover(t *testing.T) {
 	require := require.New(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	defer cancel()
 
 	require.NoError(ct.runAgainstCoordinator(ctx, cmd.NewRecoverCmd()))
@@ -385,7 +385,7 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
 	require.NoError(err)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	defer cancel()
 
 	require.NoError(ct.Kubeclient.Apply(ctx, unstructuredResources...))

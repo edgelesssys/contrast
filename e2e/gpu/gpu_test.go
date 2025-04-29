@@ -53,7 +53,7 @@ func TestGPU(t *testing.T) {
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
 	t.Run("check GPU availability", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(5*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(5*time.Minute))
 		defer cancel()
 
 		require := require.New(t)

@@ -121,7 +121,7 @@ func TestManifestSet(t *testing.T) {
 
 			reg := prometheus.NewRegistry()
 			coordinator := newCoordinatorWithRegistry(reg)
-			ctx := rpcContext(tc.workloadOwnerKey)
+			ctx := rpcContext(t.Context(), tc.workloadOwnerKey)
 			resp, err := coordinator.SetManifest(ctx, tc.req)
 
 			if tc.wantErr {
@@ -157,7 +157,7 @@ func TestManifestSet(t *testing.T) {
 
 			reg := prometheus.NewRegistry()
 			coordinator := newCoordinatorWithRegistry(reg)
-			ctx := rpcContext(tc.workloadOwnerKey)
+			ctx := rpcContext(t.Context(), tc.workloadOwnerKey)
 			m, err := json.Marshal(manifestWithTrustedKey)
 			require.NoError(err)
 			_, err = coordinator.SetManifest(ctx, &userapi.SetManifestRequest{Manifest: m})
@@ -189,7 +189,7 @@ func TestManifestSet(t *testing.T) {
 		require := require.New(t)
 
 		coordinator := newCoordinator()
-		ctx := rpcContext(trustedKey)
+		ctx := rpcContext(t.Context(), trustedKey)
 		m, err := json.Marshal(manifestWithoutTrustedKey)
 		require.NoError(err)
 		req := &userapi.SetManifestRequest{Manifest: m}
@@ -205,7 +205,7 @@ func TestManifestSet(t *testing.T) {
 
 		coordinator := newCoordinator()
 		req := &userapi.SetManifestRequest{Manifest: []byte(`{ "policies": 1 }`)}
-		_, err = coordinator.SetManifest(context.Background(), req)
+		_, err = coordinator.SetManifest(t.Context(), req)
 		require.Error(err)
 		require.Equal(codes.InvalidArgument, status.Code(err))
 	})
@@ -217,7 +217,7 @@ func TestGetManifests(t *testing.T) {
 
 	coordinator := newCoordinator()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	resp, err := coordinator.GetManifests(ctx, &userapi.GetManifestsRequest{})
 	require.Equal(codes.FailedPrecondition, status.Code(err))
 	assert.Nil(resp)
@@ -307,7 +307,7 @@ func TestRecovery(t *testing.T) {
 				Manifest: manifestBytes,
 				Policies: policies,
 			}
-			resp, err := a.SetManifest(context.Background(), req)
+			resp, err := a.SetManifest(t.Context(), req)
 			require.NoError(err)
 			require.Len(resp.SeedSharesDoc.SeedShares, 1)
 			seed, err := manifest.DecryptSeedShare(seedShareOwnerKey, resp.SeedSharesDoc.SeedShares[0])
@@ -327,9 +327,9 @@ func TestRecovery(t *testing.T) {
 
 			// Simulate an updated persistence.
 			a.state.Load().stale.Store(true)
-			_, err = a.GetManifests(context.Background(), nil)
+			_, err = a.GetManifests(t.Context(), nil)
 			require.ErrorContains(err, ErrNeedsRecovery.Error())
-			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
+			_, err = a.Recover(rpcContext(t.Context(), seedShareOwnerKey), recoverReq)
 			require.Equal(tc.wantCode, status.Code(err), "actual error: %v", err)
 			if tc.wantMessage != "" {
 				require.ErrorContains(err, tc.wantMessage)
@@ -337,9 +337,9 @@ func TestRecovery(t *testing.T) {
 
 			// Simulate a restarted Coordinator.
 			a = New(a.hist, prometheus.NewRegistry(), slog.Default())
-			_, err = a.GetManifests(context.Background(), nil)
+			_, err = a.GetManifests(t.Context(), nil)
 			require.ErrorContains(err, ErrNeedsRecovery.Error())
-			_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
+			_, err = a.Recover(rpcContext(t.Context(), seedShareOwnerKey), recoverReq)
 			require.Equal(tc.wantCode, status.Code(err), "actual error: %v", err)
 			if tc.wantMessage != "" {
 				require.ErrorContains(err, tc.wantMessage)
@@ -369,7 +369,7 @@ func TestRecoveryFlow(t *testing.T) {
 		Manifest: manifestBytes,
 		Policies: policies,
 	}
-	resp1, err := a.SetManifest(context.Background(), req)
+	resp1, err := a.SetManifest(t.Context(), req)
 	require.NoError(err)
 	require.NotNil(resp1)
 	seedSharesDoc := resp1.GetSeedSharesDoc()
@@ -385,7 +385,7 @@ func TestRecoveryFlow(t *testing.T) {
 		Salt: seedSharesDoc.GetSalt(),
 	}
 
-	ctx := rpcContext(seedShareOwnerKey)
+	ctx := rpcContext(t.Context(), seedShareOwnerKey)
 
 	// Recovery on this Coordinator should fail now that a manifest is set.
 	_, err = a.Recover(ctx, recoverReq)
@@ -395,10 +395,10 @@ func TestRecoveryFlow(t *testing.T) {
 	// GetManifests and SetManifest are expected to fail.
 
 	a = New(a.hist, prometheus.NewRegistry(), slog.Default())
-	_, err = a.SetManifest(context.Background(), req)
+	_, err = a.SetManifest(t.Context(), req)
 	require.ErrorContains(err, ErrNeedsRecovery.Error())
 
-	_, err = a.GetManifests(context.Background(), &userapi.GetManifestsRequest{})
+	_, err = a.GetManifests(t.Context(), &userapi.GetManifestsRequest{})
 	require.ErrorContains(err, ErrNeedsRecovery.Error())
 
 	// 4. Recovery is called.
@@ -406,7 +406,7 @@ func TestRecoveryFlow(t *testing.T) {
 	require.NoError(err)
 
 	// 5. Coordinator should be operational and know about the latest manifest.
-	resp, err := a.GetManifests(context.Background(), &userapi.GetManifestsRequest{})
+	resp, err := a.GetManifests(t.Context(), &userapi.GetManifestsRequest{})
 	require.NoError(err)
 	require.NotNil(resp)
 	require.Len(resp.Manifests, 1)
@@ -451,7 +451,7 @@ func TestUserAPIConcurrent(t *testing.T) {
 		},
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 	wg := sync.WaitGroup{}
 
 	set := func() {
@@ -498,11 +498,11 @@ func TestOutOfBandUpdates(t *testing.T) {
 		Manifest: manifestBytes,
 		Policies: policies,
 	}
-	setManifestResp, err := a.SetManifest(context.Background(), req)
+	setManifestResp, err := a.SetManifest(t.Context(), req)
 	require.NoError(err)
 
 	// GetManifest should show that the watcher did not mark the state stale.
-	getManifestResp, err := a.GetManifests(context.Background(), nil)
+	getManifestResp, err := a.GetManifests(t.Context(), nil)
 	require.NoError(err)
 	require.Len(getManifestResp.Manifests, 1)
 	require.Equal(manifestBytes, getManifestResp.Manifests[0])
@@ -526,7 +526,7 @@ func TestOutOfBandUpdates(t *testing.T) {
 	require.Eventually(func() bool {
 		return a.state.Load().stale.Load()
 	}, time.Second, 10*time.Millisecond)
-	_, err = a.GetManifests(context.Background(), nil)
+	_, err = a.GetManifests(t.Context(), nil)
 	require.ErrorContains(err, ErrNeedsRecovery.Error())
 
 	// Recovery should succeed.
@@ -537,13 +537,13 @@ func TestOutOfBandUpdates(t *testing.T) {
 		Seed: seed,
 		Salt: setManifestResp.GetSeedSharesDoc().GetSalt(),
 	}
-	_, err = a.Recover(rpcContext(seedShareOwnerKey), recoverReq)
+	_, err = a.Recover(rpcContext(t.Context(), seedShareOwnerKey), recoverReq)
 	require.NoError(err)
 }
 
 func TestStoreRaces(t *testing.T) {
 	require := require.New(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	log := slog.Default()
 
 	store := newWatchableStore()
@@ -629,7 +629,7 @@ func TestStoreRaces(t *testing.T) {
 	}, time.Second, 10*time.Millisecond, "coordinators without state must enter recovery mode")
 
 	t.Run("recover coordinators", func(t *testing.T) {
-		ctx := rpcContext(seedshareOwnerKey)
+		ctx := rpcContext(t.Context(), seedshareOwnerKey)
 		req := &userapi.RecoverRequest{
 			Seed: seed,
 			Salt: salt,
@@ -643,7 +643,7 @@ func TestStoreRaces(t *testing.T) {
 	})
 
 	t.Run("parallel SetManifest calls on initialized coordinators", func(t *testing.T) {
-		ctx := rpcContext(workloadOwnerKey)
+		ctx := rpcContext(t.Context(), workloadOwnerKey)
 		assert := assert.New(t)
 
 		wg := sync.WaitGroup{}
@@ -721,7 +721,7 @@ func TestNotificationRaces(t *testing.T) {
 	}
 	var transitions [][]byte
 	for i := range 2 {
-		_, err := a.SetManifest(rpcContext(workloadOwnerKey), req)
+		_, err := a.SetManifest(rpcContext(t.Context(), workloadOwnerKey), req)
 		require.NoErrorf(err, "SetManifest call %d", i)
 		transitions = append(transitions, <-notifiedCh)
 	}
@@ -752,7 +752,7 @@ func newCoordinatorWithWatcher(t *testing.T, hist *history.History) *Authority {
 	t.Helper()
 	coordinator := New(hist, prometheus.NewRegistry(), slog.Default())
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	doneCh := make(chan struct{})
 	go func() {
 		_ = coordinator.WatchHistory(ctx)
@@ -766,7 +766,7 @@ func newCoordinatorWithWatcher(t *testing.T, hist *history.History) *Authority {
 	return coordinator
 }
 
-func rpcContext(cryptoKey crypto.PrivateKey) context.Context {
+func rpcContext(ctx context.Context, cryptoKey crypto.PrivateKey) context.Context {
 	var peerCertificates []*x509.Certificate
 	switch key := cryptoKey.(type) {
 	case *rsa.PrivateKey:
@@ -780,7 +780,7 @@ func rpcContext(cryptoKey crypto.PrivateKey) context.Context {
 	default:
 		panic(fmt.Sprintf("unsupported key type for rpcContext: %T", cryptoKey))
 	}
-	return peer.NewContext(context.Background(), &peer.Peer{
+	return peer.NewContext(ctx, &peer.Peer{
 		AuthInfo: credentials.TLSInfo{State: tls.ConnectionState{
 			PeerCertificates: peerCertificates,
 		}},

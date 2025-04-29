@@ -83,7 +83,7 @@ func TestRegression(t *testing.T) {
 
 			t.Cleanup(func() {
 				// delete the deployment
-				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), deploymentName, metav1.DeleteOptions{}))
+				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})) //nolint:usetesting, see https://github.com/ldez/usetesting/issues/4
 			})
 
 			// generate, set, deploy and verify the new policy
@@ -92,7 +92,7 @@ func TestRegression(t *testing.T) {
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 			require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-			ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(3*time.Minute))
+			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
 			defer cancel()
 			require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, deploymentName))
 		})
@@ -181,8 +181,10 @@ func TestMain(m *testing.M) {
 	runWorkdir := flag.String("run-workdir", "", "")
 	flag.Parse()
 
+	ctx := context.Background()
+
 	if *runCommandStr != "" {
-		if err := runCommandImpl(*runCommandStr, *runNamespace, *runWorkdir); err != nil {
+		if err := runCommandImpl(ctx, *runCommandStr, *runNamespace, *runWorkdir); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
@@ -202,7 +204,7 @@ func runCommand(ct *contrasttest.ContrastTest, cmd string) error {
 	return nil
 }
 
-func runCommandImpl(cmd, namespace, workDir string) error {
+func runCommandImpl(ctx context.Context, cmd, namespace, workDir string) error {
 	kclient, err := kubeclient.NewForTestWithoutT()
 	if err != nil {
 		return err
@@ -215,9 +217,9 @@ func runCommandImpl(cmd, namespace, workDir string) error {
 
 	switch cmd {
 	case "set":
-		return ct.RunSet()
+		return ct.RunSet(ctx)
 	case "verify":
-		return ct.RunVerify()
+		return ct.RunVerify(ctx)
 	}
 
 	return errors.New("unknown command: " + cmd)
