@@ -23,6 +23,7 @@ jobs:
             runner: TDX
           - name: K3s-QEMU-SNP-GPU
             runner: SNP-GPU
+      fail-fast: false
     name: "${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
     steps:
