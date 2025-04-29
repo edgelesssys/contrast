@@ -9,7 +9,7 @@ In order to mount empty dirs e.g., with mount propagation "Bidirectional", we ne
  1 file changed, 13 insertions(+), 3 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 922a224a523765161083f961fa7cd32599f1901d..82304ba640cbe2ca056309b0c9b8c792e1523675 100644
+index ca1c29a92ce5f33855c5bb5b9cacbb920d35d4e1..be11415f5d000f240d92ab64261ac3a88c05fb57 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
 @@ -161,7 +161,14 @@ pub fn get_mount_and_storage(

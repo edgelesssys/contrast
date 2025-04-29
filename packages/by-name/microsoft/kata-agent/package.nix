@@ -25,6 +25,7 @@ rustPlatform.buildRustPackage rec {
   cargoLock = {
     lockFile = "${src}/src/agent/Cargo.lock";
     outputHashes = {
+      "sev-1.2.0" = "sha256-h83ib12ujiZTU4gdkulobJ6KINYQp8ya0bFQbCteYPg=";
       "sev-1.2.1" = "sha256-5UkHDDJMVUG18AN/c6BSMTkEgSG8MBB33DZE355gXdE=";
     };
   };
