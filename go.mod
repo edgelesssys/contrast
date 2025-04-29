@@ -17,7 +17,7 @@ require (
 	github.com/elazarl/goproxy v1.7.2
 	github.com/google/go-github/v66 v66.0.0
 	github.com/google/go-sev-guest v0.13.0
-	github.com/google/go-tdx-guest v0.3.1
+	github.com/google/go-tdx-guest v0.3.2-0.20250429142953-26039ed5ccc8
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
 	github.com/katexochen/sync v0.0.0-20240617152407-6a8003240db0
 	github.com/klauspost/cpuid/v2 v2.2.10
@@ -59,7 +59,7 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/go-configfs-tsm v0.2.2 // indirect
+	github.com/google/go-configfs-tsm v0.3.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/logger v1.1.1 // indirect
