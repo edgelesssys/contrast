@@ -5,7 +5,6 @@ package asset
 
 import (
 	"bytes"
-	"context"
 	"io"
 	"net/http"
 	"os"
@@ -90,9 +89,9 @@ func TestFetch(t *testing.T) {
 				var modified bool
 				var fetchErr error
 				if tc.sri != "" {
-					modified, fetchErr = fetcher.Fetch(context.Background(), sourceURI, dst, tc.sri)
+					modified, fetchErr = fetcher.Fetch(t.Context(), sourceURI, dst, tc.sri)
 				} else {
-					modified, fetchErr = fetcher.FetchUnchecked(context.Background(), sourceURI, dst)
+					modified, fetchErr = fetcher.FetchUnchecked(t.Context(), sourceURI, dst)
 				}
 				if tc.wantErr {
 					require.Error(fetchErr)

@@ -4,7 +4,6 @@
 package telemetry
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"testing"
@@ -68,7 +67,7 @@ func TestSendTelemetry(t *testing.T) {
 				}),
 			}
 
-			err := client.SendTelemetry(context.Background(), tc.cmd, tc.cmdErr)
+			err := client.SendTelemetry(t.Context(), tc.cmd, tc.cmdErr)
 
 			if tc.wantError {
 				assert.Error(err)

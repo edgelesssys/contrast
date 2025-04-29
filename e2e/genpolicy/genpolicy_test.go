@@ -63,7 +63,7 @@ func TestGenpolicy(t *testing.T) {
 
 			require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 			t.Cleanup(cancel)
 			require.NoError(t, ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, name))
 		})

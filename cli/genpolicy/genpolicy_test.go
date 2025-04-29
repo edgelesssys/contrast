@@ -4,7 +4,6 @@
 package genpolicy
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"os"
@@ -46,7 +45,7 @@ echo -e "HOME=${HOME}\nXDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}\nDOCKER_CONFIG=${DOCKE
 func TestRunner(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
-	ctx := context.Background()
+	ctx := t.Context()
 	logger := slog.Default()
 
 	t.Setenv("HOME", "/invalid/home")

@@ -49,7 +49,7 @@ func TestAKSRuntime(t *testing.T) {
 	// create the namespace
 	ns, err := kuberesource.ResourcesToUnstructured([]any{kuberesource.Namespace(namespace)})
 	require.NoError(err)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 	err = c.Apply(ctx, ns...)
 	cancel()
 	require.NoError(err)
@@ -97,7 +97,7 @@ func TestAKSRuntime(t *testing.T) {
 	toApply, err := kubeapi.UnmarshalUnstructuredK8SResource(resourceBytes)
 	require.NoError(err)
 
-	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel = context.WithTimeout(t.Context(), 3*time.Minute)
 	defer cancel()
 	err = c.Apply(ctx, toApply...)
 	require.NoError(err)

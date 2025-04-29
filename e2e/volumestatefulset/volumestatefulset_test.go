@@ -53,7 +53,7 @@ func TestVolumeStatefulSet(t *testing.T) {
 	require.True(t, t.Run("deployments become available", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(1*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
 		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, ct.Namespace, "volume-tester"))
@@ -63,7 +63,7 @@ func TestVolumeStatefulSet(t *testing.T) {
 	t.Run("can create file in mounted path", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
 		defer cancel()
 
 		pods, err := ct.Kubeclient.PodsFromOwner(ctx, ct.Namespace, "StatefulSet", "volume-tester")
@@ -84,7 +84,7 @@ func TestVolumeStatefulSet(t *testing.T) {
 	t.Run("file still exists when pod is restarted", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(context.Background(), ct.FactorPlatformTimeout(30*time.Second))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(30*time.Second))
 		defer cancel()
 
 		require.NoError(ct.Kubeclient.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, "volume-tester"))

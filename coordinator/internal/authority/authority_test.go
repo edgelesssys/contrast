@@ -44,7 +44,7 @@ func TestSNPValidateOpts(t *testing.T) {
 		Manifest: mnfstBytes,
 		Policies: policies,
 	}
-	_, err := a.SetManifest(context.Background(), req)
+	_, err := a.SetManifest(t.Context(), req)
 	require.NoError(err)
 
 	gens, err := a.state.Load().Manifest().SNPValidateOpts(nil)
@@ -72,7 +72,7 @@ func TestBadStoreWatcherIsRestarted(t *testing.T) {
 	}
 	a.clock = clock
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	doneCh := make(chan struct{})
 	go func() {
 		_ = a.WatchHistory(ctx)

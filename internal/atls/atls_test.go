@@ -111,7 +111,7 @@ func TestVerifyEmbeddedReport(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
-			err := verifyEmbeddedReport(context.Background(), tc.validators, tc.cert, nil, nil)
+			err := verifyEmbeddedReport(t.Context(), tc.validators, tc.cert, nil, nil)
 			if tc.wantErr {
 				require.Error(err)
 				if tc.targetErr != nil {
@@ -185,7 +185,7 @@ func TestContextPassdown(t *testing.T) {
 		},
 	}
 	validators := []Validator{validator}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	// If the context is not passed down, the select statement in ValidateContext will not return at all.
 	// We expect this function to return because the context was already cancelled.

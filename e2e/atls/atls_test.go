@@ -67,7 +67,7 @@ func TestSNPValidators(t *testing.T) {
 
 	require.True(t, t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	defer cancel()
 
 	var buf bytes.Buffer

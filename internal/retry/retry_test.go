@@ -75,7 +75,7 @@ func TestDo(t *testing.T) {
 			assert := assert.New(t)
 			doer := newStubDoer(tc.errors)
 			retrier := NewIntervalRetrier(doer, doer.interval, predicate, doer.clock)
-			ctx, cancel := context.WithCancel(context.Background())
+			ctx, cancel := context.WithCancel(t.Context())
 			if tc.cancel {
 				cancel()
 			} else {
