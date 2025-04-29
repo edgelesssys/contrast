@@ -17,14 +17,14 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "genpolicy";
-  version = "3.2.0.azl4";
+  version = "3.2.0.azl5";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "microsoft";
       repo = "kata-containers";
       tag = "${version}";
-      hash = "sha256-wgWLf61FLM3I98WvJww5HC0KJGRUnUloIKJZs8EnVA4=";
+      hash = "sha256-yyqVQ8EPHbhwkm2OmmgyCAFbEca5pZRjHRmlGRv9PG0=";
     };
 
     patches = [
@@ -83,9 +83,14 @@ rustPlatform.buildRustPackage rec {
   sourceRoot = "${src.name}/src/tools/genpolicy";
 
   useFetchCargoVendor = true;
-  cargoHash = "sha256-SjZjWfsltBKPbjj5eVBDbZ1BPtzN5Lx4ACHHrz82mg4=";
+  cargoHash = "sha256-lmRDFZ2BpTPfRmm/ckXFDRq8cTFH/ARWDiulph+E1Lc=";
 
   OPENSSL_NO_VENDOR = 1;
+
+  # Build.rs writes to src
+  postConfigure = ''
+    chmod -R +w ../..
+  '';
 
   nativeBuildInputs = [
     pkg-config
@@ -103,6 +108,9 @@ rustPlatform.buildRustPackage rec {
   preBuild = ''
     make src/version.rs
   '';
+
+  # Only run library tests, the integration tests need internet access.
+  cargoTestFlags = [ "--lib" ];
 
   passthru = rec {
     settings-base = stdenvNoCC.mkDerivation {

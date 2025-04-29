@@ -20,10 +20,11 @@ Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
  src/tools/genpolicy/src/registry.rs           | 32 +++++++++++--------
  .../genpolicy/src/registry_containerd.rs      | 29 ++++++++++-------
  src/tools/genpolicy/src/utils.rs              | 17 ++++++++++
- 3 files changed, 52 insertions(+), 26 deletions(-)
+ src/tools/genpolicy/tests/main.rs             |  2 +-
+ 4 files changed, 53 insertions(+), 27 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index 97e35ee601beed99929e36661dadfd6ed15dfc5f..b212eeb8bca209d9916249fe8e01351f5943823c 100644
+index 0912e82a91b553182409b1b466b4eb95835d445a..fe70c34f1ec65844ca7790ca80ecb2939394dc5a 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -66,7 +66,7 @@ pub struct ImageLayer {
@@ -219,7 +220,7 @@ index fcc51ad783afb392e706e92a63efed0fe3f416a1..333a4dd33032c4842e70d5e618b4660f
          warn!("{error_message}");
      }
 diff --git a/src/tools/genpolicy/src/utils.rs b/src/tools/genpolicy/src/utils.rs
-index 2402c2ed213e45b89c47b2b6a94d54f8d200edb1..7579d74bf5a488bf6f577949862e6f976fa14ac5 100644
+index be4553facb20922a5405c424862676d28ff467cd..7f8fe19c38afc2cd86bce242ea461c827d03e5d2 100644
 --- a/src/tools/genpolicy/src/utils.rs
 +++ b/src/tools/genpolicy/src/utils.rs
 @@ -78,6 +78,14 @@ struct CommandLineOptions {
@@ -266,3 +267,16 @@ index 2402c2ed213e45b89c47b2b6a94d54f8d200edb1..7579d74bf5a488bf6f577949862e6f97
              version: args.version,
          }
      }
+diff --git a/src/tools/genpolicy/tests/main.rs b/src/tools/genpolicy/tests/main.rs
+index e2f7b753ef28534f84e6cfaf3d17ec0c0d4bca93..10d6bf62c2727077fcd8ce6152c18dc60401aa22 100644
+--- a/src/tools/genpolicy/tests/main.rs
++++ b/src/tools/genpolicy/tests/main.rs
+@@ -64,7 +64,7 @@ mod tests {
+             config_files: None,
+             containerd_socket_path: None, // Some(String::from("/var/run/containerd/containerd.sock")),
+             // insecure_registries: Vec::new(),
+-            // layers_cache_file_path: None,
++            layers_cache_file_path: None,
+             raw_out: false,
+             rego_rules_path: workdir.join("rules.rego").to_str().unwrap().to_string(),
+             runtime_class_names: Vec::new(),

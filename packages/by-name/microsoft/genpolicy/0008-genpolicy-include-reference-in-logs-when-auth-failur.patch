@@ -8,7 +8,7 @@ Subject: [PATCH] genpolicy: include reference in logs when auth failure
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index bdce2d40e3a7c3ec34137ceb3685fcc94aedcb39..9aa1cde98cd28a8c78d652986408e7738e5d96d6 100644
+index 38be19f5a005954cb33bb9f0a0aaac0534dad491..876b8560331b75035c11e7b91991330058743740 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -125,7 +125,7 @@ impl Container {

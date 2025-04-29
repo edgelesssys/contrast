@@ -1,18 +1,18 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index ce3e905792..9be069e51d 100644
+index 8f1f376a99..2b9c4e2cb7 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -332,7 +332,8 @@
+@@ -320,7 +320,8 @@
                  "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
                  "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
 -                "^TERM=xterm$"
 +                "^TERM=xterm$",
 +                "^CONTRAST_[A-Z0-9_]*=.*$"
-             ]
+             ],
+             "allow_env_regex_map": {}
          },
-         "CopyFileRequest": [
-@@ -340,11 +341,13 @@
+@@ -329,11 +330,13 @@
          ],
          "ExecProcessRequest": {
              "commands": [],
@@ -22,9 +22,11 @@ index ce3e905792..9be069e51d 100644
 +            ]
          },
          "CloseStdinRequest": false,
-         "ReadStreamRequest": true,
+-        "ReadStreamRequest": false,
++        "ReadStreamRequest": true,
          "UpdateEphemeralMountsRequest": false,
 -        "WriteStreamRequest": false
 +        "WriteStreamRequest": true
      }
  }
+\ No newline at end of file

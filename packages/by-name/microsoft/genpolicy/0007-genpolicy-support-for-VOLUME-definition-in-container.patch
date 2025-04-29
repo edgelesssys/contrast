@@ -21,7 +21,7 @@ Subject: [PATCH] genpolicy: support for VOLUME definition in container image
  14 files changed, 188 insertions(+), 98 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 73d9c1125bbfeefce4bce24109f552db87860bca..ce3e90579266bf463d815b8f3a10fea21a97b044 100644
+index 8f1f376a99f321567800c979a8657868edd7d675..c200f0786b52d97a84ebf92d3a5149f16a2af477 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -178,6 +178,18 @@
@@ -160,7 +160,7 @@ index b48d4480346b8af590b60fdb0278343ce28ab25c..e9dc76532d8bdd975cdff16bdc4b8c98
  
      fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 1f19d1daaf84a3b8800b0a55188205fd0ba9b2d8..bc2aae47a3993dc0efa2c1a51c0901518143f1be 100644
+index 90af6ec37f2b331b04d2e1df8dee3f88d2955a2f..f769ea3e6989766e80e59ac396e28b04ed9702d9 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
 @@ -142,6 +142,10 @@ pub fn get_mount_and_storage(
@@ -226,10 +226,10 @@ index 1f19d1daaf84a3b8800b0a55188205fd0ba9b2d8..bc2aae47a3993dc0efa2c1a51c090151
      settings: &settings::Settings,
      yaml_mount: &pod::VolumeMount,
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 45111763af659f7c86640779be95280eb8a4c23f..a9bd1638b7cc7e7a0652d2df78e8d2cd24fa449b 100644
+index b7fdbff51fd97c14c810bb0ca00c80458c5263da..111aef73d3866efe885a351d93c902bde085350d 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
-@@ -846,16 +846,14 @@ impl yaml::K8sResource for Pod {
+@@ -858,16 +858,14 @@ impl yaml::K8sResource for Pod {
          container: &Container,
          settings: &settings::Settings,
      ) {
@@ -255,7 +255,7 @@ index 45111763af659f7c86640779be95280eb8a4c23f..a9bd1638b7cc7e7a0652d2df78e8d2cd
  
      fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index b212eeb8bca209d9916249fe8e01351f5943823c..bdce2d40e3a7c3ec34137ceb3685fcc94aedcb39 100644
+index fe70c34f1ec65844ca7790ca80ecb2939394dc5a..38be19f5a005954cb33bb9f0a0aaac0534dad491 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -23,11 +23,13 @@ use sha2::{digest::typenum::Unsigned, digest::OutputSizeUser, Sha256};
@@ -414,7 +414,7 @@ index e6279fbac5c4cb4544338f7d453a7896fe75368f..9029c5a9173c1aa0e6b27f4314f35eac
  
      fn generate_policy(&self, agent_policy: &policy::AgentPolicy) -> String {
 diff --git a/src/tools/genpolicy/src/settings.rs b/src/tools/genpolicy/src/settings.rs
-index 3d86971914ad4a659cab4bba0737ca53a183c2ba..a388f074e5168abb14c40c324c8aeef74062cdc0 100644
+index 3de88e3a7654fe1682be8277967bccdef14c07a7..7762c8db508b91aa89621ea7e8a060df8c38261a 100644
 --- a/src/tools/genpolicy/src/settings.rs
 +++ b/src/tools/genpolicy/src/settings.rs
 @@ -34,6 +34,7 @@ pub struct Volumes {

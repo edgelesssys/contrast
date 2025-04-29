@@ -1,5 +1,5 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index ce3e905792..b5ae14b575 100644
+index c200f0786b..b22a176e47 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
 @@ -332,7 +332,8 @@
@@ -9,6 +9,6 @@ index ce3e905792..b5ae14b575 100644
 -                "^TERM=xterm$"
 +                "^TERM=xterm$",
 +                "^CONTRAST_[A-Z0-9_]*=.*$"
-             ]
+             ],
+             "allow_env_regex_map": {}
          },
-         "CopyFileRequest": [

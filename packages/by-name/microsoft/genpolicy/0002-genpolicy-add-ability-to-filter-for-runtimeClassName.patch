@@ -12,7 +12,8 @@ Signed-off-by: Paul Meyer <49727155+katexochen@users.noreply.github.com>
  src/tools/genpolicy/src/stateful_set.rs |  9 +++++++++
  src/tools/genpolicy/src/utils.rs        |  8 ++++++++
  src/tools/genpolicy/src/yaml.rs         |  4 ++++
- 7 files changed, 59 insertions(+), 1 deletion(-)
+ src/tools/genpolicy/tests/main.rs       |  2 +-
+ 8 files changed, 60 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
 index 65c5db08beedb10dfe7c2f16c99b92a8a0a24e0c..b543b989095300ec3a8bc0e00137e1087d24f90c 100644
@@ -51,7 +52,7 @@ index be2ffd6474550f71b1680c83888ee7c9fbcd8b33..8cd9ff51a7fdbcf232141b255e008bab
 +    }
  }
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index cae93c53257ec8b2195974b14589cb5571d10623..45111763af659f7c86640779be95280eb8a4c23f 100644
+index 5e19654bec5ecf1cb5100990f980d6e327d3e281..b7fdbff51fd97c14c810bb0ca00c80458c5263da 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
 @@ -47,7 +47,7 @@ pub struct PodSpec {
@@ -63,7 +64,7 @@ index cae93c53257ec8b2195974b14589cb5571d10623..45111763af659f7c86640779be95280e
  
      #[serde(skip_serializing_if = "Option::is_none")]
      pub initContainers: Option<Vec<Container>>,
-@@ -889,6 +889,13 @@ impl yaml::K8sResource for Pod {
+@@ -901,6 +901,13 @@ impl yaml::K8sResource for Pod {
          false
      }
  
@@ -78,7 +79,7 @@ index cae93c53257ec8b2195974b14589cb5571d10623..45111763af659f7c86640779be95280e
          yaml::get_process_fields(process, &self.spec.securityContext);
      }
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index ff06786ca8610a71059d469dac613750cc0c8623..b3c6557fd61be79e76110b99a6a7751dcc841602 100644
+index 64c0aa38069c3d6ef6567335a15c03661d8fdacc..7f442b66262202a2a75daf4b322eea7905092aba 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -10,6 +10,7 @@ use crate::agent;
@@ -89,7 +90,7 @@ index ff06786ca8610a71059d469dac613750cc0c8623..b3c6557fd61be79e76110b99a6a7751d
  use crate::pod;
  use crate::policy;
  use crate::pvc;
-@@ -447,6 +448,17 @@ impl AgentPolicy {
+@@ -459,6 +460,17 @@ impl AgentPolicy {
                  let yaml_string = serde_yaml::to_string(&doc_mapping)?;
                  let silent = config.silent_unsupported_fields;
                  let (mut resource, kind) = yaml::new_k8s_resource(&yaml_string, silent)?;
@@ -128,7 +129,7 @@ index ec952af07c5ee134cc8cb6ae48246ced83fee0f5..a987e5e72292d36f5bbc3b27265002da
  
  impl StatefulSet {
 diff --git a/src/tools/genpolicy/src/utils.rs b/src/tools/genpolicy/src/utils.rs
-index e45b188d40a82a32547290ccdfd4a263e193e1c2..2402c2ed213e45b89c47b2b6a94d54f8d200edb1 100644
+index d3ebc9a71bc1f03c89fe11458dbdab35f52fe6b2..be4553facb20922a5405c424862676d28ff467cd 100644
 --- a/src/tools/genpolicy/src/utils.rs
 +++ b/src/tools/genpolicy/src/utils.rs
 @@ -72,6 +72,12 @@ struct CommandLineOptions {
@@ -175,3 +176,16 @@ index 105bd8628b86733788886202b6c21a2586aa0525..f3748f0e079766de08f26c38e9ff2c4a
  }
  
  /// See Reference / Kubernetes API / Common Definitions / LabelSelector.
+diff --git a/src/tools/genpolicy/tests/main.rs b/src/tools/genpolicy/tests/main.rs
+index 3ad31fd1189f3104dc3cf11cc8624a33fcbadc0a..e2f7b753ef28534f84e6cfaf3d17ec0c0d4bca93 100644
+--- a/src/tools/genpolicy/tests/main.rs
++++ b/src/tools/genpolicy/tests/main.rs
+@@ -67,7 +67,7 @@ mod tests {
+             // layers_cache_file_path: None,
+             raw_out: false,
+             rego_rules_path: workdir.join("rules.rego").to_str().unwrap().to_string(),
+-            // runtime_class_names: Vec::new(),
++            runtime_class_names: Vec::new(),
+             json_settings_path: workdir
+                 .join("genpolicy-settings.json")
+                 .to_str()

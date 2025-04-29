@@ -14,18 +14,18 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  6 files changed, 85 insertions(+)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index a5208cf9d3b38edfe6ab777ce0bafb81bf3b84dc..aa0488ae2dffc63780967ca706ea2c8ffcfb1391 100644
+index 0d63d575fa14aaceedc43f88b898b26e0058be1a..950716d79e09ccb3865a43f6319e870b27bba81c 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -62,6 +62,7 @@ CreateContainerRequest {
+@@ -244,6 +244,7 @@ CreateContainerRequestCommon(req):= {"ops": ops, "allowed": true} {
  
-     i_oci := input.OCI
-     i_storages := input.storages
-+    i_devices := input.devices
+     i_oci := req.OCI
+     i_storages := req.storages
++    i_devices := req.devices
  
-     # Check if any element from the policy_data.containers array allows the input request.
-     some p_container in policy_data.containers
-@@ -85,6 +86,9 @@ CreateContainerRequest {
+     # array of possible state operations
+     ops_builder := []
+@@ -282,6 +283,9 @@ CreateContainerRequestCommon(req):= {"ops": ops, "allowed": true} {
      p_storages := p_container.storages
      allow_by_anno(p_oci, i_oci, p_storages, i_storages)
  
@@ -34,8 +34,8 @@ index a5208cf9d3b38edfe6ab777ce0bafb81bf3b84dc..aa0488ae2dffc63780967ca706ea2c8f
 +
      allow_linux(p_oci, i_oci)
  
-     print("CreateContainerRequest: true")
-@@ -361,6 +365,16 @@ allow_log_directory(p_oci, i_oci) {
+     print("CreateContainerRequestCommon: true")
+@@ -621,6 +625,16 @@ allow_log_directory(p_oci, i_oci) {
      print("allow_log_directory: true")
  }
  
@@ -52,7 +52,7 @@ index a5208cf9d3b38edfe6ab777ce0bafb81bf3b84dc..aa0488ae2dffc63780967ca706ea2c8f
  allow_linux(p_oci, i_oci) {
      p_namespaces := p_oci.Linux.Namespaces
      print("allow_linux: p namespaces =", p_namespaces)
-@@ -372,6 +386,7 @@ allow_linux(p_oci, i_oci) {
+@@ -632,6 +646,7 @@ allow_linux(p_oci, i_oci) {
  
      allow_masked_paths(p_oci, i_oci)
      allow_readonly_paths(p_oci, i_oci)
@@ -60,7 +60,7 @@ index a5208cf9d3b38edfe6ab777ce0bafb81bf3b84dc..aa0488ae2dffc63780967ca706ea2c8f
  
      print("allow_linux: true")
  }
-@@ -460,6 +475,13 @@ allow_readonly_path(p_elem, i_array, masked_paths) {
+@@ -720,6 +735,13 @@ allow_readonly_path(p_elem, i_array, masked_paths) {
      print("allow_readonly_path 2: true")
  }
  
@@ -92,10 +92,10 @@ index 19a934d81995ece42a148e733b41e96474921b3a..f3f398b0ee052ba02a3b5ecae884fed6
 +    pub options: Vec<String>,
 +}  
 diff --git a/src/tools/genpolicy/src/containerd.rs b/src/tools/genpolicy/src/containerd.rs
-index 2b826a51a4f587e2ca45f0b304b0eed29046b104..075fced5bfec11b27e529f0b1d2dba5e6271ba82 100644
+index dcf35f8550fa24559fd373e44786b4b7625ca2e6..832482c8329d0caf5748c069596ccb601cd9583d 100644
 --- a/src/tools/genpolicy/src/containerd.rs
 +++ b/src/tools/genpolicy/src/containerd.rs
-@@ -152,12 +152,14 @@ pub fn get_linux(privileged_container: bool) -> policy::KataLinux {
+@@ -153,12 +153,14 @@ pub fn get_linux(privileged_container: bool) -> policy::KataLinux {
                  "/proc/sys".to_string(),
                  "/proc/sysrq-trigger".to_string(),
              ],
@@ -111,7 +111,7 @@ index 2b826a51a4f587e2ca45f0b304b0eed29046b104..075fced5bfec11b27e529f0b1d2dba5e
      }
  }
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 16d633aa2b29eaa4f4f497fb4de306b51e05c8b7..cae93c53257ec8b2195974b14589cb5571d10623 100644
+index 0dfab00a5e205bcd6b24612a16e7d5511d0377d2..5e19654bec5ecf1cb5100990f980d6e327d3e281 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
 @@ -120,6 +120,9 @@ pub struct Container {
@@ -139,10 +139,10 @@ index 16d633aa2b29eaa4f4f497fb4de306b51e05c8b7..cae93c53257ec8b2195974b14589cb55
  #[derive(Clone, Debug, Serialize, Deserialize)]
  struct ResourceRequirements {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 8528d84827139a89d056a717f2d868d9c9c9f5f8..ff06786ca8610a71059d469dac613750cc0c8623 100644
+index fcc51fe6ad3ca1dd8f77460f6898ad095f0629b4..64c0aa38069c3d6ef6567335a15c03661d8fdacc 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -198,6 +198,10 @@ pub struct KataLinux {
+@@ -202,6 +202,10 @@ pub struct KataLinux {
  
      /// ReadonlyPaths sets the provided paths as RO inside the container.
      pub ReadonlyPaths: Vec<String>,
@@ -153,7 +153,7 @@ index 8528d84827139a89d056a717f2d868d9c9c9f5f8..ff06786ca8610a71059d469dac613750
  }
  
  /// OCI container LinuxNamespace struct. This struct is similar to the LinuxNamespace
-@@ -213,6 +217,18 @@ pub struct KataLinuxNamespace {
+@@ -217,6 +221,18 @@ pub struct KataLinuxNamespace {
      pub Path: String,
  }
  
@@ -172,7 +172,7 @@ index 8528d84827139a89d056a717f2d868d9c9c9f5f8..ff06786ca8610a71059d469dac613750
  /// OCI container LinuxCapabilities struct. This struct is very similar to the
  /// LinuxCapabilities struct generated from oci.proto. The main difference is
  /// that it preserves the upper case field names from oci.proto, for consistency
-@@ -264,6 +280,9 @@ pub struct ContainerPolicy {
+@@ -268,6 +284,9 @@ pub struct ContainerPolicy {
      /// Data compared with req.storages for CreateContainerRequest calls.
      storages: Vec<agent::Storage>,
  
@@ -182,9 +182,9 @@ index 8528d84827139a89d056a717f2d868d9c9c9f5f8..ff06786ca8610a71059d469dac613750
      /// Data compared with req.sandbox_pidns for CreateContainerRequest calls.
      sandbox_pidns: bool,
  
-@@ -601,6 +620,25 @@ impl AgentPolicy {
-         };
-         let exec_commands = yaml_container.get_exec_commands();
+@@ -611,6 +630,25 @@ impl AgentPolicy {
+ 
+         let env_map = get_env_map(&process.Env);
  
 +        let mut devices: Vec<agent::Device> = vec![];
 +        if let Some(volumeDevices) = &yaml_container.volumeDevices {
@@ -208,14 +208,14 @@ index 8528d84827139a89d056a717f2d868d9c9c9f5f8..ff06786ca8610a71059d469dac613750
          ContainerPolicy {
              OCI: KataSpec {
                  Version: version_default(),
-@@ -612,6 +650,7 @@ impl AgentPolicy {
+@@ -622,6 +660,7 @@ impl AgentPolicy {
                  Linux: linux,
              },
              storages,
 +            devices,
              sandbox_pidns,
              exec_commands,
-         }
+             env_map,
 diff --git a/src/tools/genpolicy/src/pvc.rs b/src/tools/genpolicy/src/pvc.rs
 index 0a768ed8e0e16965270be44f94b8d60d0eb4381c..61d0ce3f08686843ce1095e7e108636e5bd34ad9 100644
 --- a/src/tools/genpolicy/src/pvc.rs
