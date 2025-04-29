@@ -83,7 +83,7 @@ func TestRegression(t *testing.T) {
 
 			t.Cleanup(func() {
 				// delete the deployment
-				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})) //nolint:usetesting, see https://github.com/ldez/usetesting/issues/4
+				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})) //nolint:usetesting // see https://github.com/ldez/usetesting/issues/4
 			})
 
 			// generate, set, deploy and verify the new policy
