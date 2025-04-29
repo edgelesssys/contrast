@@ -13,7 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test_matrix:
+  update_resources:
+    name: "${{ matrix.platform.name }}"
+    runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
         platform:
@@ -24,8 +26,9 @@ jobs:
           - name: K3s-QEMU-SNP-GPU
             runner: SNP-GPU
       fail-fast: false
-    name: "${{ matrix.platform.name }}"
-    runs-on: ${{ matrix.platform.runner }}
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Log in to ghcr.io Container registry
