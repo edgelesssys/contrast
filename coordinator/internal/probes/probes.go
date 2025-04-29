@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
-	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
+	"github.com/edgelesssys/contrast/coordinator/stateguard"
 )
 
 // StartupHandler is the http handler for `/probes/startup`.
