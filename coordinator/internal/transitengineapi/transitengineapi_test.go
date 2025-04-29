@@ -6,7 +6,6 @@ package transitengine
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -186,7 +185,7 @@ func (f *fakeStateAuthority) GetState() (*authority.State, error) {
 
 func newMockTransitEngineMux(authority stateAuthority) *http.ServeMux {
 	mux := http.NewServeMux()
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	logger := slog.New(slog.DiscardHandler)
 	mux.Handle("/v1/transit/encrypt/{name}", getEncryptHandler(authority, logger))
 	mux.Handle("/v1/transit/decrypt/{name}", getDecryptHandler(authority, logger))
 	return mux

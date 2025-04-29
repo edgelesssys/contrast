@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 
 	"github.com/edgelesssys/contrast/internal/atls"
@@ -29,7 +28,7 @@ type Client struct {
 // New returns a Client with logging disabled.
 func New() Client {
 	return Client{
-		log: slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{})),
+		log: slog.New(slog.DiscardHandler),
 	}
 }
 
