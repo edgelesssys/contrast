@@ -25,7 +25,7 @@ import (
 	"log/slog"
 	"slices"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
+	"github.com/edgelesssys/contrast/coordinator/stateguard"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/edgelesssys/contrast/internal/manifest"

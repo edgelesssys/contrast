@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
+	"github.com/edgelesssys/contrast/coordinator/stateguard"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/oid"
 )

@@ -15,7 +15,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
+	"github.com/edgelesssys/contrast/coordinator/stateguard"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/seedengine"
