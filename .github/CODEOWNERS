@@ -5,6 +5,5 @@
 /flake.nix @katexochen
 /overlays @katexochen
 /packages @katexochen
-/service-mesh/ @3u13r
 /treefmt.nix @katexochen
 # keep-sorted end
