@@ -16,7 +16,7 @@ const sidebars = {
   docs: [
     {
       type: "doc",
-      label: "Introductions",
+      label: "Introduction",
       id: "intro",
     },
     {

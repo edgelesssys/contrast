@@ -1,16 +1,23 @@
 # Workload deployment
 
+Follow the following steps to make your deployment confidential.
+
 ## 1. Adjust deployment files
 
 ### Download demo deployment configuration
+
+To get started, download the initial deployment file for a non-confidential emojivoto-demo:
 
 ```sh
 curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.yml --create-dirs --output-dir deployment
 ```
 
+<!-- TODO: Adjust file to vanilla file -->
+
 ### Adjust RuntimeClass
 
-For each pod configuration adjust the `RuntimeClassName` in `spec` to `contrast-cc`:
+In each pod configuration, set the `RuntimeClassName` in the `spec` to `contrast-cc`.
+This tells Kubernetes to use the Contrast runtime, which runs the pod inside a Confidential Virtual Machine (CVM).
 
 ```diff title="deployment/emojivoto-demo.yaml"
 @@ -36,6 +36,7 @@
@@ -49,7 +56,17 @@ For each pod configuration adjust the `RuntimeClassName` in `spec` to `contrast-
 
 ### Adjust pod resources
 
-Contrast workloads are deployed as one CVM per pod. Contrast workloads require stricter specification of pod resources compared to standard Kubernetes resource management.
+Contrast workloads are deployed with one Confidential Virtual Machine (CVM) per pod.
+
+To calculate the memory requirements of the CVM accurately, Contrast requires stricter resource specifications than standard Kubernetes pods.
+
+**Make sure to set both memory limits and memory requests explicitly for your application. Always set memory requests equal to memory limits for Contrast workloads.**
+
+Contrast pods always consume memory according to their memory limits. Kubernetes, however, schedules pods onto nodes based on their memory requests.
+If the request is lower than the limit, Kubernetes might overcommit memory — meaning it thinks more pods can fit on a node than actually can.
+This can lead to memory exhaustion and pod instability.
+
+So lets add specific values to our deployment. In our example each application pod is not expected to need more than 700Mi:
 
 ```diff title="deployment/emojivoto-demo.yaml"
 @@ -36,6 +36,11 @@
@@ -106,11 +123,13 @@ Contrast workloads are deployed as one CVM per pod. Contrast workloads require s
 
 Contrast comes with its own PKI infrastructure, rooted in attestation.
 
-The **Contrast Coordinator**, an additional service deployed to your cluster, acts as both the **central attestation service** and a **certificate authority**. It issues certificates only to pods that have been successfully verified through remote attestation. It can also be configured to automatically establish a service mesh that ensures authenticated and encrypted pod-to-pod communication.
+The Contrast coordinator, an additional service deployed to your cluster, acts as both the central attestation service and a certificate authority.
+It issues certificates only to pods that have been successfully verified through remote attestation.
+It can also be configured to automatically establish a service mesh that ensures authenticated and encrypted pod-to-pod communication.
 
 This configuration is done by adding specific annotations to each pod in the deployment files.
 
-In our setup, the communication between services works as follows:
+In our setup, the communication between services should work as follows:
 
 1. **`web` to `emoji` and `voting`**:
    gRPC calls are tunneled via mutual TLS (mTLS), using service mesh certificates.
@@ -121,7 +140,7 @@ In our setup, the communication between services works as follows:
 3. **`vote-bot` as a client simulator**:
    This component acts as a simulated client and initiates HTTPS connections at the application level.
 
-#### Enabling mTLS Egress for `web`
+#### Enabling mTLS between `web` and `emoji` and `voting`
 
 To enable secure, authenticated egress from `web` to `emoji` and `voting`, we add the following annotation:
 
@@ -141,9 +160,9 @@ The format is:
 
 Multiple entries are separated by `##`.
 
-Contrast configures `iptables` rules so that any traffic targeting `<original-hostname-or-ip>:<original-port>` is transparently redirected to the Envoy proxy running on `<chosen IP>:<chosen port>` inside the same pod. The proxy then establishes a mutual TLS connection with the actual destination, using the pod's service mesh certificate for authentication.
+Contrast configures `iptables` rules so that any traffic targeting `<original-hostname-or-ip>:<original-port>` is transparently redirected to the Envoy proxy running on `<chosen IP>:<chosen port>` inside the same pod. The proxy then establishes an mTLS connection with the actual destination, using the pod's service mesh certificate for authentication.
 
-#### Configuring Ingress for `web`
+#### Configuring ingress for `web`
 
 To allow external HTTPS connections without requiring client certificates, we add the following annotation:
 
@@ -154,8 +173,8 @@ contrast.edgeless.systems/servicemesh-ingress: web#8080#false
 This configures the `web` pod to:
 
 - Accept HTTPS traffic on port `8080`,
-- Not require clients to present a certificate (`false`),
-- Still present its own service mesh certificate as the server certificate, allowing clients to verify the pod's identity.
+- Not require clients to present a certificate,
+- Still present its own service mesh certificate as the server certificate, allowing clients to verify the workload's identity.
 
 #### Exposing the Service to the Outside
 
@@ -165,7 +184,7 @@ Finally, we add the annotation:
 contrast.edgeless.systems/expose-service: "true"
 ```
 
-This tells Contrast that the service is exposed externally (e.g., via a `LoadBalancer`) and enables Contrast to handle TLS termination for inbound connections.
+This tells Contrast that the service is exposed externally and enables Contrast to handle TLS termination for inbound connections.
 
 ```diff title="deployment/emojivoto-demo.yaml"
 @@ -1,6 +1,8 @@
@@ -207,12 +226,12 @@ This tells Contrast that the service is exposed externally (e.g., via a `LoadBal
    ports:
 ```
 
-## 2. Setup Contrast runtime
+## 2. Setup the Contrast runtime
 
-After adjusting the deployment files, we add the Contrast runtime to the deployment. The runtime takes care of setting up CVMs on nodes.
+After adjusting the deployment files, add the Contrast runtime to your cluster.
+The runtime sets up Confidential Virtual Machines (CVMs) on the nodes.
 
-This step is only required once for each version of the runtime.
-It can be shared between Contrast deployments.
+You only need to deploy the runtime once per version, and it can be shared across multiple Contrast deployments.
 
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
@@ -232,7 +251,7 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 </TabItem>
 </Tabs>
 
-## 3. Add Contrast coordinator to deployment
+## 3. Add the Contrast coordinator to deployment
 
 Download the Kubernetes resource of the Contrast Coordinator, comprising a single replica deployment and a
 LoadBalancer service. Put it next to your resources:
@@ -243,9 +262,8 @@ curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coord
 
 ## 4. Generate policy annotations and manifest
 
-Run the `generate` command to generate the execution policies and add them as
-annotations to your deployment files. A `manifest.json` file with the reference values
-of your deployment will be created:
+Run the `generate` command to create execution policies and add them as annotations to your deployment files.
+This will also create a `manifest.json` file containing the reference values for your deployment.
 
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
@@ -298,10 +316,12 @@ deployment hasn't been tampered with.
 
 ## 6. Verify deployment
 
-n different scenarios, users of an app may want to verify its security and identity before sharing data, for example, before casting a vote.
-With Contrast, a user only needs a single remote-attestation step to verify the deployment - regardless of the size or scale of the deployment.
-Contrast is designed such that, by verifying the Coordinator, the user transitively verifies those systems the Coordinator has already verified or will verify in the future.
-Successful verification of the Coordinator means that the user can be sure that the given manifest will be enforced.
+In many scenarios, users may require assurance of an application's security and integrity before interacting with it—for example, prior to submitting sensitive data or casting a vote.
+
+Contrast enables this through a single remote attestation step, regardless of the size or complexity of the deployment.
+By attesting the Coordinator, the user transitively attests all workloads that the Coordinator has verified or will verify according to the defined manifest.
+
+A successful attestation of the Coordinator provides a strong guarantee that the deployment adheres to the reference values specified in the `manifest.json`.
 
 ### Verifying the Coordinator
 
@@ -312,25 +332,21 @@ command:
 contrast verify -c "${coordinator}:1313" -m manifest.json
 ```
 
-The CLI will verify the Coordinator via remote attestation using the reference values from a given manifest. This manifest needs
-to be communicated out of band to everyone wanting to verify the deployment, as the `verify` command checks
-if the currently active manifest at the Coordinator matches the manifest given to the CLI. If the command succeeds,
-the Coordinator deployment was successfully verified to be running in the expected Confidential
-Computing environment with the expected code version. The Coordinator will then return its
-configuration over the established TLS channel. The CLI will store this information, namely the root
-certificate of the mesh (`mesh-ca.pem`) and the history of manifests, into the `verify/` directory.
-In addition, the policies referenced in the manifest history are also written into the same directory.
+The CLI verifies the Coordinator via remote attestation using reference values from a provided manifest.
+This manifest must be distributed out-of-band to all parties performing verification, as the `verify` command checks whether the manifest currently active at the Coordinator matches the one supplied to the CLI.
 
-### Auditing the manifest history and artifacts
+If verification succeeds, it confirms that the Coordinator is running in the expected Confidential Computing environment with the correct code version.
+The Coordinator then returns its configuration over a secure TLS channel.
+The CLI stores this information—including the mesh root certificate (`mesh-ca.pem`), the manifest history, and the associated policies—in the `verify/` directory.
 
-In the next step, the Coordinator configuration that was written by the `verify` command needs to be audited.
-A potential voter should inspect the manifest and the referenced policies. They could delegate
-this task to an entity they trust.
+### Auditing the manifest and policies
+
+Next, the stored Coordinator configuration should be audited.
+A user—or a trusted third party—can review the manifest and the referenced policies to ensure they meet expectations.
 
 ## 7. Connect securely to the frontend
 
-After ensuring the configuration of the Coordinator fits the expectation, the user can securely connect
-to the application using the Coordinator's `mesh-ca.pem` as a trusted CA certificate.
+Once the Coordinator’s configuration has been verified, the user can securely connect to the application by using the `mesh-ca.pem` certificate as the root of trust.
 
 To access the web frontend, expose the service on a public IP address via a LoadBalancer service:
 
@@ -344,3 +360,72 @@ Using `openssl`, the certificate of the service can be validated with the `mesh-
 ```sh
 openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
 ```
+
+## Optional: Updating the certificate SAN and the manifest
+
+By default, mesh certificates are issued with a wildcard DNS Subject Alternative Name (SAN).
+In this demo, the web frontend is accessed via a LoadBalancer IP.
+Tools like `curl` validate certificates against SANs and will fail if the certificate doesn’t include the IP address.
+
+For example, running `curl` with the mesh CA certificate results in:
+
+```sh
+$ curl --cacert ./verify/mesh-ca.pem "https://${frontendIP}:443"
+curl: (60) SSL: no alternative certificate subject name matches target host name '203.0.113.34'
+```
+
+### Adding an IP SAN to the manifest
+
+To enable IP-based certificate verification, update the relevant policy in the manifest.
+Add the `frontendIP` to the list of SANs:
+
+```diff
+   "Policies": {
+     ...
+     "99dd77cbd7fe2c4e1f29511014c14054a21a376f7d58a48d50e9e036f4522f6b": {
+       "SANs": [
+         "web",
+-        "*"
++        "*",
++        "203.0.113.34"
+       ],
+       "WorkloadSecretID": "web"
+     },
+```
+
+### Updating the manifest on the coordinator
+
+Apply the updated manifest with:
+
+```sh
+contrast set -c "${coordinator}:1313" deployment/
+```
+
+This triggers a rotation of the mesh CA certificate.
+New certificates will be issued by the updated CA.
+Previously issued certificates will no longer be trusted.
+This ensures that updated workloads don’t trust older, potentially vulnerable versions.
+
+The updated `mesh-ca.pem` will be written to reflect the new CA.
+
+### Restarting workloads
+
+The Contrast Initializer does not automatically fetch new certificates after a manifest update.
+You must manually restart the deployments to trigger certificate re-issuance:
+
+```sh
+kubectl rollout restart deployment/emoji
+kubectl rollout restart deployment/vote-bot
+kubectl rollout restart deployment/voting
+kubectl rollout restart deployment/web
+```
+
+### Verifying the connection
+
+After restarting the deployments, connect securely using:
+
+```sh
+curl --cacert ./mesh-ca.pem "https://${frontendIP}:443"
+```
+
+This should return the HTML content of the web frontend.
