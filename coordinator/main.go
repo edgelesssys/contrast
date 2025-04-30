@@ -17,9 +17,9 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
-	"github.com/edgelesssys/contrast/coordinator/internal/authority"
 	meshapiserver "github.com/edgelesssys/contrast/coordinator/internal/meshapi"
 	"github.com/edgelesssys/contrast/coordinator/internal/probes"
+	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	transitengine "github.com/edgelesssys/contrast/coordinator/internal/transitengineapi"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
@@ -86,7 +86,7 @@ func run() (retErr error) {
 		return fmt.Errorf("creating history: %w", err)
 	}
 
-	meshAuth := authority.New(hist, promRegistry, logger)
+	meshAuth := stateguard.New(hist, promRegistry, logger)
 
 	issuer, err := issuer.New(logger)
 	if err != nil {
@@ -95,7 +95,7 @@ func run() (retErr error) {
 
 	userAPICredentials := atlscredentials.New(issuer, atls.NoValidators, atls.NoMetrics, loggerpkg.NewNamed(logger, "atlscredentials"))
 	userAPIServer := newGRPCServer(userAPICredentials, serverMetrics)
-	userapi.RegisterUserAPIServer(userAPIServer, authority.NewUserAPI(logger, meshAuth))
+	userapi.RegisterUserAPIServer(userAPIServer, stateguard.NewUserAPI(logger, meshAuth))
 	serverMetrics.InitializeMetrics(userAPIServer)
 
 	month := 30 * 24 * time.Hour
@@ -112,7 +112,7 @@ func run() (retErr error) {
 
 	startupHandler := probes.StartupHandler{UserapiStarted: false, MeshapiStarted: false}
 	livenessHandler := probes.LivenessHandler{Hist: hist}
-	readinessHandler := probes.ReadinessHandler{Authority: meshAuth}
+	readinessHandler := probes.ReadinessHandler{Guard: meshAuth}
 
 	userapiStarted := &startupHandler.UserapiStarted
 	meshapiStarted := &startupHandler.MeshapiStarted

@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package authority
+package stateguard
 
 import (
 	"context"
@@ -35,7 +35,7 @@ type Credentials struct {
 }
 
 // Credentials creates new transport credentials that validate peers according to the latest manifest.
-func (a *Authority) Credentials(reg *prometheus.Registry, issuer atls.Issuer, httpsGetter trust.HTTPSGetter) *Credentials {
+func (a *Guard) Credentials(reg *prometheus.Registry, issuer atls.Issuer, httpsGetter trust.HTTPSGetter) *Credentials {
 	attestationFailuresCounter := promauto.With(reg).NewCounter(prometheus.CounterOpts{
 		Subsystem: "contrast_meshapi",
 		Name:      "attestation_failures_total",
@@ -124,7 +124,7 @@ func (c *Credentials) Info() credentials.ProtocolInfo {
 
 // Clone is only necessary for clients and thus not implemented.
 func (c *Credentials) Clone() credentials.TransportCredentials {
-	panic("authority.Credentials does not implement Clone()")
+	panic("stateguard.Credentials does not implement Clone()")
 }
 
 // OverrideServerName is not implemented.

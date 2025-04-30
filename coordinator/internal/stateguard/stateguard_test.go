@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package authority
+package stateguard
 
 import (
 	"context"
@@ -37,7 +37,7 @@ contrast_coordinator_manifest_generation %d
 
 func TestMetrics(t *testing.T) {
 	require := require.New(t)
-	a, reg := newAuthority(t)
+	a, reg := newTestGuard(t)
 
 	var seed, salt [32]byte
 	se, err := seedengine.New(seed[:], salt[:])
@@ -56,8 +56,8 @@ func TestMetrics(t *testing.T) {
 	}
 	requireGauge(t, reg, numGenerations)
 
-	// Simulate a restarted authority.
-	b, reg := newAuthority(t)
+	// Simulate a restarted Guard.
+	b, reg := newTestGuard(t)
 	b.hist = a.hist
 	requireGauge(t, reg, 0)
 
@@ -177,7 +177,7 @@ func (c *waitingClock) WaitForAfterCall(t *testing.T, d time.Duration) {
 	}
 }
 
-func newAuthority(t *testing.T) (*Authority, *prometheus.Registry) {
+func newTestGuard(t *testing.T) (*Guard, *prometheus.Registry) {
 	t.Helper()
 	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})

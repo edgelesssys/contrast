@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
-	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -197,7 +197,7 @@ func TestReadinessProbe(t *testing.T) {
 
 			mux := http.NewServeMux()
 
-			handler := ReadinessHandler{Authority: auth}
+			handler := ReadinessHandler{Guard: auth}
 			mux.Handle("/probes/readiness", handler)
 
 			mux.ServeHTTP(resp, req)
@@ -215,14 +215,14 @@ type mockAuth struct {
 	fails    bool
 }
 
-func (a mockAuth) GetState() (*authority.State, error) {
+func (a mockAuth) GetState() (*stateguard.State, error) {
 	if a.fails {
 		return nil, assert.AnError
 	}
 	if !a.hasState {
 		return nil, nil
 	}
-	return &authority.State{}, nil
+	return &stateguard.State{}, nil
 }
 
 type mockStore struct {

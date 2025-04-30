@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	"google.golang.org/grpc/codes"
@@ -49,7 +49,7 @@ func (i *Server) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertRequest)
 		return nil, fmt.Errorf("failed to get peer from context")
 	}
 
-	authInfo, ok := p.AuthInfo.(authority.AuthInfo)
+	authInfo, ok := p.AuthInfo.(stateguard.AuthInfo)
 	if !ok {
 		return nil, fmt.Errorf("unexpected AuthInfo type: %T", p.AuthInfo)
 	}
@@ -123,7 +123,7 @@ func (i *Server) Recover(ctx context.Context, _ *meshapi.RecoverRequest) (*mesha
 		return nil, fmt.Errorf("failed to get peer from context")
 	}
 
-	authInfo, ok := p.AuthInfo.(authority.AuthInfo)
+	authInfo, ok := p.AuthInfo.(stateguard.AuthInfo)
 	if !ok {
 		return nil, fmt.Errorf("unexpected AuthInfo type: %T", p.AuthInfo)
 	}
