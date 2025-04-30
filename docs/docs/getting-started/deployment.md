@@ -56,15 +56,13 @@ This tells Kubernetes to use the Contrast runtime, which runs the pod inside a C
 
 ### Adjust pod resources
 
-Contrast workloads are deployed with one Confidential Virtual Machine (CVM) per pod.
+Contrast workloads are deployed using one Confidential Virtual Machine (CVM) per pod.
 
-To calculate the memory requirements of the CVM accurately, Contrast requires stricter resource specifications than standard Kubernetes pods.
+To calculate the CVM’s memory requirements accurately, Contrast workloads require stricter resource definitions compared to standard Kubernetes pods.
 
-**Make sure to set both memory limits and memory requests explicitly for your application. Always set memory requests equal to memory limits for Contrast workloads.**
+**Explicitly define both memory requests and memory limits for your application. For Contrast workloads, memory requests must always equal memory limits. You only need to account for your application's memory usage; additional overhead introduced by Contrast itself is handled automatically.**
 
-Contrast pods always consume memory according to their memory limits. Kubernetes, however, schedules pods onto nodes based on their memory requests.
-If the request is lower than the limit, Kubernetes might overcommit memory — meaning it thinks more pods can fit on a node than actually can.
-This can lead to memory exhaustion and pod instability.
+Contrast pods always consume memory equal to their defined memory limits. Kubernetes schedules pods onto nodes based on memory requests. If the memory request is set lower than the memory limit, Kubernetes might overcommit memory—assuming more pods can fit onto a node than actually possible. This situation can cause memory exhaustion and pod instability.
 
 So lets add specific values to our deployment. In our example each application pod is not expected to need more than 700Mi:
 
@@ -226,12 +224,14 @@ This tells Contrast that the service is exposed externally and enables Contrast 
    ports:
 ```
 
+These are all the changes you need to make to your deployment files.
+
 ## 2. Setup the Contrast runtime
 
-After adjusting the deployment files, add the Contrast runtime to your cluster.
-The runtime sets up Confidential Virtual Machines (CVMs) on the nodes.
+Once you've adjusted your deployment files, the next step is to install the Contrast runtime on your cluster.
+The runtime is responsible for setting up Confidential Virtual Machines (CVMs) on your nodes.
 
-You only need to deploy the runtime once per version, and it can be shared across multiple Contrast deployments.
+You only need to deploy the runtime once per version. After installation, it can be reused across multiple Contrast deployments.
 
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
@@ -253,8 +253,8 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 
 ## 3. Add the Contrast coordinator to deployment
 
-Download the Kubernetes resource of the Contrast Coordinator, comprising a single replica deployment and a
-LoadBalancer service. Put it next to your resources:
+Download the Kubernetes resource of the Contrast Coordinator, comprising a single replica deployment and a LoadBalancer service.
+Put it next to your resources:
 
 ```sh
 curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir deployment
@@ -262,8 +262,9 @@ curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coord
 
 ## 4. Generate policy annotations and manifest
 
-Run the `generate` command to create execution policies and add them as annotations to your deployment files.
-This will also create a `manifest.json` file containing the reference values for your deployment.
+Run the `generate` command to create execution policies, which strictly control host-to-CVM communication and define the allowed workloads. The command adds these policies as annotations to your deployment files.
+
+It also creates a `manifest.json` file, which contains the reference values for your deployment.
 
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
@@ -332,7 +333,7 @@ command:
 contrast verify -c "${coordinator}:1313" -m manifest.json
 ```
 
-The CLI verifies the Coordinator via remote attestation using reference values from a provided manifest.
+The CLI verifies the Coordinator via remote attestation using reference values from the provided manifest.
 This manifest must be distributed out-of-band to all parties performing verification, as the `verify` command checks whether the manifest currently active at the Coordinator matches the one supplied to the CLI.
 
 If verification succeeds, it confirms that the Coordinator is running in the expected Confidential Computing environment with the correct code version.
@@ -346,7 +347,7 @@ A user—or a trusted third party—can review the manifest and the referenced p
 
 ## 7. Connect securely to the frontend
 
-Once the Coordinator’s configuration has been verified, the user can securely connect to the application by using the `mesh-ca.pem` certificate as the root of trust.
+Once the Coordinator’s configuration has been verified, users can securely connect to the application via HTTPS. The application uses the `mesh-ca.pem` certificate as the root of trust, which we previously configured to issue the frontend's mesh certificate for secure connections.
 
 To access the web frontend, expose the service on a public IP address via a LoadBalancer service:
 
