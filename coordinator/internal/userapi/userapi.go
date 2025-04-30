@@ -1,7 +1,16 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package stateguard
+// Package userapi implements the userapi.UserAPI gRPC service.
+//
+// It is responsible for
+//   - translating between RPCs and library calls
+//   - authorizing users
+//   - creating secrets (seed and mesh CA key)
+//
+// The package has access to an authority.Authority, which is the source of truth for the current
+// state of the system.
+package userapi
 
 import (
 	"bytes"
@@ -16,6 +25,7 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -27,19 +37,31 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Server serves the userapi.UserAPI. Servers need to be constructed with NewUserAPI.
+// guard is the public API of stateguard.Guard.
+type guard interface {
+	// GetState returns the current state. If the error is nil, the state must be set.
+	GetState() (*stateguard.State, error)
+	// GetHistory returns a slice of manifests and a map of policies referenced in the manifests.
+	GetHistory() (manifests [][]byte, policies map[manifest.HexString][]byte, err error)
+	// UpdateState advances the state to the given manifest and policies.
+	UpdateState(oldState *stateguard.State, se *seedengine.SeedEngine, manifest []byte, policies [][]byte) (newState *stateguard.State, err error)
+	// ResetState recovers to the latest persisted state, authorizing the recovery seed with the passed func.
+	ResetState(oldState *stateguard.State, a stateguard.SecretSourceAuthorizer) (newState *stateguard.State, err error)
+}
+
+// Server serves the userapi.UserAPI. Servers need to be constructed with New.
 type Server struct {
 	logger *slog.Logger
-	auth   *Guard
+	guard  guard
 
 	userapi.UnimplementedUserAPIServer
 }
 
-// NewUserAPI constructs a new Server instance.
-func NewUserAPI(logger *slog.Logger, auth *Guard) *Server {
+// New constructs a new Server instance.
+func New(logger *slog.Logger, guard guard) *Server {
 	return &Server{
 		logger: logger,
-		auth:   auth,
+		guard:  guard,
 	}
 }
 
@@ -47,11 +69,11 @@ func NewUserAPI(logger *slog.Logger, auth *Guard) *Server {
 func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, error) {
 	s.logger.Info("SetManifest called")
 
-	oldState, err := s.auth.GetState()
+	oldState, err := s.guard.GetState()
 	switch {
-	case errors.Is(err, ErrStaleState):
+	case errors.Is(err, stateguard.ErrStaleState):
 		return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
-	case errors.Is(err, ErrNoState):
+	case errors.Is(err, stateguard.ErrNoState):
 		// This is fine, we are going to set the initial manifest.
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
@@ -102,10 +124,10 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 		}
 	}
 
-	state, err := s.auth.UpdateState(oldState, se, req.GetManifest(), req.GetPolicies())
+	state, err := s.guard.UpdateState(oldState, se, req.GetManifest(), req.GetPolicies())
 	if err != nil {
 		code := codes.Internal
-		if errors.Is(err, ErrConcurrentUpdate) {
+		if errors.Is(err, stateguard.ErrConcurrentUpdate) {
 			code = codes.FailedPrecondition
 		}
 		return nil, status.Errorf(code, "updating Coordinator state: %v", err)
@@ -121,17 +143,17 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 func (s *Server) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
 ) (*userapi.GetManifestsResponse, error) {
 	s.logger.Info("GetManifest called")
-	state, err := s.auth.GetState()
+	state, err := s.guard.GetState()
 	switch {
-	case errors.Is(err, ErrNoState):
+	case errors.Is(err, stateguard.ErrNoState):
 		return nil, status.Error(codes.FailedPrecondition, ErrNoManifest.Error())
-	case errors.Is(err, ErrStaleState):
+	case errors.Is(err, stateguard.ErrStaleState):
 		return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
 	}
 
-	manifests, policies, err := s.auth.GetHistory()
+	manifests, policies, err := s.guard.GetHistory()
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "getting history: %v", err)
 	}
@@ -154,11 +176,11 @@ func (s *Server) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
 func (s *Server) Recover(ctx context.Context, req *userapi.RecoverRequest) (*userapi.RecoverResponse, error) {
 	s.logger.Info("Recover called")
 
-	oldState, err := s.auth.GetState()
+	oldState, err := s.guard.GetState()
 	switch {
-	case errors.Is(err, ErrStaleState):
+	case errors.Is(err, stateguard.ErrStaleState):
 		// This is fine, we want to recover anyway.
-	case errors.Is(err, ErrNoState):
+	case errors.Is(err, stateguard.ErrNoState):
 		return nil, status.Error(codes.FailedPrecondition, "no state to recover from")
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
@@ -166,7 +188,7 @@ func (s *Server) Recover(ctx context.Context, req *userapi.RecoverRequest) (*use
 		return nil, status.Error(codes.FailedPrecondition, ErrAlreadyRecovered.Error())
 	}
 
-	_, err = s.auth.ResetState(oldState, &seedAuthorizer{ctx: ctx, req: req})
+	_, err = s.guard.ResetState(oldState, &seedAuthorizer{ctx: ctx, req: req})
 	if err != nil {
 		return nil, fmt.Errorf("resetting state: %w", err)
 	}

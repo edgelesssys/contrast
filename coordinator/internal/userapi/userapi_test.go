@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package stateguard
+package userapi
 
 import (
 	"context"
@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
+	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -292,8 +293,8 @@ func TestRecovery(t *testing.T) {
 			fs := afero.NewMemMapFs()
 			store := history.NewAferoStore(&afero.Afero{Fs: fs})
 			hist := history.NewWithStore(slog.Default(), store)
-			auth := New(hist, prometheus.NewRegistry(), logger)
-			a := NewUserAPI(logger, auth)
+			auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
+			a := New(logger, auth)
 
 			manifestBytes, policies := newManifestWithSeedshareOwner(t)
 
@@ -321,7 +322,7 @@ func TestRecovery(t *testing.T) {
 			}
 
 			// Simulate a restarted Coordinator.
-			a.auth = New(hist, prometheus.NewRegistry(), slog.Default())
+			a.guard = stateguard.New(hist, prometheus.NewRegistry(), slog.Default())
 			_, err = a.GetManifests(t.Context(), nil)
 			require.ErrorContains(err, ErrNeedsRecovery.Error())
 			_, err = a.Recover(rpcContext(t.Context(), seedShareOwnerKey), recoverReq)
@@ -343,8 +344,8 @@ func TestRecoveryFlow(t *testing.T) {
 	fs := afero.NewMemMapFs()
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
-	auth := New(hist, prometheus.NewRegistry(), logger)
-	a := NewUserAPI(logger, auth)
+	auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
+	a := New(logger, auth)
 
 	// 2. A manifest is set and the returned seed is recorded.
 	manifestBytes, policies := newManifestWithSeedshareOwner(t)
@@ -379,7 +380,7 @@ func TestRecoveryFlow(t *testing.T) {
 	// 3. A new Coordinator is created with the existing history.
 	// GetManifests and SetManifest are expected to fail.
 
-	a.auth = New(hist, prometheus.NewRegistry(), slog.Default())
+	a.guard = stateguard.New(hist, prometheus.NewRegistry(), slog.Default())
 	_, err = a.SetManifest(t.Context(), req)
 	require.ErrorContains(err, ErrNeedsRecovery.Error())
 
@@ -422,8 +423,8 @@ func TestUserAPIConcurrent(t *testing.T) {
 	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
-	auth := New(hist, prometheus.NewRegistry(), logger)
-	coordinator := NewUserAPI(logger, auth)
+	auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
+	coordinator := New(logger, auth)
 
 	setReq := &userapi.SetManifestRequest{
 		Manifest: newManifestBytes(func(m *manifest.Manifest) {
@@ -489,7 +490,7 @@ func TestOutOfBandUpdates(t *testing.T) {
 	require.Equal(manifestBytes, getManifestResp.Manifests[0])
 
 	// Manipulate history directly
-	state, err := a.auth.GetState()
+	state, err := a.guard.GetState()
 	require.NoError(err)
 	key := state.SeedEngine().TransactionSigningKey()
 	oldLatest, err := hist.GetLatest(&key.PublicKey)
@@ -507,8 +508,8 @@ func TestOutOfBandUpdates(t *testing.T) {
 
 	// Wait for the staleness to propagate.
 	require.Eventually(func() bool {
-		_, err := a.auth.GetState()
-		return errors.Is(err, ErrStaleState)
+		_, err := a.guard.GetState()
+		return errors.Is(err, stateguard.ErrStaleState)
 	}, time.Second, 10*time.Millisecond)
 	_, err = a.GetManifests(t.Context(), nil)
 	require.ErrorContains(err, ErrNeedsRecovery.Error())
@@ -710,7 +711,7 @@ func TestNotificationRaces(t *testing.T) {
 		require.NoErrorf(err, "SetManifest call %d", i)
 		transitions = append(transitions, <-notifiedCh)
 	}
-	state, err := a.auth.GetState()
+	state, err := a.guard.GetState()
 	require.NoError(err)
 	require.NotNil(state)
 
@@ -719,7 +720,7 @@ func TestNotificationRaces(t *testing.T) {
 	for i, transition := range transitions {
 		watchedCh <- transition
 		require.Neverf(func() bool {
-			_, err := a.auth.GetState()
+			_, err := a.guard.GetState()
 			return err != nil
 		}, 10*time.Millisecond, time.Millisecond, "notification %d", i)
 	}
@@ -734,15 +735,15 @@ func newCoordinatorWithRegistry(reg *prometheus.Registry) *Server {
 	fs := afero.NewMemMapFs()
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
-	auth := New(hist, reg, logger)
-	return NewUserAPI(logger, auth)
+	auth := stateguard.New(hist, reg, logger)
+	return New(logger, auth)
 }
 
 func newCoordinatorWithWatcher(t *testing.T, hist *history.History) *Server {
 	t.Helper()
 	logger := slog.Default()
-	auth := New(hist, prometheus.NewRegistry(), logger)
-	coordinator := NewUserAPI(logger, auth)
+	auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
+	coordinator := New(logger, auth)
 
 	ctx, cancel := context.WithCancel(t.Context())
 	doneCh := make(chan struct{})
