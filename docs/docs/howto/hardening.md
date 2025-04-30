@@ -1,12 +1,12 @@
 # Hardening
 
-This section presents some tips for writing secure applications and outlines the trust boundaries app developers need to know.
+This section provides guidance on writing secure applications and explains the trust boundaries developers need to be aware of when working with Contrast.
 
 ## Applicability
 
-This section should be considered for every Contrast deployment.
+Recommended for all Contrast deployments.
 
-## Prerequesites
+## Prerequisites
 
 A running Contrast deployment.
 

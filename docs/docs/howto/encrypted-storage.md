@@ -1,4 +1,16 @@
-# Setting up encrypted persistant storage
+# Set up encrypted persistent storage
+
+This section provides a tutorial on how to configure encrypted persistent storage for your application.
+
+## Applicability
+
+This step is recommended for any Contrast deployment that stores data persistently.
+
+## Prerequisites
+
+1. [Set up your cluster](./cluster-setup/aks.md)
+
+## How-to
 
 <!-- TODO: I think this has to be changed to really make clear what steps are needed for encrypted persistant storage. Otherwise it is again more or less a tutorial for deploying an already configured Contrast-protected deplyoment. -->
 
@@ -21,11 +33,6 @@ prevent data loss. For confidential applications, please also refer to the
 aware of the differences in security implications of the workload secrets for
 the data owner and the workload owner. For more details, see the [Workload
 Secrets](../architecture/secrets.md#workload-secrets) documentation.
-
-## Prerequisites
-
-- Installed Contrast CLI
-- A running Kubernetes cluster with support for confidential containers, either on [AKS](../getting-started/cluster-setup.md) or on [bare metal](../getting-started/bare-metal.md)
 
 ## Steps to deploy MySQL with Contrast
 

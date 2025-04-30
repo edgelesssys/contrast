@@ -1,16 +1,18 @@
 # Manifest update
 
-This section guides you through updating a manifest at the Contrast coordinator.
+This section guides you through the process of updating a manifest at the Contrast Coordinator.
 
 ## Applicability
 
-If the manifest changes, for example because some configuration of the service mesh changes, the manifest has to be updated at the coordinator.
+If the manifest changes—for example, due to modifications in the service mesh configuration—it must be updated at the Coordinator.
 
-## Prerequesites
+## Prerequisites
 
-1. A running Contrast deployment.
+A running Contrast deployment.
 
 ## How-to
+
+First, connect to the coordinator. Then update the manifest and restart your pods to apply the changes.
 
 ### Connect to the coordinator
 

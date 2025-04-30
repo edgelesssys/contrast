@@ -2,6 +2,12 @@
 
 This guide shows how to set up registry credentials for Contrast.
 
+## Application
+
+<!-- TODO: When do I have to do this? -->
+
+## Prerequesites
+
 ## Contrast CLI
 
 The Contrast CLI, specifically the `contrast generate` subcommand, needs access to the registry to derive policies for the referenced container images.

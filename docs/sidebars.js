@@ -118,7 +118,7 @@ const sidebars = {
         },
         {
           type: "doc",
-          label: "Setup encrypted volumes",
+          label: "Set up encrypted volumes",
           id: "howto/encrypted-storage",
         },
         {

@@ -1,13 +1,12 @@
 # Observability
 
-This section describes what metrics can be retrieved from the Conrast Coordinator and how.
+This section describes which metrics can be retrieved from the Contrast Coordinator and how to access them.
 
 ## Applicability
 
-Metrics by the Contrast coordinator can be monitored to quickly
-identify problems in the gRPC layer or attestation errors.
+Monitoring metrics from the Contrast Coordinator helps you quickly identify issues in the gRPC layer or detect attestation failures.
 
-## Prerequesites
+## Prerequisites
 
 A running Contrast deployment.
 

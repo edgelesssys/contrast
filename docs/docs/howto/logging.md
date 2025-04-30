@@ -1,19 +1,18 @@
 # Logging
 
-This page shows you how to log useful information about your Contrast deployment.
+This page explains how to capture useful logs from your Contrast deployment.
 
 ## Applicability
 
-Collecting logs is a helpful first step for identifying issues in your deployment.
+Collecting logs is a helpful first step in diagnosing and resolving deployment issues.
 
 ## Prerequisites
 
-You need a running Contrast deployment.
+- A running Contrast deployment.
 
 ## How-To
 
-Both the CLI and the Contrast Coordinator as well as the Initializer
-can be configured to emit additional logs.
+The Contrast CLI, Coordinator, and Initializer can all be configured to emit additional logs.
 
 ### CLI
 
