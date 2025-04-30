@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
-	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 )
 
 // StartupHandler is the http handler for `/probes/startup`.
@@ -41,11 +41,11 @@ func (h LivenessHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 
 // ReadinessHandler is the http handler for `/probes/readiness`.
 type ReadinessHandler struct {
-	Authority auth
+	Guard guard
 }
 
 func (h ReadinessHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
-	state, err := h.Authority.GetState()
+	state, err := h.Guard.GetState()
 	if err != nil || state == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
@@ -54,6 +54,6 @@ func (h ReadinessHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-type auth interface {
-	GetState() (*authority.State, error)
+type guard interface {
+	GetState() (*stateguard.State, error)
 }

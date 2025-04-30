@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package authority
+package stateguard
 
 import (
 	"context"
@@ -397,7 +397,7 @@ func TestRecoveryFlow(t *testing.T) {
 	require.Len(resp.Manifests, 1)
 	require.Equal([][]byte{manifestBytes}, resp.Manifests)
 
-	// Recover on a recovered authority should fail.
+	// Recover on a recovered Guard should fail.
 	_, err = a.Recover(ctx, recoverReq)
 	require.Error(err)
 }

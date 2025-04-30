@@ -15,7 +15,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/seedengine"
@@ -50,7 +50,7 @@ func TestNewMeshCert(t *testing.T) {
 	ca, err := ca.New(rootKey, meshKey)
 	require.NoError(err)
 
-	info := authority.AuthInfo{
+	info := stateguard.AuthInfo{
 		TLSInfo: credentials.TLSInfo{
 			State: tls.ConnectionState{
 				PeerCertificates: []*x509.Certificate{{PublicKey: key.Public(), PublicKeyAlgorithm: x509.ECDSA}},
@@ -59,7 +59,7 @@ func TestNewMeshCert(t *testing.T) {
 		Report: &fakeReport{
 			hostData: policyHash[:],
 		},
-		State: authority.NewStateForTest(se, m, nil, ca),
+		State: stateguard.NewStateForTest(se, m, nil, ca),
 	}
 	ctx := peer.NewContext(t.Context(), &peer.Peer{
 		AuthInfo: info,
@@ -151,11 +151,11 @@ func TestRecover(t *testing.T) {
 			ca, err := ca.New(se.RootCAKey(), meshKey)
 			require.NoError(err)
 
-			info := authority.AuthInfo{
+			info := stateguard.AuthInfo{
 				Report: &fakeReport{
 					hostData: tc.report.hostData,
 				},
-				State: authority.NewStateForTest(se, tc.mnfst, mJSON, ca),
+				State: stateguard.NewStateForTest(se, tc.mnfst, mJSON, ca),
 			}
 			ctx := peer.NewContext(t.Context(), &peer.Peer{
 				AuthInfo: info,

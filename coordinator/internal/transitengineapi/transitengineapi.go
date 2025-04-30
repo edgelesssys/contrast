@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/oid"
 )
@@ -65,12 +65,12 @@ type httpError struct {
 	reqRemoteAddr string
 }
 
-type stateAuthority interface {
-	GetState() (*authority.State, error)
+type stateGuard interface {
+	GetState() (*stateguard.State, error)
 }
 
-// NewTransitEngineAPI sets up the transit engine API with a provided seedEngineAuthority.
-func NewTransitEngineAPI(authority stateAuthority, logger *slog.Logger) (*http.Server, error) {
+// NewTransitEngineAPI sets up the transit engine API with a provided stateGuard.
+func NewTransitEngineAPI(guard stateGuard, logger *slog.Logger) (*http.Server, error) {
 	privKeyAPI, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed creating transit engine API private key")
@@ -80,7 +80,7 @@ func NewTransitEngineAPI(authority stateAuthority, logger *slog.Logger) (*http.S
 			ClientAuth: tls.RequireAndVerifyClientCert,
 			GetConfigForClient: func(_ *tls.ClientHelloInfo) (*tls.Config, error) {
 				logger.Debug("call getConfigForClient")
-				state, err := authority.GetState()
+				state, err := guard.GetState()
 				if err != nil {
 					return nil, fmt.Errorf("getting state: %w", err)
 				}
@@ -89,30 +89,30 @@ func NewTransitEngineAPI(authority stateAuthority, logger *slog.Logger) (*http.S
 					ClientAuth: tls.RequireAndVerifyClientCert,
 					MinVersion: tls.VersionTLS12,
 					GetCertificate: func(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
-						return getCertificate(privKeyAPI, authority)
+						return getCertificate(privKeyAPI, guard)
 					},
 				}, nil
 			},
 		},
-		Handler: newTransitEngineMux(authority, logger),
+		Handler: newTransitEngineMux(guard, logger),
 	}, nil
 }
 
 // newTransitEngineMux creates the http multiplexer for the required transit engine API path,
 // adding the corresponding middlewares for logging and authorization.
-func newTransitEngineMux(authority stateAuthority, logger *slog.Logger) *http.ServeMux {
+func newTransitEngineMux(guard stateGuard, logger *slog.Logger) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// 'name' wildcard is kept to reflect existing transit engine API specifications:
 	// https://openbao.org/api-docs/secret/transit/#encrypt-data
 	// name <=> workloadSecretID, which should be used for the key derivation.
-	mux.Handle("/v1/transit/encrypt/{name}", authorizationMiddleware(getEncryptHandler(authority, logger)))
-	mux.Handle("/v1/transit/decrypt/{name}", authorizationMiddleware(getDecryptHandler(authority, logger)))
+	mux.Handle("/v1/transit/encrypt/{name}", authorizationMiddleware(getEncryptHandler(guard, logger)))
+	mux.Handle("/v1/transit/decrypt/{name}", authorizationMiddleware(getDecryptHandler(guard, logger)))
 
 	return mux
 }
 
-func getEncryptHandler(authority stateAuthority, logger *slog.Logger) http.HandlerFunc {
+func getEncryptHandler(guard stateGuard, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		workloadSecretID := r.PathValue("name")
 		if workloadSecretID == "" {
@@ -136,7 +136,7 @@ func getEncryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 			}, logger)
 			return
 		}
-		key, err := deriveEncryptionKey(authority, fmt.Sprintf("%d_%s", encReq.KeyVersion, workloadSecretID))
+		key, err := deriveEncryptionKey(guard, fmt.Sprintf("%d_%s", encReq.KeyVersion, workloadSecretID))
 		if err != nil {
 			writeHTTPError(w, httpError{
 				code:          http.StatusInternalServerError,
@@ -174,7 +174,7 @@ func getEncryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 	}
 }
 
-func getDecryptHandler(authority stateAuthority, logger *slog.Logger) http.HandlerFunc {
+func getDecryptHandler(guard stateGuard, logger *slog.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		workloadSecretID := r.PathValue("name")
 		if workloadSecretID == "" {
@@ -198,7 +198,7 @@ func getDecryptHandler(authority stateAuthority, logger *slog.Logger) http.Handl
 			}, logger)
 			return
 		}
-		key, err := deriveEncryptionKey(authority, fmt.Sprintf("%d_%s", decReq.CiphertextContainer.keyVersion, workloadSecretID))
+		key, err := deriveEncryptionKey(guard, fmt.Sprintf("%d_%s", decReq.CiphertextContainer.keyVersion, workloadSecretID))
 		if err != nil {
 			writeHTTPError(w, httpError{
 				code:          http.StatusInternalServerError,
@@ -252,8 +252,8 @@ func authorizeWorkloadSecret(workloadSecretID string, r *http.Request) error {
 }
 
 // deriveEncryptionKey derives the workload secret used as the encryption key by receiving the seedengine of the current state.
-func deriveEncryptionKey(authority stateAuthority, workloadSecretID string) ([]byte, error) {
-	state, err := authority.GetState()
+func deriveEncryptionKey(guard stateGuard, workloadSecretID string) ([]byte, error) {
+	state, err := guard.GetState()
 	if err != nil {
 		return nil, err
 	}
@@ -356,8 +356,8 @@ func authorizationMiddleware(next http.HandlerFunc) http.HandlerFunc {
 // getCertificate calls the CA of the current state to issue a new mesh cert for the private key handed in.
 // It returns a tls.Certificate, which holds the certChain consisting of the new mesh cert and the intermediate
 // CA cert.
-func getCertificate(privKeyAPI *ecdsa.PrivateKey, authority stateAuthority) (*tls.Certificate, error) {
-	state, err := authority.GetState()
+func getCertificate(privKeyAPI *ecdsa.PrivateKey, guard stateGuard) (*tls.Certificate, error) {
+	state, err := guard.GetState()
 	if err != nil {
 		return nil, fmt.Errorf("getting state: %w", err)
 	}

@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/authority"
+	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/seedengine"
 	"github.com/stretchr/testify/require"
@@ -91,9 +91,9 @@ func TestTransitAPICyclic(t *testing.T) {
 	}
 
 	t.Run("encrypt-decrypt handler", func(t *testing.T) {
-		fakeStateAuthority, err := newFakeSeedEngineAuthority()
+		fakeStateGuard, err := newTestGuard()
 		require.NoError(t, err)
-		mux := newMockTransitEngineMux(fakeStateAuthority)
+		mux := newMockTransitEngineMux(fakeStateGuard)
 
 		for name, tc := range testCases {
 			t.Run(name, func(t *testing.T) {
@@ -160,33 +160,33 @@ func TestTransitAPICyclic(t *testing.T) {
 	})
 }
 
-type fakeStateAuthority struct {
-	state *authority.State
+type fakeStateGuard struct {
+	state *stateguard.State
 }
 
-func newFakeSeedEngineAuthority() (*fakeStateAuthority, error) {
+func newTestGuard() (*fakeStateGuard, error) {
 	salt := make([]byte, constants.SecretSeedSaltSize)
 	secretSeed := make([]byte, constants.SecretSeedSize)
 	seedEngine, err := seedengine.New(secretSeed, salt)
 	if err != nil {
 		return nil, err
 	}
-	fakeState := authority.NewStateForTest(seedEngine, nil, nil, nil)
+	fakeState := stateguard.NewStateForTest(seedEngine, nil, nil, nil)
 
-	authority := &fakeStateAuthority{
+	guard := &fakeStateGuard{
 		state: fakeState,
 	}
-	return authority, nil
+	return guard, nil
 }
 
-func (f *fakeStateAuthority) GetState() (*authority.State, error) {
+func (f *fakeStateGuard) GetState() (*stateguard.State, error) {
 	return f.state, nil
 }
 
-func newMockTransitEngineMux(authority stateAuthority) *http.ServeMux {
+func newMockTransitEngineMux(guard stateGuard) *http.ServeMux {
 	mux := http.NewServeMux()
 	logger := slog.New(slog.DiscardHandler)
-	mux.Handle("/v1/transit/encrypt/{name}", getEncryptHandler(authority, logger))
-	mux.Handle("/v1/transit/decrypt/{name}", getDecryptHandler(authority, logger))
+	mux.Handle("/v1/transit/encrypt/{name}", getEncryptHandler(guard, logger))
+	mux.Handle("/v1/transit/decrypt/{name}", getDecryptHandler(guard, logger))
 	return mux
 }

@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package authority
+package stateguard
 
 import (
 	"bytes"
@@ -30,13 +30,13 @@ import (
 // Server serves the userapi.UserAPI. Servers need to be constructed with NewUserAPI.
 type Server struct {
 	logger *slog.Logger
-	auth   *Authority
+	auth   *Guard
 
 	userapi.UnimplementedUserAPIServer
 }
 
 // NewUserAPI constructs a new Server instance.
-func NewUserAPI(logger *slog.Logger, auth *Authority) *Server {
+func NewUserAPI(logger *slog.Logger, auth *Guard) *Server {
 	return &Server{
 		logger: logger,
 		auth:   auth,
