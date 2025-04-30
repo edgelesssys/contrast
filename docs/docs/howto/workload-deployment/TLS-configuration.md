@@ -1,18 +1,20 @@
 # Configure TLS
 
-Contrast supports communication via a Contrast-specific PKI with certifcates being issues based on successful attestation.
+Contrast supports secure communication through a Contrast-specific PKI. Certificates are issued automatically based on successful attestation.
 
 ## Applicability
 
-This step is optional, but it is highly recommended to consider this step when deploying your application with Contrast.
-If nothing is configured, all incoming traffic to workloads is required to present a valid client certificate.
-By default, no outgoing traffic is secured.
+This step is optional, but highly recommended when deploying applications with Contrast.
+If no TLS configuration is provided:
+
+- All incoming traffic must present a valid service-mesh certificate.
+- Outgoing traffic is not secured by default.
 
 ## Prerequisites
 
-1. [Set up cluster](.)
-2. [Deploy runtime](.)
-3. [Prepare deployment files](.)
+1. [Set up your cluster](../cluster-setup/aks.md)
+2. [Deploy the Contrast runtime](./runtime-deployment.md)
+3. [Prepare deployment files](./deployment-file-preparation.md)
 
 ## How-to
 

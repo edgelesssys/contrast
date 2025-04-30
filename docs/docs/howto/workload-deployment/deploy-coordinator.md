@@ -8,17 +8,20 @@ This step is mandatory for all Contrast deployments.
 
 ## Prerequisite
 
-1. [Set up cluster](.)
-2. [Deploy runtime](.)
-3. [Prepare deployment files](.)
-4. [Configure TLS (optional)](.)
-5. [Enable GPU support (optional)](.)
-6. [Generate annotations and manifest](.)
-7. [Deploy application](.)
+1. [Set up your cluster](../cluster-setup/aks.md)
+2. [Deploy the Contrast runtime](./runtime-deployment.md)
+3. [Prepare deployment files](./deployment-file-preparation.md)
+4. [Configure TLS (optional)](./TLS-configuration.md)
+5. [Enable GPU support (optional)](./GPU-configuration.md)
+6. [Generate annotations and manifest](./generate-annotations.md)
+7. [Deploy application](./deploy-application.md)
 
 ## How-to
 
 ### Download the Contrast coordinator resource
+
+You can choose whether to download and deploy the Coordinator manifest separately after deploying your application, or include it alongside your application resources and apply everything at once.
+Note that your workloads will not run until a valid manifest has been set.
 
 Download the Kubernetes resource of the Contrast coordinator, comprising a single replica deployment and a
 LoadBalancer service. Put it next to your resources:

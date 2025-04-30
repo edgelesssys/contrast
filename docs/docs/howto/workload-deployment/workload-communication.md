@@ -1,15 +1,15 @@
 # Communicate with workloads
 
-This section describes how the Contrast service mesh can be used to communicate with workloads.
+This section explains how to use the Contrast service mesh to communicate with your application workloads.
 
 ## Applicability
 
-This is optional and only required if you configured Contrast for making connections to your application via the Contrast service-mesh PKI.
+This step is optional and only relevant if you have configured Contrast to use the service mesh PKI for incoming connections to your application.
 
-## Prerequesites
+## Prerequisites
 
 1. A running Contrast deployment
-2. [Configure TLS](.)
+2. [Configure TLS](./TLS-configuration.md)
 
 ## How-to
 

@@ -1,23 +1,24 @@
 # Configure GPU support
 
-Contrast supports including GPU workloads within the confidential computing environment.
+Contrast supports running GPU workloads inside the confidential computing environment.
 
 ## Applicability
 
-This step is optional and only required if a GPU workload (like an AI model) is to be included in the confidential computing environment.
+This step is optional and only necessary if your application includes a GPU workload (e.g., an AI model) that should run confidentially.
 
-Currently confidential GPU workloads are only supported in combination with bare-metal AMD SEV-SNP and **not** with AKS and bare-metal Intel TDX.
+Currently, confidential GPU workloads are supported **only** on bare-metal systems with AMD SEV-SNP.
+They are **not** supported on AKS or on bare-metal systems using Intel TDX.
 
-## Prerequisite
+## Prerequisites
 
-1. [Set up cluster](.)
-2. [Deploy runtime](.)
-3. [Prepare deployment files](.)
-4. [Configure TLS (optional)](.)
+1. [Set up your cluster](../cluster-setup/aks.md)
+2. [Deploy the Contrast runtime](./runtime-deployment.md)
+3. [Prepare deployment files](./deployment-file-preparation.md)
+4. [Configure TLS (optional)](./TLS-configuration.md)
 
 ## How-to
 
-If the cluster is [configured for GPU usage](.), Pods can use GPU devices if needed.
+If the cluster is [configured for GPU usage](../../howto/cluster-setup/bare-metal.md#preparing-a-cluster-for-gpu-usage), Pods can use GPU devices if needed.
 
 To do so, a CDI annotation needs to be added, specifying to use the `pgpu` (passthrough GPU) mode. The `0` corresponds to the PCI device index.
 

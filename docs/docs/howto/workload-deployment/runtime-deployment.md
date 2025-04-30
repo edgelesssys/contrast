@@ -1,19 +1,18 @@
-# Deploy runtime
+# Deploy the Contrast runtime
 
-This step sets up your host environment on Kubernetes worker nodes.
+This step configures the host environment on your Kubernetes worker nodes.
 
 ## Applicability
 
-This step is mandatory for all Contrast deployments.
+Required for all Contrast deployments.
 
-## Prerequisite
+## Prerequisites
 
-1. [Set up cluster](.)
+1. [Set up your cluster](../cluster-setup/aks.md)
 
 ## How-to
 
-Contrast depends on a [custom Kubernetes `RuntimeClass` (`contrast-cc`)](.),
-which needs to be installed in the cluster prior to the Coordinator or any confidential workloads.
+Contrast depends on a [custom Kubernetes `RuntimeClass` (`contrast-cc`)](../../architecture/components/runtime.md), which needs to be installed in the cluster prior to the Coordinator or any confidential workloads.
 This consists of a `RuntimeClass` resource and a `DaemonSet` that performs installation on worker nodes.
 This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.

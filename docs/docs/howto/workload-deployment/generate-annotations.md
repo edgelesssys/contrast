@@ -1,18 +1,18 @@
 # Generate policy annotations and manifest
 
-This step adjusts deployment files and generates the manifest automatically.
+This step updates your deployment files with policy annotations and automatically generates the deployment manifest.
 
 ## Applicability
 
-This step is mandatory for all Contrast deployments.
+This step is required for all Contrast deployments.
 
-## Prerequisite
+## Prerequisites
 
-1. [Set up cluster](.)
-2. [Deploy runtime](.)
-3. [Prepare deployment files](.)
-4. [Configure TLS (optional)](.)
-5. [Enable GPU support (optional)](.)
+1. [Set up your cluster](../cluster-setup/aks.md)
+2. [Deploy the Contrast runtime](./runtime-deployment.md)
+3. [Prepare deployment files](./deployment-file-preparation.md)
+4. [Configure TLS (optional)](./TLS-configuration.md)
+5. [Enable GPU support (optional)](./GPU-configuration.md)
 
 ## How-to
 

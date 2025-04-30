@@ -1,18 +1,19 @@
-# Deployment files preparation
+# Prepare deployment files
 
-Your Kubernetes resources need some modifications to run as Confidential Containers.
-This section guides you through the process and outlines the necessary changes.
+To run your Kubernetes workloads as Confidential Containers, you'll need to make a few adjustments to your deployment files. This section walks you through the required changes and highlights important security considerations for your application.
 
 ## Applicability
 
-This step is mandatory for all Contrast deployments.
+Required for all Contrast deployments.
 
 ## Prerequisites
 
-1. [Set up cluster](.)
-2. [Deploy runtime](.)
+1. [Set up your cluster](../cluster-setup/aks.md)
+2. [Deploy the Contrast runtime](./runtime-deployment.md)
 
 ## How-to
+
+This page explains how to update your deployment files for Contrast and outlines key security consideration for your application.
 
 ### Security review
 

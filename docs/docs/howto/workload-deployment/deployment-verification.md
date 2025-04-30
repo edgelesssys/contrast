@@ -1,16 +1,18 @@
 # Deployment verification
 
-This step verifies the deployment.
+This step verifies that the application has been deployed correctly.
 
 ## Applicability
 
-An application user / data owner can verify the deployment before any interaction.
+A data owner or application user can use this step to verify the deployment before interacting with the application.
 
-## Prerequesite
+## Prerequisites
 
 1. A running Contrast deployment.
 
 ## How-to
+
+This page explains how a user can connect to the Coordinator and verify the application's integrity.
 
 ### Connect to the coordinator
 

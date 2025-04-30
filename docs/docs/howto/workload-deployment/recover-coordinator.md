@@ -12,6 +12,8 @@ This step is necessary only when the coordinator needs to be restarted.
 
 ## How-to
 
+This page guides you through the process of connecting to the Coordinator and restoring its state.
+
 ### Connect to the Contrast coordinator
 
 The released coordinator resource
