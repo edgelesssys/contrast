@@ -21,6 +21,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/probes"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	transitengine "github.com/edgelesssys/contrast/coordinator/internal/transitengineapi"
+	userapiserver "github.com/edgelesssys/contrast/coordinator/internal/userapi"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
@@ -95,7 +96,7 @@ func run() (retErr error) {
 
 	userAPICredentials := atlscredentials.New(issuer, atls.NoValidators, atls.NoMetrics, loggerpkg.NewNamed(logger, "atlscredentials"))
 	userAPIServer := newGRPCServer(userAPICredentials, serverMetrics)
-	userapi.RegisterUserAPIServer(userAPIServer, stateguard.NewUserAPI(logger, meshAuth))
+	userapi.RegisterUserAPIServer(userAPIServer, userapiserver.New(logger, meshAuth))
 	serverMetrics.InitializeMetrics(userAPIServer)
 
 	month := 30 * 24 * time.Hour
