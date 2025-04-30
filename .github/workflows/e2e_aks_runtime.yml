@@ -80,6 +80,7 @@ jobs:
 
           az extension add --name aks-preview
           az extension add --name confcom
+          az extension list
       - name: E2E test
         run: |
           nix build .#scripts.get-logs
