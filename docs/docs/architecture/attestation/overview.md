@@ -1,8 +1,8 @@
 # Attestation in Contrast
 
-Contrast uses remote attestation to ensure that each workload pod runs in a verifiable and trusted environment. Every pod is executed inside a Confidential Virtual Machine (CVM), and its identity and configuration are verified at launch using hardware-based attestation.
+Contrast uses remote attestation to ensure that each workload pod runs in a verifiable and trusted environment. Every pod is executed inside a Confidential Virtual Machine (CVM), and its integrity and configuration are verified at launch using hardware-based attestation.
 
-This process builds on Remote Attestation Procedures (RATS) as described in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html), but is tailored specifically for Kubernetes and the Contrast architecture.
+The attestation process builds on Remote Attestation Procedures (RATS) as described in [RFC 9334](https://www.rfc-editor.org/rfc/rfc9334.html), but is tailored specifically for Kubernetes and the Contrast architecture.
 
 ## Attestation roles in Contrast
 
@@ -50,7 +50,10 @@ The **manifest** is a JSON configuration that defines the trusted state of the d
 
 Only pods whose attestation evidence matches the manifest are accepted into the trusted service mesh.
 
-The Contrast coordinator itself also runs as a confidential pod and is attested using the Contrast CLI. The CLI includes embedded reference values for the coordinator, allowing it to verify the coordinator's identity and integrity during attestation. Because these reference values are part of the CLI build, the CLI effectively serves as the root of trust for the deployment. Verifying the CLI’s integrity and authenticity is therefore essential.
+The Contrast coordinator itself also runs as a confidential pod and is attested using the Contrast CLI.
+The CLI includes embedded reference values for the coordinator, allowing it to verify the coordinator's identity and integrity during attestation.
+Because these reference values are part of the CLI build, the CLI effectively serves as the root of trust for the deployment.
+Verifying the CLI’s integrity and authenticity is therefore essential.
 
 ### Relying party: Operator and data owner
 
@@ -59,8 +62,6 @@ The Contrast CLI is used by operators or data owners to verify the deployment an
 - Verifies the attestation of the Coordinator using embedded reference values
 - Uploads the Manifest to define the trusted deployment state
 - Retrieves the Root CA and Mesh CA certificates for the service mesh
-
-These certificates are used to authenticate workloads and verify communication within the cluster.
 
 ## Evidence generation and verification
 

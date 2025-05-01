@@ -61,6 +61,11 @@ const sidebars = {
           ],
         },
         {
+          type: "doc",
+          label: "Install CLI",
+          id: "howto/install-cli",
+        },
+        {
           type: "category",
           label: "Workload deployment",
           items: [

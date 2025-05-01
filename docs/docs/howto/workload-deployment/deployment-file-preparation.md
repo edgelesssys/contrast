@@ -8,8 +8,9 @@ Required for all Contrast deployments.
 
 ## Prerequisites
 
-1. [Set up your cluster](../cluster-setup/aks.md)
-2. [Deploy the Contrast runtime](./runtime-deployment.md)
+1. [Set up cluster](../cluster-setup/aks.md)
+2. [Install CLI](../install-cli.md)
+3. [Deploy the Contrast runtime](./runtime-deployment.md)
 
 ## How-to
 

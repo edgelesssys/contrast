@@ -8,7 +8,8 @@ Required for all Contrast deployments.
 
 ## Prerequisites
 
-1. [Set up your cluster](../cluster-setup/aks.md)
+1. [Set up cluster](../cluster-setup/aks.md)
+2. [Install CLI](../install-cli.md)
 
 ## How-to
 

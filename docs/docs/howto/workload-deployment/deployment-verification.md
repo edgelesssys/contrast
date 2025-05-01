@@ -9,6 +9,7 @@ A data owner or application user can use this step to verify the deployment befo
 ## Prerequisites
 
 1. A running Contrast deployment.
+2. [Install CLI](../install-cli.md)
 
 ## How-to
 

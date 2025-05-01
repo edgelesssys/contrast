@@ -27,7 +27,7 @@ Contrast integrates seamlessly into your existing Kubernetes workflows. It can b
 
 ## Key use cases
 
-Contrast provides powerful [security features and benefits](./security.md) and [benefits]. Common scenarios include:
+Contrast provides powerful [security features and benefits](./security.md). Common scenarios include:
 
 - Strengthening container security with hardware-backed isolation
 - Securely migrating sensitive workloads from on-premises to cloud environments

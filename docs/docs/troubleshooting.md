@@ -1,6 +1,6 @@
 # Troubleshooting
 
-This section contains information on how to debug your Contrast deployment.
+This section provides guidance on diagnosing and resolving issues in your Contrast deployment.
 
 ## Logging
 

@@ -1,5 +1,7 @@
 # Service mesh
 
+Contrast can be configured to automatically establish a service mesh to enable secure pod-to-pod communication.
+
 ## Certificate authority
 
 The Coordinator acts as a certificate authority (CA) for the workloads

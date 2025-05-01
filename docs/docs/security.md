@@ -1,6 +1,7 @@
 # Security overview
 
-Contrast aims to thorougly protect your data from the infrastructure. The security goals and the threat model are outlined in the following.
+Contrast is designed to thoroughly protect your data from the underlying infrastructure.
+This section outlines the security goals and the associated threat model.
 
 ## Security goals
 

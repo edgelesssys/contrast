@@ -8,13 +8,14 @@ This step is mandatory for all Contrast deployments.
 
 ## Prerequisite
 
-1. [Set up your cluster](../cluster-setup/aks.md)
-2. [Deploy the Contrast runtime](./runtime-deployment.md)
-3. [Prepare deployment files](./deployment-file-preparation.md)
-4. [Configure TLS (optional)](./TLS-configuration.md)
-5. [Enable GPU support (optional)](./GPU-configuration.md)
-6. [Generate annotations and manifest](./generate-annotations.md)
-7. [Deploy application](./deploy-application.md)
+1. [Set up cluster](../cluster-setup/aks.md)
+2. [Install CLI](../install-cli.md)
+3. [Deploy the Contrast runtime](./runtime-deployment.md)
+4. [Prepare deployment files](./deployment-file-preparation.md)
+5. [Configure TLS (optional)](./TLS-configuration.md)
+6. [Enable GPU support (optional)](./GPU-configuration.md)
+7. [Generate annotations and manifest](./generate-annotations.md)
+8. [Deploy application](./deploy-application.md)
 
 ## How-to
 
