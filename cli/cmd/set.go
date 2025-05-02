@@ -140,7 +140,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 				fmt.Fprintln(cmd.OutOrStdout(), msg)
 			}
 		}
-		return fmt.Errorf("setting manifest: %w", err)
+		return fmt.Errorf("setting manifest (coordinator did not match the expectations, is the version correct and did you run `contrast generate`?): %w", err)
 	}
 
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Manifest set successfully")
