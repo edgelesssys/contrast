@@ -35,4 +35,3 @@
 - Secret
 - Service
 - ServiceAccount
-- StatefulSet
