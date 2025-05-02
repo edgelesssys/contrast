@@ -41,6 +41,7 @@ let
       "e2e/regression"
       "e2e/aks-runtime"
       "e2e/atls"
+      "e2e/multiple-cpus"
     ];
   };
 

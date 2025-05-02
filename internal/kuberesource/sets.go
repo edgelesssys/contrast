@@ -137,6 +137,34 @@ func OpenSSL() []any {
 	return resources
 }
 
+// MultiCPU returns a deployment that requests 3 CPUs.
+func MultiCPU() []any {
+	ns := ""
+
+	return []any{
+		Deployment("multi-cpu", ns).
+			WithSpec(DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(LabelSelector().
+					WithMatchLabels(map[string]string{"app.kubernetes.io/name": "multi-cpu"}),
+				).
+				WithTemplate(PodTemplateSpec().
+					WithLabels(map[string]string{"app.kubernetes.io/name": "multi-cpu"}).
+					WithSpec(PodSpec().
+						WithContainers(
+							Container().
+								WithName("multi-cpu").
+								WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
+								WithCommand("/usr/local/bin/bash", "-c", "lscpu | grep \"CPU(s)\" | head -1 | awk '{print $2}' > /run/cpu_count; sleep infinity").
+								WithResources(ResourceRequirements().
+									WithCPURequest(3),
+								),
+						),
+					),
+				),
+			)}
+}
+
 // GetDEnts returns a set of resources for testing getdents entry limits.
 func GetDEnts() []any {
 	tester := Deployment("getdents-tester", "").
