@@ -1,9 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: config-map
+  name: config-map-immutable
   namespace: "@@REPLACE_NAMESPACE@@"
 data:
   foo: bar
 binaryData:
   asdf: ZmRzYQ==
+immutable: true
