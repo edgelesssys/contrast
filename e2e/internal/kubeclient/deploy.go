@@ -296,6 +296,7 @@ func isPodReady(pod *corev1.Pod) bool {
 	return false
 }
 
+// ResourceInterfaceFor creates a resource interface for a given unstructured resource.
 func (c *Kubeclient) ResourceInterfaceFor(obj *unstructured.Unstructured) (dynamic.ResourceInterface, error) {
 	gvk := obj.GroupVersionKind()
 
