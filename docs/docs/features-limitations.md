@@ -20,6 +20,7 @@ This section lists planned features and current limitations of Contrast.
 - **Order of events**: The current policy evaluation mechanism on API requests isn't stateful, so it can't ensure a prescribed order of events.
 - **Absence of events**: Policies can't ensure certain events have happened. A container, such as the [service mesh sidecar](components/service-mesh.md), can be omitted entirely. Environment variables may be missing.
 - **Volume integrity checks**: Integrity checks don't cover any volume mounts, such as `ConfigMaps` and `Secrets`.
+- **Supported resource types**: Only [resource types supported by genpolicy](https://github.com/kata-containers/kata-containers/blob/main/src/tools/genpolicy/README.md#supported-kubernetes-yaml-file-types) are supported by `contrast generate`.
 
 :::warning
 The policy limitations, in particular the missing guarantee that our service mesh sidecar has been started before the workload container, affect the service mesh implementation of Contrast.
