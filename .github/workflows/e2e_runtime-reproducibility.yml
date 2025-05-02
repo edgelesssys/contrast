@@ -9,12 +9,12 @@ jobs:
   os-matrix:
     strategy:
       matrix:
-        os: [ubuntu-22.04, ubuntu-20.04]
+        os: [ubuntu-22.04, ubuntu-24.04]
         # As we do not use the Cachix cache containing the artifacts built by developers in this workflow,
         # building the node-installer-image ensures that the whole transitive closure of the packages we build (i.e. everything
         # except what's in cache.nixos.org). Therefore, building this ensures that the kernel, image, IGVM, runtime and the image itself
         # is reproducible across individual builds (as the --rebuild flag is used, causing Nix to rebuild the node-installer-image derivation)
-        # and across independent builds on Ubuntu 20.04 and 22.04 (which also test the reproducibility of the transitive closure of our packages, as no shared
+        # and across independent builds on Ubuntu 24.04 and 22.04 (which also test the reproducibility of the transitive closure of our packages, as no shared
         # cache is present between the two machines)
         #
         # If adjusting the build-target, remember to also adjust the matrix for the collect-checksums job
@@ -34,6 +34,12 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: "" # Don't use the cachix cache
+      - name: Allow unrestricted user namespaces
+        # Ubuntu 24.04 ships strict apparmor defaults, so we have to disable them to be able to call
+        # unshare in the Nix sansbox without beeing root. This is used for the microsoft.kata-image for example.
+        run: |
+          sudo sysctl --ignore --write kernel.apparmor_restrict_unprivileged_unconfined=0
+          sudo sysctl --ignore --write kernel.apparmor_restrict_unprivileged_userns=0
       - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Build
         id: build
