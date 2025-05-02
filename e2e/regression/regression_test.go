@@ -104,7 +104,7 @@ func TestRegression(t *testing.T) {
 					if err != nil {
 						t.Log("error creating client for resource deletion", err)
 					}
-					if err := client.Delete(context.Background(), resourceName, metav1.DeleteOptions{
+					if err := client.Delete(t.Context(), resourceName, metav1.DeleteOptions{
 						PropagationPolicy: &bgDeletion,
 					}); err != nil {
 						t.Log("error deleting resource", err)
