@@ -14,6 +14,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/atls"
@@ -140,7 +141,11 @@ func runSet(cmd *cobra.Command, args []string) error {
 				fmt.Fprintln(cmd.OutOrStdout(), msg)
 			}
 		}
-		return fmt.Errorf("setting manifest: %w", err)
+		additionalHelp := ""
+		if strings.Contains(err.Error(), "quote field MR_CONFIG_ID") || strings.Contains(err.Error(), "report field HOST_DATA") {
+			additionalHelp = " (coordinator did not match the expectations, is the version correct and did you run `contrast generate`?)"
+		}
+		return fmt.Errorf("setting manifest%s: %w", additionalHelp, err)
 	}
 
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Manifest set successfully")
