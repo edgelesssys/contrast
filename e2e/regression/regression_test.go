@@ -23,6 +23,7 @@ import (
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
+	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -93,44 +94,19 @@ func TestRegression(t *testing.T) {
 
 			resourceName, _ := strings.CutSuffix(file.Name(), ".yml")
 
+			unstructuredResources, err := kubeapi.UnmarshalUnstructuredK8SResource(readYaml)
+			require.NoError(err)
+
 			t.Cleanup(func() {
-				// delete the deployment
-				switch resourceType {
-				case "Deployment":
-					require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "Pod":
-					require.NoError(ct.Kubeclient.Client.CoreV1().Pods(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "ConfigMap":
-					require.NoError(ct.Kubeclient.Client.CoreV1().ConfigMaps(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "Job":
-					bgDeletion := metav1.DeletePropagationBackground
-					require.NoError(ct.Kubeclient.Client.BatchV1().Jobs(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{
+				bgDeletion := metav1.DeletePropagationBackground
+				for _, r := range unstructuredResources {
+					client, err := ct.Kubeclient.ResourceInterfaceFor(r)
+					if err != nil {
+						t.Log("error deleting resource", err)
+					}
+					client.Delete(context.Background(), resourceName, metav1.DeleteOptions{
 						PropagationPolicy: &bgDeletion,
-					}))
-				case "CronJob":
-					require.NoError(ct.Kubeclient.Client.BatchV1().CronJobs(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "Secret":
-					require.NoError(ct.Kubeclient.Client.CoreV1().Secrets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "DaemonSet":
-					require.NoError(ct.Kubeclient.Client.AppsV1().DaemonSets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "ReplicaSet":
-					require.NoError(ct.Kubeclient.Client.AppsV1().ReplicaSets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "ServiceAccount":
-					require.NoError(ct.Kubeclient.Client.CoreV1().ServiceAccounts(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "Service":
-					require.NoError(ct.Kubeclient.Client.CoreV1().Services(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "ReplicationController":
-					require.NoError(ct.Kubeclient.Client.CoreV1().ReplicationControllers(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "LimitRange":
-					require.NoError(ct.Kubeclient.Client.CoreV1().LimitRanges(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "StatefulSet":
-					require.NoError(ct.Kubeclient.Client.AppsV1().StatefulSets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "PodDisruptionBudget":
-					require.NoError(ct.Kubeclient.Client.PolicyV1().PodDisruptionBudgets(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "Role":
-					require.NoError(ct.Kubeclient.Client.RbacV1().Roles(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
-				case "RoleBinding":
-					require.NoError(ct.Kubeclient.Client.RbacV1().RoleBindings(ct.Namespace).Delete(context.Background(), resourceName, metav1.DeleteOptions{}))
+					})
 				}
 			})
 
