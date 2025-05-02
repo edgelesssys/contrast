@@ -6,6 +6,7 @@
 package az
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,17 +16,21 @@ import (
 
 // NodeImageVersion gets the node image version from the specified cluster
 // and resource group.
-func NodeImageVersion(clusterName string, rg string) (string, error) {
-	out, err := exec.Command("az", "aks", "nodepool", "list", "--cluster-name", clusterName, "--resource-group", rg).Output()
-	if err != nil {
+func NodeImageVersion(ctx context.Context, clusterName string, rg string) (string, error) {
+	cmd := exec.CommandContext(ctx, "az", "aks", "nodepool", "list", "--cluster-name", clusterName, "--resource-group", rg)
+	stdout, err := cmd.Output()
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return "", fmt.Errorf("failed to execute az, stderr is: %s", string(exitErr.Stderr))
+	} else if err != nil {
+		return "", fmt.Errorf("failed to execute az: %w", err)
+	}
+
+	var outMap []map[string]any
+	if err := json.Unmarshal(stdout, &outMap); err != nil {
 		return "", err
 	}
 
-	var outMap []map[string]interface{}
-	err = json.Unmarshal(out, &outMap)
-	if err != nil {
-		return "", err
-	}
 	if len(outMap) == 0 {
 		return "", errors.New("no nodepools could be listed")
 	}
