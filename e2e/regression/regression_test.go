@@ -102,11 +102,13 @@ func TestRegression(t *testing.T) {
 				for _, r := range unstructuredResources {
 					client, err := ct.Kubeclient.ResourceInterfaceFor(r)
 					if err != nil {
+						t.Log("error creating client for resource deletion", err)
+					}
+					if err := client.Delete(context.Background(), resourceName, metav1.DeleteOptions{
+						PropagationPolicy: &bgDeletion,
+					}); err != nil {
 						t.Log("error deleting resource", err)
 					}
-					client.Delete(context.Background(), resourceName, metav1.DeleteOptions{
-						PropagationPolicy: &bgDeletion,
-					})
 				}
 			})
 
