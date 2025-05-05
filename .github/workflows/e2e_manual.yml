@@ -18,6 +18,7 @@ on:
           - policy
           - regression
           - servicemesh
+          - vault
           - volumestatefulset
           - workloadsecret
           # keep-sorted end
