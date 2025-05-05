@@ -135,7 +135,7 @@ NAME                                STATUS   ROLES    AGE     VERSION
 aks-nodepool1-32049705-vmss000000   Ready    <none>   9m47s   v1.29.0
 ```
 
-🥳 Congratulations. You're now ready to set up your first application with Contrast. Follow this [example](../../old/examples/emojivoto.md) to learn how.
+🥳 Congratulations. You're now ready to set up your first application with Contrast. Follow this [example](../../getting-started/) to learn how.
 
 ## Cleanup
 

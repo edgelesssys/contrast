@@ -12,7 +12,7 @@ A running Contrast deployment.
 
 ## How-to
 
-Contrast ensures application integrity and provides secure means of communication and bootstrapping (see [security benefits](../old/basics/security-benefits.md)).
+Contrast ensures application integrity and provides secure means of communication and bootstrapping (see [Security](../security.md) section).
 However, care must be taken when interacting with the outside of Contrast's confidential environment.
 
 ## General recommendations

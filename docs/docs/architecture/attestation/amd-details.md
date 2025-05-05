@@ -134,7 +134,7 @@ with the public key provided in the ID auth block. The common usage of such sign
 is to know that a trusted party holding the private key has signed the ID block.
 Since the ID block is part of for example the [IGVM](https://github.com/microsoft/igvm) headers of
 the VM image, they're bound to the `runtimeClass` Contrast sets up
-during [installation](../../old/getting-started/install.md).
+during [installation](../../howto/workload-deployment/runtime-deployment.md).
 Therefore, the ID auth block and the signature and public key has to be provided by
 Contrast, but the authors of Contrast shouldn't be part of the TCB.
 

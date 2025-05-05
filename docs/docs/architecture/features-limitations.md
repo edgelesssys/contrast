@@ -17,8 +17,8 @@ This section lists planned features and current limitations of Contrast.
 ## Runtime policies
 
 - **Coverage**: While the enforcement of workload policies generally functions well, [there are scenarios not yet fully covered](https://github.com/microsoft/kata-containers/releases/tag/3.2.0.azl0.genpolicy). It's crucial to review deployments specifically for these edge cases.
-- **Order of events**: The current policy evaluation mechanism on API requests isn't stateful, so it can't ensure a prescribed order of events. Consequently, there's no guaranteed enforcement that the [service mesh sidecar](components/service-mesh.md) container runs *before* the workload container. This order ensures that all traffic between pods is securely encapsulated within TLS connections.
-- **Absence of events**: Policies can't ensure certain events have happened. A container, such as the [service mesh sidecar](components/service-mesh.md), can be omitted entirely. Environment variables may be missing.
+- **Order of events**: The current policy evaluation mechanism on API requests isn't stateful, so it can't ensure a prescribed order of events. Consequently, there's no guaranteed enforcement that the [service mesh sidecar](architecture/components/service-mesh.md) container runs _before_ the workload container. This order ensures that all traffic between pods is securely encapsulated within TLS connections.
+- **Absence of events**: Policies can't ensure certain events have happened. A container, such as the [service mesh sidecar](architecture/components/service-mesh.md), can be omitted entirely. Environment variables may be missing.
 - **Volume integrity checks**: Integrity checks don't cover any volume mounts, such as `ConfigMaps` and `Secrets`.
 
 :::warning
@@ -49,7 +49,7 @@ While Contrast supports integration with confidential computing-enabled GPUs, su
 This means the workload needs to verify that the GPU is indeed an NVIDIA H100 running in confidential computing mode.
 
 To simplify this process, the NVIDIA CC-Manager, which is
-[deployed alongside the NVIDIA GPU operator](./getting-started/bare-metal.md#preparing-a-cluster-for-gpu-usage), enables the use of confidential computing GPUs (CC GPUs) within the workload. With the CC-Manager in place, the workload is responsible only for attesting the GPU's integrity.
+[deployed alongside the NVIDIA GPU operator](howto/cluster-setup/bare-metal.md#preparing-a-cluster-for-gpu-usage), enables the use of confidential computing GPUs (CC GPUs) within the workload. With the CC-Manager in place, the workload is responsible only for attesting the GPU's integrity.
 
 One way to perform this attestation is by using
 [nvTrust](https://github.com/NVIDIA/nvtrust), NVIDIA's reference implementation for GPU attestation.

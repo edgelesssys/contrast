@@ -64,10 +64,10 @@ If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and 
 The `generate` command needs to pull the container images to derive policies.
 Running `generate` for the first time can take a while, especially if the images are large.
 If your container registry requires authentication, you can create the necessary credentials with `docker login` or `podman login`.
-Be aware of the [registry authentication limitation](../../old/features-limitations.md#kubernetes-features) on bare metal.
+Be aware of the [registry authentication limitation](../../architecture/features-limitations.md#kubernetes-features) on bare metal.
 
 :::warning
-Please be aware that runtime policies currently have some blind spots. For example, they can't guarantee the starting order of containers. See the [current limitations](../../old/features-limitations.md#runtime-policies) for more details.
+Please be aware that runtime policies currently have some blind spots. For example, they can't guarantee the starting order of containers. See the [current limitations](../../architecture/features-limitations.md#runtime-policies) for more details.
 :::
 
 Running `contrast generate` for the first time creates some additional files in the working directory:

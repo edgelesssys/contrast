@@ -105,7 +105,7 @@ This evidence is checked against pre-defined appraisal policies to guarantee tha
 Attestation confirms the integrity of the runtime environment and the identity of the workloads.
 It plays a critical role in preventing unauthorized changes and detecting potential modifications at runtime.
 The attestation provides integrity and authenticity guarantees, enabling relying parties—such as workload operators or data owners—to confirm the effective protection against potential threats, including malicious cloud insiders, co-tenants, or compromised workload operators.
-More details on the specific security benefits can be found [here](../../old/basics/security-benefits.md).
+More details on the specific security benefits can be found [here](../../security.md).
 
 ### How can you verify the authenticity of attestation results?
 
@@ -116,4 +116,4 @@ For further authenticity verification, all of Contrast's code is reproducibly bu
 ### How are attestation results used by relying parties?
 
 Relying parties use attestation results to make informed security decisions, such as allowing access to sensitive data or resources only if the attestation verifies the system's integrity.
-Thereafter, the use of Contrast's [CA certificates in TLS connections](../../old/architecture/certificates.md) provides a practical approach to communicate securely with the application.
+Thereafter, the use of Contrast's [CA certificates in TLS connections](../components/service-mesh.md) provides a practical approach to communicate securely with the application.

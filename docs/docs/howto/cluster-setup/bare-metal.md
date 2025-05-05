@@ -125,7 +125,7 @@ The above command should yield an output similar to the following, depending on 
 }
 ```
 
-These identifiers are then used to [run GPU workloads on the cluster](../../old/deployment.md).
+These identifiers are then used to [run GPU workloads on the cluster](../../howto/workload-deployment/GPU-configuration.md).
 
 </TabItem>
 <TabItem value="intel" label="Intel TDX">
