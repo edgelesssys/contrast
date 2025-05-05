@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -192,6 +193,40 @@ func (c *Kubeclient) Exec(ctx context.Context, namespace, pod string, argv []str
 	return buf.String(), errBuf.String(), err
 }
 
+// ExecContainer executes a process in the container of a pod and returns the stdout and stderr.
+func (c *Kubeclient) ExecContainer(ctx context.Context, namespace, pod, container string, argv []string) (
+	stdout string, stderr string, err error,
+) {
+	buf := &bytes.Buffer{}
+	errBuf := &bytes.Buffer{}
+	request := c.Client.CoreV1().RESTClient().
+		Post().
+		Namespace(namespace).
+		Resource("pods").
+		Name(pod).
+		SubResource("exec").
+		VersionedParams(&corev1.PodExecOptions{
+			Command:   argv,
+			Stdin:     false,
+			Stdout:    true,
+			Stderr:    true,
+			TTY:       false,
+			Container: container,
+		}, scheme.ParameterCodec)
+	exec, err := remotecommand.NewSPDYExecutor(c.config, http.MethodPost, request.URL())
+	if err != nil {
+		return "", "", fmt.Errorf("creating executor: %w", err)
+	}
+
+	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
+		Stdout: buf,
+		Stderr: errBuf,
+		Tty:    false,
+	})
+
+	return buf.String(), errBuf.String(), err
+}
+
 // ExecDeployment executes a process in one of the deployment's pods.
 func (c *Kubeclient) ExecDeployment(ctx context.Context, namespace, deployment string, argv []string) (stdout string, stderr string, err error) {
 	if err := c.WaitForDeployment(ctx, namespace, deployment); err != nil {
@@ -241,4 +276,27 @@ func (c *Kubeclient) logContainerStatus(pod corev1.Pod) {
 			log.Debug("container status", "name", container.Name, "started", container.Started, "ready", container.Ready, "state", container.State)
 		}
 	}
+}
+
+// GetContainerLogs returns a string holding the kubernetes logs of the specified container.
+func (c *Kubeclient) GetContainerLogs(ctx context.Context, resource ResourceWaiter, namespace, name, container string) (string, error) {
+	podLogOpts := corev1.PodLogOptions{
+		Container: container,
+	}
+	pods, err := resource.getPods(ctx, c, namespace, name)
+	if err != nil {
+		return "", fmt.Errorf("failed loading pods:%w", err)
+	}
+	logStream := c.Client.CoreV1().Pods(namespace).GetLogs(pods[0].Name, &podLogOpts)
+	readCloser, err := logStream.Stream(ctx)
+	if err != nil {
+		return "", fmt.Errorf("failed streaming logging request:%w", err)
+	}
+	defer readCloser.Close()
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, readCloser); err != nil {
+		return "", fmt.Errorf("failed copying logs to buffer:%w", err)
+	}
+	return buf.String(), nil
 }

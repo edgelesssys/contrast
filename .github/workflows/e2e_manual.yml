@@ -19,6 +19,7 @@ on:
           - regression
           - servicemesh
           - volumestatefulset
+          - vault
           - workloadsecret
           # keep-sorted end
         default: "openssl"

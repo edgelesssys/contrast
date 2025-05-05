@@ -717,13 +717,10 @@ until wget --server-response --no-check-certificate --spider -q -O- https://vaul
     sleep 2
 done
 
-
-# Get init status using wget
 echo "Vault is responding. Checking initialization status..."
-init_check=$(wget --no-check-certificate -q -O - https://vault:8200/v1/sys/init)
 
 # Check if Vault is uninitialized
-if echo "$init_check" | grep -q '"initialized"[ ]*:[ ]*false'; then
+if wget --no-check-certificate -q -O - https://vault:8200/v1/sys/init | grep -q '"initialized"[ ]*:[ ]*false'; then
   echo "Vault is NOT initialized. Running bao operator init..."
   bao operator init
 else
@@ -751,15 +748,7 @@ sleep infinity`
 							Container().
 								WithName("openbao-server").
 								WithImage("quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa").
-								WithCommand("bao", "server", "-config=/vault/config/config.hcl").
-								/*These environmental variables are required for the Vault server instance:
-								- VAULT_CA_CERT accept the transit engine API to be set-up for auto-unsealing
-								- VAULT_CLIENT_CERT to be accepted by the transit engine API as a valid communication peer
-								- VAULT_CLIENT_KEY is the corresponding private key
-								*/
-								WithEnv(EnvVar().WithName("VAULT_CACERT").WithValue("/contrast/tls-config/mesh-ca.pem")).
-								WithEnv(EnvVar().WithName("VAULT_CLIENT_CERT").WithValue("/contrast/tls-config/certChain.pem")).
-								WithEnv(EnvVar().WithName("VAULT_CLIENT_KEY").WithValue("/contrast/tls-config/key.pem")).
+								WithCommand("bao", "server", "-config=/vault/config/config.hcl", "-log-file=/vault/data/openbao.log").
 								WithResources(ResourceRequirements().
 									WithMemoryLimitAndRequest(500),
 								).WithVolumeMounts(
@@ -832,6 +821,9 @@ seal "transit" {
   disable_renewal = "true"
   key_name        = "vault_unsealing"
   mount_path      = "transit/"
+  tls_ca_cert	  = "/contrast/tls-config/mesh-ca.pem"
+  tls_client_cert = "/contrast/tls-config/certChain.pem"
+  tls_client_key  = "/contrast/tls-config/key.pem"
 }
 `,
 		},
