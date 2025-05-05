@@ -77,11 +77,6 @@ rustPlatform.buildRustPackage rec {
       patches = [ ./genpolicy_settings_prod.patch ];
     };
 
-    settings-coordinator = applyPatches {
-      src = settings-base;
-      patches = [ ./genpolicy_settings_coordinator.patch ];
-    };
-
     # Settings that allow exec into CVM pods - not safe for production use!
     settings-dev = applyPatches {
       src = settings-base;
@@ -103,8 +98,6 @@ rustPlatform.buildRustPackage rec {
         runHook postInstall
       '';
     };
-
-    rules-coordinator = rules;
   };
 
   meta = {
