@@ -719,7 +719,7 @@ init_check=$(wget --no-check-certificate -q -O - https://vault:8200/v1/sys/init)
 # Check if Vault is uninitialized
 if echo "$init_check" | grep -q '"initialized"[ ]*:[ ]*false'; then
   echo "Vault is NOT initialized. Running bao operator init..."
-  bao operator init
+  bao operator init 
 else
   echo "Vault is already initialized. Skipping init."
 fi
@@ -745,7 +745,7 @@ sleep infinity`
 							Container().
 								WithName("openbao-server").
 								WithImage("quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa").
-								WithCommand("bao", "server", "-config=/vault/config/config.hcl").
+								WithCommand("bao", "server", "-config=/vault/config/config.hcl", "-log-file=/vault/data/openbao.log").
 								/*These environmental variables are required for the Vault server instance:
 								- VAULT_CA_CERT accept the transit engine API to be set-up for auto-unsealing
 								- VAULT_CLIENT_CERT to be accepted by the transit engine API as a valid communication peer

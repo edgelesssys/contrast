@@ -16,6 +16,7 @@ on:
           - regression
           - servicemesh
           - volumestatefulset
+          - vaultstatefulset
           - workloadsecret
           - atls
         default: "openssl"
