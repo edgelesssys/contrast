@@ -107,8 +107,8 @@ func newTransitEngineMux(guard stateGuard, logger *slog.Logger) *http.ServeMux {
 	// 'name' wildcard is kept to reflect existing transit engine API specifications:
 	// https://openbao.org/api-docs/secret/transit/#encrypt-data
 	// name <=> workloadSecretID, which should be used for the key derivation.
-	mux.Handle("/v1/transit/encrypt/{name}", authorizationMiddleware(getEncryptHandler(guard, logger)))
-	mux.Handle("/v1/transit/decrypt/{name}", authorizationMiddleware(getDecryptHandler(guard, logger)))
+	mux.Handle("/v1/transit/encrypt/{name}", authorizationMiddleware(getEncryptHandler(guard, logger), logger))
+	mux.Handle("/v1/transit/decrypt/{name}", authorizationMiddleware(getDecryptHandler(guard, logger), logger))
 
 	return mux
 }
@@ -238,7 +238,7 @@ func getDecryptHandler(guard stateGuard, logger *slog.Logger) http.HandlerFunc {
 
 // auhorizeWorkloadSecret authorizes the client request by extracting the workloadSecretID
 // sent as the mesh cert extension and ensures equality to the workloadSecretID handed in.
-func authorizeWorkloadSecret(workloadSecretID string, r *http.Request) error {
+func authorizeWorkloadSecret(workloadSecretID string, r *http.Request, logger *slog.Logger) error {
 	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 {
 		return fmt.Errorf("no client certs provided")
 	}
@@ -247,6 +247,7 @@ func authorizeWorkloadSecret(workloadSecretID string, r *http.Request) error {
 		return fmt.Errorf("missing required workloadSecretID cert extension:%w", err)
 	}
 	if workloadSecretID == extensionWSID {
+		logger.Debug("access granted", "workload-secret", workloadSecretID, "principal", r.TLS.PeerCertificates[0].Subject, "path", r.URL)
 		return nil
 	}
 	return fmt.Errorf("mismatching workloadSecretIDs: name:%s, extension:%s", workloadSecretID, extensionWSID)
@@ -344,10 +345,10 @@ func extractWorkloadSecretExtension(cert *x509.Certificate) (string, error) {
 
 // authorizationMiddleware reads out the workloadSecretID stored in name URL parameter and ensures
 // the client request to be authorized.
-func authorizationMiddleware(next http.HandlerFunc) http.HandlerFunc {
+func authorizationMiddleware(next http.HandlerFunc, logger *slog.Logger) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		workloadSecretID := r.PathValue("name")
-		if err := authorizeWorkloadSecret(workloadSecretID, r); err != nil {
+		if err := authorizeWorkloadSecret(workloadSecretID, r, logger); err != nil {
 			http.Error(w, fmt.Sprintf("Unauthorized: %v", err), http.StatusForbidden)
 			return
 		}
