@@ -737,30 +737,6 @@ func GPU() []any {
 
 // Vault returns the resources for deploying a user managed vault.
 func Vault(namespace string) []any {
-	// The bao operator init command should not be scripted like this in a real production environment,
-	// because it will leak the recovery keys to anyone with kubernetes log access.
-	// Normally this should be executed by an admin setting up the Vault once and the
-	// recovery keys should be stored securely.
-	baoInitCmd := `echo "Waiting for Vault to become available..."
-# Wait until Vault server instance is ready
-until wget --server-response --no-check-certificate --spider -q -O- https://vault:8200 2>&1 | grep -q "HTTP/1.1 200"; do
-    sleep 2
-done
-
-
-# Get init status using wget
-echo "Vault is responding. Checking initialization status..."
-init_check=$(wget --no-check-certificate -q -O - https://vault:8200/v1/sys/init)
-
-# Check if Vault is uninitialized
-if echo "$init_check" | grep -q '"initialized"[ ]*:[ ]*false'; then
-  echo "Vault is NOT initialized. Running bao operator init..."
-  bao operator init
-else
-  echo "Vault is already initialized. Skipping init."
-fi
-sleep infinity`
-
 	vaultSfSets := StatefulSet("vault", "").WithAnnotations(map[string]string{
 		securePVAnnotationKey: "state:share",
 	}).
@@ -781,15 +757,20 @@ sleep infinity`
 							Container().
 								WithName("openbao-server").
 								WithImage("quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa").
-								WithCommand("bao", "server", "-config=/vault/config/config.hcl").
-								/*These environmental variables are required for the Vault server instance:
-								- VAULT_CA_CERT accept the transit engine API to be set-up for auto-unsealing
-								- VAULT_CLIENT_CERT to be accepted by the transit engine API as a valid communication peer
-								- VAULT_CLIENT_KEY is the corresponding private key
-								*/
-								WithEnv(EnvVar().WithName("VAULT_CACERT").WithValue("/contrast/tls-config/mesh-ca.pem")).
-								WithEnv(EnvVar().WithName("VAULT_CLIENT_CERT").WithValue("/contrast/tls-config/certChain.pem")).
-								WithEnv(EnvVar().WithName("VAULT_CLIENT_KEY").WithValue("/contrast/tls-config/key.pem")).
+								WithCommand("bao", "server", "-config=/vault/config/config.hcl", "-log-file=/vault/data/openbao.log").
+								WithReadinessProbe(
+									applycorev1.Probe().
+										WithExec(
+											applycorev1.ExecAction().WithCommand(
+												"sh", "-c",
+												`wget -q --no-check-certificate --server-response https://vault:8200/v1/sys/health -O /dev/null 2>&1 | grep -q '^  HTTP'`,
+											),
+										).
+										WithInitialDelaySeconds(10).
+										WithPeriodSeconds(5).
+										WithTimeoutSeconds(3).
+										WithFailureThreshold(5),
+								).
 								WithResources(ResourceRequirements().
 									WithMemoryLimitAndRequest(500),
 								).WithVolumeMounts(
@@ -805,7 +786,7 @@ sleep infinity`
 							Container().
 								WithName("openbao-client").
 								WithImage("quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa").
-								WithCommand("/bin/sh", "-ec", baoInitCmd).
+								WithCommand("/bin/sh", "-ec", "sleep infinity").
 								/*These environmental variables are required for the Vault client instance:
 								- VAULT_ADDR expressing the OpenBao Vault server as URL and port
 								- VAULT_CA_CERT to accept the Vault server mesh certificate
@@ -823,9 +804,6 @@ sleep infinity`
 						Volume().WithName("config").WithConfigMap(
 							applycorev1.ConfigMapVolumeSource().WithName("vault-config"),
 						),
-						applycorev1.Volume().
-							WithName("share").
-							WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
 					),
 					),
 			).
@@ -841,6 +819,7 @@ sleep infinity`
 		)
 	vaultService := ServiceForStatefulSet(vaultSfSets).
 		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
+	vaultService.Spec.WithPublishNotReadyAddresses(true)
 
 	configMap := applycorev1.ConfigMap("vault-config", namespace).WithData(
 		map[string]string{
@@ -862,6 +841,9 @@ seal "transit" {
   disable_renewal = "true"
   key_name        = "vault_unsealing"
   mount_path      = "transit/"
+  tls_ca_cert	  = "/contrast/tls-config/mesh-ca.pem"
+  tls_client_cert = "/contrast/tls-config/certChain.pem"
+  tls_client_key  = "/contrast/tls-config/key.pem"
 }
 `,
 		},
