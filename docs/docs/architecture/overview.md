@@ -11,20 +11,20 @@ Contrast consists of four main components:
   This handler runs containers inside Confidential Virtual Machines (CVMs).
   The runtime is based on Kata Containers and the Confidential Containers (CoCo) project.
 
-- **Contrast coordinator**:
+- **Contrast Coordinator**:
   This is an additional service deployed to the cluster.
   It also runs inside a CVM using the Contrast runtime.
   It acts as the central attestation service, making sure that only verified workloads can join the trusted service mesh.
-  The coordinator uses a _manifest_—a `.json` file that defines the trusted state of your cluster using cryptographic hashes for all workloads.
-  The coordinator verifies each CVM's attestation against this manifest before trusting the workload.
+  The Coordinator uses a _manifest_—a `.json` file that defines the trusted state of your cluster using cryptographic hashes for all workloads.
+  The Coordinator verifies each CVM's attestation against this manifest before trusting the workload.
 
 - **Service mesh**:
-  The Contrast coordinator also acts as a Certificate Authority (CA), issuing certificates only to workloads that successfully pass attestation.
+  The Contrast Coordinator also acts as a Certificate Authority (CA), issuing certificates only to workloads that successfully pass attestation.
   These certificates can be used to establish a trusted service mesh for secure pod-to-pod communication.
   It can also be presented to external clients, allowing them to verify the service’s identity.
 
 - **Contrast CLI**:
-  This command-line tool verifies the integrity and authenticity of both the coordinator and the full deployment using remote attestation.
+  This command-line tool verifies the integrity and authenticity of both the Coordinator and the full deployment using remote attestation.
   Data owners can use it to verify that a deployment is trustworthy.
 
   The CLI also pre-processes deployment files, adjusting them automatically for a secure Contrast integration.

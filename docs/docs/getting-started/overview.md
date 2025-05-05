@@ -14,16 +14,17 @@ To make your app confidential with Contrast, you need to follow these steps:
 2. [Deploy your workload](./deployment):
    Update your app’s deployment to work with Contrast:
 
-   1. Adjust deployment files: Modify the deployment resources to integrate Contrast.
-   2. Deploy Contrast runtime: Add a custom runtime to run your workloads inside Confidential Virtual Machines (CVMs).
-   3. Generate policy annotations and manifest: Use the Contrast CLI to pre-process the deployment files and generate a manifest—a file that defines the secure and trusted state of your deployment.
-   4. Deploy Contrast coordinator: This additional workload enforces and verifies the trusted and confidential state of your deployment.
-   5. Deploy application: Finally, deploy your application.
+   1. Adjust deployment files: Modify your deployment resources to integrate Contrast.
+   2. Deploy Contrast runtime: Add the Contrast runtime to run your workloads inside Confidential Virtual Machines (CVMs).
+   3. Add the Contrast Coordinator: Include the Coordinator in your deployment. It verifies and enforces the trusted and confidential state of your application.
+   4. Generate policy annotations and manifest: Use the Contrast CLI to process your deployment files and generate a manifest. This manifest defines the secure and trusted state of your deployment.
+   5. Deploy your application: Apply the modified deployment files to launch your application.
+   6. Set the manifest: Define the trusted reference state that the Coordinator will enforce.
 
-3. [Verify deployment](.):
+3. [Verify deployment](./deployment.md#6-verify-deployment):
    Make sure your app is running in a secure and trusted environment.
 
-4. [Securely connect to the app](.):
+4. [Securely connect to the app](./deployment.md#7-connect-securely-to-the-frontend):
    Connect through a secure channel backed by confidential computing hardware. This removes the need for users to trust you as a service provider.
 
 ## Emojivoto app

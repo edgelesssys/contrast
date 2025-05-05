@@ -1,10 +1,10 @@
-# Recover Contrast coordinator
+# Recover Contrast Coordinator
 
-This step describes how the Contrast coordinator can be recovered after a restart.
+This step describes how the Contrast Coordinator can be recovered after a restart.
 
 ## Applicability
 
-This step is necessary only when the coordinator needs to be restarted.
+This step is necessary only when the Coordinator needs to be restarted.
 
 ## Prerequesites
 
@@ -14,9 +14,9 @@ This step is necessary only when the coordinator needs to be restarted.
 
 This page guides you through the process of connecting to the Coordinator and restoring its state.
 
-### Connect to the Contrast coordinator
+### Connect to the Contrast Coordinator
 
-The released coordinator resource
+The released Coordinator resource
 includes a LoadBalancer definition we can use.
 
 ```sh

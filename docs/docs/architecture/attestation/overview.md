@@ -33,9 +33,9 @@ The runtime policy specifies:
 
 This guarantees that the CVM launches in a well-defined state and enforces only the explicitly declared configuration.
 
-### Verifier: Contrast coordinator & CLI
+### Verifier: Contrast Coordinator & CLI
 
-The coordinator runs inside a CVM and verifies attestation reports from other pods. It:
+The Coordinator runs inside a CVM and verifies attestation reports from other pods. It:
 
 - Checks launch measurements and policy hashes against a trusted **manifest**
 - Issues service mesh certificates to verified pods
@@ -50,8 +50,8 @@ The **manifest** is a JSON configuration that defines the trusted state of the d
 
 Only pods whose attestation evidence matches the manifest are accepted into the trusted service mesh.
 
-The Contrast coordinator itself also runs as a confidential pod and is attested using the Contrast CLI.
-The CLI includes embedded reference values for the coordinator, allowing it to verify the coordinator's identity and integrity during attestation.
+The Contrast Coordinator itself also runs as a confidential pod and is attested using the Contrast CLI.
+The CLI includes embedded reference values for the Coordinator, allowing it to verify the Coordinator's identity and integrity during attestation.
 Because these reference values are part of the CLI build, the CLI effectively serves as the root of trust for the deployment.
 Verifying the CLI’s integrity and authenticity is therefore essential.
 

@@ -1,6 +1,6 @@
-# Deploy Contrast coordinator
+# Deploy Contrast Coordinator
 
-This step adds an additional service to you cluser. The coordinator takes care of verifying your deployment.
+This step adds an additional service to you cluser. The Coordinator takes care of verifying your deployment.
 
 ## Applicability
 
@@ -19,30 +19,29 @@ This step is mandatory for all Contrast deployments.
 
 ## How-to
 
-### Download the Contrast coordinator resource
+### Download the Contrast Coordinator resource
 
 You can choose whether to download and deploy the Coordinator manifest separately after deploying your application, or include it alongside your application resources and apply everything at once.
 Note that your workloads will not run until a valid manifest has been set.
 
-Download the Kubernetes resource of the Contrast coordinator, comprising a single replica deployment and a
-LoadBalancer service. Put it next to your resources:
+Download the Kubernetes resource of the Contrast Coordinator, comprising a single replica deployment and a LoadBalancer service. Put it next to your resources:
 
 ```sh
 curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir deployment
 ```
 
-### Deploy the coordinator
+### Deploy the Coordinator
 
-Deploy the coordinator resource by applying its resource definition:
+Deploy the Coordinator resource by applying its resource definition:
 
 ```sh
 kubectl apply -f deployment/coordinator.yml
 
 ```
 
-### Connect to the Contrast coordinator
+### Connect to the Contrast Coordinator
 
-For the next steps, we will need to connect to the coordinator. The released coordinator resource
+For the next steps, we will need to connect to the Coordinator. The released Coordinator resource
 includes a LoadBalancer definition we can use.
 
 ```sh
@@ -80,12 +79,12 @@ Upstream tracking issue: https://github.com/kata-containers/kata-containers/issu
 
 ### Set the manifest
 
-Attest the coordinator and set the manifest:
+Attest the Coordinator and set the manifest:
 
 ```sh
 contrast set -c "${coordinator}:1313" resources/
 ```
 
-This will use the reference values from the manifest file to attest the coordinator.
-After this step, the coordinator will start issuing TLS certificates to the workloads. The init container
+This will use the reference values from the manifest file to attest the Coordinator.
+After this step, the Coordinator will start issuing TLS certificates to the workloads. The init container
 will fetch a certificate for the workload and the workload is started.

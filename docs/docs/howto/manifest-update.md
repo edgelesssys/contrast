@@ -12,11 +12,11 @@ A running Contrast deployment.
 
 ## How-to
 
-First, connect to the coordinator. Then update the manifest and restart your pods to apply the changes.
+First, connect to the Coordinator. Then update the manifest and restart your pods to apply the changes.
 
-### Connect to the coordinator
+### Connect to the Coordinator
 
-The released coordinator resource includes a LoadBalancer definition we can use.
+The released Coordinator resource includes a LoadBalancer definition we can use.
 
 ```sh
 coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')

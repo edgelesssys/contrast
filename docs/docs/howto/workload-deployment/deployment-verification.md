@@ -15,9 +15,9 @@ A data owner or application user can use this step to verify the deployment befo
 
 This page explains how a user can connect to the Coordinator and verify the application's integrity.
 
-### Connect to the coordinator
+### Connect to the Coordinator
 
-For the next steps, we will need to connect to the coordinator. The released coordinator resource
+For the next steps, we will need to connect to the Coordinator. The released Coordinator resource
 includes a LoadBalancer definition we can use.
 
 ```sh

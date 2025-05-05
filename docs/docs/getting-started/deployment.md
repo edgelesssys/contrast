@@ -121,7 +121,7 @@ So lets add specific values to our deployment. In our example each application p
 
 Contrast comes with its own PKI infrastructure, rooted in attestation.
 
-The Contrast coordinator, an additional service deployed to your cluster, acts as both the central attestation service and a certificate authority.
+The Contrast Coordinator, an additional service deployed to your cluster, acts as both the central attestation service and a certificate authority.
 It issues certificates only to pods that have been successfully verified through remote attestation.
 It can also be configured to automatically establish a service mesh that ensures authenticated and encrypted pod-to-pod communication.
 
@@ -251,7 +251,9 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 </TabItem>
 </Tabs>
 
-## 3. Add the Contrast coordinator to deployment
+## 3. Add the Contrast Coordinator to deployment
+
+The Contrast Coordinator is an additional service that runs alongside your application and ensures the deployment remains in a secure and trusted state.
 
 Download the Kubernetes resource of the Contrast Coordinator, comprising a single replica deployment and a LoadBalancer service.
 Put it next to your resources:
@@ -262,9 +264,9 @@ curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coord
 
 ## 4. Generate policy annotations and manifest
 
-Run the `generate` command to create execution policies, which strictly control host-to-CVM communication and define the allowed workloads. The command adds these policies as annotations to your deployment files.
+Run the `generate` command to create execution policies that strictly control communication between the host and CVMs on each node and define which workloads are allowed to run. These policies are added as annotations to your deployment files.
 
-It also creates a `manifest.json` file, which contains the reference values for your deployment.
+The command also generates a `manifest.json` file, which contains the trusted reference state of your deployment.
 
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
@@ -296,6 +298,8 @@ If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and 
 
 ## 5. Deploy application
 
+Now deploy your application along with the Contrast coordinator:
+
 ```sh
 kubectl apply -f deployment/
 ```
@@ -311,11 +315,13 @@ echo "The user API of your Contrast Coordinator is available at $coordinator:131
 contrast set -c "${coordinator}:1313" deployment/
 ```
 
+<!-- TODO: I always thought the CLI comes with embedded reference values for the Coordinator. -->
+
 The CLI will use the reference values from the manifest to attest the Coordinator deployment
 during the TLS handshake. If the connection succeeds, it's ensured that the Coordinator
 deployment hasn't been tampered with.
 
-## 6. Verify deployment
+## 7. Verify deployment
 
 In many scenarios, users may require assurance of an application's security and integrity before interacting with it—for example, prior to submitting sensitive data or casting a vote.
 
@@ -345,7 +351,7 @@ The CLI stores this information—including the mesh root certificate (`mesh-ca.
 Next, the stored Coordinator configuration should be audited.
 A user—or a trusted third party—can review the manifest and the referenced policies to ensure they meet expectations.
 
-## 7. Connect securely to the frontend
+## 8. Connect securely to the frontend
 
 Once the Coordinator’s configuration has been verified, users can securely connect to the application via HTTPS. The application uses the `mesh-ca.pem` certificate as the root of trust, which we previously configured to issue the frontend's mesh certificate for secure connections.
 

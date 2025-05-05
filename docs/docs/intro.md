@@ -15,15 +15,15 @@ Contrast is built upon the open-source [Kata Containers](https://github.com/kata
 Contrast leverages a technology called confidential computing. If you're new to confidential computing, check out our 📄[whitepaper](https://content.edgeless.systems/hubfs/Confidential%20Computing%20Whitepaper.pdf) for an overview.
 :::
 
-## Supported Kubernetes environments
-
-Contrast supports managed Kubernetes via the [Confidential Containers preview on Azure Kubernetes Service (AKS)](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview). It also supports bare-metal setups based on AMD SEV-SNP and Intel TDX hardware.
-
 ## Why use Contrast?
 
 Contrast keeps your data encrypted at all times, ensuring it remains inaccessible from the underlying infrastructure. It effectively removes the infrastructure provider—including datacenter employees, privileged cloud administrators, cluster operators, and potential attackers—from your trusted computing base (TCB). This protects your workloads even from sophisticated threats like malicious co-tenants attempting privilege escalation.
 
 Contrast integrates seamlessly into your existing Kubernetes workflows. It can be deployed as a day-2 operation, and requires minimal adjustments to your existing processes.
+
+## Supported Kubernetes environments
+
+Contrast supports managed Kubernetes via the [Confidential Containers preview on Azure Kubernetes Service (AKS)](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview). It also supports bare-metal setups based on AMD SEV-SNP and Intel TDX hardware.
 
 ## Key use cases
 

@@ -8,7 +8,7 @@ Collecting logs is a helpful first step in diagnosing and resolving deployment i
 
 ## Prerequisites
 
-- A running Contrast deployment.
+A running Contrast deployment.
 
 ## How-To
 

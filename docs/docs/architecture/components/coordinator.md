@@ -1,4 +1,4 @@
-# The Contrast coordinator
+# The Contrast Coordinator
 
 The Contrast Coordinator is the central remote attestation service of a Contrast deployment.
 It runs inside a confidential container inside your cluster.
