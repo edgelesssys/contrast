@@ -77,6 +77,17 @@ rustPlatform.buildRustPackage rec {
       # It reflects genpolicy-support-mount-propagation-and-ro-mounts.patch on upstream kata.genpolicy, but drops the patched propagation mode
       # derivation, because it was already built in to the microsoft fork.
       ./0010-genpolicy-support-mount-propagation-and-ro-mounts.patch
+
+      # Exec requests are failing on the Microsoft fork of Kata, as allow_interactive_exec is blocking execution.
+      # Reason for this is that a subsequent check asserts the sandbox-name from the annotations, but such annotation
+      # is only added for pods by genpolicy. The sandbox name of other pod-generating resources is hard to predict.
+      #
+      # With this patch, we use a regex check for the sandbox name in these cases. We construct the regex in genpolicy
+      # based on the the specified metadata, following the logic after which kubernetes will derive the sandbox name.
+      # The generated regex is then used in the policy to match the sandbox name.
+      #
+      # Microsoft was informed about the issue but didn't act since it occurred 4 months ago.
+      ./0011-genpolicy-match-sandbox-name-by-regex.patch
     ];
   };
 

@@ -1,0 +1,259 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Mon, 5 May 2025 16:39:24 +0200
+Subject: [PATCH] genpolicy: match sandbox name by regex
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ src/tools/genpolicy/rules.rego                |  7 +++---
+ src/tools/genpolicy/src/cronjob.rs            |  9 +++++++-
+ src/tools/genpolicy/src/daemon_set.rs         |  7 +++++-
+ src/tools/genpolicy/src/deployment.rs         |  7 +++++-
+ src/tools/genpolicy/src/job.rs                |  7 +++++-
+ src/tools/genpolicy/src/obj_meta.rs           |  2 +-
+ src/tools/genpolicy/src/pod.rs                | 10 ++++----
+ src/tools/genpolicy/src/replica_set.rs        |  7 +++++-
+ .../genpolicy/src/replication_controller.rs   |  7 +++++-
+ src/tools/genpolicy/src/stateful_set.rs       |  7 +++++-
+ src/tools/genpolicy/src/yaml.rs               | 23 +++++++++++++++++++
+ 11 files changed, 76 insertions(+), 17 deletions(-)
+
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index c16439f24e2e591d115bc1d54ee1d9fb085cd775..a5450554c6eeb8b025aa0c469ef3e453ddcc6c75 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -324,7 +324,7 @@ allow_create_container_input(req) {
+ 
+ allow_namespace(p_namespace, i_namespace) = add_namespace {
+     p_namespace == i_namespace
+-    add_namespace := null
++    add_namespace := state_allows("namespace", i_namespace)
+     print("allow_namespace 1: input namespace matches policy data")
+ }
+ 
+@@ -475,8 +475,7 @@ allow_sandbox_name(p_s_name, i_s_name) {
+ allow_sandbox_name(p_s_name, i_s_name) {
+     print("allow_sandbox_name 2: start")
+ 
+-    # TODO: should generated names be handled differently?
+-    contains(p_s_name, "$(generated-name)")
++    regex.match(p_s_name, i_s_name)
+ 
+     print("allow_sandbox_name 2: true")
+ }
+@@ -914,7 +913,7 @@ allow_var(p_process, i_process, i_var, s_name, s_namespace) {
+     p_var2 := replace(p_var, "$(sandbox-name)", s_name)
+ 
+     print("allow_var 2: p_var2 =", p_var2)
+-    p_var2 == i_var
++    regex.match(p_var2, i_var)
+ 
+     print("allow_var 2: true")
+ }
+diff --git a/src/tools/genpolicy/src/cronjob.rs b/src/tools/genpolicy/src/cronjob.rs
+index 6a2d63de3138d7728d430aad1a9b15201f61b62a..00d4ac56c529795b7148544c6aee4b45736653bc 100644
+--- a/src/tools/genpolicy/src/cronjob.rs
++++ b/src/tools/genpolicy/src/cronjob.rs
+@@ -19,6 +19,7 @@ use crate::yaml;
+ use async_trait::async_trait;
+ use serde::{Deserialize, Serialize};
+ use std::collections::BTreeMap;
++use std::vec;
+ 
+ /// See Reference / Kubernetes API / Workload Resources / CronJob.
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+@@ -81,7 +82,13 @@ impl yaml::K8sResource for CronJob {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        yaml::get_sandbox_regex(
++            vec![
++                &self.spec.jobTemplate.spec.template.metadata,
++                &self.spec.jobTemplate.metadata,
++                &Some(self.metadata.clone()),
++            ],
++        )
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
+index bed1eb8bc88a4b0a94a988d712bc155d1bb14d25..5fb7df587a32bf25481d61d6fd586c2cd31fcafb 100644
+--- a/src/tools/genpolicy/src/daemon_set.rs
++++ b/src/tools/genpolicy/src/daemon_set.rs
+@@ -83,7 +83,12 @@ impl yaml::K8sResource for DaemonSet {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        yaml::get_sandbox_regex(
++            vec![
++                &self.spec.template.metadata,
++                &Some(self.metadata.clone()),
++            ]
++        )
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/deployment.rs b/src/tools/genpolicy/src/deployment.rs
+index 90f15617ec6b68a1410d9077df26f7290c817397..3e5e14a188196e7261ad7670bb9fb94a40a699a3 100644
+--- a/src/tools/genpolicy/src/deployment.rs
++++ b/src/tools/genpolicy/src/deployment.rs
+@@ -81,7 +81,12 @@ impl yaml::K8sResource for Deployment {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        yaml::get_sandbox_regex(
++            vec![
++                &self.spec.template.metadata,
++                &Some(self.metadata.clone()),
++            ]
++        )
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/job.rs b/src/tools/genpolicy/src/job.rs
+index e9dc76532d8bdd975cdff16bdc4b8c981ea93d33..f58e9f66b35702e9cd1a835fd6cfefefe7751a4a 100644
+--- a/src/tools/genpolicy/src/job.rs
++++ b/src/tools/genpolicy/src/job.rs
+@@ -55,7 +55,12 @@ impl yaml::K8sResource for Job {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        yaml::get_sandbox_regex(
++            vec![
++                &self.spec.template.metadata,
++                &Some(self.metadata.clone()),
++            ]
++        )
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/obj_meta.rs b/src/tools/genpolicy/src/obj_meta.rs
+index e7458c604d568119ce5c60a9d3db6f6d89d44ab7..efc052331fd3fac0c98c93b947870a70796e805e 100644
+--- a/src/tools/genpolicy/src/obj_meta.rs
++++ b/src/tools/genpolicy/src/obj_meta.rs
+@@ -17,7 +17,7 @@ pub struct ObjectMeta {
+     pub name: Option<String>,
+ 
+     #[serde(skip_serializing_if = "Option::is_none")]
+-    generateName: Option<String>,
++    pub generateName: Option<String>,
+ 
+     #[serde(skip_serializing_if = "Option::is_none")]
+     labels: Option<BTreeMap<String, String>>,
+diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
+index 111aef73d3866efe885a351d93c902bde085350d..b0c734a45f47b9fde44925cb08c0bbb65b8f3d10 100644
+--- a/src/tools/genpolicy/src/pod.rs
++++ b/src/tools/genpolicy/src/pod.rs
+@@ -839,11 +839,11 @@ impl yaml::K8sResource for Pod {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        let name = self.metadata.get_name();
+-        if !name.is_empty() {
+-            return Some(name);
+-        }
+-        panic!("No pod name.");
++        yaml::get_sandbox_regex(
++            vec![
++                &Some(self.metadata.clone()),
++            ],
++        )
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/replica_set.rs b/src/tools/genpolicy/src/replica_set.rs
+index 27e70d20f0085e36b7170d6c24eea3f7771cbb1f..9c7f152496ccb85b4b5421036528eb8b29ab168f 100644
+--- a/src/tools/genpolicy/src/replica_set.rs
++++ b/src/tools/genpolicy/src/replica_set.rs
+@@ -53,7 +53,12 @@ impl yaml::K8sResource for ReplicaSet {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        yaml::get_sandbox_regex(
++            vec![
++                &self.spec.template.metadata,
++                &Some(self.metadata.clone()),
++            ]
++        )
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/replication_controller.rs b/src/tools/genpolicy/src/replication_controller.rs
+index 9029c5a9173c1aa0e6b27f4314f35eacdd7a5e65..c744cc25ea0e2213d8e54f34abbd7c0cb47a8732 100644
+--- a/src/tools/genpolicy/src/replication_controller.rs
++++ b/src/tools/genpolicy/src/replication_controller.rs
+@@ -55,7 +55,12 @@ impl yaml::K8sResource for ReplicationController {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        yaml::get_sandbox_regex(
++            vec![
++                &self.spec.template.metadata,
++                &Some(self.metadata.clone()),
++            ]
++        )
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/stateful_set.rs b/src/tools/genpolicy/src/stateful_set.rs
+index 298af4eb577687246125dc567743a2f49742d905..10091aaff6f8c16ed5fdab26815cd4ed7dbd60c7 100644
+--- a/src/tools/genpolicy/src/stateful_set.rs
++++ b/src/tools/genpolicy/src/stateful_set.rs
+@@ -103,7 +103,12 @@ impl yaml::K8sResource for StatefulSet {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        yaml::get_sandbox_regex(
++            vec![
++                &self.spec.template.metadata,
++                &Some(self.metadata.clone()),
++            ]
++        )
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
+index 8ae1000eb319267a7732132ee42731c792ebd48c..37bcd01fe62cc70b5edeef9e47477ba8de10868e 100644
+--- a/src/tools/genpolicy/src/yaml.rs
++++ b/src/tools/genpolicy/src/yaml.rs
+@@ -15,6 +15,7 @@ use crate::job;
+ use crate::list;
+ use crate::mount_and_storage;
+ use crate::no_policy;
++use crate::obj_meta::ObjectMeta;
+ use crate::pod;
+ use crate::policy;
+ use crate::pvc;
+@@ -371,3 +372,25 @@ pub fn get_process_fields(
+         }
+     }
+ }
++
++/// The order of metas is expected to be from the most specific to the least specific,
++/// e.g.: self.spec.template.metadata before self.metadata.
++pub fn get_sandbox_regex(
++    metas: Vec<&Option<ObjectMeta>>,
++) -> Option<String> {
++    let mut first = true;
++    for meta in metas {
++        if let Some(meta) = meta {
++            if first && meta.name.is_some() {
++                let name = meta.name.as_ref().unwrap();
++                return Some(format!("^${name}$"))
++            } else if let Some(name) = &meta.name {
++                return Some(format!("^{name}-[a-zA-Z0-9-]+$"))
++            } else if let Some(generate_name) = &meta.generateName {
++                return Some(format!("^{generate_name}-[a-zA-Z0-9-]+$"))
++            }
++        }
++        first = false
++    }
++    return None
++}
