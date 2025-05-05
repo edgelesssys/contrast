@@ -140,7 +140,10 @@ rustPlatform.buildRustPackage rec {
       '';
     };
 
-    settings = settings-base;
+    settings = applyPatches {
+      src = settings-base;
+      patches = [ ./genpolicy_msft_settings_prod.patch ];
+    };
 
     # Settings that allow exec into CVM pods - not safe for production use!
     settings-dev = applyPatches {
