@@ -41,52 +41,51 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: batch/v1
-kind: CronJob
+kind: Job
 metadata:
   name: cleanup-maintenance
   namespace: maintenance-cleanup
 spec:
-  schedule: "0 2 * * *" # 2 AM every day
-  jobTemplate:
+  template:
+    metadata:
+      name: cleanup-maintenance
     spec:
-      template:
-        spec:
-          serviceAccountName: cleanup-sa
-          containers:
-            - name: cleanup
-              image: ghcr.io/edgelesssys/contrast/cleanup-bare-metal
-              imagePullPolicy: Always
-              env:
-                - name: OPTEDGELESS
-                  value: /opt/edgeless
-                - name: CONFIG
-                  value: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
-                - name: SNAPSHOTTER
-                  value: nydus
-              volumeMounts:
-                - name: opt-edgeless
-                  mountPath: /opt/edgeless
-                - name: snapshotter-data
-                  mountPath: /var/lib/nydus-snapshotter
-                - name: containerd-config
-                  mountPath: /var/lib/rancher/k3s/agent/etc/containerd
-                - name: containerd-run
-                  mountPath: /run/k3s/containerd/
-          volumes:
+      serviceAccountName: cleanup-sa
+      containers:
+        - name: cleanup
+          image: "@@REPLACE_IMAGE@@"
+          imagePullPolicy: Always
+          env:
+            - name: OPTEDGELESS
+              value: /opt/edgeless
+            - name: CONFIG
+              value: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
+            - name: SNAPSHOTTER
+              value: nydus
+          volumeMounts:
             - name: opt-edgeless
-              hostPath:
-                path: /opt/edgeless
-                type: Directory
+              mountPath: /opt/edgeless
             - name: snapshotter-data
-              hostPath:
-                path: /var/lib/nydus-snapshotter
-                type: Directory
+              mountPath: /var/lib/nydus-snapshotter
             - name: containerd-config
-              hostPath:
-                path: /var/lib/rancher/k3s/agent/etc/containerd
-                type: Directory
+              mountPath: /var/lib/rancher/k3s/agent/etc/containerd
             - name: containerd-run
-              hostPath:
-                path: /run/k3s/containerd/
-                type: Directory
-          restartPolicy: OnFailure
+              mountPath: /run/k3s/containerd/
+      volumes:
+        - name: opt-edgeless
+          hostPath:
+            path: /opt/edgeless
+            type: Directory
+        - name: snapshotter-data
+          hostPath:
+            path: /var/lib/nydus-snapshotter
+            type: Directory
+        - name: containerd-config
+          hostPath:
+            path: /var/lib/rancher/k3s/agent/etc/containerd
+            type: Directory
+        - name: containerd-run
+          hostPath:
+            path: /run/k3s/containerd/
+            type: Directory
+      restartPolicy: OnFailure
