@@ -40,3 +40,4 @@ jobs:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
           title: "Failed to update RPM packages"
           message: ""
+          additionalFields: '[{"title": "Job ID", "value": "${{ github.job }}"}]'
