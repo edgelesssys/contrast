@@ -59,7 +59,7 @@ func TestNewMeshCert(t *testing.T) {
 		Report: &fakeReport{
 			hostData: policyHash[:],
 		},
-		State: authority.NewState(se, m, nil, ca),
+		State: authority.NewStateForTest(se, m, nil, ca),
 	}
 	ctx := peer.NewContext(t.Context(), &peer.Peer{
 		AuthInfo: info,
@@ -155,7 +155,7 @@ func TestRecover(t *testing.T) {
 				Report: &fakeReport{
 					hostData: tc.report.hostData,
 				},
-				State: authority.NewState(se, tc.mnfst, mJSON, ca),
+				State: authority.NewStateForTest(se, tc.mnfst, mJSON, ca),
 			}
 			ctx := peer.NewContext(t.Context(), &peer.Peer{
 				AuthInfo: info,

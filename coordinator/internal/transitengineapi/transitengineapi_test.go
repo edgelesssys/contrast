@@ -171,7 +171,7 @@ func newFakeSeedEngineAuthority() (*fakeStateAuthority, error) {
 	if err != nil {
 		return nil, err
 	}
-	fakeState := authority.NewState(seedEngine, nil, nil, nil)
+	fakeState := authority.NewStateForTest(seedEngine, nil, nil, nil)
 
 	authority := &fakeStateAuthority{
 		state: fakeState,

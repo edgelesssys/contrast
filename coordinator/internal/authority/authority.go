@@ -408,11 +408,13 @@ type State struct {
 	stale atomic.Bool
 }
 
-// NewState constructs a new State object.
+// NewStateForTest constructs a new State object.
 //
-// This function is intended for other packages that work on State objects. It does not produce a
-// State that is valid for this package.
-func NewState(seedEngine *seedengine.SeedEngine, manifest *manifest.Manifest, manifestBytes []byte, ca *ca.CA) *State {
+// This function is intended for testing packages that work on State objects. It fills the fields
+// that are observable outside this package, but does not manage the fields only relevant for this
+// package. State objects created with this function can't be used as arguments to this package's
+// public API functions.
+func NewStateForTest(seedEngine *seedengine.SeedEngine, manifest *manifest.Manifest, manifestBytes []byte, ca *ca.CA) *State {
 	return &State{
 		seedEngine:    seedEngine,
 		manifest:      manifest,
