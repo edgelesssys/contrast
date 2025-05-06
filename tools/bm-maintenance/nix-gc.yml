@@ -4,25 +4,24 @@ metadata:
   name: maintenance-nix-gc
 ---
 apiVersion: batch/v1
-kind: CronJob
+kind: Job
 metadata:
   name: nix-garbage-collection
   namespace: maintenance-nix-gc
 spec:
-  schedule: "0 0 */7 * *" # 0:00 every 7 days
-  jobTemplate:
+  template:
+    metadata:
+      name: nix-garbage-collection
     spec:
-      template:
-        spec:
-          hostPID: true
-          containers:
-            - name: nix-gc
-              image: ghcr.io/edgelesssys/contrast/cleanup-bare-metal
-              imagePullPolicy: Always
-              securityContext:
-                privileged: true
-              command:
-                - /bin/sh
-                - -c
-                - nsenter --target 1 --mount -- /root/.nix-profile/bin/nix store gc
-          restartPolicy: OnFailure
+      hostPID: true
+      containers:
+        - name: nix-garbage-collection
+          image: "@@REPLACE_IMAGE@@"
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+          command:
+            - /bin/sh
+            - -c
+            - nsenter --target 1 --mount -- /root/.nix-profile/bin/nix store gc
+      restartPolicy: OnFailure

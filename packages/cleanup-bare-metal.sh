@@ -63,3 +63,5 @@ done
 
 # Fix the state for removed snapshotters.
 cleanup-images
+
+echo "Cleanup finished"
