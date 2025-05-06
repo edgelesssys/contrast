@@ -101,7 +101,7 @@ jobs:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
           title: "${{ inputs.test-name }} failed"
           message: "e2e test ${{ inputs.test-name }} failed"
-          additionalFields: '[{"title": "Platform", "value": "${{ inputs.platform }}"},{"title": "Enterprise", "value": "${{ inputs.enterprise }}"}]'
+          additionalFields: '[{"title": "Platform", "value": "${{ inputs.platform }}"},{"title": "Job ID", "value": "${{ github.job }}"},{"title": "Enterprise", "value": "${{ inputs.enterprise }}"}]'
       - name: Cleanup
         if: always() && !inputs.skip-undeploy
         run: |

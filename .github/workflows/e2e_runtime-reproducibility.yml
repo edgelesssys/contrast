@@ -73,7 +73,7 @@ jobs:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
           title: "Runtime reproducibility test failed"
           message: "Build failed on ${{ matrix.build-target}}-${{matrix.os }}"
-          additionalFields: '[{"title": "Build target", "value": "${{ matrix.build-target }}"}, {"title": "OS", "value": "${{ matrix.os }}"}]'
+          additionalFields: '[{"title": "Job ID", "value": "${{ github.job }}"},{"title": "Build target", "value": "${{ matrix.build-target }}"}, {"title": "OS", "value": "${{ matrix.os }}"}]'
 
   collect-checksums:
     runs-on: ubuntu-22.04
@@ -119,4 +119,4 @@ jobs:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
           title: "Runtime reproducibility test failed"
           message: "Reproducibility issue found on ${{ matrix.build-target }}"
-          additionalFields: '[{"title": "Build target", "value": "${{matrix.build-target}}"}]'
+          additionalFields: '[{"title": "Job ID", "value": "${{ github.job }}"},{"title": "Build target", "value": "${{matrix.build-target}}"}]'

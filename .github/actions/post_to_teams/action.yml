@@ -35,9 +35,8 @@ runs:
         yq -oj -iP '.attachments[0].content.actions[0].url = "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"' ./template.json
 
         # update the fact set
-        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts[0].value = "${{github.job}}"' ./template.json
-        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts[1].value = "${{github.run_id}}"' ./template.json
-        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts[2].value = "${{github.ref_name}}"' ./template.json
+        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts[0].value = "${{github.run_id}}"' ./template.json
+        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts[1].value = "${{github.ref_name}}"' ./template.json
 
         # add additional fields
         yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts += ${{inputs.additionalFields}}' ./template.json
