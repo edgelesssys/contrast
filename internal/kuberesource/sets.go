@@ -154,8 +154,8 @@ func MultiCPU() []any {
 						WithContainers(
 							Container().
 								WithName("multi-cpu").
-								WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
-								WithCommand("/usr/local/bin/bash", "-c", "lscpu | grep \"CPU(s)\" | head -1 | awk '{print $2}' > /run/cpu_count; sleep infinity").
+								WithImage("ghcr.io/edgelesssys/contrast/ubuntu@sha256:b0c08a4b639b5fca9aa4943ecec614fe241a0cebd1a7b460093ccaeae70df698").
+								WithCommand("/usr/bin/bash", "-c", "lscpu | grep \"CPU(s)\" | head -1 | awk '{print $2}' > /run/cpu_count; sleep infinity").
 								WithResources(ResourceRequirements().
 									WithCPURequest(3),
 								),

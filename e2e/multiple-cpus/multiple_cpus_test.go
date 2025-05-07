@@ -10,10 +10,12 @@ import (
 	"flag"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
+	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -51,10 +53,10 @@ func TestMultipleCPUs(t *testing.T) {
 		require := require.New(t)
 		assert := assert.New(t)
 
+		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, multiCpu))
+
 		pods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, multiCpu)
 		require.NoError(err)
-
-		t.Log(pods)
 
 		// TODO: Check that all requested CPUs are available
 		argv := []string{"/bin/sh", "-c", "cat /run/cpu_count"}
@@ -62,7 +64,7 @@ func TestMultipleCPUs(t *testing.T) {
 		require.NoError(err)
 		require.Empty(stderr)
 
-		cpuCount, err := strconv.Atoi(stdout)
+		cpuCount, err := strconv.Atoi(strings.ReplaceAll(stdout, "\n", ""))
 		require.NoError(err)
 
 		assert.Equal(3, cpuCount)
