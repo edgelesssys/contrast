@@ -88,6 +88,11 @@ rustPlatform.buildRustPackage rec {
       #
       # Microsoft was informed about the issue but didn't act since it occurred 4 months ago.
       ./0011-genpolicy-match-sandbox-name-by-regex.patch
+
+      # Fail when layer can't be processed
+      # Cherry-pick from https://github.com/kata-containers/kata-containers/pull/10925,
+      # which isn't yet included in the Microsoft fork.
+      ./0012-genpolicy-fail-when-layer-can-t-be-processed.patch
     ];
   };
 
