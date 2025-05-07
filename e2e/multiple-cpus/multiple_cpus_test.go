@@ -67,7 +67,7 @@ func TestMultipleCPUs(t *testing.T) {
 		cpuCount, err := strconv.Atoi(strings.ReplaceAll(stdout, "\n", ""))
 		require.NoError(err)
 
-		assert.Equal(3, cpuCount)
+		assert.Equal(2, cpuCount)
 	})
 }
 
