@@ -157,7 +157,10 @@ func MultiCPU() []any {
 								WithImage("ghcr.io/edgelesssys/contrast/ubuntu@sha256:b0c08a4b639b5fca9aa4943ecec614fe241a0cebd1a7b460093ccaeae70df698").
 								WithCommand("/usr/bin/bash", "-c", "lscpu | grep \"CPU(s)\" | head -1 | awk '{print $2}' > /run/cpu_count; sleep infinity").
 								WithResources(ResourceRequirements().
-									WithCPURequest(3),
+									// Since measurements are in thousandth parts of a CPU core, this requests 3 CPU cores
+									WithCPURequest(2000).WithLimits(corev1.ResourceList{
+									corev1.ResourceCPU: resource.MustParse("2"),
+								}),
 								),
 						),
 					),
