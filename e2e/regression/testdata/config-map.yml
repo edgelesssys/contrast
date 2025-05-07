@@ -5,5 +5,3 @@ metadata:
   namespace: "@@REPLACE_NAMESPACE@@"
 data:
   foo: bar
-binaryData:
-  asdf: ZmRzYQ==
