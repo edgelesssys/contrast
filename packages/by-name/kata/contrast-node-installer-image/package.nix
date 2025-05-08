@@ -10,7 +10,6 @@
 
   contrast,
   kata,
-  nydus-snapshotter,
   pkgsStatic,
   qemu-static,
   qemu-tdx-static,
@@ -108,11 +107,6 @@ let
             {
               url = "file:///opt/edgeless/tdx/share/qemu/efi-virtio.rom";
               path = "/opt/edgeless/@@runtimeName@@/tdx/share/qemu/efi-virtio.rom";
-            }
-            {
-              url = "file:///bin/nydus-overlayfs";
-              path = "/opt/edgeless/@@runtimeName@@/bin/nydus-overlayfs";
-              executable = true;
             }
           ];
           inherit debugRuntime;
@@ -213,15 +207,6 @@ let
     ];
   };
 
-  nydus = ociLayerTar {
-    files = [
-      {
-        source = "${nydus-snapshotter}/bin/nydus-overlayfs";
-        destination = "/bin/nydus-overlayfs";
-      }
-    ];
-  };
-
   version = ociLayerTar {
     files = [
       {
@@ -239,7 +224,6 @@ let
     qemu-snp
     qemu-tdx
     kata-runtime
-    nydus
     version
   ];
 

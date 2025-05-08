@@ -216,24 +216,13 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	var snapshotterName, socketName string
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
+		// Add the snapshotter proxy plugin.
 		snapshotterName = fmt.Sprintf("tardev-%s", runtimeHandler)
 		socketName = fmt.Sprintf("/run/containerd/tardev-snapshotter-%s.sock", runtimeHandler)
-	case platforms.MetalQEMUTDX, platforms.MetalQEMUSNP, platforms.K3sQEMUTDX,
-		platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.RKE2QEMUTDX,
-		platforms.MetalQEMUSNPGPU:
-		snapshotterName = fmt.Sprintf("nydus-%s", runtimeHandler)
-		socketName = fmt.Sprintf("/run/containerd/containerd-nydus-grpc-%s.sock", runtimeHandler)
-
-		// Configure the containerd plugin
-		containerdPlugin := ensureMapPath(&existing.Plugins, constants.ImagesFQDN(existing.Version), "containerd")
-		containerdPlugin["discard_unpacked_layers"] = false
-		containerdPlugin["disable_snapshot_annotations"] = false
-	}
-
-	// Add the snapshotter proxy plugin.
-	existing.ProxyPlugins[snapshotterName] = config.ProxyPlugin{
-		Type:    "snapshot",
-		Address: socketName,
+		existing.ProxyPlugins[snapshotterName] = config.ProxyPlugin{
+			Type:    "snapshot",
+			Address: socketName,
+		}
 	}
 
 	// Add contrast-cc runtime

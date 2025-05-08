@@ -139,6 +139,10 @@ buildGoModule (finalAttrs: {
       # it makes sense at all, so we're fixing this downstream only.
       # https://github.com/kata-containers/kata-containers/pull/11077#issuecomment-2750400613
       ./0018-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
+
+      # Support to enforce guest pull without (nydus) snapshotter.
+      # Cherry-picked from https://github.com/kata-containers/kata-containers/pull/11244
+      ./0019-runtime-add-option-to-force-guest-pull.patch
     ];
   };
 

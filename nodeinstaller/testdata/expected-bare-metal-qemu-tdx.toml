@@ -18,7 +18,6 @@ conf_template = '/etc/containerd/kubenet_template.conf'
 [plugins.'io.containerd.grpc.v1.cri'.containerd]
 default_runtime_name = 'runc'
 disable_snapshot_annotations = false
-discard_unpacked_layers = false
 
 [plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes]
 [plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.kata]
@@ -52,7 +51,6 @@ runtime_type = 'io.containerd.contrast-cc.v2'
 runtime_path = '/opt/edgeless/my-runtime/bin/containerd-shim-contrast-cc-v2'
 pod_annotations = ['io.katacontainers.*']
 privileged_without_host_devices = true
-snapshotter = 'nydus-my-runtime'
 
 [plugins.'io.containerd.grpc.v1.cri'.containerd.runtimes.my-runtime.options]
 ConfigPath = '/opt/edgeless/my-runtime/etc/configuration-qemu-tdx.toml'
@@ -74,8 +72,3 @@ config_path = '/etc/containerd/certs.d'
 
 [plugins.'io.containerd.grpc.v1.cri'.registry.headers]
 X-Meta-Source-Client = ['azure/aks']
-
-[proxy_plugins]
-[proxy_plugins.nydus-my-runtime]
-type = 'snapshot'
-address = '/run/containerd/containerd-nydus-grpc-my-runtime.sock'

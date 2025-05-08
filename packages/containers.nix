@@ -155,19 +155,6 @@ let
       };
     };
 
-    nydus-snapshotter = dockerTools.buildImage {
-      name = "nydus-snapshotter";
-      tag = "v${pkgs.nydus-snapshotter.version}";
-      copyToRoot = with pkgs; [
-        getconf
-        nydus-snapshotter
-        nydus-snapshotter.config
-      ];
-      config = {
-        Cmd = [ "${lib.getExe pkgs.nydus-snapshotter}" ];
-      };
-    };
-
     dmesg = dockerTools.buildImage {
       name = "dmesg";
       tag = "v0.0.1";
@@ -205,15 +192,6 @@ let
       ];
       config = {
         Cmd = [ "${lib.getExe pkgs.cloud-api-adaptor.entrypoint}" ];
-      };
-    };
-
-    nydus-pull = dockerTools.buildImage {
-      name = "nydus-pull";
-      tag = "v${pkgs.nydus-pull.version}";
-      copyToRoot = with dockerTools; [ caCertificates ];
-      config = {
-        Entrypoint = [ "${lib.getExe pkgs.nydus-pull}" ];
       };
     };
   };

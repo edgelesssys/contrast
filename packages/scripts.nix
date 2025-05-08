@@ -133,8 +133,6 @@
       nix-update --version=skip --flake legacyPackages.x86_64-linux.snp-id-block-generator
       echo "Updating vendorHash of contrast.cli package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast
-      echo "Updating vendorHash of nydus-pull package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.nydus-pull
 
       echo "Updating src hash of kata.kata-kernel-uvm.configfile" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.kata.kata-kernel-uvm.configfile

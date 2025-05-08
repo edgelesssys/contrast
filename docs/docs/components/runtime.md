@@ -59,7 +59,7 @@ The `tardev` snapshotter uses [`dm-verity`](https://docs.kernel.org/admin-guide/
 Expected `dm-verity` container image hashes are part of Contrast runtime policies and are enforced by the kata-agent.
 This enables workload attestation by specifying the allowed container image as part of the policy. Read [the chapter on policies](policies.md) for more information.
 
-On bare metal, Contrast uses the [`nydus`](https://github.com/containerd/nydus-snapshotter) snapshotter to store metadata about the images. This metadata is communicated to the guest, so that it can pull the images itself.
+On bare metal, the image is pulled within the guest VM by the Kata guest components.
 
 ### Pod-VM image
 
