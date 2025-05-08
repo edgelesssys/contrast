@@ -41,9 +41,6 @@ initializer: (push "initializer")
 # Build the tardev-snapshotter, containerize and push it.
 tardev-snapshotter: (push "tardev-snapshotter")
 
-# Build the nydus-snapshotter, containerize and push it.
-nydus-snapshotter: (push "nydus-snapshotter")
-
 # Build the nydus-pull container and push it.
 nydus-pull: (push "nydus-pull")
 
@@ -62,12 +59,10 @@ node-installer platform=default_platform:
             just push "node-installer-microsoft"
         ;;
         "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
-            just push "nydus-snapshotter"
             just push "nydus-pull"
             just push "node-installer-kata"
         ;;
         "Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP-GPU")
-            just push "nydus-snapshotter"
             just push "nydus-pull"
             just push "node-installer-kata-gpu"
         ;;
