@@ -89,62 +89,9 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 			),
 	}
 
-	nydusSnapshotter := Container().
-		WithName("nydus-snapshotter").
-		WithImage("ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest").
-		WithResources(ResourceRequirements().
-			WithMemoryRequest(800),
-		).
-		WithVolumeMounts(
-			VolumeMount().
-				WithName("host-mount").
-				WithMountPath("/host"),
-			VolumeMount().
-				WithName("var-lib-containerd").
-				WithMountPath("/var/lib/containerd"),
-			VolumeMount().
-				WithName("var-lib-nydus-snapshotter").
-				WithMountPath(fmt.Sprintf("/var/lib/nydus-snapshotter/%s", runtimeHandler)),
-		).
-		WithArgs(
-			"containerd-nydus-grpc",
-			// Snapshotter will write to this path and tell containerd to read from it, so
-			// path must be shared and the same on the host. See 'var-lib-nydus-snapshotter' volume.
-			fmt.Sprintf("--root=/var/lib/nydus-snapshotter/%s", runtimeHandler),
-			"--config=/share/nydus-snapshotter/config-coco-guest-pulling.toml",
-			fmt.Sprintf("--address=/host/run/containerd/containerd-nydus-grpc-%s.sock", runtimeHandler),
-			"--log-to-stdout",
-			fmt.Sprintf("--nydus-overlayfs-path=/opt/edgeless/%s/bin/nydus-overlayfs", runtimeHandler),
-		)
-	nydusSnapshotterVolumes := []*applycorev1.VolumeApplyConfiguration{
-		Volume().
-			WithName("var-lib-nydus-snapshotter").
-			WithHostPath(HostPathVolumeSource().
-				WithPath(fmt.Sprintf("/var/lib/nydus-snapshotter/%s", runtimeHandler)).
-				WithType(corev1.HostPathDirectoryOrCreate),
-			),
-	}
-
-	nydusPull := Container().
-		WithName("nydus-pull").
-		WithImage("ghcr.io/edgelesssys/contrast/nydus-pull:latest").
-		WithArgs(runtimeHandler).
-		WithEnv(
-			EnvVar().
-				WithName("NODE_NAME").
-				WithValueFrom(
-					applycorev1.EnvVarSource().
-						WithFieldRef(
-							applycorev1.ObjectFieldSelector().
-								WithFieldPath("spec.nodeName"),
-						),
-				),
-		).
-		WithVolumeMounts(
-			VolumeMount().
-				WithName("containerd-socket").
-				WithMountPath("/run/containerd/containerd.sock"),
-		)
+	noSnapshotter := Container().
+		WithName("pause").
+		WithImage("registry.k8s.io/pause:3.6@sha256:3d380ca8864549e74af4b29c10f9cb0956236dfb01c40ca076fb6c37253234db")
 
 	var nodeInstallerImageURL string
 	var containers []*applycorev1.ContainerApplyConfiguration
@@ -159,43 +106,13 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 		if platform == platforms.MetalQEMUSNPGPU {
 			nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest"
 		}
-		containers = append(containers, nydusSnapshotter, nydusPull)
-		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes,
-			Volume().
-				WithName("var-lib-containerd").
-				WithHostPath(HostPathVolumeSource().
-					WithPath("/var/lib/containerd").
-					WithType(corev1.HostPathDirectory),
-				),
-			Volume().
-				WithName("containerd-socket").
-				WithHostPath(HostPathVolumeSource().
-					WithPath("/run/containerd/containerd.sock").
-					WithType(corev1.HostPathSocket),
-				),
-		)
-		snapshotterVolumes = nydusSnapshotterVolumes
+		containers = append(containers, noSnapshotter)
 	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.RKE2QEMUTDX:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
 		if platform == platforms.K3sQEMUSNPGPU {
 			nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest"
 		}
-		containers = append(containers, nydusSnapshotter, nydusPull)
-		nydusSnapshotterVolumes = append(nydusSnapshotterVolumes,
-			Volume().
-				WithName("var-lib-containerd").
-				WithHostPath(HostPathVolumeSource().
-					WithPath("/var/lib/rancher/k3s/agent/containerd").
-					WithType(corev1.HostPathDirectory),
-				),
-			Volume().
-				WithName("containerd-socket").
-				WithHostPath(HostPathVolumeSource().
-					WithPath("/run/k3s/containerd/containerd.sock").
-					WithType(corev1.HostPathSocket),
-				),
-		)
-		snapshotterVolumes = nydusSnapshotterVolumes
+		containers = append(containers, noSnapshotter)
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", platform)
 	}
