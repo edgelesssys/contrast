@@ -108,7 +108,7 @@ jobs:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
           title: "aks-runtime test failed"
           message: "e2e test aks-runtime failed"
-          additionalFields: '[{"title": "Platform", "value": "AKS-CLH-SNP"}]'
+          additionalFields: '[{"title": "Platform", "value": "AKS-CLH-SNP"},{"title": "Job ID", "value": "${{ github.job }}"}]'
       - name: Cleanup
         if: always()
         run: |

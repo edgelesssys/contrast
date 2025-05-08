@@ -45,10 +45,6 @@
                     "type": "FactSet",
                     "facts": [
                       {
-                        "title": "Job ID",
-                        "value": "@@JOB_ID@@"
-                      },
-                      {
                         "title": "Run ID",
                         "value": "@@RUN_ID@@"
                       },
