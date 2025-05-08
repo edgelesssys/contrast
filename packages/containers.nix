@@ -178,15 +178,6 @@ let
         Cmd = [ "${lib.getExe pkgs.cloud-api-adaptor.entrypoint}" ];
       };
     };
-
-    nydus-pull = dockerTools.buildImage {
-      name = "nydus-pull";
-      tag = "v${pkgs.nydus-pull.version}";
-      copyToRoot = with dockerTools; [ caCertificates ];
-      config = {
-        Entrypoint = [ "${lib.getExe pkgs.nydus-pull}" ];
-      };
-    };
   };
 in
 containers

@@ -41,9 +41,6 @@ initializer: (push "initializer")
 # Build the tardev-snapshotter, containerize and push it.
 tardev-snapshotter: (push "tardev-snapshotter")
 
-# Build the nydus-pull container and push it.
-nydus-pull: (push "nydus-pull")
-
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"
 default_platform := "${default_platform}"
@@ -59,11 +56,9 @@ node-installer platform=default_platform:
             just push "node-installer-microsoft"
         ;;
         "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
-            just push "nydus-pull"
             just push "node-installer-kata"
         ;;
         "Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP-GPU")
-            just push "nydus-pull"
             just push "node-installer-kata-gpu"
         ;;
         "AKS-PEER-SNP")
