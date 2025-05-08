@@ -256,7 +256,6 @@ jobs:
           initializerImg=$(nix run .#containers.push-initializer -- "$container_registry/contrast/initializer")
           serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy")
           tardevSnapshotterImg=$(nix run .#containers.push-tardev-snapshotter -- "$container_registry/contrast/tardev-snapshotter")
-          nydusSnapshotterImg=$(nix run .#containers.push-nydus-snapshotter -- "$container_registry/contrast/nydus-snapshotter")
           nydusPullImg=$(nix run .#containers.push-nydus-pull -- "$container_registry/contrast/nydus-pull")
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
           echo "coordinatorEnterpriseImg=$coordinatorEnterpriseImg" | tee -a "$GITHUB_ENV"
@@ -296,9 +295,6 @@ jobs:
 
           tardevVer=$(nix eval --impure --raw --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.microsoft.tardev-snapshotter.version")
           echo "tardevSnapshotterImgTagged=$(tag "$tardevVer" "$tardevSnapshotterImg")" | tee -a "$GITHUB_ENV"
-
-          nydusVer=$(nix eval --impure --raw --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.nydus-snapshotter.version")
-          echo "nydusSnapshotterImgTagged=$(tag "$nydusVer" "$nydusSnapshotterImg")" | tee -a "$GITHUB_ENV"
       - name: Create file with image replacements
         run: |
           cat > image-replacements.txt <<EOF
@@ -309,7 +305,6 @@ jobs:
           ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged
           ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged
           ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged
-          ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest=$nydusSnapshotterImgTagged
           ghcr.io/edgelesssys/contrast/nydus-pull:latest=$nydusPullImgTagged
           EOF
       - name: Create file with enterprise image replacements
@@ -322,7 +317,6 @@ jobs:
           ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged
           ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged
           ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged
-          ghcr.io/edgelesssys/contrast/nydus-snapshotter:latest=$nydusSnapshotterImgTagged
           ghcr.io/edgelesssys/contrast/nydus-pull:latest=$nydusPullImgTagged
           EOF
       - name: Upload image replacement files (for main branch PR)

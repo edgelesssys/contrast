@@ -139,19 +139,6 @@ let
       };
     };
 
-    nydus-snapshotter = dockerTools.buildImage {
-      name = "nydus-snapshotter";
-      tag = "v${pkgs.nydus-snapshotter.version}";
-      copyToRoot = with pkgs; [
-        getconf
-        nydus-snapshotter
-        nydus-snapshotter.config
-      ];
-      config = {
-        Cmd = [ "${lib.getExe pkgs.nydus-snapshotter}" ];
-      };
-    };
-
     dmesg = dockerTools.buildImage {
       name = "dmesg";
       tag = "v0.0.1";
