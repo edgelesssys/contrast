@@ -88,6 +88,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
+		config.Runtime["force_guest_pull"] = true
 		config.Hypervisor["qemu"]["path"] = filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "tdx", "share", "OVMF.fd")
 		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
@@ -108,6 +109,7 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
+		config.Runtime["force_guest_pull"] = true
 		config.Hypervisor["qemu"]["path"] = filepath.Join(baseDir, "snp", "bin", "qemu-system-x86_64")
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "snp", "share", "OVMF.fd")
 		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
@@ -168,7 +170,6 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 		Path:                         filepath.Join(baseDir, "bin", "containerd-shim-contrast-cc-v2"),
 		PodAnnotations:               []string{"io.katacontainers.*"},
 		PrivilegedWithoutHostDevices: true,
-		Snapshotter:                  snapshotter,
 	}
 
 	switch platform {
@@ -176,6 +177,7 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
 		}
+		cfg.Snapshotter = snapshotter
 	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
