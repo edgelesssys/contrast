@@ -256,7 +256,6 @@ jobs:
           initializerImg=$(nix run .#containers.push-initializer -- "$container_registry/contrast/initializer")
           serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy")
           tardevSnapshotterImg=$(nix run .#containers.push-tardev-snapshotter -- "$container_registry/contrast/tardev-snapshotter")
-          nydusPullImg=$(nix run .#containers.push-nydus-pull -- "$container_registry/contrast/nydus-pull")
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
           echo "coordinatorEnterpriseImg=$coordinatorEnterpriseImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_ENV"
@@ -305,7 +304,6 @@ jobs:
           ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged
           ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged
           ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged
-          ghcr.io/edgelesssys/contrast/nydus-pull:latest=$nydusPullImgTagged
           EOF
       - name: Create file with enterprise image replacements
         run: |
@@ -317,7 +315,6 @@ jobs:
           ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged
           ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged
           ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged
-          ghcr.io/edgelesssys/contrast/nydus-pull:latest=$nydusPullImgTagged
           EOF
       - name: Upload image replacement files (for main branch PR)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
