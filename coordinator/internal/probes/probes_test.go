@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
-	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
+	"github.com/edgelesssys/contrast/coordinator/stateguard"
 	"github.com/stretchr/testify/assert"
 )
 
