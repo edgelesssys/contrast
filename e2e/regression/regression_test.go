@@ -95,10 +95,13 @@ func TestRegression(t *testing.T) {
 				bgDeletion := metav1.DeletePropagationBackground
 				for _, r := range unstructuredResources {
 					client, err := ct.Kubeclient.ResourceInterfaceFor(r)
+					// Using WithoutCancel here since t.Context would get canceled in cleanup and context.Background triggers the linter
+					ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(t.Context()), ct.FactorPlatformTimeout(1*time.Minute), errors.New("deletion took to long"))
+					defer cancel()
 					if err != nil {
 						t.Log("error creating client for resource deletion: ", err)
 					}
-					if err := client.Delete(context.WithoutCancel(t.Context()), resourceName, metav1.DeleteOptions{
+					if err := client.Delete(ctx, resourceName, metav1.DeleteOptions{
 						PropagationPolicy: &bgDeletion,
 					}); err != nil {
 						t.Log("error deleting resource: ", err)
