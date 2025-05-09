@@ -5,4 +5,5 @@ metadata:
   namespace: "@@REPLACE_NAMESPACE@@"
 data:
   foo: bar
+# TODO(miampf): Add binaryData field
 immutable: true
