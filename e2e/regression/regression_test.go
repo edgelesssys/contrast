@@ -72,14 +72,8 @@ func TestRegression(t *testing.T) {
 
 			unmarshalledResources := make(map[string]interface{})
 			require.NoError(yaml.Unmarshal(readYaml, &unmarshalledResources))
-			resourceKind := unmarshalledResources["kind"]
-			resourceType := ""
-			switch resourceKind := resourceKind.(type) {
-			case string:
-				resourceType = resourceKind
-			default:
-				assert.Fail(t, "resource kind was not string")
-			}
+			resourceType, ok := unmarshalledResources["kind"].(string)
+			require.True(ok)
 
 			newResources, err := kuberesource.UnmarshalApplyConfigurations(readYaml)
 			require.NoError(err)
