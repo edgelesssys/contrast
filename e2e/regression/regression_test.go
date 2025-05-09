@@ -23,12 +23,14 @@ import (
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
+	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/elazarl/goproxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	yaml "gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -64,11 +66,16 @@ func TestRegression(t *testing.T) {
 
 			c := kubeclient.NewForTest(t)
 
-			yaml, err := os.ReadFile(yamlDir + file.Name())
+			readYaml, err := os.ReadFile(yamlDir + file.Name())
 			require.NoError(err)
-			yaml = bytes.ReplaceAll(yaml, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
+			readYaml = bytes.ReplaceAll(readYaml, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
 
-			newResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
+			unmarshalledResources := make(map[string]interface{})
+			require.NoError(yaml.Unmarshal(readYaml, &unmarshalledResources))
+			resourceType, ok := unmarshalledResources["kind"].(string)
+			require.True(ok)
+
+			newResources, err := kuberesource.UnmarshalApplyConfigurations(readYaml)
 			require.NoError(err)
 
 			newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
@@ -79,11 +86,27 @@ func TestRegression(t *testing.T) {
 			require.NoError(err)
 			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
 
-			deploymentName, _ := strings.CutSuffix(file.Name(), ".yml")
+			resourceName, _ := strings.CutSuffix(file.Name(), ".yml")
+
+			unstructuredResources, err := kubeapi.UnmarshalUnstructuredK8SResource(readYaml)
+			require.NoError(err)
 
 			t.Cleanup(func() {
-				// delete the deployment
-				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})) //nolint:usetesting // see https://github.com/ldez/usetesting/issues/4
+				bgDeletion := metav1.DeletePropagationBackground
+				for _, r := range unstructuredResources {
+					client, err := ct.Kubeclient.ResourceInterfaceFor(r)
+					// Using WithoutCancel here since t.Context would get canceled in cleanup and context.Background triggers the linter
+					ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(t.Context()), ct.FactorPlatformTimeout(1*time.Minute), errors.New("deletion took to long"))
+					defer cancel()
+					if err != nil {
+						t.Log("error creating client for resource deletion: ", err)
+					}
+					if err := client.Delete(ctx, resourceName, metav1.DeleteOptions{
+						PropagationPolicy: &bgDeletion,
+					}); err != nil {
+						t.Log("error deleting resource: ", err)
+					}
+				}
 			})
 
 			// generate, set, deploy and verify the new policy
@@ -94,7 +117,14 @@ func TestRegression(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
 			defer cancel()
-			require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, deploymentName))
+			switch resourceType {
+			case "Deployment":
+				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, resourceName))
+			case "Pod":
+				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Pod{}, ct.Namespace, resourceName))
+			case "DaemonSet":
+				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.DaemonSet{}, ct.Namespace, resourceName))
+			}
 		})
 	}
 
