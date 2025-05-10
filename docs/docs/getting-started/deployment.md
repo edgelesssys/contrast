@@ -1,23 +1,23 @@
 # Workload deployment
 
-Follow the following steps to make your deployment confidential.
+Follow these steps to make your deployment confidential.
 
 ## 1. Adjust deployment files
 
-### Download demo deployment configuration
+### Download the demo deployment configuration
 
-To get started, download the initial deployment file for a non-confidential emojivoto-demo:
+Start by downloading the initial, non-confidential deployment file for the emojivoto demo:
 
 ```sh
 curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.yml --create-dirs --output-dir deployment
 ```
 
-<!-- TODO: Adjust file to vanilla file -->
+<!-- TODO: Ajust YAML to vanilla  -->
 
-### Adjust RuntimeClass
+### Set the RuntimeClass
 
-In each pod configuration, set the `RuntimeClassName` in the `spec` to `contrast-cc`.
-This tells Kubernetes to use the Contrast runtime, which runs the pod inside a Confidential Virtual Machine (CVM).
+In each pod configuration, set the `runtimeClassName` field under `spec` to `contrast-cc`.
+This tells Kubernetes to run the pod inside a Confidential Virtual Machine (CVM) using the Contrast runtime.
 
 ```diff title="deployment/emojivoto-demo.yaml"
 @@ -36,6 +36,7 @@
@@ -54,17 +54,17 @@ This tells Kubernetes to use the Contrast runtime, which runs the pod inside a C
  apiVersion: v1
 ```
 
-### Adjust pod resources
+### Define pod resources
 
-Contrast workloads are deployed using one Confidential Virtual Machine (CVM) per pod.
+Each Contrast workload runs in its own Confidential Virtual Machine (CVM).
+For accurate memory allocation, Contrast workloads require **strict resource definitions**:
 
-To calculate the CVM’s memory requirements accurately, Contrast workloads require stricter resource definitions compared to standard Kubernetes pods.
+- Explicitly define both memory `requests` and `limits`.
+- The values for `requests` and `limits` **must be equal**.
+- You only need to account for your application's memory. Contrast's own memory overhead is handled automatically.
 
-**Explicitly define both memory requests and memory limits for your application. For Contrast workloads, memory requests must always equal memory limits. You only need to account for your application's memory usage; additional overhead introduced by Contrast itself is handled automatically.**
-
-Contrast pods always consume memory equal to their defined memory limits. Kubernetes schedules pods onto nodes based on memory requests. If the memory request is set lower than the memory limit, Kubernetes might overcommit memory—assuming more pods can fit onto a node than actually possible. This situation can cause memory exhaustion and pod instability.
-
-So lets add specific values to our deployment. In our example each application pod is not expected to need more than 700Mi:
+If you define a lower memory `request` than `limit`, Kubernetes may overcommit memory, potentially leading to pod failures.
+To avoid this, set both values equally—e.g., 700Mi for each pod in this example:
 
 ```diff title="deployment/emojivoto-demo.yaml"
 @@ -36,6 +36,11 @@
@@ -117,72 +117,83 @@ So lets add specific values to our deployment. In our example each application p
  ---
 ```
 
-### Add service-mesh annotations
+### Add service mesh annotations
 
-Contrast comes with its own PKI infrastructure, rooted in attestation.
+Contrast provides its own PKI system rooted in attestation.
+The **Contrast Coordinator**, a service deployed alongside your workloads, acts as both:
 
-The Contrast Coordinator, an additional service deployed to your cluster, acts as both the central attestation service and a certificate authority.
-It issues certificates only to pods that have been successfully verified through remote attestation.
-It can also be configured to automatically establish a service mesh that ensures authenticated and encrypted pod-to-pod communication.
+- The central remote attestation service.
+- A certificate authority (CA) that issues certificates to verified pods.
 
-This configuration is done by adding specific annotations to each pod in the deployment files.
+By adding specific annotations to your pod definitions, you enable an automatic service mesh for encrypted and authenticated pod-to-pod communication.
 
-In our setup, the communication between services should work as follows:
+#### Traffic flow in this setup:
 
-1. **`web` to `emoji` and `voting`**:
-   gRPC calls are tunneled via mutual TLS (mTLS), using service mesh certificates.
+1. **From `web` to `emoji` and `voting`:**
+   gRPC calls are tunneled via mTLS using mesh certificates.
 
-2. **External requests to `web`**:
-   Clients use HTTPS to send requests to the frontend. They are not required to present a service mesh certificate. During the TLS handshake, the client receives the service mesh certificate of `web` for verification.
+2. **From external clients to `web`:**
+   HTTPS is used. Clients do **not** need a mesh certificate but can verify `web`’s certificate.
 
-3. **`vote-bot` as a client simulator**:
-   This component acts as a simulated client and initiates HTTPS connections at the application level.
+3. **`vote-bot` as a simulated client:**
+   Simulates external clients with HTTPS requests.
 
-#### Enabling mTLS between `web` and `emoji` and `voting`
+#### Enable egress mTLS from `web` to `emoji` and `voting`
 
-To enable secure, authenticated egress from `web` to `emoji` and `voting`, we add the following annotation:
+Add the following annotation to the `web` pod to define egress rules:
 
 ```yaml
 contrast.edgeless.systems/servicemesh-egress: emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080
 ```
 
-The format is:
+The format of this annotation is:
 
 ```
 <name>#<chosen IP>:<chosen port>#<original-hostname-or-ip>:<original-port>
 ```
 
+Where:
+
 - `<name>` is an internal label for the target service.
-- `<chosen IP>:<chosen port>` is a local loopback address the application will use.
-- `<original-hostname-or-ip>:<original-port>` is the real destination that traffic should reach.
+- `<chosen IP>:<chosen port>` is a local loopback address that your application uses.
+- `<original-hostname-or-ip>:<original-port>` is the actual destination the traffic should reach.
 
 Multiple entries are separated by `##`.
 
-Contrast configures `iptables` rules so that any traffic targeting `<original-hostname-or-ip>:<original-port>` is transparently redirected to the Envoy proxy running on `<chosen IP>:<chosen port>` inside the same pod. The proxy then establishes an mTLS connection with the actual destination, using the pod's service mesh certificate for authentication.
+Internally, Contrast sets up `iptables` rules to transparently redirect traffic.
+Any traffic sent to `<original-hostname-or-ip>:<original-port>` is intercepted and rerouted to the Envoy proxy listening on `<chosen IP>:<chosen port>` within the same pod.
+The proxy then establishes an mTLS connection to the intended target using the pod's mesh certificate.
 
-#### Configuring ingress for `web`
+Here is the revised version with improved clarity and flow:
 
-To allow external HTTPS connections without requiring client certificates, we add the following annotation:
+<!-- TODO: Please double-check -->
+
+#### Enable verification of ingress at `emoji` and `voting`
+
+Add the following annotation to both pods:
+
+```yaml
+contrast.edgeless.systems/servicemesh-ingress: ""
+```
+
+Setting this annotation to an empty string enables automatic verification of incoming connections.
+If the annotation is omitted entirely, no ingress verification will take place.
+
+#### Enable ingress for external HTTPS traffic
+
+Add this annotation to allow HTTPS ingress without requiring client certificates:
 
 ```yaml
 contrast.edgeless.systems/servicemesh-ingress: web#8080#false
 ```
 
-This configures the `web` pod to:
+#### Mark the service as externally exposed
 
-- Accept HTTPS traffic on port `8080`,
-- Not require clients to present a certificate,
-- Still present its own service mesh certificate as the server certificate, allowing clients to verify the workload's identity.
-
-#### Exposing the Service to the Outside
-
-Finally, we add the annotation:
+Add this annotation to enable TLS termination by Contrast:
 
 ```yaml
 contrast.edgeless.systems/expose-service: "true"
 ```
-
-This tells Contrast that the service is exposed externally and enables Contrast to handle TLS termination for inbound connections.
 
 ```diff title="deployment/emojivoto-demo.yaml"
 @@ -1,6 +1,8 @@
@@ -226,12 +237,10 @@ This tells Contrast that the service is exposed externally and enables Contrast 
 
 These are all the changes you need to make to your deployment files.
 
-## 2. Setup the Contrast runtime
+## 2. Install the Contrast runtime
 
-Once you've adjusted your deployment files, the next step is to install the Contrast runtime on your cluster.
-The runtime is responsible for setting up Confidential Virtual Machines (CVMs) on your nodes.
-
-You only need to deploy the runtime once per version. After installation, it can be reused across multiple Contrast deployments.
+Next, install the Contrast runtime in your cluster.
+This runtime sets up CVMs on the nodes.
 
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
@@ -251,9 +260,9 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 </TabItem>
 </Tabs>
 
-## 3. Add the Contrast Coordinator to deployment
+## 3. Add the Contrast Coordinator to the deployment
 
-The Contrast Coordinator is an additional service that runs alongside your application and ensures the deployment remains in a secure and trusted state.
+The Contrast Coordinator is an additional service that runs alongside your application and ensures the deployment remains in a secure and trusted state by attesting all workload pods.
 
 Download the Kubernetes resource of the Contrast Coordinator, comprising a single replica deployment and a LoadBalancer service.
 Put it next to your resources:
@@ -264,7 +273,7 @@ curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coord
 
 ## 4. Generate policy annotations and manifest
 
-Run the `generate` command to create execution policies that strictly control communication between the host and CVMs on each node and define which workloads are allowed to run. These policies are added as annotations to your deployment files.
+Run the `generate` command to create execution policies that strictly control communication between the host and CVMs on each worker node and define which workloads are allowed to run. These policies are automatically added as annotations to your deployment files.
 
 The command also generates a `manifest.json` file, which contains the trusted reference state of your deployment.
 
@@ -279,7 +288,7 @@ contrast generate --reference-values aks-clh-snp deployment/
 contrast generate --reference-values k3s-qemu-snp deployment/
 ```
 :::note[Missing TCB values]
-On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms.
+On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values of the created manifest.json as they can vary between platforms.
 They will have to be filled in manually.
 If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":255,"SNPVersion":255,"MicrocodeVersion":255}` and observe the real values in the error messages in the following steps. This should only be done in a secure environment. Note that the values will differ between CPU models.
 :::
@@ -289,7 +298,7 @@ If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":
 contrast generate --reference-values k3s-qemu-tdx deployment/
 ```
 :::note[Missing TCB values]
-On bare-metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values as they can vary between platforms.
+On bare-metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values values of the created manifest.json as they can vary between platforms.
 They will have to be filled in manually.
 If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and `000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000` respectively and observe the real values in the error messages in the following steps. This should only be done in a secure environment.
 :::
@@ -306,7 +315,7 @@ kubectl apply -f deployment/
 
 ## 6. Connect to Coordinator and set manifest
 
-Configure the Coordinator with a manifest. It might take up to a few minutes
+Configure the Coordinator with the created manifest. It might take up to a few minutes
 for the load balancer to be created and the Coordinator being available.
 
 ```sh
