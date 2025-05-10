@@ -32,11 +32,11 @@ request latency.
 
 The gRPC service `userapi.UserAPI` records metrics for the methods
 `SetManifest` and `GetManifest`, which get called when [setting the
-manifest](../deployment#set-the-manifest) and [verifying the
-Coordinator](../deployment#verify-the-coordinator) respectively.
+manifest](./workload-deployment/deploy-coordinator.md#set-the-manifest) and [verifying the
+Coordinator](./workload-deployment/deployment-verification.md) respectively.
 
 The `meshapi.MeshAPI` service records metrics for the method `NewMeshCert`, which
-gets called by the [Initializer](../components/overview.md#the-initializer) when starting a
+gets called by the [Initializer](../architecture/components/initializer.md) when starting a
 new workload. Attestation failures from workloads to the Coordinator can be
 tracked with the counter `contrast_meshapi_attestation_failures_total`.
 
@@ -47,7 +47,7 @@ Coordinator, this counter will be zero.
 
 ## Service mesh metrics
 
-The [Service Mesh](../components/service-mesh.md) can be configured to expose
+The [Service Mesh](../architecture/components/service-mesh.md) can be configured to expose
 metrics via its [Envoy admin
 interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin). Be
 aware that the admin interface can expose private information and allows
@@ -59,6 +59,6 @@ on this port.
 
 To access the admin interface, the ingress settings of the Service Mesh have to
 be configured to allow access to the specified port (see [Configuring the
-Proxy](../components/service-mesh#configuring-the-proxy)). All metrics will be
+Proxy](../architecture/components/service-mesh.md#configuring-the-proxy). All metrics will be
 exposed under the `/stats` endpoint. Metrics in Prometheus format can be scraped
 from the `/stats/prometheus` endpoint.

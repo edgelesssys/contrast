@@ -19,7 +19,7 @@ This page explains how to update your deployment files for Contrast and outlines
 ### Security review
 
 Contrast ensures integrity and confidentiality of the applications, but interactions with untrusted systems require the developers' attention.
-Review the [security considerations](../hardening.md) and the [certificates](../../architecture/certificates.md) section for writing secure Contrast application.
+Review the [security considerations](../hardening.md) and the [certificates](../../architecture/components/service-mesh.md#certificate-authority) section for writing secure Contrast application.
 
 ### RuntimeClass
 

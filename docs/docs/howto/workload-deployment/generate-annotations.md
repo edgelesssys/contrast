@@ -20,7 +20,7 @@ This step is required for all Contrast deployments.
 Run the `generate` command to add the necessary components to your deployment files.
 This will add the Contrast Initializer to every workload with the specified `contrast-cc` runtime class
 and the Contrast Service Mesh to all workloads that have a specified configuration.
-After that, it will generate the [execution policies](components/policies.md) and add them as annotations to your deployment files.
+After that, it will generate the [execution policies](../../architecture/components/policies.md) and add them as annotations to your deployment files.
 A `manifest.json` with the reference values of your deployment will be created.
 
 <Tabs queryString="platform">
@@ -72,9 +72,9 @@ Please be aware that runtime policies currently have some blind spots. For examp
 
 Running `contrast generate` for the first time creates some additional files in the working directory:
 
-- `seedshare-owner.pem` is required for handling the secret seed and recovering the Coordinator (see [Secrets & recovery](architecture/secrets.md)).
+- `seedshare-owner.pem` is required for handling the secret seed and recovering the Coordinator (see [Secrets & recovery](../../architecture/secrets.md)).
 - `workload-owner.pem` is required for manifest updates after the initial `contrast set`.
-- `rules.rego` and `settings.json` are the basis for [runtime policies](components/policies.md).
+- `rules.rego` and `settings.json` are the basis for [runtime policies](../../architecture/components/policies.md).
 - `layers-cache.json` caches container image layer information for your deployments to speed up subsequent runs of `contrast generate`.
 
 If you don't want the Contrast Initializer to automatically be added to your

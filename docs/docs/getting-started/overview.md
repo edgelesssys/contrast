@@ -9,7 +9,7 @@ In this tutorial, we’ll use the [emojivoto app](https://github.com/BuoyantIO/e
 
 To make your app confidential with Contrast, follow these steps:
 
-1. [Install and set up](./cluster-setup):
+1. [Install and set up](../howto/cluster-setup/bare-metal.md):
    Install the Contrast CLI and prepare your Kubernetes cluster to support confidential containers.
 
 2. [Deploy your workload](./deployment):
@@ -22,10 +22,10 @@ To make your app confidential with Contrast, follow these steps:
    5. **Deploy your application** – Apply the updated deployment files to launch your app.
    6. **Set the manifest** – Define the trusted reference state that the Coordinator will enforce.
 
-3. [Verify deployment](./deployment.md#6-verify-deployment):
+3. [Verify deployment](./deployment.md#7-verify-deployment):
    Confirm that your application is running securely and that workload integrity is being enforced.
 
-4. [Securely connect to the app](./deployment.md#7-connect-securely-to-the-frontend):
+4. [Securely connect to the app](./deployment.md#8-connect-securely-to-the-frontend):
    Establish a secure connection backed by confidential computing hardware—eliminating the need for users to place trust in you as the service provider.
 
 ## Emojivoto app

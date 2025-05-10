@@ -42,7 +42,7 @@ metadata:
 
 In addition, the container within the pod that requires GPU access must include a device request.
 This request specifies the number of GPUs the container should use.
-The identifiers for the GPUs, obtained during the [deployment of the NVIDIA GPU Operator](.), must be included in the request.
+The identifiers for the GPUs, obtained during the [deployment of the NVIDIA GPU Operator](../cluster-setup/bare-metal.md#preparing-a-cluster-for-gpu-usage), must be included in the request.
 In the provided example, the container is allocated a single NVIDIA H100 GPU.
 
 Finally, the environment variable `NVIDIA_VISIBLE_DEVICES` must be set to `all` to grant the container access to GPU utilities provided by the pod-VM. This includes essential tools like CUDA libraries, which are required for running GPU workloads.
