@@ -490,7 +490,7 @@ func TestOutOfBandUpdates(t *testing.T) {
 	require.Equal(manifestBytes, getManifestResp.Manifests[0])
 
 	// Manipulate history directly
-	state, err := a.guard.GetState()
+	state, err := a.guard.GetState(t.Context())
 	require.NoError(err)
 	key := state.SeedEngine().TransactionSigningKey()
 	oldLatest, err := hist.GetLatest(&key.PublicKey)
@@ -508,7 +508,7 @@ func TestOutOfBandUpdates(t *testing.T) {
 
 	// Wait for the staleness to propagate.
 	require.Eventually(func() bool {
-		_, err := a.guard.GetState()
+		_, err := a.guard.GetState(t.Context())
 		return errors.Is(err, stateguard.ErrStaleState)
 	}, time.Second, 10*time.Millisecond)
 	_, err = a.GetManifests(t.Context(), nil)
@@ -711,7 +711,7 @@ func TestNotificationRaces(t *testing.T) {
 		require.NoErrorf(err, "SetManifest call %d", i)
 		transitions = append(transitions, <-notifiedCh)
 	}
-	state, err := a.guard.GetState()
+	state, err := a.guard.GetState(t.Context())
 	require.NoError(err)
 	require.NotNil(state)
 
@@ -720,7 +720,7 @@ func TestNotificationRaces(t *testing.T) {
 	for i, transition := range transitions {
 		watchedCh <- transition
 		require.Neverf(func() bool {
-			_, err := a.guard.GetState()
+			_, err := a.guard.GetState(t.Context())
 			return err != nil
 		}, 10*time.Millisecond, time.Millisecond, "notification %d", i)
 	}

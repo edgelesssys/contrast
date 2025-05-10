@@ -5,6 +5,7 @@ package transitengine
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -179,7 +180,7 @@ func newTestGuard() (*fakeStateGuard, error) {
 	return guard, nil
 }
 
-func (f *fakeStateGuard) GetState() (*stateguard.State, error) {
+func (f *fakeStateGuard) GetState(context.Context) (*stateguard.State, error) {
 	return f.state, nil
 }
 
