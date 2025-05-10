@@ -7,6 +7,7 @@
 package transitengine
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -66,7 +67,7 @@ type httpError struct {
 }
 
 type stateGuard interface {
-	GetState() (*stateguard.State, error)
+	GetState(context.Context) (*stateguard.State, error)
 }
 
 // NewTransitEngineAPI sets up the transit engine API with a provided stateGuard.
@@ -78,9 +79,9 @@ func NewTransitEngineAPI(guard stateGuard, logger *slog.Logger) (*http.Server, e
 	return &http.Server{
 		TLSConfig: &tls.Config{
 			ClientAuth: tls.RequireAndVerifyClientCert,
-			GetConfigForClient: func(_ *tls.ClientHelloInfo) (*tls.Config, error) {
+			GetConfigForClient: func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
 				logger.Debug("call getConfigForClient")
-				state, err := guard.GetState()
+				state, err := guard.GetState(chi.Context())
 				if err != nil {
 					return nil, fmt.Errorf("getting state: %w", err)
 				}
@@ -136,7 +137,7 @@ func getEncryptHandler(guard stateGuard, logger *slog.Logger) http.HandlerFunc {
 			}, logger)
 			return
 		}
-		key, err := deriveEncryptionKey(guard, fmt.Sprintf("%d_%s", encReq.KeyVersion, workloadSecretID))
+		key, err := deriveEncryptionKey(r.Context(), guard, fmt.Sprintf("%d_%s", encReq.KeyVersion, workloadSecretID))
 		if err != nil {
 			writeHTTPError(w, httpError{
 				code:          http.StatusInternalServerError,
@@ -198,7 +199,7 @@ func getDecryptHandler(guard stateGuard, logger *slog.Logger) http.HandlerFunc {
 			}, logger)
 			return
 		}
-		key, err := deriveEncryptionKey(guard, fmt.Sprintf("%d_%s", decReq.CiphertextContainer.keyVersion, workloadSecretID))
+		key, err := deriveEncryptionKey(r.Context(), guard, fmt.Sprintf("%d_%s", decReq.CiphertextContainer.keyVersion, workloadSecretID))
 		if err != nil {
 			writeHTTPError(w, httpError{
 				code:          http.StatusInternalServerError,
@@ -252,8 +253,9 @@ func authorizeWorkloadSecret(workloadSecretID string, r *http.Request) error {
 }
 
 // deriveEncryptionKey derives the workload secret used as the encryption key by receiving the seedengine of the current state.
-func deriveEncryptionKey(guard stateGuard, workloadSecretID string) ([]byte, error) {
-	state, err := guard.GetState()
+func deriveEncryptionKey(ctx context.Context, guard stateGuard, workloadSecretID string) ([]byte, error) {
+	// TODO(burgerdev): we should be using the state from the request context here!
+	state, err := guard.GetState(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +359,8 @@ func authorizationMiddleware(next http.HandlerFunc) http.HandlerFunc {
 // It returns a tls.Certificate, which holds the certChain consisting of the new mesh cert and the intermediate
 // CA cert.
 func getCertificate(privKeyAPI *ecdsa.PrivateKey, guard stateGuard) (*tls.Certificate, error) {
-	state, err := guard.GetState()
+	// TODO(burgerdev): we should be using the state from the request context here!
+	state, err := guard.GetState(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("getting state: %w", err)
 	}

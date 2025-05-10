@@ -47,11 +47,11 @@ func TestMetrics(t *testing.T) {
 
 	numGenerations := 12
 
-	s, err := a.GetState()
+	s, err := a.GetState(t.Context())
 	require.ErrorIs(err, ErrNoState)
 	for i := range numGenerations {
 		requireGauge(t, reg, i, "iteration %d", i)
-		s, err = a.UpdateState(s, se, manifestBytes, policies)
+		s, err = a.UpdateState(t.Context(), s, se, manifestBytes, policies)
 		require.NoError(err, "iteration %d", i)
 	}
 	requireGauge(t, reg, numGenerations)
@@ -61,7 +61,7 @@ func TestMetrics(t *testing.T) {
 	b.hist = a.hist
 	requireGauge(t, reg, 0)
 
-	_, err = b.ResetState(nil, &fakeAuthorizer{
+	_, err = b.ResetState(t.Context(), nil, &fakeAuthorizer{
 		se: se,
 		pk: testkeys.ECDSA(t),
 	})
@@ -74,7 +74,7 @@ type fakeAuthorizer struct {
 	pk *ecdsa.PrivateKey
 }
 
-func (fa *fakeAuthorizer) AuthorizeByManifest(*manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
+func (fa *fakeAuthorizer) AuthorizeByManifest(context.Context, *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
 	return fa.se, fa.pk, nil
 }
 

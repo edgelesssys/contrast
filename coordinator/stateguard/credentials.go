@@ -27,7 +27,7 @@ import (
 // Credentials are gRPC transport credentials that dynamically update with the Coordinator state.
 type Credentials struct {
 	issuer   atls.Issuer
-	getState func() (*State, error)
+	getState func(context.Context) (*State, error)
 
 	logger                     *slog.Logger
 	attestationFailuresCounter prometheus.Counter
@@ -55,8 +55,11 @@ func (a *Guard) Credentials(reg *prometheus.Registry, issuer atls.Issuer, httpsG
 //
 // If successful, the state will be passed to gRPC as [AuthInfo].
 func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), constants.ATLSServerTimeout)
+	defer cancel()
+
 	log := c.logger.With("peer", rawConn.RemoteAddr())
-	state, err := c.getState()
+	state, err := c.getState(ctx)
 	if err != nil {
 		log.Warn("Could not get manifest state to validate peer", "error", err)
 		return nil, nil, fmt.Errorf("getting state: %w", err)
@@ -98,9 +101,6 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		log.Error("Could not create TLS config", "error", err)
 		return nil, nil, err
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), constants.ATLSServerTimeout)
-	defer cancel()
 
 	conn := tls.Server(rawConn, serverCfg)
 	if err := conn.HandshakeContext(ctx); err != nil {

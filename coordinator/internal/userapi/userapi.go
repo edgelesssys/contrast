@@ -40,13 +40,13 @@ import (
 // guard is the public API of stateguard.Guard.
 type guard interface {
 	// GetState returns the current state. If the error is nil, the state must be set.
-	GetState() (*stateguard.State, error)
+	GetState(context.Context) (*stateguard.State, error)
 	// GetHistory returns a slice of manifests and a map of policies referenced in the manifests.
-	GetHistory() (manifests [][]byte, policies map[manifest.HexString][]byte, err error)
+	GetHistory(context.Context) (manifests [][]byte, policies map[manifest.HexString][]byte, err error)
 	// UpdateState advances the state to the given manifest and policies.
-	UpdateState(oldState *stateguard.State, se *seedengine.SeedEngine, manifest []byte, policies [][]byte) (newState *stateguard.State, err error)
+	UpdateState(ctx context.Context, oldState *stateguard.State, se *seedengine.SeedEngine, manifest []byte, policies [][]byte) (newState *stateguard.State, err error)
 	// ResetState recovers to the latest persisted state, authorizing the recovery seed with the passed func.
-	ResetState(oldState *stateguard.State, a stateguard.SecretSourceAuthorizer) (newState *stateguard.State, err error)
+	ResetState(ctx context.Context, oldState *stateguard.State, a stateguard.SecretSourceAuthorizer) (newState *stateguard.State, err error)
 }
 
 // Server serves the userapi.UserAPI. Servers need to be constructed with New.
@@ -69,7 +69,7 @@ func New(logger *slog.Logger, guard guard) *Server {
 func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestRequest) (*userapi.SetManifestResponse, error) {
 	s.logger.Info("SetManifest called")
 
-	oldState, err := s.guard.GetState()
+	oldState, err := s.guard.GetState(ctx)
 	switch {
 	case errors.Is(err, stateguard.ErrStaleState):
 		return nil, status.Error(codes.FailedPrecondition, ErrNeedsRecovery.Error())
@@ -124,7 +124,7 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 		}
 	}
 
-	state, err := s.guard.UpdateState(oldState, se, req.GetManifest(), req.GetPolicies())
+	state, err := s.guard.UpdateState(ctx, oldState, se, req.GetManifest(), req.GetPolicies())
 	if err != nil {
 		code := codes.Internal
 		if errors.Is(err, stateguard.ErrConcurrentUpdate) {
@@ -140,10 +140,9 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 }
 
 // GetManifests retrieves the current CA certificates, the manifest history and all policies.
-func (s *Server) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
-) (*userapi.GetManifestsResponse, error) {
+func (s *Server) GetManifests(ctx context.Context, _ *userapi.GetManifestsRequest) (*userapi.GetManifestsResponse, error) {
 	s.logger.Info("GetManifest called")
-	state, err := s.guard.GetState()
+	state, err := s.guard.GetState(ctx)
 	switch {
 	case errors.Is(err, stateguard.ErrNoState):
 		return nil, status.Error(codes.FailedPrecondition, ErrNoManifest.Error())
@@ -153,7 +152,7 @@ func (s *Server) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
 		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
 	}
 
-	manifests, policies, err := s.guard.GetHistory()
+	manifests, policies, err := s.guard.GetHistory(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "getting history: %v", err)
 	}
@@ -176,7 +175,7 @@ func (s *Server) GetManifests(_ context.Context, _ *userapi.GetManifestsRequest,
 func (s *Server) Recover(ctx context.Context, req *userapi.RecoverRequest) (*userapi.RecoverResponse, error) {
 	s.logger.Info("Recover called")
 
-	oldState, err := s.guard.GetState()
+	oldState, err := s.guard.GetState(ctx)
 	switch {
 	case errors.Is(err, stateguard.ErrStaleState):
 		// This is fine, we want to recover anyway.
@@ -188,7 +187,7 @@ func (s *Server) Recover(ctx context.Context, req *userapi.RecoverRequest) (*use
 		return nil, status.Error(codes.FailedPrecondition, ErrAlreadyRecovered.Error())
 	}
 
-	_, err = s.guard.ResetState(oldState, &seedAuthorizer{ctx: ctx, req: req})
+	_, err = s.guard.ResetState(ctx, oldState, &seedAuthorizer{req: req})
 	if err != nil {
 		return nil, fmt.Errorf("resetting state: %w", err)
 	}
@@ -196,11 +195,10 @@ func (s *Server) Recover(ctx context.Context, req *userapi.RecoverRequest) (*use
 }
 
 type seedAuthorizer struct {
-	ctx context.Context
 	req *userapi.RecoverRequest
 }
 
-func (a *seedAuthorizer) AuthorizeByManifest(mnfst *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
+func (a *seedAuthorizer) AuthorizeByManifest(ctx context.Context, mnfst *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
 	var digests []manifest.HexString
 	for _, pubKey := range mnfst.SeedshareOwnerPubKeys {
 		bytes, err := pubKey.Bytes()
@@ -210,7 +208,7 @@ func (a *seedAuthorizer) AuthorizeByManifest(mnfst *manifest.Manifest) (*seedeng
 		sum := sha256.Sum256(bytes)
 		digests = append(digests, manifest.NewHexString(sum[:]))
 	}
-	if err := validatePeer(a.ctx, digests); err != nil {
+	if err := validatePeer(ctx, digests); err != nil {
 		return nil, nil, status.Errorf(codes.PermissionDenied, "peer not authorized to recover existing state: %v", err)
 	}
 

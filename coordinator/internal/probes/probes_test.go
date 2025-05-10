@@ -4,6 +4,7 @@
 package probes
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -215,7 +216,7 @@ type mockAuth struct {
 	fails    bool
 }
 
-func (a mockAuth) GetState() (*stateguard.State, error) {
+func (a mockAuth) GetState(context.Context) (*stateguard.State, error) {
 	if a.fails {
 		return nil, assert.AnError
 	}

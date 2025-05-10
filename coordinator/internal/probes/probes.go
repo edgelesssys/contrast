@@ -4,6 +4,7 @@
 package probes
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/edgelesssys/contrast/coordinator/history"
@@ -44,8 +45,8 @@ type ReadinessHandler struct {
 	Guard guard
 }
 
-func (h ReadinessHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
-	state, err := h.Guard.GetState()
+func (h ReadinessHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	state, err := h.Guard.GetState(req.Context())
 	if err != nil || state == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
@@ -55,5 +56,5 @@ func (h ReadinessHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 }
 
 type guard interface {
-	GetState() (*stateguard.State, error)
+	GetState(context.Context) (*stateguard.State, error)
 }

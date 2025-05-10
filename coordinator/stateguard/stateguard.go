@@ -166,7 +166,9 @@ func (g *Guard) WatchHistory(ctx context.Context) error {
 // The authorizeSeedSource function must check that the source of the seed (a user or a peer
 // Coordinator) are authorized to hold the secret seed, according to the manifest that's being
 // recovered to. See RFC 010 for more details on the security considerations for handling seeds.
-func (g *Guard) ResetState(oldState *State, authorizer SecretSourceAuthorizer) (*State, error) {
+//
+// The context passed to ResetState will be forwarded to the SecretSourceAuthorizer.
+func (g *Guard) ResetState(ctx context.Context, oldState *State, authorizer SecretSourceAuthorizer) (*State, error) {
 	insecureLatest, err := g.hist.GetLatestInsecure()
 	if err != nil {
 		return nil, fmt.Errorf("getting latest transition: %w", err)
@@ -186,7 +188,7 @@ func (g *Guard) ResetState(oldState *State, authorizer SecretSourceAuthorizer) (
 		return nil, fmt.Errorf("parsing manifest: %w", err)
 	}
 
-	se, meshCAKey, err := authorizer.AuthorizeByManifest(mnfst)
+	se, meshCAKey, err := authorizer.AuthorizeByManifest(ctx, mnfst)
 	if err != nil {
 		return nil, fmt.Errorf("authorizing seed source: %w", err)
 	}
@@ -232,7 +234,7 @@ type SecretSourceAuthorizer interface {
 	// AuthorizeByManifest obtains a SeedEngine and a mesh CA key and verifies their source
 	// according to the Manifest. Secrets must only be held by other Coordinators (identified by
 	// their Role) and seed share owners.
-	AuthorizeByManifest(*manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error)
+	AuthorizeByManifest(context.Context, *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error)
 }
 
 // GetState returns the current state.
@@ -241,7 +243,7 @@ type SecretSourceAuthorizer interface {
 // If a state is set but the latest state is newer, the state is returned and the error is ErrStaleState.
 // If the state is up-to-date, the returned error is nil.
 // The function may return a different error if the persistent state is not accessible.
-func (g *Guard) GetState() (*State, error) {
+func (g *Guard) GetState(context.Context) (*State, error) {
 	state := g.state.Load()
 	if state == nil {
 		hasLatest, err := g.hist.HasLatest()
@@ -263,7 +265,7 @@ func (g *Guard) GetState() (*State, error) {
 //
 // The oldState argument needs to be a state obtained from GetState. If the Coordinator state
 // changes between the calls to GetState and UpdateState, an ErrConcurrentUpdate is returned.
-func (g *Guard) UpdateState(oldState *State, se *seedengine.SeedEngine, manifestBytes []byte, policies [][]byte) (*State, error) {
+func (g *Guard) UpdateState(_ context.Context, oldState *State, se *seedengine.SeedEngine, manifestBytes []byte, policies [][]byte) (*State, error) {
 	var mnfst manifest.Manifest
 	if err := json.Unmarshal(manifestBytes, &mnfst); err != nil {
 		return nil, fmt.Errorf("unmarshaling manifest: %w", err)
@@ -347,8 +349,8 @@ func (g *Guard) UpdateState(oldState *State, se *seedengine.SeedEngine, manifest
 
 // GetHistory returns a list of manifests, the current manifest being last, and the policies
 // referenced in at least one of the manifests.
-func (g *Guard) GetHistory() ([][]byte, map[manifest.HexString][]byte, error) {
-	state, err := g.GetState()
+func (g *Guard) GetHistory(ctx context.Context) ([][]byte, map[manifest.HexString][]byte, error) {
+	state, err := g.GetState(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
