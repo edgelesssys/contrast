@@ -16,12 +16,12 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/stateguard"
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/meshapi"
 	"github.com/edgelesssys/contrast/internal/seedengine"
 	"github.com/edgelesssys/contrast/sdk"
-	"github.com/google/go-sev-guest/verify/trust"
 	"k8s.io/utils/clock"
 )
 
@@ -32,7 +32,7 @@ type Recoverer struct {
 	guard       guard
 	peerGetter  peerGetter
 	issuer      atls.Issuer
-	httpsGetter trust.HTTPSGetter
+	httpsGetter *certcache.CachedHTTPSGetter
 	logger      *slog.Logger
 
 	clock  clock.WithTicker
@@ -52,7 +52,7 @@ type peerGetter interface {
 }
 
 // New creates a new Recoverer.
-func New(guard guard, peerGetter peerGetter, issuer atls.Issuer, httpsGetter trust.HTTPSGetter, logger *slog.Logger) *Recoverer {
+func New(guard guard, peerGetter peerGetter, issuer atls.Issuer, httpsGetter *certcache.CachedHTTPSGetter, logger *slog.Logger) *Recoverer {
 	return &Recoverer{
 		guard:       guard,
 		peerGetter:  peerGetter,
@@ -127,7 +127,7 @@ func (r *Recoverer) recoverFromPeer(ctx context.Context, oldState *stateguard.St
 type authorizer struct {
 	peer        string
 	issuer      atls.Issuer
-	httpsGetter trust.HTTPSGetter
+	httpsGetter *certcache.CachedHTTPSGetter
 	logger      *slog.Logger
 	dialer      meshAPIDialer
 }

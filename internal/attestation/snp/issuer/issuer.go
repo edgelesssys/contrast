@@ -37,7 +37,7 @@ import (
 type Issuer struct {
 	thimGetter *THIMGetter
 	logger     *slog.Logger
-	kdsGetter  *certcache.CachedHTTPSGetter
+	kdsGetter  trust.HTTPSGetter
 }
 
 // New returns a new Issuer.
@@ -47,7 +47,7 @@ func New(log *slog.Logger) *Issuer {
 	return &Issuer{
 		thimGetter: NewTHIMGetter(http.DefaultClient),
 		logger:     log,
-		kdsGetter:  certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter-issuer")),
+		kdsGetter:  certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter-issuer")).SNPGetter(),
 	}
 }
 
