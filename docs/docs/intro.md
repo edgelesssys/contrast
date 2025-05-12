@@ -3,39 +3,54 @@ slug: /
 id: intro
 ---
 
-# Contrast
+# Introduction
 
-Welcome to the documentation of Contrast! Contrast runs confidential container deployments on Kubernetes at scale.
+Welcome to the Contrast documentation! Contrast makes your Kubernetes deployments confidential by running workloads securely within confidential computing environments.
 
 ![Contrast concept](/img/concept.svg)
 
-Contrast is based on the [Kata Containers](https://github.com/kata-containers/kata-containers) and
-[Confidential Containers](https://github.com/confidential-containers) projects.
-Confidential Containers are Kubernetes pods that are executed inside a confidential micro-VM and provide strong hardware-based isolation from the surrounding environment.
-This works with unmodified containers in a lift-and-shift approach.
-Contrast currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview).
+Contrast is built upon the open-source [Kata Containers](https://github.com/kata-containers/kata-containers) and [Confidential Containers](https://github.com/confidential-containers) projects.
+
+Confidential Containers are Kubernetes pods executed within confidential micro-VMs, providing strong, hardware-based isolation from the surrounding environment.
+You can use your existing containers without modification—enabling easy adoption through a lift-and-shift approach.
 
 :::tip
-See the 📄[whitepaper](https://content.edgeless.systems/hubfs/Confidential%20Computing%20Whitepaper.pdf) for more information on confidential computing.
+Contrast leverages a technology called confidential computing. If you're new to confidential computing, check out our 📄[whitepaper](https://content.edgeless.systems/hubfs/Confidential%20Computing%20Whitepaper.pdf) for an overview.
 :::
 
-## Goal
+## Why use Contrast?
 
-Contrast is designed to keep all data always encrypted and to prevent access from the infrastructure layer. It removes the infrastructure provider from the trusted computing base (TCB). This includes access from datacenter employees, privileged cloud admins, own cluster administrators, and attackers coming through the infrastructure, for example, malicious co-tenants escalating their privileges.
+Contrast keeps your data encrypted at all times, ensuring it remains inaccessible from the underlying infrastructure.
+It effectively removes the infrastructure provider—including datacenter employees, privileged cloud administrators, cluster operators, and potential attackers—from your trusted computing base (TCB).
+This protects your workloads even from sophisticated threats like malicious co-tenants attempting privilege escalation.
 
-Contrast integrates fluently with the existing Kubernetes workflows. It's compatible with managed Kubernetes, can be installed as a day-2 operation and imposes only minimal changes to your deployment flow.
+Contrast integrates seamlessly into your existing Kubernetes workflows. It can be deployed as a day-2 operation, and requires minimal adjustments to your existing processes.
 
-## Use Cases
+## Key use cases
 
-Contrast provides unique security [features](basics/features.md) and [benefits](basics/security-benefits.md). The core use cases are:
+Contrast provides powerful [security features and benefits](./security.md). Common scenarios include:
 
-* Increasing the security of your containers
-* Moving sensitive workloads from on-prem to the cloud with Confidential Computing
-* Shielding the code and data even from the own cluster administrators
-* Increasing the trustworthiness of your SaaS offerings
-* Simplifying regulatory compliance
-* Multi-party computation for data collaboration
+- Strengthening container security with hardware-backed isolation
+- Securely migrating sensitive workloads from on-premises to cloud environments
+- Protecting workloads and data from internal threats, including cluster administrators
+- Enhancing trust and security for SaaS offerings
+- Streamlining regulatory compliance efforts
+- Facilitating secure multi-party data collaboration
 
-## Next steps
+## Supported Kubernetes environments
 
-You can learn more about the concept of [Confidential Containers](basics/confidential-containers.md), [features](basics/features.md), and [security benefits](basics/security-benefits.md) of Contrast in this section. To jump right into the action head to [*Getting started*](getting-started/install.md).
+Contrast supports managed Kubernetes via the [Confidential Containers preview on Azure Kubernetes Service (AKS)](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview). It also supports bare-metal setups based on AMD SEV-SNP and Intel TDX hardware.
+
+## Getting started
+
+Use these entry points to quickly explore Contrast:
+
+- **Hands-on example**: The [Getting Started](./getting-started/overview.md) section walks you step-by-step through securing a deployment using Contrast—a practical and beginner-friendly way to get started.
+
+- **Guides**: The [How-to](./howto/cluster-setup/aks.md) section provides concise instructions for common workflows. After grasping the basics, these guides will help you accomplish specific tasks quickly.
+
+- **Troubleshooting**: Facing issues? Check our [Troubleshooting](./troubleshooting.md) section for solutions to common problems and pitfalls.
+
+- **Security**: Explore the [Security](./security.md) section to understand Contrast’s security properties and threat model.
+
+- **Architecture**: For a deeper technical dive, the [Architecture](./architecture/overview.md) section explains how Contrast achieves its strong security features.

@@ -75,18 +75,19 @@ To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled 
 
    If the output contains the group indices (`0`, `1`, ...), the IOMMU is supported on the host.
    Otherwise, add `intel_iommu=on` to the kernel command line.
+
 3. Additionally, the host kernel needs to have the following kernel configuration options enabled:
-    - `CONFIG_VFIO`
-    - `CONFIG_VFIO_IOMMU_TYPE1`
-    - `CONFIG_VFIO_MDEV`
-    - `CONFIG_VFIO_MDEV_DEVICE`
-    - `CONFIG_VFIO_PCI`
+   - `CONFIG_VFIO`
+   - `CONFIG_VFIO_IOMMU_TYPE1`
+   - `CONFIG_VFIO_MDEV`
+   - `CONFIG_VFIO_MDEV_DEVICE`
+   - `CONFIG_VFIO_PCI`
 4. A CDI configuration needs to be present on the node. To generate it, you can use the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
    Refer to the official instructions on [how to generate a CDI configuration with it](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html).
 
 If the per-node requirements are fulfilled, deploy the [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest) to the cluster. It provisions pod-VMs with GPUs via VFIO.
 
-Initially, label all nodes that *should run GPU workloads*:
+Initially, label all nodes that _should run GPU workloads_:
 
 ```sh
 kubectl label node <node-name> nvidia.com/gpu.workload.config=vm-passthrough
@@ -126,11 +127,11 @@ The above command should yield an output similar to the following, depending on 
 
 ```json
 {
-   "nvidia.com/GH100_H100_PCIE": "1"
+  "nvidia.com/GH100_H100_PCIE": "1"
 }
 ```
 
-These identifiers are then used to [run GPU workloads on the cluster](../deployment.md).
+These identifiers are then used to [run GPU workloads on the cluster](../../howto/workload-deployment/GPU-configuration.md).
 
 </TabItem>
 <TabItem value="intel" label="Intel TDX">

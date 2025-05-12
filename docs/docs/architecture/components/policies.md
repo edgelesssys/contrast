@@ -26,10 +26,10 @@ The `generate` subcommand inspects pod definitions and derives rules for validat
 There are two important integrity checks: container image checksums and OCI runtime parameters.
 
 For each of the container images used in a pod, the CLI downloads all image layers and produces a cryptographic [dm-verity] checksum.
-These checksums are the basis for the policy's *storage data*.
+These checksums are the basis for the policy's _storage data_.
 
 The CLI combines information from the `PodSpec`, `ConfigMaps`, and `Secrets` in the provided Kubernetes manifests to derive a permissible set of command-line arguments and environment variables.
-These constitute the policy's *OCI data*.
+These constitute the policy's _OCI data_.
 
 [dm-verity]: https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/verity.html
 
@@ -46,18 +46,18 @@ Otherwise, it applies the policy to all future `AgentService` requests.
 
 The policy evaluation provides the following guarantees for pods launched with the correct generated policy:
 
-* Command and its arguments are set as specified in the resources.
-* There are no unexpected additional environment variables.
-* The container image layers correspond to the layers observed at policy generation time.
+- Command and its arguments are set as specified in the resources.
+- There are no unexpected additional environment variables.
+- The container image layers correspond to the layers observed at policy generation time.
   Thus, only the expected workload image can be instantiated.
-* Executing additional processes in a container is prohibited.
-* Sending data to a container's standard input is prohibited.
+- Executing additional processes in a container is prohibited.
+- Sending data to a container's standard input is prohibited.
 
 The current implementation of policy checking has some blind spots:
 
-* Containers can be started in any order, or be omitted entirely.
-* Environment variables may be missing.
-* Volumes other than the container root volume don't have integrity checks (particularly relevant for mounted `ConfigMaps` and `Secrets`).
+- Containers can be started in any order, or be omitted entirely.
+- Environment variables may be missing.
+- Volumes other than the container root volume don't have integrity checks (particularly relevant for mounted `ConfigMaps` and `Secrets`).
 
 ## Trust
 
