@@ -17,8 +17,9 @@ import (
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/google/go-sev-guest/kds"
 	snpvalidate "github.com/google/go-sev-guest/validate"
-	"github.com/google/go-sev-guest/verify"
+	snpverify "github.com/google/go-sev-guest/verify"
 	tdxvalidate "github.com/google/go-tdx-guest/validate"
+	tdxverify "github.com/google/go-tdx-guest/verify"
 )
 
 // Manifest is the Coordinator manifest and contains the reference values of the deployment.
@@ -101,12 +102,12 @@ func (m *Manifest) CoordinatorPolicyHash() (HexString, error) {
 
 // SNPValidateOpts returns validate options generators populated with the manifest's
 // SNP reference values and trusted measurement for the given runtime.
-func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]ValidatorOptions, error) {
+func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]SNPValidatorOptions, error) {
 	if err := m.Validate(); err != nil {
 		return nil, fmt.Errorf("validating manifest: %w", err)
 	}
 
-	var out []ValidatorOptions
+	var out []SNPValidatorOptions
 	for _, refVal := range m.ReferenceValues.SNP {
 		if len(refVal.TrustedMeasurement) == 0 {
 			return nil, errors.New("trusted measurement cannot be empty")
@@ -117,7 +118,7 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]Va
 			return nil, fmt.Errorf("failed to convert TrustedMeasurement from manifest to byte slices: %w", err)
 		}
 
-		verifyOpts := verify.DefaultOptions()
+		verifyOpts := snpverify.DefaultOptions()
 		// Setting the productLine explicitly, because of full dependence of trustedMeasurements and derivation of trustedRoots on productLine.
 		verifyOpts.Product, err = kds.ParseProductLine(string(refVal.ProductName))
 		if err != nil {
@@ -163,7 +164,7 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]Va
 			TrustedIDKeyHashes:        [][]byte{idKeyHash[:]},
 		}
 
-		out = append(out, ValidatorOptions{VerifyOpts: verifyOpts, ValidateOpts: &validateOpts})
+		out = append(out, SNPValidatorOptions{VerifyOpts: verifyOpts, ValidateOpts: &validateOpts})
 	}
 
 	return out, nil
@@ -171,13 +172,25 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]Va
 
 // TDXValidateOpts returns validate options generators populated with the manifest's
 // TDX reference values and trusted measurement for the given runtime.
-func (m *Manifest) TDXValidateOpts() ([]*tdxvalidate.Options, error) {
+func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TDXValidatorOptions, error) {
 	if err := m.Validate(); err != nil {
 		return nil, fmt.Errorf("validating manifest: %w", err)
 	}
 
-	var out []*tdxvalidate.Options
+	var out []TDXValidatorOptions
 	for _, refVal := range m.ReferenceValues.TDX {
+		verifyOpts := tdxverify.DefaultOptions()
+
+		var err error
+		verifyOpts.TrustedRoots, err = tdxTrustedRootCerts()
+		if err != nil {
+			return nil, fmt.Errorf("getting trusted roots: %w", err)
+		}
+
+		verifyOpts.CheckRevocations = true
+		verifyOpts.GetCollateral = true
+		verifyOpts.Getter = kdsGetter
+
 		mrTd, err := refVal.MrTd.Bytes()
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert MrTd from manifest to byte slices: %w", err)
@@ -212,7 +225,7 @@ func (m *Manifest) TDXValidateOpts() ([]*tdxvalidate.Options, error) {
 			rtmrs[i] = bytes
 		}
 
-		out = append(out, &tdxvalidate.Options{
+		validateOptions := &tdxvalidate.Options{
 			HeaderOptions: tdxvalidate.HeaderOptions{
 				MinimumQeSvn:  *refVal.MinimumQeSvn,
 				MinimumPceSvn: *refVal.MinimumPceSvn,
@@ -226,6 +239,10 @@ func (m *Manifest) TDXValidateOpts() ([]*tdxvalidate.Options, error) {
 				MrTd:             mrTd,
 				Rtmrs:            rtmrs[:],
 			},
+		}
+		out = append(out, TDXValidatorOptions{
+			VerifyOpts:   verifyOpts,
+			ValidateOpts: validateOptions,
 		})
 		_ = mrTd
 		_ = rtmrs
@@ -234,13 +251,20 @@ func (m *Manifest) TDXValidateOpts() ([]*tdxvalidate.Options, error) {
 	return out, nil
 }
 
-// ValidatorOptions contains the verification and validation options to be used
-// by a Validator.
+// SNPValidatorOptions contains the verification and validation options to be used
+// by an SNP Validator.
 //
 // TODO(msanft): add generic validation interface for other attestation types.
-type ValidatorOptions struct {
-	VerifyOpts   *verify.Options
+type SNPValidatorOptions struct {
+	VerifyOpts   *snpverify.Options
 	ValidateOpts *snpvalidate.Options
+}
+
+// TDXValidatorOptions contains the verification and validation options to be used
+// by a TDX Validator.
+type TDXValidatorOptions struct {
+	VerifyOpts   *tdxverify.Options
+	ValidateOpts *tdxvalidate.Options
 }
 
 // PolicyEntry is a policy entry in the manifest. It contains further information the user wants to associate with the policy.

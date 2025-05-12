@@ -4,6 +4,7 @@
 package manifest
 
 import (
+	"crypto/x509"
 	_ "embed"
 	"encoding/json"
 	"errors"
@@ -280,4 +281,22 @@ func (s *SVN) UnmarshalJSON(data []byte) error {
 
 	*s = SVN(value)
 	return nil
+}
+
+// Even though the vendored file has "SGX" in its name, it is the general "Provisioning Certificate for ECDSA Attestation"
+// from Intel and used for both SGX *and* TDX.
+//
+// See https://api.portal.trustedservices.intel.com/content/documentation.html#pcs for more information.
+//
+// File Source: https://certificates.trustedservices.intel.com/Intel_SGX_Provisioning_Certification_RootCA.pem
+//
+//go:embed Intel_SGX_Provisioning_Certification_RootCA.pem
+var tdxRootCert []byte
+
+func tdxTrustedRootCerts() (*x509.CertPool, error) {
+	rootCerts := x509.NewCertPool()
+	if ok := rootCerts.AppendCertsFromPEM(tdxRootCert); !ok {
+		return nil, fmt.Errorf("failed to append root certificate")
+	}
+	return rootCerts, nil
 }

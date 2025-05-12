@@ -229,8 +229,8 @@ buildGoModule (finalAttrs: {
         (path.append root "cli/genpolicy/assets/allow-all.rego")
         (path.append root "internal/manifest/Milan.pem")
         (path.append root "internal/manifest/Genoa.pem")
+        (path.append root "internal/manifest/Intel_SGX_Provisioning_Certification_RootCA.pem")
         (path.append root "nodeinstaller")
-        (path.append root "internal/attestation/tdx/Intel_SGX_Provisioning_Certification_RootCA.pem")
         (fileset.difference (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
           fileset.unions [
             (path.append root "service-mesh")
