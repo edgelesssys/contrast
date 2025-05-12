@@ -93,6 +93,11 @@ rustPlatform.buildRustPackage rec {
       # Cherry-pick from https://github.com/kata-containers/kata-containers/pull/10925,
       # which isn't yet included in the Microsoft fork.
       ./0012-genpolicy-fail-when-layer-can-t-be-processed.patch
+
+      # Ensure that environment variables from the image configuration are not overwritten by
+      # defaults in genpolicy. Fixes a regression introduced in
+      # https://github.com/microsoft/kata-containers/commit/e82c19e4d5fc771bfe54b97ff0aef8a4f5c98e71.
+      ./0013-genpolicy-don-t-overwrite-env-vars-from-image.patch
     ];
   };
 
