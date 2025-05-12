@@ -45,7 +45,7 @@ func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.
 		))
 	}
 
-	tdxOpts, err := m.TDXValidateOpts()
+	tdxOpts, err := m.TDXValidateOpts(kdsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("generating TDX validation options: %w", err)
 	}
@@ -53,8 +53,8 @@ func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.
 	copy(mrConfigID[:], coordPolicyHashBytes)
 	for i, opt := range tdxOpts {
 		name := fmt.Sprintf("tdx-%d", i)
-		opt.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]
-		validators = append(validators, tdx.NewValidator(&tdx.StaticValidateOptsGenerator{Opts: opt}, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name))
+		opt.ValidateOpts.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]
+		validators = append(validators, tdx.NewValidator(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name))
 	}
 
 	return validators, nil

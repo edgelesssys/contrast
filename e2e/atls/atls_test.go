@@ -87,7 +87,7 @@ func TestSNPValidators(t *testing.T) {
 		require.NoError(err, "converting coordinator policy hash to bytes")
 	}))
 
-	idKeyDigestReplace := func(measurement [48]byte, guestPolicy abi.SnpPolicy, opt *manifest.ValidatorOptions) error {
+	idKeyDigestReplace := func(measurement [48]byte, guestPolicy abi.SnpPolicy, opt *manifest.SNPValidatorOptions) error {
 		// Generate static public IDKey based on the launch digest and guest policy.
 		_, authBlk, err := idblock.IDBlocksFromLaunchDigest(measurement, guestPolicy)
 		if err != nil {
@@ -103,17 +103,17 @@ func TestSNPValidators(t *testing.T) {
 	}
 
 	testCases := map[string]struct {
-		manifestModifyFunc func(*manifest.ValidatorOptions) error
+		manifestModifyFunc func(*manifest.SNPValidatorOptions) error
 		wantError          bool
 	}{
 		"default values": {
-			manifestModifyFunc: func(_ *manifest.ValidatorOptions) error {
+			manifestModifyFunc: func(_ *manifest.SNPValidatorOptions) error {
 				return nil
 			},
 			wantError: false,
 		},
 		"platformInfo flip SMT to false": {
-			manifestModifyFunc: func(opt *manifest.ValidatorOptions) error {
+			manifestModifyFunc: func(opt *manifest.SNPValidatorOptions) error {
 				if opt.ValidateOpts.PlatformInfo.SMTEnabled == false {
 					return fmt.Errorf("SMT must be disabled by default")
 				}
@@ -123,7 +123,7 @@ func TestSNPValidators(t *testing.T) {
 			wantError: true,
 		},
 		"idKeyDigestReplace flip Debug to true": {
-			manifestModifyFunc: func(opt *manifest.ValidatorOptions) error {
+			manifestModifyFunc: func(opt *manifest.SNPValidatorOptions) error {
 				if opt.ValidateOpts.GuestPolicy.Debug == true {
 					return fmt.Errorf("Debug must be disabled by default")
 				}
@@ -135,7 +135,7 @@ func TestSNPValidators(t *testing.T) {
 			wantError: true,
 		},
 		"idKeyDigestReplace flip bits in measurement": {
-			manifestModifyFunc: func(opt *manifest.ValidatorOptions) error {
+			manifestModifyFunc: func(opt *manifest.SNPValidatorOptions) error {
 				measurement := opt.ValidateOpts.Measurement
 				measurement[0] ^= 0xFF
 				return idKeyDigestReplace([48]byte(measurement), opt.ValidateOpts.GuestPolicy, opt)

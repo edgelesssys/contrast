@@ -85,14 +85,14 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		validators = append(validators, validator)
 	}
 
-	tdxOpts, err := state.Manifest().TDXValidateOpts()
+	tdxOpts, err := state.Manifest().TDXValidateOpts(c.kdsGetter)
 	if err != nil {
 		log.Error("Could not generate TDX validation options", "error", err)
 		return nil, nil, fmt.Errorf("generating TDX validation options: %w", err)
 	}
 	for i, opt := range tdxOpts {
 		name := fmt.Sprintf("tdx-%d", i)
-		validators = append(validators, tdx.NewValidatorWithReportSetter(&tdx.StaticValidateOptsGenerator{Opts: opt},
+		validators = append(validators, tdx.NewValidatorWithReportSetter(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts},
 			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"reference-values": name}), &authInfo, name))
 	}
 
