@@ -12,12 +12,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/idblock"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/google/go-sev-guest/kds"
 	snpvalidate "github.com/google/go-sev-guest/validate"
 	"github.com/google/go-sev-guest/verify"
-	"github.com/google/go-sev-guest/verify/trust"
 	tdxvalidate "github.com/google/go-tdx-guest/validate"
 )
 
@@ -101,7 +101,7 @@ func (m *Manifest) CoordinatorPolicyHash() (HexString, error) {
 
 // SNPValidateOpts returns validate options generators populated with the manifest's
 // SNP reference values and trusted measurement for the given runtime.
-func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOptions, error) {
+func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]ValidatorOptions, error) {
 	if err := m.Validate(); err != nil {
 		return nil, fmt.Errorf("validating manifest: %w", err)
 	}
@@ -128,7 +128,7 @@ func (m *Manifest) SNPValidateOpts(kdsGetter trust.HTTPSGetter) ([]ValidatorOpti
 			return nil, fmt.Errorf("determine trusted roots: %w", err)
 		}
 		verifyOpts.CheckRevocations = true
-		verifyOpts.Getter = kdsGetter
+		verifyOpts.Getter = kdsGetter.SNPGetter()
 
 		// Generate static public IDKey based on the launch digest and guest policy.
 		_, authBlk, err := idblock.IDBlocksFromLaunchDigest([48]byte(trustedMeasurement), refVal.GuestPolicy)

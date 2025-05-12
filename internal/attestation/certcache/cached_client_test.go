@@ -5,6 +5,7 @@ package certcache
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"sync"
@@ -12,7 +13,8 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/memstore"
-	"github.com/google/go-sev-guest/verify/trust"
+	sevtrust "github.com/google/go-sev-guest/verify/trust"
+	tdxtrust "github.com/google/go-tdx-guest/verify/trust"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
@@ -35,20 +37,20 @@ func TestMemcachedHTTPSGetter(t *testing.T) {
 		assert := assert.New(t)
 		fakeGetter, client := getFakeHTTPSGetters(ticker)
 
-		res, err := client.Get("foo")
+		_, res, err := client.Get("foo")
 		assert.NoError(err)
 		assert.Equal([]byte("bar"), res)
 		assert.Equal(1, fakeGetter.hits["foo"])
 
 		// Expect a second call to return the cached value and not increase the hit counter.
-		res, err = client.Get("foo")
+		_, res, err = client.Get("foo")
 		assert.NoError(err)
 		assert.Equal([]byte("bar"), res)
 		assert.Equal(1, fakeGetter.hits["foo"])
 
 		// After the step time, the cache should be invalidated and hit the backend again.
 		testClock.Step(stepTime)
-		res, err = client.Get("foo")
+		_, res, err = client.Get("foo")
 		assert.NoError(err)
 		assert.Equal([]byte("bar"), res)
 		assert.Equal(2, fakeGetter.hits["foo"])
@@ -61,7 +63,7 @@ func TestMemcachedHTTPSGetter(t *testing.T) {
 		// Simulate a request failure by returning an error
 		fakeGetter.getErr = errors.New("VCEK request failure")
 
-		_, err := client.Get("foo")
+		_, _, err := client.Get("foo")
 		assert.Error(err)
 		assert.Equal(1, fakeGetter.hits["foo"])
 	})
@@ -70,13 +72,13 @@ func TestMemcachedHTTPSGetter(t *testing.T) {
 		assert := assert.New(t)
 		fakeGetter, client := getFakeHTTPSGetters(ticker)
 
-		res, err := client.Get(crlURLMatch)
+		_, res, err := client.Get(crlURLMatch)
 		assert.NoError(err)
 		assert.Equal([]byte("bar"), res)
 		assert.Equal(1, fakeGetter.hits[crlURLMatch])
 
 		// Even after the CRL is cached, the CRL should be requested(hit counter increase).
-		res, err = client.Get(crlURLMatch)
+		_, res, err = client.Get(crlURLMatch)
 		assert.NoError(err)
 		assert.Equal([]byte("bar"), res)
 		assert.Equal(2, fakeGetter.hits[crlURLMatch])
@@ -87,11 +89,13 @@ func TestMemcachedHTTPSGetter(t *testing.T) {
 		fakeGetter, client := getFakeHTTPSGetters(ticker)
 
 		// Preload CRL into the cache
-		client.cache.Set(crlURLMatch, []byte("bar"))
+		data, err := json.Marshal(cacheEntry{Body: []byte("bar")})
+		assert.NoError(err)
+		client.cache.Set(crlURLMatch, data)
 		fakeGetter.getErr = errors.New("CRL request failure")
 
 		// The CRL should be loaded from the cache and client.Get() won't result in an error
-		res, err := client.Get(crlURLMatch)
+		_, res, err := client.Get(crlURLMatch)
 		assert.NoError(err)
 		assert.Equal([]byte("bar"), res)
 		assert.Equal(1, fakeGetter.hits[crlURLMatch])
@@ -104,7 +108,7 @@ func TestMemcachedHTTPSGetter(t *testing.T) {
 		fakeGetter.getErr = errors.New("CRL request failure")
 
 		// No CRL cache and request failure results in error
-		_, err := client.Get(crlURLMatch)
+		_, _, err := client.Get(crlURLMatch)
 		assert.Error(err)
 		assert.Equal(1, fakeGetter.hits[crlURLMatch])
 	})
@@ -117,7 +121,7 @@ func TestMemcachedHTTPSGetter(t *testing.T) {
 		var wg sync.WaitGroup
 		getFunc := func() {
 			defer wg.Done()
-			res, err := client.Get("foo")
+			_, res, err := client.Get("foo")
 			assert.NoError(err)
 			assert.Equal([]byte("bar"), res)
 		}
@@ -129,6 +133,24 @@ func TestMemcachedHTTPSGetter(t *testing.T) {
 		go getFunc()
 		go getFunc()
 		wg.Wait()
+	})
+
+	t.Run("Request header is cached", func(t *testing.T) {
+		assert := assert.New(t)
+		fakeGetter, client := getFakeHTTPSGetters(ticker)
+
+		header, res, err := client.Get("foo")
+		assert.NoError(err)
+		assert.Equal([]byte("bar"), res)
+		assert.Equal(1, fakeGetter.hits["foo"])
+		assert.Equal(map[string][]string{"bar": {"baz"}}, header)
+
+		// Expect a second call to return both the cached header and body and not increase the hit counter.
+		header, res, err = client.Get("foo")
+		assert.NoError(err)
+		assert.Equal([]byte("bar"), res)
+		assert.Equal(1, fakeGetter.hits["foo"])
+		assert.Equal(map[string][]string{"bar": {"baz"}}, header)
 	})
 }
 
@@ -152,17 +174,20 @@ func TestContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	_, err := getter.GetContext(ctx, crlURLMatch)
+	_, _, err := getter.GetContext(ctx, crlURLMatch)
 	require.ErrorIs(t, err, context.Canceled)
 }
 
 // Ensure CachedHTTPSGetter implements the expected interfaces.
 var (
-	_ = trust.HTTPSGetter(&CachedHTTPSGetter{})
-	_ = trust.ContextHTTPSGetter(&CachedHTTPSGetter{})
+	_ = tdxtrust.HTTPSGetter(&CachedHTTPSGetter{})
+	_ = tdxtrust.ContextHTTPSGetter(&CachedHTTPSGetter{})
+	_ = sevtrust.HTTPSGetter(&CachedHTTPSGetterSNP{})
+	_ = sevtrust.ContextHTTPSGetter(&CachedHTTPSGetterSNP{})
 )
 
 type fakeHTTPSGetter struct {
+	header  map[string]map[string][]string
 	content map[string][]byte
 	getErr  error
 
@@ -173,6 +198,9 @@ type fakeHTTPSGetter struct {
 // Returns the fakeHTTPSGetter for test assertions and its wrapper CachedHTTPSGetter.
 func getFakeHTTPSGetters(ticker clock.Ticker) (*fakeHTTPSGetter, *CachedHTTPSGetter) {
 	fakeGetter := &fakeHTTPSGetter{
+		header: map[string]map[string][]string{
+			"foo": {"bar": {"baz"}},
+		},
 		content: map[string][]byte{
 			"foo":       []byte("bar"),
 			crlURLMatch: []byte("bar"),
@@ -188,14 +216,14 @@ func getFakeHTTPSGetters(ticker clock.Ticker) (*fakeHTTPSGetter, *CachedHTTPSGet
 	}
 }
 
-func (f *fakeHTTPSGetter) GetContext(ctx context.Context, url string) ([]byte, error) {
+func (f *fakeHTTPSGetter) GetContext(ctx context.Context, url string) (map[string][]string, []byte, error) {
 	select {
 	case <-ctx.Done():
-		return nil, ctx.Err()
+		return nil, nil, ctx.Err()
 	default:
 	}
 	f.hitsMux.Lock()
 	defer f.hitsMux.Unlock()
 	f.hits[url]++
-	return f.content[url], f.getErr
+	return f.header[url], f.content[url], f.getErr
 }
