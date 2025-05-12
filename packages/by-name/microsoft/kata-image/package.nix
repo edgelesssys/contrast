@@ -188,6 +188,7 @@ let
             --exclude='./usr/lib/systemd/system/systemd-timesyncd*' \
             --exclude='./usr/lib/systemd/system/systemd-tmpfiles-setup*' \
             --exclude='./usr/lib/systemd/system/systemd-update-utmp*' \
+            --exclude='./etc/udev/hwdb.bin' \
             --exclude='./nix/store' \
             --exclude='*systemd-bless-boot-generator*' \
             --exclude='*systemd-fstab-generator*' \
