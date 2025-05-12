@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.7.0">
 <title data-rh="true">Contrast Runtime | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/next/components/runtime"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Contrast Runtime | Contrast"><meta data-rh="true" name="description" content="The Contrast runtime is responsible for starting pods as confidential virtual machines."><meta data-rh="true" property="og:description" content="The Contrast runtime is responsible for starting pods as confidential virtual machines."><link data-rh="true" rel="icon" href="/contrast/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/next/components/runtime"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/components/runtime" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/components/runtime" hreflang="x-default"><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/assets/css/styles.92cb9a97.css">
-<script src="/contrast/assets/js/runtime~main.3f0eb954.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.ab395886.js" defer="defer"></script>
 <script src="/contrast/assets/js/main.96c9cba8.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -39,7 +39,7 @@ Each snapshotter consists of a host component that pulls container images and a 
 The <code>tardev</code> snapshotter uses <a href="https://docs.kernel.org/admin-guide/device-mapper/verity.html" target="_blank" rel="noopener noreferrer"><code>dm-verity</code></a> to protect the integrity of container images.
 Expected <code>dm-verity</code> container image hashes are part of Contrast runtime policies and are enforced by the kata-agent.
 This enables workload attestation by specifying the allowed container image as part of the policy. Read <a href="/contrast/next/components/policies">the chapter on policies</a> for more information.</p>
-<p>On bare metal, Contrast uses the <a href="https://github.com/containerd/nydus-snapshotter" target="_blank" rel="noopener noreferrer"><code>nydus</code></a> snapshotter to store metadata about the images. This metadata is communicated to the guest, so that it can pull the images itself.</p>
+<p>On bare metal, the image is pulled within the guest VM by the Kata guest components.</p>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="pod-vm-image">Pod-VM image<a href="#pod-vm-image" class="hash-link" aria-label="Direct link to Pod-VM image" title="Direct link to Pod-VM image">​</a></h3>
 <p>Every pod-VM starts with the same guest image. It consists of an IGVM file and a root filesystem.
 The IGVM file describes the initial memory contents of a pod-VM and consists of:</p>
