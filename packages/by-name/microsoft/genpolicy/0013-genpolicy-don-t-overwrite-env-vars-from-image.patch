@@ -1,0 +1,58 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Mon, 12 May 2025 20:33:17 +0200
+Subject: [PATCH] genpolicy: don't overwrite env vars from image
+
+If a container image declares the environment variables HOSTNAME or
+TERM, these should take precedence over hard-coded defaults. This commit
+changes the logic to only append the default variables if they are
+absent from image spec.
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/tools/genpolicy/src/policy.rs | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index 7f442b66262202a2a75daf4b322eea7905092aba..e1ece31e0648a51b1bdbe472ec09ccfec8e27660 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -29,6 +29,7 @@ use serde_yaml::Value;
+ use sha2::{Digest, Sha256};
+ use std::boxed;
+ use std::collections::BTreeMap;
++use std::fmt::format;
+ use std::fs::read_to_string;
+ use std::io::Write;
+ 
+@@ -703,12 +704,12 @@ impl AgentPolicy {
+         if let Some(tty) = yaml_container.tty {
+             process.Terminal = tty;
+             if tty && !is_pause_container {
+-                process.Env.push("TERM=xterm".to_string());
++                add_default_env_var(&mut process.Env, "TERM", "xterm");
+             }
+         }
+ 
+         if !is_pause_container {
+-            process.Env.push("HOSTNAME=$(host-name)".to_string());
++            add_default_env_var(&mut process.Env, "HOSTNAME", "$(host-name)");
+         }
+ 
+         let service_account_name = if let Some(s) = &yaml_container.serviceAccountName {
+@@ -739,6 +740,15 @@ impl AgentPolicy {
+     }
+ }
+ 
++fn add_default_env_var(env: &mut Vec<String>, key: &str, val: &str) {
++    for kv_pair in &mut *env {
++        if kv_pair.split_once("=").filter(|(k, _)| *k == key).is_some() {
++            return
++        }
++    }
++    env.push(format!("{}={}", key, val));
++}
++
+ impl KataSpec {
+     fn add_annotations(&self, annotations: &mut BTreeMap<String, String>) {
+         for a in &self.Annotations {
