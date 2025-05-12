@@ -14,11 +14,11 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/logger"
-	"github.com/google/go-sev-guest/verify/trust"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/credentials"
@@ -31,11 +31,11 @@ type Credentials struct {
 
 	logger                     *slog.Logger
 	attestationFailuresCounter prometheus.Counter
-	kdsGetter                  trust.HTTPSGetter
+	kdsGetter                  *certcache.CachedHTTPSGetter
 }
 
 // Credentials creates new transport credentials that validate peers according to the latest manifest.
-func (a *Guard) Credentials(reg *prometheus.Registry, issuer atls.Issuer, httpsGetter trust.HTTPSGetter) *Credentials {
+func (a *Guard) Credentials(reg *prometheus.Registry, issuer atls.Issuer, httpsGetter *certcache.CachedHTTPSGetter) *Credentials {
 	attestationFailuresCounter := promauto.With(reg).NewCounter(prometheus.CounterOpts{
 		Subsystem: "contrast_meshapi",
 		Name:      "attestation_failures_total",
