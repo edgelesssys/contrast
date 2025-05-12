@@ -72,7 +72,7 @@ jobs:
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
           title: "Runtime reproducibility test failed"
-          message: "Runtime reproducibility test failed on ${{ matrix.build-target}}-${{matrix.os }}"
+          message: "Build failed on ${{ matrix.build-target}}-${{matrix.os }}"
           additionalFields: '[{"title": "Build target", "value": "${{ matrix.build-target }}"}, {"title": "OS", "value": "${{ matrix.os }}"}]'
 
   collect-checksums:
@@ -88,6 +88,7 @@ jobs:
           - "kata.contrast-node-installer-image.gpu"
       fail-fast: false
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Download all checksum artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -117,5 +118,5 @@ jobs:
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
           title: "Runtime reproducibility test failed"
-          message: "failed to collect checksums"
+          message: "Reproducibility issue found on ${{ matrix.build-target }}"
           additionalFields: '[{"title": "Build target", "value": "${{matrix.build-target}}"}]'
