@@ -210,55 +210,57 @@ let
     tar --concatenate --file=$out ${rootfsExtraTree}
     tar --concatenate --file=$out ${closureTar}
   '';
+
+  image = stdenv.mkDerivation {
+    pname = "kata-image";
+    inherit (microsoft.genpolicy) version;
+
+    dontUnpack = true;
+
+    outputs = [
+      "out"
+      "verity"
+    ];
+
+    nativeBuildInputs = [
+      buildimage
+      util-linux
+    ];
+
+    buildPhase = ''
+      runHook preBuild
+
+      ${lib.getExe buildimage} ${rootfsCombinedTar} .
+
+      runHook postBuild
+    '';
+
+    postInstall = ''
+      # split outputs into raw image (out) and dm-verity data (verity)
+      mkdir -p $verity
+      mv dm_verity.txt \
+        roothash \
+        salt \
+        hash_type \
+        data_blocks \
+        data_block_size \
+        hash_blocks \
+        hash_block_size \
+        hash_algorithm \
+        $verity/
+      mv raw.img $out
+    '';
+    dontPatchELF = true;
+
+    passthru = {
+      inherit
+        rootfsTar
+        closureTar
+        rootfsExtraTree
+        rootfsCombinedTar
+        ;
+    };
+  };
 in
 
-stdenv.mkDerivation {
-  pname = "kata-image";
-  inherit (microsoft.genpolicy) version;
-
-  dontUnpack = true;
-
-  outputs = [
-    "out"
-    "verity"
-  ];
-
-  nativeBuildInputs = [
-    buildimage
-    util-linux
-  ];
-
-  buildPhase = ''
-    runHook preBuild
-
-    ${lib.getExe buildimage} ${rootfsCombinedTar} .
-
-    runHook postBuild
-  '';
-
-  postInstall = ''
-    # split outputs into raw image (out) and dm-verity data (verity)
-    mkdir -p $verity
-    mv dm_verity.txt \
-      roothash \
-      salt \
-      hash_type \
-      data_blocks \
-      data_block_size \
-      hash_blocks \
-      hash_block_size \
-      hash_algorithm \
-      $verity/
-    mv raw.img $out
-  '';
-  dontPatchELF = true;
-
-  passthru = {
-    inherit
-      rootfsTar
-      closureTar
-      rootfsExtraTree
-      rootfsCombinedTar
-      ;
-  };
-}
+image
