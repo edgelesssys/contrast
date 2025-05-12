@@ -75,57 +75,50 @@ buildGoModule (finalAttrs: {
       # packages/by-name/microsoft/genpolicy/0005-genpolicy-propagate-mount_options-for-empty-dirs.patch
       # that does not depend on the CSI enabling changes exclusive to the Microsoft fork.
       ./0009-genpolicy-support-mount-propagation-and-ro-mounts.patch
-      # Prevent cleanup of the build root to allow adding files before running rootfs.sh.
-      # This allows working around a bug in the script, which assumes existence of a file that's
-      # only added later:
-      # https://github.com/kata-containers/kata-containers/blame/94bc54f4d21fe74e078880a6b5f9f96137a9e6bb/tools/osbuilder/rootfs-builder/rootfs.sh#L723.
-      # The patch is not sufficient for upstream, because it requires the extraRootFs content from
-      # our Nix packaging.
-      ./0010-tools-don-t-clean-build-root-when-generating-rootfs.patch
 
       # Disable a check in Kata that prevents to set both image and initrd.
       # For us, there's no practical reason not to do so.
       # No upstream patch available, changes first need to be discussed with Kata maintainers.
       # See https://katacontainers.slack.com/archives/C879ACQ00/p1731928491942299
-      ./0011-runtime-allow-initrd-AND-image-to-be-set.patch
+      ./0010-runtime-allow-initrd-AND-image-to-be-set.patch
 
       # Simple genpolicy logging redaction of the policy annotation
       # This avoids printing the entire annotation on log level debug, which resulted in errors of the logtranslator.go
       # upstream didn't accept this patch: https://github.com/kata-containers/kata-containers/pull/10647
-      ./0012-genpolicy-do-not-log-policy-annotation-in-debug.patch
+      ./0011-genpolicy-do-not-log-policy-annotation-in-debug.patch
 
       # Fixes a bug with ConfigMaps exceeding 8 entries, see description.
       # The situation upstream is complicated, because the paths relevant for genpolicy differ
       # between different CI systems and TEE configurations. This makes it hard to reproduce in a
       # vanilla Kata setting.
       # Relevant discussion: https://github.com/kata-containers/kata-containers/pull/10614.
-      ./0013-genpolicy-allow-non-watchable-ConfigMaps.patch
+      ./0012-genpolicy-allow-non-watchable-ConfigMaps.patch
 
       # Guest hooks are required for GPU support, but unsupported in
       # upstream Kata / genpolicy as of now. This patch adds a new
       # `allowed_guest_hooks` setting , which controls what paths may be set for hooks.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10633
-      ./0014-genpolicy-support-guest-hooks.patch
+      ./0013-genpolicy-support-guest-hooks.patch
 
       # This adds support for annotations with dynamic keys *and* values to Genpolicy.
       # This is required for e.g. GPU containers, which get annotated by an in-cluster
       # component (i.e. after policy generation based on the Pod spec) with an annotation
       # like `cdi.k8s.io/vfioXY`, where `XY` corresponds to a dynamic ID.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10745
-      ./0015-genpolicy-support-dynamic-annotations.patch
+      ./0014-genpolicy-support-dynamic-annotations.patch
 
       # This removes CDI annotations from the OCI spec before it is passed to the agent,
       # which helps with policy handling of the (oftentimes dynamic) CDI annotations.
       # TODO(msanft): Get native CDI working, which will allow us to drop this patch / undo the revert.
       # See https://dev.azure.com/Edgeless/Edgeless/_workitems/edit/5061
-      ./0016-runtime-remove-CDI-annotations.patch
+      ./0015-runtime-remove-CDI-annotations.patch
 
       # Allow running generate with ephemeral volumes.
       #
       # This may be merged upstream through either of:
       # - https://github.com/kata-containers/kata-containers/pull/10947 (this patch)
       # - https://github.com/kata-containers/kata-containers/pull/10559 (superset including the patch)
-      ./0017-genpolicy-support-ephemeral-volume-source.patch
+      ./0016-genpolicy-support-ephemeral-volume-source.patch
 
       # Containerd versions since 2.0.4 set the sysfs of the pause container to RW if one of the
       # main containers is privileged, whereas prior versions did not. The expected mounts are
@@ -138,11 +131,11 @@ buildGoModule (finalAttrs: {
       # versions upstream. However, there is no consensus on how this would look like, or whether
       # it makes sense at all, so we're fixing this downstream only.
       # https://github.com/kata-containers/kata-containers/pull/11077#issuecomment-2750400613
-      ./0018-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
+      ./0017-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
 
       # Support to enforce guest pull without (nydus) snapshotter.
       # Cherry-picked from https://github.com/kata-containers/kata-containers/pull/11244
-      ./0019-runtime-add-option-to-force-guest-pull.patch
+      ./0018-runtime-add-option-to-force-guest-pull.patch
     ];
   };
 
