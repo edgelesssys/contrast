@@ -220,7 +220,7 @@ index 298af4eb577687246125dc567743a2f49742d905..10091aaff6f8c16ed5fdab26815cd4ed
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 8ae1000eb319267a7732132ee42731c792ebd48c..3adcb87c997dff2359033246b5c6a31626f1dc89 100644
+index 8ae1000eb319267a7732132ee42731c792ebd48c..5e96ba9b1b365783005bd8ecf3f69935abf7f768 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -15,6 +15,7 @@ use crate::job;
@@ -246,7 +246,7 @@ index 8ae1000eb319267a7732132ee42731c792ebd48c..3adcb87c997dff2359033246b5c6a316
 +        if let Some(meta) = meta {
 +            if first && meta.name.is_some() {
 +                let name = meta.name.as_ref().unwrap();
-+                return Some(format!("^${name}$"))
++                return Some(format!("^{name}$"))
 +            } else if let Some(name) = &meta.name {
 +                return Some(format!("^{name}-[a-zA-Z0-9-]+$"))
 +            } else if let Some(generate_name) = &meta.generateName {
