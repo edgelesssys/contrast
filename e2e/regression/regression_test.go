@@ -124,6 +124,10 @@ func TestRegression(t *testing.T) {
 				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Pod{}, ct.Namespace, resourceName))
 			case "DaemonSet":
 				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.DaemonSet{}, ct.Namespace, resourceName))
+			case "ReplicaSet":
+				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.ReplicaSet{}, ct.Namespace, resourceName))
+			case "ReplicationController":
+				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.ReplicationController{}, ct.Namespace, resourceName))
 			}
 		})
 	}
