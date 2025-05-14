@@ -225,6 +225,35 @@
     '';
   };
 
+  go-licenses-check = writeShellApplication {
+    name = "go-licenses-check";
+    runtimeInputs = with pkgs; [
+      go
+      go-licenses
+    ];
+    text = ''
+      exitcode=0
+
+      tagList=(
+        "${lib.concatStringsSep "," pkgs.contrast.tags}"
+        "${lib.concatStringsSep "," pkgs.contrast-enterprise.tags}"
+      )
+      for tags in "''${tagList[@]}"; do
+        while IFS= read -r dir; do
+          echo "Downloading Go dependencies for license check" >&2
+          go mod -C "$dir" download
+          echo "Running go-licenses with tags $tags on $dir" >&2
+          GOFLAGS="-tags=$tags" go-licenses check \
+            --ignore github.com/edgelesssys/contrast \
+            --disallowed_types=restricted,reciprocal,forbidden,unknown \
+            "$dir/..." || exitcode=$?
+        done < <(go list -f '{{.Dir}}' -m)
+      done
+
+      exit $exitcode
+    '';
+  };
+
   kubectl-wait-ready = writeShellApplication {
     name = "kubectl-wait-ready";
     runtimeInputs = with pkgs; [ kubectl ];

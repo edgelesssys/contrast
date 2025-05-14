@@ -68,3 +68,16 @@ jobs:
       - name: Run golangci-lint
         run: |
           nix run .#scripts.golangci-lint
+
+  go-licenses:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Run go-licenses
+        run: |
+          nix run .#scripts.go-licenses-check
