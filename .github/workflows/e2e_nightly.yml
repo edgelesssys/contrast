@@ -51,11 +51,3 @@ jobs:
     permissions:
       contents: read
       packages: write
-
-  peerpods:
-    name: AKS-PEER-SNP
-    uses: ./.github/workflows/e2e_peerpods.yml
-    secrets: inherit
-    permissions:
-      contents: read
-      packages: write
