@@ -41,6 +41,7 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Log in to ghcr.io Container registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
@@ -52,7 +53,6 @@ jobs:
         uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
         with:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
-      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env

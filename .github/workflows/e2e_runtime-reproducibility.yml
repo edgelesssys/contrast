@@ -34,13 +34,13 @@ jobs:
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: "" # Don't use the cachix cache
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Allow unrestricted user namespaces
         # Ubuntu 24.04 ships strict apparmor defaults, so we have to disable them to be able to call
         # unshare in the Nix sansbox without beeing root. This is used for the microsoft.kata-image for example.
         run: |
           sudo sysctl --ignore --write kernel.apparmor_restrict_unprivileged_unconfined=0
           sudo sysctl --ignore --write kernel.apparmor_restrict_unprivileged_userns=0
-      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Build
         id: build
         run: |
