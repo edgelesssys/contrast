@@ -126,6 +126,8 @@ func getEncryptHandler(guard stateGuard, logger *slog.Logger) http.HandlerFunc {
 			}, logger)
 			return
 		}
+		logger.Debug(fmt.Sprintf("Authorized access to /encrypt/%s ", workloadSecretID))
+
 		var encReq encryptionRequest
 		if err := parseRequest(r, &encReq); err != nil {
 			writeHTTPError(w, httpError{
@@ -188,6 +190,7 @@ func getDecryptHandler(guard stateGuard, logger *slog.Logger) http.HandlerFunc {
 			}, logger)
 			return
 		}
+		logger.Debug(fmt.Sprintf("Authorized access to /decrypt/%s ", workloadSecretID))
 		var decReq decryptionRequest
 		if err := parseRequest(r, &decReq); err != nil {
 			writeHTTPError(w, httpError{
