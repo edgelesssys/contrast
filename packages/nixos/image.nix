@@ -20,6 +20,11 @@ in
   config = {
     system.image.version = "1-rc1";
 
+    documentation = {
+      man.enable = false;
+      nixos.enable = false;
+    };
+
     # We build the image with systemd-repart, which integrates well
     # with the systemd utilities we use for dm-verity, UKI, etc.
     # However, we do not use the repart unit, as we don't want
