@@ -60,7 +60,6 @@ lib.makeOverridable (
       nixpkgs.overlays = [
         (_self: _super: {
           inherit (outerPkgs)
-            cloud-api-adaptor
             pause-bundle
             nvidia-ctk-oci-hook
             nvidia-ctk-with-config
