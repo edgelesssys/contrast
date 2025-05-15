@@ -61,11 +61,6 @@ node-installer platform=default_platform:
         "Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP-GPU")
             just push "node-installer-kata-gpu"
         ;;
-        "AKS-PEER-SNP")
-            nix run -L .#scripts.deploy-caa -- \
-                --kustomization=./infra/azure-peerpods/kustomization.yaml \
-                --pub-key=./infra/azure-peerpods/id_rsa.pub
-        ;;
         *)
             echo "Unsupported platform: {{ platform }}"
             exit 1
@@ -199,18 +194,6 @@ create-pre platform=default_platform:
         "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             :
         ;;
-        "AKS-PEER-SNP")
-            echo "resource_group = \"${azure_resource_group}_caa_cluster\"" > infra/azure-peerpods-iam/just.auto.tfvars
-            echo "location = \"${azure_location}\"" >> infra/azure-peerpods-iam/just.auto.tfvars
-            echo "subscription_id = \"${azure_subscription_id}\"" >> infra/azure-peerpods-iam/just.auto.tfvars
-            nix run -L .#terraform -- -chdir=infra/azure-peerpods-iam init
-            nix run -L .#terraform -- -chdir=infra/azure-peerpods-iam apply --auto-approve
-            nix run -L .#terraform -- -chdir=infra/azure-peerpods-iam output -raw client_secret_env > infra/azure-peerpods/iam.auto.tfvars
-            echo "resource_group = \"${azure_resource_group}_caa_cluster\"" >> infra/azure-peerpods/iam.auto.tfvars
-
-            # TODO(burgerdev): this should be done in a generic upload target, together with OCI images
-            just upload-image
-        ;;
         *)
             echo "Unsupported platform: {{ platform }}"
             exit 1
@@ -227,13 +210,6 @@ create platform=default_platform:
         ;;
         "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             :
-        ;;
-        "AKS-PEER-SNP")
-            # Populate Terraform variables.
-            echo "subscription_id = \"$azure_subscription_id\"" > infra/azure-peerpods/just.auto.tfvars
-
-            nix run -L .#terraform -- -chdir=infra/azure-peerpods init
-            nix run -L .#terraform -- -chdir=infra/azure-peerpods apply --auto-approve
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
@@ -329,9 +305,6 @@ get-credentials platform=default_platform:
                 --resource-group "$azure_resource_group" \
                 --name "$azure_resource_group"
         ;;
-        "AKS-PEER-SNP")
-            nix run -L .#scripts.merge-kube-config -- ./infra/azure-peerpods/kube.conf
-            ;;
         "K3s-QEMU-TDX")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/latest"
         ;;
@@ -365,13 +338,6 @@ destroy platform=default_platform:
         "K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             :
         ;;
-        "AKS-PEER-SNP")
-            nix run -L .#terraform -- -chdir=infra/azure-peerpods destroy --auto-approve
-
-            # Clean-up cached image ids.
-            rm -f ${CONTRAST_CACHE_DIR}/image-upload/*.image-id
-
-        ;;
         *)
             echo "Unsupported platform: {{ platform }}"
             exit 1
@@ -389,12 +355,6 @@ destroy-post platform=default_platform:
         ;;
         "K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
             :
-        ;;
-        "AKS-PEER-SNP")
-            nix run -L .#terraform -- -chdir=infra/azure-peerpods-iam destroy --auto-approve
-
-            # We just destroyed the resource group, so these IDs are invalid.
-            rm -f ${CONTRAST_CACHE_DIR}/image-upload/*.image-id
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
