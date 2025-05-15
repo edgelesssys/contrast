@@ -42,6 +42,9 @@ let
           ]
         );
 
+        # Override the `date` utility to keep timestamps out of the generated man page.
+        makeFlags = oldAttrs.makeFlags ++ [ "DATE=/bin/true" ];
+
         # Hack to pass the "right" (i.e. the overridden) version of the nvidia driver to the persistenced.
         # Looking at the package definition, it _should_ already do so, but it doesn't.
         # So for now, override all occurences of `nvidia_x11` in the persistenced package "manually".
