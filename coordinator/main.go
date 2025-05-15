@@ -129,6 +129,9 @@ func run() (retErr error) {
 	meshapiStarted := &startupHandler.MeshapiStarted
 
 	transitAPIServer, err := transitengine.NewTransitEngineAPI(meshAuth, logger)
+	if err != nil {
+		return fmt.Errorf("creating transit engine API server: %w", err)
+	}
 
 	eg, ctx := errgroup.WithContext(ctx)
 
