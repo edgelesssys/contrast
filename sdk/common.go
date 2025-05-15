@@ -11,18 +11,18 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/google/go-sev-guest/verify/trust"
 )
 
 // ValidatorsFromManifest returns a list of validators corresponding to the reference values in the given manifest.
 // Originally an unexported function in the contrast CLI.
 // Can be made unexported again, if we decide to move all userapi calls from the CLI to the SDK.
 // Validators MUST NOT be used concurrently.
-func ValidatorsFromManifest(kdsGetter trust.HTTPSGetter, m *manifest.Manifest, log *slog.Logger) ([]atls.Validator, error) {
+func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.Manifest, log *slog.Logger) ([]atls.Validator, error) {
 	var validators []atls.Validator
 
 	coordPolicyHash, err := m.CoordinatorPolicyHash()
@@ -45,7 +45,7 @@ func ValidatorsFromManifest(kdsGetter trust.HTTPSGetter, m *manifest.Manifest, l
 		))
 	}
 
-	tdxOpts, err := m.TDXValidateOpts()
+	tdxOpts, err := m.TDXValidateOpts(kdsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("generating TDX validation options: %w", err)
 	}
@@ -53,8 +53,8 @@ func ValidatorsFromManifest(kdsGetter trust.HTTPSGetter, m *manifest.Manifest, l
 	copy(mrConfigID[:], coordPolicyHashBytes)
 	for i, opt := range tdxOpts {
 		name := fmt.Sprintf("tdx-%d", i)
-		opt.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]
-		validators = append(validators, tdx.NewValidator(&tdx.StaticValidateOptsGenerator{Opts: opt}, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name))
+		opt.ValidateOpts.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]
+		validators = append(validators, tdx.NewValidator(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name))
 	}
 
 	return validators, nil

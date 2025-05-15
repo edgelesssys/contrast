@@ -5,9 +5,7 @@ package tdx
 
 import (
 	"context"
-	"crypto/x509"
 	"crypto/x509/pkix"
-	_ "embed"
 	"encoding/asn1"
 	"encoding/hex"
 	"fmt"
@@ -23,18 +21,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// Even though the vendored file has "SGX" in its name, it is the general "Provisioning Certificate for ECDSA Attestation"
-// from Intel and used for both SGX *and* TDX.
-//
-// See https://api.portal.trustedservices.intel.com/content/documentation.html#pcs for more information.
-//
-// File Source: https://certificates.trustedservices.intel.com/Intel_SGX_Provisioning_Certification_RootCA.pem
-//
-//go:embed Intel_SGX_Provisioning_Certification_RootCA.pem
-var tdxRootCert []byte
-
 // Validator validates attestation statements.
 type Validator struct {
+	verifyOpts      *verify.Options
 	validateOptsGen validateOptsGenerator
 	reportSetter    attestation.ReportSetter
 	logger          *slog.Logger
@@ -57,8 +46,9 @@ func (v *StaticValidateOptsGenerator) TDXValidateOpts(_ *tdx.QuoteV4) (*validate
 }
 
 // NewValidator returns a new Validator.
-func NewValidator(optsGen validateOptsGenerator, log *slog.Logger, name string) *Validator {
+func NewValidator(VerifyOpts *verify.Options, optsGen validateOptsGenerator, log *slog.Logger, name string) *Validator {
 	return &Validator{
+		verifyOpts:      VerifyOpts,
 		validateOptsGen: optsGen,
 		logger:          log,
 		name:            name,
@@ -66,8 +56,8 @@ func NewValidator(optsGen validateOptsGenerator, log *slog.Logger, name string) 
 }
 
 // NewValidatorWithReportSetter returns a new Validator with a report setter.
-func NewValidatorWithReportSetter(optsGen validateOptsGenerator, log *slog.Logger, reportSetter attestation.ReportSetter, name string) *Validator {
-	v := NewValidator(optsGen, log, name)
+func NewValidatorWithReportSetter(verifyOpts *verify.Options, optsGen validateOptsGenerator, log *slog.Logger, reportSetter attestation.ReportSetter, name string) *Validator {
+	v := NewValidator(verifyOpts, optsGen, log, name)
 	v.reportSetter = reportSetter
 	return v
 }
@@ -99,22 +89,9 @@ func (v *Validator) Validate(_ context.Context, attDocRaw []byte, nonce []byte, 
 
 	v.logger.Info("Quote decoded", "quote", protojson.MarshalOptions{Multiline: false}.Format(quote))
 
-	// Build the verification options.
-
-	verifyOpts := verify.DefaultOptions()
-	rootCerts, err := trustedRoots()
-	if err != nil {
-		return fmt.Errorf("getting trusted roots: %w", err)
-	}
-	verifyOpts.TrustedRoots = rootCerts
-	verifyOpts.CheckRevocations = true
-	verifyOpts.GetCollateral = true
-	// TODO(freax13): Set .Getter with a caching HTTP getter implementation.
-	// TODO(burgerdev): equip HTTPSGetter with context.
-
 	// Verify the report signature.
 
-	if err := verify.TdxQuote(quote, verifyOpts); err != nil {
+	if err := verify.TdxQuote(quote, v.verifyOpts); err != nil {
 		return fmt.Errorf("verifying report signature: %w", err)
 	}
 	v.logger.Info("Successfully verified report signature")
@@ -144,14 +121,6 @@ func (v *Validator) Validate(_ context.Context, attDocRaw []byte, nonce []byte, 
 // String returns the name as identifier of the validator.
 func (v *Validator) String() string {
 	return v.name
-}
-
-func trustedRoots() (*x509.CertPool, error) {
-	rootCerts := x509.NewCertPool()
-	if ok := rootCerts.AppendCertsFromPEM(tdxRootCert); !ok {
-		return nil, fmt.Errorf("failed to append root certificate")
-	}
-	return rootCerts, nil
 }
 
 type tdxReport struct {

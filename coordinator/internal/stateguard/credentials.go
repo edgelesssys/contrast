@@ -14,11 +14,11 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/attestation/tdx"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/logger"
-	"github.com/google/go-sev-guest/verify/trust"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"google.golang.org/grpc/credentials"
@@ -31,11 +31,11 @@ type Credentials struct {
 
 	logger                     *slog.Logger
 	attestationFailuresCounter prometheus.Counter
-	kdsGetter                  trust.HTTPSGetter
+	kdsGetter                  *certcache.CachedHTTPSGetter
 }
 
 // Credentials creates new transport credentials that validate peers according to the latest manifest.
-func (a *Guard) Credentials(reg *prometheus.Registry, issuer atls.Issuer, httpsGetter trust.HTTPSGetter) *Credentials {
+func (a *Guard) Credentials(reg *prometheus.Registry, issuer atls.Issuer, httpsGetter *certcache.CachedHTTPSGetter) *Credentials {
 	attestationFailuresCounter := promauto.With(reg).NewCounter(prometheus.CounterOpts{
 		Subsystem: "contrast_meshapi",
 		Name:      "attestation_failures_total",
@@ -82,14 +82,14 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		validators = append(validators, validator)
 	}
 
-	tdxOpts, err := state.Manifest().TDXValidateOpts()
+	tdxOpts, err := state.Manifest().TDXValidateOpts(c.kdsGetter)
 	if err != nil {
 		log.Error("Could not generate TDX validation options", "error", err)
 		return nil, nil, fmt.Errorf("generating TDX validation options: %w", err)
 	}
 	for i, opt := range tdxOpts {
 		name := fmt.Sprintf("tdx-%d", i)
-		validators = append(validators, tdx.NewValidatorWithReportSetter(&tdx.StaticValidateOptsGenerator{Opts: opt},
+		validators = append(validators, tdx.NewValidatorWithReportSetter(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts},
 			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"reference-values": name}), &authInfo, name))
 	}
 
