@@ -226,7 +226,7 @@ set cli=default_cli:
     #!/usr/bin/env bash
     set -euo pipefail
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
-    nix run -L .#scripts.kubectl-wait-ready -- $ns coordinator
+    nix run -L .#scripts.kubectl-wait-coordinator -- $ns
     nix run -L .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!
@@ -243,7 +243,7 @@ verify cli=default_cli:
     set -euo pipefail
     rm -rf ./{{ workspace_dir }}/verify
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
-    nix run -L .#scripts.kubectl-wait-ready -- $ns coordinator
+    nix run -L .#scripts.kubectl-wait-coordinator -- $ns
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1314:1313 &
     PID=$!
     trap "kill $PID" EXIT
@@ -257,7 +257,7 @@ recover cli=default_cli:
     #!/usr/bin/env bash
     set -euo pipefail
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
-    nix run -L .#scripts.kubectl-wait-ready -- $ns coordinator
+    nix run -L .#scripts.kubectl-wait-coordinator -- $ns
     nix run -L .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
     PID=$!

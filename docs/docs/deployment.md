@@ -421,7 +421,7 @@ spec:
   initContainers:
     - env:
         - name: COORDINATOR_HOST
-          value: coordinator
+          value: coordinator-ready
       image: "ghcr.io/edgelesssys/contrast/initializer:latest"
       name: contrast-initializer
       volumeMounts:
