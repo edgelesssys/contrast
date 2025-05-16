@@ -119,6 +119,27 @@ func (s StatefulSet) getPods(ctx context.Context, client *Kubeclient, namespace,
 	return client.PodsFromOwner(ctx, namespace, s.kind(), name)
 }
 
+func (c *Kubeclient) checkIfSucceeded(ctx context.Context, name, namespace string, resource ResourceWaiter) (bool, error) {
+	pods, err := resource.getPods(ctx, c, namespace, name)
+	if err != nil {
+		return false, err
+	}
+	desiredPods, err := resource.numDesiredPods(resource)
+	if err != nil {
+		return false, err
+	}
+	if len(pods) < desiredPods {
+		return false, nil
+	}
+
+	for _, pod := range pods {
+		if pod.Status.Phase != corev1.PodSucceeded {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 // IsStartingBlocked checks whether the FailedCreatePodSandBox Event occurred which indicates that the SetPolicy request is rejected and the Kata Shim fails to start the Pod sandbox.
 func (c *Kubeclient) IsStartingBlocked(name string, namespace string, resource ResourceWaiter, evt watch.Event, startingPoint time.Time) (bool, error) {
 	switch evt.Type {

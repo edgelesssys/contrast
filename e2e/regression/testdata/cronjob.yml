@@ -5,6 +5,7 @@ metadata:
   namespace: "@@REPLACE_NAMESPACE@@"
 spec:
   schedule: "* * * * *"
+  concurrencyPolicy: Forbid
   jobTemplate:
     spec:
       template:

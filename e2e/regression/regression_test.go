@@ -129,7 +129,9 @@ func TestRegression(t *testing.T) {
 			case "ReplicationController":
 				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.ReplicationController{}, ct.Namespace, resourceName))
 			case "Job":
-				require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Job{}, ct.Namespace, resourceName))
+				require.NoError(c.WaitFor(ctx, kubeclient.Succeeded, kubeclient.Job{}, ct.Namespace, resourceName))
+			case "CronJob":
+				require.NoError(c.WaitFor(ctx, kubeclient.Succeeded, kubeclient.CronJob{}, ct.Namespace, resourceName))
 			}
 		})
 	}
