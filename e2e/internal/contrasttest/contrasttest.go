@@ -400,7 +400,7 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 
 // runAgainstCoordinator forwards the coordinator port and executes the command against it.
 func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Command, args ...string) error {
-	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"); err != nil {
+	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.Running, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"); err != nil {
 		return fmt.Errorf("waiting for coordinator: %w", err)
 	}
 	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Pod{}, ct.Namespace, "port-forwarder-coordinator"); err != nil {

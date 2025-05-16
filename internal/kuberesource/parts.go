@@ -312,11 +312,25 @@ func Coordinator(namespace string) *CoordinatorConfig {
 									WithName("meshapi").
 									WithContainerPort(7777),
 							).
-							WithReadinessProbe(Probe().
+							WithStartupProbe(Probe().
 								WithInitialDelaySeconds(1).
+								WithPeriodSeconds(1).
+								WithHTTPGet(applycorev1.HTTPGetAction().
+									WithPort(intstr.FromInt(9102)).
+									WithPath("/probe/startup")),
+							).
+							WithLivenessProbe(Probe().
+								WithPeriodSeconds(10).
+								WithFailureThreshold(3).
+								WithHTTPGet(applycorev1.HTTPGetAction().
+									WithPort(intstr.FromInt(9102)).
+									WithPath("/probe/liveness")),
+							).
+							WithReadinessProbe(Probe().
 								WithPeriodSeconds(5).
-								WithTCPSocket(TCPSocketAction().
-									WithPort(intstr.FromInt(1313))),
+								WithHTTPGet(applycorev1.HTTPGetAction().
+									WithPort(intstr.FromInt(9102)).
+									WithPath("/probe/readiness")),
 							).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(200),
@@ -483,7 +497,7 @@ func Initializer() *applycorev1.ContainerApplyConfiguration {
 		WithResources(ResourceRequirements().
 			WithMemoryRequest(50),
 		).
-		WithEnv(NewEnvVar("COORDINATOR_HOST", "coordinator")).
+		WithEnv(NewEnvVar("COORDINATOR_HOST", "coordinator-ready")).
 		WithVolumeMounts(VolumeMount().
 			WithName("contrast-secrets").
 			WithMountPath("/contrast"),

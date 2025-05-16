@@ -219,7 +219,7 @@ func TestRelease(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 
-		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, "default", "coordinator"))
+		require.NoError(k.WaitFor(ctx, kubeclient.Running, kubeclient.StatefulSet{}, "default", "coordinator"))
 		var err error
 		coordinatorIP, err = k.WaitForService(ctx, "default", "coordinator", hasLoadBalancer)
 		require.NoError(err)

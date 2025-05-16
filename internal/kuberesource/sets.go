@@ -18,8 +18,13 @@ import (
 // CoordinatorBundle returns the Coordinator and a matching Service.
 func CoordinatorBundle() []any {
 	coordinator := Coordinator("")
+
 	coordinatorService := ServiceForStatefulSet(coordinator.StatefulSetApplyConfiguration).
 		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
+	coordinatorService.Spec.WithPublishNotReadyAddresses(true)
+
+	coordinatorReadyService := ServiceForStatefulSet(coordinator.StatefulSetApplyConfiguration).
+		WithName(*coordinatorService.GetName() + "-ready")
 
 	return []any{
 		coordinator.StatefulSetApplyConfiguration,
@@ -27,6 +32,7 @@ func CoordinatorBundle() []any {
 		coordinator.RoleApplyConfiguration,
 		coordinator.RoleBindingApplyConfiguration,
 		coordinatorService,
+		coordinatorReadyService,
 	}
 }
 

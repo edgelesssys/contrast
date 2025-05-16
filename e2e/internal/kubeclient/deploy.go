@@ -33,6 +33,8 @@ const (
 	Ready
 	// InitContainersRunning waits until all initial containers of all pods of the resource are running.
 	InitContainersRunning
+	// Running waits until the main containers of a resource are running.
+	Running = "Running"
 )
 
 // WaitEventCondition is an enum type for the possible wait conditions when using `kubeclient.WaitForEvent`.
@@ -183,7 +185,7 @@ func (c *Kubeclient) WaitForPod(ctx context.Context, namespace, name string) err
 	}
 }
 
-func (c *Kubeclient) checkIfReady(ctx context.Context, name string, namespace string, evt watch.Event, resource ResourceWaiter) (bool, error) {
+func (c *Kubeclient) checkAllPods(ctx context.Context, name string, namespace string, evt watch.Event, resource ResourceWaiter, check func(*corev1.Pod) bool) (bool, error) {
 	switch evt.Type {
 	case watch.Added:
 		fallthrough
@@ -194,7 +196,7 @@ func (c *Kubeclient) checkIfReady(ctx context.Context, name string, namespace st
 		}
 		numPodsReady := 0
 		for _, pod := range pods {
-			if isPodReady(&pod) {
+			if check(&pod) {
 				numPodsReady++
 			}
 		}
@@ -202,7 +204,7 @@ func (c *Kubeclient) checkIfReady(ctx context.Context, name string, namespace st
 		if err != nil {
 			return false, err
 		}
-		c.log.Debug("readiness check complete", "kind", resource.kind(), "name", name, "namespace", namespace, "desired", desiredPods, "ready", numPodsReady)
+		c.log.Debug("pod check complete", "kind", resource.kind(), "name", name, "namespace", namespace, "desired", desiredPods, "meeting condition", numPodsReady)
 		if desiredPods <= numPodsReady {
 			// Wait for 5 more seconds just to be *really* sure that
 			// the pods are actually up.
@@ -282,7 +284,7 @@ func (c *Kubeclient) WaitFor(ctx context.Context, condition WaitCondition, resou
 		for evt := range watcher.ResultChan() {
 			switch condition {
 			case Ready:
-				ready, err := c.checkIfReady(ctx, name, namespace, evt, resource)
+				ready, err := c.checkAllPods(ctx, name, namespace, evt, resource, isPodReady)
 				if err != nil {
 					return fmt.Errorf("checking readiness of %s: %w", qualifiedResourceName, err)
 				}
@@ -293,6 +295,14 @@ func (c *Kubeclient) WaitFor(ctx context.Context, condition WaitCondition, resou
 				running, err := c.checkIfRunning(ctx, name, namespace, resource)
 				if err != nil {
 					return fmt.Errorf("checking init containers of %s: %w", qualifiedResourceName, err)
+				}
+				if running {
+					return nil
+				}
+			case Running:
+				running, err := c.checkAllPods(ctx, name, namespace, evt, resource, isPodRunning)
+				if err != nil {
+					return fmt.Errorf("checking running status of %s: %w", qualifiedResourceName, err)
 				}
 				if running {
 					return nil
@@ -471,6 +481,10 @@ func isPodReady(pod *corev1.Pod) bool {
 		}
 	}
 	return false
+}
+
+func isPodRunning(pod *corev1.Pod) bool {
+	return pod.Status.Phase == corev1.PodRunning
 }
 
 func (c *Kubeclient) resourceInterfaceFor(obj *unstructured.Unstructured) (dynamic.ResourceInterface, error) {
