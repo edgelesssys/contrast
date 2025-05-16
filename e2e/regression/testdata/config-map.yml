@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-map
+  namespace: "@@REPLACE_NAMESPACE@@"
+data:
+  foo: bar
+# TODO(miampf): Add binaryData field
