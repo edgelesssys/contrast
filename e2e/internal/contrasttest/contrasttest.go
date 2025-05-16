@@ -401,7 +401,7 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 
 // runAgainstCoordinator forwards the coordinator port and executes the command against it.
 func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Command, args ...string) error {
-	if err := ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "coordinator"); err != nil {
+	if err := ct.Kubeclient.WaitForCoordinator(ctx, ct.Namespace); err != nil {
 		return fmt.Errorf("waiting for coordinator: %w", err)
 	}
 

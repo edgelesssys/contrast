@@ -234,7 +234,7 @@ func TestOpenSSL(t *testing.T) {
 		c := kubeclient.NewForTest(t)
 
 		require.NoError(c.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
-		require.NoError(c.WaitForStatefulSet(ctx, ct.Namespace, "coordinator"))
+		require.NoError(c.WaitForCoordinator(ctx, ct.Namespace))
 
 		// TODO(freax13): The following verify sometimes fails spuriously due to
 		//                connection issues. Waiting a little bit longer makes

@@ -207,6 +207,34 @@
     '';
   };
 
+  kubectl-wait-coordinator = writeShellApplication {
+    name = "kubectl-wait-coordinator";
+    runtimeInputs = with pkgs; [ kubectl ];
+    text = ''
+      namespace=$1
+      name="coordinator-0"
+
+      echo "Waiting for $name.$namespace to become ready" >&2
+
+      timeout=180
+
+      interval=4
+      while [ $timeout -gt 0 ]; do
+        if kubectl -n "$namespace" get pods "$name"; then
+          break
+        fi
+        sleep "$interval"
+        timeout=$((timeout - interval))
+      done
+
+      kubectl wait \
+         --namespace "$namespace" \
+         --for=jsonpath='{.status.phase}'=Running \
+         --timeout="''${timeout}s" \
+         pod/$name
+    '';
+  };
+
   wait-for-port-listen = writeShellApplication {
     name = "wait-for-port-listen";
     runtimeInputs = with pkgs; [ iproute2 ];

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
@@ -41,6 +42,21 @@ func (c *Kubeclient) WaitForStatefulSet(ctx context.Context, namespace, name str
 	}
 	ls := labels.SelectorFromSet(s.Spec.Selector.MatchLabels)
 	return c.WaitForPodCondition(ctx, namespace, &numReady{ls: ls, n: int(*s.Spec.Replicas)})
+}
+
+// WaitForCoordinator waits until the first Coordinator is started.
+//
+// The Coordinator only becomes ready when it has a manifest configured, but for setting a manifest
+// we only need it to be running. Since the Coordinator is managed by a StatefulSet, additional
+// replicas will only be started after the first Coordinator becomes ready, so we only need to wait
+// for the first instance to become running.
+func (c *Kubeclient) WaitForCoordinator(ctx context.Context, namespace string) error {
+	s, err := c.Client.AppsV1().StatefulSets(namespace).Get(ctx, "coordinator", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	ls := labels.SelectorFromSet(s.Spec.Selector.MatchLabels)
+	return c.WaitForPodCondition(ctx, namespace, &oneRunning{ls: ls})
 }
 
 // WaitForDaemonSet waits until the DaemonSet is ready.
@@ -173,6 +189,23 @@ func (f *singlePodReady) Check(lister listerscorev1.PodLister) (bool, error) {
 			continue
 		}
 		return isPodReady(pod), nil
+	}
+	return false, nil
+}
+
+type oneRunning struct {
+	ls labels.Selector
+}
+
+func (or *oneRunning) Check(lister listerscorev1.PodLister) (bool, error) {
+	pods, err := lister.List(or.ls)
+	if err != nil {
+		return false, err
+	}
+	for _, pod := range pods {
+		if pod.Status.Phase == corev1.PodRunning {
+			return true, nil
+		}
 	}
 	return false, nil
 }
