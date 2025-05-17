@@ -6,36 +6,57 @@ package kubeclient
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 	"sort"
 	"strconv"
 	"time"
 
-	"github.com/edgelesssys/contrast/internal/retry"
-	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 )
 
 // WaitCondition is an enum type for the possible wait conditions when using `kubeclient.WaitFor`.
-type WaitCondition int
+type WaitCondition string
 
 const (
-	_ WaitCondition = iota
 	// Ready waits until the resource becomes ready.
-	Ready
+	Ready WaitCondition = "Ready"
 	// InitContainersRunning waits until all initial containers of all pods of the resource are running.
-	InitContainersRunning
+	InitContainersRunning = "InitContainersRunning"
 	// Running waits until the main containers of a resource are running.
 	Running = "Running"
 )
+
+func (c WaitCondition) Matches(pod *corev1.Pod) bool {
+	switch c {
+	case Ready:
+		for _, cond := range pod.Status.Conditions {
+			if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
+				return true
+			}
+		}
+		return false
+	case InitContainersRunning:
+		for _, container := range pod.Status.ContainerStatuses {
+			if container.State.Running == nil {
+				return false
+			}
+		}
+		return true
+	default:
+		panic(fmt.Sprintf("invalid wait condition: %q", c))
+	}
+}
 
 // WaitEventCondition is an enum type for the possible wait conditions when using `kubeclient.WaitForEvent`.
 type WaitEventCondition int
@@ -49,9 +70,8 @@ const (
 // ResourceWaiter is implemented by resources that can be waited for with WaitFor.
 type ResourceWaiter interface {
 	kind() string
-	watcher(context.Context, *kubernetes.Clientset, string, string) (watch.Interface, error)
-	numDesiredPods(any) (int, error)
-	getPods(context.Context, *Kubeclient, string, string) ([]corev1.Pod, error)
+	podSelector(context.Context, *kubernetes.Clientset, string, string) (labels.Selector, error)
+	numDesiredPods(context.Context, *kubernetes.Clientset, string, string) (int, error)
 }
 
 // Pod implements ResourceWaiter.
@@ -61,20 +81,17 @@ func (p Pod) kind() string {
 	return "Pod"
 }
 
-func (p Pod) watcher(ctx context.Context, client *kubernetes.Clientset, namespace, name string) (watch.Interface, error) {
-	return client.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
-}
-
-func (p Pod) numDesiredPods(_ any) (int, error) {
-	return 1, nil
-}
-
-func (p Pod) getPods(ctx context.Context, client *Kubeclient, namespace, name string) ([]corev1.Pod, error) {
-	pod, err := client.Client.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
+func (p Pod) podSelector(ctx context.Context, client *kubernetes.Clientset, namespace, name string) (labels.Selector, error) {
+	req, err := labels.NewRequirement("metadata.name", selection.Equals, []string{name})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("bad requirement: %w", err)
 	}
-	return []corev1.Pod{*pod}, nil
+
+	return labels.NewSelector().Add(*req), nil
+}
+
+func (p Pod) numDesiredPods(context.Context, *kubernetes.Clientset, string, string) (int, error) {
+	return 1, nil
 }
 
 // Deployment implements ResourceWaiter.
@@ -84,19 +101,23 @@ func (d Deployment) kind() string {
 	return "Deployment"
 }
 
-func (d Deployment) watcher(ctx context.Context, client *kubernetes.Clientset, namespace, name string) (watch.Interface, error) {
-	return client.AppsV1().Deployments(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
-}
-
-func (d Deployment) numDesiredPods(obj any) (int, error) {
-	if deploy, ok := obj.(*appsv1.Deployment); ok {
-		return int(*deploy.Spec.Replicas), nil
+func (d Deployment) podSelector(ctx context.Context, client *kubernetes.Clientset, namespace, name string) (labels.Selector, error) {
+	res, err := client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
 	}
-	return 0, fmt.Errorf("watcher received unexpected type %T", obj)
+	return labels.SelectorFromSet(res.Spec.Selector.MatchLabels), nil
 }
 
-func (d Deployment) getPods(ctx context.Context, client *Kubeclient, namespace, name string) ([]corev1.Pod, error) {
-	return client.PodsFromDeployment(ctx, namespace, name)
+func (d Deployment) numDesiredPods(ctx context.Context, client *kubernetes.Clientset, namespace string, name string) (int, error) {
+	res, err := client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return 0, err
+	}
+	if res.Spec.Replicas == nil {
+		return 0, fmt.Errorf("deployment has no replicas")
+	}
+	return int(*res.Spec.Replicas), nil
 }
 
 // DaemonSet implements ResourceWaiter.
@@ -106,27 +127,28 @@ func (d DaemonSet) kind() string {
 	return "DaemonSet"
 }
 
-func (d DaemonSet) watcher(ctx context.Context, client *kubernetes.Clientset, namespace, name string) (watch.Interface, error) {
-	return client.AppsV1().DaemonSets(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
-}
-
-func (d DaemonSet) numDesiredPods(obj any) (int, error) {
-	if ds, ok := obj.(*appsv1.DaemonSet); ok {
-		n := int(ds.Status.DesiredNumberScheduled)
-		if n == 0 {
-			// DaemonSets start out with empty DesiredNumberScheduled, which then gets filled in by
-			// a controller. We don't expect any DaemonSets in our test resources that are
-			// intended to be empty, so we artificially require one pod until the status is set
-			// correctly.
-			n = 1
-		}
-		return n, nil
+func (d DaemonSet) podSelector(ctx context.Context, client *kubernetes.Clientset, namespace, name string) (labels.Selector, error) {
+	res, err := client.AppsV1().DaemonSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
 	}
-	return 0, fmt.Errorf("watcher received unexpected type %T", obj)
+	return labels.SelectorFromSet(res.Spec.Selector.MatchLabels), nil
 }
 
-func (d DaemonSet) getPods(ctx context.Context, client *Kubeclient, namespace, name string) ([]corev1.Pod, error) {
-	return client.PodsFromOwner(ctx, namespace, d.kind(), name)
+func (d DaemonSet) numDesiredPods(ctx context.Context, client *kubernetes.Clientset, namespace string, name string) (int, error) {
+	ds, err := client.AppsV1().DaemonSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return 0, err
+	}
+	n := int(ds.Status.DesiredNumberScheduled)
+	if n == 0 {
+		// DaemonSets start out with empty DesiredNumberScheduled, which then gets filled in by
+		// a controller. We don't expect any DaemonSets in our test resources that are
+		// intended to be empty, so we artificially require one pod until the status is set
+		// correctly.
+		n = 1
+	}
+	return n, nil
 }
 
 // StatefulSet implements ResourceWaiter.
@@ -136,107 +158,23 @@ func (s StatefulSet) kind() string {
 	return "StatefulSet"
 }
 
-func (s StatefulSet) watcher(ctx context.Context, client *kubernetes.Clientset, namespace, name string) (watch.Interface, error) {
-	return client.AppsV1().StatefulSets(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
-}
-
-func (s StatefulSet) numDesiredPods(obj any) (int, error) {
-	if set, ok := obj.(*appsv1.StatefulSet); ok {
-		return int(*set.Spec.Replicas), nil
-	}
-	return 0, fmt.Errorf("watcher received unexpected type %T", obj)
-}
-
-func (s StatefulSet) getPods(ctx context.Context, client *Kubeclient, namespace, name string) ([]corev1.Pod, error) {
-	return client.PodsFromOwner(ctx, namespace, s.kind(), name)
-}
-
-// WaitForPod watches the given pod and blocks until it meets the condition Ready=True or the
-// context expires (is cancelled or times out).
-func (c *Kubeclient) WaitForPod(ctx context.Context, namespace, name string) error {
-	watcher, err := c.Client.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
+func (d StatefulSet) podSelector(ctx context.Context, client *kubernetes.Clientset, namespace, name string) (labels.Selector, error) {
+	res, err := client.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	for {
-		evt, ok := <-watcher.ResultChan()
-		if !ok {
-			if ctx.Err() == nil {
-				return fmt.Errorf("watcher for Pod %s/%s unexpectedly closed", namespace, name)
-			}
-			return ctx.Err()
-		}
-		switch evt.Type {
-		case watch.Added:
-			fallthrough
-		case watch.Modified:
-			pod, ok := evt.Object.(*corev1.Pod)
-			if !ok {
-				return fmt.Errorf("watcher received unexpected type %T", evt.Object)
-			}
-			if isPodReady(pod) {
-				return nil
-			}
-		case watch.Deleted:
-			return fmt.Errorf("pod %s/%s was deleted while waiting for it", namespace, name)
-		default:
-			c.log.Warn("ignoring unexpected watch event", "type", evt.Type, "object", evt.Object)
-		}
-	}
+	return labels.SelectorFromSet(res.Spec.Selector.MatchLabels), nil
 }
 
-func (c *Kubeclient) checkAllPods(ctx context.Context, name string, namespace string, evt watch.Event, resource ResourceWaiter, check func(*corev1.Pod) bool) (bool, error) {
-	switch evt.Type {
-	case watch.Added:
-		fallthrough
-	case watch.Modified:
-		pods, err := resource.getPods(ctx, c, namespace, name)
-		if err != nil {
-			return false, err
-		}
-		numPodsReady := 0
-		for _, pod := range pods {
-			if check(&pod) {
-				numPodsReady++
-			}
-		}
-		desiredPods, err := resource.numDesiredPods(evt.Object)
-		if err != nil {
-			return false, err
-		}
-		c.log.Debug("pod check complete", "kind", resource.kind(), "name", name, "namespace", namespace, "desired", desiredPods, "meeting condition", numPodsReady)
-		if desiredPods <= numPodsReady {
-			// Wait for 5 more seconds just to be *really* sure that
-			// the pods are actually up.
-			sleep, cancel := context.WithTimeout(ctx, time.Second*5)
-			defer cancel()
-			<-sleep.Done()
-			return true, nil
-		}
-	case watch.Deleted:
-		return false, fmt.Errorf("%s %s/%s was deleted while waiting for it", resource.kind(), namespace, name)
-	default:
-		return false, fmt.Errorf("unexpected watch event while waiting for %s %s/%s: type=%s, object=%#v", resource.kind(), namespace, name, evt.Type, evt.Object)
-	}
-	return false, nil
-}
-
-func (c *Kubeclient) checkIfRunning(ctx context.Context, name string, namespace string, resource ResourceWaiter) (bool, error) {
-	pods, err := resource.getPods(ctx, c, namespace, name)
+func (d StatefulSet) numDesiredPods(ctx context.Context, client *kubernetes.Clientset, namespace string, name string) (int, error) {
+	res, err := client.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		return false, err
+		return 0, err
 	}
-	for _, pod := range pods {
-		// check if all containers in the pod are running
-		containers := pod.Status.InitContainerStatuses
-
-		for _, container := range containers {
-			if container.State.Running == nil {
-				return false, nil
-			}
-		}
+	if res.Spec.Replicas == nil {
+		return 0, fmt.Errorf("deployment has no replicas")
 	}
-	return true, nil
+	return int(*res.Spec.Replicas), nil
 }
 
 // IsStartingBlocked checks whether the FailedCreatePodSandBox Event occurred which indicates that the SetPolicy request is rejected and the Kata Shim fails to start the Pod sandbox.
@@ -268,68 +206,82 @@ func (c *Kubeclient) IsStartingBlocked(name string, namespace string, resource R
 // WaitFor watches the given resource kind and blocks until the desired number of pods are
 // ready or the context expires (is cancelled or times out).
 func (c *Kubeclient) WaitFor(ctx context.Context, condition WaitCondition, resource ResourceWaiter, namespace, name string) error {
-	// When the node-installer restarts K3s, the watcher fails. The watcher has
-	// a retry loop internally, but it only retries starting the request, once
-	// it has established a request and that request dies spuriously, the
-	// watcher doesn't reconnect. To fix this we add another retry loop.
 	qualifiedResourceName := fmt.Sprintf("%s %s/%s", resource.kind(), namespace, name)
 	logger := c.log.With("kind", resource.kind(), "namespace", namespace, "name", name)
 
-	doer := retry.DoerFunc(func(ctx context.Context) error {
-		watcher, err := resource.watcher(ctx, c.Client, namespace, name)
-		if err != nil {
-			return fmt.Errorf("creating watcher for %s", qualifiedResourceName)
-		}
+	factory := informers.NewSharedInformerFactoryWithOptions(c.Client, 5*time.Second, informers.WithNamespace(namespace))
+	podInformer := factory.Core().V1().Pods().Informer()
 
-		for evt := range watcher.ResultChan() {
-			switch condition {
-			case Ready:
-				ready, err := c.checkAllPods(ctx, name, namespace, evt, resource, isPodReady)
-				if err != nil {
-					return fmt.Errorf("checking readiness of %s: %w", qualifiedResourceName, err)
-				}
-				if ready {
-					return nil
-				}
-			case InitContainersRunning:
-				running, err := c.checkIfRunning(ctx, name, namespace, resource)
-				if err != nil {
-					return fmt.Errorf("checking init containers of %s: %w", qualifiedResourceName, err)
-				}
-				if running {
-					return nil
-				}
-			case Running:
-				running, err := c.checkAllPods(ctx, name, namespace, evt, resource, isPodRunning)
-				if err != nil {
-					return fmt.Errorf("checking running status of %s: %w", qualifiedResourceName, err)
-				}
-				if running {
-					return nil
-				}
-			}
-		}
-		return fmt.Errorf("watcher for %s closed unexpectedly", qualifiedResourceName)
+	// The notifications channel will be written to whenever the informer records a pod change.
+	notifications := make(chan struct{}, 256)
+	podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(any) {
+			notifications <- struct{}{}
+		},
+		UpdateFunc: func(any, any) {
+			notifications <- struct{}{}
+		},
+		DeleteFunc: func(any) {
+			notifications <- struct{}{}
+		},
 	})
 
-	err := retry.NewIntervalRetrier(doer, time.Second, retry.Always).Do(ctx)
+	// Start the informer.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	factory.Start(ctx.Done())
+
+	if ok := cache.WaitForNamedCacheSyncWithContext(ctx, podInformer.HasSynced); !ok {
+		return fmt.Errorf("pod informer for %s did not sync", qualifiedResourceName)
+	}
+	podLister := factory.Core().V1().Pods().Lister()
+
+	desiredPods, err := resource.numDesiredPods(ctx, c.Client, namespace, name)
 	if err != nil {
-		logger.Error("failed to wait for resource", "condition", condition, "err", err, "contextErr", ctx.Err())
-		// Fetch and print debug information.
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
-		pods, getPodsErr := resource.getPods(ctx, c, namespace, name) //nolint:contextcheck // The parent context expired.
-		if err != nil {
-			logger.Error("could not fetch pods for resource", "kind", resource.kind(), "name", name, "error", getPodsErr)
-			return err
-		}
-		for _, pod := range pods {
-			if !isPodReady(&pod) {
-				logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
+		return fmt.Errorf("getting number of desired pods for %s: %w", qualifiedResourceName, err)
+	}
+
+	selector, err := resource.podSelector(ctx, c.Client, namespace, name)
+	if err != nil {
+		return fmt.Errorf("getting pod selector for %s: %w", qualifiedResourceName, err)
+	}
+
+loop:
+	for {
+		select {
+		case <-notifications:
+			pods, err := podLister.List(selector)
+			if err != nil {
+				logger.Warn("error listing pods", "error", err)
+				continue
 			}
+			matchingPods := 0
+			for _, pod := range pods {
+				if condition.Matches(pod) {
+					matchingPods++
+				}
+			}
+			if desiredPods == matchingPods {
+				return nil
+			}
+		case <-ctx.Done():
+			break loop
 		}
 	}
-	return err
+
+	logger.Error("failed to wait for resource", "condition", condition, "err", ctx.Err())
+	// Fetch and print debug information.
+	pods, getPodsErr := podLister.List(selector)
+	if getPodsErr != nil {
+		logger.Error("could not fetch pods for resource", "kind", resource.kind(), "name", name, "error", getPodsErr)
+		return err
+	}
+	for _, pod := range pods {
+		if !condition.Matches(pod) {
+			logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
+		}
+	}
+	return fmt.Errorf("context expired waiting for %s: %w", qualifiedResourceName, ctx.Err())
 }
 
 // WaitForService waits until the given service is configured with an external IP and returns it.
@@ -432,24 +384,6 @@ retryLoop:
 					}
 					return fmt.Errorf("watcher for %s %s/%s unexpectedly closed", resource.kind(), namespace, name)
 				}
-				logger := c.log.With("namespace", namespace)
-				logger.Error("failed to wait for event", "condition", condition, "kind", resource, "name", name, "contextErr", ctx.Err())
-				if !errors.Is(ctx.Err(), context.DeadlineExceeded) {
-					return ctx.Err()
-				}
-				// Fetch and print debug information.
-				ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-				defer cancel()
-				pods, err := resource.getPods(ctx, c, namespace, name) //nolint:contextcheck // The parent context expired.
-				if err != nil {
-					logger.Error("could not fetch pods for resource", "kind", resource.kind(), "name", name, "error", err)
-					return origErr
-				}
-				for _, pod := range pods {
-					if !isPodReady(&pod) {
-						logger.Debug("pod not ready", "name", pod.Name, "status", c.toJSON(pod.Status))
-					}
-				}
 				return origErr
 			}
 			switch condition {
@@ -472,19 +406,6 @@ func (c *Kubeclient) toJSON(a any) string {
 		c.log.Error("could not marshal object to JSON", "object", a)
 	}
 	return string(s)
-}
-
-func isPodReady(pod *corev1.Pod) bool {
-	for _, cond := range pod.Status.Conditions {
-		if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
-			return true
-		}
-	}
-	return false
-}
-
-func isPodRunning(pod *corev1.Pod) bool {
-	return pod.Status.Phase == corev1.PodRunning
 }
 
 func (c *Kubeclient) resourceInterfaceFor(obj *unstructured.Unstructured) (dynamic.ResourceInterface, error) {
@@ -544,9 +465,24 @@ func (c *Kubeclient) Delete(ctx context.Context, objects ...*unstructured.Unstru
 
 // Restart a resource by deleting all of its dependent pods.
 func (c *Kubeclient) Restart(ctx context.Context, resource ResourceWaiter, namespace, name string) error {
-	pods, err := resource.getPods(ctx, c, namespace, name)
+	factory := informers.NewSharedInformerFactoryWithOptions(c.Client, 5*time.Second, informers.WithNamespace(namespace))
+	podInformer := factory.Core().V1().Pods().Informer()
+
+	// Start the informer.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	factory.Start(ctx.Done())
+
+	if ok := cache.WaitForNamedCacheSyncWithContext(ctx, podInformer.HasSynced); !ok {
+		return fmt.Errorf("pod informer for %s/%s did not sync", namespace, name)
+	}
+	selector, err := resource.podSelector(ctx, c.Client, namespace, name)
 	if err != nil {
-		return err
+		return fmt.Errorf("getting pod selector for %s/%s: %w", namespace, name, err)
+	}
+	pods, err := factory.Core().V1().Pods().Lister().List(selector)
+	if err != nil {
+		return fmt.Errorf("error listing pods: %w", err)
 	}
 	for _, pod := range pods {
 		err := c.Client.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{
