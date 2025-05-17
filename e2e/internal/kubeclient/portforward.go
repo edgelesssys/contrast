@@ -60,7 +60,7 @@ func (k *Kubeclient) WithForwardedPort(ctx context.Context, namespace, podName, 
 
 func (k *Kubeclient) portForwardPod(ctx context.Context, namespace, podName, remotePort string) (string, func(), <-chan error, error) {
 	// We can only forward to the pod once it's ready.
-	if err := k.WaitForPod(ctx, namespace, podName); err != nil {
+	if err := k.WaitFor(ctx, Ready, Pod{}, namespace, podName); err != nil {
 		return "", nil, nil, fmt.Errorf("waiting for pod %s: %w", podName, err)
 	}
 
