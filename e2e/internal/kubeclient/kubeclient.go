@@ -186,7 +186,7 @@ func (c *Kubeclient) Exec(ctx context.Context, namespace, pod string, argv []str
 
 // ExecDeployment executes a process in one of the deployment's pods.
 func (c *Kubeclient) ExecDeployment(ctx context.Context, namespace, deployment string, argv []string) (stdout string, stderr string, err error) {
-	if err := c.WaitFor(ctx, Ready, Deployment{}, namespace, deployment); err != nil {
+	if err := c.WaitForDeployment(ctx, namespace, deployment); err != nil {
 		return "", "", fmt.Errorf("deployment not ready: %w", err)
 	}
 

@@ -394,16 +394,18 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 		if r.GetKind() != "DaemonSet" {
 			continue
 		}
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.DaemonSet{}, ct.Namespace, r.GetName()))
+
+		require.NoError(ct.Kubeclient.WaitForDaemonSet(ctx, ct.Namespace, r.GetName()))
 	}
 }
 
 // runAgainstCoordinator forwards the coordinator port and executes the command against it.
 func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Command, args ...string) error {
-	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"); err != nil {
+	if err := ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "coordinator"); err != nil {
 		return fmt.Errorf("waiting for coordinator: %w", err)
 	}
-	if err := ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Pod{}, ct.Namespace, "port-forwarder-coordinator"); err != nil {
+
+	if err := ct.Kubeclient.WaitForPod(ctx, ct.Namespace, "port-forwarder-coordinator"); err != nil {
 		return fmt.Errorf("waiting for port-forwarder-coordinator: %w", err)
 	}
 
