@@ -148,7 +148,7 @@ func TestRelease(t *testing.T) {
 			if r.GetKind() != "DaemonSet" {
 				continue
 			}
-			require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.DaemonSet{}, r.GetNamespace(), r.GetName()))
+			require.NoError(k.WaitForDaemonSet(ctx, r.GetNamespace(), r.GetName()))
 		}
 	}), "the runtime is required for subsequent tests to run")
 
@@ -219,7 +219,7 @@ func TestRelease(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 
-		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, "default", "coordinator"))
+		require.NoError(k.WaitForStatefulSet(ctx, "default", "coordinator"))
 		var err error
 		coordinatorIP, err = k.WaitForService(ctx, "default", "coordinator", hasLoadBalancer)
 		require.NoError(err)
@@ -233,10 +233,10 @@ func TestRelease(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 
-		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, "default", "vote-bot"))
-		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, "default", "voting"))
-		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, "default", "emoji"))
-		require.NoError(k.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, "default", "web"))
+		require.NoError(k.WaitForDeployment(ctx, "default", "vote-bot"))
+		require.NoError(k.WaitForDeployment(ctx, "default", "voting"))
+		require.NoError(k.WaitForDeployment(ctx, "default", "emoji"))
+		require.NoError(k.WaitForDeployment(ctx, "default", "web"))
 	}), "the deployment must get ready for subsequent tests to run")
 
 	verifyFlags := []string{"verify", "-c", coordinatorIP + ":1313"}

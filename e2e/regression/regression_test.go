@@ -94,7 +94,7 @@ func TestRegression(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
 			defer cancel()
-			require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, deploymentName))
+			require.NoError(c.WaitForDeployment(ctx, ct.Namespace, deploymentName))
 		})
 	}
 

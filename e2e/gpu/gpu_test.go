@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
-	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -58,7 +57,7 @@ func TestGPU(t *testing.T) {
 
 		require := require.New(t)
 
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, gpuDeploymentName))
+		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, gpuDeploymentName))
 
 		pods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, gpuDeploymentName)
 		require.NoError(err)

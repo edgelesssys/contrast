@@ -17,7 +17,6 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
-	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -65,7 +64,8 @@ func TestGenpolicy(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 			t.Cleanup(cancel)
-			require.NoError(t, ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, name))
+
+			require.NoError(t, ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, name))
 		})
 	}
 }

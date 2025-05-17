@@ -101,7 +101,7 @@ func TestAKSRuntime(t *testing.T) {
 	defer cancel()
 	err = c.Apply(ctx, toApply...)
 	require.NoError(err)
-	require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, namespace, testContainer))
+	require.NoError(c.WaitForDeployment(ctx, namespace, testContainer))
 
 	pods, err := c.PodsFromDeployment(ctx, namespace, testContainer)
 	require.NoError(err)

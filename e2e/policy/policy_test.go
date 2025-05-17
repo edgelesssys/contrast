@@ -26,6 +26,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
+	listerscorev1 "k8s.io/client-go/listers/core/v1"
 )
 
 const (
@@ -103,8 +105,8 @@ func TestPolicy(t *testing.T) {
 		c := kubeclient.NewForTest(t)
 
 		t.Log("Waiting for deployments")
-		require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
-		require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
+		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
+		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
 
 		// get the attestation failures before removing a policy
 		initialFailures := getFailures(ctx, t, ct)
@@ -157,10 +159,13 @@ func TestPolicy(t *testing.T) {
 		// restart the deployments
 		require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend)) // not waiting since it would fail
 		require.NoError(c.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
-		require.NoError(c.WaitFor(ctx, kubeclient.Ready, kubeclient.Deployment{}, ct.Namespace, opensslBackend))
+		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
 
 		// wait for the init container of the openssl-frontend pod to enter the running state
-		require.NoError(c.WaitFor(ctx, kubeclient.InitContainersRunning, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
+		pods, err := c.PodsFromDeployment(ctx, ct.Namespace, opensslFrontend)
+		require.NoError(err)
+		require.Len(pods, 1)
+		require.NoError(c.WaitForPodCondition(ctx, ct.Namespace, &initContainerRunningCondition{name: pods[0].Name}))
 
 		// The container may be running, but it's hard to tell whether it already had a chance to
 		// connect to the Coordinator. Thus, retry for some time until an attestation failure happens.
@@ -248,4 +253,27 @@ func getFailures(ctx context.Context, t require.TestingT, ct *contrasttest.Contr
 		}
 	}
 	return failures
+}
+
+type initContainerRunningCondition struct {
+	name string
+}
+
+func (c *initContainerRunningCondition) Check(lister listerscorev1.PodLister) (bool, error) {
+	pods, err := lister.List(labels.Everything())
+	if err != nil {
+		return false, err
+	}
+	for _, pod := range pods {
+		if pod.Name != c.name {
+			continue
+		}
+		for _, container := range pods[0].Status.InitContainerStatuses {
+			if container.State.Running == nil {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
+	return false, nil
 }

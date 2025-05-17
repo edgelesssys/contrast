@@ -56,7 +56,7 @@ func TestVolumeStatefulSet(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
 
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, ct.Namespace, "volume-tester"))
+		require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "volume-tester"))
 	}), "deployments need to be ready for subsequent tests")
 
 	filePath := "/state/test"
@@ -88,7 +88,7 @@ func TestVolumeStatefulSet(t *testing.T) {
 		defer cancel()
 
 		require.NoError(ct.Kubeclient.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, "volume-tester"))
-		require.NoError(ct.Kubeclient.WaitFor(ctx, kubeclient.Ready, kubeclient.StatefulSet{}, ct.Namespace, "volume-tester"))
+		require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "volume-tester"))
 
 		pods, err := ct.Kubeclient.PodsFromOwner(ctx, ct.Namespace, "StatefulSet", "volume-tester")
 		require.NoError(err)
