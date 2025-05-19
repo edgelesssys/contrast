@@ -73,7 +73,7 @@ The complete structure can be found in the SEV Secure Nested Paging Firmware ABI
 | MIGRATE_MA |  0: Association with a migration agent is disallowed. <br /> 1: Association with a migration agent is allowed.  | 0 | 0 |
 | SMT |  0: SMT is disallowed. <br /> 1: SMT is allowed.  | 1 | 1 |
 | ABI_MAJOR |  The minimum ABI major version required for this guest to run.  | 0 | 0 |
-| ABI_MINOR |  The minimum ABI minor version required for this guest to run.  | 0 | 31 |
+| ABI_MINOR |  The minimum ABI minor version required for this guest to run.  | 31 | 0 |
 
 ## Attestation report
 
