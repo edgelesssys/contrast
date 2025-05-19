@@ -16,30 +16,38 @@ resourcesToCheck=(
   "cronjobs"
 )
 
+# Extract used runtime classes from running pods
 touch usedRuntimeClasses
 for resource in "${resourcesToCheck[@]}"; do
   kubectl get "${resource}" --all-namespaces -o jsonpath='{.items[*].spec.runtimeClassName} {.items[*].spec.template.spec.runtimeClassName} {.items[*].spec.jobTemplate.spec.template.spec.runtimeClassName}' 2>/dev/null |
     tr ' ' '\n' >>usedRuntimeClasses
 done
 
-kubectl get pods --all-namespaces -o jsonpath='{.items[?(@.metadata.annotations.contrast\.edgeless\.systems/pod-role=="contrast-node-installer")].spec.containers[0].args[1]}' |
+# Extract runtime class names from running node installers
+kubectl get pods --all-namespaces -o jsonpath='{.items[?(@.metadata.annotations.contrast\.edgeless\.systems/pod-role=="contrast-node-installer")].metadata.name}' |
   tr ' ' '\n' |
-  grep -o "contrast-cc-.\+" >>usedRuntimeClasses || true
+  grep -o "contrast-cc-.\+" |
+  sed "s/-nodeinstaller.*//g" >>usedRuntimeClasses || true
 sort -u usedRuntimeClasses -o usedRuntimeClasses
 
+# Unused runtime classes is the difference between all runtime classes and the used ones
 mapfile -t unusedRuntimeClasses < <(
   comm -13 usedRuntimeClasses <(
-    kubectl get runtimeclass -o jsonpath='{.items[*].metadata.name}' |
-      tr ' ' '\n' |
-      grep '^contrast-cc' |
-      sort -u
+    {
+      # Get all existing runtime classes that start with "contrast-cc"
+      kubectl get runtimeclass -o jsonpath='{.items[*].metadata.name}' |
+        tr ' ' '\n' |
+        grep '^contrast-cc' || true
+      # Get all (maybe already deleted) runtime classes with a reference in /opt/edgeless
+      ls -1 "${OPTEDGELESS}"
+    } | sort -u
   )
 )
 
 for runtimeClass in "${unusedRuntimeClasses[@]}"; do
   # Delete unused runtime classes
   echo "Deleting runtimeclass ${runtimeClass} ..."
-  kubectl delete runtimeclass "${runtimeClass}"
+  kubectl delete runtimeclass "${runtimeClass}" || true
 
   # Delete unused files
   if [ -d "${OPTEDGELESS}/${runtimeClass}" ]; then
