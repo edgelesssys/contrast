@@ -157,9 +157,11 @@ let
       copyToRoot = with pkgs; [
         cacert
         busybox
+        scripts.cleanup-bare-metal
+        scripts.cleanup-namespaces
       ];
       config = {
-        Cmd = [ "${lib.getExe pkgs.scripts.cleanup-bare-metal}" ];
+        Cmd = [ "cleanup-bare-metal" ];
       };
     };
   };
