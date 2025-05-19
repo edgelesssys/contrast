@@ -634,4 +634,12 @@
       exit $exitcode
     '';
   };
+
+  cleanup-namespaces = writeShellApplication {
+    name = "cleanup-namespaces";
+    runtimeInputs = with pkgs; [
+      kubectl
+    ];
+    text = builtins.readFile ./cleanup-namespaces.sh;
+  };
 }
