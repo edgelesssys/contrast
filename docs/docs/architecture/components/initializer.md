@@ -1,6 +1,5 @@
 # Initializer
 
-<!-- TODO: Maybe not enough content for seperate page -->
 
 Contrast provides an Initializer that handles the remote attestation on the workload side transparently and
 fetches the workload certificate.
