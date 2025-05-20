@@ -1,0 +1,61 @@
+name: update bm tcb specs
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "dev-docs/e2e/tcb-specs.json"
+  pull_request:
+    paths:
+      - ".github/workflows/update_bm_tcb_specs.yml"
+  schedule:
+    - cron: "0 1 * * *" # 1 AM every day
+
+jobs:
+  update-bm-specs:
+    name: "Update bm tcb specs ${{ matrix.platform.name }}"
+    runs-on: ${{ matrix.platform.runner }}
+    outputs:
+      snp: ${{ steps.update.outputs.K3s-QEMU-SNP }}
+      tdx: ${{ steps.update.outputs.K3s-QEMU-TDX }}
+      snp-gpu: ${{ steps.update.outputs.K3s-QEMU-SNP-GPU }}
+    strategy:
+      matrix:
+        platform:
+          - name: K3s-QEMU-SNP
+            runner: SNP
+          - name: K3s-QEMU-TDX
+            runner: TDX
+          - name: K3s-QEMU-SNP-GPU
+            runner: SNP-GPU
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Update bare metal tcb specs
+        id: update
+        run: |
+          kubectl create configmap bm-tcb-specs --from-file=./dev-docs/e2e/tcb-specs.json -n default --dry-run=client -o yaml | kubectl apply -f -
+          echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
+
+  notify-teams:
+    name: "Notify teams channel of failure"
+    runs-on: ubuntu-22.04
+    needs: update-bm-specs
+    if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Get JSON output
+        id: get-json
+        run: |
+          platforms=()
+          [[ "${{ needs.update-bm-specs.outputs.snp }}" == "success" ]] && platforms+=("K3s-QEMU-SNP")
+          [[ "${{ needs.update-bm-specs.outputs.tdx }}" == "success" ]] && platforms+=("K3s-QEMU-TDX")
+          [[ "${{ needs.update-bm-specs.outputs.snp-gpu }}" == "success" ]] && platforms+=("K3s-QEMU-SNP-GPU")
+          echo "json=[{\"title\": \"Platforms\", \"value\": \"${platforms[*]}\"}]" >> "$GITHUB_OUTPUT"
+      - uses: ./.github/actions/post_to_teams
+        with:
+          webhook: ${{ secrets.TEAMS_WEBHOOK }}
+          title: "${{ github.workflow }} failed"
+          message: "workflow ${{ github.workflow }} failed"
+          additionalFields: "${{ steps.get-json.outputs.json }}"

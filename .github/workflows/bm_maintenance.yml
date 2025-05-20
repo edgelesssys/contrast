@@ -2,8 +2,13 @@ name: bare metal maintenance
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/bm_maintenance.yml"
+      - "tools/bm-maintenance/**"
+      - "packages/**"
   schedule:
-    - cron: '0 1 * * *' # 1 AM every day
+    - cron: '0 2 * * *' # 2 AM every day
 
 env:
   container_registry: ghcr.io/edgelesssys
@@ -68,9 +73,6 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Update bare metal tcb specs
-        run: |
-          kubectl create configmap bm-tcb-specs --from-file=./dev-docs/e2e/tcb-specs.json -n default --dry-run=client -o yaml | kubectl apply -f -
       - name: Update namespace cleanup cronjob
         id: update
         env:
