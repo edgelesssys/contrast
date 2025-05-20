@@ -143,6 +143,41 @@ func OpenSSL() []any {
 	return resources
 }
 
+// MultiCPU returns a deployment that requests 2 CPUs.
+func MultiCPU() []any {
+	ns := ""
+
+	return []any{
+		Deployment("multi-cpu", ns).
+			WithSpec(DeploymentSpec().
+				WithReplicas(1).
+				WithSelector(LabelSelector().
+					WithMatchLabels(map[string]string{"app.kubernetes.io/name": "multi-cpu"}),
+				).
+				WithTemplate(PodTemplateSpec().
+					WithLabels(map[string]string{"app.kubernetes.io/name": "multi-cpu"}).
+					WithSpec(PodSpec().
+						WithContainers(
+							Container().
+								WithName("multi-cpu").
+								WithImage("ghcr.io/edgelesssys/contrast/ubuntu@sha256:b0c08a4b639b5fca9aa4943ecec614fe241a0cebd1a7b460093ccaeae70df698").
+								WithCommand("/usr/bin/bash", "-c", "nproc --all > /run/cpu_count; sleep infinity").
+								WithResources(ResourceRequirements().
+									// According to https://github.com/kata-containers/kata-containers/issues/2071#issuecomment-875694057,
+									// the actual CPU cores for the container is calculated by using a ceiling value + 1
+									// (https://github.com/kata-containers/kata-containers/blob/main/docs/design/vcpu-handling-runtime-go.md#container-with-cpu-constraint).
+									// Here, this comes down to 1 + 1 = 2 CPU cores available in the container.
+									WithLimits(corev1.ResourceList{
+										corev1.ResourceCPU: resource.MustParse("1"),
+									}),
+								),
+						),
+					),
+				),
+			),
+	}
+}
+
 // GetDEnts returns a set of resources for testing getdents entry limits.
 func GetDEnts() []any {
 	tester := Deployment("getdents-tester", "").
