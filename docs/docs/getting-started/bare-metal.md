@@ -11,7 +11,8 @@
 Consult AMD's [Using SEV with AMD EPYC Processors user guide](https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/tuning-guides/58207-using-sev-with-amd-epyc-processors.pdf) for more information.
 </TabItem>
 <TabItem value="intel" label="Intel TDX">
-Follow Canonical's instructions on [setting up Intel TDX in the host's BIOS](https://github.com/canonical/tdx?tab=readme-ov-file#43-enable-intel-tdx-in-the-hosts-bios).
+Follow Canonical's instructions in [4.3 Enable Intel TDX in the Host's BIOS](https://github.com/canonical/tdx?tab=readme-ov-file#43-enable-intel-tdx-in-the-hosts-bios) and [8.2 Setup Intel® SGX Data Center Attestation Primitives (Intel® SGX DCAP) on the Host OS](https://github.com/canonical/tdx?tab=readme-ov-file#82-setup-intel-sgx-data-center-attestation-primitives-intel-sgx-dcap-on-the-host-os).
+You can ignore the other sections of the document.
 </TabItem>
 </Tabs>
 
