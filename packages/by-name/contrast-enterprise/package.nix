@@ -5,6 +5,7 @@
 
 contrast.overrideAttrs (prevAttrs: {
   version = prevAttrs.version + "+enterprise";
+  __intentionallyOverridingVersion = true;
   tags = prevAttrs.tags ++ [ "enterprise" ];
   postInstall =
     prevAttrs.postInstall
