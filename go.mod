@@ -16,7 +16,7 @@ require (
 	github.com/coreos/go-iptables v0.8.0
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/elazarl/goproxy v1.7.2
-	github.com/google/go-github/v66 v66.0.0
+	github.com/google/go-github/v72 v72.0.0
 	github.com/google/go-sev-guest v0.13.0
 	github.com/google/go-tdx-guest v0.3.2-0.20250505161510-9efd53b4a100
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
