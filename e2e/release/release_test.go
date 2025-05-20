@@ -29,7 +29,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
-	"github.com/google/go-github/v66/github"
+	"github.com/google/go-github/v72/github"
 	ksync "github.com/katexochen/sync/api/client"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
