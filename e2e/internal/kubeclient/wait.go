@@ -109,6 +109,20 @@ func (c *Kubeclient) WaitForReplicaSet(ctx context.Context, namespace, name stri
 	return c.WaitForPodCondition(ctx, namespace, &numReady{ls: ls, n: int(*s.Spec.Replicas)})
 }
 
+// WaitForReplicationController waits until the ReplicationController is ready.
+//
+// We consider the ReplicationController ready when the number of ready pods targeted by the ReplicationController is
+// exactly the number of desired replicas. Changes in the desired number of replicas are not taken
+// into account while waiting!
+func (c *Kubeclient) WaitForReplicationController(ctx context.Context, namespace, name string) error {
+	s, err := c.Client.CoreV1().ReplicationControllers(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	ls := labels.SelectorFromSet(s.Spec.Selector)
+	return c.WaitForPodCondition(ctx, namespace, &numReady{ls: ls, n: int(*s.Spec.Replicas)})
+}
+
 // PodCondition indicates the current status of pods to WaitForPodCondition.
 type PodCondition interface {
 	// Check is called by WaitForPodCondition whenever the cluster's pods change.
