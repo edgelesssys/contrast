@@ -23,6 +23,7 @@ import (
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
+	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -82,8 +83,26 @@ func TestRegression(t *testing.T) {
 			deploymentName, _ := strings.CutSuffix(file.Name(), ".yml")
 
 			t.Cleanup(func() {
-				// TODO: delete all resource types
-				require.NoError(ct.Kubeclient.Client.AppsV1().Deployments(ct.Namespace).Delete(context.Background(), deploymentName, metav1.DeleteOptions{})) //nolint:usetesting // see https://github.com/ldez/usetesting/issues/4
+				unstructuredResources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
+				if err != nil {
+					t.Log("error unmarshaling yaml to unstructured resources: ", err)
+				}
+				bgDeletion := metav1.DeletePropagationBackground
+				for _, r := range unstructuredResources {
+					client, err := ct.Kubeclient.ResourceInterfaceFor(r)
+					// Using WithoutCancel here since t.Context would get canceled in cleanup and context.Background triggers the linter
+					ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(t.Context()), ct.FactorPlatformTimeout(1*time.Minute), errors.New("deletion took to long"))
+					defer cancel()
+					if err != nil {
+						t.Log("error creating client for resource deletion: ", err)
+					}
+					resourceName, _ := strings.CutSuffix(file.Name(), ".yml")
+					if err := client.Delete(ctx, resourceName, metav1.DeleteOptions{
+						PropagationPolicy: &bgDeletion,
+					}); err != nil {
+						t.Log("error deleting resource: ", err)
+					}
+				}
 			})
 
 			// generate, set, deploy and verify the new policy
