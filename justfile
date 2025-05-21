@@ -128,13 +128,13 @@ generate cli=default_cli platform=default_platform:
     # On baremetal SNP, we don't have default values for MinimumTCB, so we need to set some here.
     case {{ platform }} in
         "Metal-QEMU-SNP"|"Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU")
-            minTCB=$(kubectl get cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}" | yq '.snp.[].MinimumTCB') \
+            minTCB=$(kubectl get -n default cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}" | yq '.snp.[].MinimumTCB') \
                 yq -i \
                 '.ReferenceValues.snp.[].MinimumTCB = env(minTCB)' \
                 {{ workspace_dir }}/manifest.json
         ;;
         "Metal-QEMU-TDX"|"K3s-QEMU-TDX" | "RKE2-QEMU-TDX")
-            cm=$(kubectl get cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}")
+            cm=$(kubectl get -n default cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}")
             mrSeam=$(echo "$cm" | yq '.tdx.[].MrSeam') \
                 minTee=$(echo "$cm" | yq '.tdx.[].MinimumTeeTcbSvn') \
                 yq -i \
