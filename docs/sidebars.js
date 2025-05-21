@@ -34,11 +34,6 @@ const sidebars = {
           label: 'Security benefits',
           id: 'basics/security-benefits',
         },
-        {
-          type: 'doc',
-          label: 'Features',
-          id: 'basics/features',
-        },
       ]
     },
     {
