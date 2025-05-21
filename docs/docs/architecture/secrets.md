@@ -11,9 +11,9 @@ If no seed share owner key is provided, a key is generated and stored in the wor
 
 The secret seed and the seed share owner key are highly sensitive.
 
-* If either of them leak, the Contrast deployment should be considered compromised.
-* If the secret seed is lost, data encrypted with Contrast secrets can't be recovered.
-* If the seed share owner key is lost, the Coordinator can't be recovered and needs to be redeployed with a new manifest.
+- If either of them leak, the Contrast deployment should be considered compromised.
+- If the secret seed is lost, data encrypted with Contrast secrets can't be recovered.
+- If the seed share owner key is lost, the Coordinator can't be recovered and needs to be redeployed with a new manifest.
 
 :::
 
