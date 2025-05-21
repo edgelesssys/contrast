@@ -1,6 +1,6 @@
 # Troubleshooting
 
-This section contains information on how to debug your Contrast deployment.
+This section provides guidance on diagnosing and resolving issues in your Contrast deployment.
 
 ## Logging
 
@@ -27,7 +27,7 @@ environment variables `CONTRAST_LOG_LEVEL`, `CONTRAST_LOG_FORMAT` and
   format (defaults to `text`).
 - `CONTRAST_LOG_SUBSYSTEMS` is a comma-separated list of subsystems that should
   be enabled for logging, which are disabled by default. Subsystems include:
-   `kds-getter`, `issuer` and `validator`.
+  `kds-getter`, `issuer` and `validator`.
   To enable all subsystems, use `*` as the value for this environment variable.
   Warnings and error messages from subsystems get printed regardless of whether
   the subsystem is listed in the `CONTRAST_LOG_SUBSYSTEMS` environment variable.
@@ -41,10 +41,10 @@ spec: # v1.PodSpec
     image: "ghcr.io/edgelesssys/contrast/coordinator:latest"
     name: coordinator
     env:
-    - name: CONTRAST_LOG_LEVEL
-      value: debug
-    - name: CONTRAST_LOG_SUBSYSTEMS
-      value: "*"
+      - name: CONTRAST_LOG_LEVEL
+        value: debug
+      - name: CONTRAST_LOG_SUBSYSTEMS
+        value: "*"
     # ...
 ```
 
@@ -212,7 +212,7 @@ LAST SEEN   TYPE      REASON      OBJECT                            MESSAGE
 2m31s       Warning   Failed      Pod/my-pod-76dc84fc75-6xn7s   Error: failed to create containerd task: failed to create shim task: failed to handle layer: hasher sha256: failed to unpack [...] No space left on device (os error 28)
 ```
 
-This error can be resolved by increasing the memory limit of the containers, see the [Workload deployment](deployment.md#pod-resources) guide.
+This error can be resolved by increasing the memory limit of the containers, see the [Workload deployment](./howto/workload-deployment/deployment-file-preparation.md#pod-resources) guide.
 
 ## Connection to Coordinator fails
 
