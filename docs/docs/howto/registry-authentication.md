@@ -2,7 +2,22 @@
 
 This guide shows how to set up registry credentials for Contrast.
 
-## Contrast CLI
+## Application
+
+This guide is relevant if you need to authenticate with a container registry for pulling images.
+
+## Prerequisites
+
+1. [Set up cluster](./cluster-setup/aks.md)
+2. [Install CLI](./install-cli.md)
+3. [Deploy the Contrast runtime](./workload-deployment/runtime-deployment.md)
+4. [Prepare deployment files](./workload-deployment/deployment-file-preparation.md)
+5. [Configure TLS (optional)](./workload-deployment/TLS-configuration.md)
+6. [Enable GPU support (optional)](./workload-deployment/GPU-configuration.md)
+
+## How-to
+
+### Contrast CLI
 
 The Contrast CLI, specifically the `contrast generate` subcommand, needs access to the registry to derive policies for the referenced container images.
 The CLI authenticates to the registry using the [`docker_credential`](https://crates.io/crates/docker_credential) crate.
@@ -36,12 +51,12 @@ EOF
 contrast generate "$@"
 ```
 
-## AKS
+### AKS
 
 On AKS, images are pulled on the worker nodes using credentials available to Kubernetes and containerd.
 Follow the [official instructions](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) to set up registry authentication with image pull secrets.
 
-## Bare metal
+### Bare metal
 
 On bare metal, images are pulled within the confidential guest, which doesn't receive credentials from the host yet.
 You can work around this by mirroring the required images to a private registry that's only exposed to the cluster.
