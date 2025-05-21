@@ -1,5 +1,5 @@
 # Copyright 2024 Edgeless Systems GmbH
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: BUSL-1.1
 
 # Builds a micro VM image (i.e. rootfs, kernel and kernel cmdline) from a NixOS
 # configuration. These components can then be booted in a microVM-fashion

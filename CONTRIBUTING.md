@@ -12,7 +12,7 @@ If you have a broader topic to discuss or a question, please [open a discussion]
 
 ### Pull requests
 
-Contrast is licensed under the [AGPLv3](LICENSE.AGPL), with some parts (`enterprise` directory) being licensed under [BUSL](enterprise/LICENSE).
+Contrast is licensed under the [BUSL](LICENSE).
 When contributing, you also need to agree to our [Contributor License Agreement](https://cla-assistant.io/edgelesssys/contrast).
 
 PRs that aren't labeled `no changelog` need a PR description that's meaningful to the end user, as they will be included in the release notes.

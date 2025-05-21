@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright 2024 Edgeless Systems GmbH
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: BUSL-1.1
 
 # Script to cleanup messed up containerd/snapshotter state on bare metal.
 # Copy to host and execute.
