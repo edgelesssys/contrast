@@ -39,7 +39,7 @@ buildGoModule (
         flags+=(''${ldflags:+-ldflags="$ldflags"})
         flags+=("-p" "$NIX_BUILD_CORES")
 
-        if [ "$cmd" = "test" ]; then
+        if [[ "$cmd" = "test" ]]; then
           flags+=(-vet=off)
           flags+=($checkFlags)
         fi
@@ -51,7 +51,7 @@ buildGoModule (
             return 1
           fi
         fi
-        if [ -n "$OUT" ]; then
+        if [[ -n "$OUT" ]]; then
           echo "$OUT" >&2
         fi
         return 0
@@ -60,7 +60,7 @@ buildGoModule (
       getGoDirs() {
         local type;
         type="$1"
-        if [ -n "$subPackages" ]; then
+        if [[ -n "$subPackages" ]]; then
           echo "$subPackages" | sed "s,\(^\| \),\1./,g"
         else
           find . -type f -name \*$type.go -exec dirname {} \; | grep -v "/vendor/" | sort --unique | grep -v "$exclude"
@@ -71,12 +71,12 @@ buildGoModule (
         buildFlagsArray+=(-x)
       fi
 
-      if [ ''${#buildFlagsArray[@]} -ne 0 ]; then
+      if [[ ''${#buildFlagsArray[@]} -ne 0 ]]; then
         declare -p buildFlagsArray > $TMPDIR/buildFlagsArray
       else
         touch $TMPDIR/buildFlagsArray
       fi
-      if [ -z "$enableParallelBuilding" ]; then
+      if [[ -z "$enableParallelBuilding" ]]; then
           export NIX_BUILD_CORES=1
       fi
       for pkg in $(getGoDirs ""); do

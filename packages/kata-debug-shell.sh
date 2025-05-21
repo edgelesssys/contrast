@@ -4,12 +4,12 @@
 
 set -euo pipefail
 
-if [ "$(id -u)" -ne 0 ]; then
+if [[ "$(id -u)" -ne 0 ]]; then
   echo "Please run as root"
   exit 1
 fi
 
-if [ -z "${1:-}" ]; then
+if [[ -z ${1:-} ]]; then
   echo "Usage: $0 <container_id>"
   exit 1
 fi

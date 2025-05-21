@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-if [ -z "$1" ]; then
+if [[ -z $1 ]]; then
   echo "Usage: $0 <runtime-name>"
   exit 1
 fi
