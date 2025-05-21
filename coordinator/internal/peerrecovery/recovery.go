@@ -14,7 +14,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/edgelesssys/contrast/coordinator/stateguard"
+	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"

@@ -13,7 +13,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgelesssys/contrast/coordinator/stateguard"
+	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/snp"
 	"github.com/edgelesssys/contrast/internal/ca"
