@@ -42,11 +42,11 @@ for runtimeClass in "${unusedRuntimeClasses[@]}"; do
   kubectl delete runtimeclass "${runtimeClass}"
 
   # Delete unused files
-  if [ -d "${OPTEDGELESS}/${runtimeClass}" ]; then
+  if [[ -d "${OPTEDGELESS}/${runtimeClass}" ]]; then
     echo "Deleting files from ${OPTEDGELESS}/${runtimeClass} ..."
     rm -rf "${OPTEDGELESS:?}/${runtimeClass}"
   fi
-  if [ -d "/var/lib/${SNAPSHOTTER}-snapshotter" ]; then
+  if [[ -d "/var/lib/${SNAPSHOTTER}-snapshotter" ]]; then
     echo "Deleting files from /var/lib/${SNAPSHOTTER}-snapshotter/${runtimeClass} ..."
     rm -rf "/var/lib/${SNAPSHOTTER}-snapshotter/${runtimeClass}"
   fi

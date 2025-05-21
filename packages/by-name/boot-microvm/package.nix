@@ -14,7 +14,7 @@ writeShellApplication {
   name = "boot-microvm";
   runtimeInputs = [ qemu ];
   text = ''
-    if [ $# -ne 4 ]; then
+    if [[ $# -ne 4 ]]; then
       echo "Usage: $0 <kernel> <initrd> <rootfs> <cmdline>";
       exit 1;
     fi

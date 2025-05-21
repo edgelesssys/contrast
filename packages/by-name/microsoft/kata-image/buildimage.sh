@@ -30,7 +30,7 @@ raw=$out/raw.img
 uuid=c1b9d5a2-f162-11cf-9ece-0020afc76f16
 salt=0102030405060708090a0b0c0d0e0f
 
-if [ -z "${SOURCE_DATE_EPOCH}" ]; then
+if [[ -z ${SOURCE_DATE_EPOCH} ]]; then
   echo "SOURCE_DATE_EPOCH is not set" >&2
   exit 1
 fi

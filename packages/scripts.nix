@@ -190,7 +190,7 @@
       timeout=180
 
       interval=4
-      while [ $timeout -gt 0 ]; do
+      while [[ $timeout -gt 0 ]]; do
         if kubectl -n "$namespace" get pods -o custom-columns=LABELS:.metadata.labels | grep -q "app.kubernetes.io/name:$name"; then
           break
         fi
@@ -219,7 +219,7 @@
       timeout=180
 
       interval=4
-      while [ $timeout -gt 0 ]; do
+      while [[ $timeout -gt 0 ]]; do
         if kubectl -n "$namespace" get pods "$name"; then
           break
         fi
