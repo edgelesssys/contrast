@@ -157,6 +157,11 @@ const sidebars = {
       items: [
         {
           type: 'doc',
+          label: 'Coordinator high-availability',
+          id: 'howto/coordinator-ha',
+        },
+        {
+          type: 'doc',
           label: 'Registry authentication',
           id: 'howto/registry-authentication',
         },
