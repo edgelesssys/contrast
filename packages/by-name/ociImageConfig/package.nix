@@ -1,5 +1,5 @@
 # Copyright 2024 Edgeless Systems GmbH
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: BUSL-1.1
 
 # application/vnd.oci.image.config.v1+json
 {
