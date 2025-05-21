@@ -324,26 +324,19 @@
       tag="[a-zA-Z0-9_.-]+"
       sha="@sha256:[a-fA-F0-9]\{64\}"
 
-      # Container images with tag (key) are replaced with images from file (value).
-      declare -A tagsToFile=(
-        ["enterprise"]="../image-replacements-enterprise.txt"
-        ["latest"]="../image-replacements.txt"
-      )
-      for tag in "''${!tagsToFile[@]}"; do
-        while IFS= read -r replacement; do
-          # Get the base name (no tag/sha) and escape dots.
-          image_source=$(echo "$replacement" | sed "s/:.*//" | sed "s/\./\\\./g")
+      while IFS= read -r replacement; do
+        # Get the base name (no tag/sha) and escape dots.
+        image_source=$(echo "$replacement" | sed "s/:.*//" | sed "s/\./\\\./g")
 
-          # Get the pinned image that we want to insert, including tag and sha.
-          image_target=$(echo "$replacement" | cut -d"=" -f2)
+        # Get the pinned image that we want to insert, including tag and sha.
+        image_target=$(echo "$replacement" | cut -d"=" -f2)
 
-          # expr matches the images we want to replace.
-          expr="$image_source:$tag\($sha\)\?)"
+        # expr matches the images we want to replace.
+        expr="$image_source:$tag\($sha\)\?)"
 
-          # Run replace over all files.
-          find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i "s#$expr#$image_target#g" {} \;
-        done <"''${tagsToFile[$tag]}"
-      done
+        # Run replace over all files.
+        find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i "s#$expr#$image_target#g" {} \;
+      done <"../image-replacements.txt"
 
       # Replace release artifact download links with the versioned ones.
       link_source="github\.com/edgelesssys/contrast/releases/\(latest/download\|download/$tag\)/"
