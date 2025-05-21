@@ -10,7 +10,6 @@ jobs:
   test_matrix:
     strategy:
       matrix:
-        enterprise: [false, true]
         platform:
           - name: AKS-CLH-SNP
             runner: ubuntu-22.04
@@ -22,12 +21,11 @@ jobs:
             runner: TDX
             self-hosted: true
       fail-fast: false
-    name: "${{ matrix.enterprise && 'enterprise ' || '' }}${{ matrix.platform.name }}"
+    name: "${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e.yml
     with:
       skip-undeploy: false
       test-name: servicemesh
-      enterprise: ${{ matrix.enterprise }}
       platform: ${{ matrix.platform.name }}
       runner: ${{ matrix.platform.runner }}
       self-hosted: ${{ matrix.platform.self-hosted }}

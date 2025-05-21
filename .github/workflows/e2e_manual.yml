@@ -31,11 +31,6 @@ on:
           - K3s-QEMU-SNP
           - K3s-QEMU-SNP-GPU
           - K3s-QEMU-TDX
-      enterprise:
-        description: "Enterprise"
-        required: true
-        type: boolean
-        default: false
       skip-undeploy:
         description: "Skip undeploy"
         required: false
@@ -84,7 +79,6 @@ jobs:
     with:
       skip-undeploy: ${{ inputs.skip-undeploy }}
       test-name: ${{ inputs.test-name }}
-      enterprise: ${{ inputs.enterprise }}
       platform: ${{ inputs.platform }}
       runner: ${{ needs.determine-platform-params.outputs.runner }}
       self-hosted: ${{ fromJSON(needs.determine-platform-params.outputs.self-hosted) }}
