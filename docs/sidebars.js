@@ -154,6 +154,11 @@ const sidebars = {
           label: 'AMD SEV-SNP attestation',
           id: 'architecture/snp',
         },
+        {
+          type: 'doc',
+          label: 'Telemetry',
+          id: 'architecture/telemetry',
+        },
       ]
     },
     {
@@ -176,17 +181,6 @@ const sidebars = {
       type: 'doc',
       label: 'Planned features and limitations',
       id: 'features-limitations',
-    },
-    {
-      type: 'category',
-      label: 'About',
-      items: [
-        {
-          type: 'doc',
-          label: 'Telemetry',
-          id: 'about/telemetry',
-        },
-      ]
     },
   ],
 };
