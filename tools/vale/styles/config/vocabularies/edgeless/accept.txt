@@ -6,6 +6,7 @@ Ansys
 APIs?
 Asciinema
 ASG
+attestable
 attesters
 auditable
 auto-unseal
@@ -13,6 +14,7 @@ auto-unsealing
 autoscaler
 autoscaling
 AWS
+backdoors?
 backend
 backoff
 backport
@@ -90,6 +92,7 @@ kubeconfig
 kubectl
 kubelet
 Kustomization
+leaderboard
 libcryptsetup
 Logstash
 Mbps
@@ -103,6 +106,7 @@ nixpkgs
 noogle
 nvTrust
 Nydus
+overcommit
 overlayfs
 paravisor
 passthrough
