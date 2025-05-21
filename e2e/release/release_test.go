@@ -45,7 +45,6 @@ var (
 	tag         = flag.String("tag", "", "tag name of the release to download")
 	keep        = flag.Bool("keep", false, "don't delete test resources and deployment")
 	platformStr = flag.String("platform", "", "Deployment platform")
-	enterprise  = flag.Bool("enterprise", false, "Use enterprise artifacts")
 )
 
 // TestRelease downloads a release from Github, sets up the coordinator, installs the demo
@@ -61,12 +60,6 @@ func TestRelease(t *testing.T) {
 	dir := fetchRelease(ctx, t)
 
 	contrast := &contrast{dir: dir}
-
-	filenameCooordinator := "coordinator.yml"
-	if *enterprise {
-		filenameCooordinator = "coordinator-enterprise.yml"
-		contrast.binName = "contrast-enterprise"
-	}
 
 	// If available, acquire a fifo ticket to synchronize cluster access with
 	// other running e2e tests. We request a ticket and wait for our turn.
@@ -157,7 +150,7 @@ func TestRelease(t *testing.T) {
 
 		require.NoError(os.Mkdir(path.Join(dir, "deployment"), 0o777))
 		require.NoError(os.Rename(path.Join(dir, "emojivoto-demo.yml"), path.Join(dir, "deployment", "emojivoto-demo.yml")))
-		require.NoError(os.Rename(path.Join(dir, filenameCooordinator), path.Join(dir, "deployment", "coordinator.yml")))
+		require.NoError(os.Rename(path.Join(dir, "coordinator.yml"), path.Join(dir, "deployment", "coordinator.yml")))
 
 		infos, err := os.ReadDir(path.Join(dir, "deployment"))
 		require.NoError(err)
