@@ -30,6 +30,7 @@ import (
 	"github.com/elazarl/goproxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -65,11 +66,15 @@ func TestRegression(t *testing.T) {
 
 			c := kubeclient.NewForTest(t)
 
-			yaml, err := os.ReadFile(yamlDir + file.Name())
-			require.NoError(err)
-			yaml = bytes.ReplaceAll(yaml, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
+			if file.Name() != "job.yml" {
+				return
+			}
 
-			newResources, err := kuberesource.UnmarshalApplyConfigurations(yaml)
+			resourceYAML, err := os.ReadFile(yamlDir + file.Name())
+			require.NoError(err)
+			resourceYAML = bytes.ReplaceAll(resourceYAML, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
+
+			newResources, err := kuberesource.UnmarshalApplyConfigurations(resourceYAML)
 			require.NoError(err)
 
 			newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
@@ -80,10 +85,10 @@ func TestRegression(t *testing.T) {
 			require.NoError(err)
 			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
 
-			deploymentName, _ := strings.CutSuffix(file.Name(), ".yml")
+			resourceName, _ := strings.CutSuffix(file.Name(), ".yml")
 
 			t.Cleanup(func() {
-				unstructuredResources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
+				unstructuredResources, err := kubeapi.UnmarshalUnstructuredK8SResource(resourceYAML)
 				if err != nil {
 					t.Log("error unmarshaling yaml to unstructured resources: ", err)
 				}
@@ -96,7 +101,6 @@ func TestRegression(t *testing.T) {
 					if err != nil {
 						t.Log("error creating client for resource deletion: ", err)
 					}
-					resourceName, _ := strings.CutSuffix(file.Name(), ".yml")
 					if err := client.Delete(ctx, resourceName, metav1.DeleteOptions{
 						PropagationPolicy: &bgDeletion,
 					}); err != nil {
@@ -113,8 +117,23 @@ func TestRegression(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
 			defer cancel()
-			// TODO: wait for other resource types
-			require.NoError(c.WaitForDeployment(ctx, ct.Namespace, deploymentName))
+
+			unmarshalledYAML := make(map[string]interface{})
+			require.NoError(yaml.Unmarshal(resourceYAML, &unmarshalledYAML))
+			resourceType, ok := unmarshalledYAML["kind"].(string)
+			require.True(ok)
+
+			switch resourceType {
+			case "Deployment":
+				require.NoError(c.WaitForDeployment(ctx, ct.Namespace, resourceName))
+			case "DaemonSet":
+				require.NoError(c.WaitForDaemonSet(ctx, ct.Namespace, resourceName))
+			case "Pod":
+				require.NoError(c.WaitForPod(ctx, ct.Namespace, resourceName))
+			case "Job":
+				require.NoError(c.WaitForJob(ctx, ct.Namespace, resourceName))
+				// TODO: ReplicaSet, CronJob (?)
+			}
 		})
 	}
 
