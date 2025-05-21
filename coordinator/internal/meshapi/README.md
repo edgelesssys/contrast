@@ -34,7 +34,7 @@ sequenceDiagram
     box Grey Coordinator1
         participant history1 as history
         participant stateguard1 as stateguard
-        participant enterprise1 as enterprise/recovery
+        participant recovery1 as recovery
     end
 
     box Grey Coordinator2
@@ -42,30 +42,30 @@ sequenceDiagram
         participant meshapi2 as meshapi
     end
 
-    # activate enterprise1
-    enterprise1-->>+enterprise1: observe stale state
+    # activate recovery1
+    recovery1-->>+recovery1: observe stale state
 
-    enterprise1->>+stateguard1: ResetState
+    recovery1->>+stateguard1: ResetState
     stateguard1->>+history1: get unverified state
     history1->>-stateguard1: unverified state
-    stateguard1->>enterprise1: authorize peer
+    stateguard1->>recovery1: authorize peer
 
-    enterprise1-->>enterprise1: construct aTLS validator<br/>from unverified state
-    enterprise1->>+stateguard2: start aTLS handshake
+    recovery1-->>recovery1: construct aTLS validator<br/>from unverified state
+    recovery1->>+stateguard2: start aTLS handshake
     stateguard2-->>+meshapi2: configure handler with state
-    stateguard2->>-enterprise1: finish aTLS handshake
+    stateguard2->>-recovery1: finish aTLS handshake
 
-    enterprise1->>meshapi2: RecoverRequest
+    recovery1->>meshapi2: RecoverRequest
     meshapi2-->>meshapi2: authorize peer by manifest
     meshapi2-->>meshapi2: extract seed and mesh<br/>key from state
-    meshapi2->>-enterprise1: RecoverResponse
+    meshapi2->>-recovery1: RecoverResponse
 
-    enterprise1-->>enterprise1: construct seedengine from response
-    enterprise1->>stateguard1: seedengine + mesh CA key
+    recovery1-->>recovery1: construct seedengine from response
+    recovery1->>stateguard1: seedengine + mesh CA key
     stateguard1->>+history1: get state with seedengine
     history1->>-stateguard1: verified state
     stateguard1-->>stateguard1: check:<br/>verifed state == unverified state
     stateguard1-->>stateguard1: atomically swap internal state
-    stateguard1->>-enterprise1: State
-    deactivate enterprise1
+    stateguard1->>-recovery1: State
+    deactivate recovery1
 ```
