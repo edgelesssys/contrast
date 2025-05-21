@@ -27,7 +27,7 @@ import (
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
-// TestPeerRecovery tests that enterprise-edition Coordinators started after the first Coordinator
+// TestPeerRecovery tests that Coordinators started after the first Coordinator
 // recover automatically from the existing peer.
 func TestPeerRecovery(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)

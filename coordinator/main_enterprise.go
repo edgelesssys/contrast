@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/peerdiscovery"
-	"github.com/edgelesssys/contrast/enterprise/coordinator/peerrecovery"
+	"github.com/edgelesssys/contrast/coordinator/internal/peerrecovery"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
