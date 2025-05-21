@@ -10,7 +10,6 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -26,8 +25,6 @@ import (
 
 // timeout is the timeout for Kubernetes API calls.
 const timeout = 10 * time.Second
-
-var keyRe = regexp.MustCompile(`^[a-zA-Z0-9-]+/[a-zA-Z0-9-]+$`)
 
 // ConfigMapStore is a Store implementation backed by Kubernetes Config Maps.
 type ConfigMapStore struct {
