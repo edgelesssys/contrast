@@ -1,4 +1,18 @@
-# Encrypted volume mount
+# Set up encrypted persistent storage
+
+This section provides a tutorial on how to configure encrypted persistent storage for your application.
+
+## Applicability
+
+This step is recommended for any Contrast deployment that stores sensitive data persistently.
+
+## Prerequisites
+
+1. [Set up your cluster](./cluster-setup/aks.md)
+
+## How-to
+
+<!-- TODO: I think this has to be changed to really make clear what steps are needed for encrypted persistant storage. Otherwise it is again more or less a tutorial for deploying an already configured Contrast-protected deplyoment. -->
 
 **This tutorial guides you through deploying a simple application with an
 encrypted MySQL database using the Contrast [workload
@@ -15,15 +29,10 @@ The resources provided in this demo are designed for educational purposes and
 shouldn't be used in a production environment without proper evaluation. When
 working with persistent storage, regular backups are recommended in order to
 prevent data loss. For confidential applications, please also refer to the
-[security considerations](../architecture/security-considerations.md). Also be
+[security considerations](./hardening.md). Also be
 aware of the differences in security implications of the workload secrets for
 the data owner and the workload owner. For more details, see the [Workload
 Secrets](../architecture/secrets.md#workload-secrets) documentation.
-
-## Prerequisites
-
-- Installed Contrast CLI
-- A running Kubernetes cluster with support for confidential containers, either on [AKS](../getting-started/cluster-setup.md) or on [bare metal](../getting-started/bare-metal.md)
 
 ## Steps to deploy MySQL with Contrast
 
@@ -37,7 +46,7 @@ curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/mysql
 
 ### Deploy the Contrast runtime
 
-Contrast depends on a [custom Kubernetes `RuntimeClass`](../components/runtime.md),
+Contrast depends on a [custom Kubernetes `RuntimeClass`](../architecture/components/runtime.md),
 which needs to be installed to the cluster initially.
 This consists of a `RuntimeClass` resource and a `DaemonSet` that performs installation on worker nodes.
 This step is only required once for each version of the runtime.
@@ -107,12 +116,12 @@ If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and 
 :::note[Runtime class and Initializer]
 
 The deployment YAML shipped for this demo is already configured to be used with Contrast.
-A [runtime class](../components/runtime) `contrast-cc`
+A [runtime class](../architecture/components/runtime) `contrast-cc`
 was added to the pods to signal they should be run as Confidential Containers. During the generation process,
-the Contrast [Initializer](../components/overview.md#the-initializer) will be added as an init container to these
+the Contrast [Initializer](../architecture/components/initializer.md) will be added as an init container to these
 workloads. It will attest the pod to the Coordinator and fetch the workload certificates and the workload secret.
 
-Further, the deployment YAML is also configured with the Contrast [service mesh](../components/service-mesh.md).
+Further, the deployment YAML is also configured with the Contrast [service mesh](../architecture/components/service-mesh.md).
 The configured service mesh proxy provides transparent protection for the communication between
 the MySQL server and client.
 :::
@@ -202,7 +211,7 @@ this task to an entity they trust.
 ### Connecting to the application
 
 Other confidential containers can securely connect to the MySQL server via the
-[Service Mesh](../components/service-mesh.md). The configured `mysql-client`
+[Service Mesh](../architecture/components/service-mesh.md). The configured `mysql-client`
 deployment connects to the MySQL server and inserts test data into a table. To
 view the logs of the `mysql-client` deployment, use the following commands:
 
