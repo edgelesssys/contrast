@@ -1,10 +1,16 @@
-# Installation & setup
+# Install CLI
 
-## Setup cluster
+This section provides instructions on how to install the Contrast CLI.
 
-Please follow our How-to for [AKS](../howto/cluster-setup/aks.md) or [bare metal](../howto/cluster-setup/bare-metal.md) to make your cluster ready for Contrast.
+## Applicability
 
-## Install CLI
+Required for deploying with Contrast.
+
+## Prerequisites
+
+1. [Set up cluster](./cluster-setup/aks.md)
+
+## How-to
 
 Download the Contrast CLI from the latest release:
 
