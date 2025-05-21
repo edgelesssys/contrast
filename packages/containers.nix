@@ -60,27 +60,6 @@ let
       };
     };
 
-    coordinator-enterprise = dockerTools.buildImage {
-      name = "coordinator-enterprise";
-      tag = "v${pkgs.contrast.version}";
-      copyToRoot =
-        (with pkgs; [
-          busybox
-          e2fsprogs # mkfs.ext4
-          libuuid # blkid
-          iptables-legacy
-        ])
-        ++ (with dockerTools; [ caCertificates ]);
-      config = {
-        Cmd = [ "${pkgs.contrast-enterprise.coordinator}/bin/coordinator" ];
-        Env = [ "PATH=/bin" ]; # This is only here for policy generation.
-        Volumes = {
-          # Add /run folder so that iptables can create /run/xtables.lock
-          "/run" = { };
-        };
-      };
-    };
-
     initializer = dockerTools.buildImage {
       name = "initializer";
       tag = "v${pkgs.contrast.version}";
