@@ -48,9 +48,10 @@ jobs:
           image=$(sed -n "s#${{ env.container_registry }}/contrast/cleanup-bare-metal:latest=##p" ./workspace/just.containerlookup)
           echo "image=${image}" >> "$GITHUB_OUTPUT"
 
-  update-bm-specs:
-    name: "Update bm-specs ${{ matrix.platform.name }}"
+  update-resources:
+    name: "Update resources ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
+    needs: build-image
     outputs:
       snp: ${{ steps.update.outputs.K3s-QEMU-SNP }}
       tdx: ${{ steps.update.outputs.K3s-QEMU-TDX }}
@@ -68,9 +69,15 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Update bare metal tcb specs
-        id: update
         run: |
           kubectl create configmap bm-tcb-specs --from-file=./dev-docs/e2e/tcb-specs.json -n default --dry-run=client -o yaml | kubectl apply -f -
+      - name: Update namespace cleanup cronjob
+        id: update
+        env:
+          IMAGE: ${{ needs.build-image.outputs.image }}
+        run: |
+          sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup-namespaces.yml
+          kubectl apply -f ./tools/bm-maintenance/cleanup-namespaces.yml
           echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
 
   cleanup:
@@ -150,7 +157,7 @@ jobs:
   notify-teams:
     name: "Notify teams channel of failure"
     runs-on: ubuntu-22.04
-    needs: [build-image, update-bm-specs, cleanup, nix-gc]
+    needs: [build-image, update-resources, cleanup, nix-gc]
     if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -165,7 +172,7 @@ jobs:
           entries=()
 
           snp=()
-          [[ "${{ needs.update-bm-specs.outputs.snp }}" != "success" ]] && snp+=("update-bm-specs")
+          [[ "${{ needs.update-resources.outputs.snp }}" != "success" ]] && snp+=("update-resources")
           [[ "${{ needs.cleanup.outputs.snp }}" != "success" ]] && snp+=("cleanup")
           [[ "${{ needs.nix-gc.outputs.snp }}" != "success" ]] && snp+=("nix-gc")
           if [[ "${#snp[@]}" -gt 0 ]]; then
@@ -173,7 +180,7 @@ jobs:
           fi
 
           tdx=()
-          [[ "${{ needs.update-bm-specs.outputs.tdx }}" != "success" ]] && tdx+=("update-bm-specs")
+          [[ "${{ needs.update-resources.outputs.tdx }}" != "success" ]] && tdx+=("update-resources")
           [[ "${{ needs.cleanup.outputs.tdx }}" != "success" ]] && tdx+=("cleanup")
           [[ "${{ needs.nix-gc.outputs.tdx }}" != "success" ]] && tdx+=("nix-gc")
           if [[ "${#tdx[@]}" -gt 0 ]]; then
@@ -181,7 +188,7 @@ jobs:
           fi
 
           snp_gpu=()
-          [[ "${{ needs.update-bm-specs.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("update-bm-specs")
+          [[ "${{ needs.update-resources.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("update-resources")
           [[ "${{ needs.cleanup.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("cleanup")
           [[ "${{ needs.nix-gc.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("nix-gc")
           if [[ "${#snp_gpu[@]}" -gt 0 ]]; then
