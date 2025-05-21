@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -19,6 +18,8 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/internal/history"
 	meshapiserver "github.com/edgelesssys/contrast/coordinator/internal/meshapi"
+	"github.com/edgelesssys/contrast/coordinator/internal/peerdiscovery"
+	"github.com/edgelesssys/contrast/coordinator/internal/peerrecovery"
 	"github.com/edgelesssys/contrast/coordinator/internal/probes"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	transitengine "github.com/edgelesssys/contrast/coordinator/internal/transitengineapi"
@@ -41,6 +42,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/utils/clock"
 )
 
@@ -187,11 +190,36 @@ func run() (retErr error) {
 		return nil
 	})
 
-	registerEnterpriseServices(ctx, eg, &components{
-		guard:       meshAuth,
-		logger:      logger,
-		httpsGetter: kdsGetter,
-		issuer:      issuer,
+	eg.Go(func() error {
+		logger.Info("Watching manifest store")
+		if err := meshAuth.WatchHistory(ctx); err != nil {
+			logger.Error("Watching manifest store", "err", err)
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
+		config, err := rest.InClusterConfig()
+		if err != nil {
+			return err
+		}
+		clientset, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			return err
+		}
+		namespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+		if err != nil {
+			return err
+		}
+
+		logger.Info("Coordinator peer recovery started")
+		discovery := peerdiscovery.New(clientset, string(namespace))
+		recoverer := peerrecovery.New(meshAuth, discovery, issuer, kdsGetter, logger)
+		if err := recoverer.RunRecovery(ctx); err != nil {
+			logger.Error("Running peer recovery", "err", err)
+			return fmt.Errorf("running peer recovery: %w", err)
+		}
+		return nil
 	})
 
 	eg.Go(func() error {
@@ -222,13 +250,6 @@ func run() (retErr error) {
 	})
 
 	return eg.Wait()
-}
-
-type components struct {
-	logger      *slog.Logger
-	guard       *stateguard.Guard
-	issuer      atls.Issuer
-	httpsGetter *certcache.CachedHTTPSGetter
 }
 
 func newServerMetrics(reg *prometheus.Registry) *grpcprometheus.ServerMetrics {
