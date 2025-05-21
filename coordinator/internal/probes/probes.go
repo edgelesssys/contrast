@@ -7,7 +7,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/edgelesssys/contrast/coordinator/history"
+	"github.com/edgelesssys/contrast/coordinator/internal/history"
 	"github.com/edgelesssys/contrast/coordinator/stateguard"
 )
 

@@ -10,7 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/edgelesssys/contrast/coordinator/history"
+	"github.com/edgelesssys/contrast/coordinator/internal/history"
 	"github.com/edgelesssys/contrast/coordinator/stateguard"
 	"github.com/stretchr/testify/assert"
 )
