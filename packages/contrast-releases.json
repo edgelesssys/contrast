@@ -113,12 +113,6 @@
       "hash": "sha256-hwSm5IRYx/zHCDEVBPLBkk9vUySJ5zILYiqC3b94c+w="
     }
   ],
-  "contrast-enterprise": [
-    {
-      "version": "v1.8.0",
-      "hash": "sha256-LH6R5t52RzN5weYQ5V2/pYmjjmDsIx6mMdL/221eS2o="
-    }
-  ],
   "coordinator-aks-clh-snp.yml": [
     {
       "version": "v1.1.0",
@@ -159,12 +153,6 @@
     {
       "version": "v1.6.0",
       "hash": "sha256-SF8pK0CTsetOsdhdjYWmdTr8DFJWAtIdqDl78e0EVBw="
-    }
-  ],
-  "coordinator-enterprise.yml": [
-    {
-      "version": "v1.8.0",
-      "hash": "sha256-WLO455hyHxwaTVklUwkZNftCTzbpCyZhN7aBhiO+Bcs="
     }
   ],
   "coordinator-k3s-qemu-snp-gpu.yml": [
