@@ -77,16 +77,11 @@
     text = ''
       exitcode=0
 
-      tagList=(
-        "${lib.concatStringsSep "," pkgs.contrast.tags}"
-        "${lib.concatStringsSep "," pkgs.contrast-enterprise.tags}"
-      )
-      for tags in "''${tagList[@]}"; do
-        while IFS= read -r dir; do
-          echo "Running govulncheck -tags $tags on $dir"
-          govulncheck -C "$dir" -tags "$tags" ./... || exitcode=$?
-        done < <(go list -f '{{.Dir}}' -m)
-      done
+      tags="${lib.concatStringsSep "," pkgs.contrast.tags}"
+      while IFS= read -r dir; do
+        echo "Running govulncheck -tags $tags on $dir"
+        govulncheck -C "$dir" -tags "$tags" ./... || exitcode=$?
+      done < <(go list -f '{{.Dir}}' -m)
 
       exit $exitcode
     '';
@@ -101,16 +96,11 @@
     text = ''
       exitcode=0
 
-      tagList=(
-        "${lib.concatStringsSep "," pkgs.contrast.tags}"
-        "${lib.concatStringsSep "," pkgs.contrast-enterprise.tags}"
-      )
-      for tags in "''${tagList[@]}"; do
-        while IFS= read -r dir; do
-          echo "Running go fix -tags $tags on $dir"
-          go fix -C "$dir" -tags "$tags" ./... || exitcode=$?
-        done < <(go list -f '{{.Dir}}' -m)
-      done
+      tags="${lib.concatStringsSep "," pkgs.contrast.tags}"
+      while IFS= read -r dir; do
+        echo "Running go fix -tags $tags on $dir"
+        go fix -C "$dir" -tags "$tags" ./... || exitcode=$?
+      done < <(go list -f '{{.Dir}}' -m)
 
       # TODO(katexochen): modernize does not support tags?
       while IFS= read -r dir; do
@@ -131,16 +121,11 @@
     text = ''
       exitcode=0
 
-      tagList=(
-        "${lib.concatStringsSep "," pkgs.contrast.tags}"
-        "${lib.concatStringsSep "," pkgs.contrast-enterprise.tags}"
-      )
-      for tags in "''${tagList[@]}"; do
-        while IFS= read -r dir; do
-          echo "Running golangci-lint with tags $tags on $dir" >&2
-          golangci-lint run --build-tags "$tags" "$dir/..." || exitcode=$?
-        done < <(go list -f '{{.Dir}}' -m)
-      done
+      tags="${lib.concatStringsSep "," pkgs.contrast.tags}"
+      while IFS= read -r dir; do
+        echo "Running golangci-lint with tags $tags on $dir" >&2
+        golangci-lint run --build-tags "$tags" "$dir/..." || exitcode=$?
+      done < <(go list -f '{{.Dir}}' -m)
 
       echo "Verifying golangci-lint config" >&2
       golangci-lint config verify || exitcode=$?
@@ -158,21 +143,16 @@
     text = ''
       exitcode=0
 
-      tagList=(
-        "${lib.concatStringsSep "," pkgs.contrast.tags}"
-        "${lib.concatStringsSep "," pkgs.contrast-enterprise.tags}"
-      )
-      for tags in "''${tagList[@]}"; do
-        while IFS= read -r dir; do
-          echo "Downloading Go dependencies for license check" >&2
-          go mod -C "$dir" download
-          echo "Running go-licenses with tags $tags on $dir" >&2
-          GOFLAGS="-tags=$tags" go-licenses check \
-            --ignore github.com/edgelesssys/contrast \
-            --disallowed_types=restricted,reciprocal,forbidden,unknown \
-            "$dir/..." || exitcode=$?
-        done < <(go list -f '{{.Dir}}' -m)
-      done
+      tags="${lib.concatStringsSep "," pkgs.contrast.tags}"
+      while IFS= read -r dir; do
+        echo "Downloading Go dependencies for license check" >&2
+        go mod -C "$dir" download
+        echo "Running go-licenses with tags $tags on $dir" >&2
+        GOFLAGS="-tags=$tags" go-licenses check \
+          --ignore github.com/edgelesssys/contrast \
+          --disallowed_types=restricted,reciprocal,forbidden,unknown \
+          "$dir/..." || exitcode=$?
+      done < <(go list -f '{{.Dir}}' -m)
 
       exit $exitcode
     '';
