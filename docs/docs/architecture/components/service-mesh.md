@@ -4,7 +4,7 @@ The Contrast service mesh secures the communication of the workload by automatic
 wrapping the network traffic inside mutual TLS (mTLS) connections. The
 verification of the endpoints in the connection establishment is based on
 certificates that are part of the
-[PKI of the Coordinator](../architecture/certificates.md).
+[PKI of the Coordinator](#certificate-authority).
 
 The service mesh can be enabled on a per-workload basis by adding a service mesh
 configuration to the workload's object annotations. During the `contrast generate`
@@ -31,9 +31,9 @@ of removing the deny rule.
 
 The service mesh container can be configured using the following object annotations:
 
-* `contrast.edgeless.systems/servicemesh-ingress` to configure ingress.
-* `contrast.edgeless.systems/servicemesh-egress` to configure egress.
-* `contrast.edgeless.systems/servicemesh-admin-interface-port` to configure the Envoy
+- `contrast.edgeless.systems/servicemesh-ingress` to configure ingress.
+- `contrast.edgeless.systems/servicemesh-egress` to configure egress.
+- `contrast.edgeless.systems/servicemesh-admin-interface-port` to configure the Envoy
   admin interface. If not specified, no admin interface will be started.
 
 If you aren't using the automatic service mesh injection and want to configure the
@@ -47,7 +47,7 @@ All TCP ingress traffic is routed over Envoy by default. Since we use
 remains the same throughout the packet handling.
 
 Any incoming connection is required to present a client certificate signed by the
-[mesh CA certificate](../architecture/certificates.md#usage-of-the-different-certificates).
+[mesh CA certificate](#usage-of-the-different-certificates).
 Envoy presents a certificate chain of the mesh
 certificate of the workload and the intermediate CA certificate as the server certificate.
 
@@ -91,25 +91,35 @@ spec:
 ```
 
 When invoking `contrast generate`, the resulting deployment will be injected with the
-Contrast service mesh as an init container.
+Contrast service mesh as an init container:
 
 ```yaml
 # ...
-      initContainers:
-        - env:
-            - name: CONTRAST_INGRESS_PROXY_CONFIG
-              value: "web#8080#false##metrics#7890#true"
-          image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest"
-          name: contrast-service-mesh
-          restartPolicy: Always
-          securityContext:
-            capabilities:
-              add:
-                - NET_ADMIN
-            privileged: true
-          volumeMounts:
-            - name: contrast-secrets
-              mountPath: /contrast
+spec:
+    runtimeClassName: contrast-cc
+    containers:
+      - name: web-svc
+        image: ghcr.io/edgelesssys/frontend:v1.2.3@...
+        ports:
+          - containerPort: 8080
+            name: web
+          - containerPort: 7890
+            name: metrics
+    initContainers:
+      - env:
+          - name: CONTRAST_INGRESS_PROXY_CONFIG
+            value: "web#8080#false##metrics#7890#true"
+        image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest"
+        name: contrast-service-mesh
+        restartPolicy: Always
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+          privileged: true
+        volumeMounts:
+          - name: contrast-secrets
+            mountPath: /contrast
 ```
 
 Note, that changing the environment variables of the sidecar container directly will
@@ -122,17 +132,17 @@ container will be regenerated on every invocation of the command.
 To be able to route the egress traffic of the workload through Envoy, the remote
 endpoints' IP address and port must be configurable.
 
-* Choose an IP address inside the `127.0.0.0/8` CIDR and a port not yet in use
-by the pod.
-* Configure the workload to connect to this IP address and port.
-* Set `<name>#<chosen IP>:<chosen port>#<original-hostname-or-ip>:<original-port>`
-as the `contrast.edgeless.systems/servicemesh-egress` workload annotation. Separate multiple
-entries with `##`. Choose any string identifying the service on the given port as
-`<name>`.
+- Choose an IP address inside the `127.0.0.0/8` CIDR and a port not yet in use
+  by the pod.
+- Configure the workload to connect to this IP address and port.
+- Set `<name>#<chosen IP>:<chosen port>#<original-hostname-or-ip>:<original-port>`
+  as the `contrast.edgeless.systems/servicemesh-egress` workload annotation. Separate multiple
+  entries with `##`. Choose any string identifying the service on the given port as
+  `<name>`.
 
 This redirects the traffic over Envoy. The endpoint must present a valid
 certificate chain which must be verifiable with the
-[mesh CA certificate](../architecture/certificates.md#usage-of-the-different-certificates).
+[mesh CA certificate](#usage-of-the-different-certificates).
 Furthermore, Envoy uses a certificate chain with the mesh certificate of the workload
 and the intermediate CA certificate as the client certificate.
 
@@ -157,3 +167,56 @@ spec:
         - name: currency-conversion
           image: ghcr.io/edgelesssys/conversion:v1.2.3@...
 ```
+
+## Public key Infrastructure
+
+The Coordinator establishes a public key infrastructure (PKI) for all workloads defined in the manifest. It holds three types of certificates:
+
+- **Root CA certificate**: A long-lived certificate used to sign the intermediate CA certificate.
+- **Intermediate CA certificate**: Shares a private key with the mesh CA certificate and is signed by the root CA. This private key is used to sign mesh certificates.
+- **Mesh CA certificate**: Used to sign workload-specific mesh certificates.
+
+![PKI certificate chain](../../_media/contrast_pki.drawio.svg)
+
+### Certificate issuance
+
+Once a workload pod’s attestation is successfully verified by the Coordinator, it receives:
+
+- A **mesh certificate**
+- The **mesh CA certificate**
+
+The mesh certificate includes X.509 extensions based on the workload’s attestation document and can be used as a client or server certificate in TLS connections. It proves to the remote party that the workload was verified by the Coordinator. The remote party can verify the mesh certificate using the mesh CA certificate.
+
+While developers may use these certificates independently, they're also automatically used by Contrast’s service mesh for secure communication.
+
+### Certificate rotation
+
+Every time the manifest is updated, the Coordinator rotates the intermediate private key. As a result, both the intermediate CA certificate and the mesh CA certificate are renewed.
+
+This mechanism protects against scenarios where a workload owner introduces unauthorized containers after verification. If a user doesn't trust the workload owner, they should only trust mesh certificates signed by the mesh CA certificate obtained during their own verification process.
+
+Similarly, the service mesh uses the mesh CA certificate issued when the workload was verified. Any change to the manifest requires a new rollout of the services, as the mesh CA certificate will change.
+
+### Service mesh integration
+
+The service mesh relies on the mesh certificates to establish mutual TLS (mTLS) connections between workloads.
+
+- During pod startup, the Initializer requests a mesh certificate from the Coordinator.
+- If attestation is successful, the Coordinator returns a mesh certificate and the mesh CA certificate.
+- These certificates are used to authenticate and authorize communication within the service mesh.
+
+Only workloads that have been verified based on the current manifest and signed by the corresponding mesh CA certificate are trusted by other services in the mesh.
+
+### Summary of certificate roles
+
+- **Root CA Certificate**
+  Returned during Coordinator verification. Can be used to verify mesh certificates if the data owner fully trusts all future manifests and updates.
+
+- **Intermediate CA Certificate**
+  Links the root CA to the mesh CA. Included in certificate chains for validation purposes.
+
+- **Mesh CA Certificate**
+  Used to verify mesh certificates. Bound to a specific manifest version and changes when the manifest is updated.
+
+- **Mesh Certificate**
+  Issued to workloads after successful attestation. Contains metadata from the attestation document and is used in mTLS communication within the service mesh.
