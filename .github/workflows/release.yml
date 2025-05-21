@@ -250,7 +250,6 @@ jobs:
       - name: Push containers
         run: |
           coordinatorImg=$(nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator")
-          coordinatorEnterpriseImg=$(nix run .#containers.push-coordinator-enterprise -- "$container_registry/contrast/coordinator")
           nodeInstallerMsftImg=$(nix run .#containers.push-node-installer-microsoft -- "$container_registry/contrast/node-installer-microsoft")
           nodeInstallerKataImg=$(nix run .#containers.push-node-installer-kata -- "$container_registry/contrast/node-installer-kata")
           nodeInstallerKataGPUImg=$(nix run .#containers.push-node-installer-kata-gpu -- "$container_registry/contrast/node-installer-kata")
@@ -258,7 +257,6 @@ jobs:
           serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy")
           tardevSnapshotterImg=$(nix run .#containers.push-tardev-snapshotter -- "$container_registry/contrast/tardev-snapshotter")
           echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
-          echo "coordinatorEnterpriseImg=$coordinatorEnterpriseImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerKataImg=$nodeInstallerKataImg" | tee -a "$GITHUB_ENV"
           echo "nodeInstallerKataGPUImg=$nodeInstallerKataGPUImg" | tee -a "$GITHUB_ENV"
@@ -290,9 +288,6 @@ jobs:
           echo "serviceMeshImgTagged=$(tagContrast "$serviceMeshImg")" | tee -a "$GITHUB_ENV"
           echo "nydusPullImgTagged=$(tagContrast "$nydusPullImg")" | tee -a "$GITHUB_ENV"
 
-          enterpriseVer="${{ inputs.version }}-enterprise"
-          echo "coordinatorEnterpriseImgTagged=$(tag "$enterpriseVer" "$coordinatorEnterpriseImg")" | tee -a "$GITHUB_ENV"
-
           tardevVer=$(nix eval --impure --raw --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.microsoft.tardev-snapshotter.version")
           echo "tardevSnapshotterImgTagged=$(tag "$tardevVer" "$tardevSnapshotterImg")" | tee -a "$GITHUB_ENV"
       - name: Create file with image replacements
@@ -306,34 +301,20 @@ jobs:
           ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged
           ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged
           EOF
-      - name: Create file with enterprise image replacements
-        run: |
-          cat > image-replacements-enterprise.txt <<EOF
-          ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorEnterpriseImgTagged
-          ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImgTagged
-          ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged
-          ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=$nodeInstallerMsftImgTagged
-          ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged
-          ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged
-          ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged
-          EOF
-      - name: Upload image replacement files (for main branch PR)
+      - name: Upload image replacement file (for main branch PR)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: image-replacements
           path: |
             image-replacements.txt
-            image-replacements-enterprise.txt
-      - name: Create coordinator & coordinator enterprise resource definitions
+      - name: Create coordinator resource definitions
         run: |
           mkdir -p workspace
 
-          for edition in "" "-enterprise"; do
-            nix shell .#contrast --command resourcegen \
-              --image-replacements "./image-replacements${edition}.txt" \
-              --add-load-balancers \
-              coordinator > "workspace/coordinator${edition}.yml"
-          done
+          nix shell .#contrast --command resourcegen \
+            --image-replacements "./image-replacements.txt" \
+            --add-load-balancers \
+            coordinator > "workspace/coordinator.yml"
       - name: Create runtime resource definitions
         run: |
           platforms=(
@@ -368,14 +349,6 @@ jobs:
       - name: Build CLI
         run: |
           nix build -L .#contrast-cli-release --out-link workspace/contrast
-      - name: Update cli assets (enterprise)
-        run: |
-          cp image-replacements-enterprise.txt cli/cmd/assets/image-replacements.txt
-          git add cli/cmd/assets/image-replacements.txt
-          git diff --staged --quiet || git commit -m "release: update cli assets (enterprise)"
-      - name: Build CLI (enterprise)
-        run: |
-          nix build -L .#contrast-enterprise-cli-release --out-link workspace/contrast-enterprise
       - name: Upload release artifacts (for main branch PR)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -385,7 +358,6 @@ jobs:
           path: |
             LICENSE
             workspace/contrast-cli/bin/contrast
-            workspace/contrast-enterprise-cli/bin/contrast-enterprise
             workspace/coordinator*.yml
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
@@ -400,7 +372,6 @@ jobs:
           unix=$(date +%s)
           files=(
             workspace/contrast-cli/bin/contrast
-            workspace/contrast-enterprise-cli/bin/contrast-enterprise
             workspace/coordinator*.yml
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
@@ -420,7 +391,6 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             workspace/contrast-cli/bin/contrast
-            workspace/contrast-enterprise-cli/bin/contrast-enterprise
             workspace/coordinator*.yml
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
@@ -437,7 +407,6 @@ jobs:
   test:
     strategy:
       matrix:
-        enterprise: [false, true]
         platform:
           - name: AKS-CLH-SNP
             runner: ubuntu-22.04
@@ -452,7 +421,7 @@ jobs:
             runner: TDX
             self-hosted: true
       fail-fast: false
-    name: "Test ${{ matrix.enterprise && 'enterprise ' || '' }}on ${{ matrix.platform.name }}"
+    name: "e2e release on ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
     permissions:
       # Job needs content:write to see draft releases.
@@ -503,8 +472,7 @@ jobs:
           nix shell -L .#contrast.e2e --command release.test \
             -test.v \
             --tag ${{ inputs.version }} \
-            --platform ${{ matrix.platform.name }} \
-            ${{ matrix.enterprise && '--enterprise' || '' }}
+            --platform ${{ matrix.platform.name }}
 
   create-github-stuff:
     name: Create backport label and milestone

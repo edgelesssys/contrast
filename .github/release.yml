@@ -3,9 +3,6 @@ changelog:
     - title: 🛠 Breaking changes
       labels:
         - breaking change
-    - title: 👔 Enterprise features
-      labels:
-        - enterprise feature
     - title: 🎁 New features
       labels:
         - feature
