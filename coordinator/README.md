@@ -2,7 +2,7 @@
 
 The Coordinator is the central service in a Contrast deployment.
 It exposes an API to set manifests and to get the history of manifests, and it verifies workloads according to the current manifest.
-The below diagram shows how the Coordinator packages interact in the enterprise version.
+The below diagram shows how the Coordinator packages interact.
 
 ```mermaid
 graph TB
@@ -19,9 +19,9 @@ graph TB
     end
 
     subgraph Coordinator2
-        enterprise2(enterprise/recovery)
+        recovery2(recovery)
         stateguard2(stateguard)
-        enterprise2 -->|reset state in| stateguard2
+        recovery2 -->|reset state in| stateguard2
     end
 
     subgraph Kubernetes
@@ -36,5 +36,5 @@ graph TB
 
     user -->|GetManifests<br/>SetManifest<br>Recover| userapi
 
-    enterprise2 -->|Recover| meshapi
+    recovery2 -->|Recover| meshapi
 ```
