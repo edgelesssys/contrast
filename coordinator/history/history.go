@@ -14,6 +14,10 @@ import (
 	"fmt"
 	"hash"
 	"log/slog"
+	"os"
+
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 const (
@@ -30,7 +34,19 @@ type History struct {
 
 // New creates a new History that uses the default storage backend.
 func New(log *slog.Logger) (*History, error) {
-	store, err := NewStore(log.WithGroup("history-store"))
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	namespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return nil, err
+	}
+	store, err := NewConfigMapStore(clientset, string(namespace), log.WithGroup("history-store"))
 	if err != nil {
 		return nil, fmt.Errorf("creating history store: %w", err)
 	}
