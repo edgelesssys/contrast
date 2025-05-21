@@ -95,6 +95,20 @@ func (c *Kubeclient) WaitForJob(ctx context.Context, namespace, name string) err
 	return c.WaitForPodCondition(ctx, namespace, &numSucceeded{ls: ls, n: 1})
 }
 
+// WaitForReplicaSet waits until the ReplicaSet is ready.
+//
+// We consider the ReplicaSet ready when the number of ready pods targeted by the ReplicaSet is
+// exactly the number of desired replicas. Changes in the desired number of replicas are not taken
+// into account while waiting!
+func (c *Kubeclient) WaitForReplicaSet(ctx context.Context, namespace, name string) error {
+	s, err := c.Client.AppsV1().ReplicaSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	ls := labels.SelectorFromSet(s.Spec.Selector.MatchLabels)
+	return c.WaitForPodCondition(ctx, namespace, &numReady{ls: ls, n: int(*s.Spec.Replicas)})
+}
+
 // PodCondition indicates the current status of pods to WaitForPodCondition.
 type PodCondition interface {
 	// Check is called by WaitForPodCondition whenever the cluster's pods change.

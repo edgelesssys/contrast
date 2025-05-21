@@ -66,7 +66,7 @@ func TestRegression(t *testing.T) {
 
 			c := kubeclient.NewForTest(t)
 
-			if file.Name() != "job.yml" {
+			if file.Name() != "replicaset.yml" {
 				return
 			}
 
@@ -132,7 +132,9 @@ func TestRegression(t *testing.T) {
 				require.NoError(c.WaitForPod(ctx, ct.Namespace, resourceName))
 			case "Job":
 				require.NoError(c.WaitForJob(ctx, ct.Namespace, resourceName))
-				// TODO: ReplicaSet, CronJob (?)
+			case "ReplicaSet":
+				require.NoError(c.WaitForReplicaSet(ctx, ct.Namespace, resourceName))
+				// TODO: CronJob (?)
 			}
 		})
 	}
