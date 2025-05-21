@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/edgelesssys/contrast/coordinator/stateguard"
+	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/seedengine"
 	"github.com/stretchr/testify/require"
