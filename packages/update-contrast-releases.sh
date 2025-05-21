@@ -27,9 +27,7 @@ platforms=(
 # in ./packages/versions.json with the path to the file
 declare -A fields
 fields["contrast"]="./workspace/contrast-cli/bin/contrast"
-fields["contrast-enterprise"]="./workspace/contrast-enterprise-cli/bin/contrast-enterprise"
 fields["coordinator.yml"]="./workspace/coordinator.yml"
-fields["coordinator-enterprise.yml"]="./workspace/coordinator-enterprise.yml"
 fields["runtime.yml"]="./workspace/runtime.yml"
 fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
 fields["emojivoto-demo.yml"]="./workspace/emojivoto-demo.yml"
