@@ -32,7 +32,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/edgelesssys/contrast/coordinator/history"
+	"github.com/edgelesssys/contrast/coordinator/internal/history"
 	"github.com/edgelesssys/contrast/internal/ca"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/seedengine"
