@@ -119,6 +119,27 @@ func (s StatefulSet) getPods(ctx context.Context, client *Kubeclient, namespace,
 	return client.PodsFromOwner(ctx, namespace, s.kind(), name)
 }
 
+func (c *Kubeclient) checkIfSucceeded(ctx context.Context, name, namespace string, resource ResourceWaiter) (bool, error) {
+	pods, err := resource.getPods(ctx, c, namespace, name)
+	if err != nil {
+		return false, err
+	}
+	desiredPods, err := resource.numDesiredPods(resource)
+	if err != nil {
+		return false, err
+	}
+	if len(pods) < desiredPods {
+		return false, nil
+	}
+
+	for _, pod := range pods {
+		if pod.Status.Phase != corev1.PodSucceeded {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 // IsStartingBlocked checks whether the FailedCreatePodSandBox Event occurred which indicates that the SetPolicy request is rejected and the Kata Shim fails to start the Pod sandbox.
 func (c *Kubeclient) IsStartingBlocked(name string, namespace string, resource ResourceWaiter, evt watch.Event, startingPoint time.Time) (bool, error) {
 	switch evt.Type {
@@ -296,7 +317,8 @@ func isPodReady(pod *corev1.Pod) bool {
 	return false
 }
 
-func (c *Kubeclient) resourceInterfaceFor(obj *unstructured.Unstructured) (dynamic.ResourceInterface, error) {
+// ResourceInterfaceFor creates a resource interface for a given unstructured resource.
+func (c *Kubeclient) ResourceInterfaceFor(obj *unstructured.Unstructured) (dynamic.ResourceInterface, error) {
 	gvk := obj.GroupVersionKind()
 
 	mapping, err := c.restMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
@@ -322,7 +344,7 @@ func (c *Kubeclient) Apply(ctx context.Context, objects ...*unstructured.Unstruc
 		return objects[i].GetKind() == "Namespace" && objects[j].GetKind() != "Namespace"
 	})
 	for _, obj := range objects {
-		ri, err := c.resourceInterfaceFor(obj)
+		ri, err := c.ResourceInterfaceFor(obj)
 		if err != nil {
 			return err
 		}
@@ -338,7 +360,7 @@ func (c *Kubeclient) Apply(ctx context.Context, objects ...*unstructured.Unstruc
 // Delete a set of manifests.
 func (c *Kubeclient) Delete(ctx context.Context, objects ...*unstructured.Unstructured) error {
 	for _, obj := range objects {
-		ri, err := c.resourceInterfaceFor(obj)
+		ri, err := c.ResourceInterfaceFor(obj)
 		if err != nil {
 			return err
 		}

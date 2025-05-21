@@ -132,6 +132,38 @@ func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployme
 	return out, nil
 }
 
+// PodsFromCronJob returns the pods from a cronjob in a namespace.
+//
+// A pod is considered to belong to a cronjob if it is owned by a Job which is in turn owned by the CronJob in question.
+func (c *Kubeclient) PodsFromCronJob(ctx context.Context, namespace, cronjob string) ([]corev1.Pod, error) {
+	jobs, err := c.Client.BatchV1().Jobs(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("listing jobs: %w", err)
+	}
+	pods, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("listing pods: %w", err)
+	}
+
+	var out []corev1.Pod
+	for _, job := range jobs.Items {
+		for _, ref := range job.OwnerReferences {
+			if ref.Kind != "CronJob" || ref.Name != cronjob {
+				continue
+			}
+			for _, pod := range pods.Items {
+				for _, ref := range pod.OwnerReferences {
+					if ref.Kind == "Job" && ref.UID == job.UID {
+						out = append(out, pod)
+					}
+				}
+			}
+		}
+	}
+
+	return out, nil
+}
+
 // PodsFromOwner returns the pods owned by an object in the namespace of the given kind.
 func (c *Kubeclient) PodsFromOwner(ctx context.Context, namespace, kind, name string) ([]corev1.Pod, error) {
 	pods, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-map-immutable
+  namespace: "@@REPLACE_NAMESPACE@@"
+data:
+  foo: bar
+# TODO(miampf): Add binaryData field
+immutable: true
