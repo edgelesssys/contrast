@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-* Install version 2.44.1 or newer of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/). Note that your package manager will likely install an outdated version.
-* Install a recent version of [kubectl](https://kubernetes.io/docs/tasks/tools/).
+- Install version 2.44.1 or newer of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/). Note that your package manager will likely install an outdated version.
+- Install a recent version of [kubectl](https://kubernetes.io/docs/tasks/tools/).
 
 ## Prepare using the AKS preview
 
@@ -135,7 +135,7 @@ NAME                                STATUS   ROLES    AGE     VERSION
 aks-nodepool1-32049705-vmss000000   Ready    <none>   9m47s   v1.29.0
 ```
 
-🥳 Congratulations. You're now ready to set up your first application with Contrast. Follow this [example](../examples/emojivoto.md) to learn how.
+🥳 Congratulations. You're now ready to set up your first application with Contrast. Follow this [example](../../getting-started/overview.md) to learn how.
 
 ## Cleanup
 

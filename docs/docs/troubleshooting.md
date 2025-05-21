@@ -1,6 +1,6 @@
 # Troubleshooting
 
-This section contains information on how to debug your Contrast deployment.
+This section provides guidance on diagnosing and resolving issues in your Contrast deployment.
 
 ## Logging
 
@@ -27,7 +27,7 @@ environment variables `CONTRAST_LOG_LEVEL`, `CONTRAST_LOG_FORMAT` and
   format (defaults to `text`).
 - `CONTRAST_LOG_SUBSYSTEMS` is a comma-separated list of subsystems that should
   be enabled for logging, which are disabled by default. Subsystems include:
-   `kds-getter`, `issuer` and `validator`.
+  `kds-getter`, `issuer` and `validator`.
   To enable all subsystems, use `*` as the value for this environment variable.
   Warnings and error messages from subsystems get printed regardless of whether
   the subsystem is listed in the `CONTRAST_LOG_SUBSYSTEMS` environment variable.
@@ -41,10 +41,10 @@ spec: # v1.PodSpec
     image: "ghcr.io/edgelesssys/contrast/coordinator:latest"
     name: coordinator
     env:
-    - name: CONTRAST_LOG_LEVEL
-      value: debug
-    - name: CONTRAST_LOG_SUBSYSTEMS
-      value: "*"
+      - name: CONTRAST_LOG_LEVEL
+        value: debug
+      - name: CONTRAST_LOG_SUBSYSTEMS
+        value: "*"
     # ...
 ```
 
@@ -191,7 +191,7 @@ LAST SEEN   TYPE      REASON      OBJECT                            MESSAGE
 2m31s       Warning   Failed      Pod/my-pod-76dc84fc75-6xn7s   Error: failed to create containerd task: failed to create shim task: failed to handle layer: hasher sha256: failed to unpack [...] No space left on device (os error 28)
 ```
 
-This error can be resolved by increasing the memory limit of the containers, see the [Workload deployment](deployment.md#pod-resources) guide.
+This error can be resolved by increasing the memory limit of the containers, see the [Workload deployment](./howto/workload-deployment/deployment-file-preparation.md#pod-resources) guide.
 
 ## Connection to Coordinator fails
 
@@ -200,12 +200,12 @@ If the error happens during the attested TLS handshake, it will usually be repor
 `rpc error: code = <GRPC ERROR CODE> desc = connection error: desc = "<DESCRIPTION>"`.
 The following table explains the reason for the error and suggests further debugging steps.
 
-| Description  | Cause | Next steps |
-| ------------ | ----- | ---------- |
-| `transport: authentication handshake failed: EOF` | Connection was closed before the Coordinator could send a certificate. | Check the load balancer. |
-| `received context error while waiting for new LB policy update: context deadline exceeded` | The Coordinator didn't send attestation documents before the deadline. | Check the Coordinator logs for issuer problems. |
-| `transport: authentication handshake failed: remote error: tls: internal error` | Coordinator failed to issue attestation documents | Check the Coordinator logs for issuer problems. |
-| `transport: authentication handshake failed: no valid attestation document certificate extensions found` | Coordinator served an unexpected certificate. | Check whether remote end is the Coordinator with port 1313; Compare versions of Coordinator and CLI. |
-| `transport: authentication handshake failed: tls: first record does not look like a TLS handshake` | Coordinator didn't serve TLS. | Check whether remote end is the Coordinator with port 1313. |
-| `transport: Error while dialing: dial tcp <host:port>: connect: connection refused` | Coordinator port is closed. | Check connectivity to the Coordinator; Check coordinator readiness; Check load balancer is pointing to the Coordinator port 1313. |
-| `transport: authentication handshake failed: [...] validator tdx-0 failed: validating report data: quote field MR_CONFIG_ID is [...]. Expect [...]"` | Wrong Coordinator policy hash. | Compare versions of Coordinator and CLI |
+| Description                                                                                                                                          | Cause                                                                  | Next steps                                                                                                                        |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `transport: authentication handshake failed: EOF`                                                                                                    | Connection was closed before the Coordinator could send a certificate. | Check the load balancer.                                                                                                          |
+| `received context error while waiting for new LB policy update: context deadline exceeded`                                                           | The Coordinator didn't send attestation documents before the deadline. | Check the Coordinator logs for issuer problems.                                                                                   |
+| `transport: authentication handshake failed: remote error: tls: internal error`                                                                      | Coordinator failed to issue attestation documents                      | Check the Coordinator logs for issuer problems.                                                                                   |
+| `transport: authentication handshake failed: no valid attestation document certificate extensions found`                                             | Coordinator served an unexpected certificate.                          | Check whether remote end is the Coordinator with port 1313; Compare versions of Coordinator and CLI.                              |
+| `transport: authentication handshake failed: tls: first record does not look like a TLS handshake`                                                   | Coordinator didn't serve TLS.                                          | Check whether remote end is the Coordinator with port 1313.                                                                       |
+| `transport: Error while dialing: dial tcp <host:port>: connect: connection refused`                                                                  | Coordinator port is closed.                                            | Check connectivity to the Coordinator; Check coordinator readiness; Check load balancer is pointing to the Coordinator port 1313. |
+| `transport: authentication handshake failed: [...] validator tdx-0 failed: validating report data: quote field MR_CONFIG_ID is [...]. Expect [...]"` | Wrong Coordinator policy hash.                                         | Compare versions of Coordinator and CLI                                                                                           |

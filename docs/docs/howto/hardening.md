@@ -1,8 +1,19 @@
-# Security Considerations
+# Hardening
 
-Contrast ensures application integrity and provides secure means of communication and bootstrapping (see [security benefits](../basics/security-benefits.md)).
+This section provides guidance on writing secure applications and explains the trust boundaries developers need to be aware of when working with Contrast.
+
+## Applicability
+
+Recommended for all Contrast deployments.
+
+## Prerequisites
+
+A running Contrast deployment.
+
+## How-to
+
+Contrast ensures application integrity and provides secure means of communication and bootstrapping (see [Security](../security.md) section).
 However, care must be taken when interacting with the outside of Contrast's confidential environment.
-This page presents some tips for writing secure applications and outlines the trust boundaries app developers need to know.
 
 ## General recommendations
 
