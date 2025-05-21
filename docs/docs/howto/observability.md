@@ -1,8 +1,21 @@
 # Observability
 
+This section describes which metrics can be retrieved from the Contrast Coordinator and how to access them.
+
+## Applicability
+
+Monitoring metrics from the Contrast Coordinator helps you quickly identify issues in the gRPC layer or detect attestation failures.
+
+## Prerequisites
+
+1. [Set up cluster](./cluster-setup/aks.md)
+2. [Install CLI](./install-cli.md)
+3. [Deploy the Contrast runtime](./workload-deployment/runtime-deployment.md)
+
+## How-to
+
 The Contrast Coordinator can expose metrics in the
-[Prometheus](https://prometheus.io/) format. These can be monitored to quickly
-identify problems in the gRPC layer or attestation errors. Prometheus metrics
+[Prometheus](https://prometheus.io/) format. Prometheus metrics
 are numerical values associated with a name and additional key/values pairs,
 called labels.
 
@@ -21,11 +34,11 @@ request latency.
 
 The gRPC service `userapi.UserAPI` records metrics for the methods
 `SetManifest` and `GetManifest`, which get called when [setting the
-manifest](../deployment#set-the-manifest) and [verifying the
-Coordinator](../deployment#verify-the-coordinator) respectively.
+manifest](./workload-deployment/set-manifest) and [verifying the
+Coordinator](./workload-deployment/deployment-verification.md) respectively.
 
 The `meshapi.MeshAPI` service records metrics for the method `NewMeshCert`, which
-gets called by the [Initializer](../components/overview.md#the-initializer) when starting a
+gets called by the [Initializer](../architecture/components/initializer.md) when starting a
 new workload. Attestation failures from workloads to the Coordinator can be
 tracked with the counter `contrast_meshapi_attestation_failures_total`.
 
@@ -36,7 +49,7 @@ Coordinator, this counter will be zero.
 
 ## Service mesh metrics
 
-The [Service Mesh](../components/service-mesh.md) can be configured to expose
+The [Service Mesh](../architecture/components/service-mesh.md) can be configured to expose
 metrics via its [Envoy admin
 interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin). Be
 aware that the admin interface can expose private information and allows
@@ -48,6 +61,6 @@ on this port.
 
 To access the admin interface, the ingress settings of the Service Mesh have to
 be configured to allow access to the specified port (see [Configuring the
-Proxy](../components/service-mesh#configuring-the-proxy)). All metrics will be
+Proxy](../architecture/components/service-mesh.md#configuring-the-proxy). All metrics will be
 exposed under the `/stats` endpoint. Metrics in Prometheus format can be scraped
 from the `/stats/prometheus` endpoint.
