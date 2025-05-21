@@ -1,4 +1,4 @@
-# CLI telemetry
+# Telemetry and data collection
 
 The Contrast CLI sends telemetry data to Edgeless Systems when you use CLI commands.
 This allows to understand how Contrast is used and to improve it.
