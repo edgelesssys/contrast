@@ -4,7 +4,7 @@ This guide shows how to scale the Contrast Coordinator to more than one instance
 
 ## Workflow
 
-Deploy the Coordinator according to the [basic workflow](../deployment.md).
+Deploy the Coordinator according to the [basic workflow](../getting-started/deployment.md).
 By default, there is only one Coordinator instance.
 Verify that this Coordinator is in state `Ready`:
 
