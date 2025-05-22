@@ -102,7 +102,7 @@ func NewForTestWithoutT() (*Kubeclient, error) {
 // PodsFromDeployment returns the pods from a deployment in a namespace.
 //
 // A pod is considered to belong to a deployment if it is owned by a ReplicaSet which is in turn
-// owned by the Deployment in question.
+// owned by the Deployment in question. Terminating pods are ignored.
 func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployment string) ([]corev1.Pod, error) {
 	replicasets, err := c.Client.AppsV1().ReplicaSets(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -120,6 +120,9 @@ func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployme
 				continue
 			}
 			for _, pod := range pods.Items {
+				if pod.DeletionTimestamp != nil {
+					continue
+				}
 				for _, ref := range pod.OwnerReferences {
 					if ref.Kind == "ReplicaSet" && ref.UID == replicaset.UID {
 						out = append(out, pod)
@@ -133,6 +136,8 @@ func (c *Kubeclient) PodsFromDeployment(ctx context.Context, namespace, deployme
 }
 
 // PodsFromOwner returns the pods owned by an object in the namespace of the given kind.
+//
+// Terminating pods are ignored.
 func (c *Kubeclient) PodsFromOwner(ctx context.Context, namespace, kind, name string) ([]corev1.Pod, error) {
 	pods, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{})
 	if err != nil {
@@ -141,6 +146,9 @@ func (c *Kubeclient) PodsFromOwner(ctx context.Context, namespace, kind, name st
 
 	var out []corev1.Pod
 	for _, pod := range pods.Items {
+		if pod.DeletionTimestamp != nil {
+			continue
+		}
 		for _, ref := range pod.OwnerReferences {
 			if ref.Kind == kind && ref.Name == name {
 				out = append(out, pod)

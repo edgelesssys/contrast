@@ -288,6 +288,10 @@ func (c *Kubeclient) toJSON(a any) string {
 }
 
 func isPodReady(pod *corev1.Pod) bool {
+	if pod.DeletionTimestamp != nil {
+		// Terminating pods lose their ready condition only eventually.
+		return false
+	}
 	for _, cond := range pod.Status.Conditions {
 		if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
 			return true
