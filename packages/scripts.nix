@@ -420,10 +420,28 @@
     text = ''
       set -euo pipefail
 
+      retry() {
+          local retries=5
+          local count=0
+          local delay=5
+          until "$@"; do
+              exit_code=$?
+              count=$((count + 1))
+              if [ "$count" -lt "$retries" ]; then
+                  echo "Command failed. Attempt $count/$retries. Retrying in $delay seconds..."
+                  sleep $delay
+              else
+                  echo "Command failed after $retries attempts. Exiting."
+                  return $exit_code
+              fi
+          done
+      }
+
       if [[ $# -lt 2 ]]; then
         echo "Usage: get-logs [start | download] namespaceFile"
         exit 1
       fi
+
       case $1 in
       start)
         while ! [[ -s "$2" ]]; do
@@ -438,7 +456,7 @@
         namespace="$(head -n1 "$2")"
         cp ./packages/log-collector.yaml ./workspace/log-collector.yaml
         sed -i "s/@@NAMESPACE@@/''${namespace}/g" ./workspace/log-collector.yaml
-        kubectl apply -f ./workspace/log-collector.yaml 1>/dev/null 2>/dev/null
+        retry kubectl apply -f ./workspace/log-collector.yaml 1>/dev/null 2>/dev/null
         ;;
       download)
         if [[ ! -f "$2" ]]; then
@@ -448,9 +466,9 @@
         namespace="$(head -n1 "$2")"
         pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
         mkdir -p ./workspace/logs
-        kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod"
-        kubectl exec -n "$namespace" "$pod" -- /bin/bash -c "rm -f /exported-logs.tar.gz; cp -r /export /export-no-stream; tar zcvf /exported-logs.tar.gz /export-no-stream; rm -rf /export-no-stream"
-        kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz
+        retry kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod"
+        retry kubectl exec -n "$namespace" "$pod" -- /bin/bash -c "rm -f /exported-logs.tar.gz; cp -r /export /export-no-stream; tar zcvf /exported-logs.tar.gz /export-no-stream; rm -rf /export-no-stream"
+        retry kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz
         tar xzvf ./workspace/logs/exported-logs.tar.gz --directory ./workspace/logs
         ;;
       *)
