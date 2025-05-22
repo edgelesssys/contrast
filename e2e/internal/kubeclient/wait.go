@@ -203,6 +203,9 @@ func (or *oneRunning) Check(lister listerscorev1.PodLister) (bool, error) {
 		return false, err
 	}
 	for _, pod := range pods {
+		if pod.DeletionTimestamp != nil {
+			continue
+		}
 		if pod.Status.Phase == corev1.PodRunning {
 			return true, nil
 		}
