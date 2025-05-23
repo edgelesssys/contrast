@@ -301,8 +301,8 @@
       gnused
     ];
     text = ''
-      tag="[a-zA-Z0-9_.-]\+"
-      sha="@sha256:[a-fA-F0-9]\{64\}"
+      tag='[a-zA-Z0-9_.-]+'
+      sha='@sha256:[a-fA-F0-9]{64}'
 
       while IFS= read -r replacement; do
         # Get the base name (no tag/sha) and escape dots.
@@ -312,16 +312,17 @@
         image_target=$(echo "$replacement" | cut -d"=" -f2)
 
         # expr matches the images we want to replace.
-        expr="$image_source:$tag\($sha\)\?)"
+        expr="$image_source:$tag($sha)?"
 
         # Run replace over all files.
-        find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i "s#$expr#$image_target#g" {} \;
+        find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i -r "s#$expr#$image_target#g" {} \;
       done <"../image-replacements.txt"
 
       # Replace release artifact download links with the versioned ones.
-      link_source="github\.com/edgelesssys/contrast/releases/\(latest/download\|download/$tag\)/"
-      link_target="github\.com/edgelesssys/contrast/releases/download/$VERSION/"
-      find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i "s#$link_source#$link_target#g" {} \;
+      repo_url='github\.com/edgelesssys/contrast/releases'
+      link_source="$repo_url/(latest/download|download/$tag)/"
+      link_target="$repo_url/download/$VERSION/"
+      find "./docs/versioned_docs/version-$MAJOR_MINOR" -type f -exec sed -i -r "s#$link_source#$link_target#g" {} \;
     '';
   };
 
