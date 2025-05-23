@@ -22,24 +22,27 @@ for resource in "${resourcesToCheck[@]}"; do
     tr ' ' '\n' >>usedRuntimeClasses
 done
 
-kubectl get pods --all-namespaces -o jsonpath='{.items[?(@.metadata.annotations.contrast\.edgeless\.systems/pod-role=="contrast-node-installer")].spec.containers[0].args[1]}' |
+kubectl get pods --all-namespaces -o jsonpath='{.items[?(@.metadata.annotations.contrast\.edgeless\.systems/pod-role=="contrast-node-installer")].metadata.name}' |
   tr ' ' '\n' |
-  grep -o "contrast-cc-.\+" >>usedRuntimeClasses || true
+  grep -o "contrast-cc-.\+" |
+  sed "s/-nodeinstaller.*//g" >>usedRuntimeClasses || true
 sort -u usedRuntimeClasses -o usedRuntimeClasses
 
 mapfile -t unusedRuntimeClasses < <(
   comm -13 usedRuntimeClasses <(
-    kubectl get runtimeclass -o jsonpath='{.items[*].metadata.name}' |
-      tr ' ' '\n' |
-      grep '^contrast-cc' |
-      sort -u
+    {
+      kubectl get runtimeclass -o jsonpath='{.items[*].metadata.name}' |
+        tr ' ' '\n' |
+        grep '^contrast-cc'
+      ls -1 "${OPTEDGELESS}"
+    } | sort -u
   )
 )
 
 for runtimeClass in "${unusedRuntimeClasses[@]}"; do
   # Delete unused runtime classes
   echo "Deleting runtimeclass ${runtimeClass} ..."
-  kubectl delete runtimeclass "${runtimeClass}"
+  kubectl delete runtimeclass "${runtimeClass}" || true
 
   # Delete unused files
   if [[ -d "${OPTEDGELESS}/${runtimeClass}" ]]; then
