@@ -174,6 +174,7 @@ func TestVault(t *testing.T) {
 			},
 		)
 		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
+		time.Sleep(10*time.Second)
 	})
 
 	// Restarts the Vault deployment and verifies it auto-unseals using the transit engine API.
