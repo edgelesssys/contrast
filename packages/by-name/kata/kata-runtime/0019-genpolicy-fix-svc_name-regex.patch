@@ -30,10 +30,10 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index bc1d3fc5289fbf4f258e3b181f9af2bb0feb9ada..e935956e9f36b067e7f94f1340a31a22fe4992f0 100644
+index b5c1c1968a5e695fb5f54361205febe496d27bbf..96301ba833c21fa67d68c2440ded3b374cdf8bbf 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
-@@ -249,7 +249,7 @@
+@@ -256,7 +256,7 @@
          "sfprefix": "^$(cpath)/$(bundle-id)-[a-z0-9]{16}-",
          "ip_p": "[0-9]{1,5}",
          "ipv4_a": "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])",

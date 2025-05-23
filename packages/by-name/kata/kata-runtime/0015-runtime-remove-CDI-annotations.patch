@@ -9,10 +9,10 @@ We want to remove CDI annotations before they get to the agent, as they should o
  1 file changed, 12 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index 25f08d63ad61f3c977703a4f464e6c4b9c6b9eff..1f51416a39684ee70c16c4181ba394dadd3bc27b 100644
+index f287d4d1d252f243b78585c3b26f0ff3c79fea11..da49555224fb9e2459cafd2e5eda08e743220377 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
-@@ -14,6 +14,7 @@ import (
+@@ -15,6 +15,7 @@ import (
  	"os"
  	"path"
  	"path/filepath"
@@ -20,7 +20,7 @@ index 25f08d63ad61f3c977703a4f464e6c4b9c6b9eff..1f51416a39684ee70c16c4181ba394da
  	"strconv"
  	"strings"
  	"sync"
-@@ -1067,6 +1068,17 @@ func (k *kataAgent) constrainGRPCSpec(grpcSpec *grpc.Spec, passSeccomp bool, dis
+@@ -1068,6 +1069,17 @@ func (k *kataAgent) constrainGRPCSpec(grpcSpec *grpc.Spec, passSeccomp bool, dis
  		grpcSpec.Linux.Devices = linuxDevices
  	}
  

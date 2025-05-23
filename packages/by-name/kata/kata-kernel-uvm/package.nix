@@ -20,7 +20,7 @@ let
 
     src = fetchzip {
       url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
-      hash = "sha256-1sGpBgIfIFHREpB+PM27IVZCMg3ER9mCXf0TJoJbf5s=";
+      hash = "sha256-6DNJ2OMTJuyS5kKW8XDz7JUNL3c7RfcsDy3J1sk+yXg=";
       stripRoot = false;
     };
 
@@ -83,13 +83,13 @@ let
 in
 
 linuxManualConfig rec {
-  version = "6.12.22";
+  version = "6.12.28";
   modDirVersion = "${version}" + lib.optionalString withGPU "-nvidia-gpu-confidential";
 
   # See https://github.com/kata-containers/kata-containers/blob/5f11c0f144037d8d8f546c89a0392dcd84fa99e2/versions.yaml#L198-L201
   src = fetchurl {
     url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${version}.tar.xz";
-    hash = "sha256-q0iACrSZhaeNIxiuisXyj9PhI+oXNX7yFJgQWlMzczY=";
+    hash = "sha256-6KCZGCVirs/3gd5yznaUYecG2Xr0LXQN/yDrRQ3Vdx4=";
   };
 
   kernelPatches = [
