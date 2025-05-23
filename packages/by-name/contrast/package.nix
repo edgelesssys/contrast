@@ -35,6 +35,7 @@ let
       "e2e/genpolicy"
       "e2e/getdents"
       "e2e/gpu"
+      "e2e/multiple-cpus"
       "e2e/openssl"
       "e2e/peerrecovery"
       "e2e/policy"
