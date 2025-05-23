@@ -704,3 +704,106 @@ func GPU() []any {
 
 	return []any{tester}
 }
+
+// Vault returns the resources for deploying a user managed vault.
+func Vault(namespace string) []any {
+	vaultSfSets := StatefulSet("vault", "").WithAnnotations(map[string]string{
+		securePVAnnotationKey: "state:share",
+	}).
+		WithSpec(StatefulSetSpec().
+			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
+				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
+				WithWhenScaled(appsv1.DeletePersistentVolumeClaimRetentionPolicyType)).
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "vault"}),
+			).
+			WithServiceName("vault").
+			WithTemplate(
+				PodTemplateSpec().
+					WithLabels(map[string]string{"app.kubernetes.io/name": "vault"}).
+					WithSpec(PodSpec().
+						WithContainers(
+							Container().
+								WithName("openbao-server").
+								WithImage("quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa").
+								WithCommand("bao", "server", "-config=/vault/config/config.hcl", "-log-file=/vault/data/openbao.log").
+								WithResources(ResourceRequirements().
+									WithMemoryLimitAndRequest(500),
+								).WithVolumeMounts(
+								VolumeMount().
+									WithName("config").WithMountPath("/vault/config"),
+								VolumeMount().
+									WithName("share").WithMountPath("/vault/data").WithMountPropagation(corev1.MountPropagationHostToContainer),
+							).WithPorts(
+								ContainerPort().
+									WithName("vault-listener").
+									WithContainerPort(8200),
+							),
+							Container().
+								WithName("openbao-client").
+								WithImage("quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa").
+								WithCommand("/bin/sh", "-ec", "sleep infinity").
+								/*These environmental variables are required for the Vault client instance:
+								- VAULT_ADDR expressing the OpenBao Vault server as URL and port
+								- VAULT_CA_CERT to accept the Vault server mesh certificate
+								- VAULT_CLIENT_CERT to be accepted by the Vault server tcp listener as a valid communication peer
+								- VAULT_CLIENT_KEY is the corresponding private key
+								*/
+								WithEnv(EnvVar().WithName("VAULT_ADDR").WithValue("https://vault:8200")).
+								WithEnv(EnvVar().WithName("VAULT_CACERT").WithValue("/contrast/tls-config/mesh-ca.pem")).
+								WithEnv(EnvVar().WithName("VAULT_CLIENT_CERT").WithValue("/contrast/tls-config/certChain.pem")).
+								WithEnv(EnvVar().WithName("VAULT_CLIENT_KEY").WithValue("/contrast/tls-config/key.pem")).
+								WithResources(ResourceRequirements().
+									WithMemoryLimitAndRequest(500),
+								),
+						).WithVolumes(
+						Volume().WithName("config").WithConfigMap(
+							applycorev1.ConfigMapVolumeSource().WithName("vault-config"),
+						),
+					),
+					),
+			).
+			WithVolumeClaimTemplates(PersistentVolumeClaim("state", "").
+				WithSpec(applycorev1.PersistentVolumeClaimSpec().
+					WithVolumeMode(corev1.PersistentVolumeBlock).
+					WithAccessModes(corev1.ReadWriteOnce).
+					WithResources(applycorev1.VolumeResourceRequirements().
+						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
+					),
+				),
+			),
+		)
+	vaultService := ServiceForStatefulSet(vaultSfSets).
+		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
+
+	configMap := applycorev1.ConfigMap("vault-config", namespace).WithData(
+		map[string]string{
+			"config.hcl": `ui = true
+
+storage "file" {
+        path = "/vault/data"
+}
+
+listener "tcp" {
+  address            = "0.0.0.0:8200"
+  tls_cert_file      = "/contrast/tls-config/certChain.pem"
+  tls_key_file       = "/contrast/tls-config/key.pem"
+  tls_client_ca_file = "/contrast/tls-config/mesh-ca.pem"
+}
+
+seal "transit" {
+  address         = "https://coordinator:8200"
+  disable_renewal = "true"
+  key_name        = "vault_unsealing"
+  mount_path      = "transit/"
+  tls_ca_cert	  = "/contrast/tls-config/mesh-ca.pem"
+  tls_client_cert = "/contrast/tls-config/certChain.pem"
+  tls_client_key  = "/contrast/tls-config/key.pem"
+}
+`,
+		},
+	)
+
+	return []any{vaultSfSets, vaultService, configMap}
+}
