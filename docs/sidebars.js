@@ -50,13 +50,13 @@ const sidebars = {
           items: [
             {
               type: "doc",
-              label: "AKS",
-              id: "howto/cluster-setup/aks",
+              label: "Bare metal",
+              id: "howto/cluster-setup/bare-metal",
             },
             {
               type: "doc",
-              label: "Bare metal",
-              id: "howto/cluster-setup/bare-metal",
+              label: "AKS",
+              id: "howto/cluster-setup/aks",
             },
           ],
         },
