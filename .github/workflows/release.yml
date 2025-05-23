@@ -155,6 +155,7 @@ jobs:
           git commit -am "docs: release ${{ needs.process-inputs.outputs.MAJOR_MINOR }}"
           # Clean up auxiliary files, so next steps run on a clean tree
           git clean -fx :/
+          git reset --hard HEAD
       - name: Download image replacements file (from release branch)
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -171,6 +172,7 @@ jobs:
           git add docs/versioned_docs/version-${{ needs.process-inputs.outputs.MAJOR_MINOR }}
           git commit -m "docs: update release download urls"
           git clean -fx :/
+          git reset --hard HEAD
       - name: Download release artifacts (from release branch)
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -187,6 +189,7 @@ jobs:
           git add ./packages/contrast-releases.json
           git commit -m "packages/contrast-releases: add ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
           git clean -fx :/
+          git reset --hard HEAD
       - name: Bump flake version to post release patch pre-version
         if: inputs.kind == 'minor'
         id: bump
