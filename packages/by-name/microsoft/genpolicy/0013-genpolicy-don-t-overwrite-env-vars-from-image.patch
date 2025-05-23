@@ -14,7 +14,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  1 file changed, 12 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 7f442b66262202a2a75daf4b322eea7905092aba..e1ece31e0648a51b1bdbe472ec09ccfec8e27660 100644
+index 0b66065813ad51b6be8d06c75dde0527ba22c927..22cbd0dc029b94e088c3b30b7e040fa796281f07 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -29,6 +29,7 @@ use serde_yaml::Value;
