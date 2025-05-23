@@ -78,25 +78,40 @@ func TestVault(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(60*time.Second))
 		defer cancel()
 
+		// The bao operator init command should not be scripted like this in a real production environment,
+		// because it will leak the recovery keys to anyone with kubernetes log access.
+		// Normally this should be executed by an admin setting up the Vault once and the
+		// recovery keys should be stored securely.
+		stdOut, stdErr, err := ct.Kubeclient.ExecContainer(
+			ctx,
+			ct.Namespace,
+			pods[0].Name,
+			"openbao-client",
+			[]string{
+				"sh",
+				"-c",
+				"bao operator init",
+			},
+		)
+
+		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
+		token, err = extractVaultRootToken(stdOut)
+		require.NoError(err, "failed to extract Vault root token from logs:\n%s", stdOut)
+		require.NotEmpty(token, "extracted token is empty")
+
 		// Implicitly verifies that Vault is automatically unsealed using the coordinator's transit engine API.
 		sealed, err := checkSealingStatus(ctx, ct.Kubeclient, ct.Namespace, pods[0].Name, "openbao-client")
 		require.NoError(err)
 		require.False(sealed)
 	})
 
-	// Extracts the root token from Vault logs, enables the KV secrets engine, and writes
+	// Enables the KV secrets engine, and writes
 	// a test secret to verify that Vault accepts and stores data correctly.
 	// This secret will later be used to validate data persistence after a Vault restart.
 	t.Run("enable KV engine and create secret on vault", func(t *testing.T) {
 		require := require.New(t)
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(60*time.Second))
 		defer cancel()
-
-		baoClientLogs, err := ct.Kubeclient.GetContainerLogs(ctx, kubeclient.StatefulSet{}, ct.Namespace, "vault", "openbao-client")
-		require.NoError(err)
-		token, err = extractVaultRootToken(baoClientLogs)
-		require.NoError(err, "failed to extract Vault root token from logs:\n%s", baoClientLogs)
-		require.NotEmpty(token, "extracted token is empty")
 
 		stdOut, stdErr, err := ct.Kubeclient.ExecContainer(
 			ctx,
@@ -124,6 +139,20 @@ func TestVault(t *testing.T) {
 			},
 		)
 		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
+
+		stdOut, stdErr, err = ct.Kubeclient.ExecContainer(
+			ctx,
+			ct.Namespace,
+			pods[0].Name,
+			"openbao-client",
+			[]string{
+				"sh", "-c",
+				fmt.Sprintf("VAULT_TOKEN=%s bao kv get mykv/hello", token),
+			},
+		)
+		require.NoError(err, "stderr: %s", stdErr)
+		require.Contains(stdOut, "foo")
+		require.Contains(stdOut, "bar")
 	})
 
 	// Reuses the previously extracted root token to manually seal the Vault instance.
@@ -144,7 +173,6 @@ func TestVault(t *testing.T) {
 				fmt.Sprintf("VAULT_TOKEN=%s bao operator seal", token),
 			},
 		)
-
 		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
 	})
 
@@ -162,7 +190,7 @@ func TestVault(t *testing.T) {
 		require.NoError(err)
 		require.Len(pods, 1)
 
-		// Implicitly verifies that Vault is automatically unsealed using the coordinator's transit engine API.
+		// Implicitly verifies that Vault is automatically unsealed using the coordinator's transit engine API.0
 		sealed, err := checkSealingStatus(ctx, ct.Kubeclient, ct.Namespace, pods[0].Name, "openbao-client")
 		require.NoError(err)
 		require.False(sealed)

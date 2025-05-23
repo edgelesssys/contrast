@@ -707,27 +707,6 @@ func GPU() []any {
 
 // Vault returns the resources for deploying a user managed vault.
 func Vault(namespace string) []any {
-	// The bao operator init command should not be scripted like this in a real production environment,
-	// because it will leak the recovery keys to anyone with kubernetes log access.
-	// Normally this should be executed by an admin setting up the Vault once and the
-	// recovery keys should be stored securely.
-	baoInitCmd := `echo "Waiting for Vault to become available..."
-# Wait until Vault server instance is ready
-until wget --server-response --no-check-certificate --spider -q -O- https://vault:8200 2>&1 | grep -q "HTTP/1.1 200"; do
-    sleep 2
-done
-
-echo "Vault is responding. Checking initialization status..."
-
-# Check if Vault is uninitialized
-if wget --no-check-certificate -q -O - https://vault:8200/v1/sys/init | grep -q '"initialized"[ ]*:[ ]*false'; then
-  echo "Vault is NOT initialized. Running bao operator init..."
-  bao operator init
-else
-  echo "Vault is already initialized. Skipping init."
-fi
-sleep infinity`
-
 	vaultSfSets := StatefulSet("vault", "").WithAnnotations(map[string]string{
 		securePVAnnotationKey: "state:share",
 	}).
@@ -764,7 +743,7 @@ sleep infinity`
 							Container().
 								WithName("openbao-client").
 								WithImage("quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa").
-								WithCommand("/bin/sh", "-ec", baoInitCmd).
+								WithCommand("/bin/sh", "-ec", "sleep infinity").
 								/*These environmental variables are required for the Vault client instance:
 								- VAULT_ADDR expressing the OpenBao Vault server as URL and port
 								- VAULT_CA_CERT to accept the Vault server mesh certificate
@@ -782,9 +761,6 @@ sleep infinity`
 						Volume().WithName("config").WithConfigMap(
 							applycorev1.ConfigMapVolumeSource().WithName("vault-config"),
 						),
-						applycorev1.Volume().
-							WithName("share").
-							WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
 					),
 					),
 			).
