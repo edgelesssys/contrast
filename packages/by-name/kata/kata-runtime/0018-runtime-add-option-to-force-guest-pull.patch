@@ -27,7 +27,7 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  13 files changed, 164 insertions(+), 1 deletion(-)
 
 diff --git a/src/runtime/config/configuration-qemu-coco-dev.toml.in b/src/runtime/config/configuration-qemu-coco-dev.toml.in
-index 7ca3ca99cb25becc01413defe3bf998f58e2872f..2795c876edf63201a051764bcf6ab2fbe011e17d 100644
+index fdd3ddae2fbf977e6be9ad3cf7e45140974d4af7..da9fcbe09334f0db46f114f9b372c3f99ba57976 100644
 --- a/src/runtime/config/configuration-qemu-coco-dev.toml.in
 +++ b/src/runtime/config/configuration-qemu-coco-dev.toml.in
 @@ -713,3 +713,7 @@ create_container_timeout = @DEFCREATECONTAINERTIMEOUT@
@@ -39,7 +39,7 @@ index 7ca3ca99cb25becc01413defe3bf998f58e2872f..2795c876edf63201a051764bcf6ab2fb
 +# the container image should be pulled in the guest, without using an external external snapshotter.
 +# force_guest_pull = true
 diff --git a/src/runtime/config/configuration-qemu-nvidia-gpu-snp.toml.in b/src/runtime/config/configuration-qemu-nvidia-gpu-snp.toml.in
-index 8501ffbd0e9f41318d57fc697ae0fa42a93aef28..df935a77978fa7a1bd505183536417053c787f59 100644
+index c020e2d7a33f6b48cedde68a56a30b29fcd9dae5..5bc9ce0e5f0f2457b3f6fb265d92e40cd067ddec 100644
 --- a/src/runtime/config/configuration-qemu-nvidia-gpu-snp.toml.in
 +++ b/src/runtime/config/configuration-qemu-nvidia-gpu-snp.toml.in
 @@ -698,3 +698,7 @@ create_container_timeout = @DEFAULTTIMEOUT_NV@
@@ -51,7 +51,7 @@ index 8501ffbd0e9f41318d57fc697ae0fa42a93aef28..df935a77978fa7a1bd50518353641705
 +# the container image should be pulled in the guest, without using an external external snapshotter.
 +# force_guest_pull = true
 diff --git a/src/runtime/config/configuration-qemu-nvidia-gpu-tdx.toml.in b/src/runtime/config/configuration-qemu-nvidia-gpu-tdx.toml.in
-index e61a1a1d154c1e1fc675f5224b7d5e31b20fb6ad..70d901ede1f9a7d395e274fae7c6bb26e1d7d7c2 100644
+index d403fea935a5d0458c5f7ab4c6746a631b7e81b8..7d2d56e743016aff31fdd3ac4ddf435ac6b7536e 100644
 --- a/src/runtime/config/configuration-qemu-nvidia-gpu-tdx.toml.in
 +++ b/src/runtime/config/configuration-qemu-nvidia-gpu-tdx.toml.in
 @@ -682,3 +682,7 @@ create_container_timeout = @DEFAULTTIMEOUT_NV@
@@ -63,10 +63,10 @@ index e61a1a1d154c1e1fc675f5224b7d5e31b20fb6ad..70d901ede1f9a7d395e274fae7c6bb26
 +# the container image should be pulled in the guest, without using an external external snapshotter.
 +# force_guest_pull = true
 diff --git a/src/runtime/config/configuration-qemu-se.toml.in b/src/runtime/config/configuration-qemu-se.toml.in
-index d9ffa819b1ce80e9c215e13202123ea5848e8bf6..c5c0fe4db0e6a0c76820919614238c4edb778b89 100644
+index bf2b79ab3d4507a4c2ab5e7be3e9a253cde61f6f..4dbcc63a80e9be423db9b97175d2692f05a71e54 100644
 --- a/src/runtime/config/configuration-qemu-se.toml.in
 +++ b/src/runtime/config/configuration-qemu-se.toml.in
-@@ -661,3 +661,7 @@ create_container_timeout = @DEFCREATECONTAINERTIMEOUT@
+@@ -673,3 +673,7 @@ create_container_timeout = @DEFCREATECONTAINERTIMEOUT@
  # to the hypervisor.
  # (default: /run/kata-containers/dans)
  dan_conf = "@DEFDANCONF@"
@@ -75,7 +75,7 @@ index d9ffa819b1ce80e9c215e13202123ea5848e8bf6..c5c0fe4db0e6a0c76820919614238c4e
 +# the container image should be pulled in the guest, without using an external external snapshotter.
 +# force_guest_pull = true
 diff --git a/src/runtime/config/configuration-qemu-sev.toml.in b/src/runtime/config/configuration-qemu-sev.toml.in
-index 9cf2ce21114cf96b80dcee44308ae874887a1df7..d4072b4aa73b959515d0ee3c27fcbd702ddf5619 100644
+index 97198e4cdca28a85d432eccda32bb6daf6ce64b8..e63f34dc7d250dadf986360699c8165fecd5a8de 100644
 --- a/src/runtime/config/configuration-qemu-sev.toml.in
 +++ b/src/runtime/config/configuration-qemu-sev.toml.in
 @@ -639,3 +639,7 @@ create_container_timeout = @DEFCREATECONTAINERTIMEOUT@
@@ -87,7 +87,7 @@ index 9cf2ce21114cf96b80dcee44308ae874887a1df7..d4072b4aa73b959515d0ee3c27fcbd70
 +# the container image should be pulled in the guest, without using an external external snapshotter.
 +# force_guest_pull = true
 diff --git a/src/runtime/config/configuration-qemu-snp.toml.in b/src/runtime/config/configuration-qemu-snp.toml.in
-index dcfb809440f34db0b59fd67b46835d18641f3253..859381e2380d4de3ec50ba03b610c83517cbe58b 100644
+index 9427d26d0194f3dad762a4a8d9b1081e5e9c9b42..e9495d123a673a9b39c8a85d50ae4e33c5f24d42 100644
 --- a/src/runtime/config/configuration-qemu-snp.toml.in
 +++ b/src/runtime/config/configuration-qemu-snp.toml.in
 @@ -691,3 +691,7 @@ create_container_timeout = @DEFCREATECONTAINERTIMEOUT@
@@ -99,7 +99,7 @@ index dcfb809440f34db0b59fd67b46835d18641f3253..859381e2380d4de3ec50ba03b610c835
 +# the container image should be pulled in the guest, without using an external external snapshotter.
 +# force_guest_pull = true
 diff --git a/src/runtime/config/configuration-qemu-tdx.toml.in b/src/runtime/config/configuration-qemu-tdx.toml.in
-index 37ca97e1a20a79062ff82928a35c2a10ffad5226..599e13958cdb153582138e2d77851b1b8706f2b9 100644
+index 5ec9c628dc2dc3ce90e36369918cd9e65f5e0626..122311f36fbf245883e982057b496ecd7c7b0a3a 100644
 --- a/src/runtime/config/configuration-qemu-tdx.toml.in
 +++ b/src/runtime/config/configuration-qemu-tdx.toml.in
 @@ -676,3 +676,7 @@ create_container_timeout = @DEFCREATECONTAINERTIMEOUT@
@@ -111,10 +111,10 @@ index 37ca97e1a20a79062ff82928a35c2a10ffad5226..599e13958cdb153582138e2d77851b1b
 +# the container image should be pulled in the guest, without using an external external snapshotter.
 +# force_guest_pull = true
 diff --git a/src/runtime/pkg/katautils/config.go b/src/runtime/pkg/katautils/config.go
-index 79665e2593919a3e33a27aac2cff16c51a974666..0b1c1030bd152112a8508e6232c1ceabeafea076 100644
+index 0c1e211c576b21969d67b26d884f4ab94b9c9496..ae7b9cbb93a8dc4136d00f204237b5cb503a0352 100644
 --- a/src/runtime/pkg/katautils/config.go
 +++ b/src/runtime/pkg/katautils/config.go
-@@ -192,6 +192,7 @@ type runtime struct {
+@@ -193,6 +193,7 @@ type runtime struct {
  	DisableGuestEmptyDir      bool     `toml:"disable_guest_empty_dir"`
  	CreateContainerTimeout    uint64   `toml:"create_container_timeout"`
  	DanConf                   string   `toml:"dan_conf"`
@@ -122,7 +122,7 @@ index 79665e2593919a3e33a27aac2cff16c51a974666..0b1c1030bd152112a8508e6232c1ceab
  }
  
  type agent struct {
-@@ -1584,6 +1585,8 @@ func LoadConfiguration(configPath string, ignoreLogging bool) (resolvedConfigPat
+@@ -1587,6 +1588,8 @@ func LoadConfiguration(configPath string, ignoreLogging bool) (resolvedConfigPat
  		return "", config, err
  	}
  
@@ -132,7 +132,7 @@ index 79665e2593919a3e33a27aac2cff16c51a974666..0b1c1030bd152112a8508e6232c1ceab
  }
  
 diff --git a/src/runtime/pkg/oci/utils.go b/src/runtime/pkg/oci/utils.go
-index e8f792ef586d06ce2992f3726a48537365a6bfcb..2e76d519eeb114f9e908fb2dff0c25dae897fbd3 100644
+index 372255a0ecdaae45a32362aa432103a4e38bd896..d49aabd9889fe2ed05f3d666564a2837e04952f5 100644
 --- a/src/runtime/pkg/oci/utils.go
 +++ b/src/runtime/pkg/oci/utils.go
 @@ -171,6 +171,9 @@ type RuntimeConfig struct {
@@ -145,7 +145,7 @@ index e8f792ef586d06ce2992f3726a48537365a6bfcb..2e76d519eeb114f9e908fb2dff0c25da
  }
  
  // AddKernelParam allows the addition of new kernel parameters to an existing
-@@ -994,6 +997,12 @@ func addRuntimeConfigOverrides(ocispec specs.Spec, sbConfig *vc.SandboxConfig, r
+@@ -1000,6 +1003,12 @@ func addRuntimeConfigOverrides(ocispec specs.Spec, sbConfig *vc.SandboxConfig, r
  		return err
  	}
  
@@ -158,7 +158,7 @@ index e8f792ef586d06ce2992f3726a48537365a6bfcb..2e76d519eeb114f9e908fb2dff0c25da
  	if err := newAnnotationConfiguration(ocispec, vcAnnotations.EnableVCPUsPinning).setBool(func(enableVCPUsPinning bool) {
  		sbConfig.EnableVCPUsPinning = enableVCPUsPinning
  	}); err != nil {
-@@ -1139,6 +1148,8 @@ func SandboxConfig(ocispec specs.Spec, runtime RuntimeConfig, bundlePath, cid st
+@@ -1145,6 +1154,8 @@ func SandboxConfig(ocispec specs.Spec, runtime RuntimeConfig, bundlePath, cid st
  		Experimental: runtime.Experimental,
  
  		CreateContainerTimeout: runtime.CreateContainerTimeout,
@@ -168,10 +168,10 @@ index e8f792ef586d06ce2992f3726a48537365a6bfcb..2e76d519eeb114f9e908fb2dff0c25da
  
  	if err := addAnnotations(ocispec, &sandboxConfig, runtime); err != nil {
 diff --git a/src/runtime/virtcontainers/fs_share_linux.go b/src/runtime/virtcontainers/fs_share_linux.go
-index 0dc11cbed55145c958541cabd52cacaa4e2623f3..7e97df2524d4da7007a3b2ffc585f4bf765eb327 100644
+index b6d327a158eec7622b700890f19e68b5c50412ae..3599e618c2b2f96fe432d1ef9736142e8ba917a6 100644
 --- a/src/runtime/virtcontainers/fs_share_linux.go
 +++ b/src/runtime/virtcontainers/fs_share_linux.go
-@@ -92,7 +92,7 @@ type FilesystemShare struct {
+@@ -93,7 +93,7 @@ type FilesystemShare struct {
  	prepared bool
  }
  
@@ -180,7 +180,7 @@ index 0dc11cbed55145c958541cabd52cacaa4e2623f3..7e97df2524d4da7007a3b2ffc585f4bf
  	watcher, err := fsnotify.NewWatcher()
  	if err != nil {
  		return nil, fmt.Errorf("Creating watcher returned error %w", err)
-@@ -542,8 +542,29 @@ func (f *FilesystemShare) shareRootFilesystemWithVirtualVolume(ctx context.Conte
+@@ -594,8 +594,29 @@ func (f *FilesystemShare) shareRootFilesystemWithErofs(ctx context.Context, c *C
  	}, nil
  }
  
@@ -312,10 +312,10 @@ index 6b740d1e6eae15a781e325a7aefc6a7496f3e1ec..a6ea52d8eef600ec5d573ce641a48540
 +	}
 +}
 diff --git a/src/runtime/virtcontainers/pkg/annotations/annotations.go b/src/runtime/virtcontainers/pkg/annotations/annotations.go
-index e71b0525c11d8dd27405fc0bd76e76b0f372987e..0f6171616412524e590937a2397dde931a0c9c27 100644
+index 353daabdecaabdd058be18079adefbd525f1de65..e031447cb68d6e5e0ecf5dd6b5c92bb5e321b7ad 100644
 --- a/src/runtime/virtcontainers/pkg/annotations/annotations.go
 +++ b/src/runtime/virtcontainers/pkg/annotations/annotations.go
-@@ -280,6 +280,9 @@ const (
+@@ -283,6 +283,9 @@ const (
  
  	// CreateContainerTimeout is a sandbox annotaion that sets the create container timeout.
  	CreateContainerTimeout = kataAnnotRuntimePrefix + "create_container_timeout"
@@ -326,7 +326,7 @@ index e71b0525c11d8dd27405fc0bd76e76b0f372987e..0f6171616412524e590937a2397dde93
  
  // Agent related annotations
 diff --git a/src/runtime/virtcontainers/sandbox.go b/src/runtime/virtcontainers/sandbox.go
-index 58c99114d6ba79bb59ba908c9e89786f76c44339..e755afaabf89bc92d1444d14dca0cc275930ccdc 100644
+index 773997b96b91432fcbb117a0354719bd3df25ea2..1169b3f7e151cf8874a8ea54ef7646a3abbec4f6 100644
 --- a/src/runtime/virtcontainers/sandbox.go
 +++ b/src/runtime/virtcontainers/sandbox.go
 @@ -186,6 +186,9 @@ type SandboxConfig struct {
