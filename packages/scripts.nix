@@ -301,7 +301,7 @@
       gnused
     ];
     text = ''
-      tag="[a-zA-Z0-9_.-]+"
+      tag="[a-zA-Z0-9_.-]\+"
       sha="@sha256:[a-fA-F0-9]\{64\}"
 
       while IFS= read -r replacement; do
