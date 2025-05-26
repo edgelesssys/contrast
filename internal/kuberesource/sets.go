@@ -728,6 +728,19 @@ func Vault(namespace string) []any {
 								WithName("openbao-server").
 								WithImage("quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa").
 								WithCommand("bao", "server", "-config=/vault/config/config.hcl", "-log-file=/vault/data/openbao.log").
+								WithReadinessProbe(
+									applycorev1.Probe().
+										WithExec(
+											applycorev1.ExecAction().WithCommand(
+												"sh", "-c",
+												`wget -q --no-check-certificate --server-response https://vault:8200/v1/sys/health -O /dev/null 2>&1 | grep -q '^  HTTP'`,
+											),
+										).
+										WithInitialDelaySeconds(10).
+										WithPeriodSeconds(5).
+										WithTimeoutSeconds(3).
+										WithFailureThreshold(5),
+								).
 								WithResources(ResourceRequirements().
 									WithMemoryLimitAndRequest(500),
 								).WithVolumeMounts(
@@ -776,6 +789,7 @@ func Vault(namespace string) []any {
 		)
 	vaultService := ServiceForStatefulSet(vaultSfSets).
 		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
+	vaultService.Spec.WithPublishNotReadyAddresses(true)
 
 	configMap := applycorev1.ConfigMap("vault-config", namespace).WithData(
 		map[string]string{
