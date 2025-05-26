@@ -21,7 +21,7 @@ message SetManifestResponse {
   // PEM-encoded certificate
   bytes MeshCA = 2;
   // Secret seed (share), encrypted with each of the recovery holders' public keys.
-  SeedShareDocument SeedSharesDoc = 3;
+  SeedShareDocument SeedSharesDoc = 3 [debug_redact = true];
 }
 
 message SeedShareDocument {
@@ -46,7 +46,7 @@ message GetManifestsResponse {
 }
 
 message RecoverRequest {
-    bytes Seed = 1;
+    bytes Seed = 1 [debug_redact = true];
     bytes Salt = 2;
 }
 

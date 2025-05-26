@@ -22,14 +22,14 @@ message NewMeshCertResponse {
   // PEM-encoded certificate when workloads trust also workloads from previous manifests
   bytes RootCACert = 3;
   // Raw byte slice which can be used to derive more secrets
-  bytes WorkloadSecret = 4;
+  bytes WorkloadSecret = 4 [debug_redact = true];
 }
 
 message RecoverRequest {}
 
 message RecoverResponse {
-  bytes Seed = 1;
+  bytes Seed = 1 [debug_redact = true];
   bytes Salt = 2;
-  bytes MeshCAKey = 3;
+  bytes MeshCAKey = 3 [debug_redact = true];
   bytes LatestManifest = 4;
 }

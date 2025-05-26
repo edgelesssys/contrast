@@ -441,11 +441,11 @@ const file_userapi_proto_rawDesc = "" +
 	"\ruserapi.proto\x12\x1cedgelesssys.contrast.userapi\"L\n" +
 	"\x12SetManifestRequest\x12\x1a\n" +
 	"\bManifest\x18\x01 \x01(\fR\bManifest\x12\x1a\n" +
-	"\bPolicies\x18\x02 \x03(\fR\bPolicies\"\x9c\x01\n" +
+	"\bPolicies\x18\x02 \x03(\fR\bPolicies\"\xa1\x01\n" +
 	"\x13SetManifestResponse\x12\x16\n" +
 	"\x06RootCA\x18\x01 \x01(\fR\x06RootCA\x12\x16\n" +
-	"\x06MeshCA\x18\x02 \x01(\fR\x06MeshCA\x12U\n" +
-	"\rSeedSharesDoc\x18\x03 \x01(\v2/.edgelesssys.contrast.userapi.SeedShareDocumentR\rSeedSharesDoc\"p\n" +
+	"\x06MeshCA\x18\x02 \x01(\fR\x06MeshCA\x12Z\n" +
+	"\rSeedSharesDoc\x18\x03 \x01(\v2/.edgelesssys.contrast.userapi.SeedShareDocumentB\x03\x80\x01\x01R\rSeedSharesDoc\"p\n" +
 	"\x11SeedShareDocument\x12G\n" +
 	"\n" +
 	"SeedShares\x18\x01 \x03(\v2'.edgelesssys.contrast.userapi.SeedShareR\n" +
@@ -459,9 +459,9 @@ const file_userapi_proto_rawDesc = "" +
 	"\tManifests\x18\x01 \x03(\fR\tManifests\x12\x1a\n" +
 	"\bPolicies\x18\x02 \x03(\fR\bPolicies\x12\x16\n" +
 	"\x06RootCA\x18\x03 \x01(\fR\x06RootCA\x12\x16\n" +
-	"\x06MeshCA\x18\x04 \x01(\fR\x06MeshCA\"8\n" +
-	"\x0eRecoverRequest\x12\x12\n" +
-	"\x04Seed\x18\x01 \x01(\fR\x04Seed\x12\x12\n" +
+	"\x06MeshCA\x18\x04 \x01(\fR\x06MeshCA\"=\n" +
+	"\x0eRecoverRequest\x12\x17\n" +
+	"\x04Seed\x18\x01 \x01(\fB\x03\x80\x01\x01R\x04Seed\x12\x12\n" +
 	"\x04Salt\x18\x02 \x01(\fR\x04Salt\"\x11\n" +
 	"\x0fRecoverResponse2\xdc\x02\n" +
 	"\aUserAPI\x12r\n" +

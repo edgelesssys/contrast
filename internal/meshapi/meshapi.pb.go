@@ -238,7 +238,7 @@ var File_meshapi_proto protoreflect.FileDescriptor
 const file_meshapi_proto_rawDesc = "" +
 	"\n" +
 	"\rmeshapi.proto\x12\ameshapi\"-\n" +
-	"\x12NewMeshCertRequestJ\x04\b\x01\x10\x02R\x11PeerPublicKeyHash\"\x9b\x01\n" +
+	"\x12NewMeshCertRequestJ\x04\b\x01\x10\x02R\x11PeerPublicKeyHash\"\xa0\x01\n" +
 	"\x13NewMeshCertResponse\x12\x1e\n" +
 	"\n" +
 	"MeshCACert\x18\x01 \x01(\fR\n" +
@@ -246,13 +246,13 @@ const file_meshapi_proto_rawDesc = "" +
 	"\tCertChain\x18\x02 \x01(\fR\tCertChain\x12\x1e\n" +
 	"\n" +
 	"RootCACert\x18\x03 \x01(\fR\n" +
-	"RootCACert\x12&\n" +
-	"\x0eWorkloadSecret\x18\x04 \x01(\fR\x0eWorkloadSecret\"\x10\n" +
-	"\x0eRecoverRequest\"\x7f\n" +
-	"\x0fRecoverResponse\x12\x12\n" +
-	"\x04Seed\x18\x01 \x01(\fR\x04Seed\x12\x12\n" +
-	"\x04Salt\x18\x02 \x01(\fR\x04Salt\x12\x1c\n" +
-	"\tMeshCAKey\x18\x03 \x01(\fR\tMeshCAKey\x12&\n" +
+	"RootCACert\x12+\n" +
+	"\x0eWorkloadSecret\x18\x04 \x01(\fB\x03\x80\x01\x01R\x0eWorkloadSecret\"\x10\n" +
+	"\x0eRecoverRequest\"\x89\x01\n" +
+	"\x0fRecoverResponse\x12\x17\n" +
+	"\x04Seed\x18\x01 \x01(\fB\x03\x80\x01\x01R\x04Seed\x12\x12\n" +
+	"\x04Salt\x18\x02 \x01(\fR\x04Salt\x12!\n" +
+	"\tMeshCAKey\x18\x03 \x01(\fB\x03\x80\x01\x01R\tMeshCAKey\x12&\n" +
 	"\x0eLatestManifest\x18\x04 \x01(\fR\x0eLatestManifest2\x91\x01\n" +
 	"\aMeshAPI\x12H\n" +
 	"\vNewMeshCert\x12\x1b.meshapi.NewMeshCertRequest\x1a\x1c.meshapi.NewMeshCertResponse\x12<\n" +
