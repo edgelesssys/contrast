@@ -365,8 +365,12 @@
           fi
           name=$(echo "$line" | cut -d' ' -f1)
           namespace=$(echo "$line" | cut -d' ' -f2)
+          policy=$(echo "$line" | cut -d' ' -f3)
+          if [[ -z "$policy" ]]; then
+              continue
+          fi
           echo "Extracting policy for $namespace.$name" >&2
-          echo "$line" | cut -d' ' -f3 | base64 -d > "$namespace.$name.rego"
+          echo "$policy" | base64 -d > "$namespace.$name.rego"
       done < <(
         yq '.metadata.name
           + " " + (
