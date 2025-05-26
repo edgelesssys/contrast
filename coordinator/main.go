@@ -33,7 +33,6 @@ import (
 	loggerpkg "github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/meshapi"
-	"github.com/edgelesssys/contrast/internal/mount"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	grpcprometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
@@ -86,10 +85,6 @@ func run() (retErr error) {
 	logger.Info("removing default deny rule")
 	if err := defaultdeny.RemoveDefaultDenyRule(logger); err != nil {
 		return fmt.Errorf("removing default deny rule: %w", err)
-	}
-
-	if err := mount.SetupMount(ctx, logger, "/dev/csi0", "/mnt/state"); err != nil {
-		return fmt.Errorf("setting up mount: %w", err)
 	}
 
 	promRegistry := prometheus.NewRegistry()

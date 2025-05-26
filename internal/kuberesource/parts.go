@@ -292,15 +292,10 @@ func Coordinator(namespace string) *CoordinatorConfig {
 						Container().
 							WithName("coordinator").
 							WithImage("ghcr.io/edgelesssys/contrast/coordinator:latest").
-							WithVolumeDevices(applycorev1.VolumeDevice().
-								WithName("state-device").
-								WithDevicePath("/dev/csi0"),
-							).
 							WithSecurityContext(SecurityContext().
 								WithCapabilities(applycorev1.Capabilities().
 									WithAdd(
-										"SYS_ADMIN",
-										"NET_ADMIN", // Needed for removing the default deny iptales rule.
+										"NET_ADMIN", // Needed for removing the default deny iptables rule.
 									),
 								),
 							).
@@ -353,15 +348,6 @@ func Coordinator(namespace string) *CoordinatorConfig {
 											),
 									),
 							),
-					),
-				),
-			).
-			WithVolumeClaimTemplates(PersistentVolumeClaim("state-device", namespace).
-				WithSpec(applycorev1.PersistentVolumeClaimSpec().
-					WithVolumeMode(corev1.PersistentVolumeBlock).
-					WithAccessModes(corev1.ReadWriteOnce).
-					WithResources(applycorev1.VolumeResourceRequirements().
-						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
 					),
 				),
 			),
