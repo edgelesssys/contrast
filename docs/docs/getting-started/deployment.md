@@ -56,12 +56,62 @@ This tells Kubernetes to run the pod inside a Confidential Virtual Machine (CVM)
 
 ### Define pod resources
 
-Each Contrast workload runs in its own Confidential Virtual Machine (CVM).
-For accurate memory allocation, Contrast workloads require **strict resource definitions**:
+Each Contrast workload runs inside its own Confidential Virtual Machine (CVM).
+To ensure accurate memory allocation, Contrast requires **strict resource definitions**:
 
-- Explicitly define both memory `requests` and `limits`.
-- The values for `requests` and `limits` **must be equal**.
-- You only need to account for your application's memory. Contrast's own memory overhead is handled automatically.
+* Always specify both memory `requests` and `limits`.
+* The values for `requests` and `limits` **must be identical**.
+* Only set limits on **main containers**. Limits for `initContainers` and sidecars are **ignored**.
+
+What matters is that the **sum of memory limits across all main containers** in a pod is as least as large as `sum_of_limits`. With `sum_of_limits` computed as follows:
+
+<Tabs queryString="platform">
+
+<TabItem value="aks-clh-snp" label="AKS" default>
+
+```
+sum_of_limits = worst-case memory requirement of all simultaneous container processes
+```
+
+For example, if an `initContainer` requires more memory than the combined usage of all main containers and sidecars, ensure that the **sum of limits for all main containers** is **at least as large** as the `initContainer`'s memory requirement.
+
+</TabItem>
+
+<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
+
+```
+sum_of_limits = worst-case memory requirement of all simultaneous container processes
+```
+
+For example, if an `initContainer` requires more memory than the combined usage of all main containers and sidecars, ensure that the **sum of limits for all main containers** is **at least as large** as the `initContainer`'s memory requirement.
+
+In addition, account for the total unpacked size of all container images:
+
+```
+sum_of_limits += unpacked image sizes of all main containers, initContainers, and sidecars
+```
+
+</TabItem>
+
+<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
+
+```
+sum_of_limits = worst-case memory requirement of all simultaneous container processes
+```
+
+For example, if an `initContainer` requires more memory than the combined usage of all main containers and sidecars, ensure that the **sum of limits for all main containers** is **at least as large** as the `initContainer`'s memory requirement.
+
+In addition, account for the total unpacked size of all container images:
+
+```
+sum_of_limits += unpacked image sizes of all main containers, initContainers, and sidecars
+```
+
+</TabItem>
+
+</Tabs>
+
+For details, see our [pod resources how-to](../howto/workload-deployment/deployment-file-preparation.md#pod-resources).
 
 If you define a lower memory `request` than `limit`, Kubernetes may overcommit memory, potentially leading to pod failures.
 To avoid this, set both values equally. Set both to 700Mi for each pod in this example:
@@ -160,13 +210,10 @@ Where:
 
 Multiple entries are separated by `##`.
 
-Internally, Contrast sets up `iptables` rules to transparently redirect traffic.
-Any traffic sent to `<original-hostname-or-ip>:<original-port>` is intercepted and rerouted to the Envoy proxy listening on `<chosen IP>:<chosen port>` within the same pod.
-The proxy then establishes an mTLS connection to the intended target using the pod's mesh certificate.
+Contrast’s service mesh deploys a local Envoy proxy at `<chosen IP>:<chosen port>` within each pod. To direct outbound traffic through the mesh, you must configure your application to connect to that proxy address instead of `<original-hostname-or-ip>:<original-port>`.
 
-<!-- TODO: Please double-check -->
 
-#### Enable verification of ingress at `emoji` and `voting`
+#### Enable ingress mTLS at `emoji` and `voting`
 
 Add the following annotation to both pods:
 
@@ -174,7 +221,7 @@ Add the following annotation to both pods:
 contrast.edgeless.systems/servicemesh-ingress: ""
 ```
 
-Setting this annotation to an empty string enables automatic verification of incoming connections.
+Setting this annotation to an empty string enables automatic verification of incoming mTLS connections.
 If the annotation is omitted entirely, no ingress verification will take place.
 
 #### Enable ingress for external HTTPS traffic
@@ -184,14 +231,10 @@ Add this annotation to allow HTTPS ingress without requiring client certificates
 ```yaml
 contrast.edgeless.systems/servicemesh-ingress: web#8080#false
 ```
+This configuration exempts port 8080 from mTLS verification: clients can connect to 8080 without presenting a client certificate, while all other ports still require full mTLS
 
-#### Mark the service as externally exposed
 
-Add this annotation to enable TLS termination by Contrast:
-
-```yaml
-contrast.edgeless.systems/expose-service: "true"
-```
+Altogether, we can configure the service mesh by adding the following annotations:
 
 ```diff title="deployment/emojivoto-demo.yaml"
 @@ -1,6 +1,8 @@
@@ -222,23 +265,13 @@ contrast.edgeless.systems/expose-service: "true"
    labels:
      app.kubernetes.io/name: web
      app.kubernetes.io/part-of: emojivoto
-@@ -217,6 +224,8 @@
- apiVersion: v1
- kind: Service
- metadata:
-+  annotations:
-+    contrast.edgeless.systems/expose-service: "true"
-   name: web-svc
- spec:
-   ports:
 ```
 
 These are all the changes you need to make to your deployment files.
 
 ## 2. Install the Contrast runtime
 
-Next, install the Contrast runtime in your cluster.
-This runtime sets up CVMs on the nodes.
+Next, install the Contrast runtime in your cluster which will be used when setting up CVMs on nodes.
 
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
@@ -321,9 +354,6 @@ coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ing
 echo "The user API of your Contrast Coordinator is available at $coordinator:1313"
 contrast set -c "${coordinator}:1313" deployment/
 ```
-
-<!-- TODO: I always thought the CLI comes with embedded reference values for the Coordinator. -->
-
 The CLI will use the reference values from the manifest to attest the Coordinator deployment
 during the TLS handshake. If the connection succeeds, it's ensured that the Coordinator
 deployment hasn't been tampered with.
@@ -360,7 +390,7 @@ A user—or a trusted third party—can review the manifest and the referenced p
 
 ## 8. Connect securely to the frontend
 
-Once the Coordinator’s configuration has been verified, users can securely connect to the application via HTTPS. The application uses the `mesh-ca.pem` certificate as the root of trust, which we previously configured to issue the frontend's mesh certificate for secure connections.
+Once the Coordinator’s configuration has been verified, users can securely connect to the application via HTTPS. The application uses the `mesh-ca.pem` certificate as the root of trust. We can use this certificate to validate the frontend's certificate.
 
 To access the web frontend, expose the service on a public IP address via a LoadBalancer service:
 

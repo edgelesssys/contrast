@@ -5,7 +5,7 @@ We'll start with from a non-confidential deployment of a simple application.
 
 ## Workflow
 
-In this tutorial, we’ll use the [emojivoto app](https://github.com/BuoyantIO/emojivoto) as an example and walk through the steps needed to make a Kubernetes deployment confidential. You can either follow along or apply the same steps to your own application.
+In this tutorial, we’ll use the [emojivoto app](#emojivoto-app) as an example and walk through the steps needed to make a Kubernetes deployment confidential. You can either follow along or apply the same steps to your own application.
 
 To make your app confidential with Contrast, follow these steps:
 
