@@ -109,7 +109,7 @@ func mount(ctx context.Context, devPath, mountPoint string) error {
 	if err := os.MkdirAll(mountPoint, 0o755); err != nil {
 		return fmt.Errorf("mkdir: %w", err)
 	}
-	if out, err := exec.CommandContext(ctx, "mount", devPath, mountPoint).CombinedOutput(); err != nil {
+	if out, err := exec.CommandContext(ctx, "mount", "-o", "sync,data=journal", devPath, mountPoint).CombinedOutput(); err != nil {
 		return fmt.Errorf("mount: %w, output: %q", err, out)
 	}
 	return nil
