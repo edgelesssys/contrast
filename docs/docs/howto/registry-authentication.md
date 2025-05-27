@@ -2,7 +2,7 @@
 
 This guide shows how to set up registry credentials for Contrast.
 
-## Application
+## Applicability
 
 This guide is relevant if you need to authenticate with a container registry for pulling images.
 
