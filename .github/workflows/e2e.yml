@@ -57,6 +57,9 @@ jobs:
           azure_resource_group=${{ env.azure_resource_group }}
           default_platform=${{ inputs.platform }}
           EOF
+      - name: Build and push container images
+        run: |
+          just coordinator initializer port-forwarder openssl service-mesh-proxy node-installer ${{ inputs.platform }}
       - name: Get credentials for CI cluster
         if: (!inputs.self-hosted)
         run: |
@@ -68,9 +71,6 @@ jobs:
           echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"
           sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
           echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
-      - name: Build and prepare deployments
-        run: |
-          just coordinator initializer port-forwarder openssl service-mesh-proxy node-installer ${{ inputs.platform }}
       - name: E2E Test
         run: |
           nix build .#scripts.get-logs
