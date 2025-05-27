@@ -8,7 +8,8 @@ Recommended for all Contrast deployments.
 
 ## Prerequisites
 
-A running Contrast deployment.
+The intent to deploy a workload using Contrast in a production environment.
+
 
 ## How-to
 
