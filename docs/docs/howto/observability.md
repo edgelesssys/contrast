@@ -8,7 +8,9 @@ Monitoring metrics from the Contrast Coordinator helps you quickly identify issu
 
 ## Prerequisites
 
-A running Contrast deployment.
+1. [Set up cluster](../cluster-setup/aks.md)
+2. [Install CLI](../install-cli.md)
+3. [Deploy the Contrast runtime](./runtime-deployment.md)
 
 ## How-to
 
