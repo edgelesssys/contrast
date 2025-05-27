@@ -1,0 +1,236 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Mon, 26 May 2025 16:27:06 +0200
+Subject: [PATCH] genpolicy: match sandbox name by regex
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ src/tools/genpolicy/rules.rego                    |  2 +-
+ src/tools/genpolicy/src/cronjob.rs                |  8 +++++++-
+ src/tools/genpolicy/src/daemon_set.rs             |  4 +++-
+ src/tools/genpolicy/src/deployment.rs             |  6 +++++-
+ src/tools/genpolicy/src/job.rs                    | 12 +++++++++++-
+ src/tools/genpolicy/src/obj_meta.rs               |  2 +-
+ src/tools/genpolicy/src/pod.rs                    |  6 +-----
+ src/tools/genpolicy/src/policy.rs                 |  2 +-
+ src/tools/genpolicy/src/replica_set.rs            |  4 +++-
+ src/tools/genpolicy/src/replication_controller.rs |  5 ++++-
+ src/tools/genpolicy/src/stateful_set.rs           |  3 ++-
+ src/tools/genpolicy/src/yaml.rs                   | 13 +++++++++++++
+ 12 files changed, 52 insertions(+), 15 deletions(-)
+
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index c0bc0f6c95b2eed5a14aa5fad8e46b4a69e6b815..44cbcbe353a98c05e68c64109f4dca3728787b2c 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -146,7 +146,7 @@ allow_create_container_input {
+ 
+ allow_namespace(p_namespace, i_namespace) = add_namespace {
+     p_namespace == i_namespace
+-    add_namespace := null
++    add_namespace := state_allows("namespace", i_namespace)
+     print("allow_namespace 1: input namespace matches policy data")
+ }
+ 
+diff --git a/src/tools/genpolicy/src/cronjob.rs b/src/tools/genpolicy/src/cronjob.rs
+index 2f6d4e2ffab1d94d9749a4bc32752df58d99d070..1921de6f65fecccc1561b19f859b7bad1169facf 100644
+--- a/src/tools/genpolicy/src/cronjob.rs
++++ b/src/tools/genpolicy/src/cronjob.rs
+@@ -18,6 +18,7 @@ use async_trait::async_trait;
+ use protocols::agent;
+ use serde::{Deserialize, Serialize};
+ use std::collections::BTreeMap;
++use std::vec;
+ 
+ /// See Reference / Kubernetes API / Workload Resources / CronJob.
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+@@ -80,7 +81,12 @@ impl yaml::K8sResource for CronJob {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        // CronJob name - time[min]
++        // https://github.com/kubernetes/kubernetes/blob/b35c5c0a301d326fdfa353943fca077778544ac6/pkg/controller/cronjob/cronjob_controllerv2.go#L672
++        let cronjob_name = yaml::name_regex_from_meta(&self.metadata);
++        let job_name = cronjob_name.map(|prefix| format!("{prefix}-[0-9]+"));
++        // Pod name now derives from the generated job name.
++        job_name.map(job::pod_name_regex)
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
+index 159fd67c9ce7ae7fe401447fb9a65e3a29c20d00..5dc51a770983233935160b25851926cae73ea81c 100644
+--- a/src/tools/genpolicy/src/daemon_set.rs
++++ b/src/tools/genpolicy/src/daemon_set.rs
+@@ -82,7 +82,9 @@ impl yaml::K8sResource for DaemonSet {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        // https://github.com/kubernetes/kubernetes/blob/b35c5c0a301d326fdfa353943fca077778544ac6/pkg/controller/daemon/daemon_controller.go#L1045
++        let suffix = yaml::GENERATE_NAME_SUFFIX_REGEX;
++        yaml::name_regex_from_meta(&self.metadata).map(|prefix| format!("{prefix}-{suffix}"))
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/deployment.rs b/src/tools/genpolicy/src/deployment.rs
+index 5d0fdf22e0d54c809f229121494d346de5e825ee..476482468ac6cd1f9ebe386a615b9b530a503acd 100644
+--- a/src/tools/genpolicy/src/deployment.rs
++++ b/src/tools/genpolicy/src/deployment.rs
+@@ -80,7 +80,11 @@ impl yaml::K8sResource for Deployment {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        // Deployment name - pod template hash - suffix
++        // https://github.com/kubernetes/kubernetes/blob/b35c5c0a301d326fdfa353943fca077778544ac6/pkg/controller/deployment/sync.go#L201
++        let suffix = yaml::GENERATE_NAME_SUFFIX_REGEX;
++        yaml::name_regex_from_meta(&self.metadata)
++            .map(|prefix| format!("{prefix}-{suffix}-{suffix}"))
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/job.rs b/src/tools/genpolicy/src/job.rs
+index 0e4cbf82c0598009503378bfc9277facd011fce5..99bca6c8154cfbb597d313bf18a6186ec3ea6651 100644
+--- a/src/tools/genpolicy/src/job.rs
++++ b/src/tools/genpolicy/src/job.rs
+@@ -54,7 +54,8 @@ impl yaml::K8sResource for Job {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        let job_name = yaml::name_regex_from_meta(&self.metadata);
++        job_name.map(pod_name_regex)
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+@@ -123,3 +124,12 @@ impl yaml::K8sResource for Job {
+         yaml::get_sysctls(&self.spec.template.spec.securityContext)
+     }
+ }
++
++pub fn pod_name_regex(job_name: String) -> String {
++    // Job name - optional index - generateNameSuffix
++    // https://github.com/kubernetes/kubernetes/blob/b35c5c0a301d326fdfa353943fca077778544ac6/pkg/controller/job/job_controller.go#L1767
++    // https://github.com/kubernetes/kubernetes/blob/b35c5c0a301d326fdfa353943fca077778544ac6/pkg/controller/job/indexed_job_utils.go#L501
++    // TODO(burgerdev): does not handle long names correctly!
++    let suffix = yaml::GENERATE_NAME_SUFFIX_REGEX;
++    format!("{job_name}(-[0-9]+)?-{suffix}")
++}
+\ No newline at end of file
+diff --git a/src/tools/genpolicy/src/obj_meta.rs b/src/tools/genpolicy/src/obj_meta.rs
+index 95f631cbe1afe5349e74b9eb5361c88316cf9467..7a5364ff7a0c7a80f5d0fce5ef8149964d1565e9 100644
+--- a/src/tools/genpolicy/src/obj_meta.rs
++++ b/src/tools/genpolicy/src/obj_meta.rs
+@@ -17,7 +17,7 @@ pub struct ObjectMeta {
+     pub name: Option<String>,
+ 
+     #[serde(skip_serializing_if = "Option::is_none")]
+-    generateName: Option<String>,
++    pub generateName: Option<String>,
+ 
+     #[serde(skip_serializing_if = "Option::is_none")]
+     labels: Option<BTreeMap<String, String>>,
+diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
+index bab8b34781bd8b6e51332bbcf8303116272654f1..2959db91b82040b7c0ec4c2b41396d07192fe947 100644
+--- a/src/tools/genpolicy/src/pod.rs
++++ b/src/tools/genpolicy/src/pod.rs
+@@ -857,11 +857,7 @@ impl yaml::K8sResource for Pod {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        let name = self.metadata.get_name();
+-        if !name.is_empty() {
+-            return Some(name);
+-        }
+-        panic!("No pod name.");
++        yaml::name_regex_from_meta(&self.metadata)
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index d07240e3515a10d538b28f2b69f6b1a7a7e2121d..10de9e825bb238e37da210a2b73ccfd62e20394c 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -1036,7 +1036,7 @@ fn get_container_annotations(
+     if let Some(name) = resource.get_sandbox_name() {
+         annotations
+             .entry("io.kubernetes.cri.sandbox-name".to_string())
+-            .or_insert(name);
++            .or_insert(format!("^{name}$"));
+     }
+ 
+     if !is_pause_container {
+diff --git a/src/tools/genpolicy/src/replica_set.rs b/src/tools/genpolicy/src/replica_set.rs
+index 7d7c3781fc941c87624d35a51df29d6f9ccebe1e..6e40509751425591cb9d65692468d77cc3875c3b 100644
+--- a/src/tools/genpolicy/src/replica_set.rs
++++ b/src/tools/genpolicy/src/replica_set.rs
+@@ -52,7 +52,9 @@ impl yaml::K8sResource for ReplicaSet {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        // https://github.com/kubernetes/kubernetes/blob/b35c5c0a301d326fdfa353943fca077778544ac6/pkg/controller/controller_utils.go#L541
++        let suffix = yaml::GENERATE_NAME_SUFFIX_REGEX;
++        yaml::name_regex_from_meta(&self.metadata).map(|prefix| format!("{prefix}-{suffix}"))
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/replication_controller.rs b/src/tools/genpolicy/src/replication_controller.rs
+index 711971d7cb77c969c5cd85e695c97cce4c66227b..e08e332b9bc71815725e71b8a46e21529b6082b4 100644
+--- a/src/tools/genpolicy/src/replication_controller.rs
++++ b/src/tools/genpolicy/src/replication_controller.rs
+@@ -54,7 +54,10 @@ impl yaml::K8sResource for ReplicationController {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        // https://github.com/kubernetes/kubernetes/blob/b35c5c0a301d326fdfa353943fca077778544ac6/pkg/controller/controller_utils.go#L541
++        // https://github.com/kubernetes/kubernetes/blob/b35c5c0a301d326fdfa353943fca077778544ac6/pkg/controller/replication/replication_controller.go#L47-L50
++        let suffix = yaml::GENERATE_NAME_SUFFIX_REGEX;
++        yaml::name_regex_from_meta(&self.metadata).map(|prefix| format!("{prefix}-{suffix}"))
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/stateful_set.rs b/src/tools/genpolicy/src/stateful_set.rs
+index a1613998efbbb073146ab24a7762bdc399fc9fa0..7c54f854e81c70df779861ad056fa38efe5ff7bb 100644
+--- a/src/tools/genpolicy/src/stateful_set.rs
++++ b/src/tools/genpolicy/src/stateful_set.rs
+@@ -102,7 +102,8 @@ impl yaml::K8sResource for StatefulSet {
+     }
+ 
+     fn get_sandbox_name(&self) -> Option<String> {
+-        None
++        // https://github.com/kubernetes/kubernetes/blob/b35c5c0a301d326fdfa353943fca077778544ac6/pkg/controller/statefulset/stateful_set_utils.go#L113
++        yaml::name_regex_from_meta(&self.metadata).map(|prefix| format!("{prefix}-[0-9]+"))
+     }
+ 
+     fn get_namespace(&self) -> Option<String> {
+diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
+index edc2ff9adbe30a08135e4dd401d5dd2c7dd2cb46..938dc64437f4ff4a2b9daf969a01059f5155e50b 100644
+--- a/src/tools/genpolicy/src/yaml.rs
++++ b/src/tools/genpolicy/src/yaml.rs
+@@ -14,6 +14,7 @@ use crate::job;
+ use crate::list;
+ use crate::mount_and_storage;
+ use crate::no_policy;
++use crate::obj_meta::ObjectMeta;
+ use crate::pod;
+ use crate::policy;
+ use crate::replica_set;
+@@ -445,3 +446,15 @@ pub fn get_sysctls(security_context: &Option<pod::PodSecurityContext>) -> Vec<po
+     }
+     vec![]
+ }
++
++/// Constructs a non-anchored regex for an object according to k8s naming conventions:
++/// 1. If the name field is set, return that literally.
++/// 2. If name is unset but generateName is set, return regex that matches generateName and a random suffix.
++/// 3. Otherwise, return None. This object is not considered valid by the k8s API server!
++pub fn name_regex_from_meta(meta: &ObjectMeta) -> Option<String> {
++    let generateName = meta.generateName.clone().map(|prefix| format!("{prefix}{GENERATE_NAME_SUFFIX_REGEX}"));
++    meta.name.clone().or(generateName)
++}
++
++// https://github.com/kubernetes/kubernetes/blob/b35c5c0a301d326fdfa353943fca077778544ac6/staging/src/k8s.io/apimachinery/pkg/util/rand/rand.go#L81-L83
++pub const GENERATE_NAME_SUFFIX_REGEX: &str = "[bcdfghjklmnpqrstvwxz2456789]+";
