@@ -136,6 +136,12 @@ buildGoModule (finalAttrs: {
       # Support to enforce guest pull without (nydus) snapshotter.
       # Cherry-picked from https://github.com/kata-containers/kata-containers/pull/11244
       ./0018-runtime-add-option-to-force-guest-pull.patch
+
+      # Fixes a bug in the genpolicy settings where the service_name regex used to match downward
+      # API env vars wouldn't accept numbers in the service name.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11314
+      ./0019-genpolicy-fix-svc_name-regex.patch
+      ./0020-genpolicy-rename-svc_name-to-svc_name_downward_env.patch
     ];
   };
 
