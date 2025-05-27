@@ -8,50 +8,11 @@ If the manifest changes—for example, due to modifications in the service mesh 
 
 ## Prerequisites
 
-A running Contrast deployment.
+1. A running Contrast deployment
+2. [Connect to the Coordinator](./workload-deployment/deploy-coordinator#connect-to-the-contrast-coordinator)
 
 ## How-to
 
-First, connect to the Coordinator. Then update the manifest and restart your pods to apply the changes.
-
-### Connect to the Coordinator
-
-The released Coordinator resource includes a LoadBalancer definition we can use.
-
-```sh
-coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
-```
-
-:::info[Port-forwarding of Confidential Containers]
-
-`kubectl port-forward` uses a Container Runtime Interface (CRI) method that isn't supported by the Kata shim.
-If you can't use a public load balancer, you can deploy a port-forwarding pod to relay traffic to a Contrast pod:
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: port-forwarder-coordinator
-spec:
-  containers:
-    - name: port-forwarder
-      image: alpine/socat
-      args:
-        - -d
-        - TCP-LISTEN:1313,fork
-        - TCP:coordinator:1313
-      resources:
-        requests:
-          memory: 50Mi
-        limits:
-          memory: 50Mi
-```
-
-Upstream tracking issue: https://github.com/kata-containers/kata-containers/issues/1693.
-
-:::
-
-### Update the manifest
 
 Set the changed manifest at the Coordinator with:
 
