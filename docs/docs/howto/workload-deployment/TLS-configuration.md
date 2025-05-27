@@ -5,7 +5,6 @@ Contrast supports secure communication through a Contrast-specific PKI. Certific
 ## Applicability
 
 This step is optional, but highly recommended when deploying applications with Contrast.
-If no TLS configuration is provided:
 
 ## Prerequisites
 
@@ -16,12 +15,11 @@ If no TLS configuration is provided:
 
 ## How-to
 
-In the initialization process, the `contrast-secrets` shared volume is populated with X.509 certificates for your workload.
+In the initialization process, the `contrast-secrets` shared volume (shared only within the pod VM) is populated with X.509 certificates for your workload.
 These certificates are used by the [Contrast Service Mesh](../../architecture/components/service-mesh.md), but can also be used by your application directly.
-The following tab group explains the setup for both scenarios.
 
-<Tabs groupId="tls">
-<TabItem value="mesh" label="Drop-in service mesh">
+### Drop-in service mesh
+
 
 Contrast can be configured to handle TLS in a sidecar container.
 This is useful for workloads that are hard to configure with custom certificates, like Java applications.
@@ -47,9 +45,9 @@ During the `generate` step, this configuration will be translated into a Service
 The only change required to the app itself is to let it connect to `127.0.0.2:4001` to reach the backend service.
 You can find more detailed documentation in the [Service Mesh chapter](../../architecture/components/service-mesh.md).
 
-</TabItem>
 
-<TabItem value="go" label="Go integration">
+### Go integration
+
 
 The mesh certificate contained in `certChain.pem` authenticates this workload, while the mesh CA certificate `mesh-ca.pem` authenticates its peers.
 Your app should turn on client authentication to ensure peers are running as confidential containers, too.
@@ -85,9 +83,6 @@ cfg := &tls.Config{
   ClientCAs: caCerts,
 }
 ```
-
-</TabItem>
-</Tabs>
 
 </TabItem>
 </Tabs>
