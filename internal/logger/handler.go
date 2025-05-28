@@ -43,7 +43,7 @@ func NewHandler(inner slog.Handler, subsystem string) *Handler {
 		enabled:   subsystemEnvEnabled(os.Getenv, subsystem),
 		level:     slog.LevelWarn,
 	}
-	slog.New(handler).Info("Subsystem logger initialized", "subsystem", subsystem, "state", handler.state())
+	slog.New(handler).Debug("Subsystem logger initialized", "subsystem", subsystem, "state", handler.state())
 	return handler
 }
 
