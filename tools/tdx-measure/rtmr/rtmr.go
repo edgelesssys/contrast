@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"os"
 	"unicode/utf16"
 
 	"github.com/edgelesssys/contrast/tdx-measure/tdvf"
@@ -25,6 +26,7 @@ type Rtmr struct {
 // Domain Extensions (Intel® TDX) Module Base Architecture Specification,
 // 12.2.2 RTMR: Run-Time Measurement Registers.
 func (r *Rtmr) Extend(bytes [48]byte) {
+	fmt.Fprintf(os.Stderr, "Extending RTMR with %s\n", hex.EncodeToString(bytes[:]))
 	hash := sha512.New384()
 	hash.Write(r.value[:])
 	hash.Write(bytes[:])
@@ -226,7 +228,7 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 	for _, hash := range configHashes {
 		var buffer [48]byte
 		if _, err := hex.Decode(buffer[:], []byte(hash)); err != nil {
-			panic(err)
+			return [48]byte{}, fmt.Errorf("can't decode config hash %s: %w", hash, err)
 		}
 		rtmr.Extend(buffer)
 	}
