@@ -73,9 +73,6 @@ func TestVolumeStatefulSet(t *testing.T) {
 		stdOut, stdErr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, pods[0].Name, []string{"sh", "-c", fmt.Sprintf("echo test > %s", filePath)})
 		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
 
-		stdOut, stdErr, err = ct.Kubeclient.Exec(ctx, ct.Namespace, pods[0].Name, []string{"sync"})
-		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
-
 		stdOut, stdErr, err = ct.Kubeclient.Exec(ctx, ct.Namespace, pods[0].Name, []string{"cat", filePath})
 		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
 		require.Equal("test\n", stdOut)
