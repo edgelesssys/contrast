@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -312,7 +313,10 @@ func (g *Guard) UpdateState(_ context.Context, oldState *State, se *seedengine.S
 		TransitionHash: transitionHash,
 	}
 	if err := g.hist.SetLatest(oldLatest, latest, se.TransactionSigningKey()); err != nil {
-		// TODO(burgerdev): check returned error, set state stale if it's a CAS failure and return ErrConcurrentUpdate.
+		// TODO(burgerdev): we should determine this with a return value.
+		if strings.Contains(err.Error(), "has changed since last read") {
+			return nil, fmt.Errorf("%w: %w", ErrConcurrentUpdate, err)
+		}
 		return nil, fmt.Errorf("updating latest transition: %w", err)
 	}
 

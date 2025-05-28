@@ -7,10 +7,14 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -23,6 +27,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/spf13/afero"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	testingclock "k8s.io/utils/clock/testing"
 )
@@ -34,6 +39,202 @@ const (
 contrast_coordinator_manifest_generation %d
 `
 )
+
+func TestUpdateState(t *testing.T) {
+	ctx := t.Context()
+	assert := assert.New(t)
+	require := require.New(t)
+	g, _ := newTestGuard(t)
+
+	// A new Guard is empty.
+	emptyState, err := g.GetState(ctx)
+	require.Nil(emptyState)
+	require.ErrorIs(err, ErrNoState)
+
+	mnfst, manifestBytes, policies := newManifest(t)
+
+	se := newSeedEngine(t)
+	updateState, err := g.UpdateState(ctx, emptyState, se, manifestBytes, policies)
+	require.NoError(err)
+	require.NotNil(updateState)
+
+	// GetState now returns the same state as UpdateState.
+	getState, err := g.GetState(ctx)
+	require.NoError(err)
+	require.NotNil(getState)
+	require.Equal(getState, updateState)
+
+	// The returned state contains the values passed to UpdateState.
+	assert.Equal(mnfst, getState.Manifest())
+	assert.Equal(manifestBytes, getState.ManifestBytes())
+	assert.Same(se, getState.SeedEngine())
+
+	// The state has a CA with valid certs.
+	ca := getState.CA()
+	require.NotNil(ca)
+	for name, pemBytes := range map[string][]byte{
+		"root CA":         ca.GetRootCACert(),
+		"intermediate CA": ca.GetIntermCACert(),
+		"mesh CA":         ca.GetMeshCACert(),
+	} {
+		pool := x509.NewCertPool()
+		assert.True(pool.AppendCertsFromPEM(pemBytes), name)
+		block, rest := pem.Decode(pemBytes)
+		assert.NotEmpty(block.Bytes, name)
+		assert.Empty(rest, name)
+	}
+}
+
+// TestTestConcurrentStateUpdate tests that parallel changes to the internal state pointer don't affect the
+// outcome of UpdateState calls.
+func TestTestConcurrentStateUpdate(t *testing.T) {
+	ctx := t.Context()
+	assert := assert.New(t)
+	require := require.New(t)
+	g, _ := newTestGuard(t)
+
+	// A new Guard is empty.
+	emptyState, err := g.GetState(ctx)
+	require.Nil(emptyState)
+	require.ErrorIs(err, ErrNoState)
+
+	se := newSeedEngine(t)
+	_, manifestBytes, policies := newManifest(t)
+
+	// Simulate a concurrent state update.
+	concurrentlyUpdatedState := &State{}
+	g.state.Store(concurrentlyUpdatedState)
+
+	updateState, err := g.UpdateState(ctx, emptyState, se, manifestBytes, policies)
+	require.NoError(err)
+	require.NotNil(updateState)
+	assert.NotSame(concurrentlyUpdatedState, updateState, "UpdateState must return the state corresponding to its inputs")
+
+	getState, err := g.GetState(ctx)
+	require.NoError(err)
+	require.Same(concurrentlyUpdatedState, getState, "UpdateState must not override a relatively newer state")
+}
+
+func TestGetHistory(t *testing.T) {
+	ctx := t.Context()
+	assert := assert.New(t)
+	require := require.New(t)
+	g, _ := newTestGuard(t)
+
+	mnfst, _, policies := newManifest(t)
+	se := newSeedEngine(t)
+
+	// Set a number of slightly different manifests to establish a history.
+	numManifests := 20
+	var state *State
+	for i := range numManifests {
+		nextPolicy := []byte{byte(i)}
+		nextPolicyHash := sha256.Sum256(nextPolicy)
+		mnfst.Policies[manifest.NewHexString(nextPolicyHash[:])] = manifest.PolicyEntry{}
+		policies = append(policies, nextPolicy)
+		manifestBytes, err := json.Marshal(mnfst)
+		require.NoError(err)
+		nextState, err := g.UpdateState(ctx, state, se, manifestBytes, policies)
+		require.NoError(err)
+		state = nextState
+	}
+
+	// Verify manifest history.
+	manifests, policiesByHash, err := g.GetHistory(ctx)
+	require.NoError(err)
+	assert.Len(policiesByHash, numManifests+1) // 1 additional policy comes from newManifest
+	require.Len(manifests, numManifests)
+	for i := range numManifests {
+		var unmarshaled manifest.Manifest
+		require.NoError(json.Unmarshal(manifests[i], &unmarshaled))
+		assert.Len(unmarshaled.Policies, i+2) // 1 policy added per iteration + 1 from newManifest
+		for hash := range unmarshaled.Policies {
+			assert.Contains(policiesByHash, hash)
+		}
+	}
+}
+
+func TestResetState(t *testing.T) {
+	ctx := t.Context()
+	require := require.New(t)
+	g, _ := newTestGuard(t)
+	se := newSeedEngine(t)
+	_, manifestBytes, policies := newManifest(t)
+
+	authz := &stubAuthorizer{
+		se: se,
+		pk: testkeys.ECDSA(t),
+	}
+
+	// Reset without a persisted state should fail.
+	state, err := g.ResetState(ctx, nil, authz)
+	require.Error(err)
+	require.Nil(state)
+
+	// Initialize the state.
+	state, err = g.UpdateState(ctx, nil, se, manifestBytes, policies)
+	require.NoError(err)
+	require.NotNil(state)
+
+	// Reset with stale state should fail.
+	_, err = g.ResetState(ctx, nil, authz)
+	require.ErrorIs(err, ErrConcurrentUpdate)
+
+	// Reset with current state should pass.
+	state, err = g.ResetState(ctx, state, authz)
+	require.NoError(err)
+	require.NotNil(state)
+
+	// Unauthorized state reset should fail.
+	unauthz := &stubAuthorizer{err: assert.AnError}
+	_, err = g.ResetState(ctx, nil, unauthz)
+	require.ErrorIs(err, assert.AnError)
+}
+
+func TestConcurrentUpdateState(t *testing.T) {
+	ctx := t.Context()
+	assert := assert.New(t)
+
+	store := &storeWithSync{
+		Store: history.NewAferoStore(&afero.Afero{Fs: afero.NewMemMapFs()}),
+	}
+	hist := history.NewWithStore(slog.Default(), store)
+	guard := New(hist, prometheus.NewRegistry(), slog.Default())
+
+	numWorkers := 20
+
+	se := newSeedEngine(t)
+	_, mnfst, policies := newManifest(t)
+
+	var errCount atomic.Int32
+	store.wg.Add(numWorkers)
+	var wg sync.WaitGroup
+	wg.Add(numWorkers)
+	for i := range numWorkers {
+		go func() {
+			defer wg.Done()
+			_, err := guard.UpdateState(ctx, nil, se, mnfst, policies)
+			if err != nil {
+				errCount.Add(1)
+				assert.ErrorIs(err, ErrConcurrentUpdate, "iteration %d", i)
+			}
+		}()
+	}
+	wg.Wait()
+	assert.Equal(numWorkers-1, int(errCount.Load()))
+}
+
+type storeWithSync struct {
+	history.Store
+
+	wg sync.WaitGroup
+}
+
+func (s *storeWithSync) CompareAndSwap(key string, oldVal []byte, newVal []byte) error {
+	s.wg.Done()
+	s.wg.Wait()
+	return s.Store.CompareAndSwap(key, oldVal, newVal)
+}
 
 func TestMetrics(t *testing.T) {
 	require := require.New(t)
@@ -77,6 +278,125 @@ type stubAuthorizer struct {
 
 func (fa *stubAuthorizer) AuthorizeByManifest(context.Context, *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
 	return fa.se, fa.pk, fa.err
+}
+
+func TestWatchHistory(t *testing.T) {
+	ctx := t.Context()
+
+	for name, tc := range map[string]struct {
+		update    []byte
+		wantStale bool
+	}{
+		"valid update": {
+			update:    make([]byte, 64),
+			wantStale: true,
+		},
+		"invalid update": {
+			update:    []byte{0, 1, 2},
+			wantStale: false,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			store := &storeWithManualUpdates{
+				Store:         history.NewAferoStore(&afero.Afero{Fs: afero.NewMemMapFs()}),
+				notifications: make(chan []byte),
+			}
+			hist := history.NewWithStore(slog.Default(), store)
+			g := New(hist, prometheus.NewRegistry(), slog.Default())
+
+			_, manifestBytes, policies := newManifest(t)
+
+			se := newSeedEngine(t)
+			state, err := g.UpdateState(ctx, nil, se, manifestBytes, policies)
+			require.NoError(err)
+			require.NotNil(state)
+
+			watchCtx, cancel := context.WithCancel(ctx)
+			watcherStopped := make(chan struct{})
+			go func() {
+				assert.ErrorIs(t, g.WatchHistory(watchCtx), context.Canceled)
+				close(watcherStopped)
+			}()
+
+			store.notifications <- tc.update
+
+			if tc.wantStale {
+				require.EventuallyWithT(func(t *assert.CollectT) {
+					assert := assert.New(t)
+					staleState, err := g.GetState(ctx)
+					assert.ErrorIs(err, ErrStaleState, "watcher update should mark the state stale")
+					assert.Same(state, staleState, "GetState should still return the active state")
+				}, time.Second, time.Millisecond)
+			} else {
+				require.Never(func() bool {
+					_, err := g.GetState(ctx)
+					return errors.Is(err, ErrStaleState)
+				}, 100*time.Millisecond, 10*time.Millisecond)
+			}
+
+			cancel()
+			<-watcherStopped
+		})
+	}
+}
+
+// TestWatchHistoryLateNotifications tests a race condition where the state is updated twice in
+// quick succession, but the notifications arrive late. This must not lead to a stale state.
+func TestWatchHistoryLateNotifications(t *testing.T) {
+	ctx := t.Context()
+	require := require.New(t)
+
+	store := &storeWithManualUpdates{
+		Store:         history.NewAferoStore(&afero.Afero{Fs: afero.NewMemMapFs()}),
+		notifications: make(chan []byte),
+	}
+	hist := history.NewWithStore(slog.Default(), store)
+	g := New(hist, prometheus.NewRegistry(), slog.Default())
+
+	_, manifestBytes, policies := newManifest(t)
+
+	se := newSeedEngine(t)
+
+	watchCtx, cancel := context.WithCancel(ctx)
+	watcherStopped := make(chan struct{})
+	go func() {
+		assert.ErrorIs(t, g.WatchHistory(watchCtx), context.Canceled)
+		close(watcherStopped)
+	}()
+
+	var notifications [][]byte
+	var state *State
+	for range 2 {
+		nextState, err := g.UpdateState(ctx, state, se, manifestBytes, policies)
+		require.NoError(err)
+		state = nextState
+		latest, err := store.Get("transitions/latest")
+		require.NoError(err)
+		notifications = append(notifications, latest)
+	}
+
+	for _, notification := range notifications {
+		store.notifications <- notification
+		require.Never(func() bool {
+			_, err := g.GetState(ctx)
+			return errors.Is(err, ErrStaleState)
+		}, 100*time.Millisecond, 10*time.Millisecond)
+	}
+
+	cancel()
+	<-watcherStopped
+}
+
+type storeWithManualUpdates struct {
+	history.Store
+
+	notifications chan []byte
+}
+
+func (s *storeWithManualUpdates) Watch(string) (<-chan []byte, func(), error) {
+	return s.notifications, func() {}, nil
 }
 
 // TestBadStoreWatcherIsRestarted tests that a new history watcher is started on failure.
@@ -222,6 +542,14 @@ func newManifest(t *testing.T) (*manifest.Manifest, []byte, [][]byte) {
 	mnfstBytes, err := json.Marshal(mnfst)
 	require.NoError(t, err)
 	return mnfst, mnfstBytes, [][]byte{policy}
+}
+
+func newSeedEngine(t *testing.T) *seedengine.SeedEngine {
+	t.Helper()
+	data := make([]byte, 32)
+	se, err := seedengine.New(data, data)
+	require.NoError(t, err)
+	return se
 }
 
 func requireGauge(t *testing.T, reg *prometheus.Registry, val int, fmtArgs ...any) {
