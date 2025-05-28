@@ -179,8 +179,7 @@ func (c *waitingClock) WaitForAfterCall(t *testing.T, d time.Duration) {
 
 func newTestGuard(t *testing.T) (*Guard, *prometheus.Registry) {
 	t.Helper()
-	fs := afero.NewBasePathFs(afero.NewOsFs(), t.TempDir())
-	store := history.NewAferoStore(&afero.Afero{Fs: fs})
+	store := history.NewAferoStore(&afero.Afero{Fs: afero.NewMemMapFs()})
 	hist := history.NewWithStore(slog.Default(), store)
 	reg := prometheus.NewRegistry()
 	return New(hist, reg, slog.Default()), reg
