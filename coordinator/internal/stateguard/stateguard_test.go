@@ -240,9 +240,7 @@ func TestMetrics(t *testing.T) {
 	require := require.New(t)
 	a, reg := newTestGuard(t)
 
-	var seed, salt [32]byte
-	se, err := seedengine.New(seed[:], salt[:])
-	require.NoError(err)
+	se := newSeedEngine(t)
 
 	_, manifestBytes, policies := newManifest(t)
 
