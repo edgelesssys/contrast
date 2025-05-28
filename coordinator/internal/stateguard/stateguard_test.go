@@ -61,7 +61,7 @@ func TestMetrics(t *testing.T) {
 	b.hist = a.hist
 	requireGauge(t, reg, 0)
 
-	_, err = b.ResetState(t.Context(), nil, &fakeAuthorizer{
+	_, err = b.ResetState(t.Context(), nil, &stubAuthorizer{
 		se: se,
 		pk: testkeys.ECDSA(t),
 	})
@@ -69,13 +69,14 @@ func TestMetrics(t *testing.T) {
 	requireGauge(t, reg, numGenerations)
 }
 
-type fakeAuthorizer struct {
-	se *seedengine.SeedEngine
-	pk *ecdsa.PrivateKey
+type stubAuthorizer struct {
+	se  *seedengine.SeedEngine
+	pk  *ecdsa.PrivateKey
+	err error
 }
 
-func (fa *fakeAuthorizer) AuthorizeByManifest(context.Context, *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
-	return fa.se, fa.pk, nil
+func (fa *stubAuthorizer) AuthorizeByManifest(context.Context, *manifest.Manifest) (*seedengine.SeedEngine, *ecdsa.PrivateKey, error) {
+	return fa.se, fa.pk, fa.err
 }
 
 // TestBadStoreWatcherIsRestarted tests that a new history watcher is started on failure.
