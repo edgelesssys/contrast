@@ -64,6 +64,7 @@ func newMrTdCmd() *cobra.Command {
 }
 
 func runMrTd(cmd *cobra.Command, _ []string) error {
+	fmt.Fprintln(os.Stderr, "Calculating TDX MRTD.")
 	firmwarePath, err := cmd.Flags().GetString("firmware")
 	if err != nil {
 		return fmt.Errorf("can't get firmware arg: %w", err)
@@ -118,6 +119,7 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 	var digest [48]byte
 	switch args[0] {
 	case "0":
+		fmt.Fprintln(os.Stderr, "Calculating TDX RTMR 0.")
 		firmwarePath, err := cmd.Flags().GetString("firmware")
 		if err != nil {
 			return err
@@ -132,6 +134,7 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("can't calculate RTMR 0: %w", err)
 		}
 	case "1":
+		fmt.Fprintln(os.Stderr, "Calculating TDX RTMR 1.")
 		kernelPath, err := cmd.Flags().GetString("kernel")
 		if err != nil {
 			return err
@@ -153,6 +156,7 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("can't calculate RTMR 1: %w", err)
 		}
 	case "2":
+		fmt.Fprintln(os.Stderr, "Calculating TDX RTMR 2.")
 		cmdLine, err := cmd.Flags().GetString("cmdline")
 		if err != nil {
 			return err
@@ -170,11 +174,13 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("can't calculate RTMR 2: %w", err)
 		}
 	case "3":
+		fmt.Fprintln(os.Stderr, "Calculating TDX RTMR 3.")
 		digest = [48]byte{}
 	}
 
 	hexDigest := hex.EncodeToString(digest[:])
 	fmt.Print(hexDigest)
+	fmt.Fprintf(os.Stderr, "RTMR %s final: %s\n", args[0], hexDigest)
 
 	return nil
 }
