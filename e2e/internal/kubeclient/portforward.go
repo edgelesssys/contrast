@@ -5,10 +5,9 @@ package kubeclient
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"k8s.io/client-go/tools/portforward"
@@ -47,8 +46,9 @@ func (k *Kubeclient) WithForwardedPort(ctx context.Context, namespace, podName, 
 			log.Error("Encountered port forwarding error", "error", err)
 			continue
 		default:
-			if errors.Is(funcErr, io.EOF) {
-				log.Info("io.EOF during port-forwarding triggered retry")
+			if strings.Contains(funcErr.Error(), "EOF") {
+				// Ideally, the condition would use errors.Is(err, io.EOF), but gRPC does not wrap errors.
+				log.Info("EOF during port-forwarding triggered retry")
 				continue
 			}
 			log.Info("no port-forwarding error")
