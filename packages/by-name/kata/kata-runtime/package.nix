@@ -11,14 +11,14 @@
 
 buildGoModule (finalAttrs: {
   pname = "kata-runtime";
-  version = "3.16.0";
+  version = "3.17.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = finalAttrs.version;
-      hash = "sha256-+SppAF77NbXlSrBGvIm40AmNC12GrexbX7fAPBoDAcs=";
+      hash = "sha256-rYF9YIZ8GdiE12QfX4rDXVPb7umuIhsLXoWmRl3oesk=";
     };
 
     patches = [
@@ -142,6 +142,17 @@ buildGoModule (finalAttrs: {
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11314
       ./0019-genpolicy-fix-svc_name-regex.patch
       ./0020-genpolicy-rename-svc_name-to-svc_name_downward_env.patch
+
+      # Exec requests are failing on Kata, as allow_interactive_exec is blocking execution.
+      # Reason for this is that a subsequent check asserts the sandbox-name from the annotations, but such annotation
+      # is only added for pods by genpolicy. The sandbox name of other pod-generating resources is hard to predict.
+      #
+      # With this patch, we use a regex check for the sandbox name in these cases. We construct the regex in genpolicy
+      # based on the the specified metadata, following the logic after which kubernetes will derive the sandbox name.
+      # The generated regex is then used in the policy to match the sandbox name.
+      #
+      # TODO(burgerdev): upstream
+      ./0021-genpolicy-match-sandbox-name-by-regex.patch
     ];
   };
 
