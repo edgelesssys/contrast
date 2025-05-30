@@ -25,6 +25,7 @@ jobs:
         test-name:
           # keep-sorted start
           - atls
+          - multiple-cpus
           - openssl
           - peerrecovery
           - policy
