@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: job
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  template:
+    spec:
+      containers:
+        - name: test
+          image: ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b
+          command: ["echo", "Hello World!"]
+      restartPolicy: Never
+  backoffLimit: 4

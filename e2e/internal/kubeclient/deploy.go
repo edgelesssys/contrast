@@ -300,7 +300,8 @@ func isPodReady(pod *corev1.Pod) bool {
 	return false
 }
 
-func (c *Kubeclient) resourceInterfaceFor(obj *unstructured.Unstructured) (dynamic.ResourceInterface, error) {
+// ResourceInterfaceFor creates a resource interface for a given unstructured resource.
+func (c *Kubeclient) ResourceInterfaceFor(obj *unstructured.Unstructured) (dynamic.ResourceInterface, error) {
 	gvk := obj.GroupVersionKind()
 
 	mapping, err := c.restMapper.RESTMapping(gvk.GroupKind(), gvk.Version)
@@ -326,7 +327,7 @@ func (c *Kubeclient) Apply(ctx context.Context, objects ...*unstructured.Unstruc
 		return objects[i].GetKind() == "Namespace" && objects[j].GetKind() != "Namespace"
 	})
 	for _, obj := range objects {
-		ri, err := c.resourceInterfaceFor(obj)
+		ri, err := c.ResourceInterfaceFor(obj)
 		if err != nil {
 			return err
 		}
@@ -342,7 +343,7 @@ func (c *Kubeclient) Apply(ctx context.Context, objects ...*unstructured.Unstruc
 // Delete a set of manifests.
 func (c *Kubeclient) Delete(ctx context.Context, objects ...*unstructured.Unstructured) error {
 	for _, obj := range objects {
-		ri, err := c.resourceInterfaceFor(obj)
+		ri, err := c.ResourceInterfaceFor(obj)
 		if err != nil {
 			return err
 		}
