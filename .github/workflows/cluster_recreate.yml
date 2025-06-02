@@ -21,7 +21,8 @@ jobs:
           creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       - name: Cleanup .azure dir
         run: |
-          rm "$HOME/.azure/{commandIndex.json,versionCheck.json}"
+          # TODO(burgerdev): Check whether this step is still needed.
+          rm -f "$HOME"/.azure/{commandIndex.json,versionCheck.json}
       - name: Destroy existing CI cluster
         continue-on-error: true
         run: |
