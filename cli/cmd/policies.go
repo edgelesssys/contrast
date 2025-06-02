@@ -42,45 +42,55 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 		}
 		name := meta.GetName()
 		namespace := orDefault(meta.GetNamespace(), "default")
-
 		gvk := meta.GetObjectKind().GroupVersionKind()
-		workloadSecretID := strings.Join([]string{orDefault(gvk.Group, "core"), gvk.Version, gvk.Kind, namespace, name}, "/")
 
 		var annotation string
+		var workloadSecretID string
 		var role manifest.Role
 		switch obj := objAny.(type) {
 		case *kubeapi.Pod:
 			annotation = obj.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Annotations[contrastRoleAnnotationKey])
+			workloadSecretID = obj.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.Deployment:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
+			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.ReplicaSet:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
+			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.StatefulSet:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
+			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.DaemonSet:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
+			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.Job:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
+			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.CronJob:
 			name = obj.Name
 			annotation = obj.Spec.JobTemplate.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.JobTemplate.Spec.Template.Annotations[contrastRoleAnnotationKey])
+			workloadSecretID = obj.Spec.JobTemplate.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.ReplicationController:
 			name = obj.Name
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
+			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		}
 		if annotation == "" {
 			continue
 		}
 		if name == "" {
 			return nil, fmt.Errorf("name is required but empty")
+		}
+		if workloadSecretID == "" {
+			workloadSecretID = strings.Join([]string{orDefault(gvk.Group, "core"), gvk.Version, gvk.Kind, namespace, name}, "/")
 		}
 		policy, err := manifest.NewPolicyFromAnnotation([]byte(annotation))
 		if err != nil {
