@@ -98,6 +98,11 @@ rustPlatform.buildRustPackage rec {
       # defaults in genpolicy. Fixes a regression introduced in
       # https://github.com/microsoft/kata-containers/commit/e82c19e4d5fc771bfe54b97ff0aef8a4f5c98e71.
       ./0013-genpolicy-don-t-overwrite-env-vars-from-image.patch
+
+      # Adds the --config-file flag to genpolicy, allowing for more than one ConfigMap and/or Secret to be passed to
+      # the tool.
+      # This is a backport of https://github.com/kata-containers/kata-containers/pull/10986.
+      ./0014-genpolicy-support-arbitrary-resources-with-c.patch
     ];
   };
 
