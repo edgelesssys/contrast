@@ -1,0 +1,188 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Aur=C3=A9lien=20Bombo?= <abombo@microsoft.com>
+Date: Mon, 15 Apr 2024 19:57:44 +0000
+Subject: [PATCH] genpolicy: support arbitrary resources with -c
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This allows passing config maps and secrets (as well as any other
+resource kinds relevant in the future) using the -c flag.
+
+Fixes: #10033
+
+Co-authored-by: Leonard Cohnen <leonard.cohnen@gmail.com>
+Signed-off-by: Leonard Cohnen <leonard.cohnen@gmail.com>
+Signed-off-by: Aurélien Bombo <abombo@microsoft.com>
+---
+ src/tools/genpolicy/src/policy.rs | 76 +++++++++++++++++++------------
+ src/tools/genpolicy/src/utils.rs  | 24 +++++++++-
+ 2 files changed, 69 insertions(+), 31 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index 22cbd0dc029b94e088c3b30b7e040fa796281f07..836bb0592ad918eb501b11744f9ca940b59c92a4 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -441,9 +441,8 @@ pub struct SandboxData {
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+ pub struct ClusterConfig {}
+ 
+-enum K8sResourceEnum {
++enum K8sEnvFromSource {
+     ConfigMap(config_map::ConfigMap),
+-    PersistentVolumeClaim(pvc::PersistentVolumeClaim),
+     Secret(secret::Secret),
+ }
+ 
+@@ -464,9 +463,14 @@ impl AgentPolicy {
+ 
+                 // Filter out resources that don't match the runtime class name.
+                 if let Some(resource_runtime_name) = resource.get_runtime_class_name() {
+-                    if !config.runtime_class_names.is_empty() &&
+-                       !config.runtime_class_names.iter().any(|prefix| resource_runtime_name.starts_with(prefix)) {
+-                        resource = boxed::Box::new(no_policy::NoPolicyResource { yaml: yaml_string });
++                    if !config.runtime_class_names.is_empty()
++                        && !config
++                            .runtime_class_names
++                            .iter()
++                            .any(|prefix| resource_runtime_name.starts_with(prefix))
++                    {
++                        resource =
++                            boxed::Box::new(no_policy::NoPolicyResource { yaml: yaml_string });
+                         resources.push(resource);
+                         continue;
+                     }
+@@ -501,10 +505,16 @@ impl AgentPolicy {
+ 
+         if let Some(config_files) = &config.config_files {
+             for resource_file in config_files {
+-                match parse_config_file(resource_file.clone()).await? {
+-                    K8sResourceEnum::ConfigMap(config_map) => config_maps.push(config_map),
+-                    K8sResourceEnum::PersistentVolumeClaim(pvc) => pvcs.push(pvc),
+-                    K8sResourceEnum::Secret(secret) => secrets.push(secret),
++                for config_resource in parse_config_file(resource_file.to_string(), config).await? {
++                    match config_resource {
++                        K8sEnvFromSource::ConfigMap(config_map) => {
++                            config_maps.push(config_map);
++                        }
++                        K8sEnvFromSource::Secret(secret) => {
++                            secrets.push(secret);
++                        } // TODO(burgerdev): what about the PVCs?
++                          // K8sResourceEnum::PersistentVolumeClaim(pvc) => pvcs.push(pvc),
++                    }
+                 }
+             }
+         }
+@@ -743,7 +753,7 @@ impl AgentPolicy {
+ fn add_default_env_var(env: &mut Vec<String>, key: &str, val: &str) {
+     for kv_pair in &mut *env {
+         if kv_pair.split_once("=").filter(|(k, _)| *k == key).is_some() {
+-            return
++            return;
+         }
+     }
+     env.push(format!("{}={}", key, val));
+@@ -835,27 +845,35 @@ fn get_image_layer_storages(
+     storages.push(overlay_storage);
+ }
+ 
+-async fn parse_config_file(yaml_file: String) -> Result<K8sResourceEnum> {
++async fn parse_config_file(
++    yaml_file: String,
++    config: &utils::Config,
++) -> Result<Vec<K8sEnvFromSource>> {
++    let mut k8sRes = Vec::new();
+     let yaml_contents = yaml::get_input_yaml(&Some(yaml_file))?;
+-    let document = serde_yaml::Deserializer::from_str(&yaml_contents);
+-    let doc_mapping = Value::deserialize(document)?;
+-    let kind = doc_mapping
+-        .get("kind")
+-        .and_then(|v| v.as_str())
+-        .ok_or(anyhow!("no kind"))?;
+-
+-    match kind {
+-        "ConfigMap" => Ok(K8sResourceEnum::ConfigMap(serde_yaml::from_value(
+-            doc_mapping,
+-        )?)),
+-        "PersistentVolumeClaim" => Ok(K8sResourceEnum::PersistentVolumeClaim(
+-            serde_yaml::from_value(doc_mapping)?,
+-        )),
+-        "Secret" => Ok(K8sResourceEnum::Secret(serde_yaml::from_value(
+-            doc_mapping,
+-        )?)),
+-        k => Err(anyhow!("unsupported attached resource kind '{k}'")),
++    for document in serde_yaml::Deserializer::from_str(&yaml_contents) {
++        let doc_mapping = Value::deserialize(document)?;
++        if doc_mapping != Value::Null {
++            let yaml_string = serde_yaml::to_string(&doc_mapping)?;
++            let silent = config.silent_unsupported_fields;
++            let (mut resource, kind) = yaml::new_k8s_resource(&yaml_string, silent)?;
++
++            resource.init(config, &doc_mapping, silent).await;
++
++            // ConfigMap and Secret documents contain additional input for policy generation.
++            if kind.eq("ConfigMap") {
++                let config_map: config_map::ConfigMap = serde_yaml::from_str(&yaml_string)?;
++                debug!("{:#?}", &config_map);
++                k8sRes.push(K8sEnvFromSource::ConfigMap(config_map));
++            } else if kind.eq("Secret") {
++                let secret: secret::Secret = serde_yaml::from_str(&yaml_string)?;
++                debug!("{:#?}", &secret);
++                k8sRes.push(K8sEnvFromSource::Secret(secret));
++            }
++        }
+     }
++
++    Ok(k8sRes)
+ }
+ 
+ /// Converts the given name to a string representation of its sha256 hash.
+diff --git a/src/tools/genpolicy/src/utils.rs b/src/tools/genpolicy/src/utils.rs
+index 7f8fe19c38afc2cd86bce242ea461c827d03e5d2..9b377b9be35e46a4604d3bda3a688fe832bc92c9 100644
+--- a/src/tools/genpolicy/src/utils.rs
++++ b/src/tools/genpolicy/src/utils.rs
+@@ -14,7 +14,17 @@ struct CommandLineOptions {
+     )]
+     yaml_file: Option<String>,
+ 
+-    #[clap(short, long, help = "Optional Kubernetes YAML input file path")]
++    #[clap(
++        short,
++        long,
++        help = "Optional Kubernetes config map YAML input file path. DEPRECATED: use --config-file instead"
++    )]
++    config_map_file: Option<String>,
++
++    #[clap(
++        long,
++        help = "Optional Kubernetes YAML input file path containing config resources such as ConfigMaps and Secrets"
++    )]
+     config_file: Option<Vec<String>>,
+ 
+     #[clap(
+@@ -113,6 +123,16 @@ impl Config {
+     pub fn new() -> Self {
+         let args = CommandLineOptions::parse();
+ 
++        // Migrate all files from the old `config_map_file` to the new `config_files` field
++        let config_files = args
++            .config_file
++            .unwrap_or_default()
++            .into_iter()
++            .chain(args.config_map_file.iter().cloned())
++            .collect::<Vec<_>>();
++
++        let config_files = (!config_files.is_empty()).then_some(config_files);
++
+         let mut layers_cache_file_path = args.layers_cache_file_path;
+         // preserve backwards compatibility for only using the `use_cached_files` flag
+         if args.use_cached_files && layers_cache_file_path.is_none() {
+@@ -125,7 +145,7 @@ impl Config {
+             yaml_file: args.yaml_file,
+             rego_rules_path: args.rego_rules_path,
+             json_settings_path: args.json_settings_path,
+-            config_files: args.config_file,
++            config_files,
+             silent_unsupported_fields: args.silent_unsupported_fields,
+             raw_out: args.raw_out,
+             base64_out: args.base64_out,
