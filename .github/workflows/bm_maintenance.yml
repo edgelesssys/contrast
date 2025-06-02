@@ -6,7 +6,6 @@ on:
     paths:
       - ".github/workflows/bm_maintenance.yml"
       - "tools/bm-maintenance/**"
-      - "packages/**"
   schedule:
     - cron: '0 2 * * *' # 2 AM every day
 
