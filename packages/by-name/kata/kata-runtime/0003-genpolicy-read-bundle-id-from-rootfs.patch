@@ -14,7 +14,7 @@ NOTE: fixes https://github.com/kata-containers/kata-containers/issues/10065
  1 file changed, 8 insertions(+), 21 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index d9309004e999e0fbd88cb3aaced76f7c7d1f2305..5476e0e804d40d90f7abc83893696b0cd4a3f9b0 100644
+index 6e131f34bdb6cb6bb350bc1fda17828a664454a7..91865871957dd3f0f0abe9ea31b2fd1c04e3cbcd 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -650,9 +650,6 @@ allow_linux_sysctl(p_linux, i_linux) {

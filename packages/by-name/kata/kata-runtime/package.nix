@@ -11,14 +11,14 @@
 
 buildGoModule (finalAttrs: {
   pname = "kata-runtime";
-  version = "3.17.0";
+  version = "move-image-pull";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
-      rev = finalAttrs.version;
-      hash = "sha256-rYF9YIZ8GdiE12QfX4rDXVPb7umuIhsLXoWmRl3oesk=";
+      rev = "669a8f2a6e48a5c1c2511cb1459b4f460a79fabd";
+      hash = "sha256-0RJ7NLYJmFg090TCsuHAcbz8LLfTBi9cCj2PnVSGYdw=";
     };
 
     patches = [
@@ -133,16 +133,6 @@ buildGoModule (finalAttrs: {
       # https://github.com/kata-containers/kata-containers/pull/11077#issuecomment-2750400613
       ./0017-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
 
-      # Support to enforce guest pull without (nydus) snapshotter.
-      # Cherry-picked from https://github.com/kata-containers/kata-containers/pull/11244
-      ./0018-runtime-add-option-to-force-guest-pull.patch
-
-      # Fixes a bug in the genpolicy settings where the service_name regex used to match downward
-      # API env vars wouldn't accept numbers in the service name.
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11314
-      ./0019-genpolicy-fix-svc_name-regex.patch
-      ./0020-genpolicy-rename-svc_name-to-svc_name_downward_env.patch
-
       # Exec requests are failing on Kata, as allow_interactive_exec is blocking execution.
       # Reason for this is that a subsequent check asserts the sandbox-name from the annotations, but such annotation
       # is only added for pods by genpolicy. The sandbox name of other pod-generating resources is hard to predict.
@@ -152,7 +142,7 @@ buildGoModule (finalAttrs: {
       # The generated regex is then used in the policy to match the sandbox name.
       #
       # TODO(burgerdev): upstream
-      ./0021-genpolicy-match-sandbox-name-by-regex.patch
+      ./0018-genpolicy-match-sandbox-name-by-regex.patch
     ];
   };
 

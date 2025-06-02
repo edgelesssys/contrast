@@ -17,7 +17,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  3 files changed, 20 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 21a9d6a9005765ac2852fd82d5f2aa1e6237b2bf..d60fd607c08d6b403c0bf386d9b41535e54428ff 100644
+index d3ca5a94c7e012b1b06d5f82672b011557843887..17738788db26432e33296841345a9779dccecdae 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -247,7 +247,8 @@
@@ -31,7 +31,7 @@ index 21a9d6a9005765ac2852fd82d5f2aa1e6237b2bf..d60fd607c08d6b403c0bf386d9b41535
      "common": {
          "cpath": "/run/kata-containers",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index a0387132fdd59c03ab54502432d8a97105454a8b..4d3385010491b00cdf12fc20a592eb8f12c3d74d 100644
+index 262a4d5f1a5b21a2eda2ff2355211d6a663c0f4c..daf63d6dca857fdafb0ba9c20573a68dd94a73f9 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -1413,7 +1413,7 @@ CopyFileRequest {
@@ -66,7 +66,7 @@ index a0387132fdd59c03ab54502432d8a97105454a8b..4d3385010491b00cdf12fc20a592eb8f
      print("allow_exec: start")
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index de101545bd68d2973cc89254d33b59cc4ef28245..a927dc8090a7b65e60b9d289a4b5c7b72c65a740 100644
+index 997c061ff48f5476f801978e42d84004a0328d66..7d79e01edb42e822d40f2f480f9e4f1732ae0a66 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -439,6 +439,8 @@ pub struct ClusterConfig {
