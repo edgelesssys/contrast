@@ -159,6 +159,7 @@ let
         busybox
         scripts.cleanup-bare-metal
         scripts.cleanup-namespaces
+        scripts.cleanup-containerd
       ];
       config = {
         Cmd = [ "cleanup-bare-metal" ];

@@ -2,12 +2,19 @@ name: bare metal maintenance
 
 on:
   workflow_dispatch:
+    inputs:
+      containerd:
+        description: "Cleanup containerd store"
+        required: false
+        default: false
+        type: boolean
   pull_request:
     paths:
       - ".github/workflows/bm_maintenance.yml"
       - "tools/bm-maintenance/**"
   schedule:
-    - cron: '0 2 * * *' # 2 AM every day
+    - cron: "0 2 * * 0,1,2,3,5,6" # 2 AM every day except Friday
+    - cron: "0 2 * * 4" # 2 AM on Friday
 
 env:
   container_registry: ghcr.io/edgelesssys
@@ -118,6 +125,44 @@ jobs:
           kubectl logs -n maintenance-cleanup job/cleanup-maintenance || true
           kubectl delete -f ./tools/bm-maintenance/cleanup.yml || true
 
+  cleanup-containerd:
+    name: "Cleanup Containerd ${{ matrix.platform.name }}"
+    runs-on: ${{ matrix.platform.runner }}
+    needs: build-image
+    if: inputs.containerd || github.event.schedule == '0 2 * * 4' # only run on Fridays or if containerd is enabled
+    outputs:
+      snp: ${{ steps.update.outputs.K3s-QEMU-SNP }}
+      tdx: ${{ steps.update.outputs.K3s-QEMU-TDX }}
+      snp-gpu: ${{ steps.update.outputs.K3s-QEMU-SNP-GPU }}
+    strategy:
+      matrix:
+        platform:
+          - name: K3s-QEMU-SNP
+            runner: SNP
+          - name: K3s-QEMU-TDX
+            runner: TDX
+          - name: K3s-QEMU-SNP-GPU
+            runner: SNP-GPU
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Apply resources
+        env:
+          IMAGE: ${{ needs.build-image.outputs.image }}
+        run: |
+          sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup-containerd.yml
+          kubectl apply -f ./tools/bm-maintenance/cleanup-containerd.yml
+      - name: Wait for cleanup job
+        id: update
+        run: |
+          kubectl wait -n maintenance-containerd-cleanup --for=condition=complete --timeout=600s job/containerd-cleanup-maintenance
+          echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
+      - name: Collect logs and cleanup
+        if: always()
+        run: |
+          kubectl logs -n maintenance-containerd-cleanup job/containerd-cleanup-maintenance || true
+          kubectl delete -f ./tools/bm-maintenance/cleanup-containerd.yml || true
+
   nix-gc:
     name: "Nix gc ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
@@ -158,7 +203,7 @@ jobs:
   notify-teams:
     name: "Notify teams channel of failure"
     runs-on: ubuntu-22.04
-    needs: [build-image, update-resources, cleanup, nix-gc]
+    needs: [build-image, update-resources, cleanup, cleanup-containerd, nix-gc]
     if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -170,28 +215,33 @@ jobs:
             exit 0
           fi
 
-          entries=()
+          declare -a entries snp tdx snp_gpu
 
-          snp=()
           [[ "${{ needs.update-resources.outputs.snp }}" != "success" ]] && snp+=("update-resources")
           [[ "${{ needs.cleanup.outputs.snp }}" != "success" ]] && snp+=("cleanup")
           [[ "${{ needs.nix-gc.outputs.snp }}" != "success" ]] && snp+=("nix-gc")
-          if [[ "${#snp[@]}" -gt 0 ]]; then
-            entries+=("{\"title\": \"K3s-QEMU-SNP\", \"value\": \"$(str="${snp[*]}"; echo "${str// /, }")\"}")
-          fi
 
-          tdx=()
           [[ "${{ needs.update-resources.outputs.tdx }}" != "success" ]] && tdx+=("update-resources")
           [[ "${{ needs.cleanup.outputs.tdx }}" != "success" ]] && tdx+=("cleanup")
           [[ "${{ needs.nix-gc.outputs.tdx }}" != "success" ]] && tdx+=("nix-gc")
+
+          [[ "${{ needs.update-resources.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("update-resources")
+          [[ "${{ needs.cleanup.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("cleanup")
+          [[ "${{ needs.nix-gc.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("nix-gc")
+
+          if [[ "${{ github.event.schedule }}" == "0 2 * * 4" ]]; then
+            [[ "${{ needs.cleanup-containerd.outputs.snp }}" != "success" ]] && snp+=("cleanup-containerd")
+            [[ "${{ needs.cleanup-containerd.outputs.tdx }}" != "success" ]] && tdx+=("cleanup-containerd")
+            [[ "${{ needs.cleanup-containerd.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("cleanup-containerd")
+          fi
+
+          if [[ "${#snp[@]}" -gt 0 ]]; then
+            entries+=("{\"title\": \"K3s-QEMU-SNP\", \"value\": \"$(str="${snp[*]}"; echo "${str// /, }")\"}")
+          fi
           if [[ "${#tdx[@]}" -gt 0 ]]; then
             entries+=("{\"title\": \"K3s-QEMU-TDX\", \"value\": \"$(str="${tdx[*]}"; echo "${str// /, }")\"}")
           fi
 
-          snp_gpu=()
-          [[ "${{ needs.update-resources.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("update-resources")
-          [[ "${{ needs.cleanup.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("cleanup")
-          [[ "${{ needs.nix-gc.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("nix-gc")
           if [[ "${#snp_gpu[@]}" -gt 0 ]]; then
             entries+=("{\"title\": \"K3s-QEMU-SNP-GPU\", \"value\": \"$(str="${snp_gpu[*]}"; echo "${str// /, }")\"}")
           fi

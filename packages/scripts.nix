@@ -555,4 +555,19 @@
     ];
     text = builtins.readFile ./cleanup-namespaces.sh;
   };
+
+  cleanup-containerd = writeShellApplication {
+    name = "cleanup-containerd";
+    runtimeInputs = with pkgs; [ containerd ];
+    text = ''
+      while read -r image; do
+        ctr --address /run/k3s/containerd/containerd.sock --namespace k8s.io image rm --sync "$image"
+      done < <(
+        ctr --address /run/k3s/containerd/containerd.sock --namespace k8s.io image list |
+          tail -n +2 |
+          cut -d' ' -f1
+      )
+      ctr --address /run/k3s/containerd/containerd.sock --namespace k8s.io content prune references
+    '';
+  };
 }

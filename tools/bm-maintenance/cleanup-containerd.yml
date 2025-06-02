@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: maintenance-containerd-cleanup
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: containerd-cleanup-maintenance
+  namespace: maintenance-containerd-cleanup
+spec:
+  template:
+    metadata:
+      name: containerd-cleanup-maintenance
+    spec:
+      containers:
+        - name: cleanup
+          image: "@@REPLACE_IMAGE@@"
+          imagePullPolicy: Always
+          command: ["cleanup-containerd"]
+          volumeMounts:
+            - name: containerd-run
+              mountPath: /run/k3s/containerd/
+      volumes:
+        - name: containerd-run
+          hostPath:
+            path: /run/k3s/containerd/
+            type: Directory
+      restartPolicy: OnFailure
