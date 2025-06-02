@@ -46,17 +46,6 @@ func TestVault(t *testing.T) {
 
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 
-	// Overwrite the workloadSecretID in the manifest, to align with the value set in the
-	// unsealing configuration of the Vault deployment.
-	ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
-		for key, policy := range m.Policies {
-			// TODO(jmxnzo): only do this for Vault, not the other deployment
-			policy.WorkloadSecretID = "vault_unsealing"
-			m.Policies[key] = policy
-		}
-		return m
-	})
-
 	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
