@@ -64,48 +64,42 @@ func (c *CachedHTTPSGetter) GetContext(ctx context.Context, url string) (map[str
 		c.logger.Debug("Request CRL", "url", url)
 		header, body, err := c.ContextHTTPSGetter.GetContext(ctx, url)
 		if err == nil {
-			data, err := json.Marshal(cacheEntry{header, body})
-			if err != nil {
-				c.logger.Error("Failed to marshal CRL response", "error", err)
-				return nil, nil, err
+			if data, err := json.Marshal(cacheEntry{header, body}); err == nil {
+				c.cache.Set(url, data)
+			} else {
+				c.logger.Warn("Failed to marshal CRL response, not writing to cache", "error", err)
 			}
-			c.cache.Set(url, data)
 			return header, body, nil
 		}
 		c.logger.Warn("Failed requesting CRL from KDS/PCS", "error", err)
 		if cached, ok := c.cache.Get(url); ok {
-			c.logger.Warn("Falling back to cached CRL", "url", url)
 			var entry cacheEntry
-			if err := json.Unmarshal(cached, &entry); err != nil {
-				c.logger.Error("Failed to unmarshal cached CRL", "error", err)
-				return nil, nil, err
+			if err := json.Unmarshal(cached, &entry); err == nil {
+				c.logger.Warn("Falling back to cached CRL", "url", url)
+				return entry.Header, entry.Body, nil
 			}
-			return entry.Header, entry.Body, nil
 		}
 		c.logger.Warn("CRL not found in cache", "url", url)
 		return nil, nil, err
 	}
 	// For VCEK get cache first and request if not present
 	if cached, ok := c.cache.Get(url); ok {
-		c.logger.Debug("Cache hit", "url", url)
 		var entry cacheEntry
-		if err := json.Unmarshal(cached, &entry); err != nil {
-			c.logger.Error("Failed to unmarshal cached response", "error", err)
-			return nil, nil, err
+		if err := json.Unmarshal(cached, &entry); err == nil {
+			c.logger.Debug("Cache hit", "url", url)
+			return entry.Header, entry.Body, nil
 		}
-		return entry.Header, entry.Body, nil
 	}
 	c.logger.Debug("Cache miss, requesting", "url", url)
 	header, body, err := c.ContextHTTPSGetter.GetContext(ctx, url)
 	if err != nil {
 		return nil, nil, err
 	}
-	data, err := json.Marshal(cacheEntry{header, body})
-	if err != nil {
-		c.logger.Error("Failed to marshal response", "error", err)
-		return nil, nil, err
+	if data, err := json.Marshal(cacheEntry{header, body}); err == nil {
+		c.cache.Set(url, data)
+	} else {
+		c.logger.Warn("Failed to marshal CRL response, not writing to cache", "error", err)
 	}
-	c.cache.Set(url, data)
 	return header, body, nil
 }
 

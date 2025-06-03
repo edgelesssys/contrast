@@ -152,6 +152,31 @@ func TestMemcachedHTTPSGetter(t *testing.T) {
 		assert.Equal(1, fakeGetter.hits["foo"])
 		assert.Equal(map[string][]string{"bar": {"baz"}}, header)
 	})
+
+	t.Run("Malformed CRL entry is treated as cache miss", func(t *testing.T) {
+		assert := assert.New(t)
+		fakeGetter, client := getFakeHTTPSGetters(ticker)
+
+		fakeGetter.getErr = errors.New("CRL request failure")
+		client.cache.Set(crlURLMatch, []byte("malformed cache entry"))
+
+		_, _, err := client.Get(crlURLMatch)
+		assert.Error(err)
+		assert.Equal(1, fakeGetter.hits[crlURLMatch]) // technically still a cache hit
+	})
+
+	t.Run("Malformed VCEK entry is treated as cache miss", func(t *testing.T) {
+		assert := assert.New(t)
+		fakeGetter, client := getFakeHTTPSGetters(ticker)
+
+		client.cache.Set("foo", []byte("malformed cache entry"))
+
+		header, res, err := client.Get("foo")
+		assert.NoError(err)
+		assert.Equal([]byte("bar"), res)
+		assert.Equal(1, fakeGetter.hits["foo"]) // technically still a cache hit
+		assert.Equal(map[string][]string{"bar": {"baz"}}, header)
+	})
 }
 
 func TestContextCancellation(t *testing.T) {
