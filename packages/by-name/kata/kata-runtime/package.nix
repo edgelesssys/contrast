@@ -153,6 +153,11 @@ buildGoModule (finalAttrs: {
       #
       # TODO(burgerdev): upstream
       ./0021-genpolicy-match-sandbox-name-by-regex.patch
+
+      # The following two patches remove irrelevant warnings from genpolicy that clutter our CLI output.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11358.
+      ./0022-genpolicy-remove-redundant-group-check.patch
+      ./0023-genpolicy-push-down-warning-about-missing-passwd-fil.patch
     ];
   };
 
