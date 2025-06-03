@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Tue, 3 Jun 2025 11:17:23 +0200
+Subject: [PATCH] genpolicy: push down warning about missing passwd file
+
+The warning used to trigger even if the passwd file was not needed. This
+commit moves it down to where it actually matters.
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/tools/genpolicy/src/registry.rs | 18 ++++++++++--------
+ 1 file changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index 7bea8d1f2e5591b96f8f4832d4240db7dba74777..93dc5d359dee50106ecd63f406bf6691ee84aee6 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -300,10 +300,16 @@ impl Container {
+                     "Failed to parse {} as u32, using it as a user name - error {outer_e}",
+                     user
+                 );
+-                let (uid, _) = self
+-                    .get_uid_gid_from_passwd_user(user.to_string().clone())
+-                    .unwrap_or((0, 0));
+-                uid
++                match self.get_uid_gid_from_passwd_user(user.to_string().clone()) {
++                    Ok((uid, _)) => uid,
++                    Err(err) => {
++                        warn!(
++                            "could not resolve named user {}, defaulting to uid 0: {}",
++                            user, err
++                        );
++                        0
++                    }
++                }
+             }
+         }
+     }
+@@ -329,10 +335,6 @@ impl Container {
+          * 6. Be erroneus, somehow
+          */
+         if let Some(image_user) = &docker_config.User {
+-            if self.passwd.is_empty() {
+-                warn!("No /etc/passwd file is available, unable to parse gids from user");
+-            }
+-
+             if !image_user.is_empty() {
+                 if image_user.contains(':') {
+                     debug!("Splitting Docker config user = {:?}", image_user);
