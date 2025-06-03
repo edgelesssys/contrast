@@ -60,14 +60,14 @@ func (m *Manifest) Validate() error {
 		}
 	}
 
-	var coordinatorCount int
+	var coordinatorCount uint
 	for _, policy := range m.Policies {
 		if policy.Role == RoleCoordinator {
 			coordinatorCount++
 		}
 	}
 	if coordinatorCount != 1 {
-		return fmt.Errorf("expected exactly 1 policy with role 'coordinator', got %d", coordinatorCount)
+		return &CoordinatorCountError{Count: coordinatorCount}
 	}
 
 	if err := m.ReferenceValues.Validate(); err != nil {
@@ -431,4 +431,13 @@ func flattenValidationError(err error) (errs []error) {
 		return errs
 	}
 	return []error{err}
+}
+
+
+	}
+// CoordinatorCountError occurs during manifest validation when either zero, or more than one coordinators have been defined.
+type CoordinatorCountError struct{ Count uint }
+
+func (e *CoordinatorCountError) Error() string {
+	return fmt.Sprintf("expected exactly 1 policy with role 'coordinator', got %d", e.Count)
 }

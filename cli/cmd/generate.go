@@ -173,8 +173,14 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	mnf.Policies = policyMap
-	// Existing manifests are already validated above, but newly generated manifests may be missing the reference values.
-	if err := mnf.Validate(); err != nil {
+	// Existing manifests are already validated above, but newly generated manifests may be missing reference values or a coordinator.
+	var ce *manifest.CoordinatorCountError
+	if err := mnf.Validate(); errors.As(err, &ce) {
+		if ce.Count == 0 {
+			fmt.Fprintln(cmd.OutOrStdout(), "  No Coordinator resource found, did you forget to add it to your resources?")
+		}
+		return ce
+	} else if err != nil {
 		fmt.Fprintf(cmd.OutOrStdout(), "  Please fill in the reference values for %s\n", flags.referenceValuesPlatform.String())
 	}
 
