@@ -1,0 +1,22 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Tue, 3 Jun 2025 17:46:40 +0200
+Subject: [PATCH] genpolicy: compare additionalGIDs as sets
+
+---
+ src/tools/genpolicy/rules.rego | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index 44cbcbe353a98c05e68c64109f4dca3728787b2c..1f993f128d059e9a681d7515dd09bb22ce277aa7 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -747,7 +747,7 @@ allow_user(p_process, i_process) {
+     p_user.GID == i_user.GID
+ 
+     print("allow_user: input additionalGids =", i_user.AdditionalGids, "policy additionalGids =", p_user.AdditionalGids)
+-    p_user.AdditionalGids == i_user.AdditionalGids
++    {e | some e in p_user.AdditionalGids} == {e | some e in i_user.AdditionalGids}
+ }
+ 
+ allow_args(p_process, i_process, s_name) {

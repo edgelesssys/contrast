@@ -158,6 +158,14 @@ buildGoModule (finalAttrs: {
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11358.
       ./0022-genpolicy-remove-redundant-group-check.patch
       ./0023-genpolicy-push-down-warning-about-missing-passwd-fil.patch
+
+      # This patch relaxes the check for additional GIDs from list equality to set equality, to avoid order dependence
+      # where it is not needed.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11358.
+      ./0024-genpolicy-compare-additionalGIDs-as-sets.patch
+      # This patch makes genpolicy conform to a bug in containerd that leads to ignored additional GIDs.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11358.
+      ./0025-genpolicy-ignore-groups-with-same-name-as-user.patch
     ];
   };
 
