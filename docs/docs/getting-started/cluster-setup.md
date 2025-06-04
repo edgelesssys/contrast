@@ -111,7 +111,8 @@ az aks create \
   --node-vm-size Standard_DC4as_cc_v5 \
   --workload-runtime KataCcIsolation \
   --node-count 1 \
-  --ssh-access disabled
+  --ssh-access disabled \
+  --no-ssh-key
 ```
 
 Finally, update your kubeconfig with the credentials to access the cluster:
