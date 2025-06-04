@@ -1,60 +1,59 @@
-# Minimized list, inactive options removed.
-# upstream source: https://github.com/kata-containers/kata-containers/blob/0f2a4d202e90b39b50074725b2cfe9c3088a4e20/src/runtime/config/configuration-qemu-tdx.toml.in
-[hypervisor.qemu]
-path = "/usr/bin/qemu-system-x86_64"
-kernel = "/opt/kata/share/kata-containers/vmlinuz-confidential.container"
-image = "/opt/kata/share/kata-containers/kata-containers-confidential.img"
-machine_type = "q35"
-tdx_quote_generation_service_socket_port = 4050
-rootfs_type="erofs"
-confidential_guest = true
-enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params", "default_vcpus", "default_memory"]
-valid_hypervisor_paths = ["/usr/bin/qemu-system-x86_64"]
-kernel_params = ""
-firmware = "/usr/share/ovmf/OVMF.fd"
-firmware_volume = ""
-machine_accelerators=""
-cpu_features="-vmx-rdseed-exit,pmu=off"
-default_vcpus = 1
-default_maxvcpus = 0
-default_bridges = 1
-default_maxmemory = 0
-disable_block_device_use = false
-shared_fs = "virtio-9p"
-virtio_fs_daemon = "/opt/kata/libexec/virtiofsd"
-valid_virtio_fs_daemon_paths = ["/opt/kata/libexec/virtiofsd"]
-virtio_fs_cache_size = 0
-virtio_fs_queue_size = 1024
-virtio_fs_extra_args = ["--thread-pool-size=1", "--announce-submounts"]
-virtio_fs_cache = "auto"
-block_device_driver = "virtio-scsi"
-block_device_aio = "io_uring"
-enable_iothreads = false
-enable_vhost_user_store = false
-vhost_user_store_path = "/var/run/kata-containers/vhost-user"
-valid_vhost_user_store_paths = ["/var/run/kata-containers/vhost-user"]
-vhost_user_reconnect_timeout_sec = 0
-valid_file_mem_backends = [""]
-pflashes = []
-enable_debug = false
-valid_entropy_sources = ["/dev/urandom","/dev/random",""]
-disable_selinux=false
-disable_guest_selinux=true
-
+# upstream source: https://github.com/kata-containers/kata-containers/releases/download/3.16.0/kata-static-3.16.0-amd64.tar.xz
 [agent.kata]
-enable_debug = false
-kernel_modules=[]
 debug_console_enabled = false
 dial_timeout = 60
+enable_debug = false
+kernel_modules = []
+
+[hypervisor.qemu]
+block_device_aio = "io_uring"
+block_device_driver = "virtio-scsi"
+confidential_guest = true
+cpu_features = "-vmx-rdseed-exit,pmu=off"
+default_bridges = 1
+default_maxmemory = 0
+default_maxvcpus = 0
+default_vcpus = 1
+disable_block_device_use = false
+disable_guest_selinux = true
+disable_selinux = false
+enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params", "default_vcpus", "default_memory"]
+enable_debug = false
+enable_iothreads = false
+enable_vhost_user_store = false
+firmware = "/usr/share/ovmf/OVMF.fd"
+firmware_volume = ""
+image = "/opt/kata/share/kata-containers/kata-containers-confidential.img"
+kernel = "/opt/kata/share/kata-containers/vmlinuz-confidential.container"
+kernel_params = ""
+machine_accelerators = ""
+machine_type = "q35"
+path = "/usr/bin/qemu-system-x86_64"
+pflashes = []
+rootfs_type = "erofs"
+shared_fs = "virtio-9p"
+tdx_quote_generation_service_socket_port = 4050
+valid_entropy_sources = ["/dev/urandom", "/dev/random", ""]
+valid_file_mem_backends = [""]
+valid_hypervisor_paths = ["/usr/bin/qemu-system-x86_64"]
+valid_vhost_user_store_paths = ["/var/run/kata-containers/vhost-user"]
+valid_virtio_fs_daemon_paths = ["/opt/kata/libexec/virtiofsd"]
+vhost_user_reconnect_timeout_sec = 0
+vhost_user_store_path = "/var/run/kata-containers/vhost-user"
+virtio_fs_cache = "auto"
+virtio_fs_cache_size = 0
+virtio_fs_daemon = "/opt/kata/libexec/virtiofsd"
+virtio_fs_extra_args = ["--thread-pool-size=1", "--announce-submounts"]
+virtio_fs_queue_size = 1024
 
 [runtime]
-enable_debug = false
-internetworking_model="tcfilter"
-disable_guest_seccomp=true
-sandbox_cgroup_only=true
-static_sandbox_resource_mgmt=true
-sandbox_bind_mounts=[]
-vfio_mode="guest-kernel"
-disable_guest_empty_dir=false
-experimental=[]
 create_container_timeout = 60
+disable_guest_empty_dir = false
+disable_guest_seccomp = true
+enable_debug = false
+experimental = []
+internetworking_model = "tcfilter"
+sandbox_bind_mounts = []
+sandbox_cgroup_only = true
+static_sandbox_resource_mgmt = true
+vfio_mode = "guest-kernel"
