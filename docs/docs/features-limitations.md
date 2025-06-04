@@ -21,9 +21,8 @@ This section lists planned features and current limitations of Contrast.
 - **Absence of events**: Policies can't ensure certain events have happened. A container, such as the [service mesh sidecar](components/service-mesh.md), can be omitted entirely. Environment variables may be missing.
 - **Volume integrity checks**: Integrity checks don't cover any volume mounts, such as `ConfigMaps` and `Secrets`.
 
-:::warning
-The policy limitations, in particular the missing guarantee that our service mesh sidecar has been started before the workload container, affect the service mesh implementation of Contrast.
-Currently, this requires inspecting the iptables rules on startup or terminating TLS connections in the workload directly.
+:::note
+The missing guarantee for startup order doesn't affect the security of Contrast's service mesh, see [Service mesh startup enforcement](components/service-mesh.md#service-mesh-startup-enforcement).
 :::
 
 ## Tooling integration
