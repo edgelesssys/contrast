@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: service
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  selector:
+    app.kubernetes.io/name: foobar
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 9001

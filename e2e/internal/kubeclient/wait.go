@@ -83,6 +83,46 @@ func (c *Kubeclient) WaitForPod(ctx context.Context, namespace, name string) err
 	return c.WaitForPodCondition(ctx, namespace, &singlePodReady{name: name})
 }
 
+// WaitForJob waits until the Job succeeded.
+//
+// We consider the Job succeeded if the Pod belonging to the Job succeeded.
+func (c *Kubeclient) WaitForJob(ctx context.Context, namespace, name string) error {
+	j, err := c.Client.BatchV1().Jobs(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	ls := labels.SelectorFromSet(j.Spec.Selector.MatchLabels)
+	return c.WaitForPodCondition(ctx, namespace, &numSucceeded{ls: ls, n: 1})
+}
+
+// WaitForReplicaSet waits until the ReplicaSet is ready.
+//
+// We consider the ReplicaSet ready when the number of ready pods targeted by the ReplicaSet is
+// exactly the number of desired replicas. Changes in the desired number of replicas are not taken
+// into account while waiting!
+func (c *Kubeclient) WaitForReplicaSet(ctx context.Context, namespace, name string) error {
+	s, err := c.Client.AppsV1().ReplicaSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	ls := labels.SelectorFromSet(s.Spec.Selector.MatchLabels)
+	return c.WaitForPodCondition(ctx, namespace, &numReady{ls: ls, n: int(*s.Spec.Replicas)})
+}
+
+// WaitForReplicationController waits until the ReplicationController is ready.
+//
+// We consider the ReplicationController ready when the number of ready pods targeted by the ReplicationController is
+// exactly the number of desired replicas. Changes in the desired number of replicas are not taken
+// into account while waiting!
+func (c *Kubeclient) WaitForReplicationController(ctx context.Context, namespace, name string) error {
+	s, err := c.Client.CoreV1().ReplicationControllers(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	ls := labels.SelectorFromSet(s.Spec.Selector)
+	return c.WaitForPodCondition(ctx, namespace, &numReady{ls: ls, n: int(*s.Spec.Replicas)})
+}
+
 // PodCondition indicates the current status of pods to WaitForPodCondition.
 type PodCondition interface {
 	// Check is called by WaitForPodCondition whenever the cluster's pods change.
@@ -172,6 +212,26 @@ func (nm *numReady) Check(lister listerscorev1.PodLister) (bool, error) {
 		}
 	}
 	return n == nm.n, nil
+}
+
+// numSucceeded waits until n pods matching ls succeeded.
+type numSucceeded struct {
+	ls labels.Selector
+	n  int
+}
+
+func (ns *numSucceeded) Check(lister listerscorev1.PodLister) (bool, error) {
+	pods, err := lister.List(ns.ls)
+	if err != nil {
+		return false, err
+	}
+	n := 0
+	for _, pod := range pods {
+		if pod.Status.Phase == corev1.PodSucceeded {
+			n++
+		}
+	}
+	return n >= ns.n, nil
 }
 
 // singlePodReady checks that a named pod is ready.

@@ -20,6 +20,24 @@ This section lists planned features and current limitations of Contrast.
 - **Order of events**: The current policy evaluation mechanism on API requests isn't stateful, so it can't ensure a prescribed order of events.
 - **Absence of events**: Policies can't ensure certain events have happened. A container, such as the [service mesh sidecar](components/service-mesh.md), can be omitted entirely. Environment variables may be missing.
 - **Volume integrity checks**: Integrity checks don't cover any volume mounts, such as `ConfigMaps` and `Secrets`.
+- **Supported resource kinds**: Only the following kinds are supported by `contrast generate`:
+    - `ConfigMap`
+    - `CronJob`
+    - `DaemonSet`
+    - `Deployment`
+    - `Job`
+    - `LimitRange`
+    - `Pod`
+    - `PodDisruptionBudget`
+    - `ReplicaSet`
+    - `ReplicationController`
+    - `Role`
+    - `RoleBinding`
+    - `Secret`
+    - `Service`
+    - `ServiceAccount`
+    - `ClusterRole`
+    - `ClusterRoleBinding`
 
 :::note
 The missing guarantee for startup order doesn't affect the security of Contrast's service mesh, see [Service mesh startup enforcement](components/service-mesh.md#service-mesh-startup-enforcement).
