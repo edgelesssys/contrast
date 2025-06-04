@@ -26,7 +26,6 @@ jobs:
         test-name:
           # keep-sorted start
           - atls
-          - multiple-cpus
           - openssl
           - peerrecovery
           - policy
@@ -40,6 +39,11 @@ jobs:
               runner: SNP-GPU
               self-hosted: true
             test-name: gpu
+          - platform:
+              name: AKS-CLH-SNP
+              runner: ubuntu-22.04
+              self-hosted: false
+            test-name: multiple-cpus
       fail-fast: false
     name: "${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e.yml
