@@ -17,61 +17,62 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestValidate(t *testing.T) {
-	newTestManifestSNP := func() *Manifest {
-		return &Manifest{
-			Policies: map[HexString]PolicyEntry{
-				HexString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"): {
-					Role:             "coordinator",
-					SANs:             []string{"example.com", "*"},
-					WorkloadSecretID: "foo",
-				},
+func newTestManifestSNP() *Manifest {
+	return &Manifest{
+		Policies: map[HexString]PolicyEntry{
+			HexString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"): {
+				Role:             "coordinator",
+				SANs:             []string{"example.com", "*"},
+				WorkloadSecretID: "foo",
 			},
-			ReferenceValues: ReferenceValues{
-				SNP: []SNPReferenceValues{
-					{
-						MinimumTCB: SNPTCB{
-							BootloaderVersion: toPtr(SVN(2)),
-							TEEVersion:        toPtr(SVN(2)),
-							SNPVersion:        toPtr(SVN(2)),
-							MicrocodeVersion:  toPtr(SVN(2)),
-						},
-						ProductName:        "Milan",
-						TrustedMeasurement: HexString("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
-						GuestPolicy: abi.SnpPolicy{
-							SMT: true,
-						},
-					},
-				},
-			},
-			WorkloadOwnerKeyDigests: []HexString{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
-			SeedshareOwnerPubKeys:   []HexString{"3082020a0282020100bc51b1c9cb50002ae95a7ad98569506aadceabd0bb9ee576ad29ab3baecd60a604eee8882323fa8a7b6f4b21cea80bd4d794bf31fd7a5d6dfeb4afa6de30a834b87aa7f90e5ee11683b2f903b393174c436107f7b22467d0f5cee09c43eab28bcbec0137e165d8d34da66f9fc8294d60ebafbf38bf3e0e4dfcf7da84b24d6eaf1b8c4a579d2ec6ab1c280a7ec50854f2269ef8e31e1e2f1a1d24dd3ca8eaa5728c4f59fdf840899dc44bac0749b3d294a3c7446e2859db55cb93e6bf8ac8995665137f74e9898dad7a9f52d8527b16308e422685ed6ba221b6a266728a7cc11403d37a2f1be923685637eabafa4b0bf6095edc6908adf1b623450555ead19f9431d9a72730228379d5711475434e4696eb650469ad981cc0ced54c84909c36dc7e38d1ffda3aad63d2b6841bb2cee07c85116cd8139e528a3ca78a0d301f2deed86f0b7bbc6bcd863594e3ba67d86178db9f661d0aa25965ad05c608b8c7eadb5853284aadf2474b8a3dbbc23ac2992c11b283808108ffd59cf08687ac9a0ef20eb8ca3ec090a3a532ad305203b877a20c0da401386070dc97d2820b97d67eedc21c6a938bb368a7d1b4e9433abc3304d2f928df22d5d3b3bc0d593b1dcc84671809538b5da667a5f2ce89714c39d9c6aed34de3605fe79e9018de14b262ab1c63bb7d24c3ec51dac00b72be7266e6e1e221da1e50e9ea21aba44550c48bcdeb0203010001"},
-		}
-	}
-	newTestManifestTDX := func() *Manifest {
-		m := newTestManifestSNP()
-		m.ReferenceValues = ReferenceValues{
-			TDX: []TDXReferenceValues{
+		},
+		ReferenceValues: ReferenceValues{
+			SNP: []SNPReferenceValues{
 				{
-					MrTd: HexString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
-					Rtrms: [4]HexString{
-						"555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555",
-						"666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666",
-						"777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777",
-						"888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888",
+					MinimumTCB: SNPTCB{
+						BootloaderVersion: toPtr(SVN(2)),
+						TEEVersion:        toPtr(SVN(2)),
+						SNPVersion:        toPtr(SVN(2)),
+						MicrocodeVersion:  toPtr(SVN(2)),
 					},
-					MinimumQeSvn:     toPtr(uint16(5)),
-					MinimumPceSvn:    toPtr(uint16(6)),
-					MinimumTeeTcbSvn: HexString("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
-					MrSeam:           HexString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
-					TdAttributes:     HexString("3333333333333333"),
-					Xfam:             HexString("4444444444444444"),
+					ProductName:        "Milan",
+					TrustedMeasurement: HexString("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"),
+					GuestPolicy: abi.SnpPolicy{
+						SMT: true,
+					},
 				},
 			},
-		}
-		return m
+		},
+		WorkloadOwnerKeyDigests: []HexString{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+		SeedshareOwnerPubKeys:   []HexString{"3082020a0282020100bc51b1c9cb50002ae95a7ad98569506aadceabd0bb9ee576ad29ab3baecd60a604eee8882323fa8a7b6f4b21cea80bd4d794bf31fd7a5d6dfeb4afa6de30a834b87aa7f90e5ee11683b2f903b393174c436107f7b22467d0f5cee09c43eab28bcbec0137e165d8d34da66f9fc8294d60ebafbf38bf3e0e4dfcf7da84b24d6eaf1b8c4a579d2ec6ab1c280a7ec50854f2269ef8e31e1e2f1a1d24dd3ca8eaa5728c4f59fdf840899dc44bac0749b3d294a3c7446e2859db55cb93e6bf8ac8995665137f74e9898dad7a9f52d8527b16308e422685ed6ba221b6a266728a7cc11403d37a2f1be923685637eabafa4b0bf6095edc6908adf1b623450555ead19f9431d9a72730228379d5711475434e4696eb650469ad981cc0ced54c84909c36dc7e38d1ffda3aad63d2b6841bb2cee07c85116cd8139e528a3ca78a0d301f2deed86f0b7bbc6bcd863594e3ba67d86178db9f661d0aa25965ad05c608b8c7eadb5853284aadf2474b8a3dbbc23ac2992c11b283808108ffd59cf08687ac9a0ef20eb8ca3ec090a3a532ad305203b877a20c0da401386070dc97d2820b97d67eedc21c6a938bb368a7d1b4e9433abc3304d2f928df22d5d3b3bc0d593b1dcc84671809538b5da667a5f2ce89714c39d9c6aed34de3605fe79e9018de14b262ab1c63bb7d24c3ec51dac00b72be7266e6e1e221da1e50e9ea21aba44550c48bcdeb0203010001"},
 	}
+}
 
+func newTestManifestTDX() *Manifest {
+	m := newTestManifestSNP()
+	m.ReferenceValues = ReferenceValues{
+		TDX: []TDXReferenceValues{
+			{
+				MrTd: HexString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
+				Rtrms: [4]HexString{
+					"555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555",
+					"666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666",
+					"777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777",
+					"888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888",
+				},
+				MinimumQeSvn:     toPtr(uint16(5)),
+				MinimumPceSvn:    toPtr(uint16(6)),
+				MinimumTeeTcbSvn: HexString("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
+				MrSeam:           HexString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+				TdAttributes:     HexString("3333333333333333"),
+				Xfam:             HexString("4444444444444444"),
+			},
+		},
+	}
+	return m
+}
+
+func TestValidate(t *testing.T) {
 	testCases := map[string]struct {
 		m       *Manifest
 		mutate  func(*Manifest)
@@ -309,6 +310,7 @@ func TestSNPValidateOpts(t *testing.T) {
 	require := require.New(t)
 
 	m, err := Default(platforms.AKSCloudHypervisorSNP)
+	t.Log(err)
 	require.NoError(err)
 
 	m.Policies = map[HexString]PolicyEntry{
@@ -436,4 +438,55 @@ func TestHexStrings(t *testing.T) {
 
 func toPtr[T any](v T) *T {
 	return &v
+}
+
+func TestExpectedMissingReferenceValues(t *testing.T) {
+	testCases := map[string]struct {
+		m    *Manifest
+		want bool
+	}{
+		"tdx only expected validation errors": {
+			m: func() *Manifest {
+				m := newTestManifestTDX()
+				m.ReferenceValues.TDX[0].MrSeam = ""
+				return m
+			}(),
+			want: true,
+		},
+		"tdx with unexpected validation errors": {
+			m: func() *Manifest {
+				m := newTestManifestTDX()
+				m.ReferenceValues.TDX[0].MrTd = ""
+				return m
+			}(),
+			want: false,
+		},
+		"snp only expected validation errors": {
+			m: func() *Manifest {
+				m := newTestManifestSNP()
+				m.ReferenceValues.SNP[0].MinimumTCB.TEEVersion = nil
+				return m
+			}(),
+			want: true,
+		},
+		"snp with unexpected validation errors": {
+			m: func() *Manifest {
+				m := newTestManifestSNP()
+				m.ReferenceValues.SNP[0].TrustedMeasurement = ""
+				return m
+			}(),
+			want: false,
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			var ve *ValidationError
+			err := tc.m.Validate()
+			assert.Error(err)
+			require.ErrorAs(t, err, &ve)
+			assert.Equal(tc.want, ve.OnlyExpectedMissingReferenceValues())
+		})
+	}
 }
