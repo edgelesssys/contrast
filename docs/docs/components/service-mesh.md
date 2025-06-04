@@ -15,6 +15,7 @@ sets up `iptables` rules based on its configuration and then starts
 [Envoy](https://www.envoyproxy.io/) for TLS origination and termination.
 
 ## Service mesh startup enforcement
+
 Since Contrast doesn't yet enforce the order in which the containers are started
 (see [Limitations](../features-limitations.md)), we deny all incoming connections
 until the service mesh is fully configured.
