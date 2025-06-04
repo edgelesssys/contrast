@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: miampf <miampf@proton.me>
+Date: Wed, 4 Jun 2025 12:21:28 +0200
+Subject: [PATCH] genpolicy: correctly represent binaryData in ConfigMaps
+
+While Kubernetes defines `binaryData` as `[]byte`,
+when defined in a YAML file the raw bytes are
+base64 encoded. Therefore, we need to read the YAML
+value as `String` and not as `Vec<u8>`.
+
+Signed-off-by: Mia Mallon <miampf@proton.me>
+---
+ src/tools/genpolicy/src/config_map.rs | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/tools/genpolicy/src/config_map.rs b/src/tools/genpolicy/src/config_map.rs
+index ec5de9754c591082b30f48538a69890df6ded868..efeb403c60a51942be38b60b65ee15ac447f94e0 100644
+--- a/src/tools/genpolicy/src/config_map.rs
++++ b/src/tools/genpolicy/src/config_map.rs
+@@ -29,8 +29,10 @@ pub struct ConfigMap {
+     #[serde(skip_serializing_if = "Option::is_none")]
+     pub data: Option<BTreeMap<String, String>>,
+ 
++    // When parsing a YAML file, binaryData is encoded as base64.
++    // Therefore, this is a BTreeMap<String, String> instead of BTreeMap<String, Vec<u8>>.
+     #[serde(skip_serializing_if = "Option::is_none")]
+-    pub binaryData: Option<BTreeMap<String, Vec<u8>>>,
++    pub binaryData: Option<BTreeMap<String, String>>,
+ 
+     #[serde(skip_serializing_if = "Option::is_none")]
+     immutable: Option<bool>,
