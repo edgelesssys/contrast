@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
-Date: Thu, 21 Nov 2024 09:43:08 +0100
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Wed, 4 Jun 2025 12:49:56 +0200
 Subject: [PATCH] verify Hobs instead of measuring them
 
 We don't want the measurement to change depending on the amount of
@@ -8,16 +8,17 @@ memory assigned to the CVM. Instead verify the Hobs to make sure that
 they contain reasonable values and don't measure anything.
 
 Authored-by: Tom Dohrmann <erbse.13@gmx.de>
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
 ---
- OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c  | 106 ++++++++++++++----
+ OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c  | 105 ++++++++++++++----
  .../IntelTdx/TdxHelperLib/SecTdxHelperLib.inf |  19 +++-
- 2 files changed, 100 insertions(+), 25 deletions(-)
+ 2 files changed, 100 insertions(+), 24 deletions(-)
 
 diff --git a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
-index 19e9b1bf5491e004773a4034e0b7664ce49cbbaa..f5cd850b84b7b22745035fac0dc263a1fcff6d11 100644
+index 67fc8fe7f2bb3aecf3600ef2e294687f728345c2..96ff4be43d55f3fa31de7a897a62ab6f74bea52d 100644
 --- a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
 +++ b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
-@@ -873,44 +873,106 @@ TdxHelperMeasureTdHob (
+@@ -822,44 +822,107 @@ TdxHelperMeasureTdHob (
    )
  {
    EFI_PEI_HOB_POINTERS  Hob;
@@ -33,7 +34,7 @@ index 19e9b1bf5491e004773a4034e0b7664ce49cbbaa..f5cd850b84b7b22745035fac0dc263a1
  
    //
 -  // Walk thru the TdHob list until end of list.
-+  // Extract the last address of  usable memory from the last Resource
++  // Extract the last address of usable memory from the last Resource
 +  // Descriptor Hob.
    //
 +  Hob.Raw = (UINT8 *)TdHob;
@@ -47,7 +48,7 @@ index 19e9b1bf5491e004773a4034e0b7664ce49cbbaa..f5cd850b84b7b22745035fac0dc263a1
      Hob.Raw = GET_NEXT_HOB (Hob);
    }
  
--  Status = HashAndExtendToRtmr (
+-  Status = TdxMeasurementHashAndExtendToRtmr (
 -             0,
 -             (UINT8 *)TdHob,
 -             (UINTN)((UINT8 *)Hob.Raw - (UINT8 *)TdHob),
@@ -56,7 +57,7 @@ index 19e9b1bf5491e004773a4034e0b7664ce49cbbaa..f5cd850b84b7b22745035fac0dc263a1
 -             );
 +  //
 +  // Make sure that the last address is reasonable.
-+  // 
++  //
 +  if (LastAddress >= SIZE_64GB) return EFI_INVALID_PARAMETER;
  
 -  if (EFI_ERROR (Status)) {
@@ -74,10 +75,7 @@ index 19e9b1bf5491e004773a4034e0b7664ce49cbbaa..f5cd850b84b7b22745035fac0dc263a1
 -  WorkArea = (OVMF_WORK_AREA *)FixedPcdGet32 (PcdOvmfWorkAreaBase);
 -  if (WorkArea == NULL) {
 -    return EFI_DEVICE_ERROR;
--  }
- 
--  WorkArea->TdxWorkArea.SecTdxWorkArea.TdxMeasurementsData.MeasurementsBitmap |= TDX_MEASUREMENT_TDHOB_BITMASK;
--  CopyMem (WorkArea->TdxWorkArea.SecTdxWorkArea.TdxMeasurementsData.TdHobHashValue, Digest, SHA384_DIGEST_SIZE);
++  
 +  Hob.Raw = (UINT8 *)TdHob;
 +  if (GET_HOB_TYPE (Hob) != EFI_HOB_TYPE_HANDOFF) return EFI_INVALID_PARAMETER;
 +  if (Hob.HandoffInformationTable->BootMode != BOOT_WITH_FULL_CONFIGURATION) return EFI_INVALID_PARAMETER;
@@ -140,18 +138,21 @@ index 19e9b1bf5491e004773a4034e0b7664ce49cbbaa..f5cd850b84b7b22745035fac0dc263a1
 +  } else {
 +    EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_MEMORY_UNACCEPTED, TDX_HEAP_STACK_END, SIZE_2GB - TDX_HEAP_STACK_END);
 +    EXPECT_RESOURCE_DESCRIPTOR_HOB(EFI_RESOURCE_MEMORY_UNACCEPTED, SIZE_4GB, LastAddress - SIZE_4GB);
-+  }
+   }
 +  
 +  if (!END_OF_HOB_LIST (Hob)) return EFI_INVALID_PARAMETER;
+ 
+-  WorkArea->TdxWorkArea.SecTdxWorkArea.TdxMeasurementsData.MeasurementsBitmap |= TDX_MEASUREMENT_TDHOB_BITMASK;
+-  CopyMem (WorkArea->TdxWorkArea.SecTdxWorkArea.TdxMeasurementsData.TdHobHashValue, Digest, SHA384_DIGEST_SIZE);
  
    return EFI_SUCCESS;
  }
 diff --git a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf
-index d17b84c01f202abd9860e093d57917d04b6dbce0..dc2a822b902ea47a861ffd0d4513bc769431f2b5 100644
+index 7a4e956778afaa7398ac040e41e5056709d703d1..4439aca2dee2d6c631651240772154f6d8d2b906 100644
 --- a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf
 +++ b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf
-@@ -43,11 +43,24 @@
-   TdxLib
+@@ -44,11 +44,24 @@
+   TdxMeasurementLib
  
  [FixedPcd]
 +  gUefiOvmfPkgTokenSpaceGuid.PcdBfvBase
