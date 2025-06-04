@@ -371,15 +371,15 @@ func validateHexString(value HexString, expectedNumBytes int) error {
 	return err
 }
 
-// validationError contains a JSON path and a list of errors.
+// ValidationError contains a JSON path and a list of errors.
 // Nested validation errors are printed on newlines with the full path.
-type validationError struct {
+type ValidationError struct {
 	path string
 	errs []error
 }
 
 func newValidationError(path string, errs ...error) error {
-	e := &validationError{
+	e := &ValidationError{
 		path: path,
 		errs: make([]error, 0, len(errs)),
 	}
@@ -394,18 +394,18 @@ func newValidationError(path string, errs ...error) error {
 	return e
 }
 
-func (e *validationError) Error() string {
+func (e *ValidationError) Error() string {
 	return e.formatError(e.path)
 }
 
-func (e *validationError) Unwrap() []error {
+func (e *ValidationError) Unwrap() []error {
 	return e.errs
 }
 
-func (e *validationError) formatError(path string) string {
+func (e *ValidationError) formatError(path string) string {
 	var sb strings.Builder
 	for i, err := range e.errs {
-		var ve *validationError
+		var ve *ValidationError
 		if errors.As(err, &ve) {
 			sb.WriteString(ve.formatError(path + "." + ve.path))
 		} else {
@@ -421,7 +421,7 @@ func (e *validationError) formatError(path string) string {
 }
 
 func flattenValidationError(err error) (errs []error) {
-	if ve, ok := err.(*validationError); ok { //nolint:errorlint // check for exact type
+	if ve, ok := err.(*ValidationError); ok { //nolint:errorlint // check for exact type
 		return []error{ve}
 	}
 	if wrapped, ok := err.(interface{ Unwrap() []error }); ok {
@@ -433,8 +433,32 @@ func flattenValidationError(err error) (errs []error) {
 	return []error{err}
 }
 
+// ExpectedMissingReferenceValueError should wrap ValidationErrors which are expected, depending on the host platform.
+type ExpectedMissingReferenceValueError struct {
+	Err error
+}
 
+func (e ExpectedMissingReferenceValueError) Error() string {
+	return e.Err.Error()
+}
+
+// OnlyExpectedMissingReferenceValues checks if all nested ValidationErrors stem from expected missing reference values.
+func (e *ValidationError) OnlyExpectedMissingReferenceValues() bool {
+	for _, err := range e.errs {
+		var ve *ValidationError
+		if errors.As(err, &ve) && !ve.OnlyExpectedMissingReferenceValues() {
+			return false
+		}
+
+		var emrve ExpectedMissingReferenceValueError
+		if !errors.As(err, &emrve) {
+			return false
+		}
 	}
+
+	return true
+}
+
 // CoordinatorCountError occurs during manifest validation when either zero, or more than one coordinators have been defined.
 type CoordinatorCountError struct{ Count uint }
 

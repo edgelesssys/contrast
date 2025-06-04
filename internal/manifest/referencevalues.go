@@ -96,16 +96,16 @@ type SNPReferenceValues struct {
 func (r SNPReferenceValues) Validate() error {
 	var minTCBErrs []error
 	if r.MinimumTCB.BootloaderVersion == nil {
-		minTCBErrs = append(minTCBErrs, newValidationError("BootloaderVersion", errors.New("field cannot be empty")))
+		minTCBErrs = append(minTCBErrs, newValidationError("BootloaderVersion", ExpectedMissingReferenceValueError{Err: errors.New("field cannot be empty")}))
 	}
 	if r.MinimumTCB.TEEVersion == nil {
-		minTCBErrs = append(minTCBErrs, newValidationError("TEEVersion", errors.New("field cannot be empty")))
+		minTCBErrs = append(minTCBErrs, newValidationError("TEEVersion", ExpectedMissingReferenceValueError{Err: errors.New("field cannot be empty")}))
 	}
 	if r.MinimumTCB.SNPVersion == nil {
-		minTCBErrs = append(minTCBErrs, newValidationError("SNPVersion", errors.New("field cannot be empty")))
+		minTCBErrs = append(minTCBErrs, newValidationError("SNPVersion", ExpectedMissingReferenceValueError{Err: errors.New("field cannot be empty")}))
 	}
 	if r.MinimumTCB.MicrocodeVersion == nil {
-		minTCBErrs = append(minTCBErrs, newValidationError("MicrocodeVersion", errors.New("field cannot be empty")))
+		minTCBErrs = append(minTCBErrs, newValidationError("MicrocodeVersion", ExpectedMissingReferenceValueError{Err: errors.New("field cannot be empty")}))
 	}
 	errs := []error{newValidationError("MinimumTCB", minTCBErrs...)}
 
@@ -233,10 +233,10 @@ func (r TDXReferenceValues) Validate() error {
 		errs = append(errs, newValidationError("MinimumPceSvn", fmt.Errorf("field cannot be empty")))
 	}
 	if err := validateHexString(r.MinimumTeeTcbSvn, 16); err != nil {
-		errs = append(errs, newValidationError("MinimumTeeTcbSvn", err))
+		errs = append(errs, newValidationError("MinimumTeeTcbSvn", ExpectedMissingReferenceValueError{Err: err}))
 	}
 	if err := validateHexString(r.MrSeam, 48); err != nil {
-		errs = append(errs, newValidationError("MrSeam", err))
+		errs = append(errs, newValidationError("MrSeam", ExpectedMissingReferenceValueError{Err: err}))
 	}
 	if err := validateHexString(r.TdAttributes, 8); err != nil {
 		errs = append(errs, newValidationError("TdAttributes", err))
