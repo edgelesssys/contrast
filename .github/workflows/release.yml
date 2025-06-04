@@ -477,6 +477,24 @@ jobs:
             --tag ${{ inputs.version }} \
             --platform ${{ matrix.platform.name }}
 
+  regression:
+    name: e2e regression
+    needs: release
+    uses: ./.github/workflows/e2e_regression.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+
+  nightly:
+    name: e2e nightly
+    needs: release
+    uses: ./.github/workflows/e2e_nightly.yml
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+
   create-github-stuff:
     name: Create backport label and milestone
     if: inputs.kind == 'minor'

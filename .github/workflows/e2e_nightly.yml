@@ -2,6 +2,7 @@ name: e2e test nightly
 
 on:
   workflow_dispatch:
+  workflow_call:
   schedule:
     - cron: "30 4 * * *" # 4:30 a.m. every day
 
