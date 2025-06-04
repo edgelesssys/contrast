@@ -31,9 +31,9 @@ The missing guarantee for startup order doesn't affect the security of Contrast'
 
 ## Automatic recovery and high availability
 
-The Contrast Coordinator is a singleton and can't be scaled to more than one instance.
-When this instance's pod is restarted, for example for node maintenance, it needs to be recovered manually.
-In a future release, we plan to support distributed Coordinator instances that can recover automatically.
+The Contrast Coordinator is deployed as a single replica in its default configuration.
+When this replica is restarted, for example for node maintenance, it needs to be recovered manually.
+For automatic peer recovery and high-availability, the Coordinator should be [scaled to at least 3 replicas](howto/coordinator-ha.md).
 
 ## Overriding Kata configuration
 
