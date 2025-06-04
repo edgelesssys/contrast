@@ -1,60 +1,59 @@
-# Minimized list, inactive options removed.
-# upstream source: https://github.com/kata-containers/kata-containers/blob/dac07239f5c7e3deefbdefa8d02bbc427487042e/src/runtime/config/configuration-qemu-snp.toml.in
+# upstream source: https://github.com/kata-containers/kata-containers/releases/download/3.17.0/kata-static-3.17.0-amd64.tar.xz
+[agent.kata]
+dial_timeout = 90
+kernel_modules = []
+
 [hypervisor.qemu]
-path = "/usr/bin/qemu-system-x86_64"
-kernel = "/opt/kata/share/kata-containers/vmlinuz-confidential.container"
-initrd = "/opt/kata/share/kata-containers/kata-containers-initrd-confidential.img"
-machine_type = "q35"
-rootfs_type="erofs"
+block_device_aio = "io_uring"
+block_device_driver = "virtio-scsi"
 confidential_guest = true
-sev_snp_guest = true
-snp_certs_path = "/opt/snp/cert_chain.cert"
-enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params", "default_vcpus", "default_memory"]
-valid_hypervisor_paths = ["/usr/bin/qemu-system-x86_64"]
-kernel_params = ""
-firmware = "/usr/share/ovmf/OVMF.fd"
-firmware_volume = ""
-machine_accelerators=""
-cpu_features="pmu=off"
-default_vcpus = 1
-default_maxvcpus = 0
+cpu_features = "pmu=off"
 default_bridges = 1
 default_maxmemory = 0
+default_maxvcpus = 0
+default_vcpus = 1
 disable_block_device_use = false
-shared_fs = "none"
-virtio_fs_daemon = "/opt/kata/libexec/virtiofsd"
-valid_virtio_fs_daemon_paths = ["/opt/kata/libexec/virtiofsd"]
-virtio_fs_cache_size = 0
-virtio_fs_queue_size = 1024
-virtio_fs_extra_args = ["--thread-pool-size=1", "--announce-submounts"]
-virtio_fs_cache = "auto"
-block_device_driver = "virtio-scsi"
-block_device_aio = "io_uring"
+disable_guest_selinux = true
+disable_image_nvdimm = true
+disable_selinux = false
+enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params", "default_vcpus", "default_memory"]
 enable_iothreads = false
 enable_vhost_user_store = false
-vhost_user_store_path = "/var/run/kata-containers/vhost-user"
-valid_vhost_user_store_paths = ["/var/run/kata-containers/vhost-user"]
-vhost_user_reconnect_timeout_sec = 0
 file_mem_backend = ""
-valid_file_mem_backends = [""]
+firmware = "/usr/share/ovmf/OVMF.fd"
+firmware_volume = ""
+initrd = "/opt/kata/share/kata-containers/kata-containers-initrd-confidential.img"
+kernel = "/opt/kata/share/kata-containers/vmlinuz-confidential.container"
+kernel_params = ""
+machine_accelerators = ""
+machine_type = "q35"
+path = "/usr/bin/qemu-system-x86_64"
 pflashes = []
-disable_image_nvdimm = true
-valid_entropy_sources = ["/dev/urandom","/dev/random",""]
-disable_selinux=false
-disable_guest_selinux=true
-
-[agent.kata]
-kernel_modules=[]
-dial_timeout = 90
+rootfs_type = "erofs"
+sev_snp_guest = true
+shared_fs = "none"
+snp_certs_path = "/opt/snp/cert_chain.cert"
+valid_entropy_sources = ["/dev/urandom", "/dev/random", ""]
+valid_file_mem_backends = [""]
+valid_hypervisor_paths = ["/usr/bin/qemu-system-x86_64"]
+valid_vhost_user_store_paths = ["/var/run/kata-containers/vhost-user"]
+valid_virtio_fs_daemon_paths = ["/opt/kata/libexec/virtiofsd"]
+vhost_user_reconnect_timeout_sec = 0
+vhost_user_store_path = "/var/run/kata-containers/vhost-user"
+virtio_fs_cache = "auto"
+virtio_fs_cache_size = 0
+virtio_fs_daemon = "/opt/kata/libexec/virtiofsd"
+virtio_fs_extra_args = ["--thread-pool-size=1", "--announce-submounts"]
+virtio_fs_queue_size = 1024
 
 [runtime]
-internetworking_model="tcfilter"
-disable_guest_seccomp=true
-sandbox_cgroup_only=true
-static_sandbox_resource_mgmt=true
-sandbox_bind_mounts=[]
-vfio_mode="guest-kernel"
-disable_guest_empty_dir=false
-experimental=[]
 create_container_timeout = 60
 dan_conf = "/run/kata-containers/dans"
+disable_guest_empty_dir = false
+disable_guest_seccomp = true
+experimental = []
+internetworking_model = "tcfilter"
+sandbox_bind_mounts = []
+sandbox_cgroup_only = true
+static_sandbox_resource_mgmt = true
+vfio_mode = "guest-kernel"

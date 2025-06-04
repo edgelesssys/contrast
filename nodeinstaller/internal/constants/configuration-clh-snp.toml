@@ -1,42 +1,42 @@
-# upstream source: https://github.com/kata-containers/kata-containers/blob/9f512c016e75599a4a921bd84ea47559fe610057/src/runtime/config/configuration-clh.toml.in
-[hypervisor.clh]
-path = "/opt/edgeless/bin/cloud-hypervisor-snp"
-igvm = "/opt/edgeless/share/kata-containers-igvm.img"
-image = "/opt/edgeless/share/kata-containers.img"
-rootfs_type="ext4"
-confidential_guest = true
-sev_snp_guest = true
-snp_guest_policy=0x30000
-disable_selinux=false
-disable_guest_selinux=true
-enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params"]
-valid_hypervisor_paths = ["/opt/edgeless/bin/cloud-hypervisor-snp"]
-kernel_params = ""
-default_vcpus = 1
-default_maxvcpus = 0
-default_maxmemory = 0
-shared_fs = "none"
-virtio_fs_daemon = "/opt/confidential-containers/libexec/virtiofsd"
-valid_virtio_fs_daemon_paths = ["/opt/confidential-containers/libexec/virtiofsd"]
-virtio_fs_cache_size = 0
-virtio_fs_queue_size = 1024
-virtio_fs_extra_args = ["--thread-pool-size=1", "--announce-submounts"]
-virtio_fs_cache = "auto"
-block_device_driver = "virtio-blk"
-
+# upstream source: https://github.com/kata-containers/kata-containers/releases/download/3.17.0/kata-static-3.17.0-amd64.tar.xz
 [agent.kata]
 dial_timeout = 90
 
-[runtime]
-internetworking_model="tcfilter"
-disable_guest_seccomp=true
-sandbox_cgroup_only=true
-static_sandbox_resource_mgmt=true
-static_sandbox_default_workload_mem=1792
-sandbox_bind_mounts=[]
-vfio_mode="guest-kernel"
-disable_guest_empty_dir=false
-experimental=[]
+[hypervisor.clh]
+block_device_driver = "virtio-blk"
+confidential_guest = true
+default_maxmemory = 0
+default_maxvcpus = 0
+default_vcpus = 1
+disable_guest_selinux = true
+disable_selinux = false
+enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params"]
+igvm = "/opt/edgeless/share/kata-containers-igvm.img"
+image = "/opt/edgeless/share/kata-containers.img"
+kernel_params = ""
+path = "/opt/edgeless/bin/cloud-hypervisor-snp"
+rootfs_type = "ext4"
+sev_snp_guest = true
+shared_fs = "none"
+snp_guest_policy = 196608
+valid_hypervisor_paths = ["/opt/edgeless/bin/cloud-hypervisor-snp"]
+valid_virtio_fs_daemon_paths = ["/opt/confidential-containers/libexec/virtiofsd"]
+virtio_fs_cache = "auto"
+virtio_fs_cache_size = 0
+virtio_fs_daemon = "/opt/confidential-containers/libexec/virtiofsd"
+virtio_fs_extra_args = ["--thread-pool-size=1", "--announce-submounts"]
+virtio_fs_queue_size = 1024
 
 [image]
 service_offload = false
+
+[runtime]
+disable_guest_empty_dir = false
+disable_guest_seccomp = true
+experimental = []
+internetworking_model = "tcfilter"
+sandbox_bind_mounts = []
+sandbox_cgroup_only = true
+static_sandbox_default_workload_mem = 1792
+static_sandbox_resource_mgmt = true
+vfio_mode = "guest-kernel"
