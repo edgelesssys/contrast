@@ -69,8 +69,12 @@ func ImagesFQDN(v int) string {
 }
 
 // KataRuntimeConfig returns the Kata runtime configuration.
-func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKernelParams string,
-	sevProductName sevsnp.SevProduct_SevProductName, debug bool,
+func KataRuntimeConfig(
+	baseDir string,
+	platform platforms.Platform,
+	qemuExtraKernelParams string,
+	snpIDBlock SnpIDBlock,
+	debug bool,
 ) (*config.KataRuntimeConfig, error) {
 	var config config.KataRuntimeConfig
 	switch platform {
@@ -124,12 +128,8 @@ func KataRuntimeConfig(baseDir string, platform platforms.Platform, qemuExtraKer
 		// also what we do when calculating the launch measurement.
 		config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
 
-		idBlock, idAuth, err := snpIDBlock(platform, sevProductName)
-		if err != nil {
-			return nil, err
-		}
-		config.Hypervisor["qemu"]["snp_id_block"] = idBlock
-		config.Hypervisor["qemu"]["snp_id_auth"] = idAuth
+		config.Hypervisor["qemu"]["snp_id_block"] = snpIDBlock.IDBlock
+		config.Hypervisor["qemu"]["snp_id_auth"] = snpIDBlock.IDAuth
 
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
@@ -198,26 +198,29 @@ func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platf
 	return &cfg, nil
 }
 
-// platform -> product -> struct.
-type snpIDBlockMap map[string]map[string]struct {
+// SnpIDBlock represents the SNP ID block and ID auth used for SEV-SNP guests.
+type SnpIDBlock struct {
 	IDBlock string `json:"idBlock"`
 	IDAuth  string `json:"idAuth"`
 }
 
-// snpIDBlock returns the embedded SNP ID block and ID auth for the given platform and product.
-func snpIDBlock(platform platforms.Platform, productName sevsnp.SevProduct_SevProductName) (idblock, idauth string, retErr error) {
+// platform -> product -> snpIDBlock.
+type snpIDBlockMap map[string]map[string]SnpIDBlock
+
+// SnpIDBlockForPlatform returns the embedded SNP ID block and ID auth for the given platform and product.
+func SnpIDBlockForPlatform(platform platforms.Platform, productName sevsnp.SevProduct_SevProductName) (SnpIDBlock, error) {
 	blocks := make(snpIDBlockMap)
 	if err := json.Unmarshal([]byte(snpIDBlocks), &blocks); err != nil {
-		return "", "", fmt.Errorf("unmarshaling embedded SNP ID blocks: %w", err)
+		return SnpIDBlock{}, fmt.Errorf("unmarshaling embedded SNP ID blocks: %w", err)
 	}
 	blockForPlatform, ok := blocks[strings.ToLower(platform.String())]
 	if !ok {
-		return "", "", fmt.Errorf("no SNP ID block found for platform %s", platform)
+		return SnpIDBlock{}, fmt.Errorf("no SNP ID block found for platform %s", platform)
 	}
 	productLine := kds.ProductLine(&sevsnp.SevProduct{Name: productName})
 	block, ok := blockForPlatform[productLine]
 	if !ok {
-		return "", "", fmt.Errorf("no SNP ID block found for product %s", productLine)
+		return SnpIDBlock{}, fmt.Errorf("no SNP ID block found for product %s", productLine)
 	}
-	return block.IDBlock, block.IDAuth, nil
+	return block, nil
 }

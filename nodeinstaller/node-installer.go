@@ -184,7 +184,11 @@ func envWithDefault(key, dflt string) string {
 }
 
 func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams string, debugRuntime bool) error {
-	kataRuntimeConfig, err := constants.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, abi.SevProduct().Name, debugRuntime)
+	snpIDBlock, err := constants.SnpIDBlockForPlatform(platform, abi.SevProduct().Name)
+	if err != nil {
+		return err
+	}
+	kataRuntimeConfig, err := constants.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, snpIDBlock, debugRuntime)
 	if err != nil {
 		return fmt.Errorf("generating kata runtime config: %w", err)
 	}

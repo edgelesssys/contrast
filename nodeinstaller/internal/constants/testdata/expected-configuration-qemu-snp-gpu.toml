@@ -1,0 +1,67 @@
+[Hypervisor]
+[Hypervisor.qemu]
+block_device_aio = 'threads'
+block_device_driver = 'virtio-scsi'
+cold_plug_vfio = 'root-port'
+confidential_guest = true
+cpu_features = 'pmu=off'
+default_bridges = 1
+default_maxmemory = 0
+default_maxvcpus = 0
+default_memory = 1024
+default_vcpus = 1
+disable_block_device_use = false
+disable_guest_selinux = true
+disable_image_nvdimm = true
+disable_selinux = false
+enable_annotations = ['enable_iommu', 'virtio_fs_extra_args', 'kernel_params', 'default_vcpus', 'default_memory']
+enable_iothreads = false
+enable_vhost_user_store = false
+file_mem_backend = ''
+firmware = '/snp/share/OVMF.fd'
+firmware_volume = ''
+guest_hook_path = '/usr/share/oci/hooks'
+image = '/share/kata-containers.img'
+initrd = '/share/kata-initrd.zst'
+kernel = '/share/kata-kernel'
+kernel_params = ''
+machine_accelerators = ''
+machine_type = 'q35'
+path = '/snp/bin/qemu-system-x86_64'
+pflashes = []
+rootfs_type = 'erofs'
+sev_snp_guest = true
+shared_fs = 'none'
+snp_certs_path = '/opt/snp/cert_chain.cert'
+snp_id_auth = 'PLACEHOLDER_ID_AUTH'
+snp_id_block = 'PLACEHOLDER_ID_BLOCK'
+valid_entropy_sources = ['/dev/urandom', '/dev/random', '']
+valid_file_mem_backends = ['']
+valid_hypervisor_paths = ['/snp/bin/qemu-system-x86_64']
+valid_vhost_user_store_paths = ['/var/run/kata-containers/vhost-user']
+valid_virtio_fs_daemon_paths = ['/opt/kata/libexec/virtiofsd']
+vhost_user_reconnect_timeout_sec = 0
+vhost_user_store_path = '/var/run/kata-containers/vhost-user'
+virtio_fs_cache = 'auto'
+virtio_fs_cache_size = 0
+virtio_fs_daemon = '/opt/kata/libexec/virtiofsd'
+virtio_fs_extra_args = ['--thread-pool-size=1', '--announce-submounts']
+virtio_fs_queue_size = 1024
+
+[Agent]
+[Agent.kata]
+dial_timeout = 600
+kernel_modules = []
+
+[Runtime]
+create_container_timeout = 600
+dan_conf = '/run/kata-containers/dans'
+disable_guest_empty_dir = false
+disable_guest_seccomp = true
+experimental = []
+force_guest_pull = true
+internetworking_model = 'tcfilter'
+sandbox_bind_mounts = []
+sandbox_cgroup_only = true
+static_sandbox_resource_mgmt = true
+vfio_mode = 'guest-kernel'
