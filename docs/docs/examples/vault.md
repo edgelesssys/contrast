@@ -1,22 +1,20 @@
 # Vault
 
-**This tutorial guides you through deploying a Vault as a confidential Contrast deployment by using the build-in
+**This tutorial guides you through deploying a Vault as a confidential Contrast deployment by using the built-in
 transit engine API for Sealing/Unsealing based on the [workload secret](../architecture/secrets.md#workload-secrets) of Contrast.**
 
 
-Vaults are identity-based secrets and encryption management systems, which provide encryption services that are gated by authentication and authorization methods to ensure
-secure, auditable and restricted access to secrets, such as API keys, passwords, encryption keys or certificates.
-Vault applications like OpenBao or HashiCorp provide a unified interface to any secret, while achieving tight access and recording a detailed audit log.
+[Vault](https://openbao.org/) is an identity-based secrets and encryption management system, which provides encryption services that are gated by authentication and authorization methods to ensure secure, auditable and restricted access to secrets, such as API keys, passwords, encryption keys or certificates.
 
 Contrast allows to leverage these advantages of having a secure secret and encryption
 management system into a confidential computing environment, further shielding the secrets from the workload operator.
 
 ## Sealing and Unsealing of Vaults
-Sealing ensures that all sensitive data within the Vault remains inaccessible and protected when the system is not in active use.
+[Sealing](https://openbao.org/docs/concepts/seal/) ensures that all sensitive data within the Vault remains inaccessible and protected when the system is not in active use.
 It provides a security boundary that prevents unauthorized access during restarts or shutdowns.
 
 Unsealing is required to transition Vault into an operational state, allowing authorized access to stored secrets.
-Vault implementations by default use a set of unseal keys derived from as master key, building up on Shamir's Secret Sharing scheme.
+Vault implementations by default use a set of unseal keys derived from a master key, building up on Shamir's Secret Sharing scheme.
 Further to auto-unseal Vaults, the process can be delegated to another already initialized Vault by using
 an exposed [transit secrets engine API](https://openbao.org/api-docs/secret/transit/) as the unsealing mechanism.
 
@@ -179,7 +177,7 @@ derived from the Coordinator's secret seed and the `workloadSecretID` specified 
 manifest, and writes it to a secure in-memory `volumeMount`.
 
 :::
-
+<!-- TODO(jmxnzo): revise this paragraph as soon as we support filesystem volumes everywhere -->
 The Vault deployment is defined as a StatefulSet using the OpenBao Vault image, with a mounted block device for persistent storage.
 A Contrast Initializer, running as an init container, uses the workload secret located at `/contrast/secrets/workload-secret-seed` to
 generate an encryption key and initialize the block device as a LUKS-encrypted partition.
@@ -189,14 +187,14 @@ For the Vault application, this process is entirely transparent, and the device 
 
 Because the `workload-secret-seed` is derived from the associated `workloadSecretID`,
 any change to the `workloadSecretID` after the block device has been initialized will result in deriving an invalid encryption key,
-making the mounted block device undecrybtable.
+making the mounted block device undecryptable.
 
 :::note[Inter-deployment communication]
 
 The Contrast Coordinator issues mesh certificates after successfully validating workloads.
 These certificates can be used for secure inter-deployment communication.
 The Initializer sends an attestation report to the Coordinator,
-retrieves the a service mesh certificate bound to it's provided public key, containing the certificate chain, as well as the current mesh CA cert.
+retrieves a service mesh certificate bound to it's provided public key, containing the certificate chain, as well as the current mesh CA cert.
 The Initializer then writes them to a `volumeMount`, allowing to build up the secure mTLS connections based on the service mesh.
 The received service mesh certificate also holds the certificate extension of the `workloadSecretID`,
 which is used to allow the authorization to a certain encryption key on the transit engine API.
@@ -204,7 +202,7 @@ which is used to allow the authorization to a certain encryption key on the tran
 :::
 
 
-The Vault's TCP listener is configured to accept connections only from trusted certificates issued under the root mesh CA,
+The Vault's TCP listener is configured to accept connections only from mesh certificates issued under the current state of the service mesh CA,
 effectively restricting communication to attested Contrast deployments.
 The Coordinator’s transit secrets engine API authorizes requests based on the `workloadSecretID`,
 which is embedded in a certificate extension and must match the target endpoint.
@@ -214,52 +212,24 @@ Therefore, it is critical to ensure that the `workloadSecretID` is correctly ali
 specified in Vault’s sealing configuration before the first `contrast set` is executed.
 
 
-## Verifying the deployment as a user
-
-In different scenarios, users of an app may want to verify its security and identity before sharing data, for example, before connecting to the database.
-With Contrast, a user only needs a single remote-attestation step to verify the deployment - regardless of the size or scale of the deployment.
-Contrast is designed such that, by verifying the Coordinator, the user transitively verifies those systems the Coordinator has already verified or will verify in the future.
-Successful verification of the Coordinator means that the user can be sure that the given manifest will be enforced.
-
-### Verifying the Coordinator
-
-A user can verify the Contrast deployment using the verify
-command:
-
-```sh
-contrast verify -c "${coordinator}:1313" -m manifest.json
-```
-
-The CLI will verify the Coordinator via remote attestation using the reference values from a given manifest. This manifest needs
-to be communicated out of band to everyone wanting to verify the deployment, as the `verify` command checks
-if the currently active manifest at the Coordinator matches the manifest given to the CLI. If the command succeeds,
-the Coordinator deployment was successfully verified to be running in the expected Confidential
-Computing environment with the expected code version. The Coordinator will then return its
-configuration over the established TLS channel. The CLI will store this information, namely the root
-certificate of the mesh (`mesh-ca.pem`) and the history of manifests, into the `verify/` directory.
-In addition, the policies referenced in the manifest history are also written into the same directory.
-
-### Auditing the manifest history and artifacts
-
-In the next step, the Coordinator configuration that was written by the `verify` command needs to be audited.
-A user of the application should inspect the manifest and the referenced policies. They could delegate
-this task to an entity they trust.
-
-
 ### Connecting to the application
 
 Other confidential containers can securely connect to the Vault server via the
 [Service Mesh](../components/service-mesh.md).
-Any verified deployment with a valid Service Mesh cerrtificate is trusted by the Vault server application and thus can execute Vault-related operations
+As previously noted, access to the Vault endpoint is restricted to peers that present a service mesh certificate valid
+under the current Contrast-managed state of the service mesh. While such a certificate enables mTLS-based communication
+with the Vault server, it does not, on its own, grant authorization to perform Vault-related operations.
+Permissions for accessing secrets within Vault must be explicitly configured using the root token obtained during Vault initialization
 The configured `openbao-client` deployment is responsible for executing Vault-related operations,
 including initialization, secret creation, and sealing instructions.
+
 For more information on the Vault management and administration, please follow the official [OpenBao documentation](https://openbao.org/docs/).
 
 
 ## Updating the deployment
 Because the workload secret is derived from the workloadSecretID specified in the manifest—rather
-than tied to an individual pod—the Contrast Initializer can deterministically regenerate the same key u
-pon pod restart and successfully unlock the previously initialized LUKS-encrypted device.
+than tied to an individual pod—the Contrast Initializer can deterministically regenerate the same key
+upon pod restart and successfully unlock the previously initialized LUKS-encrypted device.
 
 As mentioned in the chapter [Deploy Vault](./vault.md#deploy-vault), when using encrypted block devices in Contrast,
 it is critical to ensure that the `workloadSecretID` remains consistent.
