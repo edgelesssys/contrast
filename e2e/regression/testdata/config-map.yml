@@ -5,4 +5,25 @@ metadata:
   namespace: "@@REPLACE_NAMESPACE@@"
 data:
   foo: bar
-# TODO(miampf): Add binaryData field
+binaryData:
+  bar: Zm9v
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: config-map
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  runtimeClassName: contrast-cc
+  containers:
+    - name: httpd
+      image: ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b
+      command: ["/usr/local/bin/bash", "-c", "sleep infinity"]
+      volumeMounts:
+        - name: cm-content
+          mountPath: "/etc/cm-content"
+          readOnly: true
+  volumes:
+    - name: cm-content
+      configMap:
+        name: config-map
