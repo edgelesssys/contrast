@@ -33,6 +33,8 @@ type (
 	Job = batchv1.Job
 	// CronJob is a Kubernetes CronJob.
 	CronJob = batchv1.CronJob
+	// ReplicationController is a Kubernetes ReplicationController.
+	ReplicationController = corev1.ReplicationController
 )
 
 // UnmarshalK8SResources unmarshals a Kubernetes resource into a list of objects that can be
@@ -94,6 +96,13 @@ func UnmarshalK8SResources(data []byte) ([]any, error) {
 				return nil, err
 			}
 			result = append(result, &cronJob)
+		case "ReplicationController":
+			var replicationController corev1.ReplicationController
+			err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), &replicationController)
+			if err != nil {
+				return nil, err
+			}
+			result = append(result, &replicationController)
 		}
 	}
 	return result, nil
