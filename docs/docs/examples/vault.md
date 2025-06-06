@@ -10,11 +10,11 @@ Contrast allows to leverage these advantages of having a secure secret and encry
 management system into a confidential computing environment, further shielding the secrets from the workload operator.
 
 ## Sealing and Unsealing of Vaults
-[Sealing](https://openbao.org/docs/concepts/seal/) ensures that all sensitive data within the Vault remains inaccessible and protected when the system is not in active use.
+[Sealing](https://openbao.org/docs/concepts/seal/) ensures that all sensitive data within the Vault remains inaccessible and protected when the system isn't in active use.
 It provides a security boundary that prevents unauthorized access during restarts or shutdowns.
 
 Unsealing is required to transition Vault into an operational state, allowing authorized access to stored secrets.
-Vault implementations by default use a set of unseal keys derived from a master key, building up on Shamir's Secret Sharing scheme.
+Vault implementations by default use a set of unseal keys derived from a master key, building up on `Shamir's Secret Sharing` scheme.
 Further to auto-unseal Vaults, the process can be delegated to another already initialized Vault by using
 an exposed [transit secrets engine API](https://openbao.org/api-docs/secret/transit/) as the unsealing mechanism.
 
@@ -29,10 +29,10 @@ All communication between the transit secrets engine API and Vault is secured th
 Only entities presenting a valid mesh-issued certificate—corresponding to the current state of the Contrast deployment—are trusted.
 
 The Coordinator issues itself a valid certificate at the time of the transit secrets engine API call,
-while the Vault deloyment obtains its certificate after successful validation by the mesh API.
+while the Vault deployment obtains its certificate after successful validation by the mesh API.
 
 ### Role of `workloadSecretID`
-To support persistence in the auto-unsealing process, the `workloadSecretID` is used to derive the encryption key utilized by the Transit Secrets Engine. Beyond key derivation, the `workloadSecretID` also plays a critical role in authorization.
+To support persistence in the auto-unsealing process, the `workloadSecretID` is used to derive the encryption key utilized by the transit secrets engine. Beyond key derivation, the `workloadSecretID` also plays a critical role in authorization.
 
 Access to a specific encryption key via the transit secrets engine API is permitted only if the requested key name matches the `workloadSecretID` embedded in the corresponding certificate extension of the Contrast mesh certificate. This ensures that each entity is cryptographically bound to its own set of encryption keys within the engine.
 
@@ -212,7 +212,7 @@ The Coordinator’s transit secrets engine API authorizes requests based on the 
 which is embedded in a certificate extension and must match the target endpoint.
 As previously noted, updating the `workloadSecretID` after initializing the LUKS device will make it inaccessible,
 due to a mismatch in the derived encryption key.
-Therefore, it is critical to ensure that the `workloadSecretID` is correctly aligned with the intended endpoint
+Therefore, it's critical to ensure that the `workloadSecretID` is correctly aligned with the intended endpoint
 specified in Vault’s sealing configuration before the first `contrast set` is executed.
 
 
@@ -222,7 +222,7 @@ Other confidential containers can securely connect to the Vault server via the
 [Service Mesh](../components/service-mesh.md).
 As previously noted, access to the Vault endpoint is restricted to peers that present a service mesh certificate valid
 under the current Contrast-managed state of the service mesh. While such a certificate enables mTLS-based communication
-with the Vault server, it does not, on its own, grant authorization to perform Vault-related operations.
+with the Vault server, it doesn't, on its own, grant authorization to perform Vault-related operations.
 Permissions for accessing secrets within Vault must be explicitly configured using the root token obtained during Vault initialization
 The configured `openbao-client` deployment is responsible for executing Vault-related operations,
 including initialization, secret creation, and sealing instructions.
@@ -236,7 +236,7 @@ than tied to an individual pod—the Contrast Initializer can deterministically 
 upon pod restart and successfully unlock the previously initialized LUKS-encrypted device.
 
 As mentioned in the chapter [Deploy Vault](./vault.md#deploy-vault), when using encrypted block devices in Contrast,
-it is critical to ensure that the `workloadSecretID` remains consistent.
+it's critical to ensure that the `workloadSecretID` remains consistent.
 Any change to this value will prevent the Contrast Initializer from deriving the correct decryption key,
 making the LUKS device inaccessible.
 
@@ -260,6 +260,6 @@ kubectl rollout restart deployment/openbao-client
 When a new Vault backend pod starts, it runs the Contrast Initializer as part of its startup sequence.
 The Initializer receives the same workload secret as before, allowing it to derive the correct encryption key and unlock the existing LUKS-encrypted block device.
 This process ensures that the Vault backend can reattach the previously encrypted volume and access all stored data transparently.
-However, while this step enables access to the filesystem-level storage, it does not unlock access to the actual secrets.
+However, while this step enables access to the filesystem-level storage, it doesn't unlock access to the actual secrets.
 Once Vault has been initialized, subsequent restarts rely on the auto-unsealing process, which is triggered via the transit secrets engine API provided by the Coordinator.
 This sealing mechanism remains the core component ensuring cryptographic protection of secrets.
