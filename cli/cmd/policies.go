@@ -71,6 +71,10 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 			name = obj.Name
 			annotation = obj.Spec.JobTemplate.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.JobTemplate.Spec.Template.Annotations[contrastRoleAnnotationKey])
+		case *kubeapi.ReplicationController:
+			name = obj.Name
+			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 		}
 		if annotation == "" {
 			continue

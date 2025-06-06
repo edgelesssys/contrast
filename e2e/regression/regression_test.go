@@ -135,10 +135,8 @@ func TestRegression(t *testing.T) {
 				require.NoError(c.WaitForJob(ctx, ct.Namespace, resourceName))
 			case "ReplicaSet":
 				require.NoError(c.WaitForReplicaSet(ctx, ct.Namespace, resourceName))
-				// TODO(miampf): Currently, the replication controller fails due to policy errors.
-				// Uncomment this once those errors are fixed.
-				// case "ReplicationController":
-				// 	require.NoError(c.WaitForReplicationController(ctx, ct.Namespace, resourceName))
+			case "ReplicationController":
+				require.NoError(c.WaitForReplicationController(ctx, ct.Namespace, resourceName))
 			}
 		})
 	}
