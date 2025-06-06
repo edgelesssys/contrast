@@ -103,6 +103,11 @@ rustPlatform.buildRustPackage rec {
       # the tool.
       # This is a backport of https://github.com/kata-containers/kata-containers/pull/10986.
       ./0014-genpolicy-support-arbitrary-resources-with-c.patch
+
+      # Ensure that binaryData fields in ConfigMaps are represented correctly as a String for
+      # base64 instead of a Vec<u8>.
+      # Taken from https://github.com/kata-containers/kata-containers/commit/c06bf2e3bb696016be0357c373b0c68e10602b57.
+      ./0015-genpolicy-correctly-represent-binaryData-in-ConfigMa.patch
     ];
   };
 
