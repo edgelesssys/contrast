@@ -61,10 +61,13 @@
       echo "Updating src hash of kata.kata-kernel-uvm.configfile" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.kata.kata-kernel-uvm.configfile
 
-      echo "Updateing yarn offlineCache hash of contrast-docs package" >&2
+      echo "Updating yarn offlineCache hash of contrast-docs package" >&2
       nix-update --version=skip --flake \
         --override-filename=packages/by-name/contrast-docs/package.nix \
         legacyPackages.x86_64-linux.contrast-docs
+
+      echo "Updating default kata-container configuration toml files" >&2
+      nix run .#scripts.update-kata-configurations
     '';
   };
 
@@ -554,5 +557,63 @@
       kubectl
     ];
     text = builtins.readFile ./cleanup-namespaces.sh;
+  };
+
+  update-kata-configurations = writeShellApplication {
+    name = "update-kata-configurations";
+    runtimeInputs = with pkgs; [
+      yq
+      diffutils
+      kata.kata-runtime
+    ];
+    text =
+      let
+        kataSrc = import ./by-name/kata/kata-kernel-uvm/kata-src.nix {
+          inherit (pkgs) kata;
+          inherit (pkgs) fetchzip;
+        };
+      in
+      #bash
+      ''
+        OLD_DEFAULTS="$(git rev-parse --show-toplevel)/nodeinstaller/internal/constants"
+        NEW_DEFAULTS="${kataSrc}/opt/kata/share/defaults/kata-containers"
+
+        declare -A PLATFORMS=(
+          ["clh"]="clh-snp"
+          ["qemu-snp"]="qemu-snp"
+          ["qemu-tdx"]="qemu-tdx"
+        )
+
+        exit_code=0
+        for upstream_name in "''${!PLATFORMS[@]}"; do
+          platform="''${PLATFORMS[$upstream_name]}"
+          old_file="$OLD_DEFAULTS/configuration-$platform.toml"
+          new_file="$NEW_DEFAULTS/configuration-$upstream_name.toml"
+
+          if [[ ! -f "$new_file" ]]; then
+            # platform has been removed or renamed upstream
+            echo "✖ No config for $upstream_name available in upstream source."
+            exit_code=1
+            continue
+          elif [[ ! -f "$old_file" ]]; then
+            # a new platform has been added above
+            touch "$old_file"
+          fi
+
+
+          platform_diff=$(diff --color -u <(tomlq "." "$old_file" --toml-output --sort-keys) <(tomlq "." "$new_file" --toml-output --sort-keys) || true)
+          if [[ -n "$platform_diff" ]]; then
+            echo ">>> Begin diff for: $platform"
+            echo "$platform_diff"
+            echo "<<< End diff for: $platform"
+
+            echo "# upstream source: https://github.com/kata-containers/kata-containers/releases/download/${pkgs.kata.kata-runtime.version}/kata-static-${pkgs.kata.kata-runtime.version}-amd64.tar.xz" > "$old_file"
+            tomlq "." "$new_file" --toml-output --sort-keys >> "$old_file"
+          else
+            echo "✔ No upstream changes for platform $platform."
+          fi
+        done
+        exit $exit_code
+      '';
   };
 }
