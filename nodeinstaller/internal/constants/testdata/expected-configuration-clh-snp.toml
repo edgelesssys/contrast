@@ -1,0 +1,45 @@
+[Hypervisor]
+[Hypervisor.clh]
+block_device_driver = 'virtio-blk'
+confidential_guest = true
+default_maxmemory = 0
+default_maxvcpus = 0
+default_memory = 256
+default_vcpus = 1
+disable_guest_selinux = true
+disable_selinux = false
+enable_annotations = ['enable_iommu', 'virtio_fs_extra_args', 'kernel_params']
+enable_debug = false
+igvm = '/share/kata-containers-igvm.img'
+image = '/share/kata-containers.img'
+kernel_params = ''
+path = '/bin/cloud-hypervisor-snp'
+rootfs_type = 'ext4'
+sev_snp_guest = true
+shared_fs = 'none'
+snp_guest_policy = 196608
+valid_hypervisor_paths = ['/bin/cloud-hypervisor-snp']
+valid_virtio_fs_daemon_paths = ['/opt/confidential-containers/libexec/virtiofsd']
+virtio_fs_cache = 'auto'
+virtio_fs_cache_size = 0
+virtio_fs_daemon = '/opt/confidential-containers/libexec/virtiofsd'
+virtio_fs_extra_args = ['--thread-pool-size=1', '--announce-submounts']
+virtio_fs_queue_size = 1024
+
+[Agent]
+[Agent.kata]
+dial_timeout = 90
+
+[Image]
+service_offload = false
+
+[Runtime]
+disable_guest_empty_dir = false
+disable_guest_seccomp = true
+experimental = []
+internetworking_model = 'tcfilter'
+sandbox_bind_mounts = []
+sandbox_cgroup_only = true
+static_sandbox_default_workload_mem = 1792
+static_sandbox_resource_mgmt = true
+vfio_mode = 'guest-kernel'
