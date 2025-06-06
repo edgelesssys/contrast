@@ -184,6 +184,10 @@ generate an encryption key and initialize the block device as a LUKS-encrypted p
 Before the Vault container starts, the Initializer opens the LUKS device using the generated key.
 This unlocked device is then mounted by the Vault container and used as the backend storage volume.
 For the Vault application, this process is entirely transparent, and the device behaves like a standard volume mount.
+It’s important to clarify that the LUKS encryption of the block device is primarily a convenience feature, enabling persistent storage
+at the filesystem level on confidential virtual machines.
+The primary and security-relevant encryption mechanism remains Vault’s own sealing process, which provides cryptographic protection of
+secrets—even in the event that the underlying storage is compromised.d.
 
 Because the `workload-secret-seed` is derived from the associated `workloadSecretID`,
 any change to the `workloadSecretID` after the block device has been initialized will result in deriving an invalid encryption key,
@@ -252,9 +256,10 @@ kubectl rollout restart statefulset/openbao-server
 kubectl rollout restart deployment/openbao-client
 ```
 
-When a new Vault backend pod starts, it launches the Contrast Initializer during its startup sequence.
-The Initializer receives the same workload secret as before, allowing it to derive the correct encryption key
-and unlock the existing LUKS-encrypted device.
-This ensures that all previously stored data in the Vault backend remains accessible through the reattached encrypted volume.
-Once the Vault has been initialized, future restarts will automatically trigger
-the auto-unsealing process via the transit secrets engine API provided by the Coordinator.
+
+When a new Vault backend pod starts, it runs the Contrast Initializer as part of its startup sequence.
+The Initializer receives the same workload secret as before, allowing it to derive the correct encryption key and unlock the existing LUKS-encrypted block device.
+This process ensures that the Vault backend can reattach the previously encrypted volume and access all stored data transparently.
+However, while this step enables access to the filesystem-level storage, it does not unlock access to the actual secrets.
+Once Vault has been initialized, subsequent restarts rely on the auto-unsealing process, which is triggered via the transit secrets engine API provided by the Coordinator.
+This sealing mechanism remains the core component ensuring cryptographic protection of secrets.
