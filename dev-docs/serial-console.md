@@ -46,10 +46,9 @@ CONNECT 1026
 
 ## Bare-Metal
 
-Copy `packages/kata-debug-shell.sh` to the host and run it, specifying the container ID as the only argument.
+Copy `packages/kata-debug-shell.sh` to the host and run it, specifying the `<namespace/pod-name>` as the only argument.
 
-If the container with ID `containerd://34f1d6a9be40aa5e2d92d6ff9876ab71e06758780a238521c9fca6816c2f28dd` should be debugged, run:
 
 ```sh
-./kata-debug-shell.sh 34f1d6a9be40aa5e2d92d6ff9876ab71e06758780a238521c9fca6816c2f28dd
+./kata-debug-shell.sh openssl-suffix/coordinator-0
 ```
