@@ -183,6 +183,8 @@ func GetDEnts() []any {
 			).
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "getdents-tester"}).
+				// A coordinator resource is required, otherwise `contrast generate` will fail.
+				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
 				WithSpec(PodSpec().
 					WithContainers(
 						Container().
@@ -214,6 +216,8 @@ func GenpolicyRegressionTests() map[string]*applyappsv1.DeploymentApplyConfigura
 			).
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": badLayer}).
+				// A coordinator resource is required, otherwise `contrast generate` will fail.
+				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
 				WithSpec(PodSpec().
 					WithContainers(
 						Container().
