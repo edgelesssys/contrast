@@ -3,7 +3,7 @@
 block_device_aio = 'threads'
 block_device_driver = 'virtio-scsi'
 confidential_guest = true
-cpu_features = '-vmx-rdseed-exit,pmu=off'
+cpu_features = 'pmu=off'
 default_bridges = 1
 default_maxmemory = 0
 default_maxvcpus = 0
@@ -13,7 +13,6 @@ disable_block_device_use = false
 disable_guest_selinux = true
 disable_selinux = false
 enable_annotations = ['enable_iommu', 'virtio_fs_extra_args', 'kernel_params', 'default_vcpus', 'default_memory']
-enable_debug = false
 enable_iothreads = false
 enable_vhost_user_store = false
 firmware = '/tdx/share/OVMF.fd'
@@ -44,16 +43,14 @@ virtio_fs_queue_size = 1024
 
 [Agent]
 [Agent.kata]
-debug_console_enabled = false
 dial_timeout = 60
-enable_debug = false
 kernel_modules = []
 
 [Runtime]
 create_container_timeout = 60
+dan_conf = '/run/kata-containers/dans'
 disable_guest_empty_dir = false
 disable_guest_seccomp = true
-enable_debug = false
 experimental = []
 force_guest_pull = true
 internetworking_model = 'tcfilter'
