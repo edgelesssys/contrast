@@ -121,10 +121,12 @@ let
         tdx = [
           (
             let
-              launch-digests = kata.calculateTdxLaunchDigests {
-                inherit (kata.contrast-node-installer-image) os-image;
-                debug = kata.contrast-node-installer-image.debugRuntime;
-              };
+              launch-digests =
+                lib.traceVal
+                  (kata.calculateTdxLaunchDigests {
+                    inherit (kata.contrast-node-installer-image) os-image;
+                    debug = kata.contrast-node-installer-image.debugRuntime;
+                  }).outPath;
             in
             {
               mrTd = builtins.readFile "${launch-digests}/mrtd.hex";

@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Tue, 10 Jun 2025 14:58:05 +0200
+Subject: [PATCH] don't measure fw cfg
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c b/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c
+index d3220c8f0392439fe26a67e730cf2c4a9b9977e0..9467bbee4ea982fcd0d538f7deb2b57506d55131 100644
+--- a/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c
++++ b/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c
+@@ -206,7 +206,7 @@ CacheFwCfgInfoWithOptionalMeasurment (
+       continue;
+     }
+ 
+-    if (TdIsEnabled ()) {
++    if (FALSE) {
+       FW_CFG_EVENT  FwCfgEvent;
+       EFI_STATUS    Status;
+ 
