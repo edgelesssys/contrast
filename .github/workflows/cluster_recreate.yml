@@ -2,6 +2,8 @@ name: recreate ci cluster
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 0" # 0:00 on Sundays
 
 env:
   azure_resource_group: contrast-ci
