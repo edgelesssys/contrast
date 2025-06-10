@@ -61,10 +61,13 @@
       echo "Updating src hash of kata.kata-kernel-uvm.configfile" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.kata.kata-kernel-uvm.configfile
 
-      echo "Updateing yarn offlineCache hash of contrast-docs package" >&2
+      echo "Updating yarn offlineCache hash of contrast-docs package" >&2
       nix-update --version=skip --flake \
         --override-filename=packages/by-name/contrast-docs/package.nix \
         legacyPackages.x86_64-linux.contrast-docs
+
+      echo "Updating default kata-container configuration toml files" >&2
+      nix run .#scripts.update-kata-configurations
     '';
   };
 
@@ -569,5 +572,47 @@
       )
       ctr --address /run/k3s/containerd/containerd.sock --namespace k8s.io content prune references
     '';
+  };
+
+  update-kata-configurations = writeShellApplication {
+    name = "update-kata-configurations";
+    runtimeInputs = with pkgs; [
+      yq
+      diffutils
+    ];
+    text = # bash
+      ''
+        old_defaults="$(git rev-parse --show-toplevel)/nodeinstaller/internal/constants"
+        new_defaults="${pkgs.kata.release-tarball}/opt/kata/share/defaults/kata-containers"
+
+        declare -A PLATFORMS=(
+          ["clh"]="clh-snp"
+          ["qemu-snp"]="qemu-snp"
+          ["qemu-tdx"]="qemu-tdx"
+        )
+
+        exit_code=0
+        for upstream_name in "''${!PLATFORMS[@]}"; do
+          platform="''${PLATFORMS[$upstream_name]}"
+          old_file="$old_defaults/configuration-$platform.toml"
+          new_file="$new_defaults/configuration-$upstream_name.toml"
+
+          if [[ ! -f "$new_file" ]]; then
+            # platform has been removed or renamed upstream
+            echo "✖ No config for $upstream_name available in upstream source."
+            exit_code=1
+            continue
+          fi
+
+          diff=$(diff "$old_file" "$new_file" || true)
+          if [[ -n "$diff" ]]; then
+            cp -f "$new_file" "$old_file"
+            echo "⚠ Updated config for platform $platform."
+          else
+            echo "✔ No upstream changes for platform $platform."
+          fi
+        done
+        exit $exit_code
+      '';
   };
 }

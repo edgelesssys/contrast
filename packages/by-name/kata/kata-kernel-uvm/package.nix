@@ -6,7 +6,6 @@
   fetchurl,
   linuxManualConfig,
   stdenvNoCC,
-  fetchzip,
   fetchpatch,
   kata,
   withGPU ? false,
@@ -14,15 +13,11 @@
 }:
 
 let
-  configfile = stdenvNoCC.mkDerivation rec {
+  configfile = stdenvNoCC.mkDerivation {
     pname = "kata-kernel-config-confidential";
-    inherit (kata.kata-runtime) version;
 
-    src = fetchzip {
-      url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
-      hash = "sha256-6DNJ2OMTJuyS5kKW8XDz7JUNL3c7RfcsDy3J1sk+yXg=";
-      stripRoot = false;
-    };
+    inherit (kata.release-tarball) version;
+    src = kata.release-tarball;
 
     postPatch =
       (
