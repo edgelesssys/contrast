@@ -160,6 +160,7 @@ let
         scripts.cleanup-bare-metal
         scripts.cleanup-namespaces
         scripts.cleanup-containerd
+        scripts.nix-gc
       ];
       config = {
         Cmd = [ "cleanup-bare-metal" ];
