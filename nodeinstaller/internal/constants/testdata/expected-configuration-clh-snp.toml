@@ -19,10 +19,10 @@ sev_snp_guest = true
 shared_fs = 'none'
 snp_guest_policy = 196608
 valid_hypervisor_paths = ['/bin/cloud-hypervisor-snp']
-valid_virtio_fs_daemon_paths = ['/opt/confidential-containers/libexec/virtiofsd']
+valid_virtio_fs_daemon_paths = ['/opt/kata/libexec/virtiofsd']
 virtio_fs_cache = 'auto'
 virtio_fs_cache_size = 0
-virtio_fs_daemon = '/opt/confidential-containers/libexec/virtiofsd'
+virtio_fs_daemon = '/opt/kata/libexec/virtiofsd'
 virtio_fs_extra_args = ['--thread-pool-size=1', '--announce-submounts']
 virtio_fs_queue_size = 1024
 
@@ -30,16 +30,14 @@ virtio_fs_queue_size = 1024
 [Agent.kata]
 dial_timeout = 90
 
-[Image]
-service_offload = false
-
 [Runtime]
+create_container_timeout = 60
+dan_conf = '/run/kata-containers/dans'
 disable_guest_empty_dir = false
 disable_guest_seccomp = true
 experimental = []
 internetworking_model = 'tcfilter'
 sandbox_bind_mounts = []
 sandbox_cgroup_only = true
-static_sandbox_default_workload_mem = 1792
 static_sandbox_resource_mgmt = true
 vfio_mode = 'guest-kernel'

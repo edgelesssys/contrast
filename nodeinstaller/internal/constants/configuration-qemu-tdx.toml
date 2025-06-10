@@ -1,41 +1,41 @@
-# upstream source: https://github.com/kata-containers/kata-containers/releases/download/3.16.0/kata-static-3.16.0-amd64.tar.xz
+# upstream source: https://github.com/kata-containers/kata-containers/releases/download/3.17.0/kata-static-3.17.0-amd64.tar.xz
 [agent.kata]
-debug_console_enabled = false
 dial_timeout = 60
-enable_debug = false
 kernel_modules = []
+
+[factory]
 
 [hypervisor.qemu]
 block_device_aio = "io_uring"
 block_device_driver = "virtio-scsi"
 confidential_guest = true
-cpu_features = "-vmx-rdseed-exit,pmu=off"
+cpu_features = "pmu=off"
 default_bridges = 1
 default_maxmemory = 0
 default_maxvcpus = 0
+default_memory = 2048
 default_vcpus = 1
 disable_block_device_use = false
 disable_guest_selinux = true
 disable_selinux = false
 enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params", "default_vcpus", "default_memory"]
-enable_debug = false
 enable_iothreads = false
 enable_vhost_user_store = false
-firmware = "/usr/share/ovmf/OVMF.fd"
+firmware = "/opt/kata/share/ovmf/OVMF.fd"
 firmware_volume = ""
 image = "/opt/kata/share/kata-containers/kata-containers-confidential.img"
 kernel = "/opt/kata/share/kata-containers/vmlinuz-confidential.container"
-kernel_params = ""
+kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1 rootfs_verity.scheme=dm-verity rootfs_verity.hash=9c3e53d21fc5f89f60131eeb28857d3b30abee5376a2c3f0dad4356dcf652053"
 machine_accelerators = ""
 machine_type = "q35"
-path = "/usr/bin/qemu-system-x86_64"
+path = "PLACEHOLDER_FOR_DISTRO_QEMU_WITH_TDX_SUPPORT"
 pflashes = []
-rootfs_type = "erofs"
-shared_fs = "virtio-9p"
+rootfs_type = "ext4"
+shared_fs = "none"
 tdx_quote_generation_service_socket_port = 4050
 valid_entropy_sources = ["/dev/urandom", "/dev/random", ""]
 valid_file_mem_backends = [""]
-valid_hypervisor_paths = ["/usr/bin/qemu-system-x86_64"]
+valid_hypervisor_paths = ["PLACEHOLDER_FOR_DISTRO_QEMU_WITH_TDX_SUPPORT"]
 valid_vhost_user_store_paths = ["/var/run/kata-containers/vhost-user"]
 valid_virtio_fs_daemon_paths = ["/opt/kata/libexec/virtiofsd"]
 vhost_user_reconnect_timeout_sec = 0
@@ -48,12 +48,12 @@ virtio_fs_queue_size = 1024
 
 [runtime]
 create_container_timeout = 60
+dan_conf = "/run/kata-containers/dans"
 disable_guest_empty_dir = false
 disable_guest_seccomp = true
-enable_debug = false
 experimental = []
 internetworking_model = "tcfilter"
 sandbox_bind_mounts = []
-sandbox_cgroup_only = true
+sandbox_cgroup_only = false
 static_sandbox_resource_mgmt = true
 vfio_mode = "guest-kernel"

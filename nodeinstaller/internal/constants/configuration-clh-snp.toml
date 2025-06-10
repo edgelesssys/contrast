@@ -1,42 +1,38 @@
 # upstream source: https://github.com/kata-containers/kata-containers/releases/download/3.17.0/kata-static-3.17.0-amd64.tar.xz
 [agent.kata]
-dial_timeout = 90
+dial_timeout = 45
 
 [hypervisor.clh]
 block_device_driver = "virtio-blk"
-confidential_guest = true
 default_maxmemory = 0
 default_maxvcpus = 0
+default_memory = 2048
 default_vcpus = 1
 disable_guest_selinux = true
 disable_selinux = false
 enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params"]
-igvm = "/opt/edgeless/share/kata-containers-igvm.img"
-image = "/opt/edgeless/share/kata-containers.img"
-kernel_params = ""
-path = "/opt/edgeless/bin/cloud-hypervisor-snp"
+image = "/opt/kata/share/kata-containers/kata-containers.img"
+kernel = "/opt/kata/share/kata-containers/vmlinux.container"
+kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1"
+path = "/opt/kata/bin/cloud-hypervisor"
 rootfs_type = "ext4"
-sev_snp_guest = true
-shared_fs = "none"
-snp_guest_policy = 196608
-valid_hypervisor_paths = ["/opt/edgeless/bin/cloud-hypervisor-snp"]
-valid_virtio_fs_daemon_paths = ["/opt/confidential-containers/libexec/virtiofsd"]
+shared_fs = "virtio-fs"
+valid_hypervisor_paths = ["/opt/kata/bin/cloud-hypervisor"]
+valid_virtio_fs_daemon_paths = ["/opt/kata/libexec/virtiofsd"]
 virtio_fs_cache = "auto"
 virtio_fs_cache_size = 0
-virtio_fs_daemon = "/opt/confidential-containers/libexec/virtiofsd"
+virtio_fs_daemon = "/opt/kata/libexec/virtiofsd"
 virtio_fs_extra_args = ["--thread-pool-size=1", "--announce-submounts"]
 virtio_fs_queue_size = 1024
 
-[image]
-service_offload = false
-
 [runtime]
+create_container_timeout = 60
+dan_conf = "/run/kata-containers/dans"
 disable_guest_empty_dir = false
 disable_guest_seccomp = true
 experimental = []
 internetworking_model = "tcfilter"
 sandbox_bind_mounts = []
-sandbox_cgroup_only = true
-static_sandbox_default_workload_mem = 1792
-static_sandbox_resource_mgmt = true
+sandbox_cgroup_only = false
+static_sandbox_resource_mgmt = false
 vfio_mode = "guest-kernel"
