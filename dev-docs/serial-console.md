@@ -46,7 +46,7 @@ CONNECT 1026
 
 ## Bare-Metal
 
-Copy `packages/kata-debug-shell.sh` to the host and run it, specifying the `<namespace/pod-name>` as the only argument.
+Copy `packages/kata-debug-shell/kata-debug-shell.sh` to the host and run it, specifying the `<namespace/pod-name>` as the only argument.
 
 
 ```sh
