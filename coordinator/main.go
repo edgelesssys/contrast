@@ -60,7 +60,7 @@ func main() {
 }
 
 func run() (retErr error) {
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	ctxSignal, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
 	fmt.Fprintf(os.Stderr, "Contrast Coordinator %s\n", constants.Version)
@@ -131,7 +131,7 @@ func run() (retErr error) {
 		return fmt.Errorf("creating transit engine API server: %w", err)
 	}
 
-	eg, ctx := errgroup.WithContext(ctx)
+	eg, ctx := errgroup.WithContext(ctxSignal)
 
 	eg.Go(func() error {
 		_, enableMetrics := os.LookupEnv(metricsEnvVar)
@@ -232,7 +232,11 @@ func run() (retErr error) {
 
 	eg.Go(func() error {
 		<-ctx.Done()
-		logger.Info("Context done, shutting down", "err", ctx.Err())
+		if ctxSignal.Err() != nil {
+			logger.Info("Received signal, shutting down")
+		} else {
+			logger.Info("Context done, shutting down", "err", ctx.Err())
+		}
 		// New context for cleanup, Kubernetes grace period is 30 seconds.
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
