@@ -756,6 +756,7 @@ func Vault(namespace string) []any {
 			WithTemplate(
 				PodTemplateSpec().
 					WithLabels(map[string]string{"app.kubernetes.io/name": "vault"}).
+					WithAnnotations(map[string]string{"contrast.edgeless.systems/workload-secret-id": "vault_unsealing"}).
 					WithSpec(PodSpec().
 						WithContainers(
 							Container().
