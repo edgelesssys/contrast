@@ -84,10 +84,24 @@ func KataRuntimeConfig(
 		}
 		config.Hypervisor["clh"]["path"] = filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")
 		config.Hypervisor["clh"]["igvm"] = filepath.Join(baseDir, "share", "kata-containers-igvm.img")
+		config.Hypervisor["clh"]["kernel"] = nil
 		config.Hypervisor["clh"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
 		config.Hypervisor["clh"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
 		config.Hypervisor["clh"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")}
 		config.Hypervisor["clh"]["enable_debug"] = debug
+		config.Hypervisor["clh"]["confidential_guest"] = true
+		config.Hypervisor["clh"]["sev_snp_guest"] = true
+		config.Hypervisor["clh"]["shared_fs"] = "none"
+		config.Hypervisor["clh"]["snp_guest_policy"] = 196608
+
+		config.Agent["kata"]["dial_timeout"] = 90
+
+		config.Image = make(map[string]any)
+		config.Image["service_offload"] = false
+
+		config.Runtime["sandbox_cgroup_only"] = true
+		config.Runtime["static_sandbox_resource_mgmt"] = true
+		config.Runtime["static_sandbox_default_workload_mem"] = 1792
 	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
@@ -99,6 +113,7 @@ func KataRuntimeConfig(
 		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")}
 		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
+		config.Hypervisor["qemu"]["rootfs_type"] = "erofs"
 		config.Hypervisor["qemu"]["shared_fs"] = "none"
 		config.Hypervisor["qemu"]["initrd"] = filepath.Join(baseDir, "share", "kata-initrd.zst")
 		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
