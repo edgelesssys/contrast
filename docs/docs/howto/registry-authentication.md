@@ -12,8 +12,6 @@ This guide is relevant if you need to authenticate with a container registry for
 2. [Install CLI](./install-cli.md)
 3. [Deploy the Contrast runtime](./workload-deployment/runtime-deployment.md)
 4. [Prepare deployment files](./workload-deployment/deployment-file-preparation.md)
-5. [Configure TLS (optional)](./workload-deployment/TLS-configuration.md)
-6. [Enable GPU support (optional)](./workload-deployment/GPU-configuration.md)
 
 ## How-to
 
