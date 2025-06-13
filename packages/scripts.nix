@@ -582,7 +582,7 @@
     ];
     text = # bash
       ''
-        old_defaults="$(git rev-parse --show-toplevel)/nodeinstaller/internal/constants"
+        old_defaults="$(git rev-parse --show-toplevel)/nodeinstaller/internal/kataconfig"
         new_defaults="${pkgs.kata.release-tarball}/opt/kata/share/defaults/kata-containers"
 
         declare -A PLATFORMS=(
