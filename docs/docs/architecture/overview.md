@@ -12,7 +12,7 @@ Contrast consists of the following main components:
   The runtime is based on Kata Containers and the Confidential Containers (CoCo) project.
 
 - **Runtime policies**:
-  strictly control Host-to-CVM communication on worker nodes and ensure that only approved workloads are allowed to start inside CVMs.
+  Strictly control host-to-CVM communication on worker nodes and ensure that only approved workloads are allowed to start inside CVMs.
 
 - **Contrast Coordinator**:
   The Contrast Coordinator is an additional service deployed to the cluster.
