@@ -224,6 +224,11 @@ const sidebars = {
           label: "Features & limitations",
           id: "architecture/features-limitations",
         },
+        {
+          type: "doc",
+          label: "Telemetry & data collection",
+          id: "architecture/telemetry",
+        },
       ],
     },
   ],
