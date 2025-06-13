@@ -1,14 +1,14 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
-package constants_test
+package kataconfig_test
 
 import (
 	_ "embed"
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
-	"github.com/edgelesssys/contrast/nodeinstaller/internal/constants"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/kataconfig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,11 +51,11 @@ func TestKataRuntimeConfig(t *testing.T) {
 			require := require.New(t)
 			assert := assert.New(t)
 
-			snpIDBlock := constants.SnpIDBlock{
+			snpIDBlock := kataconfig.SnpIDBlock{
 				IDAuth:  "PLACEHOLDER_ID_AUTH",
 				IDBlock: "PLACEHOLDER_ID_BLOCK",
 			}
-			cfg, err := constants.KataRuntimeConfig("/", platform, "", snpIDBlock, false)
+			cfg, err := kataconfig.KataRuntimeConfig("/", platform, "", snpIDBlock, false)
 			require.NoError(err)
 
 			configBytes, err := cfg.Marshal()
