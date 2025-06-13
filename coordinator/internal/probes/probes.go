@@ -6,6 +6,7 @@ package probes
 import (
 	"context"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
@@ -13,12 +14,12 @@ import (
 
 // StartupHandler is the http handler for `/probes/startup`.
 type StartupHandler struct {
-	UserapiStarted bool
-	MeshapiStarted bool
+	UserapiStarted *atomic.Bool
+	MeshapiStarted *atomic.Bool
 }
 
 func (h StartupHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
-	if !h.UserapiStarted || !h.MeshapiStarted {
+	if !h.UserapiStarted.Load() || !h.MeshapiStarted.Load() {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}

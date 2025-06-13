@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -119,12 +120,12 @@ func run() (retErr error) {
 
 	httpServer := &http.Server{}
 
-	startupHandler := probes.StartupHandler{UserapiStarted: false, MeshapiStarted: false}
+	var userapiStarted atomic.Bool
+	var meshapiStarted atomic.Bool
+
+	startupHandler := probes.StartupHandler{UserapiStarted: &userapiStarted, MeshapiStarted: &meshapiStarted}
 	livenessHandler := probes.LivenessHandler{Hist: hist}
 	readinessHandler := probes.ReadinessHandler{Guard: meshAuth}
-
-	userapiStarted := &startupHandler.UserapiStarted
-	meshapiStarted := &startupHandler.MeshapiStarted
 
 	transitAPIServer, err := transitengine.NewTransitEngineAPI(meshAuth, logger)
 	if err != nil {
@@ -163,7 +164,7 @@ func run() (retErr error) {
 		if err != nil {
 			return fmt.Errorf("failed to listen: %w", err)
 		}
-		*userapiStarted = true
+		userapiStarted.Store(true)
 		if err := userAPIServer.Serve(lis); err != nil {
 			logger.Error("Serving Coordinator API", "err", err)
 			return fmt.Errorf("serving Coordinator API: %w", err)
@@ -177,7 +178,7 @@ func run() (retErr error) {
 		if err != nil {
 			return fmt.Errorf("failed to listen: %w", err)
 		}
-		*meshapiStarted = true
+		meshapiStarted.Store(true)
 		if err := meshAPIServer.Serve(lis); err != nil {
 			logger.Error("Serving Coordinator API", "err", err)
 			return fmt.Errorf("serving Coordinator API: %w", err)

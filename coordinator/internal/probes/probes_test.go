@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/history"
@@ -83,10 +84,13 @@ func TestStartupProbe(t *testing.T) {
 
 			mux := http.NewServeMux()
 
-			handler := StartupHandler{MeshapiStarted: tc.meshapiStartedFirst, UserapiStarted: tc.userapiStartedFirst}
+			var userapiStarted atomic.Bool
+			var meshapiStarted atomic.Bool
 
-			userapiStarted := &handler.UserapiStarted
-			meshapiStarted := &handler.MeshapiStarted
+			userapiStarted.Store(tc.userapiStartedFirst)
+			meshapiStarted.Store(tc.meshapiStartedFirst)
+
+			handler := StartupHandler{MeshapiStarted: &meshapiStarted, UserapiStarted: &userapiStarted}
 
 			mux.Handle("/probes/startup", &handler)
 
@@ -99,8 +103,8 @@ func TestStartupProbe(t *testing.T) {
 			}
 
 			resp = httptest.NewRecorder()
-			*userapiStarted = tc.userapiStartedSecond
-			*meshapiStarted = tc.meshapiStartedSecond
+			userapiStarted.Store(tc.userapiStartedSecond)
+			meshapiStarted.Store(tc.meshapiStartedSecond)
 
 			mux.ServeHTTP(resp, req)
 
