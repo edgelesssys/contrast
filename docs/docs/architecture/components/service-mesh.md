@@ -91,25 +91,35 @@ spec:
 ```
 
 When invoking `contrast generate`, the resulting deployment will be injected with the
-Contrast service mesh as an init container.
+Contrast service mesh as an init container:
 
 ```yaml
 # ...
-initContainers:
-  - env:
-      - name: CONTRAST_INGRESS_PROXY_CONFIG
-        value: "web#8080#false##metrics#7890#true"
-    image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest"
-    name: contrast-service-mesh
-    restartPolicy: Always
-    securityContext:
-      capabilities:
-        add:
-          - NET_ADMIN
-      privileged: true
-    volumeMounts:
-      - name: contrast-secrets
-        mountPath: /contrast
+spec:
+    runtimeClassName: contrast-cc
+    containers:
+      - name: web-svc
+        image: ghcr.io/edgelesssys/frontend:v1.2.3@...
+        ports:
+          - containerPort: 8080
+            name: web
+          - containerPort: 7890
+            name: metrics
+    initContainers:
+      - env:
+          - name: CONTRAST_INGRESS_PROXY_CONFIG
+            value: "web#8080#false##metrics#7890#true"
+        image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest"
+        name: contrast-service-mesh
+        restartPolicy: Always
+        securityContext:
+          capabilities:
+            add:
+              - NET_ADMIN
+          privileged: true
+        volumeMounts:
+          - name: contrast-secrets
+            mountPath: /contrast
 ```
 
 Note, that changing the environment variables of the sidecar container directly will
@@ -158,73 +168,55 @@ spec:
           image: ghcr.io/edgelesssys/conversion:v1.2.3@...
 ```
 
-## Certificate authority
+## Public key Infrastructure
 
-The Coordinator acts as a certificate authority (CA) for the workloads
-defined in the manifest.
-After a workload pod's attestation has been verified by the Coordinator,
-it receives a mesh certificate and the mesh CA certificate.
-The mesh certificate can be used for example in a TLS connection as the server or
-client certificate to proof to the other party that the workload has been
-verified by the Coordinator. The other party can verify the mesh certificate
-with the mesh CA certificate. While the certificates can be used by the workload
-developer in different ways, they're automatically used in Contrast's service
-mesh to establish mTLS connections between workloads in the same deployment.
+The Coordinator establishes a public key infrastructure (PKI) for all workloads defined in the manifest. It holds three types of certificates:
 
-### Public key infrastructure
-
-The Coordinator establishes a public key infrastructure (PKI) for all workloads
-contained in the manifest. The Coordinator holds three certificates: the root CA
-certificate, the intermediate CA certificate, and the mesh CA certificate.
-The root CA certificate is a long-lasting certificate and its private key signs
-the intermediate CA certificate. The intermediate CA certificate and the mesh CA
-certificate share the same private key. This intermediate private key is used
-to sign the mesh certificates. Moreover, the intermediate private key and
-therefore the intermediate CA certificate and the mesh CA certificate are
-rotated when setting a new manifest.
+- **Root CA certificate**: A long-lived certificate used to sign the intermediate CA certificate.
+- **Intermediate CA certificate**: Shares a private key with the mesh CA certificate and is signed by the root CA. This private key is used to sign mesh certificates.
+- **Mesh CA certificate**: Used to sign workload-specific mesh certificates.
 
 ![PKI certificate chain](../../_media/contrast_pki.drawio.svg)
 
+### Certificate issuance
+
+Once a workload pod’s attestation is successfully verified by the Coordinator, it receives:
+
+- A **mesh certificate**
+- The **mesh CA certificate**
+
+The mesh certificate includes X.509 extensions based on the workload’s attestation document and can be used as a client or server certificate in TLS connections. It proves to the remote party that the workload was verified by the Coordinator. The remote party can verify the mesh certificate using the mesh CA certificate.
+
+While developers may use these certificates independently, they are also automatically used by Contrast’s service mesh for secure communication.
+
 ### Certificate rotation
 
-Depending on the configuration of the first manifest, it allows the workload
-owner to update the manifest and, therefore, the deployment.
-Workload owners and data owners can be mutually untrusted parties.
-To protect against the workload owner silently introducing malicious containers,
-the Coordinator rotates the intermediate private key every time the manifest is
-updated and, therefore, the
-intermediate CA certificate and mesh CA certificate. If the user doesn't
-trust the workload owner, they use the mesh CA certificate obtained when they
-verified the Coordinator and the manifest. This ensures that the user only
-connects to workloads defined in the manifest they verified since only those
-workloads' certificates are signed with this intermediate private key.
+Every time the manifest is updated, the Coordinator rotates the intermediate private key. As a result, both the intermediate CA certificate and the mesh CA certificate are renewed.
 
-Similarly, the service mesh also uses the mesh CA certificate obtained when the
-workload was started, so the workload only trusts endpoints that have been
-verified by the Coordinator based on the same manifest. Consequently, a
-manifest update requires a fresh rollout of the services in the service mesh.
+This mechanism protects against scenarios where a workload owner introduces unauthorized containers after verification. If a user does not trust the workload owner, they should only trust mesh certificates signed by the mesh CA certificate obtained during their own verification process.
 
-### Usage of the different certificates
+Similarly, the service mesh uses the mesh CA certificate issued when the workload was verified. Any change to the manifest requires a new rollout of the services, as the mesh CA certificate will change.
 
-- The **root CA certificate** is returned when verifying the Coordinator.
-  The data owner can use it to verify the mesh certificates of the workloads.
-  This should only be used if the data owner trusts all future updates to the
-  manifest and workloads. This is, for instance, the case when the workload owner is
-  the same entity as the data owner.
-- The **mesh CA certificate** is returned when verifying the Coordinator.
-  The data owner can use it to verify the mesh certificates of the workloads.
-  This certificate is bound to the manifest set when the Coordinator is verified.
-  If the manifest is updated, the mesh CA certificate changes.
-  New workloads will receive mesh certificates signed by the _new_ mesh CA certificate.
-  The Coordinator with the new manifest needs to be verified to retrieve the new mesh CA certificate.
-  The service mesh also uses the mesh CA certificate to verify the mesh certificates.
-- The **intermediate CA certificate** links the root CA certificate to the
-  mesh certificate so that the mesh certificate can be verified with the root CA
-  certificate. It's part of the certificate chain handed out by
-  endpoints in the service mesh.
-- The **mesh certificate** is part of the certificate chain handed out by
-  endpoints in the service mesh. During the startup of a pod, the Initializer
-  requests a certificate from the Coordinator. This mesh certificate will be returned if the Coordinator successfully
-  verifies the workload. The mesh certificate
-  contains X.509 extensions with information from the workloads attestation
-  document.
+### Service mesh integration
+
+The service mesh relies on the mesh certificates to establish mutual TLS (mTLS) connections between workloads.
+
+- During pod startup, the Initializer requests a mesh certificate from the Coordinator.
+- If attestation is successful, the Coordinator returns a mesh certificate and the mesh CA certificate.
+- These certificates are used to authenticate and authorize communication within the service mesh.
+
+Only workloads that have been verified based on the current manifest and signed by the corresponding mesh CA certificate are trusted by other services in the mesh.
+
+### Summary of certificate roles
+
+- **Root CA Certificate**
+  Returned during Coordinator verification. Can be used to verify mesh certificates if the data owner fully trusts all future manifests and updates.
+
+- **Intermediate CA Certificate**
+  Links the root CA to the mesh CA. Included in certificate chains for validation purposes.
+
+- **Mesh CA Certificate**
+  Used to verify mesh certificates. Bound to a specific manifest version and changes when the manifest is updated.
+
+- **Mesh Certificate**
+  Issued to workloads after successful attestation. Contains metadata from the attestation document and is used in mTLS communication within the service mesh.
