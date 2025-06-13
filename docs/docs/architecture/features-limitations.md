@@ -49,7 +49,7 @@ While Contrast supports integration with confidential computing-enabled GPUs, su
 This means the workload needs to verify that the GPU is indeed an NVIDIA H100 running in confidential computing mode.
 
 To simplify this process, the NVIDIA CC-Manager, which is
-[deployed alongside the NVIDIA GPU operator](howto/cluster-setup/bare-metal.md#preparing-a-cluster-for-gpu-usage), enables the use of confidential computing GPUs (CC GPUs) within the workload. With the CC-Manager in place, the workload is responsible only for attesting the GPU's integrity.
+[deployed alongside the NVIDIA GPU operator](../howto/cluster-setup/bare-metal.md#preparing-a-cluster-for-gpu-usage), enables the use of confidential computing GPUs (CC GPUs) within the workload. With the CC-Manager in place, the workload is responsible only for attesting the GPU's integrity.
 
 One way to perform this attestation is by using
 [nvTrust](https://github.com/NVIDIA/nvtrust), NVIDIA's reference implementation for GPU attestation.
