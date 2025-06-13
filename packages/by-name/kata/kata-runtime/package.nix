@@ -166,6 +166,11 @@ buildGoModule (finalAttrs: {
       # This patch makes genpolicy conform to a bug in containerd that leads to ignored additional GIDs.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11358.
       ./0025-genpolicy-ignore-groups-with-same-name-as-user.patch
+
+      # This patch fixes an issue where genpolicy can corrupt the layer cache file due to simultaneous
+      # read/write operations on the file. Instead of the upstream implementation, the cache file is opened
+      # read-only, changes are written to a tempfile, and the original file replaced by the tempfile atomically.
+      ./0026-genpolicy-prevent-corruption-of-the-layer-cache-file.patch
     ];
   };
 

@@ -1,0 +1,83 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: charludo <git@charlotteharludo.com>
+Date: Fri, 13 Jun 2025 13:37:17 +0200
+Subject: [PATCH] genpolicy: prevent corruption of the layer cache file
+
+---
+ src/tools/genpolicy/src/registry.rs | 53 +++++++++++++++--------------
+ 1 file changed, 27 insertions(+), 26 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index 89aa541cca9b19cb81958194de1559b27980e1ed..d77bdead03316f8fee404d6790862b90ea59f7b2 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -352,18 +352,26 @@ async fn get_verity_hash(
+ 
+ // the store is a json file that matches layer hashes to verity hashes
+ pub fn add_verity_to_store(cache_file: &str, diff_id: &str, verity_hash: &str) -> Result<()> {
+-    // open the json file in read mode, create it if it doesn't exist
+-    let read_file = OpenOptions::new()
+-        .read(true)
+-        .write(true)
+-        .create(true)
+-        .open(cache_file)?;
++    // Open the json file in read-only mode
++    let read_file = match OpenOptions::new().read(true).open(cache_file) {
++        Ok(file) => file,
++        // If the file did not exist, try creating it.
++        // This is necessary on the first invocation of this function.
++        // create_new() fails if the file was created elsewhere in the meantime
++        Err(e) if e.kind() == io::ErrorKind::NotFound => OpenOptions::new()
++            .read(true)
++            .write(true)
++            .create_new(true)
++            .open(cache_file)?,
++        Err(e) => return Err(anyhow!(e)),
++    };
++    FileExt::lock_exclusive(&read_file)?;
+ 
+-    let mut data: Vec<ImageLayer> = if let Ok(vec) = serde_json::from_reader(read_file) {
+-        vec
+-    } else {
+-        // Delete the malformed file here if it's present
+-        Vec::new()
++    // Return empty vector if the file is malformed
++    let mut data: Vec<ImageLayer> = match serde_json::from_reader(&read_file) {
++        Ok(data) => data,
++        Err(e) if e.is_eof() => Vec::new(), // empty file
++        Err(e) => return Err(e.into()),
+     };
+ 
+     // Add new data to the deserialized JSON
+@@ -372,23 +380,16 @@ pub fn add_verity_to_store(cache_file: &str, diff_id: &str, verity_hash: &str) -
+         verity_hash: verity_hash.to_string(),
+     });
+ 
+-    // Serialize in pretty format
+-    let serialized = serde_json::to_string_pretty(&data)?;
++    // Write the serialized data to a temporary file
++    let temp_file = tempfile::NamedTempFile::new()?;
++    serde_json::to_writer_pretty(&temp_file, &data)?;
+ 
+-    // Open the JSON file to write
+-    let file = OpenOptions::new().write(true).open(cache_file)?;
++    // Atomically replace the original cache file
++    temp_file.persist(cache_file)?;
++
++    // Unlock only after having replaced the file
++    FileExt::unlock(&read_file)?;
+ 
+-    // try to lock the file, if it fails, get the error
+-    let result = file.try_lock_exclusive();
+-    if result.is_err() {
+-        warn!("Waiting to lock file: {cache_file}");
+-        file.lock_exclusive()?;
+-    }
+-    // Write the serialized JSON to the file
+-    let mut writer = BufWriter::new(&file);
+-    writeln!(writer, "{}", serialized)?;
+-    writer.flush()?;
+-    file.unlock()?;
+     Ok(())
+ }
+ 
