@@ -21,3 +21,4 @@ It currently consists of the following parts:
 - _Policies_: The identities of your Pods, represented by the hashes of their respective runtime policies.
 - _Reference Values_: The remote attestation reference values for the Kata confidential micro-VM that's the runtime environment of your Pods.
 - _WorkloadOwnerKeyDigest_: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
+- SeedshareOwnerKeys: public keys of seedshare owners. Used to authenticate user recovery and permission to handle the secret seed.
