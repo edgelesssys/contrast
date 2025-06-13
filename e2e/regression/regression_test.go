@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"path"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -35,8 +36,8 @@ import (
 )
 
 func TestRegression(t *testing.T) {
-	yamlDir := "./e2e/regression/testdata/"
-	files, err := os.ReadDir(yamlDir)
+	dataDir := "./e2e/regression/testdata/"
+	dirs, err := os.ReadDir(dataDir)
 	require.NoError(t, err)
 
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
@@ -60,84 +61,115 @@ func TestRegression(t *testing.T) {
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 	require.True(t, t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-	for _, file := range files {
-		t.Run(file.Name(), func(t *testing.T) {
+	for _, dir := range dirs {
+		t.Run(dir.Name(), func(t *testing.T) {
 			require := require.New(t)
 
 			c := kubeclient.NewForTest(t)
 
-			resourceYAML, err := os.ReadFile(yamlDir + file.Name())
-			require.NoError(err)
-			resourceYAML = bytes.ReplaceAll(resourceYAML, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
-
-			newResources, err := kuberesource.UnmarshalApplyConfigurations(resourceYAML)
+			yamlDir := dataDir + dir.Name() + "/"
+			files, err := os.ReadDir(yamlDir)
 			require.NoError(err)
 
-			newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
-			newResources = kuberesource.AddPortForwarders(newResources)
+			var wg sync.WaitGroup
+			goroutineCounter := 0
+			filesProcessed := make(chan bool)
+			intermediateResources := resources
+			for _, file := range files {
+				resourceYAML, err := os.ReadFile(yamlDir + file.Name())
+				require.NoError(err)
+				resourceYAML = bytes.ReplaceAll(resourceYAML, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
 
-			// write the new resources.yml
-			resourceBytes, err := kuberesource.EncodeResources(append(resources, newResources...)...)
-			require.NoError(err)
-			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
+				newResources, err := kuberesource.UnmarshalApplyConfigurations(resourceYAML)
+				require.NoError(err)
 
-			resourceName, _ := strings.CutSuffix(file.Name(), ".yml")
+				newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
+				newResources = kuberesource.AddPortForwarders(newResources)
 
-			t.Cleanup(func() {
-				unstructuredResources, err := kubeapi.UnmarshalUnstructuredK8SResource(resourceYAML)
-				if err != nil {
-					t.Log("error unmarshaling yaml to unstructured resources: ", err)
-				}
-				bgDeletion := metav1.DeletePropagationBackground
-				for _, r := range unstructuredResources {
-					client, err := ct.Kubeclient.ResourceInterfaceFor(r)
-					// Using WithoutCancel here since t.Context would get canceled in cleanup and context.Background triggers the linter
-					ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(t.Context()), ct.FactorPlatformTimeout(1*time.Minute), errors.New("deletion took to long"))
-					defer cancel()
+				// write the new resources.yml
+				intermediateResources = append(intermediateResources, newResources...)
+				resourceBytes, err := kuberesource.EncodeResources(intermediateResources...)
+				require.NoError(err)
+				require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
+
+				resourceName, _ := strings.CutSuffix(file.Name(), ".yml")
+
+				t.Cleanup(func() {
+					unstructuredResources, err := kubeapi.UnmarshalUnstructuredK8SResource(resourceBytes)
 					if err != nil {
-						t.Log("error creating client for resource deletion: ", err)
+						t.Log("error unmarshaling yaml to unstructured resources: ", err)
 					}
-					if err := client.Delete(ctx, resourceName, metav1.DeleteOptions{
-						PropagationPolicy: &bgDeletion,
-					}); err != nil {
-						t.Log("error deleting resource: ", err)
+					bgDeletion := metav1.DeletePropagationBackground
+					for _, r := range unstructuredResources {
+						client, err := ct.Kubeclient.ResourceInterfaceFor(r)
+						// Using WithoutCancel here since t.Context would get canceled in cleanup and context.Background triggers the linter
+						ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(t.Context()), ct.FactorPlatformTimeout(1*time.Minute), errors.New("deletion took to long"))
+						defer cancel()
+						if err != nil {
+							t.Log("error creating client for resource deletion: ", err)
+						}
+						if err := client.Delete(ctx, resourceName, metav1.DeleteOptions{
+							PropagationPolicy: &bgDeletion,
+						}); err != nil {
+							t.Log("error deleting resource: ", err)
+						}
 					}
+				})
+
+				unmarshalledYAML := make(map[string]interface{})
+				require.NoError(yaml.Unmarshal(resourceYAML, &unmarshalledYAML))
+				resourceType, ok := unmarshalledYAML["kind"].(string)
+				require.True(ok)
+
+				if resourceType == "CronJob" {
+					// Resource waiting is overly complicated so CronJob is only tested for generate.
+					require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+					return
 				}
-			})
 
-			unmarshalledYAML := make(map[string]interface{})
-			require.NoError(yaml.Unmarshal(resourceYAML, &unmarshalledYAML))
-			resourceType, ok := unmarshalledYAML["kind"].(string)
-			require.True(ok)
-
+				wg.Add(1)
+				goroutineCounter++
+				go func() {
+					defer wg.Done()
+					assert := assert.New(t)
+					for {
+						select {
+						case <-filesProcessed:
+							ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
+							defer cancel()
+							switch resourceType {
+							case "Deployment":
+								assert.NoError(c.WaitForDeployment(ctx, ct.Namespace, resourceName))
+							case "DaemonSet":
+								assert.NoError(c.WaitForDaemonSet(ctx, ct.Namespace, resourceName))
+							case "Pod":
+								assert.NoError(c.WaitForPod(ctx, ct.Namespace, resourceName))
+							case "Job":
+								assert.NoError(c.WaitForJob(ctx, ct.Namespace, resourceName))
+							case "ReplicaSet":
+								assert.NoError(c.WaitForReplicaSet(ctx, ct.Namespace, resourceName))
+							case "ReplicationController":
+								assert.NoError(c.WaitForReplicationController(ctx, ct.Namespace, resourceName))
+							}
+							return
+						default:
+							time.Sleep(time.Second * 5)
+						}
+					}
+				}()
+			}
 			// generate, set, deploy and verify the new policy
 			require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
-			if resourceType == "CronJob" {
-				// Resource waiting is overly complicated so CronJob is only tested for generate.
-				return
-			}
 
 			require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 			require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
-			defer cancel()
-
-			switch resourceType {
-			case "Deployment":
-				require.NoError(c.WaitForDeployment(ctx, ct.Namespace, resourceName))
-			case "DaemonSet":
-				require.NoError(c.WaitForDaemonSet(ctx, ct.Namespace, resourceName))
-			case "Pod":
-				require.NoError(c.WaitForPod(ctx, ct.Namespace, resourceName))
-			case "Job":
-				require.NoError(c.WaitForJob(ctx, ct.Namespace, resourceName))
-			case "ReplicaSet":
-				require.NoError(c.WaitForReplicaSet(ctx, ct.Namespace, resourceName))
-			case "ReplicationController":
-				require.NoError(c.WaitForReplicationController(ctx, ct.Namespace, resourceName))
+			for range goroutineCounter {
+				filesProcessed <- true
 			}
+			wg.Wait()
+			close(filesProcessed)
 		})
 	}
 
