@@ -169,7 +169,7 @@ To avoid this, set both values equally. Set both to 700Mi for each pod in this e
 
 ### Add service mesh annotations
 
-Contrast provides its own PKI system rooted in attestation.
+Contrast provides its own PKI based on attestation.
 The **Contrast Coordinator**, a service deployed alongside your workloads, acts as both:
 
 - The central remote attestation service.
@@ -306,7 +306,7 @@ curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coord
 
 Run the `generate` command to create execution policies that strictly control communication between the host and CVMs on each worker node and define which workloads are allowed to run. These policies are automatically added as annotations to your deployment files.
 
-The command also generates a `manifest.json` file, which contains the trusted reference state of your deployment.
+The command also generates a `manifest.json` file, which contains the trusted reference values of your deployment.
 
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
