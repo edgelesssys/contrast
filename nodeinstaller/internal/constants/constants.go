@@ -82,73 +82,87 @@ func KataRuntimeConfig(
 		if err := toml.Unmarshal([]byte(kataCLHSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
+		// Use the resources installed by Contrast node-installer.
 		config.Hypervisor["clh"]["path"] = filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")
 		config.Hypervisor["clh"]["igvm"] = filepath.Join(baseDir, "share", "kata-containers-igvm.img")
-		config.Hypervisor["clh"]["kernel"] = nil
+		config.Hypervisor["clh"]["kernel"] = nil       // Already part of IGVM.
+		config.Hypervisor["clh"]["kernel_params"] = "" // Already part of IGVM.
 		config.Hypervisor["clh"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
-		config.Hypervisor["clh"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
 		config.Hypervisor["clh"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")}
+		// Fix and align guest memory calculation.
+		config.Hypervisor["clh"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
+		config.Runtime["sandbox_cgroup_only"] = true
+		// Conditionally enable debug mode.
 		config.Hypervisor["clh"]["enable_debug"] = debug
+		// Increase dial timeout and accept slower guest startup times.
+		config.Agent["kata"]["dial_timeout"] = 90
+
+		// Upstream clh config for SNP doesn't exist, configure it here.
+		// TODO(katexochen): Add a clh-snp configuration upstream.
 		config.Hypervisor["clh"]["confidential_guest"] = true
 		config.Hypervisor["clh"]["sev_snp_guest"] = true
 		config.Hypervisor["clh"]["shared_fs"] = "none"
 		config.Hypervisor["clh"]["snp_guest_policy"] = 196608
-
-		config.Agent["kata"]["dial_timeout"] = 90
-
-		config.Image = make(map[string]any)
-		config.Image["service_offload"] = false
-
-		config.Runtime["sandbox_cgroup_only"] = true
 		config.Runtime["static_sandbox_resource_mgmt"] = true
-		config.Runtime["static_sandbox_default_workload_mem"] = 1792
 	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
-		config.Runtime["force_guest_pull"] = true
+		// Use the resources installed by Contrast node-installer.
 		config.Hypervisor["qemu"]["path"] = filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "tdx", "share", "OVMF.fd")
-		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
-		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
-		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")}
-		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
-		config.Hypervisor["qemu"]["rootfs_type"] = "erofs"
-		config.Hypervisor["qemu"]["shared_fs"] = "none"
 		config.Hypervisor["qemu"]["initrd"] = filepath.Join(baseDir, "share", "kata-initrd.zst")
 		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
+		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
+		config.Hypervisor["qemu"]["rootfs_type"] = "erofs"
+		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")}
+		// Fix and align guest memory calculation.
+		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
+		config.Runtime["sandbox_cgroup_only"] = true
+		// Force container image gust pull so we don't have to use nydus-snapshotter.
+		config.Runtime["force_guest_pull"] = true
 		// Replace the kernel params entirely (and don't append) since that's
 		// also what we do when calculating the launch measurement.
 		config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
+		// Conditionally enable debug mode.
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
 		}
+		// TODO: Check again why we need this and how we can avoid it.
+		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
 	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU,
 		platforms.MetalQEMUSNPGPU:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
-		config.Runtime["force_guest_pull"] = true
+		// Use the resources installed by Contrast node-installer.
 		config.Hypervisor["qemu"]["path"] = filepath.Join(baseDir, "snp", "bin", "qemu-system-x86_64")
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "snp", "share", "OVMF.fd")
-		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
-		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
-		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
-		config.Hypervisor["qemu"]["shared_fs"] = "none"
-		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "snp", "bin", "qemu-system-x86_64")}
-		config.Hypervisor["qemu"]["rootfs_type"] = "erofs"
 		config.Hypervisor["qemu"]["initrd"] = filepath.Join(baseDir, "share", "kata-initrd.zst")
 		config.Hypervisor["qemu"]["kernel"] = filepath.Join(baseDir, "share", "kata-kernel")
+		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
+		config.Hypervisor["qemu"]["rootfs_type"] = "erofs"
+		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "snp", "bin", "qemu-system-x86_64")}
+		// Fix and align guest memory calculation.
+		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
+		config.Runtime["sandbox_cgroup_only"] = true
+		// Force container image gust pull so we don't have to use nydus-snapshotter.
+		config.Runtime["force_guest_pull"] = true
 		// Replace the kernel params entirely (and don't append) since that's
 		// also what we do when calculating the launch measurement.
 		config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
+		// TODO: Check again why we need this and how we can avoid it.
+		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
 
+		// Add SNP ID block to protect against migration attacks.
 		config.Hypervisor["qemu"]["snp_id_block"] = snpIDBlock.IDBlock
 		config.Hypervisor["qemu"]["snp_id_auth"] = snpIDBlock.IDAuth
 
+		// Conditionally enable debug mode.
 		if debug {
 			config.Hypervisor["qemu"]["enable_debug"] = true
 		}
+
 		// GPU-specific settings
 		if platform == platforms.K3sQEMUSNPGPU || platform == platforms.MetalQEMUSNPGPU {
 			config.Hypervisor["qemu"]["guest_hook_path"] = "/usr/share/oci/hooks"
