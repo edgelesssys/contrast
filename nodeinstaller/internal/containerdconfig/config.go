@@ -1,12 +1,89 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
+package containerdconfig
 
-package config
+import (
+	_ "embed"
+	"fmt"
+	"path/filepath"
 
-// ContainerdConfig provides containerd configuration data.
+	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/pelletier/go-toml/v2"
+)
+
+// base is the base configuration file for containerd
+//
+//go:embed containerd-config.toml
+var base string
+
+// Base returns the base containerd configuration.
+func Base() Config {
+	var config Config
+	if err := toml.Unmarshal([]byte(base), &config); err != nil {
+		panic(err) // should never happen
+	}
+	return config
+}
+
+// RuntimeFragment returns the containerd runtime configuration fragment.
+func RuntimeFragment(baseDir, snapshotter string, platform platforms.Platform) (*Runtime, error) {
+	cfg := Runtime{
+		Type:                         "io.containerd.contrast-cc.v2",
+		Path:                         filepath.Join(baseDir, "bin", "containerd-shim-contrast-cc-v2"),
+		PodAnnotations:               []string{"io.katacontainers.*"},
+		PrivilegedWithoutHostDevices: true,
+	}
+
+	switch platform {
+	case platforms.AKSCloudHypervisorSNP:
+		cfg.Options = map[string]any{
+			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
+		}
+		cfg.Snapshotter = snapshotter
+	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+		cfg.Options = map[string]any{
+			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
+		}
+	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU,
+		platforms.MetalQEMUSNPGPU:
+		cfg.Options = map[string]any{
+			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-snp.toml"),
+		}
+		// For GPU support, we need to pass through the CDI annotations.
+		if platform == platforms.K3sQEMUSNPGPU || platform == platforms.MetalQEMUSNPGPU {
+			cfg.PodAnnotations = append(cfg.PodAnnotations, "cdi.k8s.io/*")
+		}
+	default:
+		return nil, fmt.Errorf("unsupported platform: %s", platform)
+	}
+
+	return &cfg, nil
+}
+
+// CRIFQDN is the fully qualified domain name of the CRI service, which depends on the containerd config version.
+func CRIFQDN(v int) string {
+	switch v {
+	case 3:
+		return "io.containerd.cri.v1.runtime"
+	default:
+		return "io.containerd.grpc.v1.cri"
+	}
+}
+
+// ImagesFQDN is the fully qualified domain name of the images plugin, which was factored out of the CRI plugin in containerd v2.
+func ImagesFQDN(v int) string {
+	switch v {
+	case 3:
+		return "io.containerd.cri.v1.images"
+	default:
+		return "io.containerd.grpc.v1.cri"
+	}
+}
+
+// Config provides containerd configuration data.
 // This is a simplified version of the actual struct.
 // Source: https://github.com/containerd/containerd/blob/dcf2847247e18caba8dce86522029642f60fe96b/services/server/config/config.go#L35
-type ContainerdConfig struct {
+type Config struct {
 	// Version of the config file
 	Version int `toml:"version"`
 	// Root is the path to a directory where containerd will store persistent data

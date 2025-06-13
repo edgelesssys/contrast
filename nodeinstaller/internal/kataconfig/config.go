@@ -1,7 +1,7 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
-package constants
+package kataconfig
 
 import (
 	_ "embed"
@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
-	"github.com/edgelesssys/contrast/nodeinstaller/internal/config"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/pelletier/go-toml/v2"
@@ -36,37 +35,12 @@ var (
 	//go:embed configuration-qemu-snp.toml
 	kataBareMetalQEMUSNPBaseConfig string
 
-	// containerdBaseConfig is the base configuration file for containerd
-	//
-	//go:embed containerd-config.toml
-	containerdBaseConfig string
-
 	//go:embed snp-id-blocks.json
 	snpIDBlocks string
 
 	// RuntimeNamePlaceholder is the placeholder for the per-runtime path (i.e. /opt/edgeless/contrast-cc...) in the target file paths.
 	RuntimeNamePlaceholder = "@@runtimeName@@"
 )
-
-// CRIFQDN is the fully qualified domain name of the CRI service, which depends on the containerd config version.
-func CRIFQDN(v int) string {
-	switch v {
-	case 3:
-		return "io.containerd.cri.v1.runtime"
-	default:
-		return "io.containerd.grpc.v1.cri"
-	}
-}
-
-// ImagesFQDN is the fully qualified domain name of the images plugin, which was factored out of the CRI plugin in containerd v2.
-func ImagesFQDN(v int) string {
-	switch v {
-	case 3:
-		return "io.containerd.cri.v1.images"
-	default:
-		return "io.containerd.grpc.v1.cri"
-	}
-}
 
 // KataRuntimeConfig returns the Kata runtime configuration.
 func KataRuntimeConfig(
@@ -75,8 +49,8 @@ func KataRuntimeConfig(
 	qemuExtraKernelParams string,
 	snpIDBlock SnpIDBlock,
 	debug bool,
-) (*config.KataRuntimeConfig, error) {
-	var config config.KataRuntimeConfig
+) (*Config, error) {
+	var config Config
 	switch platform {
 	case platforms.AKSCloudHypervisorSNP:
 		if err := toml.Unmarshal([]byte(kataCLHSNPBaseConfig), &config); err != nil {
@@ -183,50 +157,6 @@ func KataRuntimeConfig(
 	return &config, nil
 }
 
-// ContainerdBaseConfig returns the base containerd configuration.
-func ContainerdBaseConfig() config.ContainerdConfig {
-	var config config.ContainerdConfig
-	if err := toml.Unmarshal([]byte(containerdBaseConfig), &config); err != nil {
-		panic(err) // should never happen
-	}
-	return config
-}
-
-// ContainerdRuntimeConfigFragment returns the containerd runtime configuration fragment.
-func ContainerdRuntimeConfigFragment(baseDir, snapshotter string, platform platforms.Platform) (*config.Runtime, error) {
-	cfg := config.Runtime{
-		Type:                         "io.containerd.contrast-cc.v2",
-		Path:                         filepath.Join(baseDir, "bin", "containerd-shim-contrast-cc-v2"),
-		PodAnnotations:               []string{"io.katacontainers.*"},
-		PrivilegedWithoutHostDevices: true,
-	}
-
-	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
-		cfg.Options = map[string]any{
-			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
-		}
-		cfg.Snapshotter = snapshotter
-	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
-		cfg.Options = map[string]any{
-			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
-		}
-	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU,
-		platforms.MetalQEMUSNPGPU:
-		cfg.Options = map[string]any{
-			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-snp.toml"),
-		}
-		// For GPU support, we need to pass through the CDI annotations.
-		if platform == platforms.K3sQEMUSNPGPU || platform == platforms.MetalQEMUSNPGPU {
-			cfg.PodAnnotations = append(cfg.PodAnnotations, "cdi.k8s.io/*")
-		}
-	default:
-		return nil, fmt.Errorf("unsupported platform: %s", platform)
-	}
-
-	return &cfg, nil
-}
-
 // SnpIDBlock represents the SNP ID block and ID auth used for SEV-SNP guests.
 type SnpIDBlock struct {
 	IDBlock string `json:"idBlock"`
@@ -253,3 +183,34 @@ func SnpIDBlockForPlatform(platform platforms.Platform, productName sevsnp.SevPr
 	}
 	return block, nil
 }
+
+// Config is the configuration for the Kata runtime.
+// Source: https://github.com/kata-containers/kata-containers/blob/4029d154ba0c26fcf4a8f9371275f802e3ef522c/src/runtime/pkg/katautils/Config.go
+// This is a simplified version of the actual configuration.
+type Config struct {
+	Hypervisor map[string]hypervisorConfig
+	Agent      map[string]agentConfig
+	Image      imageConfig
+	Factory    factoryConfig
+	Runtime    runtimeConfig
+}
+
+// Marshal encodes the configuration as TOML.
+func (k *Config) Marshal() ([]byte, error) {
+	return toml.Marshal(k)
+}
+
+// imageConfig is the configuration for the image.
+type imageConfig map[string]any
+
+// factoryConfig is the configuration for the factory.
+type factoryConfig map[string]any
+
+// hypervisorConfig is the configuration for the hypervisor.
+type hypervisorConfig map[string]any
+
+// runtimeConfig is the configuration for the Kata runtime.
+type runtimeConfig map[string]any
+
+// agentConfig is the configuration for the agent.
+type agentConfig map[string]any

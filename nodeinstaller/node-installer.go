@@ -18,18 +18,19 @@ import (
 	"time"
 
 	"github.com/coreos/go-systemd/v22/dbus"
-	globalconstants "github.com/edgelesssys/contrast/internal/constants"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/asset"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/config"
-	"github.com/edgelesssys/contrast/nodeinstaller/internal/constants"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/containerdconfig"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/kataconfig"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/pelletier/go-toml/v2"
 )
 
 func main() {
-	fmt.Fprintf(os.Stderr, "Contrast node-installer %s\n", globalconstants.Version)
+	fmt.Fprintf(os.Stderr, "Contrast node-installer %s\n", constants.Version)
 	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
 
 	shouldRestartContainerd := flag.Bool("restart", true, "Restart containerd after the runtime installation to make the changes effective.")
@@ -80,7 +81,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	// Copy the files
 	for _, file := range config.Files {
 		// Replace @@runtimeName@@ in the target path with the actual base directory.
-		targetPath := strings.ReplaceAll(file.Path, constants.RuntimeNamePlaceholder, runtimeHandlerName)
+		targetPath := strings.ReplaceAll(file.Path, kataconfig.RuntimeNamePlaceholder, runtimeHandlerName)
 
 		fmt.Printf("Fetching %q to %q\n", file.URL, targetPath)
 
@@ -184,11 +185,11 @@ func envWithDefault(key, dflt string) string {
 }
 
 func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams string, debugRuntime bool) error {
-	snpIDBlock, err := constants.SnpIDBlockForPlatform(platform, abi.SevProduct().Name)
+	snpIDBlock, err := kataconfig.SnpIDBlockForPlatform(platform, abi.SevProduct().Name)
 	if err != nil {
 		return err
 	}
-	kataRuntimeConfig, err := constants.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, snpIDBlock, debugRuntime)
+	kataRuntimeConfig, err := kataconfig.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, snpIDBlock, debugRuntime)
 	if err != nil {
 		return fmt.Errorf("generating kata runtime config: %w", err)
 	}
@@ -204,7 +205,7 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	if err != nil {
 		fmt.Printf("Failed to parse existing containerd config: %v\n", err)
 		fmt.Println("Creating a new containerd base config.")
-		existing = constants.ContainerdBaseConfig()
+		existing = containerdconfig.Base()
 	}
 
 	if debugRuntime {
@@ -214,7 +215,7 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 
 	// Ensure section for the snapshotter proxy plugin exists.
 	if existing.ProxyPlugins == nil {
-		existing.ProxyPlugins = make(map[string]config.ProxyPlugin)
+		existing.ProxyPlugins = make(map[string]containerdconfig.ProxyPlugin)
 	}
 
 	var snapshotterName, socketName string
@@ -223,15 +224,15 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 		// Add the snapshotter proxy plugin.
 		snapshotterName = fmt.Sprintf("tardev-%s", runtimeHandler)
 		socketName = fmt.Sprintf("/run/containerd/tardev-snapshotter-%s.sock", runtimeHandler)
-		existing.ProxyPlugins[snapshotterName] = config.ProxyPlugin{
+		existing.ProxyPlugins[snapshotterName] = containerdconfig.ProxyPlugin{
 			Type:    "snapshot",
 			Address: socketName,
 		}
 	}
 
 	// Add contrast-cc runtime
-	runtimes := ensureMapPath(&existing.Plugins, constants.CRIFQDN(existing.Version), "containerd", "runtimes")
-	containerdRuntimeConfig, err := constants.ContainerdRuntimeConfigFragment(basePath, snapshotterName, platform)
+	runtimes := ensureMapPath(&existing.Plugins, containerdconfig.CRIFQDN(existing.Version), "containerd", "runtimes")
+	containerdRuntimeConfig, err := containerdconfig.RuntimeFragment(basePath, snapshotterName, platform)
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime config: %w", err)
 	}
@@ -270,18 +271,18 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	return os.Rename(tmpFile.Name(), configPath)
 }
 
-func parseExistingContainerdConfig(path string) ([]byte, config.ContainerdConfig, error) {
+func parseExistingContainerdConfig(path string) ([]byte, containerdconfig.Config, error) {
 	// Read the rendered config instead of the template, as we can't parse the template.
 	// We then write the rendered config to the template path later.
 	renderedPath, isRendered := strings.CutSuffix(path, ".tmpl")
 	configData, err := os.ReadFile(renderedPath)
 	if err != nil {
-		return nil, config.ContainerdConfig{}, err
+		return nil, containerdconfig.Config{}, err
 	}
 
-	var cfg config.ContainerdConfig
+	var cfg containerdconfig.Config
 	if err := toml.Unmarshal(configData, &cfg); err != nil {
-		return nil, config.ContainerdConfig{}, err
+		return nil, containerdconfig.Config{}, err
 	}
 
 	if !isRendered {
@@ -296,7 +297,7 @@ func parseExistingContainerdConfig(path string) ([]byte, config.ContainerdConfig
 		// The template file will be created by us, pretend that it's empty right now.
 		return []byte{}, cfg, nil
 	} else if err != nil {
-		return nil, config.ContainerdConfig{}, fmt.Errorf("reading containerd config template %s: %w", path, err)
+		return nil, containerdconfig.Config{}, fmt.Errorf("reading containerd config template %s: %w", path, err)
 	}
 	return configData, cfg, nil
 }
