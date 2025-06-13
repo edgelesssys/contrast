@@ -23,20 +23,21 @@ import (
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
-	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/elazarl/goproxy"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
+	applybatchv1 "k8s.io/client-go/applyconfigurations/batch/v1"
+	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
 func TestRegression(t *testing.T) {
-	yamlDir := "./e2e/regression/testdata/"
-	files, err := os.ReadDir(yamlDir)
+	dataDir := "./e2e/regression/testdata/"
+	dirs, err := os.ReadDir(dataDir)
 	require.NoError(t, err)
 
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
@@ -60,60 +61,53 @@ func TestRegression(t *testing.T) {
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 	require.True(t, t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-	for _, file := range files {
-		t.Run(file.Name(), func(t *testing.T) {
+	for _, dir := range dirs {
+		if !dir.IsDir() {
+			continue
+		}
+
+		t.Run(dir.Name(), func(t *testing.T) {
 			require := require.New(t)
 
 			c := kubeclient.NewForTest(t)
 
-			resourceYAML, err := os.ReadFile(yamlDir + file.Name())
-			require.NoError(err)
-			resourceYAML = bytes.ReplaceAll(resourceYAML, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
-
-			newResources, err := kuberesource.UnmarshalApplyConfigurations(resourceYAML)
+			yamlDir := dataDir + dir.Name() + "/"
+			files, err := os.ReadDir(yamlDir)
 			require.NoError(err)
 
-			newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
-			newResources = kuberesource.AddPortForwarders(newResources)
+			containsCronJob := false
+			intermediateResources := resources
+			for _, file := range files {
+				resourceYAML, err := os.ReadFile(yamlDir + file.Name())
+				require.NoError(err)
+				resourceYAML = bytes.ReplaceAll(resourceYAML, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
 
+				newResources, err := kuberesource.UnmarshalApplyConfigurations(resourceYAML)
+				require.NoError(err)
+
+				newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
+				newResources = kuberesource.AddPortForwarders(newResources)
+
+				intermediateResources = append(intermediateResources, newResources...)
+
+				// Check if we are testing a cron job
+				unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
+				require.NoError(err)
+				for _, resource := range unstructuredResources {
+					if resource.GetKind() == "CronJob" {
+						containsCronJob = true
+					}
+				}
+			}
 			// write the new resources.yml
-			resourceBytes, err := kuberesource.EncodeResources(append(resources, newResources...)...)
+			resourceBytes, err := kuberesource.EncodeResources(intermediateResources...)
 			require.NoError(err)
 			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
 
-			resourceName, _ := strings.CutSuffix(file.Name(), ".yml")
-
-			t.Cleanup(func() {
-				unstructuredResources, err := kubeapi.UnmarshalUnstructuredK8SResource(resourceYAML)
-				if err != nil {
-					t.Log("error unmarshaling yaml to unstructured resources: ", err)
-				}
-				bgDeletion := metav1.DeletePropagationBackground
-				for _, r := range unstructuredResources {
-					client, err := ct.Kubeclient.ResourceInterfaceFor(r)
-					// Using WithoutCancel here since t.Context would get canceled in cleanup and context.Background triggers the linter
-					ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(t.Context()), ct.FactorPlatformTimeout(1*time.Minute), errors.New("deletion took to long"))
-					defer cancel()
-					if err != nil {
-						t.Log("error creating client for resource deletion: ", err)
-					}
-					if err := client.Delete(ctx, resourceName, metav1.DeleteOptions{
-						PropagationPolicy: &bgDeletion,
-					}); err != nil {
-						t.Log("error deleting resource: ", err)
-					}
-				}
-			})
-
-			unmarshalledYAML := make(map[string]interface{})
-			require.NoError(yaml.Unmarshal(resourceYAML, &unmarshalledYAML))
-			resourceType, ok := unmarshalledYAML["kind"].(string)
-			require.True(ok)
-
 			// generate, set, deploy and verify the new policy
 			require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
-			if resourceType == "CronJob" {
-				// Resource waiting is overly complicated so CronJob is only tested for generate.
+
+			if containsCronJob {
 				return
 			}
 
@@ -121,22 +115,28 @@ func TestRegression(t *testing.T) {
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 			require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
-			defer cancel()
-
-			switch resourceType {
-			case "Deployment":
-				require.NoError(c.WaitForDeployment(ctx, ct.Namespace, resourceName))
-			case "DaemonSet":
-				require.NoError(c.WaitForDaemonSet(ctx, ct.Namespace, resourceName))
-			case "Pod":
-				require.NoError(c.WaitForPod(ctx, ct.Namespace, resourceName))
-			case "Job":
-				require.NoError(c.WaitForJob(ctx, ct.Namespace, resourceName))
-			case "ReplicaSet":
-				require.NoError(c.WaitForReplicaSet(ctx, ct.Namespace, resourceName))
-			case "ReplicationController":
-				require.NoError(c.WaitForReplicationController(ctx, ct.Namespace, resourceName))
+			for _, resource := range intermediateResources {
+				t.Cleanup(func() {
+					if err := cleanupResource(t.Context(), resource, ct); err != nil {
+						t.Logf("failed to delete resource: %s:", err)
+					}
+				})
+				ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
+				defer cancel()
+				switch r := resource.(type) {
+				case *applyappsv1.DeploymentApplyConfiguration:
+					require.NoError(c.WaitForDeployment(ctx, ct.Namespace, *r.Name))
+				case *applyappsv1.DaemonSetApplyConfiguration:
+					require.NoError(c.WaitForDaemonSet(ctx, ct.Namespace, *r.Name))
+				case *applycorev1.PodApplyConfiguration:
+					require.NoError(c.WaitForPod(ctx, ct.Namespace, *r.Name))
+				case *applybatchv1.JobApplyConfiguration:
+					require.NoError(c.WaitForJob(ctx, ct.Namespace, *r.Name))
+				case *applyappsv1.ReplicaSetApplyConfiguration:
+					require.NoError(c.WaitForReplicaSet(ctx, ct.Namespace, *r.Name))
+				case *applycorev1.ReplicationControllerApplyConfiguration:
+					require.NoError(c.WaitForReplicationController(ctx, ct.Namespace, *r.Name))
+				}
 			}
 		})
 	}
@@ -266,4 +266,30 @@ func runCommandImpl(ctx context.Context, cmd, namespace, workDir string) error {
 	}
 
 	return errors.New("unknown command: " + cmd)
+}
+
+func cleanupResource(ctx context.Context, resource any, ct *contrasttest.ContrastTest) error {
+	unstructuredResources, err := kuberesource.ResourcesToUnstructured([]any{resource})
+	if err != nil {
+		return err
+	}
+	bgDeletion := metav1.DeletePropagationForeground
+	for _, r := range unstructuredResources {
+		if strings.Contains(r.GetName(), "coordinator") {
+			return nil
+		}
+		client, err := ct.Kubeclient.ResourceInterfaceFor(r)
+		ctx, cancel := context.WithTimeoutCause(context.WithoutCancel(ctx), ct.FactorPlatformTimeout(1*time.Minute), errors.New("deletion took to long"))
+		defer cancel()
+		if err != nil {
+			return err
+		}
+		if err := client.Delete(ctx, r.GetName(), metav1.DeleteOptions{
+			PropagationPolicy: &bgDeletion,
+		}); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
