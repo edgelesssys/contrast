@@ -12,16 +12,16 @@
     "hash": "sha256-IgdmH90yVbNCiRiDc/nIC+QWjRO0A5c4UkqxE1GUffE="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-libs-9.20.5-4.azl3.x86_64.rpm",
-    "hash": "sha256-vscshnOznOis/+8jZufHc7cCcXAcQrYVxumiCTDvZrM="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-libs-9.20.9-1.azl3.x86_64.rpm",
+    "hash": "sha256-mTnVTvvAgn+ShG28gAkxkLox39oUURvV6j2ryvWAj3w="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-license-9.20.5-4.azl3.noarch.rpm",
-    "hash": "sha256-CMFYqBGSOt8Q4QTnowc8E36j26Je7sGAp95p/pkt2M4="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-license-9.20.9-1.azl3.noarch.rpm",
+    "hash": "sha256-YwtCfcIbMkFkB6dd7KdrxBwlbp8dD4NvMDqYy7h3L9k="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-utils-9.20.5-4.azl3.x86_64.rpm",
-    "hash": "sha256-RDiCW4OrTQDB5g1w/nmM91WWKDZVlEGy03yzGb3f1+8="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-utils-9.20.9-1.azl3.x86_64.rpm",
+    "hash": "sha256-RU3+NiMt39p9BKMhl1C42OMc1NQ8APJ8e+8H7cz/ALc="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bzip2-libs-1.0.8-1.azl3.x86_64.rpm",
