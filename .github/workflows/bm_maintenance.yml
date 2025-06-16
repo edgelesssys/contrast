@@ -204,7 +204,7 @@ jobs:
     name: "Notify teams channel of failure"
     runs-on: ubuntu-22.04
     needs: [build-image, update-resources, cleanup, cleanup-containerd, nix-gc]
-    if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
+    if: always() && github.event_name == 'schedule' && github.run_attempt == 1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Get JSON output
@@ -246,9 +246,15 @@ jobs:
             entries+=("{\"title\": \"K3s-QEMU-SNP-GPU\", \"value\": \"$(str="${snp_gpu[*]}"; echo "${str// /, }")\"}")
           fi
 
+          if [[ "${#entries[@]}" -eq 0 ]]; then
+            echo "No failures detected, nothing to notify."
+            exit 0
+          fi
+
           json=$(IFS=,; echo "${entries[*]}")
           echo "json=[${json}]" >> "$GITHUB_OUTPUT"
       - uses: ./.github/actions/post_to_teams
+        if: ${{ steps.get-json.outputs.json != '' }}
         with:
           webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
           title: "${{ github.workflow }} failed"
