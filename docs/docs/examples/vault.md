@@ -120,7 +120,7 @@ contrast generate --reference-values k3s-qemu-tdx deployment/
 :::note[Missing TCB values]
 On bare-metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values as they can vary between platforms.
 They will have to be filled in manually.
-If you don't know the correct values use `ffffffffffff<!--  -->ffffffffffffffffffff` and `000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000` respectively and observe the real values in the error messages in the following steps. This should only be done in a secure environment.
+If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and `000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000` respectively and observe the real values in the error messages in the following steps. This should only be done in a secure environment.
 :::
 </TabItem>
 </Tabs>
@@ -135,7 +135,7 @@ workloads. It will attest the pod to the Coordinator and fetch the workload cert
 
 Further, the deployment YAML is also configured with the Contrast [service mesh](../components/service-mesh.md).
 The configured service mesh proxy provides transparent protection for the communication between
-the MySQL server and client.
+the Vault server and client.
 :::
 
 ### Deploy the Coordinator
@@ -187,7 +187,7 @@ For the Vault application, this process is entirely transparent, and the device 
 It’s important to clarify that the LUKS encryption of the block device is primarily a convenience feature, enabling persistent storage
 at the filesystem level on confidential virtual machines.
 The primary and security-relevant encryption mechanism remains Vault’s own sealing process, which provides cryptographic protection of
-secrets—even in the event that the underlying storage is compromised.d.
+secrets—even in the event that the underlying storage is compromised.
 
 Because the `workload-secret-seed` is derived from the associated `workloadSecretID`,
 any change to the `workloadSecretID` after the block device has been initialized will result in deriving an invalid encryption key,
@@ -221,7 +221,7 @@ specified in Vault’s sealing configuration before the first `contrast set` is 
 Other confidential containers can securely connect to the Vault server via the
 [Service Mesh](../components/service-mesh.md).
 As previously noted, access to the Vault endpoint is restricted to peers that present a service mesh certificate valid
-under the current Contrast-managed state of the service mesh. While such a certificate enables mTLS-based communication
+under the currently set manifest. While such a certificate enables mTLS-based communication
 with the Vault server, it doesn't, on its own, grant authorization to perform Vault-related operations.
 Permissions for accessing secrets within Vault must be explicitly configured using the root token obtained during Vault initialization
 The configured `openbao-client` deployment is responsible for executing Vault-related operations,
@@ -231,7 +231,7 @@ For more information on the Vault management and administration, please follow t
 
 
 ## Updating the deployment
-Because the workload secret is derived from the workloadSecretID specified in the manifest—rather
+Because the workload secret is derived from the `workloadSecretID` specified in the manifest—rather
 than tied to an individual pod—the Contrast Initializer can deterministically regenerate the same key
 upon pod restart and successfully unlock the previously initialized LUKS-encrypted device.
 
@@ -240,7 +240,7 @@ it's critical to ensure that the `workloadSecretID` remains consistent.
 Any change to this value will prevent the Contrast Initializer from deriving the correct decryption key,
 making the LUKS device inaccessible.
 
-For example, after making changes to the deployment files, the runtime policies
+After making changes to the deployment files that don't alter the `workloadSecretID` of the Vault, the runtime policies
 need to be regenerated with `contrast generate` and the new manifest needs to be
 set using `contrast set`.
 
@@ -252,8 +252,7 @@ contrast set -c "${coordinator}:1313" deployment/
 The new deployment can then be applied by running:
 
 ```sh
-kubectl rollout restart statefulset/openbao-server
-kubectl rollout restart deployment/openbao-client
+kubectl rollout restart statefulset/vault
 ```
 
 
