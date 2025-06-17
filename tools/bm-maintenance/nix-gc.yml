@@ -20,8 +20,13 @@ spec:
           imagePullPolicy: Always
           securityContext:
             privileged: true
-          command:
-            - /bin/sh
-            - -c
-            - nsenter --target 1 --mount -- /root/.nix-profile/bin/nix store gc
+          command: ["nix-gc"]
+          volumeMounts:
+            - name: host-mount
+              mountPath: /host
+      volumes:
+        - name: host-mount
+          hostPath:
+            path: /
+            type: Directory
       restartPolicy: OnFailure

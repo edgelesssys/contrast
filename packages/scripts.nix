@@ -615,4 +615,17 @@
         exit $exit_code
       '';
   };
+
+  nix-gc = writeShellApplication {
+    name = "nix-gc";
+    runtimeInputs = with pkgs; [ busybox ];
+    text = ''
+      total=$(df /host/nix | tail -1 | awk '{print $2}')
+      avail=$(df /host/nix | tail -1 | awk '{print $4}')
+      over=$((total * 1 / 4 - avail)) # Keep 25% of the disk space free
+      over=$((over < 0 ? 0 : over * 1024)) # Convert to bytes
+      echo "Running nix garbage collection, deleting $over Bytes of store paths"
+      nsenter --target 1 --mount -- /root/.nix-profile/bin/nix store gc --max "$over"
+    '';
+  };
 }
