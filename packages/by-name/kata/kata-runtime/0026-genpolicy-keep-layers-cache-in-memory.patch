@@ -1,0 +1,640 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: charludo <git@charlotteharludo.com>
+Date: Tue, 17 Jun 2025 15:39:32 +0200
+Subject: [PATCH] genpolicy: keep layers cache in-memory to prevent corruption
+
+The locking mechanism around the layers cache file was insufficient to
+prevent corruption of the file. This commit moves the layers cache's
+management in-memory, only reading the cache file once at the beginning
+of `genpolicy`, and only writing to it once, at the end of `genpolicy`.
+
+In the case that obtaining a lock on the cache file fails,
+reading/writing to it is skipped, and the cache is not used/persisted.
+
+Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+---
+ src/tools/genpolicy/src/layers_cache.rs       |  97 +++++++++
+ src/tools/genpolicy/src/lib.rs                |   1 +
+ src/tools/genpolicy/src/main.rs               |   2 +
+ src/tools/genpolicy/src/registry.rs           | 193 ++++--------------
+ .../genpolicy/src/registry_containerd.rs      | 111 ++++------
+ src/tools/genpolicy/src/utils.rs              |   5 +-
+ src/tools/genpolicy/tests/policy/main.rs      |   2 +-
+ 7 files changed, 186 insertions(+), 225 deletions(-)
+ create mode 100644 src/tools/genpolicy/src/layers_cache.rs
+
+diff --git a/src/tools/genpolicy/src/layers_cache.rs b/src/tools/genpolicy/src/layers_cache.rs
+new file mode 100644
+index 0000000000000000000000000000000000000000..15db565c4caeb22b6d482ceb0d5215d572d3fc78
+--- /dev/null
++++ b/src/tools/genpolicy/src/layers_cache.rs
+@@ -0,0 +1,97 @@
++// Copyright (c) 2025 Edgeless Systems GmbH
++//
++// SPDX-License-Identifier: Apache-2.0
++//
++
++use crate::registry::ImageLayer;
++
++use fs2::FileExt;
++use log::{debug, warn};
++use std::fs::OpenOptions;
++use std::sync::{Arc, Mutex};
++
++#[derive(Debug, Clone)]
++pub struct ImageLayersCache {
++    inner: Arc<Mutex<Vec<ImageLayer>>>,
++    filename: Option<String>,
++}
++
++impl ImageLayersCache {
++    pub fn new(layers_cache_file_path: &Option<String>) -> Self {
++        let layers = match ImageLayersCache::try_new(layers_cache_file_path) {
++            Ok(layers) => layers,
++            Err(e) => {
++                warn!("Could not read image layers cache: {e}");
++                Vec::new()
++            }
++        };
++        Self {
++            inner: Arc::new(Mutex::new(layers)),
++            filename: layers_cache_file_path.clone(),
++        }
++    }
++
++    fn try_new(layers_cache_file_path: &Option<String>) -> std::io::Result<Vec<ImageLayer>> {
++        match &layers_cache_file_path {
++            Some(filename) => {
++                let file = OpenOptions::new()
++                    .read(true)
++                    .write(true)
++                    .create(true)
++                    .truncate(false)
++                    .open(filename)?;
++                // Using try_lock_shared allows this genpolicy instance to make progress even if another concurrent instance holds a lock.
++                // In this case, the cache will simply not be used for this instance.
++                FileExt::try_lock_shared(&file)?;
++
++                let initial_state: Vec<ImageLayer> = match serde_json::from_reader(&file) {
++                    Ok(data) => data,
++                    Err(e) if e.is_eof() => Vec::new(), // empty file
++                    Err(e) => {
++                        FileExt::unlock(&file)?;
++                        return Err(e.into());
++                    }
++                };
++                FileExt::unlock(&file)?;
++                Ok(initial_state)
++            }
++            None => Ok(Vec::new()),
++        }
++    }
++
++    pub fn get_layer(&self, diff_id: &str) -> Option<ImageLayer> {
++        let layers = self.inner.lock().unwrap();
++        layers
++            .iter()
++            .find(|layer| layer.diff_id == diff_id)
++            .cloned()
++    }
++
++    pub fn insert_layer(&self, layer: &ImageLayer) {
++        let mut layers = self.inner.lock().unwrap();
++        layers.push(layer.clone());
++    }
++
++    pub fn persist(&self) {
++        if let Err(e) = self.try_persist() {
++            warn!("Could not persist image layers cache: {e}");
++        }
++    }
++
++    fn try_persist(&self) -> std::io::Result<()> {
++        let Some(ref filename) = self.filename else {
++            return Ok(());
++        };
++        debug!("Persisting image layers cache...");
++        let layers = self.inner.lock().unwrap();
++        let file = OpenOptions::new()
++            .write(true)
++            .truncate(true)
++            .create(true)
++            .open(filename)?;
++        FileExt::try_lock_exclusive(&file)?;
++        serde_json::to_writer_pretty(&file, &*layers)?;
++        FileExt::unlock(&file)?;
++        Ok(())
++    }
++}
+diff --git a/src/tools/genpolicy/src/lib.rs b/src/tools/genpolicy/src/lib.rs
+index e6bb2100babb2272d1a8d46f7c0f81caeea92297..4543e4acf412f301cf820778285b8a72e3dcbc52 100644
+--- a/src/tools/genpolicy/src/lib.rs
++++ b/src/tools/genpolicy/src/lib.rs
+@@ -9,6 +9,7 @@ pub mod cronjob;
+ pub mod daemon_set;
+ pub mod deployment;
+ pub mod job;
++pub mod layers_cache;
+ pub mod list;
+ pub mod mount_and_storage;
+ pub mod no_policy;
+diff --git a/src/tools/genpolicy/src/main.rs b/src/tools/genpolicy/src/main.rs
+index db17060491c5be7a14e531486947d54d74af190b..a7edc16ae4113211a05b36423853c152d9e1f17e 100644
+--- a/src/tools/genpolicy/src/main.rs
++++ b/src/tools/genpolicy/src/main.rs
+@@ -11,6 +11,7 @@ mod cronjob;
+ mod daemon_set;
+ mod deployment;
+ mod job;
++mod layers_cache;
+ mod list;
+ mod mount_and_storage;
+ mod no_policy;
+@@ -52,5 +53,6 @@ async fn main() {
+ 
+     debug!("Exporting policy to yaml file...");
+     policy.export_policy();
++    config.layers_cache.persist();
+     info!("Success!");
+ }
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index a5a158be1cbe2bc93a8b764db22c244893cc4ba5..abd6a2321a4a43f9b387c1a3933b8cf0c4501c58 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -7,13 +7,13 @@
+ #![allow(non_snake_case)]
+ 
+ use crate::containerd;
++use crate::layers_cache::ImageLayersCache;
+ use crate::policy;
+ use crate::utils::Config;
+ use crate::verity;
+ 
+ use anyhow::{anyhow, bail, Result};
+ use docker_credential::{CredentialRetrievalError, DockerCredential};
+-use fs2::FileExt;
+ use log::{debug, info, warn, LevelFilter};
+ use oci_client::{
+     client::{linux_amd64_resolver, ClientConfig, ClientProtocol},
+@@ -23,10 +23,7 @@ use oci_client::{
+ };
+ use serde::{Deserialize, Serialize};
+ use sha2::{digest::typenum::Unsigned, digest::OutputSizeUser, Sha256};
+-use std::{
+-    collections::BTreeMap, fs::OpenOptions, io, io::BufWriter, io::Read, io::Seek, io::Write,
+-    path::Path,
+-};
++use std::{collections::BTreeMap, io, io::Read, io::Seek, io::Write, path::Path};
+ use tokio::io::AsyncWriteExt;
+ 
+ /// Container image properties obtained from an OCI repository.
+@@ -165,7 +162,7 @@ impl Container {
+                 debug!("config_layer: {:?}", &config_layer);
+ 
+                 let image_layers = get_image_layers(
+-                    config.layers_cache_file_path.clone(),
++                    &config.layers_cache,
+                     &mut client,
+                     &reference,
+                     &manifest,
+@@ -434,7 +431,7 @@ impl Container {
+ }
+ 
+ async fn get_image_layers(
+-    layers_cache_file_path: Option<String>,
++    layers_cache: &ImageLayersCache,
+     client: &mut Client,
+     reference: &Reference,
+     manifest: &manifest::OciImageManifest,
+@@ -450,20 +447,16 @@ async fn get_image_layers(
+             || layer.media_type.eq(manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE)
+         {
+             if layer_index < config_layer.rootfs.diff_ids.len() {
+-                let (verity_hash, passwd, group) = get_verity_and_users(
+-                    layers_cache_file_path.clone(),
++                let mut imageLayer = get_verity_and_users(
++                    layers_cache,
+                     client,
+                     reference,
+                     &layer.digest,
+                     &config_layer.rootfs.diff_ids[layer_index].clone(),
+                 )
+                 .await?;
+-                layers.push(ImageLayer {
+-                    diff_id: config_layer.rootfs.diff_ids[layer_index].clone(),
+-                    verity_hash: verity_hash.to_owned(),
+-                    passwd: passwd.to_owned(),
+-                    group: group.to_owned(),
+-                });
++                imageLayer.diff_id = config_layer.rootfs.diff_ids[layer_index].clone();
++                layers.push(imageLayer);
+             } else {
+                 return Err(anyhow!("Too many Docker gzip layers"));
+             }
+@@ -476,12 +469,18 @@ async fn get_image_layers(
+ }
+ 
+ async fn get_verity_and_users(
+-    layers_cache_file_path: Option<String>,
++    layers_cache: &ImageLayersCache,
+     client: &mut Client,
+     reference: &Reference,
+     layer_digest: &str,
+     diff_id: &str,
+-) -> Result<(String, String, String)> {
++) -> Result<ImageLayer> {
++    if let Some(layer) = layers_cache.get_layer(diff_id) {
++        info!("Using cache file");
++        info!("dm-verity root hash: {}", layer.verity_hash);
++        return Ok(layer);
++    }
++
+     let temp_dir = tempfile::tempdir_in(".")?;
+     let base_dir = temp_dir.path();
+     // Use file names supported by both Linux and Windows.
+@@ -492,144 +491,38 @@ async fn get_verity_and_users(
+     let mut compressed_path = decompressed_path.clone();
+     compressed_path.set_extension("gz");
+ 
+-    let mut verity_hash = "".to_string();
+-    let mut passwd = "".to_string();
+-    let mut group = "".to_string();
+-    let mut error_message = "".to_string();
+-    let mut error = false;
+-
+-    // get value from store and return if it exists
+-    if let Some(path) = layers_cache_file_path.as_ref() {
+-        (verity_hash, passwd, group) = read_verity_and_users_from_store(path, diff_id)?;
+-        info!("Using cache file");
+-        info!("dm-verity root hash: {verity_hash}");
+-    }
+-
+-    // create the layer files
+-    if verity_hash.is_empty() {
+-        if let Err(e) = create_decompressed_layer_file(
+-            client,
+-            reference,
+-            layer_digest,
+-            &decompressed_path,
+-            &compressed_path,
+-        )
+-        .await
+-        {
+-            error_message = format!("Failed to create verity hash for {layer_digest}, error {e}");
+-            error = true
+-        };
+-
+-        if !error {
+-            match get_verity_hash_and_users(&decompressed_path) {
+-                Err(e) => {
+-                    error_message = format!("Failed to get verity hash {e}");
+-                    error = true;
+-                }
+-                Ok(res) => {
+-                    (verity_hash, passwd, group) = res;
+-                    if let Some(path) = layers_cache_file_path.as_ref() {
+-                        add_verity_and_users_to_store(
+-                            path,
+-                            diff_id,
+-                            &verity_hash,
+-                            &passwd,
+-                            &group,
+-                        )?;
+-                    }
+-                    info!("dm-verity root hash: {verity_hash}");
+-                }
+-            }
+-        }
+-    }
+-
+-    temp_dir.close()?;
+-    if error {
+-        // remove the cache file if we're using it
+-        if let Some(path) = layers_cache_file_path.as_ref() {
+-            std::fs::remove_file(path)?;
+-        }
+-        bail!(error_message);
+-    }
+-    Ok((verity_hash, passwd, group))
+-}
+-
+-// the store is a json file that matches layer hashes to verity hashes
+-pub fn add_verity_and_users_to_store(
+-    cache_file: &str,
+-    diff_id: &str,
+-    verity_hash: &str,
+-    passwd: &str,
+-    group: &str,
+-) -> Result<()> {
+-    // open the json file in read mode, create it if it doesn't exist
+-    let read_file = OpenOptions::new()
+-        .read(true)
+-        .write(true)
+-        .create(true)
+-        .truncate(false)
+-        .open(cache_file)?;
+-
+-    let mut data: Vec<ImageLayer> = if let Ok(vec) = serde_json::from_reader(read_file) {
+-        vec
+-    } else {
+-        // Delete the malformed file here if it's present
+-        Vec::new()
++    if let Err(e) = create_decompressed_layer_file(
++        client,
++        reference,
++        layer_digest,
++        &decompressed_path,
++        &compressed_path,
++    )
++    .await
++    {
++        temp_dir.close()?;
++        bail!(format!(
++            "Failed to create verity hash for {layer_digest}, error {e}"
++        ));
+     };
+ 
+-    // Add new data to the deserialized JSON
+-    data.push(ImageLayer {
+-        diff_id: diff_id.to_string(),
+-        verity_hash: verity_hash.to_string(),
+-        passwd: passwd.to_string(),
+-        group: group.to_string(),
+-    });
+-
+-    // Serialize in pretty format
+-    let serialized = serde_json::to_string_pretty(&data)?;
+-
+-    // Open the JSON file to write
+-    let file = OpenOptions::new().write(true).open(cache_file)?;
+-
+-    // try to lock the file, if it fails, get the error
+-    let result = file.try_lock_exclusive();
+-    if result.is_err() {
+-        warn!("Waiting to lock file: {cache_file}");
+-        file.lock_exclusive()?;
+-    }
+-    // Write the serialized JSON to the file
+-    let mut writer = BufWriter::new(&file);
+-    writeln!(writer, "{}", serialized)?;
+-    writer.flush()?;
+-    file.unlock()?;
+-    Ok(())
+-}
+-
+-// helper function to read the verity hash from the store
+-// returns empty string if not found or file does not exist
+-pub fn read_verity_and_users_from_store(
+-    cache_file: &str,
+-    diff_id: &str,
+-) -> Result<(String, String, String)> {
+-    match OpenOptions::new().read(true).open(cache_file) {
+-        Ok(file) => match serde_json::from_reader(file) {
+-            Result::<Vec<ImageLayer>, _>::Ok(layers) => {
+-                for layer in layers {
+-                    if layer.diff_id == diff_id {
+-                        return Ok((layer.verity_hash, layer.passwd, layer.group));
+-                    }
+-                }
+-            }
+-            Err(e) => {
+-                warn!("read_verity_and_users_from_store: failed to read cached image layers: {e}");
+-            }
+-        },
++    match get_verity_hash_and_users(&decompressed_path) {
+         Err(e) => {
+-            info!("read_verity_and_users_from_store: failed to open cache file: {e}");
++            temp_dir.close()?;
++            bail!(format!("Failed to get verity hash {e}"));
++        }
++        Ok((verity_hash, passwd, group)) => {
++            info!("dm-verity root hash: {verity_hash}");
++            let layer = ImageLayer {
++                diff_id: diff_id.to_string(),
++                verity_hash,
++                passwd,
++                group,
++            };
++            layers_cache.insert_layer(&layer);
++            Ok(layer)
+         }
+     }
+-
+-    Ok((String::new(), String::new(), String::new()))
+ }
+ 
+ async fn create_decompressed_layer_file(
+diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
+index 40aa4a593b548533c6652d398e3ad9cf4b4bd34a..a695e0fa574a812024ea8ba2959df24eb4eca028 100644
+--- a/src/tools/genpolicy/src/registry_containerd.rs
++++ b/src/tools/genpolicy/src/registry_containerd.rs
+@@ -5,9 +5,9 @@
+ 
+ // Allow Docker image config field names.
+ #![allow(non_snake_case)]
++use crate::layers_cache::ImageLayersCache;
+ use crate::registry::{
+-    add_verity_and_users_to_store, get_verity_hash_and_users, read_verity_and_users_from_store,
+-    Container, DockerConfigLayer, ImageLayer, WHITEOUT_MARKER,
++    get_verity_hash_and_users, Container, DockerConfigLayer, ImageLayer, WHITEOUT_MARKER,
+ };
+ use crate::utils::Config;
+ 
+@@ -60,13 +60,8 @@ impl Container {
+         let config_layer = get_config_layer(image_ref_str, k8_cri_image_client)
+             .await
+             .unwrap();
+-        let image_layers = get_image_layers(
+-            config.layers_cache_file_path.clone(),
+-            &manifest,
+-            &config_layer,
+-            &ctrd_client,
+-        )
+-        .await?;
++        let image_layers =
++            get_image_layers(&config.layers_cache, &manifest, &config_layer, &ctrd_client).await?;
+ 
+         // Find the last layer with an /etc/* file, respecting whiteouts.
+         let mut passwd = String::new();
+@@ -275,7 +270,7 @@ pub fn build_auth(reference: &Reference) -> Option<AuthConfig> {
+ }
+ 
+ pub async fn get_image_layers(
+-    layers_cache_file_path: Option<String>,
++    layers_cache: &ImageLayersCache,
+     manifest: &serde_json::Value,
+     config_layer: &DockerConfigLayer,
+     client: &containerd_client::Client,
+@@ -291,19 +286,14 @@ pub async fn get_image_layers(
+             || layer_media_type.eq("application/vnd.oci.image.layer.v1.tar+gzip")
+         {
+             if layer_index < config_layer.rootfs.diff_ids.len() {
+-                let (verity_hash, passwd, group) = get_verity_and_users(
+-                    layers_cache_file_path.clone(),
++                let mut imageLayer = get_verity_and_users(
++                    layers_cache,
+                     layer["digest"].as_str().unwrap(),
+                     client,
+                     &config_layer.rootfs.diff_ids[layer_index].clone(),
+                 )
+                 .await?;
+-                let imageLayer = ImageLayer {
+-                    diff_id: config_layer.rootfs.diff_ids[layer_index].clone(),
+-                    verity_hash,
+-                    passwd,
+-                    group,
+-                };
++                imageLayer.diff_id = config_layer.rootfs.diff_ids[layer_index].clone();
+                 layersVec.push(imageLayer);
+             } else {
+                 return Err(anyhow!("Too many Docker gzip layers"));
+@@ -316,11 +306,17 @@ pub async fn get_image_layers(
+ }
+ 
+ async fn get_verity_and_users(
+-    layers_cache_file_path: Option<String>,
++    layers_cache: &ImageLayersCache,
+     layer_digest: &str,
+     client: &containerd_client::Client,
+     diff_id: &str,
+-) -> Result<(String, String, String)> {
++) -> Result<ImageLayer> {
++    if let Some(layer) = layers_cache.get_layer(diff_id) {
++        info!("Using cache file");
++        info!("dm-verity root hash: {}", layer.verity_hash);
++        return Ok(layer);
++    }
++
+     let temp_dir = tempfile::tempdir_in(".")?;
+     let base_dir = temp_dir.path();
+     // Use file names supported by both Linux and Windows.
+@@ -331,63 +327,34 @@ async fn get_verity_and_users(
+     let mut compressed_path = decompressed_path.clone();
+     compressed_path.set_extension("gz");
+ 
+-    let mut verity_hash = "".to_string();
+-    let mut passwd = "".to_string();
+-    let mut group = "".to_string();
+-    let mut error_message = "".to_string();
+-    let mut error = false;
+-
+-    if let Some(path) = layers_cache_file_path.as_ref() {
+-        (verity_hash, passwd, group) = read_verity_and_users_from_store(path, diff_id)?;
+-        info!("Using cache file");
+-        info!("dm-verity root hash: {verity_hash}");
++    // go find verity hash if not found in cache
++    if let Err(e) =
++        create_decompressed_layer_file(client, layer_digest, &decompressed_path, &compressed_path)
++            .await
++    {
++        temp_dir.close()?;
++        bail!(format!(
++            "Failed to create verity hash for {layer_digest}, error {e}"
++        ));
+     }
+ 
+-    if verity_hash.is_empty() {
+-        // go find verity hash if not found in cache
+-        if let Err(e) = create_decompressed_layer_file(
+-            client,
+-            layer_digest,
+-            &decompressed_path,
+-            &compressed_path,
+-        )
+-        .await
+-        {
+-            error = true;
+-            error_message = format!("Failed to create verity hash for {layer_digest}, error {e}");
+-        }
+-
+-        if !error {
+-            match get_verity_hash_and_users(&decompressed_path) {
+-                Err(e) => {
+-                    error_message = format!("Failed to get verity hash {e}");
+-                    error = true;
+-                }
+-                Ok(res) => {
+-                    (verity_hash, passwd, group) = res;
+-                    if let Some(path) = layers_cache_file_path.as_ref() {
+-                        add_verity_and_users_to_store(
+-                            path,
+-                            diff_id,
+-                            &verity_hash,
+-                            &passwd,
+-                            &group,
+-                        )?;
+-                    }
+-                    info!("dm-verity root hash: {verity_hash}");
+-                }
+-            }
++    match get_verity_hash_and_users(&decompressed_path) {
++        Err(e) => {
++            temp_dir.close()?;
++            bail!(format!("Failed to get verity hash {e}"));
+         }
+-    }
+-    temp_dir.close()?;
+-    if error {
+-        // remove the cache file if we're using it
+-        if let Some(path) = layers_cache_file_path.as_ref() {
+-            std::fs::remove_file(path)?;
++        Ok((verity_hash, passwd, group)) => {
++            info!("dm-verity root hash: {verity_hash}");
++            let layer = ImageLayer {
++                diff_id: diff_id.to_string(),
++                verity_hash,
++                passwd,
++                group,
++            };
++            layers_cache.insert_layer(&layer);
++            Ok(layer)
+         }
+-        bail!(error_message);
+     }
+-    Ok((verity_hash, passwd, group))
+ }
+ 
+ async fn create_decompressed_layer_file(
+diff --git a/src/tools/genpolicy/src/utils.rs b/src/tools/genpolicy/src/utils.rs
+index 26f619825c051719a41415607c54f404b7f95d62..e268244d650e3acdd66f0bdc663c13d9cde2c3b9 100644
+--- a/src/tools/genpolicy/src/utils.rs
++++ b/src/tools/genpolicy/src/utils.rs
+@@ -3,6 +3,7 @@
+ // SPDX-License-Identifier: Apache-2.0
+ //
+ 
++use crate::layers_cache;
+ use crate::settings;
+ use clap::Parser;
+ 
+@@ -123,7 +124,7 @@ pub struct Config {
+     pub raw_out: bool,
+     pub base64_out: bool,
+     pub containerd_socket_path: Option<String>,
+-    pub layers_cache_file_path: Option<String>,
++    pub layers_cache: layers_cache::ImageLayersCache,
+     pub version: bool,
+ }
+ 
+@@ -161,7 +162,7 @@ impl Config {
+             raw_out: args.raw_out,
+             base64_out: args.base64_out,
+             containerd_socket_path: args.containerd_socket_path,
+-            layers_cache_file_path,
++            layers_cache: layers_cache::ImageLayersCache::new(&layers_cache_file_path),
+             version: args.version,
+         }
+     }
+diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
+index 0967bb060cc4a1a85cdc9632f142c833bc275e38..0bfa6f2e3cb00062b1d9ec74a64fef42666bb724 100644
+--- a/src/tools/genpolicy/tests/policy/main.rs
++++ b/src/tools/genpolicy/tests/policy/main.rs
+@@ -73,7 +73,7 @@ mod tests {
+             config_files: None,
+             containerd_socket_path: None, // Some(String::from("/var/run/containerd/containerd.sock")),
+             insecure_registries: Vec::new(),
+-            layers_cache_file_path: None,
++            layers_cache: genpolicy::layers_cache::ImageLayersCache::new(&None),
+             raw_out: false,
+             rego_rules_path: workdir.join("rules.rego").to_str().unwrap().to_string(),
+             runtime_class_names: Vec::new(),

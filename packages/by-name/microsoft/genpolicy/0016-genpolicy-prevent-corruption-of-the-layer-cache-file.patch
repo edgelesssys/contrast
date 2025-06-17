@@ -1,0 +1,88 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+Date: Tue, 24 Jun 2025 08:37:20 +0200
+Subject: [PATCH] genpolicy: prevent corruption of the layer cache file
+
+While an `fs2::FileExt::exlcusove_lock()` was being used when writing
+to the image layer cache file, no lock was being used when reading
+from it. Since `fs2` only uses advisory locks, locks need to be
+acquired wherever the file is being interacted with.
+
+To prevent corruption of the cache file, it is no longern being written
+to directly; instead, a temp file is used which then replaces the cache
+file atomically.
+
+Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+---
+ src/tools/genpolicy/src/registry.rs | 33 ++++++++++-------------------
+ 1 file changed, 11 insertions(+), 22 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index 89aa541cca9b19cb81958194de1559b27980e1ed..a686f211f0b3869865c651ad1fb343be6a8cb0f4 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -13,7 +13,6 @@ use crate::verity;
+ use crate::utils::Config;
+ use anyhow::{anyhow, bail, Result};
+ use docker_credential::{CredentialRetrievalError, DockerCredential};
+-use fs2::FileExt;
+ use log::warn;
+ use log::{debug, info, LevelFilter};
+ use oci_distribution::client::{linux_amd64_resolver, ClientConfig};
+@@ -21,7 +20,6 @@ use oci_distribution::{manifest, secrets::RegistryAuth, Client, Reference};
+ use serde::{Deserialize, Serialize};
+ use sha2::{digest::typenum::Unsigned, digest::OutputSizeUser, Sha256};
+ use std::fs::OpenOptions;
+-use std::io::BufWriter;
+ use std::{io, io::Seek, io::Write, path::Path};
+ use std::collections::BTreeMap;
+ use tokio::io::AsyncWriteExt;
+@@ -357,13 +355,14 @@ pub fn add_verity_to_store(cache_file: &str, diff_id: &str, verity_hash: &str) -
+         .read(true)
+         .write(true)
+         .create(true)
++        .truncate(false)
+         .open(cache_file)?;
+ 
+-    let mut data: Vec<ImageLayer> = if let Ok(vec) = serde_json::from_reader(read_file) {
+-        vec
+-    } else {
+-        // Delete the malformed file here if it's present
+-        Vec::new()
++    // Return an error if the file is malformed
++    let mut data: Vec<ImageLayer> = match serde_json::from_reader(&read_file) {
++        Ok(data) => data,
++        Err(e) if e.is_eof() => Vec::new(), // empty file
++        Err(e) => return Err(e.into()),
+     };
+ 
+     // Add new data to the deserialized JSON
+@@ -372,23 +371,13 @@ pub fn add_verity_to_store(cache_file: &str, diff_id: &str, verity_hash: &str) -
+         verity_hash: verity_hash.to_string(),
+     });
+ 
+-    // Serialize in pretty format
+-    let serialized = serde_json::to_string_pretty(&data)?;
++    // Write the serialized data to a temporary file on the same filesystem
++    let temp_file = tempfile::NamedTempFile::new_in(Path::new(cache_file).parent().unwrap())?;
++    serde_json::to_writer_pretty(&temp_file, &data)?;
+ 
+-    // Open the JSON file to write
+-    let file = OpenOptions::new().write(true).open(cache_file)?;
++    // Atomically replace the original cache file
++    temp_file.persist(cache_file)?;
+ 
+-    // try to lock the file, if it fails, get the error
+-    let result = file.try_lock_exclusive();
+-    if result.is_err() {
+-        warn!("Waiting to lock file: {cache_file}");
+-        file.lock_exclusive()?;
+-    }
+-    // Write the serialized JSON to the file
+-    let mut writer = BufWriter::new(&file);
+-    writeln!(writer, "{}", serialized)?;
+-    writer.flush()?;
+-    file.unlock()?;
+     Ok(())
+ }
+ 
