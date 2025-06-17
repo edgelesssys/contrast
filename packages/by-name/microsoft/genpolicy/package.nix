@@ -108,6 +108,11 @@ rustPlatform.buildRustPackage rec {
       # base64 instead of a Vec<u8>.
       # Taken from https://github.com/kata-containers/kata-containers/commit/c06bf2e3bb696016be0357c373b0c68e10602b57.
       ./0015-genpolicy-correctly-represent-binaryData-in-ConfigMa.patch
+
+      # This patch fixes an issue where genpolicy can corrupt the layer cache file due to simultaneous
+      # read/write operations on the file. Instead of the upstream implementation, the cache file is opened
+      # read-only, changes are written to a tempfile, and the original file replaced by the tempfile atomically.
+      ./0016-genpolicy-prevent-corruption-of-the-layer-cache-file.patch
     ];
   };
 
