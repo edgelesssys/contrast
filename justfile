@@ -299,7 +299,7 @@ get-credentials platform=default_platform:
                 --name "$azure_resource_group"
         ;;
         "K3s-QEMU-TDX")
-            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/m50-ganondorf-kubeconf/versions/latest"
+            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/olimar-kubeconfig/versions/latest"
         ;;
         "K3s-QEMU-SNP")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/hetzner-ax162-snp-kubeconfig/versions/latest"
