@@ -154,8 +154,7 @@ kubectl apply -f deployment/
 
 The Contrast Coordinator issues mesh certificates after successfully validating workloads.
 These certificates can be used for secure inter-deployment communication. The Initializer
-sends an attestation report to the Coordinator, retrieves certificates and a private key in return
-and writes them to a `volumeMount`. The service mesh sidecar is configured to use the credentials
+sends an attestation report to the Coordinator, retrieves certificates bound to it's provided public key and writes them to a `volumeMount`. The service mesh sidecar is configured to use the credentials
 from the `volumeMount` when communicating with other parts of the deployment over mTLS.
 The public facing frontend for voting uses the mesh certificate without client authentication.
 

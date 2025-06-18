@@ -77,6 +77,11 @@ const sidebars = {
           label: 'Encrypted volume mount',
           id: 'examples/mysql'
         },
+        {
+          type: 'doc',
+          label: 'Vault',
+          id: 'examples/vault'
+        },
       ]
     },
     {
