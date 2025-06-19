@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"slices"
 	"strings"
@@ -20,7 +21,13 @@ type k8sObject interface {
 	GetObjectKind() schema.ObjectKind
 }
 
-func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
+// volumeInfo holds the tally of the volume, as well as the type and the names of resources using the volume.
+type volumeInfo struct {
+	mountCount    int
+	resourceNames []string
+}
+
+func policiesFromKubeResources(yamlPaths []string, logger *slog.Logger) ([]deployment, error) {
 	var kubeObjs []any
 	for _, path := range yamlPaths {
 		data, err := os.ReadFile(path)
@@ -35,6 +42,7 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 	}
 
 	var deployments []deployment
+	volumeInfoMap := make(map[string]*volumeInfo)
 	for _, objAny := range kubeObjs {
 		meta, ok := objAny.(k8sObject)
 		if !ok {
@@ -52,36 +60,46 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 			annotation = obj.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Annotations[workloadSecretIDAnnotationKey]
+			accumulateVolumeMounts(&kubeapi.PodTemplateSpec{
+				Spec: obj.Spec,
+			}, name, volumeInfoMap)
 		case *kubeapi.Deployment:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
+			accumulateVolumeMounts(&obj.Spec.Template, name, volumeInfoMap)
 		case *kubeapi.ReplicaSet:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
+			accumulateVolumeMounts(&obj.Spec.Template, name, volumeInfoMap)
 		case *kubeapi.StatefulSet:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
+			accumulateVolumeMounts(&obj.Spec.Template, name, volumeInfoMap)
 		case *kubeapi.DaemonSet:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
+			accumulateVolumeMounts(&obj.Spec.Template, name, volumeInfoMap)
 		case *kubeapi.Job:
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
+			accumulateVolumeMounts(&obj.Spec.Template, name, volumeInfoMap)
 		case *kubeapi.CronJob:
 			name = obj.Name
 			annotation = obj.Spec.JobTemplate.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.JobTemplate.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.JobTemplate.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
+			accumulateVolumeMounts(&obj.Spec.JobTemplate.Spec.Template, name, volumeInfoMap)
 		case *kubeapi.ReplicationController:
 			name = obj.Name
 			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
+			accumulateVolumeMounts(obj.Spec.Template, name, volumeInfoMap)
 		}
 		if annotation == "" {
 			continue
@@ -106,6 +124,7 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 			workloadSecretID: workloadSecretID,
 		})
 	}
+	reportVolumeSharing(logger, volumeInfoMap)
 
 	return deployments, nil
 }
@@ -142,6 +161,109 @@ func checkPoliciesMatchManifest(policies []deployment, policyHashes map[manifest
 		}
 	}
 	return nil
+}
+
+// accumulateVolumeMounts updates the shared volumeInfoMap for a given PodTemplateSpec.
+// It maps each declared volume to a key ("<resourceName>:emptyDir:<volName>" or "<type>:<volName>"),
+// ensures a volumeInfo entry exists, and tallies mounts from all containers in the given PodTemplateSpec.
+func accumulateVolumeMounts(
+	podSpec *kubeapi.PodTemplateSpec,
+	resourceName string,
+	volumes map[string]*volumeInfo,
+) {
+	volumeKey := make(map[string]string, len(podSpec.Spec.Volumes))
+
+	// register every declared volume and pick its key
+	for _, vol := range podSpec.Spec.Volumes {
+		var key string
+		switch {
+		case vol.EmptyDir != nil:
+			// emptyDirs get a per‐pod prefix so they never collide
+			key = fmt.Sprintf("%s:emptyDir:%s", resourceName, vol.Name)
+
+		case vol.PersistentVolumeClaim != nil:
+			key = fmt.Sprintf("pvc:%s", vol.Name)
+
+		case vol.ConfigMap != nil:
+			key = fmt.Sprintf("configMap:%s", vol.Name)
+		default:
+			key = fmt.Sprintf("other:%s", vol.Name)
+		}
+
+		volumeKey[vol.Name] = key
+
+		if _, seen := volumes[key]; !seen {
+			volumes[key] = &volumeInfo{}
+		}
+	}
+
+	// helper: look up the key and bump count + record resourceName
+	record := func(volName string) {
+		key, ok := volumeKey[volName]
+		if !ok {
+			// ignore any mounts of undeclared volumes
+			return
+		}
+		vi := volumes[key]
+		vi.mountCount++
+
+		// append this resource once
+		for _, r := range vi.resourceNames {
+			if r == resourceName {
+				return
+			}
+		}
+		vi.resourceNames = append(vi.resourceNames, resourceName)
+	}
+
+	for _, ctr := range podSpec.Spec.Containers {
+		for _, vm := range ctr.VolumeMounts {
+			record(vm.Name)
+		}
+	}
+	for _, initCtr := range podSpec.Spec.InitContainers {
+		for _, vm := range initCtr.VolumeMounts {
+			record(vm.Name)
+		}
+	}
+}
+
+// reportVolumeSharing logs one warning per shared volume inside and across pods,
+// extracting both the volume type and real volume name from the key.
+//
+// Keys are either:
+//
+//	"<resourceName>:emptyDir:<volName>"
+//
+// or:
+//
+//	"<type>:<volName>"
+func reportVolumeSharing(
+	logger *slog.Logger,
+	volumes map[string]*volumeInfo,
+) {
+	for key, vi := range volumes {
+		if vi.mountCount <= 1 {
+			continue
+		}
+		parts := strings.Split(key, ":")
+		actualVol := parts[len(parts)-1]
+		volType := parts[len(parts)-2]
+
+		resList := strings.Join(vi.resourceNames, ", ")
+		if len(vi.resourceNames) == 1 {
+			logger.Warn(fmt.Sprintf(
+				"resource %s: %s volume `%s` is shared by %d containers on one pod",
+				vi.resourceNames[0], volType, actualVol, vi.mountCount,
+			))
+		} else {
+			base := fmt.Sprintf(
+				"%s volume `%s` is shared by %d containers across pods in resources [%s]", volType,
+				actualVol, vi.mountCount, resList,
+			)
+			logger.Warn(base)
+		}
+	}
 }
 
 type deployment struct {
