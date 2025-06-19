@@ -92,7 +92,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("finding yaml files: %w", err)
 	}
 
-	policies, err := policiesFromKubeResources(paths)
+	policies, err := policiesFromKubeResources(paths, log)
 	if err != nil {
 		return fmt.Errorf("finding kube resources with policy: %w", err)
 	}

@@ -35,6 +35,8 @@ type (
 	CronJob = batchv1.CronJob
 	// ReplicationController is a Kubernetes ReplicationController.
 	ReplicationController = corev1.ReplicationController
+	// PodTemplateSpec is a Kubernetes PodTemplateSpec.
+	PodTemplateSpec = corev1.PodTemplateSpec
 )
 
 // UnmarshalK8SResources unmarshals a Kubernetes resource into a list of objects that can be

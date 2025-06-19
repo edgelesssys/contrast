@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"encoding/base64"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -128,7 +129,7 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 				paths = append(paths, path)
 			}
 
-			deployments, err := policiesFromKubeResources(paths)
+			deployments, err := policiesFromKubeResources(paths, slog.Default())
 			sort.Slice(deployments, func(i, j int) bool {
 				return deployments[i].name < deployments[j].name
 			})
