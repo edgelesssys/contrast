@@ -1,0 +1,156 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: charludo <git@charlotteharludo.com>
+Date: Tue, 17 Jun 2025 13:54:56 +0200
+Subject: [PATCH] genpolicy: prevent corruption of the layer cache file
+
+While an `fs2::FileExt::exlcusove_lock()` was already being used when
+writing to the image layer cache file, no lock was being used when
+reading from it. Since `fs2` only uses advisory locks, locks need to be
+acquired wherever the file is being interacted with.
+
+As an additional safeguard for preventing corruption of the cache file,
+it is no longer being written to directly; instead, a temp file is used
+which can then replace the cache file atomically.
+---
+ src/tools/genpolicy/src/registry.rs           | 64 ++++++++++---------
+ .../genpolicy/src/registry_containerd.rs      |  6 +-
+ 2 files changed, 38 insertions(+), 32 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index a5a158be1cbe2bc93a8b764db22c244893cc4ba5..d29198add52a95fc0404cb3faac9a1e886cd6b58 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -24,8 +24,7 @@ use oci_client::{
+ use serde::{Deserialize, Serialize};
+ use sha2::{digest::typenum::Unsigned, digest::OutputSizeUser, Sha256};
+ use std::{
+-    collections::BTreeMap, fs::OpenOptions, io, io::BufWriter, io::Read, io::Seek, io::Write,
+-    path::Path,
++    collections::BTreeMap, fs::File, fs::OpenOptions, io, io::Read, io::Seek, io::Write, path::Path,
+ };
+ use tokio::io::AsyncWriteExt;
+ 
+@@ -547,7 +546,10 @@ async fn get_verity_and_users(
+     if error {
+         // remove the cache file if we're using it
+         if let Some(path) = layers_cache_file_path.as_ref() {
++            let file = File::open(path)?;
++            FileExt::lock_exclusive(&file)?;
+             std::fs::remove_file(path)?;
++            FileExt::unlock(&file)?;
+         }
+         bail!(error_message);
+     }
+@@ -569,12 +571,13 @@ pub fn add_verity_and_users_to_store(
+         .create(true)
+         .truncate(false)
+         .open(cache_file)?;
++    FileExt::lock_exclusive(&read_file)?;
+ 
+-    let mut data: Vec<ImageLayer> = if let Ok(vec) = serde_json::from_reader(read_file) {
+-        vec
+-    } else {
+-        // Delete the malformed file here if it's present
+-        Vec::new()
++    // Return an error if the file is malformed
++    let mut data: Vec<ImageLayer> = match serde_json::from_reader(&read_file) {
++        Ok(data) => data,
++        Err(e) if e.is_eof() => Vec::new(), // empty file
++        Err(e) => return Err(e.into()),
+     };
+ 
+     // Add new data to the deserialized JSON
+@@ -585,23 +588,16 @@ pub fn add_verity_and_users_to_store(
+         group: group.to_string(),
+     });
+ 
+-    // Serialize in pretty format
+-    let serialized = serde_json::to_string_pretty(&data)?;
++    // Write the serialized data to a temporary file on the same filesystem
++    let temp_file = tempfile::NamedTempFile::new_in(Path::new(cache_file).parent().unwrap())?;
++    serde_json::to_writer_pretty(&temp_file, &data)?;
+ 
+-    // Open the JSON file to write
+-    let file = OpenOptions::new().write(true).open(cache_file)?;
++    // Atomically replace the original cache file
++    temp_file.persist(cache_file)?;
++
++    // Unlock only after having replaced the file
++    FileExt::unlock(&read_file)?;
+ 
+-    // try to lock the file, if it fails, get the error
+-    let result = file.try_lock_exclusive();
+-    if result.is_err() {
+-        warn!("Waiting to lock file: {cache_file}");
+-        file.lock_exclusive()?;
+-    }
+-    // Write the serialized JSON to the file
+-    let mut writer = BufWriter::new(&file);
+-    writeln!(writer, "{}", serialized)?;
+-    writer.flush()?;
+-    file.unlock()?;
+     Ok(())
+ }
+ 
+@@ -612,18 +608,24 @@ pub fn read_verity_and_users_from_store(
+     diff_id: &str,
+ ) -> Result<(String, String, String)> {
+     match OpenOptions::new().read(true).open(cache_file) {
+-        Ok(file) => match serde_json::from_reader(file) {
+-            Result::<Vec<ImageLayer>, _>::Ok(layers) => {
+-                for layer in layers {
+-                    if layer.diff_id == diff_id {
+-                        return Ok((layer.verity_hash, layer.passwd, layer.group));
++        Ok(file) => {
++            FileExt::lock_shared(&file)?;
++            match serde_json::from_reader(&file) {
++                Result::<Vec<ImageLayer>, _>::Ok(layers) => {
++                    for layer in layers {
++                        if layer.diff_id == diff_id {
++                            return Ok((layer.verity_hash, layer.passwd, layer.group));
++                        }
+                     }
+                 }
++                Err(e) => {
++                    warn!(
++                        "read_verity_and_users_from_store: failed to read cached image layers: {e}"
++                    );
++                }
+             }
+-            Err(e) => {
+-                warn!("read_verity_and_users_from_store: failed to read cached image layers: {e}");
+-            }
+-        },
++            FileExt::unlock(&file)?;
++        }
+         Err(e) => {
+             info!("read_verity_and_users_from_store: failed to open cache file: {e}");
+         }
+diff --git a/src/tools/genpolicy/src/registry_containerd.rs b/src/tools/genpolicy/src/registry_containerd.rs
+index 40aa4a593b548533c6652d398e3ad9cf4b4bd34a..38eb4952413c57f00f7461d21e7c614bfc3d9eec 100644
+--- a/src/tools/genpolicy/src/registry_containerd.rs
++++ b/src/tools/genpolicy/src/registry_containerd.rs
+@@ -14,10 +14,11 @@ use crate::utils::Config;
+ use anyhow::{anyhow, bail, Result};
+ use containerd_client::{services::v1::GetImageRequest, with_namespace};
+ use docker_credential::{CredentialRetrievalError, DockerCredential};
++use fs2::FileExt;
+ use k8s_cri::v1::{image_service_client::ImageServiceClient, AuthConfig};
+ use log::{debug, info, warn};
+ use oci_client::Reference;
+-use std::{collections::HashMap, convert::TryFrom, io::Seek, io::Write, path::Path};
++use std::{collections::HashMap, convert::TryFrom, fs::File, io::Seek, io::Write, path::Path};
+ use tokio::{
+     io,
+     io::{AsyncSeekExt, AsyncWriteExt},
+@@ -383,7 +384,10 @@ async fn get_verity_and_users(
+     if error {
+         // remove the cache file if we're using it
+         if let Some(path) = layers_cache_file_path.as_ref() {
++            let file = File::open(path)?;
++            FileExt::lock_exclusive(&file)?;
+             std::fs::remove_file(path)?;
++            FileExt::unlock(&file)?;
+         }
+         bail!(error_message);
+     }
