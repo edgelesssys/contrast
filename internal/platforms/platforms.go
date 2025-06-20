@@ -143,3 +143,23 @@ func DefaultMemoryInMegaBytes(p Platform) int {
 		return 512
 	}
 }
+
+// IsSNP returns true if the platform is a SEV-SNP platform.
+func IsSNP(p Platform) bool {
+	switch p {
+	case AKSCloudHypervisorSNP, K3sQEMUSNP, K3sQEMUSNPGPU, MetalQEMUSNP, MetalQEMUSNPGPU:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsTDX returns true if the platform is a TDX platform.
+func IsTDX(p Platform) bool {
+	switch p {
+	case K3sQEMUTDX, RKE2QEMUTDX, MetalQEMUTDX:
+		return true
+	default:
+		return false
+	}
+}
