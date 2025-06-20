@@ -1,0 +1,19 @@
+# This ConfigMap is a regression test to verify that a large number of entries can be mounted to
+# a Contrast app.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-html
+  namespace: "@@REPLACE_NAMESPACE@@"
+data:
+  index.html: |
+    <h1>Hello World</h1>
+  1.html: ""
+  2.html: ""
+  3.html: ""
+  4.html: ""
+  5.html: ""
+  6.html: ""
+  7.html: ""
+  8.html: ""
+  9.html: ""
