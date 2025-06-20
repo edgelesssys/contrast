@@ -149,6 +149,11 @@ buildGoModule (finalAttrs: {
       # read/write operations on the file, instead implementing an in-memory caching solution.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11426
       ./0019-genpolicy-keep-layers-cache-in-memory-to-prevent-cor.patch
+
+      # We are starting our own imagepuller instead of the upstream one. These changes avoid invoking the CDH,
+      # instead using a slightly modified version of upstream's PullImage ttRPC client implementation to
+      # communicate with our imagepuller ttRPC server.
+      ./0020-agent-use-custom-implementation-for-image-pulling.patch
     ];
   };
 
