@@ -86,34 +86,3 @@ The CLI verifies the Coordinator in the same way, using reference values embedde
 ## Summary
 
 Contrast enforces trust across a Kubernetes deployment using hardware-based attestation. Each pod’s launch state and configuration are verified before it can access secrets or participate in the mesh. The Coordinator acts as a centralized verifier, using a declarative manifest to define the trusted state. The CLI provides an interface for verification and certificate retrieval, completing a robust and transparent attestation workflow.
-
-## FAQ
-
-### What's the purpose of remote attestation in Contrast?
-
-Remote attestation in Contrast ensures that software runs within a secure, isolated confidential computing environment.
-This process certifies that the memory is encrypted and confirms the integrity and authenticity of the software running within the deployment.
-By validating the runtime environment and the policies enforced on it, Contrast ensures that the system operates in a trustworthy state and hasn't been tampered with.
-
-### How does Contrast ensure the security of the attestation process?
-
-Contrast leverages hardware-rooted security features such as AMD SEV-SNP or Intel TDX to generate cryptographic evidence of a pod’s current state and configuration.
-This evidence is checked against pre-defined appraisal policies to guarantee that only verified and authorized pods are part of a Contrast deployment.
-
-### What security benefits does attestation provide?
-
-Attestation confirms the integrity of the runtime environment and the identity of the workloads.
-It plays a critical role in preventing unauthorized changes and detecting potential modifications at runtime.
-The attestation provides integrity and authenticity guarantees, enabling relying parties—such as workload operators or data owners—to confirm the effective protection against potential threats, including malicious cloud insiders, co-tenants, or compromised workload operators.
-More details on the specific security benefits can be found [here](../../security.md).
-
-### How can you verify the authenticity of attestation results?
-
-Attestation results in Contrast are tied to cryptographic proofs generated and signed by the hardware itself.
-These proofs are then verified using public keys from trusted hardware vendors, ensuring that the results aren't only accurate but also resistant to tampering.
-For further authenticity verification, all of Contrast's code is reproducibly built, and the attestation evidence can be verified locally from the source code.
-
-### How are attestation results used by relying parties?
-
-Relying parties use attestation results to make informed security decisions, such as allowing access to sensitive data or resources only if the attestation verifies the system's integrity.
-Thereafter, the use of Contrast's [CA certificates in TLS connections](../components/service-mesh.md) provides a practical approach to communicate securely with the application.
