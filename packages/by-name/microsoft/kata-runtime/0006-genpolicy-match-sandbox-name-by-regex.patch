@@ -6,7 +6,7 @@ Subject: [PATCH] genpolicy: match sandbox name by regex
 Signed-off-by: Paul Meyer <katexochen0@gmail.com>
 Signed-off-by: Markus Rudy <mr@edgeless.systems>
 ---
- src/tools/genpolicy/rules.rego                    |  7 +++----
+ src/tools/genpolicy/rules.rego                    | 10 +++++++++-
  src/tools/genpolicy/src/cronjob.rs                |  8 +++++++-
  src/tools/genpolicy/src/daemon_set.rs             |  4 +++-
  src/tools/genpolicy/src/deployment.rs             |  6 +++++-
@@ -18,42 +18,31 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  src/tools/genpolicy/src/replication_controller.rs |  5 ++++-
  src/tools/genpolicy/src/stateful_set.rs           |  3 ++-
  src/tools/genpolicy/src/yaml.rs                   | 13 +++++++++++++
- 12 files changed, 54 insertions(+), 18 deletions(-)
+ 12 files changed, 60 insertions(+), 15 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index c16439f24e2e591d115bc1d54ee1d9fb085cd775..a5450554c6eeb8b025aa0c469ef3e453ddcc6c75 100644
+index 97603d6fe5d2a3a297905886d828c55d222470b3..cd67f8a544efa5d91195e5dd7b4f19c793c60122 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -324,7 +324,7 @@ allow_create_container_input(req) {
- 
- allow_namespace(p_namespace, i_namespace) = add_namespace {
-     p_namespace == i_namespace
--    add_namespace := null
-+    add_namespace := state_allows("namespace", i_namespace)
-     print("allow_namespace 1: input namespace matches policy data")
+@@ -472,7 +472,15 @@ allow_by_sandbox_name(p_oci, i_oci, p_storages, i_storages, s_name, s_namespace)
  }
  
-@@ -475,8 +475,7 @@ allow_sandbox_name(p_s_name, i_s_name) {
  allow_sandbox_name(p_s_name, i_s_name) {
-     print("allow_sandbox_name 2: start")
+-    print("allow_sandbox_name: start")
++    print("allow_sandbox_name 1: start")
++
++    p_s_name == i_s_name
++
++    print("allow_sandbox_name 1: true")
++}
++allow_sandbox_name(p_s_name, i_s_name) {
++    print("allow_sandbox_name 2: start")
++
+     regex.match(p_s_name, i_s_name)
  
--    # TODO: should generated names be handled differently?
--    contains(p_s_name, "$(generated-name)")
-+    regex.match(p_s_name, i_s_name)
- 
-     print("allow_sandbox_name 2: true")
- }
-@@ -914,7 +913,7 @@ allow_var(p_process, i_process, i_var, s_name, s_namespace) {
-     p_var2 := replace(p_var, "$(sandbox-name)", s_name)
- 
-     print("allow_var 2: p_var2 =", p_var2)
--    p_var2 == i_var
-+    regex.match(p_var2, i_var)
- 
-     print("allow_var 2: true")
- }
+     print("allow_sandbox_name: true")
 diff --git a/src/tools/genpolicy/src/cronjob.rs b/src/tools/genpolicy/src/cronjob.rs
-index 6a2d63de3138d7728d430aad1a9b15201f61b62a..251db8352d399687bedf6f1208c553b0a3b427d5 100644
+index 61a43675a53db19a54cbdb5aa6d0e280d3afb39e..8cb04c41242a1c4813f019fd98e49e94a0eaa2d4 100644
 --- a/src/tools/genpolicy/src/cronjob.rs
 +++ b/src/tools/genpolicy/src/cronjob.rs
 @@ -19,6 +19,7 @@ use crate::yaml;
@@ -79,7 +68,7 @@ index 6a2d63de3138d7728d430aad1a9b15201f61b62a..251db8352d399687bedf6f1208c553b0
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
-index bed1eb8bc88a4b0a94a988d712bc155d1bb14d25..c47cb34eca46007ee66d80841ad968e3880b8041 100644
+index d5f780abd3d728758f8b7aa1d7dd534e16ba45d8..64d8f3defacc9e21d2f7eb03291362ede72c9a8c 100644
 --- a/src/tools/genpolicy/src/daemon_set.rs
 +++ b/src/tools/genpolicy/src/daemon_set.rs
 @@ -83,7 +83,9 @@ impl yaml::K8sResource for DaemonSet {
@@ -94,7 +83,7 @@ index bed1eb8bc88a4b0a94a988d712bc155d1bb14d25..c47cb34eca46007ee66d80841ad968e3
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/deployment.rs b/src/tools/genpolicy/src/deployment.rs
-index 90f15617ec6b68a1410d9077df26f7290c817397..a289be8abc462817e33d0fc7380e72387b7b05cd 100644
+index 86c9aa56763e968c32cf0f95a56d4c4d140b5c25..b4baa9e8a78b79b424b0b41ee4f074a388aca75a 100644
 --- a/src/tools/genpolicy/src/deployment.rs
 +++ b/src/tools/genpolicy/src/deployment.rs
 @@ -81,7 +81,11 @@ impl yaml::K8sResource for Deployment {
@@ -111,7 +100,7 @@ index 90f15617ec6b68a1410d9077df26f7290c817397..a289be8abc462817e33d0fc7380e7238
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/job.rs b/src/tools/genpolicy/src/job.rs
-index e9dc76532d8bdd975cdff16bdc4b8c981ea93d33..941fa909cf60faeca6500e4b0672a2c50603af09 100644
+index 330cc894ab99a470d836b55b51717da1168d09d5..efa98a1577a9c06060bfe3d029edfb68d8c64a1d 100644
 --- a/src/tools/genpolicy/src/job.rs
 +++ b/src/tools/genpolicy/src/job.rs
 @@ -55,7 +55,8 @@ impl yaml::K8sResource for Job {
@@ -124,8 +113,8 @@ index e9dc76532d8bdd975cdff16bdc4b8c981ea93d33..941fa909cf60faeca6500e4b0672a2c5
      }
  
      fn get_namespace(&self) -> Option<String> {
-@@ -118,3 +119,12 @@ impl yaml::K8sResource for Job {
-         yaml::get_process_fields(process, &self.spec.template.spec.securityContext);
+@@ -122,3 +123,12 @@ impl yaml::K8sResource for Job {
+         yaml::get_sysctls(&self.spec.template.spec.securityContext)
      }
  }
 +
@@ -138,7 +127,7 @@ index e9dc76532d8bdd975cdff16bdc4b8c981ea93d33..941fa909cf60faeca6500e4b0672a2c5
 +    format!("{job_name}(-[0-9]+)?-{suffix}")
 +}
 diff --git a/src/tools/genpolicy/src/obj_meta.rs b/src/tools/genpolicy/src/obj_meta.rs
-index e7458c604d568119ce5c60a9d3db6f6d89d44ab7..efc052331fd3fac0c98c93b947870a70796e805e 100644
+index b5911f9ed135e3ffcf935b7b317e81aea1da00f5..7a00f61555883354e8304d7ef4268f0ce11bebff 100644
 --- a/src/tools/genpolicy/src/obj_meta.rs
 +++ b/src/tools/genpolicy/src/obj_meta.rs
 @@ -17,7 +17,7 @@ pub struct ObjectMeta {
@@ -151,10 +140,10 @@ index e7458c604d568119ce5c60a9d3db6f6d89d44ab7..efc052331fd3fac0c98c93b947870a70
      #[serde(skip_serializing_if = "Option::is_none")]
      labels: Option<BTreeMap<String, String>>,
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 111aef73d3866efe885a351d93c902bde085350d..dd1979884c18b86d19d1f6967da60a9694441612 100644
+index 709c2bc37d9bc1984a4d52ff418708756126b05b..35045d8d86956ba47f2993a654756fc601eff941 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
-@@ -839,11 +839,7 @@ impl yaml::K8sResource for Pod {
+@@ -850,11 +850,7 @@ impl yaml::K8sResource for Pod {
      }
  
      fn get_sandbox_name(&self) -> Option<String> {
@@ -168,10 +157,10 @@ index 111aef73d3866efe885a351d93c902bde085350d..dd1979884c18b86d19d1f6967da60a96
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 7f442b66262202a2a75daf4b322eea7905092aba..0b66065813ad51b6be8d06c75dde0527ba22c927 100644
+index 0b291ea2e913289926d696df57dba02f9f023509..d9641562d46efee2ea2cb0aa8eb456425de3f72b 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -995,7 +995,7 @@ fn get_container_annotations(
+@@ -1041,7 +1041,7 @@ fn get_container_annotations(
      if let Some(name) = resource.get_sandbox_name() {
          annotations
              .entry("io.kubernetes.cri.sandbox-name".to_string())
@@ -181,7 +170,7 @@ index 7f442b66262202a2a75daf4b322eea7905092aba..0b66065813ad51b6be8d06c75dde0527
  
      if !is_pause_container {
 diff --git a/src/tools/genpolicy/src/replica_set.rs b/src/tools/genpolicy/src/replica_set.rs
-index 27e70d20f0085e36b7170d6c24eea3f7771cbb1f..81f4d3351d916779de79b2b228da05ff8e608ca8 100644
+index bc9374fc88494a34a682b52cfef589f0ecb03e2f..7d7ad14345129775ff013664c7315d1231c9da48 100644
 --- a/src/tools/genpolicy/src/replica_set.rs
 +++ b/src/tools/genpolicy/src/replica_set.rs
 @@ -53,7 +53,9 @@ impl yaml::K8sResource for ReplicaSet {
@@ -196,7 +185,7 @@ index 27e70d20f0085e36b7170d6c24eea3f7771cbb1f..81f4d3351d916779de79b2b228da05ff
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/replication_controller.rs b/src/tools/genpolicy/src/replication_controller.rs
-index 9029c5a9173c1aa0e6b27f4314f35eacdd7a5e65..3c385d411634574f06f970deec58343718530037 100644
+index 122a66ad687ae783296fbd808a38e40c843df95b..43ebbfde6829b16b96a81aa33b78608ea15bdb4c 100644
 --- a/src/tools/genpolicy/src/replication_controller.rs
 +++ b/src/tools/genpolicy/src/replication_controller.rs
 @@ -55,7 +55,10 @@ impl yaml::K8sResource for ReplicationController {
@@ -212,7 +201,7 @@ index 9029c5a9173c1aa0e6b27f4314f35eacdd7a5e65..3c385d411634574f06f970deec583437
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/stateful_set.rs b/src/tools/genpolicy/src/stateful_set.rs
-index 298af4eb577687246125dc567743a2f49742d905..5d2bc18691b561faa3ad343504995725b169ecaa 100644
+index 47c9f40acafb818985aa4fecfda652904f00d740..cb80088c8487523d89f08bdae47acc61f8884007 100644
 --- a/src/tools/genpolicy/src/stateful_set.rs
 +++ b/src/tools/genpolicy/src/stateful_set.rs
 @@ -103,7 +103,8 @@ impl yaml::K8sResource for StatefulSet {
@@ -226,7 +215,7 @@ index 298af4eb577687246125dc567743a2f49742d905..5d2bc18691b561faa3ad343504995725
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 8ae1000eb319267a7732132ee42731c792ebd48c..03dec274768b9aaef416a6203b5244225336acc2 100644
+index cf0b216d8610ccfc20e52146b250d92671ebfc14..8c527db602d6c9241025b052ba13cb9c86d343c4 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -15,6 +15,7 @@ use crate::job;
@@ -237,9 +226,9 @@ index 8ae1000eb319267a7732132ee42731c792ebd48c..03dec274768b9aaef416a6203b524422
  use crate::pod;
  use crate::policy;
  use crate::pvc;
-@@ -371,3 +372,15 @@ pub fn get_process_fields(
-         }
+@@ -403,3 +404,15 @@ pub fn get_sysctls(security_context: &Option<pod::PodSecurityContext>) -> Vec<po
      }
+     vec![]
  }
 +
 +/// Constructs a non-anchored regex for an object according to k8s naming conventions:

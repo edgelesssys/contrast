@@ -8,7 +8,7 @@ Subject: [PATCH] genpolicy: support HostToContainer mount propagation
  1 file changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index be11415f5d000f240d92ab64261ac3a88c05fb57..90af6ec37f2b331b04d2e1df8dee3f88d2955a2f 100644
+index aeb98497946b2cce3f5f878c60698608baf16f75..b27ca71bafcff26e6adbf9d536fb2c7f1309a3ba 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
 @@ -142,8 +142,9 @@ pub fn get_mount_and_storage(
