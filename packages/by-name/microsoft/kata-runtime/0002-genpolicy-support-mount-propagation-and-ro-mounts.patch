@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Leonard Cohnen <lc@edgeless.systems>
+Date: Thu, 29 Aug 2024 03:45:24 +0200
+Subject: [PATCH] genpolicy: support mount propagation and ro-mounts
+
+Signed-off-by: Leonard Cohnen <lc@edgeless.systems>
+---
+ src/tools/genpolicy/rules.rego               | 3 ++-
+ src/tools/genpolicy/src/mount_and_storage.rs | 8 +++++++-
+ 2 files changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index 66c3e4818f913e3c0d56cbb655e282253dcbb84c..97603d6fe5d2a3a297905886d828c55d222470b3 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -309,7 +309,8 @@ allow_create_container_input(req) {
+     count(i_linux.GIDMappings) == 0
+     count(i_linux.MountLabel) == 0
+     count(i_linux.Resources.Devices) == 0
+-    count(i_linux.RootfsPropagation) == 0
++    # TODO(burgerdev): is it harmful to always allow RootfsPropagation?
++    # count(i_linux.RootfsPropagation) == 0
+     count(i_linux.UIDMappings) == 0
+     is_null(i_linux.IntelRdt)
+     is_null(i_linux.Resources.BlockIO)
+diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
+index a76bffda95821cb3dc407e89946438f3eb70f397..aeb98497946b2cce3f5f878c60698608baf16f75 100644
+--- a/src/tools/genpolicy/src/mount_and_storage.rs
++++ b/src/tools/genpolicy/src/mount_and_storage.rs
+@@ -252,13 +252,19 @@ fn get_empty_dir_mount_and_storage(
+         _ => "rw",
+     };
+ 
++    let mount_propagation = match &yaml_mount.mountPropagation {
++        Some(mode) if mode == "Bidirectional" => "rshared",
++        Some(mode) if mode == "HostToContainer" => "rslave",
++        _ => "rprivate",
++    };
++
+     p_mounts.push(policy::KataMount {
+         destination: yaml_mount.mountPath.to_string(),
+         type_: mount_type.to_string(),
+         source,
+         options: vec![
+             "rbind".to_string(),
+-            "rprivate".to_string(),
++            mount_propagation.to_string(),
+             access.to_string(),
+         ],
+     });

@@ -8,7 +8,7 @@ Subject: [PATCH] genpolicy: do not log policy annotation in 'debug'
  1 file changed, 36 insertions(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/src/obj_meta.rs b/src/tools/genpolicy/src/obj_meta.rs
-index cc549b71b4683bd89107d57a7d98d6f02db82023..e7458c604d568119ce5c60a9d3db6f6d89d44ab7 100644
+index 81e68b115ebdf1cd6851be2e63239c0ab4fad7d5..b5911f9ed135e3ffcf935b7b317e81aea1da00f5 100644
 --- a/src/tools/genpolicy/src/obj_meta.rs
 +++ b/src/tools/genpolicy/src/obj_meta.rs
 @@ -8,9 +8,10 @@
@@ -23,7 +23,7 @@ index cc549b71b4683bd89107d57a7d98d6f02db82023..e7458c604d568119ce5c60a9d3db6f6d
  pub struct ObjectMeta {
      #[serde(skip_serializing_if = "Option::is_none")]
      pub name: Option<String>,
-@@ -46,3 +47,37 @@ impl ObjectMeta {
+@@ -47,3 +48,37 @@ impl ObjectMeta {
          self.namespace.as_ref().cloned()
      }
  }
