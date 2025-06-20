@@ -158,7 +158,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Generated workload policy annotations")
 
-	policies, err := policiesFromKubeResources(paths)
+	policies, err := policiesFromKubeResources(paths, log)
 	if err != nil {
 		return fmt.Errorf("find kube resources with policy: %w", err)
 	}
