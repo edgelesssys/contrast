@@ -11,7 +11,7 @@
 Consult AMD's [Using SEV with AMD EPYC Processors user guide](https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/tuning-guides/58207-using-sev-with-amd-epyc-processors.pdf) for more information.
 </TabItem>
 <TabItem value="intel" label="Intel TDX">
-Follow Canonical's instructions in [4.3 Enable Intel TDX in the Host's BIOS](https://github.com/canonical/tdx?tab=readme-ov-file#43-enable-intel-tdx-in-the-hosts-bios) and [8.2 Setup Intel® SGX Data Center Attestation Primitives (Intel® SGX DCAP) on the Host OS](https://github.com/canonical/tdx?tab=readme-ov-file#82-setup-intel-sgx-data-center-attestation-primitives-intel-sgx-dcap-on-the-host-os).
+Follow Canonical's instructions in [4.2 Enable Intel TDX in Host OS](https://github.com/canonical/tdx?tab=readme-ov-file#42-enable-intel-tdx-in-host-os) (set `TDX_SETUP_ATTESTATION=1` in `setup-tdx-config`), [4.3 Enable Intel TDX in the Host's BIOS](https://github.com/canonical/tdx?tab=readme-ov-file#43-enable-intel-tdx-in-the-hosts-bios) and [9.2 Setup Intel® SGX Data Center Attestation Primitives (Intel® SGX DCAP) on the Host OS](https://github.com/canonical/tdx?tab=readme-ov-file#92-setup-intel-sgx-data-center-attestation-primitives-intel-sgx-dcap-on-the-host-os) (skipping step 9.2.1).
 You can ignore the other sections of the document.
 </TabItem>
 </Tabs>
@@ -23,7 +23,7 @@ You can ignore the other sections of the document.
 Install Linux kernel 6.11 or greater.
 </TabItem>
 <TabItem value="intel" label="Intel TDX">
-Follow Canonical's instructions on [setting up Intel TDX on Ubuntu 24.04](https://github.com/canonical/tdx?tab=readme-ov-file#41-install-ubuntu-2404-server-image). Note that Contrast currently only supports Intel TDX with Ubuntu 24.04.
+Follow Canonical's instructions on [setting up Intel TDX on Ubuntu 24.04](https://github.com/canonical/tdx?tab=readme-ov-file#41-install-ubuntu-server-image). Note that Contrast currently only supports Intel TDX with Ubuntu 24.04.
 </TabItem>
 </Tabs>
 
