@@ -185,9 +185,13 @@ func envWithDefault(key, dflt string) string {
 }
 
 func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams string, debugRuntime bool) error {
-	snpIDBlock, err := kataconfig.SnpIDBlockForPlatform(platform, abi.SevProduct().Name)
-	if err != nil {
-		return err
+	var snpIDBlock kataconfig.SnpIDBlock
+	if platforms.IsSNP(platform) {
+		var err error
+		snpIDBlock, err = kataconfig.SnpIDBlockForPlatform(platform, abi.SevProduct().Name)
+		if err != nil {
+			return err
+		}
 	}
 	kataRuntimeConfig, err := kataconfig.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, snpIDBlock, debugRuntime)
 	if err != nil {
