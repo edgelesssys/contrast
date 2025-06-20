@@ -143,6 +143,11 @@ buildGoModule (finalAttrs: {
       #
       # TODO(burgerdev): upstream
       ./0018-genpolicy-match-sandbox-name-by-regex.patch
+
+      # We are starting our own imagepuller instead of the upstream one. These changes avoid invoking the CDH,
+      # instead using a slightly modified version of upstream's PullImage ttRPC client implementation to
+      # communicate with our imagepuller ttRPC server.
+      ./0019-agent-use-custom-implementation-for-image-pulling.patch
     ];
   };
 
