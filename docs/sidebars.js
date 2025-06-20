@@ -76,6 +76,11 @@ const sidebars = {
             },
             {
               type: "doc",
+              label: "Add Coordinator to resources",
+              id: "howto/workload-deployment/add-coordinator",
+            },
+            {
+              type: "doc",
               label: "Prepare deployment files",
               id: "howto/workload-deployment/deployment-file-preparation",
             },
@@ -101,8 +106,8 @@ const sidebars = {
             },
             {
               type: "doc",
-              label: "Deploy Conrast coordinator",
-              id: "howto/workload-deployment/deploy-coordinator",
+              label: "Set manifest",
+              id: "howto/workload-deployment/set-manifest",
             },
             {
               type: "doc",

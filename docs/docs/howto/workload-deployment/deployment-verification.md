@@ -4,7 +4,7 @@ This step verifies that the application has been deployed correctly.
 
 ## Applicability
 
-A data owner or application user can use this step to verify the deployment before interacting with the application.
+An application user can use this step to verify the deployment before interacting with the application.
 
 ## Prerequisites
 

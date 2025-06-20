@@ -11,6 +11,7 @@ Required for all Contrast deployments.
 1. [Set up cluster](../cluster-setup/aks.md)
 2. [Install CLI](../install-cli.md)
 3. [Deploy the Contrast runtime](./runtime-deployment.md)
+4. [Add Coordinator to resources](./add-coordinator.md)
 
 ## How-to
 

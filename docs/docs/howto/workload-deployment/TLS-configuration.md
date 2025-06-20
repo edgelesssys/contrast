@@ -11,7 +11,8 @@ This step is optional, but highly recommended when deploying applications with C
 1. [Set up cluster](../cluster-setup/aks.md)
 2. [Install CLI](../install-cli.md)
 3. [Deploy the Contrast runtime](./runtime-deployment.md)
-4. [Prepare deployment files](./deployment-file-preparation.md)
+4. [Add Coordinator to resources](set-manifest.md)
+5. [Prepare deployment files](./deployment-file-preparation.md)
 
 ## How-to
 
