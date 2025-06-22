@@ -356,12 +356,12 @@
     "hash": "sha256-8C1IYPJzuiqXkK6raFfQqjgWfLpvClc1/mtQhIca3GA="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/python3-3.12.9-1.azl3.x86_64.rpm",
-    "hash": "sha256-CMCPgJ3x/MgbqANAhCRnKvld3qIlZPpQTWskKMak7vA="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/python3-3.12.9-2.azl3.x86_64.rpm",
+    "hash": "sha256-PTJpRnWvYBXIz0q+neSGev4IMvKvTu5oZj6EwjHYzxw="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/python3-libs-3.12.9-1.azl3.x86_64.rpm",
-    "hash": "sha256-af5Q3EVOvC5Uonuf0y48s3guUYVF7vGsb45rztywfb0="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/python3-libs-3.12.9-2.azl3.x86_64.rpm",
+    "hash": "sha256-8AVmQgSAmpBkZmhmSqy7AB2Q4EQnulDBvSOFW5+TkvY="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/r/readline-8.2-2.azl3.x86_64.rpm",
