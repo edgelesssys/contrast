@@ -27,7 +27,13 @@ kubectl get namespaces --no-headers | while read -r ns _; do
 
   if [[ $time -lt "$(($(date +%s) - 3600))" ]]; then
     echo "Deleting namespace: $ns"
+    sync_ticket=$(kubectl get namespace "$ns" -o jsonpath='{.metadata.labels.contrast\.edgeless\.systems/sync-ticket}')
     kubectl delete namespace "$ns"
+    if [[ -n $sync_ticket ]]; then
+      sync_ip=$(kubectl get svc -n default sync -o jsonpath='{.spec.clusterIP}')
+      sync_uuid=$(kubectl get configmap -n default sync-server-fifo -o jsonpath='{.data.uuid}')
+      curl -fsSL "$sync_ip:8080/fifo/$sync_uuid/done/$sync_ticket"
+    fi
   else
     echo "Skipping namespace: $ns (created within the last hour)"
   fi

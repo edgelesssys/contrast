@@ -133,7 +133,7 @@ generate cli=default_cli platform=default_platform:
     esac
 
 # Apply Kubernetes manifests from /deployment
-apply target=default_deploy_target:
+apply target=default_deploy_target platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
     case {{ target }} in
@@ -141,6 +141,12 @@ apply target=default_deploy_target:
             kubectl apply -f ./{{ workspace_dir }}/runtime
         ;;
         *)
+            if [[ {{ platform }} == "K3s-QEMU-SNP-GPU" ]] ; then
+                sync_ticket=$(nix run .#scripts.get-sync-ticket 90m)
+                echo $sync_ticket > ./{{ workspace_dir }}/just.sync-ticket
+                trap 'nix run .#scripts.release-sync-ticket $sync_ticket' ERR
+                kubectl label ns $(cat ./{{ workspace_dir }}/just.namespace) contrast.edgeless.systems/sync-ticket=$sync_ticket --overwrite
+            fi
             kubectl apply -f ./{{ workspace_dir }}/deployment
         ;;
     esac
@@ -170,6 +176,10 @@ undeploy:
             --timeout=10m
     else
         kubectl delete namespace $ns
+    fi
+    if [[ -f ./{{ workspace_dir }}/just.sync-ticket ]]; then
+        sync_ticket=$(cat ./{{ workspace_dir }}/just.sync-ticket)
+        nix run .#scripts.release-sync-ticket $sync_ticket
     fi
 
 upload-image:
