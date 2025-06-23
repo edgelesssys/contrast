@@ -555,6 +555,7 @@
     name = "cleanup-namespaces";
     runtimeInputs = with pkgs; [
       kubectl
+      curl
     ];
     text = builtins.readFile ./cleanup-namespaces.sh;
   };
@@ -665,6 +666,43 @@
           | .Description
         ' \
         | sort -u
+    '';
+  };
+
+  get-sync-ticket = writeShellApplication {
+    name = "get-sync-ticket";
+    runtimeInputs = with pkgs; [
+      kubectl
+      jq
+      curl
+    ];
+    text = ''
+      sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
+      path="ticket"
+      if [[ "$#" -ge 1 ]]; then
+        path="ticket?done_timeout=$1"
+      fi
+      sync_ticket=$(curl -fsSL "$sync_ip:8080/fifo/$sync_uuid/$path" | jq -r '.ticket')
+      echo "Waiting for lock on fifo $sync_uuid with ticket $sync_ticket" >&2
+      curl -fsSL "$sync_ip:8080/fifo/$sync_uuid/wait/$sync_ticket"
+      echo "Acquired lock on fifo $sync_uuid with ticket $sync_ticket" >&2
+      echo "$sync_ticket"
+    '';
+  };
+
+  release-sync-ticket = writeShellApplication {
+    name = "get-sync-ticket";
+    runtimeInputs = with pkgs; [
+      kubectl
+      curl
+    ];
+    text = ''
+      sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
+      ticket=$1
+      curl -fsSL "$sync_ip:8080/fifo/$sync_uuid/done/$ticket" || true
+      echo "Released ticket $ticket from fifo $sync_uuid" >&2
     '';
   };
 }

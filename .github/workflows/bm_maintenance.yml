@@ -108,6 +108,12 @@ jobs:
         if: (!matrix.platform.self-hosted)
         run: |
           just get-credentials
+      - name: Update sync fifo for GPU platform
+        if: ${{ matrix.platform.name == 'K3s-QEMU-SNP-GPU' }}
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/4eaded61e6943af308b0236ee88b8766b6f52e86/server/deployment.yml
+          kubectl wait --for=condition=available --timeout=5m deployment/sync
+          nix run .#scripts.renew-sync-fifo
       - name: Update namespace cleanup cronjob
         id: update
         env:
