@@ -79,6 +79,14 @@ jobs:
       fail-fast: false
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - name: Update sync fifo for GPU platform
+        if: ${{ matrix.platform.name == 'K3s-QEMU-SNP-GPU' }}
+        run: |
+          # TODO(davidweisse): Update link when sync PR is merged
+          kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/f069648d8d08951b503559bab367036290d1f50a/server/deployment.yml
+          kubectl wait --for=condition=available --timeout=5m deployment/sync
+          nix run .#scripts.renew-sync-fifo
       - name: Update namespace cleanup cronjob
         id: update
         env:
