@@ -65,7 +65,7 @@ jobs:
         run: |
           just get-credentials
       - name: Set sync environment
-        if: (!inputs.self-hosted)
+        if: (!inputs.self-hosted || inputs.platform == 'K3s-QEMU-SNP-GPU')
         run: |
           sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"
