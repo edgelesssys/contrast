@@ -3,13 +3,13 @@
 
 {
   lib,
-  edk2,
+  edk2-202411, # Use pinned edk2 version. TODO(katexochen): Unpin.
   nasm,
   acpica-tools,
   debug ? false,
 }:
 
-edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
+edk2-202411.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
   name = "OVMF-TDX";
 
   buildFlags = lib.optionals debug [ "-D DEBUG_ON_SERIAL_PORT=TRUE" ];
