@@ -1,4 +1,4 @@
-From 895758b0deedbf8a696c04d9567484e2e535fba2 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Fri, 11 Oct 2024 10:49:27 +0000
 Subject: [PATCH] increase min granularity for memfd
@@ -12,7 +12,7 @@ Ideally this should be configurable, but for now, we always use 2 MiB.
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/system/guest-memfd-manager.c b/system/guest-memfd-manager.c
-index ad1a46bac4..25d0d1701e 100644
+index c728ebafafd1127d317e0467a459567ac0a97784..51ac6476763794675c95e90054e4da0734072fcf 100644
 --- a/system/guest-memfd-manager.c
 +++ b/system/guest-memfd-manager.c
 @@ -149,7 +149,7 @@ static uint64_t guest_memfd_rdm_get_min_granularity(const RamDiscardManager *rdm
@@ -24,6 +24,3 @@ index ad1a46bac4..25d0d1701e 100644
  }
  
  static void guest_memfd_rdm_register_listener(RamDiscardManager *rdm,
--- 
-2.34.1
-

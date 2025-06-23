@@ -33,7 +33,8 @@
       # Based on https://github.com/NixOS/nixpkgs/pull/300070/commits/96054ca98020df125bb91e5cf49bec107bea051b#diff-7246126ac058898e6da6aadc1e831bb26afe07fa145958e55c5e112dc2c578fd.
       # We applied the same change done to libaio to libfdt as well.
       ./0002-add-options-for-library-paths.patch
-      # This series allows VFIO to work on SNP.
+      # Enable shared device assignment: https://lists.nongnu.org/archive/html/qemu-devel/2024-07/msg05900.html
+      # Note: This series allows VFIO to work on SNP.
       ./0003-guest_memfd-Introduce-an-object-to-manage-the-guest-.patch
       ./0004-guest_memfd-Introduce-a-helper-to-notify-the-shared-.patch
       ./0005-KVM-Notify-the-state-change-via-RamDiscardManager-he.patch

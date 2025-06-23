@@ -1,8 +1,8 @@
-From cfc2bc7492cc3cc1f713dcd7d73c55bc2caac65a Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Chenyi Qiang <chenyi.qiang@intel.com>
 Date: Thu, 25 Jul 2024 03:21:11 -0400
-Subject: [PATCH 2/6] guest_memfd: Introduce a helper to notify the
- shared/private state change
+Subject: [PATCH] guest_memfd: Introduce a helper to notify the shared/private
+ state change
 
 Introduce a helper function within RamDiscardManager to efficiently
 notify all registered RamDiscardListeners, including VFIO listeners
@@ -26,14 +26,14 @@ Additionally, there could be some special conversion requests:
 
 Signed-off-by: Chenyi Qiang <chenyi.qiang@intel.com>
 ---
- include/sysemu/guest-memfd-manager.h |   3 +
+ include/system/guest-memfd-manager.h |   3 +
  system/guest-memfd-manager.c         | 141 +++++++++++++++++++++++++++
  2 files changed, 144 insertions(+)
 
-diff --git a/include/sysemu/guest-memfd-manager.h b/include/sysemu/guest-memfd-manager.h
-index ab8c2ba362..1cce4cde43 100644
---- a/include/sysemu/guest-memfd-manager.h
-+++ b/include/sysemu/guest-memfd-manager.h
+diff --git a/include/system/guest-memfd-manager.h b/include/system/guest-memfd-manager.h
+index 6a10b5735fbf87f7d2877e8c13fde4bfa66e7626..193c89b14c44d0519aa470a0e78bc2105829ada3 100644
+--- a/include/system/guest-memfd-manager.h
++++ b/include/system/guest-memfd-manager.h
 @@ -43,4 +43,7 @@ struct GuestMemfdManagerClass {
      void (*realize)(Object *gmm, MemoryRegion *mr, uint64_t region_size);
  };
@@ -43,7 +43,7 @@ index ab8c2ba362..1cce4cde43 100644
 +
  #endif
 diff --git a/system/guest-memfd-manager.c b/system/guest-memfd-manager.c
-index 7b90f26859..deb43db90b 100644
+index 3ee8e8300d7a8db3326f80c4d71cd68eb94b79ee..c19c3579c39f2153e74e485077bddb2e3dbd347e 100644
 --- a/system/guest-memfd-manager.c
 +++ b/system/guest-memfd-manager.c
 @@ -243,6 +243,147 @@ static void guest_memfd_rdm_replay_discarded(const RamDiscardManager *rdm,
@@ -194,6 +194,3 @@ index 7b90f26859..deb43db90b 100644
  static void guest_memfd_manager_realize(Object *obj, MemoryRegion *mr,
                                          uint64_t region_size)
  {
--- 
-2.34.1
-

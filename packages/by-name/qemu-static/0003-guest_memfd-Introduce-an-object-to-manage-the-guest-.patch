@@ -1,8 +1,8 @@
-From 91317d0d1be9474e1b492e75e290322e84e78c3e Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Chenyi Qiang <chenyi.qiang@intel.com>
 Date: Thu, 25 Jul 2024 03:21:10 -0400
-Subject: [PATCH 1/6] guest_memfd: Introduce an object to manage the
- guest-memfd with RamDiscardManager
+Subject: [PATCH] guest_memfd: Introduce an object to manage the guest-memfd
+ with RamDiscardManager
 
 As the commit 852f0048f3 ("RAMBlock: make guest_memfd require
 uncoordinated discard") highlighted, some subsystems like VFIO might
@@ -52,18 +52,18 @@ operations are performed with a 4K granularity.
 
 Signed-off-by: Chenyi Qiang <chenyi.qiang@intel.com>
 ---
- include/sysemu/guest-memfd-manager.h |  46 +++++
+ include/system/guest-memfd-manager.h |  46 +++++
  system/guest-memfd-manager.c         | 283 +++++++++++++++++++++++++++
  system/meson.build                   |   1 +
  3 files changed, 330 insertions(+)
- create mode 100644 include/sysemu/guest-memfd-manager.h
+ create mode 100644 include/system/guest-memfd-manager.h
  create mode 100644 system/guest-memfd-manager.c
 
-diff --git a/include/sysemu/guest-memfd-manager.h b/include/sysemu/guest-memfd-manager.h
+diff --git a/include/system/guest-memfd-manager.h b/include/system/guest-memfd-manager.h
 new file mode 100644
-index 0000000000..ab8c2ba362
+index 0000000000000000000000000000000000000000..6a10b5735fbf87f7d2877e8c13fde4bfa66e7626
 --- /dev/null
-+++ b/include/sysemu/guest-memfd-manager.h
++++ b/include/system/guest-memfd-manager.h
 @@ -0,0 +1,46 @@
 +/*
 + * QEMU guest memfd manager
@@ -81,7 +81,7 @@ index 0000000000..ab8c2ba362
 +#ifndef SYSEMU_GUEST_MEMFD_MANAGER_H
 +#define SYSEMU_GUEST_MEMFD_MANAGER_H
 +
-+#include "sysemu/hostmem.h"
++#include "system/hostmem.h"
 +
 +#define TYPE_GUEST_MEMFD_MANAGER "guest-memfd-manager"
 +
@@ -113,7 +113,7 @@ index 0000000000..ab8c2ba362
 +#endif
 diff --git a/system/guest-memfd-manager.c b/system/guest-memfd-manager.c
 new file mode 100644
-index 0000000000..7b90f26859
+index 0000000000000000000000000000000000000000..3ee8e8300d7a8db3326f80c4d71cd68eb94b79ee
 --- /dev/null
 +++ b/system/guest-memfd-manager.c
 @@ -0,0 +1,283 @@
@@ -132,7 +132,7 @@ index 0000000000..7b90f26859
 +
 +#include "qemu/osdep.h"
 +#include "qemu/error-report.h"
-+#include "sysemu/guest-memfd-manager.h"
++#include "system/guest-memfd-manager.h"
 +
 +OBJECT_DEFINE_SIMPLE_TYPE_WITH_INTERFACES(GuestMemfdManager,
 +                                          guest_memfd_manager,
@@ -401,10 +401,10 @@ index 0000000000..7b90f26859
 +    rdmc->replay_discarded = guest_memfd_rdm_replay_discarded;
 +}
 diff --git a/system/meson.build b/system/meson.build
-index a296270cb0..9b96d645ab 100644
+index eec07a945130f00fa9ed4ebe2f444f4700714927..547195a12e918cc8c88e7a5fb39662ce5a3deb62 100644
 --- a/system/meson.build
 +++ b/system/meson.build
-@@ -16,6 +16,7 @@ system_ss.add(files(
+@@ -15,6 +15,7 @@ system_ss.add(files(
    'dirtylimit.c',
    'dma-helpers.c',
    'globals.c',
@@ -412,6 +412,3 @@ index a296270cb0..9b96d645ab 100644
    'memory_mapping.c',
    'qdev-monitor.c',
    'qtest.c',
--- 
-2.34.1
-

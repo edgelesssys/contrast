@@ -1,7 +1,7 @@
-From 456e81f7b23e84e2c07268d250e0eedd69f68cfa Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Wed, 10 Jul 2024 13:31:34 +0200
-Subject: [PATCH 2/2] add options for library paths
+Subject: [PATCH] add options for library paths
 
 For some reason meson fails to find these when building with pkgsStatic
 in Nix.
@@ -11,10 +11,10 @@ in Nix.
  2 files changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/meson.build b/meson.build
-index 97f63aa86c..07606a7a78 100644
+index 41f68d38069b4b8d2e3104fbd6bb3087aeb91d00..2fe3702d1193ba9399de239aca9f9264c24aec35 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -1012,7 +1012,8 @@ zlib = dependency('zlib', required: true)
+@@ -1133,7 +1133,8 @@ zlib = dependency('zlib', required: true)
  libaio = not_found
  if not get_option('linux_aio').auto() or have_block
    libaio = cc.find_library('aio', has_headers: ['libaio.h'],
@@ -24,7 +24,7 @@ index 97f63aa86c..07606a7a78 100644
  endif
  
  linux_io_uring_test = '''
-@@ -1904,7 +1905,8 @@ if fdt_opt == 'enabled' and get_option('wrap_mode') == 'nodownload'
+@@ -2076,7 +2077,8 @@ if fdt_opt == 'enabled' and get_option('wrap_mode') == 'nodownload'
    fdt_opt = 'system'
  endif
  if fdt_opt in ['enabled', 'system'] or (fdt_opt == 'auto' and have_system)
@@ -35,10 +35,10 @@ index 97f63aa86c..07606a7a78 100644
       #include <libfdt.h>
       #include <libfdt_env.h>
 diff --git a/meson_options.txt b/meson_options.txt
-index 0269fa0f16..73005460a9 100644
+index 59d973bca00fafdf6680eb9dd031e83863cc3566..877682742f4c1b02b9ac28b4e627f3f8f68561f7 100644
 --- a/meson_options.txt
 +++ b/meson_options.txt
-@@ -188,6 +188,7 @@ option('linux_aio', type : 'feature', value : 'auto',
+@@ -194,6 +194,7 @@ option('linux_aio', type : 'feature', value : 'auto',
         description: 'Linux AIO support')
  option('linux_io_uring', type : 'feature', value : 'auto',
         description: 'Linux io_uring support')
@@ -46,7 +46,7 @@ index 0269fa0f16..73005460a9 100644
  option('lzfse', type : 'feature', value : 'auto',
         description: 'lzfse support for DMG images')
  option('lzo', type : 'feature', value : 'auto',
-@@ -313,6 +314,7 @@ option('capstone', type: 'feature', value: 'auto',
+@@ -321,6 +322,7 @@ option('capstone', type: 'feature', value: 'auto',
  option('fdt', type: 'combo', value: 'auto',
         choices: ['disabled', 'enabled', 'auto', 'system', 'internal'],
         description: 'Whether and how to find the libfdt library')
@@ -54,6 +54,3 @@ index 0269fa0f16..73005460a9 100644
  
  option('selinux', type: 'feature', value: 'auto',
         description: 'SELinux support in qemu-nbd')
--- 
-2.45.2
-

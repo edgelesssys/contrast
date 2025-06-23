@@ -1,7 +1,7 @@
-From 1edf8d61a13344f820bc7f2d489386061fb560c5 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Chenyi Qiang <chenyi.qiang@intel.com>
 Date: Thu, 25 Jul 2024 03:21:13 -0400
-Subject: [PATCH 4/6] memory: Register the RamDiscardManager instance upon
+Subject: [PATCH] memory: Register the RamDiscardManager instance upon
  guest_memfd creation
 
 Instantiate a new guest_memfd_manager object and register it in the
@@ -15,20 +15,20 @@ Signed-off-by: Chenyi Qiang <chenyi.qiang@intel.com>
  1 file changed, 9 insertions(+)
 
 diff --git a/system/physmem.c b/system/physmem.c
-index 94600a33ec..a10f769cb5 100644
+index 333a5eb94df4c6ca32ef63821d03dc34306e446c..5ef207fc834b1f6624ce00a901d172380d069cdf 100644
 --- a/system/physmem.c
 +++ b/system/physmem.c
-@@ -53,6 +53,7 @@
- #include "sysemu/hostmem.h"
- #include "sysemu/hw_accel.h"
- #include "sysemu/xen-mapcache.h"
-+#include "sysemu/guest-memfd-manager.h"
+@@ -56,6 +56,7 @@
+ #include "system/hostmem.h"
+ #include "system/hw_accel.h"
+ #include "system/xen-mapcache.h"
++#include "system/guest-memfd-manager.h"
  #include "trace.h"
  
  #ifdef CONFIG_FALLOCATE_PUNCH_HOLE
-@@ -1899,6 +1900,12 @@ static void ram_block_add(RAMBlock *new_block, Error **errp)
-             qemu_mutex_unlock_ramlist();
-             goto out_free;
+@@ -1921,6 +1922,12 @@ static void ram_block_add(RAMBlock *new_block, Error **errp)
+             migrate_add_blocker_modes(&new_block->cpr_blocker, errp,
+                                       MIG_MODE_CPR_TRANSFER, -1);
          }
 +
 +        GuestMemfdManager *gmm = GUEST_MEMFD_MANAGER(object_new(TYPE_GUEST_MEMFD_MANAGER));
@@ -38,8 +38,8 @@ index 94600a33ec..a10f769cb5 100644
 +        memory_region_set_ram_discard_manager(gmm->mr, RAM_DISCARD_MANAGER(gmm));
      }
  
-     new_ram_size = MAX(old_ram_size,
-@@ -2156,6 +2163,8 @@ static void reclaim_ramblock(RAMBlock *block)
+     ram_size = (new_block->offset + new_block->max_length) >> TARGET_PAGE_BITS;
+@@ -2265,6 +2272,8 @@ static void reclaim_ramblock(RAMBlock *block)
  
      if (block->guest_memfd >= 0) {
          close(block->guest_memfd);
@@ -48,6 +48,3 @@ index 94600a33ec..a10f769cb5 100644
          ram_block_discard_require(false);
      }
  
--- 
-2.34.1
-

@@ -1,7 +1,7 @@
-From c4477cb82dcb0ba6bbe84caf9d1d9919be09d85d Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
 Date: Wed, 10 Jul 2024 13:30:51 +0200
-Subject: [PATCH 1/2] avoid duplicate definitions
+Subject: [PATCH] avoid duplicate definitions
 
 Another library already defines crc32c and this causes linker errors.
 Rename the function in QEMU to avoid conflicts.
@@ -10,15 +10,15 @@ Rename the function in QEMU to avoid conflicts.
 ---
  block/vhdx.c                     | 4 ++--
  hw/net/net_rx_pkt.c              | 2 +-
+ hw/uefi/var-service-core.c       | 2 +-
  include/qemu/crc32c.h            | 2 +-
- target/arm/helper.c              | 2 +-
  target/arm/tcg/helper-a64.c      | 4 ++--
  target/loongarch/tcg/op_helper.c | 2 +-
  util/crc32c.c                    | 4 ++--
  7 files changed, 10 insertions(+), 10 deletions(-)
 
 diff --git a/block/vhdx.c b/block/vhdx.c
-index 5aa1a13506..52723d7cc0 100644
+index b2a4b813a0bd9e78056803ac0a2b3d3e629b1852..46d4c8b8704ceb4c3aecfa52325e89c0ef6247f0 100644
 --- a/block/vhdx.c
 +++ b/block/vhdx.c
 @@ -157,7 +157,7 @@ uint32_t vhdx_update_checksum(uint8_t *buf, size_t size, int crc_offset)
@@ -40,10 +40,10 @@ index 5aa1a13506..52723d7cc0 100644
          memcpy(buf + crc_offset, &crc_orig, sizeof(crc_orig));
      }
 diff --git a/hw/net/net_rx_pkt.c b/hw/net/net_rx_pkt.c
-index 32e5f3f9cf..1cffe29d80 100644
+index f87b6f046ccff814cce966804bd03980dbeb352d..c5a9d781d95b40d3b8eda15f69fd1bc7fc0182a3 100644
 --- a/hw/net/net_rx_pkt.c
 +++ b/hw/net/net_rx_pkt.c
-@@ -579,7 +579,7 @@ _net_rx_pkt_validate_sctp_sum(struct NetRxPkt *pkt)
+@@ -565,7 +565,7 @@ _net_rx_pkt_validate_sctp_sum(struct NetRxPkt *pkt)
          return false;
      }
  
@@ -52,8 +52,21 @@ index 32e5f3f9cf..1cffe29d80 100644
                          (uint8_t *)vec->iov_base + off, vec->iov_len - off);
      calculated = iov_crc32c(calculated ^ 0xffffffff, vec + 1, vec_len - 1);
      valid = calculated == le32_to_cpu(original);
+diff --git a/hw/uefi/var-service-core.c b/hw/uefi/var-service-core.c
+index 4836a0cb811674f1406d8abea7e2d75e69930292..707fdb78343e823e462a60505a552b02008e9cea 100644
+--- a/hw/uefi/var-service-core.c
++++ b/hw/uefi/var-service-core.c
+@@ -230,7 +230,7 @@ static uint64_t uefi_vars_read(void *opaque, hwaddr addr, unsigned size)
+         uv->pio_xfer_offset += size;
+         break;
+     case UEFI_VARS_REG_PIO_BUFFER_CRC32C:
+-        retval = crc32c(0xffffffff, uv->pio_xfer_buffer, uv->pio_xfer_offset);
++        retval = __crc32c(0xffffffff, uv->pio_xfer_buffer, uv->pio_xfer_offset);
+         break;
+     case UEFI_VARS_REG_FLAGS:
+         retval = 0;
 diff --git a/include/qemu/crc32c.h b/include/qemu/crc32c.h
-index 88b4d2b3b3..52ba066c2e 100644
+index 88b4d2b3b3304803456f5b23ef42dbf530381ec5..52ba066c2e784b8ea3d88671f3d7944062a3660e 100644
 --- a/include/qemu/crc32c.h
 +++ b/include/qemu/crc32c.h
 @@ -29,7 +29,7 @@
@@ -65,25 +78,12 @@ index 88b4d2b3b3..52ba066c2e 100644
  uint32_t iov_crc32c(uint32_t crc, const struct iovec *iov, size_t iov_cnt);
  
  #endif
-diff --git a/target/arm/helper.c b/target/arm/helper.c
-index 8fb4b474e8..f6fde26489 100644
---- a/target/arm/helper.c
-+++ b/target/arm/helper.c
-@@ -12409,7 +12409,7 @@ uint32_t HELPER(crc32c)(uint32_t acc, uint32_t val, uint32_t bytes)
-     stl_le_p(buf, val);
- 
-     /* Linux crc32c converts the output to one's complement.  */
--    return crc32c(acc, buf, bytes) ^ 0xffffffff;
-+    return __crc32c(acc, buf, bytes) ^ 0xffffffff;
- }
- 
- /*
 diff --git a/target/arm/tcg/helper-a64.c b/target/arm/tcg/helper-a64.c
-index c60d2a7ec9..a8cc45de84 100644
+index 9244848efed052578e38f1b737ca2b6c8694e8d5..a55b4644b896712350e6f5f7b464849370033a3c 100644
 --- a/target/arm/tcg/helper-a64.c
 +++ b/target/arm/tcg/helper-a64.c
-@@ -490,7 +490,7 @@ float32 HELPER(fcvtx_f64_to_f32)(float64 a, CPUARMState *env)
- }
+@@ -401,7 +401,7 @@ AH_MINMAX_HELPER(vfp_ah_maxs, float32, float32, max)
+ AH_MINMAX_HELPER(vfp_ah_maxd, float64, float64, max)
  
  /* 64-bit versions of the CRC helpers. Note that although the operation
 - * (and the prototypes of crc32c() and crc32() mean that only the bottom
@@ -91,7 +91,7 @@ index c60d2a7ec9..a8cc45de84 100644
   * 32 bits of the accumulator and result are used, we pass and return
   * uint64_t for convenience of the generated code. Unlike the 32-bit
   * instruction set versions, val may genuinely have 64 bits of data in it.
-@@ -514,7 +514,7 @@ uint64_t HELPER(crc32c_64)(uint64_t acc, uint64_t val, uint32_t bytes)
+@@ -425,7 +425,7 @@ uint64_t HELPER(crc32c_64)(uint64_t acc, uint64_t val, uint32_t bytes)
      stq_le_p(buf, val);
  
      /* Linux crc32c converts the output to one's complement.  */
@@ -101,7 +101,7 @@ index c60d2a7ec9..a8cc45de84 100644
  
  /*
 diff --git a/target/loongarch/tcg/op_helper.c b/target/loongarch/tcg/op_helper.c
-index fe79c62fa4..41133336c0 100644
+index b17208e5b962f2191b2afa60181bff311d618bba..c4b6f112e1a4d85f4d170786db0d33a0dbf60ae2 100644
 --- a/target/loongarch/tcg/op_helper.c
 +++ b/target/loongarch/tcg/op_helper.c
 @@ -77,7 +77,7 @@ target_ulong helper_crc32c(target_ulong val, target_ulong m, uint64_t sz)
@@ -114,7 +114,7 @@ index fe79c62fa4..41133336c0 100644
  
  target_ulong helper_cpucfg(CPULoongArchState *env, target_ulong rj)
 diff --git a/util/crc32c.c b/util/crc32c.c
-index ea7f345de8..d6b5fab137 100644
+index ea7f345de86073998250f54a5a19aef0a5bf164f..d6b5fab1379641d88f230448e71c24e8396020bb 100644
 --- a/util/crc32c.c
 +++ b/util/crc32c.c
 @@ -105,7 +105,7 @@ static const uint32_t crc32c_table[256] = {
@@ -135,6 +135,3 @@ index ea7f345de8..d6b5fab137 100644
          iov++;
      }
      return crc ^ 0xffffffff;
--- 
-2.45.2
-
