@@ -741,9 +741,7 @@ func GPU() []any {
 
 // Vault returns the resources for deploying a user managed vault.
 func Vault(namespace string) []any {
-	vaultSfSets := StatefulSet("vault", "").WithAnnotations(map[string]string{
-		securePVAnnotationKey: "state:share",
-	}).
+	vaultSfSets := StatefulSet("vault", "").
 		WithSpec(StatefulSetSpec().
 			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
 				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
@@ -782,7 +780,7 @@ func Vault(namespace string) []any {
 								VolumeMount().
 									WithName("config").WithMountPath("/vault/config"),
 								VolumeMount().
-									WithName("share").WithMountPath("/vault/data").WithMountPropagation(corev1.MountPropagationHostToContainer),
+									WithName("share").WithMountPath("/vault/data"),
 							).WithPorts(
 								ContainerPort().
 									WithName("vault-listener").
@@ -812,12 +810,11 @@ func Vault(namespace string) []any {
 					),
 					),
 			).
-			WithVolumeClaimTemplates(PersistentVolumeClaim("state", "").
+			WithVolumeClaimTemplates(PersistentVolumeClaim("share", "").
 				WithSpec(applycorev1.PersistentVolumeClaimSpec().
-					WithVolumeMode(corev1.PersistentVolumeBlock).
 					WithAccessModes(corev1.ReadWriteOnce).
 					WithResources(applycorev1.VolumeResourceRequirements().
-						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
+						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("5Gi")}),
 					),
 				),
 			),
