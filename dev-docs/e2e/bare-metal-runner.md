@@ -186,9 +186,7 @@ sudo echo -e "# btrfs for nix builder \n/mnt/btrfs.img /mnt/nixbld btrfs loop,de
 sudo mount -a
 
 # Use the btrfs for nix builds
-sudo mkdir -p /etc/systemd/system/nix-daemon.service.d
-echo -e "[Service]\nEnvironment=TMPDIR=/mnt/nixbld" | sudo tee /etc/systemd/system/nix-daemon.service.d/btrfs.conf
-sudo systemctl daemon-reload
+echo "build-dir = /mnt/nixbld" | sudo tee -a /etc/nix/nix.conf
 sudo systemctl restart nix-daemon
 ```
 
