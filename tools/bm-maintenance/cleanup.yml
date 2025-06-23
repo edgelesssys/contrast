@@ -56,36 +56,18 @@ spec:
           image: "@@REPLACE_IMAGE@@"
           imagePullPolicy: Always
           env:
-            - name: OPTEDGELESS
-              value: /opt/edgeless
+            - name: HOST_MOUNT
+              value: /host
             - name: CONFIG
               value: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
             - name: SNAPSHOTTER
               value: nydus
           volumeMounts:
-            - name: opt-edgeless
-              mountPath: /opt/edgeless
-            - name: snapshotter-data
-              mountPath: /var/lib/nydus-snapshotter
-            - name: containerd-config
-              mountPath: /var/lib/rancher/k3s/agent/etc/containerd
-            - name: containerd-run
-              mountPath: /run/k3s/containerd/
+            - name: host-mount
+              mountPath: /host
       volumes:
-        - name: opt-edgeless
+        - name: host-mount
           hostPath:
-            path: /opt/edgeless
-            type: Directory
-        - name: snapshotter-data
-          hostPath:
-            path: /var/lib/nydus-snapshotter
-            type: Directory
-        - name: containerd-config
-          hostPath:
-            path: /var/lib/rancher/k3s/agent/etc/containerd
-            type: Directory
-        - name: containerd-run
-          hostPath:
-            path: /run/k3s/containerd/
+            path: /
             type: Directory
       restartPolicy: OnFailure
