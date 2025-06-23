@@ -1,7 +1,7 @@
-From 6b692d82049689c95fa3feb6522d847b6738aa3f Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Chenyi Qiang <chenyi.qiang@intel.com>
 Date: Thu, 25 Jul 2024 03:21:14 -0400
-Subject: [PATCH 5/6] guest-memfd: Default to discarded (private) in
+Subject: [PATCH] guest-memfd: Default to discarded (private) in
  guest_memfd_manager
 
 guest_memfd was initially set to shared until the commit bd3bcf6962
@@ -31,7 +31,7 @@ Signed-off-by: Chenyi Qiang <chenyi.qiang@intel.com>
  1 file changed, 1 insertion(+)
 
 diff --git a/system/guest-memfd-manager.c b/system/guest-memfd-manager.c
-index deb43db90b..ad1a46bac4 100644
+index c19c3579c39f2153e74e485077bddb2e3dbd347e..c728ebafafd1127d317e0467a459567ac0a97784 100644
 --- a/system/guest-memfd-manager.c
 +++ b/system/guest-memfd-manager.c
 @@ -393,6 +393,7 @@ static void guest_memfd_manager_realize(Object *obj, MemoryRegion *mr,
@@ -42,6 +42,3 @@ index deb43db90b..ad1a46bac4 100644
  }
  
  static void guest_memfd_manager_init(Object *obj)
--- 
-2.34.1
-

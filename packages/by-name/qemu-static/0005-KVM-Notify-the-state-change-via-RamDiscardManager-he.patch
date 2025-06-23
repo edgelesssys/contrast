@@ -1,7 +1,7 @@
-From 35a523caf0cdab45782fe1330e991733b8d85635 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Chenyi Qiang <chenyi.qiang@intel.com>
 Date: Thu, 25 Jul 2024 03:21:12 -0400
-Subject: [PATCH 3/6] KVM: Notify the state change via RamDiscardManager helper
+Subject: [PATCH] KVM: Notify the state change via RamDiscardManager helper
  during shared/private conversion
 
 Once exit to userspace to convert the page from private to shared or
@@ -15,26 +15,26 @@ Signed-off-by: Chenyi Qiang <chenyi.qiang@intel.com>
  1 file changed, 7 insertions(+)
 
 diff --git a/accel/kvm/kvm-all.c b/accel/kvm/kvm-all.c
-index acc23092e7..42e05e82c7 100644
+index f89568bfa39783bceca135c5c9a542f6dd54d15a..68b6b80ca8b5d881d0bfdd5cb0d979f8f69c590e 100644
 --- a/accel/kvm/kvm-all.c
 +++ b/accel/kvm/kvm-all.c
 @@ -48,6 +48,7 @@
  #include "kvm-cpus.h"
- #include "sysemu/dirtylimit.h"
+ #include "system/dirtylimit.h"
  #include "qemu/range.h"
-+#include "sysemu/guest-memfd-manager.h"
++#include "system/guest-memfd-manager.h"
  
  #include "hw/boards.h"
- #include "sysemu/stats.h"
-@@ -2896,6 +2897,7 @@ int kvm_convert_memory(hwaddr start, hwaddr size, bool to_private)
+ #include "system/stats.h"
+@@ -3011,6 +3012,7 @@ int kvm_convert_memory(hwaddr start, hwaddr size, bool to_private)
      RAMBlock *rb;
      void *addr;
-     int ret = -1;
+     int ret = -EINVAL;
 +    GuestMemfdManager *gmm;
  
      trace_kvm_convert_memory(start, size, to_private ? "shared_to_private" : "private_to_shared");
  
-@@ -2958,6 +2960,11 @@ int kvm_convert_memory(hwaddr start, hwaddr size, bool to_private)
+@@ -3073,6 +3075,11 @@ int kvm_convert_memory(hwaddr start, hwaddr size, bool to_private)
      addr = memory_region_get_ram_ptr(mr) + section.offset_within_region;
      rb = qemu_ram_block_from_host(addr, false, &offset);
  
@@ -46,6 +46,3 @@ index acc23092e7..42e05e82c7 100644
      if (to_private) {
          if (rb->page_size != qemu_real_host_page_size()) {
              /*
--- 
-2.34.1
-
