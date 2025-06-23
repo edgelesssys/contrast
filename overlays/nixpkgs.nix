@@ -67,4 +67,27 @@ final: prev:
       })
     ];
   });
+
+  # Pinned edk2 version for OVMF-TDX.
+  # TODO(katexochen): Fix OVMF-TDX measurements for newer edk2 versions.
+  edk2-202411 =
+    (prev.edk2.overrideAttrs (
+      finalAttrs: _prevAttrs: {
+        version = "202411";
+        __intentionallyOverridingVersion = true; # We override srcWithVendoring instead of src.
+        srcWithVendoring = final.fetchFromGitHub {
+          owner = "tianocore";
+          repo = "edk2";
+          tag = "edk2-stable${finalAttrs.version}";
+          fetchSubmodules = true;
+          hash = "sha256-KYaTGJ3DHtWbPEbP+n8MTk/WwzLv5Vugty/tvzuEUf0=";
+        };
+      }
+    )).override
+      {
+        buildPackages = final.buildPackages // {
+          edk2 = final.edk2-202411;
+          openssl = final.openssl_3;
+        };
+      };
 }
