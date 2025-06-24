@@ -52,7 +52,6 @@ func (h ReadinessHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
-	// TODO(miampf): Check that coordinator isn't in recovery mode
 	w.WriteHeader(http.StatusOK)
 }
 
