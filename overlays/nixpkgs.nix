@@ -90,4 +90,29 @@ final: prev:
           openssl = final.openssl_3;
         };
       };
+
+  # Fix version mismatch between libnvidia-container and nvidia-container-toolkit.
+  libnvidia-container = prev.libnvidia-container.overrideAttrs (
+    finalAttrs: prevAttrs: {
+      version = "1.17.8";
+      src = final.fetchFromGitHub {
+        owner = "NVIDIA";
+        repo = "libnvidia-container";
+        tag = "v${finalAttrs.version}";
+        hash = "sha256-OzjcYxnWjzgmrjERyPN3Ch3EQj4t1J5/TbATluoDESg=";
+      };
+      patches =
+        [
+          # Patch No. 1 needs a rebase on the new version, fetch the rebased version from the upstream PR.
+          (final.fetchpatch {
+            url = "https://raw.githubusercontent.com/katexochen/nixpkgs/refs/heads/libnvidia-container/1.17.8/pkgs/by-name/li/libnvidia-container/0001-ldcache-don-t-use-ldcache.patch";
+            hash = "sha256-mdjWLa7kSWVaoyOSNKKt59I0XxyKO+QJEnmNCh+/pPU=";
+          })
+        ]
+        ++ (
+          # Apply other patches that don't need a rebase.
+          builtins.tail prevAttrs.patches or [ ]
+        );
+    }
+  );
 }
