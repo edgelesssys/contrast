@@ -10,7 +10,7 @@ buildGoModule (finalAttrs: {
   src = ../../../tools/tdx-measure;
 
   proxyVendor = true;
-  vendorHash = "sha256-x4n45amdEeL2M3IutDbdKX9EDNRxq5LHWV18tHt5y5k=";
+  vendorHash = "sha256-nUNr2vfhCWtpUvIDppONh/x5v1JODuLFwc9tjZK05Vg=";
 
   subPackages = [ "." ];
 
