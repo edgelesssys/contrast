@@ -70,7 +70,7 @@ func New(guard guard, peerGetter peerGetter, issuer atls.Issuer, httpsGetter *ce
 // The function returns only when the context expires, with the error returned from the context.
 func (r *Recoverer) RunRecovery(ctx context.Context) error {
 	return periodically(ctx, r.clock, peerRecoveryInterval, func(ctx context.Context) {
-		if err := r.recoverFromAvailablePeers(ctx); err != nil {
+		if err := r.RecoverOnce(ctx); err != nil {
 			r.logger.Warn("Could not recover from any peer.", "err", err)
 		}
 	})
@@ -78,8 +78,8 @@ func (r *Recoverer) RunRecovery(ctx context.Context) error {
 
 var errNoPeers = errors.New("no peers found")
 
-// recoverFromAvailablePeers performs one round of recovery attempts over all discovered peers.
-func (r *Recoverer) recoverFromAvailablePeers(ctx context.Context) error {
+// RecoverOnce performs one round of recovery attempts over all discovered peers.
+func (r *Recoverer) RecoverOnce(ctx context.Context) error {
 	oldState, err := r.guard.GetState(ctx)
 	if !errors.Is(err, stateguard.ErrStaleState) {
 		return nil
