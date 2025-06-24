@@ -385,7 +385,7 @@ jobs:
           done
           echo "Artifacts available at https://contrast-public.s3.eu-central-1.amazonaws.com/pre-releases/${{ inputs.version }}/$unix/" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Create draft release
-        uses: softprops/action-gh-release@da05d552573ad5aba039eaac05058a918a7bf631 # v2.2.2
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
           draft: true
           generate_release_notes: true
