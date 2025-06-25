@@ -21,7 +21,7 @@ require (
 	github.com/google/go-tdx-guest v0.3.2-0.20250505161510-9efd53b4a100
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/katexochen/sync v0.0.0-20240617152407-6a8003240db0
-	github.com/klauspost/cpuid/v2 v2.2.10
+	github.com/klauspost/cpuid/v2 v2.2.11
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/prometheus/client_golang v1.22.0
 	github.com/prometheus/common v0.65.0
