@@ -9,9 +9,10 @@ the rules for PVCs, and only needs deserialization support.
 
 Signed-off-by: Markus Rudy <mr@edgeless.systems>
 ---
- src/tools/genpolicy/src/mount_and_storage.rs |  2 +-
- src/tools/genpolicy/src/volume.rs            | 12 +++++++++++-
- 2 files changed, 12 insertions(+), 2 deletions(-)
+ src/tools/genpolicy/src/mount_and_storage.rs       |  2 +-
+ src/tools/genpolicy/src/persistent_volume_claim.rs |  9 +++++++++
+ src/tools/genpolicy/src/volume.rs                  | 12 +++++++++++-
+ 3 files changed, 21 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
 index 8dbe524ae2c42172ed08a03bd5e570e8a1accd3d..3e9376e77562f9e18d7160859377175e12ca783d 100644
@@ -26,8 +27,28 @@ index 8dbe524ae2c42172ed08a03bd5e570e8a1accd3d..3e9376e77562f9e18d7160859377175e
          get_shared_bind_mount(yaml_mount, p_mounts, "rprivate", "rw");
      } else if yaml_volume.hostPath.is_some() {
          get_host_path_mount(yaml_mount, yaml_volume, p_mounts);
+diff --git a/src/tools/genpolicy/src/persistent_volume_claim.rs b/src/tools/genpolicy/src/persistent_volume_claim.rs
+index 3db25a490cec2f1a2d8f8d269dec5019bc3e96b1..6fd7a8e964ed03ecfac3da518af6edbd33b71b62 100644
+--- a/src/tools/genpolicy/src/persistent_volume_claim.rs
++++ b/src/tools/genpolicy/src/persistent_volume_claim.rs
+@@ -40,6 +40,15 @@ struct PersistentVolumeClaimSpec {
+     // TODO: additional fields.
+ }
+ 
++/// See Reference / Kubernetes API / Config and Storage Resources / PersistentVolumeClaimTemplate.
++#[derive(Clone, Debug, Default, Serialize, Deserialize)]
++pub struct PersistentVolumeClaimTemplate {
++    #[serde(skip_serializing_if = "Option::is_none")]
++    pub metadata: Option<obj_meta::ObjectMeta>,
++
++    spec: PersistentVolumeClaimSpec,
++}
++
+ /// See Reference / Kubernetes API / Config and Storage Resources / PersistentVolumeClaim.
+ #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+ pub struct ResourceRequirements {
 diff --git a/src/tools/genpolicy/src/volume.rs b/src/tools/genpolicy/src/volume.rs
-index 0bb908a81c2fd7ffcd7dd59587db316f609d0c13..8592b1f9e69ac054b3e06c3778ad0879c6df742b 100644
+index 0bb908a81c2fd7ffcd7dd59587db316f609d0c13..b0fbc38ab787fe3f9259d7e648a0ec102cbc9e26 100644
 --- a/src/tools/genpolicy/src/volume.rs
 +++ b/src/tools/genpolicy/src/volume.rs
 @@ -6,7 +6,7 @@
@@ -53,11 +74,11 @@ index 0bb908a81c2fd7ffcd7dd59587db316f609d0c13..8592b1f9e69ac054b3e06c3778ad0879
      // TODO: additional fields.
  }
  
-+/// See Reference / Kubernetes API / Config and Storage Resources / Volume.
++/// See Reference / Kubernetes API / Config and Storage Resources / EphemeralVolumeSource.
 +#[derive(Clone, Debug, Serialize, Deserialize)]
 +pub struct EphemeralVolumeSource {
-+    #[serde(skip_serializing_if = "Option::is_none")]
-+    pub volumeClaimTemplate: Option<persistent_volume_claim::PersistentVolumeClaim>,
++    // Required.
++    pub volumeClaimTemplate: persistent_volume_claim::PersistentVolumeClaimTemplate,
 +}
 +
  /// See Reference / Kubernetes API / Config and Storage Resources / Volume.
