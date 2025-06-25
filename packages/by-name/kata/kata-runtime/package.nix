@@ -170,7 +170,7 @@ buildGoModule (finalAttrs: {
       # This patch fixes an issue where genpolicy can corrupt the layer cache file due to simultaneous
       # read/write operations on the file, instead implementing an in-memory caching solution.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11426
-      ./0026-genpolicy-keep-layers-cache-in-memory.patch
+      ./0026-genpolicy-keep-layers-cache-in-memory-to-prevent-cor.patch
     ];
   };
 
