@@ -24,3 +24,4 @@ out.env
 infra/**/kustomization.yaml
 uplosi.conf*
 .custom/
+.tmp*
