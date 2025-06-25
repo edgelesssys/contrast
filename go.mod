@@ -9,7 +9,7 @@ toolchain go1.24.2
 // https://github.com/google/go-sev-guest/issues/103
 // Includes cherry-pick of unmerged PR to fix platform info validation:
 // https://github.com/google/go-sev-guest/pull/161
-replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20250411143710-1bf02cf1129f
+replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20250522132418-02d4f5059bf3
 
 require (
 	filippo.io/keygen v0.0.0-20240718133620-7f162efbbd87
