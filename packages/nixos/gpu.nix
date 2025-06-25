@@ -12,20 +12,9 @@ let
   cfg = config.contrast.gpu;
 
   nvidiaPackage =
-    (
-      (config.boot.kernelPackages.nvidiaPackages.mkDriver {
-        # TODO(msanft): Investigate why the latest version breaks GPU containers.
-        version = "550.90.07";
-        sha256_64bit = "sha256-Uaz1edWpiE9XOh0/Ui5/r6XnhB4iqc7AtLvq4xsLlzM=";
-        sha256_aarch64 = "sha256-uJa3auRlMHr8WyacQL2MyyeebqfT7K6VU0qR7LGXFXI=";
-        openSha256 = "sha256-VLmh7eH0xhEu/AK+Osb9vtqAFni+lx84P/bo4ZgCqj8=";
-        settingsSha256 = "sha256-sX9dHEp9zH9t3RWp727lLCeJLo8QRAGhVb8iN6eX49g=";
-        persistencedSha256 = "sha256-qe8e1Nxla7F0U88AbnOZm6cHxo57pnLCqtjdvOvq9jk=";
-      }).override
-      {
-        disable32Bit = true;
-      }
-    ).overrideAttrs
+    (config.boot.kernelPackages.nvidiaPackages.production.override {
+      disable32Bit = true;
+    }).overrideAttrs
       (oldAttrs: {
         # We strip the driver package from its dependencies on desktop software like Wayland and X11.
         # For server use-cases, we shouldn't need these. The Mesa (and thus Perl) and libGL dependencies are dropped
