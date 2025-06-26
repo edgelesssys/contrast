@@ -53,13 +53,6 @@ The Contrast Coordinator is deployed as a single replica in its default configur
 When this replica is restarted, for example for node maintenance, it needs to be recovered manually.
 For automatic peer recovery and high-availability, the Coordinator should be [scaled to at least 3 replicas](howto/coordinator-ha.md).
 
-## Overriding Kata configuration
-
-Kata Containers supports [overriding certain configuration values via Kubernetes annotations](https://github.com/kata-containers/kata-containers/blob/b4da4b5e3b9b21048af9333b071235a57a3e9493/docs/how-to/how-to-set-sandbox-config-kata.md).
-
-It needs to be noted that setting these values is unsupported, and doing so may lead to unexpected
-behaviour, as Contrast isn't tested against all possible configuration combinations.
-
 ## GPU attestation
 
 While Contrast supports integration with confidential computing-enabled GPUs, such as NVIDIA's H100 series, attesting the integrity of the GPU device currently must be handled at the workload layer.
