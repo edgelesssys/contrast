@@ -108,7 +108,7 @@ func TestRecoverOnce(t *testing.T) {
 				dialer:     &stubDialer{responses: tc.dialResponse},
 				logger:     logger,
 			}
-			err := r.RecoverOnce(ctx)
+			err := r.recoverFromAvailablePeers(ctx)
 			require.ErrorIs(err, tc.wantErr)
 		})
 	}

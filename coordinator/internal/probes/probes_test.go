@@ -16,94 +16,60 @@ import (
 
 func TestStartupProbe(t *testing.T) {
 	testCases := map[string]struct {
-		userapiStartedFirst   bool
-		meshapiStartedFirst   bool
-		recoveryStartedFirst  bool
-		userapiStartedSecond  bool
-		meshapiStartedSecond  bool
-		recoveryStartedSecond bool
-		want503First          bool
-		want503Second         bool
+		userapiStartedFirst  bool
+		meshapiStartedFirst  bool
+		userapiStartedSecond bool
+		meshapiStartedSecond bool
+		want503First         bool
+		want503Second        bool
 	}{
 		"all immediately online": {
-			userapiStartedFirst:   true,
-			meshapiStartedFirst:   true,
-			recoveryStartedFirst:  true,
-			userapiStartedSecond:  true,
-			meshapiStartedSecond:  true,
-			recoveryStartedSecond: true,
-			want503First:          false,
-			want503Second:         false,
+			userapiStartedFirst:  true,
+			meshapiStartedFirst:  true,
+			userapiStartedSecond: true,
+			meshapiStartedSecond: true,
+			want503First:         false,
+			want503Second:        false,
 		},
 		"userapi never starts": {
-			userapiStartedFirst:   false,
-			meshapiStartedFirst:   true,
-			recoveryStartedFirst:  true,
-			userapiStartedSecond:  false,
-			meshapiStartedSecond:  true,
-			recoveryStartedSecond: true,
-			want503First:          true,
-			want503Second:         true,
+			userapiStartedFirst:  false,
+			meshapiStartedFirst:  true,
+			userapiStartedSecond: false,
+			meshapiStartedSecond: true,
+			want503First:         true,
+			want503Second:        true,
 		},
 		"meshapi never starts": {
-			userapiStartedFirst:   true,
-			meshapiStartedFirst:   false,
-			recoveryStartedFirst:  true,
-			userapiStartedSecond:  true,
-			meshapiStartedSecond:  false,
-			recoveryStartedSecond: true,
-			want503First:          true,
-			want503Second:         true,
-		},
-		"recovery never starts": {
-			userapiStartedFirst:   true,
-			meshapiStartedFirst:   true,
-			recoveryStartedFirst:  false,
-			userapiStartedSecond:  true,
-			meshapiStartedSecond:  true,
-			recoveryStartedSecond: false,
-			want503First:          true,
-			want503Second:         true,
+			userapiStartedFirst:  true,
+			meshapiStartedFirst:  false,
+			userapiStartedSecond: true,
+			meshapiStartedSecond: false,
+			want503First:         true,
+			want503Second:        true,
 		},
 		"userapi starts later": {
-			userapiStartedFirst:   false,
-			meshapiStartedFirst:   true,
-			recoveryStartedFirst:  true,
-			userapiStartedSecond:  true,
-			meshapiStartedSecond:  true,
-			recoveryStartedSecond: true,
-			want503First:          true,
-			want503Second:         false,
+			userapiStartedFirst:  false,
+			meshapiStartedFirst:  true,
+			userapiStartedSecond: true,
+			meshapiStartedSecond: true,
+			want503First:         true,
+			want503Second:        false,
 		},
 		"meshapi starts later": {
-			userapiStartedFirst:   true,
-			meshapiStartedFirst:   false,
-			recoveryStartedFirst:  true,
-			userapiStartedSecond:  true,
-			meshapiStartedSecond:  true,
-			recoveryStartedSecond: true,
-			want503First:          true,
-			want503Second:         false,
+			userapiStartedFirst:  true,
+			meshapiStartedFirst:  false,
+			userapiStartedSecond: true,
+			meshapiStartedSecond: true,
+			want503First:         true,
+			want503Second:        false,
 		},
-		"recovery starts later": {
-			userapiStartedFirst:   true,
-			meshapiStartedFirst:   true,
-			recoveryStartedFirst:  false,
-			userapiStartedSecond:  true,
-			meshapiStartedSecond:  true,
-			recoveryStartedSecond: true,
-			want503First:          true,
-			want503Second:         false,
-		},
-		"all start later": {
-			userapiStartedFirst:   false,
-			meshapiStartedFirst:   false,
-			recoveryStartedFirst:  false,
-			userapiStartedSecond:  true,
-			meshapiStartedSecond:  true,
-			recoveryStartedSecond: true,
-			want503First:          true,
-			want503Second:         false,
+		"both start later": {
+			userapiStartedFirst:  false,
+			meshapiStartedFirst:  false,
+			userapiStartedSecond: true,
+			meshapiStartedSecond: true,
+			want503First:         true,
+			want503Second:        false,
 		},
 	}
 
@@ -116,17 +82,13 @@ func TestStartupProbe(t *testing.T) {
 
 			mux := http.NewServeMux()
 
-			var userapiStarted, meshapiStarted, recoveryStarted atomic.Bool
+			var userapiStarted atomic.Bool
+			var meshapiStarted atomic.Bool
 
 			userapiStarted.Store(tc.userapiStartedFirst)
 			meshapiStarted.Store(tc.meshapiStartedFirst)
-			recoveryStarted.Store(tc.recoveryStartedFirst)
 
-			handler := StartupHandler{
-				UserapiStarted:  &userapiStarted,
-				MeshapiStarted:  &meshapiStarted,
-				RecoveryStarted: &recoveryStarted,
-			}
+			handler := StartupHandler{MeshapiStarted: &meshapiStarted, UserapiStarted: &userapiStarted}
 
 			mux.Handle("/probes/startup", &handler)
 
@@ -141,7 +103,6 @@ func TestStartupProbe(t *testing.T) {
 			resp = httptest.NewRecorder()
 			userapiStarted.Store(tc.userapiStartedSecond)
 			meshapiStarted.Store(tc.meshapiStartedSecond)
-			recoveryStarted.Store(tc.recoveryStartedSecond)
 
 			mux.ServeHTTP(resp, req)
 

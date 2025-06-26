@@ -120,13 +120,10 @@ func run() (retErr error) {
 
 	httpServer := &http.Server{}
 
-	var userapiStarted, meshapiStarted, recoveryStarted atomic.Bool
+	var userapiStarted atomic.Bool
+	var meshapiStarted atomic.Bool
 
-	startupHandler := probes.StartupHandler{
-		UserapiStarted:  &userapiStarted,
-		MeshapiStarted:  &meshapiStarted,
-		RecoveryStarted: &recoveryStarted,
-	}
+	startupHandler := probes.StartupHandler{UserapiStarted: &userapiStarted, MeshapiStarted: &meshapiStarted}
 	readinessHandler := probes.ReadinessHandler{Guard: meshAuth}
 
 	transitAPIServer, err := transitengine.NewTransitEngineAPI(meshAuth, logger)
@@ -213,14 +210,6 @@ func run() (retErr error) {
 		logger.Info("Coordinator peer recovery started")
 		discovery := peerdiscovery.New(clientset, string(namespace))
 		recoverer := peerrecovery.New(meshAuth, discovery, issuer, kdsGetter, logger)
-
-		onceCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-		if err := recoverer.RecoverOnce(onceCtx); err != nil {
-			logger.Warn("Running initial peer recovery", "err", err)
-		}
-		cancel()
-		recoveryStarted.Store(true)
-
 		if err := recoverer.RunRecovery(ctx); err != nil {
 			logger.Error("Running peer recovery", "err", err)
 			return fmt.Errorf("running peer recovery: %w", err)
