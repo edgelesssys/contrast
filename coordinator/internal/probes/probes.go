@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sync/atomic"
 
+	"github.com/edgelesssys/contrast/coordinator/internal/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 )
 
@@ -23,6 +24,20 @@ func (h StartupHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
 		return
 	}
 	// TODO(miampf): Check if peer recovery was attempted once
+	w.WriteHeader(http.StatusOK)
+}
+
+// LivenessHandler is the http handler for `/probes/liveness`.
+type LivenessHandler struct {
+	Hist *history.History
+}
+
+func (h LivenessHandler) ServeHTTP(w http.ResponseWriter, _ *http.Request) {
+	_, err := h.Hist.HasLatest()
+	if err != nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
