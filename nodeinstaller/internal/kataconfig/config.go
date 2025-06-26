@@ -70,6 +70,9 @@ func KataRuntimeConfig(
 		config.Hypervisor["clh"]["enable_debug"] = debug
 		// Increase dial timeout and accept slower guest startup times.
 		config.Agent["kata"]["dial_timeout"] = 90
+		// Disable all annotations, as we don't support these. Some will mess up measurements,
+		// others bypass things you can archive via correct resource declaration anyway.
+		config.Hypervisor["clh"]["enable_annotations"] = []string{}
 
 		// Upstream clh config for SNP doesn't exist, configure it here.
 		// TODO(katexochen): Add a clh-snp configuration upstream.
@@ -99,9 +102,11 @@ func KataRuntimeConfig(
 		// also what we do when calculating the launch measurement.
 		config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
 		// Conditionally enable debug mode.
-		if debug {
-			config.Hypervisor["qemu"]["enable_debug"] = true
-		}
+		config.Hypervisor["qemu"]["enable_debug"] = debug
+		// Disable all annotations, as we don't support these. Some will mess up measurements,
+		// others bypass things you can archive via correct resource declaration anyway.
+		config.Hypervisor["qemu"]["enable_annotations"] = []string{}
+
 		// TODO: Check again why we need this and how we can avoid it.
 		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
 	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU,
@@ -127,15 +132,14 @@ func KataRuntimeConfig(
 		config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
 		// TODO: Check again why we need this and how we can avoid it.
 		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
-
 		// Add SNP ID block to protect against migration attacks.
 		config.Hypervisor["qemu"]["snp_id_block"] = snpIDBlock.IDBlock
 		config.Hypervisor["qemu"]["snp_id_auth"] = snpIDBlock.IDAuth
-
 		// Conditionally enable debug mode.
-		if debug {
-			config.Hypervisor["qemu"]["enable_debug"] = true
-		}
+		config.Hypervisor["qemu"]["enable_debug"] = debug
+		// Disable all annotations, as we don't support these. Some will mess up measurements,
+		// others bypass things you can archive via correct resource declaration anyway.
+		config.Hypervisor["qemu"]["enable_annotations"] = []string{}
 
 		// GPU-specific settings
 		if platform == platforms.K3sQEMUSNPGPU || platform == platforms.MetalQEMUSNPGPU {
