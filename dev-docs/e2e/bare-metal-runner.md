@@ -1,6 +1,12 @@
 # How to add a bare-metal instance to the CI
 
-## Packages and updates (SNP)
+## Install Ubuntu LTS server
+
+Download and install the latest Ubuntu LTS server from https://ubuntu.com/download/server.
+
+When configuring the disk layout, ensure to use btrfs as the root filesystem.
+
+## SNP setup
 
 Creating AMD SEV-SNP guests via KVM is supported by kernels newer than 6.11 (see https://www.phoronix.com/news/Linux-6.11-KVM).
 While we want to check occasionally if the latest version breaks
@@ -44,6 +50,12 @@ Feb 27 19:33:13 hetzner-ax162-snp kernel: kvm_amd: SEV enabled (ASIDs 100 - 1006
 Feb 27 19:33:13 hetzner-ax162-snp kernel: kvm_amd: SEV-ES enabled (ASIDs 1 - 99)
 Feb 27 19:33:13 hetzner-ax162-snp kernel: kvm_amd: SEV-SNP enabled (ASIDs 1 - 99)
 ```
+
+## TDX setup
+
+Follow https://docs.edgeless.systems/contrast/getting-started/bare-metal?vendor=intel#hardware-and-firmware-setup
+
+## Install required packages
 
 Install `docker` so that the docker login step in the CI succeeds.
 On Ubuntu, add it to the apt repositories (see https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository).
@@ -105,6 +117,16 @@ helm install longhorn longhorn/longhorn --namespace longhorn-system --create-nam
   --set persistence.defaultClassReplicaCount=1
 ```
 
+## Kernel config
+
+Follow https://docs.edgeless.systems/contrast/getting-started/bare-metal?vendor=intel#kernel-setup.
+
+For newer Ubuntu versions, also set
+
+```
+echo "kernel.apparmor_restrict_unprivileged_userns = 0" > /etc/sysctl.d/97-apparmor-allow-userns.conf
+```
+
 ## Networking
 Add the device to the Tailscale network.
 For this you have to have admin privileges, if you don't see the
@@ -122,9 +144,8 @@ After the installation, execute:
 sudo tailscale up --ssh
 ```
 
-
 Add a firewall for incoming connections if the server is reachable via
-a public IP:
+a public IP, like on Hetzner:
 ```bash
 ufw status
 ufw app list
@@ -194,7 +215,6 @@ Moreover, the e2e tests expect reference values for the CC-technology
 (TDX/SNP) to be present in a configmap inside the cluster.
 Follow the steps in the [chapter below](#bare-metal-runner-specification).
 
-
 Execute the commands under https://github.com/edgelesssys/contrast/settings/actions/runners/new for "Download" and "Configure" as
 the `github` user in their home directory.
 
@@ -236,27 +256,18 @@ Copy `hetzner-ax162-snp-kubeconfig` over to somewhere you are already
 authenticated with GCP and push it as a secret. If the secret already
 exists, only execute the `gcloud secrets versions add` command.
 ```bash
-gcloud secrets create hetzner-ax162-snp-kubeconfig --replication-policy="automatic"
-gcloud secrets versions add hetzner-ax162-snp-kubeconfig --data-file="./hetzner-ax162-snp-kubeconfig"
+gcloud secrets create hetzner-ax162-snp-kubeconfig --replication-policy="automatic" --project constellation-331613
+gcloud secrets versions add hetzner-ax162-snp-kubeconfig --data-file="./hetzner-ax162-snp-kubeconfig" --project constellation-331613
 ```
 
 Add the secret to the secrets retrieved via `just` in
 https://github.com/edgelesssys/contrast/blob/f14824f6c039e47a96cc0bbf2298bce5aa8e9844/justfile#L334
 
 ## Bare-metal runner specification
-To run our e2e test in with the real bare-metal runner specification a ConfigMap named `bm-tcb-specs` is added to all e2e clusters:
-* `m50-ganondorf`
-* `discovery`
-* `hetzner-ax162-snp`
-
+To run our e2e test with the real bare-metal runner specification, a ConfigMap named `bm-tcb-specs` is added to all e2e clusters.
 Having the ConfigMap prevents using committed values in the e2e tests directly, which could otherwise lead to backporting problems.
 
 The `bm-tcb-specs` ConfigMap wraps the [`tcb-specs.json`](/dev-docs/e2e/tcb-specs.json), sharing TDX and SNP bare-metal specifications.
 While the ConfigMap stores both runner specifications the [patchReferenceValues()](https://github.com/edgelesssys/contrast/blob/main/e2e/internal/contrasttest/contrasttest.go#L254-L283) function will only use the platform-specific reference values for overwriting.
 
-### Setting up e2e clusters / Updating `tcb-specs.json`
-We expect the e2e clusters not to be destroyed frequently, thus the ConfigMap is stored persistently for the e2e test. In case of setting up the e2e clusters again or an update to the bare-metal runner specifications is required, the ConfigMap has to be applied with:
-
-``` bash
-kubectl create configmap bm-tcb-specs --from-file=tcb-specs.json -n default
-```
+Add or update [`tcb-specs.json`](/dev-docs/e2e/tcb-specs.json) with the values from the runner you've added.
