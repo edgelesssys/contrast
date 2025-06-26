@@ -119,6 +119,10 @@
     {
       "version": "v1.9.0",
       "hash": "sha256-VKnOWmEdQDd2SMK63DgB87D/5Y/cjJ4p+W3WR2OX964="
+    },
+    {
+      "version": "v1.10.0",
+      "hash": "sha256-RbU5J4xZ1DJekMaL/6Sr/Sfj8gQu3S2Vb4K1tsFONmw="
     }
   ],
   "coordinator-aks-clh-snp.yml": [
@@ -473,6 +477,10 @@
     {
       "version": "v1.9.0",
       "hash": "sha256-qRWk54SH5GhFMS86dKwiIOUALsPij5NIcjAMKKXNTPY="
+    },
+    {
+      "version": "v1.10.0",
+      "hash": "sha256-1ERnDQ7dQaQZftbkrDCsAlH6jbARPlpo5xFynZ8FwqM="
     }
   ],
   "emojivoto-demo.yml": [
@@ -546,6 +554,10 @@
     },
     {
       "version": "v1.9.0",
+      "hash": "sha256-zpbsWDJ9mWXnW285/4HnMqKSMXiVVuZ1mwwTxh5pAaE="
+    },
+    {
+      "version": "v1.10.0",
       "hash": "sha256-zpbsWDJ9mWXnW285/4HnMqKSMXiVVuZ1mwwTxh5pAaE="
     }
   ],
@@ -631,6 +643,10 @@
     {
       "version": "v1.9.0",
       "hash": "sha256-hF7RLVVcs2O5dGrF4tIWgKU1//kML+R6fVp/fQro3bo="
+    },
+    {
+      "version": "v1.10.0",
+      "hash": "sha256-hF7RLVVcs2O5dGrF4tIWgKU1//kML+R6fVp/fQro3bo="
     }
   ],
   "runtime-aks-clh-snp.yml": [
@@ -689,6 +705,10 @@
     {
       "version": "v1.9.0",
       "hash": "sha256-8EgWp0p3xjbhxbNkljRcccEkoXS0zjkGWsgxozeNCis="
+    },
+    {
+      "version": "v1.10.0",
+      "hash": "sha256-EhFaFKX7CRklDMEB0ZBQyTWmeVhSDEbQ06XBdMrU2F0="
     }
   ],
   "runtime-k3s-qemu-snp-gpu.yml": [
@@ -727,6 +747,10 @@
     {
       "version": "v1.9.0",
       "hash": "sha256-Z/fbtebwIYPlNMOkbhSRrteL5lbXzDqhOx3D8YfPQBE="
+    },
+    {
+      "version": "v1.10.0",
+      "hash": "sha256-v/A9S0E/Fj+QZlwbslGfoCmPC24UGAUCohjq/+ESg7g="
     }
   ],
   "runtime-k3s-qemu-snp.yml": [
@@ -785,6 +809,10 @@
     {
       "version": "v1.9.0",
       "hash": "sha256-OwwMeALgh8wVmJTapXFvTesx22C+mMuucz2IN0rrNms="
+    },
+    {
+      "version": "v1.10.0",
+      "hash": "sha256-YtdTSK712CjSwWI0/4ir7QTOncz9dZTgKMjWMdoc/mU="
     }
   ],
   "runtime-k3s-qemu-tdx.yml": [
@@ -843,6 +871,10 @@
     {
       "version": "v1.9.0",
       "hash": "sha256-AIf4mNAXNJ5SEImFM8ehbUOher+VOd4417sS8urFO0A="
+    },
+    {
+      "version": "v1.10.0",
+      "hash": "sha256-nj6d1ha0temKyJEIvtscoZxmv6cNIQ7pBcSlg8tUebM="
     }
   ],
   "runtime-metal-qemu-snp-gpu.yml": [
@@ -881,6 +913,10 @@
     {
       "version": "v1.9.0",
       "hash": "sha256-s5d5cFP+QSbXjeu6FSVGwMwgZpHSy/Y1pyneGh90KKg="
+    },
+    {
+      "version": "v1.10.0",
+      "hash": "sha256-9qnR1WkgoSLx/jKBwTmG2ipRV9YLD8A7/93QUZFS9o8="
     }
   ],
   "runtime-metal-qemu-snp.yml": [
@@ -927,6 +963,10 @@
     {
       "version": "v1.9.0",
       "hash": "sha256-SaS1ozkBYmclSwJRNmZ8XDWg7oqErLuJ8Y8/vETjf98="
+    },
+    {
+      "version": "v1.10.0",
+      "hash": "sha256-u/kPlMUl1L50+ciUPmDQSeqW/MsRvKrKUjTsFrxSHd4="
     }
   ],
   "runtime-metal-qemu-tdx.yml": [
@@ -973,6 +1013,10 @@
     {
       "version": "v1.9.0",
       "hash": "sha256-EYzwIZOJYIgJ30iqeLFNJJR1BV9GLHAdQdBzwkLUszc="
+    },
+    {
+      "version": "v1.10.0",
+      "hash": "sha256-29wMZILWrVBDVJZ1uFUwtIfAItRImvr7RmCHYxhWGeM="
     }
   ],
   "runtime-rke2-qemu-tdx.yml": [
@@ -1031,6 +1075,10 @@
     {
       "version": "v1.9.0",
       "hash": "sha256-bmiWEdaT9072P7QecR+i1acyv58E12cMQhDW/q+jT6Y="
+    },
+    {
+      "version": "v1.10.0",
+      "hash": "sha256-jtEXwcxAUBZxXHg/Ot6APISpFm0IZPjyDTedBV5+Ro4="
     }
   ],
   "runtime.yml": [
