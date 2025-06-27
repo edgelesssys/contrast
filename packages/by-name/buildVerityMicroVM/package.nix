@@ -51,6 +51,7 @@ lib.throwIf
           ++ [
             "init=${nixos-config.config.system.build.toplevel}/init"
             "roothash=${roothash}"
+            "cgroup_no_v1=all"
           ]
         );
         inherit (image) imageFileName;
