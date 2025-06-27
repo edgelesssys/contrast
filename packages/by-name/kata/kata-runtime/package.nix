@@ -172,6 +172,12 @@ buildGoModule (finalAttrs: {
       # read/write operations on the file, instead implementing an in-memory caching solution.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11426
       ./0026-genpolicy-keep-layers-cache-in-memory-to-prevent-cor.patch
+
+      # Don't add storages for volumes declared in the image config.
+      # This fixes a security issue where the host is able to write untrusted content to paths
+      # under these volumes, by failing the policy generation if volumes without mounts are found.
+      # TODO(burgerdev): open upstream issue after disclosure.
+      ./0027-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
     ];
   };
 
