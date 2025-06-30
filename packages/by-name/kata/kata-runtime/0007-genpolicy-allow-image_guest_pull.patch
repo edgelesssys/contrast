@@ -25,7 +25,7 @@ don't even bother handling that case.
  create mode 100644 src/tools/genpolicy/tests/testdata/createcontainer/guest_pull/testcases.json
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index ee83ce59533599624e678204333bf00619391cb2..f4deef8137bc8e03285052ea68feb0f9b9797a6c 100644
+index 5d43bd33342ef1cfaa802f7e6e2440af6dd8352e..a5dd99a02f80473cd9598c503854bc7e25b1ff41 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -155,7 +155,7 @@
@@ -38,10 +38,10 @@ index ee83ce59533599624e678204333bf00619391cb2..f4deef8137bc8e03285052ea68feb0f9
              "source": "local",
              "fstype": "local",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 2737413f408d1ea8ae74e15df221de839ab10791..d0318d3ae113a305f31f123ace05f85d03b3877d 100644
+index 4632bac4fc8daab108d329c9143ce473fa254a76..6e7f4b6cf29ce792339b264ca508ef1e0946661a 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -94,7 +94,7 @@ CreateContainerRequest:= {"ops": ops, "allowed": true} {
+@@ -96,7 +96,7 @@ CreateContainerRequest := {"ops": ops, "allowed": true} if {
      allow_anno(p_oci, i_oci)
  
      p_storages := p_container.storages
@@ -50,12 +50,12 @@ index 2737413f408d1ea8ae74e15df221de839ab10791..d0318d3ae113a305f31f123ace05f85d
  
      p_devices := p_container.devices
      allow_devices(p_devices, i_devices)
-@@ -257,10 +257,10 @@ allow_anno_key(i_key, p_oci) {
+@@ -259,10 +259,10 @@ allow_anno_key(i_key, p_oci) if {
  
  # Get the value of the S_NAME_KEY annotation and
  # correlate it with other annotations and process fields.
--allow_by_anno(p_oci, i_oci, p_storages, i_storages) {
-+allow_by_anno(p_container, i_oci, i_storages) {
+-allow_by_anno(p_oci, i_oci, p_storages, i_storages) if {
++allow_by_anno(p_container, i_oci, i_storages) if {
      print("allow_by_anno 1: start")
  
 -    not p_oci.Annotations[S_NAME_KEY]
@@ -63,7 +63,7 @@ index 2737413f408d1ea8ae74e15df221de839ab10791..d0318d3ae113a305f31f123ace05f85d
  
      i_s_name := i_oci.Annotations[S_NAME_KEY]
      print("allow_by_anno 1: i_s_name =", i_s_name)
-@@ -268,14 +268,14 @@ allow_by_anno(p_oci, i_oci, p_storages, i_storages) {
+@@ -270,14 +270,14 @@ allow_by_anno(p_oci, i_oci, p_storages, i_storages) if {
      i_s_namespace := i_oci.Annotations[S_NAMESPACE_KEY]
      print("allow_by_anno 1: i_s_namespace =", i_s_namespace)
  
@@ -72,8 +72,8 @@ index 2737413f408d1ea8ae74e15df221de839ab10791..d0318d3ae113a305f31f123ace05f85d
  
      print("allow_by_anno 1: true")
  }
--allow_by_anno(p_oci, i_oci, p_storages, i_storages) {
-+allow_by_anno(p_container, i_oci, i_storages) {
+-allow_by_anno(p_oci, i_oci, p_storages, i_storages) if {
++allow_by_anno(p_container, i_oci, i_storages) if {
      print("allow_by_anno 2: start")
  
 -    p_s_name := p_oci.Annotations[S_NAME_KEY]
@@ -81,7 +81,7 @@ index 2737413f408d1ea8ae74e15df221de839ab10791..d0318d3ae113a305f31f123ace05f85d
      i_s_name := i_oci.Annotations[S_NAME_KEY]
      print("allow_by_anno 2: i_s_name =", i_s_name, "p_s_name =", p_s_name)
  
-@@ -284,18 +284,19 @@ allow_by_anno(p_oci, i_oci, p_storages, i_storages) {
+@@ -286,18 +286,19 @@ allow_by_anno(p_oci, i_oci, p_storages, i_storages) if {
      i_s_namespace := i_oci.Annotations[S_NAMESPACE_KEY]
      print("allow_by_anno 2: i_s_namespace =", i_s_namespace)
  
@@ -91,8 +91,8 @@ index 2737413f408d1ea8ae74e15df221de839ab10791..d0318d3ae113a305f31f123ace05f85d
      print("allow_by_anno 2: true")
  }
  
--allow_by_sandbox_name(p_oci, i_oci, p_storages, i_storages, s_name, s_namespace) {
-+allow_by_sandbox_name(p_container, i_oci, i_storages, s_name, s_namespace) {
+-allow_by_sandbox_name(p_oci, i_oci, p_storages, i_storages, s_name, s_namespace) if {
++allow_by_sandbox_name(p_container, i_oci, i_storages, s_name, s_namespace) if {
      print("allow_by_sandbox_name: start")
  
 +    p_oci := p_container.OCI
@@ -104,12 +104,12 @@ index 2737413f408d1ea8ae74e15df221de839ab10791..d0318d3ae113a305f31f123ace05f85d
      allow_process(p_oci.Process, i_oci.Process, s_name, s_namespace)
  
      print("allow_by_sandbox_name: true")
-@@ -644,11 +645,12 @@ allow_linux_sysctl(p_linux, i_linux) {
+@@ -646,11 +647,12 @@ allow_linux_sysctl(p_linux, i_linux) if {
  
  # Check the consistency of the input "io.katacontainers.pkg.oci.bundle_path"
  # and io.kubernetes.cri.sandbox-id" values with other fields.
--allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) {
-+allow_by_bundle_or_sandbox_id(p_container, i_oci, i_storages) {
+-allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) if {
++allow_by_bundle_or_sandbox_id(p_container, i_oci, i_storages) if {
      print("allow_by_bundle_or_sandbox_id: start")
  
      key := "io.kubernetes.cri.sandbox-id"
@@ -118,7 +118,7 @@ index 2737413f408d1ea8ae74e15df221de839ab10791..d0318d3ae113a305f31f123ace05f85d
      p_regex := p_oci.Annotations[key]
      sandbox_id := i_oci.Annotations[key]
  
-@@ -670,8 +672,7 @@ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) {
+@@ -672,8 +674,7 @@ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) if {
  
      count(p_matches) == count(input.OCI.Mounts)
  
@@ -128,13 +128,13 @@ index 2737413f408d1ea8ae74e15df221de839ab10791..d0318d3ae113a305f31f123ace05f85d
  
      print("allow_by_bundle_or_sandbox_id: true")
  }
-@@ -1013,30 +1014,109 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) {
+@@ -1015,30 +1016,109 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) if {
  ######################################################################
  # Create container Storages
  
--allow_storages(p_storages, i_storages, bundle_id, sandbox_id) {
+-allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
 +# Allow image_guest_pull storage
-+allow_storages(p_container, i_storages, bundle_id, sandbox_id) {
++allow_storages(p_container, i_storages, bundle_id, sandbox_id) if {
 +    print("allow_storages 1: start")
 +    i_count := count(i_storages)
 +    print("allow_storages 1: i_count =", i_count)
@@ -243,9 +243,9 @@ index 2737413f408d1ea8ae74e15df221de839ab10791..d0318d3ae113a305f31f123ace05f85d
 +    print("allow_storages 2: true")
  }
  
- allow_storage(p_storages, i_storage, bundle_id, sandbox_id, layer_ids, root_hashes) {
+ allow_storage(p_storages, i_storage, bundle_id, sandbox_id, layer_ids, root_hashes) if {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 766a5b28b0f42a9e14c8d6db9329f24b988d6fb6..de101545bd68d2973cc89254d33b59cc4ef28245 100644
+index ae6fdea82834649ca3a396036a770a75bcc7a5a1..997c061ff48f5476f801978e42d84004a0328d66 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -269,6 +269,9 @@ pub struct ContainerPolicy {
