@@ -15,7 +15,7 @@ where `XY` corresponds to a dynamic ID.
  3 files changed, 25 insertions(+), 7 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index d60fd607c08d6b403c0bf386d9b41535e54428ff..b5c1c1968a5e695fb5f54361205febe496d27bbf 100644
+index 17738788db26432e33296841345a9779dccecdae..4cf7504ff9d4ef42b1dec5fe39781c7ead2fb0b2 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -316,7 +316,10 @@
@@ -41,12 +41,12 @@ index d60fd607c08d6b403c0bf386d9b41535e54428ff..b5c1c1968a5e695fb5f54361205febe4
          },
          "UpdateInterfaceRequest": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 4d3385010491b00cdf12fc20a592eb8f12c3d74d..13f558f531f5e82605f737d8fdade5066c315199 100644
+index 50490d8ed59eece25da80dcc3ca21ac193868101..5bff82ec84654e571d4c7472bcadc7b932b35e3c 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -228,18 +228,26 @@ allow_anno(p_oci, i_oci) {
+@@ -230,18 +230,26 @@ allow_anno(p_oci, i_oci) if {
  }
- allow_anno(p_oci, i_oci) {
+ allow_anno(p_oci, i_oci) if {
      print("allow_anno 2: p Annotations =", p_oci.Annotations)
 +    print("allow_anno 2: p Dynamic Annotations =", policy_data.common.dynamic_annotations)
      print("allow_anno 2: i Annotations =", i_oci.Annotations)
@@ -73,11 +73,11 @@ index 4d3385010491b00cdf12fc20a592eb8f12c3d74d..13f558f531f5e82605f737d8fdade506
 +  regex.match(p_val, i_val)
 +}
 +
- allow_anno_key(i_key, p_oci) {
+ allow_anno_key(i_key, p_oci) if {
      print("allow_anno_key 1: i key =", i_key)
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index a927dc8090a7b65e60b9d289a4b5c7b72c65a740..32fce15a91dfa524505167dfcf0f12b388117fab 100644
+index 7d79e01edb42e822d40f2f480f9e4f1732ae0a66..83a44cab8a7dfc05853d137f9e76ffb6bf64452b 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -421,6 +421,12 @@ pub struct CommonData {

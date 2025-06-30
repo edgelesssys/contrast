@@ -97,7 +97,7 @@ func KataRuntimeConfig(
 		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
 		config.Runtime["sandbox_cgroup_only"] = true
 		// Force container image gust pull so we don't have to use nydus-snapshotter.
-		config.Runtime["force_guest_pull"] = true
+		config.Runtime["experimental_force_guest_pull"] = true
 		// Replace the kernel params entirely (and don't append) since that's
 		// also what we do when calculating the launch measurement.
 		config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams
@@ -126,7 +126,7 @@ func KataRuntimeConfig(
 		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
 		config.Runtime["sandbox_cgroup_only"] = true
 		// Force container image gust pull so we don't have to use nydus-snapshotter.
-		config.Runtime["force_guest_pull"] = true
+		config.Runtime["experimental_force_guest_pull"] = true
 		// Replace the kernel params entirely (and don't append) since that's
 		// also what we do when calculating the launch measurement.
 		config.Hypervisor["qemu"]["kernel_params"] = qemuExtraKernelParams

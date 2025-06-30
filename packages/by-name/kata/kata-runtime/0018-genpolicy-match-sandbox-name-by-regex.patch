@@ -20,12 +20,12 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  12 files changed, 52 insertions(+), 15 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index c0bc0f6c95b2eed5a14aa5fad8e46b4a69e6b815..44cbcbe353a98c05e68c64109f4dca3728787b2c 100644
+index 5332aa42e0f5927ec6e420fbc67e42acd021cebe..2b598d612fd7d58a15e391f6b002a082eb3ce3c5 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -146,7 +146,7 @@ allow_create_container_input {
+@@ -148,7 +148,7 @@ allow_create_container_input if {
  
- allow_namespace(p_namespace, i_namespace) = add_namespace {
+ allow_namespace(p_namespace, i_namespace) = add_namespace if {
      p_namespace == i_namespace
 -    add_namespace := null
 +    add_namespace := state_allows("namespace", i_namespace)
