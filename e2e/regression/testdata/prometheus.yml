@@ -20,11 +20,17 @@ spec:
             - containerPort: 9090
           securityContext:
             runAsUser: 65534
+          volumeMounts:
+            - name: prometheus
+              mountPath: /prometheus
           resources:
             limits:
               memory: 600Mi
             requests:
               memory: 600Mi
+      volumes:
+        - name: prometheus
+          emptyDir: {}
       runtimeClassName: contrast-cc
 ---
 apiVersion: v1
