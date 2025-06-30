@@ -53,7 +53,7 @@ in
         StandardOutput = "journal+console";
         StandardError = "inherit";
         ExecStart = "${lib.getExe pkgs.kata-agent}";
-        LimitNOFILE = 1048576;
+        LimitNOFILE = 1073741824;
         ExecStop = "${pkgs.coreutils}/bin/sync ; ${config.systemd.package}/bin/systemctl --force poweroff";
         FailureAction = "poweroff";
         OOMScoreAdjust = -997;
