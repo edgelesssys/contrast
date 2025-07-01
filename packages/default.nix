@@ -1,7 +1,11 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
-{ lib, pkgs }:
+{
+  lib,
+  pkgs,
+  craneLib,
+}:
 
 let
   pkgs' = pkgs // self;
@@ -23,6 +27,7 @@ let
     kata = self'.kata // {
       genpolicy = pkgs.pkgsStatic.callPackage ./by-name/kata/genpolicy/package.nix {
         inherit (self) kata; # This is only to inherit src/version, must not be depended on.
+        inherit craneLib;
       };
       release-tarball = pkgs.pkgsStatic.callPackage ./by-name/kata/release-tarball/package.nix {
         inherit (self) kata;

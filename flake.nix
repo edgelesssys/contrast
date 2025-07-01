@@ -22,11 +22,13 @@
       url = "github:soywod/fenix?rev=c7af381484169a78fb79a11652321ae80b0f92a6";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    crane.url = "github:ipetkov/crane";
   };
 
   outputs =
     {
       self,
+      crane,
       nixpkgs,
       flake-utils,
       treefmt-nix,
@@ -47,7 +49,8 @@
         };
         inherit (pkgs) lib;
         treefmtEval = treefmt-nix.lib.evalModule (pkgs // ourPkgs) ./treefmt.nix;
-        ourPkgs = import ./packages { inherit pkgs lib; };
+        craneLib = crane.mkLib pkgs;
+        ourPkgs = import ./packages { inherit pkgs lib craneLib; };
       in
 
       {

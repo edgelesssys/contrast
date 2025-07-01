@@ -4,7 +4,6 @@
 {
   lib,
   kata,
-  rustPlatform,
   openssl,
   pkg-config,
   protobuf,
@@ -13,21 +12,24 @@
   cmake,
   stdenvNoCC,
   applyPatches,
+  craneLib,
 }:
 
-rustPlatform.buildRustPackage rec {
+craneLib.buildPackage rec {
   pname = "genpolicy";
-  inherit (kata.kata-runtime) version src;
+  inherit (kata.kata-runtime) version;
 
-  sourceRoot = "${src.name}/src/tools/genpolicy";
+  src = craneLib.cleanCargoSource kata.kata-runtime.src;
+  sourceRoot = "${src}/src/tools/genpolicy";
+  cargoLock = "${src}/src/tools/genpolicy/Cargo.lock";
 
-  cargoLock = {
-    lockFile = "${src}/src/tools/genpolicy/Cargo.lock";
+  cargoVendorDir = craneLib.vendorCargoDeps {
+    inherit src cargoLock;
+
     outputHashes = {
       "tarfs-defs-0.1.0" = "sha256-J79fMuKOIVHEk6WvkLeM9IY5XQHyUJQOrwwMLvRvE60=";
     };
   };
-
   env.OPENSSL_NO_VENDOR = 1;
 
   nativeBuildInputs = [
