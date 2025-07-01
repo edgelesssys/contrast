@@ -22,6 +22,7 @@
       url = "github:soywod/fenix?rev=c7af381484169a78fb79a11652321ae80b0f92a6";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    crane.url = "github:ipetkov/crane";
   };
 
   outputs =
@@ -39,8 +40,8 @@
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
-            (final: _prev: { fenix = self.inputs.fenix.packages.${final.system}; })
             (import ./overlays/nixpkgs.nix)
+            (import ./overlays/rust.nix { inherit (self) inputs; })
           ];
           config.allowUnfree = true;
           config.nvidia.acceptLicense = true;
