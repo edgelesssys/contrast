@@ -9,6 +9,7 @@ default_vcpus = 1
 disable_guest_selinux = true
 disable_image_nvdimm = false
 disable_selinux = false
+disable_image_nvdimm = true
 enable_annotations = []
 enable_debug = false
 igvm = '/share/kata-containers-igvm.img'

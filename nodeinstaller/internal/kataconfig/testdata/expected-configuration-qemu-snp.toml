@@ -14,6 +14,7 @@ disable_guest_selinux = true
 disable_image_nvdimm = false
 disable_nesting_checks = true
 disable_selinux = false
+disable_image_nvdimm = false
 enable_annotations = []
 enable_debug = false
 enable_iothreads = false
