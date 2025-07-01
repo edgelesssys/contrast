@@ -76,6 +76,13 @@ buildGoModule (finalAttrs: {
 
       # Fix tests and build.rs so genpolicy builds.
       ./0009-fix-tests-and-protocols-build.rs.patch
+
+      # Don't add storages for volumes declared in the image config.
+      # This fixes a security issue where the host is able to write untrusted content to paths
+      # under these volumes, by failing the policy generation if volumes without mounts are found.
+      # This is a port of the corresponding Kata runtime patch.
+      # TODO(burgerdev): open upstream issue after disclosure.
+      ./0010-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
     ];
   };
 
