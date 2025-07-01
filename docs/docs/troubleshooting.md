@@ -63,6 +63,27 @@ following command:
 kubectl logs <coordinator-pod-name>
 ```
 
+## `contrast generate` returns errors
+
+Some workload configurations are known to be insecure or incompatible with Contrast.
+If such a configuration is detected during policy generation, an error is logged and the command fails.
+
+### Images with VOLUME declarations but without a Kubernetes mount
+
+During `contrast generate`, an error like the following is printed and the process returns with a non-zero exit code:
+
+```
+level=ERROR msg="The following volumes declared in image config don't have corresponding Kubernetes mounts: [\"/data\"]"
+```
+
+This error indicates that the container image declares a [`VOLUME`], but there is no Kubernetes volume mounted at that path (`/data` in the example).
+Since it's not clearly specified if or what a container runtime is supposed to mount in that case, all declared volumes need to have a corresponding explicit Kubernetes volume mount.
+Depending on the needs of the application, this could either be an [`emptyDir`] or a [Contrast-managed persistent volume].
+
+[`VOLUME`]: https://github.com/opencontainers/image-spec/blob/06e6b47e2ef69021d9f9bf2cfa5fe43a7e010c81/config.md?plain=1#L168-L170
+[`emptyDir`]: https://kubernetes.io/docs/concepts/storage/volumes/#emptydir
+[Contrast-managed persistent volume]: architecture/secrets.md#secure-persistence
+
 ## Pod fails to start
 
 If the Coordinator or a workload pod fails to even start, it can be helpful to
