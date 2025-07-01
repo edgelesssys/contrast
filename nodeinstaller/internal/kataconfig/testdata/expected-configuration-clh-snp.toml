@@ -7,6 +7,7 @@ default_maxvcpus = 0
 default_memory = 256
 default_vcpus = 1
 disable_guest_selinux = true
+disable_image_nvdimm = false
 disable_selinux = false
 enable_annotations = []
 enable_debug = false

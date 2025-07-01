@@ -10,7 +10,7 @@ https://github.com/kata-containers/kata-containers/blob/775f6bd/tests/integratio
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index e15ad13b82564b917f687c5d51b10de3776331ba..ee83ce59533599624e678204333bf00619391cb2 100644
+index 77ec299946aec4884c54d707b6f12173a250d042..5d43bd33342ef1cfaa802f7e6e2440af6dd8352e 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -250,7 +250,7 @@

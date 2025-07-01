@@ -14,11 +14,11 @@ NOTE: fixes https://github.com/kata-containers/kata-containers/issues/10065
  1 file changed, 8 insertions(+), 21 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index d9309004e999e0fbd88cb3aaced76f7c7d1f2305..5476e0e804d40d90f7abc83893696b0cd4a3f9b0 100644
+index 5db3cc629c09dd95e7d8ec6a9507ed57e7e39168..01a7364f7f71f37b70ec32468c103f0b4402c2d5 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -650,9 +650,6 @@ allow_linux_sysctl(p_linux, i_linux) {
- allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) {
+@@ -652,9 +652,6 @@ allow_linux_sysctl(p_linux, i_linux) if {
+ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) if {
      print("allow_by_bundle_or_sandbox_id: start")
  
 -    bundle_path := i_oci.Annotations["io.katacontainers.pkg.oci.bundle_path"]
@@ -27,7 +27,7 @@ index d9309004e999e0fbd88cb3aaced76f7c7d1f2305..5476e0e804d40d90f7abc83893696b0c
      key := "io.kubernetes.cri.sandbox-id"
  
      p_regex := p_oci.Annotations[key]
-@@ -661,7 +658,14 @@ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) {
+@@ -663,7 +660,14 @@ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) if {
      print("allow_by_bundle_or_sandbox_id: sandbox_id =", sandbox_id, "regex =", p_regex)
      regex.match(p_regex, sandbox_id)
  
@@ -43,12 +43,12 @@ index d9309004e999e0fbd88cb3aaced76f7c7d1f2305..5476e0e804d40d90f7abc83893696b0c
  
      # Match each input mount with a Policy mount.
      # Reject possible attempts to match multiple input mounts with a single Policy mount.
-@@ -960,23 +964,6 @@ is_ip_other_byte(component) {
+@@ -962,23 +966,6 @@ is_ip_other_byte(component) if {
      number <= 255
  }
  
 -# OCI root.Path
--allow_root_path(p_oci, i_oci, bundle_id) {
+-allow_root_path(p_oci, i_oci, bundle_id) if {
 -    i_path := i_oci.Root.Path
 -    p_path1 := p_oci.Root.Path
 -    print("allow_root_path: i_path =", i_path, "p_path1 =", p_path1)
@@ -66,4 +66,4 @@ index d9309004e999e0fbd88cb3aaced76f7c7d1f2305..5476e0e804d40d90f7abc83893696b0c
 -
  # device mounts
  # allow_mount returns the policy index (p_index) if a given input mount matches a policy mount.
- allow_mount(p_oci, i_mount, bundle_id, sandbox_id):= p_index {
+ allow_mount(p_oci, i_mount, bundle_id, sandbox_id):= p_index if {
