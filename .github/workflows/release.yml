@@ -344,6 +344,9 @@ jobs:
           nix shell .#contrast --command resourcegen \
             --image-replacements ./image-replacements.txt \
             --add-load-balancers mysql > workspace/mysql-demo.yml
+          nix shell .#contrast --command resourcegen \
+            --image-replacements ./image-replacements.txt \
+            --add-load-balancers vault > workspace/vault-demo.yml
       - name: Update cli assets
         run: |
           cp image-replacements.txt cli/cmd/assets/image-replacements.txt
@@ -365,6 +368,7 @@ jobs:
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
             workspace/mysql-demo.yml
+            workspace/vault-demo.yml
       - name: AWS login (IAM role)
         uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
         with:
@@ -379,6 +383,7 @@ jobs:
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
             workspace/mysql-demo.yml
+            workspace/vault-demo.yml
           )
           for file in "${files[@]}"; do
             aws s3 cp "$file" "s3://contrast-public/pre-releases/${{ inputs.version }}/$unix/"
@@ -398,6 +403,7 @@ jobs:
             workspace/runtime-*.yml
             workspace/emojivoto-demo.yml
             workspace/mysql-demo.yml
+            workspace/vault-demo.yml
       - name: Reset temporary changes
         run: |
           git reset --hard ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
