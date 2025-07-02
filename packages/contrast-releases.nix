@@ -97,6 +97,14 @@ let
             passthru.exists = versionGreaterEqual version "v1.2.0";
           };
 
+          vault-demo = fetchurl {
+            inherit version;
+            url = "https://github.com/edgelesssys/contrast/releases/download/${version}/vault-demo.yml";
+            inherit (findVersion "vault-demo.yml" version) hash;
+            # vault-demo.yml was introduced in version v1.10.0
+            passthru.exists = versionGreaterEqual version "v1.10.0";
+          };
+
           coordinator-per-platform = forPlatforms allPlatforms (
             platform:
             fetchurl {
@@ -167,6 +175,10 @@ let
             + lib.optionalString mysql-demo.exists ''
               mkdir -p $out/deployment
               install -m 644 ${mysql-demo} $out/deployment/mysql-demo.yml
+            ''
+            + lib.optionalString vault-demo.exists ''
+              mkdir -p $out/deployment
+              install -m 644 ${vault-demo} $out/deployment/vault-demo.yml
             ''
             + lib.concatStrings (
               lib.attrsets.mapAttrsToList (
