@@ -32,6 +32,7 @@ fields["runtime.yml"]="./workspace/runtime.yml"
 fields["emojivoto-demo.zip"]="./workspace/emojivoto-demo.zip"
 fields["emojivoto-demo.yml"]="./workspace/emojivoto-demo.yml"
 fields["mysql-demo.yml"]="./workspace/mysql-demo.yml"
+fields["vault-demo.yml"]="./workspace/vault-demo.yml"
 for platform in "${platforms[@]}"; do
   fields["coordinator-${platform}.yml"]="./workspace/coordinator-${platform}.yml"
   fields["runtime-${platform}.yml"]="./workspace/runtime-${platform}.yml"
