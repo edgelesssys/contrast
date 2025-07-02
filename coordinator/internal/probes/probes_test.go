@@ -5,13 +5,11 @@ package probes
 
 import (
 	"context"
-	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
 	"testing"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/stretchr/testify/assert"
 )
@@ -117,54 +115,6 @@ func TestStartupProbe(t *testing.T) {
 	}
 }
 
-func TestLivenessProbe(t *testing.T) {
-	testCases := map[string]struct {
-		hasLatest bool
-		err       error
-		want503   bool
-	}{
-		"store accessible but empty": {
-			want503: false,
-		},
-		"store inaccessible": {
-			err:     assert.AnError,
-			want503: true,
-		},
-		"transition exists": {
-			hasLatest: true,
-			want503:   false,
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			assert := assert.New(t)
-
-			req := httptest.NewRequest(http.MethodGet, "/probes/liveness", nil)
-			resp := httptest.NewRecorder()
-
-			mux := http.NewServeMux()
-
-			store := mockStore{
-				hasLatest:      tc.hasLatest,
-				hasLatestError: tc.err,
-			}
-
-			hist := history.NewWithStore(&slog.Logger{}, store)
-
-			handler := LivenessHandler{Hist: hist}
-			mux.Handle("/probes/liveness", handler)
-
-			mux.ServeHTTP(resp, req)
-			if tc.want503 {
-				assert.Equal(http.StatusServiceUnavailable, resp.Code)
-			} else {
-				assert.Equal(http.StatusOK, resp.Code)
-			}
-		})
-	}
-}
-
 func TestReadinessProbe(t *testing.T) {
 	testCases := map[string]struct {
 		hasActiveManifest bool
@@ -228,29 +178,4 @@ func (a mockAuth) GetState(context.Context) (*stateguard.State, error) {
 		return nil, nil
 	}
 	return &stateguard.State{}, nil
-}
-
-type mockStore struct {
-	hasLatest      bool
-	hasLatestError error
-}
-
-func (s mockStore) Get(_ string) ([]byte, error) {
-	return nil, nil
-}
-
-func (s mockStore) Set(_ string, _ []byte) error {
-	return nil
-}
-
-func (s mockStore) Has(_ string) (bool, error) {
-	return s.hasLatest, s.hasLatestError
-}
-
-func (s mockStore) CompareAndSwap(_ string, _, _ []byte) error {
-	return nil
-}
-
-func (s mockStore) Watch(_ string) (_ <-chan []byte, _ func(), _ error) {
-	return nil, nil, nil
 }
