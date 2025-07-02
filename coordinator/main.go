@@ -124,7 +124,6 @@ func run() (retErr error) {
 	var meshapiStarted atomic.Bool
 
 	startupHandler := probes.StartupHandler{UserapiStarted: &userapiStarted, MeshapiStarted: &meshapiStarted}
-	livenessHandler := probes.LivenessHandler{Hist: hist}
 	readinessHandler := probes.ReadinessHandler{Guard: meshAuth}
 
 	transitAPIServer, err := transitengine.NewTransitEngineAPI(meshAuth, logger)
@@ -147,7 +146,7 @@ func run() (retErr error) {
 			))
 		}
 		mux.Handle("/probe/startup", &startupHandler)
-		mux.Handle("/probe/liveness", &livenessHandler)
+		mux.Handle("/probe/liveness", &startupHandler)
 		mux.Handle("/probe/readiness", &readinessHandler)
 		httpServer.Addr = ":" + strconv.Itoa(probeAndMetricsPort)
 		httpServer.Handler = mux
