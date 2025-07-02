@@ -313,6 +313,7 @@ func Coordinator(namespace string) *CoordinatorConfig {
 							WithStartupProbe(Probe().
 								WithInitialDelaySeconds(1).
 								WithPeriodSeconds(1).
+								WithFailureThreshold(60).
 								WithHTTPGet(applycorev1.HTTPGetAction().
 									WithPort(intstr.FromInt(9102)).
 									WithPath("/probe/startup")),
