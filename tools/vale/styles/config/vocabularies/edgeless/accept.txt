@@ -8,6 +8,8 @@ Asciinema
 ASG
 attesters
 auditable
+auto-unseal
+auto-unsealing
 autoscaler
 autoscaling
 AWS
@@ -144,6 +146,7 @@ Tink
 tmpfs
 TPM
 TTL
+undecryptable
 underspecified
 unencrypted
 unrepresentable
