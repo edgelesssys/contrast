@@ -55,6 +55,8 @@ jobs:
       NEXT_PATCH_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - name: Working branch
         run: |
           echo "WORKING_BRANCH=$(git branch --show-current)" | tee -a "$GITHUB_ENV"
@@ -132,11 +134,13 @@ jobs:
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           path: contrast-working
+          persist-credentials: false
       - name: Checkout main
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ inputs.checkout_main_ref }}
           path: contrast-main
+          persist-credentials: false
       - uses: ./contrast-working/.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -231,6 +235,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          persist-credentials: true
       - uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -436,9 +441,12 @@ jobs:
       # Job needs content:write to see draft releases.
       contents: write
       packages: read
-    needs: release
+    needs: [process-inputs, release]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          persist-credentials: false
       - uses: ./.github/actions/setup_nix
         if: (!matrix.platform.self-hosted)
         with:
@@ -517,6 +525,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          persist-credentials: false
       - name: Create backport label
         run: |
           gh label create "backport ${RELEASE_BRANCH}" --color 576F61 --force

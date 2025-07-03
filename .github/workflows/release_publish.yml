@@ -27,6 +27,7 @@ jobs:
         with:
           fetch-depth: 0 # fetch all history
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
+          persist-credentials: true
       - name: Determine branch names
         run: |
           RELEASE_BRANCH="release/${FULL_VERSION%.*}"
