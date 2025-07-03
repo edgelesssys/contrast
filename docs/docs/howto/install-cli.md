@@ -1,4 +1,16 @@
-# Installation
+# Install CLI
+
+This section provides instructions on how to install the Contrast CLI.
+
+## Applicability
+
+Required for deploying with Contrast.
+
+## Prerequisites
+
+1. [Set up cluster](./cluster-setup/aks.md)
+
+## How-to
 
 Download the Contrast CLI from the latest release:
 

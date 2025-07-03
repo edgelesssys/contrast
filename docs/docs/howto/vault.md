@@ -18,7 +18,6 @@ Unsealing is a manual process required to transition Vault into an operational s
 Vault implementations by default use a set of unseal keys derived from a master key, building up on `Shamir's Secret Sharing` scheme.
 Further to auto-unseal Vaults, the process can be delegated to another already initialized Vault by using an exposed [transit secrets engine API](https://openbao.org/api-docs/secret/transit/) as the unsealing mechanism.
 
-
 ## Transit secrets engine API of Contrast Coordinator
 
 To automate the unsealing process in confidential deployments of Vault instances, the coordinator exposes a compatible transit secrets engine API on port 8200.
@@ -27,7 +26,7 @@ Vault deployments can be configured to integrate this transit engine to enable a
 ### Secure endpoints with mutual TLS
 
 All communication between the transit secrets engine API and Vault is secured through mutual TLS (mTLS).
-Only entities presenting a [mesh certificate](../architecture/certificates.md#usage-of-the-different-certificates) signed by the current mesh CA key are trusted.
+Only entities presenting a [mesh certificate](../architecture/components/service-mesh.md#public-key-infrastructure) signed by the current mesh CA key are trusted.
 The Coordinator issues itself a valid certificate at the time of the transit secrets engine API call, while the Vault deployment obtains its certificate in the initialization phase, after attesting to the Coordinator.
 
 ### Role of `workloadSecretID`
@@ -43,7 +42,7 @@ For more details on how the workload secret is used, see [Workload Secrets](../a
 ## Prerequisites
 
 - Installed Contrast CLI
-- A running Kubernetes cluster with support for confidential containers, either on [AKS](../getting-started/cluster-setup.md) or on [bare metal](../getting-started/bare-metal.md)
+- A running Kubernetes cluster with support for confidential containers, either on [AKS](../howto/cluster-setup/aks.md) or on [bare metal](../howto/cluster-setup/bare-metal.md)
 
 ## Steps to deploy Vault with Contrast
 
@@ -57,7 +56,7 @@ curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/vault
 
 ### Deploy the Contrast runtime
 
-Contrast depends on a [custom Kubernetes `RuntimeClass`](../components/runtime.md), which needs to be installed to the cluster initially.
+Contrast depends on a [custom Kubernetes `RuntimeClass`](../architecture/components/runtime.md), which needs to be installed to the cluster initially.
 This consists of a `RuntimeClass` resource and a `DaemonSet` that performs installation on worker nodes.
 This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
@@ -145,8 +144,8 @@ This should only be done in a secure environment.
 :::note[Runtime class and Initializer]
 
 The deployment YAML shipped for this demo is already configured to be used with Contrast.
-A [runtime class](../components/runtime) `contrast-cc` was added to the pods to signal they should be run as Confidential Containers.
-During the generation process, the Contrast [Initializer](../components/overview.md#the-initializer) will be added as an init container to these workloads.
+A [runtime class](../architecture/components/runtime.md) `contrast-cc` was added to the pods to signal they should be run as Confidential Containers.
+During the generation process, the Contrast [Initializer](../architecture/components/initializer.md) will be added as an init container to these workloads.
 It will attest the pod to the Coordinator and fetch the workload certificates and the workload secret.
 
 :::
@@ -208,7 +207,7 @@ This can be achieved by using the corresponding `workload-secret-id` annotation 
 
 ### Connecting to the application
 
-Other confidential containers can securely connect to the Vault server via the [Service Mesh](../components/service-mesh.md).
+Other confidential containers can securely connect to the Vault server via the [Service Mesh](../architecture/components/service-mesh.md).
 As previously noted, access to the Vault endpoint is restricted to peers that present a service mesh certificate valid under the currently set manifest.
 While such a certificate enables mTLS-based communication with the Vault server, it doesn't, on its own, grant authorization to perform Vault-related operations.
 Permissions for accessing secrets within Vault must be explicitly configured using the root token obtained during Vault initialization.
