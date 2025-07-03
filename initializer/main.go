@@ -186,6 +186,11 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 
 	log.Info("Setting up encrypted mount")
 
+	// Create tmp dir for cryptsetup lock files.
+	if err := os.MkdirAll("/run/cryptsetup", 0o755); err != nil {
+		return fmt.Errorf("creating cryptestup lock directory: %w", err)
+	}
+
 	flags := &cryptsetupFlags{
 		devicePath:       cryptsetupDevicePath,
 		volumeMountPoint: "/state",
