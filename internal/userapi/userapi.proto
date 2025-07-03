@@ -48,6 +48,7 @@ message GetManifestsResponse {
 message RecoverRequest {
     bytes Seed = 1;
     bytes Salt = 2;
+    bool Force = 3;
 }
 
 message RecoverResponse {}

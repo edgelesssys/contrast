@@ -252,6 +252,9 @@ func TestRecovery(t *testing.T) {
 		name        string
 		seed        *[]byte
 		salt        *[]byte
+		force       bool
+		peers       []string
+		peersErr    error
 		wantCode    codes.Code
 		wantMessage string
 	}{
@@ -280,6 +283,30 @@ func TestRecovery(t *testing.T) {
 			wantMessage: "salt must be",
 		},
 		{
+			name:        "peer available",
+			peers:       []string{"192.0.2.2"},
+			wantCode:    codes.FailedPrecondition,
+			wantMessage: "peers are available",
+		},
+		{
+			name:        "peer discovery broken",
+			peersErr:    assert.AnError,
+			wantCode:    codes.Internal,
+			wantMessage: assert.AnError.Error(),
+		},
+		{
+			name:     "peer available but forced",
+			force:    true,
+			peers:    []string{"192.0.2.2"},
+			wantCode: codes.OK,
+		},
+		{
+			name:     "peer discovery broken but forced",
+			force:    true,
+			peersErr: assert.AnError,
+			wantCode: codes.OK,
+		},
+		{
 			name:     "normal values",
 			wantCode: codes.OK,
 		},
@@ -294,7 +321,11 @@ func TestRecovery(t *testing.T) {
 			store := history.NewAferoStore(&afero.Afero{Fs: fs})
 			hist := history.NewWithStore(slog.Default(), store)
 			auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
-			a := New(logger, auth)
+			discovery := &stubDiscovery{
+				peers: tc.peers,
+				err:   tc.peersErr,
+			}
+			a := New(logger, auth, discovery)
 
 			manifestBytes, policies := newManifestWithSeedshareOwner(t)
 
@@ -310,8 +341,9 @@ func TestRecovery(t *testing.T) {
 			require.NoError(err)
 
 			recoverReq := &userapi.RecoverRequest{
-				Seed: seed,
-				Salt: resp.SeedSharesDoc.Salt,
+				Seed:  seed,
+				Salt:  resp.SeedSharesDoc.Salt,
+				Force: tc.force,
 			}
 			// Override with test case data, if present.
 			if tc.seed != nil {
@@ -345,7 +377,7 @@ func TestRecoveryFlow(t *testing.T) {
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
 	auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
-	a := New(logger, auth)
+	a := New(logger, auth, &stubDiscovery{})
 
 	// 2. A manifest is set and the returned seed is recorded.
 	manifestBytes, policies := newManifestWithSeedshareOwner(t)
@@ -424,7 +456,7 @@ func TestUserAPIConcurrent(t *testing.T) {
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
 	auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
-	coordinator := New(logger, auth)
+	coordinator := New(logger, auth, &stubDiscovery{})
 
 	setReq := &userapi.SetManifestRequest{
 		Manifest: newManifestBytes(func(m *manifest.Manifest) {
@@ -736,14 +768,14 @@ func newCoordinatorWithRegistry(reg *prometheus.Registry) *Server {
 	store := history.NewAferoStore(&afero.Afero{Fs: fs})
 	hist := history.NewWithStore(slog.Default(), store)
 	auth := stateguard.New(hist, reg, logger)
-	return New(logger, auth)
+	return New(logger, auth, &stubDiscovery{})
 }
 
 func newCoordinatorWithWatcher(t *testing.T, hist *history.History) *Server {
 	t.Helper()
 	logger := slog.Default()
 	auth := stateguard.New(hist, prometheus.NewRegistry(), logger)
-	coordinator := New(logger, auth)
+	coordinator := New(logger, auth, &stubDiscovery{})
 
 	ctx, cancel := context.WithCancel(t.Context())
 	doneCh := make(chan struct{})
@@ -884,6 +916,20 @@ func (fs *watchableStore) CompareAndSwap(key string, oldVal, newVal []byte) erro
 		}
 	}
 	return nil
+}
+
+type stubDiscovery struct {
+	peers []string
+	err   error
+}
+
+func (d *stubDiscovery) GetPeers(ctx context.Context) ([]string, error) {
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+		return d.peers, d.err
+	}
 }
 
 func toPtr[A any](a A) *A {
