@@ -186,7 +186,8 @@ func envWithDefault(key, dflt string) string {
 
 func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams string, debugRuntime bool) error {
 	var snpIDBlock kataconfig.SnpIDBlock
-	if platforms.IsSNP(platform) {
+	switch platform {
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
 		var err error
 		snpIDBlock, err = kataconfig.SnpIDBlockForPlatform(platform, abi.SevProduct().Name)
 		if err != nil {
