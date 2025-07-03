@@ -25,6 +25,7 @@
       enable = true;
       settings.formatter.retain_line_breaks_single = true;
     };
+    zizmor.enable = true;
     # keep-sorted end
   };
   settings.formatter = {
