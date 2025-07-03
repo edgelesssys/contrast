@@ -15,6 +15,7 @@ jobs:
         with:
           ref: ${{ !github.event.pull_request.head.repo.fork && github.head_ref || '' }}
           token: ${{ !github.event.pull_request.head.repo.fork && secrets.NUNKI_CI_COMMIT_PUSH_PR || github.token }}
+          persist-credentials: true
       - uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
