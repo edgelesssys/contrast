@@ -91,6 +91,9 @@ populate target=default_deploy_target platform=default_platform:
         target=""
         cp -r ./.custom/* ./{{ workspace_dir }}/deployment/
     fi
+    if [[ -f ./{{ workspace_dir }}/deployment/deployment.yml ]]; then
+        echo "---" >> ./{{ workspace_dir }}/deployment/deployment.yml
+    fi
     nix shell .#contrast --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
@@ -98,7 +101,7 @@ populate target=default_deploy_target platform=default_platform:
         --add-logging \
         --add-dmesg \
         --platform {{ platform }} \
-        ${target} coordinator > ./{{ workspace_dir }}/deployment/deployment.yml
+        ${target} coordinator >> ./{{ workspace_dir }}/deployment/deployment.yml
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
 
 # Generate policies, update manifest.
