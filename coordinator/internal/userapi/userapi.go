@@ -49,19 +49,25 @@ type guard interface {
 	ResetState(ctx context.Context, oldState *stateguard.State, a stateguard.SecretSourceAuthorizer) (newState *stateguard.State, err error)
 }
 
+type discovery interface {
+	GetPeers(ctx context.Context) ([]string, error)
+}
+
 // Server serves the userapi.UserAPI. Servers need to be constructed with New.
 type Server struct {
-	logger *slog.Logger
-	guard  guard
+	logger    *slog.Logger
+	guard     guard
+	discovery discovery
 
 	userapi.UnimplementedUserAPIServer
 }
 
 // New constructs a new Server instance.
-func New(logger *slog.Logger, guard guard) *Server {
+func New(logger *slog.Logger, guard guard, discovery discovery) *Server {
 	return &Server{
-		logger: logger,
-		guard:  guard,
+		logger:    logger,
+		guard:     guard,
+		discovery: discovery,
 	}
 }
 
@@ -175,6 +181,7 @@ func (s *Server) GetManifests(ctx context.Context, _ *userapi.GetManifestsReques
 func (s *Server) Recover(ctx context.Context, req *userapi.RecoverRequest) (*userapi.RecoverResponse, error) {
 	s.logger.Info("Recover called")
 
+	// Check whether recovery is needed.
 	oldState, err := s.guard.GetState(ctx)
 	switch {
 	case errors.Is(err, stateguard.ErrStaleState):
@@ -185,6 +192,19 @@ func (s *Server) Recover(ctx context.Context, req *userapi.RecoverRequest) (*use
 		return nil, status.Errorf(codes.Internal, "getting state: %v", err)
 	default:
 		return nil, status.Error(codes.FailedPrecondition, ErrAlreadyRecovered.Error())
+	}
+
+	if !req.Force {
+		// Unless forced, check whether recovery is a good idea.
+		peers, err := s.discovery.GetPeers(ctx)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "listing peers: %v", err)
+		}
+		if len(peers) > 0 {
+			return nil, status.Errorf(codes.FailedPrecondition, "rejecting user recovery because %d recovered peers are available", len(peers))
+		}
+	} else {
+		s.logger.Info("Skipping sanity checks because user recovery was forced")
 	}
 
 	_, err = s.guard.ResetState(ctx, oldState, &seedAuthorizer{req: req})

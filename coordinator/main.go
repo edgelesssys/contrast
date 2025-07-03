@@ -88,6 +88,20 @@ func run() (retErr error) {
 		return fmt.Errorf("removing default deny rule: %w", err)
 	}
 
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return fmt.Errorf("getting kubeconfig: %w", err)
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return fmt.Errorf("creating Kubernetes clientset: %w", err)
+	}
+	namespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	if err != nil {
+		return fmt.Errorf("reading namespace file: %w", err)
+	}
+	discovery := peerdiscovery.New(clientset, string(namespace))
+
 	promRegistry := prometheus.NewRegistry()
 	serverMetrics := newServerMetrics(promRegistry)
 
@@ -105,7 +119,7 @@ func run() (retErr error) {
 
 	userAPICredentials := atlscredentials.New(issuer, atls.NoValidators, atls.NoMetrics, loggerpkg.NewNamed(logger, "atlscredentials"))
 	userAPIServer := newGRPCServer(userAPICredentials, serverMetrics)
-	userapi.RegisterUserAPIServer(userAPIServer, userapiserver.New(logger, meshAuth))
+	userapi.RegisterUserAPIServer(userAPIServer, userapiserver.New(logger, meshAuth, discovery))
 	serverMetrics.InitializeMetrics(userAPIServer)
 
 	month := 30 * 24 * time.Hour
@@ -197,21 +211,7 @@ func run() (retErr error) {
 	})
 
 	eg.Go(func() error {
-		config, err := rest.InClusterConfig()
-		if err != nil {
-			return err
-		}
-		clientset, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			return err
-		}
-		namespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-		if err != nil {
-			return err
-		}
-
 		logger.Info("Coordinator peer recovery started")
-		discovery := peerdiscovery.New(clientset, string(namespace))
 		recoverer := peerrecovery.New(meshAuth, discovery, issuer, kdsGetter, logger)
 
 		onceCtx, cancel := context.WithTimeout(ctx, 15*time.Second)

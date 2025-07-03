@@ -350,6 +350,7 @@ type RecoverRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Seed          []byte                 `protobuf:"bytes,1,opt,name=Seed,proto3" json:"Seed,omitempty"`
 	Salt          []byte                 `protobuf:"bytes,2,opt,name=Salt,proto3" json:"Salt,omitempty"`
+	Force         bool                   `protobuf:"varint,3,opt,name=Force,proto3" json:"Force,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -396,6 +397,13 @@ func (x *RecoverRequest) GetSalt() []byte {
 		return x.Salt
 	}
 	return nil
+}
+
+func (x *RecoverRequest) GetForce() bool {
+	if x != nil {
+		return x.Force
+	}
+	return false
 }
 
 type RecoverResponse struct {
@@ -459,10 +467,11 @@ const file_userapi_proto_rawDesc = "" +
 	"\tManifests\x18\x01 \x03(\fR\tManifests\x12\x1a\n" +
 	"\bPolicies\x18\x02 \x03(\fR\bPolicies\x12\x16\n" +
 	"\x06RootCA\x18\x03 \x01(\fR\x06RootCA\x12\x16\n" +
-	"\x06MeshCA\x18\x04 \x01(\fR\x06MeshCA\"8\n" +
+	"\x06MeshCA\x18\x04 \x01(\fR\x06MeshCA\"N\n" +
 	"\x0eRecoverRequest\x12\x12\n" +
 	"\x04Seed\x18\x01 \x01(\fR\x04Seed\x12\x12\n" +
-	"\x04Salt\x18\x02 \x01(\fR\x04Salt\"\x11\n" +
+	"\x04Salt\x18\x02 \x01(\fR\x04Salt\x12\x14\n" +
+	"\x05Force\x18\x03 \x01(\bR\x05Force\"\x11\n" +
 	"\x0fRecoverResponse2\xdc\x02\n" +
 	"\aUserAPI\x12r\n" +
 	"\vSetManifest\x120.edgelesssys.contrast.userapi.SetManifestRequest\x1a1.edgelesssys.contrast.userapi.SetManifestResponse\x12u\n" +

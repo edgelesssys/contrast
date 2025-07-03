@@ -41,6 +41,7 @@ The recover command is used to provide the seed to the Coordinator.`,
 		"path to workload owner key (.pem) file (can be passed more than once)")
 	cmd.Flags().String("seedshare-owner-key", seedshareOwnerPEM, "private key file to decrypt the seed share")
 	cmd.Flags().String("seed", seedSharesFilename, "file with the encrypted seed shares")
+	cmd.Flags().Bool("force", false, "skip sanity checks while recovering")
 
 	return cmd
 }
@@ -94,8 +95,9 @@ func runRecover(cmd *cobra.Command, _ []string) error {
 
 	client := userapi.NewUserAPIClient(conn)
 	req := &userapi.RecoverRequest{
-		Seed: seed,
-		Salt: salt,
+		Seed:  seed,
+		Salt:  salt,
+		Force: flags.force,
 	}
 	if _, err := client.Recover(cmd.Context(), req); err != nil {
 		return fmt.Errorf("recovering: %w", err)
@@ -113,6 +115,7 @@ type recoverFlags struct {
 	workloadOwnerKeyPath  string
 	manifestPath          string
 	workspaceDir          string
+	force                 bool
 }
 
 func loadSeedShareOwnerKey(seedShareOwnerKeyPath string) (*rsa.PrivateKey, error) {
@@ -175,6 +178,10 @@ func parseRecoverFlags(cmd *cobra.Command) (*recoverFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	force, err := cmd.Flags().GetBool("force")
+	if err != nil {
+		return nil, err
+	}
 
 	if workspaceDir != "" {
 		// Prepend default paths with workspaceDir
@@ -199,5 +206,6 @@ func parseRecoverFlags(cmd *cobra.Command) (*recoverFlags, error) {
 		workloadOwnerKeyPath:  workloadOwnerKeyPath,
 		manifestPath:          manifestPath,
 		workspaceDir:          workspaceDir,
+		force:                 force,
 	}, nil
 }
