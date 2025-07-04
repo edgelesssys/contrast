@@ -2,6 +2,7 @@ go 1.24.0
 
 use (
 	.
+	./imagepuller
 	./service-mesh
 	./tools/igvm
 	./tools/tdx-measure
