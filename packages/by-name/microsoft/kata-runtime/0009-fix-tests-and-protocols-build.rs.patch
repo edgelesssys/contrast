@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Tue, 17 Jun 2025 13:47:52 +0200
+Subject: [PATCH] fix tests and protocols/build.rs
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ src/agent/src/device/block_device_handler.rs | 1 +
+ src/libs/protocols/build.rs                  | 4 ++--
+ 2 files changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/agent/src/device/block_device_handler.rs b/src/agent/src/device/block_device_handler.rs
+index 7709a28758a8f55ff679f60d45408a1701e61104..4f9cede8ef12a021f810351d26e956e5e9d92eba 100644
+--- a/src/agent/src/device/block_device_handler.rs
++++ b/src/agent/src/device/block_device_handler.rs
+@@ -224,6 +224,7 @@ impl UeventMatcher for VirtioBlkCCWMatcher {
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++    use crate::linux_abi::create_pci_root_bus_path;
+ 
+     #[tokio::test]
+     #[allow(clippy::redundant_clone)]
+diff --git a/src/libs/protocols/build.rs b/src/libs/protocols/build.rs
+index ebd034b26a9088c95835328fdce03594cf81007d..b2ce09cf9de625aa46f65667e764214b361382ba 100644
+--- a/src/libs/protocols/build.rs
++++ b/src/libs/protocols/build.rs
+@@ -260,11 +260,11 @@ fn real_main() -> Result<(), std::io::Error> {
+     ];
+ 
+     for f in box_pointers_files {
+-        replace_text_in_file(
++        let _ = replace_text_in_file(
+             f,
+             "#![allow(box_pointers)]",
+             "",
+-        )?;
++        );
+     }
+ 
+     Ok(())

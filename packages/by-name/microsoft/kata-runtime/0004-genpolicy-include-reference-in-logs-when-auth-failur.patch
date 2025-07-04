@@ -3,18 +3,19 @@ From: jmxnzo <jakob.lammering@ruhr-uni-bochum.de>
 Date: Mon, 2 Dec 2024 12:38:04 +0100
 Subject: [PATCH] genpolicy: include reference in logs when auth failure
 
+Signed-off-by: jmxnzo <jakob.lammering@ruhr-uni-bochum.de>
 ---
  src/tools/genpolicy/src/registry.rs | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index 38be19f5a005954cb33bb9f0a0aaac0534dad491..876b8560331b75035c11e7b91991330058743740 100644
+index 0d14a62444d0b42a0e803a8bb4031201e8ed2c9a..0eeca96bee8ab59ad4ee258c775750f3fdc9efbc 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
-@@ -125,7 +125,7 @@ impl Container {
+@@ -160,7 +160,7 @@ impl Container {
                  })
              }
-             Err(oci_distribution::errors::OciDistributionError::AuthenticationFailure(message)) => {
+             Err(oci_client::errors::OciDistributionError::AuthenticationFailure(message)) => {
 -                panic!("Container image registry authentication failure ({}). Are docker credentials set-up for current user?", &message);
 +                panic!("Container image registry authentication failure ({}) for {}. Are docker credentials set-up for current user?", &message, &reference.whole().as_str());
              }

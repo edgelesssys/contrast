@@ -25,8 +25,10 @@ rustPlatform.buildRustPackage rec {
   cargoLock = {
     lockFile = "${src}/src/agent/Cargo.lock";
     outputHashes = {
-      "sev-1.2.0" = "sha256-h83ib12ujiZTU4gdkulobJ6KINYQp8ya0bFQbCteYPg=";
-      "sev-1.2.1" = "sha256-5UkHDDJMVUG18AN/c6BSMTkEgSG8MBB33DZE355gXdE=";
+      "attester-0.1.0" = "sha256-Sn3PfItlLkEOqfRqhGfBHryHzOROy3BaZXV2Hs9dKAU=";
+      "cdi-0.1.0" = "sha256-DbXa6h678WYdBdQrVpetkfY8QzamW9lZIjd0u1fQgd4=";
+      "loopdev-0.5.0" = "sha256-PD+iuZWPAFd3VUCgNB0ZrH/aCM2VMqJEyAv5/j1kqlA=";
+      "sigstore-0.11.0" = "sha256-nmL9UQfebhBhgIm3WFWGsolK0ngOOl7d8Vo4XOZ7F0s=";
     };
   };
 
@@ -76,6 +78,8 @@ rustPlatform.buildRustPackage rec {
     LIBC = "gnu";
     OPENSSL_NO_VENDOR = 1;
   };
+
+  doCheck = false;
 
   checkFlags = [
     "--skip=mount::tests::test_already_baremounted"

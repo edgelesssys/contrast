@@ -1,9 +1,9 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index c200f0786b..fcb6ea5bd1 100644
+index 55fb4da78c..4734c29e4e 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -344,7 +344,7 @@
-             "regex": []
+@@ -387,7 +387,7 @@
+             ]
          },
          "CloseStdinRequest": false,
 -        "ReadStreamRequest": false,

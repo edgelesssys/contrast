@@ -1,0 +1,164 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Tue, 1 Jul 2025 18:35:19 +0200
+Subject: [PATCH] genpolicy: don't allow mount/storage for declared VOLUMEs
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/tools/genpolicy/genpolicy-settings.json  | 12 -----
+ src/tools/genpolicy/src/mount_and_storage.rs | 54 --------------------
+ src/tools/genpolicy/src/settings.rs          |  1 -
+ src/tools/genpolicy/src/yaml.rs              | 19 +++----
+ 4 files changed, 8 insertions(+), 78 deletions(-)
+
+diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
+index 55fb4da78c7b84a01276075c59740b959415f45f..38c0719dfaa1c5e8e02ab85f88ca500f5ba3e049 100644
+--- a/src/tools/genpolicy/genpolicy-settings.json
++++ b/src/tools/genpolicy/genpolicy-settings.json
+@@ -199,18 +199,6 @@
+                 "rprivate",
+                 "ro"
+             ]
+-        },
+-        "image_volume": {
+-            "mount_type": "bind",
+-            "mount_source": "$(sfprefix)",
+-            "driver": "local",
+-            "source": "local",
+-            "fstype": "bind",
+-            "options": [
+-                "rbind",
+-                "rprivate",
+-                "rw"
+-            ]
+         }
+     },
+     "mount_destinations": [
+diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
+index b27ca71bafcff26e6adbf9d536fb2c7f1309a3ba..b85017d4fd28221facc6c8fd279a339296ccdacd 100644
+--- a/src/tools/genpolicy/src/mount_and_storage.rs
++++ b/src/tools/genpolicy/src/mount_and_storage.rs
+@@ -471,60 +471,6 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
+     }
+ }
+ 
+-pub fn get_image_mount_and_storage(
+-    settings: &settings::Settings,
+-    p_mounts: &mut Vec<policy::KataMount>,
+-    storages: &mut Vec<agent::Storage>,
+-    destination: &str,
+-) {
+-    // https://github.com/kubernetes/examples/blob/master/cassandra/image/Dockerfile
+-    // has a volume mount starting with two '/' characters:
+-    //
+-    // CASSANDRA_DATA=/cassandra_data
+-    // VOLUME ["/$CASSANDRA_DATA"]
+-    let mut destination_string = destination.to_string();
+-    while destination_string.contains("//") {
+-        destination_string = destination_string.replace("//", "/");
+-    }
+-    debug!("get_image_mount_and_storage: image dest = {destination}, dest = {destination_string}");
+-
+-    for mount in &mut *p_mounts {
+-        if mount.destination == destination_string {
+-            debug!(
+-                "get_image_mount_and_storage: mount {destination_string} already defined by YAML"
+-            );
+-            return;
+-        }
+-    }
+-
+-    let settings_image = &settings.volumes.image_volume;
+-    debug!(
+-        "get_image_mount_and_storage: settings for container image volumes: {:?}",
+-        settings_image
+-    );
+-
+-    storages.push(agent::Storage {
+-        driver: settings_image.driver.clone(),
+-        driver_options: Vec::new(),
+-        source: settings_image.source.clone(),
+-        fstype: settings_image.fstype.clone(),
+-        options: settings_image.options.clone(),
+-        mount_point: destination_string.clone(),
+-        fs_group: None,
+-    });
+-
+-    let file_name = Path::new(&destination_string).file_name().unwrap();
+-    let name = OsString::from(file_name).into_string().unwrap();
+-    let source = format!("{}{name}$", &settings_image.mount_source);
+-
+-    p_mounts.push(policy::KataMount {
+-        destination: destination_string,
+-        type_: settings_image.fstype.clone(),
+-        source,
+-        options: settings_image.options.clone(),
+-    });
+-}
+-
+ fn get_ephemeral_mount(
+     settings: &settings::Settings,
+     yaml_mount: &pod::VolumeMount,
+diff --git a/src/tools/genpolicy/src/settings.rs b/src/tools/genpolicy/src/settings.rs
+index 1d3a3ccff93e464f25bf6b9d211b9241d99367ec..1767261f4b04262d18605d32473d6e51cdcfdcb3 100644
+--- a/src/tools/genpolicy/src/settings.rs
++++ b/src/tools/genpolicy/src/settings.rs
+@@ -35,7 +35,6 @@ pub struct Volumes {
+     pub emptyDir_memory: EmptyDirVolume,
+     pub configMap: ConfigMapVolume,
+     pub confidential_configMap: ConfigMapVolume,
+-    pub image_volume: ImageVolume,
+ }
+ 
+ /// EmptyDir volume settings loaded from genpolicy-settings.json.
+diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
+index 8c527db602d6c9241025b052ba13cb9c86d343c4..4f55feed9039ab9be63260ed90857cf998decad4 100644
+--- a/src/tools/genpolicy/src/yaml.rs
++++ b/src/tools/genpolicy/src/yaml.rs
+@@ -29,6 +29,7 @@ use crate::volume;
+ 
+ use async_trait::async_trait;
+ use core::fmt::Debug;
++use std::collections::BTreeSet;
+ use log::debug;
+ use serde::{Deserialize, Serialize};
+ use std::boxed;
+@@ -286,6 +287,7 @@ pub fn get_container_mounts_and_storages(
+     settings: &settings::Settings,
+     volumes_option: &Option<Vec<volume::Volume>>,
+ ) {
++    let mut mountPaths = BTreeSet::new();
+     if let Some(volumes) = volumes_option {
+         if let Some(volume_mounts) = &container.volumeMounts {
+             for volume in volumes {
+@@ -299,24 +301,19 @@ pub fn get_container_mounts_and_storages(
+                             volume,
+                             volume_mount,
+                         );
++                        mountPaths.insert(volume_mount.mountPath.clone());
+                     }
+                 }
+             }
+         }
+     }
+ 
+-    // Add storage and mount for each volume defined in the docker container image
+-    // configuration layer.
++    // Check that all VOLUME declarations have corresponding volume mounts.
+     if let Some(volumes) = &container.registry.config_layer.config.Volumes {
+-        for volume in volumes {
+-            debug!("get_container_mounts_and_storages: {:?}", &volume);
+-
+-            mount_and_storage::get_image_mount_and_storage(
+-                settings,
+-                policy_mounts,
+-                storages,
+-                volume.0,
+-            );
++        let volumePaths: BTreeSet<_> = volumes.keys().cloned().collect();
++        let uncoveredPaths: Vec<String> = volumePaths.difference(&mountPaths).cloned().collect();
++        if uncoveredPaths.len() > 0 {
++            panic!("The following volumes declared in image config don't have corresponding Kubernetes mounts: {uncoveredPaths:?}");
+         }
+     }
+ }

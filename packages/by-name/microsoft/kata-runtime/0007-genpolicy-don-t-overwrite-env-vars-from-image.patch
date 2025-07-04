@@ -14,7 +14,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  1 file changed, 12 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 0b66065813ad51b6be8d06c75dde0527ba22c927..22cbd0dc029b94e088c3b30b7e040fa796281f07 100644
+index d9641562d46efee2ea2cb0aa8eb456425de3f72b..262be63a198b93d7a5a7dd83c8cac482484d0152 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -29,6 +29,7 @@ use serde_yaml::Value;
@@ -25,7 +25,7 @@ index 0b66065813ad51b6be8d06c75dde0527ba22c927..22cbd0dc029b94e088c3b30b7e040fa7
  use std::fs::read_to_string;
  use std::io::Write;
  
-@@ -703,12 +704,12 @@ impl AgentPolicy {
+@@ -749,12 +750,12 @@ impl AgentPolicy {
          if let Some(tty) = yaml_container.tty {
              process.Terminal = tty;
              if tty && !is_pause_container {
@@ -40,7 +40,7 @@ index 0b66065813ad51b6be8d06c75dde0527ba22c927..22cbd0dc029b94e088c3b30b7e040fa7
          }
  
          let service_account_name = if let Some(s) = &yaml_container.serviceAccountName {
-@@ -739,6 +740,15 @@ impl AgentPolicy {
+@@ -785,6 +786,15 @@ impl AgentPolicy {
      }
  }
  
