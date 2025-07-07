@@ -31,6 +31,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      PLATFORM: ${{ inputs.platform }}
+      TEST_NAME: ${{ inputs.test-name }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -57,11 +60,11 @@ jobs:
           cat <<EOF > justfile.env
           container_registry=${{ env.container_registry }}
           azure_resource_group=${{ env.azure_resource_group }}
-          default_platform=${{ inputs.platform }}
+          default_platform=${PLATFORM}
           EOF
       - name: Build and push container images
         run: |
-          just coordinator initializer port-forwarder openssl service-mesh-proxy node-installer ${{ inputs.platform }}
+          just coordinator initializer port-forwarder openssl service-mesh-proxy node-installer "${PLATFORM}"
       - name: Get credentials for CI cluster
         if: (!inputs.self-hosted)
         run: |
@@ -77,10 +80,10 @@ jobs:
         run: |
           nix build .#scripts.get-logs
           nix run .#scripts.get-logs start workspace/e2e.namespace &
-          nix shell -L .#contrast.e2e --command ${{ inputs.test-name }}.test -test.v \
+          nix shell -L .#contrast.e2e --command "${TEST_NAME}.test" -test.v \
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
-            --platform ${{ inputs.platform }} \
+            --platform "${PLATFORM}" \
             --namespace-suffix="-ci"
       - name: Download logs
         if: always()

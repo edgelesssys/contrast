@@ -256,30 +256,45 @@ jobs:
           persist-credentials: false
       - name: Get JSON output
         id: get-json
+        env:
+          UPDATE_RESOURCES_SNP: ${{ needs.update-resources.outputs.snp }}
+          UPDATE_RESOURCES_TDX: ${{ needs.update-resources.outputs.tdx }}
+          UPDATE_RESOURCES_SNP_GPU: ${{ needs.update-resources.outputs.snp-gpu }}
+          CLEANUP_SNP: ${{ needs.cleanup.outputs.snp }}
+          CLEANUP_TDX: ${{ needs.cleanup.outputs.tdx }}
+          CLEANUP_SNP_GPU: ${{ needs.cleanup.outputs.snp-gpu }}
+          CLEANUP_CONTAINERD_SNP: ${{ needs.cleanup-containerd.outputs.snp }}
+          CLEANUP_CONTAINERD_TDX: ${{ needs.cleanup-containerd.outputs.tdx }}
+          CLEANUP_CONTAINERD_SNP_GPU: ${{ needs.cleanup-containerd.outputs.snp-gpu  }}
+          NIX_GC_SNP: ${{ needs.nix-gc.outputs.snp }}
+          NIX_GC_TDX: ${{ needs.nix-gc.outputs.tdx }}
+          NIX_GC_SNP_GPU: ${{ needs.nix-gc.outputs.snp-gpu }}
+          IMAGE_BUILD_RESULT: ${{ needs.build-image.outputs.image }}
+          GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
         run: |
-          if [[ "${{ needs.build-image.result }}" == "failure" ]]; then
+          if [[ "${IMAGE_BUILD_RESULT}" == "failure" ]]; then
             echo 'json=[{"title": "Job ID", "value": "build-image"}]' >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
           declare -a entries snp tdx snp_gpu
 
-          [[ "${{ needs.update-resources.outputs.snp }}" != "success" ]] && snp+=("update-resources")
-          [[ "${{ needs.cleanup.outputs.snp }}" != "success" ]] && snp+=("cleanup")
-          [[ "${{ needs.nix-gc.outputs.snp }}" != "success" ]] && snp+=("nix-gc")
+          [[ "${UPDATE_RESOURCES_SNP}" != "success" ]] && snp+=("update-resources")
+          [[ "${CLEANUP_SNP}" != "success" ]] && snp+=("cleanup")
+          [[ "${NIX_GC_SNP}" != "success" ]] && snp+=("nix-gc")
 
-          [[ "${{ needs.update-resources.outputs.tdx }}" != "success" ]] && tdx+=("update-resources")
-          [[ "${{ needs.cleanup.outputs.tdx }}" != "success" ]] && tdx+=("cleanup")
-          [[ "${{ needs.nix-gc.outputs.tdx }}" != "success" ]] && tdx+=("nix-gc")
+          [[ "${UPDATE_RESOURCES_TDX}" != "success" ]] && tdx+=("update-resources")
+          [[ "${CLEANUP_TDX}" != "success" ]] && tdx+=("cleanup")
+          [[ "${NIX_GC_TDX}" != "success" ]] && tdx+=("nix-gc")
 
-          [[ "${{ needs.update-resources.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("update-resources")
-          [[ "${{ needs.cleanup.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("cleanup")
-          [[ "${{ needs.nix-gc.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("nix-gc")
+          [[ "${UPDATE_RESOURCES_SNP_GPU}" != "success" ]] && snp_gpu+=("update-resources")
+          [[ "${CLEANUP_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup")
+          [[ "${NIX_GC_SNP_GPU}" != "success" ]] && snp_gpu+=("nix-gc")
 
-          if [[ "${{ github.event.schedule }}" == "0 2 * * 4" ]]; then
-            [[ "${{ needs.cleanup-containerd.outputs.snp }}" != "success" ]] && snp+=("cleanup-containerd")
-            [[ "${{ needs.cleanup-containerd.outputs.tdx }}" != "success" ]] && tdx+=("cleanup-containerd")
-            [[ "${{ needs.cleanup-containerd.outputs.snp-gpu }}" != "success" ]] && snp_gpu+=("cleanup-containerd")
+          if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 2 * * 4" ]]; then
+            [[ "${CLEANUP_CONTAINERD_SNP}" != "success" ]] && snp+=("cleanup-containerd")
+            [[ "${CLEANUP_CONTAINERD_TDX}" != "success" ]] && tdx+=("cleanup-containerd")
+            [[ "${CLEANUP_CONTAINERD_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup-containerd")
           fi
 
           if [[ "${#snp[@]}" -gt 0 ]]; then
