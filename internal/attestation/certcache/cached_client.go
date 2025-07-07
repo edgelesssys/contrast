@@ -16,8 +16,9 @@ import (
 )
 
 var (
-	snpCrlURL = regexp.MustCompile(`^https://kdsintf\.amd\.com/vcek/v1/[A-Za-z]*/crl$`)
-	tdxCrlURL = regexp.MustCompile(`^https://api\.trustedservices\.intel\.com/sgx/certification/v4/pckcrl\?ca=(platform|processor)&encoding=der$`)
+	snpCrlURL     = regexp.MustCompile(`^https://kdsintf\.amd\.com/vcek/v1/[A-Za-z]*/crl$`)
+	tdxRootCrlURL = regexp.MustCompile(`^https://certificates.trustedservices.intel.com/IntelSGXRootCA.der$`)
+	tdxBaseURL    = regexp.MustCompile(`^https://api\.trustedservices\.intel\.com/(sgx|tdx)/certification/v4`)
 )
 
 // CachedHTTPSGetter is a HTTPS client that caches responses in memory.
@@ -59,19 +60,19 @@ func (c *CachedHTTPSGetter) GetContext(ctx context.Context, url string) (map[str
 	default:
 	}
 
-	if snpCrlURL.MatchString(url) || tdxCrlURL.MatchString(url) {
-		// For CRLs always query. When request failure, fallback to cache.
-		c.logger.Debug("Request CRL", "url", url)
+	if snpCrlURL.MatchString(url) || tdxRootCrlURL.MatchString(url) || tdxBaseURL.MatchString(url) {
+		// For CRLs or TDX TCB/QeIdentity always query. When request failure, fallback to cache.
+		c.logger.Debug("Request URL", "url", url)
 		header, body, err := c.ContextHTTPSGetter.GetContext(ctx, url)
 		if err == nil {
 			if data, err := json.Marshal(cacheEntry{header, body}); err == nil {
 				c.cache.Set(url, data)
 			} else {
-				c.logger.Warn("Failed to marshal CRL response, not writing to cache", "error", err)
+				c.logger.Warn("Failed to marshal response, not writing to cache", "error", err)
 			}
 			return header, body, nil
 		}
-		c.logger.Warn("Failed requesting CRL from KDS/PCS", "error", err)
+		c.logger.Warn("Failed requesting URL from KDS/PCS", "error", err)
 		if cached, ok := c.cache.Get(url); ok {
 			var entry cacheEntry
 			if err := json.Unmarshal(cached, &entry); err == nil {
@@ -79,7 +80,7 @@ func (c *CachedHTTPSGetter) GetContext(ctx context.Context, url string) (map[str
 				return entry.Header, entry.Body, nil
 			}
 		}
-		c.logger.Warn("CRL not found in cache", "url", url)
+		c.logger.Warn("Entry not found in cache", "url", url)
 		return nil, nil, err
 	}
 	// For VCEK get cache first and request if not present
