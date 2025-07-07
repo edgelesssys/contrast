@@ -104,10 +104,10 @@ final: prev:
       patches =
         [
           # Patch No. 1 needs a rebase on the new version, fetch the rebased version from the upstream PR.
-          (final.fetchpatch {
+          (final.replaceVars (final.fetchpatch {
             url = "https://raw.githubusercontent.com/NixOS/nixpkgs/0c909a5522020455d518a7f028e4850d55080bf6/pkgs/by-name/li/libnvidia-container/0001-ldcache-don-t-use-ldcache.patch";
             hash = "sha256-mdjWLa7kSWVaoyOSNKKt59I0XxyKO+QJEnmNCh+/pPU=";
-          })
+          }) { inherit (final.addDriverRunpath) driverLink; })
         ]
         ++ (
           # Apply other patches that don't need a rebase.
