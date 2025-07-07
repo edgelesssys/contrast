@@ -711,13 +711,15 @@ func TestNotificationRaces(t *testing.T) {
 	a := newCoordinatorWithWatcher(t, hist)
 
 	// Wait for the first watch call, then swap out the channel so that we control the notifications.
-	require.Eventually(func() bool {
-		store.mu.Lock()
-		defer store.mu.Unlock()
-		return len(store.watchers) == 1
-	}, 10*time.Millisecond, time.Millisecond)
+	expectedKey := "transitions/latest"
+	select {
+	case key := <-store.watchCalled:
+		require.Equal(expectedKey, key)
+	case <-time.After(time.Second):
+		require.Fail("watcher never registered with store")
+	}
 	store.mu.Lock()
-	watchedChs, ok := store.watchers["transitions/latest"]
+	watchedChs, ok := store.watchers[expectedKey]
 	require.True(ok)
 	require.Len(watchedChs, 1)
 	watchedCh := watchedChs[0]
@@ -885,13 +887,16 @@ type watchableStore struct {
 	watchers map[string][]chan []byte
 	// mu protects the watchers map to please the race detector.
 	mu sync.Mutex
+	// watchCalled is notified on calls to Watch with the provided argument.
+	watchCalled chan string
 }
 
 func newWatchableStore() *watchableStore {
 	fs := afero.NewMemMapFs()
 	return &watchableStore{
-		Store:    history.NewAferoStore(&afero.Afero{Fs: fs}),
-		watchers: make(map[string][]chan []byte),
+		Store:       history.NewAferoStore(&afero.Afero{Fs: fs}),
+		watchers:    make(map[string][]chan []byte),
+		watchCalled: make(chan string, 20),
 	}
 }
 
@@ -900,6 +905,7 @@ func (fs *watchableStore) Watch(key string) (<-chan []byte, func(), error) {
 	defer fs.mu.Unlock()
 	ch := make(chan []byte, 10)
 	fs.watchers[key] = append(fs.watchers[key], ch)
+	fs.watchCalled <- key
 	return ch, func() {}, nil
 }
 
