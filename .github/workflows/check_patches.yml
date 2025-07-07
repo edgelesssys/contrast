@@ -26,15 +26,19 @@ jobs:
         run: |
           echo "v=$(nix eval --raw .#kata.kata-runtime.version)" >> "$GITHUB_OUTPUT"
       - name: Check out Kata
+        env:
+          KATA_VERSION: ${{ steps.kataversion.outputs.v }}
         run: |
-          git clone --depth 1 -b "${{ steps.kataversion.outputs.v }}" https://github.com/kata-containers/kata-containers.git kata
+          git clone --depth 1 -b "${KATA_VERSION}" https://github.com/kata-containers/kata-containers.git kata
       - name: Apply patches
         working-directory: kata
+        env:
+          KATA_VERSION: ${{ steps.kataversion.outputs.v }}
         run: |
           git config --global user.email "actionsbot@example.invalid"
           git config --global user.name "Actions Bot"
           git am --no-3way ../contrast/packages/by-name/kata/kata-runtime/0*.patch
-          git format-patch -N --no-signature --zero-commit --full-index -o ../contrast/packages/by-name/kata/kata-runtime/ "${{ steps.kataversion.outputs.v }}"
+          git format-patch -N --no-signature --zero-commit --full-index -o ../contrast/packages/by-name/kata/kata-runtime/ "${KATA_VERSION}"
       - name: Check for diff
         working-directory: contrast
         run: |

@@ -112,10 +112,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          is_draft=$(gh release view ${{ inputs.version }} --json isDraft -q .isDraft || true)
+          is_draft=$(gh release view "${FULL_VERSION}" --json isDraft -q .isDraft || true)
           # If the release is not yet published, is_draft will either be "true" or empty.
           if [[ "${is_draft}" == "false" ]]; then
-            echo "::error::Release ${{ inputs.version }} is already published."
+            echo "::error::Release ${FULL_VERSION} is already published."
             exit 1
           fi
 
@@ -128,6 +128,9 @@ jobs:
     env:
       RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
       WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+      VERSION: ${{ inputs.version }}
+      MAJOR_MINOR: ${{ needs.process-inputs.outputs.MAJOR_MINOR }}
+      MAJOR_MINOR_PATCH: ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}
     steps:
       - name: Checkout working branch
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -154,9 +157,9 @@ jobs:
         working-directory: contrast-main/docs
         run: |
           nix run .#yarn install
-          nix run .#yarn docusaurus docs:version ${{ needs.process-inputs.outputs.MAJOR_MINOR }}
+          nix run .#yarn docusaurus docs:version "${MAJOR_MINOR}"
           git add .
-          git commit -am "docs: release ${{ needs.process-inputs.outputs.MAJOR_MINOR }}"
+          git commit -am "docs: release ${MAJOR_MINOR}"
           # Clean up auxiliary files, so next steps run on a clean tree
           git clean -fx :/
           git reset --hard HEAD
@@ -166,14 +169,11 @@ jobs:
           name: image-replacements
       - name: Update release urls in docs with tags
         working-directory: contrast-main
-        env:
-          MAJOR_MINOR: ${{ needs.process-inputs.outputs.MAJOR_MINOR }}
-          VERSION: ${{ inputs.version }}
         run: nix run .#scripts.update-release-urls
       - name: Commit updated docs
         working-directory: contrast-main
         run: |
-          git add docs/versioned_docs/version-${{ needs.process-inputs.outputs.MAJOR_MINOR }}
+          git add "docs/versioned_docs/version-${MAJOR_MINOR}"
           git commit -m "docs: update release download urls"
           git clean -fx :/
           git reset --hard HEAD
@@ -184,14 +184,12 @@ jobs:
           path: ./contrast-main
       - name: Update contrast-releases.json with new release
         working-directory: contrast-main
-        env:
-          VERSION: ${{ inputs.version }}
         run: nix run .#scripts.update-contrast-releases
       - name: Commit updated contrast-releases.json
         working-directory: contrast-main
         run: |
           git add ./packages/contrast-releases.json
-          git commit -m "packages/contrast-releases: add ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}"
+          git commit -m "packages/contrast-releases: add ${MAJOR_MINOR_PATCH}"
           git clean -fx :/
           git reset --hard HEAD
       - name: Bump flake version to post release patch pre-version
@@ -230,6 +228,7 @@ jobs:
     env:
       RELEASE_BRANCH: ${{ needs.process-inputs.outputs.RELEASE_BRANCH }}
       WORKING_BRANCH: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+      VERSION: ${{ inputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -285,7 +284,7 @@ jobs:
 
           # Insert the Contrast version as tag into a container image name.
           tagContrast() {
-            tag ${{ inputs.version }} "$@"
+            tag ${VERSION} "$@"
           }
 
           echo "coordinatorImgTagged=$(tagContrast "$coordinatorImg")" | tee -a "$GITHUB_ENV"
@@ -391,9 +390,9 @@ jobs:
             workspace/vault-demo.yml
           )
           for file in "${files[@]}"; do
-            aws s3 cp "$file" "s3://contrast-public/pre-releases/${{ inputs.version }}/$unix/"
+            aws s3 cp "$file" "s3://contrast-public/pre-releases/${VERSION}/$unix/"
           done
-          echo "Artifacts available at https://contrast-public.s3.eu-central-1.amazonaws.com/pre-releases/${{ inputs.version }}/$unix/" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "Artifacts available at https://contrast-public.s3.eu-central-1.amazonaws.com/pre-releases/${VERSION}/$unix/" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Create draft release
         uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
@@ -411,7 +410,7 @@ jobs:
             workspace/vault-demo.yml
       - name: Reset temporary changes
         run: |
-          git reset --hard ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
+          git reset --hard "${WORKING_BRANCH}"
       - name: Bump flake version to post release patch pre-version
         uses: ./.github/actions/bump_version
         with:
@@ -442,6 +441,8 @@ jobs:
       contents: write
       packages: read
     needs: [process-inputs, release]
+    env:
+      VERSION: ${{ inputs.version }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -488,7 +489,7 @@ jobs:
         run: |
           nix shell -L .#contrast.e2e --command release.test \
             -test.v \
-            --tag ${{ inputs.version }} \
+            --tag "${VERSION}" \
             --platform ${{ matrix.platform.name }}
 
   regression:

@@ -51,11 +51,15 @@ jobs:
           persist-credentials: false
       - name: Get JSON output
         id: get-json
+        env:
+          SNP: ${{ needs.update-bm-specs.outputs.snp }}
+          TDX: ${{ needs.update-bm-specs.outputs.tdx }}
+          SNP_GPU: ${{ needs.update-bm-specs.outputs.snp-gpu }}
         run: |
           platforms=()
-          [[ "${{ needs.update-bm-specs.outputs.snp }}" == "success" ]] && platforms+=("K3s-QEMU-SNP")
-          [[ "${{ needs.update-bm-specs.outputs.tdx }}" == "success" ]] && platforms+=("K3s-QEMU-TDX")
-          [[ "${{ needs.update-bm-specs.outputs.snp-gpu }}" == "success" ]] && platforms+=("K3s-QEMU-SNP-GPU")
+          [[ "${SNP}" == "success" ]] && platforms+=("K3s-QEMU-SNP")
+          [[ "${TDX}" == "success" ]] && platforms+=("K3s-QEMU-TDX")
+          [[ "${SNP_GPU}" == "success" ]] && platforms+=("K3s-QEMU-SNP-GPU")
           echo "json=[{\"title\": \"Platforms\", \"value\": \"${platforms[*]}\"}]" >> "$GITHUB_OUTPUT"
       - uses: ./.github/actions/post_to_teams
         with:
