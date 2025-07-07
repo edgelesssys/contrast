@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/stretchr/testify/assert"
@@ -309,9 +308,7 @@ func TestSNPValidateOpts(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	m, err := Default(platforms.AKSCloudHypervisorSNP)
-	t.Log(err)
-	require.NoError(err)
+	m := newTestManifestSNP()
 
 	m.Policies = map[HexString]PolicyEntry{
 		HexString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"): {
