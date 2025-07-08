@@ -255,7 +255,7 @@ jobs:
           coordinatorImg=$(nix run .#containers.push-coordinator -- "$container_registry/contrast/coordinator")
           nodeInstallerMsftImg=$(nix run .#containers.push-node-installer-microsoft -- "$container_registry/contrast/node-installer-microsoft")
           nodeInstallerKataImg=$(nix run .#containers.push-node-installer-kata -- "$container_registry/contrast/node-installer-kata")
-          nodeInstallerKataGPUImg=$(nix run .#containers.push-node-installer-kata-gpu -- "$container_registry/contrast/node-installer-kata")
+          nodeInstallerKataGPUImg=$(nix run .#containers.push-node-installer-kata-gpu -- "$container_registry/contrast/node-installer-kata-gpu")
           initializerImg=$(nix run .#containers.push-initializer -- "$container_registry/contrast/initializer")
           serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "$container_registry/contrast/service-mesh-proxy")
           tardevSnapshotterImg=$(nix run .#containers.push-tardev-snapshotter -- "$container_registry/contrast/tardev-snapshotter")
