@@ -19,9 +19,10 @@ This step is mandatory for all Contrast deployments.
 
 ## How-to
 
-Apply the resources to the cluster. Your workloads will block in the initialization phase until a
-manifest is set at the Coordinator.
+Apply the resources to the cluster.
 
 ```sh
 kubectl apply -f resources/
 ```
+
+Until [a manifest is set](set-manifest.md), the Coordinator will report unready and the workload pods will stay in the initialization phase.

@@ -23,6 +23,25 @@ It currently consists of the following parts:
 - _WorkloadOwnerKeyDigest_: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
 - _SeedshareOwnerKeys_: public keys of seed share owners. Used to authenticate user recovery and permission to handle the secret seed.
 
+<!-- TODO(burgerdev): document manifest storage. -->
+
+## State
+
+A Contrast Coordinator can be in one of three states:
+
+- After a fresh installation, there is no manifest history and the Coordinator waits for its initialization by `contrast set`.
+- When the Coordinator starts up and finds an existing manifest history, it enters _recovery mode_.
+  It periodically tries to recover from its peers, or waits for the user to run `contrast recover` if there are none.
+  All other API requests fail as long as the Coordinator is in recovery mode.
+- If the Coordinator is synchronized to the latest manifest in history, it transitions to the `Ready` state and starts accepting requests from workload initializers.
+
+## Services
+
+The Contrast Coordinator comes with two services: `coordinator` and `coordinator-ready`.
+The `coordinator` service is backed by all Coordinators, ready or not ready, and is intended to serve user API (that is, `contrast` CLI commands).
+The `coordinator-ready` service only selects ready Coordinators which can serve the mesh API, and is intended to be used by initializers.
+This endpoint is also suitable for verifying clients, since they will only get a successful response from a ready Coordinator.
+
 ## Automatic recovery and high availability
 
 The Contrast Coordinator is deployed as a single replica in its default configuration.
