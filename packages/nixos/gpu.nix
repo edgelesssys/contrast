@@ -12,9 +12,20 @@ let
   cfg = config.contrast.gpu;
 
   nvidiaPackage =
-    (config.boot.kernelPackages.nvidiaPackages.production.override {
-      disable32Bit = true;
-    }).overrideAttrs
+    (
+      (config.boot.kernelPackages.nvidiaPackages.mkDriver rec {
+        url = "https://us.download.nvidia.com/tesla/${version}/NVIDIA-Linux-x86_64-${version}.run";
+        version = "570.158.01";
+        sha256_64bit = "sha256-R/TMmtB79xjQ3Ojb/ABFzTas7WmXEsfoQX+F+4fZGOs=";
+        openSha256 = "sha256-hScINXiAuJWhuO4oLDAiVGZS97OXDGr1IiFZxkGidfg=";
+        persistencedVersion = "570.169"; # There is no persistenced release for 570.158.01, use current production version.
+        persistencedSha256 = "sha256-dttFu+TmbFI+mt1MbbmJcUnc1KIJ20eHZDR7YzfWmgE=";
+        useSettings = false;
+      }).override
+      {
+        disable32Bit = true;
+      }
+    ).overrideAttrs
       (oldAttrs: {
         # We strip the driver package from its dependencies on desktop software like Wayland and X11.
         # For server use-cases, we shouldn't need these. The Mesa (and thus Perl) and libGL dependencies are dropped
@@ -42,9 +53,10 @@ let
         # TODO(msanft): Clarify with upstream why that is the case.
         passthru = oldAttrs.passthru // {
           persistenced = oldAttrs.passthru.persistenced.overrideAttrs (oldAttrs: {
-            inherit (nvidiaPackage) version makeFlags;
+            inherit (nvidiaPackage) makeFlags;
+            version = "570.169";
             src = oldAttrs.src // {
-              rev = nvidiaPackage.version;
+              rev = "570.169";
             };
 
             postFixup = ''
