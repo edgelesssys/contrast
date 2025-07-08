@@ -344,6 +344,8 @@ Now deploy your application along with the Contrast coordinator:
 kubectl apply -f deployment/
 ```
 
+The Coordinator should show a status `Running` and will only transition to `Ready` after a manifest has been set.
+
 ## 6. Connect to Coordinator and set manifest
 
 Configure the Coordinator with the created manifest. It might take up to a few minutes
@@ -354,6 +356,7 @@ coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ing
 echo "The user API of your Contrast Coordinator is available at $coordinator:1313"
 contrast set -c "${coordinator}:1313" deployment/
 ```
+
 The CLI will use the reference values from the manifest to attest the Coordinator deployment
 during the TLS handshake. If the connection succeeds, it's ensured that the Coordinator
 deployment hasn't been tampered with.
