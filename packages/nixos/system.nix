@@ -74,6 +74,10 @@
 
   networking.firewall.enable = false;
 
+  # We do not require dynamic host configuration.
+  # Additionally, dhcpcd could allow for e.g. route manipulation from the host.
+  networking.dhcpcd.enable = false;
+
   # Images are immutable, so no need to include Nix.
   nix.enable = false;
 
