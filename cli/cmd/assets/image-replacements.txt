@@ -1,1 +1,7 @@
-# THIS FILE IS REPLACED DURING RELEASE BUILD TO INCLUDE UPDATED IMAGE REFERENCES
+ghcr.io/edgelesssys/contrast/coordinator:latest=ghcr.io/edgelesssys/contrast/coordinator:v1.10.0@sha256:a5572d6fab1d140398ce8e2247aa5aa9d12445bf4d95d02d8e6b0d8e207039c8
+ghcr.io/edgelesssys/contrast/initializer:latest=ghcr.io/edgelesssys/contrast/initializer:v1.10.0@sha256:c3ef69a9552c8bd1f5ce509742136d7fd8016e3046d676c8f94cc937d0bf1f35
+ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=ghcr.io/edgelesssys/contrast/service-mesh-proxy:v1.10.0@sha256:ee3e246cf334f096d6fe86c05b2998f5c23afb5c501e92184936ede9ad789cfe
+ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=ghcr.io/edgelesssys/contrast/node-installer-microsoft:v1.10.0@sha256:50b23eb333cadab92c4e66c6a608f66512c5e4d459d116254582aa79ab12e6fa
+ghcr.io/edgelesssys/contrast/node-installer-kata:latest=ghcr.io/edgelesssys/contrast/node-installer-kata:v1.10.0@sha256:77e88a6a8755d2a6f69b355807cf90e5ef95105da0913436d18610baa218c481
+ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=ghcr.io/edgelesssys/contrast/node-installer-kata:v1.10.0@sha256:a0dff627d044987bbc7dbaa93bc38fd908f8fd267660d67d642fa9af79abd8f2
+ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=ghcr.io/edgelesssys/contrast/tardev-snapshotter:3.2.0.azl5@sha256:3b8818604974eabc130a36e491e7cd695f760d04c8064ed17a7477454812f147
