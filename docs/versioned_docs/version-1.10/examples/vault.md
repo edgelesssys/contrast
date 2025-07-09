@@ -52,7 +52,7 @@ For more details on how the workload secret is used, see [Workload Secrets](../a
 The Vault deployment files are part of the Contrast release. You can download them by running:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/vault-demo.yml --create-dirs --output-dir deployment
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.10.0/vault-demo.yml --create-dirs --output-dir deployment
 ```
 
 ### Deploy the Contrast runtime
@@ -66,21 +66,21 @@ It can be shared between Contrast deployments.
 <TabItem value="aks-clh-snp" label="AKS" default>
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-aks-clh-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.10.0/runtime-aks-clh-snp.yml
 ```
 
 </TabItem>
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.10.0/runtime-k3s-qemu-snp.yml
 ```
 
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-tdx.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.10.0/runtime-k3s-qemu-tdx.yml
 ```
 
 </TabItem>
@@ -92,7 +92,7 @@ Download the Kubernetes resource of the Contrast Coordinator, comprising a singl
 Put it next to your resources:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir deployment
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.10.0/coordinator.yml --output-dir deployment
 ```
 
 ### Generate policy annotations and manifest
