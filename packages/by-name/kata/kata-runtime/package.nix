@@ -155,6 +155,11 @@ buildGoModule (finalAttrs: {
       # under these volumes, by failing the policy generation if volumes without mounts are found.
       # TODO(burgerdev): open upstream issue after disclosure.
       ./0020-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
+
+      # We are starting our own imagepuller instead of the upstream one. These changes avoid invoking the CDH,
+      # instead using a slightly modified version of upstream's PullImage ttRPC client implementation to
+      # communicate with our imagepuller ttRPC server.
+      ./0021-agent-use-custom-implementation-for-image-pulling.patch
     ];
   };
 
