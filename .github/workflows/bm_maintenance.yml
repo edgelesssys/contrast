@@ -18,6 +18,7 @@ on:
 
 env:
   container_registry: ghcr.io/edgelesssys
+  azure_resource_group: contrast-ci
 
 concurrency:
   group: ${{ github.workflow }}
@@ -70,15 +71,43 @@ jobs:
     strategy:
       matrix:
         platform:
+          - name: AKS-CLH-SNP
+            runner: ubuntu-22.04
+            self-hosted: false
           - name: K3s-QEMU-SNP
             runner: SNP
+            self-hosted: true
           - name: K3s-QEMU-TDX
             runner: TDX
+            self-hosted: true
           - name: K3s-QEMU-SNP-GPU
             runner: SNP-GPU
+            self-hosted: true
       fail-fast: false
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ./.github/actions/setup_nix
+        if: (!matrix.platform.self-hosted)
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - name: Login to Azure
+        if: (!matrix.platform.self-hosted)
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+        with:
+          creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
+      - name: Create justfile.env
+        if: (!matrix.platform.self-hosted)
+        run: |
+          cat <<EOF > justfile.env
+          azure_resource_group=${{ env.azure_resource_group }}
+          default_platform=${{ matrix.platform.name }}
+          EOF
+      - name: Get credentials for CI cluster
+        if: (!matrix.platform.self-hosted)
+        run: |
+          just get-credentials
       - name: Update namespace cleanup cronjob
         id: update
         env:
