@@ -145,6 +145,7 @@ Tailscale
 tardev
 tarfs
 TDX
+templated
 Terraform
 Tink
 tmpfs
