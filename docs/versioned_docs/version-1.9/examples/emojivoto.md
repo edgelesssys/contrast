@@ -1,7 +1,5 @@
 # Confidential emoji voting
 
-<!-- TODO(katexochen): create a screenshot with fixed format -->
-
 ![screenshot of the emojivoto UI](../_media/emoijvoto.png)
 
 **This tutorial guides you through deploying [emojivoto](https://github.com/BuoyantIO/emojivoto) as a
@@ -16,8 +14,6 @@ votes to the frontend.
 Emojivoto can be seen as a lighthearted example of an app dealing with sensitive data.
 Contrast protects emojivoto in two ways. First, it shields emojivoto as a whole from the infrastructure, for example, Azure.
 Second, it can be configured to also prevent data access even from the administrator of the app. In the case of emojivoto, this gives assurance to users that their votes remain secret.
-
-<!-- TODO(katexochen): recreate in our design -->
 
 ![emojivoto components topology](https://raw.githubusercontent.com/BuoyantIO/emojivoto/e490d5789086e75933a474b22f9723fbfa0b29ba/assets/emojivoto-topology.png)
 
