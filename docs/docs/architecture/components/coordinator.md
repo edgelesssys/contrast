@@ -22,3 +22,9 @@ It currently consists of the following parts:
 - _Reference Values_: The remote attestation reference values for the Kata confidential micro-VM that's the runtime environment of your Pods.
 - _WorkloadOwnerKeyDigest_: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
 - _SeedshareOwnerKeys_: public keys of seed share owners. Used to authenticate user recovery and permission to handle the secret seed.
+
+## Automatic recovery and high availability
+
+The Contrast Coordinator is deployed as a single replica in its default configuration.
+When this replica is restarted, for example for node maintenance, it needs to be recovered manually.
+For automatic peer recovery and high-availability, the Coordinator should be [scaled to at least 3 replicas](../../howto/coordinator-ha.md).
