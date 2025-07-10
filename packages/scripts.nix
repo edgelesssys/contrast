@@ -628,4 +628,15 @@
       nsenter --target 1 --mount -- /root/.nix-profile/bin/nix store gc --max "$over"
     '';
   };
+
+  get-nvidia-rim-ids = writeShellApplication {
+    name = "get-nvidia-rim-ids";
+    runtimeInputs = with pkgs; [
+      curl
+      jq
+    ];
+    text = ''
+      curl -fsSL https://rim.attestation.nvidia.com/v1/rim/ids | jq 'del(.request_id)'
+    '';
+  };
 }
