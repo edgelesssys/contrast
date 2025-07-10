@@ -8,7 +8,6 @@ Contrast is based on the [Kata Containers](https://github.com/kata-containers/ka
 [Confidential Containers](https://github.com/confidential-containers) projects.
 Confidential Containers are Kubernetes pods that are executed inside a confidential micro-VM and provide strong hardware-based isolation from the surrounding environment.
 This works with unmodified containers in a lift-and-shift approach.
-Contrast currently targets the [CoCo preview on AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview).
 
 <img src="docs/static/img/concept.svg" alt="Concept" width="80%"/>
 
@@ -31,21 +30,21 @@ Contrast integrates fluently with the existing Kubernetes workflows. It's compat
 
 ### 🔒 Everything always encrypted
 
-* Runtime encryption: All Pods run inside AMD SEV-based Confidential VMs (CVMs). Support for Intel TDX will be added in the future.
+* Runtime encryption: All Pods run inside Confidential VMs (CVMs), protected by in-use memory encryption.
 * PKI and mTLS: All pod-to-pod traffic can be encrypted and authenticated with Contrast's workload certificates.
+* Secure state: Support for encrypted and integrity-protected state disks for pods.
+* Support for attestation-based unsealing of encrypted secret management solutions.
 
 ### 🔍 Everything verifiable
 
-* Workload attestation based on the identity of your container and the remote-attestation feature of [Confidential Containers](https://docs.edgeless.systems/contrast/basics/confidential-containers)
-* "Whole deployment" attestation based on Contrast's [Coordinator attestation service](https://docs.edgeless.systems/contrast/components#the-coordinator)
-* Runtime environment integrity verification based runtime policies
-* Kata micro-VMs and single workload isolation provide a minimal Trusted Computing Base (TCB)
+* Workload attestation on Kubernetes pod level, includes container images
+* Transitive attestation of multi-pod deployments
+* Verifiable security for third-party auditors
 
 ### 🏝️ Everything isolated
 
 * Runtime policies enforce strict isolation of your containers from the Kubernetes layer and the infrastructure.
 * Pod isolation: Pods are isolated from each other.
-* Namespace isolation: Contrast can be deployed independently in multiple namespaces.
 
 ### 🧩 Lightweight and easy to use
 
@@ -53,24 +52,11 @@ Contrast integrates fluently with the existing Kubernetes workflows. It's compat
 * Compatible with managed Kubernetes.
 * Minimal DevOps involvement.
 * Simple CLI tool to get started.
+* Can be deployed independently in multiple namespaces within the same cluster.
 
 ## Documentation
 
 To learn more, see the [documentation](https://docs.edgeless.systems/contrast).
-You may want to start with one of the following sections.
-
-* [Getting started](https://docs.edgeless.systems/contrast/getting-started)
-* [Security benefits](https://docs.edgeless.systems/contrast/basics/security-benefits)
-* [Components](https://docs.edgeless.systems/contrast/components)
-
-## Known limitations
-
-See the current list of [known limitations](https://docs.edgeless.systems/contrast/features-limitations) in the documentation.
-
-## Upcoming Contrast features
-
-* Plugin for a key management service (KMS) for attestation/coordinator certificate-based key release
-* High availability (distributed Contrast Coordinator)
 
 ## Contributing
 
@@ -79,7 +65,6 @@ Please follow the [Code of Conduct](/CODE_OF_CONDUCT.md).
 
 ## Support
 
-* If something doesn't work, make sure to use the [latest release](https://github.com/edgelesssys/contrast/releases/latest) and check out the [known issues](https://github.com/edgelesssys/contrast/issues?q=is%3Aopen+is%3Aissue+label%3A%22known+issue%22).
+* If something doesn't work, make sure to use the [latest release](https://github.com/edgelesssys/contrast/releases/latest) and check out the [known issues](https://github.com/edgelesssys/contrast/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug).
 * Please file an [issue](https://github.com/edgelesssys/contrast/issues) to get help or report a bug.
-* Visit our [blog](https://www.edgeless.systems/blog/) for technical deep-dives and tutorials and follow us on [LinkedIn](https://www.linkedin.com/company/edgeless-systems) for news.
-* Edgeless Systems also offers [Enterprise Support](https://www.edgeless.systems/products/contrast/).
+* Edgeless Systems offers [Enterprise Support](https://www.edgeless.systems/products/contrast/) for Contrast.
