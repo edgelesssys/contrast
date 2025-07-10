@@ -156,12 +156,12 @@ const sidebars = {
           label: 'Vault',
           id: 'howto/vault'
         },
+        {
+          type: "doc",
+          label: "Troubleshooting",
+          id: "howto/troubleshooting",
+        },
       ],
-    },
-    {
-      type: "doc",
-      label: "Troubleshooting",
-      id: "troubleshooting",
     },
     {
       type: "doc",

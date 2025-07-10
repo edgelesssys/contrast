@@ -49,7 +49,7 @@ Use these entry points to quickly explore Contrast:
 
 - **Guides**: The [How-to](./howto/cluster-setup/bare-metal.md) section provides concise instructions for common workflows. After grasping the basics, these guides will help you accomplish specific tasks quickly.
 
-- **Troubleshooting**: Facing issues? Check our [Troubleshooting](./troubleshooting.md) section for solutions to common problems and pitfalls.
+- **Troubleshooting**: Facing issues? Check our [Troubleshooting](./howto/troubleshooting.md) section for solutions to common problems and pitfalls.
 
 - **Security**: Explore the [Security](./security.md) section to understand Contrast’s security properties and threat model.
 

@@ -82,7 +82,7 @@ Depending on the needs of the application, this could either be an [`emptyDir`] 
 
 [`VOLUME`]: https://github.com/opencontainers/image-spec/blob/06e6b47e2ef69021d9f9bf2cfa5fe43a7e010c81/config.md?plain=1#L168-L170
 [`emptyDir`]: https://kubernetes.io/docs/concepts/storage/volumes/#emptydir
-[Contrast-managed persistent volume]: architecture/secrets.md#secure-persistence
+[Contrast-managed persistent volume]: ../architecture/secrets.md#secure-persistence
 
 ## Pod fails to start
 
@@ -231,7 +231,7 @@ LAST SEEN   TYPE      REASON      OBJECT                            MESSAGE
 2m31s       Warning   Failed      Pod/my-pod-76dc84fc75-6xn7s   Error: failed to create containerd task: failed to create shim task: failed to handle layer: hasher sha256: failed to unpack [...] No space left on device (os error 28)
 ```
 
-This error can be resolved by increasing the memory limit of the containers, see the [Workload deployment](./howto/workload-deployment/deployment-file-preparation.md#pod-resources) guide.
+This error can be resolved by increasing the memory limit of the containers, see the [Workload deployment](../howto/workload-deployment/deployment-file-preparation.md#pod-resources) guide.
 
 ## Connection to Coordinator fails
 
