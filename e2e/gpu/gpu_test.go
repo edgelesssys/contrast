@@ -127,7 +127,7 @@ func TestGPU(t *testing.T) {
 			}
 
 			// Determine what library paths we got.
-			fullVerRegex := regexp.MustCompile(fmt.Sprintf(`%s\.\d+.\d+$`, strings.ReplaceAll(pathThisLib, ".", "\\.")))
+			fullVerRegex := regexp.MustCompile(fmt.Sprintf(`%s\.\d+(\.\d+)+$`, strings.ReplaceAll(pathThisLib, ".", "\\.")))
 			abiVerRegex := regexp.MustCompile(fmt.Sprintf(`%s\.\d+$`, strings.ReplaceAll(pathThisLib, ".", "\\.")))
 			unverRegex := regexp.MustCompile(fmt.Sprintf(`%s$`, strings.ReplaceAll(pathThisLib, ".", "\\.")))
 			fullVerPath := ""
