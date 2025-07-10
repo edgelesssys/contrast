@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.7.0">
 <title data-rh="true">Planned features and limitations | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/pr-preview/pr-1578/next/architecture/features-limitations"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Planned features and limitations | Contrast"><meta data-rh="true" name="description" content="This section lists planned features and current limitations of Contrast."><meta data-rh="true" property="og:description" content="This section lists planned features and current limitations of Contrast."><link data-rh="true" rel="icon" href="/contrast/pr-preview/pr-1578/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1578/next/architecture/features-limitations"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1578/next/architecture/features-limitations" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1578/next/architecture/features-limitations" hreflang="x-default"><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-1578/assets/css/styles.92cb9a97.css">
-<script src="/contrast/pr-preview/pr-1578/assets/js/runtime~main.1d0fc27a.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-1578/assets/js/runtime~main.bffad0a1.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-1578/assets/js/main.bdb73b90.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -24,11 +24,12 @@
 </ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="runtime-policies">Runtime policies<a href="#runtime-policies" class="hash-link" aria-label="Direct link to Runtime policies" title="Direct link to Runtime policies">​</a></h2>
 <ul>
-<li><strong>Coverage</strong>: While the enforcement of workload policies generally functions well, there are scenarios not yet fully covered. It&#x27;s crucial to review deployments specifically for these edge cases.</li>
 <li><strong>Order of events</strong>: The current policy evaluation mechanism on API requests isn&#x27;t stateful, so it can&#x27;t ensure a prescribed order of events.</li>
 <li><strong>Absence of events</strong>: Policies can&#x27;t ensure certain events have happened. A container, such as the <a href="/contrast/pr-preview/pr-1578/next/architecture/components/service-mesh">service mesh sidecar</a>, can be omitted entirely. Environment variables may be missing.</li>
 <li><strong>Volume integrity checks</strong>: Integrity checks don&#x27;t cover any volume mounts, such as <code>ConfigMaps</code> and <code>Secrets</code>.</li>
-<li><strong>Supported resource kinds</strong>: Only the following kinds are supported by <code>contrast generate</code>:<!-- -->
+<li><strong>Supported resource kinds</strong>: There are some resources not yet covered.
+It&#x27;s crucial to review deployments specifically for these edge cases.
+Only the following kinds are supported by <code>contrast generate</code>:<!-- -->
 <ul>
 <li><code>ConfigMap</code></li>
 <li><code>CronJob</code></li>
