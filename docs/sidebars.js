@@ -22,6 +22,7 @@ const sidebars = {
     {
       type: "category",
       label: "Getting started",
+      collapsed: false,
       items: [
         {
           type: "doc",
@@ -38,6 +39,7 @@ const sidebars = {
     {
       type: "category",
       label: "How-to",
+      collapsed: false,
       items: [
         {
           type: "category",
