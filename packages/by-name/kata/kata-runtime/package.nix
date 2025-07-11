@@ -12,14 +12,14 @@
 
 buildGoModule (finalAttrs: {
   pname = "kata-runtime";
-  version = "3.17.0";
+  version = "3.18.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = finalAttrs.version;
-      hash = "sha256-rYF9YIZ8GdiE12QfX4rDXVPb7umuIhsLXoWmRl3oesk=";
+      hash = "sha256-556EhLJ+tJCE7ZJWdoe07NmK6beXfN0KN7CI9ZDl3rI=";
     };
 
     patches = [
@@ -134,16 +134,6 @@ buildGoModule (finalAttrs: {
       # https://github.com/kata-containers/kata-containers/pull/11077#issuecomment-2750400613
       ./0017-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
 
-      # Support to enforce guest pull without (nydus) snapshotter.
-      # Cherry-picked from https://github.com/kata-containers/kata-containers/pull/11244
-      ./0018-runtime-add-option-to-force-guest-pull.patch
-
-      # Fixes a bug in the genpolicy settings where the service_name regex used to match downward
-      # API env vars wouldn't accept numbers in the service name.
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11314
-      ./0019-genpolicy-fix-svc_name-regex.patch
-      ./0020-genpolicy-rename-svc_name-to-svc_name_downward_env.patch
-
       # Exec requests are failing on Kata, as allow_interactive_exec is blocking execution.
       # Reason for this is that a subsequent check asserts the sandbox-name from the annotations, but such annotation
       # is only added for pods by genpolicy. The sandbox name of other pod-generating resources is hard to predict.
@@ -153,31 +143,18 @@ buildGoModule (finalAttrs: {
       # The generated regex is then used in the policy to match the sandbox name.
       #
       # TODO(burgerdev): upstream
-      ./0021-genpolicy-match-sandbox-name-by-regex.patch
-
-      # The following two patches remove irrelevant warnings from genpolicy that clutter our CLI output.
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11358.
-      ./0022-genpolicy-remove-redundant-group-check.patch
-      ./0023-genpolicy-push-down-warning-about-missing-passwd-fil.patch
-
-      # This patch relaxes the check for additional GIDs from list equality to set equality, to avoid order dependence
-      # where it is not needed.
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11358.
-      ./0024-genpolicy-compare-additionalGIDs-as-sets.patch
-      # This patch makes genpolicy conform to a bug in containerd that leads to ignored additional GIDs.
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11358.
-      ./0025-genpolicy-ignore-groups-with-same-name-as-user.patch
+      ./0018-genpolicy-match-sandbox-name-by-regex.patch
 
       # This patch fixes an issue where genpolicy can corrupt the layer cache file due to simultaneous
       # read/write operations on the file, instead implementing an in-memory caching solution.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11426
-      ./0026-genpolicy-keep-layers-cache-in-memory-to-prevent-cor.patch
+      ./0019-genpolicy-keep-layers-cache-in-memory-to-prevent-cor.patch
 
       # Don't add storages for volumes declared in the image config.
       # This fixes a security issue where the host is able to write untrusted content to paths
       # under these volumes, by failing the policy generation if volumes without mounts are found.
       # TODO(burgerdev): open upstream issue after disclosure.
-      ./0027-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
+      ./0020-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
     ];
   };
 

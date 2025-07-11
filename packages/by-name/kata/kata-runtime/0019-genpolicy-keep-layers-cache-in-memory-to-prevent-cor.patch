@@ -20,7 +20,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  .../genpolicy/src/registry_containerd.rs      | 111 ++++------
  src/tools/genpolicy/src/utils.rs              |   5 +-
  src/tools/genpolicy/tests/policy/main.rs      |   2 +-
- 7 files changed, 186 insertions(+), 225 deletions(-)
+ 7 files changed, 188 insertions(+), 223 deletions(-)
  create mode 100644 src/tools/genpolicy/src/layers_cache.rs
 
 diff --git a/src/tools/genpolicy/src/layers_cache.rs b/src/tools/genpolicy/src/layers_cache.rs
@@ -158,7 +158,7 @@ index db17060491c5be7a14e531486947d54d74af190b..a7edc16ae4113211a05b36423853c152
      info!("Success!");
  }
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index a5a158be1cbe2bc93a8b764db22c244893cc4ba5..abd6a2321a4a43f9b387c1a3933b8cf0c4501c58 100644
+index 56eb017010f369a90de852294f6d0b6d78ca51f7..14cc666822be6b7799df56dab72de97ed7366150 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -7,13 +7,13 @@
@@ -197,7 +197,7 @@ index a5a158be1cbe2bc93a8b764db22c244893cc4ba5..abd6a2321a4a43f9b387c1a3933b8cf0
                      &mut client,
                      &reference,
                      &manifest,
-@@ -434,7 +431,7 @@ impl Container {
+@@ -439,7 +436,7 @@ impl Container {
  }
  
  async fn get_image_layers(
@@ -206,7 +206,7 @@ index a5a158be1cbe2bc93a8b764db22c244893cc4ba5..abd6a2321a4a43f9b387c1a3933b8cf0
      client: &mut Client,
      reference: &Reference,
      manifest: &manifest::OciImageManifest,
-@@ -450,20 +447,16 @@ async fn get_image_layers(
+@@ -455,20 +452,16 @@ async fn get_image_layers(
              || layer.media_type.eq(manifest::IMAGE_LAYER_GZIP_MEDIA_TYPE)
          {
              if layer_index < config_layer.rootfs.diff_ids.len() {
@@ -231,7 +231,7 @@ index a5a158be1cbe2bc93a8b764db22c244893cc4ba5..abd6a2321a4a43f9b387c1a3933b8cf0
              } else {
                  return Err(anyhow!("Too many Docker gzip layers"));
              }
-@@ -476,12 +469,18 @@ async fn get_image_layers(
+@@ -481,12 +474,18 @@ async fn get_image_layers(
  }
  
  async fn get_verity_and_users(
@@ -252,7 +252,7 @@ index a5a158be1cbe2bc93a8b764db22c244893cc4ba5..abd6a2321a4a43f9b387c1a3933b8cf0
      let temp_dir = tempfile::tempdir_in(".")?;
      let base_dir = temp_dir.path();
      // Use file names supported by both Linux and Windows.
-@@ -492,144 +491,38 @@ async fn get_verity_and_users(
+@@ -497,140 +496,38 @@ async fn get_verity_and_users(
      let mut compressed_path = decompressed_path.clone();
      compressed_path.set_extension("gz");
  
@@ -334,26 +334,9 @@ index a5a158be1cbe2bc93a8b764db22c244893cc4ba5..abd6a2321a4a43f9b387c1a3933b8cf0
 -        .truncate(false)
 -        .open(cache_file)?;
 -
--    let mut data: Vec<ImageLayer> = if let Ok(vec) = serde_json::from_reader(read_file) {
--        vec
--    } else {
--        // Delete the malformed file here if it's present
--        Vec::new()
-+    if let Err(e) = create_decompressed_layer_file(
-+        client,
-+        reference,
-+        layer_digest,
-+        &decompressed_path,
-+        &compressed_path,
-+    )
-+    .await
-+    {
-+        temp_dir.close()?;
-+        bail!(format!(
-+            "Failed to create verity hash for {layer_digest}, error {e}"
-+        ));
-     };
- 
+-    // Return empty vector if the file is malformed
+-    let mut data: Vec<ImageLayer> = serde_json::from_reader(read_file).unwrap_or_default();
+-
 -    // Add new data to the deserialized JSON
 -    data.push(ImageLayer {
 -        diff_id: diff_id.to_string(),
@@ -378,7 +361,7 @@ index a5a158be1cbe2bc93a8b764db22c244893cc4ba5..abd6a2321a4a43f9b387c1a3933b8cf0
 -    let mut writer = BufWriter::new(&file);
 -    writeln!(writer, "{}", serialized)?;
 -    writer.flush()?;
--    file.unlock()?;
+-    fs2::FileExt::unlock(&file)?;
 -    Ok(())
 -}
 -
@@ -401,6 +384,21 @@ index a5a158be1cbe2bc93a8b764db22c244893cc4ba5..abd6a2321a4a43f9b387c1a3933b8cf0
 -                warn!("read_verity_and_users_from_store: failed to read cached image layers: {e}");
 -            }
 -        },
++    if let Err(e) = create_decompressed_layer_file(
++        client,
++        reference,
++        layer_digest,
++        &decompressed_path,
++        &compressed_path,
++    )
++    .await
++    {
++        temp_dir.close()?;
++        bail!(format!(
++            "Failed to create verity hash for {layer_digest}, error {e}"
++        ));
++    };
++
 +    match get_verity_hash_and_users(&decompressed_path) {
          Err(e) => {
 -            info!("read_verity_and_users_from_store: failed to open cache file: {e}");
@@ -626,7 +624,7 @@ index 26f619825c051719a41415607c54f404b7f95d62..e268244d650e3acdd66f0bdc663c13d9
          }
      }
 diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
-index 0967bb060cc4a1a85cdc9632f142c833bc275e38..0bfa6f2e3cb00062b1d9ec74a64fef42666bb724 100644
+index b3163ebb746d1f45dca7dbe18771428bbb43ed3e..0f61c9f30a3ccdca0d8a16674acd4e216a1915a2 100644
 --- a/src/tools/genpolicy/tests/policy/main.rs
 +++ b/src/tools/genpolicy/tests/policy/main.rs
 @@ -73,7 +73,7 @@ mod tests {
