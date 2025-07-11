@@ -6,8 +6,16 @@ Contrast supports running GPU workloads inside the confidential computing enviro
 
 This step is optional and only necessary if your application includes a GPU workload (for example an AI model) that should run confidentially.
 
+:::warning
+
 Currently, confidential GPU workloads are supported **only** on bare-metal systems with AMD SEV-SNP.
 They're **not** supported on AKS or on bare-metal systems using Intel TDX.
+
+GPUs without Confidential Computing support can't be used with Contrast.
+
+See the section on [Supported GPU hardware](../cluster-setup/bare-metal.md#supported-gpu-hardware) for more information.
+
+:::
 
 ## Prerequisites
 
