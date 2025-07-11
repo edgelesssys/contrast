@@ -158,7 +158,7 @@ func MultiCPU() []any {
 						WithContainers(
 							Container().
 								WithName("multi-cpu").
-								WithImage("ghcr.io/edgelesssys/contrast/ubuntu@sha256:b0c08a4b639b5fca9aa4943ecec614fe241a0cebd1a7b460093ccaeae70df698").
+								WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:b0c08a4b639b5fca9aa4943ecec614fe241a0cebd1a7b460093ccaeae70df698").
 								WithCommand("/usr/bin/bash", "-c", "sleep infinity").
 								WithResources(ResourceRequirements().
 									// Explicitly set a CPU limit to test assignement of CPUs to VMs.
@@ -720,7 +720,7 @@ func GPU() []any {
 					WithContainers(
 						Container().
 							WithName("gpu-tester").
-							WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04").
+							WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:b0c08a4b639b5fca9aa4943ecec614fe241a0cebd1a7b460093ccaeae70df698").
 							WithCommand("/bin/sh", "-c", "sleep inf").
 							WithEnv(EnvVar().
 								WithName("NVIDIA_VISIBLE_DEVICES").WithValue("all"),
