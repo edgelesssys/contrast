@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.7.0">
 <title data-rh="true">The Contrast Coordinator | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/pr-preview/pr-1587/next/architecture/components/coordinator"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="The Contrast Coordinator | Contrast"><meta data-rh="true" name="description" content="The Contrast Coordinator is the central remote attestation service of a Contrast deployment."><meta data-rh="true" property="og:description" content="The Contrast Coordinator is the central remote attestation service of a Contrast deployment."><link data-rh="true" rel="icon" href="/contrast/pr-preview/pr-1587/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1587/next/architecture/components/coordinator"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1587/next/architecture/components/coordinator" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1587/next/architecture/components/coordinator" hreflang="x-default"><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-1587/assets/css/styles.92cb9a97.css">
-<script src="/contrast/pr-preview/pr-1587/assets/js/runtime~main.de3d538f.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-1587/assets/js/runtime~main.c4f1a93a.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-1587/assets/js/main.ae26cbb7.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -48,7 +48,7 @@ This endpoint is also suitable for verifying clients, since they will only get a
 When this replica is restarted, for example for node maintenance, it needs to be recovered manually.
 This can be avoided by running multiple replicas of the Coordinator, allowing the Coordinators to recover their peers automatically.</p>
 <p>Newly started (or restarted) Coordinator instances discover ready peers using the Kubernetes API server.
-If a manifest history exists in the cluster and the Coordinator is not yet updated to the latest manifest, it stays in a recovery loop.
+If a manifest history exists in the cluster and the Coordinator isn&#x27;t updated yet to the latest manifest, it stays in a recovery loop.
 For each ready Coordinator peer, it tries to reach that peer&#x27;s mesh API endpoint directly (using the pod IP), attest to that Coordinator and receive the secret seed and the mesh CA credentials.</p>
 <p>As long as a single Coordinator is initialized, the other instances will eventually recover from it.
 <code>StatefulSet</code> semantics guarantee that Coordinator pods are started predictably, and only after all existing Coordinators are ready.
