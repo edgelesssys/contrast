@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+Date: Fri, 11 Jul 2025 11:41:16 +0200
+Subject: [PATCH] agent: use custom implementation for image pulling
+
+Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+---
+ src/agent/src/confidential_data_hub/mod.rs | 33 ++++++++++++++++------
+ 1 file changed, 25 insertions(+), 8 deletions(-)
+
+diff --git a/src/agent/src/confidential_data_hub/mod.rs b/src/agent/src/confidential_data_hub/mod.rs
+index 7099251d31f4577e9979c8128f79ee9d0e811952..b47edf7a641420fa6bbcb4ca10e47463cb9ec730 100644
+--- a/src/agent/src/confidential_data_hub/mod.rs
++++ b/src/agent/src/confidential_data_hub/mod.rs
+@@ -8,7 +8,7 @@
+ // Confidential Data Hub is a service running inside guest to provide resource related APIs.
+ // https://github.com/confidential-containers/guest-components/tree/main/confidential-data-hub
+ 
+-use crate::AGENT_CONFIG;
++use crate::{AGENT_CONFIG, CDH_SOCKET_URI};
+ use anyhow::{bail, Context, Result};
+ use derivative::Derivative;
+ use protocols::{
+@@ -182,18 +182,35 @@ pub async fn pull_image(image: &str, bundle_path: PathBuf) -> Result<String> {
+     fs::create_dir_all(&bundle_path)?;
+     info!(sl(), "pull image {image:?}, bundle path {bundle_path:?}");
+ 
+-    let cdh_client = CDH_CLIENT
+-        .get()
+-        .expect("Confidential Data Hub not initialized");
+-
+-    cdh_client
+-        .pull_image(image, bundle_path.to_string_lossy().as_ref())
+-        .await?;
++    match pull_image_contrast(image, bundle_path.to_string_lossy().as_ref()).await {
++        Err(e) => warn!(sl(), "Encountered an error while pulling the image: {e}"),
++        Ok(()) => {}
++    };
+ 
+     let image_bundle_path = scoped_join(&bundle_path, "rootfs")?;
+     Ok(image_bundle_path.as_path().display().to_string())
+ }
+ 
++pub async fn pull_image_contrast(image: &str, bundle_path: &str) -> Result<()> {
++    let client = ttrpc::asynchronous::Client::connect(CDH_SOCKET_URI)?;
++    let image_pull_client =
++        confidential_data_hub_ttrpc_async::ImagePullServiceClient::new(client.clone());
++    let req = confidential_data_hub::ImagePullRequest {
++        image_url: image.to_string(),
++        bundle_path: bundle_path.to_string(),
++        ..Default::default()
++    };
++
++    let _ = image_pull_client
++        .pull_image(
++            ttrpc::context::with_timeout(AGENT_CONFIG.image_pull_timeout.as_nanos() as i64),
++            &req,
++        )
++        .await?;
++
++    Ok(())
++}
++
+ pub async fn unseal_file(path: &str) -> Result<()> {
+     let cdh_client = CDH_CLIENT
+         .get()

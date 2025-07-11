@@ -27,6 +27,7 @@
       protobuf
       protoc-gen-go
       protoc-gen-go-grpc
+      protoc-gen-go-ttrpc
       nix-update
       scripts.go-directive-sync
     ];
@@ -83,7 +84,7 @@
       tags="${lib.concatStringsSep "," pkgs.contrast.tags}"
       while IFS= read -r dir; do
         echo "Running govulncheck -tags $tags on $dir"
-        govulncheck -C "$dir" -tags "$tags" ./... || exitcode=$?
+        CGO_ENABLED=0 govulncheck -C "$dir" -tags "$tags" ./... || exitcode=$?
       done < <(go list -f '{{.Dir}}' -m)
 
       exit $exitcode
@@ -127,7 +128,7 @@
       tags="${lib.concatStringsSep "," pkgs.contrast.tags}"
       while IFS= read -r dir; do
         echo "Running golangci-lint with tags $tags on $dir" >&2
-        golangci-lint run --build-tags "$tags" "$dir/..." || exitcode=$?
+        CGO_ENABLED=0 golangci-lint run --build-tags "$tags" "$dir/..." || exitcode=$?
       done < <(go list -f '{{.Dir}}' -m)
 
       echo "Verifying golangci-lint config" >&2
