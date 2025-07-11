@@ -65,30 +65,58 @@ Apply this change by running `systemctl restart systemd-sysctl` and verify it us
 
 ## Preparing a cluster for GPU usage
 
+### Supported GPU hardware
+
+Contrast can only be used with the following Confidential Computing enabled GPUs:
+
+<!-- generated with `nix run .#scripts.get-nvidia-cc-gpus` -->
+<!-- vale off -->
+
+- NVIDIA HGX H100 4-GPU 64GB HBM2e (Partner Cooled)
+- NVIDIA HGX H100 4-GPU 80GB HBM3 (Partner Cooled)
+- NVIDIA HGX H100 4-GPU 94GB HBM2e (Partner Cooled)
+- NVIDIA HGX H100 8-GPU 80GB (Air Cooled)
+- NVIDIA HGX H100 8-GPU 96GB (Air Cooled)
+- NVIDIA HGX H20 141GB HBM3e 8-GPU (Air Cooled)
+- NVIDIA HGX H200 8-GPU 141GB (Air Cooled)
+- NVIDIA HGX H20A HBM3 96gb 8-GPU (Air Cooled)
+- NVIDIA HGX H800 8-GPU 80GB (Air Cooled)
+- NVIDIA H100 NVL
+- NVIDIA H100 PCIe
+- NVIDIA H200 NVL
+- NVIDIA H800 PCIe
+
+<!-- vale on -->
+
+:::warning
+
+Currently, only use of `NVIDIA H100 PCIe` is covered by tests. Use of other GPUs isn't guaranteed to work.
+
+:::
+
+To check what GPUs are available on your system, run:
+
+```sh
+lspci -nnk | grep '3D controller' -A3
+```
+
+```shell-session
+41:00.0 3D controller [0302]: NVIDIA Corporation GH100 [H100 PCIe] [10de:2331] (rev a1)
+   Subsystem: NVIDIA Corporation GH100 [H100 PCIe] [10de:1626]
+   Kernel driver in use: vfio-pci
+   Kernel modules: nvidiafb, nouveau
+```
+
+Further information is provided in [NVIDIA's Secure AI Compatibility Matrix](https://www.nvidia.com/en-us/data-center/solutions/confidential-computing/secure-ai-compatibility-matrix/).
+
+### Setup
+
 <Tabs queryString="vendor">
 <TabItem value="amd" label="AMD SEV-SNP">
+
 To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled for *each cluster node* that should host GPU workloads:
 
-1. Ensure that GPUs supporting confidential computing (CC) are available on the machine.
-
-   ```sh
-   lspci -nnk | grep '3D controller' -A3
-   ```
-
-   This should show a [CC-capable](https://www.nvidia.com/en-us/data-center/solutions/confidential-computing/) GPU like the NVIDIA H100:
-
-   ```shell-session
-   41:00.0 3D controller [0302]: NVIDIA Corporation GH100 [H100 PCIe] [10de:2331] (rev a1)
-      Subsystem: NVIDIA Corporation GH100 [H100 PCIe] [10de:1626]
-      Kernel driver in use: vfio-pci
-      Kernel modules: nvidiafb, nouveau
-   ```
-
-   :::info
-   Contrast doesn't support non-CC GPUs.
-   :::
-
-2. You must activate the IOMMU. You can check by running:
+1. You must activate the IOMMU. You can check by running:
 
    ```sh
    ls /sys/kernel/iommu_groups
@@ -97,13 +125,14 @@ To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled 
    If the output contains the group indices (`0`, `1`, ...), the IOMMU is supported on the host.
    Otherwise, add `intel_iommu=on` to the kernel command line.
 
-3. Additionally, the host kernel needs to have the following kernel configuration options enabled:
+2. Additionally, the host kernel needs to have the following kernel configuration options enabled:
    - `CONFIG_VFIO`
    - `CONFIG_VFIO_IOMMU_TYPE1`
    - `CONFIG_VFIO_MDEV`
    - `CONFIG_VFIO_MDEV_DEVICE`
    - `CONFIG_VFIO_PCI`
-4. A CDI configuration needs to be present on the node. To generate it, you can use the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
+
+3. A CDI configuration needs to be present on the node. To generate it, you can use the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
    Refer to the official instructions on [how to generate a CDI configuration with it](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html).
 
 If the per-node requirements are fulfilled, deploy the [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest) to the cluster. It provisions pod-VMs with GPUs via VFIO.
