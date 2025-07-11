@@ -80,3 +80,34 @@ After the last step, we know that the policy hasn't been tampered with and, thus
 Contrast uses different rules and data sections for different platforms.
 This results in different policy hashes for different platforms.
 The `generate` command automatically derives the correct set of rules and data sections from the `reference-values` flag.
+
+## Supported resource kinds
+
+Contrast policies can be generated for all Kubernetes resource kinds that spawn pods, including:
+
+<!-- keep-sorted start by_regex=`(\w+)` -->
+- `CronJob`
+- `DaemonSet`
+- `Deployment`
+- `Job`
+- `Pod`
+- `ReplicaSet`
+- `ReplicationController`
+<!-- keep-sorted end -->
+
+The following resource kinds influence pod configuration and are also taken into account for policy generation:
+
+<!-- keep-sorted start by_regex=`(\w+)` -->
+- `ClusterRole`
+- `ClusterRoleBinding`
+- `ConfigMap`
+- `LimitRange`
+- `PodDisruptionBudget`
+- `Role`
+- `RoleBinding`
+- `Secret`
+- `Service`
+- `ServiceAccount`
+<!-- keep-sorted end -->
+
+All other resource kinds are unsupported and can't be passed to `contrast generate`.
