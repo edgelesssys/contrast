@@ -639,4 +639,32 @@
       curl -fsSL https://rim.attestation.nvidia.com/v1/rim/ids | jq 'del(.request_id)'
     '';
   };
+
+  get-nvidia-cc-gpus = writeShellApplication {
+    name = "get-nvidia-cc-gpus";
+    runtimeInputs = with pkgs; [
+      curl
+      jq
+    ];
+    text = ''
+      readonly url="https://www.nvidia.com/en-us/data-center/solutions/confidential-computing/secure-ai-compatibility-matrix/"
+
+      driverVer="$1"
+      driverVer="''${driverVer%%.*}"
+      driverVer="''${driverVer}.XX.XX"
+      export driverVer
+
+      curl -fsSL  "$url" \
+        | sed -n '/const matrix = \[/,/];/p' \
+        | sed 's/const matrix = //' \
+        | sed 's/];/]/' \
+        | jq -r --arg driverVer "$driverVer" '.[]
+          | select(."CUDA Driver" == $driverVer)
+          | select(."Confidential Computing Mode" == "SPT")
+          | select(."RIM Status" == "Released")
+          | .Description
+        ' \
+        | sort -u
+    '';
+  };
 }
