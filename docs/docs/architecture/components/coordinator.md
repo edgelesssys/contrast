@@ -42,8 +42,16 @@ The `coordinator` service is backed by all Coordinators, ready or not ready, and
 The `coordinator-ready` service only selects ready Coordinators which can serve the mesh API, and is intended to be used by initializers.
 This endpoint is also suitable for verifying clients, since they will only get a successful response from a ready Coordinator.
 
-## Automatic recovery and high availability
+## Automatic recovery and high availability {#peer-recovery}
 
 The Contrast Coordinator is deployed as a single replica in its default configuration.
 When this replica is restarted, for example for node maintenance, it needs to be recovered manually.
+This can be avoided by running multiple replicas of the Coordinator, allowing the Coordinators to recover their peers automatically.
+
+Newly started (or restarted) Coordinator instances discover ready peers using the Kubernetes API server.
+If a manifest history exists in the cluster and the Coordinator isn't updated yet to the latest manifest, it stays in a recovery loop.
+For each ready Coordinator peer, it tries to reach that peer's mesh API endpoint directly (using the pod IP), attest to that Coordinator and receive the secret seed and the mesh CA credentials.
+
+As long as a single Coordinator is initialized, the other instances will eventually recover from it.
+`StatefulSet` semantics guarantee that Coordinator pods are started predictably, and only after all existing Coordinators are ready.
 For automatic peer recovery and high-availability, the Coordinator should be [scaled to at least 3 replicas](../../howto/coordinator-ha.md).

@@ -2,7 +2,16 @@
 
 This guide shows how to scale the Contrast Coordinator to more than one instance and make it highly available.
 
-## Workflow
+## Applicability
+
+Scaling the Coordinator increases availability and resilience of your Contrast deployment and reduces the amount of manual operations.
+It's the recommended setup for running Contrast in production.
+
+## Prerequisites
+
+A running Contrast deployment.
+
+## How-To
 
 Deploy the Coordinator according to the [basic workflow](../getting-started/deployment.md).
 By default, there is only one Coordinator instance.
@@ -66,8 +75,4 @@ coordinator-2   1/1     Running   0          99s
 
 ## How it works
 
-<!-- TODO(burgerdev): link to Coordinator page after https://github.com/edgelesssys/contrast/pull/1436 landed. -->
-
-Newly started (or restarted) Coordinator instances try to recover from other Coordinator instances in the cluster.
-As long as a single Coordinator is initialized, the other instances eventually recover from it.
-`StatefulSet` semantics guarantee that Coordinator pods are started predictably, and only after all existing Coordinators are recovered.
+The Coordinator peer recovery mechanism is described on the [Coordinator's component page](../architecture/components/coordinator.md#peer-recovery).
