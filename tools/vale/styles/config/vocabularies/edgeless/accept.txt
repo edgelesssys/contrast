@@ -51,6 +51,7 @@ devs
 Dockerfile
 Dynatrace
 Emojivoto
+Epyc
 etcd
 Filebeat
 Filestash

@@ -1,5 +1,25 @@
 # Prepare a bare-metal instance
 
+## Prerequisites
+
+<Tabs queryString="vendor">
+<TabItem value="amd" label="AMD SEV-SNP">
+
+- A supported CPU:
+  - AMD Epyc 7003 series (Milan)
+  - AMD Epyc 9004 series (Genoa)
+
+</TabItem>
+<TabItem value="intel" label="Intel TDX">
+
+- A supported CPU:
+  - 5th Gen Intel Xeon Scalable Processor
+  - Intel Xeon 6 Processors
+- Platform must fulfill the [DIMM requirements](https://cc-enabling.trustedservices.intel.com/intel-tdx-enabling-guide/03/hardware_selection/#dimm-ie-main-memory-requirements).
+
+</TabItem>
+</Tabs>
+
 ## Hardware and firmware setup
 
 <Tabs queryString="vendor">
