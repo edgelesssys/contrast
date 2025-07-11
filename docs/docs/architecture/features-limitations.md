@@ -20,25 +20,7 @@ This section lists planned features and current limitations of Contrast.
 - **Absence of events**: Policies can't ensure certain events have happened. A container, such as the [service mesh sidecar](components/service-mesh.md), can be omitted entirely. Environment variables may be missing.
 - **Volume integrity checks**: Integrity checks don't cover any volume mounts, such as `ConfigMaps` and `Secrets`.
 - **Supported resource kinds**: There are some resources not yet covered.
-    It's crucial to review deployments specifically for these edge cases.
-    Only the following kinds are supported by `contrast generate`:
-    - `ConfigMap`
-    - `CronJob`
-    - `DaemonSet`
-    - `Deployment`
-    - `Job`
-    - `LimitRange`
-    - `Pod`
-    - `PodDisruptionBudget`
-    - `ReplicaSet`
-    - `ReplicationController`
-    - `Role`
-    - `RoleBinding`
-    - `Secret`
-    - `Service`
-    - `ServiceAccount`
-    - `ClusterRole`
-    - `ClusterRoleBinding`
+  It's crucial to ensure that only [supported resource kinds](components/policies.md#supported-resource-kinds) are passed to `contrast generate`.
 
 :::note
 The missing guarantee for startup order doesn't affect the security of Contrast's service mesh, see [Service mesh startup enforcement](components/service-mesh.md#service-mesh-startup-enforcement).
