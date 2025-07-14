@@ -39,6 +39,7 @@ containerd
 CPUs?
 CRDs?
 CRIs?
+CRLs?
 CSPs?
 CVMs?
 cyber
@@ -145,6 +146,7 @@ systemd
 Tailscale
 tardev
 tarfs
+TCBInfo
 TDX
 templated
 Terraform
