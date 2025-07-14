@@ -55,67 +55,30 @@ This tells Kubernetes to run the pod inside a Confidential Virtual Machine (CVM)
  apiVersion: v1
 ```
 
+For more details, see [RuntimeClass Section in the "Prepare deployment files" how-to](../howto/workload-deployment/deployment-file-preparation.md#runtimeclass).
+
 ### Define pod resources
 
-Each Contrast workload runs inside its own Confidential Virtual Machine (CVM).
-To ensure accurate memory allocation, Contrast requires **strict resource definitions**:
+Each Contrast workload runs inside its own CVM.
+To ensure accurate memory allocation, Contrast requires strict resource definitions:
 
 * Always specify both memory `requests` and `limits`.
-* The values for `requests` and `limits` **must be identical**.
-* Only set limits on **main containers**. Limits for `initContainers` and sidecars are **ignored**.
+* The values for `requests` and `limits` must be identical.
+* Limits for `initContainers` and sidecars are ignored.
 
-What matters is that the **sum of memory limits across all main containers** in a pod is as least as large as `sum_of_limits`. With `sum_of_limits` computed as follows:
+What matters is that the **sum of memory limits across all main containers** in a pod cover the worst-case memory requirements of all simultaneous container processes.
 
-<Tabs queryString="platform">
+If `initContainer`s require in sum more memory than the combined usage of all main containers and sidecars, increase the limit of a main container to ensure that the sum of limits for all main containers is **at least as large** as the `initContainer`'s memory requirement.
 
-<TabItem value="aks-clh-snp" label="AKS" default>
+On bare-metal platforms, the container images are pulled from within the guest CVM and stored in encrypted memory.
+Thus, the uncompressed image size of needs to be added to the memory limits of containers.
 
-```
-sum_of_limits = worst-case memory requirement of all simultaneous container processes
-```
+Kubernetes schedules pods on nodes based on the memory `requests`.
+To prevent Kubernetes from over-commiting nodes, set both `request` and `limit` to the same value.
 
-For example, if an `initContainer` requires more memory than the combined usage of all main containers and sidecars, ensure that the **sum of limits for all main containers** is **at least as large** as the `initContainer`'s memory requirement.
+<!-- TODO(katexochen): Show the full calculation for the emojivoto example, show how we arrive at 700Mi -->
 
-</TabItem>
-
-<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
-
-```
-sum_of_limits = worst-case memory requirement of all simultaneous container processes
-```
-
-For example, if an `initContainer` requires more memory than the combined usage of all main containers and sidecars, ensure that the **sum of limits for all main containers** is **at least as large** as the `initContainer`'s memory requirement.
-
-In addition, account for the total unpacked size of all container images:
-
-```
-sum_of_limits += unpacked image sizes of all main containers, initContainers, and sidecars
-```
-
-</TabItem>
-
-<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
-
-```
-sum_of_limits = worst-case memory requirement of all simultaneous container processes
-```
-
-For example, if an `initContainer` requires more memory than the combined usage of all main containers and sidecars, ensure that the **sum of limits for all main containers** is **at least as large** as the `initContainer`'s memory requirement.
-
-In addition, account for the total unpacked size of all container images:
-
-```
-sum_of_limits += unpacked image sizes of all main containers, initContainers, and sidecars
-```
-
-</TabItem>
-
-</Tabs>
-
-For details, see our [pod resources how-to](../howto/workload-deployment/deployment-file-preparation.md#pod-resources).
-
-If you define a lower memory `request` than `limit`, Kubernetes may overcommit memory, potentially leading to pod failures.
-To avoid this, set both values equally. Set both to 700Mi for each pod in this example:
+Set both to 700Mi for each pod in this example:
 
 ```diff title="deployment/emojivoto-demo.yaml"
 @@ -36,6 +36,11 @@
@@ -167,6 +130,9 @@ To avoid this, set both values equally. Set both to 700Mi for each pod in this e
        serviceAccountName: web
  ---
 ```
+
+For details, see the [pod resources how-to](../howto/workload-deployment/deployment-file-preparation.md#pod-resources).
+
 
 ### Add service mesh annotations
 
