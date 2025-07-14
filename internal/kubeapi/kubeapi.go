@@ -116,12 +116,12 @@ func UnmarshalUnstructuredK8SResource(data []byte) ([]*unstructured.Unstructured
 	}
 
 	var objects []*unstructured.Unstructured
-	for _, documentData := range documentsData {
+	for idx, documentData := range documentsData {
 		obj := &unstructured.Unstructured{}
 		decoder := serializer.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
 		_, _, err := decoder.Decode(documentData, nil, obj)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("decoding document %d: %w", idx, err)
 		}
 		objects = append(objects, obj)
 	}

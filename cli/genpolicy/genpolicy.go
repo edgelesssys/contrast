@@ -76,6 +76,7 @@ func (r *Runner) Run(ctx context.Context, yamlPath string, cmPath []string, logg
 	genpolicy.Stdout = io.Discard
 	genpolicy.Stderr = logFilter
 
+	logger.Debug("running genpolicy", "bin", r.genpolicy.Path(), "args", args)
 	if err := genpolicy.Run(); err != nil {
 		return fmt.Errorf("running genpolicy: %w", err)
 	}

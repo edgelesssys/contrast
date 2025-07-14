@@ -15,7 +15,7 @@ import (
 func UnmarshalApplyConfigurations(data []byte) ([]any, error) {
 	objs, err := kubeapi.UnmarshalUnstructuredK8SResource(data)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshalling unstructured resources: %w", err)
 	}
 	var result []any
 	for _, obj := range objs {
@@ -24,7 +24,7 @@ func UnmarshalApplyConfigurations(data []byte) ([]any, error) {
 			return nil, fmt.Errorf("unmarshalling: unsupported resource type %s for %q", obj.GroupVersionKind().String(), obj.GetName())
 		}
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructuredWithValidation(obj.UnstructuredContent(), applyConfig, true); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("converting to %T: %w", applyConfig, err)
 		}
 		result = append(result, applyConfig)
 	}
