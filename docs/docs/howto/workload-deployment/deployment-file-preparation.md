@@ -20,9 +20,9 @@ This page explains how to update your deployment files for Contrast and outlines
 ### Security review
 
 Contrast ensures integrity and confidentiality of the applications, but interactions with untrusted systems require the developers' attention.
-Review the [security considerations](../hardening.md) and the [certificates](../../architecture/components/service-mesh.md#public-key-infrastructure) section for writing secure Contrast application.
+Review the [security considerations](../hardening.md) and the [certificates section](../../architecture/components/service-mesh.md#public-key-infrastructure) for deploying applications securely with Contrast.
 
-### RuntimeClass
+### Resource backup
 
 Contrast will add annotations to your Kubernetes YAML files. If you want to keep the original files
 unchanged, you can copy the files into a separate local directory.
@@ -54,21 +54,27 @@ cp -R $MY_RESOURCE_DIR resources/
 </TabItem>
 </Tabs>
 
-To specify that a workload (pod, deployment, etc.) should be deployed as confidential containers,
+### RuntimeClass
+
+To specify that a workload (pod, deployment, etc.) should be executed with Contrast,
 add `runtimeClassName: contrast-cc` to the pod spec (pod definition or template).
-This is a placeholder name that will be replaced by a versioned `runtimeClassName` when generating policies.
 
 ```yaml
 spec: # v1.PodSpec
   runtimeClassName: contrast-cc
 ```
 
+This is a placeholder name that will be replaced by a versioned `runtimeClassName` when generating policies.
+
+<!-- TODO(katexochen): Describe how runtimeClass is handled after first generate -->
+
 ### Pod resources
 
 Contrast workloads are deployed as one confidential virtual machine (CVM) per pod.
+The resources provided to the CVM are static and can't be adjusted at runtime.
 In order to configure the CVM resources correctly, Contrast workloads require a stricter specification of pod resources compared to standard [Kubernetes resource management].
 
-The total memory available to the CVM is calculated from the sum of the individual containers' memory limits and a static `RuntimeClass` overhead that accounts for services running inside the CVM.
+The total memory available to the CVM is calculated from the sum of the individual containers' memory `limits` and a static `RuntimeClass` overhead that accounts for services running inside the CVM.
 Consider the following abbreviated example resource definitions:
 
 ```yaml
@@ -92,10 +98,11 @@ spec: # v1.PodSpec
           memory: 64Mi
 ```
 
-Contrast launches this pod as a VM with 448MiB of memory: 192MiB for the containers and 256MiB for the Linux kernel, the Kata agent and other base processes.
+Contrast launches this pod as a VM with 448MiB of memory: 192MiB for the containers and 256MiB for the guest operating system.
+In general, you don't need to care about the memory requirements of the guest system, as they're covered by the static `RuntimeClass` overhead.
 
 When calculating the VM resource requirements, init containers aren't taken into account.
-If you have an init container that requires large amounts of memory, you need to adjust the memory limit of one of the main containers in the pod.
+If the sum of init container's memory limits surpass the sum of the main containers' memory limits, you need to increase the memory limit of one of the main containers in the pod.
 Since memory can't be shared dynamically with the host, each container should have a memory limit that covers its worst-case requirements.
 
 Kubernetes packs a node until the sum of pod _requests_ reaches the node's total memory.
@@ -117,8 +124,7 @@ spec: # v1.PodSpec
 :::note
 
 On bare metal platforms, container images are pulled from within the guest CVM and stored in encrypted memory.
-The CVM mounts a `tmpfs` for the image layers that's capped at 50% of the total VM memory.
-This tmpfs holds the extracted image layers, so the uncompressed image size needs to be taken into account when setting the container limits.
+The images are pulled and uncompressed into encrypted memory, so the uncompressed image size needs to be taken into account when setting the container limits.
 Registry interfaces often show the compressed size of an image, the decompressed image is usually a factor of 2-4x larger if the content is mostly binary.
 For example, the `nginx:stable` image reports a compressed image size of 67MiB, but storing the uncompressed layers needs about 184MiB of memory.
 Although only the extracted layers are stored, and those layers are reused across containers within the same pod, the memory limit should account for both the compressed and the decompressed layer simultaneously.
