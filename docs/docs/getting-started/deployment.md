@@ -6,13 +6,14 @@ Follow these steps to make your deployment confidential.
 
 ### Download the demo deployment configuration
 
-Start by downloading the initial, non-confidential deployment file for the emojivoto demo:
+Download the Kubernetes resources for the emojivoto deployment with the following command:
 
 ```sh
 curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.yml --create-dirs --output-dir deployment
 ```
 
-<!-- TODO: Ajust YAML to vanilla  -->
+This deployment has already been prepared for Contrast.
+In the following sub-sections, we will explain the changes made to the original deployment file.
 
 ### Set the RuntimeClass
 
