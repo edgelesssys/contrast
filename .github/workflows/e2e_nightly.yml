@@ -30,6 +30,7 @@ jobs:
           - peerrecovery
           - policy
           - servicemesh
+          - vault
           - volumestatefulset
           - workloadsecret
           # keep-sorted end
