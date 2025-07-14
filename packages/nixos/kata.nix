@@ -13,6 +13,7 @@ in
 {
   options.contrast.kata = {
     enable = lib.mkEnableOption "Enable Kata (non-peerpod) support";
+    guestImagePull = lib.mkEnableOption "Enable guest-based image pulling";
   };
 
   config = lib.mkIf cfg.enable {
@@ -99,5 +100,20 @@ in
       "dummy file, to be bind-mounted by the Kata agent when writing network configuration";
     environment.etc."kata-opa/default-policy.rego".source =
       "${pkgs.kata-runtime.src}/src/kata-opa/allow-set-policy.rego";
+
+    systemd.services.imagepuller = lib.mkIf cfg.guestImagePull {
+      description = "Image Puller";
+      documentation = [ "https://github.com/edgelesssys/contrast" ];
+      after = [ "network.target" ];
+      wantedBy = [ "kata-agent.service" ];
+      serviceConfig = {
+        Type = "exec";
+        StandardOutput = "journal+console";
+        StandardError = "inherit";
+        ExecStart = "${lib.getExe pkgs.imagepuller}";
+        Restart = "always";
+        LimitNOFILE = 1048576;
+      };
+    };
   };
 }

@@ -14,6 +14,7 @@ buildVerityMicroVM (mkNixosConfig {
     debug.enable = withDebug;
     gpu.enable = withGPU;
     kata.enable = true;
+    kata.guestImagePull = true;
     image.microVM = true;
   };
 })

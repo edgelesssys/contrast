@@ -64,6 +64,7 @@ lib.makeOverridable (
             nvidia-ctk-oci-hook
             nvidia-ctk-with-config
             tdx-tools
+            imagepuller
             ;
           inherit (outerPkgs.kata)
             kata-agent
