@@ -1,8 +1,10 @@
-# AMD KDS
+# Endorsement Caching
+
+## AMD KDS
 
 For successful verification, the client needs to receive both VCEK and CRL.
 
-## Security considerations
+### Security considerations
 
 VCEK and CRL are both signed by ASK/ARK.
 The client is in possession of ASK/ARK and can use it to verify the authenticity and integrity of both VCEK and CRL after receiving it from a potentially untrusted source.
@@ -11,7 +13,7 @@ The go-sev-guest library checks the signature of both (https://github.com/google
 
 The CRL has an expiration date included. The go-sev-guest library will check the CRL isn't expired during the verification on client side (https://github.com/google/go-sev-guest/blob/65042ded71f9f2cf85a68334288d575977680ba1/verify/verify.go#L303).
 
-## Request and caching flow
+### Request and caching flow
 
 The following gives an overview over the request and caching structure we implement.
 
@@ -47,4 +49,37 @@ The following gives an overview over the request and caching structure we implem
    If the VCEK is obtained from KDS, it will be stored in the validator cache.
    If the CRL is obtained from KDS, it will be stored in the validator cache.
    If the CRL can't be obtained from KDS, the cache is checked for an unexpired CRL.
+   The validator cache is on-disk.
+
+## Intel PCS
+
+For successful verification, the client needs to receive the TCBInfo, QeIdentity, and the Root CRL and PCK CRL.
+The certificate chain of the quote can be verified directly using an embedded Intel Root Certificate.
+
+### Security considerations
+
+The quote is signed by the PCK, which is signed through an intermediate certificate by the Intel Root Certificate.
+The same goes for the TCBInfo and QeIdentity.
+The go-tdx-guest library will [verify the certificate chain included in the quote](https://github.com/google/go-tdx-guest/blob/9efd53b4a100e467dfd00c79fbb3de19f71b1ba4/verify/verify.go#L1328) and [check the signature of the quote](https://github.com/google/go-tdx-guest/blob/9efd53b4a100e467dfd00c79fbb3de19f71b1ba4/verify/verify.go#L1147).
+The go-tdx-guest library will also [verify the TD Quote Body against the TCBInfo](https://github.com/google/go-tdx-guest/blob/9efd53b4a100e467dfd00c79fbb3de19f71b1ba4/verify/verify.go#L1160) and
+[the QE Report against the QeIdentity](https://github.com/google/go-tdx-guest/blob/9efd53b4a100e467dfd00c79fbb3de19f71b1ba4/verify/verify.go#L1169).
+Both the TCBInfo and QeIdentity are signed through an intermediate certificate by the Intel Root Certificate.
+This is also [verified by the go-tdx-guest library](https://github.com/google/go-tdx-guest/blob/9efd53b4a100e467dfd00c79fbb3de19f71b1ba4/verify/verify.go#L1339-L1350).
+The expiration date of the CRLS as well as the expiration date included in the TCBInfo and QeIdentity is also [checked by the go-tdx-guest library](https://github.com/google/go-tdx-guest/blob/9efd53b4a100e467dfd00c79fbb3de19f71b1ba4/verify/verify.go#L627).
+
+### Request and caching flow
+
+![](pcs.drawio.svg)
+
+1. The issuer generates an attestation document using the Intel Quote Provider Library (QPL).
+   The QPL will use the Intel Provisioning Certificate Caching Service (PCCS) to obtain the certificate chain which is included in the quote.
+2. The PCCS is a service that runs locally on the host and automatically caches responses from the Intel Provisioning Certificate Service (PCS).
+   If the certificate chain isn't present in the PCCS cache, it will be requested from the PCS.
+3. The issuer sends the attestation document to the validator.
+   The quote contains the Intel Root Certificate, the PCK Platform Certificate, and the PCK Certificate.
+   The Intel PCK certificate can be used to verify the quote.
+4. On the validator side, the go-tdx-guest library will retrieve the collateral from the PCS which is needed to verify the quote.
+   This includes the TCBInfo, the QeIdentity, as well as the Root CRL and the PCK CRL.
+5. On the validator side, if the collateral or CRLs can't be retrieved from the PCS, the go-tdx-guest library will use the collateral from the local cache if present.
+   If the CRLs can't be retrieved from the PCS, the go-tdx-guest library the cache is checked for an unexpired CRL.
    The validator cache is on-disk.
