@@ -741,6 +741,43 @@ func GPU() []any {
 
 // Vault returns the resources for deploying a user managed vault.
 func Vault(namespace string) []any {
+	const (
+		vaultImage = "quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa"
+
+		vaultClientEntrypoint = `until
+  bao login -method=cert -ca-cert /contrast/tls-config/mesh-ca.pem -client-cert /contrast/tls-config/certChain.pem -client-key /contrast/tls-config/key.pem name=coordinator
+do
+  sleep 5
+done
+bao kv get kv/hello || exit 1
+touch /done
+sleep inf
+`
+		vaultConfig = `ui = true
+
+storage "file" {
+        path = "/openbao/file"
+}
+
+listener "tcp" {
+  address            = "0.0.0.0:8200"
+  tls_cert_file      = "/contrast/tls-config/certChain.pem"
+  tls_key_file       = "/contrast/tls-config/key.pem"
+  tls_client_ca_file = "/contrast/tls-config/mesh-ca.pem"
+}
+
+seal "transit" {
+  address         = "https://coordinator:8200"
+  disable_renewal = "true"
+  key_name        = "vault_unsealing"
+  mount_path      = "transit/"
+  tls_ca_cert	  = "/contrast/tls-config/mesh-ca.pem"
+  tls_client_cert = "/contrast/tls-config/certChain.pem"
+  tls_client_key  = "/contrast/tls-config/key.pem"
+}
+`
+	)
+
 	vaultSfSets := StatefulSet("vault", namespace).WithAnnotations(map[string]string{
 		securePVAnnotationKey: "state:share",
 	}).
@@ -761,8 +798,8 @@ func Vault(namespace string) []any {
 						WithContainers(
 							Container().
 								WithName("openbao-server").
-								WithImage("quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa").
-								WithCommand("bao", "server", "-config=/vault/config/config.hcl", "-log-file=/vault/data/openbao.log").
+								WithImage(vaultImage).
+								WithCommand("bao", "server", "-config=/openbao/config/config.hcl", "-log-file=/dev/null").
 								WithReadinessProbe(
 									applycorev1.Probe().
 										WithExec(
@@ -780,34 +817,22 @@ func Vault(namespace string) []any {
 									WithMemoryLimitAndRequest(500),
 								).WithVolumeMounts(
 								VolumeMount().
-									WithName("config").WithMountPath("/vault/config"),
+									WithName("config").WithMountPath("/openbao/config"),
 								VolumeMount().
-									WithName("share").WithMountPath("/vault/data").WithMountPropagation(corev1.MountPropagationHostToContainer),
+									WithName("share").WithMountPath("/openbao/file").WithMountPropagation(corev1.MountPropagationHostToContainer),
+								VolumeMount().
+									WithName("logs").WithMountPath("/openbao/logs"),
 							).WithPorts(
 								ContainerPort().
 									WithName("vault-listener").
 									WithContainerPort(8200),
 							),
-							Container().
-								WithName("openbao-client").
-								WithImage("quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa").
-								WithCommand("/bin/sh", "-ec", "sleep infinity").
-								/*These environmental variables are required for the Vault client instance:
-								- VAULT_ADDR expressing the OpenBao Vault server as URL and port
-								- VAULT_CA_CERT to accept the Vault server mesh certificate
-								- VAULT_CLIENT_CERT to be accepted by the Vault server tcp listener as a valid communication peer
-								- VAULT_CLIENT_KEY is the corresponding private key
-								*/
-								WithEnv(EnvVar().WithName("VAULT_ADDR").WithValue("https://vault:8200")).
-								WithEnv(EnvVar().WithName("VAULT_CACERT").WithValue("/contrast/tls-config/mesh-ca.pem")).
-								WithEnv(EnvVar().WithName("VAULT_CLIENT_CERT").WithValue("/contrast/tls-config/certChain.pem")).
-								WithEnv(EnvVar().WithName("VAULT_CLIENT_KEY").WithValue("/contrast/tls-config/key.pem")).
-								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(500),
-								),
 						).WithVolumes(
 						Volume().WithName("config").WithConfigMap(
 							applycorev1.ConfigMapVolumeSource().WithName("vault-config"),
+						),
+						Volume().WithName("logs").WithEmptyDir(
+							applycorev1.EmptyDirVolumeSource(),
 						),
 					),
 					),
@@ -828,31 +853,53 @@ func Vault(namespace string) []any {
 
 	configMap := ConfigMap("vault-config", namespace).WithData(
 		map[string]string{
-			"config.hcl": `ui = true
-
-storage "file" {
-        path = "/vault/data"
-}
-
-listener "tcp" {
-  address            = "0.0.0.0:8200"
-  tls_cert_file      = "/contrast/tls-config/certChain.pem"
-  tls_key_file       = "/contrast/tls-config/key.pem"
-  tls_client_ca_file = "/contrast/tls-config/mesh-ca.pem"
-}
-
-seal "transit" {
-  address         = "https://coordinator:8200"
-  disable_renewal = "true"
-  key_name        = "vault_unsealing"
-  mount_path      = "transit/"
-  tls_ca_cert	  = "/contrast/tls-config/mesh-ca.pem"
-  tls_client_cert = "/contrast/tls-config/certChain.pem"
-  tls_client_key  = "/contrast/tls-config/key.pem"
-}
-`,
+			"config.hcl": vaultConfig,
 		},
 	)
 
-	return []any{vaultSfSets, vaultService, configMap}
+	client := Deployment("vault-client", namespace).
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "vault-client"}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": "vault-client"}).
+				WithSpec(PodSpec().
+					WithVolumes(
+						Volume().WithName("logs").WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
+						Volume().WithName("file").WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
+					).
+					WithContainers(
+						Container().
+							WithName("vault-client").
+							WithImage(vaultImage).
+							WithCommand("/bin/sh", "-c", vaultClientEntrypoint).
+							WithEnv(
+								EnvVar().WithName("VAULT_ADDR").WithValue("https://vault:8200"),
+								EnvVar().WithName("VAULT_CACERT").WithValue("/contrast/tls-config/mesh-ca.pem"),
+								EnvVar().WithName("VAULT_CLIENT_CERT").WithValue("/contrast/tls-config/certChain.pem"),
+								EnvVar().WithName("VAULT_CLIENT_KEY").WithValue("/contrast/tls-config/key.pem"),
+							).
+							WithResources(ResourceRequirements().WithMemoryLimitAndRequest(500)).
+							WithVolumeMounts(
+								VolumeMount().WithName("logs").WithMountPath("/openbao/logs"),
+								VolumeMount().WithName("file").WithMountPath("/openbao/file"),
+							).
+							WithReadinessProbe(
+								applycorev1.Probe().
+									WithExec(
+										applycorev1.ExecAction().WithCommand(
+											"sh", "-c", "test -f /done",
+										),
+									).
+									WithInitialDelaySeconds(5).
+									WithPeriodSeconds(5),
+							),
+					),
+				),
+			),
+		)
+
+	return []any{vaultSfSets, vaultService, configMap, client}
 }

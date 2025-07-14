@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strings"
 	"testing"
 	"time"
 
@@ -71,15 +70,16 @@ func TestVault(t *testing.T) {
 		// because it will leak the recovery keys to anyone with kubernetes log access.
 		// Normally this should be executed by an admin setting up the Vault once and the
 		// recovery keys should be stored securely.
+		// TODO(burgerdev): init and configuration should be performed with remote requests instead of exec.
 		stdOut, stdErr, err := ct.Kubeclient.ExecContainer(
 			ctx,
 			ct.Namespace,
 			pods[0].Name,
-			"openbao-client",
+			"openbao-server",
 			[]string{
 				"sh",
 				"-c",
-				"bao operator init",
+				"VAULT_CACERT=/contrast/tls-config/mesh-ca.pem VAULT_ADDR=https://vault:8200 bao operator init",
 			},
 		)
 
@@ -87,12 +87,21 @@ func TestVault(t *testing.T) {
 		token, err = extractVaultRootToken(stdOut)
 		require.NoError(err, "failed to extract Vault root token from logs:\n%s", stdOut)
 		require.NotEmpty(token, "extracted token is empty")
-
-		// Implicitly verifies that Vault is automatically unsealed using the coordinator's transit engine API.
-		sealed, err := checkSealingStatus(ctx, ct.Kubeclient, ct.Namespace, pods[0].Name, "openbao-client")
-		require.NoError(err)
-		require.False(sealed)
 	})
+
+	runVaultScript := func(ctx context.Context, script string) (string, string, error) {
+		return ct.Kubeclient.ExecContainer(
+			ctx,
+			ct.Namespace,
+			pods[0].Name,
+			"openbao-server",
+			[]string{
+				"sh",
+				"-c",
+				fmt.Sprintf("export VAULT_TOKEN=%s; export VAULT_CACERT=/contrast/tls-config/mesh-ca.pem; export VAULT_ADDR=https://vault:8200; %s", token, script),
+			},
+		)
+	}
 
 	// Enables the KV secrets engine, and writes
 	// a test secret to verify that Vault accepts and stores data correctly.
@@ -102,43 +111,13 @@ func TestVault(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(60*time.Second))
 		defer cancel()
 
-		stdOut, stdErr, err := ct.Kubeclient.ExecContainer(
-			ctx,
-			ct.Namespace,
-			pods[0].Name,
-			"openbao-client",
-			[]string{
-				"sh",
-				"-c",
-				fmt.Sprintf("VAULT_TOKEN=%s bao secrets enable -path=mykv kv", token),
-			},
-		)
-
+		stdOut, stdErr, err := runVaultScript(ctx, "bao secrets enable kv")
 		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
 
-		stdOut, stdErr, err = ct.Kubeclient.ExecContainer(
-			ctx,
-			ct.Namespace,
-			pods[0].Name,
-			"openbao-client",
-			[]string{
-				"sh",
-				"-c",
-				fmt.Sprintf("VAULT_TOKEN=%s bao kv put mykv/hello foo=bar", token),
-			},
-		)
+		stdOut, stdErr, err = runVaultScript(ctx, "bao kv put kv/hello foo=bar")
 		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
 
-		stdOut, stdErr, err = ct.Kubeclient.ExecContainer(
-			ctx,
-			ct.Namespace,
-			pods[0].Name,
-			"openbao-client",
-			[]string{
-				"sh", "-c",
-				fmt.Sprintf("VAULT_TOKEN=%s bao kv get mykv/hello", token),
-			},
-		)
+		stdOut, stdErr, err = runVaultScript(ctx, "bao kv get kv/hello")
 		require.NoError(err, "stderr: %s", stdErr)
 		require.Contains(stdOut, "foo")
 		require.Contains(stdOut, "bar")
@@ -151,17 +130,7 @@ func TestVault(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(60*time.Second))
 		defer cancel()
 
-		stdOut, stdErr, err := ct.Kubeclient.ExecContainer(
-			ctx,
-			ct.Namespace,
-			pods[0].Name,
-			"openbao-client",
-			[]string{
-				"sh",
-				"-c",
-				fmt.Sprintf("VAULT_TOKEN=%s bao operator seal", token),
-			},
-		)
+		stdOut, stdErr, err := runVaultScript(ctx, "bao operator seal")
 		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
 	})
 
@@ -179,45 +148,35 @@ func TestVault(t *testing.T) {
 		require.NoError(err)
 		require.Len(pods, 1)
 
-		// Implicitly verifies that Vault is automatically unsealed using the coordinator's transit engine API.0
-		sealed, err := checkSealingStatus(ctx, ct.Kubeclient, ct.Namespace, pods[0].Name, "openbao-client")
-		require.NoError(err)
-		require.False(sealed)
-
-		stdOut, stdErr, err := ct.Kubeclient.ExecContainer(
-			ctx,
-			ct.Namespace,
-			pods[0].Name,
-			"openbao-client",
-			[]string{
-				"sh", "-c",
-				fmt.Sprintf("VAULT_TOKEN=%s bao kv get mykv/hello", token),
-			},
-		)
+		stdOut, stdErr, err := runVaultScript(ctx, "bao kv get kv/hello")
 		require.NoError(err, "stderr: %s", stdErr)
 		require.Contains(stdOut, "foo")
 		require.Contains(stdOut, "bar")
 	})
+
+	// Configures a policy that allows Contrast workloads to access the KV secret, and checks
+	// whether that policy actually works.
+	t.Run("vault policy can be defined for Contrast workloads", func(t *testing.T) {
+		require := require.New(t)
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(60*time.Second))
+		defer cancel()
+
+		stdOut, stdErr, err := runVaultScript(ctx, `
+bao auth enable cert
+bao write auth/cert/certs/coordinator display_name=coordinator policies=contrast certificate=@/contrast/tls-config/coordinator-root-ca.pem
+bao policy write contrast - <<EOF
+path "kv/*"
+{
+  capabilities = ["create", "read", "update", "delete", "list"]
 }
+EOF
+		`)
+		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
 
-// checkSealingStatus checks the sealing status of the Vault by sending a request to bao status and returns true if Vault is sealed.
-func checkSealingStatus(ctx context.Context, kubeclient *kubeclient.Kubeclient, namespace, podName, execContainerName string) (bool, error) {
-	stdOut, stdErr, err := kubeclient.ExecContainer(ctx, namespace, podName, execContainerName, []string{"bao", "status"})
-	if err != nil {
-		return false, fmt.Errorf("error executing bao status: %w\nstderr: %s", err, stdErr)
-	}
-
-	for _, line := range strings.Split(stdOut, "\n") {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "Sealed") {
-			parts := strings.Fields(line)
-			if len(parts) >= 2 {
-				return parts[1] == "true", nil
-			}
-		}
-	}
-
-	return false, fmt.Errorf("unable to determine seal status from output:\n%s", stdOut)
+		// The vault-client is configured with a readiness probe that succeeds when it can login
+		// using Contrast certs and retrieve the secret.
+		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "vault-client"))
+	})
 }
 
 // extractVaultRootToken parses Vault logs and extracts the initial root token.
