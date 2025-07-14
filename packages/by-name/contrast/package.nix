@@ -240,6 +240,7 @@ buildGoModule (finalAttrs: {
           fileset.unions [
             (path.append root "service-mesh")
             (path.append root "tools")
+            (path.append root "imagepuller")
           ]
         ))
       ];

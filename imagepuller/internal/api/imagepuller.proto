@@ -1,0 +1,25 @@
+// source: https://github.com/kata-containers/kata-containers/blob/997a1f35ab68ad8cc2b24e8e20ea63f7de82acf9/src/libs/protocols/protos/confidential_data_hub.proto
+syntax = "proto3";
+
+package api;
+
+option go_package = "github.com/edgelesssys/contrast/imagepuller/internal/api";
+
+service ImagePullService {
+  rpc PullImage (ImagePullRequest) returns (ImagePullResponse);
+}
+
+message ImagePullRequest {
+    // - `image_url`: The reference of the image to pull
+    string image_url = 1;
+
+    // - `bundle_path`: The path to store the OCI bundle. This path
+    // should be created by client, and initially empty. After the RPC is
+    // called, a mounted `rootfs` directory under the this path. Note
+    // that this path is CDH's root filesystem, not the caller's root filesystem.
+    // However, usually the caller (kata-agent) and the server (CDH) runs on the same
+    // root, so it's safe to use an absolute path of kata-agent.
+    string bundle_path = 2;
+}
+
+message ImagePullResponse {}

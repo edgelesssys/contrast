@@ -155,6 +155,12 @@ buildGoModule (finalAttrs: {
       # under these volumes, by failing the policy generation if volumes without mounts are found.
       # TODO(burgerdev): open upstream issue after disclosure.
       ./0020-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
+
+      # Imagepulling has moved into the CDH in Kata 3.18.0. Since we are not using the CDH,we are instead starting our own Imagepuller.
+      # This patch redirects calls by upstream's PullImage ttRPC client implementation to communicate with our imagepuller ttRPC server.
+      # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
+      # https://github.com/kata-containers/kata-containers/issues/11532
+      ./0021-agent-use-custom-implementation-for-image-pulling.patch
     ];
   };
 
