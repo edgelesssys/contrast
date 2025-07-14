@@ -56,7 +56,9 @@
 
         formatter = treefmtEval.config.build.wrapper;
 
-        checks.formatting = treefmtEval.config.build.check self;
+        checks = {
+          formatting = treefmtEval.config.build.check self;
+        } // (import ./packages/checks.nix { inherit ourPkgs; });
 
         legacyPackages = pkgs // ourPkgs;
       }
