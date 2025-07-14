@@ -27,6 +27,7 @@
       protobuf
       protoc-gen-go
       protoc-gen-go-grpc
+      protoc-gen-go-ttrpc
       nix-update
       scripts.go-directive-sync
     ];
