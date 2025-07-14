@@ -83,6 +83,12 @@ buildGoModule (finalAttrs: {
       # This is a port of the corresponding Kata runtime patch.
       # TODO(burgerdev): open upstream issue after disclosure.
       ./0010-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
+
+      # Allow multiple YAML documents in files passed per --config-file.
+      # This is a partial backport of https://github.com/kata-containers/kata-containers/commit/4bb441965f83af6fdc6f093900f1302ba0fb50e1.
+      # We can drop this after upgrading to 3.18.0.kata0, which is correctly rebased:
+      # https://github.com/microsoft/kata-containers/blob/c04bfdc7cdb239b05266a273e98f39edd95d0450/src/tools/genpolicy/src/policy.rs#L846-L875
+      ./0011-genpolicy-support-multiple-docs-per-config-file.patch
     ];
   };
 
