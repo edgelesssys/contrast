@@ -741,7 +741,7 @@ func GPU() []any {
 
 // Vault returns the resources for deploying a user managed vault.
 func Vault(namespace string) []any {
-	vaultSfSets := StatefulSet("vault", "").WithAnnotations(map[string]string{
+	vaultSfSets := StatefulSet("vault", namespace).WithAnnotations(map[string]string{
 		securePVAnnotationKey: "state:share",
 	}).
 		WithSpec(StatefulSetSpec().
@@ -826,7 +826,7 @@ func Vault(namespace string) []any {
 		WithAnnotations(map[string]string{exposeServiceAnnotation: "true"})
 	vaultService.Spec.WithPublishNotReadyAddresses(true)
 
-	configMap := applycorev1.ConfigMap("vault-config", namespace).WithData(
+	configMap := ConfigMap("vault-config", namespace).WithData(
 		map[string]string{
 			"config.hcl": `ui = true
 

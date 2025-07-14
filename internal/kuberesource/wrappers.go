@@ -414,6 +414,20 @@ func PersistentVolumeClaim(name, namespace string) *PersistentVolumeClaimConfig 
 	return &PersistentVolumeClaimConfig{pvc}
 }
 
+// ConfigMapConfig wraps applycorev1.ConfigMapApplyConfiguration.
+type ConfigMapConfig struct {
+	*applycorev1.ConfigMapApplyConfiguration
+}
+
+// ConfigMap creates a new ConfigMapConfig.
+func ConfigMap(name, namespace string) *ConfigMapConfig {
+	s := applycorev1.ConfigMap(name, namespace)
+	if namespace == "" && s.ObjectMetaApplyConfiguration != nil {
+		s.Namespace = nil
+	}
+	return &ConfigMapConfig{s}
+}
+
 func fromPtr[T any](v *T) T {
 	if v != nil {
 		return *v
