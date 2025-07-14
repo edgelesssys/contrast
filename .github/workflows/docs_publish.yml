@@ -58,6 +58,6 @@ jobs:
           nix build -L --impure --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.contrast-docs.override { docusaurusBaseUrl = \"contrast/pr-preview/pr-${{ github.event.number }}\"; }"
       - name: Deploy preview
         if: env.PREVIEW == 'true' && !github.event.pull_request.head.repo.fork
-        uses: rossjrw/pr-preview-action@2fb559e4766555e23d07b73d313fe97c4f8c3cfe # v1.6.1
+        uses: rossjrw/pr-preview-action@9f77b1d057b494e662c50b8ca40ecc63f21e0887 # v1.6.2
         with:
           source-dir: ./result
