@@ -1,0 +1,87 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Tue, 27 May 2025 08:53:23 +0200
+Subject: [PATCH] genpolicy: rename svc_name to svc_name_downward_env
+
+Just to be more explicit what this matches.
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ src/tools/genpolicy/genpolicy-settings.json | 18 +++++++++---------
+ src/tools/genpolicy/rules.rego              |  4 ++--
+ src/tools/genpolicy/src/policy.rs           |  4 ++--
+ 3 files changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
+index 7a53425c45a42d1d5403ea166b54e405d177f8ec..bd069005ce28cf84c3bed071d932bf00d9ca823a 100644
+--- a/src/tools/genpolicy/genpolicy-settings.json
++++ b/src/tools/genpolicy/genpolicy-settings.json
+@@ -237,7 +237,7 @@
+         "spath": "/run/kata-containers/sandbox/storage",
+         "ip_p": "[0-9]{1,5}",
+         "ipv4_a": "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])",
+-        "svc_name": "[A-Z](?:[A-Z0-9_]{0,61}[A-Z0-9])?",
++        "svc_name_downward_env": "[A-Z](?:[A-Z0-9_]{0,61}[A-Z0-9])?",
+         "dns_label": "[a-zA-Z0-9_\\.\\-]+",
+         "s_source1": "^..2[0-9]{3}_[0-1][0-9]_[0-3][0-9]_[0-2][0-9]_[0-5][0-9]_[0-5][0-9]\\.[0-9]{1,10}$",
+         "s_source2": "^..data/",
+@@ -333,14 +333,14 @@
+         "CreateContainerRequest": {
+             "allow_env_regex": [
+                 "^HOSTNAME=$(dns_label)$",
+-                "^$(svc_name)_PORT_$(ip_p)_TCP=tcp://$(ipv4_a):$(ip_p)$",
+-                "^$(svc_name)_PORT_$(ip_p)_TCP_PROTO=tcp$",
+-                "^$(svc_name)_PORT_$(ip_p)_TCP_PORT=$(ip_p)$",
+-                "^$(svc_name)_PORT_$(ip_p)_TCP_ADDR=$(ipv4_a)$",
+-                "^$(svc_name)_SERVICE_HOST=$(ipv4_a)$",
+-                "^$(svc_name)_SERVICE_PORT=$(ip_p)$",
+-                "^$(svc_name)_SERVICE_PORT_$(dns_label)=$(ip_p)$",
+-                "^$(svc_name)_PORT=tcp://$(ipv4_a):$(ip_p)$",
++                "^$(svc_name_downward_env)_PORT_$(ip_p)_TCP=tcp://$(ipv4_a):$(ip_p)$",
++                "^$(svc_name_downward_env)_PORT_$(ip_p)_TCP_PROTO=tcp$",
++                "^$(svc_name_downward_env)_PORT_$(ip_p)_TCP_PORT=$(ip_p)$",
++                "^$(svc_name_downward_env)_PORT_$(ip_p)_TCP_ADDR=$(ipv4_a)$",
++                "^$(svc_name_downward_env)_SERVICE_HOST=$(ipv4_a)$",
++                "^$(svc_name_downward_env)_SERVICE_PORT=$(ip_p)$",
++                "^$(svc_name_downward_env)_SERVICE_PORT_$(dns_label)=$(ip_p)$",
++                "^$(svc_name_downward_env)_PORT=tcp://$(ipv4_a):$(ip_p)$",
+                 "^AZURE_CLIENT_ID=[A-Fa-f0-9-]*$",
+                 "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
+                 "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index c7d2ec753b68c250001cf98d91a9bedc3945bba8..f0a69a1cb1aff983ea3d7da3f521bc9be97d5109 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -217,7 +217,7 @@ allow_env_map_entry(key, i_val, p_env_map) {
+     some p_regex1 in policy_data.request_defaults.CreateContainerRequest.allow_env_regex
+     p_regex2 := replace(p_regex1, "$(ipv4_a)", policy_data.common.ipv4_a)
+     p_regex3 := replace(p_regex2, "$(ip_p)", policy_data.common.ip_p)
+-    p_regex4 := replace(p_regex3, "$(svc_name)", policy_data.common.svc_name)
++    p_regex4 := replace(p_regex3, "$(svc_name_downward_env)", policy_data.common.svc_name_downward_env)
+     p_regex5 := replace(p_regex4, "$(dns_label)", policy_data.common.dns_label)
+ 
+     result := concat("=", [key, i_val])
+@@ -1010,7 +1010,7 @@ allow_var(p_process, i_process, i_var, s_name, s_namespace) {
+     some p_regex1 in policy_data.request_defaults.CreateContainerRequest.allow_env_regex
+     p_regex2 := replace(p_regex1, "$(ipv4_a)", policy_data.common.ipv4_a)
+     p_regex3 := replace(p_regex2, "$(ip_p)", policy_data.common.ip_p)
+-    p_regex4 := replace(p_regex3, "$(svc_name)", policy_data.common.svc_name)
++    p_regex4 := replace(p_regex3, "$(svc_name_downward_env)", policy_data.common.svc_name_downward_env)
+     p_regex5 := replace(p_regex4, "$(dns_label)", policy_data.common.dns_label)
+ 
+     print("allow_var 3: p_regex5 =", p_regex5)
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index 07d7902104243984d1c1b7060341625d678559de..d6cad538409ae0bb80e189d2a623f5b9ee665050 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -431,8 +431,8 @@ pub struct CommonData {
+     /// Regex for an IP port number.
+     pub ip_p: String,
+ 
+-    /// Regex for a K8s service name.
+-    pub svc_name: String,
++    /// Regex for a K8s service name (RFC 1035), after downward API transformation.
++    pub svc_name_downward_env: String,
+ 
+     // Regex for a DNS label (e.g., host name).
+     pub dns_label: String,
