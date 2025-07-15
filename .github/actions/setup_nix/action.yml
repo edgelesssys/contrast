@@ -37,8 +37,6 @@ runs:
         sudo truncate -s 20G /mnt/btrfs.img
         sudo mkfs.btrfs -f /mnt/btrfs.img
         sudo mount /mnt/btrfs.img /mnt/nixbld
-        sudo mkdir -p /etc/systemd/system/nix-daemon.service.d
-        echo -e "[Service]\nEnvironment=TMPDIR=/mnt/nixbld" | sudo tee /etc/systemd/system/nix-daemon.service.d/btrfs.conf
-        sudo systemctl daemon-reload
+        echo "build-dir = /mnt/nixbld" | sudo tee -a /etc/nix/nix.conf
         sudo systemctl restart nix-daemon
         sudo df -h
