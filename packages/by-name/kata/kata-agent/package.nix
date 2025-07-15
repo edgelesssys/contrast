@@ -5,7 +5,6 @@
   lib,
   rustPlatform,
   kata,
-  applyPatches,
   cmake,
   craneLib,
   pkg-config,
@@ -20,35 +19,33 @@
 }:
 let
   inherit (kata.kata-runtime) version;
-  cleanSource =
-    src:
-    (applyPatches {
-      src =
-        let
-          additionalFilter = path: _type: builtins.match ".*[in|proto]$" path != null;
-          additionalOrCargo =
-            path: type: (additionalFilter path type) || (craneLib.filterCargoSources path type);
-        in
-        lib.cleanSourceWith {
-          inherit src;
-          filter = additionalOrCargo;
-          name = "source";
-        };
 
-      postPatch = ''
-        substitute src/agent/src/version.rs.in src/agent/src/version.rs \
-         --replace-fail @AGENT_VERSION@ ${version} \
-         --replace-fail @API_VERSION@ 0.0.1 \
-         --replace-fail @VERSION_COMMIT@ ${version} \
-         --replace-fail @COMMIT@ ""
+  postPatch = ''
+    substitute src/agent/src/version.rs.in src/agent/src/version.rs \
+     --replace-fail @AGENT_VERSION@ ${version} \
+     --replace-fail @API_VERSION@ 0.0.1 \
+     --replace-fail @VERSION_COMMIT@ ${version} \
+     --replace-fail @COMMIT@ ""
 
-        substituteInPlace src/agent/Cargo.toml \
-         --replace-fail 'lto = true' 'lto = false'
-      '';
-    });
+    substituteInPlace src/agent/Cargo.toml \
+     --replace-fail 'lto = true' 'lto = false'
+  '';
+
+  agentSrc = craneLib.prepareSource {
+    inherit postPatch;
+    inherit (kata.kata-runtime) src;
+    cargoDir = "src/agent";
+  };
+
+  cargoSrc = craneLib.prepareSource {
+    inherit postPatch;
+    inherit (kata.kata-runtime.src) src;
+    cargoDir = "src/agent";
+  };
 in
 craneLib.buildPackage rec {
   inherit version;
+  inherit (agentSrc) src cargoToml cargoLock;
   pname = "kata-agent";
   strictDeps = true;
 
@@ -91,7 +88,7 @@ craneLib.buildPackage rec {
 
   doCheck = false;
 
-  cargoArtifacts = craneLib.buildDepsOnly rec {
+  cargoArtifacts = craneLib.buildDepsOnly {
     inherit
       version
       strictDeps
@@ -101,14 +98,8 @@ craneLib.buildPackage rec {
       buildInputs
       doCheck
       ;
-    src = cleanSource kata.kata-runtime.src.src;
-    cargoToml = "${src}/src/agent/Cargo.toml";
-    cargoLock = "${src}/src/agent/Cargo.lock";
+    inherit (cargoSrc) src cargoToml cargoLock;
   };
-
-  src = cleanSource kata.kata-runtime.src;
-  cargoToml = "${cleanSource kata.kata-runtime.src.src}/src/agent/Cargo.toml";
-  cargoLock = "${cleanSource kata.kata-runtime.src.src}/src/agent/Cargo.lock";
 
   # https://crates.io/crates/sev produces libsev.so, which is not needed for
   # the agent binary and pulls in a large dependency on rustc. Thus, we remove
@@ -128,6 +119,8 @@ craneLib.buildPackage rec {
     LIBC = "gnu";
     OPENSSL_NO_VENDOR = 1;
   };
+
+  checkInputs = [ test ];
 
   test = craneLib.cargoTest {
     inherit
