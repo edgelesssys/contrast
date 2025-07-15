@@ -284,7 +284,7 @@ jobs:
 
           # Insert the Contrast version as tag into a container image name.
           tagContrast() {
-            tag ${VERSION} "$@"
+            tag "${VERSION}" "$@"
           }
 
           echo "coordinatorImgTagged=$(tagContrast "$coordinatorImg")" | tee -a "$GITHUB_ENV"
