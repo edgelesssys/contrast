@@ -89,6 +89,12 @@ buildGoModule (finalAttrs: {
       # We can drop this after upgrading to 3.18.0.kata0, which is correctly rebased:
       # https://github.com/microsoft/kata-containers/blob/c04bfdc7cdb239b05266a273e98f39edd95d0450/src/tools/genpolicy/src/policy.rs#L846-L875
       ./0011-genpolicy-support-multiple-docs-per-config-file.patch
+
+      # Relax checks on environment variables to support service names with digits.
+      # This is a backport of https://github.com/kata-containers/kata-containers/pull/11314 and can
+      # be dropped after the Microsoft fork reached 3.18.0.
+      ./0012-genpolicy-fix-svc_name-regex.patch
+      ./0013-genpolicy-rename-svc_name-to-svc_name_downward_env.patch
     ];
   };
 
