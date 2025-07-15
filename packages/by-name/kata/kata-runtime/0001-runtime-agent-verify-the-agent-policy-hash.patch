@@ -670,7 +670,7 @@ index 51a46d2729dd372df9f8037f5d602b8cc8d09ec3..1020852ed976058ae93e9751885aa3d4
  		return err
  	}
 diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
-index 7b4dfb975d555224290be7c5c47e5cf5e33c2760..8fd357fa60e8fb6a22ed09dc8f4f5aa92584cf05 100644
+index 78e7a5fc9fcf9aa9e21f0624261c353bbf13a7d5..b5d8939699598fd2092d5a3ca27a9c0ce9f5f8cf 100644
 --- a/src/runtime/virtcontainers/qemu_amd64.go
 +++ b/src/runtime/virtcontainers/qemu_amd64.go
 @@ -9,6 +9,8 @@ package virtcontainers
@@ -682,7 +682,7 @@ index 7b4dfb975d555224290be7c5c47e5cf5e33c2760..8fd357fa60e8fb6a22ed09dc8f4f5aa9
  	"fmt"
  	"time"
  
-@@ -280,7 +282,7 @@ func (q *qemuAmd64) enableProtection() error {
+@@ -269,7 +271,7 @@ func (q *qemuAmd64) enableProtection() error {
  }
  
  // append protection device
@@ -691,7 +691,7 @@ index 7b4dfb975d555224290be7c5c47e5cf5e33c2760..8fd357fa60e8fb6a22ed09dc8f4f5aa9
  	if q.sgxEPCSize != 0 {
  		devices = append(devices,
  			govmmQemu.Object{
-@@ -306,6 +308,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -295,6 +297,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  				File:           firmware,
  				FirmwareVolume: firmwareVolume,
  				InitdataDigest: initdataDigest,
@@ -699,7 +699,7 @@ index 7b4dfb975d555224290be7c5c47e5cf5e33c2760..8fd357fa60e8fb6a22ed09dc8f4f5aa9
  			}), "", nil
  	case sevProtection:
  		return append(devices,
-@@ -326,6 +329,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -315,6 +318,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  			CBitPos:         cpuid.AMDMemEncrypt.CBitPosition,
  			ReducedPhysBits: 1,
  			InitdataDigest:  initdataDigest,
@@ -707,7 +707,7 @@ index 7b4dfb975d555224290be7c5c47e5cf5e33c2760..8fd357fa60e8fb6a22ed09dc8f4f5aa9
  		}
  		if q.snpIdBlock != "" && q.snpIdAuth != "" {
  			obj.SnpIdBlock = q.snpIdBlock
-@@ -344,3 +348,36 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -333,3 +337,36 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  		return devices, "", fmt.Errorf("Unsupported guest protection technology: %v", q.protection)
  	}
  }
