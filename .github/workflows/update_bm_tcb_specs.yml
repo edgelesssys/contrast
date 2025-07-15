@@ -30,6 +30,8 @@ jobs:
           - name: K3s-QEMU-SNP-GPU
             runner: SNP-GPU
       fail-fast: false
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -45,6 +47,8 @@ jobs:
     runs-on: ubuntu-22.04
     needs: update-bm-specs
     if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:

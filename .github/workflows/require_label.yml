@@ -24,6 +24,8 @@ jobs:
             no changelog
   do-not-merge:
     runs-on: ubuntu-22.04
+    permissions:
+      pull-requests: read
     steps:
       - name: prevent merge
         if: contains(github.event.pull_request.labels.*.name, 'do not merge')

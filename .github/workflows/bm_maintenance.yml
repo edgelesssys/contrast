@@ -70,6 +70,8 @@ jobs:
       snp: ${{ steps.update.outputs.K3s-QEMU-SNP }}
       tdx: ${{ steps.update.outputs.K3s-QEMU-TDX }}
       snp-gpu: ${{ steps.update.outputs.K3s-QEMU-SNP-GPU }}
+    permissions:
+      contents: read
     strategy:
       matrix:
         platform:
@@ -145,6 +147,8 @@ jobs:
           - name: K3s-QEMU-SNP-GPU
             runner: SNP-GPU
       fail-fast: false
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -185,6 +189,8 @@ jobs:
           - name: K3s-QEMU-SNP-GPU
             runner: SNP-GPU
       fail-fast: false
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -224,6 +230,8 @@ jobs:
           - name: K3s-QEMU-SNP-GPU
             runner: SNP-GPU
       fail-fast: false
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -250,6 +258,8 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [build-image, update-resources, cleanup, cleanup-containerd, nix-gc]
     if: always() && github.event_name == 'schedule' && github.run_attempt == 1
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:

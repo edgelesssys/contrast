@@ -47,6 +47,7 @@ jobs:
       self-hosted: ${{ steps.determine-platform-params.outputs.self-hosted }}
     env:
       platform: ${{ inputs.platform }}
+    permissions: {}
     steps:
       - name: Determine Platform Parameters
         id: determine-platform-params
