@@ -45,6 +45,8 @@ If the data owner fully trusts the seed share owner (when they're the same entit
 
 ### Secure persistence
 
+<!-- TODO(burgerdev): this should be a how-to. -->
+
 Remember that persistent volumes from the cloud provider are untrusted.
 Applications can set up trusted storage on top of an untrusted block device using the `contrast.edgeless.systems/secure-pv` annotation.
 This annotation enables `contrast generate` to configure the Initializer to set up a LUKS-encrypted volume at the specified device and mount it to a specified volume.
@@ -164,3 +166,25 @@ spec:
             storage: 1Gi
         volumeMode: Block # <-- The requested volume needs to be a raw block device.
 ```
+
+### Transit secrets engine
+
+In addition to the workload secrets provisioned by the initializer, Contrast workloads can ask the Coordinator to encrypt and decrypt secrets on their behalf.
+The corresponding HTTP API is compatible with a subset of the [transit secrets API](https://openbao.org/api-docs/secret/transit/) used by [HashiCorp Vault](https://www.hashicorp.com/en/products/vault), and is served on Coordinator port 8200.
+Its primary use case is [auto-unsealing of Vault deployments](../howto/vault.md), which can in turn provide fine-grained secrets management to Contrast workloads.
+
+Workloads can only access the encryption key with the same name as their `workloadSecretID`.
+For example, if the workload secret ID in the manifest is `my-secret-id`, they can use the endpoints `/v1/transit/encrypt/my-secret-id` and `/v1/transit/decrypt/my-secret-id`.
+Like the workload secret, the encryption key is stable across manifest updates and subject to the same limitations.
+
+If key rotation without changing the workload secret ID is desired, clients can pass a non-zero `key_version` parameter to the encryption request.
+The version is passed as an input to the key derivation mechanism, which means that the encryption key changes with the `key_version` parameter.
+Explicit key import, export or rotation operations aren't supported.
+
+:::warning
+
+The transit secret engine uses AES-256-GCM with random nonces.
+In this mode, the risk of nonce reuse increases with the number of encrypted messages (see for example [NIST SP 800-38D, section 8.3](https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38d.pdf)).
+Vault unsealing operates within the recommended limits, but other cryptographic use cases might not, so we explicitly recommend using a Vault workload (or similar KMS) for those.
+
+:::
