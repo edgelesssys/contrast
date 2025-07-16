@@ -23,6 +23,19 @@ The Coordinator provides each workload a secret seed during attestation.
 This secret can be used by the workload to derive additional secrets for example to encrypt persistent data.
 Like the workload certificates, it's written to the `secrets/workload-secret-seed` path under the shared Kubernetes volume `contrast-secrets`.
 
+The workload secret is deterministically derived from the secret seed and a workload secret ID from the manifest.
+This implies that workload secrets are stable across manifest updates and Coordinator recovery.
+By default, each workload is assigned an ID based on its qualified Kubernetes resource name.
+This ID can be changed by adding an annotation to the pod (or pod template) metadata:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    contrast.edgeless.systems/workload-secret-id: my-workload-secret
+```
+
 :::warning
 
 The seed share owner can decrypt data encrypted with secrets derived from the workload secret, because they can themselves derive the workload secret.
