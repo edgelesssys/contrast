@@ -10,7 +10,7 @@ Initializer and Service Mesh components.
 
 Contrast provides deployments with a shared workload secret which can be used to
 setup an encrypted volume mount. This is useful for storing persistent sensitive
-data (see [RFC 007](007-shared-workload-secret.md)). Currently, the process of
+data (see [RFC 007](007-workload-secrets.md)). Currently, the process of
 setting up an encrypted volume mount is by manually setting up an additional
 init container running the `cryptsetup` subcommand of the Initializer as
 described in the

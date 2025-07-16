@@ -144,7 +144,7 @@ during the TLS handshake. If the connection succeeds, it's ensured that the Coor
 deployment hasn't been tampered with.
 
 :::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
+On bare metal, the [coordinator policy hash](../components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
 :::
 
 ### Deploy emojivoto
@@ -193,7 +193,7 @@ certificate of the mesh (`mesh-ca.pem`) and the history of manifests, into the `
 In addition, the policies referenced in the manifest history are also written into the same directory.
 
 :::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
+On bare metal, the [coordinator policy hash](../components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
 :::
 
 ### Auditing the manifest history and artifacts
@@ -267,7 +267,7 @@ that parts of the deployment that received a security update won't be infected b
 patch level that may have been compromised. The `mesh-ca.pem` is updated with the new CA certificate chain.
 
 :::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
+On bare metal, the [coordinator policy hash](../components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
 :::
 
 ### Rolling out the update

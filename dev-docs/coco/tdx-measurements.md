@@ -13,7 +13,7 @@ This document shows how mismatches in these measurements can be debugged.
 
 ## Retrieving the guest's event log
 
-[Get a shell](../aks/serial-console.md) into the pod VM. Then, run the [`tdeventlog`](https://github.com/canonical/tdx/blob/noble-24.04/tests/lib/tdx-tools/src/tdxtools/tdeventlog.py)
+[Get a shell](../serial-console.md) into the pod VM. Then, run the [`tdeventlog`](https://github.com/canonical/tdx/blob/main/tests/lib/tdx-tools/src/tdxtools/tdeventlog.py)
 tool within the guest to retrieve the event log. If the tool can't be installed in the guest,
 the `/sys/firmware/acpi/tables/data/CCEL` and `/sys/firmware/acpi/tables/CCEL` files can also be dumped
 by other means and transferred to a machine where they can then be parsed with `tdeventlog`.
@@ -56,7 +56,7 @@ measured data (the input for `sha384sum`) - however, this isn't the case for all
 
 Usually, the error given by the coordinator, CLI, etc. will already show you which RTMR mismatched.
 
-To narrow it down further, it"s recommended to add debug statements to the [`hashAndExtend`](https://github.com/edgelesssys/contrast/blob/a73691e17492b37469e32c7e800c4c0f7a955545/tools/tdx-measure/rtmr/rtmr.go#L45)
+To narrow it down further, it's recommended to add debug statements to the [`hashAndExtend`](https://github.com/edgelesssys/contrast/blob/a73691e17492b37469e32c7e800c4c0f7a955545/tools/tdx-measure/rtmr/rtmr.go#L45)
 function of the measurement precalculator to see a log corresponding to the `Digest[0]` values in the
 event log. Then, one can diff these against the digests in the event log for the RTMR in question to see
 which event causes the mismatch.

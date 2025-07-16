@@ -16,7 +16,7 @@ If desired, you can replace the configuration using a Kubernetes configmap by mo
     For example, `@@runtimeBase@@/foo` will resolve to `/opt/edgeless/contrast-cc-<platform>-<runtime-hash>/foo`, where `<platform>` is the platform the node-installer is deployed on,
     and `<runtime-hash>` is a hash of all relevant runtime components, so that it's unique per-version.
 - `files[*].integrity`: Expected Subresource Integrity (SRI) digest of the file. Only required if URL starts with `http://` or `https://`.
-- `debugRuntime`: If set to true, enables [serial console access via `vsock`](/dev-docs/aks/serial-console.md). A special, debug-capable IGVM file has to be used for this to work.
+- `debugRuntime`: If set to true, enables [serial console access via `vsock`](../dev-docs/serial-console.md). A special, debug-capable IGVM file has to be used for this to work.
 
 Consider the following example:
 
