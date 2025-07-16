@@ -82,12 +82,11 @@ func TestPolicy(t *testing.T) {
 	})
 
 	// initial deployment with pod allowed
-
-	ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
-	defer cancel()
-
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+
+	ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
+	defer cancel()
 
 	require.NoError(t, ct.Kubeclient.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, coordinator))
 	require.NoError(t, ct.Kubeclient.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, opensslFrontend))
