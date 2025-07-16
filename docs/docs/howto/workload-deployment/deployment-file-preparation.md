@@ -132,4 +132,23 @@ Altogether, setting the limit to 10x the compressed image size should be suffici
 
 :::
 
+Getting a predictable number of CPUs in your containers can be a bit more complicated than just setting a resource request since Contrast runs on Kata Containers.
+Also note that, as mentioned above, resource allocations need to be known and static at the time of Pod creation and can not be adjusted at runtime. This prevents
+us from implementing requests and limits as documented by Kubernetes.
+In your YAML, set a resource limit instead of a request:
+
+```yaml
+spec: # v1.PodSpec
+  containers:
+    - name: my-container
+      image: "my-image@sha256..."
+      resources:
+        limits:
+          cpu: "1"
+  runtimeClassName: contrast-cc
+```
+
+This limit is rounded up to the next whole integer. The final number of CPUs you can observe in a container is this ceiling + 1 (`numCPUs = ceil(limit) + 1`), so
+in this case, the final number of CPUs would be 2. A limit of 1.25 would result in 3 CPUs and a limit of 0 would result in 1 CPU.
+
 [Kubernetes resource management]: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
