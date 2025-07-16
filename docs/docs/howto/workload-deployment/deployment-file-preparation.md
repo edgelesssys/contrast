@@ -68,6 +68,30 @@ This is a placeholder name that will be replaced by a versioned `runtimeClassNam
 
 <!-- TODO(katexochen): Describe how runtimeClass is handled after first generate -->
 
+### Volumes
+
+Contrast doesn't support sharing filesystems with the host.
+This means that most [Kubernetes volume](https://kubernetes.io/docs/concepts/storage/volumes/) mounts aren't supported.
+
+The easiest and safest way to mount a persistent filesystem into a container is Contrast's [secure persistent volume](../encrypted-storage.md) support.
+Alternatively, you can add a persistent volume with [`volumeMode: Block`](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#volume-mode) to your pod and mount it directly in your container.
+
+The only supported filesystem volume types are:
+
+- `configMap`
+- `downwardAPI`
+- `emptyDir`
+- `projected`
+- `secret`
+
+<!-- TODO(burgerdev): ensure all of these are tested! -->
+
+However, the content of these volumes isn't integrity protected and must be assumed untrustworthy, except for `emptyDir`.
+
+All unsupported volume types will result in a temporary mount that's only available during the lifetime of the container.
+If the volume mount on the host contains data (for example, mounts of type `hostPath` or `image`), this data will be copied into the VM, but not written back.
+Mounted UNIX domain sockets won't work in the guest container.
+
 ### Pod resources
 
 Contrast workloads are deployed as one confidential virtual machine (CVM) per pod.
