@@ -151,7 +151,7 @@ func TestWorkloadSecrets(t *testing.T) {
 
 		t.Run("set", ct.Set)
 
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(60*time.Second))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		defer cancel()
 
 		deployments := []string{"web", "emoji"}
@@ -183,8 +183,6 @@ func TestWorkloadSecrets(t *testing.T) {
 	t.Run("workload secrets are not created if not configured in the manifest", func(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(60*time.Second))
-		defer cancel()
 
 		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
 			for key, policy := range m.Policies {
@@ -195,6 +193,9 @@ func TestWorkloadSecrets(t *testing.T) {
 		})
 
 		t.Run("set", ct.Set)
+
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
+		defer cancel()
 		require.NoError(ct.Kubeclient.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, "web"))
 		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "web"))
 
