@@ -578,43 +578,40 @@
 
   update-kata-configurations = writeShellApplication {
     name = "update-kata-configurations";
-    runtimeInputs = with pkgs; [
-      yq
-      diffutils
+    runtimeInputs = [
+      (pkgs.buildGoModule {
+        inherit (pkgs.contrast) vendorHash;
+        name = "nodeinstaller-kataconfig-update-testdata";
+
+        src =
+          let
+            inherit (lib) fileset path hasSuffix;
+            root = ../.;
+          in
+          lib.fileset.toSource {
+            inherit root;
+            fileset = fileset.unions [
+              (path.append root "go.mod")
+              (path.append root "go.sum")
+              (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "internal/platforms"))
+              (fileset.fileFilter (file: hasSuffix ".go" file.name) (path.append root "nodeinstaller"))
+              (fileset.fileFilter (file: hasSuffix ".toml" file.name) (path.append root "nodeinstaller"))
+              (fileset.fileFilter (file: hasSuffix ".json" file.name) (path.append root "nodeinstaller"))
+            ];
+          };
+
+        proxyVendor = true;
+        subPackages = [ "nodeinstaller/internal/kataconfig/update-testdata" ];
+
+        env.CGO_ENABLED = 0;
+        ldflags = [ "-s" ];
+        doCheck = false;
+      })
+      pkgs.git
     ];
     text = # bash
       ''
-        old_defaults="$(git rev-parse --show-toplevel)/nodeinstaller/internal/kataconfig"
-        new_defaults="${pkgs.kata.release-tarball}/opt/kata/share/defaults/kata-containers"
-
-        declare -A PLATFORMS=(
-          ["clh"]="clh-snp"
-          ["qemu-snp"]="qemu-snp"
-          ["qemu-tdx"]="qemu-tdx"
-        )
-
-        exit_code=0
-        for upstream_name in "''${!PLATFORMS[@]}"; do
-          platform="''${PLATFORMS[$upstream_name]}"
-          old_file="$old_defaults/configuration-$platform.toml"
-          new_file="$new_defaults/configuration-$upstream_name.toml"
-
-          if [[ ! -f "$new_file" ]]; then
-            # platform has been removed or renamed upstream
-            echo "✖ No config for $upstream_name available in upstream source."
-            exit_code=1
-            continue
-          fi
-
-          diff=$(diff "$old_file" "$new_file" || true)
-          if [[ -n "$diff" ]]; then
-            cp -f "$new_file" "$old_file"
-            echo "⚠ Updated config for platform $platform."
-          else
-            echo "✔ No upstream changes for platform $platform."
-          fi
-        done
-        exit $exit_code
+        update-testdata ${pkgs.kata.release-tarball} "$(git rev-parse --show-toplevel)"
       '';
   };
 
