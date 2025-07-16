@@ -380,6 +380,10 @@ fmt:
 lint:
     nix run -L .#scripts.golangci-lint -- run
 
+# Check links.
+check-links:
+    nix run .#lychee -- --config tools/lychee/config.toml .
+
 demodir version="latest": undeploy
     #!/usr/bin/env bash
     set -euo pipefail
