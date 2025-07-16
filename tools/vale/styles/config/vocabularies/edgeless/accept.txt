@@ -96,6 +96,7 @@ Kustomization
 leaderboard
 libcryptsetup
 Logstash
+loopback
 Mbps
 MicroK8s
 misconfigurations?

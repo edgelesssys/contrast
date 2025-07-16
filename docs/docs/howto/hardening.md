@@ -10,7 +10,6 @@ Recommended for all Contrast deployments.
 
 The intent to deploy a workload using Contrast in a production environment.
 
-
 ## How-to
 
 Contrast ensures application integrity and provides secure means of communication and bootstrapping (see [Security](../security.md) section).
@@ -32,6 +31,26 @@ Common cases where Kubernetes apps interact with external services include DNS, 
 
 Any external persistence should be encrypted with an authenticated cipher.
 This recommendation applies to block devices or filesystems mounted into the container, but also to cloud blob storage or external databases.
+
+### Networking
+
+Contrast is supported on a variety of Container Network Interface (CNI) implementations.
+Network configurations can vary significantly, depending on the CNI or the cluster DNS setup, and are thus hard to predict in advance.
+This makes it infeasible for Contrast to validate all network settings.
+Instead, the network stack of the CVM is mostly configured by the untrusted host, with only basic sanity checks performed by the guest.
+
+The pod's loopback interface `lo` and the associated IP ranges (`127.0.0.0/8`, `::1`) are always secure and not exposed outside the confidential VM.
+Other interfaces are subject to manipulation by the host, even if they were added by a container.
+The same goes for the main routing table, which can be configured by the host to redirect traffic unexpectedly.
+
+Domain name resolution is also controlled by the host.
+The files `/etc/resolv.conf` and `/etc/hosts` mounted to containers aren't confidential and might be compromised.
+Always use `127.0.0.1` instead of `localhost` for pod-local communication.
+If your application requires secure name resolution, use a DNS-over-HTTPS library instead of the default `libc` resolution mechanisms.
+In Golang, for example, this can be accomplished by overriding [`net.DefaultResolver`](https://pkg.go.dev/net#DefaultResolver).
+However, it's strongly recommended to authenticate remote hosts on the application level, using Contrast certificates directly or through the [service mesh](../architecture/components/service-mesh.md).
+
+<!-- TODO(burgerdev): update after hardening UpdateInterface/UpdateRoutes/CopyFile. -->
 
 ## Contrast security guarantees
 
