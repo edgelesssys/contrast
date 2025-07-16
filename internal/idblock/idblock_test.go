@@ -92,9 +92,9 @@ func TestRecoverPublicKey(t *testing.T) {
 			}
 
 			if tc.pubKey != nil {
-				slices.ContainsFunc(publicKeys, func(pk ecdsa.PublicKey) bool {
+				assert.True(slices.ContainsFunc(publicKeys, func(pk ecdsa.PublicKey) bool {
 					return pk.X.Cmp(tc.pubKey.X) == 0 && pk.Y.Cmp(tc.pubKey.Y) == 0
-				})
+				}))
 			}
 		})
 	}

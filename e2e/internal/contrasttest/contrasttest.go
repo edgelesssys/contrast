@@ -132,7 +132,7 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 
 	t.Cleanup(func() {
 		// Deleting the namespace may take some time due to pod cleanup, but we don't want to wait until the test times out.
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute) //nolint:usetesting
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
 
 		if t.Failed() {
