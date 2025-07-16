@@ -21,6 +21,8 @@ on:
       - e2e/getdents/**
       - e2e/genpolicy/**
       - e2e/regression/**
+      - packages/by-name/kata/**
+      - packages/by-name/microsoft/**
 
 jobs:
   regression-test:
