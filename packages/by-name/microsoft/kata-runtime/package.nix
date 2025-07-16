@@ -95,6 +95,12 @@ buildGoModule (finalAttrs: {
       # be dropped after the Microsoft fork reached 3.18.0.
       ./0012-genpolicy-fix-svc_name-regex.patch
       ./0013-genpolicy-rename-svc_name-to-svc_name_downward_env.patch
+
+      # Newer versions of cryptsetup (veritysetup) include units (eg. "[bytes]")
+      # in the output where the builder does not expect them.
+      # As the IGVM builder isn't present in kata-containers/kata-containers,
+      # there currently isn't a way to upstream this patch.
+      ./0014-igvm-builder-remove-block-size-unit.patch
     ];
   };
 
