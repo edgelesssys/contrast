@@ -12,7 +12,7 @@ The forked code is available at <https://github.com/microsoft/kata-containers>.
 The stated goal of Microsoft is to keep the fork somewhat close to upstream, and Microsoft engineers regularly backport selected commits from upstream Kata.
 As of 2024-06-26, the codebases have diverged, in particular for the `genpolicy` tool, so that most patches don't apply cleanly.
 
-The `KataCcIsolation` nodes support the runtime class `kata-cc-isolation`, and can be configured to use [debug images](serial-console).
+The `KataCcIsolation` nodes support the runtime class `kata-cc-isolation`, and can be configured to use [debug images](../serial-console).
 
 ## Compatibility
 

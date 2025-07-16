@@ -12,7 +12,7 @@ In the case of an attestation error, both the workload pod and the Coordinator h
 
 ## Solution
 
-An easy way to automatically aggregate all this data would be to export metrics in the form of [Prometheus](https://prometheus.io/docs/introduction/overview/) or [OpenTelemetry](https://opetelemetry.io/docs/).
+An easy way to automatically aggregate all this data would be to export metrics in the form of [Prometheus](https://prometheus.io/docs/introduction/overview/) or [OpenTelemetry](https://opentelemetry.io/docs/).
 A backend server could then analyze/visualize the data exposed by the Coordinator.
 
 ### Solution 1: Prometheus

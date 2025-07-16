@@ -31,7 +31,7 @@ The output of the tool are reference values that can be referred to from rules (
 
 Implementing this idea is complicated, because there is no 1:1 correspondence between, say, a pod definition and the corresponding agent method calls.
 The pod undergoes a few transformations in between API server, kubelet, containerd and Kata, which the tool needs to emulate to some extent.
-More information on this problem is available in the [policy report](/dev-docs/coco/policy.md).
+More information on this problem is available in the [policy report](../dev-docs/coco/policy.md).
 
 Guessing the transformations from Kubernetes to CRI is easy because it's somewhat stable.
 The path from Kata runtime to the agent is well-known, provided that `genpolicy` and Kata runtime are build from the same version.

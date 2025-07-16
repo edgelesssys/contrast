@@ -176,7 +176,7 @@ Anyway, the next rule to evaluate is `allow_user`, which has an obvious mismatch
 ### Offline testing
 
 An alternative strategy for testing policies is to launch a pod and collect the `CreateContainerRequest` observed by the agent.
-See the [serial console](../aks/serial-console.md) doc for instructions on how to do that.
+See the [serial console](../serial-console.md) doc for instructions on how to do that.
 Assuming the request encoded in `request.json` (in Rust's serialization!) and the generated policy in `policy.rego`, execute OPA with
 
 ```sh

@@ -339,7 +339,7 @@ curl -s --unix-socket /run/vc/vm/6aa04b0c9483817bb9da7216c352348d33d6fda1ecd10ac
 ## Kata Agent
 
 Inside the confidential VM, the Kata Agent starts up and serves the [agent API].
-If we configured Kata for [debug mode](serial-console.md), we can log into the container by sandbox id:
+If we configured Kata for [debug mode](../serial-console.md), we can log into the container by sandbox id:
 
 ```sh
 kata-runtime exec 6aa04b0c9483817bb9da7216c352348d33d6fda1ecd10ac5c836bcd4a1652bed

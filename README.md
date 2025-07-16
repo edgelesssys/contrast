@@ -61,7 +61,7 @@ To learn more, see the [documentation](https://docs.edgeless.systems/contrast).
 ## Contributing
 
 See the [contributing guide](CONTRIBUTING.md).
-Please follow the [Code of Conduct](/CODE_OF_CONDUCT.md).
+Please follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Support
 

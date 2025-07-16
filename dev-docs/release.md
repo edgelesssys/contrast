@@ -4,7 +4,7 @@
 
 1. Ensure all needed PRs were merged.
 
-2. Update [Planned features and limitations](../docs/docs/features-limitations.md).
+2. Update [Planned features and limitations](../docs/docs/architecture/features-limitations.md).
 
 3. Export the release you want to make:
 

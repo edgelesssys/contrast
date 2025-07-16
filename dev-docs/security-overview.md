@@ -303,7 +303,7 @@ Each CVM pod includes two additional containers that start before the primary ap
 - Egress traffic isn't redirected by default but can be explicitly routed through the proxy if required.
 - Based on [**Envoy**](https://www.envoyproxy.io/), managing mutual TLS (mTLS) encryption for ingress and egress traffic.
 - The proxy’s integrity is enforced through the same security policy as the application container.
-- For more details, see the [service mesh documentation](https://docs.edgeless.systems/contrast/next/components/service-mesh).
+- For more details, see the [service mesh documentation](https://docs.edgeless.systems/contrast/1.9/components/service-mesh).
 
 This setup ensures that the CVM can be reliably attested and communications is sufficiently protected.
 

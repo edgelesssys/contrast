@@ -36,7 +36,7 @@ docker run \
     jaegertracing/all-in-one:1.6.0
 ```
 
-The web UI should then be available via http://hostname:16686.
+The web UI should then be available via http://localhost:16686.
 
 ## Viewing Traces
 

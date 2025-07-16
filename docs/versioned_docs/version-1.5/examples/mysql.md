@@ -147,7 +147,7 @@ during the TLS handshake. If the connection succeeds, it's ensured that the Coor
 deployment hasn't been tampered with.
 
 :::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
+On bare metal, the [coordinator policy hash](../components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
 :::
 
 ### Deploy MySQL
@@ -204,7 +204,7 @@ certificate of the mesh (`mesh-ca.pem`) and the history of manifests, into the `
 In addition, the policies referenced in the manifest history are also written into the same directory.
 
 :::warning
-On bare metal, the [coordinator policy hash](components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
+On bare metal, the [coordinator policy hash](../components/policies.md#platform-differences) must be overwritten using `--coordinator-policy-hash`.
 :::
 
 ### Auditing the manifest history and artifacts
