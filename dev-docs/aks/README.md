@@ -1,7 +1,7 @@
 # AKS Confidential Containers
 
 The Contrast stack on AKS is based on the [AKS Confidential Containers preview].
-Azure has support for [nested virtualization](nested-virt-internals) in Hyper-V, which allows spawning CVMs from AKS node VMs.
+Azure has support for [nested virtualization](../frozen/aks-nested-virt-internals.md) in Hyper-V, which allows spawning CVMs from AKS node VMs.
 The preview provides a special node runtime, `KataCcIsolation`, equipped with Microsoft's fork of Kata Containers.
 
 [AKS Confidential Containers preview]: https://learn.microsoft.com/en-us/azure/aks/confidential-containers-overview
