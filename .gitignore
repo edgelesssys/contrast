@@ -25,3 +25,4 @@ infra/**/kustomization.yaml
 uplosi.conf*
 .custom/
 .tmp*
+.lycheecache

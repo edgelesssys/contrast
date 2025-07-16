@@ -1,0 +1,24 @@
+no_progress = true
+cache = true
+max_cache_age = "1d"
+cache_exclude_status = [
+    "..100",
+    "104..200",
+    "300..600",
+]
+include_fragments = true
+retry_wait_time = 20
+fallback_extensions = ["md", "html"]
+exclude = [
+    '^https://mysql\.com/', # returns 403
+    '^http(s)?://localhost',
+    '^https://github\.com/edgelesssys/contrast/(settings|deployments)', # not public
+]
+exclude_path = [
+    "dev-docs/frozen",
+]
+
+# lychee in-run caching is bugged
+# https://github.com/lycheeverse/lychee/issues/1593
+threads = 1
+max_concurrency = 1
