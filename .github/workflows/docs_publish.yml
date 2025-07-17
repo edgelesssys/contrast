@@ -30,7 +30,10 @@ jobs:
   deploy:
     name: Publish docs to GitHub Pages
     runs-on: ubuntu-22.04
-    if: github.repository_owner == github.event.pull_request.head.repo.owner.login
+    # Prevent the job from running on forked PRs, for security reasons.
+    if: |
+      (github.event_name == 'push' && github.ref_name == 'main') ||
+      (github.repository_owner == github.event.pull_request.head.repo.owner.login)
     env:
       PREVIEW: ${{ !(github.event_name == 'push' && github.ref_name == 'main') }}
     steps:
