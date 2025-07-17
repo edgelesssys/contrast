@@ -173,7 +173,7 @@ loop:
 				continue
 			}
 			if done {
-				logger.Debug("done waiting", "condition", podCondition)
+				logger.Debug("done waiting", "condition", fmt.Sprintf("%#v", podCondition))
 				return nil
 			}
 		case <-ctx.Done():
@@ -181,7 +181,7 @@ loop:
 		}
 	}
 
-	logger.Debug("context expired while waiting", "condition", podCondition)
+	logger.Debug("context expired while waiting", "condition", fmt.Sprintf("%#v", podCondition))
 	// Fetch and print debug information.
 	pods, listPodsErr := podLister.List(labels.Everything())
 	if listPodsErr != nil {
