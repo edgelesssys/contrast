@@ -803,18 +803,33 @@ seal "transit" {
 								WithName("openbao-server").
 								WithImage(vaultImage).
 								WithCommand("bao", "server", "-config=/openbao/config/config.hcl", "-log-file=/dev/null").
-								WithReadinessProbe(
-									applycorev1.Probe().
-										WithExec(
-											applycorev1.ExecAction().WithCommand(
-												"sh", "-c",
-												`wget -q --no-check-certificate --server-response https://vault:8200/v1/sys/health -O /dev/null 2>&1 | grep -q '^  HTTP'`,
-											),
-										).
-										WithInitialDelaySeconds(10).
-										WithPeriodSeconds(5).
-										WithTimeoutSeconds(3).
-										WithFailureThreshold(5),
+								// Probe passes when Vault is capable of introspection: https://developer.hashicorp.com/vault/api-docs/system/seal-status.
+								WithStartupProbe(applycorev1.Probe().
+									WithHTTPGet(applycorev1.HTTPGetAction().
+										WithPort(intstr.FromInt(8200)).
+										WithScheme(corev1.URISchemeHTTPS).
+										WithPath("/v1/sys/seal-status"),
+									).
+									WithInitialDelaySeconds(1).
+									WithPeriodSeconds(1).
+									WithFailureThreshold(10),
+								).
+								WithLivenessProbe(applycorev1.Probe().
+									WithHTTPGet(applycorev1.HTTPGetAction().
+										WithPort(intstr.FromInt(8200)).
+										WithScheme(corev1.URISchemeHTTPS).
+										WithPath("/v1/sys/seal-status"),
+									).
+									WithPeriodSeconds(5).
+									WithFailureThreshold(3),
+								).
+								WithReadinessProbe(applycorev1.Probe().
+									WithHTTPGet(applycorev1.HTTPGetAction().
+										WithPort(intstr.FromInt(8200)).
+										WithScheme(corev1.URISchemeHTTPS).
+										WithPath("/v1/sys/seal-status"),
+									).
+									WithPeriodSeconds(2),
 								).
 								WithResources(ResourceRequirements().
 									WithMemoryLimitAndRequest(500),

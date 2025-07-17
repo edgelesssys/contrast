@@ -7,8 +7,11 @@ package vault
 
 import (
 	"context"
+	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"regexp"
 	"testing"
@@ -20,6 +23,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -52,7 +56,7 @@ func TestVault(t *testing.T) {
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
 	// Get Vault pod for subsequent tests.
-	ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*60*time.Second))
+	ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 	defer cancel()
 	require.NoError(t, ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "vault"))
 	pods, err := ct.Kubeclient.PodsFromOwner(ctx, ct.Namespace, "StatefulSet", "vault")
@@ -63,7 +67,7 @@ func TestVault(t *testing.T) {
 
 	t.Run("transit engine api auto-unseals vault", func(t *testing.T) {
 		require := require.New(t)
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(60*time.Second))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(time.Minute))
 		defer cancel()
 
 		// The bao operator init command should not be scripted like this in a real production environment,
@@ -86,8 +90,8 @@ func TestVault(t *testing.T) {
 		require.NoError(err, "stdout: %s, stderr: %s", stdOut, stdErr)
 		token, err = extractVaultRootToken(stdOut)
 		require.NoError(err, "failed to extract Vault root token from logs:\n%s", stdOut)
-		require.NotEmpty(token, "extracted token is empty")
 	})
+	require.NotEmpty(t, token, "need a root token for subsequent tests")
 
 	runVaultScript := func(ctx context.Context, script string) (string, string, error) {
 		return ct.Kubeclient.ExecContainer(
@@ -108,7 +112,7 @@ func TestVault(t *testing.T) {
 	// This secret will later be used to validate data persistence after a Vault restart.
 	t.Run("enable KV engine and create secret on vault", func(t *testing.T) {
 		require := require.New(t)
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(60*time.Second))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(time.Minute))
 		defer cancel()
 
 		stdOut, stdErr, err := runVaultScript(ctx, "bao secrets enable kv")
@@ -138,11 +142,17 @@ func TestVault(t *testing.T) {
 	// Additionally confirms that the previously written secret still exists, ensuring data persistence.
 	t.Run("vault auto-unseals after restart and secrets are persistent", func(t *testing.T) {
 		require := require.New(t)
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(60*time.Second))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		defer cancel()
 
 		require.NoError(ct.Kubeclient.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, "vault"))
 		require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "vault"))
+
+		require.EventuallyWithT(func(t *assert.CollectT) {
+			ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			defer cancel()
+			assert.NoError(t, ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-vault", "8200", isVaultUnsealed))
+		}, time.Minute, 5*time.Second)
 
 		pods, err = ct.Kubeclient.PodsFromOwner(ctx, ct.Namespace, "StatefulSet", "vault")
 		require.NoError(err)
@@ -189,6 +199,41 @@ func extractVaultRootToken(logs string) (string, error) {
 		return "", fmt.Errorf("root token not found")
 	}
 	return matches[1], nil
+}
+
+type vaultSealStatus struct {
+	Initialized *bool `json:"initialized"`
+	Sealed      *bool `json:"sealed"`
+}
+
+func (s vaultSealStatus) unsealed() bool {
+	initialized := s.Initialized != nil && *s.Initialized
+	sealed := s.Sealed != nil && *s.Sealed
+	return initialized && !sealed
+}
+
+func isVaultUnsealed(addr string) error {
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+	resp, err := client.Get(fmt.Sprintf("https://%s/v1/sys/seal-status", addr)) //nolint:noctx // Context is implicitly enforced by the port forwarder.
+	if err != nil {
+		return fmt.Errorf("getting seal status: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var status vaultSealStatus
+	if err := json.NewDecoder(resp.Body).Decode(&status); err != nil {
+		return fmt.Errorf("decoding seal status response: %w", err)
+	}
+	if !status.unsealed() {
+		return fmt.Errorf("vault status: %#v", status)
+	}
+	return nil
 }
 
 func TestMain(m *testing.M) {
