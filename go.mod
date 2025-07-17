@@ -2,7 +2,7 @@ module github.com/edgelesssys/contrast
 
 go 1.24.0
 
-toolchain go1.24.2
+toolchain go1.24.5
 
 // The upstream package has some stepping issues with Genoa:
 // https://github.com/google/go-sev-guest/issues/115
