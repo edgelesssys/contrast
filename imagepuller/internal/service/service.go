@@ -5,7 +5,6 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 
@@ -49,62 +48,13 @@ func (s *ImagePullerService) PullImage(ctx context.Context, r *api.ImagePullRequ
 	}
 	log.Info("Validated image")
 
-	layers, err := remoteImg.Layers()
+	finalLayer, err := s.storeAndVerifyLayers(log, remoteImg)
 	if err != nil {
-		return nil, fmt.Errorf("obtaining the image layers: %w", err)
+		return nil, fmt.Errorf("verifying and putting layers in store: %w", err)
 	}
+	log.Info("Verified and put in store layers")
 
-	manifest, err := remoteImg.Manifest()
-	if err != nil {
-		return nil, fmt.Errorf("obtaining image manifest: %w", err)
-	}
-
-	previousLayer := ""
-	for idx, layer := range layers {
-		rc, err := layer.Compressed()
-		if err != nil {
-			return nil, fmt.Errorf("reading layer %d: %w", idx, err)
-		}
-
-		// Wrap in func to close each rc immediately
-		err = func() error {
-			putLayer, n, err := s.Store.PutLayer(
-				"",            // empty ID -> let store decide
-				previousLayer, // parent is previous layer
-				nil,           // empty parent chain -> let store decide
-				"",            // mount label
-				false,         // readonly
-				nil,           // mount options
-				rc,            // tar stream
-			)
-			if err != nil {
-				return errors.Join(err, rc.Close())
-			}
-			if err := rc.Close(); err != nil {
-				return fmt.Errorf("closing the layer reader: %w", err)
-			}
-
-			ldManifest := manifest.Layers[idx].Digest
-			ld, err := layer.Digest()
-			if err != nil {
-				return fmt.Errorf("obtaining digest: %w", err)
-			}
-			if ldManifest != ld {
-				return fmt.Errorf("validation failed, expected digest '%s' but got digest '%s'", ldManifest, ld)
-			}
-
-			log.Info("Applied and validated layer", "id", putLayer.ID, "size", n, "digest", ld)
-			previousLayer = putLayer.ID
-			return nil
-		}()
-		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, fmt.Errorf("pull aborted while applying layer (deadline exceeded): %w", err)
-		} else if err != nil {
-			return nil, fmt.Errorf("applying layer: %w", err)
-		}
-	}
-
-	newImg, err := s.Store.CreateImage("", nil, previousLayer, "", nil)
+	newImg, err := s.Store.CreateImage("", nil, finalLayer, "", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating image: %w", err)
 	}
