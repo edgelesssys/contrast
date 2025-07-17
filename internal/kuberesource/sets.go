@@ -578,6 +578,9 @@ func VolumeStatefulSet() []any {
 										WithName("share").
 										WithMountPath("/state").
 										WithMountPropagation(corev1.MountPropagationHostToContainer),
+								).
+								WithResources(ResourceRequirements().
+									WithMemoryLimitAndRequest(200),
 								),
 						),
 				),
