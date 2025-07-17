@@ -8,12 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
 
 	"github.com/containers/storage"
 	"github.com/edgelesssys/contrast/imagepuller/internal/api"
-	"golang.org/x/sys/unix"
 )
 
 // ImagePullerService is the struct for which the PullImage ttRPC service is implemented.
@@ -35,6 +32,16 @@ func (s *ImagePullerService) PullImage(ctx context.Context, r *api.ImagePullRequ
 			log.Error("Request failed", "err", retErr)
 		}
 	}()
+
+	cachedID, err := s.Store.Lookup(r.ImageUrl)
+	if err == nil {
+		rootfs, err := s.createAndMountContainer(log, cachedID, r.BundlePath)
+		if err != nil {
+			return nil, fmt.Errorf("mounting container from cached image: %w", err)
+		}
+		log.Info("Mounted container from cached image", "mount_path", rootfs)
+		return &api.ImagePullResponse{}, nil
+	}
 
 	remoteImg, err := s.getAndVerifyImage(ctx, log, r.ImageUrl)
 	if err != nil {
@@ -103,25 +110,16 @@ func (s *ImagePullerService) PullImage(ctx context.Context, r *api.ImagePullRequ
 	}
 	log.Info("Created image", "id", newImg.ID)
 
-	container, err := s.Store.CreateContainer("", nil, newImg.ID, "", "", nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating container: %w", err)
+	if err := s.Store.RemoveNames(newImg.ID, newImg.Names); err != nil {
+		return nil, fmt.Errorf("removing pre-existing image names: %w", err)
 	}
-	log.Info("Created container", "id", container.ID)
+	if err := s.Store.AddNames(newImg.ID, []string{r.ImageUrl}); err != nil {
+		return nil, fmt.Errorf("adding image url as image name: %w", err)
+	}
 
-	mountPoint, err := s.Store.Mount(container.ID, "")
+	rootfs, err := s.createAndMountContainer(log, newImg.ID, r.BundlePath)
 	if err != nil {
 		return nil, fmt.Errorf("mounting container: %w", err)
-	}
-	log.Debug("Mounted in tmpdir", "mountPoint", mountPoint)
-
-	rootfs := filepath.Join(r.BundlePath, "rootfs")
-	if err := os.MkdirAll(rootfs, 0o755); err != nil {
-		return nil, fmt.Errorf("creating bundle path: %w", err)
-	}
-
-	if err := unix.Mount(mountPoint, rootfs, "", unix.MS_BIND, ""); err != nil {
-		return nil, fmt.Errorf("binding mount %s to %s: %w", mountPoint, rootfs, err)
 	}
 	log.Info("Pulled and mounted image", "mount_path", rootfs)
 
