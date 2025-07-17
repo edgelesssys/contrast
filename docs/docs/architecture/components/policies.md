@@ -42,6 +42,13 @@ After the VM launched, the runtime calls the agent's `SetPolicy` method with the
 If the policy doesn't match the checksum in `HOSTDATA` or `MRCONFIGID`, the agent rejects the policy.
 Otherwise, it applies the policy to all future `AgentService` requests.
 
+:::warning
+
+Since the policy is annotated to the pod, it can be retrieved by any role with `get` or `list` permission for pods.
+This may result in an unexpected leak of sensitive information, for example when the [environment variables are populated from Kubernetes secrets](https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/#define-container-environment-variables-using-secret-data).
+
+:::
+
 ## Guarantees
 
 The policy evaluation provides the following guarantees for pods launched with the correct generated policy:
