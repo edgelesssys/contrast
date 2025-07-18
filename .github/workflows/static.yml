@@ -9,7 +9,7 @@ on:
 
 jobs:
   flake-check:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -26,7 +26,7 @@ jobs:
           nix -L flake check
 
   go-source:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     permissions:
       contents: write
@@ -51,7 +51,7 @@ jobs:
           renovate-commit-msg: "fixup: update generated code"
 
   govulncheck:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -68,7 +68,7 @@ jobs:
           nix run .#scripts.govulncheck
 
   golangci-lint:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -85,7 +85,7 @@ jobs:
           nix run .#scripts.golangci-lint
 
   go-licenses:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
@@ -102,7 +102,7 @@ jobs:
           nix run .#scripts.go-licenses-check
 
   check-links:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read

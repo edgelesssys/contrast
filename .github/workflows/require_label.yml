@@ -6,7 +6,7 @@ on:
 
 jobs:
   label:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: read
     steps:
@@ -23,7 +23,7 @@ jobs:
             documentation
             no changelog
   do-not-merge:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: read
     steps:

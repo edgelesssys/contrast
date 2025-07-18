@@ -16,7 +16,7 @@ on:
 
 jobs:
   complete-release-branch-transaction:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     env:
@@ -46,7 +46,7 @@ jobs:
           git push origin --delete "${WORKING_BRANCH}"
 
   cleanup-bucket:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       id-token: write
