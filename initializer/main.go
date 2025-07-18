@@ -123,6 +123,7 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 		return resp, nil
 	}
 
+	ticker := time.NewTicker(5 * time.Second)
 	var resp *meshapi.NewMeshCertResponse
 	for {
 		resp, err = requestCert()
@@ -131,8 +132,12 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 			break
 		}
 		log.Warn("Requesting cert", "err", err)
-		log.Info("Retrying in 10s")
-		time.Sleep(10 * time.Second)
+		log.Info("Waiting for retry")
+		select {
+		case <-ticker.C:
+		case <-ctx.Done():
+			return fmt.Errorf("waiting for retry to request cert: %w", ctx.Err())
+		}
 	}
 
 	// convert privKey to PEM
