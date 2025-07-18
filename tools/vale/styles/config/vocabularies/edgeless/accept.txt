@@ -65,6 +65,7 @@ Fulcio
 Gbps
 GCP
 genpolicy
+Golang
 goroutine
 GPUs?
 gRPC
@@ -125,6 +126,7 @@ QEMU
 rebase
 Rego
 Rekor
+repurposes?
 resizable
 resourceGroup
 rollout
