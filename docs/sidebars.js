@@ -224,6 +224,11 @@ const sidebars = {
               label: "AMD SEV-SNP",
               id: "architecture/attestation/amd-details",
             },
+            {
+              type: "doc",
+              label: "Attested TLS",
+              id: "architecture/attestation/atls",
+            },
           ],
         },
         {
