@@ -27,7 +27,7 @@ concurrency:
 jobs:
   build-image:
     name: "Build cleanup-bare-metal image"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       packages: write
@@ -76,7 +76,7 @@ jobs:
       matrix:
         platform:
           - name: AKS-CLH-SNP
-            runner: ubuntu-22.04
+            runner: ubuntu-24.04
             self-hosted: false
           - name: K3s-QEMU-SNP
             runner: SNP
@@ -255,7 +255,7 @@ jobs:
 
   notify-teams:
     name: "Notify teams channel of failure"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [build-image, update-resources, cleanup, cleanup-containerd, nix-gc]
     if: always() && github.event_name == 'schedule' && github.run_attempt == 1
     permissions:

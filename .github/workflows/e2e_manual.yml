@@ -41,7 +41,7 @@ on:
 
 jobs:
   determine-platform-params:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       runner: ${{ steps.determine-platform-params.outputs.runner }}
       self-hosted: ${{ steps.determine-platform-params.outputs.self-hosted }}
@@ -54,7 +54,7 @@ jobs:
         run: |
           case "${platform}" in
             "AKS-CLH-SNP")
-              echo "runner=ubuntu-22.04" >> "$GITHUB_OUTPUT"
+              echo "runner=ubuntu-24.04" >> "$GITHUB_OUTPUT"
               echo "self-hosted=false" >> "$GITHUB_OUTPUT"
             ;;
             "K3s-QEMU-SNP")

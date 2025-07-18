@@ -23,7 +23,7 @@ jobs:
       matrix:
         platform:
           - name: AKS-CLH-SNP
-            runner: ubuntu-22.04
+            runner: ubuntu-24.04
             self-hosted: false
           - name: K3s-QEMU-SNP
             runner: SNP
@@ -53,7 +53,7 @@ jobs:
             test-name: gpu
           - platform:
               name: AKS-CLH-SNP
-              runner: ubuntu-22.04
+              runner: ubuntu-24.04
               self-hosted: false
             test-name: multiple-cpus
       fail-fast: false

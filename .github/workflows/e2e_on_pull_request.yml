@@ -26,7 +26,7 @@ jobs:
       matrix:
         include:
           - platform: AKS-CLH-SNP
-            runner: ubuntu-22.04
+            runner: ubuntu-24.04
             self-hosted: false
             test: openssl
           - platform: K3s-QEMU-SNP

@@ -17,7 +17,7 @@ jobs:
         github.event.issue.pull_request &&
         startsWith(github.event.comment.body, '/backport')
       )
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       pull-requests: write
