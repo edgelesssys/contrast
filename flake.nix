@@ -4,10 +4,6 @@
 {
   inputs = {
     nixpkgs = {
-      # Renovate has some false heuristic to detect whether something can be `nix flake update`ed,
-      # see https://github.com/renovatebot/renovate/issues/29721 and
-      # https://github.com/renovatebot/renovate/blob/743fed0ec6ca5810e274571c83fa6d4f5213d4e7/lib/modules/manager/nix/extract.ts#L6.
-      # We must keep the following string in the file for renovate to work: "github:NixOS/nixpkgs/nixpkgs-unstable"
       url = "github:NixOS/nixpkgs?ref=nixos-unstable";
     };
     flake-utils = {
