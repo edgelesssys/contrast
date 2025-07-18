@@ -17,22 +17,6 @@ The secret seed and the seed share owner key are highly sensitive.
 
 :::
 
-## Persistence
-
-The Coordinator runs as a `StatefulSet` with a dynamically provisioned persistent volume.
-This volume stores the manifest history and the associated runtime policies.
-The manifest isn't considered sensitive information, because it needs to be passed to the untrusted infrastructure in order to start workloads.
-However, the Coordinator must ensure its integrity and that the persisted data corresponds to the manifests set by authorized users.
-Thus, the manifest is stored in plain text, but is signed with a private key derived from the Coordinator's secret seed.
-
-## Recovery
-
-When a Coordinator starts up, it doesn't have access to the signing secret and can thus not verify the integrity of the persisted manifests.
-It needs to be provided with the secret seed, from which it can derive the signing key that verifies the signatures.
-This procedure is called recovery and is initiated by the seed share owner.
-The CLI decrypts the secret seed using the private seed share owner key, verifies the Coordinator and sends the seed through the `Recover` method.
-The Coordinator authenticates the seed share owner, recovers its key material, and verifies the manifest history signature.
-
 ## Workload Secrets
 
 The Coordinator provides each workload a secret seed during attestation.

@@ -18,12 +18,35 @@ The manifest is the configuration file for the Coordinator, defining your confid
 It's automatically generated from your deployment by the Contrast CLI.
 It currently consists of the following parts:
 
+<!-- TODO(burgerdev): explain manifest on separate page. -->
+
 - _Policies_: The identities of your Pods, represented by the hashes of their respective runtime policies.
 - _Reference Values_: The remote attestation reference values for the Kata confidential micro-VM that's the runtime environment of your Pods.
 - _WorkloadOwnerKeyDigest_: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
 - _SeedshareOwnerKeys_: public keys of seed share owners. Used to authenticate user recovery and permission to handle the secret seed.
 
-<!-- TODO(burgerdev): document manifest storage. -->
+## Manifest history
+
+The Coordinator uses Kubernetes `ConfigMap`s to store the manifest history and associated runtime policies.
+Manifest and policies aren't considered sensitive information, because it needs to be passed to the untrusted infrastructure in order to start workloads.
+However, the Coordinator must ensure its integrity and that the persisted data corresponds to the manifests set by authorized users.
+This is accomplished with two types of integrity checks.
+
+The manifest that's currently enforced by the Coordinator is called the _latest manifest_, stored in a `ConfigMap` with a fixed name and signed with a key derived from the [secret seed](../secrets.md).
+The signed object contains references to the manifest content and the previous manifest.
+
+All history content other than the latest manifest reference is content-addressable with SHA-256 hashes.
+For example, a manifest with hash `a591a6d40bf420404a011733cfb7b190d62c65bf0bcda190f4b2428b8f8c5e4c` is stored in a `ConfigMap` named `contrast-store-manifest-a591a6d40bf420404a011733cfb7b190d62c65bf0bcda190f4b2428b8f8c5e4c`.
+Starting from the signed latest manifest, the Coordinator retrieves all referenced content by hash and verifies that the content hashes match.
+The entire manifest history thus forms a Merkle tree, chaining back to the signed latest manifest.
+
+The `ConfigMap`s used to store manifests and policies are owned by the Contrast Coordinator `StatefulSet`.
+When that resource is removed from the cluster, the history will be removed with it.
+If you need to clear the history without removing the Coordinator, you can do so with the following command:
+
+```sh
+kubectl delete configmap --selector app.kubernetes.io/managed-by=contrast.edgeless.systems
+```
 
 ## State
 
@@ -41,6 +64,14 @@ The Contrast Coordinator comes with two services: `coordinator` and `coordinator
 The `coordinator` service is backed by all Coordinators, ready or not ready, and is intended to serve user API (that is, `contrast` CLI commands).
 The `coordinator-ready` service only selects ready Coordinators which can serve the mesh API, and is intended to be used by initializers.
 This endpoint is also suitable for verifying clients, since they will only get a successful response from a ready Coordinator.
+
+## Recovery
+
+When a Coordinator starts up, it doesn't have access to the signing secret and can thus not verify the integrity of the persisted latest manifest.
+It needs to be provided with the secret seed, from which it can derive the signing key that verifies the signature.
+This procedure is called user recovery and is initiated by the seed share owner.
+The CLI decrypts the secret seed using the private seed share owner key, verifies the Coordinator and sends the seed through the `Recover` method.
+The Coordinator authenticates the seed share owner, recovers its key material, and verifies the manifest history signature.
 
 ## Automatic recovery and high availability {#peer-recovery}
 
