@@ -26,7 +26,7 @@ let
         disable32Bit = true;
       }
     ).overrideAttrs
-      (oldAttrs: {
+      (_oldAttrs: {
         # We strip the driver package from its dependencies on desktop software like Wayland and X11.
         # For server use-cases, we shouldn't need these. The Mesa (and thus Perl) and libGL dependencies are dropped
         # too, as GPU workloads will likely be AI-related and not graphical. The libdrm dependency is dropped as well,
@@ -41,39 +41,6 @@ let
             dbus # for nvidia-powerd
           ]
         );
-
-        # Override the `date` utility to keep timestamps out of the generated man page.
-        makeFlags = oldAttrs.makeFlags ++ [ "DATE=/bin/true" ];
-
-        # Hack to pass the "right" (i.e. the overridden) version of the nvidia driver to the persistenced.
-        # Looking at the package definition, it _should_ already do so, but it doesn't.
-        # So for now, override all occurences of `nvidia_x11` in the persistenced package "manually".
-        # We can't do an `override` on persistenced itself unfortunately, as it's call site doesn't allow this:
-        # https://github.com/NixOS/nixpkgs/blob/4d2418ebbfb107485b44aaa1b2909409322d9061/pkgs/os-specific/linux/nvidia-x11/generic.nix#L260
-        # TODO(msanft): Clarify with upstream why that is the case.
-        passthru = oldAttrs.passthru // {
-          persistenced = oldAttrs.passthru.persistenced.overrideAttrs (oldAttrs: {
-            inherit (nvidiaPackage) makeFlags;
-            version = "570.169";
-            src = oldAttrs.src // {
-              rev = "570.169";
-            };
-
-            postFixup = ''
-              # Save a copy of persistenced for mounting in containers
-              mkdir $out/origBin
-              cp $out/{bin,origBin}/nvidia-persistenced
-              patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 $out/origBin/nvidia-persistenced
-
-              patchelf --set-rpath "$(patchelf --print-rpath $out/bin/nvidia-persistenced):${nvidiaPackage}/lib" \
-                $out/bin/nvidia-persistenced
-            '';
-
-            meta = oldAttrs.meta // {
-              inherit (nvidiaPackage.meta) platforms;
-            };
-          });
-        };
       });
 
   # nix-store-mount-hook mounts the VM's nix store into the container.
