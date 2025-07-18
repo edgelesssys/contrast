@@ -175,4 +175,11 @@ spec: # v1.PodSpec
 This limit is rounded up to the next whole integer. The final number of CPUs you can observe in a container is this ceiling + 1 (`numCPUs = ceil(limit) + 1`), so
 in this case, the final number of CPUs would be 2. A limit of 1.25 would result in 3 CPUs and a limit of 0 would result in 1 CPU.
 
+:::warning
+
+CPU limits are currently only supported on AKS and will cause measurement errors on bare metal. Be aware
+of things that might change container limits, like `LimitRange` or pod admission controllers.
+
+:::
+
 [Kubernetes resource management]: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
