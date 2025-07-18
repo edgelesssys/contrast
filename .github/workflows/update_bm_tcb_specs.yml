@@ -44,7 +44,7 @@ jobs:
 
   notify-teams:
     name: "Notify teams channel of failure"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: update-bm-specs
     if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
     permissions:

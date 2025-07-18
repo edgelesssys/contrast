@@ -35,7 +35,7 @@ concurrency:
 jobs:
   process-inputs:
     name: Process inputs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     env:
@@ -121,7 +121,7 @@ jobs:
 
   update-main:
     name: Update main branch
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [process-inputs, release]
     permissions:
       contents: write
@@ -219,7 +219,7 @@ jobs:
 
   release:
     name: Build and push artifacts, create release
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: process-inputs
     permissions:
       contents: write
@@ -422,7 +422,7 @@ jobs:
       matrix:
         platform:
           - name: AKS-CLH-SNP
-            runner: ubuntu-22.04
+            runner: ubuntu-24.04
             self-hosted: false
           - name: K3s-QEMU-SNP
             runner: SNP
@@ -524,7 +524,7 @@ jobs:
     name: Create backport label and milestone
     if: inputs.kind == 'minor'
     needs: process-inputs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       issues: write
       contents: read
