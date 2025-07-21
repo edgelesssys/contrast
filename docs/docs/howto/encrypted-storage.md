@@ -41,7 +41,7 @@ Secrets](../architecture/secrets.md#workload-secrets) documentation.
 The MySQL deployment files are part of the Contrast release. You can download them by running:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/mysql-demo.yml --create-dirs --output-dir deployment
+curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/mysql-demo.yml --create-dirs --output-dir resources
 ```
 
 ### Deploy the Contrast runtime
@@ -76,7 +76,7 @@ Download the Kubernetes resource of the Contrast Coordinator, comprising a singl
 LoadBalancer service. Put it next to your resources:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir deployment
+curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir resources
 ```
 
 ### Generate policy annotations and manifest
@@ -88,12 +88,12 @@ of your deployment will be created:
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-contrast generate --reference-values aks-clh-snp deployment/
+contrast generate --reference-values aks-clh-snp resources/
 ```
 </TabItem>
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-contrast generate --reference-values k3s-qemu-snp deployment/
+contrast generate --reference-values k3s-qemu-snp resources/
 ```
 :::note[Missing TCB values]
 On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms.
@@ -103,7 +103,7 @@ If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-contrast generate --reference-values k3s-qemu-tdx deployment/
+contrast generate --reference-values k3s-qemu-tdx resources/
 ```
 :::note[Missing TCB values]
 On bare-metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values as they can vary between platforms.
@@ -131,7 +131,7 @@ the MySQL server and client.
 Deploy the Coordinator resource first by applying its resource definition:
 
 ```sh
-kubectl apply -f deployment/coordinator.yml
+kubectl apply -f resources/coordinator.yml
 ```
 
 ### Set the manifest
@@ -142,7 +142,7 @@ for the load balancer to be created and the Coordinator being available.
 ```sh
 coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo "The user API of your Contrast Coordinator is available at $coordinator:1313"
-contrast set -c "${coordinator}:1313" deployment/
+contrast set -c "${coordinator}:1313" resources/
 ```
 
 The CLI will use the reference values from the manifest to attest the Coordinator deployment
@@ -155,7 +155,7 @@ Now that the Coordinator has a manifest set, which defines the MySQL deployment 
 we can deploy the application:
 
 ```sh
-kubectl apply -f deployment/
+kubectl apply -f resources/
 ```
 
 :::note[Persistent workload secrets]
@@ -237,8 +237,8 @@ need to be regenerated with `contrast generate` and the new manifest needs to be
 set using `contrast set`.
 
 ```sh
-contrast generate deployment/
-contrast set -c "${coordinator}:1313" deployment/
+contrast generate resources/
+contrast set -c "${coordinator}:1313" resources/
 ```
 
 The new deployment can then be applied by running:

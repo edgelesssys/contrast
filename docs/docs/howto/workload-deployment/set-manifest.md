@@ -63,7 +63,7 @@ Upstream tracking issue: https://github.com/kata-containers/kata-containers/issu
 Attest the Coordinator and set the manifest:
 
 ```sh
-contrast set -c "${coordinator}:1313" deployment/
+contrast set -c "${coordinator}:1313" resources/
 ```
 
 This will use the reference values from the manifest file to attest the Coordinator. After this step, the Coordinator will start issuing TLS certificates to the workloads. The init container will fetch a certificate for the workload and the workload is started.

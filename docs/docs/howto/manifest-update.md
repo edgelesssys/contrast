@@ -17,7 +17,7 @@ If the manifest changes—for example, due to modifications in the service mesh 
 Set the changed manifest at the Coordinator with:
 
 ```sh
-contrast set -c "${coordinator}:1313" deployment/
+contrast set -c "${coordinator}:1313" resources/
 ```
 
 The Contrast Coordinator will rotate the mesh ca certificate on the manifest update. Workload certificates issued
