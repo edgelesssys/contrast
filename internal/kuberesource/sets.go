@@ -747,6 +747,12 @@ func Vault(namespace string) []any {
 	const (
 		vaultImage = "quay.io/openbao/openbao:2.2.0@sha256:19612d67a4a95d05a7b77c6ebc6c2ac5dac67a8712d8df2e4c31ad28bee7edaa"
 
+		vaultServerEntrypoint = `set -e
+config=/dev/shm/config.hcl
+printf "%s" "${VAULT_CONFIG}" >"${config}"
+bao server -config="${config}" -log-file=/dev/null
+`
+
 		vaultClientEntrypoint = `until
   bao login -method=cert -ca-cert /contrast/tls-config/mesh-ca.pem -client-cert /contrast/tls-config/certChain.pem -client-key /contrast/tls-config/key.pem name=coordinator
 do
@@ -766,7 +772,6 @@ listener "tcp" {
   address            = "0.0.0.0:8200"
   tls_cert_file      = "/contrast/tls-config/certChain.pem"
   tls_key_file       = "/contrast/tls-config/key.pem"
-  tls_client_ca_file = "/contrast/tls-config/mesh-ca.pem"
 }
 
 seal "transit" {
@@ -802,7 +807,11 @@ seal "transit" {
 							Container().
 								WithName("openbao-server").
 								WithImage(vaultImage).
-								WithCommand("bao", "server", "-config=/openbao/config/config.hcl", "-log-file=/dev/null").
+								WithCommand("/bin/sh", "-c", vaultServerEntrypoint).
+								WithEnvFrom(applycorev1.EnvFromSource().
+									WithConfigMapRef(applycorev1.ConfigMapEnvSource().
+										WithName("vault-config"),
+									)).
 								// Probe passes when Vault is capable of introspection: https://developer.hashicorp.com/vault/api-docs/system/seal-status.
 								WithStartupProbe(applycorev1.Probe().
 									WithHTTPGet(applycorev1.HTTPGetAction().
@@ -835,8 +844,6 @@ seal "transit" {
 									WithMemoryLimitAndRequest(500),
 								).WithVolumeMounts(
 								VolumeMount().
-									WithName("config").WithMountPath("/openbao/config"),
-								VolumeMount().
 									WithName("share").WithMountPath("/openbao/file").WithMountPropagation(corev1.MountPropagationHostToContainer),
 								VolumeMount().
 									WithName("logs").WithMountPath("/openbao/logs"),
@@ -846,9 +853,6 @@ seal "transit" {
 									WithContainerPort(8200),
 							),
 						).WithVolumes(
-						Volume().WithName("config").WithConfigMap(
-							applycorev1.ConfigMapVolumeSource().WithName("vault-config"),
-						),
 						Volume().WithName("logs").WithEmptyDir(
 							applycorev1.EmptyDirVolumeSource(),
 						),
@@ -871,7 +875,7 @@ seal "transit" {
 
 	configMap := ConfigMap("vault-config", namespace).WithData(
 		map[string]string{
-			"config.hcl": vaultConfig,
+			"VAULT_CONFIG": vaultConfig,
 		},
 	)
 
