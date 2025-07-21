@@ -9,7 +9,7 @@ Follow these steps to make your deployment confidential.
 Download the Kubernetes resources for the emojivoto deployment with the following command:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.yml --create-dirs --output-dir deployment
+curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.yml --create-dirs --output-dir resources
 ```
 
 This deployment has already been prepared for Contrast.
@@ -20,7 +20,7 @@ In the following sub-sections, we will explain the changes made to the original 
 In each pod configuration, set the `runtimeClassName` field under `spec` to `contrast-cc`.
 This tells Kubernetes to run the pod inside a Confidential Virtual Machine (CVM) using the Contrast runtime.
 
-```diff title="deployment/emojivoto-demo.yaml"
+```diff title="resources/emojivoto-demo.yaml"
 @@ -36,6 +36,7 @@
              periodSeconds: 5
              tcpSocket:
@@ -80,7 +80,7 @@ To prevent Kubernetes from over-commiting nodes, set both `request` and `limit` 
 
 Set both to 700Mi for each pod in this example:
 
-```diff title="deployment/emojivoto-demo.yaml"
+```diff title="resources/emojivoto-demo.yaml"
 @@ -36,6 +36,11 @@
              periodSeconds: 5
              tcpSocket:
@@ -203,7 +203,7 @@ This configuration exempts port 8080 from mTLS verification: clients can connect
 
 Altogether, we can configure the service mesh by adding the following annotations:
 
-```diff title="deployment/emojivoto-demo.yaml"
+```diff title="resources/emojivoto-demo.yaml"
 @@ -1,6 +1,8 @@
  apiVersion: apps/v1
  kind: Deployment
@@ -266,7 +266,7 @@ Download the Kubernetes resource of the Contrast Coordinator, comprising a singl
 Put it next to your resources:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir deployment
+curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir resources
 ```
 
 ## 4. Generate policy annotations and manifest
@@ -278,12 +278,12 @@ The command also generates a `manifest.json` file, which contains the trusted re
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-contrast generate --reference-values aks-clh-snp deployment/
+contrast generate --reference-values aks-clh-snp resources/
 ```
 </TabItem>
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-contrast generate --reference-values k3s-qemu-snp deployment/
+contrast generate --reference-values k3s-qemu-snp resources/
 ```
 :::note[Missing TCB values]
 On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values of the created manifest.json as they can vary between platforms.
@@ -293,7 +293,7 @@ If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-contrast generate --reference-values k3s-qemu-tdx deployment/
+contrast generate --reference-values k3s-qemu-tdx resources/
 ```
 :::note[Missing TCB values]
 On bare-metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values of the created manifest.json as they can vary between platforms.
@@ -308,7 +308,7 @@ If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and 
 Now deploy your application along with the Contrast coordinator:
 
 ```sh
-kubectl apply -f deployment/
+kubectl apply -f resources/
 ```
 
 The Coordinator should show a status `Running` and will only transition to `Ready` after a manifest has been set.
@@ -321,7 +321,7 @@ for the load balancer to be created and the Coordinator being available.
 ```sh
 coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo "The user API of your Contrast Coordinator is available at $coordinator:1313"
-contrast set -c "${coordinator}:1313" deployment/
+contrast set -c "${coordinator}:1313" resources/
 ```
 
 The CLI will use the reference values from the manifest to attest the Coordinator deployment
