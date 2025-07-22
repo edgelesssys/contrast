@@ -217,3 +217,44 @@ spec:
     - emptyDir: {}
       name: contrast-secrets
 ```
+
+### Fine-tuning service mesh injection
+
+The service mesh is only injected for workload that have a [service mesh annotation](../../architecture/components/service-mesh.md#configuring-the-proxy).
+
+#### `--skip-service-mesh` flag
+
+You can disable the service mesh injection completely by specifying the
+`--skip-service-mesh` flag in the `generate` command.
+
+<Tabs queryString="platform">
+<TabItem value="aks-clh-snp" label="AKS" default>
+
+```sh
+contrast generate --reference-values aks-clh-snp --skip-service-mesh resources/
+```
+
+</TabItem>
+<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
+
+```sh
+contrast generate --reference-values k3s-qemu-snp --skip-service-mesh resources/
+```
+
+</TabItem>
+<TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+
+```sh
+contrast generate --reference-values k3s-qemu-snp-gpu --skip-service-mesh resources/
+```
+
+</TabItem>
+<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
+
+```sh
+contrast generate --reference-values k3s-qemu-tdx --skip-service-mesh resources/
+```
+</TabItem>
+</Tabs>
+
+In this case, you can manually add the service mesh sidecar container to your workload before generating the policies, or [authenticate peers on the application level](./TLS-configuration.md#go-integration).
