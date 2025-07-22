@@ -21,7 +21,6 @@ These certificates are used by the [Contrast Service Mesh](../../architecture/co
 
 ### Drop-in service mesh
 
-
 Contrast can be configured to handle TLS in a sidecar container.
 This is useful for workloads that are hard to configure with custom certificates, like Java applications.
 
@@ -46,9 +45,7 @@ During the `generate` step, this configuration will be translated into a Service
 The only change required to the app itself is to let it connect to `127.0.0.2:4001` to reach the backend service.
 You can find more detailed documentation in the [Service Mesh chapter](../../architecture/components/service-mesh.md).
 
-
 ### Go integration
-
 
 The mesh certificate contained in `certChain.pem` authenticates this workload, while the mesh CA certificate `mesh-ca.pem` authenticates its peers.
 Your app should turn on client authentication to ensure peers are running as confidential containers, too.
