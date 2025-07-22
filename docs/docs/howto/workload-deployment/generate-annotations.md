@@ -78,42 +78,49 @@ Running `contrast generate` for the first time creates some additional files in 
 - `rules.rego` and `settings.json` are the basis for [runtime policies](../../architecture/components/policies.md).
 - `layers-cache.json` caches container image layer information for your deployments to speed up subsequent runs of `contrast generate`.
 
+### Fine-tuning initializer injection
+
 If you don't want the Contrast Initializer to automatically be added to your
 workloads, there are two ways you can skip the Initializer injection step,
 depending on how you want to customize your deployment.
 
-<Tabs groupId="injection">
-<TabItem value="flag" label="Command-line flag">
+#### `--skip-initializer` flag
 
 You can disable the Initializer injection completely by specifying the
 `--skip-initializer` flag in the `generate` command.
 
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
+
 ```sh
 contrast generate --reference-values aks-clh-snp --skip-initializer resources/
 ```
+
 </TabItem>
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
+
 ```sh
 contrast generate --reference-values k3s-qemu-snp --skip-initializer resources/
 ```
+
 </TabItem>
 <TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+
 ```sh
 contrast generate --reference-values k3s-qemu-snp-gpu --skip-initializer resources/
 ```
+
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
+
 ```sh
 contrast generate --reference-values k3s-qemu-tdx --skip-initializer resources/
 ```
+
 </TabItem>
 </Tabs>
 
-</TabItem>
-
-<TabItem value="annotation" label="Per-workload annotation">
+#### `skip-initializer` annotation
 
 If you want to disable the Initializer injection for a specific workload with
 the `contrast-cc` runtime class, you can do so by adding an annotation to the workload.
@@ -124,8 +131,7 @@ metadata: # apps/v1.Deployment, apps/v1.DaemonSet, ...
     contrast.edgeless.systems/skip-initializer: "true"
 ```
 
-</TabItem>
-</Tabs>
+#### Manual Initializer injection
 
 When disabling the automatic Initializer injection, you can manually add the
 Initializer as a sidecar container to your workload before generating the
