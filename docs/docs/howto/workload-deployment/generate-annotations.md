@@ -26,39 +26,100 @@ A `manifest.json` with the reference values of your deployment will be created.
 
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
+
 ```sh
 contrast generate --reference-values aks-clh-snp resources/
 ```
+
 </TabItem>
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
+
 ```sh
 contrast generate --reference-values k3s-qemu-snp resources/
 ```
-:::note[Missing TCB values]
-On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms.
+
+On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
 They will have to be filled in manually.
-If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":255,"SNPVersion":255,"MicrocodeVersion":255}` and observe the real values in the error messages in the following steps. This should only be done in a secure environment. Note that the values will differ between CPU models.
+
+If you don't know the values from the firmware you installed, you can use the [`snphost`](https://github.com/virtee/snphost) tool to retrieve the current TCB.
+
+```sh
+snphost show tcb
+```
+```console
+Reported TCB: TCB Version:
+  Microcode:   72
+  SNP:         23
+  TEE:         0
+  Boot Loader: 9
+  FMC:         None
+Platform TCB: TCB Version:
+  Microcode:   72
+  SNP:         23
+  TEE:         0
+  Boot Loader: 9
+  FMC:         None
+```
+
+Use the values from `Platform TCB` to fill in the `MinimumTCB` values in the generated `manifest.json` file.
+
+:::note[Attention!]
+
+This must be done on a trusted machine, with a secure and trusted connection to it.
+
 :::
+
 </TabItem>
 <TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+
 ```sh
 contrast generate --reference-values k3s-qemu-snp-gpu resources/
 ```
-:::note[Missing TCB values]
-On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms.
+
+On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
 They will have to be filled in manually.
-If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":255,"SNPVersion":255,"MicrocodeVersion":255}` and observe the real values in the error messages in the following steps. This should only be done in a secure environment. Note that the values will differ between CPU models.
+
+If you don't know the values from the firmware you installed, you can use the [`snphost`](https://github.com/virtee/snphost) tool to retrieve the current TCB.
+
+```sh
+snphost show tcb
+```
+```console
+Reported TCB: TCB Version:
+  Microcode:   72
+  SNP:         23
+  TEE:         0
+  Boot Loader: 9
+  FMC:         None
+Platform TCB: TCB Version:
+  Microcode:   72
+  SNP:         23
+  TEE:         0
+  Boot Loader: 9
+  FMC:         None
+```
+
+Use the values from `Platform TCB` to fill in the `MinimumTCB` values in the generated `manifest.json` file.
+
+:::note[Attention!]
+
+This must be done on a trusted machine, with a secure and trusted connection to it.
+
 :::
+
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
+
 ```sh
 contrast generate --reference-values k3s-qemu-tdx resources/
 ```
+
 :::note[Missing TCB values]
 On bare-metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values as they can vary between platforms.
 They will have to be filled in manually.
 If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and `000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000` respectively and observe the real values in the error messages in the following steps. This should only be done in a secure environment.
 :::
+
 </TabItem>
 </Tabs>
 
@@ -68,7 +129,9 @@ If your container registry requires authentication, you can create the necessary
 Be aware of the [registry authentication limitation](../../architecture/features-limitations.md#kubernetes-features) on bare metal.
 
 :::warning
-Please be aware that runtime policies currently have some blind spots. For example, they can't guarantee the starting order of containers. See the [current limitations](../../architecture/features-limitations.md#runtime-policies) for more details.
+Please be aware that runtime policies currently have some blind spots.
+For example, they can't guarantee the starting order of containers.
+See the [current limitations](../../architecture/features-limitations.md#runtime-policies) for more details.
 :::
 
 Running `contrast generate` for the first time creates some additional files in the working directory:
