@@ -21,6 +21,7 @@ import (
 	"github.com/containers/storage/types"
 	"github.com/edgelesssys/contrast/imagepuller/internal/api"
 	"github.com/edgelesssys/contrast/imagepuller/internal/service"
+	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -34,17 +35,27 @@ func main() {
 		return
 	}
 
-	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-
-	if err := run(log); err != nil {
-		log.Error("exited with error", "err", err)
+	if err := newRootCmd().Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
-func run(log *slog.Logger) error {
+func newRootCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:          "imagepuller",
+		Short:        "pull and mount images",
+		Version:      version,
+		SilenceUsage: true,
+		RunE:         run,
+	}
+	cmd.Flags().String("tmpdir", "", "temporary directory to use for storage")
+	return cmd
+}
+
+func run(cmd *cobra.Command, _ []string) error {
+	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
 	ctxSignal, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
@@ -71,15 +82,19 @@ func run(log *slog.Logger) error {
 	}
 	defer s.Close()
 
-	tmpDir, err := os.MkdirTemp("", "")
-	if err != nil {
-		return fmt.Errorf("creating tempdir: %w", err)
+	tmpDir := cmd.Flag("tmpdir").Value.String()
+	if len(tmpDir) == 0 {
+		tmpDir, err = os.MkdirTemp("", "")
+		if err != nil {
+			return fmt.Errorf("creating tempdir: %w", err)
+		}
 	}
 	store, err := storage.GetStore(types.StoreOptions{
 		TransientStore: true,
 		RunRoot:        filepath.Join(tmpDir, "run"),
 		GraphRoot:      filepath.Join(tmpDir, "graph"),
 	})
+	log.Info("Created storage", "storage_dir", tmpDir)
 	if err != nil {
 		return fmt.Errorf("opening storage: %w", err)
 	}
