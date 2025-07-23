@@ -90,6 +90,8 @@ populate target=default_deploy_target platform=default_platform:
     if [[ "${target}" == "custom" ]]; then
         target=""
         cp -r ./.custom/* ./{{ workspace_dir }}/deployment/
+        ns="{{ target }}${namespace_suffix-}"
+        env ns="$ns" yq -i '.metadata.namespace = strenv(ns)' ./{{ workspace_dir }}/deployment/*.yml
     fi
     if [[ -f ./{{ workspace_dir }}/deployment/deployment.yml ]]; then
         echo "---" >> ./{{ workspace_dir }}/deployment/deployment.yml
