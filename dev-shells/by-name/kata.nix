@@ -58,5 +58,6 @@ mkShell {
   shellHook = ''
     export CC_x86_64_unknown_linux_musl=${pkgsCross.musl64.buildPackages.gcc}/bin/x86_64-unknown-linux-musl-gcc
     export AR_x86_64_unknown_linux_musl=${pkgsCross.musl64.buildPackages.gcc}/bin/x86_64-unknown-linux-musl-ar
+    export LIBCLANG_PATH=${llvmPackages.libclang.lib}/lib
   '';
 }
