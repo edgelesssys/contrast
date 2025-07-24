@@ -270,8 +270,6 @@ jobs:
           echo "initializerImg=$initializerImg" | tee -a "$GITHUB_ENV"
           echo "serviceMeshImg=$serviceMeshImg" | tee -a "$GITHUB_ENV"
           echo "tardevSnapshotterImg=$tardevSnapshotterImg" | tee -a "$GITHUB_ENV"
-          echo "nydusSnapshotterImg=$nydusSnapshotterImg" | tee -a "$GITHUB_ENV"
-          echo "nydusPullImg=$nydusPullImg" | tee -a "$GITHUB_ENV"
       - name: Add tags to container images
         run: |
           # Insert a tag into a container image name.
@@ -293,7 +291,6 @@ jobs:
           echo "nodeInstallerKataGPUImgTagged=$(tagContrast "$nodeInstallerKataGPUImg")" | tee -a "$GITHUB_ENV"
           echo "initializerImgTagged=$(tagContrast "$initializerImg")" | tee -a "$GITHUB_ENV"
           echo "serviceMeshImgTagged=$(tagContrast "$serviceMeshImg")" | tee -a "$GITHUB_ENV"
-          echo "nydusPullImgTagged=$(tagContrast "$nydusPullImg")" | tee -a "$GITHUB_ENV"
 
           tardevVer=$(nix eval --impure --raw --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.microsoft.tardev-snapshotter.version")
           echo "tardevSnapshotterImgTagged=$(tag "$tardevVer" "$tardevSnapshotterImg")" | tee -a "$GITHUB_ENV"
