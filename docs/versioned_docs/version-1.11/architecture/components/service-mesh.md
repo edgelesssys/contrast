@@ -109,7 +109,7 @@ spec:
       - env:
           - name: CONTRAST_INGRESS_PROXY_CONFIG
             value: "web#8080#false##metrics#7890#true"
-        image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest"
+        image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:v1.11.0@sha256:c3f03ea8b5e7630b0878a79154292af144bc63aa1fa7ebda6e239fecad84852e"
         name: contrast-service-mesh
         restartPolicy: Always
         securityContext:
