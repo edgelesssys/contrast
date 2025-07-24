@@ -314,51 +314,15 @@ jobs:
           name: image-replacements
           path: |
             image-replacements.txt
-      - name: Create coordinator resource definitions
-        run: |
-          mkdir -p workspace
-
-          nix shell .#contrast --command resourcegen \
-            --image-replacements "./image-replacements.txt" \
-            --add-load-balancers \
-            coordinator > "workspace/coordinator.yml"
-      - name: Create runtime resource definitions
-        run: |
-          platforms=(
-            "aks-clh-snp"
-            "k3s-qemu-snp-gpu"
-            "k3s-qemu-snp"
-            "k3s-qemu-tdx"
-            "metal-qemu-snp-gpu"
-            "metal-qemu-snp"
-            "metal-qemu-tdx"
-            "rke2-qemu-tdx"
-          )
-          for platform in "${platforms[@]}"; do
-            nix shell .#contrast --command resourcegen \
-              --image-replacements ./image-replacements.txt \
-              --platform "$platform" \
-              runtime > "workspace/runtime-$platform.yml"
-          done
-      - name: Create demo resource definitions
-        run: |
-          nix shell .#contrast --command resourcegen \
-            --image-replacements ./image-replacements.txt \
-            --add-load-balancers emojivoto-sm-ingress > workspace/emojivoto-demo.yml
-          nix shell .#contrast --command resourcegen \
-            --image-replacements ./image-replacements.txt \
-            --add-load-balancers mysql > workspace/mysql-demo.yml
-          nix shell .#contrast --command resourcegen \
-            --image-replacements ./image-replacements.txt \
-            --add-load-balancers vault > workspace/vault-demo.yml
       - name: Update cli assets
         run: |
           cp image-replacements.txt cli/cmd/assets/image-replacements.txt
           git add cli/cmd/assets/image-replacements.txt
           git diff --staged --quiet || git commit -m "release: update cli assets"
-      - name: Build CLI
-        run: |
-          nix build -L .#contrast-cli-release --out-link workspace/contrast
+      - name: Create release artifacts
+        uses: ./.github/actions/release_artifacts
+        with:
+          s3-bucket-path: "pre-releases/${{ inputs.version }}"
       - name: Upload release artifacts (for main branch PR)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -373,26 +337,6 @@ jobs:
             workspace/emojivoto-demo.yml
             workspace/mysql-demo.yml
             workspace/vault-demo.yml
-      - name: AWS login (IAM role)
-        uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
-        with:
-          role-to-assume: arn:aws:iam::795746500882:role/ContrastPublicBucketRW
-          aws-region: eu-central-1
-      - name: Upload pre-release artifacts to S3 bucket contrast-public
-        run: |
-          unix=$(date +%s)
-          files=(
-            workspace/contrast-cli/bin/contrast
-            workspace/coordinator*.yml
-            workspace/runtime-*.yml
-            workspace/emojivoto-demo.yml
-            workspace/mysql-demo.yml
-            workspace/vault-demo.yml
-          )
-          for file in "${files[@]}"; do
-            aws s3 cp "$file" "s3://contrast-public/pre-releases/${VERSION}/$unix/"
-          done
-          echo "Artifacts available at https://contrast-public.s3.eu-central-1.amazonaws.com/pre-releases/${VERSION}/$unix/" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Create draft release
         uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:

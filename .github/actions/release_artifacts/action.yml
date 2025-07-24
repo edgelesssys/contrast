@@ -1,0 +1,79 @@
+name: create release artifacts
+description: Create release artifacts for the contrast project
+
+inputs:
+  s3-bucket-path:
+    description: S3 bucket path to upload the artifacts
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create coordinator resource definitions
+      shell: bash
+      run: |
+        mkdir -p workspace
+
+        nix shell .#contrast --command resourcegen \
+          --image-replacements "./image-replacements.txt" \
+          --add-load-balancers \
+          coordinator > "workspace/coordinator.yml"
+    - name: Create runtime resource definitions
+      shell: bash
+      run: |
+        platforms=(
+          "aks-clh-snp"
+          "k3s-qemu-snp-gpu"
+          "k3s-qemu-snp"
+          "k3s-qemu-tdx"
+          "metal-qemu-snp-gpu"
+          "metal-qemu-snp"
+          "metal-qemu-tdx"
+          "rke2-qemu-tdx"
+        )
+        for platform in "${platforms[@]}"; do
+          nix shell .#contrast --command resourcegen \
+            --image-replacements ./image-replacements.txt \
+            --platform "$platform" \
+            runtime > "workspace/runtime-$platform.yml"
+        done
+    - name: Create demo resource definitions
+      shell: bash
+      run: |
+        nix shell .#contrast --command resourcegen \
+          --image-replacements ./image-replacements.txt \
+          --add-load-balancers emojivoto-sm-ingress > workspace/emojivoto-demo.yml
+        nix shell .#contrast --command resourcegen \
+          --image-replacements ./image-replacements.txt \
+          --add-load-balancers mysql > workspace/mysql-demo.yml
+        nix shell .#contrast --command resourcegen \
+          --image-replacements ./image-replacements.txt \
+          --add-load-balancers vault > workspace/vault-demo.yml
+    - name: Build CLI
+      shell: bash
+      run: |
+        nix build -L .#contrast-cli-release --out-link workspace/contrast
+    - name: AWS login (IAM role)
+      uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
+      with:
+        role-to-assume: arn:aws:iam::795746500882:role/ContrastPublicBucketRW
+        aws-region: eu-central-1
+    - name: Upload pre-release artifacts to S3 bucket contrast-public
+      if: ${{ inputs.s3-bucket-path != '' }}
+      shell: bash
+      env:
+        S3_BUCKET_PATH: "${inputs.s3-bucket-path}"
+      run: |
+        unix=$(date +%s)
+        files=(
+          workspace/contrast-cli/bin/contrast
+          workspace/coordinator*.yml
+          workspace/runtime-*.yml
+          workspace/emojivoto-demo.yml
+          workspace/mysql-demo.yml
+          workspace/vault-demo.yml
+        )
+        for file in "${files[@]}"; do
+          aws s3 cp "$file" "s3://contrast-public/${S3_BUCKET_PATH}/$unix/"
+        done
+        echo "Artifacts available at https://contrast-public.s3.eu-central-1.amazonaws.com/${S3_BUCKET_PATH}/$unix/" | tee -a "$GITHUB_STEP_SUMMARY"
