@@ -320,6 +320,7 @@ jobs:
           git add cli/cmd/assets/image-replacements.txt
           git diff --staged --quiet || git commit -m "release: update cli assets"
       - name: Create release artifacts
+        id: create-artifacts
         uses: ./.github/actions/release_artifacts
         with:
           s3-bucket-path: "pre-releases/${{ inputs.version }}"
@@ -331,12 +332,7 @@ jobs:
           # https://github.com/actions/upload-artifact/blob/6027e3dd177782cd8ab9af838c04fd81a07f1d47/README.md?plain=1#L187
           path: |
             LICENSE
-            workspace/contrast-cli/bin/contrast
-            workspace/coordinator*.yml
-            workspace/runtime-*.yml
-            workspace/emojivoto-demo.yml
-            workspace/mysql-demo.yml
-            workspace/vault-demo.yml
+            ${{ steps.create-artifacts.outputs.paths }}
       - name: Create draft release
         uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
         with:
@@ -345,13 +341,7 @@ jobs:
           tag_name: ${{ inputs.version }}
           target_commitish: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           fail_on_unmatched_files: true
-          files: |
-            workspace/contrast-cli/bin/contrast
-            workspace/coordinator*.yml
-            workspace/runtime-*.yml
-            workspace/emojivoto-demo.yml
-            workspace/mysql-demo.yml
-            workspace/vault-demo.yml
+          files: ${{ steps.create-artifacts.outputs.paths }}
       - name: Reset temporary changes
         run: |
           git reset --hard "${WORKING_BRANCH}"
