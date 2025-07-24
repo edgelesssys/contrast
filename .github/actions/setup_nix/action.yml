@@ -12,6 +12,13 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Allow unrestricted user namespaces
+      # Ubuntu 24.04 ships strict apparmor defaults, so we have to disable them to be able to call
+      # unshare in the Nix sansbox without beeing root.
+      shell: bash
+      run: |
+        sudo sysctl --ignore --write kernel.apparmor_restrict_unprivileged_unconfined=0
+        sudo sysctl --ignore --write kernel.apparmor_restrict_unprivileged_userns=0
     - uses: cachix/install-nix-action@c134e4c9e34bac6cab09cf239815f9339aaaf84e # v31.5.1
       with:
         github_access_token: ${{ inputs.githubToken }}
