@@ -6,9 +6,28 @@ inputs:
     description: S3 bucket path to upload the artifacts
     required: false
 
+outputs:
+  paths:
+    description: Artifact paths
+    value: ${{ steps.artifact-paths.outputs.paths }}
+
 runs:
   using: "composite"
   steps:
+    - name: Expected artifact paths
+      id: artifact-paths
+      shell: bash
+      run: |
+        cat << 'EOF' | tee -a "${GITHUB_OUTPUT}"
+        paths<<EOM
+        workspace/contrast-cli/bin/contrast
+        workspace/coordinator*.yml
+        workspace/runtime-*.yml
+        workspace/emojivoto-demo.yml
+        workspace/mysql-demo.yml
+        workspace/vault-demo.yml
+        EOM
+        EOF
     - name: Create coordinator resource definitions
       shell: bash
       run: |
@@ -62,18 +81,16 @@ runs:
       if: ${{ inputs.s3-bucket-path != '' }}
       shell: bash
       env:
-        S3_BUCKET_PATH: "${inputs.s3-bucket-path}"
+        S3_BUCKET_PATH: ${{ inputs.s3-bucket-path }}
+        FILES: ${{ steps.artifact-paths.outputs.paths }}
       run: |
+        shopt -s nullglob
         unix=$(date +%s)
-        files=(
-          workspace/contrast-cli/bin/contrast
-          workspace/coordinator*.yml
-          workspace/runtime-*.yml
-          workspace/emojivoto-demo.yml
-          workspace/mysql-demo.yml
-          workspace/vault-demo.yml
-        )
-        for file in "${files[@]}"; do
-          aws s3 cp "$file" "s3://contrast-public/${S3_BUCKET_PATH}/$unix/"
+        readarray -t patterns <<< "$FILES"
+        for pattern in "${patterns[@]}"; do
+          matches=($pattern)
+          for file in "${matches[@]}"; do
+            aws s3 cp "$file" "s3://contrast-public/${S3_BUCKET_PATH}/$unix/"
+          done
         done
         echo "Artifacts available at https://contrast-public.s3.eu-central-1.amazonaws.com/${S3_BUCKET_PATH}/$unix/" | tee -a "$GITHUB_STEP_SUMMARY"
