@@ -121,7 +121,11 @@ func TestGPU(t *testing.T) {
 			getLibsCmd := fmt.Sprintf("ls %s*", pathThisLib)
 			stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, pod.Name, []string{"/usr/bin/env", "bash", "-c", getLibsCmd})
 			assert.NoError(err, "running %q:\nstdout:\n%s\nstderr:\n%s", getLibsCmd, stdout, stderr)
-			lsLibs := strings.Split(strings.TrimSpace(stdout), "\n")
+			stdout = strings.TrimSpace(stdout)
+			var lsLibs []string
+			if stdout != "" {
+				lsLibs = strings.Split(stdout, "\n")
+			}
 			if !assert.NotEmpty(lsLibs, "expected at least one library for %q", lib) {
 				continue
 			}
