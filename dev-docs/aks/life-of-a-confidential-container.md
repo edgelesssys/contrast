@@ -2,8 +2,10 @@
 
 ## Example Container Image
 
-We start with simple image comprising a `busybox` binary and two layers: `docker.io/burgerdev/example-container:1`.
-A useful tool for working with images is [`crane`](https://github.com/google/go-containerregistry/tree/main/cmd/crane).
+We start with simple image comprising a `busybox` binary and two layers:
+`docker.io/burgerdev/example-container:1`. A useful tool for working with images
+is
+[`crane`](https://github.com/google/go-containerregistry/tree/main/cmd/crane).
 
 <details>
 <summary>Image Manifest</summary>
@@ -14,25 +16,25 @@ crane manifest docker.io/burgerdev/example-container:1@sha256:cc3eca5ffd66d6d7e7
 
 ```json
 {
-   "schemaVersion": 2,
-   "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
-   "config": {
-      "mediaType": "application/vnd.docker.container.image.v1+json",
-      "size": 820,
-      "digest": "sha256:5416e5e66b25bac17cdf3fda3eee22a38dbd389d5a179751c92f783cc3494f90"
-   },
-   "layers": [
-      {
-         "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
-         "size": 766762,
-         "digest": "sha256:d30d3fe99ab4055a5ad13906b94b7bda07efb5ff057b93c37d6070b54f8ed408"
-      },
-      {
-         "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
-         "size": 95,
-         "digest": "sha256:d75d7b35464283bbb95710d85de7636f7cc9e69341cc541924957c7d9c2663ea"
-      }
-   ]
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+  "config": {
+    "mediaType": "application/vnd.docker.container.image.v1+json",
+    "size": 820,
+    "digest": "sha256:5416e5e66b25bac17cdf3fda3eee22a38dbd389d5a179751c92f783cc3494f90"
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 766762,
+      "digest": "sha256:d30d3fe99ab4055a5ad13906b94b7bda07efb5ff057b93c37d6070b54f8ed408"
+    },
+    {
+      "mediaType": "application/vnd.docker.image.rootfs.diff.tar.gzip",
+      "size": 95,
+      "digest": "sha256:d75d7b35464283bbb95710d85de7636f7cc9e69341cc541924957c7d9c2663ea"
+    }
+  ]
 }
 ```
 
@@ -74,7 +76,8 @@ crane blob docker.io/burgerdev/example-container@sha256:5416e5e66b25bac17cdf3fda
 <details>
 <summary>Image Content</summary>
 
-Fetch the layer blobs by digest (see the manifest), unpack them and print their content.
+Fetch the layer blobs by digest (see the manifest), unpack them and print their
+content.
 
 ```console
 $ crane blob docker.io/burgerdev/example-container@sha256:d30d3fe99ab4055a5ad13906b94b7bda07efb5ff057b93c37d6070b54f8ed408 | tar tz
@@ -117,10 +120,11 @@ spec:
 
 ## genpolicy
 
-We use the [`genpolicy`] tool to generate a runtime policy for the pod.
-This policy defines what OCI runtime parameters are acceptable for this pod.
-Runtime policies are covered in more detail in a [dedicated document](../coco/policy.md).
-It also calculates a `dm-verity` hash, but more on that later.
+We use the [`genpolicy`] tool to generate a runtime policy for the pod. This
+policy defines what OCI runtime parameters are acceptable for this pod. Runtime
+policies are covered in more detail in a
+[dedicated document](../coco/policy.md). It also calculates a `dm-verity` hash,
+but more on that later.
 
 [`genpolicy`]: https://github.com/microsoft/kata-containers/tree/3.2.0.azl1.genpolicy0/src/tools/genpolicy
 
@@ -128,8 +132,8 @@ It also calculates a `dm-verity` hash, but more on that later.
 genpolicy -u -y pod.yml
 ```
 
-The `-u` flag allocates a layer cache file that maps diff ids to `dm-verity` hashes.
-The diff ids correspond to those in the *Image Configuration* above.
+The `-u` flag allocates a layer cache file that maps diff ids to `dm-verity`
+hashes. The diff ids correspond to those in the _Image Configuration_ above.
 
 <details>
 <summary>Layer Cache</summary>
@@ -154,13 +158,16 @@ The diff ids correspond to those in the *Image Configuration* above.
 
 </details>
 
-The annotated pod is applied to the Kubernetes API server, where it waits to be scheduled.
+The annotated pod is applied to the Kubernetes API server, where it waits to be
+scheduled.
 
 ## Kubelet
 
-The kubelet watches pod resources and waits for a pod with `spec.nodeName` matching its hostname.
-If it finds a scheduled pod for this node, the kubelet attempts to run it.
-The `runtimeClassName` field specifies the `RuntimeClass` resource to use for this pod, which maps the name (`kata-cc-isolation`) to a handler (`kata-cc`).
+The kubelet watches pod resources and waits for a pod with `spec.nodeName`
+matching its hostname. If it finds a scheduled pod for this node, the kubelet
+attempts to run it. The `runtimeClassName` field specifies the `RuntimeClass`
+resource to use for this pod, which maps the name (`kata-cc-isolation`) to a
+handler (`kata-cc`).
 
 <details>
 <summary>Runtime Class</summary>
@@ -181,9 +188,9 @@ scheduling:
 
 </details>
 
-The kubelet proceeds with calls to the [CRI] plugin, requesting the `kata-cc` runtime.
-We can inspect the pods with the [`crictl`] tool.
-The allocated sandbox id for our pod will be important in the next sections.
+The kubelet proceeds with calls to the [CRI] plugin, requesting the `kata-cc`
+runtime. We can inspect the pods with the [`crictl`] tool. The allocated sandbox
+id for our pod will be important in the next sections.
 
 [CRI]: https://kubernetes.io/docs/concepts/architecture/cri/
 [`crictl`]: https://kubernetes.io/docs/tasks/debug/debug-cluster/crictl/
@@ -206,8 +213,8 @@ kata-cc
 
 ## Containerd
 
-The CRI plugin is provided by [containerd](https://containerd.io/).
-Runtimes are registered in the containerd configuration.
+The CRI plugin is provided by [containerd](https://containerd.io/). Runtimes are
+registered in the containerd configuration.
 
 ```toml
 [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata-cc]
@@ -217,8 +224,9 @@ Runtimes are registered in the containerd configuration.
   pod_annotations = ["io.katacontainers.*"]
 ```
 
-Before a container can be started inside the sandbox, containerd needs to set up the root filesystem.
-This is the task of the configured snapshotter, in this case `tardev`.
+Before a container can be started inside the sandbox, containerd needs to set up
+the root filesystem. This is the task of the configured snapshotter, in this
+case `tardev`.
 
 ```console
 $ ctr --namespace k8s.io container ls "runtime.name==io.containerd.kata-cc.v2"
@@ -229,15 +237,17 @@ CONTAINER                                                           IMAGE       
 
 ## Tardev Snapshotter
 
-The [snapshot API] abstracts setting up the container root filesystem such that it can be used by the runtime.
-For each layer in the image, it receives a request from containerd to add this layers content to the final bundle.
-Examples of snapshotters include Device Mapper, overlayfs, etc.
+The [snapshot API] abstracts setting up the container root filesystem such that
+it can be used by the runtime. For each layer in the image, it receives a
+request from containerd to add this layers content to the final bundle. Examples
+of snapshotters include Device Mapper, overlayfs, etc.
 
-However, the [tardev snapshotter] doesn't assemble a final root.
-Its actual goal is to set up block devices that can be added to the pod VM.
-For each layer requested by containerd, the snapshotter creates a metadata file and a layer file.
-The layer file is created by unzipping the container image layer, appending an index and computing the dm-verity checksum over both.
-The resulting file is stored and will be mounted by the Kata Runtime.
+However, the [tardev snapshotter] doesn't assemble a final root. Its actual goal
+is to set up block devices that can be added to the pod VM. For each layer
+requested by containerd, the snapshotter creates a metadata file and a layer
+file. The layer file is created by unzipping the container image layer,
+appending an index and computing the dm-verity checksum over both. The resulting
+file is stored and will be mounted by the Kata Runtime.
 
 [snapshot API]: https://github.com/containerd/containerd/blob/v1.7.18/api/services/snapshots/v1/snapshots.proto
 [tardev snapshotter]: https://github.com/microsoft/kata-containers/tree/3.2.0.azl1.genpolicy0/src/tardev-snapshotter
@@ -245,8 +255,10 @@ The resulting file is stored and will be mounted by the Kata Runtime.
 <details>
 <summary>Tardev Snapshot Layout</summary>
 
-The metadata files are stored in the `/var/lib/containerd/io.containerd.snapshotter.v1.tardev/snapshots` directory.
-Note how the `layer-digest` matches the layer digest in the *Image Manifest* above.
+The metadata files are stored in the
+`/var/lib/containerd/io.containerd.snapshotter.v1.tardev/snapshots` directory.
+Note how the `layer-digest` matches the layer digest in the _Image Manifest_
+above.
 
 ```json
 {
@@ -272,7 +284,9 @@ Note how the `layer-digest` matches the layer digest in the *Image Manifest* abo
 }
 ```
 
-The corresponding tarfs file can be found in `/var/lib/containerd/io.containerd.snapshotter.v1.tardev/layers` under the same name.
+The corresponding tarfs file can be found in
+`/var/lib/containerd/io.containerd.snapshotter.v1.tardev/layers` under the same
+name.
 
 ```console
 $ tar tf /var/lib/containerd/io.containerd.snapshotter.v1.tardev/layers/2ead9678c1b2b8595710d3470068107cb66cf94006c8ea926da38860d26ac6bc
@@ -283,7 +297,8 @@ LAYER_2
 
 ## Kata Runtime
 
-containerd starts the Kata Shim and translates the CRI methods to [Runtime v2] methods.
+containerd starts the Kata Shim and translates the CRI methods to [Runtime v2]
+methods.
 
 <!-- TODO(burgerdev): this section is a stub. -->
 
@@ -291,9 +306,10 @@ containerd starts the Kata Shim and translates the CRI methods to [Runtime v2] m
 
 ## Cloud Hypervisor
 
-Cloud Hypervisor manages the pod VMs in directories under `/run/vc/vm/`.
-The pod sandbox id from earlier can be used to query the [REST API] and inspect VM configuration.
-Alternatively, the [`ch-remote`] binary should support most operations, too.
+Cloud Hypervisor manages the pod VMs in directories under `/run/vc/vm/`. The pod
+sandbox id from earlier can be used to query the [REST API] and inspect VM
+configuration. Alternatively, the [`ch-remote`] binary should support most
+operations, too.
 
 [REST API]: https://github.com/cloud-hypervisor/cloud-hypervisor/blob/v40.0/docs/api.md#external-api
 [`ch-remote`]: https://github.com/cloud-hypervisor/cloud-hypervisor/blob/v40.0/src/bin/ch-remote.rs
@@ -301,8 +317,8 @@ Alternatively, the [`ch-remote`] binary should support most operations, too.
 <details>
 <summary>VM Info</summary>
 
-We query the API endpoint using the sandbox id obtained by `crictl`.
-Among lots of other details, we learn that there are 4 "disks" mounted:
+We query the API endpoint using the sandbox id obtained by `crictl`. Among lots
+of other details, we learn that there are 4 "disks" mounted:
 
 - The root image.
 - The indexed tarball for the pause container.
@@ -339,7 +355,8 @@ curl -s --unix-socket /run/vc/vm/6aa04b0c9483817bb9da7216c352348d33d6fda1ecd10ac
 ## Kata Agent
 
 Inside the confidential VM, the Kata Agent starts up and serves the [agent API].
-If we configured Kata for [debug mode](../serial-console.md), we can log into the container by sandbox id:
+If we configured Kata for [debug mode](../serial-console.md), we can log into
+the container by sandbox id:
 
 ```sh
 kata-runtime exec 6aa04b0c9483817bb9da7216c352348d33d6fda1ecd10ac5c836bcd4a1652bed
@@ -350,8 +367,9 @@ kata-runtime exec 6aa04b0c9483817bb9da7216c352348d33d6fda1ecd10ac5c836bcd4a1652b
 <details>
 <summary>Block Devices in Guest</summary>
 
-Taking a look around, we see that the block devices are present and mapped with dm-verity.
-Note that the dm-verity hash matches both tardev snapshot metadata and genpolicy layer metadata.
+Taking a look around, we see that the block devices are present and mapped with
+dm-verity. Note that the dm-verity hash matches both tardev snapshot metadata
+and genpolicy layer metadata.
 
 ```console
 $ dmsetup ls
@@ -374,8 +392,9 @@ $ dmsetup measure 2ead9678c1b2b8595710d3470068107cb66cf94006c8ea926da38860d26ac6
 
 ## Tarfs
 
-The integrity protected tarball is directly mounted as a filesystem.
-The filesystem driver belongs to the [`tarfs`] module and is loaded into the guest kernel.
+The integrity protected tarball is directly mounted as a filesystem. The
+filesystem driver belongs to the [`tarfs`] module and is loaded into the guest
+kernel.
 
 [`tarfs`]: https://github.com/microsoft/kata-containers/tree/3.2.0.azl1.genpolicy0/src/tarfs
 
@@ -398,8 +417,9 @@ $ mount | grep -F sandbox/layers
 
 ## Container
 
-Before the container can finally start, the individual layers need to be assembled into a root filesystem.
-This is done by the Kata agent, with a strategy much like the `overlayfs` snapshotter.
+Before the container can finally start, the individual layers need to be
+assembled into a root filesystem. This is done by the Kata agent, with a
+strategy much like the `overlayfs` snapshotter.
 
 <details>
 <summary>Container Root Filesystems</summary>

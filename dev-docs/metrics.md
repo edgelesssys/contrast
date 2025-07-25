@@ -2,8 +2,7 @@
 
 For quick access to the metrics exposed by the Coordinator when debugging a
 Contrast deployment, you can setup a Prometheus server with helm, using the
-[Prometheus Community Helm
-Charts](https://github.com/prometheus-community/helm-charts):
+[Prometheus Community Helm Charts](https://github.com/prometheus-community/helm-charts):
 
 ```sh
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts

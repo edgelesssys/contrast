@@ -1,15 +1,22 @@
 # Security overview
 
-Contrast is designed to thoroughly protect your deployment and data from the underlying infrastructure.
-This section outlines the security goals and the associated threat model.
+Contrast is designed to thoroughly protect your deployment and data from the
+underlying infrastructure. This section outlines the security goals and the
+associated threat model.
 
 ## Security goals
 
-- **Confidentiality**: All data processed remains encrypted at all times: During transit, at rest and even while processing through runtime encryption.
+- **Confidentiality**: All data processed remains encrypted at all times: During
+  transit, at rest and even while processing through runtime encryption.
 
-- **Isolation**: By design, Contrast strictly isolates workloads from the underlying infrastructure. It prevents access by infrastructure providers, data center personnel, privileged cloud administrators, and external malicious actors.
+- **Isolation**: By design, Contrast strictly isolates workloads from the
+  underlying infrastructure. It prevents access by infrastructure providers,
+  data center personnel, privileged cloud administrators, and external malicious
+  actors.
 
-- **Integrity and authenticity**: Contrast ensures that all workloads are running in a trusted and intended state. The integrity and authenticity of workloads is ensured through remote attestation.
+- **Integrity and authenticity**: Contrast ensures that all workloads are
+  running in a trusted and intended state. The integrity and authenticity of
+  workloads is ensured through remote attestation.
 
 ## Threat model and mitigations
 
@@ -18,27 +25,34 @@ This section outlines the types of threats Contrast is designed to mitigate.
 > **Out of scope:**
 >
 > - Vulnerabilities in application logic (for example broken access controls)
-> - Hardware-level attacks on Confidential Computing (for example side-channel exploits)
+> - Hardware-level attacks on Confidential Computing (for example side-channel
+>   exploits)
 > - Denial-of-service (DoS) and other availability-focused attacks
 
 ### Threat actors
 
 Contrast protects against five main types of attackers:
 
-- **Malicious cloud insider:**
-  Cloud provider employees or contractors with privileged access across physical infrastructure, hypervisors, or Kubernetes control planes. They may tamper with VM resources, intercept data, or restrict runtime behavior (for example limit memory, alter disk volumes, or change firewall rules).
+- **Malicious cloud insider:** Cloud provider employees or contractors with
+  privileged access across physical infrastructure, hypervisors, or Kubernetes
+  control planes. They may tamper with VM resources, intercept data, or restrict
+  runtime behavior (for example limit memory, alter disk volumes, or change
+  firewall rules).
 
-- **Malicious cloud co-tenant:**
-  A cloud user who breaks out of isolation to target neighboring tenants. Though lacking physical access, they may achieve similar effects to insiders through persistent exploitation.
+- **Malicious cloud co-tenant:** A cloud user who breaks out of isolation to
+  target neighboring tenants. Though lacking physical access, they may achieve
+  similar effects to insiders through persistent exploitation.
 
-- **Malicious workload operator:**
-  Kubernetes administrators or DevOps engineers with access to workload deployment and orchestration tools. Their influence spans everything above the hypervisor.
+- **Malicious workload operator:** Kubernetes administrators or DevOps engineers
+  with access to workload deployment and orchestration tools. Their influence
+  spans everything above the hypervisor.
 
-- **Malicious attestation client:**
-  Attempts to disrupt or bypass the attestation service by sending malformed or intentionally deceptive requests.
+- **Malicious attestation client:** Attempts to disrupt or bypass the
+  attestation service by sending malformed or intentionally deceptive requests.
 
-- **Malicious container image provider:**
-  Publishes container images that include malicious functionality (for example backdoors or unauthorized data access logic).
+- **Malicious container image provider:** Publishes container images that
+  include malicious functionality (for example backdoors or unauthorized data
+  access logic).
 
 ### Attack surfaces
 
@@ -56,9 +70,12 @@ Contrast protects against five main types of attackers:
 
 Contrast mitigates these threats using three core components:
 
-1. [**Runtime environment**](./architecture/components/runtime.md): protects memory, disk, and VM integrity
-2. [**Runtime policies**](./architecture/components/policies.md): define and enforce workload integrity and configuration
-3. [**Service mesh**](./architecture/components/service-mesh.md): secures all internal and external communication
+1. [**Runtime environment**](./architecture/components/runtime.md): protects
+   memory, disk, and VM integrity
+2. [**Runtime policies**](./architecture/components/policies.md): define and
+   enforce workload integrity and configuration
+3. [**Service mesh**](./architecture/components/service-mesh.md): secures all
+   internal and external communication
 
 ### Attacks on the confidential container environment
 
@@ -93,5 +110,7 @@ Contrast mitigates these threats using three core components:
 | **Trusted SaaS delivery**  | _SaaSProviderX_ wants to prove to customers that even internal admins can't access their data. With Contrast, customers retain control, while the SaaS provider is excluded from the trusted base.                       |
 | **Regulatory compliance**  | _HealthSecure Inc._ migrates analytics to the cloud while handling patient data. Regulators require verifiable isolation. Contrast provides attestable guarantees that only authorized workloads process sensitive data. |
 
-In all scenarios, Contrast ensures that only authorized workloads can access sensitive data.
-It offers verifiable isolation from infrastructure and control-plane actors, while giving data owners full visibility and control over the runtime environment.
+In all scenarios, Contrast ensures that only authorized workloads can access
+sensitive data. It offers verifiable isolation from infrastructure and
+control-plane actors, while giving data owners full visibility and control over
+the runtime environment.

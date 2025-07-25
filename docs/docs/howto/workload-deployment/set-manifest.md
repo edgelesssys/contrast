@@ -4,7 +4,8 @@ Setting the manifest enables the Contrast Coordinator to verify the deployment.
 
 ## Applicability
 
-This step is mandatory for all Contrast deployments. Workloads won't start until a valid manifest has been configured.
+This step is mandatory for all Contrast deployments. Workloads won't start until
+a valid manifest has been configured.
 
 ## Prerequisites
 
@@ -22,8 +23,7 @@ This step is mandatory for all Contrast deployments. Workloads won't start until
 
 ### Connect to the Contrast Coordinator
 
-The released Coordinator resource
-includes a LoadBalancer definition we can use.
+The released Coordinator resource includes a LoadBalancer definition we can use.
 
 ```sh
 coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -31,8 +31,9 @@ coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ing
 
 :::info[Port-forwarding of Confidential Containers]
 
-`kubectl port-forward` uses a Container Runtime Interface (CRI) method that isn't supported by the Kata shim.
-If you can't use a public load balancer, you can deploy a port-forwarding pod to relay traffic to a Contrast pod:
+`kubectl port-forward` uses a Container Runtime Interface (CRI) method that
+isn't supported by the Kata shim. If you can't use a public load balancer, you
+can deploy a port-forwarding pod to relay traffic to a Contrast pod:
 
 ```yaml
 apiVersion: v1
@@ -54,7 +55,8 @@ spec:
           memory: 50Mi
 ```
 
-Upstream tracking issue: https://github.com/kata-containers/kata-containers/issues/1693.
+Upstream tracking issue:
+https://github.com/kata-containers/kata-containers/issues/1693.
 
 :::
 
@@ -66,4 +68,7 @@ Attest the Coordinator and set the manifest:
 contrast set -c "${coordinator}:1313" resources/
 ```
 
-This will use the reference values from the manifest file to attest the Coordinator. After this step, the Coordinator will start issuing TLS certificates to the workloads. The init container will fetch a certificate for the workload and the workload is started.
+This will use the reference values from the manifest file to attest the
+Coordinator. After this step, the Coordinator will start issuing TLS
+certificates to the workloads. The init container will fetch a certificate for
+the workload and the workload is started.

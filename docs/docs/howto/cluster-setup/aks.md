@@ -2,8 +2,11 @@
 
 ## Prerequisites
 
-- Install version 2.44.1 or newer of the [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/). Note that your package manager will likely install an outdated version.
-- Install a recent version of [kubectl](https://kubernetes.io/docs/tasks/tools/).
+- Install version 2.44.1 or newer of the
+  [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/). Note that your
+  package manager will likely install an outdated version.
+- Install a recent version of
+  [kubectl](https://kubernetes.io/docs/tasks/tools/).
 
 ## Prepare using the AKS preview
 
@@ -13,8 +16,8 @@ First, log in to your Azure subscription:
 az login
 ```
 
-CoCo on AKS is currently in preview. An extension for the `az` CLI is needed to create such a cluster.
-Add the extension with the following commands:
+CoCo on AKS is currently in preview. An extension for the `az` CLI is needed to
+create such a cluster. Add the extension with the following commands:
 
 ```bash
 az extension add \
@@ -25,7 +28,8 @@ az extension update \
   --allow-preview true
 ```
 
-Then register the required feature flags in your subscription to allow access to the public preview:
+Then register the required feature flags in your subscription to allow access to
+the public preview:
 
 ```bash
 az feature register \
@@ -33,7 +37,8 @@ az feature register \
     --name "KataCcIsolationPreview"
 ```
 
-Also enable the feature flag to disable SSH access to the AKS node (recommended, not required):
+Also enable the feature flag to disable SSH access to the AKS node (recommended,
+not required):
 
 ```bash
 az feature register \
@@ -41,8 +46,9 @@ az feature register \
   --name "DisableSSHPreview"
 ```
 
-The registration can take a few minutes. The status of the operation can be checked with the following
-command, which should show the registration state as `Registered`:
+The registration can take a few minutes. The status of the operation can be
+checked with the following command, which should show the registration state as
+`Registered`:
 
 ```sh
 az feature show \
@@ -85,7 +91,8 @@ Set the name of the resource group you want to use:
 azResourceGroup="ContrastDemo"
 ```
 
-You can either use an existing one or create a new resource group with the following command:
+You can either use an existing one or create a new resource group with the
+following command:
 
 ```bash
 azLocation="westus" # Select a location from the list above
@@ -136,19 +143,22 @@ NAME                                STATUS   ROLES    AGE     VERSION
 aks-nodepool1-32049705-vmss000000   Ready    <none>   9m47s   v1.29.0
 ```
 
-🥳 Congratulations. You're now ready to set up your first application with Contrast. Follow this [example](../../getting-started/overview.md) to learn how.
+🥳 Congratulations. You're now ready to set up your first application with
+Contrast. Follow this [example](../../getting-started/overview.md) to learn how.
 
 ## Cleanup
 
-After trying out Contrast, you might want to clean up the cloud resources created in this step.
-In case you've created a new resource group, you can just delete that group with
+After trying out Contrast, you might want to clean up the cloud resources
+created in this step. In case you've created a new resource group, you can just
+delete that group with
 
 ```sh
 az group delete \
   --name "${azResourceGroup:?}"
 ```
 
-Deleting the resource group will also delete the cluster and all other related resources.
+Deleting the resource group will also delete the cluster and all other related
+resources.
 
 To only cleanup the AKS cluster and node pools, run
 

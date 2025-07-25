@@ -1,49 +1,53 @@
 # Service mesh
 
-The Contrast service mesh secures the communication of the workload by automatically
-wrapping the network traffic inside mutual TLS (mTLS) connections. The
-verification of the endpoints in the connection establishment is based on
+The Contrast service mesh secures the communication of the workload by
+automatically wrapping the network traffic inside mutual TLS (mTLS) connections.
+The verification of the endpoints in the connection establishment is based on
 certificates that are part of the
 [PKI of the Coordinator](../architecture/certificates.md).
 
 The service mesh can be enabled on a per-workload basis by adding a service mesh
-configuration to the workload's object annotations. During the `contrast generate`
-step, the service mesh is added as a [sidecar
-container](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/) to
-all workloads which have a specified configuration. The service mesh container first
-sets up `iptables` rules based on its configuration and then starts
-[Envoy](https://www.envoyproxy.io/) for TLS origination and termination.
+configuration to the workload's object annotations. During the
+`contrast generate` step, the service mesh is added as a
+[sidecar container](https://kubernetes.io/docs/concepts/workloads/pods/sidecar-containers/)
+to all workloads which have a specified configuration. The service mesh
+container first sets up `iptables` rules based on its configuration and then
+starts [Envoy](https://www.envoyproxy.io/) for TLS origination and termination.
 
 ## Configuring the proxy
 
-The service mesh container can be configured using the following object annotations:
+The service mesh container can be configured using the following object
+annotations:
 
-* `contrast.edgeless.systems/servicemesh-ingress` to configure ingress.
-* `contrast.edgeless.systems/servicemesh-egress` to configure egress.
-* `contrast.edgeless.systems/servicemesh-admin-interface-port` to configure the Envoy
-  admin interface. If not specified, no admin interface will be started.
+- `contrast.edgeless.systems/servicemesh-ingress` to configure ingress.
+- `contrast.edgeless.systems/servicemesh-egress` to configure egress.
+- `contrast.edgeless.systems/servicemesh-admin-interface-port` to configure the
+  Envoy admin interface. If not specified, no admin interface will be started.
 
-If you aren't using the automatic service mesh injection and want to configure the
-service mesh manually, set the environment variables `CONTRAST_INGRESS_PROXY_CONFIG`,
-`CONTRAST_EGRESS_PROXY_CONFIG` and `CONTRAST_ADMIN_PORT` in the service mesh sidecar directly.
+If you aren't using the automatic service mesh injection and want to configure
+the service mesh manually, set the environment variables
+`CONTRAST_INGRESS_PROXY_CONFIG`, `CONTRAST_EGRESS_PROXY_CONFIG` and
+`CONTRAST_ADMIN_PORT` in the service mesh sidecar directly.
 
 ### Ingress
 
 All TCP ingress traffic is routed over Envoy by default. Since we use
-[TPROXY](https://docs.kernel.org/networking/tproxy.html), the destination address
-remains the same throughout the packet handling.
+[TPROXY](https://docs.kernel.org/networking/tproxy.html), the destination
+address remains the same throughout the packet handling.
 
-Any incoming connection is required to present a client certificate signed by the
+Any incoming connection is required to present a client certificate signed by
+the
 [mesh CA certificate](../architecture/certificates.md#usage-of-the-different-certificates).
-Envoy presents a certificate chain of the mesh
-certificate of the workload and the intermediate CA certificate as the server certificate.
+Envoy presents a certificate chain of the mesh certificate of the workload and
+the intermediate CA certificate as the server certificate.
 
 If the deployment contains workloads which should be reachable from outside the
 Service Mesh, while still handing out the certificate chain, disable client
-authentication by setting the annotation `contrast.edgeless.systems/servicemesh-ingress` as
-`<name>#<port>#false`. Separate multiple entries with `##`. You can choose any
-descriptive string identifying the service on the given port for the `<name>` field,
-as it's only informational.
+authentication by setting the annotation
+`contrast.edgeless.systems/servicemesh-ingress` as `<name>#<port>#false`.
+Separate multiple entries with `##`. You can choose any descriptive string
+identifying the service on the given port for the `<name>` field, as it's only
+informational.
 
 Disable redirection and TLS termination altogether by specifying
 `<name>#<port>#true`. This can be beneficial if the workload itself handles TLS
@@ -77,56 +81,57 @@ spec:
               name: metrics
 ```
 
-When invoking `contrast generate`, the resulting deployment will be injected with the
-Contrast service mesh as an init container.
+When invoking `contrast generate`, the resulting deployment will be injected
+with the Contrast service mesh as an init container.
 
 ```yaml
 # ...
-      initContainers:
-        - env:
-            - name: CONTRAST_INGRESS_PROXY_CONFIG
-              value: "web#8080#false##metrics#7890#true"
-          image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:v1.5.1@sha256:0ea6732a93a318725bde9c02de71d525a46ba7a5016cd55790e51f350d875535"
-          name: contrast-service-mesh
-          restartPolicy: Always
-          securityContext:
-            capabilities:
-              add:
-                - NET_ADMIN
-            privileged: true
-          volumeMounts:
-            - name: contrast-secrets
-              mountPath: /contrast
+initContainers:
+  - env:
+      - name: CONTRAST_INGRESS_PROXY_CONFIG
+        value: "web#8080#false##metrics#7890#true"
+    image: "ghcr.io/edgelesssys/contrast/service-mesh-proxy:v1.5.1@sha256:0ea6732a93a318725bde9c02de71d525a46ba7a5016cd55790e51f350d875535"
+    name: contrast-service-mesh
+    restartPolicy: Always
+    securityContext:
+      capabilities:
+        add:
+          - NET_ADMIN
+      privileged: true
+    volumeMounts:
+      - name: contrast-secrets
+        mountPath: /contrast
 ```
 
-Note, that changing the environment variables of the sidecar container directly will
-only have an effect if the workload isn't configured to automatically generate a
-service mesh component on `contrast generate`. Otherwise, the service mesh sidecar
-container will be regenerated on every invocation of the command.
+Note, that changing the environment variables of the sidecar container directly
+will only have an effect if the workload isn't configured to automatically
+generate a service mesh component on `contrast generate`. Otherwise, the service
+mesh sidecar container will be regenerated on every invocation of the command.
 
 ### Egress
 
 To be able to route the egress traffic of the workload through Envoy, the remote
 endpoints' IP address and port must be configurable.
 
-* Choose an IP address inside the `127.0.0.0/8` CIDR and a port not yet in use
-by the pod.
-* Configure the workload to connect to this IP address and port.
-* Set `<name>#<chosen IP>:<chosen port>#<original-hostname-or-ip>:<original-port>`
-as the `contrast.edgeless.systems/servicemesh-egress` workload annotation. Separate multiple
-entries with `##`. Choose any string identifying the service on the given port as
-`<name>`.
+- Choose an IP address inside the `127.0.0.0/8` CIDR and a port not yet in use
+  by the pod.
+- Configure the workload to connect to this IP address and port.
+- Set
+  `<name>#<chosen IP>:<chosen port>#<original-hostname-or-ip>:<original-port>`
+  as the `contrast.edgeless.systems/servicemesh-egress` workload annotation.
+  Separate multiple entries with `##`. Choose any string identifying the service
+  on the given port as `<name>`.
 
 This redirects the traffic over Envoy. The endpoint must present a valid
 certificate chain which must be verifiable with the
 [mesh CA certificate](../architecture/certificates.md#usage-of-the-different-certificates).
-Furthermore, Envoy uses a certificate chain with the mesh certificate of the workload
-and the intermediate CA certificate as the client certificate.
+Furthermore, Envoy uses a certificate chain with the mesh certificate of the
+workload and the intermediate CA certificate as the client certificate.
 
 The following example workload has no ingress connections and two egress
-connection to different microservices. The microservices are part
-of the confidential deployment. One is reachable under `billing-svc:8080` and
-the other under `cart-svc:8080`.
+connection to different microservices. The microservices are part of the
+confidential deployment. One is reachable under `billing-svc:8080` and the other
+under `cart-svc:8080`.
 
 ```yaml
 apiVersion: apps/v1
