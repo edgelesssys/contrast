@@ -14,6 +14,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"regexp"
@@ -171,7 +172,7 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 		ct.commonArgs(),
 		"--image-replacements", ct.ImageReplacementsFile,
 		"--reference-values", ct.Platform.String(),
-		path.Join(ct.WorkDir, "resources.yml"),
+		ct.WorkDir,
 	)
 
 	generate := cmd.NewGenerateCmd()
@@ -285,9 +286,23 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 // Apply the generated resources to the Kubernetes test environment.
 func (ct *ContrastTest) Apply(t *testing.T) {
 	require := require.New(t)
-	yaml, err := os.ReadFile(path.Join(ct.WorkDir, "resources.yml"))
+
+	ymlFiles, err := fs.Glob(os.DirFS(ct.WorkDir), "*.yml")
 	require.NoError(err)
-	ct.ApplyFromYAML(t, yaml)
+	yamlFiles, err := fs.Glob(os.DirFS(ct.WorkDir), "*.yaml")
+	require.NoError(err)
+	yamlFiles = append(yamlFiles, ymlFiles...)
+	var files []string
+	for _, file := range yamlFiles {
+		files = append(files, path.Join(ct.WorkDir, file))
+	}
+
+	require.NoError(err)
+	for _, file := range files {
+		yaml, err := os.ReadFile(file)
+		require.NoError(err)
+		ct.ApplyFromYAML(t, yaml)
+	}
 }
 
 // ApplyFromYAML applies the given YAML to the Kubernetes test environment.
@@ -307,7 +322,7 @@ func (ct *ContrastTest) ApplyFromYAML(t *testing.T, yaml []byte) {
 func (ct *ContrastTest) RunSet(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
-	return ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), path.Join(ct.WorkDir, "resources.yml"))
+	return ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), ct.WorkDir)
 }
 
 // Set runs the contrast set subcommand and fails the test if it is not successful.
