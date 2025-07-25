@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  runtimeClassName: contrast-cc
+  containers:
+    - name: test
+      image: ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b
+      command:
+        - /usr/local/bin/bash
+        - -xec
+        - |
+          [[ $CM_CONTENT == "foobar" ]]
+          [[ $SECRET_CONTENT == "barfoo" ]]
+          touch /tmp/works
+          sleep infinity
+      envFrom:
+        - configMapRef:
+            name: cm
+        - secretRef:
+            name: secret
+      readinessProbe:
+        exec:
+          command:
+            - /usr/local/bin/bash
+            - -c
+            - cat /tmp/works
+        initialDelaySeconds: 5
+        periodSeconds: 5
