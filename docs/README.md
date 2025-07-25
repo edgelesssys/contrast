@@ -21,7 +21,7 @@ Browse to <http://localhost:3000/contrast> and choose the "Next" version in the 
 ## CI integration
 
 - **PR preview** Created by [`docs_publish`](../.github/workflows/docs_publish.yml) on PR.
-  This will build the website and push it to the [`/pr-preview` directory](https://github.com/edgelesssys/contrast/tree/gh-pages/pr-preview)of the `gh-pages` branch.
+  This will build the website and push it to the `/pr-preview` directory of the [`gh-pages`](https://github.com/edgelesssys/contrast/tree/gh-pages) branch.
 - **Publishing** Deployed by [`docs_publish`](../.github/workflows/docs_publish.yml) on push to main.
   This will build the website and push it to the [`gh-pages` branch](https://github.com/edgelesssys/contrast/tree/gh-pages).
 - **Actual deployment** happens through a [GitHub controlled action](https://github.com/edgelesssys/contrast/actions/workflows/pages/pages-build-deployment).
