@@ -16,6 +16,9 @@ outputs:
   paths:
     description: Artifact paths
     value: ${{ steps.artifact-paths.outputs.paths }}
+  s3-bucket-url:
+    description: URL of the S3 bucket where the artifacts were uploaded
+    value: ${{ steps.upload-artifacts.outputs.url }}
 
 runs:
   using: "composite"
@@ -155,6 +158,7 @@ runs:
         aws-region: eu-central-1
     - name: Upload pre-release artifacts to S3 bucket contrast-public
       if: ${{ inputs.s3-bucket-path != '' }}
+      id: upload-artifacts
       shell: bash
       env:
         S3_BUCKET_PATH: ${{ inputs.s3-bucket-path }}
@@ -169,4 +173,6 @@ runs:
             aws s3 cp "$file" "s3://contrast-public/${S3_BUCKET_PATH}/$unix/"
           done
         done
-        echo "Artifacts available at https://contrast-public.s3.eu-central-1.amazonaws.com/${S3_BUCKET_PATH}/$unix/" | tee -a "$GITHUB_STEP_SUMMARY"
+        url="https://contrast-public.s3.eu-central-1.amazonaws.com/${S3_BUCKET_PATH}/$unix/"
+        echo "Artifacts available at $url" | tee -a "$GITHUB_STEP_SUMMARY"
+        echo "url=$url" | tee -a "$GITHUB_OUTPUT"

@@ -17,7 +17,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.cleanup == 'false'
     runs-on: ubuntu-24.04
     permissions:
-      pull-requests: read
+      pull-requests: write
+      issues: write
       contents: read
       packages: write
       id-token: write
@@ -50,6 +51,35 @@ jobs:
           version: ${{ steps.get-version.outputs.version }}
           container_registry: ghcr.io/edgelesssys
           s3-bucket-path: "pr-artifacts"
+      - name: Get PR number
+        id: get-pr-number
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+        run: |
+          prs=$(
+            curl -fsSL \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${REPO}/commits/${COMMIT_SHA}/pulls"
+          )
+          pr=$(echo "$prs" | jq -r '.[0]?.number // ""')
+          echo "pr_number=$pr" | tee -a "$GITHUB_OUTPUT"
+      - name: Create PR comment with artifact links
+        if: ${{ steps.get-pr-number.outputs.pr_number != '' }}
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4.0.0
+        with:
+          issue-number: ${{ steps.get-pr-number.outputs.pr_number }}
+          body: |
+            ### Pre-release artifacts on ${{ github.sha }}
+
+            The pre-release artifacts for this commit are available at the following link:
+
+            ${{ steps.create-artifacts.outputs.s3-bucket-url }}
+
+            Created by @${{ github.actor }} in [pr_release_artifacts workflow](
+              https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}?pr=${{ steps.get-pr-number.outputs.pr_number }}
+            ).
 
   cleanup-artifacts:
     name: Cleanup artifacts
