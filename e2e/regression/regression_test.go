@@ -88,8 +88,6 @@ func TestRegression(t *testing.T) {
 				newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
 				newResources = kuberesource.AddPortForwarders(newResources)
 
-				intermediateResources = append(intermediateResources, newResources...)
-
 				// Check if we are testing a cron job
 				unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
 				require.NoError(err)
@@ -98,11 +96,17 @@ func TestRegression(t *testing.T) {
 						containsCronJob = true
 					}
 				}
+
+				// write the new resources
+				resourceBytes, err := kuberesource.EncodeResources(newResources...)
+				require.NoError(err)
+				require.NoError(os.WriteFile(path.Join(ct.WorkDir, file.Name()), resourceBytes, 0o644))
+				t.Cleanup(func() {
+					require.NoError(os.Remove(path.Join(ct.WorkDir, file.Name())))
+				})
+
+				intermediateResources = append(intermediateResources, newResources...)
 			}
-			// write the new resources.yml
-			resourceBytes, err := kuberesource.EncodeResources(intermediateResources...)
-			require.NoError(err)
-			require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), resourceBytes, 0o644))
 
 			// generate, set, deploy and verify the new policy
 			require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
