@@ -1,7 +1,8 @@
 # Mesh API
 
-The `meshapi.MeshAPI` service serves requests from Contrast workloads and other Coordinators.
-Below are some sequence diagrams that illustrate the data flow for each request type.
+The `meshapi.MeshAPI` service serves requests from Contrast workloads and other
+Coordinators. Below are some sequence diagrams that illustrate the data flow for
+each request type.
 
 ## `NewMeshCert`
 
@@ -26,8 +27,9 @@ sequenceDiagram
 
 ## `Recover`
 
-This RPC is called by peer Coordinators that need to recover their internal state.
-In the diagram below, this is `Coordinator1` attempting to recover from `Coordinator2`.
+This RPC is called by peer Coordinators that need to recover their internal
+state. In the diagram below, this is `Coordinator1` attempting to recover from
+`Coordinator2`.
 
 ```mermaid
 sequenceDiagram

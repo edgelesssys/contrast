@@ -8,6 +8,10 @@
     # keep-sorted start block=true
     actionlint.enable = true;
     deadnix.enable = true;
+    deno = {
+      enable = true;
+      includes = [ "*.md" ];
+    };
     formatjson5 = {
       enable = true;
       indent = 2;

@@ -1,8 +1,14 @@
 # Azure nested CVM-in-VM internals
 
-The AKS CoCo preview uses a publicly accessible VM image for the Kubernetes nodes: `/CommunityGalleries/AKSCBLMariner-0cf98c92-cbb1-40e7-a71c-d127332549ee/Images/V2katagen2/Versions/latest`.
-There is also `/CommunityGalleries/AKSAzureLinux-f7c7cda5-1c9a-4bdc-a222-9614c968580b/Images/V2katagen2`, which is similar but not using CBL Mariner as a base.
-The instance types used are from the [DCas_cc_v5 and DCads_cc_v5-series](https://learn.microsoft.com/en-us/azure/virtual-machines/dcasccv5-dcadsccv5-series) of VMs (for example `Standard_DC4as_cc_v5`).
+The AKS CoCo preview uses a publicly accessible VM image for the Kubernetes
+nodes:
+`/CommunityGalleries/AKSCBLMariner-0cf98c92-cbb1-40e7-a71c-d127332549ee/Images/V2katagen2/Versions/latest`.
+There is also
+`/CommunityGalleries/AKSAzureLinux-f7c7cda5-1c9a-4bdc-a222-9614c968580b/Images/V2katagen2`,
+which is similar but not using CBL Mariner as a base. The instance types used
+are from the
+[DCas_cc_v5 and DCads_cc_v5-series](https://learn.microsoft.com/en-us/azure/virtual-machines/dcasccv5-dcadsccv5-series)
+of VMs (for example `Standard_DC4as_cc_v5`).
 
 ## Using nested CVM-in-VM outside of AKS
 
@@ -21,13 +27,28 @@ az vm create \
 az ssh vm --resource-group "${RG}" --vm-name nested-virt-test
 ```
 
-The VM has access to hyperv as a paravisor via `/dev/mshv` (and *not* `/dev/kvm`, which would be expected for nested virtualization on Linux). The user space component for spawning nested VMs on `mshv` is part of [rust-vmm](https://github.com/rust-vmm/mshv).
-This feature is enabled by kernel patches which aren't yet upstream. At the time of writing, the VM image uses a kernel with a `uname` of `5.15.126.mshv9-2.cm2` and this additional kernel cmdline parameter: `hyperv_resvd_new=0x1000!0x933000,0x17400000!0x104e00000,0x1000!0x1000,0x4e00000!0x100000000`.
+The VM has access to hyperv as a paravisor via `/dev/mshv` (and _not_
+`/dev/kvm`, which would be expected for nested virtualization on Linux). The
+user space component for spawning nested VMs on `mshv` is part of
+[rust-vmm](https://github.com/rust-vmm/mshv). This feature is enabled by kernel
+patches which aren't yet upstream. At the time of writing, the VM image uses a
+kernel with a `uname` of `5.15.126.mshv9-2.cm2` and this additional kernel
+cmdline parameter:
+`hyperv_resvd_new=0x1000!0x933000,0x17400000!0x104e00000,0x1000!0x1000,0x4e00000!0x100000000`.
 
-The Kernel is built from a CBL Mariner [spec file](https://github.com/microsoft/CBL-Mariner/blob/2.0/SPECS/kernel-mshv/kernel-mshv.spec) and the Kernel source is [publicly accessible](https://cblmarinerstorage.blob.core.windows.net/sources/core/kernel-mshv-5.15.126.mshv9.tar.gz).
-MicroVM guests use a newer Kernel ([spec](https://github.com/microsoft/CBL-Mariner/tree/2.0/SPECS/kernel-uvm-cvm)).
+The Kernel is built from a CBL Mariner
+[spec file](https://github.com/microsoft/CBL-Mariner/blob/2.0/SPECS/kernel-mshv/kernel-mshv.spec)
+and the Kernel source is
+[publicly accessible](https://cblmarinerstorage.blob.core.windows.net/sources/core/kernel-mshv-5.15.126.mshv9.tar.gz).
+MicroVM guests use a newer Kernel
+([spec](https://github.com/microsoft/CBL-Mariner/tree/2.0/SPECS/kernel-uvm-cvm)).
 
-The image also ships parts of the confidential-containers tools, the kata-runtime, cloud-hypervisor and related tools (kata-runtime, cloud-hypervisor, [containerd](https://github.com/microsoft/confidential-containers-containerd)), some of which contain patches that aren't yet upstream, as well as a custom guest image under `/opt`:
+The image also ships parts of the confidential-containers tools, the
+kata-runtime, cloud-hypervisor and related tools (kata-runtime,
+cloud-hypervisor,
+[containerd](https://github.com/microsoft/confidential-containers-containerd)),
+some of which contain patches that aren't yet upstream, as well as a custom
+guest image under `/opt`:
 
 <details>
 <summary><code>$ find /opt/confidential-containers/</code></summary>
@@ -54,9 +75,11 @@ The image also ships parts of the confidential-containers tools, the kata-runtim
 /opt/confidential-containers/share/defaults/kata-containers/configuration-clh-snp.toml
 /opt/confidential-containers/share/defaults/kata-containers/configuration-clh.toml
 ```
+
 </details>
 
-With those components, it's possible to use the `containerd-shim-kata-cc-v2` runtime for containerd (or add it as a runtime class in k8s).
+With those components, it's possible to use the `containerd-shim-kata-cc-v2`
+runtime for containerd (or add it as a runtime class in k8s).
 
 <details>
 <summary><code>/etc/containerd/config.toml</code></summary>
@@ -113,6 +136,7 @@ oom_score = 0
   [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.kata-cc.options]
     ConfigPath = "/opt/confidential-containers/share/defaults/kata-containers/configuration-clh-snp.toml"
 ```
+
 </details>
 
 <details>
@@ -120,20 +144,24 @@ oom_score = 0
 
 ```json
 {
-    "snapshotKey": "070f6f2f0ec920cc9e8c050bf08730c79d4af43c640b8cfc16002b8f1e009767",
-    "snapshotter": "tardev",
-    "runtimeType": "io.containerd.kata-cc.v2",
-    "runtimeOptions": {
-      "config_path": "/opt/confidential-containers/share/defaults/kata-containers/configuration-clh-snp.toml"
-    }
+  "snapshotKey": "070f6f2f0ec920cc9e8c050bf08730c79d4af43c640b8cfc16002b8f1e009767",
+  "snapshotter": "tardev",
+  "runtimeType": "io.containerd.kata-cc.v2",
+  "runtimeOptions": {
+    "config_path": "/opt/confidential-containers/share/defaults/kata-containers/configuration-clh-snp.toml"
+  }
 }
 ```
+
 </details>
 
-With the containerd configuration from above, the following commands can be used to start the [tardev-snapshotter](https://github.com/kata-containers/tardev-snapshotter) and spawn a container using the `kata-cc` runtime class.
-Please note that while this example almost works, it doesn't currently result in a working container outside of AKS.
-This is probably due to a mismatch of exact arguments or configuration files.
-Maybe a policy annotation is required for booting.
+With the containerd configuration from above, the following commands can be used
+to start the
+[tardev-snapshotter](https://github.com/kata-containers/tardev-snapshotter) and
+spawn a container using the `kata-cc` runtime class. Please note that while this
+example almost works, it doesn't currently result in a working container outside
+of AKS. This is probably due to a mismatch of exact arguments or configuration
+files. Maybe a policy annotation is required for booting.
 
 ```
 systemctl enable --now tardev-snapshotter.service
@@ -150,9 +178,9 @@ ctr run \
 
 In the last section we learned that the `kata-cc` runtime is configured with
 `/opt/confidential-containers/share/defaults/kata-containers/configuration-clh-snp.toml`.
-This file is a serialization of [katautils.tomlConfig] and contains decent inline documentation
-(see [snapshot]). In case we would like to tweak configuration, [drop-in fragments] are a handy
-option.
+This file is a serialization of [katautils.tomlConfig] and contains decent
+inline documentation (see [snapshot]). In case we would like to tweak
+configuration, [drop-in fragments] are a handy option.
 
 <details>
 <summary>Example of a drop-in fragment raising the default memory per VM</summary>
@@ -163,6 +191,7 @@ cat >/opt/confidential-containers/share/defaults/kata-containers/config.d/10-mem
 default_memory = 512
 EOF
 ```
+
 </details>
 
 [katautils.tomlConfig]: https://github.com/kata-containers/kata-containers/blob/40d9a65/src/runtime/pkg/katautils/config.go#L64
@@ -171,15 +200,16 @@ EOF
 
 ### Resource Management
 
-There's [AKS documentation for resource management] which explains the basics of how CPU and
-memory are allocated for a Kata VM.
-The default memory overhead added by the `RuntimeClass` is quite high at 2GiB, which fills up the node fast.
-It's unclear why this default is chosen, given that the container limit is added on top of this
-value and that the VMs are created with a 256MiB overhead.
+There's [AKS documentation for resource management] which explains the basics of
+how CPU and memory are allocated for a Kata VM. The default memory overhead
+added by the `RuntimeClass` is quite high at 2GiB, which fills up the node fast.
+It's unclear why this default is chosen, given that the container limit is added
+on top of this value and that the VMs are created with a 256MiB overhead.
 
 Forcing a size with the pod annotation
-`io.katacontainers.config.hypervisor.default_memory` would be possible, but the annotation would
-need to be allow-listed in the config setting `enable_annotations`.
+`io.katacontainers.config.hypervisor.default_memory` would be possible, but the
+annotation would need to be allow-listed in the config setting
+`enable_annotations`.
 
 [AKS documentation for resource management]: https://learn.microsoft.com/en-us/azure/aks/confidential-containers-overview#resource-allocation-overview
 
@@ -195,12 +225,13 @@ enable_annotations = ["enable_iommu"]
 [runtime]
 static_sandbox_resource_mgmt = true
 ```
+
 </details>
 
 ### Cloud Hypervisor
 
-We can learn some interesting facts about the VMs managed with Cloud Hypervisor by talking to their
-api sockets.
+We can learn some interesting facts about the VMs managed with Cloud Hypervisor
+by talking to their api sockets.
 
 <details>
 <summary>List some facts about all CH VMs</summary>
@@ -232,6 +263,8 @@ find /run/vc/vm -name clh-api.sock -exec curl -sS --unix-socket "{}" http://./ap
   "..."
 ]
 ```
+
 </details>
 
-The API is documented [here](https://github.com/cloud-hypervisor/cloud-hypervisor/blob/v43.0/docs/api.md).
+The API is documented
+[here](https://github.com/cloud-hypervisor/cloud-hypervisor/blob/v43.0/docs/api.md).

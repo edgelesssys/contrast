@@ -25,4 +25,5 @@ Apply the resources to the cluster.
 kubectl apply -f resources/
 ```
 
-Until [a manifest is set](set-manifest.md), the Coordinator will report unready and the workload pods will stay in the initialization phase.
+Until [a manifest is set](set-manifest.md), the Coordinator will report unready
+and the workload pods will stay in the initialization phase.
