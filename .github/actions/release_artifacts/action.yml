@@ -1,0 +1,178 @@
+name: create release artifacts
+description: Create release artifacts for the contrast project
+
+inputs:
+  version:
+    description: Version of the release
+    required: true
+  container_registry:
+    description: Container registry to push the images to
+    required: true
+  s3-bucket-path:
+    description: S3 bucket path to upload the artifacts
+    required: false
+
+outputs:
+  paths:
+    description: Artifact paths
+    value: ${{ steps.artifact-paths.outputs.paths }}
+  s3-bucket-url:
+    description: URL of the S3 bucket where the artifacts were uploaded
+    value: ${{ steps.upload-artifacts.outputs.url }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Push containers
+      shell: bash
+      env:
+        CONTAINER_REGISTRY: ${{ inputs.container_registry }}
+      run: |
+        coordinatorImg=$(nix run .#containers.push-coordinator -- "${CONTAINER_REGISTRY}/contrast/coordinator")
+        nodeInstallerMsftImg=$(nix run .#containers.push-node-installer-microsoft -- "${CONTAINER_REGISTRY}/contrast/node-installer-microsoft")
+        nodeInstallerKataImg=$(nix run .#containers.push-node-installer-kata -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata")
+        nodeInstallerKataGPUImg=$(nix run .#containers.push-node-installer-kata-gpu -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata-gpu")
+        initializerImg=$(nix run .#containers.push-initializer -- "${CONTAINER_REGISTRY}/contrast/initializer")
+        serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "${CONTAINER_REGISTRY}/contrast/service-mesh-proxy")
+        tardevSnapshotterImg=$(nix run .#containers.push-tardev-snapshotter -- "${CONTAINER_REGISTRY}/contrast/tardev-snapshotter")
+        echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_ENV"
+        echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_ENV"
+        echo "nodeInstallerKataImg=$nodeInstallerKataImg" | tee -a "$GITHUB_ENV"
+        echo "nodeInstallerKataGPUImg=$nodeInstallerKataGPUImg" | tee -a "$GITHUB_ENV"
+        echo "initializerImg=$initializerImg" | tee -a "$GITHUB_ENV"
+        echo "serviceMeshImg=$serviceMeshImg" | tee -a "$GITHUB_ENV"
+        echo "tardevSnapshotterImg=$tardevSnapshotterImg" | tee -a "$GITHUB_ENV"
+    - name: Add tags to container images
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        # Insert a tag into a container image name.
+        tag() {
+          tag="$1"
+          front="${2%@*}"
+          back="${2#*@}"
+          printf "%s:%s@%s" "$front" "$tag" "$back"
+        }
+
+        # Insert the Contrast version as tag into a container image name.
+        tagContrast() {
+          tag "${VERSION}" "$@"
+        }
+
+        echo "coordinatorImgTagged=$(tagContrast "$coordinatorImg")" | tee -a "$GITHUB_ENV"
+        echo "nodeInstallerMsftImgTagged=$(tagContrast "$nodeInstallerMsftImg")" | tee -a "$GITHUB_ENV"
+        echo "nodeInstallerKataImgTagged=$(tagContrast "$nodeInstallerKataImg")" | tee -a "$GITHUB_ENV"
+        echo "nodeInstallerKataGPUImgTagged=$(tagContrast "$nodeInstallerKataGPUImg")" | tee -a "$GITHUB_ENV"
+        echo "initializerImgTagged=$(tagContrast "$initializerImg")" | tee -a "$GITHUB_ENV"
+        echo "serviceMeshImgTagged=$(tagContrast "$serviceMeshImg")" | tee -a "$GITHUB_ENV"
+
+        tardevVer=$(nix eval --impure --raw --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.microsoft.tardev-snapshotter.version")
+        echo "tardevSnapshotterImgTagged=$(tag "$tardevVer" "$tardevSnapshotterImg")" | tee -a "$GITHUB_ENV"
+    - name: Create file with image replacements
+      shell: bash
+      run: |
+        cat > image-replacements.txt <<EOF
+        ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged
+        ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImgTagged
+        ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged
+        ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=$nodeInstallerMsftImgTagged
+        ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged
+        ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged
+        ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged
+        EOF
+    - name: Upload image replacement file (for main branch PR)
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: image-replacements
+        path: |
+          image-replacements.txt
+    - name: Update cli assets
+      shell: bash
+      run: |
+        cp image-replacements.txt cli/cmd/assets/image-replacements.txt
+        git add cli/cmd/assets/image-replacements.txt
+        git diff --staged --quiet || git commit -m "release: update cli assets"
+    - name: Expected artifact paths
+      id: artifact-paths
+      shell: bash
+      run: |
+        cat << 'EOF' | tee -a "${GITHUB_OUTPUT}"
+        paths<<EOM
+        workspace/contrast-cli/bin/contrast
+        workspace/coordinator*.yml
+        workspace/runtime-*.yml
+        workspace/emojivoto-demo.yml
+        workspace/mysql-demo.yml
+        workspace/vault-demo.yml
+        EOM
+        EOF
+    - name: Create coordinator resource definitions
+      shell: bash
+      run: |
+        mkdir -p workspace
+
+        nix shell .#contrast --command resourcegen \
+          --image-replacements "./image-replacements.txt" \
+          --add-load-balancers \
+          coordinator > "workspace/coordinator.yml"
+    - name: Create runtime resource definitions
+      shell: bash
+      run: |
+        platforms=(
+          "aks-clh-snp"
+          "k3s-qemu-snp-gpu"
+          "k3s-qemu-snp"
+          "k3s-qemu-tdx"
+          "metal-qemu-snp-gpu"
+          "metal-qemu-snp"
+          "metal-qemu-tdx"
+          "rke2-qemu-tdx"
+        )
+        for platform in "${platforms[@]}"; do
+          nix shell .#contrast --command resourcegen \
+            --image-replacements ./image-replacements.txt \
+            --platform "$platform" \
+            runtime > "workspace/runtime-$platform.yml"
+        done
+    - name: Create demo resource definitions
+      shell: bash
+      run: |
+        nix shell .#contrast --command resourcegen \
+          --image-replacements ./image-replacements.txt \
+          --add-load-balancers emojivoto-sm-ingress > workspace/emojivoto-demo.yml
+        nix shell .#contrast --command resourcegen \
+          --image-replacements ./image-replacements.txt \
+          --add-load-balancers mysql > workspace/mysql-demo.yml
+        nix shell .#contrast --command resourcegen \
+          --image-replacements ./image-replacements.txt \
+          --add-load-balancers vault > workspace/vault-demo.yml
+    - name: Build CLI
+      shell: bash
+      run: |
+        nix build -L .#contrast-cli-release --out-link workspace/contrast
+    - name: AWS login (IAM role)
+      uses: aws-actions/configure-aws-credentials@b47578312673ae6fa5b5096b330d9fbac3d116df # v4.2.1
+      with:
+        role-to-assume: arn:aws:iam::795746500882:role/ContrastPublicBucketRW
+        aws-region: eu-central-1
+    - name: Upload pre-release artifacts to S3 bucket contrast-public
+      if: ${{ inputs.s3-bucket-path != '' }}
+      id: upload-artifacts
+      shell: bash
+      env:
+        S3_BUCKET_PATH: ${{ inputs.s3-bucket-path }}
+        FILES: ${{ steps.artifact-paths.outputs.paths }}
+      run: |
+        shopt -s nullglob
+        unix=$(date +%s)
+        readarray -t patterns <<< "$FILES"
+        for pattern in "${patterns[@]}"; do
+          matches=($pattern)
+          for file in "${matches[@]}"; do
+            aws s3 cp "$file" "s3://contrast-public/${S3_BUCKET_PATH}/$unix/"
+          done
+        done
+        url="https://contrast-public.s3.eu-central-1.amazonaws.com/${S3_BUCKET_PATH}/$unix/"
+        echo "Artifacts available at $url" | tee -a "$GITHUB_STEP_SUMMARY"
+        echo "url=$url" | tee -a "$GITHUB_OUTPUT"
