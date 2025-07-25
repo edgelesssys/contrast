@@ -91,7 +91,9 @@ populate target=default_deploy_target platform=default_platform:
         target=""
         cp -r ./.custom/* ./{{ workspace_dir }}/deployment/
         ns="{{ target }}${namespace_suffix-}"
-        env ns="$ns" yq -i '.metadata.namespace = strenv(ns)' ./{{ workspace_dir }}/deployment/*.yml
+        for file in ./{{ workspace_dir }}/deployment/*.{yml,yaml}; do
+            env ns="$ns" yq -i '.metadata.namespace = strenv(ns)' "$file"
+        done
     fi
     if [[ -f ./{{ workspace_dir }}/deployment/deployment.yml ]]; then
         echo "---" >> ./{{ workspace_dir }}/deployment/deployment.yml
@@ -114,7 +116,7 @@ generate cli=default_cli platform=default_platform:
         --workspace-dir ./{{ workspace_dir }} \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --reference-values {{ platform }}\
-        ./{{ workspace_dir }}/deployment/*.yml
+        ./{{ workspace_dir }}/deployment/
 
     # On baremetal SNP, we don't have default values for MinimumTCB, so we need to set some here.
     case {{ platform }} in
@@ -236,7 +238,7 @@ set cli=default_cli:
     nix run -L .#{{ cli }} -- set \
         --workspace-dir ./{{ workspace_dir }} \
         -c localhost:1313 \
-        ./{{ workspace_dir }}/deployment/*.yml
+        ./{{ workspace_dir }}/deployment/
 
 # Verify the Coordinator.
 verify cli=default_cli:
