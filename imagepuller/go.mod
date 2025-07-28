@@ -3,7 +3,6 @@ module github.com/edgelesssys/contrast/imagepuller
 go 1.24.0
 
 require (
-	github.com/burgerdev/evil-registry/registry v0.0.0-20250724134721-b94d02f82d16
 	github.com/containerd/ttrpc v1.2.7
 	github.com/containers/storage v1.58.0
 	github.com/google/go-containerregistry v0.20.6
