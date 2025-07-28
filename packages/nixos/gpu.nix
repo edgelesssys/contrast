@@ -15,9 +15,9 @@ let
     (
       (config.boot.kernelPackages.nvidiaPackages.mkDriver rec {
         url = "https://us.download.nvidia.com/tesla/${version}/NVIDIA-Linux-x86_64-${version}.run";
-        version = "570.158.01";
-        sha256_64bit = "sha256-R/TMmtB79xjQ3Ojb/ABFzTas7WmXEsfoQX+F+4fZGOs=";
-        openSha256 = "sha256-hScINXiAuJWhuO4oLDAiVGZS97OXDGr1IiFZxkGidfg=";
+        version = "570.172.08";
+        sha256_64bit = "sha256-AlaGfggsr5PXsl+nyOabMWBiqcbHLG4ij617I4xvoX0=";
+        openSha256 = "sha256-aTV5J4zmEgRCOavo6wLwh5efOZUG+YtoeIT/tnrC1Hg=";
         persistencedVersion = "570.169"; # There is no persistenced release for 570.158.01, use current production version.
         persistencedSha256 = "sha256-dttFu+TmbFI+mt1MbbmJcUnc1KIJ20eHZDR7YzfWmgE=";
         useSettings = false;
