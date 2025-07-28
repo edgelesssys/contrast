@@ -208,7 +208,7 @@ spec:
     - env:
         - name: COORDINATOR_HOST
           value: coordinator-ready
-      image: "ghcr.io/edgelesssys/contrast/initializer:latest"
+      image: "ghcr.io/edgelesssys/contrast/initializer:v1.11.0@sha256:06298428e65532dfe9bb8390149776b7e9d7edad1cdf0a0b8df37b8952993f95"
       name: contrast-initializer
       volumeMounts:
         - mountPath: /contrast
