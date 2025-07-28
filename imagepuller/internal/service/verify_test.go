@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/burgerdev/evil-registry/registry"
 	"github.com/containers/storage"
+	"github.com/edgelesssys/contrast/imagepuller/internal/test/registry"
 	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -37,16 +36,15 @@ func TestGetAndVerifyImage_EvilRegistry(t *testing.T) {
 			wantErr: "parsing image digest",
 		},
 		"wrong manifest digest is caught": {
-			// the evil registry responds to unknown digests with a default manifest
-			digest:  "sha256:6ad6bbb5735b84b10af42d2441e8d686b1d9a6cbf096b53842711ef5ddabd28d",
+			digest:  registry.WrongManifestDigest(),
 			wantErr: "validating image ref:",
 		},
 		"wrong index digest is caught": {
-			digest:  registry.WrongIndexDigest,
+			digest:  registry.WrongIndexDigest(),
 			wantErr: "validating image ref:",
 		},
 		"correct index digest, wrong manifest digest is caught": {
-			digest:  registry.IndexForEvilManifestDigest,
+			digest:  registry.IndexForWrongManifestDigest(),
 			wantErr: "validating image:",
 		},
 	}
@@ -54,11 +52,8 @@ func TestGetAndVerifyImage_EvilRegistry(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 
-			mux := http.NewServeMux()
-			server := httptest.NewUnstartedServer(mux)
-			go registry.Run(server.Listener, mux)
-			server.Start()
-			defer server.Close()
+			server := httptest.NewServer(registry.New())
+			t.Cleanup(server.Close)
 
 			var s ImagePullerService
 			_, err := s.getAndVerifyImage(
@@ -78,11 +73,11 @@ func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 		wantErr string
 	}{
 		"correct manifest digest, wrong layer digest is caught": {
-			digest:  registry.ManifestForEvilBlobDigest,
+			digest:  registry.ManifestForWrongBlobDigest(),
 			wantErr: "validating layer:",
 		},
 		"correct index digest, correct manifest digest, wrong layer digest is caught": {
-			digest:  registry.IndexForManifestForEvilBlobDigest,
+			digest:  registry.IndexForManifestForWrongBlobDigest(),
 			wantErr: "validating layer:",
 		},
 	}
@@ -92,11 +87,8 @@ func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 			require := require.New(t)
 
 			log := slog.Default()
-			mux := http.NewServeMux()
-			server := httptest.NewUnstartedServer(mux)
-			go registry.Run(server.Listener, mux)
-			server.Start()
-			defer server.Close()
+			server := httptest.NewServer(registry.New())
+			t.Cleanup(server.Close)
 
 			s := ImagePullerService{Logger: log, Store: &StubStore{
 				putLayerLayer: digest.NewDigestFromBytes(digest.SHA256, []byte{}),
