@@ -34,6 +34,7 @@ jobs:
           base: main
           draft: false
           labels: "no changelog"
+          branch: automated/nvidia-rim-updates
           committer: edgelessci <edgelessci@users.noreply.github.com>
           author: edgelessci <edgelessci@users.noreply.github.com>
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
