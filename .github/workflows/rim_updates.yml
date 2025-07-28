@@ -15,9 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ref: ${{ !github.event.pull_request.head.repo.fork && github.head_ref || '' }}
-          token: ${{ !github.event.pull_request.head.repo.fork && secrets.NUNKI_CI_COMMIT_PUSH_PR || github.token }}
-          persist-credentials: true
+          persist-credentials: false
       - uses: ./.github/actions/setup_nix
         with:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
