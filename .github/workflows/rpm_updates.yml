@@ -33,6 +33,7 @@ jobs:
           base: main
           draft: false
           labels: "dependencies"
+          branch: automated/azurelinux-rpm-updates
           committer: edgelessci <edgelessci@users.noreply.github.com>
           author: edgelessci <edgelessci@users.noreply.github.com>
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
