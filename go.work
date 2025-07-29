@@ -5,6 +5,7 @@ use (
 	./imagepuller
 	./service-mesh
 	./tools/igvm
+	./tools/imagepuller-benchmark
 	./tools/tdx-measure
 	./tools/snp-id-block-generator
 )
