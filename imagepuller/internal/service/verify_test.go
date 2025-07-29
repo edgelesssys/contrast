@@ -4,7 +4,6 @@
 package service
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -63,7 +62,7 @@ func TestGetAndVerifyImage_EvilRegistry(t *testing.T) {
 
 			var s ImagePullerService
 			_, err := s.getAndVerifyImage(
-				context.Background(),
+				t.Context(),
 				slog.Default(),
 				fmt.Sprintf("%s/busybox:v0.0.1@%s", server.Listener.Addr().String(), tc.digest),
 			)
@@ -102,7 +101,7 @@ func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 			s := ImagePullerService{Logger: log, Store: &StubStore{
 				putLayerLayer: digest.NewDigestFromBytes(digest.SHA256, []byte{}),
 			}}
-			remoteImg, err := s.getAndVerifyImage(context.Background(), log, fmt.Sprintf("%s/busybox:v0.0.1@%s", server.URL[7:], tc.digest))
+			remoteImg, err := s.getAndVerifyImage(t.Context(), log, fmt.Sprintf("%s/busybox:v0.0.1@%s", server.Listener.Addr().String(), tc.digest))
 			require.NoError(err)
 
 			_, err = s.storeAndVerifyLayers(log, remoteImg)
