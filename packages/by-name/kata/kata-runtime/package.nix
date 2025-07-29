@@ -161,6 +161,17 @@ buildGoModule (finalAttrs: {
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
       ./0021-agent-use-custom-implementation-for-image-pulling.patch
+
+      # This patch regenerates the Go proto bindings, which are out of date upstream, in order to
+      # reduce the diff when generating in subsequent patches.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11632.
+      ./0022-runtime-generate-protos.patch
+
+      # This patch gzips the policy annotation in order to reduce its size and circumvent
+      # Kubernetes annotation size limits. It won't be upstreamed, because the designated successor
+      # to SetPolicy, initdata, is already compressed at the annotation level.
+      # TODO(burgerdev): remove after moving to initdata.
+      ./0023-misc-use-compressed-policy.patch
     ];
   };
 
