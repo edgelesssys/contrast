@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/cli/genpolicy"
+	"github.com/edgelesssys/contrast/cli/verifier"
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -107,6 +108,25 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		}
 		defer os.RemoveAll(tmpDir)
 		paths = newPaths
+	}
+
+	verifiers := verifier.AllVerifiers()
+	for _, path := range paths {
+		fileContent, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("reading file %q to run generate on: %w", path, err)
+		}
+		resources, err := kubeapi.UnmarshalUnstructuredK8SResource(fileContent)
+		if err != nil {
+			return fmt.Errorf("parsing file %q to run generate on: %w", path, err)
+		}
+		for _, v := range verifiers {
+			for _, r := range resources {
+				if err := v.Verify(r); err != nil {
+					log.Warn("failed to verify YAML", "path", path, "kind", r.GetKind(), "name", r.GetName(), "error", err)
+				}
+			}
+		}
 	}
 
 	// generate a manifest by checking if a manifest exists and using that,
