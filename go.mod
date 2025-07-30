@@ -19,6 +19,7 @@ require (
 	github.com/google/go-github/v72 v72.0.0
 	github.com/google/go-sev-guest v0.13.0
 	github.com/google/go-tdx-guest v0.3.2-0.20250505161510-9efd53b4a100
+	github.com/google/logger v1.1.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/katexochen/sync v0.0.0-20250707120738-685c5b1d507d
 	github.com/klauspost/cpuid/v2 v2.2.11
@@ -61,7 +62,6 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-configfs-tsm v0.3.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/logger v1.1.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.4-0.20250319132907-e064f32e3674 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0 // indirect

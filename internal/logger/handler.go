@@ -92,7 +92,7 @@ func subsystemAllowListMatch(subsystem string, allowList string) bool {
 	}
 	for _, allow := range strings.Split(allowList, ",") {
 		allow = strings.ToLower(strings.TrimSpace(allow))
-		if allow == subsystem {
+		if allow == subsystem || allow == "*" {
 			return true
 		}
 	}
