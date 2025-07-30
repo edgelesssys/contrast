@@ -38,7 +38,7 @@ jobs:
           - name: K3s-QEMU-TDX
             runner: TDX
             self-hosted: true
-        test-name: [getdents, genpolicy, regression]
+        test-name: [getdents, genpolicy, genpolicy-unsupported, regression]
         exclude:
           # getdents is a regression test for tardev-snapshotter
           - platform:
