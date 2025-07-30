@@ -224,7 +224,6 @@ func addInvalidReferenceValues(platform platforms.Platform) PatchManifestFunc {
 			m.ReferenceValues.TDX = append(m.ReferenceValues.TDX, m.ReferenceValues.TDX[len(m.ReferenceValues.TDX)-1])
 
 			// Make the last set of reference values invalid by changing the SVNs.
-			m.ReferenceValues.TDX[len(m.ReferenceValues.TDX)-1].MinimumTeeTcbSvn = manifest.HexString("11111111111111111111111111111111")
 			m.ReferenceValues.TDX[len(m.ReferenceValues.TDX)-1].MrSeam = manifest.HexString("111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")
 		}
 		return m
@@ -266,12 +265,11 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 
 		case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
 
-			// Overwrite the fields MinimumTeeTcbSvn and MrSeam with the ones loaded from the path tcbSpecificationFile.
+			// Overwrite the field MrSeam with the ones loaded from the path tcbSpecificationFile.
 			var tdxReferenceValues []manifest.TDXReferenceValues
 			for _, manifestTDX := range m.ReferenceValues.TDX {
 				for _, overwriteTDX := range baremetalRefVal.TDX {
 					manifestTDX.MrSeam = overwriteTDX.MrSeam
-					manifestTDX.MinimumTeeTcbSvn = overwriteTDX.MinimumTeeTcbSvn
 					// Filter to only use the reference values of specified baremetal SNP runners
 					tdxReferenceValues = append(tdxReferenceValues, manifestTDX)
 				}

@@ -129,9 +129,8 @@ generate cli=default_cli platform=default_platform:
         "Metal-QEMU-TDX"|"K3s-QEMU-TDX" | "RKE2-QEMU-TDX")
             cm=$(kubectl get -n default cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}")
             mrSeam=$(echo "$cm" | yq '.tdx.[].MrSeam') \
-                minTee=$(echo "$cm" | yq '.tdx.[].MinimumTeeTcbSvn') \
                 yq -i \
-                '.ReferenceValues.tdx.[].MinimumTeeTcbSvn = strenv(minTee) | .ReferenceValues.tdx.[].MrSeam = strenv(mrSeam)' \
+                '.ReferenceValues.tdx.[].MrSeam = strenv(mrSeam)' \
                 {{ workspace_dir }}/manifest.json
         ;;
     esac

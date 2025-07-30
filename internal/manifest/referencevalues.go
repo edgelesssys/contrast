@@ -210,14 +210,11 @@ func amdTrustedRootCerts(productName ProductName) (map[string][]*trust.AMDRootCe
 
 // TDXReferenceValues contains reference values for TDX.
 type TDXReferenceValues struct {
-	MrTd             HexString
-	Rtrms            [4]HexString
-	MinimumQeSvn     *uint16
-	MinimumPceSvn    *uint16
-	MinimumTeeTcbSvn HexString
-	MrSeam           HexString
-	TdAttributes     HexString
-	Xfam             HexString
+	MrTd         HexString
+	Rtrms        [4]HexString
+	MrSeam       HexString
+	TdAttributes HexString
+	Xfam         HexString
 }
 
 // Validate checks the validity of all fields in the bare metal TDX reference values.
@@ -225,15 +222,6 @@ func (r TDXReferenceValues) Validate() error {
 	var errs []error
 	if err := validateHexString(r.MrTd, 48); err != nil {
 		errs = append(errs, newValidationError("MrTd", err))
-	}
-	if r.MinimumQeSvn == nil {
-		errs = append(errs, newValidationError("MinimumQeSvn", fmt.Errorf("field cannot be empty")))
-	}
-	if r.MinimumPceSvn == nil {
-		errs = append(errs, newValidationError("MinimumPceSvn", fmt.Errorf("field cannot be empty")))
-	}
-	if err := validateHexString(r.MinimumTeeTcbSvn, 16); err != nil {
-		errs = append(errs, newValidationError("MinimumTeeTcbSvn", ExpectedMissingReferenceValueError{Err: err}))
 	}
 	if err := validateHexString(r.MrSeam, 48); err != nil {
 		errs = append(errs, newValidationError("MrSeam", ExpectedMissingReferenceValueError{Err: err}))

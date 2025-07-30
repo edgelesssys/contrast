@@ -59,12 +59,9 @@ func newTestManifestTDX() *Manifest {
 					"777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777",
 					"888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888",
 				},
-				MinimumQeSvn:     toPtr(uint16(5)),
-				MinimumPceSvn:    toPtr(uint16(6)),
-				MinimumTeeTcbSvn: HexString("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
-				MrSeam:           HexString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
-				TdAttributes:     HexString("3333333333333333"),
-				Xfam:             HexString("4444444444444444"),
+				MrSeam:       HexString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+				TdAttributes: HexString("3333333333333333"),
+				Xfam:         HexString("4444444444444444"),
 			},
 		},
 	}
@@ -194,27 +191,6 @@ func TestValidate(t *testing.T) {
 			m: newTestManifestTDX(),
 			mutate: func(m *Manifest) {
 				m.ReferenceValues.TDX[0].Rtrms = [4]HexString{}
-			},
-			wantErr: true,
-		},
-		"tdx minimum qe svn empty": {
-			m: newTestManifestTDX(),
-			mutate: func(m *Manifest) {
-				m.ReferenceValues.TDX[0].MinimumQeSvn = nil
-			},
-			wantErr: true,
-		},
-		"tdx minimum pce svn empty": {
-			m: newTestManifestTDX(),
-			mutate: func(m *Manifest) {
-				m.ReferenceValues.TDX[0].MinimumPceSvn = nil
-			},
-			wantErr: true,
-		},
-		"tdx minimum tee tcb svn empty": {
-			m: newTestManifestTDX(),
-			mutate: func(m *Manifest) {
-				m.ReferenceValues.TDX[0].MinimumTeeTcbSvn = ""
 			},
 			wantErr: true,
 		},
