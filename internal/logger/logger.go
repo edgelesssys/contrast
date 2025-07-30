@@ -16,6 +16,8 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+
+	glogger "github.com/google/logger"
 )
 
 const (
@@ -37,6 +39,11 @@ func Default() (*slog.Logger, error) {
 		Level: logLevel,
 	}))
 	logger.Info("Logger initialized", "level", logLevel.String())
+	if strings.Contains(os.Getenv(LogSubsystems), "google") {
+		// Used by go-sev-guest/go-tdx-guest.
+		glogger.SetLevel(10)
+		logger.Info("Google logger initialized")
+	}
 	return logger, nil
 }
 
