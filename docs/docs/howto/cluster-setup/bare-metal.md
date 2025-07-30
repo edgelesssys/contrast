@@ -24,15 +24,21 @@
 
 <Tabs queryString="vendor">
 <TabItem value="amd" label="AMD SEV-SNP">
+
 1. Update your BIOS to a version that supports AMD SEV-SNP. Updating to the latest available version is recommended as newer versions will likely contain security patches for AMD SEV-SNP.
 2. Enter BIOS setup to enable SMEE, IOMMU, RMP coverage, and SEV-SNP. Set the SEV-ES ASID Space Limit to a non-zero number (higher is better).
 3. Download the latest firmware version for your processor from [AMD](https://www.amd.com/de/developer/sev.html), unpack it, and place it in `/lib/firmware/amd`.
 
 Consult AMD's [Using SEV with AMD EPYC Processors user guide](https://www.amd.com/content/dam/amd/en/documents/epyc-technical-docs/tuning-guides/58207-using-sev-with-amd-epyc-processors.pdf) for more information.
+
 </TabItem>
 <TabItem value="intel" label="Intel TDX">
+
 Follow Canonical's instructions in [4.2 Enable Intel TDX in Host OS](https://github.com/canonical/tdx?tab=readme-ov-file#42-enable-intel-tdx-in-host-os) (set `TDX_SETUP_ATTESTATION=1` in `setup-tdx-config`), [4.3 Enable Intel TDX in the Host's BIOS](https://github.com/canonical/tdx?tab=readme-ov-file#43-enable-intel-tdx-in-the-hosts-bios) and [9.2 Setup Intel® SGX Data Center Attestation Primitives (Intel® SGX DCAP) on the Host OS](https://github.com/canonical/tdx?tab=readme-ov-file#92-setup-intel-sgx-data-center-attestation-primitives-intel-sgx-dcap-on-the-host-os) (skipping step 9.2.1).
 You can ignore the other sections of the document.
+
+Follow Intel's guide to [Update Intel TDX Module via Binary Deployment](https://cc-enabling.trustedservices.intel.com/intel-tdx-enabling-guide/04/hardware_setup/#update-intel-tdx-module-via-binary-deployment). Intel recommends to install the latest TDX module version available.
+
 </TabItem>
 </Tabs>
 
