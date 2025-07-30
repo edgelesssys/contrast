@@ -244,8 +244,6 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 			VerifyOpts:   verifyOpts,
 			ValidateOpts: validateOptions,
 		})
-		_ = mrTd
-		_ = rtmrs
 	}
 
 	return out, nil

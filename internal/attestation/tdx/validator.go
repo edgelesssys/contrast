@@ -68,7 +68,7 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 }
 
 // Validate a TDX attestation.
-func (v *Validator) Validate(_ context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
+func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
 	// TODO(freax13): Validate the memory integrity mode (logical vs cryptographic) in the provisioning certificate.
 
 	v.logger.Info("Validate called", "name", v.name, "nonce", hex.EncodeToString(nonce))
@@ -86,12 +86,11 @@ func (v *Validator) Validate(_ context.Context, attDocRaw []byte, nonce []byte, 
 	if err := proto.Unmarshal(attDocRaw, quote); err != nil {
 		return fmt.Errorf("unmarshaling attestation: %w", err)
 	}
-
 	v.logger.Info("Quote decoded", "quote", protojson.MarshalOptions{Multiline: false}.Format(quote))
 
 	// Verify the report signature.
 
-	if err := verify.TdxQuote(quote, v.verifyOpts); err != nil {
+	if err := verify.TdxQuoteContext(ctx, quote, v.verifyOpts); err != nil {
 		return fmt.Errorf("verifying report signature: %w", err)
 	}
 	v.logger.Info("Successfully verified report signature")
