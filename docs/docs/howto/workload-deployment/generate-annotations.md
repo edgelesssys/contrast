@@ -114,10 +114,25 @@ This must be done on a trusted machine, with a secure and trusted connection to 
 contrast generate --reference-values k3s-qemu-tdx resources/
 ```
 
-:::note[Missing TCB values]
 On bare-metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values as they can vary between platforms.
 They will have to be filled in manually.
-If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and `000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000` respectively and observe the real values in the error messages in the following steps. This should only be done in a secure environment.
+
+`MrSeam` is the SHA384 hash of the TDX module. You can retrieve it by executing
+
+```sh
+sha384sum /boot/efi/EFI/TDX/TDX-SEAM.so | cut -d' ' -f1
+```
+
+`MinimumTeeTcbSvn` is contained in the `TDX-SEAM.so.sigstruct` and can be extracted via
+
+```sh
+xxd -ps -s 948 -l 8  /boot/efi/EFI/TDX/TDX-SEAM.so.sigstruct
+```
+
+:::note[Attention!]
+
+This must be done on a trusted machine, with a secure and trusted connection to it.
+
 :::
 
 </TabItem>
