@@ -29,23 +29,23 @@ func (s *StubStore) PutLayer(_, _ string, _ []string, _ string, _ bool, _ *stora
 func TestGetAndVerifyImage_EvilRegistry(t *testing.T) {
 	tests := map[string]struct {
 		digest  string
-		wantErr string
+		wantErr error
 	}{
 		"missing digest is rejected": {
 			digest:  "",
-			wantErr: "parsing image digest",
+			wantErr: ErrParseDigest,
 		},
 		"wrong manifest digest is caught": {
 			digest:  registry.WrongManifestDigest(),
-			wantErr: "validating image ref:",
+			wantErr: ErrRemoteImage,
 		},
 		"wrong index digest is caught": {
 			digest:  registry.WrongIndexDigest(),
-			wantErr: "validating image ref:",
+			wantErr: ErrRemoteIndex,
 		},
 		"correct index digest, wrong manifest digest is caught": {
 			digest:  registry.IndexForWrongManifestDigest(),
-			wantErr: "validating image:",
+			wantErr: ErrRemoteImage,
 		},
 	}
 	for name, tc := range tests {
@@ -62,7 +62,7 @@ func TestGetAndVerifyImage_EvilRegistry(t *testing.T) {
 				fmt.Sprintf("%s/busybox:v0.0.1@%s", server.Listener.Addr().String(), tc.digest),
 			)
 
-			assert.ErrorContains(err, tc.wantErr)
+			assert.ErrorIs(err, tc.wantErr)
 		})
 	}
 }
@@ -70,15 +70,15 @@ func TestGetAndVerifyImage_EvilRegistry(t *testing.T) {
 func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 	tests := map[string]struct {
 		digest  string
-		wantErr string
+		wantErr error
 	}{
 		"correct manifest digest, wrong layer digest is caught": {
 			digest:  registry.ManifestForWrongBlobDigest(),
-			wantErr: "validating layer:",
+			wantErr: ErrValidateLayer,
 		},
 		"correct index digest, correct manifest digest, wrong layer digest is caught": {
 			digest:  registry.IndexForManifestForWrongBlobDigest(),
-			wantErr: "validating layer:",
+			wantErr: ErrValidateLayer,
 		},
 	}
 	for name, tc := range tests {
@@ -98,7 +98,7 @@ func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 
 			_, err = s.storeAndVerifyLayers(log, remoteImg)
 
-			assert.ErrorContains(err, tc.wantErr)
+			assert.ErrorIs(err, tc.wantErr)
 		})
 	}
 }
