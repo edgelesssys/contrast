@@ -33,7 +33,7 @@ mainline uninstall-old
 
 Check that SEV-SNP is enabled. If it's not then it likely needs to be
 enabled in the BIOS. For those steps, either have a look in our docs
-https://docs.edgeless.systems/contrast/getting-started/bare-metal or
+https://docs.edgeless.systems/contrast/howto/cluster-setup/bare-metal or
 google for "enable AMD SEV in BIOS." Sadly, AMD changes their document
 links from time to time, so we don't link it here.
 
@@ -53,7 +53,7 @@ Feb 27 19:33:13 hetzner-ax162-snp kernel: kvm_amd: SEV-SNP enabled (ASIDs 1 - 99
 
 ## TDX setup
 
-Follow https://docs.edgeless.systems/contrast/getting-started/bare-metal?vendor=intel#hardware-and-firmware-setup
+Follow https://docs.edgeless.systems/contrast/howto/cluster-setup/bare-metal?vendor=intel#hardware-and-firmware-setup
 
 ## Install required packages
 
@@ -119,7 +119,7 @@ helm install longhorn longhorn/longhorn --namespace longhorn-system --create-nam
 
 ## Kernel config
 
-Follow https://docs.edgeless.systems/contrast/getting-started/bare-metal?vendor=intel#kernel-setup.
+Follow https://docs.edgeless.systems/contrast/howto/cluster-setup/bare-metal?vendor=intel#kernel-setup.
 
 For newer Ubuntu versions, also set
 

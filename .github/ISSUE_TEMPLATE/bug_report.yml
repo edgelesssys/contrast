@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         ####
-        Please take a look at the [Troubleshooting Documentation](https://docs.edgeless.systems/contrast/troubleshooting) before reporting a bug.
+        Please take a look at the [Troubleshooting Documentation](https://docs.edgeless.systems/contrast/howto/troubleshooting) before reporting a bug.
         Further please ensure that the provided CLI logs are configured with the `--log-level` command-line flag set to `debug`.
 
         Thanks for taking the time to fill out this bug report!
