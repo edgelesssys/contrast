@@ -195,27 +195,18 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert MrTd from manifest to byte slices: %w", err)
 		}
-
-		minimumTeeTcbSvn, err := refVal.MinimumTeeTcbSvn.Bytes()
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert MinimumTeeTcbSvn from manifest to byte slices: %w", err)
-		}
-
 		mrSeam, err := refVal.MrSeam.Bytes()
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert MrSeam from manifest to byte slices: %w", err)
 		}
-
 		tdAttributes, err := refVal.TdAttributes.Bytes()
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert TdAttributes from manifest to byte slices: %w", err)
 		}
-
 		xfam, err := refVal.Xfam.Bytes()
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert Xfam from manifest to byte slices: %w", err)
 		}
-
 		var rtmrs [4][]byte
 		for i, rtmr := range refVal.Rtrms {
 			bytes, err := rtmr.Bytes()
@@ -227,17 +218,14 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 
 		validateOptions := &tdxvalidate.Options{
 			HeaderOptions: tdxvalidate.HeaderOptions{
-				MinimumQeSvn:  *refVal.MinimumQeSvn,
-				MinimumPceSvn: *refVal.MinimumPceSvn,
-				QeVendorID:    intelQeVendorID,
+				QeVendorID: intelQeVendorID,
 			},
 			TdQuoteBodyOptions: tdxvalidate.TdQuoteBodyOptions{
-				MinimumTeeTcbSvn: minimumTeeTcbSvn,
-				MrSeam:           mrSeam,
-				TdAttributes:     tdAttributes,
-				Xfam:             xfam,
-				MrTd:             mrTd,
-				Rtmrs:            rtmrs[:],
+				MrSeam:       mrSeam,
+				TdAttributes: tdAttributes,
+				Xfam:         xfam,
+				MrTd:         mrTd,
+				Rtmrs:        rtmrs[:],
 			},
 		}
 		out = append(out, TDXValidatorOptions{
