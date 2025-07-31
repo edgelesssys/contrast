@@ -20,6 +20,7 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/types"
 	"github.com/edgelesssys/contrast/imagepuller/internal/api"
+	"github.com/edgelesssys/contrast/imagepuller/internal/remote"
 	"github.com/edgelesssys/contrast/imagepuller/internal/service"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
@@ -99,7 +100,11 @@ func run(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("opening storage: %w", err)
 	}
 
-	api.RegisterImagePullServiceService(s, &service.ImagePullerService{Logger: log, Store: store})
+	api.RegisterImagePullServiceService(s, &service.ImagePullerService{
+		Logger: log,
+		Store:  store,
+		Remote: remote.DefaultRemote{},
+	})
 	eg, ctx := errgroup.WithContext(ctxSignal)
 
 	eg.Go(func() error {

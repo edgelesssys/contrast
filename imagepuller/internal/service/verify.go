@@ -17,21 +17,21 @@ import (
 
 // Error types which should be differentiable in tests.
 var (
-	ErrParseDigest   = errors.New("parsing image digest")
-	ErrRemoteImage   = errors.New("obtaining remote image")
-	ErrRemoteIndex   = errors.New("obtaining remote image index")
-	ErrValidateLayer = errors.New("validating layer")
+	errParseDigest         = errors.New("parsing image digest")
+	errUnexpectedMediaType = errors.New("unexpected media type")
+	errMissingPlatform     = errors.New("obtaining image digest for linux/amd64: platform missing from image index")
+	errValidateLayer       = errors.New("validating layer")
 )
 
 func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Logger, imageURL string) (gcr.Image, error) {
 	ref, err := name.NewDigest(imageURL)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrParseDigest, err)
+		return nil, fmt.Errorf("%w: %w", errParseDigest, err)
 	}
 
 	tr := transport.NewRetry(remote.DefaultTransport)
 
-	desc, err := remote.Head(ref, remote.WithContext(ctx), remote.WithTransport(tr))
+	desc, err := s.Remote.Head(ref, remote.WithContext(ctx), remote.WithTransport(tr))
 	if err != nil {
 		return nil, fmt.Errorf("obtaining descriptor: %w", err)
 	}
@@ -42,9 +42,9 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 	case desc.MediaType.IsIndex():
 		log.Info("Received manifest list")
 
-		remoteImgIndex, err := remote.Index(ref, remote.WithContext(ctx), remote.WithTransport(tr))
+		remoteImgIndex, err := s.Remote.Index(ref, remote.WithContext(ctx), remote.WithTransport(tr))
 		if err != nil {
-			return nil, fmt.Errorf("%w: %w", ErrRemoteIndex, err)
+			return nil, fmt.Errorf("obtaining remote image index: %w", err)
 		}
 
 		manifest, err := remoteImgIndex.IndexManifest()
@@ -52,29 +52,28 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 			return nil, fmt.Errorf("obtaining index manifest: %w", err)
 		}
 
-		var digestFound gcr.Hash
+		var digestFound *gcr.Hash
 		for _, m := range manifest.Manifests {
+			log.Info("MANIFEST", "name", m.Platform.String())
 			if m.Platform.String() == "linux/amd64" {
-				digestFound = m.Digest
+				digestFound = &m.Digest
 				break
 			}
 		}
-		if digestFound.String() == "" {
-			return nil, fmt.Errorf("obtaining image digest for linux/amd64: platform missing from image index")
+		if digestFound == nil {
+			return nil, errMissingPlatform
 		}
 		log.Info("Obtained actual image digest", "image_digest_linux", digestFound.String())
 
-		remoteImg, imgErr = remoteImgIndex.Image(digestFound)
+		remoteImg, imgErr = remoteImgIndex.Image(*digestFound)
 	case desc.MediaType.IsImage():
-		remoteImg, imgErr = remote.Image(ref, remote.WithContext(ctx), remote.WithTransport(tr))
+		remoteImg, imgErr = s.Remote.Image(ref, remote.WithContext(ctx), remote.WithTransport(tr))
 	default:
-		return nil, fmt.Errorf("unexpected media type %q", desc.MediaType)
+		return nil, fmt.Errorf("%w: %q", errUnexpectedMediaType, desc.MediaType)
 	}
 
-	if errors.Is(imgErr, context.DeadlineExceeded) {
-		return nil, fmt.Errorf("pull aborted (deadline exceeded): %w", imgErr)
-	} else if imgErr != nil {
-		return nil, fmt.Errorf("%w: %w", ErrRemoteImage, imgErr)
+	if imgErr != nil {
+		return nil, fmt.Errorf("obtaining remote image: %w", imgErr)
 	}
 
 	return remoteImg, nil
@@ -120,7 +119,7 @@ func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gc
 		ldManifest := manifest.Layers[idx].Digest.String()
 		ld := putLayer.CompressedDigest.String()
 		if ldManifest != ld {
-			return "", fmt.Errorf("%w: expected digest '%s' but got digest '%s'", ErrValidateLayer, ldManifest, ld)
+			return "", fmt.Errorf("%w: expected digest '%s' but got digest '%s'", errValidateLayer, ldManifest, ld)
 		}
 
 		log.Info("Applied and validated layer", "id", putLayer.ID, "size", n, "digest", ld)

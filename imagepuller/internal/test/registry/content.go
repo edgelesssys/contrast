@@ -13,9 +13,19 @@ import (
 	"time"
 )
 
+// BlobDigest is the digest of the blob.
+func BlobDigest() string {
+	return blob().digest()
+}
+
 // WrongBlobDigest is a digest for which a blob with a different digest will be served.
 func WrongBlobDigest() string {
 	return digested("BAD BLOB").digest()
+}
+
+// ManifestDigest is the digest of the well-formed manifest.
+func ManifestDigest() string {
+	return manifest().digest()
 }
 
 // WrongManifestDigest is a digest for which an image manifest with a different digest will be served.
