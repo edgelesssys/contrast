@@ -16,6 +16,7 @@ import (
 type ImagePullerService struct {
 	Logger *slog.Logger
 	Store  storage.Store
+	Remote Remote
 }
 
 // PullImage is a ttRPC service which pulls and mounts docker images.

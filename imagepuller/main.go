@@ -99,7 +99,11 @@ func run(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("opening storage: %w", err)
 	}
 
-	api.RegisterImagePullServiceService(s, &service.ImagePullerService{Logger: log, Store: store})
+	api.RegisterImagePullServiceService(s, &service.ImagePullerService{
+		Logger: log,
+		Store:  store,
+		Remote: service.DefaultRemote{},
+	})
 	eg, ctx := errgroup.WithContext(ctxSignal)
 
 	eg.Go(func() error {
