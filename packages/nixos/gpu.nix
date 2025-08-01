@@ -130,12 +130,6 @@ in
       pkgs.nvidia-ctk-with-config.tools
     ];
 
-    boot.initrd.kernelModules = [
-      # Extra kernel modules required to talk to the GPU in CC-Mode.
-      "ecdsa_generic"
-      "ecdh"
-    ];
-
     services.xserver.videoDrivers = [ "nvidia" ];
   };
 }
