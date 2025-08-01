@@ -35,9 +35,9 @@ The service mesh container can be configured using the following object annotati
 - `contrast.edgeless.systems/servicemesh-admin-interface-port` to configure the Envoy
   admin interface. If not specified, no admin interface will be started.
 
-If you aren't using the automatic service mesh injection and want to configure the
-service mesh manually, set the environment variables `CONTRAST_INGRESS_PROXY_CONFIG`,
-`CONTRAST_EGRESS_PROXY_CONFIG` and `CONTRAST_ADMIN_PORT` in the service mesh sidecar directly.
+Adding any of the ingress or egress annotations instructs the Contrast CLI to inject a service mesh sidecar container.
+The sidecar is configured with the environment variables `CONTRAST_INGRESS_PROXY_CONFIG`, `CONTRAST_EGRESS_PROXY_CONFIG` and `CONTRAST_ADMIN_PORT`, which are set to their respective annotation's value.
+After policy generation, the annotations themselves aren't interpreted by the runtime.
 
 ### Ingress
 
