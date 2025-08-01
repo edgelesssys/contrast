@@ -1,0 +1,27 @@
+{
+  "busybox-imagepuller": {
+    "time": 1,
+    "memory": 24,
+    "storage": 1
+  },
+  "continuous": {
+    "time": 24,
+    "memory": 48,
+    "storage": 499
+  },
+  "coordinator-imagepuller": {
+    "time": 6,
+    "memory": 39,
+    "storage": 165
+  },
+  "dmesg:v0.0.1-imagepuller": {
+    "time": 6,
+    "memory": 33,
+    "storage": 88
+  },
+  "nginx-unprivileged-imagepuller": {
+    "time": 11,
+    "memory": 43,
+    "storage": 244
+  }
+}
