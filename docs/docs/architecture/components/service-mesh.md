@@ -20,8 +20,7 @@ Since Contrast doesn't yet enforce the order in which the containers are started
 (see [Limitations](../features-limitations.md)), we deny all incoming connections
 until the service mesh is fully configured.
 A systemd unit inside the podVM creates this deny rule.
-The kata-agent systemd unit requires that this unit successfully runs and exits,
-before itself it can be started.
+The kata-agent only starts after this unit successfully runs and exits.
 Therefore, the deny rule is in place before any containers can be started.
 
 If the user specifies no service mesh annotations, the Initializer takes care
