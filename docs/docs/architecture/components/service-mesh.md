@@ -23,8 +23,7 @@ A systemd unit inside the podVM creates this deny rule.
 The kata-agent only starts after this unit successfully runs and exits.
 Therefore, the deny rule is in place before any containers can be started.
 
-If the user specifies no service mesh annotations, the Initializer takes care
-of removing the deny rule.
+If you specify no service mesh annotation, or pass `--skip-service-mesh` to the CLI, the Initializer will be configured to remove the rule.
 
 ## Configuring the proxy
 
@@ -37,7 +36,7 @@ The service mesh container can be configured using the following object annotati
 
 Adding these annotations instructs the Contrast CLI to inject a service mesh sidecar container.
 The sidecar is configured with the environment variables `CONTRAST_INGRESS_PROXY_CONFIG`, `CONTRAST_EGRESS_PROXY_CONFIG` and `CONTRAST_ADMIN_PORT`, which are set to their respective annotation's value.
-After policy generation, the annotations themselves are not interpreted by the runtime.
+After policy generation, the annotations themselves aren't interpreted by the runtime.
 
 ### Ingress
 
