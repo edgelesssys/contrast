@@ -176,7 +176,7 @@ func MultiCPU() []any {
 // Emojivoto returns resources for deploying Emojivoto application.
 func Emojivoto(smMode serviceMeshMode) []any {
 	ns := ""
-	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost string
+	var emojiSvcImage, emojiVotingSvcImage, emojiWebImage, emojiWebVoteBotImage, emojiSvcHost, votingSvcHost, emojiWebSvcHost string
 	var memoryLimitMiB int64
 	switch smMode {
 	case ServiceMeshDisabled:
@@ -187,16 +187,17 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiWebVoteBotImage = emojiWebImage
 		emojiSvcHost = "emoji-svc:8080"
 		votingSvcHost = "voting-svc:8080"
+		emojiWebSvcHost = "web-svc:8080"
 		// Our modified images are around 100MiB compressed.
 		memoryLimitMiB = 600
 	case ServiceMeshIngressEgress:
 		emojiSvcImage = "docker.io/buoyantio/emojivoto-emoji-svc:v11@sha256:957949355653776b65fafc2ee22f737cd21e090d4ace63f3b99f6e16976f0458"
 		emojiVotingSvcImage = "docker.io/buoyantio/emojivoto-voting-svc:v11@sha256:a57ac67af7a5b05988a38b49568eca6a078ef27a71c148c44c9db4efb1dac58b"
 		emojiWebImage = "docker.io/buoyantio/emojivoto-web:v11@sha256:d21f9fdb794f754b076344ce01c4858c499617c952cc6a941ac3cefbf5ccedfd"
-		// Source: https://github.com/3u13r/emojivoto/tree/8ba877681c297721cde63eb7be95c98c4c1186ee
-		emojiWebVoteBotImage = "ghcr.io/edgelesssys/contrast/emojivoto-web:coco-1@sha256:0fd9bf6f7dcb99bdb076144546b663ba6c3eb457cbb48c1d3fceb591d207289c"
+		emojiWebVoteBotImage = emojiWebImage
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
+		emojiWebSvcHost = "127.137.0.3:8081"
 		// Upstream images are at most 75MiB compressed, but we're adding the service mesh image with 50MiB.
 		memoryLimitMiB = 800
 	default:
@@ -299,7 +300,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 							WithName("vote-bot").
 							WithImage(emojiWebVoteBotImage).
 							WithCommand("emojivoto-vote-bot").
-							WithEnv(EnvVar().WithName("WEB_HOST").WithValue("web-svc:443")).
+							WithEnv(EnvVar().WithName("WEB_HOST").WithValue(emojiWebSvcHost)).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(memoryLimitMiB),
 							),
@@ -484,6 +485,9 @@ func Emojivoto(smMode serviceMeshMode) []any {
 	web.Spec.Template.WithAnnotations(map[string]string{
 		smIngressConfigAnnotationKey: "web#8080#false",
 		smEgressConfigAnnotationKey:  "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080",
+	})
+	voteBot.Spec.Template.WithAnnotations(map[string]string{
+		smEgressConfigAnnotationKey: "web#127.137.0.3:8081#web-svc:443",
 	})
 
 	return resources
