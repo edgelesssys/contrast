@@ -91,6 +91,10 @@
     mutable = false;
   };
 
+  # If /etc is read-only, we need to provide the machine-id file as a mount point for systemd.
+  # https://www.freedesktop.org/software/systemd/man/256/machine-id.html#Initialization
+  environment.etc."machine-id".text = "";
+
   # simple replacement for update-users-groups.pl
   systemd.sysusers.enable = true;
 
