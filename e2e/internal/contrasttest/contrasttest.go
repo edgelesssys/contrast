@@ -11,6 +11,7 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -164,10 +165,15 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	ct.installRuntime(t)
 }
 
-// Generate runs the contrast generate command.
+// Generate runs the contrast generate command and fails the test if the command fails.
 func (ct *ContrastTest) Generate(t *testing.T) {
-	require := require.New(t)
+	require.NoError(t, ct.RunGenerate())
+}
 
+// RunGenerate runs the contrast generate command.
+func (ct *ContrastTest) RunGenerate() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
 	args := append(
 		ct.commonArgs(),
 		"--image-replacements", ct.ImageReplacementsFile,
@@ -183,26 +189,49 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 	errBuf := &bytes.Buffer{}
 	generate.SetErr(errBuf)
 
-	require.NoError(generate.Execute(), "could not generate manifest: %s", errBuf)
-	patchManifestFunc, err := PatchReferenceValues(t.Context(), ct.Kubeclient, ct.Platform)
-	require.NoError(err)
-	ct.PatchManifest(t, patchManifestFunc)
-	ct.PatchManifest(t, addInvalidReferenceValues(ct.Platform))
+	if err := generate.Execute(); err != nil {
+		return errors.Join(err, fmt.Errorf("%s", errBuf))
+	}
+	patchManifestFunc, err := PatchReferenceValues(ctx, ct.Kubeclient, ct.Platform)
+	if err != nil {
+		return errors.Join(err, fmt.Errorf("%s", errBuf))
+	}
+	if err := ct.RunPatchManifest(patchManifestFunc); err != nil {
+		return errors.Join(err, fmt.Errorf("%s", errBuf))
+	}
+	if err := ct.RunPatchManifest(addInvalidReferenceValues(ct.Platform)); err != nil {
+		return errors.Join(err, fmt.Errorf("%s", errBuf))
+	}
+	return nil
 }
 
 // PatchManifestFunc defines a function type allowing the given manifest to be modified.
 type PatchManifestFunc func(manifest.Manifest) manifest.Manifest
 
-// PatchManifest modifies the current manifest by executing a provided PatchManifestFunc on it.
+// PatchManifest modifies the current manifest by executing a provided PatchManifestFunc on it. This function fails the test if it encounters an error.
 func (ct *ContrastTest) PatchManifest(t *testing.T, patchFn PatchManifestFunc) {
+	require.NoError(t, ct.RunPatchManifest(patchFn))
+}
+
+// RunPatchManifest modifies the current manifest by executing a provided PatchManifestFunc on it.
+func (ct *ContrastTest) RunPatchManifest(patchFn PatchManifestFunc) error {
 	manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
-	require.NoError(t, err)
+	if err != nil {
+		return err
+	}
 	var m manifest.Manifest
-	require.NoError(t, json.Unmarshal(manifestBytes, &m))
+	if err := json.Unmarshal(manifestBytes, &m); err != nil {
+		return err
+	}
 	patchedManifest := patchFn(m)
 	manifestBytes, err = json.Marshal(patchedManifest)
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
+	if err != nil {
+		return err
+	}
+	if err := os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644); err != nil {
+		return err
+	}
+	return nil
 }
 
 // addInvalidReferenceValues returns a PatchManifestFunc which adds a fresh, invalid entry to the specified reference values.
