@@ -161,7 +161,9 @@ func TestOpenSSL(t *testing.T) {
 		// - the backend's CA configuration accepted the frontend certificate
 		// - the frontend's CA configuration accepted the backend certificate
 		stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/sh", "-c", opensslConnectCmd("openssl-backend:443", meshCAFile)})
-		t.Log(stdout)
+		if err != nil {
+			t.Log(stdout)
+		}
 		require.NoError(err, "stderr: %q", stderr)
 	})
 
@@ -200,14 +202,18 @@ func TestOpenSSL(t *testing.T) {
 
 			// This should not succeed because the certificates have changed.
 			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/sh", "-c", opensslConnectCmd("openssl-backend:443", meshCAFile)})
-			t.Log("openssl with wrong certificates:", stdout)
+			if err == nil {
+				t.Log("openssl with wrong certificates:", stdout)
+			}
 			require.Error(err)
 			require.Contains(stderr, "self-signed certificate in certificate chain", "err: %s", err)
 
 			// Connect from backend to fronted, because the frontend does not require client certs.
 			// This should succeed because the root cert did not change.
 			stdout, stderr, err = c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/sh", "-c", opensslConnectCmd("openssl-frontend:443", rootCAFile)})
-			t.Log("openssl with root certificate:", stdout)
+			if err != nil {
+				t.Log("openssl with root certificate:", stdout)
+			}
 			require.NoError(err, "stderr: %q", stderr)
 
 			// Restart the other deployment so both workloads have the same certificates.
@@ -220,7 +226,9 @@ func TestOpenSSL(t *testing.T) {
 
 			// This should succeed since both workloads now have updated certificates.
 			stdout, stderr, err = c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/sh", "-c", opensslConnectCmd("openssl-backend:443", meshCAFile)})
-			t.Log("openssl with correct certificates:", stdout)
+			if err != nil {
+				t.Log("openssl with correct certificates:", stdout)
+			}
 			require.NoError(err, "stderr: %q", stderr)
 		})
 	}
