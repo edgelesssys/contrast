@@ -40,31 +40,28 @@ After policy generation, the annotations themselves aren't interpreted by the ru
 
 ### Ingress
 
-All TCP ingress traffic is routed over Envoy by default. Since we use
-[TPROXY](https://docs.kernel.org/networking/tproxy.html), the destination address
-remains the same throughout the packet handling.
+The service mesh ingress rule redirects all incoming TCP traffic transparently to the Envoy proxy.
+The rule is activated if either the ingress or the egress annotation is present on the pod.
+If the ingress annotation value is empty, incoming connections must present a client certificate signed by the [mesh CA certificate](#summary-of-certificate-roles).
+Envoy presents a certificate chain of the mesh certificate of the workload and the intermediate CA certificate.
 
-Any incoming connection is required to present a client certificate signed by the
-[mesh CA certificate](#summary-of-certificate-roles).
-Envoy presents a certificate chain of the mesh
-certificate of the workload and the intermediate CA certificate as the server certificate.
-
+Exemptions from the mTLS requirement can be specified in the annotation value, by passing triples of the form `<name>#<port>#<disable-TLS>`,  separated by `##`.
 If the deployment contains workloads which should be reachable from outside the
 Service Mesh, while still handing out the certificate chain, disable client
 authentication by setting the annotation `contrast.edgeless.systems/servicemesh-ingress` as
-`<name>#<port>#false`. Separate multiple entries with `##`. You can choose any
-descriptive string identifying the service on the given port for the `<name>` field,
-as it's only informational.
+`<name>#<port>#false`.
+You can choose any descriptive string identifying the service on the given port for the `<name>` field, as it's only informational.
 
 Disable redirection and TLS termination altogether by specifying
 `<name>#<port>#true`. This can be beneficial if the workload itself handles TLS
 on that port or if the information exposed on this port is non-sensitive.
 
-The following example workload exposes a web service on port 8080 and metrics on
-port 7890. The web server is exposed to a 3rd party end-user which wants to
-verify the deployment, therefore it's still required that the server hands out
-it certificate chain signed by the mesh CA certificate. The metrics should be
-exposed via TCP without TLS.
+Setting the ingress annotation to the fixed string `DISABLED` will disable the rule altogether.
+This is useful when egress rules are desired, but ingress rules aren't.
+
+The following example workload exposes a web service on port 8080 and metrics on port 7890.
+The web server is exposed to a 3rd party end-user who wants to verify the deployment, therefore it's still required that the server hands out its certificate chain.
+The metrics endpoint should be exposed directly, without TLS.
 
 ```yaml
 apiVersion: apps/v1
@@ -165,6 +162,8 @@ spec:
         - name: currency-conversion
           image: ghcr.io/edgelesssys/conversion:v1.2.3@...
 ```
+
+Setting the `contrast.edgeless.systems/servicemesh-egress` annotation without a value will result in an error during `contrast generate`.
 
 ## Public key Infrastructure
 
