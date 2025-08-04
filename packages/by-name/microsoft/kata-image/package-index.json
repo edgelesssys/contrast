@@ -288,8 +288,8 @@
     "hash": "sha256-BgCoG5pUCw0ufcV+miMRuLu/2DN21DkiigF7MVLEwZc="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libxml2-2.11.5-5.azl3.x86_64.rpm",
-    "hash": "sha256-Y8zuiUCdMYacjJiU0uWVI9cQFoyV95GBsmvuSs37KE0="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/libxml2-2.11.5-6.azl3.x86_64.rpm",
+    "hash": "sha256-D6/fUtLu0/z1Vcs9uWTB2zBKuDDwbWkIXGRZKTfnwTU="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/l/lmdb-libs-0.9.31-2.azl3.x86_64.rpm",
