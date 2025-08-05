@@ -72,6 +72,7 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc"),
@@ -83,6 +84,7 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithInitContainers(Initializer()).
@@ -95,6 +97,7 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc").
@@ -110,6 +113,7 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc").
@@ -125,6 +129,7 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(
 								applycorev1.Container().
@@ -143,6 +148,7 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithInitContainers(applycorev1.Container().WithName("custom-init")).
@@ -155,6 +161,7 @@ func TestAddInitializer(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithInitContainers(
@@ -172,9 +179,10 @@ func TestAddInitializer(t *testing.T) {
 		{
 			name: "cryptsetup default",
 			d: applyappsv1.Deployment("test", "default").
-				WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
+						WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc").
@@ -189,9 +197,10 @@ func TestAddInitializer(t *testing.T) {
 		{
 			name: "cryptsetup bad annotation",
 			d: applyappsv1.Deployment("test", "default").
-				WithAnnotations(map[string]string{securePVAnnotationKey: "test"}).
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
+						WithAnnotations(map[string]string{securePVAnnotationKey: "test"}).
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc"),
@@ -201,9 +210,10 @@ func TestAddInitializer(t *testing.T) {
 		{
 			name: "cryptsetup no device",
 			d: applyappsv1.Deployment("test", "default").
-				WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
+						WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc"),
@@ -213,9 +223,10 @@ func TestAddInitializer(t *testing.T) {
 		{
 			name: "cryptsetup volume is not an block device",
 			d: applyappsv1.Deployment("test", "default").
-				WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
+						WithAnnotations(map[string]string{securePVAnnotationKey: "device:mount"}).
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc").
@@ -310,9 +321,10 @@ func TestAddServiceMesh(t *testing.T) {
 		{
 			name: "default",
 			d: applyappsv1.Deployment("test", "default").
-				WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
+						WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc"),
@@ -324,6 +336,7 @@ func TestAddServiceMesh(t *testing.T) {
 			d: applyappsv1.Deployment("test", "default").
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc"),
@@ -334,9 +347,10 @@ func TestAddServiceMesh(t *testing.T) {
 		{
 			name: "service mesh replaced",
 			d: applyappsv1.Deployment("test", "default").
-				WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
+						WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithInitContainers(ServiceMeshProxy()).
@@ -347,9 +361,10 @@ func TestAddServiceMesh(t *testing.T) {
 		{
 			name: "volume reused",
 			d: applyappsv1.Deployment("test", "default").
-				WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
+						WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc").
@@ -363,9 +378,10 @@ func TestAddServiceMesh(t *testing.T) {
 		{
 			name: "volume is not an EmptyDir",
 			d: applyappsv1.Deployment("test", "default").
-				WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
 				WithSpec(applyappsv1.DeploymentSpec().
 					WithTemplate(applycorev1.PodTemplateSpec().
+						WithName("test-pod").
+						WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""}).
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc").

@@ -284,18 +284,17 @@ func AddDmesg(resources []any) []any {
 		WithSecurityContext(SecurityContext().
 			WithPrivileged(true).SecurityContextApplyConfiguration)
 
-	addDmesg := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration,
-	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+	addDmesg := func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
 		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
-			return meta, spec
+			return spec
 		}
 		spec.Containers = append(spec.Containers, *dmesgContainer)
-		return meta, spec
+		return spec
 	}
 
 	var out []any
 	for _, resource := range resources {
-		out = append(out, MapPodSpecWithMeta(resource, addDmesg))
+		out = append(out, MapPodSpec(resource, addDmesg))
 	}
 
 	return out
@@ -460,34 +459,34 @@ func MapPodSpecWithMeta(
 	}
 	switch r := resource.(type) {
 	case *applybatchv1.CronJobApplyConfiguration:
-		if r.ObjectMetaApplyConfiguration != nil &&
-			r.Spec != nil &&
+		if r.Spec != nil &&
 			r.Spec.JobTemplate != nil &&
 			r.Spec.JobTemplate.Spec != nil &&
 			r.Spec.JobTemplate.Spec.Template != nil &&
+			r.Spec.JobTemplate.Spec.Template.ObjectMetaApplyConfiguration != nil &&
 			r.Spec.JobTemplate.Spec.Template.Spec != nil {
-			r.ObjectMetaApplyConfiguration, r.Spec.JobTemplate.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.JobTemplate.Spec.Template.Spec)
+			r.Spec.JobTemplate.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.JobTemplate.Spec.Template.Spec = f(r.Spec.JobTemplate.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.JobTemplate.Spec.Template.Spec)
 		}
 	case *applyappsv1.DaemonSetApplyConfiguration:
-		if r.ObjectMetaApplyConfiguration != nil &&
-			r.Spec != nil &&
+		if r.Spec != nil &&
 			r.Spec.Template != nil &&
+			r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
 			r.Spec.Template.Spec != nil {
-			r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+			r.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 		}
 	case *applyappsv1.DeploymentApplyConfiguration:
-		if r.ObjectMetaApplyConfiguration != nil &&
-			r.Spec != nil &&
+		if r.Spec != nil &&
 			r.Spec.Template != nil &&
+			r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
 			r.Spec.Template.Spec != nil {
-			r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+			r.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 		}
 	case *applybatchv1.JobApplyConfiguration:
-		if r.ObjectMetaApplyConfiguration != nil &&
-			r.Spec != nil &&
+		if r.Spec != nil &&
 			r.Spec.Template != nil &&
+			r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
 			r.Spec.Template.Spec != nil {
-			r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+			r.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 		}
 	case *applycorev1.PodApplyConfiguration:
 		if r.ObjectMetaApplyConfiguration != nil &&
@@ -495,25 +494,25 @@ func MapPodSpecWithMeta(
 			r.ObjectMetaApplyConfiguration, r.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec)
 		}
 	case *applyappsv1.ReplicaSetApplyConfiguration:
-		if r.ObjectMetaApplyConfiguration != nil &&
-			r.Spec != nil &&
+		if r.Spec != nil &&
 			r.Spec.Template != nil &&
+			r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
 			r.Spec.Template.Spec != nil {
-			r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+			r.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 		}
 	case *applycorev1.ReplicationControllerApplyConfiguration:
-		if r.ObjectMetaApplyConfiguration != nil &&
-			r.Spec != nil &&
+		if r.Spec != nil &&
 			r.Spec.Template != nil &&
+			r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
 			r.Spec.Template.Spec != nil {
-			r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+			r.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 		}
 	case *applyappsv1.StatefulSetApplyConfiguration:
-		if r.ObjectMetaApplyConfiguration != nil &&
-			r.Spec != nil &&
+		if r.Spec != nil &&
 			r.Spec.Template != nil &&
+			r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
 			r.Spec.Template.Spec != nil {
-			r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
+			r.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.Template.Spec = f(r.Spec.Template.ObjectMetaApplyConfiguration, r.Spec.Template.Spec)
 		}
 	}
 	return resource
