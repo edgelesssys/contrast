@@ -540,9 +540,9 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		return resources
 	}
 
-	emoji.WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""})
-	voting.WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""})
-	web.WithAnnotations(map[string]string{
+	emoji.Spec.Template.WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""})
+	voting.Spec.Template.WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""})
+	web.Spec.Template.WithAnnotations(map[string]string{
 		smIngressConfigAnnotationKey: "web#8080#false",
 		smEgressConfigAnnotationKey:  "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080",
 	})
@@ -554,7 +554,6 @@ func Emojivoto(smMode serviceMeshMode) []any {
 // mounting of encrypted luks volumes using the workload-secret.
 func VolumeStatefulSet() []any {
 	vss := StatefulSet("volume-tester", "").
-		WithAnnotations(map[string]string{securePVAnnotationKey: "state:share"}).
 		WithSpec(StatefulSetSpec().
 			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
 				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
@@ -566,6 +565,7 @@ func VolumeStatefulSet() []any {
 			WithServiceName("volume-tester").
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "volume-tester"}).
+				WithAnnotations(map[string]string{securePVAnnotationKey: "state:share"}).
 				WithSpec(
 					PodSpec().
 						WithContainers(
@@ -603,10 +603,6 @@ func VolumeStatefulSet() []any {
 // with an encrypted luks volume using the workload-secret.
 func MySQL() []any {
 	backend := StatefulSet("mysql-backend", "").
-		WithAnnotations(map[string]string{
-			smIngressConfigAnnotationKey: "",
-			securePVAnnotationKey:        "state:share",
-		}).
 		WithSpec(StatefulSetSpec().
 			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
 				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
@@ -618,6 +614,10 @@ func MySQL() []any {
 			WithServiceName("mysql-backend").
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "mysql-backend"}).
+				WithAnnotations(map[string]string{
+					smIngressConfigAnnotationKey: "",
+					securePVAnnotationKey:        "state:share",
+				}).
 				WithSpec(
 					PodSpec().
 						WithContainers(
@@ -675,7 +675,6 @@ done
 `
 
 	client := Deployment("mysql-client", "").
-		WithAnnotations(map[string]string{smEgressConfigAnnotationKey: "mysql-backend#127.137.0.1:3306#mysql-backend:3306"}).
 		WithSpec(DeploymentSpec().
 			WithReplicas(1).
 			WithSelector(LabelSelector().
@@ -683,6 +682,7 @@ done
 			).
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "mysql-client"}).
+				WithAnnotations(map[string]string{smEgressConfigAnnotationKey: "mysql-backend#127.137.0.1:3306#mysql-backend:3306"}).
 				WithSpec(
 					PodSpec().
 						WithContainers(
@@ -786,9 +786,7 @@ seal "transit" {
 `
 	)
 
-	vaultSfSets := StatefulSet("vault", namespace).WithAnnotations(map[string]string{
-		securePVAnnotationKey: "state:share",
-	}).
+	vaultSfSets := StatefulSet("vault", namespace).
 		WithSpec(StatefulSetSpec().
 			WithPersistentVolumeClaimRetentionPolicy(applyappsv1.StatefulSetPersistentVolumeClaimRetentionPolicy().
 				WithWhenDeleted(appsv1.DeletePersistentVolumeClaimRetentionPolicyType).
@@ -801,7 +799,10 @@ seal "transit" {
 			WithTemplate(
 				PodTemplateSpec().
 					WithLabels(map[string]string{"app.kubernetes.io/name": "vault"}).
-					WithAnnotations(map[string]string{"contrast.edgeless.systems/workload-secret-id": "vault_unsealing"}).
+					WithAnnotations(map[string]string{
+						workloadSecretIDAnnotationKey: "vault_unsealing",
+						securePVAnnotationKey:         "state:share",
+					}).
 					WithSpec(PodSpec().
 						WithContainers(
 							Container().
