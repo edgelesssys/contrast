@@ -137,12 +137,12 @@ func TestIngressEgress(t *testing.T) {
 		require.NoError(err)
 		require.Len(backendPods, 1, "pod not found: %s/%s", ct.Namespace, "emoji")
 
-		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "web")
+		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "voting")
 		require.NoError(err)
-		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, "web")
+		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, "voting")
 
-		argv := []string{"curl", "-fsS", net.JoinHostPort(frontendPods[0].Status.PodIP, "9901") + "/stats/prometheus"}
-		stdout, stderr, err := c.Exec(ctx, ct.Namespace, backendPods[0].Name, argv)
+		argv := []string{"curl", "-fsS", net.JoinHostPort(backendPods[0].Status.PodIP, "9901") + "/stats/prometheus"}
+		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
 		require.NoError(err, "Expected Service Mesh admin interface to be reachable.\nstdout: %s\nstderr: %q", stdout, stderr)
 	})
 }
