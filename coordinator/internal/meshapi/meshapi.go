@@ -10,6 +10,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"log/slog"
+	"net"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -73,6 +74,10 @@ func (i *Server) NewMeshCert(ctx context.Context, _ *meshapi.NewMeshCertRequest)
 		return nil, status.Errorf(codes.PermissionDenied, "policy hash %s not found in manifest", hostData)
 	}
 	dnsNames := entry.SANs
+
+	if host, _, err := net.SplitHostPort(p.Addr.String()); err == nil {
+		dnsNames = append(dnsNames, host)
+	}
 
 	peerPubKey, err := x509.ParsePKIXPublicKey(peerPubKeyBytes)
 	if err != nil {
