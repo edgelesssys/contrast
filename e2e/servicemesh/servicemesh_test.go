@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -144,6 +146,54 @@ func TestIngressEgress(t *testing.T) {
 		argv := []string{"curl", "-fsS", net.JoinHostPort(frontendPods[0].Status.PodIP, "9901") + "/stats/prometheus"}
 		stdout, stderr, err := c.Exec(ctx, ct.Namespace, backendPods[0].Name, argv)
 		require.NoError(err, "Expected Service Mesh admin interface to be reachable.\nstdout: %s\nstderr: %q", stdout, stderr)
+	})
+
+	t.Run("egress-only configuration works", func(t *testing.T) {
+		require := require.New(t)
+
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		defer cancel()
+
+		c := kubeclient.NewForTest(t)
+
+		// 1. Verify that outbound traffic is proxied as expected by checking the number of total votes.
+
+		votingPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "voting")
+		require.NoError(err)
+		require.Len(votingPods, 1, "pod not found: %s/%s", ct.Namespace, "voting")
+
+		stdout, stderr, err := c.Exec(ctx, ct.Namespace, votingPods[0].Name, []string{"curl", "-fsS", "localhost:8801/metrics"})
+		require.NoError(err, "Expected voting service metrics to be available.\nstdout: %s\nstderr: %q", stdout, stderr)
+
+		metrics, err := (&expfmt.TextParser{}).TextToMetricFamilies(strings.NewReader(stdout))
+		require.NoError(err)
+		const metricName = "grpc_server_handled_total"
+		metricFamily, ok := metrics[metricName]
+		require.True(ok, "metric family %q not found", metricName)
+		total := 0.0
+		for _, metric := range metricFamily.GetMetric() {
+			for _, labelPair := range metric.GetLabel() {
+				if labelPair.Name == nil || *labelPair.Name != "grpc_code" {
+					continue
+				}
+				if labelPair.Value == nil || *labelPair.Value != "OK" {
+					break
+				}
+				total += metric.GetCounter().GetValue()
+			}
+		}
+		require.Positivef(total, "expected vote bot to call voting service. Raw metrics:\n%s", stdout)
+
+		// 2. Ensure that there are no iptables rules for ingress.
+
+		voteBotPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "vote-bot")
+		require.NoError(err)
+		require.Len(voteBotPods, 1, "pod not found: %s/%s", ct.Namespace, "vote-bot")
+
+		stdout, stderr, err = c.ExecContainer(ctx, ct.Namespace, voteBotPods[0].Name, "contrast-service-mesh", []string{"sh", "-ec", "iptables-save; iptables-legacy-save"})
+		require.NoError(err, "Could not dump iptables.\nstdout: %s\nstderr: %q", stdout, stderr)
+		require.Empty(stderr)
+		require.NotContains(stdout, "-j TPROXY")
 	})
 }
 
