@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"log/slog"
+	"net"
 	"testing"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
@@ -62,6 +63,7 @@ func TestNewMeshCert(t *testing.T) {
 		State: stateguard.NewStateForTest(se, m, nil, ca),
 	}
 	ctx := peer.NewContext(t.Context(), &peer.Peer{
+		Addr:     &net.TCPAddr{IP: net.IP{1, 2, 3, 4}},
 		AuthInfo: info,
 	})
 
@@ -75,6 +77,8 @@ func TestNewMeshCert(t *testing.T) {
 	certChain := certFromPEM(t, resp.CertChain)
 	require.Len(certChain, 2)
 	cert, intermediateCert := certChain[0], certChain[1]
+	require.Contains(cert.DNSNames, "test")
+	require.Contains(cert.IPAddresses, net.IP{1, 2, 3, 4})
 	assert.False(cert.IsCA)
 	assert.True(intermediateCert.IsCA)
 	assert.Equal(cert.AuthorityKeyId, intermediateCert.SubjectKeyId)
