@@ -541,7 +541,10 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		return resources
 	}
 
-	emoji.WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""})
+	emoji.WithAnnotations(map[string]string{
+		smIngressConfigAnnotationKey:  "envoy#9901#true",
+		smAdminInterfaceAnnotationKey: "9901",
+	})
 	voting.WithAnnotations(map[string]string{smIngressConfigAnnotationKey: ""})
 	web.WithAnnotations(map[string]string{
 		smIngressConfigAnnotationKey: "web#8080#false",
