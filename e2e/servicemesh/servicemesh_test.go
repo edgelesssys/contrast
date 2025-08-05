@@ -137,9 +137,9 @@ func TestIngressEgress(t *testing.T) {
 		require.NoError(err)
 		require.Len(backendPods, 1, "pod not found: %s/%s", ct.Namespace, "emoji")
 
-		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "web")
+		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "voting")
 		require.NoError(err)
-		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, "web")
+		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, "voting")
 
 		argv := []string{"curl", "-fsS", net.JoinHostPort(frontendPods[0].Status.PodIP, "9901") + "/stats/prometheus"}
 		stdout, stderr, err := c.Exec(ctx, ct.Namespace, backendPods[0].Name, argv)
