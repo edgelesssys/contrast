@@ -32,15 +32,17 @@ import (
 var loopbackCIDR = netip.MustParsePrefix("127.0.0.1/8")
 
 const (
-	blackHoleClusterName = "BlackHoleCluster"
-	ingressClusterName   = "IngressCluster"
+	blackHoleClusterName     = "BlackHoleCluster"
+	ingressClusterName       = "IngressCluster"
+	disableServiceMeshEnvVar = "CONTRAST_SERVICE_MESH_DISABLED"
 )
 
 // ProxyConfig represents the configuration for the proxy.
 type ProxyConfig struct {
-	egress    []egressConfigEntry
-	ingress   []ingressConfigEntry
-	adminPort uint32
+	egress         []egressConfigEntry
+	ingress        []ingressConfigEntry
+	ingressEnabled bool
+	adminPort      uint32
 }
 type egressConfigEntry struct {
 	name         string
@@ -65,38 +67,61 @@ type ingressConfigEntry struct {
 //
 //	emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080
 func ParseProxyConfig(ingressConfig, egressConfig, adminPort string) (ProxyConfig, error) {
-	if ingressConfig == "" && egressConfig == "" && adminPort == "" {
-		return ProxyConfig{}, nil
-	}
+	cfg := ProxyConfig{}
 
+	ingress, ingressEnabled, err := parseIngressConfig(ingressConfig)
+	if err != nil {
+		return ProxyConfig{}, fmt.Errorf("parsing ingress proxy config: %w", err)
+	}
+	cfg.ingress = ingress
+	cfg.ingressEnabled = ingressEnabled
+
+	egress, err := parseEgressConfig(egressConfig)
+	if err != nil {
+		return ProxyConfig{}, fmt.Errorf("parsing egress proxy config: %w", err)
+	}
+	cfg.egress = egress
+
+	port, err := parseAdminPort(adminPort)
+	if err != nil {
+		return ProxyConfig{}, fmt.Errorf("parsing admin port: %w", err)
+	}
+	cfg.adminPort = port
+	return cfg, nil
+}
+
+func parseEgressConfig(egressConfig string) ([]egressConfigEntry, error) {
+	if egressConfig == disableServiceMeshEnvVar {
+		return nil, nil
+	}
 	entries := strings.Split(egressConfig, "##")
-	var cfg ProxyConfig
+	var egress []egressConfigEntry
 	for _, entry := range entries {
 		if entry == "" {
 			continue
 		}
 		parts := strings.Split(entry, "#")
 		if len(parts) != 3 {
-			return ProxyConfig{}, fmt.Errorf("invalid entry: %s", entry)
+			return nil, fmt.Errorf("invalid entry: %s", entry)
 		}
 		listenAddrPort, err := netip.ParseAddrPort(parts[1])
 		if err != nil {
-			return ProxyConfig{}, fmt.Errorf("invalid listen address: %s", parts[1])
+			return nil, fmt.Errorf("invalid listen address: %s", parts[1])
 		}
 
 		if !loopbackCIDR.Contains(listenAddrPort.Addr()) {
-			return ProxyConfig{}, fmt.Errorf("listen address %s is not in local CIDR %s", listenAddrPort.Addr(), loopbackCIDR)
+			return nil, fmt.Errorf("listen address %s is not in local CIDR %s", listenAddrPort.Addr(), loopbackCIDR)
 		}
 		remoteDomain := parts[2]
 		remoteDomain, remotePort, err := net.SplitHostPort(remoteDomain)
 		if err != nil {
-			return ProxyConfig{}, fmt.Errorf("invalid remote domain: %s", remoteDomain)
+			return nil, fmt.Errorf("invalid remote domain: %s", remoteDomain)
 		}
 		remotePortInt, err := strconv.Atoi(remotePort)
 		if err != nil {
-			return ProxyConfig{}, fmt.Errorf("invalid remote port: %s", remotePort)
+			return nil, fmt.Errorf("invalid remote port: %s", remotePort)
 		}
-		cfg.egress = append(cfg.egress, egressConfigEntry{
+		egress = append(egress, egressConfigEntry{
 			name:         parts[0],
 			clusterName:  parts[0],
 			listenAddr:   listenAddrPort.Addr(),
@@ -105,24 +130,31 @@ func ParseProxyConfig(ingressConfig, egressConfig, adminPort string) (ProxyConfi
 			remoteDomain: remoteDomain,
 		})
 	}
+	return egress, nil
+}
 
+func parseIngressConfig(ingressConfig string) ([]ingressConfigEntry, bool, error) {
+	if ingressConfig == disableServiceMeshEnvVar {
+		return nil, false, nil
+	}
+	var ingress []ingressConfigEntry
 	for _, entry := range strings.Split(ingressConfig, "##") {
 		if entry == "" {
 			continue
 		}
 		parts := strings.Split(entry, "#")
 		if len(parts) != 3 {
-			return ProxyConfig{}, fmt.Errorf("invalid entry: %s", entry)
+			return nil, false, fmt.Errorf("invalid entry: %s", entry)
 		}
 		listenPort, err := strconv.Atoi(parts[1])
 		if err != nil {
-			return ProxyConfig{}, fmt.Errorf("invalid listen port: %s", parts[1])
+			return nil, false, fmt.Errorf("invalid listen port: %s", parts[1])
 		}
 		disableTLS, err := strconv.ParseBool(parts[2])
 		if err != nil {
-			return ProxyConfig{}, fmt.Errorf("invalid disable TLS: %s", parts[2])
+			return nil, false, fmt.Errorf("invalid disable TLS: %s", parts[2])
 		}
-		cfg.ingress = append(cfg.ingress, ingressConfigEntry{
+		ingress = append(ingress, ingressConfigEntry{
 			name:       parts[0],
 			listenPort: uint16(listenPort),
 			disableTLS: disableTLS,
@@ -130,15 +162,19 @@ func ParseProxyConfig(ingressConfig, egressConfig, adminPort string) (ProxyConfi
 
 	}
 
+	return ingress, true, nil
+}
+
+func parseAdminPort(adminPort string) (uint32, error) {
 	if adminPort != "" {
 		adminPortInt, err := strconv.Atoi(adminPort)
 		if err != nil {
-			return ProxyConfig{}, fmt.Errorf("invalid admin port: %s", adminPort)
+			return 0, fmt.Errorf("invalid admin port: %s", adminPort)
 		}
-		cfg.adminPort = uint32(adminPortInt)
+		return uint32(adminPortInt), nil
 	}
 
-	return cfg, nil
+	return 0, nil
 }
 
 // ToEnvoyConfig converts the proxy configuration to an Envoy configuration.
@@ -162,21 +198,30 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 		}
 	}
 
-	listeners := make([]*envoyConfigListenerV3.Listener, 0)
-	clusters := make([]*envoyConfigClusterV3.Cluster, 0)
-
 	// Create listeners and clusters for egress traffic.
 	for _, entry := range c.egress {
 		listener, err := listener(entry)
 		if err != nil {
 			return nil, err
 		}
-		listeners = append(listeners, listener)
+		config.StaticResources.Listeners = append(config.StaticResources.Listeners, listener)
 		cluster, err := cluster(entry)
 		if err != nil {
 			return nil, err
 		}
-		clusters = append(clusters, cluster)
+		config.StaticResources.Clusters = append(config.StaticResources.Clusters, cluster)
+	}
+
+	if !c.ingressEnabled {
+		if err := config.ValidateAll(); err != nil {
+			return nil, fmt.Errorf("validating egress config: %w", err)
+		}
+
+		configBytes, err := protojson.Marshal(config)
+		if err != nil {
+			return nil, fmt.Errorf("marshalling envoy config: %w", err)
+		}
+		return configBytes, nil
 	}
 
 	// Create listeners and clusters for ingress traffic.
@@ -196,12 +241,8 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 		LbPolicy:             envoyConfigClusterV3.Cluster_CLUSTER_PROVIDED,
 	}
 
-	listeners = append(listeners, ingrListenerClientAuth)
-	listeners = append(listeners, ingrListenerNoClientAuth)
-	clusters = append(clusters, ingressCluster)
-
-	config.StaticResources.Listeners = listeners
-	config.StaticResources.Clusters = clusters
+	config.StaticResources.Listeners = append(config.StaticResources.Listeners, ingrListenerClientAuth, ingrListenerNoClientAuth)
+	config.StaticResources.Clusters = append(config.StaticResources.Clusters, ingressCluster)
 
 	if err := addBlackHoleToConfig(config, []int{EnvoyIngressPort, EnvoyIngressPortNoClientCert}); err != nil {
 		return nil, err
