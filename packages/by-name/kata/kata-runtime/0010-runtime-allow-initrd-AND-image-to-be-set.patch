@@ -1,15 +1,169 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
-Date: Mon, 18 Nov 2024 12:41:40 +0100
+From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+Date: Tue, 5 Aug 2025 10:19:08 +0200
 Subject: [PATCH] runtime: allow initrd AND image to be set
 
-Signed-off-by: Moritz Sanft <58110325+msanft@users.noreply.github.com>
----
- .../virtcontainers/hypervisor_config_darwin.go |  2 --
- .../virtcontainers/hypervisor_config_linux.go  |  2 --
- src/runtime/virtcontainers/qemu.go             | 18 +++---------------
- 3 files changed, 3 insertions(+), 19 deletions(-)
+Currently, only an image OR initrd can be set.
+This commit changes that, allowing both to be set at the same time.
 
+Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+---
+ src/runtime/virtcontainers/clh.go             | 19 ++++---
+ src/runtime/virtcontainers/fc.go              | 13 ++++-
+ src/runtime/virtcontainers/hypervisor.go      | 51 ++++---------------
+ .../hypervisor_config_darwin.go               |  2 -
+ .../virtcontainers/hypervisor_config_linux.go |  2 -
+ src/runtime/virtcontainers/qemu.go            | 22 +++++---
+ 6 files changed, 47 insertions(+), 62 deletions(-)
+
+diff --git a/src/runtime/virtcontainers/clh.go b/src/runtime/virtcontainers/clh.go
+index ddb9df9d85d814093f50437863004b42f9670aba..40bbfe1b502a49a1251b5cddef0ccdfdc44497b8 100644
+--- a/src/runtime/virtcontainers/clh.go
++++ b/src/runtime/virtcontainers/clh.go
+@@ -587,14 +587,13 @@ func (clh *cloudHypervisor) CreateVM(ctx context.Context, id string, network Net
+ 	clh.vmconfig.Rng.SetIommu(clh.config.IOMMU)
+ 
+ 	// set the initial root/boot disk of hypervisor
+-	assetPath, assetType, err := clh.config.ImageOrInitrdAssetPath()
++	imagePath, err := clh.config.ImageAssetPath()
+ 	if err != nil {
+ 		return err
+ 	}
+-
+-	if assetType == types.ImageAsset {
++	if imagePath != "" {
+ 		if clh.config.DisableImageNvdimm || clh.config.ConfidentialGuest {
+-			disk := chclient.NewDiskConfig(assetPath)
++			disk := chclient.NewDiskConfig(imagePath)
+ 			disk.SetReadonly(true)
+ 
+ 			diskRateLimiterConfig := clh.getDiskRateLimiterConfig()
+@@ -608,7 +607,7 @@ func (clh *cloudHypervisor) CreateVM(ctx context.Context, id string, network Net
+ 				clh.vmconfig.Disks = &[]chclient.DiskConfig{*disk}
+ 			}
+ 		} else {
+-			pmem := chclient.NewPmemConfig(assetPath)
++			pmem := chclient.NewPmemConfig(imagePath)
+ 			*pmem.DiscardWrites = true
+ 			pmem.SetIommu(clh.config.IOMMU)
+ 
+@@ -618,9 +617,13 @@ func (clh *cloudHypervisor) CreateVM(ctx context.Context, id string, network Net
+ 				clh.vmconfig.Pmem = &[]chclient.PmemConfig{*pmem}
+ 			}
+ 		}
+-	} else {
+-		// assetType == types.InitrdAsset
+-		clh.vmconfig.Payload.SetInitramfs(assetPath)
++	}
++	initrdPath, err := clh.config.ImageAssetPath()
++	if err != nil {
++		return err
++	}
++	if initrdPath != "" {
++		clh.vmconfig.Payload.SetInitramfs(initrdPath)
+ 	}
+ 
+ 	if clh.config.ConfidentialGuest {
+diff --git a/src/runtime/virtcontainers/fc.go b/src/runtime/virtcontainers/fc.go
+index 3442edadbc847a6da1d9e352d2b97af8d50c8c1a..0a0b5f3d9d4695d8b519719823ea56b562ffb36d 100644
+--- a/src/runtime/virtcontainers/fc.go
++++ b/src/runtime/virtcontainers/fc.go
+@@ -721,10 +721,21 @@ func (fc *firecracker) fcInitConfiguration(ctx context.Context) error {
+ 		return err
+ 	}
+ 
+-	assetPath, _, err := fc.config.ImageOrInitrdAssetPath()
++	var assetPath string
++	imagePath, err := fc.config.ImageAssetPath()
+ 	if err != nil {
+ 		return err
+ 	}
++	if imagePath != "" {
++		assetPath = imagePath
++	}
++	initrdPath, err := fc.config.InitrdAssetPath()
++	if err != nil {
++		return err
++	}
++	if initrdPath != "" {
++		assetPath = imagePath
++	}
+ 
+ 	if err := fc.fcSetVMRootfs(ctx, assetPath); err != nil {
+ 		return err
+diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
+index 8b6f3659436f9f74c0c5235a6b9807cf60cfdb43..53ce87072c7d455d8e62c0b20609fa6e45c47b6e 100644
+--- a/src/runtime/virtcontainers/hypervisor.go
++++ b/src/runtime/virtcontainers/hypervisor.go
+@@ -332,7 +332,6 @@ type HypervisorConfig struct {
+ 	ImagePath string
+ 
+ 	// InitrdPath is the guest initrd image host path.
+-	// ImagePath and InitrdPath cannot be set at the same time.
+ 	InitrdPath string
+ 
+ 	// RootfsType is filesystem type of rootfs.
+@@ -764,50 +763,20 @@ func (conf *HypervisorConfig) AddCustomAsset(a *types.Asset) error {
+ 	return nil
+ }
+ 
+-// ImageOrInitrdAssetPath returns an image or an initrd path, along with the corresponding asset type
+-// Annotation path is preferred to config path.
+-func (conf *HypervisorConfig) ImageOrInitrdAssetPath() (string, types.AssetType, error) {
+-	var image, initrd string
+-
+-	checkAndReturn := func(image string, initrd string) (string, types.AssetType, error) {
+-		if image != "" && initrd != "" {
+-			return "", types.UnkownAsset, conflictingAssets
+-		}
+-
+-		if image != "" {
+-			return image, types.ImageAsset, nil
+-		}
+-
+-		if initrd != "" {
+-			return initrd, types.InitrdAsset, nil
+-		}
+-
+-		// Even if neither image nor initrd are set, we still need to return
+-		// if we are running a confidential guest on QemuCCWVirtio. (IBM Z Secure Execution)
+-		if conf.ConfidentialGuest && conf.HypervisorMachineType == QemuCCWVirtio {
+-			return "", types.SecureBootAsset, nil
+-		}
+-
+-		return "", types.UnkownAsset, fmt.Errorf("one of image and initrd must be set")
+-	}
+-
+-	if a, ok := conf.customAssets[types.ImageAsset]; ok {
+-		image = a.Path()
++func (conf *HypervisorConfig) UseSecureBootAssets() bool {
++	imagePath, _ := conf.ImageAssetPath()
++	initrdPath, _ := conf.InitrdAssetPath()
++	if imagePath != "" || initrdPath != "" {
++		return false
+ 	}
+ 
+-	if a, ok := conf.customAssets[types.InitrdAsset]; ok {
+-		initrd = a.Path()
+-	}
+-
+-	path, assetType, err := checkAndReturn(image, initrd)
+-	if assetType != types.UnkownAsset {
+-		return path, assetType, nil
+-	}
+-	if err == conflictingAssets {
+-		return "", types.UnkownAsset, errors.Wrapf(err, "conflicting annotations")
++	// Even if neither image nor initrd are set, we still need to return
++	// if we are running a confidential guest on QemuCCWVirtio. (IBM Z Secure Execution)
++	if conf.ConfidentialGuest && conf.HypervisorMachineType == QemuCCWVirtio {
++		return true
+ 	}
+ 
+-	return checkAndReturn(conf.ImagePath, conf.InitrdPath)
++	return false
+ }
+ 
+ func (conf *HypervisorConfig) assetPath(t types.AssetType) (string, error) {
 diff --git a/src/runtime/virtcontainers/hypervisor_config_darwin.go b/src/runtime/virtcontainers/hypervisor_config_darwin.go
 index 1225271a2a4c5d9340022c22ee6889171bc21b93..a3398bcf6fac68e272a4ca1de962e585c4cf4fae 100644
 --- a/src/runtime/virtcontainers/hypervisor_config_darwin.go
@@ -37,21 +191,23 @@ index 1bcd47218c3c6e336b443eb3b7337bf35602cae4..e695aa52f23e86687b9481e92d6b0c52
  
  	if err := conf.CheckTemplateConfig(); err != nil {
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 1020852ed976058ae93e9751885aa3d49ee3da93..a6f6642d0967cc6d9aca620bd218da4b2c822cce 100644
+index 1020852ed976058ae93e9751885aa3d49ee3da93..3d1ce150a47f2e560efe81b6fde7b68dc386220a 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
-@@ -435,24 +435,12 @@ func (q *qemu) buildDevices(ctx context.Context, kernelPath string) ([]govmmQemu
+@@ -435,20 +435,26 @@ func (q *qemu) buildDevices(ctx context.Context, kernelPath string) ([]govmmQemu
  		return nil, nil, nil, err
  	}
  
 -	assetPath, assetType, err := q.config.ImageOrInitrdAssetPath()
--	if err != nil {
--		return nil, nil, nil, err
--	}
++	imagePath, err := q.config.ImageAssetPath()
+ 	if err != nil {
+ 		return nil, nil, nil, err
+ 	}
 -
 -	if assetType == types.ImageAsset {
 -		devices, err = q.arch.appendImage(ctx, devices, assetPath)
-+	devices, err = q.arch.appendImage(ctx, devices, q.config.ImagePath)
++	if imagePath != "" {
++		devices, err = q.arch.appendImage(ctx, devices, imagePath)
  		if err != nil {
  			return nil, nil, nil, err
  		}
@@ -59,12 +215,17 @@ index 1020852ed976058ae93e9751885aa3d49ee3da93..a6f6642d0967cc6d9aca620bd218da4b
 -		// InitrdAsset, need to set kernel initrd path
 -		kernel.InitrdPath = assetPath
 -	} else if assetType == types.SecureBootAsset {
--		// SecureBootAsset, no need to set image or initrd path
--		q.Logger().Info("For IBM Z Secure Execution, initrd path should not be set")
--		kernel.InitrdPath = ""
--	}
++	}
 +
-+	kernel.InitrdPath = q.config.InitrdPath
- 
- 	if q.config.IOMMU {
- 		devices, err = q.arch.appendIOMMU(devices)
++	initrdPath, err := q.config.InitrdAssetPath()
++	if err != nil {
++		return nil, nil, nil, err
++	}
++	if initrdPath != "" {
++		kernel.InitrdPath = initrdPath
++	}
++
++	if q.config.UseSecureBootAssets() {
+ 		// SecureBootAsset, no need to set image or initrd path
+ 		q.Logger().Info("For IBM Z Secure Execution, initrd path should not be set")
+ 		kernel.InitrdPath = ""
