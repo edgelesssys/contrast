@@ -83,7 +83,10 @@ rustPlatform.buildRustPackage rec {
       patches = [ ./genpolicy_settings_dev.patch ];
     };
 
-    rules = stdenvNoCC.mkDerivation {
+    # Switch to rules-allow-all to disable policy checks for debugging.
+    rules = rules-prod;
+
+    rules-prod = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-rules";
       inherit src sourceRoot;
 
@@ -95,6 +98,22 @@ rustPlatform.buildRustPackage rec {
       installPhase = ''
         runHook preInstall
         install -D rules.rego $out/genpolicy-rules.rego
+        runHook postInstall
+      '';
+    };
+
+    rules-allow-all = stdenvNoCC.mkDerivation {
+      name = "${pname}-${version}-rules-allow-all";
+      inherit src sourceRoot;
+
+      phases = [
+        "unpackPhase"
+        "patchPhase"
+        "installPhase"
+      ];
+      installPhase = ''
+        runHook preInstall
+        install -D ../../kata-opa/allow-all.rego $out/genpolicy-rules.rego
         runHook postInstall
       '';
     };
