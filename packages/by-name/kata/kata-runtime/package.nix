@@ -172,6 +172,10 @@ buildGoModule (finalAttrs: {
       # to SetPolicy, initdata, is already compressed at the annotation level.
       # TODO(burgerdev): remove after moving to initdata.
       ./0023-misc-use-compressed-policy.patch
+
+      # Add rules to allow AddARPNeighbors.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11663.
+      ./0024-genpolicy-add-rule-for-AddARPNeighbors.patch
     ];
   };
 

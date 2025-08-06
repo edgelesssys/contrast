@@ -1,0 +1,92 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Wed, 6 Aug 2025 10:43:51 +0200
+Subject: [PATCH] genpolicy: add rule for AddARPNeighbors
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/tools/genpolicy/genpolicy-settings.json |  8 ++++++++
+ src/tools/genpolicy/rules.rego              | 19 +++++++++++++++++++
+ src/tools/genpolicy/src/policy.rs           | 13 +++++++++++++
+ 3 files changed, 40 insertions(+)
+
+diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
+index 62db4a2a4d74c3593b0f5064a093a9f6de6920ea..14d2e3d4b4c780b724b467474bb5a5402b45dbdf 100644
+--- a/src/tools/genpolicy/genpolicy-settings.json
++++ b/src/tools/genpolicy/genpolicy-settings.json
+@@ -362,6 +362,14 @@
+                 "^127\\.(?:[0-9]{1,3}\\.){2}[0-9]{1,3}$"
+             ]
+         },
++        "AddARPNeighborsRequest": {
++            "forbidden_device_names": [
++                "lo"
++            ],
++            "forbidden_cidrs_regex": [
++                "^127\\.(?:[0-9]{1,3}\\.){2}[0-9]{1,3}$"
++            ]
++        },
+         "CloseStdinRequest": false,
+         "ReadStreamRequest": false,
+         "UpdateEphemeralMountsRequest": false,
+diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
+index 2b598d612fd7d58a15e391f6b002a082eb3ce3c5..e0b5bb3ab19413ffba9872bc96816d90e8fd5238 100644
+--- a/src/tools/genpolicy/rules.rego
++++ b/src/tools/genpolicy/rules.rego
+@@ -1591,6 +1591,25 @@ UpdateInterfaceRequest if {
+     print("UpdateInterfaceRequest: true")
+ }
+ 
++AddARPNeighborsRequest if {
++    p_defaults := policy_data.request_defaults.AddARPNeighborsRequest
++    print("AddARPNeighborsRequest: policy =", p_defaults)
++
++    every i_neigh in input.neighbors.ARPNeighbors {
++        print("AddARPNeighborsRequest: i_neigh =", i_neigh)
++
++        not i_neigh.device in p_defaults.forbidden_device_names
++        i_neigh.toIPAddress.mask == ""
++        every p_cidr in p_defaults.forbidden_cidrs_regex {
++            not regex.match(p_cidr, i_neigh.toIPAddress.address)
++        }
++        i_neigh.state == 128
++        bits.or(i_neigh.flags, 136) == 136
++    }
++
++    print("AddARPNeighborsRequest: true")
++}
++
+ CloseStdinRequest if {
+     policy_data.request_defaults.CloseStdinRequest == true
+ }
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index ae27d0db4621ec1a4a4ad402e6fd688adced4fca..5a8c17eb63a4b3e649dcf4ec962dbd57c8475182 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -360,6 +360,16 @@ pub struct UpdateInterfaceRequestDefaults {
+     forbidden_hw_addrs: Vec<String>,
+ }
+ 
++/// UpdateInterfaceRequest settings from genpolicy-settings.json.
++#[derive(Clone, Debug, Serialize, Deserialize)]
++pub struct AddARPNeighborsRequestDefaults {
++    /// Explicitly blocked interface names. Intent is to block changes to loopback interface.
++    forbidden_device_names: Vec<String>,
++    /// Explicitly blocked IP address ranges.
++    /// Should include loopback addresses and other CIDRs that should not be routed outside the VM.
++    forbidden_cidrs_regex: Vec<String>,
++}
++
+ /// Settings specific to each kata agent endpoint, loaded from
+ /// genpolicy-settings.json.
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+@@ -379,6 +389,9 @@ pub struct RequestDefaults {
+     /// Allow the host to configure only used raw_flags and reject names/mac addresses of the loopback.
+     pub UpdateInterfaceRequest: UpdateInterfaceRequestDefaults,
+ 
++    /// Allow the host to configure only used raw_flags and reject names/mac addresses of the loopback.
++    pub AddARPNeighborsRequest: AddARPNeighborsRequestDefaults,
++
+     /// Allow the Host to close stdin for a container. Typically used with WriteStreamRequest.
+     pub CloseStdinRequest: bool,
+ 
