@@ -26,6 +26,12 @@
       settings.formatter.retain_line_breaks_single = true;
     };
     zizmor.enable = true;
+    zizmor.includes = [
+      ".github/workflows/*.yml"
+      ".github/workflows/*.yaml"
+      ".github/actions/**/*.yml"
+      ".github/actions/**/*.yaml"
+    ];
     # keep-sorted end
   };
   settings.formatter = {
