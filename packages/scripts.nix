@@ -376,7 +376,7 @@
               continue
           fi
           echo "Extracting policy for $namespace.$name" >&2
-          echo "$policy" | base64 -d > "$namespace.$name.rego"
+          echo "$policy" | base64 -d | gunzip > "$namespace.$name.rego"
       done < <(
         yq '.metadata.name
           + " " + (
