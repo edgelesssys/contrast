@@ -24,16 +24,20 @@ runs:
     - name: Bump version
       id: bump-version
       shell: bash
+      env:
+        INPUTS_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        INPUTS_VERSION: ${{ inputs.version }}
+        INPUTS_COMMIT: ${{ inputs.commit }}
       run: |
-        cd ${{ inputs.working-directory }}
+        cd ${INPUTS_WORKING_DIRECTORY}
 
         current=$(<version.txt)
-        echo -n "${{ inputs.version }}" > version.txt
+        echo -n "${INPUTS_VERSION}" > version.txt
 
-        commit_msg="flake: ${current} -> ${{ inputs.version }}"
+        commit_msg="flake: ${current} -> ${INPUTS_VERSION}"
         echo "commit-msg=${commit_msg}" | tee -a "$GITHUB_OUTPUT"
 
-        if [[ "${{ inputs.commit }}" == "false" ]]; then
+        if [[ "${INPUTS_COMMIT}" == "false" ]]; then
           exit 0
         fi
 
