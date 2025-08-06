@@ -22,30 +22,36 @@ runs:
   steps:
     - name: Post to teams
       shell: bash
+      env:
+        INPUTS_TITLE: ${{inputs.title}}
+        INPUTS_MESSAGE: ${{inputs.message}}
+        INPUTS_ADDITIONALFIELDS: ${{inputs.additionalFields}}
+        INPUTS_ADDITIONALACTIONS: ${{inputs.additionalActions}}
+        INPUTS_WEBHOOK: ${{inputs.webhook}}
       run: |
         cp .github/actions/post_to_teams/teams_card_template.json template.json
 
         # add the title
-        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[0].text = "${{inputs.title}}"' ./template.json
+        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[0].text = "${INPUTS_TITLE}"' ./template.json
 
         # add the message
-        yq -oj -iP '.attachments[0].content.body[1].text = "${{inputs.message}}"' ./template.json
+        yq -oj -iP '.attachments[0].content.body[1].text = "${INPUTS_MESSAGE}"' ./template.json
 
         # add the run url to the clickable button
         yq -oj -iP '.attachments[0].content.actions[0].url = "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"' ./template.json
 
         # update the fact set
         yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts[0].value = "${{github.run_id}}"' ./template.json
-        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts[1].value = "${{github.ref_name}}"' ./template.json
+        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts[1].value = "${GITHUB_REF_NAME}"' ./template.json
 
         # add additional fields
-        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts += ${{inputs.additionalFields}}' ./template.json
+        yq -oj -iP '.attachments[0].content.body[0].columns[1].items[1].facts += ${INPUTS_ADDITIONALFIELDS}' ./template.json
 
         # add additional buttons
-        yq -oj -iP '.attachments[0].content.actions += ${{inputs.additionalActions}}' ./template.json
+        yq -oj -iP '.attachments[0].content.actions += ${INPUTS_ADDITIONALACTIONS}' ./template.json
 
         payload="$(cat ./template.json)"
         curl \
           -H "Content-Type: application/json" \
           -d "$payload" \
-          "${{inputs.webhook}}"
+          "${INPUTS_WEBHOOK}"

@@ -18,6 +18,9 @@ runs:
     - name: Check diff
       id: check-diff
       shell: bash
+      env:
+        INPUTS_SUGGESTED_FIX: ${{ inputs.suggested-fix}}
+        INPUTS_ERROR: ${{ inputs.error }}
       run: |
         diff=$(git diff)
         if [[ -z "$diff" ]]; then
@@ -26,13 +29,13 @@ runs:
         fi
 
         cat << EOF >> "${GITHUB_STEP_SUMMARY}"
-        ${{ inputs.suggested-fix}}
+        ${INPUTS_SUGGESTED_FIX}
         \`\`\`diff
         ${diff}
         \`\`\`
         EOF
 
-        echo "::error::${{ inputs.error }}"
+        echo "::error::${INPUTS_ERROR}"
         exit 1
     - name: Push changes
       if: |
@@ -41,6 +44,8 @@ runs:
         startsWith(github.head_ref, 'renovate/') &&
         (!github.event.pull_request.head.repo.fork)
       shell: bash
+      env:
+        INPUTS_RENOVATE_COMMIT_MSG: ${{ inputs.renovate-commit-msg }}
       run: |
         if ! git status | grep -q "On branch"; then
           echo "::error::pushdiff must run on a branch. Pass 'github.head_ref' as 'ref' to the checkout action."
@@ -48,5 +53,5 @@ runs:
         fi
         git config --global user.name "edgelessci"
         git config --global user.email "edgelessci@users.noreply.github.com"
-        git commit -am "${{ inputs.renovate-commit-msg }}"
+        git commit -am "${INPUTS_RENOVATE_COMMIT_MSG}"
         git push
