@@ -47,7 +47,7 @@ Domain name resolution is also controlled by the host.
 The files `/etc/resolv.conf` and `/etc/hosts` mounted to containers aren't confidential and might be compromised.
 Always use `127.0.0.1` instead of `localhost` for pod-local communication.
 If your application requires secure name resolution, use a DNS-over-HTTPS library instead of the default `libc` resolution mechanisms.
-In Golang, for example, this can be accomplished by overriding [`net.DefaultResolver`](https://pkg.go.dev/net#DefaultResolver).
+In Go, for example, this can be accomplished by overriding [`net.DefaultResolver`](https://pkg.go.dev/net#DefaultResolver).
 However, it's strongly recommended to authenticate remote hosts on the application level, using Contrast certificates directly or through the [service mesh](../architecture/components/service-mesh.md).
 
 <!-- TODO(burgerdev): update after hardening UpdateInterface/UpdateRoutes/CopyFile. -->

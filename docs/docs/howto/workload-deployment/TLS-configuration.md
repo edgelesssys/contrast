@@ -51,7 +51,7 @@ The mesh certificate contained in `certChain.pem` authenticates this workload, w
 Your app should turn on client authentication to ensure peers are running as confidential containers, too.
 See the [Certificate Authority](../../architecture/components/service-mesh.md#public-key-infrastructure) section for detailed information about these certificates.
 
-The following example shows how to configure a Golang app, with error handling omitted for clarity.
+The following example shows how to configure a Go app, with error handling omitted for clarity.
 
 <Tabs groupId="golang-tls-setup">
 <TabItem value="client" label="Client">

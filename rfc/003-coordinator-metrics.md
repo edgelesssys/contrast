@@ -27,7 +27,7 @@ It's also possible to use a [PushGateway](https://prometheus.io/docs/practices/p
 
 OpenTelemetry is a framework to create and manage [traces, metrics, and logs](https://opentelemetry.io/docs/concepts/signals/).
 An application can export data over *OTLP* (OpenTelemetry Protocol), either directly to a backend like Prometheus, or to an OpenTelemetry collector, which can then export the data to any supporting backend.
-In addition to metrics, which Prometheus also supports, OpenTelemetry can export traces, which include start and end time stamps and nested traces, and logs, although this feature is still experimental in the [Golang SDK](https://opentelemetry.io/docs/languages/go/).
+In addition to metrics, which Prometheus also supports, OpenTelemetry can export traces, which include start and end time stamps and nested traces, and logs, although this feature is still experimental in the [Go SDK](https://opentelemetry.io/docs/languages/go/).
 All data is sent to the specified collector endpoint by default.
 
 ---
@@ -45,7 +45,7 @@ We will therefore use Prometheus for exposing metrics.
 
 ### Exported metrics by Prometheus on the gRPC layer
 
-When using the gRPC interceptor provided by the [Golang gRPC Prometheus provider](https://pkg.go.dev/github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus), the following metrics are exported by the Coordinator by default:
+When using the gRPC interceptor provided by the [Go gRPC Prometheus provider](https://pkg.go.dev/github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus), the following metrics are exported by the Coordinator by default:
 - For the UserAPI:
     - Number of handled requests for methods SetManifest/GetManifest, including the error code.
     - Total number of messages received/sent.
