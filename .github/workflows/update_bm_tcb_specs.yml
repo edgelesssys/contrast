@@ -18,17 +18,17 @@ jobs:
     name: "Update bm tcb specs ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
     outputs:
-      snp: ${{ steps.update.outputs.K3s-QEMU-SNP }}
-      tdx: ${{ steps.update.outputs.K3s-QEMU-TDX }}
-      snp-gpu: ${{ steps.update.outputs.K3s-QEMU-SNP-GPU }}
+      snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
+      tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
+      snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
     strategy:
       matrix:
         platform:
-          - name: K3s-QEMU-SNP
+          - name: Metal-QEMU-SNP
             runner: SNP
-          - name: K3s-QEMU-TDX
+          - name: Metal-QEMU-TDX
             runner: TDX
-          - name: K3s-QEMU-SNP-GPU
+          - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
       fail-fast: false
     permissions:
@@ -62,9 +62,9 @@ jobs:
           SNP_GPU: ${{ needs.update-bm-specs.outputs.snp-gpu }}
         run: |
           platforms=()
-          [[ "${SNP}" == "success" ]] && platforms+=("K3s-QEMU-SNP")
-          [[ "${TDX}" == "success" ]] && platforms+=("K3s-QEMU-TDX")
-          [[ "${SNP_GPU}" == "success" ]] && platforms+=("K3s-QEMU-SNP-GPU")
+          [[ "${SNP}" == "success" ]] && platforms+=("Metal-QEMU-SNP")
+          [[ "${TDX}" == "success" ]] && platforms+=("Metal-QEMU-TDX")
+          [[ "${SNP_GPU}" == "success" ]] && platforms+=("Metal-QEMU-SNP-GPU")
           echo "json=[{\"title\": \"Platforms\", \"value\": \"${platforms[*]}\"}]" >> "$GITHUB_OUTPUT"
       - uses: ./.github/actions/post_to_teams
         with:

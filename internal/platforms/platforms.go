@@ -18,25 +18,17 @@ const (
 	Unknown Platform = iota
 	// AKSCloudHypervisorSNP represents a deployment with Cloud-Hypervisor on SEV-SNP AKS.
 	AKSCloudHypervisorSNP
-	// K3sQEMUTDX represents a deployment with QEMU on bare-metal TDX K3s.
-	K3sQEMUTDX
-	// K3sQEMUSNP represents a deployment with QEMU on bare-metal SNP K3s.
-	K3sQEMUSNP
-	// RKE2QEMUTDX represents a deployment with QEMU on bare-metal TDX RKE2.
-	RKE2QEMUTDX
 	// MetalQEMUSNP is the generic platform for bare-metal SNP deployments.
 	MetalQEMUSNP
 	// MetalQEMUTDX is the generic platform for bare-metal TDX deployments.
 	MetalQEMUTDX
-	// K3sQEMUSNPGPU represents a deployment with QEMU on bare-metal SNP K3s with GPU passthrough.
-	K3sQEMUSNPGPU
 	// MetalQEMUSNPGPU is the generic platform for bare-metal SNP deployments with GPU passthrough.
 	MetalQEMUSNPGPU
 )
 
 // All returns a list of all available platforms.
 func All() []Platform {
-	return []Platform{AKSCloudHypervisorSNP, K3sQEMUTDX, K3sQEMUSNP, RKE2QEMUTDX, MetalQEMUSNP, MetalQEMUTDX, K3sQEMUSNPGPU, MetalQEMUSNPGPU}
+	return []Platform{AKSCloudHypervisorSNP, MetalQEMUSNP, MetalQEMUTDX, MetalQEMUSNPGPU}
 }
 
 // AllStrings returns a list of all available platforms as strings.
@@ -53,14 +45,6 @@ func (p Platform) String() string {
 	switch p {
 	case AKSCloudHypervisorSNP:
 		return "AKS-CLH-SNP"
-	case K3sQEMUTDX:
-		return "K3s-QEMU-TDX"
-	case K3sQEMUSNP:
-		return "K3s-QEMU-SNP"
-	case K3sQEMUSNPGPU:
-		return "K3s-QEMU-SNP-GPU"
-	case RKE2QEMUTDX:
-		return "RKE2-QEMU-TDX"
 	case MetalQEMUSNP:
 		return "Metal-QEMU-SNP"
 	case MetalQEMUSNPGPU:
@@ -109,14 +93,6 @@ func FromString(s string) (Platform, error) {
 	switch strings.ToLower(s) {
 	case "aks-clh-snp":
 		return AKSCloudHypervisorSNP, nil
-	case "k3s-qemu-tdx":
-		return K3sQEMUTDX, nil
-	case "k3s-qemu-snp":
-		return K3sQEMUSNP, nil
-	case "k3s-qemu-snp-gpu":
-		return K3sQEMUSNPGPU, nil
-	case "rke2-qemu-tdx":
-		return RKE2QEMUTDX, nil
 	case "metal-qemu-snp":
 		return MetalQEMUSNP, nil
 	case "metal-qemu-snp-gpu":
@@ -133,7 +109,7 @@ func DefaultMemoryInMegaBytes(p Platform) int {
 	switch p {
 	case AKSCloudHypervisorSNP:
 		return 256
-	case K3sQEMUSNPGPU, MetalQEMUSNPGPU:
+	case MetalQEMUSNPGPU:
 		// Guest components contribute around 600MiB with GPU enabled.
 		return 1024
 	default:
@@ -147,7 +123,7 @@ func DefaultMemoryInMegaBytes(p Platform) int {
 // IsSNP returns true if the platform is a SEV-SNP platform.
 func IsSNP(p Platform) bool {
 	switch p {
-	case AKSCloudHypervisorSNP, K3sQEMUSNP, K3sQEMUSNPGPU, MetalQEMUSNP, MetalQEMUSNPGPU:
+	case AKSCloudHypervisorSNP, MetalQEMUSNP, MetalQEMUSNPGPU:
 		return true
 	default:
 		return false
@@ -157,7 +133,7 @@ func IsSNP(p Platform) bool {
 // IsTDX returns true if the platform is a TDX platform.
 func IsTDX(p Platform) bool {
 	switch p {
-	case K3sQEMUTDX, RKE2QEMUTDX, MetalQEMUTDX:
+	case MetalQEMUTDX:
 		return true
 	default:
 		return false
@@ -167,7 +143,7 @@ func IsTDX(p Platform) bool {
 // IsGPU returns true if the platform supports GPUs.
 func IsGPU(p Platform) bool {
 	switch p {
-	case K3sQEMUSNPGPU, MetalQEMUSNPGPU:
+	case MetalQEMUSNPGPU:
 		return true
 	default:
 		return false
@@ -177,7 +153,7 @@ func IsGPU(p Platform) bool {
 // IsQEMU returns true if the platform uses QEMU as the hypervisor.
 func IsQEMU(p Platform) bool {
 	switch p {
-	case K3sQEMUTDX, K3sQEMUSNP, K3sQEMUSNPGPU, RKE2QEMUTDX, MetalQEMUSNP, MetalQEMUSNPGPU, MetalQEMUTDX:
+	case MetalQEMUSNP, MetalQEMUSNPGPU, MetalQEMUTDX:
 		return true
 	default:
 		return false

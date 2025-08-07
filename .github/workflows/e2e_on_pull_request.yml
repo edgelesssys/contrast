@@ -29,15 +29,15 @@ jobs:
             runner: ubuntu-24.04
             self-hosted: false
             test: openssl
-          - platform: K3s-QEMU-SNP
+          - platform: Metal-QEMU-SNP
             runner: SNP
             self-hosted: true
             test: openssl
-          - platform: K3s-QEMU-SNP-GPU
+          - platform: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
             self-hosted: true
             test: gpu
-          - platform: K3s-QEMU-TDX
+          - platform: Metal-QEMU-TDX
             runner: TDX
             self-hosted: true
             test: openssl

@@ -83,7 +83,7 @@ func KataRuntimeConfig(
 		config.Hypervisor["clh"]["shared_fs"] = "none"
 		config.Hypervisor["clh"]["snp_guest_policy"] = 196608
 		config.Runtime["static_sandbox_resource_mgmt"] = true
-	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+	case platforms.MetalQEMUTDX:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
@@ -111,8 +111,7 @@ func KataRuntimeConfig(
 
 		// TODO: Check again why we need this and how we can avoid it.
 		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
-	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU,
-		platforms.MetalQEMUSNPGPU:
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
@@ -145,7 +144,7 @@ func KataRuntimeConfig(
 		config.Hypervisor["qemu"]["enable_annotations"] = []string{}
 
 		// GPU-specific settings
-		if platform == platforms.K3sQEMUSNPGPU || platform == platforms.MetalQEMUSNPGPU {
+		if platforms.IsGPU(platform) {
 			config.Hypervisor["qemu"]["guest_hook_path"] = "/usr/share/oci/hooks"
 			config.Hypervisor["qemu"]["cold_plug_vfio"] = "root-port"
 			// GPU images tend to be larger, so give a better default timeout that

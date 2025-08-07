@@ -135,8 +135,16 @@ let
               passthru.exists =
                 if (platform == "metal-qemu-tdx" || platform == "metal-qemu-snp") then
                   (versionGreaterEqual version "v1.2.1")
-                else if (platform == "metal-qemu-snp-gpu" || platform == "k3s-qemu-snp-gpu") then
+                else if (platform == "metal-qemu-snp-gpu") then
                   (versionGreaterEqual version "v1.4.0")
+                else if (platform == "k3s-qemu-snp-gpu") then
+                  (versionGreaterEqual version "v1.4.0")
+                  # platform removed in release v1.12.0
+                  && (versionLessThan version "v1.12.0")
+                else if (lib.hasPrefix "k3s-qemu" platform) then
+                  (versionGreaterEqual version "v1.1.0")
+                  # platform removed in release v1.12.0
+                  && (versionLessThan version "v1.12.0")
                 else
                   (versionGreaterEqual version "v1.1.0");
             }

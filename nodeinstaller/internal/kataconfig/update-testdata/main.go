@@ -31,17 +31,17 @@ func main() {
 			config:   "clh-snp",
 			testdata: "clh-snp",
 		},
-		platforms.K3sQEMUSNP: {
+		platforms.MetalQEMUSNP: {
 			upstream: "qemu-snp",
 			config:   "qemu-snp",
 			testdata: "qemu-snp",
 		},
-		platforms.K3sQEMUTDX: {
+		platforms.MetalQEMUTDX: {
 			upstream: "qemu-tdx",
 			config:   "qemu-tdx",
 			testdata: "qemu-tdx",
 		},
-		platforms.K3sQEMUSNPGPU: {
+		platforms.MetalQEMUSNPGPU: {
 			upstream: "qemu-snp",
 			config:   "qemu-snp",
 			testdata: "qemu-snp-gpu",

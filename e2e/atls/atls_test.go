@@ -39,11 +39,7 @@ func TestSNPValidators(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
 
-	if platform != platforms.AKSCloudHypervisorSNP &&
-		platform != platforms.K3sQEMUSNP &&
-		platform != platforms.K3sQEMUSNPGPU &&
-		platform != platforms.MetalQEMUSNPGPU &&
-		platform != platforms.MetalQEMUSNP {
+	if !platforms.IsSNP(platform) {
 		t.Skip("Skipping test, test can only be run on SEV-SNP-based platforms")
 	}
 

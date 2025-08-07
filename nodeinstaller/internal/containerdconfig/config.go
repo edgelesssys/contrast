@@ -40,17 +40,16 @@ func RuntimeFragment(baseDir, snapshotter string, platform platforms.Platform) (
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
 		}
 		cfg.Snapshotter = snapshotter
-	case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+	case platforms.MetalQEMUTDX:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
 		}
-	case platforms.MetalQEMUSNP, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU,
-		platforms.MetalQEMUSNPGPU:
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-snp.toml"),
 		}
 		// For GPU support, we need to pass through the CDI annotations.
-		if platform == platforms.K3sQEMUSNPGPU || platform == platforms.MetalQEMUSNPGPU {
+		if platforms.IsGPU(platform) {
 			cfg.PodAnnotations = append(cfg.PodAnnotations, "cdi.k8s.io/*")
 		}
 	default:
