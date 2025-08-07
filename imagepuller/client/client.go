@@ -14,8 +14,8 @@ import (
 )
 
 // Request makes an imagepulling request to the imagepuller ttrpc server.
-func Request(image, mount string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+func Request(image, mount string, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	var d net.Dialer

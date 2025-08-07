@@ -28,7 +28,7 @@ import (
 
 const (
 	imagepullerDir  = "tmp_imagepuller"
-	maxPullDuration = 60 * time.Second
+	maxPullDuration = 10 * time.Minute
 )
 
 var imageList = []string{
@@ -206,7 +206,7 @@ func profileServerIndividual(serverPath, args, storagePath string, label string)
 		}
 
 		start := time.Now()
-		if err := client.Request(image, mountPoint); err != nil {
+		if err := client.Request(image, mountPoint, maxPullDuration); err != nil {
 			return nil, err
 		}
 
@@ -267,7 +267,7 @@ func profileServerContinuous(serverPath, args, storagePath string, label string)
 		if err := cleanup(mountPoint); err != nil {
 			return resourceUsage{}, err
 		}
-		err = client.Request(image, mountPoint)
+		err = client.Request(image, mountPoint, maxPullDuration)
 		if err != nil {
 			return resourceUsage{}, err
 		}
