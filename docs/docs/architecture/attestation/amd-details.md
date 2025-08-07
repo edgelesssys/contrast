@@ -119,13 +119,13 @@ The platform info structure is embedded in the attestation report in the `PLATFO
 The complete structure can be found in the SEV Secure Nested Paging Firmware ABI Specification in table 24.
 
 | Field                     | Description                                                                                                                                                        |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --- |
-| ALIAS_CHECK_COMPLETE      | Indicates that alias detection has completed since the last system reset and there are no aliasing addresses. Resets to 0. Contains mitigation for CVE-2024-21944. |     |
-| CIPHERTEXT_HIDING_DRAM_EN | Indicates ciphertext hiding is enabled for the DRAM.                                                                                                               |     |
-| RAPL_DIS                  | Indicates that the RAPL feature is disabled.                                                                                                                       |     |
-| ECC_EN                    | Indicates that the platform is using error correcting codes for memory. Present when EccMemReporting feature bit is set.                                           |     |
-| TSME_EN                   | Indicates that TSME is enabled in the system.                                                                                                                      |     |
-| SMT_EN                    | Indicates that SMT is enabled in the system.                                                                                                                       |     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ALIAS_CHECK_COMPLETE      | Indicates that alias detection has completed since the last system reset and there are no aliasing addresses. Resets to 0. Contains mitigation for CVE-2024-21944. |
+| CIPHERTEXT_HIDING_DRAM_EN | Indicates ciphertext hiding is enabled for the DRAM.                                                                                                               |
+| RAPL_DIS                  | Indicates that the RAPL feature is disabled.                                                                                                                       |
+| ECC_EN                    | Indicates that the platform is using error correcting codes for memory. Present when EccMemReporting feature bit is set.                                           |
+| TSME_EN                   | Indicates that TSME is enabled in the system.                                                                                                                      |
+| SMT_EN                    | Indicates that SMT is enabled in the system.                                                                                                                       |
 
 ## Anonymous ID block signing
 
