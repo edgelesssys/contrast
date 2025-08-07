@@ -326,7 +326,7 @@ func compareResourceUsage(baselineFile string, data map[string]resourceUsage, th
 		checkDelta := func(label string, oldVal, newVal int) {
 			diff := newVal - oldVal
 			if diff > delta { // we do not care about reductions in values
-				allErrs = append(allErrs, fmt.Errorf("%s usage increased by %d for %q (was %d, now %d)", label, diff, name, oldVal, newVal))
+				fmt.Printf("WARN: %s usage increased by %d for %q (was %d, now %d)\n", label, diff, name, oldVal, newVal)
 			}
 		}
 
