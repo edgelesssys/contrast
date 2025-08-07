@@ -65,6 +65,7 @@ lib.makeOverridable (
             nvidia-ctk-with-config
             tdx-tools
             imagepuller
+            securemount
             ;
           inherit (outerPkgs.kata)
             kata-agent

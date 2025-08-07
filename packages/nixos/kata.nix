@@ -115,5 +115,23 @@ in
         LimitNOFILE = 1048576;
       };
     };
+
+    systemd.services.securemount = {
+      description = "Secure Mount";
+      documentation = [ "https://github.com/edgelesssys/contrast" ];
+      wantedBy = [ "kata-agent.service" ];
+      path = with pkgs; [
+        cryptsetup
+        e2fsprogs
+      ];
+      serviceConfig = {
+        Type = "exec";
+        StandardOutput = "journal+console";
+        StandardError = "inherit";
+        ExecStart = "${lib.getExe pkgs.securemount}";
+        Restart = "always";
+        LimitNOFILE = 1048576;
+      };
+    };
   };
 }
