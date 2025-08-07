@@ -146,6 +146,9 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 							VolumeMount().
 								WithName("var-run-dbus-socket").
 								WithMountPath("/var/run/dbus/system_bus_socket"),
+							VolumeMount().
+								WithName("target-config").
+								WithMountPath("/target-config"),
 						).
 						WithCommand("/bin/node-installer", platform.String()),
 					).
@@ -165,6 +168,12 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 							WithHostPath(HostPathVolumeSource().
 								WithPath("/var/run/dbus/system_bus_socket").
 								WithType(corev1.HostPathSocket),
+							),
+						Volume().
+							WithName("target-config").
+							WithConfigMap(ConfigMapVolumeSource().
+								WithName("contrast-node-installer-target-config").
+								WithOptional(true),
 							),
 					)...,
 					),

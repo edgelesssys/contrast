@@ -242,6 +242,21 @@ func (h *HostPathVolumeSourceConfig) Inner() *applycorev1.HostPathVolumeSourceAp
 	return h.HostPathVolumeSourceApplyConfiguration
 }
 
+// ConfigMapVolumeSourceConfig wraps applycorev1.ConfigMapVolumeSourceApplyConfiguration.
+type ConfigMapVolumeSourceConfig struct {
+	*applycorev1.ConfigMapVolumeSourceApplyConfiguration
+}
+
+// ConfigMapVolumeSource creates a new ConfigMapVolumeSourceConfig.
+func ConfigMapVolumeSource() *ConfigMapVolumeSourceConfig {
+	return &ConfigMapVolumeSourceConfig{applycorev1.ConfigMapVolumeSource()}
+}
+
+// Inner returns the inner applycorev1.ConfigMapVolumeSourceApplyConfiguration.
+func (c *ConfigMapVolumeSourceConfig) Inner() *applycorev1.ConfigMapVolumeSourceApplyConfiguration {
+	return c.ConfigMapVolumeSourceApplyConfiguration
+}
+
 // ContainerPortConfig wraps applycorev1.ContainerPortApplyConfiguration.
 type ContainerPortConfig struct {
 	*applycorev1.ContainerPortApplyConfiguration
