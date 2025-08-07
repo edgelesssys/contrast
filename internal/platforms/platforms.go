@@ -163,3 +163,33 @@ func IsTDX(p Platform) bool {
 		return false
 	}
 }
+
+// IsGPU returns true if the platform supports GPUs.
+func IsGPU(p Platform) bool {
+	switch p {
+	case K3sQEMUSNPGPU, MetalQEMUSNPGPU:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsQEMU returns true if the platform uses QEMU as the hypervisor.
+func IsQEMU(p Platform) bool {
+	switch p {
+	case K3sQEMUTDX, K3sQEMUSNP, K3sQEMUSNPGPU, RKE2QEMUTDX, MetalQEMUSNP, MetalQEMUSNPGPU, MetalQEMUTDX:
+		return true
+	default:
+		return false
+	}
+}
+
+// IsCloudHypervisor returns true if the platform uses Cloud-Hypervisor as the hypervisor.
+func IsCloudHypervisor(p Platform) bool {
+	switch p {
+	case AKSCloudHypervisorSNP:
+		return true
+	default:
+		return false
+	}
+}

@@ -8,9 +8,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io/fs"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +25,7 @@ import (
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/config"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/containerdconfig"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/kataconfig"
+	"github.com/edgelesssys/contrast/nodeinstaller/internal/targetconfig"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/pelletier/go-toml/v2"
 )
@@ -32,9 +33,6 @@ import (
 func main() {
 	fmt.Fprintf(os.Stderr, "Contrast node-installer %s\n", constants.Version)
 	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
-
-	shouldRestartContainerd := flag.Bool("restart", true, "Restart containerd after the runtime installation to make the changes effective.")
-	flag.Parse()
 
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: node-installer <platform>")
@@ -48,17 +46,19 @@ func main() {
 	}
 
 	fetcher := asset.NewDefaultFetcher()
-	if err := run(context.Background(), fetcher, platform, *shouldRestartContainerd); err != nil {
+	if err := run(context.Background(), fetcher, platform); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 	fmt.Println("Installation completed successfully.")
 }
 
-func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform, shouldRestartContainerd bool) error {
+func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform) error {
 	configDir := envWithDefault("CONFIG_DIR", "/config")
+	targetConfigDir := envWithDefault("TARGET_CONFIG_DIR", "/target-config")
 	hostMount := envWithDefault("HOST_MOUNT", "/host")
 
+	// node-installer configuration, baked into the image.
 	configPath := filepath.Join(configDir, "contrast-node-install.json")
 	configData, err := os.ReadFile(configPath)
 	if err != nil {
@@ -73,12 +73,51 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 	}
 	fmt.Printf("Using config: %+v\n", config)
 
-	runtimeHandlerName, err := manifest.RuntimeHandler(platform)
+	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	if err != nil {
 		return fmt.Errorf("getting runtime handler name: %w", err)
 	}
+	runtimeBase := filepath.Join("/opt", "edgeless", runtimeHandler)
 
-	// Copy the files
+	// target config, which can be overridden by the user via configMap.
+	targetConf, err := targetconfig.NewTargetConfig(hostMount, runtimeBase, platform)
+	if err != nil {
+		return fmt.Errorf("creating target config: %w", err)
+	}
+	if err := targetConf.LoadOverridesFromDir(targetConfigDir); err != nil {
+		return fmt.Errorf("loading target config from %q: %w", targetConfigDir, err)
+	}
+	log.Printf("Using target config: %+v\n", targetConf)
+
+	if err := installFiles(ctx, fetcher, &config, hostMount, runtimeHandler); err != nil {
+		return fmt.Errorf("installing files: %w", err)
+	}
+
+	if err := containerdRuntimeConfig(runtimeBase, targetConf.KataConfigPath(), platform, config.QemuExtraKernelParams, config.DebugRuntime); err != nil {
+		return fmt.Errorf("generating kata runtime configuration: %w", err)
+	}
+
+	if err := patchContainerdConfig(runtimeHandler, runtimeBase, targetConf.ContainerdConfigPath(), platform, config.DebugRuntime); err != nil {
+		return fmt.Errorf("patching containerd configuration: %w", err)
+	}
+
+	if targetConf.RestartSystemdUnit() {
+		if err := restartHostContainerd(ctx, targetConf.ContainerdConfigPath(), targetConf.SystemdUnitNames()); err != nil {
+			return fmt.Errorf("restarting systemd unit: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// installFiles fetches and installs files specified in the node-installer configuration file to the host filesystem.
+func installFiles(
+	ctx context.Context,
+	fetcher assetFetcher,
+	config *config.Config,
+	hostMount string,
+	runtimeHandlerName string,
+) error {
 	for _, file := range config.Files {
 		// Replace @@runtimeName@@ in the target path with the actual base directory.
 		targetPath := strings.ReplaceAll(file.Path, kataconfig.RuntimeNamePlaceholder, runtimeHandlerName)
@@ -105,75 +144,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform,
 			}
 		}
 	}
-
-	runtimeBase := filepath.Join("/opt", "edgeless", runtimeHandlerName)
-	kataConfigPath := filepath.Join(hostMount, runtimeBase, "etc")
-	if err := os.MkdirAll(kataConfigPath, 0o777); err != nil {
-		return fmt.Errorf("creating directory %q: %w", kataConfigPath, err)
-	}
-	var containerdConfigPath string
-	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
-		kataConfigPath = filepath.Join(kataConfigPath, "configuration-clh-snp.toml")
-		containerdConfigPath = filepath.Join(hostMount, "etc", "containerd", "config.toml")
-	case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU:
-		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-snp.toml")
-		containerdConfigPath = filepath.Join(hostMount, "etc", "containerd", "config.toml")
-	case platforms.MetalQEMUTDX:
-		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
-		containerdConfigPath = filepath.Join(hostMount, "etc", "containerd", "config.toml")
-	case platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
-		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-snp.toml")
-		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "k3s", "agent", "etc", "containerd", "config.toml.tmpl")
-	case platforms.K3sQEMUTDX:
-		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
-		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "k3s", "agent", "etc", "containerd", "config.toml.tmpl")
-	case platforms.RKE2QEMUTDX:
-		kataConfigPath = filepath.Join(kataConfigPath, "configuration-qemu-tdx.toml")
-		containerdConfigPath = filepath.Join(hostMount, "var", "lib", "rancher", "rke2", "agent", "etc", "containerd", "config.toml.tmpl")
-	default:
-		return fmt.Errorf("unsupported platform %q", platform)
-	}
-
-	if err := containerdRuntimeConfig(runtimeBase, kataConfigPath, platform, config.QemuExtraKernelParams, config.DebugRuntime); err != nil {
-		return fmt.Errorf("generating kata runtime configuration: %w", err)
-	}
-
-	runtimeHandler, err := manifest.RuntimeHandler(platform)
-	if err != nil {
-		return fmt.Errorf("getting runtime handler name: %w", err)
-	}
-
-	if err := patchContainerdConfig(runtimeHandler, runtimeBase, containerdConfigPath, platform, config.DebugRuntime); err != nil {
-		return fmt.Errorf("patching containerd configuration: %w", err)
-	}
-
-	// If the user opted to not have us restart containerd, we're done here.
-	if !shouldRestartContainerd {
-		return nil
-	}
-
-	switch platform {
-	case platforms.AKSCloudHypervisorSNP, platforms.MetalQEMUSNP, platforms.MetalQEMUTDX,
-		platforms.MetalQEMUSNPGPU:
-		return restartHostContainerd(ctx, containerdConfigPath, "containerd.service")
-	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
-		if hostServiceExists("k3s") {
-			return restartHostContainerd(ctx, containerdConfigPath, "k3s.service")
-		} else if hostServiceExists("k3s-agent") {
-			return restartHostContainerd(ctx, containerdConfigPath, "k3s-agent.service")
-		}
-		return fmt.Errorf("neither k3s nor k3s-agent service found")
-	case platforms.RKE2QEMUTDX:
-		if hostServiceExists("rke2-server") {
-			return restartHostContainerd(ctx, containerdConfigPath, "rke2-server.service")
-		} else if hostServiceExists("rke2-agent") {
-			return restartHostContainerd(ctx, containerdConfigPath, "rke2-agent.service")
-		}
-		return fmt.Errorf("neither rke2-server nor rke2-agent service found")
-	default:
-		return fmt.Errorf("unsupported platform %q", platform)
-	}
+	return nil
 }
 
 func envWithDefault(key, dflt string) string {
@@ -186,12 +157,11 @@ func envWithDefault(key, dflt string) string {
 
 func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams string, debugRuntime bool) error {
 	var snpIDBlock kataconfig.SnpIDBlock
-	switch platform {
-	case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
+	if platforms.IsSNP(platform) && platforms.IsQEMU(platform) {
 		var err error
 		snpIDBlock, err = kataconfig.SnpIDBlockForPlatform(platform, abi.SevProduct().Name)
 		if err != nil {
-			return err
+			return fmt.Errorf("getting SNP ID block for platform %q: %w", platform, err)
 		}
 	}
 	kataRuntimeConfig, err := kataconfig.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, snpIDBlock, debugRuntime)
@@ -202,7 +172,13 @@ func containerdRuntimeConfig(basePath, configPath string, platform platforms.Pla
 	if err != nil {
 		return fmt.Errorf("marshaling kata runtime config: %w", err)
 	}
-	return os.WriteFile(configPath, rawConfig, 0o666)
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+		return fmt.Errorf("creating directory %q: %w", filepath.Dir(configPath), err)
+	}
+	if err := os.WriteFile(configPath, rawConfig, 0o666); err != nil {
+		return fmt.Errorf("writing kata runtime config to %q: %w", configPath, err)
+	}
+	return nil
 }
 
 func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform platforms.Platform, debugRuntime bool) error {
@@ -307,7 +283,19 @@ func parseExistingContainerdConfig(path string) ([]byte, containerdconfig.Config
 	return configData, cfg, nil
 }
 
-func restartHostContainerd(ctx context.Context, containerdConfigPath, service string) error {
+func restartHostContainerd(ctx context.Context, containerdConfigPath string, serviceNames []string) error {
+	// Go through list of possible service names and check if one exists.
+	service := ""
+	for _, s := range serviceNames {
+		if hostServiceExists(s) {
+			service = s
+			break
+		}
+	}
+	if service == "" {
+		return fmt.Errorf("no systemd service with name in %v found", serviceNames)
+	}
+
 	// get mtime of the config file
 	info, err := os.Stat(containerdConfigPath)
 	if err != nil {
@@ -320,10 +308,10 @@ func restartHostContainerd(ctx context.Context, containerdConfigPath, service st
 		return fmt.Errorf("retrieving service (%s) start time: %w", service, err)
 	}
 
-	fmt.Printf("service (%s) start time: %s\n", service, startTime.Format(time.RFC3339Nano))
-	fmt.Printf("config mtime:          %s\n", configMtime.Format(time.RFC3339Nano))
+	fmt.Printf("Service (%s) start time: %s\n", service, startTime.Format(time.RFC3339Nano))
+	fmt.Printf("Containerd config mtime:          %s\n", configMtime.Format(time.RFC3339Nano))
 	if startTime.After(configMtime) {
-		fmt.Printf("service (%s) already running with the newest config\n", service)
+		fmt.Printf("Service (%s) already running with the newest config\n", service)
 		return nil
 	}
 
@@ -335,7 +323,7 @@ func restartHostContainerd(ctx context.Context, containerdConfigPath, service st
 	if err != nil {
 		return fmt.Errorf("restarting service (%s): %w: %s", service, err, out)
 	}
-	fmt.Printf("service (%s) restarted: %s\n", service, out)
+	fmt.Printf("Service (%s) restarted\n", service)
 	return nil
 }
 
