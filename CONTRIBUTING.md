@@ -49,9 +49,26 @@ If you are struggling with your git history during the review process, please as
 
 ### Development setup
 
-1. [Install Nix](https://zero-to-nix.com/concepts/nix-installer)
+1. [Install Nix](https://nixos.org/download/#multi-user-installation-recommended)
 
-2. (Optional) configure Nix to allow use of extra substituters, and profit from our
+    Enable the experimental features `nix-command` and `flakes` in your Nix configuration.
+
+    On NixOS (in your config):
+
+    ```nix
+    nix.settings.experimental-features = [
+        "nix-command"
+        "flakes"
+    ];
+    ```
+
+    On other systems (in `/etc/nix/nix.conf`):
+
+    ```
+    experimental-features = nix-command flakes
+    ```
+
+2. Configure Nix to allow use of extra substituters, and profit from our
     cachix remote cache. To allow using additional substituters from the `flake.nix`,
     add your user name (or the wheel group) as trusted-user in your nix config.
 
