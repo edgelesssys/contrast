@@ -41,7 +41,7 @@ See the [section on manifest changes](#manifest-changes) below regarding authent
 The Coordinator uses a generic key-value store interface to read from and write to the persistent store.
 In order to allow distributed read and write requests, we only need to swap the implementation for one that can be used concurrently.
 
-```golang
+```go
 type Store interface {
   Get(key string) ([]byte, error)
   Set(key string, value []byte) error
@@ -145,7 +145,7 @@ There are two reasons why we want to make this explicit:
 Thus, we introduce a new field to the manifest that specifies roles available to the verified identity.
 For now, the only known role is `coordinator`, but this could be extended in the future (for example: delegate CAs).
 
-```golang
+```go
 type PolicyEntry struct {
   SANs             []string
   WorkloadSecretID string `json:",omitempty"`

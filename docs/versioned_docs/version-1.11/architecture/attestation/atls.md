@@ -38,7 +38,7 @@ Thus, the attestation evidence is cryptographically tied to the established TLS 
 
 Contrast embeds the exchange of attestation requests and responses into the TLS handshake.
 Since there is no standard for such an embedding yet, Contrast repurposes existing TLS extension points.
-While these weren't originally designed for conveying attestation documents, this approach allows to use Golang's TLS implementation without modification.
+While these weren't originally designed for conveying attestation documents, this approach allows to use Go's TLS implementation without modification.
 
 To illustrate the full protocol, we're going to discuss mutual attestation, where both the TLS client and the TLS server act as initiator and responder.
 For single-sided attestation, the respective requests and responses are simply not sent.

@@ -65,7 +65,6 @@ Fulcio
 Gbps
 GCP
 genpolicy
-Golang
 goroutine
 GPUs?
 gRPC
