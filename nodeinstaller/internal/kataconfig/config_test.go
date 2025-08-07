@@ -17,11 +17,11 @@ var (
 	//go:embed testdata/expected-configuration-clh-snp.toml
 	expectedConfAKSCLHSNP []byte
 	//go:embed testdata/expected-configuration-qemu-snp.toml
-	expectedConfBareMetalQEMUSNP []byte
+	expectedConfMetalQEMUSNP []byte
 	//go:embed testdata/expected-configuration-qemu-tdx.toml
-	expectedConfBareMetalQEMUTDX []byte
+	expectedConfMetalQEMUTDX []byte
 	//go:embed testdata/expected-configuration-qemu-snp-gpu.toml
-	expectedConfBareMetalQEMUSNPGPU []byte
+	expectedConfMetalQEMUSNPGPU []byte
 )
 
 func TestKataRuntimeConfig(t *testing.T) {
@@ -33,17 +33,17 @@ func TestKataRuntimeConfig(t *testing.T) {
 			changeSnpFields: false,
 			want:            string(expectedConfAKSCLHSNP),
 		},
-		platforms.K3sQEMUSNP: {
+		platforms.MetalQEMUSNP: {
 			changeSnpFields: true,
-			want:            string(expectedConfBareMetalQEMUSNP),
+			want:            string(expectedConfMetalQEMUSNP),
 		},
-		platforms.K3sQEMUSNPGPU: {
+		platforms.MetalQEMUSNPGPU: {
 			changeSnpFields: true,
-			want:            string(expectedConfBareMetalQEMUSNPGPU),
+			want:            string(expectedConfMetalQEMUSNPGPU),
 		},
-		platforms.K3sQEMUTDX: {
+		platforms.MetalQEMUTDX: {
 			changeSnpFields: false,
-			want:            string(expectedConfBareMetalQEMUTDX),
+			want:            string(expectedConfMetalQEMUTDX),
 		},
 	}
 	for platform, tc := range testCases {
@@ -70,9 +70,7 @@ func TestKataRuntimeConfig(t *testing.T) {
 			assert.Contains(string(configBytes), "[Agent.kata]")
 			assert.Contains(string(configBytes), "[Runtime]")
 			switch platform {
-			case platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.K3sQEMUTDX,
-				platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.RKE2QEMUTDX,
-				platforms.MetalQEMUSNPGPU:
+			case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU:
 				assert.Contains(string(configBytes), "[Hypervisor.qemu]")
 			case platforms.AKSCloudHypervisorSNP:
 				assert.Contains(string(configBytes), "[Hypervisor.clh]")

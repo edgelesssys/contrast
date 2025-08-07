@@ -32,10 +32,10 @@ contrast generate --reference-values aks-clh-snp resources/
 ```
 
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
+<TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 
 ```sh
-contrast generate --reference-values k3s-qemu-snp resources/
+contrast generate --reference-values metal-qemu-snp resources/
 ```
 
 On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
@@ -70,10 +70,10 @@ This must be done on a trusted machine, with a secure and trusted connection to 
 :::
 
 </TabItem>
-<TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+<TabItem value="metal-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
 
 ```sh
-contrast generate --reference-values k3s-qemu-snp-gpu resources/
+contrast generate --reference-values metal-qemu-snp-gpu resources/
 ```
 
 On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
@@ -108,10 +108,10 @@ This must be done on a trusted machine, with a secure and trusted connection to 
 :::
 
 </TabItem>
-<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
+<TabItem value="metal-qemu-tdx" label="Bare metal (TDX)">
 
 ```sh
-contrast generate --reference-values k3s-qemu-tdx resources/
+contrast generate --reference-values metal-qemu-tdx resources/
 ```
 
 On bare-metal TDX, `contrast generate` is unable to fill in the `MrSeam` value as it depends on your platform configuration.
@@ -169,24 +169,24 @@ contrast generate --reference-values aks-clh-snp --skip-initializer resources/
 ```
 
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
+<TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 
 ```sh
-contrast generate --reference-values k3s-qemu-snp --skip-initializer resources/
+contrast generate --reference-values metal-qemu-snp --skip-initializer resources/
 ```
 
 </TabItem>
-<TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+<TabItem value="metal-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
 
 ```sh
-contrast generate --reference-values k3s-qemu-snp-gpu --skip-initializer resources/
+contrast generate --reference-values metal-qemu-snp-gpu --skip-initializer resources/
 ```
 
 </TabItem>
-<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
+<TabItem value="metal-qemu-tdx" label="Bare metal (TDX)">
 
 ```sh
-contrast generate --reference-values k3s-qemu-tdx --skip-initializer resources/
+contrast generate --reference-values metal-qemu-tdx --skip-initializer resources/
 ```
 
 </TabItem>
@@ -244,24 +244,24 @@ contrast generate --reference-values aks-clh-snp --skip-service-mesh resources/
 ```
 
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
+<TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 
 ```sh
-contrast generate --reference-values k3s-qemu-snp --skip-service-mesh resources/
+contrast generate --reference-values metal-qemu-snp --skip-service-mesh resources/
 ```
 
 </TabItem>
-<TabItem value="k3s-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+<TabItem value="metal-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
 
 ```sh
-contrast generate --reference-values k3s-qemu-snp-gpu --skip-service-mesh resources/
+contrast generate --reference-values metal-qemu-snp-gpu --skip-service-mesh resources/
 ```
 
 </TabItem>
-<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
+<TabItem value="metal-qemu-tdx" label="Bare metal (TDX)">
 
 ```sh
-contrast generate --reference-values k3s-qemu-tdx --skip-service-mesh resources/
+contrast generate --reference-values metal-qemu-tdx --skip-service-mesh resources/
 ```
 </TabItem>
 </Tabs>

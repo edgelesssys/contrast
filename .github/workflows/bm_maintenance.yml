@@ -67,9 +67,9 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     needs: build-image
     outputs:
-      snp: ${{ steps.update.outputs.K3s-QEMU-SNP }}
-      tdx: ${{ steps.update.outputs.K3s-QEMU-TDX }}
-      snp-gpu: ${{ steps.update.outputs.K3s-QEMU-SNP-GPU }}
+      snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
+      tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
+      snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
     permissions:
       contents: read
     strategy:
@@ -78,13 +78,13 @@ jobs:
           - name: AKS-CLH-SNP
             runner: ubuntu-24.04
             self-hosted: false
-          - name: K3s-QEMU-SNP
+          - name: Metal-QEMU-SNP
             runner: SNP
             self-hosted: true
-          - name: K3s-QEMU-TDX
+          - name: Metal-QEMU-TDX
             runner: TDX
             self-hosted: true
-          - name: K3s-QEMU-SNP-GPU
+          - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
             self-hosted: true
       fail-fast: false
@@ -115,7 +115,7 @@ jobs:
         run: |
           just get-credentials
       - name: Update sync fifo for GPU platform
-        if: ${{ matrix.platform.name == 'K3s-QEMU-SNP-GPU' }}
+        if: ${{ matrix.platform.name == 'Metal-QEMU-SNP-GPU' }}
         run: |
           kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/cf49dc9664f70a1b00e3febb427b9e817f8da68b/server/deployment.yml
           kubectl rollout status statefulset/sync --timeout=5m
@@ -135,17 +135,17 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     needs: build-image
     outputs:
-      snp: ${{ steps.update.outputs.K3s-QEMU-SNP }}
-      tdx: ${{ steps.update.outputs.K3s-QEMU-TDX }}
-      snp-gpu: ${{ steps.update.outputs.K3s-QEMU-SNP-GPU }}
+      snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
+      tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
+      snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
     strategy:
       matrix:
         platform:
-          - name: K3s-QEMU-SNP
+          - name: Metal-QEMU-SNP
             runner: SNP
-          - name: K3s-QEMU-TDX
+          - name: Metal-QEMU-TDX
             runner: TDX
-          - name: K3s-QEMU-SNP-GPU
+          - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
       fail-fast: false
     permissions:
@@ -177,17 +177,17 @@ jobs:
     needs: build-image
     if: inputs.containerd || github.event.schedule == '0 2 * * 4' # only run on Fridays or if containerd is enabled
     outputs:
-      snp: ${{ steps.update.outputs.K3s-QEMU-SNP }}
-      tdx: ${{ steps.update.outputs.K3s-QEMU-TDX }}
-      snp-gpu: ${{ steps.update.outputs.K3s-QEMU-SNP-GPU }}
+      snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
+      tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
+      snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
     strategy:
       matrix:
         platform:
-          - name: K3s-QEMU-SNP
+          - name: Metal-QEMU-SNP
             runner: SNP
-          - name: K3s-QEMU-TDX
+          - name: Metal-QEMU-TDX
             runner: TDX
-          - name: K3s-QEMU-SNP-GPU
+          - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
       fail-fast: false
     permissions:
@@ -218,17 +218,17 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     needs: build-image
     outputs:
-      snp: ${{ steps.update.outputs.K3s-QEMU-SNP }}
-      tdx: ${{ steps.update.outputs.K3s-QEMU-TDX }}
-      snp-gpu: ${{ steps.update.outputs.K3s-QEMU-SNP-GPU }}
+      snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
+      tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
+      snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
     strategy:
       matrix:
         platform:
-          - name: K3s-QEMU-SNP
+          - name: Metal-QEMU-SNP
             runner: SNP
-          - name: K3s-QEMU-TDX
+          - name: Metal-QEMU-TDX
             runner: TDX
-          - name: K3s-QEMU-SNP-GPU
+          - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
       fail-fast: false
     permissions:
@@ -309,14 +309,14 @@ jobs:
           fi
 
           if [[ "${#snp[@]}" -gt 0 ]]; then
-            entries+=("{\"title\": \"K3s-QEMU-SNP\", \"value\": \"$(str="${snp[*]}"; echo "${str// /, }")\"}")
+            entries+=("{\"title\": \"Metal-QEMU-SNP\", \"value\": \"$(str="${snp[*]}"; echo "${str// /, }")\"}")
           fi
           if [[ "${#tdx[@]}" -gt 0 ]]; then
-            entries+=("{\"title\": \"K3s-QEMU-TDX\", \"value\": \"$(str="${tdx[*]}"; echo "${str// /, }")\"}")
+            entries+=("{\"title\": \"Metal-QEMU-TDX\", \"value\": \"$(str="${tdx[*]}"; echo "${str// /, }")\"}")
           fi
 
           if [[ "${#snp_gpu[@]}" -gt 0 ]]; then
-            entries+=("{\"title\": \"K3s-QEMU-SNP-GPU\", \"value\": \"$(str="${snp_gpu[*]}"; echo "${str// /, }")\"}")
+            entries+=("{\"title\": \"Metal-QEMU-SNP-GPU\", \"value\": \"$(str="${snp_gpu[*]}"; echo "${str// /, }")\"}")
           fi
 
           if [[ "${#entries[@]}" -eq 0 ]]; then

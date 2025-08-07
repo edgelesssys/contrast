@@ -32,10 +32,10 @@ jobs:
           - name: AKS-CLH-SNP
             runner: ubuntu-24.04
             self-hosted: false
-          - name: K3s-QEMU-SNP
+          - name: Metal-QEMU-SNP
             runner: SNP
             self-hosted: true
-          - name: K3s-QEMU-TDX
+          - name: Metal-QEMU-TDX
             runner: TDX
             self-hosted: true
         test-name: [getdents, genpolicy, genpolicy-unsupported, regression]

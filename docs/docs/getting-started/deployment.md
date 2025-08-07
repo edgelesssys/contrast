@@ -246,14 +246,14 @@ Next, install the Contrast runtime in your cluster which will be used when setti
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-aks-clh-snp.yml
 ```
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
+<TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-snp.yml
 ```
 </TabItem>
-<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
+<TabItem value="metal-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-k3s-qemu-tdx.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-tdx.yml
 ```
 </TabItem>
 </Tabs>
@@ -281,9 +281,9 @@ The command also generates a `manifest.json` file, which contains the trusted re
 contrast generate --reference-values aks-clh-snp resources/
 ```
 </TabItem>
-<TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
+<TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-contrast generate --reference-values k3s-qemu-snp resources/
+contrast generate --reference-values metal-qemu-snp resources/
 ```
 :::note[Missing TCB values]
 On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values of the created manifest.json as they can vary between platforms.
@@ -291,9 +291,9 @@ They will have to be filled in manually.
 If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":255,"SNPVersion":255,"MicrocodeVersion":255}` and observe the real values in the error messages in the following steps. This should only be done in a secure environment. Note that the values will differ between CPU models.
 :::
 </TabItem>
-<TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
+<TabItem value="metal-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-contrast generate --reference-values k3s-qemu-tdx resources/
+contrast generate --reference-values metal-qemu-tdx resources/
 ```
 :::note[Missing TCB values]
 On bare-metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values of the created manifest.json as they can vary between platforms.

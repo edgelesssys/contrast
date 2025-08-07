@@ -96,22 +96,16 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 	var nodeInstallerImageURL string
 	var containers []*applycorev1.ContainerApplyConfiguration
 	var snapshotterVolumes []*applycorev1.VolumeApplyConfiguration
-	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
+	switch {
+	case platform == platforms.AKSCloudHypervisorSNP:
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
 		containers = append(containers, tardevSnapshotter)
 		snapshotterVolumes = tardevSnapshotterVolumes
-	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU:
-		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
-		if platform == platforms.MetalQEMUSNPGPU {
-			nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest"
-		}
+	case platforms.IsQEMU(platform) && platforms.IsGPU(platform):
+		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest"
 		containers = append(containers, noSnapshotter)
-	case platforms.K3sQEMUTDX, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.RKE2QEMUTDX:
+	case platforms.IsQEMU(platform):
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
-		if platform == platforms.K3sQEMUSNPGPU {
-			nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest"
-		}
 		containers = append(containers, noSnapshotter)
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", platform)

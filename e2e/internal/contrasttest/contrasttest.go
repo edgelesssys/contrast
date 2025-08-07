@@ -238,7 +238,7 @@ func (ct *ContrastTest) RunPatchManifest(patchFn PatchManifestFunc) error {
 func addInvalidReferenceValues(platform platforms.Platform) PatchManifestFunc {
 	return func(m manifest.Manifest) manifest.Manifest {
 		switch platform {
-		case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU, platforms.AKSCloudHypervisorSNP:
+		case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU, platforms.AKSCloudHypervisorSNP:
 			// Duplicate the reference values to test multiple validators by having at least 2.
 			m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1])
 
@@ -249,7 +249,7 @@ func addInvalidReferenceValues(platform platforms.Platform) PatchManifestFunc {
 				SNPVersion:        toPtr(manifest.SVN(255)),
 				MicrocodeVersion:  toPtr(manifest.SVN(255)),
 			}
-		case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+		case platforms.MetalQEMUTDX:
 			// Duplicate the reference values to test multiple validators by having at least 2.
 			m.ReferenceValues.TDX = append(m.ReferenceValues.TDX, m.ReferenceValues.TDX[len(m.ReferenceValues.TDX)-1])
 
@@ -279,7 +279,7 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 	}
 	return func(m manifest.Manifest) manifest.Manifest {
 		switch platform {
-		case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU, platforms.K3sQEMUSNP, platforms.K3sQEMUSNPGPU:
+		case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU:
 			// Overwrite the minimumTCB values with the ones loaded from the path tcbSpecificationFile.
 			var snpReferenceValues []manifest.SNPReferenceValues
 			for _, manifestSNP := range m.ReferenceValues.SNP {
@@ -293,7 +293,7 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 			}
 			m.ReferenceValues.SNP = snpReferenceValues
 
-		case platforms.MetalQEMUTDX, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX:
+		case platforms.MetalQEMUTDX:
 
 			// Overwrite the field MrSeam with the ones loaded from the path tcbSpecificationFile.
 			var tdxReferenceValues []manifest.TDXReferenceValues
@@ -480,9 +480,7 @@ func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Durati
 	switch ct.Platform {
 	case platforms.AKSCloudHypervisorSNP: // AKS defined is the baseline
 		return timeout
-	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.K3sQEMUSNP,
-		platforms.K3sQEMUSNPGPU, platforms.K3sQEMUTDX, platforms.RKE2QEMUTDX,
-		platforms.MetalQEMUSNPGPU:
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU:
 		return 2 * timeout
 	default:
 		panic(fmt.Sprintf("FactorPlatformTimeout not configured for platform %q", ct.Platform))

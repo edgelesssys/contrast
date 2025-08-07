@@ -19,11 +19,11 @@ var (
 	//go:embed testdata/expected-aks-clh-snp.toml
 	expectedConfAKSCLHSNP []byte
 	//go:embed testdata/expected-bare-metal-qemu-tdx.toml
-	expectedConfBareMetalQEMUTDX []byte
+	expectedConfMetalQEMUTDX []byte
 	//go:embed testdata/expected-bare-metal-qemu-snp.toml
-	expectedConfBareMetalQEMUSNP []byte
+	expectedConfMetalQEMUSNP []byte
 	//go:embed testdata/expected-bare-metal-qemu-snp-gpu.toml
-	expectedConfBareMetalQEMUSNPGPU []byte
+	expectedConfMetalQEMUSNPGPU []byte
 )
 
 func TestPatchContainerdConfig(t *testing.T) {
@@ -36,17 +36,17 @@ func TestPatchContainerdConfig(t *testing.T) {
 			platform: platforms.AKSCloudHypervisorSNP,
 			expected: expectedConfAKSCLHSNP,
 		},
-		"K3sQEMUTDX": {
-			platform: platforms.K3sQEMUTDX,
-			expected: expectedConfBareMetalQEMUTDX,
+		"MetalQEMUTDX": {
+			platform: platforms.MetalQEMUTDX,
+			expected: expectedConfMetalQEMUTDX,
 		},
-		"K3sQEMUSNP": {
-			platform: platforms.K3sQEMUSNP,
-			expected: expectedConfBareMetalQEMUSNP,
+		"MetalQEMUSNP": {
+			platform: platforms.MetalQEMUSNP,
+			expected: expectedConfMetalQEMUSNP,
 		},
-		"K3sQEMUSNPGPU": {
-			platform: platforms.K3sQEMUSNPGPU,
-			expected: expectedConfBareMetalQEMUSNPGPU,
+		"MetalQEMUSNPGPU": {
+			platform: platforms.MetalQEMUSNPGPU,
+			expected: expectedConfMetalQEMUSNPGPU,
 		},
 		"Unknown": {
 			platform: platforms.Unknown,

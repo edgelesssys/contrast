@@ -41,10 +41,10 @@ node-installer platform=default_platform:
             just push "tardev-snapshotter"
             just push "node-installer-microsoft"
         ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"K3s-QEMU-SNP"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX")
             just push "node-installer-kata"
         ;;
-        "Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP-GPU")
+        "Metal-QEMU-SNP-GPU")
             just push "node-installer-kata-gpu"
         ;;
         *)
@@ -121,13 +121,13 @@ generate cli=default_cli platform=default_platform:
 
     # On baremetal SNP, we don't have default values for MinimumTCB, so we need to set some here.
     case {{ platform }} in
-        "Metal-QEMU-SNP"|"Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU")
+        "Metal-QEMU-SNP"|"Metal-QEMU-SNP-GPU")
             minTCB=$(kubectl get -n default cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}" | yq '.snp.[].MinimumTCB') \
                 yq -i \
                 '.ReferenceValues.snp.[].MinimumTCB = env(minTCB)' \
                 {{ workspace_dir }}/manifest.json
         ;;
-        "Metal-QEMU-TDX"|"K3s-QEMU-TDX" | "RKE2-QEMU-TDX")
+        "Metal-QEMU-TDX")
             cm=$(kubectl get -n default cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}")
             mrSeam=$(echo "$cm" | yq '.tdx.[].MrSeam') \
                 yq -i \
@@ -145,7 +145,7 @@ apply target=default_deploy_target platform=default_platform:
             kubectl apply -f ./{{ workspace_dir }}/runtime
         ;;
         *)
-            if [[ {{ platform }} == "K3s-QEMU-SNP-GPU" ]] ; then
+            if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" ]] ; then
                 sync_ticket=$(nix run .#scripts.get-sync-ticket 90m)
                 echo $sync_ticket > ./{{ workspace_dir }}/just.sync-ticket
                 trap 'nix run .#scripts.release-sync-ticket $sync_ticket' ERR
@@ -198,7 +198,7 @@ create-pre platform=default_platform:
             # TODO(burgerdev): this should create the resource group for consistency
             :
         ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU")
             :
         ;;
         *)
@@ -215,7 +215,7 @@ create platform=default_platform:
         "AKS-CLH-SNP")
             nix run -L .#scripts.create-coco-aks -- --name="$azure_resource_group" --location="$azure_location"
         ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU"|"K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU")
             :
         ;;
         *)
@@ -315,13 +315,13 @@ get-credentials platform=default_platform:
                 --resource-group "$azure_resource_group" \
                 --name "$azure_resource_group"
         ;;
-        "K3s-QEMU-TDX")
+        "Metal-QEMU-TDX")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/olimar-kubeconfig/versions/latest"
         ;;
-        "K3s-QEMU-SNP")
+        "Metal-QEMU-SNP")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/hetzner-ax162-snp-kubeconfig/versions/latest"
         ;;
-        "K3s-QEMU-SNP-GPU")
+        "Metal-QEMU-SNP-GPU")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/latest"
         ;;
         *)
@@ -345,7 +345,7 @@ destroy platform=default_platform:
         "AKS-CLH-SNP")
             nix run -L .#scripts.destroy-coco-aks -- --name="$azure_resource_group"
         ;;
-        "K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-SNP-GPU"|"Metal-QEMU-TDX")
             :
         ;;
         *)
@@ -363,7 +363,7 @@ destroy-post platform=default_platform:
             # TODO(burgerdev): this should destroy the resource group for consistency.
             :
         ;;
-        "K3s-QEMU-SNP"|"K3s-QEMU-SNP-GPU"|"K3s-QEMU-TDX"|"RKE2-QEMU-TDX")
+        "Metal-QEMU-SNP"|"Metal-QEMU-SNP-GPU"|"Metal-QEMU-TDX")
             :
         ;;
         *)

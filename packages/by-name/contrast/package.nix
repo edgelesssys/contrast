@@ -60,12 +60,8 @@ let
 
       aks-clh-snp-handler = runtimeHandler "aks-clh-snp" microsoft.contrast-node-installer-image.runtimeHash;
       metal-qemu-tdx-handler = runtimeHandler "metal-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
-      k3s-qemu-tdx-handler = runtimeHandler "k3s-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
-      rke2-qemu-tdx-handler = runtimeHandler "rke2-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
       metal-qemu-snp-handler = runtimeHandler "metal-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
       metal-qemu-snp-gpu-handler = runtimeHandler "metal-qemu-snp-gpu" kata.contrast-node-installer-image.runtimeHash;
-      k3s-qemu-snp-handler = runtimeHandler "k3s-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
-      k3s-qemu-snp-gpu-handler = runtimeHandler "k3s-qemu-snp-gpu" kata.contrast-node-installer-image.runtimeHash;
       aksRefVals = {
         snp = [
           {
@@ -147,12 +143,8 @@ let
       builtins.toJSON {
         "${aks-clh-snp-handler}" = aksRefVals;
         "${metal-qemu-tdx-handler}" = tdxRefVals;
-        "${k3s-qemu-tdx-handler}" = tdxRefVals;
-        "${rke2-qemu-tdx-handler}" = tdxRefVals;
         "${metal-qemu-snp-handler}" = snpRefVals;
         "${metal-qemu-snp-gpu-handler}" = snpGpuRefVals;
-        "${k3s-qemu-snp-handler}" = snpRefVals;
-        "${k3s-qemu-snp-gpu-handler}" = snpGpuRefVals;
       }
     );
 
@@ -182,8 +174,6 @@ let
     builtins.toJSON {
       metal-qemu-snp = snpIdBlocksFor kata.contrast-node-installer-image.os-image;
       metal-qemu-snp-gpu = snpIdBlocksFor kata.contrast-node-installer-image.gpu.os-image;
-      k3s-qemu-snp = snpIdBlocksFor kata.contrast-node-installer-image.os-image;
-      k3s-qemu-snp-gpu = snpIdBlocksFor kata.contrast-node-installer-image.gpu.os-image;
       aks-clh-snp.Milan =
         let
           launch-digest =

@@ -138,13 +138,9 @@ runs:
       run: |
         platforms=(
           "aks-clh-snp"
-          "k3s-qemu-snp-gpu"
-          "k3s-qemu-snp"
-          "k3s-qemu-tdx"
           "metal-qemu-snp-gpu"
           "metal-qemu-snp"
           "metal-qemu-tdx"
-          "rke2-qemu-tdx"
         )
         for platform in "${platforms[@]}"; do
           nix shell .#contrast --command resourcegen \
