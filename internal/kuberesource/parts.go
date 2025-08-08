@@ -213,6 +213,20 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 	}, nil
 }
 
+// NodeInstallerTargetConfig returns a ConfigMap for the passed target.
+func NodeInstallerTargetConfig(target, namespace string) (*applycorev1.ConfigMapApplyConfiguration, error) {
+	switch target {
+	case "k3s":
+		return applycorev1.ConfigMap("contrast-node-installer-target-config", namespace).
+			WithData(map[string]string{
+				"containerd-config-path": "var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl",
+				"systemd-unit-name":      "k3s.service,k3s-agent.service",
+			}), nil
+	default:
+		return nil, fmt.Errorf("unsupported target %q", target)
+	}
+}
+
 // PortForwarderConfig wraps a PodApplyConfiguration for a port forwarder.
 type PortForwarderConfig struct {
 	*applycorev1.PodApplyConfiguration
