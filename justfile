@@ -69,7 +69,7 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
 deploy target=default_deploy_target cli=default_cli platform=default_platform: (runtime target platform) (apply "runtime") (populate target platform) (generate cli platform) (apply target)
 
 # Populate the workspace with a runtime class deployment
-runtime target=default_deploy_target platform=default_platform:
+runtime target=default_deploy_target platform=default_platform node_installer_target_conf_type="k3s":
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}/runtime
@@ -77,8 +77,9 @@ runtime target=default_deploy_target platform=default_platform:
       --image-replacements ./{{ workspace_dir }}/just.containerlookup \
       --namespace {{ target }}${namespace_suffix-} \
       --add-namespace-object \
+      --node-installer-target-conf-type ${node_installer_target_conf_type} \
       --platform {{ platform }} \
-      runtime > ./{{ workspace_dir }}/runtime/runtime.yml
+      node-installer-target-conf runtime > ./{{ workspace_dir }}/runtime/runtime.yml
 
 # Populate the workspace with a Kubernetes deployment
 populate target=default_deploy_target platform=default_platform:
@@ -412,6 +413,8 @@ container_registry=""
 azure_resource_group=""
 # Platform to deploy on
 default_platform="AKS-CLH-SNP"
+# Node installer target config map to deploy.
+node_installer_target_conf_type="k3s"
 
 #
 # No need to change anything below this line.

@@ -16,12 +16,13 @@ import (
 func main() {
 	imageReplacementsPath := flag.String("image-replacements", "", "Path to the image replacements file")
 	namespace := flag.String("namespace", "", "Namespace for namespaced resources")
+	rawPlatform := flag.String("platform", "", "Deployment platform to generate the runtime configuration for")
 	addLoadBalancers := flag.Bool("add-load-balancers", false, "Add load balancers to selected services")
 	addNamespaceObject := flag.Bool("add-namespace-object", false, "Add namespace object with the given namespace")
 	addPortForwarders := flag.Bool("add-port-forwarders", false, "Add port forwarder pods for all services")
 	addLogging := flag.Bool("add-logging", false, "Add logging configuration, based on CONTRAST_LOG_LEVEL and CONTRAST_LOG_SUBSYSTEMS environment variables")
-	rawPlatform := flag.String("platform", "", "Deployment platform to generate the runtime configuration for")
 	addDmesg := flag.Bool("add-dmesg", false, "Add dmesg container")
+	nodeInstallerTargetConfType := flag.String("node-installer-target-conf-type", "", "Type of node installer target configuration to generate (k3s,...)")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [flags] <set>...\n", os.Args[0])
 		flag.PrintDefaults()
@@ -46,6 +47,12 @@ func main() {
 				log.Fatalf("Error parsing platform: %v", err)
 			}
 			subResources, err = kuberesource.Runtime(platform)
+		case "node-installer-target-conf":
+			if *nodeInstallerTargetConfType == "" {
+				log.Fatalf("--node-installer-target-conf-type must be set")
+			}
+			subResources = make([]any, 1)
+			subResources[0], err = kuberesource.NodeInstallerTargetConfig(*nodeInstallerTargetConfType, *namespace)
 		case "openssl":
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.OpenSSL(), "contrast-cc")
 		case "emojivoto":
