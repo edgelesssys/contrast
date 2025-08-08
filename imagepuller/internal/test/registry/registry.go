@@ -16,6 +16,7 @@ type Registry struct {
 	indices   map[string][]byte
 	manifests map[string][]byte
 	blobs     map[string][]byte
+	unknown   map[string][]byte
 }
 
 // New creates a Registry and some indices, manifests and blobs for testing.
@@ -40,11 +41,18 @@ func New() *Registry {
 	index := index()
 	wrongManifestIndex := indexForWrongManifest()
 	wrongBlobIndex := indexForWrongBlob()
+	missingPlatformIndex := indexForMissingPlatform()
+	unknownMediaType := unknownMediaType()
 	indices := map[string][]byte{
-		index.digest():              index,
-		wrongManifestIndex.digest(): wrongManifestIndex,
-		wrongBlobIndex.digest():     wrongBlobIndex,
-		WrongIndexDigest():          index,
+		index.digest():                index,
+		wrongManifestIndex.digest():   wrongManifestIndex,
+		wrongBlobIndex.digest():       wrongBlobIndex,
+		WrongIndexDigest():            index,
+		missingPlatformIndex.digest(): missingPlatformIndex,
+	}
+
+	unknown := map[string][]byte{
+		unknownMediaType.digest(): unknownMediaType,
 	}
 
 	mux := http.NewServeMux()
@@ -54,6 +62,7 @@ func New() *Registry {
 		blobs:     blobs,
 		manifests: manifests,
 		indices:   indices,
+		unknown:   unknown,
 	}
 	mux.HandleFunc("/v2/{repo}/manifests/{digest}", r.handleManifest)
 	mux.HandleFunc("/v2/{repo}/blobs/{digest}", r.handleBlob)
@@ -66,6 +75,7 @@ func (r *Registry) handleManifest(rw http.ResponseWriter, req *http.Request) {
 	const (
 		contentTypeManifest = "application/vnd.docker.distribution.manifest.v2+json"
 		contentTypeIndex    = "application/vnd.oci.image.index.v1+json"
+		contentTypeUnknown  = "application/vnd.oci.unknown.v1+json"
 	)
 
 	digest := req.PathValue("digest")
@@ -77,6 +87,11 @@ func (r *Registry) handleManifest(rw http.ResponseWriter, req *http.Request) {
 		return
 	} else if data, ok := r.indices[digest]; ok {
 		rw.Header().Set("Content-Type", contentTypeIndex)
+		rw.Header().Set("Content-Length", fmt.Sprint(len(data)))
+		_, _ = rw.Write(data)
+		return
+	} else if data, ok := r.unknown[digest]; ok {
+		rw.Header().Set("Content-Type", contentTypeUnknown)
 		rw.Header().Set("Content-Length", fmt.Sprint(len(data)))
 		_, _ = rw.Write(data)
 		return

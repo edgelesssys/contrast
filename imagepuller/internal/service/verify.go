@@ -17,10 +17,18 @@ import (
 
 // Error types which should be differentiable in tests.
 var (
-	ErrParseDigest   = errors.New("parsing image digest")
-	ErrRemoteImage   = errors.New("obtaining remote image")
-	ErrRemoteIndex   = errors.New("obtaining remote image index")
-	ErrValidateLayer = errors.New("validating layer")
+	ErrParseDigest         = errors.New("parsing image digest")
+	ErrDescriptor          = errors.New("obtaining descriptor")
+	ErrUnexpectedMediaType = errors.New("unexpected media type")
+	ErrRemoteImage         = errors.New("obtaining remote image")
+	ErrRemoteIndex         = errors.New("obtaining remote image index")
+	ErrMissingPlatform     = errors.New("obtaining image digest for linux/amd64: platform missing from image index")
+
+	ErrObtainingLayers   = errors.New("obtaining the image layers")
+	ErrObtainingManifest = errors.New("obtaining image manifest")
+	ErrValidateLayer     = errors.New("validating layer")
+	ErrReadLayer         = errors.New("reading layer")
+	ErrPutLayer          = errors.New("putting layer to store")
 )
 
 func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Logger, imageURL string) (gcr.Image, error) {
@@ -33,7 +41,7 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 
 	desc, err := remote.Head(ref, remote.WithContext(ctx), remote.WithTransport(tr))
 	if err != nil {
-		return nil, fmt.Errorf("obtaining descriptor: %w", err)
+		return nil, fmt.Errorf("%w: %w", ErrDescriptor, err)
 	}
 
 	var remoteImg gcr.Image
@@ -59,8 +67,9 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 				break
 			}
 		}
-		if digestFound.String() == "" {
-			return nil, fmt.Errorf("obtaining image digest for linux/amd64: platform missing from image index")
+		var emptyDigest gcr.Hash
+		if digestFound == emptyDigest {
+			return nil, ErrMissingPlatform
 		}
 		log.Info("Obtained actual image digest", "image_digest_linux", digestFound.String())
 
@@ -68,12 +77,10 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 	case desc.MediaType.IsImage():
 		remoteImg, imgErr = remote.Image(ref, remote.WithContext(ctx), remote.WithTransport(tr))
 	default:
-		return nil, fmt.Errorf("unexpected media type %q", desc.MediaType)
+		return nil, fmt.Errorf("%w: %q", ErrUnexpectedMediaType, desc.MediaType)
 	}
 
-	if errors.Is(imgErr, context.DeadlineExceeded) {
-		return nil, fmt.Errorf("pull aborted (deadline exceeded): %w", imgErr)
-	} else if imgErr != nil {
+	if imgErr != nil {
 		return nil, fmt.Errorf("%w: %w", ErrRemoteImage, imgErr)
 	}
 
@@ -83,19 +90,19 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gcr.Image) (string, error) {
 	layers, err := remoteImg.Layers()
 	if err != nil {
-		return "", fmt.Errorf("obtaining the image layers: %w", err)
+		return "", fmt.Errorf("%w: %w", ErrObtainingLayers, err)
 	}
 
 	manifest, err := remoteImg.Manifest()
 	if err != nil {
-		return "", fmt.Errorf("obtaining image manifest: %w", err)
+		return "", fmt.Errorf("%w: %w", ErrObtainingManifest, err)
 	}
 
 	previousLayer := ""
 	for idx, layer := range layers {
 		rc, err := layer.Compressed()
 		if err != nil {
-			return "", fmt.Errorf("reading layer %d: %w", idx, err)
+			return "", fmt.Errorf("%w %d: %w", ErrReadLayer, idx, err)
 		}
 
 		putLayer, n, err := s.Store.PutLayer(
@@ -109,7 +116,7 @@ func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gc
 		)
 		if err != nil {
 			return "", errors.Join(
-				fmt.Errorf("putting layer to store: %w", err),
+				fmt.Errorf("%w: %w", ErrPutLayer, err),
 				fmt.Errorf("closing layer reader: %w", rc.Close()),
 			)
 		}
