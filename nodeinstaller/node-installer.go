@@ -35,22 +35,19 @@ func main() {
 	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
 
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: node-installer <platform>")
-		os.Exit(1)
+		log.Fatal("Usage: node-installer <platform>")
 	}
 
 	platform, err := platforms.FromString(os.Args[1])
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 
 	fetcher := asset.NewDefaultFetcher()
 	if err := run(context.Background(), fetcher, platform); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
-	fmt.Println("Installation completed successfully.")
+	log.Println("Installation completed successfully.")
 }
 
 func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform) error {
@@ -71,7 +68,7 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 	if err := config.Validate(); err != nil {
 		return fmt.Errorf("validating config: %w", err)
 	}
-	fmt.Printf("Using config: %+v\n", config)
+	log.Printf("Using config: %+v\n", config)
 
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	if err != nil {
@@ -122,7 +119,7 @@ func installFiles(
 		// Replace @@runtimeName@@ in the target path with the actual base directory.
 		targetPath := strings.ReplaceAll(file.Path, kataconfig.RuntimeNamePlaceholder, runtimeHandlerName)
 
-		fmt.Printf("Fetching %q to %q\n", file.URL, targetPath)
+		log.Printf("Fetching %q to %q\n", file.URL, targetPath)
 
 		if err := os.MkdirAll(filepath.Dir(filepath.Join(hostMount, targetPath)), 0o777); err != nil {
 			return fmt.Errorf("creating directory %q: %w", filepath.Dir(targetPath), err)
@@ -184,8 +181,8 @@ func containerdRuntimeConfig(basePath, configPath string, platform platforms.Pla
 func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform platforms.Platform, debugRuntime bool) error {
 	existingRaw, existing, err := parseExistingContainerdConfig(configPath)
 	if err != nil {
-		fmt.Printf("Failed to parse existing containerd config: %v\n", err)
-		fmt.Println("Creating a new containerd base config.")
+		log.Printf("Failed to parse existing containerd config: %v\n", err)
+		log.Println("Creating a new containerd base config.")
 		existing = containerdconfig.Base()
 	}
 
@@ -225,7 +222,7 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 	}
 
 	if bytes.Equal(existingRaw, rawConfig) {
-		fmt.Println("Containerd config already up-to-date. No changes needed.")
+		log.Println("Containerd config already up-to-date. No changes needed.")
 		return nil
 	}
 
@@ -236,7 +233,7 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 		}
 	}
 
-	fmt.Printf("Patching containerd config at %s\n", configPath)
+	log.Printf("Patching containerd config at %s\n", configPath)
 	tmpFile, err := os.CreateTemp(filepath.Dir(configPath), "containerd-config-*.toml")
 	if err != nil {
 		return fmt.Errorf("creating temporary file: %w", err)
@@ -308,10 +305,10 @@ func restartHostContainerd(ctx context.Context, containerdConfigPath string, ser
 		return fmt.Errorf("retrieving service (%s) start time: %w", service, err)
 	}
 
-	fmt.Printf("Service (%s) start time: %s\n", service, startTime.Format(time.RFC3339Nano))
-	fmt.Printf("Containerd config mtime:          %s\n", configMtime.Format(time.RFC3339Nano))
+	log.Printf("Service (%s) start time: %s\n", service, startTime.Format(time.RFC3339Nano))
+	log.Printf("Containerd config mtime:          %s\n", configMtime.Format(time.RFC3339Nano))
 	if startTime.After(configMtime) {
-		fmt.Printf("Service (%s) already running with the newest config\n", service)
+		log.Printf("Service (%s) already running with the newest config\n", service)
 		return nil
 	}
 
@@ -323,7 +320,7 @@ func restartHostContainerd(ctx context.Context, containerdConfigPath string, ser
 	if err != nil {
 		return fmt.Errorf("restarting service (%s): %w: %s", service, err, out)
 	}
-	fmt.Printf("Service (%s) restarted\n", service)
+	log.Printf("Service (%s) restarted\n", service)
 	return nil
 }
 
