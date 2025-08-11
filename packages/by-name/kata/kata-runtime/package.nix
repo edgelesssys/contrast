@@ -180,6 +180,11 @@ buildGoModule (finalAttrs: {
       # Allow setting the SNP guest policy via Kata configuration.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11675
       ./0025-runtime-make-SNP-guest-policy-configurable.patch
+
+      # Changes the unix socket used for ttRPC communication with the imagepuller.
+      # Necessary to allow a separate imagestore service.
+      # Can be removed in conjunction with patch 0021.
+      ./0026-agent-use-separate-unix-socket-for-image-pulling.patch
     ];
   };
 
