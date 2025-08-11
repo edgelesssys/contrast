@@ -332,14 +332,13 @@
     '';
   };
 
-  # Temporary workaround until the sync server is stateful.
   renew-sync-fifo = writeShellApplication {
     name = "renew-sync-fifo";
     runtimeInputs = with pkgs; [ kubectl ];
     text = ''
       kubectl delete configmap -n default sync-server-fifo || true
       syncIP=$(kubectl get svc sync -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
-      fifoUUID=$(curl -fsSL "$syncIP:8080/fifo/new" | jq -r '.uuid')
+      fifoUUID=$(curl -fsSL "$syncIP:8080/fifo/new?allow_overrides=true" | jq -r '.uuid')
       kubectl create configmap -n default sync-server-fifo --from-literal=uuid="$fifoUUID"
     '';
   };

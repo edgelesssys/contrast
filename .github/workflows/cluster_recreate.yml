@@ -39,15 +39,9 @@ jobs:
           nix run .#scripts.create-coco-aks -- --name="$azure_resource_group"
       - name: Deploy sync server
         run: |
-          kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/f069648d8d08951b503559bab367036290d1f50a/server/deployment.yml
-          kubectl wait --for=condition=available --timeout=5m deployment/sync
-      - name: Get sync server IP
-        run: |
-          kubectl wait --for=jsonpath='{.status.loadBalancer.ingress[0].ip}' --timeout=5m svc/sync
-          SYNC_IP=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          echo "SYNC_IP=$SYNC_IP" | tee -a "$GITHUB_ENV"
+          kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/cf49dc9664f70a1b00e3febb427b9e817f8da68b/server/deployment.yml
+          kubectl rollout status statefulset/sync --timeout=5m
       - name: Create fifo
         run: |
-          fifoUUID=$(curl -fsSL "http://$SYNC_IP:8080/fifo/new" | jq -r '.uuid')
-          echo "Fifo UUID: $fifoUUID"
-          kubectl create configmap sync-server-fifo "--from-literal=uuid=$fifoUUID"
+          kubectl wait --for=jsonpath='{.status.loadBalancer.ingress[0].ip}' --timeout=5m svc/sync
+          nix run .#scripts.renew-sync-fifo
