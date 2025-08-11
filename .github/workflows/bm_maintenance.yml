@@ -117,8 +117,9 @@ jobs:
       - name: Update sync fifo for GPU platform
         if: ${{ matrix.platform.name == 'K3s-QEMU-SNP-GPU' }}
         run: |
-          kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/4eaded61e6943af308b0236ee88b8766b6f52e86/server/deployment.yml
-          kubectl wait --for=condition=available --timeout=5m deployment/sync
+          kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/cf49dc9664f70a1b00e3febb427b9e817f8da68b/server/deployment.yml
+          kubectl rollout status statefulset/sync --timeout=5m
+          kubectl wait --for=jsonpath='{.status.loadBalancer.ingress[0].ip}' --timeout=5m svc/sync
           nix run .#scripts.renew-sync-fifo
       - name: Update namespace cleanup cronjob
         id: update
