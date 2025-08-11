@@ -180,6 +180,17 @@ buildGoModule (finalAttrs: {
       # Allow setting the SNP guest policy via Kata configuration.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11675
       ./0025-runtime-make-SNP-guest-policy-configurable.patch
+
+      # Changes the unix socket used for ttRPC communication with the imagepuller.
+      # Necessary to allow a separate securemount service.
+      # Can be removed in conjunction with patch 0021.
+      ./0026-agent-use-separate-unix-socket-for-image-pulling.patch
+
+      # Secure mounting is part of the CDH in Kata. Since we are not using the CDH, we are instead reimplementing it.
+      # This patch redirects calls by upstream's SecureMount ttRPC client implementation to communicate with our own ttRPC server.
+      # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
+      # https://github.com/kata-containers/kata-containers/issues/11532
+      ./0027-agent-use-custom-implementation-for-secure-mounting.patch
     ];
   };
 

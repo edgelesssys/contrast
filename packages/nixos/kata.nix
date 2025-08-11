@@ -104,7 +104,10 @@ in
     systemd.services.imagepuller = lib.mkIf cfg.guestImagePull {
       description = "Image Puller";
       documentation = [ "https://github.com/edgelesssys/contrast" ];
-      after = [ "network.target" ];
+      after = [
+        "network.target"
+        "securemount.service"
+      ];
       wantedBy = [ "kata-agent.service" ];
       serviceConfig = {
         Type = "exec";
@@ -113,6 +116,23 @@ in
         ExecStart = "${lib.getExe pkgs.imagepuller}";
         Restart = "always";
         LimitNOFILE = 1048576;
+      };
+    };
+
+    systemd.services.securemount = {
+      description = "Secure Mount";
+      documentation = [ "https://github.com/edgelesssys/contrast" ];
+      wantedBy = [ "kata-agent.service" ];
+      path = with pkgs; [
+        cryptsetup
+        e2fsprogs
+        mount
+      ];
+      serviceConfig = {
+        Type = "exec";
+        StandardOutput = "journal+console";
+        StandardError = "inherit";
+        ExecStart = "${lib.getExe pkgs.securemount}";
       };
     };
   };
