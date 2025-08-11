@@ -288,9 +288,18 @@ func Coordinator(namespace string) *CoordinatorConfig {
 				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
 				WithSpec(PodSpec().
 					WithServiceAccountName("coordinator").
+					WithVolumes(
+						Volume().
+							WithName("trusted-store").
+							WithPersistentVolumeClaim(applycorev1.PersistentVolumeClaimVolumeSource().WithClaimName("trusted-store")),
+					).
 					WithContainers(
 						Container().
 							WithName("coordinator").
+							WithVolumeDevices(applycorev1.VolumeDevice().
+								WithDevicePath("/dev/trusted_store").
+								WithName("trusted-store"),
+							).
 							WithImage("ghcr.io/edgelesssys/contrast/coordinator:latest").
 							WithSecurityContext(SecurityContext().
 								WithCapabilities(applycorev1.Capabilities().
@@ -352,6 +361,15 @@ func Coordinator(namespace string) *CoordinatorConfig {
 											),
 									),
 							),
+					),
+				),
+			).
+			WithVolumeClaimTemplates(PersistentVolumeClaim("trusted-store", "").
+				WithSpec(applycorev1.PersistentVolumeClaimSpec().
+					WithVolumeMode(corev1.PersistentVolumeBlock).
+					WithAccessModes(corev1.ReadWriteOnce).
+					WithResources(applycorev1.VolumeResourceRequirements().
+						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
 					),
 				),
 			),
