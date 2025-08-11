@@ -84,10 +84,7 @@ func run(cmd *cobra.Command, _ []string) error {
 
 	tmpDir := cmd.Flag("tmpdir").Value.String()
 	if len(tmpDir) == 0 {
-		tmpDir, err = os.MkdirTemp("", "")
-		if err != nil {
-			return fmt.Errorf("creating tempdir: %w", err)
-		}
+		tmpDir = api.DefaultTmpDir
 	}
 	store, err := storage.GetStore(types.StoreOptions{
 		TransientStore: true,
