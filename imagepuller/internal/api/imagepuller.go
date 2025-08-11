@@ -7,3 +7,7 @@ package api
 
 // Socket is the unix socket of the imagepuller API.
 const Socket = "/run/confidential-containers/imagepuller.sock"
+
+// DefaultTmpDir is the default dir used for the store cache.
+// The kata-agent uses this dir as the mount point for securely mounted storage.
+const DefaultTmpDir = "/run/kata-containers/image"
