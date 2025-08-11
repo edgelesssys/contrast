@@ -97,6 +97,7 @@
       matchPackageNames: [
         "github.com/edgelesssys/contrast",
         "github.com/edgelesssys/contrast/imagepuller",
+        "github.com/edgelesssys/contrast/securemount",
         "github.com/edgelesssys/contrast/tools/igvm",
         "github.com/edgelesssys/contrast/tools/imagepuller-benchmark",
       ],

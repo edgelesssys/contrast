@@ -46,6 +46,8 @@
       nix-update --version=skip --flake legacyPackages.x86_64-linux.snp-id-block-generator
       echo "Updating imagepuller package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.imagepuller
+      echo "Updating securemount package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.securemount
       echo "Updating vendorHash of contrast package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast
       echo "Updating vendorHash of imagepuller-benchmark package" >&2
