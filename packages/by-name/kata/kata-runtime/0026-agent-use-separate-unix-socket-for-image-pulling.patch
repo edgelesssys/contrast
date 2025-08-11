@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+Date: Mon, 1 Sep 2025 15:13:11 +0200
+Subject: [PATCH] agent: use separate unix socket for image pulling
+
+Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+---
+ src/agent/src/confidential_data_hub/mod.rs | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/src/agent/src/confidential_data_hub/mod.rs b/src/agent/src/confidential_data_hub/mod.rs
+index 9f528185535191dae06ed95b942c12f1032c7396..eb5e840f38b49902b9444399b0b9b35f90ce18c1 100644
+--- a/src/agent/src/confidential_data_hub/mod.rs
++++ b/src/agent/src/confidential_data_hub/mod.rs
+@@ -189,7 +189,9 @@ pub async fn pull_image(image: &str, bundle_path: PathBuf) -> Result<String> {
+ }
+ 
+ pub async fn pull_image_contrast(image: &str, bundle_path: &str) -> Result<()> {
+-    let client = ttrpc::asynchronous::Client::connect(CDH_SOCKET_URI)?;
++    let client = ttrpc::asynchronous::Client::connect(
++        "unix:///run/guest-services/imagepull.socket",
++    )?;
+     let image_pull_client =
+         confidential_data_hub_ttrpc_async::ImagePullServiceClient::new(client.clone());
+     let req = confidential_data_hub::ImagePullRequest {
