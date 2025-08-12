@@ -4,6 +4,7 @@
 package manifest
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -14,6 +15,9 @@ import (
 func TestRuntimeHandler(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
+	if bytes.Contains(embeddedReferenceValuesJSON, []byte("REPLACED DURING BUILD")) {
+		t.Skip("Embedded reference values are empty, skipping test")
+	}
 	for _, platform := range platforms.All() {
 		runtimeHandler, err := RuntimeHandler(platform)
 		require.NoError(err)
