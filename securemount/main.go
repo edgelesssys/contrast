@@ -16,11 +16,8 @@ import (
 	"time"
 
 	"github.com/containerd/ttrpc"
-	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/reexec"
-	"github.com/containers/storage/types"
-	"github.com/edgelesssys/contrast/imagepuller/internal/api"
-	"github.com/edgelesssys/contrast/imagepuller/internal/service"
+	"github.com/edgelesssys/contrast/securemount/internal/api"
+	"github.com/edgelesssys/contrast/securemount/internal/service"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 )
@@ -28,38 +25,29 @@ import (
 var version = "0.0.0-dev"
 
 func main() {
-	// Reexec handles subprocesses by re-running this binary with argv[0] set to a registered name.
-	// If argv[0] matches, Init runs the corresponding handler and returns true to exit immediately.
-	// Used by the storage pkg.
-	if reexec.Init() {
-		return
-	}
-
 	if err := newRootCmd().Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
 func newRootCmd() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:          "imagepuller",
-		Short:        "pull and mount images",
+	return &cobra.Command{
+		Use:          "securemount",
+		Short:        "securely mount a block device",
 		Version:      version,
 		SilenceUsage: true,
 		RunE:         run,
 	}
-	cmd.Flags().String("tmpdir", "", "temporary directory to use for storage")
-	return cmd
 }
 
-func run(cmd *cobra.Command, _ []string) error {
+func run(_ *cobra.Command, _ []string) error {
 	log := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level: slog.LevelDebug,
 	}))
 	ctxSignal, cancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer cancel()
 
-	fmt.Fprintf(os.Stderr, "Contrast image-puller %s\n", version)
+	fmt.Fprintf(os.Stderr, "Contrast securemount %s\n", version)
 	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
 
 	if err := os.MkdirAll(filepath.Dir(api.Socket), os.ModePerm); err != nil {
@@ -82,26 +70,12 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 	defer s.Close()
 
-	tmpDir := cmd.Flag("tmpdir").Value.String()
-	if len(tmpDir) == 0 {
-		tmpDir = api.DefaultTmpDir
-	}
-	store, err := storage.GetStore(types.StoreOptions{
-		TransientStore: true,
-		RunRoot:        filepath.Join(tmpDir, "run"),
-		GraphRoot:      filepath.Join(tmpDir, "graph"),
-	})
-	log.Info("Created storage", "storage_dir", tmpDir)
-	if err != nil {
-		return fmt.Errorf("opening storage: %w", err)
-	}
-
-	api.RegisterImagePullServiceService(s, &service.ImagePullerService{Logger: log, Store: store})
+	api.RegisterSecureMountServiceService(s, &service.SecureMountService{Logger: log, Cancel: cancel})
 	eg, ctx := errgroup.WithContext(ctxSignal)
 
 	eg.Go(func() error {
-		log.Info("Started image-puller", "socket", api.Socket)
-		log.Info("Waiting for image pull request...")
+		log.Info("Started securemount", "socket", api.Socket)
+		log.Info("Waiting for securemount request...")
 		if err := s.Serve(ctx, l); err != nil {
 			return fmt.Errorf("starting the ttRPC server: %w", err)
 		}

@@ -240,6 +240,7 @@ buildGoModule (finalAttrs: {
             (path.append root "service-mesh")
             (path.append root "tools")
             (path.append root "imagepuller")
+            (path.append root "securemount")
           ]
         ))
       ];
