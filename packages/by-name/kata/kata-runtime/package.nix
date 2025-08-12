@@ -176,6 +176,10 @@ buildGoModule (finalAttrs: {
       # Add rules to allow AddARPNeighbors.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11663.
       ./0024-genpolicy-add-rule-for-AddARPNeighbors.patch
+
+      # Allow setting the SNP guest policy via Kata configuration.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11675
+      ./0025-runtime-make-SNP-guest-policy-configurable.patch
     ];
   };
 

@@ -159,6 +159,7 @@ let
   snpIdBlocksFor =
     os-image:
     let
+      guestPolicy = builtins.fromJSON (builtins.readFile ./snpGuestPolicyQEMU.json);
       launch-digest = kata.calculateSnpLaunchDigest {
         inherit os-image;
         debug = kata.contrast-node-installer-image.debugRuntime;
@@ -172,10 +173,12 @@ let
       Milan = {
         idBlock = builtins.readFile "${idBlocks}/id-block-milan.base64";
         idAuth = builtins.readFile "${idBlocks}/id-auth-milan.base64";
+        inherit guestPolicy;
       };
       Genoa = {
         idBlock = builtins.readFile "${idBlocks}/id-block-genoa.base64";
         idAuth = builtins.readFile "${idBlocks}/id-auth-genoa.base64";
+        inherit guestPolicy;
       };
     };
   snpIdBlocks = builtins.toFile "snp-id-blocks.json" (
