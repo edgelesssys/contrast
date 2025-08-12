@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/kds"
 	"github.com/google/go-sev-guest/proto/sevsnp"
 	"github.com/pelletier/go-toml/v2"
@@ -136,6 +137,7 @@ func KataRuntimeConfig(
 		// Add SNP ID block to protect against migration attacks.
 		config.Hypervisor["qemu"]["snp_id_block"] = snpIDBlock.IDBlock
 		config.Hypervisor["qemu"]["snp_id_auth"] = snpIDBlock.IDAuth
+		config.Hypervisor["qemu"]["snp_guest_policy"] = abi.SnpPolicyToBytes(snpIDBlock.GuestPolicy)
 		// Conditionally enable debug mode.
 		config.Hypervisor["qemu"]["enable_debug"] = debug
 		// Disable all annotations, as we don't support these. Some will mess up measurements,
@@ -164,8 +166,9 @@ func KataRuntimeConfig(
 
 // SnpIDBlock represents the SNP ID block and ID auth used for SEV-SNP guests.
 type SnpIDBlock struct {
-	IDBlock string `json:"idBlock"`
-	IDAuth  string `json:"idAuth"`
+	IDBlock     string        `json:"idBlock"`
+	IDAuth      string        `json:"idAuth"`
+	GuestPolicy abi.SnpPolicy `json:"guestPolicy"`
 }
 
 // platform -> product -> snpIDBlock.
