@@ -73,11 +73,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web
-  annotations:
-    contrast.edgeless.systems/servicemesh-ingress: "web#8080#false##metrics#7890#true"
 spec:
   replicas: 1
   template:
+    metadata:
+      annotations:
+        contrast.edgeless.systems/servicemesh-ingress: "web#8080#false##metrics#7890#true"
     spec:
       runtimeClassName: contrast-cc
       containers:
@@ -156,11 +157,12 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: web
-  annotations:
-    contrast.edgeless.systems/servicemesh-egress: "billing#127.137.0.1:8081#billing-svc:8080##cart#127.137.0.2:8081#cart-svc:8080"
 spec:
   replicas: 1
   template:
+    metadata:
+      annotations:
+        contrast.edgeless.systems/servicemesh-egress: "billing#127.137.0.1:8081#billing-svc:8080##cart#127.137.0.2:8081#cart-svc:8080"
     spec:
       runtimeClassName: contrast-cc
       containers:

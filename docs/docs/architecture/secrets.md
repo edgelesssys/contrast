@@ -54,7 +54,7 @@ The LUKS encryption utilizes the workload secret introduced above.
 Configure any workload resource with the following annotation:
 
 ```yaml
-metadata:
+metadata: # v1.PodTemplate
   annotations:
     contrast.edgeless.systems/secure-pv: "device-name:mount-name"
 ```
@@ -68,11 +68,12 @@ Workload containers can then use the volume as a secure storage location:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  annotations:
-    contrast.edgeless.systems/secure-pv: "device:secure"
   name: my-statefulset
 spec:
   template:
+    metadata:
+      annotations:
+        contrast.edgeless.systems/secure-pv: "device:secure"
     spec:
       containers:
         - name: my-container

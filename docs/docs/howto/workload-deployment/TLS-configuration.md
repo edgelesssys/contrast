@@ -35,7 +35,7 @@ The following example is for an application with these properties:
 Add the following annotations to your workload:
 
 ```yaml
-metadata: # apps/v1.Deployment, apps/v1.DaemonSet, ...
+metadata: # v1.PodTemplate
   annotations:
     contrast.edgeless.systems/servicemesh-ingress: "main#8001#false##metrics#8080#true"
     contrast.edgeless.systems/servicemesh-egress: "backend#127.0.0.2:4001#backend.default:4001"

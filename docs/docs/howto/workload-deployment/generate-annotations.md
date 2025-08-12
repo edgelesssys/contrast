@@ -198,7 +198,7 @@ If you want to disable the Initializer injection for a specific workload with
 the `contrast-cc` runtime class, you can do so by adding an annotation to the workload.
 
 ```yaml
-metadata: # apps/v1.Deployment, apps/v1.DaemonSet, ...
+metadata: # v1.PodTemplate
   annotations:
     contrast.edgeless.systems/skip-initializer: "true"
 ```
@@ -267,3 +267,18 @@ contrast generate --reference-values k3s-qemu-tdx --skip-service-mesh resources/
 </Tabs>
 
 In this case, you can manually add the service mesh sidecar container to your workload before generating the policies, or [authenticate peers on the application level](./TLS-configuration.md#go-integration).
+
+### Overview of Contrast annotations
+
+As explained above and in previous guides, Contrast can be configured via several annotaions.
+These annotations can be added to the workload's Pod (Pod Template) metadata.
+The following table gives an overview of the available annotations and their purpose.
+
+| Annotation                                                   | Description                                                                                                              |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `contrast.edgeless.systems/skip-initializer`                 | [Skip the Initializer injection for this workload.](./generate-annotations.md#skip-initializer-annotation)               |
+| `contrast.edgeless.systems/servicemesh-ingress`              | [Setup the Service Mesh ingress for this workload.](./TLS-configuration.md#drop-in-service-mesh)                         |
+| `contrast.edgeless.systems/servicemesh-egress`               | [Setup the Service Mesh egress for this workload.](./TLS-configuration.md#drop-in-service-mesh)                          |
+| `contrast.edgeless.systems/servicemesh-admin-interface-port` | [Enable the Envoy admin interface for the Service Mesh on the specified port.](../observability.md#service-mesh-metrics) |
+| `contrast.edgeless.systems/secure-pv`                        | [Enable secure storage for the workload by setting up a LUKS-encrypted volume.](../vault.md)                             |
+| `contrast.edgeless.systems/workload-secret-id`               | [Specify the `workloadSecretID` to use for this workload.](../vault.md)                                                  |
