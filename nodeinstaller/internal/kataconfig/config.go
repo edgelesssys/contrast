@@ -4,6 +4,7 @@
 package kataconfig
 
 import (
+	"bytes"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -172,8 +173,10 @@ type snpIDBlockMap map[string]map[string]SnpIDBlock
 
 // SnpIDBlockForPlatform returns the embedded SNP ID block and ID auth for the given platform and product.
 func SnpIDBlockForPlatform(platform platforms.Platform, productName sevsnp.SevProduct_SevProductName) (SnpIDBlock, error) {
-	blocks := make(snpIDBlockMap)
-	if err := json.Unmarshal([]byte(snpIDBlocks), &blocks); err != nil {
+	var blocks snpIDBlockMap
+	decoder := json.NewDecoder(bytes.NewReader([]byte(snpIDBlocks)))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&blocks); err != nil {
 		return SnpIDBlock{}, fmt.Errorf("unmarshaling embedded SNP ID blocks: %w", err)
 	}
 	blockForPlatform, ok := blocks[strings.ToLower(platform.String())]

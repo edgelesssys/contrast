@@ -4,6 +4,7 @@
 package manifest
 
 import (
+	"bytes"
 	"crypto/x509"
 	_ "embed"
 	"encoding/json"
@@ -27,8 +28,10 @@ type EmbeddedReferenceValues map[string]ReferenceValues
 
 // GetEmbeddedReferenceValues returns the reference values embedded in the binary.
 func GetEmbeddedReferenceValues() (EmbeddedReferenceValues, error) {
+	decoder := json.NewDecoder(bytes.NewReader(embeddedReferenceValuesJSON))
+	decoder.DisallowUnknownFields()
 	var mapping EmbeddedReferenceValues
-	if err := json.Unmarshal(embeddedReferenceValuesJSON, &mapping); err != nil {
+	if err := decoder.Decode(&mapping); err != nil {
 		return nil, fmt.Errorf("unmarshal embedded reference values mapping: %w", err)
 	}
 	return mapping, nil
