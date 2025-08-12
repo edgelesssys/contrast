@@ -66,18 +66,18 @@ func TestRelease(t *testing.T) {
 	// Ticket is released in the cleanup function. The sync server will ensure
 	// that only one test is using the cluster at a time.
 	var fifo *ksync.Fifo
+	var ticketUUID string
 	if fifoUUID, ok := os.LookupEnv("SYNC_FIFO_UUID"); ok {
 		syncEndpoint, ok := os.LookupEnv("SYNC_ENDPOINT")
 		require.True(t, ok, "SYNC_ENDPOINT must be set when SYNC_FIFO_UUID is set")
 		t.Logf("Syncing with fifo %s of endpoint %s", fifoUUID, syncEndpoint)
 		fifo = ksync.FifoFromUUID(syncEndpoint, fifoUUID)
-		err := fifo.TicketAndWait(ctx)
-		if err != nil {
-			t.Log("If this throws a 404, likely the sync server was restarted.")
-			t.Log("Run 'nix run .#scripts.renew-sync-fifo' against the CI cluster to fix it.")
-			require.NoError(t, err)
-		}
-		t.Logf("Acquired lock on fifo %s", fifoUUID)
+		var err error
+		ticketUUID, err = fifo.Ticket(t.Context())
+		require.NoError(t, err, "Requesting fifo ticket failed")
+		t.Logf("Waiting for fifo ticket %s", ticketUUID)
+		require.NoError(t, fifo.Wait(t.Context(), ticketUUID), "Waiting for fifo ticket failed")
+		t.Logf("Acquired lock on fifo %s with ticket %s", fifoUUID, ticketUUID)
 	}
 
 	for _, sub := range []string{"help"} {
@@ -88,7 +88,8 @@ func TestRelease(t *testing.T) {
 		ctx := context.Background()
 		defer func() {
 			if fifo != nil {
-				if err := fifo.Done(ctx); err != nil {
+				t.Logf("Releasing fifo ticket %s", ticketUUID)
+				if err := fifo.Done(ctx, ticketUUID); err != nil {
 					t.Logf("Could not mark fifo ticket as done: %v", err)
 				}
 			}
