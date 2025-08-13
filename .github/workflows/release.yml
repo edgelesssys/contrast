@@ -54,7 +54,7 @@ jobs:
       NEXT_MINOR_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
       NEXT_PATCH_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           persist-credentials: false
       - name: Working branch
@@ -133,13 +133,13 @@ jobs:
       MAJOR_MINOR_PATCH: ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}
     steps:
       - name: Checkout working branch
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           path: contrast-working
           persist-credentials: false
       - name: Checkout main
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           ref: ${{ inputs.checkout_main_ref }}
           path: contrast-main
@@ -231,7 +231,7 @@ jobs:
       VERSION: ${{ inputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: true
@@ -240,7 +240,7 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Log in to ghcr.io Container registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -315,7 +315,7 @@ jobs:
     env:
       VERSION: ${{ inputs.version }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: false
@@ -326,7 +326,7 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Log in to ghcr.io Container registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -404,7 +404,7 @@ jobs:
       NEXT_MINOR: ${{ needs.process-inputs.outputs.NEXT_MINOR }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: false
