@@ -62,12 +62,25 @@ fs.inotify.max_user_instances = 8192
 
 Apply this change by running `systemctl restart systemd-sysctl` and verify it using `sysctl fs.inotify.max_user_instances`.
 
-## K3s setup
+## Kubernetes cluster setup
+
+Contrast can be deployed with different Kubernetes distributions.
+
+### K3s
+
+[K3s](https://k3s.io/) is a lightweight Kubernetes distribution that's easy to set up.
 
 1. Follow the [K3s setup instructions](https://docs.k3s.io/) to create a cluster.
    Contrast is currently tested with K3s version `v1.31.5+k3s1`.
-2. Install a block storage provider such as [Longhorn](https://longhorn.io/docs/latest/deploy/install/install-with-kubectl/) and mark it as the default storage class.
-3. Ensure that a load balancer controller is installed. For development and testing purposes, the built-in [ServiceLB](https://docs.k3s.io/networking/networking-services#service-load-balancer) should suffice.
+2. Install a block storage provider such as [Longhorn](https://longhorn.io/docs/1.9.1/deploy/install/install-with-helm/) and mark it as the default storage class.
+3. Ensure that a load balancer controller is installed.
+   For development and testing purposes, the built-in [ServiceLB](https://docs.k3s.io/networking/networking-services#service-load-balancer) should suffice.
+
+Then, install the ConfigMap to configure the Contrast node-installer for use with K3s:
+
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/node-installer-target-config-k3s.yml
+```
 
 ## Preparing a cluster for GPU usage
 
