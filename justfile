@@ -91,7 +91,7 @@ populate target=default_deploy_target platform=default_platform:
         target=""
         cp -r ./.custom/* ./{{ workspace_dir }}/deployment/
         ns="{{ target }}${namespace_suffix-}"
-        for file in ./{{ workspace_dir }}/deployment/*.{yml,yaml}; do
+        for file in ./{{ workspace_dir }}/deployment/*.yml; do
             env ns="$ns" yq -i '.metadata.namespace = strenv(ns)' "$file"
         done
     fi
