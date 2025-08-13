@@ -122,6 +122,7 @@ runs:
         workspace/emojivoto-demo.yml
         workspace/mysql-demo.yml
         workspace/vault-demo.yml
+        workspace/node-installer-target-config-k3s.yml
         EOM
         EOF
     - name: Create coordinator resource definitions
@@ -160,6 +161,12 @@ runs:
         nix shell .#contrast --command resourcegen \
           --image-replacements ./image-replacements.txt \
           --add-load-balancers vault > workspace/vault-demo.yml
+    - name: Create node installer target configs
+      shell: bash
+      run: |
+        nix shell .#contrast --command resourcegen \
+          --node-installer-target-conf-type k3s \
+          node-installer-target-conf > workspace/node-installer-target-config-k3s.yml
     - name: Build CLI
       shell: bash
       run: |
