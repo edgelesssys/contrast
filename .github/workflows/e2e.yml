@@ -44,6 +44,7 @@ jobs:
       packages: write
     env:
       PLATFORM: ${{ inputs.platform }}
+      NODE_INSTALLER_TARGET_CONF_TYPE: 'k3s'
       TEST_NAME: ${{ inputs.test-name }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -95,6 +96,7 @@ jobs:
             --image-replacements workspace/just.containerlookup \
             --namespace-file workspace/e2e.namespace \
             --platform "${PLATFORM}" \
+            --node-installer-target-conf-type "${NODE_INSTALLER_TARGET_CONF_TYPE}" \
             --namespace-suffix="-ci"
       - name: Download logs
         if: always()
