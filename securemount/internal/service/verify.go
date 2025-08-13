@@ -5,7 +5,6 @@ package service
 
 import (
 	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,9 +17,8 @@ type SecureMountParams struct {
 	DeviceID      string
 	DevicePath    string
 	DataIntegrity string
-	MapperName    string
-	MapperDevice  string
 	Key           []byte
+	KeyFile       string
 }
 
 func getAndVerifyParams(r *api.SecureMountRequest) (*SecureMountParams, error) {
@@ -56,10 +54,9 @@ func getAndVerifyParams(r *api.SecureMountRequest) (*SecureMountParams, error) {
 
 	randBytes := make([]byte, 8)
 	if _, err := rand.Read(randBytes); err != nil {
-		return nil, fmt.Errorf("generating mapper suffix: %w", err)
+		return nil, fmt.Errorf("generating key file name: %w", err)
 	}
-	mapperName := fmt.Sprintf("secure-%s", hex.EncodeToString(randBytes))
-	mappedDev := filepath.Join("/dev/mapper", mapperName)
+	keyFile := fmt.Sprintf("/tmp/encrypted_storage_key_%s", randBytes)
 
 	key := make([]byte, 64)
 	if _, err := rand.Read(key); err != nil {
@@ -70,9 +67,8 @@ func getAndVerifyParams(r *api.SecureMountRequest) (*SecureMountParams, error) {
 		DeviceID:      deviceID,
 		DevicePath:    devicePath,
 		DataIntegrity: dataIntegrity,
-		MapperName:    mapperName,
-		MapperDevice:  mappedDev,
 		Key:           key,
+		KeyFile:       keyFile,
 	}, nil
 }
 

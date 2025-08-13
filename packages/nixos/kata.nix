@@ -113,7 +113,6 @@ in
         Type = "exec";
         StandardOutput = "journal+console";
         StandardError = "inherit";
-        ExecStartPre = "/run/current-system/sw/bin/sleep 30";
         ExecStart = "${lib.getExe pkgs.imagepuller}";
         Restart = "always";
         LimitNOFILE = 1048576;
@@ -124,11 +123,7 @@ in
       description = "Secure Mount";
       documentation = [ "https://github.com/edgelesssys/contrast" ];
       wantedBy = [ "kata-agent.service" ];
-      path = with pkgs; [
-        cryptsetup
-        e2fsprogs
-        mount
-      ];
+      path = with pkgs; [ luks-encrypt-storage ];
       serviceConfig = {
         Type = "exec";
         StandardOutput = "journal+console";

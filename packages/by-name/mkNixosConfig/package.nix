@@ -66,6 +66,7 @@ lib.makeOverridable (
             tdx-tools
             imagepuller
             securemount
+            luks-encrypt-storage
             ;
           inherit (outerPkgs.kata)
             kata-agent

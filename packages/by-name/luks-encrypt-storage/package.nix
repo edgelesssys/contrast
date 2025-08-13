@@ -1,8 +1,47 @@
-{ writeShellApplication, fetchurl }:
-writeShellApplication {
-  name = "luks-encrypt-storage";
-  program = fetchurl {
-    url = "https://github.com/confidential-containers/guest-components/blob/58fbc05c6c3ef48a6232065647b7b92f7965890a/confidential-data-hub/hub/src/storage/scripts/luks-encrypt-storage";
-    sha256 = "";
+{
+  stdenv,
+  fetchFromGitHub,
+  cryptsetup,
+  e2fsprogs,
+  mount,
+  makeWrapper,
+  lib,
+}:
+
+stdenv.mkDerivation rec {
+  pname = "luks-encrypt-storage";
+  version = "v0.13.0";
+
+  src = fetchFromGitHub {
+    owner = "confidential-containers";
+    repo = "guest-components";
+    rev = version;
+    hash = "sha256-Bp8Ny9wqS2iDqZCiW2DUkgTGq3h1DJ92CZT9LCZx/h0=";
   };
+
+  runtimeInputs = [
+    cryptsetup
+    e2fsprogs
+    mount
+  ];
+
+  buildInputs = [ makeWrapper ];
+
+  phases = [ "installPhase" ];
+
+  installPhase = ''
+    mkdir -p $out/bin
+
+    # remove NixOS-incompatible shebang
+    tail -n +2 $src/confidential-data-hub/hub/src/storage/scripts/luks-encrypt-storage > $out/bin/luks-encrypt-storage
+    chmod +x $out/bin/luks-encrypt-storage
+
+    wrapProgram $out/bin/luks-encrypt-storage --prefix PATH : ${
+      lib.makeBinPath ([
+        cryptsetup
+        e2fsprogs
+        mount
+      ])
+    }
+  '';
 }

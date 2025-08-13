@@ -35,13 +35,10 @@ func (s *SecureMountService) SecureMount(ctx context.Context, r *api.SecureMount
 	if err != nil {
 		return nil, fmt.Errorf("verifying request parameters: %w", err)
 	}
-	log = log.With(
-		slog.String("device_path", p.DevicePath),
-		slog.String("mapper", p.MapperDevice),
-	)
+	log = log.With(slog.String("device_path", p.DevicePath))
 
 	_, err, repeat := mountGroup.Do(r.MountPoint, func() (any, error) {
-		return nil, setupLuksAndMount(ctx, log, r, p)
+		return nil, setupLuksAndMount(ctx, r, p)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating and mounting LUKS device: %w", err)
