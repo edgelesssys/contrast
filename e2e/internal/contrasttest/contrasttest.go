@@ -40,10 +40,11 @@ var Flags testFlags
 
 // testFlags contains the flags for the test.
 type testFlags struct {
-	PlatformStr           string
-	ImageReplacementsFile string
-	NamespaceFile         string
-	NamespaceSuffix       string
+	PlatformStr                 string
+	ImageReplacementsFile       string
+	NamespaceFile               string
+	NamespaceSuffix             string
+	NodeInstallerTargetConfType string
 }
 
 // RegisterFlags registers the flags that are shared between all tests.
@@ -52,19 +53,21 @@ func RegisterFlags() {
 	flag.StringVar(&Flags.NamespaceFile, "namespace-file", "", "file to store the namespace in")
 	flag.StringVar(&Flags.NamespaceSuffix, "namespace-suffix", "", "suffix to append to the namespace")
 	flag.StringVar(&Flags.PlatformStr, "platform", "", "Deployment platform")
+	flag.StringVar(&Flags.NodeInstallerTargetConfType, "node-installer-target-conf-type", "", "Type of node installer target configuration to generate (k3s,...)")
 }
 
 // ContrastTest is the Contrast test helper struct.
 type ContrastTest struct {
 	// inputs, usually filled by New()
-	Namespace             string
-	WorkDir               string
-	ImageReplacements     map[string]string
-	ImageReplacementsFile string
-	Platform              platforms.Platform
-	NamespaceFile         string
-	RuntimeClassName      string
-	Kubeclient            *kubeclient.Kubeclient
+	Namespace                   string
+	WorkDir                     string
+	ImageReplacements           map[string]string
+	ImageReplacementsFile       string
+	Platform                    platforms.Platform
+	NamespaceFile               string
+	RuntimeClassName            string
+	NodeInstallerTargetConfType string
+	Kubeclient                  *kubeclient.Kubeclient
 
 	// outputs of contrast subcommands
 	meshCACertPEM []byte
@@ -82,13 +85,14 @@ func New(t *testing.T) *ContrastTest {
 	require.NoError(err)
 
 	return &ContrastTest{
-		Namespace:             MakeNamespace(t, Flags.NamespaceSuffix),
-		WorkDir:               t.TempDir(),
-		ImageReplacementsFile: Flags.ImageReplacementsFile,
-		Platform:              platform,
-		NamespaceFile:         Flags.NamespaceFile,
-		RuntimeClassName:      *runtimeClass.Handler,
-		Kubeclient:            kubeclient.NewForTest(t),
+		Namespace:                   MakeNamespace(t, Flags.NamespaceSuffix),
+		WorkDir:                     t.TempDir(),
+		ImageReplacementsFile:       Flags.ImageReplacementsFile,
+		Platform:                    platform,
+		NamespaceFile:               Flags.NamespaceFile,
+		RuntimeClassName:            *runtimeClass.Handler,
+		Kubeclient:                  kubeclient.NewForTest(t),
+		NodeInstallerTargetConfType: Flags.NodeInstallerTargetConfType,
 	}
 }
 
@@ -423,6 +427,10 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 	require.NoError(err)
 	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
+
+	nodeInstallerTargetConf, err := kuberesource.NodeInstallerTargetConfig(ct.NodeInstallerTargetConfType, ct.Namespace)
+	require.NoError(err)
+	resources = append(resources, nodeInstallerTargetConf)
 
 	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
 	require.NoError(err)

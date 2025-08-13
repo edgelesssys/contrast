@@ -63,6 +63,7 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
             --platform {{ platform }} \
+            --node-installer-target-conf-type ${node_installer_target_conf_type} \
             --namespace-suffix=${namespace_suffix-}
 
 # Generate policies, apply Kubernetes manifests.
