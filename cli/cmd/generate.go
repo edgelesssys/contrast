@@ -77,6 +77,7 @@ subcommands.`,
 	cmd.Flags().String("image-replacements", "", "path to image replacements file")
 	cmd.Flags().Bool("skip-initializer", false, "skip injection of Contrast Initializer")
 	cmd.Flags().Bool("skip-service-mesh", false, "skip injection of Contrast service mesh sidecar")
+	cmd.Flags().Bool("skip-secure-image-storage", false, "skip injection of ephemeral storage and keep image layers in memory")
 	cmd.Flags().StringP("output", "o", "", "output file for generated YAML")
 	must(cmd.Flags().MarkHidden("image-replacements"))
 	must(cmd.MarkFlagFilename("policy", "rego"))
@@ -157,7 +158,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get runtime handler: %w", err)
 	}
 
-	if err := patchTargets(paths, flags.imageReplacementsFile, runtimeHandler, flags.skipInitializer, flags.skipServiceMesh, log); err != nil {
+	if err := patchTargets(paths, flags.imageReplacementsFile, runtimeHandler, flags.skipInitializer, flags.skipServiceMesh, flags.skipSecureImageStorage, log); err != nil {
 		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
@@ -346,7 +347,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, yamlPaths, cmPa
 	return nil
 }
 
-func patchTargets(paths []string, imageReplacementsFile, runtimeHandler string, skipInitializer, skipServiceMesh bool, logger *slog.Logger) error {
+func patchTargets(paths []string, imageReplacementsFile, runtimeHandler string, skipInitializer, skipServiceMesh, skipSecureImageStorage bool, logger *slog.Logger) error {
 	var replacements map[string]string
 	var err error
 	if imageReplacementsFile != "" {
@@ -385,6 +386,9 @@ func patchTargets(paths []string, imageReplacementsFile, runtimeHandler string, 
 			if err := injectServiceMesh(kubeObjs); err != nil {
 				return fmt.Errorf("injecting Service Mesh: %w", err)
 			}
+		}
+		if !skipSecureImageStorage {
+			kubeObjs = kuberesource.AddSecureImageStorage(kubeObjs)
 		}
 
 		kubeObjs = kuberesource.PatchImages(kubeObjs, replacements)
@@ -594,6 +598,7 @@ type generateFlags struct {
 	imageReplacementsFile   string
 	skipInitializer         bool
 	skipServiceMesh         bool
+	skipSecureImageStorage        bool
 	outputFile              string
 }
 
@@ -671,6 +676,10 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	skipSecureImageStorage, err := cmd.Flags().GetBool("skip-secure-image-storage")
+	if err != nil {
+		return nil, err
+	}
 	outputFile, err := cmd.Flags().GetString("output")
 	if err != nil {
 		return nil, err
@@ -692,6 +701,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		imageReplacementsFile:   imageReplacementsFile,
 		skipInitializer:         skipInitializer,
 		skipServiceMesh:         skipServiceMesh,
+		skipSecureImageStorage:        skipSecureImageStorage,
 		outputFile:              outputFile,
 	}, nil
 }

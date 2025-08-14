@@ -265,11 +265,6 @@ func Coordinator(namespace string) *CoordinatorConfig {
 				WithAnnotations(map[string]string{"contrast.edgeless.systems/pod-role": "coordinator"}).
 				WithSpec(PodSpec().
 					WithServiceAccountName("coordinator").
-					WithVolumes(
-						Volume().
-							WithName("secure-image-storage").
-							WithPersistentVolumeClaim(applycorev1.PersistentVolumeClaimVolumeSource().WithClaimName("secure-image-storage")),
-					).
 					WithContainers(
 						Container().
 							WithName("coordinator").
@@ -316,17 +311,6 @@ func Coordinator(namespace string) *CoordinatorConfig {
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(200),
 							),
-						Container().
-							WithName("pvc-holder").
-							WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
-							WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
-							WithSecurityContext(SecurityContext().
-								WithPrivileged(true).SecurityContextApplyConfiguration).
-							WithVolumeDevices(
-								applycorev1.VolumeDevice().
-									WithDevicePath("/dev/trusted_store").
-									WithName("secure-image-storage"),
-							),
 					).
 					WithAffinity(
 						applycorev1.Affinity().
@@ -345,15 +329,6 @@ func Coordinator(namespace string) *CoordinatorConfig {
 											),
 									),
 							),
-					),
-				),
-			).
-			WithVolumeClaimTemplates(PersistentVolumeClaim("secure-image-storage", "").
-				WithSpec(applycorev1.PersistentVolumeClaimSpec().
-					WithVolumeMode(corev1.PersistentVolumeBlock).
-					WithAccessModes(corev1.ReadWriteOnce).
-					WithResources(applycorev1.VolumeResourceRequirements().
-						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
 					),
 				),
 			),

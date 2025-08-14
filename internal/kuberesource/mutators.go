@@ -12,6 +12,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/constants"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applybatchv1 "k8s.io/client-go/applyconfigurations/batch/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -27,6 +28,7 @@ const (
 	smEgressConfigAnnotationKey   = "contrast.edgeless.systems/servicemesh-egress"
 	smAdminInterfaceAnnotationKey = "contrast.edgeless.systems/servicemesh-admin-interface-port"
 	securePVAnnotationKey         = "contrast.edgeless.systems/secure-pv"
+	secureImageStorageSizeAnnotationKey = "contrast.edgeless.systems/secure-image-storage-size"
 )
 
 // AddInitializer adds an initializer and its shared volume to the resource.
@@ -296,6 +298,92 @@ func AddDmesg(resources []any) []any {
 	var out []any
 	for _, resource := range resources {
 		out = append(out, MapPodSpecWithMeta(resource, addDmesg))
+	}
+
+	return out
+}
+
+// AddSecureImageStorage adds a PersistentVolumeClaim, a pod volume for it, and a holder container
+// that attaches the PVC's block device so it appears in the pod VM.
+func AddSecureImageStorage(resources []any) []any {
+	getConfigs := func(storeSize string) (*applycorev1.ContainerApplyConfiguration, *applycorev1.VolumeApplyConfiguration) {
+		holderContainer := Container().
+			WithName("pvc-holder").
+			WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
+			WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
+			WithRestartPolicy(corev1.ContainerRestartPolicyAlways).
+			WithSecurityContext(SecurityContext().
+				WithPrivileged(true).SecurityContextApplyConfiguration).
+			WithResources(ResourceRequirements().
+				WithMemoryLimitAndRequest(50),
+			).
+			WithVolumeDevices(
+				applycorev1.VolumeDevice().
+					WithDevicePath("/dev/trusted_store").
+					WithName("secure-image-storage"),
+			)
+
+		ephemeralVolume := Volume().
+			WithName("secure-image-storage").
+			WithEphemeral(applycorev1.EphemeralVolumeSource().
+				WithVolumeClaimTemplate(applycorev1.PersistentVolumeClaimTemplate().
+					WithSpec(applycorev1.PersistentVolumeClaimSpec().
+						WithVolumeMode(corev1.PersistentVolumeBlock).
+						WithAccessModes(corev1.ReadWriteOnce).
+						WithResources(applycorev1.VolumeResourceRequirements().
+							WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse(storeSize)}),
+						),
+					),
+				),
+			)
+
+		return holderContainer, ephemeralVolume
+	}
+
+	addPvc := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration,
+	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+			return meta, spec
+		}
+
+		secureImageStorageSize := meta.Annotations[secureImageStorageSizeAnnotationKey]
+		switch secureImageStorageSize {
+		case "0":
+			return meta, spec
+		case "":
+			secureImageStorageSize = "10Gi"
+		}
+
+		holderContainer, ephemeralVolume := getConfigs(secureImageStorageSize)
+
+		containerExists := false
+		for _, c := range spec.InitContainers {
+			if c.Name != nil && *c.Name == *holderContainer.Name {
+				containerExists = true
+				break
+			}
+		}
+		if !containerExists {
+			spec.InitContainers = append(spec.InitContainers, *holderContainer)
+		}
+
+		volumeExists := false
+		for _, v := range spec.Volumes {
+			if v.Name != nil && *v.Name == *ephemeralVolume.Name {
+				volumeExists = true
+				break
+			}
+		}
+		if !volumeExists {
+			spec.Volumes = append(spec.Volumes, *ephemeralVolume)
+		}
+
+		return meta, spec
+	}
+
+	var out []any
+	for _, resource := range resources {
+		out = append(out, MapPodSpecWithMeta(resource, addPvc))
 	}
 
 	return out
