@@ -10,7 +10,7 @@ buildGoModule (finalAttrs: {
   src = ../../../securemount;
 
   proxyVendor = true;
-  vendorHash = "sha256-T55Hs6Cn++8cnIu+yBtrY04fKUb+c7n7zsr2kML45Lg=";
+  vendorHash = "sha256-18XveHCYkwktiGEUccF435hzIzoYKM/3PT7axU6oVRo=";
 
   env.CGO_ENABLED = 0;
   dontFixup = true;
