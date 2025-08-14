@@ -39,6 +39,7 @@ let
       "e2e/regression"
       "e2e/release"
       "e2e/servicemesh"
+      "e2e/trusted-store"
       "e2e/vault"
       "e2e/volumestatefulset"
       "e2e/workloadsecret"

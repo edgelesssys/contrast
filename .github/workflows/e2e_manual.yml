@@ -18,6 +18,7 @@ on:
           - policy
           - regression
           - servicemesh
+          - trusted-store
           - vault
           - volumestatefulset
           - workloadsecret
