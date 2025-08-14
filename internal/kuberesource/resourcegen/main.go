@@ -22,6 +22,7 @@ func main() {
 	addLogging := flag.Bool("add-logging", false, "Add logging configuration, based on CONTRAST_LOG_LEVEL and CONTRAST_LOG_SUBSYSTEMS environment variables")
 	rawPlatform := flag.String("platform", "", "Deployment platform to generate the runtime configuration for")
 	addDmesg := flag.Bool("add-dmesg", false, "Add dmesg container")
+	imagePullInMemory := flag.Bool("image-pull-in-memory", false, "Store pulled images in memory, rather than an ephemeral LUKS mount")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [flags] <set>...\n", os.Args[0])
 		flag.PrintDefaults()
@@ -79,6 +80,10 @@ func main() {
 
 	if *addDmesg {
 		resources = kuberesource.AddDmesg(resources)
+	}
+
+	if !*imagePullInMemory {
+		resources = kuberesource.AddTrustedStore(resources)
 	}
 
 	if *addLogging {
