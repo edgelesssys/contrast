@@ -32,6 +32,7 @@ let
       "e2e/atls"
       "e2e/genpolicy-unsupported"
       "e2e/gpu"
+      "e2e/imagestore"
       "e2e/multiple-cpus"
       "e2e/openssl"
       "e2e/peerrecovery"
