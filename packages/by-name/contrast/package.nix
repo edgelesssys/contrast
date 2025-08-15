@@ -5,7 +5,6 @@
   lib,
   buildGoModule,
   buildGoTest,
-  microsoft,
   kata,
   contrast,
   installShellFiles,
@@ -57,33 +56,9 @@ let
         platform: hashFile:
         "contrast-cc-${platform}-${builtins.substring 0 8 (builtins.readFile hashFile)}";
 
-      aks-clh-snp-handler = runtimeHandler "aks-clh-snp" microsoft.contrast-node-installer-image.runtimeHash;
       metal-qemu-tdx-handler = runtimeHandler "metal-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
       metal-qemu-snp-handler = runtimeHandler "metal-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
       metal-qemu-snp-gpu-handler = runtimeHandler "metal-qemu-snp-gpu" kata.contrast-node-installer-image.runtimeHash;
-      aksRefVals = {
-        snp = [
-          {
-            guestPolicy = builtins.fromJSON (builtins.readFile microsoft.kata-igvm.snp-guest-policy);
-            platformInfo = {
-              SMTEnabled = true;
-            };
-            minimumTCB = {
-              bootloaderVersion = 3;
-              teeVersion = 0;
-              snpVersion = 8;
-              microcodeVersion = 115;
-            };
-            trustedMeasurement = builtins.readFile (
-              if microsoft.contrast-node-installer-image.debugRuntime then
-                "${(microsoft.kata-igvm.override { debug = true; }).snp-launch-digest}/milan.hex"
-              else
-                "${microsoft.kata-igvm.snp-launch-digest}/milan.hex"
-            );
-            productName = "Milan";
-          }
-        ];
-      };
 
       snpRefValsWith = os-image: {
         snp =
@@ -140,7 +115,6 @@ let
     in
     builtins.toFile "reference-values.json" (
       builtins.toJSON {
-        "${aks-clh-snp-handler}" = aksRefVals;
         "${metal-qemu-tdx-handler}" = tdxRefVals;
         "${metal-qemu-snp-handler}" = snpRefVals;
         "${metal-qemu-snp-gpu-handler}" = snpGpuRefVals;
@@ -176,22 +150,6 @@ let
     builtins.toJSON {
       metal-qemu-snp = snpIdBlocksFor kata.contrast-node-installer-image.os-image;
       metal-qemu-snp-gpu = snpIdBlocksFor kata.contrast-node-installer-image.gpu.os-image;
-      aks-clh-snp.Milan =
-        let
-          launch-digest =
-            if microsoft.contrast-node-installer-image.debugRuntime then
-              (microsoft.kata-igvm.override { debug = true; }).snp-launch-digest
-            else
-              microsoft.kata-igvm.snp-launch-digest;
-          idBlocks = calculateSnpIDBlock {
-            snp-launch-digest = launch-digest;
-            inherit (microsoft.kata-igvm) snp-guest-policy;
-          };
-        in
-        {
-          idBlock = builtins.readFile "${idBlocks}/id-block-milan.base64";
-          idAuth = builtins.readFile "${idBlocks}/id-auth-milan.base64";
-        };
     }
   );
 
@@ -245,9 +203,7 @@ buildGoModule (finalAttrs: {
   subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
 
   prePatch = ''
-    install -D ${lib.getExe microsoft.genpolicy} cli/genpolicy/assets/genpolicy-microsoft
     install -D ${lib.getExe kata.genpolicy} cli/genpolicy/assets/genpolicy-kata
-    install -D ${microsoft.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-microsoft.rego
     install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
     install -D ${embeddedReferenceValues} internal/manifest/assets/reference-values.json
     install -D ${snpIdBlocks} nodeinstaller/internal/kataconfig/snp-id-blocks.json
@@ -255,7 +211,6 @@ buildGoModule (finalAttrs: {
 
   # postPatch will be overwritten by the release-cli derivation, prePatch won't.
   postPatch = ''
-    install -D ${microsoft.genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-microsoft.json
     install -D ${kata.genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-kata.json
   '';
 
@@ -264,7 +219,6 @@ buildGoModule (finalAttrs: {
   ldflags = [
     "-s"
     "-X github.com/edgelesssys/contrast/internal/constants.Version=v${finalAttrs.version}"
-    "-X github.com/edgelesssys/contrast/internal/constants.MicrosoftGenpolicyVersion=${microsoft.genpolicy.version}"
     "-X github.com/edgelesssys/contrast/internal/constants.KataGenpolicyVersion=${kata.genpolicy.version}"
   ];
 

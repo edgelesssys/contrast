@@ -1,8 +1,0 @@
-{
-    "ABIMinor": 31,
-    "ABIMajor": 0,
-    "SMT": true,
-    "MigrateMA": false,
-    "Debug": false,
-    "SingleSocket": false
-}
