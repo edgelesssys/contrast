@@ -8,27 +8,10 @@ When configuring the disk layout, ensure to use btrfs as the root filesystem.
 
 ## SNP setup
 
-Creating AMD SEV-SNP guests via KVM is supported by kernels newer than 6.11 (see https://www.phoronix.com/news/Linux-6.11-KVM).
-While we want to check occasionally if the latest version breaks
-Contrast, we want to use the latest LTS version.
+Creating AMD SEV-SNP guests via KVM is supported by kernels newer than 6.11 (see https://www.phoronix.com/news/Linux-6.11-KVM). If the kernel is older than that, update it, for example via
 
-`mainline` is a tool to manage kernel installations on Ubuntu.
-First install the `mainline` package:
 ```bash
-sudo add-apt-repository ppa:cappelikan/ppa
-sudo apt-get update
-sudo apt-get install mainline pkexec
-```
-Now list all available kernel versions and install the latest LTS version. To
-figure out what the latest long term version is, refer to https://kernel.org/.
-```bash
-mainline list
-mainline install <latest LTS version e.g. 6.12.17>
-```
-Reboot the machine to boot automatically into the latest kernel and delete all old ones.
-```bash
-reboot
-mainline uninstall-old
+sudo apt install linux-generic-hwe-24.04
 ```
 
 Check that SEV-SNP is enabled. If it's not then it likely needs to be
@@ -37,18 +20,10 @@ https://docs.edgeless.systems/contrast/howto/cluster-setup/bare-metal or
 google for "enable AMD SEV in BIOS." Sadly, AMD changes their document
 links from time to time, so we don't link it here.
 
-Once it's enabled, verify this as follows:
-```bash session
-root@hetzner-ax162-snp ~ # journalctl -k -b 0 | grep -i sev
-Feb 27 19:32:31 hetzner-ax162-snp kernel: SEV-SNP: RMP table physical range [0x0000000035500000 - 0x0000000075afffff]
-Feb 27 19:32:31 hetzner-ax162-snp kernel: SEV-SNP: Reserving start/end of RMP table on a 2MB boundary [0x0000000035400000]
-Feb 27 19:32:31 hetzner-ax162-snp kernel: SEV-SNP: Reserving start/end of RMP table on a 2MB boundary [0x0000000075a00000]
-Feb 27 19:32:32 hetzner-ax162-snp kernel: ccp 0000:09:00.5: sev enabled
-Feb 27 19:33:13 hetzner-ax162-snp kernel: ccp 0000:09:00.5: SEV API:1.55 build:32
-Feb 27 19:33:13 hetzner-ax162-snp kernel: ccp 0000:09:00.5: SEV-SNP API:1.55 build:32
-Feb 27 19:33:13 hetzner-ax162-snp kernel: kvm_amd: SEV enabled (ASIDs 100 - 1006)
-Feb 27 19:33:13 hetzner-ax162-snp kernel: kvm_amd: SEV-ES enabled (ASIDs 1 - 99)
-Feb 27 19:33:13 hetzner-ax162-snp kernel: kvm_amd: SEV-SNP enabled (ASIDs 1 - 99)
+Once it's enabled, verify is using the `snphost` tool:
+
+```bash
+sudo snphost ok
 ```
 
 ## TDX setup
@@ -59,6 +34,7 @@ Follow https://docs.edgeless.systems/contrast/howto/cluster-setup/bare-metal?ven
 
 Install `docker` so that the docker login step in the CI succeeds.
 On Ubuntu, add it to the apt repositories (see https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository).
+
 ```bash
 # Add Docker's official GPG key:
 sudo apt-get update
@@ -79,11 +55,15 @@ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin 
 ```
 
 Install helm
+
 ```bash
 curl -fsL https://get.helm.sh/helm-v3.17.1-linux-amd64.tar.gz | tar -C /tmp -xz linux-amd64/helm && mv /tmp/linux-amd64/helm /usr/local/bin
 ```
 
+## K3s setup (if k3s should be used)
+
 Add K3s configuration override
+
 ```bash
 mkdir -p /etc/rancher/k3s
 cat > /etc/rancher/k3s/config.yaml <<EOF
@@ -97,13 +77,16 @@ EOF
 ```
 
 Install K3s
+
 ```bash
 curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.31.5+k3s1 sh -
 ```
+
 The K3s docs state:
 > A kubeconfig file will be written to /etc/rancher/k3s/k3s.yaml and the kubectl installed by K3s will automatically use it.
 
 Export the Kubeconfig for the current user for the following steps:
+
 ```bash
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 ```
@@ -130,6 +113,7 @@ echo "kernel.apparmor_restrict_unprivileged_userns = 0" > /etc/sysctl.d/97-appar
 ```
 
 ## Networking
+
 Add the device to the Tailscale network.
 For this you have to have admin privileges, if you don't see the
 overview of machines when visiting
@@ -142,12 +126,14 @@ tag.
 Follow the other instructions on the Tailscale website to add the device
 and execute the given script on the machine.
 After the installation, execute:
+
 ```bash
 sudo tailscale up --ssh
 ```
 
 Add a firewall for incoming connections if the server is reachable via
 a public IP, like on Hetzner:
+
 ```bash
 ufw status
 ufw app list
@@ -160,11 +146,13 @@ ufw enable
 ## Add server as a GitHub runner
 
 First, create another user, which the runner service will use.
+
 ```bash
 useradd -s /bin/bash -m -G sudo,docker github
 ```
 
 Put the K3s kubeconfig into the default dir for the user:
+
 ```bash
 mkdir -p /home/github/.kube
 ln -s /etc/rancher/k3s/k3s.yaml /home/github/.kube/config
@@ -174,6 +162,7 @@ The CI jobs build things with nix, therefore install it following the official i
 https://nixos.org/download/#nix-install-linux.
 
 Customize the Nix configuration for flakes, the GitHub runner and Cachix:
+
 ```bash
 cat > /etc/nix/nix.conf <<EOF
 extra-experimental-features = nix-command flakes
@@ -197,6 +186,7 @@ findmnt /
 
 If it's anything other than a btrfs, setup a btrfs builder volume.
 The instructions are taken from https://github.com/edgelesssys/contrast/blob/a62af98f2df761116109310a6af4adcb66e758c0/.github/actions/setup_nix/action.yml#L35.
+
 ```bash
 # Create file fs backend
 echo "Setting up btrfs nix builder volume..."
@@ -205,7 +195,7 @@ sudo truncate -s 20G /mnt/btrfs.img
 sudo mkfs.btrfs -f /mnt/btrfs.img
 
 # Create fstab entry to mount the file as btrfs
-sudo echo -e "# btrfs for nix builder \n/mnt/btrfs.img /mnt/nixbld btrfs loop,defaults 0 0" > /etc/fstab
+sudo echo -e "# btrfs for nix builder \n/mnt/btrfs.img /mnt/nixbld btrfs loop,defaults 0 0" >> /etc/fstab
 sudo mount -a
 
 # Use the btrfs for nix builds
@@ -244,9 +234,11 @@ selecting the newly added runner and adding the labels the runner fulfills,
 that's "tdx" for TDX servers and "snp" for SNP servers.
 
 ## Developer access
+
 For developers to be able to access the K8s cluster, prepare
 a kubeconfig which points to the DNS name of the server inside
 the Tailscale:
+
 ```bash
 CONFIG=$(cat /etc/rancher/k3s/k3s.yaml)
 CONFIG="${CONFIG//default/$(hostname)$}"
@@ -257,6 +249,7 @@ echo "${CONFIG}" > $(hostname)-kubeconfig
 Copy `hetzner-ax162-snp-kubeconfig` over to somewhere you are already
 authenticated with GCP and push it as a secret. If the secret already
 exists, only execute the `gcloud secrets versions add` command.
+
 ```bash
 gcloud secrets create hetzner-ax162-snp-kubeconfig --replication-policy="automatic" --project constellation-331613
 gcloud secrets versions add hetzner-ax162-snp-kubeconfig --data-file="./hetzner-ax162-snp-kubeconfig" --project constellation-331613
@@ -266,6 +259,7 @@ Add the secret to the secrets retrieved via `just` in
 https://github.com/edgelesssys/contrast/blob/f14824f6c039e47a96cc0bbf2298bce5aa8e9844/justfile#L334
 
 ## Bare-metal runner specification
+
 To run our e2e test with the real bare-metal runner specification, a ConfigMap named `bm-tcb-specs` is added to all e2e clusters.
 Having the ConfigMap prevents using committed values in the e2e tests directly, which could otherwise lead to backporting problems.
 
