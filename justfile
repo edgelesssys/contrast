@@ -127,10 +127,17 @@ generate cli=default_cli platform=default_platform:
     # On baremetal SNP, we don't have default values for MinimumTCB, so we need to set some here.
     case {{ platform }} in
         "Metal-QEMU-SNP"|"Metal-QEMU-SNP-GPU")
-            minTCB=$(kubectl get -n default cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}" | yq '.snp.[].MinimumTCB') \
-                yq -i \
-                '.ReferenceValues.snp.[].MinimumTCB = env(minTCB)' \
-                {{ workspace_dir }}/manifest.json
+            cfg=$(mktemp)
+            kubectl -n default get cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}" > "$cfg"
+            export CFG="$cfg"
+            yq -i '
+            (load(strenv(CFG)).snp) as $b
+            | .ReferenceValues.snp = [
+                (.ReferenceValues.snp | to_entries)[] as $e
+                | ($e.value
+                    | .MinimumTCB = (($b[$e.key].MinimumTCB) // .MinimumTCB))
+                ]
+            ' {{ workspace_dir }}/manifest.json
         ;;
         "Metal-QEMU-TDX")
             cm=$(kubectl get -n default cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}")
