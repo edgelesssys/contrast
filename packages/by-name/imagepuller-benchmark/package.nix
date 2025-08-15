@@ -4,7 +4,8 @@
 { lib, buildGoModule }:
 
 buildGoModule (finalAttrs: {
-  name = "imagepuller-benchmark";
+  pname = "imagepuller-benchmark";
+  version = "0.1.0";
 
   # The source of the main module of this repo. We filter for Go files so that
   # changes in the other parts of this repo don't trigger a rebuild.
