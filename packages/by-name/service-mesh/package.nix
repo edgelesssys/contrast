@@ -29,7 +29,7 @@ buildGoModule (finalAttrs: {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-kYs28Y/iYhlb1wa1CPtCeMp/mcYbcTkBw6e/HsbPloc=";
+  vendorHash = "sha256-5MrMi8pX5/JhP2J1QTOlaSlBagvoPx8rc0kw4wCpyh4=";
 
   sourceRoot = "${finalAttrs.src.name}/service-mesh";
   subPackages = [ "." ];

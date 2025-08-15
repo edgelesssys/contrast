@@ -4,14 +4,14 @@ go 1.24.0
 
 require (
 	github.com/containerd/ttrpc v1.2.7
-	github.com/containers/storage v1.59.0
+	github.com/containers/storage v1.59.1
 	github.com/google/go-containerregistry v0.20.6
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/sync v0.16.0
-	golang.org/x/sys v0.34.0
-	google.golang.org/protobuf v1.36.6
+	golang.org/x/sys v0.35.0
+	google.golang.org/protobuf v1.36.7
 )
 
 require (
