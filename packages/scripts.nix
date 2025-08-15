@@ -8,18 +8,6 @@
 }:
 
 {
-  create-coco-aks = writeShellApplication {
-    name = "create-coco-aks";
-    runtimeInputs = with pkgs; [ azure-cli ];
-    text = builtins.readFile ./create-coco-aks.sh;
-  };
-
-  destroy-coco-aks = writeShellApplication {
-    name = "destroy-coco-aks";
-    runtimeInputs = with pkgs; [ azure-cli ];
-    text = builtins.readFile ./destroy-coco-aks.sh;
-  };
-
   generate = writeShellApplication {
     name = "generate";
     runtimeInputs = with pkgs; [
@@ -251,46 +239,6 @@
 
       echo "Port $port did not reach state LISTENING" >&2
       exit 1
-    '';
-  };
-
-  get-azure-sku-locations = writeShellApplication {
-    name = "get-azure-sku-locations";
-    runtimeInputs = with pkgs; [
-      azure-cli
-      jq
-    ];
-    text = ''
-      sku=''${1:-Standard_DC4as_cc_v5}
-      az vm list-skus --size "$sku" | jq -r '.[] | .locations.[]'
-    '';
-  };
-
-  get-azure-node-image-version = writeShellApplication {
-    name = "get-azure-node-image-version";
-    runtimeInputs = with pkgs; [
-      azure-cli
-      jq
-    ];
-    text = ''
-      set -euo pipefail
-
-      name=""
-      pool="nodepool1"
-
-      for i in "$@"; do
-        case $i in
-        --name=*) name="''${i#*=}"; shift ;;
-        --pool=*) pool="''${i#*=}"; shift ;;
-        *) echo "Unknown option $i"; exit 1 ;;
-        esac
-      done
-
-      az aks nodepool show \
-        --resource-group "$name" \
-        --cluster-name "$name" \
-        --name "$pool" \
-        | jq -r '.nodeImageVersion'
     '';
   };
 
