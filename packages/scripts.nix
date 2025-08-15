@@ -56,11 +56,10 @@
       nix-update --version=skip --flake legacyPackages.x86_64-linux.igvm-go
       echo "Updating vendorHash of snp-id-block-generator package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.snp-id-block-generator
-      echo "Updating vendorHash of contrast.cli package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast
       echo "Updating imagepuller package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.imagepuller
-
+      echo "Updating vendorHash of contrast.cli package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast
       echo "Updating src hash of kata.kata-kernel-uvm.configfile" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.kata.kata-kernel-uvm.configfile
 
