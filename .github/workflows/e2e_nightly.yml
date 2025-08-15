@@ -10,8 +10,6 @@ on:
         required: true
       NUNKI_CI_COMMIT_PUSH_PR:
         required: true
-      CONTRAST_CI_INFRA_AZURE:
-        required: true
       TEAMS_CI_WEBHOOK:
         required: true
   schedule:
@@ -22,9 +20,6 @@ jobs:
     strategy:
       matrix:
         platform:
-          - name: AKS-CLH-SNP
-            runner: ubuntu-24.04
-            self-hosted: false
           - name: Metal-QEMU-SNP
             runner: SNP
             self-hosted: true
@@ -51,11 +46,6 @@ jobs:
               runner: SNP-GPU
               self-hosted: true
             test-name: gpu
-          - platform:
-              name: AKS-CLH-SNP
-              runner: ubuntu-24.04
-              self-hosted: false
-            test-name: multiple-cpus
       fail-fast: false
     name: "${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e.yml
@@ -69,7 +59,6 @@ jobs:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
       NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-      CONTRAST_CI_INFRA_AZURE: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
     permissions:
       contents: read

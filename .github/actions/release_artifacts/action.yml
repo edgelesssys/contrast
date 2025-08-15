@@ -30,7 +30,6 @@ runs:
         CONTAINER_REGISTRY: ${{ inputs.container_registry }}
       run: |
         coordinatorImg=$(nix run .#containers.push-coordinator -- "${CONTAINER_REGISTRY}/contrast/coordinator")
-        nodeInstallerMsftImg=$(nix run .#containers.push-node-installer-microsoft -- "${CONTAINER_REGISTRY}/contrast/node-installer-microsoft")
         nodeInstallerKataImg=$(nix run .#containers.push-node-installer-kata -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata")
         nodeInstallerKataGPUImg=$(nix run .#containers.push-node-installer-kata-gpu -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata-gpu")
         initializerImg=$(nix run .#containers.push-initializer -- "${CONTAINER_REGISTRY}/contrast/initializer")
@@ -93,10 +92,8 @@ runs:
         ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged
         ghcr.io/edgelesssys/contrast/initializer:latest=$initializerImgTagged
         ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged
-        ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=$nodeInstallerMsftImgTagged
         ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged
         ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged
-        ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=$tardevSnapshotterImgTagged
         EOF
     - name: Upload image replacement file (for main branch PR)
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
