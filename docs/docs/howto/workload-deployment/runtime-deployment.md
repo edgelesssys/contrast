@@ -8,7 +8,7 @@ Required for all Contrast deployments.
 
 ## Prerequisites
 
-1. [Set up cluster](../cluster-setup/aks.md)
+1. [Set up cluster](../cluster-setup/bare-metal.md)
 2. [Install CLI](../install-cli.md)
 
 ## How-to
@@ -20,11 +20,6 @@ It can be shared between Contrast deployments.
 Also, different Contrast runtime versions can be installed in the same cluster.
 
 <Tabs queryString="platform">
-<TabItem value="aks-clh-snp" label="AKS" default>
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-aks-clh-snp.yml
-```
-</TabItem>
 <TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-snp.yml

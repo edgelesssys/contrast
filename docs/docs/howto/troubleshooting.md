@@ -92,12 +92,10 @@ This should give you output similar to the following one.
 
 ```sh
 NAME                                           HANDLER                                        AGE
-contrast-cc-aks-clh-snp-7173acb5               contrast-cc-aks-clh-snp-7173acb5               23h
-kata-cc-isolation                              kata-cc                                        45d
+contrast-cc-metal-qemu-snp-7173acb5               contrast-cc-metal-qemu-snp-7173acb5               23h
 ```
 
-The output shows that there are four Contrast runtime classes installed (as well as the runtime class provided
-by the AKS CoCo preview, which isn't used by Contrast).
+The output shows that there is a Contrast runtime class installed.
 
 Next, check if the pod that won't start has the correct runtime class configured, and the
 Coordinator uses the exact same runtime:
@@ -110,7 +108,7 @@ kubectl -n <namespace> get -o=jsonpath='{.spec.runtimeClassName}' pod/<coordinat
 The output should list the runtime class the pod is using:
 
 ```sh
-contrast-cc-aks-clh-snp-7173acb5
+contrast-cc-metal-qemu-snp-7173acb5
 ```
 
 Version information about the currently used CLI can be obtained via the `version` flag:
@@ -126,26 +124,24 @@ container image versions:
     ghcr.io/edgelesssys/contrast/coordinator:v1.XX.X@sha256:...
     ghcr.io/edgelesssys/contrast/initializer:v1.XX.X@sha256:...
     ghcr.io/edgelesssys/contrast/service-mesh-proxy:v1.XX.X@sha256:...
-    ghcr.io/edgelesssys/contrast/node-installer-microsoft:v1.XX.X@sha256:...
     ghcr.io/edgelesssys/contrast/node-installer-kata:v1.XX.X@sha256:...
     ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:v1.XX.X@sha256:...
-    ghcr.io/edgelesssys/contrast/tardev-snapshotter:3.2.0.azl5@sha256:...
 
-reference values for AKS-CLH-SNP platform:
-    runtime handler:      contrast-cc-aks-clh-snp-7173acb5
+reference values for Metal-QEMU-SNP platform:
+    runtime handler:      contrast-cc-metal-qemu-snp-7173acb5
     - launch digest:      6cf7f93545210549c25e4efde6878deabfb5357da1a50b0fc9126e1218d182402a5ba2400d708a3d054ba96d663a2918
       default SNP TCB:
           bootloader:     3
           tee:            0
           snp:            8
           microcode:      115
-    genpolicy version:    3.2.0.azl5
+    genpolicy version:    3.15.0
 
-reference values for K3s-QEMU-TDX platform:
+reference values for Metal-QEMU-TDX platform:
 ...
 ```
 
-Check the output for the section with the platform you are using, for example `AKS-CLH-SNP` or `K3s-QEMU-TDX`.
+Check the output for the section with the platform you are using, for example `Metal-QEMU-SNP`.
 The `runtime handler` must match the runtime class name of the pod that won't start.
 
 ### Contrast attempts to pull the wrong image reference

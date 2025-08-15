@@ -241,11 +241,6 @@ These are all the changes you need to make to your deployment files.
 Next, install the Contrast runtime in your cluster which will be used when setting up CVMs on nodes.
 
 <Tabs queryString="platform">
-<TabItem value="aks-clh-snp" label="AKS" default>
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-aks-clh-snp.yml
-```
-</TabItem>
 <TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-snp.yml
@@ -276,30 +271,31 @@ Run the `generate` command to create execution policies that strictly control co
 The command also generates a `manifest.json` file, which contains the trusted reference values of your deployment.
 
 <Tabs queryString="platform">
-<TabItem value="aks-clh-snp" label="AKS" default>
-```sh
-contrast generate --reference-values aks-clh-snp resources/
-```
-</TabItem>
 <TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
+
 ```sh
 contrast generate --reference-values metal-qemu-snp resources/
 ```
+
 :::note[Missing TCB values]
 On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values of the created manifest.json as they can vary between platforms.
 They will have to be filled in manually.
 If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":255,"SNPVersion":255,"MicrocodeVersion":255}` and observe the real values in the error messages in the following steps. This should only be done in a secure environment. Note that the values will differ between CPU models.
 :::
+
 </TabItem>
 <TabItem value="metal-qemu-tdx" label="Bare metal (TDX)">
+
 ```sh
 contrast generate --reference-values metal-qemu-tdx resources/
 ```
+
 :::note[Missing TCB values]
 On bare-metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values of the created manifest.json as they can vary between platforms.
 They will have to be filled in manually.
 If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and `000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000` respectively and observe the accurate ones in the error messages in the following steps. This should only be done in a secure environment.
 :::
+
 </TabItem>
 </Tabs>
 

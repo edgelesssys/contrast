@@ -8,7 +8,7 @@ This step is required for all Contrast deployments.
 
 ## Prerequisites
 
-1. [Set up cluster](../cluster-setup/aks.md)
+1. [Set up cluster](../cluster-setup/bare-metal.md)
 2. [Install CLI](../install-cli.md)
 3. [Deploy the Contrast runtime](./runtime-deployment.md)
 4. [Add Coordinator to resources](./add-coordinator.md)
@@ -25,13 +25,6 @@ After that, it will generate the [execution policies](../../architecture/compone
 A `manifest.json` with the reference values of your deployment will be created.
 
 <Tabs queryString="platform">
-<TabItem value="aks-clh-snp" label="AKS" default>
-
-```sh
-contrast generate --reference-values aks-clh-snp resources/
-```
-
-</TabItem>
 <TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 
 ```sh
@@ -162,13 +155,6 @@ You can disable the Initializer injection completely by specifying the
 `--skip-initializer` flag in the `generate` command.
 
 <Tabs queryString="platform">
-<TabItem value="aks-clh-snp" label="AKS" default>
-
-```sh
-contrast generate --reference-values aks-clh-snp --skip-initializer resources/
-```
-
-</TabItem>
 <TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 
 ```sh
@@ -237,13 +223,6 @@ You can disable the service mesh injection completely by specifying the
 `--skip-service-mesh` flag in the `generate` command.
 
 <Tabs queryString="platform">
-<TabItem value="aks-clh-snp" label="AKS" default>
-
-```sh
-contrast generate --reference-values aks-clh-snp --skip-service-mesh resources/
-```
-
-</TabItem>
 <TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 
 ```sh

@@ -39,7 +39,7 @@ Contrast provides powerful [security features and benefits](./security.md). Comm
 
 ## Supported Kubernetes environments
 
-Contrast supports bare-metal setups based on AMD SEV-SNP and Intel TDX hardware. It also supports managed Kubernetes via the [Confidential Containers preview on Azure Kubernetes Service (AKS)](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview).
+Contrast supports bare-metal setups based on AMD SEV-SNP and Intel TDX hardware. It also supports managed Kubernetes with hybrid bare-metal nodes.
 
 ## Getting started
 

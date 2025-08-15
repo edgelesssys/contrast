@@ -4,8 +4,8 @@ This section lists planned features and current limitations of Contrast.
 
 ## Availability
 
-- **Cloud platform support**: At present, Contrast is exclusively available on Azure AKS, supported by the [Confidential Container preview for AKS](https://learn.microsoft.com/en-us/azure/confidential-computing/confidential-containers-on-aks-preview). Expansion to other cloud platforms is planned, pending the availability of necessary infrastructure enhancements.
 - **Bare-metal support**: Support for running [Contrast on bare-metal Kubernetes](../howto/cluster-setup/bare-metal.md) is available for AMD SEV-SNP and Intel TDX.
+- **Public cloud** is limited to cloud vendors providing the required hardware as bare-metal instances, ideally as part of their managed Kubernetes offerings.
 
 ## Kubernetes features
 
@@ -13,7 +13,7 @@ This section lists planned features and current limitations of Contrast.
 - **Volume sub-paths**: Mounting only a `subPath` of a volume [isn't yet supported by Kata Containers](https://github.com/kata-containers/kata-containers/issues/10487).
 - **Port forwarding**: This feature [isn't yet supported by Kata Containers](https://github.com/kata-containers/kata-containers/issues/1693). You can [deploy a port-forwarder](../howto/workload-deployment/set-manifest.md#connect-to-the-contrast-coordinator) as a workaround.
 - **Resource limits**: Contrast doesn't support setting CPU limits on bare metal. Adding a resource request for CPUs will lead to attestation failures.
-- **Image pull secrets**: registry authentication is only supported on AKS, see [Registry Authentication](../howto/registry-authentication.md#bare-metal) for details.
+- **Image pull secrets**: registry authentication isn't yet supported.
 
 ## Runtime policies
 
