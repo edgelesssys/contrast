@@ -8,7 +8,7 @@ Required for deploying with Contrast.
 
 ## Prerequisites
 
-1. [Set up cluster](./cluster-setup/aks.md)
+1. [Set up cluster](./cluster-setup/bare-metal.md)
 
 ## How-to
 

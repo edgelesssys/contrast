@@ -10,7 +10,7 @@ While this how-to uses an OpenBao server, the setup for Hashicorp Vault is very 
 
 ## Prerequisites
 
-1. [Set up cluster](cluster-setup/aks.md)
+1. [Set up cluster](cluster-setup/bare-metal.md)
 2. [Install CLI](install-cli.md)
 3. [Deploy the Contrast runtime](workload-deployment/runtime-deployment.md)
 4. Install the `bao` CLI (see [OpenBao installation instructions](https://openbao.org/docs/install/))

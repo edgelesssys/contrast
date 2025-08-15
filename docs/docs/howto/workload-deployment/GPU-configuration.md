@@ -9,7 +9,7 @@ This step is optional and only necessary if your application includes a GPU work
 :::warning
 
 Currently, confidential GPU workloads are supported **only** on bare-metal systems with AMD SEV-SNP.
-They're **not** supported on AKS or on bare-metal systems using Intel TDX.
+They're **not** supported on bare-metal systems using Intel TDX.
 
 GPUs without Confidential Computing support can't be used with Contrast.
 

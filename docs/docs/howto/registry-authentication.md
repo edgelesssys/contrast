@@ -8,7 +8,7 @@ This guide is relevant if you need to authenticate with a container registry for
 
 ## Prerequisites
 
-1. [Set up cluster](./cluster-setup/aks.md)
+1. [Set up cluster](./cluster-setup/bare-metal.md)
 2. [Install CLI](./install-cli.md)
 3. [Deploy the Contrast runtime](./workload-deployment/runtime-deployment.md)
 4. [Prepare deployment files](./workload-deployment/deployment-file-preparation.md)
@@ -48,11 +48,6 @@ EOF
 
 contrast generate "$@"
 ```
-
-### AKS
-
-On AKS, images are pulled on the worker nodes using credentials available to Kubernetes and containerd.
-Follow the [official instructions](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/) to set up registry authentication with image pull secrets.
 
 ### Bare metal
 
