@@ -50,11 +50,6 @@ const sidebars = {
               label: "Bare metal",
               id: "howto/cluster-setup/bare-metal",
             },
-            {
-              type: "doc",
-              label: "AKS",
-              id: "howto/cluster-setup/aks",
-            },
           ],
         },
         {
