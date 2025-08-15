@@ -428,9 +428,11 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
 
-	nodeInstallerTargetConf, err := kuberesource.NodeInstallerTargetConfig(ct.NodeInstallerTargetConfType, ct.Namespace)
-	require.NoError(err)
-	resources = append(resources, nodeInstallerTargetConf)
+	if ct.NodeInstallerTargetConfType != "" && ct.NodeInstallerTargetConfType != "none" {
+		nodeInstallerTargetConf, err := kuberesource.NodeInstallerTargetConfig(ct.NodeInstallerTargetConfType, ct.Namespace)
+		require.NoError(err)
+		resources = append(resources, nodeInstallerTargetConf)
+	}
 
 	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
 	require.NoError(err)
