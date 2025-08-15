@@ -8,7 +8,7 @@ require (
 	github.com/edgelesssys/contrast/imagepuller v0.0.0-00010101000000-000000000000
 	github.com/shirou/gopsutil/v3 v3.24.5
 	github.com/spf13/cobra v1.9.1
-	golang.org/x/sys v0.34.0
+	golang.org/x/sys v0.35.0
 )
 
 require (
@@ -22,5 +22,5 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20241015192408-796eee8c2d53 // indirect
 	google.golang.org/grpc v1.69.0 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
+	google.golang.org/protobuf v1.36.7 // indirect
 )
