@@ -329,18 +329,27 @@ get-credentials platform=default_platform:
         ;;
         "Metal-QEMU-TDX")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/olimar-kubeconfig/versions/latest"
+            sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
         ;;
         "Metal-QEMU-SNP")
-            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/hetzner-ax162-snp-kubeconfig/versions/latest"
+            nix run -L .#scripts.get-credentials "projects/796962942582/secrets/palutena-kubeconfig/versions/latest"
+            sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="none"/' justfile.env
         ;;
         "Metal-QEMU-SNP-GPU")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/latest"
+            sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
         ;;
         *)
             echo "Unsupported platform: {{ platform }}"
             exit 1
         ;;
     esac
+
+# Load the kubeconfig from the dev cluster.
+get-credentials-dev:
+    nix run -L .#scripts.get-credentials "projects/796962942582/secrets/hetzner-ax162-snp-kubeconfig/versions/latest"
+    sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-SNP"/' justfile.env
+    sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
 
 # Load the kubeconfig from the CI AKS cluster.
 get-credentials-ci:
