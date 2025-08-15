@@ -22,7 +22,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/edgelesssys/contrast/imagepuller/client"
-	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/spf13/cobra"
 )
 
