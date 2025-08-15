@@ -16,12 +16,6 @@ let
     scripts = callPackages ./scripts.nix { pkgs = pkgs'; };
     contrast-releases = callPackages ./contrast-releases.nix { };
     mkNixosConfig = callPackage ./by-name/mkNixosConfig/package.nix { pkgs = pkgs'; };
-    microsoft = self'.microsoft // {
-      genpolicy = pkgs.pkgsStatic.callPackage ./by-name/microsoft/genpolicy/package.nix {
-        inherit (self) microsoft; # This is only to inherit src/version, must not be depended on.
-      };
-      cloud-hypervisor = pkgs.pkgsStatic.callPackage ./by-name/microsoft/cloud-hypervisor/package.nix { };
-    };
     kata = self'.kata // {
       genpolicy = pkgs.pkgsStatic.callPackage ./by-name/kata/genpolicy/package.nix {
         inherit (self) kata; # This is only to inherit src/version, must not be depended on.
