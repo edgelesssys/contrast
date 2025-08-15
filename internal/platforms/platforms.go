@@ -16,8 +16,6 @@ type Platform int
 const (
 	// Unknown is the default value for the platform type.
 	Unknown Platform = iota
-	// AKSCloudHypervisorSNP represents a deployment with Cloud-Hypervisor on SEV-SNP AKS.
-	AKSCloudHypervisorSNP
 	// MetalQEMUSNP is the generic platform for bare-metal SNP deployments.
 	MetalQEMUSNP
 	// MetalQEMUTDX is the generic platform for bare-metal TDX deployments.
@@ -28,7 +26,7 @@ const (
 
 // All returns a list of all available platforms.
 func All() []Platform {
-	return []Platform{AKSCloudHypervisorSNP, MetalQEMUSNP, MetalQEMUTDX, MetalQEMUSNPGPU}
+	return []Platform{MetalQEMUSNP, MetalQEMUTDX, MetalQEMUSNPGPU}
 }
 
 // AllStrings returns a list of all available platforms as strings.
@@ -43,8 +41,6 @@ func AllStrings() []string {
 // String returns the string representation of the Platform type.
 func (p Platform) String() string {
 	switch p {
-	case AKSCloudHypervisorSNP:
-		return "AKS-CLH-SNP"
 	case MetalQEMUSNP:
 		return "Metal-QEMU-SNP"
 	case MetalQEMUSNPGPU:
@@ -91,8 +87,6 @@ func (p *Platform) UnmarshalText(data []byte) error {
 // FromString returns the Platform type corresponding to the given string.
 func FromString(s string) (Platform, error) {
 	switch strings.ToLower(s) {
-	case "aks-clh-snp":
-		return AKSCloudHypervisorSNP, nil
 	case "metal-qemu-snp":
 		return MetalQEMUSNP, nil
 	case "metal-qemu-snp-gpu":
@@ -107,8 +101,6 @@ func FromString(s string) (Platform, error) {
 // DefaultMemoryInMegaBytes returns the desired VM overhead for the given platform.
 func DefaultMemoryInMegaBytes(p Platform) int {
 	switch p {
-	case AKSCloudHypervisorSNP:
-		return 256
 	case MetalQEMUSNPGPU:
 		// Guest components contribute around 600MiB with GPU enabled.
 		return 1024
@@ -123,7 +115,7 @@ func DefaultMemoryInMegaBytes(p Platform) int {
 // IsSNP returns true if the platform is a SEV-SNP platform.
 func IsSNP(p Platform) bool {
 	switch p {
-	case AKSCloudHypervisorSNP, MetalQEMUSNP, MetalQEMUSNPGPU:
+	case MetalQEMUSNP, MetalQEMUSNPGPU:
 		return true
 	default:
 		return false
@@ -154,16 +146,6 @@ func IsGPU(p Platform) bool {
 func IsQEMU(p Platform) bool {
 	switch p {
 	case MetalQEMUSNP, MetalQEMUSNPGPU, MetalQEMUTDX:
-		return true
-	default:
-		return false
-	}
-}
-
-// IsCloudHypervisor returns true if the platform uses Cloud-Hypervisor as the hypervisor.
-func IsCloudHypervisor(p Platform) bool {
-	switch p {
-	case AKSCloudHypervisorSNP:
 		return true
 	default:
 		return false

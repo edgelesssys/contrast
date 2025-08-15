@@ -16,8 +16,6 @@ import (
 )
 
 var (
-	//go:embed testdata/expected-aks-clh-snp.toml
-	expectedConfAKSCLHSNP []byte
 	//go:embed testdata/expected-bare-metal-qemu-tdx.toml
 	expectedConfMetalQEMUTDX []byte
 	//go:embed testdata/expected-bare-metal-qemu-snp.toml
@@ -32,10 +30,6 @@ func TestPatchContainerdConfig(t *testing.T) {
 		expected []byte
 		wantErr  bool
 	}{
-		"AKSCLHSNP": {
-			platform: platforms.AKSCloudHypervisorSNP,
-			expected: expectedConfAKSCLHSNP,
-		},
 		"MetalQEMUTDX": {
 			platform: platforms.MetalQEMUTDX,
 			expected: expectedConfMetalQEMUTDX,
