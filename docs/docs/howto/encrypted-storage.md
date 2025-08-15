@@ -8,7 +8,7 @@ This step is recommended for any Contrast deployment that stores sensitive data 
 
 ## Prerequisites
 
-1. [Set up your cluster](./cluster-setup/aks.md)
+1. [Set up your cluster](./cluster-setup/bare-metal.md)
 
 ## How-to
 
@@ -53,11 +53,6 @@ This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
 
 <Tabs queryString="platform">
-<TabItem value="aks-clh-snp" label="AKS" default>
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-aks-clh-snp.yml
-```
-</TabItem>
 <TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-snp.yml
@@ -86,11 +81,6 @@ annotations to your deployment files. A `manifest.json` file with the reference 
 of your deployment will be created:
 
 <Tabs queryString="platform">
-<TabItem value="aks-clh-snp" label="AKS" default>
-```sh
-contrast generate --reference-values aks-clh-snp resources/
-```
-</TabItem>
 <TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
 contrast generate --reference-values metal-qemu-snp resources/

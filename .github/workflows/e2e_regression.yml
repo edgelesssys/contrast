@@ -11,14 +11,11 @@ on:
         required: true
       NUNKI_CI_COMMIT_PUSH_PR:
         required: true
-      CONTRAST_CI_INFRA_AZURE:
-        required: true
       TEAMS_CI_WEBHOOK:
         required: true
   pull_request:
     paths:
       - .github/workflows/e2e_regression.yml
-      - e2e/getdents/**
       - e2e/genpolicy/**
       - e2e/regression/**
       - packages/by-name/kata/**
@@ -29,21 +26,15 @@ jobs:
     strategy:
       matrix:
         platform:
-          - name: AKS-CLH-SNP
-            runner: ubuntu-24.04
-            self-hosted: false
+
           - name: Metal-QEMU-SNP
             runner: SNP
             self-hosted: true
           - name: Metal-QEMU-TDX
             runner: TDX
             self-hosted: true
-        test-name: [getdents, genpolicy, genpolicy-unsupported, regression]
+        test-name: [genpolicy, genpolicy-unsupported, regression]
         exclude:
-          # getdents is a regression test for tardev-snapshotter
-          - platform:
-              self-hosted: true
-            test-name: getdents
           # genpolicy is (currently) a regression test for tardev-snapshotter
           - platform:
               self-hosted: true
@@ -61,7 +52,6 @@ jobs:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
       NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-      CONTRAST_CI_INFRA_AZURE: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
     permissions:
       contents: read

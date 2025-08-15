@@ -8,7 +8,7 @@ This step is optional, but highly recommended when deploying applications with C
 
 ## Prerequisites
 
-1. [Set up cluster](../cluster-setup/aks.md)
+1. [Set up cluster](../cluster-setup/bare-metal.md)
 2. [Install CLI](../install-cli.md)
 3. [Deploy the Contrast runtime](./runtime-deployment.md)
 4. [Add Coordinator to resources](set-manifest.md)

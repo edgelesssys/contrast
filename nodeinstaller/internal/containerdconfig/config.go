@@ -35,11 +35,6 @@ func RuntimeFragment(baseDir, snapshotter string, platform platforms.Platform) (
 	}
 
 	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
-		cfg.Options = map[string]any{
-			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
-		}
-		cfg.Snapshotter = snapshotter
 	case platforms.MetalQEMUTDX:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),

@@ -45,21 +45,8 @@ This shim is described in more detail in the [upstream source repository](https:
 ### Virtual machine manager (VMM)
 
 The `containerd` shim uses a virtual machine monitor to create a confidential virtual machine for every pod.
-On AKS, Contrast uses [`cloud-hypervisor`](https://www.cloudhypervisor.org).
 On bare metal, Contrast uses [`QEMU`](https://www.qemu.org/).
 The appropriate files are installed on every node by the [`node-installer`](#node-installer-daemonset).
-
-### Snapshotters
-
-Contrast uses [`containerd` snapshotters](https://github.com/containerd/containerd/tree/v1.7.16/docs/snapshotters/README.md) to provide container images to the pod-VM.
-Each snapshotter consists of a host component that pulls container images and a guest component used to mount/pull container images.
-
-On AKS, Contrast uses the [`tardev`](https://github.com/kata-containers/tardev-snapshotter) snapshotter to provide container images as block devices to the pod-VM.
-The `tardev` snapshotter uses [`dm-verity`](https://docs.kernel.org/admin-guide/device-mapper/verity.html) to protect the integrity of container images.
-Expected `dm-verity` container image hashes are part of Contrast runtime policies and are enforced by the kata-agent.
-This enables workload attestation by specifying the allowed container image as part of the policy. Read [the chapter on policies](policies.md) for more information.
-
-On bare metal, the image is pulled within the guest VM by the Kata guest components.
 
 ### Pod-VM image
 
@@ -118,9 +105,3 @@ Kata Containers was originally designed to isolate the guest from the host, but 
 In confidential mode, the guest agent is configured with an [Open Policy Agent](https://www.openpolicyagent.org/) (OPA) policy to authorize API calls from the host.
 This policy also contains checksums for the expected container images.
 It's derived from Kubernetes resource definitions and its checksum is included in the attestation report.
-
-## AKS CoCo preview
-
-[Azure Kubernetes Service](https://learn.microsoft.com/en-us/azure/aks/) (AKS) provides CoCo-enabled node pools as a [preview offering](https://learn.microsoft.com/en-us/azure/aks/confidential-containers-overview).
-These node pools leverage Azure VM types capable of nested virtualization (CVM-in-VM) and the CoCo stack is pre-installed.
-Contrast can be deployed directly into a CoCo-enabled AKS cluster.

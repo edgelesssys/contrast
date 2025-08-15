@@ -14,8 +14,6 @@ import (
 )
 
 var (
-	//go:embed testdata/expected-configuration-clh-snp.toml
-	expectedConfAKSCLHSNP []byte
 	//go:embed testdata/expected-configuration-qemu-snp.toml
 	expectedConfMetalQEMUSNP []byte
 	//go:embed testdata/expected-configuration-qemu-tdx.toml
@@ -29,10 +27,6 @@ func TestKataRuntimeConfig(t *testing.T) {
 		changeSnpFields bool
 		want            string
 	}{
-		platforms.AKSCloudHypervisorSNP: {
-			changeSnpFields: false,
-			want:            string(expectedConfAKSCLHSNP),
-		},
 		platforms.MetalQEMUSNP: {
 			changeSnpFields: true,
 			want:            string(expectedConfMetalQEMUSNP),
@@ -69,14 +63,7 @@ func TestKataRuntimeConfig(t *testing.T) {
 			// It's covered by the comparison with testdata, but we want to keep this explicit.
 			assert.Contains(string(configBytes), "[Agent.kata]")
 			assert.Contains(string(configBytes), "[Runtime]")
-			switch platform {
-			case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU:
-				assert.Contains(string(configBytes), "[Hypervisor.qemu]")
-			case platforms.AKSCloudHypervisorSNP:
-				assert.Contains(string(configBytes), "[Hypervisor.clh]")
-			default:
-				assert.Fail("missing hypervisor test expectations")
-			}
+			assert.Contains(string(configBytes), "[Hypervisor.qemu]")
 		})
 	}
 }
