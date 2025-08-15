@@ -242,7 +242,7 @@ func (ct *ContrastTest) RunPatchManifest(patchFn PatchManifestFunc) error {
 func addInvalidReferenceValues(platform platforms.Platform) PatchManifestFunc {
 	return func(m manifest.Manifest) manifest.Manifest {
 		switch platform {
-		case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU, platforms.AKSCloudHypervisorSNP:
+		case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU:
 			// Duplicate the reference values to test multiple validators by having at least 2.
 			m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1])
 
@@ -268,18 +268,15 @@ func addInvalidReferenceValues(platform platforms.Platform) PatchManifestFunc {
 // based on the 'bm-tcb-specs' ConfigMap persistently stored in the 'default' namespace.
 func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platform platforms.Platform) (PatchManifestFunc, error) {
 	var baremetalRefVal manifest.ReferenceValues
-	// ConfigMap bm-tcb-specs will only exist on baremetal instances.
-	if platform != platforms.AKSCloudHypervisorSNP {
-		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		defer cancel()
-		configMap, err := k.Client.CoreV1().ConfigMaps("default").Get(ctx, "bm-tcb-specs", metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("getting ConfigMap bm-tcb-specs: %w", err)
-		}
-		err = json.Unmarshal([]byte(configMap.Data["tcb-specs.json"]), &baremetalRefVal)
-		if err != nil {
-			return nil, fmt.Errorf("unmarshaling reference values: %w", err)
-		}
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	configMap, err := k.Client.CoreV1().ConfigMaps("default").Get(ctx, "bm-tcb-specs", metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("getting ConfigMap bm-tcb-specs: %w", err)
+	}
+	err = json.Unmarshal([]byte(configMap.Data["tcb-specs.json"]), &baremetalRefVal)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling reference values: %w", err)
 	}
 	return func(m manifest.Manifest) manifest.Manifest {
 		switch platform {
@@ -488,8 +485,6 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 // Baseline is AKS.
 func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Duration {
 	switch ct.Platform {
-	case platforms.AKSCloudHypervisorSNP: // AKS defined is the baseline
-		return timeout
 	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU:
 		return 2 * timeout
 	default:

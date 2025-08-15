@@ -26,7 +26,7 @@ func Base() Config {
 }
 
 // RuntimeFragment returns the containerd runtime configuration fragment.
-func RuntimeFragment(baseDir, snapshotter string, platform platforms.Platform) (*Runtime, error) {
+func RuntimeFragment(baseDir string, platform platforms.Platform) (*Runtime, error) {
 	cfg := Runtime{
 		Type:                         "io.containerd.contrast-cc.v2",
 		Path:                         filepath.Join(baseDir, "bin", "containerd-shim-contrast-cc-v2"),
@@ -35,11 +35,6 @@ func RuntimeFragment(baseDir, snapshotter string, platform platforms.Platform) (
 	}
 
 	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
-		cfg.Options = map[string]any{
-			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-clh-snp.toml"),
-		}
-		cfg.Snapshotter = snapshotter
 	case platforms.MetalQEMUTDX:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),

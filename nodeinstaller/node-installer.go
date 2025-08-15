@@ -196,21 +196,9 @@ func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform
 		existing.ProxyPlugins = make(map[string]containerdconfig.ProxyPlugin)
 	}
 
-	var snapshotterName, socketName string
-	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
-		// Add the snapshotter proxy plugin.
-		snapshotterName = fmt.Sprintf("tardev-%s", runtimeHandler)
-		socketName = fmt.Sprintf("/run/containerd/tardev-snapshotter-%s.sock", runtimeHandler)
-		existing.ProxyPlugins[snapshotterName] = containerdconfig.ProxyPlugin{
-			Type:    "snapshot",
-			Address: socketName,
-		}
-	}
-
 	// Add contrast-cc runtime
 	runtimes := ensureMapPath(&existing.Plugins, containerdconfig.CRIFQDN(existing.Version), "containerd", "runtimes")
-	containerdRuntimeConfig, err := containerdconfig.RuntimeFragment(basePath, snapshotterName, platform)
+	containerdRuntimeConfig, err := containerdconfig.RuntimeFragment(basePath, platform)
 	if err != nil {
 		return fmt.Errorf("generating containerd runtime config: %w", err)
 	}

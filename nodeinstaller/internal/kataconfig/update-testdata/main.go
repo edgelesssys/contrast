@@ -26,11 +26,6 @@ func main() {
 		config   string
 		testdata string
 	}{
-		platforms.AKSCloudHypervisorSNP: {
-			upstream: "clh",
-			config:   "clh-snp",
-			testdata: "clh-snp",
-		},
 		platforms.MetalQEMUSNP: {
 			upstream: "qemu-snp",
 			config:   "qemu-snp",
