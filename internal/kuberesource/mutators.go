@@ -28,6 +28,7 @@ const (
 	smEgressConfigAnnotationKey   = "contrast.edgeless.systems/servicemesh-egress"
 	smAdminInterfaceAnnotationKey = "contrast.edgeless.systems/servicemesh-admin-interface-port"
 	securePVAnnotationKey         = "contrast.edgeless.systems/secure-pv"
+	trustedStoreSizeAnnotationKey = "contrast.edgeless.systems/trusted-store-size"
 )
 
 // AddInitializer adds an initializer and its shared volume to the resource.
@@ -305,37 +306,51 @@ func AddDmesg(resources []any) []any {
 // AddTrustedStore adds a PersistentVolumeClaim, a pod volume for it, and a holder container
 // that attaches the PVC's block device so it appears in the pod VM.
 func AddTrustedStore(resources []any) []any {
-	holderContainer := Container().
-		WithName("pvc-holder").
-		WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
-		WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
-		WithSecurityContext(SecurityContext().
-			WithPrivileged(true).SecurityContextApplyConfiguration).
-		WithVolumeDevices(
-			applycorev1.VolumeDevice().
-				WithDevicePath("/dev/trusted_store").
-				WithName("trusted-store"),
-		)
+	getConfigs := func(storeSize string) (*applycorev1.ContainerApplyConfiguration, *applycorev1.VolumeApplyConfiguration) {
+		holderContainer := Container().
+			WithName("pvc-holder").
+			WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
+			WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
+			WithSecurityContext(SecurityContext().
+				WithPrivileged(true).SecurityContextApplyConfiguration).
+			WithVolumeDevices(
+				applycorev1.VolumeDevice().
+					WithDevicePath("/dev/trusted_store").
+					WithName("trusted-store"),
+			)
 
-	ephemeralVolume := Volume().
-		WithName("trusted-store").
-		WithEphemeral(applycorev1.EphemeralVolumeSource().
-			WithVolumeClaimTemplate(applycorev1.PersistentVolumeClaimTemplate().
-				WithSpec(applycorev1.PersistentVolumeClaimSpec().
-					WithVolumeMode(corev1.PersistentVolumeBlock).
-					WithAccessModes(corev1.ReadWriteOnce).
-					WithResources(applycorev1.VolumeResourceRequirements().
-						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
+		ephemeralVolume := Volume().
+			WithName("trusted-store").
+			WithEphemeral(applycorev1.EphemeralVolumeSource().
+				WithVolumeClaimTemplate(applycorev1.PersistentVolumeClaimTemplate().
+					WithSpec(applycorev1.PersistentVolumeClaimSpec().
+						WithVolumeMode(corev1.PersistentVolumeBlock).
+						WithAccessModes(corev1.ReadWriteOnce).
+						WithResources(applycorev1.VolumeResourceRequirements().
+							WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse(storeSize)}),
+						),
 					),
 				),
-			),
-		)
+			)
+
+		return holderContainer, ephemeralVolume
+	}
 
 	addPvc := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration,
 	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
 		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
 			return meta, spec
 		}
+
+		trustedStoreSize := meta.Annotations[trustedStoreSizeAnnotationKey]
+		switch trustedStoreSize {
+		case "0":
+			return meta, spec
+		case "":
+			trustedStoreSize = "10Gi"
+		}
+
+		holderContainer, ephemeralVolume := getConfigs(trustedStoreSize)
 		spec.Containers = append(spec.Containers, *holderContainer)
 		spec.Volumes = append(spec.Volumes, *ephemeralVolume)
 		return meta, spec
