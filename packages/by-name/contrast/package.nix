@@ -34,7 +34,6 @@ let
       "e2e/atls"
       "e2e/genpolicy"
       "e2e/genpolicy-unsupported"
-      "e2e/getdents"
       "e2e/gpu"
       "e2e/multiple-cpus"
       "e2e/openssl"

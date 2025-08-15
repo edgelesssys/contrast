@@ -25,10 +25,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - platform: AKS-CLH-SNP
-            runner: ubuntu-24.04
-            self-hosted: false
-            test: openssl
           - platform: Metal-QEMU-SNP
             runner: SNP
             self-hosted: true
@@ -54,7 +50,6 @@ jobs:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
       NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-      CONTRAST_CI_INFRA_AZURE: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
     permissions:
       contents: read

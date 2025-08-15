@@ -18,7 +18,6 @@ on:
 
 env:
   container_registry: ghcr.io/edgelesssys
-  azure_resource_group: contrast-ci
 
 concurrency:
   group: ${{ github.workflow }}
@@ -75,9 +74,6 @@ jobs:
     strategy:
       matrix:
         platform:
-          - name: AKS-CLH-SNP
-            runner: ubuntu-24.04
-            self-hosted: false
           - name: Metal-QEMU-SNP
             runner: SNP
             self-hosted: true
@@ -107,7 +103,6 @@ jobs:
         if: (!matrix.platform.self-hosted)
         run: |
           cat <<EOF > justfile.env
-          azure_resource_group=${{ env.azure_resource_group }}
           default_platform=${{ matrix.platform.name }}
           EOF
       - name: Get credentials for CI cluster
