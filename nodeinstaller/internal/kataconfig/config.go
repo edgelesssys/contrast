@@ -19,12 +19,6 @@ import (
 )
 
 var (
-	// kataCLHSNPBaseConfig is the configuration file for the Kata runtime on AKS SEV-SNP
-	// with Cloud-Hypervisor.
-	//
-	//go:embed configuration-clh-snp.toml
-	kataCLHSNPBaseConfig string
-
 	// kataBareMetalQEMUTDXBaseConfig is the configuration file for the Kata runtime on bare-metal TDX
 	// with QEMU.
 	//
@@ -54,35 +48,6 @@ func KataRuntimeConfig(
 ) (*Config, error) {
 	var config Config
 	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
-		if err := toml.Unmarshal([]byte(kataCLHSNPBaseConfig), &config); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
-		}
-		// Use the resources installed by Contrast node-installer.
-		config.Hypervisor["clh"]["path"] = filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")
-		config.Hypervisor["clh"]["igvm"] = filepath.Join(baseDir, "share", "kata-containers-igvm.img")
-		config.Hypervisor["clh"]["kernel"] = nil       // Already part of IGVM.
-		config.Hypervisor["clh"]["kernel_params"] = "" // Already part of IGVM.
-		config.Hypervisor["clh"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
-		config.Hypervisor["clh"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "cloud-hypervisor-snp")}
-		// Fix and align guest memory calculation.
-		config.Hypervisor["clh"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
-		config.Runtime["sandbox_cgroup_only"] = true
-		// Conditionally enable debug mode.
-		config.Hypervisor["clh"]["enable_debug"] = debug
-		// Increase dial timeout and accept slower guest startup times.
-		config.Agent["kata"]["dial_timeout"] = 90
-		// Disable all annotations, as we don't support these. Some will mess up measurements,
-		// others bypass things you can archive via correct resource declaration anyway.
-		config.Hypervisor["clh"]["enable_annotations"] = []string{}
-
-		// Upstream clh config for SNP doesn't exist, configure it here.
-		// TODO(katexochen): Add a clh-snp configuration upstream.
-		config.Hypervisor["clh"]["confidential_guest"] = true
-		config.Hypervisor["clh"]["sev_snp_guest"] = true
-		config.Hypervisor["clh"]["shared_fs"] = "none"
-		config.Hypervisor["clh"]["snp_guest_policy"] = 196608
-		config.Runtime["static_sandbox_resource_mgmt"] = true
 	case platforms.MetalQEMUTDX:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)

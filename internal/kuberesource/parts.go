@@ -33,10 +33,6 @@ func ContrastRuntimeClass(platform platforms.Platform) (*RuntimeClassConfig, err
 		WithLabels(map[string]string{"addonmanager.kubernetes.io/mode": "Reconcile"}).
 		WithOverhead(Overhead(corev1.ResourceList{"memory": *resource.NewQuantity(int64(memoryOverhead)*1024*1024, resource.BinarySI)}))
 
-	if platform == platforms.AKSCloudHypervisorSNP {
-		r.WithScheduling(Scheduling(map[string]string{"kubernetes.azure.com/kata-cc-isolation": "true"}))
-	}
-
 	return &RuntimeClassConfig{r}, nil
 }
 
@@ -57,38 +53,6 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 
 	name := fmt.Sprintf("%s-nodeinstaller", runtimeHandler)
 
-	tardevSnapshotter := Container().
-		WithName("tardev-snapshotter").
-		WithImage("ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest").
-		WithResources(ResourceRequirements().
-			WithMemoryRequest(800),
-		).
-		WithVolumeMounts(
-			VolumeMount().
-				WithName("host-mount").
-				WithMountPath("/host"),
-			VolumeMount().
-				WithName("var-lib-containerd").
-				WithMountPath("/var/lib/containerd"),
-		).
-		WithArgs(
-			"tardev-snapshotter",
-			fmt.Sprintf("/var/lib/containerd/io.containerd.snapshotter.v1.tardev-%s", runtimeHandler),
-			fmt.Sprintf("/host/run/containerd/tardev-snapshotter-%s.sock", runtimeHandler),
-			"/host/var/run/containerd/containerd.sock",
-		).
-		WithEnv(
-			NewEnvVar("RUST_LOG", "tardev_snapshotter=trace"),
-		)
-	tardevSnapshotterVolumes := []*applycorev1.VolumeApplyConfiguration{
-		Volume().
-			WithName("var-lib-containerd").
-			WithHostPath(HostPathVolumeSource().
-				WithPath("/var/lib/containerd").
-				WithType(corev1.HostPathDirectory),
-			),
-	}
-
 	noSnapshotter := Container().
 		WithName("pause").
 		WithImage("registry.k8s.io/pause:3.6@sha256:3d380ca8864549e74af4b29c10f9cb0956236dfb01c40ca076fb6c37253234db")
@@ -97,10 +61,6 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 	var containers []*applycorev1.ContainerApplyConfiguration
 	var snapshotterVolumes []*applycorev1.VolumeApplyConfiguration
 	switch {
-	case platform == platforms.AKSCloudHypervisorSNP:
-		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest"
-		containers = append(containers, tardevSnapshotter)
-		snapshotterVolumes = tardevSnapshotterVolumes
 	case platforms.IsQEMU(platform) && platforms.IsGPU(platform):
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest"
 		containers = append(containers, noSnapshotter)

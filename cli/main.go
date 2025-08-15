@@ -48,6 +48,7 @@ func buildVersionString() (string, error) {
 			fmt.Fprintf(versionsWriter, "\t%s\n", image)
 		}
 	}
+	fmt.Fprintf(versionsWriter, "genpolicy version:\t%s\n\n", constants.KataGenpolicyVersion)
 
 	embeddedReferenceValues, err := manifest.GetEmbeddedReferenceValues()
 	if err != nil {
@@ -91,13 +92,6 @@ func buildVersionString() (string, error) {
 			fmt.Fprintf(versionsWriter, "\t  mrSeam:\t%s\n", tdx.MrSeam.String())
 			fmt.Fprintf(versionsWriter, "\t  tdAttributes:\t%s\n", tdx.TdAttributes.String())
 			fmt.Fprintf(versionsWriter, "\t  xfam:\t%s\n", tdx.Xfam.String())
-		}
-
-		switch platform {
-		case platforms.AKSCloudHypervisorSNP:
-			fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", constants.MicrosoftGenpolicyVersion)
-		case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU:
-			fmt.Fprintf(versionsWriter, "\tgenpolicy version:\t%s\n", constants.KataGenpolicyVersion)
 		}
 	}
 

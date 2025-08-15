@@ -5,21 +5,13 @@ package genpolicy
 
 import (
 	_ "embed"
-
-	"github.com/edgelesssys/contrast/internal/platforms"
 )
 
 var (
-	//go:embed assets/genpolicy-microsoft
-	aksGenpolicyBin []byte
 	//go:embed assets/genpolicy-kata
 	kataGenpolicyBin []byte
-	//go:embed assets/genpolicy-settings-microsoft.json
-	aksSettings []byte
 	//go:embed assets/genpolicy-settings-kata.json
 	kataSettings []byte
-	//go:embed assets/genpolicy-rules-microsoft.rego
-	aksRules []byte
 	//go:embed assets/genpolicy-rules-kata.rego
 	kataRules []byte
 )
@@ -35,21 +27,10 @@ type Config struct {
 }
 
 // NewConfig selects the appropriate genpolicy configuration for the target platform.
-func NewConfig(platform platforms.Platform) *Config {
-	switch platform {
-	case platforms.AKSCloudHypervisorSNP:
-		return &Config{
-			Rules:    aksRules,
-			Settings: aksSettings,
-			Bin:      aksGenpolicyBin,
-		}
-	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU:
-		return &Config{
-			Rules:    kataRules,
-			Settings: kataSettings,
-			Bin:      kataGenpolicyBin,
-		}
-	default:
-		return nil
+func NewConfig() *Config {
+	return &Config{
+		Rules:    kataRules,
+		Settings: kataSettings,
+		Bin:      kataGenpolicyBin,
 	}
 }

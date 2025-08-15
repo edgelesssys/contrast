@@ -39,8 +39,6 @@ func NewTargetConfig(hostMount, runtimeBase string, pl platforms.Platform) (*Tar
 		fs:                   &afero.Afero{Fs: afero.NewOsFs()},
 	}
 	switch {
-	case platforms.IsCloudHypervisor(pl) && platforms.IsSNP(pl):
-		conf.kataConfigPath = filepath.Join(runtimeBase, "etc", "configuration-clh-snp.toml")
 	case platforms.IsQEMU(pl) && platforms.IsSNP(pl):
 		conf.kataConfigPath = filepath.Join(runtimeBase, "etc", "configuration-qemu-snp.toml")
 	case platforms.IsQEMU(pl) && platforms.IsTDX(pl):
