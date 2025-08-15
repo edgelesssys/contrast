@@ -25,14 +25,11 @@ on:
         required: true
       NUNKI_CI_COMMIT_PUSH_PR:
         required: true
-      CONTRAST_CI_INFRA_AZURE:
-        required: true
       TEAMS_CI_WEBHOOK:
         required: true
 
 env:
   container_registry: ghcr.io/edgelesssys
-  azure_resource_group: contrast-ci
   DO_NOT_TRACK: 1
 
 jobs:
@@ -62,16 +59,10 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
-      - name: Login to Azure
-        if: (!inputs.self-hosted)
-        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
-        with:
-          creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env
           container_registry=${{ env.container_registry }}
-          azure_resource_group=${{ env.azure_resource_group }}
           default_platform=${PLATFORM}
           EOF
       - name: Build and push container images

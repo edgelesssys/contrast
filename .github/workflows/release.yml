@@ -292,9 +292,6 @@ jobs:
     strategy:
       matrix:
         platform:
-          - name: AKS-CLH-SNP
-            runner: ubuntu-24.04
-            self-hosted: false
           - name: Metal-QEMU-SNP
             runner: SNP
             self-hosted: true
@@ -331,11 +328,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Login to Azure
-        if: (!matrix.platform.self-hosted)
-        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
-        with:
-          creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env
@@ -371,7 +363,6 @@ jobs:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
       NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-      CONTRAST_CI_INFRA_AZURE: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
     permissions:
       contents: read
@@ -385,7 +376,6 @@ jobs:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
       NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-      CONTRAST_CI_INFRA_AZURE: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
       TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
     permissions:
       contents: read
