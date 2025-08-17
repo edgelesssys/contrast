@@ -12,16 +12,16 @@
     "hash": "sha256-IgdmH90yVbNCiRiDc/nIC+QWjRO0A5c4UkqxE1GUffE="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-libs-9.20.9-1.azl3.x86_64.rpm",
-    "hash": "sha256-mTnVTvvAgn+ShG28gAkxkLox39oUURvV6j2ryvWAj3w="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-libs-9.20.11-1.azl3.x86_64.rpm",
+    "hash": "sha256-DekQIAN1QkYMoQpFdJ7/9NPHQ0epYjdXNvO4IoSzpnQ="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-license-9.20.9-1.azl3.noarch.rpm",
-    "hash": "sha256-YwtCfcIbMkFkB6dd7KdrxBwlbp8dD4NvMDqYy7h3L9k="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-license-9.20.11-1.azl3.noarch.rpm",
+    "hash": "sha256-Mi1WPx5aroZJ/h1sG/hSejvPILhXaT6axDcO46GVEhE="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-utils-9.20.9-1.azl3.x86_64.rpm",
-    "hash": "sha256-RU3+NiMt39p9BKMhl1C42OMc1NQ8APJ8e+8H7cz/ALc="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bind-utils-9.20.11-1.azl3.x86_64.rpm",
+    "hash": "sha256-BwhwUicMDAmW21g8qmhhjvLJeZHSTOc8Kki8E1Te2qg="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/b/bzip2-libs-1.0.8-1.azl3.x86_64.rpm",
@@ -356,12 +356,12 @@
     "hash": "sha256-8C1IYPJzuiqXkK6raFfQqjgWfLpvClc1/mtQhIca3GA="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/python3-3.12.9-2.azl3.x86_64.rpm",
-    "hash": "sha256-PTJpRnWvYBXIz0q+neSGev4IMvKvTu5oZj6EwjHYzxw="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/python3-3.12.9-4.azl3.x86_64.rpm",
+    "hash": "sha256-gpnnAeJuTHYxZpUyPKpbRLQZhGccKZsM86eXODwkj0w="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/python3-libs-3.12.9-2.azl3.x86_64.rpm",
-    "hash": "sha256-8AVmQgSAmpBkZmhmSqy7AB2Q4EQnulDBvSOFW5+TkvY="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/p/python3-libs-3.12.9-4.azl3.x86_64.rpm",
+    "hash": "sha256-EmkF3LTiDPGJR/NqECMZJ4/KQg2j5olVYPrIBsUAEHI="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/r/readline-8.2-2.azl3.x86_64.rpm",
@@ -388,8 +388,8 @@
     "hash": "sha256-Q+aH4FqYfb+Mr09IBGGLZFzKwTaL5ztUXnqyGqLmxLc="
   },
   {
-    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/sqlite-libs-3.44.0-1.azl3.x86_64.rpm",
-    "hash": "sha256-U6npZayQxuBzWoBxDXJLeugrMAogeCytvJs/MH+fqMs="
+    "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/sqlite-libs-3.44.0-2.azl3.x86_64.rpm",
+    "hash": "sha256-Nqfoelrg78eM+8QVxdYRPEaAni4VKc1pGuS6KYFnKFo="
   },
   {
     "url": "https://packages.microsoft.com/yumrepos/azurelinux-3.0-prod-base-x86_64/Packages/s/systemd-255-21.azl3.x86_64.rpm",
