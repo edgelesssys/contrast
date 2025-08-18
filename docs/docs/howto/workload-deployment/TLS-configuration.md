@@ -32,10 +32,10 @@ The following example is for an application with these properties:
 - All other endpoints require client authentication.
 - The app connects to a Kubernetes service `backend.default:4001`, which requires client authentication.
 
-Add the following annotations to your workload:
+Add the following annotations to your pod or the pod template spec of your controller:
 
 ```yaml
-metadata: # apps/v1.Deployment, apps/v1.DaemonSet, ...
+metadata: # v1.Pod, v1.PodTemplateSpec
   annotations:
     contrast.edgeless.systems/servicemesh-ingress: "main#8001#false##metrics#8080#true"
     contrast.edgeless.systems/servicemesh-egress: "backend#127.0.0.2:4001#backend.default:4001"
