@@ -22,11 +22,6 @@ final: prev:
     }
   );
 
-  # Add the required extensions to the Azure CLI.
-  azure-cli = prev.azure-cli.override {
-    withExtensions = with final.azure-cli.extensions; [ aks-preview ];
-  };
-
   erofs-utils = prev.erofs-utils.overrideAttrs (prevAttrs: {
     # The build environment sets SOURCE_DATE_EPOCH to 1980, but as mkfs.erofs
     # implements timestamp clamping, and files from the store have a 1970
