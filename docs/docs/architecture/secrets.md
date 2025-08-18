@@ -51,10 +51,10 @@ Remember that persistent volumes from the cloud provider are untrusted.
 Applications can set up trusted storage on top of an untrusted block device using the `contrast.edgeless.systems/secure-pv` annotation.
 This annotation enables `contrast generate` to configure the Initializer to set up a LUKS-encrypted volume at the specified device and mount it to a specified volume.
 The LUKS encryption utilizes the workload secret introduced above.
-Configure any workload resource with the following annotation:
+Configure any pod or pod template spec with the following annotation:
 
 ```yaml
-metadata:
+metadata: # v1.Pod, v1.PodTemplateSpec
   annotations:
     contrast.edgeless.systems/secure-pv: "device-name:mount-name"
 ```
@@ -68,11 +68,12 @@ Workload containers can then use the volume as a secure storage location:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  annotations:
-    contrast.edgeless.systems/secure-pv: "device:secure"
   name: my-statefulset
 spec:
   template:
+    metadata:
+      annotations:
+        contrast.edgeless.systems/secure-pv: "device:secure"
     spec:
       containers:
         - name: my-container

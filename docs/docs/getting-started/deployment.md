@@ -204,34 +204,34 @@ This configuration exempts port 8080 from mTLS verification: clients can connect
 Altogether, we can configure the service mesh by adding the following annotations:
 
 ```diff title="resources/emojivoto-demo.yaml"
-@@ -1,6 +1,8 @@
- apiVersion: apps/v1
- kind: Deployment
- metadata:
-+  annotations:
-+    contrast.edgeless.systems/servicemesh-ingress: ""
-   labels:
-     app.kubernetes.io/name: emoji
-     app.kubernetes.io/part-of: emojivoto
-@@ -102,6 +104,8 @@
- apiVersion: apps/v1
- kind: Deployment
- metadata:
-+  annotations:
-+    contrast.edgeless.systems/servicemesh-ingress: ""
-   labels:
-     app.kubernetes.io/name: voting
-     app.kubernetes.io/part-of: emojivoto
-@@ -168,6 +172,9 @@
- apiVersion: apps/v1
- kind: Deployment
- metadata:
-+  annotations:
-+    contrast.edgeless.systems/servicemesh-egress: emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080
-+    contrast.edgeless.systems/servicemesh-ingress: web#8080#false
-   labels:
-     app.kubernetes.io/name: web
-     app.kubernetes.io/part-of: emojivoto
+@@ -14,6 +14,8 @@ spec:
+       version: v11
+   template:
+     metadata:
++      annotations:
++        contrast.edgeless.systems/servicemesh-ingress: ""
+       labels:
+         app.kubernetes.io/name: emoji-svc
+         version: v11
+@@ -115,6 +117,8 @@ spec:
+       version: v11
+   template:
+     metadata:
++      annotations:
++        contrast.edgeless.systems/servicemesh-ingress: ""
+       labels:
+         app.kubernetes.io/name: voting-svc
+         version: v11
+@@ -181,6 +185,9 @@ spec:
+       version: v11
+   template:
+     metadata:
++      annotations:
++        contrast.edgeless.systems/servicemesh-egress: emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080
++        contrast.edgeless.systems/servicemesh-ingress: web#8080#false
+       labels:
+         app.kubernetes.io/name: web-svc
+         version: v11
 ```
 
 These are all the changes you need to make to your deployment files.
