@@ -6,6 +6,24 @@ set -euo pipefail
 
 echo "Starting cleanup"
 
+declare configFile
+if [[ -f "${HOST_MOUNT:?}/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl" ]]; then
+  configFile="${HOST_MOUNT:?}/var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl"
+elif [[ -f "${HOST_MOUNT:?}/etc/containerd/config.toml" ]]; then
+  configFile="${HOST_MOUNT:?}/etc/containerd/config.toml"
+else
+  echo "No containerd config file found. Exiting."
+  exit 1
+fi
+echo "Using containerd config file: ${configFile}"
+
+configVersion=$(dasel --file "${configFile}" --read toml version)
+if [[ ${configVersion} != "2" && ${configVersion} != "3" ]]; then
+  echo "Unsupported containerd config version: ${configVersion}. Exiting."
+  exit 1
+fi
+echo "Containerd config version: ${configVersion}"
+
 resourcesToCheck=(
   "pods"
   "deployments"
@@ -60,13 +78,17 @@ for runtimeClass in "${unusedRuntimeClasses[@]}"; do
   fi
 
   # Remove references from containerd config
-  echo "Removing ${runtimeClass} from ${HOST_MOUNT}/${CONFIG} ..."
-  # First try config v3 path. If this fails, try config v2 path.
-  dasel delete --file "${HOST_MOUNT:?}/${CONFIG}" --indent 0 --read toml --write toml "plugins.io\.containerd\.cri\.v1\.runtime.containerd.runtimes.${runtimeClass}" ||
-    dasel delete --file "${HOST_MOUNT:?}/${CONFIG}" --indent 0 --read toml --write toml "plugins.io\.containerd\.grpc\.v1\.cri.containerd.runtimes.${runtimeClass}" ||
-    true
+  echo "Removing ${runtimeClass} from ${configFile} ..."
+  case "${configVersion}" in
+  "2")
+    dasel delete --file "${configFile}" --indent 0 --read toml --write toml "plugins.io\.containerd\.grpc\.v1\.cri.containerd.runtimes.${runtimeClass}" || true
+    ;;
+  "3")
+    dasel delete --file "${configFile}" --indent 0 --read toml --write toml "plugins.io\.containerd\.cri\.v1\.runtime.containerd.runtimes.${runtimeClass}" || true
+    ;;
+  esac
 
-  dasel delete --file "${HOST_MOUNT:?}/${CONFIG}" --indent 0 --read toml --write toml "proxy_plugins.${SNAPSHOTTER}-${runtimeClass}" 2>/dev/null || true
+  dasel delete --file "${configFile}" --indent 0 --read toml --write toml "proxy_plugins.${SNAPSHOTTER}-${runtimeClass}" 2>/dev/null || true
 done
 
 echo "Cleanup finished"

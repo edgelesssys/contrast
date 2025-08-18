@@ -515,14 +515,23 @@
     name = "cleanup-containerd";
     runtimeInputs = with pkgs; [ containerd ];
     text = ''
+      declare address
+      if [[ -S "/host/run/k3s/containerd/containerd.sock" ]]; then
+        address="/host/run/k3s/containerd/containerd.sock"
+      elif [[ -S "/host/run/containerd/containerd.sock" ]]; then
+        address="/host/run/containerd/containerd.sock"
+      else
+        echo "No containerd socket found at /run/containerd/containerd.sock or /run/k3s/containerd/containerd.sock"
+        exit 1
+      fi
       while read -r image; do
-        ctr --address /run/k3s/containerd/containerd.sock --namespace k8s.io image rm --sync "$image"
+        ctr --address "$address" --namespace k8s.io image rm --sync "$image"
       done < <(
-        ctr --address /run/k3s/containerd/containerd.sock --namespace k8s.io image list |
+        ctr --address "$address" --namespace k8s.io image list |
           tail -n +2 |
           cut -d' ' -f1
       )
-      ctr --address /run/k3s/containerd/containerd.sock --namespace k8s.io content prune references
+      ctr --address "$address" --namespace k8s.io content prune references
     '';
   };
 
