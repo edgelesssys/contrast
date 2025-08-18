@@ -24,9 +24,6 @@ service-mesh-proxy: (push "service-mesh-proxy")
 # Build the initializer, containerize and push it.
 initializer: (push "initializer")
 
-# Build the tardev-snapshotter, containerize and push it.
-tardev-snapshotter: (push "tardev-snapshotter")
-
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"
 default_platform := "${default_platform}"
@@ -37,10 +34,6 @@ node-installer platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
     case {{ platform }} in
-        "AKS-CLH-SNP")
-            just push "tardev-snapshotter"
-            just push "node-installer-microsoft"
-        ;;
         "Metal-QEMU-SNP"|"Metal-QEMU-TDX")
             just push "node-installer-kata"
         ;;
@@ -56,9 +49,6 @@ node-installer platform=default_platform:
 e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
-    if [[ "{{ target }}" == "aks-runtime" ]]; then
-      echo "WARNING(miampf): The aks-runtime test cannot be executed over just since the confcom azure CLI extension is not installed. Install it first if you want to runt this test over just."
-    fi
     nix shell .#contrast.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
@@ -198,44 +188,6 @@ undeploy:
         nix run .#scripts.release-sync-ticket $sync_ticket
     fi
 
-upload-image:
-    nix run -L .#scripts.upload-image -- --subscription-id="$azure_subscription_id" --location="$azure_location" --resource-group="${azure_resource_group}_caa_cluster"
-
-# Create foundational dependencies of a CoCo-enabled cluster.
-create-pre platform=default_platform:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case {{ platform }} in
-        "AKS-CLH-SNP")
-            # TODO(burgerdev): this should create the resource group for consistency
-            :
-        ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU")
-            :
-        ;;
-        *)
-            echo "Unsupported platform: {{ platform }}"
-            exit 1
-        ;;
-    esac
-
-# Create a CoCo-enabled AKS cluster.
-create platform=default_platform:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case {{ platform }} in
-        "AKS-CLH-SNP")
-            nix run -L .#scripts.create-coco-aks -- --name="$azure_resource_group" --location="$azure_location"
-        ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX"|"Metal-QEMU-SNP-GPU")
-            :
-        ;;
-        *)
-            echo "Unsupported platform: {{ platform }}"
-            exit 1
-        ;;
-    esac
-
 # Set the manifest at the coordinator.
 set cli=default_cli:
     #!/usr/bin/env bash
@@ -322,11 +274,6 @@ get-credentials platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
     case {{ platform }} in
-        "AKS-CLH-SNP")
-            nix run -L .#azure-cli -- aks get-credentials \
-                --resource-group "$azure_resource_group" \
-                --name "$azure_resource_group"
-        ;;
         "Metal-QEMU-TDX")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/olimar-kubeconfig/versions/latest"
             sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
@@ -350,48 +297,6 @@ get-credentials-dev:
     nix run -L .#scripts.get-credentials "projects/796962942582/secrets/hetzner-ax162-snp-kubeconfig/versions/latest"
     sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-SNP"/' justfile.env
     sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
-
-# Load the kubeconfig from the CI AKS cluster.
-get-credentials-ci:
-    nix run -L .#azure-cli -- aks get-credentials \
-        --resource-group "contrast-ci" \
-        --name "contrast-ci" \
-        --admin
-
-# Destroy a running AKS cluster.
-destroy platform=default_platform:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case {{ platform }} in
-        "AKS-CLH-SNP")
-            nix run -L .#scripts.destroy-coco-aks -- --name="$azure_resource_group"
-        ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-SNP-GPU"|"Metal-QEMU-TDX")
-            :
-        ;;
-        *)
-            echo "Unsupported platform: {{ platform }}"
-            exit 1
-        ;;
-    esac
-
-# Destroy foundational dependencies
-destroy-post platform=default_platform:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case {{ platform }} in
-        "AKS-CLH-SNP")
-            # TODO(burgerdev): this should destroy the resource group for consistency.
-            :
-        ;;
-        "Metal-QEMU-SNP"|"Metal-QEMU-SNP-GPU"|"Metal-QEMU-TDX")
-            :
-        ;;
-        *)
-            echo "Unsupported platform: {{ platform }}"
-            exit 1
-        ;;
-    esac
 
 # Run code generators.
 codegen:
@@ -430,10 +335,8 @@ clean: soft-clean
 rctemplate := '''
 # Container registry to push images to
 container_registry=""
-# Azure resource group/ resource name. Resource group will be created.
-azure_resource_group=""
 # Platform to deploy on
-default_platform="AKS-CLH-SNP"
+default_platform="Metal-QEMU-SNP"
 # Node installer target config map to deploy.
 node_installer_target_conf_type="k3s"
 
@@ -441,10 +344,6 @@ node_installer_target_conf_type="k3s"
 # No need to change anything below this line.
 #
 
-# Azure location for the resource group and AKS cluster.
-azure_location="westeurope"
-# Azure subscription id.
-azure_subscription_id="0d202bbb-4fa7-4af8-8125-58c269a05435"
 # Namespace suffix, can be empty. Will be used when patching namespaces.
 namespace_suffix=""
 # Cache directory for the CLI.
