@@ -31,7 +31,8 @@ lib.makeOverridable (
       imports = [
         "${modulesPath}/image/repart.nix"
         "${modulesPath}/system/boot/uki.nix"
-      ] ++ readModulesDir ../../nixos;
+      ]
+      ++ readModulesDir ../../nixos;
 
       systemd.services.deny-incoming-traffic = {
         description = "Deny all incoming connections";
@@ -61,8 +62,6 @@ lib.makeOverridable (
         (_self: _super: {
           inherit (outerPkgs)
             pause-bundle
-            nvidia-ctk-oci-hook
-            nvidia-ctk-with-config
             tdx-tools
             imagepuller
             ;
