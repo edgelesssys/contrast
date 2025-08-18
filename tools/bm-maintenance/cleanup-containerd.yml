@@ -19,11 +19,11 @@ spec:
           imagePullPolicy: Always
           command: ["cleanup-containerd"]
           volumeMounts:
-            - name: containerd-run
-              mountPath: /run/k3s/containerd/
+            - name: host-mount
+              mountPath: /host
       volumes:
-        - name: containerd-run
+        - name: host-mount
           hostPath:
-            path: /run/k3s/containerd/
+            path: /
             type: Directory
       restartPolicy: OnFailure

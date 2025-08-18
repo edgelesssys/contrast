@@ -58,8 +58,6 @@ spec:
           env:
             - name: HOST_MOUNT
               value: /host
-            - name: CONFIG
-              value: /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
             - name: SNAPSHOTTER
               value: nydus
           volumeMounts:
