@@ -3,7 +3,6 @@
 
 {
   # keep-sorted start
-  azure-cli,
   crane,
   delve,
   go,
@@ -20,7 +19,6 @@
 mkShell {
   packages = [
     # keep-sorted start
-    azure-cli
     crane
     delve
     go
