@@ -198,7 +198,7 @@ If you want to disable the Initializer injection for a specific workload with
 the `contrast-cc` runtime class, you can do so by adding an annotation to the workload.
 
 ```yaml
-metadata: # apps/v1.Deployment, apps/v1.DaemonSet, ...
+metadata: # v1.Pod, v1.PodTemplateSpec
   annotations:
     contrast.edgeless.systems/skip-initializer: "true"
 ```
