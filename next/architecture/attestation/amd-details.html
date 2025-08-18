@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.8.1">
 <title data-rh="true">AMD SEV-SNP attestation | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/next/architecture/attestation/amd-details"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="AMD SEV-SNP attestation | Contrast"><meta data-rh="true" name="description" content="This page explains details of the AMD SEV-SNP attestation that are especially relevant for the implementation in Contrast."><meta data-rh="true" property="og:description" content="This page explains details of the AMD SEV-SNP attestation that are especially relevant for the implementation in Contrast."><link data-rh="true" rel="icon" href="/contrast/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/next/architecture/attestation/amd-details"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/architecture/attestation/amd-details" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/architecture/attestation/amd-details" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"AMD SEV-SNP","item":"https://docs.edgeless.systems/contrast/next/architecture/attestation/amd-details"}]}</script><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/assets/css/styles.fceb5906.css">
-<script src="/contrast/assets/js/runtime~main.e09d18fa.js" defer="defer"></script>
-<script src="/contrast/assets/js/main.fc1e15d0.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.ace41139.js" defer="defer"></script>
+<script src="/contrast/assets/js/main.4e240f9b.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;"><defs>
@@ -77,8 +77,7 @@ The complete structure can be found in the SEV Secure Nested Paging Firmware ABI
 <p>As described in <a href="#startup">startup</a>, the SP checks the signature of the ID block
 with the public key provided in the ID auth block. The common usage of such signatures
 is to know that a trusted party holding the private key has signed the ID block.
-Since the ID block is part of for example the <a href="https://github.com/microsoft/igvm" target="_blank" rel="noopener noreferrer">IGVM</a> headers of
-the VM image, they&#x27;re bound to the <code>runtimeClass</code> Contrast sets up
+Since the ID block is bound to the <code>runtimeClass</code> Contrast sets up
 during <a href="/contrast/next/howto/workload-deployment/runtime-deployment">installation</a>.
 Therefore, the ID auth block and the signature and public key has to be provided by
 Contrast, but the authors of Contrast shouldn&#x27;t be part of the TCB.</p>
