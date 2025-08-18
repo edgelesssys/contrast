@@ -29,9 +29,7 @@ let
 
     subPackages = [
       # keep-sorted start
-      "e2e/aks-runtime"
       "e2e/atls"
-      "e2e/genpolicy"
       "e2e/genpolicy-unsupported"
       "e2e/gpu"
       "e2e/multiple-cpus"

@@ -33,12 +33,7 @@ jobs:
           - name: Metal-QEMU-TDX
             runner: TDX
             self-hosted: true
-        test-name: [genpolicy, genpolicy-unsupported, regression]
-        exclude:
-          # genpolicy is (currently) a regression test for tardev-snapshotter
-          - platform:
-              self-hosted: true
-            test-name: genpolicy
+        test-name: [genpolicy-unsupported, regression]
       fail-fast: false
     name: "${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e.yml

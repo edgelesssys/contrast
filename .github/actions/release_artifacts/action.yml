@@ -135,7 +135,6 @@ runs:
       shell: bash
       run: |
         platforms=(
-          "aks-clh-snp"
           "metal-qemu-snp-gpu"
           "metal-qemu-snp"
           "metal-qemu-tdx"
