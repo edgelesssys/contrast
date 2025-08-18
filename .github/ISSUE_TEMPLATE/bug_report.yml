@@ -24,7 +24,7 @@ body:
     attributes:
       label: Deployment platform
       description: "On which platform do you encounter this bug?"
-      placeholder: "AKS-CLH-SNP"
+      placeholder: "Metal-QEMU-SNP"
     validations:
       required: true
 

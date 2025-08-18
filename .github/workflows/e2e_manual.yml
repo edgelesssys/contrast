@@ -10,7 +10,6 @@ on:
         options:
           # keep-sorted start
           - atls
-          - genpolicy
           - genpolicy-unsupported
           - gpu
           - multiple-cpus
@@ -52,10 +51,6 @@ jobs:
         id: determine-platform-params
         run: |
           case "${platform}" in
-            "AKS-CLH-SNP")
-              echo "runner=ubuntu-24.04" >> "$GITHUB_OUTPUT"
-              echo "self-hosted=false" >> "$GITHUB_OUTPUT"
-            ;;
             "Metal-QEMU-SNP")
               echo "runner=SNP" >> "$GITHUB_OUTPUT"
               echo "self-hosted=true" >> "$GITHUB_OUTPUT"
