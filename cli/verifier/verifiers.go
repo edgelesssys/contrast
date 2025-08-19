@@ -7,6 +7,7 @@ package verifier
 func AllVerifiersBeforeGenerate() []Verifier {
 	return []Verifier{
 		&ImageRefValid{},
+		&ServiceMeshEgressNotEmpty{},
 	}
 }
 
