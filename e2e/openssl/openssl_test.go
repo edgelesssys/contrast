@@ -15,6 +15,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -281,6 +283,39 @@ func TestOpenSSL(t *testing.T) {
 			}
 			assert.NoError(t, err, "stderr: %q", stderr)
 		})
+	})
+
+	t.Run("dmesg contains no errors", func(t *testing.T) {
+		require := require.New(t)
+
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		defer cancel()
+
+		c := kubeclient.NewForTest(t)
+
+		require.NoError(c.WaitForCoordinator(ctx, ct.Namespace))
+
+		coordinatorPods, err := ct.Kubeclient.PodsFromOwner(ctx, ct.Namespace, "StatefulSet", "coordinator")
+		require.NoError(err)
+		require.NotEmpty(coordinatorPods, "pod not found: %s/%s", ct.Namespace, "coordinator")
+
+		dmesgOutput, stderr, err := c.Exec(ctx, ct.Namespace, coordinatorPods[0].Name, []string{"dmesg", "--level", "err,crit,alert,emerg"})
+		if err != nil {
+			t.Logf("dmesg output:\n%s", dmesgOutput)
+		}
+		require.NoError(err, "stderr: %q", stderr)
+
+		knownErrors := []string{
+			"Speculative Return Stack Overflow: WARNING: kernel not compiled with MITIGATION_SRSO.",
+			"[Firmware Bug]: Failed to parse event in TPM Final Events Log",
+			"ACPI BIOS Error (bug): Failure creating named object [\\_GPE._HID], AE_ALREADY_EXISTS (20240827/dswload2-326)",
+			"ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20240827/psobject-220)",
+		}
+		for _, line := range strings.Split(strings.TrimSpace(dmesgOutput), "\n") {
+			require.True(slices.ContainsFunc(knownErrors, func(knownError string) bool {
+				return strings.Contains(line, knownError)
+			}), "dmesg line does not contain known error: %s", line)
+		}
 	})
 }
 
