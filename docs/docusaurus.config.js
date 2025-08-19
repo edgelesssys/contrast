@@ -89,11 +89,6 @@ async function createConfig() {
           disableSwitch: true,
           respectPrefersColorScheme: false,
         },
-        announcementBar: {
-          content:
-            'Contrast is now open source! Check it out on <a target="_blank" rel="noopener noreferrer" href="https://github.com/edgelesssys/contrast">GitHub</a> and leave us a ⭐️ if you like it!',
-          backgroundColor: '#E7E6E6'
-        },
         footer: {
           style: 'dark',
           links: [
