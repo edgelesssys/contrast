@@ -3,7 +3,7 @@ slug: /
 id: intro
 ---
 
-# Introduction
+# Introduction something something foobar
 
 Welcome to the Contrast documentation! Contrast makes your Kubernetes deployments confidential by running workloads securely within confidential computing environments.
 
