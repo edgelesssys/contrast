@@ -37,18 +37,17 @@ rustPlatform.buildRustPackage rec {
     protobuf
   ];
 
-  buildInputs =
-    [
-      openssl
-      openssl.dev
-      lvm2.dev
-      rustPlatform.bindgenHook
-    ]
-    ++ lib.optionals withSeccomp [
-      libseccomp.dev
-      libseccomp.lib
-      libseccomp
-    ];
+  buildInputs = [
+    openssl
+    openssl.dev
+    lvm2.dev
+    rustPlatform.bindgenHook
+  ]
+  ++ lib.optionals withSeccomp [
+    libseccomp.dev
+    libseccomp.lib
+    libseccomp
+  ];
 
   postPatch = ''
     substitute src/version.rs.in src/version.rs \

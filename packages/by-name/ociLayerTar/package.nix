@@ -36,12 +36,11 @@ runCommandLocal "ociLayer"
       );
     mediaType =
       "application/vnd.oci.image.layer.v1.tar" + (if compression == "" then "" else "+" + compression);
-    nativeBuildInputs =
-      [
-        nix
-      ]
-      ++ lib.optional (compression == "gzip") gzip
-      ++ lib.optional (compression == "zstd") zstd;
+    nativeBuildInputs = [
+      nix
+    ]
+    ++ lib.optional (compression == "gzip") gzip
+    ++ lib.optional (compression == "zstd") zstd;
     inherit compression;
   }
   ''
