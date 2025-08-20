@@ -42,35 +42,34 @@
     };
   };
 
-  fileSystems =
-    {
-      "/" = {
-        device = "/dev/mapper/root";
-        fsType = "erofs";
-        options = [ "ro" ];
-      };
-    }
-    # Create tmpfs on directories that need to be writable for activation.
-    # TODO(msanft): This needs better support upstream.
-    // lib.listToAttrs (
-      lib.map
-        (path: {
-          name = path;
-          value = {
-            fsType = "tmpfs";
-            neededForBoot = true;
-          };
-        })
-        [
-          "/var"
-          "/bin"
-          "/usr/bin"
-          "/tmp"
-          "/lib"
-          "/root"
-          "/lib64"
-        ]
-    );
+  fileSystems = {
+    "/" = {
+      device = "/dev/mapper/root";
+      fsType = "erofs";
+      options = [ "ro" ];
+    };
+  }
+  # Create tmpfs on directories that need to be writable for activation.
+  # TODO(msanft): This needs better support upstream.
+  // lib.listToAttrs (
+    lib.map
+      (path: {
+        name = path;
+        value = {
+          fsType = "tmpfs";
+          neededForBoot = true;
+        };
+      })
+      [
+        "/var"
+        "/bin"
+        "/usr/bin"
+        "/tmp"
+        "/lib"
+        "/root"
+        "/lib64"
+      ]
+  );
 
   networking.firewall.enable = false;
 
@@ -108,14 +107,13 @@
 
   # Check that the system does not contain a Nix store path that contains the
   # string "perl" or "python".
-  system.forbiddenDependenciesRegexes =
-    [
-      "perl"
-    ]
-    ++ lib.optionals (!config.contrast.debug.enable) [
-      # Some of the debug packages need Python.
-      "python"
-    ];
+  system.forbiddenDependenciesRegexes = [
+    "perl"
+  ]
+  ++ lib.optionals (!config.contrast.debug.enable) [
+    # Some of the debug packages need Python.
+    "python"
+  ];
 
   nixpkgs.hostPlatform.system = "x86_64-linux";
   system.switch.enable = false;

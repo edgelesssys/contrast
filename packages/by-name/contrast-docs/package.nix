@@ -23,14 +23,13 @@ mkYarnPackage rec {
     hash = "sha256-KngNxxI4AYuMiBlROGhx0doLTGsf6nz144IKhHxj7E0=";
   };
 
-  configurePhase =
-    ''
-      cp -r $node_modules node_modules
-      chmod +w node_modules
-    ''
-    + lib.optionalString (docusaurusBaseUrl != "") ''
-      sed -i "s|baseUrl: '/contrast/',|baseUrl: '${docusaurusBaseUrl}',|" docusaurus.config.js
-    '';
+  configurePhase = ''
+    cp -r $node_modules node_modules
+    chmod +w node_modules
+  ''
+  + lib.optionalString (docusaurusBaseUrl != "") ''
+    sed -i "s|baseUrl: '/contrast/',|baseUrl: '${docusaurusBaseUrl}',|" docusaurus.config.js
+  '';
 
   buildPhase = ''
     export HOME=$(mktemp -d)

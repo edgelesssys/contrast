@@ -17,18 +17,17 @@
 
 let
   diffIDs = lib.lists.map (layer: builtins.readFile (layer + "/DiffID")) layers;
-  config =
-    {
-      architecture = "amd64";
-      os = "linux";
-    }
-    // extraConfig
-    // {
-      rootfs = {
-        type = "layers";
-        diff_ids = diffIDs;
-      };
+  config = {
+    architecture = "amd64";
+    os = "linux";
+  }
+  // extraConfig
+  // {
+    rootfs = {
+      type = "layers";
+      diff_ids = diffIDs;
     };
+  };
   configJSON = writers.writeJSON "image-config.json" config;
 in
 
