@@ -25,7 +25,7 @@ func (s *ImagePullerService) createAndMountContainer(log *slog.Logger, imageID, 
 	if err != nil {
 		return "", fmt.Errorf("mounting container: %w", err)
 	}
-	log.Debug("Mounted in tmpdir", "mountPoint", mountPoint)
+	log.Debug("Mounted in store", "mountPoint", mountPoint)
 
 	rootfs := filepath.Join(bundlePath, "rootfs")
 	if err := os.MkdirAll(rootfs, 0o755); err != nil {
