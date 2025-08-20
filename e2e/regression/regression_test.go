@@ -160,7 +160,7 @@ func testHTTPProxy(t *testing.T, ct *contrasttest.ContrastTest) {
 		if strings.HasPrefix(addr, "0.0.0.0:") { // we use this address in ContrastTest.runAgainstCoordinator
 			coordinatorConnectionProxied.Store(true)
 		}
-		return net.Dial(network, addr)
+		return (&net.Dialer{}).DialContext(t.Context(), network, addr)
 	}
 
 	proxyListener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:")
