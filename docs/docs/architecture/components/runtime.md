@@ -62,6 +62,14 @@ The root filesystem contains systemd as the init system, and the kata agent for 
 
 This pod-VM image isn't specific to any pod workload. Instead, container images are mounted at runtime.
 
+### Contrast image puller
+
+In addition to the kata agent, every pod-VM also starts Contrast's image puller.
+For each container scheduled to run in the pod, the kata agent will request the image puller to pull and mount the corresponding container image.
+
+The image puller verifies the checksums of both the image manifest, as well as of all subsequently pulled image layers against the provided digest.
+For this reason, unpinned images aren't supported.
+
 ## Node installer DaemonSet
 
 The `RuntimeClass` resource above registers the runtime with the Kubernetes api.
