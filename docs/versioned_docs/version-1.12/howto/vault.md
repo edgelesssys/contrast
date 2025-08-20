@@ -29,7 +29,7 @@ This section dives into some details of the resources and outlines how it's inte
 You can download the demo app by running:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.12.0/vault-demo.yml --create-dirs --output-dir resources
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.12.1/vault-demo.yml --create-dirs --output-dir resources
 ```
 
 The Vault deployment is defined as a `StatefulSet` using an OpenBao image, with a mounted block device for persistent storage.

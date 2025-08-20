@@ -124,7 +124,7 @@ spec:
             - /dev/csi0
             - "--mount-point"
             - /state
-          image: "ghcr.io/edgelesssys/contrast/initializer:v1.12.0@sha256:4033e800b2c0dee94f68df305e08d064db592e7e6795f4fea5161fe2d510ea21"
+          image: "ghcr.io/edgelesssys/contrast/initializer:v1.12.1@sha256:52166dcaf51eb51cbb41b2ff8adbc63da67370aed44448792a22c4e26f831771"
           name: encrypted-volume-initializer
           resources:
             limits:
