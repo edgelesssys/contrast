@@ -8,6 +8,10 @@ package api
 // Socket is the unix socket of the imagepuller API.
 const Socket = "/run/confidential-containers/imagepuller.sock"
 
-// DefaultTmpDir is the default dir used for the store cache.
+// StorePathMemory is the default dir used for the store cache.
+const StorePathMemory = "/run/kata-containers/image-memory"
+
+// StorePathStorage is the preferred dir for the store cache.
 // The kata-agent uses this dir as the mount point for securely mounted storage.
-const DefaultTmpDir = "/run/kata-containers/image"
+// It is only used as store cache when a securemounted storage device is actually available.
+const StorePathStorage = "/run/kata-containers/image"
