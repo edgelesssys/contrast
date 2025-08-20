@@ -176,7 +176,7 @@ func run() (retErr error) {
 
 	eg.Go(func() error {
 		logger.Info("Coordinator user API listening")
-		lis, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", userapi.Port))
+		lis, err := (&net.ListenConfig{}).Listen(ctx, "tcp", net.JoinHostPort("0.0.0.0", userapi.Port))
 		if err != nil {
 			return fmt.Errorf("failed to listen: %w", err)
 		}
@@ -190,7 +190,7 @@ func run() (retErr error) {
 
 	eg.Go(func() error {
 		logger.Info("Coordinator mesh API listening")
-		lis, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", meshapi.Port))
+		lis, err := (&net.ListenConfig{}).Listen(ctx, "tcp", net.JoinHostPort("0.0.0.0", meshapi.Port))
 		if err != nil {
 			return fmt.Errorf("failed to listen: %w", err)
 		}
@@ -230,7 +230,7 @@ func run() (retErr error) {
 
 	eg.Go(func() error {
 		logger.Info("Coordinator transit engine API listening")
-		lis, err := net.Listen("tcp", net.JoinHostPort("0.0.0.0", transitEngineAPIPort))
+		lis, err := (&net.ListenConfig{}).Listen(ctx, "tcp", net.JoinHostPort("0.0.0.0", transitEngineAPIPort))
 		if err != nil {
 			return fmt.Errorf("failed to listen: %w", err)
 		}

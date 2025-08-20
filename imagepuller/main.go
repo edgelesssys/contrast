@@ -69,7 +69,7 @@ func run(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("removing existing socket: %w", err)
 	}
 
-	l, err := net.Listen("unix", api.Socket)
+	l, err := (&net.ListenConfig{}).Listen(ctxSignal, "unix", api.Socket)
 	if err != nil {
 		return fmt.Errorf("listening on socket: %w", err)
 	}

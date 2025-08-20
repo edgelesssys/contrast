@@ -163,7 +163,7 @@ func testHTTPProxy(t *testing.T, ct *contrasttest.ContrastTest) {
 		return net.Dial(network, addr)
 	}
 
-	proxyListener, err := net.Listen("tcp", "127.0.0.1:")
+	proxyListener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:")
 	require.NoError(t, err)
 	proxyAddr := proxyListener.Addr().String()
 	const invalidAddr = "127.0.0.1:0"
