@@ -65,7 +65,7 @@ func TestInstallAndRun(t *testing.T) {
 	assert.Equal(testbin, got)
 
 	// run the installed binary with a flag to indicate that it was called from the install location
-	out, err := exec.Command(installed.Path(), "-called-from-install-location").Output()
+	out, err := exec.CommandContext(t.Context(), installed.Path(), "-called-from-install-location").Output()
 	assert.Error(err)
 	assert.Contains(string(out), "called from install location")
 	var exitErr *exec.ExitError
