@@ -9,7 +9,7 @@ Follow these steps to make your deployment confidential.
 Download the Kubernetes resources for the emojivoto deployment with the following command:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.12.0/emojivoto-demo.yml --create-dirs --output-dir resources
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.12.1/emojivoto-demo.yml --create-dirs --output-dir resources
 ```
 
 This deployment has already been prepared for Contrast.
@@ -243,17 +243,17 @@ Next, install the Contrast runtime in your cluster which will be used when setti
 <Tabs queryString="platform">
 <TabItem value="aks-clh-snp" label="AKS" default>
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.12.0/runtime-aks-clh-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.12.1/runtime-aks-clh-snp.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.12.0/runtime-k3s-qemu-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.12.1/runtime-k3s-qemu-snp.yml
 ```
 </TabItem>
 <TabItem value="k3s-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.12.0/runtime-k3s-qemu-tdx.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.12.1/runtime-k3s-qemu-tdx.yml
 ```
 </TabItem>
 </Tabs>
@@ -266,7 +266,7 @@ Download the Kubernetes resource of the Contrast Coordinator, comprising a singl
 Put it next to your resources:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.12.0/coordinator.yml --output-dir resources
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.12.1/coordinator.yml --output-dir resources
 ```
 
 ## 4. Generate policy annotations and manifest
