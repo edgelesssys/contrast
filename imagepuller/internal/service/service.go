@@ -7,8 +7,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 
 	"github.com/containers/storage"
+	"github.com/containers/storage/types"
 	"github.com/edgelesssys/contrast/imagepuller/internal/api"
 	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
@@ -24,9 +27,10 @@ type Remote interface {
 
 // ImagePullerService is the struct for which the PullImage ttRPC service is implemented.
 type ImagePullerService struct {
-	Logger *slog.Logger
-	Store  storage.Store
-	Remote Remote
+	Logger            *slog.Logger
+	Store             storage.Store
+	StorePathOverride string
+	Remote            Remote
 }
 
 // PullImage is a ttRPC service which pulls and mounts docker images.
@@ -42,6 +46,26 @@ func (s *ImagePullerService) PullImage(ctx context.Context, r *api.ImagePullRequ
 			log.Error("Request failed", "err", retErr)
 		}
 	}()
+
+	var storePath string
+	if s.StorePathOverride != "" {
+		storePath = s.StorePathOverride
+	} else if _, err := os.Stat(api.StorePathStorage); err == nil {
+		storePath = api.StorePathStorage
+	} else {
+		storePath = api.StorePathMemory
+	}
+	store, err := storage.GetStore(types.StoreOptions{
+		TransientStore:  true,
+		DisableVolatile: false,
+		RunRoot:         filepath.Join(storePath, "run"),
+		GraphRoot:       filepath.Join(storePath, "graph"),
+	})
+	log.Info("Found or created store", "storage_dir", storePath)
+	if err != nil {
+		return nil, fmt.Errorf("opening store: %w", err)
+	}
+	s.Store = store
 
 	cachedID, err := s.Store.Lookup(r.ImageUrl)
 	if err == nil {
