@@ -207,14 +207,14 @@ func testHTTPProxy(t *testing.T, ct *contrasttest.ContrastTest) {
 
 			if tc.wantErrMsg != "" {
 				// only try verify because set uses a retry loop
-				assert.ErrorContains(runCommand(ct, "verify"), tc.wantErrMsg)
+				assert.ErrorContains(runCommand(t.Context(), ct, "verify"), tc.wantErrMsg)
 				return
 			}
 
-			require.NoError(runCommand(ct, "set"))
+			require.NoError(runCommand(t.Context(), ct, "set"))
 			assert.Equal(tc.wantProxied, coordinatorConnectionProxied.Swap(false))
 
-			require.NoError(runCommand(ct, "verify"))
+			require.NoError(runCommand(t.Context(), ct, "verify"))
 			assert.Equal(tc.wantProxied, coordinatorConnectionProxied.Swap(false))
 		})
 	}
@@ -242,8 +242,8 @@ func TestMain(m *testing.M) {
 
 // runCommand runs a CLI command in a new process so that the proxy env vars are re-read.
 // Go caches the env vars, so we can't run the commands in the same process as usual.
-func runCommand(ct *contrasttest.ContrastTest, cmd string) error {
-	out, err := exec.Command(os.Args[0], "-run-command="+cmd, "-run-namespace="+ct.Namespace, "-run-workdir="+ct.WorkDir).CombinedOutput()
+func runCommand(ctx context.Context, ct *contrasttest.ContrastTest, cmd string) error {
+	out, err := exec.CommandContext(ctx, os.Args[0], "-run-command="+cmd, "-run-namespace="+ct.Namespace, "-run-workdir="+ct.WorkDir).CombinedOutput()
 	if err != nil {
 		return errors.New(string(out))
 	}

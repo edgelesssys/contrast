@@ -272,7 +272,7 @@ func restartHostContainerd(ctx context.Context, containerdConfigPath string, ser
 	// Go through list of possible service names and check if one exists.
 	service := ""
 	for _, s := range serviceNames {
-		if hostServiceExists(s) {
+		if hostServiceExists(ctx, s) {
 			service = s
 			break
 		}
@@ -301,8 +301,8 @@ func restartHostContainerd(ctx context.Context, containerdConfigPath string, ser
 	}
 
 	// This command will restart containerd on the host and will take down the installer with it.
-	out, err := exec.Command(
-		"nsenter", "--target", "1", "--mount", "--",
+	out, err := exec.CommandContext(
+		ctx, "nsenter", "--target", "1", "--mount", "--",
 		"systemctl", "restart", service,
 	).CombinedOutput()
 	if err != nil {
@@ -331,8 +331,8 @@ func getSystemdServiceRestartTime(ctx context.Context, service string) (time.Tim
 	return time.Unix(0, int64(timestamp)*1000), nil
 }
 
-func hostServiceExists(service string) bool {
-	if err := exec.Command("nsenter", "--target", "1", "--mount", "--",
+func hostServiceExists(ctx context.Context, service string) bool {
+	if err := exec.CommandContext(ctx, "nsenter", "--target", "1", "--mount", "--",
 		"systemctl", "status", service).Run(); err != nil {
 		return false
 	}
