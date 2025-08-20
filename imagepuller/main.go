@@ -16,9 +16,7 @@ import (
 	"time"
 
 	"github.com/containerd/ttrpc"
-	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/containers/storage/types"
 	"github.com/edgelesssys/contrast/imagepuller/internal/api"
 	"github.com/edgelesssys/contrast/imagepuller/internal/service"
 	"github.com/spf13/cobra"
@@ -48,7 +46,7 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage: true,
 		RunE:         run,
 	}
-	cmd.Flags().String("tmpdir", "", "temporary directory to use for storage")
+	cmd.Flags().String("storepath", "", "temporary directory to use for storage")
 	return cmd
 }
 
@@ -82,21 +80,10 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 	defer s.Close()
 
-	tmpDir := cmd.Flag("tmpdir").Value.String()
-	if len(tmpDir) == 0 {
-		tmpDir = api.DefaultTmpDir
-	}
-	store, err := storage.GetStore(types.StoreOptions{
-		TransientStore: true,
-		RunRoot:        filepath.Join(tmpDir, "run"),
-		GraphRoot:      filepath.Join(tmpDir, "graph"),
+	api.RegisterImagePullServiceService(s, &service.ImagePullerService{
+		Logger:            log,
+		StorePathOverride: cmd.Flag("storepath").Value.String(),
 	})
-	log.Info("Created storage", "storage_dir", tmpDir)
-	if err != nil {
-		return fmt.Errorf("opening storage: %w", err)
-	}
-
-	api.RegisterImagePullServiceService(s, &service.ImagePullerService{Logger: log, Store: store})
 	eg, ctx := errgroup.WithContext(ctxSignal)
 
 	eg.Go(func() error {
