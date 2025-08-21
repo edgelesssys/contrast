@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -71,14 +72,14 @@ func TestRegression(t *testing.T) {
 
 			c := kubeclient.NewForTest(t)
 
-			yamlDir := dataDir + dir.Name() + "/"
-			files, err := os.ReadDir(yamlDir)
+			pattern := filepath.Join(dataDir, dir.Name(), "*.yml")
+			files, err := filepath.Glob(pattern)
 			require.NoError(err)
 
 			containsCronJob := false
 			intermediateResources := resources
 			for _, file := range files {
-				resourceYAML, err := os.ReadFile(yamlDir + file.Name())
+				resourceYAML, err := os.ReadFile(file)
 				require.NoError(err)
 				resourceYAML = bytes.ReplaceAll(resourceYAML, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
 
@@ -97,11 +98,12 @@ func TestRegression(t *testing.T) {
 				}
 
 				// write the new resources
+				base := path.Base(file)
 				resourceBytes, err := kuberesource.EncodeResources(newResources...)
 				require.NoError(err)
-				require.NoError(os.WriteFile(path.Join(ct.WorkDir, file.Name()), resourceBytes, 0o644))
+				require.NoError(os.WriteFile(path.Join(ct.WorkDir, base), resourceBytes, 0o644))
 				t.Cleanup(func() {
-					require.NoError(os.Remove(path.Join(ct.WorkDir, file.Name())))
+					require.NoError(os.Remove(path.Join(ct.WorkDir, base)))
 				})
 
 				intermediateResources = append(intermediateResources, newResources...)
