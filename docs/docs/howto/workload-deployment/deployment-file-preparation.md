@@ -147,12 +147,15 @@ spec: # v1.PodSpec
 
 :::note
 
-On bare metal platforms, container images are pulled from within the guest CVM and stored in encrypted memory.
-The images are pulled and uncompressed into encrypted memory, so the uncompressed image size needs to be taken into account when setting the container limits.
+Container images are pulled from within the pod-VMs using the [Contrast image puller](../../architecture/components/runtime#pod-vm-image).
+By default, the images are pulled and uncompressed into an encrypted storage device using [Contrast secure image store](../secure-image-store.md).
+In this case, image sizes don't need to be taken into account when setting the container memory limits.
+However, if this feature is disabled, images will instead be pulled into encrypted memory, and the uncompressed image sizes need to be taken into account.
+
 Registry interfaces often show the compressed size of an image, the decompressed image is usually a factor of 2-4x larger if the content is mostly binary.
 For example, the `nginx:stable` image reports a compressed image size of 67MiB, but storing the uncompressed layers needs about 184MiB of memory.
 Although only the extracted layers are stored, and those layers are reused across containers within the same pod, the memory limit should account for both the compressed and the decompressed layer simultaneously.
-Altogether, setting the limit to 10x the compressed image size should be sufficient for small to medium images.
+Altogether, setting the limit to 10x the compressed image size should be sufficient for small to medium images when not using the Contrast secure image store feature.
 
 :::
 

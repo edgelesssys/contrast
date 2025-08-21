@@ -155,6 +155,11 @@ const sidebars = {
         },
         {
           type: "doc",
+          label: "Secure image store",
+          id: "howto/secure-image-store"
+        },
+        {
+          type: "doc",
           label: "Troubleshooting",
           id: "howto/troubleshooting",
         },

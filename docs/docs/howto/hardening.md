@@ -60,7 +60,7 @@ If an application authenticates with a certificate signed by the Contrast Mesh C
 2. The command line arguments of containers are exactly the arguments specified in the resource definitions.
 3. All environment variables are either specified in resource definitions, in the container image manifest or in a settings file for the Contrast CLI.
 4. The containers run in a confidential VM that matches the reference values in the manifest.
-5. The containers' root filesystems are mounted in encrypted memory.
+5. The containers' root filesystems are mounted in encrypted and integrity-protected ephemeral storage, or optionally in encrypted memory.
 
 ### Limitations inherent to policy checking
 
@@ -82,6 +82,12 @@ If the application requires such external information, it should be injected as 
 Another type of dynamic content are persistent volumes.
 Any volumes mounted to the pod need to be scrutinized, and sensitive data must not be written to unprotected volumes.
 Ideally, a volume is mounted as a raw block device and authenticated encryption is added within the confidential container.
+
+This is also the approach taken by the [secure image store](./secure-image-store.md) feature, which stores image layers outside of memory by setting up encryption and integrity protection on a raw block device.
+Nevertheless, this weakens the overall security posture compared to storing images entirely in memory.
+To pull images into memory instead, disable the image store feature.
+For further details, refer to the linked documentation section.
+
 
 [`docker pull` documentation]: https://docs.docker.com/reference/cli/docker/image/pull/#pull-an-image-by-digest-immutable-identifier
 [downward API]: https://kubernetes.io/docs/concepts/workloads/pods/downward-api/
