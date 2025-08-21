@@ -7,13 +7,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"os/signal"
 	"syscall"
 
+	"github.com/edgelesssys/contrast/internal/cryptsetup"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/mount"
 	"github.com/spf13/cobra"
@@ -88,55 +89,41 @@ func runCryptsetup(cmd *cobra.Command, _ []string) error {
 }
 
 // setupEncryptedMount sets up an encrypted LUKS volume mount using the device path and mount point, provided to the setupEncryptedMount subcommand.
-func setupEncryptedMount(ctx context.Context, log *slog.Logger, flags *cryptsetupFlags) error {
-	if !isLuks(ctx, log, flags.devicePath) {
-		// TODO(jmxnzo) check what happens if container is terminated in between formatting
-		if err := luksFormat(ctx, flags.devicePath, workloadSecretPath); err != nil {
-			return err
-		}
-	}
+func setupEncryptedMount(ctx context.Context, log *slog.Logger, flags *cryptsetupFlags) (retErr error) {
+	log = log.With("devicePath", flags.devicePath, "mountPoint", flags.volumeMountPoint)
 	mapperHash := sha256.Sum256([]byte(flags.devicePath + flags.volumeMountPoint))
 	mappingName := hex.EncodeToString(mapperHash[:8])
-	if err := openEncryptedDevice(ctx, flags, mappingName, workloadSecretPath); err != nil {
+
+	cryptDev, err := cryptsetup.NewDevice(flags.devicePath, workloadSecretPath)
+	if err != nil {
 		return err
 	}
-	// The decrypted devices with <name> will always be mapped to /dev/mapper/<name> by default.
+	isLuks, err := cryptDev.IsLuks(ctx)
+	if err != nil {
+		return err
+	}
+	if !isLuks {
+		log.Info("Device is not a LUKS device, formatting it")
+		if err := cryptDev.Format(ctx); err != nil {
+			return fmt.Errorf("formatting device %s as LUKS: %w", flags.devicePath, err)
+		}
+	}
+	if err := cryptDev.Open(ctx, mappingName); err != nil {
+		return fmt.Errorf("opening LUKS device %s: %w", flags.devicePath, err)
+	}
+	//nolint: contextcheck // The context might be canceled, we still want to close the device.
+	defer func() {
+		if retErr != nil {
+			log.Info("An error occurred, closing LUKS device")
+			if err := cryptDev.Close(context.Background(), mappingName); err != nil {
+				retErr = errors.Join(retErr, fmt.Errorf("closing LUKS device: %w", err))
+			}
+		}
+	}()
 	if err := mount.SetupMount(ctx, log, "/dev/mapper/"+mappingName, flags.volumeMountPoint); err != nil {
 		return err
 	}
 
-	if err := os.WriteFile("/done", []byte(""), 0o644); err != nil {
-		return fmt.Errorf("creating startup probe done directory:%w", err)
-	}
-
-	// Wait for SIGTERM signal
-	<-ctx.Done()
-
-	return nil
-}
-
-// isLuks wraps the cryptsetup isLuks command and returns a bool reflecting if the device is formatted as LUKS.
-func isLuks(ctx context.Context, logger *slog.Logger, devName string) bool {
-	if _, err := exec.CommandContext(ctx, "cryptsetup", "isLuks", "--debug", devName).CombinedOutput(); err != nil {
-		logger.Info("device is not a LUKS device or cannot be accessed", "device", devName, "err", err)
-		return false
-	}
-	return true
-}
-
-// luksFormat wraps the luksFormat command.
-func luksFormat(ctx context.Context, devName, pathToKey string) error {
-	if out, err := exec.CommandContext(ctx, "cryptsetup", "luksFormat", "--pbkdf-memory=10240", devName, pathToKey).CombinedOutput(); err != nil {
-		return fmt.Errorf("cryptsetup luksFormat: %w, output: %q", err, out)
-	}
-	return nil
-}
-
-// openEncryptedDevice wraps the cryptsetup open command.
-func openEncryptedDevice(ctx context.Context, flags *cryptsetupFlags, mappingName, pathToKey string) error {
-	if _, err := exec.CommandContext(ctx, "cryptsetup", "open", flags.devicePath, mappingName, "-d", pathToKey).CombinedOutput(); err != nil {
-		return fmt.Errorf("cryptsetup open %s failed: %w", flags.devicePath, err)
-	}
 	return nil
 }
 

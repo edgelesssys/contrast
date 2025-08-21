@@ -93,6 +93,8 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	}
 
 	ctx := cmd.Context()
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
 
 	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -184,27 +186,35 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	}
 
 	cryptsetupDevicePath := os.Getenv("CRYPTSETUP_DEVICE")
-	if cryptsetupDevicePath == "" {
-		log.Info("Initializer done")
-		return nil
+	if cryptsetupDevicePath != "" {
+		log.Info("Setting up encrypted mount")
+		flags := &cryptsetupFlags{
+			devicePath:       cryptsetupDevicePath,
+			volumeMountPoint: "/state",
+		}
+		if err := setupEncryptedMount(ctx, log, flags); err != nil {
+			return fmt.Errorf("setting up encrypted mount: %w", err)
+		}
+		log.Info("Encrypted mount setup done")
 	}
 
-	log.Info("Setting up encrypted mount")
-
-	// Create tmp dir for cryptsetup lock files.
-	if err := os.MkdirAll("/run/cryptsetup", 0o755); err != nil {
-		return fmt.Errorf("creating cryptestup lock directory: %w", err)
+	if err := os.WriteFile("/done", []byte(""), 0o644); err != nil {
+		return fmt.Errorf("creating startup probe done directory:%w", err)
 	}
+	log.Info("Initializer done")
 
-	flags := &cryptsetupFlags{
-		devicePath:       cryptsetupDevicePath,
-		volumeMountPoint: "/state",
+	if cryptsetupDevicePath != "" {
+		// The device mount is created by the initializer and shared with the application
+		// container through a common emptyDir. We want to avoid mounting on a sub-path of
+		// the emptyDir to make configuration for the application container easier, so we
+		// mount the encrypted volume on top of the emptyDir mount point. The Kata agent
+		// does not know about this and will unmount that mount point when the initializer
+		// exits, which affects the application container, too. We avoid this situation by
+		// keeping the initializer running indefinitely.
+		log.Info("Idling to keep propagated cryptsetup device mounts alive")
+		<-ctx.Done()
 	}
-
-	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT)
-	defer cancel()
-
-	return setupEncryptedMount(ctx, log, flags)
+	return nil
 }
 
 func printPreface(cmd *cobra.Command, _ []string) {
