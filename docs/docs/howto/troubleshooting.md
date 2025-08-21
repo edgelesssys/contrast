@@ -162,7 +162,7 @@ Upstream backport that's fixing the bug is pending: https://github.com/container
 ## VM runs out of memory
 
 Since pod VMs are statically sized, it's easier to run out of memory due to misconfigurations.
-Setting the right memory limits is even more important on bare metal, where the image layers need to be stored in the guest memory, too.
+Setting the right memory limits is even more important on bare metal, especially in the case that [secure mount is disabled](./secured-image-storage.md), meaning the image layers need to be stored in guest memory, too.
 If you see an error message like this, the VM doesn't have enough space to pull images:
 
 ```
