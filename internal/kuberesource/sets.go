@@ -83,7 +83,7 @@ func OpenSSL() []any {
 									WithContainerPort(443),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(250),
+								WithMemoryLimitAndRequest(200),
 							).
 							WithReadinessProbe(Probe().
 								WithInitialDelaySeconds(1).
@@ -124,7 +124,7 @@ func OpenSSL() []any {
 									WithPort(intstr.FromInt(443))),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(250),
+								WithMemoryLimitAndRequest(200),
 							),
 					),
 				),
@@ -249,7 +249,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiSvcHost = "emoji-svc:8080"
 		votingSvcHost = "voting-svc:8080"
 		// Our modified images are around 100MiB compressed.
-		memoryLimitMiB = 600
+		memoryLimitMiB = 400
 	case ServiceMeshIngressEgress:
 		emojiSvcImage = "docker.io/buoyantio/emojivoto-emoji-svc:v11@sha256:957949355653776b65fafc2ee22f737cd21e090d4ace63f3b99f6e16976f0458"
 		emojiVotingSvcImage = "docker.io/buoyantio/emojivoto-voting-svc:v11@sha256:a57ac67af7a5b05988a38b49568eca6a078ef27a71c148c44c9db4efb1dac58b"
@@ -259,7 +259,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		emojiSvcHost = "127.137.0.1:8081"
 		votingSvcHost = "127.137.0.2:8081"
 		// Upstream images are at most 75MiB compressed, but we're adding the service mesh image with 50MiB.
-		memoryLimitMiB = 800
+		memoryLimitMiB = 500
 	default:
 		panic(fmt.Sprintf("unknown service mesh mode: %s", smMode))
 	}
@@ -637,7 +637,7 @@ func MySQL() []any {
 										WithMountPropagation(corev1.MountPropagationHostToContainer),
 								).
 								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(2000),
+									WithMemoryLimitAndRequest(1400),
 								),
 						).
 						WithVolumes(
@@ -692,7 +692,7 @@ done
 								WithEnv(NewEnvVar("MYSQL_ALLOW_EMPTY_PASSWORD", "1")).
 								WithCommand("/bin/sh", "-c", clientCmd).
 								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(2000),
+									WithMemoryLimitAndRequest(1400),
 								),
 						),
 				),
@@ -729,7 +729,7 @@ func GPU() []any {
 								WithName("NVIDIA_VISIBLE_DEVICES").WithValue("all"),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(500). // This accounts for nvidia-smi and the guest pull overhead.
+								WithMemoryLimitAndRequest(400). // This accounts for nvidia-smi and the guest pull overhead.
 								WithLimits(corev1.ResourceList{
 									corev1.ResourceName("nvidia.com/GH100_H100_PCIE"): resource.MustParse("1"),
 								}),
@@ -841,7 +841,7 @@ seal "transit" {
 									WithPeriodSeconds(2),
 								).
 								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(500),
+									WithMemoryLimitAndRequest(300),
 								).WithVolumeMounts(
 								VolumeMount().
 									WithName("share").WithMountPath("/openbao/file").WithMountPropagation(corev1.MountPropagationHostToContainer),
@@ -903,7 +903,7 @@ seal "transit" {
 								EnvVar().WithName("VAULT_CLIENT_CERT").WithValue("/contrast/tls-config/certChain.pem"),
 								EnvVar().WithName("VAULT_CLIENT_KEY").WithValue("/contrast/tls-config/key.pem"),
 							).
-							WithResources(ResourceRequirements().WithMemoryLimitAndRequest(500)).
+							WithResources(ResourceRequirements().WithMemoryLimitAndRequest(300)).
 							WithVolumeMounts(
 								VolumeMount().WithName("logs").WithMountPath("/openbao/logs"),
 								VolumeMount().WithName("file").WithMountPath("/openbao/file"),
