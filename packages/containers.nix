@@ -109,7 +109,7 @@ let
       tag = "v${pkgs.service-mesh.version}";
       copyToRoot = with pkgs; [
         busybox
-        envoy
+        envoy-bin
         iptables-legacy
       ];
       config = {
