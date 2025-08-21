@@ -104,7 +104,17 @@ helm install longhorn longhorn/longhorn \
 
 ## Kernel config
 
-Follow https://docs.edgeless.systems/contrast/howto/cluster-setup/bare-metal?vendor=intel#kernel-setup.
+Follow https://docs.edgeless.systems/contrast/howto/cluster-setup/bare-metal#kernel-setup.
+
+On AMD machines, enable the `msr` module:
+
+```bash
+cat > /etc/modules-load.d/snphost.conf << EOF
+# msr module is required for sanity checks done by snphost
+msr
+EOF
+systemctl restart systemd-modules-load.service
+```
 
 For newer Ubuntu versions, also set
 
