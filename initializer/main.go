@@ -93,6 +93,8 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	}
 
 	ctx := cmd.Context()
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT)
+	defer cancel()
 
 	privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -184,27 +186,32 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	}
 
 	cryptsetupDevicePath := os.Getenv("CRYPTSETUP_DEVICE")
-	if cryptsetupDevicePath == "" {
-		log.Info("Initializer done")
-		return nil
+	if cryptsetupDevicePath != "" {
+		log.Info("Setting up encrypted mount")
+		flags := &cryptsetupFlags{
+			devicePath:       cryptsetupDevicePath,
+			volumeMountPoint: "/state",
+		}
+		if err := setupEncryptedMount(ctx, log, flags); err != nil {
+			return fmt.Errorf("setting up encrypted mount: %w", err)
+		}
+		log.Info("Encrypted mount setup done")
 	}
 
-	log.Info("Setting up encrypted mount")
-
-	// Create tmp dir for cryptsetup lock files.
-	if err := os.MkdirAll("/run/cryptsetup", 0o755); err != nil {
-		return fmt.Errorf("creating cryptestup lock directory: %w", err)
+	if err := os.WriteFile("/done", []byte(""), 0o644); err != nil {
+		return fmt.Errorf("creating startup probe done directory:%w", err)
 	}
+	log.Info("Initializer done")
 
-	flags := &cryptsetupFlags{
-		devicePath:       cryptsetupDevicePath,
-		volumeMountPoint: "/state",
+	if cryptsetupDevicePath != "" {
+		// The device mount is created by the initializer and consumed by an application container.
+		// This is only possible through mount propagation, from the initializer mount namespace to
+		// the other mount namespaces of the pod. If the initializer exists, its mount namespace is
+		// removed, which also removes the propagated mount. So we must idle instead of exiting.
+		log.Info("Ideling to keep propagated cryptsetup device mounts alive")
+		<-ctx.Done()
 	}
-
-	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGTERM, syscall.SIGINT)
-	defer cancel()
-
-	return setupEncryptedMount(ctx, log, flags)
+	return nil
 }
 
 func printPreface(cmd *cobra.Command, _ []string) {
