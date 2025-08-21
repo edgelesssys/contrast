@@ -70,8 +70,10 @@ What matters is that the **sum of memory limits across all main containers** in 
 
 If `initContainer`s require in sum more memory than the combined usage of all main containers and sidecars, increase the limit of a main container to ensure that the sum of limits for all main containers is **at least as large** as the `initContainer`'s memory requirement.
 
-On bare-metal platforms, the container images are pulled from within the guest CVM and stored in encrypted memory.
-Thus, the uncompressed image size of needs to be added to the memory limits of containers.
+On bare-metal platforms, the container images are pulled from within each pod-VM.
+By default, images are stored on an encrypted ephemeral disk through the [Contrast secure image store](../howto/secure-image-store.md) feature.
+If this feature is disabled, the images are stored in encrypted memory instead.
+In this case, the uncompressed image size needs to be added to the memory limits of containers.
 
 Kubernetes schedules pods on nodes based on the memory `requests`.
 To prevent Kubernetes from over-commiting nodes, set both `request` and `limit` to the same value.
@@ -87,9 +89,9 @@ Set both to 700Mi for each pod in this example:
                port: 8080
 +          resources:
 +            limits:
-+              memory: 700Mi
++              memory: 400Mi
 +            requests:
-+              memory: 700Mi
++              memory: 400Mi
        runtimeClassName: contrast-cc
        serviceAccountName: emoji
  ---
@@ -99,9 +101,9 @@ Set both to 700Mi for each pod in this example:
            name: vote-bot
 +          resources:
 +            limits:
-+              memory: 700Mi
++              memory: 400Mi
 +            requests:
-+              memory: 700Mi
++              memory: 400Mi
        runtimeClassName: contrast-cc
  ---
  apiVersion: apps/v1
@@ -111,9 +113,9 @@ Set both to 700Mi for each pod in this example:
                port: 8080
 +          resources:
 +            limits:
-+              memory: 700Mi
++              memory: 400Mi
 +            requests:
-+              memory: 700Mi
++              memory: 400Mi
        runtimeClassName: contrast-cc
        serviceAccountName: voting
  ---
@@ -123,9 +125,9 @@ Set both to 700Mi for each pod in this example:
              periodSeconds: 5
 +          resources:
 +            limits:
-+              memory: 700Mi
++              memory: 400Mi
 +            requests:
-+              memory: 700Mi
++              memory: 400Mi
        runtimeClassName: contrast-cc
        serviceAccountName: web
  ---

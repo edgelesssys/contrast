@@ -162,7 +162,7 @@ Upstream backport that's fixing the bug is pending: https://github.com/container
 ## VM runs out of memory
 
 Since pod VMs are statically sized, it's easier to run out of memory due to misconfigurations.
-Setting the right memory limits is even more important on bare metal, where the image layers need to be stored in the guest memory, too.
+Setting the right memory limits is even more important on bare metal, especially in the case that the [secure image store is disabled](./secure-image-store.md), meaning the image layers need to be stored in guest memory, too.
 If you see an error message like this, the VM doesn't have enough space to pull images:
 
 ```
@@ -171,6 +171,7 @@ LAST SEEN   TYPE      REASON      OBJECT                            MESSAGE
 ```
 
 This error can be resolved by increasing the memory limit of the containers, see the [Workload deployment](../howto/workload-deployment/deployment-file-preparation.md#pod-resources) guide.
+If you aren't using the [Contrast secure image store](./secure-image-store.md), consider enabling it to pull images onto an encrypted disk instead of into memory, reducing overall memory requirements.
 
 ## Connection to Coordinator fails
 
