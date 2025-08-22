@@ -300,7 +300,10 @@ func Emojivoto(smMode serviceMeshMode) []any {
 							WithName("vote-bot").
 							WithImage(emojiWebVoteBotImage).
 							WithCommand("emojivoto-vote-bot").
-							WithEnv(EnvVar().WithName("WEB_HOST").WithValue(emojiWebSvcHost)).
+							WithEnv(
+								EnvVar().WithName("WEB_HOST").WithValue(emojiWebSvcHost),
+								EnvVar().WithName("REQUEST_RATE").WithValue("10"), // speed up voting
+							).
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(memoryLimitMiB),
 							),
