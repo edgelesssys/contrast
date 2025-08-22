@@ -3,24 +3,22 @@
 
 package verifier
 
-import (
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-)
-
 // AllVerifiers returns all verifiers for k8s objects.
 func AllVerifiers() []Verifier {
-	return []Verifier{}
+	return []Verifier{
+		&NoSharedFSMount{},
+	}
 }
 
-// VerificationFunc is a function that verifies a given unstructured object and returns an error if verification fails.
-type VerificationFunc func(toVerify *unstructured.Unstructured) error
+// VerificationFunc is a function that verifies a given apply configuration and returns an error if verification fails.
+type VerificationFunc func(toVerify any) error
 
-// Verify verifies a given k8s object.
-func (f VerificationFunc) Verify(toVerify *unstructured.Unstructured) error {
+// Verify verifies a given k8s object. `toVerify` should be an apply configuration.
+func (f VerificationFunc) Verify(toVerify any) error {
 	return f(toVerify)
 }
 
-// Verifier verifies a given k8s object.
+// Verifier verifies a given k8s object. `toVerify` should be an apply configuration.
 type Verifier interface {
-	Verify(toVerify *unstructured.Unstructured) error
+	Verify(toVerify any) error
 }
