@@ -556,7 +556,8 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		smEgressConfigAnnotationKey:  "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080",
 	})
 	voteBot.WithAnnotations(map[string]string{
-		smEgressConfigAnnotationKey: "web#127.137.0.3:8081#web-svc:443",
+		smIngressConfigAnnotationKey: "DISABLED",
+		smEgressConfigAnnotationKey:  "web#127.137.0.3:8081#web-svc:443",
 	})
 
 	return resources
