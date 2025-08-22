@@ -18,14 +18,14 @@ import (
 func SetupMount(ctx context.Context, logger *slog.Logger, devPath, mountPoint string) error {
 	blk, err := blkid(ctx, devPath)
 	if errors.Is(err, errNotIdentified) {
-		logger.Info("device not identified, formatting", "device", devPath)
+		logger.Info("Filesystem not identified, formatting", "device", devPath)
 		if err := mkfsExt4(ctx, devPath); err != nil {
 			return err
 		}
 	} else if err != nil {
 		return err
 	} else if blk.Type != "ext4" {
-		logger.Info("device is not ext4, formatting", "device", devPath)
+		logger.Info("Filesystem is not ext4, formatting", "device", devPath)
 		if err := mkfsExt4(ctx, devPath); err != nil {
 			return err
 		}
@@ -34,7 +34,7 @@ func SetupMount(ctx context.Context, logger *slog.Logger, devPath, mountPoint st
 	if err := mount(ctx, devPath, mountPoint); err != nil {
 		return err
 	}
-	logger.Info("device mounted successfully", "dev", devPath, "mountPoint", mountPoint)
+	logger.Info("Device mounted successfully", "dev", devPath, "mountPoint", mountPoint)
 
 	return nil
 }

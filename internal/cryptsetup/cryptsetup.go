@@ -60,10 +60,13 @@ func (d *Device) Format(ctx context.Context) error {
 	}
 	args := []string{
 		"luksFormat",
-		"--type=luks2",                          // Use LUKS2 header format.
-		"--cipher=aes-xts-plain64",              // Use AES-XTS cipher.
-		"--pbkdf=argon2id",                      // Use Argon2id as the key derivation function.
-		"--pbkdf-memory=10240",                  // Memory usage for Argon2i, limit to 10 MiB so it won't fail in low-memory pods.
+		"--type=luks2",             // Use LUKS2 header format.
+		"--cipher=aes-xts-plain64", // Use AES-XTS cipher.
+		"--pbkdf=argon2id",         // Use Argon2id as the key derivation function.
+		"--pbkdf-memory=10240",     // Memory usage for Argon2i, limit to 10 MiB so it won't fail in low-memory pods.
+		"--integrity=hmac-sha256",  // Use HMAC-SHA256 for integrity protection via dm-integrity.
+		// "--integrity-no-wipe",
+		"--sector-size=4096",                    // Use 4 KiB sector size.
 		"--batch-mode",                          // Suppresses all confirmation questions.
 		fmt.Sprintf("--key-file=%s", d.keyPath), // Path to the key file.
 		d.devicePath,
@@ -175,8 +178,8 @@ func (d *Device) verifyHeader(header cryptsetupMetadata) error {
 	if key.Type != "luks2" {
 		return fmt.Errorf("expected keyslot type 'luks2', got '%s'", key.Type)
 	}
-	if key.KeySize != 64 {
-		return fmt.Errorf("expected key size 64, got %d", key.KeySize)
+	if key.KeySize != 96 { // 64 bytes AES key + 32 bytes HMAC key
+		return fmt.Errorf("expected key size 96, got %d", key.KeySize)
 	}
 	if key.Area.Type != "raw" {
 		return fmt.Errorf("expected area type 'raw', got '%s'", key.Area.Type)
@@ -220,6 +223,15 @@ func (d *Device) verifyHeader(header cryptsetupMetadata) error {
 	}
 	if segment.Encryption != "aes-xts-plain64" {
 		return fmt.Errorf("expected segment encryption 'aes-xts-plain64', got '%s'", segment.Encryption)
+	}
+	if segment.Integrity.Type != "hmac(sha256)" {
+		return fmt.Errorf("expected segment integrity type 'hmac(sha256)', got '%s'", segment.Integrity.Type)
+	}
+	if segment.Integrity.JournalEncryption != "none" {
+		return fmt.Errorf("expected segment integrity journal encryption 'none', got '%s'", segment.Integrity.JournalEncryption)
+	}
+	if segment.Integrity.JournalIntegrity != "none" {
+		return fmt.Errorf("expected segment integrity journal integrity 'none', got '%s'", segment.Integrity.JournalIntegrity)
 	}
 	if len(header.Digests) != 1 {
 		return fmt.Errorf("expected exactly one digest, got %d", len(header.Digests))
@@ -288,6 +300,12 @@ type cryptsetupMetadata struct {
 		IVTweak    string   `json:"iv_tweak"`
 		Encryption string   `json:"encryption"`
 		SectorSize int      `json:"sector_size"`
+		Integrity  struct {
+			Type              string `json:"type"`
+			JournalEncryption string `json:"journal_encryption"`
+			JournalIntegrity  string `json:"journal_integrity"`
+			KeySize           int    `json:"key_size"`
+		} `json:"integrity,omitempty"`
 	} `json:"segments"`
 	Digests map[string]struct {
 		Type       string   `json:"type"`

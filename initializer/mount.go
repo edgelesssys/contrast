@@ -107,10 +107,15 @@ func setupEncryptedMount(ctx context.Context, log *slog.Logger, flags *cryptsetu
 		if err := cryptDev.Format(ctx); err != nil {
 			return fmt.Errorf("formatting device %s as LUKS: %w", flags.devicePath, err)
 		}
+		log.Info("Device formatted successfully")
+	} else {
+		log.Info("Device is already a LUKS device")
 	}
+	log.Info("Opening LUKS device", "mappingName", mappingName)
 	if err := cryptDev.Open(ctx, mappingName); err != nil {
 		return fmt.Errorf("opening LUKS device %s: %w", flags.devicePath, err)
 	}
+	log.Info("LUKS device opened successfully", "mappingName", mappingName)
 	//nolint: contextcheck // The context might be canceled, we still want to close the device.
 	defer func() {
 		if retErr != nil {
@@ -120,9 +125,12 @@ func setupEncryptedMount(ctx context.Context, log *slog.Logger, flags *cryptsetu
 			}
 		}
 	}()
+
+	log.Info("Setting up mount point")
 	if err := mount.SetupMount(ctx, log, "/dev/mapper/"+mappingName, flags.volumeMountPoint); err != nil {
 		return err
 	}
+	log.Info("Mount point set up successfully")
 
 	return nil
 }

@@ -16,7 +16,7 @@ const cryptsetupHeaderDump = `{
   "keyslots":{
     "0":{
       "type":"luks2",
-      "key_size":64,
+      "key_size":96,
       "af":{
         "type":"luks1",
         "stripes":4000,
@@ -25,16 +25,16 @@ const cryptsetupHeaderDump = `{
       "area":{
         "type":"raw",
         "offset":"32768",
-        "size":"258048",
+        "size":"385024",
         "encryption":"aes-xts-plain64",
         "key_size":64
       },
       "kdf":{
         "type":"argon2id",
-        "time":6,
-        "memory":1048576,
-        "cpus":4,
-        "salt":"OtouKvOWb4Wxandy0LdhiG7bQiltnT78/eweb8WqiJo="
+        "time":463,
+        "memory":10240,
+        "cpus":1,
+        "salt":"qHvCJjYEArUuKqqCv0iRRzORdl2BwWeF985bkumTyRA="
       }
     }
   },
@@ -46,7 +46,12 @@ const cryptsetupHeaderDump = `{
       "size":"dynamic",
       "iv_tweak":"0",
       "encryption":"aes-xts-plain64",
-      "sector_size":4096
+      "sector_size":512,
+      "integrity":{
+        "type":"hmac(sha256)",
+        "journal_encryption":"none",
+        "journal_integrity":"none"
+      }
     }
   },
   "digests":{
@@ -59,9 +64,9 @@ const cryptsetupHeaderDump = `{
         "0"
       ],
       "hash":"sha256",
-      "iterations":673026,
-      "salt":"C5XuT3zUZ4rMPHI/98HnYi+YQ2TDF4Onk79z+rdZYZE=",
-      "digest":"gzHnbLzZpMe0tMMeP52UgBIjpQDgyP6J6y4St6sX+0M="
+      "iterations":331408,
+      "salt":"rhZsOc5mfml4jSWJd2u949PlTcOfNvcC28+qaWiProk=",
+      "digest":"yua6YjYoX4SwBmQtNUNXwCfxqTNO9SPPkzeQYrtuapI="
     }
   },
   "config":{
