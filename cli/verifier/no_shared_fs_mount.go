@@ -9,9 +9,6 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
@@ -57,31 +54,6 @@ func (v *NoSharedFSMount) Verify(toVerify any) error {
 	if isNonCC {
 		// we don't care about non-confidential pods
 		return nil
-	}
-
-	// get all stateful sets from the resources to verify
-	unstructuredResources, err := kuberesource.ResourcesToUnstructured([]any{toVerify})
-	if err != nil {
-		return err
-	}
-	var volumeClaims []corev1.PersistentVolumeClaim
-	for _, r := range unstructuredResources {
-		switch r.GetKind() {
-		case "StatefulSet":
-			var statefulSet appsv1.StatefulSet
-			err := runtime.DefaultUnstructuredConverter.FromUnstructured(r.UnstructuredContent(), &statefulSet)
-			if err != nil {
-				return err
-			}
-			volumeClaims = append(volumeClaims, statefulSet.Spec.VolumeClaimTemplates...)
-		}
-	}
-
-	// verify all volume claims
-	for _, claim := range volumeClaims {
-		if *claim.Spec.VolumeMode != "Block" {
-			findings = errors.Join(findings, fmt.Errorf("volume claim %q does not have volumeMode=Block, which is unsupported", claim.Name))
-		}
 	}
 
 	return findings

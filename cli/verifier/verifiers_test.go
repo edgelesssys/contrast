@@ -82,6 +82,8 @@ spec:
 const statefulSetWithBlockVolume = `
 apiVersion: apps/v1
 kind: StatefulSet
+metadata:
+  name: test
 spec:
   serviceName: "nginx"
   template:
@@ -106,6 +108,8 @@ spec:
 const statefulSetWithFSVolume = `
 apiVersion: apps/v1
 kind: StatefulSet
+metadata:
+  name: test
 spec:
   serviceName: "nginx"
   template:
