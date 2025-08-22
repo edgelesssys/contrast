@@ -222,6 +222,24 @@ func TestIngressEgress(t *testing.T) {
 		require.Empty(stderr)
 		require.Contains(stdout, "-j TPROXY")
 	})
+
+	t.Run("ingress can be disabled explicitly", func(t *testing.T) {
+		require := require.New(t)
+
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		defer cancel()
+
+		c := kubeclient.NewForTest(t)
+
+		voteBotPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "vote-bot")
+		require.NoError(err)
+		require.Len(voteBotPods, 1, "pod not found: %s/%s", ct.Namespace, "vote-bot")
+
+		stdout, stderr, err := c.ExecContainer(ctx, ct.Namespace, voteBotPods[0].Name, "contrast-service-mesh", []string{"sh", "-ec", "iptables-save; iptables-legacy-save"})
+		require.NoError(err, "Could not dump iptables.\nstdout: %s\nstderr: %q", stdout, stderr)
+		require.Empty(stderr)
+		require.NotContains(stdout, "-j TPROXY")
+	})
 }
 
 func TestMain(m *testing.M) {
