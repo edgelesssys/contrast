@@ -60,7 +60,8 @@ let
           --replace-fail '# CONFIG_VFAT_FS is not se' 'CONFIG_VFAT_FS=y' \
           --replace-fail '# CONFIG_NLS_CODEPAGE_437 is not set' 'CONFIG_NLS_CODEPAGE_437=y' \
           --replace-fail '# CONFIG_NLS_ISO8859_1 is not set' 'CONFIG_NLS_ISO8859_1=y' \
-          --replace-fail '# CONFIG_ATA is not set' 'CONFIG_ATA=y'
+          --replace-fail '# CONFIG_ATA is not set' 'CONFIG_ATA=y' \
+          --replace-fail '# CONFIG_CRYPTO_USER_API_AEAD is not set' 'CONFIG_CRYPTO_USER_API_AEAD=y'
 
         echo "CONFIG_ATA_PIIX=y" >> $config
       '';

@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/edgelesssys/contrast/internal/cryptsetup"
 	"github.com/edgelesssys/contrast/internal/logger"
@@ -104,13 +105,20 @@ func setupEncryptedMount(ctx context.Context, log *slog.Logger, flags *cryptsetu
 		if err := cryptDev.Format(ctx); err != nil {
 			return fmt.Errorf("formatting device %s as LUKS: %w", flags.devicePath, err)
 		}
+		log.Info("Device formatted successfully")
 	}
+	log.Info("Opening LUKS device", "mappingName", mappingName)
 	if err := cryptDev.Open(ctx, mappingName); err != nil {
 		return fmt.Errorf("opening LUKS device %s: %w", flags.devicePath, err)
 	}
+	log.Info("LUKS device opened successfully", "mappingName", mappingName)
+	time.Sleep(4 * time.Minute)
+
+	log.Info("Setting up mount point")
 	if err := mount.SetupMount(ctx, log, "/dev/mapper/"+mappingName, flags.volumeMountPoint); err != nil {
 		return err
 	}
+	log.Info("Mount point set up successfully")
 
 	return nil
 }
