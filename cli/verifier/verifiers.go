@@ -7,6 +7,7 @@ package verifier
 func AllVerifiers() []Verifier {
 	return []Verifier{
 		&NoSharedFSMount{},
+		&ServiceMeshEgressNotEmpty{},
 	}
 }
 

@@ -215,3 +215,122 @@ func TestVerifyNoSharedFSMount(t *testing.T) {
 		})
 	}
 }
+
+func TestServiceMeshEgress(t *testing.T) {
+	testCases := map[string]struct {
+		k8sYaml string
+		wantErr bool
+	}{
+		"no annotations": {
+			k8sYaml: `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  template:
+    spec:
+      runtimeClassName: contrast-cc
+      containers:
+        - name: currency-conversion
+          image: ghcr.io/edgelesssys/conversion:v1.2.3@...
+`,
+		},
+		"good deployment": {
+			k8sYaml: `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  annotations:
+    contrast.edgeless.systems/servicemesh-egress: "billing#127.137.0.1:8081#billing-svc:8080##cart#127.137.0.2:8081#cart-svc:8080"
+spec:
+  replicas: 1
+  template:
+    spec:
+      runtimeClassName: contrast-cc
+      containers:
+        - name: currency-conversion
+          image: ghcr.io/edgelesssys/conversion:v1.2.3@...
+`,
+		},
+		"bad deployment": {
+			k8sYaml: `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  annotations:
+    contrast.edgeless.systems/servicemesh-egress: ""
+spec:
+  replicas: 1
+  template:
+    spec:
+      runtimeClassName: contrast-cc
+      containers:
+        - name: currency-conversion
+          image: ghcr.io/edgelesssys/conversion:v1.2.3@...
+`,
+			wantErr: true,
+		},
+		"good deployment bad spec": {
+			k8sYaml: `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        contrast.edgeless.systems/servicemesh-egress: ""
+    spec:
+      runtimeClassName: contrast-cc
+      containers:
+        - name: currency-conversion
+          image: ghcr.io/edgelesssys/conversion:v1.2.3@...
+`,
+			wantErr: true,
+		},
+		"good deployment good spec": {
+			k8sYaml: `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        contrast.edgeless.systems/servicemesh-egress: "asdf"
+    spec:
+      runtimeClassName: contrast-cc
+      containers:
+        - name: currency-conversion
+          image: ghcr.io/edgelesssys/conversion:v1.2.3@...
+`,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+			toVerifySlice, err := kuberesource.UnmarshalApplyConfigurations([]byte(tc.k8sYaml))
+			require.NoError(err)
+
+			verifier := verifier.ServiceMeshEgressNotEmpty{}
+
+			for _, toVerify := range toVerifySlice {
+				err := verifier.Verify(toVerify)
+				if tc.wantErr {
+					require.Error(err)
+				} else {
+					require.NoError(err)
+				}
+			}
+		})
+	}
+}
