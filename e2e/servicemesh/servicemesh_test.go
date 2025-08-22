@@ -204,6 +204,24 @@ func TestIngressEgress(t *testing.T) {
 			t.Logf("No successful grpc calls reported yet.")
 		}
 	})
+
+	t.Run("egress without ingress fails closed", func(t *testing.T) {
+		require := require.New(t)
+
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		defer cancel()
+
+		c := kubeclient.NewForTest(t)
+
+		votingPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "voting")
+		require.NoError(err)
+		require.Len(votingPods, 1, "pod not found: %s/%s", ct.Namespace, "voting")
+
+		stdout, stderr, err := c.ExecContainer(ctx, ct.Namespace, votingPods[0].Name, "contrast-service-mesh", []string{"sh", "-ec", "iptables-save; iptables-legacy-save"})
+		require.NoError(err, "Could not dump iptables.\nstdout: %s\nstderr: %q", stdout, stderr)
+		require.Empty(stderr)
+		require.Contains(stdout, "-j TPROXY")
+	})
 }
 
 func TestMain(m *testing.M) {
