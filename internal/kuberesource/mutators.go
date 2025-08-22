@@ -63,7 +63,12 @@ func AddInitializer(
 			initializer = addCryptsetupConfig(initializer, devName, mountName)
 		}
 
-		if !needsServiceMesh(meta) {
+		cfg, err := serviceMeshConfigForMeta(meta)
+		if err != nil {
+			retErr = fmt.Errorf("parsing service mesh annotations: %w", err)
+			return nil, nil
+		}
+		if !cfg.enabled() {
 			initializer.Env = append(initializer.Env, *NewEnvVar(constants.DisableServiceMeshEnvVar, "true"))
 		}
 
@@ -168,14 +173,16 @@ func AddServiceMesh(
 			return meta, spec
 		}
 
-		// Don't change anything if automatic service mesh injection isn't enabled.
-		if !needsServiceMesh(meta) {
-			return meta, spec
+		cfg, err := serviceMeshConfigForMeta(meta)
+		if err != nil {
+			retErr = fmt.Errorf("parsing service mesh annotations: %w", err)
+			return nil, nil
 		}
 
-		ingressConfig := meta.Annotations[smIngressConfigAnnotationKey]
-		egressConfig := meta.Annotations[smEgressConfigAnnotationKey]
-		portAnnotation := meta.Annotations[smAdminInterfaceAnnotationKey]
+		// Don't change anything if automatic service mesh injection isn't enabled.
+		if !cfg.enabled() {
+			return meta, spec
+		}
 
 		// Remove already existing init containers with unique service mesh name.
 		spec.InitContainers = slices.DeleteFunc(spec.InitContainers, func(c applycorev1.ContainerApplyConfiguration) bool {
@@ -187,28 +194,7 @@ func AddServiceMesh(
 			return nil, nil
 		}
 
-		if portAnnotation != "" {
-			port, err := strconv.Atoi(portAnnotation)
-			if err != nil {
-				retErr = fmt.Errorf("parsing service mesh admin interface port: %w", err)
-				return nil, nil
-			}
-
-			serviceMeshProxy.
-				WithEnv(NewEnvVar("CONTRAST_ADMIN_PORT", portAnnotation)).
-				WithPorts(
-					ContainerPort().
-						WithName("contrast-admin").
-						WithContainerPort(int32(port)),
-				)
-		}
-
-		if ingressConfig != "" {
-			serviceMeshProxy.WithEnv(NewEnvVar("CONTRAST_INGRESS_PROXY_CONFIG", ingressConfig))
-		}
-		if egressConfig != "" {
-			serviceMeshProxy.WithEnv(NewEnvVar("CONTRAST_EGRESS_PROXY_CONFIG", egressConfig))
-		}
+		cfg.configureProxyContainer(serviceMeshProxy)
 
 		return meta, spec.WithInitContainers(serviceMeshProxy)
 	})
@@ -408,24 +394,6 @@ func PatchNamespaces(resources []any, namespace string) []any {
 	return resources
 }
 
-// PatchServiceMeshAdminInterface activates the admin interface on the
-// specified port for all Service Mesh components in a set of resources.
-func PatchServiceMeshAdminInterface(resources []any, port int32) []any {
-	var out []any
-	for _, resource := range resources {
-		out = append(out, MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-			_, ingressOk := meta.Annotations[smIngressConfigAnnotationKey]
-			_, egressOk := meta.Annotations[smEgressConfigAnnotationKey]
-			if ingressOk || egressOk {
-				meta.WithAnnotations(map[string]string{smAdminInterfaceAnnotationKey: fmt.Sprint(port)})
-				meta.Annotations[smIngressConfigAnnotationKey] += fmt.Sprintf("##admin#%d#true", port)
-			}
-			return meta, spec
-		}))
-	}
-	return out
-}
-
 // PatchCoordinatorMetrics enables Coordinator metrics on port 9102.
 func PatchCoordinatorMetrics(resources []any) []any {
 	for _, resource := range resources {
@@ -530,10 +498,61 @@ func MapPodSpec(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration
 		})
 }
 
-func needsServiceMesh(meta *applymetav1.ObjectMetaApplyConfiguration) bool {
-	_, ingressOk := meta.Annotations[smIngressConfigAnnotationKey]
-	_, egressOk := meta.Annotations[smEgressConfigAnnotationKey]
-	_, portOk := meta.Annotations[smAdminInterfaceAnnotationKey]
+type serviceMeshConfig struct {
+	ingress   *string
+	egress    *string
+	adminPort *int
+}
 
-	return ingressOk || egressOk || portOk
+func serviceMeshConfigForMeta(meta *applymetav1.ObjectMetaApplyConfiguration) (*serviceMeshConfig, error) {
+	cfg := &serviceMeshConfig{}
+	if ingress, ok := meta.Annotations[smIngressConfigAnnotationKey]; ok {
+		cfg.ingress = &ingress
+	}
+	if egress := meta.Annotations[smEgressConfigAnnotationKey]; len(egress) > 0 {
+		cfg.egress = &egress
+	}
+	if portAnnotation, ok := meta.Annotations[smAdminInterfaceAnnotationKey]; ok {
+
+		port, err := strconv.Atoi(portAnnotation)
+		if err != nil {
+			return nil, fmt.Errorf("parsing service mesh admin interface port: %w", err)
+		}
+		cfg.adminPort = &port
+	}
+
+	return cfg, nil
+}
+
+func (c *serviceMeshConfig) enabled() bool {
+	return c.egress != nil || c.ingress != nil
+}
+
+func (c *serviceMeshConfig) configureProxyContainer(container *applycorev1.ContainerApplyConfiguration) {
+	if c.adminPort != nil {
+		container.
+			WithEnv(NewEnvVar("CONTRAST_ADMIN_PORT", strconv.Itoa(*c.adminPort))).
+			WithPorts(
+				ContainerPort().
+					WithName("contrast-admin").
+					WithContainerPort(int32(*c.adminPort)),
+			)
+	}
+
+	// Policy checks can't tell whether all expected environment variables are actually present.
+	// This means that we can't express the absence of an ingress with an unset env var, but need
+	// to set it explicitly to a constant, non-empty value that can't be mistaken for an ingress
+	// config. We don't necessarily need to do that for egress, but it doesn't hurt either.
+
+	ingressConfig := constants.DisableServiceMeshEnvVar
+	if c.ingress != nil {
+		ingressConfig = *c.ingress
+	}
+	container.WithEnv(NewEnvVar("CONTRAST_INGRESS_PROXY_CONFIG", ingressConfig))
+
+	egressConfig := constants.DisableServiceMeshEnvVar
+	if c.egress != nil {
+		egressConfig = *c.egress
+	}
+	container.WithEnv(NewEnvVar("CONTRAST_EGRESS_PROXY_CONFIG", egressConfig))
 }
