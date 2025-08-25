@@ -39,6 +39,10 @@ var imageList = []string{
 var mountPoint = "current_server"
 
 func getDiskUsage(path string) (uint64, error) {
+	if err := os.MkdirAll(path, 0x644); err != nil {
+		return 0, err
+	}
+
 	usage, err := disk.Usage(path)
 	if err != nil {
 		return 0, err
@@ -381,12 +385,12 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	results := map[string]resourceUsage{}
-	resultsIndividual, err := profileServerIndividual(binPath, fmt.Sprintf("--tmpdir=%s", imagepullerDir), imagepullerDir, "imagepuller")
+	resultsIndividual, err := profileServerIndividual(binPath, fmt.Sprintf("--storepath=%s", imagepullerDir), imagepullerDir, "imagepuller")
 	if err != nil {
 		return err
 	}
 	maps.Copy(results, resultsIndividual)
-	resultsContinuous, err := profileServerContinuous(binPath, fmt.Sprintf("--tmpdir=%s", imagepullerDir), imagepullerDir, "imagepuller")
+	resultsContinuous, err := profileServerContinuous(binPath, fmt.Sprintf("--storepath=%s", imagepullerDir), imagepullerDir, "imagepuller")
 	if err != nil {
 		return err
 	}

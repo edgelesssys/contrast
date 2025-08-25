@@ -62,6 +62,12 @@ The root filesystem contains systemd as the init system, and the kata agent for 
 
 This pod-VM image isn't specific to any pod workload. Instead, container images are mounted at runtime.
 
+### Contrast secure mount
+
+In order to reduce memory requirements, Contrast supports mounting an [ephemeral volume](https://kubernetes.io/docs/concepts/storage/ephemeral-volumes/) into each pod-VM.
+Before first use, the underlying block device issued by Kubernetes is LUKS-encrypted and integrity protected with keys generated inside the pod-VM.
+These keys are never persisted or transferred outside of the pod-VM, meaning the volume is only usable from within the specific pod it's attached to, and only for the duration of that pod's lifetime.
+
 ## Node installer DaemonSet
 
 The `RuntimeClass` resource above registers the runtime with the Kubernetes api.
