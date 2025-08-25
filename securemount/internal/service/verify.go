@@ -21,6 +21,7 @@ type SecureMountParams struct {
 	MapperName    string
 	MapperDevice  string
 	Key           []byte
+	KeyFile       string
 }
 
 func getAndVerifyParams(r *api.SecureMountRequest) (*SecureMountParams, error) {
@@ -54,12 +55,18 @@ func getAndVerifyParams(r *api.SecureMountRequest) (*SecureMountParams, error) {
 		return nil, fmt.Errorf("Options[\"dataIntegrity\"] is required")
 	}
 
-	randBytes := make([]byte, 8)
-	if _, err := rand.Read(randBytes); err != nil {
+	mapperSuffix := make([]byte, 8)
+	if _, err := rand.Read(mapperSuffix); err != nil {
 		return nil, fmt.Errorf("generating mapper suffix: %w", err)
 	}
-	mapperName := fmt.Sprintf("secure-%s", hex.EncodeToString(randBytes))
+	mapperName := fmt.Sprintf("secure-%s", hex.EncodeToString(mapperSuffix))
 	mappedDev := filepath.Join("/dev/mapper", mapperName)
+
+	keyFileSuffix := make([]byte, 8)
+	if _, err := rand.Read(keyFileSuffix); err != nil {
+		return nil, fmt.Errorf("generating mapper suffix: %w", err)
+	}
+	keyFile := fmt.Sprintf("/run/key_%s", hex.EncodeToString(keyFileSuffix))
 
 	key := make([]byte, 64)
 	if _, err := rand.Read(key); err != nil {
@@ -73,6 +80,7 @@ func getAndVerifyParams(r *api.SecureMountRequest) (*SecureMountParams, error) {
 		MapperName:    mapperName,
 		MapperDevice:  mappedDev,
 		Key:           key,
+		KeyFile:       keyFile,
 	}, nil
 }
 

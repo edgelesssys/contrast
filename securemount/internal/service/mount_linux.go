@@ -14,38 +14,29 @@ import (
 	"strings"
 	"time"
 
+	"github.com/edgelesssys/contrast/internal/cryptsetup"
 	"github.com/edgelesssys/contrast/securemount/internal/api"
 )
 
-func setupLuksAndMount(ctx context.Context, log *slog.Logger, r *api.SecureMountRequest, p *SecureMountParams) error {
-	formatArgs := []string{
-		"--batch-mode",
-		"luksFormat",
-		"--type", "luks2",
-		"--sector-size", "4096",
-		"--cipher", "aes-xts-plain64",
-		"--integrity", "hmac-sha256",
-		"--key-file", "-",
+func setupLuksAndMount(ctx context.Context, log *slog.Logger, r *api.SecureMountRequest, p *SecureMountParams) (retErr error) {
+	if err := os.WriteFile(p.KeyFile, p.Key, 0o644); err != nil {
+		return fmt.Errorf("writing key to file: %w", err)
 	}
+	defer func() {
+		if err := os.Remove(p.KeyFile); err != nil {
+			retErr = fmt.Errorf("remove: %w", err)
+		}
+	}()
 
-	if p.DataIntegrity != "false" {
-		formatArgs = append(formatArgs, "--integrity", p.DataIntegrity)
-	}
-	formatArgs = append(formatArgs, p.DevicePath)
+	device := cryptsetup.NewDevice(p.DevicePath, "/run/confidential-containers/header", p.KeyFile)
 
-	if out, err := runCmdWithInput(ctx, p.Key, "cryptsetup", formatArgs...); err != nil {
-		return fmt.Errorf("formatting device with luksFormat: %w: %s", err, out)
+	if err := device.Format(ctx); err != nil {
+		return fmt.Errorf("formatting device with luksFormat: %w", err)
 	}
 	log.Info("Formatted device with LUKS2")
 
-	openArgs := []string{
-		"luksOpen",
-		"--key-file", "-",
-		p.DevicePath,
-		p.MapperName,
-	}
-	if out, err := runCmdWithInput(ctx, p.Key, "cryptsetup", openArgs...); err != nil {
-		return fmt.Errorf("luksOpen failed: %w: %s", err, out)
+	if err := device.Open(ctx, p.MapperName); err != nil {
+		return fmt.Errorf("opening device with luksOpen: %w", err)
 	}
 	log.Info("Opened LUKS device")
 
@@ -71,15 +62,6 @@ func setupLuksAndMount(ctx context.Context, log *slog.Logger, r *api.SecureMount
 	}
 
 	return nil
-}
-
-func runCmdWithInput(ctx context.Context, input []byte, name string, args ...string) (string, error) {
-	c, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-	cmd := exec.CommandContext(c, name, args...)
-	cmd.Stdin = strings.NewReader(string(input))
-	out, err := cmd.CombinedOutput()
-	return string(out), err
 }
 
 func runCmd(ctx context.Context, name string, args ...string) (string, error) {

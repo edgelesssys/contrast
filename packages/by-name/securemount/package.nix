@@ -7,10 +7,12 @@ buildGoModule (finalAttrs: {
   pname = "securemount";
   version = builtins.readFile ../../../version.txt;
 
-  src = ../../../securemount;
+  src = ../../../.;
+
+  subPackages = [ "securemount" ];
 
   proxyVendor = true;
-  vendorHash = "sha256-18XveHCYkwktiGEUccF435hzIzoYKM/3PT7axU6oVRo=";
+  vendorHash = "sha256-0vZxz0IHhtUndOavlSbrNNSjTBP7att/4dwqIdvXDrs=";
 
   env.CGO_ENABLED = 0;
   dontFixup = true;
