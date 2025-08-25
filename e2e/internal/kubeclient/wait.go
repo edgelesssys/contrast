@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/informers"
 	listerscorev1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog/v2"
 )
 
 // WaitForDeployment waits until the Deployment is ready.
@@ -158,7 +159,9 @@ func (c *Kubeclient) WaitForPodCondition(ctx context.Context, namespace string, 
 	defer cancel()
 	factory.Start(ctx.Done())
 
-	if ok := cache.WaitForNamedCacheSyncWithContext(ctx, registration.HasSynced); !ok {
+	// Prevent the cache from logging "Waiting for caches to sync"/"Caches are synced".
+	ctxLessLogs := klog.NewContext(ctx, klog.Logger{}.V(5))
+	if ok := cache.WaitForNamedCacheSyncWithContext(ctxLessLogs, registration.HasSynced); !ok {
 		return fmt.Errorf("pod informer did not sync")
 	}
 	podLister := factory.Core().V1().Pods().Lister()
