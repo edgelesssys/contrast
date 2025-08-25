@@ -5,7 +5,9 @@ package verifier
 
 // AllVerifiersBeforeGenerate returns all verifiers for k8s objects that should be run before generate.
 func AllVerifiersBeforeGenerate() []Verifier {
-	return []Verifier{}
+	return []Verifier{
+		&ImageRefValid{},
+	}
 }
 
 // AllVerifiersAfterGenerate returns all verifiers for k8s objects that should be run after generate.
