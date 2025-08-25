@@ -408,24 +408,6 @@ func PatchNamespaces(resources []any, namespace string) []any {
 	return resources
 }
 
-// PatchServiceMeshAdminInterface activates the admin interface on the
-// specified port for all Service Mesh components in a set of resources.
-func PatchServiceMeshAdminInterface(resources []any, port int32) []any {
-	var out []any
-	for _, resource := range resources {
-		out = append(out, MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-			_, ingressOk := meta.Annotations[smIngressConfigAnnotationKey]
-			_, egressOk := meta.Annotations[smEgressConfigAnnotationKey]
-			if ingressOk || egressOk {
-				meta.WithAnnotations(map[string]string{smAdminInterfaceAnnotationKey: fmt.Sprint(port)})
-				meta.Annotations[smIngressConfigAnnotationKey] += fmt.Sprintf("##admin#%d#true", port)
-			}
-			return meta, spec
-		}))
-	}
-	return out
-}
-
 // PatchCoordinatorMetrics enables Coordinator metrics on port 9102.
 func PatchCoordinatorMetrics(resources []any) []any {
 	for _, resource := range resources {

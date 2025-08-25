@@ -155,7 +155,6 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	// Prepare resources
 	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
-	resources = kuberesource.PatchServiceMeshAdminInterface(resources, 9901)
 	resources = kuberesource.PatchCoordinatorMetrics(resources)
 	resources = kuberesource.AddLogging(resources, "debug", "*")
 	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
