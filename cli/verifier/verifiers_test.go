@@ -215,3 +215,134 @@ func TestVerifyNoSharedFSMount(t *testing.T) {
 		})
 	}
 }
+
+const podImageRefEmpty = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  containers:
+    - name: test
+      image: "bash"
+`
+
+const podTagMissingDigestMalformed = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  containers:
+    - name: test
+      image: "bash@sha256:000"
+`
+
+const podTagMissingAlgorithmMissing = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  containers:
+    - name: test
+      image: "bash@0000000000000000000000000000000000000000000000000000000000000000"
+`
+
+const podDigestMissing = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  containers:
+    - name: test
+      image: "bash:0.0.1"
+`
+
+const podDigestMalformed = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  containers:
+    - name: test
+      image: "bash:0.0.1@sha256:000"
+`
+
+const podAlgorithmMissing = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  containers:
+    - name: test
+      image: "bash:0.0.1@0000000000000000000000000000000000000000000000000000000000000000"
+`
+
+const podImageRefValid = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  containers:
+    - name: test
+      image: bash:0.0.1@sha256:0000000000000000000000000000000000000000000000000000000000000000
+`
+
+func TestVerifyImageRef(t *testing.T) {
+	testCases := map[string]struct {
+		k8sObjectYAML string
+		wantErr       bool
+	}{
+		"image ref empty": {
+			k8sObjectYAML: podImageRefEmpty,
+			wantErr:       true,
+		},
+		"digest malformed, no tag": {
+			k8sObjectYAML: podTagMissingDigestMalformed,
+			wantErr:       true,
+		},
+		"digest missing algorithm, no tag": {
+			k8sObjectYAML: podTagMissingAlgorithmMissing,
+			wantErr:       true,
+		},
+		"digest missing, with tag": {
+			k8sObjectYAML: podDigestMissing,
+			wantErr:       true,
+		},
+		"digest malformed, with tag": {
+			k8sObjectYAML: podDigestMalformed,
+			wantErr:       true,
+		},
+		"digest missing algorithm, with tag": {
+			k8sObjectYAML: podAlgorithmMissing,
+			wantErr:       true,
+		},
+		"image ref valid": {
+			k8sObjectYAML: podImageRefValid,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+			toVerifySlice, err := kuberesource.UnmarshalApplyConfigurations([]byte(tc.k8sObjectYAML))
+			require.NoError(err)
+
+			verifier := verifier.ImageRefValid{}
+
+			for _, toVerify := range toVerifySlice {
+				err := verifier.Verify(toVerify)
+				if tc.wantErr {
+					require.Error(err)
+				} else {
+					require.NoError(err)
+				}
+			}
+		})
+	}
+}
