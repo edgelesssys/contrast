@@ -277,10 +277,73 @@ The command also generates a `manifest.json` file, which contains the trusted re
 contrast generate --reference-values metal-qemu-snp resources/
 ```
 
-:::note[Missing TCB values]
-On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values of the created manifest.json as they can vary between platforms.
+On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
 They will have to be filled in manually.
-If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":255,"SNPVersion":255,"MicrocodeVersion":255}` and observe the real values in the error messages in the following steps. This should only be done in a secure environment. Note that the values will differ between CPU models.
+
+If you don't know the values from the firmware you installed, you can use the [`snphost`](https://github.com/virtee/snphost) tool to retrieve the current TCB.
+
+```sh
+snphost show tcb
+```
+```console
+Reported TCB: TCB Version:
+  Microcode:   72
+  SNP:         23
+  TEE:         0
+  Boot Loader: 9
+  FMC:         None
+Platform TCB: TCB Version:
+  Microcode:   72
+  SNP:         23
+  TEE:         0
+  Boot Loader: 9
+  FMC:         None
+```
+
+Use the values from `Platform TCB` to fill in the `MinimumTCB` values in the generated `manifest.json` file.
+
+:::note[Attention!]
+
+This must be done on a trusted machine, with a secure and trusted connection to it.
+
+:::
+
+</TabItem>
+<TabItem value="metal-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+
+```sh
+contrast generate --reference-values metal-qemu-snp-gpu resources/
+```
+
+On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
+They will have to be filled in manually.
+
+If you don't know the values from the firmware you installed, you can use the [`snphost`](https://github.com/virtee/snphost) tool to retrieve the current TCB.
+
+```sh
+snphost show tcb
+```
+```console
+Reported TCB: TCB Version:
+  Microcode:   72
+  SNP:         23
+  TEE:         0
+  Boot Loader: 9
+  FMC:         None
+Platform TCB: TCB Version:
+  Microcode:   72
+  SNP:         23
+  TEE:         0
+  Boot Loader: 9
+  FMC:         None
+```
+
+Use the values from `Platform TCB` to fill in the `MinimumTCB` values in the generated `manifest.json` file.
+
+:::note[Attention!]
+
+This must be done on a trusted machine, with a secure and trusted connection to it.
+
 :::
 
 </TabItem>
@@ -290,10 +353,19 @@ If you don't know the correct values use `{"BootloaderVersion":255,"TEEVersion":
 contrast generate --reference-values metal-qemu-tdx resources/
 ```
 
-:::note[Missing TCB values]
-On bare-metal TDX, `contrast generate` is unable to fill in the `MinimumTeeTcbSvn` and `MrSeam` TCB values of the created manifest.json as they can vary between platforms.
-They will have to be filled in manually.
-If you don't know the correct values use `ffffffffffffffffffffffffffffffff` and `000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000` respectively and observe the accurate ones in the error messages in the following steps. This should only be done in a secure environment.
+On bare-metal TDX, `contrast generate` is unable to fill in the `MrSeam` value as it depends on your platform configuration.
+It will have to be filled in manually.
+
+`MrSeam` is the SHA384 hash of the TDX module. You can retrieve it by executing
+
+```sh
+sha384sum /boot/efi/EFI/TDX/TDX-SEAM.so | cut -d' ' -f1
+```
+
+:::note[Attention!]
+
+This must be done on a trusted machine, with a secure and trusted connection to it.
+
 :::
 
 </TabItem>
