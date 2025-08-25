@@ -13,14 +13,29 @@ import (
 	"time"
 )
 
+// BlobDigest is the digest of the blob.
+func BlobDigest() string {
+	return blob().digest()
+}
+
 // WrongBlobDigest is a digest for which a blob with a different digest will be served.
 func WrongBlobDigest() string {
 	return digested("BAD BLOB").digest()
 }
 
+// ManifestDigest is the digest of the well-formed manifest.
+func ManifestDigest() string {
+	return manifest().digest()
+}
+
 // WrongManifestDigest is a digest for which an image manifest with a different digest will be served.
 func WrongManifestDigest() string {
 	return digested("BAD MANIFEST").digest()
+}
+
+// IndexDigest is the digest of the well-formed index.
+func IndexDigest() string {
+	return index().digest()
 }
 
 // WrongIndexDigest is a digest for which an image index with a different digest will be served.
@@ -41,6 +56,16 @@ func IndexForWrongManifestDigest() string {
 // IndexForManifestForWrongBlobDigest refers to an image index that's referring to ManifestForWrongBlobDigest.
 func IndexForManifestForWrongBlobDigest() string {
 	return indexForWrongBlob().digest()
+}
+
+// IndexForMissingPlatformDigest refers to an image index which does not contain a linux/amd64 manifest.
+func IndexForMissingPlatformDigest() string {
+	return indexForMissingPlatform().digest()
+}
+
+// UnknownMediaTypeDigest refers to a response of unhandleable media type.
+func UnknownMediaTypeDigest() string {
+	return unknownMediaType().digest()
 }
 
 type digested []byte
@@ -81,7 +106,7 @@ func manifest() digested {
 
 func index() digested {
 	manifest := manifest()
-	return fmt.Appendf(nil, indexTemplate, manifest.digest(), len(manifest))
+	return fmt.Appendf(nil, indexTemplate, manifest.digest(), "amd64", len(manifest))
 }
 
 func manifestForWrongBlob() digested {
@@ -91,12 +116,23 @@ func manifestForWrongBlob() digested {
 
 func indexForWrongManifest() digested {
 	manifest := manifest()
-	return fmt.Appendf(nil, indexTemplate, WrongManifestDigest(), len(manifest))
+	return fmt.Appendf(nil, indexTemplate, WrongManifestDigest(), "amd64", len(manifest))
 }
 
 func indexForWrongBlob() digested {
 	manifest := manifestForWrongBlob()
-	return fmt.Appendf(nil, indexTemplate, manifest.digest(), len(manifest))
+	return fmt.Appendf(nil, indexTemplate, manifest.digest(), "amd64", len(manifest))
+}
+
+func indexForMissingPlatform() digested {
+	manifest := manifest()
+	return fmt.Appendf(nil, indexTemplate, manifest.digest(), "unknown", len(manifest))
+}
+
+func unknownMediaType() digested {
+	blob := blob()
+	config := digested(config)
+	return fmt.Appendf(nil, unknownTemplate, config.digest(), len(config), blob.digest(), len(blob))
 }
 
 const indexTemplate = `
@@ -106,7 +142,7 @@ const indexTemplate = `
       "digest": "%s",
       "mediaType": "application/vnd.oci.image.manifest.v1+json",
       "platform": {
-        "architecture": "amd64",
+        "architecture": "%s",
         "os": "linux"
       },
       "size": %d
@@ -121,6 +157,25 @@ const manifestTemplate = `
 {
   "schemaVersion": 2,
   "mediaType": "application/vnd.oci.image.manifest.v1+json",
+  "config": {
+    "mediaType": "application/vnd.oci.image.config.v1+json",
+    "digest": "%s",
+    "size": %d
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "%s",
+      "size": %d
+    }
+  ]
+}
+`
+
+const unknownTemplate = `
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.oci.unknown.v1+json",
   "config": {
     "mediaType": "application/vnd.oci.image.config.v1+json",
     "digest": "%s",
