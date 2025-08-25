@@ -233,6 +233,11 @@ const sidebars = {
         },
         {
           type: "doc",
+          label: "K8s YAML elements",
+          id: "architecture/k8s-yaml-elements",
+        },
+        {
+          type: "doc",
           label: "Features & limitations",
           id: "architecture/features-limitations",
         },

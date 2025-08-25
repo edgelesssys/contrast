@@ -39,8 +39,11 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: vault
-  annotations:
-    contrast.edgeless.systems/secure-pv: state:share
+spec:
+  template:
+    metadata:
+      annotations:
+        contrast.edgeless.systems/secure-pv: state:share
 ```
 
 The Contrast Initializer, running as an init container, uses the workload secret located at `/contrast/secrets/workload-secret-seed` to generate an encryption key and initialize the block device `state` as a LUKS-encrypted partition.
@@ -60,6 +63,7 @@ spec:
   template:
     metadata:
       annotations:
+        contrast.edgeless.systems/secure-pv: state:share
         contrast.edgeless.systems/workload-secret-id: vault_unsealing
 ```
 
