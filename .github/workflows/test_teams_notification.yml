@@ -1,0 +1,29 @@
+name: test teams notification
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * 0' # 6 AM on Sunday
+  pull_request:
+    paths:
+      - ".github/actions/post_to_teams/**"
+      - ".github/workflows/test_teams_notification.yml"
+
+jobs:
+  notify:
+    name: "Notify teams channel"
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          persist-credentials: false
+      - name: Send notification to Teams
+        uses: ./.github/actions/post_to_teams
+        with:
+          webhook: ${{ secrets.TEAMS_CI_TEST_WEBHOOK }}
+          title: "Weekly Notification Check"
+          message: "weekly check for post-to-teams action"
+          additionalFields: '[{"title": "Job ID", "value": "${{ github.job }}"}]'
+          additionalActions: '[{"type": "Action.OpenUrl", "title": "Contrast Docs", "url": "https://docs.edgeless.systems/contrast"}]'
