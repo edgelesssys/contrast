@@ -60,12 +60,12 @@ func (d *Device) Format(ctx context.Context) error {
 	}
 	args := []string{
 		"luksFormat",
-		"--type=luks2",             // Use LUKS2 header format.
-		"--cipher=aes-xts-plain64", // Use AES-XTS cipher.
-		"--pbkdf=argon2id",         // Use Argon2id as the key derivation function.
-		"--pbkdf-memory=10240",     // Memory usage for Argon2i, limit to 10 MiB so it won't fail in low-memory pods.
-		"--integrity=hmac-sha256",  // Use HMAC-SHA256 for integrity protection via dm-integrity.
-		// "--integrity-no-wipe",
+		"--type=luks2",                          // Use LUKS2 header format.
+		"--cipher=aes-xts-plain64",              // Use AES-XTS cipher.
+		"--pbkdf=argon2id",                      // Use Argon2id as the key derivation function.
+		"--pbkdf-memory=10240",                  // Memory usage for Argon2i, limit to 10 MiB so it won't fail in low-memory pods.
+		"--integrity=hmac-sha256",               // Use HMAC-SHA256 for integrity protection via dm-integrity.
+		"--integrity-no-wipe",                   // Don't wipe the device. This leaves all blocks invalid until they are first written.
 		"--sector-size=4096",                    // Use 4 KiB sector size.
 		"--batch-mode",                          // Suppresses all confirmation questions.
 		fmt.Sprintf("--key-file=%s", d.keyPath), // Path to the key file.
