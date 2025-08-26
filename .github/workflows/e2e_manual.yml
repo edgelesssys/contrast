@@ -17,8 +17,8 @@ on:
           - peerrecovery
           - policy
           - regression
-          - servicemesh
           - secure-image-storage
+          - servicemesh
           - vault
           - volumestatefulset
           - workloadsecret

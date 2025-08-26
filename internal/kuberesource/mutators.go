@@ -21,13 +21,13 @@ import (
 )
 
 const (
-	exposeServiceAnnotation       = "contrast.edgeless.systems/expose-service"
-	contrastRoleAnnotationKey     = "contrast.edgeless.systems/pod-role"
-	skipInitializerAnnotationKey  = "contrast.edgeless.systems/skip-initializer"
-	smIngressConfigAnnotationKey  = "contrast.edgeless.systems/servicemesh-ingress"
-	smEgressConfigAnnotationKey   = "contrast.edgeless.systems/servicemesh-egress"
-	smAdminInterfaceAnnotationKey = "contrast.edgeless.systems/servicemesh-admin-interface-port"
-	securePVAnnotationKey         = "contrast.edgeless.systems/secure-pv"
+	exposeServiceAnnotation             = "contrast.edgeless.systems/expose-service"
+	contrastRoleAnnotationKey           = "contrast.edgeless.systems/pod-role"
+	skipInitializerAnnotationKey        = "contrast.edgeless.systems/skip-initializer"
+	smIngressConfigAnnotationKey        = "contrast.edgeless.systems/servicemesh-ingress"
+	smEgressConfigAnnotationKey         = "contrast.edgeless.systems/servicemesh-egress"
+	smAdminInterfaceAnnotationKey       = "contrast.edgeless.systems/servicemesh-admin-interface-port"
+	securePVAnnotationKey               = "contrast.edgeless.systems/secure-pv"
 	secureImageStorageSizeAnnotationKey = "contrast.edgeless.systems/secure-image-storage-size"
 )
 
@@ -320,11 +320,11 @@ func AddSecureImageStorage(resources []any) []any {
 			WithVolumeDevices(
 				applycorev1.VolumeDevice().
 					WithDevicePath("/dev/trusted_store").
-					WithName("secure-image-storage"),
+					WithName("trusted-store"),
 			)
 
 		ephemeralVolume := Volume().
-			WithName("secure-image-storage").
+			WithName("trusted-store").
 			WithEphemeral(applycorev1.EphemeralVolumeSource().
 				WithVolumeClaimTemplate(applycorev1.PersistentVolumeClaimTemplate().
 					WithSpec(applycorev1.PersistentVolumeClaimSpec().
