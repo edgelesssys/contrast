@@ -38,9 +38,10 @@ const (
 
 // ProxyConfig represents the configuration for the proxy.
 type ProxyConfig struct {
-	egress    []egressConfigEntry
-	ingress   []ingressConfigEntry
-	adminPort uint32
+	egress          []egressConfigEntry
+	ingress         []ingressConfigEntry
+	adminPort       uint32
+	ingressDisabled bool
 }
 type egressConfigEntry struct {
 	name         string
@@ -106,6 +107,19 @@ func ParseProxyConfig(ingressConfig, egressConfig, adminPort string) (ProxyConfi
 		})
 	}
 
+	if adminPort != "" {
+		adminPortInt, err := strconv.Atoi(adminPort)
+		if err != nil {
+			return ProxyConfig{}, fmt.Errorf("invalid admin port: %s", adminPort)
+		}
+		cfg.adminPort = uint32(adminPortInt)
+	}
+
+	if ingressConfig == "DISABLED" {
+		cfg.ingressDisabled = true
+		return cfg, nil
+	}
+
 	for _, entry := range strings.Split(ingressConfig, "##") {
 		if entry == "" {
 			continue
@@ -128,14 +142,6 @@ func ParseProxyConfig(ingressConfig, egressConfig, adminPort string) (ProxyConfi
 			disableTLS: disableTLS,
 		})
 
-	}
-
-	if adminPort != "" {
-		adminPortInt, err := strconv.Atoi(adminPort)
-		if err != nil {
-			return ProxyConfig{}, fmt.Errorf("invalid admin port: %s", adminPort)
-		}
-		cfg.adminPort = uint32(adminPortInt)
 	}
 
 	return cfg, nil
@@ -177,6 +183,17 @@ func (c ProxyConfig) ToEnvoyConfig() ([]byte, error) {
 			return nil, err
 		}
 		clusters = append(clusters, cluster)
+	}
+
+	if c.ingressDisabled {
+		config.StaticResources.Listeners = listeners
+		config.StaticResources.Clusters = clusters
+
+		if err := config.ValidateAll(); err != nil {
+			return nil, err
+		}
+
+		return protojson.Marshal(config)
 	}
 
 	// Create listeners and clusters for ingress traffic.

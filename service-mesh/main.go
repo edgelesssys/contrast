@@ -71,8 +71,10 @@ func run() (retErr error) {
 		return err
 	}
 
-	if err := IngressIPTableRules(pconfig.ingress); err != nil {
-		return fmt.Errorf("failed to set up iptables rules: %w", err)
+	if !pconfig.ingressDisabled {
+		if err := IngressIPTableRules(pconfig.ingress); err != nil {
+			return fmt.Errorf("failed to set up iptables rules: %w", err)
+		}
 	}
 
 	// Remove the default deny rule AFTER we set up the configured iptables rules.
