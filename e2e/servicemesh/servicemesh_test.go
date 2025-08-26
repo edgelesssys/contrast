@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -137,13 +139,88 @@ func TestIngressEgress(t *testing.T) {
 		require.NoError(err)
 		require.Len(backendPods, 1, "pod not found: %s/%s", ct.Namespace, "emoji")
 
-		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "web")
+		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "voting")
 		require.NoError(err)
-		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, "web")
+		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, "voting")
 
-		argv := []string{"curl", "-fsS", net.JoinHostPort(frontendPods[0].Status.PodIP, "9901") + "/stats/prometheus"}
-		stdout, stderr, err := c.Exec(ctx, ct.Namespace, backendPods[0].Name, argv)
+		argv := []string{"curl", "-fsS", net.JoinHostPort(backendPods[0].Status.PodIP, "9901") + "/stats/prometheus"}
+		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
 		require.NoError(err, "Expected Service Mesh admin interface to be reachable.\nstdout: %s\nstderr: %q", stdout, stderr)
+	})
+
+	t.Run("voting works end-to-end", func(t *testing.T) {
+		require := require.New(t)
+
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		defer cancel()
+
+		c := kubeclient.NewForTest(t)
+
+		// Verify that outbound traffic is proxied as expected by checking the number of total votes in the metrics.
+
+		emojiPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "emoji")
+		require.NoError(err)
+		require.Len(emojiPods, 1, "pod not found: %s/%s", ct.Namespace, "emoji")
+
+		ticker := time.NewTicker(2 * time.Second)
+
+		for {
+			select {
+			case <-ctx.Done():
+				require.Fail("No successful grpc calls reported before context expired", ctx.Err())
+			case <-ticker.C:
+			}
+			stdout, stderr, err := c.Exec(ctx, ct.Namespace, emojiPods[0].Name, []string{"curl", "-fsS", "localhost:8801/metrics"})
+			if err != nil {
+				t.Logf("Could not query grpc metrics: %v\nstderr:\n%s", err, stderr)
+				continue
+			}
+
+			metrics, err := (&expfmt.TextParser{}).TextToMetricFamilies(strings.NewReader(stdout))
+			require.NoError(err, "Reply from /metrics endpoint did not parse as metrics")
+
+			const metricName = "grpc_server_handled_total"
+			metricFamily, ok := metrics[metricName]
+			if !ok {
+				t.Log("grpc metrics not yet available")
+				continue
+			}
+
+			total := 0.0
+			for _, metric := range metricFamily.GetMetric() {
+				for _, labelPair := range metric.GetLabel() {
+					if labelPair.Name == nil || *labelPair.Name != "grpc_code" {
+						continue
+					}
+					if labelPair.Value == nil || *labelPair.Value != "OK" {
+						break
+					}
+					total += metric.GetCounter().GetValue()
+				}
+			}
+			if total > 0 {
+				break
+			}
+			t.Logf("No successful grpc calls reported yet.")
+		}
+	})
+
+	t.Run("egress without ingress fails closed", func(t *testing.T) {
+		require := require.New(t)
+
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		defer cancel()
+
+		c := kubeclient.NewForTest(t)
+
+		votingPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "voting")
+		require.NoError(err)
+		require.Len(votingPods, 1, "pod not found: %s/%s", ct.Namespace, "voting")
+
+		stdout, stderr, err := c.ExecContainer(ctx, ct.Namespace, votingPods[0].Name, "contrast-service-mesh", []string{"sh", "-ec", "iptables-save; iptables-legacy-save"})
+		require.NoError(err, "Could not dump iptables.\nstdout: %s\nstderr: %q", stdout, stderr)
+		require.Empty(stderr)
+		require.Contains(stdout, "-j TPROXY")
 	})
 }
 
