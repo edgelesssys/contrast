@@ -15,12 +15,14 @@ import (
 	"os/exec"
 	"os/signal"
 	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/edgelesssys/contrast/internal/cryptsetup"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/spf13/cobra"
+	"golang.org/x/sys/unix"
 )
 
 // cryptsetupFlags holds configuration for mounting a LUKS encrypted device.
@@ -213,22 +215,57 @@ func wipeExt4Blocks(ctx context.Context, devPath string) error {
 	if !ok {
 		return fmt.Errorf("parsing mkfs.ext4 output: delimiter %q not found in output %q", delimiter, out)
 	}
-	blockNums := numsRegexp.FindAllString(blockList, -1)
-	if len(blockNums) == 0 {
+	blockNumStrs := numsRegexp.FindAllString(blockList, -1)
+	if len(blockNumStrs) == 0 {
 		return fmt.Errorf("parsing mkfs.ext4 output: no block numbers found in output %q", out)
 	}
-	blockNums = append(blockNums, "0")
+	blockNums := make([]int64, 0, len(blockNumStrs))
+	for _, s := range blockNumStrs {
+		i, err := strconv.Atoi(s)
+		if err != nil {
+			return fmt.Errorf("parsing mkfs.ext4 output: parsing block number %q: %w", s, err)
+		}
+		if i < 0 {
+			return fmt.Errorf("parsing mkfs.ext4 output: invalid block number %d", i)
+		}
+		blockNums = append(blockNums, int64(i))
+	}
+	blockNums = append(blockNums, 0)
 
-	for _, blockNum := range blockNums {
-		cmd := exec.CommandContext(ctx, "dd", "if=/dev/zero", "bs=4k", "count=1", "oflag=direct",
-			"of="+devPath, "seek="+blockNum)
-		var exitErr *exec.ExitError
-		if out, err := cmd.CombinedOutput(); err != nil && errors.As(err, &exitErr) {
-			return fmt.Errorf("running %s: %w, stdout: %q, stderr: %q", cmd.String(), err, out, exitErr.Stderr)
-		} else if err != nil {
-			return fmt.Errorf("running %s: %w, output: %q", cmd.String(), err, out)
+	if err := zeroBlocksDirect(devPath, blockNums); err != nil {
+		return fmt.Errorf("zeroing blocks on device %s: %w", devPath, err)
+	}
+	return nil
+}
+
+func zeroBlocksDirect(path string, indices []int64) error {
+	// Open with O_DIRECT to bypass page cache.
+	fd, err := unix.Open(path, unix.O_WRONLY|unix.O_DIRECT, 0)
+	if err != nil {
+		return fmt.Errorf("opening %s: %w", path, err)
+	}
+	defer unix.Close(fd)
+
+	const blockSize = 4096
+
+	// Page-aligned zero buffer, required for O_DIRECT.
+	buf, err := unix.Mmap(-1, 0, blockSize, unix.PROT_READ|unix.PROT_WRITE, unix.MAP_ANONYMOUS|unix.MAP_PRIVATE)
+	if err != nil {
+		return fmt.Errorf("allocating zero buffer via mmap: %w", err)
+	}
+	defer func() { _ = unix.Munmap(buf) }()
+
+	for _, index := range indices {
+		offset := index * blockSize
+		for written := 0; written < blockSize; {
+			n, err := unix.Pwrite(fd, buf[written:], offset+int64(written))
+			if err != nil {
+				return fmt.Errorf("writing zero block at index %d (offset %d): %w", index, offset, err)
+			}
+			written += n
 		}
 	}
+
 	return nil
 }
 
