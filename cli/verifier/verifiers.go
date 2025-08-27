@@ -3,8 +3,13 @@
 
 package verifier
 
-// AllVerifiers returns all verifiers for k8s objects.
-func AllVerifiers() []Verifier {
+// AllVerifiersBeforeGenerate returns all verifiers for k8s objects that should be run before generate.
+func AllVerifiersBeforeGenerate() []Verifier {
+	return []Verifier{}
+}
+
+// AllVerifiersAfterGenerate returns all verifiers for k8s objects that should be run after generate.
+func AllVerifiersAfterGenerate() []Verifier {
 	return []Verifier{
 		&NoSharedFSMount{},
 	}

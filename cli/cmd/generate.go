@@ -110,27 +110,9 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		paths = newPaths
 	}
 
-	verifiers := verifier.AllVerifiers()
-	var findings error
-	for _, path := range paths {
-		fileContent, err := os.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("reading file %q to run generate on: %w", path, err)
-		}
-		resources, err := kuberesource.UnmarshalApplyConfigurations(fileContent)
-		if err != nil {
-			return fmt.Errorf("parsing file %q to run generate on: %w", path, err)
-		}
-		for _, v := range verifiers {
-			for _, r := range resources {
-				if err := v.Verify(r); err != nil {
-					findings = errors.Join(findings, fmt.Errorf("failed to verify YAML %q: %w", path, err))
-				}
-			}
-		}
-	}
-	if findings != nil {
-		return findings
+	verifiers := verifier.AllVerifiersBeforeGenerate()
+	if err := runVerifiers(paths, verifiers); err != nil {
+		return err
 	}
 
 	// generate a manifest by checking if a manifest exists and using that,
@@ -240,6 +222,37 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Updated manifest %s\n", flags.manifestPath)
+
+	verifiers = verifier.AllVerifiersAfterGenerate()
+	if err := runVerifiers(paths, verifiers); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runVerifiers(paths []string, verifiers []verifier.Verifier) error {
+	var findings error
+	for _, path := range paths {
+		fileContent, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("reading file %q to run generate on: %w", path, err)
+		}
+		resources, err := kuberesource.UnmarshalApplyConfigurations(fileContent)
+		if err != nil {
+			return fmt.Errorf("parsing file %q to run generate on: %w", path, err)
+		}
+		for _, v := range verifiers {
+			for _, r := range resources {
+				if err := v.Verify(r); err != nil {
+					findings = errors.Join(findings, fmt.Errorf("failed to verify YAML %q: %w", path, err))
+				}
+			}
+		}
+	}
+	if findings != nil {
+		return findings
+	}
 	return nil
 }
 
