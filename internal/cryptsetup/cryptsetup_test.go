@@ -76,14 +76,166 @@ const cryptsetupHeaderDump = `{
 }`
 
 func TestVerifyHeader(t *testing.T) {
-	var metadata cryptsetupMetadata
-	if err := json.Unmarshal([]byte(cryptsetupHeaderDump), &metadata); err != nil {
-		t.Fatalf("Failed to decode header JSON: %v", err)
+	metadataFromDump := func() (cryptsetupMetadata, error) {
+		var metadata cryptsetupMetadata
+		err := json.Unmarshal([]byte(cryptsetupHeaderDump), &metadata)
+		return metadata, err
 	}
 
-	// Verify the header
-	if err := (&Device{}).verifyHeader(metadata); err != nil {
-		t.Errorf("Header verification failed: %v", err)
+	testCases := map[string]struct {
+		mutator func(m *cryptsetupMetadata)
+		wantErr bool
+	}{
+		"can unmarshal and verify real dump": {
+			mutator: func(*cryptsetupMetadata) {},
+		},
+		"no keyslots": {
+			mutator: func(m *cryptsetupMetadata) {
+				m.KeySlots = nil
+			},
+			wantErr: true,
+		},
+		"two keyslots": {
+			mutator: func(m *cryptsetupMetadata) {
+				m.KeySlots["1"] = m.KeySlots["0"]
+			},
+			wantErr: true,
+		},
+		"unexpected keyslot type": {
+			mutator: func(m *cryptsetupMetadata) {
+				slot := m.KeySlots["0"]
+				slot.Type = "luks1"
+				m.KeySlots["0"] = slot
+			},
+			wantErr: true,
+		},
+		"unexpected key length": {
+			mutator: func(m *cryptsetupMetadata) {
+				slot := m.KeySlots["0"]
+				slot.KeySize = 128
+				m.KeySlots["0"] = slot
+			},
+			wantErr: true,
+		},
+		"unexpected area encryption": {
+			mutator: func(m *cryptsetupMetadata) {
+				slot := m.KeySlots["0"]
+				slot.Area.Encryption = "aes-cbc-essiv:sha256"
+				m.KeySlots["0"] = slot
+			},
+			wantErr: true,
+		},
+		"unexpected area key size": {
+			mutator: func(m *cryptsetupMetadata) {
+				slot := m.KeySlots["0"]
+				slot.Area.KeySize = 32
+				m.KeySlots["0"] = slot
+			},
+			wantErr: true,
+		},
+		"unexpected kdf type": {
+			mutator: func(m *cryptsetupMetadata) {
+				slot := m.KeySlots["0"]
+				slot.KDF.Type = "pbkdf2"
+				m.KeySlots["0"] = slot
+			},
+			wantErr: true,
+		},
+		"unexpected tokens": {
+			mutator: func(m *cryptsetupMetadata) {
+				m.Tokens = map[string]struct{}{"0": {}}
+			},
+			wantErr: true,
+		},
+		"no segments": {
+			mutator: func(m *cryptsetupMetadata) {
+				m.Segments = nil
+			},
+			wantErr: true,
+		},
+		"two segments": {
+			mutator: func(m *cryptsetupMetadata) {
+				m.Segments["1"] = m.Segments["0"]
+			},
+			wantErr: true,
+		},
+		"unexpected segment type": {
+			mutator: func(m *cryptsetupMetadata) {
+				seg := m.Segments["0"]
+				seg.Type = "plain"
+				m.Segments["0"] = seg
+			},
+			wantErr: true,
+		},
+		"unexpected segment encryption": {
+			mutator: func(m *cryptsetupMetadata) {
+				seg := m.Segments["0"]
+				seg.Encryption = "aes-cbc-essiv:sha256"
+				m.Segments["0"] = seg
+			},
+			wantErr: true,
+		},
+		"unexpected segment integrity": {
+			mutator: func(m *cryptsetupMetadata) {
+				seg := m.Segments["0"]
+				seg.Integrity.Type = "none"
+				m.Segments["0"] = seg
+			},
+			wantErr: true,
+		},
+		"no digests": {
+			mutator: func(m *cryptsetupMetadata) {
+				m.Digests = nil
+			},
+			wantErr: true,
+		},
+		"two digests": {
+			mutator: func(m *cryptsetupMetadata) {
+				m.Digests["1"] = m.Digests["0"]
+			},
+			wantErr: true,
+		},
+		"unexpected digest type": {
+			mutator: func(m *cryptsetupMetadata) {
+				digest := m.Digests["0"]
+				digest.Type = "argon2id"
+				m.Digests["0"] = digest
+			},
+			wantErr: true,
+		},
+		"unexpected digest keyslots": {
+			mutator: func(m *cryptsetupMetadata) {
+				digest := m.Digests["0"]
+				digest.Keyslots = []string{"1"}
+				m.Digests["0"] = digest
+			},
+			wantErr: true,
+		},
+		"unexpected digest segments": {
+			mutator: func(m *cryptsetupMetadata) {
+				digest := m.Digests["0"]
+				digest.Segments = []string{"1"}
+				m.Digests["0"] = digest
+			},
+			wantErr: true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			metadata, err := metadataFromDump()
+			assert.NoError(err)
+			tc.mutator(&metadata)
+
+			err = (&Device{}).verifyHeader(metadata)
+			if tc.wantErr {
+				assert.Error(err)
+				return
+			}
+			assert.NoError(err)
+		})
 	}
 }
 
