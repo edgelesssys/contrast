@@ -529,7 +529,7 @@ func VolumeStatefulSet() []any {
 					WithVolumeMode(corev1.PersistentVolumeBlock).
 					WithAccessModes(corev1.ReadWriteOnce).
 					WithResources(applycorev1.VolumeResourceRequirements().
-						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
+						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("30Gi")}),
 					),
 				),
 			),
