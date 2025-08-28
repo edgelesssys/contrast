@@ -310,11 +310,12 @@ func TestOpenSSL(t *testing.T) {
 			"[Firmware Bug]: Failed to parse event in TPM Final Events Log",
 			"ACPI BIOS Error (bug): Failure creating named object [\\_GPE._HID], AE_ALREADY_EXISTS (20240827/dswload2-326)",
 			"ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20240827/psobject-220)",
+			"NVRM: No NVIDIA GPU found", // openssl test does not use a GPU
 		}
-		for _, line := range strings.Split(strings.TrimSpace(dmesgOutput), "\n") {
-			require.True(slices.ContainsFunc(knownErrors, func(knownError string) bool {
+		for line := range strings.SplitSeq(strings.TrimSpace(dmesgOutput), "\n") {
+			assert.True(t, slices.ContainsFunc(knownErrors, func(knownError string) bool {
 				return strings.Contains(line, knownError)
-			}), "dmesg line does not contain known error: %s", line)
+			}), "unexpected dmesg error: %q", line)
 		}
 	})
 }
