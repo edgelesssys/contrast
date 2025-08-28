@@ -16,5 +16,5 @@ This step is mandatory for all Contrast deployments.
 Download the Kubernetes resource of the Contrast Coordinator, comprising a single replica deployment and a LoadBalancer service. Put it next to your resources:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.12.1/coordinator.yml --output-dir resources
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.12.2/coordinator.yml --output-dir resources
 ```
