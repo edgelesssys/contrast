@@ -130,7 +130,7 @@ func run(cmd *cobra.Command, _ []string) (retErr error) {
 	for {
 		resp, err = requestCert()
 		if err == nil {
-			log.Info("Requesting cert", "response", resp)
+			log.Info("Successfully requested cert from Coordinator")
 			break
 		}
 		log.Warn("Requesting cert", "err", err)
