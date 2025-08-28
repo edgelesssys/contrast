@@ -18,13 +18,14 @@ import (
 
 // Device is a LUKS device.
 type Device struct {
-	devicePath string
-	headerPath string
-	keyPath    string
+	devicePath  string
+	headerPath  string
+	keyPath     string
+	mappingName string
 }
 
 // NewDevice creates a new Device instance. It doesn't interact with the device itself.
-func NewDevice(devicePath, keyPath string) (*Device, error) {
+func NewDevice(devicePath, keyPath, mappingName string) (*Device, error) {
 	var randSuffix [4]byte
 	_, err := rand.Read(randSuffix[:])
 	if err != nil {
@@ -32,9 +33,10 @@ func NewDevice(devicePath, keyPath string) (*Device, error) {
 	}
 	headerPath := fmt.Sprintf("/dev/shm/contrast-cryptsetup/luks-header-%x", randSuffix)
 	return &Device{
-		devicePath: devicePath,
-		headerPath: headerPath,
-		keyPath:    keyPath,
+		devicePath:  devicePath,
+		headerPath:  headerPath,
+		keyPath:     keyPath,
+		mappingName: mappingName,
 	}, nil
 }
 
@@ -76,7 +78,7 @@ func (d *Device) Format(ctx context.Context) error {
 }
 
 // Open wraps the luksOpen command to open a LUKS device with a detached header.
-func (d *Device) Open(ctx context.Context, mappingName string) error {
+func (d *Device) Open(ctx context.Context) error {
 	if err := d.headerBackup(ctx); err != nil {
 		return fmt.Errorf("backing up LUKS header from device %s to %s: %w", d.devicePath, d.headerPath, err)
 	}
@@ -96,17 +98,17 @@ func (d *Device) Open(ctx context.Context, mappingName string) error {
 		fmt.Sprintf("--header=%s", d.headerPath), // Use the detached header.
 		fmt.Sprintf("--key-file=%s", d.keyPath),  // Path to the key file.
 		d.devicePath,                             // The device to open.
-		mappingName,                              // The name for the mapping.
+		d.mappingName,                            // The name for the mapping.
 	}
 	if _, err = runCryptsetupCmd(ctx, args...); err != nil {
-		return fmt.Errorf("opening LUKS device %s with mapping name %s: %w", d.devicePath, mappingName, err)
+		return fmt.Errorf("opening LUKS device %s with mapping name %s: %w", d.devicePath, d.mappingName, err)
 	}
 	return nil
 }
 
 // Close wraps the luksClose command and closes the LUKS device mapping.
-func (d *Device) Close(ctx context.Context, mappingName string) error {
-	_, err := runCryptsetupCmd(ctx, "luksClose", mappingName)
+func (d *Device) Close(ctx context.Context) error {
+	_, err := runCryptsetupCmd(ctx, "luksClose", d.mappingName)
 	return err
 }
 
