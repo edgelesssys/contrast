@@ -1,7 +1,7 @@
-ghcr.io/edgelesssys/contrast/coordinator:latest=ghcr.io/edgelesssys/contrast/coordinator:v1.12.1@sha256:de8626fb7ad95f9ca2e1840fe44953ed784749b3b710a0f184864f3f0ce7a6e2
-ghcr.io/edgelesssys/contrast/initializer:latest=ghcr.io/edgelesssys/contrast/initializer:v1.12.1@sha256:52166dcaf51eb51cbb41b2ff8adbc63da67370aed44448792a22c4e26f831771
-ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=ghcr.io/edgelesssys/contrast/service-mesh-proxy:v1.12.1@sha256:4d306b2360ab6453bdc12b204465098bedeffe6022021f29bf1f83245d89c061
-ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=ghcr.io/edgelesssys/contrast/node-installer-microsoft:v1.12.1@sha256:4f67968ce523bbbbeffb7941e166aec93a38574eb50f022c98382a31493bde93
-ghcr.io/edgelesssys/contrast/node-installer-kata:latest=ghcr.io/edgelesssys/contrast/node-installer-kata:v1.12.1@sha256:e326b7ae823ab898d496a30f94c60595d189a94ae743696d0361361e77889c2f
-ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:v1.12.1@sha256:f3d869b25651e9a44e58f9c80009cabbf65e67534c760b43466ca9b10835dc99
+ghcr.io/edgelesssys/contrast/coordinator:latest=ghcr.io/edgelesssys/contrast/coordinator:v1.12.2@sha256:dbcc56f4d19882b939f461a71a005cb442e963dc31d59f2e1195d54366575e20
+ghcr.io/edgelesssys/contrast/initializer:latest=ghcr.io/edgelesssys/contrast/initializer:v1.12.2@sha256:4ea7df929545a5e60e44b4bc39a0efda4dba0bd1eccf07b1c91e3cd19284a5fc
+ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=ghcr.io/edgelesssys/contrast/service-mesh-proxy:v1.12.2@sha256:916db4ef5f000cd0f1411924f3e99804c48220f1c582ffffce79f54145c1f9c4
+ghcr.io/edgelesssys/contrast/node-installer-microsoft:latest=ghcr.io/edgelesssys/contrast/node-installer-microsoft:v1.12.2@sha256:2302ddba125a968401bf18a7268ff402dd5a7666a6e51c64f8f29c3fadb1fc22
+ghcr.io/edgelesssys/contrast/node-installer-kata:latest=ghcr.io/edgelesssys/contrast/node-installer-kata:v1.12.2@sha256:86759d17a3643783edf524f72f6d79c9a4551647e2575ac19b890c32b4035422
+ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:v1.12.2@sha256:52755653e93421bec2b65296119fdfd2d7faab5f904698fc6964d3e7961945a9
 ghcr.io/edgelesssys/contrast/tardev-snapshotter:latest=ghcr.io/edgelesssys/contrast/tardev-snapshotter:3.15.0.aks0@sha256:98339808685a03097442eef7e6f5440c2f4976c062f1539e41fd251d96c9c323
