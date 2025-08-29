@@ -12,6 +12,7 @@ on:
           - atls
           - genpolicy-unsupported
           - gpu
+          - imagestore
           - multiple-cpus
           - openssl
           - peerrecovery

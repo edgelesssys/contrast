@@ -32,6 +32,7 @@ let
       "e2e/atls"
       "e2e/genpolicy-unsupported"
       "e2e/gpu"
+      "e2e/imagestore"
       "e2e/multiple-cpus"
       "e2e/openssl"
       "e2e/peerrecovery"
@@ -187,6 +188,7 @@ buildGoModule (finalAttrs: {
             (path.append root "service-mesh")
             (path.append root "tools")
             (path.append root "imagepuller")
+            (path.append root "imagestore")
           ]
         ))
       ];
