@@ -83,7 +83,7 @@ spec:
       runtimeClassName: contrast-cc
       containers:
         - name: web-svc
-          image: ghcr.io/edgelesssys/frontend:v1.2.3@...
+          image: ghcr.io/edgelesssys/frontend:v1.2.3@sha256:...
           ports:
             - containerPort: 8080
               name: web
@@ -100,7 +100,7 @@ spec:
     runtimeClassName: contrast-cc
     containers:
       - name: web-svc
-        image: ghcr.io/edgelesssys/frontend:v1.2.3@...
+        image: ghcr.io/edgelesssys/frontend:v1.2.3@sha256:...
         ports:
           - containerPort: 8080
             name: web
@@ -167,7 +167,7 @@ spec:
       runtimeClassName: contrast-cc
       containers:
         - name: currency-conversion
-          image: ghcr.io/edgelesssys/conversion:v1.2.3@...
+          image: ghcr.io/edgelesssys/conversion:v1.2.3@sha256:...
 ```
 
 ## Public key Infrastructure
