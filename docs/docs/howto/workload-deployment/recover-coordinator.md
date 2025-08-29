@@ -36,7 +36,7 @@ metadata:
 spec:
   containers:
     - name: port-forwarder
-      image: alpine/socat
+      image: "alpine/socat@sha256:..."
       args:
         - -d
         - TCP-LISTEN:1313,fork
