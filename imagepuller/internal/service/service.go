@@ -10,12 +10,23 @@ import (
 
 	"github.com/containers/storage"
 	"github.com/edgelesssys/contrast/imagepuller/internal/api"
+	"github.com/google/go-containerregistry/pkg/name"
+	gcr "github.com/google/go-containerregistry/pkg/v1"
+	gcrRemote "github.com/google/go-containerregistry/pkg/v1/remote"
 )
+
+// Remote allows stubbing remote calls.
+type Remote interface {
+	Head(ref name.Reference, options ...gcrRemote.Option) (*gcr.Descriptor, error)
+	Image(ref name.Reference, opts ...gcrRemote.Option) (gcr.Image, error)
+	Index(ref name.Reference, opts ...gcrRemote.Option) (gcr.ImageIndex, error)
+}
 
 // ImagePullerService is the struct for which the PullImage ttRPC service is implemented.
 type ImagePullerService struct {
 	Logger *slog.Logger
 	Store  storage.Store
+	Remote Remote
 }
 
 // PullImage is a ttRPC service which pulls and mounts docker images.
