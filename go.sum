@@ -1,5 +1,5 @@
-filippo.io/bigmod v0.1.0 h1:UNzDk7y9ADKST+axd9skUpBQeW7fG2KrTZyOE4uGQy8=
-filippo.io/bigmod v0.1.0/go.mod h1:OjOXDNlClLblvXdwgFFOQFJEocLhhtai8vGLy0JCZlI=
+filippo.io/bigmod v0.0.3 h1:qmdCFHmEMS+PRwzrW6eUrgA4Q3T8D6bRcjsypDMtWHM=
+filippo.io/bigmod v0.0.3/go.mod h1:WxGvOYE0OUaBC2N112Dflb3CjOnMBuNRA2UWZc2UbPE=
 filippo.io/keygen v0.0.0-20250626140535-790df0a991a0 h1:SwGfqr/8gvAcvfGe8QQEV4ul3Tww7jEpo2QJ3v51kgg=
 filippo.io/keygen v0.0.0-20250626140535-790df0a991a0/go.mod h1:nAs0+DyACEQGudhkTwlPC9atyqDYC7ZotgZR7D8OwXM=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
