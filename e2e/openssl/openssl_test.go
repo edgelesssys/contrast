@@ -312,7 +312,12 @@ func TestOpenSSL(t *testing.T) {
 			"ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20240827/psobject-220)",
 			"NVRM: No NVIDIA GPU found", // openssl test does not use a GPU
 		}
-		for line := range strings.SplitSeq(strings.TrimSpace(dmesgOutput), "\n") {
+		for line := range strings.SplitSeq(dmesgOutput, "\n") {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				continue
+			}
+			t.Logf("Analyzing dmesg log line %q", line)
 			assert.True(t, slices.ContainsFunc(knownErrors, func(knownError string) bool {
 				return strings.Contains(line, knownError)
 			}), "unexpected dmesg error: %q", line)
