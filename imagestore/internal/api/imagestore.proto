@@ -1,0 +1,21 @@
+// source: https://github.com/kata-containers/kata-containers/blob/997a1f35ab68ad8cc2b24e8e20ea63f7de82acf9/src/libs/protocols/protos/confidential_data_hub.proto
+syntax = "proto3";
+
+package api;
+
+option go_package = "github.com/edgelesssys/contrast/imagestore/internal/api";
+
+service SecureMountService {
+    rpc SecureMount(SecureMountRequest) returns (SecureMountResponse) {};
+}
+
+message SecureMountRequest {
+    string volume_type = 1;
+    map<string, string> options = 2;
+    repeated string flags = 3;
+    string mount_point = 4;
+}
+
+message SecureMountResponse {
+    string mount_path = 1;
+}

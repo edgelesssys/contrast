@@ -64,6 +64,7 @@ lib.makeOverridable (
             pause-bundle
             tdx-tools
             imagepuller
+            imagestore
             ;
           inherit (outerPkgs.kata)
             kata-agent
