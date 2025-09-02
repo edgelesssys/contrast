@@ -26,7 +26,7 @@ rustPlatform.buildRustPackage rec {
     lockFile = "${src}/src/agent/Cargo.lock";
     outputHashes = {
       "cgroups-rs-0.3.5" = "sha256-BKD1ZPK5LqB/n2xD/oODArVKjbH+MQOeYn/UYbBHzn0=";
-      "cdi-0.1.0" = "sha256-DbXa6h678WYdBdQrVpetkfY8QzamW9lZIjd0u1fQgd4=";
+      "cdi-0.1.0" = "sha256-1F1kqZy/9MokzIwX6k1DbmgYWtbUrMUVDtSkV3aTJqc=";
       "s390_pv_core-0.11.0" = "sha256-P275gUoF4JtaKvKPvzhCsBuo882kKCYebtNpCDEmTP0=";
     };
   };

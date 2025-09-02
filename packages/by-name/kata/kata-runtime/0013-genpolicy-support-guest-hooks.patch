@@ -17,7 +17,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  3 files changed, 20 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index d3ca5a94c7e012b1b06d5f82672b011557843887..17738788db26432e33296841345a9779dccecdae 100644
+index 0ab7fbd5b7f1509795930a946d3185773cc14f33..fa108b23a9f867a7b29637987d72141bcfc7e724 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -247,7 +247,8 @@
@@ -31,10 +31,10 @@ index d3ca5a94c7e012b1b06d5f82672b011557843887..17738788db26432e33296841345a9779
      "common": {
          "cpath": "/run/kata-containers",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 2e9bdde5170214c0d279ae75098b838f82a34cd3..50490d8ed59eece25da80dcc3ca21ac193868101 100644
+index f487bac46746bb361976f8a88f08312694d76d51..242b37633026996e50bdf74eb3426db3f0981ca6 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1415,7 +1415,7 @@ CopyFileRequest if {
+@@ -1404,7 +1404,7 @@ CopyFileRequest if {
  
  CreateSandboxRequest if {
      print("CreateSandboxRequest: input.guest_hook_path =", input.guest_hook_path)
@@ -43,7 +43,7 @@ index 2e9bdde5170214c0d279ae75098b838f82a34cd3..50490d8ed59eece25da80dcc3ca21ac1
  
      print("CreateSandboxRequest: input.kernel_modules =", input.kernel_modules)
      count(input.kernel_modules) == 0
-@@ -1426,6 +1426,21 @@ CreateSandboxRequest if {
+@@ -1415,6 +1415,21 @@ CreateSandboxRequest if {
      allow_sandbox_storages(input.storages)
  }
  
@@ -66,7 +66,7 @@ index 2e9bdde5170214c0d279ae75098b838f82a34cd3..50490d8ed59eece25da80dcc3ca21ac1
      print("allow_exec: start")
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 997c061ff48f5476f801978e42d84004a0328d66..7d79e01edb42e822d40f2f480f9e4f1732ae0a66 100644
+index 27e549c23d52e99ed14c63fe7a1d0f94bc955cf9..14e2f7f2dde55ac65fd4cacece0f151575d9e785 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -439,6 +439,8 @@ pub struct ClusterConfig {

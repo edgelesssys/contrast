@@ -12,14 +12,14 @@
 
 buildGoModule (finalAttrs: {
   pname = "kata-runtime";
-  version = "3.18.0";
+  version = "3.19.1";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = finalAttrs.version;
-      hash = "sha256-556EhLJ+tJCE7ZJWdoe07NmK6beXfN0KN7CI9ZDl3rI=";
+      hash = "sha256-h9Jsto2l1NhQEwIQoecT/D+yt/QbGoqqH/l6NNzJOwk=";
     };
 
     patches = [
@@ -145,52 +145,47 @@ buildGoModule (finalAttrs: {
       # TODO(burgerdev): upstream
       ./0018-genpolicy-match-sandbox-name-by-regex.patch
 
-      # This patch fixes an issue where genpolicy can corrupt the layer cache file due to simultaneous
-      # read/write operations on the file, instead implementing an in-memory caching solution.
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11426
-      ./0019-genpolicy-keep-layers-cache-in-memory-to-prevent-cor.patch
-
       # Don't add storages for volumes declared in the image config.
       # This fixes a security issue where the host is able to write untrusted content to paths
       # under these volumes, by failing the policy generation if volumes without mounts are found.
       # TODO(burgerdev): open upstream issue after disclosure.
-      ./0020-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
+      ./0019-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
 
       # Imagepulling has moved into the CDH in Kata 3.18.0. Since we are not using the CDH,we are instead starting our own Imagepuller.
       # This patch redirects calls by upstream's PullImage ttRPC client implementation to communicate with our imagepuller ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0021-agent-use-custom-implementation-for-image-pulling.patch
+      ./0020-agent-use-custom-implementation-for-image-pulling.patch
 
       # This patch regenerates the Go proto bindings, which are out of date upstream, in order to
       # reduce the diff when generating in subsequent patches.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11632.
-      ./0022-runtime-generate-protos.patch
+      ./0021-runtime-generate-protos.patch
 
       # This patch gzips the policy annotation in order to reduce its size and circumvent
       # Kubernetes annotation size limits. It won't be upstreamed, because the designated successor
       # to SetPolicy, initdata, is already compressed at the annotation level.
       # TODO(burgerdev): remove after moving to initdata.
-      ./0023-misc-use-compressed-policy.patch
+      ./0022-misc-use-compressed-policy.patch
 
       # Add rules to allow AddARPNeighbors.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11663.
-      ./0024-genpolicy-add-rule-for-AddARPNeighbors.patch
+      ./0023-genpolicy-add-rule-for-AddARPNeighbors.patch
 
       # Allow setting the SNP guest policy via Kata configuration.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11675
-      ./0025-runtime-make-SNP-guest-policy-configurable.patch
+      ./0024-runtime-make-SNP-guest-policy-configurable.patch
 
       # Changes the unix socket used for ttRPC communication with the imagepuller.
       # Necessary to allow a separate imagestore service.
       # Can be removed in conjunction with patch 0021.
-      ./0026-agent-use-separate-unix-socket-for-image-pulling.patch
+      ./0025-agent-use-separate-unix-socket-for-image-pulling.patch
 
       # Secure mounting is part of the CDH in Kata. Since we are not using the CDH, we are instead reimplementing it.
       # This patch redirects calls by upstream's SecureImageStore ttRPC client implementation to communicate with our own ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0027-agent-use-custom-implementation-for-secure-mounting.patch
+      ./0026-agent-use-custom-implementation-for-secure-mounting.patch
     ];
   };
 

@@ -14,7 +14,7 @@ NOTE: fixes https://github.com/kata-containers/kata-containers/issues/10065
  1 file changed, 8 insertions(+), 21 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 5db3cc629c09dd95e7d8ec6a9507ed57e7e39168..01a7364f7f71f37b70ec32468c103f0b4402c2d5 100644
+index f073c8c4de7c44d868be21da12586b3c37b7ff08..e72890f88e59effa2918169c146b2d9f2d319e9e 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -652,9 +652,6 @@ allow_linux_sysctl(p_linux, i_linux) if {
@@ -43,7 +43,7 @@ index 5db3cc629c09dd95e7d8ec6a9507ed57e7e39168..01a7364f7f71f37b70ec32468c103f0b
  
      # Match each input mount with a Policy mount.
      # Reject possible attempts to match multiple input mounts with a single Policy mount.
-@@ -962,23 +966,6 @@ is_ip_other_byte(component) if {
+@@ -961,23 +965,6 @@ is_ip_other_byte(component) if {
      number <= 255
  }
  

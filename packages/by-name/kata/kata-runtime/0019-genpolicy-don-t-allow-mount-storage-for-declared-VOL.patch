@@ -5,14 +5,14 @@ Subject: [PATCH] genpolicy: don't allow mount/storage for declared VOLUMEs
 
 Signed-off-by: Markus Rudy <mr@edgeless.systems>
 ---
- src/tools/genpolicy/genpolicy-settings.json  | 12 -----
- src/tools/genpolicy/src/mount_and_storage.rs | 55 --------------------
+ src/tools/genpolicy/genpolicy-settings.json  | 12 ------
+ src/tools/genpolicy/src/mount_and_storage.rs | 43 --------------------
  src/tools/genpolicy/src/settings.rs          |  1 -
- src/tools/genpolicy/src/yaml.rs              | 19 +++----
- 4 files changed, 8 insertions(+), 79 deletions(-)
+ src/tools/genpolicy/src/yaml.rs              | 14 ++++---
+ 4 files changed, 8 insertions(+), 62 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 4cf7504ff9d4ef42b1dec5fe39781c7ead2fb0b2..62db4a2a4d74c3593b0f5064a093a9f6de6920ea 100644
+index 6f9d8a9c90fc33b33ab4d23955a38b7c8d06e6c7..5481776e9641b5a12abb3197b62d051f689c96d8 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -206,18 +206,6 @@
@@ -35,10 +35,10 @@ index 4cf7504ff9d4ef42b1dec5fe39781c7ead2fb0b2..62db4a2a4d74c3593b0f5064a093a9f6
      },
      "mount_destinations": [
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 3e9376e77562f9e18d7160859377175e12ca783d..87de0fb6aa27284e43fa23746b379fb778005ee9 100644
+index 7c9b2c3b9909bab2b8970e606b0440441590b8ff..87de0fb6aa27284e43fa23746b379fb778005ee9 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -377,58 +377,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
+@@ -377,46 +377,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
          });
      }
  }
@@ -46,7 +46,6 @@ index 3e9376e77562f9e18d7160859377175e12ca783d..87de0fb6aa27284e43fa23746b379fb7
 -pub fn get_image_mount_and_storage(
 -    settings: &settings::Settings,
 -    p_mounts: &mut Vec<policy::KataMount>,
--    storages: &mut Vec<agent::Storage>,
 -    destination: &str,
 -) {
 -    // https://github.com/kubernetes/examples/blob/master/cassandra/image/Dockerfile
@@ -75,17 +74,6 @@ index 3e9376e77562f9e18d7160859377175e12ca783d..87de0fb6aa27284e43fa23746b379fb7
 -        settings_image
 -    );
 -
--    storages.push(agent::Storage {
--        driver: settings_image.driver.clone(),
--        driver_options: Vec::new(),
--        source: settings_image.source.clone(),
--        fstype: settings_image.fstype.clone(),
--        options: settings_image.options.clone(),
--        mount_point: destination_string.clone(),
--        fs_group: protobuf::MessageField::none(),
--        special_fields: ::protobuf::SpecialFields::new(),
--    });
--
 -    let file_name = Path::new(&destination_string).file_name().unwrap();
 -    let name = OsString::from(file_name).into_string().unwrap();
 -    let source = format!("{}{name}$", &settings_image.mount_source);
@@ -110,7 +98,7 @@ index b7f0515d17c1607985676c178b72b48ae9e38ece..fdd69c70d05f137dcbee328e8ffe95ac
  
  /// EmptyDir volume settings loaded from genpolicy-settings.json.
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 938dc64437f4ff4a2b9daf969a01059f5155e50b..0c2ca5921151b385b5873c90dfe12021bde43c1f 100644
+index 0602105cf6b8338f8966a8ae3fa85d972993eb71..0c2ca5921151b385b5873c90dfe12021bde43c1f 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -27,6 +27,7 @@ use crate::volume;
@@ -129,7 +117,7 @@ index 938dc64437f4ff4a2b9daf969a01059f5155e50b..0c2ca5921151b385b5873c90dfe12021
      if let Some(volumes) = volumes_option {
          if let Some(volume_mounts) = &container.volumeMounts {
              for volume in volumes {
-@@ -302,24 +304,19 @@ pub fn get_container_mounts_and_storages(
+@@ -302,19 +304,19 @@ pub fn get_container_mounts_and_storages(
                              volume,
                              volume_mount,
                          );
@@ -147,12 +135,7 @@ index 938dc64437f4ff4a2b9daf969a01059f5155e50b..0c2ca5921151b385b5873c90dfe12021
 -        for volume in volumes {
 -            debug!("get_container_mounts_and_storages: {:?}", &volume);
 -
--            mount_and_storage::get_image_mount_and_storage(
--                settings,
--                policy_mounts,
--                storages,
--                volume.0,
--            );
+-            mount_and_storage::get_image_mount_and_storage(settings, policy_mounts, volume.0);
 +        let volumePaths: BTreeSet<_> = volumes.keys().cloned().collect();
 +        let uncoveredPaths: Vec<String> = volumePaths.difference(&mountPaths).cloned().collect();
 +        if uncoveredPaths.len() > 0 {

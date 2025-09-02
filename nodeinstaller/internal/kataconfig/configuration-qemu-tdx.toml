@@ -67,7 +67,7 @@ valid_hypervisor_paths = ["PLACEHOLDER_FOR_DISTRO_QEMU_WITH_TDX_SUPPORT"]
 # may stop the virtual machine from booting.
 # To see the list of default parameters, enable hypervisor debug, create a
 # container and look for 'default-kernel-parameters' log entries.
-kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1 rootfs_verity.scheme=dm-verity rootfs_verity.hash=34545e6d28a125b156fa9100e6ac964aab2778cb36bc304f8146f9d87f85a6ba"
+kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1 rootfs_verity.scheme=dm-verity rootfs_verity.hash=9bacdb440ca2df24565d5aec2c105df9f62803d52cf3b1664fbc341af4400f4f"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty
