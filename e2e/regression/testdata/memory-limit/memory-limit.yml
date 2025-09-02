@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  runtimeClassName: contrast-cc
+  initContainers:
+    - name: test-init-container
+      image: ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b
+      command:
+        - bash
+        - -c
+        - |
+          maxmem=$(cat /sys/fs/cgroup/memory.max)
+          if [[ "$maxmem" != "52428800" ]]; then
+            echo "got max memory: $maxmem, expected: 52428800"
+            exit 1
+          fi
+      resources:
+        limits:
+          memory: 52428800
+    - name: test-sidecar-container
+      image: ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b
+      command:
+        - bash
+        - -c
+        - |
+          maxmem=$(cat /sys/fs/cgroup/memory.max)
+          if [[ "$maxmem" != "209715200" ]]; then
+            echo "got max memory: $maxmem, expected: 209715200"
+            exit 1
+          fi
+          touch /done
+          sleep inf
+      readinessProbe:
+        exec:
+          command:
+            - bash
+            - -c
+            - test -f /done
+        initialDelaySeconds: 1
+        periodSeconds: 5
+      resources:
+        limits:
+          memory: 209715200
+      restartPolicy: Always
+  containers:
+    - name: test-container
+      image: ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b
+      command:
+        - bash
+        - -c
+        - |
+          maxmem=$(cat /sys/fs/cgroup/memory.max)
+          if [[ "$maxmem" != "104857600" ]]; then
+            echo "got max memory: $maxmem, expected: 104857600"
+            exit 1
+          fi
+          touch /done
+          sleep inf
+      readinessProbe:
+        exec:
+          command:
+            - bash
+            - -c
+            - test -f /done
+        initialDelaySeconds: 1
+        periodSeconds: 5
+      resources:
+        limits:
+          memory: 104857600
