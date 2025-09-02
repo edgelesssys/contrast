@@ -56,6 +56,11 @@
       command = "${lib.getExe pkgs.scripts.lint-no-debug}";
       includes = [ "*.nix" ];
     };
+    renovate = {
+      command = "${lib.getExe' pkgs.renovate "renovate-config-validator"}";
+      options = [ "--strict" ];
+      includes = [ "renovate.json5" ];
+    };
     vale = {
       command = "${
         pkgs.vale.withStyles (
