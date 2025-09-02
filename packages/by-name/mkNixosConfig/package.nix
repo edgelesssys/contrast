@@ -8,10 +8,6 @@
 }:
 
 let
-  # 'nixos' uses 'pkgs' from the point in time where nixpkgs function is evaluated. According
-  # to the documentation, we should be able to overwrite 'pkgs' by setting nixpkgs.pkgs in
-  # the config, but that doesn't seem to work. We use an overlay for now instead.
-  # TODO(katexochen): Investigate why the config option doesn't work.
   outerPkgs = pkgs;
 
   readModulesDir =
@@ -57,23 +53,7 @@ lib.makeOverridable (
         };
       };
 
-      # TODO(katexochen): imporve, see comment above.
-      nixpkgs.overlays = [
-        (_self: _super: {
-          inherit (outerPkgs)
-            pause-bundle
-            tdx-tools
-            imagepuller
-            imagestore
-            ;
-          inherit (outerPkgs.kata)
-            kata-agent
-            kata-runtime
-            kata-kernel-uvm
-            ;
-        })
-      ];
-
+      nixpkgs.pkgs = outerPkgs;
     }
     // args
   )

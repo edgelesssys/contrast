@@ -3,7 +3,6 @@
 
 {
   lib,
-  contrast-releases, # TODO(katexochen): nix: remove when package available from overlay
   callPackage,
   callPackages,
 }:
@@ -18,9 +17,7 @@ let
     // {
       default = self.development;
     }
-    // callPackages ./contrast-releases.nix {
-      inherit contrast-releases; # TODO(katexochen): nix: remove when package available from overlay
-    };
+    // callPackages ./contrast-releases.nix { };
 in
 
 self
