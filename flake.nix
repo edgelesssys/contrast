@@ -37,23 +37,22 @@
           overlays = [
             (final: _prev: { fenix = self.inputs.fenix.packages.${final.system}; })
             (import ./overlays/nixpkgs.nix)
+            (import ./overlays/contrast.nix)
           ];
           config.allowUnfree = true;
           config.nvidia.acceptLicense = true;
         };
-        inherit (pkgs) lib;
-        treefmtEval = treefmt-nix.lib.evalModule (pkgs // ourPkgs) ./treefmt.nix;
-        ourPkgs = import ./packages { inherit pkgs lib; };
+        treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
       in
 
       {
-        devShells = pkgs.callPackages ./dev-shells { inherit (ourPkgs) contrast-releases; };
+        devShells = pkgs.callPackages ./dev-shells { };
 
         formatter = treefmtEval.config.build.wrapper;
 
         checks.formatting = treefmtEval.config.build.check self;
 
-        legacyPackages = pkgs // ourPkgs;
+        legacyPackages = pkgs.contrastPkgs;
       }
     );
 
