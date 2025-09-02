@@ -15,7 +15,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  3 files changed, 21 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 8dbe524ae2c42172ed08a03bd5e570e8a1accd3d..3e9376e77562f9e18d7160859377175e12ca783d 100644
+index 0ac915fe78b3ebb3bd85e53c2d47534fd01eb4cd..7c9b2c3b9909bab2b8970e606b0440441590b8ff 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
 @@ -130,7 +130,7 @@ pub fn get_mount_and_storage(

@@ -17,10 +17,10 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  9 files changed, 43 insertions(+), 15 deletions(-)
 
 diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
-index d7df3ea97d448189f198c39d2f09d337b253b695..ca193fffc201517a22767598f9740056c1c594ed 100644
+index 8a6d9bb609829a6c46962420ddee5d0f19c0e2b2..717d2d8aa2d2636b6eae1681fc396b1061d1facb 100644
 --- a/src/agent/Cargo.lock
 +++ b/src/agent/Cargo.lock
-@@ -2132,6 +2132,7 @@ name = "kata-agent-policy"
+@@ -2115,6 +2115,7 @@ name = "kata-agent-policy"
  version = "0.1.0"
  dependencies = [
   "anyhow",
@@ -95,10 +95,10 @@ index 5caf0c99c4484c46f9ae03f85228d674eef19c23..bfe69d9bb176d4961a85a26682dfaa00
      info!(sl!(), "policy: calculated digest ({:?})", digest);
      ensure!(
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
-index 13c48f4104233b340493e87a80f4b2de6f419c4f..27c4254225eca6c8c46c73b947ed1a3b48fcc469 100644
+index 288c9a0d79b878505495f8f0dbc727d28ef84c29..240f382e4d8c9b80c45b562f78d9557a8eac048c 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
-@@ -425,7 +425,7 @@ async fn start_sandbox(
+@@ -424,7 +424,7 @@ async fn start_sandbox(
              AGENT_POLICY
                  .lock()
                  .await
@@ -121,10 +121,10 @@ index ac186fe935ae57dca4980d92def226aa6ba006d2..3c85949b881a404297c0c8e871df5d51
  
  message MemAgentMemcgConfig {
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index da49555224fb9e2459cafd2e5eda08e743220377..4849169921230121499dd2ea259a6122e099f8b9 100644
+index fd194985aefa5e6fccecb3d30e621a55374a8e74..c57dcb9aeb9b528d56cff01f3306ccce40fd609a 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
-@@ -2693,7 +2693,7 @@ func (k *kataAgent) resizeGuestVolume(ctx context.Context, volumeGuestPath strin
+@@ -2682,7 +2682,7 @@ func (k *kataAgent) resizeGuestVolume(ctx context.Context, volumeGuestPath strin
  }
  
  func (k *kataAgent) setPolicy(ctx context.Context, policy string) error {
@@ -170,10 +170,10 @@ index 49bcaba24d333fb91e66173416b3c969e8afbfc1..807c2b7d16fda3b7950cdf4736471922
  	0x6d, 0x63, 0x67, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x1f, 0x0a, 0x08, 0x64, 0x69, 0x73,
  	0x61, 0x62, 0x6c, 0x65, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x48, 0x00, 0x52, 0x08, 0x64,
 diff --git a/src/tools/genpolicy/Cargo.lock b/src/tools/genpolicy/Cargo.lock
-index 96faae9ad7c8ab2a11b5f2eebbdd648423c82a79..1979ea34cda0f6ef860b1d242751bef8ad37dcb4 100644
+index d87987da00ed6bcc2c46b162e1c3ede608483694..b4b1f9ca3d511fd6f2eab989791abe81cd70f9b1 100644
 --- a/src/tools/genpolicy/Cargo.lock
 +++ b/src/tools/genpolicy/Cargo.lock
-@@ -75,6 +75,19 @@ dependencies = [
+@@ -119,6 +119,19 @@ dependencies = [
   "wait-timeout",
  ]
  
@@ -193,7 +193,7 @@ index 96faae9ad7c8ab2a11b5f2eebbdd648423c82a79..1979ea34cda0f6ef860b1d242751bef8
  [[package]]
  name = "async-trait"
  version = "0.1.68"
-@@ -1289,6 +1302,7 @@ name = "kata-agent-policy"
+@@ -1482,6 +1495,7 @@ name = "kata-agent-policy"
  version = "0.1.0"
  dependencies = [
   "anyhow",
@@ -202,7 +202,7 @@ index 96faae9ad7c8ab2a11b5f2eebbdd648423c82a79..1979ea34cda0f6ef860b1d242751bef8
   "nix 0.24.3",
   "regorus",
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 10de9e825bb238e37da210a2b73ccfd62e20394c..ae27d0db4621ec1a4a4ad402e6fd688adced4fca 100644
+index 3afb88d9991975ddfecacf84d2b3a3ace020ecef..001dd42856506747c2e3c582c9e218ac93aa2824 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -578,7 +578,14 @@ impl AgentPolicy {

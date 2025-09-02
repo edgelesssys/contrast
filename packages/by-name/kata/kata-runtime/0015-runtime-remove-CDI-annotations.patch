@@ -9,7 +9,7 @@ We want to remove CDI annotations before they get to the agent, as they should o
  1 file changed, 12 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index f287d4d1d252f243b78585c3b26f0ff3c79fea11..da49555224fb9e2459cafd2e5eda08e743220377 100644
+index 7cbe478bbc1d9188e403e7fe30151b26803053d2..fd194985aefa5e6fccecb3d30e621a55374a8e74 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
 @@ -15,6 +15,7 @@ import (

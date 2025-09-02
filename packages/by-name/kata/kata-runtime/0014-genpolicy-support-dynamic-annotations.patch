@@ -15,22 +15,22 @@ where `XY` corresponds to a dynamic ID.
  3 files changed, 25 insertions(+), 7 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 17738788db26432e33296841345a9779dccecdae..4cf7504ff9d4ef42b1dec5fe39781c7ead2fb0b2 100644
+index fa108b23a9f867a7b29637987d72141bcfc7e724..6f9d8a9c90fc33b33ab4d23955a38b7c8d06e6c7 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
-@@ -316,7 +316,10 @@
-             "CAP_PERFMON",
+@@ -317,7 +317,10 @@
              "CAP_BPF",
              "CAP_CHECKPOINT_RESTORE"
--        ]
-+        ],
+         ],
+-        "image_layer_verification" : "none"
++        "image_layer_verification" : "none",
 +        "dynamic_annotations": {
 +            "^cdi\\.k8s\\.io\\/vfio[0-9]{2}$": "^nvidia.com/gpu=[0-9]+$"
 +        }
      },
      "kata_config": {
-         "confidential_guest": false,
-@@ -342,7 +345,8 @@
+         "confidential_guest": true,
+@@ -343,7 +346,8 @@
                  "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
                  "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
@@ -41,7 +41,7 @@ index 17738788db26432e33296841345a9779dccecdae..4cf7504ff9d4ef42b1dec5fe39781c7e
          },
          "UpdateInterfaceRequest": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 50490d8ed59eece25da80dcc3ca21ac193868101..5bff82ec84654e571d4c7472bcadc7b932b35e3c 100644
+index 242b37633026996e50bdf74eb3426db3f0981ca6..ad0c575eebe6d81b06aba61bbb55c503badb141a 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -230,18 +230,26 @@ allow_anno(p_oci, i_oci) if {
@@ -77,13 +77,13 @@ index 50490d8ed59eece25da80dcc3ca21ac193868101..5bff82ec84654e571d4c7472bcadc7b9
      print("allow_anno_key 1: i key =", i_key)
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 7d79e01edb42e822d40f2f480f9e4f1732ae0a66..83a44cab8a7dfc05853d137f9e76ffb6bf64452b 100644
+index 14e2f7f2dde55ac65fd4cacece0f151575d9e785..bfd22e5328ae326a9f94c6e41b8c5eb594025d20 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -421,6 +421,12 @@ pub struct CommonData {
  
-     /// Default capabilities for a privileged container.
-     pub privileged_caps: Vec<String>,
+     /// Parse Container image as a storage object
+     pub image_layer_verification: String,
 +
 +    /// Dynamic annotations contains arbitrary metadata for the container.
 +    /// It is different to `KataSpec.Annotations` in that it allows dynamic keys *and*
