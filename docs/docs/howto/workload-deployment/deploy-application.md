@@ -26,3 +26,10 @@ kubectl apply -f resources/
 ```
 
 Until [a manifest is set](set-manifest.md), the Coordinator will report unready and the workload pods will stay in the initialization phase.
+
+:::warning
+
+Don't use `kubectl apply -n` to specify the namespace you want to deploy your application to.
+The namespace must be included in the deployment files presented to [`contrast generate`](./generate-annotations.md), as Contrast enforced the namespace as part of the [runtime policies](../../architecture/components/policies.md).
+
+:::
