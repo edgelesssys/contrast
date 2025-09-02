@@ -311,6 +311,13 @@ func TestOpenSSL(t *testing.T) {
 			"ACPI BIOS Error (bug): Failure creating named object [\\_GPE._HID], AE_ALREADY_EXISTS (20240827/dswload2-326)",
 			"ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20240827/psobject-220)",
 			"NVRM: No NVIDIA GPU found", // openssl test does not use a GPU
+			// This is logged when pages are read from dm-integrity protected, uninitialized/unwiped pages.
+			// This happens in the IsExt4 check of our cryptsetup lib and in other places.
+			"INTEGRITY AEAD ERROR",
+			"Buffer I/O error on dev dm-",
+			// This happens when we mount ext4, just the kernel checking for the right filesystem.
+			"couldn't mount as ext3 due to feature incompatibilities",
+			"couldn't mount as ext2 due to feature incompatibilities",
 		}
 		for line := range strings.SplitSeq(dmesgOutput, "\n") {
 			line = strings.TrimSpace(line)
