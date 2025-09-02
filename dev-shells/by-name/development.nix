@@ -33,5 +33,6 @@ mkShell {
   shellHook = ''
     alias make=just
     export DO_NOT_TRACK=1
+    export CGO_ENABLED=0
   '';
 }
