@@ -6,7 +6,11 @@ package verifier
 // AllVerifiersBeforeGenerate returns all verifiers for k8s objects that should be run before generate.
 func AllVerifiersBeforeGenerate() []Verifier {
 	return []Verifier{
-		&ImageRefValid{},
+		// Contrast images are replaced during generate, so we can't check they are pinned
+		// at this point. We run the verifier again after generate to be sure the images
+		// we injected are pinned, too. We run the verifier here for all other images, to
+		// give users early feedback before we pull images in generate that aren't pinned.
+		&ImageRefValid{ExcludeContrastImages: true},
 		&ServiceMeshEgressNotEmpty{},
 	}
 }
@@ -15,6 +19,7 @@ func AllVerifiersBeforeGenerate() []Verifier {
 func AllVerifiersAfterGenerate() []Verifier {
 	return []Verifier{
 		&NoSharedFSMount{},
+		&ImageRefValid{},
 	}
 }
 

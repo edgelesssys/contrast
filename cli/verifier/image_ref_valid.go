@@ -6,13 +6,16 @@ package verifier
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/google/go-containerregistry/pkg/name"
 )
 
 // ImageRefValid verifies that all image references contain valid tag and digest.
-type ImageRefValid struct{}
+type ImageRefValid struct {
+	ExcludeContrastImages bool
+}
 
 // Verify verifies that neither the tag nor the digest of image references are empty.
 func (v *ImageRefValid) Verify(toVerify any) error {
@@ -29,6 +32,9 @@ func (v *ImageRefValid) Verify(toVerify any) error {
 	}
 
 	for _, img := range images {
+		if v.ExcludeContrastImages && strings.HasPrefix(img, "ghcr.io/edgelesssys/contrast") {
+			continue
+		}
 		if _, err := name.NewDigest(img); err != nil {
 			findings = errors.Join(findings, fmt.Errorf("the image reference '%s' failed verification. Ensure that it contains a digest and is in the format 'image:tag@sha256:...'", img))
 		}
