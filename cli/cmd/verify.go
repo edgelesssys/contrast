@@ -4,8 +4,11 @@
 package cmd
 
 import (
+	"bytes"
+	"compress/gzip"
 	"crypto/sha256"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -82,7 +85,16 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	for _, p := range resp.Policies {
 		sha256sum := sha256.Sum256(p)
 		pHash := manifest.NewHexString(sha256sum[:])
-		filelist[fmt.Sprintf("policy.%s.rego", pHash)] = p
+		gzipReader, err := gzip.NewReader(bytes.NewReader(p))
+		if err != nil {
+			return fmt.Errorf("creating gzip reader: %w", err)
+		}
+		policyDecompressed, err := io.ReadAll(gzipReader)
+		if err != nil {
+			return fmt.Errorf("decompressing policy: %w", err)
+		}
+		gzipReader.Close()
+		filelist[fmt.Sprintf("policy.%s.rego", pHash)] = policyDecompressed
 	}
 	if err := writeFilelist(filepath.Join(flags.workspaceDir, verifyDir), filelist); err != nil {
 		return fmt.Errorf("writing filelist: %w", err)
