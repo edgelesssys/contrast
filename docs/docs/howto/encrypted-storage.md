@@ -1,6 +1,6 @@
 # Set up encrypted persistent storage
 
-This section provides a tutorial on how to configure encrypted persistent storage for your application.
+This section guides you through the process of configuring encrypted persistent storage for your application.
 
 ## Applicability
 
@@ -9,16 +9,89 @@ This step is recommended for any Contrast deployment that stores sensitive data 
 ## Prerequisites
 
 1. [Set up your cluster](./cluster-setup/bare-metal.md)
+2. [Install CLI](./install-cli.md)
+3. [Deploy the Contrast runtime](./workload-deployment/runtime-deployment.md)
 
 ## How-to
 
-<!-- TODO: I think this has to be changed to really make clear what steps are needed for encrypted persistant storage. Otherwise it is again more or less a tutorial for deploying an already configured Contrast-protected deplyoment. -->
+The following demonstrates how to set up an encrypted LUKS mount for an arbitrary `/mount/path` directory to easily deploy an application with encrypted persistent storage using Contrast.
 
-**This tutorial guides you through deploying a simple application with an
-encrypted MySQL database using the Contrast [workload
-secret](../architecture/secrets.md#workload-secrets).**
+### Configuration
 
-[MySQL](https://mysql.com) is an open-source database used to organize data into
+Add a `volume` of type `emptyDir` to your pod.
+Mount it through a `volumeMount` with `HostToContainer` propagation.
+The specified `mountPath` is where the Contrast Initializer will mount the encrypted volume.
+Use a `volumeClaimTemplate` to make a persistent storage device available to your deployment.
+The Initializer creates an encrypted volume and a filesystem on this device.
+Supported volume types can be found in the [k8s documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#raw-block-volume-support).
+
+Finally, add the [Contrast annotation](../architecture/k8s-yaml-elements.md) `contrast.edgeless.systems/secure-pv` with value `device-name:mount-name`.
+The presence of this annotation instructs an init container running `cryptsetup`
+to use the workload secret at `/contrast/secrets/workload-secret-seed` to generate
+a key and setup the block device as a LUKS partition. Before starting the application container,
+the init container uses the generated key to open the LUKS device, which is then mounted
+by the application container. For the application container, this process is completely
+transparent and works like mounting any other volume. The `cryptsetup` container
+will remain running to provide the necessary decryption context for the workload
+container.
+
+```yaml
+spec: # v1.StatefulSetSpec
+  template:
+    metadata:
+      annotations:
+        contrast.edgeless.systems/secure-pv: device-name:mount-name
+    spec:
+      containers:
+      - volumeMounts:
+        - mountPath: /mount/path
+          mountPropagation: HostToContainer
+          name: mount-name
+      volumes:
+      - emptyDir: {}
+        name: mount-name
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: device-name
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+      volumeMode: Block
+```
+
+:::note[Persistent workload secrets]
+
+Secure persistent volumes make use of workload secrets to be able to re-open devices after container restarts.
+Please read about the implications in the [workload secrets](../architecture/secrets.md#workload-secrets) section.
+
+:::
+
+### Deployment
+
+Follow the steps of the generic workload deployment instructions:
+
+- [Add the Coordinator.](./workload-deployment/add-coordinator.md)
+- [Generate the policies.](./workload-deployment/generate-annotations.md)
+- [Apply the resources.](./workload-deployment/deploy-application.md)
+- [Set the manifest.](./workload-deployment/set-manifest.md)
+
+## Example application: MySQL
+
+The above guide can be tried out with a [MySQL](https://mysql.com) sample deployment which is part of the contrast release.
+You can add the deployment file to your resources by running:
+
+```sh
+curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/mysql-demo.yml --output-dir resources
+```
+
+:::note[MySQL]
+
+MySQL is an open-source database used to organize data into
 tables and quickly retrieve information about its content. All of the data in a
 MySQL database is stored in the `/var/lib/mysql` directory. In this example, we
 use the workload secret to setup an encrypted LUKS mount for the
@@ -34,152 +107,14 @@ aware of the differences in security implications of the workload secrets for
 the data owner and the workload owner. For more details, see the [Workload
 Secrets](../architecture/secrets.md#workload-secrets) documentation.
 
-## Steps to deploy MySQL with Contrast
-
-### Download the deployment files
-
-The MySQL deployment files are part of the Contrast release. You can download them by running:
-
-```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/mysql-demo.yml --create-dirs --output-dir resources
-```
-
-### Deploy the Contrast runtime
-
-Contrast depends on a [custom Kubernetes `RuntimeClass`](../architecture/components/runtime.md),
-which needs to be installed to the cluster initially.
-This consists of a `RuntimeClass` resource and a `DaemonSet` that performs installation on worker nodes.
-This step is only required once for each version of the runtime.
-It can be shared between Contrast deployments.
-
-<Tabs queryString="platform">
-<TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-snp.yml
-```
-</TabItem>
-<TabItem value="metal-qemu-tdx" label="Bare metal (TDX)">
-```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-tdx.yml
-```
-</TabItem>
-</Tabs>
-
-### Download the Contrast Coordinator resource
-
-Download the Kubernetes resource of the Contrast Coordinator, comprising a single replica deployment and a
-LoadBalancer service. Put it next to your resources:
-
-```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir resources
-```
-
-### Generate policy annotations and manifest
-
-Run the `generate` command to generate the execution policies and add them as
-annotations to your deployment files. A `manifest.json` file with the reference values
-of your deployment will be created:
-
-<Tabs queryString="platform">
-<TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
-
-```sh
-contrast generate --reference-values metal-qemu-snp resources/
-```
-
-On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
-They will have to be filled in manually.
-
-If you don't know the values from the firmware you installed, you can use the [`snphost`](https://github.com/virtee/snphost) tool to retrieve the current TCB.
-
-```sh
-snphost show tcb
-```
-```console
-Reported TCB: TCB Version:
-  Microcode:   72
-  SNP:         23
-  TEE:         0
-  Boot Loader: 9
-  FMC:         None
-Platform TCB: TCB Version:
-  Microcode:   72
-  SNP:         23
-  TEE:         0
-  Boot Loader: 9
-  FMC:         None
-```
-
-Use the values from `Platform TCB` to fill in the `MinimumTCB` values in the generated `manifest.json` file.
-
-:::note[Attention!]
-
-This must be done on a trusted machine, with a secure and trusted connection to it.
-
 :::
 
-</TabItem>
-<TabItem value="metal-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
+The MySQL server is defined as a `StatefulSet`, with a storage setup analogous to what has been described above.
+A `1Gi` block device is provided to the `mysql-backend` container through a `volumeClaimTemplate` and mounted to `/var/lib/mysql`, MySQL's default state directory.
+An example MySQL client is defined through a separate deployment. The `mysql-client` container connects to the backend and calls on it to perform demo database operations.
+Since the backend's MySQL state directory is located on the prepared storage device, the results of these operations are persisted.
 
-```sh
-contrast generate --reference-values metal-qemu-snp-gpu resources/
-```
-
-On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
-They will have to be filled in manually.
-
-If you don't know the values from the firmware you installed, you can use the [`snphost`](https://github.com/virtee/snphost) tool to retrieve the current TCB.
-
-```sh
-snphost show tcb
-```
-```console
-Reported TCB: TCB Version:
-  Microcode:   72
-  SNP:         23
-  TEE:         0
-  Boot Loader: 9
-  FMC:         None
-Platform TCB: TCB Version:
-  Microcode:   72
-  SNP:         23
-  TEE:         0
-  Boot Loader: 9
-  FMC:         None
-```
-
-Use the values from `Platform TCB` to fill in the `MinimumTCB` values in the generated `manifest.json` file.
-
-:::note[Attention!]
-
-This must be done on a trusted machine, with a secure and trusted connection to it.
-
-:::
-
-</TabItem>
-<TabItem value="metal-qemu-tdx" label="Bare metal (TDX)">
-
-```sh
-contrast generate --reference-values metal-qemu-tdx resources/
-```
-
-On bare-metal TDX, `contrast generate` is unable to fill in the `MrSeam` value as it depends on your platform configuration.
-It will have to be filled in manually.
-
-`MrSeam` is the SHA384 hash of the TDX module. You can retrieve it by executing
-
-```sh
-sha384sum /boot/efi/EFI/TDX/TDX-SEAM.so | cut -d' ' -f1
-```
-
-:::note[Attention!]
-
-This must be done on a trusted machine, with a secure and trusted connection to it.
-
-:::
-
-</TabItem>
-</Tabs>
+Follow [the steps given above](#deployment) to reapply your configuration.
 
 :::note[Runtime class and Initializer]
 
@@ -192,131 +127,5 @@ workloads. It will attest the pod to the Coordinator and fetch the workload cert
 Further, the deployment YAML is also configured with the Contrast [service mesh](../architecture/components/service-mesh.md).
 The configured service mesh proxy provides transparent protection for the communication between
 the MySQL server and client.
-:::
-
-### Deploy the Coordinator
-
-Deploy the Coordinator resource first by applying its resource definition:
-
-```sh
-kubectl apply -f resources/coordinator.yml
-```
-
-### Set the manifest
-
-Configure the Coordinator with a manifest. It might take up to a few minutes
-for the load balancer to be created and the Coordinator being available.
-
-```sh
-coordinator=$(kubectl get svc coordinator -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo "The user API of your Contrast Coordinator is available at $coordinator:1313"
-contrast set -c "${coordinator}:1313" resources/
-```
-
-The CLI will use the reference values from the manifest to attest the Coordinator deployment
-during the TLS handshake. If the connection succeeds, it's ensured that the Coordinator
-deployment hasn't been tampered with.
-
-### Deploy MySQL
-
-Now that the Coordinator has a manifest set, which defines the MySQL deployment as an allowed workload,
-we can deploy the application:
-
-```sh
-kubectl apply -f resources/
-```
-
-:::note[Persistent workload secrets]
-
-During the initialization process of the workload pod, the Contrast Initializer
-sends an attestation report to the Coordinator and receives a workload secret
-derived from the Coordinator's secret seed and the workload secret ID specified in the
-manifest, and writes it to a secure in-memory `volumeMount`.
 
 :::
-
-The MySQL deployment is declared as a StatefulSet with a mounted block device.
-An init container running `cryptsetup` uses the workload secret at
-`/contrast/secrets/workload-secret-seed` to generate a key and setup the block
-device as a LUKS partition. Before starting the MySQL container, the init
-container uses the generated key to open the LUKS device, which is then mounted
-by the MySQL container. For the MySQL container, this process is completely
-transparent and works like mounting any other volume. The `cryptsetup` container
-will remain running to provide the necessary decryption context for the workload
-container.
-
-## Verifying the deployment as a user
-
-In different scenarios, users of an app may want to verify its security and identity before sharing data, for example, before connecting to the database.
-With Contrast, a user only needs a single remote-attestation step to verify the deployment - regardless of the size or scale of the deployment.
-Contrast is designed such that, by verifying the Coordinator, the user transitively verifies those systems the Coordinator has already verified or will verify in the future.
-Successful verification of the Coordinator means that the user can be sure that the given manifest will be enforced.
-
-### Verifying the Coordinator
-
-A user can verify the Contrast deployment using the verify
-command:
-
-```sh
-contrast verify -c "${coordinator}:1313" -m manifest.json
-```
-
-The CLI will verify the Coordinator via remote attestation using the reference values from a given manifest. This manifest needs
-to be communicated out of band to everyone wanting to verify the deployment, as the `verify` command checks
-if the currently active manifest at the Coordinator matches the manifest given to the CLI. If the command succeeds,
-the Coordinator deployment was successfully verified to be running in the expected Confidential
-Computing environment with the expected code version. The Coordinator will then return its
-configuration over the established TLS channel. The CLI will store this information, namely the root
-certificate of the mesh (`mesh-ca.pem`) and the history of manifests, into the `verify/` directory.
-In addition, the policies referenced in the manifest history are also written into the same directory.
-
-### Auditing the manifest history and artifacts
-
-In the next step, the Coordinator configuration that was written by the `verify` command needs to be audited.
-A user of the application should inspect the manifest and the referenced policies. They could delegate
-this task to an entity they trust.
-
-### Connecting to the application
-
-Other confidential containers can securely connect to the MySQL server via the
-[Service Mesh](../architecture/components/service-mesh.md). The configured `mysql-client`
-deployment connects to the MySQL server and inserts test data into a table. To
-view the logs of the `mysql-client` deployment, use the following commands:
-
-```sh
-kubectl logs -l app.kubernetes.io/name=mysql-client -c mysql-client
-```
-
-The Service Mesh ensures an mTLS connection between the MySQL client and server
-using the mesh certificates. As a result, no other workload can connect to the
-MySQL server unless explicitly allowed in the manifest.
-
-## Updating the deployment
-
-Because the workload secret is derived from the `WorkloadSecredID` specified in
-the manifest and not to an individual pod, once the pod restarts, the
-`cryptsetup` init container can deterministically generate the same key again
-and open the already partitioned LUKS device.
-For more information on using the workload secret, see [Workload
-Secrets](../architecture/secrets.md#workload-secrets).
-
-For example, after making changes to the deployment files, the runtime policies
-need to be regenerated with `contrast generate` and the new manifest needs to be
-set using `contrast set`.
-
-```sh
-contrast generate resources/
-contrast set -c "${coordinator}:1313" resources/
-```
-
-The new deployment can then be applied by running:
-
-```sh
-kubectl rollout restart statefulset/mysql-backend
-kubectl rollout restart deployment/mysql-client
-```
-
-The new MySQL backend pod will then start up the `cryptsetup` init container which
-receives the same workload secret as before and can therefore generate the
-correct key to open the LUKS device. All previously stored data in the MySQL
-database is available in the newly created pod in an encrypted volume mount.
