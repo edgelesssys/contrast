@@ -23,7 +23,6 @@ spec:
     - name: test
       image: "%s"
 `
-
 	statefulSetTemplate = `
 apiVersion: apps/v1
 kind: StatefulSet
@@ -40,105 +39,80 @@ spec:
 
 func TestVerifyImageRef(t *testing.T) {
 	testCases := map[string]struct {
-		imageRef string
-		template string
-		wantErr  bool
+		imageRef              string
+		excludeContrastImages bool
+		wantErr               bool
 	}{
-		"pod: image ref empty": {
+		"image ref empty": {
 			imageRef: "bash",
-			template: podTemplate,
 			wantErr:  true,
 		},
-		"pod: digest malformed, no tag": {
+		"digest malformed, no tag": {
 			imageRef: "bash@sha256:000",
-			template: podTemplate,
 			wantErr:  true,
 		},
-		"pod: digest missing algorithm, no tag": {
+		"digest missing algorithm, no tag": {
 			imageRef: "bash@0000000000000000000000000000000000000000000000000000000000000000",
-			template: podTemplate,
 			wantErr:  true,
 		},
-		"pod: digest missing, with tag": {
+		"digest missing, with tag": {
 			imageRef: "bash:0.0.1",
-			template: podTemplate,
 			wantErr:  true,
 		},
-		"pod: digest malformed, with tag": {
+		"digest malformed, with tag": {
 			imageRef: "bash:0.0.1@sha256:000",
-			template: podTemplate,
 			wantErr:  true,
 		},
-		"pod: digest missing algorithm, with tag": {
+		"digest missing algorithm, with tag": {
 			imageRef: "bash:0.0.1@0000000000000000000000000000000000000000000000000000000000000000",
-			template: podTemplate,
 			wantErr:  true,
 		},
-		"pod: image ref valid": {
+		"image ref valid": {
 			imageRef: "bash:0.0.1@sha256:0000000000000000000000000000000000000000000000000000000000000000",
-			template: podTemplate,
 		},
-		"pod: image ref valid, no tag": {
+		"image ref valid, no tag": {
 			imageRef: "bash@sha256:0000000000000000000000000000000000000000000000000000000000000000",
-			template: podTemplate,
 		},
-		"statefulSet: image ref empty": {
-			imageRef: "bash",
-			template: statefulSetTemplate,
+		"contrast images excluded": {
+			imageRef:              "ghcr.io/edgelesssys/contrast:latest",
+			excludeContrastImages: true,
+		},
+		"contrast images not excluded": {
+			imageRef: "ghcr.io/edgelesssys/contrast:latest",
 			wantErr:  true,
 		},
-		"statefulSet: digest malformed, no tag": {
-			imageRef: "bash@sha256:000",
-			template: statefulSetTemplate,
-			wantErr:  true,
-		},
-		"statefulSet: digest missing algorithm, no tag": {
-			imageRef: "bash@0000000000000000000000000000000000000000000000000000000000000000",
-			template: statefulSetTemplate,
-			wantErr:  true,
-		},
-		"statefulSet: digest missing, with tag": {
-			imageRef: "bash:0.0.1",
-			template: statefulSetTemplate,
-			wantErr:  true,
-		},
-		"statefulSet: digest malformed, with tag": {
-			imageRef: "bash:0.0.1@sha256:000",
-			template: statefulSetTemplate,
-			wantErr:  true,
-		},
-		"statefulSet: digest missing algorithm, with tag": {
-			imageRef: "bash:0.0.1@0000000000000000000000000000000000000000000000000000000000000000",
-			template: statefulSetTemplate,
-			wantErr:  true,
-		},
-		"statefulSet: image ref valid": {
-			imageRef: "bash:0.0.1@sha256:0000000000000000000000000000000000000000000000000000000000000000",
-			template: statefulSetTemplate,
-		},
-		"statefulSet: image ref valid, no tag": {
-			imageRef: "bash@sha256:0000000000000000000000000000000000000000000000000000000000000000",
-			template: statefulSetTemplate,
+		"contrast image is pinned": {
+			imageRef: "ghcr.io/edgelesssys/contrast:latest@sha256:0000000000000000000000000000000000000000000000000000000000000000",
 		},
 	}
+	templates := map[string]string{
+		"pod":         podTemplate,
+		"statefulSet": statefulSetTemplate,
+	}
 
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			require := require.New(t)
+	for tName, template := range templates {
+		t.Run(tName, func(t *testing.T) {
+			for name, tc := range testCases {
+				t.Run(name, func(t *testing.T) {
+					require := require.New(t)
 
-			k8sObjectYAML := fmt.Appendf(nil, tc.template, tc.imageRef)
-			toVerifySlice, err := kuberesource.UnmarshalApplyConfigurations(k8sObjectYAML)
-			require.NoError(err)
-
-			verifier := verifier.ImageRefValid{}
-
-			for _, toVerify := range toVerifySlice {
-				err := verifier.Verify(toVerify)
-				if tc.wantErr {
-					require.Error(err)
-				} else {
+					k8sObjectYAML := fmt.Appendf(nil, template, tc.imageRef)
+					toVerifySlice, err := kuberesource.UnmarshalApplyConfigurations(k8sObjectYAML)
 					require.NoError(err)
-				}
+
+					verifier := verifier.ImageRefValid{
+						ExcludeContrastImages: tc.excludeContrastImages,
+					}
+
+					for _, toVerify := range toVerifySlice {
+						err := verifier.Verify(toVerify)
+						if tc.wantErr {
+							require.Error(err)
+						} else {
+							require.NoError(err)
+						}
+					}
+				})
 			}
 		})
 	}
