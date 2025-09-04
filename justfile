@@ -64,17 +64,22 @@ runtime target=default_deploy_target platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}/runtime
-    targets=("runtime")
     if [[ "${node_installer_target_conf_type}" != "none" ]]; then
-        targets+=("node-installer-target-conf")
+        nix shell .#contrast --command resourcegen \
+            --image-replacements ./{{ workspace_dir }}/just.containerlookup \
+            --namespace {{ target }}${namespace_suffix-} \
+            --add-namespace-object \
+            --node-installer-target-conf-type ${node_installer_target_conf_type} \
+            --platform {{ platform }} \
+            node-installer-target-conf > ./{{ workspace_dir }}/runtime/target-conf.yml
     fi
     nix shell .#contrast --command resourcegen \
-      --image-replacements ./{{ workspace_dir }}/just.containerlookup \
-      --namespace {{ target }}${namespace_suffix-} \
-      --add-namespace-object \
-      --node-installer-target-conf-type ${node_installer_target_conf_type} \
-      --platform {{ platform }} \
-      "${targets[@]}" > ./{{ workspace_dir }}/runtime/runtime.yml
+        --image-replacements ./{{ workspace_dir }}/just.containerlookup \
+        --namespace {{ target }}${namespace_suffix-} \
+        --add-namespace-object \
+        --node-installer-target-conf-type ${node_installer_target_conf_type} \
+        --platform {{ platform }} \
+        runtime > ./{{ workspace_dir }}/runtime/runtime.yml
 
 # Populate the workspace with a Kubernetes deployment
 populate target=default_deploy_target platform=default_platform:
@@ -144,7 +149,10 @@ apply target=default_deploy_target platform=default_platform:
     set -euo pipefail
     case {{ target }} in
         "runtime")
-            kubectl apply -f ./{{ workspace_dir }}/runtime
+            if [[ -f ./{{ workspace_dir }}/runtime/target-conf.yml ]]; then
+                kubectl apply -f ./{{ workspace_dir }}/runtime/target-conf.yml
+            fi
+            kubectl apply -f ./{{ workspace_dir }}/runtime/runtime.yml
         ;;
         *)
             if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" ]] ; then
