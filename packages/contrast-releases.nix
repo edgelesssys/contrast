@@ -150,6 +150,29 @@ let
             }
           );
 
+          node-installer-target-configs =
+            let
+              allTargets = [
+                "k3s"
+              ];
+              forTargets =
+                target: f:
+                builtins.listToAttrs (lib.lists.map (target: lib.attrsets.nameValuePair target (f target)) target);
+            in
+            forTargets allTargets (
+              target:
+              fetchurl {
+                inherit version;
+                url = "https://github.com/edgelesssys/contrast/releases/download/${version}/node-installer-target-config-${target}.yml";
+                inherit (findVersion "node-installer-target-config-${target}.yml" version) hash;
+                passthru.exists =
+                  if target == "k3s" then
+                    # node-installer-target-config-k3s.yml was introduced in version v1.13.0
+                    (versionGreaterEqual version "v1.13.0")
+                  else
+                    throw "Unknown target ${target}";
+              }
+            );
         in
         runCommand version
           {
@@ -173,6 +196,14 @@ let
             + lib.optionalString runtime.exists ''
               install -m 644 ${runtime} $out/runtime.yml
             ''
+            + lib.concatStrings (
+              lib.attrsets.mapAttrsToList (
+                target: file:
+                lib.optionalString file.exists ''
+                  install -m 644 ${file} $out/node-installer-target-config-${target}.yml
+                ''
+              ) node-installer-target-configs
+            )
             + lib.optionalString emojivoto-zip.exists ''
               unzip ${emojivoto-zip} -d $out
             ''
