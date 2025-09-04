@@ -48,7 +48,6 @@ func main() {
 		IDBlock: "PLACEHOLDER_ID_BLOCK",
 	}
 
-	exit := 0
 	for platform, platformConfig := range platforms {
 		upstreamFile := filepath.Join(tarball, "opt", "kata", "share", "defaults", "kata-containers", fmt.Sprintf("configuration-%s.toml", platformConfig.upstream))
 		configFile := filepath.Join(gitroot, "nodeinstaller", "internal", "kataconfig", fmt.Sprintf("configuration-%s.toml", platformConfig.config))
@@ -70,7 +69,6 @@ func main() {
 			// Continuing anyway to prevent missing config updates due to the platformConfig.config file changing in iteration i,
 			// and then being assessed as unchanged in iteration i+j (example: changes to qemu-snp also need updates in qemu-snp-gpu)
 			log.Printf("⚠ Updating config for platform %s.", platform.String())
-			exit = 1
 		}
 
 		if err := os.WriteFile(configFile, upstream, 0o644); err != nil {
@@ -91,6 +89,4 @@ func main() {
 			log.Fatalf("failed to write testdata: %s", err)
 		}
 	}
-
-	os.Exit(exit)
 }
