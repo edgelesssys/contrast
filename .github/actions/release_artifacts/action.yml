@@ -34,14 +34,12 @@ runs:
         nodeInstallerKataGPUImg=$(nix run .#containers.push-node-installer-kata-gpu -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata-gpu")
         initializerImg=$(nix run .#containers.push-initializer -- "${CONTAINER_REGISTRY}/contrast/initializer")
         serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "${CONTAINER_REGISTRY}/contrast/service-mesh-proxy")
-        tardevSnapshotterImg=$(nix run .#containers.push-tardev-snapshotter -- "${CONTAINER_REGISTRY}/contrast/tardev-snapshotter")
         echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_OUTPUT"
         echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_OUTPUT"
         echo "nodeInstallerKataImg=$nodeInstallerKataImg" | tee -a "$GITHUB_OUTPUT"
         echo "nodeInstallerKataGPUImg=$nodeInstallerKataGPUImg" | tee -a "$GITHUB_OUTPUT"
         echo "initializerImg=$initializerImg" | tee -a "$GITHUB_OUTPUT"
         echo "serviceMeshImg=$serviceMeshImg" | tee -a "$GITHUB_OUTPUT"
-        echo "tardevSnapshotterImg=$tardevSnapshotterImg" | tee -a "$GITHUB_OUTPUT"
     - name: Add tags to container images
       id: tag-containers
       shell: bash
@@ -53,7 +51,6 @@ runs:
         nodeInstallerKataGPUImg: ${{ steps.push-containers.outputs.nodeInstallerKataGPUImg }}
         initializerImg: ${{ steps.push-containers.outputs.initializerImg }}
         serviceMeshImg: ${{ steps.push-containers.outputs.serviceMeshImg }}
-        tardevSnapshotterImg: ${{ steps.push-containers.outputs.tardevSnapshotterImg }}
       run: |
         # Insert a tag into a container image name.
         tag() {
@@ -74,9 +71,6 @@ runs:
         echo "nodeInstallerKataGPUImgTagged=$(tagContrast "$nodeInstallerKataGPUImg")" | tee -a "$GITHUB_OUTPUT"
         echo "initializerImgTagged=$(tagContrast "$initializerImg")" | tee -a "$GITHUB_OUTPUT"
         echo "serviceMeshImgTagged=$(tagContrast "$serviceMeshImg")" | tee -a "$GITHUB_OUTPUT"
-
-        tardevVer=$(nix eval --impure --raw --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.microsoft.tardev-snapshotter.version")
-        echo "tardevSnapshotterImgTagged=$(tag "$tardevVer" "$tardevSnapshotterImg")" | tee -a "$GITHUB_OUTPUT"
     - name: Create file with image replacements
       shell: bash
       env:
@@ -86,7 +80,6 @@ runs:
         nodeInstallerMsftImgTagged: ${{ steps.tag-containers.outputs.nodeInstallerMsftImgTagged }}
         nodeInstallerKataImgTagged: ${{ steps.tag-containers.outputs.nodeInstallerKataImgTagged }}
         nodeInstallerKataGPUImgTagged: ${{ steps.tag-containers.outputs.nodeInstallerKataGPUImgTagged }}
-        tardevSnapshotterImgTagged: ${{ steps.tag-containers.outputs.tardevSnapshotterImgTagged }}
       run: |
         cat > image-replacements.txt <<EOF
         ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged
