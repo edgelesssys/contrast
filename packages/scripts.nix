@@ -52,8 +52,8 @@
       nix-update --version=skip --flake legacyPackages.x86_64-linux.imagestore
       echo "Updating vendorHash of imagepuller-benchmark package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.imagepuller-benchmark
-      echo "Updating src hash of kata.kata-kernel-uvm.configfile" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.kata.kata-kernel-uvm.configfile
+      echo "Updating src hash of kata.release-tarball" >&2
+      ./packages/by-name/kata/release-tarball/update.sh
 
       echo "Updating yarn offlineCache hash of contrast-docs package" >&2
       nix-update --version=skip --flake \

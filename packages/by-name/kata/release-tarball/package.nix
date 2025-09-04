@@ -15,4 +15,5 @@ fetchzip {
   hash = "sha256-MjhOSLr1IOzIe/cUpyKKvoCZj0/BhWZkYHcXIPnzvAU=";
   stripRoot = false;
   passthru.version = version;
+  passthru.updateScript = ./update.sh;
 }
