@@ -23,6 +23,10 @@ platforms=(
   "rke2-qemu-tdx"
 )
 
+target_configs=(
+  "k3s"
+)
+
 # declare an associative array that pairs the field name
 # in ./packages/versions.json with the path to the file
 declare -A fields
@@ -37,6 +41,9 @@ for platform in "${platforms[@]}"; do
   fields["coordinator-${platform}.yml"]="./workspace/coordinator-${platform}.yml"
   fields["runtime-${platform}.yml"]="./workspace/runtime-${platform}.yml"
 done
+for target in "${target_configs[@]}"; do
+  fields["node-installer-target-config-${target}.yml"]="./workspace/node-installer-target-config-${target}.yml"
+done
 
 for field in "${!fields[@]}"; do
   # get the file path
@@ -44,6 +51,8 @@ for field in "${!fields[@]}"; do
 
   # skip files which are not included in current release
   if [[ ! -f $file ]]; then
+    echo "[*] Skipping $file as it does not exist" >&2
+    echo >&2
     continue
   fi
 
@@ -80,7 +89,7 @@ for field in "${!fields[@]}"; do
   )
   echo "$out" >"${versionsFile}"
 
-  echo ""
+  echo >&2
 done
 
 echo "[*] Formatting ${versionsFile}"
