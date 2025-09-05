@@ -23,6 +23,10 @@ let
           --fish <($out/bin/contrast completion fish) \
           --zsh <($out/bin/contrast completion zsh)
       '';
+      "coordinator.yml" = path: ''
+        mkdir -p $out/deployment
+        install -m 644 ${path} $out/deployment/coordinator.yml
+      '';
       "emojivoto-demo.zip" = path: ''
         unzip ${path} -d $out
       '';
