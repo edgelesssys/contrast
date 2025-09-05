@@ -293,12 +293,15 @@ jobs:
       matrix:
         platform:
           - name: Metal-QEMU-SNP
+            node-installer-target-conf: none
             runner: SNP
             self-hosted: true
           - name: Metal-QEMU-SNP-GPU
+            node-installer-target-conf: k3s
             runner: SNP-GPU
             self-hosted: true
           - name: Metal-QEMU-TDX
+            node-installer-target-conf: k3s
             runner: TDX
             self-hosted: true
       fail-fast: false
@@ -353,7 +356,8 @@ jobs:
           nix shell -L .#contrast.e2e --command release.test \
             -test.v \
             --tag "${VERSION}" \
-            --platform ${{ matrix.platform.name }}
+            --platform ${{ matrix.platform.name }} \
+            --node-installer-target-conf ${{ matrix.platform.node-installer-target-conf }}
 
   regression:
     name: e2e regression
