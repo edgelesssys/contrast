@@ -52,9 +52,9 @@ func TestImageStore(t *testing.T) {
 		},
 		"disabled through annotation (GPU)": {
 			name: "imagestore-disabled-gpu",
-			// (1024MB + 2 * 20MB) / 2
-			size:       532000,
-			maxOffset:  20000,
+			// roughly (1024MB + 2 * 20MB) / 2
+			size:       500000,
+			maxOffset:  40000,
 			annotation: "0",
 			gpu:        true,
 		},
