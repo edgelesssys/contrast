@@ -41,7 +41,7 @@ Secrets](../architecture/secrets.md#workload-secrets) documentation.
 The MySQL deployment files are part of the Contrast release. You can download them by running:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/mysql-demo.yml --create-dirs --output-dir resources
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.13.0/mysql-demo.yml --create-dirs --output-dir resources
 ```
 
 ### Deploy the Contrast runtime
@@ -55,12 +55,12 @@ It can be shared between Contrast deployments.
 <Tabs queryString="platform">
 <TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.13.0/runtime-metal-qemu-snp.yml
 ```
 </TabItem>
 <TabItem value="metal-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-tdx.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.13.0/runtime-metal-qemu-tdx.yml
 ```
 </TabItem>
 </Tabs>
@@ -71,7 +71,7 @@ Download the Kubernetes resource of the Contrast Coordinator, comprising a singl
 LoadBalancer service. Put it next to your resources:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir resources
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.13.0/coordinator.yml --output-dir resources
 ```
 
 ### Generate policy annotations and manifest
