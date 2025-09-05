@@ -40,11 +40,12 @@ const (
 )
 
 var (
-	owner       = flag.String("owner", "edgelesssys", "Github repository owner")
-	repo        = flag.String("repo", "contrast", "Github repository")
-	tag         = flag.String("tag", "", "tag name of the release to download")
-	keep        = flag.Bool("keep", false, "don't delete test resources and deployment")
-	platformStr = flag.String("platform", "", "Deployment platform")
+	owner                   = flag.String("owner", "edgelesssys", "Github repository owner")
+	repo                    = flag.String("repo", "contrast", "Github repository")
+	tag                     = flag.String("tag", "", "tag name of the release to download")
+	keep                    = flag.Bool("keep", false, "don't delete test resources and deployment")
+	platformStr             = flag.String("platform", "", "Deployment platform")
+	nodeInstallerTargetConf = flag.String("node-installer-target-conf", "", "Node installer target configuration")
 )
 
 // TestRelease downloads a release from Github, sets up the coordinator, installs the demo
@@ -130,6 +131,14 @@ func TestRelease(t *testing.T) {
 		require := require.New(t)
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
+
+		if *nodeInstallerTargetConf != "" && *nodeInstallerTargetConf != "none" {
+			yaml, err := os.ReadFile(path.Join(dir, fmt.Sprintf("node-installer-target-config-%s.yml", *nodeInstallerTargetConf)))
+			require.NoError(err)
+			resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
+			require.NoError(err)
+			require.NoError(k.Apply(ctx, resources...))
+		}
 
 		yaml, err := os.ReadFile(path.Join(dir, fmt.Sprintf("runtime-%s.yml", lowerPlatformStr)))
 		require.NoError(err)
