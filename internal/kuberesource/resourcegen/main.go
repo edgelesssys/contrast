@@ -52,7 +52,7 @@ func main() {
 				log.Fatalf("--node-installer-target-conf-type must be set")
 			}
 			subResources = make([]any, 1)
-			subResources[0], err = kuberesource.NodeInstallerTargetConfig(*nodeInstallerTargetConfType, *namespace)
+			subResources[0], err = kuberesource.NodeInstallerTargetConfig(*nodeInstallerTargetConfType)
 		case "openssl":
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.OpenSSL(), "contrast-cc")
 		case "emojivoto":
