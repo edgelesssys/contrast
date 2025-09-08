@@ -112,7 +112,7 @@ jobs:
       - name: Update sync fifo for GPU platform
         if: ${{ matrix.platform.name == 'Metal-QEMU-SNP-GPU' }}
         run: |
-          kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/cf49dc9664f70a1b00e3febb427b9e817f8da68b/server/deployment.yml
+          kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/83b56a5022bb5c6e796e8b5dfee6ce8dca951435/server/deployment.yml
           kubectl rollout status statefulset/sync --timeout=5m
           kubectl wait --for=jsonpath='{.status.loadBalancer.ingress[0].ip}' --timeout=5m svc/sync
           nix run .#scripts.renew-sync-fifo
