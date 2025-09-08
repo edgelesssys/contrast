@@ -27,7 +27,7 @@ jobs:
           token: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
           persist-credentials: true
       - name: Create backport PRs
-        uses: korthout/backport-action@0193454f0c5947491d348f33a275c119f30eb736 # v3.2.1
+        uses: korthout/backport-action@ca4972adce8039ff995e618f5fc02d1b7961f27a # v3.3.0
         with:
           copy_milestone: true
           copy_labels_pattern: '.*'
