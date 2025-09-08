@@ -75,7 +75,7 @@ To prevent Kubernetes from over-commiting nodes, set both `request` and `limit` 
 
 <!-- TODO(katexochen): Show the full calculation for the emojivoto example, show how we arrive at 700Mi -->
 
-Set both to 700Mi for each pod in this example:
+Set both to 400Mi for each pod in this example:
 
 ```diff title="resources/emojivoto-demo.yaml"
 @@ -36,6 +36,11 @@
