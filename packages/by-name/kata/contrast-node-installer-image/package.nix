@@ -11,8 +11,7 @@
   contrast,
   kata,
   pkgsStatic,
-  qemu-static,
-  qemu-tdx-static,
+  contrastPkgsStatic,
   OVMF-SNP,
   OVMF-TDX,
 
@@ -146,19 +145,19 @@ let
   qemu-snp = ociLayerTar {
     files = [
       {
-        source = "${qemu-static}/bin/qemu-system-x86_64";
+        source = "${contrastPkgsStatic.qemu-snp}/bin/qemu-system-x86_64";
         destination = "/opt/edgeless/snp/bin/qemu-system-x86_64";
       }
       {
-        source = "${qemu-static}/share/qemu/kvmvapic.bin";
+        source = "${contrastPkgsStatic.qemu-snp}/share/qemu/kvmvapic.bin";
         destination = "/opt/edgeless/snp/share/qemu/kvmvapic.bin";
       }
       {
-        source = "${qemu-static}/share/qemu/linuxboot_dma.bin";
+        source = "${contrastPkgsStatic.qemu-snp}/share/qemu/linuxboot_dma.bin";
         destination = "/opt/edgeless/snp/share/qemu/linuxboot_dma.bin";
       }
       {
-        source = "${qemu-static}/share/qemu/efi-virtio.rom";
+        source = "${contrastPkgsStatic.qemu-snp}/share/qemu/efi-virtio.rom";
         destination = "/opt/edgeless/snp/share/qemu/efi-virtio.rom";
       }
     ];
@@ -176,19 +175,19 @@ let
   qemu-tdx = ociLayerTar {
     files = [
       {
-        source = "${qemu-tdx-static}/bin/qemu-system-x86_64";
+        source = "${contrastPkgsStatic.qemu-tdx}/bin/qemu-system-x86_64";
         destination = "/opt/edgeless/tdx/bin/qemu-system-x86_64";
       }
       {
-        source = "${qemu-tdx-static}/share/qemu/kvmvapic.bin";
+        source = "${contrastPkgsStatic.qemu-tdx}/share/qemu/kvmvapic.bin";
         destination = "/opt/edgeless/tdx/share/qemu/kvmvapic.bin";
       }
       {
-        source = "${qemu-tdx-static}/share/qemu/linuxboot_dma.bin";
+        source = "${contrastPkgsStatic.qemu-tdx}/share/qemu/linuxboot_dma.bin";
         destination = "/opt/edgeless/tdx/share/qemu/linuxboot_dma.bin";
       }
       {
-        source = "${qemu-tdx-static}/share/qemu/efi-virtio.rom";
+        source = "${contrastPkgsStatic.qemu-tdx}/share/qemu/efi-virtio.rom";
         destination = "/opt/edgeless/tdx/share/qemu/efi-virtio.rom";
       }
     ];

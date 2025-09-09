@@ -53,7 +53,7 @@ in
         Type = "exec"; # Not upstream.
         StandardOutput = "journal+console";
         StandardError = "inherit";
-        ExecStart = "${lib.getExe pkgs.kata.kata-agent}";
+        ExecStart = "${lib.getExe pkgs.contrastPkgs.kata.kata-agent}";
         LimitNOFILE = 1073741824;
         ExecStop = "${pkgs.coreutils}/bin/sync ; ${config.systemd.package}/bin/systemctl --force poweroff";
         FailureAction = "poweroff";
@@ -81,7 +81,7 @@ in
     # Not used directly, but required for kernel-specific driver builds.
     boot.kernelPackages = pkgs.recurseIntoAttrs (
       pkgs.linuxPackagesFor (
-        pkgs.kata.kata-kernel-uvm.override {
+        pkgs.contrastPkgs.kata.kata-kernel-uvm.override {
           withGPU = config.contrast.gpu.enable;
         }
       )
@@ -113,7 +113,7 @@ in
         Type = "exec";
         StandardOutput = "journal+console";
         StandardError = "inherit";
-        ExecStart = "${lib.getExe pkgs.imagepuller}";
+        ExecStart = "${lib.getExe pkgs.contrastPkgs.imagepuller}";
         Restart = "always";
         LimitNOFILE = 1048576;
       };
@@ -132,7 +132,7 @@ in
         Type = "exec";
         StandardOutput = "journal+console";
         StandardError = "inherit";
-        ExecStart = "${lib.getExe pkgs.imagestore}";
+        ExecStart = "${lib.getExe pkgs.contrastPkgs.imagestore}";
       };
     };
   };
