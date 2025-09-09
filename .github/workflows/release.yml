@@ -156,8 +156,8 @@ jobs:
         if: inputs.kind == 'minor'
         working-directory: contrast-main/docs
         run: |
-          nix run .#yarn install
-          nix run .#yarn docusaurus docs:version "${MAJOR_MINOR}"
+          nix run .#nixpkgs.yarn install
+          nix run .#nixpkgs.yarn docusaurus docs:version "${MAJOR_MINOR}"
           git add .
           git commit -am "docs: release ${MAJOR_MINOR}"
           # Clean up auxiliary files, so next steps run on a clean tree
