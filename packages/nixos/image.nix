@@ -61,7 +61,7 @@ in
         # Root filesystem.
         "10-root" = {
           contents = {
-            "/pause_bundle".source = "${pkgs.pause-bundle}/pause_bundle";
+            "/pause_bundle".source = "${pkgs.contrastPkgs.pause-bundle}/pause_bundle";
           };
           storePaths = [ config.system.build.toplevel ];
           repartConfig = {

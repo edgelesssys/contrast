@@ -4,10 +4,11 @@
 {
   lib,
   pkgs,
+  contrastPkgs,
   writeShellApplication,
 }:
 
-{
+lib.makeScope pkgs.newScope (scripts: {
   generate = writeShellApplication {
     name = "generate";
     runtimeInputs = with pkgs; [
@@ -74,7 +75,7 @@
     text = ''
       exitcode=0
 
-      tags="${lib.concatStringsSep "," pkgs.contrast.tags}"
+      tags="${lib.concatStringsSep "," contrastPkgs.contrast.tags}"
       while IFS= read -r dir; do
         echo "Running govulncheck -tags $tags on $dir"
         CGO_ENABLED=0 govulncheck -C "$dir" -tags "$tags" ./... || exitcode=$?
@@ -93,7 +94,7 @@
     text = ''
       exitcode=0
 
-      tags="${lib.concatStringsSep "," pkgs.contrast.tags}"
+      tags="${lib.concatStringsSep "," contrastPkgs.contrast.tags}"
       while IFS= read -r dir; do
         echo "Running go fix -tags $tags on $dir"
         go fix -C "$dir" -tags "$tags" ./... || exitcode=$?
@@ -118,7 +119,7 @@
     text = ''
       exitcode=0
 
-      tags="${lib.concatStringsSep "," pkgs.contrast.tags}"
+      tags="${lib.concatStringsSep "," contrastPkgs.contrast.tags}"
       while IFS= read -r dir; do
         echo "Running golangci-lint with tags $tags on $dir" >&2
         CGO_ENABLED=0 golangci-lint run --build-tags "$tags" "$dir/..." || exitcode=$?
@@ -140,7 +141,7 @@
     text = ''
       exitcode=0
 
-      tags="${lib.concatStringsSep "," pkgs.contrast.tags}"
+      tags="${lib.concatStringsSep "," contrastPkgs.contrast.tags}"
       while IFS= read -r dir; do
         echo "Downloading Go dependencies for license check" >&2
         go mod -C "$dir" download
@@ -541,7 +542,7 @@
     name = "update-kata-configurations";
     runtimeInputs = [
       (pkgs.buildGoModule {
-        inherit (pkgs.contrast) vendorHash;
+        inherit (contrastPkgs.contrast) vendorHash;
         name = "nodeinstaller-kataconfig-update-testdata";
 
         src =
@@ -572,7 +573,7 @@
     ];
     text = # bash
       ''
-        update-testdata ${pkgs.kata.release-tarball} "$(git rev-parse --show-toplevel)"
+        update-testdata ${contrastPkgs.kata.release-tarball} "$(git rev-parse --show-toplevel)"
       '';
   };
 
@@ -664,4 +665,4 @@
       echo "Released ticket $ticket from fifo $sync_uuid" >&2
     '';
   };
-}
+})

@@ -4,6 +4,7 @@
 {
   lib,
   pkgs,
+  contrastPkgs,
   stdenvNoCC,
   writeShellApplication,
   dockerTools,
@@ -41,7 +42,7 @@ let
   containers = lib.mapAttrs (_name: toOciImage) {
     coordinator = dockerTools.buildImage {
       name = "coordinator";
-      tag = "v${pkgs.contrast.version}";
+      tag = "v${contrastPkgs.contrast.version}";
       copyToRoot =
         (with pkgs; [
           busybox
@@ -51,7 +52,7 @@ let
         ])
         ++ (with dockerTools; [ caCertificates ]);
       config = {
-        Cmd = [ "${pkgs.contrast.coordinator}/bin/coordinator" ];
+        Cmd = [ "${contrastPkgs.contrast.coordinator}/bin/coordinator" ];
         Env = [
           "PATH=/bin" # Explicitly setting this prevents containerd from setting a default PATH.
           "XTABLES_LOCKFILE=/dev/shm/xtables.lock" # Tells iptables where to create the lock file, since the default path does not exist in our image.
@@ -61,7 +62,7 @@ let
 
     initializer = dockerTools.buildImage {
       name = "initializer";
-      tag = "v${pkgs.contrast.version}";
+      tag = "v${contrastPkgs.contrast.version}";
       copyToRoot =
         (with pkgs; [
           busybox
@@ -73,7 +74,7 @@ let
         ++ (with dockerTools; [ caCertificates ]);
       config = {
         # Use Entrypoint so we can append arguments.
-        Entrypoint = [ "${pkgs.contrast.initializer}/bin/initializer" ];
+        Entrypoint = [ "${contrastPkgs.contrast.initializer}/bin/initializer" ];
         Env = [
           "PATH=/bin" # Explicitly setting this prevents containerd from setting a default PATH.
           "XTABLES_LOCKFILE=/dev/shm/xtables.lock" # Tells iptables where to create the lock file, since the default path does not exist in our image.
@@ -83,7 +84,7 @@ let
 
     openssl = dockerTools.buildImage {
       name = "openssl";
-      tag = "v${pkgs.contrast.version}";
+      tag = "v${contrastPkgs.contrast.version}";
       copyToRoot = with pkgs; [
         busybox
         openssl
@@ -97,7 +98,7 @@ let
 
     port-forwarder = dockerTools.buildImage {
       name = "port-forwarder";
-      tag = "v${pkgs.contrast.version}";
+      tag = "v${contrastPkgs.contrast.version}";
       copyToRoot = with pkgs; [
         bash
         socat
@@ -106,7 +107,7 @@ let
 
     service-mesh-proxy = dockerTools.buildImage {
       name = "service-mesh-proxy";
-      tag = "v${pkgs.service-mesh.version}";
+      tag = "v${contrastPkgs.service-mesh.version}";
       copyToRoot = with pkgs; [
         busybox
         envoy-bin
@@ -114,7 +115,7 @@ let
       ];
       config = {
         # Use Entrypoint so we can append arguments.
-        Entrypoint = [ "${pkgs.service-mesh}/bin/service-mesh" ];
+        Entrypoint = [ "${contrastPkgs.service-mesh}/bin/service-mesh" ];
         Env = [
           "PATH=/bin"
           "XTABLES_LOCKFILE=/dev/shm/xtables.lock" # Tells iptables where to create the lock file, since the default path does not exist in our image.
@@ -159,11 +160,11 @@ in
 containers
 // {
   push-node-installer-kata =
-    pushOCIDir "push-node-installer-kata" pkgs.kata.contrast-node-installer-image
-      "v${pkgs.contrast.version}";
+    pushOCIDir "push-node-installer-kata" contrastPkgs.kata.contrast-node-installer-image
+      "v${contrastPkgs.contrast.version}";
   push-node-installer-kata-gpu =
-    pushOCIDir "push-node-installer-kata-gpu" pkgs.kata.contrast-node-installer-image.gpu
-      "v${pkgs.contrast.version}";
+    pushOCIDir "push-node-installer-kata-gpu" contrastPkgs.kata.contrast-node-installer-image.gpu
+      "v${contrastPkgs.contrast.version}";
 }
 // (lib.concatMapAttrs (name: container: {
   "push-${name}" = pushOCIDir name container.outPath container.meta.tag;

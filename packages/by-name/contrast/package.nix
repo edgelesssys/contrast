@@ -9,6 +9,7 @@
   contrast,
   installShellFiles,
   calculateSnpIDBlock,
+  contrastPkgsStatic,
 }:
 
 let
@@ -202,7 +203,7 @@ buildGoModule (finalAttrs: {
   subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
 
   prePatch = ''
-    install -D ${lib.getExe kata.genpolicy} cli/genpolicy/assets/genpolicy-kata
+    install -D ${lib.getExe contrastPkgsStatic.kata.genpolicy} cli/genpolicy/assets/genpolicy-kata
     install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
     install -D ${embeddedReferenceValues} internal/manifest/assets/reference-values.json
     install -D ${snpIdBlocks} nodeinstaller/internal/kataconfig/snp-id-blocks.json
