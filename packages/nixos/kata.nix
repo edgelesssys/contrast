@@ -53,7 +53,7 @@ in
         Type = "exec"; # Not upstream.
         StandardOutput = "journal+console";
         StandardError = "inherit";
-        ExecStart = "${lib.getExe pkgs.contrastPkgs.kata.kata-agent}";
+        ExecStart = "${lib.getExe pkgs.contrastPkgs.kata.agent}";
         LimitNOFILE = 1073741824;
         ExecStop = "${pkgs.coreutils}/bin/sync ; ${config.systemd.package}/bin/systemctl --force poweroff";
         FailureAction = "poweroff";
@@ -81,7 +81,7 @@ in
     # Not used directly, but required for kernel-specific driver builds.
     boot.kernelPackages = pkgs.recurseIntoAttrs (
       pkgs.linuxPackagesFor (
-        pkgs.contrastPkgs.kata.kata-kernel-uvm.override {
+        pkgs.contrastPkgs.kata.kernel-uvm.override {
           withGPU = config.contrast.gpu.enable;
         }
       )

@@ -8,7 +8,7 @@
 }:
 
 # Usage example:
-# outPath=$(nix build .#kata.kata-image --print-out-paths); nix run .#boot-microvm -- "${outPath}/bzImage" "${outPath}/initrd" "${outPath}/image-podvm-gpu_1-rc1.raw" "$(nix eval --raw .#kata.kata-image.cmdline)"
+# outPath=$(nix build .#kata.image --print-out-paths); nix run .#boot-microvm -- "${outPath}/bzImage" "${outPath}/initrd" "${outPath}/image-podvm-gpu_1-rc1.raw" "$(nix eval --raw .#kata.image.cmdline)"
 
 writeShellApplication {
   name = "boot-microvm";
@@ -31,6 +31,6 @@ writeShellApplication {
       -kernel "$1" \
       -initrd "$2" \
       -append "$4" \
-      -drive "if=virtio,format=raw,file=$tmpFile" 
+      -drive "if=virtio,format=raw,file=$tmpFile"
   '';
 }

@@ -26,7 +26,7 @@ jobs:
       - id: kataversion
         working-directory: contrast
         run: |
-          echo "v=$(nix eval --raw .#kata.kata-runtime.version)" >> "$GITHUB_OUTPUT"
+          echo "v=$(nix eval --raw .#kata.runtime.version)" >> "$GITHUB_OUTPUT"
       - name: Check out Kata
         env:
           KATA_VERSION: ${{ steps.kataversion.outputs.v }}
@@ -39,8 +39,8 @@ jobs:
         run: |
           git config --global user.email "actionsbot@example.invalid"
           git config --global user.name "Actions Bot"
-          git am --no-3way ../contrast/packages/by-name/kata/kata-runtime/0*.patch
-          git format-patch -N --no-signature --zero-commit --full-index -o ../contrast/packages/by-name/kata/kata-runtime/ "${KATA_VERSION}"
+          git am --no-3way ../contrast/packages/by-name/kata/runtime/0*.patch
+          git format-patch -N --no-signature --zero-commit --full-index -o ../contrast/packages/by-name/kata/runtime/ "${KATA_VERSION}"
       - name: Check for diff
         working-directory: contrast
         run: |

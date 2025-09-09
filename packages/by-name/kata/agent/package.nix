@@ -4,7 +4,7 @@
 {
   lib,
   rustPlatform,
-  kata,
+  runtime,
   cmake,
   pkg-config,
   protobuf,
@@ -18,7 +18,7 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "kata-agent";
-  inherit (kata.kata-runtime) version src;
+  inherit (runtime) version src;
 
   sourceRoot = "${src.name}/src/agent";
 

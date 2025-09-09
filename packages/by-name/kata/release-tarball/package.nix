@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 {
-  kata,
+  runtime,
   fetchzip,
 }:
 
 let
-  inherit (kata.kata-runtime) version;
+  inherit (runtime) version;
 in
 
 fetchzip {
