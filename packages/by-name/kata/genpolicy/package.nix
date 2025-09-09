@@ -3,7 +3,7 @@
 
 {
   lib,
-  kata,
+  runtime,
   rustPlatform,
   openssl,
   pkg-config,
@@ -17,7 +17,7 @@
 
 rustPlatform.buildRustPackage rec {
   pname = "genpolicy";
-  inherit (kata.kata-runtime) version src;
+  inherit (runtime) version src;
 
   sourceRoot = "${src.name}/src/tools/genpolicy";
 
