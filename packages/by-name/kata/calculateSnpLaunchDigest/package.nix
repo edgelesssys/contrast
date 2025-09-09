@@ -21,7 +21,7 @@ let
 
   # Kata uses a base command line and then appends the command line from the kata config (i.e. also our node-installer config).
   # Thus, we need to perform the same steps when calculating the digest.
-  baseCmdline = if debug then kata.kata-runtime.cmdline.debug else kata.kata-runtime.cmdline.default;
+  baseCmdline = if debug then kata.runtime.cmdline.debug else kata.runtime.cmdline.default;
   cmdline = lib.strings.concatStringsSep " " [
     baseCmdline
     os-image.cmdline

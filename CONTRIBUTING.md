@@ -24,7 +24,7 @@ Commit history on PRs should be clean and meaningful.
 Before submitting a PR, make sure to cleanup you history, for example using interactive rebase.
 
 Most commits will use a prefix to indicate the area of change: `<prefix>: <title>`.
-Common titles are the top-level directory your change was made in (for example `docs`), a subdirectory (`e2e/reproducibility`), or the nix attribute (path) that was changed (`kata.kata-runtime`).
+Common titles are the top-level directory your change was made in (for example `docs`), a subdirectory (`e2e/reproducibility`), or the nix attribute (path) that was changed (`kata.runtime`).
 Further, there are some meta-prefixes like `ci` and `treewide` used.
 Use a meaningful commit title that's precise, short and descriptive for your change.
 You can find many guides and examples online.

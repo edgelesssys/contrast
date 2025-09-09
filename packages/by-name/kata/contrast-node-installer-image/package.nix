@@ -20,7 +20,7 @@
 }:
 
 let
-  os-image = kata.kata-image.override {
+  os-image = kata.image.override {
     inherit withGPU;
     withDebug = debugRuntime;
   };
@@ -196,11 +196,11 @@ let
   kata-runtime = ociLayerTar {
     files = [
       {
-        source = "${kata.kata-runtime}/bin/kata-runtime";
+        source = "${kata.runtime}/bin/kata-runtime";
         destination = "/opt/edgeless/bin/kata-runtime";
       }
       {
-        source = "${kata.kata-runtime}/bin/containerd-shim-kata-v2";
+        source = "${kata.runtime}/bin/containerd-shim-kata-v2";
         destination = "/opt/edgeless/bin/containerd-shim-contrast-cc-v2";
       }
     ];
