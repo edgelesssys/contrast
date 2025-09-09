@@ -125,8 +125,6 @@ spec: # v1.PodSpec
 Contrast launches this pod as a VM with 448MiB of memory: 192MiB for the containers and 256MiB for the guest operating system.
 In general, you don't need to care about the memory requirements of the guest system, as they're covered by the static `RuntimeClass` overhead.
 
-When calculating the VM resource requirements, init containers aren't taken into account.
-If the sum of init container's memory limits surpass the sum of the main containers' memory limits, you need to increase the memory limit of one of the main containers in the pod.
 Since memory can't be shared dynamically with the host, each container should have a memory limit that covers its worst-case requirements.
 
 Kubernetes packs a node until the sum of pod _requests_ reaches the node's total memory.

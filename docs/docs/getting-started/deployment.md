@@ -64,11 +64,6 @@ To ensure accurate memory allocation, Contrast requires strict resource definiti
 
 * Always specify both memory `requests` and `limits`.
 * The values for `requests` and `limits` must be identical.
-* Limits for `initContainers` and sidecars are ignored.
-
-What matters is that the **sum of memory limits across all main containers** in a pod cover the worst-case memory requirements of all simultaneous container processes.
-
-If `initContainer`s require in sum more memory than the combined usage of all main containers and sidecars, increase the limit of a main container to ensure that the sum of limits for all main containers is **at least as large** as the `initContainer`'s memory requirement.
 
 On bare-metal platforms, the container images are pulled from within each pod-VM.
 By default, images are stored on an encrypted ephemeral disk through the [Contrast secure image store](../howto/secure-image-store.md) feature.
@@ -80,7 +75,7 @@ To prevent Kubernetes from over-commiting nodes, set both `request` and `limit` 
 
 <!-- TODO(katexochen): Show the full calculation for the emojivoto example, show how we arrive at 700Mi -->
 
-Set both to 700Mi for each pod in this example:
+Set both to 400Mi for each pod in this example:
 
 ```diff title="resources/emojivoto-demo.yaml"
 @@ -36,6 +36,11 @@
