@@ -70,6 +70,9 @@
         "/lib64"
       ]
   );
+  # If /etc is read-only, we need to provide the machine-id file as a mount point for systemd.
+  # https://www.freedesktop.org/software/systemd/man/256/machine-id.html#Initialization
+  environment.etc."machine-id".text = "";
 
   networking.firewall.enable = false;
 
@@ -83,20 +86,14 @@
   # Interpreter-less activation bits, tailored to our needs:
   # Source: https://github.com/NixOS/nixpkgs/blob/a4741ea333f97cca0680d1eb485907f0e4a0eb3a/nixos/modules/profiles/perlless.nix
   # We do not include the upstream module as-is, as we don't need sophisticated user generation, for example.
-
+  #
   # Remove perl from activation
   system.etc.overlay = {
     enable = true;
     mutable = false;
   };
-
-  # If /etc is read-only, we need to provide the machine-id file as a mount point for systemd.
-  # https://www.freedesktop.org/software/systemd/man/256/machine-id.html#Initialization
-  environment.etc."machine-id".text = "";
-
   # simple replacement for update-users-groups.pl
   systemd.sysusers.enable = true;
-
   # Random perl remnants
   system.disableInstallerTools = true;
   programs.less.lessopen = null;
@@ -104,15 +101,13 @@
   boot.enableContainers = false;
   environment.defaultPackages = [ ];
   documentation.enable = false;
-
   # Check that the system does not contain a Nix store path that contains the
   # string "perl" or "python".
   system.forbiddenDependenciesRegexes = [
     "perl"
   ]
   ++ lib.optionals (!config.contrast.debug.enable) [
-    # Some of the debug packages need Python.
-    "python"
+    "python" # Some of the debug packages need Python.
   ];
 
   nixpkgs.hostPlatform.system = "x86_64-linux";
