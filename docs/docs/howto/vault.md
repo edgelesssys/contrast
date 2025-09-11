@@ -22,15 +22,19 @@ While this how-to uses an OpenBao server, the setup for Hashicorp Vault is very 
 The following sections explain how to add a Vault to your Contrast deployment, how to configure automatic unsealing and how to use Contrast certificates for authentication.
 Refer to the [secrets page](../architecture/secrets.md#transit-secrets-engine) for more information on Contrast's transit engine API.
 
-### Download the deployment files
-
-The Contrast release includes a demo resource definition for a Vault server.
-This section dives into some details of the resources and outlines how it's integrated with Contrast.
+:::note[Example deployment]
+The vault configuration is of considerable size.
+To help you get started, the Contrast release includes a demo resource definition for a Vault server.
 You can download the demo app by running:
 
 ```sh
 curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/vault-demo.yml --create-dirs --output-dir resources
 ```
+
+Consider this demo resource as a starting place and adapt it to fit your deployment.
+:::
+
+### Background information
 
 The Vault deployment is defined as a `StatefulSet` using an OpenBao image, with a mounted block device for persistent storage.
 
@@ -68,7 +72,7 @@ spec:
 ```
 
 Vault's TCP listener is configured to use the certificate provisioned by the initializer.
-Below is the relevant excerpt from the configuration file.
+Below is the relevant excerpt from the example configuration file, denoted there as `VAULT_CONFIG`.
 
 ```hcl
 listener "tcp" {
@@ -88,7 +92,7 @@ Follow the steps of the generic workload deployment instructions:
 
 - [Add the Coordinator.](workload-deployment/add-coordinator.md)
 - [Generate the policies.](workload-deployment/generate-annotations.md)
-  - After running `contrast generate`, add the desired Vault domain name to the `SANs` array in `manifest.json`.
+  - After running `contrast generate`, add the desired Vault domain name to the vault `SANs` array in `manifest.json`.
 - [Apply the resources.](workload-deployment/deploy-application.md)
 - [Set the manifest.](workload-deployment/set-manifest.md)
 
