@@ -7,7 +7,6 @@ cache_exclude_status = [
     "300..600",
 ]
 include_fragments = true
-retry_wait_time = 20
 fallback_extensions = ["md", "html"]
 exclude = [
     '^https://mysql\.com/', # returns 403
@@ -22,3 +21,9 @@ exclude_path = [
 # https://github.com/lycheeverse/lychee/issues/1593
 threads = 1
 max_concurrency = 1
+
+# Make Too Many Requests (429) less likely,
+# and accept as to not block the CI.
+retry_wait_time = 30
+max_retries = 1
+accept = ["200", "429"]
