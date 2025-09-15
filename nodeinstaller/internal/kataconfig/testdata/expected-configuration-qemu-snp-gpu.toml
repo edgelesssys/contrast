@@ -22,7 +22,6 @@ enable_vhost_user_store = false
 file_mem_backend = ''
 firmware = '/snp/share/OVMF.fd'
 firmware_volume = ''
-guest_hook_path = '/usr/share/oci/hooks'
 image = '/share/kata-containers.img'
 initrd = '/share/kata-initrd.zst'
 kernel = '/share/kata-kernel'

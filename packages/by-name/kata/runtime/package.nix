@@ -73,31 +73,26 @@ buildGoModule (finalAttrs: {
       # Relevant discussion: https://github.com/kata-containers/kata-containers/pull/10614.
       ./0009-genpolicy-allow-non-watchable-ConfigMaps.patch
 
-      # Guest hooks are required for GPU support, but unsupported in
-      # upstream Kata / genpolicy as of now. This patch adds a new
-      # `allowed_guest_hooks` setting , which controls what paths may be set for hooks.
-      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10633
-      ./0010-genpolicy-support-guest-hooks.patch
-
       # This adds support for annotations with dynamic keys *and* values to Genpolicy.
       # This is required for e.g. GPU containers, which get annotated by an in-cluster
       # component (i.e. after policy generation based on the Pod spec) with an annotation
       # like `cdi.k8s.io/vfioXY`, where `XY` corresponds to a dynamic ID.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10745
-      ./0011-genpolicy-support-dynamic-annotations.patch
+      ./0010-genpolicy-support-dynamic-annotations.patch
 
-      # This removes CDI annotations from the OCI spec before it is passed to the agent,
-      # which helps with policy handling of the (oftentimes dynamic) CDI annotations.
-      # TODO(msanft): Get native CDI working, which will allow us to drop this patch / undo the revert.
-      # See https://dev.azure.com/Edgeless/Edgeless/_workitems/edit/5061
-      ./0012-runtime-remove-CDI-annotations.patch
+      # The Kata runtime translates CDI annotations for the host to CDI annotations for the guest.
+      # However, the host-side CDI annotations do not make sense on the guest-side, so we should
+      # not forward them in the first place. This patch deletes all CDI annotations that came from
+      # the pod spec after generating the guest annotations.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11624.
+      ./0011-runtime-remove-CDI-annotations.patch
 
       # Allow running generate with ephemeral volumes.
       #
       # This may be merged upstream through either of:
       # - https://github.com/kata-containers/kata-containers/pull/10947 (this patch)
       # - https://github.com/kata-containers/kata-containers/pull/10559 (superset including the patch)
-      ./0013-genpolicy-support-ephemeral-volume-source.patch
+      ./0012-genpolicy-support-ephemeral-volume-source.patch
 
       # Containerd versions since 2.0.4 set the sysfs of the pause container to RW if one of the
       # main containers is privileged, whereas prior versions did not. The expected mounts are
@@ -110,7 +105,7 @@ buildGoModule (finalAttrs: {
       # versions upstream. However, there is no consensus on how this would look like, or whether
       # it makes sense at all, so we're fixing this downstream only.
       # https://github.com/kata-containers/kata-containers/pull/11077#issuecomment-2750400613
-      ./0014-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
+      ./0013-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
 
       # Exec requests are failing on Kata, as allow_interactive_exec is blocking execution.
       # Reason for this is that a subsequent check asserts the sandbox-name from the annotations, but such annotation
@@ -121,49 +116,49 @@ buildGoModule (finalAttrs: {
       # The generated regex is then used in the policy to match the sandbox name.
       #
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11814.
-      ./0015-genpolicy-match-sandbox-name-by-regex.patch
+      ./0014-genpolicy-match-sandbox-name-by-regex.patch
 
       # Don't add storages for volumes declared in the image config.
       # This fixes a security issue where the host is able to write untrusted content to paths
       # under these volumes, by failing the policy generation if volumes without mounts are found.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11546.
-      ./0016-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
+      ./0015-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
 
       # Imagepulling has moved into the CDH in Kata 3.18.0. Since we are not using the CDH,we are instead starting our own Imagepuller.
       # This patch redirects calls by upstream's PullImage ttRPC client implementation to communicate with our imagepuller ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0017-agent-use-custom-implementation-for-image-pulling.patch
+      ./0016-agent-use-custom-implementation-for-image-pulling.patch
 
       # Changes the unix socket used for ttRPC communication with the imagepuller.
       # Necessary to allow a separate imagestore service.
       # Can be removed in conjunction with patch 0018-agent-use-custom-implementation-for-image-pulling.patch.
-      ./0018-agent-use-separate-unix-socket-for-image-pulling.patch
+      ./0017-agent-use-separate-unix-socket-for-image-pulling.patch
 
       # Secure mounting is part of the CDH in Kata. Since we are not using the CDH, we are instead reimplementing it.
       # This patch redirects calls by upstream's SecureImageStore ttRPC client implementation to communicate with our own ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0019-agent-use-custom-implementation-for-secure-mounting.patch
+      ./0018-agent-use-custom-implementation-for-secure-mounting.patch
 
       # Upstream expects guest pull to only use Nydus and applies workarounds that are not
       # necessary with force_guest_pull. This patch removes the workaround.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757.
-      ./0020-genpolicy-don-t-apply-Nydus-workaround.patch
+      ./0019-genpolicy-don-t-apply-Nydus-workaround.patch
 
       # We're using a dedicated initdata-processor job and don't want the Kata agent to manage
       # initdata for us.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11532.
-      ./0021-agent-remove-initdata-processing.patch
+      ./0020-agent-remove-initdata-processing.patch
 
       # initdata should be pretty-printed so that the policy is easier to read.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11944.
-      ./0022-kata-types-use-pretty-TOML-encoder-for-initdata.patch
+      ./0021-kata-types-use-pretty-TOML-encoder-for-initdata.patch
 
       # The pod security context setting fsGroup is not taken into account by genpolicy, causing
       # policy errors if set.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11935.
-      ./0023-genpolicy-support-fsGroup-setting-in-pod-security-co.patch
+      ./0022-genpolicy-support-fsGroup-setting-in-pod-security-co.patch
     ];
   };
 
