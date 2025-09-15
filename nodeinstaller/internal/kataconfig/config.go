@@ -110,7 +110,6 @@ func KataRuntimeConfig(
 
 		// GPU-specific settings
 		if platforms.IsGPU(platform) {
-			config.Hypervisor["qemu"]["guest_hook_path"] = "/usr/share/oci/hooks"
 			config.Hypervisor["qemu"]["cold_plug_vfio"] = "root-port"
 			// GPU images tend to be larger, so give a better default timeout that
 			// allows for pulling those.
