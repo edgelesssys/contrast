@@ -1,7 +1,8 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
 Date: Mon, 30 Jun 2025 11:18:47 +0200
-Subject: [PATCH] genpolicy: don't allow mount/storage for declared VOLUMEs
+Subject: [PATCH] genpolicy: don't allow mount/storage for declared
+ VOLUMEs
 
 Signed-off-by: Markus Rudy <mr@edgeless.systems>
 ---
@@ -12,7 +13,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  4 files changed, 8 insertions(+), 62 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 6f9d8a9c90fc33b33ab4d23955a38b7c8d06e6c7..5481776e9641b5a12abb3197b62d051f689c96d8 100644
+index e845966651f4787dced427f657578e90048a1347..42626ff5084682415a2e89151fcdb98c3c837186 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -206,18 +206,6 @@

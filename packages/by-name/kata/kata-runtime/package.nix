@@ -95,31 +95,19 @@ buildGoModule (finalAttrs: {
       # Relevant discussion: https://github.com/kata-containers/kata-containers/pull/10614.
       ./0012-genpolicy-allow-non-watchable-ConfigMaps.patch
 
-      # Guest hooks are required for GPU support, but unsupported in
-      # upstream Kata / genpolicy as of now. This patch adds a new
-      # `allowed_guest_hooks` setting , which controls what paths may be set for hooks.
-      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10633
-      ./0013-genpolicy-support-guest-hooks.patch
-
       # This adds support for annotations with dynamic keys *and* values to Genpolicy.
       # This is required for e.g. GPU containers, which get annotated by an in-cluster
       # component (i.e. after policy generation based on the Pod spec) with an annotation
       # like `cdi.k8s.io/vfioXY`, where `XY` corresponds to a dynamic ID.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10745
-      ./0014-genpolicy-support-dynamic-annotations.patch
-
-      # This removes CDI annotations from the OCI spec before it is passed to the agent,
-      # which helps with policy handling of the (oftentimes dynamic) CDI annotations.
-      # TODO(msanft): Get native CDI working, which will allow us to drop this patch / undo the revert.
-      # See https://dev.azure.com/Edgeless/Edgeless/_workitems/edit/5061
-      ./0015-runtime-remove-CDI-annotations.patch
+      ./0013-genpolicy-support-dynamic-annotations.patch
 
       # Allow running generate with ephemeral volumes.
       #
       # This may be merged upstream through either of:
       # - https://github.com/kata-containers/kata-containers/pull/10947 (this patch)
       # - https://github.com/kata-containers/kata-containers/pull/10559 (superset including the patch)
-      ./0016-genpolicy-support-ephemeral-volume-source.patch
+      ./0014-genpolicy-support-ephemeral-volume-source.patch
 
       # Containerd versions since 2.0.4 set the sysfs of the pause container to RW if one of the
       # main containers is privileged, whereas prior versions did not. The expected mounts are
@@ -132,7 +120,7 @@ buildGoModule (finalAttrs: {
       # versions upstream. However, there is no consensus on how this would look like, or whether
       # it makes sense at all, so we're fixing this downstream only.
       # https://github.com/kata-containers/kata-containers/pull/11077#issuecomment-2750400613
-      ./0017-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
+      ./0015-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
 
       # Exec requests are failing on Kata, as allow_interactive_exec is blocking execution.
       # Reason for this is that a subsequent check asserts the sandbox-name from the annotations, but such annotation
@@ -143,49 +131,49 @@ buildGoModule (finalAttrs: {
       # The generated regex is then used in the policy to match the sandbox name.
       #
       # TODO(burgerdev): upstream
-      ./0018-genpolicy-match-sandbox-name-by-regex.patch
+      ./0016-genpolicy-match-sandbox-name-by-regex.patch
 
       # Don't add storages for volumes declared in the image config.
       # This fixes a security issue where the host is able to write untrusted content to paths
       # under these volumes, by failing the policy generation if volumes without mounts are found.
       # TODO(burgerdev): open upstream issue after disclosure.
-      ./0019-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
+      ./0017-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
 
       # Imagepulling has moved into the CDH in Kata 3.18.0. Since we are not using the CDH,we are instead starting our own Imagepuller.
       # This patch redirects calls by upstream's PullImage ttRPC client implementation to communicate with our imagepuller ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0020-agent-use-custom-implementation-for-image-pulling.patch
+      ./0018-agent-use-custom-implementation-for-image-pulling.patch
 
       # This patch regenerates the Go proto bindings, which are out of date upstream, in order to
       # reduce the diff when generating in subsequent patches.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11632.
-      ./0021-runtime-generate-protos.patch
+      ./0019-runtime-generate-protos.patch
 
       # This patch gzips the policy annotation in order to reduce its size and circumvent
       # Kubernetes annotation size limits. It won't be upstreamed, because the designated successor
       # to SetPolicy, initdata, is already compressed at the annotation level.
       # TODO(burgerdev): remove after moving to initdata.
-      ./0022-misc-use-compressed-policy.patch
+      ./0020-misc-use-compressed-policy.patch
 
       # Add rules to allow AddARPNeighbors.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11663.
-      ./0023-genpolicy-add-rule-for-AddARPNeighbors.patch
+      ./0021-genpolicy-add-rule-for-AddARPNeighbors.patch
 
       # Allow setting the SNP guest policy via Kata configuration.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11675
-      ./0024-runtime-make-SNP-guest-policy-configurable.patch
+      ./0022-runtime-make-SNP-guest-policy-configurable.patch
 
       # Changes the unix socket used for ttRPC communication with the imagepuller.
       # Necessary to allow a separate imagestore service.
       # Can be removed in conjunction with patch 0021.
-      ./0025-agent-use-separate-unix-socket-for-image-pulling.patch
+      ./0023-agent-use-separate-unix-socket-for-image-pulling.patch
 
       # Secure mounting is part of the CDH in Kata. Since we are not using the CDH, we are instead reimplementing it.
       # This patch redirects calls by upstream's SecureImageStore ttRPC client implementation to communicate with our own ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0026-agent-use-custom-implementation-for-secure-mounting.patch
+      ./0024-agent-use-custom-implementation-for-secure-mounting.patch
     ];
   };
 

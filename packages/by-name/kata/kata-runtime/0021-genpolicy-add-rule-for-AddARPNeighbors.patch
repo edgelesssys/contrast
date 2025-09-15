@@ -11,10 +11,10 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  3 files changed, 40 insertions(+)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 5481776e9641b5a12abb3197b62d051f689c96d8..05bdc03ed380f2d9ae398df1cb9515ff85401e48 100644
+index 42626ff5084682415a2e89151fcdb98c3c837186..a57e21c643231d23a43265ecbc8d77b83dbe99f8 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
-@@ -363,6 +363,14 @@
+@@ -362,6 +362,14 @@
                  "^127\\.(?:[0-9]{1,3}\\.){2}[0-9]{1,3}$"
              ]
          },
@@ -30,10 +30,10 @@ index 5481776e9641b5a12abb3197b62d051f689c96d8..05bdc03ed380f2d9ae398df1cb9515ff
          "ReadStreamRequest": false,
          "UpdateEphemeralMountsRequest": false,
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 8cf8cb48fab6ec5e64994862490ab64ca6b04dbb..d6f2c2869482714d60cf446af27ae3078e71e1f3 100644
+index 08bc9cde116b89ea87c60c856daeebe65566fd9d..c9420657b6a5f01f7e248c9c1a4c8315a302a1e1 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1580,6 +1580,25 @@ UpdateInterfaceRequest if {
+@@ -1565,6 +1565,25 @@ UpdateInterfaceRequest if {
      print("UpdateInterfaceRequest: true")
  }
  
@@ -60,7 +60,7 @@ index 8cf8cb48fab6ec5e64994862490ab64ca6b04dbb..d6f2c2869482714d60cf446af27ae307
      policy_data.request_defaults.CloseStdinRequest == true
  }
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 001dd42856506747c2e3c582c9e218ac93aa2824..3aa0ce753ae8dcfbbdfe331c5ca608084b2d5a8a 100644
+index 9b8bd38bd356dadcb656a827d98732df8f3c5142..71a2d27fe96eb6b504b795f629986e4e449cbb05 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -357,6 +357,16 @@ pub struct UpdateInterfaceRequestDefaults {

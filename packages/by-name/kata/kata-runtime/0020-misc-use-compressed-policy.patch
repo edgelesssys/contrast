@@ -121,10 +121,10 @@ index ac186fe935ae57dca4980d92def226aa6ba006d2..3c85949b881a404297c0c8e871df5d51
  
  message MemAgentMemcgConfig {
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index fd194985aefa5e6fccecb3d30e621a55374a8e74..c57dcb9aeb9b528d56cff01f3306ccce40fd609a 100644
+index 7cbe478bbc1d9188e403e7fe30151b26803053d2..0fdca25a9a99508e299488069eada0d8076ff4e3 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
-@@ -2682,7 +2682,7 @@ func (k *kataAgent) resizeGuestVolume(ctx context.Context, volumeGuestPath strin
+@@ -2670,7 +2670,7 @@ func (k *kataAgent) resizeGuestVolume(ctx context.Context, volumeGuestPath strin
  }
  
  func (k *kataAgent) setPolicy(ctx context.Context, policy string) error {
@@ -202,10 +202,10 @@ index d87987da00ed6bcc2c46b162e1c3ede608483694..b4b1f9ca3d511fd6f2eab989791abe81
   "nix 0.24.3",
   "regorus",
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 3afb88d9991975ddfecacf84d2b3a3ace020ecef..001dd42856506747c2e3c582c9e218ac93aa2824 100644
+index 9efb2a719e69cbe1038816f0328fcac91c5d32bc..9b8bd38bd356dadcb656a827d98732df8f3c5142 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -578,7 +578,14 @@ impl AgentPolicy {
+@@ -576,7 +576,14 @@ impl AgentPolicy {
          if self.config.raw_out {
              std::io::stdout().write_all(policy.as_bytes()).unwrap();
          }
