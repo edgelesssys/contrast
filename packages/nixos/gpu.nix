@@ -46,72 +46,6 @@ let
           ]
         );
       });
-
-  # nix-store-mount-hook mounts the VM's nix store into the container.
-  # TODO(burgerdev): only do that for containers that actually get a GPU device.
-  nix-store-mount-hook = pkgs.writeShellApplication {
-    name = "nix-store-mount-hook";
-    runtimeInputs = with pkgs; [
-      coreutils
-      util-linux
-      jq
-    ];
-    text = ''
-      # Reads from the state JSON supplied on stdin.
-      bundle="$(jq -r .bundle)"
-      rootfs="$bundle/rootfs"
-      id="$(basename "$bundle")"
-
-      lower=/nix/store
-      target="$rootfs$lower"
-      mkdir -p "$target"
-
-      overlays="/run/kata-containers/nix-overlays/$id"
-      upperdir="$overlays/upperdir"
-      workdir="$overlays/workdir"
-      mkdir -p "$upperdir" "$workdir"
-
-      mount -t overlay -o "lowerdir=$lower:$target,upperdir=$upperdir,workdir=$workdir" none "$target"
-    '';
-  };
-
-  nividia-container-toolkit-config = (pkgs.formats.toml { }).generate "config.toml" {
-    disable-require = true;
-    supported-driver-capabilities = "compat32,compute,display,graphics,ngx,utility,video";
-    nvidia-container-cli = {
-      no-pivot = true;
-      debug = "/var/log/nvidia-kata-container/nvidia-container-toolkit.log";
-      environment = [ ];
-      ldcache = "/tmp/ld.so.cache";
-      ldconfig = "@${lib.getBin pkgs.glibc}/bin/ldconfig";
-      load-kmods = true;
-      no-cgroups = true;
-      path = lib.getExe' pkgs.libnvidia-container "nvidia-container-cli";
-    };
-    nvidia-container-runtime = {
-      debug = "/var/log/nvidia-kata-container/nvidia-container-runtime.log";
-      log-level = "debug";
-      mode = "cdi";
-      runtimes = [
-        "docker-runc"
-        "runc"
-        "crun"
-      ];
-      modes = {
-        cdi = {
-          annotation-prefixes = [ "cdi.k8s.io/" ];
-          default-kind = "nvidia.com/gpu";
-          spec-dirs = [ "/var/run/cdi" ];
-        };
-        csv.mount-spec-path = "/etc/nvidia-container-runtime/host-files-for-container.d";
-      };
-    };
-    nvidia-container-runtime-hook = {
-      path = lib.getExe' pkgs.nvidia-container-toolkit.tools "nvidia-container-runtime-hook";
-      skip-mode-detection = true;
-    };
-    nvidia-ctk.path = lib.getExe' pkgs.nvidia-container-toolkit "nvidia-ctk";
-  };
 in
 
 {
@@ -156,28 +90,6 @@ in
     # which saves us another Perl dependency.
     hardware.graphics.package = nvidiaPackage;
     hardware.graphics.package32 = nvidiaPackage;
-
-    image.repart.partitions."10-root" = {
-      contents = {
-        "/usr/share/oci/hooks/prestart/nvidia-container-toolkit.sh".source = lib.getExe (
-          pkgs.writeShellApplication {
-            name = "nvidia-ctk-oci-hook";
-            text = ''
-              ${lib.getExe' pkgs.nvidia-container-toolkit.tools "nvidia-container-runtime-hook"} \
-                -config ${nividia-container-toolkit-config} \
-                -debug "$@" > /var/log/nvidia-hook.log 2>&1
-            '';
-          }
-        );
-        "/usr/share/oci/hooks/prestart/nix-store-mount-hook.sh".source = lib.getExe nix-store-mount-hook;
-      };
-      # Storepaths must include the closure of contents, otherwise it is not included.
-      storePaths = [
-        nividia-container-toolkit-config
-        nix-store-mount-hook
-        pkgs.nvidia-container-toolkit.tools
-      ];
-    };
 
     services.xserver.videoDrivers = [ "nvidia" ];
   };
