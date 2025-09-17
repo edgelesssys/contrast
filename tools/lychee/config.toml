@@ -13,6 +13,7 @@ exclude = [
     '^https://mysql\.com/', # returns 403
     '^http(s)?://localhost',
     '^https://github\.com/edgelesssys/contrast/(settings|deployments)', # not public
+    '^https://.*\.hashicorp\.com', # strict bot protection
 ]
 exclude_path = [
     "dev-docs/frozen",
