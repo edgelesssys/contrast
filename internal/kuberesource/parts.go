@@ -201,7 +201,7 @@ handler() {
 trap handler TERM
 set -x
 for port in ${LISTEN_PORTS}; do
-  socat -d -d TCP-LISTEN:$port,fork TCP:${FORWARD_HOST}:$port &
+  socat -d -d TCP-LISTEN:$port,fork TCP:${FORWARD_HOST}:$port,connect-timeout=2,retry=1 &
 done
 wait
 `
