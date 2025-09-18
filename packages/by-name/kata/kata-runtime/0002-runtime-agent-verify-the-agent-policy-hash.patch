@@ -15,8 +15,13 @@ attestation reports. This allows an attestation service to verify that
 the hash has the expected value, and therefore the Policy enforced by
 the Agent has the expected contents.
 
+Since we expect all pods started with our runtime to have an agent
+policy, reject pods that don't have one early with a clear error
+message.
+
 Signed-off-by: Dan Mihai <dmihai@microsoft.com>
 Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
+Signed-off-by: Markus Rudy <webmaster@burgerdev.de>
 ---
  src/agent/Cargo.lock                          | 102 +++++++++
  src/agent/policy/Cargo.toml                   |   5 +
@@ -26,7 +31,7 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/agent/policy/src/tdx.rs                   | 194 ++++++++++++++++++
  src/runtime/pkg/govmm/qemu/qemu.go            |  17 +-
  src/runtime/virtcontainers/hypervisor.go      |   4 +
- src/runtime/virtcontainers/qemu.go            |   2 +-
+ src/runtime/virtcontainers/qemu.go            |   6 +-
  src/runtime/virtcontainers/qemu_amd64.go      |  39 +++-
  src/runtime/virtcontainers/qemu_amd64_test.go | 129 ++++++++++--
  src/runtime/virtcontainers/qemu_arch_base.go  |   4 +-
@@ -38,7 +43,7 @@ Signed-off-by: Tom Dohrmann <erbse.13@gmx.de>
  src/runtime/virtcontainers/qemu_s390x_test.go |  51 ++++-
  src/runtime/virtcontainers/sandbox.go         |   1 +
  src/tools/genpolicy/Cargo.lock                | 177 +++++++++++++++-
- 20 files changed, 836 insertions(+), 44 deletions(-)
+ 20 files changed, 840 insertions(+), 44 deletions(-)
  create mode 100644 src/agent/policy/src/sev.rs
  create mode 100644 src/agent/policy/src/tdx.rs
 
@@ -631,10 +636,28 @@ index 22423ab1220f1b08afa69363b59535896628cea4..8b6f3659436f9f74c0c5235a6b9807cf
  
  // vcpu mapping from vcpu number to thread number
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 51a46d2729dd372df9f8037f5d602b8cc8d09ec3..1020852ed976058ae93e9751885aa3d49ee3da93 100644
+index 51a46d2729dd372df9f8037f5d602b8cc8d09ec3..1bed6f04e167965ea590eb20e1360fdaea42b211 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
-@@ -797,7 +797,7 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi
+@@ -33,6 +33,8 @@ import (
+ 	"unsafe"
+ 
+ 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/pkg/rootless"
++	"google.golang.org/grpc/codes"
++	"google.golang.org/grpc/status"
+ 
+ 	govmmQemu "github.com/kata-containers/kata-containers/src/runtime/pkg/govmm/qemu"
+ 	"github.com/opencontainers/selinux/go-selinux/label"
+@@ -764,6 +766,8 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi
+ 
+ 	if len(hypervisorConfig.Initdata) > 0 {
+ 		devices = q.buildInitdataDevice(devices, hypervisorConfig.InitdataImage)
++	} else if q.config.AgentPolicy == "" {
++		return status.Error(codes.InvalidArgument, "The policy annotation is missing. Did you forget to run `contrast generate`?")
+ 	}
+ 
+ 	// some devices configuration may also change kernel params, make sure this is called afterwards
+@@ -797,7 +801,7 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi
  		Debug:          hypervisorConfig.Debug,
  	}
  
