@@ -125,6 +125,8 @@ func (c *Kubeclient) WaitForReplicationController(ctx context.Context, namespace
 }
 
 // PodCondition indicates the current status of pods to WaitForPodCondition.
+//
+// PodConditions are logged frequently and should thus implement fmt.Stringer.
 type PodCondition interface {
 	// Check is called by WaitForPodCondition whenever the cluster's pods change.
 	//
@@ -176,7 +178,7 @@ loop:
 				continue
 			}
 			if done {
-				logger.Debug("done waiting", "condition", fmt.Sprintf("%#v", podCondition))
+				logger.Debug("done waiting", "condition", podCondition)
 				return nil
 			}
 		case <-ctx.Done():
@@ -184,7 +186,7 @@ loop:
 		}
 	}
 
-	logger.Debug("context expired while waiting", "condition", fmt.Sprintf("%#v", podCondition))
+	logger.Debug("context expired while waiting", "condition", podCondition)
 	// Fetch and print debug information.
 	pods, listPodsErr := podLister.List(labels.Everything())
 	if listPodsErr != nil {
@@ -217,6 +219,10 @@ func (nm *numReady) Check(lister listerscorev1.PodLister) (bool, error) {
 	return n == nm.n, nil
 }
 
+func (nm *numReady) String() string {
+	return fmt.Sprintf("PodCondition(%d pods matching %s are ready)", nm.n, nm.ls)
+}
+
 // numSucceeded waits until n pods matching ls succeeded.
 type numSucceeded struct {
 	ls labels.Selector
@@ -235,6 +241,10 @@ func (ns *numSucceeded) Check(lister listerscorev1.PodLister) (bool, error) {
 		}
 	}
 	return n >= ns.n, nil
+}
+
+func (ns *numSucceeded) String() string {
+	return fmt.Sprintf("PodCondition(%d pods matching %s succeeded)", ns.n, ns.ls)
 }
 
 // singlePodReady checks that a named pod is ready.
@@ -256,6 +266,10 @@ func (f *singlePodReady) Check(lister listerscorev1.PodLister) (bool, error) {
 	return false, nil
 }
 
+func (f *singlePodReady) String() string {
+	return fmt.Sprintf("PodCondition(pod %s is ready)", f.name)
+}
+
 type oneRunning struct {
 	ls labels.Selector
 }
@@ -274,4 +288,8 @@ func (or *oneRunning) Check(lister listerscorev1.PodLister) (bool, error) {
 		}
 	}
 	return false, nil
+}
+
+func (or *oneRunning) String() string {
+	return fmt.Sprintf("PodCondition(one pod matching %s is running)", or.ls)
 }
