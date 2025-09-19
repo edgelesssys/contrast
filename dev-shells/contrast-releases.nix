@@ -4,7 +4,7 @@
 {
   lib,
   mkShellNoCC,
-  contrast-releases,
+  contrastPkgs,
 }:
 
 let
@@ -21,4 +21,4 @@ let
     });
 in
 
-lib.mapAttrs' toDemoShell contrast-releases
+lib.mapAttrs' toDemoShell contrastPkgs.contrast-releases

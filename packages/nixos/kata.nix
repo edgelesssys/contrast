@@ -53,7 +53,7 @@ in
         Type = "exec"; # Not upstream.
         StandardOutput = "journal+console";
         StandardError = "inherit";
-        ExecStart = "${lib.getExe pkgs.kata-agent}";
+        ExecStart = "${lib.getExe pkgs.contrastPkgs.kata.agent}";
         LimitNOFILE = 1073741824;
         ExecStop = "${pkgs.coreutils}/bin/sync ; ${config.systemd.package}/bin/systemctl --force poweroff";
         FailureAction = "poweroff";
@@ -81,7 +81,7 @@ in
     # Not used directly, but required for kernel-specific driver builds.
     boot.kernelPackages = pkgs.recurseIntoAttrs (
       pkgs.linuxPackagesFor (
-        pkgs.kata-kernel-uvm.override {
+        pkgs.contrastPkgs.kata.kernel-uvm.override {
           withGPU = config.contrast.gpu.enable;
         }
       )
@@ -113,7 +113,7 @@ in
         Type = "exec";
         StandardOutput = "journal+console";
         StandardError = "inherit";
-        ExecStart = "${lib.getExe pkgs.imagepuller}";
+        ExecStart = "${lib.getExe pkgs.contrastPkgs.imagepuller}";
         Restart = "always";
         LimitNOFILE = 1048576;
       };
@@ -132,7 +132,30 @@ in
         Type = "exec";
         StandardOutput = "journal+console";
         StandardError = "inherit";
-        ExecStart = "${lib.getExe pkgs.imagestore}";
+        ExecStart = "${lib.getExe pkgs.contrastPkgs.imagestore}";
+      };
+    };
+
+    systemd.services.deny-incoming-traffic = {
+      description = "Deny all incoming connections";
+
+      # We are doing iptables configuration in the unit, so we need the network
+      # service to be started. Note that we don't need to wait for network-online.target
+      # since we can already add iptables rules before the network is up.
+      wants = [ "network.target" ];
+      after = [ "network.target" ];
+
+      # This unit must successfully execute and exit before the kata-agent
+      # service starts. Otherwise, the kata-agent service will fail to start.
+      requiredBy = [ "kata-agent.service" ];
+      before = [ "kata-agent.service" ];
+
+      serviceConfig = {
+        # oneshot documentation: "the service manager will consider the unit up after the main process exits. It will then start follow-up units."
+        # https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html
+        Type = "oneshot";
+        RemainAfterExit = "yes";
+        ExecStart = ''${pkgs.iptables}/bin/iptables-legacy -I INPUT -m conntrack ! --ctstate ESTABLISHED,RELATED -j DROP'';
       };
     };
   };

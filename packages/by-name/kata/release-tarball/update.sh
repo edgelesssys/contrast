@@ -1,5 +1,5 @@
 #! /usr/bin/env nix
-#! nix shell .#nix .#gnused .#bash --command bash
+#! nix shell .#nixpkgs.nix .#nixpkgs.gnused .#nixpkgs.bash --command bash
 # Copyright 2025 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 # shellcheck shell=bash
