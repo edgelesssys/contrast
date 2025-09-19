@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"path"
 	"slices"
@@ -275,4 +276,8 @@ func (c *initContainerRunningCondition) Check(lister listerscorev1.PodLister) (b
 		return true, nil
 	}
 	return false, nil
+}
+
+func (c *initContainerRunningCondition) String() string {
+	return fmt.Sprintf("PodCondition(pod %s has a running initContainer)", c.name)
 }
