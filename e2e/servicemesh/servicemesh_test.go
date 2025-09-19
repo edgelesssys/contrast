@@ -24,6 +24,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -176,7 +177,8 @@ func TestIngressEgress(t *testing.T) {
 				continue
 			}
 
-			metrics, err := (&expfmt.TextParser{}).TextToMetricFamilies(strings.NewReader(stdout))
+			parser := expfmt.NewTextParser(model.LegacyValidation)
+			metrics, err := parser.TextToMetricFamilies(strings.NewReader(stdout))
 			require.NoError(err, "Reply from /metrics endpoint did not parse as metrics")
 
 			const metricName = "grpc_server_handled_total"
