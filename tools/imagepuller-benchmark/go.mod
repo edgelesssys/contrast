@@ -1,6 +1,6 @@
 module github.com/edgelesssys/contrast/imagepuller-benchmark
 
-go 1.24.0
+go 1.25.0
 
 replace github.com/edgelesssys/contrast/imagepuller => ../../imagepuller
 
