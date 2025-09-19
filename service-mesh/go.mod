@@ -11,7 +11,7 @@ require (
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/goleak v1.3.0
-	google.golang.org/protobuf v1.36.8
+	google.golang.org/protobuf v1.36.9
 )
 
 require (
@@ -22,7 +22,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20250313105119-ba97887b0a25 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250826171959-ef028d996bc1 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250826171959-ef028d996bc1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

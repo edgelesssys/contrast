@@ -7,11 +7,11 @@ require (
 	github.com/containers/storage v1.59.1
 	github.com/google/go-containerregistry v0.20.6
 	github.com/opencontainers/go-digest v1.0.0
-	github.com/spf13/cobra v1.9.1
+	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/sync v0.16.0
-	golang.org/x/sys v0.35.0
-	google.golang.org/protobuf v1.36.8
+	golang.org/x/sync v0.17.0
+	golang.org/x/sys v0.36.0
+	google.golang.org/protobuf v1.36.9
 )
 
 require (
@@ -51,7 +51,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/spf13/pflag v1.0.7 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/vbatts/tar-split v0.12.1 // indirect
