@@ -33,6 +33,7 @@ jobs:
           # keep-sorted start
           - atls
           - imagestore
+          - memdump
           - openssl
           - peerrecovery
           - policy
