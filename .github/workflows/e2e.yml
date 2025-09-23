@@ -67,7 +67,7 @@ jobs:
           EOF
       - name: Build and push container images
         run: |
-          just coordinator initializer port-forwarder openssl service-mesh-proxy node-installer "${PLATFORM}"
+          just coordinator initializer port-forwarder openssl service-mesh-proxy memdump node-installer "${PLATFORM}"
       - name: Get credentials for CI cluster
         if: (!inputs.self-hosted)
         run: |
