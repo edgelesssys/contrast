@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform) (deploy target cli platform) set verify (wait-for-workload target)
+default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump (node-installer platform) (deploy target cli platform) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -24,6 +24,9 @@ service-mesh-proxy: (push "service-mesh-proxy")
 # Build the initializer, containerize and push it.
 initializer: (push "initializer")
 
+# Build the memdump container and push it.
+memdump: (push "memdump")
+
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"
 default_platform := "${default_platform}"
@@ -46,7 +49,7 @@ node-installer platform=default_platform:
         ;;
     esac
 
-e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy (node-installer platform)
+e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
     nix shell .#contrast.e2e --command {{ target }}.test -test.v \

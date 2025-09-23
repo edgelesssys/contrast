@@ -158,6 +158,17 @@ let
         Cmd = [ "cleanup-bare-metal" ];
       };
     };
+
+    memdump = dockerTools.buildImage {
+      name = "memdump";
+      tag = "latest";
+      copyToRoot = with pkgs; [
+        busybox
+        socat
+        gdb
+        jq
+      ];
+    };
   };
 in
 containers

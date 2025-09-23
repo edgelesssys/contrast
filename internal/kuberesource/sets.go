@@ -878,3 +878,111 @@ seal "transit" {
 
 	return []any{vaultSfSets, vaultService, configMap, client}
 }
+
+// MemDump returns the resources for the memdump test.
+func MemDump() []any {
+	ns := ""
+	listener := Deployment("listener", ns).
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "listener"}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": "listener"}).
+				WithAnnotations(map[string]string{
+					smIngressConfigAnnotationKey: "netcat#8000#false",
+				}).
+				WithSpec(PodSpec().
+					WithContainers(
+						Container().
+							WithName("listener").
+							WithImage("ghcr.io/edgelesssys/contrast/memdump:latest").
+							WithCommand("/bin/sh", "-c", "socat TCP-LISTEN:8000,fork,reuseaddr FILE:/dev/shm/data,create,append").
+							WithPorts(
+								ContainerPort().
+									WithName("netcat").
+									WithContainerPort(8000),
+							).
+							WithReadinessProbe(Probe().
+								WithInitialDelaySeconds(1).
+								WithPeriodSeconds(5).
+								WithTCPSocket(TCPSocketAction().
+									WithPort(intstr.FromInt(8000)),
+								),
+							),
+					),
+				),
+			),
+		)
+
+	listenerService := ServiceForDeployment(listener)
+
+	sender := Deployment("sender", ns).
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "sender"}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": "sender"}).
+				WithAnnotations(map[string]string{
+					smEgressConfigAnnotationKey: "netcat#127.137.0.1:8000#listener:8000",
+				}).
+				WithSpec(PodSpec().
+					WithContainers(
+						Container().
+							WithName("sender").
+							WithImage("ghcr.io/edgelesssys/contrast/memdump:latest").
+							WithCommand("/bin/sh", "-c", "sleep inf"),
+					),
+				),
+			),
+		)
+
+	resources := []any{
+		listener,
+		listenerService,
+		sender,
+	}
+
+	return resources
+}
+
+// MemDumpTester returns the non-cc resources for the memdump test.
+func MemDumpTester() []any {
+	memdump := Deployment("memdump", "").
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "memdump"}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": "memdump"}).
+				WithSpec(PodSpec().
+					WithHostPID(true).
+					WithContainers(
+						Container().
+							WithName("memdump").
+							WithImage("ghcr.io/edgelesssys/contrast/memdump:latest").
+							WithCommand("/bin/sh", "-c", "sleep inf").
+							WithVolumeMounts(
+								VolumeMount().
+									WithName("host").
+									WithMountPath("/host"),
+							).
+							WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration),
+					).
+					WithVolumes(
+						Volume().WithName("host").WithHostPath(
+							applycorev1.HostPathVolumeSource().
+								WithPath("/").
+								WithType(corev1.HostPathDirectory),
+						),
+					),
+				),
+			),
+		)
+
+	return []any{memdump}
+}
