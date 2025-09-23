@@ -27,12 +27,12 @@ let
 
             # 1. Disable module signing to make the build reproducible.
             substituteInPlace $config \
+              --replace-fail '# CONFIG_MD is not set' 'CONFIG_MD=y' \
               --replace-fail 'CONFIG_MODULE_SIG=y' 'CONFIG_MODULE_SIG=n'
 
             # Enable dm-init, so that we can use `dm-mod.create`.
             # Source: https://github.com/kata-containers/kata-containers/blob/2c6126d3ab708e480b5aad1e7f7adbe22ffaa539/tools/packaging/kernel/configs/fragments/common/confidential_containers/cryptsetup.conf
             cat <<EOF >> $config
-            CONFIG_MD=y
             CONFIG_BLK_DEV_DM=y
             CONFIG_DM_INIT=y
             CONFIG_DM_CRYPT=y
@@ -57,16 +57,19 @@ let
         # 1. Add some options to enable using the kernel in NixOS. (As NixOS has a hard check on
         # whether all modules required for systemd are present, e.g.)
         substituteInPlace $config \
-          --replace-fail '# CONFIG_DMIID is not set' 'CONFIG_DMIID=y' \
           --replace-fail '# CONFIG_TMPFS_POSIX_ACL is not set' 'CONFIG_TMPFS_POSIX_ACL=y' \
           --replace-fail '# CONFIG_EFIVAR_FS is not set' 'CONFIG_EFIVAR_FS=y' \
           --replace-fail '# CONFIG_RD_ZSTD is not set' 'CONFIG_RD_ZSTD=y' \
           --replace-fail '# CONFIG_VFAT_FS is not se' 'CONFIG_VFAT_FS=y' \
+          --replace-fail 'CONFIG_EXPERT=y' '# CONFIG_EXPERT is not set' \
           --replace-fail '# CONFIG_NLS_CODEPAGE_437 is not set' 'CONFIG_NLS_CODEPAGE_437=y' \
           --replace-fail '# CONFIG_NLS_ISO8859_1 is not set' 'CONFIG_NLS_ISO8859_1=y' \
           --replace-fail '# CONFIG_ATA is not set' 'CONFIG_ATA=y'
 
-        echo "CONFIG_ATA_PIIX=y" >> $config
+        cat <<EOF >> $config
+        CONFIG_ATA_PIIX=y
+        CONFIG_DMIID=y
+        EOF
       '';
 
     dontBuild = true;
@@ -82,13 +85,13 @@ let
 in
 
 linuxManualConfig rec {
-  version = "6.12.36";
+  version = "6.16.7";
   modDirVersion = "${version}" + lib.optionalString withGPU "-nvidia-gpu-confidential";
 
   # See https://github.com/kata-containers/kata-containers/blob/5f11c0f144037d8d8f546c89a0392dcd84fa99e2/versions.yaml#L198-L201
   src = fetchurl {
     url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${version}.tar.xz";
-    hash = "sha256-ShaK7S3lqBqt2QuisVOGCpjZm/w0ZRk24X8Y5U8Buow=";
+    hash = "sha256-W+PaoflCexvbNMSJTZwa36w4z/Z0N2/gYRowZXKaGoE=";
   };
 
   kernelPatches = [

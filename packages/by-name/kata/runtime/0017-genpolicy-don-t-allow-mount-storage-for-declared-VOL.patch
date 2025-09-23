@@ -12,10 +12,10 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  4 files changed, 8 insertions(+), 62 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 6f9d8a9c90fc33b33ab4d23955a38b7c8d06e6c7..5481776e9641b5a12abb3197b62d051f689c96d8 100644
+index 92f65c3a855570aa4596d0b8453188644c7d4ef0..cd424f790ac7326919357f429fbde67e3c059cd4 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
-@@ -206,18 +206,6 @@
+@@ -183,18 +183,6 @@
                  "rprivate",
                  "ro"
              ]
@@ -35,10 +35,10 @@ index 6f9d8a9c90fc33b33ab4d23955a38b7c8d06e6c7..5481776e9641b5a12abb3197b62d051f
      },
      "mount_destinations": [
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 7c9b2c3b9909bab2b8970e606b0440441590b8ff..87de0fb6aa27284e43fa23746b379fb778005ee9 100644
+index 3cf258f454a69f897328b9a7e7baf537bd14890f..3c0ddd903b3b65b5dba0f75a3dfd8ffdbf7900d3 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -377,46 +377,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
+@@ -369,46 +369,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
          });
      }
  }
@@ -86,19 +86,19 @@ index 7c9b2c3b9909bab2b8970e606b0440441590b8ff..87de0fb6aa27284e43fa23746b379fb7
 -    });
 -}
 diff --git a/src/tools/genpolicy/src/settings.rs b/src/tools/genpolicy/src/settings.rs
-index b7f0515d17c1607985676c178b72b48ae9e38ece..fdd69c70d05f137dcbee328e8ffe95ac9291df68 100644
+index e3bab1e9b6d63b036221818ab5f24fa6b5c3d81c..e78e4b593d9a3eab051539d065940204fa195d1a 100644
 --- a/src/tools/genpolicy/src/settings.rs
 +++ b/src/tools/genpolicy/src/settings.rs
-@@ -35,7 +35,6 @@ pub struct Volumes {
+@@ -33,7 +33,6 @@ pub struct Volumes {
+     pub emptyDir: EmptyDirVolume,
      pub emptyDir_memory: EmptyDirVolume,
      pub configMap: ConfigMapVolume,
-     pub confidential_configMap: ConfigMapVolume,
 -    pub image_volume: ImageVolume,
  }
  
  /// EmptyDir volume settings loaded from genpolicy-settings.json.
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 0602105cf6b8338f8966a8ae3fa85d972993eb71..0c2ca5921151b385b5873c90dfe12021bde43c1f 100644
+index 86c7a0020e8c1996d63c92d65ba70f1dcdc07c0f..3f9cd02774870ff9fad9f21a8371c4b22202f02c 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -27,6 +27,7 @@ use crate::volume;
@@ -142,4 +142,4 @@ index 0602105cf6b8338f8966a8ae3fa85d972993eb71..0c2ca5921151b385b5873c90dfe12021
 +            panic!("The following volumes declared in image config don't have corresponding Kubernetes mounts: {uncoveredPaths:?}");
          }
      }
- }
+     if settings.cluster_config.guest_pull {

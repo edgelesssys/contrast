@@ -48,7 +48,7 @@ Signed-off-by: Markus Rudy <webmaster@burgerdev.de>
  create mode 100644 src/agent/policy/src/tdx.rs
 
 diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
-index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f19c0e2b2 100644
+index c3d86726e766ee7810d4ee56b3f774b91588b501..1db869b3edb07b8ca18c871c729cf151d9e34bb3 100644
 --- a/src/agent/Cargo.lock
 +++ b/src/agent/Cargo.lock
 @@ -474,6 +474,12 @@ version = "0.8.0"
@@ -64,7 +64,7 @@ index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f
  [[package]]
  name = "bitflags"
  version = "1.3.2"
-@@ -758,6 +764,12 @@ version = "0.7.4"
+@@ -767,6 +773,12 @@ version = "0.7.4"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
  
@@ -77,7 +77,7 @@ index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f
  [[package]]
  name = "colorchoice"
  version = "1.0.3"
-@@ -1043,6 +1055,15 @@ dependencies = [
+@@ -1071,6 +1083,15 @@ dependencies = [
   "crypto-common",
  ]
  
@@ -93,7 +93,7 @@ index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f
  [[package]]
  name = "dirs-next"
  version = "2.0.0"
-@@ -1053,6 +1074,18 @@ dependencies = [
+@@ -1081,6 +1102,18 @@ dependencies = [
   "dirs-sys-next",
  ]
  
@@ -112,7 +112,7 @@ index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f
  [[package]]
  name = "dirs-sys-next"
  version = "0.1.2"
-@@ -1884,6 +1917,12 @@ dependencies = [
+@@ -1922,6 +1955,12 @@ dependencies = [
   "libc",
  ]
  
@@ -125,7 +125,7 @@ index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f
  [[package]]
  name = "iovec"
  version = "0.1.4"
-@@ -2077,12 +2116,16 @@ version = "0.1.0"
+@@ -2115,12 +2154,16 @@ version = "0.1.0"
  dependencies = [
   "anyhow",
   "json-patch",
@@ -134,7 +134,7 @@ index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f
   "serde",
   "serde_json",
 + "sev",
-+ "sha2",
++ "sha2 0.10.9",
   "slog",
   "slog-scope",
   "tokio",
@@ -142,7 +142,7 @@ index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f
  ]
  
  [[package]]
-@@ -2754,6 +2797,12 @@ dependencies = [
+@@ -2816,6 +2859,12 @@ dependencies = [
   "tokio-stream",
  ]
  
@@ -155,7 +155,7 @@ index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f
  [[package]]
  name = "ordered-stream"
  version = "0.2.0"
-@@ -3800,6 +3849,15 @@ dependencies = [
+@@ -3862,6 +3911,15 @@ dependencies = [
   "syn 1.0.109",
  ]
  
@@ -171,7 +171,7 @@ index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f
  [[package]]
  name = "serde-enum-str"
  version = "0.4.0"
-@@ -3819,6 +3877,15 @@ version = "0.2.2"
+@@ -3881,6 +3939,15 @@ version = "0.2.2"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "794e44574226fc701e3be5c651feb7939038fc67fb73f6f4dd5c4ba90fd3be70"
  
@@ -187,7 +187,7 @@ index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f
  [[package]]
  name = "serde_derive"
  version = "1.0.219"
-@@ -3903,6 +3970,28 @@ dependencies = [
+@@ -3965,6 +4032,28 @@ dependencies = [
   "syn 1.0.109",
  ]
  
@@ -210,13 +210,13 @@ index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f
 + "serde-big-array",
 + "serde_bytes",
 + "static_assertions",
-+ "uuid",
++ "uuid 1.16.0",
 +]
 +
  [[package]]
  name = "sha1"
  version = "0.10.6"
-@@ -4699,6 +4788,9 @@ name = "uuid"
+@@ -4799,6 +4888,9 @@ name = "uuid"
  version = "1.16.0"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "458f7a779bf54acc9f347480ac654f68407d3aab21269a6e3c9f922acd9e2da9"
@@ -226,7 +226,7 @@ index 14d2b36ea6d76aa08dbf1cb17e7c79e874eb3046..8a6d9bb609829a6c46962420ddee5d0f
  
  [[package]]
  name = "uuid-simd"
-@@ -4735,6 +4827,16 @@ version = "0.9.5"
+@@ -4835,6 +4927,16 @@ version = "0.9.5"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
  
@@ -565,10 +565,10 @@ index 0000000000000000000000000000000000000000..1531e72a8b8db6e357d02ecdd431a9b8
 +    Ok(mrconfigid)
 +}
 diff --git a/src/runtime/pkg/govmm/qemu/qemu.go b/src/runtime/pkg/govmm/qemu/qemu.go
-index 67beb4b2491839ee83c8ce160adb1bff33518dd5..b9ea9c1fa6f6e74793b9c632779e71935c88e385 100644
+index 249a12c85658bcf8e310c4a7a3cb0326e691e381..ecac70af3e8ba0dd945c1581bd692e1a70ee914f 100644
 --- a/src/runtime/pkg/govmm/qemu/qemu.go
 +++ b/src/runtime/pkg/govmm/qemu/qemu.go
-@@ -332,6 +332,11 @@ type Object struct {
+@@ -335,6 +335,11 @@ type Object struct {
  
  	// Raw byte slice of initdata digest
  	InitdataDigest []byte
@@ -580,7 +580,7 @@ index 67beb4b2491839ee83c8ce160adb1bff33518dd5..b9ea9c1fa6f6e74793b9c632779e7193
  }
  
  // Valid returns true if the Object structure is valid and complete.
-@@ -422,6 +427,9 @@ func (object Object) QemuParams(config *Config) []string {
+@@ -428,6 +433,9 @@ func (object Object) QemuParams(config *Config) []string {
  			hostdata := base64.StdEncoding.EncodeToString(hostdataSlice)
  			objectParams = append(objectParams, fmt.Sprintf("host-data=%s", hostdata))
  		}
@@ -590,7 +590,7 @@ index 67beb4b2491839ee83c8ce160adb1bff33518dd5..b9ea9c1fa6f6e74793b9c632779e7193
  		config.Bios = object.File
  	case SecExecGuest:
  		objectParams = append(objectParams, string(object.Type))
-@@ -463,6 +471,7 @@ type SocketAddress struct {
+@@ -469,6 +477,7 @@ type SocketAddress struct {
  type TdxQomObject struct {
  	QomType               string        `json:"qom-type"`
  	Id                    string        `json:"id"`
@@ -598,7 +598,7 @@ index 67beb4b2491839ee83c8ce160adb1bff33518dd5..b9ea9c1fa6f6e74793b9c632779e7193
  	MrConfigId            string        `json:"mrconfigid,omitempty"`
  	MrOwner               string        `json:"mrowner,omitempty"`
  	MrOwnerConfig         string        `json:"mrownerconfig,omitempty"`
-@@ -516,6 +525,7 @@ func prepareTDXObject(object Object) string {
+@@ -522,6 +531,7 @@ func prepareTDXObject(object Object) string {
  	tdxObject := TdxQomObject{
  		string(object.Type), // qom-type
  		object.ID,           // id
@@ -606,7 +606,7 @@ index 67beb4b2491839ee83c8ce160adb1bff33518dd5..b9ea9c1fa6f6e74793b9c632779e7193
  		mrconfigid,          // mrconfigid
  		"",                  // mrowner
  		"",                  // mrownerconfig
-@@ -523,7 +533,12 @@ func prepareTDXObject(object Object) string {
+@@ -529,7 +539,12 @@ func prepareTDXObject(object Object) string {
  		nil}
  
  	if object.Debug {
@@ -621,10 +621,10 @@ index 67beb4b2491839ee83c8ce160adb1bff33518dd5..b9ea9c1fa6f6e74793b9c632779e7193
  
  	return tdxObject.String()
 diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
-index 22423ab1220f1b08afa69363b59535896628cea4..8b6f3659436f9f74c0c5235a6b9807cf60cfdb43 100644
+index 1440ac748cb8c608a07577ded7a72f78e648e1bb..0dad4378cdc0bd02e228717c258a4cbd6c2507f5 100644
 --- a/src/runtime/virtcontainers/hypervisor.go
 +++ b/src/runtime/virtcontainers/hypervisor.go
-@@ -702,6 +702,10 @@ type HypervisorConfig struct {
+@@ -705,6 +705,10 @@ type HypervisorConfig struct {
  	DefaultGPUs uint32
  	// DefaultGPUModel specifies GPU model like tesla, h100, readeon etc.
  	DefaultGPUModel string
@@ -636,7 +636,7 @@ index 22423ab1220f1b08afa69363b59535896628cea4..8b6f3659436f9f74c0c5235a6b9807cf
  
  // vcpu mapping from vcpu number to thread number
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 51a46d2729dd372df9f8037f5d602b8cc8d09ec3..1bed6f04e167965ea590eb20e1360fdaea42b211 100644
+index e7d00f7ea39c56a7c6677394f347da351c75f633..289ee4feb28dcfd6dd5f3dcd56455b563416338a 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -33,6 +33,8 @@ import (
@@ -648,16 +648,16 @@ index 51a46d2729dd372df9f8037f5d602b8cc8d09ec3..1bed6f04e167965ea590eb20e1360fda
  
  	govmmQemu "github.com/kata-containers/kata-containers/src/runtime/pkg/govmm/qemu"
  	"github.com/opencontainers/selinux/go-selinux/label"
-@@ -764,6 +766,8 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi
+@@ -747,6 +749,8 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi
  
  	if len(hypervisorConfig.Initdata) > 0 {
- 		devices = q.buildInitdataDevice(devices, hypervisorConfig.InitdataImage)
+ 		devices = q.arch.buildInitdataDevice(ctx, devices, hypervisorConfig.InitdataImage)
 +	} else if q.config.AgentPolicy == "" {
 +		return status.Error(codes.InvalidArgument, "The policy annotation is missing. Did you forget to run `contrast generate`?")
  	}
  
  	// some devices configuration may also change kernel params, make sure this is called afterwards
-@@ -797,7 +801,7 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi
+@@ -780,7 +784,7 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi
  		Debug:          hypervisorConfig.Debug,
  	}
  
@@ -667,7 +667,7 @@ index 51a46d2729dd372df9f8037f5d602b8cc8d09ec3..1bed6f04e167965ea590eb20e1360fda
  		return err
  	}
 diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
-index 7b4dfb975d555224290be7c5c47e5cf5e33c2760..8fd357fa60e8fb6a22ed09dc8f4f5aa92584cf05 100644
+index 8ccf503b6d7ccae59bb116ac0f5b1317ee8223a1..5a3010f625742d51485a145abb5477636a3e6133 100644
 --- a/src/runtime/virtcontainers/qemu_amd64.go
 +++ b/src/runtime/virtcontainers/qemu_amd64.go
 @@ -9,6 +9,8 @@ package virtcontainers
@@ -679,7 +679,7 @@ index 7b4dfb975d555224290be7c5c47e5cf5e33c2760..8fd357fa60e8fb6a22ed09dc8f4f5aa9
  	"fmt"
  	"time"
  
-@@ -280,7 +282,7 @@ func (q *qemuAmd64) enableProtection() error {
+@@ -283,7 +285,7 @@ func (q *qemuAmd64) enableProtection() error {
  }
  
  // append protection device
@@ -688,7 +688,7 @@ index 7b4dfb975d555224290be7c5c47e5cf5e33c2760..8fd357fa60e8fb6a22ed09dc8f4f5aa9
  	if q.sgxEPCSize != 0 {
  		devices = append(devices,
  			govmmQemu.Object{
-@@ -306,6 +308,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -309,6 +311,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  				File:           firmware,
  				FirmwareVolume: firmwareVolume,
  				InitdataDigest: initdataDigest,
@@ -696,15 +696,15 @@ index 7b4dfb975d555224290be7c5c47e5cf5e33c2760..8fd357fa60e8fb6a22ed09dc8f4f5aa9
  			}), "", nil
  	case sevProtection:
  		return append(devices,
-@@ -326,6 +329,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
- 			CBitPos:         cpuid.AMDMemEncrypt.CBitPosition,
+@@ -330,6 +333,7 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  			ReducedPhysBits: 1,
  			InitdataDigest:  initdataDigest,
+ 			SnpGuestPolicy:  q.snpGuestPolicy,
 +			TEEConfigData:   snpHostData(agentPolicy),
  		}
  		if q.snpIdBlock != "" && q.snpIdAuth != "" {
  			obj.SnpIdBlock = q.snpIdBlock
-@@ -344,3 +348,36 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
+@@ -348,3 +352,36 @@ func (q *qemuAmd64) appendProtectionDevice(devices []govmmQemu.Device, firmware,
  		return devices, "", fmt.Errorf("Unsupported guest protection technology: %v", q.protection)
  	}
  }
@@ -944,7 +944,7 @@ index 2756cb2be06b95f812cb3a9495b6ecadd501b17a..89cf5b4333a35714464f303ebde67f73
  	)
  
 diff --git a/src/runtime/virtcontainers/qemu_arch_base.go b/src/runtime/virtcontainers/qemu_arch_base.go
-index aa41445916d50fc1572f3919ea093d32819c6aeb..0c5c7b4e766bbbc8bbc01e67d8778e4ed73fcbaa 100644
+index 18c193628cf9f2883513ad06d7338f04c982b5e1..217db92206c73c8e6818b83d0fedcbe1d7fe1660 100644
 --- a/src/runtime/virtcontainers/qemu_arch_base.go
 +++ b/src/runtime/virtcontainers/qemu_arch_base.go
 @@ -165,7 +165,7 @@ type qemuArch interface {
@@ -956,7 +956,7 @@ index aa41445916d50fc1572f3919ea093d32819c6aeb..0c5c7b4e766bbbc8bbc01e67d8778e4e
  
  	// scans the PCIe space and returns the biggest BAR sizes for 32-bit
  	// and 64-bit addressable memory
-@@ -920,7 +920,7 @@ func (q *qemuArchBase) setPFlash(p []string) {
+@@ -923,7 +923,7 @@ func (q *qemuArchBase) setPFlash(p []string) {
  }
  
  // append protection device
@@ -966,11 +966,11 @@ index aa41445916d50fc1572f3919ea093d32819c6aeb..0c5c7b4e766bbbc8bbc01e67d8778e4e
  	return devices, firmware, nil
  }
 diff --git a/src/runtime/virtcontainers/qemu_arm64.go b/src/runtime/virtcontainers/qemu_arm64.go
-index bfe6e2d40599e36ccd24abb35464ba32849e9276..825b00ab33d4acf0237841362ccc4e1970076e52 100644
+index 2f3885835d8a19d4cdf8f92679717e47c99d42b8..31b16bf6f4ed0045bb802ce7d433b718ca677887 100644
 --- a/src/runtime/virtcontainers/qemu_arm64.go
 +++ b/src/runtime/virtcontainers/qemu_arm64.go
-@@ -154,7 +154,7 @@ func (q *qemuArm64) enableProtection() error {
- 	return nil
+@@ -159,7 +159,7 @@ func (q *qemuArm64) buildInitdataDevice(ctx context.Context, devices []govmmQemu
+ 	return devices
  }
  
 -func (q *qemuArm64) appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string, initdataDigest []byte) ([]govmmQemu.Device, string, error) {
@@ -1067,10 +1067,10 @@ index aca949741273bbe24d9184afa238cdeb759520b0..e514a8cdaf791abe91661013b5bbc1e9
  	assert.Empty(bios)
  	assert.NoError(err)
 diff --git a/src/runtime/virtcontainers/qemu_ppc64le.go b/src/runtime/virtcontainers/qemu_ppc64le.go
-index 87c2139b2b8d68a733cbd18fba71fcc1b5813b54..84e5e7e4ae566e382c630b8cf97849f852d4d80b 100644
+index 51b014010b557877eaff241afc97a16465622015..6f925474610afa86a26196449efed3ecbec624c7 100644
 --- a/src/runtime/virtcontainers/qemu_ppc64le.go
 +++ b/src/runtime/virtcontainers/qemu_ppc64le.go
-@@ -157,7 +157,7 @@ func (q *qemuPPC64le) enableProtection() error {
+@@ -163,7 +163,7 @@ func (q *qemuPPC64le) buildInitdataDevice(ctx context.Context, devices []govmmQe
  }
  
  // append protection device
@@ -1156,7 +1156,7 @@ index 7bb79bc0e57fa80d51f7f0306efd9ef1bc58731d..5498d305f8aaa607d6ac57566a22f40a
 +	assert.Equal(expectedOut, devices)
  }
 diff --git a/src/runtime/virtcontainers/qemu_s390x.go b/src/runtime/virtcontainers/qemu_s390x.go
-index 5f00e9ea76a205dcf297107af6f2531523da5934..71e742696c012d3f33e62dfeed1ee3744d38e08d 100644
+index 9a10510d133cf9dcc108ed03ccfbaf877991fb78..18cae642359391d3c53877499fb9a9b04be0ee47 100644
 --- a/src/runtime/virtcontainers/qemu_s390x.go
 +++ b/src/runtime/virtcontainers/qemu_s390x.go
 @@ -344,7 +344,7 @@ func (q *qemuS390x) enableProtection() error {
@@ -1169,7 +1169,7 @@ index 5f00e9ea76a205dcf297107af6f2531523da5934..71e742696c012d3f33e62dfeed1ee374
  	case seProtection:
  		return append(devices,
 diff --git a/src/runtime/virtcontainers/qemu_s390x_test.go b/src/runtime/virtcontainers/qemu_s390x_test.go
-index db88b4690f8695802e1087008f974f46baff0dc8..b79db22215bb0e78f25647ef102343b3acd6b498 100644
+index f04c8cbf40a9b190d1b0722043a45ded39fcba6f..e45152173e91a244f1815e581aed0d935aaa86d8 100644
 --- a/src/runtime/virtcontainers/qemu_s390x_test.go
 +++ b/src/runtime/virtcontainers/qemu_s390x_test.go
 @@ -111,40 +111,64 @@ func TestQemuS390xAppendProtectionDevice(t *testing.T) {
@@ -1239,12 +1239,12 @@ index db88b4690f8695802e1087008f974f46baff0dc8..b79db22215bb0e78f25647ef102343b3
  	// Secure Execution protection
  	s390x.(*qemuS390x).protection = seProtection
  
--	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "", []byte(nil))
-+	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "", []byte(nil), "")
+-	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "", []byte(""))
++	devices, bios, err = s390x.appendProtectionDevice(devices, firmware, "", []byte(""), "")
  	assert.NoError(err)
  	assert.Empty(bios)
  
-@@ -155,4 +179,17 @@ func TestQemuS390xAppendProtectionDevice(t *testing.T) {
+@@ -156,4 +180,17 @@ func TestQemuS390xAppendProtectionDevice(t *testing.T) {
  		},
  	}
  	assert.Equal(expectedOut, devices)
@@ -1275,7 +1275,7 @@ index 01a466bb473aa6ea58172b709029fedcbbc51295..77682dbd4d9a063077bdd0b98bccfdb5
  	spec := s.GetPatchedOCISpec()
  	if spec != nil && spec.Process.SelinuxLabel != "" {
 diff --git a/src/tools/genpolicy/Cargo.lock b/src/tools/genpolicy/Cargo.lock
-index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede608483694 100644
+index bde129a10c873ea8ac67d981dfb3fe838f03f051..5c02ee6ea5c26e61829f4cd8bf1b6f30daf1f7a8 100644
 --- a/src/tools/genpolicy/Cargo.lock
 +++ b/src/tools/genpolicy/Cargo.lock
 @@ -214,6 +214,21 @@ version = "0.22.1"
@@ -1341,7 +1341,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "displaydoc"
  version = "0.2.5"
-@@ -941,6 +983,12 @@ version = "0.3.1"
+@@ -937,6 +979,12 @@ version = "0.3.1"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "fed44880c466736ef9a5c5b5facefb5ed0785676d0c02d612db14e54f0d84286"
  
@@ -1354,7 +1354,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "hmac"
  version = "0.12.1"
-@@ -1314,6 +1362,12 @@ dependencies = [
+@@ -1310,6 +1358,12 @@ dependencies = [
   "libc",
  ]
  
@@ -1367,7 +1367,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "ipnet"
  version = "2.11.0"
-@@ -1429,12 +1483,16 @@ version = "0.1.0"
+@@ -1425,12 +1479,16 @@ version = "0.1.0"
  dependencies = [
   "anyhow",
   "json-patch",
@@ -1384,7 +1384,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  ]
  
  [[package]]
-@@ -1449,6 +1507,16 @@ version = "0.2.174"
+@@ -1445,6 +1503,16 @@ version = "0.2.174"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "1171693293099992e19cddea4e8b849964e9846f4acee11b3948bcc337be8776"
  
@@ -1401,7 +1401,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "libz-ng-sys"
  version = "1.1.15"
-@@ -1517,6 +1585,15 @@ version = "2.7.4"
+@@ -1513,6 +1581,15 @@ version = "2.7.4"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
  
@@ -1417,7 +1417,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "memoffset"
  version = "0.7.1"
-@@ -1576,6 +1653,18 @@ dependencies = [
+@@ -1572,6 +1649,18 @@ dependencies = [
   "tempfile",
  ]
  
@@ -1436,7 +1436,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "nix"
  version = "0.26.4"
-@@ -1585,7 +1674,7 @@ dependencies = [
+@@ -1581,7 +1670,7 @@ dependencies = [
   "bitflags 1.3.2",
   "cfg-if",
   "libc",
@@ -1445,7 +1445,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
   "pin-utils",
  ]
  
-@@ -1726,6 +1815,12 @@ dependencies = [
+@@ -1722,6 +1811,12 @@ dependencies = [
   "vcpkg",
  ]
  
@@ -1458,7 +1458,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "parking_lot"
  version = "0.12.3"
-@@ -2127,6 +2222,17 @@ dependencies = [
+@@ -2123,6 +2218,17 @@ dependencies = [
   "bitflags 2.4.1",
  ]
  
@@ -1476,7 +1476,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "regex"
  version = "1.10.5"
-@@ -2341,6 +2447,15 @@ dependencies = [
+@@ -2337,6 +2443,15 @@ dependencies = [
   "serde_derive",
  ]
  
@@ -1492,7 +1492,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "serde-transcode"
  version = "1.1.1"
-@@ -2350,6 +2465,15 @@ dependencies = [
+@@ -2346,6 +2461,15 @@ dependencies = [
   "serde",
  ]
  
@@ -1508,7 +1508,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "serde_derive"
  version = "1.0.210"
-@@ -2406,6 +2530,28 @@ dependencies = [
+@@ -2402,6 +2526,28 @@ dependencies = [
   "yaml-rust",
  ]
  
@@ -1537,7 +1537,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "sha2"
  version = "0.10.6"
-@@ -2477,6 +2623,12 @@ version = "1.2.0"
+@@ -2473,6 +2619,12 @@ version = "1.2.0"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
  
@@ -1550,7 +1550,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "strsim"
  version = "0.11.1"
-@@ -2921,7 +3073,7 @@ dependencies = [
+@@ -2899,7 +3051,7 @@ dependencies = [
   "home",
   "libc",
   "log",
@@ -1559,7 +1559,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
   "protobuf",
   "protobuf-codegen",
   "thiserror 1.0.40",
-@@ -3020,6 +3172,17 @@ version = "0.2.2"
+@@ -2998,6 +3150,17 @@ version = "0.2.2"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
  
@@ -1577,7 +1577,7 @@ index 4d808c537fbb0b6919a574b6acc0a5532120d0a7..d87987da00ed6bcc2c46b162e1c3ede6
  [[package]]
  name = "vcpkg"
  version = "0.2.15"
-@@ -3032,6 +3195,16 @@ version = "0.9.4"
+@@ -3010,6 +3173,16 @@ version = "0.9.4"
  source = "registry+https://github.com/rust-lang/crates.io-index"
  checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
  

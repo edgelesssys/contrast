@@ -49,7 +49,7 @@ confidential_guest = true
 # List of valid annotation names for the hypervisor
 # Each member of the list is a regular expression, which is the base name
 # of the annotation, e.g. "path" for io.katacontainers.config.hypervisor.path"
-enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params", "default_vcpus", "default_memory"]
+enable_annotations = ["enable_iommu", "virtio_fs_extra_args", "kernel_params", "default_vcpus", "default_memory", "cc_init_data"]
 
 # List of valid annotations values for the hypervisor
 # Each member of the list is a path pattern as described by glob(3).
@@ -67,7 +67,7 @@ valid_hypervisor_paths = ["PLACEHOLDER_FOR_DISTRO_QEMU_WITH_TDX_SUPPORT"]
 # may stop the virtual machine from booting.
 # To see the list of default parameters, enable hypervisor debug, create a
 # container and look for 'default-kernel-parameters' log entries.
-kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1 rootfs_verity.scheme=dm-verity rootfs_verity.hash=9bacdb440ca2df24565d5aec2c105df9f62803d52cf3b1664fbc341af4400f4f"
+kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1 rootfs_verity.scheme=dm-verity rootfs_verity.hash=f8646fd40953dc21b3253ebc13c13fe1dbc208f6d225aeacc4a04940bca60312"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty
@@ -205,6 +205,10 @@ virtio_fs_extra_args = ["--thread-pool-size=1", "--announce-submounts"]
 #  - never
 #    Metadata, data, and pathname lookup are not cached in guest. They are
 #    always fetched from host and any changes are immediately pushed to host.
+#
+#  - metadata
+#    Metadata and pathname lookup are cached in guest and never expire.
+#    Data is never cached in guest.
 #
 #  - auto
 #    Metadata and pathname lookup cache expires after a configured amount of

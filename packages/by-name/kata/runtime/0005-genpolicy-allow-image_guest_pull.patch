@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Markus Rudy <mr@edgeless.systems>
-Date: Tue, 2 Sep 2025 10:33:45 +0200
+Date: Mon, 22 Sep 2025 17:31:12 +0200
 Subject: [PATCH] genpolicy: allow image_guest_pull
 
 This adds an additional version of allow_storage that checks Nydus
@@ -16,11 +16,9 @@ digest parts, which are considered sufficient to identify an image.
 ---
  src/agent/src/storage/image_pull_handler.rs | 65 ++-------------------
  src/runtime/virtcontainers/kata_agent.go    | 17 +-----
- src/tools/genpolicy/genpolicy-settings.json |  4 +-
  src/tools/genpolicy/rules.rego              | 47 +++++++++++----
- src/tools/genpolicy/src/policy.rs           | 14 +++++
- src/tools/genpolicy/src/registry.rs         | 26 ++++-----
- 6 files changed, 68 insertions(+), 105 deletions(-)
+ src/tools/genpolicy/src/yaml.rs             | 11 ++++
+ 4 files changed, 53 insertions(+), 87 deletions(-)
 
 diff --git a/src/agent/src/storage/image_pull_handler.rs b/src/agent/src/storage/image_pull_handler.rs
 index 74686abf43436d9c5c5117d061f1faed79783f74..e927668e85b61c1d242c1052bf50d7a599e33600 100644
@@ -128,7 +126,7 @@ index 74686abf43436d9c5c5117d061f1faed79783f74..e927668e85b61c1d242c1052bf50d7a5
 -    }
 -}
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index 7c22373e4d2472493e51b70fbae57d8299ea6b67..7cbe478bbc1d9188e403e7fe30151b26803053d2 100644
+index fef95c47376b1b2c05304d3f9750e3f84cc93b4a..59ccaf3c86663f12bf2323cc3ddd12573b3e1d98 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
 @@ -1694,7 +1694,7 @@ func getContainerTypeforCRI(c *Container) (string, string) {
@@ -171,30 +169,11 @@ index 7c22373e4d2472493e51b70fbae57d8299ea6b67..7cbe478bbc1d9188e403e7fe30151b26
  		if err != nil {
  			return nil, err
  		}
-diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index a0c0c5acf68bdd24e6a187101c9cff9a692dc9f2..34a743b102b8d0db8c576187a9f71aae53251486 100644
---- a/src/tools/genpolicy/genpolicy-settings.json
-+++ b/src/tools/genpolicy/genpolicy-settings.json
-@@ -319,12 +319,12 @@
-         "image_layer_verification" : "none"
-     },
-     "kata_config": {
--        "confidential_guest": false,
-+        "confidential_guest": true,
-         "oci_version": "1.1.0"
-     },
-     "cluster_config": {
-         "pause_container_image": "mcr.microsoft.com/oss/kubernetes/pause:3.6",
--        "guest_pull": false
-+        "guest_pull": true
-     },
-     "request_defaults": {
-         "CreateContainerRequest": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 842fc326c023029b2e34c132401a51d04006c605..066c702530943f264a4d5a4cc5a4c0bc17567e43 100644
+index c45754a94c32b917cb61deb95dda9bafc0ec1286..ab17b679cb32ce602f7129fd6a6e1e0e4b322c63 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1017,10 +1017,9 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) if {
+@@ -1018,10 +1018,9 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) if {
  allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
      p_count := count(p_storages)
      i_count := count(i_storages)
@@ -205,13 +184,13 @@ index 842fc326c023029b2e34c132401a51d04006c605..066c702530943f264a4d5a4cc5a4c0bc
 -    p_count == i_count - img_pull_count
 +    p_count == i_count
  
-     image_info := allow_container_image_storage(p_storages)
-     layer_ids := image_info.layer_ids
-@@ -1066,15 +1065,6 @@ allow_storage(p_storages, i_storage, bundle_id, sandbox_id, layer_ids, root_hash
+     every i_storage in i_storages {
+         allow_storage(p_storages, i_storage, bundle_id, sandbox_id)
+@@ -1047,15 +1046,6 @@ allow_storage(p_storages, i_storage, bundle_id, sandbox_id) if {
  
      print("allow_storage: true")
  }
--allow_storage(p_storages, i_storage, bundle_id, sandbox_id, layer_ids, root_hashes) if {
+-allow_storage(p_storages, i_storage, bundle_id, sandbox_id) if {
 -    i_storage.driver == "image_guest_pull"
 -    print("allow_storage with image_guest_pull: start")
 -    i_storage.fstype == "overlay"
@@ -223,7 +202,7 @@ index 842fc326c023029b2e34c132401a51d04006c605..066c702530943f264a4d5a4cc5a4c0bc
  
  allow_storage_source(p_storage, i_storage, bundle_id) if {
      print("allow_storage_source 1: start")
-@@ -1104,6 +1094,23 @@ allow_storage_source(p_storage, i_storage, bundle_id) if {
+@@ -1085,6 +1075,23 @@ allow_storage_source(p_storage, i_storage, bundle_id) if {
  
      print("allow_storage_source 3: true")
  }
@@ -245,92 +224,50 @@ index 842fc326c023029b2e34c132401a51d04006c605..066c702530943f264a4d5a4cc5a4c0bc
 +    print("allow_storage_source 4: true")
 +}
  
- allow_storage_options(p_storage, i_storage, layer_ids, root_hashes) if {
+ allow_storage_options(p_storage, i_storage) if {
      print("allow_storage_options 1: start")
-@@ -1272,6 +1279,22 @@ allow_mount_point(p_storage, i_storage, bundle_id, sandbox_id, layer_ids) if {
+@@ -1138,6 +1145,22 @@ allow_mount_point(p_storage, i_storage, bundle_id, sandbox_id) if {
  
-     print("allow_mount_point 5: true")
+     print("allow_mount_point 3: true")
  }
-+allow_mount_point(p_storage, i_storage, bundle_id, sandbox_id, layer_ids) if {
-+    p_storage.fstype == "overlay" 
++allow_mount_point(p_storage, i_storage, bundle_id, sandbox_id) if {
++    p_storage.fstype == "overlay"
 +
 +    mount1 := p_storage.mount_point
-+    print("allow_mount_point 6: mount1 =", mount1)
++    print("allow_mount_point 2: mount1 =", mount1)
 +
-+    mount2 := replace(mount1, "$(cpath)", policy_data.common.cpath)
-+    print("allow_mount_point 6: mount2 =", mount2)
++    mount2 := replace(mount1, "$(root_path)", policy_data.common.root_path)
++    print("allow_mount_point 2: mount2 =", mount2)
 +
 +    mount3 := replace(mount2, "$(bundle-id)", bundle_id)
-+    print("allow_mount_point 6: mount3 =", mount3)
++    print("allow_mount_point 2: mount3 =", mount3)
 +
 +    regex.match(mount3, i_storage.mount_point)
 +
-+    print("allow_mount_point 6: true")
++    print("allow_mount_point 2: true")
 +}
  
  # ExecProcessRequest.process.Capabilities
  allow_exec_caps(i_caps) if {
-diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index d28f23df2572ee4f0a44e5af283c45291ac4f2d5..27e549c23d52e99ed14c63fe7a1d0f94bc955cf9 100644
---- a/src/tools/genpolicy/src/policy.rs
-+++ b/src/tools/genpolicy/src/policy.rs
-@@ -629,6 +629,20 @@ impl AgentPolicy {
-             &self.config.settings,
-         );
- 
-+        
-+    if self.config.settings.cluster_config.guest_pull {
-+        let image_ref = if is_pause_container { "pause".to_string() } else { yaml_container.image.clone() }; 
+diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
+index 131d2ce0b467170286424e53baa3dc281c29e439..63cbb1ea595bc228874a43dfd2f79dc5266a2bee 100644
+--- a/src/tools/genpolicy/src/yaml.rs
++++ b/src/tools/genpolicy/src/yaml.rs
+@@ -316,6 +316,17 @@ pub fn get_container_mounts_and_storages(
+             mount_and_storage::get_image_mount_and_storage(settings, policy_mounts, volume.0);
+         }
+     }
++    if settings.cluster_config.guest_pull {
 +        storages.push(agent::Storage{
 +            driver: "image_guest_pull".to_string(),
 +            driver_options: Vec::new(),
-+            source: image_ref,
++            source: container.image.clone(),
 +            fstype: "overlay".to_string(),
 +            options: Vec::new(),
-+            mount_point: "^$(cpath)/$(bundle-id)/rootfs$".to_string(),
++            mount_point: "^$(root_path)$".to_string(),
 +            ..Default::default()
 +        });
 +    }
-+
-         let mut linux = containerd::get_linux(is_privileged);
-         linux.Namespaces = get_kata_namespaces(is_pause_container, use_host_network);
+ }
  
-diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index 14cc666822be6b7799df56dab72de97ed7366150..bbdfa33350865982b2a368bbe7e7202b1ad6adc3 100644
---- a/src/tools/genpolicy/src/registry.rs
-+++ b/src/tools/genpolicy/src/registry.rs
-@@ -174,24 +174,18 @@ impl Container {
-                 // Find the last layer with an /etc/* file, respecting whiteouts.
-                 let mut passwd = String::new();
-                 let mut group = String::new();
--                // Nydus/guest_pull doesn't make available passwd/group files from layers properly.
--                // See issue https://github.com/kata-containers/kata-containers/issues/11162
--                if !config.settings.cluster_config.guest_pull {
--                    for layer in &image_layers {
--                        if layer.passwd == WHITEOUT_MARKER {
--                            passwd = String::new();
--                        } else if !layer.passwd.is_empty() {
--                            passwd = layer.passwd.clone();
--                        }
-+                for layer in &image_layers {
-+                    if layer.passwd == WHITEOUT_MARKER {
-+                        passwd = String::new();
-+                    } else if !layer.passwd.is_empty() {
-+                        passwd = layer.passwd.clone();
-+                    }
- 
--                        if layer.group == WHITEOUT_MARKER {
--                            group = String::new();
--                        } else if !layer.group.is_empty() {
--                            group = layer.group.clone();
--                        }
-+                    if layer.group == WHITEOUT_MARKER {
-+                        group = String::new();
-+                    } else if !layer.group.is_empty() {
-+                        group = layer.group.clone();
-                     }
--                } else {
--                    info!("Guest pull is enabled, skipping passwd/group file parsing");
-                 }
- 
-                 Ok(Container {
+ /// Add the "io.katacontainers.config.agent.policy" annotation into

@@ -17,10 +17,10 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  9 files changed, 43 insertions(+), 15 deletions(-)
 
 diff --git a/src/agent/Cargo.lock b/src/agent/Cargo.lock
-index 8a6d9bb609829a6c46962420ddee5d0f19c0e2b2..717d2d8aa2d2636b6eae1681fc396b1061d1facb 100644
+index 1db869b3edb07b8ca18c871c729cf151d9e34bb3..d7a0a3a283621d714cb4c41dd556ae85224cd828 100644
 --- a/src/agent/Cargo.lock
 +++ b/src/agent/Cargo.lock
-@@ -2115,6 +2115,7 @@ name = "kata-agent-policy"
+@@ -2153,6 +2153,7 @@ name = "kata-agent-policy"
  version = "0.1.0"
  dependencies = [
   "anyhow",
@@ -121,7 +121,7 @@ index ac186fe935ae57dca4980d92def226aa6ba006d2..3c85949b881a404297c0c8e871df5d51
  
  message MemAgentMemcgConfig {
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index fd194985aefa5e6fccecb3d30e621a55374a8e74..c57dcb9aeb9b528d56cff01f3306ccce40fd609a 100644
+index 30f7691a1a0b8364a7a4878cf08a172d45f6c704..d54f68b61f68a19f3ff64b1d2a17cf37f36fa809 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
 @@ -2682,7 +2682,7 @@ func (k *kataAgent) resizeGuestVolume(ctx context.Context, volumeGuestPath strin
@@ -170,7 +170,7 @@ index 49bcaba24d333fb91e66173416b3c969e8afbfc1..807c2b7d16fda3b7950cdf4736471922
  	0x6d, 0x63, 0x67, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x1f, 0x0a, 0x08, 0x64, 0x69, 0x73,
  	0x61, 0x62, 0x6c, 0x65, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x48, 0x00, 0x52, 0x08, 0x64,
 diff --git a/src/tools/genpolicy/Cargo.lock b/src/tools/genpolicy/Cargo.lock
-index d87987da00ed6bcc2c46b162e1c3ede608483694..b4b1f9ca3d511fd6f2eab989791abe81cd70f9b1 100644
+index 5c02ee6ea5c26e61829f4cd8bf1b6f30daf1f7a8..9365c94ca06474fedc6477ac157537f0db3885fc 100644
 --- a/src/tools/genpolicy/Cargo.lock
 +++ b/src/tools/genpolicy/Cargo.lock
 @@ -119,6 +119,19 @@ dependencies = [
@@ -193,7 +193,7 @@ index d87987da00ed6bcc2c46b162e1c3ede608483694..b4b1f9ca3d511fd6f2eab989791abe81
  [[package]]
  name = "async-trait"
  version = "0.1.68"
-@@ -1482,6 +1495,7 @@ name = "kata-agent-policy"
+@@ -1478,6 +1491,7 @@ name = "kata-agent-policy"
  version = "0.1.0"
  dependencies = [
   "anyhow",
@@ -202,10 +202,10 @@ index d87987da00ed6bcc2c46b162e1c3ede608483694..b4b1f9ca3d511fd6f2eab989791abe81
   "nix 0.24.3",
   "regorus",
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 3afb88d9991975ddfecacf84d2b3a3ace020ecef..001dd42856506747c2e3c582c9e218ac93aa2824 100644
+index 3a59af38b276226d0b053b82bb80ed39ffe3c9d8..687cdbc78b12feb2ede7fb41afd62da91f22eafc 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -578,7 +578,14 @@ impl AgentPolicy {
+@@ -585,7 +585,14 @@ impl AgentPolicy {
          if self.config.raw_out {
              std::io::stdout().write_all(policy.as_bytes()).unwrap();
          }

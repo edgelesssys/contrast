@@ -23,9 +23,6 @@ rustPlatform.buildRustPackage rec {
 
   cargoLock = {
     lockFile = "${src}/src/tools/genpolicy/Cargo.lock";
-    outputHashes = {
-      "tarfs-defs-0.1.0" = "sha256-J79fMuKOIVHEk6WvkLeM9IY5XQHyUJQOrwwMLvRvE60=";
-    };
   };
 
   env.OPENSSL_NO_VENDOR = 1;
