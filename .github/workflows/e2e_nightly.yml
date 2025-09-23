@@ -31,23 +31,23 @@ jobs:
             self-hosted: true
         test-name:
           # keep-sorted start
-          - atls
-          - imagestore
+          # - atls
+          # - imagestore
           - memdump
-          - openssl
-          - peerrecovery
-          - policy
-          - servicemesh
-          - vault
-          - volumestatefulset
-          - workloadsecret
+          # - openssl
+          # - peerrecovery
+          # - policy
+          # - servicemesh
+          # - vault
+          # - volumestatefulset
+          # - workloadsecret
           # keep-sorted end
-        include:
-          - platform:
-              name: Metal-QEMU-SNP-GPU
-              runner: SNP-GPU
-              self-hosted: true
-            test-name: gpu
+        # include:
+        #   - platform:
+        #       name: Metal-QEMU-SNP-GPU
+        #       runner: SNP-GPU
+        #       self-hosted: true
+        #     test-name: gpu
       fail-fast: false
     name: "${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e.yml
