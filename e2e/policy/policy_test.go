@@ -24,6 +24,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/prometheus/common/expfmt"
+	"github.com/prometheus/common/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -235,7 +236,8 @@ func getFailures(ctx context.Context, t require.TestingT, ct *contrasttest.Contr
 	require.NoError(err)
 
 	// parse the logs
-	metrics, err := (&expfmt.TextParser{}).TextToMetricFamilies(strings.NewReader(metricsString))
+	parser := expfmt.NewTextParser(model.LegacyValidation)
+	metrics, err := parser.TextToMetricFamilies(strings.NewReader(metricsString))
 	require.NoError(err)
 	const metricName = "contrast_grpc_server_handled_total"
 	metricFamily, ok := metrics[metricName]
