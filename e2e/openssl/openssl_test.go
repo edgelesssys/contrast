@@ -311,8 +311,9 @@ func TestOpenSSL(t *testing.T) {
 		knownErrors := []string{
 			"Speculative Return Stack Overflow: WARNING: kernel not compiled with MITIGATION_SRSO.",
 			"[Firmware Bug]: Failed to parse event in TPM Final Events Log",
-			"ACPI BIOS Error (bug): Failure creating named object [\\_GPE._HID], AE_ALREADY_EXISTS (20240827/dswload2-326)",
-			"ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog (20240827/psobject-220)",
+			// The following two happen only on TDX.
+			"ACPI BIOS Error (bug): Failure creating named object [\\_GPE._HID], AE_ALREADY_EXISTS",
+			"ACPI Error: AE_ALREADY_EXISTS, During name lookup/catalog",
 			"NVRM: No NVIDIA GPU found", // openssl test does not use a GPU
 			// This is logged when pages are read from dm-integrity protected, uninitialized/unwiped pages.
 			// This happens in the IsExt4 check of our cryptsetup lib and in other places.
@@ -321,6 +322,8 @@ func TestOpenSSL(t *testing.T) {
 			// This happens when we mount ext4, just the kernel checking for the right filesystem.
 			"couldn't mount as ext3 due to feature incompatibilities",
 			"couldn't mount as ext2 due to feature incompatibilities",
+			// This started showing after upgrading the kernel from 6.12 to 6.16.
+			"tdx: VMM did not configure X2APIC_IDs properly",
 		}
 		for line := range strings.SplitSeq(dmesgOutput, "\n") {
 			line = strings.TrimSpace(line)

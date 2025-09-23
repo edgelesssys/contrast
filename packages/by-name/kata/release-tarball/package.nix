@@ -12,7 +12,7 @@ in
 
 fetchzip {
   url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
-  hash = "sha256-vPktGr544XWJ8vUwj0VADItFOhvZFj2owVEVPe640GM=";
+  hash = "sha256-sEdySOuqf1WUoy+fgQzV4/mZ3zb90lTTY7s43+6oXMM=";
   stripRoot = false;
   passthru.version = version;
   passthru.updateScript = ./update.sh;

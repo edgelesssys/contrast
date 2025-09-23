@@ -17,10 +17,10 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  3 files changed, 20 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 0ab7fbd5b7f1509795930a946d3185773cc14f33..fa108b23a9f867a7b29637987d72141bcfc7e724 100644
+index 8340cd33c7023d43ecfab6d34939e0b65bbe92a0..4918d32a21424877ee8f73474126102e167f651f 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
-@@ -247,7 +247,8 @@
+@@ -224,7 +224,8 @@
                  "mount_point": "/run/kata-containers/sandbox/shm",
                  "fs_group": null
              }
@@ -29,12 +29,12 @@ index 0ab7fbd5b7f1509795930a946d3185773cc14f33..fa108b23a9f867a7b29637987d72141b
 +        "allowed_guest_hooks": ["/usr/share/oci/hooks"]
      },
      "common": {
-         "cpath": "/run/kata-containers",
+         "cpath": "/run/kata-containers/shared/containers",
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index f487bac46746bb361976f8a88f08312694d76d51..242b37633026996e50bdf74eb3426db3f0981ca6 100644
+index 95972812f90e61742c892a0f7ad6a647c080d2f1..048439d8dbdc006b44d131eec65128b351989225 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1404,7 +1404,7 @@ CopyFileRequest if {
+@@ -1270,7 +1270,7 @@ CopyFileRequest if {
  
  CreateSandboxRequest if {
      print("CreateSandboxRequest: input.guest_hook_path =", input.guest_hook_path)
@@ -43,7 +43,7 @@ index f487bac46746bb361976f8a88f08312694d76d51..242b37633026996e50bdf74eb3426db3
  
      print("CreateSandboxRequest: input.kernel_modules =", input.kernel_modules)
      count(input.kernel_modules) == 0
-@@ -1415,6 +1415,21 @@ CreateSandboxRequest if {
+@@ -1281,6 +1281,21 @@ CreateSandboxRequest if {
      allow_sandbox_storages(input.storages)
  }
  
@@ -66,10 +66,10 @@ index f487bac46746bb361976f8a88f08312694d76d51..242b37633026996e50bdf74eb3426db3
      print("allow_exec: start")
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 27e549c23d52e99ed14c63fe7a1d0f94bc955cf9..14e2f7f2dde55ac65fd4cacece0f151575d9e785 100644
+index f899a24bb2d171661a673b5c5ea6959165077f33..728fb35afb1852412dae7fd55b3cbfa164c36ac9 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -439,6 +439,8 @@ pub struct ClusterConfig {
+@@ -447,6 +447,8 @@ pub struct ClusterConfig {
  pub struct SandboxData {
      /// Expected value of the CreateSandboxRequest storages field.
      pub storages: Vec<agent::Storage>,

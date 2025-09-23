@@ -11,14 +11,14 @@ where `XY` corresponds to a dynamic ID.
 ---
  src/tools/genpolicy/genpolicy-settings.json |  8 ++++++--
  src/tools/genpolicy/rules.rego              | 18 +++++++++++++-----
- src/tools/genpolicy/src/policy.rs           |  6 ++++++
- 3 files changed, 25 insertions(+), 7 deletions(-)
+ src/tools/genpolicy/src/policy.rs           |  7 ++++++-
+ 3 files changed, 25 insertions(+), 8 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index fa108b23a9f867a7b29637987d72141bcfc7e724..6f9d8a9c90fc33b33ab4d23955a38b7c8d06e6c7 100644
+index 4918d32a21424877ee8f73474126102e167f651f..92f65c3a855570aa4596d0b8453188644c7d4ef0 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
-@@ -317,7 +317,10 @@
+@@ -294,7 +294,10 @@
              "CAP_BPF",
              "CAP_CHECKPOINT_RESTORE"
          ],
@@ -29,8 +29,8 @@ index fa108b23a9f867a7b29637987d72141bcfc7e724..6f9d8a9c90fc33b33ab4d23955a38b7c
 +        }
      },
      "kata_config": {
-         "confidential_guest": true,
-@@ -343,7 +346,8 @@
+         "oci_version": "1.1.0",
+@@ -320,7 +323,8 @@
                  "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
                  "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
@@ -41,7 +41,7 @@ index fa108b23a9f867a7b29637987d72141bcfc7e724..6f9d8a9c90fc33b33ab4d23955a38b7c
          },
          "UpdateInterfaceRequest": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 242b37633026996e50bdf74eb3426db3f0981ca6..ad0c575eebe6d81b06aba61bbb55c503badb141a 100644
+index 048439d8dbdc006b44d131eec65128b351989225..1d52f1e95f7eabf0d6e2bee8a19028834564c903 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -230,18 +230,26 @@ allow_anno(p_oci, i_oci) if {
@@ -77,13 +77,13 @@ index 242b37633026996e50bdf74eb3426db3f0981ca6..ad0c575eebe6d81b06aba61bbb55c503
      print("allow_anno_key 1: i key =", i_key)
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 14e2f7f2dde55ac65fd4cacece0f151575d9e785..bfd22e5328ae326a9f94c6e41b8c5eb594025d20 100644
+index 728fb35afb1852412dae7fd55b3cbfa164c36ac9..88f256718b6cd2c0eb67f42cea2558011d2787f4 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -421,6 +421,12 @@ pub struct CommonData {
+@@ -429,9 +429,14 @@ pub struct CommonData {
  
-     /// Parse Container image as a storage object
-     pub image_layer_verification: String,
+     /// Default capabilities for a privileged container.
+     pub privileged_caps: Vec<String>,
 +
 +    /// Dynamic annotations contains arbitrary metadata for the container.
 +    /// It is different to `KataSpec.Annotations` in that it allows dynamic keys *and*
@@ -92,4 +92,7 @@ index 14e2f7f2dde55ac65fd4cacece0f151575d9e785..bfd22e5328ae326a9f94c6e41b8c5eb5
 +    pub dynamic_annotations: BTreeMap<String, String>,
  }
  
- /// Configuration from "kubectl config".
+-/// Configuration from "kubectl config".
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+ pub struct ClusterConfig {
+     /// Pause container image reference.

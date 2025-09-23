@@ -10,10 +10,10 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  2 files changed, 31 insertions(+), 9 deletions(-)
 
 diff --git a/src/agent/src/confidential_data_hub/mod.rs b/src/agent/src/confidential_data_hub/mod.rs
-index 3c89ac1487087a0d9977f0d06bf89fa52f53d30c..846ad607ac2375df9eb4e78fd3b26008d9063eb1 100644
+index 39ba3fdfb04c46388d59c6116a05520b5ea64102..47417d47a731951af173584facfe6999f01cab7b 100644
 --- a/src/agent/src/confidential_data_hub/mod.rs
 +++ b/src/agent/src/confidential_data_hub/mod.rs
-@@ -287,12 +287,37 @@ pub async fn secure_mount(
+@@ -300,12 +300,37 @@ pub async fn secure_mount(
      flags: Vec<String>,
      mount_point: &str,
  ) -> Result<()> {

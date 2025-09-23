@@ -20,7 +20,7 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  12 files changed, 52 insertions(+), 15 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index c356c6123d1c22ff9be90783c8d89f1e95f00638..8cf8cb48fab6ec5e64994862490ab64ca6b04dbb 100644
+index ad90805bceba73f48c8919e4623c4fd1d9166b55..1b022bef79e5910bb7d57923314382d34549e3d2 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -148,7 +148,7 @@ allow_create_container_input if {
@@ -149,10 +149,10 @@ index bab8b34781bd8b6e51332bbcf8303116272654f1..2959db91b82040b7c0ec4c2b41396d07
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index ba7551f92fb4769b1b7b2bf8ef7ad2a02c561a5e..3afb88d9991975ddfecacf84d2b3a3ace020ecef 100644
+index 7b63d7a3b86b362395cc6755ce8015c112d71921..3a59af38b276226d0b053b82bb80ed39ffe3c9d8 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -1052,7 +1052,7 @@ fn get_container_annotations(
+@@ -968,7 +968,7 @@ fn get_container_annotations(
      if let Some(name) = resource.get_sandbox_name() {
          annotations
              .entry("io.kubernetes.cri.sandbox-name".to_string())
@@ -207,7 +207,7 @@ index a1613998efbbb073146ab24a7762bdc399fc9fa0..7c54f854e81c70df779861ad056fa38e
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 131d2ce0b467170286424e53baa3dc281c29e439..0602105cf6b8338f8966a8ae3fa85d972993eb71 100644
+index 63cbb1ea595bc228874a43dfd2f79dc5266a2bee..86c7a0020e8c1996d63c92d65ba70f1dcdc07c0f 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -14,6 +14,7 @@ use crate::job;
@@ -218,7 +218,7 @@ index 131d2ce0b467170286424e53baa3dc281c29e439..0602105cf6b8338f8966a8ae3fa85d97
  use crate::pod;
  use crate::policy;
  use crate::replica_set;
-@@ -440,3 +441,15 @@ pub fn get_sysctls(security_context: &Option<pod::PodSecurityContext>) -> Vec<po
+@@ -451,3 +452,15 @@ pub fn get_sysctls(security_context: &Option<pod::PodSecurityContext>) -> Vec<po
      }
      vec![]
  }

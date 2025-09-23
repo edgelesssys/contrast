@@ -14,7 +14,7 @@ NOTE: fixes https://github.com/kata-containers/kata-containers/issues/10065
  1 file changed, 8 insertions(+), 21 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index f073c8c4de7c44d868be21da12586b3c37b7ff08..e72890f88e59effa2918169c146b2d9f2d319e9e 100644
+index 721a6072aca832ddb42517e054ed9057c017ec40..0459cfe77e98e988ce1d391318e720add0a02d11 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -652,9 +652,6 @@ allow_linux_sysctl(p_linux, i_linux) if {
@@ -34,7 +34,7 @@ index f073c8c4de7c44d868be21da12586b3c37b7ff08..e72890f88e59effa2918169c146b2d9f
 -    allow_root_path(p_oci, i_oci, bundle_id)
 +    i_root := i_oci.Root.Path
 +    p_root_pattern1 := p_oci.Root.Path
-+    p_root_pattern2 := replace(p_root_pattern1, "$(cpath)", policy_data.common.cpath)
++    p_root_pattern2 := replace(p_root_pattern1, "$(root_path)", policy_data.common.root_path)
 +    p_root_pattern3 := replace(p_root_pattern2, "$(bundle-id)", "([0-9a-f]{64})")
 +    print("allow_by_bundle_or_sandbox_id: i_root =", i_root, "regex =", p_root_pattern3)
 +
@@ -43,7 +43,7 @@ index f073c8c4de7c44d868be21da12586b3c37b7ff08..e72890f88e59effa2918169c146b2d9f
  
      # Match each input mount with a Policy mount.
      # Reject possible attempts to match multiple input mounts with a single Policy mount.
-@@ -961,23 +965,6 @@ is_ip_other_byte(component) if {
+@@ -962,23 +966,6 @@ is_ip_other_byte(component) if {
      number <= 255
  }
  
@@ -53,7 +53,7 @@ index f073c8c4de7c44d868be21da12586b3c37b7ff08..e72890f88e59effa2918169c146b2d9f
 -    p_path1 := p_oci.Root.Path
 -    print("allow_root_path: i_path =", i_path, "p_path1 =", p_path1)
 -
--    p_path2 := replace(p_path1, "$(cpath)", policy_data.common.cpath)
+-    p_path2 := replace(p_path1, "$(root_path)", policy_data.common.root_path)
 -    print("allow_root_path: p_path2 =", p_path2)
 -
 -    p_path3 := replace(p_path2, "$(bundle-id)", bundle_id)

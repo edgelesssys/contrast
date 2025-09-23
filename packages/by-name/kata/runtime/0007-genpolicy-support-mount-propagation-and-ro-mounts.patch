@@ -9,7 +9,7 @@ Subject: [PATCH] genpolicy: support mount propagation and ro-mounts
  2 files changed, 9 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 066c702530943f264a4d5a4cc5a4c0bc17567e43..f487bac46746bb361976f8a88f08312694d76d51 100644
+index ab17b679cb32ce602f7129fd6a6e1e0e4b322c63..95972812f90e61742c892a0f7ad6a647c080d2f1 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -130,7 +130,8 @@ allow_create_container_input if {
@@ -23,10 +23,10 @@ index 066c702530943f264a4d5a4cc5a4c0bc17567e43..f487bac46746bb361976f8a88f083126
      is_null(i_linux.IntelRdt)
      is_null(i_linux.Resources.BlockIO)
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index f12714ec44f2290de0a674032a6097ef8fdf5c65..0ac915fe78b3ebb3bd85e53c2d47534fd01eb4cd 100644
+index bb93261f762dd291437a7b3a0872ae214a6e116c..a33128814eb1d99adb68a862befacd0bf0d7f5cd 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -189,13 +189,19 @@ fn get_empty_dir_mount_and_storage(
+@@ -185,13 +185,19 @@ fn get_empty_dir_mount_and_storage(
          _ => "rw",
      };
  
