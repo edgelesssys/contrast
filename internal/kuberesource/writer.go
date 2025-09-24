@@ -6,9 +6,9 @@ package kuberesource
 import (
 	"bytes"
 
+	"github.com/goccy/go-yaml"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/yaml"
 )
 
 // EncodeResources encodes a list of apply configurations into a single YAML document.
@@ -36,19 +36,18 @@ func ResourcesToUnstructured(resources []any) ([]*unstructured.Unstructured, err
 // EncodeUnstructured encodes a list of unstructured resources into a single YAML document.
 func EncodeUnstructured(resources []*unstructured.Unstructured) ([]byte, error) {
 	var w bytes.Buffer
-	for i, u := range resources {
-		doc, err := yaml.Marshal(u.Object)
-		if err != nil {
+	enc := yaml.NewEncoder(
+		&w,
+		yaml.Indent(2),
+		yaml.UseLiteralStyleIfMultiline(true),
+		yaml.UseJSONMarshaler(),
+	)
+	defer enc.Close()
+	for _, resource := range resources {
+		if err := enc.Encode(resource.Object); err != nil {
 			return nil, err
-		}
-		if _, err := w.Write(doc); err != nil {
-			return nil, err
-		}
-		if i != len(resources)-1 {
-			if _, err := w.WriteString("---\n"); err != nil {
-				return nil, err
-			}
 		}
 	}
+
 	return w.Bytes(), nil
 }

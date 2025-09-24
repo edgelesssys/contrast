@@ -5,6 +5,7 @@ package genpolicy
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -13,6 +14,7 @@ import (
 	"path/filepath"
 
 	"github.com/edgelesssys/contrast/internal/embedbin"
+	"github.com/edgelesssys/contrast/internal/kuberesource"
 )
 
 // Runner is a wrapper around the genpolicy tool.
@@ -79,6 +81,14 @@ func (r *Runner) Run(ctx context.Context, yamlPath string, cmPath []string, logg
 	logger.Debug("running genpolicy", "bin", r.genpolicy.Path(), "args", args)
 	if err := genpolicy.Run(); err != nil {
 		return fmt.Errorf("running genpolicy: %w", err)
+	}
+
+	resource, err := kuberesource.YAMLBytesFromFile(yamlPath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := os.WriteFile(yamlPath, resource, 0o644); err != nil {
+		return fmt.Errorf("write output file: %w", err)
 	}
 
 	return nil

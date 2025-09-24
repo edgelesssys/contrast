@@ -195,7 +195,7 @@ buildGoModule (finalAttrs: {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-SG7WZnub8m0Z4tvjm+g5xMts2/inEn96XGWxyntxfiw=";
+  vendorHash = "sha256-p/Z7f2xeOcI8JYdnqWCi11Z9kHwsc4pZnSA8jBQN0Hg=";
 
   nativeBuildInputs = [ installShellFiles ];
 
