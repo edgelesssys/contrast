@@ -3,6 +3,10 @@
 
 package verifier
 
+import (
+	"github.com/edgelesssys/contrast/internal/constants"
+)
+
 // AllVerifiersBeforeGenerate returns all verifiers for k8s objects that should be run before generate.
 func AllVerifiersBeforeGenerate() []Verifier {
 	return []Verifier{
@@ -20,6 +24,7 @@ func AllVerifiersAfterGenerate() []Verifier {
 	return []Verifier{
 		&NoSharedFSMount{},
 		&ImageRefValid{},
+		&VersionsMatch{Version: constants.Version},
 	}
 }
 
