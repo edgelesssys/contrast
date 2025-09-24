@@ -4,6 +4,7 @@
 package service
 
 import (
+	"errors"
 	"io"
 
 	"github.com/containers/storage"
@@ -18,6 +19,7 @@ import (
 type stubStore struct {
 	putLayerDigest digest.Digest
 	putLayerErr    error
+	lookupID       string
 
 	storage.Store
 }
@@ -27,6 +29,21 @@ func (s *stubStore) PutLayer(_, _ string, _ []string, _ string, _ bool, _ *stora
 		return nil, 0, s.putLayerErr
 	}
 	return &storage.Layer{CompressedDigest: s.putLayerDigest}, 0, nil
+}
+
+func (s *stubStore) Lookup(_ string) (string, error) {
+	if s.lookupID != "" {
+		return s.lookupID, nil
+	}
+	return "", errors.New("by default, return a unique error")
+}
+
+func (s *stubStore) AddNames(_ string, _ []string) error {
+	return nil
+}
+
+func (s *stubStore) RemoveNames(_ string, _ []string) error {
+	return nil
 }
 
 type stubRemote struct {
