@@ -4,6 +4,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
@@ -161,9 +162,10 @@ func TestGetAndVerifyImage(t *testing.T) {
 // TestStoreAndVerifyLayers contains unit tests for the storeAndVerifyLayers function.
 func TestStoreAndVerifyLayers(t *testing.T) {
 	tests := map[string]struct {
-		stubImg    stubImage
-		stubRemote stubRemote
-		wantErr    error
+		stubImg       stubImage
+		stubRemote    stubRemote
+		cachedLayerID string
+		wantErr       error
 	}{
 		"layers fails": {
 			stubImg: stubImage{layersErr: assert.AnError},
@@ -184,12 +186,16 @@ func TestStoreAndVerifyLayers(t *testing.T) {
 		"success": {
 			stubImg: stubImage{},
 		},
+		"cached layer is reused": {
+			cachedLayerID: "cachedLayerID1234",
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
-			log := slog.Default()
+			var buf bytes.Buffer
+			log := slog.New(slog.NewTextHandler(&buf, nil))
 			server := httptest.NewServer(registry.New())
 			t.Cleanup(server.Close)
 
@@ -197,6 +203,7 @@ func TestStoreAndVerifyLayers(t *testing.T) {
 
 			store := &stubStore{
 				putLayerDigest: digest.NewDigestFromEncoded(digest.SHA256, registry.BlobDigest()[7:]),
+				lookupID:       tc.cachedLayerID,
 				putLayerErr:    tc.wantErr,
 			}
 			s := ImagePullerService{Logger: log, Store: store, Remote: tc.stubRemote.DefaultRemote}
@@ -214,6 +221,10 @@ func TestStoreAndVerifyLayers(t *testing.T) {
 			_, err = s.storeAndVerifyLayers(log, tc.stubImg)
 
 			assert.ErrorIs(err, tc.wantErr)
+			assert.Equal(tc.cachedLayerID != "", store.lookupSucceeded)
+			if tc.cachedLayerID != "" {
+				assert.Equal(0, store.putLayerCount)
+			}
 		})
 	}
 }
