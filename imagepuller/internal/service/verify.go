@@ -54,7 +54,6 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 
 		var digestFound *gcr.Hash
 		for _, m := range manifest.Manifests {
-			log.Info("MANIFEST", "name", m.Platform.String())
 			if m.Platform.String() == "linux/amd64" {
 				digestFound = &m.Digest
 				break
@@ -92,19 +91,28 @@ func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gc
 
 	previousLayer := ""
 	for idx, layer := range layers {
+		layerDigest := manifest.Layers[idx].Digest.String()
+
+		cachedID, err := s.Store.Lookup(layerDigest)
+		if err == nil {
+			log.Info("Reusing cached layer", "cache_id", cachedID, "digest", layerDigest)
+			previousLayer = cachedID
+			continue
+		}
+
 		rc, err := layer.Compressed()
 		if err != nil {
 			return "", fmt.Errorf("reading layer %d: %w", idx, err)
 		}
 
 		putLayer, n, err := s.Store.PutLayer(
-			"",            // empty ID -> let store decide
-			previousLayer, // parent is previous layer
-			nil,           // empty parent chain -> let store decide
-			"",            // mount label
-			false,         // readonly
-			nil,           // mount options
-			rc,            // tar stream
+			"",                    // empty ID -> let store decide
+			previousLayer,         // parent is previous layer
+			[]string{layerDigest}, // set layer digest as name for cache retrieval
+			"",                    // mount label
+			false,                 // readonly
+			nil,                   // mount options
+			rc,                    // tar stream
 		)
 		if err != nil {
 			return "", errors.Join(
@@ -116,10 +124,9 @@ func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gc
 			return "", fmt.Errorf("closing layer reader: %w", err)
 		}
 
-		ldManifest := manifest.Layers[idx].Digest.String()
 		ld := putLayer.CompressedDigest.String()
-		if ldManifest != ld {
-			return "", fmt.Errorf("%w: expected digest '%s' but got digest '%s'", errValidateLayer, ldManifest, ld)
+		if layerDigest != ld {
+			return "", fmt.Errorf("%w: expected digest '%s' but got digest '%s'", errValidateLayer, layerDigest, ld)
 		}
 
 		log.Info("Applied and validated layer", "id", putLayer.ID, "size", n, "digest", ld)
