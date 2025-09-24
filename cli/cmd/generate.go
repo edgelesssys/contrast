@@ -525,13 +525,14 @@ func copyFile(inPath, outPath string) error {
 func getCombinedYAML(paths []string) ([]byte, error) {
 	var combinedYAML []byte
 	for _, path := range paths {
-		data, err := os.ReadFile(path)
+		resource, err := kuberesource.YAMLBytesFromFile(path)
 		if err != nil {
-			return nil, fmt.Errorf("read %s: %w", path, err)
+			return nil, err
 		}
+
 		// This expects a "---" separator at the beginning of each YAML file,
 		// as is the case after running "genpolicy".
-		combinedYAML = append(combinedYAML, data...)
+		combinedYAML = append(combinedYAML, resource...)
 	}
 	return combinedYAML, nil
 }
