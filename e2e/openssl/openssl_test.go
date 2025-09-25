@@ -269,7 +269,10 @@ func TestOpenSSL(t *testing.T) {
 		})
 
 		t.Run("coordinator can't recover mesh CA key", func(t *testing.T) {
-			_, _, err := c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/sh", "-c", opensslConnectCmd("openssl-frontend:443", meshCAFile)})
+			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslBackend, []string{"/bin/sh", "-c", opensslConnectCmd("openssl-frontend:443", meshCAFile)})
+			if err == nil {
+				t.Logf("openssl with %q after recovery: stdout\n%s\n\nstderr:\n%s", meshCAFile, stdout, stderr)
+			}
 			assert.Error(t, err)
 		})
 
