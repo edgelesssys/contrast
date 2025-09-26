@@ -78,7 +78,7 @@ The config is then serialized and attached to the initdata produced by `genpolic
 
 #### Credentials visible in initdata annotation
 
-Credentials transferred via initdata suffer from the resource leak considerations described in [architecture/components/policies](../docs/docs/architecture/components/policies#evaluation).
+Credentials transferred via initdata suffer from the resource leak considerations described in [architecture/components/policies](../docs/docs/architecture/components/policies.md#evaluation).
 This is unavoidable until we've a dedicated channel between guest components and Coordinator (see also [below](#credentials-distributed-by-coordinator)).
 
 #### CA certificates
