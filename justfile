@@ -282,16 +282,19 @@ get-credentials platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
     case {{ platform }} in
-        "Metal-QEMU-TDX")
+        "Metal-QEMU-TDX"|"olimar")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/olimar-kubeconfig/versions/latest"
+            sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-TDX"/' justfile.env
             sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
         ;;
-        "Metal-QEMU-SNP")
+        "Metal-QEMU-SNP"|"palutena")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/palutena-kubeconfig/versions/latest"
+            sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-SNP"/' justfile.env
             sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="none"/' justfile.env
         ;;
-        "Metal-QEMU-SNP-GPU")
+        "Metal-QEMU-SNP-GPU"|"discovery")
             nix run -L .#scripts.get-credentials "projects/796962942582/secrets/discovery-kubeconf/versions/latest"
+            sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-SNP-GPU"/' justfile.env
             sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
         ;;
         *)
