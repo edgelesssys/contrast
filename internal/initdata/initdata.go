@@ -84,11 +84,7 @@ func DecodeKataAnnotation(annotation string) (*Initdata, error) {
 		return nil, err
 	}
 
-	return decodeGzipped(decoded)
-}
-
-func decodeGzipped(data []byte) (*Initdata, error) {
-	decompressed, err := decompress(data)
+	decompressed, err := decompress(decoded)
 	if err != nil {
 		return nil, err
 	}
@@ -132,45 +128,60 @@ func (i *Initdata) EncodeKataAnnotation() (string, string, error) {
 		return "", "", err
 	}
 
-	return encoded, digest, nil
+	// TODO(burgerdev): why is the digest a hex string?
+	return encoded, hex.EncodeToString(digest), nil
 }
 
-// FromDevice reads initdata from a block device prepared by the Kata runtime.
-func FromDevice(devicePath string) (*Initdata, error) {
+// FromDevice reads initdata and its digest from a block device prepared by the Kata runtime.
+func FromDevice(devicePath string) (*Initdata, []byte, error) {
 	f, err := os.Open(devicePath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	buf := make([]byte, 8)
 	_, err = f.ReadAt(buf, 0)
 	if err != nil {
-		return nil, fmt.Errorf("reading magic number: %w", err)
+		return nil, nil, fmt.Errorf("reading magic number: %w", err)
 	}
 	const magic = "initdata"
 	if slices.Compare(buf, []byte(magic)) != 0 {
-		return nil, fmt.Errorf("%w: expected %x, got %x", errWrongMagic, magic, buf)
+		return nil, nil, fmt.Errorf("%w: expected %x, got %x", errWrongMagic, magic, buf)
 	}
 	buf = make([]byte, 8)
 	_, err = f.ReadAt(buf, 8)
 	if err != nil {
-		return nil, fmt.Errorf("reading magic number: %w", err)
+		return nil, nil, fmt.Errorf("reading magic number: %w", err)
 	}
 	size := binary.LittleEndian.Uint64(buf)
 	const maxSize = 128*1024*1024*1024
 	if size > maxSize {
-		return nil, fmt.Errorf("%w: expected at most 128MiB, got %d byte", errTooLarge, size)
+		return nil, nil, fmt.Errorf("%w: expected at most 128MiB, got %d byte", errTooLarge, size)
 	}
 	buf = make([]byte, size)
 
 	_, err = f.ReadAt(buf, 16)
 	if err != nil {
-		return nil, fmt.Errorf("reading initdata blob: %w", err)
+		return nil, nil, fmt.Errorf("reading initdata blob: %w", err)
 	}
 
-	return decodeGzipped(buf)
+	decompressed, err := decompress(buf)
+	if err != nil {
+		return nil, nil, fmt.Errorf("unzipping initdata: %w", err)
+	}
+
+	var i Initdata
+	if err := toml.Unmarshal(decompressed, &i); err != nil {
+		return nil, nil, fmt.Errorf("parsing TOML: %w", err)
+	}
+	digest, err := i.digest(decompressed)
+	if err != nil {
+		return nil, nil, fmt.Errorf("calculating digest: %w", err)
+	}
+
+	return &i, digest, nil
 }
 
-func (i *Initdata) digest(digestible []byte) (string, error) {
+func (i *Initdata) digest(digestible []byte) ([]byte, error) {
 	var digest []byte
 	switch i.Algorithm {
 	case "sha256":
@@ -183,14 +194,14 @@ func (i *Initdata) digest(digestible []byte) (string, error) {
 		bytes := sha512.Sum512(digestible)
 		digest = bytes[:]
 	default:
-		return "", fmt.Errorf(
+		return nil, fmt.Errorf(
 			"%w: algorithm %q is not supported. Supported are only sha256, sha384, sha512",
 			errAlgorithmUnknown,
 			i.Algorithm,
 		)
 	}
 
-	return hex.EncodeToString(digest), nil
+	return digest, nil
 }
 
 func decompress(compressed []byte) ([]byte, error) {

@@ -4,6 +4,7 @@
 package initdata
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
 	"fmt"
@@ -194,11 +195,12 @@ func TestEncodeKataAnnotation(t *testing.T) {
 func TestFromDevice(t *testing.T) {
 	tmpDir := t.TempDir()
 
-	initdata, err := New("sha256", map[string]string{"foo": "bar"})
+	expectedInitdata, err := New("sha256", map[string]string{"foo": "bar"})
 	require.NoError(t, err)
 
-	marshalled, err := toml.Marshal(initdata)
+	marshalled, err := toml.Marshal(expectedInitdata)
 	require.NoError(t, err)
+	expectedDigest := sha256.Sum256(marshalled)
 
 	realContent := prepareInitdataImage(t, marshalled)
 
@@ -234,14 +236,15 @@ func TestFromDevice(t *testing.T) {
 			path := filepath.Join(tmpDir, name)
 			require.NoError(os.WriteFile(path, tc.deviceContent, 0o755))
 
-			parsed, err := FromDevice(path)
+			initdata, digest, err := FromDevice(path)
 			if tc.wantErr != nil {
 				require.ErrorIs(err, tc.wantErr)
 				return
 			}
 			require.NoError(err)
 
-			require.Equal(initdata, parsed)
+			require.Equal(expectedInitdata, initdata)
+			require.Equal(expectedDigest[:], digest)
 		})
 	}
 }
