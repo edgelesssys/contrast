@@ -54,7 +54,6 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 
 		var digestFound *gcr.Hash
 		for _, m := range manifest.Manifests {
-			log.Info("MANIFEST", "name", m.Platform.String())
 			if m.Platform.String() == "linux/amd64" {
 				digestFound = &m.Digest
 				break
@@ -92,6 +91,15 @@ func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gc
 
 	previousLayer := ""
 	for idx, layer := range layers {
+		ldManifest := manifest.Layers[idx].Digest.String()
+
+		cachedID, err := s.Store.Lookup(ldManifest)
+		if err == nil {
+			log.Info("Reusing cached layer", "cache_id", cachedID, "digest", ldManifest)
+			previousLayer = cachedID
+			continue
+		}
+
 		rc, err := layer.Compressed()
 		if err != nil {
 			return "", fmt.Errorf("reading layer %d: %w", idx, err)
@@ -116,10 +124,16 @@ func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gc
 			return "", fmt.Errorf("closing layer reader: %w", err)
 		}
 
-		ldManifest := manifest.Layers[idx].Digest.String()
 		ld := putLayer.CompressedDigest.String()
 		if ldManifest != ld {
 			return "", fmt.Errorf("%w: expected digest '%s' but got digest '%s'", errValidateLayer, ldManifest, ld)
+		}
+
+		if err := s.Store.RemoveNames(putLayer.ID, putLayer.Names); err != nil {
+			return "", fmt.Errorf("removing pre-existing layer names: %w", err)
+		}
+		if err := s.Store.AddNames(putLayer.ID, []string{ldManifest}); err != nil {
+			return "", fmt.Errorf("adding layer digest as layer name: %w", err)
 		}
 
 		log.Info("Applied and validated layer", "id", putLayer.ID, "size", n, "digest", ld)
