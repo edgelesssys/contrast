@@ -6,7 +6,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 
+	"github.com/edgelesssys/contrast/initdata-processor/validator"
 	"github.com/edgelesssys/contrast/internal/initdata"
 )
 
@@ -15,7 +17,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Listing devices: %v", err)
 	}
-
+	// The initdata device is usually /dev/vdX so let's start from the back.
+	slices.Reverse(entries)
 	for _, entry := range entries {
 		// We're only interested in block devices.
 		if entry.Type()&(fs.ModeDevice|fs.ModeCharDevice) != fs.ModeDevice {
@@ -23,21 +26,23 @@ func main() {
 		}
 
 		path := filepath.Join("/dev", entry.Name())
-		doc, err := initdata.FromDevice(path)
+		doc, digest, err := initdata.FromDevice(path)
 		if err != nil {
 			log.Printf("%s is not an initdata device: %v", path, err)
 			continue
 		}
+		validator := validator.New()
+		if err := validator.ValidateDigest(digest); err != nil {
+			failf("Validating initdata digest: %v", err)
+		}
 		if err := handleInitdata(doc); err != nil {
-			log.Fatalf("Handling initdata: %v", err)
+			failf("Handling initdata: %v", err)
 		}
 		log.Printf("Processed initdata from %q ", path)
 	}
 }
 
 func handleInitdata(data *initdata.Initdata) error {
-	// TODO(burgerdev): validate!
-
 	const targetPath = "/run/measured-cfg"
 	if err := os.MkdirAll(targetPath, 0o755); err != nil {
 		return err
@@ -51,4 +56,9 @@ func handleInitdata(data *initdata.Initdata) error {
 		}
 	}
 	return nil
+}
+
+func failf(format string, v ...any) {
+	log.Printf(format, v...)
+	os.Exit(0)
 }
