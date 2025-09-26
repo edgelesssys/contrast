@@ -4,11 +4,17 @@
 package initdata
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/pelletier/go-toml/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -184,4 +190,80 @@ func TestEncodeKataAnnotation(t *testing.T) {
 			assert.Equal(&i, decoded)
 		})
 	}
+}
+
+func TestFromDevice(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	expectedInitdata, err := New("sha256", map[string]string{"foo": "bar"})
+	require.NoError(t, err)
+
+	marshalled, err := toml.Marshal(expectedInitdata)
+	require.NoError(t, err)
+	expectedDigest := sha256.Sum256(marshalled)
+
+	realContent := prepareInitdataImage(t, marshalled)
+
+	for name, tc := range map[string]struct {
+		deviceContent []byte
+		wantErr       error
+	}{
+		"good": {
+			deviceContent: realContent,
+		},
+		"less-padding": {
+			deviceContent: realContent[:480],
+		},
+		"bad-magic": {
+			deviceContent: []byte("LUKS\xba\xbefoobar"),
+			wantErr:       errWrongMagic,
+		},
+		"short-magic": {
+			deviceContent: []byte("in"),
+			wantErr:       io.EOF,
+		},
+		"short-size": {
+			deviceContent: []byte("initdata\x01\x00"),
+			wantErr:       io.EOF,
+		},
+		"humonguous-allocation": {
+			deviceContent: []byte("initdata\x00\x00\x00\x00\x00\x00\x00\x10"),
+			wantErr:       errTooLarge,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+			path := filepath.Join(tmpDir, name)
+			require.NoError(os.WriteFile(path, tc.deviceContent, 0o755))
+
+			initdata, digest, err := FromDevice(path)
+			if tc.wantErr != nil {
+				require.ErrorIs(err, tc.wantErr)
+				return
+			}
+			require.NoError(err)
+
+			require.Equal(expectedInitdata, initdata)
+			require.Equal(expectedDigest[:], digest)
+		})
+	}
+}
+
+// prepareInitdataImage is a variant of the eponymous function in Kata, simplified for tests.
+//
+// https://github.com/kata-containers/kata-containers/blob/077aaa6480953de3770b8c3e240dbb0dc44a186e/src/runtime/virtcontainers/hypervisor.go#L1222-L1281
+func prepareInitdataImage(t *testing.T, initdata []byte) []byte {
+	t.Helper()
+	require := require.New(t)
+
+	compressed, err := compress(initdata)
+	require.NoError(err)
+
+	padding := make([]byte, 512-((16+len(compressed))%512))
+	buf := []byte("initdata")
+	buf = binary.LittleEndian.AppendUint64(buf, uint64(len(compressed)))
+	buf = append(buf, compressed...)
+	buf = append(buf, padding...)
+	require.Len(buf, 512)
+	return buf
 }
