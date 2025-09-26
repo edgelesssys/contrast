@@ -67,7 +67,7 @@ final: prev:
   # TODO(katexochen): Fix OVMF-TDX measurements for newer edk2 versions.
   edk2-202411 =
     (prev.edk2.overrideAttrs (
-      finalAttrs: _prevAttrs: {
+      finalAttrs: prevAttrs: {
         version = "202411";
         __intentionallyOverridingVersion = true; # We override srcWithVendoring instead of src.
         srcWithVendoring = final.fetchFromGitHub {
@@ -77,6 +77,24 @@ final: prev:
           fetchSubmodules = true;
           hash = "sha256-KYaTGJ3DHtWbPEbP+n8MTk/WwzLv5Vugty/tvzuEUf0=";
         };
+        src = prevAttrs.src.overrideAttrs (
+          _srcFinalAttrs: _srcPrevAttrs: {
+            patches = [
+              # pass targetPrefix as an env var
+              (final.fetchpatch {
+                url = "https://src.fedoraproject.org/rpms/edk2/raw/08f2354cd280b4ce5a7888aa85cf520e042955c3/f/0021-Tweak-the-tools_def-to-support-cross-compiling.patch";
+                hash = "sha256-E1/fiFNVx0aB1kOej2DJ2DlBIs9tAAcxoedym2Zhjxw=";
+              })
+              # https://github.com/tianocore/edk2/pull/5658
+              (final.fetchpatch {
+                name = "fix-cross-compilation-antlr-dlg.patch";
+                url = "https://github.com/tianocore/edk2/commit/a34ff4a8f69a7b8a52b9b299153a8fac702c7df1.patch";
+                hash = "sha256-u+niqwjuLV5tNPykW4xhb7PW2XvUmXhx5uvftG1UIbU=";
+              })
+            ];
+          }
+        );
+
       }
     )).override
       {
