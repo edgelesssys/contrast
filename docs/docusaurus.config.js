@@ -53,7 +53,8 @@ async function createConfig() {
           docs: {
             sidebarPath: require.resolve('./sidebars.js'),
             editUrl: 'https://github.com/edgelesssys/contrast/edit/main/docs',
-            routeBasePath: "/"
+            routeBasePath: "/",
+            remarkPlugins: [require("remark-directive"), require('./src/plugins/remark-faq')]
           },
           blog: false,
           theme: {
