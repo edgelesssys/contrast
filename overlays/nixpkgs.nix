@@ -86,18 +86,6 @@ final: prev:
         };
       };
 
-  cryptsetup = prev.cryptsetup.overrideAttrs (
-    finalAttrs: _prevAttrs: {
-      version = "2.8.1";
-      src = final.fetchurl {
-        url =
-          "mirror://kernel/linux/utils/cryptsetup/v${final.lib.versions.majorMinor finalAttrs.version}/"
-          + "${finalAttrs.pname}-${finalAttrs.version}.tar.xz";
-        hash = "sha256-LDN563ZZfcq1CRFEmwE+JpfEv/zHFtu/DZsOj7u0b7Q=";
-      };
-    }
-  );
-
   # The fragment checks in 0.19.1 are broken.
   # ToDO(katexochen): Check on lychee versions >0.19.1.
   lychee = prev.lychee.overrideAttrs (
