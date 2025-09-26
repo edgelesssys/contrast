@@ -190,6 +190,7 @@ buildGoModule (finalAttrs: {
             (path.append root "tools")
             (path.append root "imagepuller")
             (path.append root "imagestore")
+            (path.append root "initdata-processor")
           ]
         ))
       ];

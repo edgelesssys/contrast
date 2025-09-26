@@ -4,6 +4,7 @@ use (
 	.
 	./imagepuller
 	./imagestore
+	./initdata-processor
 	./service-mesh
 	./tools/igvm
 	./tools/imagepuller-benchmark
