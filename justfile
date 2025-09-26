@@ -57,7 +57,7 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
             --namespace-suffix=${namespace_suffix-}
 
 # Generate policies, apply Kubernetes manifests.
-deploy target=default_deploy_target cli=default_cli platform=default_platform: (runtime target platform) (apply "runtime") (populate target platform) (generate cli platform) (apply target)
+deploy target=default_deploy_target cli=default_cli platform=default_platform: (runtime target platform) (apply "runtime" platform) (populate target platform) (generate cli platform) (apply target platform)
 
 # Populate the workspace with a runtime class deployment
 runtime target=default_deploy_target platform=default_platform:
