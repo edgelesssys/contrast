@@ -169,7 +169,19 @@ func (d *Device) verifyBinaryHeader() error {
 	return nil
 }
 
-func (d *Device) verifyHeader(header cryptsetupMetadata) error {
+func (d *Device) verifyHeader(header cryptsetupMetadata) (retErr error) {
+	defer func() {
+		if retErr == nil {
+			return
+		}
+		headerJSON, err := json.Marshal(header)
+		if err != nil {
+			retErr = errors.Join(retErr, fmt.Errorf("marshaling header for debug output: %w", err))
+			return
+		}
+		retErr = errors.Join(retErr, fmt.Errorf("full header content: %s", string(headerJSON)))
+	}()
+
 	if len(header.KeySlots) != 1 {
 		return fmt.Errorf("expected exactly one keyslot, got %d", len(header.KeySlots))
 	}
