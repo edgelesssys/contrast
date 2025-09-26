@@ -107,7 +107,7 @@ Implementing these for Contrast would be a large stretch, though:
 
 Both seem disproportionately complex to implement, so we settle for the easier solution that still provides a path for users blocked by registry authentication.
 
-#### Extend list of CAs
+### Extend list of CAs
 
 Instead of overriding `RootCAs`, we could instead extend the list of system roots.
 However, users have good reasons not to trust the system roots, so we would need to add another knob to allow that.
