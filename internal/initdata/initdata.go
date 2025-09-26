@@ -9,10 +9,13 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"slices"
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
@@ -81,7 +84,11 @@ func DecodeKataAnnotation(annotation string) (*Initdata, error) {
 		return nil, err
 	}
 
-	decompressed, err := decompress(decoded)
+	return decodeGzipped(decoded)
+}
+
+func decodeGzipped(data []byte) (*Initdata, error) {
+	decompressed, err := decompress(data)
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +133,41 @@ func (i *Initdata) EncodeKataAnnotation() (string, string, error) {
 	}
 
 	return encoded, digest, nil
+}
+
+// FromDevice reads initdata from a block device prepared by the Kata runtime.
+func FromDevice(devicePath string) (*Initdata, error) {
+	f, err := os.Open(devicePath)
+	if err != nil {
+		return nil, err
+	}
+	buf := make([]byte, 8)
+	_, err = f.ReadAt(buf, 0)
+	if err != nil {
+		return nil, fmt.Errorf("reading magic number: %w", err)
+	}
+	const magic = "initdata"
+	if slices.Compare(buf, []byte(magic)) != 0 {
+		return nil, fmt.Errorf("%w: expected %x, got %x", errWrongMagic, magic, buf)
+	}
+	buf = make([]byte, 8)
+	_, err = f.ReadAt(buf, 8)
+	if err != nil {
+		return nil, fmt.Errorf("reading magic number: %w", err)
+	}
+	size := binary.LittleEndian.Uint64(buf)
+	const maxSize = 128*1024*1024*1024
+	if size > maxSize {
+		return nil, fmt.Errorf("%w: expected at most 128MiB, got %d byte", errTooLarge, size)
+	}
+	buf = make([]byte, size)
+
+	_, err = f.ReadAt(buf, 16)
+	if err != nil {
+		return nil, fmt.Errorf("reading initdata blob: %w", err)
+	}
+
+	return decodeGzipped(buf)
 }
 
 func (i *Initdata) digest(digestible []byte) (string, error) {
@@ -180,3 +222,8 @@ func compress(decompressed []byte) ([]byte, error) {
 
 	return compressed.Bytes(), nil
 }
+
+var (
+	errWrongMagic = errors.New("wrong magic number")
+	errTooLarge = errors.New("initdata is too large")
+)
