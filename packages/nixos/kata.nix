@@ -43,12 +43,38 @@ in
       unitConfig.AllowIsolate = true;
     };
 
+    systemd.targets.initdata = {
+      description = "Kata Containers Initdata Parsing";
+      requires = [
+        "initdata-processor.service"
+      ];
+    };
+
+    systemd.services.initdata-processor = {
+      description = "validate and store initdata content";
+      after = [ "basic.target" ];
+      before = [ "initdata.target" ];
+      wants = [ "initdata.target" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = "yes";
+        ExecStart = lib.getExe pkgs.contrastPkgs.initdata-processor;
+      };
+    };
+
     # https://github.com/kata-containers/kata-containers/blob/3.10.1/src/agent/kata-agent.service.in
     systemd.services.kata-agent = {
       description = "Kata Containers Agent";
       documentation = [ "https://github.com/kata-containers/kata-containers" ];
       wants = [ "kata-containers.target" ];
-      after = [ "systemd-tmpfiles-setup.service" ]; # Not upstream, but required for /etc/resolv.conf bind mount.
+      after = [
+        "initdata.target"
+        "systemd-tmpfiles-setup.service" # Not upstream, but required for /etc/resolv.conf bind mount.
+      ];
+      requires = [
+        "initdata.target"
+      ];
       serviceConfig = {
         Type = "exec"; # Not upstream.
         StandardOutput = "journal+console";
