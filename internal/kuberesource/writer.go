@@ -5,10 +5,13 @@ package kuberesource
 
 import (
 	"bytes"
+	"fmt"
+	"os"
+	"strings"
 
+	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/yaml"
 )
 
 // EncodeResources encodes a list of apply configurations into a single YAML document.
@@ -37,7 +40,12 @@ func ResourcesToUnstructured(resources []any) ([]*unstructured.Unstructured, err
 func EncodeUnstructured(resources []*unstructured.Unstructured) ([]byte, error) {
 	var w bytes.Buffer
 	for i, u := range resources {
-		doc, err := yaml.Marshal(u.Object)
+		var node yaml.Node
+		if err := node.Encode(u.Object); err != nil {
+			return nil, err
+		}
+		setStyles(&node)
+		doc, err := yaml.Marshal(&node)
 		if err != nil {
 			return nil, err
 		}
@@ -51,4 +59,32 @@ func EncodeUnstructured(resources []*unstructured.Unstructured) ([]byte, error) 
 		}
 	}
 	return w.Bytes(), nil
+}
+
+func setStyles(n *yaml.Node) {
+	if n.Kind == yaml.ScalarNode && n.Tag == "!!str" {
+		if strings.Contains(n.Value, "\n") || strings.Contains(n.Value, `\n`) {
+			n.Style = yaml.LiteralStyle
+		}
+	}
+	for _, c := range n.Content {
+		setStyles(c)
+	}
+}
+
+// YAMLBytesFromFile reads a k8 YAML file and returns a formatting-preserving encoding.
+func YAMLBytesFromFile(yamlPath string) ([]byte, error) {
+	data, err := os.ReadFile(yamlPath)
+	if err != nil {
+		return nil, fmt.Errorf("read %s: %w", yamlPath, err)
+	}
+	kubeObjs, err := UnmarshalApplyConfigurations(data)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshal %s: %w", yamlPath, err)
+	}
+	resource, err := EncodeResources(kubeObjs...)
+	if err != nil {
+		return nil, err
+	}
+	return resource, nil
 }
