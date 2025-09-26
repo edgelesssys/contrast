@@ -21,8 +21,6 @@ final: prev:
       };
     }
   );
-  go_1_24 = final.go_1_25;
-  go = final.go_1_25;
 
   erofs-utils = prev.erofs-utils.overrideAttrs (prevAttrs: {
     # The build environment sets SOURCE_DATE_EPOCH to 1980, but as mkfs.erofs
