@@ -143,14 +143,17 @@ let
     cleanup-bare-metal = dockerTools.buildImage {
       name = "cleanup-bare-metal";
       tag = "latest";
-      copyToRoot = with pkgs; [
-        cacert
-        busybox
-        scripts.cleanup-bare-metal
-        scripts.cleanup-namespaces
-        scripts.cleanup-containerd
-        scripts.nix-gc
-      ];
+      copyToRoot =
+        (with pkgs; [
+          cacert
+          busybox
+        ])
+        ++ (with contrastPkgs.scripts; [
+          cleanup-bare-metal
+          cleanup-namespaces
+          cleanup-containerd
+          nix-gc
+        ]);
       config = {
         Cmd = [ "cleanup-bare-metal" ];
       };
