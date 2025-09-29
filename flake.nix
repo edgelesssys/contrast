@@ -14,8 +14,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     fenix = {
-      # TODO(charludo): change to upstream once https://github.com/nix-community/fenix/pull/145 is merged
-      url = "github:soywod/fenix?rev=c7af381484169a78fb79a11652321ae80b0f92a6";
+      url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
