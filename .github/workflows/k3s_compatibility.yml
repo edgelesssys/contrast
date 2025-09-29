@@ -1,0 +1,68 @@
+name: test nodeinstaller k3s compatibility
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "16 6 * * 6" # 6:16 on Saturdays
+  pull_request:
+    paths:
+      - .github/workflows/k3s_compatibility.yml
+
+env:
+  container_registry: ghcr.io/edgelesssys
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+      - name: Create justfile.env
+        run: |
+          cat <<EOF > justfile.env
+          container_registry=${{ env.container_registry }}
+          # TDX does not require an ID Block, so we don't check the hardware.
+          # This allows us to run the test on a GitHub runner.
+          default_platform="Metal-QEMU-TDX"
+          node_installer_target_conf_type="k3s"
+          EOF
+      - name: Build and push container images
+        run: |
+          just node-installer
+      - name: Install K3s
+        run: |
+          curl -sfL https://get.k3s.io | K3S_KUBECONFIG_OUTPUT=~/.kube/config K3S_KUBECONFIG_MODE="644" sh -
+      - name: Deploy Contrast Node Installer
+        run: |
+          just runtime default
+          kubectl wait --for=condition=Ready nodes --all --timeout=300s
+          just apply runtime
+          nodeinstaller=$(yq 'select(.kind=="DaemonSet") | .metadata.name' < workspace/runtime/runtime.yml)
+          kubectl rollout status --timeout=300s daemonset/"$nodeinstaller"
+      - name: Check configured runtimes
+        run: |
+          runtimehandler=$(yq 'select(.kind=="RuntimeClass") | .handler' < workspace/runtime/runtime.yml)
+          sudo crictl info | jq -e --arg rh "$runtimehandler" '.config.containerd.runtimes[$rh]'
+      - name: Notify teams channel of failure
+        if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
+        uses: ./.github/actions/post_to_teams
+        with:
+          webhook: ${{ secrets.TEAMS_CI_WEBHOOK }}
+          title: "${{ github.workflow }} failed"
+          message: "${{ github.workflow }} failed"
+          additionalFields: '[{"title": "Job ID", "value": "${{ github.job }}"}]'
