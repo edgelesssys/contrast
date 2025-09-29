@@ -13,7 +13,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
@@ -35,9 +34,8 @@ import (
 
 // Issuer issues attestation statements.
 type Issuer struct {
-	thimGetter *THIMGetter
-	logger     *slog.Logger
-	kdsGetter  trust.HTTPSGetter
+	logger    *slog.Logger
+	kdsGetter trust.HTTPSGetter
 }
 
 // New returns a new Issuer.
@@ -45,9 +43,8 @@ func New(log *slog.Logger) *Issuer {
 	month := 30 * 24 * time.Hour
 	ticker := clock.RealClock{}.NewTicker(9 * month)
 	return &Issuer{
-		thimGetter: NewTHIMGetter(http.DefaultClient),
-		logger:     log,
-		kdsGetter:  certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter-issuer")).SNPGetter(),
+		logger:    log,
+		kdsGetter: certcache.NewCachedHTTPSGetter(memstore.New[string, []byte](), ticker, logger.NewNamed(log, "kds-getter-issuer")).SNPGetter(),
 	}
 }
 
@@ -111,41 +108,16 @@ func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (
 }
 
 func (i *Issuer) getAttestation(ctx context.Context, report *spb.Report) *spb.Attestation {
-	var att *spb.Attestation
-	var err error
-
-	// THIM isn't rate-limited (IMDS API), so we try it first. It's only available on Microsoft Azure.
-	if att, err = i.getAttestationFromTHIM(ctx, report); err == nil {
-		return att
-	}
-	i.logger.Warn("Failed to get attestation from THIM", "err", err)
-
 	// go-sev-guest will use VCEK from the report if it is an extended report.
 	// Otherwise, it will try to get the VCEK from KDS.
-	if att, err = i.getAttestationFromKdsOrExtendedReport(ctx, report); err == nil {
+	att, err := i.getAttestationFromKdsOrExtendedReport(ctx, report)
+	if err == nil {
 		return att
 	}
 	i.logger.Warn("Failed to get attestation from KDS or extended report", "err", err)
 
 	// Fallback to attestation without cert chain. The client can still try to request it on their end.
 	return i.getAttestationWithoutCertChain(report)
-}
-
-func (i *Issuer) getAttestationFromTHIM(ctx context.Context, report *spb.Report) (*spb.Attestation, error) {
-	thimRaw, err := i.thimGetter.GetCertification(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("requesting THIM certification: %w", err)
-	}
-
-	certChain, err := thimRaw.Proto()
-	if err != nil {
-		return nil, fmt.Errorf("parsing THIM certification: %w", err)
-	}
-	return &spb.Attestation{
-		Report:           report,
-		CertificateChain: certChain,
-		Product:          i.getProduct(),
-	}, nil
 }
 
 func (i *Issuer) getAttestationFromKdsOrExtendedReport(ctx context.Context, report *spb.Report) (*spb.Attestation, error) {
