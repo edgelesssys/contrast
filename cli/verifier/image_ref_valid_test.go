@@ -19,6 +19,7 @@ kind: Pod
 metadata:
   name: test
 spec:
+  runtimeClassName: contrast-cc
   containers:
     - name: test
       image: "%s"
@@ -31,6 +32,7 @@ metadata:
 spec:
   template:
     spec:
+      runtimeClassName: contrast-cc
       containers:
       - name: test
         image: "%s"
@@ -113,6 +115,53 @@ func TestVerifyImageRef(t *testing.T) {
 						}
 					}
 				})
+			}
+		})
+	}
+}
+
+const (
+	podNoImage = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+spec:
+  runtimeClassName: contrast-cc
+  containers:
+    - name: test
+`
+	statefulSetNoImage = `
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: test
+spec:
+  template:
+    spec:
+      runtimeClassName: contrast-cc
+      containers:
+      - name: test
+`
+)
+
+func TestVerifyImageRefMissing(t *testing.T) {
+	testCases := map[string]string{
+		"pod without image fails":          podNoImage,
+		"stateful set without image fails": statefulSetNoImage,
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			toVerifySlice, err := kuberesource.UnmarshalApplyConfigurations([]byte(tc))
+			require.NoError(err)
+
+			verifier := verifier.ImageRefValid{}
+
+			for _, toVerify := range toVerifySlice {
+				require.Error(verifier.Verify(toVerify))
 			}
 		})
 	}
