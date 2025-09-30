@@ -72,7 +72,7 @@ func KataRuntimeConfig(
 		config.Hypervisor["qemu"]["enable_debug"] = debug
 		// Disable all annotations, as we don't support these. Some will mess up measurements,
 		// others bypass things you can archive via correct resource declaration anyway.
-		config.Hypervisor["qemu"]["enable_annotations"] = []string{}
+		config.Hypervisor["qemu"]["enable_annotations"] = []string{"cc_init_data"}
 
 		// TODO: Check again why we need this and how we can avoid it.
 		config.Hypervisor["qemu"]["block_device_aio"] = "threads"
@@ -106,7 +106,7 @@ func KataRuntimeConfig(
 		config.Hypervisor["qemu"]["enable_debug"] = debug
 		// Disable all annotations, as we don't support these. Some will mess up measurements,
 		// others bypass things you can archive via correct resource declaration anyway.
-		config.Hypervisor["qemu"]["enable_annotations"] = []string{}
+		config.Hypervisor["qemu"]["enable_annotations"] = []string{"cc_init_data"}
 
 		// GPU-specific settings
 		if platforms.IsGPU(platform) {
