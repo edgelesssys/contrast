@@ -10,9 +10,9 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/binary"
-	"encoding/hex"
 	"errors"
 	"fmt"
+	"hash"
 	"io"
 	"os"
 	"slices"
@@ -35,6 +35,73 @@ var (
 	errWrongMagic       = errors.New("wrong magic number")
 	errTooLarge         = errors.New("initdata is too large")
 )
+
+// Raw is an initdata document in its serialized TOML form.
+type Raw []byte
+
+// DecodeKataAnnotation decodes a Kata annotation into Raw.
+func DecodeKataAnnotation(annotation string) (Raw, error) {
+	decoded, err := base64.StdEncoding.DecodeString(annotation)
+	if err != nil {
+		return nil, err
+	}
+
+	return decompress(decoded)
+}
+
+// Digest returns the initdata hash using the algorithm specified in the document.
+//
+// In order to calculate the digest, the initdata document is parsed and validated.
+func (r Raw) Digest() ([]byte, error) {
+	i, err := r.Parse()
+	if err != nil {
+		return nil, err
+	}
+
+	newHash, ok := hashAlgorithms[i.Algorithm]
+	if !ok {
+		return nil, fmt.Errorf(
+			"%w: algorithm %q is not supported. Supported are only sha256, sha384, sha512",
+			errAlgorithmUnknown,
+			i.Algorithm,
+		)
+	}
+	hash := newHash()
+	// hash.Hash.Write never returns an error.
+	_, _ = hash.Write(r)
+	return hash.Sum(nil), nil
+}
+
+// Parse the raw TOML document into an Initdata struct.
+//
+// This function canonicalizes the hash algorithm identifier and validates the resulting Initdata struct.
+// A roundtrip through Parse() and Encode() may alter the digest!
+func (r Raw) Parse() (*Initdata, error) {
+	var i Initdata
+	if err := toml.Unmarshal(r, &i); err != nil {
+		return nil, fmt.Errorf("parsing TOML: %w", err)
+	}
+
+	// "shaXXX" and "sha-XXX" are used inconsistently upstream
+	i.Algorithm = strings.Replace(i.Algorithm, "-", "", 1)
+
+	if err := i.Validate(); err != nil {
+		return nil, fmt.Errorf("validating parsed initdata: %w", err)
+	}
+
+	return &i, nil
+}
+
+// EncodeKataAnnotation encodes Initdata into a Kata annotation and the corresponding digest.
+func (r Raw) EncodeKataAnnotation() (string, error) {
+	compressed, err := compress(r)
+	if err != nil {
+		return "", fmt.Errorf("zipping initdata: %w", err)
+	}
+
+	encoded := base64.StdEncoding.EncodeToString(compressed)
+	return encoded, nil
+}
 
 // Initdata follows the standardized structure format as described here:
 // https://github.com/confidential-containers/trustee/blob/d9c0b6fa01a042052ba93c703b1ff6aab2a2b63f/kbs/docs/initdata.md?plain=1#L82-L88.
@@ -59,6 +126,14 @@ func New(algorithm string, data map[string]string) (*Initdata, error) {
 	return &i, nil
 }
 
+// Encode the initdata into a raw TOML document.
+func (i *Initdata) Encode() (Raw, error) {
+	if err := i.Validate(); err != nil {
+		return nil, err
+	}
+	return toml.Marshal(i)
+}
+
 // Validate the parsed initdata.
 func (i *Initdata) Validate() error {
 	if i.Version != InitdataVersion {
@@ -70,137 +145,57 @@ func (i *Initdata) Validate() error {
 		)
 	}
 
-	// Attempt to calculate the Digest of an empty array.
-	// Fails with an err if the Initdata was created with an unsupported algorithm.
-	if _, err := i.digest([]byte{}); err != nil {
-		return err
+	if _, ok := hashAlgorithms[i.Algorithm]; !ok {
+		return fmt.Errorf(
+			"%w: algorithm %q is not supported. Supported algorithms: %v",
+			errAlgorithmUnknown,
+			i.Algorithm,
+			hashAlgorithms,
+		)
 	}
 
 	return nil
 }
 
-// DecodeKataAnnotation decodes a Kata annotation into Initdata.
-func DecodeKataAnnotation(annotation string) (*Initdata, error) {
-	decoded, err := base64.StdEncoding.DecodeString(annotation)
-	if err != nil {
-		return nil, err
-	}
-
-	i, _, err := parseCompressed(decoded)
-
-	return i, err
-}
-
-// EncodeKataAnnotation encodes Initdata into a Kata annotation and the corresponding digest.
-func (i *Initdata) EncodeKataAnnotation() (string, string, error) {
-	// Since API users can change version/algorithm, check that they are valid.
-	if err := i.Validate(); err != nil {
-		return "", "", err
-	}
-
-	marshalled, err := toml.Marshal(i)
-	if err != nil {
-		return "", "", err
-	}
-
-	compressed, err := compress(marshalled)
-	if err != nil {
-		return "", "", err
-	}
-
-	encoded := base64.StdEncoding.EncodeToString(compressed)
-
-	digest, err := i.digest(marshalled)
-	if err != nil {
-		return "", "", err
-	}
-
-	// TODO(burgerdev): why is the digest a hex string?
-	return encoded, hex.EncodeToString(digest), nil
-}
-
-// FromDevice reads initdata and its digest from a block device prepared by the Kata runtime.
-func FromDevice(devicePath string) (*Initdata, []byte, error) {
+// FromDevice reads the raw TOML document from a block device prepared by the Kata runtime.
+func FromDevice(devicePath string) (Raw, error) {
 	f, err := os.Open(devicePath)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	buf := make([]byte, 8)
 	_, err = f.ReadAt(buf, 0)
 	if err != nil {
-		return nil, nil, fmt.Errorf("reading magic number: %w", err)
+		return nil, fmt.Errorf("reading magic number: %w", err)
 	}
 	const magic = "initdata"
 	if slices.Compare(buf, []byte(magic)) != 0 {
-		return nil, nil, fmt.Errorf("%w: expected %x, got %x", errWrongMagic, magic, buf)
+		return nil, fmt.Errorf("%w: expected %x, got %x", errWrongMagic, magic, buf)
 	}
 	buf = make([]byte, 8)
 	_, err = f.ReadAt(buf, 8)
 	if err != nil {
-		return nil, nil, fmt.Errorf("reading magic number: %w", err)
+		return nil, fmt.Errorf("reading magic number: %w", err)
 	}
 	size := binary.LittleEndian.Uint64(buf)
 	const maxSize = 128 * 1024 * 1024 * 1024
 	if size > maxSize {
-		return nil, nil, fmt.Errorf("%w: expected at most 128MiB, got %d byte", errTooLarge, size)
+		return nil, fmt.Errorf("%w: expected at most 128MiB, got %d byte", errTooLarge, size)
 	}
 	buf = make([]byte, size)
 
 	_, err = f.ReadAt(buf, 16)
 	if err != nil {
-		return nil, nil, fmt.Errorf("reading initdata blob: %w", err)
+		return nil, fmt.Errorf("reading initdata blob: %w", err)
 	}
 
-	return parseCompressed(buf)
+	return decompress(buf)
 }
 
-func (i *Initdata) digest(digestible []byte) ([]byte, error) {
-	var digest []byte
-	switch i.Algorithm {
-	case "sha256":
-		bytes := sha256.Sum256(digestible)
-		digest = bytes[:]
-	case "sha384":
-		bytes := sha512.Sum384(digestible)
-		digest = bytes[:]
-	case "sha512":
-		bytes := sha512.Sum512(digestible)
-		digest = bytes[:]
-	default:
-		return nil, fmt.Errorf(
-			"%w: algorithm %q is not supported. Supported are only sha256, sha384, sha512",
-			errAlgorithmUnknown,
-			i.Algorithm,
-		)
-	}
-
-	return digest, nil
-}
-
-func parseCompressed(zipped []byte) (*Initdata, []byte, error) {
-	decompressed, err := decompress(zipped)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unzipping initdata: %w", err)
-	}
-
-	var i Initdata
-	if err := toml.Unmarshal(decompressed, &i); err != nil {
-		return nil, nil, fmt.Errorf("parsing TOML: %w", err)
-	}
-
-	// "shaXXX" and "sha-XXX" are used inconsistently upstream
-	i.Algorithm = strings.Replace(i.Algorithm, "-", "", 1)
-
-	if err := i.Validate(); err != nil {
-		return nil, nil, fmt.Errorf("validating parsed initdata: %w", err)
-	}
-
-	digest, err := i.digest(decompressed)
-	if err != nil {
-		return nil, nil, fmt.Errorf("calculating digest: %w", err)
-	}
-
-	return &i, digest, nil
+var hashAlgorithms = map[string]func() hash.Hash{
+	"sha256": sha256.New,
+	"sha384": sha512.New384,
+	"sha512": sha512.New,
 }
 
 func decompress(compressed []byte) ([]byte, error) {
