@@ -41,7 +41,7 @@ index 4918d32a21424877ee8f73474126102e167f651f..92f65c3a855570aa4596d0b845318864
          },
          "UpdateInterfaceRequest": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 048439d8dbdc006b44d131eec65128b351989225..1d52f1e95f7eabf0d6e2bee8a19028834564c903 100644
+index 24066c2ee84afb7a4ce9501049ab19be51afd807..b9ae1e3e33ec8dbc67d10cc6bed1642bd3ad5922 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -230,18 +230,26 @@ allow_anno(p_oci, i_oci) if {
@@ -77,10 +77,10 @@ index 048439d8dbdc006b44d131eec65128b351989225..1d52f1e95f7eabf0d6e2bee8a1902883
      print("allow_anno_key 1: i key =", i_key)
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 728fb35afb1852412dae7fd55b3cbfa164c36ac9..88f256718b6cd2c0eb67f42cea2558011d2787f4 100644
+index ed902594e95d2dcde45a91e9f6673b90106c325b..319d1be0f490dd18c41fba8b0a198f8ca8cb5ea2 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -429,9 +429,14 @@ pub struct CommonData {
+@@ -428,9 +428,14 @@ pub struct CommonData {
  
      /// Default capabilities for a privileged container.
      pub privileged_caps: Vec<String>,

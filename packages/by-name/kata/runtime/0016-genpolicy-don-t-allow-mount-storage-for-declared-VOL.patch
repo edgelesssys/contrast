@@ -98,18 +98,18 @@ index e3bab1e9b6d63b036221818ab5f24fa6b5c3d81c..e78e4b593d9a3eab051539d065940204
  
  /// EmptyDir volume settings loaded from genpolicy-settings.json.
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 86c7a0020e8c1996d63c92d65ba70f1dcdc07c0f..3f9cd02774870ff9fad9f21a8371c4b22202f02c 100644
+index 4c856061e478b10b29dadd1f8106e4babc5c1bd2..cc264abb53d62151fa6fa4498a62b4db5c35e6e9 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
-@@ -27,6 +27,7 @@ use crate::volume;
- 
+@@ -28,6 +28,7 @@ use crate::volume;
  use async_trait::async_trait;
  use core::fmt::Debug;
+ use kata_types::annotations::KATA_ANNO_CFG_HYPERVISOR_INIT_DATA;
 +use std::collections::BTreeSet;
  use log::debug;
  use protocols::agent;
  use serde::{Deserialize, Serialize};
-@@ -290,6 +291,7 @@ pub fn get_container_mounts_and_storages(
+@@ -291,6 +292,7 @@ pub fn get_container_mounts_and_storages(
      settings: &settings::Settings,
      volumes_option: &Option<Vec<volume::Volume>>,
  ) {
@@ -117,7 +117,7 @@ index 86c7a0020e8c1996d63c92d65ba70f1dcdc07c0f..3f9cd02774870ff9fad9f21a8371c4b2
      if let Some(volumes) = volumes_option {
          if let Some(volume_mounts) = &container.volumeMounts {
              for volume in volumes {
-@@ -302,19 +304,19 @@ pub fn get_container_mounts_and_storages(
+@@ -303,19 +305,19 @@ pub fn get_container_mounts_and_storages(
                              volume,
                              volume_mount,
                          );

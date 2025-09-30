@@ -20,7 +20,7 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  12 files changed, 52 insertions(+), 15 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index ad90805bceba73f48c8919e4623c4fd1d9166b55..1b022bef79e5910bb7d57923314382d34549e3d2 100644
+index 5446a8ee8c5f6f73567e09237dc011b7689b6d28..3e98937442a04d8fa8c85eff927d36b89abff56b 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -148,7 +148,7 @@ allow_create_container_input if {
@@ -33,7 +33,7 @@ index ad90805bceba73f48c8919e4623c4fd1d9166b55..1b022bef79e5910bb7d57923314382d3
  }
  
 diff --git a/src/tools/genpolicy/src/cronjob.rs b/src/tools/genpolicy/src/cronjob.rs
-index 2f6d4e2ffab1d94d9749a4bc32752df58d99d070..1921de6f65fecccc1561b19f859b7bad1169facf 100644
+index a3062f1ec7b8eb20aeef2ee84c9afeed90867b49..c1e27f5b41da0233ed7dfb7ae3d8a360ca422a25 100644
 --- a/src/tools/genpolicy/src/cronjob.rs
 +++ b/src/tools/genpolicy/src/cronjob.rs
 @@ -18,6 +18,7 @@ use async_trait::async_trait;
@@ -59,7 +59,7 @@ index 2f6d4e2ffab1d94d9749a4bc32752df58d99d070..1921de6f65fecccc1561b19f859b7bad
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
-index 159fd67c9ce7ae7fe401447fb9a65e3a29c20d00..5dc51a770983233935160b25851926cae73ea81c 100644
+index 22be29109d8c7f102add68538055a4a99f48b253..9425f236c8a6f23d7861e5931ee69f1065ae8c11 100644
 --- a/src/tools/genpolicy/src/daemon_set.rs
 +++ b/src/tools/genpolicy/src/daemon_set.rs
 @@ -82,7 +82,9 @@ impl yaml::K8sResource for DaemonSet {
@@ -74,7 +74,7 @@ index 159fd67c9ce7ae7fe401447fb9a65e3a29c20d00..5dc51a770983233935160b25851926ca
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/deployment.rs b/src/tools/genpolicy/src/deployment.rs
-index 5d0fdf22e0d54c809f229121494d346de5e825ee..476482468ac6cd1f9ebe386a615b9b530a503acd 100644
+index d773d46135ad7385d2b2638cdc9ae382caaeb550..33275e0e153b9d2bbd20664d8f5197637f24f7c7 100644
 --- a/src/tools/genpolicy/src/deployment.rs
 +++ b/src/tools/genpolicy/src/deployment.rs
 @@ -80,7 +80,11 @@ impl yaml::K8sResource for Deployment {
@@ -91,7 +91,7 @@ index 5d0fdf22e0d54c809f229121494d346de5e825ee..476482468ac6cd1f9ebe386a615b9b53
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/job.rs b/src/tools/genpolicy/src/job.rs
-index 0e4cbf82c0598009503378bfc9277facd011fce5..99bca6c8154cfbb597d313bf18a6186ec3ea6651 100644
+index 2867e692a59e24e1e9eaef5fafb2035af18159f7..b0c1352529790e8964cb1be59a5b8c0df89ed871 100644
 --- a/src/tools/genpolicy/src/job.rs
 +++ b/src/tools/genpolicy/src/job.rs
 @@ -54,7 +54,8 @@ impl yaml::K8sResource for Job {
@@ -132,7 +132,7 @@ index 95f631cbe1afe5349e74b9eb5361c88316cf9467..7a5364ff7a0c7a80f5d0fce5ef814996
      #[serde(skip_serializing_if = "Option::is_none")]
      labels: Option<BTreeMap<String, String>>,
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index bab8b34781bd8b6e51332bbcf8303116272654f1..2959db91b82040b7c0ec4c2b41396d07192fe947 100644
+index 905dbddec270775ac14bd7166f312b32d89cb0f4..982e341ccd5acc955fe02e0ed71c00db94a2e548 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
 @@ -857,11 +857,7 @@ impl yaml::K8sResource for Pod {
@@ -149,10 +149,10 @@ index bab8b34781bd8b6e51332bbcf8303116272654f1..2959db91b82040b7c0ec4c2b41396d07
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 7b63d7a3b86b362395cc6755ce8015c112d71921..3a59af38b276226d0b053b82bb80ed39ffe3c9d8 100644
+index 976188c06f40431acc65c2aedae576b7eb585dce..f5eba62240a4a046355473a0c2c2642250db2c1f 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -968,7 +968,7 @@ fn get_container_annotations(
+@@ -970,7 +970,7 @@ fn get_container_annotations(
      if let Some(name) = resource.get_sandbox_name() {
          annotations
              .entry("io.kubernetes.cri.sandbox-name".to_string())
@@ -162,7 +162,7 @@ index 7b63d7a3b86b362395cc6755ce8015c112d71921..3a59af38b276226d0b053b82bb80ed39
  
      if !is_pause_container {
 diff --git a/src/tools/genpolicy/src/replica_set.rs b/src/tools/genpolicy/src/replica_set.rs
-index 7d7c3781fc941c87624d35a51df29d6f9ccebe1e..6e40509751425591cb9d65692468d77cc3875c3b 100644
+index 5606a75ab1fab4a1185fe6870fb2d8530ef159fb..63c0f58aad25c23ff080f3352b83c0e279d87fb9 100644
 --- a/src/tools/genpolicy/src/replica_set.rs
 +++ b/src/tools/genpolicy/src/replica_set.rs
 @@ -52,7 +52,9 @@ impl yaml::K8sResource for ReplicaSet {
@@ -177,7 +177,7 @@ index 7d7c3781fc941c87624d35a51df29d6f9ccebe1e..6e40509751425591cb9d65692468d77c
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/replication_controller.rs b/src/tools/genpolicy/src/replication_controller.rs
-index 711971d7cb77c969c5cd85e695c97cce4c66227b..e08e332b9bc71815725e71b8a46e21529b6082b4 100644
+index 3156200e5ea3aa28bfee73e84cfde53a0018a0a0..33bce79e79d272efe31bd5dff540159aafc4ef68 100644
 --- a/src/tools/genpolicy/src/replication_controller.rs
 +++ b/src/tools/genpolicy/src/replication_controller.rs
 @@ -54,7 +54,10 @@ impl yaml::K8sResource for ReplicationController {
@@ -193,7 +193,7 @@ index 711971d7cb77c969c5cd85e695c97cce4c66227b..e08e332b9bc71815725e71b8a46e2152
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/stateful_set.rs b/src/tools/genpolicy/src/stateful_set.rs
-index a1613998efbbb073146ab24a7762bdc399fc9fa0..7c54f854e81c70df779861ad056fa38efe5ff7bb 100644
+index 351f4734c33659bb7daba698f270f507dbfc44a1..9a289307a131608da107beb8f853dc0268a6867a 100644
 --- a/src/tools/genpolicy/src/stateful_set.rs
 +++ b/src/tools/genpolicy/src/stateful_set.rs
 @@ -102,7 +102,8 @@ impl yaml::K8sResource for StatefulSet {
@@ -207,7 +207,7 @@ index a1613998efbbb073146ab24a7762bdc399fc9fa0..7c54f854e81c70df779861ad056fa38e
  
      fn get_namespace(&self) -> Option<String> {
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 63cbb1ea595bc228874a43dfd2f79dc5266a2bee..86c7a0020e8c1996d63c92d65ba70f1dcdc07c0f 100644
+index acef1aa34160a144e1a95e7bad5a3f6a6641b5cd..4c856061e478b10b29dadd1f8106e4babc5c1bd2 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -14,6 +14,7 @@ use crate::job;
@@ -218,7 +218,7 @@ index 63cbb1ea595bc228874a43dfd2f79dc5266a2bee..86c7a0020e8c1996d63c92d65ba70f1d
  use crate::pod;
  use crate::policy;
  use crate::replica_set;
-@@ -451,3 +452,15 @@ pub fn get_sysctls(security_context: &Option<pod::PodSecurityContext>) -> Vec<po
+@@ -453,3 +454,15 @@ pub fn get_sysctls(security_context: &Option<pod::PodSecurityContext>) -> Vec<po
      }
      vec![]
  }
