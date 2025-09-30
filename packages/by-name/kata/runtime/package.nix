@@ -159,6 +159,11 @@ buildGoModule (finalAttrs: {
       # necessary with force_guest_pull. This patch removes the workaround.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757.
       ./0020-genpolicy-don-t-apply-Nydus-workaround.patch
+
+      # To pass the GPU through to the VM and container, its annotation must specify it as a passthrough gpu (pgpu), e.g.:
+      # cdi.k8s.io/gpu: "nvidia.com/pgpu=0". However, an issue in upstream kata: https://github.com/kata-containers/kata-containers/issues/11624
+      # requires these annotations to be rewritten to "gpu=0" instead of "pgpu=0".
+      ./0021-agent-rewrite-pgpu-annotations-to-gpu.patch
     ];
   };
 

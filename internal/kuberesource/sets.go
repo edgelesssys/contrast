@@ -669,7 +669,7 @@ func GPU() []any {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": "gpu-tester"}).
 				WithAnnotations(map[string]string{
-					"cdi.k8s.io/gpu": "nvidia.com/pgpu=0",
+					"cdi.k8s.io/vfio54": "nvidia.com/pgpu=0",
 				}).
 				WithSpec(PodSpec().
 					WithContainers(
