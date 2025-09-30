@@ -170,11 +170,11 @@ index fef95c47376b1b2c05304d3f9750e3f84cc93b4a..59ccaf3c86663f12bf2323cc3ddd1257
  			return nil, err
  		}
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index c45754a94c32b917cb61deb95dda9bafc0ec1286..ab17b679cb32ce602f7129fd6a6e1e0e4b322c63 100644
+index 11f2adfc741eb10062593cf18413954e96eb0ca3..5e14dfa91570341675e0140900ee5c15fcbf48fb 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1018,10 +1018,9 @@ mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) if {
- allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
+@@ -1031,10 +1031,9 @@ allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
+ 
      p_count := count(p_storages)
      i_count := count(i_storages)
 -    img_pull_count := count([s | s := i_storages[_]; s.driver == "image_guest_pull"])
@@ -186,7 +186,7 @@ index c45754a94c32b917cb61deb95dda9bafc0ec1286..ab17b679cb32ce602f7129fd6a6e1e0e
  
      every i_storage in i_storages {
          allow_storage(p_storages, i_storage, bundle_id, sandbox_id)
-@@ -1047,15 +1046,6 @@ allow_storage(p_storages, i_storage, bundle_id, sandbox_id) if {
+@@ -1060,15 +1059,6 @@ allow_storage(p_storages, i_storage, bundle_id, sandbox_id) if {
  
      print("allow_storage: true")
  }
@@ -202,7 +202,7 @@ index c45754a94c32b917cb61deb95dda9bafc0ec1286..ab17b679cb32ce602f7129fd6a6e1e0e
  
  allow_storage_source(p_storage, i_storage, bundle_id) if {
      print("allow_storage_source 1: start")
-@@ -1085,6 +1075,23 @@ allow_storage_source(p_storage, i_storage, bundle_id) if {
+@@ -1098,6 +1088,23 @@ allow_storage_source(p_storage, i_storage, bundle_id) if {
  
      print("allow_storage_source 3: true")
  }
@@ -226,7 +226,7 @@ index c45754a94c32b917cb61deb95dda9bafc0ec1286..ab17b679cb32ce602f7129fd6a6e1e0e
  
  allow_storage_options(p_storage, i_storage) if {
      print("allow_storage_options 1: start")
-@@ -1138,6 +1145,22 @@ allow_mount_point(p_storage, i_storage, bundle_id, sandbox_id) if {
+@@ -1151,6 +1158,22 @@ allow_mount_point(p_storage, i_storage, bundle_id, sandbox_id) if {
  
      print("allow_mount_point 3: true")
  }
@@ -250,10 +250,10 @@ index c45754a94c32b917cb61deb95dda9bafc0ec1286..ab17b679cb32ce602f7129fd6a6e1e0e
  # ExecProcessRequest.process.Capabilities
  allow_exec_caps(i_caps) if {
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 131d2ce0b467170286424e53baa3dc281c29e439..63cbb1ea595bc228874a43dfd2f79dc5266a2bee 100644
+index 7836a1c64da3af531f886eb37af8e1ee60f54d80..acef1aa34160a144e1a95e7bad5a3f6a6641b5cd 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
-@@ -316,6 +316,17 @@ pub fn get_container_mounts_and_storages(
+@@ -317,6 +317,17 @@ pub fn get_container_mounts_and_storages(
              mount_and_storage::get_image_mount_and_storage(settings, policy_mounts, volume.0);
          }
      }
@@ -270,4 +270,4 @@ index 131d2ce0b467170286424e53baa3dc281c29e439..63cbb1ea595bc228874a43dfd2f79dc5
 +    }
  }
  
- /// Add the "io.katacontainers.config.agent.policy" annotation into
+ /// Add the [`KATA_ANNO_CFG_HYPERVISOR_INIT_DATA`] into

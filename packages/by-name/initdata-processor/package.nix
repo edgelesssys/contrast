@@ -1,7 +1,10 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
-{ lib, buildGoModule }:
+{
+  lib,
+  buildGoModule,
+}:
 
 buildGoModule (finalAttrs: {
   pname = "initdata-processor";
