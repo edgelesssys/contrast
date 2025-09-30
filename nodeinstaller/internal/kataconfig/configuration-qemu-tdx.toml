@@ -67,7 +67,7 @@ valid_hypervisor_paths = ["PLACEHOLDER_FOR_DISTRO_QEMU_WITH_TDX_SUPPORT"]
 # may stop the virtual machine from booting.
 # To see the list of default parameters, enable hypervisor debug, create a
 # container and look for 'default-kernel-parameters' log entries.
-kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1 rootfs_verity.scheme=dm-verity rootfs_verity.hash=f8646fd40953dc21b3253ebc13c13fe1dbc208f6d225aeacc4a04940bca60312"
+kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1 rootfs_verity.scheme=dm-verity rootfs_verity.hash=a8f1861d4825ef847c0d657d9c50713ffdd134932740d048ad55e92cc5b605f9"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty
@@ -266,6 +266,16 @@ enable_iothreads = false
 # to be very predictable
 # Default false
 #enable_mem_prealloc = true
+
+# Reclaim guest freed memory.
+# Enabling this will result in the VM balloon device having f_reporting=on set.
+# Then the hypervisor will use it to reclaim guest freed memory.
+# This is useful for reducing the amount of memory used by a VM.
+# Enabling this feature may sometimes reduce the speed of memory access in
+# the VM.
+#
+# Default false
+#reclaim_guest_freed_memory = true
 
 # Enable huge pages for VM RAM, default false
 # Enabling this will result in the VM memory
