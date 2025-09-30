@@ -4,8 +4,8 @@
 package initdata
 
 import (
+	"bytes"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -19,8 +19,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func buildTemplate(algorithm, version string, data bool) string {
-	var builder strings.Builder
+func buildTemplate(algorithm, version string, data bool) Raw {
+	builder := bytes.Buffer{}
 
 	if algorithm != "" {
 		fmt.Fprintf(&builder, "algorithm = \"%s\"\n", algorithm)
@@ -39,27 +39,10 @@ credentials = []
 '''
 `)
 	}
-	return builder.String()
+	return builder.Bytes()
 }
 
-func tomlToAnnotation(t *testing.T, toml string) string {
-	t.Helper()
-	compressed, err := compress([]byte(toml))
-	require.NoError(t, err)
-	encoded := base64.StdEncoding.EncodeToString(compressed)
-	return encoded
-}
-
-func annotationToToml(t *testing.T, annotation string) string {
-	t.Helper()
-	decoded, err := base64.StdEncoding.DecodeString(annotation)
-	require.NoError(t, err)
-	decompressed, err := decompress(decoded)
-	require.NoError(t, err)
-	return string(decompressed)
-}
-
-func TestDecodeKataAnnotation(t *testing.T) {
+func TestParse(t *testing.T) {
 	tests := map[string]struct {
 		version   string
 		algorithm string
@@ -83,8 +66,8 @@ func TestDecodeKataAnnotation(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 
-			annotation := tomlToAnnotation(t, buildTemplate(tc.algorithm, tc.version, tc.data))
-			i, err := DecodeKataAnnotation(annotation)
+			raw := buildTemplate(tc.algorithm, tc.version, tc.data)
+			i, err := raw.Parse()
 			if tc.wantErr != nil {
 				require.ErrorIs(err, tc.wantErr)
 				return
@@ -102,7 +85,7 @@ func TestDecodeKataAnnotation(t *testing.T) {
 	}
 }
 
-func TestEncodeKataAnnotation(t *testing.T) {
+func TestEncode(t *testing.T) {
 	tests := map[string]struct {
 		version   string
 		algorithm string
@@ -166,15 +149,13 @@ func TestEncodeKataAnnotation(t *testing.T) {
 				Data:      tc.data,
 			}
 
-			annotation, _, err := i.EncodeKataAnnotation()
+			toml, err := i.Encode()
 			if tc.wantErr != nil {
 				require.ErrorIs(err, tc.wantErr)
 				return
 			}
-
 			require.NoError(err)
-			tomlString := annotationToToml(t, annotation)
-			fmt.Println(tomlString)
+			tomlString := string(toml)
 
 			assert.Contains(tomlString, fmt.Sprintf("version = '%s'", tc.version))
 			assert.Contains(tomlString, fmt.Sprintf("algorithm = '%s'", tc.algorithm))
@@ -185,9 +166,16 @@ func TestEncodeKataAnnotation(t *testing.T) {
 				assert.Contains(tomlString, fmt.Sprintf("%s = '%s'", key, value))
 			}
 
-			decoded, err := DecodeKataAnnotation(annotation)
+			parsed, err := toml.Parse()
 			require.NoError(err)
-			assert.Equal(&i, decoded)
+			assert.Equal(&i, parsed)
+
+			// Round-trip to and from Kata annotation should not change the raw doc.
+			anno, err := toml.EncodeKataAnnotation()
+			require.NoError(err)
+			toml2, err := DecodeKataAnnotation(anno)
+			require.NoError(err)
+			assert.Equal(toml, toml2)
 		})
 	}
 }
@@ -236,11 +224,16 @@ func TestFromDevice(t *testing.T) {
 			path := filepath.Join(tmpDir, name)
 			require.NoError(os.WriteFile(path, tc.deviceContent, 0o755))
 
-			initdata, digest, err := FromDevice(path)
+			raw, err := FromDevice(path)
 			if tc.wantErr != nil {
 				require.ErrorIs(err, tc.wantErr)
 				return
 			}
+			require.NoError(err)
+
+			initdata, err := raw.Parse()
+			require.NoError(err)
+			digest, err := raw.Digest()
 			require.NoError(err)
 
 			require.Equal(expectedInitdata, initdata)
