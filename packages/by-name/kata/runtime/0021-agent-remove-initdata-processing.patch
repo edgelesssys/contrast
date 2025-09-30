@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Mon, 29 Sep 2025 18:48:13 +0200
+Subject: [PATCH] agent: remove initdata processing
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/agent/src/main.rs | 26 --------------------------
+ 1 file changed, 26 deletions(-)
+
+diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
+index 3e804ff8d763b764e356412fed2da79762e782e8..15809ef1502e654dfa9e726532361f3f4de749da 100644
+--- a/src/agent/src/main.rs
++++ b/src/agent/src/main.rs
+@@ -405,32 +405,6 @@ async fn start_sandbox(
+     let (tx, rx) = tokio::sync::oneshot::channel();
+     sandbox.lock().await.sender = Some(tx);
+ 
+-    let initdata_return_value = initdata::initialize_initdata(logger).await?;
+-
+-    let gc_procs = config.guest_components_procs;
+-    if !attestation_binaries_available(logger, &gc_procs) {
+-        warn!(
+-            logger,
+-            "attestation binaries requested for launch not available"
+-        );
+-    } else {
+-        init_attestation_components(logger, config, &initdata_return_value).await?;
+-    }
+-
+-    // if policy is given via initdata, use it
+-    #[cfg(feature = "agent-policy")]
+-    if let Some(initdata_return_value) = initdata_return_value {
+-        if let Some(policy) = &initdata_return_value._policy {
+-            info!(logger, "using policy from initdata");
+-            AGENT_POLICY
+-                .lock()
+-                .await
+-                .set_policy(policy)
+-                .await
+-                .context("Failed to set policy from initdata")?;
+-        }
+-    }
+-
+     let mut oma = None;
+     let mut _ort = None;
+     if let Some(c) = &config.mem_agent {
