@@ -10,6 +10,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/google/go-containerregistry/pkg/name"
+	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
 // ImageRefValid verifies that all image references contain valid tag and digest.
@@ -21,48 +22,27 @@ type ImageRefValid struct {
 func (v *ImageRefValid) Verify(toVerify any) error {
 	var findings error
 
-	resources, err := kuberesource.ResourcesToUnstructured([]any{toVerify})
-	if err != nil {
-		return err
-	}
-
-	var images []string
-	for _, r := range resources {
-		findImageFields(r.Object, &images)
-	}
-
-	for _, img := range images {
-		if v.ExcludeContrastImages && strings.HasPrefix(img, "ghcr.io/edgelesssys/contrast") {
-			continue
+	kuberesource.MapPodSpec(toVerify, func(
+		spec *applycorev1.PodSpecApplyConfiguration,
+	) *applycorev1.PodSpecApplyConfiguration {
+		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+			return spec
 		}
-		if _, err := name.NewDigest(img); err != nil {
-			findings = errors.Join(findings, fmt.Errorf("the image reference '%s' failed verification. Ensure that it contains a digest and is in the format 'image:tag@sha256:...'", img))
+
+		for _, container := range spec.Containers {
+			if container.Image == nil || *container.Image == "" {
+				findings = errors.Join(findings, fmt.Errorf("the container '%s' failed verification. It has no image specified", *container.Name))
+				continue
+			}
+			if v.ExcludeContrastImages && strings.HasPrefix(*container.Image, "ghcr.io/edgelesssys/contrast") {
+				continue
+			}
+			if _, err := name.NewDigest(*container.Image); err != nil {
+				findings = errors.Join(findings, fmt.Errorf("the image reference '%s' failed verification. Ensure that it contains a digest and is in the format 'image:tag@sha256:...'", *container.Image))
+			}
 		}
-	}
+		return spec
+	})
 
 	return findings
-}
-
-// findImageFields recursively searches for "image" fields in the unstructured data.
-func findImageFields(data map[string]any, images *[]string) {
-	for key, value := range data {
-		if key == "image" {
-			if img, ok := value.(string); ok {
-				*images = append(*images, img)
-			}
-			continue
-		}
-
-		switch v := value.(type) {
-		case map[string]any:
-			findImageFields(v, images)
-		case []any:
-			for _, item := range v {
-				if nestedMap, ok := item.(map[string]any); ok {
-					findImageFields(nestedMap, images)
-				}
-			}
-		}
-
-	}
 }
