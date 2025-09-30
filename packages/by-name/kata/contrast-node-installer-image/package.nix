@@ -15,7 +15,7 @@
   OVMF-SNP,
   OVMF-TDX,
 
-  debugRuntime ? false,
+  debugRuntime ? true,
   withGPU ? false,
 }:
 
