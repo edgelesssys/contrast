@@ -11,10 +11,10 @@ in Nix.
  2 files changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/meson.build b/meson.build
-index 41f68d38069b4b8d2e3104fbd6bb3087aeb91d00..2fe3702d1193ba9399de239aca9f9264c24aec35 100644
+index 50c774a19557a01897ab959c548a65879147b15f..6080ba245fc9d4b37058613ece4e083a2dc38a2f 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -1133,7 +1133,8 @@ zlib = dependency('zlib', required: true)
+@@ -1151,7 +1151,8 @@ zlib = dependency('zlib', required: true)
  libaio = not_found
  if not get_option('linux_aio').auto() or have_block
    libaio = cc.find_library('aio', has_headers: ['libaio.h'],
@@ -24,7 +24,7 @@ index 41f68d38069b4b8d2e3104fbd6bb3087aeb91d00..2fe3702d1193ba9399de239aca9f9264
  endif
  
  linux_io_uring_test = '''
-@@ -2076,7 +2077,8 @@ if fdt_opt == 'enabled' and get_option('wrap_mode') == 'nodownload'
+@@ -2113,7 +2114,8 @@ if fdt_opt == 'enabled' and get_option('wrap_mode') == 'nodownload'
    fdt_opt = 'system'
  endif
  if fdt_opt in ['enabled', 'system'] or (fdt_opt == 'auto' and have_system)
@@ -35,7 +35,7 @@ index 41f68d38069b4b8d2e3104fbd6bb3087aeb91d00..2fe3702d1193ba9399de239aca9f9264
       #include <libfdt.h>
       #include <libfdt_env.h>
 diff --git a/meson_options.txt b/meson_options.txt
-index 59d973bca00fafdf6680eb9dd031e83863cc3566..877682742f4c1b02b9ac28b4e627f3f8f68561f7 100644
+index fff1521e580de20ee277aec2a09f206267c13da9..0a55ec8068cfdb493fc331d77952cf603f4edf8c 100644
 --- a/meson_options.txt
 +++ b/meson_options.txt
 @@ -194,6 +194,7 @@ option('linux_aio', type : 'feature', value : 'auto',
@@ -46,7 +46,7 @@ index 59d973bca00fafdf6680eb9dd031e83863cc3566..877682742f4c1b02b9ac28b4e627f3f8
  option('lzfse', type : 'feature', value : 'auto',
         description: 'lzfse support for DMG images')
  option('lzo', type : 'feature', value : 'auto',
-@@ -321,6 +322,7 @@ option('capstone', type: 'feature', value: 'auto',
+@@ -323,6 +324,7 @@ option('capstone', type: 'feature', value: 'auto',
  option('fdt', type: 'combo', value: 'auto',
         choices: ['disabled', 'enabled', 'auto', 'system', 'internal'],
         description: 'Whether and how to find the libfdt library')

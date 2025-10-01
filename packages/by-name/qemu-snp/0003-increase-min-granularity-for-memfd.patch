@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Thu, 2 Oct 2025 14:38:43 +0200
+Subject: [PATCH] increase min granularity for memfd
+
+If the granularity is too small, we run into kvm memslot limits when
+mapping devices using VFIO. Increase the limit to reduce the number of
+required memslots.
+Ideally this should be configurable, but for now, we always use 2 MiB.
+
+Co-authored-by: Tom Dohrmann <erbse.13@gmx.de>
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ system/ram-block-attributes.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/system/ram-block-attributes.c b/system/ram-block-attributes.c
+index 68e8a02703235357d1dd62aaf38b57de9c2a1577..15ccf83c006b72baefc236bdbba0bf86606af967 100644
+--- a/system/ram-block-attributes.c
++++ b/system/ram-block-attributes.c
+@@ -163,7 +163,7 @@ ram_block_attributes_rdm_get_min_granularity(const RamDiscardManager *rdm,
+     const RamBlockAttributes *attr = RAM_BLOCK_ATTRIBUTES(rdm);
+ 
+     g_assert(mr == attr->ram_block->mr);
+-    return ram_block_attributes_get_block_size(attr);
++    return 0x200000; /* 2MB */
+ }
+ 
+ static void
