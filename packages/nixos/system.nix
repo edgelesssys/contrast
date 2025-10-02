@@ -105,10 +105,13 @@
   # string "perl" or "python".
   system.forbiddenDependenciesRegexes = [
     "perl"
-  ]
-  ++ lib.optionals (!config.contrast.debug.enable) [
-    "python" # Some of the debug packages need Python.
   ];
+  # TODO(katexochen): python dependency was added to iproute2 in https://github.com/NixOS/nixpkgs/pull/424834
+  # and removed again in https://github.com/NixOS/nixpkgs/pull/445799.
+  # Waiting for it to land in unstable.
+  # ++ lib.optionals (!config.contrast.debug.enable) [
+  #   "python" # Some of the debug packages need Python.
+  # ];
 
   nixpkgs.hostPlatform.system = "x86_64-linux";
   system.switch.enable = false;
