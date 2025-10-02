@@ -4,7 +4,6 @@
 {
   lib,
   buildGoModule,
-  buildGoTest,
   kata,
   contrast,
   installShellFiles,
@@ -13,7 +12,9 @@
 }:
 
 let
-  e2e = buildGoTest {
+  e2e = buildGoModule {
+    buildTestBinaries = true;
+
     inherit (contrast)
       version
       src
