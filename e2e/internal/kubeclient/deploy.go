@@ -363,6 +363,7 @@ func (c *Kubeclient) Restart(ctx context.Context, resource ResourceWaiter, names
 		return err
 	}
 	for _, pod := range pods {
+		c.log.Info("restarting pod", "namespace", namespace, "name", name)
 		err := c.Client.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{
 			GracePeriodSeconds: toPtr(int64(0)),
 		})
