@@ -55,6 +55,11 @@ lib.throwIf
           ]
         );
         inherit (image) imageFileName;
-        inherit (nixos-config.config.system.build) image kernel initialRamdisk;
+        inherit (nixos-config.config.system.build)
+          image
+          kernel
+          initialRamdisk
+          toplevel
+          ;
       };
   }
