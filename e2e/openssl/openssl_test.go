@@ -347,6 +347,9 @@ func TestMain(m *testing.M) {
 
 func opensslConnectCmd(addr, caCert string) string {
 	return fmt.Sprintf(
-		`openssl s_client -connect %s -verify_return_error -x509_strict -CAfile /contrast/tls-config/%s -cert /contrast/tls-config/certChain.pem -key /contrast/tls-config/key.pem </dev/null`,
-		addr, caCert)
+		`set -x
+		cat /contrast/tls-config/%s
+		cat /contrast/tls-config/certChain.pem
+		openssl s_client -connect %s -verify_return_error -x509_strict -CAfile /contrast/tls-config/%s -cert /contrast/tls-config/certChain.pem -key /contrast/tls-config/key.pem </dev/null`,
+		caCert, addr, caCert)
 }
