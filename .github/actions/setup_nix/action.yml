@@ -32,10 +32,11 @@ runs:
         sudo df -h
 
         echo "Removing unwanted software... "
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf /usr/local/lib/android
-        sudo rm -rf /opt/ghc
-        sudo rm -rf /opt/hostedtoolcache/CodeQL
+        mkdir empty_dir
+        sudo rsync -a --delete empty_dir/ /usr/share/dotnet
+        sudo rsync -a --delete empty_dir/ /usr/local/lib/android
+        sudo rsync -a --delete empty_dir/ /opt/ghc
+        sudo rsync -a --delete empty_dir/ /opt/hostedtoolcache/CodeQL
         echo "Docker prune..."
         sudo docker system prune --all --force
         sudo df -h
