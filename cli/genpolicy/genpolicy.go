@@ -83,7 +83,7 @@ func (r *Runner) Run(ctx context.Context, yamlPath string, cmPath []string, logg
 		return fmt.Errorf("running genpolicy: %w", err)
 	}
 
-	resource, err := kuberesource.YAMLBytesFromFile(yamlPath)
+	resource, err := kuberesource.YAMLBytesFromFiles(yamlPath)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
