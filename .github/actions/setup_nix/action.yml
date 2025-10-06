@@ -32,11 +32,10 @@ runs:
         sudo df -h
 
         echo "Removing unwanted software... "
-        mkdir empty_dir
-        sudo rsync -a --delete empty_dir/ /usr/share/dotnet
-        sudo rsync -a --delete empty_dir/ /usr/local/lib/android
-        sudo rsync -a --delete empty_dir/ /opt/ghc
-        sudo rsync -a --delete empty_dir/ /opt/hostedtoolcache/CodeQL
+        cd /usr/share/dotnet && perl -e 'for(<*>){((stat)[9]<(unlink))}' || true
+        cd /usr/local/lib/android && perl -e 'for(<*>){((stat)[9]<(unlink))}' || true
+        cd /opt/ghc && perl -e 'for(<*>){((stat)[9]<(unlink))}' || true
+        cd /opt/hostedtoolcache/CodeQL && perl -e 'for(<*>){((stat)[9]<(unlink))}' || true
         echo "Docker prune..."
         sudo docker system prune --all --force
         sudo df -h
