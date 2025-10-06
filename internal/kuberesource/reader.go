@@ -32,15 +32,19 @@ func UnmarshalApplyConfigurations(data []byte) ([]any, error) {
 	return result, nil
 }
 
-// YAMLBytesFromFile reads a k8 YAML file and returns a formatting-preserving encoding.
-func YAMLBytesFromFile(yamlPath string) ([]byte, error) {
-	data, err := os.ReadFile(yamlPath)
-	if err != nil {
-		return nil, fmt.Errorf("reading %s: %w", yamlPath, err)
-	}
-	kubeObjs, err := UnmarshalApplyConfigurations(data)
-	if err != nil {
-		return nil, fmt.Errorf("unmarshaling %s: %w", yamlPath, err)
+// YAMLBytesFromFiles reads one or multiple K8s YAML files and returns them in a formatted byte encoding.
+func YAMLBytesFromFiles(yamlPaths ...string) ([]byte, error) {
+	var kubeObjs []any
+	for _, path := range yamlPaths {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil, fmt.Errorf("reading %s: %w", path, err)
+		}
+		objs, err := UnmarshalApplyConfigurations(data)
+		if err != nil {
+			return nil, fmt.Errorf("unmarshaling %s: %w", path, err)
+		}
+		kubeObjs = append(kubeObjs, objs...)
 	}
 	resource, err := EncodeResources(kubeObjs...)
 	if err != nil {

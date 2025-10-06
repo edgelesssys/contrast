@@ -154,7 +154,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	if flags.outputFile != "" {
-		combinedYAML, err := getCombinedYAML(paths)
+		combinedYAML, err := kuberesource.YAMLBytesFromFiles(paths...)
 		if err != nil {
 			return fmt.Errorf("get combined YAML: %w", err)
 		}
@@ -520,21 +520,6 @@ func copyFile(inPath, outPath string) error {
 		return fmt.Errorf("copy %s: %w", inPath, err)
 	}
 	return nil
-}
-
-func getCombinedYAML(paths []string) ([]byte, error) {
-	var combinedYAML []byte
-	for _, path := range paths {
-		resource, err := kuberesource.YAMLBytesFromFile(path)
-		if err != nil {
-			return nil, err
-		}
-
-		// This expects a "---" separator at the beginning of each YAML file,
-		// as is the case after running "genpolicy".
-		combinedYAML = append(combinedYAML, resource...)
-	}
-	return combinedYAML, nil
 }
 
 func addWorkloadOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) error {
