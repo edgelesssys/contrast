@@ -214,7 +214,7 @@ func amdTrustedRootCerts(productName ProductName) (map[string][]*trust.AMDRootCe
 // TDXReferenceValues contains reference values for TDX.
 type TDXReferenceValues struct {
 	MrTd         HexString
-	Rtrms        [4]HexString
+	Rtmrs        [4]HexString
 	MrSeam       HexString
 	TdAttributes HexString
 	Xfam         HexString
@@ -235,9 +235,9 @@ func (r TDXReferenceValues) Validate() error {
 	if err := validateHexString(r.Xfam, 8); err != nil {
 		errs = append(errs, newValidationError("Xfam", err))
 	}
-	for i, rtmr := range r.Rtrms {
+	for i, rtmr := range r.Rtmrs {
 		if err := validateHexString(rtmr, 48); err != nil {
-			errs = append(errs, newValidationError(fmt.Sprintf("Rtrms[%d]", i+1), err))
+			errs = append(errs, newValidationError(fmt.Sprintf("RTMR[%d]", i+1), err))
 		}
 	}
 	return errors.Join(errs...)

@@ -102,7 +102,7 @@ let
             in
             {
               mrTd = builtins.readFile "${launch-digests}/mrtd.hex";
-              rtrms = [
+              rtmrs = [
                 (builtins.readFile "${launch-digests}/rtmr0.hex")
                 (builtins.readFile "${launch-digests}/rtmr1.hex")
                 (builtins.readFile "${launch-digests}/rtmr2.hex")

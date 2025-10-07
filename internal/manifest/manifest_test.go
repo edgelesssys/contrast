@@ -53,7 +53,7 @@ func newTestManifestTDX() *Manifest {
 		TDX: []TDXReferenceValues{
 			{
 				MrTd: HexString("cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"),
-				Rtrms: [4]HexString{
+				Rtmrs: [4]HexString{
 					"555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555",
 					"666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666",
 					"777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777",
@@ -187,10 +187,10 @@ func TestValidate(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		"tdx rtrms empty": {
+		"tdx rtmrs empty": {
 			m: newTestManifestTDX(),
 			mutate: func(m *Manifest) {
-				m.ReferenceValues.TDX[0].Rtrms = [4]HexString{}
+				m.ReferenceValues.TDX[0].Rtmrs = [4]HexString{}
 			},
 			wantErr: true,
 		},
