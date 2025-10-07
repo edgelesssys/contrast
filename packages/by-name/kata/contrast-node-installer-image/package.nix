@@ -196,11 +196,11 @@ let
   kata-runtime = ociLayerTar {
     files = [
       {
-        source = "${kata.runtime}/bin/kata-runtime";
+        source = "${contrastPkgsStatic.kata.runtime}/bin/kata-runtime";
         destination = "/opt/edgeless/bin/kata-runtime";
       }
       {
-        source = "${kata.runtime}/bin/containerd-shim-kata-v2";
+        source = "${contrastPkgsStatic.kata.runtime}/bin/containerd-shim-kata-v2";
         destination = "/opt/edgeless/bin/containerd-shim-contrast-cc-v2";
       }
     ];
