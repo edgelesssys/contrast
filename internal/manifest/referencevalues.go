@@ -237,7 +237,7 @@ func (r TDXReferenceValues) Validate() error {
 	}
 	for i, rtmr := range r.Rtrms {
 		if err := validateHexString(rtmr, 48); err != nil {
-			errs = append(errs, newValidationError(fmt.Sprintf("Rtrms[%d]", i), err))
+			errs = append(errs, newValidationError(fmt.Sprintf("Rtrms[%d]", i+1), err))
 		}
 	}
 	return errors.Join(errs...)
