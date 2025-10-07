@@ -86,8 +86,8 @@ func buildVersionString() (string, error) {
 		}
 		for _, tdx := range values.TDX {
 			fmt.Fprintf(versionsWriter, "\t- mrTd:\t%s\n", tdx.MrTd.String())
-			for i, rtmr := range tdx.Rtrms {
-				fmt.Fprintf(versionsWriter, "\t  rtrm[%d]:\t%s\n", i+1, rtmr.String())
+			for i, rtmr := range tdx.Rtmrs {
+				fmt.Fprintf(versionsWriter, "\t  rtmr[%d]:\t%s\n", i+1, rtmr.String())
 			}
 			fmt.Fprintf(versionsWriter, "\t  mrSeam:\t%s\n", tdx.MrSeam.String())
 			fmt.Fprintf(versionsWriter, "\t  tdAttributes:\t%s\n", tdx.TdAttributes.String())

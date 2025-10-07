@@ -208,7 +208,7 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 			return nil, fmt.Errorf("failed to convert Xfam from manifest to byte slices: %w", err)
 		}
 		var rtmrs [4][]byte
-		for i, rtmr := range refVal.Rtrms {
+		for i, rtmr := range refVal.Rtmrs {
 			bytes, err := rtmr.Bytes()
 			if err != nil {
 				return nil, fmt.Errorf("failed to convert Rtmr[%d] from manifest to byte slices: %w", i, err)
