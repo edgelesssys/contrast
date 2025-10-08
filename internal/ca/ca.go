@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/crypto"
@@ -106,11 +107,16 @@ func New(rootPrivKey, intermPrivKey *ecdsa.PrivateKey) (*CA, error) {
 func (c *CA) NewAttestedMeshCert(names []string, extensions []pkix.Extension, subjectPublicKey any) ([]byte, error) {
 	var dnsNames []string
 	var ips []net.IP
+	var uris []*url.URL
 	for _, name := range names {
 		// If a string parses correctly as an IP address, it is not a valid DNS name anyway, so we
 		// can split the SANs into DNS and IP by that predicate.
 		if ip := net.ParseIP(name); ip != nil {
 			ips = append(ips, ip)
+		} else if uri, err := url.Parse(name); err == nil && uri.Scheme != "" {
+			// Similarly, if a string parses as a URL with scheme, it's not a valid DNS name and
+			// we can safely add it to the URI SANs.
+			uris = append(uris, uri)
 		} else {
 			dnsNames = append(dnsNames, name)
 		}
@@ -127,6 +133,7 @@ func (c *CA) NewAttestedMeshCert(names []string, extensions []pkix.Extension, su
 		ExtraExtensions:       extensions,
 		DNSNames:              dnsNames,
 		IPAddresses:           ips,
+		URIs:                  uris,
 	}
 
 	_, certPEM, err := createCert(certTemplate, c.meshCACert, subjectPublicKey, c.intermPrivKey)
