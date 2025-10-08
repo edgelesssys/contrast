@@ -31,7 +31,7 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Log in to ghcr.io Container registry
-        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -93,7 +93,7 @@ jobs:
       id-token: write
     steps:
       - name: AWS login (IAM role)
-        uses: aws-actions/configure-aws-credentials@a03048d87541d1d9fcf2ecf528a4a65ba9bd7838 # v5.0.0
+        uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 # v5.1.0
         with:
           role-to-assume: arn:aws:iam::795746500882:role/ContrastPublicBucketRW
           aws-region: eu-central-1
