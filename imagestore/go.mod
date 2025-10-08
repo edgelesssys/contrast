@@ -9,8 +9,8 @@ require (
 	github.com/edgelesssys/contrast v0.0.0-00010101000000-000000000000
 	github.com/spf13/cobra v1.10.1
 	golang.org/x/sync v0.17.0
-	google.golang.org/grpc v1.75.1
-	google.golang.org/protobuf v1.36.9
+	google.golang.org/grpc v1.76.0
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
