@@ -48,7 +48,7 @@ func TestIngressEgress(t *testing.T) {
 
 	resources = kuberesource.AddPortForwarders(resources)
 
-	ct.Init(t, resources)
+	ct.Init(t, resources, platform)
 
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 

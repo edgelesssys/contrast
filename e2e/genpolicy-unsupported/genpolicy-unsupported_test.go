@@ -37,7 +37,7 @@ func TestGenpolicyUnsupported(t *testing.T) {
 
 	// required for making everything available for genpolicy
 	ct := contrasttest.New(t)
-	ct.Init(t, resources)
+	ct.Init(t, resources, platform)
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 
 	for _, file := range files {

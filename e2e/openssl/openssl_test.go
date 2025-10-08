@@ -57,7 +57,7 @@ func TestOpenSSL(t *testing.T) {
 
 	resources = kuberesource.AddPortForwarders(resources)
 
-	ct.Init(t, resources)
+	ct.Init(t, resources, platform)
 	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 
 	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
