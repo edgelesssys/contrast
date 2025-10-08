@@ -49,6 +49,8 @@ lib.makeScope pkgs.newScope (scripts: {
       nix-update --version=skip --flake legacyPackages.x86_64-linux.imagepuller
       echo "Updating imagestore package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.imagestore
+      echo "Updating vendorHash of initdata-processor package" >&2
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.initdata-processor
       echo "Updating vendorHash of contrast package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast
       echo "Updating vendorHash of imagepuller-benchmark package" >&2
