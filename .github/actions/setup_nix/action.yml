@@ -19,31 +19,22 @@ runs:
       run: |
         sudo sysctl --ignore --write kernel.apparmor_restrict_unprivileged_unconfined=0
         sudo sysctl --ignore --write kernel.apparmor_restrict_unprivileged_userns=0
+    - name: use btrfs for nix builds
+      shell: bash
+      run: |
+        echo "Setting up btrfs /nix volume..."
+        sudo mkdir -p /nix
+        sudo truncate -s 50G /mnt/btrfs.img
+        sudo mkfs.btrfs -f /mnt/btrfs.img
+        sudo mount /mnt/btrfs.img /nix
+        sudo mkdir -p /nix/bld
+        sudo findmnt
+        sudo df -h
     - uses: cachix/install-nix-action@9280e7aca88deada44c930f1e2c78e21c3ae3edd # v31.7.0
       with:
         github_access_token: ${{ inputs.githubToken }}
+        extra_nix_config: "build-dir = /nix/bld"
     - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
       with:
         name: edgelesssys
         authToken: ${{ inputs.cachixToken }}
-    - name: use btrfs for nix builds
-      shell: bash
-      run: |
-        sudo df -h
-
-        echo "Removing unwanted software... "
-        sudo rm -rf /usr/share/dotnet
-        sudo rm -rf /usr/local/lib/android
-        sudo rm -rf /opt/ghc
-        sudo rm -rf /opt/hostedtoolcache/CodeQL
-        sudo docker system prune --all --force
-        sudo df -h
-
-        echo "Setting up btrfs nix builder volume..."
-        sudo mkdir -p /mnt/nixbld
-        sudo truncate -s 20G /mnt/btrfs.img
-        sudo mkfs.btrfs -f /mnt/btrfs.img
-        sudo mount /mnt/btrfs.img /mnt/nixbld
-        echo "build-dir = /mnt/nixbld" | sudo tee -a /etc/nix/nix.conf
-        sudo systemctl restart nix-daemon
-        sudo df -h
