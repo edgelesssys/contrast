@@ -27,8 +27,22 @@ jobs:
     permissions:
       pull-requests: read
     steps:
-      - name: prevent merge
+      - name: prevent merge by label
         if: contains(github.event.pull_request.labels.*.name, 'do not merge')
         run: |
           echo '::error::This PR is labeled as "do not merge", remove the label to make this check pass.'
+          exit 1
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 20
+          persist-credentials: false
+      - name: prevent merge by commit message
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if ! git log --pretty=format:"%s" "${BASE_SHA}..${HEAD_SHA}" | grep -iE "^[[]?(dnm|do not merge|draft|no ci|temp)"; then
+            exit 0
+          fi
+          echo '::error::This PR contains commits that should not be merged, see above.'
           exit 1
