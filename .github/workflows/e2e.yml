@@ -72,13 +72,10 @@ jobs:
         if: (!inputs.self-hosted)
         run: |
           just get-credentials
-      - name: Set sync environment
+      - name: Request fifo ticket
         if: (!inputs.self-hosted || inputs.platform == 'Metal-QEMU-SNP-GPU')
         run: |
-          sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"
-          sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
-          echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
+          just request-fifo-ticket
       - name: E2E Test
         run: |
           nix build .#scripts.get-logs
@@ -115,5 +112,8 @@ jobs:
             echo "No namespace file found, skipping cleanup." >&2
             exit 0
           fi
-
           kubectl delete ns "$(cat workspace/e2e.namespace)" --timeout 10m
+      - name: Release fifo ticket
+        if: always() && (!inputs.self-hosted || inputs.platform == 'Metal-QEMU-SNP-GPU') && !inputs.skip-undeploy
+        run: |
+          just release-fifo-ticket

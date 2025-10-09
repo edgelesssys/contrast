@@ -30,7 +30,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/google/go-github/v72/github"
-	ksync "github.com/katexochen/sync/api/client"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -62,39 +61,12 @@ func TestRelease(t *testing.T) {
 
 	contrast := &contrast{dir: dir}
 
-	// If available, acquire a fifo ticket to synchronize cluster access with
-	// other running e2e tests. We request a ticket and wait for our turn.
-	// Ticket is released in the cleanup function. The sync server will ensure
-	// that only one test is using the cluster at a time.
-	var fifo *ksync.Fifo
-	var ticketUUID string
-	if fifoUUID, ok := os.LookupEnv("SYNC_FIFO_UUID"); ok {
-		syncEndpoint, ok := os.LookupEnv("SYNC_ENDPOINT")
-		require.True(t, ok, "SYNC_ENDPOINT must be set when SYNC_FIFO_UUID is set")
-		t.Logf("Syncing with fifo %s of endpoint %s", fifoUUID, syncEndpoint)
-		fifo = ksync.FifoFromUUID(syncEndpoint, fifoUUID)
-		var err error
-		ticketUUID, err = fifo.Ticket(t.Context())
-		require.NoError(t, err, "Requesting fifo ticket failed")
-		t.Logf("Waiting for fifo ticket %s", ticketUUID)
-		require.NoError(t, fifo.Wait(t.Context(), ticketUUID), "Waiting for fifo ticket failed")
-		t.Logf("Acquired lock on fifo %s with ticket %s", fifoUUID, ticketUUID)
-	}
-
 	for _, sub := range []string{"help"} {
 		contrast.Run(ctx, t, 2*time.Second, sub)
 	}
 
 	t.Cleanup(func() {
 		ctx := context.Background()
-		defer func() {
-			if fifo != nil {
-				t.Logf("Releasing fifo ticket %s", ticketUUID)
-				if err := fifo.Done(ctx, ticketUUID); err != nil {
-					t.Logf("Could not mark fifo ticket as done: %v", err)
-				}
-			}
-		}()
 
 		if *keep {
 			return

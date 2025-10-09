@@ -52,6 +52,9 @@ node-installer platform=default_platform:
 e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
+    if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" ]] ; then
+        just request-fifo-ticket 90m
+    fi
     nix shell .#contrast.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
@@ -159,10 +162,9 @@ apply target=default_deploy_target platform=default_platform:
         ;;
         *)
             if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" ]] ; then
-                sync_ticket=$(nix run .#scripts.get-sync-ticket 90m)
-                echo $sync_ticket > ./{{ workspace_dir }}/just.sync-ticket
-                trap 'nix run .#scripts.release-sync-ticket $sync_ticket' ERR
-                kubectl label ns $(cat ./{{ workspace_dir }}/just.namespace) contrast.edgeless.systems/sync-ticket=$sync_ticket --overwrite
+                just request-fifo-ticket 90m
+                trap 'just release-fifo-ticket' ERR
+                kubectl label ns $(cat ./{{ workspace_dir }}/just.namespace) contrast.edgeless.systems/sync-ticket=$(cat ./{{ workspace_dir }}/just.sync-ticket) --overwrite
             fi
             kubectl apply -f ./{{ workspace_dir }}/deployment
         ;;
@@ -194,10 +196,7 @@ undeploy:
     else
         kubectl delete namespace $ns
     fi
-    if [[ -f ./{{ workspace_dir }}/just.sync-ticket ]]; then
-        sync_ticket=$(cat ./{{ workspace_dir }}/just.sync-ticket)
-        nix run .#scripts.release-sync-ticket $sync_ticket
-    fi
+    just release-fifo-ticket
 
 # Set the manifest at the coordinator.
 set cli=default_cli:
@@ -279,6 +278,27 @@ wait-for-workload target=default_deploy_target:
             exit 1
         ;;
     esac
+
+request-fifo-ticket timeout="":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ -f ./{{ workspace_dir }}/just.sync-ticket ]]; then
+        echo "Sync ticket already exists, not requesting a new one."
+        exit 1
+    fi
+    ticket=$(nix run .#scripts.get-sync-ticket {{ timeout }})
+    echo $ticket > ./{{ workspace_dir }}/just.sync-ticket
+
+release-fifo-ticket:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ ! -f ./{{ workspace_dir }}/just.sync-ticket ]]; then
+        echo "No sync ticket found, nothing to release."
+        exit 0
+    fi
+    ticket=$(cat ./{{ workspace_dir }}/just.sync-ticket)
+    nix run .#scripts.release-sync-ticket ${ticket}
+    rm ./{{ workspace_dir }}/just.sync-ticket
 
 # Load the kubeconfig for the given platform.
 get-credentials platform=default_platform:

@@ -639,8 +639,11 @@ lib.makeScope pkgs.newScope (scripts: {
       curl
     ];
     text = ''
+      echo "Requesting fifo ticket from sync server" >&2
       sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      echo "Sync server IP: $sync_ip" >&2
       sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
+      echo "Sync fifo UUID: $sync_uuid" >&2
       path="ticket"
       if [[ "$#" -ge 1 ]]; then
         path="ticket?done_timeout=$1"
@@ -660,11 +663,17 @@ lib.makeScope pkgs.newScope (scripts: {
       curl
     ];
     text = ''
-      sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-      sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
       ticket=$1
-      curl -fsSL "$sync_ip:8080/fifo/$sync_uuid/done/$ticket" || true
-      echo "Released ticket $ticket from fifo $sync_uuid" >&2
+      echo "Releasing fifo ticket $ticket" >&2
+      sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      echo "Sync server IP: $sync_ip" >&2
+      sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
+      echo "Sync fifo UUID: $sync_uuid" >&2
+      if ! curl -fsSL "$sync_ip:8080/fifo/$sync_uuid/done/$ticket"; then
+        echo "Failed to release fifo $sync_uuid with ticket $ticket" >&2
+      else
+        echo "Successfully released fifo $sync_uuid with ticket $ticket" >&2
+      fi
     '';
   };
 
