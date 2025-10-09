@@ -213,9 +213,10 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 }
 
 func policyMapToBytesList(m []deployment) [][]byte {
+	// TODO(burgerdev): rename policy to initdata
 	var policies [][]byte
 	for _, depl := range m {
-		policies = append(policies, depl.policy)
+		policies = append(policies, depl.initdata)
 	}
 	return policies
 }
