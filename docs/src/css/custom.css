@@ -87,3 +87,29 @@ html[data-theme='dark'] .header-github-link:before {
 .asciinema-theme-edgeless .bg-fg {    /* inverse for terminal background color */
   background-color: #ffffff; /* controls color of the cursor */
 }
+
+.faq-item {
+  border: 1px solid var(--ifm-color-emphasis-300);
+  border-radius: var(--ifm-pagination-nav-border-radius);
+  transition: border-color var(--ifm-transition-fast) var(--ifm-transition-timing-default);
+  margin: var(--ifm-global-spacing) 0 var(--ifm-global-spacing) 0;
+  overflow: hidden;
+}
+
+.faq-item:hover {
+  border-color: var(--ifm-pagination-nav-color-hover);
+}
+
+.faq-header {
+  padding: var(--ifm-global-spacing);
+  cursor: pointer;
+  margin: 0;
+}
+
+.faq-body {
+  padding: 0 var(--ifm-global-spacing) var(--ifm-global-spacing) var(--ifm-global-spacing);
+}
+
+.faq-body p:last-child {
+  margin: 0;
+}
