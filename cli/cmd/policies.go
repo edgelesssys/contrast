@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/edgelesssys/contrast/internal/initdata"
 	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -49,37 +50,37 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 		var role manifest.Role
 		switch obj := objAny.(type) {
 		case *kubeapi.Pod:
-			annotation = obj.Annotations[kataPolicyAnnotationKey]
+			annotation = obj.Annotations[initdata.InitdataAnnotationKey]
 			role = manifest.Role(obj.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.Deployment:
-			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			annotation = obj.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.ReplicaSet:
-			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			annotation = obj.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.StatefulSet:
-			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			annotation = obj.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.DaemonSet:
-			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			annotation = obj.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.Job:
-			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			annotation = obj.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.CronJob:
 			name = obj.Name
-			annotation = obj.Spec.JobTemplate.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			annotation = obj.Spec.JobTemplate.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
 			role = manifest.Role(obj.Spec.JobTemplate.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.JobTemplate.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		case *kubeapi.ReplicationController:
 			name = obj.Name
-			annotation = obj.Spec.Template.Annotations[kataPolicyAnnotationKey]
+			annotation = obj.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
 			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
 		}
@@ -92,16 +93,16 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 		if workloadSecretID == "" {
 			workloadSecretID = strings.Join([]string{orDefault(gvk.Group, "core"), gvk.Version, gvk.Kind, namespace, name}, "/")
 		}
-		policy, err := manifest.NewPolicyFromAnnotation([]byte(annotation))
+		initdata, err := initdata.DecodeKataAnnotation(annotation)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse policy %s: %w", name, err)
+			return nil, fmt.Errorf("failed to parse initdata %q: %w", name, err)
 		}
 		if err := role.Validate(); err != nil {
 			return nil, fmt.Errorf("invalid role %s for %s: %w", role, name, err)
 		}
 		deployments = append(deployments, deployment{
 			name:             name,
-			policy:           policy,
+			initdata:         initdata,
 			role:             role,
 			workloadSecretID: workloadSecretID,
 		})
@@ -113,10 +114,15 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 func manifestPolicyMapFromPolicies(policies []deployment) (map[manifest.HexString]manifest.PolicyEntry, error) {
 	policyHashes := make(map[manifest.HexString]manifest.PolicyEntry)
 	for _, depl := range policies {
-		if entry, ok := policyHashes[depl.policy.Hash()]; ok {
+		hash, err := depl.initdata.Digest()
+		if err != nil {
+			return nil, fmt.Errorf("digesting initdata for %q: %w", depl.name, err)
+		}
+
+		if entry, ok := policyHashes[manifest.NewHexString(hash)]; ok {
 			if slices.Equal(entry.SANs, depl.DNSNames()) {
 				return nil, fmt.Errorf("policy hash collision: %s and %s have the same hash %v",
-					entry.SANs, depl.name, depl.policy.Hash())
+					entry.SANs, depl.name, manifest.NewHexString(hash))
 			}
 			continue
 		}
@@ -125,7 +131,7 @@ func manifestPolicyMapFromPolicies(policies []deployment) (map[manifest.HexStrin
 			WorkloadSecretID: depl.workloadSecretID,
 			Role:             depl.role,
 		}
-		policyHashes[depl.policy.Hash()] = entry
+		policyHashes[manifest.NewHexString(hash)] = entry
 	}
 	return policyHashes, nil
 }
@@ -136,7 +142,11 @@ func checkPoliciesMatchManifest(policies []deployment, policyHashes map[manifest
 			len(policies), len(policyHashes))
 	}
 	for _, deployment := range policies {
-		_, ok := policyHashes[deployment.policy.Hash()]
+		hash, err := deployment.initdata.Digest()
+		if err != nil {
+			return fmt.Errorf("digesting initdata: %w", err)
+		}
+		_, ok := policyHashes[manifest.NewHexString(hash)]
 		if !ok {
 			return fmt.Errorf("policy %s not found in manifest", deployment.name)
 		}
@@ -146,7 +156,7 @@ func checkPoliciesMatchManifest(policies []deployment, policyHashes map[manifest
 
 type deployment struct {
 	name             string
-	policy           manifest.Policy
+	initdata         initdata.Raw
 	role             manifest.Role
 	workloadSecretID string
 }

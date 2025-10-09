@@ -125,7 +125,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 	client := userapi.NewUserAPIClient(conn)
 	req := &userapi.SetManifestRequest{
 		Manifest: manifestBytes,
-		Policies: policyMapToBytesList(policies),
+		Policies: getInitdataDocuments(policies),
 	}
 	resp, err := setLoop(cmd.Context(), client, cmd.OutOrStdout(), req)
 	if err != nil {
@@ -212,12 +212,12 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	return flags, nil
 }
 
-func policyMapToBytesList(m []deployment) [][]byte {
-	var policies [][]byte
+func getInitdataDocuments(m []deployment) [][]byte {
+	var initdataDocs [][]byte
 	for _, depl := range m {
-		policies = append(policies, depl.policy)
+		initdataDocs = append(initdataDocs, depl.initdata)
 	}
-	return policies
+	return initdataDocs
 }
 
 func loadWorkloadOwnerKey(path string, manifst *manifest.Manifest, log *slog.Logger) (*ecdsa.PrivateKey, error) {

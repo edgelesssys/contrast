@@ -4,12 +4,13 @@
 package cmd
 
 import (
-	"encoding/base64"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/initdata"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,13 +32,11 @@ spec:
   template:
     metadata:
       annotations:
-        io.katacontainers.config.agent.policy: 'invalid-base64'
+        io.katacontainers.config.hypervisor.cc_init_data: 'invalid-base64'
 `
 )
 
-var encodedValidPolicy = base64.StdEncoding.EncodeToString([]byte(`valid-agent-policy`))
-
-var validDeploymentYAML = `
+var coordinatorDeploymentTemplate = `
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -46,20 +45,26 @@ spec:
   template:
     metadata:
       annotations:
-        io.katacontainers.config.agent.policy: '` + encodedValidPolicy + `'
+        io.katacontainers.config.hypervisor.cc_init_data: %q
         contrast.edgeless.systems/pod-role: coordinator
 `
 
-var anotherValidPodYAML = `
+var podPolicyTemplate = `
 apiVersion: v1
 kind: Pod
 metadata:
   name: another-pod
   annotations:
-    io.katacontainers.config.agent.policy: '` + encodedValidPolicy + `'
+    io.katacontainers.config.hypervisor.cc_init_data: %q
 `
 
 func TestPoliciesFromKubeResources(t *testing.T) {
+	i, err := initdata.New("sha256", nil)
+	require.NoError(t, err)
+	serialized, err := i.Encode()
+	require.NoError(t, err)
+	anno, err := serialized.EncodeKataAnnotation()
+	require.NoError(t, err)
 	testCases := []struct {
 		name           string
 		files          map[string]string
@@ -69,12 +74,12 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 		{
 			name: "valid input",
 			files: map[string]string{
-				"deployment.yml": validDeploymentYAML,
+				"deployment.yml": fmt.Sprintf(coordinatorDeploymentTemplate, anno),
 			},
 			expectedOutput: []deployment{
 				{
 					name:             "test",
-					policy:           manifest.Policy([]byte(`valid-agent-policy`)),
+					initdata:         serialized,
 					role:             "coordinator",
 					workloadSecretID: "apps/v1/Deployment/default/test",
 				},
@@ -91,24 +96,24 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 			files: map[string]string{
 				"deployment.yml": invalidPolicyYAML,
 			},
-			expectedErr: "failed to parse policy test",
+			expectedErr: "illegal base64 data",
 		},
 		{
 			name: "multiple files",
 			files: map[string]string{
-				"deployment.yml": validDeploymentYAML,
-				"pod.yml":        anotherValidPodYAML,
+				"deployment.yml": fmt.Sprintf(coordinatorDeploymentTemplate, anno),
+				"pod.yml":        fmt.Sprintf(podPolicyTemplate, anno),
 			},
 			expectedOutput: []deployment{
 				{
 					name:             "test",
-					policy:           manifest.Policy([]byte(`valid-agent-policy`)),
+					initdata:         serialized,
 					role:             manifest.RoleCoordinator,
 					workloadSecretID: "apps/v1/Deployment/default/test",
 				},
 				{
 					name:             "another-pod",
-					policy:           manifest.Policy([]byte(`valid-agent-policy`)),
+					initdata:         serialized,
 					role:             manifest.RoleNone,
 					workloadSecretID: "core/v1/Pod/default/another-pod",
 				},
