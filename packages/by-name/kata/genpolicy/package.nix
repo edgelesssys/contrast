@@ -80,6 +80,7 @@ rustPlatform.buildRustPackage rec {
       patches = [ ./genpolicy_settings_dev.patch ];
     };
 
+    # TODO(burgerdev): remove default rules
     # Switch to rules-allow-all to disable policy checks for debugging.
     rules = rules-prod;
 

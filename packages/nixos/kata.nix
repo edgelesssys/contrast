@@ -91,6 +91,7 @@ in
         OCICRYPT_KEYPROVIDER_CONFIG = builtins.toFile "policy.json" (
           lib.strings.toJSON { default = [ { type = "insecureAcceptAnything"; } ]; }
         );
+        KATA_AGENT_POLICY_FILE = "/run/measured-cfg/policy.rego";
       };
     };
 
