@@ -94,7 +94,6 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 			workloadSecretID = strings.Join([]string{orDefault(gvk.Group, "core"), gvk.Version, gvk.Kind, namespace, name}, "/")
 		}
 		initdata, err := initdata.DecodeKataAnnotation(annotation)
-		// TODO(burgerdev): rename below
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse policy %s: %w", name, err)
 		}
@@ -121,7 +120,7 @@ func manifestPolicyMapFromPolicies(policies []deployment) (map[manifest.HexStrin
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("encoding initdata for %q: %w", depl.name, err)
+			return nil, fmt.Errorf("encoding initdata for %s: %w", depl.name, err)
 		}
 		if entry, ok := policyHashes[manifest.NewHexString(hash)]; ok {
 			if slices.Equal(entry.SANs, depl.DNSNames()) {
