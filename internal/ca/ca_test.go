@@ -49,6 +49,7 @@ func TestAttestedMeshCert(t *testing.T) {
 		subjectPub any
 		wantErr    bool
 		wantIPs    int
+		wantURIs   int
 	}{
 		"valid": {
 			dnsNames:   []string{"foo", "bar"},
@@ -60,6 +61,12 @@ func TestAttestedMeshCert(t *testing.T) {
 			extensions: []pkix.Extension{},
 			subjectPub: newKey(t, 0).Public(),
 			wantIPs:    1,
+		},
+		"uris": {
+			dnsNames:   []string{"foo", "spiffe://trust-domain/workload-identifier"},
+			extensions: []pkix.Extension{},
+			subjectPub: newKey(t, 0).Public(),
+			wantURIs:   1,
 		},
 	}
 
@@ -83,6 +90,7 @@ func TestAttestedMeshCert(t *testing.T) {
 
 			cert := parsePEMCertificate(t, pem)
 			assert.Len(cert.IPAddresses, tc.wantIPs)
+			assert.Len(cert.URIs, tc.wantURIs)
 		})
 	}
 }
