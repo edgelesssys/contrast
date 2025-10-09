@@ -342,13 +342,10 @@ jobs:
         if: (!matrix.platform.self-hosted)
         run: |
           just get-credentials
-      - name: Set sync environment
-        if: (!matrix.platform.self-hosted)
+      - name: Request fifo ticket
+        if: (!matrix.platform.self-hosted || matrix.platform.name == 'Metal-QEMU-SNP-GPU')
         run: |
-          sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          echo "SYNC_ENDPOINT=http://$sync_ip:8080" | tee -a "$GITHUB_ENV"
-          sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
-          echo "SYNC_FIFO_UUID=$sync_uuid" | tee -a "$GITHUB_ENV"
+          just request-fifo-ticket
       - name: E2E Test
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -358,6 +355,10 @@ jobs:
             --tag "${VERSION}" \
             --platform ${{ matrix.platform.name }} \
             --node-installer-target-conf ${{ matrix.platform.node-installer-target-conf }}
+      - name: Release fifo ticket
+        if: always() && (!matrix.platform.self-hosted || matrix.platform.name == 'Metal-QEMU-SNP-GPU')
+        run: |
+          just release-fifo-ticket
 
   regression:
     name: e2e regression
