@@ -6,7 +6,6 @@ package manifest
 import (
 	"crypto/sha256"
 	"crypto/sha512"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -274,25 +273,6 @@ func (e PolicyEntry) Validate(policyHash HexString) error {
 	}
 
 	return errors.Join(errs...)
-}
-
-// Policy is a CocCo execution policy.
-type Policy []byte
-
-// NewPolicyFromAnnotation parses a base64 encoded policy from an annotation.
-func NewPolicyFromAnnotation(annotation []byte) (Policy, error) {
-	return base64.StdEncoding.DecodeString(string(annotation))
-}
-
-// Bytes returns the policy as byte slice.
-func (p Policy) Bytes() []byte {
-	return []byte(p)
-}
-
-// Hash returns the hash of the policy.
-func (p Policy) Hash() HexString {
-	hashBytes := sha256.Sum256(p)
-	return NewHexString(hashBytes[:])
 }
 
 // Role is the role of the workload identified by the policy hash.

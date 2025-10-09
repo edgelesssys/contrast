@@ -4,7 +4,6 @@
 package manifest
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -254,30 +253,6 @@ func TestValidate(t *testing.T) {
 			assert.NoError(tc.m.Validate())
 		})
 	}
-}
-
-func TestPolicy(t *testing.T) {
-	t.Run("valid", func(t *testing.T) {
-		assert := assert.New(t)
-
-		policy := []byte("test-policy")
-		expectedHash := HexString("48a7cea3db9b9bf087e58bdff6e7a4260a0227b90ba0fceb97060a3c76e004e1")
-
-		annotation := base64.StdEncoding.EncodeToString(policy)
-		p, err := NewPolicyFromAnnotation([]byte(annotation))
-
-		assert.NoError(err)
-		assert.Equal(policy, p.Bytes())
-		assert.Equal(expectedHash, p.Hash())
-	})
-	t.Run("invalid", func(t *testing.T) {
-		assert := assert.New(t)
-
-		annotation := "invalid"
-		_, err := NewPolicyFromAnnotation([]byte(annotation))
-
-		assert.Error(err)
-	})
 }
 
 func TestSNPValidateOpts(t *testing.T) {
