@@ -37,13 +37,15 @@ kubectl apply -f resources/
 
 ### Disabling the image store for a single pod
 
-To disable the secure image store for a specific pod, set the value of the shown annotation to `0`, without a unit:
+To disable the secure image store for a specific pod, set the value of the shown annotation to `"0"`, without a unit:
 
 ```yaml
 metadata: # v1.Pod, v1.PodTemplateSpec
   annotations:
-    contrast.edgeless.systems/image-store-size: 0
+    contrast.edgeless.systems/image-store-size: "0"
 ```
+
+*(The quotation marks around `"0"` are required for the value to be treated as a string.)*
 
 Rerun `contrast generate` and reapply your deployment for the change to take effect:
 
