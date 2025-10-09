@@ -336,8 +336,8 @@ lib.makeScope pkgs.newScope (scripts: {
             .metadata.namespace
             // "default"
           ) + " " + (
-            .spec.template.metadata.annotations["io.katacontainers.config.agent.policy"]
-            // .metadata.annotations["io.katacontainers.config.agent.policy"]
+            .spec.template.metadata.annotations["io.katacontainers.config.hypervisor.cc_init_data"]
+            // .metadata.annotations["io.katacontainers.config.hypervisor.cc_init_data"]
           )'
       )
     '';
