@@ -28,6 +28,7 @@ in
       coreutils
       strace
       contrastPkgs.tdx-tools
+      pciutils
     ];
 
     services.getty.autologinUser = "root";
