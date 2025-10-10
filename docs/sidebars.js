@@ -135,6 +135,11 @@ const sidebars = {
         },
         {
           type: "doc",
+          label: "Registry authentication",
+          id: "howto/registry-authentication",
+        },
+        {
+          type: "doc",
           label: "Observability",
           id: "howto/observability",
         },
