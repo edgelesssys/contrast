@@ -667,4 +667,12 @@ lib.makeScope pkgs.newScope (scripts: {
       echo "Released ticket $ticket from fifo $sync_uuid" >&2
     '';
   };
+
+  check-sidebar = writeShellApplication {
+    name = "check-sidebar";
+    runtimeInputs = [ pkgs.nodejs ];
+    text = ''
+      node ${./check-sidebar.cjs} "$@"
+    '';
+  };
 })
