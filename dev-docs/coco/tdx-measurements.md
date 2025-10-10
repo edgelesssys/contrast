@@ -13,8 +13,40 @@ This document shows how mismatches in these measurements can be debugged.
 
 ## Retrieving the guest's event log
 
-[Get a shell](../serial-console.md) into the pod VM. Then, run the [`tdeventlog`](https://github.com/canonical/tdx/blob/main/tests/lib/tdx-tools/src/tdxtools/tdeventlog.py)
-tool within the guest to retrieve the event log. If the tool can't be installed in the guest,
+[Get a shell](../serial-console.md) into the pod VM.
+Then, run the `tdeventlog` binary that's included in the root filesystem (see `tdx-tools` package).
+
+<details>
+<summary>Unfold in case you don't have a debug build</summary>
+
+You can try to run `tdeventlog` from a container instead:
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tdeventlog
+spec:
+  template:
+    metadata:
+      annotations:
+        "io.katacontainers.config.hypervisor.cc_init_data": H4sIAAAAAAAAA42UTU/DMAyG7/0VVS+7TYAEByQOsI0PibGqHeyAEPIar41I45I4g/LrSamEOJB2h16cp47f13b2aKwkHV/EydH0eHqURKBKMpKruovZCk5Oz5IoehbA8BIlDSlZtFODJSUemEwmUQPFG5QY+0/zaw9EkcAdOMXxpRCXWfqAsqy2ZGyG7w4tx+cXMRuHf7H8A5rQ8UyRxZyF1EGCmvZaKgyeGwTGGWkGqdEMYzlosaXPEDT3QUPtCLX4xCI1VKANqr5BXiIbWQwRq9VysffWBpEuOkevSwXT3EvLd5rR7MDXM0Rl5DhMLLG+JW6UK69ar20btHullbd5lj76P0JMCs6OdyR1St3VfrhCQIYgcvZ9C16UYU378Zt6LGdQ+CQNS9rZvAKDS3Kag5ZkaBFF5meB6jnuBzBXj9eQI/f99FO4lnVQtOfSn00LArLUoEbmz2s1PF5TR60NFFKXAwzbAzJRM5Joze2m23Irv4LiHxtxyC732KKpsEYDariNPfy7I8PY8JJsQPKI8Rv/wuL/Q9s9qd8znczNlgUAAA==
+    spec:
+      runtimeClassName: contrast-cc-metal-qemu-tdx-4c6bca70 # TODO: changeme
+      containers:
+      - name: main
+        image: ghcr.io/burgerdev/tdeventlog:latest@sha256:dbeda9c95686d0f239a923b8fa3d316d075716fef142ed0d8a4eaa3a93bbcd68
+        resources:
+          requests:
+            memory: 5000Mi
+          limits:
+            memory: 5000Mi
+      restartPolicy: Never
+```
+
+</details>
+
+If you can't get the tool running inside the guest,
 the `/sys/firmware/acpi/tables/data/CCEL` and `/sys/firmware/acpi/tables/CCEL` files can also be dumped
 by other means and transferred to a machine where they can then be parsed with `tdeventlog`.
 
