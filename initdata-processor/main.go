@@ -50,9 +50,7 @@ func main() {
 			break
 		}
 		if err := validator.ValidateDigest(digest); err != nil {
-			// TODO(burgerdev): DANGER!!! this must fail, but I'm returning nil until the digest is initdata, not policy.
-			// failf("Validating initdata digest: %v", err)
-			log.Printf("validation errors:\n%v", err)
+			failf("Validating initdata digest: %v", err)
 			break
 		}
 		i, err := doc.Parse()

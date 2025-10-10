@@ -8,7 +8,7 @@ set -euo pipefail
 
 scriptDir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
-oldHash="$(nix eval .#kata.release-tarball.outputHash --raw)"
+oldHash="$(nix eval .#kata.release-tarball.src.outputHash --raw)"
 sed -i "s|$oldHash||g" "$scriptDir/package.nix"
 
 nixBuildFailure=$(nix build .#kata.release-tarball --no-link 2>&1 >/dev/null || true)

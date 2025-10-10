@@ -14,10 +14,10 @@ NOTE: fixes https://github.com/kata-containers/kata-containers/issues/10065
  1 file changed, 8 insertions(+), 21 deletions(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 721a6072aca832ddb42517e054ed9057c017ec40..0459cfe77e98e988ce1d391318e720add0a02d11 100644
+index 57fcd52f55a44adb9693838fa5aafe5e4fc6a6b9..1a7c1ad763fc0b77933789f00cf37b6d5df31ea9 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -652,9 +652,6 @@ allow_linux_sysctl(p_linux, i_linux) if {
+@@ -662,9 +662,6 @@ allow_linux_sysctl(p_linux, i_linux) if {
  allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) if {
      print("allow_by_bundle_or_sandbox_id: start")
  
@@ -27,7 +27,7 @@ index 721a6072aca832ddb42517e054ed9057c017ec40..0459cfe77e98e988ce1d391318e720ad
      key := "io.kubernetes.cri.sandbox-id"
  
      p_regex := p_oci.Annotations[key]
-@@ -663,7 +660,14 @@ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) if {
+@@ -673,7 +670,14 @@ allow_by_bundle_or_sandbox_id(p_oci, i_oci, p_storages, i_storages) if {
      print("allow_by_bundle_or_sandbox_id: sandbox_id =", sandbox_id, "regex =", p_regex)
      regex.match(p_regex, sandbox_id)
  
@@ -43,7 +43,7 @@ index 721a6072aca832ddb42517e054ed9057c017ec40..0459cfe77e98e988ce1d391318e720ad
  
      # Match each input mount with a Policy mount.
      # Reject possible attempts to match multiple input mounts with a single Policy mount.
-@@ -962,23 +966,6 @@ is_ip_other_byte(component) if {
+@@ -972,23 +976,6 @@ is_ip_other_byte(component) if {
      number <= 255
  }
  

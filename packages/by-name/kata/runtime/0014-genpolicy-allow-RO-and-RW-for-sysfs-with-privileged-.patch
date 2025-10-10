@@ -10,10 +10,10 @@ Subject: [PATCH] genpolicy: allow RO and RW for sysfs with privileged
  2 files changed, 18 insertions(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 1d52f1e95f7eabf0d6e2bee8a19028834564c903..ad90805bceba73f48c8919e4623c4fd1d9166b55 100644
+index b9ae1e3e33ec8dbc67d10cc6bed1642bd3ad5922..5446a8ee8c5f6f73567e09237dc011b7689b6d28 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -997,6 +997,20 @@ check_mount(p_mount, i_mount, bundle_id, sandbox_id) if {
+@@ -1007,6 +1007,20 @@ check_mount(p_mount, i_mount, bundle_id, sandbox_id) if {
  
      print("check_mount 2: true")
  }
@@ -35,10 +35,10 @@ index 1d52f1e95f7eabf0d6e2bee8a19028834564c903..ad90805bceba73f48c8919e4623c4fd1
  mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) if {
      regex1 := p_mount.source
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 88f256718b6cd2c0eb67f42cea2558011d2787f4..7b63d7a3b86b362395cc6755ce8015c112d71921 100644
+index 319d1be0f490dd18c41fba8b0a198f8ca8cb5ea2..976188c06f40431acc65c2aedae576b7eb585dce 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -614,6 +614,9 @@ impl AgentPolicy {
+@@ -616,6 +616,9 @@ impl AgentPolicy {
          );
  
          let is_privileged = yaml_container.is_privileged();
@@ -48,7 +48,7 @@ index 88f256718b6cd2c0eb67f42cea2558011d2787f4..7b63d7a3b86b362395cc6755ce8015c1
          let process = self.get_container_process(
              resource,
              yaml_container,
-@@ -623,7 +626,7 @@ impl AgentPolicy {
+@@ -625,7 +628,7 @@ impl AgentPolicy {
              is_privileged,
          );
  

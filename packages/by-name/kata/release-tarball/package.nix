@@ -3,17 +3,31 @@
 
 {
   runtime,
-  fetchzip,
+  pkgs,
+  stdenv,
+  fetchurl,
 }:
 
 let
   inherit (runtime) version;
 in
 
-fetchzip {
-  url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.xz";
-  hash = "sha256-sEdySOuqf1WUoy+fgQzV4/mZ3zb90lTTY7s43+6oXMM=";
-  stripRoot = false;
+stdenv.mkDerivation {
+  name = "src";
+  src = fetchurl {
+    url = "https://github.com/kata-containers/kata-containers/releases/download/${version}/kata-static-${version}-amd64.tar.zst";
+    hash = "sha256-A8qH1gKcuzoQPWqnTzsg6zn4qLF5Xk4bLY0u4gsr4Ag=";
+  };
+
+  nativeBuildInputs = [ pkgs.zstd ];
+
+  unpackPhase = ''
+    mkdir -p $out
+    tar --zstd -xvf $src -C $out
+  '';
+
+  dontBuild = true;
+
   passthru.version = version;
   passthru.updateScript = ./update.sh;
 }

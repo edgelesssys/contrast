@@ -4,15 +4,11 @@
 package cmd
 
 import (
-	"bytes"
-	"compress/gzip"
-	"crypto/sha256"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
-	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/initdata"
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
 )
@@ -83,18 +79,12 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 		filelist[fmt.Sprintf("manifest.%d.json", i)] = m
 	}
 	for _, p := range resp.Policies {
-		sha256sum := sha256.Sum256(p)
-		pHash := manifest.NewHexString(sha256sum[:])
-		gzipReader, err := gzip.NewReader(bytes.NewReader(p))
+		initdata := initdata.Raw(p)
+		digest, err := initdata.Digest()
 		if err != nil {
-			return fmt.Errorf("creating gzip reader: %w", err)
+			return fmt.Errorf("calculating initdata digest: %w", err)
 		}
-		policyDecompressed, err := io.ReadAll(gzipReader)
-		if err != nil {
-			return fmt.Errorf("decompressing policy: %w", err)
-		}
-		gzipReader.Close()
-		filelist[fmt.Sprintf("policy.%s.rego", pHash)] = policyDecompressed
+		filelist[fmt.Sprintf("initdata.%x.toml", digest)] = initdata
 	}
 	if err := writeFilelist(filepath.Join(flags.workspaceDir, verifyDir), filelist); err != nil {
 		return fmt.Errorf("writing filelist: %w", err)
