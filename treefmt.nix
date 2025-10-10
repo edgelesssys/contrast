@@ -56,6 +56,11 @@
       command = "${lib.getExe pkgs.contrastPkgs.scripts.lint-no-debug}";
       includes = [ "*.nix" ];
     };
+    # Make sure that every markdown page is listed in the sidebar, and vice-versa.
+    check-sidebar = {
+      command = "${lib.getExe pkgs.contrastPkgs.scripts.check-sidebar}";
+      includes = [ "docs/sidebars.js" ];
+    };
     renovate = {
       command = "${lib.getExe' pkgs.renovate "renovate-config-validator"}";
       options = [ "--strict" ];
