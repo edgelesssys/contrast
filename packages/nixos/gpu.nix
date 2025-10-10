@@ -92,6 +92,7 @@ in
     };
 
     hardware.nvidia-container-toolkit.enable = true;
+    hardware.nvidia-container-toolkit.mount-nvidia-docker-1-directories = true;
 
     # Make NVIDIA the "default" graphics driver to replace Mesa,
     # which saves us another Perl dependency.
