@@ -42,22 +42,16 @@ jobs:
       - name: Get credentials for CI cluster
         run: |
           just get-credentials
-      - name: Get ticket for the CI cluster
+      - name: Request fifo ticket
         run: |
-          syncIP="$(kubectl get svc sync -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')"
-          fifo="$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')"
-          ticket="$(curl -fsSL "${syncIP}:8080/fifo/${fifo}/ticket" | jq -r '.ticket')"
-          echo "SYNC_IP=$syncIP" | tee -a "$GITHUB_ENV"
-          echo "SYNC_FIFO=$fifo" | tee -a "$GITHUB_ENV"
-          echo "SYNC_TICKET=$ticket" | tee -a "$GITHUB_ENV"
-          curl -fsSL "${syncIP}:8080/fifo/${fifo}/wait/$ticket"
+          just request-fifo-ticket
       - name: Update asciinema screencast
         working-directory: tools/asciinema
         run: |
           ./generate-screencasts.sh
-      - name: Mark ticket done
+      - name: Release fifo ticket
         run: |
-          curl -fsSL "${SYNC_IP}:8080/fifo/${SYNC_FIFO}/done/${SYNC_TICKET}"
+          just release-fifo-ticket
       - name: Create PR
         uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
         with:
