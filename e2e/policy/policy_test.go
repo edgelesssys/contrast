@@ -57,7 +57,7 @@ func TestPolicy(t *testing.T) {
 
 	resources = kuberesource.AddPortForwarders(resources)
 
-	ct.Init(t, resources)
+	ct.Init(t, resources, platform)
 
 	// Apply deployment using default policies
 	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")

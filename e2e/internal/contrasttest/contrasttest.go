@@ -97,7 +97,7 @@ func New(t *testing.T) *ContrastTest {
 }
 
 // Init patches the given resources for the test environment and makes them available to Generate and Set.
-func (ct *ContrastTest) Init(t *testing.T, resources []any) {
+func (ct *ContrastTest) Init(t *testing.T, resources []any, platform platforms.Platform) {
 	require := require.New(t)
 
 	f, err := os.Open(ct.ImageReplacementsFile)
@@ -111,9 +111,14 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	// that only one test is using the cluster at a time.
 	var fifo *ksync.Fifo
 	var ticketUUID string
-	if fifoUUID, ok := os.LookupEnv("SYNC_FIFO_UUID"); ok {
+	if fifoTicket, ok := os.LookupEnv("SYNC_FIFO_TICKET"); ok {
+		ticketUUID = fifoTicket
+	} else if platforms.IsGPU(platform) {
+		fifoUUID, ok := os.LookupEnv("SYNC_FIFO_UUID")
+		require.True(ok, "SYNC_FIFO_UUID must be set")
 		syncEndpoint, ok := os.LookupEnv("SYNC_ENDPOINT")
-		require.True(ok, "SYNC_ENDPOINT must be set when SYNC_FIFO_UUID is set")
+		require.True(ok, "SYNC_ENDPOINT must be set")
+
 		t.Logf("Syncing with fifo %s of endpoint %s", fifoUUID, syncEndpoint)
 		fifo = ksync.FifoFromUUID(syncEndpoint, fifoUUID)
 		ticketUUID, err = fifo.Ticket(t.Context())

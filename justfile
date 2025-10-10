@@ -52,6 +52,13 @@ node-installer platform=default_platform:
 e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
+    if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" || {{ target }} == "gpu" ]]; then
+        sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        export SYNC_ENDPOINT="http://$sync_ip:8080"
+        sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
+        export SYNC_FIFO_UUID="$sync_uuid"
+    fi
+
     nix shell .#contrast.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/just.namespace \

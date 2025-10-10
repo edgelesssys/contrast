@@ -50,7 +50,7 @@ func TestMemDump(t *testing.T) {
 
 	resources = kuberesource.AddPortForwarders(resources)
 
-	ct.Init(t, resources)
+	ct.Init(t, resources, platform)
 
 	memdumpTester := kuberesource.MemDumpTester()
 	memdumpTester = kuberesource.PatchImages(memdumpTester, ct.ImageReplacements)
