@@ -85,6 +85,7 @@ in
     systemd.services."nvidia-container-toolkit-cdi-generator".wantedBy = [ "kata-containers.target" ];
 
     hardware.nvidia-container-toolkit.enable = true;
+    hardware.nvidia-container-toolkit.mount-nvidia-docker-1-directories = true;
 
     # Make NVIDIA the "default" graphics driver to replace Mesa,
     # which saves us another Perl dependency.
