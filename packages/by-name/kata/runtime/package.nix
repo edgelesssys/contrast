@@ -135,26 +135,21 @@ buildGoModule (finalAttrs: {
       # https://github.com/kata-containers/kata-containers/issues/11532
       ./0017-agent-use-custom-implementation-for-image-pulling.patch
 
-      # Changes the unix socket used for ttRPC communication with the imagepuller.
-      # Necessary to allow a separate imagestore service.
-      # Can be removed in conjunction with patch 0018-agent-use-custom-implementation-for-image-pulling.patch.
-      ./0018-agent-use-separate-unix-socket-for-image-pulling.patch
-
       # Secure mounting is part of the CDH in Kata. Since we are not using the CDH, we are instead reimplementing it.
       # This patch redirects calls by upstream's SecureImageStore ttRPC client implementation to communicate with our own ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0019-agent-use-custom-implementation-for-secure-mounting.patch
+      ./0018-agent-use-custom-implementation-for-secure-mounting.patch
 
       # Upstream expects guest pull to only use Nydus and applies workarounds that are not
       # necessary with force_guest_pull. This patch removes the workaround.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757.
-      ./0020-genpolicy-don-t-apply-Nydus-workaround.patch
+      ./0019-genpolicy-don-t-apply-Nydus-workaround.patch
 
       # We're using a dedicated initdata-processor job and don't want the Kata agent to manage
       # initdata for us.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11532.
-      ./0021-agent-remove-initdata-processing.patch
+      ./0020-agent-remove-initdata-processing.patch
     ];
   };
 
