@@ -97,7 +97,7 @@ func TestGPU(t *testing.T) {
 			}
 		}
 
-		const libPath = "/usr/lib/x86_64-linux-gnu"
+		const libPath = "/usr/local/nvidia/lib64"
 		expectLibs := map[string]struct {
 			abiLink   bool // Wether to expect a link with ABI version, like .so.1
 			unverLink bool // Wether to expect a link without any version, like .so
