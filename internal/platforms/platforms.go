@@ -103,7 +103,7 @@ func DefaultMemoryInMegaBytes(p Platform) int {
 	switch p {
 	case MetalQEMUSNPGPU:
 		// Guest components contribute around 600MiB with GPU enabled.
-		return 1024
+		return 2048
 	default:
 		// There are no additional guest components compared to AKS, but since the images are being
 		// pulled in the guest we leave a little bit of extra room to accommodate for our init

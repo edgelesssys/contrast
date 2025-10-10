@@ -34,6 +34,7 @@ To do so, a CDI annotation needs to be added, specifying to use the `pgpu` (pass
 
 - For nodes with a single GPU, this value is always `0`.
 - For nodes with multiple GPUs, the value needs to correspond to the device's order as enumerated on the PCI bus. You can identify this order by inspecting the `/var/run/cdi/nvidia.com-pgpu.yaml` file on the specific node.
+- This file also provides the minor device number of each VFIO device, required in the annotation key.
 
 This process ensures the correct GPU is allocated to the workload.
 
@@ -45,7 +46,7 @@ metadata:
   # ...
   annotations:
     # ...
-    cdi.k8s.io/gpu: "nvidia.com/pgpu=0"
+    cdi.k8s.io/vfio54: "nvidia.com/pgpu=0"
     io.katacontainers.config.hypervisor.default_memory: "16384"
 ```
 
