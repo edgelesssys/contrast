@@ -20,7 +20,6 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/genpolicy"
 	"github.com/edgelesssys/contrast/cli/verifier"
-	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -302,7 +301,7 @@ pathLoop:
 			logger.Warn("Could not read file", "path", path, "err", err)
 			continue
 		}
-		objects, err := kubeapi.UnmarshalUnstructuredK8SResource(data)
+		objects, err := kuberesource.UnmarshalUnstructuredK8SResource(data)
 		if err != nil {
 			logger.Warn("Could not parse file into Kubernetes resources", "path", path, "err", err)
 			continue

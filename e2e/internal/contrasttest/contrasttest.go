@@ -25,7 +25,6 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
-	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -312,7 +311,7 @@ func (ct *ContrastTest) Apply(t *testing.T) {
 func (ct *ContrastTest) ApplyFromYAML(t *testing.T, yaml []byte) {
 	require := require.New(t)
 
-	objects, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
+	objects, err := kuberesource.UnmarshalUnstructuredK8SResource(yaml)
 	require.NoError(err)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 1*time.Minute)

@@ -19,7 +19,6 @@ import (
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
-	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -135,7 +134,7 @@ func TestPolicy(t *testing.T) {
 		// parse the original resources
 		resourceBytes, err := os.ReadFile(path.Join(ct.WorkDir, "resources.yml"))
 		require.NoError(err)
-		r, err := kubeapi.UnmarshalUnstructuredK8SResource(resourceBytes)
+		r, err := kuberesource.UnmarshalUnstructuredK8SResource(resourceBytes)
 		require.NoError(err)
 
 		// remove everything from the openssl-frontend
