@@ -25,6 +25,9 @@ It currently consists of the following parts:
 - _WorkloadOwnerKeyDigest_: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
 - _SeedshareOwnerKeys_: public keys of seed share owners. Used to authenticate user recovery and permission to handle the secret seed.
 
+Setting a manifest where the `WorkloadOwnerKeyDigest` has been removed will render the deployment [immutable](../../howto/immutable-deployments.md).
+Doing the same for the `SeedshareOwnerKeys` field makes Coordinator recovery and workload secret recovery impossible.
+
 ## Manifest history
 
 The Coordinator uses Kubernetes `ConfigMap`s to store the manifest history and associated runtime policies.

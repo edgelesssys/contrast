@@ -160,6 +160,11 @@ const sidebars = {
         },
         {
           type: "doc",
+          label: "Immutable deployments",
+          id: "howto/immutable-deployments"
+        },
+        {
+          type: "doc",
           label: "Troubleshooting",
           id: "howto/troubleshooting",
         },
