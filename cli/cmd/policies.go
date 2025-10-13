@@ -10,16 +10,11 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/initdata"
-	"github.com/edgelesssys/contrast/internal/kubeapi"
+	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
-
-type k8sObject interface {
-	GetName() string
-	GetNamespace() string
-	GetObjectKind() schema.ObjectKind
-}
 
 func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 	var kubeObjs []any
@@ -28,7 +23,7 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to read %s: %w", path, err)
 		}
-		objs, err := kubeapi.UnmarshalK8SResources(data)
+		objs, err := kuberesource.UnmarshalApplyConfigurations(data)
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal %s: %w", path, err)
 		}
@@ -37,53 +32,28 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 
 	var deployments []deployment
 	for _, objAny := range kubeObjs {
-		meta, ok := objAny.(k8sObject)
-		if !ok {
-			continue
+		objs, err := kuberesource.ResourcesToUnstructured([]any{objAny})
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert to unstructured: %w", err)
 		}
-		name := meta.GetName()
-		namespace := orDefault(meta.GetNamespace(), "default")
-		gvk := meta.GetObjectKind().GroupVersionKind()
+		if len(objs) != 1 {
+			return nil, fmt.Errorf("expected 1 unstructured object, got %d", len(objs))
+		}
+		objUnstructured := objs[0]
+
+		name := objUnstructured.GetName()
+		namespace := orDefault(objUnstructured.GetNamespace(), "default")
+		gvk := objUnstructured.GetObjectKind().GroupVersionKind()
 
 		var annotation string
 		var workloadSecretID string
 		var role manifest.Role
-		switch obj := objAny.(type) {
-		case *kubeapi.Pod:
-			annotation = obj.Annotations[initdata.InitdataAnnotationKey]
-			role = manifest.Role(obj.Annotations[contrastRoleAnnotationKey])
-			workloadSecretID = obj.Annotations[workloadSecretIDAnnotationKey]
-		case *kubeapi.Deployment:
-			annotation = obj.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
-			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
-			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
-		case *kubeapi.ReplicaSet:
-			annotation = obj.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
-			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
-			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
-		case *kubeapi.StatefulSet:
-			annotation = obj.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
-			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
-			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
-		case *kubeapi.DaemonSet:
-			annotation = obj.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
-			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
-			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
-		case *kubeapi.Job:
-			annotation = obj.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
-			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
-			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
-		case *kubeapi.CronJob:
-			name = obj.Name
-			annotation = obj.Spec.JobTemplate.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
-			role = manifest.Role(obj.Spec.JobTemplate.Spec.Template.Annotations[contrastRoleAnnotationKey])
-			workloadSecretID = obj.Spec.JobTemplate.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
-		case *kubeapi.ReplicationController:
-			name = obj.Name
-			annotation = obj.Spec.Template.Annotations[initdata.InitdataAnnotationKey]
-			role = manifest.Role(obj.Spec.Template.Annotations[contrastRoleAnnotationKey])
-			workloadSecretID = obj.Spec.Template.Annotations[workloadSecretIDAnnotationKey]
-		}
+		kuberesource.MapPodSpecWithMeta(objAny, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+			annotation = meta.Annotations[initdata.InitdataAnnotationKey]
+			role = manifest.Role(meta.Annotations[contrastRoleAnnotationKey])
+			workloadSecretID = meta.Annotations[workloadSecretIDAnnotationKey]
+			return meta, spec
+		})
 		if annotation == "" {
 			continue
 		}

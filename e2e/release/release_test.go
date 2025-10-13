@@ -25,7 +25,6 @@ import (
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
-	"github.com/edgelesssys/contrast/internal/kubeapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -85,7 +84,7 @@ func TestRelease(t *testing.T) {
 				t.Logf("reading %q", file)
 				yaml, err := os.ReadFile(file)
 				require.NoError(t, err)
-				rs, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
+				rs, err := kuberesource.UnmarshalUnstructuredK8SResource(yaml)
 				require.NoError(t, err)
 				resources = append(resources, rs...)
 			}
@@ -107,14 +106,14 @@ func TestRelease(t *testing.T) {
 		if *nodeInstallerTargetConf != "" && *nodeInstallerTargetConf != "none" {
 			yaml, err := os.ReadFile(path.Join(dir, fmt.Sprintf("node-installer-target-config-%s.yml", *nodeInstallerTargetConf)))
 			require.NoError(err)
-			resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
+			resources, err := kuberesource.UnmarshalUnstructuredK8SResource(yaml)
 			require.NoError(err)
 			require.NoError(k.Apply(ctx, resources...))
 		}
 
 		yaml, err := os.ReadFile(path.Join(dir, fmt.Sprintf("runtime-%s.yml", lowerPlatformStr)))
 		require.NoError(err)
-		resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
+		resources, err := kuberesource.UnmarshalUnstructuredK8SResource(yaml)
 		require.NoError(err)
 
 		require.NoError(k.Apply(ctx, resources...))
@@ -140,7 +139,7 @@ func TestRelease(t *testing.T) {
 			name := path.Join(path.Join(dir, "deployment"), info.Name())
 			yaml, err := os.ReadFile(name)
 			require.NoError(err)
-			resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
+			resources, err := kuberesource.UnmarshalUnstructuredK8SResource(yaml)
 			require.NoError(err)
 
 			newYAML, err := kuberesource.EncodeUnstructured(resources)
@@ -182,7 +181,7 @@ func TestRelease(t *testing.T) {
 		for _, file := range files {
 			yaml, err := os.ReadFile(file)
 			require.NoError(err)
-			resources, err := kubeapi.UnmarshalUnstructuredK8SResource(yaml)
+			resources, err := kuberesource.UnmarshalUnstructuredK8SResource(yaml)
 			require.NoError(err)
 			require.NoError(k.Apply(ctx, resources...))
 		}
