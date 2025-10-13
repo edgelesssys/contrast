@@ -277,3 +277,18 @@ The `bm-tcb-specs` ConfigMap wraps the [`tcb-specs.json`](../e2e/tcb-specs.json)
 While the ConfigMap stores both runner specifications the [patchReferenceValues()](https://github.com/edgelesssys/contrast/blob/main/e2e/internal/contrasttest/contrasttest.go#L254-L283) function will only use the platform-specific reference values for overwriting.
 
 Add or update [`tcb-specs.json`](../e2e/tcb-specs.json) with the values from the runner you've added.
+
+## Sync Server
+
+If a FIFO-ticket sync server should run on the node, find the Tailscale IP, and set it as the `node-ip` for k3s:
+
+```bash
+NODE_IP=$(tailscale ip -4)
+echo "node-ip: \"${NODE_IP}\"" >> /etc/rancher/k3s/config.yaml
+```
+
+Then restart k3s:
+
+```bash
+systemctl restart k3s
+```
