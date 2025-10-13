@@ -34,7 +34,8 @@ If Contrast is running in such an environment, it needs to respect these variabl
 
 ## Design
 
-**NOTE**: This design depends on the [initdata processor](https://github.com/kata-containers/kata-containers/issues/11532), which isn't merged upstream at the time of writing.
+The overall idea of this design is to supply an image puller configuration to the VM that is _not measured_.
+Reason for this is that the image pull configuration is a workload owner secret that should not be visible to (unauthenticated) verifiers - see [Alternatives considered](#alternatives-considered).
 
 ### Changes to the `imagepuller`
 
@@ -43,14 +44,14 @@ We add support for an optional configuration file to the `imagepuller`, with the
 ```go
 import "github.com/google/go-containerregistry/pkg/authn"
 
-type Config struct {
+type InsecureConfig struct {
     Auths map[string]authn.AuthConfig // key is the OCI registry
     CA [][]byte // list of trusted PEM-encoded CA certificates
     ExtraEnv map[string]string
 }
 ```
 
-On startup, the `imagepuller` reads the config file from `/run/measured-cfg/imagepuller.TBD`, where it was provisioned by the initdata processor.
+On startup, the `imagepuller` reads the config file from `/run/insecure-cfg/imagepuller.TBD`.
 It takes the `Auths` and stores them in a field, and creates a [`tls.Config`].
 If `CA` isn't empty, it overrides the `RootCAs` field of the [`tls.Config`].
 Each key-value pair in `ExtraEnv` is added to the `imagepuller`s own environment.
@@ -67,21 +68,32 @@ The [`tls.Config`] and [`http.ProxyFromEnvironment`] are used to construct an [`
 [`remote.WithAuth`]: https://pkg.go.dev/github.com/google/go-containerregistry/pkg/v1/remote#WithAuth
 [`remote.WithTransport`]: https://pkg.go.dev/github.com/google/go-containerregistry/pkg/v1/remote#WithTransport
 
-### Changes to the CLI
+### Changes to the node-installer
 
-During `contrast generate`, the CLI walks over the Kubernetes resources looking for a secret with the appropriate `type` field.
-It combines the individual `dockerconfigjson` messages into the `Auths` field of `imagepuller.Config`.
-Two new repeatable command line flags, `--image-pull-cert` and `--image-pull-env`, populate the remaining fields of the config file.
-The config is then serialized and attached to the initdata produced by `genpolicy`.
+The node-installer gets another optional volume mount, similar to the [target config](https://github.com/edgelesssys/contrast/blob/6ef858031759966dfd3cdeda2b4570bed45fdcda/internal/kuberesource/parts.go#L126-L131) but using a secret.
+The secret contains one key, `imagepuller.TBD`, containing a serialized version of `InsecureConfig` defined above.
+This secret is created by the k8s administrator (or the workload owner) before applying the runtime.
+If the node-installer finds a mounted secret, it writes the content into `/opt/edgeless/contrast-cc-*/etc/host-config/imagepuller.TBD`.
+
+### Changes to the Kata runtime
+
+During sandbox creation, the Kata runtime packs all files under `/opt/edgeless/contrast-cc-*/etc/host-config` into a device and attaches it to the VM.
+This code should follow the initdata device provisioning logic very closely, but use a different magic identifier (TBD).
+
+### Changes to the image
+
+We add a new functionality to the initdata-processor:
+After verifying initdata, the initdata-processor scans for the device introduced above.
+The content of this device is copied over to `/run/insecure-cfg`, without any integrity checks.
+The name is generic to allow for future use cases outside of image pulling.
 
 ### Security considerations
 
-#### Credentials visible in initdata annotation
+We need to be careful about the trust we put into configuration by the host.
+For example, it would be a bad idea to allow switching off digest validation depending on such host configuration.
+However, the fields in the imagepuller config are not a risk to guest integrity, which is explained in the following subsections.
 
-Credentials transferred via initdata suffer from the resource leak considerations described in [architecture/components/policies](../docs/docs/architecture/components/policies.md#evaluation).
-This is unavoidable until we've a dedicated channel between guest components and Coordinator (see also [below](#credentials-distributed-by-coordinator)).
-
-#### CA certificates
+#### Wrong CA certificates
 
 The CA certificates aren't required for image integrity - that's accomplished by pinning references.
 Rather, the CA certificate option serves two purposes:
@@ -89,13 +101,25 @@ Rather, the CA certificate option serves two purposes:
 1. Allow connecting to a registry that isn't publicly trusted in the web PKI.
 2. Restrict who can ostensibly intercept and log traffic for metadata analysis (for example, what images are loaded).
 
+An attacker with k8s admin privileges could configure CA certificates to serve registry requests from unexpected endpoints.
+They'd still need to serve the correct, pinned image, so they can only record traffic passively.
+However, the image data is already exposed to the host (due to containerd's host pull), and so are the registry credentials.
+
+The argument is very similar for `InsecureSkipVerify` and proxy env vars.
+
+#### Wrong registry credentials
+
+An attacker with k8s admin privileges could supply unexpected credentials.
+As stated above, this does not put image integrity at risk.
+The only thing to be gained would be fine-granular metadata about pulls at the registry (i.e., identifying individual client pods).
+
 ## Alternatives considered
 
-### Configuration file
+### Credentials distributed with initdata
 
-The information in an `imagepuller` config file is usually global for a deployment site, and would thus naturally fit into a config file for the CLI.
-However, the question whether we want a config file for the CLI and how we should go about adding one is beyond the scope of this proposal.
-As soon as we've a config file, we can allow registry authentication there while keeping or deprecating the mechanism proposed here.
+Credentials transferred via initdata suffer from the resource leak considerations described in [architecture/components/policies](../docs/docs/architecture/components/policies.md#evaluation).
+This is unavoidable until we've a dedicated channel between guest components and Coordinator (see also [below](#credentials-distributed-by-coordinator)).
+In the case of a public SaaS offering, for example, this leaks the cluster's registry credentials to the entire internet, which is undesirable.
 
 ### Deeper integration into Kubernetes
 
@@ -118,7 +142,7 @@ It's probably easier - to implement and to audit - to let users specify the full
 Instead of having a list of globally trusted CAs, we could have CAs per registry.
 This would allow fine-grained control over who can authenticate which image source.
 On the other hand, this introduces complexity for the user, because they need to express this relationship somehow.
-Given that the CA cert is defense in depth and doesn't affect the CC-security (see [CA certificates](#ca-certificates)), it's probably fine to defer such a feature until we've configuration files.
+Given that the CA cert is defense in depth and doesn't affect the CC-security (see [CA certificates](#wrong-ca-certificates)), it's probably fine to defer such a feature until we've configuration files.
 
 ### Credentials distributed by Coordinator
 
