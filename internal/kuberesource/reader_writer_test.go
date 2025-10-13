@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -153,4 +154,141 @@ kind: ConfigMap
 			require.Equal(tc.want, string(got))
 		})
 	}
+}
+
+func TestSplitYAML(t *testing.T) {
+	testCases := map[string]struct {
+		resources string
+		wantSplit []string
+		wantErr   bool
+	}{
+		"empty": {
+			resources: "",
+			wantSplit: []string{},
+		},
+		"single resource": {
+			resources: `apiVersion: v1
+kind: Namespace
+metadata:
+    name: test1
+`,
+			wantSplit: []string{
+				`apiVersion: v1
+kind: Namespace
+metadata:
+    name: test1
+`,
+			},
+		},
+		"single resource with doc separator": {
+			resources: `
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: test1
+`,
+			wantSplit: []string{
+				`apiVersion: v1
+kind: Namespace
+metadata:
+    name: test1
+`,
+			},
+		},
+		"2 documents": {
+			resources: `---
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: test1
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: test2
+`,
+			wantSplit: []string{
+				`apiVersion: v1
+kind: Namespace
+metadata:
+    name: test1
+`,
+				`apiVersion: v1
+kind: Namespace
+metadata:
+    name: test2
+`,
+			},
+		},
+		"3 documents": {
+			resources: `---
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: test1
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: test2
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+    name: test3
+`,
+			wantSplit: []string{
+				`apiVersion: v1
+kind: Namespace
+metadata:
+    name: test1
+`,
+				`apiVersion: v1
+kind: Namespace
+metadata:
+    name: test2
+`,
+				`apiVersion: v1
+kind: Namespace
+metadata:
+    name: test3
+`,
+			},
+		},
+		"2 document invalid": {
+			resources: `---
+apiVersion: v1
+kind: Namespace
+metadata:
+	name: test1
+---
+apiVersion
+`,
+			wantErr: true,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			gotSplit, err := splitYAML([]byte(tc.resources))
+
+			if tc.wantErr {
+				assert.Error(err)
+				return
+			}
+			assert.NoError(err)
+			assert.Equal(tc.wantSplit, bytesToStrings(gotSplit))
+		})
+	}
+}
+
+func bytesToStrings(b [][]byte) []string {
+	s := make([]string, len(b))
+	for i, bb := range b {
+		s[i] = string(bb)
+	}
+	return s
 }
