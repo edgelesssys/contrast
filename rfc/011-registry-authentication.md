@@ -151,10 +151,10 @@ Given that the CA cert is defense in depth and doesn't affect the CC-security (s
 
 ### Credentials distributed by Coordinator
 
-Instead of sending the credentials with initdata, we could attach them to the manifest and hand them to the initializer, like the workload secret.
+Instead of attaching credentials to the VM, we could make the Coordinator send them to the initializer, like the workload secret.
 In the current architecture, this would result in a chicken-and-egg problem, because the initializer is a container that needs pulling.
 While we could eventually move the initialization workflow into a guest component, this is a larger feature beyond the scope of this proposal.
-But whenever we reach the point where the initializer runs as a guest component, we can change the delivery mechanism for the image puller config without user-visible changes.
+Furthermore, this would introduce a dependency on remote systems during VM boot, which is hard to debug when it goes wrong.
 
 #### Encrypted images
 
