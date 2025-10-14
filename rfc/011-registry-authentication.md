@@ -34,8 +34,8 @@ If Contrast is running in such an environment, it needs to respect these variabl
 
 ## Design
 
-The overall idea of this design is to supply an image puller configuration to the VM that is _not measured_.
-Reason for this is that the image pull configuration is a workload owner secret that should not be visible to (unauthenticated) verifiers - see [Alternatives considered](#alternatives-considered).
+The overall idea of this design is to supply an image puller configuration to the VM that's _not measured_.
+Reason for this is that the image pull configuration is a workload owner secret that shouldn't be visible to (unauthenticated) verifiers - see [Alternatives considered](#alternatives-considered).
 
 ### Changes to the `imagepuller`
 
@@ -96,7 +96,7 @@ The name is generic to allow for future use cases outside of image pulling.
 
 We need to be careful about the trust we put into configuration by the host.
 For example, it would be a bad idea to allow switching off digest validation depending on such host configuration.
-However, the fields in the imagepuller config are not a risk to guest integrity, which is explained in the following subsections.
+However, the fields in the imagepuller config aren't a risk to guest integrity, which is explained in the following subsections.
 
 #### Wrong CA certificates
 
@@ -110,13 +110,13 @@ An attacker with k8s admin privileges could configure CA certificates to serve r
 They'd still need to serve the correct, pinned image, so they can only record traffic passively.
 However, the image data is already exposed to the host (due to containerd's host pull), and so are the registry credentials.
 
-The argument is very similar for `InsecureSkipVerify` and proxy env vars.
+The argument is very similar for `InsecureSkipVerify` and proxy environment variables.
 
 #### Wrong registry credentials
 
 An attacker with k8s admin privileges could supply unexpected credentials.
-As stated above, this does not put image integrity at risk.
-The only thing to be gained would be fine-granular metadata about pulls at the registry (i.e., identifying individual client pods).
+As stated above, this doesn't put image integrity at risk.
+The only thing to be gained would be fine-granular metadata about pulls at the registry (that is, identifying individual client pods).
 
 ## Alternatives considered
 
