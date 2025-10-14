@@ -149,19 +149,19 @@ const sidebars = {
           id: "howto/manifest-update",
         },
         {
-          type: 'doc',
-          label: 'Coordinator high-availability',
-          id: 'howto/coordinator-ha',
+          type: "doc",
+          label: "Coordinator high-availability",
+          id: "howto/coordinator-ha",
         },
         {
-          type: 'doc',
-          label: 'Vault',
-          id: 'howto/vault'
+          type: "doc",
+          label: "Vault",
+          id: "howto/vault",
         },
         {
           type: "doc",
           label: "Secure image store",
-          id: "howto/secure-image-store"
+          id: "howto/secure-image-store",
         },
         {
           type: "doc",
