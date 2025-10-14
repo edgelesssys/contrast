@@ -47,6 +47,7 @@ import "github.com/google/go-containerregistry/pkg/authn"
 type InsecureConfig struct {
     Auths map[string]authn.AuthConfig // key is the OCI registry
     CA [][]byte // list of trusted PEM-encoded CA certificates
+    InsecureSkipVerify bool // applies to all registry connections
     ExtraEnv map[string]string
 }
 ```
@@ -54,6 +55,7 @@ type InsecureConfig struct {
 On startup, the `imagepuller` reads the config file from `/run/insecure-cfg/imagepuller.TBD`.
 It takes the `Auths` and stores them in a field, and creates a [`tls.Config`].
 If `CA` isn't empty, it overrides the `RootCAs` field of the [`tls.Config`].
+If `InsecureSkipVerify` is true, the field is also set on the [`tls.Config`].
 Each key-value pair in `ExtraEnv` is added to the `imagepuller`s own environment.
 
 When a `PullImage` request comes in, the `imagepuller` extracts the registry part from the image reference and looks it up in `Auths`.
