@@ -9,7 +9,7 @@ If the manifest changes—for example, due to modifications in the service mesh 
 ## Prerequisites
 
 1. A running Contrast deployment
-2. [Connect to the Coordinator](./workload-deployment/set-manifest.md#connect-to-the-contrast-coordinator)
+2. [Connect to the Coordinator](./workload-deployment/connect-to-coordinator.md)
 
 ## How-to
 
