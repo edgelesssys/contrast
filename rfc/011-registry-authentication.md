@@ -77,6 +77,9 @@ The secret contains one key, `imagepuller.TBD`, containing a serialized version 
 This secret is created by the k8s administrator (or the workload owner) before applying the runtime.
 If the node-installer finds a mounted secret, it writes the content into `/opt/edgeless/contrast-cc-*/etc/host-config/imagepuller.TBD`.
 
+node-installer operations are intended to be idempotent.
+In order to change the imagepuller configuration, the k8s administrator only needs to change the secret and restart the `DaemonSet`.
+
 ### Changes to the Kata runtime
 
 During sandbox creation, the Kata runtime packs all files under `/opt/edgeless/contrast-cc-*/etc/host-config` into a device and attaches it to the VM.
