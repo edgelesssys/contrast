@@ -515,14 +515,16 @@ func PatchCoordinatorMetrics(resources []any) []any {
 	return resources
 }
 
-// MapPodSpecWithMeta applies a function to a PodSpec in a Kubernetes resource,
+// MapPodSpecWithEnsuredMeta applies a function to a PodSpec in a Kubernetes resource,
 // and its corresponding object metadata.
-func MapPodSpecWithMeta(
+// If ensureMetaExists is set, it adds the metadata field if it does not exist.
+func MapPodSpecWithEnsuredMeta(
 	resource any,
 	f func(
 		meta *applymetav1.ObjectMetaApplyConfiguration,
 		spec *applycorev1.PodSpecApplyConfiguration,
 	),
+	ensureMetaExists bool,
 ) any {
 	if resource == nil {
 		return nil
@@ -547,13 +549,25 @@ func MapPodSpecWithMeta(
 		podAccessor = (&StatefulSetConfig{r}).PodTemplate()
 	}
 	if podAccessor != nil {
-		meta := podAccessor.GetObjectMeta()
+		meta := podAccessor.GetObjectMeta(ensureMetaExists)
 		spec := podAccessor.GetPodSpec()
 		if meta != nil && spec != nil {
 			f(meta, spec)
 		}
 	}
 	return resource
+}
+
+// MapPodSpecWithMeta applies a function to a PodSpec in a Kubernetes resource,
+// and its corresponding object metadata.
+func MapPodSpecWithMeta(
+	resource any,
+	f func(
+		meta *applymetav1.ObjectMetaApplyConfiguration,
+		spec *applycorev1.PodSpecApplyConfiguration,
+	),
+) any {
+	return MapPodSpecWithEnsuredMeta(resource, f, false)
 }
 
 // MapPodSpec applies a function to a PodSpec in a Kubernetes resource.
