@@ -459,16 +459,15 @@ func injectServiceMesh(resources []any) error {
 	return nil
 }
 
-func runtimeClassNamePatcher(handler string) func(*applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-	return func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+func runtimeClassNamePatcher(handler string) func(*applycorev1.PodSpecApplyConfiguration) {
+	return func(spec *applycorev1.PodSpecApplyConfiguration) {
 		if spec.RuntimeClassName == nil || *spec.RuntimeClassName == handler {
-			return spec
+			return
 		}
 
 		if strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || *spec.RuntimeClassName == "kata-cc-isolation" {
 			spec.RuntimeClassName = &handler
 		}
-		return spec
 	}
 }
 

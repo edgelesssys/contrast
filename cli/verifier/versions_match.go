@@ -33,9 +33,9 @@ func (v *VersionsMatch) Verify(toVerify any) error {
 	kuberesource.MapPodSpecWithMeta(toVerify, func(
 		meta *applymetav1.ObjectMetaApplyConfiguration,
 		spec *applycorev1.PodSpecApplyConfiguration,
-	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+	) {
 		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
-			return meta, spec
+			return
 		}
 
 		for _, container := range spec.Containers {
@@ -60,7 +60,6 @@ func (v *VersionsMatch) Verify(toVerify any) error {
 					v.Version, *container.Name, r.Tag))
 			}
 		}
-		return meta, spec
 	})
 
 	return findings

@@ -24,11 +24,11 @@ func (v *NoSharedFSMount) Verify(toVerify any) error {
 
 	// get all volume mounts that are referenced in containers
 	isNonCC := false
-	kuberesource.MapPodSpec(toVerify, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+	kuberesource.MapPodSpec(toVerify, func(spec *applycorev1.PodSpecApplyConfiguration) {
 		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
 			// this isn't a confidential pod so we don't need to check further
 			isNonCC = true
-			return spec
+			return
 		}
 		// verify all volume mounts of all containers in pod
 		for _, container := range spec.Containers {
@@ -52,7 +52,6 @@ func (v *NoSharedFSMount) Verify(toVerify any) error {
 				}
 			}
 		}
-		return spec
 	})
 	if isNonCC {
 		// we don't care about non-confidential pods

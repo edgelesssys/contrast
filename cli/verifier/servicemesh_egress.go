@@ -20,7 +20,7 @@ type ServiceMeshEgressNotEmpty struct{}
 func (v *ServiceMeshEgressNotEmpty) Verify(toVerify any) error {
 	var findings error
 
-	kuberesource.MapPodSpecWithMeta(toVerify, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+	kuberesource.MapPodSpecWithMeta(toVerify, func(meta *applymetav1.ObjectMetaApplyConfiguration, _ *applycorev1.PodSpecApplyConfiguration) {
 		for k, v := range meta.Annotations {
 			if k != "contrast.edgeless.systems/servicemesh-egress" {
 				continue
@@ -29,8 +29,6 @@ func (v *ServiceMeshEgressNotEmpty) Verify(toVerify any) error {
 				findings = errors.Join(findings, errors.New("empty annotation content in \"contrast.edgeless.systems/servicemesh-egress\", which is likely to be an error"))
 			}
 		}
-
-		return meta, spec
 	})
 
 	return findings
