@@ -33,7 +33,7 @@ If the cluster is [configured for GPU usage](../../howto/cluster-setup/bare-meta
 To do so, a CDI annotation needs to be added, specifying to use the `pgpu` (passthrough GPU) mode. The `0` corresponds to the PCI device index.
 
 - For nodes with a single GPU, this value is always `0`.
-- For nodes with multiple GPUs, the value needs to correspond to the device's order as enumerated on the PCI bus. You can identify this order by inspecting the `/var/run/cdi/nvidia.com-pgpu.yaml` file on the specific node.
+- For nodes with multiple GPUs, the value needs to correspond to the device's order as enumerated on the PCI bus. You can identify this order by inspecting the `/etc/cdi/nvidia.com-pgpu.yaml` file on the specific node. On some hosts, and depending on the initial setup, this file might also be located at `/var/run/cdi/nvidia.com-pgpu.yaml`.
 
 This process ensures the correct GPU is allocated to the workload.
 
