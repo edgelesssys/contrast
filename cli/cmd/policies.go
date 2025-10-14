@@ -5,7 +5,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
@@ -15,25 +14,12 @@ import (
 	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
-	var kubeObjs []any
-	for _, path := range yamlPaths {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read %s: %w", path, err)
-		}
-		objs, err := kuberesource.UnmarshalApplyConfigurations(data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal %s: %w", path, err)
-		}
-		kubeObjs = append(kubeObjs, objs...)
-	}
-
+func policiesFromKubeResources(resources []any) ([]deployment, error) {
 	var deployments []deployment
-	for _, objAny := range kubeObjs {
-		objs, err := kuberesource.ResourcesToUnstructured([]any{objAny})
+	for _, res := range resources {
+		objs, err := kuberesource.ResourcesToUnstructured([]any{res})
 		if err != nil {
-			return nil, fmt.Errorf("failed to convert to unstructured: %w", err)
+			return nil, fmt.Errorf("failed to convert resource to unstructured: %w", err)
 		}
 		if len(objs) != 1 {
 			return nil, fmt.Errorf("expected 1 unstructured object, got %d", len(objs))
@@ -47,7 +33,7 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 		var annotation string
 		var workloadSecretID string
 		var role manifest.Role
-		kuberesource.MapPodSpecWithMeta(objAny, func(meta *applymetav1.ObjectMetaApplyConfiguration, _ *applycorev1.PodSpecApplyConfiguration) {
+		kuberesource.MapPodSpecWithMeta(res, func(meta *applymetav1.ObjectMetaApplyConfiguration, _ *applycorev1.PodSpecApplyConfiguration) {
 			annotation = meta.Annotations[kataPolicyAnnotationKey]
 			role = manifest.Role(meta.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = meta.Annotations[workloadSecretIDAnnotationKey]
