@@ -98,6 +98,11 @@ const sidebars = {
             },
             {
               type: "doc",
+              label: "Connect to Coordinator",
+              id: "howto/workload-deployment/connect-to-coordinator",
+            },
+            {
+              type: "doc",
               label: "Set manifest",
               id: "howto/workload-deployment/set-manifest",
             },
