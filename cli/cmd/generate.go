@@ -20,11 +20,14 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/genpolicy"
 	"github.com/edgelesssys/contrast/cli/verifier"
+	"github.com/edgelesssys/contrast/internal/initdata"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
+	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 
 	"github.com/spf13/cobra"
 )
@@ -96,21 +99,25 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	paths, cmPaths, err := findGenerateTargets(args, log)
+	paths, err := findYamlFiles(args)
 	if err != nil {
 		return err
 	}
-	if flags.outputFile != "" {
-		tmpDir, newPaths, err := getTmpPaths(paths)
-		if err != nil {
-			return fmt.Errorf("get temporary paths: %w", err)
-		}
-		defer os.RemoveAll(tmpDir)
-		paths = newPaths
+
+	extraFile, err := os.CreateTemp("", "contrast-generate-extra-*.yml")
+	if err != nil {
+		return fmt.Errorf("create temp file for configmaps/secrets: %w", err)
+	}
+	defer extraFile.Close()
+	defer os.Remove(extraFile.Name())
+
+	ccResources, fileMap, err := extractTargets(paths, extraFile, log)
+	if err != nil {
+		return fmt.Errorf("extracting targets: %w", err)
 	}
 
 	verifiers := verifier.AllVerifiersBeforeGenerate()
-	if err := runVerifiers(paths, verifiers); err != nil {
+	if err := runVerifiers(ccResources, verifiers, fileMap); err != nil {
 		return err
 	}
 
@@ -142,28 +149,18 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get runtime handler: %w", err)
 	}
 
-	if err := patchTargets(paths, flags.imageReplacementsFile, runtimeHandler, flags.skipInitializer, flags.skipServiceMesh, flags.skipImageStore, log); err != nil {
+	if err := patchTargets(ccResources, flags.imageReplacementsFile, runtimeHandler, flags.skipInitializer, flags.skipServiceMesh, flags.skipImageStore); err != nil {
 		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
 
-	if err := generatePolicies(cmd.Context(), flags, paths, cmPaths, log); err != nil {
+	if err := generatePolicies(cmd.Context(), flags, ccResources, extraFile.Name(), fileMap, log); err != nil {
 		return fmt.Errorf("generate policies: %w", err)
-	}
-
-	if flags.outputFile != "" {
-		combinedYAML, err := kuberesource.YAMLBytesFromFiles(paths...)
-		if err != nil {
-			return fmt.Errorf("get combined YAML: %w", err)
-		}
-		if err := os.WriteFile(flags.outputFile, combinedYAML, 0o644); err != nil {
-			return fmt.Errorf("write output file: %w", err)
-		}
 	}
 
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Generated workload policy annotations")
 
-	policies, err := policiesFromKubeResources(paths)
+	policies, err := policiesFromKubeResources(ccResources)
 	if err != nil {
 		return fmt.Errorf("find kube resources with policy: %w", err)
 	}
@@ -223,29 +220,24 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Updated manifest %s\n", flags.manifestPath)
 
 	verifiers = verifier.AllVerifiersAfterGenerate()
-	if err := runVerifiers(paths, verifiers); err != nil {
+	if err := runVerifiers(ccResources, verifiers, fileMap); err != nil {
 		return err
+	}
+
+	if err = writeOutputFiles(fileMap, flags.outputFile); err != nil {
+		return fmt.Errorf("write output files: %w", err)
 	}
 
 	return nil
 }
 
-func runVerifiers(paths []string, verifiers []verifier.Verifier) error {
+func runVerifiers(resources []any, verifiers []verifier.Verifier, fileMap map[string][]any) error {
 	var findings error
-	for _, path := range paths {
-		fileContent, err := os.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("reading file %q to run generate on: %w", path, err)
-		}
-		resources, err := kuberesource.UnmarshalApplyConfigurations(fileContent)
-		if err != nil {
-			return fmt.Errorf("parsing file %q to run generate on: %w", path, err)
-		}
-		for _, v := range verifiers {
-			for _, r := range resources {
-				if err := v.Verify(r); err != nil {
-					findings = errors.Join(findings, fmt.Errorf("failed to verify YAML %q: %w", path, err))
-				}
+	for _, v := range verifiers {
+		for _, r := range resources {
+			if err := v.Verify(r); err != nil {
+				path, name := getPathAndName(r, fileMap)
+				findings = errors.Join(findings, fmt.Errorf("failed to verify resource %q in file %q: %w", name, path, err))
 			}
 		}
 	}
@@ -255,7 +247,7 @@ func runVerifiers(paths []string, verifiers []verifier.Verifier) error {
 	return nil
 }
 
-func findGenerateTargets(args []string, logger *slog.Logger) ([]string, []string, error) {
+func findYamlFiles(args []string) ([]string, error) {
 	var paths []string
 	for _, path := range args {
 		err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
@@ -274,27 +266,21 @@ func findGenerateTargets(args []string, logger *slog.Logger) ([]string, []string
 			return nil
 		})
 		if err != nil {
-			return nil, nil, fmt.Errorf("walk %s: %w", path, err)
+			return nil, fmt.Errorf("walk %s: %w", path, err)
 		}
 	}
 	if len(paths) == 0 {
-		return nil, nil, fmt.Errorf("no .yml/.yaml files found")
+		return nil, fmt.Errorf("no .yml/.yaml files found")
 	}
 
-	cmPaths := filterForConfigMaps(paths, logger)
-
-	paths = filterNonCoCoRuntime("contrast-cc", paths, logger)
-	if len(paths) == 0 {
-		return nil, nil, fmt.Errorf("no .yml/.yaml files with 'contrast-cc' runtime found")
-	}
-
-	return paths, cmPaths, nil
+	return paths, nil
 }
 
-func filterForConfigMaps(paths []string, logger *slog.Logger) []string {
-	var filtered []string
+func extractTargets(paths []string, configFile io.Writer, logger *slog.Logger) ([]any, map[string][]any, error) {
+	var ccResources []any
+	var extraResources []*unstructured.Unstructured
+	fileMap := make(map[string][]any)
 
-pathLoop:
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -306,35 +292,54 @@ pathLoop:
 			logger.Warn("Could not parse file into Kubernetes resources", "path", path, "err", err)
 			continue
 		}
+		var ccApplyConfigs []any
 		for _, object := range objects {
 			if object.GetKind() == "ConfigMap" || object.GetKind() == "Secret" {
-				filtered = append(filtered, path)
-				continue pathLoop
+				extraResources = append(extraResources, object)
+			}
+			applyConfig, err := kuberesource.UnstructuredToApplyConfiguration(object)
+			if err != nil {
+				fileMap[path] = append(fileMap[path], object)
+				logger.Warn("Could not convert resource into ApplyConfiguration", "path", path, "err", err)
+			} else {
+				fileMap[path] = append(fileMap[path], applyConfig)
+				if isCCWorkload(applyConfig) {
+					ccApplyConfigs = append(ccApplyConfigs, applyConfig)
+				}
 			}
 		}
-		logger.Debug("File without ConfigMap and Secret", "path", path)
+		if len(ccApplyConfigs) > 0 {
+			ccResources = append(ccResources, ccApplyConfigs...)
+		} else {
+			delete(fileMap, path)
+		}
 	}
-	return filtered
+	if len(ccResources) == 0 {
+		return nil, nil, fmt.Errorf("no .yml/.yaml files with 'contrast-cc' runtime found")
+	}
+
+	extraData, err := kuberesource.EncodeUnstructured(extraResources)
+	if err != nil {
+		return nil, nil, fmt.Errorf("encoding configmaps/secrets: %w", err)
+	}
+	_, err = configFile.Write(extraData)
+	if err != nil {
+		return nil, nil, fmt.Errorf("writing configmaps/secrets to temp file: %w", err)
+	}
+	return ccResources, fileMap, err
 }
 
-func filterNonCoCoRuntime(runtimeClassNamePrefix string, paths []string, logger *slog.Logger) []string {
-	var filtered []string
-	for _, path := range paths {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			logger.Warn("read file", "path", path, "err", err)
-			continue
+func isCCWorkload(resource any) (ret bool) {
+	kuberesource.MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+		if spec.RuntimeClassName != nil && strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+			ret = true
 		}
-		if !bytes.Contains(data, []byte(runtimeClassNamePrefix)) {
-			logger.Info("Ignoring non-CoCo runtime", "className", runtimeClassNamePrefix, "path", path)
-			continue
-		}
-		filtered = append(filtered, path)
-	}
-	return filtered
+		return spec
+	})
+	return ret
 }
 
-func generatePolicies(ctx context.Context, flags *generateFlags, yamlPaths, cmPaths []string, logger *slog.Logger) error {
+func generatePolicies(ctx context.Context, flags *generateFlags, ccResources []any, extraPath string, fileMap map[string][]any, logger *slog.Logger) error {
 	cfg := genpolicy.NewConfig()
 	if err := createFileWithDefault(flags.settingsPath, 0o644, func() ([]byte, error) { return cfg.Settings, nil }); err != nil {
 		return fmt.Errorf("creating default policy file: %w", err)
@@ -354,15 +359,43 @@ func generatePolicies(ctx context.Context, flags *generateFlags, yamlPaths, cmPa
 		}
 	}()
 
-	for _, yamlPath := range yamlPaths {
-		if err := runner.Run(ctx, yamlPath, cmPaths, logger); err != nil {
-			return fmt.Errorf("failed to generate policy for %s: %w", yamlPath, err)
+	for _, res := range ccResources {
+		initdataAnno, err := runner.Run(ctx, res, extraPath, logger)
+		if err != nil {
+			path, name := getPathAndName(res, fileMap)
+			return fmt.Errorf("failed to generate policy for %q in %q: %w", name, path, err)
 		}
+		kuberesource.MapPodSpecWithMeta(res, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+			if meta == nil {
+				meta = &applymetav1.ObjectMetaApplyConfiguration{}
+			}
+			if meta.Annotations == nil {
+				meta.Annotations = make(map[string]string)
+			}
+			meta.Annotations[initdata.InitdataAnnotationKey] = initdataAnno
+			return meta, spec
+		})
 	}
 	return nil
 }
 
-func patchTargets(paths []string, imageReplacementsFile, runtimeHandler string, skipInitializer, skipServiceMesh, skipImageStore bool, logger *slog.Logger) error {
+func getPathAndName(resource any, fileMap map[string][]any) (path string, name string) {
+	obj, err := kuberesource.ResourcesToUnstructured([]any{resource})
+	if err != nil || len(obj) != 1 {
+		name = "<unknown>"
+	} else {
+		name = obj[0].GetName()
+	}
+	for p, resources := range fileMap {
+		if slices.Contains(resources, resource) {
+			path = p
+			break
+		}
+	}
+	return path, name
+}
+
+func patchTargets(ccResources []any, imageReplacementsFile, runtimeHandler string, skipInitializer, skipServiceMesh, skipImageStore bool) error {
 	var replacements map[string]string
 	var err error
 	if imageReplacementsFile != "" {
@@ -382,77 +415,51 @@ func patchTargets(paths []string, imageReplacementsFile, runtimeHandler string, 
 			return fmt.Errorf("parsing release image definitions %s: %w", ReleaseImageReplacements, err)
 		}
 	}
-	for _, path := range paths {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("read %s: %w", path, err)
-		}
-		kubeObjs, err := kuberesource.UnmarshalApplyConfigurations(data)
-		if err != nil {
-			return fmt.Errorf("unmarshal %s: %w", path, err)
-		}
-
+	for _, res := range ccResources {
 		if !skipInitializer {
-			if err := injectInitializer(kubeObjs); err != nil {
+			if err := injectInitializer(res); err != nil {
 				return fmt.Errorf("injecting Initializer: %w", err)
 			}
 		}
 		if !skipServiceMesh {
-			if err := injectServiceMesh(kubeObjs); err != nil {
+			if err := injectServiceMesh(res); err != nil {
 				return fmt.Errorf("injecting Service Mesh: %w", err)
 			}
 		}
 		if !skipImageStore {
-			kubeObjs = kuberesource.AddImageStore(kubeObjs)
+			kuberesource.AddImageStore([]any{res})
 		}
 
-		kubeObjs = kuberesource.PatchImages(kubeObjs, replacements)
+		kuberesource.PatchImages([]any{res}, replacements)
 
 		replaceRuntimeClassName := runtimeClassNamePatcher(runtimeHandler)
-		for i := range kubeObjs {
-			kubeObjs[i] = kuberesource.MapPodSpec(kubeObjs[i], replaceRuntimeClassName)
-		}
-
-		logger.Debug("Updating resources in yaml file", "path", path)
-		resource, err := kuberesource.EncodeResources(kubeObjs...)
-		if err != nil {
-			return err
-		}
-		if err := os.WriteFile(path, resource, 0o666); err != nil {
-			return fmt.Errorf("write %s: %w", path, err)
-		}
+		kuberesource.MapPodSpec(res, replaceRuntimeClassName)
 	}
 	return nil
 }
 
-func injectInitializer(resources []any) error {
-	for _, resource := range resources {
-		switch r := resource.(type) {
-		case *applyappsv1.StatefulSetApplyConfiguration:
-			if r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.ObjectMetaApplyConfiguration != nil && r.Spec.Template.Annotations != nil &&
-				r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
-				continue
-			}
-		}
-		_, err := kuberesource.AddInitializer(resource, kuberesource.Initializer())
-		if err != nil {
-			return err
-		}
+func injectInitializer(resource any) error {
+	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
+	if ok && r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.ObjectMetaApplyConfiguration != nil && r.Spec.Template.Annotations != nil &&
+		r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
+		return nil
+	}
+	_, err := kuberesource.AddInitializer(resource, kuberesource.Initializer())
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-func injectServiceMesh(resources []any) error {
-	for _, resource := range resources {
-		r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
-		if ok && r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.ObjectMetaApplyConfiguration != nil && r.Spec.Template.Annotations != nil &&
-			r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
-			continue
-		}
-		_, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy())
-		if err != nil {
-			return err
-		}
+func injectServiceMesh(resource any) error {
+	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
+	if ok && r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.ObjectMetaApplyConfiguration != nil && r.Spec.Template.Annotations != nil &&
+		r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
+		return nil
+	}
+	_, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy())
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -486,38 +493,51 @@ func validateOutputFile(outputFile string) error {
 	return nil
 }
 
-func getTmpPaths(paths []string) (string, []string, error) {
-	tmpDir, err := os.MkdirTemp("", "contrast-generate")
-	if err != nil {
-		return "", nil, fmt.Errorf("create temporary directory: %w", err)
-	}
-	var newPaths []string
-	for _, path := range paths {
-		if err := copyFile(path, filepath.Join(tmpDir, filepath.Base(path))); err != nil {
-			return tmpDir, nil, fmt.Errorf("copy %s: %w", path, err)
+func writeOutputFiles(fileMap map[string][]any, outputFile string) error {
+	if outputFile != "" {
+		var outputResources []any
+		for _, resources := range fileMap {
+			outputResources = append(outputResources, resources...)
 		}
-		newPaths = append(newPaths, filepath.Join(tmpDir, filepath.Base(path)))
-	}
-	return tmpDir, newPaths, nil
-}
-
-func copyFile(inPath, outPath string) error {
-	inFile, err := os.Open(inPath)
-	if err != nil {
-		return fmt.Errorf("open %s: %w", inPath, err)
-	}
-	defer inFile.Close()
-
-	outFile, err := os.Create(outPath)
-	if err != nil {
-		return fmt.Errorf("create %s: %w", outPath, err)
-	}
-	defer outFile.Close()
-
-	if _, err := io.Copy(outFile, inFile); err != nil {
-		return fmt.Errorf("copy %s: %w", inPath, err)
+		data, err := encodeAny(outputResources)
+		if err != nil {
+			return fmt.Errorf("encoding resources: %w", err)
+		}
+		if err := os.WriteFile(outputFile, data, 0o644); err != nil {
+			return fmt.Errorf("writing resources to %s: %w", outputFile, err)
+		}
+	} else {
+		for path, resources := range fileMap {
+			data, err := encodeAny(resources)
+			if err != nil {
+				return fmt.Errorf("encoding resources: %w", err)
+			}
+			if err := os.WriteFile(path, data, 0o644); err != nil {
+				return fmt.Errorf("writing resource to %s: %w", path, err)
+			}
+		}
 	}
 	return nil
+}
+
+func encodeAny(resource []any) ([]byte, error) {
+	var unstructuredResources []*unstructured.Unstructured
+	for _, res := range resource {
+		if uObj, ok := res.(*unstructured.Unstructured); ok {
+			unstructuredResources = append(unstructuredResources, uObj)
+		} else {
+			uObjs, err := kuberesource.ResourcesToUnstructured([]any{res})
+			if err != nil {
+				return nil, err
+			}
+			unstructuredResources = append(unstructuredResources, uObjs...)
+		}
+	}
+	data, err := kuberesource.EncodeUnstructured(unstructuredResources)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func addWorkloadOwnerKeyToManifest(manifst *manifest.Manifest, keyPath string) error {
