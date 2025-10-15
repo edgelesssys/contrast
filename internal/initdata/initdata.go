@@ -164,8 +164,7 @@ func FromDevice(devicePath string) (Raw, error) {
 		return nil, err
 	}
 	buf := make([]byte, 8)
-	_, err = f.ReadAt(buf, 0)
-	if err != nil {
+	if _, err := f.ReadAt(buf, 0); err != nil {
 		return nil, fmt.Errorf("reading magic number: %w", err)
 	}
 	const magic = "initdata"
@@ -173,8 +172,7 @@ func FromDevice(devicePath string) (Raw, error) {
 		return nil, fmt.Errorf("%w: expected %x, got %x", errWrongMagic, magic, buf)
 	}
 	buf = make([]byte, 8)
-	_, err = f.ReadAt(buf, 8)
-	if err != nil {
+	if _, err := f.ReadAt(buf, 8); err != nil {
 		return nil, fmt.Errorf("reading magic number: %w", err)
 	}
 	size := binary.LittleEndian.Uint64(buf)
@@ -183,9 +181,7 @@ func FromDevice(devicePath string) (Raw, error) {
 		return nil, fmt.Errorf("%w: expected at most 128MiB, got %d byte", errTooLarge, size)
 	}
 	buf = make([]byte, size)
-
-	_, err = f.ReadAt(buf, 16)
-	if err != nil {
+	if _, err := f.ReadAt(buf, 16); err != nil {
 		return nil, fmt.Errorf("reading initdata blob: %w", err)
 	}
 
@@ -201,28 +197,25 @@ var hashAlgorithms = map[string]func() hash.Hash{
 func decompress(compressed []byte) ([]byte, error) {
 	gzreader, err := gzip.NewReader(bytes.NewReader(compressed))
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 
-	readBytes, err := io.ReadAll(gzreader)
+	decrompressed, err := io.ReadAll(gzreader)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 
-	var decompressed bytes.Buffer
-	decompressed.Write(readBytes)
-
-	return decompressed.Bytes(), nil
+	return decrompressed, nil
 }
 
 func compress(decompressed []byte) ([]byte, error) {
 	var compressed bytes.Buffer
 	gzwriter := gzip.NewWriter(&compressed)
 	if _, err := gzwriter.Write(decompressed); err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 	if err := gzwriter.Close(); err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 
 	return compressed.Bytes(), nil
