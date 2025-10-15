@@ -1,36 +1,39 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
 Date: Thu, 23 Jan 2025 12:30:19 +0100
-Subject: [PATCH] genpolicy: support dynamic annotations
+Subject: [PATCH 11/21] genpolicy: support dynamic annotations
 
 This adds support for handling annotations with dynamic keys to
 genpolicy. This is necessary for use-cases like GPU containers, where
 in-cluster components (i.e. post policy-generation) instrument
 containers with annotations with varying keys, like `cdi.k8s.io/vfioXY`,
 where `XY` corresponds to a dynamic ID.
+
+Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
 ---
- src/tools/genpolicy/genpolicy-settings.json |  8 ++++++--
+ src/tools/genpolicy/genpolicy-settings.json |  9 +++++++--
  src/tools/genpolicy/rules.rego              | 18 +++++++++++++-----
  src/tools/genpolicy/src/policy.rs           |  7 ++++++-
- 3 files changed, 25 insertions(+), 8 deletions(-)
+ 3 files changed, 26 insertions(+), 8 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 4918d32a21424877ee8f73474126102e167f651f..92f65c3a855570aa4596d0b8453188644c7d4ef0 100644
+index 8340cd33c7023d43ecfab6d34939e0b65bbe92a0..e420b18cdecb745c9f1b9556145afb32a4315d1f 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
-@@ -294,7 +294,10 @@
+@@ -293,7 +293,11 @@
              "CAP_BPF",
              "CAP_CHECKPOINT_RESTORE"
          ],
 -        "image_layer_verification" : "none"
 +        "image_layer_verification" : "none",
 +        "dynamic_annotations": {
-+            "^cdi\\.k8s\\.io\\/vfio[0-9]{2}$": "^nvidia.com/gpu=[0-9]+$"
++            "^cdi\\.k8s\\.io\\/vfio[0-9]{2}$": "^nvidia.com/gpu=[0-9]+$",
++            "^cdi\\.k8s\\.io\\/gpu$": "^nvidia.com/p?gpu=[0-9]+$"
 +        }
      },
      "kata_config": {
          "oci_version": "1.1.0",
-@@ -320,7 +323,8 @@
+@@ -319,7 +323,8 @@
                  "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
                  "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
@@ -41,7 +44,7 @@ index 4918d32a21424877ee8f73474126102e167f651f..92f65c3a855570aa4596d0b845318864
          },
          "UpdateInterfaceRequest": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 048439d8dbdc006b44d131eec65128b351989225..1d52f1e95f7eabf0d6e2bee8a19028834564c903 100644
+index 95972812f90e61742c892a0f7ad6a647c080d2f1..db79d2929ed889726b12a7b7592bdfc6532cc394 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -230,18 +230,26 @@ allow_anno(p_oci, i_oci) if {
@@ -77,7 +80,7 @@ index 048439d8dbdc006b44d131eec65128b351989225..1d52f1e95f7eabf0d6e2bee8a1902883
      print("allow_anno_key 1: i key =", i_key)
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 728fb35afb1852412dae7fd55b3cbfa164c36ac9..88f256718b6cd2c0eb67f42cea2558011d2787f4 100644
+index f899a24bb2d171661a673b5c5ea6959165077f33..738c24e91d97243ed6f43cc52785fea3c39719b6 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -429,9 +429,14 @@ pub struct CommonData {
