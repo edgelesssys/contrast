@@ -1,0 +1,81 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Wed, 15 Oct 2025 14:21:54 +0200
+Subject: [PATCH] kata-types: use pretty TOML encoder for initdata
+
+TOML was chosen for initdata particularly for the ability to include
+policy docs and other configuration files without mangling them. The
+default TOML encoding renders string values as single-line,
+double-quoted strings, effectively depriving us of this feature.
+
+This commit changes the encoding to use `to_string_pretty`, and includes
+a test that verifies the desirable aspect of encoding: newlines are kept
+verbatim.
+
+Fixes: #11943
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/libs/kata-types/src/initdata.rs | 33 ++++++++++++++++++++++++++---
+ 1 file changed, 30 insertions(+), 3 deletions(-)
+
+diff --git a/src/libs/kata-types/src/initdata.rs b/src/libs/kata-types/src/initdata.rs
+index 43cd8ef08148e49700dd289151260ab3a8bad34c..17576fa32f4f8d1b9b3a95e8e507db4e27a97151 100644
+--- a/src/libs/kata-types/src/initdata.rs
++++ b/src/libs/kata-types/src/initdata.rs
+@@ -209,12 +209,12 @@ pub fn calculate_initdata_digest(
+ 
+ /// Encodes initdata as an annotation
+ pub fn encode_initdata(init_data: &InitData) -> String {
+-    let toml_str = toml::to_string(&init_data).unwrap();
++    let toml_str = toml::to_string_pretty(&init_data).unwrap();
+     create_encoded_input(&toml_str)
+ }
+ 
+-/// Decodes initdata annotation
+-pub fn decode_initdata(initdata_annotation: &str) -> Result<InitData> {
++/// Decodes a base64-encoded gzipped initdata document to its raw TOML representation.
++fn decode_raw_initdata(initdata_annotation: &str) -> Result<String> {
+     // Base64 decode the annotation value
+     let b64_decoded =
+         base64::decode_config(initdata_annotation, base64::STANDARD).context("base64 decode")?;
+@@ -225,7 +225,12 @@ pub fn decode_initdata(initdata_annotation: &str) -> Result<InitData> {
+     gz_decoder
+         .read_to_string(&mut initdata_str)
+         .context("gz decoder failed")?;
++    Ok(initdata_str)
++}
+ 
++/// Decodes initdata annotation
++pub fn decode_initdata(initdata_annotation: &str) -> Result<InitData> {
++    let initdata_str = decode_raw_initdata(&initdata_annotation)?;
+     // Return parsed initdata
+     let initdata = parse_initdata(&initdata_str).context("parse initdata overrides")?;
+ 
+@@ -509,4 +514,26 @@ key = "value"
+         let invalid_data = base64::encode("raw uncompressed data");
+         assert!(add_hypervisor_initdata_overrides(&invalid_data).is_err());
+     }
++
++    #[test]
++    fn test_pretty_initdata() {
++        let nested_toml = r#"
++algorithm = "sha384"
++version = "0.1.0"
++
++[data]
++"aa.toml" = '''
++[token_configs]
++[token_configs.coco_as]
++url = 'http://kbs-service.xxx.cluster.local:8080'
++
++[token_configs.kbs]
++url = 'http://kbs-service.xxx.cluster.local:8080'
++'''
++        "#;
++        let init_data = parse_initdata(nested_toml).expect("canned initdata document should parse");
++
++        let doc = decode_raw_initdata(&encode_initdata(&init_data)).expect("encoding and decoding again should work");
++        assert!(!doc.contains("\\n"), "the encoded initdata toml should not contain escaped newlines, but does:\n{}", doc)
++    }
+ }
