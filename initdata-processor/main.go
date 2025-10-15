@@ -4,29 +4,42 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
 	"slices"
 
+	"github.com/edgelesssys/contrast/initdata-processor/policy"
 	"github.com/edgelesssys/contrast/initdata-processor/validator"
 	"github.com/edgelesssys/contrast/internal/initdata"
 )
 
+const measuredConfigPath = "/run/measured-cfg"
+
 var version = "0.0.0-dev"
 
 func main() {
-	log.Printf("Contrast service-mesh %s", version)
+	log.Printf("Contrast initdata-processor %s", version)
 	log.Print("Report issues at https://github.com/edgelesssys/contrast/issues")
+
+	if err := os.MkdirAll(measuredConfigPath, 0o755); err != nil {
+		failf("Could not create directory %q: %v", measuredConfigPath, err)
+		return
+	}
 
 	entries, err := os.ReadDir("/dev")
 	if err != nil {
-		log.Fatalf("Listing devices: %v", err)
+		failf("Could not list devices: %v", err)
+		return
 	}
 	// The initdata device is usually /dev/vdX so let's start from the back.
 	slices.Reverse(entries)
+
+	var deviceFound bool
 	for _, entry := range entries {
 		// We're only interested in block devices.
 		if entry.Type()&(fs.ModeDevice|fs.ModeCharDevice) != fs.ModeDevice {
@@ -39,45 +52,40 @@ func main() {
 			log.Printf("%s is not an initdata device: %v", path, err)
 			continue
 		}
-		digest, err := doc.Digest()
-		if err != nil {
-			failf("%s failed initdata validation: %v", path, err)
-			break
-		}
-		validator, err := validator.New()
-		if err != nil {
-			failf("Creating validator: %v", err)
-			break
-		}
-		if err := validator.ValidateDigest(digest); err != nil {
-			failf("Validating initdata digest: %v", err)
-			break
-		}
-		i, err := doc.Parse()
-		if err != nil {
-			failf("Parsing initdata: %v", err)
-			break
-		}
-		if err := handleInitdata(i); err != nil {
-			failf("Handling initdata: %v", err)
+		deviceFound = true
+		if err := handleInitdata(doc); err != nil {
+			failf("handling initdata: %v", err)
 			break
 		}
 		log.Printf("Processed initdata from %q ", path)
 		break
 	}
+	if !deviceFound {
+		failf("no initdata device found")
+	}
 	// We always exit with status code 0 so that the Kata agent can start and propagate errors to
 	// the runtime.
 }
 
-func handleInitdata(data *initdata.Initdata) error {
-	const targetPath = "/run/measured-cfg"
-	if err := os.MkdirAll(targetPath, 0o755); err != nil {
-		return err
+func handleInitdata(doc initdata.Raw) error {
+	digest, err := doc.Digest()
+	if err != nil {
+		return fmt.Errorf("initdata validation failed: %w", err)
 	}
-
+	validator, err := validator.New()
+	if err != nil {
+		return fmt.Errorf("creating validator: %w", err)
+	}
+	if err := validator.ValidateDigest(digest); err != nil {
+		return fmt.Errorf("validating initdata digest: %w", err)
+	}
+	data, err := doc.Parse()
+	if err != nil {
+		return fmt.Errorf("parsing initdata: %w", err)
+	}
 	for name, content := range data.Data {
 		name = filepath.Clean(name)
-		path := filepath.Join(targetPath, name)
+		path := filepath.Join(measuredConfigPath, name)
 		if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 			return fmt.Errorf("writing file %q: %w", path, err)
 		}
@@ -86,6 +94,29 @@ func handleInitdata(data *initdata.Initdata) error {
 }
 
 func failf(format string, v ...any) {
-	// TODO(burgerdev): this error won't be visible for the runtime - propagate it to the Kata agent.
 	log.Printf(format, v...)
+
+	// Create a policy with this message in order to propagate it to the Kata runtime.
+	content := policy.DenyWithMessage(format, v...)
+
+	// Write this policy to a temp file and then atomically place it under /run/measured-cfg.
+	// We don't want half-written files under this directory!
+
+	f, err := os.CreateTemp(filepath.Dir(measuredConfigPath), "error-policy.*.rego")
+	if err != nil {
+		log.Printf("Error creating policy file: %v", err)
+		return
+	}
+	sourcePath := f.Name()
+
+	if _, err := io.Copy(f, bytes.NewBuffer(content)); err != nil {
+		log.Printf("Error writing policy file: %v", err)
+		return
+	}
+
+	path := filepath.Join(measuredConfigPath, "policy.rego")
+	if err := os.Rename(sourcePath, path); err != nil {
+		log.Printf("Error moving file: %v", err)
+		return
+	}
 }
