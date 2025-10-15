@@ -155,6 +155,10 @@ buildGoModule (finalAttrs: {
       # initdata for us.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11532.
       ./0021-agent-remove-initdata-processing.patch
+
+      # initdata should be pretty-printed so that the policy is easier to read.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11944.
+      ./0022-kata-types-use-pretty-TOML-encoder-for-initdata.patch
     ];
   };
 
