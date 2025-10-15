@@ -307,7 +307,7 @@ lib.makeScope pkgs.newScope (scripts: {
     text = ''
       set -euo pipefail
       grep "CreateContainerRequest is blocked by policy" |
-      sed 's/ agent_policy:/\nagent_policy:/g' |
+      sed 's| /run/measured-cfg/policy.rego:|\nagent_policy:|g' |
       sed 's/\\"/"/g'
     '';
   };
@@ -329,15 +329,16 @@ lib.makeScope pkgs.newScope (scripts: {
               continue
           fi
           echo "Extracting policy for $namespace.$name" >&2
-          echo "$policy" | base64 -d | gunzip > "$namespace.$name.rego"
+          echo "$policy" | base64 -d | gunzip > "$namespace.$name.initdata.toml"
+          yq --input-format toml '.data["policy.rego"]' < "$namespace.$name.initdata.toml" > "$namespace.$name.policy.rego"
       done < <(
         yq '.metadata.name
           + " " + (
             .metadata.namespace
             // "default"
           ) + " " + (
-            .spec.template.metadata.annotations["io.katacontainers.config.agent.policy"]
-            // .metadata.annotations["io.katacontainers.config.agent.policy"]
+            .spec.template.metadata.annotations["io.katacontainers.config.hypervisor.cc_init_data"]
+            // .metadata.annotations["io.katacontainers.config.hypervisor.cc_init_data"]
           )'
       )
     '';
