@@ -226,7 +226,7 @@ func TestNonceInALPN(t *testing.T) {
 		"wrong version": {
 			supportedProtos: []string{"atls:v2:nonce:02f2f9a189459c46c3eb8a40683ca4a07bbe05fc82a18cf023025481de178ab5"},
 			shouldFail:      true,
-			wantErr:         errNoNonce,
+			wantErr:         errVersionMismatch,
 		},
 	} {
 		t.Run(name, func(t *testing.T) {

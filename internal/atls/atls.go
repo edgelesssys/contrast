@@ -330,27 +330,50 @@ func decodeNonceFromAcceptableCAs(acceptableCAs [][]byte) ([]byte, error) {
 	return nil, errors.New("CN not found")
 }
 
-var errNoNonce = errors.New("no nonce in supported protocols or SNI")
+var (
+	errNoNonce         = errors.New("no nonce in supported protocols or SNI")
+	errVersionMismatch = errors.New("proto refers to an unsupported atls version")
+)
 
-const noncePrefix = "atls:v1:nonce:"
+const noncePrefix = `atls:%s:nonce:`
+
+var (
+	preferredAtlsVersion  = "v1"
+	supportedAtlsVersions = []string{preferredAtlsVersion}
+)
 
 func encodeNonceToNextProtos(nonce []byte) string {
-	return fmt.Sprintf("%s%x", noncePrefix, nonce)
+	return fmt.Sprintf("%s%x", fmt.Appendf(nil, noncePrefix, preferredAtlsVersion), nonce)
 }
 
 func decodeNonceFromSupportedProtos(protos []string) ([]byte, error) {
 	for _, proto := range protos {
-		nonceHex, ok := strings.CutPrefix(proto, noncePrefix)
-		if !ok {
+		if !strings.HasPrefix(proto, "atls") {
 			continue
 		}
+
+		nonceHex, err := extractNonce(proto)
+		if err != nil {
+			return nil, err
+		}
+
 		nonce, err := hex.DecodeString(nonceHex)
 		if err != nil {
 			return nil, fmt.Errorf("decoding nonce: %w", err)
 		}
 		return nonce, nil
 	}
+
 	return nil, errNoNonce
+}
+
+func extractNonce(proto string) (string, error) {
+	for _, version := range supportedAtlsVersions {
+		if nonceHex, ok := strings.CutPrefix(proto, fmt.Sprintf(noncePrefix, version)); ok {
+			return nonceHex, nil
+		}
+	}
+	return "", fmt.Errorf("%w: %q", errVersionMismatch, proto)
 }
 
 // clientConnection holds state for client to server connections.
