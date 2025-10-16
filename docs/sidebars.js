@@ -263,6 +263,11 @@ const sidebars = {
         },
       ],
     },
+    {
+      type: "doc",
+      label: "FAQ",
+      id: "faq",
+    },
   ],
 };
 
