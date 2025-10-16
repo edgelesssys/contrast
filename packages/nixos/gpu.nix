@@ -82,7 +82,14 @@ in
     # kata-containers.target needs to pull this in so that we get a valid
     # CDI configuration inside the PodVM. This is not necessary, as we use the
     # legacy mode as of now, but will be once we switch to CDI.
-    systemd.services."nvidia-container-toolkit-cdi-generator".wantedBy = [ "kata-containers.target" ];
+    systemd.services."nvidia-container-toolkit-cdi-generator" = {
+      wantedBy = [ "kata-containers.target" ];
+      before = [ "kata-agent.service" ];
+    };
+    systemd.services."kata-agent" = {
+      after = [ "nvidia-container-toolkit-cdi-generator.service" ];
+      requires = [ "nvidia-container-toolkit-cdi-generator.service" ];
+    };
 
     hardware.nvidia-container-toolkit.enable = true;
 
