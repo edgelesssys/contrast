@@ -3,6 +3,7 @@ module github.com/edgelesssys/contrast/imagepuller
 go 1.25.0
 
 require (
+	github.com/BurntSushi/toml v1.5.0
 	github.com/containerd/ttrpc v1.2.7
 	github.com/google/go-containerregistry v0.20.6
 	github.com/opencontainers/go-digest v1.0.0
@@ -15,7 +16,6 @@ require (
 )
 
 require (
-	github.com/BurntSushi/toml v1.5.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.17.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.4.1 // indirect
