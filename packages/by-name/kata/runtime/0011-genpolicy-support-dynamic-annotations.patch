@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
 Date: Thu, 23 Jan 2025 12:30:19 +0100
-Subject: [PATCH 11/21] genpolicy: support dynamic annotations
+Subject: [PATCH] genpolicy: support dynamic annotations
 
 This adds support for handling annotations with dynamic keys to
 genpolicy. This is necessary for use-cases like GPU containers, where

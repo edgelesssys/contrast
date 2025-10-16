@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Thu, 16 Oct 2025 16:08:27 +0200
+Subject: [PATCH] runtime: clear host-specific CDI annotations
+
+---
+ src/runtime/virtcontainers/kata_agent.go | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
+index 03daa36f057bdbc72133683e53615325e51c98b8..78eba18b5a44ad1be9e5ceeb791ff166f58d2e12 100644
+--- a/src/runtime/virtcontainers/kata_agent.go
++++ b/src/runtime/virtcontainers/kata_agent.go
+@@ -1066,6 +1066,18 @@ func (k *kataAgent) constrainGRPCSpec(grpcSpec *grpc.Spec, passSeccomp bool, dis
+ 			linuxDevices = append(linuxDevices, dev)
+ 		}
+ 		grpcSpec.Linux.Devices = linuxDevices
++
++		// Same goes for CDI annotations for the host.
++		for k := range grpcSpec.Annotations {
++			if !strings.HasPrefix(k, "cdi.k8s.io/") {
++				continue
++			}
++			if strings.HasPrefix(k, "cdi.k8s.io/vfio") {
++				// TODO(burgerdev): this hard-coded exception comes from siblingAnnotation in src/runtime/virtcontainers/container.go
++				continue
++			}
++			delete(grpcSpec.Annotations, k)
++		}
+ 	}
+ 
+ 	return nil

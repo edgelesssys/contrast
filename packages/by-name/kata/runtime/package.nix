@@ -160,10 +160,12 @@ buildGoModule (finalAttrs: {
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757.
       ./0020-genpolicy-don-t-apply-Nydus-workaround.patch
 
-      # To pass the GPU through to the VM and container, its annotation must specify it as a passthrough gpu (pgpu), e.g.:
-      # cdi.k8s.io/gpu: "nvidia.com/pgpu=0". However, an issue in upstream kata: https://github.com/kata-containers/kata-containers/issues/11624
-      # requires these annotations to be rewritten to "gpu=0" instead of "pgpu=0".
-      ./0021-agent-rewrite-pgpu-annotations-to-gpu.patch
+      # The Kata runtime translates CDI annotations for the host to CDI annotations for the guest.
+      # However, the host-side CDI annotations do not make sense on the guest-side, so we should
+      # not forward them in the first place. This patch deletes all CDI annotations that came from
+      # the pod spec after generating the guest annotations.
+      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11624.
+      ./0021-runtime-clear-host-specific-CDI-annotations.patch
     ];
   };
 
