@@ -18,6 +18,7 @@ import (
 	"github.com/containerd/ttrpc"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/edgelesssys/contrast/imagepuller/internal/api"
+	"github.com/edgelesssys/contrast/imagepuller/internal/auth"
 	"github.com/edgelesssys/contrast/imagepuller/internal/remote"
 	"github.com/edgelesssys/contrast/imagepuller/internal/service"
 	"github.com/spf13/cobra"
@@ -81,10 +82,16 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 	defer s.Close()
 
+	authConfig, err := auth.ReadAuthConfig(log)
+	if err != nil {
+		return fmt.Errorf("reading auth config: %w", err)
+	}
+
 	api.RegisterImagePullServiceService(s, &service.ImagePullerService{
 		Logger:            log,
 		StorePathOverride: cmd.Flag("storepath").Value.String(),
 		Remote:            remote.DefaultRemote{},
+		AuthConfig:        *authConfig,
 	})
 
 	eg, ctx := errgroup.WithContext(ctxSignal)

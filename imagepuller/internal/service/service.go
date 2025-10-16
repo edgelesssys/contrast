@@ -13,6 +13,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/types"
 	"github.com/edgelesssys/contrast/imagepuller/internal/api"
+	"github.com/edgelesssys/contrast/imagepuller/internal/auth"
 	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
 	gcrRemote "github.com/google/go-containerregistry/pkg/v1/remote"
@@ -31,6 +32,7 @@ type ImagePullerService struct {
 	Store             storage.Store
 	StorePathOverride string
 	Remote            Remote
+	AuthConfig        auth.InsecureConfig
 }
 
 // PullImage is a ttRPC service which pulls and mounts docker images.
