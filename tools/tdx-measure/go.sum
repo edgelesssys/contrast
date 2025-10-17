@@ -1,6 +1,6 @@
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
-github.com/foxboron/go-uefi v0.0.0-20250915194444-bf180abb62ac h1:jECtuyr2lEfhWT8S+fDMnKq7XzML+zcWdWZ6qQrc7wg=
-github.com/foxboron/go-uefi v0.0.0-20250915194444-bf180abb62ac/go.mod h1:3mTqqMr+HaLk+24ZNz0KcRYrEITDwY187l5sbVRMQYs=
+github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29 h1:2XQY2y+CZCLpFjK5p2EEMwDdP99c7AWP29WhCTkiQm8=
+github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29/go.mod h1:sqQZKX1X86EAN4C07n6DcbGC/DCN36BNaX/uNvjzmfk=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
