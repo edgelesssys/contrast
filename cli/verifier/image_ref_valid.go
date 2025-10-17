@@ -24,9 +24,9 @@ func (v *ImageRefValid) Verify(toVerify any) error {
 
 	kuberesource.MapPodSpec(toVerify, func(
 		spec *applycorev1.PodSpecApplyConfiguration,
-	) *applycorev1.PodSpecApplyConfiguration {
+	) {
 		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
-			return spec
+			return
 		}
 
 		for _, container := range spec.Containers {
@@ -41,7 +41,6 @@ func (v *ImageRefValid) Verify(toVerify any) error {
 				findings = errors.Join(findings, fmt.Errorf("the image reference '%s' failed verification. Ensure that it contains a digest and is in the format 'image:tag@sha256:...'", *container.Image))
 			}
 		}
-		return spec
 	})
 
 	return findings

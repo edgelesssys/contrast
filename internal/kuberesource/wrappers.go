@@ -17,7 +17,7 @@ import (
 
 // PodSpecAccessor is an interface for Kubernetes resources that have a PodSpec with corresponding ObjectMeta.
 type PodSpecAccessor interface {
-	GetObjectMeta() *applymetav1.ObjectMetaApplyConfiguration
+	GetObjectMeta(createIfEmpty bool) *applymetav1.ObjectMetaApplyConfiguration
 	GetPodSpec() *applycorev1.PodSpecApplyConfiguration
 }
 
@@ -27,8 +27,12 @@ type PodTemplate struct {
 }
 
 // GetObjectMeta returns the ObjectMeta of the Pod template.
-func (t *PodTemplate) GetObjectMeta() *applymetav1.ObjectMetaApplyConfiguration {
+func (t *PodTemplate) GetObjectMeta(createIfEmpty bool) *applymetav1.ObjectMetaApplyConfiguration {
 	if t.PodTemplateSpecApplyConfiguration != nil && t.ObjectMetaApplyConfiguration != nil {
+		return t.ObjectMetaApplyConfiguration
+	}
+	if createIfEmpty && t.PodTemplateSpecApplyConfiguration != nil {
+		t.ObjectMetaApplyConfiguration = &applymetav1.ObjectMetaApplyConfiguration{}
 		return t.ObjectMetaApplyConfiguration
 	}
 	return &applymetav1.ObjectMetaApplyConfiguration{}
@@ -153,8 +157,12 @@ func Pod(name, namespace string) *PodConfig {
 }
 
 // GetObjectMeta returns the ObjectMeta of the Pod.
-func (c *PodConfig) GetObjectMeta() *applymetav1.ObjectMetaApplyConfiguration {
+func (c *PodConfig) GetObjectMeta(createIfEmpty bool) *applymetav1.ObjectMetaApplyConfiguration {
 	if c.PodApplyConfiguration != nil && c.ObjectMetaApplyConfiguration != nil {
+		return c.ObjectMetaApplyConfiguration
+	}
+	if createIfEmpty && c.PodApplyConfiguration != nil {
+		c.ObjectMetaApplyConfiguration = &applymetav1.ObjectMetaApplyConfiguration{}
 		return c.ObjectMetaApplyConfiguration
 	}
 	return &applymetav1.ObjectMetaApplyConfiguration{}

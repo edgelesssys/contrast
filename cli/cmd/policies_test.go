@@ -5,99 +5,74 @@ package cmd
 
 import (
 	"encoding/base64"
-	"os"
-	"path/filepath"
 	"sort"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	podYAML = `
-apiVersion: v1
-kind: Pod
-metadata:
-  name: my-pod
-`
-	invalidPolicyYAML = `
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: test
-spec:
-  template:
-    metadata:
-      annotations:
-        io.katacontainers.config.agent.policy: 'invalid-base64'
-`
-)
-
 var encodedValidPolicy = base64.StdEncoding.EncodeToString([]byte(`valid-agent-policy`))
-
-var validDeploymentYAML = `
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: test
-spec:
-  template:
-    metadata:
-      annotations:
-        io.katacontainers.config.agent.policy: '` + encodedValidPolicy + `'
-        contrast.edgeless.systems/pod-role: coordinator
-`
-
-var anotherValidPodYAML = `
-apiVersion: v1
-kind: Pod
-metadata:
-  name: another-pod
-  annotations:
-    io.katacontainers.config.agent.policy: '` + encodedValidPolicy + `'
-`
 
 func TestPoliciesFromKubeResources(t *testing.T) {
 	testCases := []struct {
 		name           string
-		files          map[string]string
+		resources      []any
 		expectedOutput []deployment
 		expectedErr    string
 	}{
 		{
 			name: "valid input",
-			files: map[string]string{
-				"deployment.yml": validDeploymentYAML,
+			resources: []any{
+				kuberesource.Deployment("test", "").
+					WithSpec(kuberesource.DeploymentSpec().
+						WithTemplate(kuberesource.PodTemplateSpec().
+							WithAnnotations(map[string]string{
+								kataPolicyAnnotationKey:   encodedValidPolicy,
+								contrastRoleAnnotationKey: "coordinator",
+							}))),
 			},
 			expectedOutput: []deployment{
 				{
 					name:             "test",
 					policy:           manifest.Policy([]byte(`valid-agent-policy`)),
-					role:             "coordinator",
+					role:             manifest.RoleCoordinator,
 					workloadSecretID: "apps/v1/Deployment/default/test",
 				},
 			},
 		},
 		{
 			name: "missing annotation",
-			files: map[string]string{
-				"pod.yml": podYAML,
+			resources: []any{
+				kuberesource.Deployment("test", "").DeploymentApplyConfiguration,
 			},
 		},
 		{
 			name: "invalid policy annotation",
-			files: map[string]string{
-				"deployment.yml": invalidPolicyYAML,
+			resources: []any{
+				kuberesource.Pod("test", "").
+					WithAnnotations(map[string]string{
+						kataPolicyAnnotationKey: "invalid-base64",
+					}),
 			},
 			expectedErr: "failed to parse policy test",
 		},
 		{
 			name: "multiple files",
-			files: map[string]string{
-				"deployment.yml": validDeploymentYAML,
-				"pod.yml":        anotherValidPodYAML,
+			resources: []any{
+				kuberesource.Deployment("test", "").
+					WithSpec(kuberesource.DeploymentSpec().
+						WithTemplate(kuberesource.PodTemplateSpec().
+							WithAnnotations(map[string]string{
+								kataPolicyAnnotationKey:   encodedValidPolicy,
+								contrastRoleAnnotationKey: "coordinator",
+							}))),
+				kuberesource.Pod("another-pod", "").
+					WithAnnotations(map[string]string{
+						kataPolicyAnnotationKey: encodedValidPolicy,
+					}),
 			},
 			expectedOutput: []deployment{
 				{
@@ -118,17 +93,7 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tempDir := t.TempDir()
-
-			var paths []string
-			for filename, content := range tc.files {
-				path := filepath.Join(tempDir, filename)
-				err := os.WriteFile(path, []byte(content), 0o644)
-				require.NoError(t, err)
-				paths = append(paths, path)
-			}
-
-			deployments, err := policiesFromKubeResources(paths)
+			deployments, err := policiesFromKubeResources(tc.resources)
 			sort.Slice(deployments, func(i, j int) bool {
 				return deployments[i].name < deployments[j].name
 			})

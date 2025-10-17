@@ -40,28 +40,28 @@ func AddInitializer(
 	resource any,
 	initializer *applycorev1.ContainerApplyConfiguration,
 ) (res any, retErr error) {
-	res = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+	res = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) {
 		if meta.Annotations[skipInitializerAnnotationKey] == "true" {
-			return meta, spec
+			return
 		}
 		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
-			return meta, spec
+			return
 		}
 		if meta.Annotations[securePVAnnotationKey] != "" {
 			securePVValues := strings.Split(meta.Annotations[securePVAnnotationKey], ":")
 			if len(securePVValues) != 2 {
 				retErr = fmt.Errorf("secure PV annotation has to be in the format 'device-name:mount-name'")
-				return nil, nil
+				return
 			}
 			devName := securePVValues[0]
 			mountName := securePVValues[1]
 			retErr = checkIfDeviceExists(resource, spec, devName)
 			if retErr != nil {
-				return nil, nil
+				return
 			}
 			retErr = ensureVolumeExists(spec, mountName)
 			if retErr != nil {
-				return nil, nil
+				return
 			}
 			initializer = addCryptsetupConfig(initializer, devName, mountName)
 		}
@@ -74,7 +74,7 @@ func AddInitializer(
 		// This should never error because the Initializer is configured to have a volume mount.
 		if len(initializer.VolumeMounts) < 1 {
 			retErr = fmt.Errorf("initializer volume mount list is empty")
-			return nil, nil
+			return
 		}
 
 		// Remove already existing init containers with unique initializer name.
@@ -85,7 +85,7 @@ func AddInitializer(
 		// The first volume mount is the contrast-secrets volume.
 		retErr = ensureVolumeExists(spec, *initializer.VolumeMounts[0].Name)
 		if retErr != nil {
-			return nil, nil
+			return
 		}
 
 		for i := range spec.Containers {
@@ -98,7 +98,6 @@ func AddInitializer(
 
 		// Add the initializer as first init container.
 		spec.InitContainers = append([]applycorev1.ContainerApplyConfiguration{*initializer}, spec.InitContainers...)
-		return meta, spec
 	})
 	return res, retErr
 }
@@ -166,14 +165,14 @@ func AddServiceMesh(
 	resource any,
 	serviceMeshProxy *applycorev1.ContainerApplyConfiguration,
 ) (res any, retErr error) {
-	res = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+	res = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) {
 		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
-			return meta, spec
+			return
 		}
 
 		// Don't change anything if automatic service mesh injection isn't enabled.
 		if !needsServiceMesh(meta) {
-			return meta, spec
+			return
 		}
 
 		ingressConfig := meta.Annotations[smIngressConfigAnnotationKey]
@@ -187,14 +186,14 @@ func AddServiceMesh(
 
 		retErr = ensureVolumeExists(spec, *serviceMeshProxy.VolumeMounts[0].Name)
 		if retErr != nil {
-			return nil, nil
+			return
 		}
 
 		if portAnnotation != "" {
 			port, err := strconv.Atoi(portAnnotation)
 			if err != nil {
 				retErr = fmt.Errorf("parsing service mesh admin interface port: %w", err)
-				return nil, nil
+				return
 			}
 
 			serviceMeshProxy.
@@ -213,7 +212,7 @@ func AddServiceMesh(
 			serviceMeshProxy.WithEnv(NewEnvVar("CONTRAST_EGRESS_PROXY_CONFIG", egressConfig))
 		}
 
-		return meta, spec.WithInitContainers(serviceMeshProxy)
+		spec.WithInitContainers(serviceMeshProxy)
 	})
 	return res, retErr
 }
@@ -287,12 +286,11 @@ func AddDmesg(resources []any) []any {
 		WithSecurityContext(SecurityContext().
 			WithPrivileged(true).SecurityContextApplyConfiguration)
 
-	addDmesg := func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+	addDmesg := func(spec *applycorev1.PodSpecApplyConfiguration) {
 		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
-			return spec
+			return
 		}
 		spec.Containers = append(spec.Containers, *dmesgContainer)
-		return spec
 	}
 
 	var out []any
@@ -344,15 +342,15 @@ func AddImageStore(resources []any) []any {
 	}
 
 	addPvc := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration,
-	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+	) {
 		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
-			return meta, spec
+			return
 		}
 
 		imageStoreSize := meta.Annotations[imageStoreSizeAnnotationKey]
 		switch imageStoreSize {
 		case "0":
-			return meta, spec
+			return
 		case "":
 			imageStoreSize = "10Gi"
 		}
@@ -380,8 +378,6 @@ func AddImageStore(resources []any) []any {
 		if !volumeExists {
 			spec.Volumes = append(spec.Volumes, *ephemeralVolume)
 		}
-
-		return meta, spec
 	}
 
 	var out []any
@@ -430,7 +426,7 @@ func AddLogging(resources []any, level, subsystem string) []any {
 func PatchImages(resources []any, replacements map[string]string) []any {
 	var out []any
 	for _, resource := range resources {
-		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) {
 			for i := range len(spec.InitContainers) {
 				if spec.InitContainers[i].Image != nil {
 					if replacement, ok := replacements[*spec.InitContainers[i].Image]; ok {
@@ -445,7 +441,6 @@ func PatchImages(resources []any, replacements map[string]string) []any {
 					}
 				}
 			}
-			return spec
 		}))
 	}
 	return out
@@ -455,9 +450,8 @@ func PatchImages(resources []any, replacements map[string]string) []any {
 func PatchRuntimeHandlers(resources []any, runtimeHandler string) []any {
 	var out []any
 	for _, resource := range resources {
-		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) {
 			spec.RuntimeClassName = &runtimeHandler
-			return spec
 		}))
 	}
 	return out
@@ -521,14 +515,16 @@ func PatchCoordinatorMetrics(resources []any) []any {
 	return resources
 }
 
-// MapPodSpecWithMeta applies a function to a PodSpec in a Kubernetes resource,
+// MapPodSpecWithEnsuredMeta applies a function to a PodSpec in a Kubernetes resource,
 // and its corresponding object metadata.
-func MapPodSpecWithMeta(
+// If ensureMetaExists is set, it adds the metadata field if it does not exist.
+func MapPodSpecWithEnsuredMeta(
 	resource any,
 	f func(
 		meta *applymetav1.ObjectMetaApplyConfiguration,
 		spec *applycorev1.PodSpecApplyConfiguration,
-	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration),
+	),
+	ensureMetaExists bool,
 ) any {
 	if resource == nil {
 		return nil
@@ -553,7 +549,7 @@ func MapPodSpecWithMeta(
 		podAccessor = (&StatefulSetConfig{r}).PodTemplate()
 	}
 	if podAccessor != nil {
-		meta := podAccessor.GetObjectMeta()
+		meta := podAccessor.GetObjectMeta(ensureMetaExists)
 		spec := podAccessor.GetPodSpec()
 		if meta != nil && spec != nil {
 			f(meta, spec)
@@ -562,14 +558,24 @@ func MapPodSpecWithMeta(
 	return resource
 }
 
+// MapPodSpecWithMeta applies a function to a PodSpec in a Kubernetes resource,
+// and its corresponding object metadata.
+func MapPodSpecWithMeta(
+	resource any,
+	f func(
+		meta *applymetav1.ObjectMetaApplyConfiguration,
+		spec *applycorev1.PodSpecApplyConfiguration,
+	),
+) any {
+	return MapPodSpecWithEnsuredMeta(resource, f, false)
+}
+
 // MapPodSpec applies a function to a PodSpec in a Kubernetes resource.
-func MapPodSpec(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration) any {
+func MapPodSpec(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration)) any {
 	return MapPodSpecWithMeta(
 		resource,
-		func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (
-			*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration,
-		) {
-			return meta, f(spec)
+		func(_ *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) {
+			f(spec)
 		})
 }
 
