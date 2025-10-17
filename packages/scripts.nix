@@ -291,7 +291,7 @@ lib.makeScope pkgs.newScope (scripts: {
     runtimeInputs = with pkgs; [ kubectl ];
     text = ''
       kubectl delete configmap -n default sync-server-fifo || true
-      syncIP=$(kubectl get svc sync -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      syncIP=$(kubectl get svc sync -n default -o=jsonpath='{.status.loadBalancer.ingress[0].ip}')
       fifoUUID=$(curl -fsSL "$syncIP:8080/fifo/new?allow_overrides=true" | jq -r '.uuid')
       kubectl create configmap -n default sync-server-fifo --from-literal=uuid="$fifoUUID"
     '';
@@ -640,9 +640,9 @@ lib.makeScope pkgs.newScope (scripts: {
     ];
     text = ''
       echo "Requesting fifo ticket from sync server" >&2
-      sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      sync_ip=$(kubectl get svc sync -n default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
       echo "Sync server IP: $sync_ip" >&2
-      sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
+      sync_uuid=$(kubectl get configmap sync-server-fifo -n default -o jsonpath='{.data.uuid}')
       echo "Sync fifo UUID: $sync_uuid" >&2
       path="ticket"
       if [[ "$#" -ge 1 ]]; then
@@ -665,9 +665,9 @@ lib.makeScope pkgs.newScope (scripts: {
     text = ''
       ticket=$1
       echo "Releasing fifo ticket $ticket" >&2
-      sync_ip=$(kubectl get svc sync -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+      sync_ip=$(kubectl get svc sync -n default -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
       echo "Sync server IP: $sync_ip" >&2
-      sync_uuid=$(kubectl get configmap sync-server-fifo -o jsonpath='{.data.uuid}')
+      sync_uuid=$(kubectl get configmap sync-server-fifo -n default -o jsonpath='{.data.uuid}')
       echo "Sync fifo UUID: $sync_uuid" >&2
       if ! curl -fsSL "$sync_ip:8080/fifo/$sync_uuid/done/$ticket"; then
         echo "Failed to release fifo $sync_uuid with ticket $ticket" >&2
