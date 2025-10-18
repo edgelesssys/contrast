@@ -24,4 +24,6 @@ spec:
               memory: 100Mi
             requests:
               memory: 100Mi
+      securityContext:
+        fsGroup: 54321
       runtimeClassName: contrast-cc

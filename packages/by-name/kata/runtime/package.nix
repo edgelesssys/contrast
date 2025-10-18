@@ -159,6 +159,11 @@ buildGoModule (finalAttrs: {
       # initdata should be pretty-printed so that the policy is easier to read.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11944.
       ./0022-kata-types-use-pretty-TOML-encoder-for-initdata.patch
+
+      # The pod security context setting fsGroup is not taken into account by genpolicy, causing
+      # policy errors if set.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11935.
+      ./0023-genpolicy-support-fsGroup-setting-in-pod-security-co.patch
     ];
   };
 

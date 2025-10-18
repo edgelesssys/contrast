@@ -1,0 +1,622 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Tue, 14 Oct 2025 17:05:19 +0200
+Subject: [PATCH] genpolicy: support fsGroup setting in pod security context
+
+The runtime handles the fsGroup field of the pod security context by
+adding a mount option to the generated storage object [1]. This commit
+changes genpolicy to expect this option.
+
+Instead of passing another side input to
+yaml::get_container_mounts_and_storages, we pass the entire PodSpec.
+This reduces the necessary changes in the pod-generating resources and
+allows for possible future use of other PodSpec fields.
+
+[1]: https://github.com/kata-containers/kata-containers/blob/0c6fcde1/src/runtime/virtcontainers/kata_agent.go#L1620-L1625
+
+Fixes: #11934
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/tools/genpolicy/src/cronjob.rs            |   2 +-
+ src/tools/genpolicy/src/daemon_set.rs         |   2 +-
+ src/tools/genpolicy/src/deployment.rs         |   2 +-
+ src/tools/genpolicy/src/job.rs                |   2 +-
+ src/tools/genpolicy/src/mount_and_storage.rs  |  10 +-
+ src/tools/genpolicy/src/pod.rs                |   2 +-
+ src/tools/genpolicy/src/replica_set.rs        |   2 +-
+ .../genpolicy/src/replication_controller.rs   |   2 +-
+ src/tools/genpolicy/src/stateful_set.rs       |   2 +-
+ src/tools/genpolicy/src/yaml.rs               |   6 +-
+ src/tools/genpolicy/tests/policy/main.rs      |   6 +
+ .../security_context/fsgroup/pod.yaml         |  17 +
+ .../security_context/fsgroup/testcases.json   | 358 ++++++++++++++++++
+ 13 files changed, 400 insertions(+), 13 deletions(-)
+ create mode 100644 src/tools/genpolicy/tests/policy/testdata/createcontainer/security_context/fsgroup/pod.yaml
+ create mode 100644 src/tools/genpolicy/tests/policy/testdata/createcontainer/security_context/fsgroup/testcases.json
+
+diff --git a/src/tools/genpolicy/src/cronjob.rs b/src/tools/genpolicy/src/cronjob.rs
+index c1e27f5b41da0233ed7dfb7ae3d8a360ca422a25..3c703393c05a21143c8b6d864aa97b9b101a5454 100644
+--- a/src/tools/genpolicy/src/cronjob.rs
++++ b/src/tools/genpolicy/src/cronjob.rs
+@@ -105,7 +105,7 @@ impl yaml::K8sResource for CronJob {
+             storages,
+             container,
+             settings,
+-            &self.spec.jobTemplate.spec.template.spec.volumes,
++            &self.spec.jobTemplate.spec.template.spec,
+         );
+     }
+ 
+diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
+index 9425f236c8a6f23d7861e5931ee69f1065ae8c11..5b0ce5ac440dfed3147238b233a75d41a2ffa1dd 100644
+--- a/src/tools/genpolicy/src/daemon_set.rs
++++ b/src/tools/genpolicy/src/daemon_set.rs
+@@ -103,7 +103,7 @@ impl yaml::K8sResource for DaemonSet {
+             storages,
+             container,
+             settings,
+-            &self.spec.template.spec.volumes,
++            &self.spec.template.spec,
+         );
+     }
+ 
+diff --git a/src/tools/genpolicy/src/deployment.rs b/src/tools/genpolicy/src/deployment.rs
+index 33275e0e153b9d2bbd20664d8f5197637f24f7c7..9047b7e6eb6962f029308a027d3b04999083dc82 100644
+--- a/src/tools/genpolicy/src/deployment.rs
++++ b/src/tools/genpolicy/src/deployment.rs
+@@ -103,7 +103,7 @@ impl yaml::K8sResource for Deployment {
+             storages,
+             container,
+             settings,
+-            &self.spec.template.spec.volumes,
++            &self.spec.template.spec,
+         );
+     }
+ 
+diff --git a/src/tools/genpolicy/src/job.rs b/src/tools/genpolicy/src/job.rs
+index b0c1352529790e8964cb1be59a5b8c0df89ed871..e7c61bee902dfe2f06d2e3f5980b9fa8dc428ffc 100644
+--- a/src/tools/genpolicy/src/job.rs
++++ b/src/tools/genpolicy/src/job.rs
+@@ -74,7 +74,7 @@ impl yaml::K8sResource for Job {
+             storages,
+             container,
+             settings,
+-            &self.spec.template.spec.volumes,
++            &self.spec.template.spec,
+         );
+     }
+ 
+diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
+index 3c0ddd903b3b65b5dba0f75a3dfd8ffdbf7900d3..720c982eba13b13c304deb27ad416f680814ca58 100644
+--- a/src/tools/genpolicy/src/mount_and_storage.rs
++++ b/src/tools/genpolicy/src/mount_and_storage.rs
+@@ -105,6 +105,7 @@ pub fn get_mount_and_storage(
+     storages: &mut Vec<agent::Storage>,
+     yaml_volume: &volume::Volume,
+     yaml_mount: &pod::VolumeMount,
++    pod_security_context: &Option<pod::PodSecurityContext>,
+ ) {
+     debug!(
+         "get_mount_and_storage: adding mount and storage for: {:?}",
+@@ -125,7 +126,7 @@ pub fn get_mount_and_storage(
+             volume = Some(&settings_volumes.emptyDir);
+         }
+ 
+-        get_empty_dir_mount_and_storage(settings, p_mounts, storages, yaml_mount, volume.unwrap());
++        get_empty_dir_mount_and_storage(settings, p_mounts, storages, yaml_mount, volume.unwrap(), pod_security_context);
+     } else if yaml_volume.persistentVolumeClaim.is_some() || yaml_volume.azureFile.is_some() || yaml_volume.ephemeral.is_some() {
+         get_shared_bind_mount(yaml_mount, p_mounts, "rprivate", "rw");
+     } else if yaml_volume.hostPath.is_some() {
+@@ -147,16 +148,21 @@ fn get_empty_dir_mount_and_storage(
+     storages: &mut Vec<agent::Storage>,
+     yaml_mount: &pod::VolumeMount,
+     settings_empty_dir: &settings::EmptyDirVolume,
++    pod_security_context: &Option<pod::PodSecurityContext>,
+ ) {
+     debug!("Settings emptyDir: {:?}", settings_empty_dir);
+ 
+     if yaml_mount.subPathExpr.is_none() {
++        let mut options = settings_empty_dir.options.clone();
++        if let Some(gid) = pod_security_context.as_ref().and_then(|sc| sc.fsGroup) {
++            options.push(format!("fsgid={}", gid));
++        }
+         storages.push(agent::Storage {
+             driver: settings_empty_dir.driver.clone(),
+             driver_options: Vec::new(),
+             source: settings_empty_dir.source.clone(),
+             fstype: settings_empty_dir.fstype.clone(),
+-            options: settings_empty_dir.options.clone(),
++            options,
+             mount_point: format!("{}{}$", &settings_empty_dir.mount_point, &yaml_mount.name),
+             fs_group: protobuf::MessageField::none(),
+             special_fields: ::protobuf::SpecialFields::new(),
+diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
+index 982e341ccd5acc955fe02e0ed71c00db94a2e548..cfd834ca5f24f43d7aba9eba1db2f6e5430c909d 100644
+--- a/src/tools/genpolicy/src/pod.rs
++++ b/src/tools/genpolicy/src/pod.rs
+@@ -876,7 +876,7 @@ impl yaml::K8sResource for Pod {
+             storages,
+             container,
+             settings,
+-            &self.spec.volumes,
++            &self.spec,
+         );
+     }
+ 
+diff --git a/src/tools/genpolicy/src/replica_set.rs b/src/tools/genpolicy/src/replica_set.rs
+index 63c0f58aad25c23ff080f3352b83c0e279d87fb9..62651b985993344ef7e2667f6ed0a64027fe86aa 100644
+--- a/src/tools/genpolicy/src/replica_set.rs
++++ b/src/tools/genpolicy/src/replica_set.rs
+@@ -73,7 +73,7 @@ impl yaml::K8sResource for ReplicaSet {
+             storages,
+             container,
+             settings,
+-            &self.spec.template.spec.volumes,
++            &self.spec.template.spec,
+         );
+     }
+ 
+diff --git a/src/tools/genpolicy/src/replication_controller.rs b/src/tools/genpolicy/src/replication_controller.rs
+index 33bce79e79d272efe31bd5dff540159aafc4ef68..e0a536ffb5cafc75d5b323ebb0886c99b1145b9e 100644
+--- a/src/tools/genpolicy/src/replication_controller.rs
++++ b/src/tools/genpolicy/src/replication_controller.rs
+@@ -76,7 +76,7 @@ impl yaml::K8sResource for ReplicationController {
+             storages,
+             container,
+             settings,
+-            &self.spec.template.spec.volumes,
++            &self.spec.template.spec,
+         );
+     }
+ 
+diff --git a/src/tools/genpolicy/src/stateful_set.rs b/src/tools/genpolicy/src/stateful_set.rs
+index 9a289307a131608da107beb8f853dc0268a6867a..dea8258b0863f151bb66bdda70914a1f5e5b96ca 100644
+--- a/src/tools/genpolicy/src/stateful_set.rs
++++ b/src/tools/genpolicy/src/stateful_set.rs
+@@ -147,7 +147,7 @@ impl yaml::K8sResource for StatefulSet {
+             storages,
+             container,
+             settings,
+-            &self.spec.template.spec.volumes,
++            &self.spec.template.spec,
+         );
+     }
+ 
+diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
+index cc264abb53d62151fa6fa4498a62b4db5c35e6e9..8b4a8c2e5a1a9f66390b5c61784310444d3b30b8 100644
+--- a/src/tools/genpolicy/src/yaml.rs
++++ b/src/tools/genpolicy/src/yaml.rs
+@@ -23,7 +23,6 @@ use crate::secret;
+ use crate::settings;
+ use crate::stateful_set;
+ use crate::utils::Config;
+-use crate::volume;
+ 
+ use async_trait::async_trait;
+ use core::fmt::Debug;
+@@ -290,10 +289,10 @@ pub fn get_container_mounts_and_storages(
+     storages: &mut Vec<agent::Storage>,
+     container: &pod::Container,
+     settings: &settings::Settings,
+-    volumes_option: &Option<Vec<volume::Volume>>,
++    podSpec: &pod::PodSpec,
+ ) {
+     let mut mountPaths = BTreeSet::new();
+-    if let Some(volumes) = volumes_option {
++    if let Some(volumes) = &podSpec.volumes {
+         if let Some(volume_mounts) = &container.volumeMounts {
+             for volume in volumes {
+                 for volume_mount in volume_mounts {
+@@ -304,6 +303,7 @@ pub fn get_container_mounts_and_storages(
+                             storages,
+                             volume,
+                             volume_mount,
++                            &podSpec.securityContext,
+                         );
+                         mountPaths.insert(volume_mount.mountPath.clone());
+                     }
+diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
+index 93615039bcf2c9dd5ef8f4c056ae79f8ac7132dc..c3c3077c4ae1be4fc390eeed4734d4555ebc5e3c 100644
+--- a/src/tools/genpolicy/tests/policy/main.rs
++++ b/src/tools/genpolicy/tests/policy/main.rs
+@@ -295,6 +295,12 @@ mod tests {
+         runtests("createcontainer/security_context/supplemental_groups").await;
+     }
+ 
++    #[tokio::test]
++    async fn test_create_container_security_context_fsgroup() {
++        runtests("createcontainer/security_context/fsgroup").await;
++    }
++
++
+     #[tokio::test]
+     async fn test_create_container_volumes_empty_dir() {
+         runtests("createcontainer/volumes/emptydir").await;
+diff --git a/src/tools/genpolicy/tests/policy/testdata/createcontainer/security_context/fsgroup/pod.yaml b/src/tools/genpolicy/tests/policy/testdata/createcontainer/security_context/fsgroup/pod.yaml
+new file mode 100644
+index 0000000000000000000000000000000000000000..fe76b211e7306fff5c41ed1a8ee916aeb91cba2c
+--- /dev/null
++++ b/src/tools/genpolicy/tests/policy/testdata/createcontainer/security_context/fsgroup/pod.yaml
+@@ -0,0 +1,17 @@
++apiVersion: v1
++kind: Pod
++metadata:
++  name: dummy
++spec:
++  runtimeClassName: kata-cc-isolation
++  securityContext:
++    fsGroup: 1000
++  containers:
++  - name: dummy
++    image: registry.k8s.io/pause:3.6@sha256:3d380ca8864549e74af4b29c10f9cb0956236dfb01c40ca076fb6c37253234db
++    volumeMounts:
++    - name: tmp
++      mountPath: /mnt
++  volumes:
++  - name: tmp
++    emptyDir: {}
+diff --git a/src/tools/genpolicy/tests/policy/testdata/createcontainer/security_context/fsgroup/testcases.json b/src/tools/genpolicy/tests/policy/testdata/createcontainer/security_context/fsgroup/testcases.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..3c6017004abe66e7166148610fa86bb4c269bd94
+--- /dev/null
++++ b/src/tools/genpolicy/tests/policy/testdata/createcontainer/security_context/fsgroup/testcases.json
+@@ -0,0 +1,358 @@
++[
++  {
++    "description": "a pod with PodSecurityContext.fsGroup set should be allowed",
++    "allowed": true,
++    "request": {
++      "type": "CreateContainer",
++      "container_id": "f86ec3cfa9c5e5a732744dbe844033126f0fdd84408df8809d19274b448e255d",
++      "exec_id": "f86ec3cfa9c5e5a732744dbe844033126f0fdd84408df8809d19274b448e255d",
++      "string_user": null,
++      "devices": [],
++      "storages": [
++        {
++          "driver": "image_guest_pull",
++          "driver_options": [
++            "image_guest_pull={\"metadata\":{\"io.katacontainers.pkg.oci.bundle_path\":\"/run/containerd/io.containerd.runtime.v2.task/k8s.io/f86ec3cfa9c5e5a732744dbe844033126f0fdd84408df8809d19274b448e255d\",\"io.katacontainers.pkg.oci.container_type\":\"pod_container\",\"io.kubernetes.cri.container-name\":\"dummy\",\"io.kubernetes.cri.container-type\":\"container\",\"io.kubernetes.cri.image-name\":\"registry.k8s.io/pause@sha256:3d380ca8864549e74af4b29c10f9cb0956236dfb01c40ca076fb6c37253234db\",\"io.kubernetes.cri.sandbox-id\":\"ba77faf442028eb9f3d849acb8ff55f3bc7e35d579dddcfec43fe75de2e7b2da\",\"io.kubernetes.cri.sandbox-name\":\"dummy\",\"io.kubernetes.cri.sandbox-namespace\":\"default\",\"io.kubernetes.cri.sandbox-uid\":\"d52808f4-575a-4036-b767-db84e7dcffee\"}}"
++          ],
++          "source": "registry.k8s.io/pause@sha256:3d380ca8864549e74af4b29c10f9cb0956236dfb01c40ca076fb6c37253234db",
++          "fstype": "overlay",
++          "options": [],
++          "mount_point": "/run/kata-containers/f86ec3cfa9c5e5a732744dbe844033126f0fdd84408df8809d19274b448e255d/rootfs",
++          "fs_group": null
++        },
++        {
++          "driver": "local",
++          "driver_options": [],
++          "source": "local",
++          "fstype": "local",
++          "options": [
++            "mode=0777",
++            "fsgid=1000"
++          ],
++          "mount_point": "/run/kata-containers/shared/containers/ba77faf442028eb9f3d849acb8ff55f3bc7e35d579dddcfec43fe75de2e7b2da/rootfs/local/tmp",
++          "fs_group": null
++        }
++      ],
++      "OCI": {
++        "Version": "1.1.0",
++        "Process": {
++          "Terminal": false,
++          "ConsoleSize": null,
++          "User": {
++            "UID": 65535,
++            "GID": 0,
++            "AdditionalGids": [
++              0,
++              1000
++            ],
++            "Username": ""
++          },
++          "Args": [
++            "/pause"
++          ],
++          "Env": [
++            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
++            "HOSTNAME=dummy",
++            "KUBERNETES_SERVICE_PORT_HTTPS=443",
++            "KUBERNETES_PORT=tcp://10.0.0.1:443",
++            "KUBERNETES_PORT_443_TCP=tcp://10.0.0.1:443",
++            "KUBERNETES_PORT_443_TCP_PROTO=tcp",
++            "KUBERNETES_PORT_443_TCP_PORT=443",
++            "KUBERNETES_PORT_443_TCP_ADDR=10.0.0.1",
++            "KUBERNETES_SERVICE_HOST=10.0.0.1",
++            "KUBERNETES_SERVICE_PORT=443"
++          ],
++          "Cwd": "/",
++          "Capabilities": {
++            "Bounding": [
++              "CAP_CHOWN",
++              "CAP_DAC_OVERRIDE",
++              "CAP_FSETID",
++              "CAP_FOWNER",
++              "CAP_MKNOD",
++              "CAP_NET_RAW",
++              "CAP_SETGID",
++              "CAP_SETUID",
++              "CAP_SETFCAP",
++              "CAP_SETPCAP",
++              "CAP_NET_BIND_SERVICE",
++              "CAP_SYS_CHROOT",
++              "CAP_KILL",
++              "CAP_AUDIT_WRITE"
++            ],
++            "Effective": [
++              "CAP_CHOWN",
++              "CAP_DAC_OVERRIDE",
++              "CAP_FSETID",
++              "CAP_FOWNER",
++              "CAP_MKNOD",
++              "CAP_NET_RAW",
++              "CAP_SETGID",
++              "CAP_SETUID",
++              "CAP_SETFCAP",
++              "CAP_SETPCAP",
++              "CAP_NET_BIND_SERVICE",
++              "CAP_SYS_CHROOT",
++              "CAP_KILL",
++              "CAP_AUDIT_WRITE"
++            ],
++            "Inheritable": [],
++            "Permitted": [
++              "CAP_CHOWN",
++              "CAP_DAC_OVERRIDE",
++              "CAP_FSETID",
++              "CAP_FOWNER",
++              "CAP_MKNOD",
++              "CAP_NET_RAW",
++              "CAP_SETGID",
++              "CAP_SETUID",
++              "CAP_SETFCAP",
++              "CAP_SETPCAP",
++              "CAP_NET_BIND_SERVICE",
++              "CAP_SYS_CHROOT",
++              "CAP_KILL",
++              "CAP_AUDIT_WRITE"
++            ],
++            "Ambient": []
++          },
++          "Rlimits": [],
++          "NoNewPrivileges": false,
++          "ApparmorProfile": "cri-containerd.apparmor.d",
++          "OOMScoreAdj": 1000,
++          "SelinuxLabel": ""
++        },
++        "Root": {
++          "Path": "/run/kata-containers/f86ec3cfa9c5e5a732744dbe844033126f0fdd84408df8809d19274b448e255d/rootfs",
++          "Readonly": false
++        },
++        "Hostname": "",
++        "Mounts": [
++          {
++            "destination": "/proc",
++            "source": "proc",
++            "type_": "proc",
++            "options": [
++              "nosuid",
++              "noexec",
++              "nodev"
++            ]
++          },
++          {
++            "destination": "/dev",
++            "source": "tmpfs",
++            "type_": "tmpfs",
++            "options": [
++              "nosuid",
++              "strictatime",
++              "mode=755",
++              "size=65536k"
++            ]
++          },
++          {
++            "destination": "/dev/pts",
++            "source": "devpts",
++            "type_": "devpts",
++            "options": [
++              "nosuid",
++              "noexec",
++              "newinstance",
++              "ptmxmode=0666",
++              "mode=0620",
++              "gid=5"
++            ]
++          },
++          {
++            "destination": "/dev/mqueue",
++            "source": "mqueue",
++            "type_": "mqueue",
++            "options": [
++              "nosuid",
++              "noexec",
++              "nodev"
++            ]
++          },
++          {
++            "destination": "/sys",
++            "source": "sysfs",
++            "type_": "sysfs",
++            "options": [
++              "nosuid",
++              "noexec",
++              "nodev",
++              "ro"
++            ]
++          },
++          {
++            "destination": "/sys/fs/cgroup",
++            "source": "cgroup",
++            "type_": "cgroup",
++            "options": [
++              "nosuid",
++              "noexec",
++              "nodev",
++              "relatime",
++              "ro"
++            ]
++          },
++          {
++            "destination": "/mnt",
++            "source": "/run/kata-containers/shared/containers/ba77faf442028eb9f3d849acb8ff55f3bc7e35d579dddcfec43fe75de2e7b2da/rootfs/local/tmp",
++            "type_": "local",
++            "options": [
++              "rbind",
++              "rprivate",
++              "rw"
++            ]
++          },
++          {
++            "destination": "/etc/hosts",
++            "source": "/run/kata-containers/shared/containers/f86ec3cfa9c5e5a732744dbe844033126f0fdd84408df8809d19274b448e255d-521df6f0b97ea722-hosts",
++            "type_": "bind",
++            "options": [
++              "rbind",
++              "rprivate",
++              "rw"
++            ]
++          },
++          {
++            "destination": "/dev/termination-log",
++            "source": "/run/kata-containers/shared/containers/f86ec3cfa9c5e5a732744dbe844033126f0fdd84408df8809d19274b448e255d-8b3f5a9bcaeaa4e0-termination-log",
++            "type_": "bind",
++            "options": [
++              "rbind",
++              "rprivate",
++              "rw"
++            ]
++          },
++          {
++            "destination": "/etc/hostname",
++            "source": "/run/kata-containers/shared/containers/f86ec3cfa9c5e5a732744dbe844033126f0fdd84408df8809d19274b448e255d-9f47d09f90943f8a-hostname",
++            "type_": "bind",
++            "options": [
++              "rbind",
++              "rprivate",
++              "rw"
++            ]
++          },
++          {
++            "destination": "/etc/resolv.conf",
++            "source": "/run/kata-containers/shared/containers/f86ec3cfa9c5e5a732744dbe844033126f0fdd84408df8809d19274b448e255d-c9ef6ca2ae90bef8-resolv.conf",
++            "type_": "bind",
++            "options": [
++              "rbind",
++              "rprivate",
++              "rw"
++            ]
++          },
++          {
++            "destination": "/dev/shm",
++            "source": "/run/kata-containers/sandbox/shm",
++            "type_": "bind",
++            "options": [
++              "rbind"
++            ]
++          },
++          {
++            "destination": "/var/run/secrets/kubernetes.io/serviceaccount",
++            "source": "/run/kata-containers/shared/containers/f86ec3cfa9c5e5a732744dbe844033126f0fdd84408df8809d19274b448e255d-aae236b47a43d28a-serviceaccount",
++            "type_": "bind",
++            "options": [
++              "rbind",
++              "rprivate",
++              "ro"
++            ]
++          }
++        ],
++        "Hooks": null,
++        "Annotations": {
++          "io.kubernetes.cri.sandbox-id": "ba77faf442028eb9f3d849acb8ff55f3bc7e35d579dddcfec43fe75de2e7b2da",
++          "io.kubernetes.cri.image-name": "registry.k8s.io/pause@sha256:3d380ca8864549e74af4b29c10f9cb0956236dfb01c40ca076fb6c37253234db",
++          "io.katacontainers.pkg.oci.container_type": "pod_container",
++          "io.kubernetes.cri.sandbox-name": "dummy",
++          "io.kubernetes.cri.container-name": "dummy",
++          "io.kubernetes.cri.container-type": "container",
++          "io.kubernetes.cri.sandbox-uid": "d52808f4-575a-4036-b767-db84e7dcffee",
++          "io.katacontainers.pkg.oci.bundle_path": "/run/containerd/io.containerd.runtime.v2.task/k8s.io/f86ec3cfa9c5e5a732744dbe844033126f0fdd84408df8809d19274b448e255d",
++          "io.kubernetes.cri.sandbox-namespace": "default"
++        },
++        "Linux": {
++          "UIDMappings": [],
++          "GIDMappings": [],
++          "Sysctl": {},
++          "Resources": {
++            "Devices": [],
++            "Memory": {
++              "Limit": 0,
++              "Reservation": 0,
++              "Swap": 0,
++              "Kernel": 0,
++              "KernelTCP": 0,
++              "Swappiness": 0,
++              "DisableOOMKiller": false
++            },
++            "CPU": {
++              "Shares": 2,
++              "Quota": 0,
++              "Period": 100000,
++              "RealtimeRuntime": 0,
++              "RealtimePeriod": 0,
++              "Cpus": "",
++              "Mems": ""
++            },
++            "Pids": null,
++            "BlockIO": null,
++            "HugepageLimits": [],
++            "Network": null
++          },
++          "CgroupsPath": "kubepods-besteffort-podd52808f4_575a_4036_b767_db84e7dcffee.slice:cri-containerd:f86ec3cfa9c5e5a732744dbe844033126f0fdd84408df8809d19274b448e255d",
++          "Namespaces": [
++            {
++              "Type": "ipc",
++              "Path": ""
++            },
++            {
++              "Type": "uts",
++              "Path": ""
++            },
++            {
++              "Type": "mount",
++              "Path": ""
++            }
++          ],
++          "Devices": [],
++          "Seccomp": null,
++          "RootfsPropagation": "",
++          "MaskedPaths": [
++            "/proc/asound",
++            "/proc/acpi",
++            "/proc/kcore",
++            "/proc/keys",
++            "/proc/latency_stats",
++            "/proc/timer_list",
++            "/proc/timer_stats",
++            "/proc/sched_debug",
++            "/proc/scsi",
++            "/sys/firmware",
++            "/sys/devices/virtual/powercap"
++          ],
++          "ReadonlyPaths": [
++            "/proc/bus",
++            "/proc/fs",
++            "/proc/irq",
++            "/proc/sys",
++            "/proc/sysrq-trigger"
++          ],
++          "MountLabel": "",
++          "IntelRdt": null
++        },
++        "Solaris": null,
++        "Windows": null
++      },
++      "sandbox_pidns": false,
++      "shared_mounts": [],
++      "stdin_port": 0,
++      "stdout_port": 0,
++      "stderr_port": 0
++    }
++  }
++]
