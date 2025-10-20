@@ -69,6 +69,7 @@ jobs:
       snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
       snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
+      snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
     permissions:
       contents: read
     strategy:
@@ -76,39 +77,18 @@ jobs:
         platform:
           - name: Metal-QEMU-SNP
             runner: SNP
-            self-hosted: true
           - name: Metal-QEMU-TDX
             runner: TDX
-            self-hosted: true
           - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
-            self-hosted: true
+          - name: Metal-QEMU-SNP-DEV
+            runner: DEV
       fail-fast: false
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: ./.github/actions/setup_nix
-        if: (!matrix.platform.self-hosted)
-        with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
-          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
-      - name: Login to Azure
-        if: (!matrix.platform.self-hosted)
-        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
-        with:
-          creds: ${{ secrets.CONTRAST_CI_INFRA_AZURE }}
-      - name: Create justfile.env
-        if: (!matrix.platform.self-hosted)
-        run: |
-          cat <<EOF > justfile.env
-          default_platform=${{ matrix.platform.name }}
-          EOF
-      - name: Get credentials for CI cluster
-        if: (!matrix.platform.self-hosted)
-        run: |
-          just get-credentials
       - name: Update sync fifo for GPU platform
         if: ${{ matrix.platform.name == 'Metal-QEMU-SNP-GPU' }}
         run: |
@@ -133,6 +113,7 @@ jobs:
       snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
       snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
+      snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
     strategy:
       matrix:
         platform:
@@ -142,6 +123,8 @@ jobs:
             runner: TDX
           - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
+          - name: Metal-QEMU-SNP-DEV
+            runner: DEV
       fail-fast: false
     permissions:
       contents: read
@@ -149,6 +132,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Apply resources
         env:
           IMAGE: ${{ needs.build-image.outputs.image }}
@@ -175,6 +159,7 @@ jobs:
       snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
       snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
+      snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
     strategy:
       matrix:
         platform:
@@ -184,6 +169,8 @@ jobs:
             runner: TDX
           - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
+          - name: Metal-QEMU-SNP-DEV
+            runner: DEV
       fail-fast: false
     permissions:
       contents: read
@@ -191,6 +178,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Apply resources
         env:
           IMAGE: ${{ needs.build-image.outputs.image }}
@@ -216,6 +204,7 @@ jobs:
       snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
       snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
+      snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
     strategy:
       matrix:
         platform:
@@ -225,6 +214,8 @@ jobs:
             runner: TDX
           - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
+          - name: Metal-QEMU-SNP-DEV
+            runner: DEV
       fail-fast: false
     permissions:
       contents: read
@@ -232,6 +223,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
+      - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Apply resources
         env:
           IMAGE: ${{ needs.build-image.outputs.image }}
@@ -266,15 +258,19 @@ jobs:
           UPDATE_RESOURCES_SNP: ${{ needs.update-resources.outputs.snp }}
           UPDATE_RESOURCES_TDX: ${{ needs.update-resources.outputs.tdx }}
           UPDATE_RESOURCES_SNP_GPU: ${{ needs.update-resources.outputs.snp-gpu }}
+          UPDATE_RESOURCES_SNP_DEV: ${{ needs.update-resources.outputs.snp-dev }}
           CLEANUP_SNP: ${{ needs.cleanup.outputs.snp }}
           CLEANUP_TDX: ${{ needs.cleanup.outputs.tdx }}
           CLEANUP_SNP_GPU: ${{ needs.cleanup.outputs.snp-gpu }}
+          CLEANUP_SNP_DEV: ${{ needs.cleanup.outputs.snp-dev }}
           CLEANUP_CONTAINERD_SNP: ${{ needs.cleanup-containerd.outputs.snp }}
           CLEANUP_CONTAINERD_TDX: ${{ needs.cleanup-containerd.outputs.tdx }}
           CLEANUP_CONTAINERD_SNP_GPU: ${{ needs.cleanup-containerd.outputs.snp-gpu  }}
+          CLEANUP_CONTAINERD_SNP_DEV: ${{ needs.cleanup-containerd.outputs.snp-dev  }}
           NIX_GC_SNP: ${{ needs.nix-gc.outputs.snp }}
           NIX_GC_TDX: ${{ needs.nix-gc.outputs.tdx }}
           NIX_GC_SNP_GPU: ${{ needs.nix-gc.outputs.snp-gpu }}
+          NIX_GC_SNP_DEV: ${{ needs.nix-gc.outputs.snp-dev }}
           IMAGE_BUILD_RESULT: ${{ needs.build-image.outputs.image }}
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
         run: |
@@ -283,7 +279,7 @@ jobs:
             exit 0
           fi
 
-          declare -a entries snp tdx snp_gpu
+          declare -a entries snp tdx snp_gpu snp_dev
 
           [[ "${UPDATE_RESOURCES_SNP}" != "success" ]] && snp+=("update-resources")
           [[ "${CLEANUP_SNP}" != "success" ]] && snp+=("cleanup")
@@ -297,10 +293,15 @@ jobs:
           [[ "${CLEANUP_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup")
           [[ "${NIX_GC_SNP_GPU}" != "success" ]] && snp_gpu+=("nix-gc")
 
+          [[ "${UPDATE_RESOURCES_SNP_DEV}" != "success" ]] && snp_dev+=("update-resources")
+          [[ "${CLEANUP_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup")
+          [[ "${NIX_GC_SNP_DEV}" != "success" ]] && snp_dev+=("nix-gc")
+
           if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 2 * * 4" ]]; then
             [[ "${CLEANUP_CONTAINERD_SNP}" != "success" ]] && snp+=("cleanup-containerd")
             [[ "${CLEANUP_CONTAINERD_TDX}" != "success" ]] && tdx+=("cleanup-containerd")
             [[ "${CLEANUP_CONTAINERD_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup-containerd")
+            [[ "${CLEANUP_CONTAINERD_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup-containerd")
           fi
 
           if [[ "${#snp[@]}" -gt 0 ]]; then
@@ -312,6 +313,10 @@ jobs:
 
           if [[ "${#snp_gpu[@]}" -gt 0 ]]; then
             entries+=("{\"title\": \"Metal-QEMU-SNP-GPU\", \"value\": \"$(str="${snp_gpu[*]}"; echo "${str// /, }")\"}")
+          fi
+
+          if [[ "${#snp_dev[@]}" -gt 0 ]]; then
+            entries+=("{\"title\": \"Metal-QEMU-SNP-DEV\", \"value\": \"$(str="${snp_dev[*]}"; echo "${str// /, }")\"}")
           fi
 
           if [[ "${#entries[@]}" -eq 0 ]]; then
