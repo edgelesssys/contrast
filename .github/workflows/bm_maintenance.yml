@@ -13,8 +13,8 @@ on:
       - ".github/workflows/bm_maintenance.yml"
       - "tools/bm-maintenance/**"
   schedule:
-    - cron: "0 2 * * 0,1,2,3,5,6" # 2 AM every day except Friday
-    - cron: "0 2 * * 4" # 2 AM on Friday
+    - cron: "0 2 * * 0,1,2,3,4,6" # 2 AM every day except Friday
+    - cron: "0 2 * * 5" # 2 AM on Friday
 
 env:
   container_registry: ghcr.io/edgelesssys
@@ -154,7 +154,7 @@ jobs:
     name: "Cleanup Containerd ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
     needs: build-image
-    if: inputs.containerd || github.event.schedule == '0 2 * * 4' # only run on Fridays or if containerd is enabled
+    if: inputs.containerd || github.event.schedule == '0 2 * * 5' # only run on Fridays or if containerd is enabled
     outputs:
       snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
@@ -297,7 +297,7 @@ jobs:
           [[ "${CLEANUP_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup")
           [[ "${NIX_GC_SNP_DEV}" != "success" ]] && snp_dev+=("nix-gc")
 
-          if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 2 * * 4" ]]; then
+          if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 2 * * 5" ]]; then
             [[ "${CLEANUP_CONTAINERD_SNP}" != "success" ]] && snp+=("cleanup-containerd")
             [[ "${CLEANUP_CONTAINERD_TDX}" != "success" ]] && tdx+=("cleanup-containerd")
             [[ "${CLEANUP_CONTAINERD_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup-containerd")
