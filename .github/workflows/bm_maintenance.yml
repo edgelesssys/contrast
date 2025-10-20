@@ -274,7 +274,7 @@ jobs:
           IMAGE_BUILD_RESULT: ${{ needs.build-image.outputs.image }}
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
         run: |
-          if [[ "${IMAGE_BUILD_RESULT}" == "failure" ]]; then
+          if [[ -z "${IMAGE_BUILD_RESULT}" ]]; then
             echo 'json=[{"title": "Job ID", "value": "build-image"}]' >> "$GITHUB_OUTPUT"
             exit 0
           fi
