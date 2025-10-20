@@ -4,7 +4,6 @@
 package service
 
 import (
-	"errors"
 	"io"
 
 	r "github.com/edgelesssys/contrast/imagepuller/internal/remote"
@@ -17,29 +16,17 @@ import (
 )
 
 type stubStore struct {
-	putLayerDigest  digest.Digest
-	putLayerErr     error
-	putLayerCount   int
-	lookupID        string
-	lookupSucceeded bool
+	putLayerDigest digest.Digest
+	putLayerErr    error
 
 	storage.Store
 }
 
 func (s *stubStore) PutLayer(_, _ string, _ []string, _ string, _ bool, _ *storage.LayerOptions, _ io.Reader) (*storage.Layer, int64, error) {
-	s.putLayerCount++
 	if s.putLayerErr != nil {
 		return nil, 0, s.putLayerErr
 	}
 	return &storage.Layer{CompressedDigest: s.putLayerDigest}, 0, nil
-}
-
-func (s *stubStore) Lookup(_ string) (string, error) {
-	if s.lookupID != "" {
-		s.lookupSucceeded = true
-		return s.lookupID, nil
-	}
-	return "", errors.New("by default, return a unique error")
 }
 
 type stubRemote struct {

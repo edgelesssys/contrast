@@ -89,11 +89,18 @@ func (s *ImagePullerService) PullImage(ctx context.Context, r *api.ImagePullRequ
 	}
 	log.Info("Verified and put in store layers")
 
-	newImg, err := s.Store.CreateImage("", []string{r.ImageUrl}, finalLayer, "", nil)
+	newImg, err := s.Store.CreateImage("", nil, finalLayer, "", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating image: %w", err)
 	}
 	log.Info("Created image", "id", newImg.ID)
+
+	if err := s.Store.RemoveNames(newImg.ID, newImg.Names); err != nil {
+		return nil, fmt.Errorf("removing pre-existing image names: %w", err)
+	}
+	if err := s.Store.AddNames(newImg.ID, []string{r.ImageUrl}); err != nil {
+		return nil, fmt.Errorf("adding image url as image name: %w", err)
+	}
 
 	rootfs, err := s.createAndMountContainer(log, newImg.ID, r.BundlePath)
 	if err != nil {
