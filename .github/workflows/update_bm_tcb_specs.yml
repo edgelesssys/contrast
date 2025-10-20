@@ -21,6 +21,7 @@ jobs:
       snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
       snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
+      snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
     strategy:
       matrix:
         platform:
@@ -30,6 +31,8 @@ jobs:
             runner: TDX
           - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
+          - name: Metal-QEMU-SNP-DEV
+            runner: DEV
       fail-fast: false
     permissions:
       contents: read
@@ -60,11 +63,13 @@ jobs:
           SNP: ${{ needs.update-bm-specs.outputs.snp }}
           TDX: ${{ needs.update-bm-specs.outputs.tdx }}
           SNP_GPU: ${{ needs.update-bm-specs.outputs.snp-gpu }}
+          SNP_DEV: ${{ needs.update-bm-specs.outputs.snp-dev }}
         run: |
           platforms=()
           [[ "${SNP}" == "success" ]] && platforms+=("Metal-QEMU-SNP")
           [[ "${TDX}" == "success" ]] && platforms+=("Metal-QEMU-TDX")
           [[ "${SNP_GPU}" == "success" ]] && platforms+=("Metal-QEMU-SNP-GPU")
+          [[ "${DEV}" == "success" ]] && platforms+=("Metal-QEMU-SNP-DEV")
           echo "json=[{\"title\": \"Platforms\", \"value\": \"${platforms[*]}\"}]" >> "$GITHUB_OUTPUT"
       - uses: ./.github/actions/post_to_teams
         with:
