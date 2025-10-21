@@ -49,6 +49,9 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 		var workloadSecretID string
 		var role manifest.Role
 		kuberesource.MapPodSpecWithMeta(objAny, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+			if meta == nil {
+				return meta, spec
+			}
 			annotation = meta.Annotations[initdata.InitdataAnnotationKey]
 			role = manifest.Role(meta.Annotations[contrastRoleAnnotationKey])
 			workloadSecretID = meta.Annotations[workloadSecretIDAnnotationKey]

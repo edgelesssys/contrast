@@ -21,6 +21,9 @@ func (v *ServiceMeshEgressNotEmpty) Verify(toVerify any) error {
 	var findings error
 
 	kuberesource.MapPodSpecWithMeta(toVerify, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+		if meta == nil {
+			return meta, spec
+		}
 		for k, v := range meta.Annotations {
 			if k != "contrast.edgeless.systems/servicemesh-egress" {
 				continue

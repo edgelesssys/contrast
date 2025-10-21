@@ -25,7 +25,7 @@ func (v *ImageRefValid) Verify(toVerify any) error {
 	kuberesource.MapPodSpec(toVerify, func(
 		spec *applycorev1.PodSpecApplyConfiguration,
 	) *applycorev1.PodSpecApplyConfiguration {
-		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
 			return spec
 		}
 
