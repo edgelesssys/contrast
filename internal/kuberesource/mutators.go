@@ -41,13 +41,13 @@ func AddInitializer(
 	initializer *applycorev1.ContainerApplyConfiguration,
 ) (res any, retErr error) {
 	res = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-		if meta.Annotations[skipInitializerAnnotationKey] == "true" {
+		if meta != nil && meta.Annotations[skipInitializerAnnotationKey] == "true" {
 			return meta, spec
 		}
-		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
 			return meta, spec
 		}
-		if meta.Annotations[securePVAnnotationKey] != "" {
+		if meta != nil && meta.Annotations[securePVAnnotationKey] != "" {
 			securePVValues := strings.Split(meta.Annotations[securePVAnnotationKey], ":")
 			if len(securePVValues) != 2 {
 				retErr = fmt.Errorf("secure PV annotation has to be in the format 'device-name:mount-name'")
@@ -167,7 +167,7 @@ func AddServiceMesh(
 	serviceMeshProxy *applycorev1.ContainerApplyConfiguration,
 ) (res any, retErr error) {
 	res = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
 			return meta, spec
 		}
 
@@ -288,7 +288,7 @@ func AddDmesg(resources []any) []any {
 			WithPrivileged(true).SecurityContextApplyConfiguration)
 
 	addDmesg := func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
 			return spec
 		}
 		spec.Containers = append(spec.Containers, *dmesgContainer)
@@ -345,7 +345,7 @@ func AddImageStore(resources []any) []any {
 
 	addPvc := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration,
 	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if meta == nil || spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
 			return meta, spec
 		}
 
@@ -431,6 +431,9 @@ func PatchImages(resources []any, replacements map[string]string) []any {
 	var out []any
 	for _, resource := range resources {
 		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+			if spec == nil {
+				return spec
+			}
 			for i := range len(spec.InitContainers) {
 				if spec.InitContainers[i].Image != nil {
 					if replacement, ok := replacements[*spec.InitContainers[i].Image]; ok {
@@ -456,7 +459,9 @@ func PatchRuntimeHandlers(resources []any, runtimeHandler string) []any {
 	var out []any
 	for _, resource := range resources {
 		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-			spec.RuntimeClassName = &runtimeHandler
+			if spec != nil {
+				spec.RuntimeClassName = &runtimeHandler
+			}
 			return spec
 		}))
 	}
@@ -536,28 +541,28 @@ func MapPodSpecWithMeta(
 	var podAccessor PodSpecAccessor
 	switch r := resource.(type) {
 	case *applybatchv1.CronJobApplyConfiguration:
-		podAccessor = (&CronJobConfig{r}).PodTemplate()
+		podAccessor = (&CronJobConfig{r}).PodSpecAccessor()
 	case *applyappsv1.DaemonSetApplyConfiguration:
-		podAccessor = (&DaemonSetConfig{r}).PodTemplate()
+		podAccessor = (&DaemonSetConfig{r}).PodSpecAccessor()
 	case *applyappsv1.DeploymentApplyConfiguration:
-		podAccessor = (&DeploymentConfig{r}).PodTemplate()
+		podAccessor = (&DeploymentConfig{r}).PodSpecAccessor()
 	case *applybatchv1.JobApplyConfiguration:
-		podAccessor = (&JobConfig{r}).PodTemplate()
+		podAccessor = (&JobConfig{r}).PodSpecAccessor()
 	case *applycorev1.PodApplyConfiguration:
 		podAccessor = &PodConfig{r}
 	case *applyappsv1.ReplicaSetApplyConfiguration:
-		podAccessor = (&ReplicaSetConfig{r}).PodTemplate()
+		podAccessor = (&ReplicaSetConfig{r}).PodSpecAccessor()
 	case *applycorev1.ReplicationControllerApplyConfiguration:
-		podAccessor = (&ReplicationControllerConfig{r}).PodTemplate()
+		podAccessor = (&ReplicationControllerConfig{r}).PodSpecAccessor()
 	case *applyappsv1.StatefulSetApplyConfiguration:
-		podAccessor = (&StatefulSetConfig{r}).PodTemplate()
+		podAccessor = (&StatefulSetConfig{r}).PodSpecAccessor()
 	}
 	if podAccessor != nil {
 		meta := podAccessor.GetObjectMeta()
 		spec := podAccessor.GetPodSpec()
-		if meta != nil && spec != nil {
-			f(meta, spec)
-		}
+		newMeta, newSpec := f(meta, spec)
+		podAccessor.SetObjectMeta(newMeta)
+		podAccessor.SetPodSpec(newSpec)
 	}
 	return resource
 }
@@ -574,6 +579,9 @@ func MapPodSpec(resource any, f func(spec *applycorev1.PodSpecApplyConfiguration
 }
 
 func needsServiceMesh(meta *applymetav1.ObjectMetaApplyConfiguration) bool {
+	if meta == nil {
+		return false
+	}
 	_, ingressOk := meta.Annotations[smIngressConfigAnnotationKey]
 	_, egressOk := meta.Annotations[smEgressConfigAnnotationKey]
 	_, portOk := meta.Annotations[smAdminInterfaceAnnotationKey]
