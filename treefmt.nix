@@ -16,6 +16,7 @@
     };
     just.enable = true;
     keep-sorted.enable = true;
+    nixf-diagnose.enable = true;
     nixfmt.enable = true;
     shellcheck.enable = true;
     shfmt.enable = true;
