@@ -459,7 +459,7 @@ func injectServiceMesh(resources []any) error {
 
 func runtimeClassNamePatcher(handler string) func(*applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
 	return func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		if spec.RuntimeClassName == nil || *spec.RuntimeClassName == handler {
+		if spec == nil || spec.RuntimeClassName == nil || *spec.RuntimeClassName == handler {
 			return spec
 		}
 

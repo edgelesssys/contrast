@@ -34,12 +34,16 @@ func (v *VersionsMatch) Verify(toVerify any) error {
 		meta *applymetav1.ObjectMetaApplyConfiguration,
 		spec *applycorev1.PodSpecApplyConfiguration,
 	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-		if spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
 			return meta, spec
 		}
 
+		var podRole string
+		if meta != nil && meta.Annotations != nil {
+			podRole = meta.Annotations["contrast.edgeless.systems/pod-role"]
+		}
 		for _, container := range spec.Containers {
-			if !needsImageVersionCheck(*container.Name, meta.Annotations["contrast.edgeless.systems/pod-role"]) {
+			if !needsImageVersionCheck(*container.Name, podRole) {
 				continue
 			}
 			if container.Image == nil || *container.Image == "" {

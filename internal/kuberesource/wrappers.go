@@ -18,7 +18,9 @@ import (
 // PodSpecAccessor is an interface for Kubernetes resources that have a PodSpec with corresponding ObjectMeta.
 type PodSpecAccessor interface {
 	GetObjectMeta() *applymetav1.ObjectMetaApplyConfiguration
+	SetObjectMeta(*applymetav1.ObjectMetaApplyConfiguration)
 	GetPodSpec() *applycorev1.PodSpecApplyConfiguration
+	SetPodSpec(*applycorev1.PodSpecApplyConfiguration)
 }
 
 // PodTemplate wraps applycorev1.PodTemplateSpecApplyConfiguration.
@@ -28,10 +30,18 @@ type PodTemplate struct {
 
 // GetObjectMeta returns the ObjectMeta of the Pod template.
 func (t *PodTemplate) GetObjectMeta() *applymetav1.ObjectMetaApplyConfiguration {
-	if t.PodTemplateSpecApplyConfiguration != nil && t.ObjectMetaApplyConfiguration != nil {
+	if t.PodTemplateSpecApplyConfiguration != nil {
 		return t.ObjectMetaApplyConfiguration
 	}
-	return &applymetav1.ObjectMetaApplyConfiguration{}
+	return nil
+}
+
+// SetObjectMeta sets the ObjectMeta of the Pod template.
+func (t *PodTemplate) SetObjectMeta(meta *applymetav1.ObjectMetaApplyConfiguration) {
+	if t.PodTemplateSpecApplyConfiguration == nil {
+		t.PodTemplateSpecApplyConfiguration = &applycorev1.PodTemplateSpecApplyConfiguration{}
+	}
+	t.ObjectMetaApplyConfiguration = meta
 }
 
 // GetPodSpec returns the PodSpec of the Pod template.
@@ -39,7 +49,15 @@ func (t *PodTemplate) GetPodSpec() *applycorev1.PodSpecApplyConfiguration {
 	if t.PodTemplateSpecApplyConfiguration != nil && t.Spec != nil {
 		return t.Spec
 	}
-	return &applycorev1.PodSpecApplyConfiguration{}
+	return nil
+}
+
+// SetPodSpec sets the PodSpec of the Pod template.
+func (t *PodTemplate) SetPodSpec(spec *applycorev1.PodSpecApplyConfiguration) {
+	if t.PodTemplateSpecApplyConfiguration == nil {
+		t.PodTemplateSpecApplyConfiguration = &applycorev1.PodTemplateSpecApplyConfiguration{}
+	}
+	t.Spec = spec
 }
 
 // DeploymentConfig wraps applyappsv1.DeploymentApplyConfiguration.
@@ -56,12 +74,12 @@ func Deployment(name, namespace string) *DeploymentConfig {
 	return &DeploymentConfig{d}
 }
 
-// PodTemplate returns the PodTemplate of the Deployment.
-func (c *DeploymentConfig) PodTemplate() *PodTemplate {
+// PodSpecAccessor returns the PodTemplate of the Deployment.
+func (c *DeploymentConfig) PodSpecAccessor() PodSpecAccessor {
 	if c.Spec != nil && c.Spec.Template != nil {
 		return &PodTemplate{c.Spec.Template}
 	}
-	return &PodTemplate{&applycorev1.PodTemplateSpecApplyConfiguration{}}
+	return nil
 }
 
 // DeploymentSpecConfig wraps applyappsv1.DeploymentSpecApplyConfiguration.
@@ -88,12 +106,12 @@ func DaemonSet(name, namespace string) *DaemonSetConfig {
 	return &DaemonSetConfig{d}
 }
 
-// PodTemplate returns the PodTemplate of the DaemonSet.
-func (c *DaemonSetConfig) PodTemplate() *PodTemplate {
+// PodSpecAccessor returns the PodTemplate of the DaemonSet.
+func (c *DaemonSetConfig) PodSpecAccessor() PodSpecAccessor {
 	if c.Spec != nil && c.Spec.Template != nil {
 		return &PodTemplate{c.Spec.Template}
 	}
-	return &PodTemplate{&applycorev1.PodTemplateSpecApplyConfiguration{}}
+	return nil
 }
 
 // DaemonSetSpecConfig wraps applyappsv1.DaemonSetSpecApplyConfiguration.
@@ -120,12 +138,12 @@ func StatefulSet(name, namespace string) *StatefulSetConfig {
 	return &StatefulSetConfig{s}
 }
 
-// PodTemplate returns the PodTemplate of the StatefulSet.
-func (c *StatefulSetConfig) PodTemplate() *PodTemplate {
+// PodSpecAccessor returns the PodTemplate of the StatefulSet.
+func (c *StatefulSetConfig) PodSpecAccessor() PodSpecAccessor {
 	if c.Spec != nil && c.Spec.Template != nil {
 		return &PodTemplate{c.Spec.Template}
 	}
-	return &PodTemplate{&applycorev1.PodTemplateSpecApplyConfiguration{}}
+	return nil
 }
 
 // StatefulSetSpecConfig wraps applyappsv1.StatefulSetSpecApplyConfiguration.
@@ -154,10 +172,18 @@ func Pod(name, namespace string) *PodConfig {
 
 // GetObjectMeta returns the ObjectMeta of the Pod.
 func (c *PodConfig) GetObjectMeta() *applymetav1.ObjectMetaApplyConfiguration {
-	if c.PodApplyConfiguration != nil && c.ObjectMetaApplyConfiguration != nil {
+	if c.PodApplyConfiguration != nil {
 		return c.ObjectMetaApplyConfiguration
 	}
-	return &applymetav1.ObjectMetaApplyConfiguration{}
+	return nil
+}
+
+// SetObjectMeta sets the ObjectMeta of the Pod.
+func (c *PodConfig) SetObjectMeta(meta *applymetav1.ObjectMetaApplyConfiguration) {
+	if c.PodApplyConfiguration == nil {
+		c.PodApplyConfiguration = &applycorev1.PodApplyConfiguration{}
+	}
+	c.ObjectMetaApplyConfiguration = meta
 }
 
 // GetPodSpec returns the PodSpec of the Pod.
@@ -165,7 +191,15 @@ func (c *PodConfig) GetPodSpec() *applycorev1.PodSpecApplyConfiguration {
 	if c.PodApplyConfiguration != nil && c.Spec != nil {
 		return c.Spec
 	}
-	return &applycorev1.PodSpecApplyConfiguration{}
+	return nil
+}
+
+// SetPodSpec sets the PodSpec of the Pod.
+func (c *PodConfig) SetPodSpec(spec *applycorev1.PodSpecApplyConfiguration) {
+	if c.PodApplyConfiguration == nil {
+		c.PodApplyConfiguration = &applycorev1.PodApplyConfiguration{}
+	}
+	c.Spec = spec
 }
 
 // CronJobConfig wraps applybatchv1.CronJobApplyConfiguration.
@@ -173,15 +207,15 @@ type CronJobConfig struct {
 	*applybatchv1.CronJobApplyConfiguration
 }
 
-// PodTemplate returns the PodTemplate of the CronJob.
-func (c *CronJobConfig) PodTemplate() *PodTemplate {
+// PodSpecAccessor returns the PodTemplate of the CronJob.
+func (c *CronJobConfig) PodSpecAccessor() PodSpecAccessor {
 	if c.Spec != nil &&
 		c.Spec.JobTemplate != nil &&
 		c.Spec.JobTemplate.Spec != nil &&
 		c.Spec.JobTemplate.Spec.Template != nil {
 		return &PodTemplate{c.Spec.JobTemplate.Spec.Template}
 	}
-	return &PodTemplate{&applycorev1.PodTemplateSpecApplyConfiguration{}}
+	return nil
 }
 
 // JobConfig wraps applybatchv1.CronJobApplyConfiguration.
@@ -189,12 +223,12 @@ type JobConfig struct {
 	*applybatchv1.JobApplyConfiguration
 }
 
-// PodTemplate returns the PodTemplate of the Job.
-func (c *JobConfig) PodTemplate() *PodTemplate {
+// PodSpecAccessor returns the PodTemplate of the Job.
+func (c *JobConfig) PodSpecAccessor() PodSpecAccessor {
 	if c.Spec != nil && c.Spec.Template != nil {
 		return &PodTemplate{c.Spec.Template}
 	}
-	return &PodTemplate{&applycorev1.PodTemplateSpecApplyConfiguration{}}
+	return nil
 }
 
 // ReplicaSetConfig wraps applyappsv1.ReplicaSetApplyConfiguration.
@@ -202,12 +236,12 @@ type ReplicaSetConfig struct {
 	*applyappsv1.ReplicaSetApplyConfiguration
 }
 
-// PodTemplate returns the PodTemplate of the ReplicaSet.
-func (c *ReplicaSetConfig) PodTemplate() *PodTemplate {
+// PodSpecAccessor returns the PodTemplate of the ReplicaSet.
+func (c *ReplicaSetConfig) PodSpecAccessor() PodSpecAccessor {
 	if c.Spec != nil && c.Spec.Template != nil {
 		return &PodTemplate{c.Spec.Template}
 	}
-	return &PodTemplate{&applycorev1.PodTemplateSpecApplyConfiguration{}}
+	return nil
 }
 
 // ReplicationControllerConfig wraps applycorev1.ReplicationControllerApplyConfiguration.
@@ -215,12 +249,12 @@ type ReplicationControllerConfig struct {
 	*applycorev1.ReplicationControllerApplyConfiguration
 }
 
-// PodTemplate returns the PodTemplate of the ReplicationController.
-func (c *ReplicationControllerConfig) PodTemplate() *PodTemplate {
+// PodSpecAccessor returns the PodTemplate of the ReplicationController.
+func (c *ReplicationControllerConfig) PodSpecAccessor() PodSpecAccessor {
 	if c.Spec != nil && c.Spec.Template != nil {
 		return &PodTemplate{c.Spec.Template}
 	}
-	return &PodTemplate{&applycorev1.PodTemplateSpecApplyConfiguration{}}
+	return nil
 }
 
 // LabelSelectorConfig wraps applymetav1.LabelSelectorApplyConfiguration.
