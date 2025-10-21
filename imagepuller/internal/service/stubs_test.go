@@ -7,13 +7,13 @@ import (
 	"errors"
 	"io"
 
-	"github.com/containers/storage"
 	r "github.com/edgelesssys/contrast/imagepuller/internal/remote"
 	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/opencontainers/go-digest"
+	"go.podman.io/storage"
 )
 
 type stubStore struct {

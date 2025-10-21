@@ -16,11 +16,11 @@ import (
 	"time"
 
 	"github.com/containerd/ttrpc"
-	"github.com/containers/storage/pkg/reexec"
 	"github.com/edgelesssys/contrast/imagepuller/internal/api"
 	"github.com/edgelesssys/contrast/imagepuller/internal/remote"
 	"github.com/edgelesssys/contrast/imagepuller/internal/service"
 	"github.com/spf13/cobra"
+	"go.podman.io/storage/pkg/reexec"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -10,12 +10,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/storage"
-	"github.com/containers/storage/types"
 	"github.com/edgelesssys/contrast/imagepuller/internal/api"
 	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
 	gcrRemote "github.com/google/go-containerregistry/pkg/v1/remote"
+	"go.podman.io/storage"
+	"go.podman.io/storage/types"
 )
 
 // Remote allows stubbing remote calls.
