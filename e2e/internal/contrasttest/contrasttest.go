@@ -44,6 +44,7 @@ type testFlags struct {
 	NamespaceFile               string
 	NamespaceSuffix             string
 	NodeInstallerTargetConfType string
+	SyncTicketFile              string
 }
 
 // RegisterFlags registers the flags that are shared between all tests.
@@ -53,6 +54,7 @@ func RegisterFlags() {
 	flag.StringVar(&Flags.NamespaceSuffix, "namespace-suffix", "", "suffix to append to the namespace")
 	flag.StringVar(&Flags.PlatformStr, "platform", "", "Deployment platform")
 	flag.StringVar(&Flags.NodeInstallerTargetConfType, "node-installer-target-conf-type", "", "Type of node installer target configuration to generate (k3s,...)")
+	flag.StringVar(&Flags.SyncTicketFile, "sync-ticket-file", "", "file that contains the sync ticket")
 }
 
 // ContrastTest is the Contrast test helper struct.
@@ -105,14 +107,25 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	require.NoError(err, "Parsing image replacements from %s failed", ct.ImageReplacementsFile)
 
 	// Create namespace
-	namespace, err := kuberesource.ResourcesToUnstructured([]any{kuberesource.Namespace(ct.Namespace)})
+	namespace := kuberesource.Namespace(ct.Namespace)
+
+	// Add sync ticket label if provided
+	if ticket, err := os.ReadFile(Flags.SyncTicketFile); err == nil {
+		namespace.WithLabels(map[string]string{
+			"contrast.edgeless.systems/sync-ticket": strings.TrimSpace(string(ticket)),
+		})
+	} else {
+		require.ErrorIs(err, os.ErrNotExist, "Reading sync ticket from %s failed", Flags.SyncTicketFile)
+	}
+
+	namespaceUnstr, err := kuberesource.ResourcesToUnstructured([]any{namespace})
 	require.NoError(err)
 	if ct.NamespaceFile != "" {
 		require.NoError(os.WriteFile(ct.NamespaceFile, []byte(ct.Namespace), 0o644))
 	}
 	// Creating a namespace should not take too long.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
-	err = ct.Kubeclient.Apply(ctx, namespace...)
+	err = ct.Kubeclient.Apply(ctx, namespaceUnstr...)
 	cancel()
 	require.NoError(err)
 
