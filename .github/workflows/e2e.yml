@@ -85,7 +85,8 @@ jobs:
             --namespace-file workspace/e2e.namespace \
             --platform "${PLATFORM}" \
             --node-installer-target-conf-type "${NODE_INSTALLER_TARGET_CONF_TYPE}" \
-            --namespace-suffix="-ci"
+            --namespace-suffix="-ci" \
+            --sync-ticket-file workspace/just.sync-ticket
       - name: Download logs
         if: always()
         run: |
