@@ -20,7 +20,7 @@ mkYarnPackage rec {
   packageJSON = "${src}/package.json";
   offlineCache = fetchYarnDeps {
     yarnLock = "${src}/yarn.lock ";
-    hash = "sha256-xIYJ9flzev+xFV71fEG5ilSYhUnaEI+lHUzdufy64es=";
+    hash = "sha256-+zmlNDWOvak0OR4Jt1ReU0SfHebF4ZNUwUlaHPS4YHg=";
   };
 
   configurePhase = ''
