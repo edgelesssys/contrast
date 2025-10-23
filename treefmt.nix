@@ -62,6 +62,13 @@
       command = "${lib.getExe pkgs.contrastPkgs.scripts.check-sidebar}";
       includes = [ "docs/sidebars.js" ];
     };
+    em-dash-lint = {
+      command = "${lib.getExe pkgs.contrastPkgs.scripts.em-dash-lint}";
+      includes = [
+        "docs/docs/*.md"
+        "README.md"
+      ];
+    };
     renovate = {
       command = "${lib.getExe' pkgs.renovate "renovate-config-validator"}";
       options = [ "--strict" ];
