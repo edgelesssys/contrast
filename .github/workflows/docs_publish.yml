@@ -49,11 +49,15 @@ jobs:
         if: env.PREVIEW == 'false'
         run: |
           nix build -L .#contrast-docs
+          # Avoid warnings due to root-owned files.
+          # https://github.com/JamesIves/github-pages-deploy-action/issues/1906
+          rm -rf /tmp/docs
+          cp --no-preserve=mode --recursive "$(readlink -f ./result)" /tmp/docs
       - name: Publish docs to GitHub Pages
         if: env.PREVIEW == 'false'
         uses: JamesIves/github-pages-deploy-action@6c2d9db40f9296374acc17b90404b6e8864128c8 # v4.7.3
         with:
-          folder: ./result
+          folder: /tmp/docs
           branch: gh-pages
           clean-exclude: pr-preview
           force: false
@@ -62,8 +66,12 @@ jobs:
         if: env.PREVIEW == 'true'
         run: |
           nix build -L --impure --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.contrast-docs.override { docusaurusBaseUrl = \"contrast/pr-preview/pr-${{ github.event.number }}\"; }"
+          # Avoid warnings due to root-owned files.
+          # https://github.com/JamesIves/github-pages-deploy-action/issues/1906
+          rm -rf /tmp/docs
+          cp --no-preserve=mode --recursive "$(readlink -f ./result)" /tmp/docs
       - name: Deploy preview
         if: env.PREVIEW == 'true'
         uses: rossjrw/pr-preview-action@9f77b1d057b494e662c50b8ca40ecc63f21e0887 # v1.6.2
         with:
-          source-dir: ./result
+          source-dir: /tmp/docs
