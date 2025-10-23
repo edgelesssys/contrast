@@ -120,7 +120,7 @@ Follow [the steps given above](#deployment) to reapply your configuration.
 
 The deployment YAML shipped for this demo is already configured to be used with Contrast.
 A [runtime class](../architecture/components/runtime) `contrast-cc`
-was added to the pods to signal they should be run as Confidential Containers. During the generation process,
+was added to the pods to signal they should be run as confidential containers. During the generation process,
 the Contrast [Initializer](../architecture/components/initializer.md) will be added as an init container to these
 workloads. It will attest the pod to the Coordinator and fetch the workload certificates and the workload secret.
 

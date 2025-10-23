@@ -14,7 +14,7 @@ To make your app confidential with Contrast, follow these steps:
    Download and install the Contrast CLI, which is used to manage your deployments and generate necessary configurations.
 
 2. [Install and set up](../howto/cluster-setup/bare-metal.md):
-   Prepare your Kubernetes cluster to support confidential containers.
+   Prepare your infrastructure and Kubernetes cluster for confidential computing use.
 
 3. [Deploy your workload](./deployment):
    Update your application’s deployment to run with Contrast:

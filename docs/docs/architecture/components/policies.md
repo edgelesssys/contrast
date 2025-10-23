@@ -1,6 +1,6 @@
 # Policies
 
-Kata runtime policies are an integral part of Confidential Containers.
+Kata runtime policies are an integral part of Contrast.
 They prescribe how a Kubernetes pod must be configured to launch successfully in a confidential VM.
 In Contrast, policies act as a workload identifier: only pods with a policy referenced in the manifest receive workload certificates and may participate in the confidential deployment.
 Verification of the Contrast Coordinator and its manifest transitively guarantees that all workloads meet the owner's expectations.

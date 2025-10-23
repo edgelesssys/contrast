@@ -1,6 +1,7 @@
 # Prepare deployment files
 
-To run your Kubernetes workloads as Confidential Containers, you'll need to make a few adjustments to your deployment files. This section walks you through the required changes and highlights important security considerations for your application.
+To run your Kubernetes workloads as confidential containers with Contrast, you'll need to make a few adjustments to your deployment files.
+This section walks you through the required changes and highlights important security considerations for your application.
 
 ## Applicability
 
