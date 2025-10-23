@@ -287,6 +287,7 @@ request-fifo-ticket timeout="":
         exit 1
     fi
     ticket=$(nix run .#scripts.get-sync-ticket {{ timeout }})
+    mkdir -p ./{{ workspace_dir }}
     echo $ticket > ./{{ workspace_dir }}/just.sync-ticket
 
 release-fifo-ticket:
