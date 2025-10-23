@@ -15,10 +15,10 @@ where `XY` corresponds to a dynamic ID.
  3 files changed, 25 insertions(+), 8 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 4918d32a21424877ee8f73474126102e167f651f..92f65c3a855570aa4596d0b8453188644c7d4ef0 100644
+index 8340cd33c7023d43ecfab6d34939e0b65bbe92a0..3cfe77c7d7d7f61e22f93532da33711ccb8a5e89 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
-@@ -294,7 +294,10 @@
+@@ -293,7 +293,10 @@
              "CAP_BPF",
              "CAP_CHECKPOINT_RESTORE"
          ],
@@ -30,7 +30,7 @@ index 4918d32a21424877ee8f73474126102e167f651f..92f65c3a855570aa4596d0b845318864
      },
      "kata_config": {
          "oci_version": "1.1.0",
-@@ -320,7 +323,8 @@
+@@ -319,7 +322,8 @@
                  "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
                  "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
@@ -41,7 +41,7 @@ index 4918d32a21424877ee8f73474126102e167f651f..92f65c3a855570aa4596d0b845318864
          },
          "UpdateInterfaceRequest": {
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 24066c2ee84afb7a4ce9501049ab19be51afd807..b9ae1e3e33ec8dbc67d10cc6bed1642bd3ad5922 100644
+index a1a6b5e141fb541062251931150db6d2389c6ce2..ec4b79393ac29d64de14ae665ad632c7cb386a3a 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -230,18 +230,26 @@ allow_anno(p_oci, i_oci) if {
@@ -77,7 +77,7 @@ index 24066c2ee84afb7a4ce9501049ab19be51afd807..b9ae1e3e33ec8dbc67d10cc6bed1642b
      print("allow_anno_key 1: i key =", i_key)
  
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index ed902594e95d2dcde45a91e9f6673b90106c325b..319d1be0f490dd18c41fba8b0a198f8ca8cb5ea2 100644
+index 93875a1e5d819c5d34869e422e4fbf44d6a043a6..d48f7c220bfe028e2412102b70225be5581a33d2 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -428,9 +428,14 @@ pub struct CommonData {
