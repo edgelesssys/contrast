@@ -261,9 +261,9 @@ Put it next to your resources:
 curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir resources
 ```
 
-## 4. Generate policy annotations and manifest
+## 4. Generate initdata annotations and manifest
 
-Run the `generate` command to create execution policies that strictly control communication between the host and CVMs on each worker node and define which workloads are allowed to run. These policies are automatically added as annotations to your deployment files.
+Run the `generate` command to create execution policies that strictly control communication between the host and CVMs on each worker node and define which workloads are allowed to run. These policies are wrapped in initdata documents and added as annotations to your deployment files.
 
 The command also generates a `manifest.json` file, which contains the trusted reference values of your deployment.
 
@@ -416,12 +416,12 @@ This manifest must be distributed out-of-band to all parties performing verifica
 
 If verification succeeds, it confirms that the Coordinator is running in the expected Confidential Computing environment with the correct code version.
 The Coordinator then returns its configuration over a secure TLS channel.
-The CLI stores this information—including the mesh root certificate (`mesh-ca.pem`), the manifest history, and the associated policies—in the `verify/` directory.
+The CLI stores this information—including the mesh root certificate (`mesh-ca.pem`), the manifest history, and the associated initdata documents—in the `verify/` directory.
 
-### Auditing the manifest and policies
+### Auditing the manifest
 
 Next, the stored Coordinator configuration should be audited.
-A user—or a trusted third party—can review the manifest and the referenced policies to ensure they meet expectations.
+A user—or a trusted third party—can review the manifest and the referenced initdata documents to ensure they meet expectations.
 
 ## 8. Connect securely to the frontend
 
@@ -440,6 +440,8 @@ Using `openssl`, the certificate of the service can be validated with the `mesh-
 openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
 ```
 
+<!-- TODO(burgerdev): this should be split into an explanatory section in a manifest.md (yet to be written) and a how-to. -->
+
 ## Optional: Updating the certificate SAN and the manifest
 
 By default, mesh certificates are issued with a wildcard DNS Subject Alternative Name (SAN).
@@ -455,7 +457,7 @@ curl: (60) SSL: no alternative certificate subject name matches target host name
 
 ### Adding an IP SAN to the manifest
 
-To enable IP-based certificate verification, update the relevant policy in the manifest.
+To enable IP-based certificate verification, update the relevant entry in the manifest.
 Add the `frontendIP` to the list of SANs:
 
 ```diff

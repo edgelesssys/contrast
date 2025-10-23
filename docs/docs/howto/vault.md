@@ -91,7 +91,7 @@ Therefore, the demo pod adds the configuration as an environment variable and ex
 Follow the steps of the generic workload deployment instructions:
 
 - [Add the Coordinator.](workload-deployment/add-coordinator.md)
-- [Generate the policies.](workload-deployment/generate-annotations.md)
+- [Generate the annotations.](workload-deployment/generate-annotations.md)
   - After running `contrast generate`, add the desired Vault domain name to the vault `SANs` array in `manifest.json`.
 - [Apply the resources.](workload-deployment/deploy-application.md)
 - [Set the manifest.](workload-deployment/set-manifest.md)

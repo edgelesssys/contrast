@@ -57,7 +57,7 @@ policies, rerun
 contrast generate
 ```
 
-on your deployment. If any of the policy annotations change, re-deploy with the updated policies.
+on your deployment. If any of the Contrast annotations change, re-deploy to apply the updated policies.
 
 ### Pin container images
 
@@ -157,7 +157,7 @@ If it doesn't, you need to remove that image entirely from the affected node, fo
 crictl rmi $IMAGE
 ```
 
-Upstream backport that's fixing the bug is pending: https://github.com/containerd/containerd/pull/11644.
+Unfortunately, this bug won't be fixed for containerd versions before `v2.0.0`.
 
 ## VM runs out of memory
 
@@ -188,4 +188,4 @@ The following table explains the reason for the error and suggests further debug
 | `transport: authentication handshake failed: no valid attestation document certificate extensions found` | Coordinator served an unexpected certificate. | Check whether remote end is the Coordinator with port 1313; Compare versions of Coordinator and CLI. |
 | `transport: authentication handshake failed: tls: first record does not look like a TLS handshake` | Coordinator didn't serve TLS. | Check whether remote end is the Coordinator with port 1313. |
 | `transport: Error while dialing: dial tcp <host:port>: connect: connection refused` | Coordinator port is closed. | Check connectivity to the Coordinator; Check coordinator readiness; Check load balancer is pointing to the Coordinator port 1313. |
-| `transport: authentication handshake failed: [...] validator tdx-0 failed: validating report data: quote field MR_CONFIG_ID is [...]. Expect [...]"` | Wrong Coordinator policy hash. | Compare versions of Coordinator and CLI |
+| `transport: authentication handshake failed: [...] validator tdx-0 failed: validating report data: quote field MR_CONFIG_ID is [...]. Expect [...]"` | Wrong Coordinator initdata hash. | Make sure that you ran `contrast generate`, applied the Coordinator resource and restarted the Coordinator pods. |

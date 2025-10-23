@@ -62,6 +62,13 @@ The root filesystem contains systemd as the init system, and the kata agent for 
 
 This pod-VM image isn't specific to any pod workload. Instead, container images are mounted at runtime.
 
+### Initdata processor
+
+After completing the boot process, the pod-VM runs the initdata processor.
+This program verifies the initdata document that was annotated to the pod and provisioned by the runtime.
+If the initdata document matches expectations, the initdata processor writes the [policy](policies.md) to an in-memory filesystem.
+The Kata agent is started only after the initdata processor finished.
+
 ### Contrast image puller
 
 In addition to the kata agent, every pod-VM also starts Contrast's image puller.
