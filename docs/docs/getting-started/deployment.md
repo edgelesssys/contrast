@@ -395,7 +395,7 @@ deployment hasn't been tampered with.
 
 ## 7. Verify deployment
 
-In many scenarios, users may require assurance of an application's security and integrity before interacting with it—for example, prior to submitting sensitive data or casting a vote.
+In many scenarios, users may require assurance of an application's security and integrity before interacting with it, for example, prior to submitting sensitive data or casting a vote.
 
 Contrast enables this through a single remote attestation step, regardless of the size or complexity of the deployment.
 By attesting the Coordinator, the user transitively attests all workloads that the Coordinator has verified or will verify according to the defined manifest.
@@ -416,12 +416,12 @@ This manifest must be distributed out-of-band to all parties performing verifica
 
 If verification succeeds, it confirms that the Coordinator is running in the expected Confidential Computing environment with the correct code version.
 The Coordinator then returns its configuration over a secure TLS channel.
-The CLI stores this information—including the mesh root certificate (`mesh-ca.pem`), the manifest history, and the associated initdata documents—in the `verify/` directory.
+The CLI stores this information, including the mesh root certificate (`mesh-ca.pem`), the manifest history, and the associated initdata documents, in the `verify/` directory.
 
 ### Auditing the manifest
 
 Next, the stored Coordinator configuration should be audited.
-A user—or a trusted third party—can review the manifest and the referenced initdata documents to ensure they meet expectations.
+A user, or a trusted third party, can review the manifest and the referenced initdata documents to ensure they meet expectations.
 
 ## 8. Connect securely to the frontend
 

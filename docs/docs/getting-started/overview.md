@@ -30,7 +30,7 @@ To make your app confidential with Contrast, follow these steps:
    Confirm that your application is running securely and that workload integrity is being enforced.
 
 5. [Securely connect to the app](./deployment.md#8-connect-securely-to-the-frontend):
-   Establish a secure connection backed by confidential computing hardware—eliminating the need for users to place trust in you as the service provider.
+   Establish a secure connection backed by confidential computing hardware, eliminating the need for users to place trust in you as the service provider.
 
 ## Emojivoto app
 

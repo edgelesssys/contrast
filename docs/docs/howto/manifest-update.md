@@ -4,7 +4,7 @@ This section guides you through the process of updating a manifest at the Contra
 
 ## Applicability
 
-If the manifest changes—for example, due to modifications in the service mesh configuration—it must be updated at the Coordinator.
+If the manifest changes, for example, due to modifications in the service mesh configuration, it must be updated at the Coordinator.
 
 ## Prerequisites
 
