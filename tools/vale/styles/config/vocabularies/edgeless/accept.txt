@@ -79,7 +79,6 @@ initdata
 initializers?
 initramfs
 initrd
-Inkscape
 iodepth
 IP
 IPSec
