@@ -12,7 +12,7 @@ Contrast separates responsibilities across three attestation roles:
 
 Each pod is launched inside a CVM using a secure runtime based on Kata Containers. During launch:
 
-- The CPU (AMD SEV-SNP or Intel TDX) measures the initial guest memory—including the kernel, initramfs and kernel command line.
+- The CPU (AMD SEV-SNP or Intel TDX) measures the initial guest memory including the kernel, initramfs and kernel command line.
 - The measurement is embedded in a hardware-signed attestation report.
 - A hash of the pod’s initdata document is embedded in a dedicated field of the report(`HOSTDATA` on SEV-SNP or `MRCONFIGID` on TDX).
 - The report is signed by the CPU firmware and verifiable via vendor-provided public keys.
