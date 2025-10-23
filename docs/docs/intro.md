@@ -9,9 +9,9 @@ Welcome to the Contrast documentation! Contrast makes your Kubernetes deployment
 
 ![Contrast concept](/img/concept.svg)
 
-Contrast is built upon the open-source [Kata Containers](https://github.com/kata-containers/kata-containers) and [Confidential Containers](https://github.com/confidential-containers) projects.
+Contrast is built upon the open-source [Kata Containers](https://github.com/kata-containers/kata-containers) project.
 
-Confidential Containers are Kubernetes pods executed within confidential micro-VMs, providing strong, hardware-based isolation from the surrounding environment.
+Contrast provides confidential containers: Kubernetes pods that are executed within confidential micro-VMs, providing strong, hardware-based isolation from the surrounding environment.
 You can use your existing containers without modification—enabling easy adoption through a lift-and-shift approach.
 
 :::tip

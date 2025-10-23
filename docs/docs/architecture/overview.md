@@ -9,7 +9,7 @@ Contrast consists of the following main components:
 - **Contrast Kubernetes runtime**:
   Contrast provides a custom Kubernetes `RuntimeClass` that defines a runtime handler for `containerd`.
   This handler runs containers inside Confidential Virtual Machines (CVMs).
-  The runtime is based on Kata Containers and the Confidential Containers (CoCo) project.
+  The runtime is based on Kata Containers.
 
 - **Runtime policies**:
   Strictly control host-to-CVM communication on worker nodes and ensure that only approved workloads are allowed to start inside CVMs.
