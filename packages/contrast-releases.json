@@ -147,6 +147,10 @@
     {
       "version": "v1.13.0",
       "hash": "sha256-8hLXBDMgn4Te8Xq7FH0V3UWORsvoHZjDQF29+Z2cbPI="
+    },
+    {
+      "version": "v1.14.0",
+      "hash": "sha256-HRqWnSB2eisDdVc9J/VSSucuHv4G/xJPoS/PT+RC5SQ="
     }
   ],
   "coordinator-aks-clh-snp.yml": [
@@ -529,6 +533,10 @@
     {
       "version": "v1.13.0",
       "hash": "sha256-0XRKQK4dbpFKhTw2vklP/tDjlq35zI3whwGGKFjuzb8="
+    },
+    {
+      "version": "v1.14.0",
+      "hash": "sha256-Jwi9jMt9e644SSj1UpaOlCJJaOhomghtS43juO6rF0Q="
     }
   ],
   "emojivoto-demo.yml": [
@@ -631,6 +639,10 @@
     {
       "version": "v1.13.0",
       "hash": "sha256-3NfHrxJ2PCTtPnVF6Op/pzVFgT3H4aTMdxXsBxV+8bA="
+    },
+    {
+      "version": "v1.14.0",
+      "hash": "sha256-K+Q0QccIz5+wLLU5EfyhkQW5Caj5D26LvOhJt07H90U="
     }
   ],
   "emojivoto-demo.zip": [
@@ -743,11 +755,19 @@
     {
       "version": "v1.13.0",
       "hash": "sha256-22noiZIgKODyEVC3iO7m3SQXKaR4SGWobe5WAcAw6J8="
+    },
+    {
+      "version": "v1.14.0",
+      "hash": "sha256-nG3Vx9T1aRI+wL9zaVoOEeBWd2JNGNEu1KbLoY9p66I="
     }
   ],
   "node-installer-target-config-k3s.yml": [
     {
       "version": "v1.13.0",
+      "hash": "sha256-fYE//19bdxVIOM5eCfqJNt8GgZgO6JP+PwhXDutuVIw="
+    },
+    {
+      "version": "v1.14.0",
       "hash": "sha256-fYE//19bdxVIOM5eCfqJNt8GgZgO6JP+PwhXDutuVIw="
     }
   ],
@@ -1123,6 +1143,10 @@
     {
       "version": "v1.13.0",
       "hash": "sha256-A4/WvgVW++CjJMvC8tNDm7Zt/wmvhtU1LLUv9AlSM3o="
+    },
+    {
+      "version": "v1.14.0",
+      "hash": "sha256-K8KFlh4xMdKyBTCBkdSnMEBt0bFnQd1KX4prw4bzaVc="
     }
   ],
   "runtime-metal-qemu-snp.yml": [
@@ -1197,6 +1221,10 @@
     {
       "version": "v1.13.0",
       "hash": "sha256-7yc+CcNQznt3+R3bhIldUBYmoRf99Q/p4MjmboUvoY0="
+    },
+    {
+      "version": "v1.14.0",
+      "hash": "sha256-ex3/aezc8PeyJPCw3q8Ww7akxN0gADcjC/rrpMXVwjY="
     }
   ],
   "runtime-metal-qemu-tdx.yml": [
@@ -1271,6 +1299,10 @@
     {
       "version": "v1.13.0",
       "hash": "sha256-YvBCZlcUpuOjJ+HPAZ2PiI0H4A8qzfNjrxJhxi5RWxA="
+    },
+    {
+      "version": "v1.14.0",
+      "hash": "sha256-OEwDvO5Ahp6R/RfUKsCMI+pCljFXaNTimeK6LhHpnIY="
     }
   ],
   "runtime-rke2-qemu-tdx.yml": [
@@ -1421,6 +1453,10 @@
     {
       "version": "v1.13.0",
       "hash": "sha256-aLNaJTqMW9CKY+ZL/20vJhOtCZ+jcXhYQxhQumAVcME="
+    },
+    {
+      "version": "v1.14.0",
+      "hash": "sha256-uutpTECrEJxM2IlWu9Fnbk3XKY6xAovAksQtVLQA0fU="
     }
   ]
 }
