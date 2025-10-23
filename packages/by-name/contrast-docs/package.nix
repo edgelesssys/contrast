@@ -33,6 +33,7 @@ mkYarnPackage rec {
 
   buildPhase = ''
     export HOME=$(mktemp -d)
+    export CI=true
     yarn --offline build
   '';
 
