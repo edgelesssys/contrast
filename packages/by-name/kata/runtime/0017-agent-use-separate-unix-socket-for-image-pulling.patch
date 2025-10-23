@@ -9,10 +9,10 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  1 file changed, 3 insertions(+), 1 deletion(-)
 
 diff --git a/src/agent/src/confidential_data_hub/mod.rs b/src/agent/src/confidential_data_hub/mod.rs
-index ac4e2de96216732d7a552f8b7bd47aa9e92d4474..39ba3fdfb04c46388d59c6116a05520b5ea64102 100644
+index c27294b5f9dae13fb2e0a02d3a6d979a6b660439..6a486fe183fb51670ab39cb67f5bae039640d5d6 100644
 --- a/src/agent/src/confidential_data_hub/mod.rs
 +++ b/src/agent/src/confidential_data_hub/mod.rs
-@@ -194,7 +194,9 @@ pub async fn pull_image(image: &str, bundle_path: PathBuf) -> Result<String> {
+@@ -191,7 +191,9 @@ pub async fn pull_image(image: &str, bundle_path: PathBuf) -> Result<String> {
  }
  
  pub async fn pull_image_contrast(image: &str, bundle_path: &str) -> Result<()> {
