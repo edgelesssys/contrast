@@ -104,16 +104,8 @@ Contrast policies can be generated for all Kubernetes resource kinds that spawn 
 The following resource kinds influence pod configuration and are also taken into account for policy generation:
 
 <!-- keep-sorted start by_regex=`(\w+)` -->
-- `ClusterRole`
-- `ClusterRoleBinding`
 - `ConfigMap`
-- `LimitRange`
-- `PodDisruptionBudget`
-- `Role`
-- `RoleBinding`
 - `Secret`
-- `Service`
-- `ServiceAccount`
 <!-- keep-sorted end -->
 
-All other resource kinds are unsupported and can't be passed to `contrast generate`.
+All other resource kinds are ignored by `contrast generate` and don't influence the generated policy.
