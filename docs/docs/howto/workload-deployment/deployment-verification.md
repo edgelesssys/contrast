@@ -21,7 +21,7 @@ An end user (data owner) can verify the Contrast deployment using the `verify` c
 contrast verify -c "${coordinator}:1313"
 ```
 
-The CLI will attest the Coordinator using the reference values from the given manifest file. It will then write the
-service mesh root certificate and the history of manifests into the `verify/` directory. In addition, the policies
-referenced in the active manifest are also written to the directory. The verification will fail if the active
-manifest at the Coordinator doesn't match the manifest passed to the CLI.
+The CLI will attest the Coordinator using the reference values from the given manifest file.
+It will then write the service mesh root certificate and the history of manifests into the `verify/` directory.
+In addition, the initdata documents referenced in the active manifest are also written to the directory.
+The verification will fail if the active manifest at the Coordinator doesn't match the manifest passed to the CLI.

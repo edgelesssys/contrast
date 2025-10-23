@@ -1,6 +1,6 @@
-# Generate policy annotations and manifest
+# Generate initdata annotations and manifest
 
-This step updates your deployment files with policy annotations and automatically generates the deployment manifest.
+This step updates your deployment files with initdata annotations and automatically generates the deployment manifest.
 
 ## Applicability
 
@@ -12,16 +12,16 @@ This step is required for all Contrast deployments.
 2. [Install CLI](../install-cli.md)
 3. [Deploy the Contrast runtime](./runtime-deployment.md)
 4. [Add Coordinator to resources](./add-coordinator.md)
-4. [Prepare deployment files](./deployment-file-preparation.md)
-5. [Configure TLS (optional)](./TLS-configuration.md)
-6. [Enable GPU support (optional)](./GPU-configuration.md)
+5. [Prepare deployment files](./deployment-file-preparation.md)
+6. [Configure TLS (optional)](./TLS-configuration.md)
+7. [Enable GPU support (optional)](./GPU-configuration.md)
 
 ## How-to
 
 Run the `generate` command to add the necessary components to your deployment files.
 This will add the Contrast Initializer to every workload with the specified `contrast-cc` runtime class
 and the Contrast Service Mesh to all workloads that have a specified configuration.
-After that, it will generate the [execution policies](../../architecture/components/policies.md) and add them as annotations to your deployment files.
+After that, it will generate the [execution policies](../../architecture/components/policies.md), wrap them in initdata documents and add them as annotations to your deployment files.
 A `manifest.json` with the reference values of your deployment will be created.
 
 <Tabs queryString="platform">

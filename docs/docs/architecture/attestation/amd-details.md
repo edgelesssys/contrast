@@ -19,8 +19,8 @@ LD := Hash(LD || Page || Page Metadata)
 When the Hypervisor calls `SNP_LAUNCH_FINISH`, it provides the SP with the `HOST_DATA`,
 the `ID_BLOCK`, and `ID_AUTH` block.
 
-The `HOST_DATA` is opaque to the SP. Kata writes the hash of the kata policy in
-this field to bind the policy to the CVM. `HOST_DATA` is later reflected in the
+The `HOST_DATA` is opaque to the SP. Kata writes the hash of the initdata document into
+this field to bind the document to the CVM. `HOST_DATA` is later reflected in the
 attestation report.
 
 ### ID block structure
@@ -108,7 +108,7 @@ The complete structure can be found in the SEV Secure Nested Paging Firmware ABI
 | PLATFORM_INFO | Information about the platform. See Table below                                                                            |
 | REPORT_DATA   | If REQUEST_SOURCE is guest provided, then contains Guest-provided data, else host request and zero (0) filled by firmware. | Digest of nonce provided by the relying party and TLS public key of the CVM.                                                                |
 | MEASUREMENT   | The measurement calculated at launch.                                                                                      | Digest over kernel, initrd, and cmdline.                                                                                                    |
-| HOST_DATA     | Data provided by the hypervisor at launch.                                                                                 | Digest of the kata policy.                                                                                                                  |
+| HOST_DATA     | Data provided by the hypervisor at launch.                                                                                 | Digest of the kata initdata document.                                                                                                                  |
 | ID_KEY_DIGEST | SHA-384 digest of the ID public key that signed the ID block provided in SNP_LAUNCH_FINISH.                                | Deterministic function of the SNP policy and launch digest in the ID_BLOCK. (see [Anonymous ID block signing](#anonymous-id-block-signing)) |
 | LAUNCH_TCB    | The CurrentTcb at the time the guest was launched or imported.                                                             | Lowest TCB the guest ever executed with.                                                                                                    |
 | SIGNATURE     | Signature of bytes `0h` to `29Fh` inclusive of this report.                                                                | Used to verify the integrity and authenticity of the report.                                                                                |

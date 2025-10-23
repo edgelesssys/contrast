@@ -14,15 +14,17 @@ Each pod is launched inside a CVM using a secure runtime based on Kata Container
 
 - The CPU (AMD SEV-SNP or Intel TDX) measures the initial guest memory—including the kernel, initramfs and kernel command line.
 - The measurement is embedded in a hardware-signed attestation report.
-- A hash of the pod’s runtime policy is embedded in a dedicated field of the report(`HOSTDATA` on SEV-SNP or `MRCONFIGID` on TDX).
+- A hash of the pod’s initdata document is embedded in a dedicated field of the report(`HOSTDATA` on SEV-SNP or `MRCONFIGID` on TDX).
 - The report is signed by the CPU firmware and verifiable via vendor-provided public keys.
 
-The runtime policy is enforced inside the CVM by the `kata-agent`. On startup, the agent:
+The initdata document contains an agent policy, which restricts requests from the untrusted Kata runtime to the agent.
+On VM startup and before the Kata agent starts, a special process called `initdata-processor`:
 
-- Reads the Base64-encoded policy passed in as a pod annotation.
-- Computes a SHA-256 hash of the policy document.
+- Finds the initdata document in a special block device.
+- Computes a SHA-256 hash of the initdata document.
 - Compares this hash against the value embedded in the attestation report.
 - Aborts execution if the hash doesn't match.
+- Reads the policy from the initdata document and writes it to a secure path where the Kata agent can read it.
 
 The runtime policy specifies:
 
@@ -37,14 +39,16 @@ This guarantees that the CVM launches in a well-defined state and enforces only 
 
 The Coordinator runs inside a CVM and verifies attestation reports from other pods. It:
 
-- Checks launch measurements and policy hashes against a trusted **manifest**
+- Checks launch measurements and initdata hashes against a trusted **manifest**
 - Issues service mesh certificates to verified pods
 - Functions as the verifier for the full deployment
+
+<!-- TODO(burgerdev): below manifest information should go into a dedicated page -->
 
 The **manifest** is a JSON configuration that defines the trusted state of the deployment. It includes:
 
 - **ReferenceValues**: Expected CVM launch measurements
-- **Policies**: Hashes of accepted runtime policies
+- **Policies**: Hashes of permitted initdata documents
 - **WorkloadOwnerKeyDigests**: Public key digests used to authorize future manifest updates
 - **SeedshareOwnerPubKeys**: Used for securely recovering workload secrets and restoring trust
 
@@ -70,14 +74,14 @@ The Contrast CLI is used by operators or data owners to verify the deployment an
 Each attestation report contains:
 
 - **Launch Measurement**: A cryptographic digest of the guest memory at CVM startup
-- **Runtime Policy Hash**: The policy is embedded by the host and verified by the `kata-agent`
+- **Initdata Hash**: The initdata document is embedded by the host and verified by the `initdata-processor`
 - **Platform Info**: CPU type, TCB version, microcode versions
 - **REPORTDATA**: A hash of the CVM’s public key and a nonce, ensuring freshness and binding the attestation to a specific TLS session
 
 ### How verification works
 
 - The Coordinator receives the attestation report from each pod.
-- It compares the launch measurement and policy hash to the manifest.
+- It compares the launch measurement and initdata hash to the manifest.
 - If the evidence matches, the pod is approved and issued a Mesh CA certificate.
 - If the evidence doesn't match, the pod is rejected and can't join the mesh.
 

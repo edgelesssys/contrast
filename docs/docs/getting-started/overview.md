@@ -22,7 +22,7 @@ To make your app confidential with Contrast, follow these steps:
    1. **Adjust deployment files:** Modify your Kubernetes resources to integrate Contrast.
    2. **Deploy the Contrast runtime:** Run your workloads inside Confidential Virtual Machines (CVMs) by adding the Contrast runtime.
    3. **Add the Contrast Coordinator:** Include the Coordinator to verify and enforce the confidential and trusted state of your application.
-   4. **Generate policy annotations and manifest:** Use the Contrast CLI to generate a manifest that defines the expected secure state of your deployment.
+   4. **Generate initdata annotations and manifest:** Use the Contrast CLI to generate a manifest that defines the expected secure state of your deployment.
    5. **Deploy your application:** Apply the updated deployment files to launch your app.
    6. **Set the manifest:** Define the trusted reference state that the Coordinator will enforce.
 

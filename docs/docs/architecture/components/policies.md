@@ -2,7 +2,7 @@
 
 Kata runtime policies are an integral part of Confidential Containers.
 They prescribe how a Kubernetes pod must be configured to launch successfully in a confidential VM.
-In Contrast, policies act as a workload identifier: only pods with a policy registered in the manifest receive workload certificates and may participate in the confidential deployment.
+In Contrast, policies act as a workload identifier: only pods with a policy referenced in the manifest receive workload certificates and may participate in the confidential deployment.
 Verification of the Contrast Coordinator and its manifest transitively guarantees that all workloads meet the owner's expectations.
 
 ## Structure
@@ -35,16 +35,15 @@ These constitute the policy's _OCI data_.
 
 ## Evaluation
 
-The generated policy document is annotated to the pod definitions in Base64 encoding.
-This annotation is propagated to the Kata runtime, which calculates the SHA256 checksum for the policy and uses that as SNP `HOSTDATA` or TDX `MRCONFIGID` for the confidential micro-VM.
+The generated policy document is included in an initdata document, which is in turn annotated to the pod definitions.
+This annotation is propagated to the Kata runtime, which calculates the SHA256 checksum for the initdata document and uses that as SNP `HOSTDATA` or TDX `MRCONFIGID` for the confidential micro-VM.
 
-After the VM launched, the runtime calls the agent's `SetPolicy` method with the full policy document.
-If the policy doesn't match the checksum in `HOSTDATA` or `MRCONFIGID`, the agent rejects the policy.
-Otherwise, it applies the policy to all future `AgentService` requests.
+After the VM launched, the `initdata-processor` verifies the initdata document checksum against `HOSTDATA` or `MRCONFIGID`.
+If that verification is successful, the contained policy is handed to the Kata agent, which uses it to validate all future `AgentService` requests.
 
 :::warning
 
-Since the policy is annotated to the pod, it can be retrieved by any role with `get` or `list` permission for pods.
+Since the policy is annotated to the pod as part of the initdata document, it can be retrieved by any role with `get` or `list` permission for pods.
 This may result in an unexpected leak of sensitive information, for example when the [environment variables are populated from Kubernetes secrets](https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/#define-container-environment-variables-using-secret-data).
 
 :::
@@ -73,12 +72,12 @@ Contrast verifies its confidential containers following these steps:
 1. The Contrast CLI generates a policy and attaches it to the pod definition.
 2. Kubernetes schedules the pod on a node with the confidential computing runtime.
 3. Containerd invokes the Kata runtime to create the pod sandbox.
-4. The Kata runtime starts a CVM with the policy's digest as `HOSTDATA`/`MRCONFIGID`.
-5. The Kata runtime sets the policy using the `SetPolicy` method.
-6. The Kata agent verifies that the incoming policy's digest matches `HOSTDATA`/`MRCONFIGID`.
-7. The CLI sets a manifest in the Contrast Coordinator, including a list of permitted policies.
+4. The Kata runtime starts a CVM with the initdata digest as `HOSTDATA`/`MRCONFIGID`.
+5. The `initdata-processor` verifies that the initdata document's digest matches `HOSTDATA`/`MRCONFIGID`.
+6. The `initdata-processor` writes the agent policy to a secure path in encrypted VM memory.
+7. The CLI sets a manifest in the Contrast Coordinator, including a list of permitted initdata documents.
 8. The Contrast Initializer sends an attestation report to the Contrast Coordinator, asking for a mesh certificate.
-9. The Contrast Coordinator verifies that the started pod has a permitted policy hash in its `HOSTDATA`/`MRCONFIGID` field.
+9. The Contrast Coordinator verifies that the started pod has a permitted initdata hash in its `HOSTDATA`/`MRCONFIGID` field.
 
 After the last step, we know that the policy hasn't been tampered with and, thus, that the workload matches expectations and may receive mesh certificates.
 

@@ -20,16 +20,16 @@ It currently consists of the following parts:
 
 <!-- TODO(burgerdev): explain manifest on separate page. -->
 
-- _Policies_: The identities of your Pods, represented by the hashes of their respective runtime policies.
+- _Policies_: The identities of your Pods, represented by the hashes of their respective initdata documents.
 - _Reference Values_: The remote attestation reference values for the Kata confidential micro-VM that's the runtime environment of your Pods.
 - _WorkloadOwnerKeyDigest_: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
 - _SeedshareOwnerKeys_: public keys of seed share owners. Used to authenticate user recovery and permission to handle the secret seed.
 
 ## Manifest history
 
-The Coordinator uses Kubernetes `ConfigMap`s to store the manifest history and associated runtime policies.
-Manifest and policies aren't considered sensitive information, because it needs to be passed to the untrusted infrastructure in order to start workloads.
-However, the Coordinator must ensure its integrity and that the persisted data corresponds to the manifests set by authorized users.
+The Coordinator uses Kubernetes `ConfigMap`s to store the manifest history and associated initdata documents.
+Manifest and initdata aren't considered sensitive information, because it needs to be passed to the untrusted infrastructure in order to start workloads.
+However, the Coordinator must ensure their integrity and that the persisted data corresponds to the manifests set by authorized users.
 This is accomplished with two types of integrity checks.
 
 The manifest that's currently enforced by the Coordinator is called the _latest manifest_, stored in a `ConfigMap` with a fixed name and signed with a key derived from the [secret seed](../secrets.md).
@@ -40,7 +40,7 @@ For example, a manifest with hash `a591a6d40bf420404a011733cfb7b190d62c65bf0bcda
 Starting from the signed latest manifest, the Coordinator retrieves all referenced content by hash and verifies that the content hashes match.
 The entire manifest history thus forms a Merkle tree, chaining back to the signed latest manifest.
 
-The `ConfigMap`s used to store manifests and policies are owned by the Contrast Coordinator `StatefulSet`.
+The `ConfigMap`s used to store manifests and initdata documents are owned by the Contrast Coordinator `StatefulSet`.
 When that resource is removed from the cluster, the history will be removed with it.
 If you need to clear the history without removing the Coordinator, you can do so with the following command:
 

@@ -76,7 +76,7 @@ Please read about the implications in the [workload secrets](../architecture/sec
 Follow the steps of the generic workload deployment instructions:
 
 - [Add the Coordinator.](./workload-deployment/add-coordinator.md)
-- [Generate the policies.](./workload-deployment/generate-annotations.md)
+- [Generate the annotations.](./workload-deployment/generate-annotations.md)
 - [Apply the resources.](./workload-deployment/deploy-application.md)
 - [Set the manifest.](./workload-deployment/set-manifest.md)
 
