@@ -50,17 +50,12 @@ The appropriate files are installed on every node by the [`node-installer`](#nod
 
 ### Pod-VM image
 
-Every pod-VM starts with the same guest image. It consists of an IGVM file and a root filesystem.
-The IGVM file describes the initial memory contents of a pod-VM and consists of:
-
-- Linux kernel image
-- `initrd`
-- `kernel commandline`
-
-Additionally, a root filesystem image is used that contains a read-only partition with the user space of the pod-VM and a verity partition to guarantee the integrity of the root filesystem.
-The root filesystem contains systemd as the init system, and the kata agent for managing the pod.
-
-This pod-VM image isn't specific to any pod workload. Instead, container images are mounted at runtime.
+Every pod-VM starts with the same guest image.
+The root filesystem is read-only and integrity protected using dm-verity.
+The verity hash of the root filesystem is passed via the kernel command line and thus part of the launch measurement of the pod-VM.
+The image contains the guest components of Kata Containers and Contrast: The Kata Containers agent that creates the sandbox and containers withing the guest,
+the Contrast image puller that retrieves and verifies container images, the Contrast secure mount service that can setup an ephemerally encrypted volume for image storage,
+as well as the Contrast initdata processor that receives initializing data from the runtime.
 
 ### Initdata processor
 
