@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">Workload deployment | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/next/getting-started/deployment"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Workload deployment | Contrast"><meta data-rh="true" name="description" content="Follow these steps to make your deployment confidential."><meta data-rh="true" property="og:description" content="Follow these steps to make your deployment confidential."><link data-rh="true" rel="icon" href="/contrast/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/next/getting-started/deployment"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/getting-started/deployment" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/getting-started/deployment" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Workload deployment","item":"https://docs.edgeless.systems/contrast/next/getting-started/deployment"}]}</script><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/assets/css/styles.ac832e15.css">
-<script src="/contrast/assets/js/runtime~main.8d8beb23.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.a3c5b122.js" defer="defer"></script>
 <script src="/contrast/assets/js/main.42776ae0.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -115,7 +115,7 @@ for the load balancer to be created and the Coordinator being available.</p>
 during the TLS handshake. If the connection succeeds, it&#x27;s ensured that the Coordinator
 deployment hasn&#x27;t been tampered with.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="7-verify-deployment">7. Verify deployment<a href="#7-verify-deployment" class="hash-link" aria-label="Direct link to 7. Verify deployment" title="Direct link to 7. Verify deployment" translate="no">​</a></h2>
-<p>In many scenarios, users may require assurance of an application&#x27;s security and integrity before interacting with it—for example, prior to submitting sensitive data or casting a vote.</p>
+<p>In many scenarios, users may require assurance of an application&#x27;s security and integrity before interacting with it, for example, prior to submitting sensitive data or casting a vote.</p>
 <p>Contrast enables this through a single remote attestation step, regardless of the size or complexity of the deployment.
 By attesting the Coordinator, the user transitively attests all workloads that the Coordinator has verified or will verify according to the defined manifest.</p>
 <p>A successful attestation of the Coordinator provides a strong guarantee that the deployment adheres to the reference values specified in the <code>manifest.json</code>.</p>
@@ -127,10 +127,10 @@ command:</p>
 This manifest must be distributed out-of-band to all parties performing verification, as the <code>verify</code> command checks whether the manifest currently active at the Coordinator matches the one supplied to the CLI.</p>
 <p>If verification succeeds, it confirms that the Coordinator is running in the expected Confidential Computing environment with the correct code version.
 The Coordinator then returns its configuration over a secure TLS channel.
-The CLI stores this information—including the mesh root certificate (<code>mesh-ca.pem</code>), the manifest history, and the associated initdata documents—in the <code>verify/</code> directory.</p>
+The CLI stores this information, including the mesh root certificate (<code>mesh-ca.pem</code>), the manifest history, and the associated initdata documents, in the <code>verify/</code> directory.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="auditing-the-manifest">Auditing the manifest<a href="#auditing-the-manifest" class="hash-link" aria-label="Direct link to Auditing the manifest" title="Direct link to Auditing the manifest" translate="no">​</a></h3>
 <p>Next, the stored Coordinator configuration should be audited.
-A user—or a trusted third party—can review the manifest and the referenced initdata documents to ensure they meet expectations.</p>
+A user, or a trusted third party, can review the manifest and the referenced initdata documents to ensure they meet expectations.</p>
 <h2 class="anchor anchorTargetStickyNavbar_Vzrq" id="8-connect-securely-to-the-frontend">8. Connect securely to the frontend<a href="#8-connect-securely-to-the-frontend" class="hash-link" aria-label="Direct link to 8. Connect securely to the frontend" title="Direct link to 8. Connect securely to the frontend" translate="no">​</a></h2>
 <p>Once the Coordinator’s configuration has been verified, users can securely connect to the application via HTTPS. The application uses the <code>mesh-ca.pem</code> certificate as the root of trust. We can use this certificate to validate the frontend&#x27;s certificate.</p>
 <p>To access the web frontend, expose the service on a public IP address via a LoadBalancer service:</p>
