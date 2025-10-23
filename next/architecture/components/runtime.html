@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">Contrast Runtime | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/next/architecture/components/runtime"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Contrast Runtime | Contrast"><meta data-rh="true" name="description" content="The Contrast runtime is responsible for starting pods as confidential virtual machines."><meta data-rh="true" property="og:description" content="The Contrast runtime is responsible for starting pods as confidential virtual machines."><link data-rh="true" rel="icon" href="/contrast/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/next/architecture/components/runtime"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/architecture/components/runtime" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/architecture/components/runtime" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Runtime","item":"https://docs.edgeless.systems/contrast/next/architecture/components/runtime"}]}</script><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/assets/css/styles.ac832e15.css">
-<script src="/contrast/assets/js/runtime~main.6eaf63d2.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.8d8beb23.js" defer="defer"></script>
 <script src="/contrast/assets/js/main.42776ae0.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard" data-theme="light">
@@ -35,16 +35,12 @@ This shim is described in more detail in the <a href="https://github.com/kata-co
 On bare metal, Contrast uses <a href="https://www.qemu.org/" target="_blank" rel="noopener noreferrer" class=""><code>QEMU</code></a>.
 The appropriate files are installed on every node by the <a href="#node-installer-daemonset" class=""><code>node-installer</code></a>.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="pod-vm-image">Pod-VM image<a href="#pod-vm-image" class="hash-link" aria-label="Direct link to Pod-VM image" title="Direct link to Pod-VM image" translate="no">​</a></h3>
-<p>Every pod-VM starts with the same guest image. It consists of an IGVM file and a root filesystem.
-The IGVM file describes the initial memory contents of a pod-VM and consists of:</p>
-<ul>
-<li class="">Linux kernel image</li>
-<li class=""><code>initrd</code></li>
-<li class=""><code>kernel commandline</code></li>
-</ul>
-<p>Additionally, a root filesystem image is used that contains a read-only partition with the user space of the pod-VM and a verity partition to guarantee the integrity of the root filesystem.
-The root filesystem contains systemd as the init system, and the kata agent for managing the pod.</p>
-<p>This pod-VM image isn&#x27;t specific to any pod workload. Instead, container images are mounted at runtime.</p>
+<p>Every pod-VM starts with the same guest image.
+The root filesystem is read-only and integrity protected using dm-verity.
+The verity hash of the root filesystem is passed via the kernel command line and thus part of the launch measurement of the pod-VM.
+The image contains the guest components of Kata Containers and Contrast: The Kata Containers agent that creates the sandbox and containers withing the guest,
+the Contrast image puller that retrieves and verifies container images, the Contrast secure mount service that can setup an ephemerally encrypted volume for image storage,
+as well as the Contrast initdata processor that receives initializing data from the runtime.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="initdata-processor">Initdata processor<a href="#initdata-processor" class="hash-link" aria-label="Direct link to Initdata processor" title="Direct link to Initdata processor" translate="no">​</a></h3>
 <p>After completing the boot process, the pod-VM runs the initdata processor.
 This program verifies the initdata document that was annotated to the pod and provisioned by the runtime.
