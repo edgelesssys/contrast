@@ -686,4 +686,19 @@ lib.makeScope pkgs.newScope (scripts: {
       node ${./check-sidebar.cjs} "$@"
     '';
   };
+
+  em-dash-lint = writeShellApplication {
+    name = "em-dash-lint";
+    runtimeInputs = [ pkgs.gnugrep ];
+    text = ''
+      exitcode=0
+      for file in "$@"; do
+        if grep -qE '–|—' "$file"; then
+          echo "Found en-dash or em-dash in $file. Is this an AI generated text?" >&2
+          exitcode=1
+        fi
+      done
+      exit $exitcode
+    '';
+  };
 })
