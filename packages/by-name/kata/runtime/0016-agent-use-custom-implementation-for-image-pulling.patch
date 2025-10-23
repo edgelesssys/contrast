@@ -5,11 +5,11 @@ Subject: [PATCH] agent: use custom implementation for image pulling
 
 Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
 ---
- src/agent/src/confidential_data_hub/mod.rs | 33 ++++++++++++++++------
- 1 file changed, 25 insertions(+), 8 deletions(-)
+ src/agent/src/confidential_data_hub/mod.rs | 30 ++++++++++++++++------
+ 1 file changed, 22 insertions(+), 8 deletions(-)
 
 diff --git a/src/agent/src/confidential_data_hub/mod.rs b/src/agent/src/confidential_data_hub/mod.rs
-index 85b47c682d3bb18b5ce77d6715e8819c200499c6..ac4e2de96216732d7a552f8b7bd47aa9e92d4474 100644
+index 85b47c682d3bb18b5ce77d6715e8819c200499c6..c27294b5f9dae13fb2e0a02d3a6d979a6b660439 100644
 --- a/src/agent/src/confidential_data_hub/mod.rs
 +++ b/src/agent/src/confidential_data_hub/mod.rs
 @@ -8,7 +8,7 @@
@@ -21,7 +21,7 @@ index 85b47c682d3bb18b5ce77d6715e8819c200499c6..ac4e2de96216732d7a552f8b7bd47aa9
  use anyhow::{bail, Context, Result};
  use derivative::Derivative;
  use protocols::{
-@@ -184,18 +184,35 @@ pub async fn pull_image(image: &str, bundle_path: PathBuf) -> Result<String> {
+@@ -184,18 +184,32 @@ pub async fn pull_image(image: &str, bundle_path: PathBuf) -> Result<String> {
      fs::create_dir_all(&bundle_path)?;
      info!(sl(), "pull image {image:?}, bundle path {bundle_path:?}");
  
@@ -32,10 +32,7 @@ index 85b47c682d3bb18b5ce77d6715e8819c200499c6..ac4e2de96216732d7a552f8b7bd47aa9
 -    cdh_client
 -        .pull_image(image, bundle_path.to_string_lossy().as_ref())
 -        .await?;
-+    match pull_image_contrast(image, bundle_path.to_string_lossy().as_ref()).await {
-+        Err(e) => warn!(sl(), "Encountered an error while pulling the image: {e}"),
-+        Ok(()) => {}
-+    };
++    pull_image_contrast(image, bundle_path.to_string_lossy().as_ref()).await?;
  
      let image_bundle_path = scoped_join(&bundle_path, "rootfs")?;
      Ok(image_bundle_path.as_path().display().to_string())
