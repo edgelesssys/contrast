@@ -9,7 +9,7 @@ on:
       - docs/**
       - "!docs/README.md"
       - .github/workflows/docs_publish.yml
-      - packages/contrast-docs/**
+      - packages/by-name/contrast-docs/**
   pull_request:
     types:
       - opened
@@ -20,7 +20,7 @@ on:
       - docs/**
       - "!docs/README.md"
       - .github/workflows/docs_publish.yml
-      - packages/contrast-docs/**
+      - packages/by-name/contrast-docs/**
 
 permissions:
   contents: write
