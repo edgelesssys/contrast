@@ -5,7 +5,7 @@ go 1.25.0
 replace github.com/edgelesssys/contrast => ..
 
 require (
-	github.com/cncf/xds/go v0.0.0-20251014123835-2ee22ca58382
+	github.com/cncf/xds/go v0.0.0-20251022180443-0feb69152e9f
 	github.com/coreos/go-iptables v0.8.0
 	github.com/edgelesssys/contrast v0.0.0-00010101000000-000000000000
 	github.com/envoyproxy/go-control-plane/envoy v1.35.0
