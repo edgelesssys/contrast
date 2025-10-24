@@ -11,10 +11,10 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/imagepuller/internal/remote"
+	"github.com/edgelesssys/contrast/imagepuller/internal/store"
 	"github.com/edgelesssys/contrast/imagepuller/internal/test/registry"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/types"
-	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -195,9 +195,9 @@ func TestStoreAndVerifyLayers(t *testing.T) {
 
 			t.Log(registry.BlobDigest())
 
-			store := &stubStore{
-				putLayerDigest: digest.NewDigestFromEncoded(digest.SHA256, registry.BlobDigest()[7:]),
-				putLayerErr:    tc.wantErr,
+			store := &store.Store{
+				Root:     t.TempDir(),
+				Unpacker: &stubUnpacker{putLayerErr: tc.wantErr},
 			}
 			s := ImagePullerService{Logger: log, Store: store, Remote: tc.stubRemote.DefaultRemote}
 			realImg, err := s.getAndVerifyImage(
@@ -211,7 +211,7 @@ func TestStoreAndVerifyLayers(t *testing.T) {
 			require.NoError(err)
 
 			tc.stubImg.Image = realImg
-			_, err = s.storeAndVerifyLayers(log, tc.stubImg)
+			err = s.storeAndVerifyLayers(log, tc.stubImg)
 
 			assert.ErrorIs(err, tc.wantErr)
 		})
@@ -223,16 +223,13 @@ func TestStoreAndVerifyLayers(t *testing.T) {
 // This allows testing the behavior against arbitrary (evil) responses.
 func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 	tests := map[string]struct {
-		digest  string
-		wantErr error
+		digest string
 	}{
 		"correct manifest digest, wrong layer digest is caught": {
-			digest:  registry.ManifestForWrongBlobDigest(),
-			wantErr: errValidateLayer,
+			digest: registry.ManifestForWrongBlobDigest(),
 		},
 		"correct index digest, correct manifest digest, wrong layer digest is caught": {
-			digest:  registry.IndexForManifestForWrongBlobDigest(),
-			wantErr: errValidateLayer,
+			digest: registry.IndexForManifestForWrongBlobDigest(),
 		},
 	}
 	for name, tc := range tests {
@@ -246,8 +243,9 @@ func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 
 			s := ImagePullerService{
 				Logger: log,
-				Store: &stubStore{
-					putLayerDigest: digest.NewDigestFromBytes(digest.SHA256, []byte{}),
+				Store: &store.Store{
+					Root:     t.TempDir(),
+					Unpacker: &stubUnpacker{},
 				},
 				Remote: remote.DefaultRemote{},
 			}
@@ -262,9 +260,10 @@ func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 			)
 			require.NoError(err)
 
-			_, err = s.storeAndVerifyLayers(log, remoteImg)
+			err = s.storeAndVerifyLayers(log, remoteImg)
 
-			assert.ErrorIs(err, tc.wantErr)
+			// Checksums are verified by the gcr library.
+			assert.ErrorContains(err, registry.WrongBlobDigest())
 		})
 	}
 }
