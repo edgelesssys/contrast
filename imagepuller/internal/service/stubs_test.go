@@ -4,6 +4,7 @@
 package service
 
 import (
+	"fmt"
 	"io"
 
 	r "github.com/edgelesssys/contrast/imagepuller/internal/remote"
@@ -11,23 +12,7 @@ import (
 	gcr "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/types"
-	"github.com/opencontainers/go-digest"
-	"go.podman.io/storage"
 )
-
-type stubStore struct {
-	putLayerDigest digest.Digest
-	putLayerErr    error
-
-	storage.Store
-}
-
-func (s *stubStore) PutLayer(_, _ string, _ []string, _ string, _ bool, _ *storage.LayerOptions, _ io.Reader) (*storage.Layer, int64, error) {
-	if s.putLayerErr != nil {
-		return nil, 0, s.putLayerErr
-	}
-	return &storage.Layer{CompressedDigest: s.putLayerDigest}, 0, nil
-}
 
 type stubRemote struct {
 	mediaType  types.MediaType
@@ -136,4 +121,17 @@ type stubLayer struct {
 
 func (s stubLayer) Compressed() (io.ReadCloser, error) {
 	return nil, s.compressedErr
+}
+
+var cannedDigest = [32]byte{}
+
+func (s stubLayer) Digest() (gcr.Hash, error) {
+	return gcr.Hash{
+		Algorithm: "sha256",
+		Hex:       fmt.Sprintf("%x", cannedDigest),
+	}, nil
+}
+
+func (s stubLayer) MediaType() (types.MediaType, error) {
+	return types.OCILayer, nil
 }

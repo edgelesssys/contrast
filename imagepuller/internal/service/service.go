@@ -12,11 +12,11 @@ import (
 
 	"github.com/edgelesssys/contrast/imagepuller/internal/api"
 	"github.com/edgelesssys/contrast/imagepuller/internal/auth"
+	"github.com/edgelesssys/contrast/imagepuller/internal/store"
 	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
 	gcrRemote "github.com/google/go-containerregistry/pkg/v1/remote"
-	"go.podman.io/storage"
-	"go.podman.io/storage/types"
+	"github.com/opencontainers/umoci/oci/layer"
 )
 
 // Remote allows stubbing remote calls.
@@ -26,10 +26,16 @@ type Remote interface {
 	Index(ref name.Reference, opts ...gcrRemote.Option) (gcr.ImageIndex, error)
 }
 
+// Store allows stubbing filesystem interactions.
+type Store interface {
+	PutLayer(gcr.Layer) (gcr.Hash, error)
+	Mount(targetPath string, layerDigests ...gcr.Hash) error
+}
+
 // ImagePullerService is the struct for which the PullImage ttRPC service is implemented.
 type ImagePullerService struct {
 	Logger            *slog.Logger
-	Store             storage.Store
+	Store             Store
 	StorePathOverride string
 	Remote            Remote
 	AuthConfig        auth.Config
@@ -57,27 +63,14 @@ func (s *ImagePullerService) PullImage(ctx context.Context, r *api.ImagePullRequ
 	} else {
 		storePath = api.StorePathMemory
 	}
-	store, err := storage.GetStore(types.StoreOptions{
-		TransientStore:  true,
-		DisableVolatile: false,
-		RunRoot:         filepath.Join(storePath, "run"),
-		GraphRoot:       filepath.Join(storePath, "graph"),
-	})
-	log.Info("Found or created store", "storage_dir", storePath)
-	if err != nil {
-		return nil, fmt.Errorf("opening store: %w", err)
+	store := &store.Store{
+		Unpacker: layer.UnpackLayer,
+		Root:     storePath,
 	}
+	log.Info("Created store", "storage_dir", storePath)
 	s.Store = store
 
-	cachedID, err := s.Store.Lookup(r.ImageUrl)
-	if err == nil {
-		rootfs, err := s.createAndMountContainer(log, cachedID, r.BundlePath)
-		if err != nil {
-			return nil, fmt.Errorf("mounting container from cached image: %w", err)
-		}
-		log.Info("Mounted container from cached image", "mount_path", rootfs)
-		return &api.ImagePullResponse{}, nil
-	}
+	// TODO(burgerdev): cache manifests
 
 	remoteImg, err := s.getAndVerifyImage(ctx, log, r.ImageUrl)
 	if err != nil {
@@ -85,27 +78,17 @@ func (s *ImagePullerService) PullImage(ctx context.Context, r *api.ImagePullRequ
 	}
 	log.Info("Validated image")
 
-	finalLayer, err := s.storeAndVerifyLayers(log, remoteImg)
+	layerDigests, err := s.storeLayers(log, remoteImg)
 	if err != nil {
 		return nil, fmt.Errorf("verifying and putting layers in store: %w", err)
 	}
-	log.Info("Verified and put in store layers")
+	log.Info("Stored layers")
 
-	newImg, err := s.Store.CreateImage("", nil, finalLayer, "", nil)
-	if err != nil {
-		return nil, fmt.Errorf("creating image: %w", err)
+	rootfs := filepath.Join(r.BundlePath, "rootfs")
+	if err := os.MkdirAll(rootfs, 0o755); err != nil {
+		return nil, fmt.Errorf("creating directory %q: %w", rootfs, err)
 	}
-	log.Info("Created image", "id", newImg.ID)
-
-	if err := s.Store.RemoveNames(newImg.ID, newImg.Names); err != nil {
-		return nil, fmt.Errorf("removing pre-existing image names: %w", err)
-	}
-	if err := s.Store.AddNames(newImg.ID, []string{r.ImageUrl}); err != nil {
-		return nil, fmt.Errorf("adding image url as image name: %w", err)
-	}
-
-	rootfs, err := s.createAndMountContainer(log, newImg.ID, r.BundlePath)
-	if err != nil {
+	if err := s.Store.Mount(rootfs, layerDigests...); err != nil {
 		return nil, fmt.Errorf("mounting container: %w", err)
 	}
 	log.Info("Pulled and mounted image", "mount_path", rootfs)
