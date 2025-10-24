@@ -18,7 +18,9 @@ import (
 // PodSpecAccessor is an interface for Kubernetes resources that have a PodSpec with corresponding ObjectMeta.
 type PodSpecAccessor interface {
 	GetObjectMeta() *applymetav1.ObjectMetaApplyConfiguration
+	SetObjectMeta(*applymetav1.ObjectMetaApplyConfiguration)
 	GetPodSpec() *applycorev1.PodSpecApplyConfiguration
+	SetPodSpec(*applycorev1.PodSpecApplyConfiguration)
 }
 
 // PodTemplate wraps applycorev1.PodTemplateSpecApplyConfiguration.
@@ -31,7 +33,14 @@ func (t *PodTemplate) GetObjectMeta() *applymetav1.ObjectMetaApplyConfiguration 
 	if t.PodTemplateSpecApplyConfiguration != nil && t.ObjectMetaApplyConfiguration != nil {
 		return t.ObjectMetaApplyConfiguration
 	}
-	return &applymetav1.ObjectMetaApplyConfiguration{}
+	return nil
+}
+
+// SetObjectMeta sets the ObjectMeta of the Pod template.
+func (t *PodTemplate) SetObjectMeta(meta *applymetav1.ObjectMetaApplyConfiguration) {
+	if t.PodTemplateSpecApplyConfiguration != nil {
+		t.ObjectMetaApplyConfiguration = meta
+	}
 }
 
 // GetPodSpec returns the PodSpec of the Pod template.
@@ -39,7 +48,14 @@ func (t *PodTemplate) GetPodSpec() *applycorev1.PodSpecApplyConfiguration {
 	if t.PodTemplateSpecApplyConfiguration != nil && t.Spec != nil {
 		return t.Spec
 	}
-	return &applycorev1.PodSpecApplyConfiguration{}
+	return nil
+}
+
+// SetPodSpec sets the PodSpec of the Pod template.
+func (t *PodTemplate) SetPodSpec(spec *applycorev1.PodSpecApplyConfiguration) {
+	if t.PodTemplateSpecApplyConfiguration != nil {
+		t.Spec = spec
+	}
 }
 
 // DeploymentConfig wraps applyappsv1.DeploymentApplyConfiguration.
@@ -160,12 +176,26 @@ func (c *PodConfig) GetObjectMeta() *applymetav1.ObjectMetaApplyConfiguration {
 	return &applymetav1.ObjectMetaApplyConfiguration{}
 }
 
+// SetObjectMeta sets the ObjectMeta of the Pod.
+func (c *PodConfig) SetObjectMeta(meta *applymetav1.ObjectMetaApplyConfiguration) {
+	if c.PodApplyConfiguration != nil {
+		c.ObjectMetaApplyConfiguration = meta
+	}
+}
+
 // GetPodSpec returns the PodSpec of the Pod.
 func (c *PodConfig) GetPodSpec() *applycorev1.PodSpecApplyConfiguration {
 	if c.PodApplyConfiguration != nil && c.Spec != nil {
 		return c.Spec
 	}
-	return &applycorev1.PodSpecApplyConfiguration{}
+	return nil
+}
+
+// SetPodSpec sets the PodSpec of the Pod.
+func (c *PodConfig) SetPodSpec(spec *applycorev1.PodSpecApplyConfiguration) {
+	if c.PodApplyConfiguration != nil {
+		c.Spec = spec
+	}
 }
 
 // CronJobConfig wraps applybatchv1.CronJobApplyConfiguration.
