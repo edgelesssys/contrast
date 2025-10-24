@@ -79,52 +79,35 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 	return remoteImg, nil
 }
 
-func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gcr.Image) (string, error) {
+func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gcr.Image) (error) {
 	layers, err := remoteImg.Layers()
 	if err != nil {
-		return "", fmt.Errorf("obtaining the image layers: %w", err)
+		return fmt.Errorf("obtaining the image layers: %w", err)
 	}
 
 	manifest, err := remoteImg.Manifest()
 	if err != nil {
-		return "", fmt.Errorf("obtaining image manifest: %w", err)
+		return fmt.Errorf("obtaining image manifest: %w", err)
 	}
 
-	previousLayer := ""
 	for idx, layer := range layers {
 		rc, err := layer.Compressed()
 		if err != nil {
-			return "", fmt.Errorf("reading layer %d: %w", idx, err)
+			return fmt.Errorf("reading layer %d: %w", idx, err)
 		}
 
-		putLayer, n, err := s.Store.PutLayer(
-			"",            // empty ID -> let store decide
-			previousLayer, // parent is previous layer
-			nil,           // empty parent chain -> let store decide
-			"",            // mount label
-			false,         // readonly
-			nil,           // mount options
-			rc,            // tar stream
-		)
+		err = s.Store.PutLayer(rc, manifest.Layers[idx].Digest.String())
 		if err != nil {
-			return "", errors.Join(
+			return errors.Join(
 				fmt.Errorf("putting layer to store: %w", err),
 				fmt.Errorf("closing layer reader: %w", rc.Close()),
 			)
 		}
 		if err := rc.Close(); err != nil {
-			return "", fmt.Errorf("closing layer reader: %w", err)
+			return fmt.Errorf("closing layer reader: %w", err)
 		}
-
-		ldManifest := manifest.Layers[idx].Digest.String()
-		ld := putLayer.CompressedDigest.String()
-		if ldManifest != ld {
-			return "", fmt.Errorf("%w: expected digest '%s' but got digest '%s'", errValidateLayer, ldManifest, ld)
-		}
-
-		log.Info("Applied and validated layer", "id", putLayer.ID, "size", n, "digest", ld)
-		previousLayer = putLayer.ID
+		log.Info("Applied and validated layer", "digest", manifest.Layers[idx].Digest.String())
 	}
 
-	return previousLayer, nil
+	return nil
 }

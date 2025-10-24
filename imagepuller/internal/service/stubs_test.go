@@ -12,21 +12,19 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/opencontainers/go-digest"
-	"go.podman.io/storage"
 )
 
 type stubStore struct {
 	putLayerDigest digest.Digest
 	putLayerErr    error
-
-	storage.Store
 }
 
-func (s *stubStore) PutLayer(_, _ string, _ []string, _ string, _ bool, _ *storage.LayerOptions, _ io.Reader) (*storage.Layer, int64, error) {
-	if s.putLayerErr != nil {
-		return nil, 0, s.putLayerErr
-	}
-	return &storage.Layer{CompressedDigest: s.putLayerDigest}, 0, nil
+func (s *stubStore) Mount(where string, layerDigests ...string) error {
+	panic("not implemented") // TODO: Implement
+}
+
+func (s *stubStore) PutLayer(what io.Reader, expectedDigest string) (retErr error) {
+	panic("not implemented") // TODO: Implement
 }
 
 type stubRemote struct {
