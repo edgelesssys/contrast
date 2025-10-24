@@ -15,3 +15,7 @@ const StorePathMemory = "/run/kata-containers/image-memory"
 // The kata-agent uses this dir as the mount point for securely mounted storage.
 // It is only used as store cache when a storage device is actually available.
 const StorePathStorage = "/run/kata-containers/image"
+
+// InsecureConfigPath specifies the location at which the
+// imagepuller's authentication configuration is expected.
+const InsecureConfigPath = "/run/insecure-cfg/imagepuller.toml"
