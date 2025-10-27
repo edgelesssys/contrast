@@ -1303,10 +1303,10 @@
   resolved "https://registry.yarnpkg.com/@chevrotain/utils/-/utils-11.0.3.tgz#e39999307b102cff3645ec4f5b3665f5297a2224"
   integrity sha512-YslZMgtJUyuMbZ+aKvfF3x1f5liK4mWNxghFRv7jqRR9C3R3fAOGTTKvxXDa2Y1s9zSbcpuO0cAxDYsc9SrXoQ==
 
-"@cmfcmf/docusaurus-search-local@2.0.0":
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/@cmfcmf/docusaurus-search-local/-/docusaurus-search-local-2.0.0.tgz#a60add9c49a70f7d4d5d8dc87404e36dbd360a2f"
-  integrity sha512-WfgqJN5VXeyhcAVTF4isXFNCvZXdOlQZIsXbgKPEmXcXykV+YfPX4UgKJ4J/MuKtaKQ8SGjfeXhg2clhdmwHVw==
+"@cmfcmf/docusaurus-search-local@2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@cmfcmf/docusaurus-search-local/-/docusaurus-search-local-2.0.1.tgz#0b41d75084fb3f0552e76838240ca1ae30d49819"
+  integrity sha512-4Gk313a+9HGetIFB9f087Qrmba5svx0zY9xZ10QKd79Nic0IsY0/JktDqFMZ51IDuL+9yIMOsdeKb313ce2mnw==
   dependencies:
     "@algolia/autocomplete-js" "^1.8.2"
     "@algolia/autocomplete-theme-classic" "^1.8.2"
