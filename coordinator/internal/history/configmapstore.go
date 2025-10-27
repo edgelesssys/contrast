@@ -181,7 +181,7 @@ func (s *ConfigMapStore) Watch(key string) (<-chan []byte, func(), error) {
 				}
 				switch event.Type {
 				case watch.Error:
-					s.logger.Error("watch error", "key", key, "error", event.Object)
+					s.logger.Warn("watch error", "key", key, "error", event.Object)
 					return
 				case watch.Added, watch.Modified:
 					cm, ok := event.Object.(*corev1.ConfigMap)
