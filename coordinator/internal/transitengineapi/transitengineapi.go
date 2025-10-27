@@ -284,7 +284,7 @@ func writeJSONResponse(w http.ResponseWriter, payload any) error {
 func writeHTTPError(w http.ResponseWriter, httpErr httpError, logger *slog.Logger) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(httpErr.code)
-	logger.Error("HTTP error", "error", httpErr)
+	logger.Warn("HTTP error", "error", httpErr)
 
 	_ = json.NewEncoder(w).Encode(httpErr) //nolint:errchkjson
 }

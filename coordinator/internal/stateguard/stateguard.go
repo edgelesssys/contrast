@@ -146,7 +146,7 @@ func (g *Guard) WatchHistory(ctx context.Context) error {
 				return ctx.Err()
 			}
 		}
-		g.logger.Error("WatchLatestTransitions failed, starting a new watcher", "error", err)
+		g.logger.Warn("WatchLatestTransitions failed, starting a new watcher", "error", err)
 		select {
 		case <-g.clock.After(5 * time.Second):
 			g.logger.Info("time for a new watcher")
