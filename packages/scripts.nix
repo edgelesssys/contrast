@@ -701,4 +701,17 @@ lib.makeScope pkgs.newScope (scripts: {
       exit $exitcode
     '';
   };
+
+  docs-selfref-lint = writeShellApplication {
+    name = "docs-selfref-lint";
+    runtimeInputs = with pkgs; [ gnugrep ];
+    text = ''
+      echo "Checking for internal documentation references to docs.edgeless.systems/contrast" >&2
+      if grep -lF 'docs.edgeless.systems/contrast' "$@"; then
+        echo "Found a references to docs.edgeless.systems/contrast" >&2
+        echo "Please use relative links for internal documentation references." >&2
+        exit 1
+      fi
+    '';
+  };
 })
