@@ -10,9 +10,16 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const podYAML = `apiVersion: v1
+kind: Pod
+metadata:
+  name: test
+`
 
 const scriptTemplate = `#!/bin/sh
 set -eu
@@ -26,14 +33,10 @@ while [ $# -gt 0 ]; do
     --json-settings-path=*)
 	  printf "%%s" "${1#--json-settings-path=}" >settings_path
 	;;
-    --yaml-file=*)
-	  printf "%%s" "${1#--yaml-file=}" >yaml_path
+    --config-file=*)
+	  printf "%%s" "${1#--config-file=}" >extra_path
 	;;
-    --config-file)
-	  shift
-	  printf "%%s\n" "$1" >>config_files
-	;;
-    --runtime-class-names*|--layers-cache-file-path*)
+    --runtime-class-names*|--layers-cache-file-path*|--yaml-file*|--base64-out*)
 	;;
 	*)
 	  printf "unknown argument: %%s" "$1" >&2
@@ -42,6 +45,8 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+cat >stdin.yaml
 
 echo -e "HOME=${HOME}\nXDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}\nDOCKER_CONFIG=${DOCKER_CONFIG}\nREGISTRY_AUTH_FILE=${REGISTRY_AUTH_FILE}" >env_path
 `
@@ -64,17 +69,19 @@ func TestRunner(t *testing.T) {
 	rulesPathFile := filepath.Join(d, "rules_path")
 	expectedSettingsPath := "/settings.json"
 	settingsPathFile := filepath.Join(d, "settings_path")
+	expectedExtraPath := "/extra.yml"
+	extraPathFile := filepath.Join(d, "extra_path")
 	cachePath := filepath.Join(d, "cache", "cache.json")
-	expectedYAMLPath := filepath.Join(d, "test.yml")
-	yamlPathFile := filepath.Join(d, "yaml_path")
-	expectedConfigFiles := "cm.yaml\nsecret.yaml\n"
-	configFilesFile := filepath.Join(d, "config_files")
 	envFile := filepath.Join(d, "env_path")
 
 	r, err := New(expectedRulesPath, expectedSettingsPath, cachePath, genpolicyBin)
 	require.NoError(err)
 
-	require.NoError(r.Run(ctx, expectedYAMLPath, []string{"cm.yaml", "secret.yaml"}, logger))
+	applyConfig, err := kuberesource.UnmarshalApplyConfigurations([]byte(podYAML))
+	require.NoError(err)
+	require.Len(applyConfig, 1)
+	_, err = r.Run(ctx, applyConfig[0], expectedExtraPath, logger)
+	require.NoError(err)
 
 	rulesPath, err := os.ReadFile(rulesPathFile)
 	require.NoError(err)
@@ -84,17 +91,16 @@ func TestRunner(t *testing.T) {
 	require.NoError(err)
 	assert.Equal(expectedSettingsPath, string(settingsPath))
 
-	yamlPath, err := os.ReadFile(yamlPathFile)
+	extraPath, err := os.ReadFile(extraPathFile)
 	require.NoError(err)
-	assert.YAMLEq(expectedYAMLPath, string(yamlPath))
+	assert.Equal(expectedExtraPath, string(extraPath))
 
-	configFiles, err := os.ReadFile(configFilesFile)
+	yamlString, err := os.ReadFile(filepath.Join(d, "stdin.yaml"))
 	require.NoError(err)
-	assert.Equal(expectedConfigFiles, string(configFiles))
+	assert.YAMLEq(podYAML, string(yamlString))
 
 	env, err := os.ReadFile(envFile)
 	require.NoError(err)
-	assert.YAMLEq(expectedYAMLPath, string(yamlPath))
 	for _, expected := range []string{
 		"HOME=/invalid/home",
 		"XDG_RUNTIME_DIR=/invalid/xdg",

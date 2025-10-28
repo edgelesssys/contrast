@@ -4,10 +4,9 @@
 package genpolicy
 
 import (
+	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -50,21 +49,25 @@ func New(rulesPath, settingsPath, cachePath string, bin []byte) (*Runner, error)
 	return runner, nil
 }
 
-// Run runs the tool on the given yaml.
+// Run runs the tool on the given resource and returns the initdata annotation.
 //
 // Run can be called more than once.
-func (r *Runner) Run(ctx context.Context, yamlPath string, cmPath []string, logger *slog.Logger) error {
+func (r *Runner) Run(ctx context.Context, res any, extraPath string, logger *slog.Logger) (string, error) {
 	args := []string{
 		"--runtime-class-names=contrast-cc",
 		"--rego-rules-path=" + r.rulesPath,
 		"--json-settings-path=" + r.settingsPath,
 		"--layers-cache-file-path=" + r.cachePath,
-		"--yaml-file=" + yamlPath,
-	}
-	for _, cm := range cmPath {
-		args = append(args, "--config-file", cm)
+		"--yaml-file=/dev/stdin", // prevent genpolicy from outputting anything but the annotation
+		"--config-file=" + extraPath,
+		"--base64-out",
 	}
 	genpolicy := exec.CommandContext(ctx, r.genpolicy.Path(), args...)
+	input, err := kuberesource.EncodeResources(res)
+	if err != nil {
+		return "", fmt.Errorf("encoding resources: %w", err)
+	}
+	genpolicy.Stdin = bytes.NewReader(input)
 	genpolicy.Env = os.Environ()
 	if _, hasRustLog := os.LookupEnv("RUST_LOG"); !hasRustLog {
 		genpolicy.Env = append(genpolicy.Env, "RUST_LOG=info")
@@ -75,23 +78,17 @@ func (r *Runner) Run(ctx context.Context, yamlPath string, cmPath []string, logg
 
 	logFilter := newLogTranslator(logger)
 	defer logFilter.stop()
-	genpolicy.Stdout = io.Discard
+
+	var out bytes.Buffer
+	genpolicy.Stdout = &out
 	genpolicy.Stderr = logFilter
 
 	logger.Debug("running genpolicy", "bin", r.genpolicy.Path(), "args", args)
 	if err := genpolicy.Run(); err != nil {
-		return fmt.Errorf("running genpolicy: %w", err)
+		return "", fmt.Errorf("running genpolicy: %w", err)
 	}
 
-	resource, err := kuberesource.YAMLBytesFromFiles(yamlPath)
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-	if err := os.WriteFile(yamlPath, resource, 0o644); err != nil {
-		return fmt.Errorf("write output file: %w", err)
-	}
-
-	return nil
+	return out.String(), err
 }
 
 // Teardown cleans up temporary files and should be called after the last Run.
