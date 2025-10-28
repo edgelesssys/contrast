@@ -69,6 +69,12 @@
         "README.md"
       ];
     };
+    # Docs shouldn't use links containing the full URL, but rather relative links.
+    # Otherwise the links won't point to the correct versioned location after a release.
+    docs-selfref-lint = {
+      command = "${lib.getExe pkgs.contrastPkgs.scripts.docs-selfref-lint}";
+      includes = [ "docs/docs/*.md" ];
+    };
     renovate = {
       command = "${lib.getExe' pkgs.renovate "renovate-config-validator"}";
       options = [ "--strict" ];
