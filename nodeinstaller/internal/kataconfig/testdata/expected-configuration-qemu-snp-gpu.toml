@@ -4,6 +4,7 @@ block_device_aio = 'threads'
 block_device_driver = 'virtio-scsi'
 cold_plug_vfio = 'root-port'
 confidential_guest = true
+contrast_imagepuller_config = '/etc/host-config/contrast-imagepuller.toml'
 cpu_features = 'pmu=off'
 default_bridges = 1
 default_maxmemory = 0
