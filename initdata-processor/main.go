@@ -11,60 +11,66 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"slices"
 
 	"github.com/edgelesssys/contrast/initdata-processor/policy"
 	"github.com/edgelesssys/contrast/initdata-processor/validator"
 	"github.com/edgelesssys/contrast/internal/initdata"
 )
 
-const measuredConfigPath = "/run/measured-cfg"
+const (
+	measuredConfigPath = "/run/measured-cfg"
+	insecureConfigPath = "/run/insecure-cfg"
+)
 
 var version = "0.0.0-dev"
 
+// We always exit with status code 0 so that the Kata agent can start and propagate errors to
+// the runtime.
 func main() {
 	log.Printf("Contrast initdata-processor %s", version)
 	log.Print("Report issues at https://github.com/edgelesssys/contrast/issues")
 
+	// Handle initdata.
 	if err := os.MkdirAll(measuredConfigPath, 0o755); err != nil {
 		failf("Could not create directory %q: %v", measuredConfigPath, err)
 		return
 	}
-
-	entries, err := os.ReadDir("/dev")
+	device, err := checkDeviceAvailability("initdata")
 	if err != nil {
-		failf("Could not list devices: %v", err)
+		failf("no initdata device found")
 		return
 	}
-	// The initdata device is usually /dev/vdX so let's start from the back.
-	slices.Reverse(entries)
-
-	var deviceFound bool
-	for _, entry := range entries {
-		// We're only interested in block devices.
-		if entry.Type()&(fs.ModeDevice|fs.ModeCharDevice) != fs.ModeDevice {
-			continue
-		}
-
-		path := filepath.Join("/dev", entry.Name())
-		doc, err := initdata.FromDevice(path)
-		if err != nil {
-			log.Printf("%s is not an initdata device: %v", path, err)
-			continue
-		}
-		deviceFound = true
-		if err := handleInitdata(doc); err != nil {
-			failf("handling initdata: %v", err)
-			break
-		}
-		log.Printf("Processed initdata from %q ", path)
-		break
+	doc, err := initdata.FromDevice(device, "initdata")
+	if err != nil {
+		failf("%s is not an initdata device: %v", device, err)
+		return
 	}
-	if !deviceFound {
-		failf("no initdata device found")
+	if err := handleInitdata(doc); err != nil {
+		failf("handling initdata: %v", err)
+		return
 	}
-	// We always exit with status code 0 so that the Kata agent can start and propagate errors to
-	// the runtime.
+	log.Printf("Processed initdata from %q ", device)
+
+	// Handle imagepuller auth config.
+	if err := os.MkdirAll(insecureConfigPath, 0o755); err != nil {
+		failf("Could not create directory %q: %v", insecureConfigPath, err)
+		return
+	}
+	device, err = checkDeviceAvailability("imagepuller")
+	if err != nil {
+		log.Println("No imagepuller auth config found, only unauthenticated pulls will be available")
+		return
+	}
+	doc, err = initdata.FromDevice(device, "imgpullr")
+	if err != nil {
+		failf("%s is not an imagepuller config device: %v", device, err)
+		return
+	}
+	if err := handleImagepullerAuthConfig(doc); err != nil {
+		failf("handling imagepuller auth config: %v", err)
+		return
+	}
+	log.Printf("Processed imagepuller auth config from %q ", device)
 }
 
 func handleInitdata(doc initdata.Raw) error {
@@ -91,6 +97,25 @@ func handleInitdata(doc initdata.Raw) error {
 		}
 	}
 	return nil
+}
+
+func handleImagepullerAuthConfig(doc initdata.Raw) error {
+	configLocation := "/run/insecure-cfg/imagepuller.toml"
+	return os.WriteFile(configLocation, doc, 0o644)
+}
+
+func checkDeviceAvailability(id string) (string, error) {
+	device := fmt.Sprintf("/dev/disk/by-id/virtio-%s", id)
+	info, err := os.Stat(device)
+	if err != nil {
+		return "", fmt.Errorf("could not open %s: %w", device, err)
+	}
+
+	if info.Mode()&(fs.ModeDevice|fs.ModeCharDevice) != fs.ModeDevice {
+		return "", fmt.Errorf("%s is not a block device (mode: %s)", device, info.Mode())
+	}
+
+	return device, nil
 }
 
 func failf(format string, v ...any) {

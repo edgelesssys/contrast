@@ -224,7 +224,7 @@ func TestFromDevice(t *testing.T) {
 			path := filepath.Join(tmpDir, name)
 			require.NoError(os.WriteFile(path, tc.deviceContent, 0o755))
 
-			raw, err := FromDevice(path)
+			raw, err := FromDevice(path, "initdata")
 			if tc.wantErr != nil {
 				require.ErrorIs(err, tc.wantErr)
 				return
