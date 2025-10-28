@@ -4,59 +4,16 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
 	"sort"
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/initdata"
+	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
-
-const (
-	podYAML = `
-apiVersion: v1
-kind: Pod
-metadata:
-  name: my-pod
-`
-	invalidPolicyYAML = `
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: test
-spec:
-  template:
-    metadata:
-      annotations:
-        io.katacontainers.config.hypervisor.cc_init_data: 'invalid-base64'
-`
-)
-
-var coordinatorDeploymentTemplate = `
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: test
-spec:
-  template:
-    metadata:
-      annotations:
-        io.katacontainers.config.hypervisor.cc_init_data: %q
-        contrast.edgeless.systems/pod-role: coordinator
-`
-
-var podPolicyTemplate = `
-apiVersion: v1
-kind: Pod
-metadata:
-  name: another-pod
-  annotations:
-    io.katacontainers.config.hypervisor.cc_init_data: %q
-`
 
 func TestPoliciesFromKubeResources(t *testing.T) {
 	i, err := initdata.New("sha256", nil)
@@ -67,42 +24,78 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 	require.NoError(t, err)
 	testCases := []struct {
 		name           string
-		files          map[string]string
+		resources      []any
 		expectedOutput []deployment
 		expectedErr    string
 	}{
 		{
 			name: "valid input",
-			files: map[string]string{
-				"deployment.yml": fmt.Sprintf(coordinatorDeploymentTemplate, anno),
+			resources: []any{
+				kuberesource.Deployment("test", "").
+					WithSpec(kuberesource.DeploymentSpec().
+						WithTemplate(kuberesource.PodTemplateSpec().
+							WithAnnotations(map[string]string{
+								initdata.InitdataAnnotationKey: anno,
+								contrastRoleAnnotationKey:      "coordinator",
+							}).
+							WithSpec(kuberesource.PodSpec().
+								WithRuntimeClassName("contrast-cc"),
+							))),
 			},
 			expectedOutput: []deployment{
 				{
 					name:             "test",
 					initdata:         serialized,
-					role:             "coordinator",
+					role:             manifest.RoleCoordinator,
 					workloadSecretID: "apps/v1/Deployment/default/test",
 				},
 			},
 		},
 		{
 			name: "missing annotation",
-			files: map[string]string{
-				"pod.yml": podYAML,
+			resources: []any{
+				kuberesource.Deployment("test", "").
+					WithSpec(kuberesource.DeploymentSpec().
+						WithTemplate(kuberesource.PodTemplateSpec().
+							WithSpec(kuberesource.PodSpec().
+								WithRuntimeClassName("contrast-cc"),
+							))),
 			},
+			expectedErr: "missing initdata annotation",
 		},
 		{
 			name: "invalid policy annotation",
-			files: map[string]string{
-				"deployment.yml": invalidPolicyYAML,
+			resources: []any{
+				kuberesource.Pod("test", "").
+					WithAnnotations(map[string]string{
+						initdata.InitdataAnnotationKey: "invalid-base64",
+					}).
+					WithSpec(kuberesource.PodSpec().
+						WithRuntimeClassName("contrast-cc"),
+					),
 			},
 			expectedErr: "illegal base64 data",
 		},
 		{
 			name: "multiple files",
-			files: map[string]string{
-				"deployment.yml": fmt.Sprintf(coordinatorDeploymentTemplate, anno),
-				"pod.yml":        fmt.Sprintf(podPolicyTemplate, anno),
+			resources: []any{
+				kuberesource.Deployment("test", "").
+					WithSpec(kuberesource.DeploymentSpec().
+						WithTemplate(kuberesource.PodTemplateSpec().
+							WithAnnotations(map[string]string{
+								initdata.InitdataAnnotationKey: anno,
+								contrastRoleAnnotationKey:      "coordinator",
+							}).
+							WithSpec(kuberesource.PodSpec().
+								WithRuntimeClassName("contrast-cc"),
+							))),
+				kuberesource.Pod("another-pod", "").
+					WithAnnotations(map[string]string{
+						initdata.InitdataAnnotationKey: anno,
+					}).
+					WithSpec(kuberesource.PodSpec().
+						WithRuntimeClassName("contrast-cc"),
+					),
 			},
 			expectedOutput: []deployment{
 				{
@@ -123,17 +116,11 @@ func TestPoliciesFromKubeResources(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tempDir := t.TempDir()
-
-			var paths []string
-			for filename, content := range tc.files {
-				path := filepath.Join(tempDir, filename)
-				err := os.WriteFile(path, []byte(content), 0o644)
-				require.NoError(t, err)
-				paths = append(paths, path)
-			}
-
-			deployments, err := policiesFromKubeResources(paths)
+			fileMap := make(map[string][]*unstructured.Unstructured)
+			u, err := kuberesource.ResourcesToUnstructured(tc.resources)
+			require.NoError(t, err)
+			fileMap["testfile"] = append(fileMap["testfile"], u...)
+			deployments, err := policiesFromKubeResources(fileMap)
 			sort.Slice(deployments, func(i, j int) bool {
 				return deployments[i].name < deployments[j].name
 			})

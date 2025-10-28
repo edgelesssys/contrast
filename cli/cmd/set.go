@@ -87,12 +87,16 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("loading workload owner key: %w", err)
 	}
 
-	paths, _, err := findGenerateTargets(args, log)
+	paths, err := findYamlFiles(args)
 	if err != nil {
 		return fmt.Errorf("finding yaml files: %w", err)
 	}
 
-	policies, err := policiesFromKubeResources(paths)
+	fileMap, err := extractTargets(paths, io.Discard, log)
+	if err != nil {
+		return fmt.Errorf("extracting targets from yaml files: %w", err)
+	}
+	policies, err := policiesFromKubeResources(fileMap)
 	if err != nil {
 		return fmt.Errorf("finding kube resources with policy: %w", err)
 	}

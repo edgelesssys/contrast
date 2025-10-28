@@ -5,50 +5,28 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/initdata"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
 
-func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
-	var kubeObjs []any
-	for _, path := range yamlPaths {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read %s: %w", path, err)
-		}
-		objs, err := kuberesource.UnmarshalApplyConfigurations(data)
-		if err != nil {
-			return nil, fmt.Errorf("failed to unmarshal %s: %w", path, err)
-		}
-		kubeObjs = append(kubeObjs, objs...)
-	}
-
+func policiesFromKubeResources(fileMap map[string][]*unstructured.Unstructured) ([]deployment, error) {
 	var deployments []deployment
-	for _, objAny := range kubeObjs {
-		objs, err := kuberesource.ResourcesToUnstructured([]any{objAny})
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert to unstructured: %w", err)
-		}
-		if len(objs) != 1 {
-			return nil, fmt.Errorf("expected 1 unstructured object, got %d", len(objs))
-		}
-		objUnstructured := objs[0]
-
-		name := objUnstructured.GetName()
-		namespace := orDefault(objUnstructured.GetNamespace(), "default")
-		gvk := objUnstructured.GetObjectKind().GroupVersionKind()
+	if err := mapCCWorkloads(fileMap, func(res any, path string, idx int) error {
+		name := fileMap[path][idx].GetName()
+		namespace := orDefault(fileMap[path][idx].GetNamespace(), "default")
+		gvk := fileMap[path][idx].GetObjectKind().GroupVersionKind()
 
 		var annotation string
 		var workloadSecretID string
 		var role manifest.Role
-		kuberesource.MapPodSpecWithMeta(objAny, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+		kuberesource.MapPodSpecWithMeta(res, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
 			if meta == nil {
 				return meta, spec
 			}
@@ -58,20 +36,20 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 			return meta, spec
 		})
 		if annotation == "" {
-			continue
+			return fmt.Errorf("missing initdata annotation for %s", name)
 		}
 		if name == "" {
-			return nil, fmt.Errorf("name is required but empty")
+			return fmt.Errorf("name is required but empty")
 		}
 		if workloadSecretID == "" {
 			workloadSecretID = strings.Join([]string{orDefault(gvk.Group, "core"), gvk.Version, gvk.Kind, namespace, name}, "/")
 		}
 		initdata, err := initdata.DecodeKataAnnotation(annotation)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse initdata %q: %w", name, err)
+			return fmt.Errorf("failed to parse initdata %q: %w", name, err)
 		}
 		if err := role.Validate(); err != nil {
-			return nil, fmt.Errorf("invalid role %s for %s: %w", role, name, err)
+			return fmt.Errorf("invalid role %s for %s: %w", role, name, err)
 		}
 		deployments = append(deployments, deployment{
 			name:             name,
@@ -79,8 +57,10 @@ func policiesFromKubeResources(yamlPaths []string) ([]deployment, error) {
 			role:             role,
 			workloadSecretID: workloadSecretID,
 		})
+		return nil
+	}); err != nil {
+		return nil, err
 	}
-
 	return deployments, nil
 }
 
