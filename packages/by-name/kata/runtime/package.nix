@@ -159,6 +159,10 @@ buildGoModule (finalAttrs: {
       # policy errors if set.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11935.
       ./0022-genpolicy-support-fsGroup-setting-in-pod-security-co.patch
+
+      # In addition to the initdata device, we also require the imagepuller's auth config
+      # to be passed to the VM in a similar manner.
+      ./0023-runtime-pass-imagepuller-config-device-to-vm.patch
     ];
   };
 

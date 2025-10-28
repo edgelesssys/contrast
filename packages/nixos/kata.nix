@@ -132,6 +132,10 @@ in
       after = [
         "network.target"
         "imagestore.service"
+        "initdata-processor.service"
+      ];
+      requires = [
+        "initdata-processor.service"
       ];
       wantedBy = [ "kata-agent.service" ];
       serviceConfig = {
