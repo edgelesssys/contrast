@@ -180,17 +180,17 @@ func (ct *ContrastTest) RunGenerate() error {
 	generate.SetErr(errBuf)
 
 	if err := generate.Execute(); err != nil {
-		return errors.Join(err, fmt.Errorf("%s", errBuf))
+		return errors.Join(fmt.Errorf("%s", errBuf), err)
 	}
-	patchManifestFunc, err := PatchReferenceValues(ctx, ct.Kubeclient, ct.Platform)
+	patchRefValsFunc, err := PatchReferenceValues(ctx, ct.Kubeclient, ct.Platform)
 	if err != nil {
-		return errors.Join(err, fmt.Errorf("%s", errBuf))
+		return fmt.Errorf("getting func to patch reference values in manifest: %w", err)
 	}
-	if err := ct.RunPatchManifest(patchManifestFunc); err != nil {
-		return errors.Join(err, fmt.Errorf("%s", errBuf))
+	if err := ct.RunPatchManifest(patchRefValsFunc); err != nil {
+		return fmt.Errorf("patching manifest with reference values: %w", err)
 	}
 	if err := ct.RunPatchManifest(addInvalidReferenceValues(ct.Platform)); err != nil {
-		return errors.Join(err, fmt.Errorf("%s", errBuf))
+		return fmt.Errorf("adding invalid reference values to manifest: %w", err)
 	}
 	return nil
 }
