@@ -94,6 +94,9 @@
   };
   # simple replacement for update-users-groups.pl
   systemd.sysusers.enable = true;
+  # Unnecessary font stuff
+  fonts.enableDefaultPackages = false;
+  fonts.fontconfig.enable = false;
   # Random perl remnants
   system.disableInstallerTools = true;
   programs.less.lessopen = null;
