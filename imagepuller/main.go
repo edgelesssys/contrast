@@ -49,6 +49,8 @@ func newRootCmd() *cobra.Command {
 		RunE:         run,
 	}
 	cmd.Flags().String("storepath", "", "temporary directory to use for storage")
+	cmd.Flags().String("config", api.InsecureConfigPath, "location of configuration file")
+	cmd.Flags().String("listen", api.Socket, "location of listening socket")
 	return cmd
 }
 
@@ -62,19 +64,20 @@ func run(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintf(os.Stderr, "Contrast image-puller %s\n", version)
 	fmt.Fprintln(os.Stderr, "Report issues at https://github.com/edgelesssys/contrast/issues")
 
-	if err := os.MkdirAll(filepath.Dir(api.Socket), os.ModePerm); err != nil {
+	socketPath := cmd.Flag("listen").Value.String()
+	if err := os.MkdirAll(filepath.Dir(socketPath), os.ModePerm); err != nil {
 		return fmt.Errorf("creating directory for socket: %w", err)
 	}
-	if err := os.Remove(api.Socket); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := os.Remove(socketPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("removing existing socket: %w", err)
 	}
 
-	l, err := (&net.ListenConfig{}).Listen(ctxSignal, "unix", api.Socket)
+	l, err := (&net.ListenConfig{}).Listen(ctxSignal, "unix", socketPath)
 	if err != nil {
 		return fmt.Errorf("listening on socket: %w", err)
 	}
 	defer l.Close()
-	defer os.RemoveAll(api.Socket)
+	defer os.RemoveAll(socketPath)
 
 	s, err := ttrpc.NewServer()
 	if err != nil {
@@ -82,7 +85,8 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 	defer s.Close()
 
-	authConfig, err := auth.ReadInsecureConfig(api.InsecureConfigPath, log)
+	configPath := cmd.Flag("config").Value.String()
+	authConfig, err := auth.ReadInsecureConfig(configPath, log)
 	if err != nil {
 		return fmt.Errorf("reading auth config: %w", err)
 	}
@@ -98,7 +102,7 @@ func run(cmd *cobra.Command, _ []string) error {
 	eg, ctx := errgroup.WithContext(ctxSignal)
 
 	eg.Go(func() error {
-		log.Info("Started image-puller", "socket", api.Socket)
+		log.Info("Started image-puller", "socket", socketPath)
 		log.Info("Waiting for image pull request...")
 		if err := s.Serve(ctx, l); err != nil {
 			return fmt.Errorf("starting the ttRPC server: %w", err)
