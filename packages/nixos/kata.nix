@@ -187,5 +187,24 @@ in
         ExecStart = ''${pkgs.iptables}/bin/iptables-legacy -I INPUT -m conntrack ! --ctstate ESTABLISHED,RELATED -j DROP'';
       };
     };
+
+    systemd.services.contrast-debug-shell = {
+      description = "Contrast debug shell acccess for containers";
+      after = [
+        "initdata.target" # We need to wait for initdata to be written.
+        "network.target" # We bind to localhost, so network needs to be up.
+      ];
+      wantedBy = [ "kata-agent.service" ];
+      unitConfig = {
+        ConditionPathExists = "/run/measured-cfg/contrast.insecure-debug";
+      };
+      serviceConfig = {
+        Type = "exec";
+        ExecStart = "${lib.getExe pkgs.contrastPkgs.debugshell}";
+        Restart = "on-failure";
+        RestartSec = 5;
+        User = "root";
+      };
+    };
   };
 }
