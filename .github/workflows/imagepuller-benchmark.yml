@@ -33,11 +33,14 @@ jobs:
       - name: Download baseline JSON from S3
         run: |
           aws s3 cp "s3://contrast-public/imagepuller-benchmark/baseline.json" "baseline.json"
+      - name: pre-pull images to local registry
+        run: |
+          nix run .#scripts.local-registry -- localhost:30000 < tools/imagepuller-benchmark/images.txt > local-images.txt
       - name: Run imagepuller-benchmark script
         run: |
           imagepullereval="$(nix build .#imagepuller-benchmark --print-out-paths)/bin/imagepuller-benchmark"
           imagepuller="$(nix build .#imagepuller --print-out-paths)/bin/imagepuller"
-          sudo "$imagepullereval" "$imagepuller" -c baseline.json -o baseline-new.json -i tools/imagepuller-benchmark/images.txt
+          sudo "$imagepullereval" "$imagepuller" -c baseline.json -o baseline-new.json -i local-images.txt
       - name: Upload new baseline.json to S3
         if: github.event_name == 'push' && github.ref_name == 'main'
         run: |
