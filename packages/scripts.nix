@@ -714,4 +714,30 @@ lib.makeScope pkgs.newScope (scripts: {
       fi
     '';
   };
+
+  # Spawn a local OCI registry and copy images over.
+  # Expects a newline-separated list of images on stdin and writes the mirrored image references to stdout.
+  # Example usage:
+  #   nix run .#scripts.local-registry -- localhost:30000 < tools/imagepuller-benchmark/images.txt > /tmp/local-images.txt
+  local-registry = writeShellApplication {
+    name = "local-registry";
+    runtimeInputs = with pkgs; [
+      crane
+      skopeo
+    ];
+    text = ''
+      registry=$1
+      echo "Creating a local image registry and mirroring the images presented on stdin." >&2
+      crane registry serve --address "$registry" >&2 &
+      pid=$!
+      sleep 2 # wait for registry to become ready
+      while read -r line; do
+        localImg="$registry/''${line#*/}"
+        skopeo copy --all --dest-tls-verify=false "docker://$line" "docker://$localImg" >&2
+        echo "$localImg"
+      done
+      echo "crane pid: $pid" >&2
+      echo "All images copied. The registry will keep running in the background!" >&2
+    '';
+  };
 })
