@@ -37,7 +37,7 @@ jobs:
         run: |
           imagepullereval="$(nix build .#imagepuller-benchmark --print-out-paths)/bin/imagepuller-benchmark"
           imagepuller="$(nix build .#imagepuller --print-out-paths)/bin/imagepuller"
-          sudo "$imagepullereval" "$imagepuller" -c baseline.json -o baseline-new.json
+          sudo "$imagepullereval" "$imagepuller" -c baseline.json -o baseline-new.json -i tools/imagepuller-benchmark/images.txt
       - name: Upload new baseline.json to S3
         if: github.event_name == 'push' && github.ref_name == 'main'
         run: |
