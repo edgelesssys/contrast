@@ -237,18 +237,27 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 // mapCCWorkloads applies the given function to all workloads with the 'contrast-cc' runtime class.
 // The callback receives an apply configuration together with the file path and index the unstructured object has in the file map.
 // Changes to the apply configuration are not applied to the original unstructured object.
-func mapCCWorkloads(fileMap map[string][]*unstructured.Unstructured, f func(res any, path string, idx int) error) error {
+func mapCCWorkloads(fileMap map[string][]*unstructured.Unstructured, f func(res any, path string, idx int) (any, error)) error {
 	for path, resources := range fileMap {
 		for idx, r := range resources {
 			applyConfig, err := kuberesource.UnstructuredToApplyConfiguration(r)
 			if err != nil {
 				continue
 			}
-			if isCCWorkload(applyConfig) {
-				if err := f(applyConfig, path, idx); err != nil {
-					return err
-				}
+			if !isCCWorkload(applyConfig) {
+				continue
 			}
+			changed, err := f(applyConfig, path, idx)
+			if err != nil {
+				return err
+			}
+			resUnstructured, err := kuberesource.ResourcesToUnstructured([]any{changed})
+			if err != nil {
+				return fmt.Errorf("convert patched resource to unstructured: %w", err)
+			} else if len(resUnstructured) != 1 {
+				return fmt.Errorf("expected 1 unstructured object, got %d", len(resUnstructured))
+			}
+			fileMap[path][idx] = resUnstructured[0]
 		}
 	}
 	return nil
@@ -267,11 +276,11 @@ func isCCWorkload(resource any) (ret bool) {
 func runVerifiers(fileMap map[string][]*unstructured.Unstructured, verifiers []verifier.Verifier) error {
 	var findings error
 	for _, v := range verifiers {
-		_ = mapCCWorkloads(fileMap, func(res any, path string, idx int) error {
+		_ = mapCCWorkloads(fileMap, func(res any, path string, idx int) (any, error) {
 			if err := v.Verify(res); err != nil {
 				findings = errors.Join(findings, fmt.Errorf("failed to verify resource %q in file %q: %w", fileMap[path][idx].GetName(), path, err))
 			}
-			return nil
+			return res, nil
 		})
 	}
 	if findings != nil {
@@ -375,13 +384,15 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 		}
 	}()
 
-	return mapCCWorkloads(fileMap, func(res any, path string, idx int) error {
+	return mapCCWorkloads(fileMap, func(res any, path string, idx int) (any, error) {
 		initdataAnno, err := runner.Run(ctx, res, extraPath, logger)
 		if err != nil {
-			return fmt.Errorf("failed to generate policy for %q in %q: %w", fileMap[path][idx].GetName(), path, err)
+			return nil, fmt.Errorf("failed to generate policy for %q in %q: %w", fileMap[path][idx].GetName(), path, err)
 		}
 		var retError error
-		kuberesource.MapPodSpecWithMeta(res, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+		res = kuberesource.MapPodSpecWithMeta(res, func(
+			meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration,
+		) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
 			if meta == nil {
 				meta = &applymetav1.ObjectMetaApplyConfiguration{}
 			}
@@ -389,20 +400,9 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 				meta.Annotations = make(map[string]string)
 			}
 			meta.Annotations[initdata.InitdataAnnotationKey] = initdataAnno
-
-			resUnstructured, err := kuberesource.ResourcesToUnstructured([]any{res})
-			if err != nil {
-				retError = fmt.Errorf("convert patched resource to unstructured: %w", err)
-				return meta, spec
-			} else if len(resUnstructured) != 1 {
-				retError = fmt.Errorf("expected 1 unstructured object, got %d", len(resUnstructured))
-				return meta, spec
-			}
-			fileMap[path][idx] = resUnstructured[0]
-
 			return meta, spec
 		})
-		return retError
+		return res, retError
 	})
 }
 
@@ -426,15 +426,15 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 			return fmt.Errorf("parsing release image definitions %s: %w", ReleaseImageReplacements, err)
 		}
 	}
-	return mapCCWorkloads(fileMap, func(res any, path string, idx int) error {
+	return mapCCWorkloads(fileMap, func(res any, _ string, _ int) (any, error) {
 		if !skipInitializer {
 			if err := injectInitializer(res); err != nil {
-				return fmt.Errorf("injecting Initializer: %w", err)
+				return nil, fmt.Errorf("injecting Initializer: %w", err)
 			}
 		}
 		if !skipServiceMesh {
 			if err := injectServiceMesh(res); err != nil {
-				return fmt.Errorf("injecting Service Mesh: %w", err)
+				return nil, fmt.Errorf("injecting Service Mesh: %w", err)
 			}
 		}
 		if !skipImageStore {
@@ -446,15 +446,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 		replaceRuntimeClassName := runtimeClassNamePatcher(runtimeHandler)
 		kuberesource.MapPodSpec(res, replaceRuntimeClassName)
 
-		resUnstructured, err := kuberesource.ResourcesToUnstructured([]any{res})
-		if err != nil {
-			return fmt.Errorf("convert patched resource to unstructured: %w", err)
-		} else if len(resUnstructured) != 1 {
-			return fmt.Errorf("expected 1 unstructured object, got %d", len(resUnstructured))
-		}
-		fileMap[path][idx] = resUnstructured[0]
-
-		return nil
+		return res, nil
 	})
 }
 
