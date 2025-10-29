@@ -36,16 +36,8 @@ func ContrastRuntimeClass(platform platforms.Platform) (*RuntimeClassConfig, err
 	return &RuntimeClassConfig{r}, nil
 }
 
-// NodeInstallerConfig wraps a DaemonSetApplyConfiguration for a node installer.
-type NodeInstallerConfig struct {
-	*applyappsv1.DaemonSetApplyConfiguration
-	*applycorev1.ServiceAccountApplyConfiguration
-	*applyrbacv1.ClusterRoleApplyConfiguration
-	*applyrbacv1.ClusterRoleBindingApplyConfiguration
-}
-
 // NodeInstaller constructs a node installer daemon set.
-func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstallerConfig, error) {
+func NodeInstaller(namespace string, platform platforms.Platform) (*applyappsv1.DaemonSetApplyConfiguration, error) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	if err != nil {
 		return nil, fmt.Errorf("getting default runtime handler: %w", err)
@@ -53,20 +45,12 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 
 	name := fmt.Sprintf("%s-nodeinstaller", runtimeHandler)
 
-	noSnapshotter := Container().
-		WithName("pause").
-		WithImage("registry.k8s.io/pause:3.6@sha256:3d380ca8864549e74af4b29c10f9cb0956236dfb01c40ca076fb6c37253234db")
-
 	var nodeInstallerImageURL string
-	var containers []*applycorev1.ContainerApplyConfiguration
-	var snapshotterVolumes []*applycorev1.VolumeApplyConfiguration
 	switch {
 	case platforms.IsQEMU(platform) && platforms.IsGPU(platform):
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest"
-		containers = append(containers, noSnapshotter)
 	case platforms.IsQEMU(platform):
 		nodeInstallerImageURL = "ghcr.io/edgelesssys/contrast/node-installer-kata:latest"
-		containers = append(containers, noSnapshotter)
 	default:
 		return nil, fmt.Errorf("unsupported platform %q", platform)
 	}
@@ -84,7 +68,6 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 					"contrast.edgeless.systems/platform": platform.String(),
 				}).
 				WithSpec(PodSpec().
-					WithServiceAccountName(name).
 					WithHostPID(true).
 					WithInitContainers(Container().
 						WithName("installer").
@@ -110,10 +93,11 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 						WithCommand("/bin/node-installer", platform.String()),
 					).
 					WithContainers(
-						containers...,
+						Container().
+							WithName("pause").
+							WithImage("registry.k8s.io/pause:3.6@sha256:3d380ca8864549e74af4b29c10f9cb0956236dfb01c40ca076fb6c37253234db"),
 					).
-					WithVolumes(append(
-						snapshotterVolumes,
+					WithVolumes(
 						Volume().
 							WithName("host-mount").
 							WithHostPath(HostPathVolumeSource().
@@ -138,42 +122,12 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 								WithSecretName("contrast-node-installer-imagepuller-config").
 								WithOptional(true),
 							),
-					)...,
 					),
 				),
 			),
 		)
 
-	serviceAccount := applycorev1.ServiceAccount(name, namespace)
-
-	clusterRole := applyrbacv1.ClusterRole(name).
-		WithRules(
-			applyrbacv1.PolicyRule().
-				WithAPIGroups("").
-				WithResources("pods").
-				WithVerbs("watch"),
-		)
-
-	clusterRoleBinding := applyrbacv1.ClusterRoleBinding(name).
-		WithSubjects(
-			applyrbacv1.Subject().
-				WithKind("ServiceAccount").
-				WithName(name).
-				WithNamespace(namespace),
-		).
-		WithRoleRef(
-			applyrbacv1.RoleRef().
-				WithKind("ClusterRole").
-				WithName(name).
-				WithAPIGroup("rbac.authorization.k8s.io"),
-		)
-
-	return &NodeInstallerConfig{
-		DaemonSetApplyConfiguration:          d,
-		ServiceAccountApplyConfiguration:     serviceAccount,
-		ClusterRoleApplyConfiguration:        clusterRole,
-		ClusterRoleBindingApplyConfiguration: clusterRoleBinding,
-	}, nil
+	return d, nil
 }
 
 // NodeInstallerTargetConfig returns a ConfigMap for the passed target.
