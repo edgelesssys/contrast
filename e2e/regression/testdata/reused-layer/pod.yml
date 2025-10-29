@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: reused-layers
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  initContainers:
+    - name: init
+      image: ghcr.io/edgelesssys/reused-layer/b@sha256:58588091715d842894ca69769be2ee0afaa39a94bebad094f90772dd62f13fa0
+      command:
+        - /bin/busybox
+        - "true"
+  containers:
+    - name: main
+      image: ghcr.io/edgelesssys/reused-layer/a@sha256:a81cb597db43ac54dd1e2e3c95c7198dd9dafda1ceded5b3adbc4e830f47d92e
+      command:
+        - /bin/busybox
+        - sh
+        - -c
+        - read dummy
