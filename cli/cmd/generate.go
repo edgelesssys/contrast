@@ -79,6 +79,7 @@ subcommands.`,
 	cmd.Flags().Bool("skip-initializer", false, "skip injection of Contrast Initializer")
 	cmd.Flags().Bool("skip-service-mesh", false, "skip injection of Contrast service mesh sidecar")
 	cmd.Flags().Bool("skip-image-store", false, "skip injection of ephemeral storage and keep image layers in memory")
+	cmd.Flags().Bool("insecure-enable-debug-shell-access", false, "enable the debug shell service in the pod CVM to get access from container to guest VM")
 	cmd.Flags().StringP("output", "o", "", "output file for generated YAML")
 	must(cmd.Flags().MarkHidden("image-replacements"))
 	must(cmd.MarkFlagFilename("policy", "rego"))
@@ -160,8 +161,19 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	if err := generatePolicies(cmd.Context(), flags, fileMap, extraFile.Name(), log); err != nil {
 		return fmt.Errorf("generate policies: %w", err)
 	}
-
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Generated workload policy annotations")
+
+	var initdataManipulators []func(id *initdata.Initdata) error
+	if flags.insecureEnableDebugShell {
+		fmt.Fprintln(cmd.OutOrStdout(), "⚠️ Insecure debug shell access enabled!")
+		initdataManipulators = append(initdataManipulators, func(id *initdata.Initdata) error {
+			id.Data["contrast.insecure-debug"] = "true"
+			return nil
+		})
+	}
+	if err := manipulateInitdata(fileMap, initdataManipulators...); err != nil {
+		return fmt.Errorf("manipulate initdata: %w", err)
+	}
 
 	policies, err := policiesFromKubeResources(fileMap)
 	if err != nil {
@@ -597,20 +609,21 @@ func generateSeedshareOwnerKey(flags *generateFlags) error {
 }
 
 type generateFlags struct {
-	policyPath              string
-	settingsPath            string
-	manifestPath            string
-	genpolicyCachePath      string
-	referenceValuesPlatform platforms.Platform
-	workloadOwnerKeys       []string
-	seedshareOwnerKeys      []string
-	disableUpdates          bool
-	workspaceDir            string
-	imageReplacementsFile   string
-	skipInitializer         bool
-	skipServiceMesh         bool
-	skipImageStore          bool
-	outputFile              string
+	policyPath               string
+	settingsPath             string
+	manifestPath             string
+	genpolicyCachePath       string
+	referenceValuesPlatform  platforms.Platform
+	workloadOwnerKeys        []string
+	seedshareOwnerKeys       []string
+	disableUpdates           bool
+	workspaceDir             string
+	imageReplacementsFile    string
+	skipInitializer          bool
+	skipServiceMesh          bool
+	skipImageStore           bool
+	insecureEnableDebugShell bool
+	outputFile               string
 }
 
 func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
@@ -691,6 +704,10 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	insecureEnableDebugShell, err := cmd.Flags().GetBool("insecure-enable-debug-shell-access")
+	if err != nil {
+		return nil, err
+	}
 	outputFile, err := cmd.Flags().GetString("output")
 	if err != nil {
 		return nil, err
@@ -700,20 +717,21 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	}
 
 	return &generateFlags{
-		policyPath:              policyPath,
-		settingsPath:            settingsPath,
-		genpolicyCachePath:      genpolicyCachePath,
-		manifestPath:            manifestPath,
-		referenceValuesPlatform: referenceValuesPlatform,
-		workloadOwnerKeys:       workloadOwnerKeys,
-		seedshareOwnerKeys:      seedshareOwnerKeys,
-		disableUpdates:          disableUpdates,
-		workspaceDir:            workspaceDir,
-		imageReplacementsFile:   imageReplacementsFile,
-		skipInitializer:         skipInitializer,
-		skipServiceMesh:         skipServiceMesh,
-		skipImageStore:          skipImageStore,
-		outputFile:              outputFile,
+		policyPath:               policyPath,
+		settingsPath:             settingsPath,
+		genpolicyCachePath:       genpolicyCachePath,
+		manifestPath:             manifestPath,
+		referenceValuesPlatform:  referenceValuesPlatform,
+		workloadOwnerKeys:        workloadOwnerKeys,
+		seedshareOwnerKeys:       seedshareOwnerKeys,
+		disableUpdates:           disableUpdates,
+		workspaceDir:             workspaceDir,
+		imageReplacementsFile:    imageReplacementsFile,
+		skipInitializer:          skipInitializer,
+		skipServiceMesh:          skipServiceMesh,
+		skipImageStore:           skipImageStore,
+		insecureEnableDebugShell: insecureEnableDebugShell,
+		outputFile:               outputFile,
 	}, nil
 }
 
