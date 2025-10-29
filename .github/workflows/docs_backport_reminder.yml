@@ -1,0 +1,47 @@
+name: docs backport reminder
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs_backport_reminder.yml'
+
+jobs:
+  remind-backport:
+    name: Remind to backport docs changes
+    runs-on: ubuntu-24.04
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Check for changes in docs/versioned_docs
+        id: docs-changed
+        run: |
+          if git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" | grep -q '^docs/versioned_docs/'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check if comment already exists
+        id: find-comment
+        uses: peter-evans/find-comment@b30e6a3c0ed37e7c023ccd3f1db5c6c0b0c23aad # v4.0.0
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body-includes: "Do the documentation changes need to be backported?"
+      - name: Add reminder comment
+        if: steps.docs-changed.outputs.changed == 'false' && steps.find-comment.outputs.comment-id == ''
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ### Do the documentation changes need to be backported?
+
+            Changes to `/docs/docs` won't be visible until the next release.
+            If you are fixing something in the docs that should be immediately visible, the changes needs to be made to both `/docs/docs` and `/docs/versioned_docs/version-X.Y`, where X.Y is the version of the latest minor release.
+            This can be done in this same PR.
+            - [ ] Yes, this should be backported to the current version of the docs.
+            - [ ] No, the PR only contains docs changes relevant for future versions.
