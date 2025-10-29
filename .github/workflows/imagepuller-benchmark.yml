@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+      packages: read
       id-token: write
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -30,6 +31,19 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::795746500882:role/ContrastPublicBucketRW
           aws-region: eu-central-1
+      - name: Log in to ghcr.io Container registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: create imagepuller configuration
+        run: |
+          auth=$(jq -r '.auths["ghcr.io"].auth' < ~/.docker/config.json)
+          cat > imagepuller.toml <<EOF
+          [registries."ghcr.io."]
+          auth = "$auth"
+          EOF
       - name: Download baseline JSON from S3
         run: |
           aws s3 cp "s3://contrast-public/imagepuller-benchmark/baseline.json" "baseline.json"
@@ -37,7 +51,7 @@ jobs:
         run: |
           imagepullereval="$(nix build .#imagepuller-benchmark --print-out-paths)/bin/imagepuller-benchmark"
           imagepuller="$(nix build .#imagepuller --print-out-paths)/bin/imagepuller"
-          sudo "$imagepullereval" "$imagepuller" -c baseline.json -o baseline-new.json -i tools/imagepuller-benchmark/images.txt
+          sudo "$imagepullereval" "$imagepuller" -c baseline.json -o baseline-new.json -i tools/imagepuller-benchmark/images.txt -a imagepuller.toml
       - name: Upload new baseline.json to S3
         if: github.event_name == 'push' && github.ref_name == 'main'
         run: |
