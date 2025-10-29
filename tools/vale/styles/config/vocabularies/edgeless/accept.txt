@@ -23,6 +23,7 @@ Bazel
 bootloader
 Bootstrapper
 btrfs
+busybox
 CA
 cachable
 cachix
