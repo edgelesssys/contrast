@@ -18,7 +18,7 @@ import (
 
 func policiesFromKubeResources(fileMap map[string][]*unstructured.Unstructured) ([]deployment, error) {
 	var deployments []deployment
-	if err := mapCCWorkloads(fileMap, func(res any, path string, idx int) error {
+	if err := mapCCWorkloads(fileMap, func(res any, path string, idx int) (any, error) {
 		name := fileMap[path][idx].GetName()
 		namespace := orDefault(fileMap[path][idx].GetNamespace(), "default")
 		gvk := fileMap[path][idx].GetObjectKind().GroupVersionKind()
@@ -36,20 +36,20 @@ func policiesFromKubeResources(fileMap map[string][]*unstructured.Unstructured) 
 			return meta, spec
 		})
 		if annotation == "" {
-			return fmt.Errorf("missing initdata annotation for %s", name)
+			return nil, fmt.Errorf("missing initdata annotation for %s", name)
 		}
 		if name == "" {
-			return fmt.Errorf("name is required but empty")
+			return nil, fmt.Errorf("name is required but empty")
 		}
 		if workloadSecretID == "" {
 			workloadSecretID = strings.Join([]string{orDefault(gvk.Group, "core"), gvk.Version, gvk.Kind, namespace, name}, "/")
 		}
 		initdata, err := initdata.DecodeKataAnnotation(annotation)
 		if err != nil {
-			return fmt.Errorf("failed to parse initdata %q: %w", name, err)
+			return nil, fmt.Errorf("failed to parse initdata %q: %w", name, err)
 		}
 		if err := role.Validate(); err != nil {
-			return fmt.Errorf("invalid role %s for %s: %w", role, name, err)
+			return nil, fmt.Errorf("invalid role %s for %s: %w", role, name, err)
 		}
 		deployments = append(deployments, deployment{
 			name:             name,
@@ -57,7 +57,7 @@ func policiesFromKubeResources(fileMap map[string][]*unstructured.Unstructured) 
 			role:             role,
 			workloadSecretID: workloadSecretID,
 		})
-		return nil
+		return res, nil
 	}); err != nil {
 		return nil, err
 	}
