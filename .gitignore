@@ -1,7 +1,6 @@
 tools/genpolicy.cache/*
 !tools/genpolicy.cache/.gitkeep
 *.bin
-edgcoco
 result*
 layers_cache
 layers-cache.json
@@ -19,6 +18,7 @@ build/
 *.tfvars
 terraform.tfstate*
 id_rsa*
+id_ed25519*
 kube.conf
 out.env
 infra/**/kustomization.yaml
