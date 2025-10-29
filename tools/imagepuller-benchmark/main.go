@@ -175,7 +175,7 @@ func startServerWithMemoryTracking(ctx context.Context, serverPath string, args 
 	return waitAndGetMaxRSS, childPid, nil
 }
 
-func profileServerIndividual(imageList []string, serverPath, args, storagePath string, label string) (_ map[string]resourceUsage, retErr error) {
+func profileServerIndividual(imageList []string, serverPath, storagePath string, label string, args ...string) (_ map[string]resourceUsage, retErr error) {
 	fmt.Printf("===== Testing server (individual): %s =====\n", label)
 	defer func() {
 		if err := errors.Join(cleanup(storagePath), cleanup(mountPoint)); err != nil {
@@ -193,7 +193,7 @@ func profileServerIndividual(imageList []string, serverPath, args, storagePath s
 		ctx, cancel := context.WithTimeout(context.Background(), maxPullDuration)
 		defer cancel()
 
-		waitForRSS, childPid, err := startServerWithMemoryTracking(ctx, serverPath, args)
+		waitForRSS, childPid, err := startServerWithMemoryTracking(ctx, serverPath, args...)
 		if err != nil {
 			return nil, err
 		}
@@ -236,7 +236,7 @@ func profileServerIndividual(imageList []string, serverPath, args, storagePath s
 	return results, nil
 }
 
-func profileServerContinuous(imageList []string, serverPath, args, storagePath string, label string) (_ resourceUsage, retErr error) {
+func profileServerContinuous(imageList []string, serverPath, storagePath string, label string, args ...string) (_ resourceUsage, retErr error) {
 	fmt.Printf("===== Testing server (continuous): %s =====\n", label)
 	if err := cleanup(storagePath); err != nil {
 		return resourceUsage{}, err
@@ -250,7 +250,7 @@ func profileServerContinuous(imageList []string, serverPath, args, storagePath s
 	ctx, cancel := context.WithTimeout(context.Background(), maxPullDuration)
 	defer cancel()
 
-	waitForRSS, childPid, err := startServerWithMemoryTracking(ctx, serverPath, args)
+	waitForRSS, childPid, err := startServerWithMemoryTracking(ctx, serverPath, args...)
 	if err != nil {
 		return resourceUsage{}, err
 	}
@@ -404,13 +404,29 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	f, err := os.CreateTemp("", "imagepuller-config-*.toml")
+	if err != nil {
+		return err
+	}
+	configFile := f.Name()
+	_, err = f.WriteString(`
+[registries."."]
+insecure-skip-verify = true
+	`)
+	if err != nil {
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+
 	results := map[string]resourceUsage{}
-	resultsIndividual, err := profileServerIndividual(imageList, binPath, fmt.Sprintf("--storepath=%s", imagepullerDir), imagepullerDir, "imagepuller")
+	resultsIndividual, err := profileServerIndividual(imageList, binPath, imagepullerDir, "imagepuller", "--storepath", imagepullerDir, "--config", configFile)
 	if err != nil {
 		return err
 	}
 	maps.Copy(results, resultsIndividual)
-	resultsContinuous, err := profileServerContinuous(imageList, binPath, fmt.Sprintf("--storepath=%s", imagepullerDir), imagepullerDir, "imagepuller")
+	resultsContinuous, err := profileServerContinuous(imageList, binPath, imagepullerDir, "imagepuller", "--storepath", imagepullerDir, "--config", configFile)
 	if err != nil {
 		return err
 	}
