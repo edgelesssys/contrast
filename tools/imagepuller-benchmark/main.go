@@ -31,11 +31,6 @@ const (
 	maxPullDuration = 10 * time.Minute
 )
 
-var imageList = []string{
-	"ghcr.io/edgelesssys/contrast/dmesg:v0.0.1@sha256:6ad6bbb5735b84b10af42d2441e8d686b1d9a6cbf096b53842711ef5ddabd28d",
-	"ghcr.io/edgelesssys/contrast/coordinator@sha256:6f966a922cc9a39d7047ed41ffafc7eb7a3c6a4fd8966cbf30fa902b455789f7",
-	"tensorflow/tensorflow:latest-gpu@sha256:73fe35b67dad5fa5ab0824ed7efeb586820317566a705dff76142f8949ffcaff",
-}
 var mountPoint = "current_server"
 
 func getDiskUsage(path string) (uint64, error) {
@@ -180,7 +175,7 @@ func startServerWithMemoryTracking(ctx context.Context, serverPath string, args 
 	return waitAndGetMaxRSS, childPid, nil
 }
 
-func profileServerIndividual(serverPath, args, storagePath string, label string) (_ map[string]resourceUsage, retErr error) {
+func profileServerIndividual(imageList []string, serverPath, args, storagePath string, label string) (_ map[string]resourceUsage, retErr error) {
 	fmt.Printf("===== Testing server (individual): %s =====\n", label)
 	defer func() {
 		if err := errors.Join(cleanup(storagePath), cleanup(mountPoint)); err != nil {
@@ -241,7 +236,7 @@ func profileServerIndividual(serverPath, args, storagePath string, label string)
 	return results, nil
 }
 
-func profileServerContinuous(serverPath, args, storagePath string, label string) (_ resourceUsage, retErr error) {
+func profileServerContinuous(imageList []string, serverPath, args, storagePath string, label string) (_ resourceUsage, retErr error) {
 	fmt.Printf("===== Testing server (continuous): %s =====\n", label)
 	if err := cleanup(storagePath); err != nil {
 		return resourceUsage{}, err
@@ -342,6 +337,22 @@ func compareResourceUsage(baselineFile string, data map[string]resourceUsage, th
 	return errors.Join(allErrs...)
 }
 
+func parseImages(path string) ([]string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading image file %q: %w", path, err)
+	}
+
+	var imageList []string
+	for image := range strings.SplitSeq(string(content), "\n") {
+		image = strings.TrimSpace(image)
+		if image != "" {
+			imageList = append(imageList, image)
+		}
+	}
+	return imageList, nil
+}
+
 type resourceUsage struct {
 	Time    int `json:"time"`
 	Memory  int `json:"memory"`
@@ -361,6 +372,7 @@ func newRootCmd() *cobra.Command {
 	cmd.Flags().StringP("compare", "c", "", "compare against JSON file")
 	cmd.Flags().Float64P("threshold", "t", 0.20, "relative threshold above which an error is thrown when comparing results")
 	cmd.Flags().IntP("delta", "d", 15, "absolute time delta in seconds above which an error is thrown when comparing results")
+	cmd.Flags().StringP("images", "i", "", "file with newline-separated images to pull")
 
 	return cmd
 }
@@ -383,14 +395,22 @@ func run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	images, err := cmd.Flags().GetString("images")
+	if err != nil {
+		return err
+	}
+	imageList, err := parseImages(images)
+	if err != nil {
+		return err
+	}
 
 	results := map[string]resourceUsage{}
-	resultsIndividual, err := profileServerIndividual(binPath, fmt.Sprintf("--storepath=%s", imagepullerDir), imagepullerDir, "imagepuller")
+	resultsIndividual, err := profileServerIndividual(imageList, binPath, fmt.Sprintf("--storepath=%s", imagepullerDir), imagepullerDir, "imagepuller")
 	if err != nil {
 		return err
 	}
 	maps.Copy(results, resultsIndividual)
-	resultsContinuous, err := profileServerContinuous(binPath, fmt.Sprintf("--storepath=%s", imagepullerDir), imagepullerDir, "imagepuller")
+	resultsContinuous, err := profileServerContinuous(imageList, binPath, fmt.Sprintf("--storepath=%s", imagepullerDir), imagepullerDir, "imagepuller")
 	if err != nil {
 		return err
 	}
