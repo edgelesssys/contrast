@@ -1,0 +1,3 @@
+ghcr.io/edgelesssys/contrast/dmesg@sha256:6ad6bbb5735b84b10af42d2441e8d686b1d9a6cbf096b53842711ef5ddabd28d
+ghcr.io/edgelesssys/contrast/coordinator@sha256:6f966a922cc9a39d7047ed41ffafc7eb7a3c6a4fd8966cbf30fa902b455789f7
+docker.io/tensorflow/tensorflow@sha256:73fe35b67dad5fa5ab0824ed7efeb586820317566a705dff76142f8949ffcaff
