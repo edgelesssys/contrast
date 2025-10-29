@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"maps"
 	"os"
@@ -143,7 +144,8 @@ func startServerWithMemoryTracking(ctx context.Context, serverPath string, args 
 
 	childPid, err := findChildPid(ctx, cmd.Process.Pid)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to find server child PID: %w", err)
+		stderr, _ := io.ReadAll(stderrPipe)
+		return nil, 0, fmt.Errorf("failed to find server child PID: %w; stderr:\n%s", err, string(stderr))
 	}
 
 	// Closure that will wait and extract MaxRSS after process exit
