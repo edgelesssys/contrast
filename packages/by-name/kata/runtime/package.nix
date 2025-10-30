@@ -159,6 +159,11 @@ buildGoModule (finalAttrs: {
       # policy errors if set.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11935.
       ./0022-genpolicy-support-fsGroup-setting-in-pod-security-co.patch
+
+      # When using guest pull, don't pull a pause image in genpolicy, only rely on the OCI options in settings.json.
+      # Use static pause image properties in the runtime that match those of the pause image in the guest image.
+      ./0023-runtime-normalize-pause-spec.patch
+      ./0024-genpolicy-use-fixed-pause-image-for-guest-pull.patch
     ];
   };
 

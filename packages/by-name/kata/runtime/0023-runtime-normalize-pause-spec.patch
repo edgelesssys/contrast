@@ -1,0 +1,108 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Fri, 24 Oct 2025 11:56:43 +0200
+Subject: [PATCH] runtime: normalize pause spec
+
+When using guest pull, the agent will create the sandbox based
+on a pause bundle that is part of the guest's root FS. In this
+case, the CreateContainer request for the sandbox pause container
+is merely a signal to the agent to do so, it provides no other
+useful information.
+
+However, the runtime would still send a CreateContainer request
+specific to the pause image used in a given cluster. This can
+trigger policy validation issues in case the pause image used
+in the cluster diverges from the embedded pause bundle in the
+guest in an aspect that is validated (for example, uses a different
+UID/GID). It makes no sense to fail here, as it is already known
+the pause image won't be used by the agent, and thus the
+parameters of that request won't have a security impact on the
+guest.
+
+To prevent this situation and to make Kata with guest pull and
+policy more portable between different Kubernetes platforms
+(i.e. platforms that use different pause images), this change
+normalizes the pause container OCI spec before it is sent to
+the agent, in case guest pull is used and the pause container
+is used for the sandbox.
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ src/runtime/virtcontainers/kata_agent.go | 57 ++++++++++++++++++++++++
+ 1 file changed, 57 insertions(+)
+
+diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
+index c14e2923c45b1fe4545ccef95c5679189f2ba884..528be21d05d7857fbfe73963bf6615ffbd79e589 100644
+--- a/src/runtime/virtcontainers/kata_agent.go
++++ b/src/runtime/virtcontainers/kata_agent.go
+@@ -1474,6 +1474,13 @@ func (k *kataAgent) createContainer(ctx context.Context, sandbox *Sandbox, c *Co
+ 		return nil, err
+ 	}
+ 
++	if isPauseContainer(ctrStorages) {
++		k.Logger().Debug("Normalizing pause container OCI spec for guest-embedded pause bundle")
++		if err := normalizePauseContainerSpec(grpcSpec); err != nil {
++			return nil, fmt.Errorf("normalizing pause container OCI spec: %w", err)
++		}
++	}
++
+ 	req := &grpc.CreateContainerRequest{
+ 		ContainerId:  c.id,
+ 		ExecId:       c.id,
+@@ -1497,6 +1504,56 @@ func (k *kataAgent) createContainer(ctx context.Context, sandbox *Sandbox, c *Co
+ 	return buildProcessFromExecID(req.ExecId)
+ }
+ 
++func isPauseContainer(storages []*grpc.Storage) bool {
++	for _, s := range storages {
++		if s.Source == "pause" && s.Driver == "image_guest_pull" {
++			return true
++		}
++	}
++	return false
++}
++
++func normalizePauseContainerSpec(spec *grpc.Spec) error {
++	capabilities := []string{
++		"CAP_CHOWN",
++		"CAP_DAC_OVERRIDE",
++		"CAP_FSETID",
++		"CAP_FOWNER",
++		"CAP_MKNOD",
++		"CAP_NET_RAW",
++		"CAP_SETGID",
++		"CAP_SETUID",
++		"CAP_SETFCAP",
++		"CAP_SETPCAP",
++		"CAP_NET_BIND_SERVICE",
++		"CAP_SYS_CHROOT",
++		"CAP_KILL",
++		"CAP_AUDIT_WRITE",
++	}
++	spec.Process = &grpc.Process{
++		User: &grpc.User{
++			UID:            65535,
++			GID:            65535,
++			AdditionalGids: []uint32{65535},
++		},
++		Args: []string{"/pause"},
++		Env: []string{
++			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
++		},
++		Cwd: "/",
++		Capabilities: &grpc.LinuxCapabilities{
++			Bounding:  capabilities,
++			Effective: capabilities,
++			Permitted: capabilities,
++		},
++		NoNewPrivileges: true,
++		OOMScoreAdj:     -998,
++	}
++	spec.Root.Readonly = true
++
++	return nil
++}
++
+ func buildProcessFromExecID(token string) (*Process, error) {
+ 	return &Process{
+ 		Token:     token,

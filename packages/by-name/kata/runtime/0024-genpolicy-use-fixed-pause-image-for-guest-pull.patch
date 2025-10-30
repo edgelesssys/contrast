@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Mon, 27 Oct 2025 08:59:53 +0100
+Subject: [PATCH] genpolicy: use fixed pause image for guest pull
+
+As the runtime will normalize the OCI spec of the CreateContainer
+request in case guest pull is used, this request isn't depending
+on the configured pause image anymore. Following, there is no
+need to pull the pause image and generate a policy specific to
+that image. We rather depend on settings.pause_container and
+the logic in get_container_policy to create a policy that matches
+what is used as fixed/normalized parameters in the runtime.
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ src/tools/genpolicy/src/pod.rs | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
+index cfd834ca5f24f43d7aba9eba1db2f6e5430c909d..4bec8fff75527eb62c586b0b69365f6a7d17028f 100644
+--- a/src/tools/genpolicy/src/pod.rs
++++ b/src/tools/genpolicy/src/pod.rs
+@@ -1056,7 +1056,20 @@ pub async fn add_pause_container(containers: &mut Vec<Container>, config: &Confi
+         }),
+         ..Default::default()
+     };
+-    pause_container.init(config).await;
++    if config.settings.cluster_config.guest_pull {
++        // For guest pull, the pause bundle is part of the guest's root FS
++        // and a fixed, well-known CreateContainer request is expected, so
++        // we don't need to pull a pause image in this case.
++        debug!("guest pull enabled, not pulling pause image");
++        pause_container.registry = registry::Container {
++            image: pause_container.image.clone(),
++            config_layer: registry::DockerConfigLayer::default(),
++            passwd: "".to_string(),
++            group: "".to_string(),
++        }
++    } else {
++        pause_container.init(config).await;
++    }
+     containers.insert(0, pause_container);
+     debug!("pause container added.");
+ }
