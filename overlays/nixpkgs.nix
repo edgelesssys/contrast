@@ -12,6 +12,15 @@ final: prev:
   #     hash = "";
   #   };
   # });
+  go_1_25 = prev.go_1_25.overrideAttrs (
+    finalAttrs: _prevAttrs: {
+      version = "1.25.3";
+      src = final.fetchurl {
+        url = "https://go.dev/dl/go${finalAttrs.version}.src.tar.gz";
+        hash = "sha256-qBpLpZPQAV4QxR4mfeP/B8eskU38oDfZUX0ClRcJd5U=";
+      };
+    }
+  );
 
   erofs-utils = prev.erofs-utils.overrideAttrs (prevAttrs: {
     # The build environment sets SOURCE_DATE_EPOCH to 1980, but as mkfs.erofs
