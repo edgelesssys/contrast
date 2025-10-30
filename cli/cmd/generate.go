@@ -79,6 +79,7 @@ subcommands.`,
 	cmd.Flags().Bool("skip-initializer", false, "skip injection of Contrast Initializer")
 	cmd.Flags().Bool("skip-service-mesh", false, "skip injection of Contrast service mesh sidecar")
 	cmd.Flags().Bool("skip-image-store", false, "skip injection of ephemeral storage and keep image layers in memory")
+	cmd.Flags().Bool("insecure-enable-debug-shell-access", false, "enable the debug shell service in the pod CVM to get access from container to guest VM")
 	cmd.Flags().StringP("output", "o", "", "output file for generated YAML")
 	must(cmd.Flags().MarkHidden("image-replacements"))
 	must(cmd.MarkFlagFilename("policy", "rego"))
@@ -160,8 +161,19 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	if err := generatePolicies(cmd.Context(), flags, fileMap, extraFile.Name(), log); err != nil {
 		return fmt.Errorf("generate policies: %w", err)
 	}
-
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Generated workload policy annotations")
+
+	var initdataManipulators []func(id *initdata.Initdata) error
+	if flags.insecureEnableDebugShell {
+		fmt.Fprintln(cmd.OutOrStdout(), "⚠️ Insecure debug shell access enabled!")
+		initdataManipulators = append(initdataManipulators, func(id *initdata.Initdata) error {
+			id.Data["contrast.insecure-debug"] = "true"
+			return nil
+		})
+	}
+	if err := manipulateInitdata(fileMap, initdataManipulators...); err != nil {
+		return fmt.Errorf("manipulate initdata: %w", err)
+	}
 
 	policies, err := policiesFromKubeResources(fileMap)
 	if err != nil {
@@ -237,18 +249,27 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 // mapCCWorkloads applies the given function to all workloads with the 'contrast-cc' runtime class.
 // The callback receives an apply configuration together with the file path and index the unstructured object has in the file map.
 // Changes to the apply configuration are not applied to the original unstructured object.
-func mapCCWorkloads(fileMap map[string][]*unstructured.Unstructured, f func(res any, path string, idx int) error) error {
+func mapCCWorkloads(fileMap map[string][]*unstructured.Unstructured, f func(res any, path string, idx int) (any, error)) error {
 	for path, resources := range fileMap {
 		for idx, r := range resources {
 			applyConfig, err := kuberesource.UnstructuredToApplyConfiguration(r)
 			if err != nil {
 				continue
 			}
-			if isCCWorkload(applyConfig) {
-				if err := f(applyConfig, path, idx); err != nil {
-					return err
-				}
+			if !isCCWorkload(applyConfig) {
+				continue
 			}
+			changed, err := f(applyConfig, path, idx)
+			if err != nil {
+				return err
+			}
+			resUnstructured, err := kuberesource.ResourcesToUnstructured([]any{changed})
+			if err != nil {
+				return fmt.Errorf("convert patched resource to unstructured: %w", err)
+			} else if len(resUnstructured) != 1 {
+				return fmt.Errorf("expected 1 unstructured object, got %d", len(resUnstructured))
+			}
+			fileMap[path][idx] = resUnstructured[0]
 		}
 	}
 	return nil
@@ -267,11 +288,11 @@ func isCCWorkload(resource any) (ret bool) {
 func runVerifiers(fileMap map[string][]*unstructured.Unstructured, verifiers []verifier.Verifier) error {
 	var findings error
 	for _, v := range verifiers {
-		_ = mapCCWorkloads(fileMap, func(res any, path string, idx int) error {
+		_ = mapCCWorkloads(fileMap, func(res any, path string, idx int) (any, error) {
 			if err := v.Verify(res); err != nil {
 				findings = errors.Join(findings, fmt.Errorf("failed to verify resource %q in file %q: %w", fileMap[path][idx].GetName(), path, err))
 			}
-			return nil
+			return res, nil
 		})
 	}
 	if findings != nil {
@@ -375,13 +396,13 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 		}
 	}()
 
-	return mapCCWorkloads(fileMap, func(res any, path string, idx int) error {
+	return mapCCWorkloads(fileMap, func(res any, path string, idx int) (any, error) {
 		initdataAnno, err := runner.Run(ctx, res, extraPath, logger)
 		if err != nil {
-			return fmt.Errorf("failed to generate policy for %q in %q: %w", fileMap[path][idx].GetName(), path, err)
+			return nil, fmt.Errorf("failed to generate policy for %q in %q: %w", fileMap[path][idx].GetName(), path, err)
 		}
 		var retError error
-		kuberesource.MapPodSpecWithMeta(res, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+		res = kuberesource.MapPodSpecWithMeta(res, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
 			if meta == nil {
 				meta = &applymetav1.ObjectMetaApplyConfiguration{}
 			}
@@ -402,7 +423,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 
 			return meta, spec
 		})
-		return retError
+		return res, retError
 	})
 }
 
@@ -426,15 +447,15 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 			return fmt.Errorf("parsing release image definitions %s: %w", ReleaseImageReplacements, err)
 		}
 	}
-	return mapCCWorkloads(fileMap, func(res any, path string, idx int) error {
+	return mapCCWorkloads(fileMap, func(res any, _ string, _ int) (any, error) {
 		if !skipInitializer {
 			if err := injectInitializer(res); err != nil {
-				return fmt.Errorf("injecting Initializer: %w", err)
+				return nil, fmt.Errorf("injecting Initializer: %w", err)
 			}
 		}
 		if !skipServiceMesh {
 			if err := injectServiceMesh(res); err != nil {
-				return fmt.Errorf("injecting Service Mesh: %w", err)
+				return nil, fmt.Errorf("injecting Service Mesh: %w", err)
 			}
 		}
 		if !skipImageStore {
@@ -446,15 +467,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 		replaceRuntimeClassName := runtimeClassNamePatcher(runtimeHandler)
 		kuberesource.MapPodSpec(res, replaceRuntimeClassName)
 
-		resUnstructured, err := kuberesource.ResourcesToUnstructured([]any{res})
-		if err != nil {
-			return fmt.Errorf("convert patched resource to unstructured: %w", err)
-		} else if len(resUnstructured) != 1 {
-			return fmt.Errorf("expected 1 unstructured object, got %d", len(resUnstructured))
-		}
-		fileMap[path][idx] = resUnstructured[0]
-
-		return nil
+		return res, nil
 	})
 }
 
@@ -605,20 +618,21 @@ func generateSeedshareOwnerKey(flags *generateFlags) error {
 }
 
 type generateFlags struct {
-	policyPath              string
-	settingsPath            string
-	manifestPath            string
-	genpolicyCachePath      string
-	referenceValuesPlatform platforms.Platform
-	workloadOwnerKeys       []string
-	seedshareOwnerKeys      []string
-	disableUpdates          bool
-	workspaceDir            string
-	imageReplacementsFile   string
-	skipInitializer         bool
-	skipServiceMesh         bool
-	skipImageStore          bool
-	outputFile              string
+	policyPath               string
+	settingsPath             string
+	manifestPath             string
+	genpolicyCachePath       string
+	referenceValuesPlatform  platforms.Platform
+	workloadOwnerKeys        []string
+	seedshareOwnerKeys       []string
+	disableUpdates           bool
+	workspaceDir             string
+	imageReplacementsFile    string
+	skipInitializer          bool
+	skipServiceMesh          bool
+	skipImageStore           bool
+	insecureEnableDebugShell bool
+	outputFile               string
 }
 
 func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
@@ -699,6 +713,10 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
+	insecureEnableDebugShell, err := cmd.Flags().GetBool("insecure-enable-debug-shell-access")
+	if err != nil {
+		return nil, err
+	}
 	outputFile, err := cmd.Flags().GetString("output")
 	if err != nil {
 		return nil, err
@@ -708,20 +726,21 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	}
 
 	return &generateFlags{
-		policyPath:              policyPath,
-		settingsPath:            settingsPath,
-		genpolicyCachePath:      genpolicyCachePath,
-		manifestPath:            manifestPath,
-		referenceValuesPlatform: referenceValuesPlatform,
-		workloadOwnerKeys:       workloadOwnerKeys,
-		seedshareOwnerKeys:      seedshareOwnerKeys,
-		disableUpdates:          disableUpdates,
-		workspaceDir:            workspaceDir,
-		imageReplacementsFile:   imageReplacementsFile,
-		skipInitializer:         skipInitializer,
-		skipServiceMesh:         skipServiceMesh,
-		skipImageStore:          skipImageStore,
-		outputFile:              outputFile,
+		policyPath:               policyPath,
+		settingsPath:             settingsPath,
+		genpolicyCachePath:       genpolicyCachePath,
+		manifestPath:             manifestPath,
+		referenceValuesPlatform:  referenceValuesPlatform,
+		workloadOwnerKeys:        workloadOwnerKeys,
+		seedshareOwnerKeys:       seedshareOwnerKeys,
+		disableUpdates:           disableUpdates,
+		workspaceDir:             workspaceDir,
+		imageReplacementsFile:    imageReplacementsFile,
+		skipInitializer:          skipInitializer,
+		skipServiceMesh:          skipServiceMesh,
+		skipImageStore:           skipImageStore,
+		insecureEnableDebugShell: insecureEnableDebugShell,
+		outputFile:               outputFile,
 	}, nil
 }
 
