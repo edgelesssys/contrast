@@ -3,12 +3,8 @@
 
 //go:build !linux
 
-package service
+package store
 
-import (
-	"log/slog"
-)
-
-func (s *ImagePullerService) createAndMountContainer(*slog.Logger, string, string) (string, error) {
+func (s *Store) Mount(where string, layerDigests ...string) error {
 	panic("GOOS does not support mounting containers")
 }
