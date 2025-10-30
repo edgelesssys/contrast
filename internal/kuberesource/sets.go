@@ -54,9 +54,6 @@ func Runtime(platform platforms.Platform) ([]any, error) {
 	return []any{
 		runtimeClassApplyConfig,
 		nodeInstaller.DaemonSetApplyConfiguration,
-		nodeInstaller.ServiceAccountApplyConfiguration,
-		nodeInstaller.ClusterRoleApplyConfiguration,
-		nodeInstaller.ClusterRoleBindingApplyConfiguration,
 	}, nil
 }
 
