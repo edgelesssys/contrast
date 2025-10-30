@@ -484,14 +484,14 @@ lib.makeScope pkgs.newScope (scripts: {
 
       goVers=()
       while IFS= read -r f; do
-        ver=$(grep -E '^go [0-9]+[.][0-9]+[.][0-9]+$' "$f")
+        ver=$(grep -E '^go [0-9]+[.][0-9]+([.][0-9]+)?$' "$f")
         goVers+=("$ver")
       done <<< "$modFiles"
 
       maxVer=$(printf "%s\n" "''${goVers[@]}" | sort -V | tail -n1)
 
       while IFS= read -r f; do
-        sed -i "s/^go [0-9]\+\.[0-9]\+\.[0-9]\+$/''${maxVer}/" "$f"
+        sed -i "s/^go [0-9]\+\.[0-9]\+\(\.[0-9]\+\)\?$/''${maxVer}/" "$f"
       done <<< "$modFiles"
     '';
   };
