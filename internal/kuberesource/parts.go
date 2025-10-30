@@ -103,6 +103,9 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 							VolumeMount().
 								WithName("target-config").
 								WithMountPath("/target-config"),
+							VolumeMount().
+								WithName("imagepuller-config").
+								WithMountPath("/imagepuller-config"),
 						).
 						WithCommand("/bin/node-installer", platform.String()),
 					).
@@ -127,6 +130,12 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*NodeInstalle
 							WithName("target-config").
 							WithConfigMap(ConfigMapVolumeSource().
 								WithName("contrast-node-installer-target-config").
+								WithOptional(true),
+							),
+						Volume().
+							WithName("imagepuller-config").
+							WithSecret(SecretVolumeSource().
+								WithSecretName("contrast-node-installer-imagepuller-config").
 								WithOptional(true),
 							),
 					)...,
