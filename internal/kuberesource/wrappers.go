@@ -380,6 +380,21 @@ func (c *ConfigMapVolumeSourceConfig) Inner() *applycorev1.ConfigMapVolumeSource
 	return c.ConfigMapVolumeSourceApplyConfiguration
 }
 
+// SecretVolumeSourceConfig wraps applycorev1.SecretVolumeSourceApplyConfiguration.
+type SecretVolumeSourceConfig struct {
+	*applycorev1.SecretVolumeSourceApplyConfiguration
+}
+
+// SecretVolumeSource creates a new SecretVolumeSourceConfig.
+func SecretVolumeSource() *SecretVolumeSourceConfig {
+	return &SecretVolumeSourceConfig{applycorev1.SecretVolumeSource()}
+}
+
+// Inner returns the inner applycorev1.SecretVolumeSourceApplyConfiguration.
+func (c *SecretVolumeSourceConfig) Inner() *applycorev1.SecretVolumeSourceApplyConfiguration {
+	return c.SecretVolumeSourceApplyConfiguration
+}
+
 // ContainerPortConfig wraps applycorev1.ContainerPortApplyConfiguration.
 type ContainerPortConfig struct {
 	*applycorev1.ContainerPortApplyConfiguration

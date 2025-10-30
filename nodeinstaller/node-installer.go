@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"os"
@@ -96,6 +97,10 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 
 	if err := patchContainerdConfig(runtimeHandler, runtimeBase, targetConf.ContainerdConfigPath(), platform, config.DebugRuntime); err != nil {
 		return fmt.Errorf("patching containerd configuration: %w", err)
+	}
+
+	if err := installImagepullerConfig(hostMount, runtimeHandler); err != nil {
+		return fmt.Errorf("installing imagepuller config: %w", err)
 	}
 
 	if targetConf.RestartSystemdUnit() {
@@ -363,4 +368,41 @@ func ensureMapPath(in *map[string]any, path ...string) map[string]any {
 type assetFetcher interface {
 	Fetch(ctx context.Context, sourceURI, destination, integrity string) (changed bool, retErr error)
 	FetchUnchecked(ctx context.Context, sourceURI, destination string) (changed bool, retErr error)
+}
+
+// installImagepullerConfig installs the (optional) imagepuller config file onto the host filesystem.
+func installImagepullerConfig(
+	hostMount string,
+	runtimeHandlerName string,
+) error {
+	imagepullerSource := "/imagepuller-config/contrast-imagepuller.toml"
+	imagepullerDest := filepath.Join(hostMount, fmt.Sprintf("/opt/edgeless/%s/etc/host-config/contrast-imagepuller.toml", runtimeHandlerName))
+
+	if _, err := os.Stat(imagepullerSource); err != nil {
+		log.Println("No imagepuller config provided, skipping")
+		return nil
+	}
+
+	if err := os.MkdirAll(filepath.Dir(imagepullerDest), 0o777); err != nil {
+		return fmt.Errorf("creating imagepuller source configuration parent dir %q: %w", filepath.Dir(imagepullerDest), err)
+	}
+
+	inputFile, err := os.Open(imagepullerSource)
+	if err != nil {
+		return fmt.Errorf("opening imagepuller config source file %q: %w", imagepullerSource, err)
+	}
+	defer inputFile.Close()
+
+	outputFile, err := os.Create(imagepullerDest)
+	if err != nil {
+		return fmt.Errorf("opening imagepuller config destination file %q: %w", imagepullerDest, err)
+	}
+	defer outputFile.Close()
+
+	if _, err := io.Copy(outputFile, inputFile); err != nil {
+		return fmt.Errorf("copying imagepuller config from source %q to destination %q: %w", imagepullerSource, imagepullerDest, err)
+	}
+
+	log.Printf("Installed imagepuller config to %q", imagepullerDest)
+	return nil
 }
