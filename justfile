@@ -120,10 +120,15 @@ populate target=default_deploy_target platform=default_platform:
 generate cli=default_cli platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
+    debugFlag=""
+    if [[ "${debug:-}" == "true" ]]; then
+        debugFlag="--insecure-enable-debug-shell-access"
+    fi
     nix run -L .#{{ cli }} -- generate \
         --workspace-dir ./{{ workspace_dir }} \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
-        --reference-values {{ platform }}\
+        --reference-values {{ platform }} \
+        ${debugFlag} \
         ./{{ workspace_dir }}/deployment/
 
     # On baremetal SNP, we don't have default values for MinimumTCB, so we need to set some here.
@@ -375,6 +380,8 @@ container_registry=""
 default_platform="Metal-QEMU-SNP"
 # Node installer target config map to deploy.
 node_installer_target_conf_type="k3s"
+# Enable insecure debug features like debug shell access.
+debug="false"
 
 #
 # No need to change anything below this line.
