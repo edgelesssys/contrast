@@ -158,7 +158,11 @@ func (i *Initdata) Validate() error {
 }
 
 // FromDevice reads the raw TOML document from a block device prepared by the Kata runtime.
-func FromDevice(devicePath string) (Raw, error) {
+func FromDevice(devicePath, magic string) (Raw, error) {
+	if len(magic) != 8 {
+		return nil, fmt.Errorf("invalid magic id: must be exactly 8 bytes, but %q is %d bytes", magic, len(magic))
+	}
+
 	f, err := os.Open(devicePath)
 	if err != nil {
 		return nil, err
@@ -168,7 +172,6 @@ func FromDevice(devicePath string) (Raw, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading magic number: %w", err)
 	}
-	const magic = "initdata"
 	if slices.Compare(buf, []byte(magic)) != 0 {
 		return nil, fmt.Errorf("%w: expected %x, got %x", errWrongMagic, magic, buf)
 	}
