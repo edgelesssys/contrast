@@ -116,6 +116,7 @@ overcommit
 overlayfs
 paravisor
 passthrough
+PCIe?
 PCRs?
 plaintext
 podman
