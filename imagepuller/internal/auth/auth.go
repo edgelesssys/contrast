@@ -13,10 +13,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/edgelesssys/contrast/imagepuller/internal/api"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/pelletier/go-toml/v2"
 )
 
 // Config represents the imagepuller's registry authentication configurations.
