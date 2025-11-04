@@ -21,7 +21,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  src/tools/genpolicy/src/cronjob.rs            |   2 +-
  src/tools/genpolicy/src/daemon_set.rs         |   2 +-
  src/tools/genpolicy/src/deployment.rs         |   2 +-
- src/tools/genpolicy/src/job.rs                |   2 +-
+ src/tools/genpolicy/src/job.rs                |   4 +-
  src/tools/genpolicy/src/mount_and_storage.rs  |  10 +-
  src/tools/genpolicy/src/pod.rs                |   2 +-
  src/tools/genpolicy/src/replica_set.rs        |   2 +-
@@ -31,15 +31,15 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  src/tools/genpolicy/tests/policy/main.rs      |   6 +
  .../security_context/fsgroup/pod.yaml         |  17 +
  .../security_context/fsgroup/testcases.json   | 358 ++++++++++++++++++
- 13 files changed, 400 insertions(+), 13 deletions(-)
+ 13 files changed, 401 insertions(+), 14 deletions(-)
  create mode 100644 src/tools/genpolicy/tests/policy/testdata/createcontainer/security_context/fsgroup/pod.yaml
  create mode 100644 src/tools/genpolicy/tests/policy/testdata/createcontainer/security_context/fsgroup/testcases.json
 
 diff --git a/src/tools/genpolicy/src/cronjob.rs b/src/tools/genpolicy/src/cronjob.rs
-index c1e27f5b41da0233ed7dfb7ae3d8a360ca422a25..3c703393c05a21143c8b6d864aa97b9b101a5454 100644
+index 0b75b240b62330303e66cf9dc5e983bae0b6d96b..0ed0e02dade22bd2ca50b9c2f66da201b084a947 100644
 --- a/src/tools/genpolicy/src/cronjob.rs
 +++ b/src/tools/genpolicy/src/cronjob.rs
-@@ -105,7 +105,7 @@ impl yaml::K8sResource for CronJob {
+@@ -104,7 +104,7 @@ impl yaml::K8sResource for CronJob {
              storages,
              container,
              settings,
@@ -75,7 +75,7 @@ index 33275e0e153b9d2bbd20664d8f5197637f24f7c7..9047b7e6eb6962f029308a027d3b0499
      }
  
 diff --git a/src/tools/genpolicy/src/job.rs b/src/tools/genpolicy/src/job.rs
-index b0c1352529790e8964cb1be59a5b8c0df89ed871..e7c61bee902dfe2f06d2e3f5980b9fa8dc428ffc 100644
+index 9d8dd8cce6541b979d6ff322fdc4a6db7a82645c..a273c8d29f1c527e70218277a713753e8925aee0 100644
 --- a/src/tools/genpolicy/src/job.rs
 +++ b/src/tools/genpolicy/src/job.rs
 @@ -74,7 +74,7 @@ impl yaml::K8sResource for Job {
@@ -87,8 +87,15 @@ index b0c1352529790e8964cb1be59a5b8c0df89ed871..e7c61bee902dfe2f06d2e3f5980b9fa8
          );
      }
  
+@@ -133,4 +133,4 @@ pub fn pod_name_regex(job_name: String) -> String {
+     // index/suffix len are unknown here)
+     let suffix = yaml::GENERATE_NAME_SUFFIX_REGEX;
+     format!("{job_name}(-[0-9]+)?-{suffix}")
+-}
++}
+\ No newline at end of file
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 3c0ddd903b3b65b5dba0f75a3dfd8ffdbf7900d3..720c982eba13b13c304deb27ad416f680814ca58 100644
+index a029c8bf0ce702871d70c07a254f40b675d35268..f3bc0c011d5ff975e534ae93d805e542416d74f2 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
 @@ -105,6 +105,7 @@ pub fn get_mount_and_storage(
@@ -184,7 +191,7 @@ index 9a289307a131608da107beb8f853dc0268a6867a..dea8258b0863f151bb66bdda70914a1f
      }
  
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index cc264abb53d62151fa6fa4498a62b4db5c35e6e9..8b4a8c2e5a1a9f66390b5c61784310444d3b30b8 100644
+index e284d4e8443cff0207f7f088b5a957cb29028d1e..1402b3183c938b7e4d63ae839b14522ee1bf4717 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -23,7 +23,6 @@ use crate::secret;
@@ -217,10 +224,10 @@ index cc264abb53d62151fa6fa4498a62b4db5c35e6e9..8b4a8c2e5a1a9f66390b5c6178431044
                          mountPaths.insert(volume_mount.mountPath.clone());
                      }
 diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
-index 93615039bcf2c9dd5ef8f4c056ae79f8ac7132dc..c3c3077c4ae1be4fc390eeed4734d4555ebc5e3c 100644
+index 5eeba23aa3cb7daf27fbb19418440b48a9d50655..a9508e292df3a09b12f46a96d3e0456bf634633d 100644
 --- a/src/tools/genpolicy/tests/policy/main.rs
 +++ b/src/tools/genpolicy/tests/policy/main.rs
-@@ -295,6 +295,12 @@ mod tests {
+@@ -301,6 +301,12 @@ mod tests {
          runtests("createcontainer/security_context/supplemental_groups").await;
      }
  

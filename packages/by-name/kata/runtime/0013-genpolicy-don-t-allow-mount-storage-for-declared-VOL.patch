@@ -35,10 +35,10 @@ index 3cfe77c7d7d7f61e22f93532da33711ccb8a5e89..489a50a464a3bb4b92faefed14e13c86
      },
      "mount_destinations": [
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 3cf258f454a69f897328b9a7e7baf537bd14890f..3c0ddd903b3b65b5dba0f75a3dfd8ffdbf7900d3 100644
+index 20ebd36e247a7268d7eea36b84a2ca38f80871af..a029c8bf0ce702871d70c07a254f40b675d35268 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -369,46 +369,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
+@@ -370,46 +370,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
          });
      }
  }
@@ -98,7 +98,7 @@ index e3bab1e9b6d63b036221818ab5f24fa6b5c3d81c..e78e4b593d9a3eab051539d065940204
  
  /// EmptyDir volume settings loaded from genpolicy-settings.json.
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 4c856061e478b10b29dadd1f8106e4babc5c1bd2..cc264abb53d62151fa6fa4498a62b4db5c35e6e9 100644
+index a78c30a79addca66764f020f540efbf1f18fd8cf..e284d4e8443cff0207f7f088b5a957cb29028d1e 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -28,6 +28,7 @@ use crate::volume;

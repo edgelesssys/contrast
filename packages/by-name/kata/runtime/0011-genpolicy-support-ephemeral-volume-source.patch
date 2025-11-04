@@ -15,7 +15,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  3 files changed, 21 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index a33128814eb1d99adb68a862befacd0bf0d7f5cd..3cf258f454a69f897328b9a7e7baf537bd14890f 100644
+index 6d27fb39494a4b1b0ff5f8f7abb5e128a647b4dd..20ebd36e247a7268d7eea36b84a2ca38f80871af 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
 @@ -126,7 +126,7 @@ pub fn get_mount_and_storage(
@@ -48,7 +48,7 @@ index 3db25a490cec2f1a2d8f8d269dec5019bc3e96b1..6fd7a8e964ed03ecfac3da518af6edbd
  #[derive(Clone, Debug, Default, Serialize, Deserialize)]
  pub struct ResourceRequirements {
 diff --git a/src/tools/genpolicy/src/volume.rs b/src/tools/genpolicy/src/volume.rs
-index 0bb908a81c2fd7ffcd7dd59587db316f609d0c13..b0fbc38ab787fe3f9259d7e648a0ec102cbc9e26 100644
+index a29d9d209311be10ef66edce1c57d4c71baa8a37..7a954a050ef692434ac0c1733f7867cce9ecb3c6 100644
 --- a/src/tools/genpolicy/src/volume.rs
 +++ b/src/tools/genpolicy/src/volume.rs
 @@ -6,7 +6,7 @@

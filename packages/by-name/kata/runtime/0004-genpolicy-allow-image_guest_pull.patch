@@ -126,7 +126,7 @@ index 74686abf43436d9c5c5117d061f1faed79783f74..e927668e85b61c1d242c1052bf50d7a5
 -    }
 -}
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index fef95c47376b1b2c05304d3f9750e3f84cc93b4a..59ccaf3c86663f12bf2323cc3ddd12573b3e1d98 100644
+index 6fbf71646169348b104aa313deac32339fddaf6f..a81fcb347620f61646edf09aee3bfeaeee9f7965 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
 @@ -1694,7 +1694,7 @@ func getContainerTypeforCRI(c *Container) (string, string) {
@@ -170,10 +170,10 @@ index fef95c47376b1b2c05304d3f9750e3f84cc93b4a..59ccaf3c86663f12bf2323cc3ddd1257
  			return nil, err
  		}
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 11f2adfc741eb10062593cf18413954e96eb0ca3..5e14dfa91570341675e0140900ee5c15fcbf48fb 100644
+index 068d77d1dd20079a25604b9ffc94c0be0f138e82..2dac4d81f651d422b4267eb94d65417e1fcbf325 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1031,10 +1031,9 @@ allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
+@@ -1041,10 +1041,9 @@ allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
  
      p_count := count(p_storages)
      i_count := count(i_storages)
@@ -186,7 +186,7 @@ index 11f2adfc741eb10062593cf18413954e96eb0ca3..5e14dfa91570341675e0140900ee5c15
  
      every i_storage in i_storages {
          allow_storage(p_storages, i_storage, bundle_id, sandbox_id)
-@@ -1060,15 +1059,6 @@ allow_storage(p_storages, i_storage, bundle_id, sandbox_id) if {
+@@ -1070,15 +1069,6 @@ allow_storage(p_storages, i_storage, bundle_id, sandbox_id) if {
  
      print("allow_storage: true")
  }
@@ -202,7 +202,7 @@ index 11f2adfc741eb10062593cf18413954e96eb0ca3..5e14dfa91570341675e0140900ee5c15
  
  allow_storage_source(p_storage, i_storage, bundle_id) if {
      print("allow_storage_source 1: start")
-@@ -1098,6 +1088,23 @@ allow_storage_source(p_storage, i_storage, bundle_id) if {
+@@ -1108,6 +1098,23 @@ allow_storage_source(p_storage, i_storage, bundle_id) if {
  
      print("allow_storage_source 3: true")
  }
@@ -226,7 +226,7 @@ index 11f2adfc741eb10062593cf18413954e96eb0ca3..5e14dfa91570341675e0140900ee5c15
  
  allow_storage_options(p_storage, i_storage) if {
      print("allow_storage_options 1: start")
-@@ -1151,6 +1158,22 @@ allow_mount_point(p_storage, i_storage, bundle_id, sandbox_id) if {
+@@ -1161,6 +1168,22 @@ allow_mount_point(p_storage, i_storage, bundle_id, sandbox_id) if {
  
      print("allow_mount_point 3: true")
  }
@@ -250,10 +250,10 @@ index 11f2adfc741eb10062593cf18413954e96eb0ca3..5e14dfa91570341675e0140900ee5c15
  # ExecProcessRequest.process.Capabilities
  allow_exec_caps(i_caps) if {
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 7836a1c64da3af531f886eb37af8e1ee60f54d80..acef1aa34160a144e1a95e7bad5a3f6a6641b5cd 100644
+index 885d8b81962d1e29e823b1b4094d46f8791cfc05..a78c30a79addca66764f020f540efbf1f18fd8cf 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
-@@ -317,6 +317,17 @@ pub fn get_container_mounts_and_storages(
+@@ -318,6 +318,17 @@ pub fn get_container_mounts_and_storages(
              mount_and_storage::get_image_mount_and_storage(settings, policy_mounts, volume.0);
          }
      }
