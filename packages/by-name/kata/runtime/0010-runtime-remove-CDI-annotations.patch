@@ -12,7 +12,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  1 file changed, 12 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
-index 59ccaf3c86663f12bf2323cc3ddd12573b3e1d98..c14e2923c45b1fe4545ccef95c5679189f2ba884 100644
+index a81fcb347620f61646edf09aee3bfeaeee9f7965..0c23a12b39e255563dd054aa286a1c2631b87caa 100644
 --- a/src/runtime/virtcontainers/kata_agent.go
 +++ b/src/runtime/virtcontainers/kata_agent.go
 @@ -1066,6 +1066,18 @@ func (k *kataAgent) constrainGRPCSpec(grpcSpec *grpc.Spec, passSeccomp bool, dis

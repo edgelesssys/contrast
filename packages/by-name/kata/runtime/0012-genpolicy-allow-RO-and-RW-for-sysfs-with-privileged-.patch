@@ -10,7 +10,7 @@ Subject: [PATCH] genpolicy: allow RO and RW for sysfs with privileged
  2 files changed, 18 insertions(+), 1 deletion(-)
 
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index ec4b79393ac29d64de14ae665ad632c7cb386a3a..093bb2a022acc7a07cea5ca72192be8ce1a21bb5 100644
+index f959447cbb3fd33a8e9bc56ca1e04cab4a7fd37a..8512f840d041111e5a000615d0a63cc7d018d554 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
 @@ -1007,6 +1007,20 @@ check_mount(p_mount, i_mount, bundle_id, sandbox_id) if {
@@ -35,7 +35,7 @@ index ec4b79393ac29d64de14ae665ad632c7cb386a3a..093bb2a022acc7a07cea5ca72192be8c
  mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) if {
      regex1 := p_mount.source
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index d48f7c220bfe028e2412102b70225be5581a33d2..60ccb4f6d08a0db98cfc59002f3f613ad93f8892 100644
+index f1492a768f9866a95148379c83cbd11e37c9ef97..15c71c8b39830178b4f9e2b8e77eec9a519b55c6 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
 @@ -614,6 +614,9 @@ impl AgentPolicy {
