@@ -59,15 +59,16 @@ func RegisterFlags() {
 // ContrastTest is the Contrast test helper struct.
 type ContrastTest struct {
 	// inputs, usually filled by New()
-	Namespace                   string
-	WorkDir                     string
-	ImageReplacements           map[string]string
-	ImageReplacementsFile       string
-	Platform                    platforms.Platform
-	NamespaceFile               string
-	RuntimeClassName            string
-	NodeInstallerTargetConfType string
-	Kubeclient                  *kubeclient.Kubeclient
+	Namespace                      string
+	WorkDir                        string
+	ImageReplacements              map[string]string
+	ImageReplacementsFile          string
+	Platform                       platforms.Platform
+	NamespaceFile                  string
+	RuntimeClassName               string
+	NodeInstallerTargetConfType    string
+	NodeInstallerImagePullerConfig []byte
+	Kubeclient                     *kubeclient.Kubeclient
 
 	// outputs of contrast subcommands
 	meshCACertPEM []byte
@@ -413,6 +414,20 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 		resources = append(resources, nodeInstallerTargetConf)
 	}
 
+	if ct.NodeInstallerImagePullerConfig != nil {
+		imagePullSecret := kuberesource.NodeInstallerImagePullerSecret(ct.Namespace, ct.NodeInstallerImagePullerConfig)
+		nodeInstallerDeps = append(nodeInstallerDeps, imagePullSecret)
+	}
+
+	if len(nodeInstallerDeps) > 0 {
+		nodeInstallerDeps = kuberesource.PatchNamespaces(nodeInstallerDeps, ct.Namespace)
+		unstructured, err := kuberesource.ResourcesToUnstructured(nodeInstallerDeps)
+		require.NoError(err)
+		require.NoError(ct.Kubeclient.Apply(ctx, unstructured...))
+	}
+
+	resources, err := kuberesource.Runtime(ct.Platform)
+	require.NoError(err)
 	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
 
