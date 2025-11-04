@@ -13,7 +13,6 @@ This section lists planned features and current limitations of Contrast.
 - **Volume sub-paths**: Mounting only a `subPath` of a volume [isn't yet supported by Kata Containers](https://github.com/kata-containers/kata-containers/issues/10487).
 - **Port forwarding**: This feature [isn't yet supported by Kata Containers](https://github.com/kata-containers/kata-containers/issues/1693). You can [deploy a port-forwarder](../howto/workload-deployment/connect-to-coordinator.md#port-forwarding) as a workaround.
 - **Resource limits**: Contrast doesn't support setting CPU limits on bare metal. Adding a resource request for CPUs will lead to attestation failures.
-- **Image pull secrets**: registry authentication isn't yet supported.
 - **Termination messages**: [Custom termination messages](https://kubernetes.io/docs/tasks/debug/debug-application/determine-reason-pod-failure/) for confidential containers [aren't yet supported by Kata Containers](https://github.com/kata-containers/kata-containers/issues/10758).
 
 ## Runtime policies
