@@ -145,6 +145,15 @@ func NodeInstallerTargetConfig(target string) (*applycorev1.ConfigMapApplyConfig
 	}
 }
 
+// NodeInstallerImagePullerSecret returns an imagepuller Secret for the passed namespace.
+func NodeInstallerImagePullerSecret(namespace string, content []byte) *applycorev1.SecretApplyConfiguration {
+	return applycorev1.Secret("contrast-node-installer-imagepuller-config", namespace).
+		WithType(corev1.SecretTypeOpaque).
+		WithData(map[string][]byte{
+			"contrast-imagepuller.toml": content,
+		})
+}
+
 // PortForwarderConfig wraps a PodApplyConfiguration for a port forwarder.
 type PortForwarderConfig struct {
 	*applycorev1.PodApplyConfiguration

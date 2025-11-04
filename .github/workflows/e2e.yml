@@ -27,6 +27,8 @@ on:
         required: true
       TEAMS_CI_WEBHOOK:
         required: true
+      CONTRAST_GHCR_READ:
+        required: true
 
 env:
   container_registry: ghcr.io/edgelesssys
@@ -43,6 +45,7 @@ jobs:
       PLATFORM: ${{ inputs.platform }}
       NODE_INSTALLER_TARGET_CONF_TYPE: ${{ inputs.platform == 'Metal-QEMU-SNP' && 'none' || 'k3s' }}
       TEST_NAME: ${{ inputs.test-name }}
+      CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:

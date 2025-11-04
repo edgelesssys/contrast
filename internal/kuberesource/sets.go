@@ -4,6 +4,7 @@
 package kuberesource
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -996,4 +997,41 @@ func MemDumpTester() []any {
 		)
 
 	return []any{memdump}
+}
+
+// AuthenticatedPullTester returns the resources for the imagepuller-auth test.
+func AuthenticatedPullTester(name, token string) []any {
+	deployment := Deployment(name, "").
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+				WithSpec(PodSpec().
+					WithImagePullSecrets(applycorev1.LocalObjectReference().WithName(name)).
+					WithContainers(
+						Container().
+							WithName("my-image-is-private").
+							WithImage("ghcr.io/edgelesssys/bash-private@sha256:44ddf003cf6d966487da334edf972c55e91d1aa30db5690ad0445b459cbca924").
+							WithCommand("bash", "-c", "sleep infinity").
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(100),
+							),
+					),
+				),
+			),
+		)
+
+	auth := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "user-not-required-here:%s", token))
+	content := fmt.Sprintf(`{"auths":{"ghcr.io":{"auth":%q}}}`, auth)
+
+	secret := applycorev1.Secret(name, "").
+		WithType(corev1.SecretTypeDockerConfigJson).
+		WithData(map[string][]byte{
+			".dockerconfigjson": []byte(content),
+		})
+
+	return []any{deployment, secret}
 }

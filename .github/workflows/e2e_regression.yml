@@ -11,6 +11,8 @@ on:
         required: true
       TEAMS_CI_WEBHOOK:
         required: true
+      CONTRAST_GHCR_READ:
+        required: true
   pull_request:
     paths:
       - .github/workflows/e2e_regression.yml
@@ -45,6 +47,7 @@ jobs:
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
       NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
       TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
+      CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
     permissions:
       contents: read
       packages: write
