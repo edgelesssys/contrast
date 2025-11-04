@@ -169,6 +169,23 @@ let
         jq
       ];
     };
+
+    debugshell = dockerTools.buildImage {
+      name = "debugshell";
+      tag = "latest";
+      copyToRoot = with pkgs; [
+        busybox
+        bash
+        coreutils
+        ncurses
+        contrastPkgs.debugshell
+        openssh
+      ];
+      config = {
+        Entrypoint = [ "/bin/debugshell" ];
+        Cmd = [ "journalctl --no-tail --no-pager -f" ];
+      };
+    };
   };
 in
 containers
