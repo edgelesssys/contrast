@@ -12,6 +12,7 @@ on:
           - atls
           - genpolicy-unsupported
           - gpu
+          - imagepuller-auth
           - imagestore
           - multiple-cpus
           - openssl
@@ -86,6 +87,7 @@ jobs:
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
       NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
       TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
+      CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
     permissions:
       contents: read
       packages: write

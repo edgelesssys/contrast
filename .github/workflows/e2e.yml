@@ -27,6 +27,8 @@ on:
         required: true
       TEAMS_CI_WEBHOOK:
         required: true
+      CONTRAST_GHCR_READ:
+        required: true
 
 env:
   container_registry: ghcr.io/edgelesssys
