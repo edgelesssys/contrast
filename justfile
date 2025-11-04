@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump (node-installer platform) (deploy target cli platform) set verify (wait-for-workload target)
+default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (node-installer platform) (deploy target cli platform) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -9,23 +9,19 @@ push target:
     pushedImg=$(nix run -L .#containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}")
     printf "ghcr.io/edgelesssys/contrast/%s:latest=%s\n" "{{ target }}" "$pushedImg" >> {{ workspace_dir }}/just.containerlookup
 
-# Build the coordinator, containerize and push it.
 coordinator: (push "coordinator")
 
-# Build the openssl container and push it.
 openssl: (push "openssl")
 
-# Build the port-forwarder container and push it.
 port-forwarder: (push "port-forwarder")
 
-# Build the service-mesh-proxy container and push it.
 service-mesh-proxy: (push "service-mesh-proxy")
 
-# Build the initializer, containerize and push it.
 initializer: (push "initializer")
 
-# Build the memdump container and push it.
 memdump: (push "memdump")
+
+debugshell: (push "debugshell")
 
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"
@@ -49,7 +45,7 @@ node-installer platform=default_platform:
         ;;
     esac
 
-e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump (node-installer platform)
+e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" ]] ; then
