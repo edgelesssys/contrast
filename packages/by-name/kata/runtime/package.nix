@@ -147,6 +147,13 @@ buildGoModule (finalAttrs: {
       ./0021-genpolicy-support-full-DeploymentSpec.patch
       ./0022-genpolicy-support-full-JobSpec.patch
       ./0023-genpolicy-remove-non-existing-field-from-CronJobSpec.patch
+
+      # Privatemode requires GPU sharing between containers of the same pod.
+      # In the hook-based flow, this worked because all devices and libs were (accidentally) handed to all containers.
+      # With the CDI-based flow, this no longer happens.
+      # Instead, this patch ensures that if a container has NVIDIA_VISIBLE_DEVICES=all set as an env var,
+      # that container receives ALL Nvidia GPU devices known to the pod.
+      ./0024-runtime-assign-GPU-devices-to-multiple-containers.patch
     ];
   };
 
