@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+Date: Wed, 5 Nov 2025 13:01:25 +0100
+Subject: [PATCH] runtime: assign GPU devices to multiple containers
+
+Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+---
+ src/runtime/virtcontainers/container.go | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
+index eb49f5ee57021be589523aa8905cfa8ec2316ef9..be17166fd35f1df2972e14f5da1b871782ba80b5 100644
+--- a/src/runtime/virtcontainers/container.go
++++ b/src/runtime/virtcontainers/container.go
+@@ -11,6 +11,7 @@ import (
+ 	"io"
+ 	"os"
+ 	"path/filepath"
++	"slices"
+ 	"sort"
+ 	"strconv"
+ 	"strings"
+@@ -1090,12 +1091,18 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) {
+ 
+ 		}
+ 
++		// If the NVIDIA_VISIBLE_DEVICES envvar exists and is set to "all" for the given container,
++		// we attach ALL Nvidia GPU devices to this container.
++		if slices.Contains(c.config.CustomSpec.Process.Env, "NVIDIA_VISIBLE_DEVICES=all") {
++			c.siblingAnnotation("", siblings)
++		}
+ 	}
+ }
++
+ func (c *Container) siblingAnnotation(devPath string, siblings []DeviceRelation) {
+ 	for _, sibling := range siblings {
+-		if sibling.Path == devPath {
+-			vfioNum := filepath.Base(devPath)
++		if sibling.Path == devPath || slices.Contains(c.config.CustomSpec.Process.Env, "NVIDIA_VISIBLE_DEVICES=all") {
++			vfioNum := filepath.Base(sibling.Path)
+ 			annoKey := fmt.Sprintf("cdi.k8s.io/vfio%s", vfioNum)
+ 			annoValue := fmt.Sprintf("nvidia.com/gpu=%d", sibling.Index)
+ 			if c.config.CustomSpec.Annotations == nil {
