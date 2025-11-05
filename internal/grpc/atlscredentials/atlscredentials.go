@@ -72,7 +72,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 		return nil, nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), constants.ATLSServerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), constants.ATLSServerHandshakeTimeout)
 	defer cancel()
 
 	conn := tls.Server(rawConn, serverCfg)

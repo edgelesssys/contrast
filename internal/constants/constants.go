@@ -24,14 +24,36 @@ const (
 )
 
 const (
-	// ATLSClientTimeout is the maximal amount of time spent by Coordinator clients for issuing
-	// and validation of attestation docs.
-	ATLSClientTimeout = 30 * time.Second
+	// ATLSClientConnectTimeout is the maximal amount of time spent by the client to
+	// establish a connection and complete the aTLS handshake.
+	// In the case of CLI (validator) and Coordinator (issuer), this includes the time spent
+	// issuing the attestation document and trying to fetch additional data from endorsement
+	// service (like AMD KDS), as well as time needed to validate that attestation document
+	// (and fetching endorsements on the validator side, in case they weren't sent by the issuer).
+	ATLSClientConnectTimeout = 30 * time.Second
 
-	// ATLSServerTimeout is the maximal amount of time that the Coordinator can spend for issuing
-	// attestation docs. It's deliberately smaller than ATLSClientTimeout to allow proper error
-	// propagation.
-	ATLSServerTimeout = ATLSClientTimeout - 5*time.Second
+	// ATLSServerHandshakeTimeout is the maximal amount of time a server can spend to finish
+	// the aTLS handshake on its side. This can include issuing/validating attestation documents.
+	// In the case of CLI (validator) and Coordinator (issuer), it includes the time spent
+	// issuing the attestation document and trying to fetch additional data from endorsement
+	// service (like AMD KDS), BUT NOT the time needed by the client to validate.
+	ATLSServerHandshakeTimeout = ATLSClientConnectTimeout - 5*time.Second
+
+	// ATLSIssuerOptionalEndorsementFetchTimeout is the timeout for fetching optional endorsements
+	// (like AMD VCEK, ASK, ARK certificates and CRL) during Issue. This doesn't necessarily need
+	// to succeed, as the client can also try to fetch or use cache on their side. Thus, the timeout
+	// needs to be lower than the ServerHandshake timeout, as otherwise the ServerHandshake will fail
+	// when blocking on the optional fetches.
+	//
+	// TODO(katexochen): This assumes that the issue is done on the server side, like it is the case for
+	// CLI <-> Coordinator communication. Issue can, however, also be used on the client side,
+	// for example in the Initializer <-> Coordinator communication. Thus deriving the timeout
+	// from the ServerHandshake timeout isn't always correct.
+	//
+	// TODO(katexochen): Further, we need to also ensure that there is enough time on the validator side to
+	// request the endorsement again on that end without hitting the overall ClientConnect timeout.
+	// The current difference of 5s might not be sufficient.
+	ATLSIssuerOptionalEndorsementFetchTimeout = ATLSServerHandshakeTimeout - 5*time.Second
 )
 
 // DisableServiceMeshEnvVar is the environment variable that signals to the initializer

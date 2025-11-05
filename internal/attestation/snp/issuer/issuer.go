@@ -83,11 +83,16 @@ func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (
 	//	Checkout dev-docs/kds.md for overview over VCEK/CRL retrieval/caching.
 	//
 
-	// Get cert chain from THIM
-	att := i.getAttestation(ctx, report)
+	// Requests we are doing to the KDS are optional and don't need to succeed.
+	// It is important that they finish before the overall timeout expires.
+	optionalsCtx, cancel := context.WithTimeout(ctx, constants.ATLSIssuerOptionalEndorsementFetchTimeout)
+	defer cancel()
+
+	// Get cert chain (VCEK, ASK, ARK).
+	att := i.getAttestation(optionalsCtx, report)
 
 	// Get the CRL.
-	if crl, err := getCRLforAttestation(ctx, att, i.kdsGetter); err == nil {
+	if crl, err := getCRLforAttestation(optionalsCtx, att, i.kdsGetter); err == nil {
 		// Add CRL as CertificateChain.Extras to the attestation, so it can be used by a validator.
 		if att.CertificateChain.Extras == nil {
 			att.CertificateChain.Extras = make(map[string][]byte)
@@ -116,7 +121,8 @@ func (i *Issuer) getAttestation(ctx context.Context, report *spb.Report) *spb.At
 	}
 	i.logger.Warn("Failed to get attestation from KDS or extended report", "err", err)
 
-	// Fallback to attestation without cert chain. The client can still try to request it on their end.
+	// Fallback to attestation without cert chain.
+	// The client can still try to request it on their end.
 	return i.getAttestationWithoutCertChain(report)
 }
 
