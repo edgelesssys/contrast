@@ -64,7 +64,7 @@ func (d *Dialer) Dial(_ context.Context, target string) (*grpc.ClientConn, error
 			Backoff: backoff.DefaultConfig,
 			// We need a high initial timeout, because otherwise the client will get stuck in a reconnect loop
 			// where the timeout is too low to get a full handshake done.
-			MinConnectTimeout: constants.ATLSClientTimeout,
+			MinConnectTimeout: constants.ATLSClientConnectTimeout,
 		}),
 	)
 }

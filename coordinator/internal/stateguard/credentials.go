@@ -55,7 +55,7 @@ func (a *Guard) Credentials(reg *prometheus.Registry, issuer atls.Issuer, httpsG
 //
 // If successful, the state will be passed to gRPC as [AuthInfo].
 func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.AuthInfo, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), constants.ATLSServerTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), constants.ATLSServerHandshakeTimeout)
 	defer cancel()
 
 	log := c.logger.With("peer", rawConn.RemoteAddr())
@@ -71,13 +71,13 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	var validators []atls.Validator
 
-	opts, err := state.Manifest().SNPValidateOpts(c.kdsGetter)
+	snpOpts, err := state.Manifest().SNPValidateOpts(c.kdsGetter)
 	if err != nil {
 		log.Error("Could not generate SNP validation options", "error", err)
 		return nil, nil, fmt.Errorf("generating SNP validation options: %w", err)
 	}
 
-	for i, opt := range opts {
+	for i, opt := range snpOpts {
 		name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
 		validator := snp.NewValidatorWithReportSetter(opt.VerifyOpts, opt.ValidateOpts,
 			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"reference-values": name}),
