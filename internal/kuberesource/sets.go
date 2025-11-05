@@ -671,17 +671,31 @@ func GPU() []any {
 				WithSpec(PodSpec().
 					WithContainers(
 						Container().
-							WithName("gpu-tester").
+							WithName("gpu-tester-direct"). // This container directly requests the H100 resource.
+							WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
+							WithCommand("/bin/sh", "-c", "sleep inf").
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(400). // This accounts for nvidia-smi and the guest pull overhead.
+								WithLimits(corev1.ResourceList{
+									corev1.ResourceName("nvidia.com/GH100_H100_PCIE"): resource.MustParse("1"),
+								}),
+							),
+						Container().
+							WithName("gpu-tester-indirect"). // This container indirectly shares the H100 through the NVIDIA_VISIBLE_DEVICES env var.
 							WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
 							WithCommand("/bin/sh", "-c", "sleep inf").
 							WithEnv(EnvVar().
 								WithName("NVIDIA_VISIBLE_DEVICES").WithValue("all"),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(400). // This accounts for nvidia-smi and the guest pull overhead.
-								WithLimits(corev1.ResourceList{
-									corev1.ResourceName("nvidia.com/GH100_H100_PCIE"): resource.MustParse("1"),
-								}),
+								WithMemoryLimitAndRequest(400),
+							),
+						Container().
+							WithName("no-gpu"). // This container should not get a GPU mount because it does not set NVIDIA_VISIBLE_DEVICES.
+							WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
+							WithCommand("/bin/sh", "-c", "sleep inf").
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(10),
 							),
 					),
 				),
