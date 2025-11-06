@@ -218,6 +218,25 @@ func AddServiceMesh(
 	return res, retErr
 }
 
+// AddDebugShell adds a debug shell container to the resource.
+func AddDebugShell(
+	resource any,
+	debugShell *applycorev1.ContainerApplyConfiguration,
+) (any, error) {
+	return MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+			return spec
+		}
+
+		// Remove already existing containers with unique debug shell name.
+		spec.Containers = slices.DeleteFunc(spec.Containers, func(c applycorev1.ContainerApplyConfiguration) bool {
+			return c.Name != nil && *c.Name == *debugShell.Name
+		})
+
+		return spec.WithContainers(debugShell)
+	}), nil
+}
+
 func checkIfDeviceExists(resource any, spec *applycorev1.PodSpecApplyConfiguration, volumeName string) error {
 	// Check for existing volume with unique name.
 	for _, volume := range spec.Volumes {

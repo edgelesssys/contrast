@@ -470,3 +470,13 @@ func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 			"-l", "debug",
 		)
 }
+
+// DebugShell creates a new debug shell container.
+func DebugShell() *applycorev1.ContainerApplyConfiguration {
+	return applycorev1.Container().
+		WithName("contrast-debug-shell").
+		WithImage("ghcr.io/edgelesssys/contrast/debugshell:latest").
+		WithResources(ResourceRequirements().
+			WithMemoryRequest(400),
+		)
+}
