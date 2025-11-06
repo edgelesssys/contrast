@@ -153,7 +153,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get runtime handler: %w", err)
 	}
 
-	if err := patchTargets(fileMap, flags.imageReplacementsFile, runtimeHandler, flags.skipInitializer, flags.skipServiceMesh, flags.skipImageStore); err != nil {
+	if err := patchTargets(fileMap, flags.imageReplacementsFile, runtimeHandler, flags); err != nil {
 		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
@@ -418,7 +418,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 	})
 }
 
-func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler string, skipInitializer, skipServiceMesh, skipImageStore bool) error {
+func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler string, flags *generateFlags) error {
 	var replacements map[string]string
 	var err error
 	if imageReplacementsFile != "" {
@@ -439,17 +439,22 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 		}
 	}
 	return mapCCWorkloads(fileMap, func(res any, _ string, _ int) (any, error) {
-		if !skipInitializer {
+		if flags.insecureEnableDebugShell {
+			if _, err := kuberesource.AddDebugShell(res, kuberesource.DebugShell()); err != nil {
+				return nil, fmt.Errorf("injecting debug shell container: %w", err)
+			}
+		}
+		if !flags.skipInitializer {
 			if err := injectInitializer(res); err != nil {
 				return nil, fmt.Errorf("injecting Initializer: %w", err)
 			}
 		}
-		if !skipServiceMesh {
+		if !flags.skipServiceMesh {
 			if err := injectServiceMesh(res); err != nil {
 				return nil, fmt.Errorf("injecting Service Mesh: %w", err)
 			}
 		}
-		if !skipImageStore {
+		if !flags.skipImageStore {
 			kuberesource.AddImageStore([]any{res})
 		}
 
@@ -464,12 +469,15 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 
 func injectInitializer(resource any) error {
 	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
-	if ok && r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.ObjectMetaApplyConfiguration != nil && r.Spec.Template.Annotations != nil &&
+	if ok &&
+		r.Spec != nil &&
+		r.Spec.Template != nil &&
+		r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
+		r.Spec.Template.Annotations != nil &&
 		r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
 		return nil
 	}
-	_, err := kuberesource.AddInitializer(resource, kuberesource.Initializer())
-	if err != nil {
+	if _, err := kuberesource.AddInitializer(resource, kuberesource.Initializer()); err != nil {
 		return err
 	}
 	return nil
@@ -477,12 +485,15 @@ func injectInitializer(resource any) error {
 
 func injectServiceMesh(resource any) error {
 	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
-	if ok && r.Spec != nil && r.Spec.Template != nil && r.Spec.Template.ObjectMetaApplyConfiguration != nil && r.Spec.Template.Annotations != nil &&
+	if ok &&
+		r.Spec != nil &&
+		r.Spec.Template != nil &&
+		r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
+		r.Spec.Template.Annotations != nil &&
 		r.Spec.Template.Annotations[contrastRoleAnnotationKey] == string(manifest.RoleCoordinator) {
 		return nil
 	}
-	_, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy())
-	if err != nil {
+	if _, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy()); err != nil {
 		return err
 	}
 	return nil
