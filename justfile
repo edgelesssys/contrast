@@ -102,12 +102,17 @@ populate target=default_deploy_target platform=default_platform:
     if [[ -f ./{{ workspace_dir }}/deployment/deployment.yml ]]; then
         echo "---" >> ./{{ workspace_dir }}/deployment/deployment.yml
     fi
+    dmesgFlag=""
+    # For debug, we already add the debugshell container which exposes the full journal.
+    if [[ "${debug:-}" != "true" ]]; then
+        dmesgFlag="--add-dmesg"
+    fi
     nix shell .#contrast --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --add-port-forwarders \
         --add-logging \
-        --add-dmesg \
+        ${dmesgFlag} \
         --platform {{ platform }} \
         ${target} coordinator >> ./{{ workspace_dir }}/deployment/deployment.yml
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
