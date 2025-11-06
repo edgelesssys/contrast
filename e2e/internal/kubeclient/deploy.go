@@ -363,13 +363,29 @@ func (c *Kubeclient) Restart(ctx context.Context, resource ResourceWaiter, names
 		return err
 	}
 	for _, pod := range pods {
-		c.log.Info("restarting pod", "namespace", namespace, "name", name)
-		err := c.Client.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{
+		watcher, err := c.Client.CoreV1().Pods(namespace).Watch(ctx, metav1.ListOptions{
+			FieldSelector: fmt.Sprintf("metadata.name=%s", pod.Name),
+		})
+		if err != nil {
+			return err
+		}
+		defer watcher.Stop()
+
+		c.log.Info("restarting pod", "namespace", namespace, "name", pod.Name)
+		err = c.Client.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, metav1.DeleteOptions{
 			GracePeriodSeconds: toPtr(int64(0)),
 		})
 		if err != nil {
 			return err
 		}
+
+		for event := range watcher.ResultChan() {
+			if event.Type == watch.Deleted {
+				c.log.Info("deleted pod", "namespace", namespace, "name", pod.Name)
+				break
+			}
+		}
+		watcher.Stop()
 	}
 	return nil
 }
