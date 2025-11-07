@@ -178,6 +178,11 @@ const sidebars = {
           label: "Troubleshooting",
           id: "howto/troubleshooting",
         },
+        {
+          type: "doc",
+          label: "Advanced debugging",
+          id: "howto/debugshell",
+        }
       ],
     },
     {
