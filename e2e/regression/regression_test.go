@@ -215,6 +215,11 @@ func testHTTPProxy(t *testing.T, ct *contrasttest.ContrastTest) {
 				return
 			}
 
+			require.NoError(runCommand(t.Context(), ct, "generate"))
+			assert.False(coordinatorConnectionProxied.Swap(false))
+
+			require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+
 			require.NoError(runCommand(t.Context(), ct, "set"))
 			assert.Equal(tc.wantProxied, coordinatorConnectionProxied.Swap(false))
 
@@ -234,7 +239,7 @@ func TestMain(m *testing.M) {
 	ctx := context.Background()
 
 	if *runCommandStr != "" {
-		if err := runCommandImpl(ctx, *runCommandStr, *runNamespace, *runWorkdir); err != nil {
+		if err := runCommandImpl(ctx, *runCommandStr, *runNamespace, *runWorkdir, contrasttest.Flags.PlatformStr); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
@@ -247,15 +252,22 @@ func TestMain(m *testing.M) {
 // runCommand runs a CLI command in a new process so that the proxy env vars are re-read.
 // Go caches the env vars, so we can't run the commands in the same process as usual.
 func runCommand(ctx context.Context, ct *contrasttest.ContrastTest, cmd string) error {
-	out, err := exec.CommandContext(ctx, os.Args[0], "-run-command="+cmd, "-run-namespace="+ct.Namespace, "-run-workdir="+ct.WorkDir).CombinedOutput()
+	argv := append([]string{}, os.Args[1:]...)
+	argv = append(argv, "-run-command="+cmd, "-run-namespace="+ct.Namespace, "-run-workdir="+ct.WorkDir)
+	out, err := exec.CommandContext(ctx, os.Args[0], argv...).CombinedOutput()
 	if err != nil {
 		return errors.New(string(out))
 	}
 	return nil
 }
 
-func runCommandImpl(ctx context.Context, cmd, namespace, workDir string) error {
+func runCommandImpl(ctx context.Context, cmd, namespace, workDir, platformStr string) error {
 	kclient, err := kubeclient.NewForTestWithoutT()
+	if err != nil {
+		return err
+	}
+
+	platform, err := platforms.FromString(platformStr)
 	if err != nil {
 		return err
 	}
@@ -263,9 +275,12 @@ func runCommandImpl(ctx context.Context, cmd, namespace, workDir string) error {
 		Namespace:  namespace,
 		WorkDir:    workDir,
 		Kubeclient: kclient,
+		Platform:   platform,
 	}
 
 	switch cmd {
+	case "generate":
+		return ct.RunGenerate(ctx)
 	case "set":
 		return ct.RunSet(ctx)
 	case "verify":
