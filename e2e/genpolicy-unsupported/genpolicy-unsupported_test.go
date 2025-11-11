@@ -58,7 +58,7 @@ func TestGenpolicyUnsupported(t *testing.T) {
 				}
 			})
 
-			err = ct.RunGenerate()
+			err = ct.RunGenerate(t.Context())
 			require.Error(err)
 			expectedError, ok := expectedErrorMessages[file.Name()]
 			if !ok {
