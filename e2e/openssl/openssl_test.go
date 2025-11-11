@@ -205,7 +205,28 @@ func TestOpenSSL(t *testing.T) {
 			// This should not succeed because the certificates have changed.
 			stdout, stderr, err := c.ExecDeployment(ctx, ct.Namespace, opensslFrontend, []string{"/bin/sh", "-c", opensslConnectCmd("openssl-backend:443", meshCAFile)})
 			if err == nil {
+				// We used to have sporadic unexpected success here, print a bunch of information to aid debugging.
 				t.Log("openssl with wrong certificates:", stdout)
+				frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, opensslFrontend)
+				if err != nil {
+					t.Logf("error fetching pods: %v", err)
+				}
+				backendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, opensslBackend)
+				if err != nil {
+					t.Logf("error fetching pods: %v", err)
+				}
+
+				var pods []any
+				for _, p := range append(frontendPods, backendPods...) {
+					pods = append(pods, &p)
+				}
+				b, err := kuberesource.EncodeResources(pods...)
+				if err != nil {
+					t.Logf("Error marshalling resources: %v", err)
+				} else {
+					t.Logf("openssl pods:\n\n%s", string(b))
+				}
+
 			}
 			require.Error(err)
 			require.Contains(stderr, "self-signed certificate in certificate chain", "err: %s", err)
