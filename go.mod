@@ -2,7 +2,7 @@ module github.com/edgelesssys/contrast
 
 go 1.25.0
 
-toolchain go1.25.1
+toolchain go1.25.4
 
 // Upstream is poorly maintained, use edgelesssys fork instead.
 replace github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20250811150530-d85b756e97f2
