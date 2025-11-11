@@ -119,30 +119,32 @@ func TestRegression(t *testing.T) {
 			require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 			require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 			require.True(t.Run("verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
-
-			for _, resource := range intermediateResources {
-				t.Cleanup(func() {
-					if err := cleanupResource(t.Context(), resource, ct); err != nil {
-						t.Logf("failed to delete resource: %s:", err)
+			require.True(t.Run("wait-for-resource", func(t *testing.T) {
+				assert := assert.New(t)
+				for _, resource := range intermediateResources {
+					t.Cleanup(func() {
+						if err := cleanupResource(t.Context(), resource, ct); err != nil {
+							t.Logf("failed to delete resource: %s:", err)
+						}
+					})
+					ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
+					defer cancel()
+					switch r := resource.(type) {
+					case *applyappsv1.DeploymentApplyConfiguration:
+						assert.NoError(c.WaitForDeployment(ctx, ct.Namespace, *r.Name))
+					case *applyappsv1.DaemonSetApplyConfiguration:
+						assert.NoError(c.WaitForDaemonSet(ctx, ct.Namespace, *r.Name))
+					case *applycorev1.PodApplyConfiguration:
+						assert.NoError(c.WaitForPod(ctx, ct.Namespace, *r.Name))
+					case *applybatchv1.JobApplyConfiguration:
+						assert.NoError(c.WaitForJob(ctx, ct.Namespace, *r.Name))
+					case *applyappsv1.ReplicaSetApplyConfiguration:
+						assert.NoError(c.WaitForReplicaSet(ctx, ct.Namespace, *r.Name))
+					case *applycorev1.ReplicationControllerApplyConfiguration:
+						assert.NoError(c.WaitForReplicationController(ctx, ct.Namespace, *r.Name))
 					}
-				})
-				ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
-				defer cancel()
-				switch r := resource.(type) {
-				case *applyappsv1.DeploymentApplyConfiguration:
-					require.NoError(c.WaitForDeployment(ctx, ct.Namespace, *r.Name))
-				case *applyappsv1.DaemonSetApplyConfiguration:
-					require.NoError(c.WaitForDaemonSet(ctx, ct.Namespace, *r.Name))
-				case *applycorev1.PodApplyConfiguration:
-					require.NoError(c.WaitForPod(ctx, ct.Namespace, *r.Name))
-				case *applybatchv1.JobApplyConfiguration:
-					require.NoError(c.WaitForJob(ctx, ct.Namespace, *r.Name))
-				case *applyappsv1.ReplicaSetApplyConfiguration:
-					require.NoError(c.WaitForReplicaSet(ctx, ct.Namespace, *r.Name))
-				case *applycorev1.ReplicationControllerApplyConfiguration:
-					require.NoError(c.WaitForReplicationController(ctx, ct.Namespace, *r.Name))
 				}
-			}
+			}))
 		})
 	}
 
