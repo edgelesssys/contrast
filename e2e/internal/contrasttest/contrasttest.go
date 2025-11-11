@@ -156,12 +156,12 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 
 // Generate runs the contrast generate command and fails the test if the command fails.
 func (ct *ContrastTest) Generate(t *testing.T) {
-	require.NoError(t, ct.RunGenerate())
+	require.NoError(t, ct.RunGenerate(t.Context()))
 }
 
 // RunGenerate runs the contrast generate command.
-func (ct *ContrastTest) RunGenerate() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 	args := append(
 		ct.commonArgs(),
