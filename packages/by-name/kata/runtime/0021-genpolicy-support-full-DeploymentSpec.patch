@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Mon, 10 Nov 2025 13:31:01 +0100
+Subject: [PATCH] genpolicy: support full DeploymentSpec
+
+The added fields are relevant only to the controller, so they should
+not impact security and following aren't of interest for policies.
+
+Adding according to https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#deployment-v1-apps
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ src/tools/genpolicy/src/deployment.rs | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/src/tools/genpolicy/src/deployment.rs b/src/tools/genpolicy/src/deployment.rs
+index 9047b7e6eb6962f029308a027d3b04999083dc82..586eeda0511ae72f59174234e8ae2615bd00f9fd 100644
+--- a/src/tools/genpolicy/src/deployment.rs
++++ b/src/tools/genpolicy/src/deployment.rs
+@@ -34,9 +34,21 @@ pub struct Deployment {
+ /// Reference / Kubernetes API / Workload Resources / Deployment.
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+ pub struct DeploymentSpec {
++    #[serde(skip_serializing_if = "Option::is_none")]
++    minReadySeconds: Option<i32>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    paused: Option<bool>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    progressDeadlineSeconds: Option<i32>,
++
+     #[serde(skip_serializing_if = "Option::is_none")]
+     replicas: Option<i32>,
+ 
++    #[serde(skip_serializing_if = "Option::is_none")]
++    revisionHistoryLimit: Option<i32>,
++
+     #[serde(skip_serializing_if = "Option::is_none")]
+     selector: Option<yaml::LabelSelector>,
+ 
+@@ -44,7 +56,6 @@ pub struct DeploymentSpec {
+     strategy: Option<DeploymentStrategy>,
+ 
+     template: pod_template::PodTemplateSpec,
+-    // TODO: additional fields.
+ }
+ 
+ /// Reference / Kubernetes API / Workload Resources / Deployment.

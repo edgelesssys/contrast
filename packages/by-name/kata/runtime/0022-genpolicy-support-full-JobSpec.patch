@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Mon, 10 Nov 2025 16:41:55 +0100
+Subject: [PATCH] genpolicy: support full JobSpec
+
+Based on https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#job-v1-batch
+
+The JOB_COMPLETION_INDEX env will be set if completionMode is "indexed".
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ src/tools/genpolicy/genpolicy-settings.json |  1 +
+ src/tools/genpolicy/src/job.rs              | 44 +++++++++++++++++++--
+ 2 files changed, 42 insertions(+), 3 deletions(-)
+
+diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
+index 489a50a464a3bb4b92faefed14e13c861dcfba7d..5cf134de705e5e1c7072915e0f69d40313342f1b 100644
+--- a/src/tools/genpolicy/genpolicy-settings.json
++++ b/src/tools/genpolicy/genpolicy-settings.json
+@@ -306,6 +306,7 @@
+                 "^$(svc_name_downward_env)_SERVICE_PORT=$(ip_p)$",
+                 "^$(svc_name_downward_env)_SERVICE_PORT_$(dns_label)=$(ip_p)$",
+                 "^$(svc_name_downward_env)_PORT=tcp://$(ipv4_a):$(ip_p)$",
++                "^JOB_COMPLETION_INDEX=[0-9]+$",
+                 "^AZURE_CLIENT_ID=[A-Fa-f0-9-]*$",
+                 "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
+                 "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
+diff --git a/src/tools/genpolicy/src/job.rs b/src/tools/genpolicy/src/job.rs
+index a273c8d29f1c527e70218277a713753e8925aee0..6dd54854e40934f40b7995a22b04efe09368ff22 100644
+--- a/src/tools/genpolicy/src/job.rs
++++ b/src/tools/genpolicy/src/job.rs
+@@ -34,11 +34,49 @@ pub struct Job {
+ /// See Reference / Kubernetes API / Workload Resources / Job.
+ #[derive(Clone, Debug, Serialize, Deserialize)]
+ pub struct JobSpec {
+-    pub template: pod_template::PodTemplateSpec,
++    #[serde(skip_serializing_if = "Option::is_none")]
++    activeDeadlineSeconds: Option<i64>,
+ 
+     #[serde(skip_serializing_if = "Option::is_none")]
+     backoffLimit: Option<i32>,
+-    // TODO: additional fields.
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    backoffLimitPerIndex: Option<i32>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    completionMode: Option<String>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    completions: Option<i32>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    managedBy: Option<String>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    manualSelector: Option<bool>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    maxFailedIndexes: Option<i32>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    parallelism: Option<i32>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    podFailurePolicy: Option<String>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    podReplacementPolicy: Option<String>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    successPolicy: Option<String>,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    suspend: Option<bool>,
++
++    pub template: pod_template::PodTemplateSpec,
++
++    #[serde(skip_serializing_if = "Option::is_none")]
++    ttlSecondsAfterFinished: Option<i32>,
+ }
+ 
+ #[async_trait]
+@@ -133,4 +171,4 @@ pub fn pod_name_regex(job_name: String) -> String {
+     // index/suffix len are unknown here)
+     let suffix = yaml::GENERATE_NAME_SUFFIX_REGEX;
+     format!("{job_name}(-[0-9]+)?-{suffix}")
+-}
+\ No newline at end of file
++}

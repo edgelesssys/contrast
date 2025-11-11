@@ -141,6 +141,12 @@ buildGoModule (finalAttrs: {
       # In addition to the initdata device, we also require the imagepuller's auth config
       # to be passed to the VM in a similar manner.
       ./0020-runtime-pass-imagepuller-config-device-to-vm.patch
+
+      # Support missing fields on Kubernetes controllers in genpolicy.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12068.
+      ./0021-genpolicy-support-full-DeploymentSpec.patch
+      ./0022-genpolicy-support-full-JobSpec.patch
+      ./0023-genpolicy-remove-non-existing-field-from-CronJobSpec.patch
     ];
   };
 
