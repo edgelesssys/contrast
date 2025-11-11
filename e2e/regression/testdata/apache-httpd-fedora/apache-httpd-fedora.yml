@@ -4,10 +4,17 @@ metadata:
   name: apache-httpd-fedora
   namespace: "@@REPLACE_NAMESPACE@@"
 spec:
+  # Test deploymentSpec fields support by genpolicy, set all defined fields.
+  minReadySeconds: 10 # default is 0
+  paused: false
+  progressDeadlineSeconds: 599 # default is 600
   replicas: 1
+  revisionHistoryLimit: 5 # default is 10
   selector:
     matchLabels:
       app.kubernetes.io/name: apache-httpd-fedora
+  strategy:
+    type: Recreate
   template:
     metadata:
       labels:
