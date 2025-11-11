@@ -51,8 +51,9 @@ runCommandLocal "ociLayer"
 
     # Copy files into the tree (./root/)
     for i in ''${!srcs[@]}; do
+        echo "Adding ''${srcs[i]}"
         mkdir -p "./root/$(dirname ''${dests[$i]})"
-        cp -rT "''${srcs[i]}" "./root/''${dests[$i]}"
+        cp --no-preserve=mode -rT "''${srcs[i]}" "./root/''${dests[$i]}"
     done
 
     # Create the layer tarball
