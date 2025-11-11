@@ -4,6 +4,21 @@ metadata:
   name: job
   namespace: "@@REPLACE_NAMESPACE@@"
 spec:
+  # Test jobSpec fields support by genpolicy, set all defined fields.
+  activeDeadlineSeconds: 360 # default is nil
+  backoffLimit: 4 # default is 6
+  backoffLimitPerIndex: 2 # default is nil
+  completionMode: Indexed # default is NonIndexed
+  completions: 1 # default
+  # managedBy: # untested, feature gate
+  # manualSelector: # untested, not recommended to use
+  maxFailedIndexes: 1
+  parallelism: 1 # default
+  # podFailurePolicy: # untested, not sure what to set
+  # podReplacementPolicy: # untested, feature gate
+  # successPolicy: # untested, not sure what to set
+  suspend: false # default
+  ttlSecondsAfterFinished: 1000 # default is nil
   template:
     spec:
       containers:
@@ -11,4 +26,3 @@ spec:
           image: ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b
           command: ["echo", "Hello World!"]
       restartPolicy: Never
-  backoffLimit: 4
