@@ -5,29 +5,11 @@
   lib,
   pkgs,
   contrastPkgs,
-  stdenvNoCC,
   writeShellApplication,
   dockerTools,
 }:
 
 let
-  toOciImage =
-    docker-tarball:
-    stdenvNoCC.mkDerivation {
-      name = "${lib.strings.removeSuffix ".tar.gz" docker-tarball.name}";
-      src = docker-tarball;
-      dontUnpack = true;
-      nativeBuildInputs = with pkgs; [ skopeo ];
-      buildPhase = ''
-        runHook preBuild
-        skopeo copy docker-archive:$src oci:$out --insecure-policy --tmpdir .
-        runHook postBuild
-      '';
-      meta = {
-        tag = docker-tarball.imageTag;
-      };
-    };
-
   pushOCIDir =
     name: dir: tag:
     writeShellApplication {
@@ -39,8 +21,8 @@ let
       '';
     };
 
-  containers = lib.mapAttrs (_name: toOciImage) {
-    coordinator = dockerTools.buildImage {
+  containers = {
+    coordinator = contrastPkgs.buildOciImage {
       name = "coordinator";
       tag = "v${contrastPkgs.contrast.coordinator.version}";
       copyToRoot =
@@ -60,7 +42,7 @@ let
       };
     };
 
-    initializer = dockerTools.buildImage {
+    initializer = contrastPkgs.buildOciImage {
       name = "initializer";
       tag = "v${contrastPkgs.contrast.initializer.version}";
       copyToRoot =
@@ -82,7 +64,7 @@ let
       };
     };
 
-    openssl = dockerTools.buildImage {
+    openssl = contrastPkgs.buildOciImage {
       name = "openssl";
       tag = "v${contrastPkgs.contrast.cli.version}";
       copyToRoot = with pkgs; [
@@ -96,7 +78,7 @@ let
       };
     };
 
-    port-forwarder = dockerTools.buildImage {
+    port-forwarder = contrastPkgs.buildOciImage {
       name = "port-forwarder";
       tag = "v${contrastPkgs.contrast.cli.version}";
       copyToRoot = with pkgs; [
@@ -105,7 +87,7 @@ let
       ];
     };
 
-    service-mesh-proxy = dockerTools.buildImage {
+    service-mesh-proxy = contrastPkgs.buildOciImage {
       name = "service-mesh-proxy";
       tag = "v${contrastPkgs.service-mesh.version}";
       copyToRoot = with pkgs; [
@@ -123,7 +105,7 @@ let
       };
     };
 
-    dmesg = dockerTools.buildImage {
+    dmesg = contrastPkgs.buildOciImage {
       name = "dmesg";
       tag = "v0.0.1";
       copyToRoot = with pkgs; [
@@ -140,7 +122,7 @@ let
       };
     };
 
-    cleanup-bare-metal = dockerTools.buildImage {
+    cleanup-bare-metal = contrastPkgs.buildOciImage {
       name = "cleanup-bare-metal";
       tag = "latest";
       copyToRoot =
@@ -159,7 +141,7 @@ let
       };
     };
 
-    memdump = dockerTools.buildImage {
+    memdump = contrastPkgs.buildOciImage {
       name = "memdump";
       tag = "latest";
       copyToRoot = with pkgs; [
@@ -170,7 +152,7 @@ let
       ];
     };
 
-    debugshell = dockerTools.buildImage {
+    debugshell = contrastPkgs.buildOciImage {
       name = "debugshell";
       tag = contrastPkgs.contrast.contrast.version;
       copyToRoot = with pkgs; [
@@ -188,7 +170,7 @@ let
       };
     };
 
-    k8s-log-collector = dockerTools.buildImage {
+    k8s-log-collector = contrastPkgs.buildOciImage {
       name = "k8s-log-collector";
       tag = "0.1.0";
       copyToRoot = with pkgs; [

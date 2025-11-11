@@ -14,7 +14,7 @@
   manifests ? [ ],
   # extraIndex is a set of additional fields to add to the index.json
   extraIndex ? { },
-  passthru,
+  passthru ? { },
 }:
 
 let
