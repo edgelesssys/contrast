@@ -9,7 +9,7 @@ replace (
 
 require (
 	github.com/edgelesssys/contrast v0.0.0-00010101000000-000000000000
-	github.com/google/go-sev-guest v0.13.0
+	github.com/google/go-sev-guest v0.14.1
 	github.com/google/go-tdx-guest v0.3.2-0.20250814004405-ffb0869e6f4d
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/protobuf v1.36.10
@@ -24,6 +24,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
