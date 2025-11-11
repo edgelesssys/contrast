@@ -3,6 +3,10 @@
 
 //go:build e2e
 
+// regression runs a series of regression tests that ensure we don't reintroduce bugs we fixed in the past.
+//
+// The test cycles through the directories in testdata and runs the entire Contrast workload
+// lifecycle for each directory.
 package regression
 
 import (
@@ -148,9 +152,16 @@ func TestRegression(t *testing.T) {
 		})
 	}
 
+	// TODO(burgerdev): find a new home for the HTTP proxy test.
 	t.Run("http-proxy", func(t *testing.T) { testHTTPProxy(t, ct) })
 }
 
+// testHTTPProxy ensures that environment variables like HTTP_PROXY are respected by the Contrast
+// CLI. It starts a HTTP proxy server and executes the entire Contrast lifecycle, but in a separate
+// process configured with the environment variables under test. This is necessary because the
+// proxy detection mechanism caches its result [1] and is hard to override with the gRPC API.
+//
+// [1]: https://cs.opensource.google/go/go/+/refs/tags/go1.25.4:src/net/http/transport.go;l=961-966
 func testHTTPProxy(t *testing.T, ct *contrasttest.ContrastTest) {
 	// Start a proxy server
 
