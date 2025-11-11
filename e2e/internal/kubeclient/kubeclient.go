@@ -164,6 +164,7 @@ func (c *Kubeclient) PodsFromOwner(ctx context.Context, namespace, kind, name st
 func (c *Kubeclient) Exec(ctx context.Context, namespace, pod string, argv []string) (
 	stdout string, stderr string, err error,
 ) {
+	c.log.Debug("executing command in pod", "namespace", namespace, "pod", pod, "argv", argv)
 	buf := &bytes.Buffer{}
 	errBuf := &bytes.Buffer{}
 	request := c.Client.CoreV1().RESTClient().
@@ -197,6 +198,7 @@ func (c *Kubeclient) Exec(ctx context.Context, namespace, pod string, argv []str
 func (c *Kubeclient) ExecContainer(ctx context.Context, namespace, pod, container string, argv []string) (
 	stdout string, stderr string, err error,
 ) {
+	c.log.Debug("executing command in container", "namespace", namespace, "pod", pod, "container", container, "argv", argv)
 	buf := &bytes.Buffer{}
 	errBuf := &bytes.Buffer{}
 	request := c.Client.CoreV1().RESTClient().
@@ -240,6 +242,7 @@ func (c *Kubeclient) ExecDeployment(ctx context.Context, namespace, deployment s
 	if len(pods) == 0 {
 		return "", "", fmt.Errorf("no pods found for deployment %s/%s", namespace, deployment)
 	}
+	c.log.Debug("executing command in deployment pod", "namespace", namespace, "deployment", deployment)
 	return c.Exec(ctx, namespace, pods[0].Name, argv)
 }
 
