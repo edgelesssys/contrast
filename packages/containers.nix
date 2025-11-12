@@ -42,7 +42,7 @@ let
   containers = lib.mapAttrs (_name: toOciImage) {
     coordinator = dockerTools.buildImage {
       name = "coordinator";
-      tag = "v${contrastPkgs.contrast.version}";
+      tag = "v${contrastPkgs.contrast.coordinator.version}";
       copyToRoot =
         (with pkgs; [
           busybox
@@ -62,7 +62,7 @@ let
 
     initializer = dockerTools.buildImage {
       name = "initializer";
-      tag = "v${contrastPkgs.contrast.version}";
+      tag = "v${contrastPkgs.contrast.initializer.version}";
       copyToRoot =
         (with pkgs; [
           busybox
@@ -84,7 +84,7 @@ let
 
     openssl = dockerTools.buildImage {
       name = "openssl";
-      tag = "v${contrastPkgs.contrast.version}";
+      tag = "v${contrastPkgs.contrast.cli.version}";
       copyToRoot = with pkgs; [
         busybox
         openssl
@@ -98,7 +98,7 @@ let
 
     port-forwarder = dockerTools.buildImage {
       name = "port-forwarder";
-      tag = "v${contrastPkgs.contrast.version}";
+      tag = "v${contrastPkgs.contrast.cli.version}";
       copyToRoot = with pkgs; [
         bash
         socat
@@ -192,10 +192,10 @@ containers
 // {
   push-node-installer-kata =
     pushOCIDir "push-node-installer-kata" contrastPkgs.kata.contrast-node-installer-image
-      "v${contrastPkgs.contrast.version}";
+      "v${contrastPkgs.contrast.nodeinstaller.version}";
   push-node-installer-kata-gpu =
     pushOCIDir "push-node-installer-kata-gpu" contrastPkgs.kata.contrast-node-installer-image.gpu
-      "v${contrastPkgs.contrast.version}";
+      "v${contrastPkgs.contrast.nodeinstaller.version}";
 }
 // (lib.concatMapAttrs (name: container: {
   "push-${name}" = pushOCIDir name container.outPath container.meta.tag;

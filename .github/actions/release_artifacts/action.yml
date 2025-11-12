@@ -159,7 +159,7 @@ runs:
     - name: Build CLI
       shell: bash
       run: |
-        nix build -L .#contrast-cli-release --out-link workspace/contrast
+        nix build -L .#contrast.cli-release --out-link workspace/contrast
     - name: AWS login (IAM role)
       uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 # v5.1.0
       with:

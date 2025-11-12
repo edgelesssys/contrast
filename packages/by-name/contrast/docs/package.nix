@@ -15,7 +15,7 @@ mkYarnPackage rec {
   pname = "contrast-docs";
   inherit (contrast) version;
 
-  src = ../../../docs;
+  src = ../../../../docs;
 
   packageJSON = "${src}/package.json";
   offlineCache = fetchYarnDeps {

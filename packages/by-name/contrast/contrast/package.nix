@@ -5,51 +5,12 @@
   lib,
   buildGoModule,
   kata,
-  contrast,
   installShellFiles,
   calculateSnpIDBlock,
   contrastPkgsStatic,
 }:
 
 let
-  e2e = buildGoModule {
-    buildTestBinaries = true;
-
-    inherit (contrast)
-      version
-      src
-      proxyVendor
-      vendorHash
-      prePatch
-      postPatch
-      ;
-    pname = "${contrast.pname}-e2e";
-
-    tags = contrast.tags ++ [ "e2e" ];
-
-    env.CGO_ENABLED = 0;
-
-    subPackages = [
-      # keep-sorted start
-      "e2e/atls"
-      "e2e/genpolicy-unsupported"
-      "e2e/gpu"
-      "e2e/imagestore"
-      "e2e/memdump"
-      "e2e/multiple-cpus"
-      "e2e/openssl"
-      "e2e/peerrecovery"
-      "e2e/policy"
-      "e2e/regression"
-      "e2e/release"
-      "e2e/servicemesh"
-      "e2e/vault"
-      "e2e/volumestatefulset"
-      "e2e/workloadsecret"
-      # keep-sorted end
-    ];
-  };
-
   # Reference values that we embed into the Contrast CLI for
   # deployment generation and attestation.
   embeddedReferenceValues =
@@ -165,7 +126,7 @@ in
 
 buildGoModule (finalAttrs: {
   pname = "contrast";
-  version = builtins.readFile ../../../version.txt;
+  version = builtins.readFile ../../../../version.txt;
 
   outputs = packageOutputs ++ [ "out" ];
 
@@ -174,7 +135,7 @@ buildGoModule (finalAttrs: {
   src =
     let
       inherit (lib) fileset path hasSuffix;
-      root = ../../../.;
+      root = ../../../../.;
     in
     fileset.toSource {
       inherit root;
@@ -193,6 +154,7 @@ buildGoModule (finalAttrs: {
             (path.append root "imagepuller")
             (path.append root "imagestore")
             (path.append root "initdata-processor")
+            (path.append root "e2e")
           ]
         ))
       ];
@@ -263,7 +225,7 @@ buildGoModule (finalAttrs: {
   dontFixup = true;
 
   passthru = {
-    inherit e2e embeddedReferenceValues;
+    inherit embeddedReferenceValues;
   };
 
   meta.mainProgram = "contrast";
