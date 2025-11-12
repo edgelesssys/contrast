@@ -34,12 +34,14 @@ runs:
         nodeInstallerKataGPUImg=$(nix run .#containers.push-node-installer-kata-gpu -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata-gpu")
         initializerImg=$(nix run .#containers.push-initializer -- "${CONTAINER_REGISTRY}/contrast/initializer")
         serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "${CONTAINER_REGISTRY}/contrast/service-mesh-proxy")
+        debugShellImg=$(nix run .#containers.push-debugshell -- "${CONTAINER_REGISTRY}/contrast/debug-shell")
         echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_OUTPUT"
         echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_OUTPUT"
         echo "nodeInstallerKataImg=$nodeInstallerKataImg" | tee -a "$GITHUB_OUTPUT"
         echo "nodeInstallerKataGPUImg=$nodeInstallerKataGPUImg" | tee -a "$GITHUB_OUTPUT"
         echo "initializerImg=$initializerImg" | tee -a "$GITHUB_OUTPUT"
         echo "serviceMeshImg=$serviceMeshImg" | tee -a "$GITHUB_OUTPUT"
+        echo "debugShellImg=$debugShellImg" | tee -a "$GITHUB_OUTPUT"
     - name: Add tags to container images
       id: tag-containers
       shell: bash
@@ -51,6 +53,7 @@ runs:
         nodeInstallerKataGPUImg: ${{ steps.push-containers.outputs.nodeInstallerKataGPUImg }}
         initializerImg: ${{ steps.push-containers.outputs.initializerImg }}
         serviceMeshImg: ${{ steps.push-containers.outputs.serviceMeshImg }}
+        debugShellImg: ${{ steps.push-containers.outputs.debugShellImg }}
       run: |
         # Insert a tag into a container image name.
         tag() {
@@ -71,6 +74,7 @@ runs:
         echo "nodeInstallerKataGPUImgTagged=$(tagContrast "$nodeInstallerKataGPUImg")" | tee -a "$GITHUB_OUTPUT"
         echo "initializerImgTagged=$(tagContrast "$initializerImg")" | tee -a "$GITHUB_OUTPUT"
         echo "serviceMeshImgTagged=$(tagContrast "$serviceMeshImg")" | tee -a "$GITHUB_OUTPUT"
+        echo "debugShellImgTagged=$(tagContrast "$debugShellImg")" | tee -a "$GITHUB_OUTPUT"
     - name: Create file with image replacements
       shell: bash
       env:
@@ -80,6 +84,7 @@ runs:
         nodeInstallerMsftImgTagged: ${{ steps.tag-containers.outputs.nodeInstallerMsftImgTagged }}
         nodeInstallerKataImgTagged: ${{ steps.tag-containers.outputs.nodeInstallerKataImgTagged }}
         nodeInstallerKataGPUImgTagged: ${{ steps.tag-containers.outputs.nodeInstallerKataGPUImgTagged }}
+        debugShellImgTagged: ${{ steps.tag-containers.outputs.debugShellImgTagged }}
       run: |
         cat > image-replacements.txt <<EOF
         ghcr.io/edgelesssys/contrast/coordinator:latest=$coordinatorImgTagged
@@ -87,6 +92,7 @@ runs:
         ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged
         ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged
         ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged
+        ghcr.io/edgelesssys/contrast/debug-shell:latest=$debugShellImgTagged
         EOF
     - name: Upload image replacement file (for main branch PR)
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

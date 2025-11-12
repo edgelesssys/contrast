@@ -172,7 +172,7 @@ let
 
     debugshell = dockerTools.buildImage {
       name = "debugshell";
-      tag = "latest";
+      tag = contrastPkgs.contrast.contrast.version;
       copyToRoot = with pkgs; [
         busybox
         bash
