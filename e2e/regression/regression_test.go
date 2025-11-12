@@ -171,9 +171,19 @@ func testHTTPProxy(t *testing.T, ct *contrasttest.ContrastTest) {
 
 	// coordinatorConnectionProxied will be set to true if the proxy performs an HTTP CONNECT to the address of the Coordinator.
 	var coordinatorConnectionProxied atomic.Bool
+	// Similarly, this will be set to true if the proxy handles a connection for a container registry (e.g. ghcr.io).
+	var registryConnectionProxied atomic.Bool
 	proxy.ConnectDial = func(network string, addr string) (net.Conn, error) {
+		// For future reference: addr is in host:port format, not a URI.
+		t.Logf("Proxying connection: %q", addr)
 		if strings.HasPrefix(addr, "0.0.0.0:") { // we use this address in ContrastTest.runAgainstCoordinator
 			coordinatorConnectionProxied.Store(true)
+		}
+		// While we could parse the expected registries from the ImageReplacementsFile, we know
+		// that the pause container image will come from MCR, so we use that as an indicator for
+		// registry requests being proxied.
+		if addr == "mcr.microsoft.com:443" {
+			registryConnectionProxied.Store(true)
 		}
 		return (&net.Dialer{}).DialContext(t.Context(), network, addr)
 	}
@@ -228,6 +238,7 @@ func testHTTPProxy(t *testing.T, ct *contrasttest.ContrastTest) {
 
 			require.NoError(runCommand(t.Context(), ct, "generate"))
 			assert.False(coordinatorConnectionProxied.Swap(false))
+			assert.Equal(tc.wantProxied, registryConnectionProxied.Swap(false))
 
 			require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
