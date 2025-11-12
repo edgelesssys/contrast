@@ -17,6 +17,7 @@ on:
           - openssl
           - peerrecovery
           - policy
+          - proxy
           - regression
           - servicemesh
           - vault

@@ -37,6 +37,7 @@ jobs:
           - openssl
           - peerrecovery
           - policy
+          - proxy
           - servicemesh
           - vault
           - volumestatefulset

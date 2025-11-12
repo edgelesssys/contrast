@@ -66,6 +66,7 @@ buildGoModule {
     "e2e/openssl"
     "e2e/peerrecovery"
     "e2e/policy"
+    "e2e/proxy"
     "e2e/regression"
     "e2e/release"
     "e2e/servicemesh"
