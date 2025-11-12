@@ -6,7 +6,9 @@ cache_exclude_status = [
     "104..200",
     "300..600",
 ]
-include_fragments = true
+# Many of our links include fragments that are only resolved by JS, like Github permalinks to
+# source code lines. This breaks fragment lookup logic.
+include_fragments = false
 retry_wait_time = 20
 fallback_extensions = ["md", "html"]
 exclude = [
