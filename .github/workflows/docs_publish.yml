@@ -9,7 +9,7 @@ on:
       - docs/**
       - "!docs/README.md"
       - .github/workflows/docs_publish.yml
-      - packages/by-name/contrast-docs/**
+      - packages/by-name/contrast/docs/**
   pull_request:
     types:
       - opened
@@ -20,7 +20,7 @@ on:
       - docs/**
       - "!docs/README.md"
       - .github/workflows/docs_publish.yml
-      - packages/by-name/contrast-docs/**
+      - packages/by-name/contrast/docs/**
 
 permissions:
   contents: write
@@ -48,7 +48,7 @@ jobs:
       - name: Build production website
         if: env.PREVIEW == 'false'
         run: |
-          nix build -L .#contrast-docs
+          nix build -L .#contrast.docs
           # Avoid warnings due to root-owned files.
           # https://github.com/JamesIves/github-pages-deploy-action/issues/1906
           rm -rf /tmp/docs
@@ -65,7 +65,7 @@ jobs:
       - name: Build preview website
         if: env.PREVIEW == 'true'
         run: |
-          nix build -L --impure --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.contrast-docs.override { docusaurusBaseUrl = \"contrast/pr-preview/pr-${{ github.event.number }}\"; }"
+          nix build -L --impure --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.contrast.docs.override { docusaurusBaseUrl = \"contrast/pr-preview/pr-${{ github.event.number }}\"; }"
           # Avoid warnings due to root-owned files.
           # https://github.com/JamesIves/github-pages-deploy-action/issues/1906
           rm -rf /tmp/docs

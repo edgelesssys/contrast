@@ -6,6 +6,7 @@ push target:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p {{ workspace_dir }}
+    echo "Pushing container $container_registry/contrast/{{ target }}"
     pushedImg=$(nix run -L .#containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}")
     printf "ghcr.io/edgelesssys/contrast/%s:latest=%s\n" "{{ target }}" "$pushedImg" >> {{ workspace_dir }}/just.containerlookup
 
@@ -68,7 +69,7 @@ runtime target=default_deploy_target platform=default_platform:
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}/runtime
     if [[ "${node_installer_target_conf_type}" != "none" ]]; then
-        nix shell .#contrast --command resourcegen \
+        nix run .#contrast.resourcegen -- \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace {{ target }}${namespace_suffix-} \
             --add-namespace-object \
@@ -76,7 +77,7 @@ runtime target=default_deploy_target platform=default_platform:
             --platform {{ platform }} \
             node-installer-target-conf > ./{{ workspace_dir }}/runtime/target-conf.yml
     fi
-    nix shell .#contrast --command resourcegen \
+    nix run .#contrast.resourcegen -- \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --add-namespace-object \
@@ -107,7 +108,7 @@ populate target=default_deploy_target platform=default_platform:
     if [[ "${debug:-}" != "true" ]]; then
         dmesgFlag="--add-dmesg"
     fi
-    nix shell .#contrast --command resourcegen \
+    nix run .#contrast.resourcegen -- \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --add-port-forwarders \
