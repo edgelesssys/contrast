@@ -10,32 +10,7 @@
 buildGoModule {
   buildTestBinaries = true;
 
-  src =
-    let
-      inherit (lib) fileset path hasSuffix;
-      root = ../../../../.;
-    in
-    fileset.toSource {
-      inherit root;
-      fileset = fileset.unions [
-        (path.append root "go.mod")
-        (path.append root "go.sum")
-        (path.append root "cli/cmd/assets/image-replacements.txt")
-        (path.append root "internal/manifest/Milan.pem")
-        (path.append root "internal/manifest/Genoa.pem")
-        (path.append root "internal/manifest/Intel_SGX_Provisioning_Certification_RootCA.pem")
-        (fileset.difference (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
-          fileset.unions [
-            (path.append root "imagepuller")
-            (path.append root "imagestore")
-            (path.append root "initdata-processor")
-            (path.append root "service-mesh")
-            (path.append root "tools")
-          ]
-        ))
-      ];
-    };
-
+  pname = "${contrast.pname}-e2e";
   inherit (contrast)
     version
     proxyVendor
@@ -43,7 +18,38 @@ buildGoModule {
     prePatch
     postPatch
     ;
-  pname = "${contrast.pname}-e2e";
+
+  src =
+    let
+      inherit (lib) fileset path hasSuffix;
+      root = ../../../../.;
+      toRootPath = p: path.append root p;
+    in
+    fileset.toSource {
+      inherit root;
+      fileset = fileset.unions (
+        (lib.map toRootPath [
+          "go.mod"
+          "go.sum"
+          "cli/cmd/assets/image-replacements.txt"
+          "internal/manifest/Milan.pem"
+          "internal/manifest/Genoa.pem"
+          "internal/manifest/Intel_SGX_Provisioning_Certification_RootCA.pem"
+        ])
+        ++ [
+          (fileset.intersection (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
+            fileset.unions (
+              lib.map toRootPath [
+                "e2e"
+                "internal"
+                "cli"
+                "sdk"
+              ]
+            )
+          ))
+        ]
+      );
+    };
 
   tags = contrast.tags ++ [ "e2e" ];
 
