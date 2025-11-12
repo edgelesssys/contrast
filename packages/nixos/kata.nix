@@ -106,7 +106,7 @@ in
     };
 
     # Not used directly, but required for kernel-specific driver builds.
-    boot.kernelPackages = pkgs.recurseIntoAttrs (
+    boot.kernelPackages = lib.recurseIntoAttrs (
       pkgs.linuxPackagesFor (
         pkgs.contrastPkgs.kata.kernel-uvm.override {
           withGPU = config.contrast.gpu.enable;
