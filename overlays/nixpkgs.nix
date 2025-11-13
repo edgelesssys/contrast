@@ -119,6 +119,8 @@ final: prev:
         inherit (finalAttrs) src pname version;
         hash = "sha256-TKKhT4AhV2uzXOHRnKHiZJusNoCWUliKmKvDw+Aeqnc=";
       };
+      # The postFixup script calls the binary to generate man pages, which was only introduced in v0.21.0.
+      postFixup = null;
     }
   );
 }
