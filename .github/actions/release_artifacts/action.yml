@@ -126,7 +126,7 @@ runs:
       run: |
         mkdir -p workspace
 
-        nix shell .#contrast --command resourcegen \
+        nix run .#contrast.resourcegen -- \
           --image-replacements "./image-replacements.txt" \
           --add-load-balancers \
           coordinator > "workspace/coordinator.yml"
@@ -139,7 +139,7 @@ runs:
           "metal-qemu-tdx"
         )
         for platform in "${platforms[@]}"; do
-          nix shell .#contrast --command resourcegen \
+          nix run .#contrast.resourcegen -- \
             --image-replacements ./image-replacements.txt \
             --platform "$platform" \
             runtime > "workspace/runtime-$platform.yml"
@@ -147,19 +147,19 @@ runs:
     - name: Create demo resource definitions
       shell: bash
       run: |
-        nix shell .#contrast --command resourcegen \
+        nix run .#contrast.resourcegen -- \
           --image-replacements ./image-replacements.txt \
           --add-load-balancers emojivoto-sm-ingress > workspace/emojivoto-demo.yml
-        nix shell .#contrast --command resourcegen \
+        nix run .#contrast.resourcegen -- \
           --image-replacements ./image-replacements.txt \
           --add-load-balancers mysql > workspace/mysql-demo.yml
-        nix shell .#contrast --command resourcegen \
+        nix run .#contrast.resourcegen -- \
           --image-replacements ./image-replacements.txt \
           --add-load-balancers vault > workspace/vault-demo.yml
     - name: Create node installer target configs
       shell: bash
       run: |
-        nix shell .#contrast --command resourcegen \
+        nix run .#contrast.resourcegen -- \
           --node-installer-target-conf-type k3s \
           node-installer-target-conf > workspace/node-installer-target-config-k3s.yml
     - name: Build CLI
