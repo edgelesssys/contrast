@@ -160,6 +160,16 @@ lib.makeScope pkgs.newScope (scripts: {
     '';
   };
 
+  # Use: go-closure ./foo/... ./bar/...
+  go-closure = writeShellApplication {
+    name = "go-closure";
+    runtimeInputs = with pkgs; [ go ];
+    text = ''
+      tags="${lib.concatStringsSep "," contrastPkgs.contrast.e2e.tags}"
+      go list -tags "$tags" -deps -f '{{ if ne .Module nil }}{{ if .Module.Main }}{{ .ImportPath }}{{ end }}{{ end }}' "$@" | sort
+    '';
+  };
+
   kubectl-wait-ready = writeShellApplication {
     name = "kubectl-wait-ready";
     runtimeInputs = with pkgs; [ kubectl ];
