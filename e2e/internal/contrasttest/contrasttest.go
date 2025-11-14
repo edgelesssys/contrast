@@ -406,12 +406,14 @@ func (ct *ContrastTest) commonArgs() []string {
 func (ct *ContrastTest) installRuntime(t *testing.T) {
 	require := require.New(t)
 
-	resources, err := kuberesource.Runtime(ct.Platform)
-	require.NoError(err)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
+	defer cancel()
+
+	var nodeInstallerDeps []any
 	if ct.NodeInstallerTargetConfType != "" && ct.NodeInstallerTargetConfType != "none" {
 		nodeInstallerTargetConf, err := kuberesource.NodeInstallerTargetConfig(ct.NodeInstallerTargetConfType)
 		require.NoError(err)
-		resources = append(resources, nodeInstallerTargetConf)
+		nodeInstallerDeps = append(nodeInstallerDeps, nodeInstallerTargetConf)
 	}
 
 	if ct.NodeInstallerImagePullerConfig != nil {
@@ -433,9 +435,6 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 
 	unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
 	require.NoError(err)
-
-	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
-	defer cancel()
 
 	require.NoError(ct.Kubeclient.Apply(ctx, unstructuredResources...))
 
