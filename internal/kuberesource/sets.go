@@ -4,6 +4,7 @@
 package kuberesource
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -998,7 +999,7 @@ func MemDumpTester() []any {
 	return []any{memdump}
 }
 
-func AuthenticatedPullTester(name string) []any {
+func AuthenticatedPullTester(name, token string) []any {
 	deployment := Deployment(name, "").
 		WithSpec(DeploymentSpec().
 			WithReplicas(1).
@@ -1008,6 +1009,7 @@ func AuthenticatedPullTester(name string) []any {
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
 				WithSpec(PodSpec().
+					WithImagePullSecrets(applycorev1.LocalObjectReference().WithName(name)).
 					WithContainers(
 						Container().
 							WithName("my-image-is-private").
@@ -1020,5 +1022,15 @@ func AuthenticatedPullTester(name string) []any {
 				),
 			),
 		)
-	return []any{deployment}
+
+	auth := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "user-not-required-here:%s", token))
+	content := fmt.Sprintf(`{"auths":{"ghcr.io":{"auth":%q}}}`, auth)
+
+	secret := applycorev1.Secret(name, "").
+		WithType(corev1.SecretTypeDockerConfigJson).
+		WithData(map[string][]byte{
+			".dockerconfigjson": []byte(content),
+		})
+
+	return []any{deployment, secret}
 }

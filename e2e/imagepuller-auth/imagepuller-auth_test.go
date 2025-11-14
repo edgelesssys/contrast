@@ -24,7 +24,16 @@ func TestImagepullerAuth(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
 	ct := contrasttest.New(t)
-	imagePullerConfig, err := createImagepullerConfig()
+
+	token := os.Getenv("CONTRAST_GHCR_READ")
+	cfg := map[string]any{
+		"registries": map[string]any{
+			"ghcr.io.": map[string]string{
+				"auth": token,
+			},
+		},
+	}
+	imagePullerConfig, err := toml.Marshal(cfg)
 	require.NoError(t, err)
 	ct.NodeInstallerImagePullerConfig = imagePullerConfig
 
@@ -33,7 +42,7 @@ func TestImagepullerAuth(t *testing.T) {
 
 	resources := kuberesource.CoordinatorBundle()
 	deploymentName := "auth-test"
-	authTester := kuberesource.AuthenticatedPullTester(deploymentName)
+	authTester := kuberesource.AuthenticatedPullTester(deploymentName, token)
 	resources = append(resources, authTester...)
 	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 	resources = kuberesource.AddPortForwarders(resources)
@@ -49,20 +58,6 @@ func TestImagepullerAuth(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 	t.Cleanup(cancel)
 	require.NoError(t, ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, deploymentName))
-}
-
-func createImagepullerConfig() ([]byte, error) {
-	token := os.Getenv("CONTRAST_GHCR_READ")
-
-	cfg := map[string]any{
-		"registries": map[string]any{
-			"ghcr.io.": map[string]string{
-				"auth": token,
-			},
-		},
-	}
-
-	return toml.Marshal(cfg)
 }
 
 func TestMain(m *testing.M) {
