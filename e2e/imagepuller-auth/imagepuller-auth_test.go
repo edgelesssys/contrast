@@ -33,29 +33,8 @@ func TestImagepullerAuth(t *testing.T) {
 
 	resources := kuberesource.CoordinatorBundle()
 	deploymentName := "auth-test"
-	deployment := kuberesource.Deployment(deploymentName, ct.Namespace).
-		WithSpec(kuberesource.DeploymentSpec().
-			WithReplicas(1).
-			WithSelector(kuberesource.LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": deploymentName}),
-			).
-			WithTemplate(kuberesource.PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": deploymentName}).
-				WithSpec(kuberesource.PodSpec().
-					WithContainers(
-						kuberesource.Container().
-							WithName("my-image-is-private").
-							WithImage("ghcr.io/edgelesssys/bash-private@sha256:44ddf003cf6d966487da334edf972c55e91d1aa30db5690ad0445b459cbca924").
-							WithCommand("bash", "-c", "sleep infinity").
-							WithResources(kuberesource.ResourceRequirements().
-								WithMemoryLimitAndRequest(100),
-							),
-					),
-				),
-			),
-		)
-
-	resources = append(resources, deployment)
+	authTester := kuberesource.AuthenticatedPullTester(deploymentName)
+	resources = append(resources, authTester...)
 	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 	resources = kuberesource.AddPortForwarders(resources)
 
