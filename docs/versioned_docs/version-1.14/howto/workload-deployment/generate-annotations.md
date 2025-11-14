@@ -34,7 +34,12 @@ contrast generate --reference-values metal-qemu-snp resources/
 On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
 They will have to be filled in manually.
 
-If you don't know the values from the firmware you installed, you can use the [`snphost`](https://github.com/virtee/snphost) tool to retrieve the current TCB.
+AMD doesn't provide an accessible way to acquire the latest TCB values for your platform.
+Visit the [AMD SEV developer portal](https://www.amd.com/en/developer/sev.html) and download the latest firmware package for your processor family.
+Unpack and inspect the contained release notes, which state the SNP firmware SVN (called `SPL` (security patch level) in that document).
+Contact your hardware vendor or BIOS firmware provider for information about the other TCB components
+
+To check the current TCB level of your platform, use the [`snphost`](https://github.com/virtee/snphost):
 
 ```sh
 snphost show tcb
@@ -54,11 +59,15 @@ Platform TCB: TCB Version:
   FMC:         None
 ```
 
-Use the values from `Reported TCB` to fill in the `MinimumTCB` values in the generated `manifest.json` file.
+The values listed as `Reported TCB` to should be greater or equal to the `MinimumTCB` values in `manifest.json`.
+The `Platform TCB` can be higher than the `Reported TCB`, in this case, the platform has provisional firmware enrolled.
+Contrast relies on the committed TCB values, as provisional firmware can be rolled back anytime by the platform operator.
 
-:::note[Attention!]
+:::warning
 
-This must be done on a trusted machine, with a secure and trusted connection to it.
+The TCB values observed on the target platform using `snphost` might not be trustworthy.
+Your channel to the system or the system itself might be compromised.
+The deployed firmware could be outdated and vulnerable.
 
 :::
 
@@ -72,7 +81,12 @@ contrast generate --reference-values metal-qemu-snp-gpu resources/
 On bare-metal SEV-SNP, `contrast generate` is unable to fill in the `MinimumTCB` values as they can vary between platforms and CPU models.
 They will have to be filled in manually.
 
-If you don't know the values from the firmware you installed, you can use the [`snphost`](https://github.com/virtee/snphost) tool to retrieve the current TCB.
+AMD doesn't provide an accessible way to acquire the latest TCB values for your platform.
+Visit the [AMD SEV developer portal](https://www.amd.com/en/developer/sev.html) and download the latest firmware package for your processor family.
+Unpack and inspect the contained release notes, which state the SNP firmware SVN (called `SPL` (security patch level) in that document).
+Contact your hardware vendor or BIOS firmware provider for information about the other TCB components
+
+To check the current TCB level of your platform, use the [`snphost`](https://github.com/virtee/snphost):
 
 ```sh
 snphost show tcb
@@ -92,11 +106,15 @@ Platform TCB: TCB Version:
   FMC:         None
 ```
 
-Use the values from `Reported TCB` to fill in the `MinimumTCB` values in the generated `manifest.json` file.
+The values listed as `Reported TCB` to should be greater or equal to the `MinimumTCB` values in `manifest.json`.
+The `Platform TCB` can be higher than the `Reported TCB`, in this case, the platform has provisional firmware enrolled.
+Contrast relies on the committed TCB values, as provisional firmware can be rolled back anytime by the platform operator.
 
-:::note[Attention!]
+:::warning
 
-This must be done on a trusted machine, with a secure and trusted connection to it.
+The TCB values observed on the target platform using `snphost` might not be trustworthy.
+Your channel to the system or the system itself might be compromised.
+The deployed firmware could be outdated and vulnerable.
 
 :::
 
