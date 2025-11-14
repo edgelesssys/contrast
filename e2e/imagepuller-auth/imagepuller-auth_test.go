@@ -26,6 +26,7 @@ func TestImagepullerAuth(t *testing.T) {
 	ct := contrasttest.New(t)
 
 	token := os.Getenv("CONTRAST_GHCR_READ")
+	require.NotEmpty(t, token, "environment variable CONTRAST_GHCR_READ must be set with a ghcr token")
 	cfg := map[string]any{
 		"registries": map[string]any{
 			"ghcr.io.": map[string]string{
