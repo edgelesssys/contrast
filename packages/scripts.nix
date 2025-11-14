@@ -624,20 +624,18 @@ lib.makeScope pkgs.newScope (scripts: {
       jq
     ];
     text = ''
-      readonly url="https://www.nvidia.com/en-us/data-center/solutions/confidential-computing/secure-ai-compatibility-matrix/"
+      readonly url="https://www.nvidia.com/content/dam/en-zz/Solutions/data-center/solutions/confidential-computing/compatibility-matrix/secure-ai-compatibility-matrix-v0.01.js"
 
       driverVer="$1"
-      driverVer="''${driverVer%%.*}"
-      driverVer="''${driverVer}.XX.XX"
       export driverVer
 
       curl -fsSL  "$url" \
         | sed -n '/const matrix = \[/,/];/p' \
         | sed 's/const matrix = //' \
-        | sed 's/];/]/' \
+        | sed 's/];/{}]/' \
         | jq -r --arg driverVer "$driverVer" '.[]
           | select(."CUDA Driver" == $driverVer)
-          | select(."Confidential Computing Mode" == "SPT")
+          | select(."Confidential Computing Mode" == "Single GPU Passthrough")
           | select(."RIM Status" == "Released")
           | .Description
         ' \
