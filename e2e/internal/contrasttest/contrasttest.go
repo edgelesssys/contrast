@@ -59,15 +59,16 @@ func RegisterFlags() {
 // ContrastTest is the Contrast test helper struct.
 type ContrastTest struct {
 	// inputs, usually filled by New()
-	Namespace                   string
-	WorkDir                     string
-	ImageReplacements           map[string]string
-	ImageReplacementsFile       string
-	Platform                    platforms.Platform
-	NamespaceFile               string
-	RuntimeClassName            string
-	NodeInstallerTargetConfType string
-	Kubeclient                  *kubeclient.Kubeclient
+	Namespace                      string
+	WorkDir                        string
+	ImageReplacements              map[string]string
+	ImageReplacementsFile          string
+	Platform                       platforms.Platform
+	NamespaceFile                  string
+	RuntimeClassName               string
+	NodeInstallerTargetConfType    string
+	NodeInstallerImagePullerConfig []byte
+	Kubeclient                     *kubeclient.Kubeclient
 
 	// outputs of contrast subcommands
 	meshCACertPEM []byte
@@ -413,6 +414,11 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 		nodeInstallerTargetConf, err := kuberesource.NodeInstallerTargetConfig(ct.NodeInstallerTargetConfType)
 		require.NoError(err)
 		nodeInstallerDeps = append(nodeInstallerDeps, nodeInstallerTargetConf)
+	}
+
+	if ct.NodeInstallerImagePullerConfig != nil {
+		imagePullSecret := kuberesource.NodeInstallerImagePullerSecret(ct.Namespace, ct.NodeInstallerImagePullerConfig)
+		nodeInstallerDeps = append(nodeInstallerDeps, imagePullSecret)
 	}
 
 	if len(nodeInstallerDeps) > 0 {

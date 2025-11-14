@@ -8,26 +8,25 @@ package imagepullerauth
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
-	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestImagepullerAuth(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
 	ct := contrasttest.New(t)
+	imagePullerConfig, err := createImagepullerConfig()
+	require.NoError(t, err)
+	ct.NodeInstallerImagePullerConfig = imagePullerConfig
 
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
@@ -68,18 +67,12 @@ func TestImagepullerAuth(t *testing.T) {
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-	t.Run("private image can be pulled", func(t *testing.T) {
-		ctx := t.Context()
-		require.NoError(t, ct.Kubeclient.WaitForCoordinator(ctx, ct.Namespace))
-		require.NoError(t, createImagepullerConfig(ctx, ct))
-		require.NoError(t, restartDaemonSet(ctx, ct, fmt.Sprintf("%s-nodeinstaller", ct.RuntimeClassName)))
-		require.NoError(t, ct.Kubeclient.WaitForDaemonSet(ctx, ct.Namespace, fmt.Sprintf("%s-nodeinstaller", ct.RuntimeClassName)))
-		require.NoError(t, ct.Kubeclient.Restart(ctx, kubeclient.Deployment{}, ct.Namespace, deploymentName))
-		require.NoError(t, ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, deploymentName))
-	})
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
+	t.Cleanup(cancel)
+	require.NoError(t, ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, deploymentName))
 }
 
-func createImagepullerConfig(ctx context.Context, ct *contrasttest.ContrastTest) error {
+func createImagepullerConfig() ([]byte, error) {
 	token := os.Getenv("CONTRAST_GHCR_READ")
 
 	cfg := map[string]any{
@@ -90,42 +83,7 @@ func createImagepullerConfig(ctx context.Context, ct *contrasttest.ContrastTest)
 		},
 	}
 
-	tomlData, err := toml.Marshal(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to marshal toml: %w", err)
-	}
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "contrast-node-installer-imagepuller-config",
-			Namespace: ct.Namespace,
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: map[string][]byte{
-			"contrast-imagepuller.toml": tomlData,
-		},
-	}
-
-	_, err = ct.Kubeclient.Client.CoreV1().Secrets(ct.Namespace).Create(ctx, secret, metav1.CreateOptions{})
-	return err
-}
-
-// restartDaemonSet forces a rollout restart of the node-installer DaemonSet.
-func restartDaemonSet(ctx context.Context, ct *contrasttest.ContrastTest, name string) error {
-	client := ct.Kubeclient.Client.AppsV1().DaemonSets(ct.Namespace)
-
-	ds, err := client.Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("getting daemonset: %w", err)
-	}
-
-	// Trigger a restart by updating an annotation.
-	if ds.Spec.Template.Annotations == nil {
-		ds.Spec.Template.Annotations = map[string]string{}
-	}
-	ds.Spec.Template.Annotations["contrast/restartedAt"] = time.Now().Format(time.RFC3339)
-
-	_, err = client.Update(ctx, ds, metav1.UpdateOptions{})
-	return err
+	return toml.Marshal(cfg)
 }
 
 func TestMain(m *testing.M) {
