@@ -91,6 +91,8 @@ Contrast can only be used with the following Confidential Computing enabled GPUs
 <!-- generated with `nix run .#scripts.get-nvidia-cc-gpus` -->
 <!-- vale off -->
 
+- NVIDIA HGX B200, 8-GPU, SXM6 180GB HBM3e, AC
+- NVIDIA HGX B200-850, 8-GPU, SXM6 180GB HBM3e, AC
 - NVIDIA HGX H100 4-GPU 64GB HBM2e (Partner Cooled)
 - NVIDIA HGX H100 4-GPU 80GB HBM3 (Partner Cooled)
 - NVIDIA HGX H100 4-GPU 94GB HBM2e (Partner Cooled)
@@ -98,12 +100,15 @@ Contrast can only be used with the following Confidential Computing enabled GPUs
 - NVIDIA HGX H100 8-GPU 96GB (Air Cooled)
 - NVIDIA HGX H20 141GB HBM3e 8-GPU (Air Cooled)
 - NVIDIA HGX H200 8-GPU 141GB (Air Cooled)
-- NVIDIA HGX H20A HBM3 96gb 8-GPU (Air Cooled)
+- NVIDIA HGX H20A HBM3 96GB 8-GPU (Air Cooled)
 - NVIDIA HGX H800 8-GPU 80GB (Air Cooled)
+- NVIDIA HGX H800 8-GPU 80GB (Partner Cooled)
 - NVIDIA H100 NVL
 - NVIDIA H100 PCIe
 - NVIDIA H200 NVL
+- NVIDIA H800 NVL
 - NVIDIA H800 PCIe
+- NVIDIA RTX PRO 6000 Blackwell Server Edition
 
 <!-- vale on -->
 
