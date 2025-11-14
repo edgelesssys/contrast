@@ -12,6 +12,8 @@ on:
         required: true
       TEAMS_CI_WEBHOOK:
         required: true
+      CONTRAST_GHCR_READ:
+        required: true
   schedule:
     - cron: "30 4 * * *" # 4:30 a.m. every day
 
@@ -32,6 +34,7 @@ jobs:
         test-name:
           # keep-sorted start
           - atls
+          - imagepuller-auth
           - imagestore
           - memdump
           - openssl
@@ -63,6 +66,7 @@ jobs:
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
       NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
       TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
+      CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
     permissions:
       contents: read
       packages: write

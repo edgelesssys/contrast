@@ -997,3 +997,28 @@ func MemDumpTester() []any {
 
 	return []any{memdump}
 }
+
+func AuthenticatedPullTester(name string) []any {
+	deployment := Deployment(name, "").
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+				WithSpec(PodSpec().
+					WithContainers(
+						Container().
+							WithName("my-image-is-private").
+							WithImage("ghcr.io/edgelesssys/bash-private@sha256:44ddf003cf6d966487da334edf972c55e91d1aa30db5690ad0445b459cbca924").
+							WithCommand("bash", "-c", "sleep infinity").
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(100),
+							),
+					),
+				),
+			),
+		)
+	return []any{deployment}
+}
