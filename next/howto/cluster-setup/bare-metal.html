@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">Prepare a bare-metal instance | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/next/howto/cluster-setup/bare-metal"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Prepare a bare-metal instance | Contrast"><meta data-rh="true" name="description" content="Prerequisites"><meta data-rh="true" property="og:description" content="Prerequisites"><link data-rh="true" rel="icon" href="/contrast/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/next/howto/cluster-setup/bare-metal"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/howto/cluster-setup/bare-metal" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/howto/cluster-setup/bare-metal" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Bare metal","item":"https://docs.edgeless.systems/contrast/next/howto/cluster-setup/bare-metal"}]}</script><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/assets/css/styles.979edda2.css">
-<script src="/contrast/assets/js/runtime~main.4b23ea08.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.c6431032.js" defer="defer"></script>
 <script src="/contrast/assets/js/main.3b1dbf84.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -59,6 +59,8 @@ For development and testing purposes, the built-in <a href="https://docs.k3s.io/
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="supported-gpu-hardware">Supported GPU hardware<a href="#supported-gpu-hardware" class="hash-link" aria-label="Direct link to Supported GPU hardware" title="Direct link to Supported GPU hardware" translate="no">​</a></h3>
 <p>Contrast can only be used with the following Confidential Computing enabled GPUs:</p>
 <ul>
+<li class="">NVIDIA HGX B200, 8-GPU, SXM6 180GB HBM3e, AC</li>
+<li class="">NVIDIA HGX B200-850, 8-GPU, SXM6 180GB HBM3e, AC</li>
 <li class="">NVIDIA HGX H100 4-GPU 64GB HBM2e (Partner Cooled)</li>
 <li class="">NVIDIA HGX H100 4-GPU 80GB HBM3 (Partner Cooled)</li>
 <li class="">NVIDIA HGX H100 4-GPU 94GB HBM2e (Partner Cooled)</li>
@@ -66,12 +68,15 @@ For development and testing purposes, the built-in <a href="https://docs.k3s.io/
 <li class="">NVIDIA HGX H100 8-GPU 96GB (Air Cooled)</li>
 <li class="">NVIDIA HGX H20 141GB HBM3e 8-GPU (Air Cooled)</li>
 <li class="">NVIDIA HGX H200 8-GPU 141GB (Air Cooled)</li>
-<li class="">NVIDIA HGX H20A HBM3 96gb 8-GPU (Air Cooled)</li>
+<li class="">NVIDIA HGX H20A HBM3 96GB 8-GPU (Air Cooled)</li>
 <li class="">NVIDIA HGX H800 8-GPU 80GB (Air Cooled)</li>
+<li class="">NVIDIA HGX H800 8-GPU 80GB (Partner Cooled)</li>
 <li class="">NVIDIA H100 NVL</li>
 <li class="">NVIDIA H100 PCIe</li>
 <li class="">NVIDIA H200 NVL</li>
+<li class="">NVIDIA H800 NVL</li>
 <li class="">NVIDIA H800 PCIe</li>
+<li class="">NVIDIA RTX PRO 6000 Blackwell Server Edition</li>
 </ul>
 <div class="theme-admonition theme-admonition-warning admonition_xJq3 alert alert--warning"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8.893 1.5c-.183-.31-.52-.5-.887-.5s-.703.19-.886.5L.138 13.499a.98.98 0 0 0 0 1.001c.193.31.53.501.886.501h13.964c.367 0 .704-.19.877-.5a1.03 1.03 0 0 0 .01-1.002L8.893 1.5zm.133 11.497H6.987v-2.003h2.039v2.003zm0-3.004H6.987V5.987h2.039v4.006z"></path></svg></span>warning</div><div class="admonitionContent_BuS1"><p>Currently, only use of <code>NVIDIA H100 PCIe</code> is covered by tests. Use of other GPUs isn&#x27;t guaranteed to work.</p></div></div>
 <p>To check what GPUs are available on your system, run:</p>
