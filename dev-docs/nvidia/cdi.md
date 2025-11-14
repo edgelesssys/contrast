@@ -79,7 +79,7 @@ cdi.k8s.io/gpu: nvidia.com/pgpu=0
 ```
 
 The key consists of the mandatory CDI prefix `cdi.k8s.io`, followed by an arbitrary path component, in this case `gpu`.
-The value specifies a device kind, `nvidia.com/gpu`, and the name of the desired device in the CDI spec, `0`.
+The value specifies a device kind, `nvidia.com/pgpu`, and the name of the desired device in the CDI spec, `0`.
 
 The CDI spec is assembled from files in well-known locations (`/etc/cdi`, `/run/cdi`) that look like this:
 
