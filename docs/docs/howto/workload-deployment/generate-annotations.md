@@ -54,7 +54,7 @@ Platform TCB: TCB Version:
   FMC:         None
 ```
 
-Use the values from `Platform TCB` to fill in the `MinimumTCB` values in the generated `manifest.json` file.
+Use the values from `Reported TCB` to fill in the `MinimumTCB` values in the generated `manifest.json` file.
 
 :::note[Attention!]
 
@@ -92,7 +92,7 @@ Platform TCB: TCB Version:
   FMC:         None
 ```
 
-Use the values from `Platform TCB` to fill in the `MinimumTCB` values in the generated `manifest.json` file.
+Use the values from `Reported TCB` to fill in the `MinimumTCB` values in the generated `manifest.json` file.
 
 :::note[Attention!]
 
