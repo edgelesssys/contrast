@@ -510,6 +510,8 @@ func PatchNamespaces(resources []any, namespace string) []any {
 			r.Namespace = nsPtr
 		case *applycorev1.ConfigMapApplyConfiguration:
 			r.Namespace = nsPtr
+		case *applycorev1.SecretApplyConfiguration:
+			r.Namespace = nsPtr
 		case *applyrbacv1.RoleBindingApplyConfiguration:
 			r.Namespace = nsPtr
 			for i := range len(r.Subjects) {
