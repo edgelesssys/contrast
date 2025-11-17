@@ -79,7 +79,7 @@ EOF
 Install K3s
 
 ```bash
-curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.31.5+k3s1 sh -
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=v1.34.1+k3s1 sh -
 ```
 
 The K3s docs state:
