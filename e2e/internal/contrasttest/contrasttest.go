@@ -44,6 +44,7 @@ type testFlags struct {
 	NamespaceSuffix             string
 	NodeInstallerTargetConfType string
 	SyncTicketFile              string
+	InsecureEnableDebugShell    bool
 }
 
 // RegisterFlags registers the flags that are shared between all tests.
@@ -54,6 +55,7 @@ func RegisterFlags() {
 	flag.StringVar(&Flags.PlatformStr, "platform", "", "Deployment platform")
 	flag.StringVar(&Flags.NodeInstallerTargetConfType, "node-installer-target-conf-type", "", "Type of node installer target configuration to generate (k3s,...)")
 	flag.StringVar(&Flags.SyncTicketFile, "sync-ticket-file", "", "file that contains the sync ticket")
+	flag.BoolVar(&Flags.InsecureEnableDebugShell, "insecure-enable-debug-shell-access", false, "enable the debug shell service")
 }
 
 // ContrastTest is the Contrast test helper struct.
@@ -168,6 +170,7 @@ func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
 		ct.commonArgs(),
 		"--image-replacements", ct.ImageReplacementsFile,
 		"--reference-values", ct.Platform.String(),
+		fmt.Sprintf("--insecure-enable-debug-shell-access=%t", Flags.InsecureEnableDebugShell),
 		ct.WorkDir,
 	)
 
