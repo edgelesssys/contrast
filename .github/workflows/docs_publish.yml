@@ -55,7 +55,7 @@ jobs:
           cp --no-preserve=mode --recursive "$(readlink -f ./result)" /tmp/docs
       - name: Publish docs to GitHub Pages
         if: env.PREVIEW == 'false'
-        uses: JamesIves/github-pages-deploy-action@6c2d9db40f9296374acc17b90404b6e8864128c8 # v4.7.3
+        uses: JamesIves/github-pages-deploy-action@4a3abc783e1a24aeb44c16e869ad83caf6b4cc23 # v4.7.4
         with:
           folder: /tmp/docs
           branch: gh-pages
