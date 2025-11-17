@@ -21,6 +21,7 @@ jobs:
   test_matrix:
     strategy:
       matrix:
+        debug-shell: [true, false]
         platform:
           - name: Metal-QEMU-SNP
             runner: SNP
@@ -63,6 +64,7 @@ jobs:
       platform: ${{ matrix.platform.name }}
       runner: ${{ matrix.platform.runner }}
       self-hosted: ${{ matrix.platform.self-hosted }}
+      debug-shell: ${{ matrix.debug-shell }}
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}

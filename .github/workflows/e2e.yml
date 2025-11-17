@@ -18,6 +18,9 @@ on:
       self-hosted:
         description: "Self Hosted"
         type: boolean
+      debug-shell:
+        description: "Debug shell"
+        type: boolean
     secrets:
       GITHUB_TOKEN_IN:
         required: true
@@ -36,7 +39,7 @@ env:
 
 jobs:
   test:
-    name: "${{ inputs.test-name }}"
+    name: "${{ inputs.test-name }}${{ inputs.debug-shell && ' (with debug shell)' || '' }}"
     runs-on: ${{ inputs.runner }}
     permissions:
       contents: read
@@ -46,6 +49,7 @@ jobs:
       NODE_INSTALLER_TARGET_CONF_TYPE: ${{ inputs.platform == 'Metal-QEMU-SNP' && 'none' || 'k3s' }}
       TEST_NAME: ${{ inputs.test-name }}
       CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
+      DEBUG_SHELL: ${{ inputs.debug-shell }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
@@ -70,7 +74,7 @@ jobs:
           EOF
       - name: Build and push container images
         run: |
-          just coordinator initializer port-forwarder openssl service-mesh-proxy memdump node-installer "${PLATFORM}"
+          just coordinator initializer port-forwarder openssl service-mesh-proxy memdump debugshell node-installer "${PLATFORM}"
       - name: Get credentials for CI cluster
         if: (!inputs.self-hosted)
         run: |
@@ -89,7 +93,8 @@ jobs:
             --platform "${PLATFORM}" \
             --node-installer-target-conf-type "${NODE_INSTALLER_TARGET_CONF_TYPE}" \
             --namespace-suffix="-ci" \
-            --sync-ticket-file workspace/just.sync-ticket
+            --sync-ticket-file workspace/just.sync-ticket \
+            --insecure-enable-debug-shell-access="${DEBUG_SHELL}"
       - name: Download logs
         if: always()
         run: |
@@ -98,7 +103,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: e2e_pod_logs-${{ inputs.platform }}-${{ inputs.test-name }}
+          name: e2e_pod_logs-${{ inputs.platform }}-${{ inputs.test-name }}${{ inputs.debug-shell && '-debug-shell' || '' }}
           path: workspace/logs/export-no-stream/logs
       - name: Notify teams channel of failure
         if: failure() && github.event_name == 'schedule' && github.run_attempt == 1

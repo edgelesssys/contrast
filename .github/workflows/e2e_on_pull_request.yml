@@ -45,6 +45,7 @@ jobs:
       platform: ${{ matrix.platform }}
       runner: ${{ matrix.runner }}
       self-hosted: ${{ matrix.self-hosted }}
+      debug-shell: true
     secrets:
       GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
       CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}

@@ -58,7 +58,8 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
             --platform {{ platform }} \
             --node-installer-target-conf-type ${node_installer_target_conf_type} \
             --namespace-suffix=${namespace_suffix-} \
-            --sync-ticket-file ./{{ workspace_dir }}/just.sync-ticket
+            --sync-ticket-file ./{{ workspace_dir }}/just.sync-ticket \
+            --insecure-enable-debug-shell-access=${debug:-false}
 
 # Generate policies, apply Kubernetes manifests.
 deploy target=default_deploy_target cli=default_cli platform=default_platform: (runtime target platform) (apply "runtime" platform) (populate target platform) (generate cli platform) (apply target platform)
