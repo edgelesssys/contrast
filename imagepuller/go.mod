@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/containerd/ttrpc v1.2.7
 	github.com/google/go-containerregistry v0.20.6
-	github.com/klauspost/compress v1.18.0
+	github.com/klauspost/compress v1.18.1
 	github.com/klauspost/pgzip v1.2.6
 	github.com/opencontainers/umoci v0.6.0
 	github.com/pelletier/go-toml/v2 v2.2.4
