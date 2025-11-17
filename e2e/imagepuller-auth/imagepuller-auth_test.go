@@ -7,7 +7,9 @@ package imagepullerauth
 
 import (
 	"context"
+	"encoding/base64"
 	"flag"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -30,7 +32,7 @@ func TestImagepullerAuth(t *testing.T) {
 	cfg := map[string]any{
 		"registries": map[string]any{
 			"ghcr.io.": map[string]string{
-				"auth": token,
+				"auth": base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "user-not-required-here:%s", token)),
 			},
 		},
 	}
