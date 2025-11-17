@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
@@ -72,7 +73,9 @@ func TestHTTPProxy(t *testing.T) {
 		if addr == "mcr.microsoft.com:443" {
 			registryConnectionProxied.Store(true)
 		}
-		return (&net.Dialer{}).DialContext(t.Context(), network, addr)
+		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+		defer cancel()
+		return (&net.Dialer{}).DialContext(ctx, network, addr)
 	}
 
 	proxyListener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:")
