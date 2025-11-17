@@ -29,6 +29,7 @@ import (
 const (
 	gpuDeploymentName = "gpu-tester"
 	gpuName           = "NVIDIA H100 PCIe"
+	nvidiaLibPath     = "/usr/local/nvidia/lib64"
 )
 
 // TestGPU runs e2e tests on an GPU-enabled Contrast.
@@ -106,7 +107,6 @@ func TestGPU(t *testing.T) {
 				}
 			}
 
-			const libPath = "/usr/local/nvidia/lib64"
 			expectLibs := map[string]struct {
 				abiLink   bool // Wether to expect a link with ABI version, like .so.1
 				unverLink bool // Wether to expect a link without any version, like .so
@@ -124,7 +124,7 @@ func TestGPU(t *testing.T) {
 				"libnvidia-nvvm.so":            {abiLink: true},
 			}
 			for lib, libChecks := range expectLibs {
-				pathThisLib := path.Join(libPath, lib)
+				pathThisLib := path.Join(nvidiaLibPath, lib)
 
 				// Run `ls` to check what libraries with that name exist.
 				getLibsCmd := fmt.Sprintf("ls %s*", pathThisLib)
@@ -191,15 +191,14 @@ func TestGPU(t *testing.T) {
 	}
 
 	for _, container := range nonGPUContainers {
-		t.Run(fmt.Sprintf("%s: check that nvidia-smi is not available", container), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s: check that path %s is not available", nvidiaLibPath, container), func(t *testing.T) {
 			require := require.New(t)
 			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
 			defer cancel()
 
-			argv := []string{"/bin/sh", "-c", "nvidia-smi"}
+			argv := []string{"/bin/test", "!", "-d", nvidiaLibPath}
 			stdout, stderr, err := ct.Kubeclient.ExecContainer(ctx, ct.Namespace, pod.Name, container, argv)
-			require.Error(err, "running nvidia-smi should have failed:\nstdout:\n%s\nstderr:\n%s", stdout, stderr)
-			require.Contains(stderr, "nvidia-smi: not found")
+			require.NoError(err, "path %q should not exist, but does:\nstdout:\n%s\nstderr:\n%s", nvidiaLibPath, stdout, stderr)
 		})
 	}
 }
