@@ -177,7 +177,7 @@ func startServerWithMemoryTracking(ctx context.Context, serverPath string, args 
 	return waitAndGetMaxRSS, childPid, nil
 }
 
-func profileServerIndividual(imageList []string, serverPath, storagePath string, label string, args ...string) (_ map[string]resourceUsage, retErr error) {
+func profileServerIndividual(benchmarks map[string]resourceUsage, serverPath, storagePath string, label string, args ...string) (_ map[string]resourceUsage, retErr error) {
 	fmt.Printf("===== Testing server (individual): %s =====\n", label)
 	defer func() {
 		if err := errors.Join(cleanup(storagePath), cleanup(mountPoint)); err != nil {
@@ -186,11 +186,15 @@ func profileServerIndividual(imageList []string, serverPath, storagePath string,
 	}()
 
 	results := map[string]resourceUsage{}
-	for _, image := range imageList {
+	for _, benchmark := range benchmarks {
+		if benchmark.Image == "" {
+			// skip benchmarks with no image, esp. the "continuous" special case
+			continue
+		}
 		if err := errors.Join(cleanup(storagePath), cleanup(mountPoint)); err != nil {
 			return nil, err
 		}
-		fmt.Printf("[%s]\n", extractName(image))
+		fmt.Printf("[%s]\n", extractName(benchmark.Image))
 
 		ctx, cancel := context.WithTimeout(context.Background(), maxPullDuration)
 		defer cancel()
@@ -207,7 +211,7 @@ func profileServerIndividual(imageList []string, serverPath, storagePath string,
 		}
 
 		start := time.Now()
-		if err := client.Request(image, mountPoint, maxPullDuration); err != nil {
+		if err := client.Request(benchmark.Image, mountPoint, maxPullDuration); err != nil {
 			return nil, err
 		}
 
@@ -225,11 +229,12 @@ func profileServerIndividual(imageList []string, serverPath, storagePath string,
 		}
 
 		result := resourceUsage{
+			Image:   benchmark.Image,
 			Time:    int(duration.Seconds()),
 			Memory:  maxRSSkb / 1024,
 			Storage: int(diskAfter-diskBefore) / 1024 / 1024,
 		}
-		results[fmt.Sprintf("%s-%s", extractName(image), label)] = result
+		results[fmt.Sprintf("%s-%s", extractName(benchmark.Image), label)] = result
 		fmt.Printf("Time taken: %d s\n", result.Time)
 		fmt.Printf("Memory peak: %d MB\n", result.Memory)
 		fmt.Printf("Storage used: %d MB\n", result.Storage)
@@ -238,7 +243,7 @@ func profileServerIndividual(imageList []string, serverPath, storagePath string,
 	return results, nil
 }
 
-func profileServerContinuous(imageList []string, serverPath, storagePath string, label string, args ...string) (_ resourceUsage, retErr error) {
+func profileServerContinuous(benchmarks map[string]resourceUsage, serverPath, storagePath string, label string, args ...string) (_ resourceUsage, retErr error) {
 	fmt.Printf("===== Testing server (continuous): %s =====\n", label)
 	if err := cleanup(storagePath); err != nil {
 		return resourceUsage{}, err
@@ -264,11 +269,15 @@ func profileServerContinuous(imageList []string, serverPath, storagePath string,
 	}
 
 	start := time.Now()
-	for _, image := range imageList {
+	for _, benchmark := range benchmarks {
+		if benchmark.Image == "" {
+			// skip benchmarks with no image, esp. the "continuous" special case
+			continue
+		}
 		if err := cleanup(mountPoint); err != nil {
 			return resourceUsage{}, err
 		}
-		err = client.Request(image, mountPoint, maxPullDuration)
+		err = client.Request(benchmark.Image, mountPoint, maxPullDuration)
 		if err != nil {
 			return resourceUsage{}, err
 		}
@@ -299,82 +308,70 @@ func profileServerContinuous(imageList []string, serverPath, storagePath string,
 	return result, nil
 }
 
-func compareResourceUsage(baselineFile string, data map[string]resourceUsage, threshold float64, delta int) error {
-	baselineRaw, err := os.ReadFile(baselineFile)
-	if err != nil {
-		return fmt.Errorf("failed to read compare file: %w", err)
-	}
-
-	var baseline map[string]resourceUsage
-	if err := json.Unmarshal(baselineRaw, &baseline); err != nil {
-		return fmt.Errorf("failed to parse compare file: %w", err)
-	}
-
+func compareResourceUsage(baseline map[string]resourceUsage, data map[string]resourceUsage) error {
 	var allErrs []error
 	for name, curr := range data {
 		prev, ok := baseline[name]
 		if !ok {
-			continue // skip entries not found in baseline
+			allErrs = append(allErrs, fmt.Errorf("results include values for %q, which was not found in the provided limits", name))
+			continue
 		}
 
-		checkRelative := func(label string, oldVal, newVal int) {
-			diff := float64(newVal-oldVal) / float64(oldVal)
-			if diff > threshold { // we do not care about reductions in values
-				allErrs = append(allErrs, fmt.Errorf("%s usage increased by %.1f%% for %q (was %d, now %d)", label, diff*100, name, oldVal, newVal))
+		check := func(label string, limit, actual int, failOnExcession bool) {
+			if limit > actual {
+				return
+			}
+			if failOnExcession {
+				allErrs = append(allErrs, fmt.Errorf("%s usage limit for %s is set to %d, but actual usage was %d", label, name, limit, actual))
+			} else {
+				fmt.Printf("WARN: %s usage limit for %s is set to %d, but actual usage was %d", label, name, limit, actual)
 			}
 		}
 
-		checkDelta := func(label string, oldVal, newVal int) {
-			diff := newVal - oldVal
-			if diff > delta { // we do not care about reductions in values
-				fmt.Printf("WARN: %s usage increased by %d for %q (was %d, now %d)\n", label, diff, name, oldVal, newVal)
-			}
-		}
-
-		checkRelative("memory", prev.Memory, curr.Memory)
-		checkRelative("storage", prev.Storage, curr.Storage)
-		checkDelta("time", prev.Time, curr.Time)
+		check("memory", prev.Memory, curr.Memory, true)
+		check("storage", prev.Storage, curr.Storage, true)
+		check("time", prev.Time, curr.Time, false)
 	}
 
 	return errors.Join(allErrs...)
 }
 
-func parseImages(path string) ([]string, error) {
-	content, err := os.ReadFile(path)
+func parseBenchmarks(path string) (map[string]resourceUsage, error) {
+	benchmarksRaw, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("reading image file %q: %w", path, err)
+		return nil, fmt.Errorf("failed to read benchmark file: %w", err)
 	}
 
-	var imageList []string
-	for image := range strings.SplitSeq(string(content), "\n") {
-		image = strings.TrimSpace(image)
-		if image != "" {
-			imageList = append(imageList, image)
-		}
+	var benchmarks map[string]resourceUsage
+	if err := json.Unmarshal(benchmarksRaw, &benchmarks); err != nil {
+		return nil, fmt.Errorf("failed to parse benchmark file: %w", err)
 	}
-	return imageList, nil
+
+	return benchmarks, nil
 }
 
+// Time and Memory values were chosen based on previous runs of the benchmark,
+// increased to provide generous margins while still being acceptable.
+//
+// Storage values should be generated by the imagepuller-benchmark-update-sizes script,
+// which calculates the uncompressed image size and adds a 20% margin.
 type resourceUsage struct {
-	Time    int `json:"time"`
-	Memory  int `json:"memory"`
-	Storage int `json:"storage"`
+	Image   string `json:"image"`
+	Time    int    `json:"time"`
+	Memory  int    `json:"memory"`
+	Storage int    `json:"storage"`
 }
 
 func newRootCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:          "imagepuller-benchmark <path-to-bin>",
+		Use:          "imagepuller-benchmark <path-to-bin> <path-to-benchmark>",
 		Short:        "benchmark imagepuller",
 		SilenceUsage: true,
-		Args:         cobra.ExactArgs(1),
+		Args:         cobra.ExactArgs(2),
 		RunE:         run,
 	}
 
 	cmd.Flags().StringP("output", "o", "", "write result as JSON to the specified file")
-	cmd.Flags().StringP("compare", "c", "", "compare against JSON file")
-	cmd.Flags().Float64P("threshold", "t", 0.20, "relative threshold above which an error is thrown when comparing results")
-	cmd.Flags().IntP("delta", "d", 15, "absolute time delta in seconds above which an error is thrown when comparing results")
-	cmd.Flags().StringP("images", "i", "", "file with newline-separated images to pull")
 	cmd.Flags().StringP("auth-config", "a", "", "imagepuller configuration file")
 
 	return cmd
@@ -386,23 +383,7 @@ func run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	compare, err := cmd.Flags().GetString("compare")
-	if err != nil {
-		return err
-	}
-	threshold, err := cmd.Flags().GetFloat64("threshold")
-	if err != nil {
-		return err
-	}
-	delta, err := cmd.Flags().GetInt("delta")
-	if err != nil {
-		return err
-	}
-	images, err := cmd.Flags().GetString("images")
-	if err != nil {
-		return err
-	}
-	imageList, err := parseImages(images)
+	benchmarks, err := parseBenchmarks(args[1])
 	if err != nil {
 		return err
 	}
@@ -417,12 +398,12 @@ func run(cmd *cobra.Command, args []string) error {
 	}
 
 	results := map[string]resourceUsage{}
-	resultsIndividual, err := profileServerIndividual(imageList, binPath, imagepullerDir, "imagepuller", extraArgs...)
+	resultsIndividual, err := profileServerIndividual(benchmarks, binPath, imagepullerDir, "imagepuller", extraArgs...)
 	if err != nil {
 		return err
 	}
 	maps.Copy(results, resultsIndividual)
-	resultsContinuous, err := profileServerContinuous(imageList, binPath, imagepullerDir, "imagepuller", extraArgs...)
+	resultsContinuous, err := profileServerContinuous(benchmarks, binPath, imagepullerDir, "imagepuller", extraArgs...)
 	if err != nil {
 		return err
 	}
@@ -438,11 +419,7 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if compare != "" {
-		return compareResourceUsage(compare, results, threshold, delta)
-	}
-
-	return nil
+	return compareResourceUsage(benchmarks, results)
 }
 
 func main() {

@@ -730,4 +730,46 @@ lib.makeScope pkgs.newScope (scripts: {
       fi
     '';
   };
+
+  # Use after adding a new image to the imagepuller-benchmark, to write the
+  # maximum allowed storage usage to the benchmark file.
+  imagepuller-benchmark-update-sizes = writeShellApplication {
+    name = "imagepuller-benchmark-update-sizes";
+    runtimeInputs = with pkgs; [
+      docker
+      jq
+    ];
+    text = ''
+      TOLERANCE=120 # storage must not exceed 120% of the uncompressed image size
+      total_size=0
+
+      INPUT_FILE="./tools/imagepuller-benchmark/benchmark.json"
+      TMP_FILE="$(mktemp)"
+      cp "$INPUT_FILE" "$TMP_FILE"
+
+      keys=$(jq -r 'keys[]' "$TMP_FILE")
+      for key in $keys; do
+          has_image=$(jq -r --arg k "$key" '.[$k] | has("image")' "$TMP_FILE")
+          if [[ "$has_image" == "true" ]]; then
+              image=$(jq -r --arg k "$key" '.[$k].image' "$TMP_FILE")
+              docker pull "$image" > /dev/null
+              size=$(docker inspect -f "{{ .Size }}" "$image")
+              size_mb=$(( size / 1024 / 1024 ))
+              size_mb_with_margin=$(( (size_mb * TOLERANCE) / 100 ))
+              total_size=$(( total_size + size_mb_with_margin ))
+              jq --arg k "$key" --argjson s "$size_mb_with_margin" \
+                 '.[$k].storage = $s' \
+                 "$TMP_FILE" > "''${TMP_FILE}.new"
+              mv "''${TMP_FILE}.new" "$TMP_FILE"
+          fi
+      done
+
+      jq --argjson total "$total_size" \
+        '.continuous.storage = $total' \
+        "$TMP_FILE" > "''${TMP_FILE}.new"
+
+      mv "$TMP_FILE.new" "$INPUT_FILE"
+    '';
+  };
+
 })
