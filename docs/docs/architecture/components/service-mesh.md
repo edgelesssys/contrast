@@ -179,14 +179,14 @@ The Coordinator establishes a public key infrastructure (PKI) for all workloads 
 
 ### Certificate issuance
 
-Once a workload pod’s attestation is successfully verified by the Coordinator, it receives:
+Once a workload pod's attestation is successfully verified by the Coordinator, it receives:
 
 - A **mesh certificate**
 - The **mesh CA certificate**
 
-The mesh certificate includes X.509 extensions based on the workload’s attestation document and can be used as a client or server certificate in TLS connections. It proves to the remote party that the workload was verified by the Coordinator. The remote party can verify the mesh certificate using the mesh CA certificate.
+The mesh certificate includes X.509 extensions based on the workload's attestation document and can be used as a client or server certificate in TLS connections. It proves to the remote party that the workload was verified by the Coordinator. The remote party can verify the mesh certificate using the mesh CA certificate.
 
-While developers may use these certificates independently, they're also automatically used by Contrast’s service mesh for secure communication.
+While developers may use these certificates independently, they're also automatically used by Contrast's service mesh for secure communication.
 
 ### Certificate rotation
 

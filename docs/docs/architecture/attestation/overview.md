@@ -14,7 +14,7 @@ Each pod is launched inside a CVM using a secure runtime based on Kata Container
 
 - The CPU (AMD SEV-SNP or Intel TDX) measures the initial guest memory including the kernel, initramfs and kernel command line.
 - The measurement is embedded in a hardware-signed attestation report.
-- A hash of the pod’s initdata document is embedded in a dedicated field of the report(`HOSTDATA` on SEV-SNP or `MRCONFIGID` on TDX).
+- A hash of the pod's initdata document is embedded in a dedicated field of the report(`HOSTDATA` on SEV-SNP or `MRCONFIGID` on TDX).
 - The report is signed by the CPU firmware and verifiable via vendor-provided public keys.
 
 The initdata document contains an agent policy, which restricts requests from the untrusted Kata runtime to the agent.
@@ -57,7 +57,7 @@ Only pods whose attestation evidence matches the manifest are accepted into the 
 The Contrast Coordinator itself also runs as a confidential pod and is attested using the Contrast CLI.
 The CLI includes embedded reference values for the Coordinator, allowing it to verify the Coordinator's identity and integrity during attestation.
 Because these reference values are part of the CLI build, the CLI effectively serves as the root of trust for the deployment.
-Verifying the CLI’s integrity and authenticity is therefore essential.
+Verifying the CLI's integrity and authenticity is therefore essential.
 
 ### Relying party: Operator and data owner
 
@@ -76,7 +76,7 @@ Each attestation report contains:
 - **Launch Measurement**: A cryptographic digest of the guest memory at CVM startup
 - **Initdata Hash**: The initdata document is embedded by the host and verified by the `initdata-processor`
 - **Platform Info**: CPU type, TCB version, microcode versions
-- **REPORTDATA**: A hash of the CVM’s public key and a nonce, ensuring freshness and binding the attestation to a specific TLS session
+- **REPORTDATA**: A hash of the CVM's public key and a nonce, ensuring freshness and binding the attestation to a specific TLS session
 
 ### How verification works
 
@@ -89,4 +89,4 @@ The CLI verifies the Coordinator in the same way, using reference values embedde
 
 ## Summary
 
-Contrast enforces trust across a Kubernetes deployment using hardware-based attestation. Each pod’s launch state and configuration are verified before it can access secrets or participate in the mesh. The Coordinator acts as a centralized verifier, using a declarative manifest to define the trusted state. The CLI provides an interface for verification and certificate retrieval, completing a robust and transparent attestation workflow.
+Contrast enforces trust across a Kubernetes deployment using hardware-based attestation. Each pod's launch state and configuration are verified before it can access secrets or participate in the mesh. The Coordinator acts as a centralized verifier, using a declarative manifest to define the trusted state. The CLI provides an interface for verification and certificate retrieval, completing a robust and transparent attestation workflow.

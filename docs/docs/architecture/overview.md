@@ -19,7 +19,7 @@ Contrast consists of the following main components:
   Like other components, it runs inside a CVM using the Contrast runtime.
   It serves as the central attestation authority, ensuring that only verified workloads can join the trusted service mesh.
   The Coordinator uses a _manifest_, a `.json` file that defines the trusted state of your cluster by listing cryptographic hashes for all approved workloads.
-  Each CVM’s attestation is verified against this manifest before the workload is trusted.
+  Each CVM's attestation is verified against this manifest before the workload is trusted.
 
 - **Initializer**:
   The initializer runs as an init container within confidential pods.
@@ -28,7 +28,7 @@ Contrast consists of the following main components:
 - **Service mesh**:
   The Contrast Coordinator also acts as a Certificate Authority (CA), issuing certificates only to workloads that successfully pass attestation.
   These certificates can be used to establish a trusted service mesh for secure pod-to-pod communication.
-  It can also be presented to external clients, allowing them to verify the service’s identity.
+  It can also be presented to external clients, allowing them to verify the service's identity.
 
 - **Contrast CLI**:
   This command-line tool verifies the integrity and authenticity of both the Coordinator and the full deployment using remote attestation.

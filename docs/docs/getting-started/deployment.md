@@ -147,7 +147,7 @@ By adding specific annotations to your pod definitions, you enable an automatic 
    gRPC calls are tunneled via mTLS using mesh certificates.
 
 2. **From external clients to `web`:**
-   HTTPS is used. Clients don't need to present a mesh certificate but can verify `web`’s certificate.
+   HTTPS is used. Clients don't need to present a mesh certificate but can verify `web`'s certificate.
 
 3. **`vote-bot` as a simulated client:**
    Simulates external clients with HTTPS requests.
@@ -174,7 +174,7 @@ Where:
 
 Multiple entries are separated by `##`.
 
-Contrast’s service mesh deploys a local Envoy proxy at `<chosen IP>:<chosen port>` within each pod. To direct outbound traffic through the mesh, you must configure your application to connect to that proxy address instead of `<original-hostname-or-ip>:<original-port>`.
+Contrast's service mesh deploys a local Envoy proxy at `<chosen IP>:<chosen port>` within each pod. To direct outbound traffic through the mesh, you must configure your application to connect to that proxy address instead of `<original-hostname-or-ip>:<original-port>`.
 
 
 #### Enable ingress mTLS at `emoji` and `voting`
@@ -449,7 +449,7 @@ A user, or a trusted third party, can review the manifest and the referenced ini
 
 ## 8. Connect securely to the frontend
 
-Once the Coordinator’s configuration has been verified, users can securely connect to the application via HTTPS. The application uses the `mesh-ca.pem` certificate as the root of trust. We can use this certificate to validate the frontend's certificate.
+Once the Coordinator's configuration has been verified, users can securely connect to the application via HTTPS. The application uses the `mesh-ca.pem` certificate as the root of trust. We can use this certificate to validate the frontend's certificate.
 
 To access the web frontend, expose the service on a public IP address via a LoadBalancer service:
 
@@ -470,7 +470,7 @@ openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${fron
 
 By default, mesh certificates are issued with a wildcard DNS Subject Alternative Name (SAN).
 In this demo, the web frontend is accessed via a LoadBalancer IP.
-Tools like `curl` validate certificates against SANs and will fail if the certificate doesn’t include the IP address.
+Tools like `curl` validate certificates against SANs and will fail if the certificate doesn't include the IP address.
 
 For example, running `curl` with the mesh CA certificate results in:
 
@@ -509,7 +509,7 @@ contrast set -c "${coordinator}:1313" deployment/
 This triggers a rotation of the mesh CA certificate.
 New certificates will be issued by the updated CA.
 Previously issued certificates will no longer be trusted.
-This ensures that updated workloads don’t trust older, potentially vulnerable versions.
+This ensures that updated workloads don't trust older, potentially vulnerable versions.
 
 The updated `mesh-ca.pem` will be written to reflect the new CA.
 

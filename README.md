@@ -27,25 +27,25 @@ Contrast integrates fluently with the existing Kubernetes workflows. It's compat
 
 ## Features
 
-### 🔒 Everything always encrypted
+### &#x1F512; Everything always encrypted
 
 * Runtime encryption: All Pods run inside Confidential VMs (CVMs), protected by in-use memory encryption.
 * PKI and mTLS: All pod-to-pod traffic can be encrypted and authenticated with Contrast's workload certificates.
 * Secure state: Support for encrypted and integrity-protected state disks for pods.
 * Support for attestation-based unsealing of encrypted secret management solutions.
 
-### 🔍 Everything verifiable
+### &#x1F50D; Everything verifiable
 
 * Workload attestation on Kubernetes pod level, includes container images
 * Transitive attestation of multi-pod deployments
 * Verifiable security for third-party auditors
 
-### 🏝️ Everything isolated
+### &#x1F3DD;&#xFE0F; Everything isolated
 
 * Runtime policies enforce strict isolation of your containers from the Kubernetes layer and the infrastructure.
 * Pod isolation: Pods are isolated from each other.
 
-### 🧩 Lightweight and easy to use
+### &#x1F9E9; Lightweight and easy to use
 
 * Install in Kubernetes cluster as a day-2 operation.
 * Compatible with managed Kubernetes.
