@@ -56,10 +56,10 @@ This unlocked device is then mounted by the Vault container and used as the back
 For the Vault application, this process is entirely transparent, and the device behaves like a standard volume mount.
 
 The LUKS encryption of the block device is primarily a convenience feature, enabling persistent storage at the filesystem level on confidential virtual machines.
-The primary and security-relevant encryption mechanism remains Vault’s own sealing process, which provides cryptographic protection of secrets even if the underlying storage is compromised.
+The primary and security-relevant encryption mechanism remains Vault's own sealing process, which provides cryptographic protection of secrets even if the underlying storage is compromised.
 
 Because the `workload-secret-seed` is derived from the associated `workloadSecretID`, any change to the `workloadSecretID` after the block device has been initialized will result in a different key, making the mounted block device undecryptable.
-Therefore, it's critical to ensure that the `workloadSecretID` is correctly aligned with the intended endpoint specified in Vault’s unsealing configuration before the first `contrast set` is executed.
+Therefore, it's critical to ensure that the `workloadSecretID` is correctly aligned with the intended endpoint specified in Vault's unsealing configuration before the first `contrast set` is executed.
 In this example, the `workloadSecretID` is set to `vault_unsealing` with an annotation:
 
 ```yaml

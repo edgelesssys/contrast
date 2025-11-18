@@ -15,7 +15,7 @@ Contrast provides confidential containers: Kubernetes pods that are executed wit
 You can use your existing containers without modification, enabling easy adoption through a lift-and-shift approach.
 
 :::tip
-Contrast leverages a technology called confidential computing. If you're new to confidential computing, check out our 📄[whitepaper](https://content.edgeless.systems/hubfs/Confidential%20Computing%20Whitepaper.pdf) for an overview.
+Contrast leverages a technology called confidential computing. If you're new to confidential computing, check out our [whitepaper](https://content.edgeless.systems/hubfs/Confidential%20Computing%20Whitepaper.pdf) for an overview.
 :::
 
 ## Why use Contrast?
@@ -51,6 +51,6 @@ Use these entry points to quickly explore Contrast:
 
 - **Troubleshooting**: Facing issues? Check our [Troubleshooting](./howto/troubleshooting.md) section for solutions to common problems and pitfalls.
 
-- **Security**: Explore the [Security](./security.md) section to understand Contrast’s security properties and threat model.
+- **Security**: Explore the [Security](./security.md) section to understand Contrast's security properties and threat model.
 
 - **Architecture**: For a deeper technical dive, the [Architecture](./architecture/overview.md) section explains how Contrast achieves its strong security features.
