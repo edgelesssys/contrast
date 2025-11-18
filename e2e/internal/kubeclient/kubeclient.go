@@ -21,6 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -165,33 +166,19 @@ func (c *Kubeclient) Exec(ctx context.Context, namespace, pod string, argv []str
 	stdout string, stderr string, err error,
 ) {
 	c.log.Debug("executing command in pod", "namespace", namespace, "pod", pod, "argv", argv)
-	buf := &bytes.Buffer{}
-	errBuf := &bytes.Buffer{}
-	request := c.Client.CoreV1().RESTClient().
-		Post().
-		Namespace(namespace).
-		Resource("pods").
-		Name(pod).
-		SubResource("exec").
-		VersionedParams(&corev1.PodExecOptions{
-			Command: argv,
-			Stdin:   false,
-			Stdout:  true,
-			Stderr:  true,
-			TTY:     false,
-		}, scheme.ParameterCodec)
-	exec, err := remotecommand.NewSPDYExecutor(c.config, http.MethodPost, request.URL())
-	if err != nil {
-		return "", "", fmt.Errorf("creating executor: %w", err)
-	}
-
-	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
-		Stdout: buf,
-		Stderr: errBuf,
-		Tty:    false,
+	podList, err := c.Client.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector("metadata.name", pod).String(),
 	})
-
-	return buf.String(), errBuf.String(), err
+	if err != nil {
+		return "", "", fmt.Errorf("listing pods: %w", err)
+	}
+	if len(podList.Items) == 0 {
+		return "", "", fmt.Errorf("pod not found: %s/%s", namespace, pod)
+	}
+	if len(podList.Items[0].Spec.Containers) == 0 {
+		return "", "", fmt.Errorf("pod %s/%s has no containers", namespace, pod)
+	}
+	return c.ExecContainer(ctx, namespace, pod, podList.Items[0].Spec.Containers[0].Name, argv)
 }
 
 // ExecContainer executes a process in the container of a pod and returns the stdout and stderr.
