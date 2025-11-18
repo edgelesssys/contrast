@@ -360,19 +360,6 @@ jobs:
         run: |
           just release-fifo-ticket
 
-  regression:
-    name: e2e regression
-    needs: release
-    uses: ./.github/workflows/e2e_regression.yml
-    secrets:
-      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN }}
-      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
-      NUNKI_CI_COMMIT_PUSH_PR: ${{ secrets.NUNKI_CI_COMMIT_PUSH_PR }}
-      TEAMS_CI_WEBHOOK: ${{ secrets.TEAMS_CI_WEBHOOK }}
-    permissions:
-      contents: read
-      packages: write
-
   nightly:
     name: e2e nightly
     needs: release

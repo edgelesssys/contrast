@@ -13,7 +13,7 @@ on:
       TEAMS_CI_WEBHOOK:
         required: true
   schedule:
-    - cron: "30 4 * * *" # 4:30 a.m. every day
+    - cron: "30 0 * * *" # 0:30 a.m. every day
 
 jobs:
   test_matrix:
@@ -32,12 +32,14 @@ jobs:
         test-name:
           # keep-sorted start
           - atls
+          - genpolicy-unsupported
           - imagestore
           - memdump
           - openssl
           - peerrecovery
           - policy
           - proxy
+          - regression
           - servicemesh
           - vault
           - volumestatefulset
