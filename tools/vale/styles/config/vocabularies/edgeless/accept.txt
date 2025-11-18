@@ -168,6 +168,7 @@ unspoofable
 untrusted
 updatable
 upsert
+URIs?
 userland
 UUID
 validator
