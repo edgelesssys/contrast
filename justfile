@@ -52,6 +52,9 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
     if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" ]] ; then
         just request-fifo-ticket 90m
     fi
+    if [[ -n "$contrast_ghcr_read" ]]; then
+        export CONTRAST_GHCR_READ="$contrast_ghcr_read"
+    fi
     nix shell .#contrast.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
@@ -61,7 +64,7 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
             --sync-ticket-file ./{{ workspace_dir }}/just.sync-ticket
 
 # Generate policies, apply Kubernetes manifests.
-deploy target=default_deploy_target cli=default_cli platform=default_platform: (runtime target platform) (apply "runtime" platform) (populate target platform) (generate cli platform) (apply target platform)
+deploy target=default_deploy_target cli=default_cli platform=default_platform: (runtime target platform) (write-namespace target) (apply "runtime" platform) (populate target platform) (generate cli platform) (apply target platform)
 
 # Populate the workspace with a runtime class deployment
 runtime target=default_deploy_target platform=default_platform:
@@ -116,6 +119,9 @@ populate target=default_deploy_target platform=default_platform:
         ${dmesgFlag} \
         --platform {{ platform }} \
         ${target} coordinator >> ./{{ workspace_dir }}/deployment/deployment.yml
+
+# Write the namespace so it can be read by other scripts
+write-namespace target=default_deploy_target:
     echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
 
 # Generate policies, update manifest.
@@ -165,6 +171,16 @@ apply target=default_deploy_target platform=default_platform:
         "runtime")
             if [[ -f ./{{ workspace_dir }}/runtime/target-conf.yml ]]; then
                 kubectl apply -f ./{{ workspace_dir }}/runtime/target-conf.yml
+            fi
+            if [[ -n "$contrast_ghcr_read" ]]; then
+                cat > "./{{ workspace_dir }}/contrast-imagepuller.toml" <<EOF
+    [registries]
+    [registries."ghcr.io."]
+    auth = "$(printf "user-not-required-here:%s" "$contrast_ghcr_read" | base64 -w0)"
+    EOF
+                kubectl create secret generic contrast-node-installer-imagepuller-config \
+                    --from-file "contrast-imagepuller.toml"="./{{ workspace_dir }}/contrast-imagepuller.toml" \
+                    --namespace $(cat ./{{ workspace_dir }}/just.namespace)
             fi
             kubectl apply -f ./{{ workspace_dir }}/runtime/runtime.yml
         ;;
@@ -341,6 +357,13 @@ get-credentials-dev:
     sed -i 's/^default_platform=.*/default_platform="Metal-QEMU-SNP"/' justfile.env
     sed -i 's/^node_installer_target_conf_type=.*/node_installer_target_conf_type="k3s"/' justfile.env
 
+# Get the Github token with read access to Contrast's ghcr.io packages.
+get-ghcr-read-token:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    token=$(nix run -L .#scripts.get-ghcr-read-token "projects/796962942582/secrets/ghcr-read-token/versions/latest")
+    sed -i "s/^contrast_ghcr_read=.*/contrast_ghcr_read=\"${token}\"/" justfile.env
+
 # Run code generators.
 codegen:
     nix run -L .#scripts.generate
@@ -395,12 +418,16 @@ namespace_suffix=""
 CONTRAST_CACHE_DIR="./workspace.cache"
 # Log level for the CLI.
 CONTRAST_LOG_LEVEL=""
+# A Github token with read access to the Contrast ghcr.io packages.
+# Should be set by running just get-ghcr-read-token.
+contrast_ghcr_read=""
 '''
 
 # Developer onboarding.
 onboard:
     @ [[ -f "./justfile.env" ]] && echo "justfile.env already exists" && exit 1 || true
     @echo '{{ rctemplate }}' > ./justfile.env
+    @just get-ghcr-read-token
     @echo "Created ./justfile.env. Please fill it out."
 
 # Just configuration.

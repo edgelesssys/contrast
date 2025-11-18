@@ -381,7 +381,7 @@ lib.makeScope pkgs.newScope (scripts: {
 
   # Usage: get-credentials $gcloudSecretRef
   get-credentials = writeShellApplication {
-    name = "extract-policies";
+    name = "get-credentials";
     runtimeInputs = with pkgs; [
       google-cloud-sdk
       scripts.merge-kube-config
@@ -391,6 +391,19 @@ lib.makeScope pkgs.newScope (scripts: {
       tmpConfig=$(mktemp)
       gcloud secrets versions access "$1" --out-file="$tmpConfig"
       merge-kube-config "$tmpConfig"
+    '';
+  };
+
+  # Usage: get-ghcr-read-token $gcloudSecretRef
+  get-ghcr-read-token = writeShellApplication {
+    name = "get-ghcr-read-token";
+    runtimeInputs = with pkgs; [
+      google-cloud-sdk
+    ];
+    text = ''
+      set -euo pipefail
+      # this is the officially recommended way to get the raw output...
+      gcloud secrets versions access "$1" --format='get(payload.data)' | tr '_-' '/+' | base64 -d
     '';
   };
 
