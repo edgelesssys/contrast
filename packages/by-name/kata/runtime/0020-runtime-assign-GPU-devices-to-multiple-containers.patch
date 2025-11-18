@@ -9,7 +9,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  1 file changed, 9 insertions(+), 2 deletions(-)
 
 diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
-index eb49f5ee57021be589523aa8905cfa8ec2316ef9..be17166fd35f1df2972e14f5da1b871782ba80b5 100644
+index 2140eb106f133932a83e716fa937bfb3419e4f58..0112f40b77056dcbaa57dd8d7b925e5f7fd3a32f 100644
 --- a/src/runtime/virtcontainers/container.go
 +++ b/src/runtime/virtcontainers/container.go
 @@ -11,6 +11,7 @@ import (
@@ -20,7 +20,7 @@ index eb49f5ee57021be589523aa8905cfa8ec2316ef9..be17166fd35f1df2972e14f5da1b8717
  	"sort"
  	"strconv"
  	"strings"
-@@ -1090,12 +1091,18 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) {
+@@ -1120,13 +1121,19 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) {
  
  		}
  
@@ -35,9 +35,10 @@ index eb49f5ee57021be589523aa8905cfa8ec2316ef9..be17166fd35f1df2972e14f5da1b8717
  func (c *Container) siblingAnnotation(devPath string, siblings []DeviceRelation) {
  	for _, sibling := range siblings {
 -		if sibling.Path == devPath {
--			vfioNum := filepath.Base(devPath)
 +		if sibling.Path == devPath || slices.Contains(c.config.CustomSpec.Process.Env, "NVIDIA_VISIBLE_DEVICES=all") {
-+			vfioNum := filepath.Base(sibling.Path)
- 			annoKey := fmt.Sprintf("cdi.k8s.io/vfio%s", vfioNum)
- 			annoValue := fmt.Sprintf("nvidia.com/gpu=%d", sibling.Index)
- 			if c.config.CustomSpec.Annotations == nil {
+ 			// We have here either /dev/vfio/<num> or /dev/vfio/devices/vfio<num>
+-			baseName := filepath.Base(devPath)
++			baseName := filepath.Base(sibling.Path)
+ 			vfioNum := baseName
+ 			// For IOMMUFD format /dev/vfio/devices/vfio<num>, strip "vfio" prefix
+ 			if strings.HasPrefix(baseName, "vfio") {

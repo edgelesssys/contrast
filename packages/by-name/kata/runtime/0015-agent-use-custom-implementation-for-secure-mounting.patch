@@ -57,7 +57,7 @@ index 6a486fe183fb51670ab39cb67f5bae039640d5d6..dc31a2ddfc26509a3888a615d798d351
      Ok(())
  }
 diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
-index e7197da9d7b9ff2729ed465bf90f6558ab08c43e..e4effc42aa76fc012255b532a24a491b0fe56462 100644
+index 5c2e6c16ee055d4500497290c45732f62ef3e79b..dbaafa1ef89eb7bf664f3e8984fa8741ac2f586a 100644
 --- a/src/agent/src/rpc.rs
 +++ b/src/agent/src/rpc.rs
 @@ -107,7 +107,7 @@ use kata_types::k8s;

@@ -12,7 +12,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  4 files changed, 8 insertions(+), 62 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 3cfe77c7d7d7f61e22f93532da33711ccb8a5e89..489a50a464a3bb4b92faefed14e13c861dcfba7d 100644
+index 84e0738f4e1326babad93402eb750268238ab77e..98365292a918233a1fbb47128cca77bb0f2e1870 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -183,18 +183,6 @@
@@ -98,7 +98,7 @@ index e3bab1e9b6d63b036221818ab5f24fa6b5c3d81c..e78e4b593d9a3eab051539d065940204
  
  /// EmptyDir volume settings loaded from genpolicy-settings.json.
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index a78c30a79addca66764f020f540efbf1f18fd8cf..e284d4e8443cff0207f7f088b5a957cb29028d1e 100644
+index c640694c22404b8501f843dfc3dcfb2ee7bd5c6d..25b67abec217316e22b337f5dfcae88f3b345034 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -28,6 +28,7 @@ use crate::volume;
@@ -109,7 +109,7 @@ index a78c30a79addca66764f020f540efbf1f18fd8cf..e284d4e8443cff0207f7f088b5a957cb
  use log::debug;
  use protocols::agent;
  use serde::{Deserialize, Serialize};
-@@ -291,6 +292,7 @@ pub fn get_container_mounts_and_storages(
+@@ -294,6 +295,7 @@ pub fn get_container_mounts_and_storages(
      settings: &settings::Settings,
      volumes_option: &Option<Vec<volume::Volume>>,
  ) {
@@ -117,7 +117,7 @@ index a78c30a79addca66764f020f540efbf1f18fd8cf..e284d4e8443cff0207f7f088b5a957cb
      if let Some(volumes) = volumes_option {
          if let Some(volume_mounts) = &container.volumeMounts {
              for volume in volumes {
-@@ -303,19 +305,19 @@ pub fn get_container_mounts_and_storages(
+@@ -306,19 +308,19 @@ pub fn get_container_mounts_and_storages(
                              volume,
                              volume_mount,
                          );

@@ -21,7 +21,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  src/tools/genpolicy/src/cronjob.rs            |   2 +-
  src/tools/genpolicy/src/daemon_set.rs         |   2 +-
  src/tools/genpolicy/src/deployment.rs         |   2 +-
- src/tools/genpolicy/src/job.rs                |   4 +-
+ src/tools/genpolicy/src/job.rs                |   2 +-
  src/tools/genpolicy/src/mount_and_storage.rs  |  10 +-
  src/tools/genpolicy/src/pod.rs                |   2 +-
  src/tools/genpolicy/src/replica_set.rs        |   2 +-
@@ -31,15 +31,15 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  src/tools/genpolicy/tests/policy/main.rs      |   6 +
  .../security_context/fsgroup/pod.yaml         |  17 +
  .../security_context/fsgroup/testcases.json   | 358 ++++++++++++++++++
- 13 files changed, 401 insertions(+), 14 deletions(-)
+ 13 files changed, 400 insertions(+), 13 deletions(-)
  create mode 100644 src/tools/genpolicy/tests/policy/testdata/createcontainer/security_context/fsgroup/pod.yaml
  create mode 100644 src/tools/genpolicy/tests/policy/testdata/createcontainer/security_context/fsgroup/testcases.json
 
 diff --git a/src/tools/genpolicy/src/cronjob.rs b/src/tools/genpolicy/src/cronjob.rs
-index 0b75b240b62330303e66cf9dc5e983bae0b6d96b..0ed0e02dade22bd2ca50b9c2f66da201b084a947 100644
+index f9b030e1a17de106120e26400e68e68fceb13589..ffe9de16f77e0eac8458f86f307547252bd802ec 100644
 --- a/src/tools/genpolicy/src/cronjob.rs
 +++ b/src/tools/genpolicy/src/cronjob.rs
-@@ -104,7 +104,7 @@ impl yaml::K8sResource for CronJob {
+@@ -100,7 +100,7 @@ impl yaml::K8sResource for CronJob {
              storages,
              container,
              settings,
@@ -49,7 +49,7 @@ index 0b75b240b62330303e66cf9dc5e983bae0b6d96b..0ed0e02dade22bd2ca50b9c2f66da201
      }
  
 diff --git a/src/tools/genpolicy/src/daemon_set.rs b/src/tools/genpolicy/src/daemon_set.rs
-index 9425f236c8a6f23d7861e5931ee69f1065ae8c11..5b0ce5ac440dfed3147238b233a75d41a2ffa1dd 100644
+index b19075f5daf3468141e534326ef3c3bb07cf50b8..a7252a4bd0eb6b0a9fac08136bc66404494f6fd3 100644
 --- a/src/tools/genpolicy/src/daemon_set.rs
 +++ b/src/tools/genpolicy/src/daemon_set.rs
 @@ -103,7 +103,7 @@ impl yaml::K8sResource for DaemonSet {
@@ -62,10 +62,10 @@ index 9425f236c8a6f23d7861e5931ee69f1065ae8c11..5b0ce5ac440dfed3147238b233a75d41
      }
  
 diff --git a/src/tools/genpolicy/src/deployment.rs b/src/tools/genpolicy/src/deployment.rs
-index 33275e0e153b9d2bbd20664d8f5197637f24f7c7..9047b7e6eb6962f029308a027d3b04999083dc82 100644
+index cc743a9eab888f4387869ebe1849a1b403ae45f5..27d8e231d694d0a935e3a7fa1f9522a1aa2b9333 100644
 --- a/src/tools/genpolicy/src/deployment.rs
 +++ b/src/tools/genpolicy/src/deployment.rs
-@@ -103,7 +103,7 @@ impl yaml::K8sResource for Deployment {
+@@ -114,7 +114,7 @@ impl yaml::K8sResource for Deployment {
              storages,
              container,
              settings,
@@ -75,10 +75,10 @@ index 33275e0e153b9d2bbd20664d8f5197637f24f7c7..9047b7e6eb6962f029308a027d3b0499
      }
  
 diff --git a/src/tools/genpolicy/src/job.rs b/src/tools/genpolicy/src/job.rs
-index 9d8dd8cce6541b979d6ff322fdc4a6db7a82645c..a273c8d29f1c527e70218277a713753e8925aee0 100644
+index 08893004aa3d6723c50e7a6a538dd207b9d88995..178d407d667b76390f8a4e2a0d7b02220b684ca4 100644
 --- a/src/tools/genpolicy/src/job.rs
 +++ b/src/tools/genpolicy/src/job.rs
-@@ -74,7 +74,7 @@ impl yaml::K8sResource for Job {
+@@ -112,7 +112,7 @@ impl yaml::K8sResource for Job {
              storages,
              container,
              settings,
@@ -87,13 +87,6 @@ index 9d8dd8cce6541b979d6ff322fdc4a6db7a82645c..a273c8d29f1c527e70218277a713753e
          );
      }
  
-@@ -133,4 +133,4 @@ pub fn pod_name_regex(job_name: String) -> String {
-     // index/suffix len are unknown here)
-     let suffix = yaml::GENERATE_NAME_SUFFIX_REGEX;
-     format!("{job_name}(-[0-9]+)?-{suffix}")
--}
-+}
-\ No newline at end of file
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
 index a029c8bf0ce702871d70c07a254f40b675d35268..f3bc0c011d5ff975e534ae93d805e542416d74f2 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
@@ -139,10 +132,10 @@ index a029c8bf0ce702871d70c07a254f40b675d35268..f3bc0c011d5ff975e534ae93d805e542
              fs_group: protobuf::MessageField::none(),
              special_fields: ::protobuf::SpecialFields::new(),
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 982e341ccd5acc955fe02e0ed71c00db94a2e548..cfd834ca5f24f43d7aba9eba1db2f6e5430c909d 100644
+index 60b5781465f25bab4420d28132ef5ae09cdd1dc7..9d3299694b7693e200f20edc5b3ec3ee6efab50d 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
-@@ -876,7 +876,7 @@ impl yaml::K8sResource for Pod {
+@@ -878,7 +878,7 @@ impl yaml::K8sResource for Pod {
              storages,
              container,
              settings,
@@ -152,7 +145,7 @@ index 982e341ccd5acc955fe02e0ed71c00db94a2e548..cfd834ca5f24f43d7aba9eba1db2f6e5
      }
  
 diff --git a/src/tools/genpolicy/src/replica_set.rs b/src/tools/genpolicy/src/replica_set.rs
-index 63c0f58aad25c23ff080f3352b83c0e279d87fb9..62651b985993344ef7e2667f6ed0a64027fe86aa 100644
+index 6807b60eb7cb2483d6108a09e0b8c5b5b2017d0b..e5e9cf30b0e28cd1da99c33b387af7e3b771ab5c 100644
 --- a/src/tools/genpolicy/src/replica_set.rs
 +++ b/src/tools/genpolicy/src/replica_set.rs
 @@ -73,7 +73,7 @@ impl yaml::K8sResource for ReplicaSet {
@@ -165,7 +158,7 @@ index 63c0f58aad25c23ff080f3352b83c0e279d87fb9..62651b985993344ef7e2667f6ed0a640
      }
  
 diff --git a/src/tools/genpolicy/src/replication_controller.rs b/src/tools/genpolicy/src/replication_controller.rs
-index 33bce79e79d272efe31bd5dff540159aafc4ef68..e0a536ffb5cafc75d5b323ebb0886c99b1145b9e 100644
+index 48655f4e28ad60e86398efc255b1c4e71efe3bda..ac2a5945a82af9aa586be0d5292bb5b7eef8403d 100644
 --- a/src/tools/genpolicy/src/replication_controller.rs
 +++ b/src/tools/genpolicy/src/replication_controller.rs
 @@ -76,7 +76,7 @@ impl yaml::K8sResource for ReplicationController {
@@ -178,7 +171,7 @@ index 33bce79e79d272efe31bd5dff540159aafc4ef68..e0a536ffb5cafc75d5b323ebb0886c99
      }
  
 diff --git a/src/tools/genpolicy/src/stateful_set.rs b/src/tools/genpolicy/src/stateful_set.rs
-index 9a289307a131608da107beb8f853dc0268a6867a..dea8258b0863f151bb66bdda70914a1f5e5b96ca 100644
+index f5bf651e0326e696ad11c4f40f15c9ecc94f8859..2191ebd2573b51b99e4dc31fc83dc94bb3fec908 100644
 --- a/src/tools/genpolicy/src/stateful_set.rs
 +++ b/src/tools/genpolicy/src/stateful_set.rs
 @@ -147,7 +147,7 @@ impl yaml::K8sResource for StatefulSet {
@@ -191,7 +184,7 @@ index 9a289307a131608da107beb8f853dc0268a6867a..dea8258b0863f151bb66bdda70914a1f
      }
  
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index e284d4e8443cff0207f7f088b5a957cb29028d1e..1402b3183c938b7e4d63ae839b14522ee1bf4717 100644
+index 25b67abec217316e22b337f5dfcae88f3b345034..c13ba221980ef48026556b8cf3ef02858f45ed0a 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -23,7 +23,6 @@ use crate::secret;
@@ -202,7 +195,7 @@ index e284d4e8443cff0207f7f088b5a957cb29028d1e..1402b3183c938b7e4d63ae839b14522e
  
  use async_trait::async_trait;
  use core::fmt::Debug;
-@@ -290,10 +289,10 @@ pub fn get_container_mounts_and_storages(
+@@ -293,10 +292,10 @@ pub fn get_container_mounts_and_storages(
      storages: &mut Vec<agent::Storage>,
      container: &pod::Container,
      settings: &settings::Settings,
@@ -215,7 +208,7 @@ index e284d4e8443cff0207f7f088b5a957cb29028d1e..1402b3183c938b7e4d63ae839b14522e
          if let Some(volume_mounts) = &container.volumeMounts {
              for volume in volumes {
                  for volume_mount in volume_mounts {
-@@ -304,6 +303,7 @@ pub fn get_container_mounts_and_storages(
+@@ -307,6 +306,7 @@ pub fn get_container_mounts_and_storages(
                              storages,
                              volume,
                              volume_mount,

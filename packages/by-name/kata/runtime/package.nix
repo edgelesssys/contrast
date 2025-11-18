@@ -12,14 +12,14 @@
 
 buildGoModule (finalAttrs: {
   pname = "kata-runtime";
-  version = "3.22.0";
+  version = "3.23.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = finalAttrs.version;
-      hash = "sha256-qkataikgdRc7zkdxxR45/aCd4XRy7DxW/fXXJah3Dd4=";
+      hash = "sha256-bEoCLyuyawYzO3e1qX3ZG8o2hpnv4394RKc/5Xigng4=";
     };
 
     patches = [
@@ -73,19 +73,12 @@ buildGoModule (finalAttrs: {
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/10745
       ./0009-genpolicy-support-dynamic-annotations.patch
 
-      # The Kata runtime translates CDI annotations for the host to CDI annotations for the guest.
-      # However, the host-side CDI annotations do not make sense on the guest-side, so we should
-      # not forward them in the first place. This patch deletes all CDI annotations that came from
-      # the pod spec after generating the guest annotations.
-      # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11624.
-      ./0010-runtime-remove-CDI-annotations.patch
-
       # Allow running generate with ephemeral volumes.
       #
       # This may be merged upstream through either of:
       # - https://github.com/kata-containers/kata-containers/pull/10947 (this patch)
       # - https://github.com/kata-containers/kata-containers/pull/10559 (superset including the patch)
-      ./0011-genpolicy-support-ephemeral-volume-source.patch
+      ./0010-genpolicy-support-ephemeral-volume-source.patch
 
       # Containerd versions since 2.0.4 set the sysfs of the pause container to RW if one of the
       # main containers is privileged, whereas prior versions did not. The expected mounts are
@@ -98,62 +91,56 @@ buildGoModule (finalAttrs: {
       # versions upstream. However, there is no consensus on how this would look like, or whether
       # it makes sense at all, so we're fixing this downstream only.
       # https://github.com/kata-containers/kata-containers/pull/11077#issuecomment-2750400613
-      ./0012-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
+      ./0011-genpolicy-allow-RO-and-RW-for-sysfs-with-privileged-.patch
 
       # Don't add storages for volumes declared in the image config.
       # This fixes a security issue where the host is able to write untrusted content to paths
       # under these volumes, by failing the policy generation if volumes without mounts are found.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11546.
-      ./0013-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
+      ./0012-genpolicy-don-t-allow-mount-storage-for-declared-VOL.patch
 
       # Imagepulling has moved into the CDH in Kata 3.18.0. Since we are not using the CDH,we are instead starting our own Imagepuller.
       # This patch redirects calls by upstream's PullImage ttRPC client implementation to communicate with our imagepuller ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0014-agent-use-custom-implementation-for-image-pulling.patch
+      ./0013-agent-use-custom-implementation-for-image-pulling.patch
 
       # Changes the unix socket used for ttRPC communication with the imagepuller.
       # Necessary to allow a separate imagestore service.
       # Can be removed in conjunction with patch 0018-agent-use-custom-implementation-for-image-pulling.patch.
-      ./0015-agent-use-separate-unix-socket-for-image-pulling.patch
+      ./0014-agent-use-separate-unix-socket-for-image-pulling.patch
 
       # Secure mounting is part of the CDH in Kata. Since we are not using the CDH, we are instead reimplementing it.
       # This patch redirects calls by upstream's SecureImageStore ttRPC client implementation to communicate with our own ttRPC server.
       # The patch should become unnecessary once the RFC for loose coupling of agents and guest components is implemented:
       # https://github.com/kata-containers/kata-containers/issues/11532
-      ./0016-agent-use-custom-implementation-for-secure-mounting.patch
+      ./0015-agent-use-custom-implementation-for-secure-mounting.patch
 
       # Upstream expects guest pull to only use Nydus and applies workarounds that are not
       # necessary with force_guest_pull. This patch removes the workaround.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11757.
-      ./0017-genpolicy-don-t-apply-Nydus-workaround.patch
+      ./0016-genpolicy-don-t-apply-Nydus-workaround.patch
 
       # We're using a dedicated initdata-processor job and don't want the Kata agent to manage
       # initdata for us.
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11532.
-      ./0018-agent-remove-initdata-processing.patch
+      ./0017-agent-remove-initdata-processing.patch
 
       # The pod security context setting fsGroup is not taken into account by genpolicy, causing
       # policy errors if set.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11935.
-      ./0019-genpolicy-support-fsGroup-setting-in-pod-security-co.patch
+      ./0018-genpolicy-support-fsGroup-setting-in-pod-security-co.patch
 
       # In addition to the initdata device, we also require the imagepuller's auth config
       # to be passed to the VM in a similar manner.
-      ./0020-runtime-pass-imagepuller-config-device-to-vm.patch
-
-      # Support missing fields on Kubernetes controllers in genpolicy.
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12068.
-      ./0021-genpolicy-support-full-DeploymentSpec.patch
-      ./0022-genpolicy-support-full-JobSpec.patch
-      ./0023-genpolicy-remove-non-existing-field-from-CronJobSpec.patch
+      ./0019-runtime-pass-imagepuller-config-device-to-vm.patch
 
       # Privatemode requires GPU sharing between containers of the same pod.
       # In the hook-based flow, this worked because all devices and libs were (accidentally) handed to all containers.
       # With the CDI-based flow, this no longer happens.
       # Instead, this patch ensures that if a container has NVIDIA_VISIBLE_DEVICES=all set as an env var,
       # that container receives ALL Nvidia GPU devices known to the pod.
-      ./0024-runtime-assign-GPU-devices-to-multiple-containers.patch
+      ./0020-runtime-assign-GPU-devices-to-multiple-containers.patch
     ];
   };
 
