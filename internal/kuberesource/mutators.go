@@ -274,7 +274,9 @@ func ensureVolumeExists(spec *applycorev1.PodSpecApplyConfiguration, volumeName 
 	// Create the volume written if it not already exists.
 	spec.WithVolumes(Volume().
 		WithName(volumeName).
-		WithEmptyDir(EmptyDirVolumeSource().Inner()),
+		WithEmptyDir(EmptyDirVolumeSource().
+			WithMedium(corev1.StorageMediumMemory),
+		),
 	)
 	return nil
 }
