@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/edgelesssys/contrast/internal/atls/reportdata"
 	"github.com/edgelesssys/contrast/internal/attestation"
 	contrastcrypto "github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/prometheus/client_golang/prometheus"
@@ -93,13 +94,13 @@ func CreateAttestationClientTLSConfig(ctx context.Context, issuer Issuer, valida
 // Issuer issues an attestation document.
 type Issuer interface {
 	Getter
-	Issue(ctx context.Context, userData []byte, nonce []byte) (quote []byte, err error)
+	Issue(ctx context.Context, reportData [64]byte) (quote []byte, err error)
 }
 
 // Validator is able to validate an attestation document.
 type Validator interface {
 	Getter
-	Validate(ctx context.Context, attDoc []byte, nonce []byte, peerPublicKey []byte) error
+	Validate(ctx context.Context, attDoc []byte, reportData []byte) error
 	fmt.Stringer
 }
 
@@ -171,7 +172,8 @@ func getCertificate(ctx context.Context, issuer Issuer, priv crypto.PrivateKey, 
 		}
 
 		// create attestation document using the nonce send by the remote party
-		attDoc, err := issuer.Issue(ctx, pubBytes, nonce)
+		reportData := reportdata.Construct(pubBytes, nonce)
+		attDoc, err := issuer.Issue(ctx, reportData)
 		if err != nil {
 			return nil, err
 		}
@@ -232,6 +234,8 @@ func verifyEmbeddedReport(ctx context.Context, validators []Validator, cert *x50
 	// .. and whether we've found a matching validator.
 	var foundMatchingValidator bool
 
+	expectedReportData := reportdata.Construct(peerPublicKey, nonce)
+
 	// We'll need to have a look at all extensions in the certificate to find the attestation document.
 	for _, ex := range cert.Extensions {
 		// Optimization: Skip the extension early before heading into the m*n complexity of the validator check
@@ -251,7 +255,7 @@ func verifyEmbeddedReport(ctx context.Context, validators []Validator, cert *x50
 			// We've found a matching validator. Let's validate the document.
 			foundMatchingValidator = true
 
-			validationErr := validator.Validate(ctx, ex.Value, nonce, peerPublicKey)
+			validationErr := validator.Validate(ctx, ex.Value, expectedReportData[:])
 			if validationErr == nil {
 				// The validator has successfully verified the document. We can exit.
 				return nil
@@ -502,8 +506,8 @@ func NewFakeIssuer(oid Getter) *FakeIssuer {
 }
 
 // Issue marshals the user data and returns it.
-func (FakeIssuer) Issue(_ context.Context, userData []byte, nonce []byte) ([]byte, error) {
-	return json.Marshal(FakeAttestationDoc{UserData: userData, Nonce: nonce})
+func (FakeIssuer) Issue(_ context.Context, reportData [64]byte) ([]byte, error) {
+	return json.Marshal(FakeAttestationDoc{ReportData: reportData[:]})
 }
 
 // FakeValidator fakes a validator and can be used for tests.
@@ -523,14 +527,14 @@ func NewFakeValidators(oid Getter) []Validator {
 }
 
 // Validate unmarshals the attestation document and verifies the nonce.
-func (v FakeValidator) Validate(_ context.Context, attDoc []byte, nonce []byte, _ []byte) error {
+func (v FakeValidator) Validate(_ context.Context, attDoc []byte, reportData []byte) error {
 	var doc FakeAttestationDoc
 	if err := json.Unmarshal(attDoc, &doc); err != nil {
 		return err
 	}
 
-	if !bytes.Equal(doc.Nonce, nonce) {
-		return fmt.Errorf("invalid nonce: expected %x, got %x", doc.Nonce, nonce)
+	if !bytes.Equal(doc.ReportData, reportData) {
+		return fmt.Errorf("invalid reportData: expected %x, got %x", doc.ReportData, reportData)
 	}
 
 	return v.err
@@ -543,8 +547,7 @@ func (v *FakeValidator) String() string {
 
 // FakeAttestationDoc is a fake attestation document used for testing.
 type FakeAttestationDoc struct {
-	UserData []byte
-	Nonce    []byte
+	ReportData []byte
 }
 
 // Getter returns an ASN.1 Object Identifier.

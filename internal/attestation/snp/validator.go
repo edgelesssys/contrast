@@ -14,7 +14,6 @@ import (
 	"log/slog"
 
 	"github.com/edgelesssys/contrast/internal/attestation"
-	"github.com/edgelesssys/contrast/internal/attestation/reportdata"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-sev-guest/kds"
@@ -63,13 +62,13 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 }
 
 // Validate a SNP based attestation.
-func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
-	v.logger.Info("Validate called", "name", v.name, "nonce", hex.EncodeToString(nonce))
+func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData []byte) (err error) {
+	v.logger.Info("Validate called", "name", v.name, "report-data", hex.EncodeToString(reportData))
 	defer func() {
 		if err != nil {
-			v.logger.Debug("Validate failed", "name", v.name, "nonce", hex.EncodeToString(nonce), "error", err)
+			v.logger.Debug("Validate failed", "name", v.name, "report-data", hex.EncodeToString(reportData), "error", err)
 		} else {
-			v.logger.Info("Validate succeeded", "name", v.name, "nonce", hex.EncodeToString(nonce))
+			v.logger.Info("Validate succeeded", "name", v.name, "report-data", hex.EncodeToString(reportData))
 		}
 	}()
 
@@ -103,8 +102,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	// Build the validation options.
 
-	reportDataExpected := reportdata.Construct(peerPublicKey, nonce)
-	v.validateOpts.ReportData = reportDataExpected[:]
+	v.validateOpts.ReportData = reportData
 	if err := validate.SnpAttestation(attestationData, v.validateOpts); err != nil {
 		return fmt.Errorf("validating report claims: %w", err)
 	}

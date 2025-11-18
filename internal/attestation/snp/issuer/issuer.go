@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
-	"github.com/edgelesssys/contrast/internal/attestation/reportdata"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/memstore"
@@ -54,15 +53,13 @@ func (i *Issuer) OID() asn1.ObjectIdentifier {
 }
 
 // Issue the attestation document.
-func (i *Issuer) Issue(ctx context.Context, ownPublicKey []byte, nonce []byte) (res []byte, err error) {
+func (i *Issuer) Issue(ctx context.Context, reportData [64]byte) (res []byte, err error) {
 	i.logger.Info("Issue called")
 	defer func() {
 		if err != nil {
 			i.logger.Error("Failed to issue attestation statement", "err", err)
 		}
 	}()
-
-	reportData := reportdata.Construct(ownPublicKey, nonce)
 
 	// Get quote from SNP device
 	quoteProvider, err := getQuoteProvider(i.logger)

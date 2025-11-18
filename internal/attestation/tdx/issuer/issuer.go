@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/edgelesssys/contrast/internal/attestation/reportdata"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-tdx-guest/abi"
 	"github.com/google/go-tdx-guest/client"
@@ -36,15 +35,13 @@ func (i *Issuer) OID() asn1.ObjectIdentifier {
 }
 
 // Issue the attestation document.
-func (i *Issuer) Issue(_ context.Context, ownPublicKey []byte, nonce []byte) (res []byte, err error) {
+func (i *Issuer) Issue(_ context.Context, reportData [64]byte) (res []byte, err error) {
 	i.logger.Info("Issue called")
 	defer func() {
 		if err != nil {
 			i.logger.Error("Failed to issue attestation statement", "err", err)
 		}
 	}()
-
-	reportData := reportdata.Construct(ownPublicKey, nonce)
 
 	// Get TD quote
 	quoteProvider, err := client.GetQuoteProvider()
