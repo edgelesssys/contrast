@@ -60,8 +60,9 @@ func TestPatchNamespaces(t *testing.T) {
 }
 
 func TestAddInitializer(t *testing.T) {
-	expectedInitializerContainerName := *Initializer().Name
-	expectedInitializerVolumeMountName := *Initializer().VolumeMounts[0].Name
+	initializer := Initializer("coordinator-ready.default")
+	expectedInitializerContainerName := *initializer.Name
+	expectedInitializerVolumeMountName := *initializer.VolumeMounts[0].Name
 	for _, tc := range []struct {
 		name      string
 		d         *applyappsv1.DeploymentApplyConfiguration
@@ -85,7 +86,7 @@ func TestAddInitializer(t *testing.T) {
 					WithTemplate(applycorev1.PodTemplateSpec().
 						WithSpec(applycorev1.PodSpec().
 							WithContainers(applycorev1.Container()).
-							WithInitContainers(Initializer()).
+							WithInitContainers(initializer).
 							WithRuntimeClassName("contrast-cc"),
 						))),
 			wantError: false,
@@ -99,7 +100,7 @@ func TestAddInitializer(t *testing.T) {
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc").
 							WithVolumes(Volume().
-								WithName(*Initializer().VolumeMounts[0].Name).
+								WithName(*initializer.VolumeMounts[0].Name).
 								WithEmptyDir(EmptyDirVolumeSource().Inner()),
 							),
 						))),
@@ -114,7 +115,7 @@ func TestAddInitializer(t *testing.T) {
 							WithContainers(applycorev1.Container()).
 							WithRuntimeClassName("contrast-cc").
 							WithVolumes(Volume().
-								WithName(*Initializer().VolumeMounts[0].Name).
+								WithName(*initializer.VolumeMounts[0].Name).
 								WithConfigMap(Volume().ConfigMap),
 							),
 						))),
@@ -232,7 +233,7 @@ func TestAddInitializer(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			require := require.New(t)
 
-			_, err := AddInitializer(tc.d, Initializer())
+			_, err := AddInitializer(tc.d, initializer)
 			if tc.wantError {
 				require.Error(err)
 				return

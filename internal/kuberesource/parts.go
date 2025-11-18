@@ -421,14 +421,14 @@ func PortForwarderForService(svc *applycorev1.ServiceApplyConfiguration) (*apply
 }
 
 // Initializer creates a new InitializerConfig.
-func Initializer() *applycorev1.ContainerApplyConfiguration {
+func Initializer(coordinatorHost string) *applycorev1.ContainerApplyConfiguration {
 	return applycorev1.Container().
 		WithName("contrast-initializer").
 		WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
 		WithResources(ResourceRequirements().
 			WithMemoryRequest(50),
 		).
-		WithEnv(NewEnvVar("COORDINATOR_HOST", "coordinator-ready")).
+		WithEnv(NewEnvVar("COORDINATOR_HOST", coordinatorHost)).
 		WithVolumeMounts(VolumeMount().
 			WithName("contrast-secrets").
 			WithMountPath("/contrast"),

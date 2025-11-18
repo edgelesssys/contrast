@@ -92,7 +92,7 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("finding yaml files: %w", err)
 	}
 
-	fileMap, err := extractTargets(paths, io.Discard, log)
+	fileMap, _, err := extractTargets(paths, io.Discard, log)
 	if err != nil {
 		return fmt.Errorf("extracting targets from yaml files: %w", err)
 	}

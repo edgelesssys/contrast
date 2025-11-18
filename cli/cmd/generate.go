@@ -111,7 +111,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	}
 	defer os.Remove(extraFile.Name())
 
-	fileMap, err := extractTargets(paths, extraFile, log)
+	fileMap, coordinatorNamespace, err := extractTargets(paths, extraFile, log)
 	closeErr := extraFile.Close()
 	if err != nil {
 		return fmt.Errorf("extracting targets: %w", err)
@@ -153,7 +153,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get runtime handler: %w", err)
 	}
 
-	if err := patchTargets(fileMap, flags.imageReplacementsFile, runtimeHandler, flags); err != nil {
+	if err := patchTargets(fileMap, flags.imageReplacementsFile, runtimeHandler, coordinatorNamespace, flags); err != nil {
 		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
@@ -285,6 +285,19 @@ func isCCWorkload(resource any) (ret bool) {
 	return ret
 }
 
+func isCoordinator(resource any) bool {
+	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
+	if ok &&
+		r.Spec != nil &&
+		r.Spec.Template != nil &&
+		r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
+		r.Spec.Template.Annotations != nil &&
+		r.Spec.Template.Annotations[contrastRoleAnnotationKey] == string(manifest.RoleCoordinator) {
+		return true
+	}
+	return false
+}
+
 func runVerifiers(fileMap map[string][]*unstructured.Unstructured, verifiers []verifier.Verifier) error {
 	var findings error
 	for _, v := range verifiers {
@@ -330,9 +343,10 @@ func findYamlFiles(args []string) ([]string, error) {
 	return paths, nil
 }
 
-func extractTargets(paths []string, configFile io.Writer, logger *slog.Logger) (map[string][]*unstructured.Unstructured, error) {
+func extractTargets(paths []string, configFile io.Writer, logger *slog.Logger) (map[string][]*unstructured.Unstructured, string, error) {
 	var extraResources []*unstructured.Unstructured
 	fileMap := make(map[string][]*unstructured.Unstructured)
+	var coordinatorNamespace string
 
 	for _, path := range paths {
 		data, err := os.ReadFile(path)
@@ -356,6 +370,12 @@ func extractTargets(paths []string, configFile io.Writer, logger *slog.Logger) (
 				logger.Warn("Could not convert resource into ApplyConfiguration", "path", path, "err", err)
 			} else if isCCWorkload(applyConfig) {
 				containsCC = true
+				if isCoordinator(applyConfig) {
+					r, ok := applyConfig.(*applyappsv1.StatefulSetApplyConfiguration)
+					if ok && r.ObjectMetaApplyConfiguration != nil && r.Namespace != nil {
+						coordinatorNamespace = *r.Namespace
+					}
+				}
 			}
 		}
 		if !containsCC {
@@ -363,17 +383,17 @@ func extractTargets(paths []string, configFile io.Writer, logger *slog.Logger) (
 		}
 	}
 	if len(fileMap) == 0 {
-		return nil, fmt.Errorf("no .yml/.yaml files with 'contrast-cc' runtime found")
+		return nil, "", fmt.Errorf("no .yml/.yaml files with 'contrast-cc' runtime found")
 	}
 
 	extraData, err := kuberesource.EncodeUnstructured(extraResources)
 	if err != nil {
-		return nil, fmt.Errorf("encoding configmaps/secrets: %w", err)
+		return nil, "", fmt.Errorf("encoding configmaps/secrets: %w", err)
 	}
 	if _, err := configFile.Write(extraData); err != nil {
-		return nil, fmt.Errorf("writing configmaps/secrets to temp file: %w", err)
+		return nil, "", fmt.Errorf("writing configmaps/secrets to temp file: %w", err)
 	}
-	return fileMap, nil
+	return fileMap, coordinatorNamespace, nil
 }
 
 func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[string][]*unstructured.Unstructured, extraPath string, logger *slog.Logger) error {
@@ -418,7 +438,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 	})
 }
 
-func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler string, flags *generateFlags) error {
+func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler, coordinatorNamespace string, flags *generateFlags) error {
 	var replacements map[string]string
 	var err error
 	if imageReplacementsFile != "" {
@@ -445,7 +465,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 			}
 		}
 		if !flags.skipInitializer {
-			if err := injectInitializer(res); err != nil {
+			if err := injectInitializer(res, coordinatorNamespace); err != nil {
 				return nil, fmt.Errorf("injecting Initializer: %w", err)
 			}
 		}
@@ -467,30 +487,22 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 	})
 }
 
-func injectInitializer(resource any) error {
-	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
-	if ok &&
-		r.Spec != nil &&
-		r.Spec.Template != nil &&
-		r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
-		r.Spec.Template.Annotations != nil &&
-		r.Spec.Template.Annotations[contrastRoleAnnotationKey] == "coordinator" {
+func injectInitializer(resource any, coordinatorNamespace string) error {
+	if isCoordinator(resource) {
 		return nil
 	}
-	if _, err := kuberesource.AddInitializer(resource, kuberesource.Initializer()); err != nil {
+	if coordinatorNamespace == "" {
+		coordinatorNamespace = "default"
+	}
+	coordinatorHost := fmt.Sprintf("coordinator-ready.%s", coordinatorNamespace)
+	if _, err := kuberesource.AddInitializer(resource, kuberesource.Initializer(coordinatorHost)); err != nil {
 		return err
 	}
 	return nil
 }
 
 func injectServiceMesh(resource any) error {
-	r, ok := resource.(*applyappsv1.StatefulSetApplyConfiguration)
-	if ok &&
-		r.Spec != nil &&
-		r.Spec.Template != nil &&
-		r.Spec.Template.ObjectMetaApplyConfiguration != nil &&
-		r.Spec.Template.Annotations != nil &&
-		r.Spec.Template.Annotations[contrastRoleAnnotationKey] == string(manifest.RoleCoordinator) {
+	if isCoordinator(resource) {
 		return nil
 	}
 	if _, err := kuberesource.AddServiceMesh(resource, kuberesource.ServiceMeshProxy()); err != nil {
