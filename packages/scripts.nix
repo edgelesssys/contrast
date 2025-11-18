@@ -703,18 +703,16 @@ lib.makeScope pkgs.newScope (scripts: {
     '';
   };
 
-  em-dash-lint = writeShellApplication {
-    name = "em-dash-lint";
+  # ascii-lint ensures that documentation files are restricted to the ASCII character set.
+  ascii-lint = writeShellApplication {
+    name = "ascii-lint";
     runtimeInputs = [ pkgs.gnugrep ];
     text = ''
-      exitcode=0
-      for file in "$@"; do
-        if grep -qE '–|—' "$file"; then
-          echo "Found en-dash or em-dash in $file. Is this an AI generated text?" >&2
-          exitcode=1
-        fi
-      done
-      exit $exitcode
+      # Printable ASCII range is 0x20 SPACE to 0x7E TILDE.
+      if grep -n '[^ -~]' "$@"; then
+        echo "Found non-ASCII characters in above files. Is this an AI generated text?" >&2
+        exit 1
+      fi
     '';
   };
 

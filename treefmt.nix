@@ -62,8 +62,8 @@
       command = "${lib.getExe pkgs.contrastPkgs.scripts.check-sidebar}";
       includes = [ "docs/sidebars.js" ];
     };
-    em-dash-lint = {
-      command = "${lib.getExe pkgs.contrastPkgs.scripts.em-dash-lint}";
+    ascii-lint = {
+      command = "${lib.getExe pkgs.contrastPkgs.scripts.ascii-lint}";
       includes = [
         "docs/docs/*.md"
         "README.md"
