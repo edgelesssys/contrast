@@ -57,7 +57,6 @@ let
         # 1. Add some options to enable using the kernel in NixOS. (As NixOS has a hard check on
         # whether all modules required for systemd are present, e.g.)
         substituteInPlace $config \
-          --replace-fail '# CONFIG_TMPFS_POSIX_ACL is not set' 'CONFIG_TMPFS_POSIX_ACL=y' \
           --replace-fail '# CONFIG_EFIVAR_FS is not set' 'CONFIG_EFIVAR_FS=y' \
           --replace-fail '# CONFIG_RD_ZSTD is not set' 'CONFIG_RD_ZSTD=y' \
           --replace-fail '# CONFIG_VFAT_FS is not se' 'CONFIG_VFAT_FS=y' \

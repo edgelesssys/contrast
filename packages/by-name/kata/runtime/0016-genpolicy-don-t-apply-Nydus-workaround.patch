@@ -1,0 +1,77 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Wed, 24 Sep 2025 09:13:07 +0200
+Subject: [PATCH] genpolicy: don't apply Nydus workaround
+
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/tools/genpolicy/src/registry.rs | 55 +++++++++++++----------------
+ 1 file changed, 24 insertions(+), 31 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index 1ba71946d420d91265c278b583f231241b92d4da..34c9285b049cc647f5e61507758fe617aabc8033 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -166,38 +166,31 @@ impl Container {
+         let mut passwd = String::new();
+         let mut group = String::new();
+ 
+-        // Nydus/guest_pull doesn't make available passwd/group files from layers properly.
+-        // See issue https://github.com/kata-containers/kata-containers/issues/11162
+-        let v1_policy = config.settings.cluster_config.pause_container_id_policy == "v1";
+-        if config.settings.cluster_config.guest_pull && (v1_policy || !is_pause_container) {
+-            info!("Guest pull is enabled, skipping passwd/group file parsing");
+-        } else {
+-            let image_layers = get_image_layers(
+-                &config.layers_cache,
+-                &mut client,
+-                &reference,
+-                &manifest,
+-                &config_layer,
+-            )
+-            .await
+-            .unwrap();
+-
+-            // Find the last layer with an /etc/* file, respecting whiteouts.
+-            info!("Parsing users and groups in image layers");
+-            for layer in &image_layers {
+-                if layer.passwd == WHITEOUT_MARKER {
+-                    passwd = String::new();
+-                } else if !layer.passwd.is_empty() {
+-                    passwd = layer.passwd.clone();
+-                    debug!("Container:new: Found in image layer passwd = \n{passwd}");
+-                }
++        let image_layers = get_image_layers(
++            &config.layers_cache,
++            &mut client,
++            &reference,
++            &manifest,
++            &config_layer,
++        )
++        .await
++        .unwrap();
++
++        // Find the last layer with an /etc/* file, respecting whiteouts.
++        info!("Parsing users and groups in image layers");
++        for layer in &image_layers {
++            if layer.passwd == WHITEOUT_MARKER {
++                passwd = String::new();
++            } else if !layer.passwd.is_empty() {
++                passwd = layer.passwd.clone();
++                debug!("Container:new: Found in image layer passwd = \n{passwd}");
++            }
+ 
+-                if layer.group == WHITEOUT_MARKER {
+-                    group = String::new();
+-                } else if !layer.group.is_empty() {
+-                    group = layer.group.clone();
+-                    debug!("Container:new: Found in image layer group = \n{group}");
+-                }
++            if layer.group == WHITEOUT_MARKER {
++                group = String::new();
++            } else if !layer.group.is_empty() {
++                group = layer.group.clone();
++                debug!("Container:new: Found in image layer group = \n{group}");
+             }
+         }
+ 
