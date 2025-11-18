@@ -1,8 +1,6 @@
 name: e2e test regression
 
 on:
-  schedule:
-    - cron: "16 6 * * 6" # 6:16 on Saturdays
   workflow_call:
     secrets:
       GITHUB_TOKEN_IN:
@@ -26,7 +24,6 @@ jobs:
     strategy:
       matrix:
         platform:
-
           - name: Metal-QEMU-SNP
             runner: SNP
             self-hosted: true
