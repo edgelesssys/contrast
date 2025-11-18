@@ -96,7 +96,6 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 	}
 
 	// Report signature verification.
-	// TODO(burgerdev): equip HTTPSGetter with context.
 	if err := verify.SnpAttestationContext(ctx, attestationData, v.verifyOpts); err != nil {
 		return fmt.Errorf("verifying report: %w", err)
 	}
