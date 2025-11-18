@@ -12,7 +12,6 @@ import (
 	"log/slog"
 
 	"github.com/edgelesssys/contrast/internal/attestation"
-	"github.com/edgelesssys/contrast/internal/attestation/reportdata"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-tdx-guest/proto/tdx"
 	"github.com/google/go-tdx-guest/validate"
@@ -68,16 +67,16 @@ func (v *Validator) OID() asn1.ObjectIdentifier {
 }
 
 // Validate a TDX attestation.
-func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte, peerPublicKey []byte) (err error) {
+func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData []byte) (err error) {
 	// TODO(freax13): Validate the memory integrity mode (logical vs cryptographic) in the provisioning certificate.
 	//                https://github.com/google/go-tdx-guest/pull/51
 
-	v.logger.Info("Validate called", "name", v.name, "nonce", hex.EncodeToString(nonce))
+	v.logger.Info("Validate called", "name", v.name, "report-data", hex.EncodeToString(reportData))
 	defer func() {
 		if err != nil {
-			v.logger.Debug("Validate failed", "name", v.name, "nonce", hex.EncodeToString(nonce), "error", err)
+			v.logger.Debug("Validate failed", "name", v.name, "report-data", hex.EncodeToString(reportData), "error", err)
 		} else {
-			v.logger.Info("Validate succeeded", "name", v.name, "nonce", hex.EncodeToString(nonce))
+			v.logger.Info("Validate succeeded", "name", v.name, "report-data", hex.EncodeToString(reportData))
 		}
 	}()
 
@@ -98,12 +97,11 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, nonce []byte
 
 	// Build the validation options.
 
-	reportDataExpected := reportdata.Construct(peerPublicKey, nonce)
 	validateOpts, err := v.validateOptsGen.TDXValidateOpts(quote)
 	if err != nil {
 		return fmt.Errorf("generating validation options: %w", err)
 	}
-	validateOpts.TdQuoteBodyOptions.ReportData = reportDataExpected[:]
+	validateOpts.TdQuoteBodyOptions.ReportData = reportData
 
 	// Validate the report data.
 

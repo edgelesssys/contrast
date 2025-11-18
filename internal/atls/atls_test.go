@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/edgelesssys/contrast/internal/atls/reportdata"
 	contrastcrypto "github.com/edgelesssys/contrast/internal/crypto"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/edgelesssys/contrast/internal/testkeys"
@@ -22,9 +23,12 @@ import (
 )
 
 func TestVerifyEmbeddedReport(t *testing.T) {
-	fakeAttDoc := FakeAttestationDoc{}
+	expectedReportData := reportdata.Construct(nil, nil)
+	fakeAttDoc := &FakeAttestationDoc{
+		ReportData: expectedReportData[:],
+	}
 	attDocBytes, err := json.Marshal(fakeAttDoc)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	testCases := map[string]struct {
 		cert       *x509.Certificate
@@ -165,7 +169,7 @@ func (contextValidator) String() string {
 	return "contextValidator"
 }
 
-func (c *contextValidator) Validate(ctx context.Context, _, _, _ []byte) error {
+func (c *contextValidator) Validate(ctx context.Context, _, _ []byte) error {
 	select {
 	case err := <-c.inputC:
 		return err
