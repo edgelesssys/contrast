@@ -58,9 +58,9 @@ For the Vault application, this process is entirely transparent, and the device 
 The LUKS encryption of the block device is primarily a convenience feature, enabling persistent storage at the filesystem level on confidential virtual machines.
 The primary and security-relevant encryption mechanism remains Vault's own sealing process, which provides cryptographic protection of secrets even if the underlying storage is compromised.
 
-Because the `workload-secret-seed` is derived from the associated `workloadSecretID`, any change to the `workloadSecretID` after the block device has been initialized will result in a different key, making the mounted block device undecryptable.
-Therefore, it's critical to ensure that the `workloadSecretID` is correctly aligned with the intended endpoint specified in Vault's unsealing configuration before the first `contrast set` is executed.
-In this example, the `workloadSecretID` is set to `vault_unsealing` with an annotation:
+Because the `workload-secret-seed` is derived from the [associated `WorkloadSecretID`](../architecture/components/manifest.md#policies-workload-secret-id), any change to the `WorkloadSecretID` after the block device has been initialized will result in a different key, making the mounted block device undecryptable.
+Therefore, it's critical to ensure that the `WorkloadSecretID` is correctly aligned with the intended endpoint specified in Vault's unsealing configuration before the first `contrast set` is executed.
+In this example, the `WorkloadSecretID` is set to `vault_unsealing` with an annotation:
 
 ```yaml
 spec:
@@ -109,6 +109,7 @@ kubectl get service vault -o=jsonpath='{.status.loadBalancer.ingress[0].ip}'
 
 If you added SANs in the previous step, these will also be included in the certificate.
 In that case, you can configure your DNS service to resolve the additional SAN to the load balancer IP.
+See the section on [SANs in the manifest reference](../architecture/components/manifest.md#policies-sans) for more information.
 
 Alternatively, configure the system from which you access Vault to resolve `vault` to the load balancer IP.
 On Linux, you can modify `/etc/hosts` for this.

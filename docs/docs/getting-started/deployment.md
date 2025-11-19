@@ -464,8 +464,6 @@ Using `openssl`, the certificate of the service can be validated with the `mesh-
 openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
 ```
 
-<!-- TODO(burgerdev): this should be split into an explanatory section in a manifest.md (yet to be written) and a how-to. -->
-
 ## Optional: Updating the certificate SAN and the manifest
 
 By default, mesh certificates are issued with a wildcard DNS Subject Alternative Name (SAN).
@@ -494,32 +492,10 @@ Add the `frontendIP` to the list of SANs:
 +        "*",
 +        "203.0.113.34"
        ],
-       "WorkloadSecretID": "web"
      },
 ```
 
-### Adding a URI SAN to the manifest
-
-Some authentication and authorization schemes rely on URI SANs in X.509 certificates.
-For example, [SPIFFE IDs] are URIs and are often found as certificate SANs.
-The Contrast Coordinator automatically identifies URI SANs in the manifest and adds them to the workload certificates.
-Add the URI to the list of SANs in the relevant manifest entry:
-
-```diff
-   "Policies": {
-     ...
-     "99dd77cbd7fe2c4e1f29511014c14054a21a376f7d58a48d50e9e036f4522f6b": {
-       "SANs": [
-         "web",
--        "*"
-+        "*",
-+        "spiffe://acme.com/billing/payments"
-       ],
-       "WorkloadSecretID": "web"
-     },
-```
-
-[SPIFFE IDs]: https://spiffe.io/docs/latest/spiffe-about/spiffe-concepts/#spiffe-id
+To find out more about the `SANs` field in the manifest, see [SANs section in the manifest reference](../architecture/components/manifest.md#policies-sans).
 
 ### Updating the manifest on the coordinator
 

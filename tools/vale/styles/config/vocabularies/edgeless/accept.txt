@@ -147,6 +147,7 @@ subcommand
 Subresource
 substituters
 superset
+SVNs?
 Syft
 sysctl
 systemd
