@@ -1,15 +1,15 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: [
+    "config:recommended",
     ":preserveSemverRanges",
     ":semanticCommitsDisabled",
     ":separateMajorReleases",
-    "config:recommended",
     "helpers:pinGitHubActionDigests",
   ],
   commitMessagePrefix: "deps:",
   commitMessageAction: "update",
-  prConcurrentLimit: 1,
+  dependencyDashboardApproval: true,
   addLabels: [ "dependencies" ],
   postUpdateOptions: [
     "gomodTidy",
@@ -43,7 +43,6 @@
       groupName: "Go indirect dependencies",
       matchManagers: [ "gomod" ],
       matchDepTypes: [ "indirect" ],
-      dependencyDashboardApproval: true,
       prPriority: -30, // Lower priority, higher risk of causing breakage.
     },
     {
