@@ -16,13 +16,13 @@ require (
 	github.com/google/go-containerregistry v0.20.6
 	github.com/google/go-github/v72 v72.0.0
 	github.com/google/go-sev-guest v0.14.1
-	github.com/google/go-tdx-guest v0.3.2-0.20250814004405-ffb0869e6f4d
+	github.com/google/go-tdx-guest v0.3.2-0.20251119012452-5ba7655b58ce
 	github.com/google/logger v1.1.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/klauspost/cpuid/v2 v2.3.0
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/prometheus/client_golang v1.23.2
-	github.com/prometheus/common v0.67.2
+	github.com/prometheus/common v0.67.3
 	github.com/regclient/regclient v0.10.0
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cobra v1.10.1
@@ -33,7 +33,7 @@ require (
 	golang.org/x/sync v0.18.0
 	golang.org/x/sys v0.38.0
 	golang.org/x/term v0.37.0
-	google.golang.org/grpc v1.76.0
+	google.golang.org/grpc v1.77.0
 	google.golang.org/protobuf v1.36.10
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.34.2
@@ -82,11 +82,11 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/net v0.46.0 // indirect
+	golang.org/x/net v0.46.1-0.20251013234738-63d1a5100f82 // indirect
 	golang.org/x/oauth2 v0.32.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250826171959-ef028d996bc1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251022142026-3a174f9686a8 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250814151709-d7b6acb124c3 // indirect

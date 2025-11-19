@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/edgelesssys/contrast v0.0.0-00010101000000-000000000000
 	github.com/google/go-sev-guest v0.14.1
-	github.com/google/go-tdx-guest v0.3.2-0.20250814004405-ffb0869e6f4d
+	github.com/google/go-tdx-guest v0.3.2-0.20251119012452-5ba7655b58ce
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/protobuf v1.36.10
 )
