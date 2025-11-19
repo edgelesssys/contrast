@@ -8,13 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"runtime"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
-	"golang.org/x/sync/errgroup"
 )
 
 // Error types which should be differentiable in tests.
@@ -22,6 +20,7 @@ var (
 	errParseDigest         = errors.New("parsing image digest")
 	errUnexpectedMediaType = errors.New("unexpected media type")
 	errMissingPlatform     = errors.New("obtaining image digest for linux/amd64: platform missing from image index")
+	errValidateLayer       = errors.New("validating layer")
 )
 
 func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Logger, imageURL string) (gcr.Image, error) {
@@ -85,34 +84,52 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 	return remoteImg, nil
 }
 
-func (s *ImagePullerService) storeLayers(log *slog.Logger, remoteImg gcr.Image) ([]gcr.Hash, error) {
+func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gcr.Image) (string, error) {
 	layers, err := remoteImg.Layers()
 	if err != nil {
-		return nil, fmt.Errorf("obtaining the image layers: %w", err)
+		return "", fmt.Errorf("obtaining the image layers: %w", err)
 	}
 
-	// TODO(burgerdev): pass a context here?
-	g := &errgroup.Group{}
-	numProcs := runtime.GOMAXPROCS(0)
-	log.Info("storing layers", "num-layers", len(layers), "parallelism", numProcs)
-	g.SetLimit(numProcs)
+	manifest, err := remoteImg.Manifest()
+	if err != nil {
+		return "", fmt.Errorf("obtaining image manifest: %w", err)
+	}
 
-	digests := make([]gcr.Hash, len(layers))
-
+	previousLayer := ""
 	for idx, layer := range layers {
-		g.Go(func() error {
-			digest, err := s.Store.PutLayer(layer)
-			if err != nil {
-				return fmt.Errorf("putting layer to store: %w", err)
-			}
-			log.Info("Applied and validated layer", "digest", digest.String())
-			digests[idx] = digest
-			return nil
-		})
+		rc, err := layer.Compressed()
+		if err != nil {
+			return "", fmt.Errorf("reading layer %d: %w", idx, err)
+		}
+
+		putLayer, n, err := s.Store.PutLayer(
+			"",            // empty ID -> let store decide
+			previousLayer, // parent is previous layer
+			nil,           // empty parent chain -> let store decide
+			"",            // mount label
+			false,         // readonly
+			nil,           // mount options
+			rc,            // tar stream
+		)
+		if err != nil {
+			return "", errors.Join(
+				fmt.Errorf("putting layer to store: %w", err),
+				fmt.Errorf("closing layer reader: %w", rc.Close()),
+			)
+		}
+		if err := rc.Close(); err != nil {
+			return "", fmt.Errorf("closing layer reader: %w", err)
+		}
+
+		ldManifest := manifest.Layers[idx].Digest.String()
+		ld := putLayer.CompressedDigest.String()
+		if ldManifest != ld {
+			return "", fmt.Errorf("%w: expected digest '%s' but got digest '%s'", errValidateLayer, ldManifest, ld)
+		}
+
+		log.Info("Applied and validated layer", "id", putLayer.ID, "size", n, "digest", ld)
+		previousLayer = putLayer.ID
 	}
 
-	if err := g.Wait(); err != nil {
-		return nil, err
-	}
-	return digests, nil
+	return previousLayer, nil
 }

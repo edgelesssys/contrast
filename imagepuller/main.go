@@ -21,12 +21,20 @@ import (
 	"github.com/edgelesssys/contrast/imagepuller/internal/remote"
 	"github.com/edgelesssys/contrast/imagepuller/internal/service"
 	"github.com/spf13/cobra"
+	"go.podman.io/storage/pkg/reexec"
 	"golang.org/x/sync/errgroup"
 )
 
 var version = "0.0.0-dev"
 
 func main() {
+	// Reexec handles subprocesses by re-running this binary with argv[0] set to a registered name.
+	// If argv[0] matches, Init runs the corresponding handler and returns true to exit immediately.
+	// Used by the storage pkg.
+	if reexec.Init() {
+		return
+	}
+
 	if err := newRootCmd().Execute(); err != nil {
 		os.Exit(1)
 	}
