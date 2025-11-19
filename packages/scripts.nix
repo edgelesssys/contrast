@@ -402,8 +402,7 @@ lib.makeScope pkgs.newScope (scripts: {
     ];
     text = ''
       set -euo pipefail
-      # this is the officially recommended way to get the raw output...
-      gcloud secrets versions access "$1" --format='get(payload.data)' | tr '_-' '/+' | base64 -d
+      gcloud secrets versions access "$1"
     '';
   };
 
