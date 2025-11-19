@@ -142,7 +142,7 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]SN
 		}
 		idKeyHash := sha512.Sum384(idKeyBytes)
 
-		validateOpts := snpvalidate.Options{
+		validateOpts := &snpvalidate.Options{
 			Measurement:  trustedMeasurement,
 			PlatformInfo: &refVal.PlatformInfo,
 			GuestPolicy:  refVal.GuestPolicy,
@@ -164,7 +164,20 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]SN
 			TrustedIDKeyHashes:        [][]byte{idKeyHash[:]},
 		}
 
-		out = append(out, SNPValidatorOptions{VerifyOpts: verifyOpts, ValidateOpts: &validateOpts})
+		var allowedChipIDs [][]byte
+		for _, chipIDHex := range refVal.AllowedChipIDs {
+			chipID, err := chipIDHex.Bytes()
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert AllowedChipID from manifest to byte slices: %w", err)
+			}
+			allowedChipIDs = append(allowedChipIDs, chipID)
+		}
+
+		out = append(out, SNPValidatorOptions{
+			VerifyOpts:     verifyOpts,
+			ValidateOpts:   validateOpts,
+			AllowedChipIDs: allowedChipIDs,
+		})
 	}
 
 	return out, nil
@@ -242,8 +255,9 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 //
 // TODO(msanft): add generic validation interface for other attestation types.
 type SNPValidatorOptions struct {
-	VerifyOpts   *snpverify.Options
-	ValidateOpts *snpvalidate.Options
+	VerifyOpts     *snpverify.Options
+	ValidateOpts   *snpvalidate.Options
+	AllowedChipIDs [][]byte
 }
 
 // TDXValidatorOptions contains the verification and validation options to be used

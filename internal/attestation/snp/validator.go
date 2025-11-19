@@ -4,6 +4,7 @@
 package snp
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -12,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 
 	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/constants"
@@ -26,33 +28,40 @@ import (
 
 // Validator validates attestation statements.
 type Validator struct {
-	verifyOpts   *verify.Options
-	validateOpts *validate.Options
-	reportSetter attestation.ReportSetter
-	logger       *slog.Logger
-	name         string
+	verifyOpts     *verify.Options
+	validateOpts   *validate.Options
+	allowedChipIDs [][]byte
+	reportSetter   attestation.ReportSetter
+	logger         *slog.Logger
+	name           string
 }
 
 // NewValidator returns a new Validator.
-func NewValidator(VerifyOpts *verify.Options, ValidateOpts *validate.Options, log *slog.Logger, name string) *Validator {
+func NewValidator(
+	verifyOpts *verify.Options, validateOpts *validate.Options, allowedChipIDs [][]byte,
+	log *slog.Logger, name string,
+) *Validator {
 	return &Validator{
-		verifyOpts:   VerifyOpts,
-		validateOpts: ValidateOpts,
-		logger:       log,
-		name:         name,
+		verifyOpts:     verifyOpts,
+		validateOpts:   validateOpts,
+		allowedChipIDs: allowedChipIDs,
+		logger:         log,
+		name:           name,
 	}
 }
 
 // NewValidatorWithReportSetter returns a new Validator with a report setter.
-func NewValidatorWithReportSetter(VerifyOpts *verify.Options, ValidateOpts *validate.Options,
+func NewValidatorWithReportSetter(
+	verifyOpts *verify.Options, validateOpts *validate.Options, allowedChipIDs [][]byte,
 	log *slog.Logger, reportSetter attestation.ReportSetter, name string,
 ) *Validator {
 	return &Validator{
-		verifyOpts:   VerifyOpts,
-		validateOpts: ValidateOpts,
-		reportSetter: reportSetter,
-		logger:       log,
-		name:         name,
+		verifyOpts:     verifyOpts,
+		validateOpts:   validateOpts,
+		allowedChipIDs: allowedChipIDs,
+		reportSetter:   reportSetter,
+		logger:         log,
+		name:           name,
 	}
 }
 
@@ -100,12 +109,27 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData [
 	}
 	v.logger.Info("Successfully verified report signature")
 
-	// Build the validation options.
+	// Report content verification.
 
 	v.validateOpts.ReportData = reportData
 	if err := validate.SnpAttestation(attestationData, v.validateOpts); err != nil {
 		return fmt.Errorf("validating report claims: %w", err)
 	}
+
+	//
+	// Additional checks.
+	//
+
+	// Check for allowed ChipIDs.
+	if len(v.allowedChipIDs) != 0 {
+		if !slices.ContainsFunc(v.allowedChipIDs, func(id []byte) bool {
+			return bytes.Equal(id, attestationData.Report.GetChipId())
+		}) {
+			return fmt.Errorf("chip ID %x not in allowed chip IDs", attestationData.Report.GetChipId())
+		}
+	}
+
+	// Report fully validated from here on.
 
 	if v.reportSetter != nil {
 		report := snpReport{report: attestationData.Report}

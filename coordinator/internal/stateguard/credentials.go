@@ -79,7 +79,7 @@ func (c *Credentials) ServerHandshake(rawConn net.Conn) (net.Conn, credentials.A
 
 	for i, opt := range snpOpts {
 		name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
-		validator := snp.NewValidatorWithReportSetter(opt.VerifyOpts, opt.ValidateOpts,
+		validator := snp.NewValidatorWithReportSetter(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs,
 			logger.NewWithAttrs(logger.NewNamed(c.logger, "validator"), map[string]string{"reference-values": name}),
 			&authInfo, name)
 		validators = append(validators, validator)

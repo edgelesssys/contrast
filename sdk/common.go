@@ -40,7 +40,7 @@ func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.
 	for i, opt := range opts {
 		opt.ValidateOpts.HostData = coordPolicyHashBytes
 		name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
-		validators = append(validators, snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts,
+		validators = append(validators, snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs,
 			logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name,
 		))
 	}

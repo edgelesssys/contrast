@@ -154,7 +154,8 @@ func TestSNPValidators(t *testing.T) {
 					opt.ValidateOpts.HostData = coordPolicyHashBytes
 					assert.NoError(tc.manifestModifyFunc(&opt))
 					name := fmt.Sprintf("snp-%d-%s", i, strings.TrimPrefix(opt.VerifyOpts.Product.Name.String(), "SEV_PRODUCT_"))
-					validators = append(validators, snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, logger.WithGroup("validator"), name))
+					v := snp.NewValidator(opt.VerifyOpts, opt.ValidateOpts, opt.AllowedChipIDs, logger.WithGroup("validator"), name)
+					validators = append(validators, v)
 				}
 
 				dialer := dialer.New(atls.NoIssuer, validators, atls.NoMetrics, nil, logger)
