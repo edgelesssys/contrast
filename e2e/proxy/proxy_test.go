@@ -116,26 +116,25 @@ func TestHTTPProxy(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 
-			for k, v := range tc.env {
-				t.Setenv(k, v)
-			}
-
 			if tc.wantErrMsg != "" {
+				// Run generate and apply in this process so that they don't use the bad proxy.
+				require.True(t.Run("generate", ct.Generate))
+				require.True(t.Run("apply", ct.Apply))
 				// only try verify because set uses a retry loop
-				assert.ErrorContains(runCommand(t.Context(), ct, "verify"), tc.wantErrMsg)
+				assert.ErrorContains(runCommand(t.Context(), ct, "verify", tc.env), tc.wantErrMsg)
 				return
 			}
 
-			require.NoError(runCommand(t.Context(), ct, "generate"))
+			require.NoError(runCommand(t.Context(), ct, "generate", tc.env))
 			assert.False(coordinatorConnectionProxied.Swap(false))
 			assert.Equal(tc.wantProxied, registryConnectionProxied.Swap(false))
 
 			require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
-			require.NoError(runCommand(t.Context(), ct, "set"))
+			require.NoError(runCommand(t.Context(), ct, "set", tc.env))
 			assert.Equal(tc.wantProxied, coordinatorConnectionProxied.Swap(false))
 
-			require.NoError(runCommand(t.Context(), ct, "verify"))
+			require.NoError(runCommand(t.Context(), ct, "verify", tc.env))
 			assert.Equal(tc.wantProxied, coordinatorConnectionProxied.Swap(false))
 		})
 	}
@@ -163,10 +162,15 @@ func TestMain(m *testing.M) {
 
 // runCommand runs a CLI command in a new process so that the proxy env vars are re-read.
 // Go caches the env vars, so we can't run the commands in the same process as usual.
-func runCommand(ctx context.Context, ct *contrasttest.ContrastTest, cmd string) error {
+func runCommand(ctx context.Context, ct *contrasttest.ContrastTest, subcmd string, extraEnv map[string]string) error {
 	argv := append([]string{}, os.Args[1:]...)
-	argv = append(argv, "-run-command="+cmd, "-run-namespace="+ct.Namespace, "-run-workdir="+ct.WorkDir)
-	out, err := exec.CommandContext(ctx, os.Args[0], argv...).CombinedOutput()
+	argv = append(argv, "-run-command="+subcmd, "-run-namespace="+ct.Namespace, "-run-workdir="+ct.WorkDir)
+	cmd := exec.CommandContext(ctx, os.Args[0], argv...)
+	cmd.Env = os.Environ()
+	for k, v := range extraEnv {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
+	}
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return errors.New(string(out))
 	}
