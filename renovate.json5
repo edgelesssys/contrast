@@ -1,10 +1,10 @@
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: [
-    "config:recommended",
     ":preserveSemverRanges",
     ":semanticCommitsDisabled",
     ":separateMajorReleases",
+    "config:recommended",
     "helpers:pinGitHubActionDigests",
   ],
   commitMessagePrefix: "deps:",
@@ -43,7 +43,18 @@
       groupName: "Go indirect dependencies",
       matchManagers: [ "gomod" ],
       matchDepTypes: [ "indirect" ],
+      matchUpdateTypes: [
+        "minor",
+        "patch",
+      ],
       prPriority: -30, // Lower priority, higher risk of causing breakage.
+    },
+    {
+      // Disable major upgrades for indirect Go dependencies.
+      matchManagers: [ "gomod" ],
+      matchDepTypes: [ "indirect" ],
+      matchUpdateTypes: [ "major" ],
+      enabled: false,
     },
     {
       // Group update of direct Go dependencies.
@@ -51,14 +62,8 @@
       matchManagers: [ "gomod" ],
       matchDepTypes: [ "require" ],
       matchUpdateTypes: [
-        "bump",
-        "digest",
-        "lockFileMaintenance",
         "minor",
         "patch",
-        "pin",
-        "pinDigest",
-        "rollback",
       ],
     },
     {
