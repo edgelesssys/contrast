@@ -3,13 +3,12 @@
 
 //go:build !linux
 
-package store
+package service
 
 import (
-	gcr "github.com/google/go-containerregistry/pkg/v1"
+	"log/slog"
 )
 
-// Mount is Linux-specific.
-func (s *Store) Mount(string, ...gcr.Hash) error {
+func (s *ImagePullerService) createAndMountContainer(*slog.Logger, string, string) (string, error) {
 	panic("GOOS does not support mounting containers")
 }
