@@ -88,9 +88,9 @@ func (r ReferenceValues) Validate() error {
 
 // SNPReferenceValues contains reference values for SEV-SNP.
 type SNPReferenceValues struct {
-	MinimumTCB         SNPTCB
 	ProductName        ProductName
 	TrustedMeasurement HexString
+	MinimumTCB         SNPTCB
 	GuestPolicy        abi.SnpPolicy
 	PlatformInfo       abi.SnpPlatformInfo
 }
@@ -214,8 +214,8 @@ func amdTrustedRootCerts(productName ProductName) (map[string][]*trust.AMDRootCe
 // TDXReferenceValues contains reference values for TDX.
 type TDXReferenceValues struct {
 	MrTd         HexString
-	Rtmrs        [4]HexString
 	MrSeam       HexString
+	Rtmrs        [4]HexString
 	TdAttributes HexString
 	Xfam         HexString
 }

@@ -39,25 +39,19 @@ This guarantees that the CVM launches in a well-defined state and enforces only 
 
 The Coordinator runs inside a CVM and verifies attestation reports from other pods. It:
 
-- Checks launch measurements and initdata hashes against a trusted **manifest**
+- Checks attestation reports, including the initdata hash, against a trusted [manifest](../components/manifest.md)
 - Issues service mesh certificates to verified pods
-- Functions as the verifier for the full deployment
-
-<!-- TODO(burgerdev): below manifest information should go into a dedicated page -->
-
-The **manifest** is a JSON configuration that defines the trusted state of the deployment. It includes:
-
-- **ReferenceValues**: Expected CVM launch measurements
-- **Policies**: Hashes of permitted initdata documents
-- **WorkloadOwnerKeyDigests**: Public key digests used to authorize future manifest updates
-- **SeedshareOwnerPubKeys**: Used for securely recovering workload secrets and restoring trust
 
 Only pods whose attestation evidence matches the manifest are accepted into the trusted service mesh.
+The Coordinator is verifier for all workloads of a Contrast deployment and issues certificates as attestation result, is therefore the certificate authority for a deployment.
 
 The Contrast Coordinator itself also runs as a confidential pod and is attested using the Contrast CLI.
 The CLI includes embedded reference values for the Coordinator, allowing it to verify the Coordinator's identity and integrity during attestation.
 Because these reference values are part of the CLI build, the CLI effectively serves as the root of trust for the deployment.
 Verifying the CLI's integrity and authenticity is therefore essential.
+
+The verification of the Coordinator by the CLI enables trust in the Coordinator to verify other workloads based on the manifest.
+The workloads are then _attested transitively_ through the Coordinator.
 
 ### Relying party: Operator and data owner
 

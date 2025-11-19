@@ -12,22 +12,6 @@ As your app needs to scale, the Coordinator transparently verifies new instances
 To verify your deployment, the Coordinator's remote attestation statement combined with the manifest offers a concise single remote attestation statement for your entire deployment.
 A third party can use this to verify the integrity of your distributed app, making it easy to assure stakeholders of your app's identity and integrity.
 
-## The Manifest
-
-The manifest is the configuration file for the Coordinator, defining your confidential deployment.
-It's automatically generated from your deployment by the Contrast CLI.
-It currently consists of the following parts:
-
-<!-- TODO(burgerdev): explain manifest on separate page. -->
-
-- _Policies_: The identities of your Pods, represented by the hashes of their respective initdata documents.
-- _Reference Values_: The remote attestation reference values for the Kata confidential micro-VM that's the runtime environment of your Pods.
-- _WorkloadOwnerKeyDigest_: The workload owner's public key digest. Used for authenticating subsequent manifest updates.
-- _SeedshareOwnerKeys_: public keys of seed share owners. Used to authenticate user recovery and permission to handle the secret seed.
-
-Setting a manifest where the `WorkloadOwnerKeyDigest` has been removed will render the deployment [immutable](../../howto/immutable-deployments.md).
-Doing the same for the `SeedshareOwnerKeys` field makes Coordinator recovery and workload secret recovery impossible.
-
 ## Manifest history
 
 The Coordinator uses Kubernetes `ConfigMap`s to store the manifest history and associated initdata documents.

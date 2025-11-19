@@ -225,6 +225,11 @@ const sidebars = {
             },
             {
               type: "doc",
+              label: "Manifest",
+              id: "architecture/components/manifest",
+            },
+            {
+              type: "doc",
               label: "Service mesh",
               id: "architecture/components/service-mesh",
             },

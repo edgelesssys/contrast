@@ -1,5 +1,8 @@
 # Communicate with workloads
 
+<!--TODO(katexochen): This section needs rework.
+    The step was part of the old tutorial but this doesn't make much sense as a stand alone how-to. -->
+
 This section explains how to use the Contrast service mesh to communicate with your application workloads.
 
 ## Applicability
@@ -23,11 +26,17 @@ lbip=$(kubectl get svc ${MY_SERVICE} -o=jsonpath='{.status.loadBalancer.ingress[
 echo $lbip
 ```
 
+Using `openssl`, the certificate of the service can be verified with the `mesh-ca.pem`:
+
+```sh
+openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
+```
+
 :::info[Subject alternative names and LoadBalancer IP]
 
-By default, mesh certificates are issued with a wildcard DNS entry. The web frontend is accessed
-via load balancer IP in this demo. Tools like curl check the certificate for IP entries in the SAN field.
-Validation fails since the certificate contains no IP entries as a subject alternative name (SAN).
+By default, mesh certificates are issued with a wildcard DNS entry.
+Here, the service is accessed via its LoadBalancer IP address.
+Tools like curl check the certificate for IP entries in the subject alternative name (SAN) field, which aren't present.
 For example, attempting to connect with curl and the mesh CA certificate will throw the following error:
 
 ```sh
@@ -35,10 +44,6 @@ $ curl --cacert ./verify/mesh-ca.pem "https://${frontendIP}:443"
 curl: (60) SSL: no alternative certificate subject name matches target host name '203.0.113.34'
 ```
 
+Check out the [SANs section in the manifest reference](../../architecture/components/manifest.md#policies-sans) to learn how to add IP addresses to the SANs of your workload certificates.
+
 :::
-
-Using `openssl`, the certificate of the service can be validated with the `mesh-ca.pem`:
-
-```sh
-openssl s_client -CAfile verify/mesh-ca.pem -verify_return_error -connect ${frontendIP}:443 < /dev/null
-```
