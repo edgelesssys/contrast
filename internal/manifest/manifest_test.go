@@ -39,6 +39,10 @@ func newTestManifestSNP() *Manifest {
 					GuestPolicy: abi.SnpPolicy{
 						SMT: true,
 					},
+					AllowedChipIDs: []HexString{
+						"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+						"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+					},
 				},
 			},
 		},
@@ -232,6 +236,19 @@ func TestValidate(t *testing.T) {
 				m.Policies[HexString("2bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")] = PolicyEntry{
 					Role: "coordinator",
 				}
+			},
+			wantErr: true,
+		},
+		"no chip IDs": {
+			m: newTestManifestSNP(),
+			mutate: func(m *Manifest) {
+				m.ReferenceValues.SNP[0].AllowedChipIDs = nil
+			},
+		},
+		"invalid chip ID length": {
+			m: newTestManifestSNP(),
+			mutate: func(m *Manifest) {
+				m.ReferenceValues.SNP[0].AllowedChipIDs = []HexString{"1122"}
 			},
 			wantErr: true,
 		},

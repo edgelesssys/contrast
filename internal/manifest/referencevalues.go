@@ -93,6 +93,7 @@ type SNPReferenceValues struct {
 	MinimumTCB         SNPTCB
 	GuestPolicy        abi.SnpPolicy
 	PlatformInfo       abi.SnpPlatformInfo
+	AllowedChipIDs     []HexString
 }
 
 // Validate checks the validity of all fields in the AKS reference values.
@@ -157,6 +158,12 @@ func (r SNPReferenceValues) Validate() error {
 		guestPolicyErrs = append(guestPolicyErrs, newValidationError("CipherTextHidingDRAM", noModificationPermittedErr))
 	}
 	errs = append(errs, newValidationError("GuestPolicy", guestPolicyErrs...))
+
+	for i, chipID := range r.AllowedChipIDs {
+		if err := validateHexString(chipID, abi.ChipIDSize); err != nil {
+			errs = append(errs, newValidationError(fmt.Sprintf("AllowedChipIDs[%d]", i), err))
+		}
+	}
 
 	return errors.Join(errs...)
 }
