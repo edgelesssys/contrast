@@ -67,6 +67,13 @@
       ],
     },
     {
+      // Disable Go toolchain directive updates in go.mod.
+      // These don't make any sense, we use the toolchain available in nixpkgs.
+      matchManagers: [ "gomod" ],
+      matchDepNames: [ "toolchain" ],
+      enabled: false,
+    },
+    {
       // Group update of GitHub actions dependencies.
       matchManagers: [ "github-actions" ],
       groupName: "GitHub action dependencies",
