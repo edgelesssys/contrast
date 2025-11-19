@@ -106,13 +106,19 @@ If you are struggling with your git history during the review process, please as
 
    Additionally, you may want to add the [VSCode extension](https://github.com/direnv/direnv-vscode).
 
-4. Execute and follow instructions of
+4. Log into GCP.
+
+    ```sh
+    nix shell nixpkgs#google-cloud-sdk -c gcloud auth login
+    ```
+
+5. Execute and follow instructions of
 
     ```sh
     just onboard
     ```
 
-5. Provision a CoCo enabled AKS cluster with
+6. Provision a CoCo enabled AKS cluster with
 
     ```sh
     just create
