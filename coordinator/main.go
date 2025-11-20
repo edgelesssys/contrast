@@ -17,7 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/edgelesssys/contrast/internal/history"
 	meshapiserver "github.com/edgelesssys/contrast/coordinator/internal/meshapi"
 	"github.com/edgelesssys/contrast/coordinator/internal/peerdiscovery"
 	"github.com/edgelesssys/contrast/coordinator/internal/peerrecovery"
@@ -31,6 +30,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/defaultdeny"
 	"github.com/edgelesssys/contrast/internal/grpc/atlscredentials"
+	"github.com/edgelesssys/contrast/internal/history"
 	loggerpkg "github.com/edgelesssys/contrast/internal/logger"
 	"github.com/edgelesssys/contrast/internal/memstore"
 	"github.com/edgelesssys/contrast/internal/meshapi"

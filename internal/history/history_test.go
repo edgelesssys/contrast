@@ -6,7 +6,6 @@ package history
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/sha256"
 	"encoding/hex"
 	"log/slog"
 	"os"
@@ -90,8 +89,7 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 				}
 
 				h := &History{
-					store:   NewAferoStore(&fs),
-					hashFun: sha256.New,
+					store: NewAferoStore(&fs),
 				}
 
 				gotT, err := h.GetLatest(&tc.signingKey.PublicKey)
@@ -118,8 +116,7 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 				}
 
 				h := &History{
-					store:   NewAferoStore(&fs),
-					hashFun: sha256.New,
+					store: NewAferoStore(&fs),
 				}
 
 				got, err := h.HasLatest()
@@ -141,8 +138,7 @@ func TestHistory_GetLatestAndHasLatest(t *testing.T) {
 				}
 
 				h := &History{
-					store:   NewAferoStore(&fs),
-					hashFun: sha256.New,
+					store: NewAferoStore(&fs),
 				}
 
 				gotT, err := h.GetLatestInsecure()
@@ -247,8 +243,7 @@ func TestHistory_SetLatest(t *testing.T) {
 			}
 
 			h := &History{
-				store:   NewAferoStore(&fs),
-				hashFun: sha256.New,
+				store: NewAferoStore(&fs),
 			}
 
 			err := h.SetLatest(tc.oldT, tc.newT, tc.signingKey)
@@ -308,8 +303,7 @@ func TestHistory_GetTransition(t *testing.T) {
 			}
 
 			h := &History{
-				store:   NewAferoStore(&fs),
-				hashFun: sha256.New,
+				store: NewAferoStore(&fs),
 			}
 
 			gotTransition, err := h.GetTransition(strToHash(require, tc.hash))
@@ -384,8 +378,7 @@ func TestHistory_SetTransition(t *testing.T) {
 			}
 
 			h := &History{
-				store:   NewAferoStore(&fs),
-				hashFun: sha256.New,
+				store: NewAferoStore(&fs),
 			}
 
 			gotHash, err := h.SetTransition(&tc.transition)
@@ -459,8 +452,7 @@ func TestHistory_getCA(t *testing.T) {
 			}
 
 			h := &History{
-				store:   NewAferoStore(&fs),
-				hashFun: sha256.New,
+				store: NewAferoStore(&fs),
 			}
 
 			hash := strToHash(require, tc.hash)
@@ -531,8 +523,7 @@ func TestHistory_setCA(t *testing.T) {
 			}
 
 			h := &History{
-				store:   NewAferoStore(&fs),
-				hashFun: sha256.New,
+				store: NewAferoStore(&fs),
 			}
 
 			gotHash, err := h.setContentaddressed(tc.pathFmt, []byte(tc.data))
@@ -566,8 +557,7 @@ func TestHistory_setCA(t *testing.T) {
 
 func TestHistory_SetGet(t *testing.T) {
 	h := &History{
-		store:   &AferoStore{fs: &afero.Afero{Fs: afero.NewMemMapFs()}},
-		hashFun: sha256.New,
+		store: &AferoStore{fs: &afero.Afero{Fs: afero.NewMemMapFs()}},
 	}
 
 	testCases := []string{
@@ -648,8 +638,7 @@ func TestHistory_WalkTransitions(t *testing.T) {
 	t.Run("empty history", func(t *testing.T) {
 		require := require.New(t)
 		h := &History{
-			store:   &AferoStore{fs: &afero.Afero{Fs: afero.NewMemMapFs()}},
-			hashFun: sha256.New,
+			store: &AferoStore{fs: &afero.Afero{Fs: afero.NewMemMapFs()}},
 		}
 		doNotCall := func(_ [32]byte, _ *Transition) error {
 			require.Fail("closure should not be called without any transitions")
@@ -662,8 +651,7 @@ func TestHistory_WalkTransitions(t *testing.T) {
 	t.Run("walk transitions", func(t *testing.T) {
 		require := require.New(t)
 		h := &History{
-			store:   &AferoStore{fs: &afero.Afero{Fs: afero.NewMemMapFs()}},
-			hashFun: sha256.New,
+			store: &AferoStore{fs: &afero.Afero{Fs: afero.NewMemMapFs()}},
 		}
 		expectedTransitionChainSize := 42
 		var latestTransition [HashSize]byte
@@ -702,8 +690,7 @@ func TestHistory_WalkTransitions(t *testing.T) {
 	t.Run("failing consume func", func(t *testing.T) {
 		require := require.New(t)
 		h := &History{
-			store:   &AferoStore{fs: &afero.Afero{Fs: afero.NewMemMapFs()}},
-			hashFun: sha256.New,
+			store: &AferoStore{fs: &afero.Afero{Fs: afero.NewMemMapFs()}},
 		}
 		var latestTransition [HashSize]byte
 

@@ -25,11 +25,12 @@ const (
 	HashSize = sha256.Size
 )
 
+var hashFun func() hash.Hash = sha256.New
+
 // History is the history of the Coordinator.
 type History struct {
-	store   Store
-	hashFun func() hash.Hash
-	log     *slog.Logger
+	store Store
+	log   *slog.Logger
 }
 
 // New creates a new History that uses the default storage backend.
@@ -56,12 +57,8 @@ func New(log *slog.Logger) (*History, error) {
 // NewWithStore creates a new History with the given storage backend.
 func NewWithStore(log *slog.Logger, store Store) *History {
 	h := &History{
-		store:   store,
-		hashFun: sha256.New,
-		log:     log,
-	}
-	if HashSize != h.hashFun().Size() {
-		panic("mismatch between hashSize and hash function size")
+		store: store,
+		log:   log,
 	}
 	return h
 }
@@ -209,7 +206,7 @@ func (h *History) getContentaddressed(pathFmt string, hash [HashSize]byte) ([]by
 	if err != nil {
 		return nil, err
 	}
-	dataHash := h.hash(data)
+	dataHash := Digest(data)
 	if !bytes.Equal(hash[:], dataHash[:]) {
 		return nil, HashMismatchError{Expected: hash[:], Actual: dataHash[:]}
 	}
@@ -217,7 +214,7 @@ func (h *History) getContentaddressed(pathFmt string, hash [HashSize]byte) ([]by
 }
 
 func (h *History) setContentaddressed(pathFmt string, data []byte) ([HashSize]byte, error) {
-	hash := h.hash(data)
+	hash := Digest(data)
 	hashStr := hex.EncodeToString(hash[:])
 	if err := h.store.Set(fmt.Sprintf(pathFmt, hashStr), data); err != nil {
 		return [HashSize]byte{}, err
@@ -225,8 +222,9 @@ func (h *History) setContentaddressed(pathFmt string, data []byte) ([HashSize]by
 	return hash, nil
 }
 
-func (h *History) hash(in []byte) [HashSize]byte {
-	hf := h.hashFun()
+// Digest calculates the Digest of a given slice in the same way as used for (Latest)Transitions..
+func Digest(in []byte) [HashSize]byte {
+	hf := hashFun()
 	_, _ = hf.Write(in) // Hash.Write never returns an error.
 	sum := hf.Sum(nil)
 	var hash [HashSize]byte
@@ -256,6 +254,11 @@ func (t *Transition) marshalBinary() []byte {
 	return data
 }
 
+// Digest returns the digest of the Transition.
+func (t *Transition) Digest() [HashSize]byte {
+	return Digest(t.marshalBinary())
+}
+
 // LatestTransition is the latest transition signed by the Coordinator.
 type LatestTransition struct {
 	TransitionHash [HashSize]byte
@@ -281,6 +284,11 @@ func (l *LatestTransition) marshalBinary() []byte {
 	copy(data[:HashSize], l.TransitionHash[:])
 	copy(data[HashSize:], l.signature)
 	return data
+}
+
+// Digest returns the digest of the LatestTransition.
+func (l *LatestTransition) Digest() [HashSize]byte {
+	return Digest(l.marshalBinary())
 }
 
 func (l *LatestTransition) sign(key *ecdsa.PrivateKey) error {
