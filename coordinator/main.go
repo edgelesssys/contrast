@@ -17,7 +17,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/history"
+	"github.com/edgelesssys/contrast/internal/history"
 	meshapiserver "github.com/edgelesssys/contrast/coordinator/internal/meshapi"
 	"github.com/edgelesssys/contrast/coordinator/internal/peerdiscovery"
 	"github.com/edgelesssys/contrast/coordinator/internal/peerrecovery"
