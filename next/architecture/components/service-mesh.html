@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">Service mesh | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/next/architecture/components/service-mesh"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Service mesh | Contrast"><meta data-rh="true" name="description" content="The Contrast service mesh secures the communication of the workload by automatically"><meta data-rh="true" property="og:description" content="The Contrast service mesh secures the communication of the workload by automatically"><link data-rh="true" rel="icon" href="/contrast/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/next/architecture/components/service-mesh"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/architecture/components/service-mesh" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/architecture/components/service-mesh" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Service mesh","item":"https://docs.edgeless.systems/contrast/next/architecture/components/service-mesh"}]}</script><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/assets/css/styles.979edda2.css">
-<script src="/contrast/assets/js/runtime~main.91b02b3e.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.97f4394b.js" defer="defer"></script>
 <script src="/contrast/assets/js/main.3b1dbf84.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -102,13 +102,13 @@ the other under <code>cart-svc:8080</code>.</p>
 </ul>
 <p><img decoding="async" loading="lazy" alt="PKI certificate chain" src="/contrast/assets/images/contrast_pki.drawio-a2442a1eeb081612c5ad587a58589ad4.svg" class="img_ev3q"></p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="certificate-issuance">Certificate issuance<a href="#certificate-issuance" class="hash-link" aria-label="Direct link to Certificate issuance" title="Direct link to Certificate issuance" translate="no">​</a></h3>
-<p>Once a workload pod’s attestation is successfully verified by the Coordinator, it receives:</p>
+<p>Once a workload pod&#x27;s attestation is successfully verified by the Coordinator, it receives:</p>
 <ul>
 <li class="">A <strong>mesh certificate</strong></li>
 <li class="">The <strong>mesh CA certificate</strong></li>
 </ul>
-<p>The mesh certificate includes X.509 extensions based on the workload’s attestation document and can be used as a client or server certificate in TLS connections. It proves to the remote party that the workload was verified by the Coordinator. The remote party can verify the mesh certificate using the mesh CA certificate.</p>
-<p>While developers may use these certificates independently, they&#x27;re also automatically used by Contrast’s service mesh for secure communication.</p>
+<p>The mesh certificate includes X.509 extensions based on the workload&#x27;s attestation document and can be used as a client or server certificate in TLS connections. It proves to the remote party that the workload was verified by the Coordinator. The remote party can verify the mesh certificate using the mesh CA certificate.</p>
+<p>While developers may use these certificates independently, they&#x27;re also automatically used by Contrast&#x27;s service mesh for secure communication.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="certificate-rotation">Certificate rotation<a href="#certificate-rotation" class="hash-link" aria-label="Direct link to Certificate rotation" title="Direct link to Certificate rotation" translate="no">​</a></h3>
 <p>Every time the manifest is updated, the Coordinator rotates the intermediate private key. As a result, both the intermediate CA certificate and the mesh CA certificate are renewed.</p>
 <p>This mechanism protects against scenarios where a workload owner introduces unauthorized containers after verification. If a user doesn&#x27;t trust the workload owner, they should only trust mesh certificates signed by the mesh CA certificate obtained during their own verification process.</p>
