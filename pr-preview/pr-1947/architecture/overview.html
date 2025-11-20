@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">Overview | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/pr-preview/pr-1947/architecture/overview"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="1.15"><meta data-rh="true" name="docusaurus_tag" content="docs-default-1.15"><meta data-rh="true" name="docsearch:version" content="1.15"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-1.15"><meta data-rh="true" property="og:title" content="Overview | Contrast"><meta data-rh="true" name="description" content="This page introduces the core components of Contrast and explains its architectural principles."><meta data-rh="true" property="og:description" content="This page introduces the core components of Contrast and explains its architectural principles."><link data-rh="true" rel="icon" href="/contrast/pr-preview/pr-1947/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1947/architecture/overview"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1947/architecture/overview" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/pr-preview/pr-1947/architecture/overview" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Overview","item":"https://docs.edgeless.systems/contrast/pr-preview/pr-1947/architecture/overview"}]}</script><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/pr-preview/pr-1947/assets/css/styles.979edda2.css">
-<script src="/contrast/pr-preview/pr-1947/assets/js/runtime~main.d472f14b.js" defer="defer"></script>
+<script src="/contrast/pr-preview/pr-1947/assets/js/runtime~main.70546736.js" defer="defer"></script>
 <script src="/contrast/pr-preview/pr-1947/assets/js/main.b661c902.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -32,7 +32,7 @@ The Contrast Coordinator is an additional service deployed to the cluster.
 Like other components, it runs inside a CVM using the Contrast runtime.
 It serves as the central attestation authority, ensuring that only verified workloads can join the trusted service mesh.
 The Coordinator uses a <em>manifest</em>, a <code>.json</code> file that defines the trusted state of your cluster by listing cryptographic hashes for all approved workloads.
-Each CVM’s attestation is verified against this manifest before the workload is trusted.</p>
+Each CVM&#x27;s attestation is verified against this manifest before the workload is trusted.</p>
 </li>
 <li class="">
 <p><strong>Initializer</strong>:
@@ -43,7 +43,7 @@ It implements the attestation logic and constitutes the attestation endpoint on 
 <p><strong>Service mesh</strong>:
 The Contrast Coordinator also acts as a Certificate Authority (CA), issuing certificates only to workloads that successfully pass attestation.
 These certificates can be used to establish a trusted service mesh for secure pod-to-pod communication.
-It can also be presented to external clients, allowing them to verify the service’s identity.</p>
+It can also be presented to external clients, allowing them to verify the service&#x27;s identity.</p>
 </li>
 <li class="">
 <p><strong>Contrast CLI</strong>:
