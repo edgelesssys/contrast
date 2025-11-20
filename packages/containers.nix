@@ -180,6 +180,7 @@ let
         ncurses
         contrastPkgs.debugshell
         openssh
+        contrastPkgs.tdx-tools
       ];
       config = {
         Entrypoint = [ "/bin/debugshell" ];
