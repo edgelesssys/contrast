@@ -221,9 +221,9 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 	// These are the hashes for some fw_cfg/ACPI related measurements.
 	// TODO(freax13): Don't hard-code these, calculate them instead.
 	configHashes := []string{
-		"dbb32c5a195f60df71564cdb220d8058b096f91c962a8cce7d0653686124c4ba3a7f3a67cfd60246fce8372cbcb5ecfb",
-		"91cde1273d7cd58821d8a1e70ca10daa30f068c371447800ee18131f180661df3589e5fa259bb3b1b40e162444c341e2",
-		"b0d0bc2648a85f47642e9e4ad20a966ac723b36e16f297dd2cce70b19a717855636086db513ce6ed56ffc42ffb13b5bb",
+		"2685cabde42188ea89029e3f717eee76108b4251a80ad011e5ebeaccc62fdd6636d64ee3ae6b0da7e374e379578c4e06",
+		"c40177551aa9c6034f27ae8764a4b19a4689f2d9ab0f15650f95a4742f1ffa3a87ba247f1dda0cf583603ec56aeda8e9",
+		"bae56cb4bba81b167ccb2c9a5a442b0f0bdcd894dad5c22a61b717e66db39fe863eb97c7cc07803008ba37e65b74c255",
 	}
 	for _, hash := range configHashes {
 		var buffer [48]byte
