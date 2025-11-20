@@ -54,7 +54,7 @@ buildGoModule (finalAttrs: {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-7sTn0YeZLoV5USUvZqcc9pcPHD63ydhOUJAXLKEbzOo=";
+  vendorHash = "sha256-OrKR34xs/B80vYS730vomrSFlVjJJ7lFT2csxXZVatQ=";
 
   sourceRoot = "${finalAttrs.src.name}/initdata-processor";
   subPackages = [ "." ];
