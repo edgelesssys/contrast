@@ -6,11 +6,11 @@ Subject: [PATCH] runtime: pass imagepuller config device to vm
 Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
 ---
  src/runtime/pkg/katautils/config.go          |  2 +
- src/runtime/virtcontainers/hypervisor.go     | 65 ++++++++++++++++++--
- src/runtime/virtcontainers/qemu.go           | 10 ++-
+ src/runtime/virtcontainers/hypervisor.go     | 59 ++++++++++++++++++--
+ src/runtime/virtcontainers/qemu.go           | 10 +++-
  src/runtime/virtcontainers/qemu_arch_base.go |  6 +-
  src/runtime/virtcontainers/qemu_test.go      |  2 +-
- 5 files changed, 75 insertions(+), 10 deletions(-)
+ 5 files changed, 69 insertions(+), 10 deletions(-)
 
 diff --git a/src/runtime/pkg/katautils/config.go b/src/runtime/pkg/katautils/config.go
 index d8c57e11c041efa597ab0f047546c3b5d1535806..49121ab8752bd7daaa1ced951c1a6d1da42d6078 100644
@@ -33,7 +33,7 @@ index d8c57e11c041efa597ab0f047546c3b5d1535806..49121ab8752bd7daaa1ced951c1a6d1d
  }
  
 diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
-index 1bcbb03e6f1a166c092c1a3a9b180b617a7eeb8b..f3f9869bce2ace9375017a61ce0f84210873d678 100644
+index 1bcbb03e6f1a166c092c1a3a9b180b617a7eeb8b..2f82bde0b23a597325936aec74d4f9b0ec06bf50 100644
 --- a/src/runtime/virtcontainers/hypervisor.go
 +++ b/src/runtime/virtcontainers/hypervisor.go
 @@ -704,6 +704,13 @@ type HypervisorConfig struct {
@@ -59,7 +59,7 @@ index 1bcbb03e6f1a166c092c1a3a9b180b617a7eeb8b..f3f9869bce2ace9375017a61ce0f8421
  		logger.WithField("initdata", "prepare initdata image").WithError(err).Error("prepare failed")
  		return err
  	}
-@@ -1228,9 +1235,53 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
+@@ -1228,9 +1235,47 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
  	return nil
  }
  
@@ -70,23 +70,17 @@ index 1bcbb03e6f1a166c092c1a3a9b180b617a7eeb8b..f3f9869bce2ace9375017a61ce0f8421
 +// (data.img) via prepareInitdataImage, and sets config.ImagepullerConfigImage to the
 +// resulting absolute path.
 +func prepareImagepullerConfigMount(logger *logrus.Entry, id string, config *HypervisorConfig) error {
-+	if config.ImagepullerConfigPath == "" {
-+		logger.Info("No imagepuller config provided. Skipping prepare imagepuller config device")
-+		return nil
-+	}
-+	if _, err := os.Stat(config.ImagepullerConfigPath); errors.Is(err, os.ErrNotExist) {
-+		logger.
-+			WithField("imagepuller_config_path", config.ImagepullerConfigPath).
-+			Info("Imagepuller config file does not exist. Skipping prepare imagepuller config device")
-+		return nil
-+	} else if err != nil {
-+		return err
-+	}
++	content := []byte{}
 +
-+	content, err := os.ReadFile(config.ImagepullerConfigPath)
-+	if err != nil {
-+		logger.WithField("initdata", "read imagepuller config file").WithError(err).Error("reading config failed")
-+		return err
++	if config.ImagepullerConfigPath == "" {
++		logger.Info("No imagepuller config provided. Writing empty config.")
++	} else {
++		readContent, err := os.ReadFile(config.ImagepullerConfigPath)
++		if err != nil {
++			logger.WithField("initdata", "read imagepuller config file").WithError(err).Error("reading config failed")
++			return err
++		}
++		content = readContent
 +	}
 +
 +	logger.Info("Start to prepare imagepuller config")
@@ -114,7 +108,7 @@ index 1bcbb03e6f1a166c092c1a3a9b180b617a7eeb8b..f3f9869bce2ace9375017a61ce0f8421
  // Then a "length" field of 8 bytes follows (unsigned int64).
  // Finally the gzipped initdata toml. The image will be padded to an
  // integer multiple of the sector size for alignment.
-@@ -1239,13 +1290,17 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
+@@ -1239,13 +1284,17 @@ func prepareInitdataMount(logger *logrus.Entry, id string, config *HypervisorCon
  // 0	  'i' 'n' 'i' 't' 'd' 'a' 't' 'a'  | gzip length in le  |
  // 16	  gzip(initdata toml) ...
  // (end of the last sector)  '\0' paddings
@@ -134,7 +128,7 @@ index 1bcbb03e6f1a166c092c1a3a9b180b617a7eeb8b..f3f9869bce2ace9375017a61ce0f8421
  	err := gzipper.Close()
  	if err != nil {
  		return fmt.Errorf("failed to compress initdata: %v", err)
-@@ -1266,7 +1321,7 @@ func prepareInitdataImage(initdata string, imagePath string) error {
+@@ -1266,7 +1315,7 @@ func prepareInitdataImage(initdata string, imagePath string) error {
  	}
  	defer file.Close()
  
