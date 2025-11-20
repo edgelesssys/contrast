@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/edgelesssys/contrast/coordinator/internal/history"
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/testkeys"
