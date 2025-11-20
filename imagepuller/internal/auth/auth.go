@@ -37,8 +37,8 @@ type Registry struct {
 // An attacker with k8s admin privileges could thus change the config.
 func ReadInsecureConfig(path string, log *slog.Logger) (*Config, error) {
 	data, err := os.ReadFile(path)
-	if errors.Is(err, os.ErrNotExist) {
-		log.Info("Imagepuller auth config file does not exist. Authenticated pulls are not available")
+	if errors.Is(err, os.ErrNotExist) || len(data) == 0 {
+		log.Info("Imagepuller auth config file does not exist or is empty. Authenticated pulls are not available")
 		return &Config{}, nil
 	} else if err != nil {
 		return nil, fmt.Errorf("reading insecure config file %q: %w", api.InsecureConfigPath, err)

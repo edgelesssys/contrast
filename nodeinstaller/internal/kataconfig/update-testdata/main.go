@@ -75,7 +75,7 @@ func main() {
 			log.Fatalf("failed to write new config: %s", err)
 		}
 
-		cfg, err := kataconfig.KataRuntimeConfig("/", platform, "", snpIDBlock, false)
+		cfg, err := kataconfig.KataRuntimeConfig("/", platform, "", snpIDBlock, "", false)
 		if err != nil {
 			log.Fatalf("failed to create config: %s", err)
 		}
