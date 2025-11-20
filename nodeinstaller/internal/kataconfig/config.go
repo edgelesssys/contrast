@@ -44,6 +44,7 @@ func KataRuntimeConfig(
 	platform platforms.Platform,
 	qemuExtraKernelParams string,
 	snpIDBlock SnpIDBlock,
+	imagepullerConfigPath string,
 	debug bool,
 ) (*Config, error) {
 	var config Config
@@ -60,7 +61,7 @@ func KataRuntimeConfig(
 		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
 		config.Hypervisor["qemu"]["rootfs_type"] = "erofs"
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "tdx", "bin", "qemu-system-x86_64")}
-		config.Hypervisor["qemu"]["contrast_imagepuller_config"] = filepath.Join(baseDir, "etc", "host-config", "contrast-imagepuller.toml")
+		config.Hypervisor["qemu"]["contrast_imagepuller_config"] = imagepullerConfigPath
 		// Fix and align guest memory calculation.
 		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
 		config.Runtime["sandbox_cgroup_only"] = true
@@ -89,7 +90,7 @@ func KataRuntimeConfig(
 		config.Hypervisor["qemu"]["image"] = filepath.Join(baseDir, "share", "kata-containers.img")
 		config.Hypervisor["qemu"]["rootfs_type"] = "erofs"
 		config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "snp", "bin", "qemu-system-x86_64")}
-		config.Hypervisor["qemu"]["contrast_imagepuller_config"] = filepath.Join(baseDir, "etc", "host-config", "contrast-imagepuller.toml")
+		config.Hypervisor["qemu"]["contrast_imagepuller_config"] = imagepullerConfigPath
 		// Fix and align guest memory calculation.
 		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMegaBytes(platform)
 		config.Runtime["sandbox_cgroup_only"] = true

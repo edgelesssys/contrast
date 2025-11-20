@@ -91,16 +91,17 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 		return fmt.Errorf("installing files: %w", err)
 	}
 
-	if err := containerdRuntimeConfig(runtimeBase, targetConf.KataConfigPath(), platform, config.QemuExtraKernelParams, config.DebugRuntime); err != nil {
+	imagepullerConfigPath, err := installImagepullerConfig(hostMount, runtimeHandler)
+	if err != nil {
+		return fmt.Errorf("installing imagepuller config: %w", err)
+	}
+
+	if err := containerdRuntimeConfig(runtimeBase, targetConf.KataConfigPath(), platform, config.QemuExtraKernelParams, imagepullerConfigPath, config.DebugRuntime); err != nil {
 		return fmt.Errorf("generating kata runtime configuration: %w", err)
 	}
 
 	if err := patchContainerdConfig(runtimeHandler, runtimeBase, targetConf.ContainerdConfigPath(), platform, config.DebugRuntime); err != nil {
 		return fmt.Errorf("patching containerd configuration: %w", err)
-	}
-
-	if err := installImagepullerConfig(hostMount, runtimeHandler); err != nil {
-		return fmt.Errorf("installing imagepuller config: %w", err)
 	}
 
 	if targetConf.RestartSystemdUnit() {
@@ -157,7 +158,7 @@ func envWithDefault(key, dflt string) string {
 	return value
 }
 
-func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams string, debugRuntime bool) error {
+func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams, imagepullerConfigPath string, debugRuntime bool) error {
 	var snpIDBlock kataconfig.SnpIDBlock
 	if platforms.IsSNP(platform) && platforms.IsQEMU(platform) {
 		var err error
@@ -166,7 +167,7 @@ func containerdRuntimeConfig(basePath, configPath string, platform platforms.Pla
 			return fmt.Errorf("getting SNP ID block for platform %q: %w", platform, err)
 		}
 	}
-	kataRuntimeConfig, err := kataconfig.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, snpIDBlock, debugRuntime)
+	kataRuntimeConfig, err := kataconfig.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, snpIDBlock, imagepullerConfigPath, debugRuntime)
 	if err != nil {
 		return fmt.Errorf("generating kata runtime config: %w", err)
 	}
@@ -374,35 +375,35 @@ type assetFetcher interface {
 func installImagepullerConfig(
 	hostMount string,
 	runtimeHandlerName string,
-) error {
+) (string, error) {
 	imagepullerSource := "/imagepuller-config/contrast-imagepuller.toml"
-	imagepullerDest := filepath.Join(hostMount, fmt.Sprintf("/opt/edgeless/%s/etc/host-config/contrast-imagepuller.toml", runtimeHandlerName))
+	configPath := filepath.Join(hostMount, fmt.Sprintf("/opt/edgeless/%s/etc/host-config/contrast-imagepuller.toml", runtimeHandlerName))
 
 	if _, err := os.Stat(imagepullerSource); err != nil {
 		log.Println("No imagepuller config provided, skipping")
-		return nil
+		return "", nil
 	}
 
-	if err := os.MkdirAll(filepath.Dir(imagepullerDest), 0o777); err != nil {
-		return fmt.Errorf("creating imagepuller source configuration parent dir %q: %w", filepath.Dir(imagepullerDest), err)
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o777); err != nil {
+		return "", fmt.Errorf("creating imagepuller source configuration parent dir %q: %w", filepath.Dir(configPath), err)
 	}
 
 	inputFile, err := os.Open(imagepullerSource)
 	if err != nil {
-		return fmt.Errorf("opening imagepuller config source file %q: %w", imagepullerSource, err)
+		return "", fmt.Errorf("opening imagepuller config source file %q: %w", imagepullerSource, err)
 	}
 	defer inputFile.Close()
 
-	outputFile, err := os.Create(imagepullerDest)
+	outputFile, err := os.Create(configPath)
 	if err != nil {
-		return fmt.Errorf("opening imagepuller config destination file %q: %w", imagepullerDest, err)
+		return "", fmt.Errorf("opening imagepuller config destination file %q: %w", configPath, err)
 	}
 	defer outputFile.Close()
 
 	if _, err := io.Copy(outputFile, inputFile); err != nil {
-		return fmt.Errorf("copying imagepuller config from source %q to destination %q: %w", imagepullerSource, imagepullerDest, err)
+		return "", fmt.Errorf("copying imagepuller config from source %q to destination %q: %w", imagepullerSource, configPath, err)
 	}
 
-	log.Printf("Installed imagepuller config to %q", imagepullerDest)
-	return nil
+	log.Printf("Installed imagepuller config to %q", configPath)
+	return configPath, nil
 }
