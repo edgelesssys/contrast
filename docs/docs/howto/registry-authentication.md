@@ -54,6 +54,7 @@ contrast generate "$@"
 For the [Contrast image puller](../architecture/components/runtime.md#contrast-image-puller) to be able to pull images from a private registry, it must be configured with the required authentication details.
 Contrast uses its own `TOML`-based configuration format for this purpose.
 This configuration must be provided as a secret[^1] to the [node installer `DaemonSet`](../architecture/components/runtime.md#node-installer-daemonset).
+This secret must be named `contrast-node-installer-imagepuller-config` and belong to the `kube-system` namespace for the node installer to recognize and use it.
 The node installer then handles installing the secret in the runtime directory on the host, from where the runtime then forwards it to the confidential pod VM, allowing the image puller to read it.
 
 [^1]: Kubernetes secrets are accessible to anyone with API access to the node, as well as anyone with access to `etcd` ([source](https://kubernetes.io/docs/concepts/configuration/secret/)).
@@ -71,6 +72,15 @@ Since the image puller configuration is annotated to the pod, it can be retrieve
 This may result in an unexpected leak of sensitive information.
 
 :::
+
+#### Limitations
+
+Currently, it's only possible to specify a single image puller auth configuration per runtime class, since only a single secret path can be configured for a runtime class.
+Conversely, if this secret is present on a node, every node install will use it, granting deployments access to the configured registries.
+This also extends to every newly installed runtime class.
+
+Per default, all runtime classes use the same auth configuration, derived from the `contrast-node-installer-imagepuller-config` secret.
+If you wish to use a different secret for a specific runtime class, you can change the `secretName` of the `DaemonSet` configuration in `runtime/runtime.yml` to a different name before applying the node installer, and put the image puller auth configuration into a secret with that name.
 
 #### Creating an image puller configuration
 
