@@ -6,13 +6,13 @@ Contrast's `verify` subcommand is currently implemented as an RPC method served 
 This requires users to be able to establish a direct TCP connection to the Coordinator, which comes with the following drawbacks:
 
 1. Contrast Coordinator needs to be exposed directly to the user, likely over the public internet.
-   - Coordinator does not benefit from protocol-level mitigations and access controls.
+   - Coordinator doesn't benefit from protocol-level mitigations and access controls.
 2. Can't be used with a TLS-intercepting box-in-the-middle.
 3. Might trip systems that analyze TLS handshakes due to unconventional use of ALPN and certificate extensions.
 
 ## Requirements
 
-1. Users must be able to verify a Coordinator's state using standard HTTP(S) APIs.
+1. Users must be able to verify a Coordinator's state using standard HTTP APIs.
 2. Users must be able to obtain the manifest history up to including the current manifest and the CA certs for the current manifest.
 3. The verification must be able to uphold the same guarantees that aTLS gives.
    Given an expected manifest $M_n$, successful verification implies that:
@@ -21,7 +21,7 @@ This requires users to be able to establish a direct TCP connection to the Coord
    3. The Coordinator is currently enforcing manifest $M_n$.
    4. The manifest history $M_1..M_n$ returned with the verification response reflects the history seen by the Coordinator.
    5. The root CA cert belongs to this Coordinator, and the mesh CA cert is the one for $M_n$.
-4. Verification should not require a direct connection to the Coordinator.
+4. Verification shouldn't require a direct connection to the Coordinator.
 
 ## Design
 
@@ -56,7 +56,7 @@ type VerifyResponse struct {
 ### Binding response fields to attestation
 
 In order to satisfy requirement (3), the request and response fields need to be reflected in the attestation report.
-We accomplish this by building a checksum over the fields that are not content-addressed and using that as `REPORTDATA`.
+We accomplish this by building a checksum over the fields that aren't content-addressed and using that as `REPORTDATA`.
 
 In [RFC 004](004-recovery.md#state-transitions) we defined the concept of _transitions_, which identify a history of manifest updates.
 We make use of these transitions to define the checksum.
@@ -68,7 +68,7 @@ reportdata = sha256(nonce || sha256(transition) || sha256(root-ca) || sha256(mes
 ### Verification by the client
 
 After fetching the `VerifyResponse` object, the client first reconstructs a transition chain from the `Manifests` field.
-Since tranistions have a unique binary encoding, this is deterministic.
+Since transitions have a unique binary encoding, this is deterministic.
 Together with the nonce and the CA certificates, the client can construct the expected `REPORTDATA` as described above.
 
 Then the client creates a list of validators from the expected manifest, validates the attestation report with the expected `REPORTDATA`.
@@ -83,7 +83,7 @@ Since we already know that the Coordinator is running the correct software, the 
 - sent the manifest history up to including the currently enforced manifest (requirements 3.3, 3.4)
 - the mesh CA cert matches the current manifest and the root CA cert belongs to this Contrast deployment (requirement 3.5)
 
-The entire verification should be implemented in the `sdk` package, and should not assume a connection to the Coordinator.
+The entire verification should be implemented in the `sdk` package, and shouldn't assume a connection to the Coordinator.
 
 ```go
 func ValidateState(expectedManifest []byte, nonce []byte, resp *VerifyResponse) error

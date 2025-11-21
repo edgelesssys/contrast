@@ -48,6 +48,7 @@ Datadog
 deallocate
 deduplicate
 DEK
+deserializes?
 devs
 Dockerfile
 Dynatrace
@@ -170,7 +171,7 @@ updatable
 upsert
 userland
 UUID
-validator
+validators?
 vCPU
 vendored
 virsh
