@@ -377,15 +377,16 @@ func installImagepullerConfig(
 	runtimeHandlerName string,
 ) (string, error) {
 	imagepullerSource := "/imagepuller-config/contrast-imagepuller.toml"
-	configPath := filepath.Join(hostMount, fmt.Sprintf("/opt/edgeless/%s/etc/host-config/contrast-imagepuller.toml", runtimeHandlerName))
+	configPath := fmt.Sprintf("/opt/edgeless/%s/etc/host-config/contrast-imagepuller.toml", runtimeHandlerName)
+	configPathHost := filepath.Join(hostMount, configPath)
 
 	if _, err := os.Stat(imagepullerSource); err != nil {
 		log.Println("No imagepuller config provided, skipping")
 		return "", nil
 	}
 
-	if err := os.MkdirAll(filepath.Dir(configPath), 0o777); err != nil {
-		return "", fmt.Errorf("creating imagepuller source configuration parent dir %q: %w", filepath.Dir(configPath), err)
+	if err := os.MkdirAll(filepath.Dir(configPathHost), 0o777); err != nil {
+		return "", fmt.Errorf("creating imagepuller source configuration parent dir %q: %w", filepath.Dir(configPathHost), err)
 	}
 
 	inputFile, err := os.Open(imagepullerSource)
@@ -394,16 +395,16 @@ func installImagepullerConfig(
 	}
 	defer inputFile.Close()
 
-	outputFile, err := os.Create(configPath)
+	outputFile, err := os.Create(configPathHost)
 	if err != nil {
-		return "", fmt.Errorf("opening imagepuller config destination file %q: %w", configPath, err)
+		return "", fmt.Errorf("opening imagepuller config destination file %q: %w", configPathHost, err)
 	}
 	defer outputFile.Close()
 
 	if _, err := io.Copy(outputFile, inputFile); err != nil {
-		return "", fmt.Errorf("copying imagepuller config from source %q to destination %q: %w", imagepullerSource, configPath, err)
+		return "", fmt.Errorf("copying imagepuller config from source %q to destination %q: %w", imagepullerSource, configPathHost, err)
 	}
 
-	log.Printf("Installed imagepuller config to %q", configPath)
+	log.Printf("Installed imagepuller config to %q on the host", configPath)
 	return configPath, nil
 }
