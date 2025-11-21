@@ -86,7 +86,7 @@ The above guide can be tried out with a [MySQL](https://mysql.com) sample deploy
 You can add the deployment file to your resources by running:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/mysql-demo.yml --output-dir resources
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.15.0/mysql-demo.yml --output-dir resources
 ```
 
 :::note[MySQL]
