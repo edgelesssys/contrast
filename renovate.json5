@@ -44,6 +44,7 @@
       matchManagers: [ "gomod" ],
       matchDepTypes: [ "indirect" ],
       matchUpdateTypes: [
+        "digest",
         "minor",
         "patch",
       ],
