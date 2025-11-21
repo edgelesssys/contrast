@@ -62,6 +62,7 @@
       matchManagers: [ "gomod" ],
       matchDepTypes: [ "require" ],
       matchUpdateTypes: [
+        "digest",
         "minor",
         "patch",
       ],

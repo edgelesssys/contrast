@@ -7,3 +7,5 @@ contrast.initializer.overrideAttrs (prevAttrs: {
     mainProgram = "initializer";
   };
 })
+
+# test rerun?
