@@ -9,6 +9,7 @@ This requires users to be able to establish a direct TCP connection to the Coord
    - Coordinator doesn't benefit from protocol-level mitigations and access controls.
 2. Can't be used with a TLS-intercepting box-in-the-middle.
 3. Might trip systems that analyze TLS handshakes due to unconventional use of ALPN and certificate extensions.
+4. Can't be used in environments that don't offer flexible TLS handshake APIs, such as a web browser.
 
 ## Requirements
 
