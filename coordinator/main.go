@@ -24,6 +24,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	transitengine "github.com/edgelesssys/contrast/coordinator/internal/transitengineapi"
 	userapiserver "github.com/edgelesssys/contrast/coordinator/internal/userapi"
+	"github.com/edgelesssys/contrast/coordinator/internal/verify"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
@@ -49,6 +50,7 @@ import (
 
 const (
 	metricsEnvVar       = "CONTRAST_METRICS"
+	verifyPort          = 1314
 	probeAndMetricsPort = 9102
 	// transitEngineAPIPort specifies the default port to expose the transit engine API.
 	transitEngineAPIPort = "8200"
@@ -151,6 +153,25 @@ func run() (retErr error) {
 	eg, ctx := errgroup.WithContext(ctxSignal)
 
 	eg.Go(func() error {
+		h := verify.Handler{
+			Issuer:     issuer,
+			StateGuard: meshAuth,
+		}
+
+		httpServer := &http.Server{}
+		mux := http.NewServeMux()
+		mux.Handle("/verify", &h)
+
+		httpServer.Addr = ":" + strconv.Itoa(verifyPort)
+		httpServer.Handler = mux
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Starting verify http server", "err", err)
+			return fmt.Errorf("starting verify http server: %w", err)
+		}
+		return nil
+	})
+
+	eg.Go(func() error {
 		_, enableMetrics := os.LookupEnv(metricsEnvVar)
 		mux := http.NewServeMux()
 		if enableMetrics {
@@ -168,8 +189,8 @@ func run() (retErr error) {
 		httpServer.Addr = ":" + strconv.Itoa(probeAndMetricsPort)
 		httpServer.Handler = mux
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Error("Starting http server", "err", err)
-			return fmt.Errorf("starting http server: %w", err)
+			logger.Error("Starting probes and metrics http server", "err", err)
+			return fmt.Errorf("starting probes and metrics http server: %w", err)
 		}
 		return nil
 	})
