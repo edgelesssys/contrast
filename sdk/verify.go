@@ -16,6 +16,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
 )
@@ -99,11 +100,30 @@ func (Client) Verify(expectedManifest []byte, manifestHistory [][]byte) error {
 // CoordinatorState represents the state of the Contrast Coordinator at a fixed point in time.
 type CoordinatorState struct {
 	// Manifests is a slice of manifests. It represents the manifest history of the Coordinator it was received from, sorted from oldest to newest.
-	Manifests [][]byte
+	Manifests [][]byte `json:"manifests"`
 	// Policies contains all policies that have been referenced in any manifest in Manifests. Used to verify the guarantees a deployment had over its lifetime.
-	Policies [][]byte
+	Policies [][]byte `json:"policies"`
 	// PEM-encoded certificate of the deployment's root CA.
-	RootCA []byte
+	RootCA []byte `json:"root_ca"`
 	// PEM-encoded certificate of the deployment's mesh CA.
-	MeshCA []byte
+	MeshCA []byte `json:"mesh_ca"`
+}
+
+// ConstructReportData constructs an extended report data digest,
+// intended for use with application-level verification.
+func ConstructReportData(nonce []byte, transitionDigest []byte, state *CoordinatorState) [64]byte {
+	// reportdata = sha256(nonce || sha256(transition) || sha256(root-ca) || sha256(mesh-ca))
+	rootCADigest := history.Digest(state.RootCA)
+	meshCADigest := history.Digest(state.MeshCA)
+
+	reportdata := append([]byte{}, nonce...)
+	reportdata = append(reportdata, transitionDigest[:]...)
+	reportdata = append(reportdata, rootCADigest[:]...)
+	reportdata = append(reportdata, meshCADigest[:]...)
+	hash32 := history.Digest(reportdata)
+
+	var hash64 [64]byte
+	copy(hash64[:], hash32[:])
+
+	return hash64
 }

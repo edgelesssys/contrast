@@ -449,3 +449,8 @@ func (s *State) ManifestBytes() []byte {
 func (s *State) CA() *ca.CA {
 	return s.ca
 }
+
+// LatestTransition returns the latest transition.
+func (s *State) LatestTransition() *history.LatestTransition {
+	return s.latest
+}
