@@ -238,6 +238,29 @@ This has some overlap with the [`GuestPolicy`](#snp-guest-policy), but is checke
 #### `ReferenceValues.snp.*.PlatformInfo.TIOEnabled` {#snp-platform-info-tio-enabled}
 -->
 
+### `ReferenceValues.snp.AllowedChipIDs`
+
+These are matched against the `CHIP_ID` field from the SNP attestation report, as documented in Table 23 in the [SEV ABI Spec].
+If the list is empty or null, all chip IDs are accepted.
+
+In case hardware is operated by you instead of a third party, or you are able to gain physical access to the hardware to audit it,
+you can list the known-good chip IDs of the hardware to ensure that the hardware is genuine and operated in a trusted physical environment.
+
+To show the chip ID of a system, use [`snphost`]:
+
+```sh
+snphost show identifier
+```
+
+The returned value can be inserted into the `AllowedChipIDs` list.
+
+:::warning
+
+The chip ID must be retrieved from a machine by physically accessing it.
+If you retrieve the chip ID via a remote channel, your traffic could already be redirected to a hostile environment that allows an attacker physical access.
+
+:::
+
 ### `ReferenceValues.tdx.*.MrTd` {#tdx-mr-td}
 
 The TD measurement register (`MRTD`) is a hash over the initial memory content of the confidential VM.
