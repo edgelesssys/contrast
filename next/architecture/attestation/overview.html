@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="generator" content="Docusaurus v3.9.2">
 <title data-rh="true">Attestation in Contrast | Contrast</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:url" content="https://docs.edgeless.systems/contrast/next/architecture/attestation/overview"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Attestation in Contrast | Contrast"><meta data-rh="true" name="description" content="Contrast uses remote attestation to ensure that each workload pod runs in a verifiable and trusted environment. Every pod is executed inside a Confidential Virtual Machine (CVM), and its integrity and configuration are verified at launch using hardware-based attestation."><meta data-rh="true" property="og:description" content="Contrast uses remote attestation to ensure that each workload pod runs in a verifiable and trusted environment. Every pod is executed inside a Confidential Virtual Machine (CVM), and its integrity and configuration are verified at launch using hardware-based attestation."><link data-rh="true" rel="icon" href="/contrast/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://docs.edgeless.systems/contrast/next/architecture/attestation/overview"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/architecture/attestation/overview" hreflang="en"><link data-rh="true" rel="alternate" href="https://docs.edgeless.systems/contrast/next/architecture/attestation/overview" hreflang="x-default"><script data-rh="true" type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Overview","item":"https://docs.edgeless.systems/contrast/next/architecture/attestation/overview"}]}</script><script src="/contrast/gtagman.js" async data-cookieconsent="ignore"></script><link rel="stylesheet" href="/contrast/assets/css/styles.979edda2.css">
-<script src="/contrast/assets/js/runtime~main.998746e4.js" defer="defer"></script>
-<script src="/contrast/assets/js/main.c26fb75b.js" defer="defer"></script>
+<script src="/contrast/assets/js/runtime~main.d27d990b.js" defer="defer"></script>
+<script src="/contrast/assets/js/main.462f44b9.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
 <svg style="display: none;"><defs>
@@ -44,22 +44,17 @@ On VM startup and before the Kata agent starts, a special process called <code>i
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="verifier-contrast-coordinator--cli">Verifier: Contrast Coordinator &amp; CLI<a href="#verifier-contrast-coordinator--cli" class="hash-link" aria-label="Direct link to Verifier: Contrast Coordinator &amp; CLI" title="Direct link to Verifier: Contrast Coordinator &amp; CLI" translate="no">​</a></h3>
 <p>The Coordinator runs inside a CVM and verifies attestation reports from other pods. It:</p>
 <ul>
-<li class="">Checks launch measurements and initdata hashes against a trusted <strong>manifest</strong></li>
+<li class="">Checks attestation reports, including the initdata hash, against a trusted <a class="" href="/contrast/next/architecture/components/manifest">manifest</a></li>
 <li class="">Issues service mesh certificates to verified pods</li>
-<li class="">Functions as the verifier for the full deployment</li>
 </ul>
-<p>The <strong>manifest</strong> is a JSON configuration that defines the trusted state of the deployment. It includes:</p>
-<ul>
-<li class=""><strong>ReferenceValues</strong>: Expected CVM launch measurements</li>
-<li class=""><strong>Policies</strong>: Hashes of permitted initdata documents</li>
-<li class=""><strong>WorkloadOwnerKeyDigests</strong>: Public key digests used to authorize future manifest updates</li>
-<li class=""><strong>SeedshareOwnerPubKeys</strong>: Used for securely recovering workload secrets and restoring trust</li>
-</ul>
-<p>Only pods whose attestation evidence matches the manifest are accepted into the trusted service mesh.</p>
+<p>Only pods whose attestation evidence matches the manifest are accepted into the trusted service mesh.
+The Coordinator is verifier for all workloads of a Contrast deployment and issues certificates as attestation result, is therefore the certificate authority for a deployment.</p>
 <p>The Contrast Coordinator itself also runs as a confidential pod and is attested using the Contrast CLI.
 The CLI includes embedded reference values for the Coordinator, allowing it to verify the Coordinator&#x27;s identity and integrity during attestation.
 Because these reference values are part of the CLI build, the CLI effectively serves as the root of trust for the deployment.
 Verifying the CLI&#x27;s integrity and authenticity is therefore essential.</p>
+<p>The verification of the Coordinator by the CLI enables trust in the Coordinator to verify other workloads based on the manifest.
+The workloads are then <em>attested transitively</em> through the Coordinator.</p>
 <h3 class="anchor anchorTargetStickyNavbar_Vzrq" id="relying-party-operator-and-data-owner">Relying party: Operator and data owner<a href="#relying-party-operator-and-data-owner" class="hash-link" aria-label="Direct link to Relying party: Operator and data owner" title="Direct link to Relying party: Operator and data owner" translate="no">​</a></h3>
 <p>The Contrast CLI is used by operators or data owners to verify the deployment and establish trust. It:</p>
 <ul>
