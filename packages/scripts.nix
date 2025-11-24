@@ -720,6 +720,8 @@ lib.makeScope pkgs.newScope (scripts: {
     name = "ascii-lint";
     runtimeInputs = [ pkgs.gnugrep ];
     text = ''
+      # The range expression below is locale-dependent, we want it to work in standard ASCII.
+      export LC_ALL="C"
       # Printable ASCII range is 0x20 SPACE to 0x7E TILDE.
       if grep -n '[^ -~]' "$@"; then
         echo "Found non-ASCII characters in above files. Is this an AI generated text?" >&2
