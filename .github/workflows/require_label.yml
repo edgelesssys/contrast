@@ -41,7 +41,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          if ! git log --pretty=format:"%s" "${BASE_SHA}..${HEAD_SHA}" | grep -iE "^[[]?(dnm|do not merge|draft|no ci|temp)"; then
+          if ! git log --pretty=format:"%s" "${BASE_SHA}..${HEAD_SHA}" | grep -iE "^[[]?(dnm|do not merge|draft|no ci|temp|fixup!|squash!)"; then
             exit 0
           fi
           echo '::error::This PR contains commits that should not be merged, see above.'
