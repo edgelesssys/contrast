@@ -58,6 +58,7 @@ buildGoModule {
   subPackages = [
     # keep-sorted start
     "e2e/atls"
+    "e2e/attestation"
     "e2e/genpolicy-unsupported"
     "e2e/gpu"
     "e2e/imagepuller-auth"
