@@ -152,6 +152,7 @@ generate cli=default_cli platform=default_platform:
                 (.ReferenceValues.snp | to_entries)[] as $e
                 | ($e.value
                     | .MinimumTCB = (($b[$e.key].MinimumTCB) // .MinimumTCB))
+                    | .AllowedChipIDs = (($b[$e.key].AllowedChipIDs) // .AllowedChipIDs)
                 ]
             ' {{ workspace_dir }}/manifest.json
         ;;

@@ -276,6 +276,7 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 				for _, overwriteSNP := range baremetalRefVal.SNP {
 					if manifestSNP.ProductName == overwriteSNP.ProductName {
 						manifestSNP.MinimumTCB = overwriteSNP.MinimumTCB
+						manifestSNP.AllowedChipIDs = overwriteSNP.AllowedChipIDs
 						// Filter to only use the reference values of specified baremetal SNP runners
 						snpReferenceValues = append(snpReferenceValues, manifestSNP)
 					}
@@ -284,7 +285,6 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 			m.ReferenceValues.SNP = snpReferenceValues
 
 		case platforms.MetalQEMUTDX:
-
 			// Overwrite the field MrSeam with the ones loaded from the path tcbSpecificationFile.
 			var tdxReferenceValues []manifest.TDXReferenceValues
 			for _, manifestTDX := range m.ReferenceValues.TDX {
