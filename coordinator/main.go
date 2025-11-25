@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/httpapi"
+	commonhttpapi "github.com/edgelesssys/contrast/internal/httpapi"
 	meshapiserver "github.com/edgelesssys/contrast/coordinator/internal/meshapi"
 	"github.com/edgelesssys/contrast/coordinator/internal/peerdiscovery"
 	"github.com/edgelesssys/contrast/coordinator/internal/peerrecovery"
@@ -50,7 +51,6 @@ import (
 
 const (
 	metricsEnvVar       = "CONTRAST_METRICS"
-	verifyPort          = 1314
 	probeAndMetricsPort = 9102
 	// transitEngineAPIPort specifies the default port to expose the transit engine API.
 	transitEngineAPIPort = "8200"
@@ -162,7 +162,7 @@ func run() (retErr error) {
 		mux := http.NewServeMux()
 		mux.Handle("/attest", &h)
 
-		httpServer.Addr = ":" + strconv.Itoa(verifyPort)
+		httpServer.Addr = ":" + commonhttpapi.Port
 		httpServer.Handler = mux
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("Starting verify http server", "err", err)
