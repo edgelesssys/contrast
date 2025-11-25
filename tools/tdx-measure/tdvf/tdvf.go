@@ -119,17 +119,12 @@ func CalculateMrTd(firmware []byte) ([48]byte, error) {
 	}
 
 	for _, section := range sections {
-		err := launchContext.AddRegion(section.MemoryAddress, section.MemoryDataSize)
+		data := firmware[section.DataOffset:][:section.RawDataSize]
+		shouldExtend := section.Attributes&mrExtend != 0
+		err := launchContext.WriteRegion(section.MemoryAddress, data,
+			section.MemoryDataSize, shouldExtend)
 		if err != nil {
 			return [48]byte{}, fmt.Errorf("can't add region: %w", err)
-		}
-
-		if section.Attributes&mrExtend != 0 {
-			data := firmware[section.DataOffset:][:section.RawDataSize]
-			err = launchContext.ExtendRegion(section.MemoryAddress, data)
-			if err != nil {
-				return [48]byte{}, fmt.Errorf("can't extend region: %w", err)
-			}
 		}
 	}
 
