@@ -18,11 +18,17 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 )
 
+// validatorsFromManifestOverride is used to override the validators in tests.
+var validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]atls.Validator, error)
+
 // ValidatorsFromManifest returns a list of validators corresponding to the reference values in the given manifest.
 // Originally an unexported function in the contrast CLI.
 // Can be made unexported again, if we decide to move all userapi calls from the CLI to the SDK.
 // Validators MUST NOT be used concurrently.
 func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.Manifest, log *slog.Logger) ([]atls.Validator, error) {
+	if validatorsFromManifestOverride != nil {
+		return validatorsFromManifestOverride(kdsGetter, m, log)
+	}
 	var validators []atls.Validator
 
 	coordPolicyHash, err := m.CoordinatorPolicyHash()
