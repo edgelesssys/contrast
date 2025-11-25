@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	pageSize  = 0x1000
-	chunkSize = 256
+	pageSize  uint64 = 0x1000
+	chunkSize uint64 = 256
 )
 
 // LaunchContext tracks the measurement state of a guest during launch.
@@ -83,35 +83,37 @@ func (l *LaunchContext) Finalize() [48]byte {
 	return digest
 }
 
-// AddRegion adds multiple pages to the launch measurement.
+// WriteRegion writes [data] to the launch measurement (i.e., the MRTD).
 //
-// This function is a helper that calls `MemPageAdd` in a loop.
-func (l *LaunchContext) AddRegion(gpa uint64, dataLen uint64) error {
+// For each page in the region, it calls `TDH_MEM_PAGE_ADD`, and,
+// if [extend] is true, `TDH_MR_EXTEND` for each chunk in the page.
+//
+// In QEMU, this is done by the `KVM_TDX_INIT_MEM_REGION` ioctl.
+// See: https://github.com/qemu/qemu/blob/de074358e99b8eb5076d3efa267e44c292c90e3e/target/i386/kvm/tdx.c#L359
+func (l *LaunchContext) WriteRegion(gpa uint64, data []byte, dataLen uint64, extend bool) error {
 	if dataLen%pageSize != 0 {
-		return errors.New("data length is not a multiple of the page size")
+		return fmt.Errorf("data length 0x%X is not a multiple of page size 0x%X", dataLen, pageSize)
 	}
 
-	numPages := dataLen / pageSize
-	for i := range numPages {
-		l.MemPageAdd(gpa + i*pageSize)
-	}
+	for i := range dataLen / pageSize {
+		pageOffset := i * pageSize
+		pageAddress := gpa + pageOffset
 
-	return nil
-}
+		l.MemPageAdd(pageAddress)
 
-// ExtendRegion extends multiple chunks to the launch measurement.
-//
-// This function is a helper that calls `MrExtend` in a loop.
-func (l *LaunchContext) ExtendRegion(gpa uint64, data []byte) error {
-	if len(data)%chunkSize != 0 {
-		return errors.New("data length is not a multiple of the chunk size")
-	}
+		if !extend {
+			continue
+		}
 
-	numChunks := uint64(len(data)) / chunkSize
-	for i := range numChunks {
-		var chunk [256]byte
-		copy(chunk[:], data[i*chunkSize:][:chunkSize])
-		l.MrExtend(gpa+i*chunkSize, chunk)
+		for j := range pageSize / chunkSize {
+			chunkOffset := pageOffset + j*chunkSize
+			chunkAddress := pageAddress + j*chunkSize
+
+			var chunk [256]byte
+			copy(chunk[:], data[chunkOffset:][:chunkSize])
+
+			l.MrExtend(chunkAddress, chunk)
+		}
 	}
 
 	return nil
