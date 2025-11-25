@@ -34,7 +34,7 @@ runs:
         nodeInstallerKataGPUImg=$(nix run .#containers.push-node-installer-kata-gpu -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata-gpu")
         initializerImg=$(nix run .#containers.push-initializer -- "${CONTAINER_REGISTRY}/contrast/initializer")
         serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "${CONTAINER_REGISTRY}/contrast/service-mesh-proxy")
-        debugShellImg=$(nix run .#containers.push-debugshell -- "${CONTAINER_REGISTRY}/contrast/debug-shell")
+        debugShellImg=$(nix run .#containers.push-debugshell -- "${CONTAINER_REGISTRY}/contrast/debugshell")
         echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_OUTPUT"
         echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_OUTPUT"
         echo "nodeInstallerKataImg=$nodeInstallerKataImg" | tee -a "$GITHUB_OUTPUT"
@@ -92,7 +92,7 @@ runs:
         ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=$serviceMeshImgTagged
         ghcr.io/edgelesssys/contrast/node-installer-kata:latest=$nodeInstallerKataImgTagged
         ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=$nodeInstallerKataGPUImgTagged
-        ghcr.io/edgelesssys/contrast/debug-shell:latest=$debugShellImgTagged
+        ghcr.io/edgelesssys/contrast/debugshell:latest=$debugShellImgTagged
         EOF
     - name: Upload image replacement file (for main branch PR)
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
