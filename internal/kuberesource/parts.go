@@ -255,6 +255,9 @@ func Coordinator(namespace string) *CoordinatorConfig {
 									WithName("userapi").
 									WithContainerPort(1313),
 								ContainerPort().
+									WithName("httpapi").
+									WithContainerPort(1314),
+								ContainerPort().
 									WithName("meshapi").
 									WithContainerPort(7777),
 								ContainerPort().
