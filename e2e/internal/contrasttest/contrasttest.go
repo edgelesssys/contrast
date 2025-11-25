@@ -465,7 +465,7 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 	cmd.Flags().String("workspace-dir", "", "")
 	cmd.Flags().String("log-level", "debug", "")
 
-	return ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", "1313", func(addr string) error {
+	return ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", port, func(addr string) error {
 		// Go never uses a proxy for connections to localhost. To enable proxy tests, we
 		// replace localhost with 0.0.0.0, which can be used as localhost on Linux and BSD.
 		addr = strings.Replace(addr, "localhost", "0.0.0.0", 1)

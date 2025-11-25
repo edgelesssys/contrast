@@ -95,7 +95,7 @@ func (r *Recoverer) RecoverOnce(ctx context.Context) error {
 	}
 	var errs []error
 	for _, peer := range peers {
-		err := r.recoverFromPeer(ctx, oldState, net.JoinHostPort(peer, "7777"))
+		err := r.recoverFromPeer(ctx, oldState, net.JoinHostPort(peer, meshapi.Port))
 		if err == nil {
 			return nil
 		}

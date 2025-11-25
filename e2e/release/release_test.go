@@ -28,6 +28,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/google/go-github/v72/github"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -199,7 +200,9 @@ func TestRelease(t *testing.T) {
 		require.NoError(err)
 	}), "the coordinator is required for subsequent tests to run")
 
-	setFlags := []string{"set", "-c", coordinatorIP + ":1313", "deployment/"}
+	addr := net.JoinHostPort(coordinatorIP, userapi.Port)
+
+	setFlags := []string{"set", "-c", addr, "deployment/"}
 	contrast.Run(ctx, t, 1*time.Minute, setFlags...)
 
 	require.True(t, t.Run("wait-for-deployment-readiness", func(t *testing.T) {
@@ -213,7 +216,7 @@ func TestRelease(t *testing.T) {
 		require.NoError(k.WaitForDeployment(ctx, "default", "web"))
 	}), "the deployment must get ready for subsequent tests to run")
 
-	verifyFlags := []string{"verify", "-c", coordinatorIP + ":1313"}
+	verifyFlags := []string{"verify", "-c", addr}
 	contrast.Run(ctx, t, 1*time.Minute, verifyFlags...)
 
 	t.Run("test-demo", func(t *testing.T) {
