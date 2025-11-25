@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/edgelesssys/contrast/coordinator/internal/httpapi"
 	meshapiserver "github.com/edgelesssys/contrast/coordinator/internal/meshapi"
 	"github.com/edgelesssys/contrast/coordinator/internal/peerdiscovery"
 	"github.com/edgelesssys/contrast/coordinator/internal/peerrecovery"
@@ -24,7 +25,6 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	transitengine "github.com/edgelesssys/contrast/coordinator/internal/transitengineapi"
 	userapiserver "github.com/edgelesssys/contrast/coordinator/internal/userapi"
-	"github.com/edgelesssys/contrast/coordinator/internal/verify"
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/atls/issuer"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
@@ -153,14 +153,14 @@ func run() (retErr error) {
 	eg, ctx := errgroup.WithContext(ctxSignal)
 
 	eg.Go(func() error {
-		h := verify.Handler{
+		h := httpapi.AttestationHandler{
 			Issuer:     issuer,
 			StateGuard: meshAuth,
 		}
 
 		httpServer := &http.Server{}
 		mux := http.NewServeMux()
-		mux.Handle("/verify", &h)
+		mux.Handle("/attest", &h)
 
 		httpServer.Addr = ":" + strconv.Itoa(verifyPort)
 		httpServer.Handler = mux

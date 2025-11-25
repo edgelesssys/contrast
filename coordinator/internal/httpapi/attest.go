@@ -1,7 +1,7 @@
 // Copyright 2025 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
-package verify
+package httpapi
 
 import (
 	"context"
@@ -18,13 +18,13 @@ import (
 	"github.com/edgelesssys/contrast/internal/httpapi"
 )
 
-// Handler implements http.Handler for POST /verify.
-type Handler struct {
+// AttestationHandler handles POST requests to /attest.
+type AttestationHandler struct {
 	Issuer     atls.Issuer
 	StateGuard *stateguard.Guard
 }
 
-func (h *Handler) getResponse(ctx context.Context, nonce []byte) (*httpapi.AttestationResponse, int, error) {
+func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*httpapi.AttestationResponse, int, error) {
 	// state knows the latest transition
 	state, err := h.StateGuard.GetState(ctx)
 	switch {
@@ -66,7 +66,7 @@ func (h *Handler) getResponse(ctx context.Context, nonce []byte) (*httpapi.Attes
 	return resp, http.StatusOK, nil
 }
 
-func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
