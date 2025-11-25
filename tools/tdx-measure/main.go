@@ -60,6 +60,11 @@ func newMrTdCmd() *cobra.Command {
 	if err := cmd.MarkFlagFilename("firmware", "fd"); err != nil {
 		panic(err)
 	}
+	cmd.Flags().StringP("eventlog-dir", "e", "", "directory to store the MRTD event log. If unset / empty, no event log is created.")
+	if err := cmd.MarkFlagDirname("eventlog-dir"); err != nil {
+		panic(err)
+	}
+
 	return cmd
 }
 
@@ -69,13 +74,23 @@ func runMrTd(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("can't get firmware arg: %w", err)
 	}
+	eventlogDir, err := cmd.Flags().GetString("eventlog-dir")
+	if err != nil {
+		return fmt.Errorf("can't get eventlog-dir arg: %w", err)
+	}
 
 	firmware, err := os.ReadFile(firmwarePath)
 	if err != nil {
 		return fmt.Errorf("can't read firmware file: %w", err)
 	}
 
-	digest, err := tdvf.CalculateMrTd(firmware)
+	if eventlogDir != "" {
+		if err := ensureDir(eventlogDir); err != nil {
+			return fmt.Errorf("can't ensure eventlog dir: %w", err)
+		}
+	}
+
+	digest, err := tdvf.CalculateMrTd(firmware, eventlogDir)
 	if err != nil {
 		return fmt.Errorf("can't calculate MRTD for firmware: %w", err)
 	}
@@ -182,5 +197,16 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 	fmt.Print(hexDigest)
 	fmt.Fprintf(os.Stderr, "RTMR %s final: %s\n", args[0], hexDigest)
 
+	return nil
+}
+
+// ensureDir ensures that the given directory exists, creating it if necessary.
+func ensureDir(dir string) error {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		err := os.Mkdir(dir, 0o755)
+		if err != nil {
+			return fmt.Errorf("creating dir %s: %w", dir, err)
+		}
+	}
 	return nil
 }

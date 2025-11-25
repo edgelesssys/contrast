@@ -9,8 +9,10 @@ package mrtd
 import (
 	"crypto/sha512"
 	"encoding/binary"
-	"errors"
+	"fmt"
 	"hash"
+
+	"github.com/edgelesssys/contrast/tdx-measure/eventlog"
 )
 
 const (
@@ -20,7 +22,8 @@ const (
 
 // LaunchContext tracks the measurement state of a guest during launch.
 type LaunchContext struct {
-	mrTd hash.Hash
+	mrTd     hash.Hash
+	eventlog *eventlog.MrtdLogger
 }
 
 // NewLaunchContext initializes a new `LaunchContext`.
@@ -30,9 +33,10 @@ type LaunchContext struct {
 // See Intel® Trust Domain Extensions (Intel® TDX) Module Architecture
 // Application Binary Interface (ABI) Reference Specification, 5.3.37
 // TDH.MNG.INIT Leaf.
-func NewLaunchContext() LaunchContext {
+func NewLaunchContext(eventlogDir string) LaunchContext {
 	return LaunchContext{
-		mrTd: sha512.New384(),
+		mrTd:     sha512.New384(),
+		eventlog: eventlog.NewMrtdLogger(eventlogDir),
 	}
 }
 
@@ -47,6 +51,8 @@ func NewLaunchContext() LaunchContext {
 // Architecture Application Binary Interface (ABI) Reference Specification,
 // 5.3.20 TDH.MEM.PAGE.ADD Leaf.
 func (l *LaunchContext) MemPageAdd(gpa uint64) {
+	l.eventlog.MemPageAdd(gpa)
+
 	var buffer [128]byte
 	copy(buffer[:16], []byte("MEM.PAGE.ADD"))
 	binary.LittleEndian.PutUint64(buffer[16:][:8], gpa)
@@ -62,6 +68,8 @@ func (l *LaunchContext) MemPageAdd(gpa uint64) {
 // Application Binary Interface (ABI) Reference Specification, 5.3.44
 // TDH.MR.EXTEND Leaf.
 func (l *LaunchContext) MrExtend(gpa uint64, content [256]byte) {
+	l.eventlog.MrExtend(gpa)
+
 	var buffer [128]byte
 	copy(buffer[:16], []byte("MR.EXTEND"))
 	binary.LittleEndian.PutUint64(buffer[16:][:8], gpa)
@@ -77,10 +85,13 @@ func (l *LaunchContext) MrExtend(gpa uint64, content [256]byte) {
 // See Intel® Trust Domain Extensions (Intel® TDX) Module Architecture
 // Application Binary Interface (ABI) Reference Specification, 5.3.45
 // TDH.MR.FINALIZE Leaf.
-func (l *LaunchContext) Finalize() [48]byte {
+func (l *LaunchContext) Finalize() ([48]byte, error) {
+	if err := l.eventlog.SaveToFile(); err != nil {
+		return [48]byte{}, fmt.Errorf("saving mrtd eventlog to file: %w", err)
+	}
 	var digest [48]byte
 	copy(digest[:], l.mrTd.Sum([]byte{}))
-	return digest
+	return digest, nil
 }
 
 // WriteRegion writes [data] to the launch measurement (i.e., the MRTD).

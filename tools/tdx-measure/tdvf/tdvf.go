@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/edgelesssys/contrast/tdx-measure/mrtd"
 )
@@ -110,8 +111,8 @@ func parseTdvfSections(firmware []byte) ([]tdvfSection, error) {
 
 // CalculateMrTd calculates the MRTD for a TDVF-conformant firmware as
 // described in Intel® TDX Virtual Firmware Design Guide, 11.2 TDVF descriptor.
-func CalculateMrTd(firmware []byte) ([48]byte, error) {
-	launchContext := mrtd.NewLaunchContext()
+func CalculateMrTd(firmware []byte, eventlogDir string) ([48]byte, error) {
+	launchContext := mrtd.NewLaunchContext(eventlogDir)
 
 	sections, err := parseTdvfSections(firmware)
 	if err != nil {
@@ -121,6 +122,8 @@ func CalculateMrTd(firmware []byte) ([48]byte, error) {
 	for _, section := range sections {
 		data := firmware[section.DataOffset:][:section.RawDataSize]
 		shouldExtend := section.Attributes&mrExtend != 0
+		fmt.Fprintf(os.Stderr, "Adding section: type=%d, gpa=0x%x, size=%d, extend=%v\n",
+			section.Type, section.MemoryAddress, section.MemoryDataSize, shouldExtend)
 		err := launchContext.WriteRegion(section.MemoryAddress, data,
 			section.MemoryDataSize, shouldExtend)
 		if err != nil {
@@ -128,7 +131,11 @@ func CalculateMrTd(firmware []byte) ([48]byte, error) {
 		}
 	}
 
-	digest := launchContext.Finalize()
+	digest, err := launchContext.Finalize()
+	if err != nil {
+		return [48]byte{}, fmt.Errorf("can't finalize launch context: %w", err)
+	}
+
 	return digest, nil
 }
 
