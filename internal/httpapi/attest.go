@@ -4,6 +4,10 @@
 package httpapi
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+
 	"github.com/edgelesssys/contrast/internal/history"
 )
 
@@ -18,15 +22,59 @@ type AttestationRequest struct {
 
 // AttestationError is returned by the /attest endpoint if the request was not successful.
 type AttestationError struct {
-	Err string `json:"error"`
+	// Version is the Coordinator version.
+	Version string `json:"version"`
+	Err     string `json:"error"`
 }
 
 // AttestationResponse contains all fields required for application-level verification.
 type AttestationResponse struct {
+	// Version is the Coordinator version.
+	Version string `json:"version"`
 	// RawAttestationDoc is a raw attestation report.
 	RawAttestationDoc []byte `json:"raw_attestation_doc"`
 
 	CoordinatorState
+}
+
+// UnmarshalAttestationResponse parses a JSON-serialized AttestationResponse.
+//
+// If parsing fails, it tries to find a version indicator in the data and reports it back to the
+// caller.
+func UnmarshalAttestationResponse(data []byte) (*AttestationResponse, error) {
+	var resp AttestationResponse
+	origErr := json.NewDecoder(bytes.NewBuffer(data)).Decode(&resp)
+	if origErr == nil {
+		return &resp, nil
+	}
+
+	var unstructured map[string]any
+	if err := json.NewDecoder(bytes.NewBuffer(data)).Decode(&unstructured); err != nil {
+		return nil, &unmarshalError{err: origErr}
+	}
+	switch version := unstructured["version"].(type) {
+	case string:
+		return nil, &unmarshalError{version: version, err: origErr}
+	default:
+		return nil, &unmarshalError{err: origErr}
+	}
+}
+
+type unmarshalError struct {
+	version string
+	err     error
+}
+
+func (e *unmarshalError) Error() string {
+	version := "unknown"
+	if e.version != "" {
+		version = e.version
+	}
+	return fmt.Sprintf("unmarshalling API response (server version %s): %s", version, e.err.Error())
+}
+
+func (e *unmarshalError) Unwrap() error {
+	return e.err
 }
 
 // CoordinatorState represents the state of the Contrast Coordinator at a fixed point in time.
