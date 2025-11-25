@@ -359,6 +359,23 @@ func (r *ResourceRequirementsConfig) WithCPURequest(cpuM int64) *applycorev1.Res
 	})
 }
 
+// VolumeResourceRequirementsConfig wraps applycorev1.ResourceRequirementsApplyConfiguration for volumes.
+type VolumeResourceRequirementsConfig struct {
+	*applycorev1.VolumeResourceRequirementsApplyConfiguration
+}
+
+// VolumeResourceRequirements creates a new VolumeResourceRequirementsConfig.
+func VolumeResourceRequirements() *VolumeResourceRequirementsConfig {
+	return &VolumeResourceRequirementsConfig{applycorev1.VolumeResourceRequirements()}
+}
+
+// WithStorageRequest sets the storage request of the ResourceRequirements.
+func (r *VolumeResourceRequirementsConfig) WithStorageRequest(size string) *applycorev1.VolumeResourceRequirementsApplyConfiguration {
+	return r.WithRequests(map[corev1.ResourceName]resource.Quantity{
+		corev1.ResourceStorage: resource.MustParse(size),
+	})
+}
+
 // VolumeConfig wraps applycorev1.VolumeApplyConfiguration.
 type VolumeConfig struct {
 	*applycorev1.VolumeApplyConfiguration
