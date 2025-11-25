@@ -354,7 +354,7 @@ func (c *CoordinatorConfig) WithImage(image string) *CoordinatorConfig {
 // of the deployment's first container.
 func ServiceForDeployment(d *applyappsv1.DeploymentApplyConfiguration) *applycorev1.ServiceApplyConfiguration {
 	selector := d.Spec.Selector.MatchLabels
-	ports := d.Spec.Template.Spec.Containers[0].Ports
+	ports := getPorts(d.Spec.Template.Spec)
 
 	var ns string
 	if d.Namespace != nil {
@@ -381,7 +381,7 @@ func ServiceForDeployment(d *applyappsv1.DeploymentApplyConfiguration) *applycor
 // of the first container.
 func ServiceForStatefulSet(s *applyappsv1.StatefulSetApplyConfiguration) *applycorev1.ServiceApplyConfiguration {
 	selector := s.Spec.Selector.MatchLabels
-	ports := s.Spec.Template.Spec.Containers[0].Ports
+	ports := getPorts(s.Spec.Template.Spec)
 
 	var ns string
 	if s.Namespace != nil {
@@ -489,4 +489,11 @@ func DebugShell() *applycorev1.ContainerApplyConfiguration {
 		WithResources(ResourceRequirements().
 			WithMemoryLimitAndRequest(400),
 		)
+}
+
+func getPorts(podSpec *applycorev1.PodSpecApplyConfiguration) (ports []applycorev1.ContainerPortApplyConfiguration) {
+	for _, c := range podSpec.Containers {
+		ports = append(ports, c.Ports...)
+	}
+	return ports
 }
