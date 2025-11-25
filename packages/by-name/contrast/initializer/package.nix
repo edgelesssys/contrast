@@ -1,11 +1,4 @@
 # Copyright 2025 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
-{ contrast }:
-contrast.initializer.overrideAttrs (prevAttrs: {
-  meta = prevAttrs.meta // {
-    mainProgram = "initializer";
-  };
-})
-
-# test rerun?
+{ contrast }: contrast.initializer

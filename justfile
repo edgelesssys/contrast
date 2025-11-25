@@ -73,7 +73,7 @@ runtime target=default_deploy_target platform=default_platform:
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}/runtime
     if [[ "${node_installer_target_conf_type}" != "none" ]]; then
-        nix run .#contrast.resourcegen -- \
+        nix shell .#contrast.resourcegen --command resourcegen \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace {{ target }}${namespace_suffix-} \
             --add-namespace-object \
@@ -81,7 +81,7 @@ runtime target=default_deploy_target platform=default_platform:
             --platform {{ platform }} \
             node-installer-target-conf > ./{{ workspace_dir }}/runtime/target-conf.yml
     fi
-    nix run .#contrast.resourcegen -- \
+    nix shell .#contrast.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --add-namespace-object \
@@ -112,7 +112,7 @@ populate target=default_deploy_target platform=default_platform:
     if [[ "${debug:-}" != "true" ]]; then
         dmesgFlag="--add-dmesg"
     fi
-    nix run .#contrast.resourcegen -- \
+    nix shell .#contrast.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --add-port-forwarders \
