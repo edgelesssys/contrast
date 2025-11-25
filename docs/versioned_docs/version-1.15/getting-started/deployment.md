@@ -60,10 +60,8 @@ For more details, see [RuntimeClass Section in the "Prepare deployment files" ho
 ### Define pod resources
 
 Each Contrast workload runs inside its own CVM.
-To ensure accurate memory allocation, Contrast requires strict resource definitions:
-
-* Always specify both memory `requests` and `limits`.
-* The values for `requests` and `limits` must be identical.
+To ensure accurate memory allocation, Contrast uses the memory `limits` defined by a pod.
+You should set appropriate memory `limits` for each container to get a VM of the right size.
 
 On bare-metal platforms, the container images are pulled from within each pod-VM.
 By default, images are stored on an encrypted ephemeral disk through the [Contrast secure image store](../howto/secure-image-store.md) feature.
@@ -71,7 +69,7 @@ If this feature is disabled, the images are stored in encrypted memory instead.
 In this case, the uncompressed image size needs to be added to the memory limits of containers.
 
 Kubernetes schedules pods on nodes based on the memory `requests`.
-To prevent Kubernetes from over-commiting nodes, set both `request` and `limit` to the same value.
+To prevent Kubernetes from over-commiting nodes, set the memory `request` to the same value as the `limit`.
 
 <!-- TODO(katexochen): Show the full calculation for the emojivoto example, show how we arrive at 700Mi -->
 
@@ -129,7 +127,6 @@ Set both to 400Mi for each pod in this example:
 ```
 
 For details, see the [pod resources how-to](../howto/workload-deployment/deployment-file-preparation.md#pod-resources).
-
 
 ### Add service mesh annotations
 
