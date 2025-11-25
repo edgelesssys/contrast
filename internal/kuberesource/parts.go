@@ -73,6 +73,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*applyappsv1.
 						WithName("installer").
 						WithImage(nodeInstallerImageURL).
 						WithResources(ResourceRequirements().
+							// node-installer doesn't run in as VM, no need to set a limit here.
 							WithMemoryRequest(700),
 						).
 						WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
@@ -435,7 +436,7 @@ func Initializer(coordinatorHost string) *applycorev1.ContainerApplyConfiguratio
 		WithName("contrast-initializer").
 		WithImage("ghcr.io/edgelesssys/contrast/initializer:latest").
 		WithResources(ResourceRequirements().
-			WithMemoryRequest(50),
+			WithMemoryLimitAndRequest(50),
 		).
 		WithEnv(NewEnvVar("COORDINATOR_HOST", coordinatorHost)).
 		WithVolumeMounts(VolumeMount().
@@ -486,6 +487,6 @@ func DebugShell() *applycorev1.ContainerApplyConfiguration {
 		WithName("contrast-debug-shell").
 		WithImage("ghcr.io/edgelesssys/contrast/debugshell:latest").
 		WithResources(ResourceRequirements().
-			WithMemoryRequest(400),
+			WithMemoryLimitAndRequest(400),
 		)
 }
