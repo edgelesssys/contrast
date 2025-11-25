@@ -15,6 +15,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/coordinator/internal/userapi"
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/httpapi"
 )
 
@@ -59,6 +60,7 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ht
 	}
 
 	resp := &httpapi.AttestationResponse{
+		Version:           constants.Version,
 		RawAttestationDoc: attestation,
 		CoordinatorState:  *coordinatorState,
 	}
@@ -112,7 +114,11 @@ func writeJSONError(w http.ResponseWriter, status int, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
-	if errEncode := json.NewEncoder(w).Encode(httpapi.AttestationError{Err: err.Error()}); err != nil {
+	apiErr := &httpapi.AttestationError{
+		Version: constants.Version,
+		Err:     err.Error(),
+	}
+	if errEncode := json.NewEncoder(w).Encode(apiErr); err != nil {
 		log.Printf("encoding error response %v: %v", err, errEncode)
 	}
 }
