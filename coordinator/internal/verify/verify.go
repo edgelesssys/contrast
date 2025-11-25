@@ -15,27 +15,8 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/coordinator/internal/userapi"
 	"github.com/edgelesssys/contrast/internal/atls"
-	"github.com/edgelesssys/contrast/sdk"
+	"github.com/edgelesssys/contrast/internal/httpapi"
 )
-
-// Request is the wire-format for incoming /verify requests.
-// The nonce is expected to be base64-encoded.
-type Request struct {
-	Nonce []byte `json:"nonce"`
-}
-
-// ErrorResponse wraps the HTTP error response that should be sent.
-type ErrorResponse struct {
-	Error string `json:"error"`
-}
-
-// Response contains all fields required for application-level verification.
-type Response struct {
-	// RawAttestationDoc is a raw attestation report.
-	RawAttestationDoc []byte `json:"raw_attestation_doc"`
-
-	sdk.CoordinatorState
-}
 
 // Handler implements http.Handler for POST /verify.
 type Handler struct {
@@ -43,7 +24,7 @@ type Handler struct {
 	StateGuard *stateguard.Guard
 }
 
-func (h *Handler) getResponse(ctx context.Context, nonce []byte) (*Response, int, error) {
+func (h *Handler) getResponse(ctx context.Context, nonce []byte) (*httpapi.AttestationResponse, int, error) {
 	// state knows the latest transition
 	state, err := h.StateGuard.GetState(ctx)
 	switch {
@@ -61,7 +42,7 @@ func (h *Handler) getResponse(ctx context.Context, nonce []byte) (*Response, int
 	}
 
 	ca := state.CA()
-	coordinatorState := &sdk.CoordinatorState{
+	coordinatorState := &httpapi.CoordinatorState{
 		Manifests: manifests,
 		RootCA:    ca.GetRootCACert(),
 		MeshCA:    ca.GetMeshCACert(),
@@ -71,13 +52,13 @@ func (h *Handler) getResponse(ctx context.Context, nonce []byte) (*Response, int
 	}
 
 	transitionHash := state.LatestTransition().Digest()
-	reportData := sdk.ConstructReportData(nonce, transitionHash[:], coordinatorState)
+	reportData := httpapi.ConstructReportData(nonce, transitionHash[:], coordinatorState)
 	attestation, err := h.Issuer.Issue(ctx, reportData)
 	if err != nil {
 		return nil, http.StatusInternalServerError, fmt.Errorf("getting attestation report: %w", err)
 	}
 
-	resp := &Response{
+	resp := &httpapi.AttestationResponse{
 		RawAttestationDoc: attestation,
 		CoordinatorState:  *coordinatorState,
 	}
@@ -99,7 +80,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req Request
+	var req httpapi.AttestationRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		writeJSONError(w, http.StatusBadRequest, err)
 		return
@@ -131,7 +112,7 @@ func writeJSONError(w http.ResponseWriter, status int, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
-	if errEncode := json.NewEncoder(w).Encode(ErrorResponse{Error: err.Error()}); err != nil {
+	if errEncode := json.NewEncoder(w).Encode(httpapi.AttestationError{Err: err.Error()}); err != nil {
 		log.Printf("encoding error response %v: %v", err, errEncode)
 	}
 }
