@@ -36,10 +36,13 @@ stdenvNoCC.mkDerivation {
   buildPhase = ''
     mkdir $out
 
-    ${lib.getExe tdx-measure} mrtd -f ${ovmf-tdx} > $out/mrtd.hex
+    ${lib.getExe tdx-measure} mrtd -f ${ovmf-tdx} --eventlog-dir eventlogs > $out/mrtd.hex
     ${lib.getExe tdx-measure} rtmr -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 0 > $out/rtmr0.hex
     ${lib.getExe tdx-measure} rtmr -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 1 > $out/rtmr1.hex
     ${lib.getExe tdx-measure} rtmr -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 2 > $out/rtmr2.hex
     ${lib.getExe tdx-measure} rtmr -f ${ovmf-tdx} -k ${kernel} -i ${initrd} -c '${cmdline}' 3 > $out/rtmr3.hex
+
+    cp -r eventlogs $out/
+    echo "Eventlog available in $out/eventlogs/"
   '';
 }
