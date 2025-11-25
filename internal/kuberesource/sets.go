@@ -539,8 +539,8 @@ func VolumeStatefulSet() []any {
 				WithSpec(applycorev1.PersistentVolumeClaimSpec().
 					WithVolumeMode(corev1.PersistentVolumeBlock).
 					WithAccessModes(corev1.ReadWriteOnce).
-					WithResources(applycorev1.VolumeResourceRequirements().
-						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("30Gi")}),
+					WithResources(VolumeResourceRequirements().
+						WithStorageRequest("30Gi"),
 					),
 				),
 			),
@@ -601,8 +601,8 @@ func MySQL() []any {
 				WithSpec(applycorev1.PersistentVolumeClaimSpec().
 					WithVolumeMode(corev1.PersistentVolumeBlock).
 					WithAccessModes(corev1.ReadWriteOnce).
-					WithResources(applycorev1.VolumeResourceRequirements().
-						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
+					WithResources(VolumeResourceRequirements().
+						WithStorageRequest("1Gi"),
 					),
 				),
 			),
@@ -828,8 +828,8 @@ seal "transit" {
 				WithSpec(applycorev1.PersistentVolumeClaimSpec().
 					WithVolumeMode(corev1.PersistentVolumeBlock).
 					WithAccessModes(corev1.ReadWriteOnce).
-					WithResources(applycorev1.VolumeResourceRequirements().
-						WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse("1Gi")}),
+					WithResources(VolumeResourceRequirements().
+						WithStorageRequest("1Gi"),
 					),
 				),
 			),
@@ -868,7 +868,9 @@ seal "transit" {
 								EnvVar().WithName("VAULT_CLIENT_CERT").WithValue("/contrast/tls-config/certChain.pem"),
 								EnvVar().WithName("VAULT_CLIENT_KEY").WithValue("/contrast/tls-config/key.pem"),
 							).
-							WithResources(ResourceRequirements().WithMemoryLimitAndRequest(300)).
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(300),
+							).
 							WithVolumeMounts(
 								VolumeMount().WithName("logs").WithMountPath("/openbao/logs"),
 								VolumeMount().WithName("file").WithMountPath("/openbao/file"),

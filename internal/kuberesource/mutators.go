@@ -12,7 +12,6 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/constants"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applybatchv1 "k8s.io/client-go/applyconfigurations/batch/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -354,8 +353,8 @@ func AddImageStore(resources []any) []any {
 					WithSpec(applycorev1.PersistentVolumeClaimSpec().
 						WithVolumeMode(corev1.PersistentVolumeBlock).
 						WithAccessModes(corev1.ReadWriteOnce).
-						WithResources(applycorev1.VolumeResourceRequirements().
-							WithRequests(map[corev1.ResourceName]resource.Quantity{corev1.ResourceStorage: resource.MustParse(storeSize)}),
+						WithResources(VolumeResourceRequirements().
+							WithStorageRequest(storeSize),
 						),
 					),
 				),
