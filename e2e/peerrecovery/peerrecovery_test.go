@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strconv"
 	"testing"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,10 +91,13 @@ func TestPeerRecovery(t *testing.T) {
 		require.NoError(err)
 		require.Len(pods, 3)
 
+		userapiPort, err := strconv.Atoi(userapi.Port)
+		require.NoError(err)
+
 		for _, pod := range pods {
 			// Apply a port-forwarder that targets only the current iteration's pod under test.
 			forwarder := kuberesource.PortForwarder(pod.Name, ct.Namespace).
-				WithListenPorts([]int32{1313}).
+				WithListenPorts([]int32{int32(userapiPort)}).
 				WithForwardTarget(pod.Status.PodIP).
 				PodApplyConfiguration
 			forwarder, ok := kuberesource.PatchImages([]any{forwarder}, imageReplacements)[0].(*applycorev1.PodApplyConfiguration)
@@ -114,7 +119,7 @@ func TestPeerRecovery(t *testing.T) {
 				cmd := cmd.NewVerifyCmd()
 				cmd.Flags().String("workspace-dir", path.Join(workspaceRoot, pod.Name), "")
 				cmd.Flags().String("log-level", "debug", "")
-				assert.NoErrorf(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-"+pod.Name, "1313", func(addr string) error {
+				assert.NoErrorf(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-"+pod.Name, userapi.Port, func(addr string) error {
 					args := []string{
 						"--coordinator", addr,
 					}
