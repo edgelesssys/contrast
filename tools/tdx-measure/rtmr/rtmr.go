@@ -221,9 +221,9 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 	// These are the hashes for some fw_cfg/ACPI related measurements.
 	// TODO(freax13): Don't hard-code these, calculate them instead.
 	configHashes := []string{
-		"2685cabde42188ea89029e3f717eee76108b4251a80ad011e5ebeaccc62fdd6636d64ee3ae6b0da7e374e379578c4e06",
-		"c40177551aa9c6034f27ae8764a4b19a4689f2d9ab0f15650f95a4742f1ffa3a87ba247f1dda0cf583603ec56aeda8e9",
-		"bae56cb4bba81b167ccb2c9a5a442b0f0bdcd894dad5c22a61b717e66db39fe863eb97c7cc07803008ba37e65b74c255",
+		"978413224c711ace8c588bd45f9585657572c8053410df87f94bed7254feb88b4ce82233ead3db3721198a3a215efc1b",
+		"7d49579cd2b17a399b29b8fd40f2fd66bf3d0fafcbfdfd9a3b912b7d4f81dd7dba85ee15768b36214d7507dc10fc6464",
+		"4f564889e597ba62b02a0f5ad95ad9f8883947deadc3275fe289f5096c01ed3db8323d70681d04f694c025ee8426be11",
 	}
 	for _, hash := range configHashes {
 		var buffer [48]byte
@@ -274,7 +274,7 @@ func CalcRtmr2(cmdLine string, initrdFile []byte) ([48]byte, error) {
 	var rtmr Rtmr
 
 	// TODO(msanft): find out which component silently adds this string to the commandline.
-	// Suspects: QEMU-TDX, OVMF-TDX, Linux EFI Stub
+	// Suspects: QEMU-CC, OVMF-TDX, Linux EFI Stub
 	cmdLine += " initrd=initrd"
 
 	// https://elixir.bootlin.com/linux/v6.11.8/source/drivers/firmware/efi/libstub/efi-stub-helper.c#L342
