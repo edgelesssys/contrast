@@ -25,10 +25,13 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
+	"github.com/edgelesssys/contrast/internal/crypto"
+	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
+	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -339,6 +342,55 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("no root ca cert: %w", err)
 	}
+
+	// Test the HTTP API attestation endpoint, too.
+
+	client := sdk.New()
+	nonce, err := crypto.GenerateRandomBytes(crypto.RNGLengthDefault)
+	if err != nil {
+		return fmt.Errorf("generating nonce: %w", err)
+	}
+	var serializedAttestation []byte
+	err = ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", httpapi.Port, func(addr string) error {
+		url := fmt.Sprintf("http://%s/attest", addr)
+		resp, err := client.GetAttestation(ctx, url, nonce)
+		if err != nil {
+			return fmt.Errorf("getting attestation: %w", err)
+		}
+		serializedAttestation = resp
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("calling HTTP API: %w", err)
+	}
+
+	kdsCacheDir, err := os.MkdirTemp("", "contrasttest-kds-cache-dir-")
+	if err != nil {
+		return fmt.Errorf("creating temp dir: %w", err)
+	}
+	defer func() {
+		_ = os.RemoveAll(kdsCacheDir)
+	}()
+	state, err := client.ValidateAttestation(ctx, kdsCacheDir, nonce, serializedAttestation)
+	if err != nil {
+		return fmt.Errorf("validating attestation: %w", err)
+	}
+
+	expectedManifest, err := os.ReadFile(path.Join(ct.WorkDir, "manifest.json"))
+	if err != nil {
+		return fmt.Errorf("reading manifest from workspace: %w", err)
+	}
+	manifest := state.Manifests[len(state.Manifests)-1]
+	if !bytes.Equal(expectedManifest, manifest) {
+		return fmt.Errorf("manifests don't match.\nExpected:\n%s\nActual:\n%s", string(expectedManifest), string(manifest))
+	}
+	if !bytes.Equal(ct.rootCACertPEM, state.RootCA) {
+		return fmt.Errorf("root CA certs don't match.\nExpected:\n%s\nActual:\n%s", string(ct.rootCACertPEM), string(state.RootCA))
+	}
+	if !bytes.Equal(ct.meshCACertPEM, state.MeshCA) {
+		return fmt.Errorf("mesh CA certs don't match.\nExpected:\n%s\nActual:\n%s", string(ct.meshCACertPEM), string(state.MeshCA))
+	}
+
 	return nil
 }
 
