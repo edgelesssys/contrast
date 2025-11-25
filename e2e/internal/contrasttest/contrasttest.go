@@ -28,6 +28,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -341,7 +342,7 @@ func (ct *ContrastTest) ApplyFromYAML(t *testing.T, yaml []byte) {
 func (ct *ContrastTest) RunSet(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
-	return ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), ct.WorkDir)
+	return ct.runAgainstCoordinator(ctx, cmd.NewSetCmd(), userapi.Port, ct.WorkDir)
 }
 
 // Set runs the contrast set subcommand and fails the test if it is not successful.
@@ -354,7 +355,7 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
 
-	if err := ct.runAgainstCoordinator(ctx, cmd.NewVerifyCmd()); err != nil {
+	if err := ct.runAgainstCoordinator(ctx, cmd.NewVerifyCmd(), userapi.Port); err != nil {
 		return err
 	}
 
@@ -382,7 +383,7 @@ func (ct *ContrastTest) Recover(t *testing.T) {
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
 	defer cancel()
 
-	require.NoError(ct.runAgainstCoordinator(ctx, cmd.NewRecoverCmd()))
+	require.NoError(ct.runAgainstCoordinator(ctx, cmd.NewRecoverCmd(), userapi.Port))
 }
 
 // MeshCACert returns a CertPool that contains the coordinator mesh CA cert.
@@ -451,7 +452,7 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 }
 
 // runAgainstCoordinator forwards the coordinator port and executes the command against it.
-func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Command, args ...string) error {
+func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Command, port string, args ...string) error {
 	if err := ct.Kubeclient.WaitForCoordinator(ctx, ct.Namespace); err != nil {
 		return fmt.Errorf("waiting for coordinator: %w", err)
 	}
