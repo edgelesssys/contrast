@@ -84,7 +84,7 @@ well as the informational string (`Linux initrd`, in this case) associated with 
 can be misleading, as for some events measured by OVMF, the informational string is actually equal to the
 measured data (the input for `sha384sum`) - however, this isn't the case for all measurements.
 
-## Locating mismatches
+## Locating RTMR mismatches
 
 Usually, the error given by the coordinator, CLI, etc. will already show you which RTMR mismatched.
 
@@ -129,3 +129,51 @@ This contains a measurement for the kernel command line and the initrd, in that 
 ### RTMR 3
 
 Reserved, all-0 at the moment of writing.
+
+## MRTD
+
+The MRTD is a special case, since it's a static measurement. It can only be populated from the TDX module *while*
+a TD (TDX VM) is being created. That is, in the time span between VM creation and VM launch.
+
+The writing process of the MRTD in a just-*created* TD can be thought of as follows:
+
+- For every section in the TDVF, QEMU issues a `KVM_TDX_INIT_MEM_REGION` ioctl [^1] to the kernel's KVM module [^2].
+- For every page / chunk in the section, the kernel issues `TDH_MEM_PAGE_ADD` and `TDH_MR_EXTEND` SEAM calls to the
+  TDX module, respectively [^3].
+- The TDX module handles these SEAM calls by extending writing the received values to the SHA384 context of the MRTD
+  register. [^4]
+
+This is the logic that [`tdx-measure`](../../tools/tdx-measure/) replicates for pre- calculation of the MRTD values.
+
+The `TDH_MEM_PAGE_ADD` calls are used for every section of the TDVF, but only write the GPA (guest physical address)
+of the page to the MRTD, not any actual content.
+The `TDH_MR_EXTEND` calls are only made for sections marked with a specific bit, but measure the actual page contents
+into the MRTD too.
+
+### Locating MRTD mismatches
+
+Since debugging or re-building the TDX module isn't supported by Intel, the best way to debug mismatching MRTD values
+is to trace the kernel bindings for the TDX module functions that influence the MRTD.
+
+This `bpftrace` command can be used on the TDX host to generate an "event log" for the MRTD in `mrtd.log`:
+
+```sh
+bpftrace -e '
+kprobe:tdh_mng_init { printf("TDH_MNG_INIT\n"); }
+kprobe:tdh_mem_page_add { printf("TDH_MEM_PAGE_ADD gpa=0x%llx\n", arg1); }
+kprobe:tdh_mr_extend { printf("TDH_MR_EXTEND gpa=0x%llx\n", arg1); }
+kprobe:tdh_mr_finalize { printf("TDH_MR_FINALIZE\n"); }
+' > mrtd.log
+```
+
+Note that this, to keep the event log at a manageable size, omits the actual data measured in the `TDH_MR_EXTEND` calls.
+To debug a mismatch there, it's best to compare the full-on TDVF blob.
+
+The generated event log has the exact same format as the one produced by the `tdx-measure` tool in the `eventlogs/mrtd.log`
+directory of its build output, allowing for easy comparison.
+
+[^1]: <https://github.com/qemu/qemu/blob/de074358e99b8eb5076d3efa267e44c292c90e3e/target/i386/kvm/tdx.c#L359>
+[^2]: <https://github.com/torvalds/linux/blob/ac3fd01e4c1efce8f2c054cdeb2ddd2fc0fb150d/arch/x86/kvm/vmx/tdx.c#L3324>
+[^3]: <https://github.com/torvalds/linux/blob/ac3fd01e4c1efce8f2c054cdeb2ddd2fc0fb150d/arch/x86/kvm/vmx/tdx.c#L3209-L3228>
+[^4]: <https://github.com/intel/confidential-computing.tdx.tdx-module/blob/887ef77fe8a010811226d81f4da14e9b1329e744/src/vmm_dispatcher/api_calls/tdh_mem_page_add.c#L219>,
+      <https://github.com/intel/confidential-computing.tdx.tdx-module/blob/887ef77fe8a010811226d81f4da14e9b1329e744/src/vmm_dispatcher/api_calls/tdh_mr_extend.c#L170-L185>
