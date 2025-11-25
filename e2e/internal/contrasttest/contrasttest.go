@@ -192,9 +192,6 @@ func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
 	if err := ct.RunPatchManifest(patchRefValsFunc); err != nil {
 		return fmt.Errorf("patching manifest with reference values: %w", err)
 	}
-	if err := ct.RunPatchManifest(addInvalidReferenceValues(ct.Platform)); err != nil {
-		return fmt.Errorf("adding invalid reference values to manifest: %w", err)
-	}
 	return nil
 }
 
@@ -225,32 +222,6 @@ func (ct *ContrastTest) RunPatchManifest(patchFn PatchManifestFunc) error {
 		return err
 	}
 	return nil
-}
-
-// addInvalidReferenceValues returns a PatchManifestFunc which adds a fresh, invalid entry to the specified reference values.
-func addInvalidReferenceValues(platform platforms.Platform) PatchManifestFunc {
-	return func(m manifest.Manifest) manifest.Manifest {
-		switch platform {
-		case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU:
-			// Duplicate the reference values to test multiple validators by having at least 2.
-			m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1])
-
-			// Make the last set of reference values invalid by changing the SVNs.
-			m.ReferenceValues.SNP[len(m.ReferenceValues.SNP)-1].MinimumTCB = manifest.SNPTCB{
-				BootloaderVersion: toPtr(manifest.SVN(255)),
-				TEEVersion:        toPtr(manifest.SVN(255)),
-				SNPVersion:        toPtr(manifest.SVN(255)),
-				MicrocodeVersion:  toPtr(manifest.SVN(255)),
-			}
-		case platforms.MetalQEMUTDX:
-			// Duplicate the reference values to test multiple validators by having at least 2.
-			m.ReferenceValues.TDX = append(m.ReferenceValues.TDX, m.ReferenceValues.TDX[len(m.ReferenceValues.TDX)-1])
-
-			// Make the last set of reference values invalid by changing the SVNs.
-			m.ReferenceValues.TDX[len(m.ReferenceValues.TDX)-1].MrSeam = manifest.HexString("111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")
-		}
-		return m
-	}
 }
 
 // PatchReferenceValues returns a PatchManifestFunc which modifies the reference values in a manifest
@@ -511,8 +482,4 @@ func MakeNamespace(t *testing.T, namespaceSuffix string) string {
 	namespaceParts = append(namespaceParts, fmt.Sprintf("%x", buf))
 
 	return strings.Join(namespaceParts, "-") + namespaceSuffix
-}
-
-func toPtr[T any](t T) *T {
-	return &t
 }

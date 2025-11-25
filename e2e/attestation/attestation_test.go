@@ -49,6 +49,33 @@ func TestAttestation(t *testing.T) {
 			require.ErrorContains(err, "not in allowed chip IDs")
 		}), "contrast set should fail due to non-allowed chip ID")
 	})
+
+	require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+
+	// Test that it is okay to have failing validators as long as one validator passes.
+	t.Run("non-matching-validators", func(t *testing.T) {
+		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
+			switch platform {
+			case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU:
+				// Duplicate the first validator.
+				m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, m.ReferenceValues.SNP[0])
+				// Make the first set of reference values invalid by changing the SVNs.
+				m.ReferenceValues.SNP[0].MinimumTCB = manifest.SNPTCB{
+					BootloaderVersion: toPtr(manifest.SVN(255)),
+					TEEVersion:        toPtr(manifest.SVN(255)),
+					SNPVersion:        toPtr(manifest.SVN(255)),
+					MicrocodeVersion:  toPtr(manifest.SVN(255)),
+				}
+			case platforms.MetalQEMUTDX:
+				// Duplicate the first validator.
+				m.ReferenceValues.TDX = append(m.ReferenceValues.TDX, m.ReferenceValues.TDX[0])
+				// Make the first set of reference values invalid by changing the SVNs.
+				m.ReferenceValues.TDX[0].MrSeam = manifest.HexString("111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")
+			}
+			return m
+		})
+		require.True(t.Run("set", ct.Set), "set should succeed as long as one validator passes")
+	})
 }
 
 func TestMain(m *testing.M) {
@@ -56,4 +83,8 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 
 	os.Exit(m.Run())
+}
+
+func toPtr[T any](t T) *T {
+	return &t
 }
