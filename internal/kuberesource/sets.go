@@ -1037,3 +1037,54 @@ func AuthenticatedPullTester(name, token string) []any {
 
 	return []any{deployment, secret}
 }
+
+// ContainerdDigestPinningTesters returns the resources for the imagepuller-auth test.
+func ContainerdDigestPinningTesters(name string) (*applyappsv1.DeploymentApplyConfiguration, *applyappsv1.DeploymentApplyConfiguration) {
+	runcName := fmt.Sprintf("%s-runc", name)
+	runc := Deployment(runcName, "").
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": runcName}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": runcName}).
+				WithSpec(PodSpec().
+					WithContainers(
+						Container().
+							WithName("runc-by-tag").
+							WithImage("ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-tag").
+							WithCommand("bash", "-c", "sleep infinity").
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(40),
+							),
+					),
+				),
+			),
+		)
+
+	ccName := fmt.Sprintf("%s-cc", name)
+	cc := Deployment(ccName, "").
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": ccName}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": ccName}).
+				WithSpec(PodSpec().
+					WithContainers(
+						Container().
+							WithName("cc-by-digest").
+							WithImage("ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-digest").
+							WithCommand("bash", "-c", "sleep infinity").
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(40),
+							),
+					),
+				),
+			),
+		)
+
+	return runc, cc
+}

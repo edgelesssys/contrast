@@ -59,6 +59,7 @@ buildGoModule {
     # keep-sorted start
     "e2e/atls"
     "e2e/attestation"
+    "e2e/containerd-digest-pinning"
     "e2e/genpolicy-unsupported"
     "e2e/gpu"
     "e2e/imagepuller-auth"

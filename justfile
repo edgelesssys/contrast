@@ -24,6 +24,13 @@ memdump: (push "memdump")
 
 debugshell: (push "debugshell")
 
+containerd-reproducer:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    read tag digest < <(nix run -L .#scripts.push-containerd-reproducer -- $container_registry | tail -n 1)
+    echo "ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-tag=$container_registry/contrast/containerd-reproducer:$tag" >> {{ workspace_dir }}/just.containerlookup
+    echo "ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-digest=$container_registry/contrast/containerd-reproducer@$digest" >> {{ workspace_dir }}/just.containerlookup
+
 default_cli := "contrast.cli"
 default_deploy_target := "openssl"
 default_platform := "${default_platform}"
@@ -54,6 +61,9 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
     fi
     if [[ -n "$contrast_ghcr_read" ]]; then
         export CONTRAST_GHCR_READ="$contrast_ghcr_read"
+    fi
+    if [[ {{ target }} == "containerd-digest-pinning" ]]; then
+        just containerd-reproducer
     fi
     nix shell .#contrast.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
