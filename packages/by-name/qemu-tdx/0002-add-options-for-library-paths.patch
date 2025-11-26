@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
-Date: Fri, 20 Sep 2024 16:01:46 +0200
+Date: Wed, 10 Jul 2024 13:31:34 +0200
 Subject: [PATCH] add options for library paths
 
 For some reason meson fails to find these when building with pkgsStatic
@@ -11,10 +11,10 @@ in Nix.
  2 files changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/meson.build b/meson.build
-index 89b42b217d39f72e0596fbdf7c8947d211111881..a6cc85350223ba33ae0313de2404e728fd6a46a6 100644
+index b7db736bbfafb98958a1f3f2a2616ee4b5486b8d..9813758b364c40ccd21329644511b3f6b2f6e07b 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -832,7 +832,8 @@ zlib = dependency('zlib', required: true)
+@@ -1151,7 +1151,8 @@ zlib = dependency('zlib', required: true)
  libaio = not_found
  if not get_option('linux_aio').auto() or have_block
    libaio = cc.find_library('aio', has_headers: ['libaio.h'],
@@ -24,21 +24,21 @@ index 89b42b217d39f72e0596fbdf7c8947d211111881..a6cc85350223ba33ae0313de2404e728
  endif
  
  linux_io_uring_test = '''
-@@ -3116,7 +3117,8 @@ if fdt_required.length() > 0 or fdt_opt == 'enabled'
-     if get_option('wrap_mode') == 'nodownload'
-       fdt_opt = 'system'
-     endif
--    fdt = cc.find_library('fdt', required: fdt_opt == 'system')
-+    fdt = cc.find_library('fdt', required: fdt_opt == 'system',
-+                          dirs: [get_option('linux_fdt_path')])
-     if fdt.found() and cc.links('''
-        #include <libfdt.h>
-        #include <libfdt_env.h>
+@@ -2114,7 +2115,8 @@ if fdt_opt == 'enabled' and get_option('wrap_mode') == 'nodownload'
+   fdt_opt = 'system'
+ endif
+ if fdt_opt in ['enabled', 'system'] or (fdt_opt == 'auto' and have_system)
+-  fdt = cc.find_library('fdt', required: fdt_opt == 'system')
++  fdt = cc.find_library('fdt', required: fdt_opt == 'system',
++                        dirs: [get_option('linux_fdt_path')])
+   if fdt.found() and cc.links('''
+      #include <libfdt.h>
+      #include <libfdt_env.h>
 diff --git a/meson_options.txt b/meson_options.txt
-index c9baeda6395634c3478a3c2a3a8c8f57fbe0b592..74345605ca625ec0413fe3c1784a35bdd841397a 100644
+index fff1521e580de20ee277aec2a09f206267c13da9..0a55ec8068cfdb493fc331d77952cf603f4edf8c 100644
 --- a/meson_options.txt
 +++ b/meson_options.txt
-@@ -188,6 +188,7 @@ option('linux_aio', type : 'feature', value : 'auto',
+@@ -194,6 +194,7 @@ option('linux_aio', type : 'feature', value : 'auto',
         description: 'Linux AIO support')
  option('linux_io_uring', type : 'feature', value : 'auto',
         description: 'Linux io_uring support')
@@ -46,7 +46,7 @@ index c9baeda6395634c3478a3c2a3a8c8f57fbe0b592..74345605ca625ec0413fe3c1784a35bd
  option('lzfse', type : 'feature', value : 'auto',
         description: 'lzfse support for DMG images')
  option('lzo', type : 'feature', value : 'auto',
-@@ -311,6 +312,7 @@ option('capstone', type: 'feature', value: 'auto',
+@@ -323,6 +324,7 @@ option('capstone', type: 'feature', value: 'auto',
  option('fdt', type: 'combo', value: 'auto',
         choices: ['disabled', 'enabled', 'auto', 'system', 'internal'],
         description: 'Whether and how to find the libfdt library')

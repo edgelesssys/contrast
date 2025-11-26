@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Tom Dohrmann <erbse.13@gmx.de>
-Date: Fri, 20 Sep 2024 16:01:15 +0200
+Date: Wed, 10 Jul 2024 13:30:51 +0200
 Subject: [PATCH] avoid duplicate definitions
 
 Another library already defines crc32c and this causes linker errors.
@@ -8,22 +8,17 @@ Rename the function in QEMU to avoid conflicts.
 > /nix/store/q7cd30gzrkq720riqfm1myrvygv9v516-x86_64-unknown-linux-musl-binutils-2.42/bin/x86_64-unknown-linux-musl-ld: /nix/store/bnkaijycj1svgfkglzzwbzr76my1b0xz-util-linux-minimal-static-x86_64-unknown-linux-musl-2.39.4-lib/lib/libblkid.a(libcommon_la-crc32c.o): in function `crc32c':
 > (.text+0x0): multiple definition of `crc32c'; libqemuutil.a.p/util_crc32c.c.o:/build/qemu-9.0.1/build/../util/crc32c.c:109: first defined here
 ---
- block/vhdx.c                       | 4 ++--
- hw/net/net_rx_pkt.c                | 2 +-
- include/qemu/crc32c.h              | 2 +-
- roms/u-boot/fs/btrfs/crypto/hash.c | 2 +-
- roms/u-boot/fs/btrfs/crypto/hash.h | 2 +-
- roms/u-boot/fs/btrfs/ctree.h       | 2 +-
- target/arm/helper.c                | 6 +++---
- target/arm/helper.h                | 2 +-
- target/arm/tcg/helper-a64.c        | 4 ++--
- target/loongarch/helper.h          | 2 +-
- target/loongarch/op_helper.c       | 2 +-
- util/crc32c.c                      | 4 ++--
- 12 files changed, 17 insertions(+), 17 deletions(-)
+ block/vhdx.c                     | 4 ++--
+ hw/net/net_rx_pkt.c              | 2 +-
+ hw/uefi/var-service-core.c       | 2 +-
+ include/qemu/crc32c.h            | 2 +-
+ target/arm/tcg/helper-a64.c      | 4 ++--
+ target/loongarch/tcg/op_helper.c | 2 +-
+ util/crc32c.c                    | 4 ++--
+ 7 files changed, 10 insertions(+), 10 deletions(-)
 
 diff --git a/block/vhdx.c b/block/vhdx.c
-index 5aa1a13506268c84f4a9a6cbf2dcdfae6a5d94b5..52723d7cc03af0e0283309a02f620073a4797216 100644
+index b2a4b813a0bd9e78056803ac0a2b3d3e629b1852..46d4c8b8704ceb4c3aecfa52325e89c0ef6247f0 100644
 --- a/block/vhdx.c
 +++ b/block/vhdx.c
 @@ -157,7 +157,7 @@ uint32_t vhdx_update_checksum(uint8_t *buf, size_t size, int crc_offset)
@@ -45,10 +40,10 @@ index 5aa1a13506268c84f4a9a6cbf2dcdfae6a5d94b5..52723d7cc03af0e0283309a02f620073
          memcpy(buf + crc_offset, &crc_orig, sizeof(crc_orig));
      }
 diff --git a/hw/net/net_rx_pkt.c b/hw/net/net_rx_pkt.c
-index 32e5f3f9cf785c3f9daab340ac45a36c1a97d399..1cffe29d80ad5a0dea8f7b3a501878fc8ced5a6b 100644
+index f87b6f046ccff814cce966804bd03980dbeb352d..c5a9d781d95b40d3b8eda15f69fd1bc7fc0182a3 100644
 --- a/hw/net/net_rx_pkt.c
 +++ b/hw/net/net_rx_pkt.c
-@@ -579,7 +579,7 @@ _net_rx_pkt_validate_sctp_sum(struct NetRxPkt *pkt)
+@@ -565,7 +565,7 @@ _net_rx_pkt_validate_sctp_sum(struct NetRxPkt *pkt)
          return false;
      }
  
@@ -57,6 +52,19 @@ index 32e5f3f9cf785c3f9daab340ac45a36c1a97d399..1cffe29d80ad5a0dea8f7b3a501878fc
                          (uint8_t *)vec->iov_base + off, vec->iov_len - off);
      calculated = iov_crc32c(calculated ^ 0xffffffff, vec + 1, vec_len - 1);
      valid = calculated == le32_to_cpu(original);
+diff --git a/hw/uefi/var-service-core.c b/hw/uefi/var-service-core.c
+index 6ab8df091aaf4d5ef6fd085d034eb80972db2fb9..fbd8649d08ae59d3493c0c384e992ea22f0586b9 100644
+--- a/hw/uefi/var-service-core.c
++++ b/hw/uefi/var-service-core.c
+@@ -230,7 +230,7 @@ static uint64_t uefi_vars_read(void *opaque, hwaddr addr, unsigned size)
+         uv->pio_xfer_offset += size;
+         break;
+     case UEFI_VARS_REG_PIO_BUFFER_CRC32C:
+-        retval = crc32c(0xffffffff, uv->pio_xfer_buffer, uv->pio_xfer_offset);
++        retval = __crc32c(0xffffffff, uv->pio_xfer_buffer, uv->pio_xfer_offset);
+         break;
+     case UEFI_VARS_REG_FLAGS:
+         retval = 0;
 diff --git a/include/qemu/crc32c.h b/include/qemu/crc32c.h
 index 88b4d2b3b3304803456f5b23ef42dbf530381ec5..52ba066c2e784b8ea3d88671f3d7944062a3660e 100644
 --- a/include/qemu/crc32c.h
@@ -70,113 +78,33 @@ index 88b4d2b3b3304803456f5b23ef42dbf530381ec5..52ba066c2e784b8ea3d88671f3d79440
  uint32_t iov_crc32c(uint32_t crc, const struct iovec *iov, size_t iov_cnt);
  
  #endif
-diff --git a/roms/u-boot/fs/btrfs/crypto/hash.c b/roms/u-boot/fs/btrfs/crypto/hash.c
-index fb51f6386cb16277d063a92d031458945c8ff303..4fb00afa2c9ae4c3ea78722feaca770b10ba2e23 100644
---- a/roms/u-boot/fs/btrfs/crypto/hash.c
-+++ b/roms/u-boot/fs/btrfs/crypto/hash.c
-@@ -49,7 +49,7 @@ int hash_crc32c(const u8 *buf, size_t length, u8 *out)
- 	return 0;
- }
- 
--u32 crc32c(u32 seed, const void * data, size_t len)
-+u32 __crc32c(u32 seed, const void * data, size_t len)
- {
- 	return crc32c_cal(seed, data, len, btrfs_crc32c_table);
- }
-diff --git a/roms/u-boot/fs/btrfs/crypto/hash.h b/roms/u-boot/fs/btrfs/crypto/hash.h
-index d1ba1fa374e3ed4eab3e315f01003213c26c7b2f..223e1ee8fd48d5bfdc51a18e103f12dc4dcd258c 100644
---- a/roms/u-boot/fs/btrfs/crypto/hash.h
-+++ b/roms/u-boot/fs/btrfs/crypto/hash.h
-@@ -10,7 +10,7 @@ int hash_crc32c(const u8 *buf, size_t length, u8 *out);
- int hash_xxhash(const u8 *buf, size_t length, u8 *out);
- int hash_sha256(const u8 *buf, size_t length, u8 *out);
- 
--u32 crc32c(u32 seed, const void * data, size_t len);
-+u32 __crc32c(u32 seed, const void * data, size_t len);
- 
- /* Blake2B is not yet supported due to lack of library */
- 
-diff --git a/roms/u-boot/fs/btrfs/ctree.h b/roms/u-boot/fs/btrfs/ctree.h
-index 219c410b189fbbdcdf744137ebfe7046f419770d..5a7e30a1eef85fa220d6d4fff726acfb53d50e23 100644
---- a/roms/u-boot/fs/btrfs/ctree.h
-+++ b/roms/u-boot/fs/btrfs/ctree.h
-@@ -1186,7 +1186,7 @@ static inline int __btrfs_fs_compat_ro(struct btrfs_fs_info *fs_info, u64 flag)
- 
- static inline u64 btrfs_name_hash(const char *name, int len)
- {
--	return (u64)crc32c((u32)~1, (u8 *)name, len);
-+	return (u64)__crc32c((u32)~1, (u8 *)name, len);
- }
- 
- /*
-diff --git a/target/arm/helper.c b/target/arm/helper.c
-index df1646de3ae8b6d46604fe069a1fddb3b3b85112..39d7984906d9b3da2a8870b7dd02ce878470939f 100644
---- a/target/arm/helper.c
-+++ b/target/arm/helper.c
-@@ -11932,14 +11932,14 @@ uint32_t HELPER(crc32)(uint32_t acc, uint32_t val, uint32_t bytes)
-     return crc32(acc ^ 0xffffffff, buf, bytes) ^ 0xffffffff;
- }
- 
--uint32_t HELPER(crc32c)(uint32_t acc, uint32_t val, uint32_t bytes)
-+uint32_t HELPER(__crc32c)(uint32_t acc, uint32_t val, uint32_t bytes)
- {
-     uint8_t buf[4];
- 
-     stl_le_p(buf, val);
- 
--    /* Linux crc32c converts the output to one's complement.  */
--    return crc32c(acc, buf, bytes) ^ 0xffffffff;
-+    /* Linux __crc32c converts the output to one's complement.  */
-+    return __crc32c(acc, buf, bytes) ^ 0xffffffff;
- }
- 
- /*
-diff --git a/target/arm/helper.h b/target/arm/helper.h
-index 2b0273330531afcd6472f2cd3b4d546002c80488..25bb12f60044e819c9d02d570e0da9bce7ddec30 100644
---- a/target/arm/helper.h
-+++ b/target/arm/helper.h
-@@ -591,7 +591,7 @@ DEF_HELPER_FLAGS_4(crypto_sm4ekey, TCG_CALL_NO_RWG, void, ptr, ptr, ptr, i32)
- DEF_HELPER_FLAGS_4(crypto_rax1, TCG_CALL_NO_RWG, void, ptr, ptr, ptr, i32)
- 
- DEF_HELPER_FLAGS_3(crc32, TCG_CALL_NO_RWG_SE, i32, i32, i32, i32)
--DEF_HELPER_FLAGS_3(crc32c, TCG_CALL_NO_RWG_SE, i32, i32, i32, i32)
-+DEF_HELPER_FLAGS_3(__crc32c, TCG_CALL_NO_RWG_SE, i32, i32, i32, i32)
- 
- DEF_HELPER_FLAGS_5(gvec_qrdmlah_s16, TCG_CALL_NO_RWG,
-                    void, ptr, ptr, ptr, ptr, i32)
 diff --git a/target/arm/tcg/helper-a64.c b/target/arm/tcg/helper-a64.c
-index 8ad84623d37d93a3d56c3f42e770be342b705ff0..b319ad45c21d9db844bd395d32f0d9cca87b7550 100644
+index 71c6c44ee8ac29a23a2f3fea19b92280987e589b..507d1b1e6df13c651c51d7ff2d4620a8d8a9ceea 100644
 --- a/target/arm/tcg/helper-a64.c
 +++ b/target/arm/tcg/helper-a64.c
-@@ -501,8 +501,8 @@ uint64_t HELPER(crc32c_64)(uint64_t acc, uint64_t val, uint32_t bytes)
+@@ -406,7 +406,7 @@ AH_MINMAX_HELPER(sme2_ah_fmax_b16, bfloat16, bfloat16, max)
+ AH_MINMAX_HELPER(sme2_ah_fmin_b16, bfloat16, bfloat16, min)
  
+ /* 64-bit versions of the CRC helpers. Note that although the operation
+- * (and the prototypes of crc32c() and crc32() mean that only the bottom
++ * (and the prototypes of __crc32c() and crc32() mean that only the bottom
+  * 32 bits of the accumulator and result are used, we pass and return
+  * uint64_t for convenience of the generated code. Unlike the 32-bit
+  * instruction set versions, val may genuinely have 64 bits of data in it.
+@@ -430,7 +430,7 @@ uint64_t HELPER(crc32c_64)(uint64_t acc, uint64_t val, uint32_t bytes)
      stq_le_p(buf, val);
  
--    /* Linux crc32c converts the output to one's complement.  */
+     /* Linux crc32c converts the output to one's complement.  */
 -    return crc32c(acc, buf, bytes) ^ 0xffffffff;
-+    /* Linux __crc32c converts the output to one's complement.  */
 +    return __crc32c(acc, buf, bytes) ^ 0xffffffff;
  }
  
  /*
-diff --git a/target/loongarch/helper.h b/target/loongarch/helper.h
-index b3b64a021536255a3f9decfc10ff61fe8380e2ae..7416aa00f869edcbff256e0f0404da7308e998d2 100644
---- a/target/loongarch/helper.h
-+++ b/target/loongarch/helper.h
-@@ -13,7 +13,7 @@ DEF_HELPER_FLAGS_3(asrtle_d, TCG_CALL_NO_WG, void, env, tl, tl)
- DEF_HELPER_FLAGS_3(asrtgt_d, TCG_CALL_NO_WG, void, env, tl, tl)
- 
- DEF_HELPER_FLAGS_3(crc32, TCG_CALL_NO_RWG_SE, tl, tl, tl, tl)
--DEF_HELPER_FLAGS_3(crc32c, TCG_CALL_NO_RWG_SE, tl, tl, tl, tl)
-+DEF_HELPER_FLAGS_3(__crc32c, TCG_CALL_NO_RWG_SE, tl, tl, tl, tl)
- DEF_HELPER_FLAGS_2(cpucfg, TCG_CALL_NO_RWG_SE, tl, env, tl)
- 
- /* Floating-point helper */
-diff --git a/target/loongarch/op_helper.c b/target/loongarch/op_helper.c
-index fe79c62fa472bf23b48ca8c1c3eb6b926b7434b4..41133336c0f498705b5ac7a202cdb2c1c64959b4 100644
---- a/target/loongarch/op_helper.c
-+++ b/target/loongarch/op_helper.c
-@@ -77,7 +77,7 @@ target_ulong helper_crc32c(target_ulong val, target_ulong m, uint64_t sz)
+diff --git a/target/loongarch/tcg/op_helper.c b/target/loongarch/tcg/op_helper.c
+index 16ac0d43bc9cfe002a4e74f394d962471f3b3934..7d18c66ae22733a36b72911ddc0fb390a777d134 100644
+--- a/target/loongarch/tcg/op_helper.c
++++ b/target/loongarch/tcg/op_helper.c
+@@ -76,7 +76,7 @@ target_ulong helper_crc32c(target_ulong val, target_ulong m, uint64_t sz)
      target_ulong mask = ((sz * 8) == 64) ? -1ULL : ((1ULL << (sz * 8)) - 1);
      m &= mask;
      stq_le_p(buf, m);

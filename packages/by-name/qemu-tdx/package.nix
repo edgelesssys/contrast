@@ -6,15 +6,7 @@
   libaio,
   dtc,
   python3Packages,
-  fetchurl,
-  fetchzip,
 }:
-let
-  tdxPatches = fetchzip {
-    url = "https://launchpadlibrarian.net/744102817/qemu_8.2.2+ds-0ubuntu2+tdx1.0.debian.tar.xz";
-    hash = "sha256-ByvNvdGeYJq5tBh8eONU8drQpg1yWolLTf8yoM2VTik=";
-  };
-in
 (qemu.override (_previous: {
   minimal = true;
   enableBlobs = true;
@@ -23,14 +15,7 @@ in
   hostCpuOnly = true;
   hostCpuTargets = [ "x86_64-softmmu" ];
 })).overrideAttrs
-  (previousAttrs: rec {
-    version = "8.2.2";
-
-    src = fetchurl {
-      url = "https://download.qemu.org/qemu-${version}.tar.xz";
-      hash = "sha256-hHNGwbgsGlSyw49u29hVSe3rF0MLfU09oSYg4pYrxPM=";
-    };
-
+  (previousAttrs: {
     configureFlags = previousAttrs.configureFlags ++ [
       "-Dlinux_aio_path=${libaio}/lib"
       "-Dlinux_fdt_path=${dtc}/lib"
@@ -42,16 +27,6 @@ in
     buildInputs = previousAttrs.buildInputs ++ [ dtc ];
 
     nativeBuildInputs = previousAttrs.nativeBuildInputs ++ [ python3Packages.packaging ];
-
-    prePatch = ''
-      while read patch; do
-        patch="''${patch%%#*}"
-        if [[ $patch == "" ]]; then
-          continue
-        fi
-        patch -p1 < ${tdxPatches}/patches/$patch
-      done < <(cat ${tdxPatches}/patches/series)
-    '';
 
     patches = [
       ./0001-avoid-duplicate-definitions.patch
