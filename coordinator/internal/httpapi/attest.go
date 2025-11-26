@@ -52,7 +52,7 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ht
 		coordinatorState.Policies = append(coordinatorState.Policies, policy)
 	}
 
-	transitionHash := state.LatestTransition().Digest()
+	transitionHash := state.LatestTransition().TransitionHash
 	reportData := httpapi.ConstructReportData(nonce, transitionHash[:], coordinatorState)
 	attestation, err := h.Issuer.Issue(ctx, reportData)
 	if err != nil {
