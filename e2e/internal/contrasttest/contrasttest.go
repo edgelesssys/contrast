@@ -331,11 +331,11 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 	}
 
 	var err error
-	ct.meshCACertPEM, err = os.ReadFile(path.Join(ct.WorkDir, "mesh-ca.pem"))
+	ct.meshCACertPEM, err = os.ReadFile(path.Join(ct.WorkDir, "verify", "mesh-ca.pem"))
 	if err != nil {
 		return fmt.Errorf("no mesh ca cert: %w", err)
 	}
-	ct.rootCACertPEM, err = os.ReadFile(path.Join(ct.WorkDir, "coordinator-root-ca.pem"))
+	ct.rootCACertPEM, err = os.ReadFile(path.Join(ct.WorkDir, "verify", "coordinator-root-ca.pem"))
 	if err != nil {
 		return fmt.Errorf("no root ca cert: %w", err)
 	}
