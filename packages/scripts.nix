@@ -784,4 +784,29 @@ lib.makeScope pkgs.newScope (scripts: {
     '';
   };
 
+  # This is a script rather than part of packages/containers.nix because we *want* impurity here,
+  # in order to generate a new image digest and a new tag every time the script runs.
+  push-containerd-reproducer = writeShellApplication {
+    name = "push-containerd-reproducer";
+    runtimeInputs = with pkgs; [
+      jq
+      umoci
+      skopeo
+    ];
+    text = ''
+      registry="$1"
+      tmpdir="$(mktemp -d)/oci"
+      timestamp=$(date +%s)
+
+      umoci init --layout "$tmpdir"
+      skopeo copy "docker://ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b" "oci:$tmpdir:alpine" --insecure-policy
+      umoci unpack --image "$tmpdir:alpine" "$tmpdir/rootfs" --rootless
+      echo "$timestamp" > "$tmpdir/rootfs/rootfs/timestamp"
+      umoci repack --image "$tmpdir:alpine" "$tmpdir/rootfs"
+      skopeo copy "oci:$tmpdir" "docker://$registry/contrast/containerd-reproducer:$timestamp" --insecure-policy
+
+      digest=$(jq -r '.manifests[0].digest' "$tmpdir/index.json")
+      echo "$timestamp $digest"
+    '';
+  };
 })

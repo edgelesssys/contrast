@@ -75,6 +75,10 @@ jobs:
       - name: Build and push container images
         run: |
           just coordinator initializer port-forwarder openssl service-mesh-proxy memdump debugshell node-installer "${PLATFORM}"
+      - name: Build and push the (impure) containerd-reproducer image
+        if: env.TEST_NAME == 'containerd-digest-pinning'
+        run: |
+          just containerd-reproducer
       - name: Get credentials for CI cluster
         if: (!inputs.self-hosted)
         run: |
