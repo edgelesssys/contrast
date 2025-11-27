@@ -25,3 +25,8 @@ spec:
           ports:
             - containerPort: 8443
             - containerPort: 8080
+          resources:
+            requests:
+              memory: 100Mi
+            limits:
+              memory: 100Mi
