@@ -11,3 +11,8 @@ spec:
         - containerPort: 8443
         - containerPort: 8080
       command: ["/usr/bin/run-httpd"]
+      resources:
+        requests:
+          memory: 100Mi
+        limits:
+          memory: 100Mi
