@@ -10,6 +10,11 @@ spec:
       command:
         - /bin/busybox
         - "true"
+      resources:
+        requests:
+          memory: 5Mi
+        limits:
+          memory: 5Mi
   containers:
     - name: main
       image: ghcr.io/edgelesssys/reused-layer/a@sha256:a81cb597db43ac54dd1e2e3c95c7198dd9dafda1ceded5b3adbc4e830f47d92e
@@ -18,3 +23,8 @@ spec:
         - sh
         - -c
         - read dummy
+      resources:
+        requests:
+          memory: 5Mi
+        limits:
+          memory: 5Mi

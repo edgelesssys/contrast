@@ -14,4 +14,9 @@ spec:
             - name: test
               image: ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b
               command: ["echo", "Hello World!"]
+              resources:
+                requests:
+                  memory: 40Mi
+                limits:
+                  memory: 40Mi
           restartPolicy: Never

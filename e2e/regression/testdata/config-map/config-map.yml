@@ -23,6 +23,11 @@ spec:
         - name: cm-content
           mountPath: "/etc/cm-content"
           readOnly: true
+      resources:
+        requests:
+          memory: 40Mi
+        limits:
+          memory: 40Mi
   volumes:
     - name: cm-content
       configMap:
