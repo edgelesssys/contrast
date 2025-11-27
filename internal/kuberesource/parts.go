@@ -26,7 +26,7 @@ func ContrastRuntimeClass(platform platforms.Platform) (*RuntimeClassConfig, err
 	}
 
 	// Consists of the default VM memory, 70MiB for the Kata shim and 100MiB for qemu overhead.
-	memoryOverhead := platforms.DefaultMemoryInMegaBytes(platform) + 170
+	memoryOverhead := platforms.DefaultMemoryInMebiBytes(platform) + 170
 
 	r := RuntimeClass(runtimeHandler).
 		WithHandler(runtimeHandler).
