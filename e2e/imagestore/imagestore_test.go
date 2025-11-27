@@ -21,42 +21,26 @@ import (
 	"github.com/edgelesssys/contrast/internal/platforms"
 
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestImageStore(t *testing.T) {
 	tests := map[string]struct {
 		name       string
-		size       int
-		maxOffset  int
 		annotation string
-		gpu        bool
 	}{
 		"enabled by default": {
-			name:      "imagestore-default",
-			size:      10000000,
-			maxOffset: 500000,
+			name: "imagestore-default",
 		},
 		"block device size configurable": {
 			name:       "imagestore-configured",
-			size:       2000000,
-			maxOffset:  500000,
 			annotation: "2Gi",
 		},
 		"disabled through annotation": {
-			name: "imagestore-disabled",
-			// (512MB + 2 * 20MB) / 2: half of the memory is available in the /run tmpfs
-			size:       226000,
-			maxOffset:  20000,
+			name:       "imagestore-disabled",
 			annotation: "0",
-		},
-		"disabled through annotation (GPU)": {
-			name: "imagestore-disabled-gpu",
-			// roughly (1024MB + 2 * 20MB) / 2
-			size:       500000,
-			maxOffset:  40000,
-			annotation: "0",
-			gpu:        true,
 		},
 	}
 
@@ -90,15 +74,31 @@ func TestImageStore(t *testing.T) {
 	require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "coordinator"))
 
 	for name, tc := range tests {
-		if platforms.IsGPU(platform) != tc.gpu {
-			continue
-		}
-
 		t.Run(name, func(_ *testing.T) {
 			require.NoError(ct.Kubeclient.WaitForPod(ctx, ct.Namespace, tc.name))
 
 			pod, err := ct.Kubeclient.Client.CoreV1().Pods(ct.Namespace).Get(ctx, tc.name, metav1.GetOptions{})
 			require.NoError(err)
+
+			var expectedKibiBytes int
+			switch tc.annotation {
+			case "0":
+				defaultMemory := platforms.DefaultMemoryInMebiBytes(platform) * 1024 * 1024
+				for _, c := range pod.Spec.Containers {
+					memory := c.Resources.Limits[corev1.ResourceMemory]
+					defaultMemory += int(memory.Value())
+				}
+				// When the imagestore is disabled, the expectedKibiBytes are (the total VM memory in KiB - internal VM overhead) / 2
+				// For more information on the internal VM overhead, see https://github.com/edgelesssys/contrast/pull/1196
+				vmOverheadBytes := 99 * 1024 * 1024
+				expectedKibiBytes = ((defaultMemory - vmOverheadBytes) / 1024) / 2
+			case "":
+				size := resource.MustParse("10Gi")
+				expectedKibiBytes = int(size.Value()) / 1024
+			default:
+				size := resource.MustParse(tc.annotation)
+				expectedKibiBytes = int(size.Value()) / 1024
+			}
 
 			for _, c := range pod.Spec.Containers {
 				stdOut, stdErr, err := ct.Kubeclient.ExecContainer(
@@ -117,7 +117,7 @@ func TestImageStore(t *testing.T) {
 				diskSize, err := extractDiskSize(stdOut)
 				require.NoError(err, "failed to extract root disk size from container:\n%s", stdOut)
 
-				require.NoError(checkDiskSize(tc.size, diskSize, tc.maxOffset, c.Name))
+				require.NoError(checkDiskSize(expectedKibiBytes, diskSize, c.Name))
 			}
 		})
 	}
@@ -139,7 +139,8 @@ func extractDiskSize(logs string) (int, error) {
 
 // checkDiskSize checks whether the captured size is roughly the same as what we have set.
 // The output from df -h will never match exactly what is set in the deployment.
-func checkDiskSize(expected, size, maxOffset int, name string) error {
+func checkDiskSize(expected, size int, name string) error {
+	maxOffset := int(0.1 * float32(expected))
 	if size < expected-maxOffset || size > expected+maxOffset {
 		return fmt.Errorf("unexpected disk size in container %s: %d (expected about %d)", name, size, expected)
 	}
@@ -164,14 +165,14 @@ func testPod(name, annotation string) any {
 					WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
 					WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
 					WithResources(kuberesource.ResourceRequirements().
-						WithMemoryLimitAndRequest(20),
+						WithMemoryLimitAndRequest(40),
 					),
 				kuberesource.Container().
 					WithName(name+"-2").
 					WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
 					WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
 					WithResources(kuberesource.ResourceRequirements().
-						WithMemoryLimitAndRequest(20),
+						WithMemoryLimitAndRequest(40),
 					),
 			),
 		)
