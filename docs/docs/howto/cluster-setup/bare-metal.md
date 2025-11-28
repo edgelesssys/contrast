@@ -34,7 +34,17 @@ Consult AMD's [Using SEV with AMD EPYC Processors user guide](https://www.amd.co
 </TabItem>
 <TabItem value="intel" label="Intel TDX">
 
-Follow Canonical's instructions in [4.2 Enable Intel TDX in Host OS](https://github.com/canonical/tdx?tab=readme-ov-file#42-enable-intel-tdx-in-host-os) (set `TDX_SETUP_ATTESTATION=1` in `setup-tdx-config`), [4.3 Enable Intel TDX in the Host's BIOS](https://github.com/canonical/tdx?tab=readme-ov-file#43-enable-intel-tdx-in-the-hosts-bios) and [9.2 Setup Intel&reg; SGX Data Center Attestation Primitives (Intel&reg; SGX DCAP) on the Host OS](https://github.com/canonical/tdx?tab=readme-ov-file#92-setup-intel-sgx-data-center-attestation-primitives-intel-sgx-dcap-on-the-host-os) (skipping step 9.2.1).
+Follow Canonical's instructions in [4.3 Enable Intel TDX in the Host's BIOS](https://github.com/canonical/tdx?tab=readme-ov-file#43-enable-intel-tdx-in-the-hosts-bios) and [9.2 Setup Intel&reg; SGX Data Center Attestation Primitives (Intel&reg; SGX DCAP) on the Host OS](https://github.com/canonical/tdx?tab=readme-ov-file#92-setup-intel-sgx-data-center-attestation-primitives-intel-sgx-dcap-on-the-host-os) except for 9.2.1.
+
+Instead of step 9.2.1, run the following:
+
+```sh
+sudo add-apt-repository ppa:kobuk-team/tdx-attestation-release
+sudo sed -i 's/questing/plucky/g' /etc/apt/sources.list.d/kobuk-team-ubuntu-tdx-attestation-release-*.sources
+apt update
+apt install sgx-dcap-pccs tdx-qgs libsgx-dcap-default-qpl sgx-ra-service sgx-pck-id-retrieval-tool
+```
+
 You can ignore the other sections of the document.
 
 Follow Intel's guide to [Update Intel TDX Module via Binary Deployment](https://cc-enabling.trustedservices.intel.com/intel-tdx-enabling-guide/04/hardware_setup/#update-intel-tdx-module-via-binary-deployment).
@@ -50,7 +60,8 @@ Intel recommends to install the latest TDX module version available.
 Install Linux kernel 6.11 or greater.
 </TabItem>
 <TabItem value="intel" label="Intel TDX">
-Follow Canonical's instructions on [setting up Intel TDX on Ubuntu 24.04](https://github.com/canonical/tdx?tab=readme-ov-file#41-install-ubuntu-server-image). Note that Contrast currently only supports Intel TDX with Ubuntu 24.04.
+Install Ubuntu 25.10 and leave the kernel at the default version. Other distributions with a 6.16+ kernel might work as well, but we currently only provide support for Ubuntu 25.10.
+Add the `nohibernate` and `kvm_intel.tdx=1` kernel command line parameters, for example by updating `GRUB_CMDLINE_LINUX` in `/etc/default/grub`.
 </TabItem>
 </Tabs>
 
