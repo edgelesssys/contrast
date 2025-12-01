@@ -13,7 +13,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           ref: ${{ !github.event.pull_request.head.repo.fork && github.head_ref || '' }}
           token: ${{ !github.event.pull_request.head.repo.fork && secrets.NUNKI_CI_COMMIT_PUSH_PR || github.token }}
@@ -26,7 +26,7 @@ jobs:
         run: |
           nix run .#scripts.get-nvidia-rim-ids > dev-docs/nvidia/rim-ids.json
       - name: Create PR
-        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
+        uses: peter-evans/create-pull-request@84ae59a2cdc2258d6fa0732dd66352dddae2a412 # v7.0.9
         with:
           title: "dev-docs: update NVIDIA RIM IDs"
           body: "Automated updated created by [rim_updates workflow](https://github.com/edgelesssys/contrast/blob/main/.github/workflows/rim_updates.yml)."

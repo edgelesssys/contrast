@@ -37,7 +37,7 @@ jobs:
     env:
       PREVIEW: ${{ !(github.event_name == 'push' && github.ref_name == 'main') }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup_nix
@@ -69,6 +69,6 @@ jobs:
           cp --no-preserve=mode --recursive "$(readlink -f ./result)" /tmp/docs
       - name: Deploy preview
         if: env.PREVIEW == 'true'
-        uses: rossjrw/pr-preview-action@9f77b1d057b494e662c50b8ca40ecc63f21e0887 # v1.6.2
+        uses: rossjrw/pr-preview-action@8ff09e486b4c23709012eedd3b42e9f0b95dd0c5 # v1.6.3
         with:
           source-dir: /tmp/docs
