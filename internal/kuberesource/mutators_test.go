@@ -4,12 +4,26 @@
 package kuberesource
 
 import (
+	_ "embed"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
+)
+
+var (
+	//go:embed assets/cronjob.yaml
+	cronjob []byte
+	//go:embed assets/daemonset.yaml
+	daemonset []byte
+	//go:embed assets/nginx-deployment.yaml
+	deployment []byte
+	//go:embed assets/job.yaml
+	job []byte
+	//go:embed assets/pod-nginx.yaml
+	pod []byte
 )
 
 func TestPatchNamespaces(t *testing.T) {
@@ -412,6 +426,30 @@ func TestAddServiceMesh(t *testing.T) {
 				}
 			}
 			require.Equal(1, serviceMeshVolumeCount)
+		})
+	}
+}
+
+func TestAddImageStore_Regression(t *testing.T) {
+	for name, tc := range map[string]struct {
+		resource []byte
+	}{
+		"job":        {resource: job},
+		"deployment": {resource: deployment},
+		"cronjob":    {resource: cronjob},
+		"daemonset":  {resource: daemonset},
+		"pod":        {resource: pod},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			res, err := UnmarshalApplyConfigurations(tc.resource)
+			require.NoError(err)
+			res = PatchRuntimeHandlers(res, "contrast-cc")
+			res = AddImageStore(res)
+			encoded, err := EncodeResources(res...)
+			require.NoError(err)
+			require.Contains(string(encoded), "pvc-holder")
 		})
 	}
 }

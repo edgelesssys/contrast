@@ -143,6 +143,9 @@ buildGoModule (finalAttrs: {
         (path.append root "go.mod")
         (path.append root "go.sum")
         (path.append root "cli/cmd/assets/image-replacements.txt")
+        (fileset.fileFilter (file: hasSuffix ".yaml" file.name) (
+          path.append root "internal/kuberesource/assets"
+        ))
         (path.append root "internal/manifest/Milan.pem")
         (path.append root "internal/manifest/Genoa.pem")
         (path.append root "internal/manifest/Intel_SGX_Provisioning_Certification_RootCA.pem")
