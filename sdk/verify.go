@@ -24,6 +24,9 @@ import (
 // Client is used to interact with a Contrast deployment.
 type Client struct {
 	log *slog.Logger
+
+	// validatorsFromManifestOverride is used by tests to replace the validators.
+	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]atls.Validator, error)
 }
 
 // New returns a Client with logging disabled.
@@ -52,7 +55,11 @@ func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifest
 
 	kdsCache := fsstore.New(kdsDir, c.log.WithGroup("kds-cache"))
 	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, c.log.WithGroup("kds-getter"))
-	validators, err := ValidatorsFromManifest(kdsGetter, &m, c.log)
+	validatorsFromManifest := ValidatorsFromManifest
+	if c.validatorsFromManifestOverride != nil {
+		validatorsFromManifest = c.validatorsFromManifestOverride
+	}
+	validators, err := validatorsFromManifest(kdsGetter, &m, c.log)
 	if err != nil {
 		return httpapi.CoordinatorState{}, fmt.Errorf("getting validators: %w", err)
 	}
