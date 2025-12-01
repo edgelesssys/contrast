@@ -174,7 +174,7 @@ func (c Client) GetAttestation(ctx context.Context, url string, nonce []byte) ([
 // Note: this function does not verify manifest content! It's the callers responsibility to compare
 // the latest manifest with an expected manifest, if that exists, or verify that all manifest
 // fields match their expectations.
-func (c Client) ValidateAttestation(ctx context.Context, kdsDir string, nonce []byte, attestation []byte) (*httpapi.CoordinatorState, error) {
+func (c Client) ValidateAttestation(ctx context.Context, kdsDir string, nonce []byte, attestation []byte) (*CoordinatorState, error) {
 	if len(nonce) != contrastcrypto.RNGLengthDefault {
 		return nil, fmt.Errorf("wrong nonce length: got %d, want %d", len(nonce), contrastcrypto.RNGLengthDefault)
 	}
@@ -224,7 +224,25 @@ func (c Client) ValidateAttestation(ctx context.Context, kdsDir string, nonce []
 	if !validated {
 		return nil, fmt.Errorf("validation failed:\n%w", errors.Join(errs...))
 	}
-	return &resp.CoordinatorState, nil
+	state := CoordinatorState{
+		Manifests: resp.Manifests,
+		Policies:  resp.Policies,
+		RootCA:    resp.RootCA,
+		MeshCA:    resp.MeshCA,
+	}
+	return &state, nil
+}
+
+// CoordinatorState represents the state of the Contrast Coordinator at a fixed point in time.
+type CoordinatorState struct {
+	// Manifests is a slice of manifests. It represents the manifest history of the Coordinator it was received from, sorted from oldest to newest.
+	Manifests [][]byte
+	// Policies contains all policies that have been referenced in any manifest in Manifests. Used to verify the guarantees a deployment had over its lifetime.
+	Policies [][]byte
+	// PEM-encoded certificate of the deployment's root CA.
+	RootCA []byte
+	// PEM-encoded certificate of the deployment's mesh CA.
+	MeshCA []byte
 }
 
 func buildTransitionChain(manifests [][]byte) []*history.Transition {

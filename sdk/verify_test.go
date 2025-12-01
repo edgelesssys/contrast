@@ -198,7 +198,15 @@ func TestValidateAttestation(t *testing.T) {
 				return
 			}
 			assert.NoError(err)
-			assert.Equal(&tc.resp.CoordinatorState, state)
+
+			expected := &CoordinatorState{
+				Manifests: tc.resp.Manifests,
+				Policies:  tc.resp.Policies,
+				RootCA:    tc.resp.RootCA,
+				MeshCA:    tc.resp.MeshCA,
+			}
+
+			assert.Equal(expected, state)
 		})
 	}
 }
