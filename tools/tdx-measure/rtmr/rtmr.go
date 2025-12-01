@@ -94,7 +94,7 @@ var (
 		0xa3, 0xbc,
 		0xda, 0xd0, 0x0e, 0x67, 0x65, 0x6f,
 	}
-	fvNameGUID = [16]byte{
+	mediaFirmwareVolumeGUID = [16]byte{
 		0xc9, 0xbd, 0xb8, 0x7c,
 		0xeb, 0xf8,
 		0x34, 0x4f,
@@ -108,10 +108,23 @@ var (
 		0x83, 0x6e,
 		0x8a, 0xb6, 0xf4, 0x66, 0x23, 0x31,
 	}
+	mediaFirmwareFileGUID = [16]byte{
+		0xdc, 0x5b, 0xc2, 0xee,
+		0xf2, 0x67,
+		0x95, 0x4d,
+		0xb1, 0xd5,
+		0xf8, 0x1b, 0x20, 0x39, 0xd1, 0x1d,
+	}
 )
 
+type efiDevicePath struct {
+	Type    uint8
+	SubType uint8
+	Data    []byte
+}
+
 // buildFilePathList assembles the device path passed by QEMU for boot option Boot0000.
-func buildFilePathList() ([]byte, error) {
+func buildFilePathList(files []efiDevicePath) ([]byte, error) {
 	// The structure of `EFI_DEVICE_PATH_PROTOCOL` is described in Unified
 	// Extensible Firmware Interface (UEFI) Specification, Release 2.10 Errata
 	// A, 10.2 EFI Device Path Protocol.
@@ -133,18 +146,10 @@ func buildFilePathList() ([]byte, error) {
 		return nil
 	}
 
-	// The structure of PIWG Firmware Volume Device Path nodes is described in
-	// UEFI Platform Initialization Specification, Version 1.8 Errata A, II-8.2
-	// Firmware Volume Media Device Path.
-	if err := addNode(mediaProtocolType, piwgFirmwareVolumeSubType, fvNameGUID[:]); err != nil {
-		return nil, err
-	}
-
-	// The structure of PIWG Firmware File Device Path nodes is described in
-	// UEFI Platform Initialization Specification, Version 1.8 Errata A, II-8.3
-	// Firmware File Media Device Path.
-	if err := addNode(mediaProtocolType, piwgFirmwareFileSubType, fileGUID[:]); err != nil {
-		return nil, err
+	for _, node := range files {
+		if err := addNode(node.Type, node.SubType, node.Data); err != nil {
+			return nil, err
+		}
 	}
 
 	// The structure of End Entire Device Path nodes is described in Unified
@@ -159,17 +164,11 @@ func buildFilePathList() ([]byte, error) {
 }
 
 // buildEfiLoadOption assembles the EFI_LOAD_OPTION passed by QEMU for boot option Boot0000.
-func buildEfiLoadOption() ([]byte, error) {
+func buildEfiLoadOption(description string, attributes uint32, filePathList []byte) ([]byte, error) {
 	// The structure of `EFI_LOAD_OPTION` is described in Unified Extensible
 	// Firmware Interface (UEFI) Specification, Release 2.10 Errata A, 3.1.3
 	// Load Options.
 
-	var attributes uint32 = loadOptionActive | loadOptionHidden | loadOptionCategoryApp
-	filePathList, err := buildFilePathList()
-	if err != nil {
-		return nil, err
-	}
-	description := "UiApp"
 	optionalData := []byte{}
 
 	var buffer bytes.Buffer
@@ -204,11 +203,20 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 
 	// We don't measure the Hobs, the firmware verifies them instead.
 
+	// Configuration Firmware Volume (CFV).
 	cvf, err := tdvf.FindCfv(firmware)
 	if err != nil {
 		return [48]byte{}, fmt.Errorf("can't find CFV section in firmware: %w", err)
 	}
 	rtmr.hashAndExtend(cvf)
+
+	// QEMU FW CFG.BootMenu
+	// This is a two byte little-endian number with values
+	// - 0x0000: disabled
+	// - 0x0001: enabled
+	rtmr.extendVariableValue([]byte{0x00, 0x00})
+	// QEMU FW CFG.BootOrder
+	rtmr.extendVariableValue([]byte("/rom@genroms/linuxboot_dma.bin\x00"))
 
 	rtmr.extendVariable(efiGlobalVariable, "SecureBoot", []byte{})
 	rtmr.extendVariable(efiGlobalVariable, "PK", []byte{})
@@ -218,9 +226,10 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 
 	rtmr.extendSeparator()
 
-	// These are the hashes for some fw_cfg/ACPI related measurements.
 	// TODO(freax13): Don't hard-code these, calculate them instead.
 	configHashes := []string{
+		// These are the hashes for the ACPI tables (ACPI DATA).
+		// They might change depending on firmware/qemu version or qemu command line.
 		"978413224c711ace8c588bd45f9585657572c8053410df87f94bed7254feb88b4ce82233ead3db3721198a3a215efc1b",
 		"7d49579cd2b17a399b29b8fd40f2fd66bf3d0fafcbfdfd9a3b912b7d4f81dd7dba85ee15768b36214d7507dc10fc6464",
 		"4f564889e597ba62b02a0f5ad95ad9f8883947deadc3275fe289f5096c01ed3db8323d70681d04f694c025ee8426be11",
@@ -233,12 +242,57 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 		rtmr.Extend(buffer)
 	}
 
-	rtmr.extendVariableValue([]byte{0, 0}) // BootOrder
-	boot0000, err := buildEfiLoadOption()
+	// EFI_GLOBAL_VARIABLE BootOrder
+	// Content: Boot0000, Boot0001
+	rtmr.extendVariableValue([]byte{0x00, 0x00, 0x01, 0x00})
+
+	// EV_EFI_VARIABLE_BOOT
+	// Boot0000: BootManagerMenuApp
+	boot00000FilePathList, err := buildFilePathList(
+		[]efiDevicePath{
+			// The structure of PIWG Firmware Volume Device Path nodes is described in
+			// UEFI Platform Initialization Specification, Version 1.8 Errata A, II-8.2
+			// Firmware Volume Media Device Path.
+			{Type: mediaProtocolType, SubType: piwgFirmwareVolumeSubType, Data: mediaFirmwareVolumeGUID[:]},
+			// The structure of PIWG Firmware File Device Path nodes is described in
+			// UEFI Platform Initialization Specification, Version 1.8 Errata A, II-8.3
+			// Firmware File Media Device Path.
+			{Type: mediaProtocolType, SubType: piwgFirmwareFileSubType, Data: mediaFirmwareFileGUID[:]},
+		},
+	)
+	if err != nil {
+		return [48]byte{}, err
+	}
+	boot0000, err := buildEfiLoadOption(
+		"BootManagerMenuApp",
+		loadOptionActive|loadOptionHidden|loadOptionCategoryApp,
+		boot00000FilePathList,
+	)
 	if err != nil {
 		return [48]byte{}, err
 	}
 	rtmr.extendVariableValue(boot0000)
+
+	// EV_EFI_VARIABLE_BOOT
+	// Boot0001: EFI Firmware Setup
+	boot0001FilePathList, err := buildFilePathList(
+		[]efiDevicePath{
+			{Type: mediaProtocolType, SubType: piwgFirmwareVolumeSubType, Data: mediaFirmwareVolumeGUID[:]},
+			{Type: mediaProtocolType, SubType: piwgFirmwareFileSubType, Data: fileGUID[:]},
+		},
+	)
+	if err != nil {
+		return [48]byte{}, err
+	}
+	boot0001, err := buildEfiLoadOption(
+		"EFI Firmware Setup",
+		loadOptionActive|loadOptionCategoryApp,
+		boot0001FilePathList,
+	)
+	if err != nil {
+		return [48]byte{}, err
+	}
+	rtmr.extendVariableValue(boot0001)
 
 	return rtmr.Get(), nil
 }
