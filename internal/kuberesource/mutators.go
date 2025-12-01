@@ -365,16 +365,19 @@ func AddImageStore(resources []any) []any {
 
 	addPvc := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration,
 	) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
-		if meta == nil || spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
 			return meta, spec
 		}
 
-		imageStoreSize := meta.Annotations[imageStoreSizeAnnotationKey]
-		switch imageStoreSize {
-		case "0":
-			return meta, spec
-		case "":
-			imageStoreSize = "10Gi"
+		imageStoreSize := "10Gi"
+		if meta != nil {
+			s := meta.Annotations[imageStoreSizeAnnotationKey]
+			if s == "0" {
+				return meta, spec
+			}
+			if s != "" {
+				imageStoreSize = s
+			}
 		}
 
 		holderContainer, ephemeralVolume := getConfigs(imageStoreSize)
