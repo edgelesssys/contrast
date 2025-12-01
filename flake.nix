@@ -34,7 +34,7 @@
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
-            (final: _prev: { fenix = self.inputs.fenix.packages.${final.system}; })
+            (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
             (import ./overlays/nixpkgs.nix)
             (import ./overlays/contrast.nix)
           ];
