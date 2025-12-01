@@ -14,6 +14,7 @@ exclude = [
     '^http(s)?://localhost',
     '^https://github\.com/edgelesssys/contrast/(settings|deployments)', # not public
     '^https://.*\.hashicorp\.com', # strict bot protection
+    '^https://.*\.medium\.com', # strict bot protection
 ]
 exclude_path = [
     "dev-docs/frozen",
