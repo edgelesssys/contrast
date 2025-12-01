@@ -154,6 +154,11 @@ buildGoModule (finalAttrs: {
       # Instead, this patch ensures that if a container has NVIDIA_VISIBLE_DEVICES=all set as an env var,
       # that container receives ALL Nvidia GPU devices known to the pod.
       ./0024-runtime-assign-GPU-devices-to-multiple-containers.patch
+
+      # The container-device-interface crate v0.1.0 was published without a corresponding git tag
+      # and is going to be yanked.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12151.
+      ./0025-agent-Bump-CDI-rs-to-latest.patch
     ];
   };
 
