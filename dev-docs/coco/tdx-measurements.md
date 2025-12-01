@@ -112,6 +112,14 @@ Measured into by the Firmware(?).
 Contains the firmware itself, secure boot EFI variables, ACPI configuration and the `EFI_LOAD_OPTION`
 passed by the VMM.
 
+For events that have `QEMU FW CFG` in their data, you can enable the corresponding sysfs interface in the kernel:
+
+```
+CONFIG_FW_CFG_SYSFS=y
+```
+
+Then inspect `/sys/firmware/fw_cfg` for the actual values used by QEMU.
+
 ### RTMR 1
 
 Measured into by the Firmware.

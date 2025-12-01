@@ -150,6 +150,7 @@ superset
 SVNs?
 Syft
 sysctl
+sysfs
 systemd
 Tailscale
 tardev
