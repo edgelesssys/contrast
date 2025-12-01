@@ -52,7 +52,7 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
     if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" ]] ; then
         just request-fifo-ticket 90m
     fi
-    if [[ -n "$contrast_ghcr_read" ]]; then
+    if [[ -n "${contrast_ghcr_read:-}" ]]; then
         export CONTRAST_GHCR_READ="$contrast_ghcr_read"
     fi
     nix shell .#contrast.e2e --command {{ target }}.test -test.v \
@@ -174,7 +174,7 @@ apply target=default_deploy_target platform=default_platform:
             if [[ -f ./{{ workspace_dir }}/runtime/target-conf.yml ]]; then
                 kubectl apply -f ./{{ workspace_dir }}/runtime/target-conf.yml
             fi
-            if [[ -n "$contrast_ghcr_read" ]]; then
+            if [[ -n "${contrast_ghcr_read:-}" ]]; then
                 cat > "./{{ workspace_dir }}/contrast-imagepuller.toml" <<EOF
     [registries]
     [registries."ghcr.io."]
