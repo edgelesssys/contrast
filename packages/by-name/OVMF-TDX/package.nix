@@ -23,7 +23,11 @@ edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
 
   patches = [
     # Make the RTMR[0] measurement independent of the amount of memory.
-    ./0001-verify-Hobs-instead-of-measuring-them.patch
+    ./0001-TdxHelperLib-verify-Hobs-instead-of-measuring-them.patch
+    # Make the measurement of the SMBIOS handoff table independent of the amount of memory.
+    # The patch was necessary after the bump from edk2 202411 to 202508.01, as the SMBIOS
+    # handoff table wasn't measured before.
+    ./0002-SmbiosMeasurementDxe-filter-handoff-table.patch
   ];
 
   hardeningDisable = [

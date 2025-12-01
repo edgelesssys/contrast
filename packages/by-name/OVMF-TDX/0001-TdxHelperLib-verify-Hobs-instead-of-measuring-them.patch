@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Paul Meyer <katexochen0@gmail.com>
 Date: Wed, 26 Nov 2025 11:37:15 +0100
-Subject: [PATCH] verify Hobs instead of measuring them
+Subject: [PATCH] TdxHelperLib: verify Hobs instead of measuring them
 
 We don't want the measurement to change depending on the amount of
 memory assigned to the CVM. Instead verify the Hobs to make sure that
