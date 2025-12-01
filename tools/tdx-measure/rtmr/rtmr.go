@@ -327,9 +327,10 @@ func CalcRtmr1(kernelFile, initrdFile []byte) ([48]byte, error) {
 func CalcRtmr2(cmdLine string, initrdFile []byte) ([48]byte, error) {
 	var rtmr Rtmr
 
-	// TODO(msanft): find out which component silently adds this string to the commandline.
-	// Suspects: QEMU-CC, OVMF-TDX, Linux EFI Stub
-	cmdLine += " initrd=initrd"
+	// The following is prepended by OVMF, see
+	// https://github.com/tianocore/edk2/blob/af9cc80359e320690877e4add870aa13fe889fbe/OvmfPkg/Library/X86QemuLoadImageLib/X86QemuLoadImageLib.c#L581
+	// and https://github.com/tianocore/edk2/commit/a2ac0fea49996ab484c1a8761c234cc354f5a760
+	cmdLine = "initrd=initrd " + cmdLine
 
 	// https://elixir.bootlin.com/linux/v6.11.8/source/drivers/firmware/efi/libstub/efi-stub-helper.c#L342
 	codepoints := utf16.Encode([]rune(cmdLine))
