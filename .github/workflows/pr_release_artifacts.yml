@@ -23,7 +23,7 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup_nix
@@ -93,7 +93,7 @@ jobs:
       id-token: write
     steps:
       - name: AWS login (IAM role)
-        uses: aws-actions/configure-aws-credentials@00943011d9042930efac3dcd3a170e4273319bc8 # v5.1.0
+        uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5.1.1
         with:
           role-to-assume: arn:aws:iam::795746500882:role/ContrastPublicBucketRW
           aws-region: eu-central-1

@@ -54,7 +54,7 @@ jobs:
       NEXT_MINOR_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
       NEXT_PATCH_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           persist-credentials: false
       - name: Working branch
@@ -133,13 +133,13 @@ jobs:
       MAJOR_MINOR_PATCH: ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}
     steps:
       - name: Checkout working branch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           path: contrast-working
           persist-credentials: false
       - name: Checkout main
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           ref: ${{ inputs.checkout_main_ref }}
           path: contrast-main
@@ -201,7 +201,7 @@ jobs:
           working-directory: contrast-main
           commit: false
       - name: Create PR
-        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
+        uses: peter-evans/create-pull-request@84ae59a2cdc2258d6fa0732dd66352dddae2a412 # v7.0.9
         with:
           title: Post ${{ needs.process-inputs.outputs.WITHOUT_V }} release updates to main
           body: |
@@ -231,7 +231,7 @@ jobs:
       VERSION: ${{ inputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: true
@@ -271,7 +271,7 @@ jobs:
             LICENSE
             ${{ steps.create-artifacts.outputs.paths }}
       - name: Create draft release
-        uses: softprops/action-gh-release@5be0e66d93ac7ed76da52eca8bb058f665c3a5fe # v2.4.2
+        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2.5.0
         with:
           draft: true
           generate_release_notes: true
@@ -315,7 +315,7 @@ jobs:
     env:
       VERSION: ${{ inputs.version }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: false
@@ -387,7 +387,7 @@ jobs:
       NEXT_MINOR: ${{ needs.process-inputs.outputs.NEXT_MINOR }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: false
