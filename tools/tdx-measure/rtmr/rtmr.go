@@ -298,13 +298,14 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 }
 
 // CalcRtmr1 calculates RTMR[1] for the given kernel.
-func CalcRtmr1(kernelFile, initrdFile []byte) ([48]byte, error) {
+func CalcRtmr1(kernelFile []byte) ([48]byte, error) {
 	var rtmr Rtmr
 
-	kernelHash, err := hashKernel(kernelFile, initrdFile)
+	kernel, err := authenticode.Parse(bytes.NewReader(kernelFile))
 	if err != nil {
-		return [48]byte{}, fmt.Errorf("can't hash kernel: %w", err)
+		return [48]byte{}, fmt.Errorf("can't parse kernel: %w", err)
 	}
+	kernelHash := kernel.Hash(crypto.SHA384)
 	if len(kernelHash) != 48 {
 		return [48]byte{}, fmt.Errorf("kernel hash has unexpected length: %d", len(kernelHash))
 	}
@@ -344,49 +345,4 @@ func CalcRtmr2(cmdLine string, initrdFile []byte) ([48]byte, error) {
 	rtmr.hashAndExtend(initrdFile)
 
 	return rtmr.Get(), nil
-}
-
-func hashKernel(kernelFile, initrdFile []byte) ([]byte, error) {
-	patchKernel(kernelFile, initrdFile)
-
-	kernel, err := authenticode.Parse(bytes.NewReader(kernelFile))
-	if err != nil {
-		return nil, fmt.Errorf("can't parse kernel: %w", err)
-	}
-
-	return kernel.Hash(crypto.SHA384), nil
-}
-
-func patchKernel(kernelFile, initrdFile []byte) {
-	// QEMU patches some header bytes in the kernel before loading it into memory.
-	// Sources:
-	// - https://gitlab.com/qemu-project/qemu/-/blob/28ae3179fc52d2e4d870b635c4a412aab99759e7/hw/i386/x86-common.c#L837
-	// - https://github.com/confidential-containers/td-shim/blob/51833bd509fbac49487bc4d483b7efd70d95e8b8/td-shim-tools/src/bin/td-payload-reference-calculator/main.rs#L65
-	// - Intel® TDX Virtual Firmware Design Guide, 12.2 UEFI Kernel Image Hash Calculation.
-
-	kernelFile[0x210] = 0xb0
-
-	kernelFile[0x211] = 0x81
-
-	kernelFile[0x224] = 0x00
-	kernelFile[0x225] = 0xfe
-
-	kernelFile[0x228] = 0x00
-	kernelFile[0x229] = 0x00
-	kernelFile[0x22A] = 0x02
-	kernelFile[0x22B] = 0x00
-
-	// https://github.com/qemu/qemu/blob/f48c205fb42be48e2e47b7e1cd9a2802e5ca17b0/hw/i386/x86.c#L1036
-	// Qemu patches the initrd address into the kernel header. This is unnecessary because OVMF
-	// will take the initrd address from fw_cfg and patch it again after measuring the kernel. In
-	// order to have predictable kernel measurements, we patch qemu to set this placeholder instead
-	// of a real address.
-	initrdAddr := 0x80000000
-	initrdSize := len(initrdFile)
-
-	// https://github.com/qemu/qemu/blob/f48c205fb42be48e2e47b7e1cd9a2802e5ca17b0/hw/i386/x86.c#L1044
-	binary.LittleEndian.PutUint32(kernelFile[0x218:][:4], uint32(initrdAddr))
-
-	// https://github.com/qemu/qemu/blob/f48c205fb42be48e2e47b7e1cd9a2802e5ca17b0/hw/i386/x86.c#L1045
-	binary.LittleEndian.PutUint32(kernelFile[0x21C:][:4], uint32(initrdSize))
 }

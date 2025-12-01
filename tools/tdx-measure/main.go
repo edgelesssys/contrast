@@ -158,15 +158,7 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("can't read kernel file: %w", err)
 		}
-		initrdPath, err := cmd.Flags().GetString("initrd")
-		if err != nil {
-			return err
-		}
-		initrd, err := os.ReadFile(initrdPath)
-		if err != nil {
-			return fmt.Errorf("can't read initrd file: %w", err)
-		}
-		digest, err = rtmr.CalcRtmr1(kernel, initrd)
+		digest, err = rtmr.CalcRtmr1(kernel)
 		if err != nil {
 			return fmt.Errorf("can't calculate RTMR 1: %w", err)
 		}
