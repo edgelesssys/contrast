@@ -421,14 +421,16 @@ func (ct *ContrastTest) Verify(t *testing.T) {
 	require.NoError(t, ct.RunVerify(t.Context()))
 }
 
-// Recover runs the contrast recover subcommand.
+// Recover runs the contrast recover subcommand and fails the test if it is not successful.
 func (ct *ContrastTest) Recover(t *testing.T) {
-	require := require.New(t)
+	require.NoError(t, ct.runAgainstCoordinator(t.Context(), cmd.NewRecoverCmd()))
+}
 
-	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
+// RunRecover runs the contrast recover subcommand.
+func (ct *ContrastTest) RunRecover(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
-
-	require.NoError(ct.runAgainstCoordinator(ctx, cmd.NewRecoverCmd()))
+	return ct.runAgainstCoordinator(ctx, cmd.NewRecoverCmd())
 }
 
 // MeshCACert returns a CertPool that contains the coordinator mesh CA cert.
