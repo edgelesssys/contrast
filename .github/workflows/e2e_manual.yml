@@ -16,6 +16,7 @@ on:
           - gpu
           - imagepuller-auth
           - imagestore
+          - kds-pcs-downtime
           - memdump
           - multiple-cpus
           - openssl
