@@ -80,7 +80,7 @@ Contrast can be deployed with different Kubernetes distributions.
 Then, install the ConfigMap to configure the Contrast node-installer for use with K3s:
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.15.0/node-installer-target-config-k3s.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.15.1/node-installer-target-config-k3s.yml
 ```
 
 ## Preparing a cluster for GPU usage
