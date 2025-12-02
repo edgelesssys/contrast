@@ -91,16 +91,7 @@ Export the Kubeconfig for the current user for the following steps:
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 ```
 
-Install Longhorn into K3s
-```bash
-helm repo add longhorn https://charts.longhorn.io
-helm repo update
-helm install longhorn longhorn/longhorn \
-  --namespace longhorn-system \
-  --create-namespace \
-  --set defaultSettings.storageReservedPercentageForDefaultDisk=5 \
-  --set persistence.defaultClassReplicaCount=1
-```
+Install the [`hostpath` CSI driver](csi-hostpath/README.md).
 
 ## Kernel config
 
