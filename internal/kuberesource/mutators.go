@@ -229,11 +229,11 @@ func AddDebugShell(
 		}
 
 		// Remove already existing containers with unique debug shell name.
-		spec.Containers = slices.DeleteFunc(spec.Containers, func(c applycorev1.ContainerApplyConfiguration) bool {
+		spec.InitContainers = slices.DeleteFunc(spec.InitContainers, func(c applycorev1.ContainerApplyConfiguration) bool {
 			return c.Name != nil && *c.Name == *debugShell.Name
 		})
 
-		return spec.WithContainers(debugShell)
+		return spec.WithInitContainers(debugShell)
 	}), nil
 }
 
