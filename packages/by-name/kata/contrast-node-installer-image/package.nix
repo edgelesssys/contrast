@@ -252,7 +252,10 @@ ociImageLayout {
   passthru = {
     inherit debugRuntime os-image;
     runtimeHash = hashDirs {
-      dirs = layers; # Layers without node-installer, or we have a circular dependency!
+      # Layers without node-installer, or we have a circular dependency!
+      # To still account for node-installer changes in the runtime hash,
+      # we include its src instead.
+      dirs = layers ++ [ contrast.nodeinstaller.src ];
       name = "runtime-hash-kata";
     };
     gpu = kata.contrast-node-installer-image.override {
