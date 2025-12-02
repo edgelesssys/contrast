@@ -208,7 +208,7 @@ func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
 	errBuf := &bytes.Buffer{}
 	generate.SetErr(errBuf)
 
-	if err := generate.Execute(); err != nil {
+	if err := generate.ExecuteContext(ctx); err != nil {
 		return errors.Join(fmt.Errorf("%s", errBuf), err)
 	}
 	patchRefValsFunc, err := PatchReferenceValues(ctx, ct.Kubeclient, ct.Platform)
@@ -522,7 +522,7 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 		errBuf := &bytes.Buffer{}
 		cmd.SetErr(errBuf)
 
-		if err := cmd.Execute(); err != nil {
+		if err := cmd.ExecuteContext(ctx); err != nil {
 			return fmt.Errorf("running %q: %s", cmd.Use, errBuf)
 		}
 		return nil
