@@ -22,17 +22,17 @@ Also, different Contrast runtime versions can be installed in the same cluster.
 <Tabs queryString="platform">
 <TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.15.0/runtime-metal-qemu-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.15.1/runtime-metal-qemu-snp.yml
 ```
 </TabItem>
 <TabItem value="metal-qemu-snp-gpu" label="Bare metal (SEV-SNP, with GPU support)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.15.0/runtime-metal-qemu-snp-gpu.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.15.1/runtime-metal-qemu-snp-gpu.yml
 ```
 </TabItem>
 <TabItem value="metal-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.15.0/runtime-metal-qemu-tdx.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.15.1/runtime-metal-qemu-tdx.yml
 ```
 </TabItem>
 </Tabs>
