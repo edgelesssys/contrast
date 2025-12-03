@@ -181,6 +181,7 @@ let
         contrastPkgs.debugshell
         openssh
         contrastPkgs.tdx-tools
+        acpica-tools
       ];
       config = {
         Entrypoint = [ "/bin/debugshell" ];
