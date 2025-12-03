@@ -61,6 +61,7 @@ func TestImageStore(t *testing.T) {
 
 	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 	resources = kuberesource.AddPortForwarders(resources)
+	resources = kuberesource.AddImageStore(resources)
 
 	ct.Init(t, resources)
 
