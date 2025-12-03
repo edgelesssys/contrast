@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"net/http"
 
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
@@ -17,12 +18,27 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/httpapi"
+	"github.com/edgelesssys/contrast/internal/manifest"
 )
+
+var (
+	errContentType        = errors.New("invalid Content-Type")
+	errNonceLength        = errors.New("invalid nonce length")
+	errGettingState       = errors.New("getting state")
+	errGettingHistory     = errors.New("getting history")
+	errGettingAttestation = errors.New("getting attestation report")
+)
+
+// StateGuard is a stateguard.Guard at runtime, but can be stubbed in tests.
+type StateGuard interface {
+	GetState(context.Context) (*stateguard.State, error)
+	GetHistory(ctx context.Context) ([][]byte, map[manifest.HexString][]byte, error)
+}
 
 // AttestationHandler handles POST requests to /attest.
 type AttestationHandler struct {
 	Issuer     atls.Issuer
-	StateGuard *stateguard.Guard
+	StateGuard StateGuard
 }
 
 func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*httpapi.AttestationResponse, int, error) {
@@ -34,12 +50,12 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ht
 	case errors.Is(err, stateguard.ErrStaleState):
 		return nil, http.StatusPreconditionFailed, userapi.ErrNeedsRecovery
 	case err != nil:
-		return nil, http.StatusInternalServerError, fmt.Errorf("getting state: %w", err)
+		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGettingState, err)
 	}
 
 	manifests, policies, err := h.StateGuard.GetHistory(ctx)
 	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("getting history: %w", err)
+		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGettingHistory, err)
 	}
 
 	ca := state.CA()
@@ -56,7 +72,7 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ht
 	reportData := httpapi.ConstructReportData(nonce, transitionHash[:], coordinatorState)
 	attestation, err := h.Issuer.Issue(ctx, reportData)
 	if err != nil {
-		return nil, http.StatusInternalServerError, fmt.Errorf("getting attestation report: %w", err)
+		return nil, http.StatusInternalServerError, fmt.Errorf("%w: %w", errGettingAttestation, err)
 	}
 
 	resp := &httpapi.AttestationResponse{
@@ -71,6 +87,17 @@ func (h *AttestationHandler) getResponse(ctx context.Context, nonce []byte) (*ht
 func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	contentType := r.Header.Get("Content-Type")
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, err)
+		return
+	}
+	if mediaType != "application/json" {
+		writeJSONError(w, http.StatusUnsupportedMediaType, errContentType)
 		return
 	}
 
@@ -89,7 +116,7 @@ func (h *AttestationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(req.Nonce) != 32 {
-		writeJSONError(w, http.StatusBadRequest, fmt.Errorf("invalid nonce length: got %d, expected 32", len(req.Nonce)))
+		writeJSONError(w, http.StatusBadRequest, fmt.Errorf("%w: got %d, expected 32", errNonceLength, len(req.Nonce)))
 		return
 	}
 
