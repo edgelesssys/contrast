@@ -1,13 +1,13 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
-{ lib
-, qemu
-, libaio
-, dtc
-, python3Packages
-, gpuSupport ? false
-,
+{
+  lib,
+  qemu,
+  libaio,
+  dtc,
+  python3Packages,
+  gpuSupport ? false,
 }:
 (qemu.override (_previous: {
   minimal = true;
@@ -49,7 +49,8 @@
       # - https://www.qemu.org/docs/master/specs/fw_cfg.html is how OVMF learns
       #   about the initrd address.
       ./0004-hw-x86-load-initrd-to-static-address.patch
-    ] ++ lib.optionals (!gpuSupport) [
+    ]
+    ++ lib.optionals (!gpuSupport) [
       # If we're not building with GPU support, we can omit the PCI-related ACPI tables
       # to achieve stable TDX RTMRs.
       ./0005-i386-omit-some-unneeded-ACPI-tables.patch
