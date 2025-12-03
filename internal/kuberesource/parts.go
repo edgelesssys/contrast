@@ -286,7 +286,7 @@ func Coordinator(namespace string) *CoordinatorConfig {
 									WithPath("/probe/readiness")),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(50),
+								WithMemoryLimitAndRequest(200),
 							),
 					).
 					WithAffinity(

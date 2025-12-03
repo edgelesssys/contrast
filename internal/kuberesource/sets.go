@@ -81,7 +81,7 @@ func OpenSSL() []any {
 									WithContainerPort(443),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(200),
+								WithMemoryLimitAndRequest(250),
 							).
 							WithReadinessProbe(Probe().
 								WithInitialDelaySeconds(1).
@@ -122,7 +122,7 @@ func OpenSSL() []any {
 									WithPort(intstr.FromInt(443))),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(200),
+								WithMemoryLimitAndRequest(250),
 							),
 					),
 				),
@@ -187,7 +187,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		votingSvcHost = "voting-svc:8080"
 		emojiWebSvcHost = "web-svc:8080"
 		// Our modified images are around 100MiB compressed.
-		memoryLimitMiB = 400
+		memoryLimitMiB = 600
 	case ServiceMeshIngressEgress:
 		emojiSvcImage = "docker.io/buoyantio/emojivoto-emoji-svc:v11@sha256:957949355653776b65fafc2ee22f737cd21e090d4ace63f3b99f6e16976f0458"
 		emojiVotingSvcImage = "docker.io/buoyantio/emojivoto-voting-svc:v11@sha256:a57ac67af7a5b05988a38b49568eca6a078ef27a71c148c44c9db4efb1dac58b"
@@ -197,7 +197,7 @@ func Emojivoto(smMode serviceMeshMode) []any {
 		votingSvcHost = "127.137.0.2:8081"
 		emojiWebSvcHost = "127.137.0.3:8081"
 		// Upstream images are at most 75MiB compressed, but we're adding the service mesh image with 50MiB.
-		memoryLimitMiB = 500
+		memoryLimitMiB = 800
 	default:
 		panic(fmt.Sprintf("unknown service mesh mode: %s", smMode))
 	}
@@ -587,7 +587,7 @@ func MySQL() []any {
 										WithMountPropagation(corev1.MountPropagationHostToContainer),
 								).
 								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(1400),
+									WithMemoryLimitAndRequest(2000),
 								),
 						).
 						WithVolumes(
@@ -642,7 +642,7 @@ done
 								WithEnv(NewEnvVar("MYSQL_ALLOW_EMPTY_PASSWORD", "1")).
 								WithCommand("/bin/sh", "-c", clientCmd).
 								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(1400),
+									WithMemoryLimitAndRequest(2000),
 								),
 						),
 				),
@@ -676,7 +676,7 @@ func GPU() []any {
 							WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
 							WithCommand("/bin/sh", "-c", "sleep inf").
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(400). // This accounts for nvidia-smi and the guest pull overhead.
+								WithMemoryLimitAndRequest(500). // This accounts for nvidia-smi and the guest pull overhead.
 								WithLimits(corev1.ResourceList{
 									corev1.ResourceName("nvidia.com/GH100_H100_PCIE"): resource.MustParse("1"),
 								}),
@@ -689,14 +689,14 @@ func GPU() []any {
 								WithName("NVIDIA_VISIBLE_DEVICES").WithValue("all"),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(400),
+								WithMemoryLimitAndRequest(500),
 							),
 						Container().
 							WithName("no-gpu"). // This container should not get a GPU mount because it does not set NVIDIA_VISIBLE_DEVICES.
 							WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
 							WithCommand("/bin/sh", "-c", "sleep inf").
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(10),
+								WithMemoryLimitAndRequest(100),
 							),
 					),
 				),
@@ -806,7 +806,7 @@ seal "transit" {
 									WithPeriodSeconds(2),
 								).
 								WithResources(ResourceRequirements().
-									WithMemoryLimitAndRequest(300),
+									WithMemoryLimitAndRequest(500),
 								).WithVolumeMounts(
 								VolumeMount().
 									WithName("share").WithMountPath("/openbao/file").WithMountPropagation(corev1.MountPropagationHostToContainer),
@@ -869,7 +869,7 @@ seal "transit" {
 								EnvVar().WithName("VAULT_CLIENT_KEY").WithValue("/contrast/tls-config/key.pem"),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(300),
+								WithMemoryLimitAndRequest(500),
 							).
 							WithVolumeMounts(
 								VolumeMount().WithName("logs").WithMountPath("/openbao/logs"),
