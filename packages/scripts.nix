@@ -62,7 +62,7 @@ lib.makeScope pkgs.newScope (scripts: {
 
       echo "Updating yarn offlineCache hash of contrast.docs package" >&2
       nix-update --version=skip --flake \
-        --override-filename=packages/by-name/contrast.docs/package.nix \
+        --override-filename=packages/by-name/contrast/docs/package.nix \
         legacyPackages.x86_64-linux.contrast.docs
 
       echo "Updating default kata-container configuration toml files" >&2
