@@ -7,14 +7,12 @@
   ociImageLayout,
   writers,
   hashDirs,
-
   contrast,
   kata,
   pkgsStatic,
   contrastPkgsStatic,
   OVMF-SNP,
   OVMF-TDX,
-
   debugRuntime ? false,
   withGPU ? false,
 }:
@@ -125,26 +123,32 @@ let
     ];
   };
 
-  qemu-cc = ociLayerTar {
-    files = [
-      {
-        source = "${contrastPkgsStatic.qemu-cc}/bin/qemu-system-x86_64";
-        destination = "/opt/edgeless/bin/qemu-system-x86_64";
-      }
-      {
-        source = "${contrastPkgsStatic.qemu-cc}/share/qemu/kvmvapic.bin";
-        destination = "/opt/edgeless/share/qemu/kvmvapic.bin";
-      }
-      {
-        source = "${contrastPkgsStatic.qemu-cc}/share/qemu/linuxboot_dma.bin";
-        destination = "/opt/edgeless/share/qemu/linuxboot_dma.bin";
-      }
-      {
-        source = "${contrastPkgsStatic.qemu-cc}/share/qemu/efi-virtio.rom";
-        destination = "/opt/edgeless/share/qemu/efi-virtio.rom";
-      }
-    ];
-  };
+  qemu-cc =
+    let
+      qemu = contrastPkgsStatic.qemu-cc.override {
+        gpuSupport = withGPU;
+      };
+    in
+    ociLayerTar {
+      files = [
+        {
+          source = "${qemu}/bin/qemu-system-x86_64";
+          destination = "/opt/edgeless/bin/qemu-system-x86_64";
+        }
+        {
+          source = "${qemu}/share/qemu/kvmvapic.bin";
+          destination = "/opt/edgeless/share/qemu/kvmvapic.bin";
+        }
+        {
+          source = "${qemu}/share/qemu/linuxboot_dma.bin";
+          destination = "/opt/edgeless/share/qemu/linuxboot_dma.bin";
+        }
+        {
+          source = "${qemu}/share/qemu/efi-virtio.rom";
+          destination = "/opt/edgeless/share/qemu/efi-virtio.rom";
+        }
+      ];
+    };
 
   ovmf-tdx = ociLayerTar {
     files = [
