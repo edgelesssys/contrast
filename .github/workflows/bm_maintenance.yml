@@ -137,7 +137,9 @@ jobs:
         env:
           IMAGE: ${{ needs.build-image.outputs.image }}
         run: |
+          K3S_VERSION=$(cat ./tools/bm-maintenance/k3s-version.txt)
           sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup.yml
+          sed -i "s#@@REPLACE_K3S_VERSION@@#${K3S_VERSION}#g" ./tools/bm-maintenance/cleanup.yml
           kubectl apply -f ./tools/bm-maintenance/cleanup.yml
       - name: Wait for cleanup job
         id: update

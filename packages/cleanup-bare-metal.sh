@@ -92,3 +92,25 @@ for runtimeClass in "${unusedRuntimeClasses[@]}"; do
 done
 
 echo "Cleanup finished"
+
+if nsenter -t 1 -m sh -c "command -v k3s >/dev/null 2>&1"; then
+  installed_version=$(nsenter -t 1 -m k3s --version | head -n 1 | cut -d ' ' -f3)
+  echo "Installed k3s version: ${installed_version}"
+  if [[ $installed_version != "$K3S_VERSION" ]]; then
+    echo "Updating k3s to version ${K3S_VERSION} ..."
+    mkdir -p /host/etc/rancher/k3s
+    cat >/host/etc/rancher/k3s/config.yaml <<EOF
+write-kubeconfig-mode: "0640"
+write-kubeconfig-group: sudo
+disable:
+  - local-storage
+kubelet-arg:
+  - "runtime-request-timeout=5m"
+EOF
+    nsenter -t 1 -m -n sh -c "curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION=${K3S_VERSION} sh -"
+  else
+    echo "k3s is already at version ${K3S_VERSION}. No update needed."
+  fi
+else
+  echo "k3s command not found. Skipping k3s version check."
+fi
