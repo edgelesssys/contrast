@@ -13,10 +13,18 @@ A running Contrast deployment.
 
 ## How-To
 
-The secure image store is enabled by default, providing each pod with `10Gi` of storage.
-This amount can be adjusted on a per-pod basis, the feature can be disabled for individual pods, or its injection can be disabled on `generate` for all pods.
+The secure image store is disabled by default, and images are therefore pulled into memory.
+To enable the image store, specify the `--inject-image-store` flag in the `contrast generate` command, then apply your deployment:
 
-Possible use-cases include increasing the limit to accommodate very large images, disabling the feature in scenarios where memory constraints are of no concern, or disabling it for [hardening purposes](./hardening#limitations-inherent-to-policy-checking).
+```bash
+contrast generate --inject-image-store resources/
+kubectl apply -f resources/
+```
+
+By default, this provides each pod with `10Gi` of storage.
+This amount can be adjusted on a per-pod basis, and the feature can be disabled for individual pods.
+
+Possible use-cases include the accommodation of very large images, or working in environments where memory restrictions are tight, and the [slight weakening of the security posture](./hardening#limitations-inherent-to-policy-checking) is acceptable.
 
 ### Adjusting the size of the image store
 
@@ -54,19 +62,10 @@ contrast generate resources/
 kubectl apply -f resources/
 ```
 
-### Disabling image store injection on `generate`
-
-To disable the image store injection, specify the `--skip-image-store` flag in the `contrast generate` command, then reapply your deployment:
-
-```bash
-contrast generate --skip-image-store resources/
-kubectl apply -f resources/
-```
-
 ### Manual image store setup
 
 If you need further customization, for example because you require the use of a custom [CSI driver](https://kubernetes-csi.github.io/docs/drivers.html),
-you can disable the image store injection (either [for a single pod](#disabling-the-image-store-for-a-single-pod) or [globally](#disabling-image-store-injection-on-generate)), and instead provide your own image store.
+you can disable the image store injection (either [for a single pod](#disabling-the-image-store-for-a-single-pod) or globally by omitting the `--inject-image-store` flag, and instead provide your own image store.
 
 Internally, whether or not the image store is used depends exclusively on the presence of the magic device `/dev/image_store`.
 If a device with this name is present in the pod-VM, it will be prepared, mounted and used as the secure image store.
@@ -120,3 +119,11 @@ Adjust the configuration to your liking, within the bounds of the following requ
 If the Contrast secure image store feature is disabled, container images are pulled and uncompressed into encrypted memory.
 Memory limits must be adjusted accordingly.
 See [Pod resources](./workload-deployment/deployment-file-preparation#pod-resources) for details.
+
+## CSI driver considerations
+
+Since the image store is ephemeral by nature, most features and safeties provided by typical CSI implementations (for example, replication or snapshotting features) aren't required in this context.
+Indeed, due to the complexity and overhead associated with these drivers, they may be detrimental.
+For best results, choose a CSI provider focused on efficient handling of short-lived volumes.
+
+To use a specific CSI driver only for the image stores, manually configure the appropriate `storageClassName` in the `volumeClaimTemplate` as shown above.

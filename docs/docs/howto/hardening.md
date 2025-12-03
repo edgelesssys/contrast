@@ -84,8 +84,7 @@ Any volumes mounted to the pod need to be scrutinized, and sensitive data must n
 Ideally, a volume is mounted as a raw block device and authenticated encryption is added within the confidential container.
 
 This is also the approach taken by the [secure image store](./secure-image-store.md) feature, which stores image layers outside of memory by setting up encryption and integrity protection on a raw block device.
-Nevertheless, this weakens the overall security posture compared to storing images entirely in memory.
-To pull images into memory instead, disable the image store feature.
+Nevertheless, if enabled, this weakens the overall security posture compared to storing images entirely in memory.
 For further details, refer to the linked documentation section.
 
 
