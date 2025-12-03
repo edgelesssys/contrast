@@ -1,11 +1,13 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
-{
-  qemu,
-  libaio,
-  dtc,
-  python3Packages,
+{ lib
+, qemu
+, libaio
+, dtc
+, python3Packages
+, gpuSupport ? false
+,
 }:
 (qemu.override (_previous: {
   minimal = true;
@@ -34,5 +36,22 @@
       # We applied the same change done to libaio to libfdt as well.
       ./0002-add-options-for-library-paths.patch
       ./0003-increase-min-granularity-for-memfd.patch
+      # Load the initrd to a static address to make RTMRs predictable.
+      # Both qemu and OVMF patch the linux kernel header with an initrd
+      # address that depends on VM size. The patch by qemu is redundant, but
+      # ends up being measured into the RTMR by OVMF. Therefore, we replace it
+      # with a static value and apply the same value when calculating the
+      # RTMRs.
+      #
+      # References:
+      # - https://github.com/tianocore/edk2/blob/523dbb6d597b63181bba85a337d1f53e511f4822/OvmfPkg/Library/LoadLinuxLib/Linux.c#L414
+      #   is where OVMF overwrites the initrd address.
+      # - https://www.qemu.org/docs/master/specs/fw_cfg.html is how OVMF learns
+      #   about the initrd address.
+      ./0004-hw-x86-load-initrd-to-static-address.patch
+    ] ++ lib.optionals (!gpuSupport) [
+      # If we're not building with GPU support, we can omit the PCI-related ACPI tables
+      # to achieve stable TDX RTMRs.
+      ./0005-i386-omit-some-unneeded-ACPI-tables.patch
     ];
   })
