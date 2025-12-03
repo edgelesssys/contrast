@@ -83,15 +83,36 @@ func TestImageStore(t *testing.T) {
 			var expectedKibiBytes int
 			switch tc.annotation {
 			case "0":
-				defaultMemory := platforms.DefaultMemoryInMebiBytes(platform) * 1024 * 1024
+				containerMemory := 0
 				for _, c := range pod.Spec.Containers {
 					memory := c.Resources.Limits[corev1.ResourceMemory]
-					defaultMemory += int(memory.Value())
+					containerMemory += int(memory.Value())
 				}
+				for _, c := range pod.Spec.InitContainers {
+					if c.RestartPolicy == nil || *c.RestartPolicy != corev1.ContainerRestartPolicyAlways {
+						continue
+					}
+					memory := c.Resources.Limits[corev1.ResourceMemory]
+					containerMemory += int(memory.Value())
+				}
+
+				initContainerMemory := 0
+				for _, c := range pod.Spec.InitContainers {
+					if c.RestartPolicy != nil && *c.RestartPolicy == corev1.ContainerRestartPolicyAlways {
+						continue
+					}
+					memory := c.Resources.Limits[corev1.ResourceMemory]
+					initContainerMemory = max(initContainerMemory, int(memory.Value()))
+				}
+
+				defaultMemory := platforms.DefaultMemoryInMebiBytes(platform) * 1024 * 1024
+				// k8 adjusts the available memory to either be the maximum of (sequential) init containers,
+				// or the sum of (concurrent) normal and sidecar containers
+				totalMemory := defaultMemory + max(initContainerMemory, containerMemory)
 				// When the imagestore is disabled, the expectedKibiBytes are (the total VM memory in KiB - internal VM overhead) / 2
 				// For more information on the internal VM overhead, see https://github.com/edgelesssys/contrast/pull/1196
 				vmOverheadBytes := 99 * 1024 * 1024
-				expectedKibiBytes = ((defaultMemory - vmOverheadBytes) / 1024) / 2
+				expectedKibiBytes = ((totalMemory - vmOverheadBytes) / 1024) / 2
 			case "":
 				size := resource.MustParse("10Gi")
 				expectedKibiBytes = int(size.Value()) / 1024
