@@ -78,7 +78,7 @@ subcommands.`,
 	cmd.Flags().String("image-replacements", "", "path to image replacements file")
 	cmd.Flags().Bool("skip-initializer", false, "skip injection of Contrast Initializer")
 	cmd.Flags().Bool("skip-service-mesh", false, "skip injection of Contrast service mesh sidecar")
-	cmd.Flags().Bool("skip-image-store", false, "skip injection of ephemeral storage and keep image layers in memory")
+	cmd.Flags().Bool("inject-image-store", false, "inject an ephemeral storage device to pull images onto instead of into memory")
 	cmd.Flags().Bool("insecure-enable-debug-shell-access", false, "enable the debug shell service in the pod CVM to get access from container to guest VM")
 	cmd.Flags().StringP("output", "o", "", "output file for generated YAML")
 	must(cmd.Flags().MarkHidden("image-replacements"))
@@ -474,7 +474,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 				return nil, fmt.Errorf("injecting Service Mesh: %w", err)
 			}
 		}
-		if !flags.skipImageStore {
+		if flags.injectImageStore {
 			kuberesource.AddImageStore([]any{res})
 		}
 
@@ -644,7 +644,7 @@ type generateFlags struct {
 	imageReplacementsFile    string
 	skipInitializer          bool
 	skipServiceMesh          bool
-	skipImageStore           bool
+	injectImageStore         bool
 	insecureEnableDebugShell bool
 	outputFile               string
 }
@@ -723,7 +723,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
-	skipImageStore, err := cmd.Flags().GetBool("skip-image-store")
+	injectImageStore, err := cmd.Flags().GetBool("inject-image-store")
 	if err != nil {
 		return nil, err
 	}
@@ -752,7 +752,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		imageReplacementsFile:    imageReplacementsFile,
 		skipInitializer:          skipInitializer,
 		skipServiceMesh:          skipServiceMesh,
-		skipImageStore:           skipImageStore,
+		injectImageStore:         injectImageStore,
 		insecureEnableDebugShell: insecureEnableDebugShell,
 		outputFile:               outputFile,
 	}, nil
