@@ -140,6 +140,7 @@ SBOM
 serializable
 sigstore
 snapshotters?
+snapshotting
 SNP
 SSD
 strongSwan
