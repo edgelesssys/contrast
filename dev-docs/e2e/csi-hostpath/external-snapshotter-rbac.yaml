@@ -8,7 +8,6 @@
 # - optionally rename the non-namespaced ClusterRole if there
 #   are conflicts with other deployments
 
----
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -72,9 +71,9 @@ metadata:
   namespace: default # TODO: replace with the namespace you want for your sidecar
   name: external-snapshotter-leaderelection
 rules:
-- apiGroups: ["coordination.k8s.io"]
-  resources: ["leases"]
-  verbs: ["get", "watch", "list", "delete", "update", "create"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "watch", "list", "delete", "update", "create"]
 
 ---
 kind: RoleBinding
