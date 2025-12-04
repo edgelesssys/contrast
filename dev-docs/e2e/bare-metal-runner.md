@@ -91,7 +91,12 @@ Export the Kubeconfig for the current user for the following steps:
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 ```
 
-Install the [`hostpath` CSI driver](csi-hostpath/README.md).
+Install the `hostpath` CSI driver:
+
+```bash
+nix build .#csi-driver-host-path
+kubectl apply -k result
+```
 
 ## Kernel config
 
