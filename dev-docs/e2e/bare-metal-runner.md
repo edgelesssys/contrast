@@ -54,12 +54,6 @@ sudo apt-get update
 sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-Install helm
-
-```bash
-curl -fsL https://get.helm.sh/helm-v3.17.1-linux-amd64.tar.gz | tar -C /tmp -xz linux-amd64/helm && mv /tmp/linux-amd64/helm /usr/local/bin
-```
-
 ## K3s setup (if k3s should be used)
 
 Add K3s configuration override
