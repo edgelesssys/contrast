@@ -62,13 +62,8 @@ jobs:
         if: env.PREVIEW == 'true'
         run: |
           nix build -L --impure --expr "(builtins.getFlake \"git+file://$(pwd)?shallow=1\").outputs.legacyPackages.x86_64-linux.contrast.docs.override { docusaurusBaseUrl = \"contrast/pr-preview/pr-${{ github.event.number }}\"; }"
-          # Avoid warnings due to root-owned files.
-          # https://github.com/JamesIves/github-pages-deploy-action/issues/1906
-          # https://github.com/rossjrw/pr-preview-action/pull/119
-          rm -rf /tmp/docs
-          cp --no-preserve=mode --recursive "$(readlink -f ./result)" /tmp/docs
       - name: Deploy preview
         if: env.PREVIEW == 'true'
         uses: rossjrw/pr-preview-action@8ff09e486b4c23709012eedd3b42e9f0b95dd0c5 # v1.6.3
         with:
-          source-dir: /tmp/docs
+          source-dir: ./result
