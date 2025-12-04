@@ -5,15 +5,18 @@
 set -euo pipefail
 
 knownNamespaces=(
+  # keep-sorted start
+  "csi-system"
   "default"
-  "maintenance-cleanup"
-  "maintenance-nix-gc"
-  "maintenance-namespace-cleanup"
   "gpu-operator"
   "kube-node-lease"
   "kube-public"
   "kube-system"
   "longhorn-system"
+  "maintenance-cleanup"
+  "maintenance-nix-gc"
+  "maintenance-namespace-cleanup"
+  # keep-sorted end
 )
 
 kubectl get namespaces --no-headers | while read -r ns _; do

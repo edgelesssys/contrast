@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: csi-system
+
+resources:
+- namespace.yaml
+- csi-attacher-rbac.yaml
+- csi-external-health-monitor-rbac.yaml
+- csi-plugin.yaml
+- csi-provisioner-rbac.yaml
+- csi-resizer-rbac.yaml
+- csi-storageclass.yaml
+- csidriver.yaml
+- external-snapshotter-rbac.yaml
+
+labels:
+- includeSelectors: true
+  pairs:
+    app.kubernetes.io/instance: hostpath.csi.k8s.io
+    app.kubernetes.io/part-of: csi-driver-host-path
