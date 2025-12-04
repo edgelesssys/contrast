@@ -10,8 +10,8 @@ metadata:
 spec:
   # Supports persistent and ephemeral inline volumes.
   volumeLifecycleModes:
-  - Persistent
-  - Ephemeral
+    - Persistent
+    - Ephemeral
   # To determine at runtime which mode a volume uses, pod info and its
   # "csi.storage.k8s.io/ephemeral" entry are needed.
   podInfoOnMount: true

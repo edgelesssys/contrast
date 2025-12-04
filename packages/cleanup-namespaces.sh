@@ -14,8 +14,8 @@ knownNamespaces=(
   "kube-system"
   "longhorn-system"
   "maintenance-cleanup"
-  "maintenance-nix-gc"
   "maintenance-namespace-cleanup"
+  "maintenance-nix-gc"
   # keep-sorted end
 )
 
