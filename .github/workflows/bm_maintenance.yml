@@ -104,6 +104,10 @@ jobs:
           sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup-namespaces.yml
           kubectl apply -f ./tools/bm-maintenance/cleanup-namespaces.yml
           echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
+      - name: Update storageclass
+        run: |
+          nix build .#csi-driver-host-path
+          kubectl apply -k result
 
   cleanup:
     name: "Cleanup ${{ matrix.platform.name }}"
