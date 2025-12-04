@@ -426,6 +426,7 @@ func NewStateForTest(seedEngine *seedengine.SeedEngine, manifest *manifest.Manif
 		manifest:      manifest,
 		manifestBytes: manifestBytes,
 		ca:            ca,
+		latest:        &history.LatestTransition{},
 	}
 }
 
