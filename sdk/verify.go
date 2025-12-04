@@ -128,6 +128,7 @@ func (c Client) GetAttestation(ctx context.Context, url string, nonce []byte) ([
 		return nil, fmt.Errorf("creating request body: %w", err)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
 	if err != nil {
 		return nil, fmt.Errorf("constructing HTTP request: %w", err)
 	}
