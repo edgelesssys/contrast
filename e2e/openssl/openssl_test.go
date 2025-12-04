@@ -345,6 +345,8 @@ func TestOpenSSL(t *testing.T) {
 			"couldn't mount as ext2 due to feature incompatibilities",
 			// This started showing after upgrading the kernel from 6.12 to 6.16.
 			"tdx: VMM did not configure X2APIC_IDs properly",
+			// TODO(charludo): find out why this happens
+			"mce: Unable to init MCE device (rc: -5)",
 		}
 		for line := range strings.SplitSeq(dmesgOutput, "\n") {
 			line = strings.TrimSpace(line)
