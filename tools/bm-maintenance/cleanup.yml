@@ -51,15 +51,20 @@ spec:
       name: cleanup-maintenance
     spec:
       serviceAccountName: cleanup-sa
+      hostPID: true
       containers:
         - name: cleanup
           image: "@@REPLACE_IMAGE@@"
           imagePullPolicy: Always
+          securityContext:
+            privileged: true
           env:
             - name: HOST_MOUNT
               value: /host
             - name: SNAPSHOTTER
               value: nydus
+            - name: K3S_VERSION
+              value: "@@REPLACE_K3S_VERSION@@"
           volumeMounts:
             - name: host-mount
               mountPath: /host
