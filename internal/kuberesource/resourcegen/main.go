@@ -67,6 +67,8 @@ func main() {
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.MySQL(), "contrast-cc")
 		case "vault":
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.Vault(*namespace), "contrast-cc")
+		case "gpu":
+			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.GPU(), "contrast-cc")
 		default:
 			log.Fatalf("Error: unknown set: %s\n", set)
 		}

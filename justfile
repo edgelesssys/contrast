@@ -306,6 +306,9 @@ wait-for-workload target=default_deploy_target:
         "vault")
             nix run .#scripts.kubectl-wait-ready -- $ns vault
         ;;
+        "gpu")
+            nix run .#scripts.kubectl-wait-ready -- $ns gpu-tester
+        ;;
         "custom")
             :
         ;;
