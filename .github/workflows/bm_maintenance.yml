@@ -1,20 +1,12 @@
 name: bare metal maintenance
 
 on:
+  workflow_call:
   workflow_dispatch:
-    inputs:
-      containerd:
-        description: "Cleanup containerd store"
-        required: false
-        default: false
-        type: boolean
   pull_request:
     paths:
       - ".github/workflows/bm_maintenance.yml"
       - "tools/bm-maintenance/**"
-  schedule:
-    - cron: "0 2 * * 0,1,2,3,4,6" # 2 AM every day except Friday
-    - cron: "0 2 * * 5" # 2 AM on Friday
 
 env:
   container_registry: ghcr.io/edgelesssys
@@ -158,7 +150,6 @@ jobs:
     name: "Cleanup Containerd ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
     needs: build-image
-    if: inputs.containerd || github.event.schedule == '0 2 * * 5' # only run on Fridays or if containerd is enabled
     outputs:
       snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
