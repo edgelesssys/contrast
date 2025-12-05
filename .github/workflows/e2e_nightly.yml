@@ -18,7 +18,15 @@ on:
     - cron: "30 0 * * *" # 0:30 a.m. every day
 
 jobs:
+  maintenance:
+    name: maintenance
+    uses: ./.github/workflows/bm_maintenance.yml
+    permissions:
+      contents: read
+      packages: write
+
   test_matrix:
+    needs: "maintenance"
     strategy:
       matrix:
         debug-shell: [true, false]
