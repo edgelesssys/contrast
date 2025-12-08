@@ -1047,8 +1047,8 @@ func AuthenticatedPullTester(name, token string) []any {
 	return []any{deployment, secret}
 }
 
-// ContainerdDigestPinningTesters returns the resources for the imagepuller-auth test.
-func ContainerdDigestPinningTesters(name string) (*applyappsv1.DeploymentApplyConfiguration, *applyappsv1.DeploymentApplyConfiguration) {
+// Containerd11644ReproducerTesters returns the resources for the reproducer test for containerd issue #11644.
+func Containerd11644ReproducerTesters(name string) (*applyappsv1.DeploymentApplyConfiguration, *applyappsv1.DeploymentApplyConfiguration) {
 	runcName := fmt.Sprintf("%s-runc", name)
 	runc := Deployment(runcName, "").
 		WithSpec(DeploymentSpec().

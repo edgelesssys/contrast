@@ -20,7 +20,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestContainerdDigestPinning(t *testing.T) {
+// TestContainerd11644Reproducer is a reproducer and regression test for https://github.com/containerd/containerd/pull/11644.
+// In containerd versions <2.0, pulling an image by tag first, then by digest second will cause continerd to re-use the tag-based image name,
+// leading to a policy failure.
+//
+// If the test fails, we either managed to install an old containerd version in our CI cluster
+// or containerd regressed upstream on this behavior.
+func TestContainerd11644Reproducer(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
 	ct := contrasttest.New(t)
@@ -28,8 +34,8 @@ func TestContainerdDigestPinning(t *testing.T) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
-	deploymentName := "containerd-digest-pinning"
-	runcTester, ccTester := kuberesource.ContainerdDigestPinningTesters(deploymentName)
+	deploymentName := "containerd-11644-reproducer"
+	runcTester, ccTester := kuberesource.Containerd11644ReproducerTesters(deploymentName)
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
 	t.Cleanup(cancel)
 
