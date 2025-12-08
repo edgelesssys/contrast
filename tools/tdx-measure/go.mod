@@ -1,6 +1,6 @@
 module github.com/edgelesssys/contrast/tdx-measure
 
-go 1.25.0
+go 1.25.5
 
 require (
 	github.com/foxboron/go-uefi v0.0.0-20251010190908-d29549a44f29

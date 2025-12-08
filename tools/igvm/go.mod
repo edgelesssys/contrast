@@ -1,6 +1,6 @@
 module github.com/edgelesssys/contrast/tools/igvm
 
-go 1.25.0
+go 1.25.5
 
 require github.com/spf13/cobra v1.10.1
 

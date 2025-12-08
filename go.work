@@ -1,4 +1,4 @@
-go 1.25.0
+go 1.25.5
 
 use (
 	// keep-sorted start
@@ -7,6 +7,7 @@ use (
 	./imagestore
 	./initdata-processor
 	./service-mesh
+	./tools/ci-watch
 	./tools/debugshell
 	./tools/igvm
 	./tools/imagepuller-benchmark

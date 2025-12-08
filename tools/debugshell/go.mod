@@ -1,6 +1,6 @@
 module github.com/edgelesssys/contrast/tools/debugshell
 
-go 1.25.0
+go 1.25.5
 
 require (
 	github.com/creack/pty v1.1.24
