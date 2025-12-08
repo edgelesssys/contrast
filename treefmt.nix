@@ -106,6 +106,7 @@
       excludes = [
         "CODE_OF_CONDUCT.md"
         "LICENSE"
+        "dev-docs/e2e/well-known-errors.md"
       ];
     };
     # keep-sorted end
