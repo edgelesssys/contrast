@@ -36,6 +36,7 @@
     # keep-sorted end
   };
   settings.formatter = {
+    # keep-sorted start block=true
     # Notice! addlicense won't enforce the correct license header
     # but only check if there is something like a license header at all.
     # It will neither fail on nor update incorrect license headers.
@@ -52,16 +53,6 @@
         "*.sh"
       ];
     };
-    # Catch debug arguments in nix code that were accidentally left on true.
-    lint-no-debug = {
-      command = "${lib.getExe pkgs.contrastPkgs.scripts.lint-no-debug}";
-      includes = [ "*.nix" ];
-    };
-    # Make sure that every markdown page is listed in the sidebar, and vice-versa.
-    check-sidebar = {
-      command = "${lib.getExe pkgs.contrastPkgs.scripts.check-sidebar}";
-      includes = [ "docs/sidebars.js" ];
-    };
     ascii-lint = {
       command = "${lib.getExe pkgs.contrastPkgs.scripts.ascii-lint}";
       includes = [
@@ -69,11 +60,21 @@
         "README.md"
       ];
     };
+    # Make sure that every markdown page is listed in the sidebar, and vice-versa.
+    check-sidebar = {
+      command = "${lib.getExe pkgs.contrastPkgs.scripts.check-sidebar}";
+      includes = [ "docs/sidebars.js" ];
+    };
     # Docs shouldn't use links containing the full URL, but rather relative links.
     # Otherwise the links won't point to the correct versioned location after a release.
     docs-selfref-lint = {
       command = "${lib.getExe pkgs.contrastPkgs.scripts.docs-selfref-lint}";
       includes = [ "docs/docs/*.md" ];
+    };
+    # Catch debug arguments in nix code that were accidentally left on true.
+    lint-no-debug = {
+      command = "${lib.getExe pkgs.contrastPkgs.scripts.lint-no-debug}";
+      includes = [ "*.nix" ];
     };
     renovate = {
       command = "${lib.getExe' pkgs.renovate "renovate-config-validator"}";
@@ -96,5 +97,6 @@
         "LICENSE"
       ];
     };
+    # keep-sorted end
   };
 }
