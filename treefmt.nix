@@ -76,6 +76,17 @@
       command = "${lib.getExe pkgs.contrastPkgs.scripts.lint-no-debug}";
       includes = [ "*.nix" ];
     };
+    lychee-internal-links = {
+      command = "${lib.getExe pkgs.lychee}";
+      options = [
+        "--config"
+        "tools/lychee/config-internal.toml"
+      ];
+      includes = [
+        "*.md"
+        "*.html"
+      ];
+    };
     renovate = {
       command = "${lib.getExe' pkgs.renovate "renovate-config-validator"}";
       options = [ "--strict" ];
