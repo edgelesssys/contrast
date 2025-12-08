@@ -62,24 +62,4 @@ final: prev:
       })
     ];
   });
-
-  # The fragment checks in 0.19.1 are broken.
-  # ToDO(katexochen): Check on lychee versions >0.19.1.
-  lychee = prev.lychee.overrideAttrs (
-    finalAttrs: _prevAttrs: {
-      version = "0.18.1";
-      src = final.fetchFromGitHub {
-        owner = "lycheeverse";
-        repo = "lychee";
-        tag = "lychee-v${finalAttrs.version}";
-        hash = "sha256-aT7kVN2KM90M193h4Xng6+v69roW0J4GLd+29BzALhI=";
-      };
-      cargoDeps = final.rustPackages.rustPlatform.fetchCargoVendor {
-        inherit (finalAttrs) src pname version;
-        hash = "sha256-TKKhT4AhV2uzXOHRnKHiZJusNoCWUliKmKvDw+Aeqnc=";
-      };
-      # The postFixup script calls the binary to generate man pages, which was only introduced in v0.21.0.
-      postFixup = null;
-    }
-  );
 }
