@@ -25,9 +25,9 @@ spec:
               mountPath: /prometheus
           resources:
             limits:
-              memory: 600Mi
+              memory: 800Mi
             requests:
-              memory: 600Mi
+              memory: 800Mi
       volumes:
         - name: prometheus
           emptyDir: {}

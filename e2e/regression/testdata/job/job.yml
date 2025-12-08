@@ -27,7 +27,7 @@ spec:
           command: ["echo", "Hello World!"]
           resources:
             requests:
-              memory: 40Mi
+              memory: 100Mi
             limits:
-              memory: 40Mi
+              memory: 100Mi
       restartPolicy: Never

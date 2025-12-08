@@ -23,7 +23,7 @@ spec:
             - containerPort: 3306
           resources:
             requests:
-              memory: 1Gi
+              memory: 1.4Gi
             limits:
-              memory: 1Gi
+              memory: 1.4Gi
       runtimeClassName: contrast-cc

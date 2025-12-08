@@ -25,6 +25,6 @@ spec:
         - read dummy
       resources:
         requests:
-          memory: 5Mi
+          memory: 50Mi
         limits:
-          memory: 5Mi
+          memory: 50Mi
