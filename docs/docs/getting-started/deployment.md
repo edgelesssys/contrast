@@ -64,9 +64,8 @@ To ensure accurate memory allocation, Contrast uses the memory `limits` defined 
 You should set appropriate memory `limits` for each container to get a VM of the right size.
 
 On bare-metal platforms, the container images are pulled from within each pod-VM.
-By default, images are stored on an encrypted ephemeral disk through the [Contrast secure image store](../howto/secure-image-store.md) feature.
-If this feature is disabled, the images are stored in encrypted memory instead.
-In this case, the uncompressed image size needs to be added to the memory limits of containers.
+By default, images are stored in encrypted memory, but can optionally also be stored on an encrypted ephemeral disk through the [Contrast secure image store](../howto/secure-image-store.md) feature.
+In the latter case, the image sizes don't need to be taken into account when calculating the memory limits of containers.
 
 Kubernetes schedules pods on nodes based on the memory `requests`.
 To prevent Kubernetes from over-commiting nodes, set the memory `request` to the same value as the `limit`.
