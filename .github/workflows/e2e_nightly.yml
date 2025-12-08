@@ -47,6 +47,7 @@ jobs:
           - genpolicy-unsupported
           - imagepuller-auth
           - imagestore
+          - kds-pcs-downtime
           - memdump
           - openssl
           - peerrecovery

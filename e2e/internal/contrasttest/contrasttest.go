@@ -186,7 +186,7 @@ func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
 	errBuf := &bytes.Buffer{}
 	generate.SetErr(errBuf)
 
-	if err := generate.Execute(); err != nil {
+	if err := generate.ExecuteContext(ctx); err != nil {
 		return errors.Join(fmt.Errorf("%s", errBuf), err)
 	}
 	patchRefValsFunc, err := PatchReferenceValues(ctx, ct.Kubeclient, ct.Platform)
@@ -399,14 +399,16 @@ func (ct *ContrastTest) Verify(t *testing.T) {
 	require.NoError(t, ct.RunVerify(t.Context()))
 }
 
-// Recover runs the contrast recover subcommand.
+// Recover runs the contrast recover subcommand and fails the test if it is not successful.
 func (ct *ContrastTest) Recover(t *testing.T) {
-	require := require.New(t)
+	require.NoError(t, ct.runAgainstCoordinator(t.Context(), cmd.NewRecoverCmd()))
+}
 
-	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
+// RunRecover runs the contrast recover subcommand.
+func (ct *ContrastTest) RunRecover(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 	defer cancel()
-
-	require.NoError(ct.runAgainstCoordinator(ctx, cmd.NewRecoverCmd()))
+	return ct.runAgainstCoordinator(ctx, cmd.NewRecoverCmd())
 }
 
 // MeshCACert returns a CertPool that contains the coordinator mesh CA cert.
@@ -500,7 +502,7 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 		errBuf := &bytes.Buffer{}
 		cmd.SetErr(errBuf)
 
-		if err := cmd.Execute(); err != nil {
+		if err := cmd.ExecuteContext(ctx); err != nil {
 			return fmt.Errorf("running %q: %s", cmd.Use, errBuf)
 		}
 		return nil
