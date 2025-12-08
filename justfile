@@ -390,7 +390,7 @@ lint:
 
 # Check links.
 check-links:
-    nix run .#nixpkgs.lychee -- --config tools/lychee/config.toml .
+    nix run .#nixpkgs.lychee -- --config tools/lychee/config-external.toml .
 
 demodir version="latest": undeploy
     #!/usr/bin/env bash
