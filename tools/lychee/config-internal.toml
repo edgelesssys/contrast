@@ -1,0 +1,16 @@
+#
+# This config only checks the internal links between docs pages.
+# It also checks for the correctness of local fragments.
+#
+
+no_progress = true
+cache = false
+include_fragments = true
+fallback_extensions = ["md", "html"]
+exclude = [ '^http' ]
+exclude_path = [ "dev-docs/frozen" ]
+
+# lychee in-run caching is bugged
+# https://github.com/lycheeverse/lychee/issues/1593
+threads = 1
+max_concurrency = 1
