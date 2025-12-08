@@ -200,7 +200,7 @@ let
         destination = "/opt/edgeless/bin/kata-runtime";
       }
       {
-        source = "${contrastPkgsStatic.kata.runtime}/bin/containerd-shim-kata-v2";
+        source = "${contrastPkgsStatic.kata.runtime-rs}/bin/containerd-shim-kata-v2";
         destination = "/opt/edgeless/bin/containerd-shim-contrast-cc-v2";
       }
     ];

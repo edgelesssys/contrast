@@ -55,13 +55,16 @@ dial_timeout = 90
 kernel_modules = []
 
 [Runtime]
+agent_name = 'kata-agent'
 create_container_timeout = 60
 dan_conf = '/run/kata-containers/dans'
 disable_guest_empty_dir = false
 disable_guest_seccomp = true
 experimental = []
 experimental_force_guest_pull = true
+hypervisor_name = 'qemu'
 internetworking_model = 'tcfilter'
+name = 'virt-container'
 sandbox_bind_mounts = []
 sandbox_cgroup_only = true
 static_sandbox_resource_mgmt = true

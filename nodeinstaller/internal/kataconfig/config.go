@@ -64,6 +64,9 @@ func KataRuntimeConfig(
 		config.Hypervisor["qemu"]["contrast_imagepuller_config"] = imagepullerConfigPath
 		// Fix and align guest memory calculation.
 		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMebiBytes(platform)
+		config.Runtime["name"] = "virt-container"
+		config.Runtime["hypervisor_name"] = "qemu"
+		config.Runtime["agent_name"] = "kata-agent"
 		config.Runtime["sandbox_cgroup_only"] = true
 		// Force container image gust pull so we don't have to use nydus-snapshotter.
 		config.Runtime["experimental_force_guest_pull"] = true
@@ -93,6 +96,9 @@ func KataRuntimeConfig(
 		config.Hypervisor["qemu"]["contrast_imagepuller_config"] = imagepullerConfigPath
 		// Fix and align guest memory calculation.
 		config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMebiBytes(platform)
+		config.Runtime["name"] = "virt-container"
+		config.Runtime["hypervisor_name"] = "qemu"
+		config.Runtime["agent_name"] = "kata-agent"
 		config.Runtime["sandbox_cgroup_only"] = true
 		// Force container image gust pull so we don't have to use nydus-snapshotter.
 		config.Runtime["experimental_force_guest_pull"] = true
