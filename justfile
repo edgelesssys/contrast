@@ -62,7 +62,7 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
     if [[ -n "${contrast_ghcr_read:-}" ]]; then
         export CONTRAST_GHCR_READ="$contrast_ghcr_read"
     fi
-    if [[ {{ target }} == "containerd-digest-pinning" ]]; then
+    if [[ {{ target }} == "containerd-11644-reproducer" ]]; then
         just containerd-reproducer
     fi
     nix shell .#contrast.e2e --command {{ target }}.test -test.v \

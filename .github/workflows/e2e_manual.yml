@@ -10,7 +10,7 @@ on:
         options:
           # keep-sorted start
           - atls
-          - containerd-digest-pinning
+          - containerd-11644-reproducer
           - genpolicy-unsupported
           - gpu
           - imagepuller-auth
