@@ -24,9 +24,9 @@ spec:
               readOnly: true
           resources:
             requests:
-              memory: 400Mi
+              memory: 700Mi
             limits:
-              memory: 400Mi
+              memory: 700Mi
       volumes:
         - name: html
           configMap:

@@ -29,3 +29,8 @@ spec:
             - cat /tmp/works
         initialDelaySeconds: 5
         periodSeconds: 5
+      resources:
+        requests:
+          memory: 100Mi
+        limits:
+          memory: 100Mi

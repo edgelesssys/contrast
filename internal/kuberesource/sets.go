@@ -924,6 +924,9 @@ func MemDump() []any {
 								WithTCPSocket(TCPSocketAction().
 									WithPort(intstr.FromInt(8000)),
 								),
+							).
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(1000),
 							),
 					),
 				),
@@ -949,6 +952,9 @@ func MemDump() []any {
 							WithName("sender").
 							WithImage("ghcr.io/edgelesssys/contrast/memdump:latest").
 							WithCommand("/bin/sh", "-c", "sleep inf"),
+					).
+					WithResources(ResourceRequirements().
+						WithMemoryLimitAndRequest(1000),
 					),
 				),
 			),
@@ -985,7 +991,10 @@ func MemDumpTester() []any {
 									WithName("host").
 									WithMountPath("/host"),
 							).
-							WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration),
+							WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(200),
+							),
 					).
 					WithVolumes(
 						Volume().WithName("host").WithHostPath(
@@ -1056,7 +1065,7 @@ func ContainerdDigestPinningTesters(name string) (*applyappsv1.DeploymentApplyCo
 							WithImage("ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-tag").
 							WithCommand("bash", "-c", "sleep infinity").
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(40),
+								WithMemoryLimitAndRequest(200),
 							),
 					),
 				),
@@ -1079,7 +1088,7 @@ func ContainerdDigestPinningTesters(name string) (*applyappsv1.DeploymentApplyCo
 							WithImage("ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-digest").
 							WithCommand("bash", "-c", "sleep infinity").
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(40),
+								WithMemoryLimitAndRequest(200),
 							),
 					),
 				),

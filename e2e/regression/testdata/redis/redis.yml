@@ -23,9 +23,9 @@ spec:
             - containerPort: 6379
           resources:
             limits:
-              memory: 100Mi
+              memory: 200Mi
             requests:
-              memory: 100Mi
+              memory: 200Mi
       volumes:
         - name: data
           emptyDir: {}

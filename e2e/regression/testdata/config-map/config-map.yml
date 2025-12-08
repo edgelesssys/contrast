@@ -25,9 +25,9 @@ spec:
           readOnly: true
       resources:
         requests:
-          memory: 40Mi
+          memory: 100Mi
         limits:
-          memory: 40Mi
+          memory: 100Mi
   volumes:
     - name: cm-content
       configMap:
