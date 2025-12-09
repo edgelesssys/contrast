@@ -15,6 +15,7 @@ on:
           - gpu
           - imagepuller-auth
           - imagestore
+          - memdump
           - multiple-cpus
           - openssl
           - peerrecovery
