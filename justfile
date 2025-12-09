@@ -133,7 +133,7 @@ populate target=default_deploy_target platform=default_platform:
 
 # Write the namespace so it can be read by other scripts
 write-namespace target=default_deploy_target:
-    echo "{{ target }}${namespace_suffix-}" > ./{{ workspace_dir }}/just.namespace
+    echo "{{ target }}${namespace_suffix-}" >> ./{{ workspace_dir }}/just.namespace
 
 # Generate policies, update manifest.
 generate cli=default_cli platform=default_platform:
@@ -192,7 +192,7 @@ apply target=default_deploy_target platform=default_platform:
     EOF
                 kubectl create secret generic contrast-node-installer-imagepuller-config \
                     --from-file "contrast-imagepuller.toml"="./{{ workspace_dir }}/contrast-imagepuller.toml" \
-                    --namespace $(cat ./{{ workspace_dir }}/just.namespace)
+                    --namespace $(tail -1 ./{{ workspace_dir }}/just.namespace)
             fi
             kubectl apply -f ./{{ workspace_dir }}/runtime/runtime.yml
         ;;
@@ -200,7 +200,7 @@ apply target=default_deploy_target platform=default_platform:
             if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" ]] ; then
                 just request-fifo-ticket 90m
                 trap 'just release-fifo-ticket' ERR
-                kubectl label ns $(cat ./{{ workspace_dir }}/just.namespace) contrast.edgeless.systems/sync-ticket=$(cat ./{{ workspace_dir }}/just.sync-ticket) --overwrite
+                kubectl label ns $(tail -1 ./{{ workspace_dir }}/just.namespace) contrast.edgeless.systems/sync-ticket=$(cat ./{{ workspace_dir }}/just.sync-ticket) --overwrite
             fi
             kubectl apply -f ./{{ workspace_dir }}/deployment
         ;;
@@ -219,26 +219,14 @@ undeploy:
         exit 0
     fi
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
-    if ! kubectl get ns $ns 2> /dev/null; then
-        echo "Namespace $ns does not exist, nothing to undeploy."
-        exit 0
-    fi
-    if [[ -f ./{{ workspace_dir }}/deployment/ns.yml ]]; then
-        kubectl delete \
-            -f ./{{ workspace_dir }}/deployment \
-            --ignore-not-found \
-            --grace-period=30 \
-            --timeout=10m
-    else
-        kubectl delete namespace $ns
-    fi
+    kubectl delete namespace $ns --ignore-not-found
     just release-fifo-ticket
 
 # Set the manifest at the coordinator.
 set cli=default_cli:
     #!/usr/bin/env bash
     set -euo pipefail
-    ns=$(cat ./{{ workspace_dir }}/just.namespace)
+    ns=$(tail -1 ./{{ workspace_dir }}/just.namespace)
     nix run -L .#scripts.kubectl-wait-coordinator -- $ns
     nix run -L .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
@@ -255,7 +243,7 @@ verify cli=default_cli:
     #!/usr/bin/env bash
     set -euo pipefail
     rm -rf ./{{ workspace_dir }}/verify
-    ns=$(cat ./{{ workspace_dir }}/just.namespace)
+    ns=$(tail -1 ./{{ workspace_dir }}/just.namespace)
     nix run -L .#scripts.kubectl-wait-coordinator -- $ns
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1314:1313 &
     PID=$!
@@ -269,7 +257,7 @@ verify cli=default_cli:
 recover cli=default_cli:
     #!/usr/bin/env bash
     set -euo pipefail
-    ns=$(cat ./{{ workspace_dir }}/just.namespace)
+    ns=$(tail -1 ./{{ workspace_dir }}/just.namespace)
     nix run -L .#scripts.kubectl-wait-coordinator -- $ns
     nix run -L .#scripts.kubectl-wait-ready -- $ns port-forwarder-coordinator
     kubectl -n $ns port-forward pod/port-forwarder-coordinator 1313 &
@@ -284,7 +272,7 @@ recover cli=default_cli:
 wait-for-workload target=default_deploy_target:
     #!/usr/bin/env bash
     set -euo pipefail
-    ns=$(cat ./{{ workspace_dir }}/just.namespace)
+    ns=$(tail -1 ./{{ workspace_dir }}/just.namespace)
     case {{ target }} in
         "openssl")
             nix run -L .#scripts.kubectl-wait-ready -- $ns openssl-backend
