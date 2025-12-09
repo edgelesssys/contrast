@@ -127,7 +127,11 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	namespaceUnstr, err := kuberesource.ResourcesToUnstructured([]any{namespace})
 	require.NoError(err)
 	if ct.NamespaceFile != "" {
-		require.NoError(os.WriteFile(ct.NamespaceFile, []byte(ct.Namespace), 0o644))
+		file, err := os.OpenFile(ct.NamespaceFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
+		require.NoError(err)
+		defer file.Close()
+		_, err = file.WriteString(ct.Namespace + "\n")
+		require.NoError(err)
 	}
 	// Creating a namespace should not take too long.
 	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
