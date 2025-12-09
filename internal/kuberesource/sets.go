@@ -951,10 +951,10 @@ func MemDump() []any {
 						Container().
 							WithName("sender").
 							WithImage("ghcr.io/edgelesssys/contrast/memdump:latest").
-							WithCommand("/bin/sh", "-c", "sleep inf"),
-					).
-					WithResources(ResourceRequirements().
-						WithMemoryLimitAndRequest(1000),
+							WithCommand("/bin/sh", "-c", "sleep inf").
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(1000),
+							),
 					),
 				),
 			),
