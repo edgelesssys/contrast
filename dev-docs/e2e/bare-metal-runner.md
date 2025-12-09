@@ -143,6 +143,11 @@ ufw show added
 ufw enable
 ```
 
+## Installing dependencies
+
+Install Nix using the official instructions:
+https://nixos.org/download/#nix-install-linux.
+
 ## Add server as a GitHub runner
 
 First, create another user, which the runner service will use.
@@ -157,9 +162,6 @@ Put the K3s kubeconfig into the default dir for the user:
 mkdir -p /home/github/.kube
 ln -s /etc/rancher/k3s/k3s.yaml /home/github/.kube/config
 ```
-
-The CI jobs build things with nix, therefore install it following the official instructions:
-https://nixos.org/download/#nix-install-linux.
 
 Customize the Nix configuration for flakes, the GitHub runner and Cachix:
 
@@ -241,7 +243,7 @@ the Tailscale:
 
 ```bash
 CONFIG=$(cat /etc/rancher/k3s/k3s.yaml)
-CONFIG="${CONFIG//default/$(hostname)$}"
+CONFIG="${CONFIG//default/$(hostname)}"
 CONFIG="${CONFIG//127.0.0.1/$(hostname)}"
 echo "${CONFIG}" > $(hostname)-kubeconfig
 ```
