@@ -69,6 +69,12 @@ This is a placeholder name that will be replaced by a versioned `runtimeClassNam
 
 <!-- TODO(katexochen): Describe how runtimeClass is handled after first generate -->
 
+### Namespaces
+
+Contrast workloads can run in any namespace and a Contrast deployment can be spread across multiple namespaces.
+The Coordinator doesn't have to be in the same namespace as the workloads and is configured to use the `default` namespace when first downloading the resource.
+To better organize your deployment, you can create a dedicated namespace and change the Coordinator namespace in the deployment file.
+
 ### Volumes
 
 Contrast doesn't support sharing filesystems with the host.
