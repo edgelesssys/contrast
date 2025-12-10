@@ -1,6 +1,6 @@
 module github.com/edgelesssys/contrast/snp-id-block-generator
 
-go 1.25.0
+go 1.25.5
 
 replace github.com/edgelesssys/contrast => ../..
 
