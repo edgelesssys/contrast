@@ -15,6 +15,7 @@ Required for all Contrast deployments.
 
 Contrast depends on a [custom Kubernetes `RuntimeClass` (`contrast-cc`)](../../architecture/components/runtime.md), which needs to be installed in the cluster prior to the Coordinator or any confidential workloads.
 This consists of a `RuntimeClass` resource and the node installer `DaemonSet` that performs installation on worker nodes.
+The node installer is deployed in the `contrast-system` namespace by default but this can be changed by modifying the YAML files if you wish.
 This step is only required once for each version of the runtime.
 It can be shared between Contrast deployments.
 Also, different Contrast runtime versions can be installed in the same cluster.
