@@ -926,7 +926,7 @@ func MemDump() []any {
 								),
 							).
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(1000),
+								WithMemoryLimitAndRequest(1500),
 							),
 					),
 				),
@@ -953,7 +953,7 @@ func MemDump() []any {
 							WithImage("ghcr.io/edgelesssys/contrast/memdump:latest").
 							WithCommand("/bin/sh", "-c", "sleep inf").
 							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(1000),
+								WithMemoryLimitAndRequest(1500),
 							),
 					),
 				),
