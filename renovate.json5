@@ -116,4 +116,15 @@
       enabled: false,
     },
   ],
+  customManagers: [
+    {
+      // Update k3s version for bare metal runners.
+      customType: "regex",
+      managerFilePatterns: [ "/tools\\/bm-maintenance\\/k3s-version\\.txt$/" ],
+      matchStrings: [ "(?<currentValue>.+)(\\s|$)" ],
+      depNameTemplate: "k3s-io/k3s",
+      datasourceTemplate: "github-releases",
+      versioningTemplate: "loose",
+    },
+  ],
 }
