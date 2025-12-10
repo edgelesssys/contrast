@@ -133,7 +133,7 @@ func NodeInstaller(namespace string, platform platforms.Platform) (*applyappsv1.
 
 // NodeInstallerTargetConfig returns a ConfigMap for the passed target.
 func NodeInstallerTargetConfig(target string) (*applycorev1.ConfigMapApplyConfiguration, error) {
-	ns := "kube-system"
+	ns := ""
 	switch target {
 	case "k3s":
 		return applycorev1.ConfigMap("contrast-node-installer-target-config", ns).

@@ -142,6 +142,8 @@ runs:
         for platform in "${platforms[@]}"; do
           nix shell .#contrast.resourcegen --command resourcegen \
             --image-replacements ./image-replacements.txt \
+            --namespace contrast-system \
+            --add-namespace-object \
             --platform "$platform" \
             runtime > "workspace/runtime-$platform.yml"
         done
@@ -162,6 +164,8 @@ runs:
       run: |
         nix shell .#contrast.resourcegen --command resourcegen \
           --node-installer-target-conf-type k3s \
+          --namespace contrast-system \
+          --add-namespace-object \
           node-installer-target-conf > workspace/node-installer-target-config-k3s.yml
     - name: Build CLI
       shell: bash
