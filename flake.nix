@@ -57,6 +57,23 @@
             "contrastPkgs"
           ];
         };
+
+        matrix = pkgs.writeText "output-matrix.json" (
+          builtins.toJSON (
+            builtins.attrValues (
+              flake-utils.lib.flattenTree (
+                pkgs.contrastPkgs
+                # flattenTree recursion not working properly...?
+                // pkgs.contrastPkgs.scripts
+                // pkgs.contrastPkgs.containers
+                // pkgs.contrastPkgs.contrast-releases
+              )
+              // self.checks
+              // self.formatter
+              // self.devShells
+            )
+          )
+        );
       }
     );
 

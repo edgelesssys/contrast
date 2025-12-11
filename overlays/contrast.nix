@@ -5,4 +5,5 @@ final: _prev:
 
 {
   contrastPkgs = import ../packages { pkgs = final; };
+  contrastPkgsStatic = import ../packages/static.nix { pkgs = final; };
 }

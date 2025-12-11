@@ -13,16 +13,9 @@ makeScope pkgs.newScope (
     inherit (self) callPackage newScope;
     directory = ./by-name;
   }
-  // {
-    contrastPkgsStatic = makeScope pkgs.pkgsStatic.newScope (
-      self:
-      pkgs.lib.packagesFromDirectoryRecursive {
-        inherit (self) callPackage newScope;
-        directory = ./by-name;
-      }
-    );
-    scripts = pkgs.callPackages ./scripts.nix { };
-    containers = pkgs.callPackages ./containers.nix { };
-    contrast-releases = pkgs.callPackages ./contrast-releases.nix { };
-  }
 )
+// {
+  scripts = pkgs.callPackages ./scripts.nix { };
+  containers = pkgs.callPackages ./containers.nix { };
+  contrast-releases = pkgs.callPackages ./contrast-releases.nix { };
+}

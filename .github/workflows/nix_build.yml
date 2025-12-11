@@ -1,0 +1,37 @@
+name: build and cache all flake outputs
+
+on:
+  pull_request:
+    paths:
+      - "**"
+      - "!.github/**"
+      - ".github/actions/setup_nix.yml"
+      - ".github/workflows/nix_build.yml"
+      - "!dev-docs/**"
+      - "!docs/**"
+      - "!rfc/**"
+      - "!tools/vale/**"
+  workflow_dispatch:
+
+jobs:
+  checks:
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - runner: yet-to-be-set-up-nix-build-host
+            system: x86_64-linux
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup_nix
+        if: (!inputs.self-hosted)
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Run om ci
+        run: |
+          nix build .#matrix.${{ matrix.system }}
