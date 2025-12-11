@@ -1,9 +1,9 @@
 // source: https://github.com/kata-containers/kata-containers/blob/997a1f35ab68ad8cc2b24e8e20ea63f7de82acf9/src/libs/protocols/protos/confidential_data_hub.proto
 syntax = "proto3";
 
-package api;
+package securemountapi;
 
-option go_package = "github.com/edgelesssys/contrast/imagestore/internal/api";
+option go_package = "github.com/edgelesssys/contrast/imagestore/internal/securemountapi";
 
 service SecureMountService {
     rpc SecureMount(SecureMountRequest) returns (SecureMountResponse) {};

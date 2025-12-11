@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/edgelesssys/contrast/internal/crypto"
+	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 )
 
 // ciphertextContainer describes a base64-encoded ciphertext prepended with the nonce and specified key version.
@@ -31,7 +31,7 @@ func symmetricEncryptRaw(encKey, plaintext []byte, associatedData []byte) (ciphe
 	if err != nil {
 		return ciphertextContainer{}, err
 	}
-	nonce, err := crypto.GenerateRandomBytes(gcm.NonceSize())
+	nonce, err := cryptohelpers.GenerateRandomBytes(gcm.NonceSize())
 	if err != nil {
 		return ciphertextContainer{}, err
 	}

@@ -6,7 +6,7 @@
 // 	protoc        v6.32.1
 // source: imagepuller.proto
 
-package api
+package imagepullapi
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -129,7 +129,7 @@ const file_imagepuller_proto_rawDesc = "" +
 	"bundlePath\"\x13\n" +
 	"\x11ImagePullResponse2N\n" +
 	"\x10ImagePullService\x12:\n" +
-	"\tPullImage\x12\x15.api.ImagePullRequest\x1a\x16.api.ImagePullResponseB:Z8github.com/edgelesssys/contrast/imagepuller/internal/apib\x06proto3"
+	"\tPullImage\x12\x15.api.ImagePullRequest\x1a\x16.api.ImagePullResponseBCZAgithub.com/edgelesssys/contrast/imagepuller/internal/imagepullapib\x06proto3"
 
 var (
 	file_imagepuller_proto_rawDescOnce sync.Once

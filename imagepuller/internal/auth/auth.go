@@ -13,7 +13,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/edgelesssys/contrast/imagepuller/internal/api"
+	"github.com/edgelesssys/contrast/imagepuller/internal/imagepullapi"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/pelletier/go-toml/v2"
@@ -41,7 +41,7 @@ func ReadInsecureConfig(path string, log *slog.Logger) (*Config, error) {
 		log.Info("Imagepuller auth config file does not exist or is empty. Authenticated pulls are not available")
 		return &Config{}, nil
 	} else if err != nil {
-		return nil, fmt.Errorf("reading insecure config file %q: %w", api.InsecureConfigPath, err)
+		return nil, fmt.Errorf("reading insecure config file %q: %w", imagepullapi.InsecureConfigPath, err)
 	}
 
 	var cfg Config

@@ -1,8 +1,8 @@
 // Copyright 2024 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
-// Package crypto provides functions to for cryptography and random numbers.
-package crypto
+// Package cryptohelpers provides functions to for cryptography and random numbers.
+package cryptohelpers
 
 import (
 	"crypto/rand"

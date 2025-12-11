@@ -16,8 +16,8 @@ import (
 	"time"
 
 	"github.com/containerd/ttrpc"
-	"github.com/edgelesssys/contrast/imagepuller/internal/api"
 	"github.com/edgelesssys/contrast/imagepuller/internal/auth"
+	"github.com/edgelesssys/contrast/imagepuller/internal/imagepullapi"
 	"github.com/edgelesssys/contrast/imagepuller/internal/remote"
 	"github.com/edgelesssys/contrast/imagepuller/internal/service"
 	"github.com/spf13/cobra"
@@ -49,8 +49,8 @@ func newRootCmd() *cobra.Command {
 		RunE:         run,
 	}
 	cmd.Flags().String("storepath", "", "temporary directory to use for storage")
-	cmd.Flags().String("config", api.InsecureConfigPath, "location of configuration file")
-	cmd.Flags().String("listen", api.Socket, "location of listening socket")
+	cmd.Flags().String("config", imagepullapi.InsecureConfigPath, "location of configuration file")
+	cmd.Flags().String("listen", imagepullapi.Socket, "location of listening socket")
 	return cmd
 }
 
@@ -92,7 +92,7 @@ func run(cmd *cobra.Command, _ []string) error {
 	}
 	authConfig.ApplyEnvVars()
 
-	api.RegisterImagePullServiceService(s, &service.ImagePullerService{
+	imagepullapi.RegisterImagePullServiceService(s, &service.ImagePullerService{
 		Logger:            log,
 		StorePathOverride: cmd.Flag("storepath").Value.String(),
 		Remote:            remote.DefaultRemote{},

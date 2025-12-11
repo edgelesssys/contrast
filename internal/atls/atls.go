@@ -26,7 +26,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/atls/reportdata"
 	"github.com/edgelesssys/contrast/internal/attestation"
-	contrastcrypto "github.com/edgelesssys/contrast/internal/crypto"
+	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -66,7 +66,7 @@ func CreateAttestationServerTLSConfig(issuer Issuer, validators []Validator, att
 // If no validators are set, the server's attestation document will not be verified.
 // If issuer is nil, the client will be unable to perform mutual aTLS.
 func CreateAttestationClientTLSConfig(ctx context.Context, issuer Issuer, validators []Validator, privKey crypto.PrivateKey) (*tls.Config, error) {
-	clientNonce, err := contrastcrypto.GenerateRandomBytes(contrastcrypto.RNGLengthDefault)
+	clientNonce, err := cryptohelpers.GenerateRandomBytes(cryptohelpers.RNGLengthDefault)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []Validator, attestati
 	// this function will be called once for every client
 	return func(chi *tls.ClientHelloInfo) (*tls.Config, error) {
 		// generate nonce for this connection
-		serverNonce, err := contrastcrypto.GenerateRandomBytes(contrastcrypto.RNGLengthDefault)
+		serverNonce, err := cryptohelpers.GenerateRandomBytes(cryptohelpers.RNGLengthDefault)
 		if err != nil {
 			return nil, fmt.Errorf("generate nonce: %w", err)
 		}
@@ -157,7 +157,7 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []Validator, attestati
 // getCertificate creates a client or server certificate for aTLS connections.
 // The certificate uses certificate extensions to embed an attestation document generated using nonce.
 func getCertificate(ctx context.Context, issuer Issuer, priv crypto.PrivateKey, pub any, nonce []byte) (*tls.Certificate, error) {
-	serialNumber, err := contrastcrypto.GenerateCertificateSerialNumber()
+	serialNumber, err := cryptohelpers.GenerateCertificateSerialNumber()
 	if err != nil {
 		return nil, err
 	}

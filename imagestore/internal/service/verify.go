@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/edgelesssys/contrast/imagestore/internal/api"
+	"github.com/edgelesssys/contrast/imagestore/internal/securemountapi"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -25,7 +25,7 @@ type SecureImageStoreParams struct {
 	KeyFile       string
 }
 
-func getAndVerifyParams(req *api.SecureMountRequest) (*SecureImageStoreParams, error) {
+func getAndVerifyParams(req *securemountapi.SecureMountRequest) (*SecureImageStoreParams, error) {
 	if req.MountPoint == "" {
 		return nil, status.Errorf(codes.InvalidArgument, "mountpoint is required")
 	}
