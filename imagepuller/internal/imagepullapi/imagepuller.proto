@@ -3,7 +3,7 @@ syntax = "proto3";
 
 package api;
 
-option go_package = "github.com/edgelesssys/contrast/imagepuller/internal/api";
+option go_package = "github.com/edgelesssys/contrast/imagepuller/internal/imagepullapi";
 
 service ImagePullService {
   rpc PullImage (ImagePullRequest) returns (ImagePullResponse);

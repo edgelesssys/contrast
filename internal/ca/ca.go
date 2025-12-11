@@ -15,7 +15,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/edgelesssys/contrast/internal/crypto"
+	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 )
 
 // CA is a cross-signing certificate authority.
@@ -183,7 +183,7 @@ func createCert(template, parent *x509.Certificate, pub, priv any) (*x509.Certif
 		return nil, nil, errors.New("cert serial number must be nil")
 	}
 
-	serialNum, err := crypto.GenerateCertificateSerialNumber()
+	serialNum, err := cryptohelpers.GenerateCertificateSerialNumber()
 	if err != nil {
 		return nil, nil, fmt.Errorf("generating serial number: %w", err)
 	}

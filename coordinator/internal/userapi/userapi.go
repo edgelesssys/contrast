@@ -27,7 +27,7 @@ import (
 
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/constants"
-	"github.com/edgelesssys/contrast/internal/crypto"
+	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -107,11 +107,11 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 		}
 	} else {
 		// First SetManifest call, initialize seed engine.
-		seed, err := crypto.GenerateRandomBytes(constants.SecretSeedSize)
+		seed, err := cryptohelpers.GenerateRandomBytes(constants.SecretSeedSize)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "generating random bytes for seed: %v", err)
 		}
-		salt, err := crypto.GenerateRandomBytes(constants.SecretSeedSaltSize)
+		salt, err := cryptohelpers.GenerateRandomBytes(constants.SecretSeedSaltSize)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "generating random bytes for seed salt: %v", err)
 		}

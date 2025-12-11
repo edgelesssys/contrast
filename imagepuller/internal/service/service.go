@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/edgelesssys/contrast/imagepuller/internal/api"
 	"github.com/edgelesssys/contrast/imagepuller/internal/auth"
+	"github.com/edgelesssys/contrast/imagepuller/internal/imagepullapi"
 	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
 	gcrRemote "github.com/google/go-containerregistry/pkg/v1/remote"
@@ -37,7 +37,9 @@ type ImagePullerService struct {
 }
 
 // PullImage is a ttRPC service which pulls and mounts docker images.
-func (s *ImagePullerService) PullImage(ctx context.Context, r *api.ImagePullRequest) (response *api.ImagePullResponse, retErr error) {
+func (s *ImagePullerService) PullImage(
+	ctx context.Context, r *imagepullapi.ImagePullRequest,
+) (response *imagepullapi.ImagePullResponse, retErr error) {
 	log := s.Logger.With(
 		slog.String("image_url", r.ImageUrl),
 		slog.String("bundle_path", r.BundlePath),
@@ -53,10 +55,10 @@ func (s *ImagePullerService) PullImage(ctx context.Context, r *api.ImagePullRequ
 	var storePath string
 	if s.StorePathOverride != "" {
 		storePath = s.StorePathOverride
-	} else if _, err := os.Stat(api.StorePathStorage); err == nil {
-		storePath = api.StorePathStorage
+	} else if _, err := os.Stat(imagepullapi.StorePathStorage); err == nil {
+		storePath = imagepullapi.StorePathStorage
 	} else {
-		storePath = api.StorePathMemory
+		storePath = imagepullapi.StorePathMemory
 	}
 	store, err := storage.GetStore(types.StoreOptions{
 		TransientStore:  true,
@@ -77,7 +79,7 @@ func (s *ImagePullerService) PullImage(ctx context.Context, r *api.ImagePullRequ
 			return nil, fmt.Errorf("mounting container from cached image: %w", err)
 		}
 		log.Info("Mounted container from cached image", "mount_path", rootfs)
-		return &api.ImagePullResponse{}, nil
+		return &imagepullapi.ImagePullResponse{}, nil
 	}
 
 	remoteImg, err := s.getAndVerifyImage(ctx, log, r.ImageUrl)
@@ -127,7 +129,7 @@ func (s *ImagePullerService) PullImage(ctx context.Context, r *api.ImagePullRequ
 	}
 	log.Info("Pulled and mounted image", "mount_path", rootfs)
 
-	return &api.ImagePullResponse{}, nil
+	return &imagepullapi.ImagePullResponse{}, nil
 }
 
 func (s *ImagePullerService) minimumRequiredStorage(remoteImg gcr.Image) (uint64, error) {

@@ -17,7 +17,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
-	contrastcrypto "github.com/edgelesssys/contrast/internal/crypto"
+	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/history"
@@ -120,8 +120,8 @@ func (Client) Verify(expectedManifest []byte, manifestHistory [][]byte) error {
 //
 // The nonce needs to be exactly 32 bytes, which should come from a CSPRNG.
 func (c Client) GetAttestation(ctx context.Context, url string, nonce []byte) ([]byte, error) {
-	if len(nonce) != contrastcrypto.RNGLengthDefault {
-		return nil, fmt.Errorf("bad nonce length: got %d, want %d", len(nonce), contrastcrypto.RNGLengthDefault)
+	if len(nonce) != cryptohelpers.RNGLengthDefault {
+		return nil, fmt.Errorf("bad nonce length: got %d, want %d", len(nonce), cryptohelpers.RNGLengthDefault)
 	}
 	body, err := json.Marshal(&httpapi.AttestationRequest{Nonce: nonce})
 	if err != nil {
@@ -176,8 +176,8 @@ func (c Client) GetAttestation(ctx context.Context, url string, nonce []byte) ([
 // the latest manifest with an expected manifest, if that exists, or verify that all manifest
 // fields match their expectations.
 func (c Client) ValidateAttestation(ctx context.Context, kdsDir string, nonce []byte, attestation []byte) (*CoordinatorState, error) {
-	if len(nonce) != contrastcrypto.RNGLengthDefault {
-		return nil, fmt.Errorf("wrong nonce length: got %d, want %d", len(nonce), contrastcrypto.RNGLengthDefault)
+	if len(nonce) != cryptohelpers.RNGLengthDefault {
+		return nil, fmt.Errorf("wrong nonce length: got %d, want %d", len(nonce), cryptohelpers.RNGLengthDefault)
 	}
 
 	resp, err := httpapi.UnmarshalAttestationResponse(attestation)

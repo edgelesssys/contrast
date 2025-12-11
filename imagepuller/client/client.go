@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/containerd/ttrpc"
-	"github.com/edgelesssys/contrast/imagepuller/internal/api"
+	"github.com/edgelesssys/contrast/imagepuller/internal/imagepullapi"
 )
 
 // Request makes an imagepulling request to the imagepuller ttrpc server.
@@ -19,7 +19,7 @@ func Request(image, mount string, timeout time.Duration) error {
 	defer cancel()
 
 	var d net.Dialer
-	conn, err := d.DialContext(ctx, "unix", api.Socket)
+	conn, err := d.DialContext(ctx, "unix", imagepullapi.Socket)
 	if err != nil {
 		log.Fatalf("failed to dial: %v", err)
 	}
@@ -28,8 +28,8 @@ func Request(image, mount string, timeout time.Duration) error {
 	client := ttrpc.NewClient(conn)
 	defer client.Close()
 
-	imagePullerClient := api.NewImagePullServiceClient(client)
+	imagePullerClient := imagepullapi.NewImagePullServiceClient(client)
 
-	_, err = imagePullerClient.PullImage(ctx, &api.ImagePullRequest{ImageUrl: image, BundlePath: mount})
+	_, err = imagePullerClient.PullImage(ctx, &imagepullapi.ImagePullRequest{ImageUrl: image, BundlePath: mount})
 	return err
 }

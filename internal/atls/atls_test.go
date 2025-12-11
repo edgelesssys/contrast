@@ -15,7 +15,7 @@ import (
 	"testing"
 
 	"github.com/edgelesssys/contrast/internal/atls/reportdata"
-	contrastcrypto "github.com/edgelesssys/contrast/internal/crypto"
+	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/edgelesssys/contrast/internal/testkeys"
 	"github.com/stretchr/testify/assert"
@@ -199,7 +199,7 @@ func TestContextPassdown(t *testing.T) {
 }
 
 func TestNonceInALPN(t *testing.T) {
-	var nonce [contrastcrypto.RNGLengthDefault]byte
+	var nonce [cryptohelpers.RNGLengthDefault]byte
 
 	nextProto := encodeNonceToNextProtos(nonce[:])
 
@@ -250,7 +250,7 @@ func TestNonceInALPN(t *testing.T) {
 }
 
 func TestGetNonce(t *testing.T) {
-	wantNonce := [contrastcrypto.RNGLengthDefault]byte{42}
+	wantNonce := [cryptohelpers.RNGLengthDefault]byte{42}
 
 	for name, tc := range map[string]struct {
 		clientHello *tls.ClientHelloInfo

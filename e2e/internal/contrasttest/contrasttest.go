@@ -25,7 +25,7 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
-	"github.com/edgelesssys/contrast/internal/crypto"
+	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
@@ -346,7 +346,7 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 	// Test the HTTP API attestation endpoint, too.
 
 	client := sdk.New()
-	nonce, err := crypto.GenerateRandomBytes(crypto.RNGLengthDefault)
+	nonce, err := cryptohelpers.GenerateRandomBytes(cryptohelpers.RNGLengthDefault)
 	if err != nil {
 		return fmt.Errorf("generating nonce: %w", err)
 	}

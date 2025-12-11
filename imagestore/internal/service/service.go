@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/edgelesssys/contrast/imagestore/internal/api"
+	"github.com/edgelesssys/contrast/imagestore/internal/securemountapi"
 )
 
 // SecureImageStoreService is the struct for which the SecureImageStore ttRPC service is implemented.
@@ -17,7 +17,9 @@ type SecureImageStoreService struct {
 }
 
 // SecureMount is a ttRPC service which pulls and mounts docker images.
-func (s *SecureImageStoreService) SecureMount(ctx context.Context, req *api.SecureMountRequest) (response *api.SecureMountResponse, retErr error) {
+func (s *SecureImageStoreService) SecureMount(
+	ctx context.Context, req *securemountapi.SecureMountRequest,
+) (response *securemountapi.SecureMountResponse, retErr error) {
 	log := s.Logger.With(slog.String("mount_point", req.MountPoint))
 	log.Info("Handling secure image store mount request")
 	log.Debug("Mount request details", "options", req.Options, "flags", req.Flags)
@@ -42,7 +44,7 @@ func (s *SecureImageStoreService) SecureMount(ctx context.Context, req *api.Secu
 	}
 
 	log.Info("Securely mounted device", "target", req.MountPoint)
-	return &api.SecureMountResponse{
+	return &securemountapi.SecureMountResponse{
 		MountPath: req.MountPoint,
 	}, nil
 }

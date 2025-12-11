@@ -20,7 +20,7 @@ buildGoModule (finalAttrs: {
         (path.append root "imagepuller/go.mod")
         (path.append root "imagepuller/go.sum")
         (path.append root "imagepuller/client")
-        (path.append root "imagepuller/internal/api")
+        (path.append root "imagepuller/internal/imagepullapi")
         (path.append root "tools/imagepuller-benchmark")
       ];
     };
