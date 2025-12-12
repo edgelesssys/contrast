@@ -189,7 +189,7 @@ helm repo add nvidia https://helm.ngc.nvidia.com/nvidia && helm repo update
 helm install --wait --generate-name \
    -n gpu-operator --create-namespace \
    nvidia/gpu-operator \
-   --version=v25.3.0 \
+   --version=v25.10.1 \
    --set sandboxWorkloads.enabled=true \
    --set sandboxWorkloads.defaultWorkload='vm-passthrough' \
    --set nfd.nodefeaturerules=true \
