@@ -22,6 +22,7 @@ let
       metal-qemu-tdx-handler = runtimeHandler "metal-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
       metal-qemu-snp-handler = runtimeHandler "metal-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
       metal-qemu-snp-gpu-handler = runtimeHandler "metal-qemu-snp-gpu" kata.contrast-node-installer-image.runtimeHash;
+      metal-qemu-tdx-gpu-handler = runtimeHandler "metal-qemu-tdx-gpu" kata.contrast-node-installer-image.runtimeHash;
 
       snpRefValsWith = os-image: {
         snp =
@@ -52,12 +53,12 @@ let
       snpRefVals = snpRefValsWith kata.contrast-node-installer-image.os-image;
       snpGpuRefVals = snpRefValsWith kata.contrast-node-installer-image.gpu.os-image;
 
-      tdxRefVals = {
+      tdxRefValsWith = os-image: {
         tdx = [
           (
             let
               launch-digests = kata.calculateTdxLaunchDigests {
-                inherit (kata.contrast-node-installer-image) os-image;
+                inherit os-image;
                 debug = kata.contrast-node-installer-image.debugRuntime;
               };
             in
@@ -75,12 +76,15 @@ let
           )
         ];
       };
+      tdxRefVals = tdxRefValsWith kata.contrast-node-installer-image.os-image;
+      tdxGpuRefVals = tdxRefValsWith kata.contrast-node-installer-image.gpu.os-image;
     in
     builtins.toFile "reference-values.json" (
       builtins.toJSON {
         "${metal-qemu-tdx-handler}" = tdxRefVals;
         "${metal-qemu-snp-handler}" = snpRefVals;
         "${metal-qemu-snp-gpu-handler}" = snpGpuRefVals;
+        "${metal-qemu-tdx-gpu-handler}" = tdxGpuRefVals;
       }
     );
 
@@ -164,7 +168,7 @@ buildGoModule (finalAttrs: {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-COuDUHrIHGHQQbbhYzkbSD2L1B08zLS7veJDwY/0t4I=";
+  vendorHash = "sha256-rptTLTI2hGPOEFrcQ+xQWNsfK6BLVIwoskHfwBLViyc=";
 
   nativeBuildInputs = [ installShellFiles ];
 
