@@ -22,11 +22,13 @@ const (
 	MetalQEMUTDX
 	// MetalQEMUSNPGPU is the generic platform for bare-metal SNP deployments with GPU passthrough.
 	MetalQEMUSNPGPU
+	// MetalQEMUTDXGPU is the generic platform for bare-metal TDX deployments with GPU passthrough.
+	MetalQEMUTDXGPU
 )
 
 // All returns a list of all available platforms.
 func All() []Platform {
-	return []Platform{MetalQEMUSNP, MetalQEMUTDX, MetalQEMUSNPGPU}
+	return []Platform{MetalQEMUSNP, MetalQEMUTDX, MetalQEMUSNPGPU, MetalQEMUTDXGPU}
 }
 
 // AllStrings returns a list of all available platforms as strings.
@@ -47,6 +49,8 @@ func (p Platform) String() string {
 		return "Metal-QEMU-SNP-GPU"
 	case MetalQEMUTDX:
 		return "Metal-QEMU-TDX"
+	case MetalQEMUTDXGPU:
+		return "Metal-QEMU-TDX-GPU"
 	default:
 		return "Unknown"
 	}
@@ -93,6 +97,8 @@ func FromString(s string) (Platform, error) {
 		return MetalQEMUSNPGPU, nil
 	case "metal-qemu-tdx":
 		return MetalQEMUTDX, nil
+	case "metal-qemu-tdx-gpu":
+		return MetalQEMUTDXGPU, nil
 	default:
 		return Unknown, fmt.Errorf("unknown platform: %s", s)
 	}
@@ -101,7 +107,7 @@ func FromString(s string) (Platform, error) {
 // DefaultMemoryInMebiBytes returns the desired VM overhead for the given platform.
 func DefaultMemoryInMebiBytes(p Platform) int {
 	switch p {
-	case MetalQEMUSNPGPU:
+	case MetalQEMUSNPGPU, MetalQEMUTDXGPU:
 		// Guest components contribute around 600MiB with GPU enabled.
 		return 1024
 	default:
@@ -125,7 +131,7 @@ func IsSNP(p Platform) bool {
 // IsTDX returns true if the platform is a TDX platform.
 func IsTDX(p Platform) bool {
 	switch p {
-	case MetalQEMUTDX:
+	case MetalQEMUTDX, MetalQEMUTDXGPU:
 		return true
 	default:
 		return false
@@ -135,7 +141,7 @@ func IsTDX(p Platform) bool {
 // IsGPU returns true if the platform supports GPUs.
 func IsGPU(p Platform) bool {
 	switch p {
-	case MetalQEMUSNPGPU:
+	case MetalQEMUSNPGPU, MetalQEMUTDXGPU:
 		return true
 	default:
 		return false
@@ -145,7 +151,7 @@ func IsGPU(p Platform) bool {
 // IsQEMU returns true if the platform uses QEMU as the hypervisor.
 func IsQEMU(p Platform) bool {
 	switch p {
-	case MetalQEMUSNP, MetalQEMUSNPGPU, MetalQEMUTDX:
+	case MetalQEMUSNP, MetalQEMUSNPGPU, MetalQEMUTDX, MetalQEMUTDXGPU:
 		return true
 	default:
 		return false
