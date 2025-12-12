@@ -678,7 +678,7 @@ func GPU() []any {
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(500). // This accounts for nvidia-smi and the guest pull overhead.
 								WithLimits(corev1.ResourceList{
-									corev1.ResourceName("nvidia.com/GH100_H100_PCIE"): resource.MustParse("1"),
+									corev1.ResourceName("nvidia.com/GB100_B200"): resource.MustParse("1"),
 								}),
 							),
 						Container().
