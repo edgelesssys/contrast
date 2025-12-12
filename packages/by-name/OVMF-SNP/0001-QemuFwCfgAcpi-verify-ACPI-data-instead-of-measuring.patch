@@ -1,0 +1,132 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Wed, 3 Dec 2025 09:56:48 +0100
+Subject: [PATCH] QemuFwCfgAcpi: verify ACPI data instead of measuring
+
+To make TDX RTMRs independent of the guest's memory size and its
+connected devices, this makes it so the ACPI data is verified in
+the (measured) firmware instead of being measured into the RTMRs
+/ TPM PCRs.
+
+Signed-off-by: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+---
+ .../Library/AcpiPlatformLib/QemuFwCfgAcpi.c   | 72 +++++++++++++------
+ 1 file changed, 52 insertions(+), 20 deletions(-)
+
+diff --git a/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c b/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
+index d9d0163ffd9f0e193923a363f0f954b000e6abfa..9a259450004b776c5b4d4e7000db6c659b69ca9d 100644
+--- a/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
++++ b/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
+@@ -10,7 +10,6 @@
+ 
+ #include <IndustryStandard/Acpi.h>            // EFI_ACPI_DESCRIPTION_HEADER
+ #include <IndustryStandard/QemuLoader.h>      // QEMU_LOADER_FNAME_SIZE
+-#include <IndustryStandard/UefiTcgPlatform.h>
+ #include <Library/AcpiPlatformLib.h>
+ #include <Library/BaseLib.h>                  // AsciiStrCmp()
+ #include <Library/BaseMemoryLib.h>            // CopyMem()
+@@ -20,7 +19,6 @@
+ #include <Library/QemuFwCfgLib.h>             // QemuFwCfgFindFile()
+ #include <Library/QemuFwCfgS3Lib.h>           // QemuFwCfgS3Enabled()
+ #include <Library/UefiBootServicesTableLib.h> // gBS
+-#include <Library/TpmMeasurementLib.h>
+ 
+ //
+ // The user structure for the ordered collection that will track the fw_cfg
+@@ -37,6 +35,42 @@ typedef struct {
+                                            // part of ACPI tables.
+ } BLOB;
+ 
++/**
++  Verify the ACPI blob data. Currently a no-op.
++
++  @param[in] Data        Pointer to the data to verify.
++  @param[in] DataSize    Size of the data in bytes.
++
++  @retval EFI_SUCCESS    Verification succeeded (or skipped).
++**/
++STATIC
++EFI_STATUS
++VerifyBlobData (
++  IN CONST VOID  *Data,
++  IN UINTN       DataSize
++  )
++{
++  return EFI_SUCCESS;
++}
++
++/**
++  Verify the table-loader script data. Currently a no-op.
++
++  @param[in] Data        Pointer to the data to verify.
++  @param[in] DataSize    Size of the data in bytes.
++
++  @retval EFI_SUCCESS    Verification succeeded (or skipped).
++**/
++STATIC
++EFI_STATUS
++VerifyTableLoaderData (
++  IN CONST VOID  *Data,
++  IN UINTN       DataSize
++  )
++{
++  return EFI_SUCCESS;
++}
++
+ /**
+   Compare a standalone key against a user structure containing an embedded key.
+ 
+@@ -418,18 +452,17 @@ ProcessCmdAllocate (
+     ));
+ 
+   //
+-  // Measure the data which is downloaded from QEMU.
++  // Verify the data which is downloaded from QEMU.
+   // It has to be done before it is consumed. Because the data will
+   // be updated in the following operations.
+   //
+-  TpmMeasureAndLogData (
+-    1,
+-    EV_PLATFORM_CONFIG_FLAGS,
+-    EV_POSTCODE_INFO_ACPI_DATA,
+-    ACPI_DATA_LEN,
+-    (VOID *)(UINTN)Blob->Base,
+-    Blob->Size
+-    );
++  Status = VerifyBlobData (
++             (VOID *)(UINTN)Blob->Base,
++             Blob->Size
++             );
++  if (EFI_ERROR (Status)) {
++    goto FreeBlob;
++  }
+ 
+   return EFI_SUCCESS;
+ 
+@@ -1144,18 +1177,17 @@ InstallQemuFwCfgTables (
+   RestorePciDecoding (OriginalPciAttributes, OriginalPciAttributesCount);
+ 
+   //
+-  // Measure the "etc/table-loader" which is downloaded from QEMU.
++  // Verify the "etc/table-loader" which is downloaded from QEMU.
+   // It has to be done before it is consumed. Because it would be
+   // updated in the following operations.
+   //
+-  TpmMeasureAndLogData (
+-    1,
+-    EV_PLATFORM_CONFIG_FLAGS,
+-    EV_POSTCODE_INFO_ACPI_DATA,
+-    ACPI_DATA_LEN,
+-    (VOID *)(UINTN)LoaderStart,
+-    FwCfgSize
+-    );
++  Status = VerifyTableLoaderData (
++             (VOID *)(UINTN)LoaderStart,
++             FwCfgSize
++             );
++  if (EFI_ERROR (Status)) {
++    goto FreeLoader;
++  }
+ 
+   LoaderEnd = LoaderStart + FwCfgSize / sizeof *LoaderEntry;
+ 
