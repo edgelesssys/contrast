@@ -49,7 +49,7 @@ func KataRuntimeConfig(
 ) (*Config, error) {
 	var config Config
 	switch platform {
-	case platforms.MetalQEMUTDX:
+	case platforms.MetalQEMUTDX, platforms.MetalQEMUTDXGPU:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}

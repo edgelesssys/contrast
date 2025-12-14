@@ -35,7 +35,7 @@ func RuntimeFragment(baseDir string, platform platforms.Platform) (*Runtime, err
 	}
 
 	switch platform {
-	case platforms.MetalQEMUTDX:
+	case platforms.MetalQEMUTDX, platforms.MetalQEMUTDXGPU:
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
 		}
