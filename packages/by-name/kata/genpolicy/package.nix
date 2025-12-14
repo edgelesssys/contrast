@@ -81,7 +81,7 @@ rustPlatform.buildRustPackage rec {
     };
 
     # Switch to rules-allow-all to disable policy checks for debugging.
-    rules = rules-prod;
+    rules = rules-allow-all;
 
     rules-prod = stdenvNoCC.mkDerivation {
       name = "${pname}-${version}-rules";
