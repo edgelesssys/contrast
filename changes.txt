@@ -1,0 +1,3 @@
+- Update nodefeaturerules.yml to support blackwell
+- Add 0x2901 to CC_CAPABLE_DEVICE_IDS in cc-manager daemonset
+- Update cc-manager to use https://github.com/NVIDIA/k8s-cc-manager/pkgs/container/k8s-cc-manager with blackwell support

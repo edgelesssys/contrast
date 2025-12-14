@@ -101,25 +101,25 @@ spec:
       labels:
         "nvidia.com/cc.capable": "true"
       matchAny:
-        # TDX/SEV + Hopper GPU
-        - matchFeatures:
-          - feature: rule.matched
-            matchExpressions:
-              nvidia.com/gpu.family: {op: In, value: ["hopper"]}
-              sev.snp.enabled: {op: IsTrue}
-        - matchFeatures:
-          - feature: rule.matched
-            matchExpressions:
-              nvidia.com/gpu.family: {op: In, value: ["hopper"]}
-              tdx.enabled: {op: IsTrue}
-        # TDX/SEV + Blackwell GPU
-        - matchFeatures:
-          - feature: rule.matched
-            matchExpressions:
-              nvidia.com/gpu.family: {op: In, value: ["blackwell"]}
-              sev.snp.enabled: {op: IsTrue}
-        - matchFeatures:
-          - feature: rule.matched
-            matchExpressions:
-              nvidia.com/gpu.family: {op: In, value: ["blackwell"]}
-              tdx.enabled: {op: IsTrue}
+      # TDX/SEV + Hopper GPU
+      - matchFeatures:
+        - feature: rule.matched
+          matchExpressions:
+            nvidia.com/gpu.family: {op: In, value: ["hopper"]}
+            sev.snp.enabled: {op: IsTrue}
+      - matchFeatures:
+        - feature: rule.matched
+          matchExpressions:
+            nvidia.com/gpu.family: {op: In, value: ["hopper"]}
+            tdx.enabled: {op: IsTrue}
+      # TDX/SEV + Blackwell GPU
+      - matchFeatures:
+        - feature: rule.matched
+          matchExpressions:
+            nvidia.com/gpu.family: {op: In, value: ["blackwell"]}
+            sev.snp.enabled: {op: IsTrue}
+      - matchFeatures:
+        - feature: rule.matched
+          matchExpressions:
+            nvidia.com/gpu.family: {op: In, value: ["blackwell"]}
+            tdx.enabled: {op: IsTrue}
