@@ -8,6 +8,7 @@
   installShellFiles,
   calculateSnpIDBlock,
   contrastPkgsStatic,
+  OVMF-TDX,
 }:
 
 let
@@ -53,12 +54,12 @@ let
       snpRefVals = snpRefValsWith kata.contrast-node-installer-image.os-image;
       snpGpuRefVals = snpRefValsWith kata.contrast-node-installer-image.gpu.os-image;
 
-      tdxRefValsWith = os-image: {
+      tdxRefValsWith = os-image: ovmf: {
         tdx = [
           (
             let
               launch-digests = kata.calculateTdxLaunchDigests {
-                inherit os-image;
+                inherit os-image ovmf;
                 debug = kata.contrast-node-installer-image.debugRuntime;
               };
             in
@@ -76,8 +77,14 @@ let
           )
         ];
       };
-      tdxRefVals = tdxRefValsWith kata.contrast-node-installer-image.os-image;
-      tdxGpuRefVals = tdxRefValsWith kata.contrast-node-installer-image.gpu.os-image;
+      tdxRefVals = tdxRefValsWith kata.contrast-node-installer-image.os-image OVMF-TDX;
+      tdxGpuRefVals = tdxRefValsWith kata.contrast-node-installer-image.gpu.os-image (
+        OVMF-TDX.override {
+          # Only enable ACPI verification for the GPU build, until
+          # the verification is actually secure.
+          verifyACPIInsecure = true;
+        }
+      );
     in
     builtins.toFile "reference-values.json" (
       builtins.toJSON {

@@ -43,12 +43,13 @@ func RuntimeFragment(baseDir string, platform platforms.Platform) (*Runtime, err
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-snp.toml"),
 		}
-		// For GPU support, we need to pass through the CDI annotations.
-		if platforms.IsGPU(platform) {
-			cfg.PodAnnotations = append(cfg.PodAnnotations, "cdi.k8s.io/*")
-		}
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
+	}
+
+	// For GPU support, we need to pass through the CDI annotations.
+	if platforms.IsGPU(platform) {
+		cfg.PodAnnotations = append(cfg.PodAnnotations, "cdi.k8s.io/*")
 	}
 
 	return &cfg, nil

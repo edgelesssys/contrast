@@ -5,17 +5,17 @@
   lib,
   stdenvNoCC,
   kata,
-  OVMF-TDX,
   tdx-measure,
 }:
 
 {
   os-image,
+  ovmf,
   debug,
 }:
 
 let
-  ovmf-tdx = "${OVMF-TDX}/FV/OVMF.fd";
+  ovmf-tdx = "${ovmf}/FV/OVMF.fd";
   kernel = "${os-image}/bzImage";
   initrd = "${os-image}/initrd";
   # Kata uses a base command line and then appends the command line from the kata config (i.e. also our node-installer config).
