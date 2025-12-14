@@ -215,6 +215,9 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 	// - 0x0000: disabled
 	// - 0x0001: enabled
 	rtmr.extendVariableValue([]byte{0x00, 0x00})
+	// QEMU FW CFG.opt/ovmf/X-PciMmio64Mb (GPU only, set by Kata?)
+	// TODO(msanft): Make conditional
+	rtmr.extendVariableValue([]byte("524288"))
 	// QEMU FW CFG.BootOrder
 	rtmr.extendVariableValue([]byte("/rom@genroms/linuxboot_dma.bin\x00"))
 
@@ -230,9 +233,9 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 	configHashes := []string{
 		// These are the hashes for the ACPI tables (ACPI DATA).
 		// They might change depending on firmware/qemu version or qemu command line.
-		"978413224c711ace8c588bd45f9585657572c8053410df87f94bed7254feb88b4ce82233ead3db3721198a3a215efc1b",
-		"7d49579cd2b17a399b29b8fd40f2fd66bf3d0fafcbfdfd9a3b912b7d4f81dd7dba85ee15768b36214d7507dc10fc6464",
-		"4f564889e597ba62b02a0f5ad95ad9f8883947deadc3275fe289f5096c01ed3db8323d70681d04f694c025ee8426be11",
+		// "88be52e11e708628b866f6aee0c7706218665a640eea7da84a77244c5b77331baa051004dc14bcff609834b57d34342b",
+		// "19bb18f895cb37d19a16641685dcc9a8ff688c0b35d2ad693c041ef46ca10809891399ccadd1e7488ca67a6bccdd5df4",
+		// "c0e8b11f4e251149ae83f93aa7d01883368a9b68960f40aa5368c9e641c26511b4ea25c3008c59c1f43f73cf86ee58e9",
 		// EV_EFI_HANDOFF_TABLES
 		// This is the SMBIOS handoff table, which we currently can't pre-construct.
 		// Handoff table measurement: https://github.com/tianocore/edk2/blob/7410754041bb994c685874a3bb62992c9da7d30a/MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.c#L482
