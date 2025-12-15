@@ -8,6 +8,7 @@
   installShellFiles,
   calculateSnpIDBlock,
   contrastPkgsStatic,
+  OVMF-TDX,
 }:
 
 let
@@ -22,6 +23,7 @@ let
       metal-qemu-tdx-handler = runtimeHandler "metal-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
       metal-qemu-snp-handler = runtimeHandler "metal-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
       metal-qemu-snp-gpu-handler = runtimeHandler "metal-qemu-snp-gpu" kata.contrast-node-installer-image.runtimeHash;
+      metal-qemu-tdx-gpu-handler = runtimeHandler "metal-qemu-tdx-gpu" kata.contrast-node-installer-image.runtimeHash;
 
       snpRefValsWith = os-image: {
         snp =
@@ -52,28 +54,48 @@ let
       snpRefVals = snpRefValsWith kata.contrast-node-installer-image.os-image;
       snpGpuRefVals = snpRefValsWith kata.contrast-node-installer-image.gpu.os-image;
 
-      tdxRefVals = {
-        tdx = [
-          (
-            let
-              launch-digests = kata.calculateTdxLaunchDigests {
-                inherit (kata.contrast-node-installer-image) os-image;
-                debug = kata.contrast-node-installer-image.debugRuntime;
-              };
-            in
-            {
-              mrTd = builtins.readFile "${launch-digests}/mrtd.hex";
-              rtmrs = [
-                (builtins.readFile "${launch-digests}/rtmr0.hex")
-                (builtins.readFile "${launch-digests}/rtmr1.hex")
-                (builtins.readFile "${launch-digests}/rtmr2.hex")
-                (builtins.readFile "${launch-digests}/rtmr3.hex")
-              ];
-              tdAttributes = "0000001000000000";
-              xfam = "e702060000000000";
-            }
-          )
-        ];
+      tdxRefValsWith =
+        {
+          os-image,
+          ovmf,
+          withGPU,
+        }:
+        {
+          tdx = [
+            (
+              let
+                launch-digests = kata.calculateTdxLaunchDigests {
+                  inherit os-image ovmf withGPU;
+                  debug = kata.contrast-node-installer-image.debugRuntime;
+                };
+              in
+              {
+                mrTd = builtins.readFile "${launch-digests}/mrtd.hex";
+                rtmrs = [
+                  (builtins.readFile "${launch-digests}/rtmr0.hex")
+                  (builtins.readFile "${launch-digests}/rtmr1.hex")
+                  (builtins.readFile "${launch-digests}/rtmr2.hex")
+                  (builtins.readFile "${launch-digests}/rtmr3.hex")
+                ];
+                tdAttributes = "0000001000000000";
+                xfam = "e702060000000000";
+              }
+            )
+          ];
+        };
+      tdxRefVals = tdxRefValsWith {
+        inherit (kata.contrast-node-installer-image) os-image;
+        ovmf = OVMF-TDX;
+        withGPU = false;
+      };
+      tdxGpuRefVals = tdxRefValsWith {
+        inherit (kata.contrast-node-installer-image.gpu) os-image;
+        ovmf = OVMF-TDX.override {
+          # Only enable ACPI verification for the GPU build, until
+          # the verification is actually secure.
+          verifyACPIInsecure = true;
+        };
+        withGPU = true;
       };
     in
     builtins.toFile "reference-values.json" (
@@ -81,6 +103,7 @@ let
         "${metal-qemu-tdx-handler}" = tdxRefVals;
         "${metal-qemu-snp-handler}" = snpRefVals;
         "${metal-qemu-snp-gpu-handler}" = snpGpuRefVals;
+        "${metal-qemu-tdx-gpu-handler}" = tdxGpuRefVals;
       }
     );
 
