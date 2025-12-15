@@ -137,6 +137,7 @@ runs:
           "metal-qemu-snp-gpu"
           "metal-qemu-snp"
           "metal-qemu-tdx"
+          "metal-qemu-tdx-gpu"
         )
         for platform in "${platforms[@]}"; do
           nix shell .#contrast.resourcegen --command resourcegen \
