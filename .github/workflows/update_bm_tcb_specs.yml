@@ -22,6 +22,7 @@ jobs:
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
       snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
       snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
+      tdx-gpu: ${{ steps.update.outputs.Metal-QEMU-TDX-GPU }}
     strategy:
       matrix:
         platform:
@@ -33,6 +34,8 @@ jobs:
             runner: SNP-GPU
           - name: Metal-QEMU-SNP-DEV
             runner: DEV
+          - name: Metal-QEMU-TDX-GPU
+            runner: TDX-GPU
       fail-fast: false
     permissions:
       contents: read
@@ -64,12 +67,14 @@ jobs:
           TDX: ${{ needs.update-bm-specs.outputs.tdx }}
           SNP_GPU: ${{ needs.update-bm-specs.outputs.snp-gpu }}
           SNP_DEV: ${{ needs.update-bm-specs.outputs.snp-dev }}
+          TDX_GPU: ${{ needs.update-bm-specs.outputs.tdx-gpu }}
         run: |
           platforms=()
           [[ "${SNP}" == "success" ]] && platforms+=("Metal-QEMU-SNP")
           [[ "${TDX}" == "success" ]] && platforms+=("Metal-QEMU-TDX")
           [[ "${SNP_GPU}" == "success" ]] && platforms+=("Metal-QEMU-SNP-GPU")
           [[ "${DEV}" == "success" ]] && platforms+=("Metal-QEMU-SNP-DEV")
+          [[ "${TDX_GPU}" == "success" ]] && platforms+=("Metal-QEMU-TDX-GPU")
           echo "json=[{\"title\": \"Platforms\", \"value\": \"${platforms[*]}\"}]" >> "$GITHUB_OUTPUT"
       - uses: ./.github/actions/post_to_teams
         with:

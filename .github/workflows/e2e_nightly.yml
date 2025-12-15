@@ -40,6 +40,9 @@ jobs:
           - name: Metal-QEMU-SNP-GPU
             runner: SNP-GPU
             self-hosted: true
+          - name: Metal-QEMU-TDX-GPU
+            runner: TDX-GPU
+            self-hosted: true
         test-name:
           # keep-sorted start
           - atls
@@ -62,6 +65,11 @@ jobs:
           - platform:
               name: Metal-QEMU-SNP-GPU
               runner: SNP-GPU
+              self-hosted: true
+            test-name: gpu
+          - platform:
+              name: Metal-QEMU-TDX-GPU
+              runner: TDX-GPU
               self-hosted: true
             test-name: gpu
       fail-fast: false

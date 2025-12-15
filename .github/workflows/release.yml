@@ -304,6 +304,10 @@ jobs:
             node-installer-target-conf: k3s
             runner: TDX
             self-hosted: true
+          - name: Metal-QEMU-TDX-GPU
+            node-installer-target-conf: k3s
+            runner: TDX-GPU
+            self-hosted: true
       fail-fast: false
     name: "e2e release on ${{ matrix.platform.name }}"
     runs-on: ${{ matrix.platform.runner }}
@@ -343,7 +347,7 @@ jobs:
         run: |
           just get-credentials
       - name: Request fifo ticket
-        if: (!matrix.platform.self-hosted || matrix.platform.name == 'Metal-QEMU-SNP-GPU')
+        if: (!matrix.platform.self-hosted || matrix.platform.name == 'Metal-QEMU-SNP-GPU' || matrix.platform.name == 'Metal-QEMU-TDX-GPU')
         run: |
           just request-fifo-ticket
       - name: E2E Test
@@ -356,7 +360,7 @@ jobs:
             --platform ${{ matrix.platform.name }} \
             --node-installer-target-conf ${{ matrix.platform.node-installer-target-conf }}
       - name: Release fifo ticket
-        if: always() && (!matrix.platform.self-hosted || matrix.platform.name == 'Metal-QEMU-SNP-GPU')
+        if: always() && (!matrix.platform.self-hosted || matrix.platform.name == 'Metal-QEMU-SNP-GPU' || matrix.platform.name == 'Metal-QEMU-TDX-GPU')
         run: |
           just release-fifo-ticket
 

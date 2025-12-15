@@ -84,7 +84,7 @@ jobs:
         run: |
           just get-credentials
       - name: Request fifo ticket
-        if: (!inputs.self-hosted || inputs.platform == 'Metal-QEMU-SNP-GPU')
+        if: (!inputs.self-hosted || inputs.platform == 'Metal-QEMU-SNP-GPU' || inputs.platform == 'Metal-QEMU-TDX-GPU')
         run: |
           just request-fifo-ticket
       - name: E2E Test
@@ -127,6 +127,6 @@ jobs:
           fi
           kubectl delete ns "$(tail -1 workspace/e2e.namespace)" --timeout 10m
       - name: Release fifo ticket
-        if: always() && (!inputs.self-hosted || inputs.platform == 'Metal-QEMU-SNP-GPU') && !inputs.skip-undeploy
+        if: always() && (!inputs.self-hosted || inputs.platform == 'Metal-QEMU-SNP-GPU' || inputs.platform == 'Metal-QEMU-TDX-GPU') && !inputs.skip-undeploy
         run: |
           just release-fifo-ticket

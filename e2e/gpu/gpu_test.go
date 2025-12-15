@@ -30,7 +30,6 @@ import (
 
 const (
 	gpuDeploymentName = "gpu-tester"
-	gpuName           = "NVIDIA H100 PCIe"
 	nvidiaLibPath     = "/usr/local/nvidia/lib64"
 )
 
@@ -43,12 +42,14 @@ func TestGPU(t *testing.T) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
-	var deviceURI string
+	var deviceURI, gpuName string
 	switch platform {
 	case platforms.MetalQEMUTDXGPU:
 		deviceURI = "nvidia.com/GB100_B200"
+		gpuName = "NVIDIA B200"
 	case platforms.MetalQEMUSNPGPU:
 		deviceURI = "nvidia.com/GH100_H100_PCIE"
+		gpuName = "NVIDIA H100 PCIe"
 	default:
 		t.Errorf("platform %s does not support GPU tests", platform)
 	}

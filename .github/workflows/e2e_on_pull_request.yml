@@ -36,6 +36,10 @@ jobs:
             runner: TDX
             self-hosted: true
             test: openssl
+          - platform: Metal-QEMU-TDX-GPU
+            runner: TDX-GPU
+            self-hosted: true
+            test: gpu
       fail-fast: false
     name: "${{ matrix.platform }}"
     uses: ./.github/workflows/e2e.yml

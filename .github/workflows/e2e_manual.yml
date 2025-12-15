@@ -36,6 +36,7 @@ on:
           - Metal-QEMU-SNP
           - Metal-QEMU-SNP-GPU
           - Metal-QEMU-TDX
+          - Metal-QEMU-TDX-GPU
       skip-undeploy:
         description: "Skip undeploy"
         required: false
@@ -71,6 +72,10 @@ jobs:
             ;;
             "Metal-QEMU-TDX")
               echo "runner=TDX" >> "$GITHUB_OUTPUT"
+              echo "self-hosted=true" >> "$GITHUB_OUTPUT"
+            ;;
+            "Metal-QEMU-TDX-GPU")
+              echo "runner=TDX-GPU" >> "$GITHUB_OUTPUT"
               echo "self-hosted=true" >> "$GITHUB_OUTPUT"
             ;;
             *)
