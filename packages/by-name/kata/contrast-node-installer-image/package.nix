@@ -23,6 +23,12 @@ let
     withDebug = debugRuntime;
   };
 
+  ovmf = OVMF-TDX.override {
+    # Only enable ACPI verification for the GPU build, until
+    # the verification is actually secure.
+    verifyACPIInsecure = withGPU;
+  };
+
   node-installer = ociLayerTar {
     files = [
       {
@@ -153,7 +159,7 @@ let
   ovmf-tdx = ociLayerTar {
     files = [
       {
-        source = "${OVMF-TDX}/FV/OVMF.fd";
+        source = "${ovmf}/FV/OVMF.fd";
         destination = "/opt/edgeless/tdx/share/OVMF.fd";
       }
     ];
