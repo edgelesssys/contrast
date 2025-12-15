@@ -263,7 +263,7 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 			}
 			m.ReferenceValues.SNP = snpReferenceValues
 
-		case platforms.MetalQEMUTDX:
+		case platforms.MetalQEMUTDX, platforms.MetalQEMUTDXGPU:
 			// Overwrite the field MrSeam with the ones loaded from the path tcbSpecificationFile.
 			var tdxReferenceValues []manifest.TDXReferenceValues
 			for _, manifestTDX := range m.ReferenceValues.TDX {
@@ -515,7 +515,7 @@ func (ct *ContrastTest) runAgainstCoordinator(ctx context.Context, cmd *cobra.Co
 // Baseline is AKS.
 func (ct *ContrastTest) FactorPlatformTimeout(timeout time.Duration) time.Duration {
 	switch ct.Platform {
-	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU:
+	case platforms.MetalQEMUSNP, platforms.MetalQEMUTDX, platforms.MetalQEMUSNPGPU, platforms.MetalQEMUTDXGPU:
 		return 2 * timeout
 	default:
 		panic(fmt.Sprintf("FactorPlatformTimeout not configured for platform %q", ct.Platform))

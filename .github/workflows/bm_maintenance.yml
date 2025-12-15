@@ -62,6 +62,7 @@ jobs:
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
       snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
       snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
+      tdx-gpu: ${{ steps.update.outputs.Metal-QEMU-TDX-GPU }}
     permissions:
       contents: read
     strategy:
@@ -75,6 +76,8 @@ jobs:
             runner: SNP-GPU
           - name: Metal-QEMU-SNP-DEV
             runner: DEV
+          - name: Metal-QEMU-TDX-GPU
+            runner: TDX-GPU
       fail-fast: false
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
@@ -82,7 +85,7 @@ jobs:
           persist-credentials: false
       - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Update sync fifo for GPU platform
-        if: ${{ matrix.platform.name == 'Metal-QEMU-SNP-GPU' }}
+        if: ${{ matrix.platform.name == 'Metal-QEMU-SNP-GPU' || matrix.platform.name == 'Metal-QEMU-TDX-GPU' }}
         run: |
           kubectl apply -f https://raw.githubusercontent.com/katexochen/sync/9567164967b5832fb4992088af89dbbd94184043/server/deployment.yml
           kubectl rollout status statefulset/sync --timeout=5m
@@ -110,6 +113,7 @@ jobs:
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
       snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
       snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
+      tdx-gpu: ${{ steps.update.outputs.Metal-QEMU-TDX-GPU }}
     strategy:
       matrix:
         platform:
@@ -121,6 +125,8 @@ jobs:
             runner: SNP-GPU
           - name: Metal-QEMU-SNP-DEV
             runner: DEV
+          - name: Metal-QEMU-TDX-GPU
+            runner: TDX-GPU
       fail-fast: false
     permissions:
       contents: read
@@ -157,6 +163,7 @@ jobs:
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
       snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
       snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
+      tdx-gpu: ${{ steps.update.outputs.Metal-QEMU-TDX-GPU }}
     strategy:
       matrix:
         platform:
@@ -168,6 +175,8 @@ jobs:
             runner: SNP-GPU
           - name: Metal-QEMU-SNP-DEV
             runner: DEV
+          - name: Metal-QEMU-TDX-GPU
+            runner: TDX-GPU
       fail-fast: false
     permissions:
       contents: read
@@ -202,6 +211,7 @@ jobs:
       tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
       snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
       snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
+      tdx-gpu: ${{ steps.update.outputs.Metal-QEMU-TDX-GPU }}
     strategy:
       matrix:
         platform:
@@ -213,6 +223,8 @@ jobs:
             runner: SNP-GPU
           - name: Metal-QEMU-SNP-DEV
             runner: DEV
+          - name: Metal-QEMU-TDX-GPU
+            runner: TDX-GPU
       fail-fast: false
     permissions:
       contents: read
@@ -256,18 +268,22 @@ jobs:
           UPDATE_RESOURCES_TDX: ${{ needs.update-resources.outputs.tdx }}
           UPDATE_RESOURCES_SNP_GPU: ${{ needs.update-resources.outputs.snp-gpu }}
           UPDATE_RESOURCES_SNP_DEV: ${{ needs.update-resources.outputs.snp-dev }}
+          UPDATE_RESOURCES_TDX_GPU: ${{ needs.update-resources.outputs.tdx-gpu }}
           CLEANUP_SNP: ${{ needs.cleanup.outputs.snp }}
           CLEANUP_TDX: ${{ needs.cleanup.outputs.tdx }}
           CLEANUP_SNP_GPU: ${{ needs.cleanup.outputs.snp-gpu }}
           CLEANUP_SNP_DEV: ${{ needs.cleanup.outputs.snp-dev }}
+          CLEANUP_TDX_GPU: ${{ needs.cleanup.outputs.tdx-gpu }}
           CLEANUP_CONTAINERD_SNP: ${{ needs.cleanup-containerd.outputs.snp }}
           CLEANUP_CONTAINERD_TDX: ${{ needs.cleanup-containerd.outputs.tdx }}
           CLEANUP_CONTAINERD_SNP_GPU: ${{ needs.cleanup-containerd.outputs.snp-gpu  }}
           CLEANUP_CONTAINERD_SNP_DEV: ${{ needs.cleanup-containerd.outputs.snp-dev  }}
+          CLEANUP_CONTAINERD_TDX_GPU: ${{ needs.cleanup-containerd.outputs.tdx-gpu  }}
           NIX_GC_SNP: ${{ needs.nix-gc.outputs.snp }}
           NIX_GC_TDX: ${{ needs.nix-gc.outputs.tdx }}
           NIX_GC_SNP_GPU: ${{ needs.nix-gc.outputs.snp-gpu }}
           NIX_GC_SNP_DEV: ${{ needs.nix-gc.outputs.snp-dev }}
+          NIX_GC_TDX_GPU: ${{ needs.nix-gc.outputs.tdx-gpu }}
           IMAGE_BUILD_RESULT: ${{ needs.build-image.outputs.image }}
           GITHUB_EVENT_SCHEDULE: ${{ github.event.schedule }}
         run: |
@@ -276,7 +292,7 @@ jobs:
             exit 0
           fi
 
-          declare -a entries snp tdx snp_gpu snp_dev
+          declare -a entries snp tdx snp_gpu snp_dev tdx_gpu
 
           [[ "${UPDATE_RESOURCES_SNP}" != "success" ]] && snp+=("update-resources")
           [[ "${CLEANUP_SNP}" != "success" ]] && snp+=("cleanup")
@@ -294,11 +310,16 @@ jobs:
           [[ "${CLEANUP_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup")
           [[ "${NIX_GC_SNP_DEV}" != "success" ]] && snp_dev+=("nix-gc")
 
+          [[ "${UPDATE_RESOURCES_TDX_GPU}" != "success" ]] && tdx_gpu+=("update-resources")
+          [[ "${CLEANUP_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup")
+          [[ "${NIX_GC_TDX_GPU}" != "success" ]] && tdx_gpu+=("nix-gc")
+
           if [[ "${GITHUB_EVENT_SCHEDULE}" == "0 2 * * 5" ]]; then
             [[ "${CLEANUP_CONTAINERD_SNP}" != "success" ]] && snp+=("cleanup-containerd")
             [[ "${CLEANUP_CONTAINERD_TDX}" != "success" ]] && tdx+=("cleanup-containerd")
             [[ "${CLEANUP_CONTAINERD_SNP_GPU}" != "success" ]] && snp_gpu+=("cleanup-containerd")
             [[ "${CLEANUP_CONTAINERD_SNP_DEV}" != "success" ]] && snp_dev+=("cleanup-containerd")
+            [[ "${CLEANUP_CONTAINERD_TDX_GPU}" != "success" ]] && tdx_gpu+=("cleanup-containerd")
           fi
 
           if [[ "${#snp[@]}" -gt 0 ]]; then
@@ -314,6 +335,10 @@ jobs:
 
           if [[ "${#snp_dev[@]}" -gt 0 ]]; then
             entries+=("{\"title\": \"Metal-QEMU-SNP-DEV\", \"value\": \"$(str="${snp_dev[*]}"; echo "${str// /, }")\"}")
+          fi
+
+          if [[ "${#tdx_gpu[@]}" -gt 0 ]]; then
+            entries+=("{\"title\": \"Metal-QEMU-TDX-GPU\", \"value\": \"$(str="${tdx_gpu[*]}"; echo "${str// /, }")\"}")
           fi
 
           if [[ "${#entries[@]}" -eq 0 ]]; then
