@@ -24,6 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
+	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
 const (
@@ -41,7 +43,37 @@ func TestGPU(t *testing.T) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
-	resources := kuberesource.GPU()
+	var deviceURI string
+	switch platform {
+	case platforms.MetalQEMUTDXGPU:
+		deviceURI = "nvidia.com/GB100_B200"
+	case platforms.MetalQEMUSNPGPU:
+		deviceURI = "nvidia.com/GH100_H100_PCIE"
+	default:
+		t.Errorf("platform %s does not support GPU tests", platform)
+	}
+
+	resources := kuberesource.GPU(deviceURI)
+
+	// Since the TDX-GPU testing cluster has multiple GPUs, we run into the drift
+	// explained in [1]. To avoid this, we need to remove the deployment of the direct GPU tester,
+	// since it wants to claim GPUs based on their CDI IDs, which might not match what's actually
+	// available on the node / mounted into the container. This is solved once [2] is released upstream.
+	//
+	// [1]: https://github.com/edgelesssys/contrast/blob/7cee4f0b2c98be9f5c308adc03f01ab7c5607e85/dev-docs/nvidia/cdi.md?plain=1#L136-L142
+	// [2]: https://github.com/kata-containers/kata-containers/pull/12087
+	if platform == platforms.MetalQEMUTDXGPU {
+		for _, res := range resources {
+			if d, ok := res.(*applyappsv1.DeploymentApplyConfiguration); ok {
+				containers := d.Spec.Template.Spec.Containers
+				d.Spec.Template.Spec.Containers = slices.DeleteFunc(containers,
+					func(c applycorev1.ContainerApplyConfiguration) bool {
+						return c.Name != nil && *c.Name == "gpu-tester-direct"
+					})
+			}
+		}
+	}
+
 	coordinator := kuberesource.CoordinatorBundle()
 
 	resources = append(resources, coordinator...)

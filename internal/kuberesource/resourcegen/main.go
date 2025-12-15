@@ -68,7 +68,7 @@ func main() {
 		case "vault":
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.Vault(*namespace), "contrast-cc")
 		case "gpu":
-			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.GPU(), "contrast-cc")
+			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.GPU("placeholder-gpu"), "contrast-cc")
 		default:
 			log.Fatalf("Error: unknown set: %s\n", set)
 		}
