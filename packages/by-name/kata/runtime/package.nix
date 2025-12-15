@@ -146,6 +146,13 @@ buildGoModule (finalAttrs: {
       # and is going to be yanked.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12151.
       ./0021-agent-Bump-CDI-rs-to-latest.patch
+
+      # With recent versions of the sandbox-device-plugin, a /dev/iommu device is added
+      # to the container spec for GPU-enabled containers.
+      # Since the same thing is done by the CTK within the PodVM, and we only want this
+      # to influence VM creation, we remove this device from the container spec in the agent.
+      # Upstream bug: https://github.com/kata-containers/kata-containers/issues/12246.
+      ./0022-runtime-remove-iommu-device.patch
     ];
   };
 
