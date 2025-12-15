@@ -10,7 +10,7 @@ spec:
       matchFeatures:
         - feature: cpu.security
           matchExpressions:
-              tdx.enabled: {op: IsTrue}
+            tdx.enabled: {op: IsTrue}
     - name: "TDX total keys rule"
       extendedResources:
         tdx.total_keys: "@cpu.security.tdx.total_keys"
@@ -22,27 +22,27 @@ spec:
       labels:
         sev.snp.enabled: "true"
       matchFeatures:
-      - feature: cpu.security
-        matchExpressions:
-          sev.snp.enabled:
-            op: IsTrue
+        - feature: cpu.security
+          matchExpressions:
+            sev.snp.enabled:
+              op: IsTrue
     - name: "SEV-ES rule"
       labels:
         sev.es.enabled: "true"
       matchFeatures:
-      - feature: cpu.security
-        matchExpressions:
-          sev.es.enabled:
-            op: IsTrue
+        - feature: cpu.security
+          matchExpressions:
+            sev.es.enabled:
+              op: IsTrue
     - name: SEV system capacities
       extendedResources:
         sev_asids: '@cpu.security.sev.asids'
         sev_es: '@cpu.security.sev.encrypted_state_ids'
       matchFeatures:
-      - feature: cpu.security
-        matchExpressions:
-          sev.enabled:
-            op: Exists
+        - feature: cpu.security
+          matchExpressions:
+            sev.enabled:
+              op: Exists
     - name: "NVIDIA H100"
       labels:
         "nvidia.com/gpu.H100": "true"
@@ -101,25 +101,25 @@ spec:
       labels:
         "nvidia.com/cc.capable": "true"
       matchAny:
-      # TDX/SEV + Hopper GPU
-      - matchFeatures:
-        - feature: rule.matched
-          matchExpressions:
-            nvidia.com/gpu.family: {op: In, value: ["hopper"]}
-            sev.snp.enabled: {op: IsTrue}
-      - matchFeatures:
-        - feature: rule.matched
-          matchExpressions:
-            nvidia.com/gpu.family: {op: In, value: ["hopper"]}
-            tdx.enabled: {op: IsTrue}
-      # TDX/SEV + Blackwell GPU
-      - matchFeatures:
-        - feature: rule.matched
-          matchExpressions:
-            nvidia.com/gpu.family: {op: In, value: ["blackwell"]}
-            sev.snp.enabled: {op: IsTrue}
-      - matchFeatures:
-        - feature: rule.matched
-          matchExpressions:
-            nvidia.com/gpu.family: {op: In, value: ["blackwell"]}
-            tdx.enabled: {op: IsTrue}
+        # TDX/SEV + Hopper GPU
+        - matchFeatures:
+            - feature: rule.matched
+              matchExpressions:
+                nvidia.com/gpu.family: {op: In, value: ["hopper"]}
+                sev.snp.enabled: {op: IsTrue}
+        - matchFeatures:
+            - feature: rule.matched
+              matchExpressions:
+                nvidia.com/gpu.family: {op: In, value: ["hopper"]}
+                tdx.enabled: {op: IsTrue}
+        # TDX/SEV + Blackwell GPU
+        - matchFeatures:
+            - feature: rule.matched
+              matchExpressions:
+                nvidia.com/gpu.family: {op: In, value: ["blackwell"]}
+                sev.snp.enabled: {op: IsTrue}
+        - matchFeatures:
+            - feature: rule.matched
+              matchExpressions:
+                nvidia.com/gpu.family: {op: In, value: ["blackwell"]}
+                tdx.enabled: {op: IsTrue}
