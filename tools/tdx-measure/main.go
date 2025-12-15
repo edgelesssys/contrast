@@ -127,6 +127,7 @@ func newRtMrCmd() *cobra.Command {
 		panic(err)
 	}
 	cmd.Flags().StringP("cmdline", "c", "", "kernel command line")
+	cmd.Flags().StringP("gpu-model", "g", "none", "GPU model used in the VM (none, h100, b200)")
 	return cmd
 }
 
@@ -143,8 +144,15 @@ func runRtMr(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("can't read firmware file: %w", err)
 		}
-
-		digest, err = rtmr.CalcRtmr0(firmware)
+		gpuModelRaw, err := cmd.Flags().GetString("gpu-model")
+		if err != nil {
+			return err
+		}
+		gpuModel, err := rtmr.GPUModelFromString(gpuModelRaw)
+		if err != nil {
+			return fmt.Errorf("invalid gpu model: %w", err)
+		}
+		digest, err = rtmr.CalcRtmr0(firmware, gpuModel)
 		if err != nil {
 			return fmt.Errorf("can't calculate RTMR 0: %w", err)
 		}

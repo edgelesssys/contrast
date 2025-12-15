@@ -11,11 +11,57 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"slices"
+	"strings"
 	"unicode/utf16"
 
 	"github.com/edgelesssys/contrast/tdx-measure/tdvf"
 	"github.com/foxboron/go-uefi/authenticode"
 )
+
+// GPUModel represents the GPU model used in the VM.
+type GPUModel int
+
+const (
+	// GPUModelNone indicates that no GPU is used.
+	GPUModelNone GPUModel = iota
+	// GPUModelH100 indicates that an NVIDIA H100 GPU is used.
+	GPUModelH100
+	// GPUModelB200 indicates that an NVIDIA B200 GPU is used.
+	GPUModelB200
+)
+
+// GPUModelFromString converts a string representation of a GPU model to the corresponding [GPUModel] type.
+func GPUModelFromString(s string) (GPUModel, error) {
+	lower := strings.ToLower(s)
+	switch lower {
+	case "none":
+		return GPUModelNone, nil
+	case "h100":
+		return GPUModelH100, nil
+	case "b200":
+		return GPUModelB200, nil
+	default:
+		return GPUModelNone, fmt.Errorf("unknown GPU model: %s", s)
+	}
+}
+
+// TotalAddressableMemoryMB returns the total addressable memory in megabytes for the given GPU model.
+// It replicates the semantics of [1] for all supported GPU models.
+// The BAR sizes used for calculating this can be found via `lspci -v`.
+// The "memory at" outputs then need to be summed up and rounded up to the next power of two.
+//
+// [1]: https://github.com/NVIDIA/go-nvlib/blob/9a6788d93d8ccf1d8f026604f0b8b13d254f2500/pkg/nvpci/resources.go#L89
+func (g GPUModel) TotalAddressableMemoryMB() int {
+	switch g {
+	case GPUModelH100:
+		return 262144 // ceilpow2(128GB + 32MB + 16MB) = 256GB
+	case GPUModelB200:
+		return 524288 // ceilpow2(256GB + 64MB + 32MB) = 512GB
+	default:
+		return 0
+	}
+}
 
 // Rtmr tracks the state of a "Run-Time Measurement Register".
 type Rtmr struct {
@@ -198,7 +244,7 @@ func buildEfiLoadOption(description string, attributes uint32, filePathList []by
 }
 
 // CalcRtmr0 calculates RTMR[0] for the given firmware.
-func CalcRtmr0(firmware []byte) ([48]byte, error) {
+func CalcRtmr0(firmware []byte, gpu GPUModel) ([48]byte, error) {
 	var rtmr Rtmr
 
 	// We don't measure the Hobs, the firmware verifies them instead.
@@ -215,6 +261,13 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 	// - 0x0000: disabled
 	// - 0x0001: enabled
 	rtmr.extendVariableValue([]byte{0x00, 0x00})
+	if gpu != GPUModelNone {
+		// QEMU FW CFG.opt/ovmf/X-PciMmio64Mb (GPU only, set by Kata)
+		// See:
+		// - https://github.com/kata-containers/kata-containers/blob/c7d0c270ee7dfaa6d978e6e07b99dabdaf2b9fda/src/runtime/virtcontainers/qemu.go#L817-L827
+		// - https://github.com/kata-containers/kata-containers/blob/c7d0c270ee7dfaa6d978e6e07b99dabdaf2b9fda/src/runtime/virtcontainers/qemu_arch_base.go#L877-L908
+		rtmr.extendVariableValue([]byte(fmt.Sprintf("%d", gpu.TotalAddressableMemoryMB())))
+	}
 	// QEMU FW CFG.BootOrder
 	rtmr.extendVariableValue([]byte("/rom@genroms/linuxboot_dma.bin\x00"))
 
@@ -227,17 +280,28 @@ func CalcRtmr0(firmware []byte) ([48]byte, error) {
 	rtmr.extendSeparator()
 
 	// TODO(freax13): Don't hard-code these, calculate them instead.
-	configHashes := []string{
+	acpiHashes := []string{
 		// These are the hashes for the ACPI tables (ACPI DATA).
 		// They might change depending on firmware/qemu version or qemu command line.
 		"978413224c711ace8c588bd45f9585657572c8053410df87f94bed7254feb88b4ce82233ead3db3721198a3a215efc1b",
 		"7d49579cd2b17a399b29b8fd40f2fd66bf3d0fafcbfdfd9a3b912b7d4f81dd7dba85ee15768b36214d7507dc10fc6464",
 		"4f564889e597ba62b02a0f5ad95ad9f8883947deadc3275fe289f5096c01ed3db8323d70681d04f694c025ee8426be11",
+	}
+	smbiosHashes := []string{
 		// EV_EFI_HANDOFF_TABLES
 		// This is the SMBIOS handoff table, which we currently can't pre-construct.
 		// Handoff table measurement: https://github.com/tianocore/edk2/blob/7410754041bb994c685874a3bb62992c9da7d30a/MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.c#L482
 		// See the patch that is applied to OVMF-TDX.
 		"273a08522202f406dc5934f9dcfdf81c5ac78e9f1bee165587f0552adf877b8a53fee3a43c5bd2dfbd4627f4528c57e7",
+	}
+	var configHashes []string
+	if gpu != GPUModelNone {
+		// With GPU support, ACPI hashes are being verified in the firmware.
+		// Later this will be changed to be the case for both scenarios, but for now,
+		// due to missing security checks, it's conditional on GPU support.
+		configHashes = smbiosHashes
+	} else {
+		configHashes = slices.Concat(acpiHashes, smbiosHashes)
 	}
 	for _, hash := range configHashes {
 		var buffer [48]byte
