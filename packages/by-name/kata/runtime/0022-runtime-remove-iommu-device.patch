@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Mon, 15 Dec 2025 14:37:31 +0100
+Subject: [PATCH] runtime: remove iommu device
+
+With recent gpu-operator versions, the sandbox-device-plugin unnecessarily mounts the IOMMU device into the container, which is added by the CTK later on either way, and should not influence policy creation. Therefore, we remove it in the agent.
+---
+ src/runtime/virtcontainers/kata_agent.go | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/runtime/virtcontainers/kata_agent.go b/src/runtime/virtcontainers/kata_agent.go
+index 027315e26bab88caf28eb5ffda80409a21edbdf2..4dc967f8ff72f2d9f3e2f4756d203097b7e45843 100644
+--- a/src/runtime/virtcontainers/kata_agent.go
++++ b/src/runtime/virtcontainers/kata_agent.go
+@@ -1088,6 +1088,10 @@ func (k *kataAgent) constrainGRPCSpec(grpcSpec *grpc.Spec, passSeccomp bool, dis
+ 				k.Logger().WithField("vfio-dev", dev.Path).Debug("removing vfio device from grpcSpec")
+ 				continue
+ 			}
++			if dev.Type == "c" && dev.Path == "/dev/iommu" {
++				k.Logger().Debug("removing iommu device from grpcSpec")
++				continue
++			}
+ 			linuxDevices = append(linuxDevices, dev)
+ 		}
+ 		grpcSpec.Linux.Devices = linuxDevices
