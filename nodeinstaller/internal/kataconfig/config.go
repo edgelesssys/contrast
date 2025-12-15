@@ -49,7 +49,7 @@ func KataRuntimeConfig(
 ) (*Config, error) {
 	var config Config
 	switch platform {
-	case platforms.MetalQEMUTDX:
+	case platforms.MetalQEMUTDX, platforms.MetalQEMUTDXGPU:
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
@@ -64,14 +64,6 @@ func KataRuntimeConfig(
 		config.Hypervisor["qemu"]["snp_id_block"] = snpIDBlock.IDBlock
 		config.Hypervisor["qemu"]["snp_id_auth"] = snpIDBlock.IDAuth
 		config.Hypervisor["qemu"]["snp_guest_policy"] = abi.SnpPolicyToBytes(snpIDBlock.GuestPolicy)
-		// GPU-specific settings
-		if platforms.IsGPU(platform) {
-			config.Hypervisor["qemu"]["cold_plug_vfio"] = "root-port"
-			// GPU images tend to be larger, so give a better default timeout that
-			// allows for pulling those.
-			config.Agent["kata"]["dial_timeout"] = 600
-			config.Runtime["create_container_timeout"] = 600
-		}
 	default:
 		return nil, fmt.Errorf("unsupported platform: %s", platform)
 	}
@@ -79,6 +71,14 @@ func KataRuntimeConfig(
 		config.Agent["kata"]["enable_debug"] = true
 		config.Agent["kata"]["debug_console_enabled"] = true
 		config.Runtime["enable_debug"] = true
+	}
+	// GPU-specific settings
+	if platforms.IsGPU(platform) {
+		config.Hypervisor["qemu"]["cold_plug_vfio"] = "root-port"
+		// GPU images tend to be larger, so give a better default timeout that
+		// allows for pulling those.
+		config.Agent["kata"]["dial_timeout"] = 600
+		config.Runtime["create_container_timeout"] = 600
 	}
 
 	// Use the resources installed by Contrast node-installer.
