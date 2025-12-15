@@ -18,6 +18,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -289,4 +290,18 @@ func (c *Kubeclient) GetContainerLogs(ctx context.Context, resource ResourceWait
 		return "", fmt.Errorf("failed copying logs to buffer:%w", err)
 	}
 	return buf.String(), nil
+}
+
+// FirstPodIP returns the IP of the first pod found for a given deployment.
+// Useful to connect directly to a pod, avoiding possible race conditions with k8s when trying to connect to a service.
+func (c *Kubeclient) FirstPodIP(ctx context.Context, t *testing.T, namespace, deployment string) string {
+	t.Helper()
+	require := require.New(t)
+
+	pods, err := c.PodsFromDeployment(ctx, namespace, deployment)
+	require.NoError(err)
+	require.NotEmpty(pods)
+	ip := pods[0].Status.PodIP
+	require.NotEmpty(ip)
+	return ip
 }

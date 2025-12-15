@@ -110,16 +110,14 @@ func TestIngressEgress(t *testing.T) {
 		require.NoError(err)
 		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, "web")
 
+		emojiConnection := net.JoinHostPort(c.FirstPodIP(ctx, t, ct.Namespace, "emoji"), "8801")
+
 		// The emoji service does not have an ingress proxy configuration, so we expect all ingress
 		// traffic to be proxied with mandatory mutual TLS.
 		// This test also verifies that client connections are not affected by the ingress proxy,
 		// because we're running the commands on a pod with enabled proxy.
 
-		argv := []string{"curl", "-sS", "--cacert", "/contrast/tls-config/mesh-ca.pem", "https://emoji:8801/metrics"}
-		// curl does not like the wildcard cert and the service name does not match the deployment
-		// name (i.e., the CN), so we tell curl to connect to expect the deployment name but
-		// resolve the service name.
-		argv = append(argv, "--connect-to", "emoji:8801:emoji-svc:8801")
+		argv := []string{"curl", "-sS", "--cacert", "/contrast/tls-config/mesh-ca.pem", fmt.Sprintf("https://%s/metrics", emojiConnection)}
 		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
 		require.Error(err, "Expected call without client certificate to fail.\nstdout: %s\nstderr: %q", stdout, stderr)
 
@@ -136,15 +134,11 @@ func TestIngressEgress(t *testing.T) {
 
 		c := kubeclient.NewForTest(t)
 
-		backendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "emoji")
-		require.NoError(err)
-		require.Len(backendPods, 1, "pod not found: %s/%s", ct.Namespace, "emoji")
-
 		frontendPods, err := c.PodsFromDeployment(ctx, ct.Namespace, "voting")
 		require.NoError(err)
 		require.Len(frontendPods, 1, "pod not found: %s/%s", ct.Namespace, "voting")
 
-		argv := []string{"curl", "-fsS", net.JoinHostPort(backendPods[0].Status.PodIP, "9901") + "/stats/prometheus"}
+		argv := []string{"curl", "-fsS", net.JoinHostPort(c.FirstPodIP(ctx, t, ct.Namespace, "emoji"), "9901") + "/stats/prometheus"}
 		stdout, stderr, err := c.Exec(ctx, ct.Namespace, frontendPods[0].Name, argv)
 		require.NoError(err, "Expected Service Mesh admin interface to be reachable.\nstdout: %s\nstderr: %q", stdout, stderr)
 	})
