@@ -991,10 +991,7 @@ func MemDumpTester() []any {
 									WithName("host").
 									WithMountPath("/host"),
 							).
-							WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration).
-							WithResources(ResourceRequirements().
-								WithMemoryLimitAndRequest(200),
-							),
+							WithSecurityContext(SecurityContext().WithPrivileged(true).SecurityContextApplyConfiguration),
 					).
 					WithVolumes(
 						Volume().WithName("host").WithHostPath(
