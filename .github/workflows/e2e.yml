@@ -125,7 +125,7 @@ jobs:
             echo "No namespace file found, skipping cleanup." >&2
             exit 0
           fi
-          kubectl delete ns "$(cat workspace/e2e.namespace)" --timeout 10m
+          kubectl delete ns "$(tail -1 workspace/e2e.namespace)" --timeout 10m
       - name: Release fifo ticket
         if: always() && (!inputs.self-hosted || inputs.platform == 'Metal-QEMU-SNP-GPU') && !inputs.skip-undeploy
         run: |
