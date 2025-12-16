@@ -12,7 +12,7 @@ type SecureMountServiceService interface {
 }
 
 func RegisterSecureMountServiceService(srv *ttrpc.Server, svc SecureMountServiceService) {
-	srv.RegisterService("securemountapi.SecureMountService", &ttrpc.ServiceDesc{
+	srv.RegisterService("api.SecureMountService", &ttrpc.ServiceDesc{
 		Methods: map[string]ttrpc.Method{
 			"SecureMount": func(ctx context.Context, unmarshal func(interface{}) error) (interface{}, error) {
 				var req SecureMountRequest
@@ -37,7 +37,7 @@ func NewSecureMountServiceClient(client *ttrpc.Client) SecureMountServiceService
 
 func (c *securemountserviceClient) SecureMount(ctx context.Context, req *SecureMountRequest) (*SecureMountResponse, error) {
 	var resp SecureMountResponse
-	if err := c.client.Call(ctx, "securemountapi.SecureMountService", "SecureMount", req, &resp); err != nil {
+	if err := c.client.Call(ctx, "api.SecureMountService", "SecureMount", req, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
