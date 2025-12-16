@@ -20,7 +20,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 
-	"github.com/stretchr/testify/require"
+	req "github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,7 +44,7 @@ func TestImageStore(t *testing.T) {
 		},
 	}
 
-	require := require.New(t)
+	require := req.New(t)
 
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(err)
@@ -75,7 +75,8 @@ func TestImageStore(t *testing.T) {
 	require.NoError(ct.Kubeclient.WaitForStatefulSet(ctx, ct.Namespace, "coordinator"))
 
 	for name, tc := range tests {
-		t.Run(name, func(_ *testing.T) {
+		t.Run(name, func(t *testing.T) {
+			require = req.New(t)
 			require.NoError(ct.Kubeclient.WaitForPod(ctx, ct.Namespace, tc.name))
 
 			pod, err := ct.Kubeclient.Client.CoreV1().Pods(ct.Namespace).Get(ctx, tc.name, metav1.GetOptions{})
