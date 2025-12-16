@@ -6,6 +6,9 @@
 // 	protoc        v6.32.1
 // source: imagepuller.proto
 
+// Do not rename. This must match exactly the protos in kata.
+// To rename the go package, see the option below.
+
 package imagepullapi
 
 import (

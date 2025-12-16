@@ -6,6 +6,9 @@
 // 	protoc        v6.32.1
 // source: imagestore.proto
 
+// Do not rename. This must match exactly the protos in kata.
+// To rename the go package, see the option below.
+
 package securemountapi
 
 import (
@@ -139,11 +142,11 @@ var File_imagestore_proto protoreflect.FileDescriptor
 
 const file_imagestore_proto_rawDesc = "" +
 	"\n" +
-	"\x10imagestore.proto\x12\x0esecuremountapi\"\xf3\x01\n" +
+	"\x10imagestore.proto\x12\x03api\"\xe8\x01\n" +
 	"\x12SecureMountRequest\x12\x1f\n" +
 	"\vvolume_type\x18\x01 \x01(\tR\n" +
-	"volumeType\x12I\n" +
-	"\aoptions\x18\x02 \x03(\v2/.securemountapi.SecureMountRequest.OptionsEntryR\aoptions\x12\x14\n" +
+	"volumeType\x12>\n" +
+	"\aoptions\x18\x02 \x03(\v2$.api.SecureMountRequest.OptionsEntryR\aoptions\x12\x14\n" +
 	"\x05flags\x18\x03 \x03(\tR\x05flags\x12\x1f\n" +
 	"\vmount_point\x18\x04 \x01(\tR\n" +
 	"mountPoint\x1a:\n" +
@@ -152,9 +155,9 @@ const file_imagestore_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"4\n" +
 	"\x13SecureMountResponse\x12\x1d\n" +
 	"\n" +
-	"mount_path\x18\x01 \x01(\tR\tmountPath2n\n" +
-	"\x12SecureMountService\x12X\n" +
-	"\vSecureMount\x12\".securemountapi.SecureMountRequest\x1a#.securemountapi.SecureMountResponse\"\x00BDZBgithub.com/edgelesssys/contrast/imagestore/internal/securemountapib\x06proto3"
+	"mount_path\x18\x01 \x01(\tR\tmountPath2X\n" +
+	"\x12SecureMountService\x12B\n" +
+	"\vSecureMount\x12\x17.api.SecureMountRequest\x1a\x18.api.SecureMountResponse\"\x00BDZBgithub.com/edgelesssys/contrast/imagestore/internal/securemountapib\x06proto3"
 
 var (
 	file_imagestore_proto_rawDescOnce sync.Once
@@ -170,14 +173,14 @@ func file_imagestore_proto_rawDescGZIP() []byte {
 
 var file_imagestore_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_imagestore_proto_goTypes = []any{
-	(*SecureMountRequest)(nil),  // 0: securemountapi.SecureMountRequest
-	(*SecureMountResponse)(nil), // 1: securemountapi.SecureMountResponse
-	nil,                         // 2: securemountapi.SecureMountRequest.OptionsEntry
+	(*SecureMountRequest)(nil),  // 0: api.SecureMountRequest
+	(*SecureMountResponse)(nil), // 1: api.SecureMountResponse
+	nil,                         // 2: api.SecureMountRequest.OptionsEntry
 }
 var file_imagestore_proto_depIdxs = []int32{
-	2, // 0: securemountapi.SecureMountRequest.options:type_name -> securemountapi.SecureMountRequest.OptionsEntry
-	0, // 1: securemountapi.SecureMountService.SecureMount:input_type -> securemountapi.SecureMountRequest
-	1, // 2: securemountapi.SecureMountService.SecureMount:output_type -> securemountapi.SecureMountResponse
+	2, // 0: api.SecureMountRequest.options:type_name -> api.SecureMountRequest.OptionsEntry
+	0, // 1: api.SecureMountService.SecureMount:input_type -> api.SecureMountRequest
+	1, // 2: api.SecureMountService.SecureMount:output_type -> api.SecureMountResponse
 	2, // [2:3] is the sub-list for method output_type
 	1, // [1:2] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
