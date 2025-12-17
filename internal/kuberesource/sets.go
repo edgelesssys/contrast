@@ -540,7 +540,9 @@ func VolumeStatefulSet() []any {
 					WithVolumeMode(corev1.PersistentVolumeBlock).
 					WithAccessModes(corev1.ReadWriteOnce).
 					WithResources(VolumeResourceRequirements().
-						WithStorageRequest("30Gi"),
+						// This tests the lower end of the supported volume size range. Larger
+						// volumes are implicitly tested through the imagestore.
+						WithStorageRequest("25Mi"),
 					),
 				),
 			),
