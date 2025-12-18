@@ -28,6 +28,8 @@ metadata: # v1.Pod, v1.PodTemplateSpec
     contrast.edgeless.systems/image-store-size: 250Gi
 ```
 
+The minimum supported size for image store volumes is 150 MiB.
+
 Rerun `contrast generate` and reapply your deployment for the change to take effect:
 
 ```bash
