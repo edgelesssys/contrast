@@ -51,7 +51,8 @@ spec: # v1.StatefulSetSpec
           mountPropagation: HostToContainer
           name: mount-name
       volumes:
-      - emptyDir: {}
+      - emptyDir:
+          medium: Memory
         name: mount-name
   volumeClaimTemplates:
   - apiVersion: v1
