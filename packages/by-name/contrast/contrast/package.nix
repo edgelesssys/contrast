@@ -93,7 +93,7 @@ let
         ovmf = OVMF-TDX.override {
           # Only enable ACPI verification for the GPU build, until
           # the verification is actually secure.
-          verifyACPIInsecure = true;
+          withACPIVerificationInsecure = true;
         };
         withGPU = true;
       };

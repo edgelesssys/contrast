@@ -6,7 +6,7 @@
   edk2,
   nasm,
   acpica-tools,
-  verifyACPIInsecure ? false,
+  withACPIVerificationInsecure ? false,
   debug ? false,
 }:
 
@@ -35,7 +35,7 @@ edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
     # handoff table wasn't measured before.
     ./0002-SmbiosMeasurementDxe-filter-handoff-table.patch
   ]
-  ++ lib.optionals verifyACPIInsecure [
+  ++ lib.optionals withACPIVerificationInsecure [
     # Skip the measurement of the guest-memory and device-dependent ACPI tables and verify
     # them in the measured firmware instead.
     ./0003-QemuFwCfgAcpi-verify-ACPI-data-instead-of-measuring.patch
