@@ -593,7 +593,7 @@ func MySQL() []any {
 						WithVolumes(
 							applycorev1.Volume().
 								WithName("share").
-								WithEmptyDir(applycorev1.EmptyDirVolumeSource()),
+								WithEmptyDir(applycorev1.EmptyDirVolumeSource().WithMedium(corev1.StorageMediumMemory)),
 						),
 				),
 			).
