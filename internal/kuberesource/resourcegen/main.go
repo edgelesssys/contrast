@@ -68,7 +68,24 @@ func main() {
 		case "vault":
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.Vault(*namespace), "contrast-cc")
 		case "gpu":
-			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.GPU("placeholder-gpu"), "contrast-cc")
+			if *rawPlatform == "" {
+				log.Fatalf("--platform must be set to one of %v", platforms.AllStrings())
+			}
+			var platform platforms.Platform
+			platform, err = platforms.FromString(*rawPlatform)
+			if err != nil {
+				log.Fatalf("Error parsing platform: %v", err)
+			}
+			var deviceURI string
+			switch platform {
+			case platforms.MetalQEMUTDXGPU:
+				deviceURI = "nvidia.com/GB100_B200"
+			case platforms.MetalQEMUSNPGPU:
+				deviceURI = "nvidia.com/GH100_H100_PCIE"
+			default:
+				log.Fatalf("platform %s does not support GPU deployments", platform)
+			}
+			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.GPU(deviceURI), "contrast-cc")
 		default:
 			log.Fatalf("Error: unknown set: %s\n", set)
 		}
