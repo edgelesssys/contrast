@@ -29,7 +29,7 @@ let
   # Hardcode this to the B200 for now, since we only have a testing system with this GPU.
   # When we get more heterogenous test systems, or when TDX-GPU goes into production use,
   # this needs to be made configurable.
-  gpuFlag = if withGPU then "-g b200" else "";
+  gpuFlag = lib.optionalString withGPU "-g b200";
 in
 
 stdenvNoCC.mkDerivation {
