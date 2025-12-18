@@ -12,7 +12,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  4 files changed, 8 insertions(+), 62 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 84e0738f4e1326babad93402eb750268238ab77e..98365292a918233a1fbb47128cca77bb0f2e1870 100644
+index 2dbc8160413d54116e581a7566020ea2fcbc62e3..5861b483e0b3c910ce82fe72b8384f965ef06c85 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -183,18 +183,6 @@
