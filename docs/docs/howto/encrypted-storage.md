@@ -22,8 +22,11 @@ Add a `volume` of type `emptyDir` to your pod.
 Mount it through a `volumeMount` with `HostToContainer` propagation.
 The specified `mountPath` is where the Contrast Initializer will mount the encrypted volume.
 Use a `volumeClaimTemplate` to make a persistent storage device available to your deployment.
-The Initializer creates an encrypted volume and a filesystem on this device.
 Supported volume types can be found in the [k8s documentation](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#raw-block-volume-support).
+
+The Initializer creates an encrypted LUKS2 volume and an EXT4 filesystem on this device.
+The volume needs to be at least `17 MiB` in size to allow for the overhead of cryptographic integrity protection.
+In order to make use of all EXT4 features, most importantly the journal, the volume should be larger than `150 MiB`.
 
 Finally, add the [Contrast annotation](../architecture/k8s-yaml-elements.md) `contrast.edgeless.systems/secure-pv` with value `device-name:mount-name`.
 The presence of this annotation instructs an init container running `cryptsetup`

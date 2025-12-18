@@ -43,6 +43,8 @@ contrast generate resources/
 kubectl apply -f resources/
 ```
 
+The [sizing recommendations for secure persistent storage](encrypted-storage.md#configuration) apply to the image store, too.
+
 ### Disabling the image store for a single pod
 
 To disable the secure image store for a specific pod, set the value of the shown annotation to `"0"`, without a unit:
