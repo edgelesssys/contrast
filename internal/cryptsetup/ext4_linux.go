@@ -78,7 +78,11 @@ func wipeExt4Blocks(ctx context.Context, devPath string) error {
 	delimiter := "Superblock backups stored on blocks:"
 	_, blockList, ok := strings.Cut(string(out), delimiter)
 	if !ok {
-		return fmt.Errorf("parsing mkfs.ext4 output: delimiter %q not found in output %q", delimiter, out)
+		// No superblock backups in the output. This is probably a small volume, just zero the first block.
+		if err := zeroBlocksDirect(devPath, []int64{0}); err != nil {
+			return fmt.Errorf("zeroing blocks on device %s: %w", devPath, err)
+		}
+		return nil
 	}
 	blockNumStrs := numsRegexp.FindAllString(blockList, -1)
 	if len(blockNumStrs) == 0 {
