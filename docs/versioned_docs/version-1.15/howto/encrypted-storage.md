@@ -19,6 +19,7 @@ The following demonstrates how to set up an encrypted LUKS mount for an arbitrar
 ### Configuration
 
 Add a `volume` of type `emptyDir` to your pod.
+The volume needs a capacity of at least 150 MiB.
 Mount it through a `volumeMount` with `HostToContainer` propagation.
 The specified `mountPath` is where the Contrast Initializer will mount the encrypted volume.
 Use a `volumeClaimTemplate` to make a persistent storage device available to your deployment.
