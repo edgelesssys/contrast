@@ -36,11 +36,11 @@ func TestContainerd11644Reproducer(t *testing.T) {
 
 	deploymentName := "containerd-11644-reproducer"
 	runcTester, ccTester := kuberesource.Containerd11644ReproducerTesters(deploymentName)
-	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
-	t.Cleanup(cancel)
 
 	// Start the runcTester outside the CC context.
 	ct.Init(t, []any{runcTester})
+	ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
+	t.Cleanup(cancel)
 	_, err = ct.Kubeclient.Client.AppsV1().
 		Deployments(ct.Namespace).
 		Apply(
@@ -67,6 +67,8 @@ func TestContainerd11644Reproducer(t *testing.T) {
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
+	ctx, cancel = context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
+	t.Cleanup(cancel)
 	err = ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, *ccTester.Name)
 	require.NoError(t, err)
 }

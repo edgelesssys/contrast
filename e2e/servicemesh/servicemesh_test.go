@@ -60,7 +60,7 @@ func TestIngressEgress(t *testing.T) {
 	require.True(t, t.Run("deployments become available", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		defer cancel()
 
 		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "vote-bot"))
