@@ -35,6 +35,11 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-tdx.yml
 ```
 </TabItem>
+<TabItem value="metal-qemu-tdx-gpu" label="Bare metal (TDX, with GPU support)">
+```sh
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-tdx-gpu.yml
+```
+</TabItem>
 </Tabs>
 
 :::warning[Modifications to containerd configuration]

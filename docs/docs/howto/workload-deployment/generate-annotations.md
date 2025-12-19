@@ -58,6 +58,17 @@ It will have to be filled in manually.
 Find a detailed description of the meaning of this value and how to acquire it in the [`TDXReferenceValues` section of the manifest documentation](../../architecture/components/manifest.md#tdx-mr-seam).
 
 </TabItem>
+<TabItem value="metal-qemu-tdx-gpu" label="Bare metal (TDX, with GPU support)">
+
+```sh
+contrast generate --reference-values metal-qemu-tdx-gpu resources/
+```
+
+On bare-metal TDX, `contrast generate` is unable to fill in the `MrSeam` value as it depends on your platform configuration.
+It will have to be filled in manually.
+Find a detailed description of the meaning of this value and how to acquire it in the [`TDXReferenceValues` section of the manifest documentation](../../architecture/components/manifest.md#tdx-mr-seam).
+
+</TabItem>
 </Tabs>
 
 The `generate` command needs to pull the container images to derive policies.
@@ -108,6 +119,13 @@ contrast generate --reference-values metal-qemu-snp-gpu --skip-initializer resou
 
 ```sh
 contrast generate --reference-values metal-qemu-tdx --skip-initializer resources/
+```
+
+</TabItem>
+<TabItem value="metal-qemu-tdx-gpu" label="Bare metal (TDX, with GPU support)">
+
+```sh
+contrast generate --reference-values metal-qemu-tdx-gpu --skip-initializer resources/
 ```
 
 </TabItem>
@@ -176,6 +194,12 @@ contrast generate --reference-values metal-qemu-snp-gpu --skip-service-mesh reso
 
 ```sh
 contrast generate --reference-values metal-qemu-tdx --skip-service-mesh resources/
+```
+</TabItem>
+<TabItem value="metal-qemu-tdx-gpu" label="Bare metal (TDX, with GPU support)">
+
+```sh
+contrast generate --reference-values metal-qemu-tdx-gpu --skip-service-mesh resources/
 ```
 </TabItem>
 </Tabs>
