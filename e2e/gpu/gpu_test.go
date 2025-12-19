@@ -24,6 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
@@ -52,7 +53,13 @@ func TestGPU(t *testing.T) {
 		t.Errorf("platform %s does not support GPU tests", platform)
 	}
 
-	resources := kuberesource.GPU()
+	resources := kuberesource.GPU(gpuDeploymentName, 0)
+
+	// On the TDX-GPU cluster, we have multiple B200 GPUs.
+	// Therefore, we add another GPU pod to the resources that runs in parallel.
+	if platform == platforms.MetalQEMUTDXGPU {
+		resources = append(resources, kuberesource.GPU(gpuDeploymentName+"-1", 1)...)
+	}
 
 	// Since the TDX-GPU testing cluster has multiple GPUs, we run into the drift
 	// explained in [1]. To avoid this, we need to remove the deployment of the direct GPU tester,
@@ -90,147 +97,165 @@ func TestGPU(t *testing.T) {
 
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
-	var pod *corev1.Pod
-	require.True(t, t.Run("wait for GPU deployment", func(t *testing.T) {
+	gpuDeployments := []string{gpuDeploymentName}
+
+	// Check how many GPUs are available on nodes to determine if we should test multi-GPU
+	nodes, err := ct.Kubeclient.Client.CoreV1().Nodes().List(t.Context(), metav1.ListOptions{})
+	require.NoError(t, err)
+	for _, node := range nodes.Items {
+		if pgpuQuantity, ok := node.Status.Allocatable["nvidia.com/pgpu"]; ok {
+			if pgpuQuantity.Value() > 1 {
+				gpuDeployments = append(gpuDeployments, gpuDeploymentName+"-1")
+				break
+			}
+		}
+	}
+
+	var pods []corev1.Pod
+	require.True(t, t.Run("wait for GPU deployments", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(5*time.Minute))
 		defer cancel()
 
 		require := require.New(t)
 
-		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, gpuDeploymentName))
+		for _, deploymentName := range gpuDeployments {
+			require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, deploymentName))
 
-		pods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, gpuDeploymentName)
-		require.NoError(err)
-		require.Len(pods, 1, "pod not found: %s/%s", ct.Namespace, gpuDeploymentName)
-		pod = &pods[0]
-	}), "GPU deployment needs to succeed for subsequent tests")
-
-	var gpuContainers, nonGPUContainers []string
-	for _, container := range pod.Spec.Containers {
-		if shouldHaveGPU(container) {
-			gpuContainers = append(gpuContainers, container.Name)
-		} else {
-			nonGPUContainers = append(nonGPUContainers, container.Name)
+			deploymentPods, err := ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, deploymentName)
+			require.NoError(err)
+			require.Len(deploymentPods, 1, "expected 1 pod for %s/%s", ct.Namespace, deploymentName)
+			pods = append(pods, deploymentPods...)
 		}
-	}
+	}), "GPU deployments need to succeed for subsequent tests")
 
-	for _, container := range gpuContainers {
-		t.Run(fmt.Sprintf("%s: check podvm->container mounts by libnvidia-container", container), func(t *testing.T) {
-			assert := assert.New(t)
-			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
-			defer cancel()
-
-			expectBins := []string{
-				// Binaries taken from output of libnvidia-container v1.17.8.
-				"nvidia-smi",
-				"nvidia-debugdump",
-				"nvidia-cuda-mps-control",
-				"nvidia-cuda-mps-server",
+	for _, pod := range pods {
+		var gpuContainers, nonGPUContainers []string
+		for _, container := range pod.Spec.Containers {
+			if shouldHaveGPU(container) {
+				gpuContainers = append(gpuContainers, container.Name)
+			} else {
+				nonGPUContainers = append(nonGPUContainers, container.Name)
 			}
-			for _, bin := range expectBins {
-				for _, cmd := range []string{
-					fmt.Sprintf("[[ $(command -v %s) == /usr/bin/%s ]]", bin, bin),
-					fmt.Sprintf("test -x /usr/bin/%s", bin),
-				} {
-					argv := []string{"/usr/bin/env", "bash", "-c", cmd}
-					stdout, stderr, err := ct.Kubeclient.ExecContainer(ctx, ct.Namespace, pod.Name, container, argv)
-					assert.NoError(err, "running %q:\nstdout:\n%s\nstderr:\n%s", cmd, stdout, stderr)
-				}
-			}
+		}
 
-			expectLibs := map[string]struct {
-				abiLink   bool // Wether to expect a link with ABI version, like .so.1
-				unverLink bool // Wether to expect a link without any version, like .so
-			}{
-				// Libraries taken from output of libnvidia-container v1.17.8.
-				"libnvidia-ml.so":              {abiLink: true},
-				"libnvidia-cfg.so":             {abiLink: true},
-				"libcuda.so":                   {abiLink: true, unverLink: true},
-				"libcudadebugger.so":           {abiLink: true},
-				"libnvidia-opencl.so":          {abiLink: true},
-				"libnvidia-gpucomp.so":         {abiLink: false},
-				"libnvidia-ptxjitcompiler.so":  {abiLink: true},
-				"libnvidia-allocator.so":       {abiLink: true},
-				"libnvidia-pkcs11-openssl3.so": {abiLink: false},
-				"libnvidia-nvvm.so":            {abiLink: true},
-			}
-			for lib, libChecks := range expectLibs {
-				pathThisLib := path.Join(nvidiaLibPath, lib)
+		for _, container := range gpuContainers {
+			t.Run(fmt.Sprintf("%s/%s: check podvm->container mounts by libnvidia-container", pod.Name, container), func(t *testing.T) {
+				assert := assert.New(t)
+				ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(3*time.Minute))
+				defer cancel()
 
-				// Run `ls` to check what libraries with that name exist.
-				getLibsCmd := fmt.Sprintf("ls %s*", pathThisLib)
-				stdout, stderr, err := ct.Kubeclient.ExecContainer(ctx, ct.Namespace, pod.Name, container, []string{"/usr/bin/env", "bash", "-c", getLibsCmd})
-				assert.NoError(err, "running %q:\nstdout:\n%s\nstderr:\n%s", getLibsCmd, stdout, stderr)
-				stdout = strings.TrimSpace(stdout)
-				var lsLibs []string
-				if stdout != "" {
-					lsLibs = strings.Split(stdout, "\n")
+				expectBins := []string{
+					// Binaries taken from output of libnvidia-container v1.17.8.
+					"nvidia-smi",
+					"nvidia-debugdump",
+					"nvidia-cuda-mps-control",
+					"nvidia-cuda-mps-server",
 				}
-				if !assert.NotEmpty(lsLibs, "expected at least one library for %q", lib) {
-					continue
-				}
-
-				// Determine what library paths we got.
-				fullVerRegex := regexp.MustCompile(fmt.Sprintf(`%s\.\d+(\.\d+)+$`, strings.ReplaceAll(pathThisLib, ".", "\\.")))
-				abiVerRegex := regexp.MustCompile(fmt.Sprintf(`%s\.\d+$`, strings.ReplaceAll(pathThisLib, ".", "\\.")))
-				unverRegex := regexp.MustCompile(fmt.Sprintf(`%s$`, strings.ReplaceAll(pathThisLib, ".", "\\.")))
-				fullVerPath := ""
-				abiVerPath := ""
-				unverPath := ""
-				for _, libPath := range lsLibs {
-					switch {
-					case fullVerRegex.MatchString(libPath):
-						fullVerPath = libPath
-					case abiVerRegex.MatchString(libPath):
-						abiVerPath = libPath
-					case unverRegex.MatchString(libPath):
-						unverPath = libPath
-					default:
+				for _, bin := range expectBins {
+					for _, cmd := range []string{
+						fmt.Sprintf("[[ $(command -v %s) == /usr/bin/%s ]]", bin, bin),
+						fmt.Sprintf("test -x /usr/bin/%s", bin),
+					} {
+						argv := []string{"/usr/bin/env", "bash", "-c", cmd}
+						stdout, stderr, err := ct.Kubeclient.ExecContainer(ctx, ct.Namespace, pod.Name, container, argv)
+						assert.NoError(err, "running %q:\nstdout:\n%s\nstderr:\n%s", cmd, stdout, stderr)
 					}
 				}
 
-				// Ensure library can be executed.
-				cmds := []string{fmt.Sprintf("test -x %s", fullVerPath)}
-				if libChecks.abiLink && assert.NotEmpty(abiVerPath, "expected ABI versioned link for %q in %v", lib, lsLibs) {
-					// Ensure correct link from .so.1 to .so.570.169
-					cmds = append(cmds, fmt.Sprintf("[[ $(realpath %s) == %s ]] ", abiVerPath, fullVerPath))
+				expectLibs := map[string]struct {
+					abiLink   bool // Wether to expect a link with ABI version, like .so.1
+					unverLink bool // Wether to expect a link without any version, like .so
+				}{
+					// Libraries taken from output of libnvidia-container v1.17.8.
+					"libnvidia-ml.so":              {abiLink: true},
+					"libnvidia-cfg.so":             {abiLink: true},
+					"libcuda.so":                   {abiLink: true, unverLink: true},
+					"libcudadebugger.so":           {abiLink: true},
+					"libnvidia-opencl.so":          {abiLink: true},
+					"libnvidia-gpucomp.so":         {abiLink: false},
+					"libnvidia-ptxjitcompiler.so":  {abiLink: true},
+					"libnvidia-allocator.so":       {abiLink: true},
+					"libnvidia-pkcs11-openssl3.so": {abiLink: false},
+					"libnvidia-nvvm.so":            {abiLink: true},
 				}
-				if libChecks.unverLink && assert.NotEmpty(unverPath, "expected unversioned link for %q in %v", lib, lsLibs) {
-					// Ensure correct link from .so to .so.570.169
-					cmds = append(cmds, fmt.Sprintf("[[ $(realpath %s) == %s ]]", unverPath, fullVerPath))
+				for lib, libChecks := range expectLibs {
+					pathThisLib := path.Join(nvidiaLibPath, lib)
+
+					// Run `ls` to check what libraries with that name exist.
+					getLibsCmd := fmt.Sprintf("ls %s*", pathThisLib)
+					stdout, stderr, err := ct.Kubeclient.ExecContainer(ctx, ct.Namespace, pod.Name, container, []string{"/usr/bin/env", "bash", "-c", getLibsCmd})
+					assert.NoError(err, "running %q:\nstdout:\n%s\nstderr:\n%s", getLibsCmd, stdout, stderr)
+					stdout = strings.TrimSpace(stdout)
+					var lsLibs []string
+					if stdout != "" {
+						lsLibs = strings.Split(stdout, "\n")
+					}
+					if !assert.NotEmpty(lsLibs, "expected at least one library for %q", lib) {
+						continue
+					}
+
+					// Determine what library paths we got.
+					fullVerRegex := regexp.MustCompile(fmt.Sprintf(`%s\.\d+(\.\d+)+$`, strings.ReplaceAll(pathThisLib, ".", "\\.")))
+					abiVerRegex := regexp.MustCompile(fmt.Sprintf(`%s\.\d+$`, strings.ReplaceAll(pathThisLib, ".", "\\.")))
+					unverRegex := regexp.MustCompile(fmt.Sprintf(`%s$`, strings.ReplaceAll(pathThisLib, ".", "\\.")))
+					fullVerPath := ""
+					abiVerPath := ""
+					unverPath := ""
+					for _, libPath := range lsLibs {
+						switch {
+						case fullVerRegex.MatchString(libPath):
+							fullVerPath = libPath
+						case abiVerRegex.MatchString(libPath):
+							abiVerPath = libPath
+						case unverRegex.MatchString(libPath):
+							unverPath = libPath
+						default:
+						}
+					}
+
+					// Ensure library can be executed.
+					cmds := []string{fmt.Sprintf("test -x %s", fullVerPath)}
+					if libChecks.abiLink && assert.NotEmpty(abiVerPath, "expected ABI versioned link for %q in %v", lib, lsLibs) {
+						// Ensure correct link from .so.1 to .so.570.169
+						cmds = append(cmds, fmt.Sprintf("[[ $(realpath %s) == %s ]] ", abiVerPath, fullVerPath))
+					}
+					if libChecks.unverLink && assert.NotEmpty(unverPath, "expected unversioned link for %q in %v", lib, lsLibs) {
+						// Ensure correct link from .so to .so.570.169
+						cmds = append(cmds, fmt.Sprintf("[[ $(realpath %s) == %s ]]", unverPath, fullVerPath))
+					}
+
+					for _, cmd := range cmds {
+						argv := []string{"/usr/bin/env", "bash", "-c", cmd}
+						stdout, stderr, err := ct.Kubeclient.ExecContainer(ctx, ct.Namespace, pod.Name, container, argv)
+						assert.NoError(err, "running %q:\nstdout:\n%s\nstderr:\n%s", cmd, stdout, stderr)
+					}
 				}
+			})
 
-				for _, cmd := range cmds {
-					argv := []string{"/usr/bin/env", "bash", "-c", cmd}
-					stdout, stderr, err := ct.Kubeclient.ExecContainer(ctx, ct.Namespace, pod.Name, container, argv)
-					assert.NoError(err, "running %q:\nstdout:\n%s\nstderr:\n%s", cmd, stdout, stderr)
-				}
-			}
-		})
+			t.Run(fmt.Sprintf("%s/%s: check GPU availability with nvidia-smi", pod.Name, container), func(t *testing.T) {
+				require := require.New(t)
+				ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+				defer cancel()
 
-		t.Run(fmt.Sprintf("%s: check GPU availability with nvidia-smi", container), func(t *testing.T) {
-			require := require.New(t)
-			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
-			defer cancel()
+				argv := []string{"/bin/sh", "-c", "nvidia-smi"}
+				stdout, stderr, err := ct.Kubeclient.ExecContainer(ctx, ct.Namespace, pod.Name, container, argv)
+				require.NoError(err, "running nvidia-smi: stdout:\n%s\nstderr:\n%s", stdout, stderr)
 
-			argv := []string{"/bin/sh", "-c", "nvidia-smi"}
-			stdout, stderr, err := ct.Kubeclient.ExecContainer(ctx, ct.Namespace, pod.Name, container, argv)
-			require.NoError(err, "running nvidia-smi: stdout:\n%s\nstderr:\n%s", stdout, stderr)
+				require.Contains(stdout, gpuName, "nvidia-smi output should contain %s", gpuName)
+			})
+		}
 
-			require.Contains(stdout, gpuName, "nvidia-smi output should contain %s", gpuName)
-		})
-	}
+		for _, container := range nonGPUContainers {
+			t.Run(fmt.Sprintf("%s/%s: check that path %s is not available", pod.Name, container, nvidiaLibPath), func(t *testing.T) {
+				require := require.New(t)
+				ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+				defer cancel()
 
-	for _, container := range nonGPUContainers {
-		t.Run(fmt.Sprintf("%s: check that path %s is not available", nvidiaLibPath, container), func(t *testing.T) {
-			require := require.New(t)
-			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
-			defer cancel()
-
-			argv := []string{"/bin/test", "!", "-d", nvidiaLibPath}
-			stdout, stderr, err := ct.Kubeclient.ExecContainer(ctx, ct.Namespace, pod.Name, container, argv)
-			require.NoError(err, "path %q should not exist, but does:\nstdout:\n%s\nstderr:\n%s", nvidiaLibPath, stdout, stderr)
-		})
+				argv := []string{"/bin/test", "!", "-d", nvidiaLibPath}
+				stdout, stderr, err := ct.Kubeclient.ExecContainer(ctx, ct.Namespace, pod.Name, container, argv)
+				require.NoError(err, "path %q should not exist, but does:\nstdout:\n%s\nstderr:\n%s", nvidiaLibPath, stdout, stderr)
+			})
+		}
 	}
 }
 
