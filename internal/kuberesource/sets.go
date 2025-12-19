@@ -658,17 +658,17 @@ done
 }
 
 // GPU returns the resources for deploying a GPU test pod.
-func GPU() []any {
-	tester := Deployment("gpu-tester", "").
+func GPU(name string, gpuIndex int) []any {
+	tester := Deployment(name, "").
 		WithSpec(DeploymentSpec().
 			WithReplicas(1).
 			WithSelector(LabelSelector().
-				WithMatchLabels(map[string]string{"app.kubernetes.io/name": "gpu-tester"}),
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
 			).
 			WithTemplate(PodTemplateSpec().
-				WithLabels(map[string]string{"app.kubernetes.io/name": "gpu-tester"}).
+				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
 				WithAnnotations(map[string]string{
-					"cdi.k8s.io/gpu": "nvidia.com/pgpu=0",
+					"cdi.k8s.io/gpu": fmt.Sprintf("nvidia.com/pgpu=%d", gpuIndex),
 				}).
 				WithSpec(PodSpec().
 					WithContainers(
