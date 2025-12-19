@@ -386,6 +386,34 @@ Make sure to retrieve or reproduce the value on a trusted machine.
 :::
 
 </TabItem>
+<TabItem value="metal-qemu-tdx-gpu" label="Bare metal (TDX, with GPU support)">
+
+```sh
+contrast generate --reference-values metal-qemu-tdx-gpu resources/
+```
+
+On bare-metal TDX, `contrast generate` is unable to fill in the `MrSeam` value as it depends on your platform configuration.
+It will have to be filled in manually.
+
+`MrSeam` is the SHA384 hash of the TDX module.
+You should retrieve the TDX module via a trustworthy channel from Intel, for example by downloading the TDX module [from Intel's GitHub repository](https://github.com/intel/confidential-computing.tdx.tdx-module/releases) and hashing the module on a trusted machine.
+You can also reproduce the release artifact by following the build instructions linked in the release notes.
+
+You can check the hash of the in-use TDX module by executing
+
+```sh
+sha384sum /boot/efi/EFI/TDX/TDX-SEAM.so | cut -d' ' -f1
+```
+
+:::warning
+
+The TDX module hash (`MrSeam`) observed on the target platform might not be trustworthy.
+Your channel to the system or the system itself might be compromised.
+Make sure to retrieve or reproduce the value on a trusted machine.
+
+:::
+
+</TabItem>
 </Tabs>
 
 ## 5. Deploy application
