@@ -809,4 +809,25 @@ lib.makeScope pkgs.newScope (scripts: {
       echo "$timestamp $digest"
     '';
   };
+
+  show-input-diff = writeShellApplication {
+    name = "show-input-diff";
+    runtimeInputs = with pkgs; [
+      nix-diff
+      jq
+    ];
+    text = ''
+      left=$(nix eval --raw "''${1:-"github:edgelesssys/contrast#matrix.x86_64-linux"}.drvPath" | tr -d '\n')
+      right=$(nix eval --raw "''${2:-".#matrix.x86_64-linux"}.drvPath" | tr -d '\n')
+      nix-diff "$left" "$right" --json | jq -r '
+        def printTree(level):
+          (
+            ("  " * level) + .drvName,
+            (.drvNames // [] | .[]),
+            (.inputsDivv.inputDerivationDiffs // [] | .[] | printTree(level + 1))
+          );
+        .inputsDiff.inputDerivationDiffs[] | printTree(0)
+      '
+    '';
+  };
 })
