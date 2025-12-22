@@ -4,6 +4,7 @@
 package kuberesource
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"slices"
@@ -549,6 +550,37 @@ func PatchCoordinatorMetrics(resources []any) []any {
 		}
 	}
 	return resources
+}
+
+// PatchDockerSecrets adds a docker pull secret and references it in each PodSpec.
+func PatchDockerSecrets(resources []any, namespace, token string) []any {
+	if token == "" {
+		return resources
+	}
+
+	auth := base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "user-not-required-here:%s", token))
+	content := fmt.Sprintf(`{"auths":{"ghcr.io":{"auth":%q}}}`, auth)
+	name := "ghcr-pull-secret"
+
+	secret := applycorev1.Secret(name, namespace).
+		WithType(corev1.SecretTypeDockerConfigJson).
+		WithData(map[string][]byte{
+			".dockerconfigjson": []byte(content),
+		})
+
+	var out []any
+	for _, resource := range resources {
+		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+			if spec == nil {
+				return spec
+			}
+			spec = spec.WithImagePullSecrets(applycorev1.LocalObjectReference().WithName(name))
+			return spec
+		}))
+	}
+
+	out = append(out, secret)
+	return out
 }
 
 // MapPodSpecWithMeta applies a function to a PodSpec in a Kubernetes resource,

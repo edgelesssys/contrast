@@ -74,6 +74,7 @@ type ContrastTest struct {
 	RuntimeClassName               string
 	NodeInstallerTargetConfType    string
 	NodeInstallerImagePullerConfig []byte
+	GHCRToken                      string
 	Kubeclient                     *kubeclient.Kubeclient
 
 	// outputs of contrast subcommands
@@ -91,6 +92,9 @@ func New(t *testing.T) *ContrastTest {
 	runtimeClass, err := kuberesource.ContrastRuntimeClass(platform)
 	require.NoError(err)
 
+	token := os.Getenv("CONTRAST_GHCR_READ")
+	require.NotEmpty(t, token, "environment variable CONTRAST_GHCR_READ must be set with a ghcr token")
+
 	return &ContrastTest{
 		Namespace:                   MakeNamespace(t, Flags.NamespaceSuffix),
 		WorkDir:                     t.TempDir(),
@@ -100,6 +104,7 @@ func New(t *testing.T) *ContrastTest {
 		RuntimeClassName:            *runtimeClass.Handler,
 		Kubeclient:                  kubeclient.NewForTest(t),
 		NodeInstallerTargetConfType: Flags.NodeInstallerTargetConfType,
+		GHCRToken:                   token,
 	}
 }
 
@@ -151,6 +156,7 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 
 	// Prepare resources
 	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
+	resources = kuberesource.PatchDockerSecrets(resources, ct.Namespace, ct.GHCRToken)
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
 	resources = kuberesource.PatchCoordinatorMetrics(resources)
 	resources = kuberesource.AddLogging(resources, "debug", "*")
