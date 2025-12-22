@@ -45,8 +45,8 @@ func TestImagepullerAuth(t *testing.T) {
 
 	resources := kuberesource.CoordinatorBundle()
 	deploymentName := "auth-test"
-	authTester := kuberesource.AuthenticatedPullTester(deploymentName, token)
-	resources = append(resources, authTester...)
+	authTester := kuberesource.AuthenticatedPullTester(deploymentName)
+	resources = append(resources, authTester)
 	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
 	resources = kuberesource.AddPortForwarders(resources)
 
