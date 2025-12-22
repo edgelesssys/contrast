@@ -46,6 +46,7 @@ jobs:
         test-name:
           # keep-sorted start
           - atls
+          - attestation
           - containerd-11644-reproducer
           - genpolicy-unsupported
           - imagepuller-auth
