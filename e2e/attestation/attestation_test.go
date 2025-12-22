@@ -22,6 +22,9 @@ func TestAttestation(t *testing.T) {
 	t.Run("allowed-chip-ids", func(t *testing.T) {
 		platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 		require.NoError(t, err)
+		if !platforms.IsSNP(platform) {
+			t.Skip()
+		}
 
 		require := require.New(t)
 		ct := contrasttest.New(t)
@@ -54,6 +57,9 @@ func TestAttestation(t *testing.T) {
 	t.Run("non-matching-validators", func(t *testing.T) {
 		platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 		require.NoError(t, err)
+		if !platforms.IsSNP(platform) {
+			t.Skip()
+		}
 
 		require := require.New(t)
 		ct := contrasttest.New(t)
