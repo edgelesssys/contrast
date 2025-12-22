@@ -48,6 +48,7 @@ jobs:
           - atls
           - containerd-11644-reproducer
           - genpolicy-unsupported
+          - gpu
           - imagepuller-auth
           - imagestore
           - memdump
@@ -61,15 +62,15 @@ jobs:
           - volumestatefulset
           - workloadsecret
           # keep-sorted end
-        include:
+        exclude:
           - platform:
-              name: Metal-QEMU-SNP-GPU
-              runner: SNP-GPU
+              name: Metal-QEMU-SNP
+              runner: SNP
               self-hosted: true
             test-name: gpu
           - platform:
-              name: Metal-QEMU-TDX-GPU
-              runner: TDX-GPU
+              name: Metal-QEMU-TDX
+              runner: TDX
               self-hosted: true
             test-name: gpu
       fail-fast: false
