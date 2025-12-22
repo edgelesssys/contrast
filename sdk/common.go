@@ -54,7 +54,7 @@ func ValidatorsFromManifest(kdsGetter *certcache.CachedHTTPSGetter, m *manifest.
 	for i, opt := range tdxOpts {
 		name := fmt.Sprintf("tdx-%d", i)
 		opt.ValidateOpts.TdQuoteBodyOptions.MrConfigID = mrConfigID[:]
-		validators = append(validators, tdx.NewValidator(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name))
+		validators = append(validators, tdx.NewValidator(opt.VerifyOpts, &tdx.StaticValidateOptsGenerator{Opts: opt.ValidateOpts}, opt.AllowedPIIDs, logger.NewWithAttrs(logger.NewNamed(log, "validator"), map[string]string{"reference-values": name}), name))
 	}
 
 	return validators, nil

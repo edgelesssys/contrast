@@ -242,9 +242,20 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 				Rtmrs:        rtmrs[:],
 			},
 		}
+
+		var allowedPIIDs [][]byte
+		for _, piidHex := range refVal.AllowedPIIDs {
+			piid, err := piidHex.Bytes()
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert AllowedPIID from manifest to byte slices: %w", err)
+			}
+			allowedPIIDs = append(allowedPIIDs, piid)
+		}
+
 		out = append(out, TDXValidatorOptions{
 			VerifyOpts:   verifyOpts,
 			ValidateOpts: validateOptions,
+			AllowedPIIDs: allowedPIIDs,
 		})
 	}
 
@@ -266,6 +277,7 @@ type SNPValidatorOptions struct {
 type TDXValidatorOptions struct {
 	VerifyOpts   *tdxverify.Options
 	ValidateOpts *tdxvalidate.Options
+	AllowedPIIDs [][]byte
 }
 
 // PolicyEntry is a policy entry in the manifest. It contains further information the user wants to associate with the policy.
