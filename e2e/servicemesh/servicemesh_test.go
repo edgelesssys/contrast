@@ -58,15 +58,10 @@ func TestIngressEgress(t *testing.T) {
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
 	require.True(t, t.Run("deployments become available", func(t *testing.T) {
-		require := require.New(t)
-
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		defer cancel()
 
-		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "vote-bot"))
-		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "emoji"))
-		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "voting"))
-		require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "web"))
+		ensureReady(ctx, t, ct)
 	}), "deployments need to be ready for subsequent tests")
 
 	certs := map[string]*x509.CertPool{
@@ -79,6 +74,7 @@ func TestIngressEgress(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
 			defer cancel()
+			ensureReady(ctx, t, ct)
 
 			require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-web-svc", "443", func(addr string) error {
 				tlsConf := &tls.Config{RootCAs: pool, ServerName: "web"}
@@ -103,6 +99,7 @@ func TestIngressEgress(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
+		ensureReady(ctx, t, ct)
 
 		c := kubeclient.NewForTest(t)
 
@@ -131,6 +128,7 @@ func TestIngressEgress(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
+		ensureReady(ctx, t, ct)
 
 		c := kubeclient.NewForTest(t)
 
@@ -148,6 +146,7 @@ func TestIngressEgress(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
+		ensureReady(ctx, t, ct)
 
 		c := kubeclient.NewForTest(t)
 
@@ -206,6 +205,7 @@ func TestIngressEgress(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
+		ensureReady(ctx, t, ct)
 
 		c := kubeclient.NewForTest(t)
 
@@ -224,6 +224,7 @@ func TestIngressEgress(t *testing.T) {
 
 		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
 		defer cancel()
+		ensureReady(ctx, t, ct)
 
 		c := kubeclient.NewForTest(t)
 
@@ -243,4 +244,14 @@ func TestMain(m *testing.M) {
 	flag.Parse()
 
 	os.Exit(m.Run())
+}
+
+func ensureReady(ctx context.Context, t *testing.T, ct *contrasttest.ContrastTest) {
+	t.Helper()
+	require := require.New(t)
+
+	require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "vote-bot"))
+	require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "emoji"))
+	require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "voting"))
+	require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, "web"))
 }
