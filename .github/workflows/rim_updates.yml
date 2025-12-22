@@ -6,9 +6,16 @@ on:
     - cron: "0 18 * * 0"
 
 jobs:
+  nix-build:
+    uses: ./.github/workflows/nix_build.yml
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
   update-rim-ids:
     name: update NVIDIA RIM IDs
     runs-on: ubuntu-24.04
+    needs: nix-build
     timeout-minutes: 20
     permissions:
       contents: read

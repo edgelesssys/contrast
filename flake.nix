@@ -36,12 +36,13 @@
           overlays = [
             (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
             (import ./overlays/nixpkgs.nix)
-            (import ./overlays/contrast.nix)
+            (import ./overlays/contrast.nix { inherit (self) inputs; })
           ];
           config.allowUnfree = true;
           config.nvidia.acceptLicense = true;
         };
         treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
+        inherit (pkgs) lib;
       in
 
       {
@@ -57,6 +58,8 @@
             "contrastPkgs"
           ];
         };
+
+        matrix = pkgs.writeText "output-matrix.json" (builtins.toJSON (lib.ci.allOutputs self system));
       }
     );
 

@@ -809,4 +809,46 @@ lib.makeScope pkgs.newScope (scripts: {
       echo "$timestamp $digest"
     '';
   };
+
+  # Shows which derivations' dependency changes cause rebuilds
+  show-input-diff = writeShellApplication {
+    name = "show-input-diff";
+    runtimeInputs = with pkgs; [
+      nix-diff
+      jq
+    ];
+    text = ''
+      maxDepth=999
+      new_args=()
+      while [[ $# -gt 0 ]]; do
+          case $1 in
+              --max-depth)
+                  maxDepth="$2"
+                  shift 2
+                  ;;
+              --max-depth=*)
+                  maxDepth="''${1#*=}"
+                  shift
+                  ;;
+              *)
+                  new_args+=("$1")
+                  shift
+                  ;;
+          esac
+      done
+      set -- "''${new_args[@]}"
+
+      left=$(nix eval --raw "''${1:-"github:edgelesssys/contrast#matrix.x86_64-linux"}.drvPath" | tr -d '\n')
+      right=$(nix eval --raw "''${2:-".#matrix.x86_64-linux"}.drvPath" | tr -d '\n')
+      nix-diff "$left" "$right" --json | jq -r --argjson maxDepth "$maxDepth" '
+        def printTree(level):
+          (
+            select(.drvName != null and .drvName != "") | ("  " * level) + .drvName,
+            (.drvNames // [] | .[] | ("  " * (level + 1)) + .),
+            (if level + 1 < $maxDepth then (.drvDiff.inputsDiff.inputDerivationDiffs // [] | .[] | printTree(level + 1)) else empty end)
+          );
+        .inputsDiff.inputDerivationDiffs[] | printTree(0)
+      '
+    '';
+  };
 })

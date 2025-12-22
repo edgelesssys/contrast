@@ -1,0 +1,31 @@
+name: build and cache all flake outputs
+
+on:
+  workflow_call:
+    secrets:
+      GITHUB_TOKEN_IN:
+        required: true
+      CACHIX_AUTH_TOKEN:
+        required: true
+
+jobs:
+  nix-build:
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        include:
+          - runner: yet-to-be-set-up-nix-build-host
+            system: x86_64-linux
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup_nix
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
+          cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: pre-build all flake outputs
+        run: |
+          nix build .#matrix.${{ matrix.system }}
