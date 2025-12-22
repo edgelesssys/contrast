@@ -131,6 +131,7 @@ func TestOpenSSL(t *testing.T) {
 
 			require := require.New(t)
 
+			require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
 			require.NoError(ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
 
 			require.NoError(ct.Kubeclient.WaitForPod(ctx, ct.Namespace, "port-forwarder-openssl-frontend"))
@@ -156,6 +157,7 @@ func TestOpenSSL(t *testing.T) {
 		c := kubeclient.NewForTest(t)
 
 		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
+		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
 
 		// Call the backend server from the frontend. If this command produces no TLS error, we verified that
 		// - the certificate in the frontend pod can be used as a client certificate
@@ -178,6 +180,9 @@ func TestOpenSSL(t *testing.T) {
 			defer cancel()
 
 			c := kubeclient.NewForTest(t)
+
+			require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
+			require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
 
 			// If in the future a SetManifest call with the same manifest does not result in a certificate rotation,
 			// this change of the manifest makes sure to always rotate certificates.
@@ -267,6 +272,9 @@ func TestOpenSSL(t *testing.T) {
 		defer cancel()
 
 		c := kubeclient.NewForTest(t)
+
+		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
+		require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
 
 		require.NoError(c.Restart(ctx, kubeclient.StatefulSet{}, ct.Namespace, "coordinator"))
 		require.NoError(c.WaitForCoordinator(ctx, ct.Namespace))
