@@ -14,6 +14,7 @@
   openssl,
   withAgentPolicy ? true,
   withStandardOCIRuntime ? false,
+  withInitData ? true,
 }:
 
 rustPlatform.buildRustPackage rec {
@@ -76,7 +77,8 @@ rustPlatform.buildRustPackage rec {
   buildFeatures =
     lib.optional withSeccomp "seccomp"
     ++ lib.optional withAgentPolicy "agent-policy"
-    ++ lib.optional withStandardOCIRuntime "standard-oci-runtime";
+    ++ lib.optional withStandardOCIRuntime "standard-oci-runtime"
+    ++ lib.optional withInitData "init-data";
 
   env = {
     LIBC = "gnu";

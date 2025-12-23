@@ -1,8 +1,8 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index b5c1c1968..06c02f098 100644
+index 88171e1c40f271be9468c6c8b9b87c871a55c1f9..ac98ea9d3194bbca9cdc8c6fb4bf92a8f8472d97 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -291,7 +291,7 @@
+@@ -296,7 +296,7 @@
          "enable_configmap_secret_storages": false
      },
      "cluster_config": {
@@ -11,17 +11,17 @@ index b5c1c1968..06c02f098 100644
          "guest_pull": true,
          "pause_container_id_policy": "v1"
      },
-@@ -313,7 +313,8 @@
+@@ -317,7 +317,8 @@
+                 "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
                  "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
-                 "^TERM=xterm$",
--                "^PCI_RESOURCE_NVIDIA_COM.*=[a-fA-F0-9:.-]*$"
-+                "^PCI_RESOURCE_NVIDIA_COM.*=[a-fA-F0-9:.-]*$",
+-                "^TERM=xterm$"
++                "^TERM=xterm$",
 +                "^CONTRAST_[A-Z0-9_]*=.*$"
              ]
          },
          "UpdateInterfaceRequest": {
-@@ -330,7 +331,9 @@
+@@ -334,7 +335,9 @@
          ],
          "ExecProcessRequest": {
              "allowed_commands": [],
@@ -32,7 +32,7 @@ index b5c1c1968..06c02f098 100644
          },
          "UpdateRoutesRequest": {
              "forbidden_device_names": [
-@@ -350,8 +353,8 @@
+@@ -354,8 +357,8 @@
              ]
          },
          "CloseStdinRequest": false,

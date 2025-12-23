@@ -1,8 +1,8 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index bc1d3fc52..91126cf8c 100644
+index 88171e1c40f271be9468c6c8b9b87c871a55c1f9..3a4617ee6acad46e156cb664d710f42f1c488a32 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -291,7 +291,7 @@
+@@ -296,7 +296,7 @@
          "enable_configmap_secret_storages": false
      },
      "cluster_config": {
@@ -11,7 +11,7 @@ index bc1d3fc52..91126cf8c 100644
          "guest_pull": true,
          "pause_container_id_policy": "v1"
      },
-@@ -350,7 +350,7 @@
+@@ -354,7 +354,7 @@
              ]
          },
          "CloseStdinRequest": false,
@@ -20,4 +20,3 @@ index bc1d3fc52..91126cf8c 100644
          "UpdateEphemeralMountsRequest": false,
          "WriteStreamRequest": false
      }
-

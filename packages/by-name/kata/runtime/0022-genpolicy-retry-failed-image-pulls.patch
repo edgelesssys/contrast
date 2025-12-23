@@ -1,4 +1,4 @@
-From 05ab7c995141b459e71657711e567578e30eec82 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
 Date: Wed, 7 Jan 2026 10:42:06 +0100
 Subject: [PATCH] genpolicy: retry failed image pulls
@@ -11,7 +11,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  3 files changed, 72 insertions(+), 24 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index 34c9285b0..6e59180da 100644
+index 34c9285b049cc647f5e61507758fe617aabc8033..6e59180da0cbd587bfe3b12e49284c405e37ca2d 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -21,7 +21,12 @@ use oci_client::{
@@ -127,7 +127,7 @@ index 34c9285b0..6e59180da 100644
          // Find the last layer with an /etc/* file, respecting whiteouts.
          info!("Parsing users and groups in image layers");
 diff --git a/src/tools/genpolicy/src/utils.rs b/src/tools/genpolicy/src/utils.rs
-index 241d80d96..735446807 100644
+index 241d80d96483e09dc2422466275d67640d5b57d3..735446807153704de949cecc959f1f2d486715ee 100644
 --- a/src/tools/genpolicy/src/utils.rs
 +++ b/src/tools/genpolicy/src/utils.rs
 @@ -109,6 +109,15 @@ struct CommandLineOptions {
@@ -163,10 +163,10 @@ index 241d80d96..735446807 100644
      }
  }
 diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
-index a9508e292..0df9314a9 100644
+index b0745ededf072677f9fc7ae8a9206fc4ac01ffd6..9f354539626c891e93ca4d31887a7e6a98808788 100644
 --- a/src/tools/genpolicy/tests/policy/main.rs
 +++ b/src/tools/genpolicy/tests/policy/main.rs
-@@ -108,6 +108,7 @@ mod tests {
+@@ -121,6 +121,7 @@ mod tests {
              version: false,
              yaml_file: workdir.join("pod.yaml").to_str().map(|s| s.to_string()),
              initdata: kata_types::initdata::InitData::new("sha256", "0.1.0"),
