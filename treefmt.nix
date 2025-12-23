@@ -71,6 +71,11 @@
       command = "${lib.getExe pkgs.contrastPkgs.scripts.docs-selfref-lint}";
       includes = [ "docs/docs/*.md" ];
     };
+    github-matrix-parser = {
+      command = "${lib.getExe pkgs.contrastPkgs.github-matrix-parser}";
+      options = [ "--check" ];
+      includes = [ ".github/workflows/*.yml" ];
+    };
     # Catch debug arguments in nix code that were accidentally left on true.
     lint-no-debug = {
       command = "${lib.getExe pkgs.contrastPkgs.scripts.lint-no-debug}";
