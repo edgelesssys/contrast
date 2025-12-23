@@ -224,15 +224,15 @@ func TestStoreAndVerifyLayers(t *testing.T) {
 func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 	tests := map[string]struct {
 		digest  string
-		wantErr error
+		wantErr string
 	}{
 		"correct manifest digest, wrong layer digest is caught": {
 			digest:  registry.ManifestForWrongBlobDigest(),
-			wantErr: errValidateLayer,
+			wantErr: "error verifying sha256 checksum",
 		},
 		"correct index digest, correct manifest digest, wrong layer digest is caught": {
 			digest:  registry.IndexForManifestForWrongBlobDigest(),
-			wantErr: errValidateLayer,
+			wantErr: "error verifying sha256 checksum",
 		},
 	}
 	for name, tc := range tests {
@@ -264,7 +264,7 @@ func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 
 			_, err = s.storeAndVerifyLayers(log, remoteImg)
 
-			assert.ErrorIs(err, tc.wantErr)
+			assert.ErrorContains(err, tc.wantErr)
 		})
 	}
 }
