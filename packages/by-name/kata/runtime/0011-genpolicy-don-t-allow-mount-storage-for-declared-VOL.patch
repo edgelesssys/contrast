@@ -12,7 +12,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  4 files changed, 8 insertions(+), 62 deletions(-)
 
 diff --git a/src/tools/genpolicy/genpolicy-settings.json b/src/tools/genpolicy/genpolicy-settings.json
-index 2dbc8160413d54116e581a7566020ea2fcbc62e3..5861b483e0b3c910ce82fe72b8384f965ef06c85 100644
+index 76ad6bed30c81e131ed637ed1f4e87cf03813d12..88171e1c40f271be9468c6c8b9b87c871a55c1f9 100644
 --- a/src/tools/genpolicy/genpolicy-settings.json
 +++ b/src/tools/genpolicy/genpolicy-settings.json
 @@ -183,18 +183,6 @@
@@ -33,9 +33,9 @@ index 2dbc8160413d54116e581a7566020ea2fcbc62e3..5861b483e0b3c910ce82fe72b8384f96
 -            ]
          }
      },
-     "mount_destinations": [
+     "device_annotations": {
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 20ebd36e247a7268d7eea36b84a2ca38f80871af..a029c8bf0ce702871d70c07a254f40b675d35268 100644
+index 03c39eba6b2c417df06f8eb4c1d5b8bd134c4f8b..acbaef81826caef4aad9ee21d99712c83d6b651a 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
 @@ -370,46 +370,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
@@ -86,10 +86,10 @@ index 20ebd36e247a7268d7eea36b84a2ca38f80871af..a029c8bf0ce702871d70c07a254f40b6
 -    });
 -}
 diff --git a/src/tools/genpolicy/src/settings.rs b/src/tools/genpolicy/src/settings.rs
-index e3bab1e9b6d63b036221818ab5f24fa6b5c3d81c..e78e4b593d9a3eab051539d065940204fa195d1a 100644
+index d839812b5b0f1b4a4419d8b884ff890d101c31a1..14c09aaefebf0a8594aa2b904cab6bfae39f2a9e 100644
 --- a/src/tools/genpolicy/src/settings.rs
 +++ b/src/tools/genpolicy/src/settings.rs
-@@ -33,7 +33,6 @@ pub struct Volumes {
+@@ -34,7 +34,6 @@ pub struct Volumes {
      pub emptyDir: EmptyDirVolume,
      pub emptyDir_memory: EmptyDirVolume,
      pub configMap: ConfigMapVolume,
