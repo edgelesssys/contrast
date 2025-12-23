@@ -170,10 +170,10 @@ index ed31e089edecb3708dcb5d4d147b217fb430f81c..027315e26bab88caf28eb5ffda80409a
  			return nil, err
  		}
 diff --git a/src/tools/genpolicy/rules.rego b/src/tools/genpolicy/rules.rego
-index 745b8e389d4c3199f917404d99a030504b6c6996..dd2b6ce6fc457d8e7dae256f06e96cb8a4313995 100644
+index abee6de92049bd9dfbdd3437218c6790a247c14d..c014d9e4248174cc3d55f7e28ab1ed8709d2acf1 100644
 --- a/src/tools/genpolicy/rules.rego
 +++ b/src/tools/genpolicy/rules.rego
-@@ -1041,10 +1041,9 @@ allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
+@@ -1160,10 +1160,9 @@ allow_storages(p_storages, i_storages, bundle_id, sandbox_id) if {
  
      p_count := count(p_storages)
      i_count := count(i_storages)
@@ -186,7 +186,7 @@ index 745b8e389d4c3199f917404d99a030504b6c6996..dd2b6ce6fc457d8e7dae256f06e96cb8
  
      every i_storage in i_storages {
          allow_storage(p_storages, i_storage, bundle_id, sandbox_id)
-@@ -1070,15 +1069,6 @@ allow_storage(p_storages, i_storage, bundle_id, sandbox_id) if {
+@@ -1189,15 +1188,6 @@ allow_storage(p_storages, i_storage, bundle_id, sandbox_id) if {
  
      print("allow_storage: true")
  }
@@ -202,7 +202,7 @@ index 745b8e389d4c3199f917404d99a030504b6c6996..dd2b6ce6fc457d8e7dae256f06e96cb8
  
  allow_storage_source(p_storage, i_storage, bundle_id) if {
      print("allow_storage_source 1: start")
-@@ -1108,6 +1098,23 @@ allow_storage_source(p_storage, i_storage, bundle_id) if {
+@@ -1227,6 +1217,23 @@ allow_storage_source(p_storage, i_storage, bundle_id) if {
  
      print("allow_storage_source 3: true")
  }
@@ -226,7 +226,7 @@ index 745b8e389d4c3199f917404d99a030504b6c6996..dd2b6ce6fc457d8e7dae256f06e96cb8
  
  allow_storage_options(p_storage, i_storage) if {
      print("allow_storage_options 1: start")
-@@ -1161,6 +1168,22 @@ allow_mount_point(p_storage, i_storage, bundle_id, sandbox_id) if {
+@@ -1280,6 +1287,22 @@ allow_mount_point(p_storage, i_storage, bundle_id, sandbox_id) if {
  
      print("allow_mount_point 3: true")
  }
