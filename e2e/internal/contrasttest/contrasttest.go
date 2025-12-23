@@ -10,6 +10,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -32,6 +33,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
+	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -94,17 +96,27 @@ func New(t *testing.T) *ContrastTest {
 
 	token := os.Getenv("CONTRAST_GHCR_READ")
 	require.NotEmpty(t, token, "environment variable CONTRAST_GHCR_READ must be set with a ghcr token")
+	cfg := map[string]any{
+		"registries": map[string]any{
+			"ghcr.io.": map[string]string{
+				"auth": base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "user-not-required-here:%s", token)),
+			},
+		},
+	}
+	imagePullerConfig, err := toml.Marshal(cfg)
+	require.NoError(err)
 
 	return &ContrastTest{
-		Namespace:                   MakeNamespace(t, Flags.NamespaceSuffix),
-		WorkDir:                     t.TempDir(),
-		ImageReplacementsFile:       Flags.ImageReplacementsFile,
-		Platform:                    platform,
-		NamespaceFile:               Flags.NamespaceFile,
-		RuntimeClassName:            *runtimeClass.Handler,
-		Kubeclient:                  kubeclient.NewForTest(t),
-		NodeInstallerTargetConfType: Flags.NodeInstallerTargetConfType,
-		GHCRToken:                   token,
+		Namespace:                      MakeNamespace(t, Flags.NamespaceSuffix),
+		WorkDir:                        t.TempDir(),
+		ImageReplacementsFile:          Flags.ImageReplacementsFile,
+		Platform:                       platform,
+		NamespaceFile:                  Flags.NamespaceFile,
+		RuntimeClassName:               *runtimeClass.Handler,
+		Kubeclient:                     kubeclient.NewForTest(t),
+		NodeInstallerTargetConfType:    Flags.NodeInstallerTargetConfType,
+		GHCRToken:                      token,
+		NodeInstallerImagePullerConfig: imagePullerConfig,
 	}
 }
 

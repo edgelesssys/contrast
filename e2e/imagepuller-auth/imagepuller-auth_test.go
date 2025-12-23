@@ -7,9 +7,7 @@ package imagepullerauth
 
 import (
 	"context"
-	"encoding/base64"
 	"flag"
-	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -18,7 +16,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
-	"github.com/pelletier/go-toml/v2"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,19 +23,6 @@ func TestImagepullerAuth(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
 	ct := contrasttest.New(t)
-
-	token := os.Getenv("CONTRAST_GHCR_READ")
-	require.NotEmpty(t, token, "environment variable CONTRAST_GHCR_READ must be set with a ghcr token")
-	cfg := map[string]any{
-		"registries": map[string]any{
-			"ghcr.io.": map[string]string{
-				"auth": base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "user-not-required-here:%s", token)),
-			},
-		},
-	}
-	imagePullerConfig, err := toml.Marshal(cfg)
-	require.NoError(t, err)
-	ct.NodeInstallerImagePullerConfig = imagePullerConfig
 
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
