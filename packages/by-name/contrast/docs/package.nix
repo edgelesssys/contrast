@@ -2,45 +2,43 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 {
-  lib,
   fetchYarnDeps,
-  mkYarnPackage,
+  stdenv,
+  yarnConfigHook,
+  yarnBuildHook,
+  nodejs,
   contrast,
 
   # Configure the base URL when deploying previews under a subpath
   docusaurusBaseUrl ? "",
 }:
 
-mkYarnPackage rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "contrast-docs";
   inherit (contrast) version;
 
   src = ../../../../docs;
 
-  packageJSON = "${src}/package.json";
-  offlineCache = fetchYarnDeps {
-    yarnLock = "${src}/yarn.lock ";
+  yarnOfflineCache = fetchYarnDeps {
+    inherit (finalAttrs) pname version;
+    yarnLock = finalAttrs.src + "/yarn.lock";
     hash = "sha256-ZUOjRnodA4RLDDyA+vBnC6jChiZHhZuVDq0/KAS6uZs=";
   };
 
-  configurePhase = ''
-    cp -r $node_modules node_modules
-    chmod +w node_modules
-  ''
-  + lib.optionalString (docusaurusBaseUrl != "") ''
+  nativeBuildInputs = [
+    yarnConfigHook
+    yarnBuildHook
+    nodejs
+  ];
+
+  env.CI = "true";
+
+  postPatch = ''
     sed -i "s|baseUrl: '/contrast/',|baseUrl: '${docusaurusBaseUrl}',|" docusaurus.config.js
   '';
-
-  buildPhase = ''
-    export HOME=$(mktemp -d)
-    export CI=true
-    yarn --offline build
-  '';
-
-  distPhase = "true";
 
   installPhase = ''
     mkdir -p $out
     cp -R build/* $out
   '';
-}
+})
