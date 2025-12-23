@@ -9,7 +9,7 @@ Contrast uses remote attestation in two ways:
 
 Most of the time, verifiers want to establish a secure channel to the attester in order to exchange further messages.
 For example, the Coordinator hands out secrets to workloads or seed share owners over this secure channel.
-Contrast uses a protocol on top of TLS 1.2, together referred to as _aTLS_, to establish such a channel and verify the attestation at the same time.
+Contrast uses a protocol on top of TLS 1.3, together referred to as _aTLS_, to establish such a channel and verify the attestation at the same time.
 
 ## Conceptual messages
 
@@ -53,7 +53,7 @@ The client parses the nonce from this field and creates the TLS private key and 
 Like the server, it embeds the report as a certificate extension and sends it back to the server with the `ClientCertificate` message.
 
 The following diagram shows the relevant messages carrying attestation protocol information.
-Some messages of the TLS 1.2 handshake that aren't relevant to attestation are omitted.
+Some messages of the TLS 1.3 handshake that aren't relevant to attestation are omitted.
 
 ```mermaid
 sequenceDiagram
