@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"slices"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
@@ -84,11 +85,26 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 	return remoteImg, nil
 }
 
-func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gcr.Image) (string, error) {
+func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gcr.Image) (id string, retErr error) {
 	layers, err := remoteImg.Layers()
 	if err != nil {
 		return "", fmt.Errorf("obtaining the image layers: %w", err)
 	}
+
+	pulledLayers := make([]string, 0, len(layers))
+	defer func() {
+		if retErr == nil {
+			return
+		}
+		// Clean up before returning an error. The layers need to be removed in reverse order,
+		// because later layers are children of earlier layers.
+		slices.Reverse(pulledLayers)
+		for _, id := range pulledLayers {
+			if err := s.Store.DeleteLayer(id); err != nil {
+				s.Logger.Error("cleaning layer failed", "id", id, "err", err)
+			}
+		}
+	}()
 
 	previousLayer := ""
 	for idx, layer := range layers {
@@ -112,6 +128,9 @@ func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gc
 				fmt.Errorf("closing layer reader: %w", rc.Close()),
 			)
 		}
+		// Save pulled ID for removal in case of failure.
+		pulledLayers = append(pulledLayers, putLayer.ID)
+
 		// Consume any leftover bytes from the reader, mostly to trigger the built-in digest validation.
 		if _, err := io.Copy(io.Discard, rc); err != nil {
 			return "", errors.Join(
