@@ -78,4 +78,8 @@ buildGoModule {
     "e2e/workloadsecret"
     # keep-sorted end
   ];
+
+  # Skip fixup as binaries are already stripped and we don't
+  # need any other fixup, saving some seconds.
+  dontFixup = true;
 }
