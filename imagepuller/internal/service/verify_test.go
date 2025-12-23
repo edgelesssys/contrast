@@ -5,7 +5,9 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http/httptest"
 	"testing"
@@ -17,6 +19,7 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.podman.io/storage"
 )
 
 var zeroDigest = "0000000000000000000000000000000000000000000000000000000000000000"
@@ -230,6 +233,10 @@ func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 			digest:  registry.ManifestForWrongBlobDigest(),
 			wantErr: "error verifying sha256 checksum",
 		},
+		"correct manifest digest, wrong layer digest for second layer is caught": {
+			digest:  registry.ManifestForWrongBlobDigestTwoLayers(),
+			wantErr: "error verifying sha256 checksum",
+		},
 		"correct index digest, correct manifest digest, wrong layer digest is caught": {
 			digest:  registry.IndexForManifestForWrongBlobDigest(),
 			wantErr: "error verifying sha256 checksum",
@@ -244,11 +251,10 @@ func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 			server := httptest.NewServer(registry.New())
 			t.Cleanup(server.Close)
 
+			store := &fakeStore{}
 			s := ImagePullerService{
 				Logger: log,
-				Store: &stubStore{
-					putLayerDigest: digest.NewDigestFromBytes(digest.SHA256, []byte{}),
-				},
+				Store:  store,
 				Remote: remote.DefaultRemote{},
 			}
 			remoteImg, err := s.getAndVerifyImage(
@@ -265,6 +271,42 @@ func TestStoreAndVerifyLayers_EvilRegistry(t *testing.T) {
 			_, err = s.storeAndVerifyLayers(log, remoteImg)
 
 			assert.ErrorContains(err, tc.wantErr)
+
+			// Ensure artifacts were cleaned up after failure.
+			if tc.wantErr != "" {
+				assert.Empty(store.layers)
+			}
 		})
 	}
+}
+
+type fakeStore struct {
+	layers map[string]struct{}
+
+	storage.Store
+}
+
+func (s *fakeStore) PutLayer(requestedID, _ string, _ []string, _ string, _ bool, _ *storage.LayerOptions, r io.Reader) (*storage.Layer, int64, error) {
+	if s.layers == nil {
+		s.layers = make(map[string]struct{})
+	}
+	hash := sha256.New()
+	n, err := io.Copy(hash, r)
+	if err != nil {
+		return nil, n, err
+	}
+	id := fmt.Sprintf("%x", hash.Sum(nil))
+	if requestedID != "" {
+		id = requestedID
+	}
+	s.layers[id] = struct{}{}
+	return &storage.Layer{ID: id, CompressedDigest: digest.NewDigest(digest.SHA256, hash)}, n, nil
+}
+
+func (s *fakeStore) DeleteLayer(id string) error {
+	if _, ok := s.layers[id]; !ok {
+		return fmt.Errorf("DeleteLayer for non-existent id: %q", id)
+	}
+	delete(s.layers, id)
+	return nil
 }
