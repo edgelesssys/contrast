@@ -8,7 +8,11 @@ package atls
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/sha512"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -31,17 +35,14 @@ import (
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/google/go-sev-guest/abi"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// TestSNPValidators runs e2e tests for the atls layer.
-func TestSNPValidators(t *testing.T) {
+// TestATLS runs e2e tests for the atls layer.
+func TestATLS(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
-
-	if !platforms.IsSNP(platform) {
-		t.Skip("Skipping test, test can only be run on SEV-SNP-based platforms")
-	}
 
 	ct := contrasttest.New(t)
 
@@ -141,6 +142,9 @@ func TestSNPValidators(t *testing.T) {
 	}
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
+			if !platforms.IsSNP(platform) {
+				t.Skip("Skipping test, test can only be run on SEV-SNP-based platforms")
+			}
 			require.NoError(t, ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", userapi.Port, func(addr string) error {
 				assert := require.New(t)
 				require := require.New(t)
@@ -175,6 +179,59 @@ func TestSNPValidators(t *testing.T) {
 			}))
 		})
 	}
+
+	t.Run("aTLS uses TLS1.3 by default", func(t *testing.T) {
+		assert := assert.New(t)
+		require := require.New(t)
+		ctx, cancel := context.WithTimeout(t.Context(), 1*time.Minute)
+		t.Cleanup(cancel)
+
+		assert.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", userapi.Port, func(addr string) error {
+			privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+			require.NoError(err)
+			cfg, err := atls.CreateAttestationClientTLSConfig(ctx, nil, nil, privKey)
+			if err != nil {
+				return fmt.Errorf("CreateAttestationClientTLSConfig(): %w", err)
+			}
+			dialer := &tls.Dialer{Config: cfg}
+			conn, err := dialer.DialContext(ctx, "tcp", addr)
+			if err != nil {
+				return fmt.Errorf("tls.Dial(): %w", err)
+			}
+			defer conn.Close()
+			tlsConn, ok := conn.(*tls.Conn)
+			require.True(ok)
+			state := tlsConn.ConnectionState()
+			assert.True(state.HandshakeComplete)
+			assert.Equal(uint16(tls.VersionTLS13), state.Version)
+			assert.False(state.DidResume)
+			return nil
+		}))
+	})
+
+	t.Run("aTLS rejects TLS1.2", func(t *testing.T) {
+		assert := assert.New(t)
+		require := require.New(t)
+		ctx, cancel := context.WithTimeout(t.Context(), 1*time.Minute)
+		t.Cleanup(cancel)
+
+		assert.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", "1313", func(addr string) error {
+			privKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+			require.NoError(err)
+			cfg, err := atls.CreateAttestationClientTLSConfig(ctx, nil, nil, privKey)
+			if err != nil {
+				return fmt.Errorf("CreateAttestationClientTLSConfig(): %w", err)
+			}
+			cfg.MaxVersion = tls.VersionTLS12
+			dialer := &tls.Dialer{Config: cfg}
+			conn, err := dialer.DialContext(ctx, "tcp", addr)
+			if err == nil {
+				conn.Close()
+			}
+			assert.ErrorContains(err, "no supported versions satisfy MinVersion and MaxVersion")
+			return nil
+		}))
+	})
 }
 
 func TestMain(m *testing.M) {
