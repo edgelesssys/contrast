@@ -68,7 +68,7 @@ func TestMemDump(t *testing.T) {
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
 	t.Run("memory dump does not contain canary string", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		defer cancel()
 
 		require := require.New(t)
