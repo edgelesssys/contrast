@@ -46,11 +46,11 @@ virtio_fs_queue_size = 1024
 
 [Agent]
 [Agent.kata]
-dial_timeout = 60
+dial_timeout = 120
 kernel_modules = []
 
 [Runtime]
-create_container_timeout = 60
+create_container_timeout = 120
 dan_conf = '/run/kata-containers/dans'
 disable_guest_empty_dir = false
 disable_guest_seccomp = true

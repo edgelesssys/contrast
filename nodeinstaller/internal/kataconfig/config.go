@@ -72,6 +72,9 @@ func KataRuntimeConfig(
 		config.Agent["kata"]["debug_console_enabled"] = true
 		config.Runtime["enable_debug"] = true
 	}
+	// For larger images, we've been running into timeouts in e2e tests.
+	config.Agent["kata"]["dial_timeout"] = 120
+	config.Runtime["create_container_timeout"] = 120
 	// GPU-specific settings
 	if platforms.IsGPU(platform) {
 		config.Hypervisor["qemu"]["cold_plug_vfio"] = "root-port"
