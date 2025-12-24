@@ -83,7 +83,7 @@ func CreateAttestationClientTLSConfig(ctx context.Context, issuer Issuer, valida
 		},
 		GetClientCertificate: clientConn.getCertificate, // use custom certificate for mutual aTLS connections
 		InsecureSkipVerify:   true,                      // disable default verification because we use our own verify func
-		MinVersion:           tls.VersionTLS12,
+		MinVersion:           tls.VersionTLS13,
 		NextProtos: []string{
 			encodeNonceToNextProtos(clientNonce),
 			"h2", // grpc-go requires us to advertise HTTP/2 (h2) over ALPN
@@ -131,10 +131,11 @@ func getATLSConfigForClientFunc(issuer Issuer, validators []Validator, attestati
 		}
 
 		cfg := &tls.Config{
-			GetCertificate: serverConn.getCertificate,
-			MinVersion:     tls.VersionTLS12,
-			ClientAuth:     tls.RequestClientCert, // request client certificate but don't require it
-			NextProtos:     []string{"h2"},        // grpc-go requires us to advertise HTTP/2 (h2) over ALPN
+			GetCertificate:         serverConn.getCertificate,
+			MinVersion:             tls.VersionTLS13,
+			ClientAuth:             tls.RequestClientCert, // request client certificate but don't require it
+			NextProtos:             []string{"h2"},        // grpc-go requires us to advertise HTTP/2 (h2) over ALPN
+			SessionTicketsDisabled: true,
 		}
 
 		// ugly hack: abuse acceptable client CAs as a channel to transmit the nonce
