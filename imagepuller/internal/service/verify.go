@@ -7,7 +7,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
+	"slices"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	gcr "github.com/google/go-containerregistry/pkg/v1"
@@ -20,7 +22,6 @@ var (
 	errParseDigest         = errors.New("parsing image digest")
 	errUnexpectedMediaType = errors.New("unexpected media type")
 	errMissingPlatform     = errors.New("obtaining image digest for linux/amd64: platform missing from image index")
-	errValidateLayer       = errors.New("validating layer")
 )
 
 func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Logger, imageURL string) (gcr.Image, error) {
@@ -84,16 +85,26 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 	return remoteImg, nil
 }
 
-func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gcr.Image) (string, error) {
+func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gcr.Image) (id string, retErr error) {
 	layers, err := remoteImg.Layers()
 	if err != nil {
 		return "", fmt.Errorf("obtaining the image layers: %w", err)
 	}
 
-	manifest, err := remoteImg.Manifest()
-	if err != nil {
-		return "", fmt.Errorf("obtaining image manifest: %w", err)
-	}
+	pulledLayers := make([]string, 0, len(layers))
+	defer func() {
+		if retErr == nil {
+			return
+		}
+		// Clean up before returning an error. The layers need to be removed in reverse order,
+		// because later layers are children of earlier layers.
+		slices.Reverse(pulledLayers)
+		for _, id := range pulledLayers {
+			if err := s.Store.DeleteLayer(id); err != nil {
+				s.Logger.Error("cleaning layer failed", "id", id, "err", err)
+			}
+		}
+	}()
 
 	previousLayer := ""
 	for idx, layer := range layers {
@@ -117,17 +128,21 @@ func (s *ImagePullerService) storeAndVerifyLayers(log *slog.Logger, remoteImg gc
 				fmt.Errorf("closing layer reader: %w", rc.Close()),
 			)
 		}
+		// Save pulled ID for removal in case of failure.
+		pulledLayers = append(pulledLayers, putLayer.ID)
+
+		// Consume any leftover bytes from the reader, mostly to trigger the built-in digest validation.
+		if _, err := io.Copy(io.Discard, rc); err != nil {
+			return "", errors.Join(
+				fmt.Errorf("finalizing layer: %w", err),
+				fmt.Errorf("closing layer reader: %w", rc.Close()),
+			)
+		}
 		if err := rc.Close(); err != nil {
 			return "", fmt.Errorf("closing layer reader: %w", err)
 		}
 
-		ldManifest := manifest.Layers[idx].Digest.String()
-		ld := putLayer.CompressedDigest.String()
-		if ldManifest != ld {
-			return "", fmt.Errorf("%w: expected digest '%s' but got digest '%s'", errValidateLayer, ldManifest, ld)
-		}
-
-		log.Info("Applied and validated layer", "id", putLayer.ID, "size", n, "digest", ld)
+		log.Info("Applied and validated layer", "id", putLayer.ID, "size", n, "digest", putLayer.CompressedDigest.String())
 		previousLayer = putLayer.ID
 	}
 

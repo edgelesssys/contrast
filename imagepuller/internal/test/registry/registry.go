@@ -30,11 +30,13 @@ func New() *Registry {
 
 	manifest := manifest()
 	wrongBlobManifest := manifestForWrongBlob()
+	wrongBlobManifestTwoLayers := manifestForWrongBlobTwoLayers()
 	// TODO(burgerdev): wrongConfigManifest
 	manifests := map[string][]byte{
-		manifest.digest():          manifest,
-		WrongManifestDigest():      manifest,
-		wrongBlobManifest.digest(): wrongBlobManifest,
+		manifest.digest():                   manifest,
+		WrongManifestDigest():               manifest,
+		wrongBlobManifest.digest():          wrongBlobManifest,
+		wrongBlobManifestTwoLayers.digest(): wrongBlobManifestTwoLayers,
 	}
 
 	index := index()
