@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 {
+  lib,
   fetchYarnDeps,
   stdenv,
   yarnConfigHook,
@@ -33,7 +34,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   env.CI = "true";
 
-  postPatch = ''
+  postPatch = lib.optionalString (docusaurusBaseUrl != "") ''
     sed -i "s|baseUrl: '/contrast/',|baseUrl: '${docusaurusBaseUrl}',|" docusaurus.config.js
   '';
 
