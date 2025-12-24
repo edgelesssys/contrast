@@ -94,6 +94,16 @@ Then, install the ConfigMap to configure the Contrast node-installer for use wit
 kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/node-installer-target-config-k3s.yml
 ```
 
+If you need to pull large images, configure K3s to use a longer `runtime-request-timeout` duration than the [default value of 2 minutes](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/) used by the kubelet,
+for example by setting
+
+```bash
+kubelet-arg:
+  - "runtime-request-timeout=5m"
+```
+
+in `/etc/rancher/k3s/config.yaml`.
+
 ## Preparing a cluster for GPU usage
 
 ### Supported GPU hardware
