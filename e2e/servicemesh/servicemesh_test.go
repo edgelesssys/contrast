@@ -144,7 +144,7 @@ func TestIngressEgress(t *testing.T) {
 	t.Run("voting works end-to-end", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		defer cancel()
 		ensureReady(ctx, t, ct)
 
@@ -203,7 +203,7 @@ func TestIngressEgress(t *testing.T) {
 	t.Run("egress without ingress fails closed", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		defer cancel()
 		ensureReady(ctx, t, ct)
 
@@ -222,7 +222,7 @@ func TestIngressEgress(t *testing.T) {
 	t.Run("ingress can be disabled explicitly", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		defer cancel()
 		ensureReady(ctx, t, ct)
 

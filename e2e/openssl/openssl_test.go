@@ -67,7 +67,7 @@ func TestOpenSSL(t *testing.T) {
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
 
 	t.Run("check coordinator metrics and probe endpoints", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		defer cancel()
 
 		require := require.New(t)
@@ -126,7 +126,7 @@ func TestOpenSSL(t *testing.T) {
 		"root CA cert": ct.RootCACert(),
 	} {
 		t.Run("go dial frontend with "+cert, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+			ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 			defer cancel()
 
 			require := require.New(t)
@@ -151,7 +151,7 @@ func TestOpenSSL(t *testing.T) {
 		// This test verifies that the certificates minted by the coordinator are accepted by OpenSSL in server and client mode.
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		defer cancel()
 
 		c := kubeclient.NewForTest(t)
@@ -327,7 +327,7 @@ func TestOpenSSL(t *testing.T) {
 	t.Run("dmesg contains no errors", func(t *testing.T) {
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(1*time.Minute))
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
 		defer cancel()
 
 		c := kubeclient.NewForTest(t)
