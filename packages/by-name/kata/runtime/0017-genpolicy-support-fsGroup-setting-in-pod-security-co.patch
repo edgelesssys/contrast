@@ -88,7 +88,7 @@ index 08893004aa3d6723c50e7a6a538dd207b9d88995..178d407d667b76390f8a4e2a0d7b0222
      }
  
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index a029c8bf0ce702871d70c07a254f40b675d35268..f3bc0c011d5ff975e534ae93d805e542416d74f2 100644
+index acbaef81826caef4aad9ee21d99712c83d6b651a..2df3d79dc4e0ba704dfbbc132bea351bb0f29e31 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
 @@ -105,6 +105,7 @@ pub fn get_mount_and_storage(
@@ -132,7 +132,7 @@ index a029c8bf0ce702871d70c07a254f40b675d35268..f3bc0c011d5ff975e534ae93d805e542
              fs_group: protobuf::MessageField::none(),
              special_fields: ::protobuf::SpecialFields::new(),
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
-index 60b5781465f25bab4420d28132ef5ae09cdd1dc7..9d3299694b7693e200f20edc5b3ec3ee6efab50d 100644
+index a2012189ca32a4a06950076d9d1331b8b5fee359..62fb2a4a7a070bb81ecc553d16a41711c84dd310 100644
 --- a/src/tools/genpolicy/src/pod.rs
 +++ b/src/tools/genpolicy/src/pod.rs
 @@ -878,7 +878,7 @@ impl yaml::K8sResource for Pod {
@@ -217,10 +217,10 @@ index 25b67abec217316e22b337f5dfcae88f3b345034..c13ba221980ef48026556b8cf3ef0285
                          mountPaths.insert(volume_mount.mountPath.clone());
                      }
 diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
-index 5eeba23aa3cb7daf27fbb19418440b48a9d50655..a9508e292df3a09b12f46a96d3e0456bf634633d 100644
+index df0344d07b0150e59e62e2888f8bb09cb2c6b61d..b0745ededf072677f9fc7ae8a9206fc4ac01ffd6 100644
 --- a/src/tools/genpolicy/tests/policy/main.rs
 +++ b/src/tools/genpolicy/tests/policy/main.rs
-@@ -301,6 +301,12 @@ mod tests {
+@@ -315,6 +315,12 @@ mod tests {
          runtests("createcontainer/security_context/supplemental_groups").await;
      }
  
