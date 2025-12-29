@@ -225,6 +225,7 @@ type TDXReferenceValues struct {
 	Rtmrs        [4]HexString
 	TdAttributes HexString
 	Xfam         HexString
+	AllowedPIIDs []HexString
 }
 
 // Validate checks the validity of all fields in the bare metal TDX reference values.
