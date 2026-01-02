@@ -126,7 +126,7 @@ Contrast can only be used with the following Confidential Computing enabled GPUs
 
 :::warning
 
-Currently, only use of `NVIDIA H100 PCIe` is covered by tests. Use of other GPUs isn't guaranteed to work.
+Currently, only the `NVIDIA H100 PCIe` and `NVIDIA HGX B200` models are covered by tests. Other GPUs aren't guaranteed to work.
 
 :::
 
@@ -147,9 +147,6 @@ Further information is provided in [NVIDIA's Secure AI Compatibility Matrix](htt
 
 ### Setup
 
-<Tabs queryString="vendor">
-<TabItem value="amd" label="AMD SEV-SNP">
-
 To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled for *each cluster node* that should host GPU workloads:
 
 1. You must activate the IOMMU. You can check by running:
@@ -168,16 +165,9 @@ To enable GPU usage on a Contrast cluster, some conditions need to be fulfilled 
    - `CONFIG_VFIO_MDEV_DEVICE`
    - `CONFIG_VFIO_PCI`
 
-3. A CDI configuration needs to be present on the node. To generate it, you can use the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
-   Refer to the official instructions on [how to generate a CDI configuration with it](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/cdi-support.html).
+[Ubuntu Server 25.10](https://releases.ubuntu.com/questing/), for example, fulfills these requirements out-of-the-box, and no further changes are necessary here.
 
 If the per-node requirements are fulfilled, deploy the [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest) to the cluster. It provisions pod-VMs with GPUs via VFIO.
-
-Initially, label all nodes that _should run GPU workloads_:
-
-```sh
-kubectl label node <node-name> nvidia.com/gpu.workload.config=vm-passthrough
-```
 
 For a GPU-enabled Contrast cluster, you can then deploy the operator with the following commands:
 
@@ -187,20 +177,103 @@ helm repo add nvidia https://helm.ngc.nvidia.com/nvidia && helm repo update
 
 # Install the GPU Operator
 helm install --wait --generate-name \
-   -n gpu-operator --create-namespace \
-   nvidia/gpu-operator \
-   --version=v25.10.1 \
-   --set sandboxWorkloads.enabled=true \
-   --set sandboxWorkloads.defaultWorkload='vm-passthrough' \
-   --set nfd.nodefeaturerules=true \
-   --set vfioManager.enabled=true \
-   --set ccManager.enabled=true \
-   --set ccManager.defaultMode=on
+  -n gpu-operator --create-namespace \
+  nvidia/gpu-operator \
+  --version=v25.10.1 \
+  --set sandboxWorkloads.enabled=true \
+  --set sandboxWorkloads.defaultWorkload=vm-passthrough \
+  --set kataManager.enabled=true \
+  --set kataManager.config.runtimeClasses=null \
+  --set kataManager.repository=nvcr.io/nvidia/cloud-native \
+  --set kataManager.image=k8s-kata-manager \
+  --set kataManager.version=v0.2.4 \
+  --set ccManager.enabled=true \
+  --set ccManager.defaultMode=on \
+  --set ccManager.repository=nvcr.io/nvidia/cloud-native \
+  --set ccManager.image=k8s-cc-manager \
+  --set ccManager.version=v0.2.0 \
+  --set sandboxDevicePlugin.repository=ghcr.io/nvidia \
+  --set sandboxDevicePlugin.image=nvidia-sandbox-device-plugin \
+  --set sandboxDevicePlugin.version=8e76fe81 \
+  --set nfd.enabled=true \
+  --set nfd.nodefeaturerules=true
 ```
 
 Refer to the [official installation instructions](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html) for details and further options.
 
-Once the operator is deployed, check the available GPUs in the cluster:
+To enable support for Blackwell GPUs, some additional steps are necessary. For Hopper GPUs (for example the `NVIDIA H100 PCIe`), these steps can be skipped.
+
+<details>
+<summary>Enabling Support for Blackwell GPUs</summary>
+
+First, gather the Blackwell device ID:
+
+```sh
+lspci -nnk | grep '3D controller' -A3
+```
+
+Which yields output like this:
+
+```shell-session
+0000:18:00.0 3D controller [0302]: NVIDIA Corporation GB100 [B200] [10de:2901] (rev a1)
+        Subsystem: NVIDIA Corporation Device [10de:1999]
+        Kernel driver in use: vfio-pci
+        Kernel modules: nvidiafb, nouveau
+```
+
+In this case, the device ID is `2901`. The device ID then needs to be added to the list of supported GPUs:
+
+```sh
+device_id="2901" # replace with your device ID
+current_ids=$(kubectl get daemonset nvidia-cc-manager -n gpu-operator -o jsonpath='{.spec.template.spec.containers[?(@.name=="nvidia-cc-manager")].env[?(@.name=="CC_CAPABLE_DEVICE_IDS")].value}')
+kubectl set env daemonset/nvidia-cc-manager -n gpu-operator -c nvidia-cc-manager CC_CAPABLE_DEVICE_IDS="${current_ids},0x${device_id}"
+```
+
+Then, the node feature rules need to be patched, so that the nodes with Blackwell GPUs are correctly recognized as nodes that can host GPU workloads.
+For the B200 GPU shown above, the following values should be used:
+
+- `GPU_NAME`: `NVIDIA B200`
+- `GPU_NAME_SHORT`: `B200`
+- `DEVICE_ID`: `2901`
+
+```sh
+kubectl patch nodefeaturerule nvidia-nfd-nodefeaturerules --type='json' -p='[
+  {
+    "op": "add",
+    "path": "/spec/rules/10",
+    "value": {
+      "name": "<GPU_NAME>",
+      "labels": {
+        "nvidia.com/gpu.<GPU_NAME_SHORT>": "true",
+        "nvidia.com/gpu.family": "blackwell"
+      },
+      "matchFeatures": [
+        {
+          "feature": "pci.device",
+          "matchExpressions": {
+            "device": {"op": "In", "value": ["<DEVICE_ID>"]},
+            "vendor": {"op": "In", "value": ["10de"]}
+          }
+        }
+      ]
+    }
+  },
+  {
+    "op": "add",
+    "path": "/spec/rules/11/matchAny/0/matchFeatures/0/matchExpressions/nvidia.com~1gpu.family/value/-",
+    "value": "blackwell"
+  },
+  {
+    "op": "add",
+    "path": "/spec/rules/11/matchAny/1/matchFeatures/0/matchExpressions/nvidia.com~1gpu.family/value/-",
+    "value": "blackwell"
+  }
+]'
+```
+
+</details>
+
+Once the operator is fully deployed, which can take a few minutes, check the available GPUs in the cluster:
 
 ```sh
 kubectl get nodes -l nvidia.com/gpu.present -o json | \
@@ -218,11 +291,3 @@ The above command should yield an output similar to the following, depending on 
 ```
 
 These identifiers are then used to [run GPU workloads on the cluster](../../howto/workload-deployment/GPU-configuration.md).
-
-</TabItem>
-<TabItem value="intel" label="Intel TDX">
-:::warning
-Currently, Contrast only supports GPU workloads on SEV-SNP-based clusters.
-:::
-</TabItem>
-</Tabs>
