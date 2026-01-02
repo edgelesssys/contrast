@@ -43,6 +43,11 @@ func ManifestForWrongBlobDigest() string {
 	return manifestForWrongBlob().digest()
 }
 
+// ManifestForWrongBlobDigestTwoLayers refers to an image that's referring to WrongBlobDigest, but only in the second layer.
+func ManifestForWrongBlobDigestTwoLayers() string {
+	return manifestForWrongBlobTwoLayers().digest()
+}
+
 // IndexForWrongManifestDigest refers to an image index that's referring to WrongManifestDigest.
 func IndexForWrongManifestDigest() string {
 	return indexForWrongManifest().digest()
@@ -99,6 +104,12 @@ func manifestForWrongBlob() digested {
 	return fmt.Appendf(nil, manifestTemplate, config.digest(), len(config), WrongBlobDigest(), 0)
 }
 
+func manifestForWrongBlobTwoLayers() digested {
+	blob := blob()
+	config := digested(config)
+	return fmt.Appendf(nil, twoLayerManifestTemplate, config.digest(), len(config), blob.digest(), len(blob), WrongBlobDigest(), 0)
+}
+
 func indexForWrongManifest() digested {
 	manifest := manifest()
 	return fmt.Appendf(nil, indexTemplate, WrongManifestDigest(), len(manifest))
@@ -137,6 +148,30 @@ const manifestTemplate = `
     "size": %d
   },
   "layers": [
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "%s",
+      "size": %d
+    }
+  ]
+}
+`
+
+const twoLayerManifestTemplate = `
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.oci.image.manifest.v1+json",
+  "config": {
+    "mediaType": "application/vnd.oci.image.config.v1+json",
+    "digest": "%s",
+    "size": %d
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "%s",
+      "size": %d
+    },
     {
       "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
       "digest": "%s",
