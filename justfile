@@ -407,7 +407,7 @@ clean: soft-clean
 # Template for the justfile.env file.
 
 rctemplate := '''
-# Container registry to push images to
+# Container registry to push images to, i.e ghcr.io/<your username>
 container_registry=""
 # Platform to deploy on
 default_platform="Metal-QEMU-SNP"
