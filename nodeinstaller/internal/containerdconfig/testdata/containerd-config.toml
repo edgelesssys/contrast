@@ -2,7 +2,7 @@
 version = 2
 oom_score = 0
 [plugins."io.containerd.grpc.v1.cri"]
-  sandbox_image = "mcr.microsoft.com/oss/kubernetes/pause:3.6"
+  sandbox_image = "ghcr.io/edgelesssys/kubernetes/pause:3.6"
   [plugins."io.containerd.grpc.v1.cri".containerd]
       disable_snapshot_annotations = false
     default_runtime_name = "runc"
