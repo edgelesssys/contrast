@@ -153,6 +153,11 @@ buildGoModule (finalAttrs: {
       # to influence VM creation, we remove this device from the container spec in the agent.
       # Upstream bug: https://github.com/kata-containers/kata-containers/issues/12246.
       ./0022-runtime-remove-iommu-device.patch
+
+      # We are observing frequent pull failures from genpolicy due to the connection being reset by the registry.
+      # This patch allows genpolicy to retry these failed pulls multiple times.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12300.
+      ./0023-genpolicy-retry-failed-image-pulls.patch
     ];
   };
 

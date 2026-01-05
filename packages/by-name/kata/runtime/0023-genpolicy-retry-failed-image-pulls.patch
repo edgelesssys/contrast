@@ -1,0 +1,176 @@
+From 05ab7c995141b459e71657711e567578e30eec82 Mon Sep 17 00:00:00 2001
+From: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+Date: Wed, 7 Jan 2026 10:42:06 +0100
+Subject: [PATCH] genpolicy: retry failed image pulls
+
+Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
+---
+ src/tools/genpolicy/src/registry.rs      | 84 +++++++++++++++++-------
+ src/tools/genpolicy/src/utils.rs         | 11 ++++
+ src/tools/genpolicy/tests/policy/main.rs |  1 +
+ 3 files changed, 72 insertions(+), 24 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
+index 34c9285b0..6e59180da 100644
+--- a/src/tools/genpolicy/src/registry.rs
++++ b/src/tools/genpolicy/src/registry.rs
+@@ -21,7 +21,12 @@ use oci_client::{
+     Client, Reference,
+ };
+ use serde::{Deserialize, Serialize};
+-use std::{collections::BTreeMap, io::Read, io::Write, path::Path};
++use std::{
++    collections::BTreeMap,
++    io::{Read, Write},
++    path::Path,
++    time::Duration,
++};
+ use tokio::io::AsyncWriteExt;
+ 
+ /// Container image properties obtained from an OCI repository.
+@@ -125,7 +130,7 @@ const GROUP_FILE_WHITEOUT_TAR_PATH: &str = "etc/.wh.group";
+ pub const WHITEOUT_MARKER: &str = "WHITEOUT";
+ 
+ impl Container {
+-    pub async fn new(config: &Config, image: &str, is_pause_container: bool) -> Result<Self> {
++    pub async fn new(config: &Config, image: &str, _is_pause_container: bool) -> Result<Self> {
+         info!("============================================");
+         info!("Pulling manifest and config for {image}");
+         let image_string = image.to_string();
+@@ -138,19 +143,30 @@ impl Container {
+             ..Default::default()
+         });
+ 
+-        let (manifest, digest_hash, config_layer_str) = match client
+-            .pull_manifest_and_config(&reference, &auth)
+-            .await
+-        {
+-            Ok((m, d, c)) => (m, d, c),
+-            Err(oci_client::errors::OciDistributionError::AuthenticationFailure(message)) => {
+-                panic!("Container image registry authentication failure ({}). Are docker credentials set-up for current user?", &message);
+-            }
+-            Err(e) => {
+-                panic!(
+-                    "Failed to pull container image manifest and config - error: {:#?}",
+-                    &e
+-                );
++        let mut pull_attempt: u8 = 0;
++        let (manifest, digest_hash, config_layer_str) = loop {
++            match client.pull_manifest_and_config(&reference, &auth).await {
++                Ok((m, d, c)) => break (m, d, c),
++
++                Err(oci_client::errors::OciDistributionError::AuthenticationFailure(message)) => {
++                    panic!(
++                        "Container image registry authentication failure ({}). Are docker credentials set up for current user?",
++                        message
++                    );
++                }
++
++                Err(e) => {
++                    pull_attempt += 1;
++                    if pull_attempt >= config.max_pull_attempts {
++                        panic!("Failed to pull container image manifest and config after {} pull_attempt: {:#?}", config.max_pull_attempts, e);
++                    }
++                    let backoff = 2_u64.pow(pull_attempt.into());
++                    info!(
++                        "Attempt {}/{} unsuccessful, retrying after {}s...",
++                        pull_attempt, config.max_pull_attempts, backoff
++                    );
++                    tokio::time::sleep(Duration::from_secs(backoff)).await;
++                }
+             }
+         };
+ 
+@@ -166,15 +182,35 @@ impl Container {
+         let mut passwd = String::new();
+         let mut group = String::new();
+ 
+-        let image_layers = get_image_layers(
+-            &config.layers_cache,
+-            &mut client,
+-            &reference,
+-            &manifest,
+-            &config_layer,
+-        )
+-        .await
+-        .unwrap();
++        pull_attempt = 0;
++        let image_layers = loop {
++            match get_image_layers(
++                &config.layers_cache,
++                &mut client,
++                &reference,
++                &manifest,
++                &config_layer,
++            )
++            .await
++            {
++                Ok(image_layers) => break image_layers,
++                Err(e) => {
++                    pull_attempt += 1;
++                    if pull_attempt >= config.max_pull_attempts {
++                        panic!(
++                            "Failed to pull image layers after {} pull_attempt: {:#?}",
++                            config.max_pull_attempts, e
++                        );
++                    }
++                    let backoff = 2_u64.pow(pull_attempt.into());
++                    info!(
++                        "Attempt {}/{} unsuccessful, retrying after {}s...",
++                        pull_attempt, config.max_pull_attempts, backoff,
++                    );
++                    tokio::time::sleep(Duration::from_secs(backoff)).await;
++                }
++            }
++        };
+ 
+         // Find the last layer with an /etc/* file, respecting whiteouts.
+         info!("Parsing users and groups in image layers");
+diff --git a/src/tools/genpolicy/src/utils.rs b/src/tools/genpolicy/src/utils.rs
+index 241d80d96..735446807 100644
+--- a/src/tools/genpolicy/src/utils.rs
++++ b/src/tools/genpolicy/src/utils.rs
+@@ -109,6 +109,15 @@ struct CommandLineOptions {
+ 
+     #[clap(long, help = "Path to the initdata TOML file", require_equals = true)]
+     initdata_path: Option<String>,
++
++    #[clap(
++        short,
++        long,
++        help = "Maximum amount of attempts for pulling manifests, config and image layers before giving up.",
++        default_value_t = 5,
++        require_equals = true
++    )]
++    max_pull_attempts: u8,
+ }
+ 
+ /// Application configuration, derived from on command line parameters.
+@@ -131,6 +140,7 @@ pub struct Config {
+     pub layers_cache: layers_cache::ImageLayersCache,
+     pub version: bool,
+     pub initdata: kata_types::initdata::InitData,
++    pub max_pull_attempts: u8,
+ }
+ 
+ impl Config {
+@@ -182,6 +192,7 @@ impl Config {
+             layers_cache: layers_cache::ImageLayersCache::new(&layers_cache_file_path),
+             version: args.version,
+             initdata,
++            max_pull_attempts: args.max_pull_attempts,
+         }
+     }
+ }
+diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
+index a9508e292..0df9314a9 100644
+--- a/src/tools/genpolicy/tests/policy/main.rs
++++ b/src/tools/genpolicy/tests/policy/main.rs
+@@ -108,6 +108,7 @@ mod tests {
+             version: false,
+             yaml_file: workdir.join("pod.yaml").to_str().map(|s| s.to_string()),
+             initdata: kata_types::initdata::InitData::new("sha256", "0.1.0"),
++            max_pull_attempts: 1,
+         };
+ 
+         // The container repos/network calls can be unreliable, so retry
