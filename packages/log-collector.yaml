@@ -48,4 +48,4 @@ metadata:
   name: high-priority-logcollector
 value: 10000000
 globalDefault: false
-description: "This priority class is used to prioritise the log collector pod creation before anything else"
+description: "This priority class is used to prioritize the log collector pod creation before anything else"

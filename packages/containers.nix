@@ -187,6 +187,22 @@ let
         Cmd = [ "journalctl --no-tail --no-pager -f" ];
       };
     };
+
+    k8s-log-collector = dockerTools.buildImage {
+      name = "k8s-log-collector";
+      tag = "0.1.0";
+      copyToRoot = with pkgs; [
+        # Used when execing into the container to collect logs.
+        bash
+        coreutils
+        gnutar
+        gzip
+      ];
+      config = {
+        Cmd = [ "${lib.getExe contrastPkgs.k8s-log-collector}" ];
+        Volumes."/logs" = { };
+      };
+    };
   };
 in
 containers
