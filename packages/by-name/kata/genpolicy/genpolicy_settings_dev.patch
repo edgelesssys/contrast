@@ -1,18 +1,18 @@
 diff --git a/genpolicy-settings.json b/genpolicy-settings.json
-index b5c1c1968..06c02f098 100644
+index 88171e1c4..72fe22b13 100644
 --- a/genpolicy-settings.json
 +++ b/genpolicy-settings.json
-@@ -346,7 +346,8 @@
+@@ -317,7 +317,8 @@
+                 "^AZURE_TENANT_ID=[A-Fa-f0-9-]*$",
                  "^AZURE_FEDERATED_TOKEN_FILE=/var/run/secrets/azure/tokens/azure-identity-token$",
                  "^AZURE_AUTHORITY_HOST=https://login\\.microsoftonline\\.com/$",
-                 "^TERM=xterm$",
--                "^PCI_RESOURCE_NVIDIA_COM.*=[a-fA-F0-9:.-]*$"
-+                "^PCI_RESOURCE_NVIDIA_COM.*=[a-fA-F0-9:.-]*$",
+-                "^TERM=xterm$"
++                "^TERM=xterm$",
 +                "^CONTRAST_[A-Z0-9_]*=.*$"
              ]
          },
          "UpdateInterfaceRequest": {
-@@ -363,7 +364,9 @@
+@@ -334,7 +335,9 @@
          ],
          "ExecProcessRequest": {
              "allowed_commands": [],
@@ -23,7 +23,7 @@ index b5c1c1968..06c02f098 100644
          },
          "UpdateRoutesRequest": {
              "forbidden_device_names": [
-@@ -375,8 +378,8 @@
+@@ -354,8 +357,8 @@
              ]
          },
          "CloseStdinRequest": false,
