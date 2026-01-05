@@ -16,9 +16,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  nix-build:
+    uses: ./.github/workflows/nix_build.yml
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
   build-image:
     name: "Build cleanup-bare-metal image"
     runs-on: ubuntu-24.04
+    needs: nix-build
     permissions:
       contents: read
       packages: write

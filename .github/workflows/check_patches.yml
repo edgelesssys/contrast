@@ -9,8 +9,15 @@ on:
       - packages/by-name/kata/kata-runtime/0*.patch
 
 jobs:
+  nix-build:
+    uses: ./.github/workflows/nix_build.yml
+    secrets:
+      GITHUB_TOKEN_IN: ${{ secrets.GITHUB_TOKEN_IN }}
+      CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
   check-patches:
     runs-on: ubuntu-24.04
+    needs: nix-build
     timeout-minutes: 15
     permissions:
       contents: read
