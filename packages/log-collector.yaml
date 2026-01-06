@@ -5,7 +5,6 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: log-collector
-  namespace: "@@NAMESPACE@@"
 spec:
   selector:
     matchLabels:
@@ -25,7 +24,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: log-collector
-          image: "ghcr.io/edgelesssys/k8s-log-collector@sha256:fd173230870b9e19a342627e31a50a0d6e45e7c8770c133b62e72cb4e898bc3e"
+          image: "ghcr.io/edgelesssys/contrast/k8s-log-collector:0.1.0@sha256:cd8f94804bacf3f58ecb103a2f14bca00c42ddcad52add984c086cde826236f7"
           volumeMounts:
             - mountPath: /logs
               name: log-volume

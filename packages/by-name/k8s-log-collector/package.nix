@@ -6,6 +6,8 @@
   inotify-tools,
   coreutils,
   findutils,
+  gnused,
+  gnugrep,
 }:
 
 writeShellApplication {
@@ -14,6 +16,8 @@ writeShellApplication {
     inotify-tools
     coreutils
     findutils
+    gnugrep
+    gnused
   ];
   text = builtins.readFile ./script.sh;
 }
