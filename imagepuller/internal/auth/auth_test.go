@@ -179,6 +179,14 @@ func TestAuthTransportFor(t *testing.T) {
 			},
 			wantAuthenticator: authn.FromConfig(exampleAuthConfig),
 		},
+		"empty auth config ignored": {
+			imageRef: "ghcr.io/edgelesssys/contrast/coordinator",
+			config: Config{
+				Registries: map[string]Registry{
+					"ghcr.io": {AuthConfig: authn.AuthConfig{Auth: ""}},
+				},
+			},
+		},
 		"non-matching auth config not applied": {
 			imageRef: "ghcr.io/edgelesssys/contrast/coordinator",
 			config: Config{
