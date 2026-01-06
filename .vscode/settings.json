@@ -12,5 +12,6 @@
     ],
     "go.testFlags": [
         "-v",
+        "-count=1",
     ],
 }
