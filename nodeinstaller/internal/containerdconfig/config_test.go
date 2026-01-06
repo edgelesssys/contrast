@@ -1,14 +1,13 @@
-// Copyright 2024 Edgeless Systems GmbH
+// Copyright 2026 Edgeless Systems GmbH
 // SPDX-License-Identifier: BUSL-1.1
 
-package main
+package containerdconfig
 
 import (
+	_ "embed"
 	"os"
 	"path/filepath"
 	"testing"
-
-	_ "embed"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +15,8 @@ import (
 )
 
 var (
+	//go:embed testdata/containerd-config.toml
+	exemplaryContainerConfig []byte
 	//go:embed testdata/expected-bare-metal-qemu-tdx.toml
 	expectedConfMetalQEMUTDX []byte
 	//go:embed testdata/expected-bare-metal-qemu-snp.toml
@@ -28,7 +29,6 @@ func TestPatchContainerdConfig(t *testing.T) {
 	testCases := map[string]struct {
 		platform platforms.Platform
 		expected []byte
-		wantErr  bool
 	}{
 		"MetalQEMUTDX": {
 			platform: platforms.MetalQEMUTDX,
@@ -42,10 +42,6 @@ func TestPatchContainerdConfig(t *testing.T) {
 			platform: platforms.MetalQEMUSNPGPU,
 			expected: expectedConfMetalQEMUSNPGPU,
 		},
-		"Unknown": {
-			platform: platforms.Unknown,
-			wantErr:  true,
-		},
 	}
 
 	for name, tc := range testCases {
@@ -53,20 +49,19 @@ func TestPatchContainerdConfig(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
 
-			tmpDir := t.TempDir()
-			t.Cleanup(func() { _ = os.RemoveAll(tmpDir) })
-
-			configPath := filepath.Join(tmpDir, "config.toml")
+			configPath := filepath.Join(t.TempDir(), "config.toml")
+			require.NoError(os.WriteFile(configPath, exemplaryContainerConfig, 0o644))
 
 			runtimeHandler := "my-runtime"
+			runtimeBaseDir := filepath.Join("/opt/edgeless", runtimeHandler)
 
-			err := patchContainerdConfig(runtimeHandler,
-				filepath.Join("/opt/edgeless", runtimeHandler), configPath, tc.platform, true)
-			if tc.wantErr {
-				require.Error(err)
-				return
-			}
+			conf, err := FromPath(configPath)
 			require.NoError(err)
+			conf.EnableDebug()
+			runtimeFragment, err := ContrastRuntime(runtimeBaseDir, tc.platform)
+			require.NoError(err)
+			conf.AddRuntime(runtimeHandler, runtimeFragment)
+			require.NoError(conf.Write())
 
 			configData, err := os.ReadFile(configPath)
 			require.NoError(err)

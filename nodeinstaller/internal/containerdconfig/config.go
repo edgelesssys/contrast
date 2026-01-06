@@ -3,30 +3,134 @@
 package containerdconfig
 
 import (
-	_ "embed"
+	"bytes"
+	"errors"
 	"fmt"
+	"io/fs"
+	"log"
+	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/pelletier/go-toml/v2"
 )
 
-// base is the base configuration file for containerd
-//
-//go:embed containerd-config.toml
-var base string
-
-// Base returns the base containerd configuration.
-func Base() Config {
-	var config Config
-	if err := toml.Unmarshal([]byte(base), &config); err != nil {
-		panic(err) // should never happen
-	}
-	return config
+// Config is a containerd config file.
+type Config struct {
+	path   string
+	raw    []byte
+	config config
 }
 
-// RuntimeFragment returns the containerd runtime configuration fragment.
-func RuntimeFragment(baseDir string, platform platforms.Platform) (*Runtime, error) {
+// FromPath reads the containerd config from the given path.
+func FromPath(path string) (*Config, error) {
+	// Read the rendered config instead of the template, as we can't parse the template.
+	// We then write the rendered config to the template path later.
+	renderedPath, isRendered := strings.CutSuffix(path, ".tmpl")
+	configData, err := os.ReadFile(renderedPath)
+	if err != nil {
+		return nil, err
+	}
+
+	var cfg config
+	if err := toml.Unmarshal(configData, &cfg); err != nil {
+		return nil, err
+	}
+
+	if !isRendered {
+		return &Config{raw: configData, config: cfg, path: path}, nil
+	}
+
+	// Save the original byte content so we can decide later whether to overwrite.
+	// Since we will overwrite the template file and not the rendered file,
+	// we need to return the template file content here in case it is a template.
+	configData, err = os.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		// The template file will be created by us, pretend that it's empty right now.
+		return &Config{raw: nil, config: cfg, path: path}, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("reading containerd config template %s: %w", path, err)
+	}
+	return &Config{raw: configData, config: cfg, path: path}, nil
+}
+
+// AddRuntime adds a runtime to the containerd config.
+func (c *Config) AddRuntime(handler string, runtime Runtime) {
+	runtimes := ensureMapPath(&c.config.Plugins, criFQDN(c.config.Version), "containerd", "runtimes")
+	runtimes[handler] = runtime
+}
+
+// EnableDebug enables debug logging in the containerd config.
+func (c *Config) EnableDebug() {
+	c.config.Debug.Level = "debug"
+}
+
+// Write writes the containerd config back to disk.
+// It will create a backup of the existing config.
+func (c *Config) Write() error {
+	rawConfig, err := toml.Marshal(c.config)
+	if err != nil {
+		return fmt.Errorf("marshaling containerd config: %w", err)
+	}
+
+	if bytes.Equal(c.raw, rawConfig) {
+		log.Println("Containerd config already up-to-date. No changes needed.")
+		return nil
+	}
+
+	if len(c.raw) != 0 {
+		t := time.Now().Unix()
+		if err := os.WriteFile(fmt.Sprintf("%s.%d.bak", c.path, t), c.raw, 0o666); err != nil {
+			return fmt.Errorf("backing up existing config: %w", err)
+		}
+		log.Printf("Created backup of existing containerd config at %s.%d.bak\n", c.path, t)
+	}
+
+	log.Printf("Patching containerd config at %s\n", c.path)
+	tmpFile, err := os.CreateTemp(filepath.Dir(c.path), "containerd-config-*.toml")
+	if err != nil {
+		return fmt.Errorf("creating temporary file: %w", err)
+	}
+	defer tmpFile.Close()
+	defer os.Remove(tmpFile.Name())
+	if _, err = tmpFile.Write(rawConfig); err != nil {
+		return fmt.Errorf("writing to temporary file: %w", err)
+	}
+	if err := os.Chmod(tmpFile.Name(), 0o666); err != nil {
+		return fmt.Errorf("chmod %q: %w", tmpFile.Name(), err)
+	}
+	if err := os.Rename(tmpFile.Name(), c.path); err != nil {
+		return fmt.Errorf("renaming temporary file to %q: %w", c.path, err)
+	}
+
+	return nil
+}
+
+// ensureMapPath ensures that the given path exists in the map and
+// returns the last map in the chain.
+func ensureMapPath(in *map[string]any, path ...string) map[string]any {
+	if len(path) == 0 {
+		return *in
+	}
+	if *in == nil {
+		*in = make(map[string]any)
+	}
+	current := *in
+	for _, p := range path {
+		cur, ok := current[p].(map[string]any)
+		if !ok || cur == nil {
+			cur = make(map[string]any)
+			current[p] = cur
+		}
+		current = cur
+	}
+	return current
+}
+
+// ContrastRuntime returns the containerd runtime configuration fragment.
+func ContrastRuntime(baseDir string, platform platforms.Platform) (Runtime, error) {
 	cfg := Runtime{
 		Type:                         "io.containerd.contrast-cc.v2",
 		Path:                         filepath.Join(baseDir, "bin", "containerd-shim-contrast-cc-v2"),
@@ -44,7 +148,7 @@ func RuntimeFragment(baseDir string, platform platforms.Platform) (*Runtime, err
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-snp.toml"),
 		}
 	default:
-		return nil, fmt.Errorf("unsupported platform: %s", platform)
+		return Runtime{}, fmt.Errorf("unsupported platform: %s", platform)
 	}
 
 	// For GPU support, we need to pass through the CDI annotations.
@@ -52,11 +156,11 @@ func RuntimeFragment(baseDir string, platform platforms.Platform) (*Runtime, err
 		cfg.PodAnnotations = append(cfg.PodAnnotations, "cdi.k8s.io/*")
 	}
 
-	return &cfg, nil
+	return cfg, nil
 }
 
-// CRIFQDN is the fully qualified domain name of the CRI service, which depends on the containerd config version.
-func CRIFQDN(v int) string {
+// criFQDN is the fully qualified domain name of the CRI service, which depends on the containerd config version.
+func criFQDN(v int) string {
 	switch v {
 	case 3:
 		return "io.containerd.cri.v1.runtime"
@@ -65,20 +169,10 @@ func CRIFQDN(v int) string {
 	}
 }
 
-// ImagesFQDN is the fully qualified domain name of the images plugin, which was factored out of the CRI plugin in containerd v2.
-func ImagesFQDN(v int) string {
-	switch v {
-	case 3:
-		return "io.containerd.cri.v1.images"
-	default:
-		return "io.containerd.grpc.v1.cri"
-	}
-}
-
 // Config provides containerd configuration data.
 // This is a simplified version of the actual struct.
 // Source: https://github.com/containerd/containerd/blob/dcf2847247e18caba8dce86522029642f60fe96b/services/server/config/config.go#L35
-type Config struct {
+type config struct {
 	// Version of the config file
 	Version int `toml:"version"`
 	// Root is the path to a directory where containerd will store persistent data
@@ -94,7 +188,7 @@ type Config struct {
 	// TTRPC configuration settings
 	TTRPC any `toml:"ttrpc,omitempty"`
 	// Debug and profiling settings
-	Debug Debug `toml:"debug,omitempty"`
+	Debug debug `toml:"debug,omitempty"`
 	// Metrics and monitoring settings
 	Metrics any `toml:"metrics,omitempty"`
 	// DisabledPlugins are IDs of plugins to disable. Disabled plugins won't be
@@ -110,7 +204,7 @@ type Config struct {
 	// Cgroup specifies cgroup information for the containerd daemon process
 	Cgroup any `toml:"cgroup,omitempty"`
 	// ProxyPlugins configures plugins which are communicated to over GRPC
-	ProxyPlugins map[string]ProxyPlugin `toml:"proxy_plugins,omitempty"`
+	ProxyPlugins map[string]proxyPlugin `toml:"proxy_plugins,omitempty"`
 	// Timeouts specified as a duration
 	Timeouts map[string]string `toml:"timeouts,omitempty"`
 	// Imports are additional file path list to config files that can overwrite main config file fields
@@ -119,13 +213,13 @@ type Config struct {
 	StreamProcessors map[string]any `toml:"stream_processors,omitempty"`
 }
 
-// ProxyPlugin provides a proxy plugin configuration.
-type ProxyPlugin struct {
+// proxyPlugin provides a proxy plugin configuration.
+type proxyPlugin struct {
 	Type    string `toml:"type"`
 	Address string `toml:"address"`
 }
 
-// Runtime defines a containerd runtime.
+// Runtime defines a containerd Runtime.
 type Runtime struct {
 	// Type is the runtime type to use in containerd e.g. io.containerd.runtime.v1.linux
 	Type string `toml:"runtime_type" json:"runtimeType"`
@@ -169,8 +263,8 @@ type Runtime struct {
 	Sandboxer string `toml:"sandboxer,omitempty" json:"sandboxer,omitempty"`
 }
 
-// Debug provides debug configuration.
-type Debug struct {
+// debug provides debug configuration.
+type debug struct {
 	Address string `toml:"address,omitempty"`
 	UID     int    `toml:"uid,omitempty"`
 	GID     int    `toml:"gid,omitempty"`
