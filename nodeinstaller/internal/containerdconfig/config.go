@@ -95,6 +95,12 @@ func (c *Config) Write() error {
 	}
 	defer tmpFile.Close()
 	defer os.Remove(tmpFile.Name())
+	// Stat the file so that the next write will use finer timestamp granularity,
+	// as we use the mtime as signal wether the config has changed.
+	// See https://docs.kernel.org/filesystems/multigrain-ts.html.
+	if _, err := os.Stat(tmpFile.Name()); err != nil {
+		return fmt.Errorf("stating temporary file %q: %w", tmpFile.Name(), err)
+	}
 	if _, err = tmpFile.Write(rawConfig); err != nil {
 		return fmt.Errorf("writing to temporary file: %w", err)
 	}
