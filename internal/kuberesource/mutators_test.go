@@ -454,3 +454,113 @@ func TestAddImageStore_Regression(t *testing.T) {
 		})
 	}
 }
+
+func TestAddDebugShell(t *testing.T) {
+	for name, tc := range map[string]struct {
+		resource      []byte
+		wantInitNames []string
+	}{
+		"no class": {
+			resource: []byte(`apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: main
+      image: busybox
+`),
+		},
+
+		"runc": {
+			resource: []byte(`apiVersion: v1
+kind: Pod
+spec:
+  runtimeClassName: runc
+  containers:
+    - name: main
+      image: busybox
+`),
+		},
+		"runtime class with prefix, no init containers": {
+			resource: []byte(`apiVersion: v1
+kind: Pod
+spec:
+  runtimeClassName: contrast-cc
+  containers:
+    - name: main
+      image: busybox
+`),
+			wantInitNames: []string{"contrast-debug-shell"},
+		},
+		"runtime class with prefix, other init containers": {
+			resource: []byte(`apiVersion: v1
+kind: Pod
+spec:
+  runtimeClassName: contrast-cc
+  initContainers:
+    - name: init-a
+      image: busybox
+    - name: init-b
+      image: busybox
+  containers:
+    - name: main
+      image: busybox
+`),
+			wantInitNames: []string{"init-a", "init-b", "contrast-debug-shell"},
+		},
+		"existing debug shell is replaced": {
+			resource: []byte(`apiVersion: v1
+kind: Pod
+spec:
+  runtimeClassName: contrast-cc
+  initContainers:
+    - name: contrast-debug-shell
+      image: busybox
+  containers:
+    - name: main
+      image: busybox
+`),
+			wantInitNames: []string{"contrast-debug-shell"},
+		},
+		"multiple existing debug shells are deduplicated": {
+			resource: []byte(`apiVersion: v1
+kind: Pod
+spec:
+  runtimeClassName: contrast-cc
+  initContainers:
+    - name: init-a
+      image: busybox
+    - name: contrast-debug-shell
+      image: busybox
+    - name: contrast-debug-shell
+      image: busybox
+  containers:
+    - name: main
+      image: busybox
+`),
+			wantInitNames: []string{"init-a", "contrast-debug-shell"},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+
+			res, err := UnmarshalApplyConfigurations(tc.resource)
+			require.Len(res, 1)
+			require.NoError(err)
+			withShell, err := AddDebugShell(res[0], DebugShell())
+			require.NoError(err)
+
+			pod, ok := withShell.(*applycorev1.PodApplyConfiguration)
+			require.True(ok, "expected *PodApplyConfiguration")
+			require.NotNil(pod.Spec)
+			podSpec := pod.Spec
+
+			var initNames []string
+			for _, c := range podSpec.InitContainers {
+				if c.Name != nil {
+					initNames = append(initNames, *c.Name)
+				}
+			}
+			require.Equal(tc.wantInitNames, initNames)
+		})
+	}
+}
