@@ -98,11 +98,21 @@ jobs:
         run: |
           sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup-namespaces.yml
           kubectl apply -f ./tools/bm-maintenance/cleanup-namespaces.yml
-          echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
+      - name: Update gpu operator
+        if: ${{ matrix.platform.name == 'Metal-QEMU-SNP-GPU' || matrix.platform.name == 'Metal-QEMU-TDX-GPU' }}
+        env:
+          GPU_OPERATOR_VERSION: "v25.10.1"
+        run: |
+          OPTS=(--version "$GPU_OPERATOR_VERSION")
+          if [[ "${{ matrix.platform.name }}" == "Metal-QEMU-TDX-GPU" ]]; then
+            OPTS+=(--blackwell)
+          fi
+          nix run .#scripts.upgrade-gpu-operator -- "${OPTS[@]}"
       - name: Update storageclass
         run: |
           nix build .#csi-driver-host-path
           kubectl apply -k result
+          echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
 
   cleanup:
     name: "Cleanup ${{ matrix.platform.name }}"
