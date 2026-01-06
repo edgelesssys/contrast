@@ -4,13 +4,10 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"os"
 	"os/exec"
@@ -28,7 +25,6 @@ import (
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/kataconfig"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/targetconfig"
 	"github.com/google/go-sev-guest/abi"
-	"github.com/pelletier/go-toml/v2"
 )
 
 func main() {
@@ -100,8 +96,21 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 		return fmt.Errorf("generating kata runtime configuration: %w", err)
 	}
 
-	if err := patchContainerdConfig(runtimeHandler, runtimeBase, targetConf.ContainerdConfigPath(), platform, config.DebugRuntime); err != nil {
-		return fmt.Errorf("patching containerd configuration: %w", err)
+	containerdConf, err := containerdconfig.FromPath(targetConf.ContainerdConfigPath())
+	if err != nil {
+		return fmt.Errorf("loading containerd configuration from %q: %w", targetConf.ContainerdConfigPath(), err)
+	}
+	if config.DebugRuntime {
+		// This only ever happens in development builds of the node-installer.
+		containerdConf.EnableDebug()
+	}
+	containerdRuntime, err := containerdconfig.ContrastRuntime(runtimeBase, platform)
+	if err != nil {
+		return fmt.Errorf("generating containerd runtime fragment: %w", err)
+	}
+	containerdConf.AddRuntime(runtimeHandler, containerdRuntime)
+	if err := containerdConf.Write(); err != nil {
+		return fmt.Errorf("writing containerd config %q: %w", targetConf.ContainerdConfigPath(), err)
 	}
 
 	if targetConf.RestartSystemdUnit() {
@@ -113,7 +122,8 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 	return nil
 }
 
-// installFiles fetches and installs files specified in the node-installer configuration file to the host filesystem.
+// installFiles fetches and installs files specified in the node-installer configuration file
+// from the node-installer container image to the host filesystem.
 func installFiles(
 	ctx context.Context,
 	fetcher assetFetcher,
@@ -182,96 +192,6 @@ func containerdRuntimeConfig(basePath, configPath string, platform platforms.Pla
 		return fmt.Errorf("writing kata runtime config to %q: %w", configPath, err)
 	}
 	return nil
-}
-
-func patchContainerdConfig(runtimeHandler, basePath, configPath string, platform platforms.Platform, debugRuntime bool) error {
-	existingRaw, existing, err := parseExistingContainerdConfig(configPath)
-	if err != nil {
-		log.Printf("Failed to parse existing containerd config: %v\n", err)
-		log.Println("Creating a new containerd base config.")
-		existing = containerdconfig.Base()
-	}
-
-	if debugRuntime {
-		// Enable containerd debug logging.
-		existing.Debug.Level = "debug"
-	}
-
-	// Ensure section for the snapshotter proxy plugin exists.
-	if existing.ProxyPlugins == nil {
-		existing.ProxyPlugins = make(map[string]containerdconfig.ProxyPlugin)
-	}
-
-	// Add contrast-cc runtime
-	runtimes := ensureMapPath(&existing.Plugins, containerdconfig.CRIFQDN(existing.Version), "containerd", "runtimes")
-	containerdRuntimeConfig, err := containerdconfig.RuntimeFragment(basePath, platform)
-	if err != nil {
-		return fmt.Errorf("generating containerd runtime config: %w", err)
-	}
-	runtimes[runtimeHandler] = containerdRuntimeConfig
-
-	rawConfig, err := toml.Marshal(existing)
-	if err != nil {
-		return fmt.Errorf("marshaling containerd config: %w", err)
-	}
-
-	if bytes.Equal(existingRaw, rawConfig) {
-		log.Println("Containerd config already up-to-date. No changes needed.")
-		return nil
-	}
-
-	// Backup the existing config.
-	if len(existingRaw) != 0 {
-		if err := os.WriteFile(fmt.Sprintf("%s.%d.bak", configPath, time.Now().Unix()), existingRaw, 0o666); err != nil {
-			return fmt.Errorf("backing up existing config: %w", err)
-		}
-	}
-
-	log.Printf("Patching containerd config at %s\n", configPath)
-	tmpFile, err := os.CreateTemp(filepath.Dir(configPath), "containerd-config-*.toml")
-	if err != nil {
-		return fmt.Errorf("creating temporary file: %w", err)
-	}
-	defer tmpFile.Close()
-	defer os.Remove(tmpFile.Name())
-	if _, err = tmpFile.Write(rawConfig); err != nil {
-		return fmt.Errorf("writing to temporary file: %w", err)
-	}
-	if err := os.Chmod(tmpFile.Name(), 0o666); err != nil {
-		return fmt.Errorf("chmod %q: %w", tmpFile.Name(), err)
-	}
-	return os.Rename(tmpFile.Name(), configPath)
-}
-
-func parseExistingContainerdConfig(path string) ([]byte, containerdconfig.Config, error) {
-	// Read the rendered config instead of the template, as we can't parse the template.
-	// We then write the rendered config to the template path later.
-	renderedPath, isRendered := strings.CutSuffix(path, ".tmpl")
-	configData, err := os.ReadFile(renderedPath)
-	if err != nil {
-		return nil, containerdconfig.Config{}, err
-	}
-
-	var cfg containerdconfig.Config
-	if err := toml.Unmarshal(configData, &cfg); err != nil {
-		return nil, containerdconfig.Config{}, err
-	}
-
-	if !isRendered {
-		return configData, cfg, nil
-	}
-
-	// We return the raw file content so that the caller can decide whether to overwrite. Since
-	// they are overwriting the template file and not the rendered file, we need to return the
-	// template file here.
-	configData, err = os.ReadFile(path)
-	if errors.Is(err, fs.ErrNotExist) {
-		// The template file will be created by us, pretend that it's empty right now.
-		return []byte{}, cfg, nil
-	} else if err != nil {
-		return nil, containerdconfig.Config{}, fmt.Errorf("reading containerd config template %s: %w", path, err)
-	}
-	return configData, cfg, nil
 }
 
 func restartHostContainerd(ctx context.Context, containerdConfigPath string, serviceNames []string) error {
@@ -343,27 +263,6 @@ func hostServiceExists(ctx context.Context, service string) bool {
 		return false
 	}
 	return true
-}
-
-// ensureMapPath ensures that the given path exists in the map and
-// returns the last map in the chain.
-func ensureMapPath(in *map[string]any, path ...string) map[string]any {
-	if len(path) == 0 {
-		return *in
-	}
-	if *in == nil {
-		*in = make(map[string]any)
-	}
-	current := *in
-	for _, p := range path {
-		cur, ok := current[p].(map[string]any)
-		if !ok || cur == nil {
-			cur = make(map[string]any)
-			current[p] = cur
-		}
-		current = cur
-	}
-	return current
 }
 
 type assetFetcher interface {
