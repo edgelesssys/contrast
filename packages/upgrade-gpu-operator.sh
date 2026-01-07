@@ -50,9 +50,6 @@ kubectl delete crd nvidiadrivers.nvidia.com --ignore-not-found
 helm repo add nvidia https://helm.ngc.nvidia.com/nvidia && helm repo update
 
 # Upstream instructions from https://github.com/kata-containers/kata-containers/pull/12257
-# The P_GPU_ALIAS environment variable is stripped to get per-GPU annotations for heterogenous
-# clusters. With it, all GPUs will look like this to CDI clients: `nvidia.com/pgpu`. Without
-# it, the annotations are specific to the GPU type: `nvidia.com/GB100_B200`.
 helm install --wait --generate-name \
   -n gpu-operator --create-namespace \
   nvidia/gpu-operator \
@@ -72,6 +69,8 @@ helm install --wait --generate-name \
   --set sandboxDevicePlugin.repository=ghcr.io/nvidia \
   --set sandboxDevicePlugin.image=nvidia-sandbox-device-plugin \
   --set sandboxDevicePlugin.version=8e76fe81 \
+  --set 'sandboxDevicePlugin.env[0].name=P_GPU_ALIAS' \
+  --set 'sandboxDevicePlugin.env[0].value=pgpu' \
   --set nfd.enabled=true \
   --set nfd.nodefeaturerules=true
 

@@ -658,7 +658,7 @@ done
 }
 
 // GPU returns the resources for deploying a GPU test pod.
-func GPU(deviceURI string) []any {
+func GPU() []any {
 	tester := Deployment("gpu-tester", "").
 		WithSpec(DeploymentSpec().
 			WithReplicas(1).
@@ -679,7 +679,7 @@ func GPU(deviceURI string) []any {
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(500). // This accounts for nvidia-smi and the guest pull overhead.
 								WithLimits(corev1.ResourceList{
-									corev1.ResourceName(deviceURI): resource.MustParse("1"),
+									corev1.ResourceName("nvidia.com/pgpu"): resource.MustParse("1"),
 								}),
 							),
 						Container().
