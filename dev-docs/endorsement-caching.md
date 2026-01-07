@@ -51,6 +51,22 @@ The following gives an overview over the request and caching structure we implem
    If the CRL can't be obtained from KDS, the cache is checked for an unexpired CRL.
    The validator cache is on-disk.
 
+### KDS Unavailability
+
+If the KDS is unreachable, the following table shows the validation outcome depending on the cache state.
+An empty cell indicates that the value isn't present.
+An asterisk (*) indicates that any value is acceptable (present or not present).
+CRL + VCEK indicates that *both* CRL and VCEK are present in the cache.
+
+| Issuer can't reach KDS | Validator can't reach KDS | Issuer cache | Validator cache | Validation |
+| :--------------------: | :-----------------------: | :----------: | :-------------: | :--------: |
+|                        |                           | *            | *               | Success    |
+| X                      |                           |              | *               | Success    |
+|                        | X                         | *            |                 | Success    |
+| X                      | X                         |              |                 | Failure    |
+| X                      | X                         | CRL + VCEK   | *               | Success    |
+| X                      | X                         | *            | CRL + VCEK      | Success    |
+
 ## Intel PCS
 
 For successful verification, the client needs to receive the TCBInfo, QeIdentity, and the Root CRL and PCK CRL.
@@ -81,5 +97,25 @@ The expiration date of the CRLS as well as the expiration date included in the T
 4. On the validator side, the go-tdx-guest library will retrieve the collateral from the PCS which is needed to verify the quote.
    This includes the TCBInfo, the QeIdentity, as well as the Root CRL and the PCK CRL.
 5. On the validator side, if the collateral or CRLs can't be retrieved from the PCS, the go-tdx-guest library will use the collateral from the local cache if present.
-   If the CRLs can't be retrieved from the PCS, the go-tdx-guest library the cache is checked for an unexpired CRL.
+   If the CRLs can't be retrieved from the PCS, the cache is checked for an unexpired CRL.
    The validator cache is on-disk.
+
+### PCS Unavailability
+
+If the PCS is unreachable, the following table shows the validation outcome depending on the cache state.
+An empty cell indicates that the value isn't present.
+An asterisk (*) indicates that any value is acceptable (present or not present).
+The issuer must be able to obtain the PCK Certificate Chain from PCCS to generate a valid quote.
+The validator must be able to obtain the collateral (from PCS or cache) to validate the quote.
+
+| Issuer can't reach PCS | Validator can't reach PCS | Issuer cache           | Validator cache | Validation |
+| :--------------------: | :-----------------------: | :--------------------: | :-------------: | :--------: |
+|                        |                           | *                      | *               | Success    |
+| X                      |                           |                        | *               | Failure    |
+| X                      |                           | *PCCS: PCK Cert Chain* | *               | Success    |
+|                        | X                         | *                      |                 | Failure    |
+|                        | X                         | *                      | Collateral      | Success    |
+| X                      | X                         |                        |                 | Failure    |
+| X                      | X                         | *PCCS: PCK Cert Chain* |                 | Failure    |
+| X                      | X                         |                        | Collateral      | Failure    |
+| X                      | X                         | *PCCS: PCK Cert Chain* | Collateral      | Success    |
