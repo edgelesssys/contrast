@@ -52,6 +52,7 @@ deserializes?
 devs
 Dockerfile
 Dynatrace
+Edgeless
 Emojivoto
 Epyc
 etcd
@@ -165,6 +166,7 @@ tmpfs
 TPM
 TTL
 undecryptable
+Undeploy
 underspecified
 unencrypted
 unrepresentable
