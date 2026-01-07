@@ -1,0 +1,14 @@
+{
+    "k3s": {
+		"depName": "k3s-io/k3s",
+		"currentValue": "v1.34.1+k3s1",
+		"datasource": "github-releases",
+		"versioning": "loose"
+	},
+    "gpu-operator": {
+		"depName": "nvidia/gpu-operator",
+		"currentValue": "v25.10.1",
+		"datasource": "helm",
+		"versioning": "semver"
+	}
+}

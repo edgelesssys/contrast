@@ -107,9 +107,8 @@ jobs:
           kubectl apply -f ./tools/bm-maintenance/cleanup-namespaces.yml
       - name: Update gpu operator
         if: ${{ matrix.platform.name == 'Metal-QEMU-SNP-GPU' || matrix.platform.name == 'Metal-QEMU-TDX-GPU' }}
-        env:
-          GPU_OPERATOR_VERSION: "v25.10.1"
         run: |
+          GPU_OPERATOR_VERSION=$(jq -r '."gpu-operator".currentValue' ./tools/bm-maintenance/versions.json)
           OPTS=(--version "$GPU_OPERATOR_VERSION")
           if [[ "${{ matrix.platform.name }}" == "Metal-QEMU-TDX-GPU" ]]; then
             OPTS+=(--blackwell)
@@ -159,7 +158,7 @@ jobs:
         env:
           IMAGE: ${{ needs.build-image.outputs.image }}
         run: |
-          K3S_VERSION=$(cat ./tools/bm-maintenance/k3s-version.txt)
+          K3S_VERSION=$(jq -r '.k3s.currentValue' ./tools/bm-maintenance/versions.json)
           sed -i "s#@@REPLACE_IMAGE@@#${IMAGE}#g" ./tools/bm-maintenance/cleanup.yml
           sed -i "s#@@REPLACE_K3S_VERSION@@#${K3S_VERSION}#g" ./tools/bm-maintenance/cleanup.yml
           kubectl apply -f ./tools/bm-maintenance/cleanup.yml
