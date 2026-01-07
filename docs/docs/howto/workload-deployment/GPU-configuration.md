@@ -63,7 +63,7 @@ spec:
     - # ...
       resources:
         limits:
-          "nvidia.com/GH100_H100_PCIE": 1
+          "nvidia.com/pgpu": 1
       env:
         # ...
         - name: NVIDIA_VISIBLE_DEVICES

@@ -205,6 +205,8 @@ helm install --wait --generate-name \
   --set sandboxDevicePlugin.repository=ghcr.io/nvidia \
   --set sandboxDevicePlugin.image=nvidia-sandbox-device-plugin \
   --set sandboxDevicePlugin.version=8e76fe81 \
+  --set 'sandboxDevicePlugin.env[0].name=P_GPU_ALIAS' \
+  --set 'sandboxDevicePlugin.env[0].value=pgpu' \
   --set nfd.enabled=true \
   --set nfd.nodefeaturerules=true
 ```
@@ -296,7 +298,7 @@ The above command should yield an output similar to the following, depending on 
 
 ```json
 {
-  "nvidia.com/GH100_H100_PCIE": "1"
+  "nvidia.com/pgpu": "1"
 }
 ```
 

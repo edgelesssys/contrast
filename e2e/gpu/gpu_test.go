@@ -42,19 +42,17 @@ func TestGPU(t *testing.T) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
-	var deviceURI, gpuName string
+	var gpuName string
 	switch platform {
 	case platforms.MetalQEMUTDXGPU:
-		deviceURI = "nvidia.com/GB100_B200"
 		gpuName = "NVIDIA B200"
 	case platforms.MetalQEMUSNPGPU:
-		deviceURI = "nvidia.com/GH100_H100_PCIE"
 		gpuName = "NVIDIA H100 PCIe"
 	default:
 		t.Errorf("platform %s does not support GPU tests", platform)
 	}
 
-	resources := kuberesource.GPU(deviceURI)
+	resources := kuberesource.GPU()
 
 	// Since the TDX-GPU testing cluster has multiple GPUs, we run into the drift
 	// explained in [1]. To avoid this, we need to remove the deployment of the direct GPU tester,
