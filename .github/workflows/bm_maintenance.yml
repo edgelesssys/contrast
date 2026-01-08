@@ -65,11 +65,11 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     needs: build-image
     outputs:
-      snp: ${{ steps.update.outputs.Metal-QEMU-SNP }}
-      tdx: ${{ steps.update.outputs.Metal-QEMU-TDX }}
-      snp-gpu: ${{ steps.update.outputs.Metal-QEMU-SNP-GPU }}
-      snp-dev: ${{ steps.update.outputs.Metal-QEMU-SNP-DEV }}
-      tdx-gpu: ${{ steps.update.outputs.Metal-QEMU-TDX-GPU }}
+      snp: ${{ steps.report.outputs.Metal-QEMU-SNP }}
+      tdx: ${{ steps.report.outputs.Metal-QEMU-TDX }}
+      snp-gpu: ${{ steps.report.outputs.Metal-QEMU-SNP-GPU }}
+      snp-dev: ${{ steps.report.outputs.Metal-QEMU-SNP-DEV }}
+      tdx-gpu: ${{ steps.report.outputs.Metal-QEMU-TDX-GPU }}
     permissions:
       contents: read
     strategy:
@@ -119,6 +119,9 @@ jobs:
         run: |
           nix build .#csi-driver-host-path
           kubectl apply -k result
+      - name: Report success
+        id: report
+        run: |
           echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
 
   cleanup:
