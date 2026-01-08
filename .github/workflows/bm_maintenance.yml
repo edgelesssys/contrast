@@ -2,6 +2,13 @@ name: bare metal maintenance
 
 on:
   workflow_call:
+    secrets:
+      GITHUB_TOKEN_IN:
+        required: true
+      CACHIX_AUTH_TOKEN:
+        required: true
+      TEAMS_CI_WEBHOOK:
+        required: true
   workflow_dispatch:
   pull_request:
     paths:
@@ -30,7 +37,7 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup_nix
         with:
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          githubToken: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Log in to ghcr.io Container registry
@@ -38,7 +45,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN_IN || secrets.GITHUB_TOKEN }}
       - name: Create justfile.env
         run: |
           cat <<EOF > justfile.env
