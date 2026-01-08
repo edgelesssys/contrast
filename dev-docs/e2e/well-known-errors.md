@@ -111,47 +111,6 @@ time=2025-12-06T01:06:56.511Z level=DEBUG msg="pod status" namespace=testmemdump
         	Test:       	TestMemDump/memory_dump_does_not_contain_canary_string
 ```
 
-## 005 - mcr.microsoft.com: connection reset by peer
-
-Likely a transient network issue while pulling from the Microsoft Container Registry.
-
-Not much we can do about it except retrying the image pull or using another pause image.
-
-```
-time=2025-12-06T00:52:31.267Z level=DEBUG msg="Pulling manifest and config for mcr.microsoft.com/oss/kubernetes/pause:3.6" position=genpolicy::registry
-time=2025-12-06T00:52:32.530Z level=DEBUG msg=""
-time=2025-12-06T00:52:32.530Z level=ERROR msg="thread 'main' panicked at src/registry.rs:150:17:"
-time=2025-12-06T00:52:32.530Z level=ERROR msg="Failed to pull container image manifest and config - error: RequestError("
-time=2025-12-06T00:52:32.530Z level=ERROR msg="    reqwest::Error {"
-time=2025-12-06T00:52:32.530Z level=ERROR msg="        kind: Request,"
-time=2025-12-06T00:52:32.530Z level=ERROR msg="        url: \"https://mcr.microsoft.com/v2/oss/kubernetes/pause/manifests/3.6\","
-time=2025-12-06T00:52:32.530Z level=ERROR msg="        source: hyper_util::client::legacy::Error("
-time=2025-12-06T00:52:32.530Z level=ERROR msg="            SendRequest,"
-time=2025-12-06T00:52:32.530Z level=ERROR msg="            hyper::Error("
-time=2025-12-06T00:52:32.530Z level=ERROR msg="                Io,"
-time=2025-12-06T00:52:32.530Z level=ERROR msg="                Os {"
-time=2025-12-06T00:52:32.530Z level=ERROR msg="                    code: 104,"
-time=2025-12-06T00:52:32.530Z level=ERROR msg="                    kind: ConnectionReset,"
-time=2025-12-06T00:52:32.530Z level=ERROR msg="                    message: \"Connection reset by peer\","
-time=2025-12-06T00:52:32.530Z level=ERROR msg="                },"
-time=2025-12-06T00:52:32.530Z level=ERROR msg="            ),"
-time=2025-12-06T00:52:32.530Z level=ERROR msg="        ),"
-time=2025-12-06T00:52:32.530Z level=ERROR msg="    },"
-time=2025-12-06T00:52:32.530Z level=ERROR msg=)
-time=2025-12-06T00:52:32.530Z level=ERROR msg="stack backtrace:"
-time=2025-12-06T00:52:32.536Z level=ERROR msg="   0: __rustc::rust_begin_unwind"
-time=2025-12-06T00:52:32.536Z level=ERROR msg="   1: core::panicking::panic_fmt"
-time=2025-12-06T00:52:32.536Z level=ERROR msg="   2: genpolicy::pod::Container::init::{{closure}}"
-time=2025-12-06T00:52:32.536Z level=ERROR msg="   3: <genpolicy::deployment::Deployment as genpolicy::yaml::K8sResource>::init::{{closure}}"
-time=2025-12-06T00:52:32.536Z level=ERROR msg="   4: genpolicy::policy::AgentPolicy::from_files::{{closure}}"
-time=2025-12-06T00:52:32.536Z level=ERROR msg="   5: genpolicy::main::{{closure}}"
-time=2025-12-06T00:52:32.536Z level=ERROR msg="   6: genpolicy::main"
-time=2025-12-06T00:52:32.537Z level=ERROR msg="note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace."
-Error: generate policies: failed to generate policy for "openssl-frontend" in "/tmp/nix-shell.K1AGUb/TestDeterminsticPolicyGeneration3638285464/001/resources.yml": running genpolicy: exit status 101
-```
-
-- https://github.com/edgelesssys/contrast/actions/runs/19978992654/job/57301706373
-
 ## 006 - genpolicy: failed to lookup address information
 
 Likely a transient network issue.

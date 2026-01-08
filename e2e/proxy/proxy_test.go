@@ -68,9 +68,9 @@ func TestHTTPProxy(t *testing.T) {
 			coordinatorConnectionProxied.Store(true)
 		}
 		// While we could parse the expected registries from the ImageReplacementsFile, we know
-		// that the pause container image will come from MCR, so we use that as an indicator for
+		// that the pause container image will come from ghcr.io, so we use that as an indicator for
 		// registry requests being proxied.
-		if addr == "mcr.microsoft.com:443" {
+		if addr == "ghcr.io:443" {
 			registryConnectionProxied.Store(true)
 		}
 		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
