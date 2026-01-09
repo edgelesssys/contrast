@@ -94,30 +94,34 @@ func New(t *testing.T) *ContrastTest {
 	runtimeClass, err := kuberesource.ContrastRuntimeClass(platform)
 	require.NoError(err)
 
-	token := os.Getenv("CONTRAST_GHCR_READ")
-	require.NotEmpty(t, token, "environment variable CONTRAST_GHCR_READ must be set with a ghcr token")
-	cfg := map[string]any{
-		"registries": map[string]any{
-			"ghcr.io.": map[string]string{
-				"auth": base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "user-not-required-here:%s", token)),
-			},
-		},
+	ct := &ContrastTest{
+		Namespace:                   MakeNamespace(t, Flags.NamespaceSuffix),
+		WorkDir:                     t.TempDir(),
+		ImageReplacementsFile:       Flags.ImageReplacementsFile,
+		Platform:                    platform,
+		NamespaceFile:               Flags.NamespaceFile,
+		RuntimeClassName:            *runtimeClass.Handler,
+		Kubeclient:                  kubeclient.NewForTest(t),
+		NodeInstallerTargetConfType: Flags.NodeInstallerTargetConfType,
 	}
-	imagePullerConfig, err := toml.Marshal(cfg)
-	require.NoError(err)
 
-	return &ContrastTest{
-		Namespace:                      MakeNamespace(t, Flags.NamespaceSuffix),
-		WorkDir:                        t.TempDir(),
-		ImageReplacementsFile:          Flags.ImageReplacementsFile,
-		Platform:                       platform,
-		NamespaceFile:                  Flags.NamespaceFile,
-		RuntimeClassName:               *runtimeClass.Handler,
-		Kubeclient:                     kubeclient.NewForTest(t),
-		NodeInstallerTargetConfType:    Flags.NodeInstallerTargetConfType,
-		GHCRToken:                      token,
-		NodeInstallerImagePullerConfig: imagePullerConfig,
+	token := os.Getenv("CONTRAST_GHCR_READ")
+	if token != "" {
+		cfg := map[string]any{
+			"registries": map[string]any{
+				"ghcr.io.": map[string]string{
+					"auth": base64.StdEncoding.EncodeToString(fmt.Appendf(nil, "user-not-required-here:%s", token)),
+				},
+			},
+		}
+		imagePullerConfig, err := toml.Marshal(cfg)
+		require.NoError(err)
+
+		ct.GHCRToken = token
+		ct.NodeInstallerImagePullerConfig = imagePullerConfig
 	}
+
+	return ct
 }
 
 // Init patches the given resources for the test environment and makes them available to Generate and Set.
