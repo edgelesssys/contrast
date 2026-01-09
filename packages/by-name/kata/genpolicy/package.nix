@@ -69,6 +69,7 @@ rustPlatform.buildRustPackage rec {
       '';
     };
 
+    # These get applied on top of all the patches under the "runtime" folder
     settings = applyPatches {
       src = settings-base;
       patches = [ ./genpolicy_settings_prod.patch ];

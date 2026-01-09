@@ -8,7 +8,7 @@ address = '0.0.0.0:10257'
 
 [plugins]
 [plugins.'io.containerd.grpc.v1.cri']
-sandbox_image = 'mcr.microsoft.com/oss/kubernetes/pause:3.6'
+sandbox_image = 'ghcr.io/edgelesssys/kubernetes/pause:3.6'
 
 [plugins.'io.containerd.grpc.v1.cri'.cni]
 bin_dir = '/opt/cni/bin'
