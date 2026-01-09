@@ -24,6 +24,8 @@ memdump: (push "memdump")
 
 debugshell: (push "debugshell")
 
+k8s-log-collector: (push "k8s-log-collector")
+
 containerd-reproducer:
     #!/usr/bin/env bash
     set -euo pipefail
