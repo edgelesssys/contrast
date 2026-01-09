@@ -77,7 +77,6 @@ let
                   (builtins.readFile "${launch-digests}/rtmr2.hex")
                   (builtins.readFile "${launch-digests}/rtmr3.hex")
                 ];
-                tdAttributes = "0000001000000000";
                 xfam = "e702060000000000";
               }
             )

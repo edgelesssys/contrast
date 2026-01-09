@@ -31,7 +31,6 @@ The manifest has the following higher level structure:
         "MrTd": "<mr-td>",
         "MrSeam": "<mr-seam>",
         "Rtmrs": [ "<rtmr0>", "<rtmr1>", "<rtmr2>", "<rtmr3>" ],
-        "TdAttributes": "<td-attributes>",
         "Xfam": "<xfam>"
       },
       ...
@@ -296,10 +295,6 @@ Make sure to retrieve or reproduce the value on a trusted machine.
 RTMRs are the runtime extendable measurement registers of TDX, as specified in Table 3.50 (`TDINFO_BASE`) in the [TDX ABI Spec].
 They cover the guest firmware, the initrd and kernel as well as the kernel command line.
 The kernel command line contains the dm-verity hash of the root filesystem, which contains all Contrast components that run inside the guest.
-
-### `ReferenceValues.tdx.*.TdAttributes` {#tdx-td-attributes}
-
-Attributes specifies various attested properties of the TDX VM and is documented in Section 3.4.1 (`ATTRIBUTES`) in the [TDX ABI Spec].
 
 ### `ReferenceValues.tdx.*.Xfam` {#tdx-xfam}
 

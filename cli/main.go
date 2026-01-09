@@ -91,7 +91,6 @@ func buildVersionString() (string, error) {
 				fmt.Fprintf(versionsWriter, "\t  rtmr[%d]:\t%s\n", i+1, rtmr.String())
 			}
 			fmt.Fprintf(versionsWriter, "\t  mrSeam:\t%s\n", tdx.MrSeam.String())
-			fmt.Fprintf(versionsWriter, "\t  tdAttributes:\t%s\n", tdx.TdAttributes.String())
 			fmt.Fprintf(versionsWriter, "\t  xfam:\t%s\n", tdx.Xfam.String())
 		}
 	}
