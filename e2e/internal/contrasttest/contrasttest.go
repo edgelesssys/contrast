@@ -287,6 +287,7 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 			for _, manifestTDX := range m.ReferenceValues.TDX {
 				for _, overwriteTDX := range baremetalRefVal.TDX {
 					manifestTDX.MrSeam = overwriteTDX.MrSeam
+					manifestTDX.AllowedPIIDs = overwriteTDX.AllowedPIIDs
 					// Filter to only use the reference values of specified baremetal SNP runners
 					tdxReferenceValues = append(tdxReferenceValues, manifestTDX)
 				}

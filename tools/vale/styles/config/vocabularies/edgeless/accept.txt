@@ -120,8 +120,10 @@ paravisor
 passthrough
 PCIe?
 PCRs?
+PIIDs?
 plaintext
 podman
+PPID
 precalculator
 protobuf
 proxied
