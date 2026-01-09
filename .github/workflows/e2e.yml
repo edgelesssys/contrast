@@ -109,6 +109,7 @@ jobs:
         with:
           name: e2e_pod_logs-${{ inputs.platform }}-${{ inputs.test-name }}${{ inputs.debug-shell && '-debug-shell' || '' }}
           path: workspace/logs/export-no-stream/logs
+          if-no-files-found: error
       - name: Notify teams channel of failure
         if: failure() && github.event_name == 'schedule' && github.run_attempt == 1
         uses: ./.github/actions/post_to_teams
