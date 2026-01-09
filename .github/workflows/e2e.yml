@@ -90,10 +90,10 @@ jobs:
       - name: E2E Test
         run: |
           nix build .#scripts.get-logs
-          nix run .#scripts.get-logs start workspace/e2e.namespace &
+          nix run .#scripts.get-logs start workspace/just.namespace &
           nix shell -L .#contrast.e2e --command "${TEST_NAME}.test" -test.v \
             --image-replacements workspace/just.containerlookup \
-            --namespace-file workspace/e2e.namespace \
+            --namespace-file workspace/just.namespace \
             --platform "${PLATFORM}" \
             --node-installer-target-conf-type "${NODE_INSTALLER_TARGET_CONF_TYPE}" \
             --namespace-suffix="-ci" \
@@ -102,7 +102,7 @@ jobs:
       - name: Download logs
         if: always()
         run: |
-          nix run .#scripts.get-logs download workspace/e2e.namespace
+          nix run .#scripts.get-logs download workspace/just.namespace
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -120,13 +120,4 @@ jobs:
       - name: Cleanup
         if: always() && !inputs.skip-undeploy
         run: |
-          # Check if namespace file exists and is not empty
-          if [[ ! -f workspace/e2e.namespace ]]; then
-            echo "No namespace file found, skipping cleanup." >&2
-            exit 0
-          fi
-          kubectl delete ns "$(tail -1 workspace/e2e.namespace)" --timeout 10m
-      - name: Release fifo ticket
-        if: always() && (!inputs.self-hosted || inputs.platform == 'Metal-QEMU-SNP-GPU' || inputs.platform == 'Metal-QEMU-TDX-GPU') && !inputs.skip-undeploy
-        run: |
-          just release-fifo-ticket
+          just undeploy

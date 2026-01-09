@@ -219,7 +219,8 @@ undeploy:
         exit 0
     fi
     ns=$(cat ./{{ workspace_dir }}/just.namespace)
-    kubectl delete namespace $ns --ignore-not-found
+    kubectl delete namespace $ns --ignore-not-found --timeout 10m
+    rm -f ./{{ workspace_dir }}/just.namespace
     just release-fifo-ticket
 
 # Set the manifest at the coordinator.
