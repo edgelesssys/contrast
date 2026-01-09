@@ -39,7 +39,8 @@ start)
   fi
   while IFS= read -r namespace; do
     cp ./packages/log-collector.yaml ./workspace/log-collector.yaml
-    retry kubectl apply -n "$namespace" -f ./workspace/log-collector.yaml 1>/dev/null 2>/dev/null
+    echo "Starting log collector in namespace $namespace" >&2
+    retry kubectl apply -n "$namespace" -f ./workspace/log-collector.yaml
   done < <(tail -n +1 -f "$2")
   ;;
 download)
@@ -49,13 +50,18 @@ download)
   fi
   while read -r namespace; do
     pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
+    echo "Collecting logs from namespace $namespace, pod $pod" >&2
     mkdir -p "./workspace/logs/$namespace"
     retry kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod"
+    echo "Pod $pod is ready" >&2
     retry kubectl exec -n "$namespace" "$pod" -- /bin/bash -c "rm -f /exported-logs.tar.gz; cp -r /export /export-no-stream; tar zcvf /exported-logs.tar.gz /export-no-stream; rm -rf /export-no-stream"
     retry kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz
+    echo "Downloaded logs tarball for namespace $namespace, extracting..." >&2
     tar xzvf ./workspace/logs/exported-logs.tar.gz --directory "./workspace/logs/$namespace"
     rm ./workspace/logs/exported-logs.tar.gz
+    echo "Collecting Kubernetes events for namespace $namespace" >&2
     retry kubectl events -n "$namespace" -o yaml >"./workspace/logs/$namespace/export-no-stream/logs/k8s-events.yaml"
+    echo "Logs for namespace $namespace collected successfully" >&2
   done <<<"$(cat "$2")"
   ;;
 *)
