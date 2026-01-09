@@ -118,18 +118,20 @@ If you are struggling with your git history during the review process, please as
     just onboard
     ```
 
-6. Provision a CoCo enabled AKS cluster with
+6. Configure your cluster's credentials
 
-    ```sh
-    just create
-    ```
+   > [!WARNING]
+   > `get-credentials <system>` will fetch a secret containing the pre-configured kubeconfig for the
+   > specified system from Edgeless's Google Cloud project.
+   > If you aren't part of Edgeless Systems you will need to setup your own cluster by following
+   > https://docs.edgeless.systems/contrast/howto/cluster-setup/bare-metal
 
-    The kubeconfig of the cluster will be automatically downloaded and merged with your default config.
-    You can get the kubeconfig of the running cluster at a later time with
+   > [!TIP]
+   > Use `get-credentials-dev` to obtain the kubeconfig for the development server (requires access).
 
-    ```sh
-    just get-credentials
-    ```
+   ```sh
+   just get-credentials
+   ```
 
 ### Deploy
 
@@ -157,10 +159,16 @@ just --list
 
 ### Cleanup
 
-- Destroy the cluster with
+- Undeploy your deployment with
 
     ```sh
-    just destroy
+    just undeploy
+    ```
+
+- Undeploy your deployment and clean the workspace with
+
+    ```sh
+    just clean
     ```
 
 ### Maintenance tasks
