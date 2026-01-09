@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -212,10 +213,6 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert MrSeam from manifest to byte slices: %w", err)
 		}
-		tdAttributes, err := refVal.TdAttributes.Bytes()
-		if err != nil {
-			return nil, fmt.Errorf("failed to convert TdAttributes from manifest to byte slices: %w", err)
-		}
 		xfam, err := refVal.Xfam.Bytes()
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert Xfam from manifest to byte slices: %w", err)
@@ -228,6 +225,10 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 			}
 			rtmrs[i] = bytes
 		}
+
+		// TdAttributes is configured by Kata/QEMU, with only the SEPT_VE_DISABLE bit (28) set.
+		// See https://download.01.org/intel-sgx/sgx-dcap/1.24/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf, A.3.4.
+		tdAttributes := binary.LittleEndian.AppendUint64(nil, 1<<28)
 
 		validateOptions := &tdxvalidate.Options{
 			HeaderOptions: tdxvalidate.HeaderOptions{

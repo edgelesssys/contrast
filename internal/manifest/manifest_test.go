@@ -63,9 +63,8 @@ func newTestManifestTDX() *Manifest {
 					"777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777",
 					"888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888",
 				},
-				MrSeam:       HexString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
-				TdAttributes: HexString("3333333333333333"),
-				Xfam:         HexString("4444444444444444"),
+				MrSeam: HexString("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+				Xfam:   HexString("4444444444444444"),
 			},
 		},
 	}
@@ -202,13 +201,6 @@ func TestValidate(t *testing.T) {
 			m: newTestManifestTDX(),
 			mutate: func(m *Manifest) {
 				m.ReferenceValues.TDX[0].MrSeam = ""
-			},
-			wantErr: true,
-		},
-		"tdx td attributes empty": {
-			m: newTestManifestTDX(),
-			mutate: func(m *Manifest) {
-				m.ReferenceValues.TDX[0].TdAttributes = ""
 			},
 			wantErr: true,
 		},
