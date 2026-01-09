@@ -74,19 +74,21 @@ download)
     echo "Namespace file $2 does not exist" >&2
     exit 0
   fi
+  mkdir -p "./workspace/logs"
   while read -r namespace; do
     pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
     echo "Collecting logs from namespace $namespace, pod $pod" >&2
-    mkdir -p "./workspace/logs/$namespace"
     retry kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod"
     echo "Pod $pod is ready" >&2
     retry kubectl exec -n "$namespace" "$pod" -- /bin/bash -c "rm -f /exported-logs.tar.gz; cp -r /export /export-no-stream; tar zcvf /exported-logs.tar.gz /export-no-stream; rm -rf /export-no-stream"
     retry kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz
     echo "Downloaded logs tarball for namespace $namespace, extracting..." >&2
-    tar xzvf ./workspace/logs/exported-logs.tar.gz --directory "./workspace/logs/$namespace"
+    tar xzvf ./workspace/logs/exported-logs.tar.gz --directory "./workspace/logs"
     rm ./workspace/logs/exported-logs.tar.gz
+    mv ./workspace/logs/export-no-stream/logs/* ./workspace/logs/
+    rm -rf ./workspace/logs/export-no-stream
     echo "Collecting Kubernetes events for namespace $namespace" >&2
-    retry kubectl events -n "$namespace" -o yaml >"./workspace/logs/$namespace/export-no-stream/logs/k8s-events.yaml"
+    retry kubectl events -n "$namespace" -o yaml >"./workspace/logs/$namespace-k8s-events.yaml"
     echo "Logs for namespace $namespace collected successfully" >&2
   done <<<"$(cat "$2")"
   ;;
