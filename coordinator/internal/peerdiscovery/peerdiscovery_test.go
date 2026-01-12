@@ -68,7 +68,7 @@ func TestGetPeers(t *testing.T) {
 			require := require.New(t)
 			t.Setenv("HOSTNAME", host)
 
-			client := fake.NewSimpleClientset(tc.pods...)
+			client := fake.NewClientset(tc.pods...)
 			peers, err := New(client, namespace).GetPeers(t.Context())
 			require.NoError(err)
 			slices.Sort(tc.expected)

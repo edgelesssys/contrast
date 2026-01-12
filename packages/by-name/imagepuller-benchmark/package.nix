@@ -26,7 +26,7 @@ buildGoModule (finalAttrs: {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-kpmTBWvS9beDlQFAbHNcwqIDkKd27Aols9EE4QLQ5dk=";
+  vendorHash = "sha256-G7IO7lrSSGp+1pMWuM3u+iouiapvdbIm/xsgvS/3+bU=";
 
   sourceRoot = "${finalAttrs.src.name}/tools/imagepuller-benchmark";
 
