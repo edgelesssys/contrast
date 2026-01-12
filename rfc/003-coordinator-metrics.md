@@ -32,7 +32,7 @@ All data is sent to the specified collector endpoint by default.
 
 ---
 
-When using OpenTelemetry, we would need to setup an OpenTelemetry collector which exports the data to a backend like Prometheus or [Jaeger](https://www.jaegertracing.io/docs/1.57/).
+When using OpenTelemetry, we would need to setup an OpenTelemetry collector which exports the data to a backend like Prometheus or [Jaeger](https://www.jaegertracing.io/docs/1.76/).
 Changing the backend would be easy without changing the codebase in the Coordinator, as we only need to change the exporter in the collector.
 
 Prometheus is more limited in the gathered telemetry but probably sufficient for our case.
