@@ -5,8 +5,8 @@ on:
   pull_request:
     paths:
       - .github/workflows/check_patches.yml
-      - packages/by-name/kata/kata-runtime/package.nix
-      - packages/by-name/kata/kata-runtime/0*.patch
+      - packages/by-name/kata/runtime/package.nix
+      - packages/by-name/kata/runtime/0*.patch
 
 jobs:
   check-patches:
