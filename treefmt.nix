@@ -16,7 +16,10 @@
     };
     just.enable = true;
     keep-sorted.enable = true;
-    nixf-diagnose.enable = true;
+    nixf-diagnose = {
+      enable = true;
+      ignore = [ "sema-primop-overridden" ];
+    };
     nixfmt.enable = true;
     shellcheck.enable = true;
     shfmt.enable = true;
