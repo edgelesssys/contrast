@@ -30,7 +30,7 @@ The app includes:
 - A gRPC backend for handling votes and leaderboard logic (`voting`)
 - A `vote-bot` that simulates users by sending votes to the frontend
 
-![Emojivoto components topology](https://raw.githubusercontent.com/BuoyantIO/emojivoto/e490d5789086e75933a474b22f9723fbfa0b29ba/assets/emojivoto-topology.png)
+![Emojivoto components topology](../_media/contrast_emojivoto-topology.drawio.svg)
 
 Emojivoto is a fun example, but it still handles data that could be considered sensitive.
 
