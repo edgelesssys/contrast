@@ -96,7 +96,8 @@ which event causes the mismatch.
 Finding the mismatch then is a matter of code search and reversing which component might have done which
 measurement.
 
-The [TDX Virtual Firmware documentation](https://cdrdv2.intel.com/v1/dl/getContent/733585) gives an abstract
+<!-- TODO(charludo): replace with link to intel.com once the doc is back up -->
+The [TDX Virtual Firmware documentation](https://web.archive.org/web/20251018192011/https://cdrdv2-public.intel.com/733585/tdx-virtual-firmware-design-guide-rev-004-20231206.pdf) gives an abstract
 overview of what components of the boot chain are generally reflected in the specific registers, but this is
 likely not sufficient to find the exact location where things go wrong.
 

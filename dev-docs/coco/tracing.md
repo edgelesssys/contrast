@@ -19,7 +19,7 @@ which needs to be set up separately.
 ## Running an OpenTelemetry Collector
 
 Running an OpenTelemetry Collector is very simple when using the [Jaeger all-in-one
-Docker container](https://www.jaegertracing.io/docs/1.6/getting-started/#all-in-one-docker-image).
+Docker container](https://www.jaegertracing.io/docs/1.76/getting-started/#all-in-one).
 
 This needs to be started on the runtime's host server:
 
@@ -33,7 +33,7 @@ docker run \
     -p 16686:16686 \
     -p 14268:14268 \
     -p 9411:9411 \
-    jaegertracing/all-in-one:1.6.0
+    jaegertracing/all-in-one:1.76.0
 ```
 
 The web UI should then be available via http://localhost:16686.
