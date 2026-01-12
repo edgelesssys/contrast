@@ -52,17 +52,17 @@ jobs:
           rebuild_checksum="$(jq  -r '.manifests[0].digest' rebuild/index.json)"
           echo "$rebuild_checksum" > ${{ matrix.build-target }}-${{ matrix.os }}-rebuild_checksum.txt
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ matrix.build-target }}-${{ matrix.os }}
           path: result
       - name: Upload Build Artifacts (Rebuild)
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ matrix.build-target }}-${{ matrix.os }}-rebuild
           path: rebuild
       - name: Upload checksums
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ matrix.build-target }}-${{ matrix.os }}-checksums
           path: ${{ matrix.build-target }}-${{ matrix.os }}-*_checksum.txt
@@ -91,7 +91,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Download all checksum artifacts
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           pattern: "${{matrix.build-target}}-*-checksums"
           path: "./checksums"
