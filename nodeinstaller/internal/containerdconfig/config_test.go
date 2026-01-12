@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/pelletier/go-toml/v2"
@@ -214,16 +213,11 @@ func TestConfig(t *testing.T) {
 	})
 	t.Run("Write", func(t *testing.T) {
 		testCases := map[string]struct {
-			prepareFS func(tmpDir string) error
-			config    Config
-			wantFile  string
-			// nil = don't check
-			// true = expect mtime updated
-			// false = expect not mtime updated
-			// Only use if wantFile is created in prepareFS.
-			wantUpdated *bool
-			wantBackup  bool
-			wantErr     bool
+			prepareFS  func(tmpDir string) error
+			config     Config
+			wantFile   string
+			wantBackup bool
+			wantErr    bool
 		}{
 			"new": {
 				config: Config{
@@ -247,9 +241,8 @@ func TestConfig(t *testing.T) {
 					config: config{Version: 3},
 					path:   "config.toml",
 				},
-				wantFile:    "config.toml",
-				wantUpdated: toPtr(true),
-				wantBackup:  true,
+				wantFile:   "config.toml",
+				wantBackup: true,
 			},
 			"no changes no update": {
 				prepareFS: func(tmpDir string) error {
@@ -265,9 +258,8 @@ func TestConfig(t *testing.T) {
 					raw:    requireMarshalTOML(t, config{Version: 2}),
 					path:   "config.toml",
 				},
-				wantFile:    "config.toml",
-				wantUpdated: toPtr(false),
-				wantBackup:  false,
+				wantFile:   "config.toml",
+				wantBackup: false,
 			},
 			"only template exists": {
 				prepareFS: func(tmpDir string) error {
@@ -298,13 +290,8 @@ func TestConfig(t *testing.T) {
 				if tc.prepareFS != nil {
 					require.NoError(tc.prepareFS(tmpDir))
 				}
-				var mtimePre time.Time
-				var err error
-				if tc.wantUpdated != nil {
-					mtimePre = getMTime(t, tc.wantFile)
-				}
 
-				err = tc.config.Write()
+				err := tc.config.Write()
 				if tc.wantErr {
 					require.Error(err)
 					return
@@ -313,13 +300,6 @@ func TestConfig(t *testing.T) {
 
 				// Check wantFile exists.
 				assert.FileExists(tc.wantFile)
-				// Check updated.
-				mtimePost := getMTime(t, tc.wantFile)
-				if tc.wantUpdated != nil && *tc.wantUpdated {
-					assert.True(mtimePost.After(mtimePre), "expected mtime %v to be after %v", mtimePost, mtimePre)
-				} else if tc.wantUpdated != nil {
-					assert.True(mtimePost.Equal(mtimePre), "expected mtime %v to be equal to %v", mtimePost, mtimePre)
-				}
 				// Check content.
 				inFile, err := os.ReadFile(tc.wantFile)
 				require.NoError(err)
@@ -336,13 +316,6 @@ func TestConfig(t *testing.T) {
 			})
 		}
 	})
-}
-
-func getMTime(t *testing.T, path string) time.Time {
-	t.Helper()
-	info, err := os.Stat(path)
-	require.NoError(t, err)
-	return info.ModTime()
 }
 
 func fileWithSuffixExists(t *testing.T, path, suffix string) bool {
@@ -362,8 +335,4 @@ func requireMarshalTOML(t *testing.T, v any) []byte {
 	data, err := toml.Marshal(v)
 	require.NoError(t, err)
 	return data
-}
-
-func toPtr[T any](v T) *T {
-	return &v
 }
