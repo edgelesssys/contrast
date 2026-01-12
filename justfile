@@ -167,11 +167,18 @@ generate cli=default_cli platform=default_platform:
             ' {{ workspace_dir }}/manifest.json
         ;;
         "Metal-QEMU-TDX"|"Metal-QEMU-TDX-GPU")
-            cm=$(kubectl get -n default cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}")
-            mrSeam=$(echo "$cm" | yq '.tdx.[].MrSeam') \
-                yq -i \
-                '.ReferenceValues.tdx.[].MrSeam = strenv(mrSeam)' \
-                {{ workspace_dir }}/manifest.json
+            cfg=$(mktemp)
+            kubectl -n default get cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}" > "$cfg"
+            export CFG="$cfg"
+            yq -i '
+            (load(strenv(CFG)).tdx) as $b
+            | .ReferenceValues.tdx = [
+                (.ReferenceValues.tdx | to_entries)[] as $e
+                | ($e.value
+                    | .AllowedPIIDs = (($b[$e.key].AllowedPIIDs) // .AllowedPIIDs))
+                    | .MrSeam = (($b[$e.key].MrSeam) // .MrSeam)
+                ]
+            ' {{ workspace_dir }}/manifest.json
         ;;
     esac
 
