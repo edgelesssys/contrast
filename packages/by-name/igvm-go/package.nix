@@ -24,7 +24,7 @@ buildGoModule (finalAttrs: {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-RGsfUMk8EoJhDj2q20ZBAkG0TRWKqNgD4oJKVtSeGZg=";
+  vendorHash = "sha256-fddAzvfdUzVhR3APRVJP3FnNHJr/VAXGRNkbZoDucfo=";
 
   sourceRoot = "${finalAttrs.src.name}/tools/igvm";
   subPackages = [ "cmd/igvm" ];

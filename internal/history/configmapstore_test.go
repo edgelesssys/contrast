@@ -34,7 +34,7 @@ func TestGetSet(t *testing.T) {
 	require := require.New(t)
 
 	t.Setenv("HOSTNAME", "coordinator-0")
-	s, err := NewConfigMapStore(fake.NewSimpleClientset(coordinatorPod()), "test", slog.Default())
+	s, err := NewConfigMapStore(fake.NewClientset(coordinatorPod()), "test", slog.Default())
 	require.NoError(err)
 
 	key := "foo/bar"
@@ -67,7 +67,7 @@ func TestHas(t *testing.T) {
 	require := require.New(t)
 
 	t.Setenv("HOSTNAME", "coordinator-0")
-	s, err := NewConfigMapStore(fake.NewSimpleClientset(coordinatorPod()), "test", slog.Default())
+	s, err := NewConfigMapStore(fake.NewClientset(coordinatorPod()), "test", slog.Default())
 	require.NoError(err)
 
 	key := "foo/bar"
@@ -84,7 +84,7 @@ func TestCompareAndSwap(t *testing.T) {
 	require := require.New(t)
 
 	t.Setenv("HOSTNAME", "coordinator-0")
-	s, err := NewConfigMapStore(fake.NewSimpleClientset(coordinatorPod()), "test", slog.Default())
+	s, err := NewConfigMapStore(fake.NewClientset(coordinatorPod()), "test", slog.Default())
 	require.NoError(err)
 
 	key := "foo/bar"
@@ -117,7 +117,7 @@ func TestWatch(t *testing.T) {
 	require := require.New(t)
 
 	t.Setenv("HOSTNAME", "coordinator-0")
-	s, err := NewConfigMapStore(fake.NewSimpleClientset(coordinatorPod()), "test", slog.Default())
+	s, err := NewConfigMapStore(fake.NewClientset(coordinatorPod()), "test", slog.Default())
 	require.NoError(err)
 
 	key := "foo/bar"
