@@ -105,7 +105,7 @@ jobs:
           nix run .#scripts.get-logs download workspace/just.namespace
       - name: Upload logs
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: e2e_pod_logs-${{ inputs.platform }}-${{ inputs.test-name }}${{ inputs.debug-shell && '-debug-shell' || '' }}
           path: workspace/logs/export-no-stream/logs
