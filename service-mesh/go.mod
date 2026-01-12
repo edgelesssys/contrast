@@ -36,4 +36,4 @@ require (
 //
 // We point to the newer v0.13.2 version of go-control-plane when resolving the import path, even
 // though the module isn't used after the split.
-replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.13.4
+replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.14.0
