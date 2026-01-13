@@ -13,6 +13,12 @@ curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emoji
 ```
 
 This deployment has already been prepared for Contrast.
+
+<details>
+<summary>
+What was modified compared to the original deployment file?
+</summary>
+
 In the following sub-sections, we will explain the changes made to the original deployment file.
 
 ### Set the RuntimeClass
@@ -241,6 +247,8 @@ Altogether, we can configure the service mesh by adding the following annotation
 ```
 
 These are all the changes you need to make to your deployment files.
+
+</details>
 
 ## 2. Install the Contrast runtime
 
