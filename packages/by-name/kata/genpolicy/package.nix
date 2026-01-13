@@ -69,6 +69,24 @@ rustPlatform.buildRustPackage rec {
       '';
     };
 
+    # We maintain two different patches for the genpolicy settings, one for development and one for
+    # the release. We can't apply both to the Kata sources at the same time, so we have two
+    # derivations here that apply the patches only to the settings file.
+    #
+    # If you need to modify these patches, this workflow may come in handy to keep diffs small.
+    # Replace $CONTRAST with your repository worktree and adjust the patch file to _prod, if
+    # needed.
+    #
+    #   cd $CONTRAST
+    #   mkdir -p /tmp/a /tmp/b
+    #   nix build .#kata.genpolicy.settings-base
+    #   cp --no-preserve=mode result/genpolicy-settings.json /tmp/b
+    #   cd /tmp/b
+    #   patch -b -B ../a/ -p1 genpolicy-settings.json <$CONTRAST/packages/by-name/kata/genpolicy/genpolicy_settings_dev.patch
+    #   # Now, edit /tmp/b/genpolicy-settings.json according to your needs.
+    #   cd ..
+    #   git diff --no-ext-diff --full-index --no-prefix a/genpolicy-settings.json b/genpolicy-settings.json >$CONTRAST/packages/by-name/kata/genpolicy/genpolicy_settings_dev.patch
+
     # These get applied on top of all the patches under the "runtime" folder
     settings = applyPatches {
       src = settings-base;
