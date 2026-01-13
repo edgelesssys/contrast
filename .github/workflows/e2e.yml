@@ -99,12 +99,20 @@ jobs:
             --namespace-suffix="-ci" \
             --sync-ticket-file workspace/just.sync-ticket \
             --insecure-enable-debug-shell-access="${DEBUG_SHELL}"
+      - name: Check for skipped
+        id: skipped
+        run: |
+          if [[ -f workspace/just.namespace ]]; then
+            echo "skipped=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Download logs
-        if: always()
+        if: always() && steps.skipped.outputs.skipped == 'false'
         run: |
           nix run .#scripts.get-logs download workspace/just.namespace
       - name: Upload logs
-        if: always()
+        if: always() && steps.skipped.outputs.skipped == 'false'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: e2e_pod_logs-${{ inputs.platform }}-${{ inputs.test-name }}${{ inputs.debug-shell && '-debug-shell' || '' }}
