@@ -90,7 +90,7 @@ download)
     echo "Collecting Kubernetes events for namespace $namespace" >&2
     retry kubectl events -n "$namespace" -o yaml >"./workspace/logs/$namespace-k8s-events.yaml"
     echo "Logs for namespace $namespace collected successfully" >&2
-  done <<<"$(cat "$2")"
+  done <<<"$(sort -u "$2")"
   ;;
 *)
   echo "Unknown option $1"
