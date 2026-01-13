@@ -101,6 +101,7 @@ jobs:
             --insecure-enable-debug-shell-access="${DEBUG_SHELL}"
       - name: Check for skipped
         id: skipped
+        if: always()
         run: |
           if [[ -f workspace/just.namespace ]]; then
             echo "skipped=false" >> "$GITHUB_OUTPUT"
