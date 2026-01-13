@@ -38,26 +38,53 @@ Adding any of the ingress or egress annotations instructs the Contrast CLI to in
 The sidecar is configured with the environment variables `CONTRAST_INGRESS_PROXY_CONFIG`, `CONTRAST_EGRESS_PROXY_CONFIG` and `CONTRAST_ADMIN_PORT`, which are set to their respective annotation's value.
 After policy generation, the annotations themselves aren't interpreted by the runtime.
 
+### Annotation format
+
+The format of this annotation is different for ingress and egress:
+
+#### Ingress
+
+```
+<name>#<port>#<disable-TLS> || DISABLED
+```
+
+Where
+
+- `<name>` is an internal label for the target service. It can be any descriptive string, as it's only informational.
+- `<port>` is the listening port of the service that requires an exemption to the ingress rule.
+- `<disable-TLS>` can be true or false. See next section for more details.
+- `DISABLED`
+
+Multiple entries are separated by `##`. The `DISABLED` rule can't be combined with other entries.
+
+#### Egress
+
+```
+<name>#<chosen IP>:<chosen port>#<original-hostname-or-ip>:<original-port>
+```
+
+Where:
+
+- `<name>` is an internal label for the target service.
+- `<chosen IP>:<chosen port>` is a local proxy address that your application connects to.
+- `<original-hostname-or-ip>:<original-port>` is the actual destination the traffic should reach.
+
+Multiple entries are separated by `##`.
+
 ### Ingress
 
 The service mesh ingress rule redirects all incoming TCP traffic transparently to the Envoy proxy.
 The rule is activated if either the ingress or the egress annotation is present on the pod.
-If the ingress annotation value is empty, incoming connections must present a client certificate signed by the [mesh CA certificate](#summary-of-certificate-roles).
+So if an ingress annotation is present with an empty value `""` or an egress annotation is present, incoming connections must present a client certificate signed by the [mesh CA certificate](#summary-of-certificate-roles).
 Envoy presents a certificate chain of the mesh certificate of the workload and the intermediate CA certificate.
 
-Exemptions from the mTLS requirement can be specified in the annotation value, by passing triples of the form `<name>#<port>#<disable-TLS>`,  separated by `##`.
-If the deployment contains workloads which should be reachable from outside the
-Service Mesh, while still handing out the certificate chain, disable client
-authentication by setting the annotation `contrast.edgeless.systems/servicemesh-ingress` as
-`<name>#<port>#false`.
-You can choose any descriptive string identifying the service on the given port for the `<name>` field, as it's only informational.
+Non-empty ingress annotations are exemptions from that mTLS requirement and can be configured as follows:
 
-Disable redirection and TLS termination altogether by specifying
-`<name>#<port>#true`. This can be beneficial if the workload itself handles TLS
-on that port or if the information exposed on this port is non-sensitive.
+`contrast.edgeless.systems/service-mesh-ingress: <name>#port#false` signals to the proxy that this workload should be reachable form outside the Service Mesh, while still handing out the certificate chain, effectively disabling client authentication.
 
-Setting the ingress annotation to the fixed string `DISABLED` will disable the rule altogether.
-This is useful when egress rules are desired, but ingress rules aren't.
+`contrast.edgeless.systems/service-mesh-ingress: <name>#port#true` disables redirection and TLS termination altogether. This can be beneficial if the workload itself handles TLS on that port or if the information exposed on this port is non-sensitive.
+
+`DISABLED` will disable the rule altogether. This is useful when egress rules are desired, but ingress rules aren't
 
 The following example workload exposes a web service on port 8080 and metrics on port 7890.
 The web server is exposed to a 3rd party end-user who wants to verify the deployment, therefore it's still required that the server hands out its certificate chain.
