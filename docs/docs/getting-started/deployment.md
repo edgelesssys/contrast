@@ -125,7 +125,7 @@ Set both to 400Mi for each pod in this example:
  ---
 ```
 
-For details, see the [pod resources how-to](../howto/workload-deployment/deployment-file-preparation.md#pod-resources).
+For more details, see the [Pod Resources Section in the "Prepare deployment files" how-to](../howto/workload-deployment/deployment-file-preparation#pod-resources).
 
 ### Add service mesh annotations
 
@@ -136,6 +136,8 @@ The **Contrast Coordinator**, a service deployed alongside your workloads, acts 
 - A certificate authority (CA) that issues certificates to verified pods.
 
 By adding specific annotations to your pod definitions, you enable an automatic service mesh for encrypted and authenticated pod-to-pod communication.
+
+For more details, see the [Drop-in service mesh Section in the "TLS Configuration" how-to](../howto/workload-deployment/TLS-configuration#drop-in-service-mesh).
 
 #### Traffic flow in this setup:
 
@@ -156,22 +158,10 @@ Add the following annotation to the `web` pod to define egress rules:
 contrast.edgeless.systems/servicemesh-egress: emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080
 ```
 
-The format of this annotation is:
+Contrast's service mesh deploys a local Envoy proxy for each pod.
+The above rule will direct outbound traffic through the mesh by configuring the application to direct traffic to that proxy at `127.137.0.1:8081` instead of `emoji-svc:8080` as well as to `127.137.0.2:8081` instead of `voting-svc:8080`.
 
-```
-<name>#<chosen IP>:<chosen port>#<original-hostname-or-ip>:<original-port>
-```
-
-Where:
-
-- `<name>` is an internal label for the target service.
-- `<chosen IP>:<chosen port>` is a local address that your application uses.
-- `<original-hostname-or-ip>:<original-port>` is the actual destination the traffic should reach.
-
-Multiple entries are separated by `##`.
-
-Contrast's service mesh deploys a local Envoy proxy at `<chosen IP>:<chosen port>` within each pod. To direct outbound traffic through the mesh, you must configure your application to connect to that proxy address instead of `<original-hostname-or-ip>:<original-port>`.
-
+For more details on the format, see the [Annotation format Section in the "Service Mesh" Chapter](../architecture/components/service-mesh#annotation-format).
 
 #### Enable ingress mTLS at `emoji` and `voting`
 
@@ -184,19 +174,32 @@ contrast.edgeless.systems/servicemesh-ingress: ""
 Setting this annotation to an empty string enables automatic verification of incoming mTLS connections.
 If the annotation is omitted entirely, no ingress verification will take place.
 
+
 #### Enable ingress for external HTTPS traffic
 
-Add this annotation to allow HTTPS ingress without requiring client certificates:
+Add this annotation to the `web` pod to allow HTTPS ingress without requiring client certificates:
 
 ```yaml
 contrast.edgeless.systems/servicemesh-ingress: web#8080#false
 ```
+
 This configuration exempts port 8080 from mTLS verification: clients can connect to 8080 without presenting a client certificate, while all other ports still require full mTLS
+
+#### Enable egress mTLS from `vote-bot` to `web`
+
+Add the following annotation to the `vote-bot` pod to define egress rules:
+
+```yaml
+contrast.edgeless.systems/servicemesh-egress: web#127.137.0.3:8081#web-svc:443
+contrast.edgeless.systems/servicemesh-ingress: DISABLED
+```
+
+Presence of either one of the annotations will enable the service mesh for both ingress and egress. The ingress annotation supports the option `DISABLED` to explicitly disable it.
 
 
 Altogether, we can configure the service mesh by adding the following annotations:
 
-```diff title="resources/emojivoto-demo.yaml"
+```diff title="resources/emojivoto-demo.yml"
 @@ -14,6 +14,8 @@ spec:
        version: v11
    template:
@@ -206,7 +209,17 @@ Altogether, we can configure the service mesh by adding the following annotation
        labels:
          app.kubernetes.io/name: emoji-svc
          version: v11
-@@ -115,6 +117,8 @@ spec:
+@@ -74,6 +76,9 @@ spec:
+       version: v11
+   template:
+     metadata:
++      annotations:
++        contrast.edgeless.systems/servicemesh-egress: "web#127.137.0.3:8081#web-svc:443"
++        contrast.edgeless.systems/servicemesh-ingress: DISABLED
+       labels:
+         app.kubernetes.io/name: vote-bot
+         version: v11
+@@ -105,6 +110,8 @@ spec:
        version: v11
    template:
      metadata:
@@ -215,13 +228,13 @@ Altogether, we can configure the service mesh by adding the following annotation
        labels:
          app.kubernetes.io/name: voting-svc
          version: v11
-@@ -181,6 +185,9 @@ spec:
+@@ -165,6 +172,9 @@ spec:
        version: v11
    template:
      metadata:
 +      annotations:
-+        contrast.edgeless.systems/servicemesh-egress: emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080
-+        contrast.edgeless.systems/servicemesh-ingress: web#8080#false
++        contrast.edgeless.systems/servicemesh-egress: "emoji#127.137.0.1:8081#emoji-svc:8080##voting#127.137.0.2:8081#voting-svc:8080"
++        contrast.edgeless.systems/servicemesh-ingress: "web#8080#false"
        labels:
          app.kubernetes.io/name: web-svc
          version: v11
@@ -245,6 +258,10 @@ kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/downloa
 ```
 </TabItem>
 </Tabs>
+
+The contrast runtime is deployed in the `contrast-system` namespace by default but this can be changed by modifying the YAML file before applying if you wish.
+
+For more details, see the ["Deploy the Contrast runtime" how-to](../howto/workload-deployment/runtime-deployment).
 
 ## 3. Add the Contrast Coordinator to the deployment
 
@@ -276,7 +293,7 @@ They will have to be filled in manually.
 AMD doesn't provide an accessible way to acquire the latest TCB values for your platform.
 Visit the [AMD SEV developer portal](https://www.amd.com/en/developer/sev.html) and download the latest firmware package for your processor family.
 Unpack and inspect the contained release notes, which state the SNP firmware SVN (called `SPL` (security patch level) in that document).
-Contact your hardware vendor or BIOS firmware provider for information about the other TCB components
+Contact your hardware vendor or BIOS firmware provider for information about the other TCB components.
 
 To check the current TCB level of your platform, use the [`snphost`](https://github.com/virtee/snphost):
 
