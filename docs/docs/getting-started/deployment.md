@@ -284,6 +284,12 @@ curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coord
 
 ## 4. Generate initdata annotations and manifest
 
+:::tip
+
+If you need to deploy your application under a different namespace than the default, you need to do it before running `contrast generate`.
+For more details, see the [Namespaces Section in the Prepare deployment files" how-to](../howto/workload-deployment/deployment-file-preparation.md#namespaces).
+:::
+
 Run the `generate` command to create execution policies that strictly control communication between the host and CVMs on each worker node and define which workloads are allowed to run. These policies are wrapped in initdata documents and added as annotations to your deployment files.
 
 The command also generates a `manifest.json` file, which contains the trusted reference values of your deployment.
@@ -582,3 +588,18 @@ curl --cacert ./mesh-ca.pem "https://${frontendIP}:443"
 ```
 
 This should return the HTML content of the web frontend.
+
+# Optional: Cleanup
+
+You can clean-up your deployment with:
+
+```bash
+kubectl delete namespace contrast-emojivoto
+```
+
+and the contrast runtime with:
+
+```bash
+kubectl delete namespace contrast-system
+```
+<!-- TODO(sespiros): This leaves files under /opt/edgeless and containerd config fragments that also need cleanup -->
