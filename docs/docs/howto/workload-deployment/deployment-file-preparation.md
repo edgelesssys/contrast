@@ -75,6 +75,28 @@ Contrast workloads can run in any namespace and a Contrast deployment can be spr
 The Coordinator doesn't have to be in the same namespace as the workloads and is configured to use the `default` namespace when first downloading the resource.
 To better organize your deployment, you can create a dedicated namespace and change the Coordinator namespace in the deployment file.
 
+This is an example showing how to customize the deployment from the ["Getting started" chapter](../../getting-started/deployment.md) to run under its own namespace:
+
+```bash
+kubectl create namespace contrast-emojivoto
+kubectl config set-context --current --namespace=contrast-emojivoto
+
+cat << "EOF" > resources/kustomization.yml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: contrast-emojivoto
+
+resources:
+  - emojivoto-demo.yml
+  - coordinator.yml
+EOF
+
+mv resources resources-orig
+mkdir resources
+kustomize build resources-orig > resources/all.yml
+```
+
 ### Volumes
 
 Contrast doesn't support sharing filesystems with the host.
