@@ -29,8 +29,6 @@ import (
 func TestContainerd11644Reproducer(t *testing.T) {
 	platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
 	require.NoError(t, err)
-	ct := contrasttest.New(t)
-
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
@@ -38,39 +36,47 @@ func TestContainerd11644Reproducer(t *testing.T) {
 	runcTester, ccTester := kuberesource.Containerd11644ReproducerTesters(deploymentName)
 
 	// Start the runcTester outside the CC context.
-	ct.Init(t, []any{runcTester})
-	ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
-	t.Cleanup(cancel)
-	_, err = ct.Kubeclient.Client.AppsV1().
-		Deployments(ct.Namespace).
-		Apply(
-			ctx,
-			runcTester,
-			metav1.ApplyOptions{
-				FieldManager: "e2e-test",
-			},
-		)
-	require.NoError(t, err)
-	err = ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, *runcTester.Name)
-	require.NoError(t, err)
+	t.Run("start-runc-container", func(t *testing.T) {
+		ct := contrasttest.New(t)
 
-	resources := kuberesource.CoordinatorBundle()
-	resources = append(resources, ccTester)
-	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
-	resources = kuberesource.AddPortForwarders(resources)
+		ct.Init(t, []any{runcTester})
 
-	ct.Init(t, resources)
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
+		t.Cleanup(cancel)
+		_, err = ct.Kubeclient.Client.AppsV1().
+			Deployments(ct.Namespace).
+			Apply(
+				ctx,
+				runcTester,
+				metav1.ApplyOptions{FieldManager: "e2e-test"},
+			)
+		require.NoError(t, err)
+		err = ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, *runcTester.Name)
+		require.NoError(t, err)
+	})
 
-	require.NoError(t, err)
-	require.True(t, t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
-	require.True(t, t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
-	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
-	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+	t.Run("start-cc-container", func(t *testing.T) {
+		require := require.New(t)
+		ct := contrasttest.New(t)
 
-	ctx, cancel = context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
-	t.Cleanup(cancel)
-	err = ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, *ccTester.Name)
-	require.NoError(t, err)
+		resources := kuberesource.CoordinatorBundle()
+		resources = append(resources, ccTester)
+		resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
+		resources = kuberesource.AddPortForwarders(resources)
+
+		ct.Init(t, resources)
+
+		require.NoError(err)
+		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+		require.True(t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
+		require.True(t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
+
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(2*time.Minute))
+		t.Cleanup(cancel)
+		err = ct.Kubeclient.WaitForDeployment(ctx, ct.Namespace, *ccTester.Name)
+		require.NoError(err)
+	})
 }
 
 func TestMain(m *testing.M) {
