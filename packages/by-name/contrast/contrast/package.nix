@@ -142,7 +142,6 @@ let
     "coordinator"
     "initializer"
     "cli"
-    "nodeinstaller"
   ];
 in
 
@@ -171,7 +170,6 @@ buildGoModule (finalAttrs: {
         (path.append root "internal/manifest/Milan.pem")
         (path.append root "internal/manifest/Genoa.pem")
         (path.append root "internal/manifest/Intel_SGX_Provisioning_Certification_RootCA.pem")
-        (path.append root "nodeinstaller")
         (fileset.difference (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
           fileset.unions [
             (path.append root "service-mesh")
@@ -180,6 +178,7 @@ buildGoModule (finalAttrs: {
             (path.append root "imagestore")
             (path.append root "initdata-processor")
             (path.append root "e2e")
+            (path.append root "nodeinstaller")
           ]
         ))
       ];
@@ -196,7 +195,6 @@ buildGoModule (finalAttrs: {
     install -D ${lib.getExe contrastPkgsStatic.kata.genpolicy} cli/genpolicy/assets/genpolicy-kata
     install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
     install -D ${embeddedReferenceValues} internal/manifest/assets/reference-values.json
-    install -D ${snpIdBlocks} nodeinstaller/internal/kataconfig/snp-id-blocks.json
   '';
 
   # postPatch will be overwritten by the release-cli derivation, prePatch won't.
@@ -233,9 +231,6 @@ buildGoModule (finalAttrs: {
     # rename the cli binary to contrast
     mv "$cli/bin/cli" "$cli/bin/contrast"
 
-    # rename the nodeinstaller binary to node-installer
-    mv "$nodeinstaller/bin/nodeinstaller" "$nodeinstaller/bin/node-installer"
-
     installShellCompletion --cmd contrast \
       --bash <($cli/bin/contrast completion bash) \
       --fish <($cli/bin/contrast completion fish) \
@@ -250,7 +245,7 @@ buildGoModule (finalAttrs: {
   dontFixup = true;
 
   passthru = {
-    inherit embeddedReferenceValues;
+    inherit embeddedReferenceValues snpIdBlocks;
   };
 
   meta.mainProgram = "contrast";
