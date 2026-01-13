@@ -315,7 +315,7 @@ jobs:
       # Job needs content:write to see draft releases.
       contents: write
       packages: read
-    needs: [process-inputs, release]
+    needs: [process-inputs, release, nightly]
     env:
       VERSION: ${{ inputs.version }}
     steps:
