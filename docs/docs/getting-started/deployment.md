@@ -551,7 +551,7 @@ To find out more about the `SANs` field in the manifest, see [SANs section in th
 Apply the updated manifest with:
 
 ```sh
-contrast set -c "${coordinator}:1313" deployment/
+contrast set -c "${coordinator}:1313" resources/
 ```
 
 This triggers a rotation of the mesh CA certificate.
