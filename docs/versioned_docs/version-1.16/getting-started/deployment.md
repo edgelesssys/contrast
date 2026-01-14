@@ -9,7 +9,7 @@ Follow these steps to make your deployment confidential.
 Download the Kubernetes resources for the emojivoto deployment with the following command:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/emojivoto-demo.yml --create-dirs --output-dir resources
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.16.0/emojivoto-demo.yml --create-dirs --output-dir resources
 ```
 
 This deployment has already been prepared for Contrast.
@@ -236,12 +236,12 @@ Next, install the Contrast runtime in your cluster which will be used when setti
 <Tabs queryString="platform">
 <TabItem value="metal-qemu-snp" label="Bare metal (SEV-SNP)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-snp.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.16.0/runtime-metal-qemu-snp.yml
 ```
 </TabItem>
 <TabItem value="metal-qemu-tdx" label="Bare metal (TDX)">
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-tdx.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.16.0/runtime-metal-qemu-tdx.yml
 ```
 </TabItem>
 </Tabs>
@@ -254,7 +254,7 @@ Download the Kubernetes resource of the Contrast Coordinator, comprising a singl
 Put it next to your resources:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/coordinator.yml --output-dir resources
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.16.0/coordinator.yml --output-dir resources
 ```
 
 ## 4. Generate initdata annotations and manifest
