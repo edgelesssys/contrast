@@ -93,7 +93,7 @@ func TestConfig(t *testing.T) {
 				},
 				path: "config.toml",
 				wantConfig: Config{
-					path:   "@tmpDir@/config.toml",
+					path:   "config.toml",
 					config: config{Version: 2},
 				},
 			},
@@ -112,7 +112,7 @@ func TestConfig(t *testing.T) {
 				},
 				path: "config.toml.tmpl",
 				wantConfig: Config{
-					path:   "@tmpDir@/config.toml.tmpl",
+					path:   "config.toml.tmpl",
 					config: config{Version: 2},
 				},
 			},
@@ -127,7 +127,7 @@ func TestConfig(t *testing.T) {
 				},
 				path: "config.toml.tmpl",
 				wantConfig: Config{
-					path:   "@tmpDir@/config.toml.tmpl",
+					path:   "config.toml.tmpl",
 					config: config{Version: 2},
 				},
 			},
@@ -159,7 +159,7 @@ func TestConfig(t *testing.T) {
 					return
 				}
 				require.NoError(err)
-				assert.Equal(strings.ReplaceAll(tc.wantConfig.path, "@tmpDir@", tmpDir), gotConfig.path)
+				assert.Equal(filepath.Join(tmpDir, tc.wantConfig.path), gotConfig.path)
 				assert.Equal(tc.wantConfig.config, gotConfig.config)
 			})
 		}
