@@ -69,6 +69,7 @@ let
               (builtins.readFile "${launch-digests}/rtmr3.hex")
             ];
             xfam = "e702060000000000";
+            memoryIntegrity = false;
           }
         )
       ];
