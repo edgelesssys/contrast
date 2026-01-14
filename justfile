@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (node-installer platform) (deploy target cli platform) set verify (wait-for-workload target)
+default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell node-installers (deploy target cli platform) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -38,24 +38,10 @@ default_deploy_target := "openssl"
 default_platform := "${default_platform}"
 workspace_dir := "workspace"
 
-# Build the node-installer, containerize and push it.
-node-installer platform=default_platform:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    case {{ platform }} in
-        "Metal-QEMU-SNP"|"Metal-QEMU-TDX")
-            just push "node-installer-kata"
-        ;;
-        "Metal-QEMU-SNP-GPU"|"Metal-QEMU-TDX-GPU")
-            just push "node-installer-kata-gpu"
-        ;;
-        *)
-            echo "Unsupported platform: {{ platform }}"
-            exit 1
-        ;;
-    esac
+# Build the node-installers, containerize and push them.
+node-installers: (push "node-installer-kata") (push "node-installer-kata-gpu")
 
-e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (node-installer platform)
+e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell node-installers
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" ]] ; then
@@ -77,7 +63,7 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
             --insecure-enable-debug-shell-access=${debug:-false}
 
 # Generate policies, apply Kubernetes manifests.
-deploy target=default_deploy_target cli=default_cli platform=default_platform: (runtime target platform) (write-namespace target) (apply "runtime" platform) (populate target platform) (generate cli platform) (apply target platform)
+deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target platform) (runtime target platform) (write-namespace target) (apply "runtime" platform) (generate cli platform) (apply target platform)
 
 # Populate the workspace with a runtime class deployment
 runtime target=default_deploy_target platform=default_platform:
@@ -93,12 +79,14 @@ runtime target=default_deploy_target platform=default_platform:
             --platform {{ platform }} \
             node-installer-target-conf > ./{{ workspace_dir }}/runtime/target-conf.yml
     fi
+    deployment=$( [[ -e "./{{ workspace_dir }}/deployment" ]] && printf '%s' "./{{ workspace_dir }}/deployment" || printf '' )
     nix shell .#contrast.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --add-namespace-object \
         --node-installer-target-conf-type ${node_installer_target_conf_type} \
         --platform {{ platform }} \
+        --deployment "$deployment" \
         runtime > ./{{ workspace_dir }}/runtime/runtime.yml
 
 # Populate the workspace with a Kubernetes deployment

@@ -38,18 +38,28 @@ type Manifest struct {
 }
 
 // Default returns a default manifest with reference values for the given platform.
-func Default(platform platforms.Platform) (*Manifest, error) {
+func Default(platforms []platforms.Platform) (*Manifest, error) {
 	embeddedRefValues, err := GetEmbeddedReferenceValues()
 	if err != nil {
 		return nil, fmt.Errorf("get embedded reference values: %w", err)
 	}
 
-	refValues, err := embeddedRefValues.ForPlatform(platform)
-	if err != nil {
-		return nil, fmt.Errorf("get reference values for platform %s: %w", platform, err)
-	}
+	var merged ReferenceValues
 
-	return &Manifest{ReferenceValues: *refValues}, nil
+	for _, platform := range platforms {
+		refValues, err := embeddedRefValues.ForPlatform(platform)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"get reference values for platform %s: %w",
+				platform,
+				err,
+			)
+		}
+
+		merged.SNP = append(merged.SNP, refValues.SNP...)
+		merged.TDX = append(merged.TDX, refValues.TDX...)
+	}
+	return &Manifest{ReferenceValues: merged}, nil
 }
 
 // Validate checks the validity of all fields in the manifest.

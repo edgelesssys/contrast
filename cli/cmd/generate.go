@@ -125,13 +125,19 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	usedPlatforms, err := runtimeClassesFromUnstructured(fileMap)
+	if err != nil {
+		return fmt.Errorf("determining platforms used in deployment: %w", err)
+	}
+	usedPlatforms.Add(flags.referenceValuesPlatform)
+
 	// generate a manifest by checking if a manifest exists and using that,
 	// or otherwise using a default.
 	var mnf *manifest.Manifest
 	existingManifest, err := os.ReadFile(flags.manifestPath)
 	if errors.Is(err, fs.ErrNotExist) {
 		// Manifest does not exist, create a new one
-		mnf, err = manifest.Default(flags.referenceValuesPlatform)
+		mnf, err = manifest.Default(usedPlatforms.Platforms())
 		if err != nil {
 			return fmt.Errorf("create default manifest: %w", err)
 		}
@@ -153,7 +159,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get runtime handler: %w", err)
 	}
 
-	if err := patchTargets(fileMap, flags.imageReplacementsFile, runtimeHandler, coordinatorNamespace, flags); err != nil {
+	if err := patchTargets(log, fileMap, flags.imageReplacementsFile, runtimeHandler, coordinatorNamespace, flags); err != nil {
 		return fmt.Errorf("patch targets: %w", err)
 	}
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Patched targets")
@@ -201,7 +207,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		}
 		return ce
 	} else if errors.As(err, &ve) && ve.OnlyExpectedMissingReferenceValues() {
-		fmt.Fprintf(cmd.OutOrStdout(), "  Please fill in the reference values for %s\n", flags.referenceValuesPlatform.String())
+		fmt.Fprintf(cmd.OutOrStdout(), "  Please fill in all reference values for %s\n", strings.Join(usedPlatforms.Names(), ", "))
 	} else if err != nil {
 		return err
 	}
@@ -438,7 +444,7 @@ func generatePolicies(ctx context.Context, flags *generateFlags, fileMap map[str
 	})
 }
 
-func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler, coordinatorNamespace string, flags *generateFlags) error {
+func patchTargets(logger *slog.Logger, fileMap map[string][]*unstructured.Unstructured, imageReplacementsFile, runtimeHandler, coordinatorNamespace string, flags *generateFlags) error {
 	var replacements map[string]string
 	var err error
 	if imageReplacementsFile != "" {
@@ -480,7 +486,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 
 		kuberesource.PatchImages([]any{res}, replacements)
 
-		replaceRuntimeClassName := runtimeClassNamePatcher(runtimeHandler)
+		replaceRuntimeClassName := patchRuntimeClassName(logger, runtimeHandler)
 		kuberesource.MapPodSpec(res, replaceRuntimeClassName)
 
 		return res, nil
@@ -509,19 +515,6 @@ func injectServiceMesh(resource any) error {
 		return err
 	}
 	return nil
-}
-
-func runtimeClassNamePatcher(handler string) func(*applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-	return func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		if spec == nil || spec.RuntimeClassName == nil || *spec.RuntimeClassName == handler {
-			return spec
-		}
-
-		if strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || *spec.RuntimeClassName == "kata-cc-isolation" {
-			spec.RuntimeClassName = &handler
-		}
-		return spec
-	}
 }
 
 func validateOutputFile(outputFile string) error {
@@ -629,6 +622,52 @@ func generateSeedshareOwnerKey(flags *generateFlags) error {
 		return fmt.Errorf("creating default seedshare owner key file: %w", err)
 	}
 	return nil
+}
+
+func runtimeClassesFromUnstructured(fileMap map[string][]*unstructured.Unstructured) (kuberesource.PlatformCollection, error) {
+	var res []any
+	for _, resources := range fileMap {
+		for _, r := range resources {
+			applyConfig, err := kuberesource.UnstructuredToApplyConfiguration(r)
+			if err != nil {
+				return nil, err
+			}
+			res = append(res, applyConfig)
+		}
+	}
+	runtimeClasses, err := kuberesource.CollectRuntimeClasses(res)
+	if err != nil {
+		return nil, err
+	}
+	return runtimeClasses, nil
+}
+
+func patchRuntimeClassName(logger *slog.Logger, defaultRuntimeHandler string) func(*applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+	return func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+		if spec == nil || spec.RuntimeClassName == nil {
+			return spec
+		}
+		if *spec.RuntimeClassName == "kata-cc-isolation" || *spec.RuntimeClassName == "contrast-cc" {
+			spec.RuntimeClassName = &defaultRuntimeHandler
+			return spec
+		}
+		if !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") {
+			return spec
+		}
+		overridePlatform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
+		spec.RuntimeClassName = &defaultRuntimeHandler
+		if err != nil {
+			logger.Error("could not determine platform for runtime class", "runtime-class-name", *spec.RuntimeClassName, "err", err)
+			return spec
+		}
+		overrideRuntimeHandler, err := manifest.RuntimeHandler(overridePlatform)
+		if err != nil {
+			logger.Error("could not get runtime handler for platform", "platform", overridePlatform, "err", err)
+			return spec
+		}
+		spec.RuntimeClassName = &overrideRuntimeHandler
+		return spec
+	}
 }
 
 type generateFlags struct {

@@ -36,6 +36,19 @@ func ContrastRuntimeClass(platform platforms.Platform) (*RuntimeClassConfig, err
 	return &RuntimeClassConfig{r}, nil
 }
 
+// NodeInstallers returns a list consisting of one NodeInstaller per specified platform.
+func NodeInstallers(namespace string, platforms []platforms.Platform) ([]*applyappsv1.DaemonSetApplyConfiguration, error) {
+	var out []*applyappsv1.DaemonSetApplyConfiguration
+	for _, platform := range platforms {
+		nodeInstaller, err := NodeInstaller(namespace, platform)
+		if err != nil {
+			return nil, fmt.Errorf("creating node installer for platform %q: %w", platform, err)
+		}
+		out = append(out, nodeInstaller)
+	}
+	return out, nil
+}
+
 // NodeInstaller constructs a node installer daemon set.
 func NodeInstaller(namespace string, platform platforms.Platform) (*applyappsv1.DaemonSetApplyConfiguration, error) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
