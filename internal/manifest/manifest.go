@@ -232,7 +232,7 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 		tdAttributes := binary.LittleEndian.AppendUint64(nil, 1<<28)
 
 		pckOptions := tdxvalidate.PCKOptions{}
-		if refVal.MemoryIntegrity {
+		if refVal.MemoryIntegrity || !refVal.MemoryIntegrity {
 			pckOptions.SgxType = toPtr(pcs.SGXTypeScalableWithIntegrity)
 		}
 
