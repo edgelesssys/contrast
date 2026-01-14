@@ -740,4 +740,16 @@ lib.makeScope pkgs.newScope (scripts: {
       echo "$timestamp $digest"
     '';
   };
+
+  mdsh-fmt = writeShellApplication {
+    name = "mdsh-fmt";
+    runtimeInputs = with pkgs; [
+      mdsh
+      busybox
+      jq
+    ];
+    text = ''
+      mdsh --inputs "$@"
+    '';
+  };
 })

@@ -62,4 +62,30 @@ final: prev:
       })
     ];
   });
+
+  # The GitHub repository does not have an active release cycle and the main
+  # branch has a major refactoring while the latest tag is outdated.
+  mdsh = prev.mdsh.overrideAttrs (
+    finalAttrs: prevAttrs: {
+      version = "unstable-main";
+      src = final.fetchFromGitHub {
+        owner = "zimbatm";
+        repo = "mdsh";
+        rev = "main";
+        hash = "sha256-GJBd7WyJs7EQH/aZuG0y9rJW9ikgtPFty6CJT1y8qm4=";
+      };
+      cargoDeps = final.rustPlatform.fetchCargoVendor {
+        inherit (finalAttrs) src;
+        hash = "sha256-JbmHwAn3oXUUXsiQgCcZSBBS9o9Kam66MWHnbo25Fxg=";
+      };
+      # The current main branch swallows the newline at the end of each file.
+      # https://github.com/zimbatm/mdsh/pull/95
+      patches = prevAttrs.patches or [ ] ++ [
+        (final.fetchpatch {
+          url = "https://github.com/zimbatm/mdsh/commit/ed61a47a941e728af8287dd15f044bcd935f3598.patch";
+          hash = "sha256-/M3wq1hrjGDIWGL/ptDItwMSZaDnmiFb5DROyPB02YY=";
+        })
+      ];
+    }
+  );
 }
