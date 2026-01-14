@@ -366,6 +366,12 @@ If you retrieve this value via a remote channel, your traffic could already be r
 
 :::
 
+### `ReferenceValues.tdx.*.MemoryIntegrity` {#tdx-memory-integrity}
+
+The `MemoryIntegrity` field controls verification of the TDX memory integrity mode (see [TDX Module Spec], chapter 16).
+Setting it to `true` enforces the _cryptographic integrity_ mode.
+Any mode is allowed if the field is absent or `false` (the default).
+
 ## `WorkloadOwnerKeyDigests` {#workload-owner-key-digests}
 
 A list of workload owner public key digests.
@@ -391,5 +397,6 @@ Doing the same for the `SeedshareOwnerKeys` field makes Coordinator recovery and
 [`snphost`]: https://github.com/virtee/snphost
 [SEV ABI Spec]: https://www.amd.com/content/dam/amd/en/documents/developer/56860.pdf
 [TDX ABI Spec]: https://www.intel.com/content/www/us/en/content-details/865802/intel-tdx-module-abi-specification.html
+[TDX Module Spec]: https://www.intel.com/content/www/us/en/content-details/867568/intel-tdx-module-base-architecture-specification.html
 [SGX PCK Spec]: https://api.trustedservices.intel.com/documents/Intel_SGX_PCK_Certificate_CRL_Spec-1.5.pdf
 [`PCKIDRetrievalTool`]: https://github.com/intel/confidential-computing.tee.dcap/blob/717f2a91ca732c3309b0c59d21757463133eb440/tools/PCKRetrievalTool/README.txt

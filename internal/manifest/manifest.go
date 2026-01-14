@@ -19,6 +19,7 @@ import (
 	"github.com/google/go-sev-guest/kds"
 	snpvalidate "github.com/google/go-sev-guest/validate"
 	snpverify "github.com/google/go-sev-guest/verify"
+	"github.com/google/go-tdx-guest/pcs"
 	tdxvalidate "github.com/google/go-tdx-guest/validate"
 	tdxverify "github.com/google/go-tdx-guest/verify"
 )
@@ -232,6 +233,11 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 		// See https://download.01.org/intel-sgx/sgx-dcap/1.24/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf, A.3.4.
 		tdAttributes := binary.LittleEndian.AppendUint64(nil, 1<<28)
 
+		pckOptions := tdxvalidate.PCKOptions{}
+		if refVal.MemoryIntegrity {
+			pckOptions.SgxType = toPtr(pcs.SGXTypeScalableWithIntegrity)
+		}
+
 		validateOptions := &tdxvalidate.Options{
 			HeaderOptions: tdxvalidate.HeaderOptions{
 				QeVendorID: intelQeVendorID,
@@ -243,6 +249,7 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 				MrTd:         mrTd,
 				Rtmrs:        rtmrs[:],
 			},
+			PCKOptions: pckOptions,
 		}
 
 		var allowedPIIDs [][]byte
@@ -479,4 +486,8 @@ type CoordinatorCountError struct{ Count uint }
 
 func (e *CoordinatorCountError) Error() string {
 	return fmt.Sprintf("expected exactly 1 policy with role 'coordinator', got %d", e.Count)
+}
+
+func toPtr[T any](v T) *T {
+	return &v
 }
