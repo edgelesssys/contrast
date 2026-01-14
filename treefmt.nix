@@ -92,6 +92,13 @@
         "*.html"
       ];
     };
+    mdsh = {
+      command = "${lib.getExe pkgs.contrastPkgs.scripts.mdsh-fmt}";
+      includes = [
+        "docs/docs/*.md"
+        "docs/docs/**/*.md"
+      ];
+    };
     renovate = {
       command = "${lib.getExe' pkgs.renovate "renovate-config-validator"}";
       options = [ "--strict" ];

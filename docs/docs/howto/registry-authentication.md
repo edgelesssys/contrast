@@ -238,5 +238,3 @@ This option set, but no certificates provided, means no TLS handshake will succe
 
 Currently, IP- and port-based configuration isn't supported.
 Please use Kubernetes' built-in tools to assign unique domain names to IP addresses, and use these for image references instead.
-
-

@@ -181,6 +181,15 @@ If the per-node requirements are fulfilled, deploy the [NVIDIA GPU Operator](htt
 
 For a GPU-enabled Contrast cluster, you can then deploy the operator with the following commands:
 
+<!-- ! $ echo "GPU_OPERATOR_VERSION=$(jq -r '."gpu-operator".currentValue' ../../../../tools/bm-maintenance/versions.json)" -->
+
+<!-- > sh $
+sed -n '/^# Add the NVIDIA Helm repository$/,/^$/p' ../../../../packages/upgrade-gpu-operator.sh
+sed -n '/^# Install the GPU Operator$/,/^$/p' ../../../../packages/upgrade-gpu-operator.sh | sed '$d' |
+  sed "s/\"\$GPU_OPERATOR_VERSION\"/$GPU_OPERATOR_VERSION/g"
+-->
+
+<!-- BEGIN mdsh -->
 ```sh
 # Add the NVIDIA Helm repository
 helm repo add nvidia https://helm.ngc.nvidia.com/nvidia && helm repo update
@@ -210,6 +219,7 @@ helm install --wait --generate-name \
   --set nfd.enabled=true \
   --set nfd.nodefeaturerules=true
 ```
+<!-- END mdsh -->
 
 Refer to the [official installation instructions](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html) for details and further options.
 
