@@ -104,6 +104,24 @@ func FromString(s string) (Platform, error) {
 	}
 }
 
+// FromRuntimeClassString returns the Platform type corresponding to the given runtime class string,
+// possibly prefixed with contrast-cc- or suffixed with a hash.
+func FromRuntimeClassString(s string) (Platform, error) {
+	s = strings.ToLower(s)
+	switch {
+	case strings.Contains(s, "metal-qemu-snp-gpu"):
+		return MetalQEMUSNPGPU, nil
+	case strings.Contains(s, "metal-qemu-snp"):
+		return MetalQEMUSNP, nil
+	case strings.Contains(s, "metal-qemu-tdx-gpu"):
+		return MetalQEMUTDXGPU, nil
+	case strings.Contains(s, "metal-qemu-tdx"):
+		return MetalQEMUTDX, nil
+	default:
+		return Unknown, fmt.Errorf("unknown platform: %s", s)
+	}
+}
+
 // DefaultMemoryInMebiBytes returns the desired VM overhead for the given platform.
 func DefaultMemoryInMebiBytes(p Platform) int {
 	switch p {

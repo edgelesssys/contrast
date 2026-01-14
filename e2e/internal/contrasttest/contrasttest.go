@@ -184,7 +184,7 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 	require.NoError(err)
 	require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), buf, 0o644))
 
-	ct.installRuntime(t)
+	ct.installRuntime(t, resources)
 }
 
 // Generate runs the contrast generate command and fails the test if the command fails.
@@ -459,7 +459,7 @@ func (ct *ContrastTest) commonArgs() []string {
 }
 
 // installRuntime initializes the kubernetes runtime class for the test.
-func (ct *ContrastTest) installRuntime(t *testing.T) {
+func (ct *ContrastTest) installRuntime(t *testing.T, resources []any) {
 	require := require.New(t)
 
 	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Minute)
@@ -484,7 +484,7 @@ func (ct *ContrastTest) installRuntime(t *testing.T) {
 		require.NoError(ct.Kubeclient.Apply(ctx, unstructured...))
 	}
 
-	resources, err := kuberesource.Runtime(ct.Platform)
+	resources, err := kuberesource.Runtimes(ct.Platform, resources)
 	require.NoError(err)
 	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)

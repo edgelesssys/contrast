@@ -480,7 +480,7 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 
 		kuberesource.PatchImages([]any{res}, replacements)
 
-		replaceRuntimeClassName := runtimeClassNamePatcher(runtimeHandler)
+		replaceRuntimeClassName := kuberesource.PatchRuntimeClassName(runtimeHandler)
 		kuberesource.MapPodSpec(res, replaceRuntimeClassName)
 
 		return res, nil
@@ -509,19 +509,6 @@ func injectServiceMesh(resource any) error {
 		return err
 	}
 	return nil
-}
-
-func runtimeClassNamePatcher(handler string) func(*applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-	return func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
-		if spec == nil || spec.RuntimeClassName == nil || *spec.RuntimeClassName == handler {
-			return spec
-		}
-
-		if strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") || *spec.RuntimeClassName == "kata-cc-isolation" {
-			spec.RuntimeClassName = &handler
-		}
-		return spec
-	}
 }
 
 func validateOutputFile(outputFile string) error {
