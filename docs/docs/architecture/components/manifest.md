@@ -31,7 +31,8 @@ The manifest has the following higher level structure:
         "MrTd": "<mr-td>",
         "MrSeam": "<mr-seam>",
         "Rtmrs": [ "<rtmr0>", "<rtmr1>", "<rtmr2>", "<rtmr3>" ],
-        "Xfam": "<xfam>"
+        "Xfam": "<xfam>",
+        ...
       },
       ...
     ]
@@ -389,6 +390,6 @@ Doing the same for the `SeedshareOwnerKeys` field makes Coordinator recovery and
 
 [`snphost`]: https://github.com/virtee/snphost
 [SEV ABI Spec]: https://www.amd.com/content/dam/amd/en/documents/developer/56860.pdf
-[TDX ABI Spec]: https://cdrdv2.intel.com/v1/dl/getContent/733579
+[TDX ABI Spec]: https://www.intel.com/content/www/us/en/content-details/865802/intel-tdx-module-abi-specification.html
 [SGX PCK Spec]: https://api.trustedservices.intel.com/documents/Intel_SGX_PCK_Certificate_CRL_Spec-1.5.pdf
 [`PCKIDRetrievalTool`]: https://github.com/intel/confidential-computing.tee.dcap/blob/717f2a91ca732c3309b0c59d21757463133eb440/tools/PCKRetrievalTool/README.txt
