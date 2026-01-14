@@ -8,7 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -108,4 +111,39 @@ func splitYAML(resources []byte) ([][]byte, error) {
 		res = append(res, valueBytes)
 	}
 	return res, nil
+}
+
+// CollectYAMLFiles returns all .yml/.yaml files under path.
+// If path is a file, it returns that file if it matches.
+func CollectYAMLFiles(path string) ([]string, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var files []string
+
+	isYAML := func(p string) bool {
+		ext := strings.ToLower(filepath.Ext(p))
+		return ext == ".yml" || ext == ".yaml"
+	}
+
+	if !info.IsDir() {
+		if isYAML(path) {
+			return []string{path}, nil
+		}
+		return nil, nil
+	}
+
+	err = filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() && isYAML(p) {
+			files = append(files, p)
+		}
+		return nil
+	})
+
+	return files, err
 }
