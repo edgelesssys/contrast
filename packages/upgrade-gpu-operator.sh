@@ -46,10 +46,10 @@ if [[ -n $helm_release ]]; then
 fi
 kubectl delete crd nvidiadrivers.nvidia.com --ignore-not-found
 
-# Install GPU Operator
+# Add the NVIDIA Helm repository
 helm repo add nvidia https://helm.ngc.nvidia.com/nvidia && helm repo update
 
-# Upstream instructions from https://github.com/kata-containers/kata-containers/pull/12257
+# Install the GPU Operator
 helm install --wait --generate-name \
   -n gpu-operator --create-namespace \
   nvidia/gpu-operator \

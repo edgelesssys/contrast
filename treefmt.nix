@@ -16,6 +16,13 @@
     };
     just.enable = true;
     keep-sorted.enable = true;
+    mdsh = {
+      enable = true;
+      includes = [
+        "docs/docs/*.md"
+        "docs/docs/**/*.md"
+      ];
+    };
     nixf-diagnose.enable = true;
     nixfmt.enable = true;
     shellcheck.enable = true;
