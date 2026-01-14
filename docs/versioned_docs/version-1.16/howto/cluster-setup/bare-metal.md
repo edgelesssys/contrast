@@ -91,7 +91,7 @@ Contrast can be deployed with different Kubernetes distributions.
 Then, install the ConfigMap to configure the Contrast node-installer for use with K3s:
 
 ```sh
-kubectl apply -f https://github.com/edgelesssys/contrast/releases/latest/download/node-installer-target-config-k3s.yml
+kubectl apply -f https://github.com/edgelesssys/contrast/releases/download/v1.16.0/node-installer-target-config-k3s.yml
 ```
 
 If you need to pull large images, configure K3s to use a longer `runtime-request-timeout` duration than the [default value of 2 minutes](https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/) used by the kubelet,
