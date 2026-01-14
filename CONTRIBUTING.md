@@ -106,32 +106,46 @@ If you are struggling with your git history during the review process, please as
 
    Additionally, you may want to add the [VSCode extension](https://github.com/direnv/direnv-vscode).
 
+   You may also want to configure your editor. Check `.vscode/settings.json` or `.nvim.lua` for details.
+
 4. Log into GCP.
 
     ```sh
     nix shell nixpkgs#google-cloud-sdk -c gcloud auth login
     ```
 
-5. Execute and follow instructions of
+5. Configure access to your personal GitHub container registry
+
+    Visit https://github.com/settings/tokens/new and create a new Personal access token (classic) with `write:packages` permission.
+
+    Then run
+
+    ```
+    crane auth login ghcr.io -u <GITHUB USERNAME> -p <YOUR PERSONAL ACCESS TOKEN>
+    ```
+
+    This will add your credential in `~/.docker/config.json`.
+
+6. Execute and follow instructions of
 
     ```sh
     just onboard
     ```
 
-6. Configure your cluster's credentials
-
-   > [!WARNING]
-   > `get-credentials <system>` will fetch a secret containing the pre-configured kubeconfig for the
-   > specified system from Edgeless's Google Cloud project.
-   > If you aren't part of Edgeless Systems you will need to setup your own cluster by following
-   > https://docs.edgeless.systems/contrast/howto/cluster-setup/bare-metal
-
-   > [!TIP]
-   > Use `get-credentials-dev` to obtain the kubeconfig for the development server (requires access).
+7. Configure your cluster's credentials
 
    ```sh
    just get-credentials
    ```
+
+> [!warning]
+> `get-credentials <system>` will fetch a secret containing the pre-configured kubeconfig for the
+> specified system from Edgeless's Google Cloud project.
+> If you aren't part of Edgeless Systems you will need to setup your own cluster by following
+> https://docs.edgeless.systems/contrast/howto/cluster-setup/bare-metal
+
+> [!tip]
+> Use `get-credentials-dev` to obtain the kubeconfig for the development server (requires access).
 
 ### Deploy
 
@@ -156,6 +170,12 @@ All steps can be executed as separate targets. To list all available targets and
 ```sh
 just --list
 ```
+
+> [!tip]
+> After the first time you upload contrast's images in your personal GitHub repository, you will need to
+> explicitly change their visibility to public so that they can be downloaded from the test infrastructure. This step
+> can't be automated and needs to be done manually for each image by visiting `https://github.com/<YOUR USER>/?tab=packages`,
+> clicking on each image, then "Package settings" on the right.
 
 ### Cleanup
 
