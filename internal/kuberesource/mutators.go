@@ -532,6 +532,62 @@ func PatchNamespaces(resources []any, namespace string) []any {
 	return resources
 }
 
+// ResourceFilter is used to filter the components that will be patched from a list of resources. It is used by the
+// PathServiceMesh* functions.
+type ResourceFilter func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) bool
+
+// HasNameLabel constructs a ResourceFilter function that will select resources based on their name.
+func HasNameLabel(targetName string) ResourceFilter {
+	return func(meta *applymetav1.ObjectMetaApplyConfiguration, _ *applycorev1.PodSpecApplyConfiguration) bool {
+		if meta == nil || meta.Labels == nil {
+			return false
+		}
+
+		name, exists := meta.Labels["app.kubernetes.io/name"]
+		return exists && name == targetName
+	}
+}
+
+// PatchReplaceServiceMesh adds the specified annotations to resources that match the shouldPatch filter replacing the existing ones.
+// If the shouldPatch filter is nil, the annotation is added to all the resources.
+func PatchReplaceServiceMesh(resources []any, annotations map[string]string, shouldPatch ResourceFilter) []any {
+	var out []any
+	for _, resource := range resources {
+		out = append(out, MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+			if shouldPatch != nil && !shouldPatch(meta, spec) {
+				return meta, spec
+			}
+
+			meta.WithAnnotations(annotations)
+			return meta, spec
+		}))
+	}
+	return out
+}
+
+// PatchServiceMeshAdminInterface activates the admin interface on the specified port for the resources
+// that match the shouldPatch filter.
+// If the filter is nil, the annotation is added to all the resources.
+func PatchServiceMeshAdminInterface(resources []any, port int32, shouldPatch ResourceFilter) []any {
+	var out []any
+	for _, resource := range resources {
+		out = append(out, MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+			if shouldPatch != nil && !shouldPatch(meta, spec) {
+				return meta, spec
+			}
+
+			_, ingressOk := meta.Annotations[smIngressConfigAnnotationKey]
+			_, egressOk := meta.Annotations[smEgressConfigAnnotationKey]
+			if ingressOk || egressOk {
+				meta.WithAnnotations(map[string]string{smAdminInterfaceAnnotationKey: fmt.Sprint(port)})
+				meta.Annotations[smIngressConfigAnnotationKey] += fmt.Sprintf("##admin#%d#true", port)
+			}
+			return meta, spec
+		}))
+	}
+	return out
+}
+
 // PatchCoordinatorMetrics enables Coordinator metrics on port 9102.
 func PatchCoordinatorMetrics(resources []any) []any {
 	for _, resource := range resources {
