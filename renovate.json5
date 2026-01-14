@@ -129,5 +129,15 @@
       versioningTemplate: "{{ versioning }}",
       registryUrlTemplate: "{{ registryUrl }}",
     },
+    {
+      // Bump the NixOS system.stateVersion
+      customType: "regex",
+      managerFilePatterns: [ "/packages\\/nixos\\/system\\.nix$/" ],
+      matchStrings: [ 'system\\.stateVersion\\s*=\\s*"(?<currentValue>\\d\\d\\.\\d\\d)"' ],
+      depNameTemplate: "nixos/stateVersion",
+      datasourceTemplate: "github-tags",
+      packageNameTemplate: "NixOS/nixpkgs",
+      versioningTemplate: "regex:^(?<major>\\d\\d)\\.(?<minor>\\d\\d)$",
+    },
   ],
 }
