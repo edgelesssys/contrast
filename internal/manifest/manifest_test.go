@@ -418,10 +418,6 @@ func TestHexStrings(t *testing.T) {
 	}
 }
 
-func toPtr[T any](v T) *T {
-	return &v
-}
-
 func TestExpectedMissingReferenceValues(t *testing.T) {
 	testCases := map[string]struct {
 		m    *Manifest

@@ -31,7 +31,8 @@ The manifest has the following higher level structure:
         "MrTd": "<mr-td>",
         "MrSeam": "<mr-seam>",
         "Rtmrs": [ "<rtmr0>", "<rtmr1>", "<rtmr2>", "<rtmr3>" ],
-        "Xfam": "<xfam>"
+        "Xfam": "<xfam>",
+        ...
       },
       ...
     ]
@@ -237,7 +238,7 @@ This has some overlap with the [`GuestPolicy`](#snp-guest-policy), but is checke
 #### `ReferenceValues.snp.*.PlatformInfo.TIOEnabled` {#snp-platform-info-tio-enabled}
 -->
 
-### `ReferenceValues.snp.AllowedChipIDs`
+### `ReferenceValues.snp.AllowedChipIDs` {#snp-allowed-chip-ids}
 
 These are matched against the `CHIP_ID` field from the SNP attestation report, as documented in Table 23 in the [SEV ABI Spec].
 If the list is empty or null, all chip IDs are accepted.
@@ -300,7 +301,7 @@ The kernel command line contains the dm-verity hash of the root filesystem, whic
 
 The extended features available mask (`XFAM`) determines the set of extended features available for use by the guest and is documented in Section 3.4.2 (`XFAM`) in the [TDX ABI Spec].
 
-### `ReferenceValues.tdx.AllowedPIIDs`
+### `ReferenceValues.tdx.AllowedPIIDs` {#tdx-allowed-piids}
 
 These are matched against the `PIID` field from the PCK certificate, as documented in section 1.3.5 of the [SGX PCK Spec].
 If the list is empty or null, all PIIDs are accepted.
@@ -353,6 +354,12 @@ If you retrieve this value via a remote channel, your traffic could already be r
 
 :::
 
+### `ReferenceValues.tdx.*.MemoryIntegrity` {#tdx-memory-integrity}
+
+The `MemoryIntegrity` field controls verification of the TDX memory integrity mode (see [TDX Module Spec], chapter 16).
+Setting it to `true` enforces the _cryptographic integrity_ mode.
+Any mode is allowed if the field is absent or `false` (the default).
+
 ## `WorkloadOwnerKeyDigests` {#workload-owner-key-digests}
 
 A list of workload owner public key digests.
@@ -377,6 +384,7 @@ Doing the same for the `SeedshareOwnerKeys` field makes Coordinator recovery and
 
 [`snphost`]: https://github.com/virtee/snphost
 [SEV ABI Spec]: https://www.amd.com/content/dam/amd/en/documents/developer/56860.pdf
-[TDX ABI Spec]: https://cdrdv2.intel.com/v1/dl/getContent/733579
+[TDX ABI Spec]: https://www.intel.com/content/www/us/en/content-details/865802/intel-tdx-module-abi-specification.html
+[TDX Module Spec]: https://www.intel.com/content/www/us/en/content-details/867568/intel-tdx-module-base-architecture-specification.html
 [SGX PCK Spec]: https://api.trustedservices.intel.com/documents/Intel_SGX_PCK_Certificate_CRL_Spec-1.5.pdf
 [`PCKIDRetrievalTool`]: https://github.com/intel/confidential-computing.tee.dcap/blob/717f2a91ca732c3309b0c59d21757463133eb440/tools/PCKRetrievalTool/README.txt
