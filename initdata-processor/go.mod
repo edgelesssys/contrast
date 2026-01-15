@@ -2,14 +2,11 @@ module github.com/edgelesssys/contrast/initdata-processor
 
 go 1.25.0
 
-replace (
-	github.com/edgelesssys/contrast => ..
-	github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20250811150530-d85b756e97f2
-)
+replace github.com/edgelesssys/contrast => ..
 
 require (
 	github.com/edgelesssys/contrast v0.0.0-00010101000000-000000000000
-	github.com/google/go-sev-guest v0.14.1
+	github.com/google/go-sev-guest v0.14.2-0.20251119154202-af1c107a648f
 	github.com/google/go-tdx-guest v0.3.2-0.20260104162950-32866d7a678f
 	github.com/stretchr/testify v1.11.1
 	google.golang.org/protobuf v1.36.11

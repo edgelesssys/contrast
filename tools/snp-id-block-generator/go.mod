@@ -9,7 +9,7 @@ replace github.com/edgelesssys/contrast/tools/igvm => ../igvm
 require (
 	github.com/edgelesssys/contrast v0.0.0
 	github.com/edgelesssys/contrast/tools/igvm v0.0.0
-	github.com/google/go-sev-guest v0.14.1
+	github.com/google/go-sev-guest v0.14.2-0.20251119154202-af1c107a648f
 	github.com/spf13/afero v1.15.0
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
