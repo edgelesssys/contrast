@@ -5,10 +5,7 @@ go 1.25.0
 toolchain go1.25.1
 
 // Upstream is poorly maintained, use edgelesssys fork instead.
-replace (
-	github.com/google/go-sev-guest => github.com/edgelesssys/go-sev-guest v0.0.0-20250811150530-d85b756e97f2
-	github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260112092709-e6425e8bd411
-)
+replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260112092709-e6425e8bd411
 
 require (
 	filippo.io/keygen v0.0.0-20260108161619-eaec401c2f48
@@ -18,7 +15,7 @@ require (
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/go-containerregistry v0.20.7
 	github.com/google/go-github/v72 v72.0.0
-	github.com/google/go-sev-guest v0.14.1
+	github.com/google/go-sev-guest v0.14.2-0.20251119154202-af1c107a648f
 	github.com/google/go-tdx-guest v0.3.2-0.20260104162950-32866d7a678f
 	github.com/google/logger v1.1.1
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
