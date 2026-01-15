@@ -100,6 +100,10 @@
       options = [ "--strict" ];
       includes = [ "renovate.json5" ];
     };
+    stylua = {
+      command = "${lib.getExe pkgs.stylua}";
+      includes = [ "*.lua" ];
+    };
     vale = {
       command = "${
         pkgs.vale.withStyles (
