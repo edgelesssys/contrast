@@ -162,10 +162,10 @@ generate cli=default_cli platform=default_platform:
             (load(strenv(CFG)).snp) as $b
             | .ReferenceValues.snp = [
                 (.ReferenceValues.snp | to_entries)[] as $e
-                | ($e.value
-                    | .MinimumTCB = (($b[$e.key].MinimumTCB) // .MinimumTCB))
-                    | .AllowedChipIDs = (($b[$e.key].AllowedChipIDs) // .AllowedChipIDs)
-                ]
+                | $e.value
+                | .MinimumTCB = ($b[$e.key].MinimumTCB // .MinimumTCB)
+                | .AllowedChipIDs = ($b[$e.key].AllowedChipIDs // .AllowedChipIDs)
+            ]
             ' {{ workspace_dir }}/manifest.json
         ;;
         "Metal-QEMU-TDX"|"Metal-QEMU-TDX-GPU")
@@ -176,10 +176,10 @@ generate cli=default_cli platform=default_platform:
             (load(strenv(CFG)).tdx) as $b
             | .ReferenceValues.tdx = [
                 (.ReferenceValues.tdx | to_entries)[] as $e
-                | ($e.value
-                    | .AllowedPIIDs = (($b[$e.key].AllowedPIIDs) // .AllowedPIIDs))
-                    | .MrSeam = (($b[$e.key].MrSeam) // .MrSeam)
-                ]
+                | $e.value
+                | .AllowedPIIDs = ($b[$e.key].AllowedPIIDs // .AllowedPIIDs)
+                | .MrSeam = ($b[$e.key].MrSeam // .MrSeam)
+            ]
             ' {{ workspace_dir }}/manifest.json
         ;;
     esac
