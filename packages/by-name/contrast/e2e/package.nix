@@ -66,6 +66,7 @@ buildGoModule {
     "e2e/imagestore"
     "e2e/kds-pcs-downtime"
     "e2e/memdump"
+    "e2e/multi-runtime-class"
     "e2e/multiple-cpus"
     "e2e/openssl"
     "e2e/peerrecovery"
