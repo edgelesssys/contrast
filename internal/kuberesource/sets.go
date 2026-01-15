@@ -1063,3 +1063,29 @@ func Containerd11644ReproducerTesters(name string) (*applyappsv1.DeploymentApply
 
 	return runc, cc
 }
+
+// DeploymentWithRuntimeClass returns a example with the given runtimeClassName.
+func DeploymentWithRuntimeClass(name, runtimeClassName string) any {
+	return Deployment(name, "").
+		WithSpec(DeploymentSpec().
+			WithReplicas(1).
+			WithSelector(LabelSelector().
+				WithMatchLabels(map[string]string{"app.kubernetes.io/name": name}),
+			).
+			WithTemplate(PodTemplateSpec().
+				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
+				WithSpec(PodSpec().
+					WithContainers(
+						Container().
+							WithName(name).
+							WithImage("ghcr.io/edgelesssys/bash@sha256:cabc70d68e38584052cff2c271748a0506b47069ebbd3d26096478524e9b270b").
+							WithCommand("/usr/local/bin/bash", "-c", "sleep infinity").
+							WithResources(ResourceRequirements().
+								WithMemoryLimitAndRequest(100),
+							),
+					).
+					WithRuntimeClassName(runtimeClassName),
+				),
+			),
+		)
+}

@@ -18,6 +18,7 @@ on:
           - imagestore
           - kds-pcs-downtime
           - memdump
+          - multi-runtime-class
           - multiple-cpus
           - openssl
           - peerrecovery

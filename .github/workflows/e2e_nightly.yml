@@ -58,6 +58,7 @@ jobs:
           - imagestore
           - kds-pcs-downtime
           - memdump
+          - multi-runtime-class
           - openssl
           - peerrecovery
           - policy
