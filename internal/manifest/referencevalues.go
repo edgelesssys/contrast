@@ -88,12 +88,13 @@ func (r ReferenceValues) Validate() error {
 
 // SNPReferenceValues contains reference values for SEV-SNP.
 type SNPReferenceValues struct {
-	ProductName        ProductName
-	TrustedMeasurement HexString
-	MinimumTCB         SNPTCB
-	GuestPolicy        abi.SnpPolicy
-	PlatformInfo       abi.SnpPlatformInfo
-	AllowedChipIDs     []HexString
+	ProductName             ProductName
+	TrustedMeasurement      HexString
+	MinimumTCB              SNPTCB
+	GuestPolicy             abi.SnpPolicy
+	PlatformInfo            abi.SnpPlatformInfo
+	MinimumMitigationVector uint64
+	AllowedChipIDs          []HexString
 }
 
 // Validate checks the validity of all fields in the AKS reference values.

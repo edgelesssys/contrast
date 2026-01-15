@@ -160,9 +160,11 @@ func (m *Manifest) SNPValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]SN
 				SnpSpl:   refVal.MinimumTCB.SNPVersion.UInt8(),
 				UcodeSpl: refVal.MinimumTCB.MicrocodeVersion.UInt8(),
 			},
-			PermitProvisionalFirmware: true,
-			RequireIDBlock:            true,
-			TrustedIDKeyHashes:        [][]byte{idKeyHash[:]},
+			PermitProvisionalFirmware:      true,
+			RequireIDBlock:                 true,
+			TrustedIDKeyHashes:             [][]byte{idKeyHash[:]},
+			MinimumLaunchMitigationVector:  refVal.MinimumMitigationVector,
+			MinimumCurrentMitigationVector: refVal.MinimumMitigationVector,
 		}
 
 		var allowedChipIDs [][]byte

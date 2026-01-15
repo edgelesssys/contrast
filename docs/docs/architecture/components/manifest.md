@@ -237,6 +237,18 @@ This has some overlap with the [`GuestPolicy`](#snp-guest-policy), but is checke
 #### `ReferenceValues.snp.*.PlatformInfo.TIOEnabled` {#snp-platform-info-tio-enabled}
 -->
 
+### `ReferenceValues.snp.*.MinimumMitigationVector` {#snp-minimum-mitigation-vector}
+
+The minimum mitigation vector the guest must have during the lifetime of the guest.
+The mitigation vector indicates the mitigation status of specific platform vulnerabilities, compare Section 3.5 of the [SEV ABI Spec].
+The Contrast Coordinator compares these value against both `LAUNCH_MIT_VECTOR` and `CURRENT_MIT_VECTOR` from the SNP `ATTESTATION_REPORT`, according to Table 23 in the [SEV ABI Spec].
+
+The bits for individual mitigations are published as part of AMD's security bulletins, for example on [CVE-2025-0033].
+Notice that the mitigation might differ between different processor families.
+In the mentioned CVE, the mitigation bit is 1 for Milan, but 0 for Genoa.
+
+[CVE-2025-0033]: https://www.amd.com/en/resources/product-security/bulletin/amd-sb-3020.html
+
 ### `ReferenceValues.snp.AllowedChipIDs`
 
 These are matched against the `CHIP_ID` field from the SNP attestation report, as documented in Table 23 in the [SEV ABI Spec].
