@@ -11,6 +11,7 @@
 {
   imports = [
     (modulesPath + "/profiles/perlless.nix")
+    (modulesPath + "/profiles/minimal.nix")
   ];
 
   boot.kernelParams = [
