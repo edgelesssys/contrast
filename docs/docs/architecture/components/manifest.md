@@ -249,7 +249,7 @@ In the mentioned CVE, the mitigation bit is 1 for Milan, but 0 for Genoa.
 
 [CVE-2025-0033]: https://www.amd.com/en/resources/product-security/bulletin/amd-sb-3020.html
 
-### `ReferenceValues.snp.AllowedChipIDs`
+### `ReferenceValues.snp.*.AllowedChipIDs` {#snp-allowed-chip-ids}
 
 These are matched against the `CHIP_ID` field from the SNP attestation report, as documented in Table 23 in the [SEV ABI Spec].
 If the list is empty or null, all chip IDs are accepted.
@@ -312,7 +312,7 @@ The kernel command line contains the dm-verity hash of the root filesystem, whic
 
 The extended features available mask (`XFAM`) determines the set of extended features available for use by the guest and is documented in Section 3.4.2 (`XFAM`) in the [TDX ABI Spec].
 
-### `ReferenceValues.tdx.AllowedPIIDs`
+### `ReferenceValues.tdx.*.AllowedPIIDs` {#tdx-allowed-piids}
 
 These are matched against the `PIID` field from the PCK certificate, as documented in section 1.3.5 of the [SGX PCK Spec].
 If the list is empty or null, all PIIDs are accepted.
