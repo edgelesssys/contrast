@@ -184,7 +184,7 @@ in
         # https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html
         Type = "oneshot";
         RemainAfterExit = "yes";
-        ExecStart = ''${pkgs.iptables}/bin/iptables-legacy -I INPUT -m conntrack ! --ctstate ESTABLISHED,RELATED -j DROP'';
+        ExecStart = "${pkgs.iptables}/bin/iptables-legacy -I INPUT -m conntrack ! --ctstate ESTABLISHED,RELATED -j DROP";
       };
     };
 

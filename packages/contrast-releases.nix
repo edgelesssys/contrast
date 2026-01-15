@@ -82,7 +82,7 @@ let
       } installFiles;
     };
 
-  releases = builtins.listToAttrs (builtins.map buildContrastRelease json.contrast);
+  releases = builtins.listToAttrs (map buildContrastRelease json.contrast);
   latestVersion = builtins.replaceStrings [ "." ] [ "-" ] (lib.last json.contrast).version;
 in
 releases // { latest = releases.${latestVersion}; }

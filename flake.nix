@@ -52,7 +52,7 @@
         checks.formatting = treefmtEval.config.build.check self;
 
         legacyPackages = pkgs.contrastPkgs // {
-          nixpkgs = builtins.removeAttrs pkgs [
+          nixpkgs = removeAttrs pkgs [
             "fenix"
             "contrastPkgs"
           ];
