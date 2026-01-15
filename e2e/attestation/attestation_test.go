@@ -88,6 +88,42 @@ func TestAttestation(t *testing.T) {
 		}), "contrast set should fail due to non-allowed PIID")
 	})
 
+	// Test that the MemoryIntegrity manifest field is verified correctly.
+	t.Run("memory-integrity", func(t *testing.T) {
+		platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
+		require.NoError(t, err)
+		if !platforms.IsTDX(platform) {
+			// This depends on the CI runners being configured with logical integrity, which is
+			// what we currently document via
+			// https://github.com/canonical/tdx/blob/1c9ca39/README.md?plain=1#L114.
+			t.Skip()
+		}
+
+		require := require.New(t)
+		ct := contrasttest.New(t)
+
+		runtimeHandler, err := manifest.RuntimeHandler(platform)
+		require.NoError(err)
+		resources := kuberesource.CoordinatorBundle()
+		resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
+		resources = kuberesource.AddPortForwarders(resources)
+		ct.Init(t, resources)
+
+		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+
+		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
+			for i := range m.ReferenceValues.TDX {
+				m.ReferenceValues.TDX[i].MemoryIntegrity = true
+			}
+			return m
+		})
+		require.True(t.Run("set", func(t *testing.T) {
+			err := ct.RunSet(t.Context())
+			require.ErrorContains(err, "PCK extension SGXType")
+		}), "contrast set should fail due to unexpected memory mode")
+	})
+
 	// Test that it is okay to have failing validators as long as one validator passes.
 	t.Run("non-matching-validators", func(t *testing.T) {
 		platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
