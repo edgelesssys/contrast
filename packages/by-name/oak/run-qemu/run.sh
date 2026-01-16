@@ -6,6 +6,7 @@ echo "Using:" >&2
 echo "  STAGE0_BIN: ${STAGE0_BIN}" >&2
 echo "  INITRD:     ${INITRD}" >&2
 echo "  KERNEL:     ${KERNEL}" >&2
+echo "  ROOTFS:     ${ROOTFS}" >&2
 echo "" >&2
 
 qemu-system-x86_64 \
@@ -16,8 +17,9 @@ qemu-system-x86_64 \
   -nographic \
   -no-reboot \
   -serial stdio \
-  -machine microvm,acpi=on \
+  -machine q35 \
   -bios "${STAGE0_BIN}" \
   -kernel "${KERNEL}" \
   -initrd "${INITRD}" \
-  -append "root=/dev/sda1 console=ttyS0 earlyprintk=serial,ttyS0,115200"
+  -drive file="${ROOTFS}",format=raw,if=virtio,readonly=on \
+  -append "root=/dev/vda1 console=ttyS0 earlyprintk=serial,ttyS0,115200"
