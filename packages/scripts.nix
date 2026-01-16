@@ -750,4 +750,16 @@ lib.makeScope pkgs.newScope (scripts: {
     ];
     text = builtins.readFile ./upgrade-gpu-operator.sh;
   };
+
+  mdsh-fmt = writeShellApplication {
+    name = "mdsh-fmt";
+    runtimeInputs = with pkgs; [
+      mdsh
+      busybox
+      jq
+    ];
+    text = ''
+      mdsh --inputs "$@"
+    '';
+  };
 })
