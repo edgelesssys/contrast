@@ -43,6 +43,7 @@ metadata: # v1.Pod, v1.PodTemplateSpec
 
 During the `generate` step, this configuration will be translated into a Service Mesh sidecar container which handles TLS connections automatically.
 The only change required to the app itself is to let it connect to `127.0.0.2:4001` to reach the backend service.
+
 You can find more detailed documentation in the [Service Mesh chapter](../../architecture/components/service-mesh.md).
 
 ### Go integration
