@@ -23,6 +23,7 @@ func main() {
 	addLogging := flag.Bool("add-logging", false, "Add logging configuration, based on CONTRAST_LOG_LEVEL and CONTRAST_LOG_SUBSYSTEMS environment variables")
 	addDmesg := flag.Bool("add-dmesg", false, "Add dmesg container")
 	nodeInstallerTargetConfType := flag.String("node-installer-target-conf-type", "", "Type of node installer target configuration to generate (k3s,...)")
+	deploymentPath := flag.String("deployment", "", "Path to the deployment file or a folder containing the deployment file(s)")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [flags] <set>...\n", os.Args[0])
 		flag.PrintDefaults()
@@ -41,12 +42,29 @@ func main() {
 			if *rawPlatform == "" {
 				log.Fatalf("--platform must be set to one of %v", platforms.AllStrings())
 			}
-			var platform platforms.Platform
-			platform, err = platforms.FromString(*rawPlatform)
+			var defaultPlatform platforms.Platform
+			defaultPlatform, err = platforms.FromString(*rawPlatform)
 			if err != nil {
 				log.Fatalf("Error parsing platform: %v", err)
 			}
-			subResources, err = kuberesource.Runtime(platform)
+
+			var deployment []any
+			if *deploymentPath != "" {
+				yamlFiles, err := kuberesource.CollectYAMLFiles(*deploymentPath)
+				if err != nil {
+					log.Fatalf("Error collecting deployment files: %v", err)
+				}
+				yamlBytes, err := kuberesource.YAMLBytesFromFiles(yamlFiles...)
+				if err != nil {
+					log.Fatalf("Error parsing deployment files: %v", err)
+				}
+				deployment, err = kuberesource.UnmarshalApplyConfigurations(yamlBytes)
+				if err != nil {
+					log.Fatalf("Error unmarshalling deployment files: %v", err)
+				}
+			}
+
+			subResources, err = kuberesource.Runtimes(defaultPlatform, deployment)
 		case "node-installer-target-conf":
 			if *nodeInstallerTargetConfType == "" {
 				log.Fatalf("--node-installer-target-conf-type must be set")
