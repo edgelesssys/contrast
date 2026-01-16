@@ -11,7 +11,7 @@
 {
   imports = [
     (modulesPath + "/profiles/perlless.nix")
-    (modulesPath + "/profiles/minimal.nix")
+    (modulesPath + "/profiles/image-based-appliance.nix")
   ];
 
   boot.kernelParams = [
@@ -84,9 +84,6 @@
   # Additionally, dhcpcd could allow for e.g. route manipulation from the host.
   networking.dhcpcd.enable = false;
 
-  # Images are immutable, so no need to include Nix.
-  nix.enable = false;
-
   system.etc.overlay.mutable = false;
   # Use sysusers instead of userborn (which is used by default by the perlless profile).
   # We don't need sophisticated user generation.
@@ -102,6 +99,5 @@
   ];
 
   nixpkgs.hostPlatform.system = "x86_64-linux";
-  system.switch.enable = false;
   system.stateVersion = "24.05";
 }
