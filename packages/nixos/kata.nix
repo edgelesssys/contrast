@@ -124,7 +124,7 @@ in
     networking.resolvconf.enable = false;
 
     environment.etc."resolv.conf".text =
-      "dummy file, to be bind-mounted by the Kata agent when writing network configuration";
+      lib.mkForce "dummy file, to be bind-mounted by the Kata agent when writing network configuration";
 
     systemd.services.imagepuller = lib.mkIf cfg.guestImagePull {
       description = "Image Puller";
