@@ -126,5 +126,15 @@
       datasourceTemplate: "github-releases",
       versioningTemplate: "loose",
     },
+    {
+      // Bump the NixOS system.stateVersion
+      customType: "regex",
+      managerFilePatterns: [ "/packages\\/nixos\\/system\\.nix$/" ],
+      matchStrings: [ 'system\\.stateVersion\\s*=\\s*"(?<currentValue>\\d+\\.\\d+)"' ],
+      depNameTemplate: "nixos/stateVersion",
+      datasourceTemplate: "github-releases",
+      packageNameTemplate: "NixOS/nixpkgs",
+      versioningTemplate: "regex:^(?<major>\\d+)\\.(?<minor>\\d+)$",
+    },
   ],
 }
