@@ -5,15 +5,21 @@ package issuer
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/asn1"
 	"encoding/hex"
+	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"log/slog"
 
+	"github.com/edgelesssys/contrast/internal/attestation/tdx/qgs"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-tdx-guest/abi"
 	"github.com/google/go-tdx-guest/client"
+	"github.com/google/go-tdx-guest/pcs"
 	"github.com/google/go-tdx-guest/proto/tdx"
+	"github.com/mdlayher/vsock"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -35,7 +41,7 @@ func (i *Issuer) OID() asn1.ObjectIdentifier {
 }
 
 // Issue the attestation document.
-func (i *Issuer) Issue(_ context.Context, reportData [64]byte) (res []byte, err error) {
+func (i *Issuer) Issue(ctx context.Context, reportData [64]byte) (res []byte, err error) {
 	i.logger.Info("Issue called")
 	defer func() {
 		if err != nil {
@@ -71,6 +77,70 @@ func (i *Issuer) Issue(_ context.Context, reportData [64]byte) (res []byte, err 
 	if err != nil {
 		return nil, fmt.Errorf("issuer: marshaling quote: %w", err)
 	}
+
+	// TODO(burgerdev): vsock package is absolutely unnecessary.
+	conn, err := vsock.Dial(vsock.Host, 4050, nil)
+	if err != nil {
+		return nil, fmt.Errorf("dialing QGS vsock: %w", err)
+	}
+	client := qgs.NewClient(conn)
+	defer client.Close()
+
+	pckCertChain := quotev4.GetSignedData().GetCertificationData().GetQeReportCertificationData().GetPckCertificateChainData().PckCertChain
+
+	// The certChain input is a concatenated list of PEM-encoded X.509 certificates.
+	// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf, A.3.9
+
+	var pckBlock *pem.Block
+	var pck *x509.Certificate
+	for len(pckCertChain) > 0 {
+		pckBlock, pckCertChain = pem.Decode(pckCertChain)
+		if pckBlock == nil {
+			break
+		}
+		candidate, err := x509.ParseCertificate(pckBlock.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("parsing PCK certificate: %w", err)
+		}
+
+		// PCK certificates have specified static names.
+		// https://api.trustedservices.intel.com/documents/Intel_SGX_PCK_Certificate_CRL_Spec-1.5.pdf, 1.3.5
+		if candidate.Subject.CommonName == "Intel SGX PCK Certificate" {
+			pck = candidate
+			break
+		}
+	}
+	if pck == nil {
+		return nil, fmt.Errorf("no PCK certificate found in TDX quote")
+	}
+
+	extensions, err := pcs.PckCertificateExtensions(pck)
+	if err != nil {
+		return nil, fmt.Errorf("extracting PCK certificate extensions: %w", err)
+	}
+
+	req := &qgs.GetCollateralRequest{
+		Header: qgs.Header{
+			MajorVersion: 1,
+			MinorVersion: 1,
+		},
+		CAType: qgs.CATypePlatform,
+	}
+	fmspc, err := hex.DecodeString(extensions.FMSPC)
+	if err != nil {
+		return nil, fmt.Errorf("decoding FMSPC: %w", err)
+	}
+	copy(req.FMSPC[:], fmspc)
+
+	resp, err := client.GetCollateral(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("getting collateral from QGS: %w", err)
+	}
+	respJSON, err := json.MarshalIndent(resp, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("marshalling QGS response: %w", err)
+	}
+	i.logger.Info("obtained collateral from QGS", "collateral", string(respJSON))
 
 	i.logger.Info("Successfully issued attestation statement")
 	return quoteBytes, nil
