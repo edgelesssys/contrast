@@ -6,10 +6,12 @@
   yq-go,
   stdenv,
   musl,
+  lib,
 }:
 
 stdenv.mkDerivation {
   name = "pause-bundle";
+  meta.platforms = lib.platforms.linux;
 
   nativeBuildInputs = [
     runc

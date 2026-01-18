@@ -388,6 +388,7 @@ lib.makeScope pkgs.newScope (scripts: {
 
   cleanup-bare-metal = writeShellApplication {
     name = "cleanup-bare-metal";
+    meta.platforms = lib.platforms.linux;
     runtimeInputs = with pkgs; [
       busybox
       kubectl
@@ -399,6 +400,7 @@ lib.makeScope pkgs.newScope (scripts: {
 
   cleanup-images = writeShellApplication {
     name = "cleanup-images";
+    meta.platforms = lib.platforms.linux;
     runtimeInputs = with pkgs; [
       gnugrep
       busybox
@@ -461,6 +463,7 @@ lib.makeScope pkgs.newScope (scripts: {
 
   cleanup-containerd = writeShellApplication {
     name = "cleanup-containerd";
+    meta.platforms = lib.platforms.linux;
     runtimeInputs = with pkgs; [ containerd ];
     text = ''
       declare address
@@ -540,6 +543,7 @@ lib.makeScope pkgs.newScope (scripts: {
 
   nix-gc = writeShellApplication {
     name = "nix-gc";
+    meta.platforms = lib.platforms.linux;
     runtimeInputs = with pkgs; [ busybox ];
     text = ''
       total=$(df -P /host/nix | tail -1 | awk '{print $2}')

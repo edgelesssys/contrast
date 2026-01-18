@@ -31,6 +31,7 @@ python3Packages.buildPythonApplication rec {
 
   meta = {
     homepage = "https://github.com/canonical/tdx";
+    platforms = lib.platforms.linux;
     license = with lib.licenses; [
       gpl3Only
       asl20

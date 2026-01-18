@@ -8,10 +8,12 @@
   findutils,
   gnused,
   gnugrep,
+  lib,
 }:
 
 writeShellApplication {
   name = "collect-logs";
+  meta.platforms = lib.platforms.linux;
   runtimeInputs = [
     inotify-tools
     coreutils

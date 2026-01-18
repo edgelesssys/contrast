@@ -5,10 +5,12 @@
   writeShellApplication,
   qemu,
   OVMF,
+  lib,
 }:
 
 writeShellApplication {
   name = "boot-image";
+  meta.platforms = lib.platforms.linux;
   runtimeInputs = [ qemu ];
   text = ''
     tmpFile=$(mktemp)

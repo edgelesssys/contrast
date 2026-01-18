@@ -51,5 +51,8 @@ buildGoModule (finalAttrs: {
     runHook postCheck
   '';
 
-  meta.mainProgram = "service-mesh";
+  meta = {
+    mainProgram = "service-mesh";
+    platforms = lib.platforms.linux;
+  };
 })

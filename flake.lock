@@ -39,6 +39,26 @@
         "type": "github"
       }
     },
+    "nix-pkgset": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1742367519,
+        "narHash": "sha256-0EzhVYhXDFNyM2NSFaKXj424EjKUbHo9nAj7QskRnHE=",
+        "owner": "szlend",
+        "repo": "nix-pkgset",
+        "rev": "60e06913b0d15b4c35534a070de109cd413038c8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "szlend",
+        "repo": "nix-pkgset",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1771008912,
@@ -59,6 +79,7 @@
       "inputs": {
         "fenix": "fenix",
         "flake-utils": "flake-utils",
+        "nix-pkgset": "nix-pkgset",
         "nixpkgs": "nixpkgs",
         "treefmt-nix": "treefmt-nix"
       }

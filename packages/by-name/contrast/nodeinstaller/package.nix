@@ -59,5 +59,8 @@ buildGoModule (finalAttrs: {
     mv "$out/bin/nodeinstaller" "$out/bin/node-installer"
   '';
 
-  meta.mainProgram = "node-installer";
+  meta = {
+    mainProgram = "node-installer";
+    platforms = lib.platforms.linux;
+  };
 })

@@ -94,5 +94,6 @@ rustPlatform.buildRustPackage rec {
     description = ''The Kata agent is a long running process that runs inside the Virtual Machine (VM) (also known as the "pod" or "sandbox").'';
     license = lib.licenses.asl20;
     mainProgram = "kata-agent";
+    platforms = lib.platforms.linux;
   };
 }

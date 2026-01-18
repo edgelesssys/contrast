@@ -59,4 +59,6 @@
       # to achieve stable TDX RTMRs.
       ./0006-i386-omit-some-unneeded-ACPI-tables.patch
     ];
+
+    meta.platforms = lib.platforms.linux;
   })

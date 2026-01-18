@@ -5,6 +5,7 @@
   writeShellApplication,
   qemu,
   OVMF,
+  lib,
 }:
 
 # Usage example:
@@ -12,6 +13,7 @@
 
 writeShellApplication {
   name = "boot-microvm";
+  meta.platforms = lib.platforms.linux;
   runtimeInputs = [ qemu ];
   text = ''
     if [[ $# -ne 4 ]]; then

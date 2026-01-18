@@ -17,6 +17,10 @@
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nix-pkgset = {
+      url = "github:szlend/nix-pkgset";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -66,7 +70,10 @@
           };
 
         defaultOverlays = [
-          (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
+          (final: _prev: {
+            fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system};
+            inherit (self.inputs) nix-pkgset;
+          })
           (import ./overlays/nixpkgs.nix)
           (import ./overlays/contrast.nix)
         ];
