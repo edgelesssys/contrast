@@ -5,6 +5,9 @@
   lib,
   buildGoModule,
   contrast,
+  kata,
+  contrastPkgsStatic,
+  reference-values,
 }:
 
 buildGoModule {
@@ -15,8 +18,6 @@ buildGoModule {
     version
     proxyVendor
     vendorHash
-    prePatch
-    postPatch
     ;
 
   src =
@@ -52,6 +53,16 @@ buildGoModule {
     };
 
   tags = contrast.tags ++ [ "e2e" ];
+
+  prePatch = ''
+    install -D ${lib.getExe contrastPkgsStatic.kata.genpolicy} cli/genpolicy/assets/genpolicy-kata
+    install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
+    install -D ${reference-values} internal/manifest/assets/reference-values.json
+  '';
+
+  postPatch = ''
+    install -D ${kata.genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-kata.json
+  '';
 
   env.CGO_ENABLED = 0;
 
