@@ -5,6 +5,7 @@
   lib,
   buildGoModule,
   contrast,
+  cli,
 }:
 
 buildGoModule {
@@ -15,6 +16,9 @@ buildGoModule {
     version
     proxyVendor
     vendorHash
+    ;
+
+  inherit (cli)
     prePatch
     postPatch
     ;
