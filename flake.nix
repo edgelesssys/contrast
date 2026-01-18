@@ -31,12 +31,24 @@
       system:
 
       let
+        runtimePkgs = import nixpkgs {
+          # only the x86_64-linux runtime is supported currently
+          system = "x86_64-linux";
+          overlays = [
+            (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
+            (import ./overlays/nixpkgs.nix)
+            (import ./overlays/contrast.nix { inherit runtimePkgs; })
+          ];
+          config.allowUnfree = true;
+          config.nvidia.acceptLicense = true;
+        };
+
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
             (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
             (import ./overlays/nixpkgs.nix)
-            (import ./overlays/contrast.nix)
+            (import ./overlays/contrast.nix { inherit runtimePkgs; })
           ];
           config.allowUnfree = true;
           config.nvidia.acceptLicense = true;
