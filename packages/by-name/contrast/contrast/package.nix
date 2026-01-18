@@ -5,7 +5,6 @@
   lib,
   buildGoModule,
   kata,
-  installShellFiles,
   contrastPkgsStatic,
   reference-values,
 }:
@@ -14,7 +13,6 @@ let
   packageOutputs = [
     "coordinator"
     "initializer"
-    "cli"
   ];
 in
 
@@ -60,10 +58,6 @@ buildGoModule (finalAttrs: {
   proxyVendor = true;
   vendorHash = "sha256-xU4M0DSB/Pca7MqYAp7A3dPr2BsEtp8uAyxtM7yiMbs=";
 
-  nativeBuildInputs = [ installShellFiles ];
-
-  subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
-
   prePatch = ''
     install -D ${lib.getExe contrastPkgsStatic.kata.genpolicy} cli/genpolicy/assets/genpolicy-kata
     install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
@@ -100,22 +94,9 @@ buildGoModule (finalAttrs: {
       mkdir -p "''${!sub}/bin"
       mv "$out/bin/$sub" "''${!sub}/bin/$sub"
     done
-
-    # rename the cli binary to contrast
-    mv "$cli/bin/cli" "$cli/bin/contrast"
-
-    installShellCompletion --cmd contrast \
-      --bash <($cli/bin/contrast completion bash) \
-      --fish <($cli/bin/contrast completion fish) \
-      --zsh <($cli/bin/contrast completion zsh)
-
-    mkdir -p $cli/share
-    mv $out/share/* $cli/share
   '';
 
   # Skip fixup as binaries are already stripped and we don't
   # need any other fixup, saving some seconds.
   dontFixup = true;
-
-  meta.mainProgram = "contrast";
 })
