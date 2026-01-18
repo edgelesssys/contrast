@@ -31,6 +31,24 @@
       system:
 
       let
+        commonOverlays = [
+          (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
+          (import ./overlays/nixpkgs.nix)
+        ];
+
+        # runtimePkgs is always x86_64-linux — the only supported runtime target.
+        # On x86_64-linux this is the same as pkgs; on other systems (e.g. darwin)
+        # the Nix daemon delegates builds to a remote x86_64-linux builder, producing
+        # identical store paths to native x86_64-linux builds.
+        runtimePkgs = import nixpkgs {
+          system = "x86_64-linux";
+          overlays = commonOverlays ++ [
+            (import ./overlays/contrast.nix)
+          ];
+          config.allowUnfree = true;
+          config.nvidia.acceptLicense = true;
+        };
+
         # mkSet creates a set of packages based on a given set of overlays.
         mkSet =
           overlays:
@@ -65,9 +83,8 @@
             ];
           };
 
-        defaultOverlays = [
-          (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
-          (import ./overlays/nixpkgs.nix)
+        defaultOverlays = commonOverlays ++ [
+          (_final: _prev: { inherit runtimePkgs; })
           (import ./overlays/contrast.nix)
         ];
 
