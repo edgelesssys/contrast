@@ -4,15 +4,14 @@
 {
   writeShellApplication,
   kubectl,
-  inotify-tools,
 }:
 
 # Usage: get-logs [start | download] $namespaceFile
 writeShellApplication {
   name = "get-logs";
+
   runtimeInputs = [
     kubectl
-    inotify-tools
   ];
   text = builtins.readFile ./get-logs.sh;
 }
