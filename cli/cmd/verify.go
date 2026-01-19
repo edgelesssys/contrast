@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -62,6 +63,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
 	sdkClient := sdk.NewWithSlog(log)
+	//nolint:staticcheck // We'll move this function here after removing it from the SDK.
 	resp, err := sdkClient.GetCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator)
 	if err != nil {
 		return fmt.Errorf("getting manifests: %w", err)
@@ -92,8 +94,12 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 
 	fmt.Fprintf(cmd.OutOrStdout(), "✔️ Wrote Coordinator configuration and keys to %s\n", filepath.Join(flags.workspaceDir, verifyDir))
 
-	if err := sdkClient.Verify(manifestBytes, resp.Manifests); err != nil {
-		return fmt.Errorf("failed to verify Coordinator manifest: %w", err)
+	// Check that the current manifest is the expected one.
+	if len(resp.Manifests) < 1 {
+		return fmt.Errorf("failed to verify Coordinator manifest: manifest history is empty")
+	}
+	if !bytes.Equal(manifestBytes, resp.Manifests[len(resp.Manifests)-1]) {
+		return fmt.Errorf("failed to verify Coordinator manifest: active manifest does not match expected manifest")
 	}
 
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Manifest active at Coordinator matches expected manifest")

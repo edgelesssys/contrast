@@ -53,6 +53,8 @@ func NewWithSlog(log *slog.Logger) Client {
 }
 
 // GetCoordinatorState calls GetManifests on the coordinator's userapi via aTLS.
+//
+// Deprecated: this function will be removed with Contrast 1.17, use GetAttestation/ValidateAttestation instead.
 func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint string) (httpapi.CoordinatorState, error) {
 	var m manifest.Manifest
 	if err := json.Unmarshal(manifestBytes, &m); err != nil {
@@ -100,6 +102,8 @@ func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifest
 
 // Verify checks if a given manifest is the latest manifest in the given history.
 // The expected manifest should be supplied by the caller, the history should be received from the coordinator.
+//
+// Deprecated: this function will be removed with Contrast 1.17, users should inline the function body.
 func (Client) Verify(expectedManifest []byte, manifestHistory [][]byte) error {
 	if len(manifestHistory) == 0 {
 		return fmt.Errorf("manifest history is empty")
