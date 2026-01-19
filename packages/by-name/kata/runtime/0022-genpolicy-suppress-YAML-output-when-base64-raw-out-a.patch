@@ -1,0 +1,233 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Spyros Seimenis <sse@edgeless.systems>
+Date: Mon, 2 Feb 2026 15:29:28 +0100
+Subject: [PATCH] genpolicy: suppress YAML output when --{base64/raw}-out are
+ used
+
+this will suppress yaml output only if the input is passed via
+stdin. If {base64/raw}-out is passed in alongside a yaml file, the
+encoded annotation or the policy data respectively will be printed
+to stdout as before.
+
+Fixes #12438
+
+Signed-off-by: Spyros Seimenis <sse@edgeless.systems>
+---
+ src/tools/genpolicy/src/policy.rs             |  17 +--
+ src/tools/genpolicy/tests/generate/main.rs    | 126 ++++++++++++++++++
+ .../tests/generate/testdata/simple_pod.yaml   |  16 +++
+ 3 files changed, 151 insertions(+), 8 deletions(-)
+ create mode 100644 src/tools/genpolicy/tests/generate/testdata/simple_pod.yaml
+
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index bd1a10e888f21f552f3033de2775a134b6da46dd..91867b3a5e281befe0160baaf5d78bfcbca002c8 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -582,9 +582,6 @@ impl AgentPolicy {
+         let mut yaml_string = String::new();
+         for i in 0..self.resources.len() {
+             let annotation = self.resources[i].generate_initdata_anno(self);
+-            if self.config.base64_out {
+-                println!("{annotation}");
+-            }
+             yaml_string += &self.resources[i].serialize(&annotation);
+         }
+ 
+@@ -597,8 +594,7 @@ impl AgentPolicy {
+                 .unwrap()
+                 .write_all(yaml_string.as_bytes())
+                 .unwrap();
+-        } else {
+-            // When input YAML came through stdin, print the output YAML to stdout.
++        } else if !self.config.base64_out && !self.config.raw_out {
+             std::io::stdout().write_all(yaml_string.as_bytes()).unwrap();
+         }
+     }
+@@ -622,13 +618,18 @@ impl AgentPolicy {
+ 
+         let json_data = serde_json::to_string_pretty(&policy_data).unwrap();
+         let policy = format!("{}\npolicy_data := {json_data}", &self.rules);
++        let mut initdata = self.config.initdata.clone();
++        initdata.insert_data("policy.rego", policy.clone());
++        let encoded = kata_types::initdata::encode_initdata(&initdata);
++
+         if self.config.raw_out {
+             std::io::stdout().write_all(policy.as_bytes()).unwrap();
+         }
+-        let mut initdata = self.config.initdata.clone();
+-        initdata.insert_data("policy.rego", policy);
++        if self.config.base64_out {
++            std::io::stdout().write_all(encoded.as_bytes()).unwrap();
++        }
+ 
+-        kata_types::initdata::encode_initdata(&initdata)
++        encoded
+     }
+ 
+     pub fn get_container_policy(
+diff --git a/src/tools/genpolicy/tests/generate/main.rs b/src/tools/genpolicy/tests/generate/main.rs
+index f228eb9a0d7c8e32da5edb963954f6256343fca5..164db59c95b3f8c13e8b92730adf8299cc98bca5 100644
+--- a/src/tools/genpolicy/tests/generate/main.rs
++++ b/src/tools/genpolicy/tests/generate/main.rs
+@@ -5,6 +5,7 @@
+ 
+ use assert_cmd::prelude::*;
+ use std::fs::{self};
++use std::io::Write;
+ use std::path;
+ use std::process::Command;
+ 
+@@ -68,6 +69,131 @@ fn secret_in_separate_file() -> Result<(), Box<dyn std::error::Error>> {
+     Ok(())
+ }
+ 
++#[test]
++fn output_behavior() -> Result<(), Box<dyn std::error::Error>> {
++    struct TestCase {
++        name: &'static str,
++        flag: Option<&'static str>,
++        use_yaml_file: bool,
++        expect_yaml_in_stdout: bool,
++        expect_base64_in_stdout: bool,
++        expect_raw_in_stdout: bool,
++    }
++
++    let test_cases = &[
++        // --yaml-file alone: file modified, no stdout
++        TestCase {
++            name: "yaml_file_only",
++            flag: None,
++            use_yaml_file: true,
++            expect_yaml_in_stdout: false,
++            expect_base64_in_stdout: false,
++            expect_raw_in_stdout: false,
++        },
++        // --yaml-file --base64-out: file modified, base64 to stdout
++        TestCase {
++            name: "yaml_file_with_base64_out",
++            flag: Some("--base64-out"),
++            use_yaml_file: true,
++            expect_yaml_in_stdout: false,
++            expect_base64_in_stdout: true,
++            expect_raw_in_stdout: false,
++        },
++        // --yaml-file --raw-out: file modified, raw to stdout
++        TestCase {
++            name: "yaml_file_with_raw_out",
++            flag: Some("--raw-out"),
++            use_yaml_file: true,
++            expect_yaml_in_stdout: false,
++            expect_base64_in_stdout: false,
++            expect_raw_in_stdout: true,
++        },
++        // stdin alone: annotated YAML to stdout
++        TestCase {
++            name: "stdin_only",
++            flag: None,
++            use_yaml_file: false,
++            expect_yaml_in_stdout: true,
++            expect_base64_in_stdout: false,
++            expect_raw_in_stdout: false,
++        },
++        // stdin --base64-out: only base64 to stdout (suppress YAML)
++        TestCase {
++            name: "stdin_with_base64_out",
++            flag: Some("--base64-out"),
++            use_yaml_file: false,
++            expect_yaml_in_stdout: false,
++            expect_base64_in_stdout: true,
++            expect_raw_in_stdout: false,
++        },
++        // stdin --raw-out: only raw to stdout (suppress YAML)
++        TestCase {
++            name: "stdin_with_raw_out",
++            flag: Some("--raw-out"),
++            use_yaml_file: false,
++            expect_yaml_in_stdout: false,
++            expect_base64_in_stdout: false,
++            expect_raw_in_stdout: true,
++        },
++    ];
++
++    for tc in test_cases.iter() {
++        let workdir = prepare_workdir(tc.name, &["simple_pod.yaml"]);
++        let pod_yaml_path = workdir.join("simple_pod.yaml");
++
++        let output = if tc.use_yaml_file {
++            let mut cmd = Command::cargo_bin("genpolicy")?;
++            cmd.arg("--yaml-file").arg(&pod_yaml_path);
++            if let Some(flag) = tc.flag {
++                cmd.arg(flag);
++            }
++            cmd.output()?
++        } else {
++            let pod_yaml_content = fs::read_to_string(&pod_yaml_path)?;
++            let mut cmd = Command::cargo_bin("genpolicy")?;
++            cmd.current_dir(&workdir);
++            if let Some(flag) = tc.flag {
++                cmd.arg(flag);
++            }
++            let mut child = cmd
++                .stdin(std::process::Stdio::piped())
++                .stdout(std::process::Stdio::piped())
++                .spawn()?;
++            child
++                .stdin
++                .take()
++                .unwrap()
++                .write_all(pod_yaml_content.as_bytes())?;
++            child.wait_with_output()?
++        };
++
++        assert!(output.status.success(), "{}: command failed", tc.name);
++
++        let stdout = String::from_utf8_lossy(&output.stdout);
++        let has_yaml = stdout.contains("apiVersion:");
++        let has_raw = stdout.contains("policy_data");
++        let has_base64 = !stdout.trim().is_empty() && !has_yaml && !has_raw;
++
++        assert_eq!(
++            has_yaml, tc.expect_yaml_in_stdout,
++            "{}: yaml in stdout",
++            tc.name
++        );
++        assert_eq!(
++            has_raw, tc.expect_raw_in_stdout,
++            "{}: raw policy in stdout",
++            tc.name
++        );
++        assert_eq!(
++            has_base64, tc.expect_base64_in_stdout,
++            "{}: base64 policy in stdout",
++            tc.name
++        );
++    }
++
++    Ok(())
++}
++
+ fn prepare_workdir(test_case_dir: &str, files_to_copy: &[&str]) -> path::PathBuf {
+     // Prepare temp dir for running genpolicy.
+     let workdir = path::PathBuf::from(env!("CARGO_TARGET_TMPDIR")).join(test_case_dir);
+diff --git a/src/tools/genpolicy/tests/generate/testdata/simple_pod.yaml b/src/tools/genpolicy/tests/generate/testdata/simple_pod.yaml
+new file mode 100644
+index 0000000000000000000000000000000000000000..ef51949a228ea60a58dfef16bf570670c21fb6fa
+--- /dev/null
++++ b/src/tools/genpolicy/tests/generate/testdata/simple_pod.yaml
+@@ -0,0 +1,16 @@
++---
++apiVersion: v1
++kind: Pod
++metadata:
++  name: simple-pod
++spec:
++  restartPolicy: Never
++  runtimeClassName: kata-cc
++  containers:
++    - name: busybox
++      image: "quay.io/prometheus/busybox:latest"
++      command:
++        - /bin/sh
++      args:
++        - "-c"
++        - echo hello
