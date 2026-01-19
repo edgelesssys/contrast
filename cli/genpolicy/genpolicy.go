@@ -58,7 +58,6 @@ func (r *Runner) Run(ctx context.Context, res any, extraPath string, logger *slo
 		"--rego-rules-path=" + r.rulesPath,
 		"--json-settings-path=" + r.settingsPath,
 		"--layers-cache-file-path=" + r.cachePath,
-		"--yaml-file=/dev/stdin", // prevent genpolicy from outputting anything but the annotation
 		"--config-file=" + extraPath,
 		"--base64-out",
 	}
