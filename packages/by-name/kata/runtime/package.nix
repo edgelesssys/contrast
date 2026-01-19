@@ -159,6 +159,12 @@ buildGoModule (finalAttrs: {
       # all `nvidia.com/` devices.
       # Upstream Issue: https://github.com/kata-containers/kata-containers/issues/12322
       ./0023-genpolicy-use-all-nvidia-GPU-annotations.patch
+
+      # Kata mis-calculates PCI root port sizes for UVMs cold-plugging multiple GPUs.
+      # This patch fixes it by correctly summing up all BAR sizes.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12357
+      # Upstream Issue: https://github.com/kata-containers/kata-containers/issues/12289
+      ./0024-virtcontainers-calculate-exact-PCI-root-port-size.patch
     ];
   };
 
