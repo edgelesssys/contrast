@@ -16,7 +16,7 @@ on:
     paths:
       - ".github/workflows/bm_maintenance.yml"
       - "tools/bm-maintenance/**"
-      - "packages/upgrade-gpu-operator.sh"
+      - "packages/by-name/scripts/upgrade-gpu-operator/**"
 
 env:
   container_registry: ghcr.io/edgelesssys
