@@ -1,0 +1,1786 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Mon, 19 Jan 2026 09:13:12 +0100
+Subject: [PATCH] qemu: Remove PCIe root port BAR reserve sizing
+
+This is a squash of relevant commits from
+https://github.com/kata-containers/kata-containers/pull/12507.
+
+qemu: Remove OVMF X-PciMmio64Mb fw_cfg hint
+
+Modern OVMF (edk2-stable202502 and later) automatically sizes the
+64-bit PCI MMIO aperture based on the BARs of actually attached
+devices during PCI enumeration. The opt/ovmf/X-PciMmio64Mb fw_cfg
+hint is no longer needed to ensure large-BAR devices like NVIDIA
+GPUs receive adequate MMIO space.
+
+The previous approach was fragile: the runtime scanned host PCI
+devices to estimate the required aperture size, but only considered
+GPU devices (class 0x0302), missing NVSwitches and other devices
+with large BARs. Removing this code avoids confusion about MMIO
+sizing responsibility.
+
+Signed-off-by: Zvonko Kaiser <zkaiser@nvidia.com>
+
+qemu: Remove PCIe root port BAR reserve sizing
+
+Stop computing and setting mem-reserve and pref64-reserve on PCIe root
+ports and switch ports. Remove getBARsMaxAddressableMemory() which
+scanned host GPU BARs to pre-calculate these values.
+
+The previous approach only considered GPU devices (IsGPU(), class
+0x0302) when scanning for BAR sizes, so devices like NVSwitches (class
+0x0680) with their 32MB non-prefetchable BAR0 were not accounted for
+and received the 4MB default. Additionally, GetTotalAddressableMemory()
+classifies BARs by 32/64-bit address width rather than by the
+prefetchable flag that QEMU's mem-reserve vs pref64-reserve maps to.
+
+Modern QEMU introspects VFIO device BARs when they are attached to
+root ports and sizes the MMIO windows accordingly. Modern OVMF
+(edk2-stable202502+) automatically calculates the 64-bit PCI MMIO
+aperture based on the BARs of actually present devices during PCI
+enumeration. Omitting the reserve parameters lets QEMU and OVMF
+handle MMIO window sizing correctly for all device types including
+GPUs, NVSwitches, and NICs without requiring host-side BAR scanning.
+
+This also removes the nvpci dependency from qemu_arch_base.go.
+
+Signed-off-by: Zvonko Kaiser <zkaiser@nvidia.com>
+---
+ src/runtime/go.mod                            |   1 -
+ src/runtime/go.sum                            |   2 -
+ .../nvidia/cloud-native/go-nvlib/LICENSE      | 202 -----------
+ .../go-nvlib/pkg/nvpci/bytes/bytes.go         |  94 ------
+ .../go-nvlib/pkg/nvpci/bytes/native.go        |  78 -----
+ .../go-nvlib/pkg/nvpci/bytes/swapbo.go        | 112 -------
+ .../cloud-native/go-nvlib/pkg/nvpci/config.go | 143 --------
+ .../go-nvlib/pkg/nvpci/mmio/mmio.go           | 127 -------
+ .../go-nvlib/pkg/nvpci/mmio/mock.go           |  74 ----
+ .../cloud-native/go-nvlib/pkg/nvpci/mock.go   | 141 --------
+ .../cloud-native/go-nvlib/pkg/nvpci/nvpci.go  | 316 ------------------
+ .../go-nvlib/pkg/nvpci/resources.go           | 140 --------
+ src/runtime/vendor/modules.txt                |   5 -
+ src/runtime/virtcontainers/qemu.go            |  31 +-
+ src/runtime/virtcontainers/qemu_arch_base.go  |  50 +--
+ 15 files changed, 11 insertions(+), 1505 deletions(-)
+ delete mode 100644 src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/LICENSE
+ delete mode 100644 src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes/bytes.go
+ delete mode 100644 src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes/native.go
+ delete mode 100644 src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes/swapbo.go
+ delete mode 100644 src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/config.go
+ delete mode 100644 src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mmio/mmio.go
+ delete mode 100644 src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mmio/mock.go
+ delete mode 100644 src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mock.go
+ delete mode 100644 src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/nvpci.go
+ delete mode 100644 src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/resources.go
+
+diff --git a/src/runtime/go.mod b/src/runtime/go.mod
+index 702d4368821a536fccc66cdc70b8fecff69a8cee..55c32ce3468eabf9fd2bfc785b0af4b852b14906 100644
+--- a/src/runtime/go.mod
++++ b/src/runtime/go.mod
+@@ -52,7 +52,6 @@ require (
+ 	github.com/urfave/cli v1.22.17
+ 	github.com/vishvananda/netlink v1.3.1
+ 	github.com/vishvananda/netns v0.0.5
+-	gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20220601114329-47893b162965
+ 	go.opentelemetry.io/otel v1.35.0
+ 	go.opentelemetry.io/otel/exporters/jaeger v1.0.0
+ 	go.opentelemetry.io/otel/sdk v1.35.0
+diff --git a/src/runtime/go.sum b/src/runtime/go.sum
+index d2ee537e76948f8897f828bd68460dea4c41279e..f03a9c0d159e27c3b9a3d4c1baa1c73b20745f99 100644
+--- a/src/runtime/go.sum
++++ b/src/runtime/go.sum
+@@ -308,8 +308,6 @@ github.com/xeipuuv/gojsonschema v1.2.0 h1:LhYJRs+L4fBtjZUfuSZIKGeVu0QRy8e5Xi7D17
+ github.com/xeipuuv/gojsonschema v1.2.0/go.mod h1:anYRn/JVcOK2ZgGU+IjEV4nwlhoK5sQluxsYJ78Id3Y=
+ github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
+ github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
+-gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20220601114329-47893b162965 h1:EXE1ZsUqiUWGV5Dw2oTYpXx24ffxj0//yhTB0Ppv+4s=
+-gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20220601114329-47893b162965/go.mod h1:TBB3sR7/jg4RCThC/cgT4fB8mAbbMO307TycfgeR59w=
+ go.mongodb.org/mongo-driver v1.14.0 h1:P98w8egYRjYe3XDjxhYJagTokP/H6HzlsnojRgZRd80=
+ go.mongodb.org/mongo-driver v1.14.0/go.mod h1:Vzb0Mk/pa7e6cWw85R4F/endUC3u0U9jGcNU603k65c=
+ go.opencensus.io v0.24.0 h1:y73uSU6J157QMP2kn2r30vwW1A2W2WFwSCGnAVxeaD0=
+diff --git a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/LICENSE b/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/LICENSE
+deleted file mode 100644
+index d645695673349e3947e8e5ae42332d0ac3164cd7..0000000000000000000000000000000000000000
+--- a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/LICENSE
++++ /dev/null
+@@ -1,202 +0,0 @@
+-
+-                                 Apache License
+-                           Version 2.0, January 2004
+-                        http://www.apache.org/licenses/
+-
+-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+-
+-   1. Definitions.
+-
+-      "License" shall mean the terms and conditions for use, reproduction,
+-      and distribution as defined by Sections 1 through 9 of this document.
+-
+-      "Licensor" shall mean the copyright owner or entity authorized by
+-      the copyright owner that is granting the License.
+-
+-      "Legal Entity" shall mean the union of the acting entity and all
+-      other entities that control, are controlled by, or are under common
+-      control with that entity. For the purposes of this definition,
+-      "control" means (i) the power, direct or indirect, to cause the
+-      direction or management of such entity, whether by contract or
+-      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+-      outstanding shares, or (iii) beneficial ownership of such entity.
+-
+-      "You" (or "Your") shall mean an individual or Legal Entity
+-      exercising permissions granted by this License.
+-
+-      "Source" form shall mean the preferred form for making modifications,
+-      including but not limited to software source code, documentation
+-      source, and configuration files.
+-
+-      "Object" form shall mean any form resulting from mechanical
+-      transformation or translation of a Source form, including but
+-      not limited to compiled object code, generated documentation,
+-      and conversions to other media types.
+-
+-      "Work" shall mean the work of authorship, whether in Source or
+-      Object form, made available under the License, as indicated by a
+-      copyright notice that is included in or attached to the work
+-      (an example is provided in the Appendix below).
+-
+-      "Derivative Works" shall mean any work, whether in Source or Object
+-      form, that is based on (or derived from) the Work and for which the
+-      editorial revisions, annotations, elaborations, or other modifications
+-      represent, as a whole, an original work of authorship. For the purposes
+-      of this License, Derivative Works shall not include works that remain
+-      separable from, or merely link (or bind by name) to the interfaces of,
+-      the Work and Derivative Works thereof.
+-
+-      "Contribution" shall mean any work of authorship, including
+-      the original version of the Work and any modifications or additions
+-      to that Work or Derivative Works thereof, that is intentionally
+-      submitted to Licensor for inclusion in the Work by the copyright owner
+-      or by an individual or Legal Entity authorized to submit on behalf of
+-      the copyright owner. For the purposes of this definition, "submitted"
+-      means any form of electronic, verbal, or written communication sent
+-      to the Licensor or its representatives, including but not limited to
+-      communication on electronic mailing lists, source code control systems,
+-      and issue tracking systems that are managed by, or on behalf of, the
+-      Licensor for the purpose of discussing and improving the Work, but
+-      excluding communication that is conspicuously marked or otherwise
+-      designated in writing by the copyright owner as "Not a Contribution."
+-
+-      "Contributor" shall mean Licensor and any individual or Legal Entity
+-      on behalf of whom a Contribution has been received by Licensor and
+-      subsequently incorporated within the Work.
+-
+-   2. Grant of Copyright License. Subject to the terms and conditions of
+-      this License, each Contributor hereby grants to You a perpetual,
+-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+-      copyright license to reproduce, prepare Derivative Works of,
+-      publicly display, publicly perform, sublicense, and distribute the
+-      Work and such Derivative Works in Source or Object form.
+-
+-   3. Grant of Patent License. Subject to the terms and conditions of
+-      this License, each Contributor hereby grants to You a perpetual,
+-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+-      (except as stated in this section) patent license to make, have made,
+-      use, offer to sell, sell, import, and otherwise transfer the Work,
+-      where such license applies only to those patent claims licensable
+-      by such Contributor that are necessarily infringed by their
+-      Contribution(s) alone or by combination of their Contribution(s)
+-      with the Work to which such Contribution(s) was submitted. If You
+-      institute patent litigation against any entity (including a
+-      cross-claim or counterclaim in a lawsuit) alleging that the Work
+-      or a Contribution incorporated within the Work constitutes direct
+-      or contributory patent infringement, then any patent licenses
+-      granted to You under this License for that Work shall terminate
+-      as of the date such litigation is filed.
+-
+-   4. Redistribution. You may reproduce and distribute copies of the
+-      Work or Derivative Works thereof in any medium, with or without
+-      modifications, and in Source or Object form, provided that You
+-      meet the following conditions:
+-
+-      (a) You must give any other recipients of the Work or
+-          Derivative Works a copy of this License; and
+-
+-      (b) You must cause any modified files to carry prominent notices
+-          stating that You changed the files; and
+-
+-      (c) You must retain, in the Source form of any Derivative Works
+-          that You distribute, all copyright, patent, trademark, and
+-          attribution notices from the Source form of the Work,
+-          excluding those notices that do not pertain to any part of
+-          the Derivative Works; and
+-
+-      (d) If the Work includes a "NOTICE" text file as part of its
+-          distribution, then any Derivative Works that You distribute must
+-          include a readable copy of the attribution notices contained
+-          within such NOTICE file, excluding those notices that do not
+-          pertain to any part of the Derivative Works, in at least one
+-          of the following places: within a NOTICE text file distributed
+-          as part of the Derivative Works; within the Source form or
+-          documentation, if provided along with the Derivative Works; or,
+-          within a display generated by the Derivative Works, if and
+-          wherever such third-party notices normally appear. The contents
+-          of the NOTICE file are for informational purposes only and
+-          do not modify the License. You may add Your own attribution
+-          notices within Derivative Works that You distribute, alongside
+-          or as an addendum to the NOTICE text from the Work, provided
+-          that such additional attribution notices cannot be construed
+-          as modifying the License.
+-
+-      You may add Your own copyright statement to Your modifications and
+-      may provide additional or different license terms and conditions
+-      for use, reproduction, or distribution of Your modifications, or
+-      for any such Derivative Works as a whole, provided Your use,
+-      reproduction, and distribution of the Work otherwise complies with
+-      the conditions stated in this License.
+-
+-   5. Submission of Contributions. Unless You explicitly state otherwise,
+-      any Contribution intentionally submitted for inclusion in the Work
+-      by You to the Licensor shall be under the terms and conditions of
+-      this License, without any additional terms or conditions.
+-      Notwithstanding the above, nothing herein shall supersede or modify
+-      the terms of any separate license agreement you may have executed
+-      with Licensor regarding such Contributions.
+-
+-   6. Trademarks. This License does not grant permission to use the trade
+-      names, trademarks, service marks, or product names of the Licensor,
+-      except as required for reasonable and customary use in describing the
+-      origin of the Work and reproducing the content of the NOTICE file.
+-
+-   7. Disclaimer of Warranty. Unless required by applicable law or
+-      agreed to in writing, Licensor provides the Work (and each
+-      Contributor provides its Contributions) on an "AS IS" BASIS,
+-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+-      implied, including, without limitation, any warranties or conditions
+-      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+-      PARTICULAR PURPOSE. You are solely responsible for determining the
+-      appropriateness of using or redistributing the Work and assume any
+-      risks associated with Your exercise of permissions under this License.
+-
+-   8. Limitation of Liability. In no event and under no legal theory,
+-      whether in tort (including negligence), contract, or otherwise,
+-      unless required by applicable law (such as deliberate and grossly
+-      negligent acts) or agreed to in writing, shall any Contributor be
+-      liable to You for damages, including any direct, indirect, special,
+-      incidental, or consequential damages of any character arising as a
+-      result of this License or out of the use or inability to use the
+-      Work (including but not limited to damages for loss of goodwill,
+-      work stoppage, computer failure or malfunction, or any and all
+-      other commercial damages or losses), even if such Contributor
+-      has been advised of the possibility of such damages.
+-
+-   9. Accepting Warranty or Additional Liability. While redistributing
+-      the Work or Derivative Works thereof, You may choose to offer,
+-      and charge a fee for, acceptance of support, warranty, indemnity,
+-      or other liability obligations and/or rights consistent with this
+-      License. However, in accepting such obligations, You may act only
+-      on Your own behalf and on Your sole responsibility, not on behalf
+-      of any other Contributor, and only if You agree to indemnify,
+-      defend, and hold each Contributor harmless for any liability
+-      incurred by, or claims asserted against, such Contributor by reason
+-      of your accepting any such warranty or additional liability.
+-
+-   END OF TERMS AND CONDITIONS
+-
+-   APPENDIX: How to apply the Apache License to your work.
+-
+-      To apply the Apache License to your work, attach the following
+-      boilerplate notice, with the fields enclosed by brackets "[]"
+-      replaced with your own identifying information. (Don't include
+-      the brackets!)  The text should be enclosed in the appropriate
+-      comment syntax for the file format. We also recommend that a
+-      file or class name and description of purpose be included on the
+-      same "printed page" as the copyright notice for easier
+-      identification within third-party archives.
+-
+-   Copyright [yyyy] [name of copyright owner]
+-
+-   Licensed under the Apache License, Version 2.0 (the "License");
+-   you may not use this file except in compliance with the License.
+-   You may obtain a copy of the License at
+-
+-       http://www.apache.org/licenses/LICENSE-2.0
+-
+-   Unless required by applicable law or agreed to in writing, software
+-   distributed under the License is distributed on an "AS IS" BASIS,
+-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-   See the License for the specific language governing permissions and
+-   limitations under the License.
+diff --git a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes/bytes.go b/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes/bytes.go
+deleted file mode 100644
+index 7788a1fbe1df79274d0a4a03c23e83d56810ca8d..0000000000000000000000000000000000000000
+--- a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes/bytes.go
++++ /dev/null
+@@ -1,94 +0,0 @@
+-/*
+- * Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-package bytes
+-
+-import (
+-	"encoding/binary"
+-	"unsafe"
+-)
+-
+-// Raw returns just the bytes without any assumptions about layout
+-type Raw interface {
+-	Raw() *[]byte
+-}
+-
+-// Reader used to read various data sizes in the byte array
+-type Reader interface {
+-	Read8(pos int) uint8
+-	Read16(pos int) uint16
+-	Read32(pos int) uint32
+-	Read64(pos int) uint64
+-	Len() int
+-}
+-
+-// Writer used to write various sizes of data in the byte array
+-type Writer interface {
+-	Write8(pos int, value uint8)
+-	Write16(pos int, value uint16)
+-	Write32(pos int, value uint32)
+-	Write64(pos int, value uint64)
+-	Len() int
+-}
+-
+-// Bytes object for manipulating arbitrary byte arrays
+-type Bytes interface {
+-	Raw
+-	Reader
+-	Writer
+-	Slice(offset int, size int) Bytes
+-	LittleEndian() Bytes
+-	BigEndian() Bytes
+-}
+-
+-var nativeByteOrder binary.ByteOrder
+-
+-func init() {
+-	buf := [2]byte{}
+-	*(*uint16)(unsafe.Pointer(&buf[0])) = uint16(0x00FF)
+-
+-	switch buf {
+-	case [2]byte{0xFF, 0x00}:
+-		nativeByteOrder = binary.LittleEndian
+-	case [2]byte{0x00, 0xFF}:
+-		nativeByteOrder = binary.BigEndian
+-	default:
+-		panic("Unable to infer byte order")
+-	}
+-}
+-
+-// New raw bytearray
+-func New(data *[]byte) Bytes {
+-	return (*native)(data)
+-}
+-
+-// NewLittleEndian little endian ordering of bytes
+-func NewLittleEndian(data *[]byte) Bytes {
+-	if nativeByteOrder == binary.LittleEndian {
+-		return (*native)(data)
+-	}
+-
+-	return (*swapbo)(data)
+-}
+-
+-// NewBigEndian big endian ordering of bytes
+-func NewBigEndian(data *[]byte) Bytes {
+-	if nativeByteOrder == binary.BigEndian {
+-		return (*native)(data)
+-	}
+-
+-	return (*swapbo)(data)
+-}
+diff --git a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes/native.go b/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes/native.go
+deleted file mode 100644
+index 3c79e6890cbebe9f0e38a476786666666608b8ed..0000000000000000000000000000000000000000
+--- a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes/native.go
++++ /dev/null
+@@ -1,78 +0,0 @@
+-/*
+- * Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-package bytes
+-
+-import (
+-	"unsafe"
+-)
+-
+-type native []byte
+-
+-var _ Bytes = (*native)(nil)
+-
+-func (b *native) Read8(pos int) uint8 {
+-	return (*b)[pos]
+-}
+-
+-func (b *native) Read16(pos int) uint16 {
+-	return *(*uint16)(unsafe.Pointer(&((*b)[pos])))
+-}
+-
+-func (b *native) Read32(pos int) uint32 {
+-	return *(*uint32)(unsafe.Pointer(&((*b)[pos])))
+-}
+-
+-func (b *native) Read64(pos int) uint64 {
+-	return *(*uint64)(unsafe.Pointer(&((*b)[pos])))
+-}
+-
+-func (b *native) Write8(pos int, value uint8) {
+-	(*b)[pos] = value
+-}
+-
+-func (b *native) Write16(pos int, value uint16) {
+-	*(*uint16)(unsafe.Pointer(&((*b)[pos]))) = value
+-}
+-
+-func (b *native) Write32(pos int, value uint32) {
+-	*(*uint32)(unsafe.Pointer(&((*b)[pos]))) = value
+-}
+-
+-func (b *native) Write64(pos int, value uint64) {
+-	*(*uint64)(unsafe.Pointer(&((*b)[pos]))) = value
+-}
+-
+-func (b *native) Slice(offset int, size int) Bytes {
+-	nb := (*b)[offset : offset+size]
+-	return &nb
+-}
+-
+-func (b *native) LittleEndian() Bytes {
+-	return NewLittleEndian((*[]byte)(b))
+-}
+-
+-func (b *native) BigEndian() Bytes {
+-	return NewBigEndian((*[]byte)(b))
+-}
+-
+-func (b *native) Raw() *[]byte {
+-	return (*[]byte)(b)
+-}
+-
+-func (b *native) Len() int {
+-	return len(*b)
+-}
+diff --git a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes/swapbo.go b/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes/swapbo.go
+deleted file mode 100644
+index 278c67daf45cdb232f955652b7046e45c274ad21..0000000000000000000000000000000000000000
+--- a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes/swapbo.go
++++ /dev/null
+@@ -1,112 +0,0 @@
+-/*
+- * Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-package bytes
+-
+-import (
+-	"unsafe"
+-)
+-
+-type swapbo []byte
+-
+-var _ Bytes = (*swapbo)(nil)
+-
+-func (b *swapbo) Read8(pos int) uint8 {
+-	return (*b)[pos]
+-}
+-
+-func (b *swapbo) Read16(pos int) uint16 {
+-	buf := [2]byte{}
+-	buf[0] = (*b)[pos+1]
+-	buf[1] = (*b)[pos+0]
+-	return *(*uint16)(unsafe.Pointer(&buf[0]))
+-}
+-
+-func (b *swapbo) Read32(pos int) uint32 {
+-	buf := [4]byte{}
+-	buf[0] = (*b)[pos+3]
+-	buf[1] = (*b)[pos+2]
+-	buf[2] = (*b)[pos+1]
+-	buf[3] = (*b)[pos+0]
+-	return *(*uint32)(unsafe.Pointer(&buf[0]))
+-}
+-
+-func (b *swapbo) Read64(pos int) uint64 {
+-	buf := [8]byte{}
+-	buf[0] = (*b)[pos+7]
+-	buf[1] = (*b)[pos+6]
+-	buf[2] = (*b)[pos+5]
+-	buf[3] = (*b)[pos+4]
+-	buf[4] = (*b)[pos+3]
+-	buf[5] = (*b)[pos+2]
+-	buf[6] = (*b)[pos+1]
+-	buf[7] = (*b)[pos+0]
+-	return *(*uint64)(unsafe.Pointer(&buf[0]))
+-}
+-
+-func (b *swapbo) Write8(pos int, value uint8) {
+-	(*b)[pos] = value
+-}
+-
+-func (b *swapbo) Write16(pos int, value uint16) {
+-	buf := [2]byte{}
+-	*(*uint16)(unsafe.Pointer(&buf[0])) = value
+-	(*b)[pos+0] = buf[1]
+-	(*b)[pos+1] = buf[0]
+-}
+-
+-func (b *swapbo) Write32(pos int, value uint32) {
+-	buf := [4]byte{}
+-	*(*uint32)(unsafe.Pointer(&buf[0])) = value
+-	(*b)[pos+0] = buf[3]
+-	(*b)[pos+1] = buf[2]
+-	(*b)[pos+2] = buf[1]
+-	(*b)[pos+3] = buf[0]
+-}
+-
+-func (b *swapbo) Write64(pos int, value uint64) {
+-	buf := [8]byte{}
+-	*(*uint64)(unsafe.Pointer(&buf[0])) = value
+-	(*b)[pos+0] = buf[7]
+-	(*b)[pos+1] = buf[6]
+-	(*b)[pos+2] = buf[5]
+-	(*b)[pos+3] = buf[4]
+-	(*b)[pos+4] = buf[3]
+-	(*b)[pos+5] = buf[2]
+-	(*b)[pos+6] = buf[1]
+-	(*b)[pos+7] = buf[0]
+-}
+-
+-func (b *swapbo) Slice(offset int, size int) Bytes {
+-	nb := (*b)[offset : offset+size]
+-	return &nb
+-}
+-
+-func (b *swapbo) LittleEndian() Bytes {
+-	return NewLittleEndian((*[]byte)(b))
+-}
+-
+-func (b *swapbo) BigEndian() Bytes {
+-	return NewBigEndian((*[]byte)(b))
+-}
+-
+-func (b *swapbo) Raw() *[]byte {
+-	return (*[]byte)(b)
+-}
+-
+-func (b *swapbo) Len() int {
+-	return len(*b)
+-}
+diff --git a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/config.go b/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/config.go
+deleted file mode 100644
+index 7cd2920b75e12c61480ccc96a228acf86f26f7c2..0000000000000000000000000000000000000000
+--- a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/config.go
++++ /dev/null
+@@ -1,143 +0,0 @@
+-/*
+- * Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-package nvpci
+-
+-import (
+-	"fmt"
+-	"io/ioutil"
+-
+-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes"
+-)
+-
+-const (
+-	// PCICfgSpaceStandardSize represents the size in bytes of the standard config space
+-	PCICfgSpaceStandardSize = 256
+-	// PCICfgSpaceExtendedSize represents the size in bytes of the extended config space
+-	PCICfgSpaceExtendedSize = 4096
+-	// PCICapabilityListPointer represents offset for the capability list pointer
+-	PCICapabilityListPointer = 0x34
+-	// PCIStatusCapabilityList represents the status register bit which indicates capability list support
+-	PCIStatusCapabilityList = 0x10
+-	// PCIStatusBytePosition represents the position of the status register
+-	PCIStatusBytePosition = 0x06
+-)
+-
+-// ConfigSpace PCI configuration space (standard extended) file path
+-type ConfigSpace struct {
+-	Path string
+-}
+-
+-// ConfigSpaceIO Interface for reading and writing raw and preconfigured values
+-type ConfigSpaceIO interface {
+-	bytes.Bytes
+-	GetVendorID() uint16
+-	GetDeviceID() uint16
+-	GetPCICapabilities() (*PCICapabilities, error)
+-}
+-
+-type configSpaceIO struct {
+-	bytes.Bytes
+-}
+-
+-// PCIStandardCapability standard PCI config space
+-type PCIStandardCapability struct {
+-	bytes.Bytes
+-}
+-
+-// PCIExtendedCapability extended PCI config space
+-type PCIExtendedCapability struct {
+-	bytes.Bytes
+-	Version uint8
+-}
+-
+-// PCICapabilities combines the standard and extended config space
+-type PCICapabilities struct {
+-	Standard map[uint8]*PCIStandardCapability
+-	Extended map[uint16]*PCIExtendedCapability
+-}
+-
+-func (cs *ConfigSpace) Read() (ConfigSpaceIO, error) {
+-	config, err := ioutil.ReadFile(cs.Path)
+-	if err != nil {
+-		return nil, fmt.Errorf("failed to open file: %v", err)
+-	}
+-	return &configSpaceIO{bytes.New(&config)}, nil
+-}
+-
+-func (cs *configSpaceIO) GetVendorID() uint16 {
+-	return cs.Read16(0)
+-}
+-
+-func (cs *configSpaceIO) GetDeviceID() uint16 {
+-	return cs.Read16(2)
+-}
+-
+-func (cs *configSpaceIO) GetPCICapabilities() (*PCICapabilities, error) {
+-	caps := &PCICapabilities{
+-		make(map[uint8]*PCIStandardCapability),
+-		make(map[uint16]*PCIExtendedCapability),
+-	}
+-
+-	support := cs.Read8(PCIStatusBytePosition) & PCIStatusCapabilityList
+-	if support == 0 {
+-		return nil, fmt.Errorf("pci device does not support capability list")
+-	}
+-
+-	soffset := cs.Read8(PCICapabilityListPointer)
+-	if int(soffset) >= cs.Len() {
+-		return nil, fmt.Errorf("capability list pointer out of bounds")
+-	}
+-
+-	for soffset != 0 {
+-		if soffset == 0xff {
+-			return nil, fmt.Errorf("config space broken")
+-		}
+-		if int(soffset) >= PCICfgSpaceStandardSize {
+-			return nil, fmt.Errorf("standard capability list pointer out of bounds")
+-		}
+-		data := cs.Read32(int(soffset))
+-		id := uint8(data & 0xff)
+-		caps.Standard[id] = &PCIStandardCapability{
+-			cs.Slice(int(soffset), cs.Len()-int(soffset)),
+-		}
+-		soffset = uint8((data >> 8) & 0xff)
+-	}
+-
+-	if cs.Len() <= PCICfgSpaceStandardSize {
+-		return caps, nil
+-	}
+-
+-	eoffset := uint16(PCICfgSpaceStandardSize)
+-	for eoffset != 0 {
+-		if eoffset == 0xffff {
+-			return nil, fmt.Errorf("config space broken")
+-		}
+-		if int(eoffset) >= PCICfgSpaceExtendedSize {
+-			return nil, fmt.Errorf("extended capability list pointer out of bounds")
+-		}
+-		data := cs.Read32(int(eoffset))
+-		id := uint16(data & 0xffff)
+-		version := uint8((data >> 16) & 0xf)
+-		caps.Extended[id] = &PCIExtendedCapability{
+-			cs.Slice(int(eoffset), cs.Len()-int(eoffset)),
+-			version,
+-		}
+-		eoffset = uint16((data >> 4) & 0xffc)
+-	}
+-
+-	return caps, nil
+-}
+diff --git a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mmio/mmio.go b/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mmio/mmio.go
+deleted file mode 100644
+index 602486ead6c07e5892b611bb783273b5917963f3..0000000000000000000000000000000000000000
+--- a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mmio/mmio.go
++++ /dev/null
+@@ -1,127 +0,0 @@
+-/*
+- * Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-package mmio
+-
+-import (
+-	"fmt"
+-	"os"
+-	"syscall"
+-	"unsafe"
+-
+-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes"
+-)
+-
+-// Mmio memory map a region
+-type Mmio interface {
+-	bytes.Raw
+-	bytes.Reader
+-	bytes.Writer
+-	Sync() error
+-	Close() error
+-	Slice(offset int, size int) Mmio
+-	LittleEndian() Mmio
+-	BigEndian() Mmio
+-}
+-
+-type mmio struct {
+-	bytes.Bytes
+-}
+-
+-func open(path string, offset int, size int, flags int) (Mmio, error) {
+-	var mmapFlags int
+-	switch flags {
+-	case os.O_RDONLY:
+-		mmapFlags = syscall.PROT_READ
+-	case os.O_RDWR:
+-		mmapFlags = syscall.PROT_READ | syscall.PROT_WRITE
+-	default:
+-		return nil, fmt.Errorf("invalid flags: %v", flags)
+-	}
+-
+-	file, err := os.OpenFile(path, flags, 0)
+-	if err != nil {
+-		return nil, fmt.Errorf("failed to open file: %v", err)
+-	}
+-	defer file.Close()
+-
+-	fi, err := file.Stat()
+-	if err != nil {
+-		return nil, fmt.Errorf("failed to get file info: %v", err)
+-	}
+-
+-	if size > int(fi.Size()) {
+-		return nil, fmt.Errorf("requested size larger than file size")
+-	}
+-
+-	if size < 0 {
+-		size = int(fi.Size())
+-	}
+-
+-	mmap, err := syscall.Mmap(
+-		int(file.Fd()),
+-		int64(offset),
+-		size,
+-		mmapFlags,
+-		syscall.MAP_SHARED)
+-	if err != nil {
+-		return nil, fmt.Errorf("failed to mmap file: %v", err)
+-	}
+-
+-	return &mmio{bytes.New(&mmap)}, nil
+-}
+-
+-// OpenRO open region readonly
+-func OpenRO(path string, offset int, size int) (Mmio, error) {
+-	return open(path, offset, size, os.O_RDONLY)
+-}
+-
+-// OpenRW open region read write
+-func OpenRW(path string, offset int, size int) (Mmio, error) {
+-	return open(path, offset, size, os.O_RDWR)
+-}
+-
+-func (m *mmio) Slice(offset int, size int) Mmio {
+-	return &mmio{m.Bytes.Slice(offset, size)}
+-}
+-
+-func (m *mmio) LittleEndian() Mmio {
+-	return &mmio{m.Bytes.LittleEndian()}
+-}
+-
+-func (m *mmio) BigEndian() Mmio {
+-	return &mmio{m.Bytes.BigEndian()}
+-}
+-
+-func (m *mmio) Close() error {
+-	err := syscall.Munmap(*m.Bytes.Raw())
+-	if err != nil {
+-		return fmt.Errorf("failed to munmap file: %v", err)
+-	}
+-	return nil
+-}
+-
+-func (m *mmio) Sync() error {
+-	_, _, errno := syscall.Syscall(
+-		syscall.SYS_MSYNC,
+-		uintptr(unsafe.Pointer(&(*m.Bytes.Raw())[0])),
+-		uintptr(m.Len()),
+-		uintptr(syscall.MS_SYNC|syscall.MS_INVALIDATE))
+-	if errno != 0 {
+-		return fmt.Errorf("failed to msync file: %v", errno)
+-	}
+-	return nil
+-}
+diff --git a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mmio/mock.go b/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mmio/mock.go
+deleted file mode 100644
+index 42a86b157e9f6c67b1a4efe60a8259dfb81e148f..0000000000000000000000000000000000000000
+--- a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mmio/mock.go
++++ /dev/null
+@@ -1,74 +0,0 @@
+-/*
+- * Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-package mmio
+-
+-import (
+-	"fmt"
+-
+-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes"
+-)
+-
+-type mockMmio struct {
+-	mmio
+-	source *[]byte
+-	offset int
+-	rw     bool
+-}
+-
+-func mockOpen(source *[]byte, offset int, size int, rw bool) (Mmio, error) {
+-	if size < 0 {
+-		size = len(*source) - offset
+-	}
+-	if (offset + size) > len(*source) {
+-		return nil, fmt.Errorf("offset+size out of range")
+-	}
+-
+-	data := append([]byte{}, (*source)[offset:offset+size]...)
+-
+-	m := &mockMmio{}
+-	m.Bytes = bytes.New(&data).LittleEndian()
+-	m.source = source
+-	m.offset = offset
+-	m.rw = rw
+-
+-	return m, nil
+-}
+-
+-// MockOpenRO open read only
+-func MockOpenRO(source *[]byte, offset int, size int) (Mmio, error) {
+-	return mockOpen(source, offset, size, false)
+-}
+-
+-// MockOpenRW open read write
+-func MockOpenRW(source *[]byte, offset int, size int) (Mmio, error) {
+-	return mockOpen(source, offset, size, true)
+-}
+-
+-func (m *mockMmio) Close() error {
+-	m = &mockMmio{}
+-	return nil
+-}
+-
+-func (m *mockMmio) Sync() error {
+-	if !m.rw {
+-		return fmt.Errorf("opened read-only")
+-	}
+-	for i := range *m.Bytes.Raw() {
+-		(*m.source)[m.offset+i] = (*m.Bytes.Raw())[i]
+-	}
+-	return nil
+-}
+diff --git a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mock.go b/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mock.go
+deleted file mode 100644
+index 5c13ae18613e6d65946ffdcc252c357600d204c0..0000000000000000000000000000000000000000
+--- a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mock.go
++++ /dev/null
+@@ -1,141 +0,0 @@
+-/*
+- * Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-package nvpci
+-
+-import (
+-	"fmt"
+-	"io/ioutil"
+-	"os"
+-	"path/filepath"
+-
+-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes"
+-)
+-
+-// MockNvpci mock pci device
+-type MockNvpci struct {
+-	*nvpci
+-}
+-
+-var _ Interface = (*MockNvpci)(nil)
+-
+-// NewMockNvpci create new mock PCI and remove old devices
+-func NewMockNvpci() (mock *MockNvpci, rerr error) {
+-	rootDir, err := ioutil.TempDir("", "")
+-	if err != nil {
+-		return nil, err
+-	}
+-	defer func() {
+-		if rerr != nil {
+-			os.RemoveAll(rootDir)
+-		}
+-	}()
+-
+-	mock = &MockNvpci{
+-		NewFrom(rootDir).(*nvpci),
+-	}
+-
+-	return mock, nil
+-}
+-
+-// Cleanup remove the mocked PCI devices root folder
+-func (m *MockNvpci) Cleanup() {
+-	os.RemoveAll(m.pciDevicesRoot)
+-}
+-
+-// AddMockA100 Create an A100 like GPU mock device
+-func (m *MockNvpci) AddMockA100(address string, numaNode int) error {
+-	deviceDir := filepath.Join(m.pciDevicesRoot, address)
+-	err := os.MkdirAll(deviceDir, 0755)
+-	if err != nil {
+-		return err
+-	}
+-
+-	vendor, err := os.Create(filepath.Join(deviceDir, "vendor"))
+-	if err != nil {
+-		return err
+-	}
+-	_, err = vendor.WriteString(fmt.Sprintf("0x%x", PCINvidiaVendorID))
+-	if err != nil {
+-		return err
+-	}
+-
+-	class, err := os.Create(filepath.Join(deviceDir, "class"))
+-	if err != nil {
+-		return err
+-	}
+-	_, err = class.WriteString(fmt.Sprintf("0x%x", PCI3dControllerClass))
+-	if err != nil {
+-		return err
+-	}
+-
+-	device, err := os.Create(filepath.Join(deviceDir, "device"))
+-	if err != nil {
+-		return err
+-	}
+-	_, err = device.WriteString("0x20bf")
+-	if err != nil {
+-		return err
+-	}
+-
+-	numa, err := os.Create(filepath.Join(deviceDir, "numa_node"))
+-	if err != nil {
+-		return err
+-	}
+-	_, err = numa.WriteString(fmt.Sprintf("%v", numaNode))
+-	if err != nil {
+-		return err
+-	}
+-
+-	config, err := os.Create(filepath.Join(deviceDir, "config"))
+-	if err != nil {
+-		return err
+-	}
+-	_data := make([]byte, PCICfgSpaceStandardSize)
+-	data := bytes.New(&_data)
+-	data.Write16(0, PCINvidiaVendorID)
+-	data.Write16(2, uint16(0x20bf))
+-	data.Write8(PCIStatusBytePosition, PCIStatusCapabilityList)
+-	_, err = config.Write(*data.Raw())
+-	if err != nil {
+-		return err
+-	}
+-
+-	bar0 := []uint64{0x00000000c2000000, 0x00000000c2ffffff, 0x0000000000040200}
+-	resource, err := os.Create(filepath.Join(deviceDir, "resource"))
+-	if err != nil {
+-		return err
+-	}
+-	_, err = resource.WriteString(fmt.Sprintf("0x%x 0x%x 0x%x", bar0[0], bar0[1], bar0[2]))
+-	if err != nil {
+-		return err
+-	}
+-
+-	pmcID := uint32(0x170000a1)
+-	resource0, err := os.Create(filepath.Join(deviceDir, "resource0"))
+-	if err != nil {
+-		return err
+-	}
+-	_data = make([]byte, bar0[1]-bar0[0]+1)
+-	data = bytes.New(&_data).LittleEndian()
+-	data.Write32(0, pmcID)
+-	_, err = resource0.Write(*data.Raw())
+-	if err != nil {
+-		return err
+-	}
+-
+-	return nil
+-}
+diff --git a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/nvpci.go b/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/nvpci.go
+deleted file mode 100644
+index 61a8bd302d380eaa1d40a6e431833c4881de6d9b..0000000000000000000000000000000000000000
+--- a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/nvpci.go
++++ /dev/null
+@@ -1,316 +0,0 @@
+-/*
+- * Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-package nvpci
+-
+-import (
+-	"fmt"
+-	"io/ioutil"
+-	"os"
+-	"path"
+-	"sort"
+-	"strconv"
+-	"strings"
+-)
+-
+-const (
+-	// PCIDevicesRoot represents base path for all pci devices under sysfs
+-	PCIDevicesRoot = "/sys/bus/pci/devices"
+-	// PCINvidiaVendorID represents PCI vendor id for NVIDIA
+-	PCINvidiaVendorID uint16 = 0x10de
+-	// PCIVgaControllerClass represents the PCI class for VGA Controllers
+-	PCIVgaControllerClass uint32 = 0x030000
+-	// PCI3dControllerClass represents the PCI class for 3D Graphics accellerators
+-	PCI3dControllerClass uint32 = 0x030200
+-	// PCINvSwitchClass represents the PCI class for NVSwitches
+-	PCINvSwitchClass uint32 = 0x068000
+-)
+-
+-// Interface allows us to get a list of all NVIDIA PCI devices
+-type Interface interface {
+-	GetAllDevices() ([]*NvidiaPCIDevice, error)
+-	Get3DControllers() ([]*NvidiaPCIDevice, error)
+-	GetVGAControllers() ([]*NvidiaPCIDevice, error)
+-	GetNVSwitches() ([]*NvidiaPCIDevice, error)
+-	GetGPUs() ([]*NvidiaPCIDevice, error)
+-}
+-
+-// MemoryResources a more human readable handle
+-type MemoryResources map[int]*MemoryResource
+-
+-// ResourceInterface exposes some higher level functions of resources
+-type ResourceInterface interface {
+-	GetTotalAddressableMemory(bool) (uint64, uint64)
+-}
+-
+-type nvpci struct {
+-	pciDevicesRoot string
+-}
+-
+-var _ Interface = (*nvpci)(nil)
+-var _ ResourceInterface = (*MemoryResources)(nil)
+-
+-// NvidiaPCIDevice represents a PCI device for an NVIDIA product
+-type NvidiaPCIDevice struct {
+-	Path      string
+-	Address   string
+-	Vendor    uint16
+-	Class     uint32
+-	Device    uint16
+-	NumaNode  int
+-	Config    *ConfigSpace
+-	Resources MemoryResources
+-}
+-
+-// IsVGAController if class == 0x300
+-func (d *NvidiaPCIDevice) IsVGAController() bool {
+-	return d.Class == PCIVgaControllerClass
+-}
+-
+-// Is3DController if class == 0x302
+-func (d *NvidiaPCIDevice) Is3DController() bool {
+-	return d.Class == PCI3dControllerClass
+-}
+-
+-// IsNVSwitch if classe == 0x068
+-func (d *NvidiaPCIDevice) IsNVSwitch() bool {
+-	return d.Class == PCINvSwitchClass
+-}
+-
+-// IsGPU either VGA for older cards or 3D for newer
+-func (d *NvidiaPCIDevice) IsGPU() bool {
+-	return d.IsVGAController() || d.Is3DController()
+-}
+-
+-// IsResetAvailable some devices can be reset without rebooting,
+-// check if applicable
+-func (d *NvidiaPCIDevice) IsResetAvailable() bool {
+-	_, err := os.Stat(path.Join(d.Path, "reset"))
+-	return err == nil
+-}
+-
+-// Reset perform a reset to apply a new configuration at HW level
+-func (d *NvidiaPCIDevice) Reset() error {
+-	err := ioutil.WriteFile(path.Join(d.Path, "reset"), []byte("1"), 0)
+-	if err != nil {
+-		return fmt.Errorf("unable to write to reset file: %v", err)
+-	}
+-	return nil
+-}
+-
+-// New interface that allows us to get a list of all NVIDIA PCI devices
+-func New() Interface {
+-	return &nvpci{PCIDevicesRoot}
+-}
+-
+-// NewFrom interface allows us to get a list of all NVIDIA PCI devices at a specific root directory
+-func NewFrom(root string) Interface {
+-	return &nvpci{root}
+-}
+-
+-// GetAllDevices returns all Nvidia PCI devices on the system
+-func (p *nvpci) GetAllDevices() ([]*NvidiaPCIDevice, error) {
+-	deviceDirs, err := ioutil.ReadDir(p.pciDevicesRoot)
+-	if err != nil {
+-		return nil, fmt.Errorf("unable to read PCI bus devices: %v", err)
+-	}
+-
+-	var nvdevices []*NvidiaPCIDevice
+-	for _, deviceDir := range deviceDirs {
+-		devicePath := path.Join(p.pciDevicesRoot, deviceDir.Name())
+-		nvdevice, err := NewDevice(devicePath)
+-		if err != nil {
+-			return nil, fmt.Errorf("error constructing NVIDIA PCI device %s: %v", deviceDir.Name(), err)
+-		}
+-		if nvdevice == nil {
+-			continue
+-		}
+-		nvdevices = append(nvdevices, nvdevice)
+-	}
+-
+-	addressToID := func(address string) uint64 {
+-		address = strings.ReplaceAll(address, ":", "")
+-		address = strings.ReplaceAll(address, ".", "")
+-		id, _ := strconv.ParseUint(address, 16, 64)
+-		return id
+-	}
+-
+-	sort.Slice(nvdevices, func(i, j int) bool {
+-		return addressToID(nvdevices[i].Address) < addressToID(nvdevices[j].Address)
+-	})
+-
+-	return nvdevices, nil
+-}
+-
+-// NewDevice constructs an NvidiaPCIDevice
+-func NewDevice(devicePath string) (*NvidiaPCIDevice, error) {
+-	address := path.Base(devicePath)
+-
+-	vendor, err := ioutil.ReadFile(path.Join(devicePath, "vendor"))
+-	if err != nil {
+-		return nil, fmt.Errorf("unable to read PCI device vendor id for %s: %v", address, err)
+-	}
+-	vendorStr := strings.TrimSpace(string(vendor))
+-	vendorID, err := strconv.ParseUint(vendorStr, 0, 16)
+-	if err != nil {
+-		return nil, fmt.Errorf("unable to convert vendor string to uint16: %v", vendorStr)
+-	}
+-
+-	if uint16(vendorID) != PCINvidiaVendorID {
+-		return nil, nil
+-	}
+-
+-	class, err := ioutil.ReadFile(path.Join(devicePath, "class"))
+-	if err != nil {
+-		return nil, fmt.Errorf("unable to read PCI device class for %s: %v", address, err)
+-	}
+-	classStr := strings.TrimSpace(string(class))
+-	classID, err := strconv.ParseUint(classStr, 0, 32)
+-	if err != nil {
+-		return nil, fmt.Errorf("unable to convert class string to uint32: %v", classStr)
+-	}
+-
+-	device, err := ioutil.ReadFile(path.Join(devicePath, "device"))
+-	if err != nil {
+-		return nil, fmt.Errorf("unable to read PCI device id for %s: %v", address, err)
+-	}
+-	deviceStr := strings.TrimSpace(string(device))
+-	deviceID, err := strconv.ParseUint(deviceStr, 0, 16)
+-	if err != nil {
+-		return nil, fmt.Errorf("unable to convert device string to uint16: %v", deviceStr)
+-	}
+-
+-	numa, err := ioutil.ReadFile(path.Join(devicePath, "numa_node"))
+-	if err != nil {
+-		return nil, fmt.Errorf("unable to read PCI NUMA node for %s: %v", address, err)
+-	}
+-	numaStr := strings.TrimSpace(string(numa))
+-	numaNode, err := strconv.ParseInt(numaStr, 0, 64)
+-	if err != nil {
+-		return nil, fmt.Errorf("unable to convert NUMA node string to int64: %v", numaNode)
+-	}
+-
+-	config := &ConfigSpace{
+-		Path: path.Join(devicePath, "config"),
+-	}
+-
+-	resource, err := ioutil.ReadFile(path.Join(devicePath, "resource"))
+-	if err != nil {
+-		return nil, fmt.Errorf("unable to read PCI resource file for %s: %v", address, err)
+-	}
+-
+-	resources := make(map[int]*MemoryResource)
+-	for i, line := range strings.Split(strings.TrimSpace(string(resource)), "\n") {
+-		values := strings.Split(line, " ")
+-		if len(values) != 3 {
+-			return nil, fmt.Errorf("more than 3 entries in line '%d' of resource file", i)
+-		}
+-
+-		start, _ := strconv.ParseUint(values[0], 0, 64)
+-		end, _ := strconv.ParseUint(values[1], 0, 64)
+-		flags, _ := strconv.ParseUint(values[2], 0, 64)
+-
+-		if (end - start) != 0 {
+-			resources[i] = &MemoryResource{
+-				uintptr(start),
+-				uintptr(end),
+-				flags,
+-				fmt.Sprintf("%s/resource%d", devicePath, i),
+-			}
+-		}
+-	}
+-
+-	nvdevice := &NvidiaPCIDevice{
+-		Path:      devicePath,
+-		Address:   address,
+-		Vendor:    uint16(vendorID),
+-		Class:     uint32(classID),
+-		Device:    uint16(deviceID),
+-		NumaNode:  int(numaNode),
+-		Config:    config,
+-		Resources: resources,
+-	}
+-
+-	return nvdevice, nil
+-}
+-
+-// Get3DControllers returns all NVIDIA 3D Controller PCI devices on the system
+-func (p *nvpci) Get3DControllers() ([]*NvidiaPCIDevice, error) {
+-	devices, err := p.GetAllDevices()
+-	if err != nil {
+-		return nil, fmt.Errorf("error getting all NVIDIA devices: %v", err)
+-	}
+-
+-	var filtered []*NvidiaPCIDevice
+-	for _, d := range devices {
+-		if d.Is3DController() {
+-			filtered = append(filtered, d)
+-		}
+-	}
+-
+-	return filtered, nil
+-}
+-
+-// GetVGAControllers returns all NVIDIA VGA Controller PCI devices on the system
+-func (p *nvpci) GetVGAControllers() ([]*NvidiaPCIDevice, error) {
+-	devices, err := p.GetAllDevices()
+-	if err != nil {
+-		return nil, fmt.Errorf("error getting all NVIDIA devices: %v", err)
+-	}
+-
+-	var filtered []*NvidiaPCIDevice
+-	for _, d := range devices {
+-		if d.IsVGAController() {
+-			filtered = append(filtered, d)
+-		}
+-	}
+-
+-	return filtered, nil
+-}
+-
+-// GetNVSwitches returns all NVIDIA NVSwitch PCI devices on the system
+-func (p *nvpci) GetNVSwitches() ([]*NvidiaPCIDevice, error) {
+-	devices, err := p.GetAllDevices()
+-	if err != nil {
+-		return nil, fmt.Errorf("error getting all NVIDIA devices: %v", err)
+-	}
+-
+-	var filtered []*NvidiaPCIDevice
+-	for _, d := range devices {
+-		if d.IsNVSwitch() {
+-			filtered = append(filtered, d)
+-		}
+-	}
+-
+-	return filtered, nil
+-}
+-
+-// GetGPUs returns all NVIDIA GPU devices on the system
+-func (p *nvpci) GetGPUs() ([]*NvidiaPCIDevice, error) {
+-	devices, err := p.GetAllDevices()
+-	if err != nil {
+-		return nil, fmt.Errorf("error getting all NVIDIA devices: %v", err)
+-	}
+-
+-	var filtered []*NvidiaPCIDevice
+-	for _, d := range devices {
+-		if d.IsGPU() {
+-			filtered = append(filtered, d)
+-		}
+-	}
+-
+-	return filtered, nil
+-}
+diff --git a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/resources.go b/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/resources.go
+deleted file mode 100644
+index 02a0430f3892f86898a6691a88fe72fdcf924119..0000000000000000000000000000000000000000
+--- a/src/runtime/vendor/gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/resources.go
++++ /dev/null
+@@ -1,140 +0,0 @@
+-/*
+- * Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.
+- *
+- * Licensed under the Apache License, Version 2.0 (the "License");
+- * you may not use this file except in compliance with the License.
+- * You may obtain a copy of the License at
+- *
+- *     http://www.apache.org/licenses/LICENSE-2.0
+- *
+- * Unless required by applicable law or agreed to in writing, software
+- * distributed under the License is distributed on an "AS IS" BASIS,
+- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+- * See the License for the specific language governing permissions and
+- * limitations under the License.
+- */
+-
+-package nvpci
+-
+-import (
+-	"fmt"
+-	"sort"
+-
+-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mmio"
+-)
+-
+-const (
+-	pmcEndianRegister = 0x4
+-	pmcLittleEndian   = 0x0
+-	pmcBigEndian      = 0x01000001
+-)
+-
+-// MemoryResource represents a mmio region
+-type MemoryResource struct {
+-	Start uintptr
+-	End   uintptr
+-	Flags uint64
+-	Path  string
+-}
+-
+-// OpenRW read write mmio region
+-func (mr *MemoryResource) OpenRW() (mmio.Mmio, error) {
+-	rw, err := mmio.OpenRW(mr.Path, 0, int(mr.End-mr.Start+1))
+-	if err != nil {
+-		return nil, fmt.Errorf("failed to open file for mmio: %v", err)
+-	}
+-	switch rw.Read32(pmcEndianRegister) {
+-	case pmcBigEndian:
+-		return rw.BigEndian(), nil
+-	case pmcLittleEndian:
+-		return rw.LittleEndian(), nil
+-	}
+-	return nil, fmt.Errorf("unknown endianness for mmio: %v", err)
+-}
+-
+-// OpenRO read only mmio region
+-func (mr *MemoryResource) OpenRO() (mmio.Mmio, error) {
+-	ro, err := mmio.OpenRO(mr.Path, 0, int(mr.End-mr.Start+1))
+-	if err != nil {
+-		return nil, fmt.Errorf("failed to open file for mmio: %v", err)
+-	}
+-	switch ro.Read32(pmcEndianRegister) {
+-	case pmcBigEndian:
+-		return ro.BigEndian(), nil
+-	case pmcLittleEndian:
+-		return ro.LittleEndian(), nil
+-	}
+-	return nil, fmt.Errorf("unknown endianness for mmio: %v", err)
+-}
+-
+-// From Bit Twiddling Hacks, great resource for all low level bit manipulations
+-func calcNextPowerOf2(n uint64) uint64 {
+-	n--
+-	n |= n >> 1
+-	n |= n >> 2
+-	n |= n >> 4
+-	n |= n >> 8
+-	n |= n >> 16
+-	n |= n >> 32
+-	n++
+-
+-	return n
+-}
+-
+-// GetTotalAddressableMemory will accumulate the 32bit and 64bit memory windows
+-// of each BAR and round the value if needed to the next power of 2; first
+-// return value is the accumulated 32bit addresable memory size the second one
+-// is the accumulated 64bit addressable memory size in bytes. These values are
+-// needed to configure virtualized environments.
+-func (mrs MemoryResources) GetTotalAddressableMemory(roundUp bool) (uint64, uint64) {
+-	const pciIOVNumBAR = 6
+-	const pciBaseAddressMemTypeMask = 0x06
+-	const pciBaseAddressMemType32 = 0x00 /* 32 bit address */
+-	const pciBaseAddressMemType64 = 0x04 /* 64 bit address */
+-
+-	// We need to sort the resources so the first 6 entries are the BARs
+-	// How a map is represented in memory is not guaranteed, it is not an
+-	// array. Keys do not have an order.
+-	keys := make([]int, 0, len(mrs))
+-	for k := range mrs {
+-		keys = append(keys, k)
+-	}
+-	sort.Ints(keys)
+-
+-	numBAR := 0
+-	memSize32bit := uint64(0)
+-	memSize64bit := uint64(0)
+-
+-	for _, key := range keys {
+-		// The PCIe spec only defines 5 BARs per device, we're
+-		// discarding everything after the 5th entry of the resources
+-		// file, see lspci.c
+-		if key >= pciIOVNumBAR || numBAR == pciIOVNumBAR {
+-			break
+-		}
+-		numBAR = numBAR + 1
+-
+-		region := mrs[key]
+-
+-		flags := region.Flags & pciBaseAddressMemTypeMask
+-		memType32bit := flags == pciBaseAddressMemType32
+-		memType64bit := flags == pciBaseAddressMemType64
+-
+-		memSize := (region.End - region.Start) + 1
+-
+-		if memType32bit {
+-			memSize32bit = memSize32bit + uint64(memSize)
+-		}
+-		if memType64bit {
+-			memSize64bit = memSize64bit + uint64(memSize)
+-		}
+-
+-	}
+-
+-	if roundUp {
+-		memSize32bit = calcNextPowerOf2(memSize32bit)
+-		memSize64bit = calcNextPowerOf2(memSize64bit)
+-	}
+-
+-	return memSize32bit, memSize64bit
+-}
+diff --git a/src/runtime/vendor/modules.txt b/src/runtime/vendor/modules.txt
+index d4581551331bd67be747ba79a31f365109b42c23..e24016fe5ca276f0da82ebd1105e76abe711ef1e 100644
+--- a/src/runtime/vendor/modules.txt
++++ b/src/runtime/vendor/modules.txt
+@@ -539,11 +539,6 @@ github.com/vishvananda/netns
+ # github.com/x448/float16 v0.8.4
+ ## explicit; go 1.11
+ github.com/x448/float16
+-# gitlab.com/nvidia/cloud-native/go-nvlib v0.0.0-20220601114329-47893b162965
+-## explicit; go 1.16
+-gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci
+-gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/bytes
+-gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci/mmio
+ # go.mongodb.org/mongo-driver v1.14.0
+ ## explicit; go 1.18
+ go.mongodb.org/mongo-driver/bson
+diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
+index 1b44e32f23c31b04135a758a28675afc063d030f..44bd11e4fd116a20a5a9251cdae827541f994363 100644
+--- a/src/runtime/virtcontainers/qemu.go
++++ b/src/runtime/virtcontainers/qemu.go
+@@ -820,21 +820,6 @@ func (q *qemu) createPCIeTopology(qemuConfig *govmmQemu.Config, hypervisorConfig
+ 	// into a PCIe Root Port or PCIe Switch.
+ 	// For more details, please see https://github.com/qemu/qemu/blob/master/docs/pcie.txt
+ 
+-	// Deduce the right values for mem-reserve and pref-64-reserve memory regions
+-	memSize32bit, memSize64bit := q.arch.getBARsMaxAddressableMemory()
+-
+-	// The default OVMF MMIO aperture is too small for some PCIe devices
+-	// with huge BARs so we need to increase it.
+-	// memSize64bit is in bytes, convert to MB, OVMF expects MB as a string
+-	if strings.Contains(strings.ToLower(hypervisorConfig.FirmwarePath), "ovmf") {
+-		pciMmio64Mb := fmt.Sprintf("%d", (memSize64bit / 1024 / 1024))
+-		fwCfg := govmmQemu.FwCfg{
+-			Name: "opt/ovmf/X-PciMmio64Mb",
+-			Str:  pciMmio64Mb,
+-		}
+-		qemuConfig.FwCfg = append(qemuConfig.FwCfg, fwCfg)
+-	}
+-
+ 	// Get the number of hot(cold)-pluggable ports needed from the provided
+ 	// VFIO devices
+ 	var numOfPluggablePorts uint32 = 0
+@@ -905,7 +890,7 @@ func (q *qemu) createPCIeTopology(qemuConfig *govmmQemu.Config, hypervisorConfig
+ 		if numOfPluggablePorts > maxPCIeRootPort {
+ 			return fmt.Errorf("Number of PCIe Root Ports exceeed allowed max of %d", maxPCIeRootPort)
+ 		}
+-		qemuConfig.Devices = q.arch.appendPCIeRootPortDevice(qemuConfig.Devices, numOfPluggablePorts, memSize32bit, memSize64bit)
++		qemuConfig.Devices = q.arch.appendPCIeRootPortDevice(qemuConfig.Devices, numOfPluggablePorts)
+ 		return nil
+ 	}
+ 	if vfioOnSwitchPort {
+@@ -915,12 +900,12 @@ func (q *qemu) createPCIeTopology(qemuConfig *govmmQemu.Config, hypervisorConfig
+ 		if numOfPluggablePorts > maxPCIeSwitchPort {
+ 			return fmt.Errorf("Number of PCIe Switch Ports exceeed allowed max of %d", maxPCIeSwitchPort)
+ 		}
+-		qemuConfig.Devices = q.arch.appendPCIeSwitchPortDevice(qemuConfig.Devices, numOfPluggablePorts, memSize32bit, memSize64bit)
++		qemuConfig.Devices = q.arch.appendPCIeSwitchPortDevice(qemuConfig.Devices, numOfPluggablePorts)
+ 		return nil
+ 	}
+ 	// If both Root Port and Switch Port are not enabled, check if QemuVirt need add pcie root port.
+ 	if machineType == QemuVirt {
+-		qemuConfig.Devices = q.arch.appendPCIeRootPortDevice(qemuConfig.Devices, numOfPluggablePorts, memSize32bit, memSize64bit)
++		qemuConfig.Devices = q.arch.appendPCIeRootPortDevice(qemuConfig.Devices, numOfPluggablePorts)
+ 	}
+ 	return nil
+ }
+@@ -2631,7 +2616,7 @@ func genericMemoryTopology(memoryMb, hostMemoryMb uint64, slots uint8, memoryOff
+ }
+ 
+ // genericAppendPCIeRootPort appends to devices the given pcie-root-port
+-func genericAppendPCIeRootPort(devices []govmmQemu.Device, number uint32, machineType string, memSize32bit uint64, memSize64bit uint64) []govmmQemu.Device {
++func genericAppendPCIeRootPort(devices []govmmQemu.Device, number uint32, machineType string) []govmmQemu.Device {
+ 	var (
+ 		bus           string
+ 		chassis       string
+@@ -2657,8 +2642,6 @@ func genericAppendPCIeRootPort(devices []govmmQemu.Device, number uint32, machin
+ 				Slot:          strconv.FormatUint(uint64(i), 10),
+ 				Multifunction: multiFunction,
+ 				Addr:          addr,
+-				MemReserve:    fmt.Sprintf("%dB", memSize32bit),
+-				Pref64Reserve: fmt.Sprintf("%dB", memSize64bit),
+ 			},
+ 		)
+ 	}
+@@ -2687,7 +2670,7 @@ func genericAppendPCIeRootPort(devices []govmmQemu.Device, number uint32, machin
+ //          -------------           --------------
+ */
+ // genericAppendPCIeSwitch adds a PCIe Swtich
+-func genericAppendPCIeSwitchPort(devices []govmmQemu.Device, number uint32, machineType string, memSize32bit uint64, memSize64bit uint64) []govmmQemu.Device {
++func genericAppendPCIeSwitchPort(devices []govmmQemu.Device, number uint32, machineType string) []govmmQemu.Device {
+ 
+ 	// Q35, Virt have the correct PCIe support,
+ 	// hence ignore all other machines
+@@ -2704,8 +2687,6 @@ func genericAppendPCIeSwitchPort(devices []govmmQemu.Device, number uint32, mach
+ 		Slot:          strconv.FormatUint(uint64(0), 10),
+ 		Multifunction: false,
+ 		Addr:          "0",
+-		MemReserve:    fmt.Sprintf("%dB", memSize32bit),
+-		Pref64Reserve: fmt.Sprintf("%dB", memSize64bit),
+ 	}
+ 
+ 	devices = append(devices, pcieRootPort)
+@@ -2729,8 +2710,6 @@ func genericAppendPCIeSwitchPort(devices []govmmQemu.Device, number uint32, mach
+ 			Bus:     pcieSwitchUpstreamPort.ID,
+ 			Chassis: fmt.Sprintf("%d", nextChassis),
+ 			Slot:    strconv.FormatUint(uint64(i), 10),
+-			// TODO: MemReserve:    fmt.Sprintf("%dB", memSize32bit),
+-			// TODO: Pref64Reserve: fmt.Sprintf("%dB", memSize64bit),
+ 		}
+ 		devices = append(devices, pcieSwitchDownstreamPort)
+ 	}
+diff --git a/src/runtime/virtcontainers/qemu_arch_base.go b/src/runtime/virtcontainers/qemu_arch_base.go
+index f8b0d4ef973c2edd96d539e80964e5c3f0d5d4ab..95433e07ad427b737d297c9a45bf47505f1186e4 100644
+--- a/src/runtime/virtcontainers/qemu_arch_base.go
++++ b/src/runtime/virtcontainers/qemu_arch_base.go
+@@ -18,7 +18,6 @@ import (
+ 	"strings"
+ 
+ 	govmmQemu "github.com/kata-containers/kata-containers/src/runtime/pkg/govmm/qemu"
+-	"gitlab.com/nvidia/cloud-native/go-nvlib/pkg/nvpci"
+ 
+ 	"github.com/kata-containers/kata-containers/src/runtime/pkg/device/config"
+ 	"github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types"
+@@ -153,10 +152,10 @@ type qemuArch interface {
+ 	setIgnoreSharedMemoryMigrationCaps(context.Context, *govmmQemu.QMP) error
+ 
+ 	// appendPCIeRootPortDevice appends a pcie-root-port device to pcie.0 bus
+-	appendPCIeRootPortDevice(devices []govmmQemu.Device, number uint32, memSize32bit uint64, memSize64bit uint64) []govmmQemu.Device
++	appendPCIeRootPortDevice(devices []govmmQemu.Device, number uint32) []govmmQemu.Device
+ 
+ 	// appendPCIeSwitch appends a ioh3420 device to a pcie-root-port
+-	appendPCIeSwitchPortDevice(devices []govmmQemu.Device, number uint32, memSize32bit uint64, memSize64bit uint64) []govmmQemu.Device
++	appendPCIeSwitchPortDevice(devices []govmmQemu.Device, number uint32) []govmmQemu.Device
+ 
+ 	// append vIOMMU device
+ 	appendIOMMU(devices []govmmQemu.Device) ([]govmmQemu.Device, error)
+@@ -170,10 +169,6 @@ type qemuArch interface {
+ 	// be used with the -bios option, ommit -bios option if the path is empty.
+ 	appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string, initdataDigest []byte) ([]govmmQemu.Device, string, error)
+ 
+-	// scans the PCIe space and returns the biggest BAR sizes for 32-bit
+-	// and 64-bit addressable memory
+-	getBARsMaxAddressableMemory() (uint64, uint64)
+-
+ 	// Query QMP to find a device's PCI path given its QOM path or ID
+ 	qomGetPciPath(qemuID string, qmpCh *qmpChannel) (types.PciPath, error)
+ 
+@@ -865,46 +860,13 @@ func (q *qemuArchBase) addBridge(b types.Bridge) {
+ }
+ 
+ // appendPCIeRootPortDevice appends to devices the given pcie-root-port
+-func (q *qemuArchBase) appendPCIeRootPortDevice(devices []govmmQemu.Device, number uint32, memSize32bit uint64, memSize64bit uint64) []govmmQemu.Device {
+-	return genericAppendPCIeRootPort(devices, number, q.qemuMachine.Type, memSize32bit, memSize64bit)
++func (q *qemuArchBase) appendPCIeRootPortDevice(devices []govmmQemu.Device, number uint32) []govmmQemu.Device {
++	return genericAppendPCIeRootPort(devices, number, q.qemuMachine.Type)
+ }
+ 
+ // appendPCIeSwitchPortDevice appends a PCIe Switch with <number> ports
+-func (q *qemuArchBase) appendPCIeSwitchPortDevice(devices []govmmQemu.Device, number uint32, memSize32bit uint64, memSize64bit uint64) []govmmQemu.Device {
+-	return genericAppendPCIeSwitchPort(devices, number, q.qemuMachine.Type, memSize32bit, memSize64bit)
+-}
+-
+-// getBARsMaxAddressableMemory we need to know the BAR sizes to configure the
+-// PCIe Root Port or PCIe Downstream Port attaching a device with huge BARs.
+-func (q *qemuArchBase) getBARsMaxAddressableMemory() (uint64, uint64) {
+-
+-	pci := nvpci.New()
+-	devs, _ := pci.GetAllDevices()
+-
+-	// Since we do not know which devices are going to be hotplugged,
+-	// we're going to use the GPU with the biggest BARs to initialize the
+-	// root port, this should work for all other devices as well.
+-	// defaults are 2MB for both, if no suitable devices found
+-	max32bit := uint64(2 * 1024 * 1024)
+-	max64bit := uint64(2 * 1024 * 1024)
+-
+-	for _, dev := range devs {
+-		if !dev.IsGPU() {
+-			continue
+-		}
+-		memSize32bit, memSize64bit := dev.Resources.GetTotalAddressableMemory(true)
+-		if max32bit < memSize32bit {
+-			max32bit = memSize32bit
+-		}
+-		if max64bit < memSize64bit {
+-			max64bit = memSize64bit
+-		}
+-	}
+-	// The actual 32bit is most of the time a power of 2 but we need some
+-	// buffer so double that to leave space for other IO functions.
+-	// The 64bit size is not a power of 2 and hence is already rounded up
+-	// to the higher value.
+-	return max32bit * 2, max64bit
++func (q *qemuArchBase) appendPCIeSwitchPortDevice(devices []govmmQemu.Device, number uint32) []govmmQemu.Device {
++	return genericAppendPCIeSwitchPort(devices, number, q.qemuMachine.Type)
+ }
+ 
+ // appendIOMMU appends a virtual IOMMU device
