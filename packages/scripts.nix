@@ -740,14 +740,4 @@ lib.makeScope pkgs.newScope (scripts: {
       echo "$timestamp $digest"
     '';
   };
-
-  upgrade-gpu-operator = writeShellApplication {
-    name = "upgrade-gpu-operator";
-    runtimeInputs = with pkgs; [
-      busybox
-      kubectl
-      kubernetes-helm
-    ];
-    text = builtins.readFile ./upgrade-gpu-operator.sh;
-  };
 })
