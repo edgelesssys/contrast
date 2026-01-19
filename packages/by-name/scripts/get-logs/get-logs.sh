@@ -42,13 +42,9 @@ deploy_collectors() {
 kill_deploy_collectors() {
   local namespace_file="$1"
   local deploy_pid="$2"
-  local dir base
-  dir="$(dirname -- "$namespace_file")"
-  base="$(basename -- "$namespace_file")"
-  while :; do
-    inotifywait -q -e delete,moved_from --format '%f' "$dir" |
-      grep -qx "$base" && break
-  done
+
+  while test -f "$namespace_file"; do sleep 1; done
+
   echo "Namespace file $namespace_file deleted, terminating log collector deployment..." >&2
   kill -- -"$deploy_pid" 2>/dev/null || true
   wait "$deploy_pid" 2>/dev/null || true
