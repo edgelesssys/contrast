@@ -46,23 +46,6 @@ func GPUModelFromString(s string) (GPUModel, error) {
 	}
 }
 
-// TotalAddressableMemoryMB returns the total addressable memory in megabytes for the given GPU model.
-// It replicates the semantics of [1] for all supported GPU models.
-// The BAR sizes used for calculating this can be found via `lspci -v`.
-// The "memory at" outputs then need to be summed up and rounded up to the next power of two.
-//
-// [1]: https://github.com/NVIDIA/go-nvlib/blob/9a6788d93d8ccf1d8f026604f0b8b13d254f2500/pkg/nvpci/resources.go#L89
-func (g GPUModel) TotalAddressableMemoryMB() int {
-	switch g {
-	case GPUModelH100:
-		return 262144 // ceilpow2(128GB + 32MB + 16MB) = 256GB
-	case GPUModelB200:
-		return 524288 // ceilpow2(256GB + 64MB + 32MB) = 512GB
-	default:
-		return 0
-	}
-}
-
 // Rtmr tracks the state of a "Run-Time Measurement Register".
 type Rtmr struct {
 	value [48]byte
@@ -147,13 +130,6 @@ func CalcRtmr0(firmware []byte, gpu GPUModel) ([48]byte, error) {
 	// - 0x0000: disabled
 	// - 0x0001: enabled
 	rtmr.extendVariableValue([]byte{0x00, 0x00})
-	if gpu != GPUModelNone {
-		// QEMU FW CFG.opt/ovmf/X-PciMmio64Mb (GPU only, set by Kata)
-		// See:
-		// - https://github.com/kata-containers/kata-containers/blob/c7d0c270ee7dfaa6d978e6e07b99dabdaf2b9fda/src/runtime/virtcontainers/qemu.go#L817-L827
-		// - https://github.com/kata-containers/kata-containers/blob/c7d0c270ee7dfaa6d978e6e07b99dabdaf2b9fda/src/runtime/virtcontainers/qemu_arch_base.go#L877-L908
-		rtmr.extendVariableValue([]byte(fmt.Sprintf("%d", gpu.TotalAddressableMemoryMB())))
-	}
 	// QEMU FW CFG.BootOrder
 	rtmr.extendVariableValue([]byte("/rom@genroms/linuxboot_dma.bin\x00"))
 
