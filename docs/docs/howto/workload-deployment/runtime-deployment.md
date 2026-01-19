@@ -53,3 +53,10 @@ Notice that Contrast can't modify these templates, but will write the templated 
 Any modifications made to the template afterward won't take effect.
 
 :::
+
+## Multi-runtime configurations
+
+Depending on the configuration of your cluster and the workloads to deploy, it can be desirable to use different runtime classes for pods some pods.
+For example, in a cluster consisting of both SEV-SNP and TDX machines, you might want to distribute the workload over all nodes.
+
+Contrast supports these multi-runtime class configurations. For details, please see [the multi-runtime class How To](../multi-runtime-class.md).
