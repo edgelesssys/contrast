@@ -36,6 +36,10 @@ while [ $# -gt 0 ]; do
     --config-file=*)
 	  printf "%%s" "${1#--config-file=}" >extra_path
 	;;
+    --yaml-file=*)
+	  YAML_PATH=${1#--yaml-file=}
+	  cat "$YAML_PATH" > tmp.yaml
+	;;
     --runtime-class-names*|--layers-cache-file-path*|--yaml-file*|--base64-out*)
 	;;
 	*)
@@ -45,8 +49,6 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-
-cat >stdin.yaml
 
 echo -e "HOME=${HOME}\nXDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}\nDOCKER_CONFIG=${DOCKER_CONFIG}\nREGISTRY_AUTH_FILE=${REGISTRY_AUTH_FILE}" >env_path
 `
@@ -95,7 +97,7 @@ func TestRunner(t *testing.T) {
 	require.NoError(err)
 	assert.Equal(expectedExtraPath, string(extraPath))
 
-	yamlString, err := os.ReadFile(filepath.Join(d, "stdin.yaml"))
+	yamlString, err := os.ReadFile(filepath.Join(d, "tmp.yaml"))
 	require.NoError(err)
 	assert.YAMLEq(podYAML, string(yamlString))
 
