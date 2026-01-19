@@ -180,6 +180,12 @@ buildGoModule (finalAttrs: {
       # [2]: https://github.com/canonical/tdx/issues/421
       # [3]: https://github.com/kata-containers/kata-containers/pull/12537
       ./0025-virtcontainers-work-around-a-kernel-bug-for-certain-.patch
+
+      # Kata mis-calculates PCI root port sizes for UVMs cold-plugging multiple GPUs.
+      # This patch fixes it by correctly summing up all BAR sizes.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12357
+      # Upstream Issue: https://github.com/kata-containers/kata-containers/issues/12289
+      ./0026-virtcontainers-calculate-exact-PCI-root-port-size.patch
     ];
   };
 

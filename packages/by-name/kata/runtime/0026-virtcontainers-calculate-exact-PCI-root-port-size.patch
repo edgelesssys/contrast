@@ -1,0 +1,218 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Mon, 19 Jan 2026 09:13:12 +0100
+Subject: [PATCH] virtcontainers: calculate exact PCI root port size
+
+This changes the PCI root port size calculation to support cold-plugging multiple GPUs. Instead of using the maximum BAR size of any of the attached GPUs, the attached GPUs' sizes are now summed up and returned. To my understanding, the previous approach didn't support hot-plugging multiple GPUs either. This patch does not address this issue. A simple way would certainly be to just unconditionally sum all GPU BAR sizes on the node for every UVM, but I'm unsure about what other implications this might have.
+---
+ src/runtime/virtcontainers/qemu.go           | 65 ++++++++++-------
+ src/runtime/virtcontainers/qemu_arch_base.go | 74 +++++++++++++++-----
+ 2 files changed, 95 insertions(+), 44 deletions(-)
+
+diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
+index 1b44e32f23c31b04135a758a28675afc063d030f..7cb521604a8da00302e9b8eb19b7a3b489af6178 100644
+--- a/src/runtime/virtcontainers/qemu.go
++++ b/src/runtime/virtcontainers/qemu.go
+@@ -820,21 +820,6 @@ func (q *qemu) createPCIeTopology(qemuConfig *govmmQemu.Config, hypervisorConfig
+ 	// into a PCIe Root Port or PCIe Switch.
+ 	// For more details, please see https://github.com/qemu/qemu/blob/master/docs/pcie.txt
+ 
+-	// Deduce the right values for mem-reserve and pref-64-reserve memory regions
+-	memSize32bit, memSize64bit := q.arch.getBARsMaxAddressableMemory()
+-
+-	// The default OVMF MMIO aperture is too small for some PCIe devices
+-	// with huge BARs so we need to increase it.
+-	// memSize64bit is in bytes, convert to MB, OVMF expects MB as a string
+-	if strings.Contains(strings.ToLower(hypervisorConfig.FirmwarePath), "ovmf") {
+-		pciMmio64Mb := fmt.Sprintf("%d", (memSize64bit / 1024 / 1024))
+-		fwCfg := govmmQemu.FwCfg{
+-			Name: "opt/ovmf/X-PciMmio64Mb",
+-			Str:  pciMmio64Mb,
+-		}
+-		qemuConfig.FwCfg = append(qemuConfig.FwCfg, fwCfg)
+-	}
+-
+ 	// Get the number of hot(cold)-pluggable ports needed from the provided
+ 	// VFIO devices
+ 	var numOfPluggablePorts uint32 = 0
+@@ -894,33 +879,61 @@ func (q *qemu) createPCIeTopology(qemuConfig *govmmQemu.Config, hypervisorConfig
+ 	numPCIeRootPorts := hypervisorConfig.PCIeRootPort
+ 	numPCIeSwitchPorts := hypervisorConfig.PCIeSwitchPort
+ 
++	// Determine the final number of ports before computing BAR sizes,
++	// so the OVMF aperture can be sized to cover all ports.
++	var finalNumPorts uint32
++	if vfioOnRootPort {
++		finalNumPorts = numOfPluggablePorts
++		if finalNumPorts < numPCIeRootPorts {
++			finalNumPorts = numPCIeRootPorts
++		}
++	} else if vfioOnSwitchPort {
++		finalNumPorts = numOfPluggablePorts
++		if finalNumPorts < numPCIeSwitchPorts {
++			finalNumPorts = numPCIeSwitchPorts
++		}
++	} else if machineType == QemuVirt {
++		finalNumPorts = numOfPluggablePorts
++	}
++
++	// Deduce the right values for mem-reserve and pref-64-reserve memory regions.
++	// perPort sizes are used for each root port's reservation; total sizes are
++	// used for the OVMF MMIO aperture which must cover all ports.
++	perPort32bit, perPort64bit, _, totalMmio64bit := q.arch.getBARsMaxAddressableMemory(hypervisorConfig.VFIODevices, finalNumPorts)
++
++	// The default OVMF MMIO aperture is too small for some PCIe devices
++	// with huge BARs so we need to increase it.
++	// totalMmio64bit is in bytes, convert to MB, OVMF expects MB as a string
++	if strings.Contains(strings.ToLower(hypervisorConfig.FirmwarePath), "ovmf") {
++		pciMmio64Mb := fmt.Sprintf("%d", (totalMmio64bit / 1024 / 1024))
++		fwCfg := govmmQemu.FwCfg{
++			Name: "opt/ovmf/X-PciMmio64Mb",
++			Str:  pciMmio64Mb,
++		}
++		qemuConfig.FwCfg = append(qemuConfig.FwCfg, fwCfg)
++	}
++
+ 	// If number of PCIe root ports > 16 then bail out otherwise we may
+ 	// use up all slots or IO memory on the root bus and vfio-XXX-pci devices
+ 	// cannot be added which are crucial for Kata max slots on root bus is 32
+ 	// max slots on the complete pci(e) topology is 256 in QEMU
+ 	if vfioOnRootPort {
+-		if numOfPluggablePorts < numPCIeRootPorts {
+-			numOfPluggablePorts = numPCIeRootPorts
+-		}
+-		if numOfPluggablePorts > maxPCIeRootPort {
++		if finalNumPorts > maxPCIeRootPort {
+ 			return fmt.Errorf("Number of PCIe Root Ports exceeed allowed max of %d", maxPCIeRootPort)
+ 		}
+-		qemuConfig.Devices = q.arch.appendPCIeRootPortDevice(qemuConfig.Devices, numOfPluggablePorts, memSize32bit, memSize64bit)
++		qemuConfig.Devices = q.arch.appendPCIeRootPortDevice(qemuConfig.Devices, finalNumPorts, perPort32bit, perPort64bit)
+ 		return nil
+ 	}
+ 	if vfioOnSwitchPort {
+-		if numOfPluggablePorts < numPCIeSwitchPorts {
+-			numOfPluggablePorts = numPCIeSwitchPorts
+-		}
+-		if numOfPluggablePorts > maxPCIeSwitchPort {
++		if finalNumPorts > maxPCIeSwitchPort {
+ 			return fmt.Errorf("Number of PCIe Switch Ports exceeed allowed max of %d", maxPCIeSwitchPort)
+ 		}
+-		qemuConfig.Devices = q.arch.appendPCIeSwitchPortDevice(qemuConfig.Devices, numOfPluggablePorts, memSize32bit, memSize64bit)
++		qemuConfig.Devices = q.arch.appendPCIeSwitchPortDevice(qemuConfig.Devices, finalNumPorts, perPort32bit, perPort64bit)
+ 		return nil
+ 	}
+ 	// If both Root Port and Switch Port are not enabled, check if QemuVirt need add pcie root port.
+ 	if machineType == QemuVirt {
+-		qemuConfig.Devices = q.arch.appendPCIeRootPortDevice(qemuConfig.Devices, numOfPluggablePorts, memSize32bit, memSize64bit)
++		qemuConfig.Devices = q.arch.appendPCIeRootPortDevice(qemuConfig.Devices, numOfPluggablePorts, perPort32bit, perPort64bit)
+ 	}
+ 	return nil
+ }
+diff --git a/src/runtime/virtcontainers/qemu_arch_base.go b/src/runtime/virtcontainers/qemu_arch_base.go
+index f8b0d4ef973c2edd96d539e80964e5c3f0d5d4ab..4eb5bbe500cb39bcd1960efa78247aa88ab7ae7e 100644
+--- a/src/runtime/virtcontainers/qemu_arch_base.go
++++ b/src/runtime/virtcontainers/qemu_arch_base.go
+@@ -170,9 +170,12 @@ type qemuArch interface {
+ 	// be used with the -bios option, ommit -bios option if the path is empty.
+ 	appendProtectionDevice(devices []govmmQemu.Device, firmware, firmwareVolume string, initdataDigest []byte) ([]govmmQemu.Device, string, error)
+ 
+-	// scans the PCIe space and returns the biggest BAR sizes for 32-bit
+-	// and 64-bit addressable memory
+-	getBARsMaxAddressableMemory() (uint64, uint64)
++	// scans the PCIe space and returns BAR sizes for 32-bit and 64-bit
++	// addressable memory for the given VFIO devices.
++	// Returns (perPort32, perPort64, total32, total64):
++	//   perPort32/perPort64: size to reserve on each individual root port
++	//   total32/total64: total MMIO needed across all ports (for OVMF aperture)
++	getBARsMaxAddressableMemory(vfioDevices []config.DeviceInfo, numPorts uint32) (uint64, uint64, uint64, uint64)
+ 
+ 	// Query QMP to find a device's PCI path given its QOM path or ID
+ 	qomGetPciPath(qemuID string, qmpCh *qmpChannel) (types.PciPath, error)
+@@ -874,25 +877,41 @@ func (q *qemuArchBase) appendPCIeSwitchPortDevice(devices []govmmQemu.Device, nu
+ 	return genericAppendPCIeSwitchPort(devices, number, q.qemuMachine.Type, memSize32bit, memSize64bit)
+ }
+ 
+-// getBARsMaxAddressableMemory we need to know the BAR sizes to configure the
+-// PCIe Root Port or PCIe Downstream Port attaching a device with huge BARs.
+-func (q *qemuArchBase) getBARsMaxAddressableMemory() (uint64, uint64) {
+-
++// getBARsMaxAddressableMemory calculates BAR sizes for the given VFIO devices
++// to configure PCIe Root Ports / Downstream Ports and the OVMF MMIO aperture.
++// Returns (perPort32, perPort64, total32, total64):
++//   - perPort32/perPort64: size to reserve on each individual root port
++//     (max single-device BAR size, for hot-plug headroom)
++//   - total32/total64: total MMIO needed across all ports (for the OVMF aperture),
++//     computed as numPorts x perPortSize
++func (q *qemuArchBase) getBARsMaxAddressableMemory(vfioDevices []config.DeviceInfo, numPorts uint32) (uint64, uint64, uint64, uint64) {
+ 	pci := nvpci.New()
+ 	devs, _ := pci.GetAllDevices()
+ 
+-	// Since we do not know which devices are going to be hotplugged,
+-	// we're going to use the GPU with the biggest BARs to initialize the
+-	// root port, this should work for all other devices as well.
+-	// defaults are 2MB for both, if no suitable devices found
+-	max32bit := uint64(2 * 1024 * 1024)
+-	max64bit := uint64(2 * 1024 * 1024)
++	attachedPaths := make(map[string]bool)
++	for _, dev := range vfioDevices {
++		if dev.HostPath != "" {
++			attachedPaths[dev.HostPath] = true
++		}
++	}
++
++	coldPlug32bit := uint64(0)
++	coldPlug64bit := uint64(0)
++	max32bit := uint64(0)
++	max64bit := uint64(0)
+ 
+ 	for _, dev := range devs {
+ 		if !dev.IsGPU() {
+ 			continue
+ 		}
+ 		memSize32bit, memSize64bit := dev.Resources.GetTotalAddressableMemory(true)
++
++		// Cold-plugged devices always contribute to the total size.
++		if attachedPaths[dev.Path] {
++			coldPlug32bit += memSize32bit
++			coldPlug64bit += memSize64bit
++		}
++
+ 		if max32bit < memSize32bit {
+ 			max32bit = memSize32bit
+ 		}
+@@ -900,11 +919,30 @@ func (q *qemuArchBase) getBARsMaxAddressableMemory() (uint64, uint64) {
+ 			max64bit = memSize64bit
+ 		}
+ 	}
+-	// The actual 32bit is most of the time a power of 2 but we need some
+-	// buffer so double that to leave space for other IO functions.
+-	// The 64bit size is not a power of 2 and hence is already rounded up
+-	// to the higher value.
+-	return max32bit * 2, max64bit
++
++	// Since we do not know which device is going to be hotplugged,
++	// we're going to use the GPU with the biggest BAR size.
++	// Note that this does not support hot-plugging multiple GPUs.
++	// Additionally, we add a 2 MB base for other IO functions and
++	// double the 32-bit value as it is typically a power of 2 and
++	// needs buffer.
++
++	perPort32bit := (max32bit + 2*1024*1024) * 2
++	perPort64bit := max64bit + 2*1024*1024
++
++	total32bit := (coldPlug32bit + max32bit + 2*1024*1024) * 2
++	total64bit := coldPlug64bit + max64bit + 2*1024*1024
++
++	minTotal32bit := uint64(numPorts) * perPort32bit
++	minTotal64bit := uint64(numPorts) * perPort64bit
++	if total32bit < minTotal32bit {
++		total32bit = minTotal32bit
++	}
++	if total64bit < minTotal64bit {
++		total64bit = minTotal64bit
++	}
++
++	return perPort32bit, perPort64bit, total32bit, total64bit
+ }
+ 
+ // appendIOMMU appends a virtual IOMMU device
