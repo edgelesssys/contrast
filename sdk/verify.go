@@ -55,13 +55,13 @@ func NewWithSlog(log *slog.Logger) Client {
 // GetCoordinatorState calls GetManifests on the coordinator's userapi via aTLS.
 //
 // Deprecated: this function will be removed with Contrast 1.17, use GetAttestation/ValidateAttestation instead.
-func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint string) (httpapi.CoordinatorState, error) {
+func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint string) (CoordinatorState, error) {
 	var m manifest.Manifest
 	if err := json.Unmarshal(manifestBytes, &m); err != nil {
-		return httpapi.CoordinatorState{}, fmt.Errorf("unmarshalling manifest: %w", err)
+		return CoordinatorState{}, fmt.Errorf("unmarshalling manifest: %w", err)
 	}
 	if err := m.Validate(); err != nil {
-		return httpapi.CoordinatorState{}, fmt.Errorf("validating manifest: %w", err)
+		return CoordinatorState{}, fmt.Errorf("validating manifest: %w", err)
 	}
 
 	kdsCache := fsstore.New(kdsDir, c.log.WithGroup("kds-cache"))
@@ -72,7 +72,7 @@ func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifest
 	}
 	validators, err := validatorsFromManifest(kdsGetter, &m, c.log)
 	if err != nil {
-		return httpapi.CoordinatorState{}, fmt.Errorf("getting validators: %w", err)
+		return CoordinatorState{}, fmt.Errorf("getting validators: %w", err)
 	}
 	dialer := dialer.New(atls.NoIssuer, validators, atls.NoMetrics, nil, c.log)
 
@@ -80,7 +80,7 @@ func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifest
 
 	conn, err := dialer.Dial(ctx, endpoint)
 	if err != nil {
-		return httpapi.CoordinatorState{}, fmt.Errorf("dialing coordinator: %w", err)
+		return CoordinatorState{}, fmt.Errorf("dialing coordinator: %w", err)
 	}
 	defer conn.Close()
 
@@ -89,10 +89,10 @@ func (c Client) GetCoordinatorState(ctx context.Context, kdsDir string, manifest
 	client := userapi.NewUserAPIClient(conn)
 	resp, err := client.GetManifests(ctx, &userapi.GetManifestsRequest{})
 	if err != nil {
-		return httpapi.CoordinatorState{}, fmt.Errorf("getting manifests: %w", err)
+		return CoordinatorState{}, fmt.Errorf("getting manifests: %w", err)
 	}
 
-	return httpapi.CoordinatorState{
+	return CoordinatorState{
 		Manifests: resp.Manifests,
 		Policies:  resp.Policies,
 		RootCA:    resp.RootCA,
