@@ -10,10 +10,13 @@ on:
       TEAMS_CI_WEBHOOK:
         required: true
   workflow_dispatch:
-  pull_request:
+  push:
+    branches:
+      - main
     paths:
       - ".github/workflows/bm_maintenance.yml"
       - "tools/bm-maintenance/**"
+      - "packages/upgrade-gpu-operator.sh"
 
 env:
   container_registry: ghcr.io/edgelesssys
