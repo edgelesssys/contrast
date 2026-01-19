@@ -1,0 +1,126 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Mon, 19 Jan 2026 08:51:46 +0100
+Subject: [PATCH] genpolicy: use all nvidia GPU annotations
+
+Previously, genpolicy hard-coded the `nvidia.com/pgpu` key for getting the count of nvidia GPUs for a pod. This is incompatible with clusters with GPU-operator deployments that do not use `P_GPU_ALIAS`. This is the case for 1) clusters that were deployed with previous Contrast versions, since these didn't use `P_GPU_ALIAS` and 2) clusters with nodes with heterogenous GPUs (e.g. RTX 5090 and H100 on the same node), these would become opaque in an allocatable pool of `nvidia.com/pgpu: 2` on the node. Since 2) is believed to rarely occur in practice, 1) is the more pressing problem. Clusters that deployed GPUs with a previous Contrast version didn't use the `P_GPU_ALIAS`. Now, however, they need to use it. When making this change in an upgrade, a green-blue deployment with 0-downtime rollover is infeasible, as the GPU-operator would need to be redeployed with the new `P_GPU_ALIAS` variable, breaking old GPU pods. This patch makes it so that both annotation types are supported, erasing the strict requirement on `P_GPU_ALIAS`.
+---
+ src/tools/genpolicy/src/pod.rs    | 15 +++++---
+ src/tools/genpolicy/src/policy.rs | 63 +++++++++++++++----------------
+ 2 files changed, 41 insertions(+), 37 deletions(-)
+
+diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
+index 3d1e7b5bd95d18a84d4a336ddceec0d21ff8f0b3..6e52e6cd92a466d400c7beb1596741ecc731b8a4 100644
+--- a/src/tools/genpolicy/src/pod.rs
++++ b/src/tools/genpolicy/src/pod.rs
+@@ -1060,14 +1060,19 @@ impl Container {
+         }
+     }
+ 
+-    // Get the number of NVIDIA passthrough GPUs requested in resource limits.
+-    // Returns the count from "nvidia.com/pgpu" if present.
+-    pub fn get_nvidia_pgpu_count(&self) -> Option<usize> {
++    // Get the total number of NVIDIA GPUs requested in resource limits.
++    // Sums all resources with keys starting with `nvidia.com/`.
++    pub fn get_nvidia_gpu_count(&self) -> usize {
+         self.resources
+             .as_ref()
+             .and_then(|r| r.limits.as_ref())
+-            .and_then(|l| l.get("nvidia.com/pgpu"))
+-            .and_then(|v| v.parse::<usize>().ok())
++            .map(|l| {
++                l.iter()
++                    .filter(|(k, _)| k.starts_with("nvidia.com/"))
++                    .filter_map(|(_, v)| v.parse::<usize>().ok())
++                    .sum()
++            })
++            .unwrap_or(0)
+     }
+ 
+     pub fn uses_nvidia_visible_devices(&self) -> bool {
+diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
+index d5e5c18bf0d72c97c1f6275b2603737f44e46967..93e7274047910a96394550e3598a7128ed59516c 100644
+--- a/src/tools/genpolicy/src/policy.rs
++++ b/src/tools/genpolicy/src/policy.rs
+@@ -729,50 +729,49 @@ impl AgentPolicy {
+ 
+         // Generate expected device entries and annotation key-value pairs for VFIO devices
+         let mut runtime_anno_patterns = BTreeMap::new();
+-        if let Some(nvidia_pgpu_count) = yaml_container.get_nvidia_pgpu_count() {
+-            if nvidia_pgpu_count > 0 {
+-                for _ in 0..nvidia_pgpu_count {
+-                    let mut device = agent::Device::new();
+-                    // The actual device number <device_path><device_number> is assigned at
+-                    // runtime by the device plugin. Here at policy generation time, we set
+-                    // the device path prefix <device_path>. When enforcing the policy, we
+-                    // we validate against this prefix and compare the observed device
+-                    // number with the number from the provided CDI annotations.
+-                    device.set_container_path(
+-                        self.config
+-                            .settings
+-                            .device_annotations
+-                            .vfio
+-                            .device_path
+-                            .clone(),
+-                    );
+-                    device.set_type(
+-                        self.config
+-                            .settings
+-                            .device_annotations
+-                            .vfio
+-                            .nvidia_gpu_gk_device_type
+-                            .clone(),
+-                    );
+-                    device.set_vm_path("".to_string());
+-                    devices.push(device);
+-                }
+-
+-                runtime_anno_patterns.insert(
++        let nvidia_gpu_count = yaml_container.get_nvidia_gpu_count();
++        if nvidia_gpu_count > 0 {
++            for _ in 0..nvidia_gpu_count {
++                let mut device = agent::Device::new();
++                // The actual device number <device_path><device_number> is assigned at
++                // runtime by the device plugin. Here at policy generation time, we set
++                // the device path prefix <device_path>. When enforcing the policy, we
++                // we validate against this prefix and compare the observed device
++                // number with the number from the provided CDI annotations.
++                device.set_container_path(
+                     self.config
+                         .settings
+                         .device_annotations
+                         .vfio
+-                        .key_regex
++                        .device_path
+                         .clone(),
++                );
++                device.set_type(
+                     self.config
+                         .settings
+                         .device_annotations
+                         .vfio
+-                        .nvidia_gpu_value_regex
++                        .nvidia_gpu_gk_device_type
+                         .clone(),
+                 );
++                device.set_vm_path("".to_string());
++                devices.push(device);
+             }
++
++            runtime_anno_patterns.insert(
++                self.config
++                    .settings
++                    .device_annotations
++                    .vfio
++                    .key_regex
++                    .clone(),
++                self.config
++                    .settings
++                    .device_annotations
++                    .vfio
++                    .nvidia_gpu_value_regex
++                    .clone(),
++            );
+         }
+ 
+         // If the container is configured with NVIDIA_VISIBLE_DEVICES=all, it will also get the annotation.

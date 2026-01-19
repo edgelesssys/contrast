@@ -151,6 +151,14 @@ buildGoModule (finalAttrs: {
       # This patch allows genpolicy to retry these failed pulls multiple times.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12300.
       ./0022-genpolicy-retry-failed-image-pulls.patch
+
+      # Kata hard-codes the `nvidia.com/pgpu` device identifier for parsing how many GPUs should be
+      # attached to a note. This doesn't work with device-specific aliases, which are used in older
+      # GPU-operator deployments as well as clusters with nodes with multiple heterogenous GPUs.
+      # To be compatible with such scenarios, we implement the most simple patch and just match on
+      # all `nvidia.com/` devices.
+      # Upstream Issue: https://github.com/kata-containers/kata-containers/issues/12322
+      ./0023-genpolicy-use-all-nvidia-GPU-annotations.patch
     ];
   };
 
