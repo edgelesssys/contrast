@@ -5,11 +5,20 @@ package cmd
 
 import (
 	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
+	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation/certcache"
+	"github.com/edgelesssys/contrast/internal/fsstore"
+	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	"github.com/edgelesssys/contrast/internal/initdata"
+	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/spf13/cobra"
 )
@@ -62,9 +71,7 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	sdkClient := sdk.NewWithSlog(log)
-	//nolint:staticcheck // We'll move this function here after removing it from the SDK.
-	resp, err := sdkClient.GetCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator)
+	resp, err := getCoordinatorState(cmd.Context(), kdsDir, manifestBytes, flags.coordinator, log)
 	if err != nil {
 		return fmt.Errorf("getting manifests: %w", err)
 	}
@@ -155,4 +162,46 @@ func writeFilelist(dir string, filelist map[string][]byte) error {
 		}
 	}
 	return nil
+}
+
+// getCoordinatorState calls GetManifests on the coordinator's userapi via aTLS.
+func getCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byte, endpoint string, log *slog.Logger) (sdk.CoordinatorState, error) {
+	var m manifest.Manifest
+	if err := json.Unmarshal(manifestBytes, &m); err != nil {
+		return sdk.CoordinatorState{}, fmt.Errorf("unmarshalling manifest: %w", err)
+	}
+	if err := m.Validate(); err != nil {
+		return sdk.CoordinatorState{}, fmt.Errorf("validating manifest: %w", err)
+	}
+
+	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
+	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter"))
+	validators, err := sdk.ValidatorsFromManifest(kdsGetter, &m, log)
+	if err != nil {
+		return sdk.CoordinatorState{}, fmt.Errorf("getting validators: %w", err)
+	}
+	dialer := dialer.New(atls.NoIssuer, validators, atls.NoMetrics, nil, log)
+
+	log.Debug("Dialing coordinator", "endpoint", endpoint)
+
+	conn, err := dialer.Dial(ctx, endpoint)
+	if err != nil {
+		return sdk.CoordinatorState{}, fmt.Errorf("dialing coordinator: %w", err)
+	}
+	defer conn.Close()
+
+	log.Debug("Getting manifest")
+
+	client := userapi.NewUserAPIClient(conn)
+	resp, err := client.GetManifests(ctx, &userapi.GetManifestsRequest{})
+	if err != nil {
+		return sdk.CoordinatorState{}, fmt.Errorf("getting manifests: %w", err)
+	}
+
+	return sdk.CoordinatorState{
+		Manifests: resp.Manifests,
+		Policies:  resp.Policies,
+		RootCA:    resp.RootCA,
+		MeshCA:    resp.MeshCA,
+	}, nil
 }
