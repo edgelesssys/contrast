@@ -170,8 +170,13 @@ const sidebars = {
         },
         {
           type: "doc",
+          label: "Multi-runtime class",
+          id: "howto/multi-runtime-class",
+        },
+        {
+          type: "doc",
           label: "Immutable deployments",
-          id: "howto/immutable-deployments"
+          id: "howto/immutable-deployments",
         },
         {
           type: "doc",
@@ -182,7 +187,7 @@ const sidebars = {
           type: "doc",
           label: "Advanced debugging",
           id: "howto/debugshell",
-        }
+        },
       ],
     },
     {

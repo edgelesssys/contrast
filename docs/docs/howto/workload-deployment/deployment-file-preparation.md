@@ -69,6 +69,13 @@ This is a placeholder name that will be replaced by a versioned `runtimeClassNam
 
 <!-- TODO(katexochen): Describe how runtimeClass is handled after first generate -->
 
+#### Multiple RuntimeClasses
+
+Depending on the configuration of your cluster and the workloads to deploy, it can be desirable to use different runtime classes for pods in the same deployment.
+For example, in a cluster consisting of both SEV-SNP and TDX machines, you might want to distribute the workload over all nodes.
+
+Contrast supports these multi-runtime class configurations. For details, please see [the multi-runtime class How To](../multi-runtime-class.md).
+
 ### Namespaces
 
 Contrast workloads can run in any namespace and a Contrast deployment can be spread across multiple namespaces.
