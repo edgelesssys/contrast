@@ -17,6 +17,7 @@
   boot.kernelParams = [
     "systemd.verity=yes"
     "selinux=0"
+    "pci=realloc,nocrs,assign-busses"
   ];
   boot.supportedFilesystems = [
     "erofs"

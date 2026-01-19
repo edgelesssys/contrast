@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Mon, 19 Jan 2026 10:03:46 +0100
+Subject: [PATCH] QemuFwCfgCacheInit: Skip measuring PCI root port size
+
+PCI root port size is not security-critical and changes for Kata-created UVMs depending on how many GPUs are attached. Instead of measuring this unstable value, just skip measuring it altogether.
+---
+ OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c b/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c
+index d3220c8f0392439fe26a67e730cf2c4a9b9977e0..598596181b99fad9e6f4b83cb4d281d02ac8cc4a 100644
+--- a/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c
++++ b/OvmfPkg/Library/QemuFwCfgLib/QemuFwCfgCacheInit.c
+@@ -89,7 +89,7 @@ STATIC CONST CACHE_FW_CFG_STRCUT  mCacheFwCfgList[] = {
+   { BOOT_MENU_FWCFG_NAME,           TRUE,  QemuFwCfgItemBootMenu,         BOOT_MENU_FWCFG_SIZE               },
+   { BOOT_MENU_WAIT_TIME_FWCFG_FILE, TRUE,  INVALID_FW_CFG_ITEM,           BOOT_MENU_WAIT_TIME_FWCFG_SIZE     },
+   { RESERVED_MEMORY_END_FWCFG_FILE, TRUE,  INVALID_FW_CFG_ITEM,           RESERVED_MEMORY_END_FWCFG_SIZE     },
+-  { PCI_MMIO64_FWCFG_FILE,          TRUE,  INVALID_FW_CFG_ITEM,           0                                  },
++  { PCI_MMIO64_FWCFG_FILE,          FALSE, INVALID_FW_CFG_ITEM,           0                                  },
+   { BOOTORDER_FWCFG_FILE,           TRUE,  INVALID_FW_CFG_ITEM,           0                                  },
+ };
+ 

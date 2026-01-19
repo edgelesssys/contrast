@@ -180,6 +180,11 @@ buildGoModule (finalAttrs: {
       # [2]: https://github.com/canonical/tdx/issues/421
       # [3]: https://github.com/kata-containers/kata-containers/pull/12537
       ./0025-virtcontainers-work-around-a-kernel-bug-for-certain-.patch
+
+      # Kata mis-calculates PCI root port sizes for UVMs cold-plugging multiple GPUs.
+      # This patch fixes it by removing the calculation altogether and leaving it to qemu and OVMF.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12507
+      ./0026-qemu-Remove-PCIe-root-port-BAR-reserve-sizing.patch
     ];
   };
 
