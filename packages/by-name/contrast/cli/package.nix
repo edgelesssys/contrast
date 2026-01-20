@@ -10,16 +10,11 @@
   reference-values,
 }:
 
-let
-  packageOutputs = [
-  ];
-in
-
 buildGoModule (finalAttrs: {
   pname = "contrast-cli";
   version = builtins.readFile ../../../../version.txt;
 
-  outputs = packageOutputs ++ [ "out" ];
+  outputs = [ "out" ];
 
   # The source of the main module of this repo. We filter for Go files so that
   # changes in the other parts of this repo don't trigger a rebuild.
@@ -40,15 +35,11 @@ buildGoModule (finalAttrs: {
         (path.append root "internal/manifest/Milan.pem")
         (path.append root "internal/manifest/Genoa.pem")
         (path.append root "internal/manifest/Intel_SGX_Provisioning_Certification_RootCA.pem")
-        (fileset.difference (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
+        (fileset.intersection (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
           fileset.unions [
-            (path.append root "service-mesh")
-            (path.append root "tools")
-            (path.append root "imagepuller")
-            (path.append root "imagestore")
-            (path.append root "initdata-processor")
-            (path.append root "e2e")
-            (path.append root "nodeinstaller")
+            (path.append root "internal")
+            (path.append root "cli")
+            (path.append root "sdk")
           ]
         ))
       ];
@@ -57,7 +48,7 @@ buildGoModule (finalAttrs: {
   proxyVendor = true;
   vendorHash = "sha256-xU4M0DSB/Pca7MqYAp7A3dPr2BsEtp8uAyxtM7yiMbs=";
 
-  subPackages = packageOutputs ++ [ "cli" ];
+  subPackages = [ "cli" ];
 
   nativeBuildInputs = [ installShellFiles ];
 
@@ -88,16 +79,11 @@ buildGoModule (finalAttrs: {
 
   checkPhase = ''
     runHook preCheck
-    go test -tags=${lib.concatStringsSep "," finalAttrs.tags} -race ./...
+    go test -tags=${lib.concatStringsSep "," finalAttrs.tags} -race ./cli/...
     runHook postCheck
   '';
 
   postInstall = ''
-    for sub in ${builtins.concatStringsSep " " packageOutputs}; do
-      mkdir -p "''${!sub}/bin"
-      mv "$out/bin/$sub" "''${!sub}/bin/$sub"
-    done
-
     # rename the cli binary to contrast
     mv "$out/bin/cli" "$out/bin/contrast"
 
