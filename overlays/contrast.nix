@@ -6,7 +6,10 @@
 final: prev:
 
 let
-  baseContrastPkgs = import ../packages { pkgs = final; };
+  baseContrastPkgs = import ../packages {
+    pkgs = final;
+    inherit runtimePkgs;
+  };
 in
 
 if prev.stdenv.hostPlatform.system == "x86_64-linux" then
