@@ -233,37 +233,44 @@ lib.makeScope pkgs.newScope (scripts: {
     '';
   };
 
-  wait-for-port-listen = writeShellApplication {
-    name = "wait-for-port-listen";
-    runtimeInputs = with pkgs; [ iproute2 ];
-    text = ''
-      port=$1
+  wait-for-port-listen =
+    let
+      inherit (pkgs.stdenv.hostPlatform) isDarwin;
+      inherit (pkgs.stdenv.hostPlatform) isLinux;
+    in
+    writeShellApplication {
+      name = "wait-for-port-listen";
+      runtimeInputs = lib.optional isDarwin pkgs.lsof ++ lib.optional isLinux pkgs.iproute2;
+      text = ''
+          port=$1
+          tries=15 # 3 seconds
+          interval=0.2
 
-      function ss-listen-on-port() {
-        ss \
-          --tcp \
-          --numeric \
-          --listening \
-          --no-header \
-          --ipv4 \
-          src ":$port"
-      }
+          function listen-on-port() {
+            ${
+              if isDarwin then
+                ''
+                  lsof -i :"$port" -sTCP:LISTEN -t
+                ''
+              else
+                ''
+                  ss --tcp --numeric --listening --no-header --ipv4 src ":$port"
+                ''
+            }
+          }
 
-      tries=15 # 3 seconds
-      interval=0.2
+          while [[ "$tries" -gt 0 ]]; do
+            if [[ -n $(listen-on-port) ]]; then
+              exit 0
+            fi
+            sleep "$interval"
+            tries=$((tries - 1))
+          done
 
-      while [[ "$tries" -gt 0 ]]; do
-        if [[ -n $(ss-listen-on-port) ]]; then
-          exit 0
-        fi
-        sleep "$interval"
-        tries=$((tries - 1))
-      done
-
-      echo "Port $port did not reach state LISTENING" >&2
-      exit 1
-    '';
-  };
+        echo "Port $port did not reach state LISTENING" >&2
+        exit 1
+      '';
+    };
 
   update-contrast-releases = writeShellApplication {
     name = "update-contrast-releases";
