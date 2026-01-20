@@ -1,7 +1,10 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
-{ pkgs }:
+{
+  pkgs,
+  runtimePkgs,
+}:
 
 let
   inherit (pkgs.lib) makeScope;
@@ -25,7 +28,8 @@ makeScope pkgs.newScope (
       }
     );
     scripts = (fromDir.scripts or { }) // pkgs.callPackages ./scripts.nix { };
-    containers = (fromDir.containers or { }) // pkgs.callPackages ./containers.nix { };
+    containers =
+      (fromDir.containers or { }) // pkgs.callPackages ./containers.nix { inherit runtimePkgs; };
     contrast-releases = pkgs.callPackages ./contrast-releases.nix { };
   }
 )
