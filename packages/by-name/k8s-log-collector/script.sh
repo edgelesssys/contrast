@@ -13,7 +13,7 @@ find /logs -type f -name '*.log' -path "*$POD_NAMESPACE*" -exec sh -c '
 ' sh {} \;
 
 inotifywait -m -r -e create -e moved_to --format '%w%f' /logs |
-  grep "$POD_NAMESPACE" |
+  stdbuf -oL grep "$POD_NAMESPACE" |
   while IFS= read -r filepath; do
     [[ -f $filepath && $filepath == *.log ]] || continue
 
