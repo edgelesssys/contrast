@@ -24,7 +24,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: log-collector
-          image: "ghcr.io/edgelesssys/contrast/k8s-log-collector:0.1.0@sha256:cd8f94804bacf3f58ecb103a2f14bca00c42ddcad52add984c086cde826236f7"
+          image: "ghcr.io/edgelesssys/contrast/k8s-log-collector:0.1.0@sha256:1382e46a5dca826d8fbeb3fd6d11e012f485ba84f595060910735f296903afcf"
           volumeMounts:
             - mountPath: /logs
               name: log-volume
