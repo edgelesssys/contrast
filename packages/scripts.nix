@@ -778,7 +778,6 @@ lib.makeScope pkgs.newScope (scripts: {
     name = "mdsh-fmt";
     runtimeInputs = with pkgs; [
       mdsh
-      busybox
       jq
     ];
     text = ''
