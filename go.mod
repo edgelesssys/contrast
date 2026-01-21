@@ -5,7 +5,7 @@ go 1.25.0
 toolchain go1.25.1
 
 // Upstream is poorly maintained, use edgelesssys fork instead.
-replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260112092709-e6425e8bd411
+replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260120144929-ac8c4b4a23eb
 
 require (
 	filippo.io/keygen v0.0.0-20260108161619-eaec401c2f48
