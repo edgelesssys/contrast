@@ -247,6 +247,12 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 		if refVal.MemoryIntegrity {
 			pckOptions.SgxType = toPtr(pcs.SGXTypeScalableWithIntegrity)
 		}
+		if refVal.SMTDisabled {
+			pckOptions.SMTEnabled = toPtr(false)
+		}
+		if refVal.StaticPlatform {
+			pckOptions.DynamicPlatform = toPtr(false)
+		}
 
 		validateOptions := &tdxvalidate.Options{
 			HeaderOptions: tdxvalidate.HeaderOptions{
