@@ -102,6 +102,7 @@ kubelet
 Kustomization
 leaderboard
 libcryptsetup
+lima
 Logstash
 loopback
 Mbps

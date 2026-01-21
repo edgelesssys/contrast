@@ -49,6 +49,9 @@ If you are struggling with your git history during the review process, please as
 
 ### Development setup
 
+> [!NOTE]
+> If you are developing on macOS/Darwin, you have to first follow the **experimental** [developer documentation for macOS](./dev-docs/macos.md), and then proceed with the rest of the setup.
+
 1. [Install Nix](https://nixos.org/download/#multi-user-installation-recommended)
 
     Enable the experimental features `nix-command` and `flakes` in your Nix configuration.
