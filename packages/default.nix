@@ -27,7 +27,7 @@ makeScope pkgs.newScope (
         directory = ./by-name;
       }
     );
-    scripts = (fromDir.scripts or { }) // pkgs.callPackages ./scripts.nix { };
+    scripts = (fromDir.scripts or { }) // pkgs.callPackages ./scripts.nix { inherit runtimePkgs; };
     containers =
       (fromDir.containers or { }) // pkgs.callPackages ./containers.nix { inherit runtimePkgs; };
     contrast-releases = pkgs.callPackages ./contrast-releases.nix { };
