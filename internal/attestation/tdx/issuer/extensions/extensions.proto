@@ -1,0 +1,16 @@
+// Copyright 2026 Edgeless Systems GmbH
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+
+package edgelesssys.contrast.tdxextensions;
+
+option go_package = "github.com/edgelesssys/contrast/internal/attestation/tdx/issuer/extensions";
+
+message Trailer {
+    repeated Extension extensions = 65535;
+}
+
+message Extension {
+    bytes collateral = 1;
+}
