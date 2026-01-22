@@ -26,13 +26,15 @@
     gh workflow run release.yml --ref $(git rev-parse --abbrev-ref HEAD) -f kind=minor -f version="$REL_VER"
     ```
 
-6. Review the release notes, test the binary artifact.
+6. Review the release notes. If label/title/description changes are necessary, change them on the PR itself, then regenerate. Ensure the release is based on the latest minor, not patch release. Test the binary artifact.
 
-7. Review and merge the auto generated update PR for main.
+7. Send Privatemode a message to review the release artifacts and wait for their feedback.
 
-8. Publish the GitHub release.
+8. Review and merge the auto generated update PR for main.
 
-9. Check that the release publish action succeeds.
+9. Publish the GitHub release.
+
+10. Check that the release publish action succeeds.
 
 ## Patch
 
@@ -72,8 +74,13 @@
     gh workflow run release.yml --ref $(git rev-parse --abbrev-ref HEAD) -f kind=patch -f version="$REL_VER"
     ```
 
-6. Review the release notes, test the binary artifact.
+6. Review the release notes. If label/title/description changes are necessary, change them on the PR itself, then regenerate. Ensure the release is based on the latest patch release. Test the binary artifact.
 
-7. Publish the GitHub release.
+7. Send Privatemode a message to review the release artifacts and wait for their feedback.
 
-8. Check that the release publish action succeeds.
+8. Review and merge the auto generated update PR for main.
+
+9. Publish the GitHub release.
+
+10. Check that the release publish action succeeds.
+
