@@ -1,8 +1,15 @@
 package qgs
 
 import (
+	"crypto/x509"
 	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"slices"
+
+	"github.com/google/go-tdx-guest/verify"
 )
 
 type MessageType = uint32
@@ -171,4 +178,93 @@ func (r *GetCollateralResponse) UnmarshalBinary(data []byte) error {
 	}
 
 	return nil
+}
+
+func (r *GetCollateralResponse) ToTDXGuest() (*verify.Collateral, error) {
+	c := &verify.Collateral{}
+
+	pckCRLRoot, pckCRLIntermediate, err := parseCertificateChain(r.PCKCRLIssuerChain)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PCK CRL issuer chain: %w", err)
+	}
+	c.PckCrlIssuerRootCertificate = pckCRLRoot
+	c.PckCrlIssuerIntermediateCertificate = pckCRLIntermediate
+
+	pckCRL, err := parseCRL(r.PCKCRL)
+	if err != nil {
+		return nil, fmt.Errorf("parsing PCK CRL: %w", err)
+	}
+	c.PckCrl = pckCRL
+
+	tcbRoot, tcbIntermediate, err := parseCertificateChain(r.TCBInfoIssuerChain)
+	if err != nil {
+		return nil, fmt.Errorf("parsing TCBInfo issuer chain: %w", err)
+	}
+	c.TcbInfoIssuerRootCertificate = tcbRoot
+	c.TcbInfoIssuerIntermediateCertificate = tcbIntermediate
+
+	if err := json.Unmarshal(r.TCBInfo, &c.TdxTcbInfo); err != nil {
+		return nil, fmt.Errorf("parsing TCBInfo: %w", err)
+	}
+
+	// TODO(burgerdev): TCBInfoBody is missing, see go-tdx-guest verify.go
+
+	qeRoot, qeIntermediate, err := parseCertificateChain(r.QEIdentityIssuerChain)
+	if err != nil {
+		return nil, fmt.Errorf("parsing QEIdentity issuer chain: %w", err)
+	}
+	c.QeIdentityIssuerRootCertificate = qeRoot
+	c.QeIdentityIssuerIntermediateCertificate = qeIntermediate
+
+	// TODO(burgerdev): QEIdentity and Body are missing, see go-tdx-guest verify.go
+
+	rootCRL, err := parseCRL(r.RootCACRL)
+	if err != nil {
+		return nil, fmt.Errorf("parsing root CA CRL: %w", err)
+	}
+	c.RootCaCrl = rootCRL
+
+	return c, nil
+}
+
+func parseCertificateChain(pemChain []byte) (root, intermediate *x509.Certificate, retErr error) {
+	certs := []*x509.Certificate{}
+
+	var block *pem.Block
+	for len(pemChain) > 0 {
+		block, pemChain = pem.Decode(pemChain)
+		if block == nil {
+			break
+		}
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, nil, fmt.Errorf("parsing certificate %d: %w", len(certs), err)
+		}
+		certs = append(certs, cert)
+	}
+	if len(certs) != 2 {
+		return nil, nil, fmt.Errorf("unexpected certificate chain length %d, want 2", len(certs))
+	}
+	// Order root before intermediate.
+	if certs[1].CheckSignatureFrom(certs[0]) != nil {
+		slices.Reverse(certs)
+	}
+
+	return certs[0], certs[1], nil
+}
+
+func parseCRL(hexCRL []byte) (*x509.RevocationList, error) {
+	if len(hexCRL) == 0 {
+		return nil, nil
+	}
+	// This was a C-string and contains a trailing 0-byte.
+	x, err := hex.DecodeString(string(hexCRL[:len(hexCRL)-1]))
+	if err != nil {
+		return nil, fmt.Errorf("hex-decoding CRL: %w", err)
+	}
+	crl, err := x509.ParseRevocationList(x)
+	if err != nil {
+		return nil, fmt.Errorf("parsing CRL: %w", err)
+	}
+	return crl, nil
 }

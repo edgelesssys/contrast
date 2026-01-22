@@ -10,12 +10,14 @@ import (
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/hex"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"log/slog"
 	"slices"
 
 	"github.com/edgelesssys/contrast/internal/attestation"
+	"github.com/edgelesssys/contrast/internal/attestation/tdx/qgs"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-tdx-guest/pcs"
 	"github.com/google/go-tdx-guest/proto/tdx"
@@ -93,6 +95,17 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData [
 	v.logger.Info("Quote decoded", "quote", protojson.MarshalOptions{Multiline: false}.Format(quote))
 
 	// Verify the report signature.
+
+	// TODO(burgerdev): pass collateral to verifier
+	if len(quote.ExtraBytes) > 0 {
+		var resp qgs.GetCollateralResponse
+		if err := json.Unmarshal(quote.ExtraBytes, &resp); err == nil {
+			collateral, err := resp.ToTDXGuest()
+			v.logger.Info("got collateral", "collateral", collateral, "conversion-error", err)
+		} else {
+			v.logger.Warn("error getting collateral from cert", "error", err)
+		}
+	}
 
 	if err := verify.TdxQuoteContext(ctx, quote, v.verifyOpts); err != nil {
 		return fmt.Errorf("verifying report signature: %w", err)

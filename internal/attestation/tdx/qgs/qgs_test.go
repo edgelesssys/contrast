@@ -5,6 +5,7 @@ import (
 	"encoding"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,7 +16,7 @@ var (
 	getCollateralResponse []byte
 )
 
-func TestGetCollateralRequest(t *testing.T) {
+func TestRequestMarshalling(t *testing.T) {
 	require := require.New(t)
 	req := &GetCollateralRequest{}
 	require.NoError(req.UnmarshalBinary(getCollateralRequest))
@@ -37,10 +38,27 @@ func TestGetCollateralRequest(t *testing.T) {
 	require.Equal(getCollateralRequest, actual)
 }
 
-func TestGetCollateralResponse(t *testing.T) {
+func TestToTDXGuest(t *testing.T) {
 	require := require.New(t)
+	assert := assert.New(t)
 	resp := &GetCollateralResponse{}
 	require.NoError(resp.UnmarshalBinary(getCollateralResponse))
+
+	collateral, err := resp.ToTDXGuest()
+	require.NoError(err)
+
+	assert.NotNil(collateral.PckCrlIssuerIntermediateCertificate)
+	assert.NotNil(collateral.PckCrlIssuerRootCertificate)
+	assert.NotNil(collateral.PckCrl)
+	assert.NotNil(collateral.TcbInfoIssuerIntermediateCertificate)
+	assert.NotNil(collateral.TcbInfoIssuerRootCertificate)
+	assert.NotZero(collateral.TdxTcbInfo)
+	assert.NotNil(collateral.TcbInfoBody)
+	assert.NotNil(collateral.QeIdentityIssuerIntermediateCertificate)
+	assert.NotNil(collateral.QeIdentityIssuerRootCertificate)
+	assert.NotZero(collateral.QeIdentity)
+	assert.NotNil(collateral.EnclaveIdentityBody)
+	assert.NotNil(collateral.RootCaCrl)
 }
 
 // Test interface implementations.

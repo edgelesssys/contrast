@@ -73,11 +73,24 @@ func (i *Issuer) Issue(ctx context.Context, reportData [64]byte) (res []byte, er
 		return nil, fmt.Errorf("issuer: unexpected quote type: %T", quote)
 	}
 
+	extensions, err := i.getExtensions(ctx, quotev4)
+	if err != nil {
+		// Extensions are optional, don't fail Issue because they are not available.
+		i.logger.Warn("Failed to obtain quote extensions", "error", err)
+	} else {
+		quotev4.ExtraBytes = extensions
+	}
+
 	quoteBytes, err := proto.Marshal(quotev4)
 	if err != nil {
 		return nil, fmt.Errorf("issuer: marshaling quote: %w", err)
 	}
 
+	i.logger.Info("Successfully issued attestation statement")
+	return quoteBytes, nil
+}
+
+func (i *Issuer) getExtensions(ctx context.Context, quotev4 *tdx.QuoteV4) ([]byte, error) {
 	// TODO(burgerdev): vsock package is absolutely unnecessary.
 	conn, err := vsock.Dial(vsock.Host, 4050, nil)
 	if err != nil {
@@ -86,6 +99,7 @@ func (i *Issuer) Issue(ctx context.Context, reportData [64]byte) (res []byte, er
 	client := qgs.NewClient(conn)
 	defer client.Close()
 
+	// TODO(burgerdev): should be shared with the validator
 	pckCertChain := quotev4.GetSignedData().GetCertificationData().GetQeReportCertificationData().GetPckCertificateChainData().PckCertChain
 
 	// The certChain input is a concatenated list of PEM-encoded X.509 certificates.
@@ -136,12 +150,30 @@ func (i *Issuer) Issue(ctx context.Context, reportData [64]byte) (res []byte, er
 	if err != nil {
 		return nil, fmt.Errorf("getting collateral from QGS: %w", err)
 	}
-	respJSON, err := json.MarshalIndent(resp, "", "  ")
-	if err != nil {
-		return nil, fmt.Errorf("marshalling QGS response: %w", err)
-	}
-	i.logger.Info("obtained collateral from QGS", "collateral", string(respJSON))
 
-	i.logger.Info("Successfully issued attestation statement")
-	return quoteBytes, nil
+	collateral, err := json.Marshal(resp)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling collateral: %w", err)
+	}
+
+	extraBytes, err := json.Marshal(&Extensions{Collateral: collateral})
+	if err != nil {
+		return nil, fmt.Errorf("marshalling extensions: %w", err)
+	}
+	return extraBytes, nil
+}
+
+// Extensions hold optional supplemental resources that can be used by the validator.
+//
+// If the issuer finds relevant resources, it adds them to an Extensions struct, serializes the
+// struct as JSON and attaches it to the quote's ExtraBytes field (which is otherwise unused).
+//
+// These resources are not covered by any signature and thus need to be verified independently!
+type Extensions struct {
+	// NOTE: the JSON-serialization of this struct should stay backwards-compatible!
+
+	// Collateral is a collection of additional resources obtain from the Intel QGS.
+	// These are included so that the validator does not need to fetch them from PCS.
+	// The value is a JSON-serialized qgs.GetCollateralResponse.
+	Collateral []byte
 }
