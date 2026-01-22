@@ -1,6 +1,6 @@
-ghcr.io/edgelesssys/contrast/coordinator:latest=ghcr.io/edgelesssys/contrast/coordinator:v1.16.0@sha256:59954b330835184a9ecd4604962b6404407c028f85e1b5dd6187ac56a1052e9d
-ghcr.io/edgelesssys/contrast/initializer:latest=ghcr.io/edgelesssys/contrast/initializer:v1.16.0@sha256:b0401cb1bc422dcfdfabd6581389d31c4a2506793030b4646137363399e82ab1
-ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=ghcr.io/edgelesssys/contrast/service-mesh-proxy:v1.16.0@sha256:54b853d91798f6478c0e894b45fef166c645a7e3de43ae805d83032d1aff22ab
-ghcr.io/edgelesssys/contrast/node-installer-kata:latest=ghcr.io/edgelesssys/contrast/node-installer-kata:v1.16.0@sha256:a25cb52bc7409b96d3ab63c866e7e54a36c732526d95bb3da0cebb6d8a556cf1
-ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:v1.16.0@sha256:b969cb60f4d05bfcb3bdd8a89142f8aa0a89f8628d7e7680b35423c82beef3fb
-ghcr.io/edgelesssys/contrast/debugshell:latest=ghcr.io/edgelesssys/contrast/debugshell:v1.16.0@sha256:3fcb76f3c7206c50f14ab13b365b03048b844cce1d4643641a4f55395e43d5ec
+ghcr.io/edgelesssys/contrast/coordinator:latest=ghcr.io/edgelesssys/contrast/coordinator:v1.16.1@sha256:650b3b88ec913b4427647a2bd0259984ae783101f5bfe9c6f1e1ea3b74870420
+ghcr.io/edgelesssys/contrast/initializer:latest=ghcr.io/edgelesssys/contrast/initializer:v1.16.1@sha256:c3058cd5afb8f433ddf35bde7bbc14e187634f26cb1f000a76b4d3248943e5ae
+ghcr.io/edgelesssys/contrast/service-mesh-proxy:latest=ghcr.io/edgelesssys/contrast/service-mesh-proxy:v1.16.1@sha256:515262b7c4771d63588fce0ce73c6eb3602f6bbe7bdfed6fe7e39d6aed335cb8
+ghcr.io/edgelesssys/contrast/node-installer-kata:latest=ghcr.io/edgelesssys/contrast/node-installer-kata:v1.16.1@sha256:49b36e834f9ab259409061125f879111512c223846c4dc95e1e62254c3bd3e07
+ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:latest=ghcr.io/edgelesssys/contrast/node-installer-kata-gpu:v1.16.1@sha256:061c8c472667e9ab93b046b76838ea1c54dfec450afa824d62459d9d97dd496c
+ghcr.io/edgelesssys/contrast/debugshell:latest=ghcr.io/edgelesssys/contrast/debugshell:v1.16.1@sha256:3fcb76f3c7206c50f14ab13b365b03048b844cce1d4643641a4f55395e43d5ec
