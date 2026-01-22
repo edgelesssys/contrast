@@ -28,7 +28,7 @@ To help you get started, the Contrast release includes a demo resource definitio
 You can download the demo app by running:
 
 ```sh
-curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.16.0/vault-demo.yml --create-dirs --output-dir resources
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.16.1/vault-demo.yml --create-dirs --output-dir resources
 ```
 
 Consider this demo resource as a starting place and adapt it to fit your deployment.
