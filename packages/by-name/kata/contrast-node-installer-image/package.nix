@@ -11,7 +11,7 @@
   kata,
   pkgsStatic,
   contrastPkgsStatic,
-  OVMF-SNP,
+  oak,
   OVMF-TDX,
   debugRuntime ? true,
   withGPU ? false,
@@ -123,7 +123,7 @@ let
   ovmf-snp = ociLayerTar {
     files = [
       {
-        source = "${OVMF-SNP}/FV/OVMF.fd";
+        source = oak.stage0-bin;
         destination = "/opt/edgeless/snp/share/OVMF.fd";
       }
     ];
