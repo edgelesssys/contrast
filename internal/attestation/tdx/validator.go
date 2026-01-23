@@ -6,16 +6,15 @@ package tdx
 import (
 	"bytes"
 	"context"
-	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
 	"encoding/hex"
-	"encoding/pem"
 	"fmt"
 	"log/slog"
 	"slices"
 
 	"github.com/edgelesssys/contrast/internal/attestation"
+	"github.com/edgelesssys/contrast/internal/attestation/tdx/quote"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-tdx-guest/pcs"
 	"github.com/google/go-tdx-guest/proto/tdx"
@@ -155,35 +154,11 @@ func (t tdxReport) ClaimsToCertExtension() ([]pkix.Extension, error) {
 }
 
 // getPIID extracts the PIID from the PCK certificate inside a TDX quote.
-func getPIID(quote *tdx.QuoteV4) ([]byte, error) {
-	pckCertChain := quote.GetSignedData().GetCertificationData().GetQeReportCertificationData().GetPckCertificateChainData().PckCertChain
-
-	// The certChain input is a concatenated list of PEM-encoded X.509 certificates.
-	// https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_TDX_DCAP_Quoting_Library_API.pdf, A.3.9
-
-	var pckBlock *pem.Block
-	var pck *x509.Certificate
-	for len(pckCertChain) > 0 {
-		pckBlock, pckCertChain = pem.Decode(pckCertChain)
-		if pckBlock == nil {
-			break
-		}
-		candidate, err := x509.ParseCertificate(pckBlock.Bytes)
-		if err != nil {
-			return nil, fmt.Errorf("parsing PCK certificate: %w", err)
-		}
-
-		// PCK certificates have specified static names.
-		// https://api.trustedservices.intel.com/documents/Intel_SGX_PCK_Certificate_CRL_Spec-1.5.pdf, 1.3.5
-		if candidate.Subject.CommonName == "Intel SGX PCK Certificate" {
-			pck = candidate
-			break
-		}
+func getPIID(quotev4 *tdx.QuoteV4) ([]byte, error) {
+	pck, err := quote.GetPCKCertificate(quotev4)
+	if err != nil {
+		return nil, fmt.Errorf("extracting PCK certificate: %w", err)
 	}
-	if pck == nil {
-		return nil, fmt.Errorf("no PCK certificate found in TDX quote")
-	}
-
 	extensions, err := pcs.PckCertificateExtensions(pck)
 	if err != nil {
 		return nil, fmt.Errorf("extracting PCK certificate extensions: %w", err)
