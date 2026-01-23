@@ -172,9 +172,12 @@ func (r *GetCollateralResponse) UnmarshalBinary(data []byte) error {
 		return fmt.Errorf("found %d trailing bytes", len(data)-int(offset))
 	}
 
-	// TCBInfo is a JSON C-string and includes a trailing 0x00 byte - let's strip it.
+	// TCBInfo and QEIdentity are JSON C-strings and include a trailing 0x00 byte - let's strip it.
 	if len(r.TCBInfo) > 0 {
 		r.TCBInfo = r.TCBInfo[:len(r.TCBInfo)-1]
+	}
+	if len(r.QEIdentity) > 0 {
+		r.QEIdentity = r.QEIdentity[:len(r.QEIdentity)-1]
 	}
 
 	return nil
@@ -207,7 +210,11 @@ func (r *GetCollateralResponse) ToTDXGuest() (*verify.Collateral, error) {
 		return nil, fmt.Errorf("parsing TCBInfo: %w", err)
 	}
 
-	// TODO(burgerdev): TCBInfoBody is missing, see go-tdx-guest verify.go
+	var tcbInfo map[string]json.RawMessage
+	if err := json.Unmarshal(r.TCBInfo, &tcbInfo); err != nil {
+		return nil, fmt.Errorf("parsing unstructured TCBInfo: %w", err)
+	}
+	c.TcbInfoBody = tcbInfo["tcbInfo"]
 
 	qeRoot, qeIntermediate, err := parseCertificateChain(r.QEIdentityIssuerChain)
 	if err != nil {
@@ -216,7 +223,15 @@ func (r *GetCollateralResponse) ToTDXGuest() (*verify.Collateral, error) {
 	c.QeIdentityIssuerRootCertificate = qeRoot
 	c.QeIdentityIssuerIntermediateCertificate = qeIntermediate
 
-	// TODO(burgerdev): QEIdentity and Body are missing, see go-tdx-guest verify.go
+	if err := json.Unmarshal(r.QEIdentity, &c.QeIdentity); err != nil {
+		return nil, fmt.Errorf("parsing QEIdentity: %w", err)
+	}
+
+	var qeIdentity map[string]json.RawMessage
+	if err := json.Unmarshal(r.QEIdentity, &qeIdentity); err != nil {
+		return nil, fmt.Errorf("parsing unstructured QEIdentity: %w", err)
+	}
+	c.EnclaveIdentityBody = qeIdentity["enclaveIdentity"]
 
 	rootCRL, err := parseCRL(r.RootCACRL)
 	if err != nil {
