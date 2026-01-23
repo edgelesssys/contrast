@@ -5,7 +5,7 @@
   lib,
   stdenvNoCC,
   kata,
-  OVMF-SNP,
+  oak,
   python3Packages,
 }:
 
@@ -15,7 +15,7 @@
 }:
 
 let
-  ovmf-snp = "${OVMF-SNP}/FV/OVMF.fd";
+  ovmf-snp = oak.stage0-bin;
   kernel = "${os-image}/bzImage";
   initrd = "${os-image}/initrd";
 
