@@ -7,7 +7,7 @@
 
 fetchurl {
   pname = "stage0-bin";
-  version = "d915570d";
-  url = "https://contrast-public.s3.eu-central-1.amazonaws.com/hack/stage0_bin";
-  hash = "sha256-0NqgKgegnwPg8503E/Dt/UsBK2HWwifJQnkcfZEIG3g=";
+  version = "dd1f39d06";
+  url = "https://contrast-public.s3.eu-central-1.amazonaws.com/hack/stage0_bin_dd1f39d06";
+  hash = "sha256-nRQutWB3LBFiHZ8kDsf83XvVll5GN7RR3djvP3ye8ok=";
 }
