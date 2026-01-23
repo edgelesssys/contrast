@@ -37,6 +37,9 @@ buildGoModule (finalAttrs: {
         (path.append root "go.mod")
         (path.append root "go.sum")
         (path.append root "cli/cmd/assets/image-replacements.txt")
+        (fileset.fileFilter (file: hasSuffix ".dat" file.name) (
+          path.append root "internal/attestation/tdx/qgs/testdata"
+        ))
         (fileset.fileFilter (file: hasSuffix ".yaml" file.name) (
           path.append root "internal/kuberesource/assets"
         ))
