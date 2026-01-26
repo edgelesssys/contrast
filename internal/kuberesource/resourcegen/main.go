@@ -39,11 +39,8 @@ func main() {
 		case "coordinator":
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.CoordinatorBundle(), "contrast-cc")
 		case "runtime":
-			if *rawPlatform == "" {
-				log.Fatalf("--platform must be set to one of %v", platforms.AllStrings())
-			}
 			var defaultPlatform platforms.Platform
-			defaultPlatform, err = platforms.FromString(*rawPlatform)
+			defaultPlatform, err = platforms.FromStringOrEmpty(*rawPlatform)
 			if err != nil {
 				log.Fatalf("Error parsing platform: %v", err)
 			}

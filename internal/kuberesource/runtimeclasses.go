@@ -22,7 +22,9 @@ func Runtimes(defaultPlatform platforms.Platform, resources []any) ([]any, error
 	if err != nil {
 		return nil, fmt.Errorf("collecting required runtime classes: %w", err)
 	}
-	collectedPlatforms[defaultPlatform] = struct{}{}
+	if defaultPlatform != platforms.Unknown {
+		collectedPlatforms.Add(defaultPlatform)
+	}
 
 	var out []any
 	for platform := range collectedPlatforms {
