@@ -4,9 +4,6 @@
 {
   lib,
   buildGoModule,
-  kata,
-  installShellFiles,
-  contrastPkgsStatic,
   reference-values,
 }:
 
@@ -14,7 +11,6 @@ let
   packageOutputs = [
     "coordinator"
     "initializer"
-    "cli"
   ];
 in
 
@@ -36,22 +32,18 @@ buildGoModule (finalAttrs: {
       fileset = fileset.unions [
         (path.append root "go.mod")
         (path.append root "go.sum")
-        (path.append root "cli/cmd/assets/image-replacements.txt")
         (fileset.fileFilter (file: hasSuffix ".yaml" file.name) (
           path.append root "internal/kuberesource/assets"
         ))
         (path.append root "internal/manifest/Milan.pem")
         (path.append root "internal/manifest/Genoa.pem")
         (path.append root "internal/manifest/Intel_SGX_Provisioning_Certification_RootCA.pem")
-        (fileset.difference (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
+        (fileset.intersection (fileset.fileFilter (file: hasSuffix ".go" file.name) root) (
           fileset.unions [
-            (path.append root "service-mesh")
-            (path.append root "tools")
-            (path.append root "imagepuller")
-            (path.append root "imagestore")
-            (path.append root "initdata-processor")
-            (path.append root "e2e")
-            (path.append root "nodeinstaller")
+            (path.append root "internal")
+            (path.append root "coordinator")
+            (path.append root "initializer")
+            (path.append root "sdk")
           ]
         ))
       ];
@@ -60,19 +52,8 @@ buildGoModule (finalAttrs: {
   proxyVendor = true;
   vendorHash = "sha256-Nd17FKpYeU5ln40ltlACB4jhuXD7xPXOxQnqNUW01Pc=";
 
-  nativeBuildInputs = [ installShellFiles ];
-
-  subPackages = packageOutputs ++ [ "internal/kuberesource/resourcegen" ];
-
   prePatch = ''
-    install -D ${lib.getExe contrastPkgsStatic.kata.genpolicy} cli/genpolicy/assets/genpolicy-kata
-    install -D ${kata.genpolicy.rules}/genpolicy-rules.rego cli/genpolicy/assets/genpolicy-rules-kata.rego
     install -D ${reference-values} internal/manifest/assets/reference-values.json
-  '';
-
-  # postPatch will be overwritten by the release-cli derivation, prePatch won't.
-  postPatch = ''
-    install -D ${kata.genpolicy.settings-dev}/genpolicy-settings.json cli/genpolicy/assets/genpolicy-settings-kata.json
   '';
 
   env.CGO_ENABLED = 0;
@@ -80,7 +61,6 @@ buildGoModule (finalAttrs: {
   ldflags = [
     "-s"
     "-X github.com/edgelesssys/contrast/internal/constants.Version=v${finalAttrs.version}"
-    "-X github.com/edgelesssys/contrast/internal/constants.KataGenpolicyVersion=${kata.genpolicy.version}"
   ];
 
   tags = [ "contrast_unstable_api" ];
@@ -100,22 +80,9 @@ buildGoModule (finalAttrs: {
       mkdir -p "''${!sub}/bin"
       mv "$out/bin/$sub" "''${!sub}/bin/$sub"
     done
-
-    # rename the cli binary to contrast
-    mv "$cli/bin/cli" "$cli/bin/contrast"
-
-    installShellCompletion --cmd contrast \
-      --bash <($cli/bin/contrast completion bash) \
-      --fish <($cli/bin/contrast completion fish) \
-      --zsh <($cli/bin/contrast completion zsh)
-
-    mkdir -p $cli/share
-    mv $out/share/* $cli/share
   '';
 
   # Skip fixup as binaries are already stripped and we don't
   # need any other fixup, saving some seconds.
   dontFixup = true;
-
-  meta.mainProgram = "contrast";
 })
