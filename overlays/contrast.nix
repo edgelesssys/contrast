@@ -36,13 +36,13 @@ else
 
             nativeContrast = {
               cli = self.callPackage ../packages/by-name/contrast/cli/package.nix {
-                inherit (self.contrast) reference-values;
+                inherit (self.contrast) contrast reference-values;
               };
               cli-release = self.callPackage ../packages/by-name/contrast/cli-release/package.nix {
                 inherit (self.contrast) cli;
               };
               resourcegen = self.callPackage ../packages/by-name/contrast/resourcegen/package.nix {
-                inherit (self.contrast) reference-values;
+                inherit (self.contrast) contrast reference-values;
               };
               contrast = self.callPackage ../packages/by-name/contrast/contrast/package.nix {
                 inherit (self.contrast) reference-values;
