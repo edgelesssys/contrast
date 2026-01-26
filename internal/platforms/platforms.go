@@ -104,6 +104,14 @@ func FromString(s string) (Platform, error) {
 	}
 }
 
+// FromStringOrEmpty returns the Platform type corresponding to the given string, but accepts empty strings.
+func FromStringOrEmpty(s string) (Platform, error) {
+	if s == "" {
+		return Unknown, nil
+	}
+	return FromString(s)
+}
+
 // FromRuntimeClassString returns the Platform type corresponding to the given runtime class string,
 // possibly suffixed with a hash.
 func FromRuntimeClassString(s string) (Platform, error) {
