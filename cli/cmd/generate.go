@@ -120,7 +120,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("closing temp file for configmaps/secrets: %w", closeErr)
 	}
 
-	verifiers := verifier.AllVerifiersBeforeGenerate()
+	verifiers := verifier.AllVerifiersBeforeGenerate(cmd)
 	if err := runVerifiers(fileMap, verifiers); err != nil {
 		return err
 	}
