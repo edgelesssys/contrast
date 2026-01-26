@@ -69,7 +69,6 @@ subcommands.`,
 			strings.Join(platforms.AllStrings(), ", "),
 		),
 	)
-	must(cmd.MarkFlagRequired("reference-values"))
 	cmd.Flags().StringArrayP("add-workload-owner-key", "w", []string{workloadOwnerPEM},
 		"add a workload owner key from a PEM file to the manifest (pass more than once to add multiple keys)")
 	cmd.Flags().StringArray("add-seedshare-owner-key", []string{seedshareOwnerPEM},
@@ -129,7 +128,9 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("determining platforms used in deployment: %w", err)
 	}
-	usedPlatforms.Add(flags.referenceValuesPlatform)
+	if flags.referenceValuesPlatform != platforms.Unknown {
+		usedPlatforms.Add(flags.referenceValuesPlatform)
+	}
 
 	// generate a manifest by checking if a manifest exists and using that,
 	// or otherwise using a default.
@@ -154,11 +155,17 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	runtimeHandler, err := manifest.RuntimeHandler(flags.referenceValuesPlatform)
-	if err != nil {
-		return fmt.Errorf("get runtime handler: %w", err)
+	var runtimeHandler string
+	if flags.referenceValuesPlatform == platforms.Unknown {
+		// Due to the pre generate verifiers, this code path should only be reachable when all resources have an explicit runtime class set.
+		// The contrast-cc-unknown runtimeClassName should thus never end up in a generated resource.
+		runtimeHandler = "contrast-cc-unknown"
+	} else {
+		runtimeHandler, err = manifest.RuntimeHandler(flags.referenceValuesPlatform)
+		if err != nil {
+			return fmt.Errorf("get runtime handler: %w", err)
+		}
 	}
-
 	if err := patchTargets(log, fileMap, flags.imageReplacementsFile, runtimeHandler, coordinatorNamespace, flags); err != nil {
 		return fmt.Errorf("patch targets: %w", err)
 	}
@@ -709,7 +716,7 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	if err != nil {
 		return nil, err
 	}
-	referenceValuesPlatform, err := platforms.FromString(referenceValues)
+	referenceValuesPlatform, err := platforms.FromStringOrEmpty(referenceValues)
 	if err != nil {
 		return nil, fmt.Errorf("invalid reference-values platform: %w", err)
 	}
