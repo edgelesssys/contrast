@@ -278,6 +278,7 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 					if manifestSNP.ProductName == overwriteSNP.ProductName {
 						manifestSNP.MinimumTCB = overwriteSNP.MinimumTCB
 						manifestSNP.AllowedChipIDs = overwriteSNP.AllowedChipIDs
+						manifestSNP.MinimumMitigationVector = overwriteSNP.MinimumMitigationVector
 						// Filter to only use the reference values of specified baremetal SNP runners
 						snpReferenceValues = append(snpReferenceValues, manifestSNP)
 					}
