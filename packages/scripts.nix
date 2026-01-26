@@ -6,6 +6,7 @@
   pkgs,
   contrastPkgs,
   writeShellApplication,
+  runtimePkgs,
 }:
 
 lib.makeScope pkgs.newScope (scripts: {
@@ -374,9 +375,9 @@ lib.makeScope pkgs.newScope (scripts: {
     '';
   };
 
-  cleanup-bare-metal = writeShellApplication {
+  cleanup-bare-metal = runtimePkgs.writeShellApplication {
     name = "cleanup-bare-metal";
-    runtimeInputs = with pkgs; [
+    runtimeInputs = with runtimePkgs; [
       busybox
       kubectl
       dasel
@@ -385,9 +386,9 @@ lib.makeScope pkgs.newScope (scripts: {
     text = builtins.readFile ./cleanup-bare-metal.sh;
   };
 
-  cleanup-images = writeShellApplication {
+  cleanup-images = runtimePkgs.writeShellApplication {
     name = "cleanup-images";
-    runtimeInputs = with pkgs; [
+    runtimeInputs = with runtimePkgs; [
       gnugrep
       busybox
       containerd
@@ -447,9 +448,9 @@ lib.makeScope pkgs.newScope (scripts: {
     text = builtins.readFile ./cleanup-namespaces.sh;
   };
 
-  cleanup-containerd = writeShellApplication {
+  cleanup-containerd = runtimePkgs.writeShellApplication {
     name = "cleanup-containerd";
-    runtimeInputs = with pkgs; [ containerd ];
+    runtimeInputs = with runtimePkgs; [ containerd ];
     text = ''
       declare address
       if [[ -S "/host/run/k3s/containerd/containerd.sock" ]]; then
@@ -510,9 +511,9 @@ lib.makeScope pkgs.newScope (scripts: {
       '';
   };
 
-  nix-gc = writeShellApplication {
+  nix-gc = runtimePkgs.writeShellApplication {
     name = "nix-gc";
-    runtimeInputs = with pkgs; [ busybox ];
+    runtimeInputs = with runtimePkgs; [ busybox ];
     text = ''
       total=$(df -P /host/nix | tail -1 | awk '{print $2}')
       avail=$(df -P /host/nix | tail -1 | awk '{print $4}')
