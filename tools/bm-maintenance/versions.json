@@ -1,7 +1,7 @@
 {
     "k3s": {
 		"depName": "k3s-io/k3s",
-		"currentValue": "v1.34.1+k3s1",
+		"currentValue": "v1.35.0+k3s1",
 		"datasource": "github-releases",
 		"versioning": "loose"
 	},
