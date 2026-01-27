@@ -66,11 +66,11 @@ valid_hypervisor_paths = ["PLACEHOLDER_FOR_DISTRO_QEMU_WITH_TDX_SUPPORT"]
 # may stop the virtual machine from booting.
 # To see the list of default parameters, enable hypervisor debug, create a
 # container and look for 'default-kernel-parameters' log entries.
-kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1 rootfs_verity.scheme=dm-verity rootfs_verity.hash=9039a1ddadc85236751679de6d4bb224259cab18ab72141bbb788afc16bb4aec"
+kernel_params = "cgroup_no_v1=all systemd.unified_cgroup_hierarchy=1 rootfs_verity.scheme=dm-verity rootfs_verity.hash=47ff03ed804abbe55399b73b220f21e1ac87e27b6e0cd8b8a9f16ea472d1b7f4"
 
 # Path to the firmware.
 # If you want that qemu uses the default firmware leave this option empty
-firmware = "/opt/kata/share/ovmf/OVMF.fd"
+firmware = "/opt/kata/share/ovmf/OVMF.inteltdx.fd"
 
 # Path to the firmware volume.
 # firmware TDVF or OVMF can be split into FIRMWARE_VARS.fd (UEFI variables

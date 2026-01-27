@@ -250,7 +250,7 @@ index abee6de92049bd9dfbdd3437218c6790a247c14d..c014d9e4248174cc3d55f7e28ab1ed87
  # ExecProcessRequest.process.Capabilities
  allow_exec_caps(i_caps) if {
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index 7fb078b34043ed6c6cc04c6e4bd8596fa2d46419..c640694c22404b8501f843dfc3dcfb2ee7bd5c6d 100644
+index 776ae3b9bce31e87d7073a7aadeeb2f172593993..a53a4bb9abae414fb5eb47e179aca7ad9f6f7b8f 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
 @@ -321,6 +321,17 @@ pub fn get_container_mounts_and_storages(

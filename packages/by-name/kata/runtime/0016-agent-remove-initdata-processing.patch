@@ -9,7 +9,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  1 file changed, 26 deletions(-)
 
 diff --git a/src/agent/src/main.rs b/src/agent/src/main.rs
-index 3e804ff8d763b764e356412fed2da79762e782e8..15809ef1502e654dfa9e726532361f3f4de749da 100644
+index c715ec128d86af1f8de09499534dd3f03894ee9b..789a5dd7e83860996e1b2c254d4da44480321998 100644
 --- a/src/agent/src/main.rs
 +++ b/src/agent/src/main.rs
 @@ -405,32 +405,6 @@ async fn start_sandbox(
