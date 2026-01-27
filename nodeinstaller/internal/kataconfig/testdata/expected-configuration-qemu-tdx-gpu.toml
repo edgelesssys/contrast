@@ -1,0 +1,110 @@
+[Hypervisor]
+[Hypervisor.qemu]
+block_device_aio = 'threads'
+block_device_cache_direct = false
+block_device_cache_noflush = false
+block_device_cache_set = false
+block_device_driver = 'virtio-scsi'
+cold_plug_vfio = 'root-port'
+confidential_guest = true
+contrast_imagepuller_config = ''
+cpu_features = 'pmu=off'
+default_bridges = 1
+default_maxmemory = 0
+default_maxvcpus = 0
+default_memory = 1024
+default_vcpus = 1
+disable_block_device_use = false
+disable_guest_selinux = true
+disable_image_nvdimm = false
+disable_nesting_checks = false
+disable_selinux = false
+disable_vhost_net = false
+enable_annotations = ['cc_init_data']
+enable_debug = false
+enable_guest_swap = false
+enable_hugepages = false
+enable_iommu = false
+enable_iommu_platform = false
+enable_iothreads = false
+enable_mem_prealloc = false
+enable_vhost_user_store = false
+enable_virtio_mem = false
+entropy_source = '/dev/urandom'
+file_mem_backend = ''
+firmware = '/tdx/share/OVMF.fd'
+firmware_volume = ''
+guest_hook_path = ''
+guest_memory_dump_paging = false
+guest_memory_dump_path = ''
+image = '/share/kata-containers.img'
+indep_iothreads = 0
+initrd = '/share/kata-initrd.zst'
+kernel = '/share/kata-kernel'
+kernel_params = ''
+machine_accelerators = ''
+machine_type = 'q35'
+memory_offset = 0
+memory_slots = 10
+msize_9p = 8192
+path = '/bin/qemu-system-x86_64'
+pcie_root_port = 0
+pflashes = []
+reclaim_guest_freed_memory = false
+rootfs_type = 'erofs'
+rootless = false
+rx_rate_limiter_max_rate = 0
+seccompsandbox = ''
+shared_fs = 'none'
+tdx_quote_generation_service_socket_port = 4050
+tx_rate_limiter_max_rate = 0
+use_legacy_serial = false
+valid_entropy_sources = ['/dev/urandom', '/dev/random', '']
+valid_file_mem_backends = ['']
+valid_hypervisor_paths = ['/bin/qemu-system-x86_64']
+valid_vhost_user_store_paths = ['/var/run/kata-containers/vhost-user']
+valid_virtio_fs_daemon_paths = ['/opt/kata/libexec/virtiofsd']
+vhost_user_reconnect_timeout_sec = 0
+vhost_user_store_path = '/var/run/kata-containers/vhost-user'
+virtio_fs_cache = 'auto'
+virtio_fs_cache_size = 0
+virtio_fs_daemon = '/opt/kata/libexec/virtiofsd'
+virtio_fs_extra_args = ['--thread-pool-size=1', '--announce-submounts']
+virtio_fs_queue_size = 1024
+
+[Agent]
+[Agent.kata]
+debug_console_enabled = false
+dial_timeout = 600
+enable_debug = false
+enable_tracing = false
+kernel_modules = []
+
+[Factory]
+enable_template = false
+template_path = '/run/vc/vm/template'
+vm_cache_endpoint = '/var/run/kata-containers/cache.sock'
+vm_cache_number = 0
+
+[Runtime]
+create_container_timeout = 600
+dan_conf = '/run/kata-containers/dans'
+disable_guest_empty_dir = false
+disable_guest_seccomp = true
+disable_new_netns = false
+enable_debug = false
+enable_pprof = false
+enable_tracing = false
+enable_vcpus_pinning = false
+experimental = []
+experimental_force_guest_pull = true
+guest_selinux_label = ''
+internetworking_model = 'tcfilter'
+jaeger_endpoint = ''
+jaeger_password = ''
+jaeger_user = ''
+pod_resource_api_sock = ''
+sandbox_bind_mounts = []
+sandbox_cgroup_only = true
+static_sandbox_resource_mgmt = true
+vfio_mode = 'guest-kernel'

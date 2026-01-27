@@ -41,6 +41,11 @@ func main() {
 			config:   "qemu-snp",
 			testdata: "qemu-snp-gpu",
 		},
+		platforms.MetalQEMUTDXGPU: {
+			upstream: "qemu-tdx",
+			config:   "qemu-tdx",
+			testdata: "qemu-tdx-gpu",
+		},
 	}
 
 	snpIDBlock := kataconfig.SnpIDBlock{
