@@ -218,6 +218,10 @@ func (m *Manifest) TDXValidateOpts(kdsGetter *certcache.CachedHTTPSGetter) ([]TD
 		verifyOpts.GetCollateral = true
 		verifyOpts.Getter = kdsGetter
 
+		if refVal.MinTCBEvaluationDataNumber > 0 {
+			verifyOpts.EvaluationDataNumber = refVal.MinTCBEvaluationDataNumber
+		}
+
 		mrTd, err := refVal.MrTd.Bytes()
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert MrTd from manifest to byte slices: %w", err)
