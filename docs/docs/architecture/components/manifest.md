@@ -372,6 +372,19 @@ The `MemoryIntegrity` field controls verification of the TDX memory integrity mo
 Setting it to `true` enforces the _cryptographic integrity_ mode.
 Any mode is allowed if the field is absent or `false` (the default).
 
+### `ReferenceValues.tdx.*.SMTDisabled` {#tdx-smt-disabled}
+
+The `SMTDisabled` field controls whether simultaneous multithreading (SMT) should be allowed.
+Enforcing SMT to be disabled helps reduce the attack surface exposed to other guest VMs or the hypervisor, but significantly reduces performance and compute density.
+Any mode is allowed if the field is absent or `false` (the default).
+
+### `ReferenceValues.tdx.*.StaticPlatform` {#tdx-static-platform}
+
+A TDX platform can be configured to allow new packages (processors) to be added after initial registration.
+This is documented in the [SGX Remote Attestation for Mulit-Package Platforms] guide.
+If `StaticPlatform` is set to true, verification ensures that dynamic addition of new packages is prohibited.
+If the field is absent or `false` (the default), this configuration isn't checked.
+
 ## `WorkloadOwnerKeyDigests` {#workload-owner-key-digests}
 
 A list of workload owner public key digests.
@@ -400,3 +413,4 @@ Doing the same for the `SeedshareOwnerKeys` field makes Coordinator recovery and
 [TDX Module Spec]: https://www.intel.com/content/www/us/en/content-details/867568/intel-tdx-module-base-architecture-specification.html
 [SGX PCK Spec]: https://api.trustedservices.intel.com/documents/Intel_SGX_PCK_Certificate_CRL_Spec-1.5.pdf
 [`PCKIDRetrievalTool`]: https://github.com/intel/confidential-computing.tee.dcap/blob/717f2a91ca732c3309b0c59d21757463133eb440/tools/PCKRetrievalTool/README.txt
+[SGX Remote Attestation for Mulit-Package Platforms]: https://cc-enabling.trustedservices.intel.com/intel-dcap-mp-ra/02/overview/#add-package-replace-package
