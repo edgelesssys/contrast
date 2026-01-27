@@ -9,20 +9,34 @@ echo "  KERNEL:     ${KERNEL}" >&2
 echo "  ROOTFS:     ${ROOTFS}" >&2
 echo "" >&2
 
+# Extra debugging knobs:
+#   DEBUG=1   -> enable verbose QEMU logging to qemu.log
+#   GDB=1     -> wait for gdb on tcp:1234 (-S -s)
+QEMU_DEBUG_ARGS=()
+if [[ "${DEBUG:-0}" == "1" ]]; then
+  QEMU_DEBUG_ARGS+=(-d "guest_errors,unimp,cpu_reset,int" -D qemu.log)
+fi
+if [[ "${GDB:-0}" == "1" ]]; then
+  QEMU_DEBUG_ARGS+=(-S -s)
+fi
+
 qemu-system-x86_64 \
   -enable-kvm \
   -cpu host \
   -m 1G \
-  -nodefaults \
-  -nographic \
+  -machine pc \
   -no-reboot \
-  -serial stdio \
-  -machine q35 \
-  -bios "${STAGE0_BIN}" \
-  -kernel "${KERNEL}" \
-  -initrd "${INITRD}" \
-  -drive file="${ROOTFS}",format=raw,if=virtio,readonly=on \
-  -append "root=/dev/vda1 console=ttyS0 earlyprintk=serial,ttyS0,115200"
+  -display none \
+  -chardev stdio,id=ch0,mux=on,signal=off \
+  -serial chardev:ch0 \
+  -mon chardev=ch0,mode=readline \
+  "${QEMU_DEBUG_ARGS[@]}" \
+  -bios "${STAGE0_BIN}"
+
+  # -kernel "${KERNEL}" \
+  # -initrd "${INITRD}" \
+  # -drive file="${ROOTFS}",format=raw,if=virtio,readonly=on \
+  # -append "root=/dev/vda1 console=ttyS0 earlyprintk=serial,ttyS0,115200"
 
 # -name sandbox-18fa58e95cc4b62243741f4dcc880d3c8a708f48ccf5a1ae1e5e45470653ca95
 # -uuid 984d75b0-5c36-450c-a17b-66b6217f4e11

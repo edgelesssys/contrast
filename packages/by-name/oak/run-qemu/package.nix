@@ -4,7 +4,7 @@
 {
   writeShellApplication,
   qemu-cc,
-  stage0-bin,
+  stage0-tdx-bin,
   kata,
 }:
 
@@ -14,7 +14,7 @@ writeShellApplication {
     qemu-cc
   ];
   runtimeEnv = {
-    STAGE0_BIN = stage0-bin;
+    STAGE0_BIN = stage0-tdx-bin;
     KERNEL = "${kata.image}/bzImage";
     INITRD = "${kata.image}/initrd.zst";
     ROOTFS = "${kata.image}/image-podvm-gpu_1-rc1.raw";
