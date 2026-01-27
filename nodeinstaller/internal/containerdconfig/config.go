@@ -144,12 +144,12 @@ func ContrastRuntime(baseDir string, platform platforms.Platform) (Runtime, erro
 		PrivilegedWithoutHostDevices: true,
 	}
 
-	switch platform {
-	case platforms.MetalQEMUTDX, platforms.MetalQEMUTDXGPU:
+	switch {
+	case platforms.IsTDX(platform):
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-tdx.toml"),
 		}
-	case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU:
+	case platforms.IsSNP(platform):
 		cfg.Options = map[string]any{
 			"ConfigPath": filepath.Join(baseDir, "etc", "configuration-qemu-snp.toml"),
 		}

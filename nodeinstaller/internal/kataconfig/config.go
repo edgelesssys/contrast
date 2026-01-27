@@ -48,13 +48,13 @@ func KataRuntimeConfig(
 	debug bool,
 ) (*Config, error) {
 	var config Config
-	switch platform {
-	case platforms.MetalQEMUTDX, platforms.MetalQEMUTDXGPU:
+	switch {
+	case platforms.IsTDX(platform):
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUTDXBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}
 		config.Hypervisor["qemu"]["firmware"] = filepath.Join(baseDir, "tdx", "share", "OVMF.fd")
-	case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU:
+	case platforms.IsSNP(platform):
 		if err := toml.Unmarshal([]byte(kataBareMetalQEMUSNPBaseConfig), &config); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal kata runtime configuration: %w", err)
 		}

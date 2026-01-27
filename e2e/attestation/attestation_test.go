@@ -146,8 +146,8 @@ func TestAttestation(t *testing.T) {
 		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
 		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
-			switch platform {
-			case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU:
+			switch {
+			case platforms.IsSNP(platform):
 				// Duplicate the first validator.
 				m.ReferenceValues.SNP = append(m.ReferenceValues.SNP, m.ReferenceValues.SNP[0])
 				// Make the first set of reference values invalid by changing the SVNs.
@@ -157,7 +157,7 @@ func TestAttestation(t *testing.T) {
 					SNPVersion:        toPtr(manifest.SVN(255)),
 					MicrocodeVersion:  toPtr(manifest.SVN(255)),
 				}
-			case platforms.MetalQEMUTDX:
+			case platforms.IsTDX(platform):
 				// Duplicate the first validator.
 				m.ReferenceValues.TDX = append(m.ReferenceValues.TDX, m.ReferenceValues.TDX[0])
 				// Make the first set of reference values invalid by changing the SVNs.
