@@ -84,13 +84,13 @@ let
 in
 
 linuxManualConfig rec {
-  version = "6.16.7";
+  version = "6.18.5";
   modDirVersion = "${version}" + lib.optionalString withGPU "-nvidia-gpu-confidential";
 
   # See https://github.com/kata-containers/kata-containers/blob/5f11c0f144037d8d8f546c89a0392dcd84fa99e2/versions.yaml#L198-L201
   src = fetchurl {
     url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${version}.tar.xz";
-    hash = "sha256-W+PaoflCexvbNMSJTZwa36w4z/Z0N2/gYRowZXKaGoE=";
+    hash = "sha256-GJ0fQJzvjQ0jQhDgRZUXLfOS+MspfhS0R+2Vcg4v2UA=";
   };
 
   kernelPatches = [
