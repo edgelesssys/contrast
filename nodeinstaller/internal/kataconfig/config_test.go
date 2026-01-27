@@ -20,6 +20,8 @@ var (
 	expectedConfMetalQEMUTDX []byte
 	//go:embed testdata/expected-configuration-qemu-snp-gpu.toml
 	expectedConfMetalQEMUSNPGPU []byte
+	//go:embed testdata/expected-configuration-qemu-tdx-gpu.toml
+	expectedConfMetalQEMUTDXGPU []byte
 )
 
 func TestKataRuntimeConfig(t *testing.T) {
@@ -38,6 +40,10 @@ func TestKataRuntimeConfig(t *testing.T) {
 		platforms.MetalQEMUTDX: {
 			changeSnpFields: false,
 			want:            string(expectedConfMetalQEMUTDX),
+		},
+		platforms.MetalQEMUTDXGPU: {
+			changeSnpFields: false,
+			want:            string(expectedConfMetalQEMUTDXGPU),
 		},
 	}
 	for platform, tc := range testCases {
