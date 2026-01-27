@@ -269,8 +269,8 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 		return nil, fmt.Errorf("unmarshaling reference values: %w", err)
 	}
 	return func(m manifest.Manifest) manifest.Manifest {
-		switch platform {
-		case platforms.MetalQEMUSNP, platforms.MetalQEMUSNPGPU:
+		switch {
+		case platforms.IsSNP(platform):
 			// Overwrite the minimumTCB values with the ones loaded from the path tcbSpecificationFile.
 			var snpReferenceValues []manifest.SNPReferenceValues
 			for _, manifestSNP := range m.ReferenceValues.SNP {
@@ -285,7 +285,7 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 			}
 			m.ReferenceValues.SNP = snpReferenceValues
 
-		case platforms.MetalQEMUTDX, platforms.MetalQEMUTDXGPU:
+		case platforms.IsTDX(platform):
 			// Overwrite the field MrSeam with the ones loaded from the path tcbSpecificationFile.
 			var tdxReferenceValues []manifest.TDXReferenceValues
 			for _, manifestTDX := range m.ReferenceValues.TDX {
