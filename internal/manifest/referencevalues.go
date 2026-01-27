@@ -229,14 +229,15 @@ func amdTrustedRootCerts(productName ProductName) (map[string][]*trust.AMDRootCe
 
 // TDXReferenceValues contains reference values for TDX.
 type TDXReferenceValues struct {
-	MrTd            HexString
-	MrSeam          HexString
-	Rtmrs           [4]HexString
-	Xfam            HexString
-	AllowedPIIDs    []HexString
-	MemoryIntegrity bool
-	SMTDisabled     bool
-	StaticPlatform  bool
+	MinTCBEvaluationDataNumber int
+	MrTd                       HexString
+	MrSeam                     HexString
+	Rtmrs                      [4]HexString
+	Xfam                       HexString
+	AllowedPIIDs               []HexString
+	MemoryIntegrity            bool
+	SMTDisabled                bool
+	StaticPlatform             bool
 }
 
 // Validate checks the validity of all fields in the bare metal TDX reference values.
