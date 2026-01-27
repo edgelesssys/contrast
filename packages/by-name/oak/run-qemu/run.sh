@@ -9,34 +9,69 @@ echo "  KERNEL:     ${KERNEL}" >&2
 echo "  ROOTFS:     ${ROOTFS}" >&2
 echo "" >&2
 
-# Extra debugging knobs:
-#   DEBUG=1   -> enable verbose QEMU logging to qemu.log
-#   GDB=1     -> wait for gdb on tcp:1234 (-S -s)
-QEMU_DEBUG_ARGS=()
-if [[ "${DEBUG:-0}" == "1" ]]; then
-  QEMU_DEBUG_ARGS+=(-d "guest_errors,unimp,cpu_reset,int" -D qemu.log)
-fi
-if [[ "${GDB:-0}" == "1" ]]; then
-  QEMU_DEBUG_ARGS+=(-S -s)
-fi
+tdx_flags=(
+  -machine "q35,confidential-guest-support=tdx"
+  -object "{\"qom-type\":\"tdx-guest\",\"id\":\"tdx\",\"mrconfigid\":\"tc1zbNyazcZJMoF9XuWGC6X+age5y96DBbsAYI1g+/cAAAAAAAAAAAAAAAAAAAAA\",\"quote-generation-socket\":{\"type\":\"vsock\",\"cid\":\"2\",\"port\":\"4050\"}}"
+)
 
 qemu-system-x86_64 \
   -enable-kvm \
   -cpu host \
   -m 1G \
-  -machine pc \
   -no-reboot \
+  -nographic \
   -display none \
-  -chardev stdio,id=ch0,mux=on,signal=off \
-  -serial chardev:ch0 \
-  -mon chardev=ch0,mode=readline \
-  "${QEMU_DEBUG_ARGS[@]}" \
-  -bios "${STAGE0_BIN}"
+  -nodefaults \
+  -serial stdio \
+  "${tdx_flags[@]}" \
+  -bios "${STAGE0_BIN}" \
+  -kernel "${KERNEL}" \
+  -initrd "${INITRD}" \
+  -append "root=/dev/vda1 console=ttyS0 earlyprintk=serial,ttyS0,115200"
 
-  # -kernel "${KERNEL}" \
-  # -initrd "${INITRD}" \
-  # -drive file="${ROOTFS}",format=raw,if=virtio,readonly=on \
-  # -append "root=/dev/vda1 console=ttyS0 earlyprintk=serial,ttyS0,115200"
+#
+# TDX
+#
+
+# -uuid dfdbf939-8fea-4711-97e1-64cc2e60c9d7
+# -machine q35,accel=kvm,kernel_irqchip=split,confidential-guest-support=tdx
+# -cpu host,pmu=off
+# -qmp unix:fd=3,server=on,wait=off
+# -m 1162M
+# -device pci-bridge,bus=pcie.0,id=pci-bridge-0,chassis_nr=1,shpc=off,addr=2,io-reserve=4k,mem-reserve=1m,pref64-reserve=1m
+# -device virtio-serial-pci,disable-modern=false,id=serial0
+# -device virtconsole,chardev=charconsole0,id=console0
+# -chardev socket,id=charconsole0,path=/run/vc/vm/41df9447ab3cbf89bbaf8994694fd2df1940195e37b110a7c637260d0a45c903/console.sock,server=on,wait=off
+# -device virtio-blk-pci,disable-modern=false,drive=image-cd975feaadf90d02,config-wce=off,share-rw=on,serial=image-cd975feaadf90d02
+# -drive id=image-cd975feaadf90d02,file=/opt/edgeless/contrast-cc-metal-qemu-tdx-3d1bfad7/share/kata-containers.img,aio=threads,format=raw,if=none,readonly=on
+# -device virtio-scsi-pci,id=scsi0,disable-modern=false
+# -device virtio-blk-pci,disable-modern=false,drive=initdata,config-wce=off,serial=initdata
+# -drive id=initdata,file=/run/kata-containers/shared/initdata/41df9447ab3cbf89bbaf8994694fd2df1940195e37b110a7c637260d0a45c903/data.img,aio=threads,format=raw,if=none
+# -device virtio-blk-pci,disable-modern=false,drive=imagepuller,config-wce=off,serial=imagepuller
+# -drive id=imagepuller,file=/run/kata-containers/shared/initdata/41df9447ab3cbf89bbaf8994694fd2df1940195e37b110a7c637260d0a45c903/imagepuller.img,aio=threads,format=raw,if=none
+# -object {\"qom-type\":\"tdx-guest\",\"id\":\"tdx\",\"mrconfigid\":\"tc1zbNyazcZJMoF9XuWGC6X+age5y96DBbsAYI1g+/cAAAAAAAAAAAAAAAAAAAAA\",\"quote-generation-socket\":{\"type\":\"vsock\",\"cid\":\"2\",\"port\":\"4050\"}}
+# -device vhost-vsock-pci,disable-modern=false,vhostfd=4,id=vsock-2180650916,guest-cid=2180650916
+# -netdev tap,id=network-0,vhost=on,vhostfds=5,fds=6
+# -device driver=virtio-net-pci,netdev=network-0,mac=d6:0d:91:3b:58:b2,disable-modern=false,mq=on,vectors=4
+# -rtc base=utc,driftfix=slew,clock=host
+# -global kvm-pit.lost_tick_policy=discard
+# -vga none
+# -no-user-config
+# -nodefaults
+# -nographic
+# --no-reboot
+# -object memory-backend-ram,id=dimm1,size=1162M
+# -numa node,memdev=dimm1
+# -kernel /opt/edgeless/contrast-cc-metal-qemu-tdx-3d1bfad7/share/kata-kernel
+# -initrd /opt/edgeless/contrast-cc-metal-qemu-tdx-3d1bfad7/share/kata-initrd.zst
+# -append tsc=reliable no_timer_check rcupdate.rcu_expedited=1 i8042.direct=1 i8042.dumbkbd=1 i8042.nopnp=1 i8042.noaux=1 noreplace-smp reboot=k cryptomgr.notests net.ifnames=0 pci=lastbus=0 root=/dev/vda1 rootflags=ro rootfstype=erofs console=hvc0 console=hvc1 quiet systemd.show_status=false panic=1 nr_cpus=1 selinux=0 systemd.unit=kata-containers.target systemd.mask=systemd-networkd.service systemd.mask=systemd-networkd.socket scsi_mod.scan=none systemd.verity=yes selinux=0 root=fstab loglevel=4 lsm=landlock,yama,bpf init=/nix/store/nbp46qm472gz10bx6hd2rkv4dzislbaj-nixos-system-nixos-26.05pre-git/init roothash=9da5af892b47f4626200ce73487cf9f84496450b1012dde0b5279c96f0fed561 cgroup_no_v1=all
+# -bios /opt/edgeless/contrast-cc-metal-qemu-tdx-3d1bfad7/tdx/share/OVMF.fd
+# -pidfile /run/vc/vm/41df9447ab3cbf89bbaf8994694fd2df1940195e37b110a7c637260d0a45c903/pid
+# -smp 1,cores=1,threads=1,sockets=1,maxcpus=1]" name=containerd-shim-v2 pid=3139678 sandbox=41df9447ab3cbf89bbaf8994694fd2df1940195e37b110a7c637260d0a45c903 source=virtcontainers/hypervisor subsystem=qmp
+
+#
+# SNP
+#
 
 # -name sandbox-18fa58e95cc4b62243741f4dcc880d3c8a708f48ccf5a1ae1e5e45470653ca95
 # -uuid 984d75b0-5c36-450c-a17b-66b6217f4e11
