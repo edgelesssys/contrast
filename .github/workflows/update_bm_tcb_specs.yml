@@ -46,7 +46,7 @@ jobs:
       - name: Update bare metal tcb specs
         id: update
         run: |
-          kubectl create configmap bm-tcb-specs --from-file=./dev-docs/e2e/tcb-specs.json -n default --dry-run=client -o yaml | kubectl apply -f -
+          kubectl create configmap bm-tcb-specs --from-file=specs="./dev-docs/e2e/$(hostname)/manifest.json" -n default --dry-run=client -o yaml | kubectl apply -f -
           echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
 
   notify-teams:

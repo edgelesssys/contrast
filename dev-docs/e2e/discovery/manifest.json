@@ -1,0 +1,33 @@
+[
+    {
+        "op": "remove",
+        "path": "/ReferenceValues/snp/0"
+    },
+    {
+        "op": "replace",
+        "path": "/ReferenceValues/snp/0/MinimumTCB",
+        "value": {
+            "BootloaderVersion": 7,
+            "TEEVersion": 0,
+            "SNPVersion": 15,
+            "MicrocodeVersion": 72
+        }
+    },
+    {
+        "op": "replace",
+        "path": "/ReferenceValues/snp/0/MinimumMitigationVector",
+        "value": 9
+    },
+    {
+        "op": "replace",
+        "path": "/ReferenceValues/snp/0/AllowedChipIDs",
+        "value": [
+            "EDD59A3B59E93CE7A957AF98A0BF19D5DFEAE631B97DEC7DCEFB48DFB2B5223005772072443C4CAE1CA8931C4AC5EAB6EB7835342433C7244EFFA2EB7B84BF96"
+        ]
+    },
+    {
+        "op": "test",
+        "path": "/ReferenceValues/snp/0/ProductName",
+        "value": "Genoa"
+    }
+]

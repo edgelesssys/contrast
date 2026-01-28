@@ -12,6 +12,7 @@ require (
 	github.com/coreos/go-iptables v0.8.0
 	github.com/coreos/go-systemd/v22 v22.6.0
 	github.com/elazarl/goproxy v1.7.2
+	github.com/evanphx/json-patch/v5 v5.9.11
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/go-containerregistry v0.20.7
 	github.com/google/go-github/v72 v72.0.0

@@ -265,10 +265,8 @@ https://github.com/edgelesssys/contrast/blob/f14824f6c039e47a96cc0bbf2298bce5aa8
 To run our e2e test with the real bare-metal runner specification, a ConfigMap named `bm-tcb-specs` is added to all e2e clusters.
 Having the ConfigMap prevents using committed values in the e2e tests directly, which could otherwise lead to backporting problems.
 
-The `bm-tcb-specs` ConfigMap wraps the [`tcb-specs.json`](../e2e/tcb-specs.json), sharing TDX and SNP bare-metal specifications.
-While the ConfigMap stores both runner specifications the [patchReferenceValues()](https://github.com/edgelesssys/contrast/blob/main/e2e/internal/contrasttest/contrasttest.go#L254-L283) function will only use the platform-specific reference values for overwriting.
-
-Add or update [`tcb-specs.json`](../e2e/tcb-specs.json) with the values from the runner you've added.
+The `bm-tcb-specs` ConfigMap wraps the [`<host>/manifest.json`](../e2e), containing a JSON Patch file for the TDX or SNP bare-metal specifications for the configured host.
+Add a file [`dev-docs/e2e/<host>/manifest.json`](../e2e) with the values for the runner you've added.
 
 ## Sync Server
 
