@@ -35,10 +35,10 @@ index 76ad6bed30c81e131ed637ed1f4e87cf03813d12..88171e1c40f271be9468c6c8b9b87c87
      },
      "device_annotations": {
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 03c39eba6b2c417df06f8eb4c1d5b8bd134c4f8b..acbaef81826caef4aad9ee21d99712c83d6b651a 100644
+index 5f7127351670b850113a362b601f5dfbb4462cff..3186617e07b59e498c5baec763da253fedbe00aa 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -370,46 +370,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
+@@ -387,46 +387,3 @@ fn get_downward_api_mount(yaml_mount: &pod::VolumeMount, p_mounts: &mut Vec<poli
          });
      }
  }
@@ -86,7 +86,7 @@ index 03c39eba6b2c417df06f8eb4c1d5b8bd134c4f8b..acbaef81826caef4aad9ee21d99712c8
 -    });
 -}
 diff --git a/src/tools/genpolicy/src/settings.rs b/src/tools/genpolicy/src/settings.rs
-index d839812b5b0f1b4a4419d8b884ff890d101c31a1..14c09aaefebf0a8594aa2b904cab6bfae39f2a9e 100644
+index 65e1b82857282618cfb0719ef3fe9bd87760d333..21a02a483499a68513a6b86db042631d37c4d9db 100644
 --- a/src/tools/genpolicy/src/settings.rs
 +++ b/src/tools/genpolicy/src/settings.rs
 @@ -34,7 +34,6 @@ pub struct Volumes {
@@ -98,10 +98,10 @@ index d839812b5b0f1b4a4419d8b884ff890d101c31a1..14c09aaefebf0a8594aa2b904cab6bfa
  
  /// EmptyDir volume settings loaded from genpolicy-settings.json.
 diff --git a/src/tools/genpolicy/src/yaml.rs b/src/tools/genpolicy/src/yaml.rs
-index c640694c22404b8501f843dfc3dcfb2ee7bd5c6d..25b67abec217316e22b337f5dfcae88f3b345034 100644
+index a53a4bb9abae414fb5eb47e179aca7ad9f6f7b8f..55ac5afdf809297213414394e15183d63b45c8f4 100644
 --- a/src/tools/genpolicy/src/yaml.rs
 +++ b/src/tools/genpolicy/src/yaml.rs
-@@ -28,6 +28,7 @@ use crate::volume;
+@@ -27,6 +27,7 @@ use crate::utils::Config;
  use async_trait::async_trait;
  use core::fmt::Debug;
  use kata_types::annotations::KATA_ANNO_CFG_HYPERVISOR_INIT_DATA;
@@ -109,17 +109,17 @@ index c640694c22404b8501f843dfc3dcfb2ee7bd5c6d..25b67abec217316e22b337f5dfcae88f
  use log::debug;
  use protocols::agent;
  use serde::{Deserialize, Serialize};
-@@ -294,6 +295,7 @@ pub fn get_container_mounts_and_storages(
+@@ -293,6 +294,7 @@ pub fn get_container_mounts_and_storages(
      settings: &settings::Settings,
-     volumes_option: &Option<Vec<volume::Volume>>,
+     podSpec: &pod::PodSpec,
  ) {
 +    let mut mountPaths = BTreeSet::new();
-     if let Some(volumes) = volumes_option {
+     if let Some(volumes) = &podSpec.volumes {
          if let Some(volume_mounts) = &container.volumeMounts {
              for volume in volumes {
 @@ -306,19 +308,19 @@ pub fn get_container_mounts_and_storages(
-                             volume,
                              volume_mount,
+                             &podSpec.securityContext,
                          );
 +                        mountPaths.insert(volume_mount.mountPath.clone());
                      }

@@ -39,10 +39,10 @@ index 3d1e7b5bd95d18a84d4a336ddceec0d21ff8f0b3..6e52e6cd92a466d400c7beb1596741ec
  
      pub fn uses_nvidia_visible_devices(&self) -> bool {
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index d5e5c18bf0d72c97c1f6275b2603737f44e46967..93e7274047910a96394550e3598a7128ed59516c 100644
+index 8258844480aef0314c0e529f9e1399e8319a5e50..bd1a10e888f21f552f3033de2775a134b6da46dd 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -729,50 +729,49 @@ impl AgentPolicy {
+@@ -732,50 +732,49 @@ impl AgentPolicy {
  
          // Generate expected device entries and annotation key-value pairs for VFIO devices
          let mut runtime_anno_patterns = BTreeMap::new();

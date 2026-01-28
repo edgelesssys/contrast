@@ -10,7 +10,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  2 files changed, 31 insertions(+), 9 deletions(-)
 
 diff --git a/src/agent/src/confidential_data_hub/mod.rs b/src/agent/src/confidential_data_hub/mod.rs
-index 6a486fe183fb51670ab39cb67f5bae039640d5d6..dc31a2ddfc26509a3888a615d798d35101391948 100644
+index 64db843a5953e7176420274bc65b99974534e407..bf2ec55251ef3013726bc2b24a8c69b423e78ec0 100644
 --- a/src/agent/src/confidential_data_hub/mod.rs
 +++ b/src/agent/src/confidential_data_hub/mod.rs
 @@ -297,12 +297,37 @@ pub async fn secure_mount(
@@ -57,7 +57,7 @@ index 6a486fe183fb51670ab39cb67f5bae039640d5d6..dc31a2ddfc26509a3888a615d798d351
      Ok(())
  }
 diff --git a/src/agent/src/rpc.rs b/src/agent/src/rpc.rs
-index 5c2e6c16ee055d4500497290c45732f62ef3e79b..dbaafa1ef89eb7bf664f3e8984fa8741ac2f586a 100644
+index a005c61ef2adb4b894cc5843cf649c7a9215ba27..0ef1e4a2fbac4d67bcb13d324d1df98bfa0067e9 100644
 --- a/src/agent/src/rpc.rs
 +++ b/src/agent/src/rpc.rs
 @@ -107,7 +107,7 @@ use kata_types::k8s;
@@ -69,7 +69,7 @@ index 5c2e6c16ee055d4500497290c45732f62ef3e79b..dbaafa1ef89eb7bf664f3e8984fa8741
  /// the iptables seriers binaries could appear either in /sbin
  /// or /usr/sbin, we need to check both of them
  const USR_IPTABLES_SAVE: &str = "/usr/sbin/iptables-save";
-@@ -2263,9 +2263,6 @@ fn is_sealed_secret_path(source_path: &str) -> bool {
+@@ -2267,9 +2267,6 @@ fn is_sealed_secret_path(source_path: &str) -> bool {
  }
  
  async fn cdh_handler_trusted_storage(oci: &mut Spec) -> Result<()> {

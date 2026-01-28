@@ -9,7 +9,7 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  1 file changed, 24 insertions(+), 31 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index 1ba71946d420d91265c278b583f231241b92d4da..34c9285b049cc647f5e61507758fe617aabc8033 100644
+index 138f074a4e764f5a20abf383883ebaa61b16cad2..9347911f75d8155fc744044e7c3d870020fbd0d7 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -166,38 +166,31 @@ impl Container {

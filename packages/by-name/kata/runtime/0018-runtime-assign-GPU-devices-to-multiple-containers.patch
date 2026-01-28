@@ -97,10 +97,10 @@ index 62fb2a4a7a070bb81ecc553d16a41711c84dd310..3d1e7b5bd95d18a84d4a336ddceec0d2
  
  fn compress_default_capabilities(
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index f7372000d445667689180d6f71c8e2e9378e36db..d5e5c18bf0d72c97c1f6275b2603737f44e46967 100644
+index f1f74e56bb25b83e339d06ee5123b5d4518b762b..8258844480aef0314c0e529f9e1399e8319a5e50 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -775,6 +775,25 @@ impl AgentPolicy {
+@@ -778,6 +778,25 @@ impl AgentPolicy {
              }
          }
  

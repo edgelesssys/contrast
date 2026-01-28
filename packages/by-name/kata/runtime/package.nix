@@ -12,14 +12,14 @@
 
 buildGoModule (finalAttrs: {
   pname = "kata-runtime";
-  version = "3.24.0";
+  version = "3.25.0";
 
   src = applyPatches {
     src = fetchFromGitHub {
       owner = "kata-containers";
       repo = "kata-containers";
       rev = finalAttrs.version;
-      hash = "sha256-CXSJa3aCOEoGW1KkDP2yTmbb0UsxaE2K2u4TcVdscf0=";
+      hash = "sha256-vruERdJHaKhiy3wCNOC9mFZrs38Iw7WdVo6RgQvIcxs=";
     };
 
     patches = [
@@ -119,38 +119,28 @@ buildGoModule (finalAttrs: {
       # Upstream issue: https://github.com/kata-containers/kata-containers/issues/11532.
       ./0016-agent-remove-initdata-processing.patch
 
-      # The pod security context setting fsGroup is not taken into account by genpolicy, causing
-      # policy errors if set.
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/11935.
-      ./0017-genpolicy-support-fsGroup-setting-in-pod-security-co.patch
-
       # In addition to the initdata device, we also require the imagepuller's auth config
       # to be passed to the VM in a similar manner.
-      ./0018-runtime-pass-imagepuller-config-device-to-vm.patch
+      ./0017-runtime-pass-imagepuller-config-device-to-vm.patch
 
       # Privatemode requires GPU sharing between containers of the same pod.
       # In the hook-based flow, this worked because all devices and libs were (accidentally) handed to all containers.
       # With the CDI-based flow, this no longer happens.
       # Instead, this patch ensures that if a container has NVIDIA_VISIBLE_DEVICES=all set as an env var,
       # that container receives ALL Nvidia GPU devices known to the pod.
-      ./0019-runtime-assign-GPU-devices-to-multiple-containers.patch
-
-      # The container-device-interface crate v0.1.0 was published without a corresponding git tag
-      # and is going to be yanked.
-      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12151.
-      ./0020-agent-Bump-CDI-rs-to-latest.patch
+      ./0018-runtime-assign-GPU-devices-to-multiple-containers.patch
 
       # With recent versions of the sandbox-device-plugin, a /dev/iommu device is added
       # to the container spec for GPU-enabled containers.
       # Since the same thing is done by the CTK within the PodVM, and we only want this
       # to influence VM creation, we remove this device from the container spec in the agent.
       # Upstream bug: https://github.com/kata-containers/kata-containers/issues/12246.
-      ./0021-runtime-remove-iommu-device.patch
+      ./0019-runtime-remove-iommu-device.patch
 
       # We are observing frequent pull failures from genpolicy due to the connection being reset by the registry.
       # This patch allows genpolicy to retry these failed pulls multiple times.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12300.
-      ./0022-genpolicy-retry-failed-image-pulls.patch
+      ./0020-genpolicy-retry-failed-image-pulls.patch
 
       # Kata hard-codes the `nvidia.com/pgpu` device identifier for parsing how many GPUs should be
       # attached to a note. This doesn't work with device-specific aliases, which are used in older
@@ -158,7 +148,7 @@ buildGoModule (finalAttrs: {
       # To be compatible with such scenarios, we implement the most simple patch and just match on
       # all `nvidia.com/` devices.
       # Upstream Issue: https://github.com/kata-containers/kata-containers/issues/12322
-      ./0023-genpolicy-use-all-nvidia-GPU-annotations.patch
+      ./0021-genpolicy-use-all-nvidia-GPU-annotations.patch
     ];
   };
 

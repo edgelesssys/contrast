@@ -11,7 +11,7 @@ Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
  3 files changed, 72 insertions(+), 24 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/registry.rs b/src/tools/genpolicy/src/registry.rs
-index 34c9285b049cc647f5e61507758fe617aabc8033..6e59180da0cbd587bfe3b12e49284c405e37ca2d 100644
+index 9347911f75d8155fc744044e7c3d870020fbd0d7..ad40fbb60618bf2335bac723b77bcacc9e76d0f3 100644
 --- a/src/tools/genpolicy/src/registry.rs
 +++ b/src/tools/genpolicy/src/registry.rs
 @@ -21,7 +21,12 @@ use oci_client::{
@@ -127,7 +127,7 @@ index 34c9285b049cc647f5e61507758fe617aabc8033..6e59180da0cbd587bfe3b12e49284c40
          // Find the last layer with an /etc/* file, respecting whiteouts.
          info!("Parsing users and groups in image layers");
 diff --git a/src/tools/genpolicy/src/utils.rs b/src/tools/genpolicy/src/utils.rs
-index 241d80d96483e09dc2422466275d67640d5b57d3..735446807153704de949cecc959f1f2d486715ee 100644
+index 34e02a6be48e064a43433e4207a50ee332cadcaa..bd2e831e18e96c8023593e91952963903de4bd83 100644
 --- a/src/tools/genpolicy/src/utils.rs
 +++ b/src/tools/genpolicy/src/utils.rs
 @@ -109,6 +109,15 @@ struct CommandLineOptions {
@@ -163,7 +163,7 @@ index 241d80d96483e09dc2422466275d67640d5b57d3..735446807153704de949cecc959f1f2d
      }
  }
 diff --git a/src/tools/genpolicy/tests/policy/main.rs b/src/tools/genpolicy/tests/policy/main.rs
-index b0745ededf072677f9fc7ae8a9206fc4ac01ffd6..9f354539626c891e93ca4d31887a7e6a98808788 100644
+index 919b6bd99fcdb7fe86b8ff237469ae95fbccdf52..e8879d17da739dbff315f3a6ce908dd7f891593f 100644
 --- a/src/tools/genpolicy/tests/policy/main.rs
 +++ b/src/tools/genpolicy/tests/policy/main.rs
 @@ -121,6 +121,7 @@ mod tests {

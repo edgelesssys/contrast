@@ -23,10 +23,10 @@ index c014d9e4248174cc3d55f7e28ab1ed8709d2acf1..aed30f2bbedf6b8bf8bf2732def6d7ca
      is_null(i_linux.IntelRdt)
      is_null(i_linux.Resources.BlockIO)
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index 04d0ef196a5da3ab56091e94ff6d845a35b29f03..d89d7a961ade93a532b2bdbebdde4d075cf3075b 100644
+index b73470cc0ecfbba96d8a1910bc05aed00c93d2f3..efa1126bf1a39d88bfe9d412b0c62e68dd86b21b 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -185,13 +185,19 @@ fn get_empty_dir_mount_and_storage(
+@@ -202,13 +202,19 @@ fn get_empty_dir_mount_and_storage(
          _ => "rw",
      };
  

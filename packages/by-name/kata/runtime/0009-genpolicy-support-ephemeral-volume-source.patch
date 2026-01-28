@@ -15,13 +15,13 @@ Signed-off-by: Markus Rudy <mr@edgeless.systems>
  3 files changed, 21 insertions(+), 2 deletions(-)
 
 diff --git a/src/tools/genpolicy/src/mount_and_storage.rs b/src/tools/genpolicy/src/mount_and_storage.rs
-index d89d7a961ade93a532b2bdbebdde4d075cf3075b..03c39eba6b2c417df06f8eb4c1d5b8bd134c4f8b 100644
+index efa1126bf1a39d88bfe9d412b0c62e68dd86b21b..5f7127351670b850113a362b601f5dfbb4462cff 100644
 --- a/src/tools/genpolicy/src/mount_and_storage.rs
 +++ b/src/tools/genpolicy/src/mount_and_storage.rs
-@@ -126,7 +126,7 @@ pub fn get_mount_and_storage(
-         }
- 
-         get_empty_dir_mount_and_storage(settings, p_mounts, storages, yaml_mount, volume.unwrap());
+@@ -134,7 +134,7 @@ pub fn get_mount_and_storage(
+             volume.unwrap(),
+             pod_security_context,
+         );
 -    } else if yaml_volume.persistentVolumeClaim.is_some() || yaml_volume.azureFile.is_some() {
 +    } else if yaml_volume.persistentVolumeClaim.is_some() || yaml_volume.azureFile.is_some() || yaml_volume.ephemeral.is_some() {
          get_shared_bind_mount(yaml_mount, p_mounts, "rprivate", "rw");

@@ -35,10 +35,10 @@ index aed30f2bbedf6b8bf8bf2732def6d7ca62d66d07..30cbd65f54ee0a5ba6f6f4d2c1a09a01
  mount_source_allows(p_mount, i_mount, bundle_id, sandbox_id) if {
      regex1 := p_mount.source
 diff --git a/src/tools/genpolicy/src/policy.rs b/src/tools/genpolicy/src/policy.rs
-index 7380687554cf9fce492a543a8183cd620c97ad64..f7372000d445667689180d6f71c8e2e9378e36db 100644
+index 957fd85d66ee70b629275fee83045d0bb7f74d25..f1f74e56bb25b83e339d06ee5123b5d4518b762b 100644
 --- a/src/tools/genpolicy/src/policy.rs
 +++ b/src/tools/genpolicy/src/policy.rs
-@@ -654,6 +654,9 @@ impl AgentPolicy {
+@@ -657,6 +657,9 @@ impl AgentPolicy {
          );
  
          let is_privileged = yaml_container.is_privileged();
@@ -48,7 +48,7 @@ index 7380687554cf9fce492a543a8183cd620c97ad64..f7372000d445667689180d6f71c8e2e9
          let process = self.get_container_process(
              resource,
              yaml_container,
-@@ -663,7 +666,7 @@ impl AgentPolicy {
+@@ -666,7 +669,7 @@ impl AgentPolicy {
              is_privileged,
          );
  
