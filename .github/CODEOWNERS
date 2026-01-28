@@ -1,9 +1,0 @@
-# keep-sorted start
-/coordinator/ @burgerdev
-/e2e/ @burgerdev
-/flake.lock @katexochen
-/flake.nix @katexochen
-/overlays @katexochen
-/packages @katexochen
-/treefmt.nix @katexochen
-# keep-sorted end
