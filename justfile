@@ -140,38 +140,12 @@ generate cli=default_cli platform=default_platform:
         ${debugFlag} \
         ./{{ workspace_dir }}/deployment/
 
-    # On baremetal SNP, we don't have default values for MinimumTCB, so we need to set some here.
-    case {{ platform }} in
-        "Metal-QEMU-SNP"|"Metal-QEMU-SNP-GPU")
-            cfg=$(mktemp)
-            kubectl -n default get cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}" > "$cfg"
-            export CFG="$cfg"
-            yq -i '
-            (load(strenv(CFG)).snp) as $b
-            | .ReferenceValues.snp = [
-                (.ReferenceValues.snp | to_entries)[] as $e
-                | $e.value
-                | .MinimumTCB = ($b[$e.key].MinimumTCB // .MinimumTCB)
-                | .MinimumMitigationVector = ($b[$e.key].MinimumMitigationVector // .MinimumMitigationVector)
-                | .AllowedChipIDs = ($b[$e.key].AllowedChipIDs // .AllowedChipIDs)
-            ]
-            ' {{ workspace_dir }}/manifest.json
-        ;;
-        "Metal-QEMU-TDX"|"Metal-QEMU-TDX-GPU")
-            cfg=$(mktemp)
-            kubectl -n default get cm bm-tcb-specs -o "jsonpath={.data['tcb-specs\.json']}" > "$cfg"
-            export CFG="$cfg"
-            yq -i '
-            (load(strenv(CFG)).tdx) as $b
-            | .ReferenceValues.tdx = [
-                (.ReferenceValues.tdx | to_entries)[] as $e
-                | $e.value
-                | .AllowedPIIDs = ($b[$e.key].AllowedPIIDs // .AllowedPIIDs)
-                | .MrSeam = ($b[$e.key].MrSeam // .MrSeam)
-            ]
-            ' {{ workspace_dir }}/manifest.json
-        ;;
-    esac
+    patch=$(mktemp)
+    kubectl -n default get cm bm-tcb-specs -o jsonpath="{.data['specs']}" > "$patch"
+    cat ./{{ workspace_dir }}/manifest.json |
+        nix run -L .#contrastPkgsStatic.json-patch -- -p "$patch" |
+        jq > ./{{ workspace_dir }}/manifest.json.tmp
+    mv ./{{ workspace_dir }}/manifest.json.tmp ./{{ workspace_dir }}/manifest.json
 
 # Apply Kubernetes manifests from /deployment
 apply target=default_deploy_target platform=default_platform:

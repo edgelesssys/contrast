@@ -46,7 +46,14 @@ jobs:
       - name: Update bare metal tcb specs
         id: update
         run: |
-          kubectl create configmap bm-tcb-specs --from-file=./dev-docs/e2e/tcb-specs.json -n default --dry-run=client -o yaml | kubectl apply -f -
+          declare -A specs=(
+            ["Metal-QEMU-SNP"]="./dev-docs/e2e/palutena/manifest.json"
+            ["Metal-QEMU-TDX"]="./dev-docs/e2e/olimar/manifest.json"
+            ["Metal-QEMU-SNP-GPU"]="./dev-docs/e2e/discovery/manifest.json"
+            ["Metal-QEMU-SNP-DEV"]="./dev-docs/e2e/hetzner-ax162-snp/manifest.json"
+            ["Metal-QEMU-TDX-GPU"]="./dev-docs/e2e/l-bgx-02/manifest.json"
+          )
+          kubectl create configmap bm-tcb-specs --from-file=specs="${specs[${{ matrix.platform.name }}]}" -n default --dry-run=client -o yaml | kubectl apply -f -
           echo "${{ matrix.platform.name }}=success" >> "$GITHUB_OUTPUT"
 
   notify-teams:

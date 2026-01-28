@@ -27,7 +27,6 @@ import (
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
-	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/google/go-github/v72/github"
 	"github.com/stretchr/testify/require"
@@ -155,15 +154,12 @@ func TestRelease(t *testing.T) {
 	require.True(t, t.Run("patch reference values", func(t *testing.T) {
 		require := require.New(t)
 
-		platf, err := platforms.FromString(lowerPlatformStr)
-		require.NoError(err)
-
 		manifestBytes, err := os.ReadFile(contrast.dir + "/manifest.json")
 		require.NoError(err)
 		var m manifest.Manifest
 		require.NoError(json.Unmarshal(manifestBytes, &m))
 
-		patchManifest, err := contrasttest.PatchReferenceValues(t.Context(), k, platf)
+		patchManifest, err := contrasttest.PatchReferenceValues(t.Context(), k)
 		require.NoError(err)
 		m, err = patchManifest(m)
 		require.NoError(err)
