@@ -53,21 +53,34 @@ func New(rulesPath, settingsPath, cachePath string, bin []byte) (*Runner, error)
 //
 // Run can be called more than once.
 func (r *Runner) Run(ctx context.Context, res any, extraPath string, logger *slog.Logger) (string, error) {
+	input, err := kuberesource.EncodeResources(res)
+	if err != nil {
+		return "", fmt.Errorf("encoding resources: %w", err)
+	}
+
+	inFile, err := os.CreateTemp("", "genpolicy-input-*.yaml")
+	if err != nil {
+		return "", fmt.Errorf("creating temp input file: %w", err)
+	}
+	defer os.Remove(inFile.Name())
+
+	if _, err := inFile.Write(input); err != nil {
+		inFile.Close()
+		return "", fmt.Errorf("writing temp input file: %w", err)
+	}
+	inFile.Close()
+
 	args := []string{
 		"--runtime-class-names=contrast-cc",
 		"--rego-rules-path=" + r.rulesPath,
 		"--json-settings-path=" + r.settingsPath,
 		"--layers-cache-file-path=" + r.cachePath,
-		"--yaml-file=/dev/stdin", // prevent genpolicy from outputting anything but the annotation
+		"--yaml-file=" + inFile.Name(),
 		"--config-file=" + extraPath,
 		"--base64-out",
 	}
 	genpolicy := exec.CommandContext(ctx, r.genpolicy.Path(), args...)
-	input, err := kuberesource.EncodeResources(res)
-	if err != nil {
-		return "", fmt.Errorf("encoding resources: %w", err)
-	}
-	genpolicy.Stdin = bytes.NewReader(input)
+
 	genpolicy.Env = os.Environ()
 	if _, hasRustLog := os.LookupEnv("RUST_LOG"); !hasRustLog {
 		genpolicy.Env = append(genpolicy.Env, "RUST_LOG=info")
