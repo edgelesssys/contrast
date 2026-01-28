@@ -226,7 +226,7 @@ func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
 }
 
 // PatchManifestFunc defines a function type allowing the given manifest to be modified.
-type PatchManifestFunc func(manifest.Manifest) manifest.Manifest
+type PatchManifestFunc func(manifest.Manifest) (manifest.Manifest, error)
 
 // PatchManifest modifies the current manifest by executing a provided PatchManifestFunc on it. This function fails the test if it encounters an error.
 func (ct *ContrastTest) PatchManifest(t *testing.T, patchFn PatchManifestFunc) {
@@ -243,7 +243,10 @@ func (ct *ContrastTest) RunPatchManifest(patchFn PatchManifestFunc) error {
 	if err := json.Unmarshal(manifestBytes, &m); err != nil {
 		return err
 	}
-	patchedManifest := patchFn(m)
+	patchedManifest, err := patchFn(m)
+	if err != nil {
+		return err
+	}
 	manifestBytes, err = json.Marshal(patchedManifest)
 	if err != nil {
 		return err
@@ -268,7 +271,7 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 	if err != nil {
 		return nil, fmt.Errorf("unmarshaling reference values: %w", err)
 	}
-	return func(m manifest.Manifest) manifest.Manifest {
+	return func(m manifest.Manifest) (manifest.Manifest, error) {
 		switch {
 		case platforms.IsSNP(platform):
 			// Overwrite the minimumTCB values with the ones loaded from the path tcbSpecificationFile.
@@ -300,7 +303,7 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platfor
 
 		default:
 		}
-		return m
+		return m, err
 	}, nil
 }
 

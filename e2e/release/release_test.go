@@ -165,7 +165,8 @@ func TestRelease(t *testing.T) {
 
 		patchManifest, err := contrasttest.PatchReferenceValues(t.Context(), k, platf)
 		require.NoError(err)
-		m = patchManifest(m)
+		m, err = patchManifest(m)
+		require.NoError(err)
 
 		manifestBytes, err = json.Marshal(m)
 		require.NoError(err)

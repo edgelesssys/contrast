@@ -141,12 +141,12 @@ func TestWorkloadSecrets(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 
-		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
+		ct.PatchManifest(t, func(m manifest.Manifest) (manifest.Manifest, error) {
 			for key, policy := range m.Policies {
 				policy.WorkloadSecretID = "custom"
 				m.Policies[key] = policy
 			}
-			return m
+			return m, nil
 		})
 
 		t.Run("set", ct.Set)
@@ -184,12 +184,12 @@ func TestWorkloadSecrets(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 
-		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
+		ct.PatchManifest(t, func(m manifest.Manifest) (manifest.Manifest, error) {
 			for key, policy := range m.Policies {
 				policy.WorkloadSecretID = ""
 				m.Policies[key] = policy
 			}
-			return m
+			return m, err
 		})
 
 		t.Run("set", ct.Set)
