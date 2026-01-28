@@ -33,6 +33,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
@@ -215,7 +216,7 @@ func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
 	if err := generate.ExecuteContext(ctx); err != nil {
 		return errors.Join(fmt.Errorf("%s", errBuf), err)
 	}
-	patchRefValsFunc, err := PatchReferenceValues(ctx, ct.Kubeclient, ct.Platform)
+	patchRefValsFunc, err := PatchReferenceValues(ctx, ct.Kubeclient)
 	if err != nil {
 		return fmt.Errorf("getting func to patch reference values in manifest: %w", err)
 	}
@@ -245,7 +246,7 @@ func (ct *ContrastTest) RunPatchManifest(patchFn PatchManifestFunc) error {
 	}
 	patchedManifest, err := patchFn(m)
 	if err != nil {
-		return err
+		return fmt.Errorf("patching manifest: %w", err)
 	}
 	manifestBytes, err = json.Marshal(patchedManifest)
 	if err != nil {
@@ -259,51 +260,30 @@ func (ct *ContrastTest) RunPatchManifest(patchFn PatchManifestFunc) error {
 
 // PatchReferenceValues returns a PatchManifestFunc which modifies the reference values in a manifest
 // based on the 'bm-tcb-specs' ConfigMap persistently stored in the 'default' namespace.
-func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient, platform platforms.Platform) (PatchManifestFunc, error) {
-	var baremetalRefVal manifest.ReferenceValues
+func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient) (PatchManifestFunc, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	configMap, err := k.Client.CoreV1().ConfigMaps("default").Get(ctx, "bm-tcb-specs", metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("getting ConfigMap bm-tcb-specs: %w", err)
 	}
-	err = json.Unmarshal([]byte(configMap.Data["tcb-specs.json"]), &baremetalRefVal)
+	patch, err := jsonpatch.DecodePatch([]byte(configMap.Data["specs"]))
 	if err != nil {
-		return nil, fmt.Errorf("unmarshaling reference values: %w", err)
+		return nil, fmt.Errorf("decoding specs patch: %w", err)
 	}
 	return func(m manifest.Manifest) (manifest.Manifest, error) {
-		switch {
-		case platforms.IsSNP(platform):
-			// Overwrite the minimumTCB values with the ones loaded from the path tcbSpecificationFile.
-			var snpReferenceValues []manifest.SNPReferenceValues
-			for _, manifestSNP := range m.ReferenceValues.SNP {
-				for _, overwriteSNP := range baremetalRefVal.SNP {
-					if manifestSNP.ProductName == overwriteSNP.ProductName {
-						manifestSNP.MinimumTCB = overwriteSNP.MinimumTCB
-						manifestSNP.AllowedChipIDs = overwriteSNP.AllowedChipIDs
-						// Filter to only use the reference values of specified baremetal SNP runners
-						snpReferenceValues = append(snpReferenceValues, manifestSNP)
-					}
-				}
-			}
-			m.ReferenceValues.SNP = snpReferenceValues
-
-		case platforms.IsTDX(platform):
-			// Overwrite the field MrSeam with the ones loaded from the path tcbSpecificationFile.
-			var tdxReferenceValues []manifest.TDXReferenceValues
-			for _, manifestTDX := range m.ReferenceValues.TDX {
-				for _, overwriteTDX := range baremetalRefVal.TDX {
-					manifestTDX.MrSeam = overwriteTDX.MrSeam
-					manifestTDX.AllowedPIIDs = overwriteTDX.AllowedPIIDs
-					// Filter to only use the reference values of specified baremetal SNP runners
-					tdxReferenceValues = append(tdxReferenceValues, manifestTDX)
-				}
-			}
-			m.ReferenceValues.TDX = tdxReferenceValues
-
-		default:
+		manifestBytes, err := json.Marshal(m)
+		if err != nil {
+			return m, fmt.Errorf("marshaling manifest for patching: %w", err)
 		}
-		return m, err
+		modifiedManifestBytes, err := patch.Apply(manifestBytes)
+		if err != nil {
+			return m, fmt.Errorf("applying specs patch to manifest: %w", err)
+		}
+		if err := json.Unmarshal(modifiedManifestBytes, &m); err != nil {
+			return m, fmt.Errorf("unmarshaling patched manifest: %w", err)
+		}
+		return m, nil
 	}, nil
 }
 
