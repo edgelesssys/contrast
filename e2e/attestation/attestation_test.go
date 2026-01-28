@@ -39,13 +39,13 @@ func TestAttestation(t *testing.T) {
 		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
-		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
+		ct.PatchManifest(t, func(m manifest.Manifest) (manifest.Manifest, error) {
 			for i := range m.ReferenceValues.SNP {
 				m.ReferenceValues.SNP[i].AllowedChipIDs = []manifest.HexString{
 					"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 				}
 			}
-			return m
+			return m, nil
 		})
 		require.True(t.Run("set", func(t *testing.T) {
 			err := ct.RunSet(t.Context())
@@ -74,13 +74,13 @@ func TestAttestation(t *testing.T) {
 		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
-		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
+		ct.PatchManifest(t, func(m manifest.Manifest) (manifest.Manifest, error) {
 			for i := range m.ReferenceValues.TDX {
 				m.ReferenceValues.TDX[i].AllowedPIIDs = []manifest.HexString{
 					"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 				}
 			}
-			return m
+			return m, nil
 		})
 		require.True(t.Run("set", func(t *testing.T) {
 			err := ct.RunSet(t.Context())
@@ -112,11 +112,11 @@ func TestAttestation(t *testing.T) {
 		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
-		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
+		ct.PatchManifest(t, func(m manifest.Manifest) (manifest.Manifest, error) {
 			for i := range m.ReferenceValues.TDX {
 				m.ReferenceValues.TDX[i].MemoryIntegrity = true
 			}
-			return m
+			return m, nil
 		})
 		require.True(t.Run("set", func(t *testing.T) {
 			err := ct.RunSet(t.Context())
@@ -145,7 +145,7 @@ func TestAttestation(t *testing.T) {
 		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
 		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
 
-		ct.PatchManifest(t, func(m manifest.Manifest) manifest.Manifest {
+		ct.PatchManifest(t, func(m manifest.Manifest) (manifest.Manifest, error) {
 			switch {
 			case platforms.IsSNP(platform):
 				// Duplicate the first validator.
@@ -163,7 +163,7 @@ func TestAttestation(t *testing.T) {
 				// Make the first set of reference values invalid by changing the SVNs.
 				m.ReferenceValues.TDX[0].MrSeam = manifest.HexString("111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111")
 			}
-			return m
+			return m, nil
 		})
 		require.True(t.Run("set", ct.Set), "set should succeed as long as one validator passes")
 	})
