@@ -155,6 +155,12 @@ func TestAttestation(t *testing.T) {
 				},
 				wantErr: "PCK extension SMTEnabled",
 			},
+			"tcb-evaluation-data-number": {
+				patchTDXReferenceValues: func(refVal *manifest.TDXReferenceValues) {
+					refVal.MinTCBEvaluationDataNumber = 9000
+				},
+				wantErr: "404 Not Found",
+			},
 		} {
 			t.Run(name, func(t *testing.T) {
 				require := require.New(t)
