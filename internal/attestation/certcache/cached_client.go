@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"net/http"
 	"regexp"
 	"time"
 
@@ -33,15 +34,10 @@ type CachedHTTPSGetter struct {
 // NewCachedHTTPSGetter returns a new CachedHTTPSGetter.
 func NewCachedHTTPSGetter(s store, ticker clock.Ticker, log *slog.Logger) *CachedHTTPSGetter {
 	c := &CachedHTTPSGetter{
-		ContextHTTPSGetter: &trust.RetryHTTPSGetter{
-			// Default values taken from trust.DefaultHTTPSGetter.
-			Timeout:       2 * time.Minute,
-			MaxRetryDelay: 30 * time.Second,
-			Getter:        &trust.SimpleHTTPSGetter{},
-		},
-		logger:   log,
-		cache:    s,
-		gcTicker: ticker,
+		ContextHTTPSGetter: NewRetryHTTPSGetter(http.DefaultClient, 5*time.Second),
+		logger:             log,
+		cache:              s,
+		gcTicker:           ticker,
 	}
 	return c
 }
