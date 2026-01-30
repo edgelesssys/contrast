@@ -43,7 +43,7 @@ jobs:
           EOF
       - name: Build and push container images
         run: |
-          just node-installers
+          just node-installer
       - name: Install K3s
         run: |
           curl -sfL https://get.k3s.io | K3S_KUBECONFIG_OUTPUT=~/.kube/config K3S_KUBECONFIG_MODE="644" sh -

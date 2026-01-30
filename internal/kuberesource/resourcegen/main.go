@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -16,7 +17,7 @@ import (
 func main() {
 	imageReplacementsPath := flag.String("image-replacements", "", "Path to the image replacements file")
 	namespace := flag.String("namespace", "", "Namespace for namespaced resources")
-	rawPlatform := flag.String("platform", "", "Deployment platform to generate the runtime configuration for")
+	rawPlatform := flag.String("platform", "", "Deployment platform(s) to generate the runtime configuration for")
 	addLoadBalancers := flag.Bool("add-load-balancers", false, "Add load balancers to selected services")
 	addNamespaceObject := flag.Bool("add-namespace-object", false, "Add namespace object with the given namespace")
 	addPortForwarders := flag.Bool("add-port-forwarders", false, "Add port forwarder pods for all services")
@@ -39,29 +40,27 @@ func main() {
 		case "coordinator":
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.CoordinatorBundle(), "contrast-cc")
 		case "runtime":
+			platformCollection := kuberesource.PlatformCollection{}
+			if err := platformCollection.AddFromCommaSeparated(*rawPlatform); err != nil {
+				log.Fatalf("Error parsing platform(s): %v", err)
+			}
+			subResources, err = platformCollection.Runtimes()
+		case "collect-platforms":
 			var defaultPlatform platforms.Platform
 			defaultPlatform, err = platforms.FromStringOrEmpty(*rawPlatform)
 			if err != nil {
 				log.Fatalf("Error parsing platform: %v", err)
 			}
 
-			var deployment []any
-			if *deploymentPath != "" {
-				yamlFiles, err := kuberesource.CollectYAMLFiles(*deploymentPath)
-				if err != nil {
-					log.Fatalf("Error collecting deployment files: %v", err)
-				}
-				yamlBytes, err := kuberesource.YAMLBytesFromFiles(yamlFiles...)
-				if err != nil {
-					log.Fatalf("Error parsing deployment files: %v", err)
-				}
-				deployment, err = kuberesource.UnmarshalApplyConfigurations(yamlBytes)
-				if err != nil {
-					log.Fatalf("Error unmarshalling deployment files: %v", err)
-				}
+			collectedPlatforms := kuberesource.PlatformCollection{}
+			if defaultPlatform != platforms.Unknown {
+				collectedPlatforms.Add(defaultPlatform)
 			}
-
-			subResources, err = kuberesource.Runtimes(defaultPlatform, deployment)
+			if err := collectedPlatforms.AddFromYamlFiles(*deploymentPath); err != nil {
+				log.Fatalf("collecting used runtime classes: %v", err)
+			}
+			fmt.Print(strings.Join(collectedPlatforms.Names(), ","))
+			return
 		case "node-installer-target-conf":
 			if *nodeInstallerTargetConfType == "" {
 				log.Fatalf("--node-installer-target-conf-type must be set")

@@ -6,6 +6,7 @@ package kuberesource
 import (
 	"errors"
 	"fmt"
+	"log"
 	"maps"
 	"slices"
 	"strings"
@@ -14,39 +15,6 @@ import (
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 	applymetav1 "k8s.io/client-go/applyconfigurations/meta/v1"
 )
-
-// Runtimes returns a set of resources for registering and installing one or multiple runtimes.
-func Runtimes(defaultPlatform platforms.Platform, resources []any) ([]any, error) {
-	ns := ""
-	collectedPlatforms, err := CollectRuntimeClasses(resources)
-	if err != nil {
-		return nil, fmt.Errorf("collecting required runtime classes: %w", err)
-	}
-	if defaultPlatform != platforms.Unknown {
-		collectedPlatforms.Add(defaultPlatform)
-	}
-
-	var out []any
-	for platform := range collectedPlatforms {
-		runtimeClass, err := ContrastRuntimeClass(platform)
-		if err != nil {
-			return nil, fmt.Errorf("creating runtime class for %s: %w", platform.String(), err)
-		}
-		out = append(out, runtimeClass.RuntimeClassApplyConfiguration)
-	}
-
-	nodeInstallers, err := NodeInstallers(ns, slices.Collect(maps.Keys(collectedPlatforms)))
-	if err != nil {
-		return nil, err
-	}
-
-	// Cannot spread the []*DaemonSetApplyConfiguration into []any
-	for _, nodeInstaller := range nodeInstallers {
-		out = append(out, nodeInstaller)
-	}
-
-	return out, nil
-}
 
 // PlatformCollection is a helper type to make common operations over the collected, deduplicated set of runtime classes more convenient.
 type PlatformCollection map[platforms.Platform]struct{}
@@ -65,6 +33,31 @@ func (p *PlatformCollection) Names() []string {
 	return names
 }
 
+// Runtimes returns a set of resources for registering and installing one or multiple runtimes.
+func (p PlatformCollection) Runtimes() ([]any, error) {
+	ns := ""
+	var out []any
+	for platform := range p {
+		runtimeClass, err := ContrastRuntimeClass(platform)
+		if err != nil {
+			return nil, fmt.Errorf("creating runtime class for %s: %w", platform.String(), err)
+		}
+		out = append(out, runtimeClass.RuntimeClassApplyConfiguration)
+	}
+
+	nodeInstallers, err := NodeInstallers(ns, p.Platforms())
+	if err != nil {
+		return nil, err
+	}
+
+	// Cannot spread the []*DaemonSetApplyConfiguration into []any
+	for _, nodeInstaller := range nodeInstallers {
+		out = append(out, nodeInstaller)
+	}
+
+	return out, nil
+}
+
 // Add adds a platform to the collection.
 func (p PlatformCollection) Add(platform platforms.Platform) {
 	p[platform] = struct{}{}
@@ -80,9 +73,20 @@ func (p PlatformCollection) AddFromString(platformName string) error {
 	return nil
 }
 
-// CollectRuntimeClasses iterates over all kuberesources and collects the set of used runtime classes.
-func CollectRuntimeClasses(resources []any) (PlatformCollection, error) {
-	collected := make(PlatformCollection)
+// AddFromCommaSeparated tries to add a platform to the collection from a list of comma-separated names.
+func (p PlatformCollection) AddFromCommaSeparated(platformNames string) error {
+	for name := range strings.SplitSeq(platformNames, ",") {
+		platform, err := platforms.FromString(name)
+		if err != nil {
+			return err
+		}
+		p.Add(platform)
+	}
+	return nil
+}
+
+// AddFromResources iterates over all kuberesources and collects the set of used runtime classes.
+func (p PlatformCollection) AddFromResources(resources []any) error {
 	var errs error
 	for _, resource := range resources {
 		_ = MapPodSpecWithMeta(resource, func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration,
@@ -90,13 +94,33 @@ func CollectRuntimeClasses(resources []any) (PlatformCollection, error) {
 			if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") {
 				return meta, spec
 			}
-			err := collected.AddFromString(*spec.RuntimeClassName)
+			err := p.AddFromString(*spec.RuntimeClassName)
 			errs = errors.Join(errs, err)
 			return meta, spec
 		})
 	}
 	if errs != nil {
-		return nil, errs
+		return errs
 	}
-	return collected, nil
+	return nil
+}
+
+// AddFromYamlFiles unmarshals deployment yaml files, then extracts used runtime classes.
+func (p PlatformCollection) AddFromYamlFiles(path string) error {
+	var deployment []any
+	if path != "" {
+		yamlFiles, err := CollectYAMLFiles(path)
+		if err != nil {
+			log.Fatalf("Error collecting deployment files: %v", err)
+		}
+		yamlBytes, err := YAMLBytesFromFiles(yamlFiles...)
+		if err != nil {
+			log.Fatalf("Error parsing deployment files: %v", err)
+		}
+		deployment, err = UnmarshalApplyConfigurations(yamlBytes)
+		if err != nil {
+			log.Fatalf("Error unmarshaling deployment files: %v", err)
+		}
+	}
+	return p.AddFromResources(deployment)
 }

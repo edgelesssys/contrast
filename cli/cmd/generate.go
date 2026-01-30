@@ -642,8 +642,8 @@ func runtimeClassesFromUnstructured(fileMap map[string][]*unstructured.Unstructu
 			res = append(res, applyConfig)
 		}
 	}
-	runtimeClasses, err := kuberesource.CollectRuntimeClasses(res)
-	if err != nil {
+	runtimeClasses := kuberesource.PlatformCollection{}
+	if err := runtimeClasses.AddFromResources(res); err != nil {
 		return nil, err
 	}
 	return runtimeClasses, nil
