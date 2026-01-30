@@ -78,7 +78,7 @@ jobs:
           EOF
       - name: Build and push container images
         run: |
-          just coordinator initializer port-forwarder openssl service-mesh-proxy memdump debugshell node-installers
+          just coordinator initializer port-forwarder openssl service-mesh-proxy memdump debugshell node-installer
       - name: Build and push the (impure) containerd-reproducer image
         if: env.TEST_NAME == 'containerd-11644-reproducer'
         run: |
