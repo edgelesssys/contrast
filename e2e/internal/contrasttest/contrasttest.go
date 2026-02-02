@@ -478,6 +478,8 @@ func (ct *ContrastTest) installRuntime(t *testing.T, resources []any) {
 
 	resources, err := kuberesource.Runtimes(ct.Platform, resources)
 	require.NoError(err)
+	resources, err = kuberesource.PatchNodeInstallers(resources, ct.Platform)
+	require.NoError(err)
 	resources = kuberesource.PatchImages(resources, ct.ImageReplacements)
 	resources = kuberesource.PatchNamespaces(resources, ct.Namespace)
 

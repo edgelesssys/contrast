@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"github.com/edgelesssys/contrast/internal/constants"
+	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/edgelesssys/contrast/internal/platforms"
 	corev1 "k8s.io/api/core/v1"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applybatchv1 "k8s.io/client-go/applyconfigurations/batch/v1"
@@ -530,6 +532,42 @@ func PatchNamespaces(resources []any, namespace string) []any {
 		}
 	}
 	return resources
+}
+
+// PatchNodeInstallers patches the nodeinstaller DaemonSet to add node affinity for TDX-enabled nodes.
+func PatchNodeInstallers(resources []any, platform platforms.Platform) ([]any, error) {
+	if platform != platforms.MetalQEMUTDXGPU {
+		return resources, nil
+	}
+	runtimeHandler, err := manifest.RuntimeHandler(platform)
+	if err != nil {
+		return nil, fmt.Errorf("getting default runtime handler: %w", err)
+	}
+	name := fmt.Sprintf("%s-nodeinstaller", runtimeHandler)
+	for _, resource := range resources {
+		ds, ok := resource.(*applyappsv1.DaemonSetApplyConfiguration)
+		if !ok {
+			continue
+		}
+		if ds.Name != nil && *ds.Name == name {
+			if ds.Spec == nil || ds.Spec.Template == nil || ds.Spec.Template.Spec == nil {
+				return nil, fmt.Errorf("invalid Pod spec for DaemonSet %q", name)
+			}
+			ds.Spec.Template.Spec.Affinity = applycorev1.Affinity().WithNodeAffinity(
+				applycorev1.NodeAffinity().WithRequiredDuringSchedulingIgnoredDuringExecution(
+					applycorev1.NodeSelector().WithNodeSelectorTerms(
+						applycorev1.NodeSelectorTerm().WithMatchExpressions(
+							applycorev1.NodeSelectorRequirement().
+								WithKey("feature.node.kubernetes.io/tdx.enabled").
+								WithOperator(corev1.NodeSelectorOpIn).
+								WithValues("true"),
+						),
+					),
+				),
+			)
+		}
+	}
+	return resources, nil
 }
 
 // ResourceFilter is used to filter the components that will be patched from a list of resources. It is used by the
