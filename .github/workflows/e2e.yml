@@ -46,7 +46,8 @@ jobs:
       packages: write
     env:
       PLATFORM: ${{ inputs.platform }}
-      NODE_INSTALLER_TARGET_CONF_TYPE: ${{ inputs.platform == 'Metal-QEMU-SNP' && 'none' || 'k3s' }}
+      # TODO(katexochen): switch this to host specific configuration in dev-docs/e2e/<hostname>.
+      NODE_INSTALLER_TARGET_CONF_TYPE: ${{ (inputs.platform == 'Metal-QEMU-SNP' || inputs.platform == 'Metal-QEMU-TDX-GPU') && 'none' || 'k3s' }}
       TEST_NAME: ${{ inputs.test-name }}
       CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
       DEBUG_SHELL: ${{ inputs.debug-shell }}
