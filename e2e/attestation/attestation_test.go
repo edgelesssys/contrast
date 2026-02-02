@@ -130,7 +130,7 @@ func TestAttestation(t *testing.T) {
 
 		require.NoError(t, ct.Kubeclient.WaitForCoordinator(ctx, ct.Namespace))
 
-		manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
+		manifestBytes, err := os.ReadFile(ct.ManifestPath())
 		require.NoError(t, err)
 
 		for name, tc := range map[string]struct {

@@ -114,7 +114,7 @@ func TestPolicy(t *testing.T) {
 		t.Log("Initial failures:", initialFailures)
 
 		// parse the manifest
-		manifestBytes, err := os.ReadFile(path.Join(ct.WorkDir, "manifest.json"))
+		manifestBytes, err := os.ReadFile(ct.ManifestPath())
 		require.NoError(err)
 		var m manifest.Manifest
 		require.NoError(json.Unmarshal(manifestBytes, &m))
@@ -129,7 +129,7 @@ func TestPolicy(t *testing.T) {
 		// write the new manifest
 		manifestBytes, err = json.Marshal(m)
 		require.NoError(err)
-		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "manifest.json"), manifestBytes, 0o644))
+		require.NoError(os.WriteFile(ct.ManifestPath(), manifestBytes, 0o644))
 
 		// parse the original resources
 		resourceBytes, err := os.ReadFile(path.Join(ct.WorkDir, "resources.yml"))
@@ -179,7 +179,7 @@ func TestPolicy(t *testing.T) {
 		require := require.New(t)
 
 		// Read the manifest.
-		manifestBytes, err := os.ReadFile(path.Join(ct.WorkDir, "manifest.json"))
+		manifestBytes, err := os.ReadFile(ct.ManifestPath())
 		require.NoError(err)
 		var m manifest.Manifest
 		require.NoError(json.Unmarshal(manifestBytes, &m))
@@ -198,7 +198,7 @@ func TestPolicy(t *testing.T) {
 		// Write the new manifest.
 		manifestBytes, err = json.Marshal(m)
 		require.NoError(err)
-		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "manifest.json"), manifestBytes, 0o644))
+		require.NoError(os.WriteFile(ct.ManifestPath(), manifestBytes, 0o644))
 
 		// Verification should fail.
 		require.ErrorContains(ct.RunVerify(t.Context()), "validating report")
@@ -210,7 +210,7 @@ func TestPolicy(t *testing.T) {
 		// Write the restored manifest.
 		manifestBytes, err = json.Marshal(m)
 		require.NoError(err)
-		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "manifest.json"), manifestBytes, 0o644))
+		require.NoError(os.WriteFile(ct.ManifestPath(), manifestBytes, 0o644))
 	})
 }
 

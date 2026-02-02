@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"path"
 	"strings"
 	"testing"
 	"time"
@@ -73,7 +72,7 @@ func TestATLS(t *testing.T) {
 	var manifestParsed manifest.Manifest
 	require.True(t, t.Run("prepare atls tests", func(t *testing.T) {
 		require := require.New(t)
-		manifestBytes, err := os.ReadFile(path.Join(ct.WorkDir, "manifest.json"))
+		manifestBytes, err := os.ReadFile(ct.ManifestPath())
 		require.NoError(err, "reading manifest file")
 		require.NoError(json.Unmarshal(manifestBytes, &manifestParsed))
 		require.NoError(manifestParsed.Validate())
