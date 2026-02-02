@@ -69,12 +69,20 @@ type ReferenceValues struct {
 func (r ReferenceValues) Validate() error {
 	var errs []error
 	for i, v := range r.SNP {
-		if err := v.Validate(); err != nil {
+		var ve *ValidationError
+		err := v.Validate()
+		if errors.As(err, &ve) && ve.OnlyExpectedMissingReferenceValues() {
+			errs = append(errs, ExpectedMissingReferenceValueError{Err: fmt.Errorf("snp[%d]", i)})
+		} else if err != nil {
 			errs = append(errs, newValidationError(fmt.Sprintf("snp[%d]", i), err))
 		}
 	}
 	for i, v := range r.TDX {
-		if err := v.Validate(); err != nil {
+		var ve *ValidationError
+		err := v.Validate()
+		if errors.As(err, &ve) && ve.OnlyExpectedMissingReferenceValues() {
+			errs = append(errs, ExpectedMissingReferenceValueError{Err: fmt.Errorf("tdx[%d]", i)})
+		} else if err := v.Validate(); err != nil {
 			errs = append(errs, newValidationError(fmt.Sprintf("tdx[%d]", i), err))
 		}
 	}
