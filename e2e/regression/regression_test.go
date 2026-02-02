@@ -14,6 +14,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -67,6 +68,12 @@ func TestRegression(t *testing.T) {
 
 		t.Run(dir.Name(), func(t *testing.T) {
 			require := require.New(t)
+
+			// Make sure we start with a fresh manifest, not the one of the previous test or the
+			// outer generate.
+			if err := os.Remove(ct.ManifestPath()); err != nil {
+				require.ErrorIs(err, fs.ErrNotExist)
+			}
 
 			c := kubeclient.NewForTest(t)
 
