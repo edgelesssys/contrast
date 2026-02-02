@@ -42,15 +42,6 @@ func TestHTTPProxy(t *testing.T) {
 
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
-
-	ct := contrasttest.New(t)
-
-	resources := kuberesource.CoordinatorBundle()
-	resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
-	resources = kuberesource.AddPortForwarders(resources)
-
-	ct.Init(t, resources)
-
 	// Start a proxy server
 
 	proxy := goproxy.NewProxyHttpServer()
@@ -115,6 +106,13 @@ func TestHTTPProxy(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			require := require.New(t)
+
+			resources := kuberesource.CoordinatorBundle()
+			resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
+			resources = kuberesource.AddPortForwarders(resources)
+
+			ct := contrasttest.New(t)
+			ct.Init(t, resources)
 
 			if tc.wantErrMsg != "" {
 				// Run generate and apply in this process so that they don't use the bad proxy.
