@@ -19,6 +19,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -226,6 +227,11 @@ func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
 	return nil
 }
 
+// ManifestPath returns the full path to the manifest file used by this instance.
+func (ct *ContrastTest) ManifestPath() string {
+	return filepath.Join(ct.WorkDir, "manifest.json")
+}
+
 // PatchManifestFunc defines a function type allowing the given manifest to be modified.
 type PatchManifestFunc func(manifest.Manifest) (manifest.Manifest, error)
 
@@ -236,7 +242,7 @@ func (ct *ContrastTest) PatchManifest(t *testing.T, patchFn PatchManifestFunc) {
 
 // RunPatchManifest modifies the current manifest by executing a provided PatchManifestFunc on it.
 func (ct *ContrastTest) RunPatchManifest(patchFn PatchManifestFunc) error {
-	manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
+	manifestBytes, err := os.ReadFile(ct.ManifestPath())
 	if err != nil {
 		return err
 	}
@@ -252,7 +258,7 @@ func (ct *ContrastTest) RunPatchManifest(patchFn PatchManifestFunc) error {
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644); err != nil {
+	if err := os.WriteFile(ct.ManifestPath(), manifestBytes, 0o644); err != nil {
 		return err
 	}
 	return nil
@@ -386,7 +392,7 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 		return fmt.Errorf("validating attestation: %w", err)
 	}
 
-	expectedManifest, err := os.ReadFile(path.Join(ct.WorkDir, "manifest.json"))
+	expectedManifest, err := os.ReadFile(ct.ManifestPath())
 	if err != nil {
 		return fmt.Errorf("reading manifest from workspace: %w", err)
 	}

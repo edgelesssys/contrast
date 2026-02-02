@@ -74,7 +74,7 @@ func TestPeerRecovery(t *testing.T) {
 		t.Cleanup(cancel)
 
 		// Read the generated manifest for subsequent verify steps in per-pod subdirectories.
-		manifestBytes, err := os.ReadFile(path.Join(ct.WorkDir, "manifest.json"))
+		manifestBytes, err := os.ReadFile(ct.ManifestPath())
 		require.NoError(err)
 
 		// Create a temporary directory for output of verify commands.
@@ -109,7 +109,7 @@ func TestPeerRecovery(t *testing.T) {
 			// Copy the manifest to the subdirectory of this pod.
 			workspace := path.Join(workspaceRoot, pod.Name)
 			require.NoError(os.Mkdir(workspace, 0o777))
-			require.NoError(os.WriteFile(path.Join(workspace, "manifest.json"), manifestBytes, 0o600))
+			require.NoError(os.WriteFile(ct.ManifestPath(), manifestBytes, 0o600))
 		}
 
 		require.EventuallyWithT(func(collect *assert.CollectT) {

@@ -42,7 +42,7 @@ func TestDeterminsticPolicyGeneration(t *testing.T) {
 		t.Log("Generate run", i)
 		require.NoError(os.WriteFile(path.Join(ct.WorkDir, "resources.yml"), buf, 0o644)) // reset file for each run
 		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
-		manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
+		manifestBytes, err := os.ReadFile(ct.ManifestPath())
 		require.NoError(err)
 
 		// verify that policies are deterministic

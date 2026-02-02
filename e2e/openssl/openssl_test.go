@@ -186,7 +186,7 @@ func TestOpenSSL(t *testing.T) {
 
 			// If in the future a SetManifest call with the same manifest does not result in a certificate rotation,
 			// this change of the manifest makes sure to always rotate certificates.
-			manifestBytes, err := os.ReadFile(ct.WorkDir + "/manifest.json")
+			manifestBytes, err := os.ReadFile(ct.ManifestPath())
 			require.NoError(err)
 			var m manifest.Manifest
 			require.NoError(json.Unmarshal(manifestBytes, &m))
@@ -199,7 +199,7 @@ func TestOpenSSL(t *testing.T) {
 			}
 			manifestBytes, err = json.Marshal(m)
 			require.NoError(err)
-			require.NoError(os.WriteFile(ct.WorkDir+"/manifest.json", manifestBytes, 0o644))
+			require.NoError(os.WriteFile(ct.ManifestPath(), manifestBytes, 0o644))
 
 			// SetManifest rotates the certificates in the coordinator.
 			ct.Set(t)
