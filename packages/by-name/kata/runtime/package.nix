@@ -149,6 +149,12 @@ buildGoModule (finalAttrs: {
       # all `nvidia.com/` devices.
       # Upstream Issue: https://github.com/kata-containers/kata-containers/issues/12322
       ./0021-genpolicy-use-all-nvidia-GPU-annotations.patch
+
+      # This patch fixes a bug [1] where Kata loses stdout/stderr of short-lived processes.
+      # There's an upstream PR [2] that's likely to include _a_ fix, but not necessarily _this_ fix.
+      # [1]: https://github.com/kata-containers/kata-containers/issues/12072
+      # [2]: https://github.com/kata-containers/kata-containers/pull/12376
+      ./0022-agent-finish-reading-logs-after-exec.patch
     ];
   };
 
