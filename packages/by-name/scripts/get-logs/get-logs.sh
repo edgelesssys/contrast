@@ -72,17 +72,23 @@ download)
   fi
   mkdir -p "./workspace/logs"
   while read -r namespace; do
-    pod="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
-    echo "Collecting logs from namespace $namespace, pod $pod" >&2
-    retry kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod"
-    echo "Pod $pod is ready" >&2
-    retry kubectl exec -n "$namespace" "$pod" -- /bin/bash -c "rm -f /exported-logs.tar.gz; cp -r /export /export-no-stream; tar zcvf /exported-logs.tar.gz /export-no-stream; rm -rf /export-no-stream"
-    retry kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz
-    echo "Downloaded logs tarball for namespace $namespace, extracting..." >&2
-    tar xzvf ./workspace/logs/exported-logs.tar.gz --directory "./workspace/logs"
-    rm ./workspace/logs/exported-logs.tar.gz
-    mv ./workspace/logs/export-no-stream/logs/* ./workspace/logs/
-    rm -rf ./workspace/logs/export-no-stream
+    pods="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
+    if [[ -z $pods ]]; then
+      echo "No log-collector pods found in namespace $namespace" >&2
+      continue
+    fi
+    for pod in $pods; do
+      echo "Collecting logs from namespace $namespace, pod $pod" >&2
+      retry kubectl wait --for=condition=Ready -n "$namespace" "pod/$pod"
+      echo "Pod $pod is ready" >&2
+      retry kubectl exec -n "$namespace" "$pod" -- /bin/bash -c "rm -f /exported-logs.tar.gz; cp -r /export /export-no-stream; tar zcvf /exported-logs.tar.gz /export-no-stream; rm -rf /export-no-stream"
+      retry kubectl cp -n "$namespace" "$pod:/exported-logs.tar.gz" ./workspace/logs/exported-logs.tar.gz
+      echo "Downloaded logs tarball for namespace $namespace, pod $pod, extracting..." >&2
+      tar xzvf ./workspace/logs/exported-logs.tar.gz --directory "./workspace/logs"
+      rm ./workspace/logs/exported-logs.tar.gz
+      mv ./workspace/logs/export-no-stream/logs/* ./workspace/logs/
+      rm -rf ./workspace/logs/export-no-stream
+    done
     echo "Collecting Kubernetes events for namespace $namespace" >&2
     retry kubectl events -n "$namespace" -o yaml >"./workspace/logs/$namespace-k8s-events.yaml"
     echo "Logs for namespace $namespace collected successfully" >&2
