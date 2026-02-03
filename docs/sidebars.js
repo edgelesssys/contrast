@@ -283,6 +283,17 @@ const sidebars = {
         },
       ],
     },
+    {
+      type: "category",
+      label: "Reference",
+      items: [
+        {
+          type: "doc",
+          label: "Node installer configuration",
+          id: "reference/node-installer-configuration",
+        },
+      ],
+    },
   ],
 };
 

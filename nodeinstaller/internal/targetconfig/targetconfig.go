@@ -79,6 +79,7 @@ func (c *TargetConfig) LoadOverridesFromDir(
 				return r == ',' || unicode.IsSpace(r)
 			})
 		case "kata-config-path":
+			// TODO(burgerdev): this config knob should be replaced with one for the full installation directory.
 			c.kataConfigPath = dataStr
 		default:
 			return fmt.Errorf("unexpected file %q in target config dir %q", info.Name(), targetConfigDir)
