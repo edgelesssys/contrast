@@ -113,9 +113,9 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 		return fmt.Errorf("writing containerd config %q: %w", targetConf.ContainerdConfigPath(), err)
 	}
 
-	if targetConf.RestartSystemdUnit() {
-		if err := restartHostContainerd(ctx, targetConf.ContainerdConfigPath(), targetConf.SystemdUnitNames()); err != nil {
-			return fmt.Errorf("restarting systemd unit: %w", err)
+	for _, service := range targetConf.SystemdUnitNames() {
+		if err := restartHostContainerd(ctx, targetConf.ContainerdConfigPath(), service); err != nil {
+			return fmt.Errorf("restarting systemd unit %q: %w", service, err)
 		}
 	}
 
@@ -194,17 +194,9 @@ func containerdRuntimeConfig(basePath, configPath string, platform platforms.Pla
 	return nil
 }
 
-func restartHostContainerd(ctx context.Context, containerdConfigPath string, serviceNames []string) error {
-	// Go through list of possible service names and check if one exists.
-	service := ""
-	for _, s := range serviceNames {
-		if hostServiceExists(ctx, s) {
-			service = s
-			break
-		}
-	}
-	if service == "" {
-		return fmt.Errorf("no systemd service with name in %v found", serviceNames)
+func restartHostContainerd(ctx context.Context, containerdConfigPath string, service string) error {
+	if !hostServiceExists(ctx, service) {
+		return fmt.Errorf("no systemd service with name %q found", service)
 	}
 
 	// get mtime of the config file
