@@ -74,7 +74,6 @@ runtime target=default_deploy_target platform=default_platform:
         nix shell .#contrast.resourcegen --command resourcegen \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace {{ target }}${namespace_suffix-} \
-            --add-namespace-object \
             --node-installer-target-conf-type ${node_installer_target_conf_type} \
             --platform {{ platform }} \
             node-installer-target-conf > ./{{ workspace_dir }}/runtime/target-conf.yml
@@ -83,7 +82,6 @@ runtime target=default_deploy_target platform=default_platform:
     nix shell .#contrast.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
-        --add-namespace-object \
         --node-installer-target-conf-type ${node_installer_target_conf_type} \
         --platform {{ platform }} \
         --deployment "$deployment" \
@@ -151,6 +149,8 @@ generate cli=default_cli platform=default_platform:
 apply target=default_deploy_target platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
+    ns=$(tail -1 ./{{ workspace_dir }}/just.namespace)
+    kubectl create namespace $ns --dry-run=client -o yaml | kubectl apply -f -
     case {{ target }} in
         "runtime")
             if [[ -f ./{{ workspace_dir }}/runtime/target-conf.yml ]]; then
