@@ -90,7 +90,7 @@ kubectl get runtimeclasses
 
 This should give you output similar to the following one.
 
-```sh
+```
 NAME                                           HANDLER                                        AGE
 contrast-cc-metal-qemu-snp-7173acb5               contrast-cc-metal-qemu-snp-7173acb5               23h
 ```
