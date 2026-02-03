@@ -96,9 +96,12 @@ func New(t *testing.T) *ContrastTest {
 	runtimeClass, err := kuberesource.ContrastRuntimeClass(platform)
 	require.NoError(err)
 
+	workDir := t.TempDir()
+	t.Setenv("CONTRAST_CACHE_DIR", workDir)
+
 	ct := &ContrastTest{
 		Namespace:                   MakeNamespace(t, Flags.NamespaceSuffix),
-		WorkDir:                     t.TempDir(),
+		WorkDir:                     workDir,
 		ImageReplacementsFile:       Flags.ImageReplacementsFile,
 		Platform:                    platform,
 		NamespaceFile:               Flags.NamespaceFile,
