@@ -59,23 +59,6 @@ contrast generate
 
 on your deployment. If any of the Contrast annotations change, re-deploy to apply the updated policies.
 
-### Pin container images
-
-When generating the policies, Contrast will download the images specified in your deployment
-YAML and include their cryptographic identity. If the image tag is moved to another
-container image after the policy has been generated, the image downloaded at deploy time
-will differ from the one at generation time, and the policy enforcement won't allow the
-container to be started in the pod VM.
-
-To ensure the correct image is always used, pin the container image to a fixed `sha256`:
-
-```yaml
-image: ubuntu:22.04@sha256:19478ce7fc2ffbce89df29fea5725a8d12e57de52eb9ea570890dc5852aac1ac
-```
-
-This way, the same image will still be pulled when the container tag (`22.04`) is moved
-to another image.
-
 ### Validate Contrast components match
 
 A version mismatch between Contrast components can cause policy validation or attestation
