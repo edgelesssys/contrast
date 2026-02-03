@@ -60,23 +60,15 @@ func (c *Kubeclient) WaitForCoordinator(ctx context.Context, namespace string) e
 	return c.WaitForPodCondition(ctx, namespace, &oneRunning{ls: ls})
 }
 
-// WaitForDaemonSet waits until the DaemonSet is ready.
-//
-// We consider the DaemonSet ready when the number of ready pods targeted by the DaemonSet is
-// exactly the number of nodes in the cluster. Changes in the number of nodes are not taken
-// into account while waiting!
+// WaitForDaemonSet waits until the DaemonSet is ready, i.e. it has the same number
+// of ready pods as desired number of scheduled pods.
 func (c *Kubeclient) WaitForDaemonSet(ctx context.Context, namespace, name string) error {
-	// TODO(burgerdev): this does not take scheduler considerations, like taints, into account.
-	nodes, err := c.Client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
 	d, err := c.Client.AppsV1().DaemonSets(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	ls := labels.SelectorFromSet(d.Spec.Selector.MatchLabels)
-	return c.WaitForPodCondition(ctx, namespace, &numReady{ls: ls, n: len(nodes.Items)})
+	return c.WaitForPodCondition(ctx, namespace, &numReady{ls: ls, n: int(d.Status.DesiredNumberScheduled)})
 }
 
 // WaitForPod waits until the pod is ready.
