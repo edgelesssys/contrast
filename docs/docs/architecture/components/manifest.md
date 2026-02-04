@@ -385,6 +385,16 @@ This is documented in the [SGX Remote Attestation for Mulit-Package Platforms] g
 If `StaticPlatform` is set to true, verification ensures that dynamic addition of new packages is prohibited.
 If the field is absent or `false` (the default), this configuration isn't checked.
 
+### `ReferenceValues.tdx.*.MinTCBEvaluationDataNumber` {#tdx-min-tcb-evaluation-data-number}
+
+The `TCBInfo` that's fetched from the Intel PCS is versioned with a `TCBEvaluationDataNumber`.
+By default, the PCS serves `TCBInfo` that may be up to 12 months out of date.
+The exact semantics of this number are documented in the [Intel PCS API Spec](https://api.portal.trustedservices.intel.com/content/documentation.html#pcs-tcb-info-tdx-v4).
+
+If this field is set, TDX verification in CLI and Coordinator will request a `TCBInfo` at that number.
+You can use this to force a more recent `TCBInfo` than what would normally be served.
+Be aware, though, that older `TCBInfo` numbers are eventually removed from the PCS, at which point TDX verification will fail with an HTTP error 410.
+
 ## `WorkloadOwnerKeyDigests` {#workload-owner-key-digests}
 
 A list of workload owner public key digests.
