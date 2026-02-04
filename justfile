@@ -144,7 +144,7 @@ generate cli=default_cli platform=default_platform:
     kubectl -n default get cm bm-tcb-specs -o jsonpath="{.data['specs']}" > "$patch"
     cat ./{{ workspace_dir }}/manifest.json |
         nix run -L .#json-patch -- -p "$patch" |
-        jq > ./{{ workspace_dir }}/manifest.json.tmp
+        nix run .#nixpkgs.jq > ./{{ workspace_dir }}/manifest.json.tmp
     mv ./{{ workspace_dir }}/manifest.json.tmp ./{{ workspace_dir }}/manifest.json
 
 # Apply Kubernetes manifests from /deployment
