@@ -13,6 +13,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"testing"
@@ -20,13 +21,19 @@ import (
 
 	"github.com/edgelesssys/contrast/e2e/internal/contrasttest"
 	"github.com/edgelesssys/contrast/internal/atls"
+	"github.com/edgelesssys/contrast/internal/attestation"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
+	"github.com/edgelesssys/contrast/internal/attestation/tdx"
+	"github.com/edgelesssys/contrast/internal/attestation/tdx/quote"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
+	"github.com/google/go-tdx-guest/validate"
+	"github.com/google/go-tdx-guest/verify"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -198,6 +205,83 @@ func TestAttestation(t *testing.T) {
 		}
 	})
 
+	t.Run("check quote content", func(t *testing.T) {
+		require := require.New(t)
+		assert := assert.New(t)
+
+		platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
+		require.NoError(err)
+		if !platforms.IsTDX(platform) {
+			t.Skip()
+		}
+
+		ct := contrasttest.New(t)
+
+		runtimeHandler, err := manifest.RuntimeHandler(platform)
+		require.NoError(err)
+		resources := kuberesource.CoordinatorBundle()
+		resources = kuberesource.PatchRuntimeHandlers(resources, runtimeHandler)
+		resources = kuberesource.AddPortForwarders(resources)
+		ct.Init(t, resources)
+
+		require.True(t.Run("generate", ct.Generate), "contrast generate needs to succeed for subsequent tests")
+		require.True(t.Run("apply", ct.Apply), "Kubernetes resources need to be applied for subsequent tests")
+
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(4*time.Minute))
+		t.Cleanup(cancel)
+
+		require.NoError(ct.Kubeclient.WaitForCoordinator(ctx, ct.Namespace))
+
+		// This test connects to the Coordinator, receives a TDX quote and checks that the
+		// contained data looks reasonable.
+
+		logger := slog.Default()
+
+		verifyOpts := &verify.Options{}
+		validateOptsGen := &tdx.StaticValidateOptsGenerator{Opts: &validate.Options{}}
+		var reportRecorder reportRecorder
+
+		validator := tdx.NewValidatorWithReportSetter(verifyOpts, validateOptsGen, nil, logger, &reportRecorder, "tdx-collateral-test")
+
+		cfg, err := atls.CreateAttestationClientTLSConfig(ctx, nil, []atls.Validator{validator}, nil)
+		require.NoError(err)
+
+		require.NoError(ct.Kubeclient.WithForwardedPort(ctx, ct.Namespace, "port-forwarder-coordinator", userapi.Port, func(addr string) error {
+			dialer := &tls.Dialer{Config: cfg}
+
+			conn, err := dialer.DialContext(ctx, "tcp", addr)
+			if err != nil {
+				return fmt.Errorf("dialing coordinator: %w", err)
+			}
+			return conn.Close()
+		}))
+
+		require.NotNil(reportRecorder.report)
+		report, ok := reportRecorder.report.(*tdx.Report)
+		require.True(ok, "unexpected type: %T", reportRecorder.report)
+
+		extensions, err := quote.GetExtensions(report.Quote)
+		require.NoError(err)
+		require.NotNil(extensions)
+		require.NotNil(extensions.Collateral)
+		collateral := extensions.Collateral
+
+		t.Logf("Collateral received: %#v", collateral)
+
+		assert.NotNil(collateral.PckCrlIssuerIntermediateCertificate)
+		assert.NotNil(collateral.PckCrlIssuerRootCertificate)
+		assert.NotNil(collateral.PckCrl)
+		assert.NotNil(collateral.TcbInfoIssuerIntermediateCertificate)
+		assert.NotNil(collateral.TcbInfoIssuerRootCertificate)
+		assert.NotZero(collateral.TdxTcbInfo)
+		assert.NotNil(collateral.TcbInfoBody)
+		assert.NotNil(collateral.QeIdentityIssuerIntermediateCertificate)
+		assert.NotNil(collateral.QeIdentityIssuerRootCertificate)
+		assert.NotZero(collateral.QeIdentity)
+		assert.NotNil(collateral.EnclaveIdentityBody)
+		assert.NotNil(collateral.RootCaCrl)
+	})
+
 	// Test that it is okay to have failing validators as long as one validator passes.
 	t.Run("non-matching-validators", func(t *testing.T) {
 		platform, err := platforms.FromString(contrasttest.Flags.PlatformStr)
@@ -252,4 +336,12 @@ func TestMain(m *testing.M) {
 
 func toPtr[T any](t T) *T {
 	return &t
+}
+
+type reportRecorder struct {
+	report attestation.Report
+}
+
+func (r *reportRecorder) SetReport(report attestation.Report) {
+	r.report = report
 }
