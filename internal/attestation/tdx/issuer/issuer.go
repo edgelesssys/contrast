@@ -9,7 +9,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"time"
 
+	"github.com/edgelesssys/contrast/internal/attestation/tdx/quote"
 	"github.com/edgelesssys/contrast/internal/oid"
 	"github.com/google/go-tdx-guest/abi"
 	"github.com/google/go-tdx-guest/client"
@@ -35,7 +37,7 @@ func (i *Issuer) OID() asn1.ObjectIdentifier {
 }
 
 // Issue the attestation document.
-func (i *Issuer) Issue(_ context.Context, reportData [64]byte) (res []byte, err error) {
+func (i *Issuer) Issue(ctx context.Context, reportData [64]byte) (res []byte, err error) {
 	i.logger.Info("Issue called")
 	defer func() {
 		if err != nil {
@@ -55,16 +57,24 @@ func (i *Issuer) Issue(_ context.Context, reportData [64]byte) (res []byte, err 
 	}
 	i.logger.Info("Retrieved quote", "quoteRaw", hex.EncodeToString(quoteRaw))
 
-	quote, err := abi.QuoteToProto(quoteRaw)
+	quoteProto, err := abi.QuoteToProto(quoteRaw)
 	if err != nil {
 		return nil, fmt.Errorf("issuer: parsing quote: %w", err)
 	}
-	i.logger.Info("Parsed quote", "quote", quote)
+	i.logger.Info("Parsed quote", "quote", quoteProto)
 
 	// Marshal the quote
-	quotev4, ok := quote.(*tdx.QuoteV4)
+	quotev4, ok := quoteProto.(*tdx.QuoteV4)
 	if !ok {
-		return nil, fmt.Errorf("issuer: unexpected quote type: %T", quote)
+		return nil, fmt.Errorf("issuer: unexpected quote type: %T", quoteProto)
+	}
+
+	// Make sure we don't time out while fetching optional data.
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	if err := quote.AddExtensions(ctx, quotev4); err != nil {
+		// Extensions are optional, don't fail Issue because they are not available.
+		i.logger.Warn("Failed to obtain quote extensions", "error", err)
 	}
 
 	quoteBytes, err := proto.Marshal(quotev4)
