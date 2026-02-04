@@ -94,8 +94,6 @@ var (
 	// End of QEReportCertificationData.
 	// End of CertificationData.
 	// End of Ecdsa256BitQuoteV4AuthData.
-
-	extraBytesOID = append(rootOID, 47)
 )
 
 // claimsToCertExtension constructs certificate extensions from a SNP report.
@@ -155,8 +153,6 @@ func claimsToCertExtension(quote *tdx.QuoteV4) ([]pkix.Extension, error) {
 	extensions = append(extensions, extension.NewBigIntExtension(pckCertificateChainDataTypeOID, quote.SignedData.CertificationData.QeReportCertificationData.PckCertificateChainData.CertificateDataType))
 	extensions = append(extensions, extension.NewBigIntExtension(pckCertificateChainDataSizeOID, quote.SignedData.CertificationData.QeReportCertificationData.PckCertificateChainData.Size))
 	extensions = append(extensions, extension.NewBytesExtension(pckCertificateChainDataOID, quote.SignedData.CertificationData.QeReportCertificationData.PckCertificateChainData.PckCertChain))
-
-	extensions = append(extensions, extension.NewBytesExtension(extraBytesOID, quote.ExtraBytes))
 
 	return extension.ConvertExtensions(extensions)
 }
