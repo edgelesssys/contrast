@@ -22,6 +22,8 @@ buildGoModule (finalAttrs: {
 
   vendorHash = "sha256-W6XVd68MS0ungMgam8jefYMVhyiN6/DB+bliFzs2rdk=";
 
+  env.CGO_ENABLED = 0;
+
   ldflags = [ "-s" ];
 
   meta = {

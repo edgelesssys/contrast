@@ -143,7 +143,7 @@ generate cli=default_cli platform=default_platform:
     patch=$(mktemp)
     kubectl -n default get cm bm-tcb-specs -o jsonpath="{.data['specs']}" > "$patch"
     cat ./{{ workspace_dir }}/manifest.json |
-        nix run -L .#contrastPkgsStatic.json-patch -- -p "$patch" |
+        nix run -L .#json-patch -- -p "$patch" |
         jq > ./{{ workspace_dir }}/manifest.json.tmp
     mv ./{{ workspace_dir }}/manifest.json.tmp ./{{ workspace_dir }}/manifest.json
 
