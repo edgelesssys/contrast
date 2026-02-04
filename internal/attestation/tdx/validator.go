@@ -140,7 +140,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData [
 	}
 
 	if v.reportSetter != nil {
-		report := tdxReport{quote: quotev4}
+		report := &Report{Quote: quotev4}
 		v.reportSetter.SetReport(report)
 	}
 	return nil
@@ -151,16 +151,19 @@ func (v *Validator) String() string {
 	return v.name
 }
 
-type tdxReport struct {
-	quote *tdx.QuoteV4
+// Report wraps a TDX quote to implement attestation.Report.
+type Report struct {
+	Quote *tdx.QuoteV4
 }
 
-func (t tdxReport) HostData() []byte {
-	return t.quote.TdQuoteBody.MrConfigId[:32]
+// HostData allows extracting MRCONFIGID for manifest validation.
+func (t Report) HostData() []byte {
+	return t.Quote.TdQuoteBody.MrConfigId[:32]
 }
 
-func (t tdxReport) ClaimsToCertExtension() ([]pkix.Extension, error) {
-	return claimsToCertExtension(t.quote)
+// ClaimsToCertExtension converts the TDX quote claims to an X.509 certificate extension.
+func (t Report) ClaimsToCertExtension() ([]pkix.Extension, error) {
+	return claimsToCertExtension(t.Quote)
 }
 
 // getPIID extracts the PIID from the PCK certificate inside a TDX quote.
