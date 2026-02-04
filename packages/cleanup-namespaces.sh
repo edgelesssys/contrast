@@ -6,7 +6,6 @@ set -euo pipefail
 
 knownNamespaces=(
   # keep-sorted start
-  "continuum-*"
   "csi-system"
   "default"
   "gpu-operator"
@@ -17,21 +16,16 @@ knownNamespaces=(
   "maintenance-cleanup"
   "maintenance-namespace-cleanup"
   "maintenance-nix-gc"
-  "privatemode-*"
   # keep-sorted end
 )
 
 kubectl get namespaces --no-headers | while read -r ns _; do
-  skip=false
-  for pattern in "${knownNamespaces[@]}"; do
-    # shellcheck disable=SC2053 # We want glob matching here
-    if [[ $ns == $pattern ]]; then
-      echo "Skipping known namespace: $ns"
-      skip=true
-      break
-    fi
-  done
-  if [[ $skip == true ]]; then
+  if [[ " ${knownNamespaces[*]} " == *" $ns "* ]]; then
+    echo "Skipping known namespace: $ns"
+  fi
+
+  if kubectl get namespace "$ns" -o jsonpath='{.metadata.labels.ci\.contrast\.edgeless\.systems/keep}' | grep -q "true"; then
+    echo "Skipping namespace protected by label : $ns"
     continue
   fi
 
