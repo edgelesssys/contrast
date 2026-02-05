@@ -109,7 +109,7 @@ func TestPeerRecovery(t *testing.T) {
 			// Copy the manifest to the subdirectory of this pod.
 			workspace := path.Join(workspaceRoot, pod.Name)
 			require.NoError(os.Mkdir(workspace, 0o777))
-			require.NoError(os.WriteFile(ct.ManifestPath(), manifestBytes, 0o600))
+			require.NoError(os.WriteFile(path.Join(workspace, "manifest.json"), manifestBytes, 0o600))
 		}
 
 		require.EventuallyWithT(func(collect *assert.CollectT) {
