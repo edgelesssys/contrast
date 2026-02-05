@@ -42,6 +42,7 @@ buildGoModule (_finalAttrs: {
             (path.append root "internal/kuberesource")
             (path.append root "internal/manifest")
             (path.append root "internal/platforms")
+            (path.append root "internal/retry")
             (path.append root "internal/userapi")
           ]
         ))
