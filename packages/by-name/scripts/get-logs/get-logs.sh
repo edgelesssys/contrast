@@ -71,10 +71,12 @@ download)
     exit 0
   fi
   mkdir -p "./workspace/logs"
+  log_pods_missing=false
   while read -r namespace; do
-    pods="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5-)"
+    pods="$(kubectl get pods -o name -n "$namespace" | grep log-collector | cut -c 5- || true)"
     if [[ -z $pods ]]; then
       echo "No log-collector pods found in namespace $namespace" >&2
+      log_pods_missing=true
       continue
     fi
     for pod in $pods; do
@@ -93,6 +95,9 @@ download)
     retry kubectl events -n "$namespace" -o yaml >"./workspace/logs/$namespace-k8s-events.yaml"
     echo "Logs for namespace $namespace collected successfully" >&2
   done <<<"$(sort -u "$2")"
+  if [[ $log_pods_missing == true ]]; then
+    exit 1
+  fi
   ;;
 *)
   echo "Unknown option $1"
