@@ -69,6 +69,9 @@ subcommands.`,
 			strings.Join(platforms.AllStrings(), ", "),
 		),
 	)
+	cmd.Flags().StringArray("reference-value-patches", []string{},
+		"add reference value patches to apply to the reference values (pass more than once to add multiple patch files)")
+	cmd.Flags().Bool("purge-empty-reference-values", false, "purge reference values with missing values from the manifest. Caution advised!")
 	cmd.Flags().StringArrayP("add-workload-owner-key", "w", []string{workloadOwnerPEM},
 		"add a workload owner key from a PEM file to the manifest (pass more than once to add multiple keys)")
 	cmd.Flags().StringArray("add-seedshare-owner-key", []string{seedshareOwnerPEM},
@@ -141,6 +144,14 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		mnf, err = manifest.Default(usedPlatforms.Platforms())
 		if err != nil {
 			return fmt.Errorf("create default manifest: %w", err)
+		}
+		if flags.referenceValuePatches != nil {
+			if err := mnf.ReferenceValues.Patch(flags.referenceValuePatches); err != nil {
+				return fmt.Errorf("patching reference values: %w", err)
+			}
+			if flags.purgeReferenceValues {
+				mnf.ReferenceValues.PurgeEmpty()
+			}
 		}
 	} else if err != nil {
 		// Manifest exists but could not be read, return error
@@ -685,6 +696,8 @@ type generateFlags struct {
 	manifestPath             string
 	genpolicyCachePath       string
 	referenceValuesPlatform  platforms.Platform
+	referenceValuePatches    manifest.ReferenceValuePatches
+	purgeReferenceValues     bool
 	workloadOwnerKeys        []string
 	seedshareOwnerKeys       []string
 	disableUpdates           bool
@@ -721,6 +734,18 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 	referenceValuesPlatform, err := platforms.FromStringOrEmpty(referenceValues)
 	if err != nil {
 		return nil, fmt.Errorf("invalid reference-values platform: %w", err)
+	}
+	referenceValuePatchFiles, err := cmd.Flags().GetStringArray("reference-value-patches")
+	if err != nil {
+		return nil, err
+	}
+	referenceValuePatches, err := manifest.PatchesFromFiles(referenceValuePatchFiles)
+	if err != nil {
+		return nil, err
+	}
+	purgeReferenceValues, err := cmd.Flags().GetBool("purge-empty-reference-values")
+	if err != nil {
+		return nil, err
 	}
 	workloadOwnerKeys, err := cmd.Flags().GetStringArray("add-workload-owner-key")
 	if err != nil {
@@ -793,6 +818,8 @@ func parseGenerateFlags(cmd *cobra.Command) (*generateFlags, error) {
 		genpolicyCachePath:       genpolicyCachePath,
 		manifestPath:             manifestPath,
 		referenceValuesPlatform:  referenceValuesPlatform,
+		referenceValuePatches:    referenceValuePatches,
+		purgeReferenceValues:     purgeReferenceValues,
 		workloadOwnerKeys:        workloadOwnerKeys,
 		seedshareOwnerKeys:       seedshareOwnerKeys,
 		disableUpdates:           disableUpdates,
