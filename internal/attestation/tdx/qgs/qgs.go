@@ -80,13 +80,16 @@ type GetCollateralRequest struct {
 }
 
 func (r *GetCollateralRequest) marshalBinary() []byte {
-	size := uint32( /*sizes*/ 8 + lenFSMPC + len(r.CAType))
+	// CAType is a serialized C-string with trailing 0 byte.
+	lenCAType := len(r.CAType) + 1
+	size := uint32( /*sizes*/ 8 + lenFSMPC + lenCAType)
 	buf := make([]byte, 0, size)
 
 	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(r.FMSPC)))
-	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(r.CAType)))
+	buf = binary.LittleEndian.AppendUint32(buf, uint32(lenCAType))
 	buf = append(buf, r.FMSPC[:]...)
 	buf = append(buf, r.CAType...)
+	buf = append(buf, 0)
 	return buf
 }
 
