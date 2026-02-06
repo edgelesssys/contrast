@@ -14,6 +14,7 @@
       oneElementLines = true;
       sortArrays = true;
     };
+    jsonfmt.enable = true;
     just.enable = true;
     keep-sorted.enable = true;
     nixf-diagnose = {
