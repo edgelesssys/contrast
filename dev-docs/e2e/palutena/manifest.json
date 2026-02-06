@@ -1,33 +1,33 @@
 [
-    {
-        "op": "remove",
-        "path": "/ReferenceValues/snp/1"
-    },
-    {
-        "op": "replace",
-        "path": "/ReferenceValues/snp/0/MinimumTCB",
-        "value": {
-            "BootloaderVersion": 3,
-            "TEEVersion": 0,
-            "SNPVersion": 23,
-            "MicrocodeVersion": 213
-        }
-    },
-    {
-        "op": "replace",
-        "path": "/ReferenceValues/snp/0/MinimumMitigationVector",
-        "value": 8
-    },
-    {
-        "op": "replace",
-        "path": "/ReferenceValues/snp/0/AllowedChipIDs",
-        "value": [
-            "208B34B5C8580EA17D5017523597B79BFF54E11284405ADEA9A07579D5FABC9A7A03EA69B1D20EA586637F7C090F94EF588E953AE44D7FE83E1340F0C62BD1FD"
-        ]
-    },
-    {
-        "op": "test",
-        "path": "/ReferenceValues/snp/0/ProductName",
-        "value": "Milan"
+  {
+    "op": "remove",
+    "path": "/ReferenceValues/snp/1"
+  },
+  {
+    "op": "replace",
+    "path": "/ReferenceValues/snp/0/MinimumTCB",
+    "value": {
+      "BootloaderVersion": 3,
+      "TEEVersion": 0,
+      "SNPVersion": 23,
+      "MicrocodeVersion": 213
     }
+  },
+  {
+    "op": "replace",
+    "path": "/ReferenceValues/snp/0/MinimumMitigationVector",
+    "value": 8
+  },
+  {
+    "op": "replace",
+    "path": "/ReferenceValues/snp/0/AllowedChipIDs",
+    "value": [
+      "208B34B5C8580EA17D5017523597B79BFF54E11284405ADEA9A07579D5FABC9A7A03EA69B1D20EA586637F7C090F94EF588E953AE44D7FE83E1340F0C62BD1FD"
+    ]
+  },
+  {
+    "op": "test",
+    "path": "/ReferenceValues/snp/0/ProductName",
+    "value": "Milan"
+  }
 ]

@@ -1,15 +1,15 @@
 {
-    "k3s": {
-		"depName": "k3s-io/k3s",
-		"currentValue": "v1.35.0+k3s1",
-		"datasource": "github-releases",
-		"versioning": "loose"
-	},
-    "gpu-operator": {
-		"depName": "gpu-operator",
-		"currentValue": "v25.10.1",
-		"datasource": "helm",
-		"versioning": "semver",
-		"registryUrl": "https://helm.ngc.nvidia.com/nvidia"
-	}
+  "k3s": {
+    "depName": "k3s-io/k3s",
+    "currentValue": "v1.35.0+k3s1",
+    "datasource": "github-releases",
+    "versioning": "loose"
+  },
+  "gpu-operator": {
+    "depName": "gpu-operator",
+    "currentValue": "v25.10.1",
+    "datasource": "helm",
+    "versioning": "semver",
+    "registryUrl": "https://helm.ngc.nvidia.com/nvidia"
+  }
 }

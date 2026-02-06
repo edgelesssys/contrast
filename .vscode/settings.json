@@ -1,17 +1,17 @@
 {
-    "files.trimTrailingWhitespace": true,
-    "files.trimFinalNewlines": true,
-    "files.insertFinalNewline": true,
-    "gopls": {
-        "formatting.gofumpt": true,
-    },
-    "go.buildTags": "e2e contrast_unstable_api",
-    "go.lintTool": "golangci-lint",
-    "go.lintFlags": [
-        "--fast",
-    ],
-    "go.testFlags": [
-        "-v",
-        "-count=1",
-    ],
+  "files.trimTrailingWhitespace": true,
+  "files.trimFinalNewlines": true,
+  "files.insertFinalNewline": true,
+  "gopls": {
+    "formatting.gofumpt": true
+  },
+  "go.buildTags": "e2e contrast_unstable_api",
+  "go.lintTool": "golangci-lint",
+  "go.lintFlags": [
+    "--fast"
+  ],
+  "go.testFlags": [
+    "-v",
+    "-count=1"
+  ]
 }
