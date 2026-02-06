@@ -59,23 +59,6 @@ contrast generate
 
 on your deployment. If any of the Contrast annotations change, re-deploy to apply the updated policies.
 
-### Pin container images
-
-When generating the policies, Contrast will download the images specified in your deployment
-YAML and include their cryptographic identity. If the image tag is moved to another
-container image after the policy has been generated, the image downloaded at deploy time
-will differ from the one at generation time, and the policy enforcement won't allow the
-container to be started in the pod VM.
-
-To ensure the correct image is always used, pin the container image to a fixed `sha256`:
-
-```yaml
-image: ubuntu:22.04@sha256:19478ce7fc2ffbce89df29fea5725a8d12e57de52eb9ea570890dc5852aac1ac
-```
-
-This way, the same image will still be pulled when the container tag (`22.04`) is moved
-to another image.
-
 ### Validate Contrast components match
 
 A version mismatch between Contrast components can cause policy validation or attestation
@@ -90,12 +73,13 @@ kubectl get runtimeclasses
 
 This should give you output similar to the following one.
 
-```sh
+```
 NAME                                           HANDLER                                        AGE
 contrast-cc-metal-qemu-snp-7173acb5               contrast-cc-metal-qemu-snp-7173acb5               23h
 ```
 
 The output shows that there is a Contrast runtime class installed.
+If this command doesn't print any Contrast runtime class, you might have skipped the [runtime deployment](workload-deployment/runtime-deployment.md) step.
 
 Next, check if the pod that won't start has the correct runtime class configured, and the
 Coordinator uses the exact same runtime:
@@ -143,6 +127,27 @@ reference values for Metal-QEMU-TDX platform:
 
 Check the output for the section with the platform you are using, for example `Metal-QEMU-SNP`.
 The `runtime handler` must match the runtime class name of the pod that won't start.
+
+### Failing node installer
+
+If the `nodeinstaller` fails during node setup, it won't become ready and show a pod status like this:
+
+```
+NAME                                                      READY   STATUS       RESTARTS     AGE
+contrast-cc-metal-qemu-snp-7173acb5-nodeinstaller-zs6wc   0/1     Init:Error   1 (5s ago)   8s
+```
+
+In general, this means that the Contrast runtime isn't ready for workloads.
+If you run pods in this situation, they could fail with a number of error messages.
+For example, when the containerd config wasn't patched correctly or containerd wasn't restarted by the node installer:
+
+```
+  Type     Reason                  Age   From               Message
+  ----     ------                  ----  ----               -------
+  Warning  FailedCreatePodSandBox  17s   kubelet            Failed to create pod sandbox: rpc error: code = Unknown desc = unable to get OCI runtime for sandbox "6755f75b925298885ae0d0b5136f06e6b53cbc517697d6f59455106ea3155ed1": no runtime for "contrast-cc-metal-qemu-snp-7173acb5" is configured
+```
+
+Review the node installer pod logs to learn about the failure, and consult the [node installer configuration reference](../reference/node-installer-configuration.md) if you need to adjust the settings for your environment.
 
 ### Contrast attempts to pull the wrong image reference
 

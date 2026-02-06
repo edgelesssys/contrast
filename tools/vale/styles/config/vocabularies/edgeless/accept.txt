@@ -19,6 +19,7 @@ backoff
 backport
 backport(ed|s|ing)?
 Bazel
+boolean
 bootloader
 Bootstrapper
 btrfs

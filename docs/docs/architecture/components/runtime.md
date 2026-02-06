@@ -109,6 +109,8 @@ After deploying the installer, it performs the following steps on each node:
 - Reconfigure `containerd` by adding a runtime plugin that corresponds to the `handler` field of the Kubernetes `RuntimeClass`
 - Restart `containerd` to make it aware of the new plugin
 
+These operations can be configured, see the [node installer configuration reference](../../reference/node-installer-configuration.md).
+
 ## Kubernetes RuntimeClass
 
 Kubernetes can be extended to use more than one container runtime with [`RuntimeClass`](https://kubernetes.io/docs/concepts/containers/runtime-class/) objects.
