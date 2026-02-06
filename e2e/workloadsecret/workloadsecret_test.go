@@ -83,20 +83,31 @@ func TestWorkloadSecrets(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 
-		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(30*time.Second))
+		// Context needs to be a bit longer than usual due to the regression test loop below.
+		ctx, cancel := context.WithTimeout(t.Context(), ct.FactorPlatformTimeout(5*time.Minute))
 		defer cancel()
 
 		webPods, err = ct.Kubeclient.PodsFromDeployment(ctx, ct.Namespace, "web")
 		require.NoError(err)
 		require.Len(webPods, 2, "pod not found: %s/%s", ct.Namespace, "web")
 
-		stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, webPods[0].Name, []string{"/bin/sh", "-c", "cat /contrast/secrets/workload-secret-seed"})
-		assert.Empty(stderr)
-		require.NoError(err)
-		require.NotEmpty(stdout)
-		webWorkloadSecretBytes, err = hex.DecodeString(stdout)
-		require.NoError(err)
-		require.Len(webWorkloadSecretBytes, constants.SecretSeedSize)
+		// Fetch the workload secret from the pod several times, this is a regression test for
+		// https://github.com/kata-containers/kata-containers/issues/12072, which caused stdout to
+		// be missing some of the time. The number of iterations is a trade-off: the test used to
+		// fail somewhat reliably after at most 100 iterations, but a high iteration count would
+		// also increase the risk of other failures (network, API server, ...), and increase the
+		// running time of this test by a lot. Thus, we iterate only a few times and will catch
+		// a regression at least after a few nightly runs.
+		for i := range 10 {
+			t.Logf("Exec iteration %d", i)
+			stdout, stderr, err := ct.Kubeclient.Exec(ctx, ct.Namespace, webPods[0].Name, []string{"/bin/sh", "-c", "cat /contrast/secrets/workload-secret-seed"})
+			assert.Empty(stderr)
+			require.NoError(err)
+			require.NotEmpty(stdout)
+			webWorkloadSecretBytes, err = hex.DecodeString(stdout)
+			require.NoError(err)
+			require.Len(webWorkloadSecretBytes, constants.SecretSeedSize)
+		}
 	}), "workload secret seed needs to be present in the pod for subsequent tests")
 
 	t.Run("workload secret seed is the same between pods in the same deployment", func(t *testing.T) {
