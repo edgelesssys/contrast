@@ -21,19 +21,21 @@ var (
 func TestRequestMarshalling(t *testing.T) {
 	require := require.New(t)
 
+	req := &GetCollateralRequest{
+		FMSPC:  [lenFSMPC]byte{0x90, 0xc0, 0x6f, 0x00, 0x00, 0x00},
+		CAType: CATypePlatform,
+	}
+	binaryReq := req.marshalBinary()
+
 	header := header{
 		majorVersion: 1,
 		minorVersion: 1,
 		messageType:  messageTypeGetCollateralRequest,
 		responseCode: 0,
-		size:         0x26,
-	}
-	req := &GetCollateralRequest{
-		FMSPC:  [lenFSMPC]byte{0x90, 0xc0, 0x6f, 0x00, 0x00, 0x00},
-		CAType: CATypePlatform,
+		size:         uint32(len(binaryReq) + lenHeader),
 	}
 
-	require.Equal(getCollateralRequest, append(header.marshalBinary(), req.marshalBinary()...))
+	require.Equal(getCollateralRequest, append(header.marshalBinary(), binaryReq...))
 }
 
 func TestResponseMarshalling(t *testing.T) {
