@@ -85,22 +85,32 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData [
 
 	// Parse the attestation document.
 
-	quote := &tdx.QuoteV4{}
-	if err := proto.Unmarshal(attDocRaw, quote); err != nil {
+	quotev4 := &tdx.QuoteV4{}
+	if err := proto.Unmarshal(attDocRaw, quotev4); err != nil {
 		return fmt.Errorf("unmarshaling attestation: %w", err)
 	}
-	v.logger.Info("Quote decoded", "quote", protojson.MarshalOptions{Multiline: false}.Format(quote))
+	v.logger.Info("Quote decoded", "quote", protojson.MarshalOptions{Multiline: false}.Format(quotev4))
 
 	// Verify the report signature.
 
-	if err := verify.TdxQuoteContext(ctx, quote, v.verifyOpts); err != nil {
+	if len(quotev4.ExtraBytes) > 0 {
+		extensions, err := quote.GetExtensions(quotev4)
+		if err == nil {
+			v.logger.Info("exttracted collateral from cert", "collateral", string(extensions.Collateral))
+			// TODO(burgerdev): pass collateral to verifier
+		} else {
+			v.logger.Warn("error getting collateral from cert", "error", err)
+		}
+	}
+
+	if err := verify.TdxQuoteContext(ctx, quotev4, v.verifyOpts); err != nil {
 		return fmt.Errorf("verifying report signature: %w", err)
 	}
 	v.logger.Info("Successfully verified report signature")
 
 	// Build the validation options.
 
-	validateOpts, err := v.validateOptsGen.TDXValidateOpts(quote)
+	validateOpts, err := v.validateOptsGen.TDXValidateOpts(quotev4)
 	if err != nil {
 		return fmt.Errorf("generating validation options: %w", err)
 	}
@@ -108,7 +118,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData [
 
 	// Validate the report data.
 
-	if err := validate.TdxQuote(quote, validateOpts); err != nil {
+	if err := validate.TdxQuote(quotev4, validateOpts); err != nil {
 		return fmt.Errorf("validating report data: %w", err)
 	}
 
@@ -118,7 +128,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData [
 
 	// Check for allowed PIIDs.
 	if len(v.allowedPIIDs) != 0 {
-		piid, err := getPIID(quote)
+		piid, err := getPIID(quotev4)
 		if err != nil {
 			return fmt.Errorf("reading PIID from quote: %w", err)
 		}
@@ -130,7 +140,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData [
 	}
 
 	if v.reportSetter != nil {
-		report := tdxReport{quote: quote}
+		report := &Report{Quote: quotev4}
 		v.reportSetter.SetReport(report)
 	}
 	return nil
@@ -141,16 +151,19 @@ func (v *Validator) String() string {
 	return v.name
 }
 
-type tdxReport struct {
-	quote *tdx.QuoteV4
+// Report wraps a TDX quote to implement attestation.Report.
+type Report struct {
+	Quote *tdx.QuoteV4
 }
 
-func (t tdxReport) HostData() []byte {
-	return t.quote.TdQuoteBody.MrConfigId[:32]
+// HostData allows extracting MRCONFIGID for manifest validation.
+func (t Report) HostData() []byte {
+	return t.Quote.TdQuoteBody.MrConfigId[:32]
 }
 
-func (t tdxReport) ClaimsToCertExtension() ([]pkix.Extension, error) {
-	return claimsToCertExtension(t.quote)
+// ClaimsToCertExtension converts the TDX quote claims to an X.509 certificate extension.
+func (t Report) ClaimsToCertExtension() ([]pkix.Extension, error) {
+	return claimsToCertExtension(t.Quote)
 }
 
 // getPIID extracts the PIID from the PCK certificate inside a TDX quote.
