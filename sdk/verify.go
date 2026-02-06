@@ -30,17 +30,38 @@ type Client struct {
 	// If nil, http.DefaultClient will be used.
 	HTTPClient *http.Client
 
+	// KDSCacheStore is the backing store implementation used to cache
+	// attestation-relevant certificates from the AMD KDS.
+	KDSCacheStore KDSCacheBackingStore
+
 	log *slog.Logger
 
 	// validatorsFromManifestOverride is used by tests to replace the validators.
 	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]atls.Validator, error)
 }
 
+// KDSCacheBackingStore is the interface that needs to be fulfilled by
+// the backing store implementations for the certificate cache.
+type KDSCacheBackingStore interface {
+	Get(key string) ([]byte, bool)
+	Set(key string, value []byte)
+	Clear()
+}
+
 // New returns a Client with logging disabled.
-func New() Client {
+func New(store KDSCacheBackingStore) Client {
 	return Client{
-		log: slog.New(slog.DiscardHandler),
+		log:           slog.New(slog.DiscardHandler),
+		KDSCacheStore: store,
 	}
+}
+
+// NewWithFSCache returns a Client with a filesystem-backed KDS cache
+// at the given directory.
+func NewWithFSCache(dir string) Client {
+	c := New(nil)
+	c.KDSCacheStore = fsstore.New(dir, c.log.WithGroup("kds-cache"))
+	return c
 }
 
 // NewWithSlog can be used to configure how the SDK logs messages.
@@ -112,7 +133,7 @@ func (c Client) GetAttestation(ctx context.Context, url string, nonce []byte) ([
 // Note: this function does not verify manifest content! It's the callers responsibility to compare
 // the latest manifest with an expected manifest, if that exists, or verify that all manifest
 // fields match their expectations.
-func (c Client) ValidateAttestation(ctx context.Context, kdsDir string, nonce []byte, attestation []byte) (*CoordinatorState, error) {
+func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestation []byte) (*CoordinatorState, error) {
 	if len(nonce) != cryptohelpers.RNGLengthDefault {
 		return nil, fmt.Errorf("wrong nonce length: got %d, want %d", len(nonce), cryptohelpers.RNGLengthDefault)
 	}
@@ -133,8 +154,7 @@ func (c Client) ValidateAttestation(ctx context.Context, kdsDir string, nonce []
 		return nil, fmt.Errorf("validating latest manifest: %w", err)
 	}
 
-	kdsCache := fsstore.New(kdsDir, c.log.WithGroup("kds-cache"))
-	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, c.log.WithGroup("kds-getter"))
+	kdsGetter := certcache.NewCachedHTTPSGetter(c.KDSCacheStore, certcache.NeverGCTicker, c.log.WithGroup("kds-getter"))
 	validatorsFromManifest := ValidatorsFromManifest
 	if c.validatorsFromManifestOverride != nil {
 		validatorsFromManifest = c.validatorsFromManifestOverride
