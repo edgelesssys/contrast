@@ -131,19 +131,16 @@ generate cli=default_cli platform=default_platform:
     if [[ "${debug:-}" == "true" ]]; then
         debugFlag="--insecure-enable-debug-shell-access"
     fi
+    patch=$(mktemp)
+    kubectl -n default get cm bm-tcb-specs -o jsonpath="{.data['specs']}" > "$patch"
     nix run -L .#{{ cli }} -- generate \
         --workspace-dir ./{{ workspace_dir }} \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --reference-values {{ platform }} \
+        --reference-value-patches "$patch" \
+        --purge-empty-reference-values \
         ${debugFlag} \
         ./{{ workspace_dir }}/deployment/
-
-    patch=$(mktemp)
-    kubectl -n default get cm bm-tcb-specs -o jsonpath="{.data['specs']}" > "$patch"
-    cat ./{{ workspace_dir }}/manifest.json |
-        nix run -L .#json-patch -- -p "$patch" |
-        nix run .#nixpkgs.jq > ./{{ workspace_dir }}/manifest.json.tmp
-    mv ./{{ workspace_dir }}/manifest.json.tmp ./{{ workspace_dir }}/manifest.json
 
 # Apply Kubernetes manifests from /deployment
 apply target=default_deploy_target platform=default_platform:

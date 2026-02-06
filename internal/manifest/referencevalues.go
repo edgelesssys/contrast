@@ -10,9 +10,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/google/go-sev-guest/abi"
 	"github.com/google/go-sev-guest/verify/trust"
 )
@@ -94,8 +96,103 @@ func (r ReferenceValues) Validate() error {
 	return errors.Join(errs...)
 }
 
+// PurgeEmpty modifies r in-place to remove empty/not-filled-in reference values.
+// Emptyness is decided by checking if validation only returns ExpectedMissingReferenceValueError errors.
+func (r *ReferenceValues) PurgeEmpty() {
+	snp := []SNPReferenceValues{}
+	for _, v := range r.SNP {
+		var ve *ValidationError
+		err := v.Validate()
+		if errors.As(err, &ve) && ve.OnlyExpectedMissingReferenceValues() {
+			continue
+		}
+		snp = append(snp, v)
+	}
+	r.SNP = snp
+
+	tdx := []TDXReferenceValues{}
+	for _, v := range r.TDX {
+		var ve *ValidationError
+		err := v.Validate()
+		if errors.As(err, &ve) && ve.OnlyExpectedMissingReferenceValues() {
+			continue
+		}
+		tdx = append(tdx, v)
+	}
+	r.TDX = tdx
+}
+
+// ReferenceValuePatches is a slice of json-patch patchsets.
+type ReferenceValuePatches []json.RawMessage
+
+// PatchesFromFiles takes a slice of file paths and returns a patchset.
+func PatchesFromFiles(files []string) (ReferenceValuePatches, error) {
+	if len(files) == 0 {
+		return nil, nil
+	}
+
+	patches := ReferenceValuePatches{}
+	for _, file := range files {
+		data, err := os.ReadFile(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read file %s: %w", file, err)
+		}
+		var p ReferenceValuePatches
+		if err := json.Unmarshal(data, &p); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal JSON in file %s: %w", file, err)
+		}
+		patches = append(patches, p...)
+	}
+	return patches, nil
+}
+
+// Patch applies each patch in the given ReferenceValuePatches to r.
+// The json-patches can contain "test"-ops, most commonly for the Plaftorm and/or ProductName.
+// If application of a patch fails due to one of the "test"-ops failing, we interpret this
+// as the patch not being intended for the ReferenceValues under consideration.
+func (r *ReferenceValues) Patch(patches ReferenceValuePatches) error {
+	applyPatch := func(refVals any, patch jsonpatch.Patch) error {
+		refValBytes, err := json.Marshal(refVals)
+		if err != nil {
+			return fmt.Errorf("marshaling reference values for patching: %w", err)
+		}
+		modifiedrefValBytes, err := patch.Apply(refValBytes)
+		if errors.Is(err, jsonpatch.ErrTestFailed) {
+			// The patch was not meant for these refVals.
+			return nil
+		} else if err != nil {
+			return fmt.Errorf("applying specs patch to reference values: %w", err)
+		}
+		if err := json.Unmarshal(modifiedrefValBytes, refVals); err != nil {
+			return fmt.Errorf("unmarshaling patched reference values: %w", err)
+		}
+		return nil
+	}
+
+	for i, refValPatch := range patches {
+		patch, err := jsonpatch.DecodePatch(refValPatch)
+		if err != nil {
+			return fmt.Errorf("decoding specs patch[%d]: %w", i, err)
+		}
+
+		for j := range r.SNP {
+			if err := applyPatch(&r.SNP[j], patch); err != nil {
+				return fmt.Errorf("applying patch[%d] to SNP reference values: %w", i, err)
+			}
+		}
+
+		for j := range r.TDX {
+			if err := applyPatch(&r.TDX[j], patch); err != nil {
+				return fmt.Errorf("applying patch[%d] to TDX reference values: %w", i, err)
+			}
+		}
+	}
+	return nil
+}
+
 // SNPReferenceValues contains reference values for SEV-SNP.
 type SNPReferenceValues struct {
+	Platform                string
 	ProductName             ProductName
 	TrustedMeasurement      HexString
 	MinimumTCB              SNPTCB
@@ -229,6 +326,7 @@ func amdTrustedRootCerts(productName ProductName) (map[string][]*trust.AMDRootCe
 
 // TDXReferenceValues contains reference values for TDX.
 type TDXReferenceValues struct {
+	Platform                   string
 	MinTCBEvaluationDataNumber int
 	MrTd                       HexString
 	MrSeam                     HexString
