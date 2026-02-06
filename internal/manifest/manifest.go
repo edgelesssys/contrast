@@ -57,6 +57,15 @@ func Default(platforms []platforms.Platform) (*Manifest, error) {
 			)
 		}
 
+		// Add the platform as a marker.
+		// Used later for patching-in reference values.
+		for i := range refValues.SNP {
+			refValues.SNP[i].Platform = platform.String()
+		}
+		for i := range refValues.TDX {
+			refValues.TDX[i].Platform = platform.String()
+		}
+
 		merged.SNP = append(merged.SNP, refValues.SNP...)
 		merged.TDX = append(merged.TDX, refValues.TDX...)
 	}

@@ -34,7 +34,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
-	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
@@ -276,22 +275,15 @@ func PatchReferenceValues(ctx context.Context, k *kubeclient.Kubeclient) (PatchM
 	if err != nil {
 		return nil, fmt.Errorf("getting ConfigMap bm-tcb-specs: %w", err)
 	}
-	patch, err := jsonpatch.DecodePatch([]byte(configMap.Data["specs"]))
-	if err != nil {
-		return nil, fmt.Errorf("decoding specs patch: %w", err)
+	var patches manifest.ReferenceValuePatches
+	if err := json.Unmarshal([]byte(configMap.Data["specs"]), &patches); err != nil {
+		return nil, fmt.Errorf("unmarshaling patches: %w", err)
 	}
 	return func(m manifest.Manifest) (manifest.Manifest, error) {
-		manifestBytes, err := json.Marshal(m)
-		if err != nil {
-			return m, fmt.Errorf("marshaling manifest for patching: %w", err)
+		if err := m.ReferenceValues.Patch(patches); err != nil {
+			return m, err
 		}
-		modifiedManifestBytes, err := patch.Apply(manifestBytes)
-		if err != nil {
-			return m, fmt.Errorf("applying specs patch to manifest: %w", err)
-		}
-		if err := json.Unmarshal(modifiedManifestBytes, &m); err != nil {
-			return m, fmt.Errorf("unmarshaling patched manifest: %w", err)
-		}
+		m.ReferenceValues.PurgeEmpty()
 		return m, nil
 	}, nil
 }
