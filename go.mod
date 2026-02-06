@@ -7,6 +7,11 @@ toolchain go1.25.1
 // Upstream is poorly maintained, use edgelesssys fork instead.
 replace github.com/google/go-tdx-guest => github.com/edgelesssys/go-tdx-guest v0.0.0-20260120144929-ac8c4b4a23eb
 
+// Since this is used in the SDK, WASM support is desirable.
+// Upstream supports WASM since https://github.com/google/logger/commit/22a116c1d039d8dff1a6169f1daa69fc9e2cc8c3,
+// but hasn't cut a release since.
+replace github.com/google/logger => github.com/google/logger v1.1.2-0.20230705230850-22a116c1d039
+
 require (
 	filippo.io/keygen v0.0.0-20260108161619-eaec401c2f48
 	github.com/coreos/go-iptables v0.8.0
