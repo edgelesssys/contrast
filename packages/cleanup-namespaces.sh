@@ -22,6 +22,7 @@ knownNamespaces=(
 kubectl get namespaces --no-headers | while read -r ns _; do
   if [[ " ${knownNamespaces[*]} " == *" $ns "* ]]; then
     echo "Skipping known namespace: $ns"
+    continue
   fi
 
   if kubectl get namespace "$ns" -o jsonpath='{.metadata.labels.ci\.contrast\.edgeless\.systems/keep}' | grep -q "true"; then
