@@ -46,7 +46,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-cat >stdin.yaml
+cat >stdout.yaml
 
 echo -e "HOME=${HOME}\nXDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}\nDOCKER_CONFIG=${DOCKER_CONFIG}\nREGISTRY_AUTH_FILE=${REGISTRY_AUTH_FILE}" >env_path
 `
@@ -95,7 +95,7 @@ func TestRunner(t *testing.T) {
 	require.NoError(err)
 	assert.Equal(expectedExtraPath, string(extraPath))
 
-	yamlString, err := os.ReadFile(filepath.Join(d, "stdin.yaml"))
+	yamlString, err := os.ReadFile(filepath.Join(d, "stdout.yaml"))
 	require.NoError(err)
 	assert.YAMLEq(podYAML, string(yamlString))
 

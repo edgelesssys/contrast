@@ -149,6 +149,16 @@ buildGoModule (finalAttrs: {
       # all `nvidia.com/` devices.
       # Upstream Issue: https://github.com/kata-containers/kata-containers/issues/12322
       ./0021-genpolicy-use-all-nvidia-GPU-annotations.patch
+
+      # When calling genpolicy from the contract cli, we passed --yaml-file=/dev/stdin to genpolicy
+      # in order to a) silence genpolicy from outputting yaml output to stdout while b) simultaneously
+      # retrieve genpolicy's output back through stdin. This is breaking the aarch64-darwin build
+      # of the cli since writing to stdin is not allowed. This patch changes genpolicy's behavior so
+      # that it doesn't output the resulting yaml to the stdout when input is passed via stdin and
+      # the --base64-out option is specified.
+      # Upstream Issue: https://github.com/kata-containers/kata-containers/issues/12438
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12439
+      ./0022-genpolicy-suppress-YAML-output-when-base64-raw-out-a.patch
     ];
   };
 
