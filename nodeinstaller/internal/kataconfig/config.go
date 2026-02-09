@@ -82,6 +82,7 @@ func KataRuntimeConfig(
 		// allows for pulling those.
 		config.Agent["kata"]["dial_timeout"] = 600
 		config.Runtime["create_container_timeout"] = 600
+		config.Runtime["pod_resource_api_sock"] = "/var/lib/kubelet/pod-resources/kubelet.sock"
 	}
 
 	// Use the resources installed by Contrast node-installer.
