@@ -481,7 +481,7 @@ type ExpectedMissingReferenceValueError struct {
 }
 
 func (e ExpectedMissingReferenceValueError) Error() string {
-	return e.Err.Error()
+	return fmt.Sprintf("Please fill in all reference values for %s", e.Err.Error())
 }
 
 // OnlyExpectedMissingReferenceValues checks if all nested ValidationErrors stem from expected missing reference values.
