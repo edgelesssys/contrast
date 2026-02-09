@@ -44,6 +44,7 @@ var (
 	keep                    = flag.Bool("keep", false, "don't delete test resources and deployment")
 	platformStr             = flag.String("platform", "", "Deployment platform")
 	nodeInstallerTargetConf = flag.String("node-installer-target-conf", "", "Node installer target configuration")
+	namespaceFile           = flag.String("namespace-file", "", "file to store the namespaces in")
 )
 
 // TestRelease downloads a release from Github, sets up the coordinator, installs the demo
@@ -97,6 +98,9 @@ func TestRelease(t *testing.T) {
 			}
 		}
 	})
+
+	// Write namespaces to trigger log collection.
+	require.NoError(t, os.WriteFile(*namespaceFile, []byte("contrast-system\ndefault\n"), 0o644))
 
 	require.True(t, t.Run("apply-runtime", func(t *testing.T) {
 		require := require.New(t)
