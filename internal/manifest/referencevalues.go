@@ -82,7 +82,7 @@ func (r ReferenceValues) Validate() error {
 		err := v.Validate()
 		if errors.As(err, &ve) && ve.OnlyExpectedMissingReferenceValues() {
 			errs = append(errs, ExpectedMissingReferenceValueError{Err: fmt.Errorf("tdx[%d]", i)})
-		} else if err := v.Validate(); err != nil {
+		} else if err != nil {
 			errs = append(errs, newValidationError(fmt.Sprintf("tdx[%d]", i), err))
 		}
 	}

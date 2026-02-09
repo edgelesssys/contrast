@@ -215,7 +215,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 		return ce
 	} else if errors.As(err, &ve) && ve.OnlyExpectedMissingReferenceValues() {
 		for _, e := range ve.Unwrap() {
-			fmt.Fprintf(cmd.OutOrStdout(), "  Please fill in all reference values for %s\n", e)
+			fmt.Fprintf(cmd.OutOrStdout(), "  %s\n", e)
 		}
 	} else if err != nil {
 		return err
