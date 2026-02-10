@@ -10,9 +10,9 @@ import (
 	"io/fs"
 	"log"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/spf13/afero"
@@ -85,7 +85,7 @@ func (c *TargetConfig) LoadOverridesFromDir(
 			c.restartSystemdUnit = restart
 		case "systemd-unit-name":
 			c.systemdUnitNames = strings.FieldsFunc(dataStr, func(r rune) bool {
-				return slices.Contains([]string{",", " ", "\n"}, string(r))
+				return r == ',' || unicode.IsSpace(r)
 			})
 		case "kata-config-path":
 			c.kataConfigPath = dataStr
