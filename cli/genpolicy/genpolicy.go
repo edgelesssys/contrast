@@ -62,6 +62,9 @@ func (r *Runner) Run(ctx context.Context, res any, extraPath string, logger *slo
 		"--base64-out",
 	}
 	genpolicy := exec.CommandContext(ctx, r.genpolicy.Path(), args...)
+	genpolicy.Cancel = func() error {
+		return genpolicy.Process.Signal(os.Interrupt)
+	}
 	input, err := kuberesource.EncodeResources(res)
 	if err != nil {
 		return "", fmt.Errorf("encoding resources: %w", err)
@@ -83,7 +86,10 @@ func (r *Runner) Run(ctx context.Context, res any, extraPath string, logger *slo
 	genpolicy.Stderr = logFilter
 
 	logger.Debug("running genpolicy", "bin", r.genpolicy.Path(), "args", args)
-	if err := genpolicy.Run(); err != nil {
+	err = genpolicy.Run()
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return "", fmt.Errorf("running genpolicy: %w", ctxErr)
+	} else if err != nil {
 		return "", fmt.Errorf("running genpolicy: %w", err)
 	}
 

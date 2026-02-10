@@ -35,7 +35,7 @@ func (l logTranslator) Write(p []byte) (n int, err error) {
 
 var (
 	genpolicyLogPrefixReg = regexp.MustCompile(`^\[[^\]\s]+\s+(\w+)\s+([^\]\s]+)\] (.*)`)
-	errorMessage          = regexp.MustCompile(`^thread\s+'main'\s+panicked\s+at`)
+	errorMessage          = regexp.MustCompile(`^thread\s+'main'\s+(?:\(\d+\)\s+)?panicked\s+at`)
 )
 
 func (l logTranslator) startTranslate() {
