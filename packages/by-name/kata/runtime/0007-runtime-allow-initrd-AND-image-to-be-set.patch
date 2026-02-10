@@ -37,7 +37,7 @@ index 1bcd47218c3c6e336b443eb3b7337bf35602cae4..e695aa52f23e86687b9481e92d6b0c52
  
  	if err := conf.CheckTemplateConfig(); err != nil {
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 785bc9d19a9f723e337db4983e89c6563bbb8657..6fbd7ddf4a06b005db3c88a843833c228e31e5af 100644
+index 164d98e1f8ed3cf0befe82ff944a1f842e0feb4e..f7ce021237ee692b07d2f4cccd862887a121e228 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -426,24 +426,12 @@ func (q *qemu) buildDevices(ctx context.Context, kernelPath string) ([]govmmQemu

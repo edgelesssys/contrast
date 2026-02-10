@@ -138,7 +138,7 @@ index b632bd6aac600fc42b622091e216769de2a803d6..911f671cae117d33d263aea566d90f57
  		return fmt.Errorf("failed to write magic number to initdata image: %v", err)
  	}
 diff --git a/src/runtime/virtcontainers/qemu.go b/src/runtime/virtcontainers/qemu.go
-index 6fbd7ddf4a06b005db3c88a843833c228e31e5af..63a32b59e295c58801bdad1ca14683ce371b5844 100644
+index f7ce021237ee692b07d2f4cccd862887a121e228..3b77ff8cc2e5dcec04d172802a2a0d878b59b8b0 100644
 --- a/src/runtime/virtcontainers/qemu.go
 +++ b/src/runtime/virtcontainers/qemu.go
 @@ -578,6 +578,10 @@ func (q *qemu) CreateVM(ctx context.Context, id string, network Network, hypervi
