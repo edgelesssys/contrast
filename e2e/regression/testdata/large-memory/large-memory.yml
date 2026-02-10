@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: large-memory
+  namespace: "@@REPLACE_NAMESPACE@@"
+spec:
+  containers:
+    - name: large-memory
+      image: quay.io/fedora/httpd-24-micro@sha256:f8f7d90feb8beace46a9f235e1a215042c7a5d04e1567e11173f7b73ab621a1d
+      ports:
+        - containerPort: 8443
+        - containerPort: 8080
+      command: ["/usr/bin/run-httpd"]
+      resources:
+        requests:
+          memory: 32Gi
+        limits:
+          memory: 32Gi
