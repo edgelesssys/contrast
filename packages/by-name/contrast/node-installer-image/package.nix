@@ -7,8 +7,9 @@
   ociImageLayout,
   writers,
   hashDirs,
-  contrast,
   kata,
+  nodeinstaller,
+  node-installer-image,
   pkgsStatic,
   contrastPkgsStatic,
   OVMF-SNP,
@@ -32,7 +33,7 @@ let
   node-installer = ociLayerTar {
     files = [
       {
-        source = "${contrast.nodeinstaller}/bin/node-installer";
+        source = "${nodeinstaller}/bin/node-installer";
         destination = "/bin/node-installer";
       }
       {
@@ -226,10 +227,10 @@ ociImageLayout {
       # Layers without node-installer, or we have a circular dependency!
       # To still account for node-installer changes in the runtime hash,
       # we include its src instead.
-      dirs = layers ++ [ contrast.nodeinstaller.src ];
+      dirs = layers ++ [ nodeinstaller.src ];
       name = "runtime-hash-kata";
     };
-    gpu = kata.contrast-node-installer-image.override {
+    gpu = node-installer-image.override {
       inherit debugRuntime;
       withGPU = true;
     };

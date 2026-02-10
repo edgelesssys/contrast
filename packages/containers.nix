@@ -208,10 +208,10 @@ in
 containers
 // {
   push-node-installer-kata =
-    pushOCIDir "push-node-installer-kata" contrastPkgs.kata.contrast-node-installer-image
+    pushOCIDir "push-node-installer-kata" contrastPkgs.contrast.node-installer-image
       "v${contrastPkgs.contrast.nodeinstaller.version}";
   push-node-installer-kata-gpu =
-    pushOCIDir "push-node-installer-kata-gpu" contrastPkgs.kata.contrast-node-installer-image.gpu
+    pushOCIDir "push-node-installer-kata-gpu" contrastPkgs.contrast.node-installer-image.gpu
       "v${contrastPkgs.contrast.nodeinstaller.version}";
 }
 // (lib.concatMapAttrs (name: container: {

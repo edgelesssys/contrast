@@ -4,6 +4,7 @@
 {
   kata,
   calculateSnpIDBlock,
+  node-installer-image,
 }:
 
 let
@@ -13,7 +14,7 @@ let
       guestPolicy = builtins.fromJSON (builtins.readFile ../reference-values/snpGuestPolicyQEMU.json);
       launch-digest = kata.calculateSnpLaunchDigest {
         inherit os-image;
-        debug = kata.contrast-node-installer-image.debugRuntime;
+        debug = node-installer-image.debugRuntime;
       };
       idBlocks = calculateSnpIDBlock {
         snp-launch-digest = launch-digest;
@@ -36,7 +37,7 @@ in
 
 builtins.toFile "snp-id-blocks.json" (
   builtins.toJSON {
-    metal-qemu-snp = snpIdBlocksFor kata.contrast-node-installer-image.os-image;
-    metal-qemu-snp-gpu = snpIdBlocksFor kata.contrast-node-installer-image.gpu.os-image;
+    metal-qemu-snp = snpIdBlocksFor node-installer-image.os-image;
+    metal-qemu-snp-gpu = snpIdBlocksFor node-installer-image.gpu.os-image;
   }
 )

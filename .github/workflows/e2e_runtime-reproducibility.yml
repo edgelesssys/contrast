@@ -19,8 +19,8 @@ jobs:
         #
         # If adjusting the build-target, remember to also adjust the matrix for the collect-checksums job
         build-target:
-          - "kata.contrast-node-installer-image"
-          - "kata.contrast-node-installer-image.gpu"
+          - "contrast.node-installer-image"
+          - "contrast.node-installer-image.gpu"
       fail-fast: false
     # Usually we would define the matrix outputs here, but as GitHub Actions don't seem to allow per-combination outputs,
     # we'll write the outputs without defining them here. See https://github.com/orgs/community/discussions/17245#discussioncomment-3814009.
@@ -83,8 +83,8 @@ jobs:
     strategy:
       matrix:
         build-target:
-          - "kata.contrast-node-installer-image"
-          - "kata.contrast-node-installer-image.gpu"
+          - "contrast.node-installer-image"
+          - "contrast.node-installer-image.gpu"
       fail-fast: false
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
