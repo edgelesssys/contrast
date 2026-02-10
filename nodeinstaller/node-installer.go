@@ -113,8 +113,9 @@ func run(ctx context.Context, fetcher assetFetcher, platform platforms.Platform)
 		return fmt.Errorf("writing containerd config %q: %w", targetConf.ContainerdConfigPath(), err)
 	}
 
-	if targetConf.RestartSystemdUnit() {
-		if err := restartHostContainerd(ctx, targetConf.ContainerdConfigPath(), targetConf.SystemdUnitNames()); err != nil {
+	unitsToRestart := targetConf.SystemdUnitNames()
+	if len(unitsToRestart) > 0 {
+		if err := restartHostContainerd(ctx, targetConf.ContainerdConfigPath(), unitsToRestart); err != nil {
 			return fmt.Errorf("restarting systemd unit: %w", err)
 		}
 	}

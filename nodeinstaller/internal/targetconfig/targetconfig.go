@@ -10,7 +10,6 @@ import (
 	"io/fs"
 	"log"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"unicode"
 
@@ -21,7 +20,6 @@ import (
 // TargetConfig holds the configuration for the target system where the node-installer is running.
 type TargetConfig struct {
 	containerdConfigPath string
-	restartSystemdUnit   bool
 	systemdUnitNames     []string
 	kataConfigPath       string
 
@@ -33,7 +31,6 @@ type TargetConfig struct {
 func NewTargetConfig(hostMount, runtimeBase string, pl platforms.Platform) (*TargetConfig, error) {
 	conf := &TargetConfig{
 		containerdConfigPath: "etc/containerd/config.toml",
-		restartSystemdUnit:   true,
 		systemdUnitNames:     []string{"containerd.service"},
 		hostMount:            hostMount,
 		fs:                   &afero.Afero{Fs: afero.NewOsFs()},
@@ -77,12 +74,6 @@ func (c *TargetConfig) LoadOverridesFromDir(
 		switch info.Name() {
 		case "containerd-config-path":
 			c.containerdConfigPath = dataStr
-		case "restart-systemd-unit":
-			restart, err := strconv.ParseBool(dataStr)
-			if err != nil {
-				return fmt.Errorf("parsing restart-containerd value %q: %w", dataStr, err)
-			}
-			c.restartSystemdUnit = restart
 		case "systemd-unit-name":
 			c.systemdUnitNames = strings.FieldsFunc(dataStr, func(r rune) bool {
 				return r == ',' || unicode.IsSpace(r)
@@ -102,11 +93,6 @@ func (c *TargetConfig) LoadOverridesFromDir(
 // ContainerdConfigPath returns the path to the containerd configuration file.
 func (c *TargetConfig) ContainerdConfigPath() string {
 	return filepath.Join(c.hostMount, c.containerdConfigPath)
-}
-
-// RestartSystemdUnit returns whether the systemd unit should be restarted.
-func (c *TargetConfig) RestartSystemdUnit() bool {
-	return c.restartSystemdUnit
 }
 
 // SystemdUnitNames returns the names of the systemd units to restart.
