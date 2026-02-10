@@ -92,6 +92,8 @@ func KataRuntimeConfig(
 	config.Hypervisor["qemu"]["path"] = filepath.Join(baseDir, "bin", "qemu-system-x86_64")
 	config.Hypervisor["qemu"]["valid_hypervisor_paths"] = []string{filepath.Join(baseDir, "bin", "qemu-system-x86_64")}
 	config.Hypervisor["qemu"]["contrast_imagepuller_config"] = imagepullerConfigPath
+	// TODO(katexochen): Remove after https://github.com/kata-containers/kata-containers/pull/12472 is merged.
+	config.Hypervisor["qemu"]["disable_image_nvdimm"] = true
 
 	// Force container image gust pull so we don't have to use nydus-snapshotter.
 	config.Runtime["experimental_force_guest_pull"] = true
