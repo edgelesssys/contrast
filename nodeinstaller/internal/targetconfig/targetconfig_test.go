@@ -27,7 +27,6 @@ func TestNewTargetConfig(t *testing.T) {
 			wantErr:     false,
 			wantConfig: &TargetConfig{
 				containerdConfigPath: "etc/containerd/config.toml",
-				restartSystemdUnit:   true,
 				systemdUnitNames:     []string{"containerd.service"},
 				kataConfigPath:       "/opt/edgeless/qemu/etc/configuration-qemu-snp.toml",
 				hostMount:            "/host",
@@ -40,7 +39,6 @@ func TestNewTargetConfig(t *testing.T) {
 			wantErr:     false,
 			wantConfig: &TargetConfig{
 				containerdConfigPath: "etc/containerd/config.toml",
-				restartSystemdUnit:   true,
 				systemdUnitNames:     []string{"containerd.service"},
 				kataConfigPath:       "/opt/edgeless/qemu/etc/configuration-qemu-tdx.toml",
 				hostMount:            "/host",
@@ -82,7 +80,6 @@ func TestLoadOverridesFromDir(t *testing.T) {
 			fsLayout: map[string]string{
 				"some/dir/containerd-config-path": "custom/config.toml",
 				"some/dir/kata-config-path":       "custom/kata.toml",
-				"some/dir/restart-systemd-unit":   "false",
 				"some/dir/systemd-unit-name":      "custom.service",
 			},
 			setupConf: &TargetConfig{},
@@ -90,7 +87,6 @@ func TestLoadOverridesFromDir(t *testing.T) {
 			wantErr:   false,
 			wantConfig: &TargetConfig{
 				containerdConfigPath: "custom/config.toml",
-				restartSystemdUnit:   false,
 				systemdUnitNames:     []string{"custom.service"},
 				kataConfigPath:       "custom/kata.toml",
 			},
@@ -98,11 +94,9 @@ func TestLoadOverridesFromDir(t *testing.T) {
 		"partial overrides": {
 			fsLayout: map[string]string{
 				"some/dir/containerd-config-path": "custom/config.toml",
-				"some/dir/restart-systemd-unit":   "true",
 			},
 			setupConf: &TargetConfig{
 				containerdConfigPath: "default/config.toml",
-				restartSystemdUnit:   true,
 				systemdUnitNames:     []string{"default.service"},
 				kataConfigPath:       "default/kata.toml",
 			},
@@ -110,7 +104,6 @@ func TestLoadOverridesFromDir(t *testing.T) {
 			wantErr:   false,
 			wantConfig: &TargetConfig{
 				containerdConfigPath: "custom/config.toml",
-				restartSystemdUnit:   true,
 				systemdUnitNames:     []string{"default.service"},
 				kataConfigPath:       "default/kata.toml",
 			},
@@ -119,7 +112,6 @@ func TestLoadOverridesFromDir(t *testing.T) {
 			fsLayout: map[string]string{},
 			setupConf: &TargetConfig{
 				containerdConfigPath: "default/config.toml",
-				restartSystemdUnit:   true,
 				systemdUnitNames:     []string{"default.service"},
 				kataConfigPath:       "default/kata.toml",
 			},
@@ -127,7 +119,6 @@ func TestLoadOverridesFromDir(t *testing.T) {
 			wantErr:   false,
 			wantConfig: &TargetConfig{
 				containerdConfigPath: "default/config.toml",
-				restartSystemdUnit:   true,
 				systemdUnitNames:     []string{"default.service"},
 				kataConfigPath:       "default/kata.toml",
 			},
