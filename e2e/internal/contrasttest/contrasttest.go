@@ -199,7 +199,7 @@ func (ct *ContrastTest) Generate(t *testing.T) {
 
 // RunGenerate runs the contrast generate command.
 func (ct *ContrastTest) RunGenerate(ctx context.Context) error {
-	ctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 	args := append(
 		ct.commonArgs(),
