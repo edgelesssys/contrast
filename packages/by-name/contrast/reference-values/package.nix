@@ -4,6 +4,7 @@
 {
   kata,
   OVMF-TDX,
+  node-installer-image,
 }:
 
 let
@@ -11,10 +12,10 @@ let
     platform: hashFile:
     "contrast-cc-${platform}-${builtins.substring 0 8 (builtins.readFile hashFile)}";
 
-  metal-qemu-tdx-handler = runtimeHandler "metal-qemu-tdx" kata.contrast-node-installer-image.runtimeHash;
-  metal-qemu-snp-handler = runtimeHandler "metal-qemu-snp" kata.contrast-node-installer-image.runtimeHash;
-  metal-qemu-snp-gpu-handler = runtimeHandler "metal-qemu-snp-gpu" kata.contrast-node-installer-image.runtimeHash;
-  metal-qemu-tdx-gpu-handler = runtimeHandler "metal-qemu-tdx-gpu" kata.contrast-node-installer-image.runtimeHash;
+  metal-qemu-tdx-handler = runtimeHandler "metal-qemu-tdx" node-installer-image.runtimeHash;
+  metal-qemu-snp-handler = runtimeHandler "metal-qemu-snp" node-installer-image.runtimeHash;
+  metal-qemu-snp-gpu-handler = runtimeHandler "metal-qemu-snp-gpu" node-installer-image.runtimeHash;
+  metal-qemu-tdx-gpu-handler = runtimeHandler "metal-qemu-tdx-gpu" node-installer-image.runtimeHash;
 
   snpRefValsWith = os-image: {
     snp =
@@ -25,7 +26,7 @@ let
         };
         launch-digest = kata.calculateSnpLaunchDigest {
           inherit os-image;
-          debug = kata.contrast-node-installer-image.debugRuntime;
+          debug = node-installer-image.debugRuntime;
         };
       in
       [
@@ -42,8 +43,8 @@ let
       ];
   };
 
-  snpRefVals = snpRefValsWith kata.contrast-node-installer-image.os-image;
-  snpGpuRefVals = snpRefValsWith kata.contrast-node-installer-image.gpu.os-image;
+  snpRefVals = snpRefValsWith node-installer-image.os-image;
+  snpGpuRefVals = snpRefValsWith node-installer-image.gpu.os-image;
 
   tdxRefValsWith =
     {
@@ -57,7 +58,7 @@ let
           let
             launch-digests = kata.calculateTdxLaunchDigests {
               inherit os-image ovmf withGPU;
-              debug = kata.contrast-node-installer-image.debugRuntime;
+              debug = node-installer-image.debugRuntime;
             };
           in
           {
@@ -75,12 +76,12 @@ let
       ];
     };
   tdxRefVals = tdxRefValsWith {
-    inherit (kata.contrast-node-installer-image) os-image;
+    inherit (node-installer-image) os-image;
     ovmf = OVMF-TDX;
     withGPU = false;
   };
   tdxGpuRefVals = tdxRefValsWith {
-    inherit (kata.contrast-node-installer-image.gpu) os-image;
+    inherit (node-installer-image.gpu) os-image;
     ovmf = OVMF-TDX.override {
       # Only enable ACPI verification for the GPU build, until
       # the verification is actually secure.
