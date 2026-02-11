@@ -24,6 +24,8 @@ func main() {
 	addDmesg := flag.Bool("add-dmesg", false, "Add dmesg container")
 	nodeInstallerTargetConfType := flag.String("node-installer-target-conf-type", "", "Type of node installer target configuration to generate (k3s,...)")
 	deploymentPath := flag.String("deployment", "", "Path to the deployment file or a folder containing the deployment file(s)")
+	gpuClass := flag.String("gpu-class", "nvidia.com/pgpu", "full vendor/class of the GPU to attach")
+	gpuCount := flag.Int("gpu-count", 1, "number of GPUs to attach")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [flags] <set>...\n", os.Args[0])
 		flag.PrintDefaults()
@@ -83,7 +85,7 @@ func main() {
 		case "vault":
 			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.Vault(*namespace), "contrast-cc")
 		case "gpu":
-			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.GPU("gpu-tester", 0), "contrast-cc")
+			subResources = kuberesource.PatchRuntimeHandlers(kuberesource.GPU("gpu-tester", *gpuClass, int64(*gpuCount)), "contrast-cc")
 		default:
 			log.Fatalf("Error: unknown set: %s\n", set)
 		}

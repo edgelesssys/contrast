@@ -635,7 +635,10 @@ done
 }
 
 // GPU returns the resources for deploying a GPU test pod.
-func GPU(name string, gpuIndex int) []any {
+//
+// gpuClass must be a vendor/class pair, like nvidia.com/GB100_B200.
+// gpuQuantity is the number of GPUs.
+func GPU(name string, gpuClass string, gpuQuantity int64) []any {
 	tester := Deployment(name, "").
 		WithSpec(DeploymentSpec().
 			WithReplicas(1).
@@ -644,19 +647,16 @@ func GPU(name string, gpuIndex int) []any {
 			).
 			WithTemplate(PodTemplateSpec().
 				WithLabels(map[string]string{"app.kubernetes.io/name": name}).
-				WithAnnotations(map[string]string{
-					"cdi.k8s.io/gpu": fmt.Sprintf("nvidia.com/pgpu=%d", gpuIndex),
-				}).
 				WithSpec(PodSpec().
 					WithContainers(
 						Container().
-							WithName("gpu-tester-direct"). // This container directly requests the H100 resource.
+							WithName("gpu-tester-direct"). // This container directly requests a GPU.
 							WithImage("ghcr.io/edgelesssys/contrast/ubuntu:24.04@sha256:0f9e2b7901aa01cf394f9e1af69387e2fd4ee256fd8a95fb9ce3ae87375a31e6").
 							WithCommand("/bin/sh", "-c", "sleep inf").
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(500). // This accounts for nvidia-smi and the guest pull overhead.
 								WithLimits(corev1.ResourceList{
-									corev1.ResourceName("nvidia.com/pgpu"): resource.MustParse("1"),
+									corev1.ResourceName(gpuClass): *resource.NewQuantity(gpuQuantity, resource.DecimalExponent),
 								}),
 							),
 						Container().

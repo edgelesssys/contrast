@@ -25,8 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
-	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
 )
 
 const (
@@ -43,39 +41,30 @@ func TestGPU(t *testing.T) {
 	runtimeHandler, err := manifest.RuntimeHandler(platform)
 	require.NoError(t, err)
 
-	var gpuName string
+	var gpuName, gpuClass string
 	switch platform {
 	case platforms.MetalQEMUTDXGPU:
 		gpuName = "NVIDIA B200"
+		gpuClass = "nvidia.com/GB100_B200"
 	case platforms.MetalQEMUSNPGPU:
 		gpuName = "NVIDIA H100 PCIe"
+		gpuClass = "nvidia.com/pgpu"
 	default:
 		t.Errorf("platform %s does not support GPU tests", platform)
 	}
 
-	resources := kuberesource.GPU(gpuDeploymentName, 0)
+	resources := kuberesource.GPU(gpuDeploymentName, gpuClass, 1)
+	gpuDeployments := []string{gpuDeploymentName}
 
-	// On the TDX-GPU cluster, we have multiple B200 GPUs.
-	// Therefore, we add another GPU pod to the resources that runs in parallel.
-	if platform == platforms.MetalQEMUTDXGPU {
-		resources = append(resources, kuberesource.GPU(gpuDeploymentName+"-1", 1)...)
-	}
-
-	// Since the TDX-GPU testing cluster has multiple GPUs, we run into the drift
-	// explained in [1]. To avoid this, we need to remove the deployment of the direct GPU tester,
-	// since it wants to claim GPUs based on their CDI IDs, which might not match what's actually
-	// available on the node / mounted into the container. This is solved once [2] is released upstream.
-	//
-	// [1]: https://github.com/edgelesssys/contrast/blob/7cee4f0b2c98be9f5c308adc03f01ab7c5607e85/dev-docs/nvidia/cdi.md?plain=1#L136-L142
-	// [2]: https://github.com/kata-containers/kata-containers/pull/12087
-	if platform == platforms.MetalQEMUTDXGPU {
-		for _, res := range resources {
-			if d, ok := res.(*applyappsv1.DeploymentApplyConfiguration); ok {
-				containers := d.Spec.Template.Spec.Containers
-				d.Spec.Template.Spec.Containers = slices.DeleteFunc(containers,
-					func(c applycorev1.ContainerApplyConfiguration) bool {
-						return c.Name != nil && *c.Name == "gpu-tester-direct"
-					})
+	// Check how many GPUs are available on nodes to determine if we should test multi-GPU
+	nodes, err := ct.Kubeclient.Client.CoreV1().Nodes().List(t.Context(), metav1.ListOptions{})
+	require.NoError(t, err)
+	for _, node := range nodes.Items {
+		if pgpuQuantity, ok := node.Status.Allocatable[corev1.ResourceName(gpuClass)]; ok {
+			if pgpuQuantity.Value() > 1 {
+				gpuDeployments = append(gpuDeployments, gpuDeploymentName+"-1")
+				resources = append(resources, kuberesource.GPU(gpuDeploymentName+"-1", gpuClass, 1)...)
+				break
 			}
 		}
 	}
@@ -96,20 +85,6 @@ func TestGPU(t *testing.T) {
 	require.True(t, t.Run("set", ct.Set), "contrast set needs to succeed for subsequent tests")
 
 	require.True(t, t.Run("contrast verify", ct.Verify), "contrast verify needs to succeed for subsequent tests")
-
-	gpuDeployments := []string{gpuDeploymentName}
-
-	// Check how many GPUs are available on nodes to determine if we should test multi-GPU
-	nodes, err := ct.Kubeclient.Client.CoreV1().Nodes().List(t.Context(), metav1.ListOptions{})
-	require.NoError(t, err)
-	for _, node := range nodes.Items {
-		if pgpuQuantity, ok := node.Status.Allocatable["nvidia.com/pgpu"]; ok {
-			if pgpuQuantity.Value() > 1 {
-				gpuDeployments = append(gpuDeployments, gpuDeploymentName+"-1")
-				break
-			}
-		}
-	}
 
 	var pods []corev1.Pod
 	require.True(t, t.Run("wait for GPU deployments", func(t *testing.T) {
