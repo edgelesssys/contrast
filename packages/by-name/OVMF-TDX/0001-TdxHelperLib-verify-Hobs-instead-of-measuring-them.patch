@@ -15,7 +15,7 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  2 files changed, 100 insertions(+), 25 deletions(-)
 
 diff --git a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
-index 67fc8fe7f2bb3aecf3600ef2e294687f728345c2..d5c55d2105613063e9036fe5bf8269d4bfd712dc 100644
+index 67fc8fe7f2bb3aecf3600ef2e294687f728345c2..543d72b85ef7f5bcc618177025ebd3bdaa3c2aa6 100644
 --- a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
 +++ b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
 @@ -822,44 +822,106 @@ TdxHelperMeasureTdHob (
@@ -58,7 +58,7 @@ index 67fc8fe7f2bb3aecf3600ef2e294687f728345c2..d5c55d2105613063e9036fe5bf8269d4
 +  //
 +  // Make sure that the last address is reasonable.
 +  // 
-+  if (LastAddress >= SIZE_64GB) return EFI_INVALID_PARAMETER;
++  if (LastAddress >= SIZE_256GB) return EFI_INVALID_PARAMETER;
  
 -  if (EFI_ERROR (Status)) {
 -    return Status;
@@ -148,7 +148,7 @@ index 67fc8fe7f2bb3aecf3600ef2e294687f728345c2..d5c55d2105613063e9036fe5bf8269d4
    return EFI_SUCCESS;
  }
 diff --git a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf
-index 7a4e956778afaa7398ac040e41e5056709d703d1..4439aca2dee2d6c631651240772154f6d8d2b906 100644
+index 7a4e956778afaa7398ac040e41e5056709d703d1..3b938a6fa7ac6333e3e9881989ee5f23c1d59a90 100644
 --- a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf
 +++ b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelperLib.inf
 @@ -44,11 +44,24 @@

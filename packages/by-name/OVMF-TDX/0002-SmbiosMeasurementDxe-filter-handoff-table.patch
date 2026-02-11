@@ -32,7 +32,7 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  1 file changed, 16 insertions(+), 3 deletions(-)
 
 diff --git a/MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.c b/MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.c
-index 9c7d3906be800dbd834feca9b36a7dc6e1230f33..ec259f73151f225c767344c1d55cf03bb3d3dddc 100644
+index 9c7d3906be800dbd834feca9b36a7dc6e1230f33..3d80bfed2b3582f4e50940138b2eff2bd25ed1c9 100644
 --- a/MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.c
 +++ b/MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.c
 @@ -68,10 +68,15 @@ SMBIOS_FILTER_TABLE  mSmbiosFilterType4BlackList[] = {

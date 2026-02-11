@@ -14,7 +14,7 @@ Signed-off-by: Moritz Sanft <58110325+msanft@users.noreply.github.com>
  1 file changed, 52 insertions(+), 20 deletions(-)
 
 diff --git a/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c b/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
-index d9d0163ffd9f0e193923a363f0f954b000e6abfa..9a259450004b776c5b4d4e7000db6c659b69ca9d 100644
+index d9d0163ffd9f0e193923a363f0f954b000e6abfa..818a85a17b9da7e56089852106e37aba15fe419f 100644
 --- a/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
 +++ b/OvmfPkg/Library/AcpiPlatformLib/QemuFwCfgAcpi.c
 @@ -10,7 +10,6 @@
