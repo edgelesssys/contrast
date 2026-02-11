@@ -13,7 +13,11 @@
 edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
   name = "OVMF-TDX";
 
-  buildFlags = lib.optionals debug [ "-D DEBUG_ON_SERIAL_PORT=TRUE" ];
+  buildFlags = [
+    "-D BUILD_SHELL=FALSE" # We don't want any shell functionality compiled into the firmware.
+    "-D BUILD_FIRMWARE_UI=FALSE" # We don't need any interactive firmware UI.
+  ]
+  ++ lib.optionals debug [ "-D DEBUG_ON_SERIAL_PORT=TRUE" ];
 
   buildConfig = if debug then "DEBUG" else "RELEASE";
 
@@ -34,11 +38,13 @@ edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
     # The patch was necessary after the bump from edk2 202411 to 202508.01, as the SMBIOS
     # handoff table wasn't measured before.
     ./0002-SmbiosMeasurementDxe-filter-handoff-table.patch
+    # Add BUILD_FIRMWARE_UI toggle to disable the firmware UI to be included.
+    ./0003-IntelTdxX64-add-toggle-to-disable-firmware-UI.patch
   ]
   ++ lib.optionals withACPIVerificationInsecure [
     # Skip the measurement of the guest-memory and device-dependent ACPI tables and verify
     # them in the measured firmware instead.
-    ./0003-QemuFwCfgAcpi-verify-ACPI-data-instead-of-measuring.patch
+    ./0004-QemuFwCfgAcpi-verify-ACPI-data-instead-of-measuring.patch
   ];
 
   hardeningDisable = [

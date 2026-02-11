@@ -1,0 +1,71 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Wed, 11 Feb 2026 13:26:05 +0100
+Subject: [PATCH] IntelTdxX64: add toggle to disable firmware UI
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ OvmfPkg/IntelTdx/IntelTdxX64.dsc | 10 ++++++++++
+ OvmfPkg/IntelTdx/IntelTdxX64.fdf |  6 ++++--
+ 2 files changed, 14 insertions(+), 2 deletions(-)
+
+diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.dsc b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
+index 18fd116311e14f611be609d202339c1deb52a7fb..7294a071ec953bb72b49941882ebfbbed48f6f6c 100644
+--- a/OvmfPkg/IntelTdx/IntelTdxX64.dsc
++++ b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
+@@ -36,6 +36,9 @@
+   #
+   DEFINE BUILD_SHELL             = TRUE
+ 
++  # Disable UI apps
++  DEFINE BUILD_FIRMWARE_UI       = TRUE
++
+   #
+   # Device drivers
+   #
+@@ -458,7 +461,12 @@
+   gEfiShellPkgTokenSpaceGuid.PcdShellFileOperationSize|0x20000
+ 
+   # Point to the MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
++!if $(BUILD_FIRMWARE_UI) == TRUE
+   gEfiMdeModulePkgTokenSpaceGuid.PcdBootManagerMenuFile|{ 0xdc, 0x5b, 0xc2, 0xee, 0xf2, 0x67, 0x95, 0x4d, 0xb1, 0xd5, 0xf8, 0x1b, 0x20, 0x39, 0xd1, 0x1d }
++!else
++  # Disable Boot Manager Menu (set to zero GUID)
++  gEfiMdeModulePkgTokenSpaceGuid.PcdBootManagerMenuFile|{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }
++!endif
+ 
+   #
+   # PcdFirstTimeWakeUpAPsBySipi determines whether to employ
+@@ -623,6 +631,7 @@
+       XenPlatformLib|OvmfPkg/Library/XenPlatformLib/XenPlatformLib.inf
+   }
+   MdeModulePkg/Logo/LogoDxe.inf
++!if $(BUILD_FIRMWARE_UI) == TRUE
+   MdeModulePkg/Application/UiApp/UiApp.inf {
+     <LibraryClasses>
+       NULL|MdeModulePkg/Library/DeviceManagerUiLib/DeviceManagerUiLib.inf
+@@ -630,6 +639,7 @@
+       NULL|MdeModulePkg/Library/BootMaintenanceManagerUiLib/BootMaintenanceManagerUiLib.inf
+   }
+   MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
++!endif
+   OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.inf {
+     <LibraryClasses>
+       NULL|OvmfPkg/Library/BlobVerifierLibNull/BlobVerifierLibNull.inf
+diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.fdf b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
+index da48f67fb34279ca74636bd42825696db296bb75..238ff73d7ae7bfb08ebdaf14063c7496632f2f96 100644
+--- a/OvmfPkg/IntelTdx/IntelTdxX64.fdf
++++ b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
+@@ -216,8 +216,10 @@ INF  MdeModulePkg/Universal/Console/ConPlatformDxe/ConPlatformDxe.inf
+ INF  MdeModulePkg/Universal/Console/ConSplitterDxe/ConSplitterDxe.inf
+ INF  MdeModulePkg/Universal/Console/TerminalDxe/TerminalDxe.inf
+ INF  MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
+-INF  MdeModulePkg/Application/UiApp/UiApp.inf
+-INF  MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
++!if $(BUILD_FIRMWARE_UI) == TRUE
++  INF MdeModulePkg/Application/UiApp/UiApp.inf
++  INF MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
++!endif
+ INF  OvmfPkg/QemuKernelLoaderFsDxe/QemuKernelLoaderFsDxe.inf
+ INF  MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
+ INF  MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf

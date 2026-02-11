@@ -112,19 +112,6 @@ func (r *Rtmr) extendSeparator() {
 	r.hashAndExtend([]byte{0, 0, 0, 0})
 }
 
-const (
-	mediaProtocolType         = 4
-	piwgFirmwareFileSubType   = 6
-	piwgFirmwareVolumeSubType = 7
-	endOfPathType             = 0x7f
-)
-
-const (
-	loadOptionActive      = 1 << 0
-	loadOptionHidden      = 1 << 3
-	loadOptionCategoryApp = 1 << 8
-)
-
 var (
 	efiGlobalVariable = [16]byte{
 		0x61, 0xdf, 0xe4, 0x8b,
@@ -140,108 +127,7 @@ var (
 		0xa3, 0xbc,
 		0xda, 0xd0, 0x0e, 0x67, 0x65, 0x6f,
 	}
-	mediaFirmwareVolumeGUID = [16]byte{
-		0xc9, 0xbd, 0xb8, 0x7c,
-		0xeb, 0xf8,
-		0x34, 0x4f,
-		0xaa, 0xea,
-		0x3e, 0xe4, 0xaf, 0x65, 0x16, 0xa1,
-	}
-	fileGUID = [16]byte{
-		0x21, 0xaa, 0x2c, 0x46,
-		0x14, 0x76,
-		0x03, 0x45,
-		0x83, 0x6e,
-		0x8a, 0xb6, 0xf4, 0x66, 0x23, 0x31,
-	}
-	mediaFirmwareFileGUID = [16]byte{
-		0xdc, 0x5b, 0xc2, 0xee,
-		0xf2, 0x67,
-		0x95, 0x4d,
-		0xb1, 0xd5,
-		0xf8, 0x1b, 0x20, 0x39, 0xd1, 0x1d,
-	}
 )
-
-type efiDevicePath struct {
-	Type    uint8
-	SubType uint8
-	Data    []byte
-}
-
-// buildFilePathList assembles the device path passed by QEMU for boot option Boot0000.
-func buildFilePathList(files []efiDevicePath) ([]byte, error) {
-	// The structure of `EFI_DEVICE_PATH_PROTOCOL` is described in Unified
-	// Extensible Firmware Interface (UEFI) Specification, Release 2.10 Errata
-	// A, 10.2 EFI Device Path Protocol.
-	var buffer bytes.Buffer
-	addNode := func(ty uint8, subType uint8, data []byte) error {
-		if err := buffer.WriteByte(ty); err != nil {
-			return err
-		}
-		if err := buffer.WriteByte(subType); err != nil {
-			return err
-		}
-		length := len(data) + 4
-		if err := binary.Write(&buffer, binary.LittleEndian, uint16(length)); err != nil {
-			return err
-		}
-		if _, err := buffer.Write(data); err != nil {
-			return err
-		}
-		return nil
-	}
-
-	for _, node := range files {
-		if err := addNode(node.Type, node.SubType, node.Data); err != nil {
-			return nil, err
-		}
-	}
-
-	// The structure of End Entire Device Path nodes is described in Unified
-	// Extensible Firmware Interface (UEFI) Specification, Release 2.10 Errata
-	// A, 10.3.1 Generic Device Path Structures, Table 10.2: Device Path End
-	// Structure.
-	if err := addNode(endOfPathType, 0xff, []byte{}); err != nil {
-		return nil, err
-	}
-
-	return buffer.Bytes(), nil
-}
-
-// buildEfiLoadOption assembles the EFI_LOAD_OPTION passed by QEMU for boot option Boot0000.
-func buildEfiLoadOption(description string, attributes uint32, filePathList []byte) ([]byte, error) {
-	// The structure of `EFI_LOAD_OPTION` is described in Unified Extensible
-	// Firmware Interface (UEFI) Specification, Release 2.10 Errata A, 3.1.3
-	// Load Options.
-
-	optionalData := []byte{}
-
-	var buffer bytes.Buffer
-	if err := binary.Write(&buffer, binary.LittleEndian, attributes); err != nil {
-		return nil, err
-	}
-	if err := binary.Write(&buffer, binary.LittleEndian, uint16(len(filePathList))); err != nil {
-		return nil, err
-	}
-	unicodeDescription := utf16.Encode([]rune(description))
-	for _, codepoint := range unicodeDescription {
-		if err := binary.Write(&buffer, binary.LittleEndian, codepoint); err != nil {
-			return nil, err
-		}
-	}
-	// null terminator
-	if err := binary.Write(&buffer, binary.LittleEndian, uint16(0)); err != nil {
-		return nil, err
-	}
-	if _, err := buffer.Write(filePathList); err != nil {
-		return nil, err
-	}
-	if _, err := buffer.Write(optionalData); err != nil {
-		return nil, err
-	}
-	return buffer.Bytes(), nil
-}
 
 // CalcRtmr0 calculates RTMR[0] for the given firmware.
 func CalcRtmr0(firmware []byte, gpu GPUModel) ([48]byte, error) {
@@ -310,58 +196,6 @@ func CalcRtmr0(firmware []byte, gpu GPUModel) ([48]byte, error) {
 		}
 		rtmr.Extend(buffer)
 	}
-
-	// EFI_GLOBAL_VARIABLE BootOrder
-	// Content: Boot0000, Boot0001
-	rtmr.extendVariableValue([]byte{0x00, 0x00, 0x01, 0x00})
-
-	// EV_EFI_VARIABLE_BOOT
-	// Boot0000: BootManagerMenuApp
-	boot00000FilePathList, err := buildFilePathList(
-		[]efiDevicePath{
-			// The structure of PIWG Firmware Volume Device Path nodes is described in
-			// UEFI Platform Initialization Specification, Version 1.8 Errata A, II-8.2
-			// Firmware Volume Media Device Path.
-			{Type: mediaProtocolType, SubType: piwgFirmwareVolumeSubType, Data: mediaFirmwareVolumeGUID[:]},
-			// The structure of PIWG Firmware File Device Path nodes is described in
-			// UEFI Platform Initialization Specification, Version 1.8 Errata A, II-8.3
-			// Firmware File Media Device Path.
-			{Type: mediaProtocolType, SubType: piwgFirmwareFileSubType, Data: mediaFirmwareFileGUID[:]},
-		},
-	)
-	if err != nil {
-		return [48]byte{}, err
-	}
-	boot0000, err := buildEfiLoadOption(
-		"BootManagerMenuApp",
-		loadOptionActive|loadOptionHidden|loadOptionCategoryApp,
-		boot00000FilePathList,
-	)
-	if err != nil {
-		return [48]byte{}, err
-	}
-	rtmr.extendVariableValue(boot0000)
-
-	// EV_EFI_VARIABLE_BOOT
-	// Boot0001: EFI Firmware Setup
-	boot0001FilePathList, err := buildFilePathList(
-		[]efiDevicePath{
-			{Type: mediaProtocolType, SubType: piwgFirmwareVolumeSubType, Data: mediaFirmwareVolumeGUID[:]},
-			{Type: mediaProtocolType, SubType: piwgFirmwareFileSubType, Data: fileGUID[:]},
-		},
-	)
-	if err != nil {
-		return [48]byte{}, err
-	}
-	boot0001, err := buildEfiLoadOption(
-		"EFI Firmware Setup",
-		loadOptionActive|loadOptionCategoryApp,
-		boot0001FilePathList,
-	)
-	if err != nil {
-		return [48]byte{}, err
-	}
-	rtmr.extendVariableValue(boot0001)
 
 	return rtmr.Get(), nil
 }
