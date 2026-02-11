@@ -110,12 +110,17 @@ populate target=default_deploy_target platform=default_platform:
     if [[ "${debug:-}" != "true" ]]; then
         dmesgFlag="--add-dmesg"
     fi
+    gpuFlags=()
+    if [[ {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
+        gpuFlags=("--gpu-class" "nvidia.com/GB100_B200")
+    fi
     nix shell .#contrast.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --add-port-forwarders \
         --add-logging \
         ${dmesgFlag} \
+        "${gpuFlags[@]}" \
         --platform {{ platform }} \
         ${target} coordinator >> ./{{ workspace_dir }}/deployment/deployment.yml
 
