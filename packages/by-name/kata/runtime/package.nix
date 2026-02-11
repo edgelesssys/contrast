@@ -165,6 +165,13 @@ buildGoModule (finalAttrs: {
       # Upstream Issue: https://github.com/kata-containers/kata-containers/issues/12438
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12439
       ./0023-genpolicy-suppress-YAML-output-when-base64-raw-out-a.patch
+
+      # In clusters that don't use the sandbox-device-plugin's P_GPU_ALIAS, we will not be able to
+      # look up the device via PodResources. This patch adds additional resolution logic for that
+      # case, relaxing the matching requirement to just the name (without vendor and class).
+      # This is unlikely to be fixed in Kata upstream, but rather in the NVIDIA components.
+      # Upstream issue: https://github.com/NVIDIA/sandbox-device-plugin/issues/46
+      ./0024-shim-guess-CDI-devices-without-direct-match.patch
     ];
   };
 
