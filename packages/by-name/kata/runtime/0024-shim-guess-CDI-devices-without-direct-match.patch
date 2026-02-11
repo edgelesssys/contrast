@@ -1,0 +1,112 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Tue, 10 Feb 2026 18:27:58 +0100
+Subject: [PATCH] shim: guess CDI devices without direct match
+
+---
+ .../containerd-shim-v2/device_cold_plug.go    | 28 ++++++++++---
+ src/runtime/pkg/device/config/config.go       | 42 +++++++++++++++++++
+ 2 files changed, 65 insertions(+), 5 deletions(-)
+
+diff --git a/src/runtime/pkg/containerd-shim-v2/device_cold_plug.go b/src/runtime/pkg/containerd-shim-v2/device_cold_plug.go
+index 9334a7940862bc6e5f60f6246a2c59605d1f0555..1c09e2bee60fc5deead363110a67ff4e965aa17b 100644
+--- a/src/runtime/pkg/containerd-shim-v2/device_cold_plug.go
++++ b/src/runtime/pkg/containerd-shim-v2/device_cold_plug.go
+@@ -7,6 +7,7 @@ package containerdshim
+ 
+ import (
+ 	"context"
++	"errors"
+ 	"fmt"
+ 	"net"
+ 	"strings"
+@@ -59,17 +60,34 @@ func coldPlugWithAPI(ctx context.Context, s *service, ociSpec *specs.Spec) error
+ 	if err != nil {
+ 		return err
+ 	}
++	logger := shimLog.WithField("pod", debugPodID(ann))
+ 
+ 	if len(devices) == 0 {
+-		shimLog.WithField("pod", debugPodID(ann)).Debug("No devices found in Pod Resources, skip cold plug")
++		logger.Debug("No devices found in Pod Resources, skip cold plug")
+ 		return nil
+ 	}
+ 
+-	err = config.InjectCDIDevices(ociSpec, devices)
+-	if err != nil {
+-		return fmt.Errorf("cold plug: CDI device injection failed: %w", err)
++	injectErr := config.InjectCDIDevices(ociSpec, devices)
++	if injectErr == nil {
++		return nil
++	}
++	logger.Warnf("Could not find CDI specs for PodResource devices %v, trying to guess now", devices)
++	// Try to guess the devices.
++	deviceNames := make([]string, 0, len(devices))
++	for _, d := range devices {
++		// getDeviceSpec returns fully-qualified devices, like nvidia.com/pgpu=vfio42. Since we did
++		// not find a perfect match, we assume that the device kind may be wrong and try looking up
++		// by name only, hence we strip everything before the =.
++		// https://github.com/NVIDIA/sandbox-device-plugin/issues/46
++		_, name, ok := strings.Cut(d, "=")
++		if !ok {
++			return errors.Join(injectErr, fmt.Errorf("guessing CDI device: could not find = in CDI device name %q", d))
++		}
++		deviceNames = append(deviceNames, name)
++	}
++	if err := config.GuessCDIDevices(ociSpec, deviceNames); err != nil {
++		return errors.Join(injectErr, fmt.Errorf("guessing CDI device: %w", err))
+ 	}
+-
+ 	return nil
+ }
+ 
+diff --git a/src/runtime/pkg/device/config/config.go b/src/runtime/pkg/device/config/config.go
+index b912fc6377ad92cffd236fd6c829817183ba9be8..598a122affa919e4103454cb14abe9780929714a 100644
+--- a/src/runtime/pkg/device/config/config.go
++++ b/src/runtime/pkg/device/config/config.go
+@@ -733,3 +733,45 @@ func injectDevices(cdiSpecDirs []string, spec *specs.Spec, devices []string) err
+ 
+ 	return nil
+ }
++
++// GuessCDIDevices tries to inject the specified devices by name only (no vendor.com/class prefix).
++//
++// This is a workaround for NVIDIA GPUs that don't use the P_GPU_ALIAS. It should only be called
++// when InjectCDIDevices failed, and it will only consider nvidia.com devices.
++func GuessCDIDevices(spec *specs.Spec, devices []string) error {
++	registry := cdi.GetRegistry()
++
++	if err := registry.Refresh(); err != nil {
++		return fmt.Errorf("CDI registry refresh failed: %w", err)
++	}
++
++	db := registry.DeviceDB()
++
++	for _, device := range devices {
++		if err := guessSingleDevice(db, spec, device); err != nil {
++			return fmt.Errorf("guessing CDI device %q: %w", device, err)
++		}
++	}
++	return nil
++}
++
++func guessSingleDevice(db cdi.RegistryDeviceDB, spec *specs.Spec, deviceName string) error {
++	var candidate *cdi.Device
++	for _, cdiName := range db.ListDevices() {
++		if !strings.HasPrefix(cdiName, "nvidia.com/") {
++			continue
++		}
++		device := db.GetDevice(cdiName)
++		if device.Device.Name == deviceName {
++			candidate = device
++			break
++		}
++	}
++	if candidate == nil {
++		return fmt.Errorf("no candidate found among CDI device list %v", db.ListDevices())
++	}
++	if err := candidate.ApplyEdits(spec); err != nil {
++		return fmt.Errorf("injecting guessed CDI device %q: %w", candidate.GetQualifiedName(), err)
++	}
++	return nil
++}
