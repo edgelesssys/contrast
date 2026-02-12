@@ -231,7 +231,7 @@ ociImageLayout {
     };
     gpu = kata.contrast-node-installer-image.override {
       inherit debugRuntime;
-      withGPU = true;
+      # withGPU = true;
     };
   };
 }

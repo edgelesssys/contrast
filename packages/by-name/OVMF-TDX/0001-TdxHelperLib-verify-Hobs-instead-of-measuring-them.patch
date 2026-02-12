@@ -15,10 +15,10 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  2 files changed, 100 insertions(+), 25 deletions(-)
 
 diff --git a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
-index 67fc8fe7f2bb3aecf3600ef2e294687f728345c2..543d72b85ef7f5bcc618177025ebd3bdaa3c2aa6 100644
+index e430066549b63b62408b07d1f814e8655edf5c8b..61f077d1e6570e0cf95b8a97d0b7ebf6970ea087 100644
 --- a/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
 +++ b/OvmfPkg/IntelTdx/TdxHelperLib/SecTdxHelper.c
-@@ -822,44 +822,106 @@ TdxHelperMeasureTdHob (
+@@ -849,44 +849,106 @@ TdxHelperMeasureTdHob (
    )
  {
    EFI_PEI_HOB_POINTERS  Hob;

@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Wed, 11 Feb 2026 20:57:20 +0100
+Subject: [PATCH] tdx: Work around the segfault issue in glibc 2.35 in Ubuntu
+ 22.04
+
+---
+ arch/x86/coco/tdx/tdx.c | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/arch/x86/coco/tdx/tdx.c b/arch/x86/coco/tdx/tdx.c
+index 7b2833705d475a8c0c0e8393685f923c5fd58945..68afc9bfc37db9eb3828d85bec39e13a16a25fef 100644
+--- a/arch/x86/coco/tdx/tdx.c
++++ b/arch/x86/coco/tdx/tdx.c
+@@ -518,6 +518,18 @@ static int handle_cpuid(struct pt_regs *regs, struct ve_info *ve)
+ 		.r13 = regs->cx,
+ 	};
+ 
++	/*
++	 * Work around the segfault issue in glibc 2.35 in Ubuntu 22.04.
++	 * See https://sourceware.org/bugzilla/show_bug.cgi?id=28784
++	 * Ubuntu 22.04/22.10/23.04's glibc should pick up this glibc fix:
++	 * https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=c242fcce06e3102ca663b2f992611d0bda4f2668
++	 */
++	if (regs->ax == 2) {
++		regs->ax = 0xf1ff01;
++		regs->bx = regs->cx = regs->dx = 0;
++		return ve_instr_len(ve);
++	}
++
+ 	/*
+ 	 * Only allow VMM to control range reserved for hypervisor
+ 	 * communication.

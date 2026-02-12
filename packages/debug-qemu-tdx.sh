@@ -51,14 +51,14 @@ fi
 
 base_cmdline='tsc=reliable no_timer_check rcupdate.rcu_expedited=1 i8042.direct=1 i8042.dumbkbd=1 i8042.nopnp=1 i8042.noaux=1 noreplace-smp reboot=k cryptomgr.notests net.ifnames=0 pci=lastbus=0 root=/dev/vda1 rootflags=ro rootfstype=erofs console=hvc0 console=hvc1 debug systemd.show_status=true systemd.log_level=debug panic=1 nr_cpus=1 selinux=0 systemd.unit=kata-containers.target systemd.mask=systemd-networkd.service systemd.mask=systemd-networkd.socket scsi_mod.scan=none systemd.verity=yes lsm=landlock,yama,bpf cgroup_no_v1=all agent.log=debug agent.debug_console agent.debug_console_vport=1026'
 kata_cmdline=$(tomlq -r '.Hypervisor.qemu.kernel_params' <"/opt/edgeless/${runtime_name}/etc/configuration-qemu-tdx.toml")
-extra_cmdline='console=ttyS0 systemd.unit=default.target'
+extra_cmdline='efi=debug earlyprintk=ttyS0 console=ttyS0 systemd.unit=default.target'
 
 "/opt/edgeless/${runtime_name}/bin/qemu-system-x86_64" \
   -name sandbox-testing,debug-threads=on \
   -uuid 49ce7d67-eade-4708-a81f-b5b904213207 \
   -machine q35,accel=kvm,kernel_irqchip=split,confidential-guest-support=tdx \
   -cpu host,pmu=off \
-  -m 2024M \
+  -m 69G \
   -device pci-bridge,bus=pcie.0,id=pci-bridge-0,chassis_nr=1,shpc=off,addr=2,io-reserve=4k,mem-reserve=1m,pref64-reserve=1m \
   -device virtio-serial-pci,disable-modern=false,id=serial0 \
   -device virtio-blk-pci,disable-modern=false,drive=image-3132ead95475d1bb,config-wce=off,share-rw=on,serial=image-3132ead95475d1bb \
@@ -73,12 +73,15 @@ extra_cmdline='console=ttyS0 systemd.unit=default.target'
   -nodefaults \
   -nographic \
   --no-reboot \
-  -object memory-backend-ram,id=dimm1,size=2024M \
+  -object memory-backend-ram,id=dimm1,size=69G \
   -numa node,memdev=dimm1 \
   -kernel "/opt/edgeless/${runtime_name}/share/kata-kernel" \
   -initrd "/opt/edgeless/${runtime_name}/share/kata-initrd.zst" \
   -append "${base_cmdline} ${kata_cmdline} ${extra_cmdline}" \
   -serial stdio \
+  -global isa-debugcon.iobase=0x402 \
+  -debugcon file:/dev/stderr \
   -bios "${bios}" \
   -fw_cfg name=opt/ovmf/X-PciMmio64Mb,string=$((524288 * (gpu_count > 0 ? gpu_count : 1))) \
+  -monitor unix:/tmp/qemu-mon.sock,server,nowait \
   -smp 1,cores=1,threads=1,sockets=1,maxcpus=1

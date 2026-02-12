@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Date: Wed, 11 Feb 2026 21:03:37 +0100
+Subject: [PATCH] efi: debugging
+
+---
+ drivers/firmware/efi/efi.c                       | 14 +++++++++++++-
+ drivers/firmware/efi/libstub/unaccepted_memory.c |  5 +++--
+ drivers/firmware/efi/unaccepted_memory.c         |  1 +
+ 3 files changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/firmware/efi/efi.c b/drivers/firmware/efi/efi.c
+index fc407d891348f0e0fde3937fd933784746fdcda1..55ca69fbe6e4b941e2f607aecc5f540c01fb5d1a 100644
+--- a/drivers/firmware/efi/efi.c
++++ b/drivers/firmware/efi/efi.c
+@@ -694,7 +694,19 @@ static __init void reserve_unaccepted(struct efi_unaccepted_memory *unaccepted)
+ 	phys_addr_t start, size;
+ 
+ 	start = PAGE_ALIGN_DOWN(efi.unaccepted);
+-	size = PAGE_ALIGN(sizeof(*unaccepted) + unaccepted->size);
++	size = PAGE_ALIGN(sizeof(*unaccepted) + unaccepted->size +
++			  offset_in_page(efi.unaccepted));
++
++	pr_err("reserve_unaccepted: phys=0x%llx offset_in_page=0x%lx alloc=0x%llx (hdr=0x%zx + bitmap=0x%llx) -> memblock_add(0x%llx, 0x%llx) = %llu pages (would have been %llu without offset_in_page fix)\n",
++	       (u64)efi.unaccepted, offset_in_page(efi.unaccepted),
++	       (u64)(sizeof(*unaccepted) + unaccepted->size),
++	       sizeof(*unaccepted), unaccepted->size,
++	       (u64)start, (u64)size, size >> PAGE_SHIFT,
++	       PAGE_ALIGN(sizeof(*unaccepted) + unaccepted->size) >> PAGE_SHIFT);
++
++	if (unaccepted->size % sizeof(unsigned long))
++		pr_err("reserve_unaccepted: bitmap_size=0x%llx is NOT aligned to sizeof(unsigned long), _find_next_bit may read past allocation\n",
++		       unaccepted->size);
+ 
+ 	memblock_add(start, size);
+ 	memblock_reserve(start, size);
+diff --git a/drivers/firmware/efi/libstub/unaccepted_memory.c b/drivers/firmware/efi/libstub/unaccepted_memory.c
+index 757dbe734a47afbdf189cf057af366eb1b51f15e..5ec10f8de97c6ea42374a0b9e333f7c6b7938445 100644
+--- a/drivers/firmware/efi/libstub/unaccepted_memory.c
++++ b/drivers/firmware/efi/libstub/unaccepted_memory.c
+@@ -59,8 +59,9 @@ efi_status_t allocate_unaccepted_bitmap(__u32 nr_desc,
+ 	 * The bitmap will be populated in setup_e820() according to the memory
+ 	 * map after efi_exit_boot_services().
+ 	 */
+-	bitmap_size = DIV_ROUND_UP(unaccepted_end - unaccepted_start,
+-				   EFI_UNACCEPTED_UNIT_SIZE * BITS_PER_BYTE);
++	bitmap_size = ALIGN(DIV_ROUND_UP(unaccepted_end - unaccepted_start,
++					 EFI_UNACCEPTED_UNIT_SIZE * BITS_PER_BYTE),
++			    sizeof(unsigned long));
+ 
+ 	status = efi_bs_call(allocate_pool, EFI_ACPI_RECLAIM_MEMORY,
+ 			     sizeof(*unaccepted_table) + bitmap_size,
+diff --git a/drivers/firmware/efi/unaccepted_memory.c b/drivers/firmware/efi/unaccepted_memory.c
+index c2c067eff6345450f8630f0ef457baf5d0cec6e7..bacedf772d46b6286f33eda7673e9bad668dd2c8 100644
+--- a/drivers/firmware/efi/unaccepted_memory.c
++++ b/drivers/firmware/efi/unaccepted_memory.c
+@@ -92,6 +92,7 @@ void accept_memory(phys_addr_t start, unsigned long size)
+ 
+ 	range.start = start / unit_size;
+ 	range.end = DIV_ROUND_UP(end, unit_size);
++
+ retry:
+ 	spin_lock_irqsave(&unaccepted_memory_lock, flags);
+ 

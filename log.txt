@@ -1,0 +1,126 @@
+[    0.000000] tdx: Guest detected
+[    0.000000] tdx: Attributes: SEPT_VE_DISABLE
+[    0.000000] tdx: TD_CTLS: PENDING_VE_DISABLE ENUM_TOPOLOGY VIRT_CPUID2 REDUCE_VE
+[    0.000000] Linux version 6.19.0 (nixbld@localhost) (gcc (GCC) 15.2.0, GNU ld (GNU Binutils) 2.44) #1-NixOS SMP Sun Feb  8 21:03:27 UTC 2026
+[    0.000000] Command line: earlyprintk=ttyS0 console=ttyS0
+[    0.000000] BIOS-provided physical RAM map:
+[    0.000000] BIOS-e820: [mem 0x0000000000000000-0x00000000007fffff] usable
+[    0.000000] BIOS-e820: [mem 0x0000000000800000-0x0000000000805fff] ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x0000000000806000-0x000000000080afff] usable
+[    0.000000] BIOS-e820: [mem 0x000000000080b000-0x000000000080cfff] ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x000000000080d000-0x000000007d615fff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007d616000-0x000000007d617fff] ACPI data
+[    0.000000] BIOS-e820: [mem 0x000000007d618000-0x000000007d621fff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007d622000-0x000000007d625fff] ACPI data
+[    0.000000] BIOS-e820: [mem 0x000000007d626000-0x000000007d639fff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007d63a000-0x000000007d63afff] ACPI data
+[    0.000000] BIOS-e820: [mem 0x000000007d63b000-0x000000007d64ffff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007d650000-0x000000007d651fff] reserved
+[    0.000000] BIOS-e820: [mem 0x000000007d652000-0x000000007d65ffff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007d660000-0x000000007d669fff] reserved
+[    0.000000] BIOS-e820: [mem 0x000000007d66a000-0x000000007d66dfff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007d66e000-0x000000007d673fff] reserved
+[    0.000000] BIOS-e820: [mem 0x000000007d674000-0x000000007d67afff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007d67b000-0x000000007d692fff] ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x000000007d693000-0x000000007d695fff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007d696000-0x000000007d71ffff] reserved
+[    0.000000] BIOS-e820: [mem 0x000000007d720000-0x000000007d726fff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007d727000-0x000000007d727fff] reserved
+[    0.000000] BIOS-e820: [mem 0x000000007d728000-0x000000007e7b2fff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007e7b3000-0x000000007e80afff] reserved
+[    0.000000] BIOS-e820: [mem 0x000000007e80b000-0x000000007e812fff] ACPI data
+[    0.000000] BIOS-e820: [mem 0x000000007e813000-0x000000007e816fff] ACPI NVS
+[    0.000000] BIOS-e820: [mem 0x000000007e817000-0x000000007ff7bfff] usable
+[    0.000000] BIOS-e820: [mem 0x000000007ff7c000-0x000000007fffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x00000000e0000000-0x00000000efffffff] reserved
+[    0.000000] BIOS-e820: [mem 0x0000000100000000-0x00000010db7fffff] usable
+[    0.000000] printk: legacy bootconsole [earlyser0] enabled
+[    0.000000] NX (Execute Disable) protection: active
+[    0.000000] APIC: Static calls initialized
+[    0.000000] efi: EFI v2.7 by EDK II
+[    0.000000] efi: CCFinalLog=0x7d67b000 ACPI=0x7e812000 ACPI 2.0=0x7e812014 SMBIOS=0x7d669000 MEMATTR=0x7d62c018 TPMEventLog=0x7e80c018 Unaccepted=0x7d624018
+[    0.000000] [Firmware Bug]: Failed to parse event in TPM Final Events Log
+[    0.000000] SMBIOS 2.8 present.
+[    0.000000] DMI: QEMU Standard PC (Q35 + ICH9, 2009), BIOS unknown 02/02/2022
+[    0.000000] DMI: Memory slots populated: 1/1
+[    0.000000] Hypervisor detected: KVM
+[    0.000000] last_pfn = 0x7ff7c max_arch_pfn = 0x10000000000
+[    0.000000] tsc: Detected 2300.000 MHz processor
+[    0.000026] last_pfn = 0x10db800 max_arch_pfn = 0x10000000000
+[    0.002335] MTRR map: 1 entries (0 fixed + 1 variable; max 2), built from 1 variable MTRRs
+[    0.005533] MTRRs set to read-only
+[    0.006860] x86/PAT: Configuration [0-7]: WB  WC  UC- UC  WB  WP  UC- WT
+[    0.009643] x2apic: enabled by BIOS, switching to x2apic ops
+[    0.011892] last_pfn = 0x7ff7c max_arch_pfn = 0x10000000000
+[    0.033743] software IO TLB: SWIOTLB bounce buffer size adjusted to 1024MB
+[    0.033754] Using GB pages for direct mapping
+[    0.051491] Secure boot disabled
+[    0.052807] ACPI: Early table checksum verification disabled
+[    0.055277] ACPI: RSDP 0x000000007E812014 000024 (v02 BOCHS )
+[    0.057847] ACPI: XSDT 0x000000007E8110E8 000054 (v01 BOCHS  BXPC     00000001      01000013)
+[    0.061456] ACPI: FACP 0x000000007E80D000 0000F4 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.064991] ACPI: DSDT 0x000000007E80E000 001FE1 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.068460] ACPI: FACS 0x000000007E815000 000040
+[    0.070287] ACPI: CCEL 0x000000007E810000 000038 (v01 INTEL  EDK2     00000002      01000013)
+[    0.073722] ACPI: HPET 0x000000007E80B000 000038 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.077321] ACPI: MCFG 0x000000007D617000 00003C (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.080699] ACPI: WAET 0x000000007D616000 000028 (v01 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.084136] ACPI: APIC 0x000000007D63A000 000090 (v03 BOCHS  BXPC     00000001 BXPC 00000001)
+[    0.087526] ACPI: Reserving FACP table memory at [mem 0x7e80d000-0x7e80d0f3]
+[    0.090277] ACPI: Reserving DSDT table memory at [mem 0x7e80e000-0x7e80ffe0]
+[    0.093053] ACPI: Reserving FACS table memory at [mem 0x7e815000-0x7e81503f]
+[    0.095848] ACPI: Reserving CCEL table memory at [mem 0x7e810000-0x7e810037]
+[    0.098642] ACPI: Reserving HPET table memory at [mem 0x7e80b000-0x7e80b037]
+[    0.101413] ACPI: Reserving MCFG table memory at [mem 0x7d617000-0x7d61703b]
+[    0.104189] ACPI: Reserving WAET table memory at [mem 0x7d616000-0x7d616027]
+[    0.106938] ACPI: Reserving APIC table memory at [mem 0x7d63a000-0x7d63a08f]
+[    0.109803] APIC: Switched APIC routing to: cluster x2apic
+[    0.111989] BUG: unable to handle page fault for address: ff1100007d625008
+[    0.114651] #PF: supervisor read access in kernel mode
+[    0.116645] #PF: error_code(0x0000) - not-present page
+[    0.118539] PGD 40801067 P4D 40802067 PUD 10db7ff067 PMD 10db7fe067 PTE 0
+[    0.121108] Oops: Oops: 0000 [#1] SMP NOPTI
+[    0.122729] CPU: 0 UID: 0 PID: 0 Comm: swapper Not tainted 6.19.0 #1-NixOS NONE
+[    0.125651] Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS unknown 02/02/2022
+[    0.128650] RIP: 0010:_find_next_bit+0x1e/0x80
+[    0.130217] Code: c1 c3 c3 66 0f 1f 84 00 00 00 00 00 49 89 f8 48 89 f0 48 39 f2 73 5a 48 89 d6 48 c7 c7 ff ff ff ff 89 d1 48 c1 ee 06 48 d3 e7 <49> 23 3c f0 75 42 48 8d 56 01 49 8d 4c f0 08 48 c1 e2 06 eb 2d 66
+[    0.137510] RSP: 0000:ffffffff91603d28 EFLAGS: 00010087
+[    0.139634] RAX: 0000000000007edc RBX: 0000000000000000 RCX: 0000000000007edb
+[    0.142417] RDX: 0000000000007edb RSI: 00000000000001fb RDI: fffffffff8000000
+[    0.145263] RBP: ffffffff91603da8 R08: ff1100007d624030 R09: ffffffff91c2d090
+[    0.148058] R10: 0000000000000083 R11: ffffffff916beb78 R12: 00000000ffffffff
+[    0.150849] R13: ff1100007d624030 R14: 0000000000200000 R15: ff1100007d624018
+[    0.153702] FS:  0000000000000000(0000) GS:0000000000000000(0000) knlGS:0000000000000000
+[    0.156962] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[    0.159239] CR2: ff1100007d625008 CR3: 000000003fe1a000 CR4: 00000000000210f0
+[    0.162088] Call Trace:
+[    0.163075]  <TASK>
+[    0.163882]  ? accept_memory+0x184/0x250
+[    0.165448]  ? memblock_alloc_range_nid+0x16b/0x180
+[    0.167308]  ? memblock_alloc_internal+0x38/0x70
+[    0.168997]  ? __memblock_alloc_or_panic+0x8c/0xe0
+[    0.170835]  ? copy_device_tree+0x1e/0x40
+[    0.172368]  ? unflatten_device_tree+0x5e/0x90
+[    0.174074]  ? x86_flattree_get_config+0x9b/0xe0
+[    0.175865]  ? setup_arch+0x948/0xa50
+[    0.177264]  ? start_kernel+0x48/0x6f0
+[    0.178768]  ? x86_64_start_reservations+0x20/0x20
+[    0.180610]  ? x86_64_start_kernel+0xcd/0xd0
+[    0.182265]  ? common_startup_64+0x13e/0x141
+[    0.183921]  </TASK>
+[    0.184767] Modules linked in:
+[    0.185971] CR2: ff1100007d625008
+[    0.187308] ---[ end trace 0000000000000000 ]---
+[    0.189071] RIP: 0010:_find_next_bit+0x1e/0x80
+[    0.190789] Code: c1 c3 c3 66 0f 1f 84 00 00 00 00 00 49 89 f8 48 89 f0 48 39 f2 73 5a 48 89 d6 48 c7 c7 ff ff ff ff 89 d1 48 c1 ee 06 48 d3 e7 <49> 23 3c f0 75 42 48 8d 56 01 49 8d 4c f0 08 48 c1 e2 06 eb 2d 66
+[    0.198025] RSP: 0000:ffffffff91603d28 EFLAGS: 00010087
+[    0.200114] RAX: 0000000000007edc RBX: 0000000000000000 RCX: 0000000000007edb
+[    0.202992] RDX: 0000000000007edb RSI: 00000000000001fb RDI: fffffffff8000000
+[    0.205779] RBP: ffffffff91603da8 R08: ff1100007d624030 R09: ffffffff91c2d090
+[    0.208578] R10: 0000000000000083 R11: ffffffff916beb78 R12: 00000000ffffffff
+[    0.211444] R13: ff1100007d624030 R14: 0000000000200000 R15: ff1100007d624018
+[    0.214223] FS:  0000000000000000(0000) GS:0000000000000000(0000) knlGS:0000000000000000
+[    0.217326] CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+[    0.219588] CR2: ff1100007d625008 CR3: 000000003fe1a000 CR4: 00000000000210f0
+[    0.222420] Kernel panic - not syncing: Attempted to kill the idle task!
+[    0.226193] ---[ end Kernel panic - not syncing: Attempted to kill the idle task! ]---

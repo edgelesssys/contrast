@@ -1,15 +1,14 @@
 # Copyright 2024 Edgeless Systems GmbH
 # SPDX-License-Identifier: BUSL-1.1
 
-{
-  lib,
-  fetchurl,
-  linuxManualConfig,
-  stdenvNoCC,
-  fetchpatch,
-  kata,
-  withGPU ? false,
-  ... # Required for invocation through `linuxPackagesFor`, which calls this with the `features` argument.
+{ lib
+, fetchurl
+, linuxManualConfig
+, stdenvNoCC
+, fetchpatch
+, kata
+, withGPU ? false
+, ... # Required for invocation through `linuxPackagesFor`, which calls this with the `features` argument.
 }:
 
 let
@@ -84,25 +83,29 @@ let
 in
 
 linuxManualConfig rec {
-  version = "6.18.5";
-  modDirVersion = "${version}" + lib.optionalString withGPU "-nvidia-gpu-confidential";
+  version = "6.19";
+  modDirVersion = "${version}.0" + lib.optionalString withGPU "-nvidia-gpu-confidential";
 
   # See https://github.com/kata-containers/kata-containers/blob/5f11c0f144037d8d8f546c89a0392dcd84fa99e2/versions.yaml#L198-L201
   src = fetchurl {
     url = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${version}.tar.xz";
-    hash = "sha256-GJ0fQJzvjQ0jQhDgRZUXLfOS+MspfhS0R+2Vcg4v2UA=";
+    hash = "sha256-MDB5qCULjzgfgrA/kEY9EqyY1PaxSbdh6nWvEyNSE1c=";
   };
 
   kernelPatches = [
     # Patch prevents containers with unfixed glibc from crashing.
     # Unsure when this can be removed.
-    {
-      name = "work-around-the-segfault-issue-in-glibc-2-35";
-      patch = fetchpatch {
-        url = "https://patchwork.ozlabs.org/project/ubuntu-kernel/patch/20230123140233.790103-2-tim.gardner@canonical.com/raw/";
-        hash = "sha256-kDW3yqWHxAGzaaM/5mSNoyMa2WZuyWJbMznPTPgfiyo=";
-      };
-    }
+    # {
+    #   name = "work-around-the-segfault-issue-in-glibc-2-35";
+    #   patch = fetchpatch {
+    #     url = "https://patchwork.ozlabs.org/project/ubuntu-kernel/patch/20230123140233.790103-2-tim.gardner@canonical.com/raw/";
+    #     hash = "sha256-kDW3yqWHxAGzaaM/5mSNoyMa2WZuyWJbMznPTPgfiyo=";
+    #   };
+    # }
+    # {
+    #   name = "efi-debugging";
+    #   patch = ./0002-efi-debugging.patch;
+    # }
   ];
 
   inherit configfile;
