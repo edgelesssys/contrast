@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 func TestEncodeDecode(t *testing.T) {
@@ -26,8 +27,8 @@ metadata:
   name: foo
 spec:
   containers:
-  - image: image
-    name: bar
+    - image: image
+      name: bar
 `,
 			wantErr: false,
 		},
@@ -281,6 +282,36 @@ apiVersion
 			}
 			assert.NoError(err)
 			assert.Equal(tc.wantSplit, bytesToStrings(gotSplit))
+		})
+	}
+}
+
+func TestEncodeUnstructured(t *testing.T) {
+	for name, tc := range map[string]struct {
+		input  []*unstructured.Unstructured
+		output string
+	}{
+		"quotation marks are added where needed": {
+			input:  []*unstructured.Unstructured{{Object: map[string]any{"foo": "1e2"}}},
+			output: "foo: \"1e2\"\n",
+		},
+		"multi-line strings use literal-style ": {
+			input:  []*unstructured.Unstructured{{Object: map[string]any{"foo": "1\n2\n3\n"}}},
+			output: "foo: |\n  1\n  2\n  3\n",
+		},
+		"multiple objects are --- separated": {
+			input: []*unstructured.Unstructured{
+				{Object: map[string]any{"foo": "1"}},
+				{Object: map[string]any{"bar": 2}},
+			},
+			output: "foo: \"1\"\n---\nbar: 2\n",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			require := require.New(t)
+			output, err := EncodeUnstructured(tc.input)
+			require.NoError(err)
+			require.Equal(tc.output, string(output))
 		})
 	}
 }
