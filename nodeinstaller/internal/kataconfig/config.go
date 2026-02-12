@@ -127,8 +127,8 @@ type SnpIDBlock struct {
 	GuestPolicy abi.SnpPolicy `json:"guestPolicy"`
 }
 
-// platform -> product -> snpIDBlock.
-type snpIDBlockMap map[string]map[string]SnpIDBlock
+// platform -> cpu_count -> product -> snpIDBlock.
+type snpIDBlockMap map[string]map[string]map[string]SnpIDBlock
 
 // SnpIDBlockForPlatform returns the embedded SNP ID block and ID auth for the given platform and product.
 func SnpIDBlockForPlatform(platform platforms.Platform, productName sevsnp.SevProduct_SevProductName) (SnpIDBlock, error) {
@@ -142,8 +142,12 @@ func SnpIDBlockForPlatform(platform platforms.Platform, productName sevsnp.SevPr
 	if !ok {
 		return SnpIDBlock{}, fmt.Errorf("no SNP ID block found for platform %s", platform)
 	}
+	// TODO: Get correct ID block based on requested vCPU count at runtime
+	if blockForPlatform["1"] == nil {
+		return SnpIDBlock{}, fmt.Errorf("no SNP ID blocks found for platform %s", platform)
+	}
 	productLine := kds.ProductLine(&sevsnp.SevProduct{Name: productName})
-	block, ok := blockForPlatform[productLine]
+	block, ok := blockForPlatform["1"][productLine]
 	if !ok {
 		return SnpIDBlock{}, fmt.Errorf("no SNP ID block found for product %s", productLine)
 	}
