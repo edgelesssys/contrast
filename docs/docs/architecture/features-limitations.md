@@ -43,4 +43,4 @@ nvTrust provides tools and utilities to perform attestation within the workload.
 
 ## Miscellaneous
 
-- **Large pods on TDX**: On TDX platforms, Contrast currently only supports up to 64Gi of memory, including the fixed overhead of the Contrast runtime class.
+- **Large pods on TDX**: On TDX platforms, Contrast currently only supports up to 256Gi of memory, including the fixed overhead of the Contrast runtime class.
