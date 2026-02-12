@@ -104,7 +104,7 @@ func KataRuntimeConfig(
 	config.Hypervisor["qemu"]["enable_debug"] = debug
 	// Disable all annotations, as we don't support these. Some will mess up measurements,
 	// others bypass things you can archive via correct resource declaration anyway.
-	config.Hypervisor["qemu"]["enable_annotations"] = []string{"cc_init_data"}
+	config.Hypervisor["qemu"]["enable_annotations"] = []string{"cc_init_data", "snp_id_block"}
 	// Fix and align guest memory calculation.
 	config.Hypervisor["qemu"]["default_memory"] = platforms.DefaultMemoryInMebiBytes(platform)
 	config.Runtime["sandbox_cgroup_only"] = true

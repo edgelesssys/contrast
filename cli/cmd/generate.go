@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/edgelesssys/contrast/cli/genpolicy"
@@ -24,6 +25,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -35,6 +37,8 @@ import (
 const (
 	contrastRoleAnnotationKey     = "contrast.edgeless.systems/pod-role"
 	workloadSecretIDAnnotationKey = "contrast.edgeless.systems/workload-secret-id"
+	hypervisorCPUCountAnnotation  = "io.katacontainers.config.hypervisor.default_vcpus"
+	hypervisorIDBlockAnnotation   = "io.katacontainers.config.hypervisor.snp_id_block"
 )
 
 // NewGenerateCmd creates the contrast generate subcommand.
@@ -511,6 +515,12 @@ func patchTargets(logger *slog.Logger, fileMap map[string][]*unstructured.Unstru
 		replaceRuntimeClassName := patchRuntimeClassName(logger, runtimeHandler)
 		kuberesource.MapPodSpec(res, replaceRuntimeClassName)
 
+		patchCPU, err := patchCPUCountAnnotation()
+		if err != nil {
+			return nil, fmt.Errorf("injecting CPU count annotations: %w", err)
+		}
+		kuberesource.MapPodSpecWithMeta(res, patchCPU)
+
 		return res, nil
 	})
 }
@@ -690,6 +700,66 @@ func patchRuntimeClassName(logger *slog.Logger, defaultRuntimeHandler string) fu
 		spec.RuntimeClassName = &overrideRuntimeHandler
 		return spec
 	}
+}
+
+func patchCPUCountAnnotation() (func(*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration), error) {
+	var snpIDBlocks map[string]map[string]map[string]SnpIDBlock
+	if err := json.Unmarshal(SNPIDBlocks, &snpIDBlocks); err != nil {
+		return nil, fmt.Errorf("unmarshal SNP ID blocks: %w", err)
+	}
+	return func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+		// Only inject Pods running on SNP
+		if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-metal-qemu-snp") {
+			return meta, spec
+		}
+
+		var regularContainersCPU int64
+		for _, container := range spec.Containers {
+			regularContainersCPU += getNeededCPUCount(container.Resources)
+		}
+		var initContainersCPU int64
+		for _, container := range spec.InitContainers {
+			cpuCount := getNeededCPUCount(container.Resources)
+			initContainersCPU += cpuCount
+			// Sidecar containers remain running alongside the actual application, consuming CPU resources
+			if container.RestartPolicy != nil && *container.RestartPolicy == corev1.ContainerRestartPolicyAlways {
+				regularContainersCPU += cpuCount
+			}
+		}
+		podLevelCPU := getNeededCPUCount(spec.Resources)
+
+		// Convert milliCPUs to number of CPUs (rounding up), and add 1 for hypervisor overhead
+		totalMilliCPUs := max(regularContainersCPU, initContainersCPU, podLevelCPU)
+		cpuCount := strconv.FormatInt((totalMilliCPUs+999)/1000+1, 10)
+
+		stopTrim := false
+		target := strings.TrimRightFunc(strings.TrimPrefix(*spec.RuntimeClassName, "contrast-cc-"), func(r rune) bool {
+			if r == '-' {
+				stopTrim = true
+				return true
+			}
+			return true && !stopTrim
+		})
+
+		meta.Annotations[hypervisorIDBlockAnnotation] = snpIDBlocks[target]["Genoa"][cpuCount].IDBlock
+		meta.Annotations[hypervisorCPUCountAnnotation] = cpuCount
+
+		return meta, spec
+	}, nil
+}
+
+func getNeededCPUCount(resources *applycorev1.ResourceRequirementsApplyConfiguration) int64 {
+	if resources == nil {
+		return 0
+	}
+	var requests, limits int64
+	if resources.Requests != nil {
+		requests = resources.Requests.Cpu().MilliValue()
+	}
+	if resources.Limits != nil {
+		limits = resources.Limits.Cpu().MilliValue()
+	}
+	return max(requests, limits)
 }
 
 type generateFlags struct {
