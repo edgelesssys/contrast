@@ -27,6 +27,7 @@ let
         launch-digest = kata.calculateSnpLaunchDigest {
           inherit os-image;
           debug = node-installer-image.debugRuntime;
+          vcpus = 1;
         };
       in
       [
