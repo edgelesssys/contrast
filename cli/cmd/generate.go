@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/edgelesssys/contrast/cli/genpolicy"
@@ -24,6 +25,8 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/google/go-sev-guest/abi"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -33,8 +36,13 @@ import (
 )
 
 const (
-	contrastRoleAnnotationKey     = "contrast.edgeless.systems/pod-role"
-	workloadSecretIDAnnotationKey = "contrast.edgeless.systems/workload-secret-id"
+	annotationPrefix              = "contrast.edgeless.systems/"
+	kataAnnotationPrefix          = "io.katacontainers.config.hypervisor."
+	contrastRoleAnnotationKey     = annotationPrefix + "pod-role"
+	workloadSecretIDAnnotationKey = annotationPrefix + "workload-secret-id"
+	idBlockAnnotation             = kataAnnotationPrefix + "snp_id_block_"
+	idAuthAnnotationKey           = kataAnnotationPrefix + "snp_id_auth_"
+	guestPolicyAnnotationKey      = kataAnnotationPrefix + "snp_guest_policy_"
 )
 
 // NewGenerateCmd creates the contrast generate subcommand.
@@ -514,6 +522,10 @@ func patchTargets(fileMap map[string][]*unstructured.Unstructured, imageReplacem
 			return nil, err
 		}
 
+		if err := patchIDBlockAnnotation(res); err != nil {
+			return nil, fmt.Errorf("injecting ID block annotations: %w", err)
+		}
+
 		return res, nil
 	})
 }
@@ -701,6 +713,80 @@ func patchRuntimeClassName(defaultRuntimeHandler string) func(*applycorev1.PodSp
 		spec.RuntimeClassName = &overrideRuntimeHandler
 		return spec, nil
 	}
+}
+
+func patchIDBlockAnnotation(res any) error {
+	var snpIDBlocks SNPIDBlocks
+	if err := json.Unmarshal(SNPIDBlockData, &snpIDBlocks); err != nil {
+		return fmt.Errorf("unmarshal SNP ID blocks: %w", err)
+	}
+
+	mapFunc := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration, error) {
+		if spec == nil || spec.RuntimeClassName == nil {
+			return meta, spec, nil
+		}
+
+		targetPlatform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
+		if err != nil {
+			return meta, spec, fmt.Errorf("could not determine platform for runtime class %q: %w", *spec.RuntimeClassName, err)
+		}
+		if !platforms.IsSNP(targetPlatform) {
+			return meta, spec, nil
+		}
+
+		var regularContainersCPU int64
+		for _, container := range spec.Containers {
+			regularContainersCPU += getCPUCount(container.Resources)
+		}
+		var initContainersCPU int64
+		for _, container := range spec.InitContainers {
+			cpuCount := getCPUCount(container.Resources)
+			initContainersCPU += cpuCount
+			// Sidecar containers remain running alongside the actual application, consuming CPU resources
+			if container.RestartPolicy != nil && *container.RestartPolicy == corev1.ContainerRestartPolicyAlways {
+				regularContainersCPU += cpuCount
+			}
+		}
+		podLevelCPU := getCPUCount(spec.Resources)
+
+		// Convert milliCPUs to number of CPUs (rounding up), and add 1 for hypervisor overhead
+		totalMilliCPUs := max(regularContainersCPU, initContainersCPU, podLevelCPU)
+		cpuCount := strconv.FormatInt((totalMilliCPUs+999)/1000+1, 10)
+
+		platform := strings.ToLower(targetPlatform.String())
+
+		genoa, milan := string(manifest.Genoa), string(manifest.Milan)
+		// Ensure we pre-calculated the required blocks
+		if snpIDBlocks[platform] == nil || snpIDBlocks[platform][cpuCount] == nil ||
+			snpIDBlocks[platform][cpuCount][genoa].IDBlock == "" || snpIDBlocks[platform][cpuCount][milan].IDBlock == "" {
+			return meta, spec, fmt.Errorf("missing ID block configuration for runtime %s with %s CPUs", platform, cpuCount)
+		}
+
+		if meta == nil {
+			meta = &applymetav1.ObjectMetaApplyConfiguration{}
+		}
+		if meta.Annotations == nil {
+			meta.Annotations = make(map[string]string, 6)
+		}
+		meta.Annotations[idBlockAnnotation+genoa] = snpIDBlocks[platform][cpuCount][genoa].IDBlock
+		meta.Annotations[idBlockAnnotation+milan] = snpIDBlocks[platform][cpuCount][milan].IDBlock
+		meta.Annotations[idAuthAnnotationKey+genoa] = snpIDBlocks[platform][cpuCount][genoa].IDAuth
+		meta.Annotations[idAuthAnnotationKey+milan] = snpIDBlocks[platform][cpuCount][milan].IDAuth
+		meta.Annotations[guestPolicyAnnotationKey+genoa] = strconv.FormatUint(abi.SnpPolicyToBytes(snpIDBlocks[platform][cpuCount][genoa].GuestPolicy), 10)
+		meta.Annotations[guestPolicyAnnotationKey+milan] = strconv.FormatUint(abi.SnpPolicyToBytes(snpIDBlocks[platform][cpuCount][milan].GuestPolicy), 10)
+
+		return meta, spec, nil
+	}
+
+	_, err := kuberesource.MapPodSpecWithMetaAndErrors(res, mapFunc)
+	return err
+}
+
+func getCPUCount(resources *applycorev1.ResourceRequirementsApplyConfiguration) int64 {
+	if resources != nil && resources.Limits != nil {
+		return resources.Limits.Cpu().MilliValue()
+	}
+	return 0
 }
 
 type generateFlags struct {
