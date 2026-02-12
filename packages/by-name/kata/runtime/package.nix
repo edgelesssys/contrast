@@ -172,6 +172,14 @@ buildGoModule (finalAttrs: {
       # This is unlikely to be fixed in Kata upstream, but rather in the NVIDIA components.
       # Upstream issue: https://github.com/NVIDIA/sandbox-device-plugin/issues/46
       ./0024-shim-guess-CDI-devices-without-direct-match.patch
+
+      # Add a workaround for the kernel bug reported in [1] and [2] by rounding up the memory size
+      # of affected (TDX && >=64GB) VMs to the next multiple of 1024. Upstream PR can be found in [3],
+      # but is unlikely to get merged. The patch can be removed after the Kernel fix landed in our guest kernel
+      # [1]: https://lore.kernel.org/linux-efi/c2632da9-745d-46d8-901a-604008a14ac4@edgeless.systems/T/#u
+      # [2]: https://github.com/canonical/tdx/issues/421
+      # [3]: https://github.com/kata-containers/kata-containers/pull/12537
+      ./0025-virtcontainers-work-around-a-kernel-bug-for-certain-.patch
     ];
   };
 
