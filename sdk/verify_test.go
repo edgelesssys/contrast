@@ -18,6 +18,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -84,9 +85,11 @@ func TestGetAttestation(t *testing.T) {
 			srv := tc.getServer(tc.handler)
 			t.Cleanup(srv.Close)
 
-			client := New()
+			client := New().
+				WithFSStore(afero.NewBasePathFs(afero.NewOsFs(), t.TempDir()))
+
 			if srv.TLS != nil {
-				client.HTTPClient = srv.Client()
+				client = client.WithHTTPClient(srv.Client())
 			}
 
 			att, err := client.GetAttestation(t.Context(), srv.URL, tc.nonce)
@@ -149,10 +152,11 @@ func TestValidateAttestation(t *testing.T) {
 			require.NoError(err)
 
 			c := New()
+
 			c.validatorsFromManifestOverride = func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]atls.Validator, error) {
 				return []atls.Validator{&stubValidator{err: tc.validateErr}}, nil
 			}
-			state, err := c.ValidateAttestation(t.Context(), t.TempDir(), tc.nonce, attestation)
+			state, err := c.ValidateAttestation(t.Context(), tc.nonce, attestation)
 			if tc.wantErr != "" {
 				assert.ErrorContains(err, tc.wantErr)
 				assert.Nil(state)

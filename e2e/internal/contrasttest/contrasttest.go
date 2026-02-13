@@ -375,14 +375,7 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 		return fmt.Errorf("calling HTTP API: %w", err)
 	}
 
-	kdsCacheDir, err := os.MkdirTemp("", "contrasttest-kds-cache-dir-")
-	if err != nil {
-		return fmt.Errorf("creating temp dir: %w", err)
-	}
-	defer func() {
-		_ = os.RemoveAll(kdsCacheDir)
-	}()
-	state, err := client.ValidateAttestation(ctx, kdsCacheDir, nonce, serializedAttestation)
+	state, err := client.ValidateAttestation(ctx, nonce, serializedAttestation)
 	if err != nil {
 		return fmt.Errorf("validating attestation: %w", err)
 	}

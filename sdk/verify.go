@@ -27,9 +27,13 @@ import (
 
 // Client is used to interact with a Contrast deployment.
 type Client struct {
-	// HTTPClient will be used to contact the Coordinator HTTP API.
+	// httpClient will be used to contact the Coordinator HTTP API.
 	// If nil, http.DefaultClient will be used.
-	HTTPClient *http.Client
+	httpClient *http.Client
+
+	// fsstore is the underlying filesystem-backed cache used by the
+	// Client.
+	fsstore *fsstore.Store
 
 	log *slog.Logger
 
@@ -37,18 +41,43 @@ type Client struct {
 	validatorsFromManifestOverride func(*certcache.CachedHTTPSGetter, *manifest.Manifest, *slog.Logger) ([]atls.Validator, error)
 }
 
-// New returns a Client with logging disabled.
-func New() Client {
-	return Client{
-		log: slog.New(slog.DiscardHandler),
+// New returns a new [Client].
+//
+// Logging is disabled by default, and a memory-backed cache is used.
+// For HTTP interactions, [http.DefaultClient] is used by default.
+func New() *Client {
+	c := &Client{
+		log:        slog.New(slog.DiscardHandler),
+		httpClient: http.DefaultClient,
 	}
+	c.fsstore = fsstore.New(afero.NewMemMapFs(), c.log.WithGroup("cert-cache"))
+	return c
 }
 
-// NewWithSlog can be used to configure how the SDK logs messages.
-func NewWithSlog(log *slog.Logger) Client {
-	return Client{
-		log: log,
-	}
+// WithFSStore replaces the Client's default filesystem-backed cache
+// with one at the root of the given [afero.Fs].
+//
+// The store is instantiated at the root of `fs`, so [afero.newOsFs]
+// should not be used directly. Instead, use [afero.NewBasePathFs].
+func (c *Client) WithFSStore(fs afero.Fs) *Client {
+	// TODO(burgerdev): This logger may be overridden via WithSlog,
+	// depending on the call order.
+	c.fsstore = fsstore.New(fs, c.log.WithGroup("cert-cache"))
+	return c
+}
+
+// WithSlog replaces the Client's default [slog.Logger].
+//
+// The logger must not be nil.
+func (c *Client) WithSlog(log *slog.Logger) *Client {
+	c.log = log
+	return c
+}
+
+// WithHTTPClient replaces the Client's default [http.Client].
+func (c *Client) WithHTTPClient(httpClient *http.Client) *Client {
+	c.httpClient = httpClient
+	return c
 }
 
 // GetAttestation requests attestation evidence from the Coordinator's HTTP API.
@@ -71,11 +100,7 @@ func (c Client) GetAttestation(ctx context.Context, url string, nonce []byte) ([
 		return nil, fmt.Errorf("constructing HTTP request: %w", err)
 	}
 
-	client := http.DefaultClient
-	if c.HTTPClient != nil {
-		client = c.HTTPClient
-	}
-	httpResp, err := client.Do(req)
+	httpResp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("http request failed: %w", err)
 	}
@@ -113,7 +138,7 @@ func (c Client) GetAttestation(ctx context.Context, url string, nonce []byte) ([
 // Note: this function does not verify manifest content! It's the callers responsibility to compare
 // the latest manifest with an expected manifest, if that exists, or verify that all manifest
 // fields match their expectations.
-func (c Client) ValidateAttestation(ctx context.Context, kdsDir string, nonce []byte, attestation []byte) (*CoordinatorState, error) {
+func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestation []byte) (*CoordinatorState, error) {
 	if len(nonce) != cryptohelpers.RNGLengthDefault {
 		return nil, fmt.Errorf("wrong nonce length: got %d, want %d", len(nonce), cryptohelpers.RNGLengthDefault)
 	}
@@ -134,8 +159,7 @@ func (c Client) ValidateAttestation(ctx context.Context, kdsDir string, nonce []
 		return nil, fmt.Errorf("validating latest manifest: %w", err)
 	}
 
-	kdsCache := fsstore.New(afero.NewBasePathFs(afero.NewOsFs(), kdsDir), c.log.WithGroup("kds-cache"))
-	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, c.log.WithGroup("kds-getter"))
+	kdsGetter := certcache.NewCachedHTTPSGetter(c.fsstore, certcache.NeverGCTicker, c.log.WithGroup("kds-getter"))
 	validatorsFromManifest := ValidatorsFromManifest
 	if c.validatorsFromManifestOverride != nil {
 		validatorsFromManifest = c.validatorsFromManifestOverride
