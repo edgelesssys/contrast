@@ -33,7 +33,7 @@ buildGoModule (finalAttrs: {
     };
 
   proxyVendor = true;
-  vendorHash = "sha256-I3JUwfk4MDglpEXfvEV9VAZJ1T2/32xc2nPY1FVI+gI=";
+  vendorHash = "sha256-Tg8LIdm+VN3nmiU36cVD45kXBbmAkNsDSnlRZnjfB6Y=";
 
   sourceRoot = "${finalAttrs.src.name}/tools/snp-id-block-generator";
   subPackages = [ "." ];
