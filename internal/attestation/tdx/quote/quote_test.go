@@ -11,6 +11,41 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestGetExtensions(t *testing.T) {
+	for name, tc := range map[string]struct {
+		quote   *tdx.QuoteV4
+		wantErr error
+	}{
+		"no extra bytes": {
+			quote:   &tdx.QuoteV4{},
+			wantErr: errNoExtensions,
+		},
+		"padding in extra bytes": {
+			quote:   &tdx.QuoteV4{ExtraBytes: []byte{0, 0, 0, 0}},
+			wantErr: errNoExtensions,
+		},
+		"JSON encoding": {
+			// This tests backwards-compatibility of the extension serialization.
+			// Don't change without a good reason!
+			quote: &tdx.QuoteV4{ExtraBytes: []byte(`{"Collateral": {"TcbInfoBody": ""}}`)},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			ext, err := GetExtensions(tc.quote)
+
+			if tc.wantErr != nil {
+				assert.ErrorIs(err, tc.wantErr)
+				assert.Nil(ext)
+				return
+			}
+			assert.NoError(err)
+			assert.NotNil(ext)
+			assert.NotNil(ext.Collateral)
+		})
+	}
+}
+
 func TestGetPCKCertificate(t *testing.T) {
 	for name, tc := range map[string]struct {
 		quote   *tdx.QuoteV4

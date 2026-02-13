@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/edgelesssys/contrast/internal/attestation/tdx/qgs"
 	"github.com/google/go-tdx-guest/pcs"
@@ -120,6 +121,9 @@ func AddExtensions(ctx context.Context, quotev4 *tdx.QuoteV4) error {
 // GetExtensions obtains an extensions struct added to the quote by AddExtensions.
 func GetExtensions(quote *tdx.QuoteV4) (*Extensions, error) {
 	var extensions Extensions
+	if len(quote.ExtraBytes) == 0 || slices.Max(quote.ExtraBytes) == 0 {
+		return nil, errNoExtensions
+	}
 	if err := json.Unmarshal(quote.ExtraBytes, &extensions); err != nil {
 		return nil, fmt.Errorf("unmarshalling extensions: %w", err)
 	}
@@ -129,4 +133,5 @@ func GetExtensions(quote *tdx.QuoteV4) (*Extensions, error) {
 var (
 	errNoPCKCertificate = errors.New("no PCK certificate found in TDX quote")
 	errParseCertificate = errors.New("parsing PCK certificate")
+	errNoExtensions     = errors.New("no extensions found in qoute.ExtraBytes")
 )
