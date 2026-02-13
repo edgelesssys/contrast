@@ -4,7 +4,6 @@
 package qgs
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
@@ -58,16 +57,16 @@ func (c *Client) GetCollateral(ctx context.Context, req *GetCollateralRequest) (
 	writeDone := make(chan struct{})
 	go func() {
 		defer close(writeDone)
-		if err := binary.Write(c.conn, binary.BigEndian, reqHeader.size); err != nil {
-			writeErr = fmt.Errorf("writing request length: %w", err)
-			return
-		}
-		binaryHeader := reqHeader.marshalBinary()
-		if _, err := io.Copy(c.conn, bytes.NewBuffer(binaryHeader)); err != nil {
-			writeErr = fmt.Errorf("writing request header: %w", err)
-		}
-		if _, err := io.Copy(c.conn, bytes.NewBuffer(binaryReq)); err != nil {
-			writeErr = fmt.Errorf("writing request (%d bytes): %w", len(binaryReq), err)
+
+		// A bug in QGS requires the entire request to be sent in one packet. Otherwise, it will
+		// hang until the connection times out. Thus, we try to write everything in one go.
+		buf := make([]byte, 0, 4+reqHeader.size)
+		buf = binary.BigEndian.AppendUint32(buf, reqHeader.size)
+		buf = append(buf, reqHeader.marshalBinary()...)
+		buf = append(buf, binaryReq...)
+
+		if n, err := c.conn.Write(buf); err != nil {
+			writeErr = fmt.Errorf("writing request (%d bytes total, %d bytes written): %w", len(buf), n, err)
 		}
 	}()
 
