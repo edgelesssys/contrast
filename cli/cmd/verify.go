@@ -20,6 +20,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 )
 
@@ -174,7 +175,7 @@ func getCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byt
 		return sdk.CoordinatorState{}, fmt.Errorf("validating manifest: %w", err)
 	}
 
-	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
+	kdsCache := fsstore.New(afero.NewBasePathFs(afero.NewOsFs(), kdsDir), log.WithGroup("kds-cache"))
 	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter"))
 	validators, err := sdk.ValidatorsFromManifest(kdsGetter, &m, log)
 	if err != nil {

@@ -33,6 +33,7 @@ import (
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/google/go-tdx-guest/validate"
 	"github.com/google/go-tdx-guest/verify"
+	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -183,7 +184,7 @@ func TestAttestation(t *testing.T) {
 				}
 
 				logger := slog.Default()
-				store := fsstore.New(t.TempDir(), logger)
+				store := fsstore.New(afero.NewMemMapFs(), logger)
 				cache := certcache.NewCachedHTTPSGetter(store, certcache.NeverGCTicker, logger)
 				validators, err := sdk.ValidatorsFromManifest(cache, &m, logger)
 				require.NoError(err)

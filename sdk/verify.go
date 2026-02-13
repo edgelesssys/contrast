@@ -22,6 +22,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/manifest"
+	"github.com/spf13/afero"
 )
 
 // Client is used to interact with a Contrast deployment.
@@ -133,7 +134,7 @@ func (c Client) ValidateAttestation(ctx context.Context, kdsDir string, nonce []
 		return nil, fmt.Errorf("validating latest manifest: %w", err)
 	}
 
-	kdsCache := fsstore.New(kdsDir, c.log.WithGroup("kds-cache"))
+	kdsCache := fsstore.New(afero.NewBasePathFs(afero.NewOsFs(), kdsDir), c.log.WithGroup("kds-cache"))
 	kdsGetter := certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, c.log.WithGroup("kds-getter"))
 	validatorsFromManifest := ValidatorsFromManifest
 	if c.validatorsFromManifestOverride != nil {
