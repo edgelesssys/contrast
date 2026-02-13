@@ -56,7 +56,13 @@ const (
 	ATLSIssuerOptionalEndorsementFetchTimeout = ATLSServerHandshakeTimeout - 5*time.Second
 )
 
-// DisableServiceMeshEnvVar is the environment variable that signals to the initializer
-// that the service mesh is disabled and that the initializer should remove
-// the default deny iptables rule.
-const DisableServiceMeshEnvVar = "CONTRAST_SERVICE_MESH_DISABLED"
+const (
+	// DisableServiceMeshEnvVar is the environment variable that signals to the initializer
+	// that the service mesh is disabled and that the initializer should remove
+	// the default deny iptables rule.
+	DisableServiceMeshEnvVar = "CONTRAST_SERVICE_MESH_DISABLED"
+
+	// CacheDirEnvVar is the environment variable for overriding the directory used for
+	// Contrast's various caches.
+	CacheDirEnvVar = "CONTRAST_CACHE_DIR"
+)

@@ -15,6 +15,7 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/telemetry"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
@@ -32,7 +33,6 @@ const (
 	rulesFilename        = "rules.rego"
 	layersCacheFilename  = "layers-cache.json"
 	verifyDir            = "verify"
-	cacheDirEnv          = "CONTRAST_CACHE_DIR"
 )
 
 // ReleaseImageReplacements contains the image replacements used by contrast.
@@ -48,7 +48,7 @@ func commandOut() io.Writer {
 }
 
 func cachedir(subdir string) (string, error) {
-	dir := os.Getenv(cacheDirEnv)
+	dir := os.Getenv(constants.CacheDirEnvVar)
 	if dir == "" {
 		cachedir, err := os.UserCacheDir()
 		if err != nil {
