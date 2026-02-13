@@ -18,7 +18,7 @@ require (
 	github.com/google/go-github/v72 v72.0.0
 	github.com/google/go-sev-guest v0.14.2-0.20251119154202-af1c107a648f
 	github.com/google/go-tdx-guest v0.3.2-0.20260104162950-32866d7a678f
-	github.com/google/logger v1.1.1
+	github.com/google/logger v1.1.2
 	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.1.0
 	github.com/klauspost/cpuid/v2 v2.3.0
 	github.com/mdlayher/vsock v1.2.1
