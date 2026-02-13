@@ -16,16 +16,17 @@ import (
 // Store is a filesystem backed store.
 // It is not thread-safe.
 type Store struct {
-	dir    string
 	fs     *afero.Afero
 	logger *slog.Logger
 }
 
 // New returns a new Store.
-func New(dir string, log *slog.Logger) *Store {
+//
+// The store is instantiated at the root of `fs`, so [afero.newOsFs]
+// should not be used directly. Instead, use [afero.NewBasePathFs].
+func New(fs afero.Fs, log *slog.Logger) *Store {
 	return &Store{
-		dir:    dir,
-		fs:     &afero.Afero{Fs: afero.NewBasePathFs(afero.NewOsFs(), dir)},
+		fs:     &afero.Afero{Fs: fs},
 		logger: log,
 	}
 }

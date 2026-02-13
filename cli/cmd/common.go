@@ -16,6 +16,7 @@ import (
 	"github.com/edgelesssys/contrast/cli/telemetry"
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/fsstore"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -65,7 +66,7 @@ func cachedHTTPSGetter(log *slog.Logger) (*certcache.CachedHTTPSGetter, error) {
 	}
 	log.Debug("Using KDS cache dir", "dir", kdsDir)
 
-	kdsCache := fsstore.New(kdsDir, log.WithGroup("kds-cache"))
+	kdsCache := fsstore.New(afero.NewBasePathFs(afero.NewOsFs(), kdsDir), log.WithGroup("kds-cache"))
 	return certcache.NewCachedHTTPSGetter(kdsCache, certcache.NeverGCTicker, log.WithGroup("kds-getter")), nil
 }
 
