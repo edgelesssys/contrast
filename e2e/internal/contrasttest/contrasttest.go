@@ -27,6 +27,7 @@ import (
 
 	"github.com/edgelesssys/contrast/cli/cmd"
 	"github.com/edgelesssys/contrast/e2e/internal/kubeclient"
+	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/cryptohelpers"
 	"github.com/edgelesssys/contrast/internal/httpapi"
 	"github.com/edgelesssys/contrast/internal/kuberesource"
@@ -96,7 +97,7 @@ func New(t *testing.T) *ContrastTest {
 	require.NoError(err)
 
 	workDir := t.TempDir()
-	t.Setenv("CONTRAST_CACHE_DIR", workDir)
+	t.Setenv(constants.CacheDirEnvVar, workDir)
 
 	ct := &ContrastTest{
 		Namespace:                   MakeNamespace(t, Flags.NamespaceSuffix),
