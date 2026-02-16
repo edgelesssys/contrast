@@ -16,14 +16,14 @@ Signed-off-by: Paul Meyer <katexochen0@gmail.com>
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/system/ram-block-attributes.c b/system/ram-block-attributes.c
-index 68e8a02703235357d1dd62aaf38b57de9c2a1577..15ccf83c006b72baefc236bdbba0bf86606af967 100644
+index fb7c5c274677520471f40fbb2ab98f2fdd0b6ae5..54da365f54c31e2efda8f65a783ea0a9be361b67 100644
 --- a/system/ram-block-attributes.c
 +++ b/system/ram-block-attributes.c
-@@ -163,7 +163,7 @@ ram_block_attributes_rdm_get_min_granularity(const RamDiscardManager *rdm,
+@@ -161,7 +161,7 @@ ram_block_attributes_rdm_get_min_granularity(const RamDiscardManager *rdm,
      const RamBlockAttributes *attr = RAM_BLOCK_ATTRIBUTES(rdm);
  
      g_assert(mr == attr->ram_block->mr);
--    return ram_block_attributes_get_block_size(attr);
+-    return ram_block_attributes_get_block_size();
 +    return 0x200000; /* 2MB */
  }
  

@@ -11,10 +11,10 @@ in Nix.
  2 files changed, 6 insertions(+), 2 deletions(-)
 
 diff --git a/meson.build b/meson.build
-index b7db736bbfafb98958a1f3f2a2616ee4b5486b8d..9813758b364c40ccd21329644511b3f6b2f6e07b 100644
+index d9293294d8e760ac3619010b4488dd057b3e3f54..24c76b29965297ea2c12a6881312236fdaa1a9a2 100644
 --- a/meson.build
 +++ b/meson.build
-@@ -1151,7 +1151,8 @@ zlib = dependency('zlib', required: true)
+@@ -1157,7 +1157,8 @@ zlib = dependency('zlib', required: true)
  libaio = not_found
  if not get_option('linux_aio').auto() or have_block
    libaio = cc.find_library('aio', has_headers: ['libaio.h'],
@@ -24,7 +24,7 @@ index b7db736bbfafb98958a1f3f2a2616ee4b5486b8d..9813758b364c40ccd21329644511b3f6
  endif
  
  linux_io_uring_test = '''
-@@ -2114,7 +2115,8 @@ if fdt_opt == 'enabled' and get_option('wrap_mode') == 'nodownload'
+@@ -2075,7 +2076,8 @@ if fdt_opt == 'enabled' and get_option('wrap_mode') == 'nodownload'
    fdt_opt = 'system'
  endif
  if fdt_opt in ['enabled', 'system'] or (fdt_opt == 'auto' and have_system)
@@ -35,10 +35,10 @@ index b7db736bbfafb98958a1f3f2a2616ee4b5486b8d..9813758b364c40ccd21329644511b3f6
       #include <libfdt.h>
       #include <libfdt_env.h>
 diff --git a/meson_options.txt b/meson_options.txt
-index fff1521e580de20ee277aec2a09f206267c13da9..0a55ec8068cfdb493fc331d77952cf603f4edf8c 100644
+index 2836156257af6dacc6fc9408a14ba88eea4ecc09..5a597e3265b6c6fd6f007e7a399f873d809fd508 100644
 --- a/meson_options.txt
 +++ b/meson_options.txt
-@@ -194,6 +194,7 @@ option('linux_aio', type : 'feature', value : 'auto',
+@@ -198,6 +198,7 @@ option('linux_aio', type : 'feature', value : 'auto',
         description: 'Linux AIO support')
  option('linux_io_uring', type : 'feature', value : 'auto',
         description: 'Linux io_uring support')
@@ -46,7 +46,7 @@ index fff1521e580de20ee277aec2a09f206267c13da9..0a55ec8068cfdb493fc331d77952cf60
  option('lzfse', type : 'feature', value : 'auto',
         description: 'lzfse support for DMG images')
  option('lzo', type : 'feature', value : 'auto',
-@@ -323,6 +324,7 @@ option('capstone', type: 'feature', value: 'auto',
+@@ -327,6 +328,7 @@ option('capstone', type: 'feature', value: 'auto',
  option('fdt', type: 'combo', value: 'auto',
         choices: ['disabled', 'enabled', 'auto', 'system', 'internal'],
         description: 'Whether and how to find the libfdt library')
