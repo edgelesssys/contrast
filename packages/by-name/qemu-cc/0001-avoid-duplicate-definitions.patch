@@ -18,7 +18,7 @@ Rename the function in QEMU to avoid conflicts.
  7 files changed, 10 insertions(+), 10 deletions(-)
 
 diff --git a/block/vhdx.c b/block/vhdx.c
-index b2a4b813a0bd9e78056803ac0a2b3d3e629b1852..46d4c8b8704ceb4c3aecfa52325e89c0ef6247f0 100644
+index c16e4a00c8da12ef4d6aa8fa095a17fab0b4e559..bc4c2b7838964ee5a1af8a9e1d05224cd09cf9f2 100644
 --- a/block/vhdx.c
 +++ b/block/vhdx.c
 @@ -157,7 +157,7 @@ uint32_t vhdx_update_checksum(uint8_t *buf, size_t size, int crc_offset)
@@ -79,7 +79,7 @@ index 88b4d2b3b3304803456f5b23ef42dbf530381ec5..52ba066c2e784b8ea3d88671f3d79440
  
  #endif
 diff --git a/target/arm/tcg/helper-a64.c b/target/arm/tcg/helper-a64.c
-index 71c6c44ee8ac29a23a2f3fea19b92280987e589b..507d1b1e6df13c651c51d7ff2d4620a8d8a9ceea 100644
+index ba1d775d818eb4b8d94f0c286ccf95fefa6f7227..07b6dcaab192ebdf15afcf7a74b465c4acc4038e 100644
 --- a/target/arm/tcg/helper-a64.c
 +++ b/target/arm/tcg/helper-a64.c
 @@ -406,7 +406,7 @@ AH_MINMAX_HELPER(sme2_ah_fmax_b16, bfloat16, bfloat16, max)

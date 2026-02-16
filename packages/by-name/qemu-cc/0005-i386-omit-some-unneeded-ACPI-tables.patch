@@ -10,7 +10,7 @@ guest configuration (e.g. the amount of assigned memory).
  1 file changed, 6 insertions(+)
 
 diff --git a/hw/i386/acpi-build.c b/hw/i386/acpi-build.c
-index 423c4959fe809b76f86814997fce47dbea3572b9..f99e87c29b6669ff7a06c3602667a6fcdbb930bd 100644
+index 9446a9f862ca483c83075e526fe50c560845f71e..c8ba5ea6790ee96874e5c333db4b6c6793153360 100644
 --- a/hw/i386/acpi-build.c
 +++ b/hw/i386/acpi-build.c
 @@ -1063,6 +1063,8 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
@@ -31,7 +31,7 @@ index 423c4959fe809b76f86814997fce47dbea3572b9..f99e87c29b6669ff7a06c3602667a6fc
      /* reserve GPE0 block resources */
      dev = aml_device("GPE0");
      aml_append(dev, aml_name_decl("_HID", aml_string("PNP0A06")));
-@@ -2028,6 +2032,7 @@ void acpi_build(AcpiBuildTables *tables, MachineState *machine)
+@@ -2032,6 +2036,7 @@ void acpi_build(AcpiBuildTables *tables, MachineState *machine)
          }
      }
  #endif
@@ -39,7 +39,7 @@ index 423c4959fe809b76f86814997fce47dbea3572b9..f99e87c29b6669ff7a06c3602667a6fc
      if (machine->numa_state->num_nodes) {
          acpi_add_table(table_offsets, tables_blob);
          build_srat(tables_blob, tables->linker, machine);
-@@ -2042,6 +2047,7 @@ void acpi_build(AcpiBuildTables *tables, MachineState *machine)
+@@ -2046,6 +2051,7 @@ void acpi_build(AcpiBuildTables *tables, MachineState *machine)
                         x86ms->oem_id, x86ms->oem_table_id);
          }
      }
