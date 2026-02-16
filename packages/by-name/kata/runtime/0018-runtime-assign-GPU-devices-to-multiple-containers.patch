@@ -5,75 +5,44 @@ Subject: [PATCH] runtime: assign GPU devices to multiple containers
 
 Signed-off-by: Charlotte Hartmann Paludo <git@charlotteharludo.com>
 ---
- src/runtime/virtcontainers/container.go | 19 ++++++++++++-------
+ src/runtime/virtcontainers/container.go | 15 +++++++++++++++
  src/tools/genpolicy/src/pod.rs          | 11 +++++++++++
  src/tools/genpolicy/src/policy.rs       | 19 +++++++++++++++++++
- 3 files changed, 42 insertions(+), 7 deletions(-)
+ 3 files changed, 45 insertions(+)
 
 diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
-index e1ae8d8ea1a419f1aa7c62423e38ebc3134d7f02..e91a41d92ce40f4998369e48c0244918dcd65ca2 100644
+index e1ae8d8ea1a419f1aa7c62423e38ebc3134d7f02..1424a06ffab017be32369f649d52a739568cc515 100644
 --- a/src/runtime/virtcontainers/container.go
 +++ b/src/runtime/virtcontainers/container.go
-@@ -1140,6 +1140,11 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
+@@ -1126,6 +1126,14 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
+ 					return err
+ 				}
+ 			}
++
++			// If the NVIDIA_VISIBLE_DEVICES envvar exists and is set to "all" for the given container,
++			// we attach ALL Nvidia GPU devices to this container.
++			if slices.Contains(c.config.CustomSpec.Process.Env, "NVIDIA_VISIBLE_DEVICES=all") {
++				for _, sibling := range siblings {
++					c.createCDIAnnotation(sibling.Path, sibling.Index)
++				}
++			}
+ 		}
+ 
+ 		if devices, ok := devices.([]config.DeviceInfo); ok {
+@@ -1140,6 +1148,13 @@ func (c *Container) annotateContainerWithVFIOMetadata(devices interface{}) error
  				}
  			}
  
 +			// If the NVIDIA_VISIBLE_DEVICES envvar exists and is set to "all" for the given container,
 +			// we attach ALL Nvidia GPU devices to this container.
 +			if slices.Contains(c.config.CustomSpec.Process.Env, "NVIDIA_VISIBLE_DEVICES=all") {
-+				c.siblingAnnotation("", siblings)
++				for _, sibling := range siblings {
++					c.createCDIAnnotation(sibling.Path, sibling.Index)
++				}
 +			}
  		}
  
  	}
-@@ -1173,8 +1178,8 @@ func (c *Container) createCDIAnnotation(devPath string, index int) {
- 
- func (c *Container) siblingAnnotation(devPath string, siblings []DeviceRelation) error {
- 	for _, sibling := range siblings {
--		if sibling.Path == devPath {
--			c.createCDIAnnotation(devPath, sibling.Index)
-+		if sibling.Path == devPath || slices.Contains(c.config.CustomSpec.Process.Env, "NVIDIA_VISIBLE_DEVICES=all") {
-+			c.createCDIAnnotation(sibling.Path, sibling.Index)
- 			return nil
- 		}
- 		// If the sandbox has cold-plugged an IOMMUFD device and if the
-@@ -1183,9 +1188,9 @@ func (c *Container) siblingAnnotation(devPath string, siblings []DeviceRelation)
- 		// We have the sibling.BDF we now need to extract the BDF of the
- 		// devPath that is either /dev/vfio/<NUM> or
- 		// /dev/vfio/devices/vfio<NUM>
--		if strings.HasPrefix(filepath.Base(devPath), "vfio") {
-+		if strings.HasPrefix(filepath.Base(sibling.Path), "vfio") {
- 			// IOMMUFD device format (/dev/vfio/devices/vfio<NUM>), extract BDF from sysfs
--			major, minor, err := deviceUtils.GetMajorMinorFromDevPath(devPath)
-+			major, minor, err := deviceUtils.GetMajorMinorFromDevPath(sibling.Path)
- 			if err != nil {
- 				return err
- 			}
-@@ -1194,13 +1199,13 @@ func (c *Container) siblingAnnotation(devPath string, siblings []DeviceRelation)
- 				return err
- 			}
- 			if sibling.BDF == iommufdBDF {
--				c.createCDIAnnotation(devPath, sibling.Index)
-+				c.createCDIAnnotation(sibling.Path, sibling.Index)
- 				// exit handling IOMMUFD device
- 				return nil
- 			}
- 		}
- 		// Legacy VFIO group device (/dev/vfio/<GROUP_NUM>), extract BDF from sysfs
--		vfioGroup := filepath.Base(devPath)
-+		vfioGroup := filepath.Base(sibling.Path)
- 		iommuDevicesPath := filepath.Join(config.SysIOMMUGroupPath, vfioGroup, "devices")
- 
- 		deviceFiles, err := os.ReadDir(iommuDevicesPath)
-@@ -1217,7 +1222,7 @@ func (c *Container) siblingAnnotation(devPath string, siblings []DeviceRelation)
- 			vfioBDFs = append(vfioBDFs, deviceBDF)
- 		}
- 		if slices.Contains(vfioBDFs, sibling.BDF) {
--			c.createCDIAnnotation(devPath, sibling.Index)
-+			c.createCDIAnnotation(sibling.Path, sibling.Index)
- 			// exit handling legacy VFIO device
- 			return nil
- 		}
 diff --git a/src/tools/genpolicy/src/pod.rs b/src/tools/genpolicy/src/pod.rs
 index 62fb2a4a7a070bb81ecc553d16a41711c84dd310..3d1e7b5bd95d18a84d4a336ddceec0d21ff8f0b3 100644
 --- a/src/tools/genpolicy/src/pod.rs
