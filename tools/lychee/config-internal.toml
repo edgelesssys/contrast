@@ -7,6 +7,11 @@ no_progress = true
 cache = false
 include_fragments = true
 fallback_extensions = ["md", "html"]
+
+# We're only using absolute paths for assets from this directory (which are copied into the
+# rendered tree, see https://docusaurus.io/docs/static-assets).
+root_dir = 'docs/static'
+
 exclude = [ '^http' ]
 exclude_path = [ "dev-docs/frozen" ]
 
