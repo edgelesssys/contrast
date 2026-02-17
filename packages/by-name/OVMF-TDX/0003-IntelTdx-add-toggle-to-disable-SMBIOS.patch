@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Tue, 17 Feb 2026 09:23:41 +0100
+Subject: [PATCH] IntelTdx: add toggle to disable SMBIOS
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ OvmfPkg/IntelTdx/IntelTdxX64.dsc |  6 ++++++
+ OvmfPkg/IntelTdx/IntelTdxX64.fdf | 10 +++++++---
+ 2 files changed, 13 insertions(+), 3 deletions(-)
+
+diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.dsc b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
+index 7294a071ec953bb72b49941882ebfbbed48f6f6c..0fafb76a8398b56601392a300df304db22ed02c1 100644
+--- a/OvmfPkg/IntelTdx/IntelTdxX64.dsc
++++ b/OvmfPkg/IntelTdx/IntelTdxX64.dsc
+@@ -510,9 +510,11 @@
+   gEfiMdeModulePkgTokenSpaceGuid.PcdSetupVideoHorizontalResolution|640
+   gEfiMdeModulePkgTokenSpaceGuid.PcdSetupVideoVerticalResolution|480
+ 
++!if $(BUILD_SMBIOS) == TRUE
+   gEfiMdeModulePkgTokenSpaceGuid.PcdSmbiosVersion|0x0208
+   gEfiMdeModulePkgTokenSpaceGuid.PcdSmbiosDocRev|0x0
+   gUefiOvmfPkgTokenSpaceGuid.PcdQemuSmbiosValidated|FALSE
++!endif
+ 
+   # Noexec settings for DXE.
+   gEfiMdeModulePkgTokenSpaceGuid.PcdSetNxForStack|TRUE
+@@ -695,11 +697,13 @@
+   #
+   # SMBIOS Support
+   #
++!if $(BUILD_SMBIOS) == TRUE
+   MdeModulePkg/Universal/SmbiosDxe/SmbiosDxe.inf {
+     <LibraryClasses>
+       NULL|OvmfPkg/Library/SmbiosVersionLib/DetectSmbiosVersionLib.inf
+   }
+   OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
++!endif
+ 
+   #
+   # ACPI Support
+@@ -760,4 +764,6 @@
+   #
+   # Smbios Measurement support
+   #
++!if $(BUILD_SMBIOS) == TRUE
+   MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.inf
++!endif
+diff --git a/OvmfPkg/IntelTdx/IntelTdxX64.fdf b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
+index 238ff73d7ae7bfb08ebdaf14063c7496632f2f96..914c7b72dfe597fb9d15254925f5dd3ab9a467f1 100644
+--- a/OvmfPkg/IntelTdx/IntelTdxX64.fdf
++++ b/OvmfPkg/IntelTdx/IntelTdxX64.fdf
+@@ -236,8 +236,10 @@ INF  MdeModulePkg/Universal/DisplayEngineDxe/DisplayEngineDxe.inf
+ INF  OvmfPkg/SioBusDxe/SioBusDxe.inf
+ INF  MdeModulePkg/Bus/Pci/PciSioSerialDxe/PciSioSerialDxe.inf
+ 
+-INF  MdeModulePkg/Universal/SmbiosDxe/SmbiosDxe.inf
+-INF  OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
++!if $(BUILD_SMBIOS) == TRUE
++  INF  MdeModulePkg/Universal/SmbiosDxe/SmbiosDxe.inf
++  INF  OvmfPkg/SmbiosPlatformDxe/SmbiosPlatformDxe.inf
++!endif
+ 
+ INF  MdeModulePkg/Universal/Acpi/AcpiTableDxe/AcpiTableDxe.inf
+ INF  OvmfPkg/AcpiPlatformDxe/AcpiPlatformDxe.inf
+@@ -263,7 +265,9 @@ INF OvmfPkg/Tcg/TdTcg2Dxe/TdTcg2Dxe.inf
+   #
+   # Smbios Measurement support
+   #
+-INF MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.inf
++!if $(BUILD_SMBIOS) == TRUE
++  INF MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.inf
++!endif
+ 
+ ################################################################################
+ 

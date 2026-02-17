@@ -16,6 +16,7 @@ edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
   buildFlags = [
     "-D BUILD_SHELL=FALSE" # We don't want any shell functionality compiled into the firmware.
     "-D BUILD_FIRMWARE_UI=FALSE" # We don't need any interactive firmware UI.
+    "-D BUILD_SMBIOS=FALSE" # We don't need SMBIOS support, and the handoff table changes on every qemu update.
   ]
   ++ lib.optionals debug [ "-D DEBUG_ON_SERIAL_PORT=TRUE" ];
 
@@ -34,12 +35,11 @@ edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
     # Skip the measurement of the guest-memory-dependent TD HOBs and verify
     # them in the measured firmware instead.
     ./0001-TdxHelperLib-verify-Hobs-instead-of-measuring-them.patch
-    # Make the measurement of the SMBIOS handoff table independent of the amount of memory.
-    # The patch was necessary after the bump from edk2 202411 to 202508.01, as the SMBIOS
-    # handoff table wasn't measured before.
-    ./0002-SmbiosMeasurementDxe-filter-handoff-table.patch
     # Add BUILD_FIRMWARE_UI toggle to disable the firmware UI to be included.
-    ./0003-IntelTdxX64-add-toggle-to-disable-firmware-UI.patch
+    ./0002-IntelTdxX64-add-toggle-to-disable-firmware-UI.patch
+    # Add BUILD_SMBIOS toggle to disable SMBIOS support to be included.
+    # SMBIOS handoff table changes on every QEMU update, and SMBIOS support isn't needed for the guest.
+    ./0003-IntelTdx-add-toggle-to-disable-SMBIOS.patch
   ]
   ++ lib.optionals withACPIVerificationInsecure [
     # Skip the measurement of the guest-memory and device-dependent ACPI tables and verify
