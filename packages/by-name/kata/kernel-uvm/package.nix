@@ -9,6 +9,7 @@
   fetchpatch,
   kata,
   withGPU ? false,
+  withAMLSandbox ? true,
   ... # Required for invocation through `linuxPackagesFor`, which calls this with the `features` argument.
 }:
 
@@ -103,7 +104,20 @@ linuxManualConfig rec {
         hash = "sha256-kDW3yqWHxAGzaaM/5mSNoyMa2WZuyWJbMznPTPgfiyo=";
       };
     }
-  ];
+  ]
+  ++ lib.optional withAMLSandbox {
+    # This patch adds a sandbox to the AML interpreter, preventing AML code from
+    # reading and writing confidential memory pages.
+    # The patch is a simplified version of the original patch from Takekoshi et al.
+    # as part of their "BadAML" paper, simplified by removing the Azure/Hyper-V-specific
+    # parts and fittet to our use case and ported to the used kernel version.
+    #
+    # The paper is published here: https://dl.acm.org/doi/pdf/10.1145/3719027.3765123
+    # And the original patch is part of the published research artifacts,
+    # (linux/kernel/build.patch): https://zenodo.org/records/17247915
+    name = "drivers-acpi-add-BadAML-sandbox";
+    patch = ./0001-drivers-acpi-add-BadAML-sandbox.patch;
+  };
 
   inherit configfile;
   allowImportFromDerivation = true;
