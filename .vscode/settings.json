@@ -5,7 +5,7 @@
   "gopls": {
     "formatting.gofumpt": true
   },
-  "go.buildTags": "e2e contrast_unstable_api",
+  "go.buildTags": "e2e,contrast_unstable_api",
   "go.lintTool": "golangci-lint",
   "go.lintFlags": [
     "--fast"
