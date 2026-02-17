@@ -22,6 +22,7 @@
 package stateguard
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"encoding/json"
@@ -266,7 +267,7 @@ func (g *Guard) GetState(context.Context) (*State, error) {
 //
 // The oldState argument needs to be a state obtained from GetState. If the Coordinator state
 // changes between the calls to GetState and UpdateState, an ErrConcurrentUpdate is returned.
-func (g *Guard) UpdateState(_ context.Context, oldState *State, se *seedengine.SeedEngine, manifestBytes []byte, policies [][]byte) (*State, error) {
+func (g *Guard) UpdateState(_ context.Context, oldState *State, se *seedengine.SeedEngine, manifestBytes []byte, policies [][]byte, prevTransitionHash []byte) (*State, error) {
 	var mnfst manifest.Manifest
 	if err := json.Unmarshal(manifestBytes, &mnfst); err != nil {
 		return nil, fmt.Errorf("unmarshaling manifest: %w", err)
@@ -291,6 +292,15 @@ func (g *Guard) UpdateState(_ context.Context, oldState *State, se *seedengine.S
 			return nil, fmt.Errorf("no policy provided for hash %q", hexRef)
 		}
 	}
+
+	if oldState != nil && !bytes.Equal(prevTransitionHash, oldState.latest.TransitionHash[:]) {
+		return nil, fmt.Errorf("previous transition '%x' does not match expected transition '%x'",
+			oldState.latest.TransitionHash, prevTransitionHash)
+	}
+	if oldState == nil && prevTransitionHash != nil {
+		return nil, fmt.Errorf("previous transition hash provided but no previous state exists")
+	}
+
 	manifestHash, err := g.hist.SetManifest(manifestBytes)
 	if err != nil {
 		return nil, fmt.Errorf("storing manifest: %w", err)
