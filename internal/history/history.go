@@ -265,6 +265,11 @@ type LatestTransition struct {
 	signature      []byte
 }
 
+// Signature returns the signature of the LatestTransition.
+func (l *LatestTransition) Signature() []byte {
+	return l.signature
+}
+
 func (l *LatestTransition) unmarshalBinary(data []byte) error {
 	if len(data) <= HashSize {
 		return errors.New("latest transition has invalid length")

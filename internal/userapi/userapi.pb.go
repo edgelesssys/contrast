@@ -283,9 +283,10 @@ type GetManifestsResponse struct {
 	// PEM-encoded certificate
 	RootCA []byte `protobuf:"bytes,3,opt,name=RootCA,proto3" json:"RootCA,omitempty"`
 	// PEM-encoded certificate
-	MeshCA        []byte `protobuf:"bytes,4,opt,name=MeshCA,proto3" json:"MeshCA,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	MeshCA           []byte            `protobuf:"bytes,4,opt,name=MeshCA,proto3" json:"MeshCA,omitempty"`
+	LatestTransition *LatestTransition `protobuf:"bytes,5,opt,name=LatestTransition,proto3" json:"LatestTransition,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GetManifestsResponse) Reset() {
@@ -346,6 +347,65 @@ func (x *GetManifestsResponse) GetMeshCA() []byte {
 	return nil
 }
 
+func (x *GetManifestsResponse) GetLatestTransition() *LatestTransition {
+	if x != nil {
+		return x.LatestTransition
+	}
+	return nil
+}
+
+type LatestTransition struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	TransitionHash []byte                 `protobuf:"bytes,1,opt,name=TransitionHash,proto3" json:"TransitionHash,omitempty"`
+	Signature      []byte                 `protobuf:"bytes,2,opt,name=Signature,proto3" json:"Signature,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *LatestTransition) Reset() {
+	*x = LatestTransition{}
+	mi := &file_userapi_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LatestTransition) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LatestTransition) ProtoMessage() {}
+
+func (x *LatestTransition) ProtoReflect() protoreflect.Message {
+	mi := &file_userapi_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LatestTransition.ProtoReflect.Descriptor instead.
+func (*LatestTransition) Descriptor() ([]byte, []int) {
+	return file_userapi_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *LatestTransition) GetTransitionHash() []byte {
+	if x != nil {
+		return x.TransitionHash
+	}
+	return nil
+}
+
+func (x *LatestTransition) GetSignature() []byte {
+	if x != nil {
+		return x.Signature
+	}
+	return nil
+}
+
 type RecoverRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Seed          []byte                 `protobuf:"bytes,1,opt,name=Seed,proto3" json:"Seed,omitempty"`
@@ -357,7 +417,7 @@ type RecoverRequest struct {
 
 func (x *RecoverRequest) Reset() {
 	*x = RecoverRequest{}
-	mi := &file_userapi_proto_msgTypes[6]
+	mi := &file_userapi_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -369,7 +429,7 @@ func (x *RecoverRequest) String() string {
 func (*RecoverRequest) ProtoMessage() {}
 
 func (x *RecoverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_userapi_proto_msgTypes[6]
+	mi := &file_userapi_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -382,7 +442,7 @@ func (x *RecoverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecoverRequest.ProtoReflect.Descriptor instead.
 func (*RecoverRequest) Descriptor() ([]byte, []int) {
-	return file_userapi_proto_rawDescGZIP(), []int{6}
+	return file_userapi_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RecoverRequest) GetSeed() []byte {
@@ -414,7 +474,7 @@ type RecoverResponse struct {
 
 func (x *RecoverResponse) Reset() {
 	*x = RecoverResponse{}
-	mi := &file_userapi_proto_msgTypes[7]
+	mi := &file_userapi_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -426,7 +486,7 @@ func (x *RecoverResponse) String() string {
 func (*RecoverResponse) ProtoMessage() {}
 
 func (x *RecoverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_userapi_proto_msgTypes[7]
+	mi := &file_userapi_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -439,7 +499,7 @@ func (x *RecoverResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RecoverResponse.ProtoReflect.Descriptor instead.
 func (*RecoverResponse) Descriptor() ([]byte, []int) {
-	return file_userapi_proto_rawDescGZIP(), []int{7}
+	return file_userapi_proto_rawDescGZIP(), []int{8}
 }
 
 var File_userapi_proto protoreflect.FileDescriptor
@@ -462,12 +522,16 @@ const file_userapi_proto_rawDesc = "" +
 	"\tSeedShare\x12\x1c\n" +
 	"\tPublicKey\x18\x01 \x01(\tR\tPublicKey\x12$\n" +
 	"\rEncryptedSeed\x18\x02 \x01(\fR\rEncryptedSeed\"\x15\n" +
-	"\x13GetManifestsRequest\"\x80\x01\n" +
+	"\x13GetManifestsRequest\"\xdc\x01\n" +
 	"\x14GetManifestsResponse\x12\x1c\n" +
 	"\tManifests\x18\x01 \x03(\fR\tManifests\x12\x1a\n" +
 	"\bPolicies\x18\x02 \x03(\fR\bPolicies\x12\x16\n" +
 	"\x06RootCA\x18\x03 \x01(\fR\x06RootCA\x12\x16\n" +
-	"\x06MeshCA\x18\x04 \x01(\fR\x06MeshCA\"N\n" +
+	"\x06MeshCA\x18\x04 \x01(\fR\x06MeshCA\x12Z\n" +
+	"\x10LatestTransition\x18\x05 \x01(\v2..edgelesssys.contrast.userapi.LatestTransitionR\x10LatestTransition\"X\n" +
+	"\x10LatestTransition\x12&\n" +
+	"\x0eTransitionHash\x18\x01 \x01(\fR\x0eTransitionHash\x12\x1c\n" +
+	"\tSignature\x18\x02 \x01(\fR\tSignature\"N\n" +
 	"\x0eRecoverRequest\x12\x12\n" +
 	"\x04Seed\x18\x01 \x01(\fR\x04Seed\x12\x12\n" +
 	"\x04Salt\x18\x02 \x01(\fR\x04Salt\x12\x14\n" +
@@ -490,7 +554,7 @@ func file_userapi_proto_rawDescGZIP() []byte {
 	return file_userapi_proto_rawDescData
 }
 
-var file_userapi_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_userapi_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_userapi_proto_goTypes = []any{
 	(*SetManifestRequest)(nil),   // 0: edgelesssys.contrast.userapi.SetManifestRequest
 	(*SetManifestResponse)(nil),  // 1: edgelesssys.contrast.userapi.SetManifestResponse
@@ -498,23 +562,25 @@ var file_userapi_proto_goTypes = []any{
 	(*SeedShare)(nil),            // 3: edgelesssys.contrast.userapi.SeedShare
 	(*GetManifestsRequest)(nil),  // 4: edgelesssys.contrast.userapi.GetManifestsRequest
 	(*GetManifestsResponse)(nil), // 5: edgelesssys.contrast.userapi.GetManifestsResponse
-	(*RecoverRequest)(nil),       // 6: edgelesssys.contrast.userapi.RecoverRequest
-	(*RecoverResponse)(nil),      // 7: edgelesssys.contrast.userapi.RecoverResponse
+	(*LatestTransition)(nil),     // 6: edgelesssys.contrast.userapi.LatestTransition
+	(*RecoverRequest)(nil),       // 7: edgelesssys.contrast.userapi.RecoverRequest
+	(*RecoverResponse)(nil),      // 8: edgelesssys.contrast.userapi.RecoverResponse
 }
 var file_userapi_proto_depIdxs = []int32{
 	2, // 0: edgelesssys.contrast.userapi.SetManifestResponse.SeedSharesDoc:type_name -> edgelesssys.contrast.userapi.SeedShareDocument
 	3, // 1: edgelesssys.contrast.userapi.SeedShareDocument.SeedShares:type_name -> edgelesssys.contrast.userapi.SeedShare
-	0, // 2: edgelesssys.contrast.userapi.UserAPI.SetManifest:input_type -> edgelesssys.contrast.userapi.SetManifestRequest
-	4, // 3: edgelesssys.contrast.userapi.UserAPI.GetManifests:input_type -> edgelesssys.contrast.userapi.GetManifestsRequest
-	6, // 4: edgelesssys.contrast.userapi.UserAPI.Recover:input_type -> edgelesssys.contrast.userapi.RecoverRequest
-	1, // 5: edgelesssys.contrast.userapi.UserAPI.SetManifest:output_type -> edgelesssys.contrast.userapi.SetManifestResponse
-	5, // 6: edgelesssys.contrast.userapi.UserAPI.GetManifests:output_type -> edgelesssys.contrast.userapi.GetManifestsResponse
-	7, // 7: edgelesssys.contrast.userapi.UserAPI.Recover:output_type -> edgelesssys.contrast.userapi.RecoverResponse
-	5, // [5:8] is the sub-list for method output_type
-	2, // [2:5] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	6, // 2: edgelesssys.contrast.userapi.GetManifestsResponse.LatestTransition:type_name -> edgelesssys.contrast.userapi.LatestTransition
+	0, // 3: edgelesssys.contrast.userapi.UserAPI.SetManifest:input_type -> edgelesssys.contrast.userapi.SetManifestRequest
+	4, // 4: edgelesssys.contrast.userapi.UserAPI.GetManifests:input_type -> edgelesssys.contrast.userapi.GetManifestsRequest
+	7, // 5: edgelesssys.contrast.userapi.UserAPI.Recover:input_type -> edgelesssys.contrast.userapi.RecoverRequest
+	1, // 6: edgelesssys.contrast.userapi.UserAPI.SetManifest:output_type -> edgelesssys.contrast.userapi.SetManifestResponse
+	5, // 7: edgelesssys.contrast.userapi.UserAPI.GetManifests:output_type -> edgelesssys.contrast.userapi.GetManifestsResponse
+	8, // 8: edgelesssys.contrast.userapi.UserAPI.Recover:output_type -> edgelesssys.contrast.userapi.RecoverResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_userapi_proto_init() }
@@ -528,7 +594,7 @@ func file_userapi_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_userapi_proto_rawDesc), len(file_userapi_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
