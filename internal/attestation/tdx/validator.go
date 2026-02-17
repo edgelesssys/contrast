@@ -96,7 +96,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData [
 	if len(quotev4.ExtraBytes) > 0 {
 		extensions, err := quote.GetExtensions(quotev4)
 		if err == nil {
-			v.logger.Info("extracted collateral from cert", "collateral", extensions.Collateral)
+			v.logger.Debug("extracted collateral from cert", "collateral", extensions.Collateral)
 			// TODO(burgerdev): pass collateral to verifier
 		} else {
 			v.logger.Warn("error getting collateral from cert", "error", err)
