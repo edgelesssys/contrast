@@ -1,0 +1,396 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Meyer <katexochen0@gmail.com>
+Date: Tue, 17 Feb 2026 10:47:28 +0100
+Subject: [PATCH] drivers/acpi: add BadAML sandbox
+
+Signed-off-by: Paul Meyer <katexochen0@gmail.com>
+---
+ arch/x86/mm/pat/sandbox.h      |   5 +
+ arch/x86/mm/pat/set_memory.c   |   5 +
+ drivers/acpi/acpica/exregion.c |   6 +
+ drivers/acpi/acpica/sandbox.h  | 290 +++++++++++++++++++++++++++++++++
+ 4 files changed, 306 insertions(+)
+ create mode 100644 arch/x86/mm/pat/sandbox.h
+ create mode 100644 drivers/acpi/acpica/sandbox.h
+
+diff --git a/arch/x86/mm/pat/sandbox.h b/arch/x86/mm/pat/sandbox.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..f1eade03083f8113d8ca6a7e26d2d97843a24b06
+--- /dev/null
++++ b/arch/x86/mm/pat/sandbox.h
+@@ -0,0 +1,5 @@
++/* SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0 */
++
++extern void __sandbox_invalidate_caches(unsigned long virt_addr, int numpages);
++
++#define SANDBOX_INVALIDATE_CACHES(virt_addr, numpages)	__sandbox_invalidate_caches(virt_addr, numpages)
+diff --git a/arch/x86/mm/pat/set_memory.c b/arch/x86/mm/pat/set_memory.c
+index 970981893c9b80f66fcd7058f8f8ffebd9a6f7e5..39c5c404b4ffec9c0332f935fbef5c50e84c41b6 100644
+--- a/arch/x86/mm/pat/set_memory.c
++++ b/arch/x86/mm/pat/set_memory.c
+@@ -3,6 +3,9 @@
+  * Copyright 2002 Andi Kleen, SuSE Labs.
+  * Thanks to Ben LaHaise for precious feedback.
+  */
++
++#include "sandbox.h"
++
+ #include <linux/highmem.h>
+ #include <linux/memblock.h>
+ #include <linux/sched.h>
+@@ -2477,12 +2480,14 @@ static int __set_memory_enc_dec(unsigned long addr, int numpages, bool enc)
+ 
+ int set_memory_encrypted(unsigned long addr, int numpages)
+ {
++	SANDBOX_INVALIDATE_CACHES(addr, numpages);
+ 	return __set_memory_enc_dec(addr, numpages, true);
+ }
+ EXPORT_SYMBOL_GPL(set_memory_encrypted);
+ 
+ int set_memory_decrypted(unsigned long addr, int numpages)
+ {
++	SANDBOX_INVALIDATE_CACHES(addr, numpages);
+ 	return __set_memory_enc_dec(addr, numpages, false);
+ }
+ EXPORT_SYMBOL_GPL(set_memory_decrypted);
+diff --git a/drivers/acpi/acpica/exregion.c b/drivers/acpi/acpica/exregion.c
+index a390a1c2b0abb01a7c8490b207ec377818120207..638323389e970500c004b7ccdd52a9e7455eaf67 100644
+--- a/drivers/acpi/acpica/exregion.c
++++ b/drivers/acpi/acpica/exregion.c
+@@ -14,6 +14,8 @@
+ #define _COMPONENT          ACPI_EXECUTER
+ ACPI_MODULE_NAME("exregion")
+ 
++#include "sandbox.h"
++
+ /*******************************************************************************
+  *
+  * FUNCTION:    acpi_ex_system_memory_space_handler
+@@ -38,6 +40,7 @@ acpi_ex_system_memory_space_handler(u32 function,
+ 				    u64 *value,
+ 				    void *handler_context, void *region_context)
+ {
++	SANDBOX_SECT_START;
+ 	acpi_status status = AE_OK;
+ 	void *logical_addr_ptr = NULL;
+ 	struct acpi_mem_space_context *mem_info = region_context;
+@@ -192,6 +195,7 @@ acpi_ex_system_memory_space_handler(u32 function,
+ 	case ACPI_READ:
+ 
+ 		*value = 0;
++		SANDBOX_READ_HOOK((u64)logical_addr_ptr, (u64)address);
+ 		switch (bit_width) {
+ 		case 8:
+ 
+@@ -223,6 +227,7 @@ acpi_ex_system_memory_space_handler(u32 function,
+ 
+ 	case ACPI_WRITE:
+ 
++		SANDBOX_WRITE_HOOK((u64)logical_addr_ptr, (u64)address);
+ 		switch (bit_width) {
+ 		case 8:
+ 
+@@ -258,6 +263,7 @@ acpi_ex_system_memory_space_handler(u32 function,
+ 		break;
+ 	}
+ 
++	SANDBOX_SECT_END;
+ 	return_ACPI_STATUS(status);
+ }
+ 
+diff --git a/drivers/acpi/acpica/sandbox.h b/drivers/acpi/acpica/sandbox.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..48736dc1be471a3c203fdc45267e3ba8225a56c5
+--- /dev/null
++++ b/drivers/acpi/acpica/sandbox.h
+@@ -0,0 +1,290 @@
++/* SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0 */
++#include <asm/coco.h>
++#include <asm/io.h>
++#include <linux/cc_platform.h>
++#include <linux/efi.h>
++#include <linux/hugetlb.h>
++#include <linux/init.h>
++#include <linux/mm.h>
++#include <linux/once.h>
++#include <linux/random.h>
++#include <linux/sched.h>
++#include <linux/sched/clock.h>
++#include <linux/version.h>
++
++#define CMDLINE_DISABLE_SANDBOX	"sandbox=0"	
++#define CACHE_NUM	8
++
++#define SANDBOX_READ_HOOK(virt_addr, phys_addr)     { if (!__sandbox_validate_memory_access(virt_addr, phys_addr, true)) break; }
++#define SANDBOX_WRITE_HOOK(virt_addr, phys_addr)    { if (!__sandbox_validate_memory_access(virt_addr, phys_addr, false)) break; }
++#define SANDBOX_SECT_START  { __sandbox_section_start(); }
++#define SANDBOX_SECT_END    { __sandbox_section_end(); }
++
++void __sandbox_invalidate_caches(unsigned long virt_addr, int numpages);
++
++struct __sandbox_cache_entry {
++	unsigned long phys_addr;
++	bool encrypted;
++	bool valid;
++};
++static struct __sandbox_cache_entry __sandbox_caches[CACHE_NUM];
++
++static struct __sandbox_access_log {
++	u64 start;
++	bool is_read;
++	unsigned long phys_addr;
++	unsigned long virt_addr;
++	bool access_allowed;
++} __sandbox_access_log;
++
++static bool __sandbox_enabled(void)
++{
++	static bool checked;
++	static bool enabled = true;
++
++	if (!checked) {
++		if (strstr(saved_command_line, CMDLINE_DISABLE_SANDBOX)) {
++			ACPI_INFO(("SANDBOX: Disabled by cmdline"));
++			enabled = false;
++		} else {
++			ACPI_INFO(("SANDBOX: Enabled"));
++		}
++		checked = true;
++	}
++
++	return enabled;
++}
++
++static void __sandbox_init_cache(void)
++{
++	DO_ONCE(memset, __sandbox_caches, 0, sizeof(__sandbox_caches));
++}
++
++static __attribute__((unused)) void __sandbox_set_cache(unsigned long phys_addr, bool encrypted)
++{
++	int cache_index;
++
++	__sandbox_init_cache();
++
++	ACPI_DEBUG_PRINT((ACPI_DB_INFO, "SANDBOX: Set cache phys_addr=%016lx, encrypted=%d\n", phys_addr, (encrypted ? 1 : 0)));
++
++	int i;
++	cache_index = -1;
++	for (i = 0; i < CACHE_NUM; i++) {
++		struct __sandbox_cache_entry *entry;
++
++		entry = &__sandbox_caches[i];
++		if (entry->phys_addr == phys_addr) {
++			entry->valid = false;
++		}
++		if (!entry->valid) {
++			cache_index = i;
++			break;
++		}
++	}
++	if (cache_index == -1) {
++		ACPI_WARNING((AE_INFO, "SANDBOX: Cache full"));
++		cache_index = get_random_long() % CACHE_NUM;
++	}
++
++	__sandbox_caches[cache_index].phys_addr = phys_addr;
++	__sandbox_caches[cache_index].encrypted = encrypted;
++	__sandbox_caches[cache_index].valid = true;
++}
++
++static __attribute__((unused)) bool __sandbox_get_cache(unsigned long phys_addr, bool *encrypted)
++{
++	__sandbox_init_cache();
++
++	// Too heavy for output
++	// ACPI_DEBUG_PRINT((ACPI_DB_INFO, "SANDBOX: Get cache phys_addr=%016lx\n", phys_addr));
++
++	int i;
++	for (i = 0; i < CACHE_NUM; i++) {
++		struct __sandbox_cache_entry *entry;
++
++		entry = &__sandbox_caches[i];
++		if (entry->valid && entry->phys_addr == phys_addr) {
++			*encrypted = entry->encrypted;
++			return true;
++		}
++	}
++
++	ACPI_DEBUG_PRINT((ACPI_DB_INFO, "SANDBOX: Cache miss phys_addr=%016lx\n", phys_addr));
++	return false;
++}
++
++void __sandbox_invalidate_caches(unsigned long virt_addr, int numpages)
++{
++	if (!__sandbox_enabled()) {
++		return;
++	}
++	__sandbox_init_cache();
++	virt_addr &= PAGE_MASK;
++
++	// Too heavy for output
++	// ACPI_DEBUG_PRINT((ACPI_DB_INFO, "SANDBOX: Invalidate cache virt_addr=%016lx\n", virt_addr));
++
++	int pi;
++	for (pi = 0; pi < numpages; pi++) {
++		unsigned long phys_addr;
++
++		phys_addr = virt_to_phys((void *)(virt_addr + pi * PAGE_SIZE));
++
++		int ci;
++		for (ci = 0; ci < CACHE_NUM; ci++) {
++			struct __sandbox_cache_entry *entry;
++
++			entry = &__sandbox_caches[ci];
++			if (entry->phys_addr == phys_addr) {
++				entry->valid = false;
++			}
++		}
++	}
++}
++
++static unsigned long __sandbox_get_page_table_entry(unsigned long addr)
++{
++	pgd_t *pgd;
++	p4d_t *p4d;
++	pud_t *pud;
++	pmd_t *pmd;
++	pte_t *pte;
++
++	pgd = pgd_offset_k(addr);
++	if (pgd_none(*pgd)) {
++		return 0;
++	}
++
++	p4d = p4d_offset(pgd, addr);
++	if (p4d_none(*p4d)) {
++		return 0;
++	}
++
++	pud = pud_offset(p4d, addr);
++	if (pud_none(*pud)) {
++		return 0;
++	}
++
++	// Check for 1GB huge page
++	if (pud_leaf(*pud)) {
++		return pud_val(*pud);
++	}
++
++	pmd = pmd_offset(pud, addr);
++	if (pmd_none(*pmd)) {
++		return 0;
++	}
++
++	// Check for 2MB huge page
++	if (pmd_leaf(*pmd)) {
++		return pmd_val(*pmd);
++	}
++
++	pte = pte_offset_kernel(pmd, addr);
++	if (pte_none(*pte)) {
++		return 0;
++	}
++
++	return pte_val(*pte);
++}
++
++static bool __sandbox_is_encrypted_generic(unsigned long virt_addr)
++{
++	unsigned long val;
++
++	val = __sandbox_get_page_table_entry((unsigned long)(virt_addr));
++	if (val) {
++		return val == cc_mkenc(val);
++	} else {
++		ACPI_ERROR((AE_INFO, "SANDBOX: Page table walk failed"));
++	}
++
++	ACPI_DEBUG_PRINT((ACPI_DB_INFO, "SANDBOX: Falling back to 'encrypted' state\n"));
++	return true;
++}
++
++static bool __sandbox_is_efi_memory(unsigned long phys_addr)
++{
++	efi_memory_desc_t *md;
++
++	for_each_efi_memory_desc(md) {
++		unsigned long start = md->phys_addr;
++		unsigned long end = start + (md->num_pages * EFI_PAGE_SIZE);
++
++		if (md->type != EFI_RUNTIME_SERVICES_DATA) {
++			continue;
++		}
++		if (phys_addr >= start && phys_addr < end) {
++			return true;
++		}
++	}
++
++	return false;
++}
++
++static bool __sandbox_validate_memory_access(unsigned long virt_addr, unsigned long phys_addr, bool is_read)
++{
++	__sandbox_access_log.is_read = is_read;
++	__sandbox_access_log.phys_addr = phys_addr;
++	__sandbox_access_log.virt_addr = virt_addr;
++	phys_addr &= PAGE_MASK;
++	virt_addr &= PAGE_MASK;
++
++	if (!__sandbox_enabled()) {
++		return true;
++	}
++
++	if (__sandbox_is_efi_memory(phys_addr)) {
++		if (is_read) {
++			return true;
++		}
++	}
++
++	cond_resched();
++
++	bool encrypted = true;
++	if (cc_platform_has(CC_ATTR_MEM_ENCRYPT)) {
++		encrypted = __sandbox_is_encrypted_generic(virt_addr);
++	} else {
++		ACPI_ERROR((AE_INFO, "SANDBOX: Unknown platform"));
++	}
++
++	cond_resched();
++
++	if (!encrypted) {
++		return true;
++	}
++
++	__sandbox_access_log.access_allowed = false;
++	return false;
++}
++
++static void __sandbox_section_start(void)
++{
++	__sandbox_access_log.start = local_clock();
++	__sandbox_access_log.is_read = true;
++	__sandbox_access_log.phys_addr = 0xdeadbeefcafebabeuL;
++	__sandbox_access_log.virt_addr = 0xdeadbeefcafebabeuL;
++	__sandbox_access_log.access_allowed = true;
++}
++
++static void __sandbox_section_end(void)
++{
++	u64 end;
++	end = local_clock();
++
++	cond_resched();
++
++	ACPI_INFO((
++		"SANDBOX: ACCESS %lx,%lx,%lx,%lx,%lx,%lx",
++		(unsigned long)!__sandbox_enabled(),
++		(unsigned long)(end - __sandbox_access_log.start),
++		(unsigned long)__sandbox_access_log.is_read,
++		(unsigned long)__sandbox_access_log.virt_addr,
++		(unsigned long)__sandbox_access_log.phys_addr,
++		(unsigned long)__sandbox_access_log.access_allowed
++	));
++
++	cond_resched();
++}
