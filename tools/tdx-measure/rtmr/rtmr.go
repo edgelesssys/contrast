@@ -173,21 +173,9 @@ func CalcRtmr0(firmware []byte, gpu GPUModel) ([48]byte, error) {
 		"7d49579cd2b17a399b29b8fd40f2fd66bf3d0fafcbfdfd9a3b912b7d4f81dd7dba85ee15768b36214d7507dc10fc6464",
 		"4f564889e597ba62b02a0f5ad95ad9f8883947deadc3275fe289f5096c01ed3db8323d70681d04f694c025ee8426be11",
 	}
-	smbiosHashes := []string{
-		// EV_EFI_HANDOFF_TABLES
-		// This is the SMBIOS handoff table, which we currently can't pre-construct.
-		// Handoff table measurement: https://github.com/tianocore/edk2/blob/7410754041bb994c685874a3bb62992c9da7d30a/MdeModulePkg/Universal/SmbiosMeasurementDxe/SmbiosMeasurementDxe.c#L482
-		// See the patch that is applied to OVMF-TDX.
-		"273a08522202f406dc5934f9dcfdf81c5ac78e9f1bee165587f0552adf877b8a53fee3a43c5bd2dfbd4627f4528c57e7",
-	}
 	var configHashes []string
-	if gpu != GPUModelNone {
-		// With GPU support, ACPI hashes are being verified in the firmware.
-		// Later this will be changed to be the case for both scenarios, but for now,
-		// due to missing security checks, it's conditional on GPU support.
-		configHashes = smbiosHashes
-	} else {
-		configHashes = slices.Concat(acpiHashes, smbiosHashes)
+	if gpu == GPUModelNone {
+		configHashes = slices.Concat(acpiHashes)
 	}
 	for _, hash := range configHashes {
 		var buffer [48]byte
