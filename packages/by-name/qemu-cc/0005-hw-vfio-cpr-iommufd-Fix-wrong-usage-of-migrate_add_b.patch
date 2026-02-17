@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Jim Shu <jim.shu@sifive.com>
+Date: Wed, 21 Jan 2026 14:34:18 +0800
+Subject: [PATCH] hw/vfio: cpr-iommufd: Fix wrong usage of
+ migrate_add_blocker_modes
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The return value of API is 0 for success and negative error code for
+failure. We'll check if the return value equals to 0.
+Also, the MIG_MODE should be CPR_TRANSFER and CPR_EXEC instead
+of 2 same bits.
+
+The API usage is aligned with 'hw/vfio/cpr-legacy.c' after these 2
+changes.
+
+Fixes: 3ca0a0ab05c ("migration: Use bitset of MigMode instead of variable arguments")
+Signed-off-by: Jim Shu <jim.shu@sifive.com>
+Reviewed-by: Cédric Le Goater <clg@redhat.com>
+Link: https://lore.kernel.org/qemu-devel/20260121063418.2001326-1-jim.shu@sifive.com
+Signed-off-by: Cédric Le Goater <clg@redhat.com>
+---
+ hw/vfio/cpr-iommufd.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/hw/vfio/cpr-iommufd.c b/hw/vfio/cpr-iommufd.c
+index c244db88fbbb4ae5c5c876a610f9187edda904c9..6758c73b6b96a32170ced8b18aebf8212d9542cd 100644
+--- a/hw/vfio/cpr-iommufd.c
++++ b/hw/vfio/cpr-iommufd.c
+@@ -159,8 +159,8 @@ bool vfio_iommufd_cpr_register_iommufd(IOMMUFDBackend *be, Error **errp)
+ 
+     if (!vfio_cpr_supported(be, cpr_blocker)) {
+         return migrate_add_blocker_modes(cpr_blocker,
+-                    BIT(MIG_MODE_CPR_TRANSFER) | BIT(MIG_MODE_CPR_TRANSFER),
+-                    errp);
++                    BIT(MIG_MODE_CPR_TRANSFER) | BIT(MIG_MODE_CPR_EXEC),
++                    errp) == 0;
+     }
+ 
+     vmstate_register(NULL, -1, &iommufd_cpr_vmstate, be);
