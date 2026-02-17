@@ -44,7 +44,7 @@ type guard interface {
 	// GetHistory returns a slice of manifests and a map of policies referenced in the manifests.
 	GetHistory(context.Context) (manifests [][]byte, policies map[manifest.HexString][]byte, err error)
 	// UpdateState advances the state to the given manifest and policies.
-	UpdateState(ctx context.Context, oldState *stateguard.State, se *seedengine.SeedEngine, manifest []byte, policies [][]byte) (newState *stateguard.State, err error)
+	UpdateState(ctx context.Context, oldState *stateguard.State, se *seedengine.SeedEngine, manifest []byte, policies [][]byte, prevTransitionHash []byte) (newState *stateguard.State, err error)
 	// ResetState recovers to the latest persisted state, authorizing the recovery seed with the passed func.
 	ResetState(ctx context.Context, oldState *stateguard.State, a stateguard.SecretSourceAuthorizer) (newState *stateguard.State, err error)
 }
@@ -130,7 +130,7 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 		}
 	}
 
-	state, err := s.guard.UpdateState(ctx, oldState, se, req.GetManifest(), req.GetPolicies())
+	state, err := s.guard.UpdateState(ctx, oldState, se, req.GetManifest(), req.GetPolicies(), req.GetPreviousTransitionHash())
 	if err != nil {
 		code := codes.Internal
 		if errors.Is(err, stateguard.ErrConcurrentUpdate) {

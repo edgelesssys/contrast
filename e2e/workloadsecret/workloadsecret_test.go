@@ -195,6 +195,9 @@ func TestWorkloadSecrets(t *testing.T) {
 		assert := assert.New(t)
 		require := require.New(t)
 
+		// Obtain latest transition hash for the next SetManifest call.
+		t.Run("verify", ct.Verify)
+
 		ct.PatchManifest(t, func(m manifest.Manifest) (manifest.Manifest, error) {
 			for key, policy := range m.Policies {
 				policy.WorkloadSecretID = ""

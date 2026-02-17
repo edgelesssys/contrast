@@ -163,6 +163,10 @@ func TestSetManifest(t *testing.T) {
 			require.NoError(err)
 			_, err = coordinator.SetManifest(ctx, &userapi.SetManifestRequest{Manifest: m})
 			require.NoError(err)
+			tr := &history.Transition{
+				ManifestHash: history.Digest(m),
+			}
+			latestTransitionHash := tr.Digest()
 
 			req := &userapi.SetManifestRequest{
 				Manifest: newManifestBytes(func(m *manifest.Manifest) {
@@ -175,6 +179,7 @@ func TestSetManifest(t *testing.T) {
 					[]byte("a"),
 					[]byte("b"),
 				},
+				PreviousTransitionHash: latestTransitionHash[:],
 			}
 			_, err = coordinator.SetManifest(ctx, req)
 			require.Equal(tc.wantCode, status.Code(err))
@@ -664,6 +669,12 @@ func TestStoreRaces(t *testing.T) {
 		ctx := rpcContext(t.Context(), workloadOwnerKey)
 		assert := assert.New(t)
 
+		tr := &history.Transition{
+			ManifestHash: history.Digest(manifestBytes),
+		}
+		latestTransitionHash := tr.Digest()
+		req.PreviousTransitionHash = latestTransitionHash[:]
+
 		wg := sync.WaitGroup{}
 		wg.Add(len(coordinators))
 
@@ -744,6 +755,11 @@ func TestNotificationRaces(t *testing.T) {
 		_, err := a.SetManifest(rpcContext(t.Context(), workloadOwnerKey), req)
 		require.NoErrorf(err, "SetManifest call %d", i)
 		transitions = append(transitions, <-notifiedCh)
+		tr := &history.Transition{
+			ManifestHash: history.Digest(manifestBytes),
+		}
+		latestTransitionHash := tr.Digest()
+		req.PreviousTransitionHash = latestTransitionHash[:]
 	}
 	state, err := a.guard.GetState(t.Context())
 	require.NoError(err)

@@ -6,6 +6,7 @@ package cmd
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -53,6 +55,7 @@ issuer certificates.`,
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
 	cmd.Flags().String("workload-owner-key", workloadOwnerPEM, "path to workload owner key (.pem) file")
+	cmd.Flags().StringP("latest-transition", "t", "", "latest transition hash set at the coordinator (hex string)")
 
 	return cmd
 }
@@ -104,6 +107,18 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("checking policies match manifest: %w", err)
 	}
 
+	if flags.latestTransition == "" {
+		data, err := os.ReadFile(filepath.Join(flags.workspaceDir, verifyDir, latestTransitionHashFilename))
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("reading previous transition hash: %w", err)
+		}
+		flags.latestTransition = string(data)
+	}
+	previousTransitionHash, err := hex.DecodeString(flags.latestTransition)
+	if err != nil {
+		return fmt.Errorf("decoding latest transition hash: %w", err)
+	}
+
 	kdsGetter, err := cachedHTTPSGetter(log)
 	if err != nil {
 		return fmt.Errorf("configuring KDS cache: %w", err)
@@ -128,8 +143,9 @@ func runSet(cmd *cobra.Command, args []string) error {
 
 	client := userapi.NewUserAPIClient(conn)
 	req := &userapi.SetManifestRequest{
-		Manifest: manifestBytes,
-		Policies: getInitdataDocuments(policies),
+		Manifest:               manifestBytes,
+		Policies:               getInitdataDocuments(policies),
+		PreviousTransitionHash: previousTransitionHash,
 	}
 	resp, err := setLoop(cmd.Context(), client, cmd.OutOrStdout(), req)
 	if err != nil {
@@ -179,6 +195,7 @@ type setFlags struct {
 	manifestPath         string
 	coordinator          string
 	workloadOwnerKeyPath string
+	latestTransition     string
 	workspaceDir         string
 }
 
@@ -197,6 +214,10 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	flags.workloadOwnerKeyPath, err = cmd.Flags().GetString("workload-owner-key")
 	if err != nil {
 		return nil, fmt.Errorf("getting workload-owner-key flag: %w", err)
+	}
+	flags.latestTransition, err = cmd.Flags().GetString("latest-transition")
+	if err != nil {
+		return nil, fmt.Errorf("getting latest-transition flag: %w", err)
 	}
 	flags.workspaceDir, err = cmd.Flags().GetString("workspace-dir")
 	if err != nil {

@@ -184,6 +184,9 @@ func TestOpenSSL(t *testing.T) {
 			require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslBackend))
 			require.NoError(c.WaitForDeployment(ctx, ct.Namespace, opensslFrontend))
 
+			// Verify obtains the latest transition hash necessary for the next SetManifest call.
+			ct.Verify(t)
+
 			// If in the future a SetManifest call with the same manifest does not result in a certificate rotation,
 			// this change of the manifest makes sure to always rotate certificates.
 			manifestBytes, err := os.ReadFile(ct.ManifestPath())

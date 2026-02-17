@@ -54,7 +54,7 @@ func TestUpdateState(t *testing.T) {
 	mnfst, manifestBytes, policies := newManifest(t)
 
 	se := newSeedEngine(t)
-	updateState, err := g.UpdateState(ctx, emptyState, se, manifestBytes, policies)
+	updateState, err := g.UpdateState(ctx, emptyState, se, manifestBytes, policies, nil)
 	require.NoError(err)
 	require.NotNil(updateState)
 
@@ -105,7 +105,7 @@ func TestTestConcurrentStateUpdate(t *testing.T) {
 	concurrentlyUpdatedState := &State{}
 	g.state.Store(concurrentlyUpdatedState)
 
-	updateState, err := g.UpdateState(ctx, emptyState, se, manifestBytes, policies)
+	updateState, err := g.UpdateState(ctx, emptyState, se, manifestBytes, policies, nil)
 	require.NoError(err)
 	require.NotNil(updateState)
 	assert.NotSame(concurrentlyUpdatedState, updateState, "UpdateState must return the state corresponding to its inputs")
@@ -134,7 +134,11 @@ func TestGetHistory(t *testing.T) {
 		policies = append(policies, nextPolicy)
 		manifestBytes, err := json.Marshal(mnfst)
 		require.NoError(err)
-		nextState, err := g.UpdateState(ctx, state, se, manifestBytes, policies)
+		var latestTransitionHash []byte
+		if state != nil {
+			latestTransitionHash = state.latest.TransitionHash[:]
+		}
+		nextState, err := g.UpdateState(ctx, state, se, manifestBytes, policies, latestTransitionHash)
 		require.NoError(err)
 		state = nextState
 	}
@@ -172,7 +176,7 @@ func TestResetState(t *testing.T) {
 	require.Nil(state)
 
 	// Initialize the state.
-	state, err = g.UpdateState(ctx, nil, se, manifestBytes, policies)
+	state, err = g.UpdateState(ctx, nil, se, manifestBytes, policies, nil)
 	require.NoError(err)
 	require.NotNil(state)
 
@@ -213,7 +217,7 @@ func TestConcurrentUpdateState(t *testing.T) {
 	for i := range numWorkers {
 		go func() {
 			defer wg.Done()
-			_, err := guard.UpdateState(ctx, nil, se, mnfst, policies)
+			_, err := guard.UpdateState(ctx, nil, se, mnfst, policies, nil)
 			if err != nil {
 				errCount.Add(1)
 				assert.ErrorIs(err, ErrConcurrentUpdate, "iteration %d", i)
@@ -250,7 +254,11 @@ func TestMetrics(t *testing.T) {
 	require.ErrorIs(err, ErrNoState)
 	for i := range numGenerations {
 		requireGauge(t, reg, i, "iteration %d", i)
-		s, err = a.UpdateState(t.Context(), s, se, manifestBytes, policies)
+		var latestTransitionHash []byte
+		if s != nil {
+			latestTransitionHash = s.latest.TransitionHash[:]
+		}
+		s, err = a.UpdateState(t.Context(), s, se, manifestBytes, policies, latestTransitionHash)
 		require.NoError(err, "iteration %d", i)
 	}
 	requireGauge(t, reg, numGenerations)
@@ -307,7 +315,7 @@ func TestWatchHistory(t *testing.T) {
 			_, manifestBytes, policies := newManifest(t)
 
 			se := newSeedEngine(t)
-			state, err := g.UpdateState(ctx, nil, se, manifestBytes, policies)
+			state, err := g.UpdateState(ctx, nil, se, manifestBytes, policies, nil)
 			require.NoError(err)
 			require.NotNil(state)
 
@@ -367,7 +375,11 @@ func TestWatchHistoryLateNotifications(t *testing.T) {
 	var notifications [][]byte
 	var state *State
 	for range 2 {
-		nextState, err := g.UpdateState(ctx, state, se, manifestBytes, policies)
+		var latestTransitionHash []byte
+		if state != nil {
+			latestTransitionHash = state.latest.TransitionHash[:]
+		}
+		nextState, err := g.UpdateState(ctx, state, se, manifestBytes, policies, latestTransitionHash)
 		require.NoError(err)
 		state = nextState
 		latest, err := store.Get("transitions/latest")
