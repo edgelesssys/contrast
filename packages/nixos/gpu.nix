@@ -65,6 +65,16 @@ in
       videoAcceleration = false;
     };
 
+    # On Blackwell MPT, the NVIDIA module(s) being auto-loaded causes
+    # problems: https://github.com/NVIDIA/nvtrust/issues/109
+    # nvidia-persistenced *must* be the first to load the module.
+    boot.extraModprobeConfig = ''
+      blacklist nvidia
+      blacklist nvidia_drm
+      blacklist nvidia_modeset
+      blacklist nvidia_uvm
+    '';
+
     # WARNING: Kata sets systemd's default target to `kata-containers.target`. Thus, some upstream services may not work out-of-the-box,
     # as they are `WantedBy=multi-user.target` or similar. In such cases, the service needs to be adjusted to be `WantedBy=kata-containers.target`
     # instead.
@@ -85,6 +95,14 @@ in
     systemd.services."nvidia-container-toolkit-cdi-generator" = {
       wantedBy = [ "kata-containers.target" ];
       before = [ "kata-agent.service" ];
+      after = [
+        # Even if not being auto-loaded, the CDI generator service still
+        # competes with nvidia-persistenced for loading the module, which
+        # causes the same problem as mentioned at the modprobe config.
+        # Thus, we need to make sure that the CDI generator is loaded
+        # after nvidia-persistenced.
+        "nvidia-persistenced.service"
+      ];
     };
     systemd.services."kata-agent" = {
       after = [ "nvidia-container-toolkit-cdi-generator.service" ];
