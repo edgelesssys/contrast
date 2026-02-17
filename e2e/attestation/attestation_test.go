@@ -265,7 +265,8 @@ func TestAttestation(t *testing.T) {
 		require.NoError(err)
 		require.NotNil(extensions)
 		require.NotNil(extensions.Collateral)
-		collateral := extensions.Collateral
+		collateral, err := extensions.Collateral.ToTDXGuest()
+		require.NoError(err)
 
 		t.Logf("Collateral received: %#v", collateral)
 

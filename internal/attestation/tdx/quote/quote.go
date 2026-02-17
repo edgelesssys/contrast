@@ -16,7 +16,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/tdx/qgs"
 	"github.com/google/go-tdx-guest/pcs"
 	"github.com/google/go-tdx-guest/proto/tdx"
-	"github.com/google/go-tdx-guest/verify"
 	"github.com/mdlayher/vsock"
 )
 
@@ -67,7 +66,7 @@ type Extensions struct {
 	// Collateral is a collection of additional resources required for quote verification.
 	// We include the struct as a quote extension so that the verifier does not need to fetch it
 	// from PCS.
-	Collateral *verify.Collateral
+	Collateral *qgs.GetCollateralResponse
 }
 
 // AddExtensions prepares additional data for the verifier and stores it in quotev4.ExtraBytes.
@@ -105,12 +104,7 @@ func AddExtensions(ctx context.Context, quotev4 *tdx.QuoteV4) error {
 		return fmt.Errorf("getting collateral from QGS: %w", err)
 	}
 
-	collateral, err := resp.ToTDXGuest()
-	if err != nil {
-		return fmt.Errorf("converting collateral: %w", err)
-	}
-
-	extraBytes, err := json.Marshal(&Extensions{Collateral: collateral})
+	extraBytes, err := json.Marshal(&Extensions{Collateral: resp})
 	if err != nil {
 		return fmt.Errorf("marshalling extensions: %w", err)
 	}
