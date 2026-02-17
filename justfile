@@ -44,7 +44,7 @@ node-installers: (push "node-installer-kata") (push "node-installer-kata-gpu")
 e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell node-installers
     #!/usr/bin/env bash
     set -euo pipefail
-    if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" ]] ; then
+    if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" || {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
         just request-fifo-ticket 90m
     fi
     if [[ -n "${contrast_ghcr_read:-}" ]]; then
@@ -171,7 +171,7 @@ apply target=default_deploy_target platform=default_platform:
             kubectl apply -f ./{{ workspace_dir }}/runtime/runtime.yml
         ;;
         *)
-            if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" ]] ; then
+            if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" || {{ platform }} == "Metal-QEMU-TDX-GPU"  ]] ; then
                 just request-fifo-ticket 90m
                 trap 'just release-fifo-ticket' ERR
                 kubectl label ns $(tail -1 ./{{ workspace_dir }}/just.namespace) contrast.edgeless.systems/sync-ticket=$(cat ./{{ workspace_dir }}/just.sync-ticket) --overwrite
