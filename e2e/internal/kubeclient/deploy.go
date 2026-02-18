@@ -145,7 +145,8 @@ func (c *Kubeclient) IsStartingBlocked(name string, namespace string, resource R
 	}
 }
 
-// WaitForService waits until the given service is configured with an external IP and returns it.
+// WaitForService waits until the given service is configured with an external IP and returns it or,
+// if loadBalancer is false, waits until the service is ready and returns the ClusterIP.
 func (c *Kubeclient) WaitForService(ctx context.Context, namespace, name string, loadBalancer bool) (string, error) {
 	watcher, err := c.Client.CoreV1().Services(namespace).Watch(ctx, metav1.ListOptions{FieldSelector: "metadata.name=" + name})
 	if err != nil {
