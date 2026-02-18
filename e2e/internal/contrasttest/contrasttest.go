@@ -202,7 +202,9 @@ func (ct *ContrastTest) Init(t *testing.T, resources []any) {
 
 // Generate runs the contrast generate command and fails the test if the command fails.
 func (ct *ContrastTest) Generate(t *testing.T) {
+	start := time.Now()
 	require.NoError(t, ct.RunGenerate(t.Context()))
+	t.Logf("contrast generate took %s", time.Since(start))
 }
 
 // RunGenerate runs the contrast generate command.
