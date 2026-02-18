@@ -35,7 +35,6 @@ import (
 	"github.com/edgelesssys/contrast/internal/platforms"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
-	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -77,7 +76,7 @@ type ContrastTest struct {
 	NamespaceFile                  string
 	RuntimeClassName               string
 	NodeInstallerTargetConfType    string
-	NodeInstallerImagePullerConfig []byte
+	NodeInstallerImagePullerConfig map[string]any
 	GHCRToken                      string
 	Kubeclient                     *kubeclient.Kubeclient
 
@@ -119,11 +118,9 @@ func New(t *testing.T) *ContrastTest {
 				},
 			},
 		}
-		imagePullerConfig, err := toml.Marshal(cfg)
-		require.NoError(err)
 
 		ct.GHCRToken = token
-		ct.NodeInstallerImagePullerConfig = imagePullerConfig
+		ct.NodeInstallerImagePullerConfig = cfg
 	}
 
 	return ct
@@ -451,7 +448,8 @@ func (ct *ContrastTest) installRuntime(t *testing.T, resources []any) {
 	}
 
 	if ct.NodeInstallerImagePullerConfig != nil {
-		imagePullSecret := kuberesource.NodeInstallerImagePullerSecret(ct.Namespace, ct.NodeInstallerImagePullerConfig)
+		imagePullSecret, err := kuberesource.NodeInstallerImagePullerSecret(ct.Namespace, ct.NodeInstallerImagePullerConfig)
+		require.NoError(err)
 		nodeInstallerDeps = append(nodeInstallerDeps, imagePullSecret)
 	}
 

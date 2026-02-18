@@ -9,6 +9,7 @@ import (
 
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	"github.com/pelletier/go-toml/v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -160,12 +161,16 @@ func NodeInstallerTargetConfig(target string) (*applycorev1.ConfigMapApplyConfig
 }
 
 // NodeInstallerImagePullerSecret returns an imagepuller Secret for the passed namespace.
-func NodeInstallerImagePullerSecret(namespace string, content []byte) *applycorev1.SecretApplyConfiguration {
+func NodeInstallerImagePullerSecret(namespace string, imagePullerConfig map[string]any) (*applycorev1.SecretApplyConfiguration, error) {
+	content, err := toml.Marshal(imagePullerConfig)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling imagePullerConfig: %w", err)
+	}
 	return applycorev1.Secret("contrast-node-installer-imagepuller-config", namespace).
 		WithType(corev1.SecretTypeOpaque).
 		WithData(map[string][]byte{
 			"contrast-imagepuller.toml": content,
-		})
+		}), nil
 }
 
 // PortForwarderConfig wraps a PodApplyConfiguration for a port forwarder.
