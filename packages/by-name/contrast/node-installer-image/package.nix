@@ -16,6 +16,7 @@
   OVMF-TDX,
   debugRuntime ? false,
   withGPU ? false,
+  qemu-badaml,
 }:
 
 let
@@ -63,6 +64,11 @@ let
             {
               url = "file:///opt/edgeless/bin/qemu-system-x86_64";
               path = "/opt/edgeless/@@runtimeName@@/bin/qemu-system-x86_64";
+              executable = true;
+            }
+            {
+              url = "file:///opt/edgeless/bin/qemu-system-x86_64-wrapped";
+              path = "/opt/edgeless/@@runtimeName@@/bin/qemu-system-x86_64-wrapped";
               executable = true;
             }
             {
@@ -132,15 +138,17 @@ let
 
   qemu-cc =
     let
-      qemu = contrastPkgsStatic.qemu-cc.override {
-        gpuSupport = withGPU;
-      };
+      qemu = qemu-badaml;
     in
     ociLayerTar {
       files = [
         {
           source = "${qemu}/bin/qemu-system-x86_64";
           destination = "/opt/edgeless/bin/qemu-system-x86_64";
+        }
+        {
+          source = "${qemu}/bin/qemu-system-x86_64-wrapped";
+          destination = "/opt/edgeless/bin/qemu-system-x86_64-wrapped";
         }
         {
           source = "${qemu}/share/qemu/kvmvapic.bin";
