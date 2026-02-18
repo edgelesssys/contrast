@@ -40,11 +40,11 @@ runCommand "oci-image-layout"
     inherit index passthru;
   }
   ''
-    # add the index.json, image-layout file and all blobs to the output
+    # add the index.json, oci-layout file and all blobs to the output
     srcs=($blobDirs)
     mkdir -p $out/blobs/sha256
     cp $index $out/index.json
-    echo '{"imageLayoutVersion": "1.0.0"}' > $out/image-layout
+    echo '{"imageLayoutVersion": "1.0.0"}' > $out/oci-layout
     for src in $srcs; do
       for blob in $(ls $src); do
         ln -s "$(realpath $src/$blob)" "$out/blobs/sha256/$blob"
