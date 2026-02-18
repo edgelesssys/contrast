@@ -151,6 +151,7 @@ SNP
 SSD
 strongSwan
 subcommand
+subcommands
 Subresource
 substituters
 superset
@@ -174,6 +175,9 @@ undecryptable
 Undeploy
 underspecified
 unencrypted
+Unmarshal
+Unmarshaling
+unmarshaling
 unrepresentable
 unspoofable
 untrusted
