@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
 	listerscorev1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
@@ -60,15 +62,35 @@ func (c *Kubeclient) WaitForCoordinator(ctx context.Context, namespace string) e
 	return c.WaitForPodCondition(ctx, namespace, &oneRunning{ls: ls})
 }
 
-// WaitForDaemonSet waits until the DaemonSet is ready, i.e. it has the same number
-// of ready pods as desired number of scheduled pods.
+// WaitForDaemonSet waits until the DaemonSet is ready.
+//
+// We consider a DaemonSet to be ready when both:
+//   - the count of desired pods is positive
+//   - the count of ready pods matches the count of desired pods
+//
+// Without the first condition, there can be a race between this function and the
+// kube-controller-manager, resulting in a wait for 0 pods.
 func (c *Kubeclient) WaitForDaemonSet(ctx context.Context, namespace, name string) error {
-	d, err := c.Client.AppsV1().DaemonSets(namespace).Get(ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return err
+	var readyDaemonset *appsv1.DaemonSet
+	hasStatus := func(ctx context.Context) (done bool, err error) {
+		d, err := c.Client.AppsV1().DaemonSets(namespace).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			// We don't want to stop waiting in case of transient errors, so we log them and signal
+			// that we're not done waiting yet.
+			c.log.Warn("Error polling DaemonSet status", "error", err, "namespace", namespace, "name", name)
+			return false, nil
+		}
+		if d.Status.DesiredNumberScheduled < 1 {
+			return false, nil
+		}
+		readyDaemonset = d
+		return true, nil
 	}
-	ls := labels.SelectorFromSet(d.Spec.Selector.MatchLabels)
-	return c.WaitForPodCondition(ctx, namespace, &numReady{ls: ls, n: int(d.Status.DesiredNumberScheduled)})
+	if err := wait.PollUntilContextCancel(ctx, 2*time.Second, false, hasStatus); err != nil {
+		return fmt.Errorf("waiting for Daemonset status: %w", err)
+	}
+	ls := labels.SelectorFromSet(readyDaemonset.Spec.Selector.MatchLabels)
+	return c.WaitForPodCondition(ctx, namespace, &numReady{ls: ls, n: int(readyDaemonset.Status.DesiredNumberScheduled)})
 }
 
 // WaitForPod waits until the pod is ready.
