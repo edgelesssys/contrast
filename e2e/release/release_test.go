@@ -45,6 +45,7 @@ var (
 	platformStr             = flag.String("platform", "", "Deployment platform")
 	nodeInstallerTargetConf = flag.String("node-installer-target-conf", "", "Node installer target configuration")
 	namespaceFile           = flag.String("namespace-file", "", "file to store the namespaces in")
+	useLoadBalancer         = flag.Bool("use-loadbalancer", false, "Use LoadBalancer IP instead of Cluster IP")
 )
 
 // TestRelease downloads a release from Github, sets up the coordinator, installs the demo
@@ -54,8 +55,6 @@ func TestRelease(t *testing.T) {
 	k := kubeclient.NewForTest(t)
 
 	lowerPlatformStr := strings.ToLower(*platformStr)
-	// On AKS, wait for a load balancer, on bare-metal connect directly to the cluster IP.
-	hasLoadBalancer := strings.HasPrefix(lowerPlatformStr, "aks-")
 
 	dir := fetchRelease(ctx, t)
 
@@ -146,6 +145,21 @@ func TestRelease(t *testing.T) {
 			resources, err := kuberesource.UnmarshalUnstructuredK8SResource(yaml)
 			require.NoError(err)
 
+			for _, r := range resources {
+				switch r.GetKind() {
+				case "Service":
+					if r.GetName() == "web-svc" {
+						require.NoError(unstructured.SetNestedSlice(r.Object, []any{
+							map[string]any{
+								"name":       "https",
+								"port":       int64(50443), // patch to available port instead of 443 for external IP
+								"targetPort": int64(8080),
+							},
+						}, "spec", "ports"))
+					}
+				}
+			}
+
 			newYAML, err := kuberesource.EncodeUnstructured(resources)
 			require.NoError(err)
 			require.NoError(os.WriteFile(name, newYAML, 0o644))
@@ -197,7 +211,7 @@ func TestRelease(t *testing.T) {
 
 		require.NoError(k.WaitForCoordinator(ctx, "default"))
 		var err error
-		coordinatorIP, err = k.WaitForService(ctx, "default", "coordinator", hasLoadBalancer)
+		coordinatorIP, err = k.WaitForService(ctx, "default", "coordinator", *useLoadBalancer)
 		require.NoError(err)
 	}), "the coordinator is required for subsequent tests to run")
 
@@ -225,7 +239,7 @@ func TestRelease(t *testing.T) {
 		ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 		defer cancel()
 
-		emojiwebIP, err := k.WaitForService(ctx, "default", "web-svc", hasLoadBalancer)
+		emojiwebIP, err := k.WaitForService(ctx, "default", "web-svc", *useLoadBalancer)
 		require.NoError(err)
 
 		cfg := &tls.Config{RootCAs: x509.NewCertPool()}
@@ -236,7 +250,7 @@ func TestRelease(t *testing.T) {
 		c := http.Client{
 			Transport: &http.Transport{
 				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-					return (&net.Dialer{}).DialContext(ctx, "tcp", net.JoinHostPort(emojiwebIP, "443"))
+					return (&net.Dialer{}).DialContext(ctx, "tcp", net.JoinHostPort(emojiwebIP, "50443"))
 				},
 				TLSClientConfig: cfg,
 			},

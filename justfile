@@ -62,6 +62,21 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
             --sync-ticket-file ./{{ workspace_dir }}/just.sync-ticket \
             --insecure-enable-debug-shell-access=${debug:-false}
 
+e2e-release version platform=default_platform: soft-clean
+    #!/usr/bin/env bash
+    set -euo pipefail
+    nix build .#scripts.get-logs
+    mkdir -p ./{{ workspace_dir }}
+    nix run .#scripts.get-logs start ./{{ workspace_dir }}/just.namespace &
+    trap "kubectl delete -f ./{{ workspace_dir }}/log-collector.yaml; rm -f ./{{ workspace_dir }}/just.namespace" EXIT
+    nix shell .#contrast.e2e --command release.test -test.v \
+            --tag {{ version }} \
+            --platform {{ platform }} \
+            --node-installer-target-conf ${node_installer_target_conf_type} \
+            --namespace-file ./{{ workspace_dir }}/just.namespace \
+            --use-loadbalancer=true
+    nix run .#scripts.get-logs download ./{{ workspace_dir }}/just.namespace
+
 # Generate policies, apply Kubernetes manifests.
 deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target platform) (runtime target platform) (write-namespace target) (apply "runtime" platform) (generate cli platform) (apply target platform)
 
@@ -404,6 +419,9 @@ CONTRAST_LOG_LEVEL=""
 # A Github token with read access to the Contrast ghcr.io packages.
 # Should be set by running just get-ghcr-read-token.
 contrast_ghcr_read=""
+# A Github token with contents:write permissions for accessing draft releases.
+# Set this manually if you want to use the e2e-release target on a draft release.
+GH_TOKEN=""
 '''
 
 # Developer onboarding.
