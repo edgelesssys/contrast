@@ -122,16 +122,8 @@ func New(t *testing.T) *ContrastTest {
 			},
 		}
 
-		// This is used to allow the host containerd to pull the image.
 		ct.GHCRToken = token
-		// This configures the runtime to pass the config to the VM.
 		ct.NodeInstallerImagePullerConfig = cfg
-		// This sets up the image pull authentication for genpolicy.
-		dockerConfig, err := json.Marshal(map[string]any{"auths": cfg})
-		require.NoError(err)
-		file := filepath.Join(t.TempDir(), "docker-config.json")
-		require.NoError(os.WriteFile(file, dockerConfig, 0o600))
-		t.Setenv("DOCKER_CONFIG", file)
 	}
 
 	return ct
