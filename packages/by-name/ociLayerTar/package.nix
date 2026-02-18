@@ -9,7 +9,7 @@
   runCommandLocal,
   nix,
   rsync,
-  gzip,
+  pigz,
   zstd,
 }:
 {
@@ -41,7 +41,7 @@ runCommandLocal "ociLayer"
       nix
       rsync
     ]
-    ++ lib.optional (compression == "gzip") gzip
+    ++ lib.optional (compression == "gzip") pigz
     ++ lib.optional (compression == "zstd") zstd;
     inherit compression;
   }
@@ -65,14 +65,16 @@ runCommandLocal "ociLayer"
         rsync -ak --chown=root:0 "$srcPath" "./root/''${dests[$i]}"
     done
 
-    echo "Packing layer..."
     # Create the layer tarball
+    echo "Packing layer..."
     tar --hard-dereference --sort=name --owner=root:0 --group=root:0 --mtime='UTC 1970-01-01' -cC ./root -f $out/layer.tar .
     # Calculate the layer tarball's diffID (hash of the uncompressed tarball)
-    diffID=$(nix-hash --type sha256 --flat $out/layer.tar)
+    echo "Calculating layer tarball hash..."
+    diffID=$(sha256sum $out/layer.tar | cut -d' ' -f1)
     # Compress the layer tarball
+    echo "Compressing layer tarball..."
     if [[ "$compression" = "gzip" ]]; then
-      gzip -c $out/layer.tar > $out/$outPath
+      pigz -c $out/layer.tar > $out/$outPath
     elif [[ "$compression" = "zstd" ]]; then
       zstd -T0 -q -c $out/layer.tar > $out/$outPath
     else
@@ -81,7 +83,8 @@ runCommandLocal "ociLayer"
     rm -f $out/layer.tar
 
     # Calculate the blob's sha256 hash and write the media descriptor
-    sha256=$(nix-hash --type sha256 --flat $out/$outPath)
+    echo "Calculating layer blob hash..."
+    sha256=$(sha256sum $out/$outPath | cut -d' ' -f1)
     echo -n "{\"mediaType\": \"$mediaType\", \"size\": $(stat -c %s $out/$outPath), \"digest\": \"sha256:$sha256\"}" > $out/media-descriptor.json
     echo -n "sha256:$diffID" > $out/DiffID
 
