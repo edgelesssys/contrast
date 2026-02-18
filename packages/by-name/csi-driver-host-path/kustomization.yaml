@@ -21,3 +21,11 @@ labels:
     pairs:
       app.kubernetes.io/instance: hostpath.csi.k8s.io
       app.kubernetes.io/part-of: csi-driver-host-path
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/nodeSelector
+        value: {"ci.contrast.edgeless.systems/main-runner": "true"}
+    target:
+      kind: StatefulSet

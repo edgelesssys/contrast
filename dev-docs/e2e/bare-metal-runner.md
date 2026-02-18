@@ -67,8 +67,12 @@ disable:
   - local-storage
 kubelet-arg:
   - "runtime-request-timeout=5m"
+node-label:
+  - ci.contrast.edgeless.systems/main-runner=true
 EOF
 ```
+
+**IMPORTANT**: If the node is going to run a different Kubernetes distribution, make sure to apply these overrides in some other way.
 
 Install K3s
 
