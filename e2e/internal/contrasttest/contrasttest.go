@@ -98,6 +98,9 @@ func New(t *testing.T) *ContrastTest {
 	workDir := t.TempDir()
 	t.Setenv(constants.CacheDirEnvVar, workDir)
 
+	// Force genpolicy debug output.
+	t.Setenv("RUST_LOG", "debug")
+
 	ct := &ContrastTest{
 		Namespace:                   MakeNamespace(t, Flags.NamespaceSuffix),
 		WorkDir:                     workDir,
