@@ -17,6 +17,7 @@
   debugRuntime ? false,
   withGPU ? false,
   qemu-badaml,
+  badaml-payload,
 }:
 
 let
@@ -69,6 +70,11 @@ let
             {
               url = "file:///opt/edgeless/bin/qemu-system-x86_64-wrapped";
               path = "/opt/edgeless/@@runtimeName@@/bin/qemu-system-x86_64-wrapped";
+              executable = true;
+            }
+            {
+              url = "file:///opt/edgeless/share/qemu/payload.aml";
+              path = "/opt/edgeless/@@runtimeName@@/bin/payload.aml";
               executable = true;
             }
             {
@@ -161,6 +167,10 @@ let
         {
           source = "${qemu}/share/qemu/efi-virtio.rom";
           destination = "/opt/edgeless/share/qemu/efi-virtio.rom";
+        }
+        {
+          source = "${badaml-payload}/payload.aml";
+          destination = "/opt/edgeless/share/qemu/payload.aml";
         }
       ];
     };
