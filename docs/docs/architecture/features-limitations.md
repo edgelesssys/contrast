@@ -40,3 +40,7 @@ To simplify this process, the NVIDIA CC-Manager, which is
 One way to perform this attestation is by using
 [nvTrust](https://github.com/NVIDIA/nvtrust), NVIDIA's reference implementation for GPU attestation.
 nvTrust provides tools and utilities to perform attestation within the workload.
+
+## Miscellaneous
+
+- **Large pods on TDX**: On TDX platforms, Contrast currently only supports up to 64Gi of memory, including the fixed overhead of the Contrast runtime class.
