@@ -8,6 +8,7 @@
   lib,
   runCommandLocal,
   nix,
+  rsync,
   gzip,
   zstd,
 }:
@@ -38,6 +39,7 @@ runCommandLocal "ociLayer"
       "application/vnd.oci.image.layer.v1.tar" + (if compression == "" then "" else "+" + compression);
     nativeBuildInputs = [
       nix
+      rsync
     ]
     ++ lib.optional (compression == "gzip") gzip
     ++ lib.optional (compression == "zstd") zstd;
@@ -49,15 +51,23 @@ runCommandLocal "ociLayer"
     dests=($fileDestinations)
     mkdir -p ./root $out
 
+    echo "Adding contents..."
     # Copy files into the tree (./root/)
     for i in ''${!srcs[@]}; do
-        echo "Adding ''${srcs[i]}"
+        chmod ug+w ./root
         mkdir -p "./root/$(dirname ''${dests[$i]})"
-        cp --no-preserve=mode -rT "''${srcs[i]}" "./root/''${dests[$i]}"
+        if [ -d "''${srcs[i]}" ]; then
+          # Copy contents of directory
+          srcPath="''${srcs[i]}/"
+        else
+          srcPath="''${srcs[i]}"
+        fi
+        rsync -ak --chown=root:0 "$srcPath" "./root/''${dests[$i]}"
     done
 
+    echo "Packing layer..."
     # Create the layer tarball
-    tar --sort=name --owner=root:0 --group=root:0 --mode=544 --mtime='UTC 1970-01-01' -cC ./root -f $out/layer.tar .
+    tar --hard-dereference --sort=name --owner=root:0 --group=root:0 --mtime='UTC 1970-01-01' -cC ./root -f $out/layer.tar .
     # Calculate the layer tarball's diffID (hash of the uncompressed tarball)
     diffID=$(nix-hash --type sha256 --flat $out/layer.tar)
     # Compress the layer tarball
@@ -79,5 +89,8 @@ runCommandLocal "ociLayer"
     mkdir -p $out/blobs/sha256
     mv $out/$outPath $out/blobs/sha256/$sha256
     ln -s $out/blobs/sha256/$sha256 $out/$outPath
+    chmod -R ug+w ./root
     rm -rf ./root
+
+    echo "Finished building layer"
   ''
