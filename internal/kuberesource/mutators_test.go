@@ -24,48 +24,98 @@ var (
 	job []byte
 	//go:embed assets/pod-nginx.yaml
 	pod []byte
+	//go:embed assets/replicaset.yaml
+	replicaSet []byte
+	//go:embed assets/replicationcontroller.yaml
+	replicationController []byte
+	//go:embed assets/statefulset.yaml
+	statefulSet []byte
 )
 
 func TestPatchNamespaces(t *testing.T) {
-	require := require.New(t)
-
-	coordinator := CoordinatorBundle()
-	openssl := OpenSSL()
-	emojivoto := Emojivoto(ServiceMeshIngressEgress)
-	volumeStatefulSet := VolumeStatefulSet()
-	mysql := MySQL()
-
 	for _, tc := range []struct {
 		name string
 		set  []any
 	}{
 		{
 			name: "coordinator",
-			set:  coordinator,
+			set:  CoordinatorBundle(),
 		},
 		{
 			name: "openssl",
-			set:  openssl,
+			set:  OpenSSL(),
 		},
 		{
 			name: "emojivoto",
-			set:  emojivoto,
+			set:  Emojivoto(ServiceMeshIngressEgress),
 		},
 		{
 			name: "volume-stateful-set",
-			set:  volumeStatefulSet,
+			set:  VolumeStatefulSet(),
 		},
 		{
 			name: "mysql",
-			set:  mysql,
+			set:  MySQL(),
 		},
 	} {
-		t.Run(tc.name, func(_ *testing.T) {
+		t.Run(tc.name, func(t *testing.T) {
+			require := require.New(t)
+
 			expectedNamespace := "right-namespace"
 			set := PatchNamespaces(tc.set, expectedNamespace)
 			u, err := ResourcesToUnstructured(set)
 			require.NoError(err)
 			require.NotEmpty(u)
+			for _, obj := range u {
+				require.Equal(expectedNamespace, obj.GetNamespace())
+			}
+		})
+	}
+
+	for _, tc := range []struct {
+		name string
+		set  []byte
+	}{
+		{
+			name: "cronjob",
+			set:  cronjob,
+		},
+		{
+			name: "daemonset",
+			set:  daemonset,
+		},
+		{
+			name: "deployment",
+			set:  deployment,
+		},
+		{
+			name: "job",
+			set:  job,
+		},
+		{
+			name: "replica-set",
+			set:  replicaSet,
+		},
+		{
+			name: "replication-controller",
+			set:  replicationController,
+		},
+		{
+			name: "stateful-set",
+			set:  statefulSet,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require := require.New(t)
+
+			set, err := UnmarshalApplyConfigurations(tc.set)
+			require.NoError(err)
+			require.Len(set, 1)
+			expectedNamespace := "right-namespace"
+			set = PatchNamespaces(set, expectedNamespace)
+			u, err := ResourcesToUnstructured(set)
+			require.NoError(err)
+			require.Len(u, 1)
 			for _, obj := range u {
 				require.Equal(expectedNamespace, obj.GetNamespace())
 			}
@@ -435,11 +485,12 @@ func TestAddImageStore_Regression(t *testing.T) {
 	for name, tc := range map[string]struct {
 		resource []byte
 	}{
-		"job":        {resource: job},
-		"deployment": {resource: deployment},
-		"cronjob":    {resource: cronjob},
-		"daemonset":  {resource: daemonset},
-		"pod":        {resource: pod},
+		"job":                   {resource: job},
+		"deployment":            {resource: deployment},
+		"cronjob":               {resource: cronjob},
+		"daemonset":             {resource: daemonset},
+		"pod":                   {resource: pod},
+		"replicationController": {resource: replicationController},
 	} {
 		t.Run(name, func(t *testing.T) {
 			require := require.New(t)
