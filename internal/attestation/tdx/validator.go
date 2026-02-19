@@ -89,7 +89,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData [
 	if err := proto.Unmarshal(attDocRaw, quotev4); err != nil {
 		return fmt.Errorf("unmarshaling attestation: %w", err)
 	}
-	v.logger.Info("Quote decoded", "quote", protojson.MarshalOptions{Multiline: false}.Format(quotev4))
+	v.logger.Debug("Quote decoded", "quote", protojson.MarshalOptions{Multiline: false}.Format(quotev4))
 
 	// Verify the report signature.
 

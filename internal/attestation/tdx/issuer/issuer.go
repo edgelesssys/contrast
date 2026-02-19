@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-tdx-guest/abi"
 	"github.com/google/go-tdx-guest/client"
 	"github.com/google/go-tdx-guest/proto/tdx"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -55,19 +56,18 @@ func (i *Issuer) Issue(ctx context.Context, reportData [64]byte) (res []byte, er
 	if err != nil {
 		return nil, fmt.Errorf("issuer: getting raw quote: %w", err)
 	}
-	i.logger.Info("Retrieved quote", "quoteRaw", hex.EncodeToString(quoteRaw))
+	i.logger.Debug("Retrieved quote", "quoteRaw", hex.EncodeToString(quoteRaw))
 
 	quoteProto, err := abi.QuoteToProto(quoteRaw)
 	if err != nil {
 		return nil, fmt.Errorf("issuer: parsing quote: %w", err)
 	}
-	i.logger.Info("Parsed quote", "quote", quoteProto)
 
-	// Marshal the quote
 	quotev4, ok := quoteProto.(*tdx.QuoteV4)
 	if !ok {
 		return nil, fmt.Errorf("issuer: unexpected quote type: %T", quoteProto)
 	}
+	i.logger.Debug("Parsed quote", "quote", protojson.MarshalOptions{Multiline: false}.Format(quotev4))
 
 	// Make sure we don't time out while fetching optional data.
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
