@@ -1,5 +1,5 @@
 # Undeploy, rebuild, deploy.
-default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell node-installers (deploy target cli platform) set verify (wait-for-workload target)
+default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (deploy target cli platform) set verify (wait-for-workload target)
 
 # Build and push a container image.
 push target:
@@ -38,10 +38,34 @@ default_deploy_target := "openssl"
 default_platform := "${default_platform}"
 workspace_dir := "workspace"
 
-# Build the node-installers, containerize and push them.
-node-installers: (push "node-installer-kata") (push "node-installer-kata-gpu")
+# Build the node-installer, containerize and push it.
+node-installer platform=default_platform:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    case {{ platform }} in
+        "Metal-QEMU-SNP"|"Metal-QEMU-TDX")
+            just push "node-installer-kata"
+        ;;
+        "Metal-QEMU-SNP-GPU"|"Metal-QEMU-TDX-GPU")
+            just push "node-installer-kata-gpu"
+        ;;
+        *)
+            echo "Unsupported platform: {{ platform }}"
+            exit 1
+        ;;
+    esac
 
-e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell node-installers
+# Get all used platform names in a comma-separated string
+collect-platforms platform=default_platform:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    deployment=$( [[ -e "./{{ workspace_dir }}/deployment" ]] && printf '%s' "./{{ workspace_dir }}/deployment" || printf '' )
+    nix shell .#contrast.resourcegen --command resourcegen \
+        --platform {{ platform }} \
+        --deployment "$deployment" \
+        collect-platforms
+
+e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell (node-installer platform)
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" || {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
@@ -49,6 +73,11 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
     fi
     if [[ -n "${contrast_ghcr_read:-}" ]]; then
         export CONTRAST_GHCR_READ="$contrast_ghcr_read"
+    fi
+    if [[ {{ target }} == "multi-runtime-class" ]]; then
+        # both are required
+        just push "node-installer-kata"
+        just push "node-installer-kata-gpu"
     fi
     if [[ {{ target }} == "containerd-11644-reproducer" ]]; then
         just containerd-reproducer
@@ -84,6 +113,12 @@ deploy target=default_deploy_target cli=default_cli platform=default_platform: (
 runtime target=default_deploy_target platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
+    platforms=$(just collect-platforms)
+    IFS=',' read -ra PLATFORMS <<< "$platforms"
+    for platform in "${PLATFORMS[@]}"; do
+        just node-installer "$platform"
+    done
+
     mkdir -p ./{{ workspace_dir }}/runtime
     if [[ "${node_installer_target_conf_type}" != "none" ]]; then
         nix shell .#contrast.resourcegen --command resourcegen \
@@ -93,19 +128,19 @@ runtime target=default_deploy_target platform=default_platform:
             --platform {{ platform }} \
             node-installer-target-conf > ./{{ workspace_dir }}/runtime/target-conf.yml
     fi
-    deployment=$( [[ -e "./{{ workspace_dir }}/deployment" ]] && printf '%s' "./{{ workspace_dir }}/deployment" || printf '' )
+
     nix shell .#contrast.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --node-installer-target-conf-type ${node_installer_target_conf_type} \
-        --platform {{ platform }} \
-        --deployment "$deployment" \
-        runtime > ./{{ workspace_dir }}/runtime/runtime.yml
+        --platform "$platforms" \
+        runtime >> "./{{ workspace_dir }}/runtime/runtime.yml"
 
 # Populate the workspace with a Kubernetes deployment
 populate target=default_deploy_target platform=default_platform:
     #!/usr/bin/env bash
     set -euo pipefail
+    rm -rf ./{{ workspace_dir }}/deployment
     mkdir -p ./{{ workspace_dir }}
     mkdir -p ./{{ workspace_dir }}/deployment
     target="{{ target }}"
