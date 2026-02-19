@@ -51,5 +51,12 @@ in
         };
       };
     };
+    # Enable ACPI debug logs. This must be used together with the
+    # 'withACPIDebug' option in the kernel-uvm package.
+    boot.kernelParams = [
+      "acpi.debug_layer=0x80"
+      "acpi.debug_level=0x02"
+      "log_buf_len=4M"
+    ];
   };
 }
