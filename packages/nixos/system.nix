@@ -17,6 +17,9 @@
   boot.kernelParams = [
     "systemd.verity=yes"
     "selinux=0"
+    "acpi.debug_layer=0x80"
+    "acpi.debug_level=0x02"
+    "log_buf_len=4M"
   ];
   boot.supportedFilesystems = [
     "erofs"

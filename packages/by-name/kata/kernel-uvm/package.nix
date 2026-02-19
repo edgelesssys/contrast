@@ -69,6 +69,7 @@ let
         cat <<EOF >> $config
         CONFIG_ATA_PIIX=y
         CONFIG_DMIID=y
+        CONFIG_ACPI_DEBUG=y
         EOF
       '';
 
