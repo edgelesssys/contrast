@@ -91,7 +91,7 @@ func (v *Validator) Validate(ctx context.Context, attDocRaw []byte, reportData [
 	if attestationData.Report == nil {
 		return fmt.Errorf("attestation missing report")
 	}
-	v.logger.Info("Report decoded", "report", protojson.MarshalOptions{Multiline: false}.Format(attestationData.Report))
+	v.logger.Debug("Report decoded", "report", protojson.MarshalOptions{Multiline: false}.Format(attestationData.Report))
 
 	//
 	//	Checkout dev-docs/kds.md for overview over VCEK/CRL retrieval/caching.

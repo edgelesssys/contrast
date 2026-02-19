@@ -74,7 +74,7 @@ func (i *Issuer) Issue(ctx context.Context, reportData [64]byte) (res []byte, er
 	if err != nil {
 		return nil, fmt.Errorf("issuer: parsing report: %w", err)
 	}
-	i.logger.Info("Retrieved report", "reportRaw", hex.EncodeToString(reportRaw))
+	i.logger.Debug("Retrieved report", "reportRaw", hex.EncodeToString(reportRaw))
 
 	//
 	//	Checkout dev-docs/kds.md for overview over VCEK/CRL retrieval/caching.
