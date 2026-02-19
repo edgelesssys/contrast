@@ -10,7 +10,6 @@
 package regression
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"flag"
@@ -86,12 +85,12 @@ func TestRegression(t *testing.T) {
 			for _, file := range files {
 				resourceYAML, err := os.ReadFile(file)
 				require.NoError(err)
-				resourceYAML = bytes.ReplaceAll(resourceYAML, []byte("@@REPLACE_NAMESPACE@@"), []byte(ct.Namespace))
 
 				newResources, err := kuberesource.UnmarshalApplyConfigurations(resourceYAML)
 				require.NoError(err)
 
 				newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
+				newResources = kuberesource.PatchNamespaces(newResources, ct.Namespace)
 				newResources = kuberesource.PatchNodeSelector(newResources)
 
 				// Check if we are testing a cron job

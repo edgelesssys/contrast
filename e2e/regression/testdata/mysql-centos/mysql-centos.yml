@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql-centos
-  namespace: "@@REPLACE_NAMESPACE@@"
 spec:
   replicas: 1
   selector:

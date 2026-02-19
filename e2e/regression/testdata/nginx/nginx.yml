@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx
-  namespace: "@@REPLACE_NAMESPACE@@"
 spec:
   replicas: 1
   selector:
@@ -39,7 +38,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: nginx-html
-  namespace: "@@REPLACE_NAMESPACE@@"
 data:
   index.html: |
     <h1>Hello World</h1>

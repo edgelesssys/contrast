@@ -2,7 +2,6 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: reused-layers
-  namespace: "@@REPLACE_NAMESPACE@@"
 spec:
   initContainers:
     - name: init

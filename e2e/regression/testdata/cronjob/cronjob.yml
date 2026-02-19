@@ -2,7 +2,6 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cronjob
-  namespace: "@@REPLACE_NAMESPACE@@"
 spec:
   schedule: "* * * * *"
   concurrencyPolicy: Forbid
