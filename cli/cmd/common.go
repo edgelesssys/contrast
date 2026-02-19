@@ -23,16 +23,17 @@ import (
 )
 
 const (
-	coordRootPEMFilename = "coordinator-root-ca.pem"
-	meshCAPEMFilename    = "mesh-ca.pem"
-	workloadOwnerPEM     = "workload-owner.pem"
-	seedshareOwnerPEM    = "seedshare-owner.pem"
-	manifestFilename     = "manifest.json"
-	settingsFilename     = "settings.json"
-	seedSharesFilename   = "seed-shares.json"
-	rulesFilename        = "rules.rego"
-	layersCacheFilename  = "layers-cache.json"
-	verifyDir            = "verify"
+	coordRootPEMFilename         = "coordinator-root-ca.pem"
+	meshCAPEMFilename            = "mesh-ca.pem"
+	workloadOwnerPEM             = "workload-owner.pem"
+	seedshareOwnerPEM            = "seedshare-owner.pem"
+	manifestFilename             = "manifest.json"
+	settingsFilename             = "settings.json"
+	seedSharesFilename           = "seed-shares.json"
+	rulesFilename                = "rules.rego"
+	layersCacheFilename          = "layers-cache.json"
+	latestTransitionHashFilename = "latest-transition"
+	verifyDir                    = "verify"
 )
 
 // ReleaseImageReplacements contains the image replacements used by contrast.

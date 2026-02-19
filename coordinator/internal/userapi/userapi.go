@@ -168,6 +168,10 @@ func (s *Server) GetManifests(ctx context.Context, _ *userapi.GetManifestsReques
 		Manifests: manifests,
 		RootCA:    ca.GetRootCACert(),
 		MeshCA:    ca.GetMeshCACert(),
+		LatestTransition: &userapi.LatestTransition{
+			TransitionHash: state.LatestTransition().TransitionHash[:],
+			Signature:      state.LatestTransition().Signature(),
+		},
 	}
 	for _, policy := range policies {
 		resp.Policies = append(resp.Policies, policy)

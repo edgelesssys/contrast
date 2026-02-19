@@ -206,6 +206,10 @@ type CoordinatorState struct {
 	RootCA []byte
 	// PEM-encoded certificate of the deployment's mesh CA.
 	MeshCA []byte
+	// Hash of the latest transition in the Coordinator's history.
+	LatestTransitionHash []byte
+	// Signature of the latest transition hash by the Coordinator.
+	LatestTransitionSignature []byte
 }
 
 func buildTransitionChain(manifests [][]byte) []*history.Transition {
