@@ -6,9 +6,9 @@ replace github.com/edgelesssys/contrast/imagepuller => ../../imagepuller
 
 require (
 	github.com/edgelesssys/contrast/imagepuller v0.0.0-00010101000000-000000000000
-	github.com/shirou/gopsutil/v4 v4.25.12
+	github.com/shirou/gopsutil/v4 v4.26.1
 	github.com/spf13/cobra v1.10.2
-	golang.org/x/sys v0.40.0
+	golang.org/x/sys v0.41.0
 )
 
 require (
