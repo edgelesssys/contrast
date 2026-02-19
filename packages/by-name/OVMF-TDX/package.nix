@@ -45,6 +45,13 @@ edk2.mkDerivation "OvmfPkg/IntelTdx/IntelTdxX64.dsc" {
     # Skip the measurement of the guest-memory and device-dependent ACPI tables and verify
     # them in the measured firmware instead.
     ./0004-QemuFwCfgAcpi-verify-ACPI-data-instead-of-measuring.patch
+
+    # Skip the measurement of the non-critical `X-PciMmio64Mb` fw_cfg string that differs
+    # based on the amount and BAR size of PCI devices (i.e. GPUs) being passed.
+    # This isn't directly adjacent to the ACPI verification, but we still place it in
+    # this branch, as it's only relevant for the TDX-GPU runtime as of now, which
+    # uses `withACPIVerificationInsecure`.
+    ./0005-QemuFwCfgCacheInit-Skip-measuring-PCI-root-port-size.patch
   ];
 
   hardeningDisable = [
