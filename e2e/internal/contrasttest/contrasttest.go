@@ -36,6 +36,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
 	"github.com/pelletier/go-toml/v2"
+	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -357,7 +358,11 @@ func (ct *ContrastTest) RunVerify(ctx context.Context) error {
 
 	// Test the HTTP API attestation endpoint, too.
 
-	client := sdk.New()
+	cacheDir := os.Getenv(constants.CacheDirEnvVar)
+	if cacheDir == "" {
+		return fmt.Errorf("contrasttest.New should have set env var %q, but it's empty", constants.CacheDirEnvVar)
+	}
+	client := sdk.New().WithFSStore(afero.NewBasePathFs(afero.NewOsFs(), cacheDir))
 	nonce, err := cryptohelpers.GenerateRandomBytes(cryptohelpers.RNGLengthDefault)
 	if err != nil {
 		return fmt.Errorf("generating nonce: %w", err)
