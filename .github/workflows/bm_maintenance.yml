@@ -94,6 +94,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
+      - name: Update storageclass
+        run: |
+          nix build .#csi-driver-host-path
+          kubectl apply -k result
       - name: Update sync fifo for GPU platform
         if: ${{ matrix.platform.name == 'Metal-QEMU-SNP-GPU' || matrix.platform.name == 'Metal-QEMU-TDX-GPU' }}
         run: |
@@ -119,10 +123,6 @@ jobs:
             OPTS+=(--blackwell)
           fi
           nix run .#scripts.upgrade-gpu-operator -- "${OPTS[@]}"
-      - name: Update storageclass
-        run: |
-          nix build .#csi-driver-host-path
-          kubectl apply -k result
       - name: Report success
         id: report
         run: |
