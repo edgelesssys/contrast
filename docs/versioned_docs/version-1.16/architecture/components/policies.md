@@ -22,16 +22,14 @@ While the list of rules is static, the data section is populated with informatio
 ## Generation
 
 Runtime policies are programmatically generated from Kubernetes manifests by the Contrast CLI.
-The `generate` subcommand inspects pod definitions and derives rules for validating the pod at the Kata agent.
-There are two important integrity checks: container image checksums and OCI runtime parameters.
+During policy generation, the CLI walks over all pod-generating resources (`Pod` objects and controllers, such as `Deployment`) and derives policy data for each container.
+There are two important checks for each container: image integrity and OCI runtime configuration integrity.
 
-For each of the container images used in a pod, the CLI downloads all image layers and produces a cryptographic [dm-verity] checksum.
-These checksums are the basis for the policy's _storage data_.
+For image integrity, the CLI takes note of the image digest found during generate and configures the policy to enforce that exact same digest is requested by the runtime.
+The image pull inside the VM only proceeds if the digests match.
 
-The CLI combines information from the `PodSpec`, `ConfigMaps`, and `Secrets` in the provided Kubernetes manifests to derive a permissible set of command-line arguments and environment variables.
-These constitute the policy's _OCI data_.
-
-[dm-verity]: https://www.kernel.org/doc/html/latest/admin-guide/device-mapper/verity.html
+For the OCI runtime configuration, the CLI combines information from the image layers and the `PodSpec` to derive a permissible set of command-line arguments and environment variables.
+`ConfigMaps` and `Secrets` are also taken into account if they're referenced in the `PodSpec` and present among the resources.
 
 ## Evaluation
 
@@ -54,15 +52,14 @@ The policy evaluation provides the following guarantees for pods launched with t
 
 - Command and its arguments are set as specified in the resources.
 - There are no unexpected additional environment variables.
-- The container image layers correspond to the layers observed at policy generation time.
-  Thus, only the expected workload image can be instantiated.
+- The container image configuration and layers are exactly those observed at policy generation time.
 - Executing additional processes in a container is prohibited.
 - Sending data to a container's standard input is prohibited.
 
 The current implementation of policy checking has some blind spots:
 
 - Containers can be started in any order, or be omitted entirely.
-- Environment variables may be missing.
+- Environment variables that were present at generation time may be omitted by the runtime.
 - Volumes other than the container root volume don't have integrity checks (particularly relevant for mounted `ConfigMaps` and `Secrets`).
 
 ## Trust
@@ -81,15 +78,9 @@ Contrast verifies its confidential containers following these steps:
 
 After the last step, we know that the policy hasn't been tampered with and, thus, that the workload matches expectations and may receive mesh certificates.
 
-## Platform Differences
-
-Contrast uses different rules and data sections for different platforms.
-This results in different policy hashes for different platforms.
-The `generate` command automatically derives the correct set of rules and data sections from the `reference-values` flag.
-
 ## Supported resource kinds
 
-Contrast policies can be generated for all Kubernetes resource kinds that spawn pods, including:
+Contrast policies can be generated for all built-in Kubernetes resource kinds that spawn pods, including:
 
 <!-- keep-sorted start by_regex=`(\w+)` -->
 - `CronJob`
