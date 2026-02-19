@@ -10,6 +10,7 @@
   kata,
   withGPU ? false,
   withAMLSandbox ? true,
+  withACPIDebug ? false,
   ... # Required for invocation through `linuxPackagesFor`, which calls this with the `features` argument.
 }:
 
@@ -69,6 +70,11 @@ let
         cat <<EOF >> $config
         CONFIG_ATA_PIIX=y
         CONFIG_DMIID=y
+        EOF
+      ''
+      + lib.optionalString withACPIDebug ''
+        cat <<EOF >> $config
+        CONFIG_ACPI_DEBUG=y
         EOF
       '';
 
