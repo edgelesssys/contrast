@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: ReplicaSet
 metadata:
   name: replicaset
-  namespace: "@@REPLACE_NAMESPACE@@"
 spec:
   replicas: 1
   selector:

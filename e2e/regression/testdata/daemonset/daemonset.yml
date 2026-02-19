@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: daemonset
-  namespace: "@@REPLACE_NAMESPACE@@"
 spec:
   selector:
     matchLabels:

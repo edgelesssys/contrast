@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: apache-httpd-fedora
-  namespace: "@@REPLACE_NAMESPACE@@"
 spec:
   # Test deploymentSpec fields support by genpolicy, set all defined fields.
   minReadySeconds: 10 # default is 0
