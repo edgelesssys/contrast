@@ -677,6 +677,25 @@ func PatchDockerSecrets(resources []any, namespace, token string) []any {
 	return out
 }
 
+// PatchNodeSelector adds a nodeSelector that pins Contrast pods to designated runner nodes.
+//
+// PodSpecs without a Contrast runtimeClassName are not modified.
+func PatchNodeSelector(resources []any) []any {
+	var out []any
+	for _, resource := range resources {
+		out = append(out, MapPodSpec(resource, func(spec *applycorev1.PodSpecApplyConfiguration) *applycorev1.PodSpecApplyConfiguration {
+			if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc") {
+				return spec
+			}
+			spec = spec.WithNodeSelector(map[string]string{
+				"ci.contrast.edgeless.systems/main-runner": "true",
+			})
+			return spec
+		}))
+	}
+	return out
+}
+
 // MapPodSpecWithMeta applies a function to a PodSpec in a Kubernetes resource,
 // and its corresponding object metadata.
 func MapPodSpecWithMeta(

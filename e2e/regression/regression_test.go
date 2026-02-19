@@ -92,6 +92,7 @@ func TestRegression(t *testing.T) {
 				require.NoError(err)
 
 				newResources = kuberesource.PatchRuntimeHandlers(newResources, runtimeHandler)
+				newResources = kuberesource.PatchNodeSelector(newResources)
 
 				// Check if we are testing a cron job
 				unstructuredResources, err := kuberesource.ResourcesToUnstructured(resources)
