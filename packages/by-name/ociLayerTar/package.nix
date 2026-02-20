@@ -8,7 +8,8 @@
   lib,
   runCommandLocal,
   nix,
-  gzip,
+  rsync,
+  pigz,
   zstd,
 }:
 {
@@ -38,8 +39,9 @@ runCommandLocal "ociLayer"
       "application/vnd.oci.image.layer.v1.tar" + (if compression == "" then "" else "+" + compression);
     nativeBuildInputs = [
       nix
+      rsync
     ]
-    ++ lib.optional (compression == "gzip") gzip
+    ++ lib.optional (compression == "gzip") pigz
     ++ lib.optional (compression == "zstd") zstd;
     inherit compression;
   }
@@ -49,19 +51,30 @@ runCommandLocal "ociLayer"
     dests=($fileDestinations)
     mkdir -p ./root $out
 
+    echo "Adding contents..."
     # Copy files into the tree (./root/)
     for i in ''${!srcs[@]}; do
+        chmod ug+w ./root
         mkdir -p "./root/$(dirname ''${dests[$i]})"
-        cp -rT "''${srcs[i]}" "./root/''${dests[$i]}"
+        if [ -d "''${srcs[i]}" ]; then
+          # Copy contents of directory
+          srcPath="''${srcs[i]}/"
+        else
+          srcPath="''${srcs[i]}"
+        fi
+        rsync -ak --chown=root:0 "$srcPath" "./root/''${dests[$i]}"
     done
 
     # Create the layer tarball
-    tar --sort=name --owner=root:0 --group=root:0 --mode=544 --mtime='UTC 1970-01-01' -cC ./root -f $out/layer.tar .
+    echo "Packing layer..."
+    tar --hard-dereference --sort=name --owner=root:0 --group=root:0 --mtime='UTC 1970-01-01' -cC ./root -f $out/layer.tar .
     # Calculate the layer tarball's diffID (hash of the uncompressed tarball)
-    diffID=$(nix-hash --type sha256 --flat $out/layer.tar)
+    echo "Calculating layer tarball hash..."
+    diffID=$(sha256sum $out/layer.tar | cut -d' ' -f1)
     # Compress the layer tarball
+    echo "Compressing layer tarball..."
     if [[ "$compression" = "gzip" ]]; then
-      gzip -c $out/layer.tar > $out/$outPath
+      pigz -c $out/layer.tar > $out/$outPath
     elif [[ "$compression" = "zstd" ]]; then
       zstd -T0 -q -c $out/layer.tar > $out/$outPath
     else
@@ -70,7 +83,8 @@ runCommandLocal "ociLayer"
     rm -f $out/layer.tar
 
     # Calculate the blob's sha256 hash and write the media descriptor
-    sha256=$(nix-hash --type sha256 --flat $out/$outPath)
+    echo "Calculating layer blob hash..."
+    sha256=$(sha256sum $out/$outPath | cut -d' ' -f1)
     echo -n "{\"mediaType\": \"$mediaType\", \"size\": $(stat -c %s $out/$outPath), \"digest\": \"sha256:$sha256\"}" > $out/media-descriptor.json
     echo -n "sha256:$diffID" > $out/DiffID
 
@@ -78,5 +92,8 @@ runCommandLocal "ociLayer"
     mkdir -p $out/blobs/sha256
     mv $out/$outPath $out/blobs/sha256/$sha256
     ln -s $out/blobs/sha256/$sha256 $out/$outPath
+    chmod -R ug+w ./root
     rm -rf ./root
+
+    echo "Finished building layer"
   ''
