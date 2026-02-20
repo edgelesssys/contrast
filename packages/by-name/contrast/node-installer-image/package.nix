@@ -169,7 +169,7 @@ let
           destination = "/opt/edgeless/share/qemu/efi-virtio.rom";
         }
         {
-          source = "${badaml-payload}/payload.aml";
+          source = "${badaml-payload}/deadbeef-file.aml"; # Modify payload here.
           destination = "/opt/edgeless/share/qemu/payload.aml";
         }
       ];

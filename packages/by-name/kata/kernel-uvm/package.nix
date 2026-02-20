@@ -9,7 +9,7 @@
   fetchpatch,
   kata,
   withGPU ? false,
-  withAMLSandbox ? true,
+  withAMLSandbox ? false,
   ... # Required for invocation through `linuxPackagesFor`, which calls this with the `features` argument.
 }:
 
