@@ -24,8 +24,8 @@ In preparation of a multi-runtime class deployment, we first need to apply all r
 For example, if you are working with a cluster consisting of both SEV-SNP and TDX machines, obtain each of the two corresponding runtimes:
 ```sh
 mkdir -p resources/runtime
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-snp.yml --output-dir resources/runtime
-curl -fLO https://github.com/edgelesssys/contrast/releases/latest/download/runtime-metal-qemu-tdx.yml --output-dir resources/runtime
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.17.0/runtime-metal-qemu-snp.yml --output-dir resources/runtime
+curl -fLO https://github.com/edgelesssys/contrast/releases/download/v1.17.0/runtime-metal-qemu-tdx.yml --output-dir resources/runtime
 ```
 
 Since Kubernetes by itself has no knowledge of which runtime class belongs to which nodes, you need to manually restrict them.
