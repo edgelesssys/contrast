@@ -13,6 +13,7 @@ buildVerityMicroVM (mkNixosConfig {
   contrast = {
     debug.enable = withDebug;
     gpu.enable = withGPU;
+    badaml.enable = true;
     kata.enable = true;
     kata.guestImagePull = true;
     image.microVM = true;
