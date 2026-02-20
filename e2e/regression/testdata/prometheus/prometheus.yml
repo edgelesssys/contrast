@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: prometheus
-  namespace: "@@REPLACE_NAMESPACE@@"
 spec:
   replicas: 1
   selector:
@@ -38,7 +37,6 @@ kind: Service
 metadata:
   # Ensure we accept RFC 1035 Label Names, see https://github.com/kata-containers/kata-containers/pull/11314
   name: prometheus-24
-  namespace: "@@REPLACE_NAMESPACE@@"
 spec:
   ports:
     - port: 9090

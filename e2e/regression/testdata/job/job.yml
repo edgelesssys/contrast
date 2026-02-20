@@ -2,7 +2,6 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: job
-  namespace: "@@REPLACE_NAMESPACE@@"
 spec:
   # Test jobSpec fields support by genpolicy, set all defined fields.
   activeDeadlineSeconds: 360 # default is nil
