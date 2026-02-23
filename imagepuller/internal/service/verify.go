@@ -34,10 +34,16 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 	if err != nil {
 		return nil, fmt.Errorf("obtaining authenticator and transport for %s: %w", imageURL, err)
 	}
+	/*
+		if authenticator == authn.Anonymous {
+			// TODO
+		}
+	*/
+	log.Info("using authenticator", "authn", authenticator, "image", imageURL)
 
 	tr := transport.NewRetry(transportConfig)
 
-	desc, err := s.Remote.Head(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(*authenticator))
+	desc, err := s.Remote.Head(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(authenticator))
 	if err != nil {
 		return nil, fmt.Errorf("obtaining descriptor: %w", err)
 	}
@@ -48,7 +54,7 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 	case desc.MediaType.IsIndex():
 		log.Info("Received manifest list")
 
-		remoteImgIndex, err := s.Remote.Index(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(*authenticator))
+		remoteImgIndex, err := s.Remote.Index(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(authenticator))
 		if err != nil {
 			return nil, fmt.Errorf("obtaining remote image index: %w", err)
 		}
@@ -73,7 +79,7 @@ func (s *ImagePullerService) getAndVerifyImage(ctx context.Context, log *slog.Lo
 
 		remoteImg, imgErr = remoteImgIndex.Image(*digestFound)
 	case desc.MediaType.IsImage():
-		remoteImg, imgErr = s.Remote.Image(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(*authenticator))
+		remoteImg, imgErr = s.Remote.Image(ref, remote.WithContext(ctx), remote.WithTransport(tr), remote.WithAuth(authenticator))
 	default:
 		return nil, fmt.Errorf("%w: %q", errUnexpectedMediaType, desc.MediaType)
 	}

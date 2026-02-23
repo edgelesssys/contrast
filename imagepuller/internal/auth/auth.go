@@ -56,7 +56,7 @@ func ReadInsecureConfig(path string, log *slog.Logger) (*Config, error) {
 var errUnparseableRef = errors.New("could not parse image ref")
 
 // AuthTransportFor constructs the appropriate http.Transport and authn.Authenticator for the given image's registry.
-func (c *Config) AuthTransportFor(imageRef string) (*authn.Authenticator, *http.Transport, error) {
+func (c *Config) AuthTransportFor(imageRef string) (authn.Authenticator, *http.Transport, error) {
 	// Note: this does no check image pinning.
 	ref, err := name.ParseReference(imageRef)
 	if err != nil {
@@ -79,7 +79,7 @@ func (c *Config) AuthTransportFor(imageRef string) (*authn.Authenticator, *http.
 		transport.TLSClientConfig.RootCAs = certpool
 	}
 
-	return &authenticator, transport, nil
+	return authenticator, transport, nil
 }
 
 // ApplyEnvVars applies the envvar-based proxy configuration in ExtraEnv.

@@ -228,7 +228,7 @@ func TestAuthTransportFor(t *testing.T) {
 			if tc.wantAuthenticator == nil {
 				tc.wantAuthenticator = authn.Anonymous
 			}
-			assert.Equal(tc.wantAuthenticator, *authenticator)
+			assert.Equal(tc.wantAuthenticator, authenticator)
 
 			// We never return an empty transport from AuthTransportFor.
 			// This assignment saves us from having to specify a transport for most test cases.
