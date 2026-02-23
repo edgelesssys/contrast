@@ -1,16 +1,26 @@
+default_cli := "contrast.${set}.cli"
+default_deploy_target := "openssl"
+default_platform := "${default_platform}"
+default_set := "contrast.${set}"
+workspace_dir := "workspace"
+
 # Undeploy, rebuild, deploy.
 default target=default_deploy_target platform=default_platform cli=default_cli: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell node-installers (deploy target cli platform) set verify (wait-for-workload target)
 
 # Build and push a container image.
-push target:
+push target attributePath="":
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p {{ workspace_dir }}
     echo "Pushing container $container_registry/contrast/{{ target }}"
-    pushedImg=$(nix run -L .#containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}")
+    attributePath="{{ attributePath }}"
+    if [[ $attributePath != "" ]]; then
+        attributePath="${attributePath}."
+    fi
+    pushedImg=$(nix run -L .#${attributePath}containers.push-{{ target }} -- "$container_registry/contrast/{{ target }}")
     printf "ghcr.io/edgelesssys/contrast/%s:latest=%s\n" "{{ target }}" "$pushedImg" >> {{ workspace_dir }}/just.containerlookup
 
-coordinator: (push "coordinator")
+coordinator: (push "coordinator" default_set)
 
 openssl: (push "openssl")
 
@@ -18,7 +28,7 @@ port-forwarder: (push "port-forwarder")
 
 service-mesh-proxy: (push "service-mesh-proxy")
 
-initializer: (push "initializer")
+initializer: (push "initializer" default_set)
 
 memdump: (push "memdump")
 
@@ -33,15 +43,10 @@ containerd-reproducer:
     echo "ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-tag=$container_registry/contrast/containerd-reproducer:$tag" >> {{ workspace_dir }}/just.containerlookup
     echo "ghcr.io/edgelesssys/contrast/containerd-reproducer:latest-digest=$container_registry/contrast/containerd-reproducer@$digest" >> {{ workspace_dir }}/just.containerlookup
 
-default_cli := "contrast.cli"
-default_deploy_target := "openssl"
-default_platform := "${default_platform}"
-workspace_dir := "workspace"
-
 # Build the node-installers, containerize and push them.
-node-installers: (push "node-installer-kata") (push "node-installer-kata-gpu")
+node-installers: (push "node-installer-kata" default_set) (push "node-installer-kata-gpu" default_set)
 
-e2e target=default_deploy_target platform=default_platform: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell node-installers
+e2e target=default_deploy_target platform=default_platform set=default_set: soft-clean coordinator initializer openssl port-forwarder service-mesh-proxy memdump debugshell node-installers
     #!/usr/bin/env bash
     set -euo pipefail
     if [[ {{ platform }} == "Metal-QEMU-SNP-GPU" || {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
@@ -53,7 +58,7 @@ e2e target=default_deploy_target platform=default_platform: soft-clean coordinat
     if [[ {{ target }} == "containerd-11644-reproducer" ]]; then
         just containerd-reproducer
     fi
-    nix shell .#contrast.e2e --command {{ target }}.test -test.v \
+    nix shell .#{{ set }}.e2e --command {{ target }}.test -test.v \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace-file ./{{ workspace_dir }}/just.namespace \
             --platform {{ platform }} \
@@ -81,12 +86,12 @@ e2e-release version platform=default_platform: soft-clean
 deploy target=default_deploy_target cli=default_cli platform=default_platform: (populate target platform) (runtime target platform) (write-namespace target) (apply "runtime" platform) (generate cli platform) (apply target platform)
 
 # Populate the workspace with a runtime class deployment
-runtime target=default_deploy_target platform=default_platform:
+runtime target=default_deploy_target platform=default_platform set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}/runtime
     if [[ "${node_installer_target_conf_type}" != "none" ]]; then
-        nix shell .#contrast.resourcegen --command resourcegen \
+        nix shell .#{{ set }}.resourcegen --command resourcegen \
             --image-replacements ./{{ workspace_dir }}/just.containerlookup \
             --namespace {{ target }}${namespace_suffix-} \
             --node-installer-target-conf-type ${node_installer_target_conf_type} \
@@ -94,7 +99,7 @@ runtime target=default_deploy_target platform=default_platform:
             node-installer-target-conf > ./{{ workspace_dir }}/runtime/target-conf.yml
     fi
     deployment=$( [[ -e "./{{ workspace_dir }}/deployment" ]] && printf '%s' "./{{ workspace_dir }}/deployment" || printf '' )
-    nix shell .#contrast.resourcegen --command resourcegen \
+    nix shell .#{{ set }}.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --node-installer-target-conf-type ${node_installer_target_conf_type} \
@@ -103,7 +108,7 @@ runtime target=default_deploy_target platform=default_platform:
         runtime > ./{{ workspace_dir }}/runtime/runtime.yml
 
 # Populate the workspace with a Kubernetes deployment
-populate target=default_deploy_target platform=default_platform:
+populate target=default_deploy_target platform=default_platform set=default_set:
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p ./{{ workspace_dir }}
@@ -129,7 +134,7 @@ populate target=default_deploy_target platform=default_platform:
     if [[ {{ platform }} == "Metal-QEMU-TDX-GPU" ]] ; then
         gpuFlags=("--gpu-class" "nvidia.com/GB100_B200")
     fi
-    nix shell .#contrast.resourcegen --command resourcegen \
+    nix shell .#{{ set }}.resourcegen --command resourcegen \
         --image-replacements ./{{ workspace_dir }}/just.containerlookup \
         --namespace {{ target }}${namespace_suffix-} \
         --add-port-forwarders \

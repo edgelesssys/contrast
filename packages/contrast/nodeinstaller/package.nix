@@ -11,7 +11,7 @@
 
 buildGoModule (finalAttrs: {
   pname = "contrast-node-installer";
-  version = builtins.readFile ../../../../version.txt;
+  version = builtins.readFile ../../../version.txt;
 
   inherit (contrast)
     proxyVendor
@@ -25,7 +25,7 @@ buildGoModule (finalAttrs: {
   src =
     let
       inherit (lib) fileset path hasSuffix;
-      root = ../../../../.;
+      root = ../../../.;
     in
     fileset.toSource {
       inherit root;
