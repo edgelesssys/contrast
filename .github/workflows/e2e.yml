@@ -75,6 +75,7 @@ jobs:
           node_installer_target_conf_type=${NODE_INSTALLER_TARGET_CONF_TYPE}
           debug=${DEBUG_SHELL}
           namespace_suffix="-ci"
+          set="base"
           EOF
       - name: Build and push container images
         run: |
