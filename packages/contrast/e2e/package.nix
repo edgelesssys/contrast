@@ -26,7 +26,7 @@ buildGoModule {
   src =
     let
       inherit (lib) fileset path hasSuffix;
-      root = ../../../../.;
+      root = ../../../.;
       toRootPath = p: path.append root p;
     in
     fileset.toSource {

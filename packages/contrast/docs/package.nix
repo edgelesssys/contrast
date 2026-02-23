@@ -18,7 +18,7 @@ stdenv.mkDerivation (finalAttrs: {
   pname = "contrast-docs";
   inherit (contrast) version;
 
-  src = ../../../../docs;
+  src = ../../../docs;
 
   yarnOfflineCache = fetchYarnDeps {
     inherit (finalAttrs) pname version;

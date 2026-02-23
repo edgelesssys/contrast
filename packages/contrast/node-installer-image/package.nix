@@ -14,14 +14,13 @@
   contrastPkgsStatic,
   OVMF-SNP,
   OVMF-TDX,
-  debugRuntime ? false,
+  withDebug ? false,
   withGPU ? false,
 }:
 
 let
   os-image = kata.image.override {
     inherit withGPU;
-    withDebug = debugRuntime;
   };
 
   ovmf = OVMF-TDX.override {
@@ -96,7 +95,7 @@ let
               path = "/opt/edgeless/@@runtimeName@@/share/qemu/efi-virtio.rom";
             }
           ];
-          inherit debugRuntime;
+          debugRuntime = withDebug;
           qemuExtraKernelParams = os-image.cmdline;
         };
         destination = "/config/contrast-node-install.json";
@@ -182,7 +181,7 @@ let
   version = ociLayerTar {
     files = [
       {
-        source = ../../../../version.txt;
+        source = ../../../version.txt;
         destination = "/usr/share/misc/contrast/version.txt";
       }
     ];
@@ -222,7 +221,8 @@ in
 ociImageLayout {
   manifests = [ manifest ];
   passthru = {
-    inherit debugRuntime os-image;
+    inherit os-image;
+    debugRuntime = withDebug;
     runtimeHash = hashDirs {
       # Layers without node-installer, or we have a circular dependency!
       # To still account for node-installer changes in the runtime hash,
@@ -231,7 +231,7 @@ ociImageLayout {
       name = "runtime-hash-kata";
     };
     gpu = node-installer-image.override {
-      inherit debugRuntime;
+      inherit withDebug;
       withGPU = true;
     };
   };
