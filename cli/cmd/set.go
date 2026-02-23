@@ -6,6 +6,7 @@ package cmd
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -20,6 +22,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/atls"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
 	grpcRetry "github.com/edgelesssys/contrast/internal/grpc/retry"
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/retry"
 	"github.com/edgelesssys/contrast/internal/spinner"
@@ -53,6 +56,8 @@ issuer certificates.`,
 	cmd.Flags().StringP("coordinator", "c", "", "endpoint the coordinator can be reached at")
 	must(cobra.MarkFlagRequired(cmd.Flags(), "coordinator"))
 	cmd.Flags().String("workload-owner-key", workloadOwnerPEM, "path to workload owner key (.pem) file")
+	cmd.Flags().Bool("atomic", false, "only set the manifest if the coordinator's state matches the latest transition hash")
+	cmd.Flags().String("latest-transition", "", "latest transition hash set at the coordinator (hex string)")
 
 	return cmd
 }
@@ -104,6 +109,23 @@ func runSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("checking policies match manifest: %w", err)
 	}
 
+	var previousTransitionHash []byte
+	if flags.atomic {
+		if flags.latestTransition == "" {
+			data, err := os.ReadFile(filepath.Join(flags.workspaceDir, verifyDir, latestTransitionHashFilename))
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				return fmt.Errorf("reading previous transition hash: %w", err)
+			} else if errors.Is(err, os.ErrNotExist) {
+				data = []byte(strings.Repeat("00", history.HashSize)) // Assume initial set manifest
+			}
+			flags.latestTransition = string(data)
+		}
+		previousTransitionHash, err = hex.DecodeString(flags.latestTransition)
+		if err != nil {
+			return fmt.Errorf("decoding latest transition hash: %w", err)
+		}
+	}
+
 	kdsGetter, err := cachedHTTPSGetter(log)
 	if err != nil {
 		return fmt.Errorf("configuring KDS cache: %w", err)
@@ -128,8 +150,9 @@ func runSet(cmd *cobra.Command, args []string) error {
 
 	client := userapi.NewUserAPIClient(conn)
 	req := &userapi.SetManifestRequest{
-		Manifest: manifestBytes,
-		Policies: getInitdataDocuments(policies),
+		Manifest:               manifestBytes,
+		Policies:               getInitdataDocuments(policies),
+		PreviousTransitionHash: previousTransitionHash,
 	}
 	resp, err := setLoop(cmd.Context(), client, cmd.OutOrStdout(), req)
 	if err != nil {
@@ -179,6 +202,8 @@ type setFlags struct {
 	manifestPath         string
 	coordinator          string
 	workloadOwnerKeyPath string
+	atomic               bool
+	latestTransition     string
 	workspaceDir         string
 }
 
@@ -198,6 +223,19 @@ func parseSetFlags(cmd *cobra.Command) (*setFlags, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting workload-owner-key flag: %w", err)
 	}
+	flags.atomic, err = cmd.Flags().GetBool("atomic")
+	if err != nil {
+		return nil, fmt.Errorf("getting atomic flag: %w", err)
+	}
+	flags.latestTransition, err = cmd.Flags().GetString("latest-transition")
+	if err != nil {
+		return nil, fmt.Errorf("getting latest-transition flag: %w", err)
+	}
+
+	if !flags.atomic && flags.latestTransition != "" {
+		return nil, fmt.Errorf("\"latest-transition\" flag cannot be set without \"atomic\" flag")
+	}
+
 	flags.workspaceDir, err = cmd.Flags().GetString("workspace-dir")
 	if err != nil {
 		return nil, fmt.Errorf("getting workspace-dir flag: %w", err)

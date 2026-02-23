@@ -28,6 +28,7 @@ import (
 	"github.com/edgelesssys/contrast/coordinator/internal/stateguard"
 	"github.com/edgelesssys/contrast/internal/constants"
 	"github.com/edgelesssys/contrast/internal/cryptohelpers"
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/seedengine"
 	"github.com/edgelesssys/contrast/internal/userapi"
@@ -105,8 +106,14 @@ func (s *Server) SetManifest(ctx context.Context, req *userapi.SetManifestReques
 			s.logger.Warn("SetManifest detected attempted seedshare owners change", "from", oldManifest.SeedshareOwnerPubKeys, "to", m.SeedshareOwnerPubKeys)
 			return nil, status.Errorf(codes.PermissionDenied, "changes to seedshare owners are not allowed")
 		}
+		if req.GetPreviousTransitionHash() != nil && !bytes.Equal(oldState.LatestTransition().TransitionHash[:], req.GetPreviousTransitionHash()) {
+			return nil, status.Errorf(codes.FailedPrecondition, "previous transition hash '%x' does not match latest state '%x'", req.GetPreviousTransitionHash(), oldState.LatestTransition().TransitionHash)
+		}
 	} else {
 		// First SetManifest call, initialize seed engine.
+		if req.GetPreviousTransitionHash() != nil && !bytes.Equal(req.GetPreviousTransitionHash(), make([]byte, history.HashSize)) {
+			return nil, status.Error(codes.FailedPrecondition, "previous transition hash must be empty for initial manifest")
+		}
 		seed, err := cryptohelpers.GenerateRandomBytes(constants.SecretSeedSize)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "generating random bytes for seed: %v", err)

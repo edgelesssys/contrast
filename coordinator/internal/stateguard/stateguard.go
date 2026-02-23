@@ -291,6 +291,7 @@ func (g *Guard) UpdateState(_ context.Context, oldState *State, se *seedengine.S
 			return nil, fmt.Errorf("no policy provided for hash %q", hexRef)
 		}
 	}
+
 	manifestHash, err := g.hist.SetManifest(manifestBytes)
 	if err != nil {
 		return nil, fmt.Errorf("storing manifest: %w", err)

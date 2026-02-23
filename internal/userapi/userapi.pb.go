@@ -22,11 +22,12 @@ const (
 )
 
 type SetManifestRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Manifest      []byte                 `protobuf:"bytes,1,opt,name=Manifest,proto3" json:"Manifest,omitempty"`
-	Policies      [][]byte               `protobuf:"bytes,2,rep,name=Policies,proto3" json:"Policies,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"open.v1"`
+	Manifest               []byte                 `protobuf:"bytes,1,opt,name=Manifest,proto3" json:"Manifest,omitempty"`
+	Policies               [][]byte               `protobuf:"bytes,2,rep,name=Policies,proto3" json:"Policies,omitempty"`
+	PreviousTransitionHash []byte                 `protobuf:"bytes,3,opt,name=PreviousTransitionHash,proto3" json:"PreviousTransitionHash,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *SetManifestRequest) Reset() {
@@ -69,6 +70,13 @@ func (x *SetManifestRequest) GetManifest() []byte {
 func (x *SetManifestRequest) GetPolicies() [][]byte {
 	if x != nil {
 		return x.Policies
+	}
+	return nil
+}
+
+func (x *SetManifestRequest) GetPreviousTransitionHash() []byte {
+	if x != nil {
+		return x.PreviousTransitionHash
 	}
 	return nil
 }
@@ -506,10 +514,11 @@ var File_userapi_proto protoreflect.FileDescriptor
 
 const file_userapi_proto_rawDesc = "" +
 	"\n" +
-	"\ruserapi.proto\x12\x1cedgelesssys.contrast.userapi\"L\n" +
+	"\ruserapi.proto\x12\x1cedgelesssys.contrast.userapi\"\x84\x01\n" +
 	"\x12SetManifestRequest\x12\x1a\n" +
 	"\bManifest\x18\x01 \x01(\fR\bManifest\x12\x1a\n" +
-	"\bPolicies\x18\x02 \x03(\fR\bPolicies\"\x9c\x01\n" +
+	"\bPolicies\x18\x02 \x03(\fR\bPolicies\x126\n" +
+	"\x16PreviousTransitionHash\x18\x03 \x01(\fR\x16PreviousTransitionHash\"\x9c\x01\n" +
 	"\x13SetManifestResponse\x12\x16\n" +
 	"\x06RootCA\x18\x01 \x01(\fR\x06RootCA\x12\x16\n" +
 	"\x06MeshCA\x18\x02 \x01(\fR\x06MeshCA\x12U\n" +
