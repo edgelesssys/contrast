@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Markus Rudy <mr@edgeless.systems>
+Date: Tue, 24 Feb 2026 13:31:32 +0100
+Subject: [PATCH] runtime: don't stop after first VFIO mismatch
+
+The siblingAnnotation function used to only check the first sibling
+candidate, because all sad paths led to a direct error return, instead
+of continuing with the next candidate. This becomes a problem when there
+is more than one VFIO device cold-plugged into the pod.
+
+This commit fixes the bug by correctly continuing the loop instead of
+returning.
+
+Co-Authored-By: Moritz Sanft <58110325+msanft@users.noreply.github.com>
+Signed-off-by: Markus Rudy <mr@edgeless.systems>
+---
+ src/runtime/virtcontainers/container.go | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/src/runtime/virtcontainers/container.go b/src/runtime/virtcontainers/container.go
+index 032a97511c00c93301451ef180072ce0b2a87fe0..5d5b4d9698849c85a8ff2ba8b820705a686f99a3 100644
+--- a/src/runtime/virtcontainers/container.go
++++ b/src/runtime/virtcontainers/container.go
+@@ -1223,6 +1223,10 @@ func (c *Container) siblingAnnotation(devPath string, siblings []DeviceRelation)
+ 				// exit handling IOMMUFD device
+ 				return nil
+ 			}
++			// If we have a path of form /dev/vfio/devices/vfio<NUM>,
++			// the legacy VFIO codepath can't work with it, so rather
++			// than falling through, we should check the next sibling.
++			continue
+ 		}
+ 		// Legacy VFIO group device (/dev/vfio/<GROUP_NUM>), extract BDF from sysfs
+ 		vfioGroup := filepath.Base(devPath)
