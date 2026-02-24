@@ -490,7 +490,9 @@ func TestAddImageStore_Regression(t *testing.T) {
 		"cronjob":               {resource: cronjob},
 		"daemonset":             {resource: daemonset},
 		"pod":                   {resource: pod},
+		"replicaset":            {resource: replicaSet},
 		"replicationController": {resource: replicationController},
+		"statefulset":           {resource: statefulSet},
 	} {
 		t.Run(name, func(t *testing.T) {
 			require := require.New(t)
