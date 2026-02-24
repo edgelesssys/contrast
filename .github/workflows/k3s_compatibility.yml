@@ -49,6 +49,7 @@ jobs:
           curl -sfL https://get.k3s.io | K3S_KUBECONFIG_OUTPUT=~/.kube/config K3S_KUBECONFIG_MODE="644" sh -
       - name: Deploy Contrast Node Installer
         run: |
+          just write-namespace default
           just runtime default
           kubectl wait --for=condition=Ready nodes --all --timeout=300s
           just apply runtime
