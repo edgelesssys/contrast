@@ -29,7 +29,11 @@ in
       strace
       contrastPkgs.tdx-tools
       pciutils
+      python3
+      uv
     ];
+
+    virtualisation.docker.enable = true;
 
     services.getty.autologinUser = "root";
 
