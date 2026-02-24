@@ -190,6 +190,11 @@ buildGoModule (finalAttrs: {
       # This is an upstream bug that causes block devices to add CDI annotations.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12570.
       ./0027-runtime-skip-CDI-guest-annotations-for-non-VFIO-devi.patch
+
+      # Fixes an upstream bug that stops considering VFIO sibling candidates after the first
+      # mismatch.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12570.
+      ./0028-runtime-don-t-stop-after-first-VFIO-mismatch.patch
     ];
   };
 
