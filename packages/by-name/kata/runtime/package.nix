@@ -185,6 +185,11 @@ buildGoModule (finalAttrs: {
       # This patch fixes it by removing the calculation altogether and leaving it to qemu and OVMF.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12507
       ./0026-qemu-Remove-PCIe-root-port-BAR-reserve-sizing.patch
+
+      # Ignore non-VFIO devices when creating CDI guest annotations.
+      # This is an upstream bug that causes block devices to add CDI annotations.
+      # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12570.
+      ./0027-runtime-skip-CDI-guest-annotations-for-non-VFIO-devi.patch
     ];
   };
 
