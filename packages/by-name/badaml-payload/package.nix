@@ -16,13 +16,6 @@ stdenvNoCC.mkDerivation {
   buildPhase = ''
     mkdir -p $out
 
-    INITRD_START="$(cat ./initrd_start)"
-
-    for tmpl in *.asl.tmpl; do
-      outFile="''${tmpl%.tmpl}"
-      substitute "$tmpl" "$outFile" --subst-var INITRD_START
-    done
-
     cp ./*.asl $out/
 
     for asl in $out/*.asl; do
