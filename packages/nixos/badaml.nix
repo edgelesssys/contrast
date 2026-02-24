@@ -8,10 +8,12 @@
 let
   cfg = config.contrast.badaml;
 
-  # 64KB of repeated 0xDEADBEEF pattern (16384 repetitions).
-  # We create a larger file so we can search the full initrd in less steps.
+  # 16MB of repeated 0xDEADBEEF pattern (4194304 repetitions).
+  # We create a large file so we can scan the full guest physical memory
+  # with a coarse step size (8MB) and still guarantee a hit, without
+  # needing to know the initrd start address.
   deadbeef = pkgs.runCommandLocal "deadbeef.bin" { } ''
-    for i in $(seq 1 16384); do
+    for i in $(seq 1 4194304); do
       printf '\xDE\xAD\xBE\xEF'
     done > "$out"
     chmod 0444 "$out"
