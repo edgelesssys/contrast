@@ -11,6 +11,7 @@ on:
           # keep-sorted start
           - atls
           - attestation
+          - badaml
           - containerd-11644-reproducer
           - genpolicy-unsupported
           - gpu

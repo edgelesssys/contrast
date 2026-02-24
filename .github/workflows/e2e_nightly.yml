@@ -51,6 +51,7 @@ jobs:
           # keep-sorted start
           - atls
           - attestation
+          - badaml
           - containerd-11644-reproducer
           - genpolicy-unsupported
           - gpu
@@ -72,14 +73,18 @@ jobs:
         exclude:
           - platform:
               name: Metal-QEMU-SNP
-              runner: SNP
-              self-hosted: true
             test-name: gpu
           - platform:
               name: Metal-QEMU-TDX
-              runner: TDX
-              self-hosted: true
             test-name: gpu
+          - debug-shell: false
+            test-name: badaml
+          - platform:
+              name: Metal-QEMU-SNP-GPU
+            test-name: badaml
+          - platform:
+              name: Metal-QEMU-TDX-GPU
+            test-name: badaml
       fail-fast: false
     name: "${{ matrix.platform.name }}"
     uses: ./.github/workflows/e2e.yml
