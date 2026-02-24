@@ -6,6 +6,7 @@
   qemu,
   libaio,
   dtc,
+  libslirp,
   python3Packages,
   gpuSupport ? false,
 }:
@@ -26,7 +27,7 @@
     # The upstream derivation removes the dtc dependency when minimal is set,
     # but QEMU needs it when not only building usermode emulators.
     # TODO(freax13): Fix this upstream.
-    buildInputs = previousAttrs.buildInputs ++ [ dtc ];
+    buildInputs = previousAttrs.buildInputs ++ [ dtc libslirp ];
 
     nativeBuildInputs = previousAttrs.nativeBuildInputs ++ [ python3Packages.packaging ];
 

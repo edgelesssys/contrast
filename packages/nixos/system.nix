@@ -82,7 +82,7 @@
 
   # We do not require dynamic host configuration.
   # Additionally, dhcpcd could allow for e.g. route manipulation from the host.
-  networking.dhcpcd.enable = false;
+  networking.dhcpcd.enable = true;
 
   system.etc.overlay.mutable = false;
   # Use sysusers instead of userborn (which is used by default by the perlless profile).

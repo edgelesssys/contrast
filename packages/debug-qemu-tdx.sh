@@ -55,6 +55,8 @@ extra_cmdline='console=ttyS0 systemd.unit=default.target'
   -device virtio-scsi-pci,id=scsi0,disable-modern=false \
   -object '{"qom-type":"tdx-guest","id":"tdx","mrconfigid":"XGOgbZcHhD3KKCQ1Z4aeLiAYlCQu6/zTrhgQLkAQg/cAAAAAAAAAAAAAAAAAAAAA","quote-generation-socket":{"type":"vsock","cid":"2","port":"4050"}}' \
   "${gpu_args[@]}" \
+  -netdev user,id=net0 \
+  -device virtio-net-pci,netdev=net0 \
   -rtc base=utc,driftfix=slew,clock=host \
   -global kvm-pit.lost_tick_policy=discard \
   -vga none \
