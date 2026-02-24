@@ -98,6 +98,11 @@ func (c *Kubeclient) WaitForPod(ctx context.Context, namespace, name string) err
 	return c.WaitForPodCondition(ctx, namespace, &singlePodReady{name: name})
 }
 
+// WaitForContainer waits until a specific container in the named pod is ready.
+func (c *Kubeclient) WaitForContainer(ctx context.Context, namespace, podName, containerName string) error {
+	return c.WaitForPodCondition(ctx, namespace, &containerReady{podName: podName, containerName: containerName})
+}
+
 // WaitForJob waits until the Job succeeded.
 //
 // We consider the Job succeeded if the Pod belonging to the Job succeeded.
@@ -282,6 +287,44 @@ func (f *singlePodReady) Check(lister listerscorev1.PodLister) (bool, error) {
 
 func (f *singlePodReady) String() string {
 	return fmt.Sprintf("PodCondition(pod %s is ready)", f.name)
+}
+
+// containerReady checks that a named container in a named pod is ready.
+type containerReady struct {
+	podName       string
+	containerName string
+}
+
+func (cr *containerReady) Check(lister listerscorev1.PodLister) (bool, error) {
+	pods, err := lister.List(labels.Everything())
+	if err != nil {
+		return false, err
+	}
+	for _, pod := range pods {
+		if pod.Name != cr.podName {
+			continue
+		}
+		if pod.DeletionTimestamp != nil {
+			return false, nil
+		}
+		for _, statuses := range [][]corev1.ContainerStatus{
+			pod.Status.InitContainerStatuses,
+			pod.Status.ContainerStatuses,
+			pod.Status.EphemeralContainerStatuses,
+		} {
+			for _, cs := range statuses {
+				if cs.Name == cr.containerName {
+					return cs.Ready, nil
+				}
+			}
+		}
+		return false, nil
+	}
+	return false, nil
+}
+
+func (cr *containerReady) String() string {
+	return fmt.Sprintf("PodCondition(container %s in pod %s is ready)", cr.containerName, cr.podName)
 }
 
 type oneRunning struct {
