@@ -54,7 +54,7 @@ jobs:
       NEXT_MINOR_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_MINOR_PRE_WITHOUT_V }}
       NEXT_PATCH_PRE_WITHOUT_V: ${{ steps.version-info.outputs.NEXT_PATCH_PRE_WITHOUT_V }}
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
       - name: Working branch
@@ -133,13 +133,13 @@ jobs:
       MAJOR_MINOR_PATCH: ${{ needs.process-inputs.outputs.MAJOR_MINOR_PATCH }}
     steps:
       - name: Checkout working branch
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           path: contrast-working
           persist-credentials: false
       - name: Checkout main
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ inputs.checkout_main_ref }}
           path: contrast-main
@@ -201,7 +201,7 @@ jobs:
           working-directory: contrast-main
           commit: false
       - name: Create PR
-        uses: peter-evans/create-pull-request@98357b18bf14b5342f975ff684046ec3b2a07725 # v8.0.0
+        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
         with:
           title: Post ${{ needs.process-inputs.outputs.WITHOUT_V }} release updates to main
           body: |
@@ -231,7 +231,7 @@ jobs:
       VERSION: ${{ inputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: true
@@ -240,7 +240,7 @@ jobs:
           githubToken: ${{ secrets.GITHUB_TOKEN }}
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - name: Log in to ghcr.io Container registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -319,7 +319,7 @@ jobs:
     env:
       VERSION: ${{ inputs.version }}
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: false
@@ -330,7 +330,7 @@ jobs:
           cachixToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
       - uses: nicknovitski/nix-develop@9be7cfb4b10451d3390a75dc18ad0465bed4932a # v1.2.1
       - name: Log in to ghcr.io Container registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -411,7 +411,7 @@ jobs:
       NEXT_MINOR: ${{ needs.process-inputs.outputs.NEXT_MINOR }}
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ needs.process-inputs.outputs.WORKING_BRANCH }}
           persist-credentials: false
