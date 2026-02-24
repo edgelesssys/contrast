@@ -51,7 +51,12 @@ jobs:
       TEST_NAME: ${{ inputs.test-name }}
       CONTRAST_GHCR_READ: ${{ secrets.CONTRAST_GHCR_READ }}
       DEBUG_SHELL: ${{ inputs.debug-shell }}
-      SET: base
+      SET: >-
+        ${{
+          (inputs.test-name == 'badaml-sandbox' && 'badaml-sandbox') ||
+          (inputs.test-name == 'badaml-vuln' && 'badaml-vuln') ||
+          'base'
+        }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
