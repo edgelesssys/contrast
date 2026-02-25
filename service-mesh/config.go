@@ -120,7 +120,7 @@ func ParseProxyConfig(ingressConfig, egressConfig, adminPort string) (ProxyConfi
 		return cfg, nil
 	}
 
-	for _, entry := range strings.Split(ingressConfig, "##") {
+	for entry := range strings.SplitSeq(ingressConfig, "##") {
 		if entry == "" {
 			continue
 		}

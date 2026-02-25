@@ -27,12 +27,12 @@ func NewMrtdLogger(dir string) *MrtdLogger {
 
 // MemPageAdd logs a TDH_MEM_PAGE_ADD event for the given GPA.
 func (l *MrtdLogger) MemPageAdd(gpa uint64) {
-	l.log([]byte(fmt.Sprintf("TDH_MEM_PAGE_ADD gpa=0x%x\n", gpa)))
+	l.log(fmt.Appendf(nil, "TDH_MEM_PAGE_ADD gpa=0x%x\n", gpa))
 }
 
 // MrExtend logs a TDH_MR_EXTEND event for the given GPA.
 func (l *MrtdLogger) MrExtend(gpa uint64) {
-	l.log([]byte(fmt.Sprintf("TDH_MR_EXTEND gpa=0x%x\n", gpa)))
+	l.log(fmt.Appendf(nil, "TDH_MR_EXTEND gpa=0x%x\n", gpa))
 }
 
 // SaveToFile writes the `TDH_MR_FINALIZE` event and saves the event log

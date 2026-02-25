@@ -319,7 +319,7 @@ type cryptsetupMetadata struct {
 			JournalEncryption string `json:"journal_encryption"`
 			JournalIntegrity  string `json:"journal_integrity"`
 			KeySize           int    `json:"key_size"`
-		} `json:"integrity,omitempty"`
+		} `json:"integrity"`
 	} `json:"segments"`
 	Digests map[string]struct {
 		Type       string   `json:"type"`
