@@ -30,11 +30,13 @@
 
 7. Send Privatemode a message to review the release artifacts and wait for their feedback.
 
-8. Review and merge the auto generated update PR for main.
+8. **Wait for PM approval before proceeding.**
 
-9. Publish the GitHub release.
+9. Review and merge the auto generated update PR for main.
 
-10. Check that the release publish action succeeds.
+10. Approve the `Publish release` job in the GitHub Actions workflow run. This job only becomes available after all e2e tests have passed.
+
+11. Check that the release publish action succeeds.
 
 ## Patch
 
@@ -78,9 +80,11 @@
 
 7. Send Privatemode a message to review the release artifacts and wait for their feedback.
 
-8. Review and merge the auto generated update PR for main.
+8. **Wait for PM approval before proceeding.**
 
-9. Publish the GitHub release.
+9. Review and merge the auto generated update PR for main.
 
-10. Check that the release publish action succeeds.
+10. Approve the `Publish release` job in the GitHub Actions workflow run. This job only becomes available after all e2e tests have passed.
+
+11. Check that the release publish action succeeds.
 
