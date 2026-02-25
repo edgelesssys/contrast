@@ -19,6 +19,7 @@ lib.makeScope pkgs.newScope (scripts: {
       protoc-gen-go-ttrpc
       nix-update
       scripts.go-directive-sync
+      scripts.gofix
     ];
     text = ''
       echo "Syncing go directive versions in go.mod/go.work files" >&2
@@ -67,6 +68,8 @@ lib.makeScope pkgs.newScope (scripts: {
 
       echo "Updating default kata-container configuration toml files" >&2
       nix run .#scripts.update-kata-configurations
+
+      gofix
     '';
   };
 
@@ -105,9 +108,11 @@ lib.makeScope pkgs.newScope (scripts: {
       done < <(go list -f '{{.Dir}}' -m)
 
       # TODO(katexochen): modernize does not support tags?
+      # The run will fail for packages that contain only code with build tags,
+      # thus we ignore the exit code.
       while IFS= read -r dir; do
         echo "Running modernize on $dir"
-        (cd "$dir" && modernize -fix ./...) || exitcode=$?
+        (cd "$dir" && modernize -fix ./...) || true
       done < <(go list -f '{{.Dir}}' -m)
 
       exit $exitcode
