@@ -1367,6 +1367,20 @@
       "hash": "sha256-TZykNQgKqIqr0zDBfyEpGlSEs8KJhknk6H8ZI4z+4/w="
     }
   ],
+  "runtime-metal-qemu-tdx-gpu.yml": [
+    {
+      "version": "v1.16.0",
+      "hash": "sha256-Qt/HNnp6zLeEJztJOBouBZ+sW9b6o+p3ii8GfMouFVs="
+    },
+    {
+      "version": "v1.16.1",
+      "hash": "sha256-X3vic0ztpdkbG8els8iwp26TrHurfGnA6gAhtL9D+JY="
+    },
+    {
+      "version": "v1.17.0",
+      "hash": "sha256-mrlUEg+Aicbw7PY4oWQCs+32tHXo7iWO7yQp55AuI5c="
+    }
+  ],
   "runtime-metal-qemu-tdx.yml": [
     {
       "version": "v1.2.1",

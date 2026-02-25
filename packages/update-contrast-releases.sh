@@ -20,6 +20,7 @@ platforms=(
   "metal-qemu-snp-gpu"
   "metal-qemu-snp"
   "metal-qemu-tdx"
+  "metal-qemu-tdx-gpu"
   "rke2-qemu-tdx"
 )
 
