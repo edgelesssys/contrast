@@ -398,6 +398,21 @@ jobs:
       contents: read
       packages: write
 
+  publish:
+    name: Publish release
+    needs: [process-inputs, release, test]
+    runs-on: ubuntu-24.04
+    environment: release-publish
+    permissions:
+      contents: write
+    steps:
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release edit "${VERSION}" --draft=false --repo "${{ github.repository }}"
+
   create-github-stuff:
     name: Create backport label and milestone
     if: inputs.kind == 'minor'
