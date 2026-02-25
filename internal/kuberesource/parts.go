@@ -6,6 +6,7 @@ package kuberesource
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
@@ -216,14 +217,14 @@ func PortForwarder(name, namespace string) *PortForwarderConfig {
 // WithListenPorts sets multiple ports to listen on.
 func (p *PortForwarderConfig) WithListenPorts(ports []int32) *PortForwarderConfig {
 	var containerPorts []*applycorev1.ContainerPortApplyConfiguration
-	var envVar string
+	var envVar strings.Builder
 	for _, port := range ports {
 		containerPorts = append(containerPorts, ContainerPort().WithContainerPort(port))
-		envVar += " " + strconv.Itoa(int(port))
+		envVar.WriteString(" " + strconv.Itoa(int(port)))
 	}
 	p.Spec.Containers[0].
 		WithPorts(containerPorts...).
-		WithEnv(NewEnvVar("LISTEN_PORTS", envVar))
+		WithEnv(NewEnvVar("LISTEN_PORTS", envVar.String()))
 	return p
 }
 
