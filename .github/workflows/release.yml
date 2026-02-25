@@ -354,7 +354,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir workspace
+          mkdir -p workspace
           nix build .#scripts.get-logs
           nix run .#scripts.get-logs start workspace/just.namespace &
           nix shell -L .#contrast.e2e --command release.test \
