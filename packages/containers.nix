@@ -5,68 +5,15 @@
   lib,
   pkgs,
   contrastPkgs,
-  writeShellApplication,
-  dockerTools,
 }:
 
 let
-  pushOCIDir =
-    name: dir: tag:
-    writeShellApplication {
-      name = "push-${name}";
-      runtimeInputs = with pkgs; [ crane ];
-      text = ''
-        imageName="$1"
-        crane push "${dir}" "$imageName:${tag}"
-      '';
-    };
+  contrastVersion = contrastPkgs.contrast.base.cli.version;
 
   containers = {
-    coordinator = contrastPkgs.buildOciImage {
-      name = "coordinator";
-      tag = "v${contrastPkgs.contrast.coordinator.version}";
-      copyToRoot =
-        (with pkgs; [
-          busybox
-          e2fsprogs # mkfs.ext4
-          libuuid # blkid
-          iptables-legacy
-        ])
-        ++ (with dockerTools; [ caCertificates ]);
-      config = {
-        Cmd = [ "${contrastPkgs.contrast.coordinator}/bin/coordinator" ];
-        Env = [
-          "PATH=/bin" # Explicitly setting this prevents containerd from setting a default PATH.
-          "XTABLES_LOCKFILE=/dev/shm/xtables.lock" # Tells iptables where to create the lock file, since the default path does not exist in our image.
-        ];
-      };
-    };
-
-    initializer = contrastPkgs.buildOciImage {
-      name = "initializer";
-      tag = "v${contrastPkgs.contrast.initializer.version}";
-      copyToRoot =
-        (with pkgs; [
-          busybox
-          cryptsetup
-          e2fsprogs # mkfs.ext4
-          libuuid # blkid
-          iptables-legacy
-        ])
-        ++ (with dockerTools; [ caCertificates ]);
-      config = {
-        # Use Entrypoint so we can append arguments.
-        Entrypoint = [ "${contrastPkgs.contrast.initializer}/bin/initializer" ];
-        Env = [
-          "PATH=/bin" # Explicitly setting this prevents containerd from setting a default PATH.
-          "XTABLES_LOCKFILE=/dev/shm/xtables.lock" # Tells iptables where to create the lock file, since the default path does not exist in our image.
-        ];
-      };
-    };
-
     openssl = contrastPkgs.buildOciImage {
       name = "openssl";
-      tag = "v${contrastPkgs.contrast.cli.version}";
+      tag = "v${contrastVersion}";
       copyToRoot = with pkgs; [
         busybox
         openssl
@@ -80,7 +27,7 @@ let
 
     port-forwarder = contrastPkgs.buildOciImage {
       name = "port-forwarder";
-      tag = "v${contrastPkgs.contrast.cli.version}";
+      tag = "v${contrastVersion}";
       copyToRoot = with pkgs; [
         bash
         socat
@@ -89,7 +36,7 @@ let
 
     service-mesh-proxy = contrastPkgs.buildOciImage {
       name = "service-mesh-proxy";
-      tag = "v${contrastPkgs.service-mesh.version}";
+      tag = "v${contrastVersion}";
       copyToRoot = with pkgs; [
         busybox
         envoy-bin
@@ -154,7 +101,7 @@ let
 
     debugshell = contrastPkgs.buildOciImage {
       name = "debugshell";
-      tag = contrastPkgs.contrast.contrast.version;
+      tag = contrastVersion;
       copyToRoot = with pkgs; [
         busybox
         bash
@@ -188,14 +135,6 @@ let
   };
 in
 containers
-// {
-  push-node-installer-kata =
-    pushOCIDir "push-node-installer-kata" contrastPkgs.contrast.node-installer-image
-      "v${contrastPkgs.contrast.nodeinstaller.version}";
-  push-node-installer-kata-gpu =
-    pushOCIDir "push-node-installer-kata-gpu" contrastPkgs.contrast.node-installer-image.gpu
-      "v${contrastPkgs.contrast.nodeinstaller.version}";
-}
 // (lib.concatMapAttrs (name: container: {
-  "push-${name}" = pushOCIDir name container.outPath container.meta.tag;
+  "push-${name}" = contrastPkgs.pushOCIDir name container.outPath container.meta.tag;
 }) containers)

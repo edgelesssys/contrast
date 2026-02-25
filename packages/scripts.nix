@@ -54,16 +54,16 @@ lib.makeScope pkgs.newScope (scripts: {
       echo "Updating vendorHash of initdata-processor package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.initdata-processor
       echo "Updating vendorHash of contrast package" >&2
-      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast.contrast
+      nix-update --version=skip --flake legacyPackages.x86_64-linux.contrast.base.contrast
       echo "Updating vendorHash of imagepuller-benchmark package" >&2
       nix-update --version=skip --flake legacyPackages.x86_64-linux.imagepuller-benchmark
       echo "Updating src hash of kata.release-tarball" >&2
       ./packages/by-name/kata/release-tarball/update.sh
 
-      echo "Updating yarn offlineCache hash of contrast.docs package" >&2
+      echo "Updating yarn offlineCache hash of contrast.base.docs package" >&2
       nix-update --version=skip --flake \
         --override-filename=packages/by-name/contrast/docs/package.nix \
-        legacyPackages.x86_64-linux.contrast.docs
+        legacyPackages.x86_64-linux.contrast.base.docs
 
       echo "Updating default kata-container configuration toml files" >&2
       nix run .#scripts.update-kata-configurations
@@ -79,7 +79,7 @@ lib.makeScope pkgs.newScope (scripts: {
     text = ''
       exitcode=0
 
-      tags="${lib.concatStringsSep "," contrastPkgs.contrast.contrast.tags}"
+      tags="${lib.concatStringsSep "," contrastPkgs.contrast.base.contrast.tags}"
       while IFS= read -r dir; do
         echo "Running govulncheck -tags $tags on $dir"
         CGO_ENABLED=0 govulncheck -C "$dir" -tags "$tags" ./... || exitcode=$?
@@ -98,7 +98,7 @@ lib.makeScope pkgs.newScope (scripts: {
     text = ''
       exitcode=0
 
-      tags="${lib.concatStringsSep "," contrastPkgs.contrast.contrast.tags}"
+      tags="${lib.concatStringsSep "," contrastPkgs.contrast.base.contrast.tags}"
       while IFS= read -r dir; do
         echo "Running go fix -tags $tags on $dir"
         go fix -C "$dir" -tags "$tags" ./... || exitcode=$?
@@ -123,7 +123,7 @@ lib.makeScope pkgs.newScope (scripts: {
     text = ''
       exitcode=0
 
-      tags="${lib.concatStringsSep "," contrastPkgs.contrast.contrast.tags}"
+      tags="${lib.concatStringsSep "," contrastPkgs.contrast.base.contrast.tags}"
       while IFS= read -r dir; do
         echo "Running golangci-lint with tags $tags on $dir" >&2
         CGO_ENABLED=0 golangci-lint run --build-tags "$tags" "$dir/..." || exitcode=$?
@@ -151,7 +151,7 @@ lib.makeScope pkgs.newScope (scripts: {
         --ignore github.com/cyphar/filepath-securejoin # MPL-2.0, which is reciprocal but only for the original source.
       )
 
-      tags="${lib.concatStringsSep "," contrastPkgs.contrast.contrast.tags}"
+      tags="${lib.concatStringsSep "," contrastPkgs.contrast.base.contrast.tags}"
       while IFS= read -r dir; do
         echo "Downloading Go dependencies for license check" >&2
         go mod -C "$dir" download
@@ -171,7 +171,7 @@ lib.makeScope pkgs.newScope (scripts: {
     name = "go-closure";
     runtimeInputs = with pkgs; [ go ];
     text = ''
-      tags="${lib.concatStringsSep "," contrastPkgs.contrast.e2e.tags}"
+      tags="${lib.concatStringsSep "," contrastPkgs.contrast.base.e2e.tags}"
       go list -tags "$tags" -deps -f '{{ if ne .Module nil }}{{ if .Module.Main }}{{ .ImportPath }}{{ end }}{{ end }}' "$@" | sort
     '';
   };
@@ -475,7 +475,7 @@ lib.makeScope pkgs.newScope (scripts: {
     name = "update-kata-configurations";
     runtimeInputs = [
       (pkgs.buildGoModule {
-        inherit (contrastPkgs.contrast.contrast) vendorHash;
+        inherit (contrastPkgs.contrast.base.contrast) vendorHash;
         name = "nodeinstaller-kataconfig-update-testdata";
 
         src =
