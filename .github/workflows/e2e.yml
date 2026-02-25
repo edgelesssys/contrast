@@ -72,6 +72,9 @@ jobs:
           cat <<EOF > justfile.env
           container_registry=${{ env.container_registry }}
           default_platform=${PLATFORM}
+          node_installer_target_conf_type=${NODE_INSTALLER_TARGET_CONF_TYPE}
+          debug=${DEBUG_SHELL}
+          namespace_suffix="-ci"
           EOF
       - name: Build and push container images
         run: |
@@ -84,22 +87,11 @@ jobs:
         if: (!inputs.self-hosted)
         run: |
           just get-credentials
-      - name: Request fifo ticket
-        if: (!inputs.self-hosted || inputs.platform == 'Metal-QEMU-SNP-GPU' || inputs.platform == 'Metal-QEMU-TDX-GPU')
-        run: |
-          just request-fifo-ticket
       - name: E2E Test
         run: |
           nix build .#scripts.get-logs
           nix run .#scripts.get-logs start workspace/just.namespace &
-          nix shell -L .#contrast.e2e --command "${TEST_NAME}.test" -test.v \
-            --image-replacements workspace/just.containerlookup \
-            --namespace-file workspace/just.namespace \
-            --platform "${PLATFORM}" \
-            --node-installer-target-conf-type "${NODE_INSTALLER_TARGET_CONF_TYPE}" \
-            --namespace-suffix="-ci" \
-            --sync-ticket-file workspace/just.sync-ticket \
-            --insecure-enable-debug-shell-access="${DEBUG_SHELL}"
+          just e2e "${TEST_NAME}"
       - name: Check for skipped
         id: skipped
         if: always()
