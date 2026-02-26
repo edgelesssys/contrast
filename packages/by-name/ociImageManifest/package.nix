@@ -5,7 +5,7 @@
 {
   lib,
   ociImageConfig,
-  runCommand,
+  runCommandLocal,
   writers,
   nix,
 }:
@@ -38,7 +38,7 @@ let
   );
 in
 
-runCommand "oci-image-manifest"
+runCommandLocal "oci-image-manifest"
   {
     blobDirs = lib.lists.map (layer: layer + "/blobs/sha256") (layers ++ [ config ]);
     platformJSON = builtins.toJSON configPlatform;
