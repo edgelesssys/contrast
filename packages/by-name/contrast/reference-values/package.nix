@@ -24,24 +24,29 @@ let
         platformInfo = {
           SMTEnabled = true;
         };
-        launch-digest = kata.calculateSnpLaunchDigest {
-          inherit os-image;
-          debug = node-installer-image.debugRuntime;
-          vcpus = 1;
-        };
+        vcpuCounts = builtins.genList (x: x + 1) 8;
+        products = [
+          "Milan"
+          "Genoa"
+        ];
+
+        generateRefVal =
+          vcpus: product:
+          let
+            launch-digest = kata.calculateSnpLaunchDigest {
+              inherit os-image vcpus;
+              debug = node-installer-image.debugRuntime;
+            };
+            filename = if product == "Milan" then "milan.hex" else "genoa.hex";
+          in
+          {
+            inherit guestPolicy platformInfo;
+            trustedMeasurement = builtins.readFile "${launch-digest}/${filename}";
+            productName = product;
+            cpus = vcpus;
+          };
       in
-      [
-        {
-          inherit guestPolicy platformInfo;
-          trustedMeasurement = builtins.readFile "${launch-digest}/milan.hex";
-          productName = "Milan";
-        }
-        {
-          inherit guestPolicy platformInfo;
-          trustedMeasurement = builtins.readFile "${launch-digest}/genoa.hex";
-          productName = "Genoa";
-        }
-      ];
+      builtins.concatLists (map (vcpus: map (product: generateRefVal vcpus product) products) vcpuCounts);
   };
 
   snpRefVals = snpRefValsWith node-installer-image.os-image;
