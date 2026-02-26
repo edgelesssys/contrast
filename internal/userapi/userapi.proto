@@ -43,6 +43,12 @@ message GetManifestsResponse {
   bytes RootCA = 3;
   // PEM-encoded certificate
   bytes MeshCA = 4;
+  LatestTransition LatestTransition = 5;
+}
+
+message LatestTransition {
+  bytes TransitionHash = 1;
+  bytes Signature = 2;
 }
 
 message RecoverRequest {

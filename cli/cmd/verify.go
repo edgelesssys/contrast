@@ -6,6 +6,7 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -82,8 +83,9 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintln(cmd.OutOrStdout(), "✔️ Successfully verified Coordinator CVM based on reference values from manifest")
 
 	filelist := map[string][]byte{
-		coordRootPEMFilename: resp.RootCA,
-		meshCAPEMFilename:    resp.MeshCA,
+		coordRootPEMFilename:         resp.RootCA,
+		meshCAPEMFilename:            resp.MeshCA,
+		latestTransitionHashFilename: hex.AppendEncode(nil, resp.LatestTransitionHash),
 	}
 	for i, m := range resp.Manifests {
 		filelist[fmt.Sprintf("manifest.%d.json", i)] = m
@@ -200,9 +202,11 @@ func getCoordinatorState(ctx context.Context, kdsDir string, manifestBytes []byt
 	}
 
 	return sdk.CoordinatorState{
-		Manifests: resp.Manifests,
-		Policies:  resp.Policies,
-		RootCA:    resp.RootCA,
-		MeshCA:    resp.MeshCA,
+		Manifests:                 resp.Manifests,
+		Policies:                  resp.Policies,
+		RootCA:                    resp.RootCA,
+		MeshCA:                    resp.MeshCA,
+		LatestTransitionHash:      resp.LatestTransition.TransitionHash,
+		LatestTransitionSignature: resp.LatestTransition.Signature,
 	}, nil
 }
