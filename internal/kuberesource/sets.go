@@ -675,6 +675,30 @@ func GPU(name string, gpuClass string, gpuQuantity int64) []any {
 							WithCommand("/bin/sh", "-c", "sleep inf").
 							WithResources(ResourceRequirements().
 								WithMemoryLimitAndRequest(100),
+							).
+							// This volume is added as a regression test to ensure that block
+							// devices don't interfere with GPUs.
+							WithVolumeDevices(
+								applycorev1.VolumeDevice().
+									WithName("ephemeral-pvc").
+									WithDevicePath("/dev/csi0"),
+							),
+					).
+					WithVolumes(
+						Volume().
+							WithName("ephemeral-pvc").
+							WithEphemeral(
+								applycorev1.EphemeralVolumeSource().WithVolumeClaimTemplate(
+									applycorev1.PersistentVolumeClaimTemplate().
+										WithSpec(
+											applycorev1.PersistentVolumeClaimSpec().
+												WithAccessModes(corev1.ReadWriteOnce).
+												WithVolumeMode(corev1.PersistentVolumeBlock).
+												WithResources(applycorev1.VolumeResourceRequirements().WithRequests(corev1.ResourceList{
+													corev1.ResourceName("storage"): resource.MustParse("10Mi"),
+												})),
+										),
+								),
 							),
 					),
 				),
