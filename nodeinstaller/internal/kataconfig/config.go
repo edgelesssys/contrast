@@ -122,8 +122,8 @@ type SnpIDBlock struct {
 	GuestPolicy abi.SnpPolicy `json:"guestPolicy"`
 }
 
-// platform -> product -> snpIDBlock.
-type snpIDBlockMap map[string]map[string]SnpIDBlock
+// platform -> product -> cpuCount -> snpIDBlock.
+type snpIDBlockMap map[string]map[string]map[string]SnpIDBlock
 
 // SnpIDBlockForPlatform returns the embedded SNP ID block and ID auth for the given platform and product.
 func SnpIDBlockForPlatform(platform platforms.Platform, productName sevsnp.SevProduct_SevProductName) (SnpIDBlock, error) {
@@ -133,7 +133,11 @@ func SnpIDBlockForPlatform(platform platforms.Platform, productName sevsnp.SevPr
 	if err := decoder.Decode(&blocks); err != nil {
 		return SnpIDBlock{}, fmt.Errorf("unmarshaling embedded SNP ID blocks: %w", err)
 	}
-	blockForPlatform, ok := blocks[strings.ToLower(platform.String())]
+	// TODO: Get correct ID block based on requested vCPU count at runtime
+	if blocks["1"] == nil {
+		return SnpIDBlock{}, fmt.Errorf("no SNP ID blocks found for platform %s", platform)
+	}
+	blockForPlatform, ok := blocks["1"][strings.ToLower(platform.String())]
 	if !ok {
 		return SnpIDBlock{}, fmt.Errorf("no SNP ID block found for platform %s", platform)
 	}

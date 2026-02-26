@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/edgelesssys/contrast/cli/genpolicy"
@@ -24,6 +25,7 @@ import (
 	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/platforms"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	applyappsv1 "k8s.io/client-go/applyconfigurations/apps/v1"
 	applycorev1 "k8s.io/client-go/applyconfigurations/core/v1"
@@ -35,6 +37,10 @@ import (
 const (
 	contrastRoleAnnotationKey     = "contrast.edgeless.systems/pod-role"
 	workloadSecretIDAnnotationKey = "contrast.edgeless.systems/workload-secret-id"
+	hypervisorCPUCountAnnotation  = "io.katacontainers.config.hypervisor.default_vcpus"
+	idBlockAnnotation             = "contrast.edgeless.systems/snp-id-block/"
+	amdCPUGenerationMilan         = "Milan"
+	amdCPUGenerationGenoa         = "Genoa"
 )
 
 // NewGenerateCmd creates the contrast generate subcommand.
@@ -511,6 +517,10 @@ func patchTargets(logger *slog.Logger, fileMap map[string][]*unstructured.Unstru
 		replaceRuntimeClassName := patchRuntimeClassName(logger, runtimeHandler)
 		kuberesource.MapPodSpec(res, replaceRuntimeClassName)
 
+		if err := patchIDBlockAnnotation(res); err != nil {
+			return nil, fmt.Errorf("injecting ID block annotations: %w", err)
+		}
+
 		return res, nil
 	})
 }
@@ -690,6 +700,84 @@ func patchRuntimeClassName(logger *slog.Logger, defaultRuntimeHandler string) fu
 		spec.RuntimeClassName = &overrideRuntimeHandler
 		return spec
 	}
+}
+
+func patchIDBlockAnnotation(res any) error {
+	// runtime -> cpu_count -> product_line -> ID block
+	var snpIDBlocks map[string]map[string]map[string]SnpIDBlock
+	if err := json.Unmarshal(SNPIDBlocks, &snpIDBlocks); err != nil {
+		return fmt.Errorf("unmarshal SNP ID blocks: %w", err)
+	}
+
+	var mapErr error
+	mapFunc := func(meta *applymetav1.ObjectMetaApplyConfiguration, spec *applycorev1.PodSpecApplyConfiguration) (*applymetav1.ObjectMetaApplyConfiguration, *applycorev1.PodSpecApplyConfiguration) {
+		if spec == nil || spec.RuntimeClassName == nil {
+			return meta, spec
+		}
+
+		targetPlatform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
+		if err != nil {
+			mapErr = fmt.Errorf("determining platform from runtime class name %s: %w", *spec.RuntimeClassName, err)
+			return meta, spec
+		}
+		if !platforms.IsSNP(targetPlatform) {
+			return meta, spec
+		}
+
+		var regularContainersCPU int64
+		for _, container := range spec.Containers {
+			regularContainersCPU += getNeededCPUCount(container.Resources)
+		}
+		var initContainersCPU int64
+		for _, container := range spec.InitContainers {
+			cpuCount := getNeededCPUCount(container.Resources)
+			initContainersCPU += cpuCount
+			// Sidecar containers remain running alongside the actual application, consuming CPU resources
+			if container.RestartPolicy != nil && *container.RestartPolicy == corev1.ContainerRestartPolicyAlways {
+				regularContainersCPU += cpuCount
+			}
+		}
+		podLevelCPU := getNeededCPUCount(spec.Resources)
+
+		// Convert milliCPUs to number of CPUs (rounding up), and add 1 for hypervisor overhead
+		totalMilliCPUs := max(regularContainersCPU, initContainersCPU, podLevelCPU)
+		cpuCount := strconv.FormatInt((totalMilliCPUs+999)/1000+1, 10)
+
+		platform := strings.ToLower(targetPlatform.String())
+
+		// Ensure we pre-calculated the required blocks
+		if snpIDBlocks[platform] == nil || snpIDBlocks[platform][amdCPUGenerationGenoa] == nil || snpIDBlocks[platform][amdCPUGenerationMilan] == nil ||
+			snpIDBlocks[platform][amdCPUGenerationGenoa][cpuCount].IDBlock == "" || snpIDBlocks[platform][amdCPUGenerationMilan][cpuCount].IDBlock == "" {
+			mapErr = fmt.Errorf("missing ID block configuration for runtime %s with %s CPUs", platform, cpuCount)
+			return meta, spec
+		}
+
+		if meta.Annotations == nil {
+			meta.Annotations = make(map[string]string, 3)
+		}
+		meta.Annotations[idBlockAnnotation+platform] = snpIDBlocks[platform][amdCPUGenerationGenoa][cpuCount].IDBlock
+		meta.Annotations[idBlockAnnotation+platform] = snpIDBlocks[platform][amdCPUGenerationMilan][cpuCount].IDBlock
+		meta.Annotations[hypervisorCPUCountAnnotation] = cpuCount
+
+		return meta, spec
+	}
+
+	kuberesource.MapPodSpecWithMeta(res, mapFunc)
+	return mapErr
+}
+
+func getNeededCPUCount(resources *applycorev1.ResourceRequirementsApplyConfiguration) int64 {
+	if resources == nil {
+		return 0
+	}
+	var requests, limits int64
+	if resources.Requests != nil {
+		requests = resources.Requests.Cpu().MilliValue()
+	}
+	if resources.Limits != nil {
+		limits = resources.Limits.Cpu().MilliValue()
+	}
+	return max(requests, limits)
 }
 
 type generateFlags struct {

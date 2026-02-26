@@ -12,6 +12,7 @@
 {
   os-image,
   debug,
+  vcpus,
 }:
 
 let
@@ -40,7 +41,7 @@ stdenvNoCC.mkDerivation {
     ${lib.getExe python3Packages.sev-snp-measure} \
       --mode snp \
       --ovmf ${ovmf-snp} \
-      --vcpus 1 \
+      --vcpus ${toString vcpus} \
       --vcpu-type EPYC-Milan \
       --kernel ${kernel} \
       --initrd ${initrd} \
@@ -49,7 +50,7 @@ stdenvNoCC.mkDerivation {
     ${lib.getExe python3Packages.sev-snp-measure} \
       --mode snp \
       --ovmf ${ovmf-snp} \
-      --vcpus 1 \
+      --vcpus ${toString vcpus} \
       --vcpu-type EPYC-Genoa \
       --kernel ${kernel} \
       --initrd ${initrd} \
