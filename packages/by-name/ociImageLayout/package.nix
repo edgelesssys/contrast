@@ -4,7 +4,7 @@
 # OCI image layout. Can be pushed to a registry or used as a local image.
 {
   lib,
-  runCommand,
+  runCommandLocal,
   writers,
   nix,
 }:
@@ -33,7 +33,7 @@ let
   );
 in
 
-runCommand "oci-image-layout"
+runCommandLocal "oci-image-layout"
   {
     buildInputs = [ nix ];
     blobDirs = lib.lists.map (manifest: manifest + "/blobs/sha256") manifests;

@@ -4,7 +4,7 @@
 # application/vnd.oci.image.config.v1+json
 {
   lib,
-  runCommand,
+  runCommandLocal,
   writers,
   nix,
 }:
@@ -31,7 +31,7 @@ let
   configJSON = writers.writeJSON "image-config.json" config;
 in
 
-runCommand "oci-image-config"
+runCommandLocal "oci-image-config"
   {
     buildInputs = [ nix ];
     platformJSON = builtins.toJSON {
