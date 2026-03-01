@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: registry
+spec:
+  # TODO: reclaim policy
+  selector:
+    matchLabels:
+      app: registry
+  serviceName: "registry"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: registry
+    spec:
+      # TODO: nodeSelector
+      terminationGracePeriodSeconds: 10
+      hostNetwork: true
+      containers:
+      - name: registry
+        image: docker.io/library/registry:3.0.0@sha256:5b12b22f21522fe69443079df04c0f3f42cb9977857f3c20404386652a6c6d8e
+        env:
+          - name: REGISTRY_HTTP_ADDR
+            value: 0.0.0.0:60001
+        ports:
+        - containerPort: 60001
+          name: registry
+        volumeMounts:
+        - name: store
+          mountPath: /var/lib/registry
+  volumeClaimTemplates:
+  - metadata:
+      name: store
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
