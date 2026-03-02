@@ -19,7 +19,10 @@ let
 in
 
 lib.makeOverridable (
-  args:
+  {
+    pkgsOverlay ? null,
+    ...
+  }@args:
   nixos (
     { modulesPath, ... }:
 
@@ -30,8 +33,8 @@ lib.makeOverridable (
       ]
       ++ readModulesDir ../../nixos;
 
-      nixpkgs.pkgs = outerPkgs;
+      nixpkgs.pkgs = if pkgsOverlay != null then outerPkgs.extend pkgsOverlay else outerPkgs;
     }
-    // args
+    // removeAttrs args [ "pkgsOverlay" ]
   )
 )

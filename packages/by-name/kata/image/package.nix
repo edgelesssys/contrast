@@ -7,9 +7,11 @@
 
   withDebug ? false,
   withGPU ? false,
+  pkgsOverlay ? null,
 }:
 
 buildVerityMicroVM (mkNixosConfig {
+  inherit pkgsOverlay;
   contrast = {
     debug.enable = withDebug;
     gpu.enable = withGPU;
