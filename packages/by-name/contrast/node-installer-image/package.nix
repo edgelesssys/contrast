@@ -15,8 +15,17 @@
   OVMF-SNP,
   OVMF-TDX,
 
+  # Wether to enable insecure debug access. This enables for example shell access from
+  # the host to the guest via serial console and debug logs for the Kata agent.
   withDebug ? false,
+  # Whether to build a node-installer image with GPU support.
   withGPU ? false,
+  # These files are added to the node-installer configuration file to be installed by the
+  # node-installer from the container image to the host filesystem.
+  withExtraInstallFilesConfig ? [ ],
+  # Additional OCI layers to add to the image, e.g. for additional files that should be
+  # installed by the node-installer.
+  withExtraLayers ? [ ],
 }:
 
 let
@@ -95,7 +104,8 @@ let
               url = "file:///opt/edgeless/share/qemu/efi-virtio.rom";
               path = "/opt/edgeless/@@runtimeName@@/share/qemu/efi-virtio.rom";
             }
-          ];
+          ]
+          ++ withExtraInstallFilesConfig;
           debugRuntime = withDebug;
           qemuExtraKernelParams = os-image.cmdline;
         };
@@ -196,7 +206,8 @@ let
     qemu-cc
     kata-runtime
     version
-  ];
+  ]
+  ++ withExtraLayers;
 
   manifest = ociImageManifest {
     layers = layers ++ [ node-installer ];
