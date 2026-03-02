@@ -495,6 +495,9 @@ func ServiceMeshProxy() *applycorev1.ContainerApplyConfiguration {
 		).
 		WithArgs(
 			"-l", "debug",
+		).
+		WithResources(ResourceRequirements().
+			WithMemoryLimitAndRequest(400),
 		)
 }
 
