@@ -105,7 +105,7 @@ let
               path = "/opt/edgeless/@@runtimeName@@/share/qemu/efi-virtio.rom";
             }
           ]
-          // withExtraInstallFilesConfig;
+          ++ withExtraInstallFilesConfig;
           debugRuntime = withDebug;
           qemuExtraKernelParams = os-image.cmdline;
         };
