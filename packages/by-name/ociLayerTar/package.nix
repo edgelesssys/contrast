@@ -74,9 +74,9 @@ runCommandLocal "ociLayer"
     # Compress the layer tarball
     echo "Compressing layer tarball..."
     if [[ "$compression" = "gzip" ]]; then
-      pigz -c $out/layer.tar > $out/$outPath
+      pigz -p$NIX_BUILD_CORES -nTR -c $out/layer.tar > $out/$outPath
     elif [[ "$compression" = "zstd" ]]; then
-      zstd -T0 -q -c $out/layer.tar > $out/$outPath
+      zstd -T$NIX_BUILD_CORES -q -c $out/layer.tar > $out/$outPath
     else
       mv $out/layer.tar $out/$outPath
     fi
