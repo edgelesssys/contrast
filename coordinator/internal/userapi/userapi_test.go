@@ -4,6 +4,7 @@
 package userapi
 
 import (
+	"bytes"
 	"context"
 	"crypto"
 	"crypto/ecdsa"
@@ -115,6 +116,30 @@ func TestSetManifest(t *testing.T) {
 				},
 			},
 		},
+		"nil transition hash": {
+			req: &userapi.SetManifestRequest{
+				Manifest: newManifestBytes(func(m *manifest.Manifest) {
+					m.Policies = nil
+				}),
+			},
+		},
+		"empty transition hash": {
+			req: &userapi.SetManifestRequest{
+				Manifest: newManifestBytes(func(m *manifest.Manifest) {
+					m.Policies = nil
+				}),
+				PreviousTransitionHash: bytes.Repeat([]byte{0x0}, history.HashSize),
+			},
+		},
+		"invalid transition hash": {
+			req: &userapi.SetManifestRequest{
+				Manifest: newManifestBytes(func(m *manifest.Manifest) {
+					m.Policies = nil
+				}),
+				PreviousTransitionHash: bytes.Repeat([]byte{0xf}, history.HashSize),
+			},
+			wantErr: true,
+		},
 	}
 
 	for name, tc := range testCases {
@@ -204,6 +229,28 @@ func TestSetManifest(t *testing.T) {
 		_, err = coordinator.SetManifest(t.Context(), req)
 		require.Error(err)
 		require.Equal(codes.InvalidArgument, status.Code(err))
+	})
+
+	t.Run("atomic manifest update", func(t *testing.T) {
+		require := require.New(t)
+
+		coordinator := newCoordinator()
+		ctx := rpcContext(t.Context(), trustedKey)
+		m, err := json.Marshal(manifestWithTrustedKey)
+		require.NoError(err)
+		req := &userapi.SetManifestRequest{Manifest: m}
+		_, err = coordinator.SetManifest(ctx, req)
+		require.NoError(err)
+		tr := history.Transition{
+			ManifestHash: history.Digest(m),
+		}
+		prevTransitionHash := tr.Digest()
+		req = &userapi.SetManifestRequest{Manifest: m, PreviousTransitionHash: prevTransitionHash[:]}
+		_, err = coordinator.SetManifest(ctx, req)
+		require.NoError(err)
+		req = &userapi.SetManifestRequest{Manifest: m, PreviousTransitionHash: prevTransitionHash[:]}
+		_, err = coordinator.SetManifest(ctx, req)
+		require.Error(err)
 	})
 }
 
