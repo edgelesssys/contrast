@@ -31,16 +31,50 @@
       system:
 
       let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [
-            (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
-            (import ./overlays/nixpkgs.nix)
-            (import ./overlays/contrast.nix)
-          ];
-          config.allowUnfree = true;
-          config.nvidia.acceptLicense = true;
-        };
+        # mkSet creates a set of packages based on a given set of overlays.
+        mkSet =
+          overlays:
+          import nixpkgs {
+            inherit system overlays;
+            config.allowUnfree = true;
+            config.nvidia.acceptLicense = true;
+          };
+
+        # setsFromDirectory reads overlays from a directory and creates a set of pkgs instances for each.
+        # The filename is used as attribute name in the resulting set, the .nix extension is stripped.
+        setsFromDirectory =
+          dir:
+          builtins.listToAttrs (
+            map (file: {
+              name = builtins.substring 0 (builtins.stringLength file - 4) (baseNameOf file);
+              value = mkSet (defaultOverlays ++ [ (import (dir + "/${file}")) ]);
+            }) (builtins.attrNames (builtins.readDir dir))
+          );
+
+        # reverseContrastNesting takes a pkgs instance and reverses the nesting by moving the
+        # contrastPkgs attributes to the top level and the originally top-level nixpkgs attributes
+        # to a nested nixpkgs attribute. This allows easy access to contrastPkgs via the nix flake
+        # CLI while still exposing the overlayed packages from nixpkgs under the nixpkgs attribute.
+        reverseContrastNesting =
+          pkgs:
+          pkgs.contrastPkgs
+          // {
+            nixpkgs = removeAttrs pkgs [
+              "fenix"
+              "contrastPkgs"
+            ];
+          };
+
+        defaultOverlays = [
+          (final: _prev: { fenix = self.inputs.fenix.packages.${final.stdenv.hostPlatform.system}; })
+          (import ./overlays/nixpkgs.nix)
+          (import ./overlays/contrast.nix)
+        ];
+
+        sets = setsFromDirectory ./overlays/sets;
+
+        pkgs = sets.base;
+
         treefmtEval = treefmt-nix.lib.evalModule pkgs ./treefmt.nix;
       in
 
@@ -51,12 +85,7 @@
 
         checks.formatting = treefmtEval.config.build.check self;
 
-        legacyPackages = pkgs.contrastPkgs // {
-          nixpkgs = removeAttrs pkgs [
-            "fenix"
-            "contrastPkgs"
-          ];
-        };
+        legacyPackages = reverseContrastNesting pkgs;
       }
     );
 
