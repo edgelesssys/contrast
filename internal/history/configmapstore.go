@@ -6,6 +6,7 @@ package history
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"os"
@@ -13,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/edgelesssys/contrast/internal/initdata"
+	"github.com/edgelesssys/contrast/internal/kuberesource"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -196,6 +199,48 @@ func (s *ConfigMapStore) Watch(key string) (<-chan []byte, func(), error) {
 	}()
 
 	return result, cancel, nil
+}
+
+// RecoverConfigMaps reconstructs all config maps needed for recovering the Coordinator state
+// from the given manifests, policies, and latest transition information.
+func RecoverConfigMaps(manifests [][]byte, policies [][]byte, latestTransitionHash []byte, latestTransitionSignature []byte) ([]any, error) {
+	var hist []any
+	appendCm := func(pathFmt string, hash [HashSize]byte, content []byte) error {
+		hashStr := hex.EncodeToString(hash[:])
+		cmName, err := objectName(fmt.Sprintf(pathFmt, hashStr))
+		if err != nil {
+			return err
+		}
+		hist = append(hist, kuberesource.ConfigMap(cmName, "").WithBinaryData(map[string][]byte{hashStr: content}))
+		return nil
+	}
+	for _, m := range manifests {
+		if err := appendCm("manifests/%s", Digest(m), m); err != nil {
+			return nil, fmt.Errorf("creating config map for manifest: %w", err)
+		}
+	}
+	for _, p := range policies {
+		initdata := initdata.Raw(p)
+		if err := appendCm("policies/%s", Digest(initdata), initdata); err != nil {
+			return nil, fmt.Errorf("creating config map for policy: %w", err)
+		}
+	}
+	transitions := BuildTransitionChain(manifests)
+	for _, t := range transitions {
+		if err := appendCm("transitions/%s", t.Digest(), t.MarshalBinary()); err != nil {
+			return nil, fmt.Errorf("creating config map for transition: %w", err)
+		}
+	}
+	latest := &LatestTransition{
+		TransitionHash: [HashSize]byte(latestTransitionHash),
+		Signature:      latestTransitionSignature,
+	}
+	cmName, err := objectName("transitions/latest")
+	if err != nil {
+		return nil, fmt.Errorf("creating config map for latest transition: %w", err)
+	}
+	cm := kuberesource.ConfigMap(cmName, "").WithBinaryData(map[string][]byte{"latest": latest.MarshalBinary()})
+	return append(hist, cm), nil
 }
 
 func (s *ConfigMapStore) newEntry(cmName, key string, value []byte) *corev1.ConfigMap {

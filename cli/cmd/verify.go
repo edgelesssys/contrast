@@ -17,7 +17,9 @@ import (
 	"github.com/edgelesssys/contrast/internal/attestation/certcache"
 	"github.com/edgelesssys/contrast/internal/fsstore"
 	"github.com/edgelesssys/contrast/internal/grpc/dialer"
+	"github.com/edgelesssys/contrast/internal/history"
 	"github.com/edgelesssys/contrast/internal/initdata"
+	"github.com/edgelesssys/contrast/internal/kuberesource"
 	"github.com/edgelesssys/contrast/internal/manifest"
 	"github.com/edgelesssys/contrast/internal/userapi"
 	"github.com/edgelesssys/contrast/sdk"
@@ -98,6 +100,15 @@ func runVerify(cmd *cobra.Command, _ []string) error {
 		}
 		filelist[fmt.Sprintf("initdata.%x.toml", digest)] = initdata
 	}
+	history, err := history.RecoverConfigMaps(resp.Manifests, resp.Policies, resp.LatestTransitionHash, resp.LatestTransitionSignature)
+	if err != nil {
+		return fmt.Errorf("getting Coordinator history: %w", err)
+	}
+	historyBytes, err := kuberesource.EncodeResources(history...)
+	if err != nil {
+		return fmt.Errorf("encoding Coordinator history: %w", err)
+	}
+	filelist[historyFilename] = historyBytes
 	if err := writeFilelist(filepath.Join(flags.workspaceDir, verifyDir), filelist); err != nil {
 		return fmt.Errorf("writing filelist: %w", err)
 	}

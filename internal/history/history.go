@@ -98,7 +98,7 @@ func (h *History) GetTransition(hash [HashSize]byte) (*Transition, error) {
 
 // SetTransition sets the transition and returns its hash.
 func (h *History) SetTransition(transition *Transition) ([HashSize]byte, error) {
-	return h.setContentaddressed("transitions/%s", transition.marshalBinary())
+	return h.setContentaddressed("transitions/%s", transition.MarshalBinary())
 }
 
 // GetLatest verifies the latest transition with the given public key and returns it.
@@ -137,7 +137,7 @@ func (h *History) SetLatest(oldT, newT *LatestTransition, signingKey *ecdsa.Priv
 	if err := newT.sign(signingKey); err != nil {
 		return fmt.Errorf("signing latest transition: %w", err)
 	}
-	if err := h.store.CompareAndSwap("transitions/latest", oldT.marshalBinary(), newT.marshalBinary()); err != nil {
+	if err := h.store.CompareAndSwap("transitions/latest", oldT.MarshalBinary(), newT.MarshalBinary()); err != nil {
 		return fmt.Errorf("setting latest transition: %w", err)
 	}
 	return nil
@@ -247,7 +247,8 @@ func (t *Transition) unmarshalBinary(data []byte) error {
 	return nil
 }
 
-func (t *Transition) marshalBinary() []byte {
+// MarshalBinary returns the binary representation of the Transition.
+func (t *Transition) MarshalBinary() []byte {
 	data := make([]byte, 2*HashSize)
 	copy(data[:HashSize], t.ManifestHash[:])
 	copy(data[HashSize:], t.PreviousTransitionHash[:])
@@ -256,18 +257,13 @@ func (t *Transition) marshalBinary() []byte {
 
 // Digest returns the digest of the Transition.
 func (t *Transition) Digest() [HashSize]byte {
-	return Digest(t.marshalBinary())
+	return Digest(t.MarshalBinary())
 }
 
 // LatestTransition is the latest transition signed by the Coordinator.
 type LatestTransition struct {
 	TransitionHash [HashSize]byte
-	signature      []byte
-}
-
-// Signature returns the signature of the LatestTransition.
-func (l *LatestTransition) Signature() []byte {
-	return l.signature
+	Signature      []byte
 }
 
 func (l *LatestTransition) unmarshalBinary(data []byte) error {
@@ -275,35 +271,36 @@ func (l *LatestTransition) unmarshalBinary(data []byte) error {
 		return errors.New("latest transition has invalid length")
 	}
 	sigLen := len(data) - HashSize
-	l.signature = make([]byte, sigLen)
+	l.Signature = make([]byte, sigLen)
 	copy(l.TransitionHash[:], data[:HashSize])
-	copy(l.signature, data[HashSize:])
+	copy(l.Signature, data[HashSize:])
 	return nil
 }
 
-func (l *LatestTransition) marshalBinary() []byte {
+// MarshalBinary returns the binary representation of the LatestTransition.
+func (l *LatestTransition) MarshalBinary() []byte {
 	if l == nil {
 		return []byte{}
 	}
-	data := make([]byte, HashSize+len(l.signature))
+	data := make([]byte, HashSize+len(l.Signature))
 	copy(data[:HashSize], l.TransitionHash[:])
-	copy(data[HashSize:], l.signature)
+	copy(data[HashSize:], l.Signature)
 	return data
 }
 
 // Digest returns the digest of the LatestTransition.
 func (l *LatestTransition) Digest() [HashSize]byte {
-	return Digest(l.marshalBinary())
+	return Digest(l.MarshalBinary())
 }
 
 func (l *LatestTransition) sign(key *ecdsa.PrivateKey) error {
 	var err error
-	l.signature, err = ecdsa.SignASN1(rand.Reader, key, l.TransitionHash[:])
+	l.Signature, err = ecdsa.SignASN1(rand.Reader, key, l.TransitionHash[:])
 	return err
 }
 
 func (l *LatestTransition) verify(key *ecdsa.PublicKey) error {
-	if !ecdsa.VerifyASN1(key, l.TransitionHash[:], l.signature) {
+	if !ecdsa.VerifyASN1(key, l.TransitionHash[:], l.Signature) {
 		return errors.New("latest transition signature is invalid")
 	}
 	return nil
@@ -347,4 +344,22 @@ type Store interface {
 	//
 	// If the value of key changes, the new value is sent on the channel.
 	Watch(key string) (ch <-chan []byte, cancel func(), err error)
+}
+
+// BuildTransitionChain builds a chain of transitions from the given manifests,
+// where each transition corresponds to one manifest and includes the hash of the previous transition.
+// Manifests are expected to be ordered from oldest to newest. The returned slice is ordered from oldest to newest as well.
+func BuildTransitionChain(manifests [][]byte) []*Transition {
+	transitions := make([]*Transition, 0, len(manifests))
+	lastTransitionHash := [HashSize]byte{}
+	for _, m := range manifests {
+		md := Digest(m)
+		t := &Transition{
+			PreviousTransitionHash: lastTransitionHash,
+			ManifestHash:           md,
+		}
+		transitions = append(transitions, t)
+		lastTransitionHash = t.Digest()
+	}
+	return transitions
 }

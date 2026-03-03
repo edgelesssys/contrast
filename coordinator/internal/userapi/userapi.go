@@ -170,7 +170,7 @@ func (s *Server) GetManifests(ctx context.Context, _ *userapi.GetManifestsReques
 		MeshCA:    ca.GetMeshCACert(),
 		LatestTransition: &userapi.LatestTransition{
 			TransitionHash: state.LatestTransition().TransitionHash[:],
-			Signature:      state.LatestTransition().Signature(),
+			Signature:      state.LatestTransition().Signature,
 		},
 	}
 	for _, policy := range policies {
