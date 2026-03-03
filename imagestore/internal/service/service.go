@@ -46,7 +46,7 @@ func (s *SecureImageStoreService) SecureMount(
 		slog.String("mapper", params.MapperDevice),
 	)
 
-	markerFile := path.Join(req.MountPoint, "marker")
+	markerFile := path.Join(req.MountPoint, ".contrast_mount_point_marker")
 	if _, err := os.Stat(markerFile); err == nil {
 		log.Info("store is already mounted, skipping")
 		return &securemountapi.SecureMountResponse{
