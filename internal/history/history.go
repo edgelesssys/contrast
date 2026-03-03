@@ -348,3 +348,21 @@ type Store interface {
 	// If the value of key changes, the new value is sent on the channel.
 	Watch(key string) (ch <-chan []byte, cancel func(), err error)
 }
+
+// BuildTransitionChain builds a chain of transitions from the given manifests,
+// where each transition corresponds to one manifest and includes the hash of the previous transition.
+// Manifests are expected to be ordered from oldest to newest. The returned slice is ordered from oldest to newest as well.
+func BuildTransitionChain(manifests [][]byte) []*Transition {
+	transitions := make([]*Transition, 0, len(manifests))
+	lastTransitionHash := [HashSize]byte{}
+	for _, m := range manifests {
+		md := Digest(m)
+		t := &Transition{
+			PreviousTransitionHash: lastTransitionHash,
+			ManifestHash:           md,
+		}
+		transitions = append(transitions, t)
+		lastTransitionHash = t.Digest()
+	}
+	return transitions
+}

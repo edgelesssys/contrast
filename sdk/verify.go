@@ -169,7 +169,7 @@ func (c Client) ValidateAttestation(ctx context.Context, nonce []byte, attestati
 		return nil, fmt.Errorf("getting validators: %w", err)
 	}
 
-	transitions := buildTransitionChain(resp.Manifests)
+	transitions := history.BuildTransitionChain(resp.Manifests)
 	transitionDigest := transitions[len(transitions)-1].Digest()
 	reportData := httpapi.ConstructReportData(nonce, transitionDigest[:], &resp.CoordinatorState)
 
@@ -210,19 +210,4 @@ type CoordinatorState struct {
 	LatestTransitionHash []byte
 	// Signature of the latest transition hash by the Coordinator.
 	LatestTransitionSignature []byte
-}
-
-func buildTransitionChain(manifests [][]byte) []*history.Transition {
-	transitions := make([]*history.Transition, 0, len(manifests))
-	lastTransitionHash := [history.HashSize]byte{}
-	for _, m := range manifests {
-		md := history.Digest(m)
-		t := &history.Transition{
-			PreviousTransitionHash: lastTransitionHash,
-			ManifestHash:           md,
-		}
-		transitions = append(transitions, t)
-		lastTransitionHash = t.Digest()
-	}
-	return transitions
 }

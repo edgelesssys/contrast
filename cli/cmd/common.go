@@ -33,6 +33,7 @@ const (
 	rulesFilename                = "rules.rego"
 	layersCacheFilename          = "layers-cache.json"
 	latestTransitionHashFilename = "latest-transition"
+	historyFilename              = "history.yml"
 	verifyDir                    = "verify"
 )
 
