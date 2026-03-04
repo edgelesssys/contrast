@@ -24,7 +24,6 @@ import (
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/containerdconfig"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/kataconfig"
 	"github.com/edgelesssys/contrast/nodeinstaller/internal/targetconfig"
-	"github.com/google/go-sev-guest/abi"
 )
 
 func main() {
@@ -170,15 +169,7 @@ func envWithDefault(key, dflt string) string {
 }
 
 func containerdRuntimeConfig(basePath, configPath string, platform platforms.Platform, qemuExtraKernelParams, imagepullerConfigPath string, debugRuntime bool) error {
-	var snpIDBlock kataconfig.SnpIDBlock
-	if platforms.IsSNP(platform) && platforms.IsQEMU(platform) {
-		var err error
-		snpIDBlock, err = kataconfig.SnpIDBlockForPlatform(platform, abi.SevProduct().Name)
-		if err != nil {
-			return fmt.Errorf("getting SNP ID block for platform %q: %w", platform, err)
-		}
-	}
-	kataRuntimeConfig, err := kataconfig.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, snpIDBlock, imagepullerConfigPath, debugRuntime)
+	kataRuntimeConfig, err := kataconfig.KataRuntimeConfig(basePath, platform, qemuExtraKernelParams, imagepullerConfigPath, debugRuntime)
 	if err != nil {
 		return fmt.Errorf("generating kata runtime config: %w", err)
 	}
