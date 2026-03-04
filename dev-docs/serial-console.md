@@ -1,6 +1,12 @@
 # Obtain a serial console inside the pod VM
 
-Set `withDebug ? true` in `packages/by-name/contrast/node-installer-image/package.nix`.
+There are two way to obtain serial console: via `justfile.env` and via `withDebug` option.
+Prefer the `justfile.env` way when ever possible.
+
+To enable access via serial console, set `set=debug` in your `justfile.env`.
+This is only working if you want to debug the `base` set.
+
+For other sets, set `withDebug ? true` in `packages/by-name/contrast/node-installer-image/package.nix`.
 
 Then, run `just`.
 
