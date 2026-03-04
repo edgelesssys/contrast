@@ -26,7 +26,7 @@ let
         };
         launch-digest = kata.calculateSnpLaunchDigest {
           inherit os-image;
-          debug = node-installer-image.debugRuntime;
+          inherit (node-installer-image) withDebug;
         };
       in
       [
@@ -58,7 +58,7 @@ let
           let
             launch-digests = kata.calculateTdxLaunchDigests {
               inherit os-image ovmf withGPU;
-              debug = node-installer-image.debugRuntime;
+              inherit (node-installer-image) withDebug;
             };
           in
           {
