@@ -138,6 +138,12 @@ buildGoModule (finalAttrs: {
       # This is a problem for us because we need to know the precise kernel command line at buildtime.
       # TODO(charludo): attempt to make this behavior configurable upstream
       ./0020-runtime-do-not-add-nr_vcpus-to-kernel-command-line.patch
+
+      # Enables the Kata runtime to set the SNP ID blocks for the CPU model it is running on
+      # based on Pod annotations. This allows us to run Pods with multiple CPUs.
+      # This patch relies on changes made by 0001-emulate-CPU-model-that-most-closely-matches-the-host.patch
+      # together with being specific to our use case. There are no plans to upstream it.
+      ./0021-runtime-add-SNP-ID-block-from-Pod-annotations.patch
     ];
   };
 
