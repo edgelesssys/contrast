@@ -195,6 +195,12 @@ buildGoModule (finalAttrs: {
       # mismatch.
       # Upstream PR: https://github.com/kata-containers/kata-containers/pull/12570.
       ./0028-runtime-don-t-stop-after-first-VFIO-mismatch.patch
+
+      # Enables the Kata runtime to set the SNP ID blocks for the CPU model it is running on
+      # based on Pod annotations. This allows us to run Pods with multiple CPUs.
+      # This patch relies on changes made by 0001-emulate-CPU-model-that-most-closely-matches-the-host.patch
+      # together with being specific to our use case. There are no plans to upstream it.
+      ./0029-runtime-add-SNP-ID-block-from-Pod-annotations.patch
     ];
   };
 
