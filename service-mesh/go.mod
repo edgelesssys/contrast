@@ -1,6 +1,6 @@
 module github.com/edgelesssys/contrast/service-mesh
 
-go 1.25.0
+go 1.25.6
 
 replace github.com/edgelesssys/contrast => ..
 
