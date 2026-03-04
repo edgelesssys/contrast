@@ -17,7 +17,7 @@ func RuntimeHandler(platform platforms.Platform) (string, error) {
 		return "", err
 	}
 	for runtimeHandler := range mapping {
-		p, err := platformFromHandler(runtimeHandler)
+		p, err := PlatformFromHandler(runtimeHandler)
 		if err != nil {
 			return "", fmt.Errorf("invalid runtime handler name %s: %w", runtimeHandler, err)
 		}
@@ -30,8 +30,8 @@ func RuntimeHandler(platform platforms.Platform) (string, error) {
 	return "", fmt.Errorf("no runtime handler found for platform %s", platform)
 }
 
-// platformFromHandler extracts the platform from the runtime handler name.
-func platformFromHandler(handler string) (platforms.Platform, error) {
+// PlatformFromHandler extracts the platform from the runtime handler name.
+func PlatformFromHandler(handler string) (platforms.Platform, error) {
 	rest, found := strings.CutPrefix(handler, "contrast-cc-")
 	if !found {
 		return platforms.Unknown, fmt.Errorf("invalid handler name: %s", handler)
