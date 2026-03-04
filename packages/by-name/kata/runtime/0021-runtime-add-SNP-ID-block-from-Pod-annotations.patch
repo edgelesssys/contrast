@@ -1,0 +1,192 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Daniel=20Wei=C3=9Fe?= <dw@edgeless.systems>
+Date: Wed, 4 Mar 2026 10:42:36 +0100
+Subject: [PATCH] runtime: add SNP ID block from Pod annotations
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+A Pod VM requires different ID blocks depending
+on CPU model and number of CPUs assigned to the VM.
+Since CPU model is not known at the time the K8s
+yaml files are written, we opted to add ID Blocks
+for all supported CPU models as annotations.
+At runtime we can then choose the correct value
+and start the VM with the requested amount of CPUs.
+
+Signed-off-by: Daniel Weiße <dw@edgeless.systems>
+---
+ src/runtime/pkg/oci/utils.go                  | 27 ++++++++++++++++
+ src/runtime/virtcontainers/hypervisor.go      | 22 +++++++++++++
+ .../pkg/annotations/annotations.go            | 19 ++++++++++++
+ src/runtime/virtcontainers/qemu_amd64.go      | 31 ++++++++++++++-----
+ 4 files changed, 92 insertions(+), 7 deletions(-)
+
+diff --git a/src/runtime/pkg/oci/utils.go b/src/runtime/pkg/oci/utils.go
+index b8a5285f66839c9d79d23e97156c73f4a3cff1bd..23ace5d12b0739f460630487ba092e6742ebc920 100644
+--- a/src/runtime/pkg/oci/utils.go
++++ b/src/runtime/pkg/oci/utils.go
+@@ -598,6 +598,33 @@ func addHypervisorConfigOverrides(ocispec specs.Spec, config *vc.SandboxConfig,
+ 		config.HypervisorConfig.SGXEPCSize = size
+ 	}
+ 
++	if value := ocispec.Annotations[vcAnnotations.SNPIDBlock+vcAnnotations.MilanSuffix]; value != "" {
++		config.HypervisorConfig.SnpIdBlockMilan = value
++	}
++	if value := ocispec.Annotations[vcAnnotations.SNPIDBlock+vcAnnotations.GenoaSuffix]; value != "" {
++		config.HypervisorConfig.SnpIdBlockGenoa = value
++	}
++	if value := ocispec.Annotations[vcAnnotations.SNPIDAuth+vcAnnotations.MilanSuffix]; value != "" {
++		config.HypervisorConfig.SnpIdAuthMilan = value
++	}
++	if value := ocispec.Annotations[vcAnnotations.SNPIDAuth+vcAnnotations.GenoaSuffix]; value != "" {
++		config.HypervisorConfig.SnpIdAuthGenoa = value
++	}
++	if value := ocispec.Annotations[vcAnnotations.SNPGuestPolicy+vcAnnotations.MilanSuffix]; value != "" {
++		guestPolicy, err := strconv.ParseUint(value, 10, 64)
++		if err != nil {
++			return fmt.Errorf("Couldn't parse Milan SNP guest policy '%s': %w", value, err)
++		}
++		config.HypervisorConfig.SnpGuestPolicyMilan = &guestPolicy
++	}
++	if value := ocispec.Annotations[vcAnnotations.SNPGuestPolicy+vcAnnotations.GenoaSuffix]; value != "" {
++		guestPolicy, err := strconv.ParseUint(value, 10, 64)
++		if err != nil {
++			return fmt.Errorf("Couldn't parse Genoa SNP guest policy '%s': %w", value, err)
++		}
++		config.HypervisorConfig.SnpGuestPolicyGenoa = &guestPolicy
++	}
++
+ 	if err := addHypervisorGPUOverrides(ocispec, config); err != nil {
+ 		return err
+ 	}
+diff --git a/src/runtime/virtcontainers/hypervisor.go b/src/runtime/virtcontainers/hypervisor.go
+index 4f3a2a6f021485d8f4ed19e1bb32dae1077fd6eb..79b633267b29d6999529f2d791ef81b92dcd5a32 100644
+--- a/src/runtime/virtcontainers/hypervisor.go
++++ b/src/runtime/virtcontainers/hypervisor.go
+@@ -619,13 +619,35 @@ type HypervisorConfig struct {
+ 	// for the SNP_LAUNCH_FINISH command defined in the SEV-SNP firmware ABI (default: all-zero)
+ 	SnpIdBlock string
+ 
++	// SnpIdBlockMilan is the 96-byte, base64-encoded blob to provide the `ID Block` structure
++	// specifically for Milan CPUs
++	SnpIdBlockMilan string
++
++	// SnpIdBlockGenoa is the 96-byte, base64-encoded blob to provide the `ID Block` structure
++	// specifically for Genoa CPUs
++	SnpIdBlockGenoa string
++
+ 	// SnpIdAuth is the 4096-byte, base64-encoded blob to provide the ‘ID Authentication Information Structure’
+ 	// for the SNP_LAUNCH_FINISH command defined in the SEV-SNP firmware ABI (default: all-zero)
+ 	SnpIdAuth string
+ 
++	// SnpIdAuthMilan is the 4096-byte, base64-encoded blob to provide the ‘ID Authentication Information Structure’
++	// specifically for Milan CPUs.
++	SnpIdAuthMilan string
++
++	// SnpIdAuthGenoa is the 4096-byte, base64-encoded blob to provide the ‘ID Authentication Information Structure’
++	// specifically for Genoa CPUs.
++	SnpIdAuthGenoa string
++
+ 	// SnpGuestPolicy is the integer representation of the SEV-SNP guest policy.
+ 	SnpGuestPolicy *uint64
+ 
++	// SnpGuestPolicyMilan is the integer representation of the SEV-SNP guest policy specifically for Milan CPUs.
++	SnpGuestPolicyMilan *uint64
++
++	// SnpGuestPolicyGenoa is the integer representation of the SEV-SNP guest policy specifically for Genoa CPUs.
++	SnpGuestPolicyGenoa *uint64
++
+ 	// KernelParams are additional guest kernel parameters.
+ 	KernelParams []Param
+ 
+diff --git a/src/runtime/virtcontainers/pkg/annotations/annotations.go b/src/runtime/virtcontainers/pkg/annotations/annotations.go
+index 63caa831bc1ef95c8b68c99ed94d5c5814b24428..a1f2150f728e1b798d1e08ded8364034ef58e9f4 100644
+--- a/src/runtime/virtcontainers/pkg/annotations/annotations.go
++++ b/src/runtime/virtcontainers/pkg/annotations/annotations.go
+@@ -256,6 +256,25 @@ const (
+ 
+ 	// Initdata is the initdata passed in when CreateVM
+ 	Initdata = kataConfAnnotationsPrefix + "hypervisor.cc_init_data"
++
++	//
++	// Contrast specific annotations
++	//
++
++	// MilanSuffix is a suffix added to SNP related annotations for the Milan platform.
++	MilanSuffix = "_Milan"
++
++	// GenoaSuffix is a suffix added to SNP related annotations for the Genoa platform.
++	GenoaSuffix = "_Genoa"
++
++	// SNPIDBlock is a sandbox annotation to provide a custom SNP ID block for the VM.
++	SNPIDBlock = kataAnnotHypervisorPrefix + "snp_id_block"
++
++	// SNPIDAuth is a sandbox annotation to provide a custom SNP ID auth for the VM.
++	SNPIDAuth  = kataAnnotHypervisorPrefix + "snp_id_auth"
++	
++	// SNPGuestPolicy is a sandbox annotation to specify the SNP guest policy for the VM.
++	SNPGuestPolicy = kataAnnotHypervisorPrefix + "snp_guest_policy"
+ )
+ 
+ // Runtime related annotations
+diff --git a/src/runtime/virtcontainers/qemu_amd64.go b/src/runtime/virtcontainers/qemu_amd64.go
+index 7d8b2a3a2f7be02b853ba0c6036491eb3326b618..78757f9d4f3462974968ce13e96472b168f09a6d 100644
+--- a/src/runtime/virtcontainers/qemu_amd64.go
++++ b/src/runtime/virtcontainers/qemu_amd64.go
+@@ -21,6 +21,12 @@ import (
+ 	govmmQemu "github.com/kata-containers/kata-containers/src/runtime/pkg/govmm/qemu"
+ )
+ 
++const (
++	cpuModelEpycGenoa   = "EPYC-Genoa"
++	cpuModelEpycMilan   = "EPYC-Milan"
++	cpuModelEpycGeneric = "EPYC-v4"
++)
++
+ type qemuAmd64 struct {
+ 	// inherit from qemuArchBase, overwrite methods if needed
+ 	qemuArchBase
+@@ -128,9 +134,21 @@ func newQemuArch(config HypervisorConfig) (qemuArch, error) {
+ 		vmFactory:      factory,
+ 		snpGuest:       config.SevSnpGuest,
+ 		qgsPort:        config.QgsPort,
+-		snpIdBlock:     config.SnpIdBlock,
+-		snpIdAuth:      config.SnpIdAuth,
+-		snpGuestPolicy: config.SnpGuestPolicy,
++	}
++
++	switch q.cpuModel() {
++	case cpuModelEpycMilan:
++		q.snpIdBlock = config.SnpIdBlockMilan
++		q.snpIdAuth = config.SnpIdAuthMilan
++		q.snpGuestPolicy = config.SnpGuestPolicyMilan
++	case cpuModelEpycGenoa:
++		q.snpIdBlock = config.SnpIdBlockGenoa
++		q.snpIdAuth = config.SnpIdAuthGenoa
++		q.snpGuestPolicy = config.SnpGuestPolicyGenoa
++	default:
++		q.snpIdBlock = config.SnpIdBlock
++		q.snpIdAuth = config.SnpIdAuth
++		q.snpGuestPolicy = config.SnpGuestPolicy
+ 	}
+ 
+ 	if config.ConfidentialGuest {
+@@ -194,14 +212,13 @@ func (q *qemuAmd64) cpuModel() string {
+ 			// model value.
+ 			switch cpuid.DisplayModel {
+ 			case 0x01:
+-				cpuModel = "EPYC-Milan"
++				cpuModel = cpuModelEpycMilan
+ 			case 0x11:
+-				cpuModel = "EPYC-Genoa"
++				cpuModel = cpuModelEpycGenoa
+ 			default:
+ 				// Fall back to a generic CPU.
+-				cpuModel = "EPYC-v4"
++				cpuModel = cpuModelEpycGeneric
+ 			}
+-
+ 		}
+ 	}
+ 
