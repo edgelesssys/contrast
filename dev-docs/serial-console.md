@@ -1,6 +1,6 @@
 # Obtain a serial console inside the pod VM
 
-Set `debugRuntime ? true` in `packages/by-name/contrast/node-installer-image/package.nix`.
+Set `withDebug ? true` in `packages/by-name/contrast/node-installer-image/package.nix`.
 
 Then, run `just`.
 

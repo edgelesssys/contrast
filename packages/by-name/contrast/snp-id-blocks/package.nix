@@ -14,7 +14,7 @@ let
       guestPolicy = builtins.fromJSON (builtins.readFile ../reference-values/snpGuestPolicyQEMU.json);
       launch-digest = kata.calculateSnpLaunchDigest {
         inherit os-image;
-        debug = node-installer-image.debugRuntime;
+        inherit (node-installer-image) withDebug;
       };
       idBlocks = calculateSnpIDBlock {
         snp-launch-digest = launch-digest;
