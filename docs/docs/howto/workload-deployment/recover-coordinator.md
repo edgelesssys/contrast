@@ -39,3 +39,15 @@ existing workloads won't be able to communicate with workloads newly spawned.
 All workloads should be restarted after the recovery succeeded.
 
 :::
+
+### Recovering the manifest history
+
+The Coordinator uses a key-value store backed by Kubernetes ConfigMaps to store the manifest history and policy information.
+This key-value store is what allows the Coordinator to recover after a restart.
+If the Coordinator StatefulSet is deleted, for example if the entire namespace is deleted, the ConfigMap store is lost and normal recovery isn't possible.
+In order to recover the Coordinator state in this case, you can use the manifest history obtained by a previous `contrast verify` once the Coordinator is reapplied.
+
+```sh
+kubectl apply -n <namespace> -f verify/history.yml
+contrast recover -c "${coordinator}:1313"
+```
