@@ -10,7 +10,7 @@ buildGoModule (finalAttrs: {
   src = ../../../imagepuller;
 
   proxyVendor = true;
-  vendorHash = "sha256-Davvvqw9ZoYzqH62hPpN88FjkPBwMq6vWgZRcdhSNfk=";
+  vendorHash = "sha256-BGzpfJFRx61MuWZaTv6dH+bXzGp1VFzf6CzSqG/pq+w=";
 
   env.CGO_ENABLED = 0;
   dontFixup = true;
