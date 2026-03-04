@@ -183,3 +183,15 @@ func IsQEMU(p Platform) bool {
 		return false
 	}
 }
+
+// WithGPU returns the GPU-enabled version of the platform.
+func (p Platform) WithGPU() Platform {
+	switch p {
+	case MetalQEMUSNP, MetalQEMUSNPGPU:
+		return MetalQEMUSNPGPU
+	case MetalQEMUTDX, MetalQEMUTDXGPU:
+		return MetalQEMUTDXGPU
+	default:
+		return Unknown
+	}
+}

@@ -46,7 +46,7 @@ func (e *EmbeddedReferenceValues) ForPlatform(platform platforms.Platform) (*Ref
 		return nil, err
 	}
 	for handler, referenceValues := range mapping {
-		p, err := platformFromHandler(handler)
+		p, err := PlatformFromHandler(handler)
 		if err != nil {
 			return nil, fmt.Errorf("invalid handler name: %w", err)
 		}
