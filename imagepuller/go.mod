@@ -1,10 +1,10 @@
 module github.com/edgelesssys/contrast/imagepuller
 
-go 1.25.0
+go 1.25.6
 
 require (
 	github.com/containerd/ttrpc v1.2.7
-	github.com/google/go-containerregistry v0.20.7
+	github.com/google/go-containerregistry v0.21.2
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/spf13/cobra v1.10.2
