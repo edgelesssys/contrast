@@ -14,6 +14,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+    env:
+      SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -26,7 +28,7 @@ jobs:
       - id: kataversion
         working-directory: contrast
         run: |
-          echo "v=$(nix eval --raw .#kata.runtime.version)" >> "$GITHUB_OUTPUT"
+          echo "v=$(nix eval --raw ".#${SET}.kata.runtime.version")" >> "$GITHUB_OUTPUT"
       - name: Check out Kata
         env:
           KATA_VERSION: ${{ steps.kataversion.outputs.v }}

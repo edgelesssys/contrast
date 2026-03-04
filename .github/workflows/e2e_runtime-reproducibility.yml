@@ -27,6 +27,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
+    env:
+      SET: base
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -44,11 +46,11 @@ jobs:
       - name: Build
         id: build
         run: |
-          nix build .#${{ matrix.build-target }} --option substituters https://cache.nixos.org --builders ""
+          nix build ".#${SET}.${{ matrix.build-target }}" --option substituters https://cache.nixos.org --builders ""
           reference_checksum="$(jq  -r '.manifests[0].digest' result/index.json)"
           echo "$reference_checksum" > ${{ matrix.build-target }}-${{ matrix.os }}-reference_checksum.txt
 
-          nix build .#${{ matrix.build-target }} --rebuild --option substituters https://cache.nixos.org --builders "" -o rebuild
+          nix build ".#${SET}.${{ matrix.build-target }}" --rebuild --option substituters https://cache.nixos.org --builders "" -o rebuild
           rebuild_checksum="$(jq  -r '.manifests[0].digest' rebuild/index.json)"
           echo "$rebuild_checksum" > ${{ matrix.build-target }}-${{ matrix.os }}-rebuild_checksum.txt
       - name: Upload Build Artifacts

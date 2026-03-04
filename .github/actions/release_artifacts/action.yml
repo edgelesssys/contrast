@@ -28,13 +28,14 @@ runs:
       shell: bash
       env:
         CONTAINER_REGISTRY: ${{ inputs.container_registry }}
+        SET: base
       run: |
-        coordinatorImg=$(nix run .#containers.push-coordinator -- "${CONTAINER_REGISTRY}/contrast/coordinator")
-        nodeInstallerKataImg=$(nix run .#containers.push-node-installer-kata -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata")
-        nodeInstallerKataGPUImg=$(nix run .#containers.push-node-installer-kata-gpu -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata-gpu")
-        initializerImg=$(nix run .#containers.push-initializer -- "${CONTAINER_REGISTRY}/contrast/initializer")
-        serviceMeshImg=$(nix run .#containers.push-service-mesh-proxy -- "${CONTAINER_REGISTRY}/contrast/service-mesh-proxy")
-        debugShellImg=$(nix run .#containers.push-debugshell -- "${CONTAINER_REGISTRY}/contrast/debugshell")
+        coordinatorImg=$(nix run ".#${SET}.containers.push-coordinator" -- "${CONTAINER_REGISTRY}/contrast/coordinator")
+        nodeInstallerKataImg=$(nix run ".#${SET}.containers.push-node-installer-kata" -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata")
+        nodeInstallerKataGPUImg=$(nix run ".#${SET}.containers.push-node-installer-kata-gpu" -- "${CONTAINER_REGISTRY}/contrast/node-installer-kata-gpu")
+        initializerImg=$(nix run ".#${SET}.containers.push-initializer" -- "${CONTAINER_REGISTRY}/contrast/initializer")
+        serviceMeshImg=$(nix run ".#${SET}.containers.push-service-mesh-proxy" -- "${CONTAINER_REGISTRY}/contrast/service-mesh-proxy")
+        debugShellImg=$(nix run ".#${SET}.containers.push-debugshell" -- "${CONTAINER_REGISTRY}/contrast/debugshell")
         echo "coordinatorImg=$coordinatorImg" | tee -a "$GITHUB_OUTPUT"
         echo "nodeInstallerMsftImg=$nodeInstallerMsftImg" | tee -a "$GITHUB_OUTPUT"
         echo "nodeInstallerKataImg=$nodeInstallerKataImg" | tee -a "$GITHUB_OUTPUT"
@@ -123,15 +124,19 @@ runs:
         EOF
     - name: Create coordinator resource definitions
       shell: bash
+      env:
+        SET: base
       run: |
         mkdir -p workspace
 
-        nix shell .#contrast.resourcegen --command resourcegen \
+        nix shell ".#${SET}.contrast.resourcegen" --command resourcegen \
           --image-replacements "./image-replacements.txt" \
           --add-load-balancers \
           coordinator > "workspace/coordinator.yml"
     - name: Create runtime resource definitions
       shell: bash
+      env:
+        SET: base
       run: |
         platforms=(
           "metal-qemu-snp-gpu"
@@ -140,7 +145,7 @@ runs:
           "metal-qemu-tdx-gpu"
         )
         for platform in "${platforms[@]}"; do
-          nix shell .#contrast.resourcegen --command resourcegen \
+          nix shell ".#${SET}.contrast.resourcegen" --command resourcegen \
             --image-replacements ./image-replacements.txt \
             --namespace contrast-system \
             --add-namespace-object \
@@ -149,28 +154,32 @@ runs:
         done
     - name: Create demo resource definitions
       shell: bash
+      env:
+        SET: base
       run: |
-        nix shell .#contrast.resourcegen --command resourcegen \
+        nix shell ".#${SET}.contrast.resourcegen" --command resourcegen \
           --image-replacements ./image-replacements.txt \
           --add-load-balancers emojivoto-sm-ingress > workspace/emojivoto-demo.yml
-        nix shell .#contrast.resourcegen --command resourcegen \
+        nix shell ".#${SET}.contrast.resourcegen" --command resourcegen \
           --image-replacements ./image-replacements.txt \
           --add-load-balancers mysql > workspace/mysql-demo.yml
-        nix shell .#contrast.resourcegen --command resourcegen \
+        nix shell ".#${SET}.contrast.resourcegen" --command resourcegen \
           --image-replacements ./image-replacements.txt \
           --add-load-balancers vault > workspace/vault-demo.yml
     - name: Create node installer target configs
       shell: bash
       run: |
-        nix shell .#contrast.resourcegen --command resourcegen \
+        nix shell ".#${SET}.contrast.resourcegen" --command resourcegen \
           --node-installer-target-conf-type k3s \
           --namespace contrast-system \
           --add-namespace-object \
           node-installer-target-conf > workspace/node-installer-target-config-k3s.yml
     - name: Build CLI
       shell: bash
+      env:
+        SET: base
       run: |
-        nix build -L .#contrast.cli-release --out-link workspace/contrast-cli
+        nix build -L ".#${SET}.contrast.cli-release" --out-link workspace/contrast-cli
     - name: AWS login (IAM role)
       uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5.1.1
       with:
