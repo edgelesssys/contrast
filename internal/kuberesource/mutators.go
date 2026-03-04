@@ -770,3 +770,24 @@ func needsServiceMesh(meta *applymetav1.ObjectMetaApplyConfiguration) bool {
 
 	return ingressOk || egressOk || portOk
 }
+
+// PodSpecRequiresGPU returns true if the PodSpec requires a GPU.
+func PodSpecRequiresGPU(spec *applycorev1.PodSpecApplyConfiguration) bool {
+	if spec == nil {
+		return false
+	}
+
+	wantsGPU := func(container applycorev1.ContainerApplyConfiguration) bool {
+		if container.Resources != nil && container.Resources.Limits != nil {
+			for resource := range *container.Resources.Limits {
+				if strings.HasPrefix(string(resource), "nvidia.com/") {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	return slices.ContainsFunc(spec.Containers, wantsGPU) ||
+		slices.ContainsFunc(spec.InitContainers, wantsGPU)
+}

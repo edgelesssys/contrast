@@ -93,8 +93,17 @@ func (p PlatformCollection) AddFromResources(resources []any) error {
 			if spec == nil || spec.RuntimeClassName == nil || !strings.HasPrefix(*spec.RuntimeClassName, "contrast-cc-") {
 				return meta, spec
 			}
-			err := p.AddFromString(*spec.RuntimeClassName)
-			errs = errors.Join(errs, err)
+			platform, err := platforms.FromRuntimeClassString(*spec.RuntimeClassName)
+			if err != nil {
+				errs = errors.Join(errs, err)
+				return meta, spec
+			}
+
+			if PodSpecRequiresGPU(spec) {
+				platform = platform.WithGPU()
+			}
+
+			p.Add(platform)
 			return meta, spec
 		})
 	}
