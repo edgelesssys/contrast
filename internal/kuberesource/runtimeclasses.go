@@ -6,7 +6,6 @@ package kuberesource
 import (
 	"errors"
 	"fmt"
-	"log"
 	"maps"
 	"slices"
 	"strings"
@@ -111,15 +110,15 @@ func (p PlatformCollection) AddFromYamlFiles(path string) error {
 	if path != "" {
 		yamlFiles, err := CollectYAMLFiles(path)
 		if err != nil {
-			log.Fatalf("Error collecting deployment files: %v", err)
+			return fmt.Errorf("collecting deployment files: %w", err)
 		}
 		yamlBytes, err := YAMLBytesFromFiles(yamlFiles...)
 		if err != nil {
-			log.Fatalf("Error parsing deployment files: %v", err)
+			return fmt.Errorf("parsing deployment files: %w", err)
 		}
 		deployment, err = UnmarshalApplyConfigurations(yamlBytes)
 		if err != nil {
-			log.Fatalf("Error unmarshaling deployment files: %v", err)
+			return fmt.Errorf("unmarshaling deployment files: %w", err)
 		}
 	}
 	return p.AddFromResources(deployment)
