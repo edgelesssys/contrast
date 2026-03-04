@@ -51,11 +51,7 @@ func TestKataRuntimeConfig(t *testing.T) {
 			require := require.New(t)
 			assert := assert.New(t)
 
-			snpIDBlock := kataconfig.SnpIDBlock{
-				IDAuth:  "PLACEHOLDER_ID_AUTH",
-				IDBlock: "PLACEHOLDER_ID_BLOCK",
-			}
-			cfg, err := kataconfig.KataRuntimeConfig("/", platform, "", snpIDBlock, "", false)
+			cfg, err := kataconfig.KataRuntimeConfig("/", platform, "", "", false)
 			require.NoError(err)
 
 			configBytes, err := cfg.Marshal()
